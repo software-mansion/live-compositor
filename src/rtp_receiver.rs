@@ -1,5 +1,6 @@
 use anyhow::{anyhow, Result};
 use compositor_common::{frame::YuvData, scene::Resolution, Frame};
+use log::warn;
 use std::{fs::File, io::Write, path::PathBuf, sync::Arc, thread};
 
 use ffmpeg_next::{
@@ -63,7 +64,7 @@ impl RtpReceiver {
         let mut decoded_frame = frame::Video::empty();
         for (stream, packet) in input_ctx.packets() {
             if stream.index() != input_index {
-                eprintln!("Received frame from unknown stream, skipping");
+                warn!("Received frame from unknown stream, skipping");
                 continue;
             }
 
@@ -72,7 +73,7 @@ impl RtpReceiver {
                 let frame = match frame_from_av(&mut decoded_frame, &mut pts_offset) {
                     Ok(frame) => frame,
                     Err(err) => {
-                        eprintln!("Dropping frame: {err}");
+                        warn!("Dropping frame: {err}");
                         continue;
                     }
                 };

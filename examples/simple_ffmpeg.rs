@@ -1,5 +1,6 @@
 use anyhow::Result;
 use compositor_pipeline::Pipeline;
+use log::{error, info};
 use serde_json::json;
 use signal_hook::{consts, iterator::Signals};
 use std::{env, fs, process::Command, sync::Arc, thread, time::Duration};
@@ -11,13 +12,16 @@ use crate::common::write_example_sdp_file;
 mod common;
 
 fn main() {
+    env_logger::init_from_env(
+        env_logger::Env::default().filter_or(env_logger::DEFAULT_FILTER_ENV, "info"),
+    );
     ffmpeg_next::format::network::init();
     let pipeline = Arc::new(Pipeline::new());
     let state = Arc::new(State::new(pipeline));
 
     thread::spawn(|| {
         if let Err(err) = start_example_client_code() {
-            eprintln!("{err}")
+            error!("{err}")
         }
     });
 
@@ -30,18 +34,18 @@ fn main() {
 fn start_example_client_code() -> Result<()> {
     thread::sleep(Duration::from_secs(2));
 
-    eprintln!("[example] Sending init request.");
+    info!("[example] Sending init request.");
     common::post(&json!({
         "type": "init",
     }))?;
 
-    eprintln!("[example] Start listening on output port.");
+    info!("[example] Start listening on output port.");
     let output_sdp = write_example_sdp_file(8002)?;
     Command::new("ffplay")
         .args(["-protocol_whitelist", "file,rtp,udp", &output_sdp])
         .spawn()?;
 
-    eprintln!("[example] Download sample.");
+    info!("[example] Download sample.");
     let sample_path = env::current_dir()?.join("examples/assets/sample_1280_720.mp4");
     fs::create_dir_all(sample_path.parent().unwrap())?;
     common::ensure_downloaded(
@@ -49,7 +53,7 @@ fn start_example_client_code() -> Result<()> {
         &sample_path,
     )?;
 
-    eprintln!("[example] Send register output request.");
+    info!("[example] Send register output request.");
     common::post(&json!({
         "type": "register_output",
         "port": 8002,
@@ -59,7 +63,7 @@ fn start_example_client_code() -> Result<()> {
         },
     }))?;
 
-    eprintln!("[example] Send register input request.");
+    info!("[example] Send register input request.");
     common::post(&json!({
         "type": "register_input",
         "port": 8004

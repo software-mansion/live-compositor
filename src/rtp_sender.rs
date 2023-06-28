@@ -1,5 +1,6 @@
 use anyhow::{anyhow, Result};
 use crossbeam_channel::{Receiver, Sender};
+use log::error;
 use std::{path::PathBuf, thread};
 
 use compositor_common::{scene::Resolution, Frame};
@@ -64,13 +65,13 @@ impl RtpSender {
         );
         for frame in receiver.into_iter() {
             if let Err(err) = frame_into_av(frame, &mut av_frame) {
-                eprintln!("Failed to construct AVFrame: {err}");
+                error!("Failed to construct AVFrame: {err}");
                 continue;
             }
             encoder.send_frame(&av_frame).unwrap();
             while encoder.receive_packet(&mut packet).is_ok() {
                 if let Err(err) = packet.write_interleaved(&mut output_ctx) {
-                    eprintln!("Failed to send rtp packets: {err}")
+                    error!("Failed to send rtp packets: {err}")
                 }
             }
         }
