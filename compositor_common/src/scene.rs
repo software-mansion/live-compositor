@@ -1,15 +1,17 @@
 use std::{any::Any, collections::HashMap, sync::Arc};
 
+use serde::{Deserialize, Serialize};
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct VideoId(usize);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TransformationRegistryKey(pub String);
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Resolution {
-    width: usize,
-    height: usize,
+    pub width: usize,
+    pub height: usize,
 }
 
 #[derive(Debug)]
