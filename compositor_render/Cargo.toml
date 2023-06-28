@@ -1,15 +1,12 @@
 [package]
-name = "video_compositor"
+name = "compositor_render"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[workspace]
-members = [
-    "compositor_render",
-]
-resolver = "2"
-
 [dependencies]
-compositor_render = { path = "compositor_render" }
+futures = "0.3.28"
+pollster = "0.3.0"
+thiserror = "1.0.40"
+wgpu = "0.16.1"
