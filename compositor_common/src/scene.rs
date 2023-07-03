@@ -1,6 +1,4 @@
-use std::{collections::HashMap, rc::Rc};
-
-// TODO: Put those into different modules
+use std::{any::Any, collections::HashMap, rc::Rc};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct VideoId(usize);
@@ -30,9 +28,10 @@ pub enum Node {
         registry_key: TransformationRegistryKey,
         inputs: HashMap<String, Rc<Node>>,
         resolution: Resolution,
+        params: Box<dyn Any>,
     },
 }
 
 pub struct Scene {
-    pub final_node: Rc<Node>,
+    pub final_nodes: Vec<Rc<Node>>,
 }
