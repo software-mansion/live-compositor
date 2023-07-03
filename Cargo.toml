@@ -7,6 +7,7 @@ edition = "2021"
 
 [workspace]
 members = [
+    "compositor_common",
     "compositor_render",
 ]
 resolver = "2"
