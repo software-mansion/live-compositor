@@ -51,7 +51,7 @@ impl WgpuCtx {
 
         let (device, queue) = pollster::block_on(adapter.request_device(
             &wgpu::DeviceDescriptor {
-                label: Some("Video compositor's GPU :^)"),
+                label: Some("Video Compositor's GPU :^)"),
                 limits: Default::default(),
                 features: wgpu::Features::empty(),
             },
