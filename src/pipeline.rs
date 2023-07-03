@@ -8,7 +8,7 @@ use std::{
 use crate::{
     decoder::Decoder,
     encoder::Encoder,
-    rtp::{RtpFrame, RtpPacker, RtpParser},
+    rtp::{RtpPacker, RtpPacket, RtpParser},
     state::{Frame, SyncHashMap},
 };
 
@@ -124,7 +124,7 @@ impl PipelineOutput {
 
         let raw_data = self
             .rtp_packer
-            .pack(encoded.into_iter().map(|i| RtpFrame { data: i }))?;
+            .pack(encoded.into_iter().map(|i| RtpPacket { data: i }))?;
         let raw_data = match raw_data {
             Some(data) => data,
             None => return Ok(()),

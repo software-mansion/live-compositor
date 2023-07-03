@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-pub struct RtpFrame {
+pub struct RtpPacket {
     pub data: bytes::Bytes,
 }
 
@@ -12,7 +12,7 @@ impl RtpPacker {
     }
 
     #[allow(dead_code)]
-    pub fn pack<I: IntoIterator<Item = RtpFrame>>(
+    pub fn pack<I: IntoIterator<Item = RtpPacket>>(
         &self,
         _frames: I,
     ) -> Result<Option<bytes::Bytes>> {
@@ -26,7 +26,7 @@ impl RtpParser {
     pub fn new() -> Self {
         Self {}
     }
-    pub fn parse(&self, _raw_data: bytes::Bytes) -> Result<Vec<RtpFrame>> {
+    pub fn parse(&self, _raw_data: bytes::Bytes) -> Result<Vec<RtpPacket>> {
         todo!()
     }
 }

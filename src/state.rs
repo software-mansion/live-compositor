@@ -11,6 +11,8 @@ use crate::{pipeline::Pipeline, tcp_connections};
 #[allow(dead_code)]
 pub struct Frame {
     pub data: bytes::Bytes,
+    // TODO: add timestmaps, resoultion and other usefull info
+    // TODO: move this type to renderer crate
 }
 
 #[allow(dead_code)]
