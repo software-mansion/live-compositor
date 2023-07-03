@@ -31,8 +31,8 @@ pub struct PipelineInput {
     rtp_parser: RtpParser,
 }
 
-// unpack rtp -> decode -> qeueue -> render -> endcode -> pack rtp
-// this code would be in a separate crate (render in this scenario would also separte crate)
+// unpack rtp -> decode -> queue -> render -> encode -> pack rtp
+// this code would be in a separate crate (render in this scenario would also be a separate crate)
 impl Pipeline {
     pub fn new() -> Self {
         Pipeline {
@@ -88,7 +88,7 @@ impl Pipeline {
         let _pipeline = self.clone();
         thread::spawn(|| {
             loop {
-                // probablly sth like this
+                // probably sth like this
                 //
                 // let input_frames = pipeline.queue.next();
                 // let pipeline.render.render(output_frames);
