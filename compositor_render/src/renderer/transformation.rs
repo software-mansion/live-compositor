@@ -1,4 +1,4 @@
-use std::{error::Error, rc::Rc};
+use std::{collections::HashMap, error::Error, rc::Rc};
 
 use compositor_common::scene::TransformationRegistryKey;
 
@@ -8,7 +8,7 @@ pub trait Transformation: 'static {
     fn apply(
         &self,
         params: &[u8],
-        source: &Texture,
+        sources: &HashMap<String, Texture>,
         target: &Texture,
     ) -> Result<(), Box<dyn Error>>;
 
