@@ -45,10 +45,10 @@ impl Renderer {
 
 pub struct WgpuCtx {
     #[allow(dead_code)]
-    device: wgpu::Device,
+    pub device: wgpu::Device,
 
     #[allow(dead_code)]
-    queue: wgpu::Queue,
+    pub queue: wgpu::Queue,
 }
 
 #[derive(Debug, thiserror::Error)]
