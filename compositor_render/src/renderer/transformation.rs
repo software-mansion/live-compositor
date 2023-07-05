@@ -1,8 +1,8 @@
-use std::{collections::HashMap, error::Error, rc::Rc};
+use std::{collections::HashMap, error::Error};
 
 use compositor_common::scene::TransformationRegistryKey;
 
-use super::{texture::Texture, WgpuCtx};
+use super::texture::Texture;
 
 #[derive(Debug)]
 pub enum TransformationParams {
@@ -19,8 +19,4 @@ pub trait Transformation: 'static {
     ) -> Result<(), Box<dyn Error>>;
 
     fn registry_key(&self) -> TransformationRegistryKey;
-
-    fn new(ctx: Rc<WgpuCtx>) -> Result<Self, Box<dyn Error>>
-    where
-        Self: Sized;
 }
