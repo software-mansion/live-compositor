@@ -1,10 +1,10 @@
-use std::{any::Any, collections::HashMap, rc::Rc};
+use std::{any::Any, collections::HashMap, sync::Arc};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct VideoId(usize);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct TransformationRegistryKey(String);
+pub struct TransformationRegistryKey(pub String);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Resolution {
@@ -26,12 +26,12 @@ pub enum Node {
 
     Transformation {
         registry_key: TransformationRegistryKey,
-        inputs: HashMap<String, Rc<Node>>,
+        inputs: HashMap<String, Arc<Node>>,
         resolution: Resolution,
         params: Box<dyn Any>,
     },
 }
 
 pub struct Scene {
-    pub final_nodes: Vec<Rc<Node>>,
+    pub final_nodes: Vec<Arc<Node>>,
 }
