@@ -9,7 +9,7 @@ use super::{
 pub enum Command<'a> {
     Use(Url<'a>),
     Resolution { width: u32, height: u32 },
-    // TODO: Implement
+    // TODO: Implement rendering onto web canvas
     // Source {
     //     name: &'a str,
     //     buffer: &'a [u8]
