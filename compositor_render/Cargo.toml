@@ -11,3 +11,4 @@ pollster = "0.3.0"
 thiserror = "1.0.40"
 wgpu = "0.16.1"
 compositor_common = { path = "../compositor_common" }
+image = { version = "0.24.6", features = ["jpeg", "png"] }

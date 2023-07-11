@@ -60,7 +60,9 @@ export class Server {
 
         switch (command.type) {
             case CommandType.use:
-                if (!this.sessions.has(command.url)) {
+                if (this.sessions.has(command.url)) {
+                    this.current_session = this.sessions.get(command.url);
+                } else {
                     console.log(`Starting rendering for ${command.url}`)
                     this.current_session = new Session(command.url, 800, 600);
                     this.current_session.run();

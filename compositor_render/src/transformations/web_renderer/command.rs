@@ -17,7 +17,7 @@ pub enum Command<'a> {
 impl<'a> Command<'a> {
     pub fn exec(&self, stream: &mut TcpStream) -> Result<(), PacketError> {
         let msg = match self {
-            Command::Use(url) => format!("render:{url}"),
+            Command::Use(url) => format!("use:{url}"),
             Command::Resolution { width, height } => format!("resolution:{width}x{height}"),
             Command::Render => "render".to_owned(),
         };
