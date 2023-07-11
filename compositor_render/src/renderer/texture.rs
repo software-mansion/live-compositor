@@ -28,4 +28,8 @@ impl Texture {
 
         Self { texture, view }
     }
+
+    pub fn size(&self) -> wgpu::Extent3d {
+        self.texture.size()
+    }
 }
