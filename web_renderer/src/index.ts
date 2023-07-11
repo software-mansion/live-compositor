@@ -1,17 +1,20 @@
-import { app, BrowserWindow } from 'electron';
+import { app } from 'electron';
 import { Server } from './server';
 
 function main(): void {
-  const server = new Server(8080);
-  server.listen();
+    const port = process.env.WEB_RENDERER_PORT;
+    if (port == null) {
+        console.error("env WEB_RENDERER_PORT not defined");
+        process.exit(1);
+    }
+
+    const server = new Server(parseInt(port));
+    server.listen();
 }
 
-app.on('ready', main);
-
+app.whenReady().then(main);
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
+    if (process.platform !== 'darwin') {
+        app.quit();
+    }
 });
-
-

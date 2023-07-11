@@ -1,28 +1,30 @@
-import { BrowserWindow } from "electron";
+import { BrowserWindow, screen } from "electron";
 import { Url } from "./common";
 
 export class Session {
-    public last_frame: Buffer;
     public url: Url;
     public width: number;
     public height: number;
     public command_buffer: string;
+    private last_frame: Buffer;
     private window: BrowserWindow;
 
     public constructor(url: Url, width: number, height: number) {
         this.url = url;
         this.width = width;
         this.height = height;
-        this.last_frame = Buffer.alloc(1);
+        this.last_frame = Buffer.from([]);
     }
 
     public run(): void {
+        const factor = screen.getPrimaryDisplay().scaleFactor;
         this.window = new BrowserWindow({
-            width: this.width,
-            height: this.height,
+            width: this.width / factor,
+            height: this.height / factor,
             show: false,
             webPreferences: {
-                offscreen: true
+                offscreen: true,
+                zoomFactor: 1 / factor
             }
         });
 
@@ -36,7 +38,12 @@ export class Session {
     public resize(width: number, height: number): void {
         this.width = width;
         this.height = height;
+        
+        const factor = screen.getPrimaryDisplay().scaleFactor;
+        this.window.setSize(this.width / factor, this.height / factor);
+    }
 
-        this.window.setSize(this.width, this.height);
+    public get frame(): Buffer {
+        return this.last_frame;
     }
 }

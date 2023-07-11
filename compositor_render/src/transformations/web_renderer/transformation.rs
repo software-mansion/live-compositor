@@ -38,9 +38,9 @@ impl Transformation for WebRenderer {
         };
 
         let frame = self.request_frame(url, target.size())?;
-        self.upload(&frame, target)?;
-        // println!("FRAME: {}", frame.len());
-        // std::fs::write("test.jpeg", frame)?;
+        if !frame.is_empty() {
+            self.upload(&frame, target)?;
+        }
 
         Ok(())
     }
@@ -63,8 +63,6 @@ impl WebRenderer {
     fn upload(&self, data: &[u8], target: &Texture) -> Result<(), WebRendererApplyError> {
         let size = target.size();
         let img = image::load_from_memory(data)?;
-        let data = img.to_rgba8();
-        println!("IMG SIZE: {}", data.len());
 
         self.wgpu_ctx.queue.write_texture(
             wgpu::ImageCopyTexture {
@@ -73,7 +71,7 @@ impl WebRenderer {
                 origin: wgpu::Origin3d::ZERO,
                 aspect: wgpu::TextureAspect::All,
             },
-            &data,
+            &img.to_rgba8(),
             wgpu::ImageDataLayout {
                 offset: 0,
                 bytes_per_row: Some(4 * size.width),

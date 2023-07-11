@@ -1,17 +1,20 @@
 use std::net::TcpStream;
 
-use super::{Url, packet::{Packet, PacketError}};
+use super::{
+    packet::{Packet, PacketError},
+    Url,
+};
 
 #[derive(Debug)]
 pub enum Command<'a> {
     Use(Url<'a>),
-    Resolution {
-        width: u32,
-        height: u32
-    },
-    // TODO: Implement 
-    // Source {}
-    Render
+    Resolution { width: u32, height: u32 },
+    // TODO: Implement
+    // Source {
+    //     name: &'a str,
+    //     buffer: &'a [u8]
+    // },
+    Render,
 }
 
 impl<'a> Command<'a> {

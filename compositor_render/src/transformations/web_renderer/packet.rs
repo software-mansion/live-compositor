@@ -1,4 +1,7 @@
-use std::{net::TcpStream, io::{Write, Read}};
+use std::{
+    io::{Read, Write},
+    net::TcpStream,
+};
 
 pub struct Packet<'a>(pub &'a [u8]);
 
@@ -18,7 +21,7 @@ impl<'a> Packet<'a> {
         let mut buf = [0u8; 65535];
         let mut buf_len = 0;
         let mut buf_offset = 0;
-    
+
         while msg.len() != len as usize {
             if buf_len <= buf_offset {
                 buf_len = stream.read(&mut buf).map_err(PacketError::ReadFailure)?;
@@ -32,8 +35,10 @@ impl<'a> Packet<'a> {
                     len = u32::from_be_bytes([header[0], header[1], header[2], header[3]]) as i32;
                     msg.reserve(len as usize);
                 }
+            } else if len == 0 {
+                return Ok(Vec::new());
             }
-            
+
             let n = (len as usize - msg.len() + buf_offset).min(buf_len);
             if msg.len() < len as usize {
                 msg.extend_from_slice(&buf[buf_offset..n]);

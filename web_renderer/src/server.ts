@@ -78,7 +78,7 @@ export class Server {
                 console.warn("unimplemented");
                 break;
             case CommandType.render:
-                let packet = new Packet(this.current_session.last_frame);
+                let packet = new Packet(this.current_session.frame);
                 packet.send(sock);
                 break;
             case CommandType.unknown:

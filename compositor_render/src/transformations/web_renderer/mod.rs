@@ -1,6 +1,6 @@
-pub mod transformation;
-mod packet;
 mod command;
+mod packet;
+pub mod transformation;
 
 pub use transformation::*;
 
