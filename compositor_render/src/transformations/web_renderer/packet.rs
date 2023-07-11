@@ -19,14 +19,11 @@ impl<'a> Packet<'a> {
         let mut header = Vec::with_capacity(4);
         let mut msg = Vec::new();
         let mut buf = [0u8; 65535];
-        let mut buf_len = 0;
-        let mut buf_offset = 0;
 
         while msg.len() != len as usize {
-            if buf_len <= buf_offset {
-                buf_len = stream.read(&mut buf).map_err(PacketError::ReadFailure)?;
-                buf_offset = 0;
-            }
+            let buf_len = stream.read(&mut buf).map_err(PacketError::ReadFailure)?;
+            let mut buf_offset = 0;
+
             if len == -1 {
                 let n = 4 - header.len() + buf_offset;
                 header.extend_from_slice(&buf[buf_offset..n]);
@@ -39,10 +36,9 @@ impl<'a> Packet<'a> {
                 return Ok(Vec::new());
             }
 
-            let n = (len as usize - msg.len() + buf_offset).min(buf_len);
             if msg.len() < len as usize {
+                let n = (len as usize - msg.len() + buf_offset).min(buf_len);
                 msg.extend_from_slice(&buf[buf_offset..n]);
-                buf_offset += n;
             }
         }
 

@@ -2,7 +2,7 @@
   "name": "web_renderer",
   "productName": "web_renderer",
   "version": "1.0.0",
-  "description": "My Electron application description",
+  "description": "OSR Web Renderer",
   "main": ".webpack/main",
   "scripts": {
     "start": "electron-forge start",
@@ -12,10 +12,6 @@
     "lint": "eslint --ext .ts,.tsx ."
   },
   "keywords": [],
-  "author": {
-    "name": "Mikołaj Radkowski",
-    "email": "mikolaj.radkowski@protonmail.com"
-  },
   "license": "MIT",
   "devDependencies": {
     "@electron-forge/cli": "^6.2.1",
