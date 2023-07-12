@@ -105,7 +105,7 @@ impl WebRenderer {
 #[derive(Debug, thiserror::Error)]
 pub enum WebRendererNewError {
     #[error("failed to establish connection with web renderer")]
-    ConnectionFailed(#[from] PacketStreamError),
+    ConnectionFailure(#[from] PacketStreamError),
 }
 
 #[derive(Debug, thiserror::Error)]
