@@ -52,13 +52,13 @@ impl Server {
         }
         thread::spawn(move || {
             for mut raw_request in self.server.incoming_requests() {
-                let result = self.handle_request_post_init(&mut raw_request);
+                let result = self.handle_request_after_init(&mut raw_request);
                 Server::send_response(raw_request, result);
             }
         });
     }
 
-    fn handle_request_post_init(&self, raw_request: &mut tiny_http::Request) -> Result<()> {
+    fn handle_request_after_init(&self, raw_request: &mut tiny_http::Request) -> Result<()> {
         let request = Server::parse_request(raw_request)?;
         match request {
             Request::Init => Err(anyhow!("Video composer is already configured.")),
