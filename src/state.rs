@@ -3,20 +3,20 @@ use compositor_common::scene::Resolution;
 use compositor_pipeline::map::SyncHashMap;
 use std::sync::Arc;
 
-use crate::{sink::RtpSink, source::RtpSource};
+use crate::{rtp_receiver::RtpReceiver, rtp_sender::RtpSender};
 
-pub type Pipeline = compositor_pipeline::Pipeline<RtpSource>;
+pub type Pipeline = compositor_pipeline::Pipeline<RtpSender>;
 
 #[allow(dead_code)]
 pub struct Input {
     port: u16,
-    rtp_sink: RtpSink,
+    rtp_sink: RtpReceiver,
 }
 
 #[allow(dead_code)]
 pub struct Output {
     port: u16,
-    rtp_source: Arc<RtpSource>,
+    rtp_source: Arc<RtpSender>,
 }
 
 #[allow(dead_code)]
@@ -42,7 +42,7 @@ impl State {
     #[allow(dead_code)]
     pub fn register_output(&self, port: u16, resolution: Resolution) -> Result<()> {
         // TODO: add validation if output already relisted
-        let source = Arc::new(RtpSource::new(port, resolution));
+        let source = Arc::new(RtpSender::new(port, resolution));
         self.pipeline.add_output(port.into(), source.clone());
         self.outputs.insert(
             port,
@@ -62,7 +62,7 @@ impl State {
             port,
             Input {
                 port,
-                rtp_sink: RtpSink::new(self.pipeline.clone(), port),
+                rtp_sink: RtpReceiver::new(self.pipeline.clone(), port),
             },
         );
         Ok(())

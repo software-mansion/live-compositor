@@ -71,6 +71,7 @@ impl Server {
             Request::Start => todo!(),
         }
     }
+
     fn handle_request_before_init(&self, raw_request: &mut tiny_http::Request) -> Result<()> {
         let request = Server::parse_request(raw_request)?;
         match request {

@@ -3,24 +3,24 @@ use crossbeam_channel::{Receiver, Sender};
 use std::{path::PathBuf, thread};
 
 use compositor_common::{scene::Resolution, Frame};
-use compositor_pipeline::pipeline::PipelineSource;
+use compositor_pipeline::pipeline::PipelineOutput;
 use ffmpeg_next::{
     codec::{self, Context, Id},
     format::{self, Pixel},
     frame, Dictionary, Rational,
 };
 
-pub struct RtpSource {
+pub struct RtpSender {
     #[allow(dead_code)]
     port: u16,
     sender: Sender<Frame>,
 }
 
-impl RtpSource {
+impl RtpSender {
     pub fn new(port: u16, resolution: Resolution) -> Self {
         let port_clone = port;
         let (sender, receiver) = crossbeam_channel::unbounded();
-        thread::spawn(move || RtpSource::run(port_clone, resolution, receiver).unwrap());
+        thread::spawn(move || RtpSender::run(port_clone, resolution, receiver).unwrap());
         Self { port, sender }
     }
 
@@ -34,7 +34,8 @@ impl RtpSource {
         }
 
         let mut encoder = Context::new().encoder().video()?;
-        encoder.set_time_base(Rational::new(1, 90000));
+        let pts_unit_secs = Rational::new(1, 90000);
+        encoder.set_time_base(pts_unit_secs);
         encoder.set_format(Pixel::YUV420P);
         encoder.set_width(resolution.width.try_into().unwrap());
         encoder.set_height(resolution.height.try_into().unwrap());
@@ -78,7 +79,7 @@ impl RtpSource {
     }
 }
 
-impl PipelineSource for RtpSource {
+impl PipelineOutput for RtpSender {
     fn send_frame(&self, frame: Frame) {
         self.sender.send(frame).unwrap();
     }

@@ -3,17 +3,17 @@ use std::{sync::Arc, thread, time::Duration};
 
 use crate::map::SyncHashMap;
 
-pub trait PipelineSource {
+pub trait PipelineOutput {
     fn send_frame(&self, frame: Frame);
 }
 
-pub struct Pipeline<Source: PipelineSource> {
+pub struct Pipeline<Source: PipelineOutput> {
     outputs: SyncHashMap<u32, Arc<Source>>,
     //queue: LiveQueue,
     //renderer: Renderer,
 }
 
-impl<Source: PipelineSource> Pipeline<Source> {
+impl<Output: PipelineOutput> Pipeline<Output> {
     pub fn new() -> Self {
         Pipeline {
             outputs: SyncHashMap::new(),
@@ -25,7 +25,7 @@ impl<Source: PipelineSource> Pipeline<Source> {
         // self.renderer.add_input();
     }
 
-    pub fn add_output(&self, input_id: u32, source: Arc<Source>) {
+    pub fn add_output(&self, input_id: u32, source: Arc<Output>) {
         self.outputs.insert(input_id, source);
     }
 
@@ -62,7 +62,7 @@ impl<Source: PipelineSource> Pipeline<Source> {
     }
 }
 
-impl<Source: PipelineSource> Default for Pipeline<Source> {
+impl<Source: PipelineOutput> Default for Pipeline<Source> {
     fn default() -> Self {
         Self::new()
     }

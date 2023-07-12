@@ -13,15 +13,15 @@ use ffmpeg_next::{
 use crate::state::Pipeline;
 
 #[allow(dead_code)]
-pub struct RtpSink {
+pub struct RtpReceiver {
     port: u16,
 }
 
-impl RtpSink {
+impl RtpReceiver {
     pub fn new(pipeline: Arc<Pipeline>, port: u16) -> Self {
         let port_clone = port;
         thread::spawn(move || {
-            RtpSink::start(pipeline, port_clone).unwrap();
+            RtpReceiver::start(pipeline, port_clone).unwrap();
         });
         Self { port }
     }
@@ -36,6 +36,7 @@ impl RtpSink {
                     o=- 0 0 IN IP4 127.0.0.1\n\
                     s=No Name\n\
                     c=IN IP4 127.0.0.1\n\
+                    t=0 0\n\
                     m=video {} RTP/AVP 96\n\
                     a=rtpmap:96 H264/90000\n\
                     a=fmtp:96 packetization-mode=1\n\
@@ -86,6 +87,7 @@ fn frame_from_av(decoded: &mut Video) -> Result<Frame> {
     if decoded.format() != format::pixel::Pixel::YUV420P {
         return Err(anyhow!("only YUV420P is supported"));
     }
+    eprintln!("{:?}", decoded.pts());
     Ok(Frame {
         data: YuvData {
             y_plane: bytes::Bytes::copy_from_slice(decoded.data(0)),

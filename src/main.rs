@@ -6,8 +6,8 @@ use state::Pipeline;
 use crate::state::State;
 
 mod http;
-mod sink;
-mod source;
+mod rtp_receiver;
+mod rtp_sender;
 mod state;
 
 fn main() {
