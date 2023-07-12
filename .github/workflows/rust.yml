@@ -5,7 +5,7 @@ jobs:
     rust:
         runs-on: ubuntu-latest
         steps:
-            - name: 🌋 Install system dependencies
+            - name: 🛠 Install system dependencies
               run: |
                 set -e
 
