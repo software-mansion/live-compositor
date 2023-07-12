@@ -1,5 +1,5 @@
 mod command;
-mod packet;
+mod packet_stream;
 pub mod transformation;
 
 pub use transformation::*;

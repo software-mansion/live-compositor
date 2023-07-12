@@ -30,7 +30,7 @@ impl TransformationRegistry {
     #[allow(dead_code)]
     pub fn get(&self, key: &TransformationRegistryKey) -> Result<&dyn Transformation, GetError> {
         match self.registry.get(key) {
-            Some(val) => Ok(&**val),
+            Some(val) => Ok(val.as_ref()),
             None => Err(GetError::KeyNotFound(key.0.clone())),
         }
     }

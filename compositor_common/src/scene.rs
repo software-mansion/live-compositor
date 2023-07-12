@@ -8,8 +8,8 @@ pub struct TransformationRegistryKey(pub String);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Resolution {
-    width: usize,
-    height: usize,
+    pub width: usize,
+    pub height: usize,
 }
 
 #[derive(Debug)]

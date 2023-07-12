@@ -1,7 +1,6 @@
 import net from 'net';
 import { Session } from './session';
 import { Url } from './common';
-import { Packet } from './packet';
 import { CommandType, getCommand } from './command';
 
 export class Server {
@@ -39,7 +38,7 @@ export class Server {
             if (message.length < length) {
                 message = Buffer.concat([message, data.subarray(0, length - message.length)]);
                 if (message.length == length) {
-                    this.handlePacket(new Packet(message), sock);
+                    this.handleMessage(message, sock);
 
                     data = data.subarray(length);
                     length = -1;
@@ -55,8 +54,20 @@ export class Server {
         sock.on("data", parse);
     }
 
-    private handlePacket(packet: Packet, sock: net.Socket): void {
-        const command = getCommand(packet);
+    private sendMessage(sock: net.Socket, message: Buffer): void {
+        const header = Buffer.from([
+            (message.length & 0xff000000) >> 24,
+            (message.length & 0x00ff0000) >> 16,
+            (message.length & 0x0000ff00) >> 8,
+            (message.length & 0x000000ff)
+        ]);
+
+        sock.write(header);
+        sock.write(message);
+    }
+
+    private handleMessage(message: Buffer, sock: net.Socket): void {
+        const command = getCommand(message);
 
         switch (command.type) {
             case CommandType.use:
@@ -78,8 +89,7 @@ export class Server {
                 console.warn("unimplemented");
                 break;
             case CommandType.render:
-                let packet = new Packet(this.current_session.frame);
-                packet.send(sock);
+                this.sendMessage(sock, this.current_session.frame);
                 break;
             case CommandType.unknown:
                 console.warn("unknown command");

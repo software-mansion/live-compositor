@@ -1,12 +1,6 @@
-use std::{
-    cell::RefCell,
-    collections::HashMap,
-    error::Error,
-    net::{Ipv4Addr, TcpStream},
-    rc::Rc,
-};
+use std::{cell::RefCell, collections::HashMap, error::Error, rc::Rc};
 
-use compositor_common::scene::TransformationRegistryKey;
+use compositor_common::scene::{Resolution, TransformationRegistryKey};
 use image::ImageError;
 
 use crate::renderer::{
@@ -17,13 +11,13 @@ use crate::renderer::{
 
 use super::{
     command::Command,
-    packet::{Packet, PacketError},
+    packet_stream::{PacketStream, PacketStreamError},
     Url,
 };
 
 pub struct WebRenderer {
     wgpu_ctx: Rc<WgpuCtx>,
-    stream: RefCell<TcpStream>,
+    stream: RefCell<PacketStream>,
 }
 
 impl Transformation for WebRenderer {
@@ -52,7 +46,7 @@ impl Transformation for WebRenderer {
 
 impl WebRenderer {
     pub fn new(wgpu_ctx: Rc<WgpuCtx>, port: u16) -> Result<Self, WebRendererNewError> {
-        let stream = TcpStream::connect((Ipv4Addr::new(127, 0, 0, 1), port))?;
+        let stream = PacketStream::connect(port)?;
 
         Ok(Self {
             wgpu_ctx,
@@ -92,26 +86,26 @@ impl WebRenderer {
         let mut stream = self.stream.borrow_mut();
         let commands = [
             Command::Use(url),
-            Command::Resolution {
-                width: size.width,
-                height: size.height,
-            },
+            Command::Resolution(Resolution {
+                width: size.width as usize,
+                height: size.height as usize,
+            }),
             Command::Render,
         ];
 
         for cmd in commands {
-            cmd.exec(&mut stream)?;
+            stream.send_message(&cmd.get_message())?;
         }
 
-        let frame = Packet::read(&mut stream)?;
+        let frame = stream.read_message()?;
         Ok(frame)
     }
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum WebRendererNewError {
-    #[error("failed to connect to web renderer")]
-    ConnectionFailure(#[from] std::io::Error),
+    #[error("failed to establish connection with web renderer")]
+    ConnectionFailed(#[from] PacketStreamError),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -120,7 +114,7 @@ pub enum WebRendererApplyError {
     InvalidParam,
 
     #[error("communication with web renderer failed")]
-    PacketError(#[from] PacketError),
+    PacketError(#[from] PacketStreamError),
 
     #[error("failed to decode image data")]
     ImageDecodeError(#[from] ImageError),

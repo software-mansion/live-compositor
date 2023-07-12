@@ -1,14 +1,11 @@
-use std::net::TcpStream;
+use compositor_common::scene::Resolution;
 
-use super::{
-    packet::{Packet, PacketError},
-    Url,
-};
+use super::Url;
 
 #[derive(Debug)]
 pub enum Command<'a> {
     Use(Url<'a>),
-    Resolution { width: u32, height: u32 },
+    Resolution(Resolution),
     // TODO: Implement rendering onto web canvas
     // Source {
     //     name: &'a str,
@@ -18,13 +15,15 @@ pub enum Command<'a> {
 }
 
 impl<'a> Command<'a> {
-    pub fn exec(&self, stream: &mut TcpStream) -> Result<(), PacketError> {
+    pub fn get_message(&self) -> Vec<u8> {
         let msg = match self {
             Command::Use(url) => format!("use:{url}"),
-            Command::Resolution { width, height } => format!("resolution:{width}x{height}"),
+            Command::Resolution(Resolution { width, height }) => {
+                format!("resolution:{width}x{height}")
+            }
             Command::Render => "render".to_owned(),
         };
 
-        Packet(msg.as_bytes()).send(stream)
+        msg.into_bytes()
     }
 }
