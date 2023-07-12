@@ -8,6 +8,7 @@ use std::{
 
 use serde::Serialize;
 
+/// The SDP file will describe an RTP session on localhost with H264 encoding.
 pub fn write_example_sdp_file(port: u16) -> Result<String> {
     let sdp_filepath = PathBuf::from(format!("/tmp/example_sdp_input_{}.sdp", port));
     let mut file = File::create(&sdp_filepath)?;
@@ -37,7 +38,7 @@ pub fn post<T: Serialize + ?Sized>(json: &T) -> Result<Response> {
     let client = reqwest::blocking::Client::new();
     let response = client.post("http://127.0.0.1:8001").json(json).send()?;
     if response.status() >= StatusCode::BAD_REQUEST {
-        return Err(anyhow!(""));
+        return Err(anyhow!("Request failed: {:?}", response));
     }
     Ok(response)
 }

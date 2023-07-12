@@ -1,4 +1,4 @@
 pub mod http;
-pub mod sink;
-pub mod source;
+pub mod rtp_receiver;
+pub mod rtp_sender;
 pub mod state;

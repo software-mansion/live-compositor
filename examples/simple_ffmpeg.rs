@@ -16,7 +16,7 @@ fn main() {
     let state = Arc::new(State::new(pipeline));
 
     thread::spawn(|| {
-        if let Err(err) = example() {
+        if let Err(err) = start_example_client_code() {
             eprintln!("{err}")
         }
     });
@@ -27,7 +27,7 @@ fn main() {
     signals.forever().next();
 }
 
-fn example() -> Result<()> {
+fn start_example_client_code() -> Result<()> {
     thread::sleep(Duration::from_secs(2));
 
     eprintln!("[example] Sending init request.");
