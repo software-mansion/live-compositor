@@ -7,8 +7,8 @@ pub trait PipelineOutput {
     fn send_frame(&self, frame: Frame);
 }
 
-pub struct Pipeline<Source: PipelineOutput> {
-    outputs: SyncHashMap<u32, Arc<Source>>,
+pub struct Pipeline<Output: PipelineOutput> {
+    outputs: SyncHashMap<u32, Arc<Output>>,
     //queue: LiveQueue,
     //renderer: Renderer,
 }
@@ -25,8 +25,8 @@ impl<Output: PipelineOutput> Pipeline<Output> {
         // self.renderer.add_input();
     }
 
-    pub fn add_output(&self, input_id: u32, source: Arc<Output>) {
-        self.outputs.insert(input_id, source);
+    pub fn add_output(&self, output_id: u32, output: Arc<Output>) {
+        self.outputs.insert(output_id, output);
     }
 
     pub fn push_input_data(&self, _input_id: u32, frame: Frame) {
@@ -62,7 +62,7 @@ impl<Output: PipelineOutput> Pipeline<Output> {
     }
 }
 
-impl<Source: PipelineOutput> Default for Pipeline<Source> {
+impl<Output: PipelineOutput> Default for Pipeline<Output> {
     fn default() -> Self {
         Self::new()
     }
