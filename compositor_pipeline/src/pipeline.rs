@@ -36,12 +36,12 @@ impl<Output: PipelineOutput> Pipeline<Output> {
 
     #[allow(dead_code)]
     fn on_output_data_received(&self, output_id: u32, frame: Frame) {
-        let output = self.outputs.get_cloned(&output_id);
-        let Some(output) = output else {
-            eprintln!("Output {} not found", output_id);
-            return;
-        };
-        output.send_frame(frame);
+        match self.outputs.get_cloned(&output_id) {
+            Some(output) => output.send_frame(frame),
+            None => {
+                eprintln!("Output {} not found", output_id);
+            }
+        }
     }
 
     pub fn start(self: &Arc<Self>) {
