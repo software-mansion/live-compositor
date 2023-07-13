@@ -1,4 +1,5 @@
 use anyhow::anyhow;
+use std::collections::hash_map::Entry::Vacant;
 use std::{collections::HashMap, sync::Arc};
 use thiserror::Error;
 
@@ -40,8 +41,8 @@ impl InternalQueue {
     ) -> Result<(), QueueError> {
         match self.inputs_queues.get_mut(&input_id) {
             Some(input_queue) => {
-                if input_queue.first().is_none() {
-                    self.timestamp_offsets.insert(input_id, frame.pts);
+                if let Vacant(e) = self.timestamp_offsets.entry(input_id) {
+                    e.insert(frame.pts);
                 }
 
                 frame.pts += self
