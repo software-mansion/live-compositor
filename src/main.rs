@@ -9,6 +9,7 @@ mod decoder;
 mod encoder;
 mod http;
 mod pipeline;
+mod queue;
 mod rtp;
 mod state;
 mod tcp_connections;

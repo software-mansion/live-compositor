@@ -13,3 +13,6 @@ target/
 # Added by cargo
 
 /target
+
+# VsCode 
+.vscode
