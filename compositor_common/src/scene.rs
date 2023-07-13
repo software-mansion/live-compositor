@@ -15,7 +15,7 @@ pub struct Resolution {
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub struct InputId(pub String);
+pub struct NodeId(pub String);
 
 #[derive(Debug)]
 pub enum Node {
@@ -31,7 +31,7 @@ pub enum Node {
 
     Transformer {
         registry_key: TransformationRegistryKey,
-        inputs: HashMap<InputId, Arc<Node>>,
+        inputs: HashMap<NodeId, Arc<Node>>,
         resolution: Resolution,
         params: Box<dyn Any>,
     },
