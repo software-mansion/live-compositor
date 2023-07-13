@@ -1,28 +1,24 @@
 use std::sync::Arc;
 
-use pipeline::Pipeline;
-use signal_hook::{consts::SIGINT, iterator::Signals};
+use signal_hook::{consts, iterator::Signals};
+use state::Pipeline;
 
 use crate::state::State;
 
-mod decoder;
-mod encoder;
 mod http;
-mod pipeline;
-mod queue;
-mod rtp;
+mod rtp_receiver;
+mod rtp_sender;
 mod state;
-mod tcp_connections;
 
 fn main() {
+    ffmpeg_next::format::network::init();
     let pipeline = Arc::new(Pipeline::new());
-    let state = Arc::new(State::new(pipeline.clone()));
+    let state = Arc::new(State::new(pipeline));
 
-    tcp_connections::listen_for_new_connections(state.clone()).unwrap();
-    http::listen_for_events(state);
+    http::Server::new(8001, state).start();
 
-    pipeline.start();
-
-    let mut signals = Signals::new([SIGINT]).unwrap();
-    signals.forever();
+    let mut signals = Signals::new([consts::SIGINT]).unwrap();
+    signals.forever().next();
+    eprintln!("Received exit signal. Terminating...")
+    // TODO: add graceful shutdown
 }

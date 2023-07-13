@@ -1,74 +1,32 @@
-use anyhow::{anyhow, Result};
-use std::{
-    collections::HashMap,
-    hash::Hash,
-    net::TcpStream,
-    sync::{Arc, Mutex},
-};
+use anyhow::Result;
+use compositor_common::scene::Resolution;
+use compositor_pipeline::map::SyncHashMap;
+use std::sync::Arc;
 
-use crate::{pipeline::Pipeline, tcp_connections};
+use crate::{rtp_receiver::RtpReceiver, rtp_sender::RtpSender};
 
-#[allow(dead_code)]
-pub struct Frame {
-    pub data: bytes::Bytes,
-    // TODO: add timestmaps, resoultion and other usefull info
-    // TODO: move this type to renderer crate
-}
+pub type Pipeline = compositor_pipeline::Pipeline<RtpSender>;
 
 #[allow(dead_code)]
 pub struct Input {
     port: u16,
-    input_id: u32,
+    rtp_receiver: RtpReceiver,
 }
 
 #[allow(dead_code)]
 pub struct Output {
     port: u16,
-    output_id: u32,
+    rtp_sender: Arc<RtpSender>,
 }
 
 #[allow(dead_code)]
-pub struct PendingConnection {
-    pub port: u16,
-    pub tcp_stream: TcpStream,
-}
-
-pub struct SyncHashMap<K, V>(std::sync::Mutex<HashMap<K, V>>);
-
-impl<K, V> SyncHashMap<K, V>
-where
-    K: Eq + PartialEq + Hash,
-{
-    pub fn new() -> Self {
-        Self(Mutex::new(HashMap::new()))
-    }
-
-    pub fn insert(&self, key: K, value: V) {
-        let mut map = self.0.lock().unwrap();
-        map.insert(key, value);
-    }
-
-    pub fn remove(&self, key: &K) -> Option<V> {
-        let mut map = self.0.lock().unwrap();
-        map.remove(key)
-    }
-}
-
-impl<K, V> SyncHashMap<K, V>
-where
-    K: Eq + PartialEq + Hash,
-    V: Clone,
-{
-    pub fn get_cloned(&self, key: &K) -> Option<V> {
-        let map = self.0.lock().unwrap();
-        map.get(key).map(Clone::clone)
-    }
+pub struct InitConfig {
+    // some init data
 }
 
 pub struct State {
-    pub inputs: SyncHashMap<u32, Input>,
-    pub outputs: SyncHashMap<u32, Output>,
-    pub pending_connections: SyncHashMap<u16, PendingConnection>,
+    pub inputs: SyncHashMap<u16, Input>,
+    pub outputs: SyncHashMap<u16, Output>,
     pub pipeline: Arc<Pipeline>,
 }
 
@@ -77,32 +35,36 @@ impl State {
         State {
             inputs: SyncHashMap::new(),
             outputs: SyncHashMap::new(),
-            pending_connections: SyncHashMap::new(),
             pipeline,
         }
     }
 
-    pub fn add_output(&self, port: u16, output_id: u32) -> Result<()> {
-        let pending_output = self
-            .pending_connections
-            .remove(&port)
-            .ok_or_else(|| anyhow!("no pending connection for port {}", port))?;
-        self.outputs.insert(output_id, Output { port, output_id });
-
-        let sender = tcp_connections::listen_on_output(pending_output.tcp_stream);
-        self.pipeline.add_output(output_id, sender);
+    #[allow(dead_code)]
+    pub fn register_output(&self, port: u16, resolution: Resolution) -> Result<()> {
+        // TODO: add validation if output already relisted
+        let sender = Arc::new(RtpSender::new(port, resolution));
+        self.pipeline.add_output(port.into(), sender.clone());
+        self.outputs.insert(
+            port,
+            Output {
+                port,
+                rtp_sender: sender,
+            },
+        );
         Ok(())
     }
 
-    pub fn add_input(&self, port: u16, input_id: u32) -> Result<()> {
-        let pending_input = self
-            .pending_connections
-            .remove(&port)
-            .ok_or_else(|| anyhow!("no pending connection for port {}", port))?;
-        self.inputs.insert(input_id, Input { port, input_id });
-
-        self.pipeline.add_input(input_id);
-        tcp_connections::listen_on_input(pending_input.tcp_stream, self.pipeline.clone(), input_id);
+    #[allow(dead_code)]
+    pub fn register_input(&self, port: u16) -> Result<()> {
+        // TODO: add validation if input already relisted
+        self.pipeline.add_input(port.into());
+        self.inputs.insert(
+            port,
+            Input {
+                port,
+                rtp_receiver: RtpReceiver::new(self.pipeline.clone(), port),
+            },
+        );
         Ok(())
     }
 }
