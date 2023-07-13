@@ -61,6 +61,9 @@ fn start_example_client_code() -> Result<()> {
             "width": 1280,
             "height": 720,
         },
+        "encoder_settings": {
+            "preset": "medium"
+        }
     }))?;
 
     info!("[example] Send register input request.");

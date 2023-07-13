@@ -5,6 +5,8 @@ use serde::{Deserialize, Serialize};
 use std::{io::Cursor, net::SocketAddr, sync::Arc, thread};
 use tiny_http::{Response, StatusCode};
 
+use crate::rtp_sender::EncoderSettings;
+
 use super::state::State;
 
 #[derive(Serialize, Deserialize)]
@@ -13,9 +15,10 @@ struct RegisterInputRequest {
 }
 
 #[derive(Serialize, Deserialize)]
-struct RegisterOutputRequest {
+pub struct RegisterOutputRequest {
     pub port: u16,
     pub resolution: Resolution,
+    pub encoder_settings: EncoderSettings,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -66,9 +69,7 @@ impl Server {
             Request::RegisterInput(RegisterInputRequest { port }) => {
                 self.state.register_input(port)
             }
-            Request::RegisterOutput(RegisterOutputRequest { port, resolution }) => {
-                self.state.register_output(port, resolution)
-            }
+            Request::RegisterOutput(request) => self.state.register_output(request),
             Request::Start => todo!(),
         }
     }
