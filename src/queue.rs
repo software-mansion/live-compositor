@@ -11,11 +11,14 @@ use crossbeam::channel::{tick, unbounded, Receiver, Sender};
 
 use self::internal_queue::{InternalQueue, QueueError};
 
+pub type InputID = u32;
+
+/// nanoseconds
+type Pts = u64;
+
 /// TODO: This should be a rational.
 #[derive(Debug, Clone, Copy)]
 pub struct Framerate(pub u32);
-
-pub type InputID = u32;
 
 impl Framerate {
     pub fn get_interval_duration(self) -> Duration {
@@ -30,9 +33,6 @@ pub struct MockFrame {
     v_plane: bytes::Bytes,
     pts: Pts,
 }
-
-/// nanoseconds
-type Pts = u64;
 
 #[allow(dead_code)]
 pub struct FramesBatch {
@@ -115,6 +115,7 @@ impl Queue {
         });
 
         let start = Instant::now();
+
         // Checking queue
         thread::spawn(move || loop {
             self.check_queue_events_channel
@@ -135,6 +136,7 @@ impl Queue {
                 let frames_batch = internal_queue.get_frames_batch(buffer_pts);
                 sender.send(frames_batch).unwrap();
                 self.frames_sent += 1;
+
                 internal_queue.drop_useless_frames(self.get_next_output_buffer_pts());
             }
         });
