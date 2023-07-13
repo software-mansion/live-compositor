@@ -1,9 +1,10 @@
 use anyhow::anyhow;
+use compositor_common::Frame;
 use std::collections::hash_map::Entry::Vacant;
 use std::{collections::HashMap, sync::Arc};
 use thiserror::Error;
 
-use super::{FramesBatch, InputID, MockFrame, Pts};
+use super::{Framerate, FramesBatch, InputID, Pts};
 
 #[derive(Error, Debug)]
 pub enum QueueError {
@@ -13,15 +14,19 @@ pub enum QueueError {
 
 pub struct InternalQueue {
     // frames are PTS ordered. PTS include timestamps offsets
-    inputs_queues: HashMap<InputID, Vec<Arc<MockFrame>>>,
+    inputs_queues: HashMap<InputID, Vec<Arc<Frame>>>,
     timestamp_offsets: HashMap<InputID, Pts>,
+    output_framerate: Framerate,
+    pub send_batches_counter: u32,
 }
 
 impl InternalQueue {
-    pub fn new() -> Self {
+    pub fn new(output_framerate: Framerate) -> Self {
         InternalQueue {
             inputs_queues: HashMap::new(),
             timestamp_offsets: HashMap::new(),
+            output_framerate,
+            send_batches_counter: 0,
         }
     }
 
@@ -34,11 +39,7 @@ impl InternalQueue {
         self.timestamp_offsets.remove(&input_id);
     }
 
-    pub fn enqueue_frame(
-        &mut self,
-        input_id: InputID,
-        mut frame: MockFrame,
-    ) -> Result<(), QueueError> {
+    pub fn enqueue_frame(&mut self, input_id: InputID, mut frame: Frame) -> Result<(), QueueError> {
         match self.inputs_queues.get_mut(&input_id) {
             Some(input_queue) => {
                 if let Vacant(e) = self.timestamp_offsets.entry(input_id) {
@@ -69,6 +70,7 @@ impl InternalQueue {
                 frames_batch.insert_frame(*input_id, nearest_frame.clone());
             }
         }
+        self.send_batches_counter += 1;
 
         frames_batch
     }
@@ -88,11 +90,9 @@ impl InternalQueue {
             })
     }
 
-    pub fn drop_pad_useless_frames(
-        &mut self,
-        input_id: InputID,
-        next_buffer_pts: Pts,
-    ) -> Result<(), QueueError> {
+    pub fn drop_pad_useless_frames(&mut self, input_id: InputID) -> Result<(), QueueError> {
+        let next_output_buffer_pts = self.get_next_output_buffer_pts();
+
         let input_queue = self
             .inputs_queues
             .get_mut(&input_id)
@@ -103,8 +103,8 @@ impl InternalQueue {
             let mut best_diff_frame_pts = first_frame.pts;
 
             for (index, frame) in input_queue.iter().enumerate() {
-                if frame.pts.abs_diff(next_buffer_pts)
-                    <= best_diff_frame_pts.abs_diff(next_buffer_pts)
+                if frame.pts.abs_diff(next_output_buffer_pts)
+                    <= best_diff_frame_pts.abs_diff(next_output_buffer_pts)
                 {
                     best_diff_frame_index = index;
                     best_diff_frame_pts = frame.pts;
@@ -121,11 +121,16 @@ impl InternalQueue {
         Ok(())
     }
 
-    pub fn drop_useless_frames(&mut self, next_buffer_pts: Pts) {
+    pub fn drop_useless_frames(&mut self) {
         let input_ids: Vec<InputID> = self.inputs_queues.keys().cloned().collect();
         for input_id in input_ids {
-            self.drop_pad_useless_frames(input_id, next_buffer_pts)
-                .unwrap();
+            self.drop_pad_useless_frames(input_id).unwrap();
         }
+    }
+
+    pub fn get_next_output_buffer_pts(&self) -> Pts {
+        let nanoseconds_in_second = 1_000_000_000;
+        (nanoseconds_in_second * (self.send_batches_counter as i64 + 1))
+            / self.output_framerate.0 as i64
     }
 }

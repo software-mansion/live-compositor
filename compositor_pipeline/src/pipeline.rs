@@ -1,7 +1,11 @@
 use compositor_common::Frame;
-use std::{sync::Arc, thread, time::Duration};
+use crossbeam_channel::unbounded;
+use std::{sync::Arc, thread};
 
-use crate::map::SyncHashMap;
+use crate::{
+    map::SyncHashMap,
+    queue::{Framerate, Queue},
+};
 
 pub trait PipelineOutput {
     fn send_frame(&self, frame: Frame);
@@ -9,19 +13,19 @@ pub trait PipelineOutput {
 
 pub struct Pipeline<Output: PipelineOutput> {
     outputs: SyncHashMap<u32, Arc<Output>>,
-    //queue: LiveQueue,
-    //renderer: Renderer,
+    queue: Queue, //renderer: Renderer,
 }
 
 impl<Output: PipelineOutput> Pipeline<Output> {
     pub fn new() -> Self {
         Pipeline {
             outputs: SyncHashMap::new(),
+            queue: Queue::new(Framerate(30)),
         }
     }
 
-    pub fn add_input(&self, _input_id: u32) {
-        // self.queue.add_input();
+    pub fn add_input(&self, input_id: u32) {
+        self.queue.add_input(input_id);
         // self.renderer.add_input();
     }
 
@@ -29,9 +33,9 @@ impl<Output: PipelineOutput> Pipeline<Output> {
         self.outputs.insert(output_id, output);
     }
 
-    pub fn push_input_data(&self, _input_id: u32, frame: Frame) {
-        //self.queue.enqueue(input_id, frames);
-        self.outputs.get_cloned(&8002).unwrap().send_frame(frame);
+    pub fn push_input_data(&self, input_id: u32, frame: Frame) {
+        self.queue.enqueue_frame(input_id, frame).unwrap();
+        // self.outputs.get_cloned(&8002).unwrap().send_frame(frame);
     }
 
     #[allow(dead_code)]
@@ -45,18 +49,21 @@ impl<Output: PipelineOutput> Pipeline<Output> {
     }
 
     pub fn start(self: &Arc<Self>) {
-        let _pipeline = self.clone();
-        thread::spawn(|| {
+        let (frames_sender, frames_receiver) = unbounded();
+        let pipeline = self.clone();
+
+        pipeline.queue.start(frames_sender);
+
+        thread::spawn(move || {
             loop {
-                // probably sth like this
-                //
-                // let input_frames = pipeline.queue.next();
+                let input_frames = frames_receiver.recv().unwrap();
+                println!("Input frames batch: {:#?}", input_frames);
                 // let pipeline.render.render(output_frames);
                 // for let (output_id, frames) in input_frames {
-                //     self.on_output_data_received(output_id, frames)
+                // self.on_output_data_received(output_id, frames)
                 // }
-                eprintln!("render loop");
-                thread::sleep(Duration::from_millis(1000));
+                // eprintln!("render loop");
+                // thread::sleep(Duration::from_millis(1000));
             }
         });
     }

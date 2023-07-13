@@ -3,18 +3,18 @@ mod internal_queue;
 use std::{
     collections::HashMap,
     sync::{Arc, Mutex},
-    thread,
-    time::{Duration, Instant},
+    time::{Duration, Instant}, thread,
 };
 
-use crossbeam::channel::{tick, unbounded, Receiver, Sender};
+use compositor_common::Frame;
+use crossbeam_channel::{tick, unbounded, Receiver, Sender};
 
 use self::internal_queue::{InternalQueue, QueueError};
 
 pub type InputID = u32;
 
 /// nanoseconds
-type Pts = u64;
+type Pts = i64;
 
 /// TODO: This should be a rational.
 #[derive(Debug, Clone, Copy)]
@@ -26,17 +26,10 @@ impl Framerate {
     }
 }
 
-#[allow(dead_code)]
-pub struct MockFrame {
-    y_plane: bytes::Bytes,
-    u_plane: bytes::Bytes,
-    v_plane: bytes::Bytes,
-    pts: Pts,
-}
-
+#[derive(Debug)]
 #[allow(dead_code)]
 pub struct FramesBatch {
-    frames: HashMap<InputID, Arc<MockFrame>>,
+    frames: HashMap<InputID, Arc<Frame>>,
     pts: Pts,
 }
 
@@ -48,7 +41,7 @@ impl FramesBatch {
         }
     }
 
-    pub fn insert_frame(&mut self, input_id: InputID, frame: Arc<MockFrame>) {
+    pub fn insert_frame(&mut self, input_id: InputID, frame: Arc<Frame>) {
         self.frames.insert(input_id, frame);
     }
 }
@@ -57,7 +50,6 @@ pub struct Queue {
     internal_queue: Arc<Mutex<InternalQueue>>,
     check_queue_channel: (Sender<()>, Receiver<()>),
     output_framerate: Framerate,
-    send_batches_counter: u32,
     time_buffer_duration: Duration,
 }
 
@@ -65,10 +57,9 @@ impl Queue {
     #[allow(dead_code)]
     pub fn new(output_framerate: Framerate) -> Self {
         Queue {
-            internal_queue: Arc::new(Mutex::new(InternalQueue::new())),
+            internal_queue: Arc::new(Mutex::new(InternalQueue::new(output_framerate))),
             check_queue_channel: unbounded(),
             output_framerate,
-            send_batches_counter: 0,
             time_buffer_duration: Duration::from_millis(100),
         }
     }
@@ -87,7 +78,7 @@ impl Queue {
     }
 
     #[allow(dead_code)]
-    pub fn start(mut self, sender: Sender<FramesBatch>) {
+    pub fn start(&self, sender: Sender<FramesBatch>) {
         // Starting timer
         let frame_interval_duration = self.output_framerate.get_interval_duration();
         let ticker = tick(frame_interval_duration);
@@ -98,46 +89,40 @@ impl Queue {
             check_queue_sender.send(()).unwrap();
         });
 
-        let start = Instant::now();
-
-        let check_queue_receiver = self.check_queue_channel.1.clone();
         // Checking queue
+        let start = Instant::now();
+        let check_queue_receiver = self.check_queue_channel.1.clone();
+        let internal_queue = self.internal_queue.clone();
+        let interval_duration = self.output_framerate.get_interval_duration();
+        let time_buffer_duration = self.time_buffer_duration;
+
         thread::spawn(move || loop {
             check_queue_receiver.recv().unwrap();
 
-            let mut internal_queue = self.internal_queue.lock().unwrap();
-            let buffer_pts = self.get_next_output_buffer_pts();
-            let next_buffer_time = self.output_framerate.get_interval_duration()
-                * self.send_batches_counter
-                + self.time_buffer_duration;
+            let mut internal_queue = internal_queue.lock().unwrap();
+            let buffer_pts = internal_queue.get_next_output_buffer_pts();
+            let next_buffer_time =
+                interval_duration * internal_queue.send_batches_counter + time_buffer_duration;
 
             if start.elapsed() > next_buffer_time
                 || internal_queue.check_all_inputs_ready(buffer_pts)
             {
                 let frames_batch = internal_queue.get_frames_batch(buffer_pts);
                 sender.send(frames_batch).unwrap();
-                self.send_batches_counter += 1;
 
-                internal_queue.drop_useless_frames(self.get_next_output_buffer_pts());
+                internal_queue.drop_useless_frames();
             }
         });
     }
 
-    #[allow(dead_code)]
-    pub fn enqueue_frame(&self, input_id: InputID, frame: MockFrame) -> Result<(), QueueError> {
+    pub fn enqueue_frame(&self, input_id: InputID, frame: Frame) -> Result<(), QueueError> {
         let mut internal_queue = self.internal_queue.lock().unwrap();
 
         internal_queue.enqueue_frame(input_id, frame)?;
-        internal_queue.drop_pad_useless_frames(input_id, self.get_next_output_buffer_pts())?;
+        internal_queue.drop_pad_useless_frames(input_id)?;
 
         self.check_queue_channel.0.send(()).unwrap();
 
         Ok(())
-    }
-
-    fn get_next_output_buffer_pts(&self) -> Pts {
-        let nanoseconds_in_second = 1_000_000_000;
-        (nanoseconds_in_second * (self.send_batches_counter as u64 + 1))
-            / self.output_framerate.0 as u64
     }
 }
