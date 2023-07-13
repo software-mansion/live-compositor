@@ -1,5 +1,6 @@
 use anyhow::{anyhow, Result};
 use compositor_common::scene::Resolution;
+use log::{error, info};
 use serde::{Deserialize, Serialize};
 use std::{io::Cursor, net::SocketAddr, sync::Arc, thread};
 use tiny_http::{Response, StatusCode};
@@ -41,7 +42,7 @@ impl Server {
     }
 
     pub fn start(self) {
-        println!("Listening on port {}", self.server.server_addr());
+        info!("Listening on port {}", self.server.server_addr());
         for mut raw_request in self.server.incoming_requests() {
             let result = self.handle_request_before_init(&mut raw_request);
             let should_abort = result.is_ok();
@@ -75,10 +76,7 @@ impl Server {
     fn handle_request_before_init(&self, raw_request: &mut tiny_http::Request) -> Result<()> {
         let request = Server::parse_request(raw_request)?;
         match request {
-            Request::Init => {
-                eprintln!("run any init code here");
-                Ok(())
-            }
+            Request::Init => Ok(()),
             _ => Err(anyhow!(
                 "No requests are supported before init request is completed."
             )),
@@ -103,7 +101,7 @@ impl Server {
             )),
         };
         if let Err(err) = response_result {
-            eprintln!("Failed to send response {}.", err);
+            error!("Failed to send response {}.", err);
         }
     }
 

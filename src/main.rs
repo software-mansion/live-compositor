@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use log::info;
 use signal_hook::{consts, iterator::Signals};
 use state::Pipeline;
 
@@ -11,7 +12,11 @@ mod rtp_sender;
 mod state;
 
 fn main() {
+    env_logger::init_from_env(
+        env_logger::Env::default().filter_or(env_logger::DEFAULT_FILTER_ENV, "info"),
+    );
     ffmpeg_next::format::network::init();
+
     let pipeline = Arc::new(Pipeline::new());
     let state = Arc::new(State::new(pipeline));
 
@@ -19,6 +24,6 @@ fn main() {
 
     let mut signals = Signals::new([consts::SIGINT]).unwrap();
     signals.forever().next();
-    eprintln!("Received exit signal. Terminating...")
+    info!("Received exit signal. Terminating...")
     // TODO: add graceful shutdown
 }

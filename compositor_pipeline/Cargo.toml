@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 compositor_common = { path = "../compositor_common" }
 bytes =  { workspace = true }
+log = { workspace = true } 
