@@ -53,38 +53,25 @@ impl FramesBatch {
     }
 }
 
-struct CheckQueueChannel {
-    sender: Sender<()>,
-    receiver: Receiver<()>,
-}
-
-impl CheckQueueChannel {
-    pub fn new() -> Self {
-        let (sender, receiver) = unbounded();
-        CheckQueueChannel { sender, receiver }
-    }
-
-    pub fn add_queue_check(&self) {
-        self.sender.send(()).unwrap();
-    }
-}
-
 pub struct Queue {
     internal_queue: Arc<Mutex<InternalQueue>>,
-    check_queue_events_channel: Arc<Mutex<CheckQueueChannel>>,
+    check_queue_sender: Sender<()>,
+    check_queue_receiver: Receiver<()>,
     output_framerate: Framerate,
-    frames_sent: u32,
+    frames_batches_sent: u32,
     time_buffer_duration: Duration,
 }
 
 impl Queue {
     #[allow(dead_code)]
     pub fn new(output_framerate: Framerate) -> Self {
+        let (check_queue_sender, check_queue_receiver) = unbounded();
         Queue {
             internal_queue: Arc::new(Mutex::new(InternalQueue::new())),
-            check_queue_events_channel: Arc::new(Mutex::new(CheckQueueChannel::new())),
+            check_queue_sender,
+            check_queue_receiver,
             output_framerate,
-            frames_sent: 0,
+            frames_batches_sent: 0,
             time_buffer_duration: Duration::from_millis(100),
         }
     }
@@ -108,26 +95,23 @@ impl Queue {
         let frame_interval_duration = self.output_framerate.get_interval_duration();
         let ticker = tick(frame_interval_duration);
 
-        let check_queue_events_channel = self.check_queue_events_channel.clone();
+        let check_queue_sender = self.check_queue_sender.clone();
         thread::spawn(move || loop {
             ticker.recv().unwrap();
-            check_queue_events_channel.lock().unwrap().add_queue_check();
+            check_queue_sender.send(()).unwrap();
         });
 
         let start = Instant::now();
 
+        let check_queue_receiver = self.check_queue_receiver.clone();
         // Checking queue
         thread::spawn(move || loop {
-            self.check_queue_events_channel
-                .lock()
-                .unwrap()
-                .receiver
-                .recv()
-                .unwrap();
+            check_queue_receiver.recv().unwrap();
 
             let mut internal_queue = self.internal_queue.lock().unwrap();
             let buffer_pts = self.get_next_output_buffer_pts();
-            let next_buffer_time = self.output_framerate.get_interval_duration() * self.frames_sent
+            let next_buffer_time = self.output_framerate.get_interval_duration()
+                * self.frames_batches_sent
                 + self.time_buffer_duration;
 
             if start.elapsed() > next_buffer_time
@@ -135,7 +119,7 @@ impl Queue {
             {
                 let frames_batch = internal_queue.get_frames_batch(buffer_pts);
                 sender.send(frames_batch).unwrap();
-                self.frames_sent += 1;
+                self.frames_batches_sent += 1;
 
                 internal_queue.drop_useless_frames(self.get_next_output_buffer_pts());
             }
@@ -149,16 +133,14 @@ impl Queue {
         internal_queue.enqueue_frame(input_id, frame)?;
         internal_queue.drop_pad_useless_frames(input_id, self.get_next_output_buffer_pts())?;
 
-        self.check_queue_events_channel
-            .lock()
-            .unwrap()
-            .add_queue_check();
+        self.check_queue_sender.send(()).unwrap();
 
         Ok(())
     }
 
     fn get_next_output_buffer_pts(&self) -> Pts {
         let nanoseconds_in_second = 1_000_000_000;
-        (nanoseconds_in_second * (self.frames_sent as u64 + 1)) / self.output_framerate.0 as u64
+        (nanoseconds_in_second * (self.frames_batches_sent as u64 + 1))
+            / self.output_framerate.0 as u64
     }
 }
