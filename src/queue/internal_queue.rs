@@ -80,19 +80,13 @@ impl InternalQueue {
     // queue won't receive frame with pts "closer" to buffer pts.
     // In other cases, queue might receive frame "closer" to buffer pts in future.
     pub fn check_all_inputs_ready(&self, buffer_pts: Pts) -> bool {
-        for input_queue in self.inputs_queues.values() {
-            match input_queue.last() {
-                Some(last_frame) => {
-                    if last_frame.pts <= buffer_pts {
-                        return false;
-                    }
-                }
-                None => {
-                    return false;
-                }
-            }
-        }
-        true
+        self.inputs_queues
+            .values()
+            .into_iter()
+            .all(|input_queue| match input_queue.last() {
+                Some(last_frame) => last_frame.pts >= buffer_pts,
+                None => false,
+            })
     }
 
     pub fn drop_pad_useless_frames(
