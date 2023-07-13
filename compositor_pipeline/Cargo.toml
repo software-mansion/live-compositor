@@ -1,10 +1,10 @@
 [package]
-name = "compositor_common"
+name = "compositor_pipeline"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+compositor_common = { path = "../compositor_common" }
 bytes =  { workspace = true }
-serde = { workspace = true }
