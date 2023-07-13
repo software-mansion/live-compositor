@@ -12,6 +12,9 @@ pub struct Resolution {
     height: usize,
 }
 
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+pub struct InputId(pub String);
+
 #[derive(Debug)]
 pub enum Node {
     Video {
@@ -26,7 +29,7 @@ pub enum Node {
 
     Transformer {
         registry_key: TransformationRegistryKey,
-        inputs: HashMap<String, Arc<Node>>,
+        inputs: HashMap<InputId, Arc<Node>>,
         resolution: Resolution,
         params: Box<dyn Any>,
     },
