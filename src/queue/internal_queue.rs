@@ -82,7 +82,6 @@ impl InternalQueue {
     pub fn check_all_inputs_ready(&self, buffer_pts: Pts) -> bool {
         self.inputs_queues
             .values()
-            .into_iter()
             .all(|input_queue| match input_queue.last() {
                 Some(last_frame) => last_frame.pts >= buffer_pts,
                 None => false,
