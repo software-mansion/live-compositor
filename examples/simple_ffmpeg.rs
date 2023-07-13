@@ -44,7 +44,7 @@ fn start_example_client_code() -> Result<()> {
     eprintln!("[example] Download sample.");
     let sample_path = env::current_dir()?.join("examples/assets/sample_1280_720.mp4");
     fs::create_dir_all(sample_path.parent().unwrap())?;
-    common::ensure_downloaded("https://file-examples.com/storage/fe8ec1a8f464ac695986bbb/2017/04/file_example_MP4_1280_10MG.mp4", &sample_path)?;
+    common::ensure_downloaded("https://filesamples.com/samples/video/mp4/sample_1280x720.mp4", &sample_path)?;
 
     eprintln!("[example] Send register output request.");
     common::post(&json!({
