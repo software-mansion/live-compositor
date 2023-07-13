@@ -23,23 +23,25 @@ impl Framerate {
     }
 }
 
+#[allow(dead_code)]
 pub struct MockFrame {
     y_plane: bytes::Bytes,
     u_plane: bytes::Bytes,
     v_plane: bytes::Bytes,
-    pts: PTS,
+    pts: Pts,
 }
 
 /// nanoseconds
-type PTS = u64;
+type Pts = u64;
 
+#[allow(dead_code)]
 pub struct FramesBatch {
     frames: HashMap<InputID, Arc<MockFrame>>,
-    pts: PTS,
+    pts: Pts,
 }
 
 impl FramesBatch {
-    pub fn new(pts: PTS) -> Self {
+    pub fn new(pts: Pts) -> Self {
         FramesBatch {
             frames: HashMap::new(),
             pts,
@@ -76,6 +78,7 @@ pub struct Queue {
 }
 
 impl Queue {
+    #[allow(dead_code)]
     pub fn new(output_framerate: Framerate) -> Self {
         Queue {
             internal_queue: Arc::new(Mutex::new(InternalQueue::new())),
@@ -86,6 +89,7 @@ impl Queue {
         }
     }
 
+    #[allow(dead_code)]
     pub fn add_input(&self, input_id: InputID) {
         let mut internal_queue = self.internal_queue.lock().unwrap();
         internal_queue.add_input(input_id);
@@ -151,7 +155,7 @@ impl Queue {
         Ok(())
     }
 
-    fn get_next_output_buffer_pts(&self) -> PTS {
+    fn get_next_output_buffer_pts(&self) -> Pts {
         let nanoseconds_in_second = 1_000_000_000;
         (nanoseconds_in_second * (self.frames_sent as u64 + 1)) / self.output_framerate.0 as u64
     }

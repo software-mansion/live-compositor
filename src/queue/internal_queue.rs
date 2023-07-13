@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 use thiserror::Error;
 
-use super::{FramesBatch, InputID, MockFrame, PTS};
+use super::{FramesBatch, InputID, MockFrame, Pts};
 
 #[derive(Error, Debug)]
 pub enum QueueError {
@@ -39,7 +39,7 @@ impl InternalQueue {
         }
     }
 
-    pub fn get_frames_batch(&mut self, buffer_pts: PTS) -> FramesBatch {
+    pub fn get_frames_batch(&mut self, buffer_pts: Pts) -> FramesBatch {
         let mut frames_batch = FramesBatch::new(buffer_pts);
 
         for (input_id, input_queue) in &self.inputs_queues {
@@ -51,7 +51,7 @@ impl InternalQueue {
         frames_batch
     }
 
-    pub fn check_all_inputs_ready(&self, buffer_pts: PTS) -> bool {
+    pub fn check_all_inputs_ready(&self, buffer_pts: Pts) -> bool {
         for input_queue in self.inputs_queues.values() {
             match input_queue.first() {
                 Some(first_frame) => {
@@ -71,7 +71,7 @@ impl InternalQueue {
     pub fn drop_pad_useless_frames(
         &mut self,
         input_id: InputID,
-        next_buffer_pts: PTS,
+        next_buffer_pts: Pts,
     ) -> Result<(), QueueError> {
         let input_queue = self
             .inputs_queues
@@ -99,7 +99,7 @@ impl InternalQueue {
         Ok(())
     }
 
-    pub fn drop_useless_frames(&mut self, next_buffer_pts: PTS) {
+    pub fn drop_useless_frames(&mut self, next_buffer_pts: Pts) {
         let input_ids: Vec<InputID> = self.inputs_queues.keys().cloned().collect();
         for input_id in input_ids {
             self.drop_pad_useless_frames(input_id, next_buffer_pts)
