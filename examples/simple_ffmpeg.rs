@@ -13,6 +13,7 @@ mod common;
 fn main() {
     ffmpeg_next::format::network::init();
     let pipeline = Arc::new(Pipeline::new());
+    pipeline.start();
     let state = Arc::new(State::new(pipeline));
 
     thread::spawn(|| {

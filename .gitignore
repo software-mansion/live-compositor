@@ -16,3 +16,6 @@ target/
 
 # VsCode 
 .vscode
+
+# Assets
+**/*.mp4

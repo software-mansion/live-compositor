@@ -3,7 +3,8 @@ mod internal_queue;
 use std::{
     collections::HashMap,
     sync::{Arc, Mutex},
-    time::{Duration, Instant}, thread,
+    thread::{self, sleep},
+    time::{Duration, Instant},
 };
 
 use compositor_common::Frame;
@@ -29,8 +30,8 @@ impl Framerate {
 #[derive(Debug)]
 #[allow(dead_code)]
 pub struct FramesBatch {
-    frames: HashMap<InputID, Arc<Frame>>,
-    pts: Pts,
+    pub frames: HashMap<InputID, Arc<Frame>>,
+    pub pts: Pts,
 }
 
 impl FramesBatch {
@@ -81,12 +82,16 @@ impl Queue {
     pub fn start(&self, sender: Sender<FramesBatch>) {
         // Starting timer
         let frame_interval_duration = self.output_framerate.get_interval_duration();
-        let ticker = tick(frame_interval_duration);
-
         let check_queue_sender = self.check_queue_channel.0.clone();
-        thread::spawn(move || loop {
-            ticker.recv().unwrap();
-            check_queue_sender.send(()).unwrap();
+        let time_buffer_duration = self.time_buffer_duration;
+
+        thread::spawn(move || {
+            sleep(time_buffer_duration);
+            let ticker = tick(frame_interval_duration);
+            loop {
+                ticker.recv().unwrap();
+                check_queue_sender.send(()).unwrap();
+            }
         });
 
         // Checking queue

@@ -20,7 +20,7 @@ impl<Output: PipelineOutput> Pipeline<Output> {
     pub fn new() -> Self {
         Pipeline {
             outputs: SyncHashMap::new(),
-            queue: Queue::new(Framerate(30)),
+            queue: Queue::new(Framerate(24)),
         }
     }
 
@@ -34,8 +34,8 @@ impl<Output: PipelineOutput> Pipeline<Output> {
     }
 
     pub fn push_input_data(&self, input_id: u32, frame: Frame) {
-        self.queue.enqueue_frame(input_id, frame).unwrap();
-        // self.outputs.get_cloned(&8002).unwrap().send_frame(frame);
+        self.queue.enqueue_frame(input_id, frame.clone()).unwrap();
+        self.outputs.get_cloned(&8002).unwrap().send_frame(frame);
     }
 
     #[allow(dead_code)]
@@ -56,8 +56,7 @@ impl<Output: PipelineOutput> Pipeline<Output> {
 
         thread::spawn(move || {
             loop {
-                let input_frames = frames_receiver.recv().unwrap();
-                println!("Input frames batch: {:#?}", input_frames);
+                let _input_frames = frames_receiver.recv().unwrap();
                 // let pipeline.render.render(output_frames);
                 // for let (output_id, frames) in input_frames {
                 // self.on_output_data_received(output_id, frames)
