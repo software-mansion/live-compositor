@@ -1,6 +1,15 @@
+use std::rc::Rc;
+
+use crate::registry::{self, TransformationRegistry};
+
+use self::transformation::Transformation;
+
+pub mod texture;
+pub mod transformation;
+
 pub struct Renderer {
-    #[allow(dead_code)]
-    wgpu_ctx: WgpuCtx,
+    wgpu_ctx: Rc<WgpuCtx>,
+    registry: TransformationRegistry,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -9,20 +18,37 @@ pub enum RendererNewError {
     FailedToInitWgpuCtx(#[from] WgpuCtxNewError),
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum RendererRegisterTransformationError {
+    #[error("failed to register a transformation in the transformation registry")]
+    TransformationRegistryError(#[from] registry::RegisterError),
+}
+
 impl Renderer {
     pub fn new() -> Result<Self, RendererNewError> {
         Ok(Self {
-            wgpu_ctx: WgpuCtx::new()?,
+            wgpu_ctx: Rc::new(WgpuCtx::new()?),
+            registry: TransformationRegistry::new(),
         })
+    }
+
+    pub fn register_transformation<T: Transformation>(
+        &mut self,
+        provider: fn(Rc<WgpuCtx>) -> T,
+    ) -> Result<(), RendererRegisterTransformationError> {
+        self.registry
+            .register(Box::new(provider(self.wgpu_ctx.clone())))?;
+
+        Ok(())
     }
 }
 
-struct WgpuCtx {
+pub struct WgpuCtx {
     #[allow(dead_code)]
-    device: wgpu::Device,
+    pub device: wgpu::Device,
 
     #[allow(dead_code)]
-    queue: wgpu::Queue,
+    pub queue: wgpu::Queue,
 }
 
 #[derive(Debug, thiserror::Error)]
