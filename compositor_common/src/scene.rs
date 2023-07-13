@@ -24,7 +24,7 @@ pub enum Node {
         resolution: Resolution,
     },
 
-    Transformation {
+    Transformer {
         registry_key: TransformationRegistryKey,
         inputs: HashMap<String, Arc<Node>>,
         resolution: Resolution,
