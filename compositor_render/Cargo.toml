@@ -12,4 +12,6 @@ thiserror = "1.0.40"
 wgpu = "0.16.1"
 compositor_common = { path = "../compositor_common" }
 image = { version = "0.24.6", features = ["jpeg", "png"] }
-byteorder = "1.4.3"
+ureq = { version = "2.7.1", features = ["json"] }
+serde = { workspace = true }
+serde_json = { workspace = true }

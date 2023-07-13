@@ -1,101 +1,56 @@
-import net from 'net';
+import express, { Express, Request, Response } from 'express';
+import { Resolution, Url } from './common';
 import { Session } from './session';
-import { Url } from './common';
-import { CommandType, getCommand } from './command';
 
 export class Server {
-    private port: number;
-    private inner: net.Server;
+    private server: Express;
     private sessions: Map<Url, Session>;
-    private current_session?: Session;
 
-    public constructor(port: number) {
-        this.port = port;
-        this.inner = net.createServer((sock) => this.readPackets(sock));
+    public constructor() {
+        this.server = express();
+        this.server.use(express.json());
         this.sessions = new Map();
+
+        this.initRoutes();
     }
 
-    public listen(): void {
-        this.inner.listen(this.port, () => {
-            console.log(`Listening on ${this.port}`);
+    public listen(port: number): void {
+        this.server.listen(port, () => {
+            console.log(`Listening on ${port}`);
         });
     }
 
-    // TODO: Support multiple connections
-    private readPackets(sock: net.Socket): void {
-        let length = -1;
-        let header = Buffer.from([]);
-        let message = Buffer.from([]);
-
-        const parse = (data: Buffer) => {
-            if (length === -1) {
-                header = Buffer.concat([header, data.subarray(0, 4 - header.length)]);
-                if (header.length == 4) {
-                    length = header.readUInt32BE();
-                    data = data.subarray(4);
-                }
-            }
-            if (message.length < length) {
-                message = Buffer.concat([message, data.subarray(0, length - message.length)]);
-                if (message.length == length) {
-                    this.handleMessage(message, sock);
-
-                    data = data.subarray(length);
-                    length = -1;
-                    header = Buffer.from([]);
-                    message = Buffer.from([]);
-                    if (data.length > 0) {
-                        parse(data);
-                    }
-                }
-            }
-        };
-
-        sock.on("data", parse);
+    private initRoutes(): void {
+        this.server.post("/render", this.render.bind(this));
     }
 
-    private sendMessage(sock: net.Socket, message: Buffer): void {
-        const header = Buffer.from([
-            (message.length & 0xff000000) >> 24,
-            (message.length & 0x00ff0000) >> 16,
-            (message.length & 0x0000ff00) >> 8,
-            (message.length & 0x000000ff)
-        ]);
+    private render(req: Request<{}, {}, RenderRequest>, res: Response<Buffer>): void {
+        const data = req.body;
+        let session: Session;
 
-        sock.write(header);
-        sock.write(message);
-    }
-
-    private handleMessage(message: Buffer, sock: net.Socket): void {
-        const command = getCommand(message);
-
-        switch (command.type) {
-            case CommandType.use:
-                if (this.sessions.has(command.url)) {
-                    this.current_session = this.sessions.get(command.url);
-                } else {
-                    console.log(`Starting rendering for ${command.url}`)
-                    this.current_session = new Session(command.url, 800, 600);
-                    this.current_session.run();
-                    this.sessions.set(command.url, this.current_session);
-                }
-                break;
-            case CommandType.resolution:
-                if (this.current_session.width != command.width || this.current_session.height != command.height) {
-                    this.current_session.resize(command.width, command.height);
-                }
-                break;
-            case CommandType.source:
-                console.warn("unimplemented");
-                break;
-            case CommandType.render:
-                this.sendMessage(sock, this.current_session.frame);
-                break;
-            case CommandType.unknown:
-                console.warn("unknown command");
-                break;
-            default:
-                console.error(`Invalid command: ${command}`);
+        if (this.sessions.has(data.url)) {
+            session = this.sessions.get(data.url);
+        } else {
+            console.log(`Starting rendering for ${data.url}`)
+            session = new Session(data.url, data.resolution);
+            session.run();
+            this.sessions.set(data.url, session);
         }
+
+        if (session.resolution.width != data.resolution.width ||
+            session.resolution.height != data.resolution.height) {
+            session.resize(data.resolution);
+        }
+
+        res.send(session.frame);
     }
+}
+
+interface RenderRequest {
+    url: Url,
+    resolution: Resolution,
+}
+
+interface RenderResponse {
+    frame: number[]
 }

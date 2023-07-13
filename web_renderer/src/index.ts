@@ -1,6 +1,9 @@
 import { app } from 'electron';
 import { Server } from './server';
 
+// app.disableHardwareAcceleration();
+app.commandLine.appendSwitch('disable-renderer-backgrounding');
+
 function main(): void {
     const port = process.env.WEB_RENDERER_PORT;
     if (port == null) {
@@ -8,8 +11,8 @@ function main(): void {
         process.exit(1);
     }
 
-    const server = new Server(parseInt(port));
-    server.listen();
+    const server = new Server();
+    server.listen(parseInt(port));
 }
 
 app.whenReady().then(main);
