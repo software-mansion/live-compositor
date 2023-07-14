@@ -15,7 +15,7 @@ use self::internal_queue::{InternalQueue, QueueError};
 pub type InputID = u32;
 
 /// nanoseconds
-type Pts = i64;
+type Pts = Duration;
 
 /// TODO: This should be a rational.
 #[derive(Debug, Clone, Copy)]

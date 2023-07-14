@@ -1,6 +1,7 @@
 use anyhow::anyhow;
 use compositor_common::Frame;
 use std::collections::hash_map::Entry::Vacant;
+use std::time::Duration;
 use std::{collections::HashMap, sync::Arc};
 use thiserror::Error;
 
@@ -46,7 +47,7 @@ impl InternalQueue {
                     e.insert(frame.pts);
                 }
 
-                frame.pts += self
+                frame.pts += *self
                     .timestamp_offsets
                     .get(&input_id)
                     .ok_or_else(|| anyhow!("Timestamp offset unregistered for pad {input_id}"))
@@ -91,7 +92,7 @@ impl InternalQueue {
     }
 
     pub fn drop_pad_useless_frames(&mut self, input_id: InputID) -> Result<(), QueueError> {
-        let next_output_buffer_pts = self.get_next_output_buffer_pts();
+        let next_output_buffer_nanos = self.get_next_output_buffer_pts().as_nanos();
 
         let input_queue = self
             .inputs_queues
@@ -100,14 +101,16 @@ impl InternalQueue {
 
         if let Some(first_frame) = input_queue.first() {
             let mut best_diff_frame_index = 0;
-            let mut best_diff_frame_pts = first_frame.pts;
+            let mut best_diff_nanos = first_frame
+                .pts
+                .as_nanos()
+                .abs_diff(next_output_buffer_nanos);
 
             for (index, frame) in input_queue.iter().enumerate() {
-                if frame.pts.abs_diff(next_output_buffer_pts)
-                    <= best_diff_frame_pts.abs_diff(next_output_buffer_pts)
-                {
+                let diff = frame.pts.as_nanos().abs_diff(next_output_buffer_nanos);
+                if diff <= best_diff_nanos {
                     best_diff_frame_index = index;
-                    best_diff_frame_pts = frame.pts;
+                    best_diff_nanos = diff;
                 } else {
                     break;
                 }
@@ -129,8 +132,6 @@ impl InternalQueue {
     }
 
     pub fn get_next_output_buffer_pts(&self) -> Pts {
-        let nanoseconds_in_second = 1_000_000_000;
-        (nanoseconds_in_second * (self.send_batches_counter as i64 + 1))
-            / self.output_framerate.0 as i64
+        Duration::from_secs_f64(self.send_batches_counter as f64 / self.output_framerate.0 as f64)
     }
 }

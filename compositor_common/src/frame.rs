@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use crate::scene::Resolution;
 
 // Clone is temporary. Testing use only.
@@ -5,7 +7,7 @@ use crate::scene::Resolution;
 pub struct Frame {
     pub data: YuvData,
     pub resolution: Resolution,
-    pub pts: i64,
+    pub pts: Duration,
 }
 
 // Clone is temporary. Testing use only.
