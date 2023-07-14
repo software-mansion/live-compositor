@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use crate::scene::Resolution;
 
 #[allow(dead_code)]
@@ -5,7 +7,7 @@ use crate::scene::Resolution;
 pub struct Frame {
     pub data: YuvData,
     pub resolution: Resolution,
-    pub pts: i64,
+    pub pts: Duration,
 }
 
 #[derive(Debug, Clone)]
