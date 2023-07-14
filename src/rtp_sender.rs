@@ -112,7 +112,9 @@ fn frame_into_av(frame: Frame, av_frame: &mut frame::Video) -> Result<()> {
         ));
     }
 
-    av_frame.set_pts(Some(frame.pts));
+    av_frame.set_pts(Some(
+        ((frame.pts.as_nanos() as f64) * 90000.0 / 10e9) as i64,
+    ));
     av_frame.data_mut(0).copy_from_slice(&frame.data.y_plane);
     av_frame.data_mut(1).copy_from_slice(&frame.data.u_plane);
     av_frame.data_mut(2).copy_from_slice(&frame.data.v_plane);
