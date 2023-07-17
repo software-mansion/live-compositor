@@ -22,6 +22,7 @@ pub fn write_example_sdp_file(port: u16) -> Result<String> {
                     m=video {} RTP/AVP 96\n\
                     a=rtpmap:96 H264/90000\n\
                     a=fmtp:96 packetization-mode=1\n\
+                    a=rtcp-mux\n\
                 ",
             port
         )

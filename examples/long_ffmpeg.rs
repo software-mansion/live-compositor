@@ -54,7 +54,7 @@ fn start_example_client_code() -> Result<()> {
             "height": 2160,
         },
         "encoder_settings": {
-            "preset": "medium"
+            "preset": "ultrafast"
         }
     }))?;
 
@@ -75,7 +75,7 @@ fn start_example_client_code() -> Result<()> {
             "libx264",
             "-f",
             "rtp",
-            "rtp://127.0.0.1:8004",
+            "rtp://127.0.0.1:8004?rtcpport=8004",
         ])
         .spawn()?;
     Ok(())

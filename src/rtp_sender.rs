@@ -102,7 +102,10 @@ impl RtpSender {
 
     fn run(opts: Options, receiver: Receiver<Frame>) -> Result<()> {
         let mut output_ctx = format::output_as(
-            &PathBuf::from(format!("rtp://127.0.0.1:{}", opts.port)),
+            &PathBuf::from(format!(
+                "rtp://127.0.0.1:{}?rtcpport={}",
+                opts.port, opts.port
+            )),
             "rtp",
         )?;
         let h264_codec = codec::encoder::find(Id::H264).unwrap();
