@@ -43,6 +43,7 @@ pub fn post<T: Serialize + ?Sized>(json: &T) -> Result<Response> {
     Ok(response)
 }
 
+#[allow(dead_code)]
 pub fn download(url: &str, destination: &Path) -> Result<()> {
     let mut resp = reqwest::blocking::get(url)?;
     let mut out = File::create(destination)?;
@@ -50,6 +51,7 @@ pub fn download(url: &str, destination: &Path) -> Result<()> {
     Ok(())
 }
 
+#[allow(dead_code)]
 pub fn ensure_downloaded(url: &str, destination: &Path) -> Result<()> {
     if destination.exists() {
         return Ok(());

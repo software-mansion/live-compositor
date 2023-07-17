@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 use crossbeam_channel::{Receiver, Sender};
-use log::error;
+use log::{error, warn};
 use serde::{Deserialize, Serialize};
 use std::{path::PathBuf, thread};
 
@@ -161,7 +161,11 @@ impl RtpSender {
             opts.resolution.width.try_into().unwrap(),
             opts.resolution.height.try_into().unwrap(),
         );
-        for frame in receiver.into_iter() {
+        for frame in receiver.iter() {
+            if receiver.len() > 100 {
+                warn!("Dropping frame: encoder queue is too long.",);
+                continue;
+            }
             if let Err(err) = frame_into_av(frame, &mut av_frame) {
                 error!("Failed to construct AVFrame: {err}");
                 continue;
