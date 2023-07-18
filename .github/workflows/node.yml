@@ -1,5 +1,17 @@
 name: web renderer lint
-on: [push]
+on:
+    push:
+        branches: [master]
+        paths:
+            - "web_renderer/**"
+    pull_request:
+        types: [opened, synchronize]
+        paths:
+            - "web_renderer/**"
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
 
 jobs:
     node:
@@ -7,7 +19,7 @@ jobs:
         defaults:
             run:
                 working-directory: ./web_renderer
-        steps:            
+        steps:
             - name: 🛠 Use node.js
               uses: actions/setup-node@v3
 
@@ -19,4 +31,3 @@ jobs:
 
             - name: 🖋️ Run lint
               run: npm run lint
-            
