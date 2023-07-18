@@ -1,4 +1,6 @@
-use std::rc::Rc;
+use std::{collections::HashMap, rc::Rc};
+
+use compositor_common::{scene::Scene, Frame};
 
 use crate::registry::{self, TransformationRegistry};
 
@@ -8,8 +10,9 @@ pub mod texture;
 pub mod transformation;
 
 pub struct Renderer {
-    pub wgpu_ctx: Rc<WgpuCtx>,
+    wgpu_ctx: Rc<WgpuCtx>,
     registry: TransformationRegistry,
+    scene: Option<Scene>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -24,11 +27,21 @@ pub enum RendererRegisterTransformationError {
     TransformationRegistryError(#[from] registry::RegisterError),
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum RendererRenderError {
+    #[error("no scene was set in the compositor")]
+    NoScene,
+
+    #[error("a frame was not provided for input with id {0}")]
+    NoInput(u32),
+}
+
 impl Renderer {
     pub fn new() -> Result<Self, RendererNewError> {
         Ok(Self {
             wgpu_ctx: Rc::new(WgpuCtx::new()?),
             registry: TransformationRegistry::new(),
+            scene: None,
         })
     }
 
@@ -40,6 +53,20 @@ impl Renderer {
             .register(Box::new(provider(self.wgpu_ctx.clone())))?;
 
         Ok(())
+    }
+
+    /// This is very much a work in progress.
+    /// For now it just takes a random frame from the input and returns it
+    pub fn render(&self, inputs: HashMap<u32, Frame>) -> Result<Frame, RendererRenderError> {
+        inputs
+            .values()
+            .next()
+            .cloned()
+            .ok_or(RendererRenderError::NoInput(0)) // 0 as a placeholder for now until this is implemented
+    }
+
+    pub fn update_scene(&mut self, scene: Scene) {
+        self.scene = Some(scene);
     }
 }
 

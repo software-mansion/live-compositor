@@ -1,6 +1,6 @@
 use std::{collections::HashMap, error::Error};
 
-use compositor_common::scene::TransformationRegistryKey;
+use compositor_common::scene::{NodeId, TransformationRegistryKey};
 
 use super::texture::Texture;
 
@@ -14,7 +14,7 @@ pub trait Transformation: 'static {
     fn apply(
         &self,
         params: &TransformationParams,
-        sources: &HashMap<String, Texture>,
+        sources: &HashMap<NodeId, Texture>,
         target: &Texture,
     ) -> Result<(), Box<dyn Error>>;
 

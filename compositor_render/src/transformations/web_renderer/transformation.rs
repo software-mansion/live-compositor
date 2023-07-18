@@ -8,7 +8,7 @@ use std::{
     rc::Rc,
 };
 
-use compositor_common::scene::{Resolution, TransformationRegistryKey};
+use compositor_common::scene::{NodeId, Resolution, TransformationRegistryKey};
 use image::ImageError;
 
 use crate::renderer::{
@@ -29,7 +29,7 @@ impl Transformation for WebRenderer {
     fn apply(
         &self,
         params: &TransformationParams,
-        _sources: &HashMap<String, Texture>,
+        _sources: &HashMap<NodeId, Texture>,
         target: &Texture,
     ) -> Result<(), Box<dyn Error>> {
         let TransformationParams::String(url) = params else {
