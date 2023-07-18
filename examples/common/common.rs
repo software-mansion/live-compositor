@@ -39,7 +39,11 @@ pub fn post<T: Serialize + ?Sized>(json: &T) -> Result<Response> {
     let client = reqwest::blocking::Client::new();
     let response = client.post("http://127.0.0.1:8001").json(json).send()?;
     if response.status() >= StatusCode::BAD_REQUEST {
-        return Err(anyhow!("Request failed: {:?}", response.text()));
+        return Err(anyhow!(
+            "Request failed: \n\trequest: {:?}\n\tresponse: {:?}",
+            serde_json::to_string(json)?,
+            response.text()
+        ));
     }
     Ok(response)
 }

@@ -2,11 +2,10 @@ use std::time::Duration;
 
 pub mod frame;
 pub mod scene;
+pub mod transformation;
+mod validators;
 
 pub type Frame = frame::Frame;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct InputId(pub u32);
 
 /// TODO: This should be a rational.
 #[derive(Debug, Clone, Copy)]

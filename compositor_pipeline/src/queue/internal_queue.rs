@@ -1,6 +1,7 @@
+use compositor_common::scene::InputId;
 use compositor_common::Frame;
-use compositor_common::{Framerate, InputId};
-use compositor_render::input_frames::InputFrames;
+use compositor_common::Framerate;
+use compositor_render::frameset::FrameSet;
 use std::time::Duration;
 use std::{collections::HashMap, sync::Arc};
 
@@ -55,12 +56,12 @@ impl InternalQueue {
     /// Pops frames closest to buffer pts.
     /// Implementation assumes that "useless frames" are already dropped
     /// by [`drop_useless_frames`] or [`drop_pad_useless_frames`]
-    pub fn get_frames_batch(&mut self, buffer_pts: Duration) -> InputFrames {
-        let mut frames_batch = InputFrames::new(buffer_pts);
+    pub fn get_frames_batch(&mut self, buffer_pts: Duration) -> FrameSet<InputId> {
+        let mut frames_batch = FrameSet::new(buffer_pts);
 
         for (input_id, input_queue) in &self.inputs_queues {
             if let Some(nearest_frame) = input_queue.first() {
-                frames_batch.insert_frame(*input_id, nearest_frame.clone());
+                frames_batch.frames.insert(input_id.clone(), nearest_frame.clone());
             }
         }
         self.sent_batches_counter += 1;

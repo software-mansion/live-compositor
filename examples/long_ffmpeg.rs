@@ -50,6 +50,7 @@ fn start_example_client_code() -> Result<()> {
     info!("[example] Send register output request.");
     common::post(&json!({
         "type": "register_output",
+        "id": "output 1",
         "port": 8002,
         "resolution": {
             "width": 3840,
@@ -63,7 +64,68 @@ fn start_example_client_code() -> Result<()> {
     info!("[example] Send register input request.");
     common::post(&json!({
         "type": "register_input",
+        "id": "input 1",
         "port": 8004
+    }))?;
+
+    info!("[example] Register shader transform");
+    common::post(&json!({
+        "type": "register_transformation",
+        "key": "example shader",
+        "transform": {
+            "type": "shader",
+            "source": "some source or other data"
+        }
+    }))?;
+
+    info!("[example] Register web renderer transform");
+    common::post(&json!({
+        "type": "register_transformation",
+        "key": "example website",
+        "transform": {
+            "type": "web_renderer",
+            "url": "http://some-website", // or other way of providing source
+        }
+    }))?;
+
+    info!("[example] Update scene");
+    common::post(&json!({
+        "type": "update_scene",
+        "inputs": [
+            {
+                "input_id": "input 1",
+                "resolution": { "width": 3840, "height": 2160 },
+            }
+        ],
+        "transforms": [
+           {
+               "node_id": "side-by-side",
+               "type": "shader",
+               "shader_id": "example shader",
+               "shader_params": {
+                   "example": {"type": "string", "value": "param"},
+               },
+               "input_pads": [
+                   "input 1",
+               ],
+               "resolution": { "width": 3840, "height": 2160 },
+           },
+           {
+               "node_id": "add-overlay",
+               "type": "web_renderer",
+               "renderer_id": "example website",
+               "input_pads": [
+                   "side-by-side",
+               ],
+               "resolution": { "width": 3840, "height": 2160 },
+           }
+        ],
+        "outputs": [
+            {
+                "output_id": "output 1",
+                "input_pad": "add-overlay"
+            }
+        ]
     }))?;
 
     Command::new("ffmpeg")

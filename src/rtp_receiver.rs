@@ -1,5 +1,9 @@
 use anyhow::{anyhow, Result};
-use compositor_common::{frame::YuvData, scene::Resolution, Frame, InputId};
+use compositor_common::{
+    frame::YuvData,
+    scene::{InputId, Resolution},
+    Frame,
+};
 use log::warn;
 use std::{fs::File, io::Write, path::PathBuf, sync::Arc, thread, time::Duration};
 
@@ -19,15 +23,15 @@ pub struct RtpReceiver {
 }
 
 impl RtpReceiver {
-    pub fn new(pipeline: Arc<Pipeline>, port: u16) -> Self {
+    pub fn new(pipeline: Arc<Pipeline>, port: u16, input_id: InputId) -> Self {
         let port_clone = port;
         thread::spawn(move || {
-            RtpReceiver::start(pipeline, port_clone).unwrap();
+            RtpReceiver::start(pipeline, port_clone, input_id).unwrap();
         });
         Self { port }
     }
 
-    fn start(pipeline: Arc<Pipeline>, port: u16) -> Result<()> {
+    fn start(pipeline: Arc<Pipeline>, port: u16, input_id: InputId) -> Result<()> {
         let sdp_filepath = PathBuf::from(format!("/tmp/sdp_input_{}.sdp", port));
         let mut file = File::create(&sdp_filepath)?;
         file.write_all(
@@ -77,9 +81,7 @@ impl RtpReceiver {
                         continue;
                     }
                 };
-                pipeline
-                    .push_input_data(InputId(port.into()), frame)
-                    .unwrap();
+                pipeline.push_input_data(input_id.clone(), frame);
             }
         }
 
