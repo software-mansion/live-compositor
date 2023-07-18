@@ -36,7 +36,7 @@ export class Session {
 
     public resize(resolution: Resolution): void {
         this.resolution = resolution;
-        
+
         const factor = screen.getPrimaryDisplay().scaleFactor;
         this.window.setSize(this.resolution.width / factor, this.resolution.height / factor);
     }
