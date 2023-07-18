@@ -22,6 +22,7 @@ pub fn write_example_sdp_file(port: u16) -> Result<String> {
                     m=video {} RTP/AVP 96\n\
                     a=rtpmap:96 H264/90000\n\
                     a=fmtp:96 packetization-mode=1\n\
+                    a=rtcp-mux\n\
                 ",
             port
         )
@@ -43,6 +44,7 @@ pub fn post<T: Serialize + ?Sized>(json: &T) -> Result<Response> {
     Ok(response)
 }
 
+#[allow(dead_code)]
 pub fn download(url: &str, destination: &Path) -> Result<()> {
     let mut resp = reqwest::blocking::get(url)?;
     let mut out = File::create(destination)?;
@@ -50,6 +52,7 @@ pub fn download(url: &str, destination: &Path) -> Result<()> {
     Ok(())
 }
 
+#[allow(dead_code)]
 pub fn ensure_downloaded(url: &str, destination: &Path) -> Result<()> {
     if destination.exists() {
         return Ok(());
