@@ -2,7 +2,7 @@ use anyhow::{anyhow, Result};
 use crossbeam_channel::{Receiver, Sender};
 use log::error;
 use serde::{Deserialize, Serialize};
-use std::{path::PathBuf, thread};
+use std::{path::PathBuf, sync::Arc, thread};
 
 use compositor_common::{scene::Resolution, Frame};
 use compositor_pipeline::pipeline::PipelineOutput;
@@ -13,7 +13,7 @@ use ffmpeg_next::{
 };
 
 pub struct RtpSender {
-    sender: Sender<Frame>,
+    sender: Sender<Arc<Frame>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -100,7 +100,7 @@ impl RtpSender {
         Self { sender }
     }
 
-    fn run(opts: Options, receiver: Receiver<Frame>) -> Result<()> {
+    fn run(opts: Options, receiver: Receiver<Arc<Frame>>) -> Result<()> {
         let mut output_ctx = format::output_as(
             &PathBuf::from(format!("rtp://127.0.0.1:{}", opts.port)),
             "rtp",
@@ -179,12 +179,12 @@ impl RtpSender {
 }
 
 impl PipelineOutput for RtpSender {
-    fn send_frame(&self, frame: Frame) {
+    fn send_frame(&self, frame: Arc<Frame>) {
         self.sender.send(frame).unwrap();
     }
 }
 
-fn frame_into_av(frame: Frame, av_frame: &mut frame::Video) -> Result<()> {
+fn frame_into_av(frame: Arc<Frame>, av_frame: &mut frame::Video) -> Result<()> {
     let expected_y_plane_size = av_frame.data(0).len();
     let expected_u_plane_size = av_frame.data(1).len();
     let expected_v_plane_size = av_frame.data(2).len();

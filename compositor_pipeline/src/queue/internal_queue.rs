@@ -1,11 +1,11 @@
 use anyhow::anyhow;
 use compositor_common::Frame;
+use compositor_common::frame::{InputID, Framerate, Pts, FramesBatch};
 use std::collections::hash_map::Entry::Vacant;
 use std::time::Duration;
 use std::{collections::HashMap, sync::Arc};
 use thiserror::Error;
 
-use super::{Framerate, FramesBatch, InputID, Pts};
 
 #[derive(Error, Debug)]
 pub enum QueueError {

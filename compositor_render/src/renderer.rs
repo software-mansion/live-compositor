@@ -1,6 +1,6 @@
-use std::{collections::HashMap, rc::Rc};
+use std::sync::Arc;
 
-use compositor_common::{scene::Scene, Frame};
+use compositor_common::{frame::FramesBatch, scene::Scene, Frame};
 
 use crate::registry::{self, TransformationRegistry};
 
@@ -10,7 +10,7 @@ pub mod texture;
 pub mod transformation;
 
 pub struct Renderer {
-    wgpu_ctx: Rc<WgpuCtx>,
+    wgpu_ctx: Arc<WgpuCtx>,
     registry: TransformationRegistry,
     scene: Option<Scene>,
 }
@@ -39,7 +39,7 @@ pub enum RendererRenderError {
 impl Renderer {
     pub fn new() -> Result<Self, RendererNewError> {
         Ok(Self {
-            wgpu_ctx: Rc::new(WgpuCtx::new()?),
+            wgpu_ctx: Arc::new(WgpuCtx::new()?),
             registry: TransformationRegistry::new(),
             scene: None,
         })
@@ -47,7 +47,7 @@ impl Renderer {
 
     pub fn register_transformation<T: Transformation>(
         &mut self,
-        provider: fn(Rc<WgpuCtx>) -> T,
+        provider: fn(Arc<WgpuCtx>) -> T,
     ) -> Result<(), RendererRegisterTransformationError> {
         self.registry
             .register(Box::new(provider(self.wgpu_ctx.clone())))?;
@@ -57,12 +57,20 @@ impl Renderer {
 
     /// This is very much a work in progress.
     /// For now it just takes a random frame from the input and returns it
-    pub fn render(&self, inputs: HashMap<u32, Frame>) -> Result<Frame, RendererRenderError> {
-        inputs
-            .values()
-            .next()
-            .cloned()
-            .ok_or(RendererRenderError::NoInput(0)) // 0 as a placeholder for now until this is implemented
+    pub fn render(&self, inputs: FramesBatch) -> Result<Arc<Frame>, RendererRenderError> {
+        let output_frame = inputs.frames.values().next().cloned();
+
+        match output_frame {
+            Some(frame) => {
+                let frame = Arc::new(Frame {
+                    data: frame.data.clone(),
+                    resolution: frame.resolution,
+                    pts: inputs.pts,
+                });
+                Ok(frame)
+            }
+            None => Err(RendererRenderError::NoInput(0)),
+        }
     }
 
     pub fn update_scene(&mut self, scene: Scene) {

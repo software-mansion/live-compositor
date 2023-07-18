@@ -1,23 +1,21 @@
-use compositor_common::Frame;
+use compositor_common::{Frame, frame::Framerate};
+use compositor_render::renderer::Renderer;
 use crossbeam_channel::unbounded;
-use std::{sync::Arc, thread, time::Duration};
 use log::{error, info};
+use std::{sync::Arc, thread};
 
-use crate::{
-    map::SyncHashMap,
-    queue::{Framerate, Queue},
-};
+use crate::{map::SyncHashMap, queue::Queue};
 
 pub trait PipelineOutput {
-    fn send_frame(&self, frame: Frame);
+    fn send_frame(&self, frame: Arc<Frame>);
 }
 
 pub struct Pipeline<Output: PipelineOutput> {
     outputs: SyncHashMap<u32, Arc<Output>>,
-    queue: Queue, //renderer: Renderer,
+    queue: Queue,
 }
 
-impl<Output: PipelineOutput> Pipeline<Output> {
+impl<Output: PipelineOutput + std::marker::Send + std::marker::Sync + 'static> Pipeline<Output> {
     pub fn new() -> Self {
         Pipeline {
             outputs: SyncHashMap::new(),
@@ -35,12 +33,12 @@ impl<Output: PipelineOutput> Pipeline<Output> {
     }
 
     pub fn push_input_data(&self, input_id: u32, frame: Frame) {
-        self.queue.enqueue_frame(input_id, frame.clone()).unwrap();
-        self.outputs.get_cloned(&8002).unwrap().send_frame(frame);
+        self.queue.enqueue_frame(input_id, frame).unwrap();
+        // self.outputs.get_cloned(&8002).unwrap().send_frame(frame);
     }
 
     #[allow(dead_code)]
-    fn on_output_data_received(&self, output_id: u32, frame: Frame) {
+    fn on_output_data_received(&self, output_id: u32, frame: Arc<Frame>) {
         match self.outputs.get_cloned(&output_id) {
             Some(output) => output.send_frame(frame),
             None => {
@@ -56,20 +54,28 @@ impl<Output: PipelineOutput> Pipeline<Output> {
         pipeline.queue.start(frames_sender);
 
         thread::spawn(move || {
+            // TODO move it to pipeline - fix Send, Sync stuff
+            let renderer = Renderer::new().unwrap();
             loop {
-                let _input_frames = frames_receiver.recv().unwrap();
-                // let pipeline.render.render(output_frames);
-                // for let (output_id, frames) in input_frames {
-                // self.on_output_data_received(output_id, frames)
-                // }
                 info!("render loop");
-                thread::sleep(Duration::from_millis(1000));
+                let input_frames = frames_receiver.recv().unwrap();
+                if !input_frames.frames.is_empty() {
+                    info!("Input frames: {:#?}", input_frames.pts);
+                    let output_frame = renderer.render(input_frames).unwrap();
+                    pipeline
+                        .outputs
+                        .get_cloned(&8002)
+                        .unwrap()
+                        .send_frame(output_frame);
+                }
             }
         });
     }
 }
 
-impl<Output: PipelineOutput> Default for Pipeline<Output> {
+impl<Output: PipelineOutput + std::marker::Send + std::marker::Sync + 'static> Default
+    for Pipeline<Output>
+{
     fn default() -> Self {
         Self::new()
     }

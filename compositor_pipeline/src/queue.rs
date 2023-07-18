@@ -1,51 +1,15 @@
 mod internal_queue;
 
 use std::{
-    collections::HashMap,
     sync::{Arc, Mutex},
     thread::{self, sleep},
     time::{Duration, Instant},
 };
 
-use compositor_common::Frame;
+use compositor_common::{Frame, frame::{Framerate, InputID, FramesBatch}};
 use crossbeam_channel::{tick, unbounded, Receiver, Sender};
 
 use self::internal_queue::{InternalQueue, QueueError};
-
-pub type InputID = u32;
-
-/// nanoseconds
-type Pts = Duration;
-
-/// TODO: This should be a rational.
-#[derive(Debug, Clone, Copy)]
-pub struct Framerate(pub u32);
-
-impl Framerate {
-    pub fn get_interval_duration(self) -> Duration {
-        Duration::from_nanos((1_000_000_000 / self.0).into())
-    }
-}
-
-#[derive(Debug)]
-#[allow(dead_code)]
-pub struct FramesBatch {
-    pub frames: HashMap<InputID, Arc<Frame>>,
-    pub pts: Pts,
-}
-
-impl FramesBatch {
-    pub fn new(pts: Pts) -> Self {
-        FramesBatch {
-            frames: HashMap::new(),
-            pts,
-        }
-    }
-
-    pub fn insert_frame(&mut self, input_id: InputID, frame: Arc<Frame>) {
-        self.frames.insert(input_id, frame);
-    }
-}
 
 pub struct Queue {
     internal_queue: Arc<Mutex<InternalQueue>>,
@@ -103,7 +67,7 @@ impl Queue {
 
         thread::spawn(move || loop {
             check_queue_receiver.recv().unwrap();
-
+            
             let mut internal_queue = internal_queue.lock().unwrap();
             let buffer_pts = internal_queue.get_next_output_buffer_pts();
             let next_buffer_time =

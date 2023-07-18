@@ -234,6 +234,7 @@ dependencies = [
  "anyhow",
  "bytes",
  "compositor_common",
+ "compositor_render",
  "crossbeam-channel",
  "log",
  "thiserror",
