@@ -1,0 +1,22 @@
+name: web renderer lint
+on: [push]
+
+jobs:
+    node:
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: ./web_renderer
+        steps:            
+            - name: 🛠 Use node.js
+              uses: actions/setup-node@v3
+
+            - name: 📥 Checkout repo
+              uses: actions/checkout@v3
+
+            - name: 🛠 Install deps
+              run: npm ci
+
+            - name: 🖋️ Run lint
+              run: npm run lint
+            
