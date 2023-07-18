@@ -28,12 +28,8 @@ export class Session {
         });
 
         this.window.loadURL(this.url);
-        let start = Date.now();
         this.window.webContents.on("paint", (_event, _dirty, img) => {
-            this.last_frame = img.toBitmap();
-            // let now = Date.now();
-            // console.log(now - start);
-            // start = now;
+            this.last_frame = img.toJPEG(90);
         });
         this.window.webContents.setFrameRate(60);
     }
@@ -46,7 +42,6 @@ export class Session {
     }
 
     public get frame(): Buffer {
-        // console.log(this.last_frame.length);
         return this.last_frame;
     }
 }

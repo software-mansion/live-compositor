@@ -21,10 +21,11 @@ export class Server {
     }
 
     private initRoutes(): void {
-        this.server.post("/render", this.render.bind(this));
+        // TODO: better endpoint name
+        this.server.post("/get_frame", this.get_frame.bind(this));
     }
 
-    private render(req: Request<{}, {}, RenderRequest>, res: Response<Buffer>): void {
+    private get_frame(req: Request<{}, {}, RenderRequest>, res: Response<Buffer>): void {
         const data = req.body;
         let session: Session;
 
@@ -49,8 +50,4 @@ export class Server {
 interface RenderRequest {
     url: Url,
     resolution: Resolution,
-}
-
-interface RenderResponse {
-    frame: number[]
 }
