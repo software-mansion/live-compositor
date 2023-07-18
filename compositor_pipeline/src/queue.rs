@@ -6,7 +6,10 @@ use std::{
     time::{Duration, Instant},
 };
 
-use compositor_common::{Frame, frame::{Framerate, InputID, FramesBatch}};
+use compositor_common::{
+    frame::{Framerate, FramesBatch, InputID},
+    Frame,
+};
 use crossbeam_channel::{tick, unbounded, Receiver, Sender};
 
 use self::internal_queue::{InternalQueue, QueueError};
@@ -67,7 +70,7 @@ impl Queue {
 
         thread::spawn(move || loop {
             check_queue_receiver.recv().unwrap();
-            
+
             let mut internal_queue = internal_queue.lock().unwrap();
             let buffer_pts = internal_queue.get_next_output_buffer_pts();
             let next_buffer_time =

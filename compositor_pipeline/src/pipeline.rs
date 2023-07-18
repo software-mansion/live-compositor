@@ -1,4 +1,4 @@
-use compositor_common::{Frame, frame::Framerate};
+use compositor_common::{frame::Framerate, Frame};
 use compositor_render::renderer::Renderer;
 use crossbeam_channel::unbounded;
 use log::{error, info};
