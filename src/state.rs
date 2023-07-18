@@ -1,9 +1,12 @@
 use anyhow::Result;
-use compositor_common::scene::Resolution;
 use compositor_pipeline::map::SyncHashMap;
 use std::sync::Arc;
 
-use crate::{rtp_receiver::RtpReceiver, rtp_sender::RtpSender};
+use crate::{
+    http::RegisterOutputRequest,
+    rtp_receiver::RtpReceiver,
+    rtp_sender::{self, RtpSender},
+};
 
 pub type Pipeline = compositor_pipeline::Pipeline<RtpSender>;
 
@@ -40,9 +43,18 @@ impl State {
     }
 
     #[allow(dead_code)]
-    pub fn register_output(&self, port: u16, resolution: Resolution) -> Result<()> {
+    pub fn register_output(&self, request: RegisterOutputRequest) -> Result<()> {
+        let RegisterOutputRequest {
+            port,
+            resolution,
+            encoder_settings,
+        } = request;
         // TODO: add validation if output already relisted
-        let sender = Arc::new(RtpSender::new(port, resolution));
+        let sender = Arc::new(RtpSender::new(rtp_sender::Options {
+            port,
+            resolution,
+            encoder_settings,
+        }));
         self.pipeline.add_output(port.into(), sender.clone());
         self.outputs.insert(
             port,
