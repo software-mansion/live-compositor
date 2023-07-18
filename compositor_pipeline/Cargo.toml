@@ -11,3 +11,4 @@ bytes =  { workspace = true }
 crossbeam-channel = "0.5.8"
 anyhow = "1.0.71"
 thiserror = "1.0.43"
+log = { workspace = true } 

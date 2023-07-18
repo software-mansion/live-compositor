@@ -1,6 +1,7 @@
 use anyhow::{anyhow, Result};
 use compositor_common::{frame::YuvData, scene::Resolution, Frame};
-use std::{fs::File, io::Write, path::PathBuf, sync::Arc, thread};
+use log::warn;
+use std::{fs::File, io::Write, path::PathBuf, sync::Arc, thread, time::Duration};
 
 use ffmpeg_next::{
     codec::{self, Context, Id},
@@ -63,7 +64,7 @@ impl RtpReceiver {
         let mut decoded_frame = frame::Video::empty();
         for (stream, packet) in input_ctx.packets() {
             if stream.index() != input_index {
-                eprintln!("Received frame from unknown stream, skipping");
+                warn!("Received frame from unknown stream, skipping");
                 continue;
             }
 
@@ -72,7 +73,7 @@ impl RtpReceiver {
                 let frame = match frame_from_av(&mut decoded_frame, &mut pts_offset) {
                     Ok(frame) => frame,
                     Err(err) => {
-                        eprintln!("Dropping frame: {err}");
+                        warn!("Dropping frame: {err}");
                         continue;
                     }
                 };
@@ -92,7 +93,10 @@ fn frame_from_av(decoded: &mut Video, pts_offset: &mut Option<i64>) -> Result<Fr
     if let (Some(pts), None) = (decoded.pts(), &pts_offset) {
         *pts_offset = Some(-pts)
     }
-    let pts = original_pts.map(|original_pts| original_pts + pts_offset.unwrap_or(0));
+    let pts = original_pts
+        .map(|original_pts| original_pts + pts_offset.unwrap_or(0))
+        .ok_or_else(|| anyhow!("missing pts"))?;
+    let pts = Duration::from_nanos(((pts as f64) * 10e9 / 90000.0) as u64);
     Ok(Frame {
         data: YuvData {
             y_plane: bytes::Bytes::copy_from_slice(decoded.data(0)),
@@ -103,6 +107,6 @@ fn frame_from_av(decoded: &mut Video, pts_offset: &mut Option<i64>) -> Result<Fr
             width: decoded.width().try_into()?,
             height: decoded.height().try_into()?,
         },
-        pts: pts.ok_or_else(|| anyhow!("missing pts"))?,
+        pts,
     })
 }

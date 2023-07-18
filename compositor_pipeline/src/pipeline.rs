@@ -1,6 +1,7 @@
 use compositor_common::Frame;
 use crossbeam_channel::unbounded;
-use std::{sync::Arc, thread};
+use std::{sync::Arc, thread, time::Duration};
+use log::{error, info};
 
 use crate::{
     map::SyncHashMap,
@@ -43,7 +44,7 @@ impl<Output: PipelineOutput> Pipeline<Output> {
         match self.outputs.get_cloned(&output_id) {
             Some(output) => output.send_frame(frame),
             None => {
-                eprintln!("Output {} not found", output_id);
+                error!("Output {} not found", output_id);
             }
         }
     }
@@ -61,8 +62,8 @@ impl<Output: PipelineOutput> Pipeline<Output> {
                 // for let (output_id, frames) in input_frames {
                 // self.on_output_data_received(output_id, frames)
                 // }
-                // eprintln!("render loop");
-                // thread::sleep(Duration::from_millis(1000));
+                info!("render loop");
+                thread::sleep(Duration::from_millis(1000));
             }
         });
     }
