@@ -1,5 +1,3 @@
-use std::{io, num::ParseIntError};
-
 use bytes::Bytes;
 use compositor_common::scene::Resolution;
 use reqwest::blocking::Client;
@@ -39,13 +37,4 @@ pub struct RenderRequest {
 pub enum HttpClientError {
     #[error("failed to make a request")]
     HttpRequestFailed(#[from] reqwest::Error),
-
-    #[error("Content-Length header not provided")]
-    NoContentLength,
-
-    #[error("invalid Content-Length header")]
-    InvalidContentLength(#[from] ParseIntError),
-
-    #[error("failed to deserialize response")]
-    DeserializeError(#[from] io::Error),
 }
