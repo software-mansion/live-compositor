@@ -1,5 +1,6 @@
 import { BrowserWindow, screen } from "electron";
-import { Resolution, Url } from "./common";
+import { Url } from "./common";
+import { Resolution } from "./schemas";
 
 export class Session {
     public url: Url;

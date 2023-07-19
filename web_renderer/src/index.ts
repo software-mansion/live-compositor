@@ -1,5 +1,5 @@
 import { app } from 'electron';
-import { Server } from './server';
+import { startServer } from './server';
 
 function main(): void {
     if (process.argv.length != 3) {
@@ -8,8 +8,7 @@ function main(): void {
     }
 
     const port = parseInt(process.argv[2]);
-    const server = new Server();
-    server.listen(port);
+    startServer(port);
 }
 
 app.whenReady().then(main);

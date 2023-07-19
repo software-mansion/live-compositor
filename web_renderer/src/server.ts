@@ -1,51 +1,40 @@
-import express, { Express, Request, Response } from 'express';
-import { Resolution, SessionId, Url } from './common';
+import express, { Request, Response } from 'express';
+import { SessionId } from './common';
 import { Session } from './session';
 import { constants as HttpConstants } from 'http2';
 import { randomUUID } from 'crypto';
+import { GetFrameRequest, NewSessionRequest } from './schemas';
+import { sessions } from './state';
 
-export class Server {
-    private server: Express;
-    private sessions: Map<SessionId, Session>;
+const app = express();
 
-    public constructor() {
-        this.server = express();
-        this.server.use(express.json());
-        this.sessions = new Map();
+app.use(express.json());
 
-        this.initRoutes();
-    }
-
-    public listen(port: number): void {
-        this.server.listen(port, () => {
-            console.log(`Listening on ${port}`);
-        });
-    }
-
-    private initRoutes(): void {
-        this.server.post("/new_session", this.new_session.bind(this));
-        this.server.post("/get_frame", this.get_frame.bind(this));
-    }
-
-    private new_session(req: Request<object, object, NewSessionRequest>, res: Response<NewSessionResponse>): void {
-        const data = req.body;
+app.post("/new_session", (req: Request, res: Response<NewSessionResponse>) => {
+    try {
+        const data = NewSessionRequest.parse(req.body)
         console.log(`Starting rendering for ${data.url}`)
-
         const session_id = randomUUID();
         const session = new Session(data.url, data.resolution);
+        sessions.set(session_id, session);
         session.run();
-        this.sessions.set(session_id, session);
 
         res
             .status(HttpConstants.HTTP_STATUS_CREATED)
             .send({
                 session_id: session_id
             });
+    } catch (err) {
+        res
+            .status(HttpConstants.HTTP_STATUS_BAD_REQUEST)
+            .send({ error: err.toString() })
     }
+});
 
-    private get_frame(req: Request<object, object, RenderRequest>, res: Response<RenderResponse>): void {
-        const data = req.body;
-        if (!this.sessions.has(data.session_id)) {
+app.post("/get_frame", (req: Request, res: Response<GetFrameResponse>) => {
+    try {
+        const data = GetFrameRequest.parse(req.body);
+        if (!sessions.has(data.session_id)) {
             res
                 .status(HttpConstants.HTTP_STATUS_NOT_FOUND)
                 .send({
@@ -54,27 +43,28 @@ export class Server {
             return;
         }
 
-        const session = this.sessions.get(data.session_id)
+        const session = sessions.get(data.session_id)
         res.status(HttpConstants.HTTP_STATUS_OK).send(session.frame);
+    } catch (err) {
+        res
+            .status(HttpConstants.HTTP_STATUS_BAD_REQUEST)
+            .send({ error: err.toString() })
     }
+});
+
+export function startServer(port: number): void {
+    app.listen(port, () => {
+        console.log(`Listening on ${port}`);
+    })
 }
 
-interface NewSessionRequest {
-    url: Url,
-    resolution: Resolution,
-}
+type NewSessionResponse =
+    { session_id: SessionId }
+    | ErrorResponse;
 
-interface NewSessionResponse {
-    session_id: SessionId
-}
-
-
-interface RenderRequest {
-    session_id: SessionId,
-}
-
-type RenderResponse = Buffer | ErrorResponse;
-
+type GetFrameResponse =
+    Buffer
+    | ErrorResponse;
 
 interface ErrorResponse {
     error: string
