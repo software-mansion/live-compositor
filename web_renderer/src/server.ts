@@ -1,12 +1,12 @@
 import express, { Express, Request, Response } from 'express';
-import { Resolution, Url } from './common';
+import { Resolution, SessionId, Url } from './common';
 import { Session } from './session';
 import { constants as HttpConstants } from 'http2';
-import { randomUUID, UUID } from 'crypto';
+import { randomUUID } from 'crypto';
 
 export class Server {
     private server: Express;
-    private sessions: Map<UUID, Session>;
+    private sessions: Map<SessionId, Session>;
 
     public constructor() {
         this.server = express();
@@ -65,12 +65,12 @@ interface NewSessionRequest {
 }
 
 interface NewSessionResponse {
-    session_id: UUID
+    session_id: SessionId
 }
 
 
 interface RenderRequest {
-    session_id: UUID,
+    session_id: SessionId,
 }
 
 type RenderResponse = Buffer | ErrorResponse;
