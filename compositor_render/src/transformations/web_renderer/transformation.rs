@@ -1,4 +1,5 @@
 use std::{
+    cell::RefCell,
     collections::HashMap,
     env,
     error::Error,
@@ -10,6 +11,7 @@ use std::{
 
 use compositor_common::scene::{NodeId, Resolution, TransformationRegistryKey};
 use image::ImageError;
+use log::warn;
 
 use crate::renderer::{
     texture::Texture,
@@ -17,12 +19,16 @@ use crate::renderer::{
     WgpuCtx,
 };
 
-use super::http_client::{HttpClient, HttpClientError};
+use super::{
+    electron_api::{ElectronApi, ElectronApiError},
+    SessionId, Url,
+};
 
 pub struct WebRenderer {
-    http_client: HttpClient,
+    api: ElectronApi,
     wgpu_ctx: Rc<WgpuCtx>,
     renderer_process: process::Child,
+    session_ids: RefCell<HashMap<Url, SessionId>>,
 }
 
 impl Transformation for WebRenderer {
@@ -36,15 +42,25 @@ impl Transformation for WebRenderer {
             return Err(Box::new(WebRendererApplyError::InvalidParam));
         };
 
-        let size = target.size();
-        let frame = self.http_client.get_frame(
-            url.to_owned(),
-            Resolution {
-                width: size.width as usize,
-                height: size.height as usize,
-            },
-        )?;
+        let mut session_ids = self.session_ids.borrow_mut();
+        let session_id = match session_ids.get(url) {
+            Some(id) => id.to_owned(),
+            None => {
+                let size = target.size();
+                let id = self.api.new_session(
+                    url.to_owned(),
+                    Resolution {
+                        width: size.width as usize,
+                        height: size.height as usize,
+                    },
+                )?;
 
+                session_ids.insert(url.to_owned(), id.clone());
+                id
+            }
+        };
+
+        let frame = self.api.get_frame(session_id)?;
         if !frame.is_empty() {
             self.upload(&frame, target)?;
         }
@@ -59,24 +75,27 @@ impl Transformation for WebRenderer {
 
 impl Drop for WebRenderer {
     fn drop(&mut self) {
-        self.renderer_process.kill().unwrap();
+        if let Err(err) = self.renderer_process.kill() {
+            warn!("Failed to stop web renderer process: {err}");
+        }
     }
 }
 
 impl WebRenderer {
-    pub fn new(wgpu_ctx: Rc<WgpuCtx>) -> Result<Self, WebRendererNewError> {
-        let port: u16 = env::var("WEB_RENDERER_PORT")?.parse()?;
-        let http_client = HttpClient::new(port);
-        let renderer_process = Self::init_web_renderer()?;
+    pub fn new(wgpu_ctx: Rc<WgpuCtx>, port: u16) -> Result<Self, WebRendererNewError> {
+        let api = ElectronApi::new(port);
+        let renderer_process = Self::init_web_renderer(port)?;
+        let session_ids = RefCell::new(HashMap::new());
 
         Ok(Self {
-            http_client,
+            api,
             wgpu_ctx,
             renderer_process,
+            session_ids,
         })
     }
 
-    fn init_web_renderer() -> Result<process::Child, WebRendererNewError> {
+    fn init_web_renderer(port: u16) -> Result<process::Child, WebRendererNewError> {
         let web_renderer_path = env::current_exe()
             .map_err(WebRendererNewError::WebRendererNotFound)?
             .parent()
@@ -93,7 +112,7 @@ impl WebRenderer {
         }
 
         let renderer_process = Command::new("npm")
-            .args(["run", "start"])
+            .args(["run", "start", "--", "--", &port.to_string()])
             .current_dir(web_renderer_path)
             .spawn()
             .map_err(WebRendererNewError::WebRendererInitError)?;
@@ -150,7 +169,7 @@ pub enum WebRendererApplyError {
     InvalidParam,
 
     #[error("communication with web renderer failed")]
-    HttpError(#[from] HttpClientError),
+    HttpError(#[from] ElectronApiError),
 
     #[error("failed to decode image data")]
     ImageDecodeError(#[from] ImageError),

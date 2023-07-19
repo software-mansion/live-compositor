@@ -1,10 +1,12 @@
 import express, { Express, Request, Response } from 'express';
 import { Resolution, Url } from './common';
 import { Session } from './session';
+import { constants as HttpConstants } from 'http2';
+import { randomUUID, UUID } from 'crypto';
 
 export class Server {
     private server: Express;
-    private sessions: Map<Url, Session>;
+    private sessions: Map<UUID, Session>;
 
     public constructor() {
         this.server = express();
@@ -21,33 +23,59 @@ export class Server {
     }
 
     private initRoutes(): void {
-        // TODO: better endpoint name
+        this.server.post("/new_session", this.new_session.bind(this));
         this.server.post("/get_frame", this.get_frame.bind(this));
     }
 
-    private get_frame(req: Request<{}, {}, RenderRequest>, res: Response<Buffer>): void {
+    private new_session(req: Request<object, object, NewSessionRequest>, res: Response<NewSessionResponse>): void {
         const data = req.body;
-        let session: Session;
+        console.log(`Starting rendering for ${data.url}`)
 
-        if (this.sessions.has(data.url)) {
-            session = this.sessions.get(data.url);
-        } else {
-            console.log(`Starting rendering for ${data.url}`)
-            session = new Session(data.url, data.resolution);
-            session.run();
-            this.sessions.set(data.url, session);
+        const session_id = randomUUID();
+        const session = new Session(data.url, data.resolution);
+        session.run();
+        this.sessions.set(session_id, session);
+
+        res
+            .status(HttpConstants.HTTP_STATUS_CREATED)
+            .send({
+                session_id: session_id
+            });
+    }
+
+    private get_frame(req: Request<object, object, RenderRequest>, res: Response<RenderResponse>): void {
+        const data = req.body;
+        if (!this.sessions.has(data.session_id)) {
+            res
+                .status(HttpConstants.HTTP_STATUS_NOT_FOUND)
+                .send({
+                    error: "Session does not exist"
+                });
+            return;
         }
 
-        if (session.resolution.width != data.resolution.width ||
-            session.resolution.height != data.resolution.height) {
-            session.resize(data.resolution);
-        }
-
-        res.send(session.frame);
+        const session = this.sessions.get(data.session_id)
+        res.status(HttpConstants.HTTP_STATUS_OK).send(session.frame);
     }
 }
 
-interface RenderRequest {
+interface NewSessionRequest {
     url: Url,
     resolution: Resolution,
+}
+
+interface NewSessionResponse {
+    session_id: UUID
+}
+
+
+interface RenderRequest {
+    session_id: UUID,
+}
+
+type RenderResponse = Buffer | ErrorResponse;
+
+
+interface ErrorResponse {
+    error: string
 }

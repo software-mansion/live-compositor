@@ -34,13 +34,6 @@ export class Session {
         this.window.webContents.setFrameRate(60);
     }
 
-    public resize(resolution: Resolution): void {
-        this.resolution = resolution;
-
-        const factor = screen.getPrimaryDisplay().scaleFactor;
-        this.window.setSize(this.resolution.width / factor, this.resolution.height / factor);
-    }
-
     public get frame(): Buffer {
         return this.last_frame;
     }

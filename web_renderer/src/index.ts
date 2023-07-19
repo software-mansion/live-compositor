@@ -2,14 +2,14 @@ import { app } from 'electron';
 import { Server } from './server';
 
 function main(): void {
-    const port = process.env.WEB_RENDERER_PORT;
-    if (port == null) {
-        console.error("env WEB_RENDERER_PORT not defined");
+    if (process.argv.length != 3) {
+        console.error("<port> not provided");
         process.exit(1);
     }
 
+    const port = parseInt(process.argv[2]);
     const server = new Server();
-    server.listen(parseInt(port));
+    server.listen(port);
 }
 
 app.whenReady().then(main);
