@@ -10,7 +10,7 @@ pub mod texture;
 pub mod transformation;
 
 pub struct Renderer {
-    pub wgpu_ctx: Rc<WgpuCtx>,
+    wgpu_ctx: Rc<WgpuCtx>,
     registry: TransformationRegistry,
     scene: Option<Scene>,
 }
