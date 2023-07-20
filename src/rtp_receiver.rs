@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 use compositor_common::{frame::YuvData, scene::Resolution, Frame};
-use log::warn;
+use log::{info, warn};
 use std::{fs::File, io::Write, path::PathBuf, sync::Arc, thread, time::Duration};
 
 use ffmpeg_next::{
@@ -96,7 +96,8 @@ fn frame_from_av(decoded: &mut Video, pts_offset: &mut Option<i64>) -> Result<Fr
     let pts = original_pts
         .map(|original_pts| original_pts + pts_offset.unwrap_or(0))
         .ok_or_else(|| anyhow!("missing pts"))?;
-    let pts = Duration::from_nanos(((pts as f64) * 10e9 / 90000.0) as u64);
+    // TODO figure out why ((pts as f64) * 10e9 / 90000.0) as u64 gives 10x real pts
+    let pts = Duration::from_nanos(((pts as f64) * 10e8 / 90000.0) as u64);
     Ok(Frame {
         data: YuvData {
             y_plane: bytes::Bytes::copy_from_slice(decoded.data(0)),

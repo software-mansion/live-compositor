@@ -1,7 +1,7 @@
 use compositor_common::{frame::Framerate, Frame};
 use compositor_render::renderer::Renderer;
 use crossbeam_channel::unbounded;
-use log::{error, info};
+use log::error;
 use std::{sync::Arc, thread};
 
 use crate::{map::SyncHashMap, queue::Queue};
@@ -16,10 +16,10 @@ pub struct Pipeline<Output: PipelineOutput> {
 }
 
 impl<Output: PipelineOutput + std::marker::Send + std::marker::Sync + 'static> Pipeline<Output> {
-    pub fn new() -> Self {
+    pub fn new(framerate: Framerate) -> Self {
         Pipeline {
             outputs: SyncHashMap::new(),
-            queue: Queue::new(Framerate(24)),
+            queue: Queue::new(framerate),
         }
     }
 
@@ -34,7 +34,6 @@ impl<Output: PipelineOutput + std::marker::Send + std::marker::Sync + 'static> P
 
     pub fn push_input_data(&self, input_id: u32, frame: Frame) {
         self.queue.enqueue_frame(input_id, frame).unwrap();
-        // self.outputs.get_cloned(&8002).unwrap().send_frame(frame);
     }
 
     #[allow(dead_code)]
@@ -57,10 +56,8 @@ impl<Output: PipelineOutput + std::marker::Send + std::marker::Sync + 'static> P
             // TODO move it to pipeline - fix Send, Sync stuff
             let renderer = Renderer::new().unwrap();
             loop {
-                info!("render loop");
                 let input_frames = frames_receiver.recv().unwrap();
                 if !input_frames.frames.is_empty() {
-                    info!("Input frames: {:#?}", input_frames.pts);
                     let output_frame = renderer.render(input_frames).unwrap();
                     pipeline
                         .outputs
@@ -77,6 +74,6 @@ impl<Output: PipelineOutput + std::marker::Send + std::marker::Sync + 'static> D
     for Pipeline<Output>
 {
     fn default() -> Self {
-        Self::new()
+        Self::new(Framerate(30))
     }
 }

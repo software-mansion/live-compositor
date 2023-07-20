@@ -2,7 +2,7 @@ mod internal_queue;
 
 use std::{
     sync::{Arc, Mutex},
-    thread::{self, sleep},
+    thread::{self},
     time::{Duration, Instant},
 };
 
@@ -18,7 +18,6 @@ pub struct Queue {
     internal_queue: Arc<Mutex<InternalQueue>>,
     check_queue_channel: (Sender<()>, Receiver<()>),
     output_framerate: Framerate,
-    time_buffer_duration: Duration,
 }
 
 impl Queue {
@@ -28,7 +27,6 @@ impl Queue {
             internal_queue: Arc::new(Mutex::new(InternalQueue::new(output_framerate))),
             check_queue_channel: unbounded(),
             output_framerate,
-            time_buffer_duration: Duration::from_millis(100),
         }
     }
 
@@ -47,42 +45,28 @@ impl Queue {
 
     #[allow(dead_code)]
     pub fn start(&self, sender: Sender<FramesBatch>) {
-        // Starting timer
-        let frame_interval_duration = self.output_framerate.get_interval_duration();
-        let check_queue_sender = self.check_queue_channel.0.clone();
-        let time_buffer_duration = self.time_buffer_duration;
+        let (check_queue_sender, check_queue_receiver) = self.check_queue_channel.clone();
+        let internal_queue = self.internal_queue.clone();
+        let tick_duration = self.output_framerate.get_interval_duration();
 
         thread::spawn(move || {
-            sleep(time_buffer_duration);
-            let ticker = tick(frame_interval_duration);
-            loop {
-                ticker.recv().unwrap();
-                check_queue_sender.send(()).unwrap();
-            }
-        });
-
-        // Checking queue
-        let start = Instant::now();
-        let check_queue_receiver = self.check_queue_channel.1.clone();
-        let internal_queue = self.internal_queue.clone();
-        let interval_duration = self.output_framerate.get_interval_duration();
-        let time_buffer_duration = self.time_buffer_duration;
-
-        thread::spawn(move || loop {
+            // Wait for first frame
             check_queue_receiver.recv().unwrap();
+            Self::start_ticker(tick_duration, check_queue_sender);
 
-            let mut internal_queue = internal_queue.lock().unwrap();
-            let buffer_pts = internal_queue.get_next_output_buffer_pts();
-            let next_buffer_time =
-                interval_duration * internal_queue.send_batches_counter + time_buffer_duration;
+            let start = Instant::now();
+            loop {
+                let mut internal_queue = internal_queue.lock().unwrap();
+                let buffer_pts = internal_queue.get_next_output_buffer_pts();
 
-            if start.elapsed() > next_buffer_time
-                || internal_queue.check_all_inputs_ready(buffer_pts)
-            {
-                let frames_batch = internal_queue.get_frames_batch(buffer_pts);
-                sender.send(frames_batch).unwrap();
+                if start.elapsed() > buffer_pts || internal_queue.check_all_inputs_ready(buffer_pts)
+                {
+                    let frames_batch = internal_queue.get_frames_batch(buffer_pts);
 
-                internal_queue.drop_useless_frames();
+                    sender.send(frames_batch).unwrap();
+
+                    internal_queue.drop_useless_frames();
+                }
             }
         });
     }
@@ -96,5 +80,15 @@ impl Queue {
         self.check_queue_channel.0.send(()).unwrap();
 
         Ok(())
+    }
+
+    fn start_ticker(tick_duration: Duration, check_queue_sender: Sender<()>) {
+        thread::spawn(move || {
+            let ticker = tick(tick_duration);
+            loop {
+                ticker.recv().unwrap();
+                check_queue_sender.send(()).unwrap();
+            }
+        });
     }
 }
