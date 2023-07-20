@@ -57,16 +57,16 @@ impl Renderer {
 
     /// This is very much a work in progress.
     /// For now it just takes a random frame from the input and returns it
-    pub fn render(&self, inputs: FramesBatch) -> Result<Arc<Frame>, RendererRenderError> {
+    pub fn render(&self, inputs: FramesBatch) -> Result<Frame, RendererRenderError> {
         let output_frame = inputs.frames.values().next().cloned();
 
         match output_frame {
             Some(frame) => {
-                let frame = Arc::new(Frame {
+                let frame = Frame {
                     data: frame.data.clone(),
                     resolution: frame.resolution,
                     pts: inputs.pts,
-                });
+                };
                 Ok(frame)
             }
             None => Err(RendererRenderError::NoInput(0)),

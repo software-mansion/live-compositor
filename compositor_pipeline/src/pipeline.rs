@@ -7,7 +7,7 @@ use std::{sync::Arc, thread};
 use crate::{map::SyncHashMap, queue::Queue};
 
 pub trait PipelineOutput {
-    fn send_frame(&self, frame: Arc<Frame>);
+    fn send_frame(&self, frame: Frame);
 }
 
 pub struct Pipeline<Output: PipelineOutput> {
@@ -37,7 +37,7 @@ impl<Output: PipelineOutput + std::marker::Send + std::marker::Sync + 'static> P
     }
 
     #[allow(dead_code)]
-    fn on_output_data_received(&self, output_id: u32, frame: Arc<Frame>) {
+    fn on_output_data_received(&self, output_id: u32, frame: Frame) {
         match self.outputs.get_cloned(&output_id) {
             Some(output) => output.send_frame(frame),
             None => {
