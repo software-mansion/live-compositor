@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 use compositor_common::{frame::YuvData, scene::Resolution, Frame};
-use log::{info, warn};
+use log::warn;
 use std::{fs::File, io::Write, path::PathBuf, sync::Arc, thread, time::Duration};
 
 use ffmpeg_next::{
