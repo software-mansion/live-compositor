@@ -1,7 +1,7 @@
 # Passing variables to the shader
-We need to be able to pass an arbitrary number of textures and parameters to the custom shaders. For parameters, we need to be able to pass some "header parameters" -- constants used in all videos, as well as some per-video data.
+We need to be able to pass an arbitrary number of textures and parameters to the custom shaders. For parameters, we need to be able to pass some "global parameters" -- constants used in all videos, as well as some per-video data.
 
-### Possible solutions
+## Possible solutions
 Binding runtime-sized texture arrays works on every backend (except wasm, but it doesn't matter):
 ```wgsl
 @group(0) @binding(0) var textures: texture_2d_array<f32>;
