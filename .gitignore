@@ -19,3 +19,6 @@ target/
 
 # Assets
 **/*.mp4
+
+# MacOS
+**/.DS_Store
