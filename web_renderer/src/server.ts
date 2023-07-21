@@ -12,8 +12,8 @@ app.use(express.json());
 
 app.post("/new_session", (req: Request, res: Response<NewSessionResponse>) => {
     try {
-        const data = NewSessionRequest.parse(req.body)
-        console.log(`Starting rendering for ${data.url}`)
+        const data = NewSessionRequest.parse(req.body);
+        console.log(`Starting rendering for ${data.url}`);
         const session_id = randomUUID();
         const session = new Session(data.url, data.resolution);
         sessions.set(session_id, session);
@@ -27,7 +27,7 @@ app.post("/new_session", (req: Request, res: Response<NewSessionResponse>) => {
     } catch (err) {
         res
             .status(HttpConstants.HTTP_STATUS_BAD_REQUEST)
-            .send({ error: err.toString() })
+            .send({ error: err.toString() });
     }
 });
 
@@ -43,19 +43,19 @@ app.post("/get_frame", (req: Request, res: Response<GetFrameResponse>) => {
             return;
         }
 
-        const session = sessions.get(data.session_id)
+        const session = sessions.get(data.session_id);
         res.status(HttpConstants.HTTP_STATUS_OK).send(session.frame);
     } catch (err) {
         res
             .status(HttpConstants.HTTP_STATUS_BAD_REQUEST)
-            .send({ error: err.toString() })
+            .send({ error: err.toString() });
     }
 });
 
 export function startServer(port: number): void {
     app.listen(port, () => {
         console.log(`Listening on ${port}`);
-    })
+    });
 }
 
 type NewSessionResponse =
