@@ -43,7 +43,6 @@ impl Queue {
         internal_queue.remove_input(input_id);
     }
 
-    #[allow(dead_code)]
     pub fn start(&self, sender: Sender<InputFrames>) {
         let (check_queue_sender, check_queue_receiver) = self.check_queue_channel.clone();
         let internal_queue = self.internal_queue.clone();
@@ -53,11 +52,12 @@ impl Queue {
         thread::spawn(move || {
             // Wait for first frame
             check_queue_receiver.recv().unwrap();
-            sleep(buffer_duration);
-            Self::start_ticker(tick_duration, check_queue_sender);
+            Self::start_ticker(tick_duration, check_queue_sender, buffer_duration);
 
             let start = Instant::now();
             loop {
+                check_queue_receiver.recv().unwrap();
+
                 let mut internal_queue = internal_queue.lock().unwrap();
                 let buffer_pts = internal_queue.get_next_output_buffer_pts();
 
@@ -85,8 +85,13 @@ impl Queue {
         Ok(())
     }
 
-    fn start_ticker(tick_duration: Duration, check_queue_sender: Sender<()>) {
+    fn start_ticker(
+        tick_duration: Duration,
+        check_queue_sender: Sender<()>,
+        buffer_duration: Duration,
+    ) {
         thread::spawn(move || {
+            sleep(buffer_duration);
             let ticker = tick(tick_duration);
             loop {
                 ticker.recv().unwrap();
