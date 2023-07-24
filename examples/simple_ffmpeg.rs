@@ -13,6 +13,7 @@ use crate::common::write_example_sdp_file;
 mod common;
 
 const SAMPLE_FILE_URL: &str = "https://filesamples.com/samples/video/mp4/sample_1280x720.mp4";
+const SAMPLE_FILE_PATH: &str = "examples/assets/sample_1280_720.mp4";
 const FRAMERATE: Framerate = Framerate(30);
 const VIDEO_RESOLUTION: Resolution = Resolution {
     width: 1280,
@@ -55,7 +56,7 @@ fn start_example_client_code() -> Result<()> {
         .spawn()?;
 
     info!("[example] Download sample.");
-    let sample_path = env::current_dir()?.join("examples/assets/sample_1280_720.mp4");
+    let sample_path = env::current_dir()?.join(SAMPLE_FILE_PATH);
     fs::create_dir_all(sample_path.parent().unwrap())?;
     common::ensure_downloaded(SAMPLE_FILE_URL, &sample_path)?;
 
