@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use compositor_common::frame::Framerate;
+use compositor_common::Framerate;
 use log::info;
 use signal_hook::{consts, iterator::Signals};
 use state::Pipeline;

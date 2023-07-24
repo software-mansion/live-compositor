@@ -1,4 +1,5 @@
 use anyhow::Result;
+use compositor_common::InputId;
 use compositor_pipeline::map::SyncHashMap;
 use std::sync::Arc;
 
@@ -69,7 +70,7 @@ impl State {
     #[allow(dead_code)]
     pub fn register_input(&self, port: u16) -> Result<()> {
         // TODO: add validation if input already relisted
-        self.pipeline.add_input(port.into());
+        self.pipeline.add_input(InputId(port.into()));
         self.inputs.insert(
             port,
             Input {

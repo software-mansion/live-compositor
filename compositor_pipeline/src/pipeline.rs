@@ -1,4 +1,4 @@
-use compositor_common::{frame::Framerate, Frame};
+use compositor_common::{Frame, Framerate, InputId};
 use compositor_render::renderer::Renderer;
 use crossbeam_channel::unbounded;
 use log::error;
@@ -23,7 +23,7 @@ impl<Output: PipelineOutput + std::marker::Send + std::marker::Sync + 'static> P
         }
     }
 
-    pub fn add_input(&self, input_id: u32) {
+    pub fn add_input(&self, input_id: InputId) {
         self.queue.add_input(input_id);
         // self.renderer.add_input();
     }
@@ -32,7 +32,7 @@ impl<Output: PipelineOutput + std::marker::Send + std::marker::Sync + 'static> P
         self.outputs.insert(output_id, output);
     }
 
-    pub fn push_input_data(&self, input_id: u32, frame: Frame) {
+    pub fn push_input_data(&self, input_id: InputId, frame: Frame) {
         self.queue.enqueue_frame(input_id, frame).unwrap();
     }
 

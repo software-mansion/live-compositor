@@ -1,5 +1,6 @@
-use compositor_common::frame::{Framerate, FramesBatch, InputID};
 use compositor_common::Frame;
+use compositor_common::{Framerate, InputId};
+use compositor_render::input_frames::InputFrames;
 use std::time::Duration;
 use std::{collections::HashMap, sync::Arc};
 use thiserror::Error;
@@ -7,13 +8,13 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum QueueError {
     #[error("the input id `{0}` is unknown")]
-    UnknownInputID(InputID),
+    UnknownInputId(InputId),
 }
 
 pub struct InternalQueue {
     // frames are PTS ordered. PTS include timestamps offsets
-    inputs_queues: HashMap<InputID, Vec<Arc<Frame>>>,
-    timestamp_offsets: HashMap<InputID, Duration>,
+    inputs_queues: HashMap<InputId, Vec<Arc<Frame>>>,
+    timestamp_offsets: HashMap<InputId, Duration>,
     output_framerate: Framerate,
     pub send_batches_counter: u32,
 }
@@ -28,16 +29,16 @@ impl InternalQueue {
         }
     }
 
-    pub fn add_input(&mut self, input_id: InputID) {
+    pub fn add_input(&mut self, input_id: InputId) {
         self.inputs_queues.insert(input_id, Vec::new());
     }
 
-    pub fn remove_input(&mut self, input_id: InputID) {
+    pub fn remove_input(&mut self, input_id: InputId) {
         self.inputs_queues.remove(&input_id);
         self.timestamp_offsets.remove(&input_id);
     }
 
-    pub fn enqueue_frame(&mut self, input_id: InputID, mut frame: Frame) -> Result<(), QueueError> {
+    pub fn enqueue_frame(&mut self, input_id: InputId, mut frame: Frame) -> Result<(), QueueError> {
         let next_output_buffer_pts = self.get_next_output_buffer_pts();
 
         match self.inputs_queues.get_mut(&input_id) {
@@ -45,22 +46,22 @@ impl InternalQueue {
                 let offset = *self
                     .timestamp_offsets
                     .entry(input_id)
-                    .or_insert(next_output_buffer_pts - frame.pts);
+                    .or_insert_with(|| Self::duration_abs_diff(next_output_buffer_pts, frame.pts));
 
                 frame.pts += offset;
 
                 input_queue.push(Arc::new(frame));
                 Ok(())
             }
-            None => Err(QueueError::UnknownInputID(input_id)),
+            None => Err(QueueError::UnknownInputId(input_id)),
         }
     }
 
     /// Pops frames closest to buffer pts.
     /// Implementation assumes that "useless frames" are already dropped
     /// by [`drop_useless_frames`] or [`drop_pad_useless_frames`]
-    pub fn get_frames_batch(&mut self, buffer_pts: Duration) -> FramesBatch {
-        let mut frames_batch = FramesBatch::new(buffer_pts);
+    pub fn get_frames_batch(&mut self, buffer_pts: Duration) -> InputFrames {
+        let mut frames_batch = InputFrames::new(buffer_pts);
 
         for (input_id, input_queue) in &self.inputs_queues {
             if let Some(nearest_frame) = input_queue.first() {
@@ -87,13 +88,13 @@ impl InternalQueue {
             })
     }
 
-    pub fn drop_pad_useless_frames(&mut self, input_id: InputID) -> Result<(), QueueError> {
+    pub fn drop_pad_useless_frames(&mut self, input_id: InputId) -> Result<(), QueueError> {
         let next_output_buffer_nanos = self.get_next_output_buffer_pts().as_nanos();
 
         let input_queue = self
             .inputs_queues
             .get_mut(&input_id)
-            .ok_or(QueueError::UnknownInputID(input_id))?;
+            .ok_or(QueueError::UnknownInputId(input_id))?;
 
         if let Some(first_frame) = input_queue.first() {
             let mut best_diff_frame_index = 0;
@@ -121,7 +122,7 @@ impl InternalQueue {
     }
 
     pub fn drop_useless_frames(&mut self) {
-        let input_ids: Vec<InputID> = self.inputs_queues.keys().cloned().collect();
+        let input_ids: Vec<InputId> = self.inputs_queues.keys().cloned().collect();
         for input_id in input_ids {
             self.drop_pad_useless_frames(input_id).unwrap();
         }
@@ -129,5 +130,13 @@ impl InternalQueue {
 
     pub fn get_next_output_buffer_pts(&self) -> Duration {
         Duration::from_secs_f64(self.send_batches_counter as f64 / self.output_framerate.0 as f64)
+    }
+
+    fn duration_abs_diff(first: Duration, second: Duration) -> Duration {
+        if first > second {
+            first - second
+        } else {
+            second - first
+        }
     }
 }

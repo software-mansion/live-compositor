@@ -1,5 +1,5 @@
 use anyhow::Result;
-use compositor_common::{frame::Framerate, scene::Resolution};
+use compositor_common::{scene::Resolution, Framerate};
 use compositor_pipeline::Pipeline;
 use log::{error, info};
 use serde_json::json;

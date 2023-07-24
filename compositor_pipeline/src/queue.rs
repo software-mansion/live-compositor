@@ -6,10 +6,8 @@ use std::{
     time::{Duration, Instant},
 };
 
-use compositor_common::{
-    frame::{Framerate, FramesBatch, InputID},
-    Frame,
-};
+use compositor_common::{Frame, Framerate, InputId};
+use compositor_render::input_frames::InputFrames;
 use crossbeam_channel::{tick, unbounded, Receiver, Sender};
 
 use self::internal_queue::{InternalQueue, QueueError};
@@ -31,20 +29,20 @@ impl Queue {
     }
 
     #[allow(dead_code)]
-    pub fn add_input(&self, input_id: InputID) {
+    pub fn add_input(&self, input_id: InputId) {
         let mut internal_queue = self.internal_queue.lock().unwrap();
         internal_queue.add_input(input_id);
     }
 
     #[allow(dead_code)]
-    pub fn remove_input(&self, input_id: InputID) {
+    pub fn remove_input(&self, input_id: InputId) {
         let mut internal_queue = self.internal_queue.lock().unwrap();
         // TODO: gracefully remove input - wait until last enqueued frame PTS is smaller than output PTS
         internal_queue.remove_input(input_id);
     }
 
     #[allow(dead_code)]
-    pub fn start(&self, sender: Sender<FramesBatch>) {
+    pub fn start(&self, sender: Sender<InputFrames>) {
         let (check_queue_sender, check_queue_receiver) = self.check_queue_channel.clone();
         let internal_queue = self.internal_queue.clone();
         let tick_duration = self.output_framerate.get_interval_duration();
@@ -71,7 +69,7 @@ impl Queue {
         });
     }
 
-    pub fn enqueue_frame(&self, input_id: InputID, frame: Frame) -> Result<(), QueueError> {
+    pub fn enqueue_frame(&self, input_id: InputId, frame: Frame) -> Result<(), QueueError> {
         let mut internal_queue = self.internal_queue.lock().unwrap();
 
         internal_queue.enqueue_frame(input_id, frame)?;
