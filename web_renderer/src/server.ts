@@ -6,6 +6,19 @@ import { randomUUID } from 'crypto';
 import { GetFrameRequest, NewSessionRequest } from './schemas';
 import { sessions } from './state';
 
+interface ErrorResponse {
+    error: string
+}
+
+type NewSessionResponse =
+    { session_id: SessionId }
+    | ErrorResponse;
+
+type GetFrameResponse =
+    Buffer
+    | ErrorResponse;
+
+    
 const app = express();
 
 app.use(express.json());
@@ -56,16 +69,4 @@ export function startServer(port: number): void {
     app.listen(port, () => {
         console.log(`Listening on ${port}`);
     });
-}
-
-type NewSessionResponse =
-    { session_id: SessionId }
-    | ErrorResponse;
-
-type GetFrameResponse =
-    Buffer
-    | ErrorResponse;
-
-interface ErrorResponse {
-    error: string
 }
