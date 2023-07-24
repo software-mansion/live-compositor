@@ -10,7 +10,6 @@ pub struct Frame {
     pub pts: Duration,
 }
 
-pub type Pts = Duration;
 pub type InputID = u32;
 
 /// TODO: This should be a rational.
@@ -26,11 +25,11 @@ impl Framerate {
 #[derive(Debug)]
 pub struct FramesBatch {
     pub frames: HashMap<InputID, Arc<Frame>>,
-    pub pts: Pts,
+    pub pts: Duration,
 }
 
 impl FramesBatch {
-    pub fn new(pts: Pts) -> Self {
+    pub fn new(pts: Duration) -> Self {
         FramesBatch {
             frames: HashMap::new(),
             pts,

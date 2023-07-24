@@ -1,7 +1,5 @@
-use anyhow::anyhow;
-use compositor_common::frame::{Framerate, FramesBatch, InputID, Pts};
+use compositor_common::frame::{Framerate, FramesBatch, InputID};
 use compositor_common::Frame;
-use std::collections::hash_map::Entry::Vacant;
 use std::time::Duration;
 use std::{collections::HashMap, sync::Arc};
 use thiserror::Error;
@@ -15,7 +13,7 @@ pub enum QueueError {
 pub struct InternalQueue {
     // frames are PTS ordered. PTS include timestamps offsets
     inputs_queues: HashMap<InputID, Vec<Arc<Frame>>>,
-    timestamp_offsets: HashMap<InputID, Pts>,
+    timestamp_offsets: HashMap<InputID, Duration>,
     output_framerate: Framerate,
     pub send_batches_counter: u32,
 }
@@ -40,17 +38,16 @@ impl InternalQueue {
     }
 
     pub fn enqueue_frame(&mut self, input_id: InputID, mut frame: Frame) -> Result<(), QueueError> {
+        let next_output_buffer_pts = self.get_next_output_buffer_pts();
+
         match self.inputs_queues.get_mut(&input_id) {
             Some(input_queue) => {
-                if let Vacant(e) = self.timestamp_offsets.entry(input_id) {
-                    e.insert(frame.pts);
-                }
-
-                frame.pts += *self
+                let offset = *self
                     .timestamp_offsets
-                    .get(&input_id)
-                    .ok_or_else(|| anyhow!("Timestamp offset unregistered for pad {input_id}"))
-                    .unwrap();
+                    .entry(input_id)
+                    .or_insert(next_output_buffer_pts - frame.pts);
+
+                frame.pts += offset;
 
                 input_queue.push(Arc::new(frame));
                 Ok(())
@@ -62,7 +59,7 @@ impl InternalQueue {
     /// Pops frames closest to buffer pts.
     /// Implementation assumes that "useless frames" are already dropped
     /// by [`drop_useless_frames`] or [`drop_pad_useless_frames`]
-    pub fn get_frames_batch(&mut self, buffer_pts: Pts) -> FramesBatch {
+    pub fn get_frames_batch(&mut self, buffer_pts: Duration) -> FramesBatch {
         let mut frames_batch = FramesBatch::new(buffer_pts);
 
         for (input_id, input_queue) in &self.inputs_queues {
@@ -81,7 +78,7 @@ impl InternalQueue {
     // so when all inputs queues have frame with pts larger or equal than buffer timestamp,
     // queue won't receive frame with pts "closer" to buffer pts.
     // In other cases, queue might receive frame "closer" to buffer pts in future.
-    pub fn check_all_inputs_ready(&self, buffer_pts: Pts) -> bool {
+    pub fn check_all_inputs_ready(&self, buffer_pts: Duration) -> bool {
         self.inputs_queues
             .values()
             .all(|input_queue| match input_queue.last() {
@@ -130,7 +127,7 @@ impl InternalQueue {
         }
     }
 
-    pub fn get_next_output_buffer_pts(&self) -> Pts {
+    pub fn get_next_output_buffer_pts(&self) -> Duration {
         Duration::from_secs_f64(self.send_batches_counter as f64 / self.output_framerate.0 as f64)
     }
 }
