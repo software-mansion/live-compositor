@@ -65,9 +65,7 @@ impl Queue {
                     || internal_queue.check_all_inputs_ready(buffer_pts)
                 {
                     let frames_batch = internal_queue.get_frames_batch(buffer_pts);
-
                     sender.send(frames_batch).unwrap();
-
                     internal_queue.drop_useless_frames();
                 }
             }
