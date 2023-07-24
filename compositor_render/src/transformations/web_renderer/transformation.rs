@@ -21,14 +21,14 @@ use crate::renderer::{
 
 use super::{
     electron_api::{ElectronApi, ElectronApiError},
-    SessionId, Url,
+    SessionId,
 };
 
 pub struct WebRenderer {
     api: ElectronApi,
     wgpu_ctx: Rc<WgpuCtx>,
     renderer_process: process::Child,
-    session_ids: RefCell<HashMap<Url, SessionId>>,
+    session_ids: RefCell<HashMap<String, SessionId>>,
 }
 
 impl Transformation for WebRenderer {
@@ -43,20 +43,21 @@ impl Transformation for WebRenderer {
         };
 
         let mut session_ids = self.session_ids.borrow_mut();
+
         let session_id = match session_ids.get(url) {
-            Some(id) => id.to_owned(),
+            Some(id) => id,
             None => {
                 let size = target.size();
                 let id = self.api.new_session(
-                    url.to_owned(),
+                    url,
                     Resolution {
                         width: size.width as usize,
                         height: size.height as usize,
                     },
                 )?;
 
-                session_ids.insert(url.to_owned(), id.clone());
-                id
+                session_ids.insert(url.to_owned(), id);
+                session_ids.get(url).unwrap()
             }
         };
 

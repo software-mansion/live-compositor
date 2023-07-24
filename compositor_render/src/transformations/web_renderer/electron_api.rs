@@ -3,7 +3,7 @@ use compositor_common::scene::Resolution;
 use reqwest::{blocking::Client, StatusCode};
 use serde::{Deserialize, Serialize};
 
-use super::{SessionId, Url};
+use super::SessionId;
 
 pub struct ElectronApi {
     port: u16,
@@ -20,7 +20,7 @@ impl ElectronApi {
 
     pub fn new_session(
         &self,
-        url: Url,
+        url: &str,
         resolution: Resolution,
     ) -> Result<SessionId, ElectronApiError> {
         let resp: NewSessionResponse = self
@@ -33,7 +33,7 @@ impl ElectronApi {
         Ok(resp.session_id)
     }
 
-    pub fn get_frame(&self, session_id: SessionId) -> Result<Bytes, ElectronApiError> {
+    pub fn get_frame(&self, session_id: &SessionId) -> Result<Bytes, ElectronApiError> {
         let resp = self
             .client
             .post(self.get_endpoint("get_frame"))
@@ -54,8 +54,8 @@ impl ElectronApi {
 }
 
 #[derive(Serialize)]
-struct NewSessionRequest {
-    url: Url,
+struct NewSessionRequest<'a> {
+    url: &'a str,
     resolution: Resolution,
 }
 
@@ -65,8 +65,8 @@ struct NewSessionResponse {
 }
 
 #[derive(Serialize)]
-struct GetFrameRequest {
-    session_id: SessionId,
+struct GetFrameRequest<'a> {
+    session_id: &'a SessionId,
 }
 
 #[derive(Deserialize)]

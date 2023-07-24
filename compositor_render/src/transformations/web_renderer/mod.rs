@@ -1,8 +1,8 @@
 mod electron_api;
 pub mod transformation;
 
+use serde::{Deserialize, Serialize};
 pub use transformation::*;
 
-type Url = String;
-
-type SessionId = String;
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SessionId(pub String);

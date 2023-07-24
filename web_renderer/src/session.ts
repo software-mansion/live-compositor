@@ -1,14 +1,13 @@
 import { BrowserWindow, screen } from "electron";
-import { Url } from "./common";
 import { Resolution } from "./schemas";
 
 export class Session {
-    public url: Url;
+    public url: string;
     public resolution: Resolution;
     private last_frame: Buffer;
     private window: BrowserWindow;
 
-    public constructor(url: Url, resolution: Resolution) {
+    public constructor(url: string, resolution: Resolution) {
         this.url = url;
         this.resolution = resolution;
         this.last_frame = Buffer.from([]);
