@@ -2,7 +2,7 @@ mod internal_queue;
 
 use std::{
     sync::{Arc, Mutex},
-    thread::{self},
+    thread::{self, sleep},
     time::{Duration, Instant},
 };
 
@@ -12,23 +12,25 @@ use crossbeam_channel::{tick, unbounded, Receiver, Sender};
 
 use self::internal_queue::{InternalQueue, QueueError};
 
+const DEFAULT_BUFFER_DURATION: Duration = Duration::from_millis(10);
+
 pub struct Queue {
     internal_queue: Arc<Mutex<InternalQueue>>,
     check_queue_channel: (Sender<()>, Receiver<()>),
     output_framerate: Framerate,
+    buffer_duration: Duration,
 }
 
 impl Queue {
-    #[allow(dead_code)]
     pub fn new(output_framerate: Framerate) -> Self {
         Queue {
             internal_queue: Arc::new(Mutex::new(InternalQueue::new(output_framerate))),
             check_queue_channel: unbounded(),
             output_framerate,
+            buffer_duration: DEFAULT_BUFFER_DURATION,
         }
     }
 
-    #[allow(dead_code)]
     pub fn add_input(&self, input_id: InputId) {
         let mut internal_queue = self.internal_queue.lock().unwrap();
         internal_queue.add_input(input_id);
@@ -46,10 +48,12 @@ impl Queue {
         let (check_queue_sender, check_queue_receiver) = self.check_queue_channel.clone();
         let internal_queue = self.internal_queue.clone();
         let tick_duration = self.output_framerate.get_interval_duration();
+        let buffer_duration = self.buffer_duration;
 
         thread::spawn(move || {
             // Wait for first frame
             check_queue_receiver.recv().unwrap();
+            sleep(buffer_duration);
             Self::start_ticker(tick_duration, check_queue_sender);
 
             let start = Instant::now();
@@ -57,7 +61,8 @@ impl Queue {
                 let mut internal_queue = internal_queue.lock().unwrap();
                 let buffer_pts = internal_queue.get_next_output_buffer_pts();
 
-                if start.elapsed() > buffer_pts || internal_queue.check_all_inputs_ready(buffer_pts)
+                if start.elapsed() + buffer_duration > buffer_pts
+                    || internal_queue.check_all_inputs_ready(buffer_pts)
                 {
                     let frames_batch = internal_queue.get_frames_batch(buffer_pts);
 
