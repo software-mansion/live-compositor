@@ -1,12 +1,12 @@
 [package]
-name = "chromium_embedded"
+name = "compositor_chromium"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-sys = { path = "./sys" }
+chromium_sys = { path = "./chromium_sys" }
 thiserror = "1.0.40"
 widestring = "1.0.2"
 

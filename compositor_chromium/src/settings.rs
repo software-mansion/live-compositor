@@ -2,10 +2,10 @@ use std::{ops::Deref, os::raw::c_int};
 
 use crate::cef_string::CefString;
 
-pub struct Settings(sys::cef_settings_t);
+pub struct Settings(chromium_sys::cef_settings_t);
 
 impl Settings {
-    pub fn raw(&self) -> &sys::cef_settings_t {
+    pub fn raw(&self) -> &chromium_sys::cef_settings_t {
         return &self.0;
     }
 }
@@ -21,8 +21,8 @@ impl SettingsBuilder {
     }
 
     pub fn build(self) -> Settings {
-        let inner = sys::cef_settings_t {
-            size: std::mem::size_of::<sys::cef_settings_t>(),
+        let inner = chromium_sys::cef_settings_t {
+            size: std::mem::size_of::<chromium_sys::cef_settings_t>(),
             no_sandbox: true as c_int,
             browser_subprocess_path: CefString::empty_raw(),
             framework_dir_path: CefString::empty_raw(),
@@ -41,7 +41,7 @@ impl SettingsBuilder {
             locale: CefString::empty_raw(),
             log_file: CefString::empty_raw(),
             // TODO: Add log severity enum
-            log_severity: sys::cef_log_severity_t_LOGSEVERITY_INFO,
+            log_severity: chromium_sys::cef_log_severity_t_LOGSEVERITY_INFO,
             javascript_flags: CefString::empty_raw(),
             resources_dir_path: CefString::empty_raw(),
             locales_dir_path: CefString::empty_raw(),

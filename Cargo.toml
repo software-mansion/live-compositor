@@ -10,7 +10,7 @@ members = [
     "compositor_common",
     "compositor_render",
     "compositor_pipeline",
-    "chromium_embedded",
+    "compositor_chromium",
 ]
 resolver = "2"
 

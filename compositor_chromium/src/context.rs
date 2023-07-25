@@ -12,8 +12,8 @@ pub struct Context {
 impl Drop for Context {
     fn drop(&mut self) {
         unsafe {
-            sys::cef_shutdown();
-            sys::cef_unload_library();
+            chromium_sys::cef_shutdown();
+            chromium_sys::cef_unload_library();
         }
     }
 }
@@ -30,7 +30,7 @@ impl Context {
 
         let is_loaded = unsafe {
             let framework_path = CString::new(framework_path.display().to_string()).unwrap();
-            sys::cef_load_library(framework_path.as_ptr())
+            chromium_sys::cef_load_library(framework_path.as_ptr())
         };
 
         if is_loaded != 1 {
@@ -46,7 +46,7 @@ impl Context {
         let settings = SettingsBuilder::new().build();
 
         let init_result = unsafe {
-            sys::cef_initialize(
+            chromium_sys::cef_initialize(
                 main_args.raw_mut(),
                 settings.raw(),
                 std::ptr::null_mut(),
