@@ -4,13 +4,30 @@ We need to be able to pass an arbitrary number of textures and parameters to the
 
 ## Possible solutions
 
-Binding runtime-sized texture arrays works on every backend (except wasm, but it doesn't matter):
+### Textures
+
+Unfortunately, it turns out that binding texture arrays is only possible when either
+
+- Textures have the same resolution
+
+or
+
+- The shader always accepts a constant number of textures
+
+This means we need to always bind a constant number of textures. If user's shader needs less textures than the length of the array, we can just fill the rest of it with references to a 1x1 texture which shouldn't harm performance in any way.
+
+Obviously we also need to pass the amount of textures that are actually present in the array. We should use a push constant for this. Push constants are a very efficient mechanism for sending a very small amount of parameters to the shader.
+
+Bringing it all together, the structure of variables declared in the user's shader could look like this:
 
 ```wgsl
-@group(0) @binding(0) var textures: texture_2d_array<f32>;
+@group(0) @binding(0) textures: binding_array<texture_2d<f32>, 16>;
+var<push_constant> textures_len: u32;
 ```
 
-Binding const-sized uniform/storage buffers works everywhere too. This would work approximately like this in the shaders (ofc the len can be defined in a different way, e.g. as the length of a runtime-sized texture array):
+### Shader parameters
+
+Binding const-sized uniform/storage buffers works on every backend. This would work approximately like this in the shaders (ofc the len can be defined in a different way, e.g. as the length of the texture array):
 
 ```wgsl
 struct MyList {
@@ -20,15 +37,15 @@ struct MyList {
     per_video_data_len: u32
 }
 
-@group(0) @binding(0) var<uniform> per_video_data: MyList
+@group(1) @binding(1) var<uniform> per_video_data: MyList
 ```
 
-Binding runtime-sized storage buffers only works on DX12 and Vulkan. Using this would look like this:
+We could also use runtime-sized storage buffers, which don't need a constant size (their size is defined at runtime). Unfortunately, binding runtime-sized storage buffers only works on DX12 and Vulkan. Using it would look like this:
 
 ```wgsl
 // the array is dynamically sized. 
 // you can get the length using arrayLength(per_video_data)
-@group(0) @binding(0) var<storage> per_video_data: array<MyStruct>
+@group(1) @binding(1) var<storage> per_video_data: array<MyStruct>
 ```
 
 Using this solution it's also possible to make one storage buffer that has some headers and then the dynamically sized per-video data (a runtime-sized array can be the last element of a struct, like in `C`):
@@ -53,9 +70,26 @@ struct MyStruct {
 
 ### Proposed solution
 
-Use runtime-sized texture arrays, since it works everywhere, use const-sized uniforms, since not being compatible with Metal would harm development.
+Use the constant-sized texture arrays. Use const-sized uniforms, since not being compatible with Metal would harm development.
 
-We should specify a binding in a bind group (e.g. binding 0 in group 1), where the uniform buffer will be attached in every shader.
+This document proposes the following bind groups structure:
+
+```wgsl
+// The textures rendered by previous nodes
+@group(0) @binding(0) var textures: binding_array<texture_2d<f32>, 16>;
+
+// The amount of textures
+var<push_constant> textures_len: u32
+
+// The buffers defined by the API user (custom for every shader)
+@group(1) @binding(0) var<uniform> user_defined_buffers: UserDefinedStructs;
+
+// The buffers provided by the compositor (containing time information, output resolution etc.)
+@group(1) @binding(1) var<uniform> compositor_buffers: CompositorBuffers;
+
+// A sampler for sampling textures
+@group(2) @binding(0) var sampler_: sampler
+```
 
 ## Potential Problems
 
