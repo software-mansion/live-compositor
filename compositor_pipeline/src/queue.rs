@@ -78,7 +78,7 @@ impl Queue {
         let mut internal_queue = self.internal_queue.lock().unwrap();
 
         internal_queue.enqueue_frame(input_id, frame)?;
-        internal_queue.drop_pad_useless_frames(input_id)?;
+        internal_queue.drop_input_useless_frames(input_id)?;
 
         self.check_queue_channel.0.send(()).unwrap();
 
