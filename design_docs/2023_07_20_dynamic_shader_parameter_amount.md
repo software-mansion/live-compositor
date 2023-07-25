@@ -97,4 +97,6 @@ var<push_constant> textures_len: u32
 - Careful error handling is necessary, since if the user gives us a buffer that is too short or misaligned the `wgpu`'s default reaction is to panic the process (there are mechanisms that change this behavior -- error scopes, we just need to remember to use them).
 - It's becoming more and more apparent that we will need to expose some pipeline configuration options to the shader defining API, so that shaders can define the background color, or the formula used for alpha blending etc.
 - We need to decide whether we want to use storage or uniform buffers for the parameters. Uniform buffers are faster, but limited in size to 64 KiB. Storage buffers are a bit slower, but support a much more generous 2 GiB of max size. Changing this later would be a breaking change, since the custom shaders would need to replace `var<uniform>` with `var<storage>` in their shader code. Do we want to allow the users to choose which kind of buffer they want to use?
+  - Decision: use uniforms for now, add support for storage buffers later
 - We need to remember that not all shaders need parameters.
+- We need to consider adding support for creating an additional type of shaders: ones that always take the same amount of inputs
