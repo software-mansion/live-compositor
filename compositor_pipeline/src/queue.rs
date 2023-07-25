@@ -52,7 +52,9 @@ impl Queue {
         thread::spawn(move || {
             // Wait for first frame
             check_queue_receiver.recv().unwrap();
-            Self::start_ticker(tick_duration, check_queue_sender, buffer_duration);
+            sleep(buffer_duration);
+
+            Self::start_ticker(tick_duration, check_queue_sender);
 
             let start = Instant::now();
             loop {
@@ -83,14 +85,10 @@ impl Queue {
         Ok(())
     }
 
-    fn start_ticker(
-        tick_duration: Duration,
-        check_queue_sender: Sender<()>,
-        buffer_duration: Duration,
-    ) {
+    fn start_ticker(tick_duration: Duration, check_queue_sender: Sender<()>) {
         thread::spawn(move || {
-            sleep(buffer_duration);
             let ticker = tick(tick_duration);
+            check_queue_sender.send(()).unwrap();
             loop {
                 ticker.recv().unwrap();
                 check_queue_sender.send(()).unwrap();
