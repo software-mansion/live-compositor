@@ -18,6 +18,7 @@ fn main() {
     );
     ffmpeg_next::format::network::init();
     let pipeline = Arc::new(Pipeline::new(Framerate(30)));
+    pipeline.start();
     let state = Arc::new(State::new(pipeline));
 
     thread::spawn(|| {
