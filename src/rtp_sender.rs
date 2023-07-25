@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 use crossbeam_channel::{Receiver, Sender};
-use log::error;
+use log::{error, warn};
 use serde::{Deserialize, Serialize};
 use std::{path::PathBuf, thread};
 
@@ -102,7 +102,10 @@ impl RtpSender {
 
     fn run(opts: Options, receiver: Receiver<Frame>) -> Result<()> {
         let mut output_ctx = format::output_as(
-            &PathBuf::from(format!("rtp://127.0.0.1:{}", opts.port)),
+            &PathBuf::from(format!(
+                "rtp://127.0.0.1:{}?rtcpport={}",
+                opts.port, opts.port
+            )),
             "rtp",
         )?;
         let h264_codec = codec::encoder::find(Id::H264).unwrap();
@@ -161,7 +164,11 @@ impl RtpSender {
             opts.resolution.width.try_into().unwrap(),
             opts.resolution.height.try_into().unwrap(),
         );
-        for frame in receiver.into_iter() {
+        for frame in receiver.iter() {
+            if receiver.len() > 100 {
+                warn!("Dropping frame: encoder queue is too long.",);
+                continue;
+            }
             if let Err(err) = frame_into_av(frame, &mut av_frame) {
                 error!("Failed to construct AVFrame: {err}");
                 continue;
@@ -210,9 +217,7 @@ fn frame_into_av(frame: Frame, av_frame: &mut frame::Video) -> Result<()> {
         ));
     }
 
-    av_frame.set_pts(Some(
-        ((frame.pts.as_nanos() as f64) * 90000.0 / 10e9) as i64,
-    ));
+    av_frame.set_pts(Some((frame.pts.as_secs_f64() * 90000.0) as i64));
     av_frame.data_mut(0).copy_from_slice(&frame.data.y_plane);
     av_frame.data_mut(1).copy_from_slice(&frame.data.u_plane);
     av_frame.data_mut(2).copy_from_slice(&frame.data.v_plane);

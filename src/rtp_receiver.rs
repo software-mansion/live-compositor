@@ -96,8 +96,7 @@ fn frame_from_av(decoded: &mut Video, pts_offset: &mut Option<i64>) -> Result<Fr
     let pts = original_pts
         .map(|original_pts| original_pts + pts_offset.unwrap_or(0))
         .ok_or_else(|| anyhow!("missing pts"))?;
-    // TODO figure out why ((pts as f64) * 10e9 / 90000.0) as u64 gives 10x real pts
-    let pts = Duration::from_nanos(((pts as f64) * 10e8 / 90000.0) as u64);
+    let pts = Duration::from_secs_f64((pts as f64) / 90000.0);
     Ok(Frame {
         data: YuvData {
             y_plane: bytes::Bytes::copy_from_slice(decoded.data(0)),
