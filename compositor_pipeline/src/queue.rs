@@ -11,7 +11,7 @@ use compositor_render::input_frames::InputFrames;
 use crossbeam_channel::{tick, unbounded, Receiver, Sender};
 use thiserror::Error;
 
-use self::internal_queue::{InternalQueue};
+use self::internal_queue::InternalQueue;
 
 #[derive(Error, Debug)]
 pub enum QueueError {

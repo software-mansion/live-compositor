@@ -73,8 +73,8 @@ impl InternalQueue {
     /// We assume that the queue receives frames with monotonically increasing timestamps,
     /// so when all inputs queues have frames with pts larger or equal than buffer timestamp,
     /// the queue won't receive frames with pts "closer" to buffer pts.
-    /// When the queue hasn't received a frame with pts larger or equal than buffer timestamp on every 
-    /// input, queue might receive frame "closer" to buffer pts in the future on some input, 
+    /// When the queue hasn't received a frame with pts larger or equal than buffer timestamp on every
+    /// input, queue might receive frame "closer" to buffer pts in the future on some input,
     /// therefore it should wait with buffer push until it receives those frames or until
     /// ticker enforces push from the queue.
     pub fn check_all_inputs_ready(&self, buffer_pts: Duration) -> bool {
