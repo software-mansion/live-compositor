@@ -11,11 +11,11 @@ interface ErrorResponse {
 }
 
 type NewSessionResponse =
-    { session_id: SessionId }
+    | { session_id: SessionId }
     | ErrorResponse;
 
 type GetFrameResponse =
-    Buffer
+    | Buffer
     | ErrorResponse;
 
     
