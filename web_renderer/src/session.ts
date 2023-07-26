@@ -1,5 +1,5 @@
-import { BrowserWindow, screen } from "electron";
-import { Resolution } from "./schemas";
+import { BrowserWindow, screen } from 'electron';
+import { Resolution } from './schemas';
 
 export class Session {
     public url: string;
@@ -24,11 +24,11 @@ export class Session {
                 offscreen: true,
                 zoomFactor: 1 / factor,
                 backgroundThrottling: false,
-            }
+            },
         });
 
         this.window.loadURL(this.url);
-        this.window.webContents.on("paint", (_event, _dirty, img) => {
+        this.window.webContents.on('paint', (_event, _dirty, img) => {
             this.last_frame = img.toJPEG(90);
         });
         this.window.webContents.setFrameRate(60);

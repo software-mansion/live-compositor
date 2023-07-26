@@ -9,7 +9,9 @@
     "package": "electron-forge package",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
-    "lint": "eslint --ext .ts,.tsx . && tsc --noEmit"
+    "lint": "eslint .",
+    "prettier": "prettier .",
+    "typecheck": "tsc --noEmit"
   },
   "keywords": [],
   "license": "MIT",
@@ -28,9 +30,12 @@
     "css-loader": "^6.8.1",
     "electron": "25.2.0",
     "eslint": "^8.44.0",
+    "eslint-config-prettier": "^8.8.0",
     "eslint-plugin-import": "^2.27.5",
+    "eslint-plugin-prettier": "^5.0.0",
     "fork-ts-checker-webpack-plugin": "^7.3.0",
     "node-loader": "^2.0.0",
+    "prettier": "3.0.0",
     "style-loader": "^3.3.3",
     "ts-loader": "^9.4.4",
     "ts-node": "^10.9.1",

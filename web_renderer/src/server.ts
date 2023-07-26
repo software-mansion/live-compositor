@@ -7,23 +7,18 @@ import { GetFrameRequest, NewSessionRequest } from './schemas';
 import { sessions } from './state';
 
 interface ErrorResponse {
-    error: string
+    error: string;
 }
 
-type NewSessionResponse =
-    | { session_id: SessionId }
-    | ErrorResponse;
+type NewSessionResponse = { session_id: SessionId } | ErrorResponse;
 
-type GetFrameResponse =
-    | Buffer
-    | ErrorResponse;
+type GetFrameResponse = Buffer | ErrorResponse;
 
-    
 const app = express();
 
 app.use(express.json());
 
-app.post("/new_session", (req: Request, res: Response<NewSessionResponse>) => {
+app.post('/new_session', (req: Request, res: Response<NewSessionResponse>) => {
     try {
         const data = NewSessionRequest.parse(req.body);
         console.log(`Starting rendering for ${data.url}`);
@@ -32,36 +27,28 @@ app.post("/new_session", (req: Request, res: Response<NewSessionResponse>) => {
         sessions.set(session_id, session);
         session.run();
 
-        res
-            .status(HttpConstants.HTTP_STATUS_CREATED)
-            .send({
-                session_id: session_id
-            });
+        res.status(HttpConstants.HTTP_STATUS_CREATED).send({
+            session_id: session_id,
+        });
     } catch (err) {
-        res
-            .status(HttpConstants.HTTP_STATUS_BAD_REQUEST)
-            .send({ error: err.toString() });
+        res.status(HttpConstants.HTTP_STATUS_BAD_REQUEST).send({ error: err.toString() });
     }
 });
 
-app.post("/get_frame", (req: Request, res: Response<GetFrameResponse>) => {
+app.post('/get_frame', (req: Request, res: Response<GetFrameResponse>) => {
     try {
         const data = GetFrameRequest.parse(req.body);
         if (!sessions.has(data.session_id)) {
-            res
-                .status(HttpConstants.HTTP_STATUS_NOT_FOUND)
-                .send({
-                    error: "Session does not exist"
-                });
+            res.status(HttpConstants.HTTP_STATUS_NOT_FOUND).send({
+                error: 'Session does not exist',
+            });
             return;
         }
 
         const session = sessions.get(data.session_id);
         res.status(HttpConstants.HTTP_STATUS_OK).send(session.frame);
     } catch (err) {
-        res
-            .status(HttpConstants.HTTP_STATUS_BAD_REQUEST)
-            .send({ error: err.toString() });
+        res.status(HttpConstants.HTTP_STATUS_BAD_REQUEST).send({ error: err.toString() });
     }
 });
 

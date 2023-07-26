@@ -3,7 +3,7 @@ import { startServer } from './server';
 
 function main(): void {
     if (process.argv.length != 3) {
-        console.error("<port> not provided");
+        console.error('<port> not provided');
         process.exit(1);
     }
 
