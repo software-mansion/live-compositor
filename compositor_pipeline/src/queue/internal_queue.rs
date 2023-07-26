@@ -3,20 +3,15 @@ use compositor_common::{Framerate, InputId};
 use compositor_render::input_frames::InputFrames;
 use std::time::Duration;
 use std::{collections::HashMap, sync::Arc};
-use thiserror::Error;
 
-#[derive(Error, Debug)]
-pub enum QueueError {
-    #[error("the input id `{0}` is unknown")]
-    UnknownInputId(InputId),
-}
+use super::QueueError;
 
 pub struct InternalQueue {
-    // frames are PTS ordered. PTS include timestamps offsets
+    /// frames are PTS ordered. PTS include timestamps offsets
     inputs_queues: HashMap<InputId, Vec<Arc<Frame>>>,
     timestamp_offsets: HashMap<InputId, Duration>,
     output_framerate: Framerate,
-    pub send_batches_counter: u32,
+    pub sent_batches_counter: u32,
 }
 
 impl InternalQueue {
@@ -25,7 +20,7 @@ impl InternalQueue {
             inputs_queues: HashMap::new(),
             timestamp_offsets: HashMap::new(),
             output_framerate,
-            send_batches_counter: 0,
+            sent_batches_counter: 0,
         }
     }
 
@@ -68,7 +63,7 @@ impl InternalQueue {
                 frames_batch.insert_frame(*input_id, nearest_frame.clone());
             }
         }
-        self.send_batches_counter += 1;
+        self.sent_batches_counter += 1;
 
         frames_batch
     }
@@ -89,7 +84,7 @@ impl InternalQueue {
     }
 
     /// Drops frames that won't be used anymore by the VideoCompositor from single input.
-    /// Since VideoCompositor received and enqueues frames with monotonically increasing pts,
+    /// Since VideoCompositor receives and enqueues frames with monotonically increasing pts,
     /// all frames in `input queue` placed before frame with best pts difference to next buffer pts
     /// won't be used anymore. This queue always wants to minimize pts diff between frame pts and
     /// send buffer pts. We can be certain that frame X from input I
@@ -126,6 +121,6 @@ impl InternalQueue {
     }
 
     pub fn get_next_output_buffer_pts(&self) -> Duration {
-        Duration::from_secs_f64(self.send_batches_counter as f64 / self.output_framerate.0 as f64)
+        Duration::from_secs_f64(self.sent_batches_counter as f64 / self.output_framerate.0 as f64)
     }
 }

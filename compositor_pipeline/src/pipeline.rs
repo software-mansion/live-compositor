@@ -4,7 +4,10 @@ use crossbeam_channel::unbounded;
 use log::error;
 use std::{sync::Arc, thread};
 
-use crate::{map::SyncHashMap, queue::Queue};
+use crate::{
+    map::SyncHashMap,
+    queue::{Queue, QueueError},
+};
 
 pub trait PipelineOutput {
     fn send_frame(&self, frame: Frame);
@@ -32,8 +35,8 @@ impl<Output: PipelineOutput + std::marker::Send + std::marker::Sync + 'static> P
         self.outputs.insert(output_id, output);
     }
 
-    pub fn push_input_data(&self, input_id: InputId, frame: Frame) {
-        self.queue.enqueue_frame(input_id, frame).unwrap();
+    pub fn push_input_data(&self, input_id: InputId, frame: Frame) -> Result<(), QueueError> {
+        self.queue.enqueue_frame(input_id, frame)
     }
 
     #[allow(dead_code)]

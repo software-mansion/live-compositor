@@ -9,8 +9,15 @@ use std::{
 use compositor_common::{Frame, Framerate, InputId};
 use compositor_render::input_frames::InputFrames;
 use crossbeam_channel::{tick, unbounded, Receiver, Sender};
+use thiserror::Error;
 
-use self::internal_queue::{InternalQueue, QueueError};
+use self::internal_queue::{InternalQueue};
+
+#[derive(Error, Debug)]
+pub enum QueueError {
+    #[error("the input id `{0}` is unknown")]
+    UnknownInputId(InputId),
+}
 
 const DEFAULT_BUFFER_DURATION: Duration = Duration::from_millis(10);
 

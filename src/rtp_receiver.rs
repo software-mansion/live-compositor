@@ -77,7 +77,9 @@ impl RtpReceiver {
                         continue;
                     }
                 };
-                pipeline.push_input_data(InputId(port.into()), frame);
+                pipeline
+                    .push_input_data(InputId(port.into()), frame)
+                    .unwrap();
             }
         }
 

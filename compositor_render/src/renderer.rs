@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::rc::Rc;
 
 use compositor_common::{scene::Scene, Frame};
 
@@ -13,7 +13,7 @@ pub mod texture;
 pub mod transformation;
 
 pub struct Renderer {
-    wgpu_ctx: Arc<WgpuCtx>,
+    wgpu_ctx: Rc<WgpuCtx>,
     registry: TransformationRegistry,
     scene: Option<Scene>,
 }
@@ -42,7 +42,7 @@ pub enum RendererRenderError {
 impl Renderer {
     pub fn new() -> Result<Self, RendererNewError> {
         Ok(Self {
-            wgpu_ctx: Arc::new(WgpuCtx::new()?),
+            wgpu_ctx: Rc::new(WgpuCtx::new()?),
             registry: TransformationRegistry::new(),
             scene: None,
         })
@@ -50,7 +50,7 @@ impl Renderer {
 
     pub fn register_transformation<T: Transformation>(
         &mut self,
-        provider: fn(Arc<WgpuCtx>) -> T,
+        provider: fn(Rc<WgpuCtx>) -> T,
     ) -> Result<(), RendererRegisterTransformationError> {
         self.registry
             .register(Box::new(provider(self.wgpu_ctx.clone())))?;
