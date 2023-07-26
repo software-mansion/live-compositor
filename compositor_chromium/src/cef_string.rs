@@ -22,6 +22,7 @@ impl CefString {
         }
     }
 
+    // TODO: Rename to null?
     pub fn empty_raw() -> chromium_sys::cef_string_t {
         unsafe { std::mem::zeroed() }
     }

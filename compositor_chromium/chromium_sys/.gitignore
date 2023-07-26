@@ -3,3 +3,4 @@
 /build
 /cmake-build-debug
 .DS_Store
+src/bindings.rs

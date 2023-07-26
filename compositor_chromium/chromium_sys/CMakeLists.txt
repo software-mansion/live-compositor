@@ -4,9 +4,8 @@ set(PROJECT_NAME rustium_cef_wrapper)
 
 project(${PROJECT_NAME})
 
-# TODO: Pass app name
-set(HELPER_TARGET "rustium-demo_Helper")
-set(HELPER_OUTPUT_NAME "rustium-demo Helper")
+set(HELPER_TARGET "video_compositor_Helper")
+set(HELPER_OUTPUT_NAME "video_compositor Helper")
 set(HELPER_SOURCES mac_helper.cc)
 
 set(CEF_ROOT $ENV{CEF_ROOT})

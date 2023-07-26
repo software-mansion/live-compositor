@@ -1,6 +1,8 @@
 use std::{ffi::CString, io, path::PathBuf};
 
 use crate::{
+    app::{App, AppWrapper},
+    cef_ref::CefRefPtr,
     main_args::MainArgs,
     settings::{Settings, SettingsBuilder},
 };
@@ -20,36 +22,36 @@ impl Drop for Context {
 
 impl Context {
     #[cfg(target_os = "macos")]
-    pub fn new(settings: Settings) -> Result<Self, ContextError> {
+    pub fn new<T: App>(app: T, settings: Settings) -> Result<Self, ContextError> {
         let framework_path = PathBuf::from(std::env::current_exe()?)
             .parent()
             .unwrap()
-            .join("..")
+            .parent()
+            .unwrap()
+            .join("Frameworks")
             .join("Chromium Embedded Framework.framework")
             .join("Chromium Embedded Framework");
+        let framework_path = CString::new(framework_path.display().to_string()).unwrap();
 
-        let is_loaded = unsafe {
-            let framework_path = CString::new(framework_path.display().to_string()).unwrap();
-            chromium_sys::cef_load_library(framework_path.as_ptr())
-        };
+        let is_loaded = unsafe { chromium_sys::cef_load_library(framework_path.as_ptr()) };
 
         if is_loaded != 1 {
             return Err(ContextError::FrameworkNotLoaded);
         }
 
-        Self::init();
+        Self::init(app, settings)?;
         Ok(Context { _priv: () })
     }
 
-    fn init() -> Result<(), ContextError> {
+    fn init<T: App>(app: T, settings: Settings) -> Result<(), ContextError> {
         let mut main_args = MainArgs::from_env();
-        let settings = SettingsBuilder::new().build();
+        let mut app = CefRefPtr::new(AppWrapper(app));
 
         let init_result = unsafe {
             chromium_sys::cef_initialize(
                 main_args.raw_mut(),
                 settings.raw(),
-                std::ptr::null_mut(),
+                app,
                 std::ptr::null_mut(),
             )
         };
