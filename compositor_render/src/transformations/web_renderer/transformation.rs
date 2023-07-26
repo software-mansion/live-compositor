@@ -63,7 +63,7 @@ impl Transformation for WebRenderer {
 
         let frame = self.api.get_frame(session_id)?;
         if !frame.is_empty() {
-            self.upload(&frame, target)?;
+            self.write_texture(&frame, target)?;
         }
 
         Ok(())
@@ -121,9 +121,22 @@ impl WebRenderer {
         Ok(renderer_process)
     }
 
-    fn upload(&self, data: &[u8], target: &Texture) -> Result<(), WebRendererApplyError> {
+    fn write_texture(&self, data: &[u8], target: &Texture) -> Result<(), WebRendererApplyError> {
         let size = target.size();
         let img = image::load_from_memory(data)?;
+
+        if img.width() != size.width || img.height() != size.height {
+            return Err(WebRendererApplyError::InvalidFrameResolution {
+                expected: Resolution {
+                    width: size.width as usize,
+                    height: size.height as usize,
+                },
+                received: Resolution {
+                    width: img.width() as usize,
+                    height: img.height() as usize,
+                },
+            });
+        }
 
         self.wgpu_ctx.queue.write_texture(
             wgpu::ImageCopyTexture {
@@ -174,4 +187,10 @@ pub enum WebRendererApplyError {
 
     #[error("failed to decode image data")]
     ImageDecodeError(#[from] ImageError),
+
+    #[error("web renderer sent frame with invalid resolution. Expected {expected:?}, received {received:?}")]
+    InvalidFrameResolution {
+        expected: Resolution,
+        received: Resolution,
+    },
 }
