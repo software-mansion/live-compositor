@@ -92,6 +92,8 @@ var<push_constant> textures_len: u32
 @group(2) @binding(0) var sampler_: sampler
 ```
 
+We should also consider using a shader preprocessor, such as [naga_oil](https://lib.rs/crates/naga_oil) to enable users to just `#import` the bindings and definitions of structs provided by the compositor.
+
 ## Potential Problems
 
 - We need to be able to allocate an appropriately sized buffer for the parameters. This means that every node has to have it's own buffer. This is not a big problem, since the buffers are small, especially compared to textures.
