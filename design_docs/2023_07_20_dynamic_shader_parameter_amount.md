@@ -31,10 +31,11 @@ Binding const-sized uniform/storage buffers works on every backend. This would w
 
 ```wgsl
 struct MyList {
-    // you declare an array with a constant, large size
+    // you specify how much of the buffer is filled
+    per_video_data_len: u32,
+    // and then you declare an array with a constant, large 
+    // size that will be filled only partially
     per_video_data: array<MyStruct, 64>
-    // and then in some way specify how much of this buffer is filled
-    per_video_data_len: u32
 }
 
 @group(1) @binding(1) var<uniform> per_video_data: MyList
