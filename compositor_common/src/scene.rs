@@ -1,6 +1,5 @@
-use std::{any::Any, collections::HashMap, sync::Arc};
-
 use serde::{Deserialize, Serialize};
+use std::{any::Any, collections::HashMap, sync::Arc};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct VideoId(usize);
