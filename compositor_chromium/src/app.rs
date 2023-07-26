@@ -1,11 +1,14 @@
-use crate::cef_ref::{CefRefPtr, CefStruct};
+use crate::{
+    cef_ref::{CefRefPtr, CefStruct},
+    cef_string::CefString,
+    command_line::CommandLine,
+};
 
 pub trait App {
     fn on_before_command_line_processing(
         &mut self,
-        // TODO: Implement CommandLine
-        // process_type: &str,
-        // command_line: &mut chromium_sys::cef_command_line_t,
+        process_type: String,
+        command_line: &mut CommandLine,
     ) {
     }
 }
@@ -37,9 +40,11 @@ impl<T: App> AppWrapper<T> {
         process_type: *const chromium_sys::cef_string_t,
         command_line: *mut chromium_sys::cef_command_line_t,
     ) {
-        unsafe {
-            let mut self_ref = CefRefPtr::<Self>::from_cef(self_);
-            self_ref.0.on_before_command_line_processing();
-        }
+        let self_ref = unsafe { CefRefPtr::<Self>::from_cef(self_) };
+        let mut command_line = CommandLine(command_line);
+        let process_type = CefString::from_raw(process_type);
+        self_ref
+            .0
+            .on_before_command_line_processing(process_type, &mut command_line);
     }
 }

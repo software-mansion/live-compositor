@@ -2,6 +2,7 @@ use std::ops::Deref;
 
 use widestring::U16CString;
 
+// TODO: Research when cef_string_t is removed  from memory
 pub struct CefString;
 
 impl CefString {
@@ -22,7 +23,19 @@ impl CefString {
         }
     }
 
-    // TODO: Rename to null?
+    pub fn from_raw(ptr: *const chromium_sys::cef_string_t) -> String {
+        if ptr.is_null() {
+            return String::new();
+        }
+
+        unsafe {
+            let cef_str = *ptr;
+            U16CString::from_ptr(cef_str.str_, cef_str.length)
+                .unwrap()
+                .to_string_lossy()
+        }
+    }
+
     pub fn empty_raw() -> chromium_sys::cef_string_t {
         unsafe { std::mem::zeroed() }
     }

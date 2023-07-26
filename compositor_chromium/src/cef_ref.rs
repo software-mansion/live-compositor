@@ -15,6 +15,7 @@ pub(crate) trait CefStruct {
 // Each CEF struct with ref counting capability has a base struct as a first field
 // This lets us simulate inheritance-like behavior
 // T::CefType represents CEF struct which has ref counting capability
+// https://bitbucket.org/chromiumembedded/cef/wiki/UsingTheCAPI.md
 // http://www.deleveld.dds.nl/inherit.htm
 #[repr(C)]
 pub(crate) struct CefRefPtr<T: CefStruct> {
