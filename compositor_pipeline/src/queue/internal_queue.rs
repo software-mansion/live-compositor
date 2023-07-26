@@ -69,11 +69,14 @@ impl InternalQueue {
     }
 
     /// Checks if all inputs have frames closest to buffer_pts.
-    /// Every input queue should have frame with larger or equal pts than buffer pts.
-    /// We assume, that queue receives frames with monotonically increasing timestamps,
-    /// so when all inputs queues have frame with pts larger or equal than buffer timestamp,
-    /// queue won't receive frame with pts "closer" to buffer pts.
-    /// In other cases, queue might receive frame "closer" to buffer pts in future.
+    /// Every input queue should have a frame with larger or equal pts than buffer pts.
+    /// We assume that the queue receives frames with monotonically increasing timestamps,
+    /// so when all inputs queues have frames with pts larger or equal than buffer timestamp,
+    /// the queue won't receive frames with pts "closer" to buffer pts.
+    /// When the queue hasn't received a frame with pts larger or equal than buffer timestamp on every 
+    /// input, queue might receive frame "closer" to buffer pts in the future on some input, 
+    /// therefore it should wait with buffer push until it receives those frames or until
+    /// ticker enforces push from the queue.
     pub fn check_all_inputs_ready(&self, buffer_pts: Duration) -> bool {
         self.inputs_queues
             .values()
@@ -83,13 +86,15 @@ impl InternalQueue {
             })
     }
 
-    /// Drops frames that won't be used anymore by the VideoCompositor from single input.
+    /// Drops frames that won't be used anymore by the VideoCompositor from a single input.
     /// Since VideoCompositor receives and enqueues frames with monotonically increasing pts,
-    /// all frames in `input queue` placed before frame with best pts difference to next buffer pts
-    /// won't be used anymore. This queue always wants to minimize pts diff between frame pts and
+    /// all frames in the `input queue` placed before the frame with the best pts
+    /// difference to the next buffer pts won't be used anymore.
+    /// This queue always wants to minimize pts diff between frame pts and
     /// send buffer pts. We can be certain that frame X from input I
     /// won't be the closest one to any next buffers if and only if
-    /// queue received frame Y with lower pts diff to next buffer and larger PTS than frame X.
+    /// the queue received frame Y with lower pts diff to the next buffer
+    /// and larger PTS than frame X.
     pub fn drop_input_useless_frames(&mut self, input_id: InputId) -> Result<(), QueueError> {
         let next_output_buffer_nanos = self.get_next_output_buffer_pts().as_nanos();
 
