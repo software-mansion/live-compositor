@@ -1,13 +1,11 @@
+use std::os::raw::{c_int, c_void};
+
 use crate::cef_ref::{CefRefPtr, CefStruct};
 
 pub trait RenderHandler {
-    fn get_view_rect(
-        &mut self,
-        browser: &mut chromium_sys::cef_browser_t,
-        rect: &mut chromium_sys::cef_rect_t,
-    );
+    fn get_view_rect(&mut self, rect: &mut chromium_sys::cef_rect_t);
 
-    fn on_paint(&mut self, buffer: &[u8], width: u32, height: u32);
+    fn on_paint(&mut self, buffer: &[u8], width: i32, height: i32);
 }
 
 pub(crate) struct RenderHandlerWrapper<T: RenderHandler>(pub T);
@@ -51,9 +49,25 @@ impl<T: RenderHandler> RenderHandlerWrapper<T> {
     ) {
         unsafe {
             let mut self_ref = CefRefPtr::<Self>::from_cef(self_);
-            self_ref
-                .0
-                .get_view_rect(browser.as_mut().unwrap(), rect.as_mut().unwrap());
+            self_ref.0.get_view_rect(rect.as_mut().unwrap());
+        }
+    }
+
+    extern "C" fn on_paint(
+        self_: *mut chromium_sys::cef_render_handler_t,
+        browser: *mut chromium_sys::cef_browser_t,
+        type_: chromium_sys::cef_paint_element_type_t,
+        dirty_rects_count: usize,
+        dirt_rects: *const chromium_sys::cef_rect_t,
+        buffer: *const c_void,
+        width: c_int,
+        height: c_int,
+    ) {
+        unsafe {
+            let mut self_ref = CefRefPtr::<Self>::from_cef(self_);
+            let buffer =
+                std::slice::from_raw_parts(buffer as *const u8, (4 * width * height) as usize);
+            self_ref.0.on_paint(buffer, width, height);
         }
     }
 }
