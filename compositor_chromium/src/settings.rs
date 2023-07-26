@@ -14,7 +14,7 @@ pub struct SettingsBuilder {
     // TODO: Fill in
 }
 
-// TODO: add builder methods
+// TODO: Remove SettingsBuilder
 impl SettingsBuilder {
     pub fn new() -> Self {
         Self {}

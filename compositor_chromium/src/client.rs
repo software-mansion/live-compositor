@@ -35,7 +35,7 @@ impl<C: Client> CefStruct for ClientWrapper<C> {
             get_life_span_handler: None,
             get_load_handler: None,
             get_print_handler: None,
-            get_render_handler: None,
+            get_render_handler: Some(Self::get_render_handler),
             get_request_handler: None,
             on_process_message_received: None,
         }

@@ -3,8 +3,10 @@ use std::os::raw::{c_int, c_void};
 use crate::cef_ref::{CefRefPtr, CefStruct};
 
 pub trait RenderHandler {
+    // TODO: Implement Rect
     fn get_view_rect(&mut self, rect: &mut chromium_sys::cef_rect_t);
 
+    // TODO: Use compositor_common::Resolution
     fn on_paint(&mut self, buffer: &[u8], width: i32, height: i32);
 }
 
