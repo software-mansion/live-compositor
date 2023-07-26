@@ -8,9 +8,9 @@ pub trait RenderHandler {
     fn on_paint(&mut self, buffer: &[u8], width: i32, height: i32);
 }
 
-pub(crate) struct RenderHandlerWrapper<T: RenderHandler>(pub T);
+pub(crate) struct RenderHandlerWrapper<R: RenderHandler>(pub R);
 
-impl<T: RenderHandler> CefStruct for RenderHandlerWrapper<T> {
+impl<R: RenderHandler> CefStruct for RenderHandlerWrapper<R> {
     type CefType = chromium_sys::cef_render_handler_t;
 
     fn get_cef_data(&self) -> Self::CefType {
@@ -23,7 +23,7 @@ impl<T: RenderHandler> CefStruct for RenderHandlerWrapper<T> {
             get_screen_info: None,
             on_popup_show: None,
             on_popup_size: None,
-            on_paint: None,
+            on_paint: Some(Self::on_paint),
             on_accelerated_paint: None,
             get_touch_handle_size: None,
             on_touch_handle_state_changed: None,
@@ -41,7 +41,7 @@ impl<T: RenderHandler> CefStruct for RenderHandlerWrapper<T> {
     }
 }
 
-impl<T: RenderHandler> RenderHandlerWrapper<T> {
+impl<R: RenderHandler> RenderHandlerWrapper<R> {
     extern "C" fn get_view_rect(
         self_: *mut chromium_sys::cef_render_handler_t,
         browser: *mut chromium_sys::cef_browser_t,

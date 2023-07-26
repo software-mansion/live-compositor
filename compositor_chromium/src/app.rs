@@ -13,9 +13,9 @@ pub trait App {
     }
 }
 
-pub(crate) struct AppWrapper<T: App>(pub T);
+pub(crate) struct AppWrapper<A: App>(pub A);
 
-impl<T: App> CefStruct for AppWrapper<T> {
+impl<A: App> CefStruct for AppWrapper<A> {
     type CefType = chromium_sys::cef_app_t;
 
     fn get_cef_data(&self) -> Self::CefType {
@@ -34,7 +34,7 @@ impl<T: App> CefStruct for AppWrapper<T> {
     }
 }
 
-impl<T: App> AppWrapper<T> {
+impl<A: App> AppWrapper<A> {
     extern "C" fn on_before_command_line_processing(
         self_: *mut chromium_sys::cef_app_t,
         process_type: *const chromium_sys::cef_string_t,
