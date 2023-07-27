@@ -1,13 +1,13 @@
 use std::os::raw::{c_int, c_void};
 
+use compositor_common::scene::Resolution;
+
 use crate::cef_ref::{CefRefPtr, CefStruct};
 
 pub trait RenderHandler {
-    // TODO: Implement Rect
-    fn get_view_rect(&mut self, rect: &mut chromium_sys::cef_rect_t);
+    fn get_resolution(&mut self) -> Resolution;
 
-    // TODO: Use compositor_common::Resolution
-    fn on_paint(&mut self, buffer: &[u8], width: i32, height: i32);
+    fn on_paint(&mut self, buffer: &[u8], resolution: Resolution);
 }
 
 pub(crate) struct RenderHandlerWrapper<R: RenderHandler>(pub R);
@@ -51,7 +51,10 @@ impl<R: RenderHandler> RenderHandlerWrapper<R> {
     ) {
         unsafe {
             let mut self_ref = CefRefPtr::<Self>::from_cef(self_);
-            self_ref.0.get_view_rect(rect.as_mut().unwrap());
+            let resolution = self_ref.0.get_resolution();
+            let rect = &mut *rect;
+            rect.width = resolution.width as i32;
+            rect.height = resolution.height as i32;
         }
     }
 
@@ -69,7 +72,13 @@ impl<R: RenderHandler> RenderHandlerWrapper<R> {
             let mut self_ref = CefRefPtr::<Self>::from_cef(self_);
             let buffer =
                 std::slice::from_raw_parts(buffer as *const u8, (4 * width * height) as usize);
-            self_ref.0.on_paint(buffer, width, height);
+            self_ref.0.on_paint(
+                buffer,
+                Resolution {
+                    width: width as usize,
+                    height: height as usize,
+                },
+            );
         }
     }
 }

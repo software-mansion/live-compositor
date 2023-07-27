@@ -1,3 +1,5 @@
+use std::marker::PhantomData;
+
 use crate::{
     cef_ref::CefRefPtr,
     cef_string::CefString,
@@ -5,22 +7,24 @@ use crate::{
     window_info::{self, WindowInfo},
 };
 
-pub struct Browser {
-    pub(crate) client: *mut chromium_sys::cef_client_t,
-    pub(crate) window_info: chromium_sys::cef_window_info_t,
-    pub(crate) settings: chromium_sys::cef_browser_settings_t,
+pub struct Browser<'a> {
+    inner: *mut chromium_sys::cef_browser_t,
+    _lifetime: PhantomData<&'a ()>,
 }
 
-impl Browser {
-    pub fn new<C: Client>(client: C, window_info: WindowInfo, settings: BrowserSettings) -> Self {
-        let client = CefRefPtr::new(ClientWrapper(client));
-        let window_info = window_info.into_raw();
-        let settings = settings.into_raw();
-
+impl<'a> Browser<'a> {
+    pub(crate) fn new(browser: *mut chromium_sys::cef_browser_t) -> Self {
         Self {
-            client,
-            window_info,
-            settings,
+            inner: browser,
+            _lifetime: PhantomData,
+        }
+    }
+
+    pub fn is_loading(&self) -> bool {
+        unsafe {
+            let browser = &mut *self.inner;
+            let f = browser.is_loading.unwrap();
+            f(self.inner) == 1
         }
     }
 }
@@ -31,7 +35,7 @@ pub struct BrowserSettings {
 }
 
 impl BrowserSettings {
-    fn into_raw(self) -> chromium_sys::cef_browser_settings_t {
+    pub(crate) fn into_raw(self) -> chromium_sys::cef_browser_settings_t {
         chromium_sys::_cef_browser_settings_t {
             size: std::mem::size_of::<chromium_sys::cef_browser_settings_t>(),
             windowless_frame_rate: self.windowless_frame_rate,

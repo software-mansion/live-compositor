@@ -1,14 +1,6 @@
 use std::{ffi::CString, io, path::PathBuf};
 
-use crate::{
-    app::{App, AppWrapper},
-    browser::Browser,
-    cef_ref::CefRefPtr,
-    cef_string::CefString,
-    client::Client,
-    main_args::MainArgs,
-    settings::{Settings, SettingsBuilder},
-};
+use crate::{cef::*, cef_ref::CefRefPtr, cef_string::CefString, main_args::MainArgs};
 
 pub struct Context {
     _priv: (),
@@ -25,7 +17,7 @@ impl Drop for Context {
 
 impl Context {
     #[cfg(target_os = "macos")]
-    pub fn new<T: App>(app: T, settings: Settings) -> Result<Self, ContextError> {
+    pub fn new<A: App>(app: A, settings: Settings) -> Result<Self, ContextError> {
         let framework_path = PathBuf::from(std::env::current_exe()?)
             .parent()
             .unwrap()
@@ -45,17 +37,13 @@ impl Context {
         Ok(Context { _priv: () })
     }
 
-    fn init<T: App>(app: T, settings: Settings) -> Result<(), ContextError> {
+    fn init<A: App>(app: A, settings: Settings) -> Result<(), ContextError> {
         let mut main_args = MainArgs::from_env();
+        let settings = settings.into_raw();
         let mut app = CefRefPtr::new(AppWrapper(app));
 
         let init_result = unsafe {
-            chromium_sys::cef_initialize(
-                main_args.raw_mut(),
-                settings.raw(),
-                app,
-                std::ptr::null_mut(),
-            )
+            chromium_sys::cef_initialize(main_args.raw_mut(), &settings, app, std::ptr::null_mut())
         };
 
         if init_result != 1 {
@@ -65,25 +53,41 @@ impl Context {
         Ok(())
     }
 
-    // TODO: Return Browser
-    pub fn start_browser(&self, browser: Browser, url: &str) {
+    pub fn start_browser<'a, C: Client>(
+        &'a self,
+        client: C,
+        window_info: WindowInfo,
+        settings: BrowserSettings,
+        url: &str,
+    ) -> Result<Browser<'a>, ContextError> {
+        let client = CefRefPtr::new(ClientWrapper(client));
+        let window_info = window_info.into_raw();
+        let settings = settings.into_raw();
         let url = CefString::new_raw(url);
 
-        unsafe {
-            // TOOD: Increment browser.client ref_count here?
+        let browser = unsafe {
+            // TODO: Increment browser.client ref_count here?
             chromium_sys::cef_browser_host_create_browser_sync(
-                &browser.window_info,
-                browser.client,
+                &window_info,
+                client,
                 &url,
-                &browser.settings,
+                &settings,
                 std::ptr::null_mut(),
                 std::ptr::null_mut(),
-            );
+            )
+        };
+
+        if browser.is_null() {
+            return Err(ContextError::StartBrowserFailed);
         }
+
+        Ok(Browser::new(browser))
     }
 
     pub fn do_message_loop_work(&self) {
         unsafe {
+            // TODO: The use of this function is not recommended.
+            // We should use multithreaded message loop which is unfortunately not supported on MacOS
             chromium_sys::cef_do_message_loop_work();
         }
     }
@@ -99,4 +103,7 @@ pub enum ContextError {
 
     #[error("Failed to init chromium framework")]
     FrameworkInitFailed,
+
+    #[error("Failed to start browser session")]
+    StartBrowserFailed,
 }

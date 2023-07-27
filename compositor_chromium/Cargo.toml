@@ -6,6 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-chromium_sys = { path = "./chromium_sys" }
+chromium_sys = { path = "chromium_sys" }
+compositor_common = { path = "../compositor_common" }
 thiserror = "1.0.40"
 widestring = "1.0.2"

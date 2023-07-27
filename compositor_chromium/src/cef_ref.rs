@@ -5,6 +5,7 @@ use std::{
 };
 
 pub(crate) trait CefStruct {
+    // Represents CEF struct which has ref counting capability
     type CefType;
 
     fn get_cef_data(&self) -> Self::CefType;
@@ -14,7 +15,6 @@ pub(crate) trait CefStruct {
 
 // Each CEF struct with ref counting capability has a base struct as a first field
 // This lets us simulate inheritance-like behavior
-// T::CefType represents CEF struct which has ref counting capability
 // https://bitbucket.org/chromiumembedded/cef/wiki/UsingTheCAPI.md
 // http://www.deleveld.dds.nl/inherit.htm
 #[repr(C)]
@@ -58,7 +58,7 @@ impl<T: CefStruct> CefRefPtr<T> {
         let cef_ref = Self {
             cef_data,
             rust_data: data,
-            ref_count: AtomicUsize::new(1),
+            ref_count: AtomicUsize::new(2),
         };
 
         Box::into_raw(Box::new(cef_ref)) as *mut T::CefType
