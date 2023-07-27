@@ -1,4 +1,5 @@
 use anyhow::Result;
+use compositor_common::Framerate;
 use compositor_pipeline::Pipeline;
 use log::{error, info};
 use serde_json::json;
@@ -16,7 +17,8 @@ fn main() {
         env_logger::Env::default().filter_or(env_logger::DEFAULT_FILTER_ENV, "info"),
     );
     ffmpeg_next::format::network::init();
-    let pipeline = Arc::new(Pipeline::new());
+    let pipeline = Arc::new(Pipeline::new(Framerate(30)));
+    pipeline.start();
     let state = Arc::new(State::new(pipeline));
 
     thread::spawn(|| {

@@ -7,5 +7,9 @@ edition = "2021"
 
 [dependencies]
 compositor_common = { path = "../compositor_common" }
+compositor_render = { path = "../compositor_render" }
 bytes =  { workspace = true }
+crossbeam-channel = "0.5.8"
+anyhow = "1.0.71"
+thiserror = "1.0.43"
 log = { workspace = true } 

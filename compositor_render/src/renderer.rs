@@ -1,8 +1,11 @@
-use std::{collections::HashMap, rc::Rc};
+use std::rc::Rc;
 
 use compositor_common::{scene::Scene, Frame};
 
-use crate::registry::{self, TransformationRegistry};
+use crate::{
+    input_frames::InputFrames,
+    registry::{self, TransformationRegistry},
+};
 
 use self::transformation::Transformation;
 
@@ -57,12 +60,20 @@ impl Renderer {
 
     /// This is very much a work in progress.
     /// For now it just takes a random frame from the input and returns it
-    pub fn render(&self, inputs: HashMap<u32, Frame>) -> Result<Frame, RendererRenderError> {
-        inputs
-            .values()
-            .next()
-            .cloned()
-            .ok_or(RendererRenderError::NoInput(0)) // 0 as a placeholder for now until this is implemented
+    pub fn render(&self, inputs: InputFrames) -> Result<Frame, RendererRenderError> {
+        let output_frame = inputs.frames.values().next().cloned();
+
+        match output_frame {
+            Some(frame) => {
+                let frame = Frame {
+                    data: frame.data.clone(),
+                    resolution: frame.resolution,
+                    pts: inputs.pts,
+                };
+                Ok(frame)
+            }
+            None => Err(RendererRenderError::NoInput(0)),
+        }
     }
 
     pub fn update_scene(&mut self, scene: Scene) {

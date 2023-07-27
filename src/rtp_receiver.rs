@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use compositor_common::{frame::YuvData, scene::Resolution, Frame};
+use compositor_common::{frame::YuvData, scene::Resolution, Frame, InputId};
 use log::warn;
 use std::{fs::File, io::Write, path::PathBuf, sync::Arc, thread, time::Duration};
 
@@ -77,7 +77,9 @@ impl RtpReceiver {
                         continue;
                     }
                 };
-                pipeline.push_input_data(port.into(), frame);
+                pipeline
+                    .push_input_data(InputId(port.into()), frame)
+                    .unwrap();
             }
         }
 

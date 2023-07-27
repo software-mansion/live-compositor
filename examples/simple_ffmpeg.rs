@@ -1,4 +1,5 @@
 use anyhow::Result;
+use compositor_common::{scene::Resolution, Framerate};
 use compositor_pipeline::Pipeline;
 use log::{error, info};
 use serde_json::json;
@@ -11,12 +12,21 @@ use crate::common::write_example_sdp_file;
 #[path = "./common/common.rs"]
 mod common;
 
+const SAMPLE_FILE_URL: &str = "https://filesamples.com/samples/video/mp4/sample_1280x720.mp4";
+const SAMPLE_FILE_PATH: &str = "examples/assets/sample_1280_720.mp4";
+const FRAMERATE: Framerate = Framerate(30);
+const VIDEO_RESOLUTION: Resolution = Resolution {
+    width: 1280,
+    height: 720,
+};
+
 fn main() {
     env_logger::init_from_env(
         env_logger::Env::default().filter_or(env_logger::DEFAULT_FILTER_ENV, "info"),
     );
     ffmpeg_next::format::network::init();
-    let pipeline = Arc::new(Pipeline::new());
+    let pipeline = Arc::new(Pipeline::new(FRAMERATE));
+    pipeline.start();
     let state = Arc::new(State::new(pipeline));
 
     thread::spawn(|| {
@@ -46,20 +56,17 @@ fn start_example_client_code() -> Result<()> {
         .spawn()?;
 
     info!("[example] Download sample.");
-    let sample_path = env::current_dir()?.join("examples/assets/sample_1280_720.mp4");
+    let sample_path = env::current_dir()?.join(SAMPLE_FILE_PATH);
     fs::create_dir_all(sample_path.parent().unwrap())?;
-    common::ensure_downloaded(
-        "https://filesamples.com/samples/video/mp4/sample_1280x720.mp4",
-        &sample_path,
-    )?;
+    common::ensure_downloaded(SAMPLE_FILE_URL, &sample_path)?;
 
     info!("[example] Send register output request.");
     common::post(&json!({
         "type": "register_output",
         "port": 8002,
         "resolution": {
-            "width": 1280,
-            "height": 720,
+            "width": VIDEO_RESOLUTION.width,
+            "height": VIDEO_RESOLUTION.height,
         },
         "encoder_settings": {
             "preset": "medium"

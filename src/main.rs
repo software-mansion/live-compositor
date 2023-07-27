@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use compositor_common::Framerate;
 use log::info;
 use signal_hook::{consts, iterator::Signals};
 use state::Pipeline;
@@ -17,7 +18,7 @@ fn main() {
     );
     ffmpeg_next::format::network::init();
 
-    let pipeline = Arc::new(Pipeline::new());
+    let pipeline = Arc::new(Pipeline::new(Framerate(30)));
     let state = Arc::new(State::new(pipeline));
 
     http::Server::new(8001, state).start();
