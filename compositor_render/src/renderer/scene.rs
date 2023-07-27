@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use compositor_common::scene::{
-    InputId, InputSpec, NodeId, Resolution, SceneSpec, ShaderParams, TransformNodeSpec,
+    InputId, InputSpec, NodeId, OutputId, Resolution, SceneSpec, ShaderParams, TransformNodeSpec,
     TransformParams,
 };
 use log::error;
@@ -26,13 +26,14 @@ pub enum TransformNode {
     WebRenderer {
         renderer: Arc<WebRenderer>,
     },
+    Nop,
 }
 
 impl TransformNode {
     fn new(ctx: &RenderCtx, spec: &TransformParams) -> Result<Self, GetError> {
         match spec {
             TransformParams::WebRenderer { renderer_id } => Ok(TransformNode::WebRenderer {
-                renderer: ctx.web_renderers.get(renderer_id)?.clone(),
+                renderer: ctx.web_renderers.get(renderer_id)?,
             }),
             TransformParams::Shader {
                 shader_id,
@@ -43,7 +44,7 @@ impl TransformNode {
             }),
         }
     }
-    pub fn render(&self, ctx: &RenderCtx, sources: &Vec<(NodeId, &Texture)>, target: &Texture) {
+    pub fn render(&self, ctx: &RenderCtx, sources: &[(&NodeId, &Texture)], target: &Texture) {
         match self {
             TransformNode::Shader {
                 params: _,
@@ -57,85 +58,52 @@ impl TransformNode {
                     error!("Render operation failed {err}");
                 }
             }
+            TransformNode::Nop => (),
         }
     }
 }
 
-pub enum Node {
-    Input {
-        node_id: InputId,
-        output: Texture,
-        resolution: Resolution,
-        yuv_textures: [Texture; 3],
-    },
-    Transformation {
-        node_id: NodeId,
-        output: Texture,
-        resolution: Resolution,
-        inputs: Vec<Arc<Node>>,
-        node: TransformNode,
-    },
+pub struct Node {
+    pub node_id: NodeId,
+    pub output: Texture,
+    pub resolution: Resolution,
+    pub inputs: Vec<Arc<Node>>,
+    pub transform: TransformNode,
 }
 
 impl Node {
-    pub fn new_transform(
+    pub fn new(
         ctx: &RenderCtx,
         spec: &TransformNodeSpec,
         inputs: Vec<Arc<Node>>,
     ) -> Result<Self, GetError> {
         let node = TransformNode::new(ctx, &spec.transform_params)?;
-        let output = Texture::new_rgba(&ctx.wgpu_ctx, &spec.resolution);
-        Ok(Self::Transformation {
+        let output = Texture::new_rgba(ctx.wgpu_ctx, &spec.resolution);
+        Ok(Self {
             node_id: spec.node_id.clone(),
-            node,
-            resolution: spec.resolution.clone(),
+            transform: node,
+            resolution: spec.resolution,
             inputs,
             output,
         })
     }
 
     pub fn new_input(ctx: &RenderCtx, spec: &InputSpec) -> Result<Self, GetError> {
-        let output = Texture::new_rgba(&ctx.wgpu_ctx, &spec.resolution);
+        let output = Texture::new_rgba(ctx.wgpu_ctx, &spec.resolution);
 
-        Ok(Self::Input {
-            node_id: spec.input_id.clone(),
+        Ok(Self {
+            node_id: spec.input_id.0.clone(),
+            transform: TransformNode::Nop,
+            resolution: spec.resolution,
+            inputs: vec![],
             output,
-            resolution: spec.resolution.clone(),
-            yuv_textures: Texture::new_yuv_textures(&ctx.wgpu_ctx, &spec.resolution),
         })
-    }
-
-    pub fn inputs(&self) -> Vec<Arc<Node>> {
-        match &self {
-            Node::Input { .. } => vec![],
-            Node::Transformation { inputs, .. } => inputs.clone(),
-        }
-    }
-
-    pub fn output(&self) -> &Texture {
-        match &self {
-            Node::Input { output, .. } => output,
-            Node::Transformation { output, .. } => output,
-        }
-    }
-
-    pub fn id(&self) -> NodeId {
-        match &self {
-            Node::Input { node_id, .. } => node_id.0.clone(),
-            Node::Transformation { node_id, .. } => node_id.clone(),
-        }
-    }
-
-    pub fn resolution(&self) -> Resolution {
-        match &self {
-            Node::Input { resolution, .. } => resolution.clone(),
-            Node::Transformation { resolution, .. } => resolution.clone(),
-        }
     }
 }
 
 pub struct Scene {
-    pub outputs: HashMap<NodeId, (Arc<Node>, OutputTexture)>,
+    pub outputs: HashMap<OutputId, (Arc<Node>, OutputTexture)>,
+    pub inputs: HashMap<InputId, (Arc<Node>, [Texture; 3])>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -154,6 +122,7 @@ impl Scene {
     pub fn empty() -> Self {
         Self {
             outputs: HashMap::new(),
+            inputs: HashMap::new(),
         }
     }
 
@@ -166,8 +135,8 @@ impl Scene {
             .iter()
             .map(|output| {
                 let node = self.ensure_node(ctx, &output.input_pad, &spec, &mut new_nodes)?;
-                let buffers = OutputTexture::new(&ctx.wgpu_ctx, &node.resolution());
-                Ok((output.input_pad.clone(), (node, buffers)))
+                let buffers = OutputTexture::new(ctx.wgpu_ctx, &node.resolution);
+                Ok((output.output_id.clone(), (node, buffers)))
             })
             .collect::<Result<_, _>>()?;
         Ok(())
@@ -181,7 +150,7 @@ impl Scene {
         new_nodes: &mut HashMap<NodeId, Arc<Node>>,
     ) -> Result<Arc<Node>, SceneUpdateError> {
         // check if node already exists
-        if let Some(already_existing_node) = new_nodes.get(&node_id) {
+        if let Some(already_existing_node) = new_nodes.get(node_id) {
             return Ok(already_existing_node.clone());
         }
 
@@ -192,9 +161,9 @@ impl Scene {
                 let inputs = transform
                     .input_pads
                     .iter()
-                    .map(|node_id| self.ensure_node(ctx, node_id, &spec, new_nodes))
+                    .map(|node_id| self.ensure_node(ctx, node_id, spec, new_nodes))
                     .collect::<Result<_, _>>()?;
-                let node = Node::new_transform(ctx, transform, inputs)
+                let node = Node::new(ctx, transform, inputs)
                     .map_err(SceneUpdateError::TransformNodeError)?;
                 let node = Arc::new(node);
                 new_nodes.insert(node_id.clone(), node.clone());
@@ -209,6 +178,13 @@ impl Scene {
                 let node = Node::new_input(ctx, input).map_err(SceneUpdateError::InputNodeError)?;
                 let node = Arc::new(node);
                 new_nodes.insert(node_id.clone(), node.clone());
+                self.inputs.insert(
+                    InputId(node_id.clone()),
+                    (
+                        node.clone(),
+                        Texture::new_yuv_textures(ctx.wgpu_ctx, &input.resolution),
+                    ),
+                );
                 return Ok(node);
             }
         }

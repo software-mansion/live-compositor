@@ -49,7 +49,9 @@ impl Texture {
                 depth_or_array_layers: 1,
             },
             wgpu::TextureFormat::Rgba8Unorm,
-            wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING,
+            wgpu::TextureUsages::RENDER_ATTACHMENT
+                | wgpu::TextureUsages::TEXTURE_BINDING
+                | wgpu::TextureUsages::COPY_DST,
         )
     }
 
@@ -158,7 +160,7 @@ impl OutputTexture {
         Self {
             yuv_textures: Texture::new_yuv_textures(ctx, resolution),
             buffers,
-            resolution: resolution.clone(),
+            resolution: *resolution,
         }
     }
 
@@ -184,7 +186,7 @@ impl OutputTexture {
             let chunks = range.chunks(Self::padded(size.width as usize));
             let mut buffer = buffer.writer();
             for chunk in chunks {
-                buffer.write(&chunk[..size.width as usize]).unwrap();
+                buffer.write_all(&chunk[..size.width as usize]).unwrap();
             }
             result.y_plane = buffer.into_inner().into();
         }
@@ -201,7 +203,7 @@ impl OutputTexture {
             let chunks = range.chunks(Self::padded(size.width as usize));
             let mut buffer = buffer.writer();
             for chunk in chunks {
-                buffer.write(&chunk[..size.width as usize]).unwrap();
+                buffer.write_all(&chunk[..size.width as usize]).unwrap();
             }
             result.u_plane = buffer.into_inner().into();
         }
@@ -218,7 +220,7 @@ impl OutputTexture {
             let chunks = range.chunks(Self::padded(size.width as usize));
             let mut buffer = buffer.writer();
             for chunk in chunks {
-                buffer.write(&chunk[..size.width as usize]).unwrap();
+                buffer.write_all(&chunk[..size.width as usize]).unwrap();
             }
             result.v_plane = buffer.into_inner().into();
         }
@@ -242,7 +244,7 @@ impl OutputTexture {
                     texture: &self.yuv_textures[plane].texture,
                 },
                 wgpu::ImageCopyBuffer {
-                    buffer: &self.buffers[plane as usize],
+                    buffer: &self.buffers[plane],
                     layout: wgpu::ImageDataLayout {
                         bytes_per_row: Some(Self::padded(
                             self.yuv_textures[plane].texture.size().width as usize,

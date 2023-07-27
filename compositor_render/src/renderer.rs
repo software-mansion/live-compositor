@@ -7,13 +7,15 @@ use compositor_common::{
 };
 use log::error;
 
-use crate::{frameset::FrameSet, registry::TransformationRegistry};
+use crate::{frameset::FrameSet, registry::TransformationRegistry, render_loop::populate_inputs};
 use crate::{
     registry::{self, RegistryType},
-    render_loop::render_scene,
+    render_loop::run_transforms,
     transformations::{
         shader::Shader,
-        web_renderer::{electron::ElectronNewError, Electron, WebRenderer, WebRendererNewError},
+        web_renderer::{
+            electron::ElectronNewError, ElectronInstance, WebRenderer, WebRendererNewError,
+        },
     },
 };
 
@@ -24,7 +26,7 @@ pub mod texture;
 
 pub struct Renderer {
     pub wgpu_ctx: Arc<WgpuCtx>,
-    pub electron_instance: Arc<Electron>,
+    pub electron_instance: Arc<ElectronInstance>,
     pub scene: Scene,
     pub shader_transforms: TransformationRegistry<Arc<Shader>>,
     pub web_renderers: TransformationRegistry<Arc<WebRenderer>>,
@@ -32,7 +34,7 @@ pub struct Renderer {
 
 pub struct RenderCtx<'a> {
     pub wgpu_ctx: &'a Arc<WgpuCtx>,
-    pub electron: &'a Arc<Electron>,
+    pub electron: &'a Arc<ElectronInstance>,
     pub shader_transforms: &'a TransformationRegistry<Arc<Shader>>,
     pub web_renderers: &'a TransformationRegistry<Arc<WebRenderer>>,
 }
@@ -49,10 +51,10 @@ pub enum RendererNewError {
 #[derive(Debug, thiserror::Error)]
 pub enum RendererRegisterTransformationError {
     #[error("failed to register a transformation in the transformation registry")]
-    TransformationRegistryError(#[from] registry::RegisterError),
+    TransformationRegistry(#[from] registry::RegisterError),
 
     #[error("failed to create web renderer transformation")]
-    WebRendererTransformationError(#[from] WebRendererNewError),
+    WebRendererTransformation(#[from] WebRendererNewError),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -68,7 +70,7 @@ impl Renderer {
     pub fn new() -> Result<Self, RendererNewError> {
         Ok(Self {
             wgpu_ctx: Arc::new(WgpuCtx::new()?),
-            electron_instance: Arc::new(Electron::new(9000)?), // TODO: make it configurable
+            electron_instance: Arc::new(ElectronInstance::new(9002)?), // TODO: make it configurable
             scene: Scene::empty(),
             web_renderers: TransformationRegistry::new(RegistryType::WebRenderer),
             shader_transforms: TransformationRegistry::new(RegistryType::Shader),
@@ -104,21 +106,23 @@ impl Renderer {
     /// For now it just takes a random frame from the input and returns it
     pub fn render(
         &self,
-        inputs: FrameSet<InputId>,
+        mut inputs: FrameSet<InputId>,
     ) -> Result<FrameSet<OutputId>, RendererRenderError> {
         let pts = inputs.frames.iter().next().unwrap().1.pts;
-        render_scene(&self.ctx(), &self.scene, inputs.frames);
+        let ctx = self.ctx();
+        populate_inputs(&ctx, &self.scene, &mut inputs.frames);
+        run_transforms(&ctx, &self.scene);
         let mut result = HashMap::new();
         for (node_id, output) in &self.scene.outputs {
             // TODO: very temporary implementation
-            // convert rgba to yuv
+            // TODO: convert rgba to yuv
             let yuv_data = output.1.download(&self.wgpu_ctx);
             result.insert(
-                OutputId(node_id.clone()),
+                node_id.clone(),
                 Arc::new(Frame {
                     data: yuv_data,
                     resolution: output.1.resolution,
-                    pts: pts.clone(),
+                    pts,
                 }),
             );
         }

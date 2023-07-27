@@ -7,13 +7,13 @@ use crate::scene::{NodeId, SceneSpec};
 #[derive(Debug, thiserror::Error)]
 pub enum SpecValidationError {
     #[error("missing node with id {0} used in transformation {1} is not defined in scene and it was not registered as an input")]
-    MissingInputNodeForTransformationError(Arc<str>, Arc<str>),
+    MissingInputNodeForTransformation(Arc<str>, Arc<str>),
     #[error("missing node with id {0} used in output {1} is not defined in scene and it was not registered as an input")]
-    MissingInputNodeForOutputError(Arc<str>, Arc<str>),
+    MissingInputNodeForOutput(Arc<str>, Arc<str>),
     #[error("unknown output, output with id {0} is not registered currently")]
-    UnknownOutputError(Arc<str>),
-    #[error("unknown intput, input with id {0} is not registered currently")]
-    UnknownInputError(Arc<str>),
+    UnknownOutput(Arc<str>),
+    #[error("unknown input, input with id {0} is not registered currently")]
+    UnknownInput(Arc<str>),
 }
 
 impl SceneSpec {
@@ -38,11 +38,11 @@ impl SceneSpec {
         for t in &self.transforms {
             for input in &t.input_pads {
                 if defined_inputs
-                    .get(&input)
+                    .get(input)
                     .or(defined_transforms.get(input))
                     .is_none()
                 {
-                    return Err(SpecValidationError::MissingInputNodeForTransformationError(
+                    return Err(SpecValidationError::MissingInputNodeForTransformation(
                         input.0.clone(),
                         t.node_id.0.clone(),
                     ));
@@ -52,23 +52,23 @@ impl SceneSpec {
         for out in &self.outputs {
             let node_id = &out.input_pad;
             if defined_inputs
-                .get(&node_id)
-                .or(defined_transforms.get(&node_id))
+                .get(node_id)
+                .or(defined_transforms.get(node_id))
                 .is_none()
             {
-                return Err(SpecValidationError::MissingInputNodeForOutputError(
+                return Err(SpecValidationError::MissingInputNodeForOutput(
                     out.input_pad.0.clone(),
                     node_id.0.clone(),
                 ));
             }
             if registered_outputs.get(&out.output_id.0).is_none() {
-                return Err(SpecValidationError::UnknownOutputError(node_id.0.clone()));
+                return Err(SpecValidationError::UnknownOutput(node_id.0.clone()));
             }
         }
 
         for input in defined_inputs.iter() {
             if registered_inputs.get(input).is_none() {
-                return Err(SpecValidationError::UnknownInputError(input.0.clone()));
+                return Err(SpecValidationError::UnknownInput(input.0.clone()));
             }
         }
 

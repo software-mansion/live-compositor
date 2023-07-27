@@ -4,7 +4,7 @@ use compositor_common::{
     scene::{InputId, Resolution},
     Frame,
 };
-use log::warn;
+use log::{error, warn};
 use std::{fs::File, io::Write, path::PathBuf, sync::Arc, thread, time::Duration};
 
 use ffmpeg_next::{
@@ -81,7 +81,9 @@ impl RtpReceiver {
                         continue;
                     }
                 };
-                pipeline.push_input_data(input_id.clone(), frame);
+                if let Err(err) = pipeline.push_input_data(input_id.clone(), frame) {
+                    error!("Failed to push frame: {}", err);
+                }
             }
         }
 

@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{sync::Arc, thread, time::Duration};
 
 use crate::renderer::{texture::Texture, RenderCtx};
 pub mod electron;
@@ -9,11 +9,12 @@ use compositor_common::{
     transformation::WebRendererTransformationParams,
 };
 use image::ImageError;
+use log::{error, info};
 use serde::{Deserialize, Serialize};
 
 use self::electron_api::ElectronApiError;
 
-pub type Electron = self::electron::Electron;
+pub type ElectronInstance = self::electron::ElectronInstance;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SessionId(pub Arc<str>);
@@ -29,6 +30,8 @@ impl WebRenderer {
         ctx: &RenderCtx,
         params: WebRendererTransformationParams,
     ) -> Result<Self, WebRendererNewError> {
+        // TODO: wait electron api by checking tcp connection on that port
+        thread::sleep(Duration::from_secs(5));
         let session_id = ctx
             .electron
             .client
@@ -40,11 +43,12 @@ impl WebRenderer {
     pub fn render(
         &self,
         ctx: &RenderCtx,
-        _sources: &Vec<(NodeId, &Texture)>,
+        _sources: &[(&NodeId, &Texture)],
         target: &Texture,
     ) -> Result<(), WebRendererRenderError> {
         let frame = ctx.electron.client.get_frame(&self.session_id)?;
         if !frame.is_empty() {
+            info!("writing texture from chrome");
             Self::write_texture(ctx, &frame, target)?;
         }
 
@@ -96,7 +100,7 @@ impl WebRenderer {
 
 #[derive(Debug, thiserror::Error)]
 pub enum WebRendererNewError {
-    #[error("Failed to create new web renderer session")]
+    #[error("failed to create new web renderer session")]
     SessionCreationError(#[from] ElectronApiError),
 }
 

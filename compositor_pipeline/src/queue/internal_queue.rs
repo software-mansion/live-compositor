@@ -61,7 +61,9 @@ impl InternalQueue {
 
         for (input_id, input_queue) in &self.inputs_queues {
             if let Some(nearest_frame) = input_queue.first() {
-                frames_batch.frames.insert(input_id.clone(), nearest_frame.clone());
+                frames_batch
+                    .frames
+                    .insert(input_id.clone(), nearest_frame.clone());
             }
         }
         self.sent_batches_counter += 1;

@@ -1,4 +1,5 @@
 use anyhow::{anyhow, Result};
+
 use reqwest::{blocking::Response, StatusCode};
 use std::{
     fs::File,
@@ -37,7 +38,11 @@ pub fn write_example_sdp_file(port: u16) -> Result<String> {
 
 pub fn post<T: Serialize + ?Sized>(json: &T) -> Result<Response> {
     let client = reqwest::blocking::Client::new();
-    let response = client.post("http://127.0.0.1:8001").json(json).send()?;
+    let response = client
+        .post("http://127.0.0.1:8001")
+        .json(json)
+        .send()
+        .unwrap();
     if response.status() >= StatusCode::BAD_REQUEST {
         return Err(anyhow!(
             "Request failed: \n\trequest: {:?}\n\tresponse: {:?}",

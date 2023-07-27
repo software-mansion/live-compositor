@@ -57,7 +57,7 @@ impl<T: Clone> TransformationRegistry<T> {
         key: &TransformationRegistryKey,
         transformation: T,
     ) -> Result<(), RegisterError> {
-        if self.registry.contains_key(&key) {
+        if self.registry.contains_key(key) {
             return Err(RegisterError::KeyTaken(
                 self.registry_type.registry_item_name(),
                 key.0.clone(),

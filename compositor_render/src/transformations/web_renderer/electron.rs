@@ -8,12 +8,12 @@ use log::error;
 
 use super::electron_api::ElectronApiClient;
 
-pub struct Electron {
+pub struct ElectronInstance {
     pub(super) client: ElectronApiClient,
     renderer_process: process::Child,
 }
 
-impl Drop for Electron {
+impl Drop for ElectronInstance {
     fn drop(&mut self) {
         if let Err(err) = self.renderer_process.kill() {
             error!("Failed to stop web renderer process: {err}");
@@ -21,7 +21,7 @@ impl Drop for Electron {
     }
 }
 
-impl Electron {
+impl ElectronInstance {
     pub fn new(port: u16) -> Result<Self, ElectronNewError> {
         let api = ElectronApiClient::new(port);
         let renderer_process = Self::init_web_renderer(port)?;
@@ -34,25 +34,25 @@ impl Electron {
 
     fn init_web_renderer(port: u16) -> Result<process::Child, ElectronNewError> {
         let web_renderer_path = env::current_exe()
-            .map_err(ElectronNewError::WebRendererNotFound)?
+            .map_err(ElectronNewError::ElectronProjectNotFound)?
             .parent()
             .unwrap()
-            .join("../../web_renderer");
+            .join("../../../web_renderer");
 
         let install_exit_code = Command::new("npm")
             .arg("install")
             .current_dir(&web_renderer_path)
             .status()
-            .map_err(ElectronNewError::WebRendererInitError)?;
+            .map_err(ElectronNewError::ElectronStartError)?;
         if !install_exit_code.success() {
-            return Err(ElectronNewError::WebRendererInstallError);
+            return Err(ElectronNewError::ElectronNpmInstallError);
         }
 
         let renderer_process = Command::new("npm")
             .args(["run", "start", "--", "--", &port.to_string()])
             .current_dir(web_renderer_path)
             .spawn()
-            .map_err(ElectronNewError::WebRendererInitError)?;
+            .map_err(ElectronNewError::ElectronStartError)?;
 
         Ok(renderer_process)
     }
@@ -67,11 +67,11 @@ pub enum ElectronNewError {
     InvalidPort(#[from] ParseIntError),
 
     #[error("failed to find web renderer")]
-    WebRendererNotFound(io::Error),
+    ElectronProjectNotFound(io::Error),
 
     #[error("failed to install web renderer deps")]
-    WebRendererInstallError,
+    ElectronNpmInstallError,
 
-    #[error("failed to find web renderer")]
-    WebRendererInitError(io::Error),
+    #[error("failed to start electron process")]
+    ElectronStartError(io::Error),
 }

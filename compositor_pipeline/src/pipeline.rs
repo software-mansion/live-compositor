@@ -61,18 +61,6 @@ impl<Output: PipelineOutput + Send + Sync + 'static> Pipeline<Output> {
         self.renderer.register_transformation(key, spec)
     }
 
-    // pub fn push_input_data(&self, input_id: InputId, frame: Frame) {
-    //     // self.queue.enqueue(input_id, frames);
-    //     // TODO: very temporary
-    //     let frames: HashMap<_, _> = vec![(input_id, Arc::new(frame))].into_iter().collect();
-    //     let out = self.renderer.render(frames).unwrap();
-    //     let out_frame = out.iter().next().unwrap().1;
-    //     self.outputs
-    //         .get_cloned(&OutputId(NodeId(Arc::from("output 1"))))
-    //         .unwrap()
-    //         .send_frame((**out_frame).clone());
-    // }
-
     #[allow(dead_code)]
     fn on_output_data_received(&self, output_id: OutputId, frame: Frame) {
         match self.outputs.get_cloned(&output_id) {
@@ -98,22 +86,16 @@ impl<Output: PipelineOutput + Send + Sync + 'static> Pipeline<Output> {
                     let output = renderer.render(input_frames).unwrap();
 
                     for (id, frame) in &output.frames {
-                        pipeline
-                            .outputs
-                            .get_cloned(id)
-                            .unwrap()
-                            .send_frame(frame.deref().clone());
+                        let output = pipeline.outputs.get_cloned(id);
+                        let Some(output) = output else {
+                                error!("no output with id {}", id.0.0);
+                                continue;
+                        };
+
+                        output.send_frame(frame.deref().clone());
                     }
                 }
             }
         });
-    }
-}
-
-impl<Output: PipelineOutput + std::marker::Send + std::marker::Sync + 'static> Default
-    for Pipeline<Output>
-{
-    fn default() -> Self {
-        Self::new(Framerate(30))
     }
 }
