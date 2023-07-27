@@ -15,7 +15,7 @@ use self::internal_queue::InternalQueue;
 
 #[derive(Error, Debug)]
 pub enum QueueError {
-    #[error("the input id `{0}` is unknown")]
+    #[error("the input id `{:#?}` is unknown", 0)]
     UnknownInputId(InputId),
 }
 

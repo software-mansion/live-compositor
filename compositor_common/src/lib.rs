@@ -1,4 +1,4 @@
-use std::{fmt::Display, time::Duration};
+use std::time::Duration;
 
 pub mod frame;
 pub mod scene;
@@ -7,12 +7,6 @@ pub type Frame = frame::Frame;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct InputId(pub u32);
-
-impl Display for InputId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
 
 /// TODO: This should be a rational.
 #[derive(Debug, Clone, Copy)]
