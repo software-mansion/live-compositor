@@ -7,8 +7,6 @@ pub struct Settings {
     /// If set to `true` message loop can run on separate thread
     /// Not supported by MacOS
     pub multi_threaded_message_loop: bool,
-
-    // TODO: Research this
     pub external_message_pump: bool,
     pub windowless_rendering_enabled: bool,
     pub log_severity: LogSeverity,
@@ -21,7 +19,6 @@ impl Settings {
         chromium_sys::cef_settings_t {
             size: std::mem::size_of::<chromium_sys::cef_settings_t>(),
             no_sandbox: true as c_int,
-            // TODO: Test using subprocess path for MacOS
             browser_subprocess_path: CefString::empty_raw(),
             framework_dir_path: CefString::empty_raw(),
             main_bundle_path: CefString::empty_raw(),
