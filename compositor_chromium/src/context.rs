@@ -1,6 +1,8 @@
 use std::{ffi::CString, io, path::PathBuf};
 
-use crate::{cef::*, cef_ref::CefRefPtr, cef_string::CefString, main_args::MainArgs};
+use crate::{
+    cef::*, cef_ref::CefRefPtr, cef_string::CefString, main_args::MainArgs, post_task::Task,
+};
 
 pub struct Context {
     _priv: (),
@@ -58,15 +60,13 @@ impl Context {
         client: C,
         window_info: WindowInfo,
         settings: BrowserSettings,
-        url: &str,
-    ) -> Result<Browser<'a>, ContextError> {
-        let client = CefRefPtr::new(ClientWrapper(client));
-        let window_info = window_info.into_raw();
-        let settings = settings.into_raw();
-        let url = CefString::new_raw(url);
-
-        let browser = unsafe {
-            // TODO: Increment browser.client ref_count here?
+        url: String,
+    ) {
+        let task = Task::new(move || unsafe {
+            let client = CefRefPtr::new(ClientWrapper(client));
+            let window_info = window_info.into_raw();
+            let settings = settings.into_raw();
+            let url = CefString::new_raw(url);
             chromium_sys::cef_browser_host_create_browser_sync(
                 &window_info,
                 client,
@@ -74,14 +74,10 @@ impl Context {
                 &settings,
                 std::ptr::null_mut(),
                 std::ptr::null_mut(),
-            )
-        };
+            );
+        });
 
-        if browser.is_null() {
-            return Err(ContextError::StartBrowserFailed);
-        }
-
-        Ok(Browser::new(browser))
+        task.run(chromium_sys::cef_thread_id_t_TID_UI);
     }
 
     pub fn run_message_loop(&self) {
