@@ -58,7 +58,7 @@ impl<T: CefStruct> CefRefPtr<T> {
         let cef_ref = Self {
             cef_data,
             rust_data: data,
-            ref_count: AtomicUsize::new(2),
+            ref_count: AtomicUsize::new(1),
         };
 
         Box::into_raw(Box::new(cef_ref)) as *mut T::CefType

@@ -84,6 +84,12 @@ impl Context {
         Ok(Browser::new(browser))
     }
 
+    pub fn run_message_loop(&self) {
+        unsafe {
+            chromium_sys::cef_run_message_loop();
+        }
+    }
+
     pub fn do_message_loop_work(&self) {
         unsafe {
             // TODO: The use of this function is not recommended.
