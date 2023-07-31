@@ -15,10 +15,18 @@ impl cef::App for App {
 struct RenderProcessHandler;
 
 impl cef::RenderProcessHandler for RenderProcessHandler {
-    fn on_context_created(&mut self, browser: cef::Browser<'_>) {
-        info!("Context created");
-        // TODO: Implement it
-        std::fs::write("test.txt", "TEST");
+    fn on_process_message_received(
+        &mut self,
+        browser: cef::Browser<'_>,
+        frame: cef::Frame<'_>,
+        source_process: cef::ProcessId,
+        message: cef::ProcessMessage,
+    ) -> bool {
+        // TODO: Implement this
+        info!("Message received: {}", message.get_name());
+        let bytes = message.read_bytes(0);
+        dbg!(bytes);
+        false
     }
 }
 

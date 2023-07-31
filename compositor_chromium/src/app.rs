@@ -20,9 +20,6 @@ pub trait App {
     }
 }
 
-// TODO: Rewrite this
-impl RenderProcessHandler for () {}
-
 pub(crate) struct AppWrapper<A: App>(pub A);
 
 impl<A: App> CefStruct for AppWrapper<A> {

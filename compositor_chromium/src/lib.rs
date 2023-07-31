@@ -12,6 +12,8 @@ mod render_handler;
 mod render_process_handler;
 mod settings;
 mod task;
+mod v8_context;
+mod v8_value;
 mod window_info;
 
 pub mod cef;

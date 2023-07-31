@@ -14,7 +14,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let bindings = prepare(&out_path)?;
     bindings.write_to_file(PathBuf::from(".").join("src").join("bindings.rs"))?;
 
-    link(&out_path)?;
+    link()?;
 
     Ok(())
 }
@@ -46,10 +46,9 @@ fn prepare(out_path: &PathBuf) -> Result<bindgen::Bindings, Box<dyn Error>> {
 }
 
 #[cfg(target_os = "macos")]
-fn link(out_path: &PathBuf) -> Result<(), Box<dyn Error>> {
+fn link() -> Result<(), Box<dyn Error>> {
     let dst = cmake::Config::new("CMakeLists.txt")
         .define("MAKE_BUILD_TYPE", "Debug")
-        .define("OUT_DIR", out_path.join("Frameworks").display().to_string())
         .build();
 
     println!(r"cargo:rustc-link-search={}", dst.display());
