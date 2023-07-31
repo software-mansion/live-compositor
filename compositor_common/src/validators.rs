@@ -39,19 +39,19 @@ impl SceneSpec {
         let defined_node_ids: HashSet<NodeId> = transform_iter.chain(input_iter).collect();
 
         self.validate_inputs(registered_inputs)?;
-        self.validate_transforms(&defined_node_ids)?;
+        self.validate_transform_inputs(&defined_node_ids)?;
         self.validate_outputs(registered_outputs, &defined_node_ids)?;
 
         Ok(())
     }
 
-    pub fn validate_transforms(
+    pub fn validate_transform_inputs(
         &self,
         defined_node_ids: &HashSet<NodeId>,
     ) -> Result<(), SpecValidationError> {
         for t in self.transforms.iter() {
             for input in &t.input_pads {
-                if defined_node_ids.get(input).is_none() {
+                if !defined_node_ids.contains(input) {
                     return Err(SpecValidationError::MissingInputNodeForTransformation {
                         missing_node: input.0.clone(),
                         transformation: t.node_id.0.clone(),
@@ -68,7 +68,7 @@ impl SceneSpec {
         registered_inputs: &HashSet<NodeId>,
     ) -> Result<(), SpecValidationError> {
         for input in self.inputs.iter() {
-            if registered_inputs.get(&input.input_id.0).is_none() {
+            if !registered_inputs.contains(&input.input_id.0) {
                 return Err(SpecValidationError::UnknownInput(
                     input.input_id.0 .0.clone(),
                 ));
@@ -85,7 +85,7 @@ impl SceneSpec {
     ) -> Result<(), SpecValidationError> {
         for out in self.outputs.iter() {
             let node_id = &out.input_pad;
-            if defined_node_ids.get(node_id).is_none() {
+            if !defined_node_ids.contains(node_id) {
                 return Err(SpecValidationError::MissingInputNodeForOutput {
                     missing_node: out.input_pad.0.clone(),
                     output: node_id.0.clone(),
