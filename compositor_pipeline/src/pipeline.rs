@@ -83,7 +83,7 @@ impl<Output: PipelineOutput + Send + Sync + 'static> Pipeline<Output> {
             loop {
                 let input_frames = frames_receiver.recv().unwrap();
                 if !input_frames.frames.is_empty() {
-                    let output = renderer.render(input_frames).unwrap();
+                    let output = renderer.render(input_frames);
 
                     for (id, frame) in &output.frames {
                         let output = pipeline.outputs.get_cloned(id);

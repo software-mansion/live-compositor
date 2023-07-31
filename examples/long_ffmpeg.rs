@@ -18,8 +18,8 @@ use crate::common::write_example_sdp_file;
 mod common;
 
 const VIDEO_RESOLUTION: Resolution = Resolution {
-    width: 3840,
-    height: 2160,
+    width: 1920,
+    height: 1080,
 };
 
 fn main() {

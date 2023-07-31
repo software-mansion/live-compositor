@@ -9,7 +9,6 @@ use crate::{
     frame_set::FrameSet,
     renderer::{
         scene::SceneUpdateError, Renderer, RendererNewError, RendererRegisterTransformationError,
-        RendererRenderError,
     },
 };
 
@@ -28,10 +27,7 @@ impl SyncRenderer {
         self.0.lock().unwrap().register_transformation(key, spec)
     }
 
-    pub fn render(
-        &self,
-        input: FrameSet<InputId>,
-    ) -> Result<FrameSet<OutputId>, RendererRenderError> {
+    pub fn render(&self, input: FrameSet<InputId>) -> FrameSet<OutputId> {
         self.0.lock().unwrap().render(input)
     }
 
