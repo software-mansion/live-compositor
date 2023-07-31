@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 futures = "0.3.28"
 pollster = "0.3.0"
-thiserror = "1.0.40"
+thiserror = { workspace = true } 
 wgpu = "0.16.1"
 compositor_common = { path = "../compositor_common" }
 image = { version = "0.24.6", features = ["jpeg", "png"] }

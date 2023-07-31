@@ -6,8 +6,8 @@ use std::{
     time::{Duration, Instant},
 };
 
-use compositor_common::{Frame, Framerate, InputId};
-use compositor_render::input_frames::InputFrames;
+use compositor_common::{scene::InputId, Frame, Framerate};
+use compositor_render::frame_set::FrameSet;
 use crossbeam_channel::{tick, unbounded, Receiver, Sender};
 use thiserror::Error;
 
@@ -50,7 +50,7 @@ impl Queue {
         internal_queue.remove_input(input_id);
     }
 
-    pub fn start(&self, sender: Sender<InputFrames>) {
+    pub fn start(&self, sender: Sender<FrameSet<InputId>>) {
         let (check_queue_sender, check_queue_receiver) = self.check_queue_channel.clone();
         let internal_queue = self.internal_queue.clone();
         let tick_duration = self.output_framerate.get_interval_duration();
@@ -84,7 +84,7 @@ impl Queue {
     pub fn enqueue_frame(&self, input_id: InputId, frame: Frame) -> Result<(), QueueError> {
         let mut internal_queue = self.internal_queue.lock().unwrap();
 
-        internal_queue.enqueue_frame(input_id, frame)?;
+        internal_queue.enqueue_frame(input_id.clone(), frame)?;
         internal_queue.drop_input_useless_frames(input_id)?;
 
         self.check_queue_channel.0.send(()).unwrap();

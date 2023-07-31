@@ -5,12 +5,12 @@ use serde::{Deserialize, Serialize};
 
 use super::SessionId;
 
-pub struct ElectronApi {
+pub struct ElectronApiClient {
     port: u16,
     client: Client,
 }
 
-impl ElectronApi {
+impl ElectronApiClient {
     pub fn new(port: u16) -> Self {
         Self {
             port,
@@ -21,7 +21,7 @@ impl ElectronApi {
     pub fn new_session(
         &self,
         url: &str,
-        resolution: Resolution,
+        resolution: &Resolution,
     ) -> Result<SessionId, ElectronApiError> {
         let resp: NewSessionResponse = self
             .client
@@ -56,7 +56,7 @@ impl ElectronApi {
 #[derive(Serialize)]
 struct NewSessionRequest<'a> {
     url: &'a str,
-    resolution: Resolution,
+    resolution: &'a Resolution,
 }
 
 #[derive(Deserialize)]

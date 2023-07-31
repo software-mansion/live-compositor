@@ -8,3 +8,5 @@ edition = "2021"
 [dependencies]
 bytes =  { workspace = true }
 serde = { workspace = true }
+thiserror = { workspace = true } 
+log = { workspace = true } 

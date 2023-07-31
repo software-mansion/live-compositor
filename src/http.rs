@@ -1,5 +1,8 @@
 use anyhow::{anyhow, Result};
-use compositor_common::scene::Resolution;
+use compositor_common::{
+    scene::{InputId, OutputId, Resolution, SceneSpec},
+    transformation::{TransformationRegistryKey, TransformationSpec},
+};
 use log::{error, info};
 use serde::{Deserialize, Serialize};
 use std::{io::Cursor, net::SocketAddr, sync::Arc, thread};
@@ -10,12 +13,14 @@ use crate::rtp_sender::EncoderSettings;
 use super::state::State;
 
 #[derive(Serialize, Deserialize)]
-struct RegisterInputRequest {
+pub struct RegisterInputRequest {
+    pub id: InputId,
     pub port: u16,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct RegisterOutputRequest {
+    pub id: OutputId,
     pub port: u16,
     pub resolution: Resolution,
     pub encoder_settings: EncoderSettings,
@@ -26,11 +31,15 @@ pub struct RegisterOutputRequest {
 enum Request {
     RegisterInput(RegisterInputRequest),
     RegisterOutput(RegisterOutputRequest),
+    UpdateScene(SceneSpec),
+    RegisterTransformation {
+        key: TransformationRegistryKey,
+        transform: TransformationSpec,
+    },
     Init,
     Start,
 }
 
-#[allow(dead_code)]
 pub struct Server {
     server: tiny_http::Server,
     state: Arc<State>,
@@ -66,11 +75,14 @@ impl Server {
         let request = Server::parse_request(raw_request)?;
         match request {
             Request::Init => Err(anyhow!("Video composer is already configured.")),
-            Request::RegisterInput(RegisterInputRequest { port }) => {
-                self.state.register_input(port)
-            }
+            Request::RegisterInput(request) => self.state.register_input(request),
             Request::RegisterOutput(request) => self.state.register_output(request),
             Request::Start => todo!(),
+            Request::UpdateScene(scene_spec) => self.state.update_scene(scene_spec),
+            Request::RegisterTransformation {
+                key,
+                transform: spec,
+            } => self.state.register_transformation(key, spec),
         }
     }
 

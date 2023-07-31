@@ -248,7 +248,9 @@ name = "compositor_common"
 version = "0.1.0"
 dependencies = [
  "bytes",
+ "log",
  "serde",
+ "thiserror",
 ]
 
 [[package]]
