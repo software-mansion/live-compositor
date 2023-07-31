@@ -7,7 +7,7 @@ use compositor_common::{
 };
 use log::error;
 
-use crate::{frameset::FrameSet, registry::TransformationRegistry, render_loop::populate_inputs};
+use crate::{frame_set::FrameSet, registry::TransformationRegistry, render_loop::populate_inputs};
 use crate::{
     registry::{self, RegistryType},
     render_loop::run_transforms,

@@ -6,7 +6,7 @@ use compositor_common::{
 };
 
 use crate::{
-    frameset::FrameSet,
+    frame_set::FrameSet,
     renderer::{
         scene::SceneUpdateError, Renderer, RendererNewError, RendererRegisterTransformationError,
         RendererRenderError,

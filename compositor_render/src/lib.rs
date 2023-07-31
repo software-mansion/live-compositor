@@ -1,4 +1,4 @@
-pub mod frameset;
+pub mod frame_set;
 pub mod renderer;
 
 pub(crate) mod registry;

@@ -103,6 +103,7 @@ impl Texture {
         textures[0].upload_data(&ctx.queue, &frame.data.y_plane, 1);
         textures[1].upload_data(&ctx.queue, &frame.data.u_plane, 1);
         textures[2].upload_data(&ctx.queue, &frame.data.v_plane, 1);
+        // TODO: https://github.com/membraneframework/video_compositor/pull/30#discussion_r1277993507
         ctx.queue.submit([]);
     }
 
@@ -165,7 +166,7 @@ impl OutputTexture {
     }
 
     /// extremely hacky workaround to download texture
-    /// TODO: do it properly
+    /// TODO: do it properly, potentially we might want to use DownloadBuffer
     pub fn download(&self, ctx: &WgpuCtx) -> YuvData {
         self.transfer_content_to_buffers(&ctx.device, &ctx.queue);
         let mut result = YuvData {

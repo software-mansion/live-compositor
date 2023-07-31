@@ -25,7 +25,7 @@ pub(super) fn populate_inputs(
 }
 
 pub(super) fn run_transforms(ctx: &RenderCtx, scene: &Scene) {
-    for node in graph_iter(scene) {
+    for node in render_order_iter(scene) {
         let sources: Vec<_> = node
             .inputs
             .iter()
@@ -38,7 +38,7 @@ pub(super) fn run_transforms(ctx: &RenderCtx, scene: &Scene) {
 /// Returns iterator that guarantees that nodes will be visited in
 /// the order that ensures that inputs of the current node were
 /// already visited in previous iterations
-fn graph_iter(scene: &Scene) -> impl Iterator<Item = Arc<Node>> {
+fn render_order_iter(scene: &Scene) -> impl Iterator<Item = Arc<Node>> {
     let mut queue = vec![];
     for (output_node, _output_texture) in scene.outputs.values() {
         enqueue_nodes(output_node, &mut queue);

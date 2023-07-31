@@ -1,7 +1,7 @@
 use compositor_common::scene::InputId;
 use compositor_common::Frame;
 use compositor_common::Framerate;
-use compositor_render::frameset::FrameSet;
+use compositor_render::frame_set::FrameSet;
 use std::time::Duration;
 use std::{collections::HashMap, sync::Arc};
 

@@ -128,7 +128,7 @@ impl Scene {
 
     pub fn update(&mut self, ctx: &RenderCtx, spec: SceneSpec) -> Result<(), SceneUpdateError> {
         // TODO: If we want nodes to be stateful we could try reusing nodes instead
-        // of recreating them on every scene update
+        //       of recreating them on every scene update
         let mut new_nodes = HashMap::new();
         self.outputs = spec
             .outputs
