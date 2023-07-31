@@ -12,7 +12,7 @@ use crate::{
 };
 
 use super::{
-    texture::{OutputTexture, Texture},
+    texture::{InputTexture, NodeTexture, OutputTexture},
     RenderCtx,
 };
 
@@ -44,7 +44,12 @@ impl TransformNode {
             }),
         }
     }
-    pub fn render(&self, ctx: &RenderCtx, sources: &[(&NodeId, &Texture)], target: &Texture) {
+    pub fn render(
+        &self,
+        ctx: &RenderCtx,
+        sources: &[(&NodeId, &NodeTexture)],
+        target: &NodeTexture,
+    ) {
         match self {
             TransformNode::Shader {
                 params: _,
@@ -65,7 +70,7 @@ impl TransformNode {
 
 pub struct Node {
     pub node_id: NodeId,
-    pub output: Texture,
+    pub output: NodeTexture,
     pub resolution: Resolution,
     pub inputs: Vec<Arc<Node>>,
     pub transform: TransformNode,
@@ -78,7 +83,7 @@ impl Node {
         inputs: Vec<Arc<Node>>,
     ) -> Result<Self, GetError> {
         let node = TransformNode::new(ctx, &spec.transform_params)?;
-        let output = Texture::new_rgba(ctx.wgpu_ctx, &spec.resolution);
+        let output = NodeTexture::new(ctx.wgpu_ctx, &spec.resolution);
         Ok(Self {
             node_id: spec.node_id.clone(),
             transform: node,
@@ -89,7 +94,7 @@ impl Node {
     }
 
     pub fn new_input(ctx: &RenderCtx, spec: &InputSpec) -> Result<Self, GetError> {
-        let output = Texture::new_rgba(ctx.wgpu_ctx, &spec.resolution);
+        let output = NodeTexture::new(ctx.wgpu_ctx, &spec.resolution);
 
         Ok(Self {
             node_id: spec.input_id.0.clone(),
@@ -103,7 +108,7 @@ impl Node {
 
 pub struct Scene {
     pub outputs: HashMap<OutputId, (Arc<Node>, OutputTexture)>,
-    pub inputs: HashMap<InputId, (Arc<Node>, [Texture; 3])>,
+    pub inputs: HashMap<InputId, (Arc<Node>, InputTexture)>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -182,7 +187,7 @@ impl Scene {
                     InputId(node_id.clone()),
                     (
                         node.clone(),
-                        Texture::new_yuv_textures(ctx.wgpu_ctx, &input.resolution),
+                        InputTexture::new(ctx.wgpu_ctx, &input.resolution),
                     ),
                 );
                 return Ok(node);

@@ -1,13 +1,16 @@
-use std::{collections::HashMap, sync::Arc};
+use std::sync::Arc;
 
 use compositor_common::{
     scene::{InputId, OutputId, SceneSpec},
     transformation::{TransformationRegistryKey, TransformationSpec},
-    Frame,
 };
 use log::error;
 
-use crate::{frame_set::FrameSet, registry::TransformationRegistry, render_loop::populate_inputs};
+use crate::{
+    frame_set::FrameSet,
+    registry::TransformationRegistry,
+    render_loop::{populate_inputs, read_outputs},
+};
 use crate::{
     registry::{self, RegistryType},
     render_loop::run_transforms,
@@ -19,8 +22,14 @@ use crate::{
     },
 };
 
-use self::scene::{Scene, SceneUpdateError};
+use self::{
+    color_converter_pipeline::{RGBAToYUVConverter, YUVToRGBAConverter},
+    scene::{Scene, SceneUpdateError},
+    texture::{RGBATexture, YUVTextures},
+};
 
+mod color_converter_pipeline;
+mod common_pipeline;
 pub mod scene;
 pub mod texture;
 
@@ -102,33 +111,18 @@ impl Renderer {
         Ok(())
     }
 
-    /// This is very much a work in progress.
-    /// For now it just takes a random frame from the input and returns it
     pub fn render(
         &self,
         mut inputs: FrameSet<InputId>,
     ) -> Result<FrameSet<OutputId>, RendererRenderError> {
-        let pts = inputs.frames.iter().next().unwrap().1.pts;
         let ctx = self.ctx();
+
         populate_inputs(&ctx, &self.scene, &mut inputs.frames);
         run_transforms(&ctx, &self.scene);
-        let mut result = HashMap::new();
-        for (node_id, output) in &self.scene.outputs {
-            // TODO: very temporary implementation
-            // TODO: convert rgba to yuv
-            let yuv_data = output.1.download(&self.wgpu_ctx);
-            result.insert(
-                node_id.clone(),
-                Arc::new(Frame {
-                    data: yuv_data,
-                    resolution: output.1.resolution,
-                    pts,
-                }),
-            );
-        }
-        error!("TODO: convert rgba back to yuv and read into memory");
+        let frames = read_outputs(&ctx, &self.scene, inputs.pts);
+
         Ok(FrameSet {
-            frames: result,
+            frames,
             pts: inputs.pts,
         })
     }
@@ -152,6 +146,11 @@ pub struct WgpuCtx {
 
     #[allow(dead_code)]
     pub queue: wgpu::Queue,
+
+    pub yuv_bind_group_layout: wgpu::BindGroupLayout,
+    pub rgba_bind_group_layout: wgpu::BindGroupLayout,
+    pub yuv_to_rgba_converter: YUVToRGBAConverter,
+    pub rgba_to_yuv_converter: RGBAToYUVConverter,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -187,7 +186,19 @@ impl WgpuCtx {
             None,
         ))?;
 
-        Ok(Self { device, queue })
+        let yuv_bind_group_layout = YUVTextures::new_bind_group_layout(&device);
+        let rgba_bind_group_layout = RGBATexture::new_bind_group_layout(&device);
+        let yuv_to_rgba_converter = YUVToRGBAConverter::new(&device, &yuv_bind_group_layout);
+        let rgba_to_yuv_converter = RGBAToYUVConverter::new(&device, &rgba_bind_group_layout);
+
+        Ok(Self {
+            device,
+            queue,
+            yuv_bind_group_layout,
+            rgba_bind_group_layout,
+            yuv_to_rgba_converter,
+            rgba_to_yuv_converter,
+        })
     }
 }
 

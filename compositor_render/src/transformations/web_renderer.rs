@@ -1,6 +1,9 @@
 use std::{sync::Arc, thread, time::Duration};
 
-use crate::renderer::{texture::Texture, RenderCtx};
+use crate::renderer::{
+    texture::{NodeTexture, Texture},
+    RenderCtx,
+};
 pub mod electron;
 mod electron_api;
 
@@ -43,13 +46,13 @@ impl WebRenderer {
     pub fn render(
         &self,
         ctx: &RenderCtx,
-        _sources: &[(&NodeId, &Texture)],
-        target: &Texture,
+        _sources: &[(&NodeId, &NodeTexture)],
+        target: &NodeTexture,
     ) -> Result<(), WebRendererRenderError> {
         let frame = ctx.electron.client.get_frame(&self.session_id)?;
         if !frame.is_empty() {
             info!("writing texture from chrome");
-            Self::write_texture(ctx, &frame, target)?;
+            Self::write_texture(ctx, &frame, &target.texture.0)?;
         }
 
         Ok(())
