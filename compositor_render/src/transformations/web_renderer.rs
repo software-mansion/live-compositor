@@ -1,7 +1,7 @@
 use std::{sync::Arc, thread, time::Duration};
 
 use crate::renderer::{
-    texture::{NodeTexture, Texture},
+    texture::{NodeTexture, RGBATexture},
     RenderCtx,
 };
 pub mod electron;
@@ -12,7 +12,7 @@ use compositor_common::{
     transformation::WebRendererTransformationParams,
 };
 use image::ImageError;
-use log::{error, info};
+use log::error;
 use serde::{Deserialize, Serialize};
 
 use self::electron_api::ElectronApiError;
@@ -51,18 +51,16 @@ impl WebRenderer {
     ) -> Result<(), WebRendererRenderError> {
         let frame = ctx.electron.client.get_frame(&self.session_id)?;
         if !frame.is_empty() {
-            info!("writing texture from chrome");
-            Self::write_texture(ctx, &frame, &target.texture.0)?;
+            Self::write_texture(ctx, &frame, &target.rgba_texture())?;
         }
 
         Ok(())
     }
 
-    // TODO: move that to texture code
     fn write_texture(
         ctx: &RenderCtx,
         data: &[u8],
-        target: &Texture,
+        target: &RGBATexture,
     ) -> Result<(), WebRendererRenderError> {
         let size = target.size();
         let img = image::load_from_memory(data)?;
@@ -80,22 +78,7 @@ impl WebRenderer {
             });
         }
 
-        ctx.wgpu_ctx.queue.write_texture(
-            wgpu::ImageCopyTexture {
-                texture: &target.texture,
-                mip_level: 0,
-                origin: wgpu::Origin3d::ZERO,
-                aspect: wgpu::TextureAspect::All,
-            },
-            &img.to_rgba8(),
-            wgpu::ImageDataLayout {
-                offset: 0,
-                bytes_per_row: Some(4 * size.width),
-                rows_per_image: Some(size.height),
-            },
-            size,
-        );
-
+        target.upload(ctx.wgpu_ctx, &img.to_rgba8());
         ctx.wgpu_ctx.queue.submit([]);
         Ok(())
     }
