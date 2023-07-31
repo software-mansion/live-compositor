@@ -1,17 +1,27 @@
 use crate::{
+    cef::{RenderProcessHandler, RenderProcessHandlerWrapper},
     cef_ref::{CefRefPtr, CefStruct},
     cef_string::CefString,
     command_line::CommandLine,
 };
 
 pub trait App {
+    type RenderProcessHandlerType: RenderProcessHandler;
+
     fn on_before_command_line_processing(
         &mut self,
         process_type: String,
         command_line: &mut CommandLine,
     ) {
     }
+
+    fn get_render_process_handler(&self) -> Option<Self::RenderProcessHandlerType> {
+        None
+    }
 }
+
+// TODO: Rewrite this
+impl RenderProcessHandler for () {}
 
 pub(crate) struct AppWrapper<A: App>(pub A);
 
@@ -25,7 +35,7 @@ impl<A: App> CefStruct for AppWrapper<A> {
             on_register_custom_schemes: None,
             get_resource_bundle_handler: None,
             get_browser_process_handler: None,
-            get_render_process_handler: None,
+            get_render_process_handler: Some(Self::get_render_process_handler),
         }
     }
 
@@ -46,5 +56,15 @@ impl<A: App> AppWrapper<A> {
         self_ref
             .0
             .on_before_command_line_processing(process_type, &mut command_line);
+    }
+
+    extern "C" fn get_render_process_handler(
+        self_: *mut chromium_sys::cef_app_t,
+    ) -> *mut chromium_sys::cef_render_process_handler_t {
+        let self_ref = unsafe { CefRefPtr::<Self>::from_cef(self_) };
+        match self_ref.0.get_render_process_handler() {
+            Some(handler) => CefRefPtr::new(RenderProcessHandlerWrapper(handler)),
+            None => std::ptr::null_mut(),
+        }
     }
 }

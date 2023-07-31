@@ -26,10 +26,17 @@ impl<F: FnOnce()> Task<F> {
         Self { inner: Some(task) }
     }
 
-    pub fn run(self, thread_id: chromium_sys::cef_thread_id_t) {
-        let task = CefRefPtr::new(self);
+    pub fn run(mut self, thread_id: ThreadId) {
         unsafe {
-            chromium_sys::cef_post_task(thread_id, task);
+            if chromium_sys::cef_currently_on(thread_id as u32) == 1 {
+                if let Some(task) = self.inner.take() {
+                    task();
+                }
+                return;
+            }
+
+            let task = CefRefPtr::new(self);
+            chromium_sys::cef_post_task(thread_id as u32, task);
         }
     }
 
@@ -39,4 +46,16 @@ impl<F: FnOnce()> Task<F> {
             task();
         }
     }
+}
+
+#[repr(u32)]
+#[derive(Debug, Clone, Copy)]
+pub enum ThreadId {
+    UI = chromium_sys::cef_thread_id_t_TID_UI,
+    FileBackground = chromium_sys::cef_thread_id_t_TID_FILE_BACKGROUND,
+    FileUserVisible = chromium_sys::cef_thread_id_t_TID_FILE_USER_VISIBLE,
+    FileUserBlocking = chromium_sys::cef_thread_id_t_TID_FILE_USER_BLOCKING,
+    ProcessLauncher = chromium_sys::cef_thread_id_t_TID_PROCESS_LAUNCHER,
+    IO = chromium_sys::cef_thread_id_t_TID_IO,
+    Renderer = chromium_sys::cef_thread_id_t_TID_RENDERER,
 }

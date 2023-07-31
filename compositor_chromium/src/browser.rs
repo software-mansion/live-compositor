@@ -4,6 +4,7 @@ use crate::{
     cef_ref::CefRefPtr,
     cef_string::CefString,
     client::{Client, ClientWrapper},
+    frame::Frame,
     window_info::{self, WindowInfo},
 };
 
@@ -25,6 +26,14 @@ impl<'a> Browser<'a> {
             let browser = &mut *self.inner;
             let f = browser.is_loading.unwrap();
             f(self.inner) == 1
+        }
+    }
+
+    pub fn get_main_frame(&self) -> Frame<'a> {
+        unsafe {
+            let browser = &mut *self.inner;
+            let f = browser.get_main_frame.unwrap();
+            Frame::new(f(self.inner))
         }
     }
 }

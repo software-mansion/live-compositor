@@ -40,7 +40,7 @@ fn prepare(out_path: &PathBuf) -> Result<bindgen::Bindings, Box<dyn Error>> {
     };
 
     dir::copy(framework_path, framework_out_path, &options)?;
-    fs::copy("resources/Info.plist", out_path.join("Info.plist"))?;
+    dir::copy("resources", out_path, &options)?;
 
     Ok(bindings)
 }
