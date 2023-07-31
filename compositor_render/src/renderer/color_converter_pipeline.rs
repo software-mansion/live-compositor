@@ -178,7 +178,7 @@ impl RGBAToYUVConverter {
             ctx.queue.write_buffer(
                 &self.plane_selector.buffer,
                 0,
-                bytemuck::cast_slice(&[plane]),
+                bytemuck::cast_slice(&[plane as u32]),
             );
 
             let mut encoder = ctx
