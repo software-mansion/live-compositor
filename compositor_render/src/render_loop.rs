@@ -5,29 +5,71 @@ use compositor_common::{
     Frame,
 };
 
+use log::error;
+
 use crate::renderer::{
     scene::{Node, Scene},
-    texture::Texture,
     RenderCtx,
 };
 
 pub(super) fn populate_inputs(
     ctx: &RenderCtx,
-    scene: &Scene,
+    scene: &mut Scene,
     frames: &mut HashMap<InputId, Arc<Frame>>,
 ) {
-    for (input_id, (node, input_textures)) in &scene.inputs {
-        Texture::upload_frame_to_textures(
-            ctx.wgpu_ctx,
-            &input_textures.textures.0,
-            frames.remove(input_id).unwrap(),
-        );
+    for (input_id, (node, input_textures)) in &mut scene.inputs {
+        let frame = frames.remove(input_id).unwrap();
+        node.output.ensure_size(ctx.wgpu_ctx, &frame.resolution);
+        input_textures.upload(ctx.wgpu_ctx, frame);
+    }
+
+    ctx.wgpu_ctx.queue.submit([]);
+
+    for (node, input_textures) in scene.inputs.values() {
         ctx.wgpu_ctx.yuv_to_rgba_converter.convert(
             ctx.wgpu_ctx,
-            (&input_textures.textures, &input_textures.bind_group),
-            &node.output.texture,
+            (input_textures.yuv_textures(), input_textures.bind_group()),
+            &node.output.rgba_texture(),
         );
     }
+}
+
+pub(super) fn read_outputs(
+    ctx: &RenderCtx,
+    scene: &Scene,
+    pts: Duration,
+) -> HashMap<OutputId, Arc<Frame>> {
+    let mut pending_downloads = Vec::with_capacity(scene.outputs.len());
+    for (node_id, (node, output)) in &scene.outputs {
+        ctx.wgpu_ctx.rgba_to_yuv_converter.convert(
+            ctx.wgpu_ctx,
+            (&node.output.rgba_texture(), &node.output.bind_group()),
+            output.yuv_textures(),
+        );
+        let yuv_pending = output.start_download(ctx.wgpu_ctx);
+        pending_downloads.push((node_id, yuv_pending, output.resolution().to_owned()));
+    }
+    ctx.wgpu_ctx.device.poll(wgpu::MaintainBase::Wait);
+
+    let mut result = HashMap::new();
+    for (node_id, yuv_pending, resolution) in pending_downloads {
+        let yuv_data = match yuv_pending.wait() {
+            Ok(i) => i,
+            Err(err) => {
+                error!("Failed to download frame: {}", err);
+                continue;
+            }
+        };
+        result.insert(
+            node_id.clone(),
+            Arc::new(Frame {
+                data: yuv_data,
+                resolution,
+                pts,
+            }),
+        );
+    }
+    result
 }
 
 pub(super) fn read_outputs(

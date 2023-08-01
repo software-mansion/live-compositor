@@ -310,6 +310,7 @@ dependencies = [
  "bytemuck",
  "bytes",
  "compositor_common",
+ "crossbeam-channel",
  "futures",
  "glyphon",
  "image",

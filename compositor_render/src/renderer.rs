@@ -66,15 +66,6 @@ pub enum RendererRegisterTransformationError {
     WebRendererTransformation(#[from] WebRendererNewError),
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum RendererRenderError {
-    #[error("no scene was set in the compositor")]
-    NoScene,
-
-    #[error("a frame was not provided for input with id {0}")]
-    NoInput(u32),
-}
-
 impl Renderer {
     pub fn new() -> Result<Self, RendererNewError> {
         Ok(Self {
@@ -111,20 +102,22 @@ impl Renderer {
         Ok(())
     }
 
-    pub fn render(
-        &self,
-        mut inputs: FrameSet<InputId>,
-    ) -> Result<FrameSet<OutputId>, RendererRenderError> {
-        let ctx = self.ctx();
+    pub fn render(&mut self, mut inputs: FrameSet<InputId>) -> FrameSet<OutputId> {
+        let ctx = &RenderCtx {
+            wgpu_ctx: &self.wgpu_ctx,
+            electron: &self.electron_instance,
+            shader_transforms: &self.shader_transforms,
+            web_renderers: &self.web_renderers,
+        };
 
-        populate_inputs(&ctx, &self.scene, &mut inputs.frames);
-        run_transforms(&ctx, &self.scene);
-        let frames = read_outputs(&ctx, &self.scene, inputs.pts);
+        populate_inputs(ctx, &mut self.scene, &mut inputs.frames);
+        run_transforms(ctx, &self.scene);
+        let frames = read_outputs(ctx, &self.scene, inputs.pts);
 
-        Ok(FrameSet {
+        FrameSet {
             frames,
             pts: inputs.pts,
-        })
+        }
     }
 
     pub fn update_scene(&mut self, scene_specs: SceneSpec) -> Result<(), SceneUpdateError> {
