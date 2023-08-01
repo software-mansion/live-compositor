@@ -6,5 +6,6 @@ pub(crate) mod render_loop;
 pub(crate) mod transformations;
 
 mod sync_renderer;
+mod text_renderer;
 
 pub type Renderer = sync_renderer::SyncRenderer;

@@ -18,3 +18,4 @@ reqwest = { version = "0.11.18", features = ["blocking", "json"] }
 bytes = { workspace = true }
 log = { workspace = true }
 bytemuck = { version = "1.13.1", features = ["derive"] }
+glyphon = "0.3.0"
