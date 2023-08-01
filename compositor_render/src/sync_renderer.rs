@@ -16,8 +16,8 @@ use crate::{
 pub struct SyncRenderer(Arc<Mutex<Renderer>>);
 
 impl SyncRenderer {
-    pub fn new() -> Result<Self, RendererNewError> {
-        Ok(Self(Arc::new(Mutex::new(Renderer::new()?))))
+    pub fn new(init_web: bool) -> Result<Self, RendererNewError> {
+        Ok(Self(Arc::new(Mutex::new(Renderer::new(init_web)?))))
     }
     pub fn register_transformation(
         &self,

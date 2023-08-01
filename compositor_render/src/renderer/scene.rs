@@ -51,12 +51,8 @@ impl TransformNode {
         target: &NodeTexture,
     ) {
         match self {
-            TransformNode::Shader {
-                params: _,
-                shader: _,
-            } => {
-                // shader.render(sources, target, other_args);
-                error!("mocked shader render")
+            TransformNode::Shader { params, shader } => {
+                shader.render(params, sources, target);
             }
             TransformNode::WebRenderer { renderer } => {
                 if let Err(err) = renderer.render(ctx, sources, target) {
