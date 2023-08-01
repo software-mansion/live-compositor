@@ -53,7 +53,7 @@ pub(super) fn read_outputs(
     let mut result = HashMap::new();
     for (node_id, yuv_pending, resolution) in pending_downloads {
         let yuv_data = match yuv_pending.wait() {
-            Ok(i) => i,
+            Ok(data) => data,
             Err(err) => {
                 error!("Failed to download frame: {}", err);
                 continue;

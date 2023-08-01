@@ -148,9 +148,9 @@ impl OutputTexture {
         self.textures.copy_to_buffers(ctx, &self.buffers);
 
         YUVPendingDownload::new(
-            self.download_buffer(self.textures.plains[0].texture.size(), &self.buffers[0]),
-            self.download_buffer(self.textures.plains[1].texture.size(), &self.buffers[1]),
-            self.download_buffer(self.textures.plains[2].texture.size(), &self.buffers[2]),
+            self.download_buffer(self.textures.planes[0].texture.size(), &self.buffers[0]),
+            self.download_buffer(self.textures.planes[1].texture.size(), &self.buffers[1]),
+            self.download_buffer(self.textures.planes[2].texture.size(), &self.buffers[2]),
         )
     }
 

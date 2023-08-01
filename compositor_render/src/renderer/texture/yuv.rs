@@ -44,13 +44,13 @@ where
 }
 
 pub struct YUVTextures {
-    pub(super) plains: [Texture; 3],
+    pub(super) planes: [Texture; 3],
 }
 
 impl YUVTextures {
     pub fn new(ctx: &WgpuCtx, resolution: &Resolution) -> Self {
         Self {
-            plains: [
+            planes: [
                 Self::new_plane(ctx, resolution.width, resolution.height),
                 Self::new_plane(ctx, resolution.width / 2, resolution.height / 2),
                 Self::new_plane(ctx, resolution.width / 2, resolution.height / 2),
@@ -59,7 +59,7 @@ impl YUVTextures {
     }
 
     pub fn plain(&self, i: usize) -> &Texture {
-        &self.plains[i]
+        &self.planes[i]
     }
 
     fn new_plane(ctx: &WgpuCtx, width: usize, height: usize) -> Texture {
@@ -73,7 +73,6 @@ impl YUVTextures {
             },
             wgpu::TextureFormat::R8Unorm,
             wgpu::TextureUsages::RENDER_ATTACHMENT
-                | wgpu::TextureUsages::TEXTURE_BINDING
                 | wgpu::TextureUsages::COPY_DST
                 | wgpu::TextureUsages::COPY_SRC
                 | wgpu::TextureUsages::TEXTURE_BINDING,
@@ -104,15 +103,15 @@ impl YUVTextures {
             entries: &[
                 wgpu::BindGroupEntry {
                     binding: 0,
-                    resource: wgpu::BindingResource::TextureView(&self.plains[0].view),
+                    resource: wgpu::BindingResource::TextureView(&self.planes[0].view),
                 },
                 wgpu::BindGroupEntry {
                     binding: 1,
-                    resource: wgpu::BindingResource::TextureView(&self.plains[1].view),
+                    resource: wgpu::BindingResource::TextureView(&self.planes[1].view),
                 },
                 wgpu::BindGroupEntry {
                     binding: 2,
-                    resource: wgpu::BindingResource::TextureView(&self.plains[2].view),
+                    resource: wgpu::BindingResource::TextureView(&self.planes[2].view),
                 },
             ],
         })
@@ -127,7 +126,7 @@ impl YUVTextures {
     }
 
     fn new_download_buffer(&self, ctx: &WgpuCtx, plain: usize) -> Buffer {
-        let size = self.plains[plain].size();
+        let size = self.planes[plain].size();
         ctx.device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("output texture buffer"),
             mapped_at_creation: false,
@@ -144,7 +143,7 @@ impl YUVTextures {
             });
 
         for plane in [0, 1, 2] {
-            let texture = &self.plains[plane].texture;
+            let texture = &self.planes[plane].texture;
             let size = texture.size();
             encoder.copy_texture_to_buffer(
                 wgpu::ImageCopyTexture {
@@ -169,8 +168,8 @@ impl YUVTextures {
     }
 
     pub fn upload(&self, ctx: &WgpuCtx, data: &YuvData) {
-        self.plains[0].upload_data(&ctx.queue, &data.y_plane, 1);
-        self.plains[1].upload_data(&ctx.queue, &data.u_plane, 1);
-        self.plains[2].upload_data(&ctx.queue, &data.v_plane, 1);
+        self.planes[0].upload_data(&ctx.queue, &data.y_plane, 1);
+        self.planes[1].upload_data(&ctx.queue, &data.u_plane, 1);
+        self.planes[2].upload_data(&ctx.queue, &data.v_plane, 1);
     }
 }
