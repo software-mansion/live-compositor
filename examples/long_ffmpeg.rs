@@ -96,7 +96,7 @@ fn start_example_client_code() -> Result<()> {
         "key": "example website",
         "transform": {
             "type": "web_renderer",
-            "url": "http://some-website", // or other way of providing source
+            "url": "https://www.twitch.tv/", // or other way of providing source
             "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
         }
     }))?;

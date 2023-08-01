@@ -1,7 +1,9 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, sync::Arc, time::Duration};
 
-use compositor_common::{scene::InputId, Frame};
-use log::error;
+use compositor_common::{
+    scene::{InputId, OutputId},
+    Frame,
+};
 
 use crate::renderer::{
     scene::{Node, Scene},
@@ -14,14 +16,43 @@ pub(super) fn populate_inputs(
     scene: &Scene,
     frames: &mut HashMap<InputId, Arc<Frame>>,
 ) {
-    for (input_id, (_, yuv_textures)) in &scene.inputs {
+    for (input_id, (node, input_textures)) in &scene.inputs {
         Texture::upload_frame_to_textures(
             ctx.wgpu_ctx,
-            yuv_textures,
+            &input_textures.textures.0,
             frames.remove(input_id).unwrap(),
         );
-        error!("TODO: convert yuv to rgba")
+        ctx.wgpu_ctx.yuv_to_rgba_converter.convert(
+            ctx.wgpu_ctx,
+            (&input_textures.textures, &input_textures.bind_group),
+            &node.output.texture,
+        );
     }
+}
+
+pub(super) fn read_outputs(
+    ctx: &RenderCtx,
+    scene: &Scene,
+    pts: Duration,
+) -> HashMap<OutputId, Arc<Frame>> {
+    let mut result = HashMap::new();
+    for (node_id, (node, output)) in &scene.outputs {
+        ctx.wgpu_ctx.rgba_to_yuv_converter.convert(
+            ctx.wgpu_ctx,
+            (&node.output.texture, &node.output.bind_group),
+            &output.yuv_textures,
+        );
+        let yuv_data = output.download(ctx.wgpu_ctx);
+        result.insert(
+            node_id.clone(),
+            Arc::new(Frame {
+                data: yuv_data,
+                resolution: output.resolution,
+                pts,
+            }),
+        );
+    }
+    result
 }
 
 pub(super) fn run_transforms(ctx: &RenderCtx, scene: &Scene) {

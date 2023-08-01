@@ -12,6 +12,11 @@ pub struct Texture {
 }
 
 impl Texture {
+    pub const DEFAULT_BINDING_TYPE: wgpu::BindingType = wgpu::BindingType::Texture {
+        sample_type: wgpu::TextureSampleType::Float { filterable: true },
+        view_dimension: wgpu::TextureViewDimension::D2,
+        multisampled: false,
+    };
     pub fn new(
         ctx: &WgpuCtx,
         label: Option<&str>,
@@ -37,65 +42,6 @@ impl Texture {
 
     pub fn size(&self) -> wgpu::Extent3d {
         self.texture.size()
-    }
-
-    pub fn new_rgba(ctx: &WgpuCtx, resolution: &Resolution) -> Self {
-        Self::new(
-            ctx,
-            None,
-            wgpu::Extent3d {
-                width: resolution.width as u32,
-                height: resolution.height as u32,
-                depth_or_array_layers: 1,
-            },
-            wgpu::TextureFormat::Rgba8Unorm,
-            wgpu::TextureUsages::RENDER_ATTACHMENT
-                | wgpu::TextureUsages::TEXTURE_BINDING
-                | wgpu::TextureUsages::COPY_DST,
-        )
-    }
-
-    pub fn new_yuv_textures(ctx: &WgpuCtx, resolution: &Resolution) -> [Texture; 3] {
-        let y = Self::new(
-            ctx,
-            None,
-            wgpu::Extent3d {
-                width: resolution.width as u32,
-                height: resolution.height as u32,
-                depth_or_array_layers: 1,
-            },
-            wgpu::TextureFormat::R8Unorm,
-            wgpu::TextureUsages::RENDER_ATTACHMENT
-                | wgpu::TextureUsages::COPY_SRC
-                | wgpu::TextureUsages::COPY_DST,
-        );
-        let u = Self::new(
-            ctx,
-            None,
-            wgpu::Extent3d {
-                width: resolution.width as u32 / 2,
-                height: resolution.height as u32 / 2,
-                depth_or_array_layers: 1,
-            },
-            wgpu::TextureFormat::R8Unorm,
-            wgpu::TextureUsages::RENDER_ATTACHMENT
-                | wgpu::TextureUsages::COPY_SRC
-                | wgpu::TextureUsages::COPY_DST,
-        );
-        let v = Self::new(
-            ctx,
-            None,
-            wgpu::Extent3d {
-                width: resolution.width as u32 / 2,
-                height: resolution.height as u32 / 2,
-                depth_or_array_layers: 1,
-            },
-            wgpu::TextureFormat::R8Unorm,
-            wgpu::TextureUsages::RENDER_ATTACHMENT
-                | wgpu::TextureUsages::COPY_SRC
-                | wgpu::TextureUsages::COPY_DST,
-        );
-        [y, u, v]
     }
 
     pub fn upload_frame_to_textures(ctx: &WgpuCtx, textures: &[Texture; 3], frame: Arc<Frame>) {
@@ -126,8 +72,149 @@ impl Texture {
     }
 }
 
+pub struct YUVTextures(pub [Texture; 3]);
+
+impl YUVTextures {
+    pub fn new(ctx: &WgpuCtx, resolution: &Resolution) -> Self {
+        Self([
+            Self::new_plane(ctx, resolution.width, resolution.height),
+            Self::new_plane(ctx, resolution.width / 2, resolution.height / 2),
+            Self::new_plane(ctx, resolution.width / 2, resolution.height / 2),
+        ])
+    }
+
+    fn new_plane(ctx: &WgpuCtx, width: usize, height: usize) -> Texture {
+        Texture::new(
+            ctx,
+            None,
+            wgpu::Extent3d {
+                width: width as u32,
+                height: height as u32,
+                depth_or_array_layers: 1,
+            },
+            wgpu::TextureFormat::R8Unorm,
+            wgpu::TextureUsages::RENDER_ATTACHMENT
+                | wgpu::TextureUsages::TEXTURE_BINDING
+                | wgpu::TextureUsages::COPY_DST
+                | wgpu::TextureUsages::COPY_SRC
+                | wgpu::TextureUsages::TEXTURE_BINDING,
+        )
+    }
+
+    pub fn new_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+        let create_entry = |binding: u32| wgpu::BindGroupLayoutEntry {
+            binding,
+            ty: Texture::DEFAULT_BINDING_TYPE,
+            visibility: wgpu::ShaderStages::FRAGMENT,
+            count: None,
+        };
+        device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("yuv all textures bind group layout"),
+            entries: &[create_entry(0), create_entry(1), create_entry(2)],
+        })
+    }
+
+    fn new_bind_group(&self, ctx: &WgpuCtx, layout: &wgpu::BindGroupLayout) -> wgpu::BindGroup {
+        ctx.device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("yuv all textures bind group"),
+            layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::TextureView(&self.0[0].view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::TextureView(&self.0[1].view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: wgpu::BindingResource::TextureView(&self.0[2].view),
+                },
+            ],
+        })
+    }
+}
+
+pub struct RGBATexture(pub Texture);
+
+impl RGBATexture {
+    pub fn new(ctx: &WgpuCtx, resolution: &Resolution) -> Self {
+        Self(Texture::new(
+            ctx,
+            None,
+            wgpu::Extent3d {
+                width: resolution.width as u32,
+                height: resolution.height as u32,
+                depth_or_array_layers: 1,
+            },
+            wgpu::TextureFormat::Rgba8Unorm,
+            wgpu::TextureUsages::RENDER_ATTACHMENT
+                | wgpu::TextureUsages::TEXTURE_BINDING
+                | wgpu::TextureUsages::COPY_DST
+                | wgpu::TextureUsages::TEXTURE_BINDING,
+        ))
+    }
+
+    pub fn new_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+        device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("single texture bind group layout"),
+            entries: &[wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                ty: Texture::DEFAULT_BINDING_TYPE,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                count: None,
+            }],
+        })
+    }
+
+    fn new_bind_group(&self, ctx: &WgpuCtx, layout: &wgpu::BindGroupLayout) -> wgpu::BindGroup {
+        ctx.device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("texture bind group"),
+            layout,
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: wgpu::BindingResource::TextureView(&self.0.view),
+            }],
+        })
+    }
+}
+
+pub struct InputTexture {
+    pub textures: YUVTextures,
+    pub bind_group: wgpu::BindGroup,
+}
+
+impl InputTexture {
+    pub fn new(ctx: &WgpuCtx, resolution: &Resolution) -> Self {
+        let textures = YUVTextures::new(ctx, resolution);
+        let bind_group = textures.new_bind_group(ctx, &ctx.yuv_bind_group_layout);
+
+        Self {
+            textures,
+            bind_group,
+        }
+    }
+}
+
+pub struct NodeTexture {
+    pub texture: RGBATexture,
+    pub bind_group: wgpu::BindGroup,
+}
+
+impl NodeTexture {
+    pub fn new(ctx: &WgpuCtx, resolution: &Resolution) -> Self {
+        let texture = RGBATexture::new(ctx, resolution);
+        let bind_group = texture.new_bind_group(ctx, &ctx.rgba_bind_group_layout);
+
+        Self {
+            texture,
+            bind_group,
+        }
+    }
+}
 pub struct OutputTexture {
-    yuv_textures: [Texture; 3],
+    pub yuv_textures: YUVTextures,
     buffers: [wgpu::Buffer; 3],
     pub resolution: Resolution,
 }
@@ -159,7 +246,7 @@ impl OutputTexture {
             }),
         ];
         Self {
-            yuv_textures: Texture::new_yuv_textures(ctx, resolution),
+            yuv_textures: YUVTextures::new(ctx, resolution),
             buffers,
             resolution: *resolution,
         }
@@ -175,7 +262,7 @@ impl OutputTexture {
             v_plane: Bytes::new(),
         };
         {
-            let size = self.yuv_textures[0].texture.size();
+            let size = self.yuv_textures.0[0].texture.size();
             let buffer = BytesMut::with_capacity(size.width as usize * size.height as usize);
 
             self.buffers[0]
@@ -192,7 +279,7 @@ impl OutputTexture {
             result.y_plane = buffer.into_inner().into();
         }
         {
-            let size = self.yuv_textures[1].texture.size();
+            let size = self.yuv_textures.0[1].texture.size();
             let buffer = BytesMut::with_capacity(size.width as usize * size.height as usize);
 
             self.buffers[1]
@@ -209,7 +296,7 @@ impl OutputTexture {
             result.u_plane = buffer.into_inner().into();
         }
         {
-            let size = self.yuv_textures[2].texture.size();
+            let size = self.yuv_textures.0[2].texture.size();
             let buffer = BytesMut::with_capacity(size.width as usize * size.height as usize);
 
             self.buffers[2]
@@ -242,19 +329,19 @@ impl OutputTexture {
                     aspect: wgpu::TextureAspect::All,
                     mip_level: 0,
                     origin: wgpu::Origin3d::ZERO,
-                    texture: &self.yuv_textures[plane].texture,
+                    texture: &self.yuv_textures.0[plane].texture,
                 },
                 wgpu::ImageCopyBuffer {
                     buffer: &self.buffers[plane],
                     layout: wgpu::ImageDataLayout {
                         bytes_per_row: Some(Self::padded(
-                            self.yuv_textures[plane].texture.size().width as usize,
+                            self.yuv_textures.0[plane].texture.size().width as usize,
                         ) as u32),
-                        rows_per_image: Some(self.yuv_textures[plane].texture.size().height),
+                        rows_per_image: Some(self.yuv_textures.0[plane].texture.size().height),
                         offset: 0,
                     },
                 },
-                self.yuv_textures[plane].texture.size(),
+                self.yuv_textures.0[plane].texture.size(),
             )
         }
 
