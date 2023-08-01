@@ -1,7 +1,3 @@
-use compositor_common::scene::Resolution;
-
-use crate::text_renderer;
-
 use super::{
     common_pipeline::{RectangleRenderBuffers, Sampler, U32Uniform, Vertex},
     texture::{RGBATexture, YUVTextures},
@@ -109,14 +105,6 @@ impl YUVToRGBAConverter {
         }
 
         ctx.queue.submit(Some(encoder.finish()));
-        text_renderer::render_on_frame(
-            ctx,
-            Resolution {
-                width: 1280,
-                height: 720,
-            },
-            dst,
-        );
     }
 }
 

@@ -29,7 +29,7 @@ use self::{
 };
 
 mod color_converter_pipeline;
-mod common_pipeline;
+pub mod common_pipeline;
 pub mod scene;
 pub mod texture;
 
