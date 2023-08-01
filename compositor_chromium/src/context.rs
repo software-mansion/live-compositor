@@ -16,54 +16,28 @@ impl Drop for Context {
     fn drop(&mut self) {
         unsafe {
             chromium_sys::cef_shutdown();
+
+            #[cfg(target_os = "macos")]
             chromium_sys::cef_unload_library();
         }
     }
 }
 
 impl Context {
-    #[cfg(target_os = "macos")]
     pub fn new<A: App>(app: A, settings: Settings) -> Result<Self, ContextError> {
-        let framework_path = PathBuf::from(std::env::current_exe()?)
-            .parent()
-            .unwrap()
-            .join("..")
-            .join("Frameworks")
-            .join("Chromium Embedded Framework.framework")
-            .join("Chromium Embedded Framework");
+        #[cfg(target_os = "macos")]
+        {
+            let framework_path = PathBuf::from(std::env::current_exe()?)
+                .parent()
+                .unwrap()
+                .join("..")
+                .join("Frameworks")
+                .join("Chromium Embedded Framework.framework")
+                .join("Chromium Embedded Framework");
 
-        Self::load_framework(framework_path);
-        Self::init_main_process(app, settings)?;
-        Ok(Context { _priv: () })
-    }
-
-    #[cfg(target_os = "macos")]
-    pub fn new_helper() -> Result<Self, ContextError> {
-        let framework_path = PathBuf::from(std::env::current_exe()?)
-            .parent()
-            .unwrap()
-            .join("..")
-            .join("..")
-            .join("..")
-            .join("Chromium Embedded Framework.framework")
-            .join("Chromium Embedded Framework");
-
-        Self::load_framework(framework_path);
-        Ok(Context { _priv: () })
-    }
-
-    #[cfg(target_os = "macos")]
-    fn load_framework(framework_path: PathBuf) -> Result<(), ContextError> {
-        let framework_path = CString::new(framework_path.display().to_string()).unwrap();
-        let is_loaded = unsafe { chromium_sys::cef_load_library(framework_path.as_ptr()) };
-        if is_loaded != 1 {
-            return Err(ContextError::FrameworkNotLoaded);
+            Self::load_framework(framework_path);
         }
 
-        Ok(())
-    }
-
-    fn init_main_process<A: App>(app: A, settings: Settings) -> Result<(), ContextError> {
         let mut main_args = MainArgs::from_env();
         let settings = settings.into_raw();
         let mut app = CefRefPtr::new(AppWrapper(app));
@@ -74,6 +48,35 @@ impl Context {
 
         if init_result != 1 {
             return Err(ContextError::FrameworkInitFailed);
+        }
+
+        Ok(Context { _priv: () })
+    }
+
+    pub fn new_helper() -> Result<Self, ContextError> {
+        #[cfg(target_os = "macos")]
+        {
+            let framework_path = PathBuf::from(std::env::current_exe()?)
+                .parent()
+                .unwrap()
+                .join("..")
+                .join("..")
+                .join("..")
+                .join("Chromium Embedded Framework.framework")
+                .join("Chromium Embedded Framework");
+
+            Self::load_framework(framework_path);
+        }
+
+        Ok(Context { _priv: () })
+    }
+
+    #[cfg(target_os = "macos")]
+    fn load_framework(framework_path: PathBuf) -> Result<(), ContextError> {
+        let framework_path = CString::new(framework_path.display().to_string()).unwrap();
+        let is_loaded = unsafe { chromium_sys::cef_load_library(framework_path.as_ptr()) };
+        if is_loaded != 1 {
+            return Err(ContextError::FrameworkNotLoaded);
         }
 
         Ok(())

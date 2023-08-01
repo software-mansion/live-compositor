@@ -5,7 +5,6 @@ if [[ "$1" == "--release" || "$1" == "-r" ]]; then
     target="target/release"
 fi
 
-
 # Download CEF
 if [[ -z "$CEF_ROOT" || ! -d "$CEF_ROOT" ]]; then
     export CEF_ROOT=$(pwd)/$target/cef_root
@@ -26,10 +25,10 @@ if [[ -z "$CEF_ROOT" || ! -d "$CEF_ROOT" ]]; then
 
         echo "Downloading CEF..."
         wget https://cef-builds.spotifycdn.com/cef_binary_115.3.11%2Bga61da9b%2Bchromium-115.0.5790.114_$platform.tar.bz2 -O $target/cef.tar.bz2
-        mkdir $target/cef_root
+        mkdir -p $target/cef_root
 
         echo "Extracting..."
-        tar -xf $target/cef.tar.bz2 -C $target/cef_root --strip-components=1
+        tar -xvf $target/cef.tar.bz2 -C $target/cef_root --strip-components=1
     fi
 fi
 
@@ -46,12 +45,12 @@ function create_helper_apple_bundle {
     sed -i '' "s/\${BUNDLE_ID_SUFFIX}/$bundle_id/g" "$path/$name.app/Info.plist"
 }
 
-if [[ "$OSTYPE" == "darwin"* ]]; then
-    # Build compositor
-    if ! cargo build "$1" --all; then
-        exit 1
-    fi
+# Build compositor
+if ! cargo build "$1" --all; then
+    exit 1
+fi
 
+if [[ "$OSTYPE" == "darwin"* ]]; then
     # Create a bundle
     mkdir -p "$target/video_compositor.app/Contents/MacOS"
     mkdir -p "$target/video_compositor.app/Contents/Resources"
@@ -67,6 +66,9 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
 
    # Run compositor
    ./$target/video_compositor.app/Contents/MacOS/video_compositor ${@:2}
+elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+    echo "TODO: Bundle linux"
 else
-    cargo run "$@"
+    echo "Platform not supported"
+    exit 1
 fi

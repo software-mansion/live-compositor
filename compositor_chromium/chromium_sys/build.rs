@@ -14,45 +14,58 @@ fn main() -> Result<(), Box<dyn Error>> {
     let bindings = prepare(&out_path)?;
     bindings.write_to_file(PathBuf::from(".").join("src").join("bindings.rs"))?;
 
-    link()?;
+    link();
 
     Ok(())
 }
 
-#[cfg(target_os = "macos")]
 fn prepare(out_path: &PathBuf) -> Result<bindgen::Bindings, Box<dyn Error>> {
     let cef_root = env::var("CEF_ROOT")?;
-    let framework_out_path = out_path.join("Frameworks");
     let bindings = bindgen::Builder::default()
         .header("wrapper.h")
         .clang_arg(format!("-I{cef_root}"))
         .parse_callbacks(Box::new(bindgen::CargoCallbacks))
         .generate()?;
 
-    let _ = fs::create_dir_all(&framework_out_path);
+    #[cfg(target_os = "macos")]
+    {
+        let framework_out_path = out_path.join("Frameworks");
+        let _ = fs::create_dir_all(&framework_out_path);
+        let framework_path = PathBuf::from(cef_root)
+            .join("Release")
+            .join("Chromium Embedded Framework.framework");
+        let options = CopyOptions {
+            skip_exist: true,
+            ..Default::default()
+        };
 
-    let framework_path = PathBuf::from(cef_root)
-        .join("Release")
-        .join("Chromium Embedded Framework.framework");
-    let options = CopyOptions {
-        skip_exist: true,
-        ..Default::default()
-    };
-
-    dir::copy(framework_path, framework_out_path, &options)?;
-    dir::copy("resources", out_path, &options)?;
+        dir::copy(framework_path, framework_out_path, &options)?;
+        dir::copy("resources", out_path, &options)?;
+    }
 
     Ok(bindings)
 }
 
 #[cfg(target_os = "macos")]
-fn link() -> Result<(), Box<dyn Error>> {
+fn link() {
     let dst = cmake::Config::new("CMakeLists.txt")
         .define("MAKE_BUILD_TYPE", "Debug")
         .build();
 
-    println!(r"cargo:rustc-link-search={}", dst.display());
+    println!("cargo:rustc-link-search={}", dst.display());
     println!("cargo:rustc-link-lib=static=cef_dll_wrapper");
+}
 
-    Ok(())
+#[cfg(target_os = "linux")]
+fn link() {
+    let cef_root = env::var("CEF_ROOT").unwrap();
+    println!(
+        "cargo:rustc-link-arg=-Wl,-rpath,{}",
+        PathBuf::from(cef_root.clone()).join("Release").display()
+    );
+    println!(
+        "cargo:rustc-link-search=native={}",
+        PathBuf::from(cef_root).join("Release").display()
+    );
+    println!("cargo:rustc-link-lib=dylib=cef");
 }
