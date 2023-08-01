@@ -24,7 +24,7 @@ fn vs_main(input: VertexInput) -> VertexOutput {
 
 @fragment
 fn fs_main(input: VertexOutput) -> @location(0) f32 {
-    let colour = textureSample(texture, sampler_, input.tex_coords);
+    let color = textureSample(texture, sampler_, input.tex_coords);
     var conversion_weights: vec4<f32>;
     var conversion_bias: f32;
 
@@ -44,5 +44,5 @@ fn fs_main(input: VertexOutput) -> @location(0) f32 {
         conversion_weights = vec4<f32>();
     }
 
-    return clamp(dot(colour, conversion_weights) + conversion_bias, 0.0, 1.0);
+    return clamp(dot(color, conversion_weights) + conversion_bias, 0.0, 1.0);
 }

@@ -30,13 +30,13 @@ impl YUVToRGBAConverter {
         let buffers = RectangleRenderBuffers::new(device);
 
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("YUV to RGBA colour converter render pipeline layout"),
+            label: Some("YUV to RGBA color converter render pipeline layout"),
             bind_group_layouts: &[yuv_textures_bind_group_layout, &sampler.bind_group_layout],
             push_constant_ranges: &[],
         });
 
         let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("YUV to RGBA colour converter render pipeline"),
+            label: Some("YUV to RGBA color converter render pipeline"),
             layout: Some(&pipeline_layout),
             primitive: PRIMITIVE_STATE,
 
@@ -76,12 +76,12 @@ impl YUVToRGBAConverter {
         let mut encoder = ctx
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                label: Some("YUV to RGBA colour converter encoder"),
+                label: Some("YUV to RGBA color converter encoder"),
             });
 
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("YUV to RGBA colour converter render pass"),
+                label: Some("YUV to RGBA color converter render pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
@@ -125,7 +125,7 @@ impl RGBAToYUVConverter {
         let buffers = RectangleRenderBuffers::new(device);
 
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("RGBA to YUV colour converter pipeline layout"),
+            label: Some("RGBA to YUV color converter pipeline layout"),
             bind_group_layouts: &[
                 single_texture_bind_group_layout,
                 &sampler.bind_group_layout,
@@ -137,7 +137,7 @@ impl RGBAToYUVConverter {
         let shader_module = device.create_shader_module(wgpu::include_wgsl!("rgba_to_yuv.wgsl"));
 
         let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("RGBA to YUV colour converter pipeline"),
+            label: Some("RGBA to YUV color converter pipeline"),
             layout: Some(&pipeline_layout),
             primitive: PRIMITIVE_STATE,
 
@@ -184,12 +184,12 @@ impl RGBAToYUVConverter {
             let mut encoder = ctx
                 .device
                 .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                    label: Some("RGBA to YUV colour converter command encoder"),
+                    label: Some("RGBA to YUV color converter command encoder"),
                 });
 
             {
                 let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                    label: Some("YUV to RGBA colour converter render pass"),
+                    label: Some("YUV to RGBA color converter render pass"),
                     color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                         ops: wgpu::Operations {
                             // We want the background to be black. Black in YUV is y = 0, u = 0.5, v = 0.5

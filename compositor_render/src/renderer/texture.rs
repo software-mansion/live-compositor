@@ -114,11 +114,7 @@ impl YUVTextures {
         })
     }
 
-    pub(self) fn new_bind_group(
-        &self,
-        ctx: &WgpuCtx,
-        layout: &wgpu::BindGroupLayout,
-    ) -> wgpu::BindGroup {
+    fn new_bind_group(&self, ctx: &WgpuCtx, layout: &wgpu::BindGroupLayout) -> wgpu::BindGroup {
         ctx.device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("yuv all textures bind group"),
             layout,
@@ -172,11 +168,7 @@ impl RGBATexture {
         })
     }
 
-    pub(self) fn new_bind_group(
-        &self,
-        ctx: &WgpuCtx,
-        layout: &wgpu::BindGroupLayout,
-    ) -> wgpu::BindGroup {
+    fn new_bind_group(&self, ctx: &WgpuCtx, layout: &wgpu::BindGroupLayout) -> wgpu::BindGroup {
         ctx.device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("texture bind group"),
             layout,

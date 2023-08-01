@@ -20,7 +20,7 @@ pub enum RegistryType {
 }
 
 impl RegistryType {
-    pub(self) fn registry_item_name(&self) -> &'static str {
+    fn registry_item_name(&self) -> &'static str {
         match self {
             RegistryType::Shader => "shader transformation",
             RegistryType::WebRenderer => "web renderer instance",

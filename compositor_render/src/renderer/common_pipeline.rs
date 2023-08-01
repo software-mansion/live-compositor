@@ -115,6 +115,7 @@ impl Sampler {
     }
 }
 
+// TODO: This should be done with push-constants, not with a buffer
 pub struct U32Uniform {
     pub buffer: Buffer,
     pub bind_group: wgpu::BindGroup,
