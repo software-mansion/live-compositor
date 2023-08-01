@@ -23,6 +23,7 @@ log = "0.4.19"
 compositor_render = { path = "compositor_render" }
 compositor_common = { path = "compositor_common" }
 compositor_pipeline = { path = "compositor_pipeline" }
+compositor_chromium = { path = "compositor_chromium"}
 serde = { workspace = true }
 anyhow = "1.0.71"
 bytes =  { workspace = true }

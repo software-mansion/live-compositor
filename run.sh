@@ -23,9 +23,10 @@ if [[ -z "$CEF_ROOT" || ! -d "$CEF_ROOT" ]]; then
             exit 1
         fi
 
-        echo "Downloading CEF..."
-        wget https://cef-builds.spotifycdn.com/cef_binary_115.3.11%2Bga61da9b%2Bchromium-115.0.5790.114_$platform.tar.bz2 -O $target/cef.tar.bz2
         mkdir -p $target/cef_root
+        
+        echo "Downloading CEF..."
+        wget https://cef-builds.spotifycdn.com/cef_binary_115.3.11%2Bga61da9b%2Bchromium-115.0.5790.114_${platform}_minimal.tar.bz2 -O $target/cef.tar.bz2
 
         echo "Extracting..."
         tar -xvf $target/cef.tar.bz2 -C $target/cef_root --strip-components=1
@@ -67,7 +68,10 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
    # Run compositor
    ./$target/video_compositor.app/Contents/MacOS/video_compositor ${@:2}
 elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
-    echo "TODO: Bundle linux"
+    export LD_LIBRARY_PATH=$CEF_ROOT/Release
+    cp -r $CEF_ROOT/Resources/* $LD_LIBRARY_PATH
+    # Run compositor
+   ./$target/video_compositor ${@:2}
 else
     echo "Platform not supported"
     exit 1

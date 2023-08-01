@@ -1,4 +1,4 @@
-use std::{ops::Deref, os::raw::c_int};
+use std::{env, ops::Deref, os::raw::c_int, path::PathBuf};
 
 use crate::cef_string::CefString;
 
@@ -16,10 +16,24 @@ pub struct Settings {
 
 impl Settings {
     pub fn into_raw(self) -> chromium_sys::cef_settings_t {
+        let browser_subprocess_path = if cfg!(target_os = "linux") {
+            CefString::new_raw(
+                env::current_exe()
+                    .unwrap()
+                    .parent()
+                    .unwrap()
+                    .join("process_helper")
+                    .display()
+                    .to_string(),
+            )
+        } else {
+            CefString::empty_raw()
+        };
+
         chromium_sys::cef_settings_t {
             size: std::mem::size_of::<chromium_sys::cef_settings_t>(),
             no_sandbox: true as c_int,
-            browser_subprocess_path: CefString::empty_raw(),
+            browser_subprocess_path,
             framework_dir_path: CefString::empty_raw(),
             main_bundle_path: CefString::empty_raw(),
             chrome_runtime: false as c_int,
