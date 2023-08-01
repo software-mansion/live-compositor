@@ -15,6 +15,20 @@ impl<'a> V8Context<'a> {
         }
     }
 
+    pub fn enter(&self) {
+        unsafe {
+            let enter_context = (&mut *self.inner).enter.unwrap();
+            enter_context(self.inner);
+        }
+    }
+
+    pub fn exit(&self) {
+        unsafe {
+            let exit_context = (&mut *self.inner).exit.unwrap();
+            exit_context(self.inner);
+        }
+    }
+
     pub fn get_global(&self) -> V8Value {
         unsafe {
             let f = (&mut *self.inner).get_global.unwrap();

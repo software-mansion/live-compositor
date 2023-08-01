@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use crate::cef::{ProcessId, ProcessMessage};
+use crate::cef::{ProcessId, ProcessMessage, V8Context};
 
 pub struct Frame<'a> {
     inner: *mut chromium_sys::cef_frame_t,
@@ -19,6 +19,18 @@ impl<'a> Frame<'a> {
         unsafe {
             let send_message = (&mut *self.inner).send_process_message.unwrap();
             send_message(self.inner, pid as u32, msg.inner);
+        }
+    }
+
+    /// Can be only called from the renderer process
+    pub fn get_v8_context(&self) -> Option<V8Context<'a>> {
+        unsafe {
+            let get_v8_context = (&mut *self.inner).get_v8context.unwrap();
+            let context = get_v8_context(self.inner);
+            if context.is_null() {
+                return None;
+            }
+            Some(V8Context::new(context))
         }
     }
 }

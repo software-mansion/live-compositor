@@ -1,6 +1,9 @@
 use std::{marker::PhantomData, os::raw::c_void};
 
-use crate::cef_ref::{CefRefPtr, CefStruct};
+use crate::{
+    cef_ref::{CefRefPtr, CefStruct},
+    cef_string::CefString,
+};
 
 pub struct V8Value<'a> {
     pub(crate) inner: *mut chromium_sys::cef_v8value_t,
@@ -13,6 +16,26 @@ impl<'a> V8Value<'a> {
             inner: v8_value,
             _lifetime: PhantomData,
         }
+    }
+
+    pub fn set_value_by_key(
+        &mut self,
+        key: &str,
+        value: Self,
+        attribute: V8PropertyAttribute,
+    ) -> bool {
+        let key = CefString::new_raw(key);
+        unsafe {
+            let set_value = (&mut *self.inner).set_value_bykey.unwrap();
+            set_value(self.inner, &key, value.inner, attribute as u32) == 1
+        }
+    }
+
+    pub fn create_string(data: &str) -> Self {
+        let data = CefString::new_raw(data);
+        let inner = unsafe { chromium_sys::cef_v8value_create_string(&data) };
+
+        Self::new(inner)
     }
 
     pub fn create_array_buffer(buffer: Vec<u8>) -> Self {
@@ -30,10 +53,7 @@ impl<'a> V8Value<'a> {
             )
         };
 
-        Self {
-            inner,
-            _lifetime: PhantomData,
-        }
+        Self::new(inner)
     }
 }
 
@@ -67,4 +87,12 @@ impl V8ArrayBufferReleaseCallback {
             Vec::from_raw_parts(buffer, self_ref.buffer_len, self_ref.buffer_cap);
         }
     }
+}
+
+#[repr(u32)]
+pub enum V8PropertyAttribute {
+    None = chromium_sys::cef_v8_propertyattribute_t_V8_PROPERTY_ATTRIBUTE_NONE,
+    ReadOnly = chromium_sys::cef_v8_propertyattribute_t_V8_PROPERTY_ATTRIBUTE_READONLY,
+    DoNotEnum = chromium_sys::cef_v8_propertyattribute_t_V8_PROPERTY_ATTRIBUTE_DONTENUM,
+    DoNotDelete = chromium_sys::cef_v8_propertyattribute_t_V8_PROPERTY_ATTRIBUTE_DONTDELETE,
 }
