@@ -10,21 +10,25 @@ use super::electron_api::ElectronApiClient;
 
 pub struct ElectronInstance {
     pub(super) client: ElectronApiClient,
-    renderer_process: process::Child,
+    renderer_process: Option<process::Child>,
 }
 
 impl Drop for ElectronInstance {
     fn drop(&mut self) {
-        if let Err(err) = self.renderer_process.kill() {
+        let Some(process) = &mut self.renderer_process else {
+            return;
+        };
+
+        if let Err(err) = process.kill() {
             error!("Failed to stop web renderer process: {err}");
         }
     }
 }
 
 impl ElectronInstance {
-    pub fn new(port: u16) -> Result<Self, ElectronNewError> {
+    pub fn new(port: u16, should_init: bool) -> Result<Self, ElectronNewError> {
         let api = ElectronApiClient::new(port);
-        let renderer_process = Self::init_web_renderer(port)?;
+        let renderer_process = Self::init_web_renderer(port, should_init)?;
 
         Ok(Self {
             client: api,
@@ -32,7 +36,14 @@ impl ElectronInstance {
         })
     }
 
-    fn init_web_renderer(port: u16) -> Result<process::Child, ElectronNewError> {
+    fn init_web_renderer(
+        port: u16,
+        should_init: bool,
+    ) -> Result<Option<process::Child>, ElectronNewError> {
+        if !should_init {
+            return Ok(None);
+        }
+
         let web_renderer_path = env::current_exe()
             .map_err(ElectronNewError::ElectronProjectNotFound)?
             .parent()
@@ -54,7 +65,7 @@ impl ElectronInstance {
             .spawn()
             .map_err(ElectronNewError::ElectronStartError)?;
 
-        Ok(renderer_process)
+        Ok(Some(renderer_process))
     }
 }
 

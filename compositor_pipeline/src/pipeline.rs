@@ -33,7 +33,7 @@ impl<Output: PipelineOutput + Send + Sync + 'static> Pipeline<Output> {
         Pipeline {
             outputs: SyncHashMap::new(),
             queue: Queue::new(framerate),
-            renderer: Renderer::new().unwrap(), // TODO: handle error
+            renderer: Renderer::new(true).unwrap(), // TODO: handle error
         }
     }
 
