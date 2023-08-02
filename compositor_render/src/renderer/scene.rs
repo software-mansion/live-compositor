@@ -45,8 +45,8 @@ impl TransformNode {
                 params: shader_params.clone(),
                 shader: ctx.shader_transforms.get(shader_id)?,
             }),
-            TransformParams::TextRenderer { text_spec } => Ok(TransformNode::TextRenderer {
-                renderer: Arc::new(TextRenderer::new(text_spec.clone().into())),
+            TransformParams::TextRenderer { text_params } => Ok(TransformNode::TextRenderer {
+                renderer: Arc::new(TextRenderer::new(text_params.clone())),
             }),
         }
     }

@@ -1,4 +1,4 @@
-use compositor_common::scene::{Attributes, Box, TextParams};
+use compositor_common::scene::{Box, TextParams};
 use glyphon::{
     AttrsOwned, Buffer, Color, FontSystem, Metrics, Shaping, SwashCache, TextArea, TextAtlas,
     TextBounds,
@@ -21,32 +21,41 @@ pub struct TextSpec {
 
 impl From<TextParams> for TextSpec {
     fn from(text_params: TextParams) -> Self {
+        let attributes = Self::get_attrs_owned(&text_params);
+        let font_size = text_params.font_size;
+        let line_height = text_params.line_height.unwrap_or(font_size);
+
         Self {
             content: text_params.content,
             text_box: text_params.placement,
-            attributes: Self::get_attrs_owned(&text_params.attributes),
-            font_size: text_params.font_size,
-            line_height: text_params.line_height,
+            attributes,
+            font_size,
+            line_height,
         }
     }
 }
 
 impl TextSpec {
-    fn get_attrs_owned(attributes: &Attributes) -> AttrsOwned {
-        let style = match attributes.style {
-            compositor_common::scene::Style::Normal => glyphon::Style::Normal,
-            compositor_common::scene::Style::Italic => glyphon::Style::Italic,
-            compositor_common::scene::Style::Oblique => glyphon::Style::Oblique,
+    fn get_attrs_owned(text_params: &TextParams) -> AttrsOwned {
+        let color = match text_params.color_rgba {
+            Some((r, g, b, a)) => glyphon::Color::rgba(r, g, b, a),
+            None => glyphon::Color::rgb(255, 255, 255),
+        };
+
+        let family = match &text_params.font_family {
+            Some(font_family_name) => glyphon::FamilyOwned::Name(font_family_name.clone()),
+            None => glyphon::FamilyOwned::SansSerif,
+        };
+
+        let style = match text_params.style {
+            Some(compositor_common::scene::Style::Normal) | None => glyphon::Style::Normal,
+            Some(compositor_common::scene::Style::Italic) => glyphon::Style::Italic,
+            Some(compositor_common::scene::Style::Oblique) => glyphon::Style::Oblique,
         };
 
         AttrsOwned {
-            color_opt: Some(glyphon::Color::rgba(
-                attributes.color_rgba.0,
-                attributes.color_rgba.1,
-                attributes.color_rgba.2,
-                attributes.color_rgba.3,
-            )),
-            family_owned: glyphon::FamilyOwned::Name(attributes.font_family.clone()),
+            color_opt: Some(color),
+            family_owned: family,
             stretch: Default::default(),
             style,
             weight: Default::default(),
@@ -54,6 +63,7 @@ impl TextSpec {
         }
     }
 }
+
 #[allow(dead_code)]
 pub struct TextRendererCtx {
     font_system: FontSystem,
@@ -77,15 +87,15 @@ impl Default for TextRendererCtx {
 #[allow(dead_code)]
 pub struct TextRenderer {
     was_rendered: bool,
-    text_spec: TextSpec,
+    text_specs: TextSpec,
 }
 
 impl TextRenderer {
     #[allow(dead_code)]
-    pub fn new(text_spec: TextSpec) -> Self {
+    pub fn new(text_params: TextParams) -> Self {
         Self {
             was_rendered: false,
-            text_spec,
+            text_specs: text_params.into(),
         }
     }
 
@@ -132,8 +142,8 @@ impl TextRenderer {
                 },
                 [TextArea {
                     buffer: &buffer,
-                    left: 0.0,
-                    top: 0.0,
+                    left: text.text_box.top_left_corner.0 as f32,
+                    top: text.text_box.top_left_corner.1 as f32,
                     scale: 1.0,
                     bounds: TextBounds {
                         left: 0,
@@ -164,7 +174,7 @@ impl TextRenderer {
                     view,
                     resolve_target: None,
                     ops: Operations {
-                        load: LoadOp::Load,
+                        load: LoadOp::Clear(wgpu::Color::TRANSPARENT),
                         store: true,
                     },
                 })],
@@ -181,6 +191,6 @@ impl TextRenderer {
         if self.was_rendered {
             return;
         }
-        Self::render_text(ctx, target, &self.text_spec);
+        Self::render_text(ctx, target, &self.text_specs);
     }
 }

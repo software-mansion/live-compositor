@@ -73,7 +73,7 @@ pub enum TransformParams {
         shader_params: HashMap<String, ShaderParams>,
     },
     TextRenderer {
-        text_spec: TextParams,
+        text_params: TextParams,
     },
 }
 
@@ -86,7 +86,7 @@ pub enum ShaderParams {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
-#[serde(tag = "type")]
+#[serde(rename_all = "snake_case")]
 pub enum Style {
     Normal,
     Italic,
@@ -103,20 +103,12 @@ pub struct Box {
 
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(tag = "type")]
-
-pub struct Attributes {
-    pub color_rgba: (u8, u8, u8, u8),
-    pub font_family: String,
-    pub font_size: f32,
-    pub style: Style,
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-#[serde(tag = "type")]
 pub struct TextParams {
     pub content: String,
-    pub placement: Box,
-    pub attributes: Attributes,
     pub font_size: f32,
-    pub line_height: f32,
+    pub placement: Box,
+    pub color_rgba: Option<(u8, u8, u8, u8)>,
+    pub font_family: Option<String>,
+    pub line_height: Option<f32>,
+    pub style: Option<Style>,
 }
