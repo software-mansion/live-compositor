@@ -1,6 +1,5 @@
 use widestring::U16CString;
 
-// TODO: Research when cef_string_t is removed  from memory
 pub struct CefString;
 
 impl CefString {
