@@ -6,7 +6,7 @@ if [[ "$1" == "--release" || "$1" == "-r" ]]; then
 fi
 
 # Download CEF
-if [[ -z "$CEF_ROOT" || ! -d "$CEF_ROOT" ]]; then
+if [[ -z "$CEF_ROOT" || ! -d "$CEF_ROOT" || "$GITHUB_ACTIONS" == "true" ]]; then
     export CEF_ROOT=$(pwd)/$target/cef_root
     
     if [[ ! -d "$CEF_ROOT" ]]; then
