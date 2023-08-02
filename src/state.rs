@@ -1,9 +1,13 @@
 use anyhow::Result;
+use compositor_common::{
+    scene::{InputId, OutputId, SceneSpec},
+    transformation::{TransformationRegistryKey, TransformationSpec},
+};
 use compositor_pipeline::map::SyncHashMap;
 use std::sync::Arc;
 
 use crate::{
-    http::RegisterOutputRequest,
+    http::{RegisterInputRequest, RegisterOutputRequest},
     rtp_receiver::RtpReceiver,
     rtp_sender::{self, RtpSender},
 };
@@ -28,8 +32,8 @@ pub struct InitConfig {
 }
 
 pub struct State {
-    pub inputs: SyncHashMap<u16, Input>,
-    pub outputs: SyncHashMap<u16, Output>,
+    pub inputs: SyncHashMap<InputId, Input>,
+    pub outputs: SyncHashMap<OutputId, Output>,
     pub pipeline: Arc<Pipeline>,
 }
 
@@ -42,9 +46,9 @@ impl State {
         }
     }
 
-    #[allow(dead_code)]
     pub fn register_output(&self, request: RegisterOutputRequest) -> Result<()> {
         let RegisterOutputRequest {
+            id,
             port,
             resolution,
             encoder_settings,
@@ -55,9 +59,9 @@ impl State {
             resolution,
             encoder_settings,
         }));
-        self.pipeline.add_output(port.into(), sender.clone());
+        self.pipeline.add_output(id.clone(), sender.clone());
         self.outputs.insert(
-            port,
+            id,
             Output {
                 port,
                 rtp_sender: sender,
@@ -66,17 +70,36 @@ impl State {
         Ok(())
     }
 
-    #[allow(dead_code)]
-    pub fn register_input(&self, port: u16) -> Result<()> {
+    pub fn register_input(&self, request: RegisterInputRequest) -> Result<()> {
+        let RegisterInputRequest { id, port } = request;
         // TODO: add validation if input already relisted
-        self.pipeline.add_input(port.into());
+        self.pipeline.add_input(id.clone());
         self.inputs.insert(
-            port,
+            id.clone(),
             Input {
                 port,
-                rtp_receiver: RtpReceiver::new(self.pipeline.clone(), port),
+                rtp_receiver: RtpReceiver::new(self.pipeline.clone(), port, id),
             },
         );
+        Ok(())
+    }
+
+    pub fn update_scene(&self, scene: SceneSpec) -> Result<()> {
+        scene.validate(
+            &self.inputs.keys().into_iter().map(|i| i.0).collect(),
+            &self.outputs.keys().into_iter().map(|i| i.0).collect(),
+        )?;
+        self.pipeline.update_scene(scene)?;
+        Ok(())
+    }
+
+    pub fn register_transformation(
+        &self,
+        key: TransformationRegistryKey,
+        transformation_spec: TransformationSpec,
+    ) -> Result<()> {
+        self.pipeline
+            .register_transformation(key, transformation_spec)?;
         Ok(())
     }
 }

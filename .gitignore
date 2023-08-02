@@ -14,4 +14,11 @@ target/
 
 /target
 
-/examples/assets
+# VsCode 
+.vscode
+
+# Assets
+**/*.mp4
+
+# MacOS
+**/.DS_Store
