@@ -16,7 +16,7 @@ use self::{utils::pad_to_256, yuv::YUVPendingDownload};
 use super::WgpuCtx;
 
 mod base;
-mod rgba;
+pub mod rgba;
 mod utils;
 mod yuv;
 
@@ -82,7 +82,7 @@ impl InnerNodeTexture {
 
 pub struct NodeTexture {
     inner: Mutex<InnerNodeTexture>,
-    resolution: Resolution,
+    pub resolution: Resolution,
 }
 
 impl NodeTexture {

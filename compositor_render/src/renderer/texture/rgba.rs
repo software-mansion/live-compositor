@@ -36,7 +36,7 @@ impl RGBATexture {
         })
     }
 
-    pub(super) fn new_bind_group(
+    pub fn new_bind_group(
         &self,
         ctx: &WgpuCtx,
         layout: &wgpu::BindGroupLayout,

@@ -10,3 +10,4 @@ bytes =  { workspace = true }
 serde = { workspace = true }
 thiserror = { workspace = true } 
 log = { workspace = true } 
+glyphon = "0.3.0"

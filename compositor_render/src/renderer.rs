@@ -4,12 +4,14 @@ use compositor_common::{
     scene::{InputId, OutputId, SceneSpec},
     transformation::{TransformationRegistryKey, TransformationSpec},
 };
+use std::sync::Mutex;
 use log::error;
 
 use crate::{
     frame_set::FrameSet,
     registry::TransformationRegistry,
     render_loop::{populate_inputs, read_outputs},
+    transformations::text_renderer::TextRendererCtx,
 };
 use crate::{
     registry::{self, RegistryType},
@@ -35,6 +37,7 @@ pub mod texture;
 
 pub struct Renderer {
     pub wgpu_ctx: Arc<WgpuCtx>,
+    pub text_renderer_ctx: Mutex<TextRendererCtx>,
     pub electron_instance: Arc<ElectronInstance>,
     pub scene: Scene,
     pub shader_transforms: TransformationRegistry<Arc<Shader>>,
@@ -43,6 +46,7 @@ pub struct Renderer {
 
 pub struct RenderCtx<'a> {
     pub wgpu_ctx: &'a Arc<WgpuCtx>,
+    pub text_renderer_ctx: &'a Mutex<TextRendererCtx>,
     pub electron: &'a Arc<ElectronInstance>,
     pub shader_transforms: &'a TransformationRegistry<Arc<Shader>>,
     pub web_renderers: &'a TransformationRegistry<Arc<WebRenderer>>,
@@ -70,6 +74,7 @@ impl Renderer {
     pub fn new() -> Result<Self, RendererNewError> {
         Ok(Self {
             wgpu_ctx: Arc::new(WgpuCtx::new()?),
+            text_renderer_ctx: Mutex::new(TextRendererCtx::new()),
             electron_instance: Arc::new(ElectronInstance::new(9002)?), // TODO: make it configurable
             scene: Scene::empty(),
             web_renderers: TransformationRegistry::new(RegistryType::WebRenderer),
@@ -80,6 +85,7 @@ impl Renderer {
     fn ctx(&self) -> RenderCtx {
         RenderCtx {
             wgpu_ctx: &self.wgpu_ctx,
+            text_renderer_ctx: &self.text_renderer_ctx,
             electron: &self.electron_instance,
             shader_transforms: &self.shader_transforms,
             web_renderers: &self.web_renderers,
@@ -103,11 +109,12 @@ impl Renderer {
     }
 
     pub fn render(&mut self, mut inputs: FrameSet<InputId>) -> FrameSet<OutputId> {
-        let ctx = &RenderCtx {
+        let ctx = &mut RenderCtx {
             wgpu_ctx: &self.wgpu_ctx,
             electron: &self.electron_instance,
             shader_transforms: &self.shader_transforms,
             web_renderers: &self.web_renderers,
+            text_renderer_ctx: &self.text_renderer_ctx,
         };
 
         populate_inputs(ctx, &mut self.scene, &mut inputs.frames);
@@ -124,6 +131,7 @@ impl Renderer {
         self.scene.update(
             &RenderCtx {
                 wgpu_ctx: &self.wgpu_ctx,
+                text_renderer_ctx: &self.text_renderer_ctx,
                 electron: &self.electron_instance,
                 shader_transforms: &self.shader_transforms,
                 web_renderers: &self.web_renderers,

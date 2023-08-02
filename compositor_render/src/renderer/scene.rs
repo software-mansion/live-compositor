@@ -8,7 +8,7 @@ use log::error;
 
 use crate::{
     registry::GetError,
-    transformations::{shader::Shader, web_renderer::WebRenderer},
+    transformations::{shader::Shader, text_renderer::TextRenderer, web_renderer::WebRenderer},
 };
 
 use super::{
@@ -26,6 +26,9 @@ pub enum TransformNode {
     WebRenderer {
         renderer: Arc<WebRenderer>,
     },
+    TextRenderer {
+        renderer: Arc<TextRenderer>,
+    },
     Nop,
 }
 
@@ -42,11 +45,14 @@ impl TransformNode {
                 params: shader_params.clone(),
                 shader: ctx.shader_transforms.get(shader_id)?,
             }),
+            TransformParams::TextRenderer { text_spec } => Ok(TransformNode::TextRenderer {
+                renderer: Arc::new(TextRenderer::new(text_spec.clone().into())),
+            }),
         }
     }
     pub fn render(
         &self,
-        ctx: &RenderCtx,
+        ctx: &mut RenderCtx,
         sources: &[(&NodeId, &NodeTexture)],
         target: &NodeTexture,
     ) {
@@ -60,8 +66,11 @@ impl TransformNode {
             }
             TransformNode::WebRenderer { renderer } => {
                 if let Err(err) = renderer.render(ctx, sources, target) {
-                    error!("Render operation failed {err}");
+                    error!("Web render operation failed {err}");
                 }
+            }
+            TransformNode::TextRenderer { renderer } => {
+                renderer.render(ctx, target);
             }
             TransformNode::Nop => (),
         }

@@ -72,6 +72,9 @@ pub enum TransformParams {
         shader_id: TransformationRegistryKey,
         shader_params: HashMap<String, ShaderParams>,
     },
+    TextRenderer {
+        text_spec: TextParams,
+    },
 }
 
 // TODO: tmp clone
@@ -80,4 +83,38 @@ pub enum TransformParams {
 pub enum ShaderParams {
     String(String),
     Binary(Vec<u8>),
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+#[serde(tag = "type")]
+pub enum Style {
+    Normal,
+    Italic,
+    Oblique,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+#[serde(tag = "type")]
+pub struct Box {
+    pub top_left_corner: (u32, u32),
+    pub width: u32,
+    pub height: u32,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+#[serde(tag = "type")]
+
+pub struct Attributes {
+    pub color_rgba: (u8, u8, u8, u8),
+    pub font_family: String,
+    pub font_size: f32,
+    pub style: Style,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+#[serde(tag = "type")]
+pub struct TextParams {
+    pub content: String,
+    pub placement: Box,
+    pub attributes: Attributes,
 }

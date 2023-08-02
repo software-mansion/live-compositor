@@ -72,32 +72,7 @@ pub(super) fn read_outputs(
     result
 }
 
-pub(super) fn read_outputs(
-    ctx: &RenderCtx,
-    scene: &Scene,
-    pts: Duration,
-) -> HashMap<OutputId, Arc<Frame>> {
-    let mut result = HashMap::new();
-    for (node_id, (node, output)) in &scene.outputs {
-        ctx.wgpu_ctx.rgba_to_yuv_converter.convert(
-            ctx.wgpu_ctx,
-            (&node.output.texture, &node.output.bind_group),
-            &output.yuv_textures,
-        );
-        let yuv_data = output.download(ctx.wgpu_ctx);
-        result.insert(
-            node_id.clone(),
-            Arc::new(Frame {
-                data: yuv_data,
-                resolution: output.resolution,
-                pts,
-            }),
-        );
-    }
-    result
-}
-
-pub(super) fn run_transforms(ctx: &RenderCtx, scene: &Scene) {
+pub(super) fn run_transforms(ctx: &mut RenderCtx, scene: &Scene) {
     for node in render_order_iter(scene) {
         let sources: Vec<_> = node
             .inputs
