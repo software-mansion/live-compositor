@@ -117,4 +117,6 @@ pub struct TextParams {
     pub content: String,
     pub placement: Box,
     pub attributes: Attributes,
+    pub font_size: f32,
+    pub line_height: f32,
 }

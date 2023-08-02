@@ -15,6 +15,8 @@ pub struct TextSpec {
     content: String,
     text_box: Box,
     attributes: AttrsOwned,
+    font_size: f32,
+    line_height: f32,
 }
 
 impl From<TextParams> for TextSpec {
@@ -23,6 +25,8 @@ impl From<TextParams> for TextSpec {
             content: text_params.content,
             text_box: text_params.placement,
             attributes: get_attrs_owned(&text_params.attributes),
+            font_size: text_params.font_size,
+            line_height: text_params.line_height,
         }
     }
 }
@@ -99,7 +103,7 @@ impl TextRenderer {
             MultisampleState::default(),
             None,
         );
-        let mut buffer = Buffer::new(font_system, Metrics::new(30.0, 42.0));
+        let mut buffer = Buffer::new(font_system, Metrics::new(text.font_size, text.line_height));
 
         buffer.set_size(
             font_system,
@@ -149,7 +153,7 @@ impl TextRenderer {
                 .create_command_encoder(&CommandEncoderDescriptor {
                     label: Some("Text renderer encoder"),
                 });
-        
+
         let target_texture = &target.rgba_texture();
         let view = &target_texture.texture().view;
         {

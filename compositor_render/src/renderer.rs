@@ -4,8 +4,8 @@ use compositor_common::{
     scene::{InputId, OutputId, SceneSpec},
     transformation::{TransformationRegistryKey, TransformationSpec},
 };
-use std::sync::Mutex;
 use log::error;
+use std::sync::Mutex;
 
 use crate::{
     frame_set::FrameSet,
