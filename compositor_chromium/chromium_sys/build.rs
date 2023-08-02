@@ -4,6 +4,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use bindgen::callbacks::ParseCallbacks;
+
 fn main() -> Result<(), Box<dyn Error>> {
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-env-changed=CEF_ROOT");
@@ -27,6 +29,7 @@ fn prepare(out_path: &Path) -> Result<bindgen::Bindings, Box<dyn Error>> {
         .header("wrapper.h")
         .clang_arg(format!("-I{cef_root}"))
         .parse_callbacks(Box::new(bindgen::CargoCallbacks))
+        .parse_callbacks(Box::new(RemoveCommentsCallback))
         .generate()?;
 
     #[cfg(target_os = "macos")]
@@ -68,4 +71,13 @@ fn link() {
         PathBuf::from(cef_root).join("Release").display()
     );
     println!("cargo:rustc-link-lib=dylib=cef");
+}
+
+#[derive(Debug)]
+struct RemoveCommentsCallback;
+
+impl ParseCallbacks for RemoveCommentsCallback {
+    fn process_comment(&self, _comment: &str) -> Option<String> {
+        Some(String::new())
+    }
 }
