@@ -1,4 +1,4 @@
-use std::{ffi::CString, io, path::PathBuf};
+use std::io;
 
 use crate::{cef::*, cef_ref::CefRefPtr, cef_string::CefString, main_args::MainArgs};
 
@@ -66,7 +66,8 @@ impl Context {
     }
 
     #[cfg(target_os = "macos")]
-    fn load_framework(framework_path: PathBuf) -> Result<(), ContextError> {
+    fn load_framework(framework_path: std::path::PathBuf) -> Result<(), ContextError> {
+        use std::ffi::CString;
         let framework_path = CString::new(framework_path.display().to_string()).unwrap();
         let is_loaded = unsafe { chromium_sys::cef_load_library(framework_path.as_ptr()) };
         if is_loaded != 1 {
