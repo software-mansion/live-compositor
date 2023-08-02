@@ -24,35 +24,36 @@ impl From<TextParams> for TextSpec {
         Self {
             content: text_params.content,
             text_box: text_params.placement,
-            attributes: get_attrs_owned(&text_params.attributes),
+            attributes: Self::get_attrs_owned(&text_params.attributes),
             font_size: text_params.font_size,
             line_height: text_params.line_height,
         }
     }
 }
 
-fn get_attrs_owned(attributes: &Attributes) -> AttrsOwned {
-    let style = match attributes.style {
-        compositor_common::scene::Style::Normal => glyphon::Style::Normal,
-        compositor_common::scene::Style::Italic => glyphon::Style::Italic,
-        compositor_common::scene::Style::Oblique => glyphon::Style::Oblique,
-    };
+impl TextSpec {
+    fn get_attrs_owned(attributes: &Attributes) -> AttrsOwned {
+        let style = match attributes.style {
+            compositor_common::scene::Style::Normal => glyphon::Style::Normal,
+            compositor_common::scene::Style::Italic => glyphon::Style::Italic,
+            compositor_common::scene::Style::Oblique => glyphon::Style::Oblique,
+        };
 
-    AttrsOwned {
-        color_opt: Some(glyphon::Color::rgba(
-            attributes.color_rgba.0,
-            attributes.color_rgba.1,
-            attributes.color_rgba.2,
-            attributes.color_rgba.3,
-        )),
-        family_owned: glyphon::FamilyOwned::Name(attributes.font_family.clone()),
-        stretch: Default::default(),
-        style,
-        weight: Default::default(),
-        metadata: Default::default(),
+        AttrsOwned {
+            color_opt: Some(glyphon::Color::rgba(
+                attributes.color_rgba.0,
+                attributes.color_rgba.1,
+                attributes.color_rgba.2,
+                attributes.color_rgba.3,
+            )),
+            family_owned: glyphon::FamilyOwned::Name(attributes.font_family.clone()),
+            stretch: Default::default(),
+            style,
+            weight: Default::default(),
+            metadata: Default::default(),
+        }
     }
 }
-
 #[allow(dead_code)]
 pub struct TextRendererCtx {
     font_system: FontSystem,
@@ -133,7 +134,7 @@ impl TextRenderer {
                     buffer: &buffer,
                     left: 0.0,
                     top: 0.0,
-                    scale: 3.0,
+                    scale: 1.0,
                     bounds: TextBounds {
                         left: 0,
                         top: 0,
