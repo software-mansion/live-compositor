@@ -1,7 +1,8 @@
-use std::fs;
-use std::{env, error::Error, path::PathBuf};
-
-use fs_extra::dir::{self, CopyOptions};
+use std::{
+    env,
+    error::Error,
+    path::{Path, PathBuf},
+};
 
 fn main() -> Result<(), Box<dyn Error>> {
     println!("cargo:rerun-if-changed=build.rs");
@@ -19,7 +20,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn prepare(out_path: &PathBuf) -> Result<bindgen::Bindings, Box<dyn Error>> {
+#[allow(unused_variables)]
+fn prepare(out_path: &Path) -> Result<bindgen::Bindings, Box<dyn Error>> {
     let cef_root = env::var("CEF_ROOT")?;
     let bindings = bindgen::Builder::default()
         .header("wrapper.h")
@@ -29,8 +31,10 @@ fn prepare(out_path: &PathBuf) -> Result<bindgen::Bindings, Box<dyn Error>> {
 
     #[cfg(target_os = "macos")]
     {
+        use fs_extra::dir::{self, CopyOptions};
+
         let framework_out_path = out_path.join("Frameworks");
-        let _ = fs::create_dir_all(&framework_out_path);
+        let _ = std::fs::create_dir_all(&framework_out_path);
         let framework_path = PathBuf::from(cef_root)
             .join("Release")
             .join("Chromium Embedded Framework.framework");
