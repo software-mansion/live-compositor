@@ -24,8 +24,6 @@ impl cef::RenderProcessHandler for RenderProcessHandler {
     ) -> bool {
         // TODO: Implement this
         info!("Message received: {}", message.get_name());
-        let bytes = message.read_bytes(0);
-        dbg!(bytes);
         false
     }
 }

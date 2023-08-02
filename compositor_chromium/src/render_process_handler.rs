@@ -25,7 +25,6 @@ pub trait RenderProcessHandler {
     }
 }
 
-// TODO: Rewrite this
 impl RenderProcessHandler for () {}
 
 pub(crate) struct RenderProcessHandlerWrapper<R: RenderProcessHandler>(pub R);

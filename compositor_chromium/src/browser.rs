@@ -18,16 +18,16 @@ impl<'a> Browser<'a> {
     pub fn is_loading(&self) -> bool {
         unsafe {
             let browser = &mut *self.inner;
-            let f = browser.is_loading.unwrap();
-            f(self.inner) == 1
+            let is_loading = browser.is_loading.unwrap();
+            is_loading(self.inner) == 1
         }
     }
 
     pub fn get_main_frame(&self) -> Frame<'a> {
         unsafe {
             let browser = &mut *self.inner;
-            let f = browser.get_main_frame.unwrap();
-            Frame::new(f(self.inner))
+            let get_main_frame = browser.get_main_frame.unwrap();
+            Frame::new(get_main_frame(self.inner))
         }
     }
 }

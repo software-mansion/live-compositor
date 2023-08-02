@@ -1,5 +1,3 @@
-use std::os::raw::c_void;
-
 use crate::cef_string::CefString;
 
 pub struct ProcessMessage {
@@ -20,41 +18,61 @@ impl ProcessMessage {
         }
     }
 
-    pub fn write_binary(&mut self, index: usize, data: &[u8]) {
+    pub fn write_string(&mut self, index: usize, data: &str) -> bool {
         unsafe {
-            let get_argument_list = (*self.inner).get_argument_list.unwrap();
-            let args = get_argument_list(self.inner);
-            let set_binary = (*args).set_binary.unwrap();
-            let binary_value =
-                chromium_sys::cef_binary_value_create(data.as_ptr() as *const c_void, data.len());
+            let args = self.get_arg_list();
+            let set_string = (*args).set_string.unwrap();
+            let data = CefString::new_raw(data);
 
-            set_binary(args, index, binary_value);
+            set_string(args, index, &data) == 1
         }
     }
 
-    // TODO: Rewrite
-    pub fn read_bytes(&self, index: usize) -> Vec<u8> {
-        let mut data = Vec::new();
+    pub fn read_string(&mut self, index: usize) -> Option<String> {
+        unsafe {
+            let args = self.get_arg_list();
+            let get_string = (*args).get_string.unwrap();
+            let get_type = (*args).get_type.unwrap();
 
+            let ty: ValueType = get_type(args, index).into();
+            if ty != ValueType::String {
+                return None;
+            }
+
+            let data = get_string(args, index);
+            Some(CefString::from_raw(data))
+        }
+    }
+
+    pub fn write_int(&mut self, index: usize, data: i32) -> bool {
+        unsafe {
+            let args = self.get_arg_list();
+            let set_int = (*args).set_int.unwrap();
+
+            set_int(args, index, data) == 1
+        }
+    }
+
+    pub fn read_int(&mut self, index: usize) -> Option<i32> {
+        unsafe {
+            let args = self.get_arg_list();
+            let get_int = (*args).get_int.unwrap();
+            let get_type = (*args).get_type.unwrap();
+
+            let ty: ValueType = get_type(args, index).into();
+            if ty != ValueType::Int {
+                return None;
+            }
+
+            Some(get_int(args, index))
+        }
+    }
+
+    fn get_arg_list(&self) -> *mut chromium_sys::cef_list_value_t {
         unsafe {
             let get_argument_list = (*self.inner).get_argument_list.unwrap();
-            let args = get_argument_list(self.inner);
-            let get_binary = (*args).get_binary.unwrap();
-            let binary = get_binary(args, index);
-            let get_data = (*binary).get_data.unwrap();
-            let get_data_size = (*binary).get_size.unwrap();
-
-            let data_size = get_data_size(binary);
-            data.resize(data_size, 0);
-
-            let mut read_bytes = 0;
-            while read_bytes < data_size {
-                let data_ptr = data.as_mut_ptr().add(read_bytes);
-                read_bytes += get_data(binary, data_ptr as *mut c_void, data_size, read_bytes);
-            }
+            get_argument_list(self.inner)
         }
-
-        data
     }
 }
 
@@ -70,6 +88,37 @@ impl From<chromium_sys::cef_process_id_t> for ProcessId {
         match value {
             chromium_sys::cef_process_id_t_PID_BROWSER => Self::Browser,
             chromium_sys::cef_process_id_t_PID_RENDERER => Self::Renderer,
+            _ => unreachable!(),
+        }
+    }
+}
+
+#[repr(u32)]
+#[derive(Debug, PartialEq)]
+enum ValueType {
+    Invalid = chromium_sys::cef_value_type_t_VTYPE_INVALID,
+    Null = chromium_sys::cef_value_type_t_VTYPE_NULL,
+    Bool = chromium_sys::cef_value_type_t_VTYPE_BOOL,
+    Int = chromium_sys::cef_value_type_t_VTYPE_INT,
+    Double = chromium_sys::cef_value_type_t_VTYPE_DOUBLE,
+    String = chromium_sys::cef_value_type_t_VTYPE_STRING,
+    Binary = chromium_sys::cef_value_type_t_VTYPE_BINARY,
+    Dictionary = chromium_sys::cef_value_type_t_VTYPE_DICTIONARY,
+    List = chromium_sys::cef_value_type_t_VTYPE_LIST,
+}
+
+impl From<chromium_sys::cef_value_type_t> for ValueType {
+    fn from(value: chromium_sys::cef_value_type_t) -> Self {
+        match value {
+            chromium_sys::cef_value_type_t_VTYPE_INVALID => Self::Invalid,
+            chromium_sys::cef_value_type_t_VTYPE_NULL => Self::Null,
+            chromium_sys::cef_value_type_t_VTYPE_BOOL => Self::Bool,
+            chromium_sys::cef_value_type_t_VTYPE_INT => Self::Int,
+            chromium_sys::cef_value_type_t_VTYPE_DOUBLE => Self::Double,
+            chromium_sys::cef_value_type_t_VTYPE_STRING => Self::String,
+            chromium_sys::cef_value_type_t_VTYPE_BINARY => Self::Binary,
+            chromium_sys::cef_value_type_t_VTYPE_DICTIONARY => Self::Dictionary,
+            chromium_sys::cef_value_type_t_VTYPE_LIST => Self::List,
             _ => unreachable!(),
         }
     }

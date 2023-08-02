@@ -31,8 +31,8 @@ impl<'a> V8Context<'a> {
 
     pub fn get_global(&self) -> V8Value {
         unsafe {
-            let f = (*self.inner).get_global.unwrap();
-            V8Value::new(f(self.inner))
+            let get_global = (*self.inner).get_global.unwrap();
+            V8Value::new(get_global(self.inner))
         }
     }
 }

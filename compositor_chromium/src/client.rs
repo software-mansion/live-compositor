@@ -50,6 +50,7 @@ impl<C: Client> ClientWrapper<C> {
     extern "C" fn get_render_handler(
         self_: *mut chromium_sys::cef_client_t,
     ) -> *mut chromium_sys::cef_render_handler_t {
+        // TODO: Make sure reference is created once
         unsafe {
             let self_ref = CefRefPtr::<Self>::from_cef(self_);
             match self_ref.0.get_render_handler() {

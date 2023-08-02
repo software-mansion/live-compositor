@@ -7,8 +7,8 @@ impl CommandLine {
         let name = CefString::new_raw(name);
         unsafe {
             let cmd = &mut *self.0;
-            let f = cmd.append_switch.unwrap();
-            f(self.0, &name);
+            let append_switch = cmd.append_switch.unwrap();
+            append_switch(self.0, &name);
         }
     }
 
@@ -17,8 +17,8 @@ impl CommandLine {
         let value = CefString::new_raw(value);
         unsafe {
             let cmd = &mut *self.0;
-            let f = cmd.append_switch_with_value.unwrap();
-            f(self.0, &name, &value);
+            let append_switch_with_value = cmd.append_switch_with_value.unwrap();
+            append_switch_with_value(self.0, &name, &value);
         }
     }
 
@@ -26,8 +26,8 @@ impl CommandLine {
         let name = CefString::new_raw(name);
         unsafe {
             let cmd = &mut *self.0;
-            let f = cmd.has_switch.unwrap();
-            f(self.0, &name) == 1
+            let has_switch = cmd.has_switch.unwrap();
+            has_switch(self.0, &name) == 1
         }
     }
 }
