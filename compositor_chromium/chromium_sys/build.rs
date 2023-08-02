@@ -60,10 +60,6 @@ fn link() {
 fn link() {
     let cef_root = env::var("CEF_ROOT").unwrap();
     println!(
-        "cargo:rustc-link-arg=-Wl,-rpath,{}",
-        PathBuf::from(cef_root.clone()).join("Release").display()
-    );
-    println!(
         "cargo:rustc-link-search=native={}",
         PathBuf::from(cef_root).join("Release").display()
     );
