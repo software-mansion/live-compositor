@@ -9,7 +9,7 @@ edition = "2021"
 compositor_common = { path = "../compositor_common" }
 compositor_render = { path = "../compositor_render" }
 bytes =  { workspace = true }
-crossbeam-channel = "0.5.8"
+crossbeam-channel = { workspace = true }
 anyhow = "1.0.71"
-thiserror = "1.0.43"
+thiserror = { workspace = true }
 log = { workspace = true } 
