@@ -7,7 +7,7 @@ use super::base::Texture;
 pub struct RGBATexture(Texture);
 
 impl RGBATexture {
-    pub fn new(ctx: &WgpuCtx, resolution: &Resolution) -> Self {
+    pub fn new(ctx: &WgpuCtx, resolution: Resolution) -> Self {
         Self(Texture::new(
             ctx,
             None,

@@ -27,7 +27,7 @@ where
             y,
             u,
             v,
-            _phantom: Default::default(),
+            _phantom: PhantomData,
         }
     }
 
@@ -48,7 +48,7 @@ pub struct YUVTextures {
 }
 
 impl YUVTextures {
-    pub fn new(ctx: &WgpuCtx, resolution: &Resolution) -> Self {
+    pub fn new(ctx: &WgpuCtx, resolution: Resolution) -> Self {
         Self {
             planes: [
                 Self::new_plane(ctx, resolution.width, resolution.height),
@@ -58,7 +58,7 @@ impl YUVTextures {
         }
     }
 
-    pub fn plain(&self, i: usize) -> &Texture {
+    pub fn plane(&self, i: usize) -> &Texture {
         &self.planes[i]
     }
 
@@ -125,8 +125,8 @@ impl YUVTextures {
         ]
     }
 
-    fn new_download_buffer(&self, ctx: &WgpuCtx, plain: usize) -> Buffer {
-        let size = self.planes[plain].size();
+    fn new_download_buffer(&self, ctx: &WgpuCtx, plane: usize) -> Buffer {
+        let size = self.planes[plane].size();
         ctx.device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("output texture buffer"),
             mapped_at_creation: false,

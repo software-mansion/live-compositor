@@ -18,7 +18,7 @@ pub(super) fn populate_inputs(
 ) {
     for (input_id, (node, input_textures)) in &mut scene.inputs {
         let frame = frames.remove(input_id).unwrap();
-        node.output.ensure_size(ctx.wgpu_ctx, &frame.resolution);
+        node.output.ensure_size(ctx.wgpu_ctx, frame.resolution);
         input_textures.upload(ctx.wgpu_ctx, frame);
     }
 

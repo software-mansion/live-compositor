@@ -21,7 +21,7 @@ impl ElectronApiClient {
     pub fn new_session(
         &self,
         url: &str,
-        resolution: &Resolution,
+        resolution: Resolution,
     ) -> Result<SessionId, ElectronApiError> {
         let resp: NewSessionResponse = self
             .client
@@ -56,7 +56,7 @@ impl ElectronApiClient {
 #[derive(Serialize)]
 struct NewSessionRequest<'a> {
     url: &'a str,
-    resolution: &'a Resolution,
+    resolution: Resolution,
 }
 
 #[derive(Deserialize)]

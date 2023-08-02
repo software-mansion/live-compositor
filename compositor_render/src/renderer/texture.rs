@@ -1,7 +1,5 @@
 use std::{
     io::Write,
-    mem,
-    ops::DerefMut,
     sync::{Arc, Mutex},
 };
 
@@ -32,20 +30,20 @@ pub struct InputTexture {
 }
 
 impl InputTexture {
-    pub fn new(ctx: &WgpuCtx, resolution: &Resolution) -> Self {
+    pub fn new(ctx: &WgpuCtx, resolution: Resolution) -> Self {
         let textures = YUVTextures::new(ctx, resolution);
         let bind_group = textures.new_bind_group(ctx, &ctx.yuv_bind_group_layout);
 
         Self {
             textures,
             bind_group,
-            resolution: *resolution,
+            resolution,
         }
     }
 
     pub fn upload(&mut self, ctx: &WgpuCtx, frame: Arc<Frame>) {
         if frame.resolution != self.resolution {
-            self.textures = YUVTextures::new(ctx, &frame.resolution);
+            self.textures = YUVTextures::new(ctx, frame.resolution);
             self.bind_group = self
                 .textures
                 .new_bind_group(ctx, &ctx.yuv_bind_group_layout);
@@ -69,7 +67,7 @@ struct InnerNodeTexture {
 }
 
 impl InnerNodeTexture {
-    pub fn new(ctx: &WgpuCtx, resolution: &Resolution) -> Self {
+    pub fn new(ctx: &WgpuCtx, resolution: Resolution) -> Self {
         let texture = RGBATexture::new(ctx, resolution);
         let bind_group = texture.new_bind_group(ctx, &ctx.rgba_bind_group_layout);
 
@@ -86,18 +84,18 @@ pub struct NodeTexture {
 }
 
 impl NodeTexture {
-    pub fn new(ctx: &WgpuCtx, resolution: &Resolution) -> Self {
+    pub fn new(ctx: &WgpuCtx, resolution: Resolution) -> Self {
         Self {
             inner: InnerNodeTexture::new(ctx, resolution).into(),
-            resolution: *resolution,
+            resolution,
         }
     }
 
-    pub fn ensure_size(&self, ctx: &WgpuCtx, resolution: &Resolution) {
-        if *resolution != self.resolution {
+    pub fn ensure_size(&self, ctx: &WgpuCtx, resolution: Resolution) {
+        if resolution != self.resolution {
             let new_inner = InnerNodeTexture::new(ctx, resolution);
             let mut guard = self.inner.lock().unwrap();
-            let _ = mem::replace(guard.deref_mut(), new_inner);
+            *guard = new_inner;
         }
     }
 
@@ -119,7 +117,7 @@ pub struct OutputTexture {
 }
 
 impl OutputTexture {
-    pub fn new(ctx: &WgpuCtx, resolution: &Resolution) -> Self {
+    pub fn new(ctx: &WgpuCtx, resolution: Resolution) -> Self {
         let textures = YUVTextures::new(ctx, resolution);
         let buffers = textures.new_download_buffers(ctx);
         Self {
@@ -133,8 +131,8 @@ impl OutputTexture {
         &self.textures
     }
 
-    pub fn resolution(&self) -> &Resolution {
-        &self.resolution
+    pub fn resolution(&self) -> Resolution {
+        self.resolution
     }
 
     pub fn start_download<'a>(
