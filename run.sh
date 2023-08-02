@@ -47,8 +47,12 @@ function create_helper_apple_bundle {
 }
 
 # Build compositor
-if ! cargo build "$1" --all; then
+if ! cargo build ${1:+"-d"} --all; then
     exit 1
+fi
+
+if [[ "$GITHUB_ACTIONS" == "true" ]]; then
+    exit 0
 fi
 
 if [[ "$OSTYPE" == "darwin"* ]]; then
