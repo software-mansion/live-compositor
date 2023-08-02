@@ -212,7 +212,7 @@ impl RGBAToYUVConverter {
                             }),
                             store: true,
                         },
-                        view: &dst.plain(plane).view,
+                        view: &dst.plane(plane).view,
                         resolve_target: None,
                     })],
                     depth_stencil_attachment: None,
