@@ -44,11 +44,15 @@ impl ElectronInstance {
             return Ok(None);
         }
 
-        let web_renderer_path = env::current_exe()
-            .map_err(ElectronNewError::ElectronProjectNotFound)?
-            .parent()
-            .unwrap()
-            .join("../../../web_renderer");
+        let web_renderer_path = match env::var("WEB_RENDERER_PATH") {
+            Ok(path) => path.into(),
+            Err(env::VarError::NotPresent) => env::current_exe()
+                .map_err(ElectronNewError::ElectronProjectNotFound)?
+                .parent()
+                .unwrap()
+                .join("../../../web_renderer"),
+            Err(err) => panic!("{err}"),
+        };
 
         let install_exit_code = Command::new("npm")
             .arg("install")

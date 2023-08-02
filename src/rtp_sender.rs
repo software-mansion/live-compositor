@@ -89,6 +89,7 @@ pub struct EncoderSettings {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Options {
     pub port: u16,
+    pub ip: String,
     pub resolution: Resolution,
     pub encoder_settings: EncoderSettings,
 }
@@ -103,8 +104,8 @@ impl RtpSender {
     fn run(opts: Options, receiver: Receiver<Frame>) -> Result<()> {
         let mut output_ctx = format::output_as(
             &PathBuf::from(format!(
-                "rtp://127.0.0.1:{}?rtcpport={}",
-                opts.port, opts.port
+                "rtp://{}:{}?rtcpport={}",
+                opts.ip, opts.port, opts.port
             )),
             "rtp",
         )?;
