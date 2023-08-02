@@ -1,6 +1,36 @@
 # Shader parameter format
 
-What kind of format should we use for transferring shader parameters in json? I've been thinking about two designs.
+We need to transfer shader parameters in JSON. This document defines the transfer format.
+
+## Format definition
+
+The full format can be generated with the following rust type definitions and serde macros:
+
+```rust
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(tag = "type", rename_all = "snake_case", content = "value")]
+pub enum ShaderParams {
+    F32(f32),
+    U32(u32),
+    I32(i32),
+    List(Vec<ShaderParams>),
+    Struct(Vec<ShaderParamStructField>),
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ShaderParamStructField {
+    pub field_name: String,
+    #[serde(flatten)]
+    pub value: ShaderParams,
+}
+```
+
+Additionally:
+
+- all `wgsl` `vecN` types are represented as lists
+- all `wgsl` `matNxM` types are represented as lists of lists
+
+## Format demonstration
 
 Let's look at a single type that we would like to represent. This is what it looks like in wgsl:
 
@@ -21,80 +51,43 @@ struct MyStruct {
 }
 ```
 
-## First idea
-
-We only transport an array of primitives, as they are laid out in the type after stripping out all structs, vecs, matrices and arrays:
-
-```json
-[
-    {
-        "type": "f32",
-        "val": 0.0,
-    },
-
-    {
-        "type": "f32",
-        "val": 0.0,
-    },
-
-    {
-        "type": "f32",
-        "val": 0.0,
-    },
-
-    {
-        "type": "f32",
-        "val": 0.0,
-    },
-
-    {
-        "type": "u32",
-        "val": 42,
-    },
-]
-```
-
-## Second idea
-
-We include information about the structure of the data:
+This struct looks like this when encoded in the proposed format:
 
 ```json
 {
     "type": "struct",
-    "val": [
+    "value": [
         {
+            "field_name": "value_a",
             "type": "list",
-            "val": [
+            "value": [
                 {
                     "type": "f32",
-                    "val": 0.0
+                    "value": 0.0
                 },
 
                 {
                     "type": "f32",
-                    "val": 0.0
+                    "value": 0.0
                 },
                 
                 {
                     "type": "f32",
-                    "val": 0.0
+                    "value": 0.0
                 },
                 
                 {
                     "type": "f32",
-                    "val": 0.0
+                    "value": 0.0
                 }
             ]
         },
 
         {
+            "field_name": "value_b"
             "type": "u32",
-            "val": 42
+            "value": 42
         }
     ]
 }
 ```
-
-There are varying degrees of the strictness of this approach, in this example I chose to treat `vec4` as a `"list"`. `vec2`, `vec3` and `array` would probably all be considered a `"list"`, but in a more strict version of this approach all of them could be separate types. The more annoying thing about this approach is the necessary validation. We should validate that all values in a list type are of the same type. Using more strict typing we would have to enforce that the `vec`s and matrices all have correct amounts of values and don't include non-primitive types.
-
-What format should we choose?
