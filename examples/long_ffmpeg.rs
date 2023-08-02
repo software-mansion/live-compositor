@@ -80,13 +80,14 @@ fn start_example_client_code() -> Result<()> {
         "port": 8004
     }))?;
 
+    let shader_source = include_str!("../compositor_render/examples/silly.wgsl");
     info!("[example] Register shader transform");
     common::post(&json!({
         "type": "register_transformation",
         "key": "example shader",
         "transform": {
             "type": "shader",
-            "source": "some source or other data"
+            "source": shader_source,
         }
     }))?;
 
