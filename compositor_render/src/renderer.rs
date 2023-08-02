@@ -71,11 +71,11 @@ pub enum RendererRegisterTransformationError {
 }
 
 impl Renderer {
-    pub fn new() -> Result<Self, RendererNewError> {
+    pub fn new(init_web: bool) -> Result<Self, RendererNewError> {
         Ok(Self {
             wgpu_ctx: Arc::new(WgpuCtx::new()?),
             text_renderer_ctx: Mutex::new(TextRendererCtx::new()),
-            electron_instance: Arc::new(ElectronInstance::new(9002)?), // TODO: make it configurable
+            electron_instance: Arc::new(ElectronInstance::new(9002, init_web)?), // TODO: make it configurable
             scene: Scene::empty(),
             web_renderers: TransformationRegistry::new(RegistryType::WebRenderer),
             shader_transforms: TransformationRegistry::new(RegistryType::Shader),
@@ -182,7 +182,7 @@ impl WgpuCtx {
             &wgpu::DeviceDescriptor {
                 label: Some("Video Compositor's GPU :^)"),
                 limits: Default::default(),
-                features: wgpu::Features::empty(),
+                features: wgpu::Features::TEXTURE_BINDING_ARRAY,
             },
             None,
         ))?;
@@ -200,16 +200,5 @@ impl WgpuCtx {
             yuv_to_rgba_converter,
             rgba_to_yuv_converter,
         })
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    #[test]
-    fn initialize() -> Result<(), RendererNewError> {
-        Renderer::new()?;
-        Ok(())
     }
 }

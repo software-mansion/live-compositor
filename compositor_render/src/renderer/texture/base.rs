@@ -6,7 +6,7 @@ pub struct Texture {
 }
 
 impl Texture {
-    pub const DEFAULT_BINDING_TYPE: wgpu::BindingType = wgpu::BindingType::Texture {
+    pub(super) const DEFAULT_BINDING_TYPE: wgpu::BindingType = wgpu::BindingType::Texture {
         sample_type: wgpu::TextureSampleType::Float { filterable: true },
         view_dimension: wgpu::TextureViewDimension::D2,
         multisampled: false,

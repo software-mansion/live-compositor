@@ -6,7 +6,6 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-futures = "0.3.28"
 pollster = "0.3.0"
 thiserror = { workspace = true } 
 wgpu = "0.16.1"

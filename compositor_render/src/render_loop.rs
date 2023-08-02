@@ -4,7 +4,6 @@ use compositor_common::{
     scene::{InputId, OutputId},
     Frame,
 };
-
 use log::error;
 
 use crate::renderer::{
@@ -19,7 +18,7 @@ pub(super) fn populate_inputs(
 ) {
     for (input_id, (node, input_textures)) in &mut scene.inputs {
         let frame = frames.remove(input_id).unwrap();
-        node.output.ensure_size(ctx.wgpu_ctx, &frame.resolution);
+        node.output.ensure_size(ctx.wgpu_ctx, frame.resolution);
         input_textures.upload(ctx.wgpu_ctx, frame);
     }
 
@@ -54,7 +53,7 @@ pub(super) fn read_outputs(
     let mut result = HashMap::new();
     for (node_id, yuv_pending, resolution) in pending_downloads {
         let yuv_data = match yuv_pending.wait() {
-            Ok(i) => i,
+            Ok(data) => data,
             Err(err) => {
                 error!("Failed to download frame: {}", err);
                 continue;

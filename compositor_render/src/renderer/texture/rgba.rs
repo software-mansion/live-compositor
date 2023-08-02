@@ -4,10 +4,10 @@ use crate::renderer::WgpuCtx;
 
 use super::base::Texture;
 
-pub struct RGBATexture(pub Texture);
+pub struct RGBATexture(Texture);
 
 impl RGBATexture {
-    pub fn new(ctx: &WgpuCtx, resolution: &Resolution) -> Self {
+    pub fn new(ctx: &WgpuCtx, resolution: Resolution) -> Self {
         Self(Texture::new(
             ctx,
             None,
@@ -18,7 +18,6 @@ impl RGBATexture {
             },
             wgpu::TextureFormat::Rgba8Unorm,
             wgpu::TextureUsages::RENDER_ATTACHMENT
-                | wgpu::TextureUsages::TEXTURE_BINDING
                 | wgpu::TextureUsages::COPY_DST
                 | wgpu::TextureUsages::TEXTURE_BINDING,
         ))
@@ -36,7 +35,7 @@ impl RGBATexture {
         })
     }
 
-    pub fn new_bind_group(
+    pub(super) fn new_bind_group(
         &self,
         ctx: &WgpuCtx,
         layout: &wgpu::BindGroupLayout,

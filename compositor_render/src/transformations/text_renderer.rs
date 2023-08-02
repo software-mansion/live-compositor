@@ -149,8 +149,9 @@ impl TextRenderer {
                 .create_command_encoder(&CommandEncoderDescriptor {
                     label: Some("Text renderer encoder"),
                 });
-
-        let view = &target.rgba_texture().0.view;
+        
+        let target_texture = &target.rgba_texture();
+        let view = &target_texture.texture().view;
         {
             let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
                 label: None,

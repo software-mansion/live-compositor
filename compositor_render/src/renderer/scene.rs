@@ -57,12 +57,8 @@ impl TransformNode {
         target: &NodeTexture,
     ) {
         match self {
-            TransformNode::Shader {
-                params: _,
-                shader: _,
-            } => {
-                // shader.render(sources, target, other_args);
-                error!("mocked shader render")
+            TransformNode::Shader { params, shader } => {
+                shader.render(params, sources, target);
             }
             TransformNode::WebRenderer { renderer } => {
                 if let Err(err) = renderer.render(ctx, sources, target) {
@@ -92,7 +88,7 @@ impl Node {
         inputs: Vec<Arc<Node>>,
     ) -> Result<Self, GetError> {
         let node = TransformNode::new(ctx, &spec.transform_params)?;
-        let output = NodeTexture::new(ctx.wgpu_ctx, &spec.resolution);
+        let output = NodeTexture::new(ctx.wgpu_ctx, spec.resolution);
         Ok(Self {
             node_id: spec.node_id.clone(),
             transform: node,
@@ -103,7 +99,7 @@ impl Node {
     }
 
     pub fn new_input(ctx: &RenderCtx, spec: &InputSpec) -> Result<Self, GetError> {
-        let output = NodeTexture::new(ctx.wgpu_ctx, &spec.resolution);
+        let output = NodeTexture::new(ctx.wgpu_ctx, spec.resolution);
 
         Ok(Self {
             node_id: spec.input_id.0.clone(),
@@ -149,7 +145,7 @@ impl Scene {
             .iter()
             .map(|output| {
                 let node = self.ensure_node(ctx, &output.input_pad, &spec, &mut new_nodes)?;
-                let buffers = OutputTexture::new(ctx.wgpu_ctx, &node.resolution);
+                let buffers = OutputTexture::new(ctx.wgpu_ctx, node.resolution);
                 Ok((output.output_id.clone(), (node, buffers)))
             })
             .collect::<Result<_, _>>()?;
@@ -196,7 +192,7 @@ impl Scene {
                     InputId(node_id.clone()),
                     (
                         node.clone(),
-                        InputTexture::new(ctx.wgpu_ctx, &input.resolution),
+                        InputTexture::new(ctx.wgpu_ctx, input.resolution),
                     ),
                 );
                 return Ok(node);

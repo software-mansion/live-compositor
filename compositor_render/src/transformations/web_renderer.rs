@@ -38,7 +38,7 @@ impl WebRenderer {
         let session_id = ctx
             .electron
             .client
-            .new_session(&params.url, &params.resolution)?;
+            .new_session(&params.url, params.resolution)?;
 
         Ok(Self { session_id, params })
     }
