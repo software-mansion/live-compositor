@@ -1,4 +1,4 @@
-use std::{env, ops::Deref, os::raw::c_int, path::PathBuf};
+use std::{env, os::raw::c_int};
 
 use crate::cef_string::CefString;
 

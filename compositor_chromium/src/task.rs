@@ -35,7 +35,7 @@ impl<F: FnOnce()> Task<F> {
                 return;
             }
 
-            let task = CefRefPtr::new(self);
+            let task = CefRefPtr::new_ptr(self);
             chromium_sys::cef_post_task(thread_id as u32, task);
         }
     }

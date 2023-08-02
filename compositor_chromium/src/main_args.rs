@@ -1,8 +1,8 @@
 use std::ffi::CString;
 
 pub struct MainArgs {
-    argv: Vec<*mut i8>,
     inner: chromium_sys::cef_main_args_t,
+    _argv: Vec<*mut i8>,
 }
 
 impl MainArgs {
@@ -15,7 +15,7 @@ impl MainArgs {
             argv: argv.as_mut_ptr(),
         };
 
-        Self { argv, inner }
+        Self { inner, _argv: argv }
     }
 
     pub fn raw_mut(&mut self) -> &mut chromium_sys::cef_main_args_t {

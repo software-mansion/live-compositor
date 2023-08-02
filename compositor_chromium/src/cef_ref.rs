@@ -42,7 +42,7 @@ impl<T: CefStruct> CefRefPtr<T> {
     // Taken from std::sync::Arc
     const MAX_REFCOUNT: usize = (isize::MAX) as usize;
 
-    pub fn new(mut data: T) -> *mut T::CefType {
+    pub fn new_ptr(data: T) -> *mut T::CefType {
         let mut cef_data = data.get_cef_data();
 
         // Init ref counting for T::CefType
@@ -89,7 +89,7 @@ impl<T: CefStruct> CefRefPtr<T> {
         if should_drop {
             unsafe {
                 // Load raw Self instance and let Box drop it
-                Box::from_raw(self_ref);
+                let _ = Box::from_raw(self_ref);
             }
         }
 

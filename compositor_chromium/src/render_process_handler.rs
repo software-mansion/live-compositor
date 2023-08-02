@@ -8,18 +8,18 @@ use crate::{
 pub trait RenderProcessHandler {
     fn on_context_created(
         &mut self,
-        browser: Browser<'_>,
-        frame: Frame<'_>,
-        context: V8Context<'_>,
+        _browser: Browser<'_>,
+        _frame: Frame<'_>,
+        _context: V8Context<'_>,
     ) {
     }
 
     fn on_process_message_received(
         &mut self,
-        browser: Browser<'_>,
-        frame: Frame<'_>,
-        source_process: ProcessId,
-        message: ProcessMessage,
+        _browser: Browser<'_>,
+        _frame: Frame<'_>,
+        _source_process: ProcessId,
+        _message: ProcessMessage,
     ) -> bool {
         false
     }

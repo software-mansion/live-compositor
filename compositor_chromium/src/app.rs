@@ -10,8 +10,8 @@ pub trait App {
 
     fn on_before_command_line_processing(
         &mut self,
-        process_type: String,
-        command_line: &mut CommandLine,
+        _process_type: String,
+        _command_line: &mut CommandLine,
     ) {
     }
 
@@ -60,7 +60,7 @@ impl<A: App> AppWrapper<A> {
     ) -> *mut chromium_sys::cef_render_process_handler_t {
         let self_ref = unsafe { CefRefPtr::<Self>::from_cef(self_) };
         match self_ref.0.get_render_process_handler() {
-            Some(handler) => CefRefPtr::new(RenderProcessHandlerWrapper(handler)),
+            Some(handler) => CefRefPtr::new_ptr(RenderProcessHandlerWrapper(handler)),
             None => std::ptr::null_mut(),
         }
     }

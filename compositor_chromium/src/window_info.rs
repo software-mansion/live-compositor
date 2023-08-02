@@ -1,4 +1,4 @@
-use std::os::raw::{c_int, c_ulong};
+use std::os::raw::c_int;
 
 use crate::cef_string::CefString;
 
@@ -12,7 +12,7 @@ impl WindowInfo {
         chromium_sys::cef_window_info_t {
             window_name: CefString::empty_raw(),
             bounds: unsafe { std::mem::zeroed() },
-            hidden: self.hidden as c_int,
+            hidden: true as c_int,
             parent_view: std::ptr::null_mut(),
             windowless_rendering_enabled: self.windowless_rendering_enabled as c_int,
             shared_texture_enabled: false as c_int,
@@ -23,6 +23,8 @@ impl WindowInfo {
 
     #[cfg(target_os = "linux")]
     pub(crate) fn into_raw(self) -> chromium_sys::cef_window_info_t {
+        use std::os::raw::c_ulong;
+
         chromium_sys::cef_window_info_t {
             window_name: CefString::empty_raw(),
             bounds: unsafe { std::mem::zeroed() },

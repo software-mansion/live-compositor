@@ -51,9 +51,9 @@ impl<C: Client> ClientWrapper<C> {
         self_: *mut chromium_sys::cef_client_t,
     ) -> *mut chromium_sys::cef_render_handler_t {
         unsafe {
-            let mut self_ref = CefRefPtr::<Self>::from_cef(self_);
+            let self_ref = CefRefPtr::<Self>::from_cef(self_);
             match self_ref.0.get_render_handler() {
-                Some(handler) => CefRefPtr::new(RenderHandlerWrapper(handler)),
+                Some(handler) => CefRefPtr::new_ptr(RenderHandlerWrapper(handler)),
                 None => std::ptr::null_mut(),
             }
         }

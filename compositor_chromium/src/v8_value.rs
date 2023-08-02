@@ -26,7 +26,7 @@ impl<'a> V8Value<'a> {
     ) -> bool {
         let key = CefString::new_raw(key);
         unsafe {
-            let set_value = (&mut *self.inner).set_value_bykey.unwrap();
+            let set_value = (*self.inner).set_value_bykey.unwrap();
             set_value(self.inner, &key, value.inner, attribute as u32) == 1
         }
     }
@@ -49,7 +49,7 @@ impl<'a> V8Value<'a> {
             chromium_sys::cef_v8value_create_array_buffer(
                 buffer.as_mut_ptr() as *mut c_void,
                 buffer.len(),
-                CefRefPtr::new(release_callback),
+                CefRefPtr::new_ptr(release_callback),
             )
         };
 

@@ -1,5 +1,3 @@
-use std::ops::Deref;
-
 use widestring::U16CString;
 
 // TODO: Research when cef_string_t is removed  from memory
@@ -10,7 +8,7 @@ impl CefString {
         extern "C" fn dtor(ptr: *mut u16) {
             if !ptr.is_null() {
                 unsafe {
-                    U16CString::from_raw(ptr);
+                    let _ = U16CString::from_raw(ptr);
                 }
             }
         }

@@ -1,12 +1,6 @@
 use std::marker::PhantomData;
 
-use crate::{
-    cef_ref::CefRefPtr,
-    cef_string::CefString,
-    client::{Client, ClientWrapper},
-    frame::Frame,
-    window_info::{self, WindowInfo},
-};
+use crate::{cef_string::CefString, frame::Frame};
 
 pub struct Browser<'a> {
     inner: *mut chromium_sys::cef_browser_t,

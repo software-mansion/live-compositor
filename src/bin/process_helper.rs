@@ -1,6 +1,6 @@
 use compositor_chromium::cef;
 use log::info;
-use std::{error::Error, process::ExitCode};
+use std::error::Error;
 
 struct App;
 
@@ -17,9 +17,9 @@ struct RenderProcessHandler;
 impl cef::RenderProcessHandler for RenderProcessHandler {
     fn on_process_message_received(
         &mut self,
-        browser: cef::Browser<'_>,
-        frame: cef::Frame<'_>,
-        source_process: cef::ProcessId,
+        _browser: cef::Browser<'_>,
+        _frame: cef::Frame<'_>,
+        _source_process: cef::ProcessId,
         message: cef::ProcessMessage,
     ) -> bool {
         // TODO: Implement this
@@ -36,7 +36,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         env_logger::Env::default().filter_or(env_logger::DEFAULT_FILTER_ENV, "info"),
     );
 
-    let subprocess_type = std::env::args().find_map(|a| a.strip_prefix("--type=").map(ToOwned::to_owned)).unwrap();
+    let subprocess_type = std::env::args()
+        .find_map(|a| a.strip_prefix("--type=").map(ToOwned::to_owned))
+        .unwrap();
 
     info!("Chromium {subprocess_type} subprocess started");
     let context = cef::Context::new_helper()?;

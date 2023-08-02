@@ -15,16 +15,16 @@ impl ProcessMessage {
 
     pub fn get_name(&self) -> String {
         unsafe {
-            let get_name = (&mut *self.inner).get_name.unwrap();
+            let get_name = (*self.inner).get_name.unwrap();
             CefString::from_raw(get_name(self.inner))
         }
     }
 
     pub fn write_binary(&mut self, index: usize, data: &[u8]) {
         unsafe {
-            let get_argument_list = (&mut *self.inner).get_argument_list.unwrap();
+            let get_argument_list = (*self.inner).get_argument_list.unwrap();
             let args = get_argument_list(self.inner);
-            let set_binary = (&mut *args).set_binary.unwrap();
+            let set_binary = (*args).set_binary.unwrap();
             let binary_value =
                 chromium_sys::cef_binary_value_create(data.as_ptr() as *const c_void, data.len());
 
@@ -37,12 +37,12 @@ impl ProcessMessage {
         let mut data = Vec::new();
 
         unsafe {
-            let get_argument_list = (&mut *self.inner).get_argument_list.unwrap();
+            let get_argument_list = (*self.inner).get_argument_list.unwrap();
             let args = get_argument_list(self.inner);
-            let get_binary = (&mut *args).get_binary.unwrap();
+            let get_binary = (*args).get_binary.unwrap();
             let binary = get_binary(args, index);
-            let get_data = (&mut *binary).get_data.unwrap();
-            let get_data_size = (&mut *binary).get_size.unwrap();
+            let get_data = (*binary).get_data.unwrap();
+            let get_data_size = (*binary).get_size.unwrap();
 
             let data_size = get_data_size(binary);
             data.resize(data_size, 0);

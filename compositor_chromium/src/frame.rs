@@ -17,7 +17,7 @@ impl<'a> Frame<'a> {
 
     pub fn send_process_message(&self, pid: ProcessId, msg: ProcessMessage) {
         unsafe {
-            let send_message = (&mut *self.inner).send_process_message.unwrap();
+            let send_message = (*self.inner).send_process_message.unwrap();
             send_message(self.inner, pid as u32, msg.inner);
         }
     }
@@ -25,7 +25,7 @@ impl<'a> Frame<'a> {
     /// Can be only called from the renderer process
     pub fn get_v8_context(&self) -> Option<V8Context<'a>> {
         unsafe {
-            let get_v8_context = (&mut *self.inner).get_v8context.unwrap();
+            let get_v8_context = (*self.inner).get_v8context.unwrap();
             let context = get_v8_context(self.inner);
             if context.is_null() {
                 return None;

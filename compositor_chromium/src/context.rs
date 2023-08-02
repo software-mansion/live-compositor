@@ -1,12 +1,6 @@
-use std::{ffi::CString, io, path::PathBuf, process::ExitCode};
+use std::{ffi::CString, io, path::PathBuf};
 
-use crate::{
-    cef::*,
-    cef_ref::CefRefPtr,
-    cef_string::CefString,
-    main_args::MainArgs,
-    task::{Task, ThreadId},
-};
+use crate::{cef::*, cef_ref::CefRefPtr, cef_string::CefString, main_args::MainArgs};
 
 pub struct Context {
     _priv: (),
@@ -27,7 +21,7 @@ impl Context {
     pub fn new<A: App>(app: A, settings: Settings) -> Result<Self, ContextError> {
         #[cfg(target_os = "macos")]
         {
-            let framework_path = PathBuf::from(std::env::current_exe()?)
+            let framework_path = std::env::current_exe()?
                 .parent()
                 .unwrap()
                 .join("..")
@@ -35,12 +29,12 @@ impl Context {
                 .join("Chromium Embedded Framework.framework")
                 .join("Chromium Embedded Framework");
 
-            Self::load_framework(framework_path);
+            Self::load_framework(framework_path)?;
         }
 
         let mut main_args = MainArgs::from_env();
         let settings = settings.into_raw();
-        let mut app = CefRefPtr::new(AppWrapper(app));
+        let app = CefRefPtr::new_ptr(AppWrapper(app));
 
         let init_result = unsafe {
             chromium_sys::cef_initialize(main_args.raw_mut(), &settings, app, std::ptr::null_mut())
@@ -56,7 +50,7 @@ impl Context {
     pub fn new_helper() -> Result<Self, ContextError> {
         #[cfg(target_os = "macos")]
         {
-            let framework_path = PathBuf::from(std::env::current_exe()?)
+            let framework_path = std::env::current_exe()?
                 .parent()
                 .unwrap()
                 .join("..")
@@ -65,7 +59,7 @@ impl Context {
                 .join("Chromium Embedded Framework.framework")
                 .join("Chromium Embedded Framework");
 
-            Self::load_framework(framework_path);
+            Self::load_framework(framework_path)?;
         }
 
         Ok(Context { _priv: () })
@@ -84,19 +78,18 @@ impl Context {
 
     pub fn execute_process<A: App>(&self, app: A) -> i32 {
         let mut main_args = MainArgs::from_env();
-        let mut app = CefRefPtr::new(AppWrapper(app));
-
+        let app = CefRefPtr::new_ptr(AppWrapper(app));
         unsafe { chromium_sys::cef_execute_process(main_args.raw_mut(), app, std::ptr::null_mut()) }
     }
 
-    pub fn start_browser<'a, C: Client>(
-        &'a self,
+    pub fn start_browser<C: Client>(
+        &self,
         client: C,
         window_info: WindowInfo,
         settings: BrowserSettings,
         url: String,
-    ) -> Result<Browser<'a>, ContextError> {
-        let client = CefRefPtr::new(ClientWrapper(client));
+    ) -> Result<Browser<'_>, ContextError> {
+        let client = CefRefPtr::new_ptr(ClientWrapper(client));
         let window_info = window_info.into_raw();
         let settings = settings.into_raw();
         let url = CefString::new_raw(url);

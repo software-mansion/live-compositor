@@ -2,12 +2,15 @@ use std::os::raw::{c_int, c_void};
 
 use compositor_common::scene::Resolution;
 
-use crate::cef_ref::{CefRefPtr, CefStruct};
+use crate::{
+    browser::Browser,
+    cef_ref::{CefRefPtr, CefStruct},
+};
 
 pub trait RenderHandler {
-    fn get_resolution(&mut self) -> Resolution;
+    fn get_resolution(&self, browser: Browser<'_>) -> Resolution;
 
-    fn on_paint(&mut self, buffer: &[u8], resolution: Resolution);
+    fn on_paint(&self, browser: Browser<'_>, buffer: &[u8], resolution: Resolution);
 }
 
 pub(crate) struct RenderHandlerWrapper<R: RenderHandler>(pub R);
@@ -50,8 +53,9 @@ impl<R: RenderHandler> RenderHandlerWrapper<R> {
         rect: *mut chromium_sys::cef_rect_t,
     ) {
         unsafe {
-            let mut self_ref = CefRefPtr::<Self>::from_cef(self_);
-            let resolution = self_ref.0.get_resolution();
+            let self_ref = CefRefPtr::<Self>::from_cef(self_);
+            let browser = Browser::new(browser);
+            let resolution = self_ref.0.get_resolution(browser);
             let rect = &mut *rect;
             rect.width = resolution.width as i32;
             rect.height = resolution.height as i32;
@@ -61,18 +65,20 @@ impl<R: RenderHandler> RenderHandlerWrapper<R> {
     extern "C" fn on_paint(
         self_: *mut chromium_sys::cef_render_handler_t,
         browser: *mut chromium_sys::cef_browser_t,
-        type_: chromium_sys::cef_paint_element_type_t,
-        dirty_rects_count: usize,
-        dirt_rects: *const chromium_sys::cef_rect_t,
+        _type: chromium_sys::cef_paint_element_type_t,
+        _dirty_rects_count: usize,
+        _dirt_rects: *const chromium_sys::cef_rect_t,
         buffer: *const c_void,
         width: c_int,
         height: c_int,
     ) {
         unsafe {
-            let mut self_ref = CefRefPtr::<Self>::from_cef(self_);
+            let self_ref = CefRefPtr::<Self>::from_cef(self_);
+            let browser = Browser::new(browser);
             let buffer =
                 std::slice::from_raw_parts(buffer as *const u8, (4 * width * height) as usize);
             self_ref.0.on_paint(
+                browser,
                 buffer,
                 Resolution {
                     width: width as usize,
