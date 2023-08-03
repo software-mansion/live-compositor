@@ -80,7 +80,7 @@ impl InnerNodeTexture {
 
 pub struct NodeTexture {
     inner: Mutex<InnerNodeTexture>,
-    resolution: Resolution,
+    pub resolution: Resolution,
 }
 
 impl NodeTexture {

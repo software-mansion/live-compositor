@@ -11,7 +11,6 @@ impl Texture {
         view_dimension: wgpu::TextureViewDimension::D2,
         multisampled: false,
     };
-
     pub fn new(
         ctx: &WgpuCtx,
         label: Option<&str>,
