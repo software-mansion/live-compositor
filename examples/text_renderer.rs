@@ -94,17 +94,9 @@ fn start_example_client_code() -> Result<()> {
                 "node_id": "text_renderer",
                 "type": "text_renderer",
                 "text_params": {
-                    "content": "Hello, VideoCompositor 🚀\n 复制粘贴",
-                    "placement": {
-                        "top_left_corner": [500, 200],
-                        "width": 1920,
-                        "height": 1080
-                    },
-                    "color_rgba": [0, 255, 0, 128],
-                    "font_family": "sans-serif",
+                    "content": "VideoCompositor🚀\nSecond Line",
                     "font_size": 100.0,
-                    "line_height": 120.0,
-                    "style": "normal"
+                    "font_family": "Comic Sans MS",
                 },
                 "input_pads": [],
                 "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },

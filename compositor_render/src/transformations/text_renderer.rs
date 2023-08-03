@@ -1,8 +1,9 @@
-use compositor_common::scene::{Box, TextParams};
+use compositor_common::scene::TextParams;
 use glyphon::{
     AttrsOwned, Buffer, Color, FontSystem, Metrics, Shaping, SwashCache, TextArea, TextAtlas,
     TextBounds,
 };
+use log::info;
 use wgpu::{
     CommandEncoderDescriptor, LoadOp, MultisampleState, Operations, RenderPassColorAttachment,
     RenderPassDescriptor, TextureFormat,
@@ -13,7 +14,6 @@ use crate::renderer::{texture::NodeTexture, RenderCtx};
 #[allow(dead_code)]
 pub struct TextSpec {
     content: String,
-    text_box: Box,
     attributes: AttrsOwned,
     font_size: f32,
     line_height: f32,
@@ -27,7 +27,6 @@ impl From<TextParams> for TextSpec {
 
         Self {
             content: text_params.content,
-            text_box: text_params.placement,
             attributes,
             font_size,
             line_height,
@@ -99,7 +98,12 @@ impl TextRenderer {
         }
     }
 
-    fn render_text(renderer_ctx: &mut RenderCtx, target: &NodeTexture, text: &TextSpec) {
+    pub fn render(&mut self, renderer_ctx: &mut RenderCtx, target: &NodeTexture) {
+        if self.was_rendered {
+            return;
+        }
+
+        info!("Text render");
         let font_system = &mut renderer_ctx.text_renderer_ctx.lock().unwrap().font_system;
         let swapchain_format = TextureFormat::Rgba8Unorm;
         let mut cache = SwashCache::new();
@@ -114,7 +118,10 @@ impl TextRenderer {
             MultisampleState::default(),
             None,
         );
-        let mut buffer = Buffer::new(font_system, Metrics::new(text.font_size, text.line_height));
+        let mut buffer = Buffer::new(
+            font_system,
+            Metrics::new(self.text_specs.font_size, self.text_specs.line_height),
+        );
 
         buffer.set_size(
             font_system,
@@ -124,8 +131,8 @@ impl TextRenderer {
 
         buffer.set_text(
             font_system,
-            &text.content,
-            text.attributes.as_attrs(),
+            &self.text_specs.content,
+            self.text_specs.attributes.as_attrs(),
             Shaping::Advanced,
         );
         buffer.shape_until_scroll(font_system);
@@ -142,8 +149,8 @@ impl TextRenderer {
                 },
                 [TextArea {
                     buffer: &buffer,
-                    left: text.text_box.top_left_corner.0 as f32,
-                    top: text.text_box.top_left_corner.1 as f32,
+                    left: 0 as f32,
+                    top: 0 as f32,
                     scale: 1.0,
                     bounds: TextBounds {
                         left: 0,
@@ -185,12 +192,6 @@ impl TextRenderer {
         }
 
         renderer_ctx.wgpu_ctx.queue.submit(Some(encoder.finish()));
-    }
-
-    pub fn render(&self, ctx: &mut RenderCtx, target: &NodeTexture) {
-        if self.was_rendered {
-            return;
-        }
-        Self::render_text(ctx, target, &self.text_specs);
+        self.was_rendered = true;
     }
 }

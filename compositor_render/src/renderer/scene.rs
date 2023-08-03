@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, sync::{Arc, Mutex}};
 
 use compositor_common::scene::{
     InputId, InputSpec, NodeId, OutputId, Resolution, SceneSpec, ShaderParams, TransformNodeSpec,
@@ -27,7 +27,7 @@ pub enum TransformNode {
         renderer: Arc<WebRenderer>,
     },
     TextRenderer {
-        renderer: Arc<TextRenderer>,
+        renderer: Mutex<TextRenderer>,
     },
     Nop,
 }
@@ -46,7 +46,7 @@ impl TransformNode {
                 shader: ctx.shader_transforms.get(shader_id)?,
             }),
             TransformParams::TextRenderer { text_params } => Ok(TransformNode::TextRenderer {
-                renderer: Arc::new(TextRenderer::new(text_params.clone())),
+                renderer: Mutex::new(TextRenderer::new(text_params.clone())),
             }),
         }
     }
@@ -66,7 +66,7 @@ impl TransformNode {
                 }
             }
             TransformNode::TextRenderer { renderer } => {
-                renderer.render(ctx, target);
+                renderer.lock().unwrap().render(ctx, target);
             }
             TransformNode::Nop => (),
         }
