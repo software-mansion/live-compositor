@@ -1,4 +1,7 @@
-use std::{collections::HashMap, sync::{Arc, Mutex}};
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex},
+};
 
 use compositor_common::scene::{
     InputId, InputSpec, NodeId, OutputId, Resolution, SceneSpec, ShaderParams, TransformNodeSpec,
