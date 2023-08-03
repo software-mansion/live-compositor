@@ -34,11 +34,6 @@ jobs:
             - name: 📁 Rust cache
               uses: Swatinem/rust-cache@v2
 
-            - name: 🌐 Setup Chromium Embedded Framework
-              run: |
-                  ./run.sh
-                  echo "CEF_ROOT=$(pwd)/target/debug/cef_root" >> $GITHUB_ENV
-
             - name: 📖 Check formatting
               run: cargo fmt --all --check
 
