@@ -11,7 +11,7 @@ if [[ -z "$CEF_ROOT" || ! -d "$CEF_ROOT" || "$GITHUB_ACTIONS" == "true" ]]; then
     
     if [[ ! -d "$CEF_ROOT" ]]; then
         if [[ "$OSTYPE" == "darwin"* ]]; then
-            if [[ "uname -m" == "x86_64" ]]; then
+            if [[ "$(uname -m)" == "x86_64" ]]; then
                 platform="macosx64"
             else
                 platform="macosarm64"
