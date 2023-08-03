@@ -1,7 +1,12 @@
+// NOTE: I'm in the middle of rewriting the app bundling.
+// build.rs, run.sh and utils.rs are not yet ready. Please ignore them during the initial review
+
 use std::{
     env,
     error::Error,
+    fs,
     path::{Path, PathBuf},
+    process::Command,
 };
 
 use bindgen::callbacks::ParseCallbacks;
@@ -10,24 +15,35 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-env-changed=CEF_ROOT");
 
-    let out_path = PathBuf::from(env::var("OUT_DIR")?)
+    let out_dir = env::var("OUT_DIR")?;
+
+    let cef_root = if let Ok(cef_root) = env::var("CEF_ROOT") {
+        PathBuf::from(cef_root)
+    } else {
+        PathBuf::from(out_dir).join("cef_root")
+    };
+
+    if !cef_root.exists() {
+        download_cef(&cef_root);
+    }
+
+    let target_path = PathBuf::from(env::var("OUT_DIR")?)
         .join("..")
         .join("..")
         .join("..");
-    let bindings = prepare(&out_path)?;
+    let bindings = prepare(&cef_root, &target_path)?;
     bindings.write_to_file(PathBuf::from(".").join("src").join("bindings.rs"))?;
 
-    link();
+    link(&cef_root);
 
     Ok(())
 }
 
 #[allow(unused_variables)]
-fn prepare(out_path: &Path) -> Result<bindgen::Bindings, Box<dyn Error>> {
-    let cef_root = env::var("CEF_ROOT")?;
+fn prepare(cef_root: &Path, target_path: &Path) -> Result<bindgen::Bindings, Box<dyn Error>> {
     let bindings = bindgen::Builder::default()
         .header("wrapper.h")
-        .clang_arg(format!("-I{cef_root}"))
+        .clang_arg(format!("-I{}", cef_root.display().to_string()))
         .parse_callbacks(Box::new(bindgen::CargoCallbacks))
         .parse_callbacks(Box::new(RemoveCommentsCallback))
         .generate()?;
@@ -36,7 +52,7 @@ fn prepare(out_path: &Path) -> Result<bindgen::Bindings, Box<dyn Error>> {
     {
         use fs_extra::dir::{self, CopyOptions};
 
-        let framework_out_path = out_path.join("Frameworks");
+        let framework_out_path = target_path.join("Frameworks");
         let _ = std::fs::create_dir_all(&framework_out_path);
         let framework_path = PathBuf::from(cef_root)
             .join("Release")
@@ -47,16 +63,17 @@ fn prepare(out_path: &Path) -> Result<bindgen::Bindings, Box<dyn Error>> {
         };
 
         dir::copy(framework_path, framework_out_path, &options)?;
-        dir::copy("resources", out_path, &options)?;
+        dir::copy("resources", target_path, &options)?;
     }
 
     Ok(bindings)
 }
 
 #[cfg(target_os = "macos")]
-fn link() {
+fn link(cef_root: &Path) {
     let dst = cmake::Config::new("CMakeLists.txt")
         .define("MAKE_BUILD_TYPE", "Debug")
+        .define("CEF_ROOT", cef_root.display().to_string())
         .build();
 
     println!("cargo:rustc-link-search={}", dst.display());
@@ -64,8 +81,7 @@ fn link() {
 }
 
 #[cfg(target_os = "linux")]
-fn link() {
-    let cef_root = env::var("CEF_ROOT").unwrap();
+fn link(cef_root: &Path) {
     println!(
         "cargo:rustc-link-search=native={}",
         PathBuf::from(cef_root).join("Release").display()
@@ -79,5 +95,43 @@ struct RemoveCommentsCallback;
 impl ParseCallbacks for RemoveCommentsCallback {
     fn process_comment(&self, _comment: &str) -> Option<String> {
         Some(String::new())
+    }
+}
+
+fn download_cef(cef_root_path: &Path) {
+    let platform = if cfg!(target_os = "macos") {
+        if cfg!(target_arch = "arm") {
+            "macosarm64"
+        } else {
+            "macosx64"
+        }
+    } else if cfg!(target_os = "linux") {
+        "linux64"
+    } else {
+        panic!("Unsupported platform");
+    };
+
+    let download_path = cef_root_path.parent().unwrap();
+    let url = format!("https://cef-builds.spotifycdn.com/cef_binary_115.3.11%2Bga61da9b%2Bchromium-115.0.5790.114_{platform}_minimal.tar.bz2");
+    let resp = reqwest::blocking::get(url).unwrap();
+
+    let archive_name = "cef.tar.bz2";
+    let content = resp.bytes().unwrap();
+    fs::write(&download_path.join(archive_name), content).unwrap();
+
+    let _ = fs::create_dir_all(&cef_root_path);
+
+    let tar_status = Command::new("tar")
+        .args([
+            "-xvf",
+            &download_path.join(archive_name).display().to_string(),
+            "-C",
+            &cef_root_path.display().to_string(),
+            "--strip-components=1",
+        ])
+        .status()
+        .unwrap();
+    if !tar_status.success() {
+        panic!("failed to unarchive CEF binaries");
     }
 }

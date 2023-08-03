@@ -251,6 +251,7 @@ dependencies = [
  "bindgen 0.66.1",
  "cmake",
  "fs_extra",
+ "reqwest",
 ]
 
 [[package]]
@@ -307,6 +308,7 @@ version = "0.1.0"
 dependencies = [
  "chromium_sys",
  "compositor_common",
+ "fs_extra",
  "thiserror",
  "widestring",
 ]

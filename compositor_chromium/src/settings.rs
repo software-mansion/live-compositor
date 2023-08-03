@@ -1,4 +1,4 @@
-use std::{env, os::raw::c_int};
+use std::{env, os::raw::c_int, path::PathBuf};
 
 use crate::cef_string::CefString;
 
@@ -16,26 +16,38 @@ pub struct Settings {
 
 impl Settings {
     pub fn into_raw(self) -> chromium_sys::cef_settings_t {
-        let browser_subprocess_path = if cfg!(target_os = "linux") {
-            CefString::new_raw(
-                env::current_exe()
-                    .unwrap()
-                    .parent()
-                    .unwrap()
-                    .join("process_helper")
-                    .display()
-                    .to_string(),
-            )
+        let current_exe = env::current_exe().unwrap();
+        let current_dir = current_exe.parent().unwrap();
+
+        let main_bundle_path = if cfg!(target_os = "linux") {
+            String::new()
         } else {
-            CefString::empty_raw()
+            PathBuf::from(current_dir)
+                .join("video_compositor.app")
+                .display()
+                .to_string()
+        };
+
+        let browser_subprocess_path = if cfg!(target_os = "linux") {
+            current_dir.join("process_helper").display().to_string()
+        } else {
+            PathBuf::from(&main_bundle_path)
+                .join("Contents")
+                .join("Frameworks")
+                .join("video_compositor Helper.app")
+                .join("Contents")
+                .join("MacOS")
+                .join("video_compositor Helper")
+                .display()
+                .to_string()
         };
 
         chromium_sys::cef_settings_t {
             size: std::mem::size_of::<chromium_sys::cef_settings_t>(),
             no_sandbox: true as c_int,
-            browser_subprocess_path,
+            browser_subprocess_path: CefString::new_raw(browser_subprocess_path),
             framework_dir_path: CefString::empty_raw(),
-            main_bundle_path: CefString::empty_raw(),
+            main_bundle_path: CefString::new_raw(main_bundle_path),
             chrome_runtime: false as c_int,
             multi_threaded_message_loop: self.multi_threaded_message_loop as c_int,
             external_message_pump: self.external_message_pump as c_int,

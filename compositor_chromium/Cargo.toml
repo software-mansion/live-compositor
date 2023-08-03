@@ -8,5 +8,6 @@ edition = "2021"
 [dependencies]
 chromium_sys = { path = "chromium_sys" }
 compositor_common = { path = "../compositor_common" }
-thiserror = "1.0.40"
+fs_extra = "1.3.0"
+thiserror = { workspace = true }
 widestring = "1.0.2"

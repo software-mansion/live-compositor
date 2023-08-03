@@ -12,6 +12,7 @@ mod render_handler;
 mod render_process_handler;
 mod settings;
 mod task;
+mod utils;
 mod v8_context;
 mod v8_value;
 mod window_info;

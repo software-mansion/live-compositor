@@ -1,4 +1,4 @@
-use std::io;
+use std::{io, path::PathBuf};
 
 use crate::{cef::*, cef_ref::CefRefPtr, cef_string::CefString, main_args::MainArgs};
 
@@ -24,7 +24,8 @@ impl Context {
             let framework_path = std::env::current_exe()?
                 .parent()
                 .unwrap()
-                .join("..")
+                .join("video_compositor.app")
+                .join("Contents")
                 .join("Frameworks")
                 .join("Chromium Embedded Framework.framework")
                 .join("Chromium Embedded Framework");
