@@ -96,7 +96,7 @@ pub enum Style {
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(tag = "type")]
 pub struct TextParams {
-    pub content: String,
+    pub content: Arc<str>,
     /// in pixels
     pub font_size: f32,
     /// default: white (255, 255, 255, 255)

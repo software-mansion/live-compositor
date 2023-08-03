@@ -1,3 +1,5 @@
+use std::sync::{Arc, Mutex};
+
 use compositor_common::scene::TextParams;
 use glyphon::{
     AttrsOwned, Buffer, Color, FontSystem, Metrics, Shaping, SwashCache, TextArea, TextAtlas,
@@ -13,7 +15,7 @@ use crate::renderer::{texture::NodeTexture, RenderCtx};
 
 #[allow(dead_code)]
 pub struct TextSpec {
-    content: String,
+    content: Arc<str>,
     attributes: AttrsOwned,
     font_size: f32,
     line_height: f32,
@@ -85,21 +87,22 @@ impl Default for TextRendererCtx {
 
 #[allow(dead_code)]
 pub struct TextRenderer {
-    was_rendered: bool,
     text_specs: TextSpec,
+    was_rendered: Mutex<bool>,
 }
 
 impl TextRenderer {
     #[allow(dead_code)]
     pub fn new(text_params: TextParams) -> Self {
         Self {
-            was_rendered: false,
+            was_rendered: Mutex::new(false),
             text_specs: text_params.into(),
         }
     }
 
-    pub fn render(&mut self, renderer_ctx: &mut RenderCtx, target: &NodeTexture) {
-        if self.was_rendered {
+    pub fn render(&self, renderer_ctx: &mut RenderCtx, target: &NodeTexture) {
+        let mut was_rendered = self.was_rendered.lock().unwrap();
+        if *was_rendered {
             return;
         }
 
@@ -192,6 +195,6 @@ impl TextRenderer {
         }
 
         renderer_ctx.wgpu_ctx.queue.submit(Some(encoder.finish()));
-        self.was_rendered = true;
+        *was_rendered = true;
     }
 }
