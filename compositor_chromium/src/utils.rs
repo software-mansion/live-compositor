@@ -1,10 +1,26 @@
-use fs_extra::dir::{self, CopyOptions};
 use std::error::Error;
 use std::path::Path;
 use std::{env, fs};
 
+#[cfg(target_os = "linux")]
+pub fn bundle_app(build_path: &Path) -> Result<(), Box<dyn Error>> {
+    let current_exe = env::current_exe()?;
+    let current_dir = current_exe.parent().unwrap();
+
+    let _ = fs::remove_dir_all(current_dir.join("process_helper"));
+
+    fs::copy(
+        build_path.join("process_helper"),
+        current_dir.join("process_helper"),
+    )?;
+
+    Ok(())
+}
+
 #[cfg(target_os = "macos")]
 pub fn bundle_app(build_path: &Path) -> Result<(), Box<dyn Error>> {
+    use fs_extra::dir::{self, CopyOptions};
+    
     let current_exe = env::current_exe()?;
     let current_dir = current_exe.parent().unwrap();
     let bundle_path = current_dir.join("video_compositor.app").join("Contents");
@@ -51,7 +67,7 @@ fn bundle_helper(
     info_data: &str,
     build_path: &Path,
     bundle_path: &Path,
-) -> Result<(), Box<dyn Error>> {
+) -> Result<(), Box<dyn Error>> {    
     let bundle_path = bundle_path
         .join("Frameworks")
         .join(format!("{name}.app"))

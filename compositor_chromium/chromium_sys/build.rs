@@ -1,6 +1,8 @@
 // NOTE: I'm in the middle of rewriting the app bundling.
 // build.rs, run.sh and utils.rs are not yet ready. Please ignore them during the initial review
 
+use bindgen::callbacks::ParseCallbacks;
+use fs_extra::dir::{self, CopyOptions};
 use std::{
     env,
     error::Error,
@@ -8,8 +10,6 @@ use std::{
     path::{Path, PathBuf},
     process::Command,
 };
-
-use bindgen::callbacks::ParseCallbacks;
 
 fn main() -> Result<(), Box<dyn Error>> {
     println!("cargo:rerun-if-changed=build.rs");
@@ -34,7 +34,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let bindings = prepare(&cef_root, &target_path)?;
     bindings.write_to_file(PathBuf::from(".").join("src").join("bindings.rs"))?;
 
-    link(&cef_root);
+    link(&cef_root, &target_path);
 
     Ok(())
 }
@@ -50,8 +50,6 @@ fn prepare(cef_root: &Path, target_path: &Path) -> Result<bindgen::Bindings, Box
 
     #[cfg(target_os = "macos")]
     {
-        use fs_extra::dir::{self, CopyOptions};
-
         let framework_out_path = target_path.join("Frameworks");
         let _ = std::fs::create_dir_all(&framework_out_path);
         let framework_path = PathBuf::from(cef_root)
@@ -66,11 +64,29 @@ fn prepare(cef_root: &Path, target_path: &Path) -> Result<bindgen::Bindings, Box
         dir::copy("resources", target_path, &options)?;
     }
 
+    #[cfg(target_os = "linux")]
+    {
+        let options = CopyOptions {
+            skip_exist: true,
+            content_only: true,
+            ..Default::default()
+        };
+
+        let cef_root = PathBuf::from(cef_root);
+        let release_path = cef_root.join("Release");
+        let resources_path = cef_root.join("Resources");
+        let lib_path = target_path.join("lib");
+        let _ = fs::create_dir_all(&lib_path);
+
+        dir::copy(release_path, &lib_path, &options)?;
+        dir::copy(resources_path, &lib_path, &options).unwrap();
+    }
+
     Ok(bindings)
 }
 
 #[cfg(target_os = "macos")]
-fn link(cef_root: &Path) {
+fn link(cef_root: &Path, _target_path: &Path) {
     let dst = cmake::Config::new("CMakeLists.txt")
         .define("MAKE_BUILD_TYPE", "Debug")
         .define("CEF_ROOT", cef_root.display().to_string())
@@ -81,10 +97,14 @@ fn link(cef_root: &Path) {
 }
 
 #[cfg(target_os = "linux")]
-fn link(cef_root: &Path) {
+fn link(cef_root: &Path, target_path: &Path) {
     println!(
         "cargo:rustc-link-search=native={}",
         PathBuf::from(cef_root).join("Release").display()
+    );
+    println!(
+        "cargo:rustc-link-search=native={}",
+        target_path.join("lib").display()
     );
     println!("cargo:rustc-link-lib=dylib=cef");
 }

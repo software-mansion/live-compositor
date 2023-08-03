@@ -1,4 +1,4 @@
-use std::{io, path::PathBuf};
+use std::io;
 
 use crate::{cef::*, cef_ref::CefRefPtr, cef_string::CefString, main_args::MainArgs};
 
