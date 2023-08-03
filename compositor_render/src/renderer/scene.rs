@@ -1,14 +1,15 @@
 use std::{collections::HashMap, sync::Arc};
 
 use compositor_common::scene::{
-    InputId, InputSpec, NodeId, OutputId, Resolution, SceneSpec, ShaderParams, TransformNodeSpec,
-    TransformParams,
+    InputId, InputSpec, NodeId, OutputId, Resolution, SceneSpec, TransformNodeSpec, TransformParams,
 };
 use log::error;
 
 use crate::{
     registry::GetError,
-    transformations::{shader::Shader, text_renderer::TextRenderer, web_renderer::WebRenderer},
+    transformations::{
+        shader::node::ShaderNode, text_renderer::TextRenderer, web_renderer::WebRenderer,
+    },
 };
 
 use super::{
@@ -19,16 +20,9 @@ use super::{
 pub struct InputNode {}
 
 pub enum TransformNode {
-    Shader {
-        params: HashMap<String, ShaderParams>,
-        shader: Arc<Shader>,
-    },
-    WebRenderer {
-        renderer: Arc<WebRenderer>,
-    },
-    TextRenderer {
-        renderer: TextRenderer,
-    },
+    Shader(ShaderNode),
+    WebRenderer { renderer: Arc<WebRenderer> },
+    TextRenderer { renderer: TextRenderer },
     Nop,
 }
 
@@ -41,10 +35,11 @@ impl TransformNode {
             TransformParams::Shader {
                 shader_id,
                 shader_params,
-            } => Ok(TransformNode::Shader {
-                params: shader_params.clone(),
-                shader: ctx.shader_transforms.get(shader_id)?,
-            }),
+            } => Ok(TransformNode::Shader(ShaderNode::new(
+                ctx.wgpu_ctx,
+                ctx.shader_transforms.get(shader_id)?,
+                shader_params,
+            ))),
             TransformParams::TextRenderer { text_params } => Ok(TransformNode::TextRenderer {
                 renderer: TextRenderer::new(text_params.clone()),
             }),
@@ -57,8 +52,8 @@ impl TransformNode {
         target: &NodeTexture,
     ) {
         match self {
-            TransformNode::Shader { params, shader } => {
-                shader.render(params, sources, target);
+            TransformNode::Shader(shader) => {
+                shader.render(sources, target);
             }
             TransformNode::WebRenderer { renderer } => {
                 if let Err(err) = renderer.render(ctx, sources, target) {

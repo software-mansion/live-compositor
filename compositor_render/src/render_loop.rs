@@ -8,7 +8,7 @@ use log::error;
 
 use crate::renderer::{
     scene::{Node, Scene},
-    RenderCtx,
+    GlobalShaderParameters, RenderCtx,
 };
 
 pub(super) fn populate_inputs(
@@ -80,6 +80,18 @@ pub(super) fn run_transforms(ctx: &mut RenderCtx, scene: &Scene) {
             .collect();
         node.transform.render(ctx, &sources, &node.output)
     }
+}
+
+pub(super) fn update_global_buffers(ctx: &RenderCtx, pts: Duration) {
+    let ctx = ctx.wgpu_ctx;
+
+    let new_buffer = GlobalShaderParameters::new(pts);
+
+    ctx.queue.write_buffer(
+        &ctx.global_shader_parameters_buffer,
+        0,
+        bytemuck::cast_slice(&[new_buffer]),
+    );
 }
 
 /// Returns iterator that guarantees that nodes will be visited in

@@ -1,14 +1,14 @@
 use crate::renderer::{texture::NodeTexture, RegisterTransformationCtx};
 
-use std::{collections::HashMap, sync::Arc};
+use std::sync::Arc;
 
-use compositor_common::scene::{NodeId, ShaderParams};
-use wgpu::util::DeviceExt;
+use compositor_common::scene::NodeId;
 
 use crate::renderer::{texture::Texture, WgpuCtx};
 
 use self::pipeline::Pipeline;
 
+pub mod node;
 mod pipeline;
 
 const INPUT_TEXTURES_AMOUNT: u32 = 16;
@@ -32,6 +32,7 @@ impl Shader {
         let pipeline = Pipeline::new(
             &ctx.wgpu_ctx.device,
             wgpu::ShaderSource::Wgsl(shader_src.into()),
+            &ctx.wgpu_ctx.shader_parameters_bind_group_layout,
         );
 
         Self {
@@ -40,9 +41,37 @@ impl Shader {
         }
     }
 
+    pub fn new_parameters_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+        device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("shader parameters bind group layout"),
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    count: None,
+                    visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    count: None,
+                    visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                },
+            ],
+        })
+    }
+
     pub fn render(
         &self,
-        _params: &HashMap<String, ShaderParams>,
+        params: &wgpu::BindGroup,
         sources: &[(&NodeId, &NodeTexture)],
         target: &NodeTexture,
     ) {
@@ -52,47 +81,6 @@ impl Shader {
         // TODO: sources need to be ordered
 
         // TODO: most things that happen in this method should not be done every frame
-        let buffer_user = ctx
-            .device
-            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                // TODO: fill the contents
-                contents: &[0, 0, 0, 0],
-                label: Some("user's custom buffer"),
-                usage: wgpu::BufferUsages::UNIFORM,
-            });
-
-        let buffer_compositor = ctx
-            .device
-            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                // TODO: fill the contents
-                contents: &[0, 0, 0, 0],
-                label: Some("compositor-provided buffer"),
-                usage: wgpu::BufferUsages::UNIFORM,
-            });
-
-        let uniform_bg = ctx.device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout: &self.pipeline.bgls.uniforms_bgl,
-            label: None,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
-                        buffer: &buffer_user,
-                        offset: 0,
-                        size: None,
-                    }),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
-                        buffer: &buffer_compositor,
-                        offset: 0,
-                        size: None,
-                    }),
-                },
-            ],
-        });
-
         let empty_texture = Texture::new(
             ctx,
             Some("empty texture"),
@@ -109,16 +97,18 @@ impl Shader {
             .iter()
             .map(|(_, texture)| texture.rgba_texture())
             .collect::<Vec<_>>();
+
         let mut texture_views = textures
             .iter()
             .map(|texture| &texture.texture().view)
             .collect::<Vec<_>>();
+
         texture_views
             .extend((textures.len()..INPUT_TEXTURES_AMOUNT as usize).map(|_| &empty_texture.view));
 
         // TODO: not sure if this should be done every frame or not
         let input_textures_bg = ctx.device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout: &self.pipeline.bgls.textures_bgl,
+            layout: &self.pipeline.textures_bgl,
             label: None,
             entries: &[wgpu::BindGroupEntry {
                 binding: 0,
@@ -128,7 +118,7 @@ impl Shader {
 
         self.pipeline.render(
             &input_textures_bg,
-            &uniform_bg,
+            params,
             target.rgba_texture().texture(),
             ctx,
         );

@@ -81,6 +81,17 @@ fn start_example_client_code() -> Result<()> {
         "port": 8004
     }))?;
 
+    let shader_source = include_str!("../compositor_render/examples/silly.wgsl");
+    info!("[example] Register shader transform");
+    common::post(&json!({
+        "type": "register_transformation",
+        "key": "shader",
+        "transform": {
+            "type": "shader",
+            "source": shader_source,
+        }
+    }))?;
+
     info!("[example] Update scene");
     common::post(&json!({
         "type": "update_scene",
@@ -90,11 +101,25 @@ fn start_example_client_code() -> Result<()> {
                 "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
             }
         ],
-        "transforms": [],
+        "transforms": [
+            {
+                "node_id": "shader",
+                "type": "shader",
+                "shader_id": "shader",
+                "shader_params": {
+                    "type": "u32",
+                    "value": 42,
+                },
+                "input_pads": [
+                    "input 1",
+                ],
+                "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+            },
+        ],
         "outputs": [
             {
                 "output_id": "output 1",
-                "input_pad": "input 1"
+                "input_pad": "shader"
             }
         ]
     }))?;
