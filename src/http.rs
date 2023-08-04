@@ -5,7 +5,8 @@ use compositor_common::{
 };
 use log::{error, info};
 use serde::{Deserialize, Serialize};
-use std::{io::Cursor, net::SocketAddr, sync::Arc, thread};
+use serde_json::json;
+use std::{error::Error, io::Cursor, net::SocketAddr, sync::Arc, thread};
 use tiny_http::{Response, StatusCode};
 
 use crate::rtp_sender::EncoderSettings;
@@ -102,24 +103,43 @@ impl Server {
 
     fn send_response(raw_request: tiny_http::Request, response: Result<()>) {
         let response_result = match response {
-            Ok(_) => raw_request.respond(Response::new(
-                StatusCode(200),
-                vec![],
-                Cursor::new("{}".as_bytes().to_vec()),
-                None,
-                None,
-            )),
-            Err(err) => raw_request.respond(Response::new(
-                StatusCode(500),
-                vec![],
-                Cursor::new(format!("{}", err).into_bytes()),
-                None,
-                None,
-            )),
+            Ok(_) => raw_request
+                .respond(Response::new(
+                    StatusCode(200),
+                    vec![],
+                    Cursor::new("{}".as_bytes().to_vec()),
+                    None,
+                    None,
+                ))
+                .map_err(Into::into),
+            Err(err) => Self::format_error(err.as_ref()).and_then(|body| {
+                raw_request
+                    .respond(Response::new(
+                        StatusCode(500),
+                        vec![],
+                        Cursor::new(body),
+                        None,
+                        None,
+                    ))
+                    .map_err(Into::into)
+            }),
         };
         if let Err(err) = response_result {
             error!("Failed to send response {}.", err);
         }
+    }
+
+    fn format_error(err: &dyn Error) -> Result<String> {
+        let mut err = Some(err);
+        let mut reason = Vec::new();
+        while let Some(e) = err {
+            reason.push(format!("{e}"));
+            err = e.source();
+        }
+        Ok(serde_json::to_string(&json!({
+            "msg": reason[0],
+            "reason": reason,
+        }))?)
     }
 
     fn parse_request(request: &mut tiny_http::Request) -> Result<Request> {
