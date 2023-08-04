@@ -17,8 +17,10 @@ pub enum SpecValidationError {
         missing_node: Arc<str>,
         output: Arc<str>,
     },
-    #[error("Detected cycle in scene graph. Scene should acyclic graph")]
+    #[error("detected cycle in scene graph, scene should acyclic graph")]
     CycleDetected,
+    #[error("duplicate node id: {0}")]
+    DuplicateNames(Arc<str>),
     #[error("unknown output, output with id {0} is not registered currently")]
     UnknownOutput(Arc<str>),
     #[error("unknown input, input with id {0} is not registered currently")]
@@ -33,7 +35,7 @@ impl SceneSpec {
     // - check if each output in scene spec is registered output
     // - check if each input in scene spec is registered input
     //
-    // TODO: check for cycles, check nodes ids uniqueness, check for unused nodes, ...
+    // TODO: check nodes ids uniqueness, check for unused nodes, ...
     pub fn validate(
         &self,
         registered_inputs: &HashSet<NodeId>,
@@ -41,11 +43,13 @@ impl SceneSpec {
     ) -> Result<(), SpecValidationError> {
         let transform_iter = self.transforms.iter().map(|i| i.node_id.clone());
         let input_iter = self.inputs.iter().map(|i| i.input_id.0.clone());
-        let defined_node_ids: HashSet<NodeId> = transform_iter.chain(input_iter).collect();
+        let defined_node_ids: Vec<NodeId> = transform_iter.chain(input_iter).collect();
+        let node_ids: HashSet<NodeId> = defined_node_ids.iter().cloned().collect();
 
         self.validate_inputs(registered_inputs)?;
-        self.validate_transform_inputs(&defined_node_ids)?;
-        self.validate_outputs(registered_outputs, &defined_node_ids)?;
+        self.validate_transform_inputs(&node_ids)?;
+        self.validate_outputs(registered_outputs, &node_ids)?;
+        self.validate_node_ids_uniqueness(&defined_node_ids)?;
         self.validate_cycles(registered_inputs)?;
 
         Ok(())
@@ -151,6 +155,26 @@ impl SceneSpec {
 
         for output in &self.outputs {
             visit(&output.input_pad, &nodes, registered_inputs, &mut visited)?;
+        }
+
+        Ok(())
+    }
+
+    fn validate_node_ids_uniqueness(
+        &self,
+        defined_node_ids: &Vec<NodeId>,
+    ) -> Result<(), SpecValidationError> {
+        let mut nodes_ids: HashSet<NodeId> = HashSet::new();
+
+        for node_id in defined_node_ids {
+            match nodes_ids.get(node_id) {
+                Some(_) => {
+                    return Err(SpecValidationError::DuplicateNames(node_id.0.clone()));
+                }
+                None => {
+                    nodes_ids.insert(node_id.clone());
+                }
+            }
         }
 
         Ok(())
