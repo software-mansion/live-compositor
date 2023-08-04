@@ -13,10 +13,10 @@ pub(crate) trait CefStruct {
     fn get_base_mut(cef_data: &mut Self::CefType) -> &mut chromium_sys::cef_base_ref_counted_t;
 }
 
-// Each CEF struct with ref counting capability has a base struct as a first field
-// This lets us simulate inheritance-like behavior
-// https://bitbucket.org/chromiumembedded/cef/wiki/UsingTheCAPI.md
-// http://www.deleveld.dds.nl/inherit.htm
+/// Each CEF struct with ref counting capability has a base struct as a first field
+/// This lets us simulate inheritance-like behavior
+/// https://bitbucket.org/chromiumembedded/cef/wiki/UsingTheCAPI.md
+/// http://www.deleveld.dds.nl/inherit.htm
 #[repr(C)]
 pub(crate) struct CefRefPtr<T: CefStruct> {
     cef_data: T::CefType,

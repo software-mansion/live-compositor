@@ -45,7 +45,7 @@ impl cef::App for App {
         #[cfg(target_os = "macos")]
         command_line.append_switch("use-mock-keychain");
         command_line.append_switch("disable-gpu");
-
+        command_line.append_switch("disable-gpu-shader-disk-cache");
         command_line.append_switch("show-fps-counter");
     }
 }
@@ -106,7 +106,12 @@ fn main() {
     let browser_settings = cef::BrowserSettings {
         windowless_frame_rate: 60,
     };
-    let _ = ctx.start_browser(client, window_info, browser_settings, "https://membrane.stream".to_owned());
+    let _ = ctx.start_browser(
+        client,
+        window_info,
+        browser_settings,
+        "https://membrane.stream".to_owned(),
+    );
 
     println!("Starting generating images");
     ctx.run_message_loop();

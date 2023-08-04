@@ -1,36 +1,35 @@
-// NOTE: I'm in the middle of rewriting the app bundling.
-// build.rs, run.sh and utils.rs are not yet ready. Please ignore them during the initial review
-
+use anyhow::{Context, Result};
 use bindgen::callbacks::ParseCallbacks;
 use fs_extra::dir::{self, CopyOptions};
 use std::{
-    env,
-    error::Error,
-    fs,
+    env, fs,
     path::{Path, PathBuf},
     process::Command,
 };
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() -> Result<()> {
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-env-changed=CEF_ROOT");
 
-    let out_dir = env::var("OUT_DIR")?;
+    let out_dir = PathBuf::from(env::var("OUT_DIR")?);
 
     let cef_root = if let Ok(cef_root) = env::var("CEF_ROOT") {
         PathBuf::from(cef_root)
     } else {
-        PathBuf::from(out_dir).join("cef_root")
+        out_dir.join("cef_root")
     };
 
     if !cef_root.exists() {
         download_cef(&cef_root);
     }
 
-    let target_path = PathBuf::from(env::var("OUT_DIR")?)
-        .join("..")
-        .join("..")
-        .join("..");
+    let target_path = out_dir
+        .parent()
+        .context("chromium_sys build directory not found")?
+        .parent()
+        .context("deps build directory not found")?
+        .parent()
+        .context("target build directory not found")?;
     let bindings = prepare(&cef_root, &target_path)?;
     bindings.write_to_file(PathBuf::from(".").join("src").join("bindings.rs"))?;
 
@@ -40,7 +39,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 #[allow(unused_variables)]
-fn prepare(cef_root: &Path, target_path: &Path) -> Result<bindgen::Bindings, Box<dyn Error>> {
+fn prepare(cef_root: &Path, target_path: &Path) -> Result<bindgen::Bindings> {
     let bindings = bindgen::Builder::default()
         .header("wrapper.h")
         .clang_arg(format!("-I{}", cef_root.display().to_string()))
@@ -79,7 +78,7 @@ fn prepare(cef_root: &Path, target_path: &Path) -> Result<bindgen::Bindings, Box
         let _ = fs::create_dir_all(&lib_path);
 
         dir::copy(release_path, &lib_path, &options)?;
-        dir::copy(resources_path, &lib_path, &options).unwrap();
+        dir::copy(resources_path, &lib_path, &options)?;
     }
 
     Ok(bindings)
@@ -87,8 +86,14 @@ fn prepare(cef_root: &Path, target_path: &Path) -> Result<bindgen::Bindings, Box
 
 #[cfg(target_os = "macos")]
 fn link(cef_root: &Path, _target_path: &Path) {
+    let build_type = if cfg!(debug_assertions) {
+        "Debug"
+    } else {
+        "Release"
+    };
+
     let dst = cmake::Config::new("CMakeLists.txt")
-        .define("MAKE_BUILD_TYPE", "Debug")
+        .define("MAKE_BUILD_TYPE", build_type)
         .define("CEF_ROOT", cef_root.display().to_string())
         .build();
 
