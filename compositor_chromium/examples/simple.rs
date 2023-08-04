@@ -87,7 +87,7 @@ fn main() {
         .join("..");
 
     if cef::bundle_app(build_path).is_err() {
-        panic!("Build process helper first: cargo build");
+        panic!("Build process helper first: cargo build --bin process_helper");
     }
 
     let app = App;

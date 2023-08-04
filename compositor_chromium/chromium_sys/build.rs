@@ -12,12 +12,9 @@ fn main() -> Result<()> {
     println!("cargo:rerun-if-env-changed=CEF_ROOT");
 
     let out_dir = PathBuf::from(env::var("OUT_DIR")?);
-
-    let cef_root = if let Ok(cef_root) = env::var("CEF_ROOT") {
-        PathBuf::from(cef_root)
-    } else {
-        out_dir.join("cef_root")
-    };
+    let cef_root = env::var("CEF_ROOT")
+        .map(PathBuf::from)
+        .unwrap_or(out_dir.join("cef_root"));
 
     if !cef_root.exists() {
         download_cef(&cef_root);
@@ -51,7 +48,8 @@ fn prepare(cef_root: &Path, target_path: &Path) -> Result<bindgen::Bindings> {
     #[cfg(target_os = "macos")]
     {
         let framework_out_path = target_path.join("Frameworks");
-        let _ = std::fs::create_dir_all(&framework_out_path);
+        fs::create_dir_all(&framework_out_path).expect("create frameworks output directory");
+
         let framework_path = PathBuf::from(cef_root)
             .join("Release")
             .join("Chromium Embedded Framework.framework");
@@ -87,10 +85,9 @@ fn prepare(cef_root: &Path, target_path: &Path) -> Result<bindgen::Bindings> {
 
 #[cfg(target_os = "macos")]
 fn link(cef_root: &Path, _target_path: &Path) {
-    let build_type = if cfg!(debug_assertions) {
-        "Debug"
-    } else {
-        "Release"
+    let build_type = match cfg!(debug_assertions) {
+        true => "Debug",
+        false => "Release",
     };
 
     let dst = cmake::Config::new("CMakeLists.txt")
@@ -145,7 +142,7 @@ fn download_cef(cef_root_path: &Path) {
     let content = resp.bytes().unwrap();
     fs::write(download_path.join(archive_name), content).unwrap();
 
-    let _ = fs::create_dir_all(cef_root_path);
+    fs::create_dir_all(cef_root_path).expect("create cef_root lib directory");
 
     let tar_status = Command::new("tar")
         .args([
