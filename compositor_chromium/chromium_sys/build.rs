@@ -23,6 +23,7 @@ fn main() -> Result<()> {
         download_cef(&cef_root);
     }
 
+    // target/debug or target/release directory
     let target_path = out_dir
         .parent()
         .context("chromium_sys build directory not found")?
