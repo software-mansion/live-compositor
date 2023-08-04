@@ -4,10 +4,12 @@ on:
         branches: [master]
         paths:
             - "web_renderer/**"
+            - .github/workflows/node.yml
     pull_request:
         types: [opened, synchronize]
         paths:
             - "web_renderer/**"
+            - .github/workflows/node.yml
 
 concurrency:
     group: ${{ github.workflow }}-${{ github.ref }}

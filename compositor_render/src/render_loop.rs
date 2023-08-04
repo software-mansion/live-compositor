@@ -71,7 +71,7 @@ pub(super) fn read_outputs(
     result
 }
 
-pub(super) fn run_transforms(ctx: &RenderCtx, scene: &Scene) {
+pub(super) fn run_transforms(ctx: &mut RenderCtx, scene: &Scene) {
     for node in render_order_iter(scene) {
         let sources: Vec<_> = node
             .inputs

@@ -10,22 +10,22 @@ use std::{
 use serde::Serialize;
 
 /// The SDP file will describe an RTP session on localhost with H264 encoding.
-pub fn write_example_sdp_file(port: u16) -> Result<String> {
+pub fn write_example_sdp_file(ip: &str, port: u16) -> Result<String> {
     let sdp_filepath = PathBuf::from(format!("/tmp/example_sdp_input_{}.sdp", port));
     let mut file = File::create(&sdp_filepath)?;
     file.write_all(
         format!(
             "\
                     v=0\n\
-                    o=- 0 0 IN IP4 127.0.0.1\n\
+                    o=- 0 0 IN IP4 {}\n\
                     s=No Name\n\
-                    c=IN IP4 127.0.0.1\n\
+                    c=IN IP4 {}\n\
                     m=video {} RTP/AVP 96\n\
                     a=rtpmap:96 H264/90000\n\
                     a=fmtp:96 packetization-mode=1\n\
                     a=rtcp-mux\n\
                 ",
-            port
+            ip, ip, port
         )
         .as_bytes(),
     )?;
