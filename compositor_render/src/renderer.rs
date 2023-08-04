@@ -1,9 +1,6 @@
 use std::sync::Arc;
 
-use compositor_common::{
-    scene::{InputId, OutputId, SceneSpec},
-    transformation::{TransformationRegistryKey, TransformationSpec},
-};
+use compositor_common::scene::{InputId, OutputId, SceneSpec};
 use log::error;
 use std::sync::Mutex;
 
@@ -52,6 +49,11 @@ pub struct RenderCtx<'a> {
     pub web_renderers: &'a TransformationRegistry<Arc<WebRenderer>>,
 }
 
+pub struct RegisterTransformationCtx {
+    pub wgpu_ctx: Arc<WgpuCtx>,
+    pub electron: Arc<ElectronInstance>,
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum RendererNewError {
     #[error("failed to initialize a wgpu context")]
@@ -82,30 +84,11 @@ impl Renderer {
         })
     }
 
-    fn ctx(&self) -> RenderCtx {
-        RenderCtx {
-            wgpu_ctx: &self.wgpu_ctx,
-            text_renderer_ctx: &self.text_renderer_ctx,
-            electron: &self.electron_instance,
-            shader_transforms: &self.shader_transforms,
-            web_renderers: &self.web_renderers,
+    pub(super) fn register_transformation_ctx(&self) -> RegisterTransformationCtx {
+        RegisterTransformationCtx {
+            wgpu_ctx: self.wgpu_ctx.clone(),
+            electron: self.electron_instance.clone(),
         }
-    }
-
-    pub fn register_transformation(
-        &mut self,
-        key: TransformationRegistryKey,
-        spec: TransformationSpec,
-    ) -> Result<(), RendererRegisterTransformationError> {
-        match spec {
-            TransformationSpec::Shader { source } => self
-                .shader_transforms
-                .register(&key, Arc::new(Shader::new(&self.ctx(), source)))?,
-            TransformationSpec::WebRenderer(params) => self
-                .web_renderers
-                .register(&key, Arc::new(WebRenderer::new(&self.ctx(), params)?))?,
-        };
-        Ok(())
     }
 
     pub fn render(&mut self, mut inputs: FrameSet<InputId>) -> FrameSet<OutputId> {
