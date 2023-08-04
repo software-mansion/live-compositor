@@ -100,11 +100,7 @@ fn link(cef_root: &Path, _target_path: &Path) {
 }
 
 #[cfg(target_os = "linux")]
-fn link(cef_root: &Path, target_path: &Path) {
-    println!(
-        "cargo:rustc-link-search=native={}",
-        PathBuf::from(cef_root).join("Release").display()
-    );
+fn link(_cef_root: &Path, target_path: &Path) {
     println!(
         "cargo:rustc-link-search=native={}",
         target_path.join("lib").display()
