@@ -4,6 +4,7 @@ use compositor_common::{
     transformation::{TransformationRegistryKey, TransformationSpec},
 };
 use compositor_pipeline::map::SyncHashMap;
+
 use std::sync::Arc;
 
 use crate::{
@@ -52,10 +53,12 @@ impl State {
             port,
             resolution,
             encoder_settings,
+            ip,
         } = request;
         // TODO: add validation if output already relisted
         let sender = Arc::new(RtpSender::new(rtp_sender::Options {
             port,
+            ip,
             resolution,
             encoder_settings,
         }));

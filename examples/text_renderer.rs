@@ -52,7 +52,7 @@ fn start_example_client_code() -> Result<()> {
     }))?;
 
     info!("[example] Start listening on output port.");
-    let output_sdp = write_example_sdp_file(8002)?;
+    let output_sdp = write_example_sdp_file("127.0.0.1", 8002)?;
     Command::new("ffplay")
         .args(["-protocol_whitelist", "file,rtp,udp", &output_sdp])
         .stderr(Stdio::null())
@@ -64,6 +64,7 @@ fn start_example_client_code() -> Result<()> {
         "type": "register_output",
         "id": "output 1",
         "port": 8002,
+        "ip": "127.0.0.1",
         "resolution": {
             "width": VIDEO_RESOLUTION.width,
             "height": VIDEO_RESOLUTION.height,

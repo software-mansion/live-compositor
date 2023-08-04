@@ -49,7 +49,7 @@ impl ElectronApiClient {
     }
 
     fn get_endpoint(&self, route: &str) -> String {
-        format!("http://localhost:{}/{}", self.port, route)
+        format!("http://127.0.0.1:{}/{}", self.port, route)
     }
 }
 

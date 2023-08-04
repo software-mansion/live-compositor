@@ -1,0 +1,31 @@
+name: docker
+on:
+    push:
+        branches: [master]
+        paths:
+            - Dockerfile
+            - .github/workflows/docker.yml
+    pull_request:
+        types: [opened, synchronize]
+        paths:
+            - Dockerfile
+            - .github/workflows/docker.yml
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
+
+jobs:
+    dockerfile:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v2
+
+            - uses: hadolint/hadolint-action@v3.1.0
+              with:
+                dockerfile: Dockerfile
+
+            - name: Build image
+              run: docker build -t video-compositor .

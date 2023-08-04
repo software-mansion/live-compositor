@@ -22,6 +22,7 @@ pub struct RegisterInputRequest {
 pub struct RegisterOutputRequest {
     pub id: OutputId,
     pub port: u16,
+    pub ip: String,
     pub resolution: Resolution,
     pub encoder_settings: EncoderSettings,
 }
@@ -77,7 +78,10 @@ impl Server {
             Request::Init => Err(anyhow!("Video composer is already configured.")),
             Request::RegisterInput(request) => self.state.register_input(request),
             Request::RegisterOutput(request) => self.state.register_output(request),
-            Request::Start => todo!(),
+            Request::Start => {
+                self.state.pipeline.start();
+                Ok(())
+            }
             Request::UpdateScene(scene_spec) => self.state.update_scene(scene_spec),
             Request::RegisterTransformation {
                 key,
