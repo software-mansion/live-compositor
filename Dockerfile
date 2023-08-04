@@ -5,6 +5,7 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 ARG USERNAME=compositor
 ARG NODE_VERSION=18.12.1
 ARG NVM_VERSION=0.39.1
+ARG RUST_VERSION=1.70
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV WEB_RENDERER_PATH=/home/$USERNAME/project/web_renderer
@@ -24,6 +25,7 @@ USER $USERNAME
 WORKDIR /home/$USERNAME
 
 RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
+RUN source ~/.cargo/env && rustup install $RUST_VERSION && rustup default $RUST_VERSION
 
 RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v$NVM_VERSION/install.sh | bash \
   && source ~/.nvm/nvm.sh \
