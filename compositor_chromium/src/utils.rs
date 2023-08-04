@@ -20,7 +20,7 @@ pub fn bundle_app(build_path: &Path) -> Result<(), Box<dyn Error>> {
 #[cfg(target_os = "macos")]
 pub fn bundle_app(build_path: &Path) -> Result<(), Box<dyn Error>> {
     use fs_extra::dir::{self, CopyOptions};
-    
+
     let current_exe = env::current_exe()?;
     let current_dir = current_exe.parent().unwrap();
     let bundle_path = current_dir.join("video_compositor.app").join("Contents");
@@ -54,7 +54,7 @@ pub fn bundle_app(build_path: &Path) -> Result<(), Box<dyn Error>> {
     ];
 
     for (name, bundle_id) in helpers {
-        bundle_helper(name, bundle_id, &helper_info, &build_path, &bundle_path)?;
+        bundle_helper(name, bundle_id, &helper_info, build_path, &bundle_path)?;
     }
 
     Ok(())
@@ -67,7 +67,7 @@ fn bundle_helper(
     info_data: &str,
     build_path: &Path,
     bundle_path: &Path,
-) -> Result<(), Box<dyn Error>> {    
+) -> Result<(), Box<dyn Error>> {
     let bundle_path = bundle_path
         .join("Frameworks")
         .join(format!("{name}.app"))

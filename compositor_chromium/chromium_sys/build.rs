@@ -31,10 +31,10 @@ fn main() -> Result<()> {
         .context("deps build directory not found")?
         .parent()
         .context("target build directory not found")?;
-    let bindings = prepare(&cef_root, &target_path)?;
+    let bindings = prepare(&cef_root, target_path)?;
     bindings.write_to_file(PathBuf::from(".").join("src").join("bindings.rs"))?;
 
-    link(&cef_root, &target_path);
+    link(&cef_root, target_path);
 
     Ok(())
 }
@@ -43,7 +43,7 @@ fn main() -> Result<()> {
 fn prepare(cef_root: &Path, target_path: &Path) -> Result<bindgen::Bindings> {
     let bindings = bindgen::Builder::default()
         .header("wrapper.h")
-        .clang_arg(format!("-I{}", cef_root.display().to_string()))
+        .clang_arg(format!("-I{}", cef_root.display()))
         .parse_callbacks(Box::new(bindgen::CargoCallbacks))
         .parse_callbacks(Box::new(RemoveCommentsCallback))
         .generate()?;
@@ -143,9 +143,9 @@ fn download_cef(cef_root_path: &Path) {
 
     let archive_name = "cef.tar.bz2";
     let content = resp.bytes().unwrap();
-    fs::write(&download_path.join(archive_name), content).unwrap();
+    fs::write(download_path.join(archive_name), content).unwrap();
 
-    let _ = fs::create_dir_all(&cef_root_path);
+    let _ = fs::create_dir_all(cef_root_path);
 
     let tar_status = Command::new("tar")
         .args([

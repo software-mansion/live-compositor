@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use crate::cef::{ProcessId, ProcessMessage, V8Context, ThreadId};
+use crate::cef::{ProcessId, ProcessMessage, ThreadId, V8Context};
 
 pub struct Frame<'a> {
     inner: *mut chromium_sys::cef_frame_t,
