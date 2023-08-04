@@ -28,13 +28,13 @@ impl RegistryType {
     }
 }
 
-pub struct TransformationRegistry<T: Clone> {
+pub(crate) struct TransformationRegistry<T: Clone> {
     registry: HashMap<TransformationRegistryKey, T>,
     registry_type: RegistryType,
 }
 
 impl<T: Clone> TransformationRegistry<T> {
-    pub fn new(registry_type: RegistryType) -> Self {
+    pub(crate) fn new(registry_type: RegistryType) -> Self {
         Self {
             registry: HashMap::new(),
             registry_type,
@@ -42,7 +42,7 @@ impl<T: Clone> TransformationRegistry<T> {
     }
 
     #[allow(dead_code)]
-    pub fn get(&self, key: &TransformationRegistryKey) -> Result<T, GetError> {
+    pub(crate) fn get(&self, key: &TransformationRegistryKey) -> Result<T, GetError> {
         match self.registry.get(key) {
             Some(val) => Ok(val.clone()),
             None => Err(GetError::KeyNotFound(
@@ -52,7 +52,7 @@ impl<T: Clone> TransformationRegistry<T> {
         }
     }
 
-    pub fn register(
+    pub(crate) fn register(
         &mut self,
         key: &TransformationRegistryKey,
         transformation: T,

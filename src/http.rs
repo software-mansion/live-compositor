@@ -2,7 +2,9 @@ use anyhow::{anyhow, Result};
 use compositor_common::{
     scene::{InputId, OutputId, Resolution, SceneSpec},
     transformation::{TransformationRegistryKey, TransformationSpec},
+    SpecValidationError,
 };
+use compositor_render::registry;
 use log::{error, info};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -112,37 +114,62 @@ impl Server {
                     None,
                 ))
                 .map_err(Into::into),
-            Err(err) => Self::format_error(err.as_ref()).and_then(|body| {
-                raw_request
-                    .respond(Response::new(
-                        StatusCode(500),
-                        vec![],
-                        Cursor::new(body),
-                        None,
-                        None,
-                    ))
-                    .map_err(Into::into)
-            }),
+            Err(err) => Self::handle_error(raw_request, err.as_ref()),
         };
         if let Err(err) = response_result {
             error!("Failed to send response {}.", err);
         }
     }
 
-    fn format_error(err: &dyn Error) -> Result<String> {
-        let mut err = Some(err);
-        let mut reason = Vec::new();
-        while let Some(e) = err {
-            reason.push(format!("{e}"));
-            err = e.source();
-        }
-        Ok(serde_json::to_string(&json!({
+    fn handle_error(raw_request: tiny_http::Request, err: &(dyn Error + 'static)) -> Result<()> {
+        let reason: Vec<String> = Sources(Some(err)).map(|e| format!("{e}")).collect();
+        let body = serde_json::to_string(&json!({
             "msg": reason[0],
             "reason": reason,
-        }))?)
+        }))?;
+        let status_code = match is_user_error(err) {
+            true => 400,
+            false => 500,
+        };
+        raw_request.respond(Response::new(
+            StatusCode(status_code),
+            vec![],
+            Cursor::new(body),
+            None,
+            None,
+        ))?;
+        Ok(())
     }
 
     fn parse_request(request: &mut tiny_http::Request) -> Result<Request> {
         Ok(serde_json::from_reader::<_, Request>(request.as_reader())?)
+    }
+}
+
+fn is_user_error(err: &(dyn Error + 'static)) -> bool {
+    let opt = Some(err);
+    let mut sources = Sources(opt);
+    sources.any(|source| {
+        source.is::<SpecValidationError>()
+            || source.is::<registry::RegisterError>()
+            || source.is::<registry::GetError>()
+        // TODO: add more errors here
+    })
+}
+
+/// Replace with err.sources() when the feature stabilizes
+struct Sources<'a>(Option<&'a (dyn Error + 'static)>);
+
+impl<'a> Iterator for Sources<'a> {
+    type Item = &'a (dyn Error + 'static);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.0 {
+            Some(err) => {
+                self.0 = err.source();
+                Some(err)
+            }
+            None => None,
+        }
     }
 }
