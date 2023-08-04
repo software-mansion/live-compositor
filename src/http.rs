@@ -9,7 +9,7 @@ use log::{error, info};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::{error::Error, io::Cursor, net::SocketAddr, sync::Arc, thread};
-use tiny_http::{Response, StatusCode};
+use tiny_http::{Header, Response, StatusCode};
 
 use crate::rtp_sender::EncoderSettings;
 
@@ -47,6 +47,7 @@ enum Request {
 pub struct Server {
     server: tiny_http::Server,
     state: Arc<State>,
+    content_type_json: Header,
 }
 
 impl Server {
@@ -54,6 +55,8 @@ impl Server {
         Self {
             server: tiny_http::Server::http(SocketAddr::from(([0, 0, 0, 0], port))).unwrap(),
             state,
+            content_type_json: Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..])
+                .unwrap(),
         }
     }
 
@@ -62,7 +65,7 @@ impl Server {
         for mut raw_request in self.server.incoming_requests() {
             let result = self.handle_request_before_init(&mut raw_request);
             let should_abort = result.is_ok();
-            Server::send_response(raw_request, result);
+            self.send_response(raw_request, result);
             if should_abort {
                 break;
             }
@@ -70,7 +73,7 @@ impl Server {
         thread::spawn(move || {
             for mut raw_request in self.server.incoming_requests() {
                 let result = self.handle_request_after_init(&mut raw_request);
-                Server::send_response(raw_request, result);
+                self.send_response(raw_request, result);
             }
         });
     }
@@ -103,25 +106,32 @@ impl Server {
         }
     }
 
-    fn send_response(raw_request: tiny_http::Request, response: Result<()>) {
+    fn send_response(&self, raw_request: tiny_http::Request, response: Result<()>) {
         let response_result = match response {
-            Ok(_) => raw_request
-                .respond(Response::new(
-                    StatusCode(200),
-                    vec![],
-                    Cursor::new("{}".as_bytes().to_vec()),
-                    None,
-                    None,
-                ))
-                .map_err(Into::into),
-            Err(err) => Self::handle_error(raw_request, err.as_ref()),
+            Ok(_) => {
+                let body = "{}".as_bytes().to_vec();
+                raw_request
+                    .respond(Response::new(
+                        StatusCode(200),
+                        vec![self.content_type_json.clone()],
+                        Cursor::new(&body),
+                        Some(body.len()),
+                        None,
+                    ))
+                    .map_err(Into::into)
+            }
+            Err(err) => self.handle_error(raw_request, err.as_ref()),
         };
         if let Err(err) = response_result {
             error!("Failed to send response {}.", err);
         }
     }
 
-    fn handle_error(raw_request: tiny_http::Request, err: &(dyn Error + 'static)) -> Result<()> {
+    fn handle_error(
+        &self,
+        raw_request: tiny_http::Request,
+        err: &(dyn Error + 'static),
+    ) -> Result<()> {
         let reason: Vec<String> = Sources(Some(err)).map(|e| format!("{e}")).collect();
         let body = serde_json::to_string(&json!({
             "msg": reason[0],
@@ -133,9 +143,9 @@ impl Server {
         };
         raw_request.respond(Response::new(
             StatusCode(status_code),
-            vec![],
-            Cursor::new(body),
-            None,
+            vec![self.content_type_json.clone()],
+            Cursor::new(&body),
+            Some(body.len()),
             None,
         ))?;
         Ok(())
