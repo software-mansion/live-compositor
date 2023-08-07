@@ -1,60 +1,24 @@
 use anyhow::{anyhow, Result};
-use compositor_common::{
-    scene::{InputId, OutputId, Resolution, SceneSpec},
-    transformation::{TransformationRegistryKey, TransformationSpec},
-    SpecValidationError,
-};
+use compositor_common::SpecValidationError;
+use compositor_pipeline::pipeline;
 use compositor_render::registry;
 use log::{error, info};
-use serde::{Deserialize, Serialize};
+
 use serde_json::json;
-use std::{error::Error, io::Cursor, net::SocketAddr, sync::Arc, thread};
+use std::{error::Error, io::Cursor, net::SocketAddr, thread};
 use tiny_http::{Header, Response, StatusCode};
 
-use crate::rtp_sender::EncoderSettings;
-
-use super::state::State;
-
-#[derive(Serialize, Deserialize)]
-pub struct RegisterInputRequest {
-    pub id: InputId,
-    pub port: u16,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct RegisterOutputRequest {
-    pub id: OutputId,
-    pub port: u16,
-    pub ip: String,
-    pub resolution: Resolution,
-    pub encoder_settings: EncoderSettings,
-}
-
-#[derive(Serialize, Deserialize)]
-#[serde(tag = "type", rename_all = "snake_case")]
-enum Request {
-    RegisterInput(RegisterInputRequest),
-    RegisterOutput(RegisterOutputRequest),
-    UpdateScene(SceneSpec),
-    RegisterTransformation {
-        key: TransformationRegistryKey,
-        transform: TransformationSpec,
-    },
-    Init,
-    Start,
-}
+use crate::api::{Api, Request};
 
 pub struct Server {
     server: tiny_http::Server,
-    state: Arc<State>,
     content_type_json: Header,
 }
 
 impl Server {
-    pub fn new(port: u16, state: Arc<State>) -> Self {
+    pub fn new(port: u16) -> Self {
         Self {
             server: tiny_http::Server::http(SocketAddr::from(([0, 0, 0, 0], port))).unwrap(),
-            state,
             content_type_json: Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..])
                 .unwrap(),
         }
@@ -62,44 +26,47 @@ impl Server {
 
     pub fn start(self) {
         info!("Listening on port {}", self.server.server_addr());
+        let mut api = None;
         for mut raw_request in self.server.incoming_requests() {
-            let result = self.handle_request_before_init(&mut raw_request);
-            let should_abort = result.is_ok();
-            self.send_response(raw_request, result);
-            if should_abort {
-                break;
+            let result = self
+                .handle_request_before_init(&mut raw_request)
+                .and_then(Api::new);
+            match result {
+                Ok(new_api) => {
+                    self.send_response(raw_request, Ok(()));
+                    api = Some(new_api);
+                    break;
+                }
+                Err(err) => {
+                    self.send_response(raw_request, Err(err));
+                }
             }
         }
+
+        let mut api = api.unwrap();
         thread::spawn(move || {
             for mut raw_request in self.server.incoming_requests() {
-                let result = self.handle_request_after_init(&mut raw_request);
+                let result = Self::handle_request_after_init(&mut api, &mut raw_request);
                 self.send_response(raw_request, result);
             }
         });
     }
 
-    fn handle_request_after_init(&self, raw_request: &mut tiny_http::Request) -> Result<()> {
+    fn handle_request_after_init(
+        api: &mut Api,
+        raw_request: &mut tiny_http::Request,
+    ) -> Result<()> {
         let request = Server::parse_request(raw_request)?;
-        match request {
-            Request::Init => Err(anyhow!("Video composer is already configured.")),
-            Request::RegisterInput(request) => self.state.register_input(request),
-            Request::RegisterOutput(request) => self.state.register_output(request),
-            Request::Start => {
-                self.state.pipeline.start();
-                Ok(())
-            }
-            Request::UpdateScene(scene_spec) => self.state.update_scene(scene_spec),
-            Request::RegisterTransformation {
-                key,
-                transform: spec,
-            } => self.state.register_transformation(key, spec),
-        }
+        api.handle_request(request)
     }
 
-    fn handle_request_before_init(&self, raw_request: &mut tiny_http::Request) -> Result<()> {
+    fn handle_request_before_init(
+        &self,
+        raw_request: &mut tiny_http::Request,
+    ) -> Result<pipeline::Options> {
         let request = Server::parse_request(raw_request)?;
         match request {
-            Request::Init => Ok(()),
+            Request::Init(opts) => Ok(opts),
             _ => Err(anyhow!(
                 "No requests are supported before init request is completed."
             )),

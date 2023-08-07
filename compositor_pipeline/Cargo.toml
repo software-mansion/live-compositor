@@ -13,3 +13,4 @@ crossbeam-channel = { workspace = true }
 anyhow = "1.0.71"
 thiserror = { workspace = true }
 log = { workspace = true } 
+serde = { workspace = true }

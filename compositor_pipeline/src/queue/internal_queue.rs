@@ -29,9 +29,9 @@ impl InternalQueue {
         self.inputs_queues.insert(input_id, Vec::new());
     }
 
-    pub fn remove_input(&mut self, input_id: InputId) {
-        self.inputs_queues.remove(&input_id);
-        self.timestamp_offsets.remove(&input_id);
+    pub fn remove_input(&mut self, input_id: &InputId) {
+        self.inputs_queues.remove(input_id);
+        self.timestamp_offsets.remove(input_id);
     }
 
     pub fn enqueue_frame(&mut self, input_id: InputId, mut frame: Frame) -> Result<(), QueueError> {

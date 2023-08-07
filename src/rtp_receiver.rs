@@ -4,6 +4,7 @@ use compositor_common::{
     scene::{InputId, Resolution},
     Frame,
 };
+use compositor_pipeline::{pipeline::PipelineInput, queue::Queue};
 use log::{error, warn};
 use std::{fs::File, io::Write, path::PathBuf, sync::Arc, thread, time::Duration};
 
@@ -15,23 +16,30 @@ use ffmpeg_next::{
     Dictionary,
 };
 
-use crate::state::Pipeline;
-
 #[allow(dead_code)]
 pub struct RtpReceiver {
     port: u16,
 }
 
-impl RtpReceiver {
-    pub fn new(pipeline: Arc<Pipeline>, port: u16, input_id: InputId) -> Self {
-        let port_clone = port;
-        thread::spawn(move || {
-            RtpReceiver::start(pipeline, port_clone, input_id).unwrap();
-        });
-        Self { port }
-    }
+pub struct Options {
+    pub port: u16,
+    pub input_id: InputId,
+}
 
-    fn start(pipeline: Arc<Pipeline>, port: u16, input_id: InputId) -> Result<()> {
+impl PipelineInput for RtpReceiver {
+    type Opts = Options;
+
+    fn new(queue: Arc<Queue>, opts: Self::Opts) -> Self {
+        let port_clone = opts.port;
+        thread::spawn(move || {
+            RtpReceiver::start(queue, opts.port, opts.input_id).unwrap();
+        });
+        Self { port: port_clone }
+    }
+}
+
+impl RtpReceiver {
+    fn start(queue: Arc<Queue>, port: u16, input_id: InputId) -> Result<()> {
         let sdp_filepath = PathBuf::from(format!("/tmp/sdp_input_{}.sdp", port));
         let mut file = File::create(&sdp_filepath)?;
         file.write_all(
@@ -81,7 +89,7 @@ impl RtpReceiver {
                         continue;
                     }
                 };
-                if let Err(err) = pipeline.push_input_data(input_id.clone(), frame) {
+                if let Err(err) = queue.enqueue_frame(input_id.clone(), frame) {
                     error!("Failed to push frame: {}", err);
                 }
             }

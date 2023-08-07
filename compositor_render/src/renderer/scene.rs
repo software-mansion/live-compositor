@@ -1,7 +1,11 @@
 use std::{collections::HashMap, sync::Arc};
 
-use compositor_common::scene::{
-    InputId, InputSpec, NodeId, OutputId, Resolution, SceneSpec, TransformNodeSpec, TransformParams,
+use compositor_common::{
+    scene::{
+        InputId, InputSpec, NodeId, OutputId, Resolution, SceneSpec, TransformNodeSpec,
+        TransformParams,
+    },
+    SpecValidationError,
 };
 use log::error;
 
@@ -120,7 +124,10 @@ pub enum SceneUpdateError {
     InputNodeError(GetError),
 
     #[error("No spec for node with id {0}")]
-    NoNodeWithIdError(Arc<str>),
+    NoNodeWithIdError(NodeId),
+
+    #[error("Scene definition is invalid")]
+    InvalidSpec(SpecValidationError),
 }
 
 impl Scene {
@@ -131,7 +138,7 @@ impl Scene {
         }
     }
 
-    pub fn update(&mut self, ctx: &RenderCtx, spec: SceneSpec) -> Result<(), SceneUpdateError> {
+    pub fn update(&mut self, ctx: &RenderCtx, spec: &SceneSpec) -> Result<(), SceneUpdateError> {
         // TODO: If we want nodes to be stateful we could try reusing nodes instead
         //       of recreating them on every scene update
         let mut new_nodes = HashMap::new();
@@ -139,7 +146,7 @@ impl Scene {
             .outputs
             .iter()
             .map(|output| {
-                let node = self.ensure_node(ctx, &output.input_pad, &spec, &mut new_nodes)?;
+                let node = self.ensure_node(ctx, &output.input_pad, spec, &mut new_nodes)?;
                 let buffers = OutputTexture::new(ctx.wgpu_ctx, node.resolution);
                 Ok((output.output_id.clone(), (node, buffers)))
             })
@@ -194,6 +201,6 @@ impl Scene {
             }
         }
 
-        Err(SceneUpdateError::NoNodeWithIdError(node_id.0.clone()))
+        Err(SceneUpdateError::NoNodeWithIdError(node_id.clone()))
     }
 }

@@ -40,16 +40,16 @@ fn scene_validation_finds_cycle() {
 
     let b = TransformNodeSpec {
         node_id: b_id.clone(),
-        input_pads: vec![a_id.clone()],
+        input_pads: vec![a_id],
         resolution: res,
         transform_params: trans_params.clone(),
     };
 
     let c = TransformNodeSpec {
         node_id: c_id.clone(),
-        input_pads: vec![b_id.clone()],
+        input_pads: vec![b_id],
         resolution: res,
-        transform_params: trans_params.clone(),
+        transform_params: trans_params,
     };
 
     let output = OutputSpec {
@@ -63,8 +63,8 @@ fn scene_validation_finds_cycle() {
         outputs: vec![output],
     };
 
-    let registered_inputs = HashSet::from([input_id]);
-    let registered_outputs = HashSet::from([output_id]);
+    let registered_inputs = HashSet::from([&input_id]);
+    let registered_outputs = HashSet::from([&output_id]);
 
     assert!(matches!(
         scene_spec.validate(&registered_inputs, &registered_outputs),
@@ -118,7 +118,7 @@ fn scene_validation_finds_unused_nodes() {
         node_id: c_id.clone(),
         input_pads: vec![b_id.clone()],
         resolution: res,
-        transform_params: trans_params.clone(),
+        transform_params: trans_params,
     };
 
     let output = OutputSpec {
@@ -134,8 +134,8 @@ fn scene_validation_finds_unused_nodes() {
 
     let unused_nodes = HashSet::from([unused_input_id.0.clone(), b_id.0, c_id.0]);
 
-    let registered_inputs = HashSet::from([input_id, unused_input_id]);
-    let registered_outputs = HashSet::from([output_id]);
+    let registered_inputs = HashSet::from([&input_id, &unused_input_id]);
+    let registered_outputs = HashSet::from([&output_id]);
 
     assert_eq!(
         scene_spec.validate(&registered_inputs, &registered_outputs),
