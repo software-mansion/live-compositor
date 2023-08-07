@@ -1,5 +1,6 @@
 use anyhow::{anyhow, Result};
 
+use log::error;
 use reqwest::{blocking::Response, StatusCode};
 use std::{
     fs::File,
@@ -44,13 +45,23 @@ pub fn post<T: Serialize + ?Sized>(json: &T) -> Result<Response> {
         .send()
         .unwrap();
     if response.status() >= StatusCode::BAD_REQUEST {
-        return Err(anyhow!(
-            "Request failed: \n\trequest: {:?}\n\tresponse: {:?}",
-            serde_json::to_string(json)?,
-            response.text()
-        ));
+        log_request_error(&json, response);
+        return Err(anyhow!("request failed"));
     }
     Ok(response)
+}
+
+fn log_request_error<T: Serialize + ?Sized>(request_body: &T, response: Response) {
+    let status = response.status();
+    let request_str = serde_json::to_string_pretty(request_body).unwrap();
+    let body_str = response.text().unwrap();
+    let formated_body = serde_json::from_str::<serde_json::Value>(&body_str)
+        .map(|parsed| serde_json::to_string_pretty(&parsed).unwrap())
+        .unwrap_or(body_str);
+    error!(
+        "Request failed:\nRequest: {}\nResponse code: {}\nResponse body:\n{}",
+        request_str, status, formated_body
+    )
 }
 
 #[allow(dead_code)]

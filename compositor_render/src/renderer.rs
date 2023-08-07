@@ -39,16 +39,16 @@ pub struct Renderer {
     pub text_renderer_ctx: TextRendererCtx,
     pub electron_instance: Arc<ElectronInstance>,
     pub scene: Scene,
-    pub shader_transforms: TransformationRegistry<Arc<Shader>>,
-    pub web_renderers: TransformationRegistry<Arc<WebRenderer>>,
+    pub(crate) shader_transforms: TransformationRegistry<Arc<Shader>>,
+    pub(crate) web_renderers: TransformationRegistry<Arc<WebRenderer>>,
 }
 
 pub struct RenderCtx<'a> {
     pub wgpu_ctx: &'a Arc<WgpuCtx>,
     pub text_renderer_ctx: &'a TextRendererCtx,
     pub electron: &'a Arc<ElectronInstance>,
-    pub shader_transforms: &'a TransformationRegistry<Arc<Shader>>,
-    pub web_renderers: &'a TransformationRegistry<Arc<WebRenderer>>,
+    pub(crate) shader_transforms: &'a TransformationRegistry<Arc<Shader>>,
+    pub(crate) web_renderers: &'a TransformationRegistry<Arc<WebRenderer>>,
 }
 
 #[derive(Debug, thiserror::Error)]

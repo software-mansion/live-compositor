@@ -1,7 +1,7 @@
 pub mod frame_set;
+pub mod registry;
 pub mod renderer;
 
-pub(crate) mod registry;
 pub(crate) mod render_loop;
 pub(crate) mod transformations;
 
