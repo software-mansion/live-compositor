@@ -83,10 +83,10 @@ impl<T: CefStruct> CefRefPtr<T> {
     extern "C" fn release(base: *mut chromium_sys::cef_base_ref_counted_t) -> c_int {
         let self_ref = unsafe { Self::from_base(base) };
         let old_count = self_ref.ref_count.fetch_sub(1, Ordering::Release);
-        std::sync::atomic::fence(Ordering::Acquire);
 
         let should_drop = old_count == 1;
         if should_drop {
+            std::sync::atomic::fence(Ordering::Acquire);
             unsafe {
                 // Load raw Self instance and let Box drop it
                 let _ = Box::from_raw(self_ref);
@@ -98,14 +98,14 @@ impl<T: CefStruct> CefRefPtr<T> {
 
     extern "C" fn has_one_ref(base: *mut chromium_sys::cef_base_ref_counted_t) -> c_int {
         let self_ref = unsafe { Self::from_base(base) };
-        let is_one_ref = (self_ref.ref_count.load(Ordering::SeqCst)) == 1;
+        let is_one_ref = (self_ref.ref_count.load(Ordering::Acquire)) == 1;
 
         is_one_ref as c_int
     }
 
     extern "C" fn has_at_least_one_ref(base: *mut chromium_sys::cef_base_ref_counted_t) -> c_int {
         let self_ref = unsafe { Self::from_base(base) };
-        let has_any_refs = (self_ref.ref_count.load(Ordering::SeqCst)) >= 1;
+        let has_any_refs = (self_ref.ref_count.load(Ordering::Acquire)) >= 1;
 
         has_any_refs as c_int
     }

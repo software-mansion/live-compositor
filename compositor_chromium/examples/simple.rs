@@ -113,6 +113,6 @@ fn main() {
         "https://membrane.stream".to_owned(),
     );
 
-    println!("Starting generating images");
+    println!("Starting image generation");
     ctx.run_message_loop();
 }
