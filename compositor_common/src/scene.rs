@@ -3,9 +3,9 @@ use std::{collections::HashMap, sync::Arc};
 
 use crate::transformation::TransformationRegistryKey;
 
-use self::text_params::TextParams;
+use self::text_spec::TextSpec;
 
-pub mod text_params;
+pub mod text_spec;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Resolution {
@@ -77,7 +77,7 @@ pub enum TransformParams {
         shader_params: HashMap<String, ShaderParams>,
     },
     TextRenderer {
-        text_params: TextParams,
+        text_params: TextSpec,
     },
 }
 

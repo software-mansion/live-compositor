@@ -71,7 +71,7 @@ impl From<Align> for glyphon::cosmic_text::Align {
 
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(tag = "type")]
-pub struct TextParams {
+pub struct TextSpec {
     pub content: Arc<str>,
     /// in pixels
     pub font_size: f32,
@@ -91,8 +91,8 @@ pub struct TextParams {
     pub wrap: Wrap,
 }
 
-impl From<&TextParams> for AttrsOwned {
-    fn from(text_params: &TextParams) -> Self {
+impl From<&TextSpec> for AttrsOwned {
+    fn from(text_params: &TextSpec) -> Self {
         let (r, g, b, a) = text_params.color_rgba;
         let color = glyphon::Color::rgba(r, g, b, a);
 

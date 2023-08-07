@@ -3,13 +3,13 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use compositor_common::scene::text_params;
+use compositor_common::scene::text_spec;
 use glyphon::{
     AttrsOwned, Buffer, Color, FontSystem, Metrics, Shaping, SwashCache, TextArea, TextAtlas,
     TextBounds,
 };
 use log::info;
-use text_params::TextParams;
+use text_spec::TextSpec;
 use wgpu::{
     CommandEncoderDescriptor, LoadOp, MultisampleState, Operations, RenderPassColorAttachment,
     RenderPassDescriptor, TextureFormat,
@@ -18,7 +18,7 @@ use wgpu::{
 use crate::renderer::{texture::NodeTexture, RenderCtx};
 
 #[allow(dead_code)]
-pub struct TextSpec {
+pub struct TextParams {
     content: Arc<str>,
     attributes: AttrsOwned,
     font_size: f32,
@@ -27,8 +27,8 @@ pub struct TextSpec {
     wrap: glyphon::cosmic_text::Wrap,
 }
 
-impl From<TextParams> for TextSpec {
-    fn from(text_params: TextParams) -> Self {
+impl From<TextSpec> for TextParams {
+    fn from(text_params: TextSpec) -> Self {
         Self {
             attributes: Into::into(&text_params),
             content: text_params.content,
@@ -64,13 +64,13 @@ impl Default for TextRendererCtx {
 
 #[allow(dead_code)]
 pub struct TextRenderer {
-    text_specs: TextSpec,
+    text_specs: TextParams,
     was_rendered: Mutex<bool>,
 }
 
 impl TextRenderer {
     #[allow(dead_code)]
-    pub fn new(text_params: TextParams) -> Self {
+    pub fn new(text_params: TextSpec) -> Self {
         Self {
             was_rendered: Mutex::new(false),
             text_specs: text_params.into(),
