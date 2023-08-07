@@ -33,30 +33,22 @@ impl From<TextParams> for TextSpec {
         let line_height = text_params.line_height.unwrap_or(font_size);
 
         let align = match text_params.align {
-            Some(compositor_common::scene::text_params::Align::Left) | None => {
-                glyphon::cosmic_text::Align::Left
-            }
-            Some(compositor_common::scene::text_params::Align::Right) => {
+            compositor_common::scene::text_params::Align::Left => glyphon::cosmic_text::Align::Left,
+            compositor_common::scene::text_params::Align::Right => {
                 glyphon::cosmic_text::Align::Right
             }
-            Some(compositor_common::scene::text_params::Align::Center) => {
+            compositor_common::scene::text_params::Align::Center => {
                 glyphon::cosmic_text::Align::Center
             }
-            Some(compositor_common::scene::text_params::Align::Justified) => {
+            compositor_common::scene::text_params::Align::Justified => {
                 glyphon::cosmic_text::Align::Justified
             }
         };
 
         let wrap = match text_params.wrap {
-            Some(compositor_common::scene::text_params::Wrap::None) | None => {
-                glyphon::cosmic_text::Wrap::None
-            }
-            Some(compositor_common::scene::text_params::Wrap::Word) => {
-                glyphon::cosmic_text::Wrap::Word
-            }
-            Some(compositor_common::scene::text_params::Wrap::Glyph) => {
-                glyphon::cosmic_text::Wrap::Glyph
-            }
+            compositor_common::scene::text_params::Wrap::None => glyphon::cosmic_text::Wrap::None,
+            compositor_common::scene::text_params::Wrap::Word => glyphon::cosmic_text::Wrap::Word,
+            compositor_common::scene::text_params::Wrap::Glyph => glyphon::cosmic_text::Wrap::Glyph,
         };
 
         Self {
@@ -72,22 +64,15 @@ impl From<TextParams> for TextSpec {
 
 impl TextSpec {
     fn get_attrs_owned(text_params: &TextParams) -> AttrsOwned {
-        let color = match text_params.color_rgba {
-            Some((r, g, b, a)) => glyphon::Color::rgba(r, g, b, a),
-            None => glyphon::Color::rgb(255, 255, 255),
-        };
+        let (r, g, b, a) = text_params.color_rgba;
+        let color = glyphon::Color::rgba(r, g, b, a);
 
-        let family = match &text_params.font_family {
-            Some(font_family_name) => glyphon::FamilyOwned::Name(font_family_name.clone()),
-            None => glyphon::FamilyOwned::SansSerif,
-        };
+        let family = glyphon::FamilyOwned::Name(text_params.font_family.clone());
 
         let style = match text_params.style {
-            Some(compositor_common::scene::text_params::Style::Normal) | None => {
-                glyphon::Style::Normal
-            }
-            Some(compositor_common::scene::text_params::Style::Italic) => glyphon::Style::Italic,
-            Some(compositor_common::scene::text_params::Style::Oblique) => glyphon::Style::Oblique,
+            compositor_common::scene::text_params::Style::Normal => glyphon::Style::Normal,
+            compositor_common::scene::text_params::Style::Italic => glyphon::Style::Italic,
+            compositor_common::scene::text_params::Style::Oblique => glyphon::Style::Oblique,
         };
 
         AttrsOwned {

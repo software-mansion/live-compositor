@@ -33,17 +33,38 @@ pub struct TextParams {
     pub content: Arc<str>,
     /// in pixels
     pub font_size: f32,
-    /// default: white (255, 255, 255, 255)
-    pub color_rgba: Option<(u8, u8, u8, u8)>,
-    /// https://www.w3.org/TR/2018/REC-css-fonts-3-20180920/#family-name-value   
-    /// use font family name, not generic family name
-    pub font_family: Option<String>,
     /// in pixels, default: same as font_size
     pub line_height: Option<f32>,
-    /// default: Normal
-    pub style: Option<Style>,
-    /// default: Left
-    pub align: Option<Align>,
-    /// default: None
-    pub wrap: Option<Wrap>,
+    #[serde(default = "default_color")]
+    pub color_rgba: (u8, u8, u8, u8),
+    /// https://www.w3.org/TR/2018/REC-css-fonts-3-20180920/#family-name-value   
+    /// use font family name, not generic family name
+    #[serde(default = "default_family")]
+    pub font_family: String,
+    #[serde(default = "default_style")]
+    pub style: Style,
+    #[serde(default = "default_align")]
+    pub align: Align,
+    #[serde(default = "default_wrap")]
+    pub wrap: Wrap
+}
+
+fn default_color() -> (u8, u8, u8, u8) {
+    (255, 255, 255, 255)
+}
+
+fn default_family() -> String {
+    String::from("Verdana")
+}
+
+fn default_style() -> Style {
+    Style::Normal
+}
+
+fn default_align() -> Align {
+    Align::Left
+}
+
+fn default_wrap() -> Wrap {
+    Wrap::None
 }
