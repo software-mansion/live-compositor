@@ -1,4 +1,4 @@
-use crate::renderer::{texture::NodeTexture, RenderCtx};
+use crate::renderer::{texture::NodeTexture, RegisterTransformationCtx};
 
 use std::{collections::HashMap, sync::Arc};
 
@@ -27,7 +27,7 @@ pub struct Shader {
 }
 
 impl Shader {
-    pub fn new(ctx: &RenderCtx, shader_src: String) -> Self {
+    pub fn new(ctx: &RegisterTransformationCtx, shader_src: String) -> Self {
         // TODO: Error handling
         let pipeline = Pipeline::new(
             &ctx.wgpu_ctx.device,
