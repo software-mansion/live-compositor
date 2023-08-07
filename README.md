@@ -1,9 +1,8 @@
 # VideoCompositor
 
-Application for real-time video processing/transforming/composing.
-Provides simple, language-agnostic, API for live video rendering.
+Application for real-time video processing/transforming/composing, providing simple, language-agnostic API for live video rendering.
 
-It's designed for real-time use cases, like video conferencing, live-streaming, or broadcasting (e.g. with [WebRTC](https://en.wikipedia.org/wiki/WebRTC) / [HLS](https://en.wikipedia.org/wiki/HTTP_Live_Streaming) / [RTMP](https://en.wikipedia.org/wiki/Real-Time_Messaging_Protocol)).
+VideoCompositor targets real-time use cases, like video conferencing, live-streaming, or broadcasting (e.g. with [WebRTC](https://en.wikipedia.org/wiki/WebRTC) / [HLS](https://en.wikipedia.org/wiki/HTTP_Live_Streaming) / [RTMP](https://en.wikipedia.org/wiki/Real-Time_Messaging_Protocol)).
 
 ## Features
 
