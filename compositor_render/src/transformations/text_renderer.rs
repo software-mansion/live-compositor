@@ -188,10 +188,9 @@ impl TextRenderer {
 
         // TODO add different output texture size strategies
         // use this to crop texture to smallest possible size if needed
-        // this "cutting to smallest possible size" strategy 
-        // should require align to left or justify 
-        let texture_size =
-            Self::get_texture_size(buffer.lines.iter(), self.text_specs.line_height);
+        // this "cutting to smallest possible size" strategy
+        // should require align to left or justify
+        let texture_size = Self::get_texture_size(buffer.lines.iter(), self.text_specs.line_height);
         info!("Text rendered size: {:?}", texture_size);
 
         text_renderer
