@@ -234,3 +234,6 @@ impl SceneSpec {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod test;
