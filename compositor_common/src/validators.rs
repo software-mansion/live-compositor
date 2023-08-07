@@ -41,15 +41,15 @@ impl SceneSpec {
         registered_inputs: &HashSet<NodeId>,
         registered_outputs: &HashSet<NodeId>,
     ) -> Result<(), SpecValidationError> {
-        let transform_iter = self.transforms.iter().map(|i| i.node_id.clone());
-        let input_iter = self.inputs.iter().map(|i| i.input_id.0.clone());
+        let transform_iter = self.transforms.iter().map(|i| &i.node_id);
+        let input_iter = self.inputs.iter().map(|i| &i.input_id.0);
         let defined_node_ids = transform_iter.chain(input_iter);
-        let node_ids: HashSet<NodeId> = defined_node_ids.clone().collect();
+        let node_ids: HashSet<&NodeId> = defined_node_ids.clone().collect();
 
-        let transform_nodes: HashMap<NodeId, &TransformNodeSpec> = self
+        let transform_nodes: HashMap<&NodeId, &TransformNodeSpec> = self
             .transforms
             .iter()
-            .map(|node| (node.node_id.clone(), node))
+            .map(|node| (&node.node_id, node))
             .collect();
 
         self.validate_inputs(registered_inputs)?;
@@ -64,7 +64,7 @@ impl SceneSpec {
 
     fn validate_transform_inputs(
         &self,
-        defined_node_ids: &HashSet<NodeId>,
+        defined_node_ids: &HashSet<&NodeId>,
     ) -> Result<(), SpecValidationError> {
         for t in self.transforms.iter() {
             for input in &t.input_pads {
@@ -98,7 +98,7 @@ impl SceneSpec {
     fn validate_outputs(
         &self,
         registered_outputs: &HashSet<NodeId>,
-        defined_node_ids: &HashSet<NodeId>,
+        defined_node_ids: &HashSet<&NodeId>,
     ) -> Result<(), SpecValidationError> {
         for out in self.outputs.iter() {
             let node_id = &out.input_pad;
@@ -119,20 +119,20 @@ impl SceneSpec {
     fn validate_cycles(
         &self,
         registered_inputs: &HashSet<NodeId>,
-        transform_nodes: &HashMap<NodeId, &TransformNodeSpec>,
+        transform_nodes: &HashMap<&NodeId, &TransformNodeSpec>,
     ) -> Result<(), SpecValidationError> {
         enum NodeState {
             BeingVisited,
             Visited,
         }
 
-        let mut visited: HashMap<NodeId, NodeState> = HashMap::new();
+        let mut visited: HashMap<&NodeId, NodeState> = HashMap::new();
 
-        fn visit(
-            node: &NodeId,
-            transform_nodes: &HashMap<NodeId, &TransformNodeSpec>,
+        fn visit<'a>(
+            node: &'a NodeId,
+            transform_nodes: &'a HashMap<&NodeId, &TransformNodeSpec>,
             inputs: &HashSet<NodeId>,
-            visited: &mut HashMap<NodeId, NodeState>,
+            visited: &mut HashMap<&'a NodeId, NodeState>,
         ) -> Result<(), SpecValidationError> {
             if let Some(_input) = inputs.get(node) {
                 return Ok(());
@@ -144,13 +144,13 @@ impl SceneSpec {
                 None => {}
             }
 
-            visited.insert(node.clone(), NodeState::BeingVisited);
+            visited.insert(node, NodeState::BeingVisited);
 
             for child in &transform_nodes.get(node).unwrap().input_pads {
                 visit(child, transform_nodes, inputs, visited)?;
             }
 
-            visited.insert(node.clone(), NodeState::Visited);
+            visited.insert(node, NodeState::Visited);
 
             Ok(())
         }
@@ -167,11 +167,11 @@ impl SceneSpec {
         Ok(())
     }
 
-    fn validate_node_ids_uniqueness<I: Iterator<Item = NodeId>>(
+    fn validate_node_ids_uniqueness<'a, I: Iterator<Item = &'a NodeId>>(
         &self,
         defined_node_ids: I,
     ) -> Result<(), SpecValidationError> {
-        let mut nodes_ids: HashSet<NodeId> = HashSet::new();
+        let mut nodes_ids: HashSet<&NodeId> = HashSet::new();
 
         for node_id in defined_node_ids {
             if nodes_ids.contains(&node_id) {
@@ -186,15 +186,15 @@ impl SceneSpec {
     fn validate_nodes_are_used(
         &self,
         input_nodes: &HashSet<NodeId>,
-        transform_nodes: &HashMap<NodeId, &TransformNodeSpec>,
+        transform_nodes: &HashMap<&NodeId, &TransformNodeSpec>,
     ) -> Result<(), SpecValidationError> {
-        let mut visited: HashSet<NodeId> = HashSet::new();
+        let mut visited: HashSet<&NodeId> = HashSet::new();
 
-        fn visit(
-            node: &NodeId,
-            transform_nodes: &HashMap<NodeId, &TransformNodeSpec>,
+        fn visit<'a>(
+            node: &'a NodeId,
+            transform_nodes: &'a HashMap<&NodeId, &TransformNodeSpec>,
             inputs: &HashSet<NodeId>,
-            visited: &mut HashSet<NodeId>,
+            visited: &mut HashSet<&'a NodeId>,
         ) {
             if let Some(_input) = inputs.get(node) {
                 return;
@@ -207,7 +207,7 @@ impl SceneSpec {
                 visit(child, transform_nodes, inputs, visited);
             }
 
-            visited.insert(node.clone());
+            visited.insert(node);
         }
 
         for output in &self.outputs {
