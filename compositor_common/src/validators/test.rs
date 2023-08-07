@@ -87,6 +87,7 @@ fn scene_validation_finds_unused_nodes() {
     };
 
     let input_id = NodeId(Arc::from("input"));
+    let unused_input_id = NodeId(Arc::from("unused_input"));
     let a_id = NodeId(Arc::from("a"));
     let b_id = NodeId(Arc::from("b"));
     let c_id = NodeId(Arc::from("c"));
@@ -94,6 +95,11 @@ fn scene_validation_finds_unused_nodes() {
 
     let input = InputSpec {
         input_id: InputId(input_id.clone()),
+        resolution: res,
+    };
+
+    let unused_input = InputSpec {
+        input_id: InputId(unused_input_id.clone()),
         resolution: res,
     };
 
@@ -124,16 +130,18 @@ fn scene_validation_finds_unused_nodes() {
     };
 
     let scene_spec = SceneSpec {
-        inputs: vec![input],
+        inputs: vec![input, unused_input],
         transforms: vec![a, b, c],
         outputs: vec![output],
     };
 
-    let registered_inputs = HashSet::from([input_id]);
+    let unused_nodes = HashSet::from([unused_input_id.0.clone(), b_id.0, c_id.0]);
+
+    let registered_inputs = HashSet::from([input_id, unused_input_id]);
     let registered_outputs = HashSet::from([output_id]);
 
-    assert!(matches!(
+    assert_eq!(
         scene_spec.validate(&registered_inputs, &registered_outputs),
-        Err(SpecValidationError::UnusedNodes(_))
-    ));
+        Err(SpecValidationError::UnusedNodes(unused_nodes))
+    );
 }
