@@ -67,14 +67,16 @@ impl TextSpec {
 
 #[allow(dead_code)]
 pub struct TextRendererCtx {
-    font_system: FontSystem,
+    font_system: Mutex<FontSystem>,
+    swash_cache: Mutex<SwashCache>,
 }
 
 impl TextRendererCtx {
     #[allow(dead_code)]
     pub fn new() -> Self {
         Self {
-            font_system: FontSystem::new(),
+            font_system: Mutex::new(FontSystem::new()),
+            swash_cache: Mutex::new(SwashCache::new()),
         }
     }
 }
@@ -107,9 +109,10 @@ impl TextRenderer {
         }
 
         info!("Text render");
-        let font_system = &mut renderer_ctx.text_renderer_ctx.lock().unwrap().font_system;
+        let font_system = &mut renderer_ctx.text_renderer_ctx.font_system.lock().unwrap();
+        let cache = &mut renderer_ctx.text_renderer_ctx.swash_cache.lock().unwrap();
+
         let swapchain_format = TextureFormat::Rgba8Unorm;
-        let mut cache = SwashCache::new();
         let mut atlas = TextAtlas::new(
             &renderer_ctx.wgpu_ctx.device,
             &renderer_ctx.wgpu_ctx.queue,
@@ -163,7 +166,7 @@ impl TextRenderer {
                     },
                     default_color: Color::rgb(255, 255, 255),
                 }],
-                &mut cache,
+                cache,
             )
             .unwrap();
 
