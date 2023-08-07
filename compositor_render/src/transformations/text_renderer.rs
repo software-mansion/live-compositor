@@ -1,4 +1,7 @@
-use std::sync::{Arc, Mutex};
+use std::{
+    cmp::max,
+    sync::{Arc, Mutex},
+};
 
 use compositor_common::scene::text_params::TextParams;
 use glyphon::{
@@ -183,6 +186,14 @@ impl TextRenderer {
 
         buffer.shape_until_scroll(font_system);
 
+        // TODO add different output texture size strategies
+        // use this to crop texture to smallest possible size if needed
+        // this "cutting to smallest possible size" strategy 
+        // should require align to left or justify 
+        let texture_size =
+            Self::get_texture_size(buffer.lines.iter(), self.text_specs.line_height);
+        info!("Text rendered size: {:?}", texture_size);
+
         text_renderer
             .prepare(
                 &renderer_ctx.wgpu_ctx.device,
@@ -239,5 +250,27 @@ impl TextRenderer {
 
         renderer_ctx.wgpu_ctx.queue.submit(Some(encoder.finish()));
         *was_rendered = true;
+    }
+
+    fn get_texture_size<'a, I: Iterator<Item = &'a glyphon::BufferLine>>(
+        lines: I,
+        line_height: f32,
+    ) -> (u32, u32) {
+        // TODO add different output texture size strategies
+        // use this to crop texture to smallest possible size if needed
+        let mut width = 0;
+        let mut lines_count = 0u32;
+
+        for line in lines {
+            if let Some(layout) = line.layout_opt() {
+                for layout_line in layout {
+                    lines_count += 1;
+                    width = max(width, layout_line.w.ceil() as u32);
+                }
+            }
+        }
+
+        let height = lines_count * line_height.ceil() as u32;
+        (width, height)
     }
 }
