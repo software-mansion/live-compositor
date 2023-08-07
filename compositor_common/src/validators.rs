@@ -141,7 +141,7 @@ impl SceneSpec {
             inputs: &HashSet<NodeId>,
             visited: &mut HashMap<&'a NodeId, NodeState>,
         ) -> Result<(), SpecValidationError> {
-            if let Some(_input) = inputs.get(node) {
+            if inputs.get(node).is_some() {
                 return Ok(());
             }
 
@@ -181,10 +181,9 @@ impl SceneSpec {
         let mut nodes_ids: HashSet<&NodeId> = HashSet::new();
 
         for node_id in defined_node_ids {
-            if nodes_ids.contains(&node_id) {
+            if !nodes_ids.insert(node_id) {
                 return Err(SpecValidationError::DuplicateNames(node_id.0.clone()));
             }
-            nodes_ids.insert(node_id);
         }
 
         Ok(())
@@ -233,15 +232,16 @@ impl SceneSpec {
             )
         }
 
-        let mut unused_transforms: HashSet<Arc<str>> = HashSet::new();
+        let nodes: HashSet<&NodeId> = input_nodes
+            .keys()
+            .chain(transform_nodes.keys())
+            .copied()
+            .collect();
 
-        let nodes_iter = input_nodes.keys().chain(transform_nodes.keys());
-
-        for node in nodes_iter {
-            if !visited.contains(node) {
-                unused_transforms.insert(node.0.clone());
-            }
-        }
+        let unused_transforms: HashSet<Arc<str>> = nodes
+            .difference(&visited)
+            .map(|node| node.0.clone())
+            .collect();
 
         if !unused_transforms.is_empty() {
             return Err(SpecValidationError::UnusedNodes(unused_transforms));
