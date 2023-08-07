@@ -95,9 +95,11 @@ fn start_example_client_code() -> Result<()> {
                 "node_id": "text_renderer",
                 "type": "text_renderer",
                 "text_params": {
-                    "content": "VideoCompositor🚀\nSecond Line",
+                    "content": "VideoCompositor🚀\nSecond Line\nLorem ipsum dolor sit amet consectetur adipisicing elit. Soluta delectus optio fugit maiores eaque ab totam, veritatis aperiam provident, aliquam consectetur deserunt cumque est? Saepe tenetur impedit culpa asperiores id?",
                     "font_size": 100.0,
                     "font_family": "Comic Sans MS",
+                    "align": "center",
+                    "wrap": "word"
                 },
                 "input_pads": [],
                 "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },

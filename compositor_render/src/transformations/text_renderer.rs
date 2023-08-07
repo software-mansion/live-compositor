@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use compositor_common::scene::TextParams;
+use compositor_common::scene::text_params::TextParams;
 use glyphon::{
     AttrsOwned, Buffer, Color, FontSystem, Metrics, Shaping, SwashCache, TextArea, TextAtlas,
     TextBounds,
@@ -19,6 +19,8 @@ pub struct TextSpec {
     attributes: AttrsOwned,
     font_size: f32,
     line_height: f32,
+    align: glyphon::cosmic_text::Align,
+    wrap: glyphon::cosmic_text::Wrap,
 }
 
 impl From<TextParams> for TextSpec {
@@ -27,11 +29,40 @@ impl From<TextParams> for TextSpec {
         let font_size = text_params.font_size;
         let line_height = text_params.line_height.unwrap_or(font_size);
 
+        let align = match text_params.align {
+            Some(compositor_common::scene::text_params::Align::Left) | None => {
+                glyphon::cosmic_text::Align::Left
+            }
+            Some(compositor_common::scene::text_params::Align::Right) => {
+                glyphon::cosmic_text::Align::Right
+            }
+            Some(compositor_common::scene::text_params::Align::Center) => {
+                glyphon::cosmic_text::Align::Center
+            }
+            Some(compositor_common::scene::text_params::Align::Justified) => {
+                glyphon::cosmic_text::Align::Justified
+            }
+        };
+
+        let wrap = match text_params.wrap {
+            Some(compositor_common::scene::text_params::Wrap::None) | None => {
+                glyphon::cosmic_text::Wrap::None
+            }
+            Some(compositor_common::scene::text_params::Wrap::Word) => {
+                glyphon::cosmic_text::Wrap::Word
+            }
+            Some(compositor_common::scene::text_params::Wrap::Glyph) => {
+                glyphon::cosmic_text::Wrap::Glyph
+            }
+        };
+
         Self {
             content: text_params.content,
             attributes,
             font_size,
             line_height,
+            align,
+            wrap,
         }
     }
 }
@@ -49,9 +80,11 @@ impl TextSpec {
         };
 
         let style = match text_params.style {
-            Some(compositor_common::scene::Style::Normal) | None => glyphon::Style::Normal,
-            Some(compositor_common::scene::Style::Italic) => glyphon::Style::Italic,
-            Some(compositor_common::scene::Style::Oblique) => glyphon::Style::Oblique,
+            Some(compositor_common::scene::text_params::Style::Normal) | None => {
+                glyphon::Style::Normal
+            }
+            Some(compositor_common::scene::text_params::Style::Italic) => glyphon::Style::Italic,
+            Some(compositor_common::scene::text_params::Style::Oblique) => glyphon::Style::Oblique,
         };
 
         AttrsOwned {
@@ -141,6 +174,13 @@ impl TextRenderer {
             self.text_specs.attributes.as_attrs(),
             Shaping::Advanced,
         );
+
+        buffer.set_wrap(font_system, self.text_specs.wrap);
+
+        for line in &mut buffer.lines {
+            line.set_align(Some(self.text_specs.align));
+        }
+
         buffer.shape_until_scroll(font_system);
 
         text_renderer
