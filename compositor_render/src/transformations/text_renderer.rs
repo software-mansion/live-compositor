@@ -3,12 +3,13 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use compositor_common::scene::text_params::TextParams;
+use compositor_common::scene::text_params;
 use glyphon::{
     AttrsOwned, Buffer, Color, FontSystem, Metrics, Shaping, SwashCache, TextArea, TextAtlas,
     TextBounds,
 };
 use log::info;
+use text_params::TextParams;
 use wgpu::{
     CommandEncoderDescriptor, LoadOp, MultisampleState, Operations, RenderPassColorAttachment,
     RenderPassDescriptor, TextureFormat,
@@ -28,60 +29,13 @@ pub struct TextSpec {
 
 impl From<TextParams> for TextSpec {
     fn from(text_params: TextParams) -> Self {
-        let attributes = Self::get_attrs_owned(&text_params);
-        let font_size = text_params.font_size;
-        let line_height = text_params.line_height.unwrap_or(font_size);
-
-        let align = match text_params.align {
-            compositor_common::scene::text_params::Align::Left => glyphon::cosmic_text::Align::Left,
-            compositor_common::scene::text_params::Align::Right => {
-                glyphon::cosmic_text::Align::Right
-            }
-            compositor_common::scene::text_params::Align::Center => {
-                glyphon::cosmic_text::Align::Center
-            }
-            compositor_common::scene::text_params::Align::Justified => {
-                glyphon::cosmic_text::Align::Justified
-            }
-        };
-
-        let wrap = match text_params.wrap {
-            compositor_common::scene::text_params::Wrap::None => glyphon::cosmic_text::Wrap::None,
-            compositor_common::scene::text_params::Wrap::Word => glyphon::cosmic_text::Wrap::Word,
-            compositor_common::scene::text_params::Wrap::Glyph => glyphon::cosmic_text::Wrap::Glyph,
-        };
-
         Self {
+            attributes: Into::into(&text_params),
             content: text_params.content,
-            attributes,
-            font_size,
-            line_height,
-            align,
-            wrap,
-        }
-    }
-}
-
-impl TextSpec {
-    fn get_attrs_owned(text_params: &TextParams) -> AttrsOwned {
-        let (r, g, b, a) = text_params.color_rgba;
-        let color = glyphon::Color::rgba(r, g, b, a);
-
-        let family = glyphon::FamilyOwned::Name(text_params.font_family.clone());
-
-        let style = match text_params.style {
-            compositor_common::scene::text_params::Style::Normal => glyphon::Style::Normal,
-            compositor_common::scene::text_params::Style::Italic => glyphon::Style::Italic,
-            compositor_common::scene::text_params::Style::Oblique => glyphon::Style::Oblique,
-        };
-
-        AttrsOwned {
-            color_opt: Some(color),
-            family_owned: family,
-            stretch: Default::default(),
-            style,
-            weight: Default::default(),
-            metadata: Default::default(),
+            font_size: text_params.font_size,
+            line_height: text_params.line_height.unwrap_or(text_params.font_size),
+            align: text_params.align.into(),
+            wrap: text_params.wrap.into(),
         }
     }
 }

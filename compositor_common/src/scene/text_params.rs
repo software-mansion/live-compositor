@@ -1,6 +1,27 @@
 use std::sync::Arc;
 
+use glyphon::AttrsOwned;
 use serde::{Deserialize, Serialize};
+
+fn default_color() -> (u8, u8, u8, u8) {
+    (255, 255, 255, 255)
+}
+
+fn default_family() -> String {
+    String::from("Verdana")
+}
+
+fn default_style() -> Style {
+    Style::Normal
+}
+
+fn default_align() -> Align {
+    Align::Left
+}
+
+fn default_wrap() -> Wrap {
+    Wrap::None
+}
 
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "snake_case")]
@@ -18,6 +39,16 @@ pub enum Wrap {
     Word,
 }
 
+impl From<Wrap> for glyphon::cosmic_text::Wrap {
+    fn from(wrap: Wrap) -> Self {
+        match wrap {
+            Wrap::None => glyphon::cosmic_text::Wrap::None,
+            Wrap::Glyph => glyphon::cosmic_text::Wrap::Glyph,
+            Wrap::Word => glyphon::cosmic_text::Wrap::Word,
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "snake_case")]
 pub enum Align {
@@ -25,6 +56,17 @@ pub enum Align {
     Right,
     Justified,
     Center,
+}
+
+impl From<Align> for glyphon::cosmic_text::Align {
+    fn from(align: Align) -> Self {
+        match align {
+            Align::Left => glyphon::cosmic_text::Align::Left,
+            Align::Right => glyphon::cosmic_text::Align::Right,
+            Align::Justified => glyphon::cosmic_text::Align::Justified,
+            Align::Center => glyphon::cosmic_text::Align::Center,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -46,25 +88,29 @@ pub struct TextParams {
     #[serde(default = "default_align")]
     pub align: Align,
     #[serde(default = "default_wrap")]
-    pub wrap: Wrap
+    pub wrap: Wrap,
 }
 
-fn default_color() -> (u8, u8, u8, u8) {
-    (255, 255, 255, 255)
-}
+impl From<&TextParams> for AttrsOwned {
+    fn from(text_params: &TextParams) -> Self {
+        let (r, g, b, a) = text_params.color_rgba;
+        let color = glyphon::Color::rgba(r, g, b, a);
 
-fn default_family() -> String {
-    String::from("Verdana")
-}
+        let family = glyphon::FamilyOwned::Name(text_params.font_family.clone());
 
-fn default_style() -> Style {
-    Style::Normal
-}
+        let style = match text_params.style {
+            Style::Normal => glyphon::Style::Normal,
+            Style::Italic => glyphon::Style::Italic,
+            Style::Oblique => glyphon::Style::Oblique,
+        };
 
-fn default_align() -> Align {
-    Align::Left
-}
-
-fn default_wrap() -> Wrap {
-    Wrap::None
+        AttrsOwned {
+            color_opt: Some(color),
+            family_owned: family,
+            stretch: Default::default(),
+            style,
+            weight: Default::default(),
+            metadata: Default::default(),
+        }
+    }
 }
