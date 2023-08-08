@@ -94,6 +94,20 @@ pub struct Options {
     pub encoder_settings: EncoderSettings,
 }
 
+impl PipelineOutput for RtpSender {
+    type Opts = Options;
+
+    fn new(options: Options) -> Self {
+        let (sender, receiver) = crossbeam_channel::unbounded();
+        thread::spawn(move || RtpSender::run(options, receiver).unwrap());
+        Self { sender }
+    }
+
+    fn send_frame(&self, frame: Frame) {
+        self.sender.send(frame).unwrap();
+    }
+}
+
 impl RtpSender {
     fn run(opts: Options, receiver: Receiver<Frame>) -> Result<()> {
         let mut output_ctx = format::output_as(
@@ -175,22 +189,7 @@ impl RtpSender {
                 }
             }
         }
-
         Ok(())
-    }
-}
-
-impl PipelineOutput for RtpSender {
-    type Opts = Options;
-
-    fn new(options: Options) -> Self {
-        let (sender, receiver) = crossbeam_channel::unbounded();
-        thread::spawn(move || RtpSender::run(options, receiver).unwrap());
-        Self { sender }
-    }
-
-    fn send_frame(&self, frame: Frame) {
-        self.sender.send(frame).unwrap();
     }
 }
 

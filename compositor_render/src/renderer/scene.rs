@@ -118,16 +118,16 @@ pub struct Scene {
 #[derive(Debug, thiserror::Error)]
 pub enum SceneUpdateError {
     #[error("Failed to construct transform node")]
-    TransformNodeError(GetError),
+    TransformNodeError(#[source] GetError),
 
     #[error("Failed to construct input node")]
-    InputNodeError(GetError),
+    InputNodeError(#[source] GetError),
 
     #[error("No spec for node with id {0}")]
     NoNodeWithIdError(NodeId),
 
     #[error("Scene definition is invalid")]
-    InvalidSpec(SpecValidationError),
+    InvalidSpec(#[source] SpecValidationError),
 }
 
 impl Scene {
@@ -142,6 +142,7 @@ impl Scene {
         // TODO: If we want nodes to be stateful we could try reusing nodes instead
         //       of recreating them on every scene update
         let mut new_nodes = HashMap::new();
+        self.inputs = HashMap::new();
         self.outputs = spec
             .outputs
             .iter()
