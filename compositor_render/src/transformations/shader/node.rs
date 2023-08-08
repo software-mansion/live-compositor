@@ -37,7 +37,9 @@ impl ShaderNode {
                 },
                 wgpu::BindGroupEntry {
                     binding: 1,
-                    resource: ctx.global_shader_parameters_buffer.as_entire_binding(),
+                    resource: ctx
+                        .compositor_provided_parameters_buffer
+                        .as_entire_binding(),
                 },
             ],
         });

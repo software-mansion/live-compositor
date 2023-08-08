@@ -1,6 +1,6 @@
-use crate::renderer::{texture::NodeTexture, RegisterTransformationCtx};
+use crate::renderer::{texture::NodeTexture, RegisterTransformationCtx, GlobalShaderParameters, RenderCtx};
 
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
 use compositor_common::scene::NodeId;
 
@@ -123,4 +123,16 @@ impl Shader {
             ctx,
         );
     }
+}
+
+pub fn prepare_render_loop(ctx: &RenderCtx, pts: Duration) {
+    let ctx = ctx.wgpu_ctx;
+
+    let new_buffer = GlobalShaderParameters::new(pts);
+
+    ctx.queue.write_buffer(
+        &ctx.compositor_provided_parameters_buffer,
+        0,
+        bytemuck::cast_slice(&[new_buffer]),
+    );
 }

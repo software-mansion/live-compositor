@@ -6,8 +6,8 @@ use log::error;
 use crate::{
     frame_set::FrameSet,
     registry::TransformationRegistry,
-    render_loop::{populate_inputs, read_outputs, update_global_buffers},
-    transformations::text_renderer::TextRendererCtx,
+    render_loop::{populate_inputs, read_outputs},
+    transformations::{shader, text_renderer::TextRendererCtx},
 };
 use crate::{
     registry::{self, RegistryType},
@@ -99,7 +99,7 @@ impl Renderer {
             text_renderer_ctx: &self.text_renderer_ctx,
         };
 
-        update_global_buffers(ctx, inputs.pts);
+        shader::prepare_render_loop(ctx, inputs.pts);
         populate_inputs(ctx, &mut self.scene, &mut inputs.frames);
         run_transforms(ctx, &self.scene);
         let frames = read_outputs(ctx, &self.scene, inputs.pts);
@@ -138,7 +138,7 @@ pub struct WgpuCtx {
 
     pub shader_parameters_bind_group_layout: wgpu::BindGroupLayout,
 
-    pub global_shader_parameters_buffer: wgpu::Buffer,
+    pub compositor_provided_parameters_buffer: wgpu::Buffer,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -181,7 +181,7 @@ impl WgpuCtx {
 
         let shader_parameters_bind_group_layout = Shader::new_parameters_bind_group_layout(&device);
 
-        let global_shader_parameters_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+        let compositor_provided_parameters_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("global shader parameters buffer"),
             mapped_at_creation: false,
             size: std::mem::size_of::<GlobalShaderParameters>() as u64,
@@ -203,7 +203,7 @@ impl WgpuCtx {
             yuv_to_rgba_converter,
             rgba_to_yuv_converter,
             shader_parameters_bind_group_layout,
-            global_shader_parameters_buffer,
+            compositor_provided_parameters_buffer,
         })
     }
 }
