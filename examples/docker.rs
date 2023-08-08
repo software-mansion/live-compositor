@@ -148,16 +148,17 @@ fn start_example_client_code(host_ip: String) -> Result<()> {
         ],
         "transforms": [
            {
-               "node_id": "side-by-side",
-               "type": "shader",
-               "shader_id": "example shader",
-               "shader_params": {
-                   "example": {"type": "string", "value": "param"},
-               },
-               "input_pads": [
-                   "input 1",
-               ],
-               "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+                "node_id": "side-by-side",
+                "type": "shader",
+                "shader_id": "example shader",
+                "shader_params": {
+                    "type": "u32",
+                    "value": 42,
+                },
+                "input_pads": [
+                    "input 1",
+                ],
+                "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
            },
            {
                "node_id": "add-overlay",

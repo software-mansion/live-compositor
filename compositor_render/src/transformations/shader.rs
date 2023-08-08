@@ -1,4 +1,6 @@
-use crate::renderer::{texture::NodeTexture, RegisterTransformationCtx, GlobalShaderParameters, RenderCtx};
+use crate::renderer::{
+    texture::NodeTexture, GlobalShaderParameters, RegisterTransformationCtx, RenderCtx,
+};
 
 use std::{sync::Arc, time::Duration};
 
