@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::sync::Mutex;
+use std::sync::{Mutex, MutexGuard};
 use std::thread;
 use std::{ops::Deref, sync::Arc};
 
@@ -131,7 +131,7 @@ impl<Input: PipelineInput, Output: PipelineOutput> Pipeline<Input, Output> {
         scene_spec
             .validate(
                 &self.inputs.keys().map(|i| &i.0).collect(),
-                &self.outputs.keys().iter().map(|i| &i.0).collect(),
+                &self.outputs.lock().keys().map(|i| &i.0).collect(),
             )
             .map_err(SceneUpdateError::InvalidSpec)?;
         self.renderer.update_scene(scene_spec)
@@ -152,7 +152,7 @@ impl<Input: PipelineInput, Output: PipelineOutput> Pipeline<Input, Output> {
                     let output = renderer.render(input_frames);
 
                     for (id, frame) in &output.frames {
-                        let output = outputs.get(id);
+                        let output = outputs.lock().get(id).map(Clone::clone);
                         let Some(output) = output else {
                                 error!("no output with id {}", id.0.0);
                                 continue;
@@ -221,11 +221,7 @@ impl<Output: PipelineOutput> OutputRegistry<Output> {
         self.0.lock().unwrap().remove(key)
     }
 
-    fn get(&self, key: &OutputId) -> Option<Arc<Output>> {
-        self.0.lock().unwrap().get(key).map(Clone::clone)
-    }
-
-    fn keys(&self) -> Vec<OutputId> {
-        self.0.lock().unwrap().keys().cloned().collect()
+    fn lock(&self) -> MutexGuard<HashMap<OutputId, Arc<Output>>> {
+        self.0.lock().unwrap()
     }
 }
