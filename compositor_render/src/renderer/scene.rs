@@ -33,21 +33,33 @@ pub enum TransformNode {
 }
 
 impl TransformNode {
-    fn new(ctx: &RenderCtx, spec: &TransformParams) -> Result<Self, GetError> {
+    fn new(ctx: &RenderCtx, spec: &TransformParams) -> Result<(Self, Resolution), GetError> {
         match spec {
-            TransformParams::WebRenderer { renderer_id } => Ok(TransformNode::WebRenderer {
-                renderer: ctx.web_renderers.get(renderer_id)?,
-            }),
+            TransformParams::WebRenderer { renderer_id } => {
+                let renderer = ctx.web_renderers.get(renderer_id)?;
+                let resolution = renderer.resolution();
+                Ok((TransformNode::WebRenderer { renderer }, resolution))
+            }
             TransformParams::Shader {
                 shader_id,
                 shader_params,
-            } => Ok(TransformNode::Shader {
-                params: shader_params.clone(),
-                shader: ctx.shader_transforms.get(shader_id)?,
-            }),
-            TransformParams::TextRenderer { text_params } => Ok(TransformNode::TextRenderer {
-                renderer: TextRenderer::new(text_params.clone()),
-            }),
+                resolution,
+            } => Ok((
+                TransformNode::Shader {
+                    params: shader_params.clone(),
+                    shader: ctx.shader_transforms.get(shader_id)?,
+                },
+                *resolution,
+            )),
+            TransformParams::TextRenderer {
+                text_params,
+                resolution,
+            } => Ok((
+                TransformNode::TextRenderer {
+                    renderer: TextRenderer::new(text_params.clone()),
+                },
+                *resolution,
+            )),
         }
     }
     pub fn render(
@@ -87,12 +99,12 @@ impl Node {
         spec: &TransformNodeSpec,
         inputs: Vec<Arc<Node>>,
     ) -> Result<Self, GetError> {
-        let node = TransformNode::new(ctx, &spec.transform_params)?;
-        let output = NodeTexture::new(ctx.wgpu_ctx, spec.resolution);
+        let (node, resolution) = TransformNode::new(ctx, &spec.transform_params)?;
+        let output = NodeTexture::new(ctx.wgpu_ctx, resolution);
         Ok(Self {
             node_id: spec.node_id.clone(),
             transform: node,
-            resolution: spec.resolution,
+            resolution,
             inputs,
             output,
         })

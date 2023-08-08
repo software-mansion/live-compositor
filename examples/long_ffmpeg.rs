@@ -112,10 +112,10 @@ fn start_example_client_code() -> Result<()> {
                "shader_params": {
                    "example": {"type": "string", "value": "param"},
                },
+               "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
                "input_pads": [
                    "add-overlay",
                ],
-               "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
            },
            {
                "node_id": "add-overlay",
@@ -124,7 +124,6 @@ fn start_example_client_code() -> Result<()> {
                "input_pads": [
                    "input 1",
                ],
-               "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
            }
         ],
         "outputs": [

@@ -59,7 +59,6 @@ pub struct OutputSpec {
 pub struct TransformNodeSpec {
     pub node_id: NodeId,
     pub input_pads: Vec<NodeId>,
-    pub resolution: Resolution,
 
     #[serde(flatten)]
     pub transform_params: TransformParams,
@@ -75,9 +74,11 @@ pub enum TransformParams {
     Shader {
         shader_id: TransformationRegistryKey,
         shader_params: HashMap<String, ShaderParams>,
+        resolution: Resolution,
     },
     TextRenderer {
         text_params: TextSpec,
+        resolution: Resolution,
     },
 }
 

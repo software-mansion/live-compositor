@@ -14,13 +14,14 @@ use crate::{
 
 #[test]
 fn scene_validation_finds_cycle() {
-    let res = Resolution {
+    let resolution = Resolution {
         width: 1920,
         height: 1080,
     };
     let trans_params = TransformParams::Shader {
         shader_id: TransformationRegistryKey(Arc::from("shader")),
         shader_params: HashMap::new(),
+        resolution,
     };
 
     let input_id = NodeId(Arc::from("input"));
@@ -31,27 +32,24 @@ fn scene_validation_finds_cycle() {
 
     let input = InputSpec {
         input_id: InputId(input_id.clone()),
-        resolution: res,
+        resolution,
     };
 
     let a = TransformNodeSpec {
         node_id: a_id.clone(),
         input_pads: vec![input_id.clone(), c_id.clone()],
-        resolution: res,
         transform_params: trans_params.clone(),
     };
 
     let b = TransformNodeSpec {
         node_id: b_id.clone(),
         input_pads: vec![a_id.clone()],
-        resolution: res,
         transform_params: trans_params.clone(),
     };
 
     let c = TransformNodeSpec {
         node_id: c_id.clone(),
         input_pads: vec![b_id.clone()],
-        resolution: res,
         transform_params: trans_params.clone(),
     };
 
@@ -77,13 +75,14 @@ fn scene_validation_finds_cycle() {
 
 #[test]
 fn scene_validation_finds_unused_nodes() {
-    let res = Resolution {
+    let resolution = Resolution {
         width: 1920,
         height: 1080,
     };
     let trans_params = TransformParams::Shader {
         shader_id: TransformationRegistryKey(Arc::from("shader")),
         shader_params: HashMap::new(),
+        resolution,
     };
 
     let input_id = NodeId(Arc::from("input"));
@@ -95,32 +94,29 @@ fn scene_validation_finds_unused_nodes() {
 
     let input = InputSpec {
         input_id: InputId(input_id.clone()),
-        resolution: res,
+        resolution,
     };
 
     let unused_input = InputSpec {
         input_id: InputId(unused_input_id.clone()),
-        resolution: res,
+        resolution,
     };
 
     let a = TransformNodeSpec {
         node_id: a_id.clone(),
         input_pads: vec![input_id.clone()],
-        resolution: res,
         transform_params: trans_params.clone(),
     };
 
     let b = TransformNodeSpec {
         node_id: b_id.clone(),
         input_pads: vec![c_id.clone()],
-        resolution: res,
         transform_params: trans_params.clone(),
     };
 
     let c = TransformNodeSpec {
         node_id: c_id.clone(),
         input_pads: vec![b_id.clone()],
-        resolution: res,
         transform_params: trans_params.clone(),
     };
 

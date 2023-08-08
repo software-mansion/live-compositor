@@ -84,12 +84,7 @@ fn start_example_client_code() -> Result<()> {
     info!("[example] Update scene");
     common::post(&json!({
         "type": "update_scene",
-        "inputs": [
-            {
-                "input_id": "input 1",
-                "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
-            }
-        ],
+        "inputs": [],
         "transforms": [
            {
                 "node_id": "text_renderer",

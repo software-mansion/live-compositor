@@ -82,6 +82,10 @@ impl WebRenderer {
         ctx.wgpu_ctx.queue.submit([]);
         Ok(())
     }
+
+    pub fn resolution(&self) -> Resolution {
+        self.params.resolution
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
