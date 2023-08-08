@@ -74,7 +74,7 @@ pub enum TransformParams {
     },
     Shader {
         shader_id: TransformationRegistryKey,
-        shader_params: ShaderParam,
+        shader_params: Option<ShaderParam>,
     },
     TextRenderer {
         text_params: TextSpec,

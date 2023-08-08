@@ -17,7 +17,7 @@ fn scene_validation_finds_cycle() {
     };
     let trans_params = TransformParams::Shader {
         shader_id: TransformationRegistryKey(Arc::from("shader")),
-        shader_params: crate::scene::ShaderParam::U32(42),
+        shader_params: None,
     };
 
     let input_id = NodeId(Arc::from("input"));
@@ -80,7 +80,7 @@ fn scene_validation_finds_unused_nodes() {
     };
     let trans_params = TransformParams::Shader {
         shader_id: TransformationRegistryKey(Arc::from("shader")),
-        shader_params: crate::scene::ShaderParam::U32(42),
+        shader_params: None,
     };
 
     let input_id = NodeId(Arc::from("input"));

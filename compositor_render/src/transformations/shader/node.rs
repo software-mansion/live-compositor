@@ -14,18 +14,27 @@ pub struct ShaderNode {
 }
 
 impl ShaderNode {
-    pub fn new(ctx: &WgpuCtx, shader: Arc<Shader>, params: &ShaderParam) -> Self {
+    pub fn new(ctx: &WgpuCtx, shader: Arc<Shader>, params: Option<&ShaderParam>) -> Self {
         // TODO: validation
-        // TODO: allow not passing custom parameters
-        let params = params.to_bytes();
 
-        let custom_params_buffer =
-            ctx.device
+        let custom_params_buffer = match params {
+            Some(params) => {
+                let params = params.to_bytes();
+                ctx.device
+                    .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                        label: Some("shader node custom params buffer"),
+                        usage: wgpu::BufferUsages::UNIFORM,
+                        contents: &params,
+                    })
+            }
+            None => ctx
+                .device
                 .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                    label: Some("shader node custom params buffer"),
+                    label: Some("shader node empty custom params buffer"),
+                    contents: &[0],
                     usage: wgpu::BufferUsages::UNIFORM,
-                    contents: &params,
-                });
+                }),
+        };
 
         let params_bind_group = ctx.device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("shader node params bind group"),

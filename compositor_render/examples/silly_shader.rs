@@ -2,7 +2,7 @@ use std::{path::Path, process::Stdio, sync::Arc, time::Duration};
 
 use compositor_common::{
     frame::YuvData,
-    scene::{InputSpec, NodeId, OutputSpec, Resolution, SceneSpec, ShaderParam, TransformNodeSpec},
+    scene::{InputSpec, NodeId, OutputSpec, Resolution, SceneSpec, TransformNodeSpec},
     transformation::{TransformationRegistryKey, TransformationSpec},
     Frame,
 };
@@ -73,6 +73,10 @@ fn get_image(path: impl AsRef<Path>) -> Frame {
 }
 
 fn main() {
+    env_logger::init_from_env(
+        env_logger::Env::default().filter_or(env_logger::DEFAULT_FILTER_ENV, "info"),
+    );
+
     let frame = get_image("compositor_render/examples/crab.jpg");
     let resolution = frame.resolution;
 
@@ -104,7 +108,7 @@ fn main() {
                 resolution,
                 transform_params: compositor_common::scene::TransformParams::Shader {
                     shader_id: shader_key,
-                    shader_params: ShaderParam::U32(42),
+                    shader_params: None,
                 },
             }],
             outputs: vec![OutputSpec {

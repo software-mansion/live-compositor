@@ -151,10 +151,6 @@ fn start_example_client_code(host_ip: String) -> Result<()> {
                 "node_id": "side-by-side",
                 "type": "shader",
                 "shader_id": "example shader",
-                "shader_params": {
-                    "type": "u32",
-                    "value": 42,
-                },
                 "input_pads": [
                     "input 1",
                 ],

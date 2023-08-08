@@ -38,7 +38,7 @@ impl TransformNode {
             } => Ok(TransformNode::Shader(ShaderNode::new(
                 ctx.wgpu_ctx,
                 ctx.shader_transforms.get(shader_id)?,
-                shader_params,
+                shader_params.as_ref(),
             ))),
             TransformParams::TextRenderer { text_params } => Ok(TransformNode::TextRenderer {
                 renderer: TextRenderer::new(text_params.clone()),

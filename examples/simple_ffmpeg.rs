@@ -106,10 +106,6 @@ fn start_example_client_code() -> Result<()> {
                 "node_id": "shader",
                 "type": "shader",
                 "shader_id": "shader",
-                "shader_params": {
-                    "type": "u32",
-                    "value": 42,
-                },
                 "input_pads": [
                     "input 1",
                 ],
