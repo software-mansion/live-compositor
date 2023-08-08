@@ -110,7 +110,8 @@ fn start_example_client_code() -> Result<()> {
                "type": "shader",
                "shader_id": "example shader",
                "shader_params": {
-                   "example": {"type": "string", "value": "param"},
+                   "type": "u32",
+                   "value": 42,
                },
                "input_pads": [
                    "add-overlay",

@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, sync::Arc};
+use std::sync::Arc;
 
 use crate::transformation::TransformationRegistryKey;
 
@@ -74,7 +74,7 @@ pub enum TransformParams {
     },
     Shader {
         shader_id: TransformationRegistryKey,
-        shader_params: HashMap<String, ShaderParams>,
+        shader_params: ShaderParam,
     },
     TextRenderer {
         text_params: TextSpec,
@@ -82,9 +82,19 @@ pub enum TransformParams {
 }
 
 // TODO: tmp clone
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(tag = "type", rename_all = "snake_case", content = "value")]
-pub enum ShaderParams {
-    String(String),
-    Binary(Vec<u8>),
+pub enum ShaderParam {
+    F32(f32),
+    U32(u32),
+    I32(i32),
+    List(Vec<ShaderParam>),
+    Struct(Vec<ShaderParamStructField>),
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ShaderParamStructField {
+    pub field_name: String,
+    #[serde(flatten)]
+    pub value: ShaderParam,
 }
