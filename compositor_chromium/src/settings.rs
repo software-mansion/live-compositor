@@ -2,11 +2,13 @@ use std::{env, os::raw::c_int, path::PathBuf};
 
 use crate::cef_string::CefString;
 
+/// Main process settings
 #[derive(Default)]
 pub struct Settings {
-    /// If set to `true` message loop can run on separate thread
-    /// Not supported by MacOS
+    /// If set to `true` message loop can run on a separate thread. **Not supported by MacOS**
     pub multi_threaded_message_loop: bool,
+    /// If set to `true` it makes it possible to control message pump scheduling.
+    /// Useful in combination with [`Context::do_message_loop_work`](crate::context::Context)
     pub external_message_pump: bool,
     pub windowless_rendering_enabled: bool,
     pub log_severity: LogSeverity,

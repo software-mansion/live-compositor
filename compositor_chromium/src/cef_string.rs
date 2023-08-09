@@ -1,5 +1,6 @@
 use widestring::U16CString;
 
+/// Helper for handling UTF-16 `cef_string_t`
 pub struct CefString;
 
 impl CefString {
@@ -20,6 +21,8 @@ impl CefString {
         }
     }
 
+    /// Returns Rust's `String` from UTF-16 `cef_string_t`.
+    /// If `ptr` is null, empty string is returned
     pub fn from_raw(ptr: *const chromium_sys::cef_string_t) -> String {
         if ptr.is_null() {
             return String::new();
@@ -33,6 +36,7 @@ impl CefString {
         }
     }
 
+    /// Creates a new empty `cef_string_t`
     pub fn empty_raw() -> chromium_sys::cef_string_t {
         unsafe { std::mem::zeroed() }
     }

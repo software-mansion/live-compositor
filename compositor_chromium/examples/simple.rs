@@ -55,7 +55,7 @@ struct Client;
 impl cef::Client for Client {
     type RenderHandlerType = RenderHandler;
 
-    fn get_render_handler(&self) -> Option<Self::RenderHandlerType> {
+    fn render_handler(&self) -> Option<Self::RenderHandlerType> {
         Some(RenderHandler)
     }
 }
@@ -63,15 +63,15 @@ impl cef::Client for Client {
 struct RenderHandler;
 
 impl cef::RenderHandler for RenderHandler {
-    fn get_resolution(&self, _browser: cef::Browser<'_>) -> Resolution {
+    fn resolution(&self, _browser: &cef::Browser) -> Resolution {
         Resolution {
             width: 1920,
             height: 1080,
         }
     }
 
-    fn on_paint(&self, browser: cef::Browser<'_>, buffer: &[u8], resolution: Resolution) {
-        if !browser.is_loading() {
+    fn on_paint(&self, browser: &cef::Browser, buffer: &[u8], resolution: Resolution) {
+        if !browser.is_loading().expect("valid browser") {
             fs::write("out.raw", buffer).expect("save image buffer");
             bgra_to_png("out.raw", "out.png", resolution);
             fs::remove_file("./out.raw").expect("remove raw image file");
@@ -97,7 +97,7 @@ fn main() {
         ..Default::default()
     };
 
-    let ctx = cef::Context::new(app, settings).expect("create_browser");
+    let ctx = cef::Context::new(app, settings).expect("create browser");
 
     let client = Client;
     let window_info = cef::WindowInfo {

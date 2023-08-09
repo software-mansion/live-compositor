@@ -1,5 +1,9 @@
 use crate::cef_string::CefString;
 
+/// Wrapper over [`chromium_sys::cef_command_line_t`].
+/// Each process is configured via arguments passed to executable.
+/// [`CommandLine`] can be used to programmatically interact with those arguments.
+/// [List of possible command line arguments](https://peter.sh/experiments/chromium-command-line-switches/)
 pub struct CommandLine(pub(crate) *mut chromium_sys::cef_command_line_t);
 
 impl CommandLine {

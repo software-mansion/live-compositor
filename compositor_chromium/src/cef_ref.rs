@@ -8,9 +8,9 @@ pub(crate) trait CefStruct {
     // Represents CEF struct which has ref counting capability
     type CefType;
 
-    fn get_cef_data(&self) -> Self::CefType;
+    fn cef_data(&self) -> Self::CefType;
 
-    fn get_base_mut(cef_data: &mut Self::CefType) -> &mut chromium_sys::cef_base_ref_counted_t;
+    fn base_mut(cef_data: &mut Self::CefType) -> &mut chromium_sys::cef_base_ref_counted_t;
 }
 
 /// Each CEF struct with ref counting capability has a base struct as a first field
@@ -18,13 +18,13 @@ pub(crate) trait CefStruct {
 /// https://bitbucket.org/chromiumembedded/cef/wiki/UsingTheCAPI.md
 /// http://www.deleveld.dds.nl/inherit.htm
 #[repr(C)]
-pub(crate) struct CefRefPtr<T: CefStruct> {
+pub(crate) struct CefRefData<T: CefStruct> {
     cef_data: T::CefType,
     rust_data: T,
     ref_count: AtomicUsize,
 }
 
-impl<T: CefStruct> Deref for CefRefPtr<T> {
+impl<T: CefStruct> Deref for CefRefData<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -32,21 +32,21 @@ impl<T: CefStruct> Deref for CefRefPtr<T> {
     }
 }
 
-impl<T: CefStruct> DerefMut for CefRefPtr<T> {
+impl<T: CefStruct> DerefMut for CefRefData<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.rust_data
     }
 }
 
-impl<T: CefStruct> CefRefPtr<T> {
+impl<T: CefStruct> CefRefData<T> {
     // Taken from std::sync::Arc
     const MAX_REFCOUNT: usize = (isize::MAX) as usize;
 
     pub fn new_ptr(data: T) -> *mut T::CefType {
-        let mut cef_data = data.get_cef_data();
+        let mut cef_data = data.cef_data();
 
         // Init ref counting for T::CefType
-        let base = T::get_base_mut(&mut cef_data);
+        let base = T::base_mut(&mut cef_data);
         *base = chromium_sys::cef_base_ref_counted_t {
             size: std::mem::size_of::<Self>(),
             add_ref: Some(Self::add_ref),
@@ -64,16 +64,23 @@ impl<T: CefStruct> CefRefPtr<T> {
         Box::into_raw(Box::new(cef_ref)) as *mut T::CefType
     }
 
+    /// # Safety
+    ///
+    /// Can be only used on data that is not null and was initialzed by `CefRefData::new`
     pub unsafe fn from_cef<'a>(cef_data: *mut T::CefType) -> &'a mut Self {
         unsafe { &mut *(cef_data as *mut Self) }
     }
 
+    /// # Safety
+    ///
+    /// Can be only used on data that is not null and was initialzed by `CefRefData::new`
     unsafe fn from_base<'a>(base: *mut chromium_sys::cef_base_ref_counted_t) -> &'a mut Self {
         unsafe { &mut *(base as *mut Self) }
     }
 
     extern "C" fn add_ref(base: *mut chromium_sys::cef_base_ref_counted_t) {
         let self_ref = unsafe { Self::from_base(base) };
+        // `Ordering::Relaxed` because there is no need for operation synchronization
         let old_count = self_ref.ref_count.fetch_add(1, Ordering::Relaxed);
         if old_count > Self::MAX_REFCOUNT {
             panic!("Reached max ref count limit");
@@ -82,10 +89,13 @@ impl<T: CefStruct> CefRefPtr<T> {
 
     extern "C" fn release(base: *mut chromium_sys::cef_base_ref_counted_t) -> c_int {
         let self_ref = unsafe { Self::from_base(base) };
+        // `Ordering::Release` because we want all the previous writes to become visible
         let old_count = self_ref.ref_count.fetch_sub(1, Ordering::Release);
 
         let should_drop = old_count == 1;
         if should_drop {
+            // If `old_count` equals to 1 it means that the data is no longer used and should be freed from memory.
+            // `Ordering::Acquire` is used because we want to make sure the data is not used after it's been deleted.
             std::sync::atomic::fence(Ordering::Acquire);
             unsafe {
                 // Load raw Self instance and let Box drop it
@@ -98,6 +108,8 @@ impl<T: CefStruct> CefRefPtr<T> {
 
     extern "C" fn has_one_ref(base: *mut chromium_sys::cef_base_ref_counted_t) -> c_int {
         let self_ref = unsafe { Self::from_base(base) };
+        // `Ordering::Acquire` because we want to all of the previous writes to become visible
+        // so that we are sure there is only one reference
         let is_one_ref = (self_ref.ref_count.load(Ordering::Acquire)) == 1;
 
         is_one_ref as c_int
@@ -105,6 +117,7 @@ impl<T: CefStruct> CefRefPtr<T> {
 
     extern "C" fn has_at_least_one_ref(base: *mut chromium_sys::cef_base_ref_counted_t) -> c_int {
         let self_ref = unsafe { Self::from_base(base) };
+        // We don't really know what CEF uses it for internally so for safety we use `Ordering::Acquire`
         let has_any_refs = (self_ref.ref_count.load(Ordering::Acquire)) >= 1;
 
         has_any_refs as c_int

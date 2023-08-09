@@ -11,3 +11,4 @@ compositor_common = { path = "../compositor_common" }
 fs_extra = "1.3.0"
 thiserror = { workspace = true }
 widestring = "1.0.2"
+log = { workspace = true }

@@ -2,24 +2,21 @@ use std::os::raw::c_int;
 
 use crate::{
     cef::{Browser, Frame, ProcessId, ProcessMessage, V8Context},
-    cef_ref::{CefRefPtr, CefStruct},
+    cef_ref::{CefRefData, CefStruct},
 };
 
+/// Handles renderer process callbacks.
+/// Methods are only called by CEF when implemented on the renderer process
 pub trait RenderProcessHandler {
-    fn on_context_created(
-        &mut self,
-        _browser: Browser<'_>,
-        _frame: Frame<'_>,
-        _context: V8Context<'_>,
-    ) {
-    }
+    /// Called when a new [`V8Context`] for a [`Frame`] was created
+    fn on_context_created(&mut self, _browser: &Browser, _frame: &Frame, _context: &V8Context) {}
 
     fn on_process_message_received(
         &mut self,
-        _browser: Browser<'_>,
-        _frame: Frame<'_>,
+        _browser: &Browser,
+        _frame: &Frame,
         _source_process: ProcessId,
-        _message: ProcessMessage,
+        _message: &ProcessMessage,
     ) -> bool {
         false
     }
@@ -32,7 +29,7 @@ pub(crate) struct RenderProcessHandlerWrapper<R: RenderProcessHandler>(pub R);
 impl<R: RenderProcessHandler> CefStruct for RenderProcessHandlerWrapper<R> {
     type CefType = chromium_sys::cef_render_process_handler_t;
 
-    fn get_cef_data(&self) -> Self::CefType {
+    fn cef_data(&self) -> Self::CefType {
         chromium_sys::cef_render_process_handler_t {
             base: unsafe { std::mem::zeroed() },
             on_web_kit_initialized: None,
@@ -47,7 +44,7 @@ impl<R: RenderProcessHandler> CefStruct for RenderProcessHandlerWrapper<R> {
         }
     }
 
-    fn get_base_mut(cef_data: &mut Self::CefType) -> &mut chromium_sys::cef_base_ref_counted_t {
+    fn base_mut(cef_data: &mut Self::CefType) -> &mut chromium_sys::cef_base_ref_counted_t {
         &mut cef_data.base
     }
 }
@@ -59,11 +56,11 @@ impl<R: RenderProcessHandler> RenderProcessHandlerWrapper<R> {
         frame: *mut chromium_sys::cef_frame_t,
         context: *mut chromium_sys::cef_v8context_t,
     ) {
-        let self_ref = unsafe { CefRefPtr::<Self>::from_cef(self_) };
+        let self_ref = unsafe { CefRefData::<Self>::from_cef(self_) };
         let browser = Browser::new(browser);
         let frame = Frame::new(frame);
         let v8_context = V8Context::new(context);
-        self_ref.0.on_context_created(browser, frame, v8_context);
+        self_ref.0.on_context_created(&browser, &frame, &v8_context);
     }
 
     extern "C" fn on_process_message_received(
@@ -73,15 +70,17 @@ impl<R: RenderProcessHandler> RenderProcessHandlerWrapper<R> {
         source_process: chromium_sys::cef_process_id_t,
         message: *mut chromium_sys::cef_process_message_t,
     ) -> c_int {
-        let self_ref = unsafe { CefRefPtr::<Self>::from_cef(self_) };
+        let self_ref = unsafe { CefRefData::<Self>::from_cef(self_) };
         let browser = Browser::new(browser);
         let frame = Frame::new(frame);
         let message = ProcessMessage { inner: message };
 
-        let is_handled =
-            self_ref
-                .0
-                .on_process_message_received(browser, frame, source_process.into(), message);
+        let is_handled = self_ref.0.on_process_message_received(
+            &browser,
+            &frame,
+            source_process.into(),
+            &message,
+        );
 
         is_handled as c_int
     }
