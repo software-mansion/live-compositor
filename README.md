@@ -9,7 +9,7 @@ VideoCompositor targets real-time use cases, like video conferencing, live-strea
 VideoCompositor receives inputs and sends outputs streams via [RTP](https://en.wikipedia.org/wiki/Real-time_Transport_Protocol).
 HTTP API is used to define how inputs should be transformed and combined to produce desired outputs.
 
-Currently, we want VideoCompositor to have four types of transformations, that you can combine together:
+For the initial release, we want VideoCompositor to support those four types of transformations, that you can combine together:
 
 - Common transformations - frequently used, already implemented transformations, like layouts, grids, cropping, corners rounding, blending, fading, etc.
 - Custom shader transformations - registering and using custom shaders, allowing to adapt VideoCompositor for specific business needs
@@ -35,7 +35,7 @@ cargo run --release --example <example_name>
 
 ## Supported platforms
 
-Currently, we support Linux and MacOS.
+Linux and MacOS.
 
 ## Copyright
 
