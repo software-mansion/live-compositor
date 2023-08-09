@@ -26,7 +26,16 @@ impl Server {
 
     pub fn start(self) {
         info!("Listening on port {}", self.server.server_addr());
-        let mut api = None;
+        let mut api = self.handle_init();
+        thread::spawn(move || {
+            for mut raw_request in self.server.incoming_requests() {
+                let result = Self::handle_request_after_init(&mut api, &mut raw_request);
+                self.send_response(raw_request, result);
+            }
+        });
+    }
+
+    fn handle_init(&self) -> Api {
         for mut raw_request in self.server.incoming_requests() {
             let result = self
                 .handle_request_before_init(&mut raw_request)
@@ -34,22 +43,14 @@ impl Server {
             match result {
                 Ok(new_api) => {
                     self.send_response(raw_request, Ok(()));
-                    api = Some(new_api);
-                    break;
+                    return new_api;
                 }
                 Err(err) => {
                     self.send_response(raw_request, Err(err));
                 }
             }
         }
-
-        let mut api = api.unwrap();
-        thread::spawn(move || {
-            for mut raw_request in self.server.incoming_requests() {
-                let result = Self::handle_request_after_init(&mut api, &mut raw_request);
-                self.send_response(raw_request, result);
-            }
-        });
+        panic!("Server shutdown unexpectedly.")
     }
 
     fn handle_request_after_init(
