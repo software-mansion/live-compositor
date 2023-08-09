@@ -33,20 +33,20 @@ pub struct RegisterOutputRequest {
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum Request {
+    Init(pipeline::Options),
     RegisterInput(RegisterInputRequest),
-    RegisterOutput(RegisterOutputRequest),
     UnregisterInput {
         id: InputId,
     },
+    RegisterOutput(RegisterOutputRequest),
     UnregisterOutput {
         id: OutputId,
     },
-    UpdateScene(Arc<SceneSpec>),
     RegisterTransformation {
         key: TransformationRegistryKey,
         transform: TransformationSpec,
     },
-    Init(pipeline::Options),
+    UpdateScene(Arc<SceneSpec>),
     Start,
 }
 
