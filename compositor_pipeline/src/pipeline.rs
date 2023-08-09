@@ -166,13 +166,12 @@ impl<Input: PipelineInput, Output: PipelineOutput> Pipeline<Input, Output> {
         self.inputs.iter().map(|(id, node)| (id, node.as_ref()))
     }
 
-    // TODO: figure out how to pass Iterator<Item = (&OutputId, &Output)> instead
-    pub fn with_outputs<'a, F, R>(&'a self, f: F) -> R
+    pub fn with_outputs<F, R>(&self, f: F) -> R
     where
-        F: Fn(hash_map::Iter<'_, OutputId, Arc<Output>>) -> R + 'a,
+        F: Fn(OutputIterator<'_, Output>) -> R,
     {
         let guard = self.outputs.lock();
-        f(guard.iter())
+        f(OutputIterator::new(guard.iter()))
     }
 }
 
@@ -233,5 +232,23 @@ impl<Output: PipelineOutput> OutputRegistry<Output> {
 
     fn lock(&self) -> MutexGuard<HashMap<OutputId, Arc<Output>>> {
         self.0.lock().unwrap()
+    }
+}
+
+pub struct OutputIterator<'a, Output: PipelineOutput> {
+    inner_iter: hash_map::Iter<'a, OutputId, Arc<Output>>,
+}
+
+impl<'a, Output: PipelineOutput> OutputIterator<'a, Output> {
+    fn new(iter: hash_map::Iter<'a, OutputId, Arc<Output>>) -> Self {
+        Self { inner_iter: iter }
+    }
+}
+
+impl<'a, Output: PipelineOutput> Iterator for OutputIterator<'a, Output> {
+    type Item = (&'a OutputId, &'a Output);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.inner_iter.next().map(|(id, node)| (id, node.as_ref()))
     }
 }
