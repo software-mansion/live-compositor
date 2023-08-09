@@ -80,7 +80,7 @@ impl<T: CefStruct> CefRefData<T> {
 
     extern "C" fn add_ref(base: *mut chromium_sys::cef_base_ref_counted_t) {
         let self_ref = unsafe { Self::from_base(base) };
-        // `Ordering::Relaxed` because there is no need for operation synchronization
+        // `Ordering::Relaxed` - there is no need for operation synchronization
         let old_count = self_ref.ref_count.fetch_add(1, Ordering::Relaxed);
         if old_count > Self::MAX_REFCOUNT {
             panic!("Reached max ref count limit");
@@ -88,17 +88,17 @@ impl<T: CefStruct> CefRefData<T> {
     }
 
     extern "C" fn release(base: *mut chromium_sys::cef_base_ref_counted_t) -> c_int {
+        // We have to make sure that the data is not being used after it was deleted from memory.
+        // `Ordering::Release` - `Ordering::Acquire` pair is used so that there is no operation reordering
+        // after the data is dropped.
         let self_ref = unsafe { Self::from_base(base) };
-        // `Ordering::Release` because we want all the previous writes to become visible
         let old_count = self_ref.ref_count.fetch_sub(1, Ordering::Release);
 
         let should_drop = old_count == 1;
         if should_drop {
-            // If `old_count` equals to 1 it means that the data is no longer used and should be freed from memory.
-            // `Ordering::Acquire` is used because we want to make sure the data is not used after it's been deleted.
             std::sync::atomic::fence(Ordering::Acquire);
             unsafe {
-                // Load raw Self instance and let Box drop it
+                // Load `*mut Self` instance and let Box drop it
                 let _ = Box::from_raw(self_ref);
             }
         }
