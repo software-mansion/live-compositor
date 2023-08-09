@@ -108,7 +108,7 @@ impl<T: CefStruct> CefRefData<T> {
 
     extern "C" fn has_one_ref(base: *mut chromium_sys::cef_base_ref_counted_t) -> c_int {
         let self_ref = unsafe { Self::from_base(base) };
-        // `Ordering::Acquire` because we want to all of the previous writes to become visible
+        // `Ordering::Acquire` - we want every previous write to become visible
         // so that we are sure there is only one reference
         let is_one_ref = (self_ref.ref_count.load(Ordering::Acquire)) == 1;
 

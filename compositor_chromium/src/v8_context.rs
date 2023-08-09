@@ -17,7 +17,7 @@ impl V8Context {
         Self { inner }
     }
 
-    pub fn enter<'a>(&'a self) -> Result<V8ContextEntered<'a>, V8ContextError> {
+    pub fn enter(&self) -> Result<V8ContextEntered<'_>, V8ContextError> {
         unsafe {
             let ctx = self.inner.get()?;
             let enter_context = (*ctx).enter.unwrap();
