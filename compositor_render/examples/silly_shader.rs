@@ -76,7 +76,7 @@ fn main() {
     let frame = get_image("compositor_render/examples/crab.jpg");
     let resolution = frame.resolution;
 
-    let renderer = Renderer::new(false).expect("create renderer");
+    let mut renderer = Renderer::new(false).expect("create renderer");
     let shader_key = TransformationRegistryKey("silly shader".into());
 
     renderer
@@ -93,7 +93,7 @@ fn main() {
     let output_id = NodeId("output".into());
 
     renderer
-        .update_scene(SceneSpec {
+        .update_scene(Arc::new(SceneSpec {
             inputs: vec![InputSpec {
                 input_id: input_id.clone().into(),
                 resolution,
@@ -111,7 +111,7 @@ fn main() {
                 input_pad: shader_id,
                 output_id: output_id.clone().into(),
             }],
-        })
+        }))
         .expect("update scene");
 
     let mut frame_set = FrameSet::new(Duration::from_secs_f32(std::f32::consts::FRAC_PI_2));

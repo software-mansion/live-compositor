@@ -36,6 +36,7 @@ pub struct Renderer {
     pub text_renderer_ctx: TextRendererCtx,
     pub electron_instance: Arc<ElectronInstance>,
     pub scene: Scene,
+    pub scene_spec: Arc<SceneSpec>,
     pub(crate) shader_transforms: TransformationRegistry<Arc<Shader>>,
     pub(crate) web_renderers: TransformationRegistry<Arc<WebRenderer>>,
 }
@@ -80,6 +81,11 @@ impl Renderer {
             scene: Scene::empty(),
             web_renderers: TransformationRegistry::new(RegistryType::WebRenderer),
             shader_transforms: TransformationRegistry::new(RegistryType::Shader),
+            scene_spec: Arc::new(SceneSpec {
+                inputs: vec![],
+                transforms: vec![],
+                outputs: vec![],
+            }),
         })
     }
 
@@ -110,7 +116,7 @@ impl Renderer {
         }
     }
 
-    pub fn update_scene(&mut self, scene_specs: SceneSpec) -> Result<(), SceneUpdateError> {
+    pub fn update_scene(&mut self, scene_specs: Arc<SceneSpec>) -> Result<(), SceneUpdateError> {
         self.scene.update(
             &RenderCtx {
                 wgpu_ctx: &self.wgpu_ctx,
@@ -119,8 +125,10 @@ impl Renderer {
                 shader_transforms: &self.shader_transforms,
                 web_renderers: &self.web_renderers,
             },
-            scene_specs,
-        )
+            &scene_specs,
+        )?;
+        self.scene_spec = scene_specs;
+        Ok(())
     }
 }
 
