@@ -3,6 +3,7 @@ use std::path::Path;
 use std::{env, fs};
 
 /// Moves the `process_helper` to the same directory as the main executable
+/// `process_helper` has to be built before the function is called
 #[cfg(target_os = "linux")]
 pub fn bundle_app(target_path: &Path) -> Result<(), Box<dyn Error>> {
     let current_exe = env::current_exe()?;
