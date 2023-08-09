@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{hash_map, HashMap};
 use std::sync::{Mutex, MutexGuard};
 use std::thread;
 use std::{ops::Deref, sync::Arc};
@@ -160,6 +160,19 @@ impl<Input: PipelineInput, Output: PipelineOutput> Pipeline<Input, Output> {
                 }
             }
         });
+    }
+
+    pub fn inputs(&self) -> impl Iterator<Item = (&InputId, &Input)> {
+        self.inputs.iter().map(|(id, node)| (id, node.as_ref()))
+    }
+
+    // TODO: figure out how to pass Iterator<Item = (&OutputId, &Output)> instead
+    pub fn with_outputs<'a, F, R>(&'a self, f: F) -> R
+    where
+        F: Fn(hash_map::Iter<'_, OutputId, Arc<Output>>) -> R + 'a,
+    {
+        let guard = self.outputs.lock();
+        f(guard.iter())
     }
 }
 

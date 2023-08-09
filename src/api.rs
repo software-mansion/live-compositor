@@ -25,7 +25,7 @@ pub struct RegisterInputRequest {
 pub struct RegisterOutputRequest {
     pub id: OutputId,
     pub port: u16,
-    pub ip: String,
+    pub ip: Arc<String>,
     pub resolution: Resolution,
     pub encoder_settings: EncoderSettings,
 }
@@ -89,6 +89,15 @@ impl Api {
             ip,
         } = request;
 
+        self.pipeline.with_outputs(|mut iter| {
+            if let Some((node_id, _)) = iter.find(|(_, output)| output.port == port && output.ip == ip) {
+                return Err(anyhow!(
+                    "Failed to register output with {id}. Combination of port {port} and IP {ip} is already used by node {node_id}"
+                ));
+            };
+            Ok(())
+        })?;
+
         self.pipeline.register_output(
             id,
             rtp_sender::Options {
@@ -105,11 +114,11 @@ impl Api {
     fn register_input(&mut self, request: RegisterInputRequest) -> Result<()> {
         let RegisterInputRequest { id, port } = request;
 
-        //if let Some((node_id, _)) = state.inputs.iter().find(|(_, input)| input.port == port) {
-        //    return Err(anyhow!(
-        //        "Failed to register input with {id}. Port {port} is already use by node {node_id}"
-        //    ));
-        //}
+        if let Some((node_id, _)) = self.pipeline.inputs().find(|(_, input)| input.port == port) {
+            return Err(anyhow!(
+                "Failed to register input with {id}. Port {port} is already used by node {node_id}"
+            ));
+        }
 
         self.pipeline
             .register_input(id.clone(), rtp_receiver::Options { port, input_id: id })?;

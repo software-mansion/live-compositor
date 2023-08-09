@@ -38,6 +38,7 @@ use ffmpeg_next::{
 pub struct RtpReceiver {
     drop_receiver: Receiver<()>,
     should_close: Arc<AtomicBool>,
+    pub(crate) port: u16,
 }
 
 pub struct Options {
@@ -52,6 +53,7 @@ impl PipelineInput for RtpReceiver {
         let (drop_sender, drop_receiver) = bounded(0);
         let should_close = Arc::new(AtomicBool::new(false));
         let should_close_clone = should_close.clone();
+        let port = opts.port;
         thread::spawn(move || {
             RtpReceiver::start(queue, opts.port, opts.input_id, should_close_clone).unwrap();
             drop_sender.send(())
@@ -59,6 +61,7 @@ impl PipelineInput for RtpReceiver {
         Self {
             drop_receiver,
             should_close,
+            port,
         }
     }
 }
