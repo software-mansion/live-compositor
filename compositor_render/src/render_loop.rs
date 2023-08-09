@@ -17,7 +17,9 @@ pub(super) fn populate_inputs(
     frames: &mut HashMap<InputId, Arc<Frame>>,
 ) {
     for (input_id, (node, input_textures)) in &mut scene.inputs {
-        let frame = frames.remove(input_id).unwrap();
+        let Some(frame) = frames.remove(input_id) else {
+            continue;
+        };
         node.output.ensure_size(ctx.wgpu_ctx, frame.resolution);
         input_textures.upload(ctx.wgpu_ctx, frame);
     }

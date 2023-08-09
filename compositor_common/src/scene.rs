@@ -65,6 +65,7 @@ pub struct SceneSpec {
 pub struct InputSpec {
     pub input_id: InputId,
     pub resolution: Resolution,
+    pub fallback_color: Option<(u8, u8, u8)>,
 }
 
 #[derive(Serialize, Deserialize)]
