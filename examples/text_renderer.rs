@@ -74,6 +74,21 @@ fn start_example_client_code() -> Result<()> {
         }
     }))?;
 
+    info!("[example] Send register output request.");
+    common::post(&json!({
+        "type": "register_output",
+        "id": "output 2",
+        "port": 8006,
+        "ip": "127.0.0.1",
+        "resolution": {
+            "width": VIDEO_RESOLUTION.width,
+            "height": VIDEO_RESOLUTION.height,
+        },
+        "encoder_settings": {
+            "preset": "ultrafast"
+        }
+    }))?;
+
     info!("[example] Send register input request.");
     common::post(&json!({
         "type": "register_input",
@@ -109,6 +124,10 @@ fn start_example_client_code() -> Result<()> {
             {
                 "output_id": "output 1",
                 "input_pad": "text_renderer"
+            },
+            {
+                "output_id": "output 2",
+                "input_pad": "input 1"
             }
         ]
     }))?;

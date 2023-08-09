@@ -40,16 +40,16 @@ fn scene_validation_finds_cycle() {
 
     let b = TransformNodeSpec {
         node_id: b_id.clone(),
-        input_pads: vec![a_id.clone()],
+        input_pads: vec![a_id],
         resolution: res,
         transform_params: trans_params.clone(),
     };
 
     let c = TransformNodeSpec {
         node_id: c_id.clone(),
-        input_pads: vec![b_id.clone()],
+        input_pads: vec![b_id],
         resolution: res,
-        transform_params: trans_params.clone(),
+        transform_params: trans_params,
     };
 
     let output = OutputSpec {
@@ -118,7 +118,7 @@ fn scene_validation_finds_unused_nodes() {
         node_id: c_id.clone(),
         input_pads: vec![b_id.clone()],
         resolution: res,
-        transform_params: trans_params.clone(),
+        transform_params: trans_params,
     };
 
     let output = OutputSpec {
