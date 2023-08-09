@@ -18,10 +18,6 @@ fn vs_main(input: VertexInput) -> VertexOutput {
     return output;
 }
 
-struct CustomStruct {
-    a: u32,
-}
-
 struct CompositorStruct {
     time: f32,
 }
