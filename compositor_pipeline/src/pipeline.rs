@@ -145,7 +145,6 @@ impl<Input: PipelineInput, Output: PipelineOutput> Pipeline<Input, Output> {
         self.queue.start(frames_sender);
 
         thread::spawn(move || {
-            // TODO move it to pipeline - fix Send, Sync stuff
             loop {
                 let input_frames = frames_receiver.recv().unwrap();
                 if !input_frames.frames.is_empty() {
