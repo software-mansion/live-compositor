@@ -144,21 +144,19 @@ impl<Input: PipelineInput, Output: PipelineOutput> Pipeline<Input, Output> {
 
         self.queue.start(frames_sender);
 
-        thread::spawn(move || {
-            loop {
-                let input_frames = frames_receiver.recv().unwrap();
-                if !input_frames.frames.is_empty() {
-                    let output = renderer.render(input_frames);
+        thread::spawn(move || loop {
+            let input_frames = frames_receiver.recv().unwrap();
+            if !input_frames.frames.is_empty() {
+                let output = renderer.render(input_frames);
 
-                    for (id, frame) in &output.frames {
-                        let output = outputs.lock().get(id).map(Clone::clone);
-                        let Some(output) = output else {
+                for (id, frame) in &output.frames {
+                    let output = outputs.lock().get(id).map(Clone::clone);
+                    let Some(output) = output else {
                                 error!("no output with id {}", id.0.0);
                                 continue;
                         };
 
-                        output.send_frame(frame.deref().clone());
-                    }
+                    output.send_frame(frame.deref().clone());
                 }
             }
         });
