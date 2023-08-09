@@ -5,7 +5,7 @@ use compositor_common::{
     Frame,
 };
 use compositor_pipeline::{pipeline::PipelineInput, queue::Queue};
-use crossbeam_channel::{bounded, Sender};
+use crossbeam_channel::{bounded, Receiver};
 use log::{error, warn};
 use std::{
     ffi::CString,
@@ -36,7 +36,7 @@ use ffmpeg_next::{
 };
 
 pub struct RtpReceiver {
-    drop_sender: Sender<()>,
+    drop_receiver: Receiver<()>,
     should_close: Arc<AtomicBool>,
 }
 
@@ -54,10 +54,10 @@ impl PipelineInput for RtpReceiver {
         let should_close_clone = should_close.clone();
         thread::spawn(move || {
             RtpReceiver::start(queue, opts.port, opts.input_id, should_close_clone).unwrap();
-            drop_receiver.recv().unwrap();
+            drop_sender.send(())
         });
         Self {
-            drop_sender,
+            drop_receiver,
             should_close,
         }
     }
@@ -66,9 +66,9 @@ impl PipelineInput for RtpReceiver {
 impl Drop for RtpReceiver {
     fn drop(&mut self) {
         // - AtomicBool signals to RTP thread that it should abort
-        // - Channel signals to drop method that RTP thread finished
+        // - Channel signals to drop method that RTP thread finished cleanup
         self.should_close.store(true, Ordering::Relaxed);
-        self.drop_sender.send(()).unwrap();
+        self.drop_receiver.recv().unwrap();
     }
 }
 
