@@ -3,7 +3,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use crate::transformation::TransformationRegistryKey;
 
-use self::text_spec::TextSpec;
+use self::text_spec::{TextResolution, TextSpec};
 
 pub mod text_spec;
 
@@ -78,7 +78,7 @@ pub enum TransformParams {
     },
     TextRenderer {
         text_params: TextSpec,
-        resolution: Resolution,
+        resolution: TextResolution,
     },
 }
 

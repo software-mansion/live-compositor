@@ -54,12 +54,11 @@ impl TransformNode {
             TransformParams::TextRenderer {
                 text_params,
                 resolution,
-            } => Ok((
-                TransformNode::TextRenderer {
-                    renderer: TextRenderer::new(text_params.clone()),
-                },
-                *resolution,
-            )),
+            } => {
+                let (renderer, resolution) =
+                    TextRenderer::new(ctx, text_params.clone(), resolution.clone());
+                Ok((TransformNode::TextRenderer { renderer }, resolution))
+            }
         }
     }
     pub fn render(

@@ -3,6 +3,8 @@ use std::sync::Arc;
 use glyphon::AttrsOwned;
 use serde::{Deserialize, Serialize};
 
+use super::Resolution;
+
 fn default_color() -> (u8, u8, u8, u8) {
     (255, 255, 255, 255)
 }
@@ -113,4 +115,15 @@ impl From<&TextSpec> for AttrsOwned {
             metadata: Default::default(),
         }
     }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum TextResolution {
+    /// Renders text and "trims" texture to smallest possible size
+    /// Specifies max texture size
+    Fitted { max_resolution: Resolution },
+    /// Renders text according to provided spec
+    /// and outputs texture with provided fixed size
+    Fixed { resolution: Resolution },
 }

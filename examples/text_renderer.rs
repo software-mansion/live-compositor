@@ -94,10 +94,14 @@ fn start_example_client_code() -> Result<()> {
                     "font_size": 100.0,
                     "font_family": "Comic Sans MS",
                     "align": "center",
-                    "wrap": "word"
+                    "wrap": "word",
+
+                },
+                "resolution": {
+                    "type": "fixed",
+                    "resolution": {"width": 1920, "height": 1080},
                 },
                 "input_pads": [],
-                "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
            }
         ],
         "outputs": [
