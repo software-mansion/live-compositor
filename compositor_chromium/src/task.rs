@@ -1,7 +1,8 @@
 use chromium_sys::_cef_task_t;
 
-use crate::cef_ref::{CefRefPtr, CefStruct};
+use crate::cef_ref::{CefRefData, CefStruct};
 
+/// Runs functions on a specified thread
 pub struct Task<F: FnOnce()> {
     inner: Option<F>,
 }
@@ -9,14 +10,14 @@ pub struct Task<F: FnOnce()> {
 impl<F: FnOnce()> CefStruct for Task<F> {
     type CefType = chromium_sys::cef_task_t;
 
-    fn get_cef_data(&self) -> Self::CefType {
+    fn cef_data(&self) -> Self::CefType {
         chromium_sys::cef_task_t {
             base: unsafe { std::mem::zeroed() },
             execute: Some(Self::execute),
         }
     }
 
-    fn get_base_mut(cef_data: &mut Self::CefType) -> &mut chromium_sys::cef_base_ref_counted_t {
+    fn base_mut(cef_data: &mut Self::CefType) -> &mut chromium_sys::cef_base_ref_counted_t {
         &mut cef_data.base
     }
 }
@@ -35,13 +36,13 @@ impl<F: FnOnce()> Task<F> {
                 return;
             }
 
-            let task = CefRefPtr::new_ptr(self);
+            let task = CefRefData::new_ptr(self);
             chromium_sys::cef_post_task(thread_id as u32, task);
         }
     }
 
     extern "C" fn execute(self_: *mut _cef_task_t) {
-        let self_ref = unsafe { CefRefPtr::<Self>::from_cef(self_) };
+        let self_ref = unsafe { CefRefData::<Self>::from_cef(self_) };
         if let Some(task) = self_ref.inner.take() {
             task();
         }

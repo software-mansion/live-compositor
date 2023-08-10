@@ -1,36 +1,66 @@
-use std::marker::PhantomData;
+use crate::{
+    cef::{ProcessId, ProcessMessage, ThreadId, V8Context},
+    validated::{Validatable, Validated, ValidatedError},
+};
 
-use crate::cef::{ProcessId, ProcessMessage, V8Context};
-
-pub struct Frame<'a> {
-    inner: *mut chromium_sys::cef_frame_t,
-    _lifetime: PhantomData<&'a ()>,
+/// Represents a renderable surface.
+/// Each browser has a main frame which is the visible web page.
+/// Browser can also have multiple smaller frames (for example when `<iframe>` is used)
+pub struct Frame {
+    inner: Validated<chromium_sys::cef_frame_t>,
 }
 
-impl<'a> Frame<'a> {
+impl Frame {
     pub(crate) fn new(frame: *mut chromium_sys::cef_frame_t) -> Self {
-        Self {
-            inner: frame,
-            _lifetime: PhantomData,
-        }
+        let inner = Validated(frame);
+        Self { inner }
     }
 
-    pub fn send_process_message(&self, pid: ProcessId, msg: ProcessMessage) {
+    /// Sends IPC message
+    pub fn send_process_message(
+        &self,
+        pid: ProcessId,
+        msg: ProcessMessage,
+    ) -> Result<(), ValidatedError> {
         unsafe {
-            let send_message = (*self.inner).send_process_message.unwrap();
-            send_message(self.inner, pid as u32, msg.inner);
+            let frame = self.inner.get()?;
+            let send_message = (*frame).send_process_message.unwrap();
+            send_message(frame, pid as u32, msg.inner);
         }
+
+        Ok(())
     }
 
-    /// Can be only called from the renderer process
-    pub fn get_v8_context(&self) -> Option<V8Context<'a>> {
+    /// If called on the renderer process it returns `Ok(V8Context)`, otherwise it's `Err(FrameError::V8ContextWrongThread)`
+    pub fn v8_context(&self) -> Result<V8Context, FrameError> {
+        let frame = self.inner.get()?;
+
         unsafe {
-            let get_v8_context = (*self.inner).get_v8context.unwrap();
-            let context = get_v8_context(self.inner);
-            if context.is_null() {
-                return None;
+            if chromium_sys::cef_currently_on(ThreadId::Renderer as u32) != 1 {
+                return Err(FrameError::V8ContextWrongThread);
             }
-            Some(V8Context::new(context))
+
+            let get_v8_context = (*frame).get_v8context.unwrap();
+            let context = get_v8_context(frame);
+            Ok(V8Context::new(context))
+        }
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum FrameError {
+    #[error("Frame is not longer valid")]
+    NotValid(#[from] ValidatedError),
+
+    #[error("Tried to retrieve V8Context on a wrong thread")]
+    V8ContextWrongThread,
+}
+
+impl Validatable for chromium_sys::cef_frame_t {
+    fn is_valid(&mut self) -> bool {
+        unsafe {
+            let is_valid = self.is_valid.unwrap();
+            is_valid(self) == 1
         }
     }
 }

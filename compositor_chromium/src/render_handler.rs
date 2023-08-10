@@ -4,13 +4,16 @@ use compositor_common::scene::Resolution;
 
 use crate::{
     browser::Browser,
-    cef_ref::{CefRefPtr, CefStruct},
+    cef_ref::{CefRefData, CefStruct},
 };
 
+/// Handles browser render callbacks
 pub trait RenderHandler {
-    fn get_resolution(&self, browser: Browser<'_>) -> Resolution;
+    /// Specifies the render resolution
+    fn resolution(&self, browser: &Browser) -> Resolution;
 
-    fn on_paint(&self, browser: Browser<'_>, buffer: &[u8], resolution: Resolution);
+    /// Called every time new frame is rendered
+    fn on_paint(&self, browser: &Browser, buffer: &[u8], resolution: Resolution);
 }
 
 pub(crate) struct RenderHandlerWrapper<R: RenderHandler>(pub R);
@@ -18,12 +21,12 @@ pub(crate) struct RenderHandlerWrapper<R: RenderHandler>(pub R);
 impl<R: RenderHandler> CefStruct for RenderHandlerWrapper<R> {
     type CefType = chromium_sys::cef_render_handler_t;
 
-    fn get_cef_data(&self) -> Self::CefType {
+    fn cef_data(&self) -> Self::CefType {
         chromium_sys::cef_render_handler_t {
             base: unsafe { std::mem::zeroed() },
             get_accessibility_handler: None,
             get_root_screen_rect: None,
-            get_view_rect: Some(Self::get_view_rect),
+            get_view_rect: Some(Self::view_rect),
             get_screen_point: None,
             get_screen_info: None,
             on_popup_show: None,
@@ -41,21 +44,21 @@ impl<R: RenderHandler> CefStruct for RenderHandlerWrapper<R> {
         }
     }
 
-    fn get_base_mut(cef_data: &mut Self::CefType) -> &mut chromium_sys::cef_base_ref_counted_t {
+    fn base_mut(cef_data: &mut Self::CefType) -> &mut chromium_sys::cef_base_ref_counted_t {
         &mut cef_data.base
     }
 }
 
 impl<R: RenderHandler> RenderHandlerWrapper<R> {
-    extern "C" fn get_view_rect(
+    extern "C" fn view_rect(
         self_: *mut chromium_sys::cef_render_handler_t,
         browser: *mut chromium_sys::cef_browser_t,
         rect: *mut chromium_sys::cef_rect_t,
     ) {
         unsafe {
-            let self_ref = CefRefPtr::<Self>::from_cef(self_);
+            let self_ref = CefRefData::<Self>::from_cef(self_);
             let browser = Browser::new(browser);
-            let resolution = self_ref.0.get_resolution(browser);
+            let resolution = self_ref.0.resolution(&browser);
             let rect = &mut *rect;
             rect.width = resolution.width as i32;
             rect.height = resolution.height as i32;
@@ -73,12 +76,12 @@ impl<R: RenderHandler> RenderHandlerWrapper<R> {
         height: c_int,
     ) {
         unsafe {
-            let self_ref = CefRefPtr::<Self>::from_cef(self_);
+            let self_ref = CefRefData::<Self>::from_cef(self_);
             let browser = Browser::new(browser);
             let buffer =
                 std::slice::from_raw_parts(buffer as *const u8, (4 * width * height) as usize);
             self_ref.0.on_paint(
-                browser,
+                &browser,
                 buffer,
                 Resolution {
                     width: width as usize,

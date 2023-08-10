@@ -1,34 +1,48 @@
-use std::marker::PhantomData;
+use crate::{
+    cef_string::CefString,
+    frame::Frame,
+    validated::{Validatable, Validated, ValidatedError},
+};
 
-use crate::{cef_string::CefString, frame::Frame};
-
-pub struct Browser<'a> {
-    inner: *mut chromium_sys::cef_browser_t,
-    _lifetime: PhantomData<&'a ()>,
+/// Wrapper over raw [`chromium_sys::cef_browser_t`].
+/// Used for interacting with a browser
+pub struct Browser {
+    inner: Validated<chromium_sys::cef_browser_t>,
 }
 
-impl<'a> Browser<'a> {
+impl Browser {
     pub(crate) fn new(browser: *mut chromium_sys::cef_browser_t) -> Self {
-        Self {
-            inner: browser,
-            _lifetime: PhantomData,
+        let inner = Validated(browser);
+        Self { inner }
+    }
+
+    pub fn is_loading(&self) -> Result<bool, BrowserError> {
+        unsafe {
+            let browser = self.inner.get()?;
+            let is_loading = (*browser).is_loading.unwrap();
+            Ok(is_loading(browser) == 1)
         }
     }
 
-    pub fn is_loading(&self) -> bool {
+    pub fn main_frame(&self) -> Result<Frame, BrowserError> {
         unsafe {
-            let browser = &mut *self.inner;
-            let is_loading = browser.is_loading.unwrap();
-            is_loading(self.inner) == 1
+            let browser = self.inner.get()?;
+            let get_main_frame = (*browser).get_main_frame.unwrap();
+            Ok(Frame::new(get_main_frame(browser)))
         }
     }
+}
 
-    pub fn get_main_frame(&self) -> Frame<'a> {
-        unsafe {
-            let browser = &mut *self.inner;
-            let get_main_frame = browser.get_main_frame.unwrap();
-            Frame::new(get_main_frame(self.inner))
-        }
+#[derive(Debug, thiserror::Error)]
+pub enum BrowserError {
+    #[error("Browser is not alive")]
+    NotAlive(#[from] ValidatedError),
+}
+
+impl Validatable for chromium_sys::cef_browser_t {
+    fn is_valid(&mut self) -> bool {
+        let is_valid = self.is_valid.unwrap();
+        unsafe { is_valid(self) == 1 }
     }
 }
 

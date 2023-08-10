@@ -1,5 +1,6 @@
 use crate::cef_string::CefString;
 
+/// Used for creating IPC message data and/or reading from it
 pub struct ProcessMessage {
     pub(crate) inner: *mut chromium_sys::cef_process_message_t,
 }
@@ -11,7 +12,7 @@ impl ProcessMessage {
         Self { inner }
     }
 
-    pub fn get_name(&self) -> String {
+    pub fn name(&self) -> String {
         unsafe {
             let get_name = (*self.inner).get_name.unwrap();
             CefString::from_raw(get_name(self.inner))
@@ -20,7 +21,7 @@ impl ProcessMessage {
 
     pub fn write_string(&mut self, index: usize, data: &str) -> bool {
         unsafe {
-            let args = self.get_arg_list();
+            let args = self.arg_list();
             let set_string = (*args).set_string.unwrap();
             let data = CefString::new_raw(data);
 
@@ -28,9 +29,9 @@ impl ProcessMessage {
         }
     }
 
-    pub fn read_string(&mut self, index: usize) -> Option<String> {
+    pub fn read_string(&self, index: usize) -> Option<String> {
         unsafe {
-            let args = self.get_arg_list();
+            let args = self.arg_list();
             let get_string = (*args).get_string.unwrap();
             let get_type = (*args).get_type.unwrap();
 
@@ -46,16 +47,16 @@ impl ProcessMessage {
 
     pub fn write_int(&mut self, index: usize, data: i32) -> bool {
         unsafe {
-            let args = self.get_arg_list();
+            let args = self.arg_list();
             let set_int = (*args).set_int.unwrap();
 
             set_int(args, index, data) == 1
         }
     }
 
-    pub fn read_int(&mut self, index: usize) -> Option<i32> {
+    pub fn read_int(&self, index: usize) -> Option<i32> {
         unsafe {
-            let args = self.get_arg_list();
+            let args = self.arg_list();
             let get_int = (*args).get_int.unwrap();
             let get_type = (*args).get_type.unwrap();
 
@@ -68,7 +69,7 @@ impl ProcessMessage {
         }
     }
 
-    fn get_arg_list(&self) -> *mut chromium_sys::cef_list_value_t {
+    fn arg_list(&self) -> *mut chromium_sys::cef_list_value_t {
         unsafe {
             let get_argument_list = (*self.inner).get_argument_list.unwrap();
             get_argument_list(self.inner)
