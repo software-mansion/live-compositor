@@ -80,8 +80,8 @@ impl<T: CefStruct> CefRefData<T> {
 
     extern "C" fn add_ref(base: *mut chromium_sys::cef_base_ref_counted_t) {
         let self_ref = unsafe { Self::from_base(base) };
-        // `Ordering::Relaxed` - there is no need for operation synchronization, since nothing changes 
-        // about the ownership of the data: we had non-exclusive access to the data before the increment 
+        // `Ordering::Relaxed` - there is no need for operation synchronization, since nothing changes
+        // about the ownership of the data: we had non-exclusive access to the data before the increment
         // and we still do after
         let old_count = self_ref.ref_count.fetch_add(1, Ordering::Relaxed);
         if old_count > Self::MAX_REFCOUNT {
@@ -110,9 +110,9 @@ impl<T: CefStruct> CefRefData<T> {
 
     extern "C" fn has_one_ref(base: *mut chromium_sys::cef_base_ref_counted_t) -> c_int {
         let self_ref = unsafe { Self::from_base(base) };
-        // `Ordering::Acquire` - since this is used by cef and this being true means 
-        // that we have exclusive access to the data, we need to make sure that all 
-        // accesses to the data finish before this function returns, in case cef wants 
+        // `Ordering::Acquire` - since this is used by cef and this being true means
+        // that we have exclusive access to the data, we need to make sure that all
+        // accesses to the data finish before this function returns, in case cef wants
         // to modify the data afterwards
         let is_one_ref = (self_ref.ref_count.load(Ordering::Acquire)) == 1;
 
