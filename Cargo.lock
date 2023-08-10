@@ -313,6 +313,7 @@ dependencies = [
  "bytes",
  "compositor_common",
  "crossbeam-channel",
+ "env_logger",
  "glyphon",
  "image",
  "log",
