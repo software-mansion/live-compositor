@@ -10,6 +10,7 @@ members = [
     "compositor_common",
     "compositor_render",
     "compositor_pipeline",
+    "compositor_chromium",
 ]
 resolver = "2"
 
@@ -27,10 +28,11 @@ reqwest = { version = "0.11.18", features = ["blocking", "json"] }
 compositor_render = { path = "compositor_render" }
 compositor_common = { path = "compositor_common" }
 compositor_pipeline = { path = "compositor_pipeline" }
+compositor_chromium = { path = "compositor_chromium" }
 serde = { workspace = true }
 serde_json = { workspace = true }
 anyhow = "1.0.71"
-bytes =  { workspace = true }
+bytes = { workspace = true }
 signal-hook = "0.3.15"
 tiny_http = "0.12.0"
 ffmpeg-next = "6.0.0"
@@ -38,5 +40,5 @@ crossbeam-channel = { workspace = true }
 env_logger = { workspace = true }
 log = { workspace = true } 
 
-[dev-dependencies] 
+[dev-dependencies]
 reqwest = { workspace = true }

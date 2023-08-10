@@ -1,0 +1,96 @@
+use std::{env, os::raw::c_int, path::PathBuf};
+
+use crate::cef_string::CefString;
+
+/// Main process settings
+#[derive(Default)]
+pub struct Settings {
+    /// If set to `true` message loop can run on a separate thread. **Not supported by MacOS**
+    pub multi_threaded_message_loop: bool,
+    /// If set to `true` it makes it possible to control message pump scheduling.
+    /// Useful in combination with [`Context::do_message_loop_work`](crate::context::Context)
+    pub external_message_pump: bool,
+    pub windowless_rendering_enabled: bool,
+    pub log_severity: LogSeverity,
+    pub remote_debugging_port: u16,
+    pub background_color: u32,
+}
+
+impl Settings {
+    pub fn into_raw(self) -> chromium_sys::cef_settings_t {
+        let current_exe = env::current_exe().unwrap();
+        let current_dir = current_exe.parent().unwrap();
+
+        let main_bundle_path = if cfg!(target_os = "linux") {
+            String::new()
+        } else {
+            PathBuf::from(current_dir)
+                .join("video_compositor.app")
+                .display()
+                .to_string()
+        };
+
+        let browser_subprocess_path = if cfg!(target_os = "linux") {
+            current_dir.join("process_helper").display().to_string()
+        } else {
+            PathBuf::from(&main_bundle_path)
+                .join("Contents")
+                .join("Frameworks")
+                .join("video_compositor Helper.app")
+                .join("Contents")
+                .join("MacOS")
+                .join("video_compositor Helper")
+                .display()
+                .to_string()
+        };
+
+        chromium_sys::cef_settings_t {
+            size: std::mem::size_of::<chromium_sys::cef_settings_t>(),
+            no_sandbox: true as c_int,
+            browser_subprocess_path: CefString::new_raw(browser_subprocess_path),
+            framework_dir_path: CefString::empty_raw(),
+            main_bundle_path: CefString::new_raw(main_bundle_path),
+            chrome_runtime: false as c_int,
+            multi_threaded_message_loop: self.multi_threaded_message_loop as c_int,
+            external_message_pump: self.external_message_pump as c_int,
+            windowless_rendering_enabled: self.windowless_rendering_enabled as c_int,
+            command_line_args_disabled: false as c_int,
+            cache_path: CefString::empty_raw(),
+            root_cache_path: CefString::empty_raw(),
+            persist_session_cookies: false as c_int,
+            persist_user_preferences: false as c_int,
+            user_agent: CefString::empty_raw(),
+            user_agent_product: CefString::empty_raw(),
+            locale: CefString::empty_raw(),
+            log_file: CefString::empty_raw(),
+            log_severity: self.log_severity as u32,
+            javascript_flags: CefString::empty_raw(),
+            resources_dir_path: CefString::empty_raw(),
+            locales_dir_path: CefString::empty_raw(),
+            pack_loading_disabled: false as c_int,
+            remote_debugging_port: self.remote_debugging_port as c_int,
+            uncaught_exception_stack_size: 0 as c_int,
+            background_color: self.background_color,
+            accept_language_list: CefString::empty_raw(),
+            cookieable_schemes_list: CefString::empty_raw(),
+            cookieable_schemes_exclude_defaults: false as c_int,
+        }
+    }
+}
+
+#[repr(u32)]
+pub enum LogSeverity {
+    Default = chromium_sys::cef_log_severity_t_LOGSEVERITY_DEFAULT,
+    Debug = chromium_sys::cef_log_severity_t_LOGSEVERITY_DEBUG,
+    Info = chromium_sys::cef_log_severity_t_LOGSEVERITY_INFO,
+    Warning = chromium_sys::cef_log_severity_t_LOGSEVERITY_WARNING,
+    Error = chromium_sys::cef_log_severity_t_LOGSEVERITY_ERROR,
+    Fatal = chromium_sys::cef_log_severity_t_LOGSEVERITY_FATAL,
+    Disable = chromium_sys::cef_log_severity_t_LOGSEVERITY_DISABLE,
+}
+
+impl Default for LogSeverity {
+    fn default() -> Self {
+        Self::Default
+    }
+}
