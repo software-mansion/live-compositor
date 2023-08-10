@@ -1,51 +1,70 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
-use compositor_common::scene::TransformationRegistryKey;
-
-use crate::renderer::transformation::Transformation;
+use compositor_common::transformation::TransformationRegistryKey;
 
 #[derive(Debug, thiserror::Error)]
 pub enum GetError {
-    #[error("a transformation with a key {0} could not be found")]
-    KeyNotFound(String),
+    #[error("a {0} with a key {1} could not be found")]
+    KeyNotFound(&'static str, Arc<str>),
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum RegisterError {
-    #[error("a transformation with a key {0} is already registered")]
-    KeyTaken(String),
+    #[error("a {0} with a key {1} is already registered")]
+    KeyTaken(&'static str, Arc<str>),
 }
 
-pub struct TransformationRegistry {
-    registry: HashMap<TransformationRegistryKey, Box<dyn Transformation>>,
+pub enum RegistryType {
+    Shader,
+    WebRenderer,
 }
 
-impl TransformationRegistry {
-    pub fn new() -> Self {
+impl RegistryType {
+    fn registry_item_name(&self) -> &'static str {
+        match self {
+            RegistryType::Shader => "shader transformation",
+            RegistryType::WebRenderer => "web renderer instance",
+        }
+    }
+}
+
+pub(crate) struct TransformationRegistry<T: Clone> {
+    registry: HashMap<TransformationRegistryKey, T>,
+    registry_type: RegistryType,
+}
+
+impl<T: Clone> TransformationRegistry<T> {
+    pub(crate) fn new(registry_type: RegistryType) -> Self {
         Self {
             registry: HashMap::new(),
+            registry_type,
         }
     }
 
     #[allow(dead_code)]
-    pub fn get(&self, key: &TransformationRegistryKey) -> Result<&dyn Transformation, GetError> {
+    pub(crate) fn get(&self, key: &TransformationRegistryKey) -> Result<T, GetError> {
         match self.registry.get(key) {
-            Some(val) => Ok(&**val),
-            None => Err(GetError::KeyNotFound(key.0.clone())),
+            Some(val) => Ok(val.clone()),
+            None => Err(GetError::KeyNotFound(
+                self.registry_type.registry_item_name(),
+                key.0.clone(),
+            )),
         }
     }
 
-    pub fn register(
+    pub(crate) fn register(
         &mut self,
-        transformation: Box<dyn Transformation>,
+        key: &TransformationRegistryKey,
+        transformation: T,
     ) -> Result<(), RegisterError> {
-        let key = transformation.registry_key();
-
-        if self.registry.contains_key(&key) {
-            return Err(RegisterError::KeyTaken(key.0));
+        if self.registry.contains_key(key) {
+            return Err(RegisterError::KeyTaken(
+                self.registry_type.registry_item_name(),
+                key.0.clone(),
+            ));
         }
 
-        self.registry.insert(key, transformation);
+        self.registry.insert(key.clone(), transformation);
 
         Ok(())
     }

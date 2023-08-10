@@ -6,8 +6,16 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-futures = "0.3.28"
 pollster = "0.3.0"
-thiserror = "1.0.40"
+thiserror = { workspace = true } 
 wgpu = "0.16.1"
 compositor_common = { path = "../compositor_common" }
+image = { version = "0.24.6", features = ["jpeg", "png"] }
+serde = { workspace = true }
+serde_json = { workspace = true }
+reqwest = { workspace = true }
+bytes = { workspace = true }
+log = { workspace = true }
+bytemuck = { version = "1.13.1", features = ["derive"] }
+glyphon = "0.3.0"
+crossbeam-channel = { workspace = true }

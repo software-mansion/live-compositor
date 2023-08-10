@@ -1,4 +1,6 @@
 use anyhow::{anyhow, Result};
+
+use log::error;
 use reqwest::{blocking::Response, StatusCode};
 use std::{
     fs::File,
@@ -9,22 +11,22 @@ use std::{
 use serde::Serialize;
 
 /// The SDP file will describe an RTP session on localhost with H264 encoding.
-pub fn write_example_sdp_file(port: u16) -> Result<String> {
+pub fn write_example_sdp_file(ip: &str, port: u16) -> Result<String> {
     let sdp_filepath = PathBuf::from(format!("/tmp/example_sdp_input_{}.sdp", port));
     let mut file = File::create(&sdp_filepath)?;
     file.write_all(
         format!(
             "\
                     v=0\n\
-                    o=- 0 0 IN IP4 127.0.0.1\n\
+                    o=- 0 0 IN IP4 {}\n\
                     s=No Name\n\
-                    c=IN IP4 127.0.0.1\n\
+                    c=IN IP4 {}\n\
                     m=video {} RTP/AVP 96\n\
                     a=rtpmap:96 H264/90000\n\
                     a=fmtp:96 packetization-mode=1\n\
                     a=rtcp-mux\n\
                 ",
-            port
+            ip, ip, port
         )
         .as_bytes(),
     )?;
@@ -37,11 +39,29 @@ pub fn write_example_sdp_file(port: u16) -> Result<String> {
 
 pub fn post<T: Serialize + ?Sized>(json: &T) -> Result<Response> {
     let client = reqwest::blocking::Client::new();
-    let response = client.post("http://127.0.0.1:8001").json(json).send()?;
+    let response = client
+        .post("http://127.0.0.1:8001")
+        .json(json)
+        .send()
+        .unwrap();
     if response.status() >= StatusCode::BAD_REQUEST {
-        return Err(anyhow!("Request failed: {:?}", response.text()));
+        log_request_error(&json, response);
+        return Err(anyhow!("request failed"));
     }
     Ok(response)
+}
+
+fn log_request_error<T: Serialize + ?Sized>(request_body: &T, response: Response) {
+    let status = response.status();
+    let request_str = serde_json::to_string_pretty(request_body).unwrap();
+    let body_str = response.text().unwrap();
+    let formated_body = serde_json::from_str::<serde_json::Value>(&body_str)
+        .map(|parsed| serde_json::to_string_pretty(&parsed).unwrap())
+        .unwrap_or(body_str);
+    error!(
+        "Request failed:\nRequest: {}\nResponse code: {}\nResponse body:\n{}",
+        request_str, status, formated_body
+    )
 }
 
 #[allow(dead_code)]

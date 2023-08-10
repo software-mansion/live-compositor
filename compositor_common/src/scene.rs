@@ -1,12 +1,11 @@
-use std::{any::Any, collections::HashMap, sync::Arc};
-
 use serde::{Deserialize, Serialize};
+use std::{fmt::Display, sync::Arc};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct VideoId(usize);
+use crate::transformation::TransformationRegistryKey;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct TransformationRegistryKey(pub String);
+use self::text_spec::TextSpec;
+
+pub mod text_spec;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Resolution {
@@ -14,29 +13,106 @@ pub struct Resolution {
     pub height: usize,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub struct NodeId(pub String);
+#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NodeId(pub Arc<str>);
 
-#[derive(Debug)]
-pub enum Node {
-    Video {
-        id: VideoId,
-        resolution: Resolution,
+#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
+pub struct InputId(pub NodeId);
+
+#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
+pub struct OutputId(pub NodeId);
+
+impl Display for InputId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0 .0.fmt(f)
+    }
+}
+
+impl Display for OutputId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0 .0.fmt(f)
+    }
+}
+
+impl Display for NodeId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl From<NodeId> for InputId {
+    fn from(value: NodeId) -> Self {
+        Self(value)
+    }
+}
+
+impl From<NodeId> for OutputId {
+    fn from(value: NodeId) -> Self {
+        Self(value)
+    }
+}
+
+/// SceneSpec represents configuration that can be used to create new Scene
+/// or update an existing one.
+#[derive(Serialize, Deserialize)]
+pub struct SceneSpec {
+    pub inputs: Vec<InputSpec>,
+    pub transforms: Vec<TransformNodeSpec>,
+    pub outputs: Vec<OutputSpec>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct InputSpec {
+    pub input_id: InputId,
+    pub resolution: Resolution,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct OutputSpec {
+    pub output_id: OutputId,
+    pub input_pad: NodeId,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct TransformNodeSpec {
+    pub node_id: NodeId,
+    pub input_pads: Vec<NodeId>,
+    pub resolution: Resolution,
+
+    #[serde(flatten)]
+    pub transform_params: TransformParams,
+}
+
+// TODO: tmp clone
+#[derive(Serialize, Deserialize, Clone)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum TransformParams {
+    WebRenderer {
+        renderer_id: TransformationRegistryKey,
     },
-
-    Image {
-        data: Vec<u8>,
-        resolution: Resolution,
+    Shader {
+        shader_id: TransformationRegistryKey,
+        shader_params: ShaderParam,
     },
-
-    Transformer {
-        registry_key: TransformationRegistryKey,
-        inputs: HashMap<NodeId, Arc<Node>>,
-        resolution: Resolution,
-        params: Box<dyn Any>,
+    TextRenderer {
+        text_params: TextSpec,
     },
 }
 
-pub struct Scene {
-    pub final_nodes: Vec<Arc<Node>>,
+// TODO: tmp clone
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(tag = "type", rename_all = "snake_case", content = "value")]
+pub enum ShaderParam {
+    F32(f32),
+    U32(u32),
+    I32(i32),
+    List(Vec<ShaderParam>),
+    Struct(Vec<ShaderParamStructField>),
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ShaderParamStructField {
+    pub field_name: String,
+    #[serde(flatten)]
+    pub value: ShaderParam,
 }

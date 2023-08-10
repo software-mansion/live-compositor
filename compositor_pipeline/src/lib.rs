@@ -1,3 +1,4 @@
-pub mod map;
 pub mod pipeline;
-pub type Pipeline<Output> = pipeline::Pipeline<Output>;
+pub mod queue;
+
+pub type Pipeline<Input, Output> = pipeline::Pipeline<Input, Output>;

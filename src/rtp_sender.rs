@@ -89,22 +89,31 @@ pub struct EncoderSettings {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Options {
     pub port: u16,
+    pub ip: String,
     pub resolution: Resolution,
     pub encoder_settings: EncoderSettings,
 }
 
-impl RtpSender {
-    pub fn new(options: Options) -> Self {
+impl PipelineOutput for RtpSender {
+    type Opts = Options;
+
+    fn new(options: Options) -> Self {
         let (sender, receiver) = crossbeam_channel::unbounded();
         thread::spawn(move || RtpSender::run(options, receiver).unwrap());
         Self { sender }
     }
 
+    fn send_frame(&self, frame: Frame) {
+        self.sender.send(frame).unwrap();
+    }
+}
+
+impl RtpSender {
     fn run(opts: Options, receiver: Receiver<Frame>) -> Result<()> {
         let mut output_ctx = format::output_as(
             &PathBuf::from(format!(
-                "rtp://127.0.0.1:{}?rtcpport={}",
-                opts.port, opts.port
+                "rtp://{}:{}?rtcpport={}",
+                opts.ip, opts.port, opts.port
             )),
             "rtp",
         )?;
@@ -180,14 +189,7 @@ impl RtpSender {
                 }
             }
         }
-
         Ok(())
-    }
-}
-
-impl PipelineOutput for RtpSender {
-    fn send_frame(&self, frame: Frame) {
-        self.sender.send(frame).unwrap();
     }
 }
 
@@ -217,9 +219,7 @@ fn frame_into_av(frame: Frame, av_frame: &mut frame::Video) -> Result<()> {
         ));
     }
 
-    av_frame.set_pts(Some(
-        ((frame.pts.as_nanos() as f64) * 90000.0 / 10e9) as i64,
-    ));
+    av_frame.set_pts(Some((frame.pts.as_secs_f64() * 90000.0) as i64));
     av_frame.data_mut(0).copy_from_slice(&frame.data.y_plane);
     av_frame.data_mut(1).copy_from_slice(&frame.data.u_plane);
     av_frame.data_mut(2).copy_from_slice(&frame.data.v_plane);

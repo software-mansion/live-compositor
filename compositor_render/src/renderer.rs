@@ -1,72 +1,134 @@
-use std::{collections::HashMap, rc::Rc};
+use std::{sync::Arc, time::Duration};
 
-use compositor_common::{scene::Scene, Frame};
+use compositor_common::scene::{InputId, OutputId, SceneSpec};
+use log::error;
 
-use crate::registry::{self, TransformationRegistry};
+use crate::{
+    frame_set::FrameSet,
+    registry::TransformationRegistry,
+    render_loop::{populate_inputs, read_outputs},
+    transformations::{shader, text_renderer::TextRendererCtx},
+};
+use crate::{
+    registry::{self, RegistryType},
+    render_loop::run_transforms,
+    transformations::{
+        shader::Shader,
+        web_renderer::{
+            electron::ElectronNewError, ElectronInstance, WebRenderer, WebRendererNewError,
+        },
+    },
+};
 
-use self::transformation::Transformation;
+use self::{
+    color_converter_pipeline::{RGBAToYUVConverter, YUVToRGBAConverter},
+    scene::{Scene, SceneUpdateError},
+    texture::{RGBATexture, YUVTextures},
+};
 
+mod color_converter_pipeline;
+pub mod common_pipeline;
+pub mod scene;
 pub mod texture;
-pub mod transformation;
 
 pub struct Renderer {
-    wgpu_ctx: Rc<WgpuCtx>,
-    registry: TransformationRegistry,
-    scene: Option<Scene>,
+    pub wgpu_ctx: Arc<WgpuCtx>,
+    pub text_renderer_ctx: TextRendererCtx,
+    pub electron_instance: Arc<ElectronInstance>,
+    pub scene: Scene,
+    pub scene_spec: Arc<SceneSpec>,
+    pub(crate) shader_transforms: TransformationRegistry<Arc<Shader>>,
+    pub(crate) web_renderers: TransformationRegistry<Arc<WebRenderer>>,
+}
+
+pub struct RenderCtx<'a> {
+    pub wgpu_ctx: &'a Arc<WgpuCtx>,
+    pub text_renderer_ctx: &'a TextRendererCtx,
+    pub electron: &'a Arc<ElectronInstance>,
+    pub(crate) shader_transforms: &'a TransformationRegistry<Arc<Shader>>,
+    pub(crate) web_renderers: &'a TransformationRegistry<Arc<WebRenderer>>,
+}
+
+pub struct RegisterTransformationCtx {
+    pub wgpu_ctx: Arc<WgpuCtx>,
+    pub electron: Arc<ElectronInstance>,
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum RendererNewError {
     #[error("failed to initialize a wgpu context")]
     FailedToInitWgpuCtx(#[from] WgpuCtxNewError),
+
+    #[error("failed to start an electron instance")]
+    FailedToStartElectron(#[from] ElectronNewError),
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum RendererRegisterTransformationError {
     #[error("failed to register a transformation in the transformation registry")]
-    TransformationRegistryError(#[from] registry::RegisterError),
-}
+    TransformationRegistry(#[from] registry::RegisterError),
 
-#[derive(Debug, thiserror::Error)]
-pub enum RendererRenderError {
-    #[error("no scene was set in the compositor")]
-    NoScene,
-
-    #[error("a frame was not provided for input with id {0}")]
-    NoInput(u32),
+    #[error("failed to create web renderer transformation")]
+    WebRendererTransformation(#[from] WebRendererNewError),
 }
 
 impl Renderer {
-    pub fn new() -> Result<Self, RendererNewError> {
+    pub fn new(init_web: bool) -> Result<Self, RendererNewError> {
         Ok(Self {
-            wgpu_ctx: Rc::new(WgpuCtx::new()?),
-            registry: TransformationRegistry::new(),
-            scene: None,
+            wgpu_ctx: Arc::new(WgpuCtx::new()?),
+            text_renderer_ctx: TextRendererCtx::new(),
+            electron_instance: Arc::new(ElectronInstance::new(9002, init_web)?), // TODO: make it configurable
+            scene: Scene::empty(),
+            web_renderers: TransformationRegistry::new(RegistryType::WebRenderer),
+            shader_transforms: TransformationRegistry::new(RegistryType::Shader),
+            scene_spec: Arc::new(SceneSpec {
+                inputs: vec![],
+                transforms: vec![],
+                outputs: vec![],
+            }),
         })
     }
 
-    pub fn register_transformation<T: Transformation>(
-        &mut self,
-        provider: fn(Rc<WgpuCtx>) -> T,
-    ) -> Result<(), RendererRegisterTransformationError> {
-        self.registry
-            .register(Box::new(provider(self.wgpu_ctx.clone())))?;
+    pub(super) fn register_transformation_ctx(&self) -> RegisterTransformationCtx {
+        RegisterTransformationCtx {
+            wgpu_ctx: self.wgpu_ctx.clone(),
+            electron: self.electron_instance.clone(),
+        }
+    }
 
+    pub fn render(&mut self, mut inputs: FrameSet<InputId>) -> FrameSet<OutputId> {
+        let ctx = &mut RenderCtx {
+            wgpu_ctx: &self.wgpu_ctx,
+            electron: &self.electron_instance,
+            shader_transforms: &self.shader_transforms,
+            web_renderers: &self.web_renderers,
+            text_renderer_ctx: &self.text_renderer_ctx,
+        };
+
+        shader::prepare_render_loop(ctx, inputs.pts);
+        populate_inputs(ctx, &mut self.scene, &mut inputs.frames);
+        run_transforms(ctx, &self.scene);
+        let frames = read_outputs(ctx, &self.scene, inputs.pts);
+
+        FrameSet {
+            frames,
+            pts: inputs.pts,
+        }
+    }
+
+    pub fn update_scene(&mut self, scene_specs: Arc<SceneSpec>) -> Result<(), SceneUpdateError> {
+        self.scene.update(
+            &RenderCtx {
+                wgpu_ctx: &self.wgpu_ctx,
+                text_renderer_ctx: &self.text_renderer_ctx,
+                electron: &self.electron_instance,
+                shader_transforms: &self.shader_transforms,
+                web_renderers: &self.web_renderers,
+            },
+            &scene_specs,
+        )?;
+        self.scene_spec = scene_specs;
         Ok(())
-    }
-
-    /// This is very much a work in progress.
-    /// For now it just takes a random frame from the input and returns it
-    pub fn render(&self, inputs: HashMap<u32, Frame>) -> Result<Frame, RendererRenderError> {
-        inputs
-            .values()
-            .next()
-            .cloned()
-            .ok_or(RendererRenderError::NoInput(0)) // 0 as a placeholder for now until this is implemented
-    }
-
-    pub fn update_scene(&mut self, scene: Scene) {
-        self.scene = Some(scene);
     }
 }
 
@@ -76,6 +138,15 @@ pub struct WgpuCtx {
 
     #[allow(dead_code)]
     pub queue: wgpu::Queue,
+
+    pub yuv_bind_group_layout: wgpu::BindGroupLayout,
+    pub rgba_bind_group_layout: wgpu::BindGroupLayout,
+    pub yuv_to_rgba_converter: YUVToRGBAConverter,
+    pub rgba_to_yuv_converter: RGBAToYUVConverter,
+
+    pub shader_parameters_bind_group_layout: wgpu::BindGroupLayout,
+
+    pub compositor_provided_parameters_buffer: wgpu::Buffer,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -106,22 +177,55 @@ impl WgpuCtx {
             &wgpu::DeviceDescriptor {
                 label: Some("Video Compositor's GPU :^)"),
                 limits: Default::default(),
-                features: wgpu::Features::empty(),
+                features: wgpu::Features::TEXTURE_BINDING_ARRAY,
             },
             None,
         ))?;
 
-        Ok(Self { device, queue })
+        let yuv_bind_group_layout = YUVTextures::new_bind_group_layout(&device);
+        let rgba_bind_group_layout = RGBATexture::new_bind_group_layout(&device);
+        let yuv_to_rgba_converter = YUVToRGBAConverter::new(&device, &yuv_bind_group_layout);
+        let rgba_to_yuv_converter = RGBAToYUVConverter::new(&device, &rgba_bind_group_layout);
+
+        let shader_parameters_bind_group_layout = Shader::new_parameters_bind_group_layout(&device);
+
+        let compositor_provided_parameters_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("global shader parameters buffer"),
+            mapped_at_creation: false,
+            size: std::mem::size_of::<GlobalShaderParameters>() as u64,
+            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::UNIFORM,
+        });
+
+        // this is temporary until we implement proper error handling in the wgpu renderer
+        // it's important to overwrite this though, because the default uncaptured error
+        // handler panics
+        device.on_uncaptured_error(Box::new(|e| {
+            error!("wgpu error: {:?}", e);
+        }));
+
+        Ok(Self {
+            device,
+            queue,
+            yuv_bind_group_layout,
+            rgba_bind_group_layout,
+            yuv_to_rgba_converter,
+            rgba_to_yuv_converter,
+            shader_parameters_bind_group_layout,
+            compositor_provided_parameters_buffer,
+        })
     }
 }
 
-#[cfg(test)]
-mod test {
-    use super::*;
+#[repr(C)]
+#[derive(Debug, bytemuck::Pod, bytemuck::Zeroable, Clone, Copy)]
+pub struct GlobalShaderParameters {
+    time: f32,
+}
 
-    #[test]
-    fn initialize() -> Result<(), RendererNewError> {
-        Renderer::new()?;
-        Ok(())
+impl GlobalShaderParameters {
+    pub fn new(time: Duration) -> Self {
+        Self {
+            time: time.as_secs_f32(),
+        }
     }
 }
