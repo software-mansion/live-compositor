@@ -1,14 +1,17 @@
 use std::time::Duration;
 
+use serde::{Deserialize, Serialize};
+
 pub mod frame;
 pub mod scene;
 pub mod transformation;
 mod validators;
 
 pub type Frame = frame::Frame;
+pub type SpecValidationError = validators::SpecValidationError;
 
 /// TODO: This should be a rational.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct Framerate(pub u32);
 
 impl Framerate {

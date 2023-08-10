@@ -2,7 +2,7 @@ use std::{sync::Arc, thread, time::Duration};
 
 use crate::renderer::{
     texture::{NodeTexture, RGBATexture},
-    RenderCtx,
+    RegisterTransformationCtx, RenderCtx,
 };
 pub mod electron;
 mod electron_api;
@@ -30,7 +30,7 @@ pub struct WebRenderer {
 
 impl WebRenderer {
     pub fn new(
-        ctx: &RenderCtx,
+        ctx: &RegisterTransformationCtx,
         params: WebRendererTransformationParams,
     ) -> Result<Self, WebRendererNewError> {
         // TODO: wait electron api by checking tcp connection on that port

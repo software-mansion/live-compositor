@@ -1,7 +1,11 @@
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, sync::Arc};
+use std::{fmt::Display, sync::Arc};
 
 use crate::transformation::TransformationRegistryKey;
+
+use self::text_spec::TextSpec;
+
+pub mod text_spec;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Resolution {
@@ -17,6 +21,24 @@ pub struct InputId(pub NodeId);
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
 pub struct OutputId(pub NodeId);
+
+impl Display for InputId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0 .0.fmt(f)
+    }
+}
+
+impl Display for OutputId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0 .0.fmt(f)
+    }
+}
+
+impl Display for NodeId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
 
 impl From<NodeId> for InputId {
     fn from(value: NodeId) -> Self {
@@ -70,42 +92,27 @@ pub enum TransformParams {
     },
     Shader {
         shader_id: TransformationRegistryKey,
-        shader_params: HashMap<String, ShaderParams>,
+        shader_params: Option<ShaderParam>,
     },
     TextRenderer {
-        text_params: TextParams,
+        text_params: TextSpec,
     },
 }
 
 // TODO: tmp clone
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(tag = "type", rename_all = "snake_case", content = "value")]
-pub enum ShaderParams {
-    String(String),
-    Binary(Vec<u8>),
+pub enum ShaderParam {
+    F32(f32),
+    U32(u32),
+    I32(i32),
+    List(Vec<ShaderParam>),
+    Struct(Vec<ShaderParamStructField>),
 }
 
-#[derive(Serialize, Deserialize, Clone)]
-#[serde(rename_all = "snake_case")]
-pub enum Style {
-    Normal,
-    Italic,
-    Oblique,
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-#[serde(tag = "type")]
-pub struct TextParams {
-    pub content: Arc<str>,
-    /// in pixels
-    pub font_size: f32,
-    /// default: white (255, 255, 255, 255)
-    pub color_rgba: Option<(u8, u8, u8, u8)>,
-    /// https://www.w3.org/TR/2018/REC-css-fonts-3-20180920/#family-name-value   
-    /// use font family name, not generic family name
-    pub font_family: Option<String>,
-    /// in pixels, default: same as font_size
-    pub line_height: Option<f32>,
-    /// default: Normal
-    pub style: Option<Style>,
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ShaderParamStructField {
+    pub field_name: String,
+    #[serde(flatten)]
+    pub value: ShaderParam,
 }

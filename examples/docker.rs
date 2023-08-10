@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use compositor_common::scene::Resolution;
+use compositor_common::{scene::Resolution, Framerate};
 use log::{error, info, warn};
 use serde_json::json;
 use signal_hook::{consts, iterator::Signals};
@@ -19,6 +19,7 @@ const VIDEO_RESOLUTION: Resolution = Resolution {
     width: 1920,
     height: 1080,
 };
+const FRAMERATE: Framerate = Framerate(30);
 
 fn main() {
     env_logger::init_from_env(
@@ -83,6 +84,8 @@ fn start_example_client_code(host_ip: String) -> Result<()> {
     info!("[example] Sending init request.");
     common::post(&json!({
         "type": "init",
+        "framerate": FRAMERATE,
+        "init_web_renderer": false,
     }))?;
 
     info!("[example] Start listening on output port.");
@@ -126,16 +129,16 @@ fn start_example_client_code(host_ip: String) -> Result<()> {
         }
     }))?;
 
-    info!("[example] Register web renderer transform");
-    common::post(&json!({
-        "type": "register_transformation",
-        "key": "example website",
-        "transform": {
-            "type": "web_renderer",
-            "url": "https://www.twitch.tv/", // or other way of providing source
-            "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
-        }
-    }))?;
+    //info!("[example] Register web renderer transform");
+    //common::post(&json!({
+    //    "type": "register_transformation",
+    //    "key": "example website",
+    //    "transform": {
+    //        "type": "web_renderer",
+    //        "url": "https://www.twitch.tv/", // or other way of providing source
+    //        "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+    //    }
+    //}))?;
 
     info!("[example] Update scene");
     common::post(&json!({
@@ -148,26 +151,23 @@ fn start_example_client_code(host_ip: String) -> Result<()> {
         ],
         "transforms": [
            {
-               "node_id": "side-by-side",
-               "type": "shader",
-               "shader_id": "example shader",
-               "shader_params": {
-                   "example": {"type": "string", "value": "param"},
-               },
-               "input_pads": [
-                   "input 1",
-               ],
-               "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+                "node_id": "side-by-side",
+                "type": "shader",
+                "shader_id": "example shader",
+                "input_pads": [
+                    "input 1",
+                ],
+                "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
            },
-           {
-               "node_id": "add-overlay",
-               "type": "web_renderer",
-               "renderer_id": "example website",
-               "input_pads": [
-                   "input 1",
-               ],
-               "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
-           }
+           //  {
+           //      "node_id": "add-overlay",
+           //      "type": "web_renderer",
+           //      "renderer_id": "example website",
+           //      "input_pads": [
+           //          "input 1",
+           //      ],
+           //      "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+           //  }
         ],
         "outputs": [
             {
@@ -187,6 +187,7 @@ fn start_example_client_code(host_ip: String) -> Result<()> {
         "testsrc=s={}x{}:r=30,format=yuv420p",
         VIDEO_RESOLUTION.width, VIDEO_RESOLUTION.height
     );
+
     Command::new("ffmpeg")
         .args([
             "-re",

@@ -359,6 +359,7 @@ dependencies = [
  "compositor_render",
  "crossbeam-channel",
  "log",
+ "serde",
  "thiserror",
 ]
 
@@ -370,6 +371,7 @@ dependencies = [
  "bytes",
  "compositor_common",
  "crossbeam-channel",
+ "env_logger",
  "glyphon",
  "image",
  "log",

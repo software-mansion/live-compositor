@@ -10,6 +10,7 @@ use crate::{
     renderer::{
         scene::SceneUpdateError, Renderer, RendererNewError, RendererRegisterTransformationError,
     },
+    transformations::{shader::Shader, web_renderer::WebRenderer},
 };
 
 #[derive(Clone)]
@@ -19,19 +20,39 @@ impl SyncRenderer {
     pub fn new(init_web: bool) -> Result<Self, RendererNewError> {
         Ok(Self(Arc::new(Mutex::new(Renderer::new(init_web)?))))
     }
+
     pub fn register_transformation(
         &self,
         key: TransformationRegistryKey,
         spec: TransformationSpec,
     ) -> Result<(), RendererRegisterTransformationError> {
-        self.0.lock().unwrap().register_transformation(key, spec)
+        let ctx = self.0.lock().unwrap().register_transformation_ctx();
+        match spec {
+            TransformationSpec::Shader { source } => {
+                let shader = Arc::new(Shader::new(&ctx, source));
+
+                let mut guard = self.0.lock().unwrap();
+                guard.shader_transforms.register(&key, shader)?
+            }
+            TransformationSpec::WebRenderer(params) => {
+                let web = Arc::new(WebRenderer::new(&ctx, params)?);
+
+                let mut guard = self.0.lock().unwrap();
+                guard.web_renderers.register(&key, web)?
+            }
+        }
+        Ok(())
     }
 
     pub fn render(&self, input: FrameSet<InputId>) -> FrameSet<OutputId> {
         self.0.lock().unwrap().render(input)
     }
 
-    pub fn update_scene(&self, scene_specs: SceneSpec) -> Result<(), SceneUpdateError> {
+    pub fn update_scene(&mut self, scene_specs: Arc<SceneSpec>) -> Result<(), SceneUpdateError> {
         self.0.lock().unwrap().update_scene(scene_specs)
+    }
+
+    pub fn scene_spec(&self) -> Arc<SceneSpec> {
+        self.0.lock().unwrap().scene_spec.clone()
     }
 }

@@ -44,7 +44,7 @@ impl Queue {
     }
 
     #[allow(dead_code)]
-    pub fn remove_input(&self, input_id: InputId) {
+    pub fn remove_input(&self, input_id: &InputId) {
         let mut internal_queue = self.internal_queue.lock().unwrap();
         // TODO: gracefully remove input - wait until last enqueued frame PTS is smaller than output PTS
         internal_queue.remove_input(input_id);
