@@ -369,6 +369,7 @@ version = "0.1.0"
 dependencies = [
  "bytemuck",
  "bytes",
+ "compositor_chromium",
  "compositor_common",
  "crossbeam-channel",
  "glyphon",

@@ -7,6 +7,7 @@ use compositor_common::scene::{InputId, OutputId, SceneSpec};
 use compositor_common::transformation::{TransformationRegistryKey, TransformationSpec};
 use compositor_common::{Frame, Framerate};
 use compositor_render::renderer::{RendererNewError, RendererRegisterTransformationError};
+use compositor_render::EventLoop;
 use compositor_render::{renderer::scene::SceneUpdateError, Renderer};
 use crossbeam_channel::unbounded;
 use log::error;
@@ -135,6 +136,10 @@ impl<Input: PipelineInput, Output: PipelineOutput> Pipeline<Input, Output> {
             )
             .map_err(SceneUpdateError::InvalidSpec)?;
         self.renderer.update_scene(scene_spec)
+    }
+
+    pub fn event_loop(&self) -> Option<EventLoop> {
+        self.renderer.event_loop()
     }
 
     pub fn start(&self) {

@@ -27,12 +27,20 @@ impl Server {
     pub fn start(self) {
         info!("Listening on port {}", self.server.server_addr());
         let mut api = self.handle_init();
+        let event_loop = api.event_loop();
         thread::spawn(move || {
             for mut raw_request in self.server.incoming_requests() {
                 let result = Self::handle_request_after_init(&mut api, &mut raw_request);
                 self.send_response(raw_request, result);
             }
         });
+
+        // TODO: Here?
+        if let Some(event_loop) = event_loop {
+            if let Err(err) = event_loop.run() {
+                error!("Event loop run failed: {err}")
+            }
+        }
     }
 
     fn handle_init(&self) -> Api {

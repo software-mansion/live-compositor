@@ -10,6 +10,10 @@ pub struct Browser {
     inner: Validated<chromium_sys::cef_browser_t>,
 }
 
+// TODO: Is it safe?
+unsafe impl Sync for Browser {}
+unsafe impl Send for Browser {}
+
 impl Browser {
     pub(crate) fn new(browser: *mut chromium_sys::cef_browser_t) -> Self {
         let inner = Validated(browser);

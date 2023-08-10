@@ -6,6 +6,7 @@ use compositor_common::{
     transformation::{TransformationRegistryKey, TransformationSpec},
 };
 use compositor_pipeline::pipeline;
+use compositor_render::EventLoop;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -115,5 +116,9 @@ impl Api {
             .register_input(id.clone(), rtp_receiver::Options { port, input_id: id })?;
 
         Ok(())
+    }
+
+    pub fn event_loop(&self) -> Option<EventLoop> {
+        self.pipeline.event_loop()
     }
 }

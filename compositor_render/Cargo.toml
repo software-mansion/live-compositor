@@ -7,9 +7,10 @@ edition = "2021"
 
 [dependencies]
 pollster = "0.3.0"
-thiserror = { workspace = true } 
+thiserror = { workspace = true }
 wgpu = "0.16.1"
 compositor_common = { path = "../compositor_common" }
+compositor_chromium = { path = "../compositor_chromium" }
 image = { version = "0.24.6", features = ["jpeg", "png"] }
 serde = { workspace = true }
 serde_json = { workspace = true }

@@ -7,16 +7,18 @@ use crate::{
     frame_set::FrameSet,
     registry::TransformationRegistry,
     render_loop::{populate_inputs, read_outputs},
-    transformations::{shader, text_renderer::TextRendererCtx},
+    transformations::{
+        shader,
+        text_renderer::TextRendererCtx,
+        web_renderer::chromium::{ChromiumContext, ChromiumContextError},
+    },
 };
 use crate::{
     registry::{self, RegistryType},
     render_loop::run_transforms,
     transformations::{
         shader::Shader,
-        web_renderer::{
-            electron::ElectronNewError, ElectronInstance, WebRenderer, WebRendererNewError,
-        },
+        web_renderer::{WebRenderer, WebRendererNewError},
     },
 };
 
@@ -31,10 +33,12 @@ pub mod common_pipeline;
 pub mod scene;
 pub mod texture;
 
+pub use color_converter_pipeline::BGRAToRGBAConverter;
+
 pub struct Renderer {
     pub wgpu_ctx: Arc<WgpuCtx>,
     pub text_renderer_ctx: TextRendererCtx,
-    pub electron_instance: Arc<ElectronInstance>,
+    pub chromium_context: Arc<ChromiumContext>,
     pub scene: Scene,
     pub scene_spec: Arc<SceneSpec>,
     pub(crate) shader_transforms: TransformationRegistry<Arc<Shader>>,
@@ -44,14 +48,14 @@ pub struct Renderer {
 pub struct RenderCtx<'a> {
     pub wgpu_ctx: &'a Arc<WgpuCtx>,
     pub text_renderer_ctx: &'a TextRendererCtx,
-    pub electron: &'a Arc<ElectronInstance>,
+    pub chromium: &'a Arc<ChromiumContext>,
     pub(crate) shader_transforms: &'a TransformationRegistry<Arc<Shader>>,
     pub(crate) web_renderers: &'a TransformationRegistry<Arc<WebRenderer>>,
 }
 
 pub struct RegisterTransformationCtx {
     pub wgpu_ctx: Arc<WgpuCtx>,
-    pub electron: Arc<ElectronInstance>,
+    pub chromium: Arc<ChromiumContext>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -59,8 +63,8 @@ pub enum RendererNewError {
     #[error("failed to initialize a wgpu context")]
     FailedToInitWgpuCtx(#[from] WgpuCtxNewError),
 
-    #[error("failed to start an electron instance")]
-    FailedToStartElectron(#[from] ElectronNewError),
+    #[error("failed to init chromium context")]
+    FailedToStartElectron(#[from] ChromiumContextError),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -77,7 +81,7 @@ impl Renderer {
         Ok(Self {
             wgpu_ctx: Arc::new(WgpuCtx::new()?),
             text_renderer_ctx: TextRendererCtx::new(),
-            electron_instance: Arc::new(ElectronInstance::new(9002, init_web)?), // TODO: make it configurable
+            chromium_context: Arc::new(ChromiumContext::new(init_web, true, true)?), // TODO: make it configurable
             scene: Scene::empty(),
             web_renderers: TransformationRegistry::new(RegistryType::WebRenderer),
             shader_transforms: TransformationRegistry::new(RegistryType::Shader),
@@ -92,14 +96,14 @@ impl Renderer {
     pub(super) fn register_transformation_ctx(&self) -> RegisterTransformationCtx {
         RegisterTransformationCtx {
             wgpu_ctx: self.wgpu_ctx.clone(),
-            electron: self.electron_instance.clone(),
+            chromium: self.chromium_context.clone(),
         }
     }
 
     pub fn render(&mut self, mut inputs: FrameSet<InputId>) -> FrameSet<OutputId> {
         let ctx = &mut RenderCtx {
             wgpu_ctx: &self.wgpu_ctx,
-            electron: &self.electron_instance,
+            chromium: &self.chromium_context,
             shader_transforms: &self.shader_transforms,
             web_renderers: &self.web_renderers,
             text_renderer_ctx: &self.text_renderer_ctx,
@@ -121,7 +125,7 @@ impl Renderer {
             &RenderCtx {
                 wgpu_ctx: &self.wgpu_ctx,
                 text_renderer_ctx: &self.text_renderer_ctx,
-                electron: &self.electron_instance,
+                chromium: &self.chromium_context,
                 shader_transforms: &self.shader_transforms,
                 web_renderers: &self.web_renderers,
             },

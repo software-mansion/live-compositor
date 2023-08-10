@@ -1,31 +1,39 @@
-use std::{sync::Arc, thread, time::Duration};
+use std::sync::Mutex;
 
 use crate::renderer::{
-    texture::{NodeTexture, RGBATexture},
-    RegisterTransformationCtx, RenderCtx,
+    texture::{BGRATexture, NodeTexture},
+    BGRAToRGBAConverter, RegisterTransformationCtx, RenderCtx,
 };
-pub mod electron;
-mod electron_api;
 
+mod browser;
+pub mod chromium;
+
+use compositor_chromium::cef;
 use compositor_common::{
     scene::{NodeId, Resolution},
     transformation::WebRendererTransformationParams,
 };
 use image::ImageError;
-use log::error;
+use log::{error, info};
 use serde::{Deserialize, Serialize};
 
-use self::electron_api::ElectronApiError;
-
-pub type ElectronInstance = self::electron::ElectronInstance;
+use self::{
+    browser::{BrowserClient, BrowserState},
+    chromium::ChromiumContextError,
+};
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct SessionId(pub Arc<str>);
+pub struct SessionId(i32);
 
 pub struct WebRenderer {
-    session_id: SessionId,
     #[allow(dead_code)]
     params: WebRendererTransformationParams,
+    // NOTE: Will be used for accessing V8 context later
+    _browser: cef::Browser,
+    state: Mutex<BrowserState>,
+    bgra_texture: BGRATexture,
+    bgra_bind_group: wgpu::BindGroup,
+    bgra_to_rgba_converter: BGRAToRGBAConverter,
 }
 
 impl WebRenderer {
@@ -33,14 +41,36 @@ impl WebRenderer {
         ctx: &RegisterTransformationCtx,
         params: WebRendererTransformationParams,
     ) -> Result<Self, WebRendererNewError> {
-        // TODO: wait electron api by checking tcp connection on that port
-        thread::sleep(Duration::from_secs(5));
-        let session_id = ctx
-            .electron
-            .client
-            .new_session(&params.url, params.resolution)?;
+        info!("Starting web renderer for {}", &params.url);
 
-        Ok(Self { session_id, params })
+        let (frame_tx, frame_rx) = crossbeam_channel::bounded(1);
+        let state = Mutex::new(BrowserState::new(frame_rx));
+        let client = BrowserClient::new(frame_tx, params.resolution);
+        let browser = ctx.chromium.start_browser(&params.url, client, 60)?;
+
+        let bgra_texture = BGRATexture::new(&ctx.wgpu_ctx, params.resolution);
+        let bgra_to_rgba_converter =
+            BGRAToRGBAConverter::new(&ctx.wgpu_ctx.device, &ctx.wgpu_ctx.rgba_bind_group_layout);
+        let bgra_bind_group = ctx
+            .wgpu_ctx
+            .device
+            .create_bind_group(&wgpu::BindGroupDescriptor {
+                label: Some("Web renderer BGRA texture bind group"),
+                layout: &ctx.wgpu_ctx.rgba_bind_group_layout,
+                entries: &[wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::TextureView(&bgra_texture.texture().view),
+                }],
+            });
+
+        Ok(Self {
+            params,
+            _browser: browser,
+            state,
+            bgra_texture,
+            bgra_bind_group,
+            bgra_to_rgba_converter,
+        })
     }
 
     pub fn render(
@@ -49,37 +79,18 @@ impl WebRenderer {
         _sources: &[(&NodeId, &NodeTexture)],
         target: &NodeTexture,
     ) -> Result<(), WebRendererRenderError> {
-        let frame = ctx.electron.client.get_frame(&self.session_id)?;
+        let mut state = self.state.lock().unwrap();
+        let frame = state.retrieve_frame();
+
         if !frame.is_empty() {
-            Self::write_texture(ctx, &frame, &target.rgba_texture())?;
+            self.bgra_texture.upload(ctx.wgpu_ctx, frame);
+            self.bgra_to_rgba_converter.convert(
+                ctx.wgpu_ctx,
+                (&self.bgra_texture, &self.bgra_bind_group),
+                &target.rgba_texture(),
+            );
         }
 
-        Ok(())
-    }
-
-    fn write_texture(
-        ctx: &RenderCtx,
-        data: &[u8],
-        target: &RGBATexture,
-    ) -> Result<(), WebRendererRenderError> {
-        let size = target.size();
-        let img = image::load_from_memory(data)?;
-
-        if img.width() != size.width || img.height() != size.height {
-            return Err(WebRendererRenderError::InvalidFrameResolution {
-                expected: Resolution {
-                    width: size.width as usize,
-                    height: size.height as usize,
-                },
-                received: Resolution {
-                    width: img.width() as usize,
-                    height: img.height() as usize,
-                },
-            });
-        }
-
-        target.upload(ctx.wgpu_ctx, &img.to_rgba8());
-        ctx.wgpu_ctx.queue.submit([]);
         Ok(())
     }
 }
@@ -87,16 +98,16 @@ impl WebRenderer {
 #[derive(Debug, thiserror::Error)]
 pub enum WebRendererNewError {
     #[error("failed to create new web renderer session")]
-    SessionCreationError(#[from] ElectronApiError),
+    SessionCreationError(#[from] ChromiumContextError),
+
+    #[error("failed to retrieve browser ID")]
+    GetBrowserIdFailure(#[from] cef::BrowserError),
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum WebRendererRenderError {
     #[error("expected string param")]
     InvalidParam,
-
-    #[error("communication with web renderer failed")]
-    HttpError(#[from] ElectronApiError),
 
     #[error("failed to decode image data")]
     ImageDecodeError(#[from] ImageError),

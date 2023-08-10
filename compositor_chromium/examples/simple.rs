@@ -80,13 +80,13 @@ impl cef::RenderHandler for RenderHandler {
 }
 
 fn main() {
-    let build_path = &std::env::current_exe()
+    let target_path = &std::env::current_exe()
         .unwrap()
         .parent()
         .unwrap()
         .join("..");
 
-    if cef::bundle_app(build_path).is_err() {
+    if cef::bundle_app(target_path).is_err() {
         panic!("Build process helper first: cargo build --bin process_helper");
     }
 
@@ -110,7 +110,7 @@ fn main() {
         client,
         window_info,
         browser_settings,
-        "https://membrane.stream".to_owned(),
+        "https://membrane.stream",
     );
 
     println!("Starting image generation");

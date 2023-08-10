@@ -10,7 +10,10 @@ use crate::{
     renderer::{
         scene::SceneUpdateError, Renderer, RendererNewError, RendererRegisterTransformationError,
     },
-    transformations::{shader::Shader, web_renderer::WebRenderer},
+    transformations::{
+        shader::Shader,
+        web_renderer::{chromium::EventLoop, WebRenderer},
+    },
 };
 
 #[derive(Clone)]
@@ -54,5 +57,9 @@ impl SyncRenderer {
 
     pub fn scene_spec(&self) -> Arc<SceneSpec> {
         self.0.lock().unwrap().scene_spec.clone()
+    }
+
+    pub fn event_loop(&self) -> Option<EventLoop> {
+        self.0.lock().unwrap().chromium_context.event_loop()
     }
 }
