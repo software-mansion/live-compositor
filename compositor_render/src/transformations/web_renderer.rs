@@ -95,9 +95,6 @@ impl WebRenderer {
 pub enum WebRendererNewError {
     #[error("failed to create new web renderer session")]
     SessionCreationError(#[from] ChromiumContextError),
-
-    #[error("failed to retrieve browser ID")]
-    GetBrowserIdFailure(#[from] cef::BrowserError),
 }
 
 #[derive(Debug, thiserror::Error)]
