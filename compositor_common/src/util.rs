@@ -7,7 +7,7 @@ pub struct RGBColor(pub u8, pub u8, pub u8);
 
 impl Display for RGBColor {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "#{:#02X}{:#02X}{:#02X}", self.0, self.1, self.2)
+        write!(f, "#{:02X}{:02X}{:02X}", self.0, self.1, self.2)
     }
 }
 
@@ -38,7 +38,7 @@ impl Display for RGBAColor {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "#{:#02X}{:#02X}{:#02X}{:#02X}",
+            "#{:02X}{:02X}{:02X}{:02X}",
             self.0, self.1, self.2, self.3
         )
     }
@@ -76,6 +76,65 @@ pub enum ColorParseError {
     #[error("Invalid format. Color definition has to start with #")]
     InvalidColorPrefixFormat,
 
-    #[error("Invalid format, Color representation is not a valid hexadecimal number")]
+    #[error("Invalid format. Color representation is not a valid hexadecimal number")]
     HexNumberParseError(#[from] ParseIntError),
+}
+
+#[cfg(test)]
+mod tests {
+    use std::str::FromStr;
+
+    use crate::util::{RGBAColor, RGBColor};
+
+    #[test]
+    fn test_rgb_serialization() {
+        assert_eq!(format!("{}", RGBColor(0, 0, 0)), "#000000");
+        assert_eq!(format!("{}", RGBColor(1, 2, 3)), "#010203");
+        assert_eq!(format!("{}", RGBColor(1, 255, 3)), "#01FF03");
+    }
+
+    #[test]
+    fn test_rgb_deserialization() {
+        assert_eq!(RGBColor::from_str("#000000"), Ok(RGBColor(0, 0, 0)));
+        assert_eq!(RGBColor::from_str("#010203"), Ok(RGBColor(1, 2, 3)));
+        assert_eq!(RGBColor::from_str("#01FF03"), Ok(RGBColor(1, 255, 3)));
+        assert_eq!(RGBColor::from_str("#FFffFF"), Ok(RGBColor(255, 255, 255)));
+        assert_eq!(
+            RGBColor::from_str("#00000G").unwrap_err().to_string(),
+            "Invalid format. Color representation is not a valid hexadecimal number"
+        );
+        assert_eq!(
+            RGBColor::from_str("#000").unwrap_err().to_string(),
+            "Invalid format. Color has to be in #RRGGBB format"
+        );
+    }
+
+    #[test]
+    fn test_rgba_serialization() {
+        assert_eq!(format!("{}", RGBAColor(0, 0, 0, 0)), "#00000000");
+        assert_eq!(format!("{}", RGBAColor(1, 2, 3, 4)), "#01020304");
+        assert_eq!(format!("{}", RGBAColor(1, 255, 3, 4)), "#01FF0304");
+    }
+
+    #[test]
+    fn test_rgba_deserialization() {
+        assert_eq!(RGBAColor::from_str("#00000000"), Ok(RGBAColor(0, 0, 0, 0)));
+        assert_eq!(RGBAColor::from_str("#01020304"), Ok(RGBAColor(1, 2, 3, 4)));
+        assert_eq!(
+            RGBAColor::from_str("#01FF0304"),
+            Ok(RGBAColor(1, 255, 3, 4))
+        );
+        assert_eq!(
+            RGBAColor::from_str("#FFffFFff"),
+            Ok(RGBAColor(255, 255, 255, 255))
+        );
+        assert_eq!(
+            RGBAColor::from_str("#0000000G").unwrap_err().to_string(),
+            "Invalid format. Color representation is not a valid hexadecimal number"
+        );
+        assert_eq!(
+            RGBAColor::from_str("#000").unwrap_err().to_string(),
+            "Invalid format. Color has to be in #RRGGBBAA format"
+        );
+    }
 }
