@@ -15,7 +15,7 @@ use ffmpeg_next::{
 pub struct RtpSender {
     sender: Sender<Frame>,
     pub(crate) port: u16,
-    pub(crate) ip: Arc<String>,
+    pub(crate) ip: Arc<str>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -91,7 +91,7 @@ pub struct EncoderSettings {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Options {
     pub port: u16,
-    pub ip: Arc<String>,
+    pub ip: Arc<str>,
     pub resolution: Resolution,
     pub encoder_settings: EncoderSettings,
 }
