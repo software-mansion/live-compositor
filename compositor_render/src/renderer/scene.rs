@@ -19,7 +19,7 @@ use crate::{
 
 use super::{
     texture::{InputTexture, NodeTexture, OutputTexture},
-    RenderCtx,
+    RenderCtx, WgpuError, WgpuErrorScope,
 };
 
 pub struct InputNode {}
@@ -148,7 +148,10 @@ pub enum SceneUpdateError {
     NoNodeWithIdError(NodeId),
 
     #[error("Scene definition is invalid")]
-    InvalidSpec(#[source] SpecValidationError),
+    InvalidSpec(#[from] SpecValidationError),
+
+    #[error("Wgpu error")]
+    WgpuError(#[from] WgpuError),
 }
 
 impl Scene {
@@ -162,6 +165,8 @@ impl Scene {
     pub fn update(&mut self, ctx: &RenderCtx, spec: &SceneSpec) -> Result<(), SceneUpdateError> {
         // TODO: If we want nodes to be stateful we could try reusing nodes instead
         //       of recreating them on every scene update
+        let scope = WgpuErrorScope::push(&ctx.wgpu_ctx.device);
+
         let mut new_nodes = HashMap::new();
         self.inputs = HashMap::new();
         self.outputs = spec
@@ -172,7 +177,10 @@ impl Scene {
                 let buffers = OutputTexture::new(ctx.wgpu_ctx, node.resolution);
                 Ok((output.output_id.clone(), (node, buffers)))
             })
-            .collect::<Result<_, _>>()?;
+            .collect::<Result<_, SceneUpdateError>>()?;
+
+        scope.pop(&ctx.wgpu_ctx.device)?;
+
         Ok(())
     }
 
