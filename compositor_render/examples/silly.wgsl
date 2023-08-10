@@ -18,16 +18,11 @@ fn vs_main(input: VertexInput) -> VertexOutput {
     return output;
 }
 
-struct CustomStruct {
-    a: u32,
-}
-
 struct CompositorStruct {
     time: f32,
 }
 
 @group(0) @binding(0) var textures: binding_array<texture_2d<f32>, 16>;
-@group(1) @binding(0) var<uniform> shaders_custom_buffer: CustomStruct;
 @group(1) @binding(1) var<uniform> parameters_received_from_the_compositor: CompositorStruct;
 @group(2) @binding(0) var sampler_: sampler;
 

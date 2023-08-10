@@ -374,6 +374,7 @@ dependencies = [
  "compositor_chromium",
  "compositor_common",
  "crossbeam-channel",
+ "env_logger",
  "glyphon",
  "image",
  "log",
