@@ -106,6 +106,7 @@ fn start_example_client_code() -> Result<()> {
         "inputs": [
             {
                 "input_id": "input 1",
+                "fallback_color_rgb": "#FF0000",
                 "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
             }
         ],

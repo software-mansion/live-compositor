@@ -4,7 +4,7 @@ use std::{
 };
 
 use bytes::{BufMut, Bytes, BytesMut};
-use compositor_common::{scene::Resolution, Frame};
+use compositor_common::{scene::Resolution, util::RGBColor, Frame};
 use crossbeam_channel::bounded;
 use log::error;
 use wgpu::{Buffer, BufferAsyncError, MapMode};
@@ -29,7 +29,7 @@ pub struct InputTexture {
     resolution: Resolution,
 }
 
-fn rgb_to_yuv(rgb: (u8, u8, u8)) -> (f32, f32, f32) {
+fn rgb_to_yuv(rgb: RGBColor) -> (f32, f32, f32) {
     let r = rgb.0 as f32 / 255.0;
     let g = rgb.1 as f32 / 255.0;
     let b = rgb.2 as f32 / 255.0;
@@ -41,11 +41,11 @@ fn rgb_to_yuv(rgb: (u8, u8, u8)) -> (f32, f32, f32) {
 }
 
 impl InputTexture {
-    pub fn new(ctx: &WgpuCtx, resolution: Resolution, init_color: Option<(u8, u8, u8)>) -> Self {
+    pub fn new(ctx: &WgpuCtx, resolution: Resolution, init_color: Option<RGBColor>) -> Self {
         let textures = YUVTextures::new(ctx, resolution);
         let bind_group = textures.new_bind_group(ctx, &ctx.yuv_bind_group_layout);
 
-        let (y, u, v) = rgb_to_yuv(init_color.unwrap_or((0, 0, 0)));
+        let (y, u, v) = rgb_to_yuv(init_color.unwrap_or(RGBColor(0, 0, 0)));
         ctx.r8_fill_with_color_pipeline
             .fill(ctx, textures.plane(0), y);
         ctx.r8_fill_with_color_pipeline
