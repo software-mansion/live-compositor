@@ -7,12 +7,12 @@ use compositor_common::scene::{InputId, OutputId, SceneSpec};
 use compositor_common::transformation::{TransformationRegistryKey, TransformationSpec};
 use compositor_common::{Frame, Framerate};
 use compositor_render::renderer::{RendererNewError, RendererRegisterTransformationError};
-use compositor_render::EventLoop;
 use compositor_render::{renderer::scene::SceneUpdateError, Renderer};
 use crossbeam_channel::unbounded;
 use log::error;
 use serde::{Deserialize, Serialize};
 
+use crate::event_loop::EventLoop;
 use crate::queue::Queue;
 
 pub trait PipelineOutput: Send + Sync + 'static {
@@ -47,7 +47,7 @@ impl<Input: PipelineInput, Output: PipelineOutput> Pipeline<Input, Output> {
             outputs: OutputRegistry::new(),
             inputs: HashMap::new(),
             queue: Arc::new(Queue::new(opts.framerate)),
-            renderer: Renderer::new(opts.init_web_renderer.unwrap_or(true))?,
+            renderer: Renderer::new(opts.framerate, opts.init_web_renderer.unwrap_or(true))?,
         })
     }
 
@@ -138,8 +138,8 @@ impl<Input: PipelineInput, Output: PipelineOutput> Pipeline<Input, Output> {
         self.renderer.update_scene(scene_spec)
     }
 
-    pub fn event_loop(&self) -> Option<EventLoop> {
-        self.renderer.event_loop()
+    pub fn event_loop(&self) -> EventLoop {
+        EventLoop::new(self.renderer.chromium_ctx().cef_context())
     }
 
     pub fn start(&self) {

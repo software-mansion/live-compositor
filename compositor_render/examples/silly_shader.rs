@@ -4,9 +4,11 @@ use compositor_common::{
     frame::YuvData,
     scene::{InputSpec, NodeId, OutputSpec, Resolution, SceneSpec, ShaderParam, TransformNodeSpec},
     transformation::{TransformationRegistryKey, TransformationSpec},
-    Frame,
+    Frame, Framerate,
 };
 use compositor_render::{frame_set::FrameSet, Renderer};
+
+const FRAMERATE: Framerate = Framerate(30);
 
 fn ffmpeg_yuv_to_jpeg(
     input_file: impl AsRef<Path>,
@@ -76,7 +78,7 @@ fn main() {
     let frame = get_image("compositor_render/examples/crab.jpg");
     let resolution = frame.resolution;
 
-    let mut renderer = Renderer::new(false).expect("create renderer");
+    let mut renderer = Renderer::new(FRAMERATE, false).expect("create renderer");
     let shader_key = TransformationRegistryKey("silly shader".into());
 
     renderer

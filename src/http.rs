@@ -35,11 +35,8 @@ impl Server {
             }
         });
 
-        // TODO: Here?
-        if let Some(event_loop) = event_loop {
-            if let Err(err) = event_loop.run() {
-                error!("Event loop run failed: {err}")
-            }
+        if let Err(err) = event_loop.run() {
+            error!("Event loop run failed: {err}")
         }
     }
 

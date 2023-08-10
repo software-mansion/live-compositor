@@ -22,6 +22,7 @@ log = "0.4.19"
 thiserror = "1.0.40"
 crossbeam-channel = "0.5.8"
 reqwest = { version = "0.11.18", features = ["blocking", "json"] }
+signal-hook = "0.3.15"
 
 [dependencies]
 compositor_render = { path = "compositor_render" }
@@ -32,7 +33,6 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 anyhow = "1.0.71"
 bytes = { workspace = true }
-signal-hook = "0.3.15"
 tiny_http = "0.12.0"
 ffmpeg-next = "6.0.0"
 crossbeam-channel = { workspace = true }
@@ -41,3 +41,4 @@ log = { workspace = true }
 
 [dev-dependencies]
 reqwest = { workspace = true }
+signal-hook = { workspace = true }

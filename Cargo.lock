@@ -355,11 +355,13 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "bytes",
+ "compositor_chromium",
  "compositor_common",
  "compositor_render",
  "crossbeam-channel",
  "log",
  "serde",
+ "signal-hook",
  "thiserror",
 ]
 

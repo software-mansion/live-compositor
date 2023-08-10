@@ -3,6 +3,7 @@ use std::sync::{Arc, Mutex};
 use compositor_common::{
     scene::{InputId, OutputId, SceneSpec},
     transformation::{TransformationRegistryKey, TransformationSpec},
+    Framerate,
 };
 
 use crate::{
@@ -12,7 +13,7 @@ use crate::{
     },
     transformations::{
         shader::Shader,
-        web_renderer::{chromium::EventLoop, WebRenderer},
+        web_renderer::{chromium::ChromiumContext, WebRenderer},
     },
 };
 
@@ -20,8 +21,14 @@ use crate::{
 pub struct SyncRenderer(Arc<Mutex<Renderer>>);
 
 impl SyncRenderer {
-    pub fn new(init_web: bool) -> Result<Self, RendererNewError> {
-        Ok(Self(Arc::new(Mutex::new(Renderer::new(init_web)?))))
+    pub fn new(
+        web_renderer_framerate: Framerate,
+        init_web: bool,
+    ) -> Result<Self, RendererNewError> {
+        Ok(Self(Arc::new(Mutex::new(Renderer::new(
+            web_renderer_framerate,
+            init_web,
+        )?))))
     }
 
     pub fn register_transformation(
@@ -59,7 +66,7 @@ impl SyncRenderer {
         self.0.lock().unwrap().scene_spec.clone()
     }
 
-    pub fn event_loop(&self) -> Option<EventLoop> {
-        self.0.lock().unwrap().chromium_context.event_loop()
+    pub fn chromium_ctx(&self) -> Arc<ChromiumContext> {
+        self.0.lock().unwrap().chromium_context.clone()
     }
 }

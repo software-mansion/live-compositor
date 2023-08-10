@@ -1,6 +1,9 @@
 use std::{sync::Arc, time::Duration};
 
-use compositor_common::scene::{InputId, OutputId, SceneSpec};
+use compositor_common::{
+    scene::{InputId, OutputId, SceneSpec},
+    Framerate,
+};
 use log::error;
 
 use crate::{
@@ -23,7 +26,7 @@ use crate::{
 };
 
 use self::{
-    color_converter_pipeline::{RGBAToYUVConverter, YUVToRGBAConverter},
+    color_converter_pipeline::{BGRAToRGBAConverter, RGBAToYUVConverter, YUVToRGBAConverter},
     scene::{Scene, SceneUpdateError},
     texture::{RGBATexture, YUVTextures},
 };
@@ -32,8 +35,6 @@ mod color_converter_pipeline;
 pub mod common_pipeline;
 pub mod scene;
 pub mod texture;
-
-pub use color_converter_pipeline::BGRAToRGBAConverter;
 
 pub struct Renderer {
     pub wgpu_ctx: Arc<WgpuCtx>,
@@ -77,11 +78,11 @@ pub enum RendererRegisterTransformationError {
 }
 
 impl Renderer {
-    pub fn new(init_web: bool) -> Result<Self, RendererNewError> {
+    pub fn new(framerate: Framerate, init_web: bool) -> Result<Self, RendererNewError> {
         Ok(Self {
             wgpu_ctx: Arc::new(WgpuCtx::new()?),
             text_renderer_ctx: TextRendererCtx::new(),
-            chromium_context: Arc::new(ChromiumContext::new(init_web, true, true)?), // TODO: make it configurable
+            chromium_context: Arc::new(ChromiumContext::new(init_web, framerate, false, false)?), // TODO: make it configurable
             scene: Scene::empty(),
             web_renderers: TransformationRegistry::new(RegistryType::WebRenderer),
             shader_transforms: TransformationRegistry::new(RegistryType::Shader),
@@ -147,6 +148,7 @@ pub struct WgpuCtx {
     pub rgba_bind_group_layout: wgpu::BindGroupLayout,
     pub yuv_to_rgba_converter: YUVToRGBAConverter,
     pub rgba_to_yuv_converter: RGBAToYUVConverter,
+    pub bgra_to_rgba_converter: BGRAToRGBAConverter,
 
     pub shader_parameters_bind_group_layout: wgpu::BindGroupLayout,
 
@@ -190,6 +192,7 @@ impl WgpuCtx {
         let rgba_bind_group_layout = RGBATexture::new_bind_group_layout(&device);
         let yuv_to_rgba_converter = YUVToRGBAConverter::new(&device, &yuv_bind_group_layout);
         let rgba_to_yuv_converter = RGBAToYUVConverter::new(&device, &rgba_bind_group_layout);
+        let bgra_to_rgba_converter = BGRAToRGBAConverter::new(&device, &rgba_bind_group_layout);
 
         let shader_parameters_bind_group_layout = Shader::new_parameters_bind_group_layout(&device);
 
@@ -214,6 +217,7 @@ impl WgpuCtx {
             rgba_bind_group_layout,
             yuv_to_rgba_converter,
             rgba_to_yuv_converter,
+            bgra_to_rgba_converter,
             shader_parameters_bind_group_layout,
             compositor_provided_parameters_buffer,
         })

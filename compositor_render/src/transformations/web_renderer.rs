@@ -2,7 +2,7 @@ use std::sync::Mutex;
 
 use crate::renderer::{
     texture::{BGRATexture, NodeTexture},
-    BGRAToRGBAConverter, RegisterTransformationCtx, RenderCtx,
+    RegisterTransformationCtx, RenderCtx,
 };
 
 mod browser;
@@ -33,7 +33,6 @@ pub struct WebRenderer {
     state: Mutex<BrowserState>,
     bgra_texture: BGRATexture,
     bgra_bind_group: wgpu::BindGroup,
-    bgra_to_rgba_converter: BGRAToRGBAConverter,
 }
 
 impl WebRenderer {
@@ -46,11 +45,9 @@ impl WebRenderer {
         let (frame_tx, frame_rx) = crossbeam_channel::bounded(1);
         let state = Mutex::new(BrowserState::new(frame_rx));
         let client = BrowserClient::new(frame_tx, params.resolution);
-        let browser = ctx.chromium.start_browser(&params.url, client, 60)?;
+        let browser = ctx.chromium.start_browser(&params.url, client)?;
 
         let bgra_texture = BGRATexture::new(&ctx.wgpu_ctx, params.resolution);
-        let bgra_to_rgba_converter =
-            BGRAToRGBAConverter::new(&ctx.wgpu_ctx.device, &ctx.wgpu_ctx.rgba_bind_group_layout);
         let bgra_bind_group = ctx
             .wgpu_ctx
             .device
@@ -69,7 +66,6 @@ impl WebRenderer {
             state,
             bgra_texture,
             bgra_bind_group,
-            bgra_to_rgba_converter,
         })
     }
 
@@ -84,7 +80,7 @@ impl WebRenderer {
 
         if !frame.is_empty() {
             self.bgra_texture.upload(ctx.wgpu_ctx, frame);
-            self.bgra_to_rgba_converter.convert(
+            ctx.wgpu_ctx.bgra_to_rgba_converter.convert(
                 ctx.wgpu_ctx,
                 (&self.bgra_texture, &self.bgra_bind_group),
                 &target.rgba_texture(),

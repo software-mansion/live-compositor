@@ -3,7 +3,6 @@ use compositor_chromium::cef;
 use compositor_common::{scene::Resolution, Framerate};
 use log::{error, info};
 use serde_json::json;
-use signal_hook::{consts, iterator::Signals};
 use std::{
     process::{Command, Stdio},
     thread,

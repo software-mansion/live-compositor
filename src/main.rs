@@ -1,5 +1,4 @@
 use log::info;
-use signal_hook::{consts, iterator::Signals};
 
 mod api;
 mod http;
@@ -14,8 +13,6 @@ fn main() {
 
     http::Server::new(8001).start();
 
-    let mut signals = Signals::new([consts::SIGINT]).unwrap();
-    signals.forever().next();
     info!("Received exit signal. Terminating...")
     // TODO: add graceful shutdown
 }

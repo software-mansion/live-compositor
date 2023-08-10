@@ -5,8 +5,7 @@ use compositor_common::{
     scene::{InputId, OutputId, Resolution, SceneSpec},
     transformation::{TransformationRegistryKey, TransformationSpec},
 };
-use compositor_pipeline::pipeline;
-use compositor_render::EventLoop;
+use compositor_pipeline::{event_loop::EventLoop, pipeline};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -118,7 +117,7 @@ impl Api {
         Ok(())
     }
 
-    pub fn event_loop(&self) -> Option<EventLoop> {
+    pub fn event_loop(&self) -> EventLoop {
         self.pipeline.event_loop()
     }
 }

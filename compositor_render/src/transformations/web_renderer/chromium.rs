@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use compositor_chromium::cef;
+use compositor_common::Framerate;
 use crossbeam_channel::RecvError;
 use log::info;
 
@@ -8,17 +9,22 @@ use super::browser::BrowserClient;
 
 pub struct ChromiumContext {
     context: Option<Arc<cef::Context>>,
+    framerate: Framerate,
 }
 
 impl ChromiumContext {
-    pub fn new(
+    pub(crate) fn new(
         init_context: bool,
+        framerate: Framerate,
         show_fps: bool,
         disable_gpu: bool,
     ) -> Result<Self, ChromiumContextError> {
         if !init_context {
             info!("Init chromium context disabled");
-            return Ok(Self { context: None });
+            return Ok(Self {
+                framerate,
+                context: None,
+            });
         }
 
         info!("Init chromium context");
@@ -35,6 +41,7 @@ impl ChromiumContext {
 
         let context = Arc::new(cef::Context::new(app, settings)?);
         Ok(Self {
+            framerate,
             context: Some(context),
         })
     }
@@ -43,7 +50,6 @@ impl ChromiumContext {
         &self,
         url: &str,
         state: BrowserClient,
-        frame_rate: i32,
     ) -> Result<cef::Browser, ChromiumContextError> {
         let context = self
             .context
@@ -54,7 +60,7 @@ impl ChromiumContext {
             windowless_rendering_enabled: true,
         };
         let settings = cef::BrowserSettings {
-            windowless_frame_rate: frame_rate,
+            windowless_frame_rate: self.framerate.0 as i32,
         };
 
         let (tx, rx) = crossbeam_channel::bounded(1);
@@ -67,9 +73,8 @@ impl ChromiumContext {
         Ok(rx.recv()??)
     }
 
-    /// Runs chromium's message loop. This call is blocking. It has to be used on the main thread
-    pub fn event_loop(&self) -> Option<EventLoop> {
-        self.context.clone().map(EventLoop::new)
+    pub fn cef_context(&self) -> Option<Arc<cef::Context>> {
+        self.context.clone()
     }
 }
 
@@ -120,30 +125,4 @@ pub enum ChromiumContextError {
 
     #[error("Chromium message loop can only run on the main thread")]
     WrongThreadForMessageLoop,
-}
-
-pub struct EventLoop {
-    chromium_context: Arc<cef::Context>,
-}
-
-impl EventLoop {
-    pub fn new(chromium_context: Arc<cef::Context>) -> Self {
-        Self { chromium_context }
-    }
-
-    /// Runs chrome's message loop. Must be run on the main thread
-    pub fn run(&self) -> Result<(), EventLoopRunError> {
-        if !self.chromium_context.currently_on_thread(cef::ThreadId::UI) {
-            return Err(EventLoopRunError::WrongThread);
-        }
-
-        self.chromium_context.run_message_loop();
-        Ok(())
-    }
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum EventLoopRunError {
-    #[error("Event loop must run on the main thread")]
-    WrongThread,
 }
