@@ -28,7 +28,7 @@ fn scene_validation_finds_cycle() {
 
     let input = InputSpec {
         input_id: InputId(input_id.clone()),
-        fallback_color: None,
+        fallback_color_rgb: None,
         resolution: res,
     };
 
@@ -93,13 +93,13 @@ fn scene_validation_finds_unused_nodes() {
 
     let input = InputSpec {
         input_id: InputId(input_id.clone()),
-        fallback_color: None,
+        fallback_color_rgb: None,
         resolution: res,
     };
 
     let unused_input = InputSpec {
         input_id: InputId(unused_input_id.clone()),
-        fallback_color: None,
+        fallback_color_rgb: None,
         resolution: res,
     };
 

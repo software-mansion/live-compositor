@@ -195,7 +195,7 @@ impl Scene {
                     InputId(node_id.clone()),
                     (
                         node.clone(),
-                        InputTexture::new(ctx.wgpu_ctx, input.resolution, input.fallback_color),
+                        InputTexture::new(ctx.wgpu_ctx, input.resolution, input.fallback_color_rgb),
                     ),
                 );
                 return Ok(node);
