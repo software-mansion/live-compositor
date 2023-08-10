@@ -14,10 +14,40 @@ pub struct TransformationRegistryKey(pub Arc<str>);
 pub enum TransformationSpec {
     Shader { source: String },
     WebRenderer(WebRendererTransformationParams),
+    Image(ImageSpec),
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WebRendererTransformationParams {
     pub url: String,
     pub resolution: Resolution,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(tag = "asset_type", rename_all = "snake_case")]
+pub enum ImageSpec {
+    Png {
+        url: String,
+    },
+    Jpeg {
+        url: String,
+    },
+    Svg {
+        url: String,
+        resolution: Option<Resolution>,
+    },
+    Gif {
+        url: String,
+    },
+}
+
+impl ImageSpec {
+    pub fn url(&self) -> &str {
+        match self {
+            ImageSpec::Png { url } => url,
+            ImageSpec::Jpeg { url } => url,
+            ImageSpec::Svg { url, .. } => url,
+            ImageSpec::Gif { url } => url,
+        }
+    }
 }

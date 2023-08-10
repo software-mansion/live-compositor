@@ -19,6 +19,7 @@ impl RGBATexture {
             wgpu::TextureFormat::Rgba8Unorm,
             wgpu::TextureUsages::RENDER_ATTACHMENT
                 | wgpu::TextureUsages::COPY_DST
+                | wgpu::TextureUsages::COPY_SRC
                 | wgpu::TextureUsages::TEXTURE_BINDING,
         ))
     }

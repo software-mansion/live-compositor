@@ -82,6 +82,7 @@ pub struct OutputSpec {
 #[derive(Serialize, Deserialize)]
 pub struct TransformNodeSpec {
     pub node_id: NodeId,
+    #[serde(default)]
     pub input_pads: Vec<NodeId>,
 
     #[serde(flatten)]
@@ -103,6 +104,9 @@ pub enum TransformParams {
     TextRenderer {
         text_params: TextSpec,
         resolution: TextDimensions,
+    },
+    Image {
+        image_id: TransformationRegistryKey,
     },
 }
 

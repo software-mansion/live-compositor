@@ -39,6 +39,7 @@ ffmpeg-next = "6.0.0"
 crossbeam-channel = { workspace = true }
 env_logger = { workspace = true }
 log = { workspace = true } 
+usvg = "0.35.0"
 
 [dev-dependencies]
 reqwest = { workspace = true }
