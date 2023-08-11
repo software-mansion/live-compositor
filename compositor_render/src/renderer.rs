@@ -22,7 +22,7 @@ use crate::{
 };
 
 use self::{
-    color_converter_pipeline::{RGBAToYUVConverter, YUVToRGBAConverter},
+    color_converter_pipeline::{R8FillWithValuePipeline, RGBAToYUVConverter, YUVToRGBAConverter},
     scene::{Scene, SceneUpdateError},
     texture::{RGBATexture, YUVTextures},
 };
@@ -144,6 +144,7 @@ pub struct WgpuCtx {
     pub rgba_bind_group_layout: wgpu::BindGroupLayout,
     pub yuv_to_rgba_converter: YUVToRGBAConverter,
     pub rgba_to_yuv_converter: RGBAToYUVConverter,
+    pub r8_fill_with_color_pipeline: R8FillWithValuePipeline,
 
     pub shader_parameters_bind_group_layout: wgpu::BindGroupLayout,
 
@@ -177,8 +178,11 @@ impl WgpuCtx {
         let (device, queue) = pollster::block_on(adapter.request_device(
             &wgpu::DeviceDescriptor {
                 label: Some("Video Compositor's GPU :^)"),
-                limits: Default::default(),
-                features: wgpu::Features::TEXTURE_BINDING_ARRAY,
+                limits: wgpu::Limits {
+                    max_push_constant_size: 128,
+                    ..Default::default()
+                },
+                features: wgpu::Features::TEXTURE_BINDING_ARRAY | wgpu::Features::PUSH_CONSTANTS,
             },
             None,
         ))?;
@@ -187,6 +191,7 @@ impl WgpuCtx {
         let rgba_bind_group_layout = RGBATexture::new_bind_group_layout(&device);
         let yuv_to_rgba_converter = YUVToRGBAConverter::new(&device, &yuv_bind_group_layout);
         let rgba_to_yuv_converter = RGBAToYUVConverter::new(&device, &rgba_bind_group_layout);
+        let r8_fill_with_color_pipeline = R8FillWithValuePipeline::new(&device);
 
         let shader_parameters_bind_group_layout = Shader::new_parameters_bind_group_layout(&device);
 
@@ -211,6 +216,7 @@ impl WgpuCtx {
             rgba_bind_group_layout,
             yuv_to_rgba_converter,
             rgba_to_yuv_converter,
+            r8_fill_with_color_pipeline,
             shader_parameters_bind_group_layout,
             compositor_provided_parameters_buffer,
         })

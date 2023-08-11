@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::{fmt::Display, sync::Arc};
 
-use crate::{transformation::TransformationRegistryKey, SpecValidationError};
+use crate::{transformation::TransformationRegistryKey, util::RGBColor, SpecValidationError};
 
 use self::text_spec::{TextResolution, TextSpec};
 
@@ -70,6 +70,7 @@ pub struct SceneSpec {
 pub struct InputSpec {
     pub input_id: InputId,
     pub resolution: Resolution,
+    pub fallback_color_rgb: Option<RGBColor>,
 }
 
 #[derive(Serialize, Deserialize)]

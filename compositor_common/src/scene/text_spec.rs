@@ -5,8 +5,10 @@ use serde::{Deserialize, Serialize};
 
 use super::Resolution;
 
-fn default_color() -> (u8, u8, u8, u8) {
-    (255, 255, 255, 255)
+use crate::util::RGBAColor;
+
+fn default_color() -> RGBAColor {
+    RGBAColor(255, 255, 255, 255)
 }
 
 fn default_family() -> String {
@@ -84,7 +86,7 @@ pub struct TextSpec {
     /// in pixels, default: same as font_size
     pub line_height: Option<f32>,
     #[serde(default = "default_color")]
-    pub color_rgba: (u8, u8, u8, u8),
+    pub color_rgba: RGBAColor,
     /// https://www.w3.org/TR/2018/REC-css-fonts-3-20180920/#family-name-value   
     /// use font family name, not generic family name
     #[serde(default = "default_family")]
@@ -99,7 +101,7 @@ pub struct TextSpec {
 
 impl From<&TextSpec> for AttrsOwned {
     fn from(text_params: &TextSpec) -> Self {
-        let (r, g, b, a) = text_params.color_rgba;
+        let RGBAColor(r, g, b, a) = text_params.color_rgba;
         let color = glyphon::Color::rgba(r, g, b, a);
 
         let family = glyphon::FamilyOwned::Name(text_params.font_family.clone());
