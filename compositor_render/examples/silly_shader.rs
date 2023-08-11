@@ -100,6 +100,7 @@ fn main() {
         .update_scene(Arc::new(SceneSpec {
             inputs: vec![InputSpec {
                 input_id: input_id.clone().into(),
+                fallback_color_rgb: None,
                 resolution,
             }],
             transforms: vec![TransformNodeSpec {

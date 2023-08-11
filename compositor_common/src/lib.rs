@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 pub mod frame;
 pub mod scene;
 pub mod transformation;
+pub mod util;
 mod validators;
 
 pub type Frame = frame::Frame;
