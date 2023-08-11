@@ -66,12 +66,12 @@ impl Default for TextRendererCtx {
 }
 
 #[allow(dead_code)]
-pub struct TextRenderer {
+pub struct TextRendererNode {
     buffer: Buffer,
     was_rendered: Mutex<bool>,
 }
 
-impl TextRenderer {
+impl TextRendererNode {
     #[allow(dead_code)]
     pub fn new(
         renderer_ctx: &RenderCtx,

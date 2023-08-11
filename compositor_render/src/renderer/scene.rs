@@ -12,7 +12,7 @@ use log::error;
 use crate::{
     registry::GetError,
     transformations::{
-        shader::node::ShaderNode, text_renderer::TextRenderer, web_renderer::WebRenderer,
+        shader::node::ShaderNode, text_renderer::TextRendererNode, web_renderer::WebRenderer,
     },
 };
 
@@ -26,7 +26,7 @@ pub struct InputNode {}
 pub enum TransformNode {
     Shader(ShaderNode),
     WebRenderer { renderer: Arc<WebRenderer> },
-    TextRenderer { renderer: TextRenderer },
+    TextRenderer(TextRendererNode),
     Nop,
 }
 
@@ -55,8 +55,8 @@ impl TransformNode {
                 resolution,
             } => {
                 let (renderer, resolution) =
-                    TextRenderer::new(ctx, text_params.clone(), resolution.clone());
-                Ok((TransformNode::TextRenderer { renderer }, resolution))
+                    TextRendererNode::new(ctx, text_params.clone(), resolution.clone());
+                Ok((TransformNode::TextRenderer(renderer), resolution))
             }
         }
     }
@@ -75,7 +75,7 @@ impl TransformNode {
                     error!("Web render operation failed {err}");
                 }
             }
-            TransformNode::TextRenderer { renderer } => {
+            TransformNode::TextRenderer(renderer) => {
                 renderer.render(ctx, target);
             }
             TransformNode::Nop => (),
