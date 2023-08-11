@@ -95,7 +95,6 @@ fn start_example_client_code() -> Result<()> {
                     "font_family": "Comic Sans MS",
                     "align": "center",
                     "wrap": "word",
-
                 },
                 "resolution": {
                     "type": "fixed",
