@@ -184,17 +184,17 @@ impl TextRenderer {
             Metrics::new(text_params.font_size, text_params.line_height),
         );
 
+        buffer.set_text(
+            font_system,
+            &text_params.content,
+            text_params.attributes.as_attrs(),
+            Shaping::Advanced,
+        );
+
+        buffer.set_wrap(font_system, text_params.wrap);
+
         match text_resolution {
             TextResolution::Fitted { max_resolution } => {
-                buffer.set_text(
-                    font_system,
-                    &text_params.content,
-                    text_params.attributes.as_attrs(),
-                    Shaping::Advanced,
-                );
-
-                buffer.set_wrap(font_system, text_params.wrap);
-
                 // Calculate resolution
                 buffer.set_size(
                     font_system,
@@ -221,20 +221,11 @@ impl TextRenderer {
                 (buffer, resolution)
             }
             TextResolution::Fixed { resolution } => {
-                buffer.set_text(
-                    font_system,
-                    &text_params.content,
-                    text_params.attributes.as_attrs(),
-                    Shaping::Advanced,
-                );
-
                 buffer.set_size(
                     font_system,
                     resolution.width as f32,
                     resolution.height as f32,
                 );
-
-                buffer.set_wrap(font_system, text_params.wrap);
 
                 for line in &mut buffer.lines {
                     line.set_align(Some(text_params.align));
