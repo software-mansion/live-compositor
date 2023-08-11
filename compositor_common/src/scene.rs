@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::{fmt::Display, sync::Arc};
 
-use crate::{transformation::TransformationRegistryKey, util::RGBColor, SpecValidationError};
+use crate::{transformation::TransformationRegistryKey, util::RGBColor};
 
 use self::text_spec::{TextResolution, TextSpec};
 
@@ -104,39 +104,6 @@ pub enum TransformParams {
         text_params: TextSpec,
         resolution: TextResolution,
     },
-}
-
-impl TransformParams {
-    pub fn validate(&self, node: &NodeId) -> Result<(), SpecValidationError> {
-        match self {
-            TransformParams::WebRenderer { .. } => Ok(()),
-            TransformParams::Shader { resolution, .. } => {
-                if resolution.width <= MAX_NODE_RESOLUTION.width
-                    && resolution.height <= MAX_NODE_RESOLUTION.height
-                {
-                    Ok(())
-                } else {
-                    Err(SpecValidationError::InvalidTransformParams(node.0.clone()))
-                }
-            }
-            TransformParams::TextRenderer {
-                text_params,
-                resolution,
-            } => match text_params.wrap {
-                text_spec::Wrap::None => Ok(()),
-                text_spec::Wrap::Glyph | text_spec::Wrap::Word => {
-                    if let TextResolution::Fitted {
-                        max_width: None, ..
-                    } = resolution
-                    {
-                        Err(SpecValidationError::InvalidTransformParams(node.0.clone()))
-                    } else {
-                        Ok(())
-                    }
-                }
-            },
-        }
-    }
 }
 
 // TODO: tmp clone

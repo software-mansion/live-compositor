@@ -67,7 +67,6 @@ impl SceneSpec {
         self.validate_node_ids_uniqueness(defined_node_ids)?;
         self.validate_cycles(registered_inputs, &transform_nodes)?;
         self.validate_nodes_are_used(&input_nodes, &transform_nodes)?;
-        self.validate_transforms_params()?;
 
         Ok(())
     }
@@ -250,18 +249,6 @@ impl SceneSpec {
             return Err(SpecValidationError::UnusedNodes(unused_transforms));
         }
 
-        Ok(())
-    }
-
-    fn validate_transforms_params(&self) -> Result<(), SpecValidationError> {
-        for TransformNodeSpec {
-            node_id,
-            transform_params,
-            ..
-        } in self.transforms.iter()
-        {
-            transform_params.validate(node_id)?;
-        }
         Ok(())
     }
 }

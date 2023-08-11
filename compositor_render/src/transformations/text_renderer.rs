@@ -5,7 +5,7 @@ use std::{
 
 use compositor_common::scene::{
     text_spec::{self, TextResolution},
-    Resolution, MAX_NODE_RESOLUTION,
+    Resolution,
 };
 use glyphon::{
     AttrsOwned, Buffer, Color, FontSystem, Metrics, Shaping, SwashCache, TextArea, TextAtlas,
@@ -194,35 +194,6 @@ impl TextRendererNode {
         buffer.set_wrap(font_system, text_params.wrap);
 
         match text_resolution {
-            TextResolution::Fitted {
-                max_width,
-                max_height,
-            } => {
-                // Calculate resolution
-                buffer.set_size(
-                    font_system,
-                    max_width.unwrap_or(MAX_NODE_RESOLUTION.width as u32) as f32,
-                    max_height as f32,
-                );
-
-                buffer.shape_until_scroll(font_system);
-                let resolution =
-                    Self::get_texture_resolution(buffer.lines.iter(), text_params.line_height);
-
-                // Shape text
-                buffer.set_size(
-                    font_system,
-                    resolution.width as f32,
-                    resolution.height as f32,
-                );
-
-                for line in &mut buffer.lines {
-                    line.set_align(Some(text_params.align));
-                }
-                buffer.shape_until_scroll(font_system);
-
-                (buffer, resolution)
-            }
             TextResolution::Fixed { resolution } => {
                 buffer.set_size(
                     font_system,
@@ -237,6 +208,27 @@ impl TextRendererNode {
                 buffer.shape_until_scroll(font_system);
                 (buffer, resolution)
             }
+            TextResolution::Fitted {
+                max_width,
+                max_height,
+            } => Self::layout_fitted(
+                buffer,
+                font_system,
+                Resolution {
+                    width: max_width as usize,
+                    height: max_height as usize,
+                },
+                &text_params,
+            ),
+            TextResolution::FittedColumn { width, max_height } => Self::layout_fitted(
+                buffer,
+                font_system,
+                Resolution {
+                    width: width as usize,
+                    height: max_height as usize,
+                },
+                &text_params,
+            ),
         }
     }
 
@@ -261,5 +253,36 @@ impl TextRendererNode {
             width: width as usize,
             height: height as usize,
         }
+    }
+
+    fn layout_fitted(
+        mut buffer: Buffer,
+        font_system: &mut FontSystem,
+        max_resolution: Resolution,
+        text_params: &TextParams,
+    ) -> (Buffer, Resolution) {
+        // Calculate resolution
+        buffer.set_size(
+            font_system,
+            max_resolution.width as f32,
+            max_resolution.height as f32,
+        );
+
+        buffer.shape_until_scroll(font_system);
+        let resolution = Self::get_texture_resolution(buffer.lines.iter(), text_params.line_height);
+
+        // Shape text
+        buffer.set_size(
+            font_system,
+            resolution.width as f32,
+            resolution.height as f32,
+        );
+
+        for line in &mut buffer.lines {
+            line.set_align(Some(text_params.align));
+        }
+        buffer.shape_until_scroll(font_system);
+
+        (buffer, resolution)
     }
 }
