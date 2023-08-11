@@ -19,6 +19,12 @@ const VIDEO_RESOLUTION: Resolution = Resolution {
     width: 1920,
     height: 1080,
 };
+
+const FITTED_TEXT_RESOLUTION: Resolution = Resolution {
+    width: 1098,
+    height: 100,
+};
+
 const FRAMERATE: Framerate = Framerate(30);
 
 fn main() {
@@ -60,7 +66,7 @@ fn start_example_client_code() -> Result<()> {
     info!("[example] Send register output request.");
     common::post(&json!({
         "type": "register_output",
-        "id": "output 1",
+        "id": "output_1",
         "port": 8002,
         "ip": "127.0.0.1",
         "resolution": {
@@ -75,12 +81,12 @@ fn start_example_client_code() -> Result<()> {
     info!("[example] Send register output request.");
     common::post(&json!({
         "type": "register_output",
-        "id": "output 2",
+        "id": "output_2",
         "port": 8006,
         "ip": "127.0.0.1",
         "resolution": {
-            "width": VIDEO_RESOLUTION.width,
-            "height": VIDEO_RESOLUTION.height,
+            "width": FITTED_TEXT_RESOLUTION.width,
+            "height": FITTED_TEXT_RESOLUTION.height,
         },
         "encoder_settings": {
             "preset": "ultrafast"
@@ -99,28 +105,42 @@ fn start_example_client_code() -> Result<()> {
         "type": "update_scene",
         "inputs": [],
         "transforms": [
+        //    {
+        //         "node_id": "text_renderer_fixed",
+        //         "type": "text_renderer",
+        //         "text_params": {
+        //             "content": "VideoCompositor🚀\nSecond Line\nLorem ipsum dolor sit amet consectetur adipisicing elit. Soluta delectus optio fugit maiores eaque ab totam, veritatis aperiam provident, aliquam consectetur deserunt cumque est? Saepe tenetur impedit culpa asperiores id?",
+        //             "font_size": 100.0,
+        //             "font_family": "Comic Sans MS",
+        //             "align": "center",
+        //             "wrap": "word",
+        //         },
+        //         "resolution": {
+        //             "type": "fixed",
+        //             "resolution": {"width": 1920, "height": 1080},
+        //         },
+        //         "input_pads": [],
+        //    },
            {
-                "node_id": "text_renderer",
-                "type": "text_renderer",
-                "text_params": {
-                    "content": "VideoCompositor🚀\nSecond Line\nLorem ipsum dolor sit amet consectetur adipisicing elit. Soluta delectus optio fugit maiores eaque ab totam, veritatis aperiam provident, aliquam consectetur deserunt cumque est? Saepe tenetur impedit culpa asperiores id?",
-                    "font_size": 100.0,
-                    "font_family": "Comic Sans MS",
-                    "align": "center",
-                    "wrap": "word",
-                },
-                "resolution": {
-                    "type": "fixed",
-                    "resolution": {"width": 1920, "height": 1080},
-                },
-                "input_pads": [],
+            "node_id": "text_renderer_fitted",
+            "type": "text_renderer",
+            "text_params": {
+                "content": "VideoCompositor fitted",
+                "font_size": 100.0,
+                "font_family": "Comic Sans MS",
+            },
+            "resolution": {
+                "type": "fitted",
+                "max_resolution": {"width": 1920, "height": 100},
+            },
+            "input_pads": [],
            }
         ],
         "outputs": [
             {
-                "output_id": "output 1",
-                "input_pad": "text_renderer"
-            }
+                "output_id": "output_2",
+                "input_pad": "text_renderer_fitted"
+            },
         ]
     }))?;
 

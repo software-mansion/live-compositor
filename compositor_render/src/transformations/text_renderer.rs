@@ -5,7 +5,7 @@ use std::{
 
 use compositor_common::scene::{
     text_spec::{self, TextResolution},
-    Resolution,
+    Resolution, MAX_NODE_RESOLUTION,
 };
 use glyphon::{
     AttrsOwned, Buffer, Color, FontSystem, Metrics, Shaping, SwashCache, TextArea, TextAtlas,
@@ -194,12 +194,15 @@ impl TextRenderer {
         buffer.set_wrap(font_system, text_params.wrap);
 
         match text_resolution {
-            TextResolution::Fitted { max_resolution } => {
+            TextResolution::Fitted {
+                max_width,
+                max_height,
+            } => {
                 // Calculate resolution
                 buffer.set_size(
                     font_system,
-                    max_resolution.width as f32,
-                    max_resolution.height as f32,
+                    max_width.unwrap_or(MAX_NODE_RESOLUTION.width as u32) as f32,
+                    max_height as f32,
                 );
 
                 buffer.shape_until_scroll(font_system);

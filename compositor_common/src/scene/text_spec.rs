@@ -25,6 +25,10 @@ fn default_wrap() -> Wrap {
     Wrap::None
 }
 
+fn default_max_height() -> u32 {
+    4320
+}
+
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "snake_case")]
 pub enum Style {
@@ -121,8 +125,12 @@ impl From<&TextSpec> for AttrsOwned {
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum TextResolution {
     /// Renders text and "trims" texture to smallest possible size
-    /// Specifies max texture size
-    Fitted { max_resolution: Resolution },
+    Fitted {
+        /// Must be specified with wrap
+        max_width: Option<u32>,
+        #[serde(default = "default_max_height")]
+        max_height: u32,
+    },
     /// Renders text according to provided spec
     /// and outputs texture with provided fixed size
     Fixed { resolution: Resolution },

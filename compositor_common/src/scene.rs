@@ -1,11 +1,16 @@
 use serde::{Deserialize, Serialize};
 use std::{fmt::Display, sync::Arc};
 
-use crate::transformation::TransformationRegistryKey;
+use crate::{transformation::TransformationRegistryKey, SpecValidationError};
 
 use self::text_spec::{TextResolution, TextSpec};
 
 pub mod text_spec;
+
+pub const MAX_NODE_RESOLUTION: Resolution = Resolution {
+    width: 7682,
+    height: 4320,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Resolution {
@@ -98,6 +103,39 @@ pub enum TransformParams {
         text_params: TextSpec,
         resolution: TextResolution,
     },
+}
+
+impl TransformParams {
+    pub fn validate(&self, node: &NodeId) -> Result<(), SpecValidationError> {
+        match self {
+            TransformParams::WebRenderer { .. } => Ok(()),
+            TransformParams::Shader { resolution, .. } => {
+                if resolution.width <= MAX_NODE_RESOLUTION.width
+                    && resolution.height <= MAX_NODE_RESOLUTION.height
+                {
+                    Ok(())
+                } else {
+                    Err(SpecValidationError::InvalidTransformParams(node.0.clone()))
+                }
+            }
+            TransformParams::TextRenderer {
+                text_params,
+                resolution,
+            } => match text_params.wrap {
+                text_spec::Wrap::None => Ok(()),
+                text_spec::Wrap::Glyph | text_spec::Wrap::Word => {
+                    if let TextResolution::Fitted {
+                        max_width: None, ..
+                    } = resolution
+                    {
+                        Err(SpecValidationError::InvalidTransformParams(node.0.clone()))
+                    } else {
+                        Ok(())
+                    }
+                }
+            },
+        }
+    }
 }
 
 // TODO: tmp clone
