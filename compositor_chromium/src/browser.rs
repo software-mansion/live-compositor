@@ -11,8 +11,8 @@ pub struct Browser {
 }
 
 // TODO: Is it safe?
-unsafe impl Sync for Browser {}
 unsafe impl Send for Browser {}
+unsafe impl Sync for Browser {}
 
 impl Browser {
     pub(crate) fn new(browser: *mut chromium_sys::cef_browser_t) -> Self {

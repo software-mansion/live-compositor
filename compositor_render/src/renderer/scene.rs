@@ -60,9 +60,7 @@ impl TransformNode {
                 shader.render(sources, target);
             }
             TransformNode::WebRenderer { renderer } => {
-                if let Err(err) = renderer.render(ctx, sources, target) {
-                    error!("Web render operation failed {err}");
-                }
+                renderer.render(ctx, sources, target);
             }
             TransformNode::TextRenderer { renderer } => {
                 renderer.render(ctx, target);

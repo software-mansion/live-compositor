@@ -5,15 +5,8 @@ use crate::renderer::{
     RegisterTransformationCtx, RenderCtx,
 };
 
-mod browser;
-pub mod chromium;
-
 use compositor_chromium::cef;
-use compositor_common::{
-    scene::{NodeId, Resolution},
-    transformation::WebRendererTransformationParams,
-};
-use image::ImageError;
+use compositor_common::{scene::NodeId, transformation::WebRendererTransformationParams};
 use log::{error, info};
 use serde::{Deserialize, Serialize};
 
@@ -22,8 +15,8 @@ use self::{
     chromium::ChromiumContextError,
 };
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct SessionId(i32);
+mod browser;
+pub mod chromium;
 
 pub struct WebRenderer {
     #[allow(dead_code)]
@@ -74,7 +67,7 @@ impl WebRenderer {
         ctx: &RenderCtx,
         _sources: &[(&NodeId, &NodeTexture)],
         target: &NodeTexture,
-    ) -> Result<(), WebRendererRenderError> {
+    ) {
         let mut state = self.state.lock().unwrap();
         let frame = state.retrieve_frame();
 
@@ -86,8 +79,6 @@ impl WebRenderer {
                 &target.rgba_texture(),
             );
         }
-
-        Ok(())
     }
 }
 
@@ -110,20 +101,5 @@ impl Default for WebRendererOptions {
 #[derive(Debug, thiserror::Error)]
 pub enum WebRendererNewError {
     #[error("failed to create new web renderer session")]
-    SessionCreationError(#[from] ChromiumContextError),
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum WebRendererRenderError {
-    #[error("expected string param")]
-    InvalidParam,
-
-    #[error("failed to decode image data")]
-    ImageDecodeError(#[from] ImageError),
-
-    #[error("web renderer sent frame with invalid resolution. Expected {expected:?}, received {received:?}")]
-    InvalidFrameResolution {
-        expected: Resolution,
-        received: Resolution,
-    },
+    CreateContextFailure(#[from] ChromiumContextError),
 }
