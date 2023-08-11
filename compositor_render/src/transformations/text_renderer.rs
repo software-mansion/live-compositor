@@ -1,4 +1,7 @@
-use std::sync::{Arc, Mutex};
+use std::{
+    cmp::max,
+    sync::{Arc, Mutex},
+};
 
 use compositor_common::scene::{
     text_spec::{self, TextResolution},
@@ -183,7 +186,6 @@ impl TextRenderer {
 
         match text_resolution {
             TextResolution::Fitted { max_resolution } => {
-                // TODO fix that
                 buffer.set_text(
                     font_system,
                     &text_params.content,
@@ -191,20 +193,32 @@ impl TextRenderer {
                     Shaping::Advanced,
                 );
 
+                buffer.set_wrap(font_system, text_params.wrap);
+
+                // Calculate resolution
                 buffer.set_size(
                     font_system,
                     max_resolution.width as f32,
                     max_resolution.height as f32,
                 );
 
-                buffer.set_wrap(font_system, text_params.wrap);
+                buffer.shape_until_scroll(font_system);
+                let resolution =
+                    Self::get_texture_resolution(buffer.lines.iter(), text_params.line_height);
+
+                // Shape text
+                buffer.set_size(
+                    font_system,
+                    resolution.width as f32,
+                    resolution.height as f32,
+                );
 
                 for line in &mut buffer.lines {
                     line.set_align(Some(text_params.align));
                 }
-
                 buffer.shape_until_scroll(font_system);
-                (buffer, max_resolution)
+
+                (buffer, resolution)
             }
             TextResolution::Fixed { resolution } => {
                 buffer.set_text(
@@ -229,6 +243,29 @@ impl TextRenderer {
                 buffer.shape_until_scroll(font_system);
                 (buffer, resolution)
             }
+        }
+    }
+
+    fn get_texture_resolution<'a, I: Iterator<Item = &'a glyphon::BufferLine>>(
+        lines: I,
+        line_height: f32,
+    ) -> Resolution {
+        let mut width = 0;
+        let mut lines_count = 0u32;
+
+        for line in lines {
+            if let Some(layout) = line.layout_opt() {
+                for layout_line in layout {
+                    lines_count += 1;
+                    width = max(width, layout_line.w.ceil() as u32);
+                }
+            }
+        }
+
+        let height = lines_count * line_height.ceil() as u32;
+        Resolution {
+            width: width as usize,
+            height: height as usize,
         }
     }
 }
