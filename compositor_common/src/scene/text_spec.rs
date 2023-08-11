@@ -129,7 +129,7 @@ impl From<&TextSpec> for AttrsOwned {
 
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(tag = "type", rename_all = "snake_case")]
-pub enum TextResolution {
+pub enum TextDimensions {
     /// Renders text and "trims" texture to smallest possible size
     Fitted {
         #[serde(default = "default_max_width")]

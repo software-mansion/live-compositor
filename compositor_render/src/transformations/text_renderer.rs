@@ -4,7 +4,7 @@ use std::{
 };
 
 use compositor_common::scene::{
-    text_spec::{self, TextResolution},
+    text_spec::{self, TextDimensions},
     Resolution,
 };
 use glyphon::{
@@ -76,7 +76,7 @@ impl TextRendererNode {
     pub fn new(
         renderer_ctx: &RenderCtx,
         text_params: TextSpec,
-        text_resolution: TextResolution,
+        text_resolution: TextDimensions,
     ) -> (Self, Resolution) {
         let text_renderer_ctx = &mut renderer_ctx.text_renderer_ctx.lock().unwrap();
         let (buffer, resolution) =
@@ -175,7 +175,7 @@ impl TextRendererNode {
     fn layout_text(
         text_renderer_ctx: &mut TextRendererCtx,
         text_params: TextParams,
-        text_resolution: TextResolution,
+        text_resolution: TextDimensions,
     ) -> (Buffer, Resolution) {
         let font_system = &mut text_renderer_ctx.font_system.lock().unwrap();
 
@@ -194,7 +194,7 @@ impl TextRendererNode {
         buffer.set_wrap(font_system, text_params.wrap);
 
         match text_resolution {
-            TextResolution::Fixed { resolution } => {
+            TextDimensions::Fixed { resolution } => {
                 buffer.set_size(
                     font_system,
                     resolution.width as f32,
@@ -208,7 +208,7 @@ impl TextRendererNode {
                 buffer.shape_until_scroll(font_system);
                 (buffer, resolution)
             }
-            TextResolution::Fitted {
+            TextDimensions::Fitted {
                 max_width,
                 max_height,
             } => Self::layout_fitted(
@@ -220,7 +220,7 @@ impl TextRendererNode {
                 },
                 &text_params,
             ),
-            TextResolution::FittedColumn { width, max_height } => Self::layout_fitted(
+            TextDimensions::FittedColumn { width, max_height } => Self::layout_fitted(
                 buffer,
                 font_system,
                 Resolution {

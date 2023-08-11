@@ -3,7 +3,7 @@ use std::{fmt::Display, sync::Arc};
 
 use crate::{transformation::TransformationRegistryKey, util::RGBColor};
 
-use self::text_spec::{TextResolution, TextSpec};
+use self::text_spec::{TextDimensions, TextSpec};
 
 pub mod text_spec;
 
@@ -102,7 +102,7 @@ pub enum TransformParams {
     },
     TextRenderer {
         text_params: TextSpec,
-        resolution: TextResolution,
+        resolution: TextDimensions,
     },
 }
 
