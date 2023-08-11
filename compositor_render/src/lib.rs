@@ -7,4 +7,6 @@ pub(crate) mod transformations;
 
 mod sync_renderer;
 
+pub use transformations::web_renderer::WebRendererOptions;
+
 pub type Renderer = sync_renderer::SyncRenderer;

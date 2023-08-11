@@ -7,6 +7,7 @@ use compositor_common::scene::{InputId, OutputId, SceneSpec};
 use compositor_common::transformation::{TransformationRegistryKey, TransformationSpec};
 use compositor_common::{Frame, Framerate};
 use compositor_render::renderer::{RendererNewError, RendererRegisterTransformationError};
+use compositor_render::WebRendererOptions;
 use compositor_render::{renderer::scene::SceneUpdateError, Renderer};
 use crossbeam_channel::unbounded;
 use log::error;
@@ -38,7 +39,7 @@ pub struct Pipeline<Input: PipelineInput, Output: PipelineOutput> {
 #[derive(Serialize, Deserialize)]
 pub struct Options {
     pub framerate: Framerate,
-    pub init_web_renderer: Option<bool>,
+    pub web_renderer: Option<WebRendererOptions>,
 }
 
 impl<Input: PipelineInput, Output: PipelineOutput> Pipeline<Input, Output> {
@@ -47,7 +48,7 @@ impl<Input: PipelineInput, Output: PipelineOutput> Pipeline<Input, Output> {
             outputs: OutputRegistry::new(),
             inputs: HashMap::new(),
             queue: Arc::new(Queue::new(opts.framerate)),
-            renderer: Renderer::new(opts.framerate, opts.init_web_renderer.unwrap_or(true))?,
+            renderer: Renderer::new(opts.web_renderer.unwrap_or_default(), opts.framerate)?,
         })
     }
 

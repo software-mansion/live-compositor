@@ -6,7 +6,7 @@ use compositor_common::{
     transformation::{TransformationRegistryKey, TransformationSpec},
     Frame, Framerate,
 };
-use compositor_render::{frame_set::FrameSet, Renderer};
+use compositor_render::{frame_set::FrameSet, Renderer, WebRendererOptions};
 
 const FRAMERATE: Framerate = Framerate(30);
 
@@ -82,7 +82,14 @@ fn main() {
     let frame = get_image("compositor_render/examples/crab.jpg");
     let resolution = frame.resolution;
 
-    let mut renderer = Renderer::new(FRAMERATE, false).expect("create renderer");
+    let mut renderer = Renderer::new(
+        WebRendererOptions {
+            init: false,
+            ..Default::default()
+        },
+        FRAMERATE,
+    )
+    .expect("create renderer");
     let shader_key = TransformationRegistryKey("silly shader".into());
 
     renderer

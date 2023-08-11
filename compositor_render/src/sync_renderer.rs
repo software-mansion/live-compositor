@@ -15,6 +15,7 @@ use crate::{
         shader::Shader,
         web_renderer::{chromium::ChromiumContext, WebRenderer},
     },
+    WebRendererOptions,
 };
 
 #[derive(Clone)]
@@ -22,12 +23,12 @@ pub struct SyncRenderer(Arc<Mutex<Renderer>>);
 
 impl SyncRenderer {
     pub fn new(
+        web_renderer_opts: WebRendererOptions,
         web_renderer_framerate: Framerate,
-        init_web: bool,
     ) -> Result<Self, RendererNewError> {
         Ok(Self(Arc::new(Mutex::new(Renderer::new(
+            web_renderer_opts,
             web_renderer_framerate,
-            init_web,
         )?))))
     }
 

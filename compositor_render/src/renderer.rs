@@ -15,6 +15,7 @@ use crate::{
         text_renderer::TextRendererCtx,
         web_renderer::chromium::{ChromiumContext, ChromiumContextError},
     },
+    WebRendererOptions,
 };
 use crate::{
     registry::{self, RegistryType},
@@ -78,11 +79,14 @@ pub enum RendererRegisterTransformationError {
 }
 
 impl Renderer {
-    pub fn new(framerate: Framerate, init_web: bool) -> Result<Self, RendererNewError> {
+    pub fn new(
+        web_renderer_opts: WebRendererOptions,
+        framerate: Framerate,
+    ) -> Result<Self, RendererNewError> {
         Ok(Self {
             wgpu_ctx: Arc::new(WgpuCtx::new()?),
             text_renderer_ctx: TextRendererCtx::new(),
-            chromium_context: Arc::new(ChromiumContext::new(init_web, framerate, false, false)?), // TODO: make it configurable
+            chromium_context: Arc::new(ChromiumContext::new(web_renderer_opts, framerate)?),
             scene: Scene::empty(),
             web_renderers: TransformationRegistry::new(RegistryType::WebRenderer),
             shader_transforms: TransformationRegistry::new(RegistryType::Shader),

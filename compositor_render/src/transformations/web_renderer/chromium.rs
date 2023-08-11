@@ -5,6 +5,8 @@ use compositor_common::Framerate;
 use crossbeam_channel::RecvError;
 use log::info;
 
+use crate::WebRendererOptions;
+
 use super::browser::BrowserClient;
 
 pub struct ChromiumContext {
@@ -14,13 +16,11 @@ pub struct ChromiumContext {
 
 impl ChromiumContext {
     pub(crate) fn new(
-        init_context: bool,
+        opts: WebRendererOptions,
         framerate: Framerate,
-        show_fps: bool,
-        disable_gpu: bool,
     ) -> Result<Self, ChromiumContextError> {
-        if !init_context {
-            info!("Init chromium context disabled");
+        if !opts.init {
+            info!("Chromium context disabled");
             return Ok(Self {
                 framerate,
                 context: None,
@@ -30,8 +30,8 @@ impl ChromiumContext {
         info!("Init chromium context");
 
         let app = ChromiumApp {
-            show_fps,
-            disable_gpu,
+            show_fps: false,
+            disable_gpu: opts.disable_gpu,
         };
         let settings = cef::Settings {
             windowless_rendering_enabled: true,

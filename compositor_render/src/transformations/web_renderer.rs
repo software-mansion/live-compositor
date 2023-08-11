@@ -91,6 +91,22 @@ impl WebRenderer {
     }
 }
 
+#[derive(Serialize, Deserialize)]
+#[serde(default)]
+pub struct WebRendererOptions {
+    pub init: bool,
+    pub disable_gpu: bool,
+}
+
+impl Default for WebRendererOptions {
+    fn default() -> Self {
+        Self {
+            init: true,
+            disable_gpu: false,
+        }
+    }
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum WebRendererNewError {
     #[error("failed to create new web renderer session")]

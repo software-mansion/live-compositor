@@ -46,7 +46,9 @@ fn start_example_client_code() -> Result<()> {
     common::post(&json!({
         "type": "init",
         "framerate": FRAMERATE,
-        "init_web_renderer": false,
+        "web_renderer": {
+            "init": false
+        }
     }))?;
 
     info!("[example] Start listening on output port.");
