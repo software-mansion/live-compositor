@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{hash_map, HashMap};
 use std::sync::{Mutex, MutexGuard};
 use std::thread;
 use std::{ops::Deref, sync::Arc};
@@ -161,6 +161,18 @@ impl<Input: PipelineInput, Output: PipelineOutput> Pipeline<Input, Output> {
             }
         });
     }
+
+    pub fn inputs(&self) -> impl Iterator<Item = (&InputId, &Input)> {
+        self.inputs.iter().map(|(id, node)| (id, node.as_ref()))
+    }
+
+    pub fn with_outputs<F, R>(&self, f: F) -> R
+    where
+        F: Fn(OutputIterator<'_, Output>) -> R,
+    {
+        let guard = self.outputs.lock();
+        f(OutputIterator::new(guard.iter()))
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -220,5 +232,23 @@ impl<Output: PipelineOutput> OutputRegistry<Output> {
 
     fn lock(&self) -> MutexGuard<HashMap<OutputId, Arc<Output>>> {
         self.0.lock().unwrap()
+    }
+}
+
+pub struct OutputIterator<'a, Output: PipelineOutput> {
+    inner_iter: hash_map::Iter<'a, OutputId, Arc<Output>>,
+}
+
+impl<'a, Output: PipelineOutput> OutputIterator<'a, Output> {
+    fn new(iter: hash_map::Iter<'a, OutputId, Arc<Output>>) -> Self {
+        Self { inner_iter: iter }
+    }
+}
+
+impl<'a, Output: PipelineOutput> Iterator for OutputIterator<'a, Output> {
+    type Item = (&'a OutputId, &'a Output);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.inner_iter.next().map(|(id, node)| (id, node.as_ref()))
     }
 }
