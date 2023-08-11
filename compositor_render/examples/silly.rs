@@ -77,7 +77,7 @@ fn main() {
         env_logger::Env::default().filter_or(env_logger::DEFAULT_FILTER_ENV, "info"),
     );
 
-    let frame = get_image("compositor_render/examples/crab.jpg");
+    let frame = get_image("./examples/silly/crab.jpg");
     let resolution = frame.resolution;
 
     let mut renderer = Renderer::new(false).expect("create renderer");
@@ -87,7 +87,7 @@ fn main() {
         .register_transformation(
             shader_key.clone(),
             TransformationSpec::Shader {
-                source: include_str!("silly.wgsl").into(),
+                source: include_str!("./silly/silly.wgsl").into(),
             },
         )
         .expect("create shader");

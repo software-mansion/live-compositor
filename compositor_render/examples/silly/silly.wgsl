@@ -20,6 +20,7 @@ fn vs_main(input: VertexInput) -> VertexOutput {
 
 struct CompositorStruct {
     time: f32,
+    videos_count: u32,
 }
 
 @group(0) @binding(0) var textures: binding_array<texture_2d<f32>, 16>;
@@ -28,6 +29,11 @@ struct CompositorStruct {
 
 @fragment
 fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
+    // Return transparent frame in case of different input video count
+    if (parameters_received_from_the_compositor.videos_count != 1u) {
+        return vec4(0.0, 0.0, 0.0, 0.0);
+    }
+
     let pi = 3.14159;
     let effect_radius = abs(sin(parameters_received_from_the_compositor.time) / 2.0);
     let effect_angle = 2.0 * pi * abs(sin(parameters_received_from_the_compositor.time) / 2.0);

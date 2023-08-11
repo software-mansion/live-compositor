@@ -127,10 +127,10 @@ impl Shader {
     }
 }
 
-pub fn prepare_render_loop(ctx: &RenderCtx, pts: Duration) {
+pub fn prepare_render_loop(ctx: &RenderCtx, pts: Duration, textures_count: u32) {
     let ctx = ctx.wgpu_ctx;
 
-    let new_buffer = GlobalShaderParameters::new(pts);
+    let new_buffer = GlobalShaderParameters::new(pts, textures_count);
 
     ctx.queue.write_buffer(
         &ctx.compositor_provided_parameters_buffer,

@@ -105,7 +105,7 @@ impl Renderer {
             text_renderer_ctx: &self.text_renderer_ctx,
         };
 
-        shader::prepare_render_loop(ctx, inputs.pts);
+        shader::prepare_render_loop(ctx, inputs.pts, inputs.frames.len() as u32);
         populate_inputs(ctx, &mut self.scene, &mut inputs.frames);
         run_transforms(ctx, &self.scene);
         let frames = read_outputs(ctx, &self.scene, inputs.pts);
@@ -226,12 +226,14 @@ impl WgpuCtx {
 #[derive(Debug, bytemuck::Pod, bytemuck::Zeroable, Clone, Copy)]
 pub struct GlobalShaderParameters {
     time: f32,
+    textures_count: u32,
 }
 
 impl GlobalShaderParameters {
-    pub fn new(time: Duration) -> Self {
+    pub fn new(time: Duration, textures_count: u32) -> Self {
         Self {
             time: time.as_secs_f32(),
+            textures_count
         }
     }
 }
