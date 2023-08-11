@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::Path, process::Stdio, sync::Arc, time::Duration};
+use std::{path::Path, process::Stdio, sync::Arc, time::Duration};
 
 use compositor_common::{
     frame::YuvData,
@@ -73,10 +73,14 @@ fn get_image(path: impl AsRef<Path>) -> Frame {
 }
 
 fn main() {
+    env_logger::init_from_env(
+        env_logger::Env::default().filter_or(env_logger::DEFAULT_FILTER_ENV, "info"),
+    );
+
     let frame = get_image("compositor_render/examples/crab.jpg");
     let resolution = frame.resolution;
 
-    let renderer = Renderer::new(false).expect("create renderer");
+    let mut renderer = Renderer::new(false).expect("create renderer");
     let shader_key = TransformationRegistryKey("silly shader".into());
 
     renderer
@@ -93,7 +97,7 @@ fn main() {
     let output_id = NodeId("output".into());
 
     renderer
-        .update_scene(SceneSpec {
+        .update_scene(Arc::new(SceneSpec {
             inputs: vec![InputSpec {
                 input_id: input_id.clone().into(),
                 resolution,
@@ -103,7 +107,7 @@ fn main() {
                 node_id: shader_id.clone(),
                 transform_params: compositor_common::scene::TransformParams::Shader {
                     shader_id: shader_key,
-                    shader_params: HashMap::new(),
+                    shader_params: None,
                     resolution,
                 },
             }],
@@ -111,10 +115,10 @@ fn main() {
                 input_pad: shader_id,
                 output_id: output_id.clone().into(),
             }],
-        })
+        }))
         .expect("update scene");
 
-    let mut frame_set = FrameSet::new(Duration::from_secs(1));
+    let mut frame_set = FrameSet::new(Duration::from_secs_f32(std::f32::consts::FRAC_PI_2));
     frame_set.frames.insert(input_id.into(), Arc::new(frame));
     let output = renderer.render(frame_set);
     let output = output.frames.get(&output_id.into()).expect("extract frame");

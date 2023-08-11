@@ -38,8 +38,8 @@ impl SceneSpec {
     // - check if each input in scene spec is registered input
     pub fn validate(
         &self,
-        registered_inputs: &HashSet<NodeId>,
-        registered_outputs: &HashSet<NodeId>,
+        registered_inputs: &HashSet<&NodeId>,
+        registered_outputs: &HashSet<&NodeId>,
     ) -> Result<(), SpecValidationError> {
         let transform_iter = self.transforms.iter().map(|i| &i.node_id);
         let input_iter = self.inputs.iter().map(|i| &i.input_id.0);
@@ -89,7 +89,7 @@ impl SceneSpec {
 
     fn validate_inputs(
         &self,
-        registered_inputs: &HashSet<NodeId>,
+        registered_inputs: &HashSet<&NodeId>,
     ) -> Result<(), SpecValidationError> {
         for input in self.inputs.iter() {
             if !registered_inputs.contains(&input.input_id.0) {
@@ -104,7 +104,7 @@ impl SceneSpec {
 
     fn validate_outputs(
         &self,
-        registered_outputs: &HashSet<NodeId>,
+        registered_outputs: &HashSet<&NodeId>,
         defined_node_ids: &HashSet<&NodeId>,
     ) -> Result<(), SpecValidationError> {
         for out in self.outputs.iter() {
@@ -125,7 +125,7 @@ impl SceneSpec {
 
     fn validate_cycles(
         &self,
-        registered_inputs: &HashSet<NodeId>,
+        registered_inputs: &HashSet<&NodeId>,
         transform_nodes: &HashMap<&NodeId, &TransformNodeSpec>,
     ) -> Result<(), SpecValidationError> {
         enum NodeState {
@@ -138,7 +138,7 @@ impl SceneSpec {
         fn visit<'a>(
             node: &'a NodeId,
             transform_nodes: &'a HashMap<&NodeId, &TransformNodeSpec>,
-            inputs: &HashSet<NodeId>,
+            inputs: &HashSet<&NodeId>,
             visited: &mut HashMap<&'a NodeId, NodeState>,
         ) -> Result<(), SpecValidationError> {
             if inputs.get(node).is_some() {

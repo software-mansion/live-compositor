@@ -10,24 +10,36 @@ use super::INPUT_TEXTURES_AMOUNT;
 
 pub struct Pipeline {
     pipeline: wgpu::RenderPipeline,
-    pub(super) bgls: BindGroupLayouts,
     geometry_buffers: RectangleRenderBuffers,
     sampler: Sampler,
+    pub(super) textures_bgl: wgpu::BindGroupLayout,
 }
 
 impl Pipeline {
-    pub fn new(device: &wgpu::Device, shader_source: wgpu::ShaderSource) -> Self {
-        let bgls = BindGroupLayouts::new(device);
-
+    pub fn new(
+        device: &wgpu::Device,
+        shader_source: wgpu::ShaderSource,
+        uniforms_bgl: &wgpu::BindGroupLayout,
+    ) -> Self {
         let sampler = Sampler::new(device);
+
+        let textures_bgl = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("shader transformation textures bgl"),
+            entries: &[wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                count: NonZeroU32::new(INPUT_TEXTURES_AMOUNT),
+                visibility: wgpu::ShaderStages::FRAGMENT | wgpu::ShaderStages::VERTEX,
+                ty: wgpu::BindingType::Texture {
+                    multisampled: false,
+                    sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                    view_dimension: wgpu::TextureViewDimension::D2,
+                },
+            }],
+        });
 
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("shader transformation pipeline layout"),
-            bind_group_layouts: &[
-                &bgls.textures_bgl,
-                &bgls.uniforms_bgl,
-                &sampler.bind_group_layout,
-            ],
+            bind_group_layouts: &[&textures_bgl, uniforms_bgl, &sampler.bind_group_layout],
             push_constant_ranges: &[],
         });
 
@@ -74,10 +86,10 @@ impl Pipeline {
         });
 
         Self {
-            bgls,
             pipeline,
             sampler,
             geometry_buffers,
+            textures_bgl,
         }
     }
 
@@ -123,59 +135,5 @@ impl Pipeline {
         //       the buffer should then be put in an array with other command
         //       buffers and submitted as a whole
         ctx.queue.submit(Some(encoder.finish()));
-    }
-}
-
-pub(super) struct BindGroupLayouts {
-    pub(super) textures_bgl: wgpu::BindGroupLayout,
-    pub(super) uniforms_bgl: wgpu::BindGroupLayout,
-}
-
-impl BindGroupLayouts {
-    fn new(device: &wgpu::Device) -> Self {
-        let textures_bgl = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("shader transformation textures bgl"),
-            entries: &[wgpu::BindGroupLayoutEntry {
-                binding: 0,
-                count: NonZeroU32::new(INPUT_TEXTURES_AMOUNT),
-                visibility: wgpu::ShaderStages::FRAGMENT | wgpu::ShaderStages::VERTEX,
-                ty: wgpu::BindingType::Texture {
-                    multisampled: false,
-                    sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                    view_dimension: wgpu::TextureViewDimension::D2,
-                },
-            }],
-        });
-
-        let uniforms_bgl = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("shader transformation uniforms bgl"),
-            entries: &[
-                wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    count: None,
-                    visibility: wgpu::ShaderStages::FRAGMENT | wgpu::ShaderStages::VERTEX,
-                    ty: wgpu::BindingType::Buffer {
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                        ty: wgpu::BufferBindingType::Uniform,
-                    },
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 1,
-                    count: None,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Buffer {
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                        ty: wgpu::BufferBindingType::Uniform,
-                    },
-                },
-            ],
-        });
-
-        Self {
-            textures_bgl,
-            uniforms_bgl,
-        }
     }
 }

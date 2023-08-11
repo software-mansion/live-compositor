@@ -48,7 +48,11 @@ impl SyncRenderer {
         self.0.lock().unwrap().render(input)
     }
 
-    pub fn update_scene(&self, scene_specs: SceneSpec) -> Result<(), SceneUpdateError> {
+    pub fn update_scene(&mut self, scene_specs: Arc<SceneSpec>) -> Result<(), SceneUpdateError> {
         self.0.lock().unwrap().update_scene(scene_specs)
+    }
+
+    pub fn scene_spec(&self) -> Arc<SceneSpec> {
+        self.0.lock().unwrap().scene_spec.clone()
     }
 }

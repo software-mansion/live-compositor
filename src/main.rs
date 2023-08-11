@@ -1,16 +1,10 @@
-use std::sync::Arc;
-
-use compositor_common::Framerate;
 use log::info;
 use signal_hook::{consts, iterator::Signals};
-use state::Pipeline;
 
-use crate::state::State;
-
+mod api;
 mod http;
 mod rtp_receiver;
 mod rtp_sender;
-mod state;
 
 fn main() {
     env_logger::init_from_env(
@@ -18,10 +12,7 @@ fn main() {
     );
     ffmpeg_next::format::network::init();
 
-    let pipeline = Arc::new(Pipeline::new(Framerate(30)));
-    let state = Arc::new(State::new(pipeline));
-
-    http::Server::new(8001, state).start();
+    http::Server::new(8001).start();
 
     let mut signals = Signals::new([consts::SIGINT]).unwrap();
     signals.forever().next();

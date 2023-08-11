@@ -1,4 +1,5 @@
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 use compositor_common::scene::{InputId, OutputId, SceneSpec};
 use log::error;
@@ -7,7 +8,7 @@ use crate::{
     frame_set::FrameSet,
     registry::TransformationRegistry,
     render_loop::{populate_inputs, read_outputs},
-    transformations::text_renderer::TextRendererCtx,
+    transformations::{shader, text_renderer::TextRendererCtx},
 };
 use crate::{
     registry::{self, RegistryType},
@@ -36,6 +37,7 @@ pub struct Renderer {
     pub text_renderer_ctx: Mutex<TextRendererCtx>,
     pub electron_instance: Arc<ElectronInstance>,
     pub scene: Scene,
+    pub scene_spec: Arc<SceneSpec>,
     pub(crate) shader_transforms: TransformationRegistry<Arc<Shader>>,
     pub(crate) web_renderers: TransformationRegistry<Arc<WebRenderer>>,
 }
@@ -80,6 +82,11 @@ impl Renderer {
             scene: Scene::empty(),
             web_renderers: TransformationRegistry::new(RegistryType::WebRenderer),
             shader_transforms: TransformationRegistry::new(RegistryType::Shader),
+            scene_spec: Arc::new(SceneSpec {
+                inputs: vec![],
+                transforms: vec![],
+                outputs: vec![],
+            }),
         })
     }
 
@@ -99,6 +106,7 @@ impl Renderer {
             text_renderer_ctx: &self.text_renderer_ctx,
         };
 
+        shader::prepare_render_loop(ctx, inputs.pts);
         populate_inputs(ctx, &mut self.scene, &mut inputs.frames);
         run_transforms(ctx, &self.scene);
         let frames = read_outputs(ctx, &self.scene, inputs.pts);
@@ -109,7 +117,7 @@ impl Renderer {
         }
     }
 
-    pub fn update_scene(&mut self, scene_specs: SceneSpec) -> Result<(), SceneUpdateError> {
+    pub fn update_scene(&mut self, scene_specs: Arc<SceneSpec>) -> Result<(), SceneUpdateError> {
         self.scene.update(
             &RenderCtx {
                 wgpu_ctx: &self.wgpu_ctx,
@@ -118,8 +126,10 @@ impl Renderer {
                 shader_transforms: &self.shader_transforms,
                 web_renderers: &self.web_renderers,
             },
-            scene_specs,
-        )
+            &scene_specs,
+        )?;
+        self.scene_spec = scene_specs;
+        Ok(())
     }
 }
 
@@ -134,6 +144,10 @@ pub struct WgpuCtx {
     pub rgba_bind_group_layout: wgpu::BindGroupLayout,
     pub yuv_to_rgba_converter: YUVToRGBAConverter,
     pub rgba_to_yuv_converter: RGBAToYUVConverter,
+
+    pub shader_parameters_bind_group_layout: wgpu::BindGroupLayout,
+
+    pub compositor_provided_parameters_buffer: wgpu::Buffer,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -174,6 +188,22 @@ impl WgpuCtx {
         let yuv_to_rgba_converter = YUVToRGBAConverter::new(&device, &yuv_bind_group_layout);
         let rgba_to_yuv_converter = RGBAToYUVConverter::new(&device, &rgba_bind_group_layout);
 
+        let shader_parameters_bind_group_layout = Shader::new_parameters_bind_group_layout(&device);
+
+        let compositor_provided_parameters_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("global shader parameters buffer"),
+            mapped_at_creation: false,
+            size: std::mem::size_of::<GlobalShaderParameters>() as u64,
+            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::UNIFORM,
+        });
+
+        // this is temporary until we implement proper error handling in the wgpu renderer
+        // it's important to overwrite this though, because the default uncaptured error
+        // handler panics
+        device.on_uncaptured_error(Box::new(|e| {
+            error!("wgpu error: {:?}", e);
+        }));
+
         Ok(Self {
             device,
             queue,
@@ -181,6 +211,22 @@ impl WgpuCtx {
             rgba_bind_group_layout,
             yuv_to_rgba_converter,
             rgba_to_yuv_converter,
+            shader_parameters_bind_group_layout,
+            compositor_provided_parameters_buffer,
         })
+    }
+}
+
+#[repr(C)]
+#[derive(Debug, bytemuck::Pod, bytemuck::Zeroable, Clone, Copy)]
+pub struct GlobalShaderParameters {
+    time: f32,
+}
+
+impl GlobalShaderParameters {
+    pub fn new(time: Duration) -> Self {
+        Self {
+            time: time.as_secs_f32(),
+        }
     }
 }

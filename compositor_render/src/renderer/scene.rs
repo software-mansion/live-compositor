@@ -1,14 +1,19 @@
 use std::{collections::HashMap, sync::Arc};
 
-use compositor_common::scene::{
-    InputId, InputSpec, NodeId, OutputId, Resolution, SceneSpec, ShaderParams, TransformNodeSpec,
-    TransformParams,
+use compositor_common::{
+    scene::{
+        InputId, InputSpec, NodeId, OutputId, Resolution, SceneSpec, TransformNodeSpec,
+        TransformParams,
+    },
+    SpecValidationError,
 };
 use log::error;
 
 use crate::{
     registry::GetError,
-    transformations::{shader::Shader, text_renderer::TextRenderer, web_renderer::WebRenderer},
+    transformations::{
+        shader::node::ShaderNode, text_renderer::TextRenderer, web_renderer::WebRenderer,
+    },
 };
 
 use super::{
@@ -19,16 +24,9 @@ use super::{
 pub struct InputNode {}
 
 pub enum TransformNode {
-    Shader {
-        params: HashMap<String, ShaderParams>,
-        shader: Arc<Shader>,
-    },
-    WebRenderer {
-        renderer: Arc<WebRenderer>,
-    },
-    TextRenderer {
-        renderer: TextRenderer,
-    },
+    Shader(ShaderNode),
+    WebRenderer { renderer: Arc<WebRenderer> },
+    TextRenderer { renderer: TextRenderer },
     Nop,
 }
 
@@ -45,10 +43,11 @@ impl TransformNode {
                 shader_params,
                 resolution,
             } => Ok((
-                TransformNode::Shader {
-                    params: shader_params.clone(),
-                    shader: ctx.shader_transforms.get(shader_id)?,
-                },
+                TransformNode::Shader(ShaderNode::new(
+                    ctx.wgpu_ctx,
+                    ctx.shader_transforms.get(shader_id)?,
+                    shader_params.as_ref(),
+                )),
                 *resolution,
             )),
             TransformParams::TextRenderer {
@@ -68,8 +67,8 @@ impl TransformNode {
         target: &NodeTexture,
     ) {
         match self {
-            TransformNode::Shader { params, shader } => {
-                shader.render(params, sources, target);
+            TransformNode::Shader(shader) => {
+                shader.render(sources, target);
             }
             TransformNode::WebRenderer { renderer } => {
                 if let Err(err) = renderer.render(ctx, sources, target) {
@@ -130,13 +129,16 @@ pub struct Scene {
 #[derive(Debug, thiserror::Error)]
 pub enum SceneUpdateError {
     #[error("Failed to construct transform node")]
-    TransformNodeError(GetError),
+    TransformNodeError(#[source] GetError),
 
     #[error("Failed to construct input node")]
-    InputNodeError(GetError),
+    InputNodeError(#[source] GetError),
 
     #[error("No spec for node with id {0}")]
-    NoNodeWithIdError(Arc<str>),
+    NoNodeWithIdError(NodeId),
+
+    #[error("Scene definition is invalid")]
+    InvalidSpec(#[source] SpecValidationError),
 }
 
 impl Scene {
@@ -147,15 +149,16 @@ impl Scene {
         }
     }
 
-    pub fn update(&mut self, ctx: &RenderCtx, spec: SceneSpec) -> Result<(), SceneUpdateError> {
+    pub fn update(&mut self, ctx: &RenderCtx, spec: &SceneSpec) -> Result<(), SceneUpdateError> {
         // TODO: If we want nodes to be stateful we could try reusing nodes instead
         //       of recreating them on every scene update
         let mut new_nodes = HashMap::new();
+        self.inputs = HashMap::new();
         self.outputs = spec
             .outputs
             .iter()
             .map(|output| {
-                let node = self.ensure_node(ctx, &output.input_pad, &spec, &mut new_nodes)?;
+                let node = self.ensure_node(ctx, &output.input_pad, spec, &mut new_nodes)?;
                 let buffers = OutputTexture::new(ctx.wgpu_ctx, node.resolution);
                 Ok((output.output_id.clone(), (node, buffers)))
             })
@@ -210,6 +213,6 @@ impl Scene {
             }
         }
 
-        Err(SceneUpdateError::NoNodeWithIdError(node_id.0.clone()))
+        Err(SceneUpdateError::NoNodeWithIdError(node_id.clone()))
     }
 }

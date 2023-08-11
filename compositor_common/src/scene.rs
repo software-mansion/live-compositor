@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, sync::Arc};
+use std::{fmt::Display, sync::Arc};
 
 use crate::transformation::TransformationRegistryKey;
 
@@ -21,6 +21,24 @@ pub struct InputId(pub NodeId);
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
 pub struct OutputId(pub NodeId);
+
+impl Display for InputId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0 .0.fmt(f)
+    }
+}
+
+impl Display for OutputId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0 .0.fmt(f)
+    }
+}
+
+impl Display for NodeId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
 
 impl From<NodeId> for InputId {
     fn from(value: NodeId) -> Self {
@@ -73,7 +91,7 @@ pub enum TransformParams {
     },
     Shader {
         shader_id: TransformationRegistryKey,
-        shader_params: HashMap<String, ShaderParams>,
+        shader_params: Option<ShaderParam>,
         resolution: Resolution,
     },
     TextRenderer {
@@ -83,9 +101,19 @@ pub enum TransformParams {
 }
 
 // TODO: tmp clone
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(tag = "type", rename_all = "snake_case", content = "value")]
-pub enum ShaderParams {
-    String(String),
-    Binary(Vec<u8>),
+pub enum ShaderParam {
+    F32(f32),
+    U32(u32),
+    I32(i32),
+    List(Vec<ShaderParam>),
+    Struct(Vec<ShaderParamStructField>),
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ShaderParamStructField {
+    pub field_name: String,
+    #[serde(flatten)]
+    pub value: ShaderParam,
 }

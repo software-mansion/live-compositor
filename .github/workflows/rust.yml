@@ -15,34 +15,36 @@ jobs:
         steps:
             - name: 🛠 Install system dependencies
               run: |
-                set -e
+                  set -e
 
-                sudo apt-get update -y -qq
-                sudo apt-get install -y libegl1-mesa libgl1-mesa-dri libxcb-xfixes0-dev ffmpeg libavcodec-dev libavformat-dev libavfilter-dev libavdevice-dev
-            
+                  sudo apt-get update -y -qq
+                  sudo apt-get install -y libegl1-mesa libgl1-mesa-dri libxcb-xfixes0-dev ffmpeg libavcodec-dev libavformat-dev libavfilter-dev libavdevice-dev
+
             - name: 🔧 Install the rust toolchain
               uses: dtolnay/rust-toolchain@stable
-            
+
             - name: 🔬 Install nextest
               uses: taiki-e/install-action@v2
               with:
-                tool: cargo-nextest
-            
+                  tool: cargo-nextest
+
             - name: 📥 Checkout repo
               uses: actions/checkout@v3
-            
+
             - name: 📁 Rust cache
               uses: Swatinem/rust-cache@v2
-            
+
+            - name: 🪢 Generate Chromium Embedded Framework bindings
+              run: cargo build --package compositor_chromium
+
             - name: 📖 Check formatting
               run: cargo fmt --all --check
 
             - name: 📎 Run clippy
               run: cargo clippy --workspace --all-targets --all-features -- -D warnings
-            
+
             - name: 🧪 Run tests
               run: cargo nextest run --no-fail-fast --workspace
-            
+
             - name: 📚 Run doctests
               run: cargo test --workspace --doc
-

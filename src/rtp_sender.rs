@@ -2,7 +2,7 @@ use anyhow::{anyhow, Result};
 use crossbeam_channel::{Receiver, Sender};
 use log::{error, warn};
 use serde::{Deserialize, Serialize};
-use std::{path::PathBuf, thread};
+use std::{path::PathBuf, sync::Arc, thread};
 
 use compositor_common::{scene::Resolution, Frame};
 use compositor_pipeline::pipeline::PipelineOutput;
@@ -14,6 +14,8 @@ use ffmpeg_next::{
 
 pub struct RtpSender {
     sender: Sender<Frame>,
+    pub(crate) port: u16,
+    pub(crate) ip: Arc<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -89,18 +91,28 @@ pub struct EncoderSettings {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Options {
     pub port: u16,
-    pub ip: String,
+    pub ip: Arc<String>,
     pub resolution: Resolution,
     pub encoder_settings: EncoderSettings,
 }
 
-impl RtpSender {
-    pub fn new(options: Options) -> Self {
+impl PipelineOutput for RtpSender {
+    type Opts = Options;
+
+    fn new(options: Options) -> Self {
+        let port = options.port;
+        let ip = options.ip.clone();
         let (sender, receiver) = crossbeam_channel::unbounded();
         thread::spawn(move || RtpSender::run(options, receiver).unwrap());
-        Self { sender }
+        Self { sender, port, ip }
     }
 
+    fn send_frame(&self, frame: Frame) {
+        self.sender.send(frame).unwrap();
+    }
+}
+
+impl RtpSender {
     fn run(opts: Options, receiver: Receiver<Frame>) -> Result<()> {
         let mut output_ctx = format::output_as(
             &PathBuf::from(format!(
@@ -181,14 +193,7 @@ impl RtpSender {
                 }
             }
         }
-
         Ok(())
-    }
-}
-
-impl PipelineOutput for RtpSender {
-    fn send_frame(&self, frame: Frame) {
-        self.sender.send(frame).unwrap();
     }
 }
 
