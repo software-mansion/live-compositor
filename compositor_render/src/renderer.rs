@@ -233,7 +233,7 @@ impl GlobalShaderParameters {
     pub fn new(time: Duration, textures_count: u32) -> Self {
         Self {
             time: time.as_secs_f32(),
-            textures_count
+            textures_count,
         }
     }
 }
