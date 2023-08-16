@@ -8,7 +8,7 @@ use crate::{
     frame_set::FrameSet,
     registry::TransformationRegistry,
     render_loop::{populate_inputs, read_outputs},
-    transformations::{shader, text_renderer::TextRendererCtx},
+    transformations::text_renderer::TextRendererCtx,
 };
 use crate::{
     registry::{self, RegistryType},
@@ -106,9 +106,8 @@ impl Renderer {
             text_renderer_ctx: &self.text_renderer_ctx,
         };
 
-        shader::prepare_render_loop(ctx, inputs.pts);
         populate_inputs(ctx, &mut self.scene, &mut inputs.frames);
-        run_transforms(ctx, &self.scene);
+        run_transforms(ctx, &self.scene, inputs.pts);
         let frames = read_outputs(ctx, &self.scene, inputs.pts);
 
         FrameSet {
@@ -198,7 +197,7 @@ impl WgpuCtx {
         let compositor_provided_parameters_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("global shader parameters buffer"),
             mapped_at_creation: false,
-            size: std::mem::size_of::<GlobalShaderParameters>() as u64,
+            size: std::mem::size_of::<CommonShaderParameters>() as u64,
             usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::UNIFORM,
         });
 
@@ -225,14 +224,28 @@ impl WgpuCtx {
 
 #[repr(C)]
 #[derive(Debug, bytemuck::Pod, bytemuck::Zeroable, Clone, Copy)]
-pub struct GlobalShaderParameters {
+pub struct CommonShaderParameters {
     time: f32,
+    textures_count: u32,
 }
 
-impl GlobalShaderParameters {
-    pub fn new(time: Duration) -> Self {
+impl CommonShaderParameters {
+    pub fn new(time: Duration, textures_count: u32) -> Self {
         Self {
             time: time.as_secs_f32(),
+            textures_count,
         }
+    }
+
+    pub fn push_constant_size() -> u32 {
+        let size = std::mem::size_of::<CommonShaderParameters>() as u32;
+        match size % 4 {
+            0 => size,
+            rest => size + (4 - rest),
+        }
+    }
+
+    pub fn push_constant(&self) -> &[u8] {
+        bytemuck::bytes_of(self)
     }
 }

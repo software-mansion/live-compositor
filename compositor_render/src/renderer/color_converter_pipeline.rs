@@ -180,7 +180,7 @@ impl RGBAToYUVConverter {
             ctx.queue.write_buffer(
                 &self.plane_selector.buffer,
                 0,
-                bytemuck::cast_slice(&[plane as u32]),
+                bytemuck::bytes_of(&(plane as u32)),
             );
 
             let mut encoder = ctx
@@ -308,11 +308,7 @@ impl R8FillWithValuePipeline {
             });
 
             render_pass.set_pipeline(&self.pipeline);
-            render_pass.set_push_constants(
-                ShaderStages::FRAGMENT,
-                0,
-                bytemuck::cast_slice(&[value]),
-            );
+            render_pass.set_push_constants(ShaderStages::FRAGMENT, 0, bytemuck::bytes_of(&value));
             render_pass.set_vertex_buffer(0, self.buffers.vertex.slice(..));
             render_pass.set_index_buffer(
                 self.buffers.index.slice(..),
