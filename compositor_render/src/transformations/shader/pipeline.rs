@@ -104,7 +104,7 @@ impl Pipeline {
         uniforms: &wgpu::BindGroup,
         target: &Texture,
         ctx: &WgpuCtx,
-        push_constants: &[u8],
+        common_parameters: CommonShaderParameters,
     ) {
         let mut encoder = ctx.device.create_command_encoder(&Default::default());
 
@@ -124,7 +124,13 @@ impl Pipeline {
             });
 
             render_pass.set_pipeline(&self.pipeline);
-            render_pass.set_push_constants(ShaderStages::VERTEX_FRAGMENT, 0, push_constants);
+
+            render_pass.set_push_constants(
+                ShaderStages::VERTEX_FRAGMENT,
+                0,
+                common_parameters.raw_data(),
+            );
+
             render_pass.set_vertex_buffer(0, self.geometry_buffers.vertex.slice(..));
             render_pass.set_index_buffer(
                 self.geometry_buffers.index.slice(..),

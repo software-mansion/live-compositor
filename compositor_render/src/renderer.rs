@@ -244,4 +244,8 @@ impl CommonShaderParameters {
             rest => size + (4 - rest),
         }
     }
+
+    pub fn raw_data(&self) -> &[u8] {
+        bytemuck::bytes_of(self)
+    }
 }

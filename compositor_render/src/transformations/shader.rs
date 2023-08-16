@@ -124,7 +124,7 @@ impl Shader {
             params,
             target.rgba_texture().texture(),
             ctx,
-            bytemuck::cast_slice(&[common_shader_params]),
+            common_shader_params,
         );
     }
 }
