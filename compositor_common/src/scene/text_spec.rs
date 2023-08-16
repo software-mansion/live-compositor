@@ -3,6 +3,8 @@ use std::sync::Arc;
 use glyphon::AttrsOwned;
 use serde::{Deserialize, Serialize};
 
+use super::{Resolution, MAX_NODE_RESOLUTION};
+
 use crate::util::RGBAColor;
 
 fn default_color() -> RGBAColor {
@@ -23,6 +25,14 @@ fn default_align() -> Align {
 
 fn default_wrap() -> Wrap {
     Wrap::None
+}
+
+fn default_max_width() -> u32 {
+    MAX_NODE_RESOLUTION.width as u32
+}
+
+fn default_max_height() -> u32 {
+    MAX_NODE_RESOLUTION.height as u32
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -115,4 +125,24 @@ impl From<&TextSpec> for AttrsOwned {
             metadata: Default::default(),
         }
     }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum TextDimensions {
+    /// Renders text and "trims" texture to smallest possible size
+    Fitted {
+        #[serde(default = "default_max_width")]
+        max_width: u32,
+        #[serde(default = "default_max_height")]
+        max_height: u32,
+    },
+    FittedColumn {
+        width: u32,
+        #[serde(default = "default_max_height")]
+        max_height: u32,
+    },
+    /// Renders text according to provided spec
+    /// and outputs texture with provided fixed size
+    Fixed { resolution: Resolution },
 }

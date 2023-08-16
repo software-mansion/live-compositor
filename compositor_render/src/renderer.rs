@@ -1,4 +1,5 @@
-use std::{sync::Arc, time::Duration};
+use std::sync::Arc;
+use std::time::Duration;
 
 use compositor_common::scene::{InputId, OutputId, SceneSpec};
 use log::error;

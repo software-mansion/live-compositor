@@ -50,6 +50,14 @@ impl<Input: PipelineInput, Output: PipelineOutput> Pipeline<Input, Output> {
         })
     }
 
+    pub fn renderer(&self) -> &Renderer {
+        &self.renderer
+    }
+
+    pub fn queue(&self) -> &Queue {
+        &self.queue
+    }
+
     pub fn register_input(
         &mut self,
         input_id: InputId,

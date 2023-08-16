@@ -10,6 +10,7 @@ use super::QueueError;
 pub struct InternalQueue {
     /// frames are PTS ordered. PTS include timestamps offsets
     inputs_queues: HashMap<InputId, Vec<Arc<Frame>>>,
+    inputs_listeners: HashMap<InputId, Vec<Box<dyn FnOnce() + Send>>>,
     timestamp_offsets: HashMap<InputId, Duration>,
     output_framerate: Framerate,
     pub sent_batches_counter: u32,
@@ -19,6 +20,7 @@ impl InternalQueue {
     pub fn new(output_framerate: Framerate) -> Self {
         InternalQueue {
             inputs_queues: HashMap::new(),
+            inputs_listeners: HashMap::new(),
             timestamp_offsets: HashMap::new(),
             output_framerate,
             sent_batches_counter: 0,
@@ -130,5 +132,23 @@ impl InternalQueue {
 
     pub fn get_next_output_buffer_pts(&self) -> Duration {
         Duration::from_secs_f64(self.sent_batches_counter as f64 / self.output_framerate.0 as f64)
+    }
+
+    pub fn subscribe_input_listener(
+        &mut self,
+        input_id: InputId,
+        callback: Box<dyn FnOnce() + Send>,
+    ) {
+        self.inputs_listeners
+            .entry(input_id)
+            .or_insert_with(Vec::new)
+            .push(callback)
+    }
+
+    pub fn call_input_listeners(&mut self, input_id: &InputId) {
+        let callbacks = self.inputs_listeners.remove(input_id).unwrap_or_default();
+        for cb in callbacks.into_iter() {
+            cb()
+        }
     }
 }

@@ -27,6 +27,8 @@ pub enum SpecValidationError {
     UnknownOutput(Arc<str>),
     #[error("unknown input, input with id {0} is not registered currently")]
     UnknownInput(Arc<str>),
+    #[error("Invalid node params for node with id {0}")]
+    InvalidTransformParams(Arc<str>),
 }
 
 impl SceneSpec {

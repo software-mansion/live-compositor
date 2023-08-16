@@ -3,7 +3,10 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use compositor_common::scene::text_spec;
+use compositor_common::scene::{
+    text_spec::{self, TextDimensions},
+    Resolution,
+};
 use glyphon::{
     AttrsOwned, Buffer, Color, FontSystem, Metrics, Shaping, SwashCache, TextArea, TextAtlas,
     TextBounds,
@@ -63,18 +66,28 @@ impl Default for TextRendererCtx {
 }
 
 #[allow(dead_code)]
-pub struct TextRenderer {
-    text_specs: TextParams,
+pub struct TextRendererNode {
+    buffer: Buffer,
     was_rendered: Mutex<bool>,
 }
 
-impl TextRenderer {
+impl TextRendererNode {
     #[allow(dead_code)]
-    pub fn new(text_params: TextSpec) -> Self {
-        Self {
-            was_rendered: Mutex::new(false),
-            text_specs: text_params.into(),
-        }
+    pub fn new(
+        renderer_ctx: &RenderCtx,
+        text_params: TextSpec,
+        text_resolution: TextDimensions,
+    ) -> (Self, Resolution) {
+        let text_renderer_ctx = &renderer_ctx.text_renderer_ctx;
+        let (buffer, resolution) =
+            Self::layout_text(text_renderer_ctx, text_params.into(), text_resolution);
+        (
+            Self {
+                buffer,
+                was_rendered: Mutex::new(false),
+            },
+            resolution,
+        )
     }
 
     pub fn render(&self, renderer_ctx: &mut RenderCtx, target: &NodeTexture) {
@@ -84,8 +97,9 @@ impl TextRenderer {
         }
 
         info!("Text render");
-        let font_system = &mut renderer_ctx.text_renderer_ctx.font_system.lock().unwrap();
-        let cache = &mut renderer_ctx.text_renderer_ctx.swash_cache.lock().unwrap();
+        let text_renderer = renderer_ctx.text_renderer_ctx;
+        let font_system = &mut text_renderer.font_system.lock().unwrap();
+        let cache = &mut text_renderer.swash_cache.lock().unwrap();
 
         let swapchain_format = TextureFormat::Rgba8Unorm;
         let mut atlas = TextAtlas::new(
@@ -99,38 +113,6 @@ impl TextRenderer {
             MultisampleState::default(),
             None,
         );
-        let mut buffer = Buffer::new(
-            font_system,
-            Metrics::new(self.text_specs.font_size, self.text_specs.line_height),
-        );
-
-        buffer.set_size(
-            font_system,
-            target.resolution.width as f32,
-            target.resolution.height as f32,
-        );
-
-        buffer.set_text(
-            font_system,
-            &self.text_specs.content,
-            self.text_specs.attributes.as_attrs(),
-            Shaping::Advanced,
-        );
-
-        buffer.set_wrap(font_system, self.text_specs.wrap);
-
-        for line in &mut buffer.lines {
-            line.set_align(Some(self.text_specs.align));
-        }
-
-        buffer.shape_until_scroll(font_system);
-
-        // TODO add different output texture size strategies
-        // use this to crop texture to smallest possible size if needed
-        // this "cutting to smallest possible size" strategy
-        // should require align to left or justify
-        let texture_size = Self::get_texture_size(buffer.lines.iter(), self.text_specs.line_height);
-        info!("Text rendered size: {:?}", texture_size);
 
         text_renderer
             .prepare(
@@ -143,7 +125,7 @@ impl TextRenderer {
                     height: target.resolution.height as u32,
                 },
                 [TextArea {
-                    buffer: &buffer,
+                    buffer: &self.buffer,
                     left: 0 as f32,
                     top: 0 as f32,
                     scale: 1.0,
@@ -190,12 +172,70 @@ impl TextRenderer {
         *was_rendered = true;
     }
 
-    fn get_texture_size<'a, I: Iterator<Item = &'a glyphon::BufferLine>>(
+    fn layout_text(
+        text_renderer_ctx: &TextRendererCtx,
+        text_params: TextParams,
+        text_resolution: TextDimensions,
+    ) -> (Buffer, Resolution) {
+        let font_system = &mut text_renderer_ctx.font_system.lock().unwrap();
+
+        let mut buffer = Buffer::new(
+            font_system,
+            Metrics::new(text_params.font_size, text_params.line_height),
+        );
+
+        buffer.set_text(
+            font_system,
+            &text_params.content,
+            text_params.attributes.as_attrs(),
+            Shaping::Advanced,
+        );
+
+        buffer.set_wrap(font_system, text_params.wrap);
+
+        match text_resolution {
+            TextDimensions::Fixed { resolution } => {
+                buffer.set_size(
+                    font_system,
+                    resolution.width as f32,
+                    resolution.height as f32,
+                );
+
+                for line in &mut buffer.lines {
+                    line.set_align(Some(text_params.align));
+                }
+
+                buffer.shape_until_scroll(font_system);
+                (buffer, resolution)
+            }
+            TextDimensions::Fitted {
+                max_width,
+                max_height,
+            } => Self::layout_fitted(
+                buffer,
+                font_system,
+                Resolution {
+                    width: max_width as usize,
+                    height: max_height as usize,
+                },
+                &text_params,
+            ),
+            TextDimensions::FittedColumn { width, max_height } => Self::layout_fitted(
+                buffer,
+                font_system,
+                Resolution {
+                    width: width as usize,
+                    height: max_height as usize,
+                },
+                &text_params,
+            ),
+        }
+    }
+
+    fn get_texture_resolution<'a, I: Iterator<Item = &'a glyphon::BufferLine>>(
         lines: I,
         line_height: f32,
-    ) -> (u32, u32) {
-        // TODO add different output texture size strategies
-        // use this to crop texture to smallest possible size if needed
+    ) -> Resolution {
         let mut width = 0;
         let mut lines_count = 0u32;
 
@@ -209,6 +249,40 @@ impl TextRenderer {
         }
 
         let height = lines_count * line_height.ceil() as u32;
-        (width, height)
+        Resolution {
+            width: width as usize,
+            height: height as usize,
+        }
+    }
+
+    fn layout_fitted(
+        mut buffer: Buffer,
+        font_system: &mut FontSystem,
+        max_resolution: Resolution,
+        text_params: &TextParams,
+    ) -> (Buffer, Resolution) {
+        // Calculate resolution
+        buffer.set_size(
+            font_system,
+            max_resolution.width as f32,
+            max_resolution.height as f32,
+        );
+
+        buffer.shape_until_scroll(font_system);
+        let resolution = Self::get_texture_resolution(buffer.lines.iter(), text_params.line_height);
+
+        // Shape text
+        buffer.set_size(
+            font_system,
+            resolution.width as f32,
+            resolution.height as f32,
+        );
+
+        for line in &mut buffer.lines {
+            line.set_align(Some(text_params.align));
+        }
+        buffer.shape_until_scroll(font_system);
+
+        (buffer, resolution)
     }
 }
