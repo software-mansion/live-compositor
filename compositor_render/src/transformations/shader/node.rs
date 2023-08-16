@@ -61,7 +61,8 @@ impl ShaderNode {
     }
 
     pub fn render(&self, sources: &[(&NodeId, &NodeTexture)], target: &NodeTexture, pts: Duration) {
-        self.shader.render(&self.params_bind_group, sources, target, pts)
+        self.shader
+            .render(&self.params_bind_group, sources, target, pts)
     }
 }
 

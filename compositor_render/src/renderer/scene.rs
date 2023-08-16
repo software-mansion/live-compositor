@@ -54,7 +54,7 @@ impl TransformNode {
         ctx: &mut RenderCtx,
         sources: &[(&NodeId, &NodeTexture)],
         target: &NodeTexture,
-        pts: Duration
+        pts: Duration,
     ) {
         match self {
             TransformNode::Shader(shader) => {
