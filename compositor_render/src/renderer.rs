@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::time::Duration;
 
 use compositor_common::scene::{InputId, OutputId, SceneSpec};
@@ -34,7 +34,7 @@ pub mod texture;
 
 pub struct Renderer {
     pub wgpu_ctx: Arc<WgpuCtx>,
-    pub text_renderer_ctx: Mutex<TextRendererCtx>,
+    pub text_renderer_ctx: TextRendererCtx,
     pub electron_instance: Arc<ElectronInstance>,
     pub scene: Scene,
     pub scene_spec: Arc<SceneSpec>,
@@ -44,7 +44,7 @@ pub struct Renderer {
 
 pub struct RenderCtx<'a> {
     pub wgpu_ctx: &'a Arc<WgpuCtx>,
-    pub text_renderer_ctx: &'a Mutex<TextRendererCtx>,
+    pub text_renderer_ctx: &'a TextRendererCtx,
     pub electron: &'a Arc<ElectronInstance>,
     pub(crate) shader_transforms: &'a TransformationRegistry<Arc<Shader>>,
     pub(crate) web_renderers: &'a TransformationRegistry<Arc<WebRenderer>>,
@@ -77,7 +77,7 @@ impl Renderer {
     pub fn new(init_web: bool) -> Result<Self, RendererNewError> {
         Ok(Self {
             wgpu_ctx: Arc::new(WgpuCtx::new()?),
-            text_renderer_ctx: Mutex::new(TextRendererCtx::new()),
+            text_renderer_ctx: TextRendererCtx::new(),
             electron_instance: Arc::new(ElectronInstance::new(9002, init_web)?), // TODO: make it configurable
             scene: Scene::empty(),
             web_renderers: TransformationRegistry::new(RegistryType::WebRenderer),

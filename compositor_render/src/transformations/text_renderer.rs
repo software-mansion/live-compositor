@@ -78,7 +78,7 @@ impl TextRendererNode {
         text_params: TextSpec,
         text_resolution: TextDimensions,
     ) -> (Self, Resolution) {
-        let text_renderer_ctx = &mut renderer_ctx.text_renderer_ctx.lock().unwrap();
+        let text_renderer_ctx = &renderer_ctx.text_renderer_ctx;
         let (buffer, resolution) =
             Self::layout_text(text_renderer_ctx, text_params.into(), text_resolution);
         (
@@ -97,7 +97,7 @@ impl TextRendererNode {
         }
 
         info!("Text render");
-        let text_renderer = renderer_ctx.text_renderer_ctx.lock().unwrap();
+        let text_renderer = renderer_ctx.text_renderer_ctx;
         let font_system = &mut text_renderer.font_system.lock().unwrap();
         let cache = &mut text_renderer.swash_cache.lock().unwrap();
 
@@ -173,7 +173,7 @@ impl TextRendererNode {
     }
 
     fn layout_text(
-        text_renderer_ctx: &mut TextRendererCtx,
+        text_renderer_ctx: &TextRendererCtx,
         text_params: TextParams,
         text_resolution: TextDimensions,
     ) -> (Buffer, Resolution) {
