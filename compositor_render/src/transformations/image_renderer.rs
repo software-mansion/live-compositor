@@ -33,7 +33,7 @@ impl Image {
                 ImageRenderer::BitmapAsset(asset)
             }
             ImageSpec::Svg { resolution, .. } => {
-                let asset = SVGAsset::new(&ctx.wgpu_ctx, file, resolution)?;
+                let asset = SvgAsset::new(&ctx.wgpu_ctx, file, resolution)?;
                 ImageRenderer::Svg(asset)
             }
             ImageSpec::Gif { .. } => {
@@ -69,7 +69,7 @@ impl ImageNode {
     pub fn render(&self, ctx: &mut RenderCtx, target: &NodeTexture) {
         // TODO: This condition is only correct for static images, it needs
         // to be refactored to support e.g. GIFs with animations
-        let was_rendered = self.was_rendered.lock().unwrap();
+        let mut was_rendered = self.was_rendered.lock().unwrap();
         if *was_rendered {
             return;
         }
@@ -78,6 +78,8 @@ impl ImageNode {
             ImageRenderer::BitmapAsset(asset) => asset.render(ctx.wgpu_ctx, target),
             ImageRenderer::Svg(asset) => asset.render(ctx.wgpu_ctx, target),
         }
+
+        *was_rendered = true;
     }
 
     pub fn resolution(&self) -> Resolution {
@@ -90,7 +92,7 @@ impl ImageNode {
 
 enum ImageRenderer {
     BitmapAsset(BitmapAsset),
-    Svg(SVGAsset),
+    Svg(SvgAsset),
 }
 
 struct BitmapAsset {
@@ -149,11 +151,11 @@ impl BitmapAsset {
     }
 }
 
-struct SVGAsset {
+struct SvgAsset {
     texture: RGBATexture,
 }
 
-impl SVGAsset {
+impl SvgAsset {
     fn new(
         ctx: &WgpuCtx,
         data: Bytes,
