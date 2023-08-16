@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
 use compositor_common::scene::{NodeId, ShaderParam};
 use wgpu::util::DeviceExt;
@@ -60,8 +60,8 @@ impl ShaderNode {
         }
     }
 
-    pub fn render(&self, sources: &[(&NodeId, &NodeTexture)], target: &NodeTexture) {
-        self.shader.render(&self.params_bind_group, sources, target)
+    pub fn render(&self, sources: &[(&NodeId, &NodeTexture)], target: &NodeTexture, pts: Duration) {
+        self.shader.render(&self.params_bind_group, sources, target, pts)
     }
 }
 

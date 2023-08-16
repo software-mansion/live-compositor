@@ -1,6 +1,4 @@
-use crate::renderer::{
-    texture::NodeTexture, GlobalShaderParameters, RegisterTransformationCtx, RenderCtx,
-};
+use crate::renderer::{texture::NodeTexture, GlobalShaderParameters, RegisterTransformationCtx};
 
 use std::{sync::Arc, time::Duration};
 
@@ -76,9 +74,11 @@ impl Shader {
         params: &wgpu::BindGroup,
         sources: &[(&NodeId, &NodeTexture)],
         target: &NodeTexture,
+        pts: Duration,
     ) {
         // TODO: error handling
         let ctx = &self.wgpu_ctx;
+        set_compositor_shader_params(ctx, pts, sources.len() as u32);
 
         // TODO: sources need to be ordered
 
@@ -127,9 +127,7 @@ impl Shader {
     }
 }
 
-pub fn prepare_render_loop(ctx: &RenderCtx, pts: Duration, textures_count: u32) {
-    let ctx = ctx.wgpu_ctx;
-
+pub fn set_compositor_shader_params(ctx: &WgpuCtx, pts: Duration, textures_count: u32) {
     let new_buffer = GlobalShaderParameters::new(pts, textures_count);
 
     ctx.queue.write_buffer(

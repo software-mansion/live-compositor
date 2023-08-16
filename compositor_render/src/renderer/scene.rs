@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use compositor_common::{
     scene::{
@@ -54,10 +54,11 @@ impl TransformNode {
         ctx: &mut RenderCtx,
         sources: &[(&NodeId, &NodeTexture)],
         target: &NodeTexture,
+        pts: Duration
     ) {
         match self {
             TransformNode::Shader(shader) => {
-                shader.render(sources, target);
+                shader.render(sources, target, pts);
             }
             TransformNode::WebRenderer { renderer } => {
                 if let Err(err) = renderer.render(ctx, sources, target) {

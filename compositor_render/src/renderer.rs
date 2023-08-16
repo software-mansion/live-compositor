@@ -7,7 +7,7 @@ use crate::{
     frame_set::FrameSet,
     registry::TransformationRegistry,
     render_loop::{populate_inputs, read_outputs},
-    transformations::{shader, text_renderer::TextRendererCtx},
+    transformations::text_renderer::TextRendererCtx,
 };
 use crate::{
     registry::{self, RegistryType},
@@ -105,9 +105,8 @@ impl Renderer {
             text_renderer_ctx: &self.text_renderer_ctx,
         };
 
-        shader::prepare_render_loop(ctx, inputs.pts, inputs.frames.len() as u32);
         populate_inputs(ctx, &mut self.scene, &mut inputs.frames);
-        run_transforms(ctx, &self.scene);
+        run_transforms(ctx, &self.scene, inputs.pts);
         let frames = read_outputs(ctx, &self.scene, inputs.pts);
 
         FrameSet {
