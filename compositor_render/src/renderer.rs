@@ -245,7 +245,7 @@ impl CommonShaderParameters {
         }
     }
 
-    pub fn raw_data(&self) -> &[u8] {
+    pub fn push_constant(&self) -> &[u8] {
         bytemuck::bytes_of(self)
     }
 }

@@ -128,7 +128,7 @@ impl Pipeline {
             render_pass.set_push_constants(
                 ShaderStages::VERTEX_FRAGMENT,
                 0,
-                common_parameters.raw_data(),
+                common_parameters.push_constant(),
             );
 
             render_pass.set_vertex_buffer(0, self.geometry_buffers.vertex.slice(..));
