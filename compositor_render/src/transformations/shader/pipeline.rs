@@ -44,7 +44,7 @@ impl Pipeline {
             bind_group_layouts: &[&textures_bgl, uniforms_bgl, &sampler.bind_group_layout],
             push_constant_ranges: &[wgpu::PushConstantRange {
                 stages: wgpu::ShaderStages::VERTEX_FRAGMENT,
-                range: 0..CommonShaderParameters::padded_size(4),
+                range: 0..CommonShaderParameters::push_constant_size(),
             }],
         });
 

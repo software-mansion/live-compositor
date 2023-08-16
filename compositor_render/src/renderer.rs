@@ -237,11 +237,11 @@ impl CommonShaderParameters {
         }
     }
 
-    pub fn padded_size(padded_to: u32) -> u32 {
+    pub fn push_constant_size() -> u32 {
         let size = std::mem::size_of::<CommonShaderParameters>() as u32;
-        match size % padded_to {
+        match size % 4 {
             0 => size,
-            rest => size + (padded_to - rest),
+            rest => size + (4 - rest),
         }
     }
 }
