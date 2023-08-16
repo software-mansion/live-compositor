@@ -5,7 +5,7 @@ use wgpu::ShaderStages;
 use crate::renderer::{
     common_pipeline::{RectangleRenderBuffers, Sampler, Vertex},
     texture::Texture,
-    WgpuCtx,
+    CommonShaderParameters, WgpuCtx,
 };
 
 use super::INPUT_TEXTURES_AMOUNT;
@@ -44,7 +44,7 @@ impl Pipeline {
             bind_group_layouts: &[&textures_bgl, uniforms_bgl, &sampler.bind_group_layout],
             push_constant_ranges: &[wgpu::PushConstantRange {
                 stages: wgpu::ShaderStages::VERTEX_FRAGMENT,
-                range: 0..8,
+                range: 0..CommonShaderParameters::padded_size(4),
             }],
         });
 

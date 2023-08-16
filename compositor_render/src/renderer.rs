@@ -236,4 +236,12 @@ impl CommonShaderParameters {
             textures_count,
         }
     }
+
+    pub fn padded_size(padded_to: u32) -> u32 {
+        let size = std::mem::size_of::<CommonShaderParameters>() as u32;
+        match size % padded_to {
+            0 => size,
+            rest => size + (padded_to - rest),
+        }
+    }
 }
