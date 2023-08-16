@@ -20,7 +20,7 @@ fn vs_main(input: VertexInput) -> VertexOutput {
 
 struct CommonParams {
     time: f32,
-    videos_count: u32,
+    textures_count: u32,
 }
 
 @group(0) @binding(0) var textures: binding_array<texture_2d<f32>, 16>;
@@ -31,7 +31,7 @@ var<push_constant> common_params: CommonParams;
 @fragment
 fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
     // Return transparent frame in case of different input video count
-    if (common_params.videos_count != 1u) {
+    if (common_params.textures_count != 1u) {
         return vec4(0.0, 0.0, 0.0, 0.0);
     }
 
