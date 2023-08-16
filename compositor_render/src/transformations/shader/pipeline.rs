@@ -42,7 +42,7 @@ impl Pipeline {
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("shader transformation pipeline layout"),
             bind_group_layouts: &[&textures_bgl, uniforms_bgl, &sampler.bind_group_layout],
-            push_constant_ranges: &[wgpu::PushConstantRange{
+            push_constant_ranges: &[wgpu::PushConstantRange {
                 stages: wgpu::ShaderStages::VERTEX_FRAGMENT,
                 range: 0..8,
             }],
@@ -104,7 +104,7 @@ impl Pipeline {
         uniforms: &wgpu::BindGroup,
         target: &Texture,
         ctx: &WgpuCtx,
-        push_constants: &[u8]
+        push_constants: &[u8],
     ) {
         let mut encoder = ctx.device.create_command_encoder(&Default::default());
 
