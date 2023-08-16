@@ -196,7 +196,7 @@ impl WgpuCtx {
         let compositor_provided_parameters_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("global shader parameters buffer"),
             mapped_at_creation: false,
-            size: std::mem::size_of::<GlobalShaderParameters>() as u64,
+            size: std::mem::size_of::<CommonShaderParameters>() as u64,
             usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::UNIFORM,
         });
 
@@ -223,12 +223,12 @@ impl WgpuCtx {
 
 #[repr(C)]
 #[derive(Debug, bytemuck::Pod, bytemuck::Zeroable, Clone, Copy)]
-pub struct GlobalShaderParameters {
+pub struct CommonShaderParameters {
     time: f32,
     textures_count: u32,
 }
 
-impl GlobalShaderParameters {
+impl CommonShaderParameters {
     pub fn new(time: Duration, textures_count: u32) -> Self {
         Self {
             time: time.as_secs_f32(),

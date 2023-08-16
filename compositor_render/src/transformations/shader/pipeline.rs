@@ -1,5 +1,7 @@
 use std::num::NonZeroU32;
 
+use wgpu::ShaderStages;
+
 use crate::renderer::{
     common_pipeline::{RectangleRenderBuffers, Sampler, Vertex},
     texture::Texture,
@@ -40,7 +42,10 @@ impl Pipeline {
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("shader transformation pipeline layout"),
             bind_group_layouts: &[&textures_bgl, uniforms_bgl, &sampler.bind_group_layout],
-            push_constant_ranges: &[],
+            push_constant_ranges: &[wgpu::PushConstantRange{
+                stages: wgpu::ShaderStages::VERTEX_FRAGMENT,
+                range: 0..8,
+            }],
         });
 
         let shader_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
@@ -99,6 +104,7 @@ impl Pipeline {
         uniforms: &wgpu::BindGroup,
         target: &Texture,
         ctx: &WgpuCtx,
+        push_constants: &[u8]
     ) {
         let mut encoder = ctx.device.create_command_encoder(&Default::default());
 
@@ -118,6 +124,7 @@ impl Pipeline {
             });
 
             render_pass.set_pipeline(&self.pipeline);
+            render_pass.set_push_constants(ShaderStages::VERTEX_FRAGMENT, 0, push_constants);
             render_pass.set_vertex_buffer(0, self.geometry_buffers.vertex.slice(..));
             render_pass.set_index_buffer(
                 self.geometry_buffers.index.slice(..),
