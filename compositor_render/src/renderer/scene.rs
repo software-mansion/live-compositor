@@ -12,7 +12,7 @@ use log::error;
 use crate::{
     registry::GetError,
     transformations::{
-        shader::node::ShaderNode, text_renderer::TextRenderer, web_renderer::WebRenderer,
+        shader::node::ShaderNode, text_renderer::TextRendererNode, web_renderer::WebRenderer,
     },
 };
 
@@ -26,27 +26,38 @@ pub struct InputNode {}
 pub enum TransformNode {
     Shader(ShaderNode),
     WebRenderer { renderer: Arc<WebRenderer> },
-    TextRenderer { renderer: TextRenderer },
+    TextRenderer(TextRendererNode),
     Nop,
 }
 
 impl TransformNode {
-    fn new(ctx: &RenderCtx, spec: &TransformParams) -> Result<Self, GetError> {
+    fn new(ctx: &RenderCtx, spec: &TransformParams) -> Result<(Self, Resolution), GetError> {
         match spec {
-            TransformParams::WebRenderer { renderer_id } => Ok(TransformNode::WebRenderer {
-                renderer: ctx.web_renderers.get(renderer_id)?,
-            }),
+            TransformParams::WebRenderer { renderer_id } => {
+                let renderer = ctx.web_renderers.get(renderer_id)?;
+                let resolution = renderer.resolution();
+                Ok((TransformNode::WebRenderer { renderer }, resolution))
+            }
             TransformParams::Shader {
                 shader_id,
                 shader_params,
-            } => Ok(TransformNode::Shader(ShaderNode::new(
-                ctx.wgpu_ctx,
-                ctx.shader_transforms.get(shader_id)?,
-                shader_params.as_ref(),
-            ))),
-            TransformParams::TextRenderer { text_params } => Ok(TransformNode::TextRenderer {
-                renderer: TextRenderer::new(text_params.clone()),
-            }),
+                resolution,
+            } => Ok((
+                TransformNode::Shader(ShaderNode::new(
+                    ctx.wgpu_ctx,
+                    ctx.shader_transforms.get(shader_id)?,
+                    shader_params.as_ref(),
+                )),
+                *resolution,
+            )),
+            TransformParams::TextRenderer {
+                text_params,
+                resolution,
+            } => {
+                let (renderer, resolution) =
+                    TextRendererNode::new(ctx, text_params.clone(), resolution.clone());
+                Ok((TransformNode::TextRenderer(renderer), resolution))
+            }
         }
     }
     pub fn render(
@@ -64,7 +75,7 @@ impl TransformNode {
                     error!("Web render operation failed {err}");
                 }
             }
-            TransformNode::TextRenderer { renderer } => {
+            TransformNode::TextRenderer(renderer) => {
                 renderer.render(ctx, target);
             }
             TransformNode::Nop => (),
@@ -86,12 +97,12 @@ impl Node {
         spec: &TransformNodeSpec,
         inputs: Vec<Arc<Node>>,
     ) -> Result<Self, GetError> {
-        let node = TransformNode::new(ctx, &spec.transform_params)?;
-        let output = NodeTexture::new(ctx.wgpu_ctx, spec.resolution);
+        let (node, resolution) = TransformNode::new(ctx, &spec.transform_params)?;
+        let output = NodeTexture::new(ctx.wgpu_ctx, resolution);
         Ok(Self {
             node_id: spec.node_id.clone(),
             transform: node,
-            resolution: spec.resolution,
+            resolution,
             inputs,
             output,
         })

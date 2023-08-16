@@ -19,6 +19,7 @@ const VIDEO_RESOLUTION: Resolution = Resolution {
     width: 1920,
     height: 1080,
 };
+
 const FRAMERATE: Framerate = Framerate(30);
 
 fn main() {
@@ -60,23 +61,8 @@ fn start_example_client_code() -> Result<()> {
     info!("[example] Send register output request.");
     common::post(&json!({
         "type": "register_output",
-        "id": "output 1",
+        "id": "output_1",
         "port": 8002,
-        "ip": "127.0.0.1",
-        "resolution": {
-            "width": VIDEO_RESOLUTION.width,
-            "height": VIDEO_RESOLUTION.height,
-        },
-        "encoder_settings": {
-            "preset": "ultrafast"
-        }
-    }))?;
-
-    info!("[example] Send register output request.");
-    common::post(&json!({
-        "type": "register_output",
-        "id": "output 2",
-        "port": 8006,
         "ip": "127.0.0.1",
         "resolution": {
             "width": VIDEO_RESOLUTION.width,
@@ -90,19 +76,14 @@ fn start_example_client_code() -> Result<()> {
     info!("[example] Send register input request.");
     common::post(&json!({
         "type": "register_input",
-        "id": "input 1",
+        "id": "input_1",
         "port": 8004
     }))?;
 
     info!("[example] Update scene");
     common::post(&json!({
         "type": "update_scene",
-        "inputs": [
-            {
-                "input_id": "input 1",
-                "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
-            }
-        ],
+        "inputs": [],
         "transforms": [
            {
                 "node_id": "text_renderer",
@@ -113,20 +94,18 @@ fn start_example_client_code() -> Result<()> {
                     "font_family": "Comic Sans MS",
                     "align": "center",
                     "wrap": "word",
-                    "color_rgba": "#00FF00FF",
+                },
+                "resolution": {
+                    "type": "fixed",
+                    "resolution": {"width": 1920, "height": 1080},
                 },
                 "input_pads": [],
-                "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
            }
         ],
         "outputs": [
             {
-                "output_id": "output 1",
+                "output_id": "output_1",
                 "input_pad": "text_renderer"
-            },
-            {
-                "output_id": "output 2",
-                "input_pad": "input 1"
             }
         ]
     }))?;

@@ -3,9 +3,14 @@ use std::{fmt::Display, sync::Arc};
 
 use crate::{transformation::TransformationRegistryKey, util::RGBColor};
 
-use self::text_spec::TextSpec;
+use self::text_spec::{TextDimensions, TextSpec};
 
 pub mod text_spec;
+
+pub const MAX_NODE_RESOLUTION: Resolution = Resolution {
+    width: 7682,
+    height: 4320,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Resolution {
@@ -78,7 +83,6 @@ pub struct OutputSpec {
 pub struct TransformNodeSpec {
     pub node_id: NodeId,
     pub input_pads: Vec<NodeId>,
-    pub resolution: Resolution,
 
     #[serde(flatten)]
     pub transform_params: TransformParams,
@@ -94,9 +98,11 @@ pub enum TransformParams {
     Shader {
         shader_id: TransformationRegistryKey,
         shader_params: Option<ShaderParam>,
+        resolution: Resolution,
     },
     TextRenderer {
         text_params: TextSpec,
+        resolution: TextDimensions,
     },
 }
 

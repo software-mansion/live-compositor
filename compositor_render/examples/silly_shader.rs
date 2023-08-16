@@ -106,10 +106,10 @@ fn main() {
             transforms: vec![TransformNodeSpec {
                 input_pads: vec![input_id.clone()],
                 node_id: shader_id.clone(),
-                resolution,
                 transform_params: compositor_common::scene::TransformParams::Shader {
                     shader_id: shader_key,
                     shader_params: None,
+                    resolution,
                 },
             }],
             outputs: vec![OutputSpec {
