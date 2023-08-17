@@ -6,7 +6,10 @@ use crate::renderer::{
 };
 
 use compositor_chromium::cef;
-use compositor_common::{scene::NodeId, transformation::WebRendererTransformationParams};
+use compositor_common::{
+    scene::{NodeId, Resolution},
+    transformation::WebRendererTransformationParams,
+};
 use log::{error, info};
 use serde::{Deserialize, Serialize};
 
@@ -86,6 +89,10 @@ impl WebRenderer {
                 &target.rgba_texture(),
             );
         }
+    }
+
+    pub fn resolution(&self) -> Resolution {
+        self.params.resolution
     }
 }
 

@@ -21,6 +21,7 @@ bytemuck = { version = "1.13.1", features = ["derive"] }
 glyphon = "0.3.0"
 crossbeam-channel = { workspace = true }
 signal-hook = { workspace = true }
+resvg = "0.35.0"
 
 [dev-dependencies]
 env_logger = { workspace = true }

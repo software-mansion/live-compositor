@@ -79,7 +79,7 @@ fn main() {
         env_logger::Env::default().filter_or(env_logger::DEFAULT_FILTER_ENV, "info"),
     );
 
-    let frame = get_image("compositor_render/examples/crab.jpg");
+    let frame = get_image("./examples/silly/crab.jpg");
     let resolution = frame.resolution;
 
     let (mut renderer, _) = Renderer::new(
@@ -96,7 +96,7 @@ fn main() {
         .register_transformation(
             shader_key.clone(),
             TransformationSpec::Shader {
-                source: include_str!("silly.wgsl").into(),
+                source: include_str!("./silly/silly.wgsl").into(),
             },
         )
         .expect("create shader");
@@ -109,15 +109,16 @@ fn main() {
         .update_scene(Arc::new(SceneSpec {
             inputs: vec![InputSpec {
                 input_id: input_id.clone().into(),
+                fallback_color_rgb: None,
                 resolution,
             }],
             transforms: vec![TransformNodeSpec {
                 input_pads: vec![input_id.clone()],
                 node_id: shader_id.clone(),
-                resolution,
                 transform_params: compositor_common::scene::TransformParams::Shader {
                     shader_id: shader_key,
                     shader_params: None,
+                    resolution,
                 },
             }],
             outputs: vec![OutputSpec {

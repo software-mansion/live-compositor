@@ -17,7 +17,9 @@ pub(super) fn populate_inputs(
     frames: &mut HashMap<InputId, Arc<Frame>>,
 ) {
     for (input_id, (node, input_textures)) in &mut scene.inputs {
-        let frame = frames.remove(input_id).unwrap();
+        let Some(frame) = frames.remove(input_id) else {
+            continue;
+        };
         node.output.ensure_size(ctx.wgpu_ctx, frame.resolution);
         input_textures.upload(ctx.wgpu_ctx, frame);
     }
@@ -71,14 +73,14 @@ pub(super) fn read_outputs(
     result
 }
 
-pub(super) fn run_transforms(ctx: &mut RenderCtx, scene: &Scene) {
+pub(super) fn run_transforms(ctx: &mut RenderCtx, scene: &Scene, pts: Duration) {
     for node in render_order_iter(scene) {
         let sources: Vec<_> = node
             .inputs
             .iter()
             .map(|node| (&node.node_id, &node.output))
             .collect();
-        node.transform.render(ctx, &sources, &node.output)
+        node.transform.render(ctx, &sources, &node.output, pts)
     }
 }
 

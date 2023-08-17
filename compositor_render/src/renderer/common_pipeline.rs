@@ -127,7 +127,7 @@ impl U32Uniform {
         let buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("uniform u32 buffer"),
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-            contents: bytemuck::cast_slice(&[0u32]),
+            contents: bytemuck::bytes_of(&0u32),
         });
 
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {

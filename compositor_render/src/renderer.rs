@@ -1,4 +1,5 @@
-use std::{sync::Arc, time::Duration};
+use std::sync::Arc;
+use std::time::Duration;
 
 use compositor_common::{
     scene::{InputId, OutputId, SceneSpec},
@@ -11,7 +12,7 @@ use crate::{
     registry::TransformationRegistry,
     render_loop::{populate_inputs, read_outputs},
     transformations::{
-        shader,
+        image_renderer::{Image, ImageError},
         text_renderer::TextRendererCtx,
         web_renderer::chromium::{ChromiumContext, ChromiumContextError},
     },
@@ -27,7 +28,9 @@ use crate::{
 };
 
 use self::{
-    color_converter_pipeline::{BGRAToRGBAConverter, RGBAToYUVConverter, YUVToRGBAConverter},
+    color_converter_pipeline::{
+        BGRAToRGBAConverter, R8FillWithValuePipeline, RGBAToYUVConverter, YUVToRGBAConverter,
+    },
     scene::{Scene, SceneUpdateError},
     texture::{BGRATexture, RGBATexture, YUVTextures},
 };
@@ -45,6 +48,7 @@ pub struct Renderer {
     pub scene_spec: Arc<SceneSpec>,
     pub(crate) shader_transforms: TransformationRegistry<Arc<Shader>>,
     pub(crate) web_renderers: TransformationRegistry<Arc<WebRenderer>>,
+    pub(crate) image_registry: TransformationRegistry<Arc<Image>>,
 }
 
 pub struct RenderCtx<'a> {
@@ -53,6 +57,7 @@ pub struct RenderCtx<'a> {
     pub chromium: &'a Arc<ChromiumContext>,
     pub(crate) shader_transforms: &'a TransformationRegistry<Arc<Shader>>,
     pub(crate) web_renderers: &'a TransformationRegistry<Arc<WebRenderer>>,
+    pub(crate) image_registry: &'a TransformationRegistry<Arc<Image>>,
 }
 
 pub struct RegisterTransformationCtx {
@@ -76,6 +81,9 @@ pub enum RendererRegisterTransformationError {
 
     #[error("failed to create web renderer transformation")]
     WebRendererTransformation(#[from] WebRendererNewError),
+
+    #[error("failed to prepare image")]
+    ImageTransformation(#[from] ImageError),
 }
 
 impl Renderer {
@@ -90,6 +98,7 @@ impl Renderer {
             scene: Scene::empty(),
             web_renderers: TransformationRegistry::new(RegistryType::WebRenderer),
             shader_transforms: TransformationRegistry::new(RegistryType::Shader),
+            image_registry: TransformationRegistry::new(RegistryType::Image),
             scene_spec: Arc::new(SceneSpec {
                 inputs: vec![],
                 transforms: vec![],
@@ -112,11 +121,11 @@ impl Renderer {
             shader_transforms: &self.shader_transforms,
             web_renderers: &self.web_renderers,
             text_renderer_ctx: &self.text_renderer_ctx,
+            image_registry: &self.image_registry,
         };
 
-        shader::prepare_render_loop(ctx, inputs.pts);
         populate_inputs(ctx, &mut self.scene, &mut inputs.frames);
-        run_transforms(ctx, &self.scene);
+        run_transforms(ctx, &self.scene, inputs.pts);
         let frames = read_outputs(ctx, &self.scene, inputs.pts);
 
         FrameSet {
@@ -133,6 +142,7 @@ impl Renderer {
                 chromium: &self.chromium_context,
                 shader_transforms: &self.shader_transforms,
                 web_renderers: &self.web_renderers,
+                image_registry: &self.image_registry,
             },
             &scene_specs,
         )?;
@@ -154,6 +164,7 @@ pub struct WgpuCtx {
     pub yuv_to_rgba_converter: YUVToRGBAConverter,
     pub rgba_to_yuv_converter: RGBAToYUVConverter,
     pub bgra_to_rgba_converter: BGRAToRGBAConverter,
+    pub r8_fill_with_color_pipeline: R8FillWithValuePipeline,
 
     pub shader_parameters_bind_group_layout: wgpu::BindGroupLayout,
 
@@ -187,8 +198,11 @@ impl WgpuCtx {
         let (device, queue) = pollster::block_on(adapter.request_device(
             &wgpu::DeviceDescriptor {
                 label: Some("Video Compositor's GPU :^)"),
-                limits: Default::default(),
-                features: wgpu::Features::TEXTURE_BINDING_ARRAY,
+                limits: wgpu::Limits {
+                    max_push_constant_size: 128,
+                    ..Default::default()
+                },
+                features: wgpu::Features::TEXTURE_BINDING_ARRAY | wgpu::Features::PUSH_CONSTANTS,
             },
             None,
         ))?;
@@ -199,13 +213,14 @@ impl WgpuCtx {
         let yuv_to_rgba_converter = YUVToRGBAConverter::new(&device, &yuv_bind_group_layout);
         let rgba_to_yuv_converter = RGBAToYUVConverter::new(&device, &rgba_bind_group_layout);
         let bgra_to_rgba_converter = BGRAToRGBAConverter::new(&device, &bgra_bind_group_layout);
+        let r8_fill_with_color_pipeline = R8FillWithValuePipeline::new(&device);
 
         let shader_parameters_bind_group_layout = Shader::new_parameters_bind_group_layout(&device);
 
         let compositor_provided_parameters_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("global shader parameters buffer"),
             mapped_at_creation: false,
-            size: std::mem::size_of::<GlobalShaderParameters>() as u64,
+            size: std::mem::size_of::<CommonShaderParameters>() as u64,
             usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::UNIFORM,
         });
 
@@ -225,6 +240,7 @@ impl WgpuCtx {
             yuv_to_rgba_converter,
             rgba_to_yuv_converter,
             bgra_to_rgba_converter,
+            r8_fill_with_color_pipeline,
             shader_parameters_bind_group_layout,
             compositor_provided_parameters_buffer,
         })
@@ -233,14 +249,28 @@ impl WgpuCtx {
 
 #[repr(C)]
 #[derive(Debug, bytemuck::Pod, bytemuck::Zeroable, Clone, Copy)]
-pub struct GlobalShaderParameters {
+pub struct CommonShaderParameters {
     time: f32,
+    textures_count: u32,
 }
 
-impl GlobalShaderParameters {
-    pub fn new(time: Duration) -> Self {
+impl CommonShaderParameters {
+    pub fn new(time: Duration, textures_count: u32) -> Self {
         Self {
             time: time.as_secs_f32(),
+            textures_count,
         }
+    }
+
+    pub fn push_constant_size() -> u32 {
+        let size = std::mem::size_of::<CommonShaderParameters>() as u32;
+        match size % 4 {
+            0 => size,
+            rest => size + (4 - rest),
+        }
+    }
+
+    pub fn push_constant(&self) -> &[u8] {
+        bytemuck::bytes_of(self)
     }
 }

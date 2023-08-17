@@ -1,6 +1,4 @@
-use crate::renderer::{
-    texture::NodeTexture, GlobalShaderParameters, RegisterTransformationCtx, RenderCtx,
-};
+use crate::renderer::{texture::NodeTexture, CommonShaderParameters, RegisterTransformationCtx};
 
 use std::{sync::Arc, time::Duration};
 
@@ -76,6 +74,7 @@ impl Shader {
         params: &wgpu::BindGroup,
         sources: &[(&NodeId, &NodeTexture)],
         target: &NodeTexture,
+        pts: Duration,
     ) {
         // TODO: error handling
         let ctx = &self.wgpu_ctx;
@@ -118,23 +117,14 @@ impl Shader {
             }],
         });
 
+        let common_shader_params = CommonShaderParameters::new(pts, sources.len() as u32);
+
         self.pipeline.render(
             &input_textures_bg,
             params,
             target.rgba_texture().texture(),
             ctx,
+            common_shader_params,
         );
     }
-}
-
-pub fn prepare_render_loop(ctx: &RenderCtx, pts: Duration) {
-    let ctx = ctx.wgpu_ctx;
-
-    let new_buffer = GlobalShaderParameters::new(pts);
-
-    ctx.queue.write_buffer(
-        &ctx.compositor_provided_parameters_buffer,
-        0,
-        bytemuck::cast_slice(&[new_buffer]),
-    );
 }

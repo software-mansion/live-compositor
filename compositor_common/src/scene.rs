@@ -1,11 +1,16 @@
 use serde::{Deserialize, Serialize};
 use std::{fmt::Display, sync::Arc};
 
-use crate::transformation::TransformationRegistryKey;
+use crate::{transformation::TransformationRegistryKey, util::RGBColor};
 
-use self::text_spec::TextSpec;
+use self::text_spec::{TextDimensions, TextSpec};
 
 pub mod text_spec;
+
+pub const MAX_NODE_RESOLUTION: Resolution = Resolution {
+    width: 7682,
+    height: 4320,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Resolution {
@@ -65,6 +70,7 @@ pub struct SceneSpec {
 pub struct InputSpec {
     pub input_id: InputId,
     pub resolution: Resolution,
+    pub fallback_color_rgb: Option<RGBColor>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -76,8 +82,8 @@ pub struct OutputSpec {
 #[derive(Serialize, Deserialize)]
 pub struct TransformNodeSpec {
     pub node_id: NodeId,
+    #[serde(default)]
     pub input_pads: Vec<NodeId>,
-    pub resolution: Resolution,
 
     #[serde(flatten)]
     pub transform_params: TransformParams,
@@ -93,9 +99,14 @@ pub enum TransformParams {
     Shader {
         shader_id: TransformationRegistryKey,
         shader_params: Option<ShaderParam>,
+        resolution: Resolution,
     },
     TextRenderer {
         text_params: TextSpec,
+        resolution: TextDimensions,
+    },
+    Image {
+        image_id: TransformationRegistryKey,
     },
 }
 

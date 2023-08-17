@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use compositor_common::{
     scene::{
@@ -12,7 +12,8 @@ use log::error;
 use crate::{
     registry::GetError,
     transformations::{
-        shader::node::ShaderNode, text_renderer::TextRenderer, web_renderer::WebRenderer,
+        image_renderer::ImageNode, shader::node::ShaderNode, text_renderer::TextRendererNode,
+        web_renderer::WebRenderer,
     },
 };
 
@@ -26,45 +27,65 @@ pub struct InputNode {}
 pub enum TransformNode {
     Shader(ShaderNode),
     WebRenderer { renderer: Arc<WebRenderer> },
-    TextRenderer { renderer: TextRenderer },
+    TextRenderer(TextRendererNode),
+    ImageRenderer(ImageNode),
     Nop,
 }
 
 impl TransformNode {
-    fn new(ctx: &RenderCtx, spec: &TransformParams) -> Result<Self, GetError> {
+    fn new(ctx: &RenderCtx, spec: &TransformParams) -> Result<(Self, Resolution), GetError> {
         match spec {
-            TransformParams::WebRenderer { renderer_id } => Ok(TransformNode::WebRenderer {
-                renderer: ctx.web_renderers.get(renderer_id)?,
-            }),
+            TransformParams::WebRenderer { renderer_id } => {
+                let renderer = ctx.web_renderers.get(renderer_id)?;
+                let resolution = renderer.resolution();
+                Ok((TransformNode::WebRenderer { renderer }, resolution))
+            }
             TransformParams::Shader {
                 shader_id,
                 shader_params,
-            } => Ok(TransformNode::Shader(ShaderNode::new(
-                ctx.wgpu_ctx,
-                ctx.shader_transforms.get(shader_id)?,
-                shader_params.as_ref(),
-            ))),
-            TransformParams::TextRenderer { text_params } => Ok(TransformNode::TextRenderer {
-                renderer: TextRenderer::new(text_params.clone()),
-            }),
+                resolution,
+            } => Ok((
+                TransformNode::Shader(ShaderNode::new(
+                    ctx.wgpu_ctx,
+                    ctx.shader_transforms.get(shader_id)?,
+                    shader_params.as_ref(),
+                )),
+                *resolution,
+            )),
+            TransformParams::TextRenderer {
+                text_params,
+                resolution,
+            } => {
+                let (renderer, resolution) =
+                    TextRendererNode::new(ctx, text_params.clone(), resolution.clone());
+                Ok((TransformNode::TextRenderer(renderer), resolution))
+            }
+            TransformParams::Image { image_id } => {
+                let node = ImageNode::new(ctx.image_registry.get(image_id)?);
+                let resolution = node.resolution();
+                Ok((TransformNode::ImageRenderer(node), resolution))
+            }
         }
     }
+
     pub fn render(
         &self,
         ctx: &mut RenderCtx,
         sources: &[(&NodeId, &NodeTexture)],
         target: &NodeTexture,
+        pts: Duration,
     ) {
         match self {
             TransformNode::Shader(shader) => {
-                shader.render(sources, target);
+                shader.render(sources, target, pts);
             }
             TransformNode::WebRenderer { renderer } => {
                 renderer.render(ctx, sources, target);
             }
-            TransformNode::TextRenderer { renderer } => {
+            TransformNode::TextRenderer(renderer) => {
                 renderer.render(ctx, target);
             }
+            TransformNode::ImageRenderer(node) => node.render(ctx, target),
             TransformNode::Nop => (),
         }
     }
@@ -84,12 +105,12 @@ impl Node {
         spec: &TransformNodeSpec,
         inputs: Vec<Arc<Node>>,
     ) -> Result<Self, GetError> {
-        let node = TransformNode::new(ctx, &spec.transform_params)?;
-        let output = NodeTexture::new(ctx.wgpu_ctx, spec.resolution);
+        let (node, resolution) = TransformNode::new(ctx, &spec.transform_params)?;
+        let output = NodeTexture::new(ctx.wgpu_ctx, resolution);
         Ok(Self {
             node_id: spec.node_id.clone(),
             transform: node,
-            resolution: spec.resolution,
+            resolution,
             inputs,
             output,
         })
@@ -193,7 +214,7 @@ impl Scene {
                     InputId(node_id.clone()),
                     (
                         node.clone(),
-                        InputTexture::new(ctx.wgpu_ctx, input.resolution),
+                        InputTexture::new(ctx.wgpu_ctx, input.resolution, input.fallback_color_rgb),
                     ),
                 );
                 return Ok(node);

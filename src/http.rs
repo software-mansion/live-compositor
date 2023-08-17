@@ -2,13 +2,14 @@ use anyhow::{anyhow, Result};
 use compositor_common::SpecValidationError;
 use compositor_pipeline::pipeline;
 use compositor_render::{event_loop::EventLoop, registry};
+use crossbeam_channel::RecvTimeoutError;
 use log::{error, info};
 
 use serde_json::json;
-use std::{error::Error, io::Cursor, net::SocketAddr, thread};
+use std::{error::Error, io::Cursor, net::SocketAddr, sync::Arc, thread, time::Duration};
 use tiny_http::{Header, Response, StatusCode};
 
-use crate::api::{Api, Request};
+use crate::api::{self, Api, Request, ResponseHandler};
 
 pub struct Server {
     server: tiny_http::Server,
@@ -16,21 +17,56 @@ pub struct Server {
 }
 
 impl Server {
-    pub fn new(port: u16) -> Self {
+    pub fn new(port: u16) -> Arc<Self> {
         Self {
             server: tiny_http::Server::http(SocketAddr::from(([0, 0, 0, 0], port))).unwrap(),
             content_type_json: Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..])
                 .unwrap(),
         }
+        .into()
     }
 
-    pub fn run(self) {
+    pub fn run(self: Arc<Self>) {
         info!("Listening on port {}", self.server.server_addr());
         let (mut api, event_loop) = self.handle_init();
         thread::spawn(move || {
             for mut raw_request in self.server.incoming_requests() {
                 let result = Self::handle_request_after_init(&mut api, &mut raw_request);
-                self.send_response(raw_request, result);
+                match result {
+                    Ok(ResponseHandler::Ok) => {
+                        self.send_response(raw_request, api::Response::Ok {});
+                    }
+                    Ok(ResponseHandler::Response(response)) => {
+                        self.send_response(raw_request, response);
+                    }
+                    Ok(ResponseHandler::DeferredResponse(response)) => {
+                        let server = self.clone();
+                        thread::spawn(move || {
+                            let response = response.recv_timeout(Duration::from_secs(60));
+                            match response {
+                                Ok(Ok(response)) => {
+                                    server.send_response(raw_request, response);
+                                }
+                                Ok(Err(err)) => {
+                                    server.send_err_response(raw_request, err);
+                                }
+                                Err(RecvTimeoutError::Timeout) => {
+                                    server
+                                        .send_err_response(raw_request, anyhow!("query timed out"));
+                                }
+                                Err(RecvTimeoutError::Disconnected) => {
+                                    server.send_err_response(
+                                        raw_request,
+                                        anyhow!("internal server error"),
+                                    );
+                                }
+                            };
+                        });
+                    }
+                    Err(err) => {
+                        self.send_err_response(raw_request, err);
+                    }
+                }
             }
         });
 
@@ -46,11 +82,11 @@ impl Server {
                 .and_then(Api::new);
             match result {
                 Ok(new_api) => {
-                    self.send_response(raw_request, Ok(()));
+                    self.send_response(raw_request, api::Response::Ok {});
                     return new_api;
                 }
                 Err(err) => {
-                    self.send_response(raw_request, Err(err));
+                    self.send_err_response(raw_request, err);
                 }
             }
         }
@@ -60,7 +96,7 @@ impl Server {
     fn handle_request_after_init(
         api: &mut Api,
         raw_request: &mut tiny_http::Request,
-    ) -> Result<()> {
+    ) -> Result<ResponseHandler> {
         let request = Server::parse_request(raw_request)?;
         api.handle_request(request)
     }
@@ -78,49 +114,49 @@ impl Server {
         }
     }
 
-    fn send_response(&self, raw_request: tiny_http::Request, response: Result<()>) {
-        let response_result = match response {
-            Ok(_) => {
-                let body = "{}".as_bytes().to_vec();
-                raw_request
-                    .respond(Response::new(
-                        StatusCode(200),
-                        vec![self.content_type_json.clone()],
-                        Cursor::new(&body),
-                        Some(body.len()),
-                        None,
-                    ))
-                    .map_err(Into::into)
-            }
-            Err(err) => self.handle_error(raw_request, err.as_ref()),
-        };
+    fn send_response(&self, raw_request: tiny_http::Request, response: api::Response) {
+        let response_result = serde_json::to_string(&response)
+            .map_err(Into::into)
+            .and_then(|body| {
+                raw_request.respond(Response::new(
+                    StatusCode(200),
+                    vec![self.content_type_json.clone()],
+                    Cursor::new(&body),
+                    Some(body.len()),
+                    None,
+                ))
+            });
         if let Err(err) = response_result {
             error!("Failed to send response {}.", err);
         }
     }
 
-    fn handle_error(
-        &self,
-        raw_request: tiny_http::Request,
-        err: &(dyn Error + 'static),
-    ) -> Result<()> {
-        let reason: Vec<String> = Sources(Some(err)).map(|e| format!("{e}")).collect();
-        let body = serde_json::to_string(&json!({
-            "msg": reason[0],
-            "reason": reason,
-        }))?;
+    fn send_err_response(&self, raw_request: tiny_http::Request, err: anyhow::Error) {
+        let reason: Vec<String> = Sources(Some(err.as_ref()))
+            .map(|e| format!("{e}"))
+            .collect();
         let status_code = match is_user_error(err) {
             true => 400,
             false => 500,
         };
-        raw_request.respond(Response::new(
-            StatusCode(status_code),
-            vec![self.content_type_json.clone()],
-            Cursor::new(&body),
-            Some(body.len()),
-            None,
-        ))?;
-        Ok(())
+
+        let response_result = serde_json::to_string(&json!({
+            "msg": reason[0],
+            "reason": reason,
+        }))
+        .map_err(Into::into)
+        .and_then(|body| {
+            raw_request.respond(Response::new(
+                StatusCode(status_code),
+                vec![self.content_type_json.clone()],
+                Cursor::new(&body),
+                Some(body.len()),
+                None,
+            ))
+        });
+        if let Err(err) = response_result {
+            error!("Failed to send response {}.", err);
+        }
     }
 
     fn parse_request(request: &mut tiny_http::Request) -> Result<Request> {
@@ -128,8 +164,8 @@ impl Server {
     }
 }
 
-fn is_user_error(err: &(dyn Error + 'static)) -> bool {
-    let opt = Some(err);
+fn is_user_error(err: anyhow::Error) -> bool {
+    let opt = Some(err.as_ref());
     let mut sources = Sources(opt);
     sources.any(|source| {
         source.is::<SpecValidationError>()

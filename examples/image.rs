@@ -1,8 +1,8 @@
 use anyhow::Result;
-use compositor_chromium::cef;
 use compositor_common::{scene::Resolution, Framerate};
 use log::{error, info};
 use serde_json::json;
+use signal_hook::{consts, iterator::Signals};
 use std::{
     process::{Command, Stdio},
     thread,
@@ -16,8 +16,8 @@ use crate::common::write_example_sdp_file;
 mod common;
 
 const VIDEO_RESOLUTION: Resolution = Resolution {
-    width: 1920,
-    height: 1080,
+    width: 1280,
+    height: 720,
 };
 const FRAMERATE: Framerate = Framerate(30);
 
@@ -27,15 +27,6 @@ fn main() {
     );
     ffmpeg_next::format::network::init();
 
-    let target_path = &std::env::current_exe()
-        .unwrap()
-        .parent()
-        .unwrap()
-        .join("..");
-    if cef::bundle_app(target_path).is_err() {
-        panic!("Build process helper first: cargo build --bin process_helper");
-    }
-
     thread::spawn(|| {
         if let Err(err) = start_example_client_code() {
             error!("{err}")
@@ -43,6 +34,9 @@ fn main() {
     });
 
     http::Server::new(8001).run();
+
+    let mut signals = Signals::new([consts::SIGINT]).unwrap();
+    signals.forever().next();
 }
 
 fn start_example_client_code() -> Result<()> {
@@ -52,6 +46,7 @@ fn start_example_client_code() -> Result<()> {
     common::post(&json!({
         "type": "init",
         "framerate": FRAMERATE,
+        "init_web_renderer": false,
     }))?;
 
     info!("[example] Start listening on output port.");
@@ -77,6 +72,21 @@ fn start_example_client_code() -> Result<()> {
         }
     }))?;
 
+    info!("[example] Send register output request.");
+    common::post(&json!({
+        "type": "register_output",
+        "id": "output 2",
+        "port": 8006,
+        "ip": "127.0.0.1",
+        "resolution": {
+            "width": VIDEO_RESOLUTION.width,
+            "height": VIDEO_RESOLUTION.height,
+        },
+        "encoder_settings": {
+            "preset": "ultrafast"
+        }
+    }))?;
+
     info!("[example] Send register input request.");
     common::post(&json!({
         "type": "register_input",
@@ -84,24 +94,28 @@ fn start_example_client_code() -> Result<()> {
         "port": 8004
     }))?;
 
-    let shader_source = include_str!("../compositor_render/examples/silly/silly.wgsl");
-    info!("[example] Register shader transform");
+    info!("[example] Register static image");
     common::post(&json!({
         "type": "register_transformation",
-        "key": "example shader",
+        "key": "example_image",
+        //"transform": {
+        //    "type": "image",
+        //    "asset_type": "jpeg",
+        //    "url": "https://i.ytimg.com/vi/ekthcIHDt3I/maxresdefault.jpg",
+        //},
+        //
+        // TODO: fix commented out example(after we rescale transforms)
+        // This example links to 1920x1080 image so it won't work without
+        // changing the output resolution
+        //"transform": {
+        //    "type": "image",
+        //    "asset_type": "gif",
+        //    "url": "https://upload.wikimedia.org/wikipedia/commons/b/b6/PM5644-1920x1080.gif",
+        //},
         "transform": {
-            "type": "shader",
-            "source": shader_source,
-        }
-    }))?;
-
-    info!("[example] Register web renderer transform");
-    common::post(&json!({
-        "type": "register_transformation",
-        "key": "example website",
-        "transform": {
-            "type": "web_renderer",
-            "url": "https://www.membrane.stream/", // or other way of providing source
+            "type": "image",
+            "asset_type": "svg",
+            "url": "https://upload.wikimedia.org/wikipedia/commons/c/c1/PM5644.svg",
             "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
         }
     }))?;
@@ -112,34 +126,24 @@ fn start_example_client_code() -> Result<()> {
         "inputs": [
             {
                 "input_id": "input 1",
-                "fallback_color_rgb": "#FF0000",
                 "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
             }
         ],
         "transforms": [
            {
-               "node_id": "side-by-side",
-               "type": "shader",
-               "shader_id": "example shader",
-               "input_pads": [
-                   "add-overlay",
-               ],
-               "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
-           },
-           {
-               "node_id": "add-overlay",
-               "type": "web_renderer",
-               "renderer_id": "example website",
-               "input_pads": [
-                   "input 1",
-               ],
-               "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+                "node_id": "static_image",
+                "type": "image",
+                "image_id": "example_image",
            }
         ],
         "outputs": [
             {
                 "output_id": "output 1",
-                "input_pad": "side-by-side"
+                "input_pad": "static_image"
+            },
+            {
+                "output_id": "output 2",
+                "input_pad": "input 1"
             }
         ]
     }))?;
