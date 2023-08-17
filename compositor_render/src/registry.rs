@@ -17,6 +17,7 @@ pub enum RegisterError {
 pub enum RegistryType {
     Shader,
     WebRenderer,
+    Image,
 }
 
 impl RegistryType {
@@ -24,6 +25,7 @@ impl RegistryType {
         match self {
             RegistryType::Shader => "shader transformation",
             RegistryType::WebRenderer => "web renderer instance",
+            RegistryType::Image => "image",
         }
     }
 }

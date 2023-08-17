@@ -8,6 +8,7 @@ use crate::{
     frame_set::FrameSet,
     registry::TransformationRegistry,
     render_loop::{populate_inputs, read_outputs},
+    transformations::image_renderer::{Image, ImageError},
     transformations::text_renderer::TextRendererCtx,
 };
 use crate::{
@@ -40,6 +41,7 @@ pub struct Renderer {
     pub scene_spec: Arc<SceneSpec>,
     pub(crate) shader_transforms: TransformationRegistry<Arc<Shader>>,
     pub(crate) web_renderers: TransformationRegistry<Arc<WebRenderer>>,
+    pub(crate) image_registry: TransformationRegistry<Arc<Image>>,
 }
 
 pub struct RenderCtx<'a> {
@@ -48,6 +50,7 @@ pub struct RenderCtx<'a> {
     pub electron: &'a Arc<ElectronInstance>,
     pub(crate) shader_transforms: &'a TransformationRegistry<Arc<Shader>>,
     pub(crate) web_renderers: &'a TransformationRegistry<Arc<WebRenderer>>,
+    pub(crate) image_registry: &'a TransformationRegistry<Arc<Image>>,
 }
 
 pub struct RegisterTransformationCtx {
@@ -71,6 +74,9 @@ pub enum RendererRegisterTransformationError {
 
     #[error("failed to create web renderer transformation")]
     WebRendererTransformation(#[from] WebRendererNewError),
+
+    #[error("failed to prepare image")]
+    ImageTransformation(#[from] ImageError),
 }
 
 impl Renderer {
@@ -82,6 +88,7 @@ impl Renderer {
             scene: Scene::empty(),
             web_renderers: TransformationRegistry::new(RegistryType::WebRenderer),
             shader_transforms: TransformationRegistry::new(RegistryType::Shader),
+            image_registry: TransformationRegistry::new(RegistryType::Image),
             scene_spec: Arc::new(SceneSpec {
                 inputs: vec![],
                 transforms: vec![],
@@ -104,6 +111,7 @@ impl Renderer {
             shader_transforms: &self.shader_transforms,
             web_renderers: &self.web_renderers,
             text_renderer_ctx: &self.text_renderer_ctx,
+            image_registry: &self.image_registry,
         };
 
         populate_inputs(ctx, &mut self.scene, &mut inputs.frames);
@@ -124,6 +132,7 @@ impl Renderer {
                 electron: &self.electron_instance,
                 shader_transforms: &self.shader_transforms,
                 web_renderers: &self.web_renderers,
+                image_registry: &self.image_registry,
             },
             &scene_specs,
         )?;

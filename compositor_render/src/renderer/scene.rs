@@ -12,7 +12,8 @@ use log::error;
 use crate::{
     registry::GetError,
     transformations::{
-        shader::node::ShaderNode, text_renderer::TextRendererNode, web_renderer::WebRenderer,
+        image_renderer::ImageNode, shader::node::ShaderNode, text_renderer::TextRendererNode,
+        web_renderer::WebRenderer,
     },
 };
 
@@ -27,6 +28,7 @@ pub enum TransformNode {
     Shader(ShaderNode),
     WebRenderer { renderer: Arc<WebRenderer> },
     TextRenderer(TextRendererNode),
+    ImageRenderer(ImageNode),
     Nop,
 }
 
@@ -58,8 +60,14 @@ impl TransformNode {
                     TextRendererNode::new(ctx, text_params.clone(), resolution.clone());
                 Ok((TransformNode::TextRenderer(renderer), resolution))
             }
+            TransformParams::Image { image_id } => {
+                let node = ImageNode::new(ctx.image_registry.get(image_id)?);
+                let resolution = node.resolution();
+                Ok((TransformNode::ImageRenderer(node), resolution))
+            }
         }
     }
+
     pub fn render(
         &self,
         ctx: &mut RenderCtx,
@@ -79,6 +87,7 @@ impl TransformNode {
             TransformNode::TextRenderer(renderer) => {
                 renderer.render(ctx, target);
             }
+            TransformNode::ImageRenderer(node) => node.render(ctx, target),
             TransformNode::Nop => (),
         }
     }

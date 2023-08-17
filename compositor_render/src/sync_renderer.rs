@@ -10,7 +10,7 @@ use crate::{
     renderer::{
         scene::SceneUpdateError, Renderer, RendererNewError, RendererRegisterTransformationError,
     },
-    transformations::{shader::Shader, web_renderer::WebRenderer},
+    transformations::{image_renderer::Image, shader::Shader, web_renderer::WebRenderer},
 };
 
 #[derive(Clone)]
@@ -39,6 +39,12 @@ impl SyncRenderer {
 
                 let mut guard = self.0.lock().unwrap();
                 guard.web_renderers.register(&key, web)?
+            }
+            TransformationSpec::Image(spec) => {
+                let asset = Arc::new(Image::new(&ctx, spec)?);
+
+                let mut guard = self.0.lock().unwrap();
+                guard.image_registry.register(&key, asset)?
             }
         }
         Ok(())
