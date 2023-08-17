@@ -119,7 +119,7 @@ impl ParseCallbacks for RemoveCommentsCallback {
 
 fn download_cef(cef_root_path: &Path) {
     let platform = if cfg!(target_os = "macos") {
-        if cfg!(target_arch = "arm") {
+        if cfg!(target_arch = "aarch64") {
             "macosarm64"
         } else {
             "macosx64"
