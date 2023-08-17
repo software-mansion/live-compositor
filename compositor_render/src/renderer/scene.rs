@@ -12,8 +12,8 @@ use log::error;
 use crate::{
     registry::GetError,
     transformations::{
-        image_renderer::ImageNode, shader::node::ShaderNode, text_renderer::TextRendererNode,
-        web_renderer::WebRenderer,
+        common::registry::CommonTransformationsRegistry, image_renderer::ImageNode,
+        shader::node::ShaderNode, text_renderer::TextRendererNode, web_renderer::WebRenderer,
     },
 };
 
@@ -29,6 +29,7 @@ pub enum TransformNode {
     WebRenderer { renderer: Arc<WebRenderer> },
     TextRenderer(TextRendererNode),
     ImageRenderer(ImageNode),
+    Common(ShaderNode),
     Nop,
 }
 
@@ -49,6 +50,17 @@ impl TransformNode {
                     ctx.wgpu_ctx,
                     ctx.shader_transforms.get(shader_id)?,
                     shader_params.as_ref(),
+                )),
+                *resolution,
+            )),
+            TransformParams::Common {
+                transformation,
+                resolution,
+            } => Ok((
+                TransformNode::Common(ShaderNode::new(
+                    ctx.wgpu_ctx,
+                    ctx.common_transforms.shader(transformation),
+                    CommonTransformationsRegistry::params(transformation, *resolution).as_ref(),
                 )),
                 *resolution,
             )),
@@ -79,6 +91,7 @@ impl TransformNode {
             TransformNode::Shader(shader) => {
                 shader.render(sources, target, pts);
             }
+            TransformNode::Common(shader) => shader.render(sources, target, pts),
             TransformNode::WebRenderer { renderer } => {
                 if let Err(err) = renderer.render(ctx, sources, target) {
                     error!("Web render operation failed {err}");

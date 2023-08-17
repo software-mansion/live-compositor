@@ -9,7 +9,9 @@ use crate::{
     registry::TransformationRegistry,
     render_loop::{populate_inputs, read_outputs},
     transformations::image_renderer::{Image, ImageError},
-    transformations::text_renderer::TextRendererCtx,
+    transformations::{
+        common::registry::CommonTransformationsRegistry, text_renderer::TextRendererCtx,
+    },
 };
 use crate::{
     registry::{self, RegistryType},
@@ -42,6 +44,7 @@ pub struct Renderer {
     pub(crate) shader_transforms: TransformationRegistry<Arc<Shader>>,
     pub(crate) web_renderers: TransformationRegistry<Arc<WebRenderer>>,
     pub(crate) image_registry: TransformationRegistry<Arc<Image>>,
+    pub(crate) common_transformations_registry: CommonTransformationsRegistry,
 }
 
 pub struct RenderCtx<'a> {
@@ -51,6 +54,7 @@ pub struct RenderCtx<'a> {
     pub(crate) shader_transforms: &'a TransformationRegistry<Arc<Shader>>,
     pub(crate) web_renderers: &'a TransformationRegistry<Arc<WebRenderer>>,
     pub(crate) image_registry: &'a TransformationRegistry<Arc<Image>>,
+    pub(crate) common_transforms: &'a CommonTransformationsRegistry,
 }
 
 pub struct RegisterTransformationCtx {
@@ -81,14 +85,16 @@ pub enum RendererRegisterTransformationError {
 
 impl Renderer {
     pub fn new(init_web: bool) -> Result<Self, RendererNewError> {
+        let wgpu_ctx = Arc::new(WgpuCtx::new()?);
         Ok(Self {
-            wgpu_ctx: Arc::new(WgpuCtx::new()?),
+            wgpu_ctx: wgpu_ctx.clone(),
             text_renderer_ctx: TextRendererCtx::new(),
             electron_instance: Arc::new(ElectronInstance::new(9002, init_web)?), // TODO: make it configurable
             scene: Scene::empty(),
             web_renderers: TransformationRegistry::new(RegistryType::WebRenderer),
             shader_transforms: TransformationRegistry::new(RegistryType::Shader),
             image_registry: TransformationRegistry::new(RegistryType::Image),
+            common_transformations_registry: CommonTransformationsRegistry::new(&wgpu_ctx),
             scene_spec: Arc::new(SceneSpec {
                 inputs: vec![],
                 transforms: vec![],
@@ -112,6 +118,7 @@ impl Renderer {
             web_renderers: &self.web_renderers,
             text_renderer_ctx: &self.text_renderer_ctx,
             image_registry: &self.image_registry,
+            common_transforms: &self.common_transformations_registry,
         };
 
         populate_inputs(ctx, &mut self.scene, &mut inputs.frames);
@@ -133,6 +140,7 @@ impl Renderer {
                 shader_transforms: &self.shader_transforms,
                 web_renderers: &self.web_renderers,
                 image_registry: &self.image_registry,
+                common_transforms: &self.common_transformations_registry,
             },
             &scene_specs,
         )?;

@@ -3,8 +3,12 @@ use std::{fmt::Display, sync::Arc};
 
 use crate::{transformation::TransformationRegistryKey, util::RGBColor};
 
-use self::text_spec::{TextDimensions, TextSpec};
+use self::{
+    common_transformations::CommonTransformation,
+    text_spec::{TextDimensions, TextSpec},
+};
 
+pub mod common_transformations;
 pub mod text_spec;
 
 pub const MAX_NODE_RESOLUTION: Resolution = Resolution {
@@ -107,6 +111,10 @@ pub enum TransformParams {
     },
     Image {
         image_id: TransformationRegistryKey,
+    },
+    Common {
+        transformation: CommonTransformation,
+        resolution: Resolution,
     },
 }
 

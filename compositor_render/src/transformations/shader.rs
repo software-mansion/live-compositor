@@ -1,4 +1,4 @@
-use crate::renderer::{texture::NodeTexture, CommonShaderParameters, RegisterTransformationCtx};
+use crate::renderer::{texture::NodeTexture, CommonShaderParameters};
 
 use std::{sync::Arc, time::Duration};
 
@@ -27,16 +27,16 @@ pub struct Shader {
 }
 
 impl Shader {
-    pub fn new(ctx: &RegisterTransformationCtx, shader_src: String) -> Self {
+    pub fn new(wgpu_ctx: &Arc<WgpuCtx>, shader_src: String) -> Self {
         // TODO: Error handling
         let pipeline = Pipeline::new(
-            &ctx.wgpu_ctx.device,
+            &wgpu_ctx.device,
             wgpu::ShaderSource::Wgsl(shader_src.into()),
-            &ctx.wgpu_ctx.shader_parameters_bind_group_layout,
+            &wgpu_ctx.shader_parameters_bind_group_layout,
         );
 
         Self {
-            wgpu_ctx: ctx.wgpu_ctx.clone(),
+            wgpu_ctx: wgpu_ctx.clone(),
             pipeline,
         }
     }
