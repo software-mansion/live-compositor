@@ -14,7 +14,7 @@ use crate::renderer::{
 pub(super) fn populate_inputs(
     ctx: &RenderCtx,
     scene: &mut Scene,
-    frames: &mut HashMap<InputId, Arc<Frame>>,
+    frames: &mut HashMap<InputId, Frame>,
 ) {
     for (input_id, (node, input_textures)) in &mut scene.inputs {
         let Some(frame) = frames.remove(input_id) else {
@@ -39,7 +39,7 @@ pub(super) fn read_outputs(
     ctx: &RenderCtx,
     scene: &Scene,
     pts: Duration,
-) -> HashMap<OutputId, Arc<Frame>> {
+) -> HashMap<OutputId, Frame> {
     let mut pending_downloads = Vec::with_capacity(scene.outputs.len());
     for (node_id, (node, output)) in &scene.outputs {
         ctx.wgpu_ctx.rgba_to_yuv_converter.convert(
@@ -63,11 +63,11 @@ pub(super) fn read_outputs(
         };
         result.insert(
             node_id.clone(),
-            Arc::new(Frame {
+            Frame {
                 data: yuv_data,
                 resolution,
                 pts,
-            }),
+            },
         );
     }
     result

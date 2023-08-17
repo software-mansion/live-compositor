@@ -1,7 +1,7 @@
 use std::collections::{hash_map, HashMap};
+use std::sync::Arc;
 use std::sync::{Mutex, MutexGuard};
 use std::thread;
-use std::{ops::Deref, sync::Arc};
 
 use compositor_common::scene::{InputId, OutputId, SceneSpec};
 use compositor_common::transformation::{TransformationRegistryKey, TransformationSpec};
@@ -9,7 +9,7 @@ use compositor_common::{Frame, Framerate};
 use compositor_render::renderer::{RendererNewError, RendererRegisterTransformationError};
 use compositor_render::{renderer::scene::SceneUpdateError, Renderer};
 use crossbeam_channel::unbounded;
-use log::error;
+use log::{error, warn};
 use serde::{Deserialize, Serialize};
 
 use crate::queue::Queue;
@@ -152,19 +152,22 @@ impl<Input: PipelineInput, Output: PipelineOutput> Pipeline<Input, Output> {
 
         self.queue.start(frames_sender);
 
-        thread::spawn(move || loop {
-            let input_frames = frames_receiver.recv().unwrap();
-            if !input_frames.frames.is_empty() {
-                let output = renderer.render(input_frames);
+        thread::spawn(move || {
+            for input_frames in frames_receiver.iter() {
+                if frames_receiver.len() > 10 {
+                    warn!("Dropping frame: render queue is too long.",);
+                    continue;
+                }
+                let output_frames = renderer.render(input_frames);
 
-                for (id, frame) in &output.frames {
-                    let output = outputs.lock().get(id).map(Clone::clone);
+                for (id, frame) in output_frames.frames {
+                    let output = outputs.lock().get(&id).map(Clone::clone);
                     let Some(output) = output else {
-                                error!("no output with id {}", id.0.0);
-                                continue;
-                        };
+                        error!("no output with id {}", &id);
+                        continue;
+                    };
 
-                    output.send_frame(frame.deref().clone());
+                    output.send_frame(frame);
                 }
             }
         });
