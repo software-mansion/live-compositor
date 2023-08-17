@@ -88,7 +88,6 @@ pub struct TransformNodeSpec {
     pub node_id: NodeId,
     #[serde(default)]
     pub input_pads: Vec<NodeId>,
-
     #[serde(flatten)]
     pub transform_params: TransformParams,
 }

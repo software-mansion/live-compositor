@@ -30,6 +30,6 @@ var<push_constant> common_params: CommonParams;
 
 @fragment
 fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
-    return textureSample(textures[0], sampler_, coords);
+    return textureSample(textures[0], sampler_, input.tex_coords);
 }
 
