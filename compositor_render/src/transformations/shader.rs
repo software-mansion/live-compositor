@@ -16,10 +16,11 @@ const INPUT_TEXTURES_AMOUNT: u32 = 16;
 /// The bind group layout for the shader:
 ///
 /// ```wgsl
+/// var<push_constant> common_params: CommonShaderParameters;
+///
 /// @group(0) @binding(0) var textures: binding_array<texture_2d<f32>, 16>;
 /// @group(1) @binding(0) var<uniform> shaders_custom_buffer: CustomStruct;
-/// @group(1) @binding(1) var<uniform> parameters_received_from_the_compositor: SomeStruct;
-/// @group(2) @binding(0) var sampler_: sampler
+/// @group(2) @binding(0) var sampler_: sampler;
 /// ```
 pub struct Shader {
     wgpu_ctx: Arc<WgpuCtx>,
