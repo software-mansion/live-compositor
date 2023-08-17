@@ -117,7 +117,8 @@ impl Shader {
             }],
         });
 
-        let common_shader_params = CommonShaderParameters::new(pts, sources.len() as u32);
+        let common_shader_params =
+            CommonShaderParameters::new(pts, sources.len() as u32, target.resolution);
 
         self.pipeline.render(
             &input_textures_bg,

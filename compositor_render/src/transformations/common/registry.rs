@@ -23,11 +23,11 @@ impl CommonTransformationsRegistry {
             CommonTransformation::ConvertResolution(ConvertResolutionParams::Stretch) => {
                 self.convert_resolution.stretch.clone()
             }
-            CommonTransformation::ConvertResolution(ConvertResolutionParams::CropToFit) => {
-                self.convert_resolution.crop_to_fit.clone()
+            CommonTransformation::ConvertResolution(ConvertResolutionParams::CropScale) => {
+                self.convert_resolution.crop_scale.clone()
             }
-            CommonTransformation::ConvertResolution(ConvertResolutionParams::FillToFit(_)) => {
-                self.convert_resolution.fill_to_fit.clone()
+            CommonTransformation::ConvertResolution(ConvertResolutionParams::FillScale(_)) => {
+                self.convert_resolution.fill_scale.clone()
             }
         }
     }
@@ -38,13 +38,13 @@ impl CommonTransformationsRegistry {
     ) -> Option<ShaderParam> {
         match transformation {
             CommonTransformation::ConvertResolution(ConvertResolutionParams::Stretch) => None,
-            CommonTransformation::ConvertResolution(ConvertResolutionParams::CropToFit) => {
+            CommonTransformation::ConvertResolution(ConvertResolutionParams::CropScale) => {
                 Some(ShaderParam::List(vec![
                     ShaderParam::U32(output_resolution.width as u32),
                     ShaderParam::U32(output_resolution.height as u32),
                 ]))
             }
-            CommonTransformation::ConvertResolution(ConvertResolutionParams::FillToFit(color)) => {
+            CommonTransformation::ConvertResolution(ConvertResolutionParams::FillScale(color)) => {
                 Some(ShaderParam::List(vec![
                     ShaderParam::U32(output_resolution.width as u32),
                     ShaderParam::U32(output_resolution.height as u32),
@@ -60,8 +60,8 @@ impl CommonTransformationsRegistry {
 
 pub struct ConvertResolutionRegistry {
     stretch: Arc<Shader>,
-    crop_to_fit: Arc<Shader>,
-    fill_to_fit: Arc<Shader>,
+    crop_scale: Arc<Shader>,
+    fill_scale: Arc<Shader>,
 }
 
 impl ConvertResolutionRegistry {
@@ -71,13 +71,13 @@ impl ConvertResolutionRegistry {
                 wgpu_ctx,
                 include_str!("./convert_resolution/stretch.wgsl").into(),
             )),
-            crop_to_fit: Arc::new(Shader::new(
+            crop_scale: Arc::new(Shader::new(
                 wgpu_ctx,
-                include_str!("./convert_resolution/crop_to_fit.wgsl").into(),
+                include_str!("./convert_resolution/crop_scale.wgsl").into(),
             )),
-            fill_to_fit: Arc::new(Shader::new(
+            fill_scale: Arc::new(Shader::new(
                 wgpu_ctx,
-                include_str!("./convert_resolution/fill_to_fit.wgsl").into(),
+                include_str!("./convert_resolution/fill_scale.wgsl").into(),
             )),
         }
     }

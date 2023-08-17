@@ -19,6 +19,14 @@ struct CommonParams {
 
 var<push_constant> common_params: CommonParams;
 
+fn translation_matrix(x_translation: f32, y_translation: f32) -> mat3x3<f32> {
+    let col1 = vec3<f32>(1.0, 0.0, 0.0);
+    let col2 = vec3<f32>(0.0, 1.0, 0.0);
+    let col3 = vec3<f32>(x_translation, y_translation, 1.0);
+
+    return mat3x3<f32>(col1, col2, col3);
+}
+
 @vertex
 fn vs_main(input: VertexInput) -> VertexOutput {
     var output: VertexOutput;

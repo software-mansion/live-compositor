@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use compositor_common::scene::{InputId, OutputId, SceneSpec};
+use compositor_common::scene::{InputId, OutputId, Resolution, SceneSpec};
 use log::error;
 
 use crate::{
@@ -244,13 +244,18 @@ impl WgpuCtx {
 pub struct CommonShaderParameters {
     time: f32,
     textures_count: u32,
+    output_texture_resolution: [u32; 2],
 }
 
 impl CommonShaderParameters {
-    pub fn new(time: Duration, textures_count: u32) -> Self {
+    pub fn new(time: Duration, textures_count: u32, output_texture_resolution: Resolution) -> Self {
         Self {
             time: time.as_secs_f32(),
             textures_count,
+            output_texture_resolution: [
+                output_texture_resolution.width as u32,
+                output_texture_resolution.height as u32,
+            ],
         }
     }
 

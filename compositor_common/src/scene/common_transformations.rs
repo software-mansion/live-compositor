@@ -12,6 +12,6 @@ pub enum CommonTransformation {
 #[serde(tag = "strategy", rename_all = "snake_case")]
 pub enum ConvertResolutionParams {
     Stretch,
-    CropToFit,
-    FillToFit(RGBAColor),
+    CropScale,
+    FillScale(RGBAColor),
 }
