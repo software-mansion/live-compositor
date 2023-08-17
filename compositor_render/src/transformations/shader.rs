@@ -17,7 +17,7 @@ const INPUT_TEXTURES_AMOUNT: u32 = 16;
 ///
 /// ```wgsl
 /// var<push_constant> common_params: CommonShaderParameters;
-/// 
+///
 /// @group(0) @binding(0) var textures: binding_array<texture_2d<f32>, 16>;
 /// @group(1) @binding(0) var<uniform> shaders_custom_buffer: CustomStruct;
 /// @group(2) @binding(0) var sampler_: sampler;
