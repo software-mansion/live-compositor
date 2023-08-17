@@ -15,7 +15,6 @@ use crate::common::write_example_sdp_file;
 #[path = "./common/common.rs"]
 mod common;
 
-
 const IMAGE_RESOLUTION: Resolution = Resolution {
     width: 1280,
     height: 720,
