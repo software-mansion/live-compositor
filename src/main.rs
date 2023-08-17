@@ -22,7 +22,7 @@ fn main() {
 
     ffmpeg_next::format::network::init();
 
-    http::Server::new(8001).start();
+    http::Server::new(8001).run();
 
     info!("Received exit signal. Terminating...")
     // TODO: add graceful shutdown

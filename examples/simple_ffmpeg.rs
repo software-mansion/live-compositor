@@ -35,7 +35,7 @@ fn main() {
         }
     });
 
-    http::Server::new(8001).start();
+    http::Server::new(8001).run();
 }
 
 fn start_example_client_code() -> Result<()> {

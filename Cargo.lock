@@ -361,7 +361,6 @@ dependencies = [
  "crossbeam-channel",
  "log",
  "serde",
- "signal-hook",
  "thiserror",
 ]
 
@@ -382,6 +381,7 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
+ "signal-hook",
  "thiserror",
  "wgpu",
 ]

@@ -7,14 +7,12 @@ use compositor_common::{
 };
 
 use crate::{
+    event_loop::EventLoop,
     frame_set::FrameSet,
     renderer::{
         scene::SceneUpdateError, Renderer, RendererNewError, RendererRegisterTransformationError,
     },
-    transformations::{
-        shader::Shader,
-        web_renderer::{chromium::ChromiumContext, WebRenderer},
-    },
+    transformations::{shader::Shader, web_renderer::WebRenderer},
     WebRendererOptions,
 };
 
@@ -25,11 +23,11 @@ impl SyncRenderer {
     pub fn new(
         web_renderer_opts: WebRendererOptions,
         web_renderer_framerate: Framerate,
-    ) -> Result<Self, RendererNewError> {
-        Ok(Self(Arc::new(Mutex::new(Renderer::new(
-            web_renderer_opts,
-            web_renderer_framerate,
-        )?))))
+    ) -> Result<(Self, EventLoop), RendererNewError> {
+        let renderer = Renderer::new(web_renderer_opts, web_renderer_framerate)?;
+        let event_loop = EventLoop::new(renderer.chromium_context.cef_context());
+
+        Ok((Self(Arc::new(Mutex::new(renderer))), event_loop))
     }
 
     pub fn register_transformation(
@@ -65,9 +63,5 @@ impl SyncRenderer {
 
     pub fn scene_spec(&self) -> Arc<SceneSpec> {
         self.0.lock().unwrap().scene_spec.clone()
-    }
-
-    pub fn chromium_ctx(&self) -> Arc<ChromiumContext> {
-        self.0.lock().unwrap().chromium_context.clone()
     }
 }

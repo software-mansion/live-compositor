@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Result};
 use compositor_common::SpecValidationError;
 use compositor_pipeline::pipeline;
-use compositor_render::registry;
+use compositor_render::{event_loop::EventLoop, registry};
 use log::{error, info};
 
 use serde_json::json;
@@ -24,10 +24,9 @@ impl Server {
         }
     }
 
-    pub fn start(self) {
+    pub fn run(self) {
         info!("Listening on port {}", self.server.server_addr());
-        let mut api = self.handle_init();
-        let event_loop = api.event_loop();
+        let (mut api, event_loop) = self.handle_init();
         thread::spawn(move || {
             for mut raw_request in self.server.incoming_requests() {
                 let result = Self::handle_request_after_init(&mut api, &mut raw_request);
@@ -40,7 +39,7 @@ impl Server {
         }
     }
 
-    fn handle_init(&self) -> Api {
+    fn handle_init(&self) -> (Api, EventLoop) {
         for mut raw_request in self.server.incoming_requests() {
             let result = self
                 .handle_request_before_init(&mut raw_request)

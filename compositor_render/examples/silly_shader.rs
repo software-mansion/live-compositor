@@ -82,7 +82,7 @@ fn main() {
     let frame = get_image("compositor_render/examples/crab.jpg");
     let resolution = frame.resolution;
 
-    let mut renderer = Renderer::new(
+    let (mut renderer, _) = Renderer::new(
         WebRendererOptions {
             init: false,
             ..Default::default()

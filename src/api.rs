@@ -5,7 +5,8 @@ use compositor_common::{
     scene::{InputId, OutputId, Resolution, SceneSpec},
     transformation::{TransformationRegistryKey, TransformationSpec},
 };
-use compositor_pipeline::{event_loop::EventLoop, pipeline};
+use compositor_pipeline::pipeline;
+use compositor_render::event_loop::EventLoop;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -55,10 +56,9 @@ pub struct Api {
 }
 
 impl Api {
-    pub fn new(opts: pipeline::Options) -> Result<Api> {
-        Ok(Api {
-            pipeline: Pipeline::new(opts)?,
-        })
+    pub fn new(opts: pipeline::Options) -> Result<(Api, EventLoop)> {
+        let (pipeline, event_loop) = Pipeline::new(opts)?;
+        Ok((Api { pipeline }, event_loop))
     }
 
     pub fn handle_request(&mut self, request: Request) -> Result<()> {
@@ -115,9 +115,5 @@ impl Api {
             .register_input(id.clone(), rtp_receiver::Options { port, input_id: id })?;
 
         Ok(())
-    }
-
-    pub fn event_loop(&self) -> EventLoop {
-        self.pipeline.event_loop()
     }
 }

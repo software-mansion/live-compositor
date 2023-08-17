@@ -18,6 +18,22 @@ use self::{
 mod browser;
 pub mod chromium;
 
+#[derive(Serialize, Deserialize)]
+#[serde(default)]
+pub struct WebRendererOptions {
+    pub init: bool,
+    pub disable_gpu: bool,
+}
+
+impl Default for WebRendererOptions {
+    fn default() -> Self {
+        Self {
+            init: true,
+            disable_gpu: false,
+        }
+    }
+}
+
 pub struct WebRenderer {
     #[allow(dead_code)]
     params: WebRendererTransformationParams,
@@ -35,23 +51,14 @@ impl WebRenderer {
     ) -> Result<Self, WebRendererNewError> {
         info!("Starting web renderer for {}", &params.url);
 
-        let (frame_tx, frame_rx) = crossbeam_channel::bounded(1);
-        let state = Mutex::new(BrowserState::new(frame_rx));
-        let client = BrowserClient::new(frame_tx, params.resolution);
+        let (painted_frames_sender, painted_frames_receiver) = crossbeam_channel::bounded(1);
+        let state = Mutex::new(BrowserState::new(painted_frames_receiver));
+        let client = BrowserClient::new(painted_frames_sender, params.resolution);
         let browser = ctx.chromium.start_browser(&params.url, client)?;
 
         let bgra_texture = BGRATexture::new(&ctx.wgpu_ctx, params.resolution);
-        let bgra_bind_group = ctx
-            .wgpu_ctx
-            .device
-            .create_bind_group(&wgpu::BindGroupDescriptor {
-                label: Some("Web renderer BGRA texture bind group"),
-                layout: &ctx.wgpu_ctx.rgba_bind_group_layout,
-                entries: &[wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::TextureView(&bgra_texture.texture().view),
-                }],
-            });
+        let bgra_bind_group =
+            bgra_texture.new_bind_group(&ctx.wgpu_ctx, &ctx.wgpu_ctx.bgra_bind_group_layout);
 
         Ok(Self {
             params,
@@ -78,22 +85,6 @@ impl WebRenderer {
                 (&self.bgra_texture, &self.bgra_bind_group),
                 &target.rgba_texture(),
             );
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize)]
-#[serde(default)]
-pub struct WebRendererOptions {
-    pub init: bool,
-    pub disable_gpu: bool,
-}
-
-impl Default for WebRendererOptions {
-    fn default() -> Self {
-        Self {
-            init: true,
-            disable_gpu: false,
         }
     }
 }
