@@ -35,8 +35,8 @@ impl InternalQueue {
         self.timestamp_offsets.remove(input_id);
     }
 
-    pub fn input_offset(&self, input_id: &InputId) -> Option<&Duration> {
-        self.timestamp_offsets.get(input_id)
+    pub fn did_receive_frame(&self, input_id: &InputId) -> bool {
+        self.timestamp_offsets.get(input_id).is_some()
     }
 
     pub fn enqueue_frame(
@@ -64,7 +64,7 @@ impl InternalQueue {
     /// Gets frames closest to buffer pts.
     ///
     /// Implementation assumes that "useless frames" are already dropped
-    /// by [`drop_useless_frames`] or [`drop_pad_useless_frames`]
+    /// by [`InternalQueue::drop_old_frames`].
     pub fn get_frames_batch(&self, buffer_pts: Duration) -> FrameSet<InputId> {
         let mut frames_batch = FrameSet::new(buffer_pts);
 
@@ -103,7 +103,7 @@ impl InternalQueue {
     /// Finds frame that is closest to the next_buffer_pts and removes everything older.
     /// Frames in queue have monotonically increasing pts, so we can just drop all the frames
     /// before the "closest" one.
-    fn drop_input_frames(input_queue: &mut Vec<Frame>, next_buffer_pts: Duration) {
+    fn drop_old_input_frames(input_queue: &mut Vec<Frame>, next_buffer_pts: Duration) {
         let next_output_buffer_nanos = next_buffer_pts.as_nanos();
         let closest_diff_frame_index = input_queue
             .iter()
@@ -116,14 +116,14 @@ impl InternalQueue {
         }
     }
 
-    pub fn drop_frames(&mut self, next_buffer_pts: Duration) {
+    pub fn drop_old_frames(&mut self, next_buffer_pts: Duration) {
         let inputs = self.inputs_queues.iter_mut();
         for (_, input_queue) in inputs {
-            Self::drop_input_frames(input_queue, next_buffer_pts);
+            Self::drop_old_input_frames(input_queue, next_buffer_pts);
         }
     }
 
-    pub fn drop_frames_by_input_id(
+    pub fn drop_old_frames_by_input_id(
         &mut self,
         input_id: &InputId,
         next_buffer_pts: Duration,
@@ -133,7 +133,7 @@ impl InternalQueue {
             .get_mut(input_id)
             .ok_or_else(|| QueueError::UnknownInputId(input_id.clone()))?;
 
-        Self::drop_input_frames(input_queue, next_buffer_pts);
+        Self::drop_old_input_frames(input_queue, next_buffer_pts);
         Ok(())
     }
 

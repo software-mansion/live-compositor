@@ -21,7 +21,7 @@ pub enum QueueError {
     UnknownInputId(InputId),
 }
 
-const DEFAULT_BUFFER_DURATION: Duration = Duration::from_millis(16 * 5); // 5 frames at 60 fps
+const DEFAULT_BUFFER_DURATION: Duration = Duration::from_millis(16 * 5); // about 5 frames at 60 fps
 
 /// Queue is responsible for consuming frames from different inputs and producing
 /// sets of frames from all inputs in a single batch.
@@ -90,13 +90,12 @@ impl Queue {
     }
 
     pub fn enqueue_frame(&self, input_id: InputId, frame: Frame) -> Result<(), QueueError> {
-        let is_first_frame = self
+        let is_first_frame_for_input = self
             .internal_queue
             .lock()
             .unwrap()
-            .input_offset(&input_id)
-            .is_none();
-        if is_first_frame {
+            .did_receive_frame(&input_id);
+        if is_first_frame_for_input {
             // Sleep here ensures that we will buffer `self.buffer_duration` on each input.
             // It also makes calculation easier because PTS of frames will be already offset
             // by a correct value.
@@ -112,7 +111,7 @@ impl Queue {
         // is able to push frames in real time and is never behind more than one frame.
         let framerate_tick = Duration::from_secs_f64(1.0 / self.output_framerate.0 as f64);
         let estimated_pts = self.clock_start.elapsed() - framerate_tick;
-        if let Err(err) = internal_queue.drop_frames_by_input_id(&input_id, estimated_pts) {
+        if let Err(err) = internal_queue.drop_old_frames_by_input_id(&input_id, estimated_pts) {
             error!("Failed to drop frames on input {input_id}: {err}")
         }
 
