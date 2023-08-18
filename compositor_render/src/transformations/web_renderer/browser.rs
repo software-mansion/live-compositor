@@ -4,23 +4,23 @@ use crossbeam_channel::{Receiver, Sender};
 
 pub(super) struct BrowserState {
     painted_frames_receiver: Receiver<Vec<u8>>,
-    frame_data: Vec<u8>,
+    frame_data: Option<Vec<u8>>,
 }
 
 impl BrowserState {
     pub fn new(painted_frames_receiver: Receiver<Vec<u8>>) -> Self {
         Self {
             painted_frames_receiver,
-            frame_data: Vec::new(),
+            frame_data: None,
         }
     }
 
-    pub fn retrieve_frame(&mut self) -> &[u8] {
+    pub fn retrieve_frame(&mut self) -> Option<&[u8]> {
         if let Some(frame) = self.painted_frames_receiver.try_iter().last() {
-            self.frame_data = frame;
+            self.frame_data.replace(frame);
         }
 
-        &self.frame_data
+        self.frame_data.as_deref()
     }
 }
 

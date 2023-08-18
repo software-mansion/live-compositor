@@ -6,6 +6,7 @@ use crossbeam_channel::RecvTimeoutError;
 use log::{error, info};
 
 use serde_json::json;
+use signal_hook::{consts, iterator::Signals};
 use std::{error::Error, io::Cursor, net::SocketAddr, sync::Arc, thread, time::Duration};
 use tiny_http::{Header, Response, StatusCode};
 
@@ -70,7 +71,11 @@ impl Server {
             }
         });
 
-        if let Err(err) = event_loop.run() {
+        let event_loop_fallback = || {
+            let mut signals = Signals::new([consts::SIGINT]).unwrap();
+            signals.forever().next();
+        };
+        if let Err(err) = event_loop.run_with_fallback(event_loop_fallback) {
             error!("Event loop run failed: {err}")
         }
     }

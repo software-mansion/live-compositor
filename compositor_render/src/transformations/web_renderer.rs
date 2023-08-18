@@ -2,7 +2,7 @@ use std::sync::Mutex;
 
 use crate::renderer::{
     texture::{BGRATexture, NodeTexture},
-    RegisterTransformationCtx, RenderCtx,
+    BGRAToRGBAConverter, RegisterTransformationCtx, RenderCtx,
 };
 
 use compositor_chromium::cef;
@@ -43,8 +43,11 @@ pub struct WebRenderer {
     // NOTE: Will be used for accessing V8 context later
     _browser: cef::Browser,
     state: Mutex<BrowserState>,
+
     bgra_texture: BGRATexture,
+    _bgra_bind_group_layout: wgpu::BindGroupLayout,
     bgra_bind_group: wgpu::BindGroup,
+    bgra_to_rgba: BGRAToRGBAConverter,
 }
 
 impl WebRenderer {
@@ -60,15 +63,18 @@ impl WebRenderer {
         let browser = ctx.chromium.start_browser(&params.url, client)?;
 
         let bgra_texture = BGRATexture::new(&ctx.wgpu_ctx, params.resolution);
-        let bgra_bind_group =
-            bgra_texture.new_bind_group(&ctx.wgpu_ctx, &ctx.wgpu_ctx.bgra_bind_group_layout);
+        let bgra_bind_group_layout = BGRATexture::new_bind_group_layout(&ctx.wgpu_ctx.device);
+        let bgra_bind_group = bgra_texture.new_bind_group(&ctx.wgpu_ctx, &bgra_bind_group_layout);
+        let bgra_to_rgba = BGRAToRGBAConverter::new(&ctx.wgpu_ctx.device, &bgra_bind_group_layout);
 
         Ok(Self {
             params,
             _browser: browser,
             state,
             bgra_texture,
+            _bgra_bind_group_layout: bgra_bind_group_layout,
             bgra_bind_group,
+            bgra_to_rgba,
         })
     }
 
@@ -79,11 +85,9 @@ impl WebRenderer {
         target: &NodeTexture,
     ) {
         let mut state = self.state.lock().unwrap();
-        let frame = state.retrieve_frame();
-
-        if !frame.is_empty() {
+        if let Some(frame) = state.retrieve_frame() {
             self.bgra_texture.upload(ctx.wgpu_ctx, frame);
-            ctx.wgpu_ctx.bgra_to_rgba_converter.convert(
+            self.bgra_to_rgba.convert(
                 ctx.wgpu_ctx,
                 (&self.bgra_texture, &self.bgra_bind_group),
                 &target.rgba_texture(),

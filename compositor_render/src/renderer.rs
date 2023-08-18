@@ -28,17 +28,17 @@ use crate::{
 };
 
 use self::{
-    color_converter_pipeline::{
-        BGRAToRGBAConverter, R8FillWithValuePipeline, RGBAToYUVConverter, YUVToRGBAConverter,
-    },
+    color_converter_pipeline::{R8FillWithValuePipeline, RGBAToYUVConverter, YUVToRGBAConverter},
     scene::{Scene, SceneUpdateError},
-    texture::{BGRATexture, RGBATexture, YUVTextures},
+    texture::{RGBATexture, YUVTextures},
 };
 
 mod color_converter_pipeline;
 pub mod common_pipeline;
 pub mod scene;
 pub mod texture;
+
+pub(crate) use color_converter_pipeline::BGRAToRGBAConverter;
 
 pub struct Renderer {
     pub wgpu_ctx: Arc<WgpuCtx>,
@@ -160,10 +160,8 @@ pub struct WgpuCtx {
 
     pub yuv_bind_group_layout: wgpu::BindGroupLayout,
     pub rgba_bind_group_layout: wgpu::BindGroupLayout,
-    pub bgra_bind_group_layout: wgpu::BindGroupLayout,
     pub yuv_to_rgba_converter: YUVToRGBAConverter,
     pub rgba_to_yuv_converter: RGBAToYUVConverter,
-    pub bgra_to_rgba_converter: BGRAToRGBAConverter,
     pub r8_fill_with_color_pipeline: R8FillWithValuePipeline,
 
     pub shader_parameters_bind_group_layout: wgpu::BindGroupLayout,
@@ -209,10 +207,8 @@ impl WgpuCtx {
 
         let yuv_bind_group_layout = YUVTextures::new_bind_group_layout(&device);
         let rgba_bind_group_layout = RGBATexture::new_bind_group_layout(&device);
-        let bgra_bind_group_layout = BGRATexture::new_bind_group_layout(&device);
         let yuv_to_rgba_converter = YUVToRGBAConverter::new(&device, &yuv_bind_group_layout);
         let rgba_to_yuv_converter = RGBAToYUVConverter::new(&device, &rgba_bind_group_layout);
-        let bgra_to_rgba_converter = BGRAToRGBAConverter::new(&device, &bgra_bind_group_layout);
         let r8_fill_with_color_pipeline = R8FillWithValuePipeline::new(&device);
 
         let shader_parameters_bind_group_layout = Shader::new_parameters_bind_group_layout(&device);
@@ -236,10 +232,8 @@ impl WgpuCtx {
             queue,
             yuv_bind_group_layout,
             rgba_bind_group_layout,
-            bgra_bind_group_layout,
             yuv_to_rgba_converter,
             rgba_to_yuv_converter,
-            bgra_to_rgba_converter,
             r8_fill_with_color_pipeline,
             shader_parameters_bind_group_layout,
             compositor_provided_parameters_buffer,

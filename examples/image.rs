@@ -2,7 +2,6 @@ use anyhow::Result;
 use compositor_common::{scene::Resolution, Framerate};
 use log::{error, info};
 use serde_json::json;
-use signal_hook::{consts, iterator::Signals};
 use std::{
     process::{Command, Stdio},
     thread,
@@ -34,9 +33,6 @@ fn main() {
     });
 
     http::Server::new(8001).run();
-
-    let mut signals = Signals::new([consts::SIGINT]).unwrap();
-    signals.forever().next();
 }
 
 fn start_example_client_code() -> Result<()> {

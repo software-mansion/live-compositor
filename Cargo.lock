@@ -408,7 +408,6 @@ dependencies = [
  "resvg",
  "serde",
  "serde_json",
- "signal-hook",
  "thiserror",
  "wgpu",
 ]

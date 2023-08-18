@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use compositor_chromium::cef;
-use signal_hook::{consts, iterator::Signals};
 
 pub struct EventLoop {
     cef_ctx: Option<Arc<cef::Context>>,
@@ -13,11 +12,12 @@ impl EventLoop {
     }
 
     /// Runs the event loop. It must run on the main thread.
-    /// Blocks the thread indefinitely
-    pub fn run(&self) -> Result<(), EventLoopRunError> {
+    /// `fallback` is used when web rendering is disabled.
+    /// Blocks the thread indefinitely.
+    pub fn run_with_fallback(&self, fallback: impl FnOnce()) -> Result<(), EventLoopRunError> {
         match &self.cef_ctx {
             Some(ctx) => self.cef_event_loop(ctx)?,
-            None => self.fallback_event_loop(),
+            None => fallback(),
         }
 
         Ok(())
@@ -30,12 +30,6 @@ impl EventLoop {
 
         ctx.run_message_loop();
         Ok(())
-    }
-
-    /// Fallback event loop used when web renderer is disabled
-    fn fallback_event_loop(&self) {
-        let mut signals = Signals::new([consts::SIGINT]).unwrap();
-        signals.forever().next();
     }
 }
 
