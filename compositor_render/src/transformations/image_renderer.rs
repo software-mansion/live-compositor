@@ -1,11 +1,13 @@
 use std::{
     str::{from_utf8, Utf8Error},
     sync::{Arc, Mutex},
+    time::Duration,
 };
 
 use bytes::{Bytes, BytesMut};
 use compositor_common::{scene::Resolution, transformation::ImageSpec};
-use image::ImageFormat;
+use image::{codecs::gif::GifDecoder, AnimationDecoder, ImageFormat};
+use log::error;
 use resvg::{
     tiny_skia,
     usvg::{self, TreeParsing},
@@ -16,8 +18,11 @@ use crate::renderer::{
     RegisterTransformationCtx, RenderCtx, WgpuCtx,
 };
 
-pub struct Image {
-    renderer: ImageRenderer,
+#[derive(Clone)]
+pub enum Image {
+    Bitmap(Arc<BitmapAsset>),
+    Animated(Arc<AnimatedAsset>),
+    Svg(Arc<SvgAsset>),
 }
 
 impl Image {
@@ -26,23 +31,29 @@ impl Image {
         let renderer = match spec {
             ImageSpec::Png { .. } => {
                 let asset = BitmapAsset::new(&ctx.wgpu_ctx, file, ImageFormat::Png)?;
-                ImageRenderer::BitmapAsset(asset)
+                Image::Bitmap(Arc::new(asset))
             }
             ImageSpec::Jpeg { .. } => {
                 let asset = BitmapAsset::new(&ctx.wgpu_ctx, file, ImageFormat::Jpeg)?;
-                ImageRenderer::BitmapAsset(asset)
+                Image::Bitmap(Arc::new(asset))
             }
             ImageSpec::Svg { resolution, .. } => {
                 let asset = SvgAsset::new(&ctx.wgpu_ctx, file, resolution)?;
-                ImageRenderer::Svg(asset)
+                Image::Svg(Arc::new(asset))
             }
             ImageSpec::Gif { .. } => {
-                // TODO: support dynamic GIFs
-                let asset = BitmapAsset::new(&ctx.wgpu_ctx, file, ImageFormat::Gif)?;
-                ImageRenderer::BitmapAsset(asset)
+                let asset = AnimatedAsset::new(&ctx.wgpu_ctx, file.clone(), ImageFormat::Gif);
+                match asset {
+                    Ok(asset) => Image::Animated(Arc::new(asset)),
+                    Err(AnimatedError::SingleFrame) => {
+                        let asset = BitmapAsset::new(&ctx.wgpu_ctx, file, ImageFormat::Gif)?;
+                        Image::Bitmap(Arc::new(asset))
+                    }
+                    Err(err) => return Err(ImageError::from(err)),
+                }
             }
         };
-        Ok(Self { renderer })
+        Ok(renderer)
     }
 
     fn download_file(url: &str) -> Result<bytes::Bytes, ImageError> {
@@ -53,49 +64,67 @@ impl Image {
     }
 }
 
-pub struct ImageNode {
-    image: Arc<Image>,
-    was_rendered: Mutex<bool>,
+pub enum ImageNode {
+    Bitmap {
+        asset: Arc<BitmapAsset>,
+        state: Mutex<BitmapNodeState>,
+    },
+    Animated {
+        asset: Arc<AnimatedAsset>,
+        state: Mutex<AnimatedNodeState>,
+    },
+    Svg {
+        asset: Arc<SvgAsset>,
+        state: Mutex<SvgNodeState>,
+    },
 }
 
 impl ImageNode {
-    pub fn new(image: Arc<Image>) -> Self {
-        Self {
-            image,
-            was_rendered: false.into(),
+    pub fn new(image: Image) -> Self {
+        match image {
+            Image::Bitmap(asset) => Self::Bitmap {
+                asset,
+                state: BitmapNodeState {
+                    was_rendered: false,
+                }
+                .into(),
+            },
+            Image::Animated(asset) => Self::Animated {
+                asset,
+                state: AnimatedNodeState { first_pts: None }.into(),
+            },
+            Image::Svg(asset) => Self::Svg {
+                asset,
+                state: SvgNodeState {
+                    was_rendered: false,
+                }
+                .into(),
+            },
         }
     }
 
-    pub fn render(&self, ctx: &mut RenderCtx, target: &NodeTexture) {
-        // TODO: This condition is only correct for static images, it needs
-        // to be refactored to support e.g. GIFs with animations
-        let mut was_rendered = self.was_rendered.lock().unwrap();
-        if *was_rendered {
-            return;
+    pub fn render(&self, ctx: &mut RenderCtx, target: &NodeTexture, pts: Duration) {
+        match self {
+            ImageNode::Bitmap { asset, state } => asset.render(ctx.wgpu_ctx, target, state),
+            ImageNode::Animated { asset, state } => asset.render(ctx.wgpu_ctx, target, state, pts),
+            ImageNode::Svg { asset, state } => asset.render(ctx.wgpu_ctx, target, state),
         }
-
-        match &self.image.renderer {
-            ImageRenderer::BitmapAsset(asset) => asset.render(ctx.wgpu_ctx, target),
-            ImageRenderer::Svg(asset) => asset.render(ctx.wgpu_ctx, target),
-        }
-
-        *was_rendered = true;
     }
 
     pub fn resolution(&self) -> Resolution {
-        match &self.image.renderer {
-            ImageRenderer::BitmapAsset(a) => a.resolution(),
-            ImageRenderer::Svg(a) => a.resolution(),
+        match self {
+            ImageNode::Bitmap { asset, .. } => asset.resolution(),
+            ImageNode::Animated { asset, .. } => asset.resolution(),
+            ImageNode::Svg { asset, .. } => asset.resolution(),
         }
     }
 }
 
-enum ImageRenderer {
-    BitmapAsset(BitmapAsset),
-    Svg(SvgAsset),
+pub struct BitmapNodeState {
+    was_rendered: bool,
 }
 
-struct BitmapAsset {
+pub struct BitmapAsset {
     texture: RGBATexture,
 }
 
@@ -115,7 +144,12 @@ impl BitmapAsset {
         Ok(Self { texture })
     }
 
-    fn render(&self, ctx: &WgpuCtx, target: &NodeTexture) {
+    fn render(&self, ctx: &WgpuCtx, target: &NodeTexture, state: &Mutex<BitmapNodeState>) {
+        let mut state = state.lock().unwrap();
+        if state.was_rendered {
+            return;
+        }
+
         let mut encoder = ctx
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor {
@@ -140,6 +174,7 @@ impl BitmapAsset {
         );
 
         ctx.queue.submit(Some(encoder.finish()));
+        state.was_rendered = true;
     }
 
     fn resolution(&self) -> Resolution {
@@ -151,7 +186,11 @@ impl BitmapAsset {
     }
 }
 
-struct SvgAsset {
+pub struct SvgNodeState {
+    was_rendered: bool,
+}
+
+pub struct SvgAsset {
     texture: RGBATexture,
 }
 
@@ -197,7 +236,12 @@ impl SvgAsset {
         Ok(Self { texture })
     }
 
-    fn render(&self, ctx: &WgpuCtx, target: &NodeTexture) {
+    fn render(&self, ctx: &WgpuCtx, target: &NodeTexture, state: &Mutex<SvgNodeState>) {
+        let mut state = state.lock().unwrap();
+        if state.was_rendered {
+            return;
+        }
+
         let mut encoder = ctx
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor {
@@ -222,10 +266,145 @@ impl SvgAsset {
         );
 
         ctx.queue.submit(Some(encoder.finish()));
+        state.was_rendered = true;
     }
 
     fn resolution(&self) -> Resolution {
         let size = self.texture.size();
+        Resolution {
+            width: size.width as usize,
+            height: size.height as usize,
+        }
+    }
+}
+
+pub struct AnimatedNodeState {
+    first_pts: Option<Duration>,
+}
+
+pub struct AnimatedAsset {
+    frames: Vec<AnimationFrame>,
+    animation_duration: Duration,
+}
+
+struct AnimationFrame {
+    texture: RGBATexture,
+    pts: Duration,
+}
+
+impl AnimatedAsset {
+    fn new(ctx: &WgpuCtx, data: Bytes, format: ImageFormat) -> Result<Self, AnimatedError> {
+        let decoded_frames = match format {
+            ImageFormat::Gif => GifDecoder::new(&data[..])?.into_frames(),
+            _ => todo!(),
+        };
+
+        let mut animation_duration: Duration = Duration::ZERO;
+        let mut frames = vec![];
+        for frame in decoded_frames {
+            let frame = &frame?;
+            let buffer = frame.buffer();
+            let texture = RGBATexture::new(
+                ctx,
+                Resolution {
+                    width: buffer.width() as usize,
+                    height: buffer.height() as usize,
+                },
+            );
+            texture.upload(ctx, buffer);
+
+            let delay: Duration = frame.delay().into();
+            animation_duration += delay;
+            frames.push(AnimationFrame {
+                texture,
+                pts: animation_duration,
+            });
+
+            if frames.len() > 1000 {
+                return Err(AnimatedError::TooMuchFrames);
+            }
+        }
+
+        let Some(first_frame) = frames.first() else {
+            return Err(AnimatedError::NoFrames)
+        };
+        if frames.len() == 1 {
+            return Err(AnimatedError::SingleFrame);
+        }
+        let first_frame_size = first_frame.texture.size();
+        if !frames
+            .iter()
+            .all(|frame| frame.texture.size() == first_frame_size)
+        {
+            return Err(AnimatedError::UnsupportedVariableResolution);
+        }
+
+        ctx.queue.submit([]);
+
+        // In case only one frame, where first delay is zero
+        if animation_duration.is_zero() {
+            animation_duration = Duration::from_nanos(1)
+        }
+
+        Ok(Self {
+            frames,
+            animation_duration,
+        })
+    }
+
+    fn render(
+        &self,
+        ctx: &WgpuCtx,
+        target: &NodeTexture,
+        state: &Mutex<AnimatedNodeState>,
+        pts: Duration,
+    ) {
+        let mut state = state.lock().unwrap();
+        let first_pts = match state.first_pts {
+            Some(first_pts) => first_pts,
+            None => {
+                state.first_pts = Some(pts);
+                pts
+            }
+        };
+
+        let animation_pts = Duration::from_nanos(
+            ((pts.as_nanos() - first_pts.as_nanos()) % self.animation_duration.as_nanos()) as u64,
+        );
+
+        let closest_frame = self
+            .frames
+            .iter()
+            .min_by_key(|frame| u128::abs_diff(frame.pts.as_nanos(), animation_pts.as_nanos()))
+            .unwrap();
+        let mut encoder = ctx
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("copy static image asset to texture"),
+            });
+
+        let size = closest_frame.texture.size();
+        encoder.copy_texture_to_texture(
+            wgpu::ImageCopyTexture {
+                aspect: wgpu::TextureAspect::All,
+                mip_level: 0,
+                origin: wgpu::Origin3d::ZERO,
+                texture: &closest_frame.texture.texture().texture,
+            },
+            wgpu::ImageCopyTexture {
+                aspect: wgpu::TextureAspect::All,
+                mip_level: 0,
+                origin: wgpu::Origin3d::ZERO,
+                texture: &target.rgba_texture().texture().texture,
+            },
+            size,
+        );
+
+        ctx.queue.submit(Some(encoder.finish()));
+    }
+
+    fn resolution(&self) -> Resolution {
+        let size = self.frames.first().unwrap().texture.size();
         Resolution {
             width: size.width as usize,
             height: size.height as usize,
@@ -243,6 +422,9 @@ pub enum ImageError {
 
     #[error("Failed to read SVG")]
     ParsingSvgFailed(#[from] SvgError),
+
+    #[error("Failed to read image with animations")]
+    ParsingAnimatedFailed(#[from] AnimatedError),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -252,4 +434,22 @@ pub enum SvgError {
 
     #[error("Failed to parse the svg image")]
     ParsingSvgFailed(#[from] usvg::Error),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum AnimatedError {
+    #[error("To much frames")]
+    TooMuchFrames,
+
+    #[error("Single frame")]
+    SingleFrame,
+
+    #[error("No frames")]
+    NoFrames,
+
+    #[error("Detected variable resolution")]
+    UnsupportedVariableResolution,
+
+    #[error("Failed to parse image")]
+    FailedToParse(#[from] image::ImageError),
 }

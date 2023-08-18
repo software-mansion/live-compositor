@@ -41,7 +41,7 @@ impl SyncRenderer {
                 guard.web_renderers.register(&key, web)?
             }
             TransformationSpec::Image(spec) => {
-                let asset = Arc::new(Image::new(&ctx, spec)?);
+                let asset = Image::new(&ctx, spec)?;
 
                 let mut guard = self.0.lock().unwrap();
                 guard.image_registry.register(&key, asset)?
