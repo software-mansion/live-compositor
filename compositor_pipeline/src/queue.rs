@@ -90,7 +90,7 @@ impl Queue {
     }
 
     pub fn enqueue_frame(&self, input_id: InputId, frame: Frame) -> Result<(), QueueError> {
-        let is_first_frame_for_input = self
+        let is_first_frame_for_input = !self
             .internal_queue
             .lock()
             .unwrap()
