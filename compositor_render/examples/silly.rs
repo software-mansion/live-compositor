@@ -129,7 +129,7 @@ fn main() {
         .expect("update scene");
 
     let mut frame_set = FrameSet::new(Duration::from_secs_f32(std::f32::consts::FRAC_PI_2));
-    frame_set.frames.insert(input_id.into(), Arc::new(frame));
+    frame_set.frames.insert(input_id.into(), frame);
     let output = renderer.render(frame_set);
     let output = output.frames.get(&output_id.into()).expect("extract frame");
     let mut output_data = Vec::with_capacity(resolution.width * resolution.height * 3 / 2);

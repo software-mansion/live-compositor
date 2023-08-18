@@ -2,11 +2,7 @@ use anyhow::Result;
 use compositor_common::{scene::Resolution, Framerate};
 use log::{error, info};
 use serde_json::json;
-use std::{
-    process::{Command, Stdio},
-    thread,
-    time::Duration,
-};
+use std::{process::Command, thread, time::Duration};
 use video_compositor::http;
 
 use crate::common::write_example_sdp_file;
@@ -15,8 +11,8 @@ use crate::common::write_example_sdp_file;
 mod common;
 
 const VIDEO_RESOLUTION: Resolution = Resolution {
-    width: 1280,
-    height: 720,
+    width: 1920,
+    height: 1080,
 };
 const FRAMERATE: Framerate = Framerate(30);
 
@@ -42,17 +38,12 @@ fn start_example_client_code() -> Result<()> {
     common::post(&json!({
         "type": "init",
         "framerate": FRAMERATE,
-        "web_renderer": {
-            "init": false
-        },
     }))?;
 
     info!("[example] Start listening on output port.");
     let output_sdp = write_example_sdp_file("127.0.0.1", 8002)?;
     Command::new("ffplay")
         .args(["-protocol_whitelist", "file,rtp,udp", &output_sdp])
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
         .spawn()?;
 
     info!("[example] Send register output request.");
@@ -70,28 +61,24 @@ fn start_example_client_code() -> Result<()> {
         }
     }))?;
 
-    info!("[example] Register static image");
+    let shader_source = include_str!("../compositor_render/examples/silly/silly.wgsl");
+    info!("[example] Register shader transform");
     common::post(&json!({
         "type": "register_transformation",
-        "key": "example_image",
-        //"transform": {
-        //    "type": "image",
-        //    "asset_type": "jpeg",
-        //    "url": "https://i.ytimg.com/vi/ekthcIHDt3I/maxresdefault.jpg",
-        //},
-        //
-        // TODO: fix commented out example(after we rescale transforms)
-        // This example links to 1920x1080 image so it won't work without
-        // changing the output resolution
-        //"transform": {
-        //    "type": "image",
-        //    "asset_type": "gif",
-        //    "url": "https://upload.wikimedia.org/wikipedia/commons/b/b6/PM5644-1920x1080.gif",
-        //},
+        "key": "example shader",
         "transform": {
-            "type": "image",
-            "asset_type": "svg",
-            "url": "https://upload.wikimedia.org/wikipedia/commons/c/c1/PM5644.svg",
+            "type": "shader",
+            "source": shader_source,
+        }
+    }))?;
+
+    info!("[example] Register web renderer transform");
+    common::post(&json!({
+        "type": "register_transformation",
+        "key": "example website",
+        "transform": {
+            "type": "web_renderer",
+            "url": "https://www.membrane.stream/", // or other way of providing source
             "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
         }
     }))?;
@@ -99,19 +86,30 @@ fn start_example_client_code() -> Result<()> {
     info!("[example] Update scene");
     common::post(&json!({
         "type": "update_scene",
-        "inputs": [],
+        "inputs": [
+        ],
         "transforms": [
            {
-                "node_id": "static_image",
-                "type": "image",
-                "image_id": "example_image",
+               "node_id": "shader_1",
+               "type": "shader",
+               "shader_id": "example shader",
+               "input_pads": [
+                   "web_renderer_1",
+               ],
+               "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+           },
+           {
+               "node_id": "web_renderer_1",
+               "type": "web_renderer",
+               "renderer_id": "example website",
+               "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
            }
         ],
         "outputs": [
             {
                 "output_id": "output 1",
-                "input_pad": "static_image"
-            },
+                "input_pad": "shader_1"
+            }
         ]
     }))?;
 

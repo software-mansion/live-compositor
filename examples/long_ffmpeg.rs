@@ -1,13 +1,8 @@
 use anyhow::Result;
-use compositor_chromium::cef;
 use compositor_common::{scene::Resolution, Framerate};
 use log::{error, info};
 use serde_json::json;
-use std::{
-    process::{Command, Stdio},
-    thread,
-    time::Duration,
-};
+use std::{process::Command, thread, time::Duration};
 use video_compositor::http;
 
 use crate::common::write_example_sdp_file;
@@ -27,15 +22,6 @@ fn main() {
     );
     ffmpeg_next::format::network::init();
 
-    let target_path = &std::env::current_exe()
-        .unwrap()
-        .parent()
-        .unwrap()
-        .join("..");
-    if cef::bundle_app(target_path).is_err() {
-        panic!("Build process helper first: cargo build --bin process_helper");
-    }
-
     thread::spawn(|| {
         if let Err(err) = start_example_client_code() {
             error!("{err}")
@@ -51,6 +37,9 @@ fn start_example_client_code() -> Result<()> {
     info!("[example] Sending init request.");
     common::post(&json!({
         "type": "init",
+        "web_renderer": {
+            "init": false
+        },
         "framerate": FRAMERATE,
     }))?;
 
@@ -58,8 +47,6 @@ fn start_example_client_code() -> Result<()> {
     let output_sdp = write_example_sdp_file("127.0.0.1", 8002)?;
     Command::new("ffplay")
         .args(["-protocol_whitelist", "file,rtp,udp", &output_sdp])
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
         .spawn()?;
 
     info!("[example] Send register output request.");
@@ -95,55 +82,6 @@ fn start_example_client_code() -> Result<()> {
         }
     }))?;
 
-    info!("[example] Register web renderer transform");
-    common::post(&json!({
-        "type": "register_transformation",
-        "key": "example website",
-        "transform": {
-            "type": "web_renderer",
-            "url": "https://www.membrane.stream/", // or other way of providing source
-            "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
-        }
-    }))?;
-
-    info!("[example] Update scene");
-    common::post(&json!({
-        "type": "update_scene",
-        "inputs": [
-            {
-                "input_id": "input 1",
-                "fallback_color_rgb": "#FF0000",
-                "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
-            }
-        ],
-        "transforms": [
-           {
-               "node_id": "side-by-side",
-               "type": "shader",
-               "shader_id": "example shader",
-               "input_pads": [
-                   "add-overlay",
-               ],
-               "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
-           },
-           {
-               "node_id": "add-overlay",
-               "type": "web_renderer",
-               "renderer_id": "example website",
-               "input_pads": [
-                   "input 1",
-               ],
-               "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
-           }
-        ],
-        "outputs": [
-            {
-                "output_id": "output 1",
-                "input_pad": "side-by-side"
-            }
-        ]
-    }))?;
-
     info!("[example] Start pipeline");
     common::post(&json!({
         "type": "start",
@@ -168,5 +106,34 @@ fn start_example_client_code() -> Result<()> {
             "rtp://127.0.0.1:8004?rtcpport=8004",
         ])
         .spawn()?;
+
+    info!("[example] Update scene");
+    common::post(&json!({
+        "type": "update_scene",
+        "inputs": [
+            {
+                "input_id": "input 1",
+                "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+            }
+        ],
+        "transforms": [
+           {
+               "node_id": "shader_1",
+               "type": "shader",
+               "shader_id": "example shader",
+               "input_pads": [
+                   "input 1",
+               ],
+               "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+           },
+        ],
+        "outputs": [
+            {
+                "output_id": "output 1",
+                "input_pad": "shader_1"
+            }
+        ]
+    }))?;
+
     Ok(())
 }

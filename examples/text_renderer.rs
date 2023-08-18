@@ -71,13 +71,6 @@ fn start_example_client_code() -> Result<()> {
         }
     }))?;
 
-    info!("[example] Send register input request.");
-    common::post(&json!({
-        "type": "register_input",
-        "id": "input_1",
-        "port": 8004
-    }))?;
-
     info!("[example] Update scene");
     common::post(&json!({
         "type": "update_scene",
@@ -113,24 +106,5 @@ fn start_example_client_code() -> Result<()> {
         "type": "start",
     }))?;
 
-    info!("[example] Start input stream");
-    let ffmpeg_source = format!(
-        "testsrc=s={}x{}:r=30,format=yuv420p",
-        VIDEO_RESOLUTION.width, VIDEO_RESOLUTION.height
-    );
-    Command::new("ffmpeg")
-        .args([
-            "-re",
-            "-f",
-            "lavfi",
-            "-i",
-            &ffmpeg_source,
-            "-c:v",
-            "libx264",
-            "-f",
-            "rtp",
-            "rtp://127.0.0.1:8004?rtcpport=8004",
-        ])
-        .spawn()?;
     Ok(())
 }

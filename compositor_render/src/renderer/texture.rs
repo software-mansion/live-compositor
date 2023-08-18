@@ -62,7 +62,7 @@ impl InputTexture {
         }
     }
 
-    pub fn upload(&mut self, ctx: &WgpuCtx, frame: Arc<Frame>) {
+    pub fn upload(&mut self, ctx: &WgpuCtx, frame: Frame) {
         if frame.resolution != self.resolution {
             self.textures = YUVTextures::new(ctx, frame.resolution);
             self.bind_group = self

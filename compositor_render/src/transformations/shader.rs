@@ -16,14 +16,16 @@ const INPUT_TEXTURES_AMOUNT: u32 = 16;
 /// The bind group layout for the shader:
 ///
 /// ```wgsl
+/// var<push_constant> common_params: CommonShaderParameters;
+///
 /// @group(0) @binding(0) var textures: binding_array<texture_2d<f32>, 16>;
 /// @group(1) @binding(0) var<uniform> shaders_custom_buffer: CustomStruct;
-/// @group(1) @binding(1) var<uniform> parameters_received_from_the_compositor: SomeStruct;
-/// @group(2) @binding(0) var sampler_: sampler
+/// @group(2) @binding(0) var sampler_: sampler;
 /// ```
 pub struct Shader {
     wgpu_ctx: Arc<WgpuCtx>,
     pipeline: Pipeline,
+    empty_texture: Texture,
 }
 
 impl Shader {
@@ -35,9 +37,22 @@ impl Shader {
             &ctx.wgpu_ctx.shader_parameters_bind_group_layout,
         );
 
+        let empty_texture = Texture::new(
+            &ctx.wgpu_ctx,
+            Some("empty texture"),
+            wgpu::Extent3d {
+                width: 1,
+                height: 1,
+                depth_or_array_layers: 1,
+            },
+            wgpu::TextureFormat::Rgba8Unorm,
+            wgpu::TextureUsages::TEXTURE_BINDING,
+        );
+
         Self {
             wgpu_ctx: ctx.wgpu_ctx.clone(),
             pipeline,
+            empty_texture,
         }
     }
 
@@ -82,18 +97,6 @@ impl Shader {
         // TODO: sources need to be ordered
 
         // TODO: most things that happen in this method should not be done every frame
-        let empty_texture = Texture::new(
-            ctx,
-            Some("empty texture"),
-            wgpu::Extent3d {
-                width: 1,
-                height: 1,
-                depth_or_array_layers: 1,
-            },
-            wgpu::TextureFormat::Rgba8Unorm,
-            wgpu::TextureUsages::TEXTURE_BINDING,
-        );
-
         let textures = sources
             .iter()
             .map(|(_, texture)| texture.rgba_texture())
@@ -104,10 +107,10 @@ impl Shader {
             .map(|texture| &texture.texture().view)
             .collect::<Vec<_>>();
 
-        texture_views
-            .extend((textures.len()..INPUT_TEXTURES_AMOUNT as usize).map(|_| &empty_texture.view));
+        texture_views.extend(
+            (textures.len()..INPUT_TEXTURES_AMOUNT as usize).map(|_| &self.empty_texture.view),
+        );
 
-        // TODO: not sure if this should be done every frame or not
         let input_textures_bg = ctx.device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: &self.pipeline.textures_bgl,
             label: None,
