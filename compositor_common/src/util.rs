@@ -5,6 +5,19 @@ use serde_with::{DeserializeFromStr, SerializeDisplay};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, SerializeDisplay, DeserializeFromStr)]
 pub struct RGBColor(pub u8, pub u8, pub u8);
 
+impl RGBColor {
+    pub fn to_yuv(&self) -> (f32, f32, f32) {
+        let r = self.0 as f32 / 255.0;
+        let g = self.1 as f32 / 255.0;
+        let b = self.2 as f32 / 255.0;
+        (
+            ((0.299 * r) + (0.587 * g) + (0.114 * b)).clamp(0.0, 1.0),
+            (((-0.168736 * r) - (0.331264 * g) + (0.5 * b)) + (128.0 / 255.0)).clamp(0.0, 1.0),
+            (((0.5 * r) + (-0.418688 * g) + (-0.081312 * b)) + (128.0 / 255.0)).clamp(0.0, 1.0),
+        )
+    }
+}
+
 impl Display for RGBColor {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "#{:02X}{:02X}{:02X}", self.0, self.1, self.2)
