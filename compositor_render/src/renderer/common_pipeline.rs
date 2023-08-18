@@ -1,5 +1,15 @@
 use wgpu::{util::DeviceExt, BindGroup, BindGroupLayout, Buffer};
 
+pub const PRIMITIVE_STATE: wgpu::PrimitiveState = wgpu::PrimitiveState {
+    polygon_mode: wgpu::PolygonMode::Fill,
+    topology: wgpu::PrimitiveTopology::TriangleList,
+    front_face: wgpu::FrontFace::Ccw,
+    cull_mode: Some(wgpu::Face::Back),
+    strip_index_format: None,
+    conservative: false,
+    unclipped_depth: false,
+};
+
 #[repr(C)]
 #[derive(Debug, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Vertex {
