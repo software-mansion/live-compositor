@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc, time::Duration};
+use std::{collections::HashMap, time::Duration};
 
 use compositor_common::{scene::NodeId, Frame};
 
@@ -7,7 +7,7 @@ pub struct FrameSet<Id>
 where
     Id: From<NodeId>,
 {
-    pub frames: HashMap<Id, Arc<Frame>>,
+    pub frames: HashMap<Id, Frame>,
     pub pts: Duration,
 }
 

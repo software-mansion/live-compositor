@@ -41,7 +41,6 @@ fn start_example_client_code() -> Result<()> {
     info!("[example] Sending init request.");
     common::post(&json!({
         "type": "init",
-        "init_web_renderer": false,
         "framerate": FRAMERATE,
     }))?;
 
@@ -66,13 +65,6 @@ fn start_example_client_code() -> Result<()> {
         }
     }))?;
 
-    info!("[example] Send register input request.");
-    common::post(&json!({
-        "type": "register_input",
-        "id": "input 1",
-        "port": 8004
-    }))?;
-
     let shader_source = include_str!("../compositor_render/examples/silly/silly.wgsl");
     info!("[example] Register shader transform");
     common::post(&json!({
@@ -84,39 +76,21 @@ fn start_example_client_code() -> Result<()> {
         }
     }))?;
 
-    info!("[example] Start pipeline");
+    info!("[example] Register web renderer transform");
     common::post(&json!({
-        "type": "start",
+        "type": "register_transformation",
+        "key": "example website",
+        "transform": {
+            "type": "web_renderer",
+            "url": "https://www.twitch.tv/", // or other way of providing source
+            "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+        }
     }))?;
-
-    info!("[example] Start input stream");
-    let ffmpeg_source = format!(
-        "testsrc=s={}x{}:r=30,format=yuv420p",
-        VIDEO_RESOLUTION.width, VIDEO_RESOLUTION.height
-    );
-    Command::new("ffmpeg")
-        .args([
-            "-re",
-            "-f",
-            "lavfi",
-            "-i",
-            &ffmpeg_source,
-            "-c:v",
-            "libx264",
-            "-f",
-            "rtp",
-            "rtp://127.0.0.1:8004?rtcpport=8004",
-        ])
-        .spawn()?;
 
     info!("[example] Update scene");
     common::post(&json!({
         "type": "update_scene",
         "inputs": [
-            {
-                "input_id": "input 1",
-                "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
-            }
         ],
         "transforms": [
            {
@@ -124,10 +98,16 @@ fn start_example_client_code() -> Result<()> {
                "type": "shader",
                "shader_id": "example shader",
                "input_pads": [
-                   "input 1",
+                   "web_renderer_1",
                ],
                "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
            },
+           {
+               "node_id": "web_renderer_1",
+               "type": "web_renderer",
+               "renderer_id": "example website",
+               "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+           }
         ],
         "outputs": [
             {
@@ -135,6 +115,11 @@ fn start_example_client_code() -> Result<()> {
                 "input_pad": "shader_1"
             }
         ]
+    }))?;
+
+    info!("[example] Start pipeline");
+    common::post(&json!({
+        "type": "start",
     }))?;
 
     Ok(())
