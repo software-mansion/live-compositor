@@ -62,12 +62,12 @@ impl InternalQueue {
     }
 
     /// Gets frames closest to buffer pts.
-    ///
-    /// Implementation assumes that "useless frames" are already dropped
-    /// by [`InternalQueue::drop_old_frames`].
-    pub fn get_frames_batch(&self, buffer_pts: Duration) -> FrameSet<InputId> {
-        let mut frames_batch = FrameSet::new(buffer_pts);
+    pub fn get_frames_batch(&mut self, buffer_pts: Duration) -> FrameSet<InputId> {
+        for (_, input_queue) in self.inputs_queues.iter_mut() {
+            Self::drop_old_input_frames(input_queue, buffer_pts);
+        }
 
+        let mut frames_batch = FrameSet::new(buffer_pts);
         for (input_id, input_queue) in &self.inputs_queues {
             if let Some(nearest_frame) = input_queue.first() {
                 frames_batch
@@ -113,13 +113,6 @@ impl InternalQueue {
 
         if let Some(index) = closest_diff_frame_index {
             input_queue.drain(0..index);
-        }
-    }
-
-    pub fn drop_old_frames(&mut self, next_buffer_pts: Duration) {
-        let inputs = self.inputs_queues.iter_mut();
-        for (_, input_queue) in inputs {
-            Self::drop_old_input_frames(input_queue, next_buffer_pts);
         }
     }
 
