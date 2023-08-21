@@ -42,10 +42,26 @@ fn vs_main(input: VertexInput) -> VertexOutput {
     var x_scale: f32 = 1.0;
     var y_scale: f32 = 1.0;
 
+    // This transformation preserves the input texture ratio.
+    //
+    // If the input ratio is larger than the output ratio, the texture is scaled up,
+    // such that input height = output height. Then:
+    // scale_factor_pixels = output_height / input_height
+    // Using clip space coords ([-1, 1] range in both axis):
+    // scale_factor_x_clip_space = scale_factor_pixels * input_width / output_width
+    // scale_factor_x_clip_space = (output_height * input_width) / (output_width * input_height)
+    // scale_factor_x_clip_space = input_ratio / output_ratio
+    // scale_factor_y_clip_space = 1.0 (input y coords are already fitted)
+    //
+    // If the output ratio is larger, then the texture is scaled up,
+    // such that input_width = output_width.
+    // Analogusly:
+    // scale_factor_x_clip_space = 1.0 (input x coords are already fitted)
+    // scale_factor_y_clip_space = output_ratio / input_ratio
     if input_ratio >= output_ratio {
-        x_scale = output_ratio / input_ratio;
+        x_scale = input_ratio / output_ratio;
     } else {
-        y_scale = input_ratio / output_ratio;
+        y_scale = output_ratio / input_ratio;
     }
 
     let scale_matrix: mat4x4<f32> = get_scale_matrix(x_scale, y_scale);

@@ -87,7 +87,7 @@ fn start_example_client_code() -> Result<()> {
         "transform": {
             "type": "image",
             "asset_type": "jpeg",
-            "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/Eiffel_Tower_Vertical.JPG/401px-Eiffel_Tower_Vertical.JPG?20080622213711",
+            "url": "https://i.postimg.cc/NfkxF1SV/wp5220836.jpg",
         }
     }))?;
 
@@ -108,7 +108,7 @@ fn start_example_client_code() -> Result<()> {
                     "type": "convert_resolution",
                     "params": {
                         "strategy": "fill_scale",
-                        "color": "#00000000"
+                        "color": "#FFFFFF00"
                     },
                 },
                 "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
