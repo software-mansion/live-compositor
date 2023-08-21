@@ -178,7 +178,7 @@ impl RtpSender {
             opts.resolution.height.try_into().unwrap(),
         );
         for frame in receiver.iter() {
-            if receiver.len() > 100 {
+            if receiver.len() > 10 {
                 warn!("Dropping frame: encoder queue is too long.",);
                 continue;
             }

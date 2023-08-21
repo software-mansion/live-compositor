@@ -72,28 +72,6 @@ fn start_example_client_code() -> Result<()> {
         }
     }))?;
 
-    info!("[example] Send register output request.");
-    common::post(&json!({
-        "type": "register_output",
-        "id": "output 2",
-        "port": 8006,
-        "ip": "127.0.0.1",
-        "resolution": {
-            "width": VIDEO_RESOLUTION.width,
-            "height": VIDEO_RESOLUTION.height,
-        },
-        "encoder_settings": {
-            "preset": "ultrafast"
-        }
-    }))?;
-
-    info!("[example] Send register input request.");
-    common::post(&json!({
-        "type": "register_input",
-        "id": "input 1",
-        "port": 8004
-    }))?;
-
     info!("[example] Register static image");
     common::post(&json!({
         "type": "register_transformation",
@@ -123,12 +101,7 @@ fn start_example_client_code() -> Result<()> {
     info!("[example] Update scene");
     common::post(&json!({
         "type": "update_scene",
-        "inputs": [
-            {
-                "input_id": "input 1",
-                "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
-            }
-        ],
+        "inputs": [],
         "transforms": [
            {
                 "node_id": "static_image",
@@ -141,10 +114,6 @@ fn start_example_client_code() -> Result<()> {
                 "output_id": "output 1",
                 "input_pad": "static_image"
             },
-            {
-                "output_id": "output 2",
-                "input_pad": "input 1"
-            }
         ]
     }))?;
 
@@ -153,24 +122,5 @@ fn start_example_client_code() -> Result<()> {
         "type": "start",
     }))?;
 
-    info!("[example] Start input stream");
-    let ffmpeg_source = format!(
-        "testsrc=s={}x{}:r=30,format=yuv420p",
-        VIDEO_RESOLUTION.width, VIDEO_RESOLUTION.height
-    );
-    Command::new("ffmpeg")
-        .args([
-            "-re",
-            "-f",
-            "lavfi",
-            "-i",
-            &ffmpeg_source,
-            "-c:v",
-            "libx264",
-            "-f",
-            "rtp",
-            "rtp://127.0.0.1:8004?rtcpport=8004",
-        ])
-        .spawn()?;
     Ok(())
 }

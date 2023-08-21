@@ -25,15 +25,16 @@ use crate::{
 };
 
 use self::{
-    color_converter_pipeline::{R8FillWithValuePipeline, RGBAToYUVConverter, YUVToRGBAConverter},
+    format::TextureFormat,
     scene::{Scene, SceneUpdateError},
-    texture::{RGBATexture, YUVTextures},
+    utils::TextureUtils,
 };
 
-mod color_converter_pipeline;
 pub mod common_pipeline;
+mod format;
 pub mod scene;
 pub mod texture;
+mod utils;
 
 pub struct Renderer {
     pub wgpu_ctx: Arc<WgpuCtx>,
@@ -156,14 +157,10 @@ pub struct WgpuCtx {
     #[allow(dead_code)]
     pub queue: wgpu::Queue,
 
-    pub yuv_bind_group_layout: wgpu::BindGroupLayout,
-    pub rgba_bind_group_layout: wgpu::BindGroupLayout,
-    pub yuv_to_rgba_converter: YUVToRGBAConverter,
-    pub rgba_to_yuv_converter: RGBAToYUVConverter,
-    pub r8_fill_with_color_pipeline: R8FillWithValuePipeline,
+    pub format: TextureFormat,
+    pub utils: TextureUtils,
 
     pub shader_parameters_bind_group_layout: wgpu::BindGroupLayout,
-
     pub compositor_provided_parameters_buffer: wgpu::Buffer,
 }
 
@@ -203,11 +200,8 @@ impl WgpuCtx {
             None,
         ))?;
 
-        let yuv_bind_group_layout = YUVTextures::new_bind_group_layout(&device);
-        let rgba_bind_group_layout = RGBATexture::new_bind_group_layout(&device);
-        let yuv_to_rgba_converter = YUVToRGBAConverter::new(&device, &yuv_bind_group_layout);
-        let rgba_to_yuv_converter = RGBAToYUVConverter::new(&device, &rgba_bind_group_layout);
-        let r8_fill_with_color_pipeline = R8FillWithValuePipeline::new(&device);
+        let format = TextureFormat::new(&device);
+        let utils = TextureUtils::new(&device);
 
         let shader_parameters_bind_group_layout = Shader::new_parameters_bind_group_layout(&device);
 
@@ -228,11 +222,8 @@ impl WgpuCtx {
         Ok(Self {
             device,
             queue,
-            yuv_bind_group_layout,
-            rgba_bind_group_layout,
-            yuv_to_rgba_converter,
-            rgba_to_yuv_converter,
-            r8_fill_with_color_pipeline,
+            format,
+            utils,
             shader_parameters_bind_group_layout,
             compositor_provided_parameters_buffer,
         })

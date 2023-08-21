@@ -29,29 +29,15 @@ pub struct InputTexture {
     resolution: Resolution,
 }
 
-fn rgb_to_yuv(rgb: RGBColor) -> (f32, f32, f32) {
-    let r = rgb.0 as f32 / 255.0;
-    let g = rgb.1 as f32 / 255.0;
-    let b = rgb.2 as f32 / 255.0;
-    (
-        ((0.299 * r) + (0.587 * g) + (0.114 * b)).clamp(0.0, 1.0),
-        (((-0.168736 * r) - (0.331264 * g) + (0.5 * b)) + (128.0 / 255.0)).clamp(0.0, 1.0),
-        (((0.5 * r) + (-0.418688 * g) + (-0.081312 * b)) + (128.0 / 255.0)).clamp(0.0, 1.0),
-    )
-}
-
 impl InputTexture {
     pub fn new(ctx: &WgpuCtx, resolution: Resolution, init_color: Option<RGBColor>) -> Self {
         let textures = YUVTextures::new(ctx, resolution);
-        let bind_group = textures.new_bind_group(ctx, &ctx.yuv_bind_group_layout);
+        let bind_group = textures.new_bind_group(ctx, ctx.format.yuv_layout());
 
-        let (y, u, v) = rgb_to_yuv(init_color.unwrap_or(RGBColor(0, 0, 0)));
-        ctx.r8_fill_with_color_pipeline
-            .fill(ctx, textures.plane(0), y);
-        ctx.r8_fill_with_color_pipeline
-            .fill(ctx, textures.plane(1), u);
-        ctx.r8_fill_with_color_pipeline
-            .fill(ctx, textures.plane(2), v);
+        let (y, u, v) = init_color.unwrap_or(RGBColor(0, 0, 0)).to_yuv();
+        ctx.utils.fill_r8_with_value(ctx, textures.plane(0), y);
+        ctx.utils.fill_r8_with_value(ctx, textures.plane(1), u);
+        ctx.utils.fill_r8_with_value(ctx, textures.plane(2), v);
 
         Self {
             textures,
@@ -60,12 +46,10 @@ impl InputTexture {
         }
     }
 
-    pub fn upload(&mut self, ctx: &WgpuCtx, frame: Arc<Frame>) {
+    pub fn upload(&mut self, ctx: &WgpuCtx, frame: Frame) {
         if frame.resolution != self.resolution {
             self.textures = YUVTextures::new(ctx, frame.resolution);
-            self.bind_group = self
-                .textures
-                .new_bind_group(ctx, &ctx.yuv_bind_group_layout);
+            self.bind_group = self.textures.new_bind_group(ctx, ctx.format.yuv_layout());
             self.resolution = frame.resolution;
         }
         self.textures.upload(ctx, &frame.data)
@@ -88,7 +72,7 @@ struct InnerNodeTexture {
 impl InnerNodeTexture {
     pub fn new(ctx: &WgpuCtx, resolution: Resolution) -> Self {
         let texture = RGBATexture::new(ctx, resolution);
-        let bind_group = texture.new_bind_group(ctx, &ctx.rgba_bind_group_layout);
+        let bind_group = texture.new_bind_group(ctx, ctx.format.rgba_layout());
 
         Self {
             texture: Arc::new(texture),
