@@ -10,7 +10,8 @@ use crate::{
     event_loop::EventLoop,
     frame_set::FrameSet,
     renderer::{
-        scene::SceneUpdateError, Renderer, RendererNewError, RendererRegisterTransformationError,
+        scene::SceneUpdateError, RenderError, Renderer, RendererNewError,
+        RendererRegisterTransformationError,
     },
     transformations::{image_renderer::Image, shader::Shader, web_renderer::WebRenderer},
     WebRendererOptions,
@@ -38,7 +39,7 @@ impl SyncRenderer {
         let ctx = self.0.lock().unwrap().register_transformation_ctx();
         match spec {
             TransformationSpec::Shader { source } => {
-                let shader = Arc::new(Shader::new(&ctx, source));
+                let shader = Arc::new(Shader::new(&ctx, source)?);
 
                 let mut guard = self.0.lock().unwrap();
                 guard.shader_transforms.register(&key, shader)?
@@ -59,7 +60,7 @@ impl SyncRenderer {
         Ok(())
     }
 
-    pub fn render(&self, input: FrameSet<InputId>) -> FrameSet<OutputId> {
+    pub fn render(&self, input: FrameSet<InputId>) -> Result<FrameSet<OutputId>, RenderError> {
         self.0.lock().unwrap().render(input)
     }
 

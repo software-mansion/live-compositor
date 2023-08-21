@@ -164,7 +164,12 @@ impl<Input: PipelineInput, Output: PipelineOutput> Pipeline<Input, Output> {
                     warn!("Dropping frame: render queue is too long.",);
                     continue;
                 }
-                let output_frames = renderer.render(input_frames);
+
+                let output = renderer.render(input_frames);
+                let Ok(output_frames) = output else {
+                    error!("Error while rendering: {}", output.unwrap_err());
+                    continue;
+                };
 
                 for (id, frame) in output_frames.frames {
                     let output = outputs.lock().get(&id).map(Clone::clone);
