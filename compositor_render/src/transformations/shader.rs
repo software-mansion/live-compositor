@@ -38,7 +38,7 @@ impl Shader {
         );
 
         let empty_texture = Texture::new(
-            &ctx.wgpu_ctx,
+            wgpu_ctx,
             Some("empty texture"),
             wgpu::Extent3d {
                 width: 1,
