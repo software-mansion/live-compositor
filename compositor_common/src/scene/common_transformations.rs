@@ -13,10 +13,10 @@ pub enum CommonTransformation {
 pub enum ConvertResolutionParams {
     /// Rescales input in both axis to match output resolution
     Stretch,
-    /// Scales input preserving aspect ratio and cuts equal parts 
+    /// Scales input preserving aspect ratio and cuts equal parts
     /// from both sides in "sticking out" dimension
     CropScale,
-    /// Scales input preserving aspect ratio and 
+    /// Scales input preserving aspect ratio and
     /// fill the rest of the texture with the provided color
     FillScale(RGBAColor),
 }
