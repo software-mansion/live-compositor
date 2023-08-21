@@ -1,4 +1,7 @@
-use crate::renderer::{texture::NodeTexture, CommonShaderParameters, RegisterTransformationCtx, WgpuErrorScope, WgpuError};
+use crate::renderer::{
+    texture::NodeTexture, CommonShaderParameters, RegisterTransformationCtx, WgpuError,
+    WgpuErrorScope,
+};
 
 use std::{sync::Arc, time::Duration};
 
