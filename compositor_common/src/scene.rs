@@ -113,7 +113,7 @@ pub enum TransformParams {
         image_id: TransformationRegistryKey,
     },
     #[serde(rename = "built-in")]
-    Builtin{
+    Builtin {
         #[serde(flatten)]
         transformation: BuiltinTransformation,
         resolution: Resolution,
