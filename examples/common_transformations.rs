@@ -105,10 +105,8 @@ fn start_example_client_code() -> Result<()> {
                 "node_id": "fitted",
                 "type": "built-in",
                 "transformation": "transform_to_resolution",
-                "params": {
-                    "strategy": "fit",
-                    "color": "#FFFFFF00"
-                },
+                "strategy": "fit",
+                "color": "#FFFFFF00",
                 "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
                 "input_pads": ["image"],
             }

@@ -105,6 +105,7 @@ pub enum TransformParams {
         resolution: Resolution,
     },
     TextRenderer {
+        #[serde(flatten)]
         text_params: TextSpec,
         resolution: TextDimensions,
     },

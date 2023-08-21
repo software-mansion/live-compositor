@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::util::RGBAColor;
 
 #[derive(Serialize, Deserialize, Clone)]
-#[serde(tag = "transformation", content = "params", rename_all = "snake_case")]
+#[serde(tag = "transformation", rename_all = "snake_case")]
 pub enum BuiltinTransformation {
     TransformToResolution(TransformToResolution),
 }
