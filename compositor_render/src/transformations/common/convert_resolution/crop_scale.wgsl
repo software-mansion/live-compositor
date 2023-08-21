@@ -55,7 +55,7 @@ fn vs_main(input: VertexInput) -> VertexOutput {
     //
     // If the output ratio is larger, then the texture is scaled up,
     // such that input_width = output_width.
-    // Analogusly:
+    // Analogously:
     // scale_factor_x_clip_space = 1.0 (input x coords are already fitted)
     // scale_factor_y_clip_space = output_ratio / input_ratio
     if input_ratio >= output_ratio {
