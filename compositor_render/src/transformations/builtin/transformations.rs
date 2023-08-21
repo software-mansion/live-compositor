@@ -5,17 +5,20 @@ use compositor_common::scene::{
     ShaderParam,
 };
 
-use crate::{renderer::WgpuCtx, transformations::shader::Shader};
+use crate::{
+    renderer::{WgpuCtx, WgpuError},
+    transformations::shader::Shader,
+};
 
 pub struct BuiltinTransformations {
     transform_resolution: ConvertResolutionRegistry,
 }
 
 impl BuiltinTransformations {
-    pub fn new(wgpu_ctx: &Arc<WgpuCtx>) -> Self {
-        Self {
-            transform_resolution: ConvertResolutionRegistry::new(wgpu_ctx),
-        }
+    pub fn new(wgpu_ctx: &Arc<WgpuCtx>) -> Result<Self, WgpuError> {
+        Ok(Self {
+            transform_resolution: ConvertResolutionRegistry::new(wgpu_ctx)?,
+        })
     }
 
     pub fn shader(&self, transformation: &BuiltinTransformation) -> Arc<Shader> {
@@ -60,20 +63,20 @@ pub struct ConvertResolutionRegistry {
 }
 
 impl ConvertResolutionRegistry {
-    pub(crate) fn new(wgpu_ctx: &Arc<WgpuCtx>) -> Self {
-        Self {
+    pub(crate) fn new(wgpu_ctx: &Arc<WgpuCtx>) -> Result<Self, WgpuError> {
+        Ok(Self {
             stretch: Arc::new(Shader::new(
                 wgpu_ctx,
                 include_str!("./transform_to_resolution/stretch.wgsl").into(),
-            )),
+            )?),
             fill: Arc::new(Shader::new(
                 wgpu_ctx,
                 include_str!("./transform_to_resolution/fill.wgsl").into(),
-            )),
+            )?),
             fit: Arc::new(Shader::new(
                 wgpu_ctx,
                 include_str!("./transform_to_resolution/fit.wgsl").into(),
-            )),
-        }
+            )?),
+        })
     }
 }

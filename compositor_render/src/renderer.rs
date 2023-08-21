@@ -77,6 +77,9 @@ pub enum RendererRegisterTransformationError {
     #[error("failed to register a transformation in the transformation registry")]
     TransformationRegistry(#[from] registry::RegisterError),
 
+    #[error("failed to to initialize the shader")]
+    Shader(#[from] WgpuError),
+
     #[error("failed to create web renderer transformation")]
     WebRendererTransformation(#[from] WebRendererNewError),
 
@@ -95,7 +98,8 @@ impl Renderer {
             web_renderers: TransformationRegistry::new(RegistryType::WebRenderer),
             shader_transforms: TransformationRegistry::new(RegistryType::Shader),
             image_registry: TransformationRegistry::new(RegistryType::Image),
-            builtin_transformations: BuiltinTransformations::new(&wgpu_ctx),
+            // TODO fix unwrap
+            builtin_transformations: BuiltinTransformations::new(&wgpu_ctx).unwrap(),
             scene_spec: Arc::new(SceneSpec {
                 inputs: vec![],
                 transforms: vec![],
@@ -111,7 +115,10 @@ impl Renderer {
         }
     }
 
-    pub fn render(&mut self, mut inputs: FrameSet<InputId>) -> FrameSet<OutputId> {
+    pub fn render(
+        &mut self,
+        mut inputs: FrameSet<InputId>,
+    ) -> Result<FrameSet<OutputId>, RenderError> {
         let ctx = &mut RenderCtx {
             wgpu_ctx: &self.wgpu_ctx,
             electron: &self.electron_instance,
@@ -122,14 +129,18 @@ impl Renderer {
             common_transforms: &self.builtin_transformations,
         };
 
+        let scope = WgpuErrorScope::push(&ctx.wgpu_ctx.device);
+
         populate_inputs(ctx, &mut self.scene, &mut inputs.frames);
         run_transforms(ctx, &self.scene, inputs.pts);
         let frames = read_outputs(ctx, &self.scene, inputs.pts);
 
-        FrameSet {
+        scope.pop(&ctx.wgpu_ctx.device)?;
+
+        Ok(FrameSet {
             frames,
             pts: inputs.pts,
-        }
+        })
     }
 
     pub fn update_scene(&mut self, scene_specs: Arc<SceneSpec>) -> Result<(), SceneUpdateError> {
@@ -148,6 +159,12 @@ impl Renderer {
         self.scene_spec = scene_specs;
         Ok(())
     }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum RenderError {
+    #[error("wgpu error encountered while rendering")]
+    WgpuError(#[from] WgpuError),
 }
 
 pub struct WgpuCtx {
@@ -171,6 +188,26 @@ pub enum WgpuCtxNewError {
 
     #[error("failed to get a wgpu device")]
     NoDevice(#[from] wgpu::RequestDeviceError),
+
+    #[error("wgpu error")]
+    WgpuError(#[from] WgpuError),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum WgpuError {
+    #[error("wgpu validation error: {0}")]
+    Validation(String),
+    #[error("wgpu out of memory error: {0}")]
+    OutOfMemory(String),
+}
+
+impl From<wgpu::Error> for WgpuError {
+    fn from(value: wgpu::Error) -> Self {
+        match value {
+            wgpu::Error::OutOfMemory { .. } => Self::OutOfMemory(format!("{value}")),
+            wgpu::Error::Validation { .. } => Self::Validation(format!("{value}")),
+        }
+    }
 }
 
 impl WgpuCtx {
@@ -200,6 +237,8 @@ impl WgpuCtx {
             None,
         ))?;
 
+        let scope = WgpuErrorScope::push(&device);
+
         let format = TextureFormat::new(&device);
         let utils = TextureUtils::new(&device);
 
@@ -212,9 +251,8 @@ impl WgpuCtx {
             usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::UNIFORM,
         });
 
-        // this is temporary until we implement proper error handling in the wgpu renderer
-        // it's important to overwrite this though, because the default uncaptured error
-        // handler panics
+        scope.pop(&device)?;
+
         device.on_uncaptured_error(Box::new(|e| {
             error!("wgpu error: {:?}", e);
         }));
@@ -260,5 +298,27 @@ impl CommonShaderParameters {
 
     pub fn push_constant(&self) -> &[u8] {
         bytemuck::bytes_of(self)
+    }
+}
+
+#[must_use]
+pub(crate) struct WgpuErrorScope;
+
+impl WgpuErrorScope {
+    pub(crate) fn push(device: &wgpu::Device) -> Self {
+        device.push_error_scope(wgpu::ErrorFilter::Validation);
+        device.push_error_scope(wgpu::ErrorFilter::OutOfMemory);
+
+        Self
+    }
+
+    pub(crate) fn pop(self, device: &wgpu::Device) -> Result<(), WgpuError> {
+        for _ in 0..2 {
+            if let Some(error) = pollster::block_on(device.pop_error_scope()) {
+                return Err(error.into());
+            }
+        }
+
+        Ok(())
     }
 }

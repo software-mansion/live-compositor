@@ -1,4 +1,4 @@
-use crate::renderer::{texture::NodeTexture, CommonShaderParameters};
+use crate::renderer::{texture::NodeTexture, CommonShaderParameters, WgpuError, WgpuErrorScope};
 
 use std::{sync::Arc, time::Duration};
 
@@ -29,8 +29,9 @@ pub struct Shader {
 }
 
 impl Shader {
-    pub fn new(wgpu_ctx: &Arc<WgpuCtx>, shader_src: String) -> Self {
-        // TODO: Error handling
+    pub fn new(wgpu_ctx: &Arc<WgpuCtx>, shader_src: String) -> Result<Self, WgpuError> {
+        let scope = WgpuErrorScope::push(&wgpu_ctx.device);
+
         let pipeline = Pipeline::new(
             &wgpu_ctx.device,
             wgpu::ShaderSource::Wgsl(shader_src.into()),
@@ -49,11 +50,13 @@ impl Shader {
             wgpu::TextureUsages::TEXTURE_BINDING,
         );
 
-        Self {
+        scope.pop(&wgpu_ctx.device)?;
+
+        Ok(Self {
             wgpu_ctx: wgpu_ctx.clone(),
             pipeline,
             empty_texture,
-        }
+        })
     }
 
     pub fn new_parameters_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
@@ -92,7 +95,6 @@ impl Shader {
         pts: Duration,
         clear_color: Option<wgpu::Color>,
     ) {
-        // TODO: error handling
         let ctx = &self.wgpu_ctx;
 
         // TODO: sources need to be ordered
