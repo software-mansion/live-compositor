@@ -1,4 +1,5 @@
 use anyhow::Result;
+use compositor_chromium::cef;
 use compositor_common::{scene::Resolution, Framerate};
 use log::{error, info};
 use serde_json::json;
@@ -21,6 +22,16 @@ fn main() {
         env_logger::Env::default().filter_or(env_logger::DEFAULT_FILTER_ENV, "info"),
     );
     ffmpeg_next::format::network::init();
+
+    let target_path = &std::env::current_exe()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .join("..");
+
+    if cef::bundle_app(target_path).is_err() {
+        panic!("Build process helper first: cargo build --bin process_helper");
+    }
 
     thread::spawn(|| {
         if let Err(err) = start_example_client_code() {

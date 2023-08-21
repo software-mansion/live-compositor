@@ -71,7 +71,7 @@ pub enum RendererNewError {
     FailedToInitWgpuCtx(#[from] WgpuCtxNewError),
 
     #[error("failed to init chromium context")]
-    FailedToStartElectron(#[from] ChromiumContextError),
+    FailedToInitChromiumCtx(#[from] ChromiumContextError),
 }
 
 #[derive(Debug, thiserror::Error)]
