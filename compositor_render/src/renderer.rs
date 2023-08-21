@@ -196,7 +196,7 @@ impl From<wgpu::Error> for WgpuError {
     fn from(value: wgpu::Error) -> Self {
         match value {
             wgpu::Error::OutOfMemory { .. } => Self::OutOfMemory(format!("{value}")),
-            wgpu::Error::Validation { .. } => Self::OutOfMemory(format!("{value}")),
+            wgpu::Error::Validation { .. } => Self::Validation(format!("{value}")),
         }
     }
 }
