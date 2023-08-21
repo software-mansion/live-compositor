@@ -1,3 +1,9 @@
+use std::io::Write;
+
+use bytes::{BufMut, Bytes, BytesMut};
+use crossbeam_channel::bounded;
+use log::error;
+
 use crate::renderer::WgpuCtx;
 
 use super::utils::pad_to_256;
@@ -73,6 +79,43 @@ impl Texture {
             usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
             size: (block_size * pad_to_256(size.width) * size.height) as u64,
         })
+    }
+
+    /// Starts reading source buffer asynchronously and sends data via channel.
+    /// Returns function which reads data from source buffer channel and populates output buffer.
+    /// [`wgpu::Device::poll`] has to be called before returned function is called
+    pub(super) fn prepare_download<'a>(
+        &'a self,
+        source: &'a wgpu::Buffer,
+    ) -> impl FnOnce() -> Result<Bytes, wgpu::BufferAsyncError> + 'a {
+        let size = self.size();
+        let buffer = BytesMut::with_capacity((size.width * size.height) as usize);
+        let block_size = self.block_size().unwrap();
+
+        let (sender, receiver) = bounded(1);
+        source
+            .slice(..)
+            .map_async(wgpu::MapMode::Read, move |result| {
+                if let Err(err) = sender.send(result) {
+                    error!("channel send error: {err}")
+                }
+            });
+
+        move || {
+            receiver.recv().unwrap()?;
+            let mut buffer = buffer.writer();
+            {
+                let range = source.slice(..).get_mapped_range();
+                let chunks = range.chunks((block_size * pad_to_256(size.width)) as usize);
+                for chunk in chunks {
+                    buffer
+                        .write_all(&chunk[..(block_size * size.width) as usize])
+                        .unwrap();
+                }
+            };
+            source.unmap();
+            Ok(buffer.into_inner().into())
+        }
     }
 
     /// [`wgpu::Queue::submit`] has to be called afterwards
