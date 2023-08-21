@@ -43,4 +43,3 @@ signal-hook = { workspace = true }
 
 [dev-dependencies]
 reqwest = { workspace = true }
-signal-hook = { workspace = true }
