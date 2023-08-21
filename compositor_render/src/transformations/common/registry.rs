@@ -56,6 +56,20 @@ impl CommonTransformationsRegistry {
             }
         }
     }
+
+    pub fn clear_color(transformation: &CommonTransformation) -> Option<wgpu::Color> {
+        match transformation {
+            CommonTransformation::ConvertResolution(ConvertResolutionParams::FillScale(color)) => {
+                Some(wgpu::Color {
+                    r: color.0 as f64 / 255.0,
+                    g: color.1 as f64 / 255.0,
+                    b: color.2 as f64 / 255.0,
+                    a: color.3 as f64 / 255.0,
+                })
+            }
+            CommonTransformation::ConvertResolution(_) => None,
+        }
+    }
 }
 
 pub struct ConvertResolutionRegistry {

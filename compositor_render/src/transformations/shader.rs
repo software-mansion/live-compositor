@@ -75,6 +75,7 @@ impl Shader {
         sources: &[(&NodeId, &NodeTexture)],
         target: &NodeTexture,
         pts: Duration,
+        clear_color: Option<wgpu::Color>,
     ) {
         // TODO: error handling
         let ctx = &self.wgpu_ctx;
@@ -126,6 +127,7 @@ impl Shader {
             target.rgba_texture().texture(),
             ctx,
             common_shader_params,
+            clear_color,
         );
     }
 }

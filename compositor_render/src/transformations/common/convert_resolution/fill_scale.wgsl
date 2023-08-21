@@ -43,9 +43,9 @@ fn vs_main(input: VertexInput) -> VertexOutput {
     var y_scale: f32 = 1.0;
 
     if input_ratio >= output_ratio {
-        x_scale = input_ratio - output_ratio + 1.0;
+        y_scale = output_ratio / input_ratio;
     } else {
-        y_scale = ((1.0 / input_ratio) - (1.0 / output_ratio)) + 1.0;
+        x_scale = input_ratio / output_ratio;
     }
 
     let scale_matrix: mat4x4<f32> = get_scale_matrix(x_scale, y_scale);
@@ -60,4 +60,3 @@ fn vs_main(input: VertexInput) -> VertexOutput {
 fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
     return textureSample(textures[0], sampler_, input.tex_coords);
 }
-

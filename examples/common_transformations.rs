@@ -87,7 +87,7 @@ fn start_example_client_code() -> Result<()> {
         "transform": {
             "type": "image",
             "asset_type": "jpeg",
-            "url": "https://i.postimg.cc/NfkxF1SV/wp5220836.jpg",
+            "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/Eiffel_Tower_Vertical.JPG/401px-Eiffel_Tower_Vertical.JPG?20080622213711",
         }
     }))?;
 
