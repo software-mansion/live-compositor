@@ -44,7 +44,7 @@ fn vs_main(input: VertexInput) -> VertexOutput {
 
     // This transformation preserves the input texture ratio.
     //
-    // If the input ratio is larger than the output ratio, the texture is scaled up,
+    // If the input ratio is larger than the output ratio, the texture is scaled,
     // such that input width = output width. Then:
     // scale_factor_pixels = output_width / input_width
     // Using clip space coords ([-1, 1] range in both axis):
