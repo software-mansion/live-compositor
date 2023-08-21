@@ -9,7 +9,7 @@ pub enum CommonTransformation {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
-#[serde(tag = "strategy", rename_all = "snake_case")]
+#[serde(tag = "strategy", content = "color", rename_all = "snake_case")]
 pub enum ConvertResolutionParams {
     Stretch,
     CropScale,

@@ -22,8 +22,6 @@ use super::{
     RenderCtx,
 };
 
-pub struct InputNode {}
-
 pub enum TransformNode {
     Shader(ShaderNode),
     WebRenderer { renderer: Arc<WebRenderer> },

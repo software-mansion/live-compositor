@@ -15,14 +15,11 @@ use crate::common::write_example_sdp_file;
 #[path = "./common/common.rs"]
 mod common;
 
-const IMAGE_RESOLUTION: Resolution = Resolution {
-    width: 1280,
-    height: 720,
-};
 const VIDEO_RESOLUTION: Resolution = Resolution {
     width: 1920,
     height: 1080,
 };
+
 const FRAMERATE: Framerate = Framerate(30);
 
 fn main() {
@@ -76,21 +73,6 @@ fn start_example_client_code() -> Result<()> {
         }
     }))?;
 
-    info!("[example] Send register output request.");
-    common::post(&json!({
-        "type": "register_output",
-        "id": "output 2",
-        "port": 8006,
-        "ip": "127.0.0.1",
-        "resolution": {
-            "width": VIDEO_RESOLUTION.width,
-            "height": VIDEO_RESOLUTION.height,
-        },
-        "encoder_settings": {
-            "preset": "ultrafast"
-        }
-    }))?;
-
     info!("[example] Send register input request.");
     common::post(&json!({
         "type": "register_input",
@@ -104,49 +86,40 @@ fn start_example_client_code() -> Result<()> {
         "key": "example_image",
         "transform": {
             "type": "image",
-            "asset_type": "svg",
-            "url": "https://upload.wikimedia.org/wikipedia/commons/c/c1/PM5644.svg",
-            "resolution": { "width": IMAGE_RESOLUTION.width, "height": IMAGE_RESOLUTION.height},
+            "asset_type": "jpeg",
+            "url": "https://i.postimg.cc/NfkxF1SV/wp5220836.jpg",
         }
     }))?;
 
     info!("[example] Update scene");
     common::post(&json!({
         "type": "update_scene",
-        "inputs": [
-            {
-                "input_id": "input 1",
-                "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
-            }
-        ],
+        "inputs": [],
         "transforms": [
-           {
-                "node_id": "static_image",
+            {
+                "node_id": "image",
                 "type": "image",
                 "image_id": "example_image",
            },
-           {
-                "node_id": "fitted_image",
+            {
+                "node_id": "fitted",
                 "type": "common",
                 "transformation": {
                     "type": "convert_resolution",
                     "params": {
-                        "strategy": "stretch"
-                    }
+                        "strategy": "fill_scale",
+                        "color": "#00000000"
+                    },
                 },
                 "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
-                "input_pads": ["static_image"],
-           }
+                "input_pads": ["image"],
+            }
         ],
         "outputs": [
             {
                 "output_id": "output 1",
-                "input_pad": "fitted_image"
+                "input_pad": "fitted"
             },
-            {
-                "output_id": "output 2",
-                "input_pad": "input 1"
-            }
         ]
     }))?;
 
