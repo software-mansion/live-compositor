@@ -103,13 +103,11 @@ fn start_example_client_code() -> Result<()> {
            },
             {
                 "node_id": "fitted",
-                "type": "common",
-                "transformation": {
-                    "type": "convert_resolution",
-                    "params": {
-                        "strategy": "fill_scale",
-                        "color": "#FFFFFF00"
-                    },
+                "type": "built-in",
+                "transformation": "transform_to_resolution",
+                "params": {
+                    "strategy": "fit",
+                    "color": "#FFFFFF00"
                 },
                 "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
                 "input_pads": ["image"],

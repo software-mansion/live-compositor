@@ -12,7 +12,7 @@ use log::error;
 use crate::{
     registry::GetError,
     transformations::{
-        common::registry::CommonTransformationsRegistry, image_renderer::ImageNode,
+        builtin::transformations::BuiltinTransformations, image_renderer::ImageNode,
         shader::node::ShaderNode, text_renderer::TextRendererNode, web_renderer::WebRenderer,
     },
 };
@@ -52,15 +52,15 @@ impl TransformNode {
                 )),
                 *resolution,
             )),
-            TransformParams::Common {
+            TransformParams::Builtin {
                 transformation,
                 resolution,
             } => Ok((
                 TransformNode::Common(ShaderNode::new(
                     ctx.wgpu_ctx,
                     ctx.common_transforms.shader(transformation),
-                    CommonTransformationsRegistry::params(transformation, *resolution).as_ref(),
-                    CommonTransformationsRegistry::clear_color(transformation),
+                    BuiltinTransformations::params(transformation).as_ref(),
+                    BuiltinTransformations::clear_color(transformation),
                 )),
                 *resolution,
             )),

@@ -4,11 +4,11 @@ use std::{fmt::Display, sync::Arc};
 use crate::{transformation::TransformationRegistryKey, util::RGBColor};
 
 use self::{
-    common_transformations::CommonTransformation,
+    builtin_transformations::BuiltinTransformation,
     text_spec::{TextDimensions, TextSpec},
 };
 
-pub mod common_transformations;
+pub mod builtin_transformations;
 pub mod text_spec;
 
 pub const MAX_NODE_RESOLUTION: Resolution = Resolution {
@@ -111,8 +111,10 @@ pub enum TransformParams {
     Image {
         image_id: TransformationRegistryKey,
     },
-    Common {
-        transformation: CommonTransformation,
+    #[serde(rename = "built-in")]
+    Builtin{
+        #[serde(flatten)]
+        transformation: BuiltinTransformation,
         resolution: Resolution,
     },
 }
