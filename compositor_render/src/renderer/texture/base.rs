@@ -89,8 +89,8 @@ impl Texture {
         source: &'a wgpu::Buffer,
     ) -> impl FnOnce() -> Result<Bytes, wgpu::BufferAsyncError> + 'a {
         let size = self.size();
-        let buffer = BytesMut::with_capacity((size.width * size.height) as usize);
         let block_size = self.block_size().unwrap();
+        let buffer = BytesMut::with_capacity((block_size * size.width * size.height) as usize);
 
         let (sender, receiver) = bounded(1);
         source
