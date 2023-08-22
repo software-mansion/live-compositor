@@ -49,7 +49,7 @@ pub struct Renderer {
     pub scene_spec: Arc<SceneSpec>,
     pub(crate) shader_transforms: TransformationRegistry<Arc<Shader>>,
     pub(crate) web_renderers: TransformationRegistry<Arc<WebRenderer>>,
-    pub(crate) image_registry: TransformationRegistry<Arc<Image>>,
+    pub(crate) image_registry: TransformationRegistry<Image>,
 }
 
 pub struct RenderCtx<'a> {
@@ -58,7 +58,7 @@ pub struct RenderCtx<'a> {
     pub chromium: &'a Arc<ChromiumContext>,
     pub(crate) shader_transforms: &'a TransformationRegistry<Arc<Shader>>,
     pub(crate) web_renderers: &'a TransformationRegistry<Arc<WebRenderer>>,
-    pub(crate) image_registry: &'a TransformationRegistry<Arc<Image>>,
+    pub(crate) image_registry: &'a TransformationRegistry<Image>,
 }
 
 pub struct RegisterTransformationCtx {

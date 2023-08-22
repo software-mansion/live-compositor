@@ -85,7 +85,7 @@ impl TransformNode {
             TransformNode::TextRenderer(renderer) => {
                 renderer.render(ctx, target);
             }
-            TransformNode::ImageRenderer(node) => node.render(ctx, target),
+            TransformNode::ImageRenderer(node) => node.render(ctx, target, pts),
             TransformNode::Nop => (),
         }
     }
