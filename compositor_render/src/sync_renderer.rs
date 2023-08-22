@@ -30,7 +30,7 @@ impl SyncRenderer {
         let ctx = self.0.lock().unwrap().register_transformation_ctx();
         match spec {
             TransformationSpec::Shader { source } => {
-                let shader = Arc::new(Shader::new(&ctx, source)?);
+                let shader = Arc::new(Shader::new(&ctx.wgpu_ctx, source)?);
 
                 let mut guard = self.0.lock().unwrap();
                 guard.shader_transforms.register(&key, shader)?

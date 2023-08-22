@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use compositor_common::scene::{InputId, OutputId, SceneSpec};
+use compositor_common::scene::{InputId, OutputId, Resolution, SceneSpec};
 use log::error;
 
 use crate::{
@@ -9,7 +9,9 @@ use crate::{
     registry::TransformationRegistry,
     render_loop::{populate_inputs, read_outputs},
     transformations::image_renderer::{Image, ImageError},
-    transformations::text_renderer::TextRendererCtx,
+    transformations::{
+        builtin::transformations::BuiltinTransformations, text_renderer::TextRendererCtx,
+    },
 };
 use crate::{
     registry::{self, RegistryType},
@@ -41,6 +43,7 @@ pub struct Renderer {
     pub scene: Scene,
     pub scene_spec: Arc<SceneSpec>,
     pub(crate) shader_transforms: TransformationRegistry<Arc<Shader>>,
+    pub(crate) builtin_transformations: BuiltinTransformations,
     pub(crate) web_renderers: TransformationRegistry<Arc<WebRenderer>>,
     pub(crate) image_registry: TransformationRegistry<Image>,
 }
@@ -50,6 +53,7 @@ pub struct RenderCtx<'a> {
     pub text_renderer_ctx: &'a TextRendererCtx,
     pub electron: &'a Arc<ElectronInstance>,
     pub(crate) shader_transforms: &'a TransformationRegistry<Arc<Shader>>,
+    pub(crate) builtin_transforms: &'a BuiltinTransformations,
     pub(crate) web_renderers: &'a TransformationRegistry<Arc<WebRenderer>>,
     pub(crate) image_registry: &'a TransformationRegistry<Image>,
 }
@@ -66,6 +70,9 @@ pub enum RendererNewError {
 
     #[error("failed to start an electron instance")]
     FailedToStartElectron(#[from] ElectronNewError),
+
+    #[error("failed to initialize builtin transformation")]
+    BuiltInTransformationsInitError(#[from] WgpuError),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -85,14 +92,17 @@ pub enum RendererRegisterTransformationError {
 
 impl Renderer {
     pub fn new(init_web: bool) -> Result<Self, RendererNewError> {
+        let wgpu_ctx = Arc::new(WgpuCtx::new()?);
+
         Ok(Self {
-            wgpu_ctx: Arc::new(WgpuCtx::new()?),
+            wgpu_ctx: wgpu_ctx.clone(),
             text_renderer_ctx: TextRendererCtx::new(),
             electron_instance: Arc::new(ElectronInstance::new(9002, init_web)?), // TODO: make it configurable
             scene: Scene::empty(),
             web_renderers: TransformationRegistry::new(RegistryType::WebRenderer),
             shader_transforms: TransformationRegistry::new(RegistryType::Shader),
             image_registry: TransformationRegistry::new(RegistryType::Image),
+            builtin_transformations: BuiltinTransformations::new(&wgpu_ctx)?,
             scene_spec: Arc::new(SceneSpec {
                 inputs: vec![],
                 transforms: vec![],
@@ -119,6 +129,7 @@ impl Renderer {
             web_renderers: &self.web_renderers,
             text_renderer_ctx: &self.text_renderer_ctx,
             image_registry: &self.image_registry,
+            builtin_transforms: &self.builtin_transformations,
         };
 
         let scope = WgpuErrorScope::push(&ctx.wgpu_ctx.device);
@@ -144,6 +155,7 @@ impl Renderer {
                 shader_transforms: &self.shader_transforms,
                 web_renderers: &self.web_renderers,
                 image_registry: &self.image_registry,
+                builtin_transforms: &self.builtin_transformations,
             },
             &scene_specs,
         )?;
@@ -264,13 +276,18 @@ impl WgpuCtx {
 pub struct CommonShaderParameters {
     time: f32,
     textures_count: u32,
+    output_resolution: [u32; 2],
 }
 
 impl CommonShaderParameters {
-    pub fn new(time: Duration, textures_count: u32) -> Self {
+    pub fn new(time: Duration, textures_count: u32, output_resolution: Resolution) -> Self {
         Self {
             time: time.as_secs_f32(),
             textures_count,
+            output_resolution: [
+                output_resolution.width as u32,
+                output_resolution.height as u32,
+            ],
         }
     }
 

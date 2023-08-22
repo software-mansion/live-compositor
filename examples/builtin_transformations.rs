@@ -61,7 +61,7 @@ fn start_example_client_code() -> Result<()> {
     info!("[example] Send register output request.");
     common::post(&json!({
         "type": "register_output",
-        "id": "output_1",
+        "id": "output 1",
         "port": 8002,
         "ip": "127.0.0.1",
         "resolution": {
@@ -73,31 +73,49 @@ fn start_example_client_code() -> Result<()> {
         }
     }))?;
 
+    info!("[example] Send register input request.");
+    common::post(&json!({
+        "type": "register_input",
+        "id": "input 1",
+        "port": 8004
+    }))?;
+
+    info!("[example] Register static image");
+    common::post(&json!({
+        "type": "register_transformation",
+        "key": "example_image",
+        "transform": {
+            "type": "image",
+            "asset_type": "jpeg",
+            "url": "https://i.postimg.cc/NfkxF1SV/wp5220836.jpg",
+        }
+    }))?;
+
     info!("[example] Update scene");
     common::post(&json!({
         "type": "update_scene",
         "inputs": [],
         "transforms": [
-           {
-                "node_id": "text_renderer",
-                "type": "text_renderer",
-                "content": "VideoCompositor🚀\nSecond Line\nLorem ipsum dolor sit amet consectetur adipisicing elit. Soluta delectus optio fugit maiores eaque ab totam, veritatis aperiam provident, aliquam consectetur deserunt cumque est? Saepe tenetur impedit culpa asperiores id?",
-                "font_size": 100.0,
-                "font_family": "Comic Sans MS",
-                "align": "center",
-                "wrap": "word",
-                "resolution": {
-                    "type": "fixed",
-                    "resolution": {"width": 1920, "height": 1080},
-                },
-                "input_pads": [],
-           }
+            {
+                "node_id": "image",
+                "type": "image",
+                "image_id": "example_image",
+           },
+            {
+                "node_id": "fitted",
+                "type": "built-in",
+                "transformation": "transform_to_resolution",
+                "strategy": "fit",
+                "background_color_rgba": "#FFFFFF00",
+                "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+                "input_pads": ["image"],
+            }
         ],
         "outputs": [
             {
-                "output_id": "output_1",
-                "input_pad": "text_renderer"
-            }
+                "output_id": "output 1",
+                "input_pad": "fitted"
+            },
         ]
     }))?;
 
@@ -106,5 +124,24 @@ fn start_example_client_code() -> Result<()> {
         "type": "start",
     }))?;
 
+    info!("[example] Start input stream");
+    let ffmpeg_source = format!(
+        "testsrc=s={}x{}:r=30,format=yuv420p",
+        VIDEO_RESOLUTION.width, VIDEO_RESOLUTION.height
+    );
+    Command::new("ffmpeg")
+        .args([
+            "-re",
+            "-f",
+            "lavfi",
+            "-i",
+            &ffmpeg_source,
+            "-c:v",
+            "libx264",
+            "-f",
+            "rtp",
+            "rtp://127.0.0.1:8004?rtcpport=8004",
+        ])
+        .spawn()?;
     Ok(())
 }

@@ -1,7 +1,4 @@
-use crate::renderer::{
-    texture::NodeTexture, CommonShaderParameters, RegisterTransformationCtx, WgpuError,
-    WgpuErrorScope,
-};
+use crate::renderer::{texture::NodeTexture, CommonShaderParameters, WgpuError, WgpuErrorScope};
 
 use std::{sync::Arc, time::Duration};
 
@@ -32,17 +29,17 @@ pub struct Shader {
 }
 
 impl Shader {
-    pub fn new(ctx: &RegisterTransformationCtx, shader_src: String) -> Result<Self, WgpuError> {
-        let scope = WgpuErrorScope::push(&ctx.wgpu_ctx.device);
+    pub fn new(wgpu_ctx: &Arc<WgpuCtx>, shader_src: String) -> Result<Self, WgpuError> {
+        let scope = WgpuErrorScope::push(&wgpu_ctx.device);
 
         let pipeline = Pipeline::new(
-            &ctx.wgpu_ctx.device,
+            &wgpu_ctx.device,
             wgpu::ShaderSource::Wgsl(shader_src.into()),
-            &ctx.wgpu_ctx.shader_parameters_bind_group_layout,
+            &wgpu_ctx.shader_parameters_bind_group_layout,
         );
 
         let empty_texture = Texture::new(
-            &ctx.wgpu_ctx,
+            wgpu_ctx,
             Some("empty texture"),
             wgpu::Extent3d {
                 width: 1,
@@ -53,10 +50,10 @@ impl Shader {
             wgpu::TextureUsages::TEXTURE_BINDING,
         );
 
-        scope.pop(&ctx.wgpu_ctx.device)?;
+        scope.pop(&wgpu_ctx.device)?;
 
         Ok(Self {
-            wgpu_ctx: ctx.wgpu_ctx.clone(),
+            wgpu_ctx: wgpu_ctx.clone(),
             pipeline,
             empty_texture,
         })
@@ -96,6 +93,7 @@ impl Shader {
         sources: &[(&NodeId, &NodeTexture)],
         target: &NodeTexture,
         pts: Duration,
+        clear_color: Option<wgpu::Color>,
     ) {
         let ctx = &self.wgpu_ctx;
 
@@ -125,7 +123,8 @@ impl Shader {
             }],
         });
 
-        let common_shader_params = CommonShaderParameters::new(pts, sources.len() as u32);
+        let common_shader_params =
+            CommonShaderParameters::new(pts, sources.len() as u32, target.resolution);
 
         self.pipeline.render(
             &input_textures_bg,
@@ -133,6 +132,7 @@ impl Shader {
             target.rgba_texture().texture(),
             ctx,
             common_shader_params,
+            clear_color,
         );
     }
 }
