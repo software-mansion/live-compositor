@@ -21,6 +21,7 @@ fn vs_main(input: VertexInput) -> VertexOutput {
 struct CommonParams {
     time: f32,
     textures_count: u32,
+    output_texture_size: vec2<u32>,
 }
 
 @group(0) @binding(0) var textures: binding_array<texture_2d<f32>, 16>;

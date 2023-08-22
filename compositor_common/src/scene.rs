@@ -3,8 +3,12 @@ use std::{fmt::Display, sync::Arc};
 
 use crate::{transformation::TransformationRegistryKey, util::RGBColor};
 
-use self::text_spec::{TextDimensions, TextSpec};
+use self::{
+    builtin_transformations::BuiltinTransformation,
+    text_spec::{TextDimensions, TextSpec},
+};
 
+pub mod builtin_transformations;
 pub mod text_spec;
 
 pub const MAX_NODE_RESOLUTION: Resolution = Resolution {
@@ -84,7 +88,6 @@ pub struct TransformNodeSpec {
     pub node_id: NodeId,
     #[serde(default)]
     pub input_pads: Vec<NodeId>,
-
     #[serde(flatten)]
     pub transform_params: TransformParams,
 }
@@ -102,11 +105,18 @@ pub enum TransformParams {
         resolution: Resolution,
     },
     TextRenderer {
+        #[serde(flatten)]
         text_params: TextSpec,
         resolution: TextDimensions,
     },
     Image {
         image_id: TransformationRegistryKey,
+    },
+    #[serde(rename = "built-in")]
+    Builtin {
+        #[serde(flatten)]
+        transformation: BuiltinTransformation,
+        resolution: Resolution,
     },
 }
 

@@ -12,8 +12,8 @@ use log::error;
 use crate::{
     registry::GetError,
     transformations::{
-        image_renderer::ImageNode, shader::node::ShaderNode, text_renderer::TextRendererNode,
-        web_renderer::WebRenderer,
+        builtin::transformations::BuiltinTransformations, image_renderer::ImageNode,
+        shader::node::ShaderNode, text_renderer::TextRendererNode, web_renderer::WebRenderer,
     },
 };
 
@@ -22,13 +22,12 @@ use super::{
     RenderCtx, WgpuError, WgpuErrorScope,
 };
 
-pub struct InputNode {}
-
 pub enum TransformNode {
     Shader(ShaderNode),
     WebRenderer { renderer: Arc<WebRenderer> },
     TextRenderer(TextRendererNode),
     ImageRenderer(ImageNode),
+    Builtin(ShaderNode),
     Nop,
 }
 
@@ -49,6 +48,19 @@ impl TransformNode {
                     ctx.wgpu_ctx,
                     ctx.shader_transforms.get(shader_id)?,
                     shader_params.as_ref(),
+                    None,
+                )),
+                *resolution,
+            )),
+            TransformParams::Builtin {
+                transformation,
+                resolution,
+            } => Ok((
+                TransformNode::Builtin(ShaderNode::new(
+                    ctx.wgpu_ctx,
+                    ctx.builtin_transforms.shader(transformation),
+                    BuiltinTransformations::params(transformation).as_ref(),
+                    BuiltinTransformations::clear_color(transformation),
                 )),
                 *resolution,
             )),
@@ -79,6 +91,7 @@ impl TransformNode {
             TransformNode::Shader(shader) => {
                 shader.render(sources, target, pts);
             }
+            TransformNode::Builtin(shader) => shader.render(sources, target, pts),
             TransformNode::WebRenderer { renderer } => {
                 renderer.render(ctx, sources, target);
             }

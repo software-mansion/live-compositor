@@ -11,10 +11,16 @@ pub struct ShaderNode {
     params_bind_group: wgpu::BindGroup,
     _custom_params_buffer: wgpu::Buffer,
     shader: Arc<Shader>,
+    clear_color: Option<wgpu::Color>,
 }
 
 impl ShaderNode {
-    pub fn new(ctx: &WgpuCtx, shader: Arc<Shader>, params: Option<&ShaderParam>) -> Self {
+    pub fn new(
+        ctx: &WgpuCtx,
+        shader: Arc<Shader>,
+        params: Option<&ShaderParam>,
+        clear_color: Option<wgpu::Color>,
+    ) -> Self {
         // TODO: validation
 
         let custom_params_buffer = match params {
@@ -57,12 +63,18 @@ impl ShaderNode {
             params_bind_group,
             _custom_params_buffer: custom_params_buffer,
             shader,
+            clear_color,
         }
     }
 
     pub fn render(&self, sources: &[(&NodeId, &NodeTexture)], target: &NodeTexture, pts: Duration) {
-        self.shader
-            .render(&self.params_bind_group, sources, target, pts)
+        self.shader.render(
+            &self.params_bind_group,
+            sources,
+            target,
+            pts,
+            self.clear_color,
+        )
     }
 }
 
