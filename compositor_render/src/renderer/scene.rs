@@ -27,7 +27,7 @@ pub enum TransformNode {
     WebRenderer { renderer: Arc<WebRenderer> },
     TextRenderer(TextRendererNode),
     ImageRenderer(ImageNode),
-    Common(ShaderNode),
+    Builtin(ShaderNode),
     Nop,
 }
 
@@ -56,9 +56,9 @@ impl TransformNode {
                 transformation,
                 resolution,
             } => Ok((
-                TransformNode::Common(ShaderNode::new(
+                TransformNode::Builtin(ShaderNode::new(
                     ctx.wgpu_ctx,
-                    ctx.common_transforms.shader(transformation),
+                    ctx.builtin_transforms.shader(transformation),
                     BuiltinTransformations::params(transformation).as_ref(),
                     BuiltinTransformations::clear_color(transformation),
                 )),
@@ -91,7 +91,7 @@ impl TransformNode {
             TransformNode::Shader(shader) => {
                 shader.render(sources, target, pts);
             }
-            TransformNode::Common(shader) => shader.render(sources, target, pts),
+            TransformNode::Builtin(shader) => shader.render(sources, target, pts),
             TransformNode::WebRenderer { renderer } => {
                 if let Err(err) = renderer.render(ctx, sources, target) {
                     error!("Web render operation failed {err}");

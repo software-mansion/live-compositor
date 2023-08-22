@@ -106,7 +106,7 @@ fn start_example_client_code() -> Result<()> {
                 "type": "built-in",
                 "transformation": "transform_to_resolution",
                 "strategy": "fit",
-                "color": "#FFFFFF00",
+                "background_color_rgba": "#FFFFFF00",
                 "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
                 "input_pads": ["image"],
             }

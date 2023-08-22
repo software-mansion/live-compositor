@@ -9,7 +9,7 @@ pub enum BuiltinTransformation {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
-#[serde(tag = "strategy", content = "color", rename_all = "snake_case")]
+#[serde(tag = "strategy", content = "background_color_rgba", rename_all = "snake_case")]
 pub enum TransformToResolution {
     /// Rescales input in both axis to match output resolution
     Stretch,

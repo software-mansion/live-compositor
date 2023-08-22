@@ -55,7 +55,7 @@ pub struct RenderCtx<'a> {
     pub(crate) shader_transforms: &'a TransformationRegistry<Arc<Shader>>,
     pub(crate) web_renderers: &'a TransformationRegistry<Arc<WebRenderer>>,
     pub(crate) image_registry: &'a TransformationRegistry<Arc<Image>>,
-    pub(crate) common_transforms: &'a BuiltinTransformations,
+    pub(crate) builtin_transforms: &'a BuiltinTransformations,
 }
 
 pub struct RegisterTransformationCtx {
@@ -126,7 +126,7 @@ impl Renderer {
             web_renderers: &self.web_renderers,
             text_renderer_ctx: &self.text_renderer_ctx,
             image_registry: &self.image_registry,
-            common_transforms: &self.builtin_transformations,
+            builtin_transforms: &self.builtin_transformations,
         };
 
         let scope = WgpuErrorScope::push(&ctx.wgpu_ctx.device);
@@ -152,7 +152,7 @@ impl Renderer {
                 shader_transforms: &self.shader_transforms,
                 web_renderers: &self.web_renderers,
                 image_registry: &self.image_registry,
-                common_transforms: &self.builtin_transformations,
+                builtin_transforms: &self.builtin_transformations,
             },
             &scene_specs,
         )?;
