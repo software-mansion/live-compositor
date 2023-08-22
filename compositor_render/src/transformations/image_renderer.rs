@@ -1,6 +1,4 @@
 use std::{
-    collections::BTreeMap,
-    ops::Bound,
     str::{from_utf8, Utf8Error},
     sync::{Arc, Mutex},
     time::Duration,
@@ -285,8 +283,13 @@ pub struct AnimatedNodeState {
 }
 
 pub struct AnimatedAsset {
-    frames: BTreeMap<Duration, RGBATexture>,
+    frames: Vec<AnimationFrame>,
     animation_duration: Duration,
+}
+
+struct AnimationFrame {
+    texture: RGBATexture,
+    pts: Duration,
 }
 
 impl AnimatedAsset {
@@ -297,7 +300,7 @@ impl AnimatedAsset {
         };
 
         let mut animation_duration: Duration = Duration::ZERO;
-        let mut frames = BTreeMap::new();
+        let mut frames = vec![];
         for frame in decoded_frames {
             let frame = &frame?;
             let buffer = frame.buffer();
@@ -312,23 +315,26 @@ impl AnimatedAsset {
 
             let delay: Duration = frame.delay().into();
             animation_duration += delay;
-            frames.insert(animation_duration, texture);
+            frames.push(AnimationFrame {
+                texture,
+                pts: animation_duration,
+            });
 
             if frames.len() > 1000 {
                 return Err(AnimatedError::TooMuchFrames);
             }
         }
 
-        let Some((_, first_frame)) = frames.first_key_value() else {
+        let Some(first_frame) = frames.first() else {
             return Err(AnimatedError::NoFrames)
         };
         if frames.len() == 1 {
             return Err(AnimatedError::SingleFrame);
         }
-        let first_frame_size = first_frame.size();
+        let first_frame_size = first_frame.texture.size();
         if !frames
             .iter()
-            .all(|frame| frame.1.size() == first_frame_size)
+            .all(|frame| frame.texture.size() == first_frame_size)
         {
             return Err(AnimatedError::UnsupportedVariableResolution);
         }
@@ -366,20 +372,24 @@ impl AnimatedAsset {
             ((pts.as_nanos() - first_pts.as_nanos()) % self.animation_duration.as_nanos()) as u64,
         );
 
-        let closest_frame = self.find_closest_frame(animation_pts);
+        let closest_frame = self
+            .frames
+            .iter()
+            .min_by_key(|frame| u128::abs_diff(frame.pts.as_nanos(), animation_pts.as_nanos()))
+            .unwrap();
         let mut encoder = ctx
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor {
                 label: Some("copy static image asset to texture"),
             });
 
-        let size = closest_frame.size();
+        let size = closest_frame.texture.size();
         encoder.copy_texture_to_texture(
             wgpu::ImageCopyTexture {
                 aspect: wgpu::TextureAspect::All,
                 mip_level: 0,
                 origin: wgpu::Origin3d::ZERO,
-                texture: &closest_frame.texture().texture,
+                texture: &closest_frame.texture.texture().texture,
             },
             wgpu::ImageCopyTexture {
                 aspect: wgpu::TextureAspect::All,
@@ -394,30 +404,10 @@ impl AnimatedAsset {
     }
 
     fn resolution(&self) -> Resolution {
-        let size = self.frames.first_key_value().unwrap().1.size();
+        let size = self.frames.first().unwrap().texture.size();
         Resolution {
             width: size.width as usize,
             height: size.height as usize,
-        }
-    }
-
-    fn find_closest_frame(&self, pts: Duration) -> &RGBATexture {
-        let lower_bound = self
-            .frames
-            .range((Bound::Unbounded, Bound::Excluded(&pts)))
-            .next_back()
-            .unwrap_or_else(|| self.frames.last_key_value().unwrap());
-        let upper_bound = self
-            .frames
-            .range((Bound::Included(&pts), Bound::Unbounded))
-            .next()
-            .unwrap_or_else(|| self.frames.first_key_value().unwrap());
-        let lower_bound_diff = u128::abs_diff(pts.as_nanos(), lower_bound.0.as_nanos());
-        let upper_bound_diff = u128::abs_diff(pts.as_nanos(), upper_bound.0.as_nanos());
-        if lower_bound_diff < upper_bound_diff {
-            lower_bound.1
-        } else {
-            upper_bound.1
         }
     }
 }
