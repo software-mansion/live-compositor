@@ -16,8 +16,8 @@ use crate::common::write_example_sdp_file;
 mod common;
 
 const VIDEO_RESOLUTION: Resolution = Resolution {
-    width: 1280,
-    height: 720,
+    width: 1920,
+    height: 1054,
 };
 const FRAMERATE: Framerate = Framerate(30);
 
@@ -92,10 +92,15 @@ fn start_example_client_code() -> Result<()> {
         //},
         "transform": {
             "type": "image",
-            "asset_type": "svg",
-            "url": "https://upload.wikimedia.org/wikipedia/commons/c/c1/PM5644.svg",
-            "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+            "asset_type": "gif",
+            "url": "https://user-images.githubusercontent.com/43012445/105452071-411e4880-5c43-11eb-8ae2-4de61f310bf9.gif",
         }
+        //"transform": {
+        //    "type": "image",
+        //    "asset_type": "svg",
+        //    "url": "https://upload.wikimedia.org/wikipedia/commons/c/c1/PM5644.svg",
+        //    "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+        //}
     }))?;
 
     info!("[example] Update scene");
