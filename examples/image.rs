@@ -57,8 +57,9 @@ fn start_example_client_code() -> Result<()> {
 
     info!("[example] Send register output request.");
     common::post(&json!({
-        "type": "register_output",
-        "id": "output 1",
+        "type": "register",
+        "entity_type": "output_stream",
+        "output_id": "output_1",
         "port": 8002,
         "ip": "127.0.0.1",
         "resolution": {
@@ -72,32 +73,26 @@ fn start_example_client_code() -> Result<()> {
 
     info!("[example] Register static image");
     common::post(&json!({
-        "type": "register_transformation",
-        "key": "example_image",
-        //"transform": {
-        //    "type": "image",
-        //    "asset_type": "jpeg",
-        //    "url": "https://i.ytimg.com/vi/ekthcIHDt3I/maxresdefault.jpg",
-        //},
+        "type": "register",
+        "entity_type": "image",
+        "image_id": "example_image",
+        // "type": "image",
+        // "asset_type": "jpeg",
+        // "url": "https://i.ytimg.com/vi/ekthcIHDt3I/maxresdefault.jpg",
         //
         // TODO: fix commented out example(after we rescale transforms)
         // This example links to 1920x1080 image so it won't work without
         // changing the output resolution
-        //"transform": {
-        //    "type": "image",
-        //    "asset_type": "gif",
-        //    "url": "https://upload.wikimedia.org/wikipedia/commons/b/b6/PM5644-1920x1080.gif",
-        //},
-        "transform": {
-            "type": "image",
-            "asset_type": "gif",
-            "url": "https://user-images.githubusercontent.com/43012445/105452071-411e4880-5c43-11eb-8ae2-4de61f310bf9.gif",
-        }
-        //"transform": {
-        //    "type": "image",
-        //    "asset_type": "svg",
-        //    "url": "https://upload.wikimedia.org/wikipedia/commons/c/c1/PM5644.svg",
-        //    "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+        //
+        // "asset_type": "gif",
+        // "url": "https://upload.wikimedia.org/wikipedia/commons/b/b6/PM5644-1920x1080.gif",
+        //
+        "asset_type": "gif",
+        "url": "https://user-images.githubusercontent.com/43012445/105452071-411e4880-5c43-11eb-8ae2-4de61f310bf9.gif",
+        //
+        //  "asset_type": "svg",
+        //  "url": "https://upload.wikimedia.org/wikipedia/commons/c/c1/PM5644.svg",
+        //  "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
         //}
     }))?;
 
@@ -105,7 +100,7 @@ fn start_example_client_code() -> Result<()> {
     common::post(&json!({
         "type": "update_scene",
         "inputs": [],
-        "transforms": [
+        "nodes": [
            {
                 "node_id": "static_image",
                 "type": "image",
@@ -114,7 +109,7 @@ fn start_example_client_code() -> Result<()> {
         ],
         "outputs": [
             {
-                "output_id": "output 1",
+                "output_id": "output_1",
                 "input_pad": "static_image"
             },
         ]

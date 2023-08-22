@@ -62,8 +62,9 @@ fn start_example_client_code() -> Result<()> {
 
     info!("[example] Send register output request.");
     common::post(&json!({
-        "type": "register_output",
-        "id": "output 1",
+        "type": "register",
+        "entity_type": "output_stream",
+        "output_id": "output_1",
         "port": 8002,
         "ip": "127.0.0.1",
         "resolution": {
@@ -77,25 +78,22 @@ fn start_example_client_code() -> Result<()> {
 
     info!("[example] Register static image");
     common::post(&json!({
-        "type": "register_transformation",
-        "key": "example_image",
-        "transform": {
-            "type": "image",
-            "asset_type": "jpeg",
-            "url": "https://i.postimg.cc/NfkxF1SV/wp5220836.jpg",
-        }
+        "type": "register",
+        "entity_type": "image",
+        "image_id": "example_image",
+        "asset_type": "jpeg",
+        "url": "https://i.postimg.cc/NfkxF1SV/wp5220836.jpg",
     }))?;
 
     info!("[example] Update scene");
     common::post(&json!({
         "type": "update_scene",
-        "inputs": [],
-        "transforms": [
+        "nodes": [
             {
                 "node_id": "image",
                 "type": "image",
                 "image_id": "example_image",
-           },
+            },
             {
                 "node_id": "fitted",
                 "type": "built-in",
@@ -108,7 +106,7 @@ fn start_example_client_code() -> Result<()> {
         ],
         "outputs": [
             {
-                "output_id": "output 1",
+                "output_id": "output_1",
                 "input_pad": "fitted"
             },
         ]

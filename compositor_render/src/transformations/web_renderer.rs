@@ -2,12 +2,12 @@ use std::sync::Mutex;
 
 use crate::renderer::{
     texture::{BGRATexture, NodeTexture},
-    BGRAToRGBAConverter, RegisterTransformationCtx, RenderCtx,
+    BGRAToRGBAConverter, RegisterCtx, RenderCtx,
 };
 
 use compositor_common::{
+    renderer_spec::WebRendererSpec,
     scene::{NodeId, Resolution},
-    transformation::WebRendererTransformationParams,
 };
 use log::{error, info};
 use serde::{Deserialize, Serialize};
@@ -38,7 +38,7 @@ impl Default for WebRendererOptions {
 
 pub struct WebRenderer {
     #[allow(dead_code)]
-    params: WebRendererTransformationParams,
+    params: WebRendererSpec,
     state: Mutex<BrowserState>,
 
     bgra_texture: BGRATexture,
@@ -48,10 +48,7 @@ pub struct WebRenderer {
 }
 
 impl WebRenderer {
-    pub fn new(
-        ctx: &RegisterTransformationCtx,
-        params: WebRendererTransformationParams,
-    ) -> Result<Self, WebRendererNewError> {
+    pub fn new(ctx: &RegisterCtx, params: WebRendererSpec) -> Result<Self, WebRendererNewError> {
         info!("Starting web renderer for {}", &params.url);
 
         let (painted_frames_sender, painted_frames_receiver) = crossbeam_channel::bounded(1);

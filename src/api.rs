@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use anyhow::{anyhow, Result};
 use compositor_common::{
+    renderer_spec::{ImageSpec, RendererId, RendererSpec, ShaderSpec, WebRendererSpec},
     scene::{InputId, OutputId, Resolution, SceneSpec},
-    transformation::{TransformationRegistryKey, TransformationSpec},
 };
 use compositor_pipeline::pipeline;
 use compositor_render::event_loop::EventLoop;
@@ -19,13 +19,13 @@ pub type Pipeline = compositor_pipeline::Pipeline<RtpReceiver, RtpSender>;
 
 #[derive(Serialize, Deserialize)]
 pub struct RegisterInputRequest {
-    pub id: InputId,
+    pub input_id: InputId,
     pub port: u16,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct RegisterOutputRequest {
-    pub id: OutputId,
+    pub output_id: OutputId,
     pub port: u16,
     pub ip: Arc<str>,
     pub resolution: Resolution,
@@ -36,21 +36,31 @@ pub struct RegisterOutputRequest {
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum Request {
     Init(pipeline::Options),
-    RegisterInput(RegisterInputRequest),
-    UnregisterInput {
-        id: InputId,
-    },
-    RegisterOutput(RegisterOutputRequest),
-    UnregisterOutput {
-        id: OutputId,
-    },
-    RegisterTransformation {
-        key: TransformationRegistryKey,
-        transform: TransformationSpec,
-    },
+    Register(RegisterRequest),
+    Unregister(UnregisterRequest),
     UpdateScene(Arc<SceneSpec>),
     Query(QueryRequest),
     Start,
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(tag = "entity_type", rename_all = "snake_case")]
+pub enum RegisterRequest {
+    InputStream(RegisterInputRequest),
+    OutputStream(RegisterOutputRequest),
+    Shader(ShaderSpec),
+    WebRenderer(WebRendererSpec),
+    Image(ImageSpec),
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(tag = "entity_type", rename_all = "snake_case")]
+pub enum UnregisterRequest {
+    InputStream { input_id: InputId },
+    OutputStream { output_id: OutputId },
+    Shader { shader_id: RendererId },
+    WebRenderer { instance_id: RendererId },
+    Image { image_id: RendererId },
 }
 
 #[derive(Serialize, Deserialize)]
@@ -103,19 +113,12 @@ impl Api {
     pub fn handle_request(&mut self, request: Request) -> Result<ResponseHandler> {
         match request {
             Request::Init(_) => Err(anyhow!("Video compositor is already initialized.")),
-            Request::RegisterInput(request) => {
-                self.register_input(request).map(|_| ResponseHandler::Ok)
-            }
-            Request::UnregisterInput { id } => {
-                self.pipeline.unregister_input(&id)?;
+            Request::Register(register_request) => {
+                self.handle_register_request(register_request)?;
                 Ok(ResponseHandler::Ok)
             }
-            Request::RegisterOutput(request) => {
-                self.register_output(request)?;
-                Ok(ResponseHandler::Ok)
-            }
-            Request::UnregisterOutput { id } => {
-                self.pipeline.unregister_output(&id)?;
+            Request::Unregister(unregister_request) => {
+                self.handle_unregister_request(unregister_request)?;
                 Ok(ResponseHandler::Ok)
             }
             Request::Start => {
@@ -124,13 +127,6 @@ impl Api {
             }
             Request::UpdateScene(scene_spec) => {
                 self.pipeline.update_scene(scene_spec)?;
-                Ok(ResponseHandler::Ok)
-            }
-            Request::RegisterTransformation {
-                key,
-                transform: spec,
-            } => {
-                self.pipeline.register_transformation(key, spec)?;
                 Ok(ResponseHandler::Ok)
             }
             Request::Query(query) => self.handle_query(query),
@@ -177,9 +173,42 @@ impl Api {
         }
     }
 
+    fn handle_register_request(&mut self, request: RegisterRequest) -> Result<()> {
+        match request {
+            RegisterRequest::InputStream(input_stream) => self.register_input(input_stream),
+            RegisterRequest::OutputStream(output_stream) => self.register_output(output_stream),
+            RegisterRequest::Shader(spec) => {
+                let spec = RendererSpec::Shader(spec);
+                Ok(self.pipeline.register_renderer(spec)?)
+            }
+            RegisterRequest::WebRenderer(spec) => {
+                let spec = RendererSpec::WebRenderer(spec);
+                Ok(self.pipeline.register_renderer(spec)?)
+            }
+            RegisterRequest::Image(spec) => {
+                let spec = RendererSpec::Image(spec);
+                Ok(self.pipeline.register_renderer(spec)?)
+            }
+        }
+    }
+
+    fn handle_unregister_request(&mut self, request: UnregisterRequest) -> Result<()> {
+        match request {
+            UnregisterRequest::InputStream { input_id } => {
+                Ok(self.pipeline.unregister_input(&input_id)?)
+            }
+            UnregisterRequest::OutputStream { output_id } => {
+                Ok(self.pipeline.unregister_output(&output_id)?)
+            }
+            UnregisterRequest::Shader { .. } => todo!(),
+            UnregisterRequest::WebRenderer { .. } => todo!(),
+            UnregisterRequest::Image { .. } => todo!(),
+        }
+    }
+
     fn register_output(&mut self, request: RegisterOutputRequest) -> Result<()> {
         let RegisterOutputRequest {
-            id,
+            output_id: id,
             port,
             resolution,
             encoder_settings,
@@ -209,7 +238,7 @@ impl Api {
     }
 
     fn register_input(&mut self, request: RegisterInputRequest) -> Result<()> {
-        let RegisterInputRequest { id, port } = request;
+        let RegisterInputRequest { input_id: id, port } = request;
 
         if let Some((node_id, _)) = self.pipeline.inputs().find(|(_, input)| input.port == port) {
             return Err(anyhow!(

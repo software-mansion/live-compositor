@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
-use compositor_common::transformation::TransformationRegistryKey;
+use compositor_common::renderer_spec::RendererId;
 
 #[derive(Debug, thiserror::Error)]
 pub enum GetError {
@@ -30,12 +30,12 @@ impl RegistryType {
     }
 }
 
-pub(crate) struct TransformationRegistry<T: Clone> {
-    registry: HashMap<TransformationRegistryKey, T>,
+pub(crate) struct RendererRegistry<T: Clone> {
+    registry: HashMap<RendererId, T>,
     registry_type: RegistryType,
 }
 
-impl<T: Clone> TransformationRegistry<T> {
+impl<T: Clone> RendererRegistry<T> {
     pub(crate) fn new(registry_type: RegistryType) -> Self {
         Self {
             registry: HashMap::new(),
@@ -44,7 +44,7 @@ impl<T: Clone> TransformationRegistry<T> {
     }
 
     #[allow(dead_code)]
-    pub(crate) fn get(&self, key: &TransformationRegistryKey) -> Result<T, GetError> {
+    pub(crate) fn get(&self, key: &RendererId) -> Result<T, GetError> {
         match self.registry.get(key) {
             Some(val) => Ok(val.clone()),
             None => Err(GetError::KeyNotFound(
@@ -54,19 +54,15 @@ impl<T: Clone> TransformationRegistry<T> {
         }
     }
 
-    pub(crate) fn register(
-        &mut self,
-        key: &TransformationRegistryKey,
-        transformation: T,
-    ) -> Result<(), RegisterError> {
-        if self.registry.contains_key(key) {
+    pub(crate) fn register(&mut self, id: RendererId, renderer: T) -> Result<(), RegisterError> {
+        if self.registry.contains_key(&id) {
             return Err(RegisterError::KeyTaken(
                 self.registry_type.registry_item_name(),
-                key.0.clone(),
+                id.0.clone(),
             ));
         }
 
-        self.registry.insert(key.clone(), transformation);
+        self.registry.insert(id.clone(), renderer);
 
         Ok(())
     }

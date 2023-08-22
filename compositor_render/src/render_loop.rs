@@ -80,7 +80,7 @@ pub(super) fn run_transforms(ctx: &mut RenderCtx, scene: &Scene, pts: Duration) 
             .iter()
             .map(|node| (&node.node_id, &node.output))
             .collect();
-        node.transform.render(ctx, &sources, &node.output, pts)
+        node.renderer.render(ctx, &sources, &node.output, pts)
     }
 }
 

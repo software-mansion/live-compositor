@@ -65,8 +65,9 @@ fn start_example_client_code() -> Result<()> {
 
     info!("[example] Send register output request.");
     common::post(&json!({
-        "type": "register_output",
-        "id": "output 1",
+        "type": "register",
+        "entity_type": "output_stream",
+        "output_id": "output_1",
         "port": 8002,
         "ip": "127.0.0.1",
         "resolution": {
@@ -80,46 +81,39 @@ fn start_example_client_code() -> Result<()> {
 
     info!("[example] Send register input request.");
     common::post(&json!({
-        "type": "register_input",
-        "id": "input 1",
+        "type": "register",
+        "entity_type": "input_stream",
+        "input_id": "input_1",
         "port": 8004
     }))?;
 
     let shader_source = include_str!("../compositor_render/examples/silly/silly.wgsl");
     info!("[example] Register shader transform");
     common::post(&json!({
-        "type": "register_transformation",
-        "key": "shader",
-        "transform": {
-            "type": "shader",
-            "source": shader_source,
-        }
+        "type": "register",
+        "entity_type": "shader",
+        "shader_id": "shader_example_1",
+        "source": shader_source,
     }))?;
 
     info!("[example] Update scene");
     common::post(&json!({
         "type": "update_scene",
-        "inputs": [
+        "nodes": [
             {
-                "input_id": "input 1",
-                "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
-            }
-        ],
-        "transforms": [
-            {
-                "node_id": "shader",
                 "type": "shader",
-                "shader_id": "shader",
+                "node_id": "shader_node_1",
+                "shader_id": "shader_example_1",
                 "input_pads": [
-                    "input 1",
+                    "input_1",
                 ],
                 "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
             },
         ],
         "outputs": [
             {
-                "output_id": "output 1",
-                "input_pad": "shader"
+                "output_id": "output_1",
+                "input_pad": "shader_node_1"
             }
         ]
     }))?;

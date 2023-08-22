@@ -68,6 +68,7 @@ impl Default for TextRendererCtx {
 #[allow(dead_code)]
 pub struct TextRendererNode {
     buffer: Buffer,
+    resolution: Resolution,
     was_rendered: Mutex<bool>,
 }
 
@@ -77,17 +78,19 @@ impl TextRendererNode {
         renderer_ctx: &RenderCtx,
         text_params: TextSpec,
         text_resolution: TextDimensions,
-    ) -> (Self, Resolution) {
+    ) -> Self {
         let text_renderer_ctx = &renderer_ctx.text_renderer_ctx;
         let (buffer, resolution) =
             Self::layout_text(text_renderer_ctx, text_params.into(), text_resolution);
-        (
-            Self {
-                buffer,
-                was_rendered: Mutex::new(false),
-            },
+        Self {
+            buffer,
             resolution,
-        )
+            was_rendered: Mutex::new(false),
+        }
+    }
+
+    pub fn resolution(&self) -> Resolution {
+        self.resolution
     }
 
     pub fn render(&self, renderer_ctx: &mut RenderCtx, target: &NodeTexture) {
@@ -121,8 +124,8 @@ impl TextRendererNode {
                 font_system,
                 &mut atlas,
                 glyphon::Resolution {
-                    width: target.resolution.width as u32,
-                    height: target.resolution.height as u32,
+                    width: target.resolution().width as u32,
+                    height: target.resolution().height as u32,
                 },
                 [TextArea {
                     buffer: &self.buffer,
@@ -132,8 +135,8 @@ impl TextRendererNode {
                     bounds: TextBounds {
                         left: 0,
                         top: 0,
-                        right: target.resolution.width as i32,
-                        bottom: target.resolution.height as i32,
+                        right: target.resolution().width as i32,
+                        bottom: target.resolution().height as i32,
                     },
                     default_color: Color::rgb(255, 255, 255),
                 }],

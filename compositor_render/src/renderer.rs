@@ -9,7 +9,7 @@ use log::error;
 
 use crate::{
     frame_set::FrameSet,
-    registry::TransformationRegistry,
+    registry::RendererRegistry,
     render_loop::{populate_inputs, read_outputs},
     transformations::{
         builtin::transformations::BuiltinTransformations,
@@ -48,29 +48,29 @@ pub struct Renderer {
     pub chromium_context: Arc<ChromiumContext>,
     pub scene: Scene,
     pub scene_spec: Arc<SceneSpec>,
-    pub(crate) shader_transforms: TransformationRegistry<Arc<Shader>>,
+    pub(crate) shader_registry: RendererRegistry<Arc<Shader>>,
+    pub(crate) web_renderers: RendererRegistry<Arc<WebRenderer>>,
+    pub(crate) image_registry: RendererRegistry<Image>,
     pub(crate) builtin_transformations: BuiltinTransformations,
-    pub(crate) web_renderers: TransformationRegistry<Arc<WebRenderer>>,
-    pub(crate) image_registry: TransformationRegistry<Image>,
 }
 
 pub struct RenderCtx<'a> {
     pub wgpu_ctx: &'a Arc<WgpuCtx>,
     pub text_renderer_ctx: &'a TextRendererCtx,
     pub chromium: &'a Arc<ChromiumContext>,
-    pub(crate) shader_transforms: &'a TransformationRegistry<Arc<Shader>>,
+    pub(crate) shader_registry: &'a RendererRegistry<Arc<Shader>>,
+    pub(crate) web_renderers: &'a RendererRegistry<Arc<WebRenderer>>,
+    pub(crate) image_registry: &'a RendererRegistry<Image>,
     pub(crate) builtin_transforms: &'a BuiltinTransformations,
-    pub(crate) web_renderers: &'a TransformationRegistry<Arc<WebRenderer>>,
-    pub(crate) image_registry: &'a TransformationRegistry<Image>,
 }
 
-pub struct RegisterTransformationCtx {
+pub struct RegisterCtx {
     pub wgpu_ctx: Arc<WgpuCtx>,
     pub chromium: Arc<ChromiumContext>,
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum RendererNewError {
+pub enum RendererInitError {
     #[error("failed to initialize a wgpu context")]
     FailedToInitWgpuCtx(#[from] WgpuCtxNewError),
 
@@ -82,25 +82,25 @@ pub enum RendererNewError {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum RendererRegisterTransformationError {
-    #[error("failed to register a transformation in the transformation registry")]
-    TransformationRegistry(#[from] registry::RegisterError),
+pub enum RendererRegisterError {
+    #[error("failed to register a renderer")]
+    RendererRegistry(#[from] registry::RegisterError),
 
     #[error("failed to to initialize the shader")]
     Shader(#[from] WgpuError),
 
-    #[error("failed to create web renderer transformation")]
-    WebRendererTransformation(#[from] WebRendererNewError),
+    #[error("failed to create web renderer instance")]
+    WebRendererInstance(#[from] WebRendererNewError),
 
     #[error("failed to prepare image")]
-    ImageTransformation(#[from] ImageError),
+    Image(#[from] ImageError),
 }
 
 impl Renderer {
     pub fn new(
         web_renderer_opts: WebRendererOptions,
         framerate: Framerate,
-    ) -> Result<Self, RendererNewError> {
+    ) -> Result<Self, RendererInitError> {
         let wgpu_ctx = Arc::new(WgpuCtx::new()?);
 
         Ok(Self {
@@ -108,20 +108,19 @@ impl Renderer {
             text_renderer_ctx: TextRendererCtx::new(),
             chromium_context: Arc::new(ChromiumContext::new(web_renderer_opts, framerate)?),
             scene: Scene::empty(),
-            web_renderers: TransformationRegistry::new(RegistryType::WebRenderer),
-            shader_transforms: TransformationRegistry::new(RegistryType::Shader),
-            image_registry: TransformationRegistry::new(RegistryType::Image),
+            web_renderers: RendererRegistry::new(RegistryType::WebRenderer),
+            shader_registry: RendererRegistry::new(RegistryType::Shader),
+            image_registry: RendererRegistry::new(RegistryType::Image),
             builtin_transformations: BuiltinTransformations::new(&wgpu_ctx)?,
             scene_spec: Arc::new(SceneSpec {
-                inputs: vec![],
-                transforms: vec![],
+                nodes: vec![],
                 outputs: vec![],
             }),
         })
     }
 
-    pub(super) fn register_transformation_ctx(&self) -> RegisterTransformationCtx {
-        RegisterTransformationCtx {
+    pub(super) fn register_ctx(&self) -> RegisterCtx {
+        RegisterCtx {
             wgpu_ctx: self.wgpu_ctx.clone(),
             chromium: self.chromium_context.clone(),
         }
@@ -134,7 +133,7 @@ impl Renderer {
         let ctx = &mut RenderCtx {
             wgpu_ctx: &self.wgpu_ctx,
             chromium: &self.chromium_context,
-            shader_transforms: &self.shader_transforms,
+            shader_registry: &self.shader_registry,
             web_renderers: &self.web_renderers,
             text_renderer_ctx: &self.text_renderer_ctx,
             image_registry: &self.image_registry,
@@ -161,7 +160,7 @@ impl Renderer {
                 wgpu_ctx: &self.wgpu_ctx,
                 text_renderer_ctx: &self.text_renderer_ctx,
                 chromium: &self.chromium_context,
-                shader_transforms: &self.shader_transforms,
+                shader_registry: &self.shader_registry,
                 web_renderers: &self.web_renderers,
                 image_registry: &self.image_registry,
                 builtin_transforms: &self.builtin_transformations,
