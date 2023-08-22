@@ -70,6 +70,9 @@ pub enum RendererNewError {
 
     #[error("failed to start an electron instance")]
     FailedToStartElectron(#[from] ElectronNewError),
+
+    #[error("failed to initialize builtin transformation")]
+    BuiltInTransformationsInitError(#[from] WgpuError),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -90,6 +93,7 @@ pub enum RendererRegisterTransformationError {
 impl Renderer {
     pub fn new(init_web: bool) -> Result<Self, RendererNewError> {
         let wgpu_ctx = Arc::new(WgpuCtx::new()?);
+
         Ok(Self {
             wgpu_ctx: wgpu_ctx.clone(),
             text_renderer_ctx: TextRendererCtx::new(),
@@ -98,8 +102,7 @@ impl Renderer {
             web_renderers: TransformationRegistry::new(RegistryType::WebRenderer),
             shader_transforms: TransformationRegistry::new(RegistryType::Shader),
             image_registry: TransformationRegistry::new(RegistryType::Image),
-            // TODO fix unwrap
-            builtin_transformations: BuiltinTransformations::new(&wgpu_ctx).unwrap(),
+            builtin_transformations: BuiltinTransformations::new(&wgpu_ctx)?,
             scene_spec: Arc::new(SceneSpec {
                 inputs: vec![],
                 transforms: vec![],
