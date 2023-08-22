@@ -11,7 +11,7 @@ struct VertexOutput {
 struct CommonShaderParameters {
     time: f32,
     textures_count: u32,
-    output_texture_size: vec2<u32>,
+    output_resolution: vec2<u32>,
 }
 
 var<push_constant> common_params: CommonShaderParameters;
@@ -35,8 +35,8 @@ fn vs_main(input: VertexInput) -> VertexOutput {
     let input_texture_height: f32 = f32(input_texture_size.y);
     let input_ratio: f32 = input_texture_width / input_texture_height;
 
-    let output_texture_width: f32 = f32(common_params.output_texture_size.x);
-    let output_texture_height: f32 = f32(common_params.output_texture_size.y);
+    let output_texture_width: f32 = f32(common_params.output_resolution.x);
+    let output_texture_height: f32 = f32(common_params.output_resolution.y);
     let output_ratio: f32 = output_texture_width / output_texture_height;
 
     var x_scale: f32 = 1.0;

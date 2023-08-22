@@ -273,17 +273,17 @@ impl WgpuCtx {
 pub struct CommonShaderParameters {
     time: f32,
     textures_count: u32,
-    output_texture_resolution: [u32; 2],
+    output_resolution: [u32; 2],
 }
 
 impl CommonShaderParameters {
-    pub fn new(time: Duration, textures_count: u32, output_texture_resolution: Resolution) -> Self {
+    pub fn new(time: Duration, textures_count: u32, output_resolution: Resolution) -> Self {
         Self {
             time: time.as_secs_f32(),
             textures_count,
-            output_texture_resolution: [
-                output_texture_resolution.width as u32,
-                output_texture_resolution.height as u32,
+            output_resolution: [
+                output_resolution.width as u32,
+                output_resolution.height as u32,
             ],
         }
     }
