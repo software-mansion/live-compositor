@@ -11,13 +11,13 @@ use crate::{
 };
 
 pub struct BuiltinTransformations {
-    transform_resolution: ConvertResolutionRegistry,
+    transform_resolution: ConvertResolutionTransformations,
 }
 
 impl BuiltinTransformations {
     pub fn new(wgpu_ctx: &Arc<WgpuCtx>) -> Result<Self, WgpuError> {
         Ok(Self {
-            transform_resolution: ConvertResolutionRegistry::new(wgpu_ctx)?,
+            transform_resolution: ConvertResolutionTransformations::new(wgpu_ctx)?,
         })
     }
 
@@ -56,13 +56,13 @@ impl BuiltinTransformations {
     }
 }
 
-pub struct ConvertResolutionRegistry {
+pub struct ConvertResolutionTransformations {
     stretch: Arc<Shader>,
     fill: Arc<Shader>,
     fit: Arc<Shader>,
 }
 
-impl ConvertResolutionRegistry {
+impl ConvertResolutionTransformations {
     pub(crate) fn new(wgpu_ctx: &Arc<WgpuCtx>) -> Result<Self, WgpuError> {
         Ok(Self {
             stretch: Arc::new(Shader::new(
