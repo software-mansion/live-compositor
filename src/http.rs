@@ -1,11 +1,12 @@
 use anyhow::{anyhow, Result};
 use compositor_common::SpecValidationError;
 use compositor_pipeline::pipeline;
-use compositor_render::registry;
+use compositor_render::{event_loop::EventLoop, registry};
 use crossbeam_channel::RecvTimeoutError;
 use log::{error, info};
 
 use serde_json::json;
+use signal_hook::{consts, iterator::Signals};
 use std::{error::Error, io::Cursor, net::SocketAddr, sync::Arc, thread, time::Duration};
 use tiny_http::{Header, Response, StatusCode};
 
@@ -26,9 +27,9 @@ impl Server {
         .into()
     }
 
-    pub fn start(self: Arc<Self>) {
+    pub fn run(self: Arc<Self>) {
         info!("Listening on port {}", self.server.server_addr());
-        let mut api = self.handle_init();
+        let (mut api, event_loop) = self.handle_init();
         thread::spawn(move || {
             for mut raw_request in self.server.incoming_requests() {
                 let result = Self::handle_request_after_init(&mut api, &mut raw_request);
@@ -69,9 +70,17 @@ impl Server {
                 }
             }
         });
+
+        let event_loop_fallback = || {
+            let mut signals = Signals::new([consts::SIGINT]).unwrap();
+            signals.forever().next();
+        };
+        if let Err(err) = event_loop.run_with_fallback(event_loop_fallback) {
+            error!("Event loop run failed: {err}")
+        }
     }
 
-    fn handle_init(&self) -> Api {
+    fn handle_init(&self) -> (Api, EventLoop) {
         for mut raw_request in self.server.incoming_requests() {
             let result = self
                 .handle_request_before_init(&mut raw_request)

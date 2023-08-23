@@ -381,6 +381,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "bytes",
+ "compositor_chromium",
  "compositor_common",
  "compositor_render",
  "crossbeam-channel",
@@ -395,6 +396,7 @@ version = "0.1.0"
 dependencies = [
  "bytemuck",
  "bytes",
+ "compositor_chromium",
  "compositor_common",
  "crossbeam-channel",
  "env_logger",

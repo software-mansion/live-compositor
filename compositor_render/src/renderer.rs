@@ -1,26 +1,30 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use compositor_common::scene::{InputId, OutputId, Resolution, SceneSpec};
+use compositor_common::{
+    scene::{InputId, OutputId, Resolution, SceneSpec},
+    Framerate,
+};
 use log::error;
 
 use crate::{
     frame_set::FrameSet,
     registry::TransformationRegistry,
     render_loop::{populate_inputs, read_outputs},
-    transformations::image_renderer::{Image, ImageError},
     transformations::{
-        builtin::transformations::BuiltinTransformations, text_renderer::TextRendererCtx,
+        builtin::transformations::BuiltinTransformations,
+        image_renderer::{Image, ImageError},
+        text_renderer::TextRendererCtx,
+        web_renderer::chromium::{ChromiumContext, ChromiumContextError},
     },
+    WebRendererOptions,
 };
 use crate::{
     registry::{self, RegistryType},
     render_loop::run_transforms,
     transformations::{
         shader::Shader,
-        web_renderer::{
-            electron::ElectronNewError, ElectronInstance, WebRenderer, WebRendererNewError,
-        },
+        web_renderer::{WebRenderer, WebRendererNewError},
     },
 };
 
@@ -36,10 +40,12 @@ pub mod scene;
 pub mod texture;
 mod utils;
 
+pub(crate) use format::bgra_to_rgba::BGRAToRGBAConverter;
+
 pub struct Renderer {
     pub wgpu_ctx: Arc<WgpuCtx>,
     pub text_renderer_ctx: TextRendererCtx,
-    pub electron_instance: Arc<ElectronInstance>,
+    pub chromium_context: Arc<ChromiumContext>,
     pub scene: Scene,
     pub scene_spec: Arc<SceneSpec>,
     pub(crate) shader_transforms: TransformationRegistry<Arc<Shader>>,
@@ -51,7 +57,7 @@ pub struct Renderer {
 pub struct RenderCtx<'a> {
     pub wgpu_ctx: &'a Arc<WgpuCtx>,
     pub text_renderer_ctx: &'a TextRendererCtx,
-    pub electron: &'a Arc<ElectronInstance>,
+    pub chromium: &'a Arc<ChromiumContext>,
     pub(crate) shader_transforms: &'a TransformationRegistry<Arc<Shader>>,
     pub(crate) builtin_transforms: &'a BuiltinTransformations,
     pub(crate) web_renderers: &'a TransformationRegistry<Arc<WebRenderer>>,
@@ -60,7 +66,7 @@ pub struct RenderCtx<'a> {
 
 pub struct RegisterTransformationCtx {
     pub wgpu_ctx: Arc<WgpuCtx>,
-    pub electron: Arc<ElectronInstance>,
+    pub chromium: Arc<ChromiumContext>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -68,8 +74,8 @@ pub enum RendererNewError {
     #[error("failed to initialize a wgpu context")]
     FailedToInitWgpuCtx(#[from] WgpuCtxNewError),
 
-    #[error("failed to start an electron instance")]
-    FailedToStartElectron(#[from] ElectronNewError),
+    #[error("failed to init chromium context")]
+    FailedToInitChromiumCtx(#[from] ChromiumContextError),
 
     #[error("failed to initialize builtin transformation")]
     BuiltInTransformationsInitError(#[from] WgpuError),
@@ -91,13 +97,16 @@ pub enum RendererRegisterTransformationError {
 }
 
 impl Renderer {
-    pub fn new(init_web: bool) -> Result<Self, RendererNewError> {
+    pub fn new(
+        web_renderer_opts: WebRendererOptions,
+        framerate: Framerate,
+    ) -> Result<Self, RendererNewError> {
         let wgpu_ctx = Arc::new(WgpuCtx::new()?);
 
         Ok(Self {
             wgpu_ctx: wgpu_ctx.clone(),
             text_renderer_ctx: TextRendererCtx::new(),
-            electron_instance: Arc::new(ElectronInstance::new(9002, init_web)?), // TODO: make it configurable
+            chromium_context: Arc::new(ChromiumContext::new(web_renderer_opts, framerate)?),
             scene: Scene::empty(),
             web_renderers: TransformationRegistry::new(RegistryType::WebRenderer),
             shader_transforms: TransformationRegistry::new(RegistryType::Shader),
@@ -114,7 +123,7 @@ impl Renderer {
     pub(super) fn register_transformation_ctx(&self) -> RegisterTransformationCtx {
         RegisterTransformationCtx {
             wgpu_ctx: self.wgpu_ctx.clone(),
-            electron: self.electron_instance.clone(),
+            chromium: self.chromium_context.clone(),
         }
     }
 
@@ -124,7 +133,7 @@ impl Renderer {
     ) -> Result<FrameSet<OutputId>, RenderError> {
         let ctx = &mut RenderCtx {
             wgpu_ctx: &self.wgpu_ctx,
-            electron: &self.electron_instance,
+            chromium: &self.chromium_context,
             shader_transforms: &self.shader_transforms,
             web_renderers: &self.web_renderers,
             text_renderer_ctx: &self.text_renderer_ctx,
@@ -151,7 +160,7 @@ impl Renderer {
             &RenderCtx {
                 wgpu_ctx: &self.wgpu_ctx,
                 text_renderer_ctx: &self.text_renderer_ctx,
-                electron: &self.electron_instance,
+                chromium: &self.chromium_context,
                 shader_transforms: &self.shader_transforms,
                 web_renderers: &self.web_renderers,
                 image_registry: &self.image_registry,

@@ -6,6 +6,7 @@ use compositor_common::{
     transformation::{TransformationRegistryKey, TransformationSpec},
 };
 use compositor_pipeline::pipeline;
+use compositor_render::event_loop::EventLoop;
 use crossbeam_channel::{bounded, Receiver};
 use serde::{Deserialize, Serialize};
 
@@ -94,10 +95,9 @@ pub struct Api {
 }
 
 impl Api {
-    pub fn new(opts: pipeline::Options) -> Result<Api> {
-        Ok(Api {
-            pipeline: Pipeline::new(opts)?,
-        })
+    pub fn new(opts: pipeline::Options) -> Result<(Api, EventLoop)> {
+        let (pipeline, event_loop) = Pipeline::new(opts)?;
+        Ok((Api { pipeline }, event_loop))
     }
 
     pub fn handle_request(&mut self, request: Request) -> Result<ResponseHandler> {

@@ -14,10 +14,12 @@ use self::{utils::pad_to_256, yuv::YUVPendingDownload};
 use super::WgpuCtx;
 
 mod base;
+mod bgra;
 mod rgba;
 mod utils;
 mod yuv;
 
+pub type BGRATexture = bgra::BGRATexture;
 pub type RGBATexture = rgba::RGBATexture;
 pub type YUVTextures = yuv::YUVTextures;
 

@@ -1,8 +1,8 @@
 use anyhow::Result;
+use compositor_chromium::cef;
 use compositor_common::{scene::Resolution, Framerate};
 use log::{error, info};
 use serde_json::json;
-use signal_hook::{consts, iterator::Signals};
 use std::{process::Command, thread, time::Duration};
 use video_compositor::http;
 
@@ -23,16 +23,23 @@ fn main() {
     );
     ffmpeg_next::format::network::init();
 
+    let target_path = &std::env::current_exe()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .join("..");
+
+    if cef::bundle_app(target_path).is_err() {
+        panic!("Build process helper first: cargo build --bin process_helper");
+    }
+
     thread::spawn(|| {
         if let Err(err) = start_example_client_code() {
             error!("{err}")
         }
     });
 
-    http::Server::new(8001).start();
-
-    let mut signals = Signals::new([consts::SIGINT]).unwrap();
-    signals.forever().next();
+    http::Server::new(8001).run();
 }
 
 fn start_example_client_code() -> Result<()> {
@@ -82,7 +89,7 @@ fn start_example_client_code() -> Result<()> {
         "key": "example website",
         "transform": {
             "type": "web_renderer",
-            "url": "https://www.twitch.tv/", // or other way of providing source
+            "url": "https://www.membrane.stream/", // or other way of providing source
             "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
         }
     }))?;

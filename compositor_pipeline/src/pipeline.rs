@@ -6,7 +6,9 @@ use std::thread;
 use compositor_common::scene::{InputId, OutputId, SceneSpec};
 use compositor_common::transformation::{TransformationRegistryKey, TransformationSpec};
 use compositor_common::{Frame, Framerate};
+use compositor_render::event_loop::EventLoop;
 use compositor_render::renderer::{RendererNewError, RendererRegisterTransformationError};
+use compositor_render::WebRendererOptions;
 use compositor_render::{renderer::scene::SceneUpdateError, Renderer};
 use crossbeam_channel::unbounded;
 use log::{error, warn};
@@ -37,17 +39,21 @@ pub struct Pipeline<Input: PipelineInput, Output: PipelineOutput> {
 #[derive(Serialize, Deserialize)]
 pub struct Options {
     pub framerate: Framerate,
-    pub init_web_renderer: Option<bool>,
+    #[serde(default)]
+    pub web_renderer: WebRendererOptions,
 }
 
 impl<Input: PipelineInput, Output: PipelineOutput> Pipeline<Input, Output> {
-    pub fn new(opts: Options) -> Result<Self, RendererNewError> {
-        Ok(Pipeline {
+    pub fn new(opts: Options) -> Result<(Self, EventLoop), RendererNewError> {
+        let (renderer, event_loop) = Renderer::new(opts.web_renderer, opts.framerate)?;
+        let pipeline = Pipeline {
             outputs: OutputRegistry::new(),
             inputs: HashMap::new(),
             queue: Arc::new(Queue::new(opts.framerate)),
-            renderer: Renderer::new(opts.init_web_renderer.unwrap_or(true))?,
-        })
+            renderer,
+        };
+
+        Ok((pipeline, event_loop))
     }
 
     pub fn renderer(&self) -> &Renderer {

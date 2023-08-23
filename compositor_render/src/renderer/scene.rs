@@ -93,9 +93,7 @@ impl TransformNode {
             }
             TransformNode::Builtin(shader) => shader.render(sources, target, pts),
             TransformNode::WebRenderer { renderer } => {
-                if let Err(err) = renderer.render(ctx, sources, target) {
-                    error!("Web render operation failed {err}");
-                }
+                renderer.render(ctx, sources, target);
             }
             TransformNode::TextRenderer(renderer) => {
                 renderer.render(ctx, target);

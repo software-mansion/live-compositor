@@ -2,7 +2,6 @@ use anyhow::Result;
 use compositor_common::{scene::Resolution, Framerate};
 use log::{error, info};
 use serde_json::json;
-use signal_hook::{consts, iterator::Signals};
 use std::{process::Command, thread, time::Duration};
 use video_compositor::http;
 
@@ -29,10 +28,7 @@ fn main() {
         }
     });
 
-    http::Server::new(8001).start();
-
-    let mut signals = Signals::new([consts::SIGINT]).unwrap();
-    signals.forever().next();
+    http::Server::new(8001).run();
 }
 
 fn start_example_client_code() -> Result<()> {
@@ -41,7 +37,9 @@ fn start_example_client_code() -> Result<()> {
     info!("[example] Sending init request.");
     common::post(&json!({
         "type": "init",
-        "init_web_renderer": false,
+        "web_renderer": {
+            "init": false
+        },
         "framerate": FRAMERATE,
     }))?;
 

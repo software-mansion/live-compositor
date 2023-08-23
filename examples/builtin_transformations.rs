@@ -34,7 +34,7 @@ fn main() {
         }
     });
 
-    http::Server::new(8001).start();
+    http::Server::new(8001).run();
 
     let mut signals = Signals::new([consts::SIGINT]).unwrap();
     signals.forever().next();
