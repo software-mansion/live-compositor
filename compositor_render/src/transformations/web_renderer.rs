@@ -5,7 +5,6 @@ use crate::renderer::{
     BGRAToRGBAConverter, RegisterTransformationCtx, RenderCtx,
 };
 
-use compositor_chromium::cef;
 use compositor_common::{
     scene::{NodeId, Resolution},
     transformation::WebRendererTransformationParams,
@@ -40,8 +39,6 @@ impl Default for WebRendererOptions {
 pub struct WebRenderer {
     #[allow(dead_code)]
     params: WebRendererTransformationParams,
-    // NOTE: Will be used for accessing V8 context later
-    _browser: cef::Browser,
     state: Mutex<BrowserState>,
 
     bgra_texture: BGRATexture,
@@ -60,7 +57,7 @@ impl WebRenderer {
         let (painted_frames_sender, painted_frames_receiver) = crossbeam_channel::bounded(1);
         let state = Mutex::new(BrowserState::new(painted_frames_receiver));
         let client = BrowserClient::new(painted_frames_sender, params.resolution);
-        let browser = ctx.chromium.start_browser(&params.url, client)?;
+        let _browser = ctx.chromium.start_browser(&params.url, client)?;
 
         let bgra_texture = BGRATexture::new(&ctx.wgpu_ctx, params.resolution);
         let bgra_bind_group_layout = BGRATexture::new_bind_group_layout(&ctx.wgpu_ctx.device);
@@ -69,7 +66,6 @@ impl WebRenderer {
 
         Ok(Self {
             params,
-            _browser: browser,
             state,
             bgra_texture,
             _bgra_bind_group_layout: bgra_bind_group_layout,
