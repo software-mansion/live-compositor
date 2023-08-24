@@ -45,6 +45,7 @@ where
 
 pub struct YUVTextures {
     pub(super) planes: [Texture; 3],
+    pub(super) resolution: Resolution,
 }
 
 impl YUVTextures {
@@ -55,6 +56,7 @@ impl YUVTextures {
                 Self::new_plane(ctx, resolution.width / 2, resolution.height / 2),
                 Self::new_plane(ctx, resolution.width / 2, resolution.height / 2),
             ],
+            resolution,
         }
     }
 

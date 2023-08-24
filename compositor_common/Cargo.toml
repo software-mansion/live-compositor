@@ -11,4 +11,4 @@ serde = { workspace = true }
 thiserror = { workspace = true } 
 log = { workspace = true } 
 glyphon = "0.3.0"
-serde_with = "3.2.0"
+serde_with = { workspace = true }

@@ -208,7 +208,7 @@ impl Api {
 
     fn register_output(&mut self, request: RegisterOutputRequest) -> Result<()> {
         let RegisterOutputRequest {
-            output_id: id,
+            output_id,
             port,
             resolution,
             encoder_settings,
@@ -218,14 +218,14 @@ impl Api {
         self.pipeline.with_outputs(|mut iter| {
             if let Some((node_id, _)) = iter.find(|(_, output)| output.port == port && output.ip == ip) {
                 return Err(anyhow!(
-                    "Failed to register output with id \"{id}\". Combination of port {port} and IP {ip} is already used by node \"{node_id}\""
+                    "Failed to register output with id \"{output_id}\". Combination of port {port} and IP {ip} is already used by node \"{node_id}\""
                 ));
             };
             Ok(())
         })?;
 
         self.pipeline.register_output(
-            id,
+            output_id,
             rtp_sender::Options {
                 port,
                 ip,

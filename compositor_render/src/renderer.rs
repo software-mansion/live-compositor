@@ -42,26 +42,40 @@ mod utils;
 
 pub(crate) use format::bgra_to_rgba::BGRAToRGBAConverter;
 
+pub struct RendererOptions {
+    pub web_renderer: WebRendererOptions,
+    pub framerate: Framerate,
+    pub stream_fallback_timeout: Duration,
+}
+
 pub struct Renderer {
     pub wgpu_ctx: Arc<WgpuCtx>,
     pub text_renderer_ctx: TextRendererCtx,
     pub chromium_context: Arc<ChromiumContext>,
+
     pub scene: Scene,
     pub scene_spec: Arc<SceneSpec>,
+
     pub(crate) shader_registry: RendererRegistry<Arc<Shader>>,
     pub(crate) web_renderers: RendererRegistry<Arc<WebRenderer>>,
     pub(crate) image_registry: RendererRegistry<Image>,
     pub(crate) builtin_transformations: BuiltinTransformations,
+
+    stream_fallback_timeout: Duration,
 }
 
 pub struct RenderCtx<'a> {
     pub wgpu_ctx: &'a Arc<WgpuCtx>,
+
     pub text_renderer_ctx: &'a TextRendererCtx,
     pub chromium: &'a Arc<ChromiumContext>,
+
     pub(crate) shader_registry: &'a RendererRegistry<Arc<Shader>>,
     pub(crate) web_renderers: &'a RendererRegistry<Arc<WebRenderer>>,
     pub(crate) image_registry: &'a RendererRegistry<Image>,
     pub(crate) builtin_transforms: &'a BuiltinTransformations,
+
+    pub(crate) stream_fallback_timeout: Duration,
 }
 
 pub struct RegisterCtx {
@@ -97,16 +111,13 @@ pub enum RendererRegisterError {
 }
 
 impl Renderer {
-    pub fn new(
-        web_renderer_opts: WebRendererOptions,
-        framerate: Framerate,
-    ) -> Result<Self, RendererInitError> {
+    pub fn new(opts: RendererOptions) -> Result<Self, RendererInitError> {
         let wgpu_ctx = Arc::new(WgpuCtx::new()?);
 
         Ok(Self {
             wgpu_ctx: wgpu_ctx.clone(),
             text_renderer_ctx: TextRendererCtx::new(),
-            chromium_context: Arc::new(ChromiumContext::new(web_renderer_opts, framerate)?),
+            chromium_context: Arc::new(ChromiumContext::new(opts.web_renderer, opts.framerate)?),
             scene: Scene::empty(),
             web_renderers: RendererRegistry::new(RegistryType::WebRenderer),
             shader_registry: RendererRegistry::new(RegistryType::Shader),
@@ -116,6 +127,8 @@ impl Renderer {
                 nodes: vec![],
                 outputs: vec![],
             }),
+
+            stream_fallback_timeout: opts.stream_fallback_timeout,
         })
     }
 
@@ -138,11 +151,12 @@ impl Renderer {
             text_renderer_ctx: &self.text_renderer_ctx,
             image_registry: &self.image_registry,
             builtin_transforms: &self.builtin_transformations,
+            stream_fallback_timeout: self.stream_fallback_timeout,
         };
 
         let scope = WgpuErrorScope::push(&ctx.wgpu_ctx.device);
 
-        populate_inputs(ctx, &mut self.scene, &mut inputs.frames);
+        populate_inputs(ctx, &mut self.scene, &mut inputs);
         run_transforms(ctx, &self.scene, inputs.pts);
         let frames = read_outputs(ctx, &self.scene, inputs.pts);
 
@@ -164,6 +178,7 @@ impl Renderer {
                 web_renderers: &self.web_renderers,
                 image_registry: &self.image_registry,
                 builtin_transforms: &self.builtin_transformations,
+                stream_fallback_timeout: self.stream_fallback_timeout,
             },
             &scene_specs,
         )?;

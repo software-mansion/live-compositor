@@ -2,36 +2,52 @@ use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use compositor_common::{
     scene::{InputId, OutputId},
+    util::RGBColor,
     Frame,
 };
 use log::error;
 
-use crate::renderer::{
-    scene::{Node, Scene},
-    RenderCtx,
+use crate::{
+    frame_set::FrameSet,
+    renderer::{
+        scene::{Node, Scene},
+        RenderCtx,
+    },
 };
 
 pub(super) fn populate_inputs(
     ctx: &RenderCtx,
     scene: &mut Scene,
-    frames: &mut HashMap<InputId, Frame>,
+    frame_set: &mut FrameSet<InputId>,
 ) {
-    for (input_id, (node, input_textures)) in &mut scene.inputs {
-        let Some(frame) = frames.remove(input_id) else {
+    for (input_id, (_, input_textures)) in &mut scene.inputs {
+        let Some(frame) = frame_set.frames.remove(input_id) else {
+            input_textures.clear();
             continue;
         };
-        node.output.ensure_size(ctx.wgpu_ctx, frame.resolution);
+        if Duration::saturating_sub(frame_set.pts, ctx.stream_fallback_timeout) > frame.pts {
+            input_textures.clear();
+            continue;
+        }
+
         input_textures.upload(ctx.wgpu_ctx, frame);
     }
 
     ctx.wgpu_ctx.queue.submit([]);
 
     for (node, input_textures) in scene.inputs.values() {
-        ctx.wgpu_ctx.format.convert_yuv_to_rgba(
-            ctx.wgpu_ctx,
-            (input_textures.yuv_textures(), input_textures.bind_group()),
-            &node.output.rgba_texture(),
-        );
+        if let Some(input_textures) = input_textures.state() {
+            let node_texture = node
+                .output
+                .ensure_size(ctx.wgpu_ctx, input_textures.resolution());
+            ctx.wgpu_ctx.format.convert_yuv_to_rgba(
+                ctx.wgpu_ctx,
+                (input_textures.yuv_textures(), input_textures.bind_group()),
+                node_texture.rgba_texture(),
+            );
+        } else {
+            node.output.clear()
+        }
     }
 }
 
@@ -42,13 +58,35 @@ pub(super) fn read_outputs(
 ) -> HashMap<OutputId, Frame> {
     let mut pending_downloads = Vec::with_capacity(scene.outputs.len());
     for (node_id, (node, output)) in &scene.outputs {
-        ctx.wgpu_ctx.format.convert_rgba_to_yuv(
-            ctx.wgpu_ctx,
-            (&node.output.rgba_texture(), &node.output.bind_group()),
-            output.yuv_textures(),
-        );
-        let yuv_pending = output.start_download(ctx.wgpu_ctx);
-        pending_downloads.push((node_id, yuv_pending, output.resolution().to_owned()));
+        match node.output.state() {
+            Some(node) => {
+                ctx.wgpu_ctx.format.convert_rgba_to_yuv(
+                    ctx.wgpu_ctx,
+                    ((node.rgba_texture()), (node.bind_group())),
+                    output.yuv_textures(),
+                );
+                let yuv_pending = output.start_download(ctx.wgpu_ctx);
+                pending_downloads.push((node_id, yuv_pending, output.resolution().to_owned()));
+            }
+            None => {
+                let (y, u, v) = RGBColor::BLACK.to_yuv();
+                ctx.wgpu_ctx.utils.fill_r8_with_value(
+                    ctx.wgpu_ctx,
+                    output.yuv_textures().plane(0),
+                    y,
+                );
+                ctx.wgpu_ctx.utils.fill_r8_with_value(
+                    ctx.wgpu_ctx,
+                    output.yuv_textures().plane(1),
+                    u,
+                );
+                ctx.wgpu_ctx.utils.fill_r8_with_value(
+                    ctx.wgpu_ctx,
+                    output.yuv_textures().plane(2),
+                    v,
+                );
+            }
+        };
     }
     ctx.wgpu_ctx.device.poll(wgpu::MaintainBase::Wait);
 
