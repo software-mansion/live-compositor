@@ -119,17 +119,10 @@ impl RGBAToYUVConverter {
                 render_pass.set_bind_group(0, src.1, &[]);
                 render_pass.set_bind_group(1, &self.sampler.bind_group, &[]);
                 render_pass.set_bind_group(2, &self.plane_selector.bind_group, &[]);
+                render_pass.set_vertex_buffer(0, self.buffers.vertices(1));
                 render_pass
-                    .set_vertex_buffer(0, self.buffers.vertices(1));
-                render_pass.set_index_buffer(
-                    self.buffers.indices(1),
-                    InputTexturesPlanes::INDEX_FORMAT,
-                );
-                render_pass.draw_indexed(
-                    0..InputTexturesPlanes::indices_len(1),
-                    0,
-                    0..1,
-                );
+                    .set_index_buffer(self.buffers.indices(1), InputTexturesPlanes::INDEX_FORMAT);
+                render_pass.draw_indexed(0..InputTexturesPlanes::indices_len(1), 0, 0..1);
             }
 
             ctx.queue.submit(Some(encoder.finish()));

@@ -172,7 +172,6 @@ impl InputTexturesPlanes {
         }
     }
 
-    // TODO 0 count
     pub fn vertices(&self, input_textures_count: u32) -> BufferSlice {
         if input_textures_count == 0 {
             self.no_inputs_vertices.slice(..)
