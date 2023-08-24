@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Renderer Example</title>
+</head>
+
+<style>
+    html,
+    body {
+        background-color: white;
+    }
+
+    #source1 {
+        border: 2px solid black;
+        animation: anim infinite ease-in-out;
+        animation-duration: 3s;
+        min-width: 800px;
+        min-height: 600px;
+    }
+
+    @keyframes anim {
+
+        0%,
+        100% {
+            rotate: 0deg;
+            border-radius: 0;
+        }
+
+        50% {
+            rotate: -10deg;
+            border-radius: 512px;
+        }
+    }
+</style>
+
+<body>
+    <h2>Frame embedding:</h2>
+    <canvas id="source1"></canvas>
+</body>
+
+<script>
+    // TODO: Figure out embedding API
+    const sourceCanvas = document.getElementById("source1");
+    const ctx = sourceCanvas.getContext("2d");
+
+    setInterval(async () => {
+        if (!window.hasOwnProperty("input1_data") || !window.hasOwnProperty("input1_width") || !window.hasOwnProperty("input1_height")) {
+            return;
+        }
+
+        sourceCanvas.width = input1_width;
+        sourceCanvas.height = input1_height;
+        const imageView = new ImageData(new Uint8ClampedArray(input1_data), input1_width, input1_height);
+        ctx.putImageData(imageView, 0, 0);
+    }, 16);
+</script>
+
+</html>

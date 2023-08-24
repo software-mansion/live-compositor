@@ -40,6 +40,8 @@ crossbeam-channel = { workspace = true }
 env_logger = { workspace = true }
 log = { workspace = true }
 signal-hook = { workspace = true }
+shared_memory = "0.12.4"
 
 [dev-dependencies]
 reqwest = { workspace = true }
+signal-hook = { workspace = true }

@@ -1,4 +1,4 @@
-use std::os::raw::c_void;
+use std::{ops::Deref, os::raw::c_void};
 
 use crate::{
     cef::V8ContextEntered,
@@ -21,7 +21,7 @@ impl V8Value {
     pub fn set_value_by_key(
         &mut self,
         key: &str,
-        value: Self,
+        value: &Self,
         attribute: V8PropertyAttribute,
     ) -> Result<bool, V8ValueError> {
         let key = CefString::new_raw(key);
@@ -39,10 +39,15 @@ impl V8Value {
         Self::from_raw(inner)
     }
 
+    pub fn new_i32(data: i32) -> Self {
+        let inner = unsafe { chromium_sys::cef_v8value_create_int(data) };
+        Self::from_raw(inner)
+    }
+
     /// Creates a new array buffer. It can be only created while in context.
-    /// The buffer's memory is shared with V8 engine
+    /// The buffer's memory is shared with V8 engine.
     pub fn new_array_buffer(_context_entered: &V8ContextEntered, buffer: Vec<u8>) -> Self {
-        let release_callback = V8ArrayBufferReleaseCallback {
+        let release_callback = V8ArrayBufferReleaseCallback::Delete {
             buffer_len: buffer.len(),
             buffer_cap: buffer.capacity(),
         };
@@ -58,11 +63,37 @@ impl V8Value {
 
         Self::from_raw(inner)
     }
+
+    /// Creates a new array buffer from raw pointer. It can be only created while in context.
+    /// The buffer's memory is shared with V8 engine.
+    ///
+    /// # Safety
+    /// Make sure the pointer is valid. Invalid pointer can cause undefined behavior.
+    pub unsafe fn array_buffer_from_ptr(
+        _context_entered: &V8ContextEntered,
+        ptr: *mut u8,
+        ptr_len: usize,
+    ) -> Self {
+        // We do not delete the buffer because it's not owned by us
+        let release_callback = V8ArrayBufferReleaseCallback::DoNotDelete;
+        let inner = unsafe {
+            chromium_sys::cef_v8value_create_array_buffer(
+                ptr as *mut c_void,
+                ptr_len,
+                CefRefData::new_ptr(release_callback),
+            )
+        };
+
+        Self::from_raw(inner)
+    }
 }
 
-struct V8ArrayBufferReleaseCallback {
-    buffer_len: usize,
-    buffer_cap: usize,
+enum V8ArrayBufferReleaseCallback {
+    Delete {
+        buffer_len: usize,
+        buffer_cap: usize,
+    },
+    DoNotDelete,
 }
 
 impl CefStruct for V8ArrayBufferReleaseCallback {
@@ -87,7 +118,15 @@ impl V8ArrayBufferReleaseCallback {
     ) {
         unsafe {
             let self_ref = CefRefData::<Self>::from_cef(self_);
-            Vec::from_raw_parts(buffer, self_ref.buffer_len, self_ref.buffer_cap);
+            match (*self_ref).deref() {
+                V8ArrayBufferReleaseCallback::Delete {
+                    buffer_len,
+                    buffer_cap,
+                } => {
+                    Vec::from_raw_parts(buffer, *buffer_len, *buffer_cap);
+                }
+                V8ArrayBufferReleaseCallback::DoNotDelete => {}
+            };
         }
     }
 }

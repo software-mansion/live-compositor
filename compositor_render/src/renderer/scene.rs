@@ -21,7 +21,10 @@ use super::{
 
 pub enum RenderNode {
     Shader(ShaderNode),
-    Web { renderer: Arc<WebRenderer> },
+    Web {
+        renderer: Arc<WebRenderer>,
+        buffers: Vec<Arc<wgpu::Buffer>>,
+    },
     Text(TextRendererNode),
     Image(ImageNode),
     Builtin(ShaderNode),
@@ -29,11 +32,17 @@ pub enum RenderNode {
 }
 
 impl RenderNode {
-    fn new(ctx: &RenderCtx, spec: &NodeParams) -> Result<Self, GetError> {
+    fn new(ctx: &RenderCtx, spec: &NodeParams, inputs: &[Arc<Node>]) -> Result<Self, GetError> {
         match spec {
             NodeParams::WebRenderer { instance_id } => {
                 let renderer = ctx.web_renderers.get(instance_id)?;
-                Ok(Self::Web { renderer })
+                let buffers = inputs
+                    .iter()
+                    .map(|node| {
+                        Arc::new(node.output.rgba_texture().new_download_buffer(ctx.wgpu_ctx))
+                    })
+                    .collect();
+                Ok(Self::Web { renderer, buffers })
             }
             NodeParams::Shader {
                 shader_id,
@@ -82,10 +91,12 @@ impl RenderNode {
                 shader.render(sources, target, pts);
             }
             RenderNode::Builtin(shader) => shader.render(sources, target, pts),
-            RenderNode::Web { renderer } => renderer.render(ctx, sources, target),
-            RenderNode::Text(renderer) => {
-                renderer.render(ctx, target);
+            RenderNode::Web { renderer, buffers } => {
+                if let Err(err) = renderer.render(ctx, sources, buffers, target) {
+                    error!("Failed to run web render: {err}");
+                }
             }
+            RenderNode::Text(renderer) => renderer.render(ctx, target),
             RenderNode::Image(node) => node.render(ctx, target, pts),
             RenderNode::InputStream => {
                 // Nothing to do, textures on input nodes should be populated
@@ -97,7 +108,7 @@ impl RenderNode {
     pub fn resolution(&self) -> Option<Resolution> {
         match self {
             RenderNode::Shader(node) => Some(node.resolution()),
-            RenderNode::Web { renderer } => Some(renderer.resolution()),
+            RenderNode::Web { renderer, .. } => Some(renderer.resolution()),
             RenderNode::Text(node) => Some(node.resolution()),
             RenderNode::Image(node) => Some(node.resolution()),
             RenderNode::InputStream => None,
@@ -115,7 +126,7 @@ pub struct Node {
 
 impl Node {
     pub fn new(ctx: &RenderCtx, spec: &NodeSpec, inputs: Vec<Arc<Node>>) -> Result<Self, GetError> {
-        let node = RenderNode::new(ctx, &spec.params)?;
+        let node = RenderNode::new(ctx, &spec.params, &inputs)?;
         let output = NodeTexture::new(
             ctx.wgpu_ctx,
             // TODO: This will not be addressed when implementing fallback

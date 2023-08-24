@@ -1,8 +1,14 @@
 use compositor_chromium::cef;
-use log::info;
-use std::error::Error;
+use compositor_render::{EMBED_SOURCE_FRAMES_MESSAGE, SHMEM_FOLDER_PATH};
+use log::{error, info};
+use shared_memory::{Shmem, ShmemConf};
+use std::{cell::RefCell, collections::HashMap, error::Error, path::PathBuf, rc::Rc};
 
-struct App;
+type SourceStateMap = Rc<RefCell<HashMap<String, SourceState>>>;
+
+struct App {
+    states: SourceStateMap,
+}
 
 impl cef::App for App {
     type RenderProcessHandlerType = RenderProcessHandler;
@@ -16,24 +22,123 @@ impl cef::App for App {
     }
 
     fn render_process_handler(&self) -> Option<Self::RenderProcessHandlerType> {
-        Some(RenderProcessHandler)
+        Some(RenderProcessHandler {
+            states: self.states.clone(),
+        })
     }
 }
 
-struct RenderProcessHandler;
+struct RenderProcessHandler {
+    states: SourceStateMap,
+}
 
 impl cef::RenderProcessHandler for RenderProcessHandler {
     fn on_process_message_received(
         &mut self,
         _browser: &cef::Browser,
-        _frame: &cef::Frame,
+        frame: &cef::Frame,
         _source_process: cef::ProcessId,
         message: &cef::ProcessMessage,
     ) -> bool {
-        // TODO: Implement this
-        info!("Message received: {}", message.name());
+        match message.name().as_str() {
+            EMBED_SOURCE_FRAMES_MESSAGE => self.handle_embed_sources(message, frame),
+            name => error!("Unknown message type: {name}"),
+        }
         false
     }
+}
+
+impl RenderProcessHandler {
+    fn handle_embed_sources(&mut self, msg: &cef::ProcessMessage, surface: &cef::Frame) {
+        let ctx = surface.v8_context().unwrap();
+        let ctx_entered = ctx.enter().unwrap();
+        let mut global_object = ctx.global().unwrap();
+
+        for i in (0..msg.size()).step_by(3) {
+            let Some(source_id) = msg.read_string(i) else {
+                error!("Failed to read source ID at {i}");
+                continue;
+            };
+
+            let Some(width) = msg.read_int(i+1) else {
+                error!("Failed to read width of {} at {}", source_id, i + 1);
+                continue;
+            };
+
+            let Some(height) = msg.read_int(i+2) else {
+                error!("Failed to read height of {} at {}", source_id, i + 2);
+                continue;
+            };
+
+            if !self.states.borrow().contains_key(&source_id) {
+                self.embed_frame(
+                    source_id.clone(),
+                    width,
+                    height,
+                    &mut global_object,
+                    &ctx_entered,
+                );
+            }
+        }
+    }
+
+    fn embed_frame(
+        &mut self,
+        source_id: String,
+        width: i32,
+        height: i32,
+        global_object: &mut cef::V8Value,
+        ctx_entered: &cef::V8ContextEntered,
+    ) {
+        let shmem = ShmemConf::new()
+            .flink(PathBuf::from(SHMEM_FOLDER_PATH).join(&source_id))
+            .open()
+            .unwrap();
+        let data_ptr = shmem.as_ptr();
+        let array_buffer =
+            unsafe { cef::V8Value::array_buffer_from_ptr(ctx_entered, data_ptr, shmem.len()) };
+
+        // TODO: Figure out emedding API
+        // Currently we pass frame data, width and height to JS context.
+        // User has to handle this data manually. This approach is not really ergonomic and elegant
+        global_object
+            .set_value_by_key(
+                &format!("{source_id}_data"),
+                &array_buffer,
+                cef::V8PropertyAttribute::DoNotDelete,
+            )
+            .unwrap();
+
+        global_object
+            .set_value_by_key(
+                &format!("{source_id}_width"),
+                &cef::V8Value::new_i32(width),
+                cef::V8PropertyAttribute::DoNotDelete,
+            )
+            .unwrap();
+
+        global_object
+            .set_value_by_key(
+                &format!("{source_id}_height"),
+                &cef::V8Value::new_i32(height),
+                cef::V8PropertyAttribute::DoNotDelete,
+            )
+            .unwrap();
+        // ------
+
+        self.states.borrow_mut().insert(
+            source_id,
+            SourceState {
+                _shmem: shmem,
+                _array_buffer: array_buffer,
+            },
+        );
+    }
+}
+
+struct SourceState {
+    _shmem: Shmem,
+    _array_buffer: cef::V8Value,
 }
 
 // Subprocess used by chromium
@@ -42,7 +147,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         env_logger::Env::default().filter_or(env_logger::DEFAULT_FILTER_ENV, "info"),
     );
 
+    let app = App {
+        states: Rc::new(RefCell::new(HashMap::new())),
+    };
     let context = cef::Context::new_helper()?;
-    let exit_code = context.execute_process(App);
+    let exit_code = context.execute_process(app);
     std::process::exit(exit_code);
 }

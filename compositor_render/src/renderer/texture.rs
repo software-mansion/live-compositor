@@ -16,7 +16,7 @@ use super::WgpuCtx;
 mod base;
 mod bgra;
 mod rgba;
-mod utils;
+pub mod utils;
 mod yuv;
 
 pub type BGRATexture = bgra::BGRATexture;
