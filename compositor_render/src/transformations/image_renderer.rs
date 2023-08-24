@@ -329,7 +329,7 @@ impl AnimatedAsset {
         }
 
         let Some(first_frame) = frames.first() else {
-            return Err(AnimatedError::NoFrames)
+            return Err(AnimatedError::NoFrames);
         };
         if frames.len() == 1 {
             return Err(AnimatedError::SingleFrame);

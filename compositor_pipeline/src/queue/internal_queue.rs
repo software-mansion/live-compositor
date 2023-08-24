@@ -46,7 +46,7 @@ impl InternalQueue {
         clock_start: Instant,
     ) -> Result<(), QueueError> {
         let Some(input_queue) = self.inputs_queues.get_mut(&input_id) else {
-            return Err(QueueError::UnknownInputId(input_id))
+            return Err(QueueError::UnknownInputId(input_id));
         };
 
         let offset = *self
