@@ -232,7 +232,10 @@ impl WgpuCtx {
                     max_push_constant_size: 128,
                     ..Default::default()
                 },
-                features: wgpu::Features::TEXTURE_BINDING_ARRAY | wgpu::Features::PUSH_CONSTANTS,
+                features: wgpu::Features::TEXTURE_BINDING_ARRAY
+                    | wgpu::Features::PUSH_CONSTANTS
+                    | wgpu::Features::SAMPLED_TEXTURE_AND_STORAGE_BUFFER_ARRAY_NON_UNIFORM_INDEXING
+                    | wgpu::Features::UNIFORM_BUFFER_AND_STORAGE_TEXTURE_ARRAY_NON_UNIFORM_INDEXING,
             },
             None,
         ))?;
@@ -272,7 +275,7 @@ impl WgpuCtx {
 #[derive(Debug, bytemuck::Pod, bytemuck::Zeroable, Clone, Copy)]
 pub struct CommonShaderParameters {
     time: f32,
-    textures_count: u32,
+    pub textures_count: u32,
     output_resolution: [u32; 2],
 }
 

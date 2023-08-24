@@ -3,7 +3,7 @@ use std::num::NonZeroU32;
 use wgpu::ShaderStages;
 
 use crate::renderer::{
-    common_pipeline::{RectangleRenderBuffers, Sampler, Vertex},
+    common_pipeline::{InputTexturesPlanes, Sampler, Vertex},
     texture::Texture,
     CommonShaderParameters, WgpuCtx,
 };
@@ -12,7 +12,7 @@ use super::INPUT_TEXTURES_AMOUNT;
 
 pub struct Pipeline {
     pipeline: wgpu::RenderPipeline,
-    geometry_buffers: RectangleRenderBuffers,
+    geometry_buffers: InputTexturesPlanes,
     sampler: Sampler,
     pub(super) textures_bgl: wgpu::BindGroupLayout,
 }
@@ -53,7 +53,7 @@ impl Pipeline {
             source: shader_source,
         });
 
-        let geometry_buffers = RectangleRenderBuffers::new(device);
+        let geometry_buffers = InputTexturesPlanes::new(device);
 
         let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("shader transformation pipeline :^)"),
@@ -132,17 +132,27 @@ impl Pipeline {
                 common_parameters.push_constant(),
             );
 
-            render_pass.set_vertex_buffer(0, self.geometry_buffers.vertex.slice(..));
+            render_pass.set_vertex_buffer(
+                0,
+                self.geometry_buffers
+                    .vertices(common_parameters.textures_count),
+            );
+
             render_pass.set_index_buffer(
-                self.geometry_buffers.index.slice(..),
-                RectangleRenderBuffers::INDEX_FORMAT,
+                self.geometry_buffers
+                    .indices(common_parameters.textures_count),
+                InputTexturesPlanes::INDEX_FORMAT,
             );
 
             render_pass.set_bind_group(0, inputs, &[]);
             render_pass.set_bind_group(1, uniforms, &[]);
             render_pass.set_bind_group(2, &self.sampler.bind_group, &[]);
 
-            render_pass.draw_indexed(0..RectangleRenderBuffers::INDICES.len() as u32, 0, 0..1);
+            render_pass.draw_indexed(
+                0..InputTexturesPlanes::indices_len(common_parameters.textures_count),
+                0,
+                0..1,
+            );
         }
 
         // TODO: this should not submit, it should return the command buffer.

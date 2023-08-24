@@ -59,7 +59,7 @@ impl TransformNode {
                 TransformNode::Builtin(ShaderNode::new(
                     ctx.wgpu_ctx,
                     ctx.builtin_transforms.shader(transformation),
-                    BuiltinTransformations::params(transformation).as_ref(),
+                    BuiltinTransformations::params(transformation, resolution).as_ref(),
                     BuiltinTransformations::clear_color(transformation),
                 )),
                 *resolution,

@@ -1,4 +1,4 @@
-use wgpu::{util::DeviceExt, BindGroup, BindGroupLayout, Buffer};
+use wgpu::{util::DeviceExt, BindGroup, BindGroupLayout, Buffer, BufferSlice};
 
 pub const PRIMITIVE_STATE: wgpu::PrimitiveState = wgpu::PrimitiveState {
     polygon_mode: wgpu::PolygonMode::Fill,
@@ -10,52 +10,100 @@ pub const PRIMITIVE_STATE: wgpu::PrimitiveState = wgpu::PrimitiveState {
     unclipped_depth: false,
 };
 
+pub const MAX_TEXTURES_COUNT: u32 = 16;
+
 #[repr(C)]
 #[derive(Debug, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Vertex {
     pub position: [f32; 3],
     pub texture_coords: [f32; 2],
+    pub input_id: u32,
 }
 
 impl Vertex {
     pub const LAYOUT: wgpu::VertexBufferLayout<'static> = wgpu::VertexBufferLayout {
         array_stride: std::mem::size_of::<Vertex>() as u64,
         step_mode: wgpu::VertexStepMode::Vertex,
-        attributes: &wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x2],
+        attributes: &wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x2, 2 => Uint32],
     };
+
+    const fn empty() -> Self {
+        Vertex {
+            position: [0.0, 0.0, 0.0],
+            texture_coords: [0.0, 0.0],
+            input_id: 0,
+        }
+    }
 }
 
-pub struct RectangleRenderBuffers {
-    pub vertex: Buffer,
-    pub index: Buffer,
+pub struct InputTexturesPlanes {
+    all_inputs_vertices: Buffer,
+    all_inputs_indices: Buffer,
+}
+
+macro_rules! const_vertices {
+    ($textures_count:expr) => {{
+        let mut vertices = [Vertex::empty(); 4 * $textures_count as usize];
+
+        let mut input_id = 0;
+        while input_id < $textures_count {
+            vertices[input_id as usize * 4] = Vertex {
+                position: [1.0, -1.0, 0.0],
+                texture_coords: [1.0, 1.0],
+                input_id,
+            };
+
+            vertices[input_id as usize * 4 + 1] = Vertex {
+                position: [1.0, 1.0, 0.0],
+                texture_coords: [1.0, 0.0],
+                input_id,
+            };
+
+            vertices[input_id as usize * 4 + 2] = Vertex {
+                position: [-1.0, 1.0, 0.0],
+                texture_coords: [0.0, 0.0],
+                input_id,
+            };
+
+            vertices[input_id as usize * 4 + 3] = Vertex {
+                position: [-1.0, -1.0, 0.0],
+                texture_coords: [0.0, 1.0],
+                input_id,
+            };
+
+            input_id += 1;
+        }
+
+        vertices
+    }};
+}
+
+macro_rules! const_indices {
+    ($textures_count:expr) => {{
+        let mut indices = [0u16; 6 * $textures_count as usize];
+
+        let mut i = 0;
+        while i < $textures_count {
+            indices[6 * i as usize] = (4 * i) as u16;
+            indices[6 * i as usize + 1] = (4 * i + 1) as u16;
+            indices[6 * i as usize + 2] = (4 * i + 2) as u16;
+            indices[6 * i as usize + 3] = (4 * i + 2) as u16;
+            indices[6 * i as usize + 4] = (4 * i + 3) as u16;
+            indices[6 * i as usize + 5] = (4 * i) as u16;
+            i += 1;
+        }
+
+        indices
+    }};
 }
 
 /// Vertex and index buffer that describe render area as an rectangle mapped to texture.
-impl RectangleRenderBuffers {
-    const VERTICES: [Vertex; 4] = [
-        Vertex {
-            position: [1.0, -1.0, 0.0],
-            texture_coords: [1.0, 1.0],
-        },
-        Vertex {
-            position: [1.0, 1.0, 0.0],
-            texture_coords: [1.0, 0.0],
-        },
-        Vertex {
-            position: [-1.0, 1.0, 0.0],
-            texture_coords: [0.0, 0.0],
-        },
-        Vertex {
-            position: [-1.0, -1.0, 0.0],
-            texture_coords: [0.0, 1.0],
-        },
-    ];
+impl InputTexturesPlanes {
+    const ALL_INPUTS_VERTICES: [Vertex; 4 * MAX_TEXTURES_COUNT as usize] =
+        const_vertices!(MAX_TEXTURES_COUNT);
 
-    #[rustfmt::skip]
-    pub const INDICES: [u16; 6] = [
-        0, 1, 2,
-        2, 3, 0,
-    ];
+    const ALL_INPUTS_INDICES: [u16; 6 * MAX_TEXTURES_COUNT as usize] =
+        const_indices!(MAX_TEXTURES_COUNT);
 
     pub const INDEX_FORMAT: wgpu::IndexFormat = wgpu::IndexFormat::Uint16;
 
@@ -63,19 +111,35 @@ impl RectangleRenderBuffers {
         let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("vertex buffer"),
             usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-            contents: bytemuck::cast_slice(&Self::VERTICES),
+            contents: bytemuck::cast_slice(&Self::ALL_INPUTS_VERTICES),
         });
 
         let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("index buffer"),
             usage: wgpu::BufferUsages::INDEX | wgpu::BufferUsages::COPY_DST,
-            contents: bytemuck::cast_slice(&Self::INDICES),
+            contents: bytemuck::cast_slice(&Self::ALL_INPUTS_INDICES),
         });
 
         Self {
-            vertex: vertex_buffer,
-            index: index_buffer,
+            all_inputs_vertices: vertex_buffer,
+            all_inputs_indices: index_buffer,
         }
+    }
+
+    // TODO 0 count
+    pub fn vertices(&self, input_textures_count: u32) -> BufferSlice {
+        let vertex_buffer_len =
+            4 * input_textures_count as u64 * std::mem::size_of::<Vertex>() as u64;
+        self.all_inputs_vertices.slice(..vertex_buffer_len)
+    }
+
+    pub fn indices(&self, input_textures_count: u32) -> BufferSlice {
+        let index_buffer_len = 6 * input_textures_count as u64 * std::mem::size_of::<u16>() as u64;
+        self.all_inputs_indices.slice(..index_buffer_len)
+    }
+
+    pub fn indices_len(input_textures_count: u32) -> u32 {
+        input_textures_count * 6
     }
 }
 
