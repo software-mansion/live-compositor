@@ -47,7 +47,9 @@ fn start_example_client_code() -> Result<()> {
     common::post(&json!({
         "type": "init",
         "framerate": FRAMERATE,
-        "init_web_renderer": false,
+        "web_renderer": {
+            "init": false
+        },
     }))?;
 
     info!("[example] Start listening on output port.");
@@ -71,13 +73,6 @@ fn start_example_client_code() -> Result<()> {
         "encoder_settings": {
             "preset": "ultrafast"
         }
-    }))?;
-
-    info!("[example] Send register input request.");
-    common::post(&json!({
-        "type": "register_input",
-        "id": "input 1",
-        "port": 8004
     }))?;
 
     info!("[example] Register static image");
