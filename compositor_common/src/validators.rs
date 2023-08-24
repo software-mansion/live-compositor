@@ -4,7 +4,7 @@ use crate::scene::{NodeId, NodeSpec, SceneSpec};
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum SpecValidationError {
-    #[error("Unknown node with id {missing_node} used in transformation {node}. Node is not defined in the scene and it was not registered as an input.")]
+    #[error("Unknown node with id {missing_node} used in node {node}. Node is not defined in the scene and it was not registered as an input.")]
     UnknownInputPadOnNode { missing_node: NodeId, node: NodeId },
     #[error("Unknown node with id {missing_node} used in output {output} is not defined in scene and it was not registered as an input")]
     UnknownInputPadOnOutput {
