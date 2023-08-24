@@ -17,7 +17,7 @@ pub const MAX_TEXTURES_COUNT: u32 = 16;
 pub struct Vertex {
     pub position: [f32; 3],
     pub texture_coords: [f32; 2],
-    pub input_id: u32,
+    pub input_id: i32,
 }
 
 impl Vertex {
@@ -37,8 +37,10 @@ impl Vertex {
 }
 
 pub struct InputTexturesPlanes {
-    all_inputs_vertices: Buffer,
-    all_inputs_indices: Buffer,
+    inputs_vertices: Buffer,
+    inputs_indices: Buffer,
+    no_inputs_vertices: Buffer,
+    no_inputs_indices: Buffer,
 }
 
 macro_rules! const_vertices {
@@ -50,25 +52,25 @@ macro_rules! const_vertices {
             vertices[input_id as usize * 4] = Vertex {
                 position: [1.0, -1.0, 0.0],
                 texture_coords: [1.0, 1.0],
-                input_id,
+                input_id: input_id as i32,
             };
 
             vertices[input_id as usize * 4 + 1] = Vertex {
                 position: [1.0, 1.0, 0.0],
                 texture_coords: [1.0, 0.0],
-                input_id,
+                input_id: input_id as i32,
             };
 
             vertices[input_id as usize * 4 + 2] = Vertex {
                 position: [-1.0, 1.0, 0.0],
                 texture_coords: [0.0, 0.0],
-                input_id,
+                input_id: input_id as i32,
             };
 
             vertices[input_id as usize * 4 + 3] = Vertex {
                 position: [-1.0, -1.0, 0.0],
                 texture_coords: [0.0, 1.0],
-                input_id,
+                input_id: input_id as i32,
             };
 
             input_id += 1;
@@ -105,41 +107,98 @@ impl InputTexturesPlanes {
     const ALL_INPUTS_INDICES: [u16; 6 * MAX_TEXTURES_COUNT as usize] =
         const_indices!(MAX_TEXTURES_COUNT);
 
+    const NO_INPUT_VERTICES: [Vertex; 4] = [
+        Vertex {
+            position: [1.0, -1.0, 0.0],
+            texture_coords: [1.0, 1.0],
+            input_id: -1,
+        },
+        Vertex {
+            position: [1.0, 1.0, 0.0],
+            texture_coords: [1.0, 0.0],
+            input_id: -1,
+        },
+        Vertex {
+            position: [-1.0, 1.0, 0.0],
+            texture_coords: [0.0, 0.0],
+            input_id: -1,
+        },
+        Vertex {
+            position: [-1.0, -1.0, 0.0],
+            texture_coords: [0.0, 1.0],
+            input_id: -1,
+        },
+    ];
+
+    #[rustfmt::skip]
+    const NO_INPUT_INDICES: [u16; 6] = [
+        0, 1, 2,
+        2, 3, 0
+    ];
+
     pub const INDEX_FORMAT: wgpu::IndexFormat = wgpu::IndexFormat::Uint16;
 
     pub fn new(device: &wgpu::Device) -> Self {
-        let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        let inputs_vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("vertex buffer"),
             usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
             contents: bytemuck::cast_slice(&Self::ALL_INPUTS_VERTICES),
         });
 
-        let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        let inputs_index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("index buffer"),
             usage: wgpu::BufferUsages::INDEX | wgpu::BufferUsages::COPY_DST,
             contents: bytemuck::cast_slice(&Self::ALL_INPUTS_INDICES),
         });
 
+        let no_inputs_vertex_buffer =
+            device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("vertex buffer"),
+                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+                contents: bytemuck::cast_slice(&Self::NO_INPUT_VERTICES),
+            });
+
+        let no_inputs_index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("index buffer"),
+            usage: wgpu::BufferUsages::INDEX | wgpu::BufferUsages::COPY_DST,
+            contents: bytemuck::cast_slice(&Self::NO_INPUT_INDICES),
+        });
+
         Self {
-            all_inputs_vertices: vertex_buffer,
-            all_inputs_indices: index_buffer,
+            inputs_vertices: inputs_vertex_buffer,
+            inputs_indices: inputs_index_buffer,
+            no_inputs_vertices: no_inputs_vertex_buffer,
+            no_inputs_indices: no_inputs_index_buffer,
         }
     }
 
     // TODO 0 count
     pub fn vertices(&self, input_textures_count: u32) -> BufferSlice {
-        let vertex_buffer_len =
-            4 * input_textures_count as u64 * std::mem::size_of::<Vertex>() as u64;
-        self.all_inputs_vertices.slice(..vertex_buffer_len)
+        if input_textures_count == 0 {
+            self.no_inputs_vertices.slice(..)
+        } else {
+            let vertex_buffer_len =
+                4 * input_textures_count as u64 * std::mem::size_of::<Vertex>() as u64;
+            self.inputs_vertices.slice(..vertex_buffer_len)
+        }
     }
 
     pub fn indices(&self, input_textures_count: u32) -> BufferSlice {
-        let index_buffer_len = 6 * input_textures_count as u64 * std::mem::size_of::<u16>() as u64;
-        self.all_inputs_indices.slice(..index_buffer_len)
+        if input_textures_count == 0 {
+            self.no_inputs_indices.slice(..)
+        } else {
+            let index_buffer_len =
+                6 * input_textures_count as u64 * std::mem::size_of::<u16>() as u64;
+            self.inputs_indices.slice(..index_buffer_len)
+        }
     }
 
     pub fn indices_len(input_textures_count: u32) -> u32 {
-        input_textures_count * 6
+        if input_textures_count == 0 {
+            6
+        } else {
+            input_textures_count * 6
+        }
     }
 }
 

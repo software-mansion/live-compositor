@@ -33,9 +33,9 @@ var<push_constant> common_params: CommonShaderParameters;
 @group(1) @binding(0) var<uniform> layouts: Layouts;
 @group(2) @binding(0) var sampler_: sampler;
 
-// Lineary interpolates x from [x_min, x_max] to [-1.0, 1.0] domain
-fn to_clip_space_coords(x: f32, x_min: f32, x_max: f32) -> f32 {
-    return (x - x_min) / (x_max - x_min) * 2.0 - 1.0;
+// Lineary interpolates x from [0, x_max] to [-1.0, 1.0] domain
+fn to_clip_space_coords(x: f32, x_max: f32) -> f32 {
+    return x / x_max * 2.0 - 1.0;
 }
 
 fn final_box_position(
@@ -44,8 +44,8 @@ fn final_box_position(
     texture_layout: TextureLayout
 ) -> vec3<f32> {
     return vec3<f32>(
-        to_clip_space_coords(f32(texture_layout.top), 0.0, f32(output_texture_width)),
-        to_clip_space_coords(f32(texture_layout.top), 0.0, f32(output_texture_height)),
+        to_clip_space_coords(f32(texture_layout.top), f32(output_texture_width)),
+        to_clip_space_coords(f32(texture_layout.top), f32(output_texture_height)),
         0.0
     );
 }
