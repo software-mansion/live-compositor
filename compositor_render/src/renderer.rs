@@ -14,6 +14,8 @@ use crate::{
         image_renderer::ImageError,
         text_renderer::TextRendererCtx,
         web_renderer::chromium::{ChromiumContext, ChromiumContextError},
+        shader::ShaderNewError,
+        text_renderer::TextRendererCtx,
     },
     WebRendererOptions,
 };
@@ -92,7 +94,7 @@ pub enum RendererRegisterError {
     RendererRegistry(#[from] registry::RegisterError),
 
     #[error("failed to to initialize the shader")]
-    Shader(#[from] WgpuError),
+    Shader(#[from] ShaderNewError),
 
     #[error("failed to create web renderer instance")]
     WebRendererInstance(#[from] WebRendererNewError),
@@ -176,11 +178,10 @@ pub enum RenderError {
 }
 
 pub struct WgpuCtx {
-    #[allow(dead_code)]
     pub device: wgpu::Device,
-
-    #[allow(dead_code)]
     pub queue: wgpu::Queue,
+
+    pub shader_header: naga::Module,
 
     pub format: TextureFormat,
     pub utils: TextureUtils,
@@ -248,6 +249,12 @@ impl WgpuCtx {
             None,
         ))?;
 
+        let shader_header =
+            naga::front::wgsl::parse_str(include_str!("transformations/shader_header.wgsl"))
+                .expect("shader header"); // TODO: handle
+
+        std::fs::write("header.module", format!("{shader_header:#?}")).unwrap();
+
         let scope = WgpuErrorScope::push(&device);
 
         let format = TextureFormat::new(&device);
@@ -271,6 +278,7 @@ impl WgpuCtx {
         Ok(Self {
             device,
             queue,
+            shader_header,
             format,
             utils,
             shader_parameters_bind_group_layout,
