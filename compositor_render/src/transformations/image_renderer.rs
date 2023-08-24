@@ -5,9 +5,12 @@ use std::{
 };
 
 use bytes::{Bytes, BytesMut};
-use compositor_common::{scene::Resolution, transformation::ImageSpec};
+
+use compositor_common::{
+    renderer_spec::{ImageSpec, ImageType},
+    scene::Resolution,
+};
 use image::{codecs::gif::GifDecoder, AnimationDecoder, ImageFormat};
-use log::error;
 use resvg::{
     tiny_skia,
     usvg::{self, TreeParsing},
@@ -15,7 +18,7 @@ use resvg::{
 
 use crate::renderer::{
     texture::{NodeTexture, RGBATexture},
-    RegisterTransformationCtx, RenderCtx, WgpuCtx,
+    RegisterCtx, RenderCtx, WgpuCtx,
 };
 
 #[derive(Clone)]
@@ -26,22 +29,22 @@ pub enum Image {
 }
 
 impl Image {
-    pub fn new(ctx: &RegisterTransformationCtx, spec: ImageSpec) -> Result<Self, ImageError> {
-        let file = Self::download_file(spec.url())?;
-        let renderer = match spec {
-            ImageSpec::Png { .. } => {
+    pub fn new(ctx: &RegisterCtx, spec: ImageSpec) -> Result<Self, ImageError> {
+        let file = Self::download_file(&spec.url)?;
+        let renderer = match spec.image_type {
+            ImageType::Png => {
                 let asset = BitmapAsset::new(&ctx.wgpu_ctx, file, ImageFormat::Png)?;
                 Image::Bitmap(Arc::new(asset))
             }
-            ImageSpec::Jpeg { .. } => {
+            ImageType::Jpeg => {
                 let asset = BitmapAsset::new(&ctx.wgpu_ctx, file, ImageFormat::Jpeg)?;
                 Image::Bitmap(Arc::new(asset))
             }
-            ImageSpec::Svg { resolution, .. } => {
+            ImageType::Svg { resolution } => {
                 let asset = SvgAsset::new(&ctx.wgpu_ctx, file, resolution)?;
                 Image::Svg(Arc::new(asset))
             }
-            ImageSpec::Gif { .. } => {
+            ImageType::Gif => {
                 let asset = AnimatedAsset::new(&ctx.wgpu_ctx, file.clone(), ImageFormat::Gif);
                 match asset {
                     Ok(asset) => Image::Animated(Arc::new(asset)),

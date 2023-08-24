@@ -58,8 +58,9 @@ fn start_example_client_code() -> Result<()> {
 
     info!("[example] Send register output request.");
     common::post(&json!({
-        "type": "register_output",
-        "id": "output_1",
+        "type": "register",
+        "entity_type": "output_stream",
+        "output_id": "output_1",
         "port": 8002,
         "ip": "127.0.0.1",
         "resolution": {
@@ -74,10 +75,9 @@ fn start_example_client_code() -> Result<()> {
     info!("[example] Update scene");
     common::post(&json!({
         "type": "update_scene",
-        "inputs": [],
-        "transforms": [
+        "nodes": [
            {
-                "node_id": "text_renderer",
+                "node_id": "text_renderer_1",
                 "type": "text_renderer",
                 "content": "VideoCompositor🚀\nSecond Line\nLorem ipsum dolor sit amet consectetur adipisicing elit. Soluta delectus optio fugit maiores eaque ab totam, veritatis aperiam provident, aliquam consectetur deserunt cumque est? Saepe tenetur impedit culpa asperiores id?",
                 "font_size": 100.0,
@@ -88,13 +88,12 @@ fn start_example_client_code() -> Result<()> {
                     "type": "fixed",
                     "resolution": {"width": 1920, "height": 1080},
                 },
-                "input_pads": [],
            }
         ],
         "outputs": [
             {
                 "output_id": "output_1",
-                "input_pad": "text_renderer"
+                "input_pad": "text_renderer_1"
             }
         ]
     }))?;

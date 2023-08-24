@@ -1,11 +1,8 @@
 use std::{collections::HashSet, sync::Arc};
 
 use crate::{
-    scene::{
-        InputId, InputSpec, NodeId, OutputId, OutputSpec, Resolution, SceneSpec, TransformNodeSpec,
-        TransformParams,
-    },
-    transformation::TransformationRegistryKey,
+    renderer_spec::RendererId,
+    scene::{NodeId, NodeParams, NodeSpec, OutputId, OutputSpec, Resolution, SceneSpec},
     validators::SpecValidationError,
 };
 
@@ -15,8 +12,8 @@ fn scene_validation_finds_cycle() {
         width: 1920,
         height: 1080,
     };
-    let trans_params = TransformParams::Shader {
-        shader_id: TransformationRegistryKey(Arc::from("shader")),
+    let trans_params = NodeParams::Shader {
+        shader_id: RendererId(Arc::from("shader")),
         shader_params: None,
         resolution,
     };
@@ -27,28 +24,22 @@ fn scene_validation_finds_cycle() {
     let c_id = NodeId(Arc::from("c"));
     let output_id = NodeId(Arc::from("output"));
 
-    let input = InputSpec {
-        input_id: InputId(input_id.clone()),
-        resolution,
-        fallback_color_rgb: None,
-    };
-
-    let a = TransformNodeSpec {
+    let a = NodeSpec {
         node_id: a_id.clone(),
         input_pads: vec![input_id.clone(), c_id.clone()],
-        transform_params: trans_params.clone(),
+        params: trans_params.clone(),
     };
 
-    let b = TransformNodeSpec {
+    let b = NodeSpec {
         node_id: b_id.clone(),
         input_pads: vec![a_id],
-        transform_params: trans_params.clone(),
+        params: trans_params.clone(),
     };
 
-    let c = TransformNodeSpec {
+    let c = NodeSpec {
         node_id: c_id.clone(),
         input_pads: vec![b_id],
-        transform_params: trans_params,
+        params: trans_params,
     };
 
     let output = OutputSpec {
@@ -57,8 +48,7 @@ fn scene_validation_finds_cycle() {
     };
 
     let scene_spec = SceneSpec {
-        inputs: vec![input],
-        transforms: vec![a, b, c],
+        nodes: vec![a, b, c],
         outputs: vec![output],
     };
 
@@ -77,8 +67,8 @@ fn scene_validation_finds_unused_nodes() {
         width: 1920,
         height: 1080,
     };
-    let trans_params = TransformParams::Shader {
-        shader_id: TransformationRegistryKey(Arc::from("shader")),
+    let trans_params = NodeParams::Shader {
+        shader_id: RendererId(Arc::from("shader")),
         shader_params: None,
         resolution,
     };
@@ -90,34 +80,22 @@ fn scene_validation_finds_unused_nodes() {
     let c_id = NodeId(Arc::from("c"));
     let output_id = NodeId(Arc::from("output"));
 
-    let input = InputSpec {
-        input_id: InputId(input_id.clone()),
-        resolution,
-        fallback_color_rgb: None,
-    };
-
-    let unused_input = InputSpec {
-        input_id: InputId(unused_input_id.clone()),
-        resolution,
-        fallback_color_rgb: None,
-    };
-
-    let a = TransformNodeSpec {
+    let a = NodeSpec {
         node_id: a_id.clone(),
         input_pads: vec![input_id.clone()],
-        transform_params: trans_params.clone(),
+        params: trans_params.clone(),
     };
 
-    let b = TransformNodeSpec {
+    let b = NodeSpec {
         node_id: b_id.clone(),
         input_pads: vec![c_id.clone()],
-        transform_params: trans_params.clone(),
+        params: trans_params.clone(),
     };
 
-    let c = TransformNodeSpec {
+    let c = NodeSpec {
         node_id: c_id.clone(),
         input_pads: vec![b_id.clone()],
-        transform_params: trans_params,
+        params: trans_params,
     };
 
     let output = OutputSpec {
@@ -126,12 +104,11 @@ fn scene_validation_finds_unused_nodes() {
     };
 
     let scene_spec = SceneSpec {
-        inputs: vec![input, unused_input],
-        transforms: vec![a, b, c],
+        nodes: vec![a, b, c],
         outputs: vec![output],
     };
 
-    let unused_nodes = HashSet::from([unused_input_id.0.clone(), b_id.0, c_id.0]);
+    let unused_nodes = HashSet::from([b_id, c_id]);
 
     let registered_inputs = HashSet::from([&input_id, &unused_input_id]);
     let registered_outputs = HashSet::from([&output_id]);

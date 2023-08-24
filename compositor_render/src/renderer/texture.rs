@@ -29,14 +29,20 @@ pub struct InputTexture {
     textures: YUVTextures,
     bind_group: wgpu::BindGroup,
     resolution: Resolution,
+    init_color: RGBColor,
 }
 
 impl InputTexture {
-    pub fn new(ctx: &WgpuCtx, resolution: Resolution, init_color: Option<RGBColor>) -> Self {
+    pub fn new(ctx: &WgpuCtx, init_color: Option<RGBColor>) -> Self {
+        let resolution = Resolution {
+            width: 2,
+            height: 2,
+        };
         let textures = YUVTextures::new(ctx, resolution);
         let bind_group = textures.new_bind_group(ctx, ctx.format.yuv_layout());
 
-        let (y, u, v) = init_color.unwrap_or(RGBColor(0, 0, 0)).to_yuv();
+        let init_color = init_color.unwrap_or(RGBColor(0, 0, 0));
+        let (y, u, v) = init_color.to_yuv();
         ctx.utils.fill_r8_with_value(ctx, textures.plane(0), y);
         ctx.utils.fill_r8_with_value(ctx, textures.plane(1), u);
         ctx.utils.fill_r8_with_value(ctx, textures.plane(2), v);
@@ -45,6 +51,7 @@ impl InputTexture {
             textures,
             bind_group,
             resolution,
+            init_color,
         }
     }
 
@@ -53,6 +60,11 @@ impl InputTexture {
             self.textures = YUVTextures::new(ctx, frame.resolution);
             self.bind_group = self.textures.new_bind_group(ctx, ctx.format.yuv_layout());
             self.resolution = frame.resolution;
+
+            let (y, u, v) = self.init_color.to_yuv();
+            ctx.utils.fill_r8_with_value(ctx, self.textures.plane(0), y);
+            ctx.utils.fill_r8_with_value(ctx, self.textures.plane(1), u);
+            ctx.utils.fill_r8_with_value(ctx, self.textures.plane(2), v);
         }
         self.textures.upload(ctx, &frame.data)
     }
@@ -85,19 +97,17 @@ impl InnerNodeTexture {
 
 pub struct NodeTexture {
     inner: Mutex<InnerNodeTexture>,
-    pub resolution: Resolution,
 }
 
 impl NodeTexture {
     pub fn new(ctx: &WgpuCtx, resolution: Resolution) -> Self {
         Self {
             inner: InnerNodeTexture::new(ctx, resolution).into(),
-            resolution,
         }
     }
 
     pub fn ensure_size(&self, ctx: &WgpuCtx, resolution: Resolution) {
-        if resolution != self.resolution {
+        if resolution != self.resolution() {
             let new_inner = InnerNodeTexture::new(ctx, resolution);
             let mut guard = self.inner.lock().unwrap();
             *guard = new_inner;
@@ -112,6 +122,14 @@ impl NodeTexture {
     pub fn bind_group(&self) -> Arc<wgpu::BindGroup> {
         let guard = self.inner.lock().unwrap();
         guard.bind_group.clone()
+    }
+
+    pub fn resolution(&self) -> Resolution {
+        let size = self.inner.lock().unwrap().texture.size();
+        Resolution {
+            width: size.width as usize,
+            height: size.height as usize,
+        }
     }
 }
 

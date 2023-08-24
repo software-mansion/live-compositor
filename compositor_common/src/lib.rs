@@ -3,8 +3,8 @@ use std::time::Duration;
 use serde::{Deserialize, Serialize};
 
 pub mod frame;
+pub mod renderer_spec;
 pub mod scene;
-pub mod transformation;
 pub mod util;
 mod validators;
 

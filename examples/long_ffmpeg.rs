@@ -2,7 +2,11 @@ use anyhow::Result;
 use compositor_common::{scene::Resolution, Framerate};
 use log::{error, info};
 use serde_json::json;
-use std::{process::Command, thread, time::Duration};
+use std::{
+    process::{Command, Stdio},
+    thread,
+    time::Duration,
+};
 use video_compositor::http;
 
 use crate::common::write_example_sdp_file;
@@ -47,12 +51,15 @@ fn start_example_client_code() -> Result<()> {
     let output_sdp = write_example_sdp_file("127.0.0.1", 8002)?;
     Command::new("ffplay")
         .args(["-protocol_whitelist", "file,rtp,udp", &output_sdp])
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
         .spawn()?;
 
     info!("[example] Send register output request.");
     common::post(&json!({
-        "type": "register_output",
-        "id": "output 1",
+        "type": "register",
+        "entity_type": "output_stream",
+        "output_id": "output_1",
         "port": 8002,
         "ip": "127.0.0.1",
         "resolution": {
@@ -66,20 +73,19 @@ fn start_example_client_code() -> Result<()> {
 
     info!("[example] Send register input request.");
     common::post(&json!({
-        "type": "register_input",
-        "id": "input 1",
+        "type": "register",
+        "entity_type": "input_stream",
+        "input_id": "input_1",
         "port": 8004
     }))?;
 
     let shader_source = include_str!("../compositor_render/examples/silly/silly.wgsl");
     info!("[example] Register shader transform");
     common::post(&json!({
-        "type": "register_transformation",
-        "key": "example shader",
-        "transform": {
-            "type": "shader",
-            "source": shader_source,
-        }
+        "type": "register",
+        "entity_type": "shader",
+        "shader_id": "example_shader",
+        "source": shader_source,
     }))?;
 
     info!("[example] Start pipeline");
@@ -110,26 +116,20 @@ fn start_example_client_code() -> Result<()> {
     info!("[example] Update scene");
     common::post(&json!({
         "type": "update_scene",
-        "inputs": [
-            {
-                "input_id": "input 1",
-                "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
-            }
-        ],
-        "transforms": [
+        "nodes": [
            {
-               "node_id": "shader_1",
                "type": "shader",
-               "shader_id": "example shader",
+               "node_id": "shader_1",
+               "shader_id": "example_shader",
                "input_pads": [
-                   "input 1",
+                   "input_1",
                ],
                "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
            },
         ],
         "outputs": [
             {
-                "output_id": "output 1",
+                "output_id": "output_1",
                 "input_pad": "shader_1"
             }
         ]
