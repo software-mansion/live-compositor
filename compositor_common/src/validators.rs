@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::scene::{NodeId, NodeSpec, SceneSpec};
+use crate::scene::{NodeId, NodeSpec, OutputId, SceneSpec};
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum SpecValidationError {
@@ -9,7 +9,7 @@ pub enum SpecValidationError {
     #[error("Unknown node with id {missing_node} used in output {output} is not defined in scene and it was not registered as an input")]
     UnknownInputPadOnOutput {
         missing_node: NodeId,
-        output: NodeId,
+        output: OutputId,
     },
     #[error("Unknown output. Output with id {0} is not currently registered.")]
     UnknownOutput(NodeId),
@@ -82,7 +82,7 @@ impl SceneSpec {
             if !defined_node_ids.contains(node_id) {
                 return Err(SpecValidationError::UnknownInputPadOnOutput {
                     missing_node: out.input_pad.clone(),
-                    output: node_id.clone(),
+                    output: out.output_id.clone(),
                 });
             }
         }
