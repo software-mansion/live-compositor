@@ -21,8 +21,6 @@ impl ShaderNode {
         params: Option<&ShaderParam>,
         clear_color: Option<wgpu::Color>,
     ) -> Self {
-        // TODO: validation
-
         let custom_params_buffer = match params {
             Some(params) => {
                 let params = params.to_bytes();

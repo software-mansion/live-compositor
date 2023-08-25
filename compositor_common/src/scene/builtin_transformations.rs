@@ -4,7 +4,7 @@ use crate::util::RGBAColor;
 
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(tag = "transformation", rename_all = "snake_case")]
-pub enum BuiltinTransformation {
+pub enum BuiltinTransformationSpec {
     TransformToResolution(TransformToResolution),
     FixedPositionLayout {
         textures_specs: Vec<TextureLayout>,
@@ -39,6 +39,7 @@ pub struct TextureLayout {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
+#[serde(rename_all = "snake_case")]
 pub enum Coord {
     Pixel(i32),
     Percent(i32),

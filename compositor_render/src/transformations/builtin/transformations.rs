@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use compositor_common::scene::{
-    builtin_transformations::{BuiltinTransformation, TextureLayout, TransformToResolution},
+    builtin_transformations::{BuiltinTransformationSpec, TextureLayout, TransformToResolution},
     Resolution, ShaderParam,
 };
 
@@ -24,30 +24,30 @@ impl BuiltinTransformations {
         })
     }
 
-    pub fn shader(&self, transformation: &BuiltinTransformation) -> Arc<Shader> {
+    pub fn shader(&self, transformation: &BuiltinTransformationSpec) -> Arc<Shader> {
         match transformation {
-            BuiltinTransformation::TransformToResolution(TransformToResolution::Stretch) => {
+            BuiltinTransformationSpec::TransformToResolution(TransformToResolution::Stretch) => {
                 self.transform_resolution.stretch.clone()
             }
-            BuiltinTransformation::TransformToResolution(TransformToResolution::Fill) => {
+            BuiltinTransformationSpec::TransformToResolution(TransformToResolution::Fill) => {
                 self.transform_resolution.fill.clone()
             }
-            BuiltinTransformation::TransformToResolution(TransformToResolution::Fit(_)) => {
+            BuiltinTransformationSpec::TransformToResolution(TransformToResolution::Fit(_)) => {
                 self.transform_resolution.fit.clone()
             }
-            BuiltinTransformation::FixedPositionLayout { .. } => {
+            BuiltinTransformationSpec::FixedPositionLayout { .. } => {
                 self.fixed_position_layout.0.clone()
             }
         }
     }
 
     pub fn params(
-        transformation: &BuiltinTransformation,
+        transformation: &BuiltinTransformationSpec,
         output_resolution: &Resolution,
     ) -> Option<ShaderParam> {
         match transformation {
-            BuiltinTransformation::TransformToResolution(_) => None,
-            BuiltinTransformation::FixedPositionLayout { textures_specs, .. } => {
+            BuiltinTransformationSpec::TransformToResolution(_) => None,
+            BuiltinTransformationSpec::FixedPositionLayout { textures_specs, .. } => {
                 let mut layouts = Vec::new();
 
                 for TextureLayout {
@@ -70,13 +70,13 @@ impl BuiltinTransformations {
         }
     }
 
-    pub fn clear_color(transformation: &BuiltinTransformation) -> Option<wgpu::Color> {
+    pub fn clear_color(transformation: &BuiltinTransformationSpec) -> Option<wgpu::Color> {
         match transformation {
-            BuiltinTransformation::TransformToResolution(TransformToResolution::Fit(
+            BuiltinTransformationSpec::TransformToResolution(TransformToResolution::Fit(
                 background_color_rgba,
             )) => Some(rgba_to_wgpu_color(background_color_rgba)),
-            BuiltinTransformation::TransformToResolution(_) => None,
-            BuiltinTransformation::FixedPositionLayout {
+            BuiltinTransformationSpec::TransformToResolution(_) => None,
+            BuiltinTransformationSpec::FixedPositionLayout {
                 background_color_rgba,
                 ..
             } => Some(rgba_to_wgpu_color(background_color_rgba)),

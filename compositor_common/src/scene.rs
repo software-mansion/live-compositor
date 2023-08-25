@@ -4,7 +4,7 @@ use std::{fmt::Display, sync::Arc};
 use crate::{transformation::TransformationRegistryKey, util::RGBColor};
 
 use self::{
-    builtin_transformations::BuiltinTransformation,
+    builtin_transformations::BuiltinTransformationSpec,
     text_spec::{TextDimensions, TextSpec},
 };
 
@@ -115,7 +115,7 @@ pub enum TransformParams {
     #[serde(rename = "built-in")]
     Builtin {
         #[serde(flatten)]
-        transformation: BuiltinTransformation,
+        transformation: BuiltinTransformationSpec,
         resolution: Resolution,
     },
 }

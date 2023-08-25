@@ -1,11 +1,13 @@
 struct VertexInput {
     @location(0) position: vec3<f32>,
     @location(1) tex_coords: vec2<f32>,
+    @location(2) video_id: i32,
 }
 
 struct VertexOutput {
     @builtin(position) position: vec4<f32>,
     @location(0) tex_coords: vec2<f32>,
+    @location(1) @interpolate(flat) video_id: i32,
 }
 
 @vertex

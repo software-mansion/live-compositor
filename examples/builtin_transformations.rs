@@ -100,21 +100,38 @@ fn start_example_client_code() -> Result<()> {
                 "node_id": "image",
                 "type": "image",
                 "image_id": "example_image",
-           },
+            },
             {
-                "node_id": "fitted",
+                "node_id": "filled_image",
                 "type": "built-in",
                 "transformation": "transform_to_resolution",
-                "strategy": "fit",
-                "background_color_rgba": "#FFFFFF00",
-                "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+                "strategy": "fill",
+                "resolution": { "width": 960, "height": 540 },
                 "input_pads": ["image"],
+            },
+            {
+                "node_id": "layout",
+                "type": "built-in",
+                "transformation": "fixed_position_layout",
+                "textures_specs": [
+                    {
+                        "top": {"pixel": 0},
+                        "left": {"pixel": 0}
+                    },
+                    {
+                        "top": {"pixel": 960},
+                        "left": {"pixel": 540}
+                    }
+                ],
+                "background_color_rgba": "#0000FF00",
+                "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+                "input_pads": ["filled_image"],
             }
         ],
         "outputs": [
             {
                 "output_id": "output 1",
-                "input_pad": "fitted"
+                "input_pad": "layout"
             },
         ]
     }))?;
