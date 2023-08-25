@@ -83,11 +83,22 @@ fn start_example_client_code() -> Result<()> {
     info!("[example] Register static image");
     common::post(&json!({
         "type": "register_transformation",
-        "key": "example_image",
+        "key": "example_image_1",
         "transform": {
             "type": "image",
             "asset_type": "jpeg",
             "url": "https://i.postimg.cc/NfkxF1SV/wp5220836.jpg",
+        }
+    }))?;
+
+    info!("[example] Register static image");
+    common::post(&json!({
+        "type": "register_transformation",
+        "key": "example_image_2",
+        "transform": {
+            "type": "image",
+            "asset_type": "jpeg",
+            "url": "https://i.postimg.cc/CxcvtJC5/pexels-rohi-bernard-codillo-17908342.jpg",
         }
     }))?;
 
@@ -96,18 +107,31 @@ fn start_example_client_code() -> Result<()> {
         "type": "update_scene",
         "inputs": [],
         "transforms": [
+            // {
+            //     "node_id": "image_1",
+            //     "type": "image",
+            //     "image_id": "example_image_1",
+            // },
+            // {
+            //     "node_id": "filled_image_1",
+            //     "type": "built-in",
+            //     "transformation": "transform_to_resolution",
+            //     "strategy": "fill",
+            //     "resolution": { "width": 960, "height": 540 },
+            //     "input_pads": ["image_1"],
+            // },
             {
-                "node_id": "image",
+                "node_id": "image_2",
                 "type": "image",
-                "image_id": "example_image",
+                "image_id": "example_image_2",
             },
             {
-                "node_id": "filled_image",
+                "node_id": "filled_image_2",
                 "type": "built-in",
                 "transformation": "transform_to_resolution",
                 "strategy": "fill",
                 "resolution": { "width": 960, "height": 540 },
-                "input_pads": ["image"],
+                "input_pads": ["image_2"],
             },
             {
                 "node_id": "layout",
@@ -121,11 +145,24 @@ fn start_example_client_code() -> Result<()> {
                     {
                         "left": {"pixel": 960},
                         "top": {"pixel": 540}
+                    },
+                    {
+                        "left": {"pixel": 0},
+                        "top": {"pixel": 540}
+                    },
+                    {
+                        "left": {"pixel": 960},
+                        "top": {"pixel": 0},
+                    },
+                    {
+                        "left": {"percent": 25},
+                        "top": {"percent": 25},
+                        "rotation": 90,
                     }
                 ],
                 "background_color_rgba": "#0000FF00",
                 "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
-                "input_pads": ["filled_image", "filled_image"],
+                "input_pads": ["filled_image_2", "filled_image_2", "filled_image_2", "filled_image_2", "filled_image_2"],
             }
         ],
         "outputs": [
