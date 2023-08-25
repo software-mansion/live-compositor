@@ -115,17 +115,17 @@ fn start_example_client_code() -> Result<()> {
                 "transformation": "fixed_position_layout",
                 "textures_specs": [
                     {
-                        "top": {"pixel": 0},
-                        "left": {"pixel": 0}
+                        "left": {"pixel": 0},
+                        "top": {"pixel": 0}
                     },
                     {
-                        "top": {"pixel": 960},
-                        "left": {"pixel": 540}
+                        "left": {"pixel": 960},
+                        "top": {"pixel": 540}
                     }
                 ],
                 "background_color_rgba": "#0000FF00",
                 "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
-                "input_pads": ["filled_image"],
+                "input_pads": ["filled_image", "filled_image"],
             }
         ],
         "outputs": [
