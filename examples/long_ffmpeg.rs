@@ -89,6 +89,15 @@ fn start_example_client_code() -> Result<()> {
         "source": shader_source,
     }))?;
 
+    info!("[example] Register static image");
+    common::post(&json!({
+        "type": "register",
+        "entity_type": "image",
+        "image_id": "example_image",
+        "asset_type": "jpeg",
+        "url": "https://i.postimg.cc/NfkxF1SV/wp5220836.jpg",
+    }))?;
+
     info!("[example] Start pipeline");
     common::post(&json!({
         "type": "start",
@@ -118,15 +127,21 @@ fn start_example_client_code() -> Result<()> {
     common::post(&json!({
         "type": "update_scene",
         "nodes": [
-           {
-               "type": "shader",
-               "node_id": "shader_1",
-               "shader_id": "example_shader",
-               "input_pads": [
-                   "input_1",
-               ],
-               "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
-           },
+            {
+                "node_id": "image",
+                "type": "image",
+                "image_id": "example_image",
+            },
+            {
+                "type": "shader",
+                "node_id": "shader_1",
+                "shader_id": "example_shader",
+                "fallback_id": "image",
+                "input_pads": [
+                    "input_1",
+                ],
+                "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+            },
         ],
         "outputs": [
             {

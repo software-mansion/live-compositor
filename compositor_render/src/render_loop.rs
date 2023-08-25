@@ -1,4 +1,7 @@
-use std::{collections::HashMap, time::Duration};
+use std::{
+    collections::{HashMap, HashSet},
+    time::Duration,
+};
 
 use compositor_common::{
     scene::{InputId, NodeId, OutputId},
@@ -10,7 +13,7 @@ use log::error;
 use crate::{
     frame_set::FrameSet,
     renderer::{
-        scene::{Node, Scene, SceneError},
+        scene::{Node, Scene, SceneError, SceneNodesSet},
         RenderCtx,
     },
 };
@@ -60,7 +63,7 @@ pub(super) fn read_outputs(
 ) -> Result<HashMap<OutputId, Frame>, SceneError> {
     let mut pending_downloads = Vec::with_capacity(scene.outputs.len());
     for (output_id, (node_id, output_texture)) in &scene.outputs {
-        let node = scene.nodes.node(node_id)?;
+        let node = scene.nodes.node_or_fallback(node_id)?;
         match node.output.state() {
             Some(node) => {
                 ctx.wgpu_ctx.format.convert_rgba_to_yuv(
@@ -123,48 +126,60 @@ pub(super) fn run_transforms(
     scene: &mut Scene,
     pts: Duration,
 ) -> Result<(), SceneError> {
-    let node_id_iter = render_order_iter(scene)?;
-    for node_id in node_id_iter {
-        let NodeRenderPass { node, inputs } = scene.nodes.node_render_pass(&node_id)?;
-        let input_textures: Vec<_> = inputs
-            .iter()
-            .map(|node| (&node.node_id, &node.output))
-            .collect();
-        node.renderer
-            .render(ctx, &input_textures, &mut node.output, pts)
+    let mut already_rendered = HashSet::new();
+    for (node_id, _) in scene.outputs.values() {
+        render_node(ctx, &mut scene.nodes, pts, node_id, &mut already_rendered)?;
     }
     Ok(())
 }
 
-pub struct NodeRenderPass<'a> {
-    pub node: &'a mut Node,
-    pub inputs: Vec<&'a Node>,
-}
-
-/// Returns iterator that guarantees that nodes will be visited in
-/// the order that ensures that inputs of the current node were
-/// already visited in previous iterations
-fn render_order_iter(scene: &Scene) -> Result<impl Iterator<Item = NodeId>, SceneError> {
-    let mut queue = vec![];
-    for (node_id, _) in scene.outputs.values() {
-        enqueue_nodes(node_id, &mut queue, scene)?;
-    }
-    Ok(queue.into_iter())
-}
-
-fn enqueue_nodes(
-    parent_node_id: &NodeId,
-    queue: &mut Vec<NodeId>,
-    scene: &Scene,
+pub(super) fn render_node(
+    ctx: &mut RenderCtx,
+    nodes: &mut SceneNodesSet,
+    pts: Duration,
+    node_id: &NodeId,
+    already_rendered: &mut HashSet<NodeId>,
 ) -> Result<(), SceneError> {
-    let already_in_queue = queue.iter().any(|i| i == parent_node_id);
-    if already_in_queue {
+    if already_rendered.contains(node_id) {
         return Ok(());
     }
-    let parent_node = scene.nodes.node(parent_node_id)?;
-    for child in &parent_node.inputs {
-        enqueue_nodes(child, queue, scene)?;
+    // render all inputs
+    {
+        let input_ids: Vec<_> = nodes.node(node_id)?.inputs.to_vec();
+        for input_id in input_ids {
+            render_node(ctx, nodes, pts, &input_id, already_rendered)?;
+        }
     }
-    queue.push(parent_node_id.clone());
+    // render node `node_id` if render had an effect fallback_id returned
+    // from the block will be set to None even if fallback is defined
+    let fallback_id = {
+        let NodeRenderPass { node, inputs } = nodes.node_render_pass(node_id)?;
+        let input_textures: Vec<_> = inputs
+            .iter()
+            .map(|(node_id, node)| (node_id, &node.output))
+            .collect();
+        node.renderer
+            .render(ctx, &input_textures, &mut node.output, pts);
+
+        match node.output.is_empty() {
+            true => node.fallback.clone(),
+            false => None,
+        }
+    };
+
+    // render fallback if necessary, no need to copy because
+    // node_render_pass already provides textures extracted
+    // from fallback
+    if let Some(fallback_id) = fallback_id {
+        render_node(ctx, nodes, pts, &fallback_id, already_rendered)?;
+    }
+
     Ok(())
+}
+
+pub(crate) struct NodeRenderPass<'a> {
+    pub node: &'a mut Node,
+    /// NodeId identifies input pad, but Node might refer
+    /// to a node with different id if fallback are in use
+    pub inputs: Vec<(NodeId, &'a Node)>,
 }
