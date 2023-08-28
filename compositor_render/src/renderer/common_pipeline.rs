@@ -101,12 +101,21 @@ macro_rules! const_indices {
 
 /// Vertex and index buffer that describe render area as an rectangle mapped to texture.
 impl InputTexturesPlanes {
-    const ALL_INPUTS_VERTICES: [Vertex; 4 * MAX_TEXTURES_COUNT as usize] =
+    /// Vertices of texture planes passed to vertex shader.
+    /// Each plane has 4 vertices
+    const INPUTS_VERTICES: [Vertex; 4 * MAX_TEXTURES_COUNT as usize] =
         const_vertices!(MAX_TEXTURES_COUNT);
-
-    const ALL_INPUTS_INDICES: [u16; 6 * MAX_TEXTURES_COUNT as usize] =
+    
+    /// Indexes vertices of texture planes passed to vertex shader.
+    /// Describes which vertices combine triangles.
+    /// Each texture plane contain 2 triangles - 6 indices
+    const INPUTS_INDICES: [u16; 6 * MAX_TEXTURES_COUNT as usize] =
         const_indices!(MAX_TEXTURES_COUNT);
 
+    /// In case of no input texture, vertex shader receives plane
+    /// with 4 vertices with input id -1. This allows using shaders without
+    /// any input textures - e.g. shaders generating some texture based on uniform
+    /// parameters.
     const NO_INPUT_VERTICES: [Vertex; 4] = [
         Vertex {
             position: [1.0, -1.0, 0.0],
@@ -142,13 +151,13 @@ impl InputTexturesPlanes {
         let inputs_vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("vertex buffer"),
             usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-            contents: bytemuck::cast_slice(&Self::ALL_INPUTS_VERTICES),
+            contents: bytemuck::cast_slice(&Self::INPUTS_VERTICES),
         });
 
         let inputs_index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("index buffer"),
             usage: wgpu::BufferUsages::INDEX | wgpu::BufferUsages::COPY_DST,
-            contents: bytemuck::cast_slice(&Self::ALL_INPUTS_INDICES),
+            contents: bytemuck::cast_slice(&Self::INPUTS_INDICES),
         });
 
         let no_inputs_vertex_buffer =
