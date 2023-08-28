@@ -1,5 +1,6 @@
 use std::{
     io::Write,
+    mem,
     sync::{Arc, Mutex},
 };
 
@@ -47,26 +48,20 @@ impl InputTextureState {
     }
 }
 
-pub struct InputTexture {
-    inner: Option<InputTextureState>,
-    is_empty: bool,
-}
+pub struct InputTexture(OptionalState<InputTextureState>);
 
 impl InputTexture {
     pub fn new() -> Self {
-        Self {
-            inner: None,
-            is_empty: true,
-        }
+        Self(OptionalState::new())
     }
 
     pub fn clear(&mut self) {
-        self.is_empty = true
+        self.0.clear()
     }
 
     pub fn upload(&mut self, ctx: &WgpuCtx, frame: Frame) {
-        let inner = self.ensure_size(ctx, frame.resolution);
-        inner.textures.upload(ctx, &frame.data)
+        let state = self.ensure_size(ctx, frame.resolution);
+        state.textures.upload(ctx, &frame.data)
     }
 
     fn ensure_size<'a>(
@@ -74,28 +69,30 @@ impl InputTexture {
         ctx: &WgpuCtx,
         new_resolution: Resolution,
     ) -> &'a InputTextureState {
-        if let Some(inner) = self.inner.as_ref() {
-            if inner.textures.resolution == new_resolution {
-                self.is_empty = false;
-                return self.inner.as_ref().unwrap();
-            };
-        };
+        fn new_state(ctx: &WgpuCtx, new_resolution: Resolution) -> InputTextureState {
+            let textures = YUVTextures::new(ctx, new_resolution);
+            let bind_group = textures.new_bind_group(ctx, ctx.format.yuv_layout());
+            InputTextureState {
+                textures,
+                bind_group,
+            }
+        }
 
-        let textures = YUVTextures::new(ctx, new_resolution);
-        let bind_group = textures.new_bind_group(ctx, ctx.format.yuv_layout());
-        self.inner = Some(InputTextureState {
-            textures,
-            bind_group,
-        });
-        self.is_empty = false;
-        self.inner.as_ref().unwrap()
+        self.0 = match self.0.replace(OptionalState::None) {
+            OptionalState::Some(state) | OptionalState::NoneWithOldState(state) => {
+                if state.textures.resolution == new_resolution {
+                    OptionalState::Some(state)
+                } else {
+                    OptionalState::Some(new_state(ctx, new_resolution))
+                }
+            }
+            OptionalState::None => OptionalState::Some(new_state(ctx, new_resolution)),
+        };
+        self.state().unwrap()
     }
 
     pub fn state(&self) -> Option<&InputTextureState> {
-        match self.is_empty {
-            true => None,
-            false => self.inner.as_ref(),
-        }
+        self.0.state()
     }
 }
 
@@ -138,59 +135,44 @@ impl NodeTextureState {
     }
 }
 
-struct InnerNodeTexture {
-    state: Option<NodeTextureState>,
-    is_empty: bool,
-}
-
-pub struct NodeTexture {
-    inner: Mutex<InnerNodeTexture>,
-}
+pub struct NodeTexture(Mutex<OptionalState<NodeTextureState>>);
 
 impl NodeTexture {
     pub fn new() -> Self {
-        Self {
-            inner: InnerNodeTexture {
-                state: None,
-                is_empty: true,
-            }
-            .into(),
-        }
+        Self(OptionalState::new().into())
     }
 
     pub fn clear(&self) {
-        self.inner.lock().unwrap().is_empty = true
+        self.0.lock().unwrap().clear()
     }
 
     pub fn ensure_size(&self, ctx: &WgpuCtx, new_resolution: Resolution) -> NodeTextureState {
-        let mut guard = self.inner.lock().unwrap();
-        if let Some(ref state) = guard.state {
-            if texture_size_to_resolution(&state.texture.size()) == new_resolution {
-                let state = state.clone();
-                guard.is_empty = false;
-                return state;
-            };
+        let mut guard = self.0.lock().unwrap();
+        *guard = match *guard {
+            OptionalState::NoneWithOldState(ref state) | OptionalState::Some(ref state) => {
+                if texture_size_to_resolution(&state.texture.size()) == new_resolution {
+                    OptionalState::Some(state.clone())
+                } else {
+                    let new_inner = NodeTextureState::new(ctx, new_resolution);
+                    OptionalState::Some(new_inner.clone())
+                }
+            }
+            OptionalState::None => {
+                let new_inner = NodeTextureState::new(ctx, new_resolution);
+                OptionalState::Some(new_inner.clone())
+            }
         };
-        let new_inner = NodeTextureState::new(ctx, new_resolution);
-        guard.state = Some(new_inner.clone());
-        guard.is_empty = false;
-        new_inner
+        guard.state().unwrap().clone()
     }
 
     pub fn state(&self) -> Option<NodeTextureState> {
-        let guard = self.inner.lock().unwrap();
-        match guard.is_empty {
-            true => None,
-            false => guard.state.clone(),
-        }
+        let guard = self.0.lock().unwrap();
+        guard.state().map(Clone::clone)
     }
 
     pub fn resolution(&self) -> Option<Resolution> {
-        let guard = self.inner.lock().unwrap();
-        match guard.is_empty {
-            true => None,
-            false => guard.state.as_ref().map(NodeTextureState::resolution),
-        }
+        let guard = self.0.lock().unwrap();
+        guard.state().map(NodeTextureState::resolution)
     }
 }
 
@@ -268,5 +250,47 @@ impl OutputTexture {
             source.unmap();
             Ok(buffer.into_inner().into())
         }
+    }
+}
+
+/// Type that behaves like Option, but when is set to None
+/// it keeps ownership of the value it had before.
+enum OptionalState<State> {
+    None,
+    /// It should be treated as None, but hold on the old state, so
+    /// it can be reused in the future.
+    NoneWithOldState(State),
+    Some(State),
+}
+
+impl<State> OptionalState<State> {
+    fn new() -> Self {
+        Self::None
+    }
+
+    fn clear(&mut self) {
+        *self = match self.replace(Self::None) {
+            Self::None => Self::None,
+            Self::NoneWithOldState(state) => Self::NoneWithOldState(state),
+            Self::Some(state) => Self::NoneWithOldState(state),
+        }
+    }
+
+    fn state(&self) -> Option<&State> {
+        match self {
+            OptionalState::None => None,
+            OptionalState::NoneWithOldState(_) => None,
+            OptionalState::Some(ref state) => Some(state),
+        }
+    }
+
+    fn replace(&mut self, replacement: Self) -> Self {
+        mem::replace(self, replacement)
+    }
+}
+
+impl<State> Default for OptionalState<State> {
+    fn default() -> Self {
+        Self::None
     }
 }
