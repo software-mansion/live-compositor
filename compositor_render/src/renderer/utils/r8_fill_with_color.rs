@@ -52,10 +52,7 @@ impl R8FillWithValue {
             multiview: None,
         });
 
-        Self {
-            pipeline,
-            surfaces,
-        }
+        Self { pipeline, surfaces }
     }
 
     pub fn fill(&self, ctx: &WgpuCtx, dst: &Texture, value: f32) {
