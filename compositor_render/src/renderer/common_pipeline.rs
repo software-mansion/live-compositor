@@ -101,7 +101,7 @@ macro_rules! const_indices {
 
 /// Vertex and index buffer that describe render area as an rectangle mapped to texture.
 impl InputTexturesPlanes {
-    /// Vertices of texture planes passed to vertex shader.
+    /// Vertices of texture planes passed to the vertex shader.
     /// Each plane has 4 vertices
     const INPUTS_VERTICES: [Vertex; 4 * MAX_TEXTURES_COUNT as usize] =
         const_vertices!(MAX_TEXTURES_COUNT);
@@ -114,8 +114,8 @@ impl InputTexturesPlanes {
 
     /// In case of no input texture, vertex shader receives plane
     /// with 4 vertices with input id -1. This allows using shaders without
-    /// any input textures - e.g. shaders generating some texture based on uniform
-    /// parameters.
+    /// any input textures - e.g. shaders generating some texture
+    /// based on uniform parameters.
     const NO_INPUT_VERTICES: [Vertex; 4] = [
         Vertex {
             position: [1.0, -1.0, 0.0],
