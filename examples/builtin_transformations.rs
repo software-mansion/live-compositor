@@ -139,24 +139,24 @@ fn start_example_client_code() -> Result<()> {
                 "transformation": "fixed_position_layout",
                 "textures_specs": [
                     {
-                        "left": {"pixel": 0},
-                        "top": {"pixel": 0}
+                        "left": "0px",
+                        "top": "0px"
                     },
                     {
-                        "left": {"pixel": 960},
-                        "top": {"pixel": 540}
+                        "left": "960px",
+                        "top": "540px"
                     },
                     {
-                        "left": {"pixel": 0},
-                        "top": {"pixel": 540}
+                        "left": "0px",
+                        "top": "540px"
                     },
                     {
-                        "left": {"pixel": 960},
-                        "top": {"pixel": 0},
+                        "left": "960px",
+                        "top": "0px",
                     },
                     {
-                        "left": {"percent": 25},
-                        "top": {"percent": 25},
+                        "left": "25%",
+                        "top": "25%",
                         "rotation": 90,
                     }
                 ],

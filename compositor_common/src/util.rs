@@ -93,6 +93,60 @@ pub enum ColorParseError {
     HexNumberParseError(#[from] ParseIntError),
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, SerializeDisplay, DeserializeFromStr)]
+pub enum Coord {
+    Pixel(i32),
+    Percent(i32),
+}
+
+impl Display for Coord {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Coord::Pixel(pixels) => write!(f, "{} pixels", pixels),
+            Coord::Percent(percents) => write!(f, "{}, percents", percents),
+        }
+    }
+}
+
+impl FromStr for Coord {
+    type Err = CoordParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if let Some(percents) = s.strip_suffix('%') {
+            return Ok(Coord::Percent(parse_num(percents)?));
+        }
+
+        if let Some(pixels) = s.strip_suffix("px") {
+            return Ok(Coord::Pixel(parse_num(pixels)?));
+        }
+
+        Ok(Coord::Pixel(parse_num(s)?))
+    }
+}
+
+fn parse_num(str: &str) -> Result<i32, CoordParseError> {
+    match str.parse::<i32>() {
+        Ok(val) => Ok(val),
+        Err(_) => Err(CoordParseError::InvalidCoordFormat),
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum CoordParseError {
+    #[error("Invalid format. Coord definition can only be specified as 
+    number (pixels count), number with `px` suffix (pixels count) or number with `%` suffix (percents count)")]
+    InvalidCoordFormat,
+}
+
+impl Coord {
+    pub fn pixels(&self, max_pixels: u32) -> i32 {
+        match self {
+            Coord::Pixel(pixels) => *pixels,
+            Coord::Percent(percent) => max_pixels as i32 * percent / 100,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::str::FromStr;

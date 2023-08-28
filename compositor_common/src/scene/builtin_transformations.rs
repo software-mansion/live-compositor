@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::util::RGBAColor;
+use crate::util::{Coord, RGBAColor};
 
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(tag = "transformation", rename_all = "snake_case")]
@@ -36,22 +36,6 @@ pub struct TextureLayout {
     pub left: Coord,
     #[serde(default)]
     pub rotation: Degree,
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-#[serde(rename_all = "snake_case")]
-pub enum Coord {
-    Pixel(i32),
-    Percent(i32),
-}
-
-impl Coord {
-    pub fn pixels(&self, max_pixels: u32) -> i32 {
-        match self {
-            Coord::Pixel(pixels) => *pixels,
-            Coord::Percent(percent) => max_pixels as i32 * percent / 100,
-        }
-    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Default)]
