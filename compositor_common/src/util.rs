@@ -133,8 +133,7 @@ fn parse_num(str: &str) -> Result<i32, CoordParseError> {
 
 #[derive(Debug, thiserror::Error)]
 pub enum CoordParseError {
-    #[error("Invalid format. Coord definition can only be specified as 
-    number (pixels count), number with `px` suffix (pixels count) or number with `%` suffix (percents count)")]
+    #[error("Invalid format. Coord definition can only be specified as number (pixels count), number with `px` suffix (pixels count) or number with `%` suffix (percents count)")]
     InvalidCoordFormat,
 }
 

@@ -1,12 +1,6 @@
-use std::{
-    collections::{HashMap, HashSet},
-    sync::Arc,
-};
+use std::collections::{HashMap, HashSet};
 
-use crate::scene::{
-    builtin_transformations::BuiltinTransformationSpec, NodeId, NodeParams, NodeSpec, OutputId,
-    SceneSpec,
-};
+use crate::scene::{NodeId, NodeSpec, OutputId, SceneSpec};
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum SpecValidationError {
@@ -25,10 +19,6 @@ pub enum SpecValidationError {
     CycleDetected,
     #[error("Unused nodes: {0:?}")]
     UnusedNodes(HashSet<NodeId>),
-    #[error(
-        "Invalid builtin transformation parameters for node {0}. Provided spec: {1:?} Error: {2}"
-    )]
-    InvalidBuiltinParams(NodeId, BuiltinTransformationSpec, Arc<str>),
 }
 
 impl SceneSpec {
@@ -60,7 +50,6 @@ impl SceneSpec {
         self.validate_node_ids_uniqueness(defined_node_ids_iter)?;
         self.validate_cycles(&transform_nodes)?;
         self.validate_nodes_are_used(&transform_nodes)?;
-        self.validate_builtin_transformations(&transform_nodes)?;
 
         Ok(())
     }
@@ -213,40 +202,6 @@ impl SceneSpec {
         if unused_transforms.peek().is_some() {
             let unused_transforms = unused_transforms.copied().cloned().collect();
             return Err(SpecValidationError::UnusedNodes(unused_transforms));
-        }
-
-        Ok(())
-    }
-
-    fn validate_builtin_transformations(
-        &self,
-        transform_nodes: &HashMap<&NodeId, &NodeSpec>,
-    ) -> Result<(), SpecValidationError> {
-        for (&node_id, &node_spec) in transform_nodes {
-            if let NodeParams::Builtin { transformation, .. } = &node_spec.params {
-                match transformation {
-                    BuiltinTransformationSpec::TransformToResolution(_) => {
-                        if node_spec.input_pads.len() == 1 {
-                            return Err(SpecValidationError::InvalidBuiltinParams(
-                                node_id.clone(),
-                                transformation.clone(),
-                                Arc::from("input_pads should contain only a single node"),
-                            ));
-                        }
-                    }
-                    BuiltinTransformationSpec::FixedPositionLayout {
-                        texture_layouts, ..
-                    } => {
-                        if node_spec.input_pads.len() != texture_layouts.len() {
-                            return Err(SpecValidationError::InvalidBuiltinParams(
-                                node_id.clone(),
-                                transformation.clone(),
-                                Arc::from("input_pads length should match texture_layouts length"),
-                            ));
-                        }
-                    }
-                }
-            }
         }
 
         Ok(())
