@@ -1,5 +1,5 @@
 use crate::renderer::{
-    common_pipeline::{Sampler, Vertex, PRIMITIVE_STATE, InputTexturesPlanes},
+    common_pipeline::{InputTexturesPlanes, Sampler, Vertex, PRIMITIVE_STATE},
     texture::{BGRATexture, RGBATexture},
     WgpuCtx,
 };
@@ -81,10 +81,8 @@ impl BGRAToRGBAConverter {
             render_pass.set_bind_group(0, src.1, &[]);
             render_pass.set_bind_group(1, &self.sampler.bind_group, &[]);
             render_pass.set_vertex_buffer(0, self.buffers.vertices(1));
-            render_pass.set_index_buffer(
-                self.buffers.indices(1),
-                InputTexturesPlanes::INDEX_FORMAT,
-            );
+            render_pass
+                .set_index_buffer(self.buffers.indices(1), InputTexturesPlanes::INDEX_FORMAT);
             render_pass.draw_indexed(0..InputTexturesPlanes::indices_len(1), 0, 0..1);
         }
 
