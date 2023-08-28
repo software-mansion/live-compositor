@@ -53,6 +53,13 @@ fn scale_matrix(x_scale: f32, y_scale: f32) -> mat3x3<f32> {
 @vertex
 fn vs_main(input: VertexInput) -> VertexOutput {
     var output: VertexOutput;
+    if input.texture_id == -1 {
+        output.position = vec4<f32>(input.position, 1.0);
+        output.tex_coords = input.tex_coords;
+        output.texture_id = 0;
+        return output;
+    }
+
     let input_texture_size: vec2<u32> = textureDimensions(textures[input.texture_id]);
     let texture_layout: TextureLayout = layouts[input.texture_id];
     let output_width: f32 = f32(common_params.output_resolution.x);
@@ -86,5 +93,11 @@ fn vs_main(input: VertexInput) -> VertexOutput {
 
 @fragment
 fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
-    return textureSample(textures[input.texture_id], sampler_, input.tex_coords);
+    let sample = textureSample(textures[input.texture_id], sampler_, input.tex_coords);
+    
+    if common_params.textures_count == 0u {
+        return vec4<f32>(0.0, 0.0, 0.0, 0.0);
+    }
+
+    return sample;
 }
