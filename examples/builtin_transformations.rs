@@ -80,7 +80,7 @@ fn start_example_client_code() -> Result<()> {
     common::post(&json!({
         "type": "register",
         "entity_type": "image",
-        "image_id": "example_image_2",
+        "image_id": "example_image",
         "asset_type": "jpeg",
         "url": "https://i.postimg.cc/CxcvtJC5/pexels-rohi-bernard-codillo-17908342.jpg",
     }))?;
@@ -90,17 +90,17 @@ fn start_example_client_code() -> Result<()> {
         "type": "update_scene",
         "nodes": [
             {
-                "node_id": "image_2",
+                "node_id": "image",
                 "type": "image",
-                "image_id": "example_image_2",
+                "image_id": "example_image",
             },
             {
-                "node_id": "filled_image_2",
+                "node_id": "filled_image",
                 "type": "built-in",
                 "transformation": "transform_to_resolution",
                 "strategy": "fill",
                 "resolution": { "width": 960, "height": 540 },
-                "input_pads": ["image_2"],
+                "input_pads": ["image"],
             },
             {
                 "node_id": "layout",
@@ -131,7 +131,7 @@ fn start_example_client_code() -> Result<()> {
                 ],
                 "background_color_rgba": "#0000FF00",
                 "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
-                "input_pads": ["filled_image_2", "filled_image_2", "filled_image_2", "filled_image_2", "filled_image_2"],
+                "input_pads": ["filled_image", "filled_image", "filled_image", "filled_image", "filled_image"],
             }
         ],
         "outputs": [
