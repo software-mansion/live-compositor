@@ -227,8 +227,7 @@ impl SceneSpec {
                 match transformation {
                     BuiltinTransformationSpec::TransformToResolution(_) => {}
                     BuiltinTransformationSpec::FixedPositionLayout {
-                        textures_layouts,
-                        ..
+                        textures_layouts, ..
                     } => {
                         if node_spec.input_pads.len() != textures_layouts.len() {
                             return Err(SpecValidationError::InvalidBuiltinParams(
