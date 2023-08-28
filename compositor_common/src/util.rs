@@ -125,10 +125,8 @@ impl FromStr for Coord {
 }
 
 fn parse_num(str: &str) -> Result<i32, CoordParseError> {
-    match str.parse::<i32>() {
-        Ok(val) => Ok(val),
-        Err(_) => Err(CoordParseError::InvalidCoordFormat),
-    }
+    str.parse::<i32>()
+        .or(Err(CoordParseError::InvalidCoordFormat))
 }
 
 #[derive(Debug, thiserror::Error)]

@@ -80,7 +80,7 @@ impl BGRAToRGBAConverter {
             render_pass.set_pipeline(&self.pipeline);
             render_pass.set_bind_group(0, src.1, &[]);
             render_pass.set_bind_group(1, &self.sampler.bind_group, &[]);
-            
+
             self.planes.draw_planes(&mut render_pass, 1);
         }
 
