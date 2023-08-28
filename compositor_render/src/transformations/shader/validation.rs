@@ -1,4 +1,4 @@
-use naga::{ArraySize, Constant, ConstantInner, Handle, Module, Type};
+use naga::{ArraySize, Constant, ConstantInner, Handle, Module, ShaderStage, Type};
 
 #[derive(Debug, thiserror::Error)]
 pub enum ShaderValidationError {
@@ -6,10 +6,33 @@ pub enum ShaderValidationError {
     GlobalNotFound(naga::GlobalVariable),
 
     #[error("a global in the shader has a wrong type")]
-    GlobalBadType(#[from] TypeEquivalenceError),
+    GlobalBadType(#[source] TypeEquivalenceError),
+
+    #[error("could not find a vertex shader entrypoint")]
+    VertexShaderNotFound,
+
+    #[error("wrong vertex shader argument amount: found {0}, expected 1")]
+    VertexShaderBadArgumentAmount(usize),
+
+    #[error("the input type of the vertex shader has a name that cannot be found in the header")]
+    VertexShaderBadInputTypeName(Option<String>),
+
+    #[error("the vertex shader input has a wrong type")]
+    VertexShaderBadInput(#[source] TypeEquivalenceError),
 }
 
 pub fn validate_contains_header(
+    header: &naga::Module,
+    shader: &naga::Module,
+) -> Result<(), ShaderValidationError> {
+    validate_globals(header, shader)?;
+
+    validate_vertex_input(header, shader)?;
+
+    Ok(())
+}
+
+fn validate_globals(
     header: &naga::Module,
     shader: &naga::Module,
 ) -> Result<(), ShaderValidationError> {
@@ -20,8 +43,45 @@ pub fn validate_contains_header(
             return Err(ShaderValidationError::GlobalNotFound(global.clone()));
         };
 
-        type_equivalent(global.ty, header, global_in_shader.ty, shader)?;
+        type_equivalent(global.ty, header, global_in_shader.ty, shader)
+            .map_err(ShaderValidationError::GlobalBadType)?;
     }
+
+    Ok(())
+}
+
+fn validate_vertex_input(
+    header: &naga::Module,
+    shader: &naga::Module,
+) -> Result<(), ShaderValidationError> {
+    let vertex = shader
+        .entry_points
+        .iter()
+        .find(|entry_point| {
+            entry_point.name == super::VERTEX_ENTRYPOINT_NAME
+                && entry_point.stage == ShaderStage::Vertex
+        })
+        .ok_or(ShaderValidationError::VertexShaderNotFound)?;
+
+    if vertex.function.arguments.len() != 1 {
+        return Err(ShaderValidationError::VertexShaderBadArgumentAmount(
+            vertex.function.arguments.len(),
+        ));
+    }
+
+    let vertex_input = vertex.function.arguments[0].ty;
+    let vertex_input_type = &shader.types[vertex_input];
+
+    let (header_vertex_input, _) = header
+        .types
+        .iter()
+        .find(|(_, ty)| ty.name == vertex_input_type.name)
+        .ok_or(ShaderValidationError::VertexShaderBadInputTypeName(
+            vertex_input_type.name.clone(),
+        ))?;
+
+    type_equivalent(header_vertex_input, header, vertex_input, shader)
+        .map_err(ShaderValidationError::VertexShaderBadInput)?;
 
     Ok(())
 }
@@ -199,7 +259,7 @@ fn constant_value_equivalent(
     let ci1 = &mod1.constants[c1].inner;
     let ci2 = &mod2.constants[c2].inner;
 
-    // TODO: what do we do with c1.specialization? It doesn't occur in WGSL, but it can occur in vulkan shaders, which we can accept later.
+    // TODO: what do we do with c1.specialization? It doesn't occur in WGSL, but it can occur in vulkan shaders, which we might want to support later.
     // There are also plans of adding them to WGSL
 
     if let ConstantInner::Composite { .. } = ci2 {
@@ -294,6 +354,60 @@ mod tests {
 
         let s2 = r#"
         @group(0) @binding(1) var a: i32;
+        "#;
+
+        let s1 = naga::front::wgsl::parse_str(s1).unwrap();
+        let s2 = naga::front::wgsl::parse_str(s2).unwrap();
+
+        assert!(validate_contains_header(&s1, &s2).is_err());
+    }
+
+    #[test]
+    fn vertex_input() {
+        let s1 = r#"
+        struct VertexInput {
+            @location(0) position: vec3<f32>,
+            @location(1) tex_coords: vec2<f32>,
+        }
+        "#;
+
+        let s2 = r#"
+        struct VertexInput {
+            @location(0) position: vec3<f32>,
+            @location(1) tex_coords: vec2<u32>,
+        }
+
+        @vertex
+        fn vs_main(in: VertexInput) -> @builtin(position) vec4<f32> {
+            return vec4(0);
+        }
+        "#;
+
+        let s1 = naga::front::wgsl::parse_str(s1).unwrap();
+        let s2 = naga::front::wgsl::parse_str(s2).unwrap();
+
+        assert!(validate_contains_header(&s1, &s2).is_err());
+    }
+
+    #[test]
+    fn vertex_input_locations() {
+        let s1 = r#"
+        struct VertexInput {
+            @location(0) position: vec3<f32>,
+            @location(1) tex_coords: vec2<f32>,
+        }
+        "#;
+
+        let s2 = r#"
+        struct VertexInput {
+            @location(0) position: vec3<f32>,
+            @location(2) tex_coords: vec2<f32>,
+        }
+
+        @vertex
+        fn vs_main(in: VertexInput) -> @builtin(position) vec4<f32> {
+            return vec4(0);
+        }
         "#;
 
         let s1 = naga::front::wgsl::parse_str(s1).unwrap();

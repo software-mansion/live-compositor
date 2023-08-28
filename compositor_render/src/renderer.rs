@@ -12,10 +12,9 @@ use crate::{
     render_loop::{populate_inputs, read_outputs},
     transformations::{
         image_renderer::ImageError,
-        text_renderer::TextRendererCtx,
-        web_renderer::chromium::{ChromiumContext, ChromiumContextError},
         shader::ShaderNewError,
         text_renderer::TextRendererCtx,
+        web_renderer::chromium::{ChromiumContext, ChromiumContextError},
     },
     WebRendererOptions,
 };
@@ -85,7 +84,7 @@ pub enum RendererInitError {
     FailedToInitChromiumCtx(#[from] ChromiumContextError),
 
     #[error("failed to initialize builtin transformation")]
-    BuiltInTransformationsInitError(#[from] WgpuError),
+    BuiltInTransformationsInitError(#[from] ShaderNewError),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -251,9 +250,9 @@ impl WgpuCtx {
 
         let shader_header =
             naga::front::wgsl::parse_str(include_str!("transformations/shader_header.wgsl"))
-                .expect("shader header"); // TODO: handle
-
-        std::fs::write("header.module", format!("{shader_header:#?}")).unwrap();
+                .expect(
+                    "couldn't find shader header file, which is necessary for shader validation",
+                );
 
         let scope = WgpuErrorScope::push(&device);
 

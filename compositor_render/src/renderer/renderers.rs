@@ -3,12 +3,14 @@ use std::sync::Arc;
 use crate::{
     registry::{RegistryType, RendererRegistry},
     transformations::{
-        builtin::transformations::BuiltinTransformations, image_renderer::Image, shader::Shader,
+        builtin::transformations::BuiltinTransformations,
+        image_renderer::Image,
+        shader::{Shader, ShaderNewError},
         web_renderer::WebRenderer,
     },
 };
 
-use super::{WgpuCtx, WgpuError};
+use super::WgpuCtx;
 
 pub(crate) struct Renderers {
     pub(crate) shaders: RendererRegistry<Arc<Shader>>,
@@ -18,7 +20,7 @@ pub(crate) struct Renderers {
 }
 
 impl Renderers {
-    pub(crate) fn new(wgpu_ctx: Arc<WgpuCtx>) -> Result<Self, WgpuError> {
+    pub(crate) fn new(wgpu_ctx: Arc<WgpuCtx>) -> Result<Self, ShaderNewError> {
         Ok(Self {
             shaders: RendererRegistry::new(RegistryType::Shader),
             web_renderers: RendererRegistry::new(RegistryType::WebRenderer),
