@@ -105,7 +105,7 @@ impl InputTexturesPlanes {
     /// Each plane has 4 vertices
     const INPUTS_VERTICES: [Vertex; 4 * MAX_TEXTURES_COUNT as usize] =
         const_vertices!(MAX_TEXTURES_COUNT);
-    
+
     /// Indexes vertices of texture planes passed to vertex shader.
     /// Describes which vertices combine triangles.
     /// Each texture plane contain 2 triangles - 6 indices
