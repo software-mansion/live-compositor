@@ -98,9 +98,14 @@ impl RenderProcessHandler {
             .open()
             .unwrap();
         let data_ptr = shmem.as_ptr();
-        let array_buffer =
-            unsafe { cef::V8Value::array_buffer_from_ptr(ctx_entered, data_ptr, shmem.len()) };
-
+        let array_buffer = unsafe {
+            cef::V8Value::array_buffer_from_ptr(
+                ctx_entered,
+                data_ptr,
+                (4 * width * height) as usize,
+            )
+        };
+        
         // TODO: Figure out emedding API
         // NOTE TO REVIEWERS: The section below is not part of this PR
         // Currently we pass frame data, width and height to JS context.
