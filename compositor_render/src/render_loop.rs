@@ -36,7 +36,7 @@ pub(super) fn populate_inputs(
     ctx.wgpu_ctx.queue.submit([]);
 
     for (input_id, input_textures) in &mut scene.inputs {
-        let node = scene.nodes.node(&input_id.0)?;
+        let node = scene.nodes.node_mut(&input_id.0)?;
         if let Some(input_textures) = input_textures.state() {
             let node_texture = node
                 .output
@@ -131,7 +131,7 @@ pub(super) fn run_transforms(
             .map(|node| (&node.node_id, &node.output))
             .collect();
         node.renderer
-            .render(ctx, &input_textures, &node.output, pts)
+            .render(ctx, &input_textures, &mut node.output, pts)
     }
     Ok(())
 }

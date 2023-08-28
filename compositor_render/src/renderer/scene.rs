@@ -75,7 +75,7 @@ impl RenderNode {
         &self,
         ctx: &mut RenderCtx,
         sources: &[(&NodeId, &NodeTexture)],
-        target: &NodeTexture,
+        target: &mut NodeTexture,
         pts: Duration,
     ) {
         match self {
@@ -117,7 +117,7 @@ pub struct Node {
 impl Node {
     pub fn new(ctx: &RenderCtx, spec: &NodeSpec) -> Result<Self, GetError> {
         let node = RenderNode::new(ctx, &spec.params)?;
-        let output = NodeTexture::new();
+        let mut output = NodeTexture::new();
         if let Some(resolution) = node.resolution() {
             output.ensure_size(ctx.wgpu_ctx, resolution);
         }

@@ -93,7 +93,7 @@ impl TextRendererNode {
         self.resolution
     }
 
-    pub fn render(&self, renderer_ctx: &mut RenderCtx, target: &NodeTexture) {
+    pub fn render(&self, renderer_ctx: &mut RenderCtx, target: &mut NodeTexture) {
         let mut was_rendered = self.was_rendered.lock().unwrap();
         if *was_rendered {
             return;

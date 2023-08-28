@@ -1,8 +1,4 @@
-use std::{
-    io::Write,
-    mem,
-    sync::{Arc, Mutex},
-};
+use std::{io::Write, mem};
 
 use bytes::{BufMut, Bytes, BytesMut};
 use compositor_common::{scene::Resolution, Frame};
@@ -102,13 +98,9 @@ impl Default for InputTexture {
     }
 }
 
-/// Object representing current state of a NodeTexture.
-/// This object represents temporary state and should be used
-/// immediately after creation.
-#[derive(Clone)]
 pub struct NodeTextureState {
-    texture: Arc<RGBATexture>,
-    bind_group: Arc<wgpu::BindGroup>,
+    texture: RGBATexture,
+    bind_group: wgpu::BindGroup,
 }
 
 impl NodeTextureState {
@@ -117,8 +109,8 @@ impl NodeTextureState {
         let bind_group = texture.new_bind_group(ctx, ctx.format.rgba_layout());
 
         Self {
-            texture: Arc::new(texture),
-            bind_group: Arc::new(bind_group),
+            texture,
+            bind_group,
         }
     }
 
@@ -135,44 +127,45 @@ impl NodeTextureState {
     }
 }
 
-pub struct NodeTexture(Mutex<OptionalState<NodeTextureState>>);
+pub struct NodeTexture(OptionalState<NodeTextureState>);
 
 impl NodeTexture {
     pub fn new() -> Self {
-        Self(OptionalState::new().into())
+        Self(OptionalState::new())
     }
 
-    pub fn clear(&self) {
-        self.0.lock().unwrap().clear()
+    pub fn clear(&mut self) {
+        self.0.clear()
     }
 
-    pub fn ensure_size(&self, ctx: &WgpuCtx, new_resolution: Resolution) -> NodeTextureState {
-        let mut guard = self.0.lock().unwrap();
-        *guard = match *guard {
-            OptionalState::NoneWithOldState(ref state) | OptionalState::Some(ref state) => {
+    pub fn ensure_size<'a>(
+        &'a mut self,
+        ctx: &WgpuCtx,
+        new_resolution: Resolution,
+    ) -> &'a NodeTextureState {
+        self.0 = match self.0.replace(OptionalState::None) {
+            OptionalState::NoneWithOldState(state) | OptionalState::Some(state) => {
                 if texture_size_to_resolution(&state.texture.size()) == new_resolution {
-                    OptionalState::Some(state.clone())
+                    OptionalState::Some(state)
                 } else {
                     let new_inner = NodeTextureState::new(ctx, new_resolution);
-                    OptionalState::Some(new_inner.clone())
+                    OptionalState::Some(new_inner)
                 }
             }
             OptionalState::None => {
                 let new_inner = NodeTextureState::new(ctx, new_resolution);
-                OptionalState::Some(new_inner.clone())
+                OptionalState::Some(new_inner)
             }
         };
-        guard.state().unwrap().clone()
+        self.0.state().unwrap().clone()
     }
 
-    pub fn state(&self) -> Option<NodeTextureState> {
-        let guard = self.0.lock().unwrap();
-        guard.state().map(Clone::clone)
+    pub fn state(&self) -> Option<&NodeTextureState> {
+        self.0.state()
     }
 
     pub fn resolution(&self) -> Option<Resolution> {
-        let guard = self.0.lock().unwrap();
-        guard.state().map(NodeTextureState::resolution)
+        self.0.state().map(NodeTextureState::resolution)
     }
 }
 
