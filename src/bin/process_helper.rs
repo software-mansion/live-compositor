@@ -63,12 +63,12 @@ impl RenderProcessHandler {
                 continue;
             };
 
-            let Some(width) = msg.read_int(i+1) else {
+            let Some(width) = msg.read_int(i + 1) else {
                 error!("Failed to read width of {} at {}", source_id, i + 1);
                 continue;
             };
 
-            let Some(height) = msg.read_int(i+2) else {
+            let Some(height) = msg.read_int(i + 2) else {
                 error!("Failed to read height of {} at {}", source_id, i + 2);
                 continue;
             };

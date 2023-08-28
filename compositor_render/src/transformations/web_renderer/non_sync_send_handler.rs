@@ -30,9 +30,9 @@ impl NonSyncSendHandler {
         thread::spawn(move || {
             let shared_memories = HashMap::new();
             let Ok(browser) = ctx.start_browser(&url, client) else {
-                    error!("Couldn't start browser for {url}");
-                    return;
-                };
+                error!("Couldn't start browser for {url}");
+                return;
+            };
             let mut handler = InnerHandler {
                 browser,
                 shared_memories,
