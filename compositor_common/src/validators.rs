@@ -226,12 +226,15 @@ impl SceneSpec {
             if let NodeParams::Builtin { transformation, .. } = &node_spec.params {
                 match transformation {
                     BuiltinTransformationSpec::TransformToResolution(_) => {}
-                    BuiltinTransformationSpec::FixedPositionLayout { textures_specs, .. } => {
-                        if node_spec.input_pads.len() != textures_specs.len() {
+                    BuiltinTransformationSpec::FixedPositionLayout {
+                        textures_layouts,
+                        ..
+                    } => {
+                        if node_spec.input_pads.len() != textures_layouts.len() {
                             return Err(SpecValidationError::InvalidBuiltinParams(
                                 node_id.clone(),
                                 transformation.clone(),
-                                Arc::from("input_pads length should match textures_specs length"),
+                                Arc::from("input_pads length should match textures_layouts length"),
                             ));
                         }
                     }

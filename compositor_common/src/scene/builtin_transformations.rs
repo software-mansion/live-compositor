@@ -7,7 +7,7 @@ use crate::util::{Coord, RGBAColor};
 pub enum BuiltinTransformationSpec {
     TransformToResolution(TransformToResolution),
     FixedPositionLayout {
-        textures_specs: Vec<TextureLayout>,
+        textures_layouts: Vec<TextureLayout>,
         #[serde(default = "default_layout_background_color")]
         background_color_rgba: RGBAColor,
     },

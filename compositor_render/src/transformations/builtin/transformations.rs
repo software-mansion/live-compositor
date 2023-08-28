@@ -47,7 +47,10 @@ impl BuiltinTransformations {
     ) -> Option<ShaderParam> {
         match transformation {
             BuiltinTransformationSpec::TransformToResolution(_) => None,
-            BuiltinTransformationSpec::FixedPositionLayout { textures_specs, .. } => {
+            BuiltinTransformationSpec::FixedPositionLayout {
+                textures_layouts: textures_specs,
+                ..
+            } => {
                 let mut layouts = Vec::new();
 
                 for TextureLayout {

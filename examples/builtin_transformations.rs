@@ -106,7 +106,7 @@ fn start_example_client_code() -> Result<()> {
                 "node_id": "layout",
                 "type": "built-in",
                 "transformation": "fixed_position_layout",
-                "textures_specs": [
+                "textures_layouts": [
                     {
                         "left": "0px",
                         "top": "0px"
