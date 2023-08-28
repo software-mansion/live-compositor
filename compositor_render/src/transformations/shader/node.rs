@@ -1,6 +1,6 @@
 use std::{sync::Arc, time::Duration};
 
-use compositor_common::scene::{NodeId, ShaderParam};
+use compositor_common::scene::{NodeId, Resolution, ShaderParam};
 use wgpu::util::DeviceExt;
 
 use crate::renderer::{texture::NodeTexture, WgpuCtx};
@@ -12,6 +12,7 @@ pub struct ShaderNode {
     _custom_params_buffer: wgpu::Buffer,
     shader: Arc<Shader>,
     clear_color: Option<wgpu::Color>,
+    resolution: Resolution,
 }
 
 impl ShaderNode {
@@ -20,7 +21,10 @@ impl ShaderNode {
         shader: Arc<Shader>,
         params: Option<&ShaderParam>,
         clear_color: Option<wgpu::Color>,
+        resolution: Resolution,
     ) -> Self {
+        // TODO: validation
+
         let custom_params_buffer = match params {
             Some(params) => {
                 let params = params.to_bytes();
@@ -62,7 +66,12 @@ impl ShaderNode {
             _custom_params_buffer: custom_params_buffer,
             shader,
             clear_color,
+            resolution,
         }
+    }
+
+    pub fn resolution(&self) -> Resolution {
+        self.resolution
     }
 
     pub fn render(&self, sources: &[(&NodeId, &NodeTexture)], target: &NodeTexture, pts: Duration) {

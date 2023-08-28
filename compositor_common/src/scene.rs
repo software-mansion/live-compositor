@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::{fmt::Display, sync::Arc};
 
-use crate::{transformation::TransformationRegistryKey, util::RGBColor};
+use crate::renderer_spec::RendererId;
 
 use self::{
     builtin_transformations::BuiltinTransformationSpec,
@@ -65,16 +65,8 @@ impl From<NodeId> for OutputId {
 /// or update an existing one.
 #[derive(Serialize, Deserialize)]
 pub struct SceneSpec {
-    pub inputs: Vec<InputSpec>,
-    pub transforms: Vec<TransformNodeSpec>,
+    pub nodes: Vec<NodeSpec>,
     pub outputs: Vec<OutputSpec>,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct InputSpec {
-    pub input_id: InputId,
-    pub resolution: Resolution,
-    pub fallback_color_rgb: Option<RGBColor>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -83,24 +75,32 @@ pub struct OutputSpec {
     pub input_pad: NodeId,
 }
 
+/// NodeSpec provides a configuration necessary to construct Node. Node is a core
+/// abstraction in the rendering pipeline, it represents a logic that transforms
+/// zero or more inputs into an output stream. Most nodes are wrappers over the
+/// renderers and just a way to provide parameters to them.
+///
+/// Distinction whether logic should be part of the Node or Renderer should be based
+/// on how long the initialization is. Heavy operations should be part of renderer and
+/// light ones part of the Node. Simple rule of thumb for what is heavy/light is answer
+/// to the question: Would it still work if it's done every frame.
 #[derive(Serialize, Deserialize)]
-pub struct TransformNodeSpec {
+pub struct NodeSpec {
     pub node_id: NodeId,
     #[serde(default)]
     pub input_pads: Vec<NodeId>,
     #[serde(flatten)]
-    pub transform_params: TransformParams,
+    pub params: NodeParams,
 }
 
-// TODO: tmp clone
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(tag = "type", rename_all = "snake_case")]
-pub enum TransformParams {
+pub enum NodeParams {
     WebRenderer {
-        renderer_id: TransformationRegistryKey,
+        instance_id: RendererId,
     },
     Shader {
-        shader_id: TransformationRegistryKey,
+        shader_id: RendererId,
         shader_params: Option<ShaderParam>,
         resolution: Resolution,
     },
@@ -110,7 +110,7 @@ pub enum TransformParams {
         resolution: TextDimensions,
     },
     Image {
-        image_id: TransformationRegistryKey,
+        image_id: RendererId,
     },
     #[serde(rename = "built-in")]
     Builtin {
@@ -120,7 +120,6 @@ pub enum TransformParams {
     },
 }
 
-// TODO: tmp clone
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(tag = "type", rename_all = "snake_case", content = "value")]
 pub enum ShaderParam {

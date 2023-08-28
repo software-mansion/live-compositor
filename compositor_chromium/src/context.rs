@@ -96,7 +96,7 @@ impl Context {
         client: C,
         window_info: WindowInfo,
         settings: BrowserSettings,
-        url: String,
+        url: &str,
     ) -> Result<Browser, ContextError> {
         let client = CefRefData::new_ptr(ClientWrapper(client));
         let window_info = window_info.into_raw();
@@ -136,6 +136,10 @@ impl Context {
         unsafe {
             chromium_sys::cef_do_message_loop_work();
         }
+    }
+
+    pub fn currently_on_thread(&self, thread_id: ThreadId) -> bool {
+        unsafe { chromium_sys::cef_currently_on(thread_id as u32) == 1 }
     }
 }
 

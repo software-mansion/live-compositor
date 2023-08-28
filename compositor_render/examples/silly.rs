@@ -2,11 +2,13 @@ use std::{path::Path, process::Stdio, sync::Arc, time::Duration};
 
 use compositor_common::{
     frame::YuvData,
-    scene::{InputSpec, NodeId, OutputSpec, Resolution, SceneSpec, TransformNodeSpec},
-    transformation::{TransformationRegistryKey, TransformationSpec},
-    Frame,
+    renderer_spec::{RendererId, RendererSpec, ShaderSpec},
+    scene::{NodeId, NodeSpec, OutputSpec, Resolution, SceneSpec},
+    Frame, Framerate,
 };
-use compositor_render::{frame_set::FrameSet, Renderer};
+use compositor_render::{frame_set::FrameSet, Renderer, WebRendererOptions};
+
+const FRAMERATE: Framerate = Framerate(30);
 
 fn ffmpeg_yuv_to_jpeg(
     input_file: impl AsRef<Path>,
@@ -80,16 +82,21 @@ fn main() {
     let frame = get_image("./examples/silly/crab.jpg");
     let resolution = frame.resolution;
 
-    let mut renderer = Renderer::new(false).expect("create renderer");
-    let shader_key = TransformationRegistryKey("silly shader".into());
+    let (mut renderer, _) = Renderer::new(
+        WebRendererOptions {
+            init: false,
+            ..Default::default()
+        },
+        FRAMERATE,
+    )
+    .expect("create renderer");
+    let shader_key = RendererId("silly shader".into());
 
     renderer
-        .register_transformation(
-            shader_key.clone(),
-            TransformationSpec::Shader {
-                source: include_str!("./silly/silly.wgsl").into(),
-            },
-        )
+        .register_renderer(RendererSpec::Shader(ShaderSpec {
+            shader_id: shader_key.clone(),
+            source: include_str!("./silly/silly.wgsl").into(),
+        }))
         .expect("create shader");
 
     let input_id = NodeId("input".into());
@@ -98,15 +105,10 @@ fn main() {
 
     renderer
         .update_scene(Arc::new(SceneSpec {
-            inputs: vec![InputSpec {
-                input_id: input_id.clone().into(),
-                fallback_color_rgb: None,
-                resolution,
-            }],
-            transforms: vec![TransformNodeSpec {
+            nodes: vec![NodeSpec {
                 input_pads: vec![input_id.clone()],
                 node_id: shader_id.clone(),
-                transform_params: compositor_common::scene::TransformParams::Shader {
+                params: compositor_common::scene::NodeParams::Shader {
                     shader_id: shader_key,
                     shader_params: None,
                     resolution,

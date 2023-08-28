@@ -1,10 +1,7 @@
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use compositor_common::{
-    scene::{
-        InputId, InputSpec, NodeId, OutputId, Resolution, SceneSpec, TransformNodeSpec,
-        TransformParams,
-    },
+    scene::{InputId, NodeId, NodeParams, NodeSpec, OutputId, Resolution, SceneSpec},
     SpecValidationError,
 };
 use log::error;
@@ -22,60 +19,53 @@ use super::{
     RenderCtx, WgpuError, WgpuErrorScope,
 };
 
-pub enum TransformNode {
+pub enum RenderNode {
     Shader(ShaderNode),
-    WebRenderer { renderer: Arc<WebRenderer> },
-    TextRenderer(TextRendererNode),
-    ImageRenderer(ImageNode),
+    Web { renderer: Arc<WebRenderer> },
+    Text(TextRendererNode),
+    Image(ImageNode),
     Builtin(ShaderNode),
-    Nop,
+    InputStream,
 }
 
-impl TransformNode {
-    fn new(ctx: &RenderCtx, spec: &TransformParams) -> Result<(Self, Resolution), GetError> {
+impl RenderNode {
+    fn new(ctx: &RenderCtx, spec: &NodeParams) -> Result<Self, GetError> {
         match spec {
-            TransformParams::WebRenderer { renderer_id } => {
-                let renderer = ctx.web_renderers.get(renderer_id)?;
-                let resolution = renderer.resolution();
-                Ok((TransformNode::WebRenderer { renderer }, resolution))
+            NodeParams::WebRenderer { instance_id } => {
+                let renderer = ctx.web_renderers.get(instance_id)?;
+                Ok(Self::Web { renderer })
             }
-            TransformParams::Shader {
+            NodeParams::Shader {
                 shader_id,
                 shader_params,
                 resolution,
-            } => Ok((
-                TransformNode::Shader(ShaderNode::new(
-                    ctx.wgpu_ctx,
-                    ctx.shader_transforms.get(shader_id)?,
-                    shader_params.as_ref(),
-                    None,
-                )),
+            } => Ok(Self::Shader(ShaderNode::new(
+                ctx.wgpu_ctx,
+                ctx.shader_registry.get(shader_id)?,
+                shader_params.as_ref(),
+                None,
                 *resolution,
-            )),
-            TransformParams::Builtin {
+            ))),
+            NodeParams::Builtin {
                 transformation,
                 resolution,
-            } => Ok((
-                TransformNode::Builtin(ShaderNode::new(
-                    ctx.wgpu_ctx,
-                    ctx.builtin_transforms.shader(transformation),
-                    BuiltinTransformations::params(transformation, resolution).as_ref(),
-                    BuiltinTransformations::clear_color(transformation),
-                )),
+            } => Ok(Self::Builtin(ShaderNode::new(
+                ctx.wgpu_ctx,
+                ctx.builtin_transforms.shader(transformation),
+                BuiltinTransformations::params(transformation, resolution).as_ref(),
+                BuiltinTransformations::clear_color(transformation),
                 *resolution,
-            )),
-            TransformParams::TextRenderer {
+            ))),
+            NodeParams::TextRenderer {
                 text_params,
                 resolution,
             } => {
-                let (renderer, resolution) =
-                    TextRendererNode::new(ctx, text_params.clone(), resolution.clone());
-                Ok((TransformNode::TextRenderer(renderer), resolution))
+                let renderer = TextRendererNode::new(ctx, text_params.clone(), resolution.clone());
+                Ok(Self::Text(renderer))
             }
-            TransformParams::Image { image_id } => {
+            NodeParams::Image { image_id } => {
                 let node = ImageNode::new(ctx.image_registry.get(image_id)?);
-                let resolution = node.resolution();
-                Ok((TransformNode::ImageRenderer(node), resolution))
+                Ok(Self::Image(node))
             }
         }
     }
@@ -88,20 +78,30 @@ impl TransformNode {
         pts: Duration,
     ) {
         match self {
-            TransformNode::Shader(shader) => {
+            RenderNode::Shader(shader) => {
                 shader.render(sources, target, pts);
             }
-            TransformNode::Builtin(shader) => shader.render(sources, target, pts),
-            TransformNode::WebRenderer { renderer } => {
-                if let Err(err) = renderer.render(ctx, sources, target) {
-                    error!("Web render operation failed {err}");
-                }
-            }
-            TransformNode::TextRenderer(renderer) => {
+            RenderNode::Builtin(shader) => shader.render(sources, target, pts),
+            RenderNode::Web { renderer } => renderer.render(ctx, sources, target),
+            RenderNode::Text(renderer) => {
                 renderer.render(ctx, target);
             }
-            TransformNode::ImageRenderer(node) => node.render(ctx, target),
-            TransformNode::Nop => (),
+            RenderNode::Image(node) => node.render(ctx, target, pts),
+            RenderNode::InputStream => {
+                // Nothing to do, textures on input nodes should be populated
+                // at the start of render loop
+            }
+        }
+    }
+
+    pub fn resolution(&self) -> Option<Resolution> {
+        match self {
+            RenderNode::Shader(node) => Some(node.resolution()),
+            RenderNode::Web { renderer } => Some(renderer.resolution()),
+            RenderNode::Text(node) => Some(node.resolution()),
+            RenderNode::Image(node) => Some(node.resolution()),
+            RenderNode::InputStream => None,
+            RenderNode::Builtin(node) => Some(node.resolution()),
         }
     }
 }
@@ -109,35 +109,42 @@ impl TransformNode {
 pub struct Node {
     pub node_id: NodeId,
     pub output: NodeTexture,
-    pub resolution: Resolution,
     pub inputs: Vec<Arc<Node>>,
-    pub transform: TransformNode,
+    pub renderer: RenderNode,
 }
 
 impl Node {
-    pub fn new(
-        ctx: &RenderCtx,
-        spec: &TransformNodeSpec,
-        inputs: Vec<Arc<Node>>,
-    ) -> Result<Self, GetError> {
-        let (node, resolution) = TransformNode::new(ctx, &spec.transform_params)?;
-        let output = NodeTexture::new(ctx.wgpu_ctx, resolution);
+    pub fn new(ctx: &RenderCtx, spec: &NodeSpec, inputs: Vec<Arc<Node>>) -> Result<Self, GetError> {
+        let node = RenderNode::new(ctx, &spec.params)?;
+        let output = NodeTexture::new(
+            ctx.wgpu_ctx,
+            // TODO: This will not be addressed when implementing fallback
+            node.resolution().unwrap_or(Resolution {
+                width: 1,
+                height: 1,
+            }),
+        );
         Ok(Self {
             node_id: spec.node_id.clone(),
-            transform: node,
-            resolution,
+            renderer: node,
             inputs,
             output,
         })
     }
 
-    pub fn new_input(ctx: &RenderCtx, spec: &InputSpec) -> Result<Self, GetError> {
-        let output = NodeTexture::new(ctx.wgpu_ctx, spec.resolution);
+    pub fn new_input(ctx: &RenderCtx, node_id: &NodeId) -> Result<Self, GetError> {
+        let output = NodeTexture::new(
+            ctx.wgpu_ctx,
+            // TODO: This will not be addressed when implementing fallback
+            Resolution {
+                width: 1,
+                height: 1,
+            },
+        );
 
         Ok(Self {
-            node_id: spec.input_id.0.clone(),
-            transform: TransformNode::Nop,
-            resolution: spec.resolution,
+            node_id: node_id.clone(),
+            renderer: RenderNode::InputStream,
             inputs: vec![],
             output,
         })
@@ -151,8 +158,8 @@ pub struct Scene {
 
 #[derive(Debug, thiserror::Error)]
 pub enum SceneUpdateError {
-    #[error("Failed to construct transform node")]
-    TransformNodeError(#[source] GetError),
+    #[error("Failed to construct render node")]
+    RenderNodeError(#[source] GetError),
 
     #[error("Failed to construct input node")]
     InputNodeError(#[source] GetError),
@@ -165,6 +172,9 @@ pub enum SceneUpdateError {
 
     #[error("Wgpu error")]
     WgpuError(#[from] WgpuError),
+
+    #[error("Unknown resolution in the output node")]
+    UnknownResolutionOnOutput(NodeId),
 }
 
 impl Scene {
@@ -187,7 +197,10 @@ impl Scene {
             .iter()
             .map(|output| {
                 let node = self.ensure_node(ctx, &output.input_pad, spec, &mut new_nodes)?;
-                let buffers = OutputTexture::new(ctx.wgpu_ctx, node.resolution);
+                let resolution = node.renderer.resolution().ok_or_else(|| {
+                    SceneUpdateError::UnknownResolutionOnOutput(node.node_id.clone())
+                })?;
+                let buffers = OutputTexture::new(ctx.wgpu_ctx, resolution);
                 Ok((output.output_id.clone(), (node, buffers)))
             })
             .collect::<Result<_, SceneUpdateError>>()?;
@@ -211,39 +224,30 @@ impl Scene {
 
         // handle a case where node_id refers to transform node
         {
-            let transform_spec = spec.transforms.iter().find(|node| &node.node_id == node_id);
+            let transform_spec = spec.nodes.iter().find(|node| &node.node_id == node_id);
             if let Some(transform) = transform_spec {
                 let inputs = transform
                     .input_pads
                     .iter()
                     .map(|node_id| self.ensure_node(ctx, node_id, spec, new_nodes))
                     .collect::<Result<_, _>>()?;
-                let node = Node::new(ctx, transform, inputs)
-                    .map_err(SceneUpdateError::TransformNodeError)?;
+                let node =
+                    Node::new(ctx, transform, inputs).map_err(SceneUpdateError::RenderNodeError)?;
                 let node = Arc::new(node);
                 new_nodes.insert(node_id.clone(), node.clone());
                 return Ok(node);
             }
         }
 
-        // handle a case where node_id refers to input node
-        {
-            let input_spec = spec.inputs.iter().find(|node| &node.input_id.0 == node_id);
-            if let Some(input) = input_spec {
-                let node = Node::new_input(ctx, input).map_err(SceneUpdateError::InputNodeError)?;
-                let node = Arc::new(node);
-                new_nodes.insert(node_id.clone(), node.clone());
-                self.inputs.insert(
-                    InputId(node_id.clone()),
-                    (
-                        node.clone(),
-                        InputTexture::new(ctx.wgpu_ctx, input.resolution, input.fallback_color_rgb),
-                    ),
-                );
-                return Ok(node);
-            }
-        }
-
-        Err(SceneUpdateError::NoNodeWithIdError(node_id.clone()))
+        // If there is no node with id node_id, assume it's an input. Pipeline validation should
+        // make sure that scene does not refer to missing entities.
+        let node = Node::new_input(ctx, node_id).map_err(SceneUpdateError::InputNodeError)?;
+        let node = Arc::new(node);
+        new_nodes.insert(node_id.clone(), node.clone());
+        self.inputs.insert(
+            InputId(node_id.clone()),
+            (node.clone(), InputTexture::new(ctx.wgpu_ctx, None)),
+        );
+        Ok(node)
     }
 }

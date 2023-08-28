@@ -1,34 +1,24 @@
-use std::{
-    collections::{HashMap, HashSet},
-    sync::Arc,
-};
+use std::collections::{HashMap, HashSet};
 
-use crate::scene::{InputSpec, NodeId, SceneSpec, TransformNodeSpec};
+use crate::scene::{NodeId, NodeSpec, OutputId, SceneSpec};
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum SpecValidationError {
-    #[error("missing node with id {missing_node} used in transformation {transformation} is not defined in scene and it was not registered as an input")]
-    MissingInputNodeForTransformation {
-        missing_node: Arc<str>,
-        transformation: Arc<str>,
+    #[error("Unknown node with id {missing_node} used in node {node}. Node is not defined in the scene and it was not registered as an input.")]
+    UnknownInputPadOnNode { missing_node: NodeId, node: NodeId },
+    #[error("Unknown node with id {missing_node} used in output {output} is not defined in scene and it was not registered as an input")]
+    UnknownInputPadOnOutput {
+        missing_node: NodeId,
+        output: OutputId,
     },
-    #[error("missing node with id {missing_node} used in output {output} is not defined in scene and it was not registered as an input")]
-    MissingInputNodeForOutput {
-        missing_node: Arc<str>,
-        output: Arc<str>,
-    },
+    #[error("Unknown output. Output with id {0} is not currently registered.")]
+    UnknownOutput(NodeId),
+    #[error("Duplicate node id: {0}. There is more than one node or input with the same name.")]
+    DuplicateNames(NodeId),
     #[error("detected cycle in scene graph, scene should acyclic graph")]
     CycleDetected,
-    #[error("duplicate node id: {0}")]
-    DuplicateNames(Arc<str>),
     #[error("Unused nodes: {0:?}")]
-    UnusedNodes(HashSet<Arc<str>>),
-    #[error("unknown output, output with id {0} is not registered currently")]
-    UnknownOutput(Arc<str>),
-    #[error("unknown input, input with id {0} is not registered currently")]
-    UnknownInput(Arc<str>),
-    #[error("Invalid node params for node with id {0}")]
-    InvalidTransformParams(Arc<str>),
+    UnusedNodes(HashSet<NodeId>),
 }
 
 impl SceneSpec {
@@ -43,44 +33,37 @@ impl SceneSpec {
         registered_inputs: &HashSet<&NodeId>,
         registered_outputs: &HashSet<&NodeId>,
     ) -> Result<(), SpecValidationError> {
-        let transform_iter = self.transforms.iter().map(|i| &i.node_id);
-        let input_iter = self.inputs.iter().map(|i| &i.input_id.0);
-        let defined_node_ids = transform_iter.chain(input_iter.clone());
+        let transform_iter = self.nodes.iter().map(|i| &i.node_id);
+        let defined_node_ids_iter =
+            Iterator::chain(transform_iter, registered_inputs.iter().copied());
+        let defined_node_ids: HashSet<&NodeId> = defined_node_ids_iter.clone().collect();
 
-        let node_ids: HashSet<&NodeId> = defined_node_ids.clone().collect();
-
-        let input_nodes: HashMap<&NodeId, &InputSpec> = self
-            .inputs
-            .iter()
-            .map(|input| (&input.input_id.0, input))
-            .collect();
-
-        let transform_nodes: HashMap<&NodeId, &TransformNodeSpec> = self
-            .transforms
+        let transform_nodes: HashMap<&NodeId, &NodeSpec> = self
+            .nodes
             .iter()
             .map(|node| (&node.node_id, node))
             .collect();
 
-        self.validate_inputs(registered_inputs)?;
-        self.validate_transform_inputs(&node_ids)?;
-        self.validate_outputs(registered_outputs, &node_ids)?;
-        self.validate_node_ids_uniqueness(defined_node_ids)?;
-        self.validate_cycles(registered_inputs, &transform_nodes)?;
-        self.validate_nodes_are_used(&input_nodes, &transform_nodes)?;
+        self.validate_input_pads_are_defined_on_node(&defined_node_ids)?;
+        self.validate_input_pads_are_defined_on_output(&defined_node_ids)?;
+        self.validate_outputs_registered(registered_outputs)?;
+        self.validate_node_ids_uniqueness(defined_node_ids_iter)?;
+        self.validate_cycles(&transform_nodes)?;
+        self.validate_nodes_are_used(&transform_nodes)?;
 
         Ok(())
     }
 
-    fn validate_transform_inputs(
+    fn validate_input_pads_are_defined_on_node(
         &self,
         defined_node_ids: &HashSet<&NodeId>,
     ) -> Result<(), SpecValidationError> {
-        for t in self.transforms.iter() {
+        for t in self.nodes.iter() {
             for input in &t.input_pads {
                 if !defined_node_ids.contains(input) {
-                    return Err(SpecValidationError::MissingInputNodeForTransformation {
-                        missing_node: input.0.clone(),
-                        transformation: t.node_id.0.clone(),
+                    return Err(SpecValidationError::UnknownInputPadOnNode {
+                        missing_node: input.clone(),
+                        node: t.node_id.clone(),
                     });
                 }
             }
@@ -89,88 +72,32 @@ impl SceneSpec {
         Ok(())
     }
 
-    fn validate_inputs(
+    fn validate_input_pads_are_defined_on_output(
         &self,
-        registered_inputs: &HashSet<&NodeId>,
-    ) -> Result<(), SpecValidationError> {
-        for input in self.inputs.iter() {
-            if !registered_inputs.contains(&input.input_id.0) {
-                return Err(SpecValidationError::UnknownInput(
-                    input.input_id.0 .0.clone(),
-                ));
-            }
-        }
-
-        Ok(())
-    }
-
-    fn validate_outputs(
-        &self,
-        registered_outputs: &HashSet<&NodeId>,
         defined_node_ids: &HashSet<&NodeId>,
     ) -> Result<(), SpecValidationError> {
+        // TODO: We want to stop allowing connecting inputs to outputs
         for out in self.outputs.iter() {
             let node_id = &out.input_pad;
             if !defined_node_ids.contains(node_id) {
-                return Err(SpecValidationError::MissingInputNodeForOutput {
-                    missing_node: out.input_pad.0.clone(),
-                    output: node_id.0.clone(),
+                return Err(SpecValidationError::UnknownInputPadOnOutput {
+                    missing_node: out.input_pad.clone(),
+                    output: out.output_id.clone(),
                 });
-            }
-            if registered_outputs.get(&out.output_id.0).is_none() {
-                return Err(SpecValidationError::UnknownOutput(node_id.0.clone()));
             }
         }
 
         Ok(())
     }
 
-    fn validate_cycles(
+    fn validate_outputs_registered(
         &self,
-        registered_inputs: &HashSet<&NodeId>,
-        transform_nodes: &HashMap<&NodeId, &TransformNodeSpec>,
+        registered_outputs: &HashSet<&NodeId>,
     ) -> Result<(), SpecValidationError> {
-        enum NodeState {
-            BeingVisited,
-            Visited,
-        }
-
-        let mut visited: HashMap<&NodeId, NodeState> = HashMap::new();
-
-        fn visit<'a>(
-            node: &'a NodeId,
-            transform_nodes: &'a HashMap<&NodeId, &TransformNodeSpec>,
-            inputs: &HashSet<&NodeId>,
-            visited: &mut HashMap<&'a NodeId, NodeState>,
-        ) -> Result<(), SpecValidationError> {
-            if inputs.get(node).is_some() {
-                return Ok(());
+        for out in self.outputs.iter() {
+            if registered_outputs.get(&out.output_id.0).is_none() {
+                return Err(SpecValidationError::UnknownOutput(out.output_id.0.clone()));
             }
-
-            match visited.get(node) {
-                Some(NodeState::BeingVisited) => return Err(SpecValidationError::CycleDetected),
-                Some(NodeState::Visited) => return Ok(()),
-                None => {}
-            }
-
-            visited.insert(node, NodeState::BeingVisited);
-
-            for child in &transform_nodes.get(node).unwrap().input_pads {
-                visit(child, transform_nodes, inputs, visited)?;
-            }
-
-            visited.insert(node, NodeState::Visited);
-
-            Ok(())
-        }
-
-        for output in &self.outputs {
-            visit(
-                &output.input_pad,
-                transform_nodes,
-                registered_inputs,
-                &mut visited,
-            )?;
         }
 
         Ok(())
@@ -184,68 +111,96 @@ impl SceneSpec {
 
         for node_id in defined_node_ids {
             if !nodes_ids.insert(node_id) {
-                return Err(SpecValidationError::DuplicateNames(node_id.0.clone()));
+                return Err(SpecValidationError::DuplicateNames(node_id.clone()));
             }
         }
 
         Ok(())
     }
 
-    /// Assumes that all TransformNodeSpec inputs are correct
-    /// (input_nodes or transform_nodes contains them)
-    /// [`validate_transform_inputs`] should be run before this function
+    /// Assumes that all input pads refer to real nodes
+    /// [`validate_input_pads_are_defined_on_node`] should be run before this function
+    fn validate_cycles(
+        &self,
+        transform_nodes: &HashMap<&NodeId, &NodeSpec>,
+    ) -> Result<(), SpecValidationError> {
+        enum NodeState {
+            BeingVisited,
+            Visited,
+        }
+
+        let mut visited: HashMap<&NodeId, NodeState> = HashMap::new();
+
+        fn visit<'a>(
+            node_id: &'a NodeId,
+            transform_nodes: &'a HashMap<&NodeId, &NodeSpec>,
+            visited: &mut HashMap<&'a NodeId, NodeState>,
+        ) -> Result<(), SpecValidationError> {
+            let Some(node) = transform_nodes.get(node_id) else {
+                return Ok(());
+            };
+
+            match visited.get(node_id) {
+                Some(NodeState::BeingVisited) => return Err(SpecValidationError::CycleDetected),
+                Some(NodeState::Visited) => return Ok(()),
+                None => {}
+            }
+
+            visited.insert(node_id, NodeState::BeingVisited);
+
+            for child in &node.input_pads {
+                visit(child, transform_nodes, visited)?;
+            }
+
+            visited.insert(node_id, NodeState::Visited);
+
+            Ok(())
+        }
+
+        for output in &self.outputs {
+            visit(&output.input_pad, transform_nodes, &mut visited)?;
+        }
+
+        Ok(())
+    }
+
+    /// Assumes that all input pads refer to real nodes
+    /// [`validate_input_pads_are_defined_on_node`] should be run before this function
     fn validate_nodes_are_used(
         &self,
-        input_nodes: &HashMap<&NodeId, &InputSpec>,
-        transform_nodes: &HashMap<&NodeId, &TransformNodeSpec>,
+        transform_nodes: &HashMap<&NodeId, &NodeSpec>,
     ) -> Result<(), SpecValidationError> {
         let mut visited: HashSet<&NodeId> = HashSet::new();
 
         fn visit<'a>(
-            node: &'a NodeId,
-            input_nodes: &HashMap<&NodeId, &InputSpec>,
-            transform_nodes: &'a HashMap<&NodeId, &TransformNodeSpec>,
+            node_id: &'a NodeId,
+            nodes: &'a HashMap<&NodeId, &NodeSpec>,
             visited: &mut HashSet<&'a NodeId>,
         ) {
-            if input_nodes.contains_key(node) {
-                visited.insert(node);
+            let Some(node) = nodes.get(node_id) else {
+                return;
+            };
+
+            if visited.contains(node_id) {
                 return;
             }
 
-            let transform_node = transform_nodes.get(node).unwrap();
-
-            if visited.contains(node) {
-                return;
+            for child in &node.input_pads {
+                visit(child, nodes, visited);
             }
 
-            for child in &transform_node.input_pads {
-                visit(child, input_nodes, transform_nodes, visited);
-            }
-
-            visited.insert(node);
+            visited.insert(node_id);
         }
 
         for output in &self.outputs {
-            visit(
-                &output.input_pad,
-                input_nodes,
-                transform_nodes,
-                &mut visited,
-            )
+            visit(&output.input_pad, transform_nodes, &mut visited)
         }
 
-        let nodes: HashSet<&NodeId> = input_nodes
-            .keys()
-            .chain(transform_nodes.keys())
-            .copied()
-            .collect();
+        let nodes_ids: HashSet<&NodeId> = transform_nodes.keys().copied().collect();
+        let mut unused_transforms = nodes_ids.difference(&visited).peekable();
 
-        let unused_transforms: HashSet<Arc<str>> = nodes
-            .difference(&visited)
-            .map(|node| node.0.clone())
-            .collect();
-
-        if !unused_transforms.is_empty() {
+        if unused_transforms.peek().is_some() {
+            let unused_transforms = unused_transforms.copied().cloned().collect();
             return Err(SpecValidationError::UnusedNodes(unused_transforms));
         }
 

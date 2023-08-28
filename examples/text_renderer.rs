@@ -2,7 +2,6 @@ use anyhow::Result;
 use compositor_common::{scene::Resolution, Framerate};
 use log::{error, info};
 use serde_json::json;
-use signal_hook::{consts, iterator::Signals};
 use std::{
     process::{Command, Stdio},
     thread,
@@ -34,10 +33,7 @@ fn main() {
         }
     });
 
-    http::Server::new(8001).start();
-
-    let mut signals = Signals::new([consts::SIGINT]).unwrap();
-    signals.forever().next();
+    http::Server::new(8001).run();
 }
 
 fn start_example_client_code() -> Result<()> {
@@ -47,7 +43,9 @@ fn start_example_client_code() -> Result<()> {
     common::post(&json!({
         "type": "init",
         "framerate": FRAMERATE,
-        "init_web_renderer": false,
+        "web_renderer": {
+            "init": false
+        }
     }))?;
 
     info!("[example] Start listening on output port.");
@@ -60,8 +58,9 @@ fn start_example_client_code() -> Result<()> {
 
     info!("[example] Send register output request.");
     common::post(&json!({
-        "type": "register_output",
-        "id": "output_1",
+        "type": "register",
+        "entity_type": "output_stream",
+        "output_id": "output_1",
         "port": 8002,
         "ip": "127.0.0.1",
         "resolution": {
@@ -76,10 +75,9 @@ fn start_example_client_code() -> Result<()> {
     info!("[example] Update scene");
     common::post(&json!({
         "type": "update_scene",
-        "inputs": [],
-        "transforms": [
+        "nodes": [
            {
-                "node_id": "text_renderer",
+                "node_id": "text_renderer_1",
                 "type": "text_renderer",
                 "content": "VideoCompositor🚀\nSecond Line\nLorem ipsum dolor sit amet consectetur adipisicing elit. Soluta delectus optio fugit maiores eaque ab totam, veritatis aperiam provident, aliquam consectetur deserunt cumque est? Saepe tenetur impedit culpa asperiores id?",
                 "font_size": 100.0,
@@ -90,13 +88,12 @@ fn start_example_client_code() -> Result<()> {
                     "type": "fixed",
                     "resolution": {"width": 1920, "height": 1080},
                 },
-                "input_pads": [],
            }
         ],
         "outputs": [
             {
                 "output_id": "output_1",
-                "input_pad": "text_renderer"
+                "input_pad": "text_renderer_1"
             }
         ]
     }))?;

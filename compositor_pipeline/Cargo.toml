@@ -8,9 +8,10 @@ edition = "2021"
 [dependencies]
 compositor_common = { path = "../compositor_common" }
 compositor_render = { path = "../compositor_render" }
-bytes =  { workspace = true }
+compositor_chromium = { path = "../compositor_chromium" }
+bytes = { workspace = true }
 crossbeam-channel = { workspace = true }
 anyhow = "1.0.71"
 thiserror = { workspace = true }
-log = { workspace = true } 
+log = { workspace = true }
 serde = { workspace = true }

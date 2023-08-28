@@ -85,7 +85,9 @@ fn start_example_client_code(host_ip: String) -> Result<()> {
     common::post(&json!({
         "type": "init",
         "framerate": FRAMERATE,
-        "init_web_renderer": false,
+        "web_renderer": {
+            "init": false
+        },
     }))?;
 
     info!("[example] Start listening on output port.");
@@ -98,8 +100,9 @@ fn start_example_client_code(host_ip: String) -> Result<()> {
 
     info!("[example] Send register output request.");
     common::post(&json!({
-        "type": "register_output",
-        "id": "output 1",
+        "type": "register",
+        "entity_type": "output_stream",
+        "output_id": "output_1",
         "port": 8002,
         "ip": host_ip,
         "resolution": {
@@ -113,66 +116,40 @@ fn start_example_client_code(host_ip: String) -> Result<()> {
 
     info!("[example] Send register input request.");
     common::post(&json!({
-        "type": "register_input",
-        "id": "input 1",
+        "type": "register",
+        "entity_type": "input_stream",
+        "input_id": "input_1",
         "port": 8004,
     }))?;
 
     let shader_source = include_str!("../compositor_render/examples/silly/silly.wgsl");
     info!("[example] Register shader transform");
     common::post(&json!({
-        "type": "register_transformation",
-        "key": "example shader",
-        "transform": {
-            "type": "shader",
-            "source": shader_source,
-        }
+        "type": "register",
+        "entity_type": "shader",
+        "shader_id": "example_shader",
+        "source": shader_source,
     }))?;
-
-    //info!("[example] Register web renderer transform");
-    //common::post(&json!({
-    //    "type": "register_transformation",
-    //    "key": "example website",
-    //    "transform": {
-    //        "type": "web_renderer",
-    //        "url": "https://www.twitch.tv/", // or other way of providing source
-    //        "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
-    //    }
-    //}))?;
 
     info!("[example] Update scene");
     common::post(&json!({
         "type": "update_scene",
-        "inputs": [
-            {
-                "input_id": "input 1",
-                "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
-            }
-        ],
-        "transforms": [
+        "nodes": [
            {
-                "node_id": "side-by-side",
+                "node_id": "shader_1",
                 "type": "shader",
-                "shader_id": "example shader",
+                "shader_id": "example_shader",
                 "input_pads": [
-                    "input 1",
+                    "input_1",
                 ],
                 "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
            },
-           //  {
-           //      "node_id": "add-overlay",
-           //      "type": "web_renderer",
-           //      "renderer_id": "example website",
-           //      "input_pads": [
-           //          "input 1",
-           //      ],
-           //      "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
-           //  }
+
         ],
         "outputs": [
             {
-                "output_id": "output 1",
-                "input_pad": "side-by-side"
+                "output_id": "output_1",
+                "input_pad": "shader_1"
             }
         ]
     }))?;

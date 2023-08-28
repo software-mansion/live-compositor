@@ -34,7 +34,7 @@ fn main() {
         }
     });
 
-    http::Server::new(8001).start();
+    http::Server::new(8001).run();
 
     let mut signals = Signals::new([consts::SIGINT]).unwrap();
     signals.forever().next();
@@ -47,7 +47,9 @@ fn start_example_client_code() -> Result<()> {
     common::post(&json!({
         "type": "init",
         "framerate": FRAMERATE,
-        "init_web_renderer": false,
+        "web_renderer": {
+            "init": false
+        },
     }))?;
 
     info!("[example] Start listening on output port.");
@@ -60,8 +62,9 @@ fn start_example_client_code() -> Result<()> {
 
     info!("[example] Send register output request.");
     common::post(&json!({
-        "type": "register_output",
-        "id": "output 1",
+        "type": "register",
+        "entity_type": "output_stream",
+        "output_id": "output_1",
         "port": 8002,
         "ip": "127.0.0.1",
         "resolution": {
@@ -73,53 +76,19 @@ fn start_example_client_code() -> Result<()> {
         }
     }))?;
 
-    info!("[example] Send register input request.");
-    common::post(&json!({
-        "type": "register_input",
-        "id": "input 1",
-        "port": 8004
-    }))?;
-
     info!("[example] Register static image");
     common::post(&json!({
-        "type": "register_transformation",
-        "key": "example_image_1",
-        "transform": {
-            "type": "image",
-            "asset_type": "jpeg",
-            "url": "https://i.postimg.cc/NfkxF1SV/wp5220836.jpg",
-        }
-    }))?;
-
-    info!("[example] Register static image");
-    common::post(&json!({
-        "type": "register_transformation",
-        "key": "example_image_2",
-        "transform": {
-            "type": "image",
-            "asset_type": "jpeg",
-            "url": "https://i.postimg.cc/CxcvtJC5/pexels-rohi-bernard-codillo-17908342.jpg",
-        }
+        "type": "register",
+        "entity_type": "image",
+        "image_id": "example_image_2",
+        "asset_type": "jpeg",
+        "url": "https://i.postimg.cc/CxcvtJC5/pexels-rohi-bernard-codillo-17908342.jpg",
     }))?;
 
     info!("[example] Update scene");
     common::post(&json!({
         "type": "update_scene",
-        "inputs": [],
-        "transforms": [
-            // {
-            //     "node_id": "image_1",
-            //     "type": "image",
-            //     "image_id": "example_image_1",
-            // },
-            // {
-            //     "node_id": "filled_image_1",
-            //     "type": "built-in",
-            //     "transformation": "transform_to_resolution",
-            //     "strategy": "fill",
-            //     "resolution": { "width": 960, "height": 540 },
-            //     "input_pads": ["image_1"],
-            // },
+        "nodes": [
             {
                 "node_id": "image_2",
                 "type": "image",
@@ -167,7 +136,7 @@ fn start_example_client_code() -> Result<()> {
         ],
         "outputs": [
             {
-                "output_id": "output 1",
+                "output_id": "output_1",
                 "input_pad": "layout"
             },
         ]

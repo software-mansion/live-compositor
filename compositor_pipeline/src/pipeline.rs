@@ -1,12 +1,15 @@
 use std::collections::{hash_map, HashMap};
+use std::error::Error;
 use std::sync::Arc;
 use std::sync::{Mutex, MutexGuard};
 use std::thread;
 
+use compositor_common::renderer_spec::RendererSpec;
 use compositor_common::scene::{InputId, OutputId, SceneSpec};
-use compositor_common::transformation::{TransformationRegistryKey, TransformationSpec};
 use compositor_common::{Frame, Framerate};
-use compositor_render::renderer::{RendererNewError, RendererRegisterTransformationError};
+use compositor_render::event_loop::EventLoop;
+use compositor_render::renderer::{RendererInitError, RendererRegisterError};
+use compositor_render::WebRendererOptions;
 use compositor_render::{renderer::scene::SceneUpdateError, Renderer};
 use crossbeam_channel::unbounded;
 use log::{error, warn};
@@ -37,17 +40,21 @@ pub struct Pipeline<Input: PipelineInput, Output: PipelineOutput> {
 #[derive(Serialize, Deserialize)]
 pub struct Options {
     pub framerate: Framerate,
-    pub init_web_renderer: Option<bool>,
+    #[serde(default)]
+    pub web_renderer: WebRendererOptions,
 }
 
 impl<Input: PipelineInput, Output: PipelineOutput> Pipeline<Input, Output> {
-    pub fn new(opts: Options) -> Result<Self, RendererNewError> {
-        Ok(Pipeline {
+    pub fn new(opts: Options) -> Result<(Self, EventLoop), RendererInitError> {
+        let (renderer, event_loop) = Renderer::new(opts.web_renderer, opts.framerate)?;
+        let pipeline = Pipeline {
             outputs: OutputRegistry::new(),
             inputs: HashMap::new(),
             queue: Arc::new(Queue::new(opts.framerate)),
-            renderer: Renderer::new(opts.init_web_renderer.unwrap_or(true))?,
-        })
+            renderer,
+        };
+
+        Ok((pipeline, event_loop))
     }
 
     pub fn renderer(&self) -> &Renderer {
@@ -81,11 +88,12 @@ impl<Input: PipelineInput, Output: PipelineOutput> Pipeline<Input, Output> {
         }
 
         let scene_spec = self.renderer.scene_spec();
-        if scene_spec
-            .inputs
+        let is_still_in_use = scene_spec
+            .nodes
             .iter()
-            .any(|node| &node.input_id == input_id)
-        {
+            .flat_map(|node| &node.input_pads)
+            .any(|input_pad_id| &input_id.0 == input_pad_id);
+        if is_still_in_use {
             return Err(UnregisterInputError::StillInUse(input_id.clone()));
         }
 
@@ -113,11 +121,11 @@ impl<Input: PipelineInput, Output: PipelineOutput> Pipeline<Input, Output> {
         }
 
         let scene_spec = self.renderer.scene_spec();
-        if scene_spec
+        let is_still_in_use = scene_spec
             .outputs
             .iter()
-            .any(|node| &node.output_id == output_id)
-        {
+            .any(|node| &node.output_id == output_id);
+        if is_still_in_use {
             return Err(UnregisterOutputError::StillInUse(output_id.clone()));
         }
 
@@ -125,13 +133,11 @@ impl<Input: PipelineInput, Output: PipelineOutput> Pipeline<Input, Output> {
         Ok(())
     }
 
-    pub fn register_transformation(
+    pub fn register_renderer(
         &self,
-        key: TransformationRegistryKey,
-        transformation_spec: TransformationSpec,
-    ) -> Result<(), RendererRegisterTransformationError> {
-        self.renderer
-            .register_transformation(key, transformation_spec)?;
+        transformation_spec: RendererSpec,
+    ) -> Result<(), RendererRegisterError> {
+        self.renderer.register_renderer(transformation_spec)?;
         Ok(())
     }
 
@@ -154,14 +160,17 @@ impl<Input: PipelineInput, Output: PipelineOutput> Pipeline<Input, Output> {
 
         thread::spawn(move || {
             for input_frames in frames_receiver.iter() {
-                if frames_receiver.len() > 10 {
+                if frames_receiver.len() > 20 {
                     warn!("Dropping frame: render queue is too long.",);
                     continue;
                 }
 
                 let output = renderer.render(input_frames);
                 let Ok(output_frames) = output else {
-                    error!("Error while rendering: {}", output.unwrap_err());
+                    error!(
+                        "Error while rendering: {}",
+                        output.unwrap_err().source().unwrap()
+                    );
                     continue;
                 };
 

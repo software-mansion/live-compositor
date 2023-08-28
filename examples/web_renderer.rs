@@ -1,8 +1,8 @@
 use anyhow::Result;
+use compositor_chromium::cef;
 use compositor_common::{scene::Resolution, Framerate};
 use log::{error, info};
 use serde_json::json;
-use signal_hook::{consts, iterator::Signals};
 use std::{process::Command, thread, time::Duration};
 use video_compositor::http;
 
@@ -23,16 +23,23 @@ fn main() {
     );
     ffmpeg_next::format::network::init();
 
+    let target_path = &std::env::current_exe()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .join("..");
+
+    if cef::bundle_app(target_path).is_err() {
+        panic!("Build process helper first: cargo build --bin process_helper");
+    }
+
     thread::spawn(|| {
         if let Err(err) = start_example_client_code() {
             error!("{err}")
         }
     });
 
-    http::Server::new(8001).start();
-
-    let mut signals = Signals::new([consts::SIGINT]).unwrap();
-    signals.forever().next();
+    http::Server::new(8001).run();
 }
 
 fn start_example_client_code() -> Result<()> {
@@ -52,8 +59,9 @@ fn start_example_client_code() -> Result<()> {
 
     info!("[example] Send register output request.");
     common::post(&json!({
-        "type": "register_output",
-        "id": "output 1",
+        "type": "register",
+        "entity_type": "output_stream",
+        "output_id": "output_1",
         "port": 8002,
         "ip": "127.0.0.1",
         "resolution": {
@@ -68,35 +76,29 @@ fn start_example_client_code() -> Result<()> {
     let shader_source = include_str!("../compositor_render/examples/silly/silly.wgsl");
     info!("[example] Register shader transform");
     common::post(&json!({
-        "type": "register_transformation",
-        "key": "example shader",
-        "transform": {
-            "type": "shader",
-            "source": shader_source,
-        }
+        "type": "register",
+        "entity_type": "shader",
+        "shader_id": "example_shader",
+        "source": shader_source,
     }))?;
 
     info!("[example] Register web renderer transform");
     common::post(&json!({
-        "type": "register_transformation",
-        "key": "example website",
-        "transform": {
-            "type": "web_renderer",
-            "url": "https://www.twitch.tv/", // or other way of providing source
-            "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
-        }
+        "type": "register",
+        "entity_type": "web_renderer",
+        "instance_id": "example_website",
+        "url": "https://www.membrane.stream/", // or other way of providing source
+        "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
     }))?;
 
     info!("[example] Update scene");
     common::post(&json!({
         "type": "update_scene",
-        "inputs": [
-        ],
-        "transforms": [
+        "nodes": [
            {
                "node_id": "shader_1",
                "type": "shader",
-               "shader_id": "example shader",
+               "shader_id": "example_shader",
                "input_pads": [
                    "web_renderer_1",
                ],
@@ -105,13 +107,13 @@ fn start_example_client_code() -> Result<()> {
            {
                "node_id": "web_renderer_1",
                "type": "web_renderer",
-               "renderer_id": "example website",
+               "instance_id": "example_website",
                "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
            }
         ],
         "outputs": [
             {
-                "output_id": "output 1",
+                "output_id": "output_1",
                 "input_pad": "shader_1"
             }
         ]

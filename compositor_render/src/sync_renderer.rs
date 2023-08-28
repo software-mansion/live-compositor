@@ -1,51 +1,57 @@
 use std::sync::{Arc, Mutex};
 
 use compositor_common::{
+    renderer_spec::RendererSpec,
     scene::{InputId, OutputId, SceneSpec},
-    transformation::{TransformationRegistryKey, TransformationSpec},
+    Framerate,
 };
 
 use crate::{
+    event_loop::EventLoop,
     frame_set::FrameSet,
     renderer::{
-        scene::SceneUpdateError, RenderError, Renderer, RendererNewError,
-        RendererRegisterTransformationError,
+        scene::SceneUpdateError, RenderError, Renderer, RendererInitError, RendererRegisterError,
     },
     transformations::{image_renderer::Image, shader::Shader, web_renderer::WebRenderer},
+    WebRendererOptions,
 };
 
 #[derive(Clone)]
 pub struct SyncRenderer(Arc<Mutex<Renderer>>);
 
 impl SyncRenderer {
-    pub fn new(init_web: bool) -> Result<Self, RendererNewError> {
-        Ok(Self(Arc::new(Mutex::new(Renderer::new(init_web)?))))
+    pub fn new(
+        web_renderer_opts: WebRendererOptions,
+        web_renderer_framerate: Framerate,
+    ) -> Result<(Self, EventLoop), RendererInitError> {
+        let renderer = Renderer::new(web_renderer_opts, web_renderer_framerate)?;
+        let event_loop = EventLoop::new(renderer.chromium_context.cef_context());
+
+        Ok((Self(Arc::new(Mutex::new(renderer))), event_loop))
     }
 
-    pub fn register_transformation(
-        &self,
-        key: TransformationRegistryKey,
-        spec: TransformationSpec,
-    ) -> Result<(), RendererRegisterTransformationError> {
-        let ctx = self.0.lock().unwrap().register_transformation_ctx();
+    pub fn register_renderer(&self, spec: RendererSpec) -> Result<(), RendererRegisterError> {
+        let ctx = self.0.lock().unwrap().register_ctx();
         match spec {
-            TransformationSpec::Shader { source } => {
-                let shader = Arc::new(Shader::new(&ctx.wgpu_ctx, source)?);
+            RendererSpec::Shader(spec) => {
+                let shader = Arc::new(Shader::new(&ctx.wgpu_ctx, spec.source)?);
 
                 let mut guard = self.0.lock().unwrap();
-                guard.shader_transforms.register(&key, shader)?
+                guard.shader_registry.register(spec.shader_id, shader)?
             }
-            TransformationSpec::WebRenderer(params) => {
+            RendererSpec::WebRenderer(params) => {
+                let instance_id = params.instance_id.clone();
                 let web = Arc::new(WebRenderer::new(&ctx, params)?);
 
                 let mut guard = self.0.lock().unwrap();
-                guard.web_renderers.register(&key, web)?
+                guard.web_renderers.register(instance_id, web)?
             }
-            TransformationSpec::Image(spec) => {
-                let asset = Arc::new(Image::new(&ctx, spec)?);
+            RendererSpec::Image(spec) => {
+                let image_id = spec.image_id.clone();
+                let asset = Image::new(&ctx, spec)?;
 
                 let mut guard = self.0.lock().unwrap();
-                guard.image_registry.register(&key, asset)?
+                guard.image_registry.register(image_id, asset)?
             }
         }
         Ok(())
