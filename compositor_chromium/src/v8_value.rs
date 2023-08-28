@@ -87,7 +87,7 @@ impl V8Value {
         ptr: *mut u8,
         ptr_len: usize,
     ) -> Self {
-        // We do not delete the buffer because it's not owned by us
+        // We do not delete the buffer because it's not owned by this function
         let release_callback = V8ArrayBufferReleaseCallback::DoNotDelete;
         let inner = unsafe {
             chromium_sys::cef_v8value_create_array_buffer(

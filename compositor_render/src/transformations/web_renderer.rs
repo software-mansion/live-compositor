@@ -23,6 +23,7 @@ mod non_sync_send_handler;
 
 pub const EMBED_SOURCE_FRAMES_MESSAGE: &str = "EMBED_SOURCE_FRAMES";
 pub const UNEMBED_SOURCE_FRAMES_MESSAGE: &str = "UNEMBED_SOURCE_FRAMES";
+
 pub const SHMEM_FOLDER_PATH: &str = "shmem";
 
 #[derive(Serialize, Deserialize)]

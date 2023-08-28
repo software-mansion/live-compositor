@@ -55,7 +55,7 @@ impl BrowserController {
                 .rgba_texture()
                 .download_buffer()
                 .ok_or(EmbedFrameError::ExpectDownloadBuffer)?;
-            pending_downloads.push(self.download_buffer((*id).clone(), size, buffer));
+            pending_downloads.push(self.download_buffer_to_shmem((*id).clone(), size, buffer));
         }
 
         ctx.wgpu_ctx.device.poll(wgpu::Maintain::Wait);
@@ -90,7 +90,7 @@ impl BrowserController {
         Ok(())
     }
 
-    fn download_buffer(
+    fn download_buffer_to_shmem(
         &self,
         id: NodeId,
         size: wgpu::Extent3d,
