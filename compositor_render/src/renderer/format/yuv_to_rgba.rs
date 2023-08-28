@@ -87,9 +87,8 @@ impl YUVToRGBAConverter {
             render_pass.set_pipeline(&self.pipeline);
             render_pass.set_bind_group(0, src.1, &[]);
             render_pass.set_bind_group(1, &self.sampler.bind_group, &[]);
-            render_pass.set_vertex_buffer(0, self.planes.vertices(1));
-            render_pass.set_index_buffer(self.planes.indices(1), GeometryPlanes::INDEX_FORMAT);
-            render_pass.draw_indexed(0..GeometryPlanes::indices_len(1), 0, 0..1);
+            
+            self.planes.draw_planes(&mut render_pass, 1);
         }
 
         ctx.queue.submit(Some(encoder.finish()));

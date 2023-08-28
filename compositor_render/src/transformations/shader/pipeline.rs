@@ -132,23 +132,12 @@ impl Pipeline {
                 common_parameters.push_constant(),
             );
 
-            render_pass
-                .set_vertex_buffer(0, self.planes.vertices(common_parameters.textures_count));
-
-            render_pass.set_index_buffer(
-                self.planes.indices(common_parameters.textures_count),
-                GeometryPlanes::INDEX_FORMAT,
-            );
-
             render_pass.set_bind_group(0, inputs, &[]);
             render_pass.set_bind_group(1, uniforms, &[]);
             render_pass.set_bind_group(2, &self.sampler.bind_group, &[]);
 
-            render_pass.draw_indexed(
-                0..GeometryPlanes::indices_len(common_parameters.textures_count),
-                0,
-                0..1,
-            );
+            self.planes
+                .draw_planes(&mut render_pass, common_parameters.textures_count);
         }
 
         // TODO: this should not submit, it should return the command buffer.

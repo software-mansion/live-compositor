@@ -81,9 +81,7 @@ impl R8FillWithValue {
 
             render_pass.set_pipeline(&self.pipeline);
             render_pass.set_push_constants(ShaderStages::FRAGMENT, 0, bytemuck::bytes_of(&value));
-            render_pass.set_vertex_buffer(0, self.planes.vertices(1));
-            render_pass.set_index_buffer(self.planes.indices(1), GeometryPlanes::INDEX_FORMAT);
-            render_pass.draw_indexed(0..GeometryPlanes::indices_len(1), 0, 0..1);
+            self.planes.draw_planes(&mut render_pass, 1)
         }
 
         ctx.queue.submit(Some(encoder.finish()));

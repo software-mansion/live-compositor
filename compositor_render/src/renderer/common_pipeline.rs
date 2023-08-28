@@ -181,7 +181,19 @@ impl GeometryPlanes {
         }
     }
 
-    pub fn vertices(&self, input_textures_count: u32) -> BufferSlice {
+    pub fn draw_planes<'a>(
+        &'a self,
+        render_pass: &mut wgpu::RenderPass<'a>,
+        input_textures_count: u32,
+    ) {
+        render_pass.set_vertex_buffer(0, self.vertices(input_textures_count));
+
+        render_pass.set_index_buffer(self.indices(input_textures_count), Self::INDEX_FORMAT);
+
+        render_pass.draw_indexed(0..Self::indices_len(input_textures_count), 0, 0..1);
+    }
+
+    fn vertices(&self, input_textures_count: u32) -> BufferSlice {
         if input_textures_count == 0 {
             self.no_inputs_vertices.slice(..)
         } else {
@@ -191,7 +203,7 @@ impl GeometryPlanes {
         }
     }
 
-    pub fn indices(&self, input_textures_count: u32) -> BufferSlice {
+    fn indices(&self, input_textures_count: u32) -> BufferSlice {
         if input_textures_count == 0 {
             self.no_inputs_indices.slice(..)
         } else {
@@ -201,7 +213,7 @@ impl GeometryPlanes {
         }
     }
 
-    pub fn indices_len(input_textures_count: u32) -> u32 {
+    fn indices_len(input_textures_count: u32) -> u32 {
         if input_textures_count == 0 {
             6
         } else {
