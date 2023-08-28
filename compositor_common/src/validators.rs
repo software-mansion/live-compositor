@@ -225,7 +225,15 @@ impl SceneSpec {
         for (&node_id, &node_spec) in transform_nodes {
             if let NodeParams::Builtin { transformation, .. } = &node_spec.params {
                 match transformation {
-                    BuiltinTransformationSpec::TransformToResolution(_) => {}
+                    BuiltinTransformationSpec::TransformToResolution(_) => {
+                        if node_spec.input_pads.len() == 1 {
+                            return Err(SpecValidationError::InvalidBuiltinParams(
+                                node_id.clone(),
+                                transformation.clone(),
+                                Arc::from("input_pads should contain only a single node"),
+                            ));
+                        }
+                    }
                     BuiltinTransformationSpec::FixedPositionLayout {
                         textures_layouts, ..
                     } => {
