@@ -36,7 +36,7 @@ impl Vertex {
     }
 }
 
-pub struct InputTexturesPlanes {
+pub struct GeometryPlanes {
     inputs_vertices: Buffer,
     inputs_indices: Buffer,
     no_inputs_vertices: Buffer,
@@ -100,7 +100,7 @@ macro_rules! const_indices {
 }
 
 /// Vertex and index buffer that describe render area as an rectangle mapped to texture.
-impl InputTexturesPlanes {
+impl GeometryPlanes {
     /// Vertices of texture planes passed to the vertex shader.
     /// Each plane has 4 vertices
     const INPUTS_VERTICES: [Vertex; 4 * MAX_TEXTURES_COUNT as usize] =

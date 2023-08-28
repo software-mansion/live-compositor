@@ -1,5 +1,5 @@
 use crate::renderer::{
-    common_pipeline::{InputTexturesPlanes, Sampler, Vertex, PRIMITIVE_STATE},
+    common_pipeline::{GeometryPlanes, Sampler, Vertex, PRIMITIVE_STATE},
     texture::{RGBATexture, YUVTextures},
 };
 
@@ -8,7 +8,7 @@ use super::WgpuCtx;
 pub struct YUVToRGBAConverter {
     pipeline: wgpu::RenderPipeline,
     sampler: Sampler,
-    buffers: InputTexturesPlanes,
+    planes: GeometryPlanes,
 }
 
 impl YUVToRGBAConverter {
@@ -18,7 +18,7 @@ impl YUVToRGBAConverter {
     ) -> Self {
         let shader_module = device.create_shader_module(wgpu::include_wgsl!("yuv_to_rgba.wgsl"));
         let sampler = Sampler::new(device);
-        let buffers = InputTexturesPlanes::new(device);
+        let buffers = GeometryPlanes::new(device);
 
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("YUV to RGBA color converter render pipeline layout"),
@@ -59,7 +59,7 @@ impl YUVToRGBAConverter {
         Self {
             pipeline,
             sampler,
-            buffers,
+            planes: buffers,
         }
     }
 
@@ -87,10 +87,9 @@ impl YUVToRGBAConverter {
             render_pass.set_pipeline(&self.pipeline);
             render_pass.set_bind_group(0, src.1, &[]);
             render_pass.set_bind_group(1, &self.sampler.bind_group, &[]);
-            render_pass.set_vertex_buffer(0, self.buffers.vertices(1));
-            render_pass
-                .set_index_buffer(self.buffers.indices(1), InputTexturesPlanes::INDEX_FORMAT);
-            render_pass.draw_indexed(0..InputTexturesPlanes::indices_len(1), 0, 0..1);
+            render_pass.set_vertex_buffer(0, self.planes.vertices(1));
+            render_pass.set_index_buffer(self.planes.indices(1), GeometryPlanes::INDEX_FORMAT);
+            render_pass.draw_indexed(0..GeometryPlanes::indices_len(1), 0, 0..1);
         }
 
         ctx.queue.submit(Some(encoder.finish()));

@@ -1,20 +1,20 @@
 use wgpu::ShaderStages;
 
 use crate::renderer::{
-    common_pipeline::{InputTexturesPlanes, Vertex, PRIMITIVE_STATE},
+    common_pipeline::{GeometryPlanes, Vertex, PRIMITIVE_STATE},
     texture::Texture,
     WgpuCtx,
 };
 
 pub struct R8FillWithValue {
     pipeline: wgpu::RenderPipeline,
-    buffers: InputTexturesPlanes,
+    planes: GeometryPlanes,
 }
 
 impl R8FillWithValue {
     pub fn new(device: &wgpu::Device) -> Self {
         let shader_module = device.create_shader_module(wgpu::include_wgsl!("r8_fill_value.wgsl"));
-        let buffers = InputTexturesPlanes::new(device);
+        let buffers = GeometryPlanes::new(device);
 
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("Fill with value render pipeline layout"),
@@ -52,7 +52,10 @@ impl R8FillWithValue {
             multiview: None,
         });
 
-        Self { pipeline, buffers }
+        Self {
+            pipeline,
+            planes: buffers,
+        }
     }
 
     pub fn fill(&self, ctx: &WgpuCtx, dst: &Texture, value: f32) {
@@ -78,10 +81,9 @@ impl R8FillWithValue {
 
             render_pass.set_pipeline(&self.pipeline);
             render_pass.set_push_constants(ShaderStages::FRAGMENT, 0, bytemuck::bytes_of(&value));
-            render_pass.set_vertex_buffer(0, self.buffers.vertices(1));
-            render_pass
-                .set_index_buffer(self.buffers.indices(1), InputTexturesPlanes::INDEX_FORMAT);
-            render_pass.draw_indexed(0..InputTexturesPlanes::indices_len(1), 0, 0..1);
+            render_pass.set_vertex_buffer(0, self.planes.vertices(1));
+            render_pass.set_index_buffer(self.planes.indices(1), GeometryPlanes::INDEX_FORMAT);
+            render_pass.draw_indexed(0..GeometryPlanes::indices_len(1), 0, 0..1);
         }
 
         ctx.queue.submit(Some(encoder.finish()));

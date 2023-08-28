@@ -3,7 +3,7 @@ use std::num::NonZeroU32;
 use wgpu::ShaderStages;
 
 use crate::renderer::{
-    common_pipeline::{InputTexturesPlanes, Sampler, Vertex},
+    common_pipeline::{GeometryPlanes, Sampler, Vertex},
     texture::Texture,
     CommonShaderParameters, WgpuCtx,
 };
@@ -12,7 +12,7 @@ use super::INPUT_TEXTURES_AMOUNT;
 
 pub struct Pipeline {
     pipeline: wgpu::RenderPipeline,
-    geometry_buffers: InputTexturesPlanes,
+    planes: GeometryPlanes,
     sampler: Sampler,
     pub(super) textures_bgl: wgpu::BindGroupLayout,
 }
@@ -53,7 +53,7 @@ impl Pipeline {
             source: shader_source,
         });
 
-        let geometry_buffers = InputTexturesPlanes::new(device);
+        let geometry_buffers = GeometryPlanes::new(device);
 
         let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("shader transformation pipeline :^)"),
@@ -93,7 +93,7 @@ impl Pipeline {
         Self {
             pipeline,
             sampler,
-            geometry_buffers,
+            planes: geometry_buffers,
             textures_bgl,
         }
     }
@@ -132,16 +132,12 @@ impl Pipeline {
                 common_parameters.push_constant(),
             );
 
-            render_pass.set_vertex_buffer(
-                0,
-                self.geometry_buffers
-                    .vertices(common_parameters.textures_count),
-            );
+            render_pass
+                .set_vertex_buffer(0, self.planes.vertices(common_parameters.textures_count));
 
             render_pass.set_index_buffer(
-                self.geometry_buffers
-                    .indices(common_parameters.textures_count),
-                InputTexturesPlanes::INDEX_FORMAT,
+                self.planes.indices(common_parameters.textures_count),
+                GeometryPlanes::INDEX_FORMAT,
             );
 
             render_pass.set_bind_group(0, inputs, &[]);
@@ -149,7 +145,7 @@ impl Pipeline {
             render_pass.set_bind_group(2, &self.sampler.bind_group, &[]);
 
             render_pass.draw_indexed(
-                0..InputTexturesPlanes::indices_len(common_parameters.textures_count),
+                0..GeometryPlanes::indices_len(common_parameters.textures_count),
                 0,
                 0..1,
             );
