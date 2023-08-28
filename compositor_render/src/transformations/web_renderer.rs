@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 
 use crate::renderer::{
     texture::{BGRATexture, NodeTexture},
@@ -19,6 +19,11 @@ use self::{
 
 pub mod browser;
 pub mod chromium;
+mod non_sync_send_handler;
+
+pub const EMBED_SOURCE_FRAMES_MESSAGE: &str = "EMBED_SOURCE_FRAMES";
+pub const UNEMBED_SOURCE_FRAMES_MESSAGE: &str = "UNEMBED_SOURCE_FRAMES";
+pub const SHMEM_FOLDER_PATH: &str = "shmem";
 
 #[derive(Serialize, Deserialize)]
 #[serde(default)]
@@ -75,12 +80,10 @@ impl WebRenderer {
         &self,
         ctx: &RenderCtx,
         sources: &[(&NodeId, &NodeTexture)],
-        buffers: &[Arc<wgpu::Buffer>],
         target: &NodeTexture,
     ) -> Result<(), WebRendererRenderError> {
         let mut controller = self.controller.lock().unwrap();
-        self.copy_sources_to_buffers(ctx, sources, buffers);
-        controller.send_sources(ctx, sources, buffers)?;
+        controller.send_sources(ctx, sources)?;
 
         if let Some(frame) = controller.retrieve_frame() {
             self.bgra_texture.upload(ctx.wgpu_ctx, frame);
@@ -94,23 +97,6 @@ impl WebRenderer {
         Ok(())
     }
 
-    fn copy_sources_to_buffers(
-        &self,
-        ctx: &RenderCtx,
-        sources: &[(&NodeId, &NodeTexture)],
-        buffers: &[Arc<wgpu::Buffer>],
-    ) {
-        let mut encoder = ctx
-            .wgpu_ctx
-            .device
-            .create_command_encoder(&Default::default());
-
-        for ((_id, texture), buffer) in sources.iter().zip(buffers) {
-            texture.rgba_texture().copy_to_buffer(&mut encoder, buffer);
-        }
-        ctx.wgpu_ctx.queue.submit(Some(encoder.finish()));
-    }
-
     pub fn resolution(&self) -> Resolution {
         self.params.resolution
     }
@@ -119,14 +105,17 @@ impl WebRenderer {
 #[derive(Debug, thiserror::Error)]
 pub enum WebRendererNewError {
     #[error("Failed to create new web renderer session")]
-    CreateContextFailure(#[from] ChromiumContextError),
+    CreateContext(#[from] ChromiumContextError),
 
     #[error("Failed to create browser controller")]
-    CreateBrowserControllerFailure(#[from] BrowserControllerNewError),
+    CreateBrowserController(#[from] BrowserControllerNewError),
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum WebRendererRenderError {
     #[error("Failed to embed sources")]
     EmbedSources(#[from] EmbedFrameError),
+
+    #[error("Download buffer does not exist")]
+    ExpectDownloadBuffer,
 }

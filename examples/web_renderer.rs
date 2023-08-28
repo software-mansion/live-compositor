@@ -19,11 +19,6 @@ mod common;
 const SAMPLE_FILE_URL: &str =
     "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_10mb.mp4";
 const SAMPLE_FILE_PATH: &str = "examples/assets/big_buck_bunny_720p_10mb.mp4";
-const SAMPLE_RESOLUTION: Resolution = Resolution {
-    width: 1280,
-    height: 720,
-};
-
 const HTML_FILE_PATH: &str = "examples/web_renderer.html";
 
 const VIDEO_RESOLUTION: Resolution = Resolution {

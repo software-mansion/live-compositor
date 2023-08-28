@@ -1,5 +1,7 @@
 use compositor_chromium::cef;
-use compositor_render::{EMBED_SOURCE_FRAMES_MESSAGE, SHMEM_FOLDER_PATH};
+use compositor_render::{
+    EMBED_SOURCE_FRAMES_MESSAGE, SHMEM_FOLDER_PATH, UNEMBED_SOURCE_FRAMES_MESSAGE,
+};
 use log::{error, info};
 use shared_memory::{Shmem, ShmemConf};
 use std::{cell::RefCell, collections::HashMap, error::Error, path::PathBuf, rc::Rc};
@@ -42,6 +44,7 @@ impl cef::RenderProcessHandler for RenderProcessHandler {
     ) -> bool {
         match message.name().as_str() {
             EMBED_SOURCE_FRAMES_MESSAGE => self.handle_embed_sources(message, frame),
+            UNEMBED_SOURCE_FRAMES_MESSAGE => self.handle_unembed_source(message, frame),
             name => error!("Unknown message type: {name}"),
         }
         false
@@ -49,7 +52,7 @@ impl cef::RenderProcessHandler for RenderProcessHandler {
 }
 
 impl RenderProcessHandler {
-    fn handle_embed_sources(&mut self, msg: &cef::ProcessMessage, surface: &cef::Frame) {
+    fn handle_embed_sources(&self, msg: &cef::ProcessMessage, surface: &cef::Frame) {
         let ctx = surface.v8_context().unwrap();
         let ctx_entered = ctx.enter().unwrap();
         let mut global_object = ctx.global().unwrap();
@@ -83,7 +86,7 @@ impl RenderProcessHandler {
     }
 
     fn embed_frame(
-        &mut self,
+        &self,
         source_id: String,
         width: i32,
         height: i32,
@@ -99,6 +102,7 @@ impl RenderProcessHandler {
             unsafe { cef::V8Value::array_buffer_from_ptr(ctx_entered, data_ptr, shmem.len()) };
 
         // TODO: Figure out emedding API
+        // NOTE TO REVIEWERS: The section below is not part of this PR
         // Currently we pass frame data, width and height to JS context.
         // User has to handle this data manually. This approach is not really ergonomic and elegant
         global_object
@@ -133,6 +137,22 @@ impl RenderProcessHandler {
                 _array_buffer: array_buffer,
             },
         );
+    }
+
+    fn handle_unembed_source(&self, msg: &cef::ProcessMessage, surface: &cef::Frame) {
+        let Some(source_id) = msg.read_string(0) else {
+            error!("Failed to read source ID");
+            return;
+        };
+
+        let ctx = surface.v8_context().unwrap();
+        let ctx_entered = ctx.enter().unwrap();
+        let mut global_object = ctx.global().unwrap();
+        global_object
+            .delete_value_by_key(&ctx_entered, &source_id)
+            .unwrap();
+
+        self.states.borrow_mut().remove(&source_id).unwrap();
     }
 }
 

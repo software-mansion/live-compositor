@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use compositor_common::scene::Resolution;
 
 use crate::renderer::WgpuCtx;
@@ -55,8 +57,16 @@ impl RGBATexture {
         self.0.upload_data(&ctx.queue, data, 4);
     }
 
-    pub fn new_download_buffer(&self, ctx: &WgpuCtx) -> wgpu::Buffer {
-        self.0.new_download_buffer(ctx)
+    pub fn ensure_download_buffer(&mut self, ctx: &WgpuCtx) {
+        self.0.ensure_download_buffer(ctx);
+    }
+
+    pub fn download_buffer(&self) -> Option<Arc<wgpu::Buffer>> {
+        self.0.download_buffer()
+    }
+
+    pub fn has_download_buffer(&self) -> bool {
+        self.0.has_download_buffer()
     }
 
     pub fn copy_to_buffer(&self, encoder: &mut wgpu::CommandEncoder, buffer: &wgpu::Buffer) {

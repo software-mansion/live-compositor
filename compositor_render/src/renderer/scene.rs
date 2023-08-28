@@ -21,10 +21,7 @@ use super::{
 
 pub enum RenderNode {
     Shader(ShaderNode),
-    Web {
-        renderer: Arc<WebRenderer>,
-        buffers: Vec<Arc<wgpu::Buffer>>,
-    },
+    Web { renderer: Arc<WebRenderer> },
     Text(TextRendererNode),
     Image(ImageNode),
     Builtin(ShaderNode),
@@ -35,14 +32,12 @@ impl RenderNode {
     fn new(ctx: &RenderCtx, spec: &NodeParams, inputs: &[Arc<Node>]) -> Result<Self, GetError> {
         match spec {
             NodeParams::WebRenderer { instance_id } => {
+                for input in inputs {
+                    input.output.ensure_download_buffer(ctx.wgpu_ctx);
+                }
+
                 let renderer = ctx.web_renderers.get(instance_id)?;
-                let buffers = inputs
-                    .iter()
-                    .map(|node| {
-                        Arc::new(node.output.rgba_texture().new_download_buffer(ctx.wgpu_ctx))
-                    })
-                    .collect();
-                Ok(Self::Web { renderer, buffers })
+                Ok(Self::Web { renderer })
             }
             NodeParams::Shader {
                 shader_id,
@@ -87,12 +82,10 @@ impl RenderNode {
         pts: Duration,
     ) {
         match self {
-            RenderNode::Shader(shader) => {
-                shader.render(sources, target, pts);
-            }
+            RenderNode::Shader(shader) => shader.render(sources, target, pts),
             RenderNode::Builtin(shader) => shader.render(sources, target, pts),
-            RenderNode::Web { renderer, buffers } => {
-                if let Err(err) = renderer.render(ctx, sources, buffers, target) {
+            RenderNode::Web { renderer } => {
+                if let Err(err) = renderer.render(ctx, sources, target) {
                     error!("Failed to run web render: {err}");
                 }
             }

@@ -84,9 +84,13 @@ struct InnerNodeTexture {
 }
 
 impl InnerNodeTexture {
-    pub fn new(ctx: &WgpuCtx, resolution: Resolution) -> Self {
-        let texture = RGBATexture::new(ctx, resolution);
+    pub fn new(ctx: &WgpuCtx, resolution: Resolution, create_download_buffer: bool) -> Self {
+        let mut texture = RGBATexture::new(ctx, resolution);
         let bind_group = texture.new_bind_group(ctx, ctx.format.rgba_layout());
+
+        if create_download_buffer {
+            texture.ensure_download_buffer(ctx);
+        }
 
         Self {
             texture: Arc::new(texture),
@@ -102,14 +106,24 @@ pub struct NodeTexture {
 impl NodeTexture {
     pub fn new(ctx: &WgpuCtx, resolution: Resolution) -> Self {
         Self {
-            inner: InnerNodeTexture::new(ctx, resolution).into(),
+            inner: InnerNodeTexture::new(ctx, resolution, false).into(),
         }
     }
 
     pub fn ensure_size(&self, ctx: &WgpuCtx, resolution: Resolution) {
         if resolution != self.resolution() {
-            let new_inner = InnerNodeTexture::new(ctx, resolution);
             let mut guard = self.inner.lock().unwrap();
+            let new_inner =
+                InnerNodeTexture::new(ctx, resolution, guard.texture.has_download_buffer());
+            *guard = new_inner;
+        }
+    }
+
+    pub fn ensure_download_buffer(&self, ctx: &WgpuCtx) {
+        let resolution = self.resolution();
+        let mut guard = self.inner.lock().unwrap();
+        if !guard.texture.has_download_buffer() {
+            let new_inner = InnerNodeTexture::new(ctx, resolution, true);
             *guard = new_inner;
         }
     }
@@ -135,13 +149,13 @@ impl NodeTexture {
 
 pub struct OutputTexture {
     textures: YUVTextures,
-    buffers: [wgpu::Buffer; 3],
+    buffers: [Arc<wgpu::Buffer>; 3],
     resolution: Resolution,
 }
 
 impl OutputTexture {
     pub fn new(ctx: &WgpuCtx, resolution: Resolution) -> Self {
-        let textures = YUVTextures::new(ctx, resolution);
+        let mut textures = YUVTextures::new(ctx, resolution);
         let buffers = textures.new_download_buffers(ctx);
         Self {
             textures,

@@ -32,6 +32,19 @@ impl V8Value {
         }
     }
 
+    pub fn delete_value_by_key(
+        &mut self,
+        _context_entered: &V8ContextEntered,
+        key: &str,
+    ) -> Result<bool, V8ValueError> {
+        let key = CefString::new_raw(key);
+        unsafe {
+            let self_value = self.inner.get()?;
+            let delete_value = (*self_value).delete_value_bykey.unwrap();
+            Ok(delete_value(self_value, &key) == 1)
+        }
+    }
+
     pub fn new_string(data: &str) -> Self {
         let data = CefString::new_raw(data);
         let inner = unsafe { chromium_sys::cef_v8value_create_string(&data) };

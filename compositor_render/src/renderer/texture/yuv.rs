@@ -1,4 +1,4 @@
-use std::marker::PhantomData;
+use std::{marker::PhantomData, sync::Arc};
 
 use bytes::Bytes;
 use compositor_common::{frame::YuvData, scene::Resolution};
@@ -117,15 +117,19 @@ impl YUVTextures {
         })
     }
 
-    pub(super) fn new_download_buffers(&self, ctx: &WgpuCtx) -> [Buffer; 3] {
+    pub(super) fn new_download_buffers(&mut self, ctx: &WgpuCtx) -> [Arc<Buffer>; 3] {
+        for plane in self.planes.iter_mut() {
+            plane.ensure_download_buffer(ctx);
+        }
+
         [
-            self.planes[0].new_download_buffer(ctx),
-            self.planes[1].new_download_buffer(ctx),
-            self.planes[2].new_download_buffer(ctx),
+            self.planes[0].download_buffer().unwrap(),
+            self.planes[1].download_buffer().unwrap(),
+            self.planes[2].download_buffer().unwrap(),
         ]
     }
 
-    pub(super) fn copy_to_buffers(&self, ctx: &WgpuCtx, buffers: &[Buffer; 3]) {
+    pub(super) fn copy_to_buffers(&self, ctx: &WgpuCtx, buffers: &[Arc<Buffer>; 3]) {
         let mut encoder = ctx
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor {

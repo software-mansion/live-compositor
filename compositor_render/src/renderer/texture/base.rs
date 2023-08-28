@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::renderer::WgpuCtx;
 
 use super::utils::pad_to_256;
@@ -5,6 +7,7 @@ use super::utils::pad_to_256;
 pub struct Texture {
     pub texture: wgpu::Texture,
     pub view: wgpu::TextureView,
+    download_buffer: Option<Arc<wgpu::Buffer>>,
 }
 
 impl Texture {
@@ -33,7 +36,11 @@ impl Texture {
 
         let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
 
-        Self { texture, view }
+        Self {
+            texture,
+            view,
+            download_buffer: None,
+        }
     }
 
     pub fn size(&self) -> wgpu::Extent3d {
@@ -63,16 +70,28 @@ impl Texture {
         self.texture.format().block_size(None)
     }
 
-    pub(super) fn new_download_buffer(&self, ctx: &WgpuCtx) -> wgpu::Buffer {
+    pub(super) fn ensure_download_buffer(&mut self, ctx: &WgpuCtx) {
+        if self.download_buffer.is_some() {
+            return;
+        }
         let size = self.size();
         let block_size = self.block_size().unwrap();
 
-        ctx.device.create_buffer(&wgpu::BufferDescriptor {
+        let buffer = ctx.device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("texture buffer"),
             mapped_at_creation: false,
             usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
             size: (block_size * pad_to_256(size.width) * size.height) as u64,
-        })
+        });
+        self.download_buffer = Some(Arc::new(buffer));
+    }
+
+    pub(super) fn download_buffer(&self) -> Option<Arc<wgpu::Buffer>> {
+        self.download_buffer.clone()
+    }
+
+    pub(super) fn has_download_buffer(&self) -> bool {
+        self.download_buffer.is_some()
     }
 
     /// [`wgpu::Queue::submit`] has to be called afterwards

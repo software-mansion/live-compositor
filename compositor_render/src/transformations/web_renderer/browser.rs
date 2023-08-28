@@ -1,33 +1,18 @@
-use std::{
-    collections::HashMap,
-    io,
-    path::{Path, PathBuf},
-    sync::Arc,
-    thread,
-};
+use std::{io, sync::Arc};
 
 use compositor_chromium::cef;
 use compositor_common::scene::{NodeId, Resolution};
 use crossbeam_channel::{bounded, Receiver, Sender};
 use log::error;
-use shared_memory::{ShmemConf, ShmemError};
+use shared_memory::ShmemError;
 
-use crate::renderer::{
-    texture::{utils::pad_to_256, NodeTexture},
-    RenderCtx,
-};
+use crate::renderer::{texture::NodeTexture, RenderCtx};
 
-use super::chromium::ChromiumContext;
-
-pub const EMBED_SOURCE_FRAMES_MESSAGE: &str = "EMBED_SOURCE_FRAMES";
-pub const SHMEM_FOLDER_PATH: &str = "shmem";
+use super::{chromium::ChromiumContext, non_sync_send_handler::NonSyncSendHandler};
 
 pub(super) struct BrowserController {
     painted_frames_receiver: Receiver<Vec<u8>>,
-    register_embed_sender: Sender<Vec<(NodeId, Resolution)>>,
-    shmem_update_sender: Sender<(NodeId, Arc<wgpu::Buffer>, wgpu::Extent3d)>,
-    /// Used for synchronizing buffer map and unmap operations
-    unmap_signal_receiver: Receiver<()>,
+    handler: NonSyncSendHandler,
     frame_data: Option<Vec<u8>>,
 }
 
@@ -38,121 +23,14 @@ impl BrowserController {
         resolution: Resolution,
     ) -> Result<Self, BrowserControllerNewError> {
         let (painted_frames_sender, painted_frames_receiver) = crossbeam_channel::unbounded();
-        let (register_embed_sender, register_embed_receiver) = crossbeam_channel::unbounded();
-        let (shmem_update_sender, shmem_update_receiver) = crossbeam_channel::unbounded();
-        let (unmap_signal_sender, unmap_signal_receiver) = crossbeam_channel::bounded(0);
-
-        if !Path::new(SHMEM_FOLDER_PATH).exists() {
-            std::fs::create_dir_all(SHMEM_FOLDER_PATH)?;
-        }
-
-        Self::start_browser(
-            ctx,
-            url,
-            resolution,
-            register_embed_receiver,
-            painted_frames_sender,
-        );
-        Self::handle_shmem_updates(shmem_update_receiver, unmap_signal_sender);
-
-        let controller = Self {
-            painted_frames_receiver,
-            register_embed_sender,
-            shmem_update_sender,
-            unmap_signal_receiver,
-            frame_data: None,
-        };
-
-        Ok(controller)
-    }
-
-    fn start_browser(
-        ctx: Arc<ChromiumContext>,
-        url: String,
-        resolution: Resolution,
-        register_embed_receiver: Receiver<Vec<(NodeId, Resolution)>>,
-        painted_frames_sender: Sender<Vec<u8>>,
-    ) {
         let client = BrowserClient::new(painted_frames_sender, resolution);
+        let handler = NonSyncSendHandler::new(ctx, url, client);
 
-        // Browser does not implement `Send` and `Sync` so we can't share it between threads.
-        // We keep it isolated in this thread
-        thread::spawn(move || {
-            let Ok(browser) = ctx.start_browser(&url, client) else {
-                    error!("Couldn't start browser for {url}");
-                    return;
-                };
-
-            loop {
-                let sources_info = register_embed_receiver.recv().unwrap();
-                let mut process_message = cef::ProcessMessage::new(EMBED_SOURCE_FRAMES_MESSAGE);
-                let mut index = 0;
-
-                // IPC message to chromium renderer subprocess consists of:
-                // - input node ID - used for retrieving frame data from shared memory and it also serves as variable name in JS
-                // - texture width
-                // - texture height
-                for (id, resolution) in sources_info {
-                    process_message.write_string(index, id.to_string());
-                    process_message.write_int(index + 1, resolution.width as i32);
-                    process_message.write_int(index + 2, resolution.height as i32);
-                    index += 3;
-                }
-
-                let Ok(frame) = browser.main_frame() else {
-                        error!("Main frame is no longer available for {url}");
-                        return;
-                    };
-
-                frame
-                    .send_process_message(cef::ProcessId::Renderer, process_message)
-                    .expect("send ipc message");
-            }
-        });
-    }
-
-    fn handle_shmem_updates(
-        shmem_update_receiver: Receiver<(NodeId, Arc<wgpu::Buffer>, wgpu::Extent3d)>,
-        unmap_signal_sender: Sender<()>,
-    ) {
-        thread::spawn(move || {
-            let mut shared_memories = HashMap::new();
-            loop {
-                let (id, input_buffer, size) = shmem_update_receiver.recv().unwrap();
-                let shmem = match shared_memories.get(&id) {
-                    Some(shmem) => shmem,
-                    None => {
-                        let shmem = ShmemConf::new()
-                            .flink(PathBuf::from(SHMEM_FOLDER_PATH).join(id.to_string()))
-                            .size((4 * size.width * size.height) as usize)
-                            .force_create_flink()
-                            .create()
-                            .expect("create shared memory");
-
-                        shared_memories.insert(id.clone(), shmem);
-                        shared_memories.get(&id).unwrap()
-                    }
-                };
-
-                let shmem = shmem.as_ptr();
-
-                // Writes buffer data to shared memory
-                {
-                    let range = input_buffer.slice(..).get_mapped_range();
-                    let chunks = range.chunks((4 * pad_to_256(size.width)) as usize);
-                    for (i, chunk) in chunks.enumerate() {
-                        unsafe {
-                            std::ptr::copy(
-                                chunk.as_ptr(),
-                                shmem.add(i * 4 * size.width as usize),
-                                4 * size.width as usize,
-                            )
-                        }
-                    }
-                }
-                unmap_signal_sender.send(()).unwrap();
-            }
-        });
+        Ok(Self {
+            painted_frames_receiver,
+            handler,
+            frame_data: None,
+        })
     }
 
     pub fn retrieve_frame(&mut self) -> Option<&[u8]> {
@@ -167,12 +45,17 @@ impl BrowserController {
         &mut self,
         ctx: &RenderCtx,
         sources: &[(&NodeId, &NodeTexture)],
-        buffers: &[Arc<wgpu::Buffer>],
     ) -> Result<(), EmbedFrameError> {
+        self.copy_sources_to_buffers(ctx, sources)?;
+
         let mut pending_downloads = Vec::new();
-        for ((id, texture), buffer) in sources.iter().zip(buffers) {
+        for (id, texture) in sources.iter() {
             let size = texture.rgba_texture().size();
-            pending_downloads.push(self.download_buffer((*id).clone(), size, buffer.clone()));
+            let buffer = texture
+                .rgba_texture()
+                .download_buffer()
+                .ok_or(EmbedFrameError::ExpectDownloadBuffer)?;
+            pending_downloads.push(self.download_buffer((*id).clone(), size, buffer));
         }
 
         ctx.wgpu_ctx.device.poll(wgpu::Maintain::Wait);
@@ -181,11 +64,28 @@ impl BrowserController {
             pending()?;
         }
 
-        let sources_info = sources
-            .iter()
-            .map(|(id, texture)| ((*id).clone(), dbg!(texture.resolution())))
-            .collect();
-        self.register_embed_sender.send(sources_info).unwrap();
+        self.handler.embed_sources(sources);
+        Ok(())
+    }
+
+    fn copy_sources_to_buffers(
+        &self,
+        ctx: &RenderCtx,
+        sources: &[(&NodeId, &NodeTexture)],
+    ) -> Result<(), EmbedFrameError> {
+        let mut encoder = ctx
+            .wgpu_ctx
+            .device
+            .create_command_encoder(&Default::default());
+
+        for (_id, texture) in sources.iter() {
+            let buffer = texture
+                .rgba_texture()
+                .download_buffer()
+                .ok_or(EmbedFrameError::ExpectDownloadBuffer)?;
+            texture.rgba_texture().copy_to_buffer(&mut encoder, &buffer);
+        }
+        ctx.wgpu_ctx.queue.submit(Some(encoder.finish()));
 
         Ok(())
     }
@@ -207,10 +107,8 @@ impl BrowserController {
 
         move || {
             r.recv().unwrap()?;
-            self.shmem_update_sender
-                .send((id, source.clone(), size))
-                .unwrap();
-            self.unmap_signal_receiver.recv().unwrap();
+
+            self.handler.update_shared_memory(id, source.clone(), size);
             source.unmap();
 
             Ok(())
@@ -262,6 +160,9 @@ pub enum EmbedFrameError {
 
     #[error("Could not send IPC message")]
     MessageNotSent(#[from] cef::FrameError),
+
+    #[error("Download buffer does not exist")]
+    ExpectDownloadBuffer,
 }
 
 pub(super) struct RenderHandler {
