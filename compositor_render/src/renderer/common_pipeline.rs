@@ -36,7 +36,9 @@ impl Vertex {
     }
 }
 
-pub struct GeometryPlanes {
+/// Abstraction for buffers, holding vertices and indices of
+/// 2D planes, on which textures are rendered
+pub struct SurfaceGeometry {
     inputs_vertices: Buffer,
     inputs_indices: Buffer,
     no_inputs_vertices: Buffer,
@@ -100,13 +102,13 @@ macro_rules! const_indices {
 }
 
 /// Vertex and index buffer that describe render area as an rectangle mapped to texture.
-impl GeometryPlanes {
-    /// Vertices of texture planes passed to the vertex shader.
+impl SurfaceGeometry {
+    /// Vertices of texture 2D planes passed to the vertex shader.
     /// Each plane has 4 vertices
     const INPUTS_VERTICES: [Vertex; 4 * MAX_TEXTURES_COUNT as usize] =
         const_vertices!(MAX_TEXTURES_COUNT);
 
-    /// Indexes vertices of texture planes passed to vertex shader.
+    /// Indexes vertices of texture 2D planes passed to vertex shader.
     /// Describes which vertices combine triangles.
     /// Each texture plane contain 2 triangles - 6 indices
     const INPUTS_INDICES: [u16; 6 * MAX_TEXTURES_COUNT as usize] =
@@ -181,11 +183,7 @@ impl GeometryPlanes {
         }
     }
 
-    pub fn draw_planes<'a>(
-        &'a self,
-        render_pass: &mut wgpu::RenderPass<'a>,
-        input_textures_count: u32,
-    ) {
+    pub fn draw<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>, input_textures_count: u32) {
         render_pass.set_vertex_buffer(0, self.vertices(input_textures_count));
 
         render_pass.set_index_buffer(self.indices(input_textures_count), Self::INDEX_FORMAT);

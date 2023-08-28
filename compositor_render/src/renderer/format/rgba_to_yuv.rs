@@ -1,5 +1,5 @@
 use crate::renderer::{
-    common_pipeline::{GeometryPlanes, Sampler, U32Uniform, Vertex, PRIMITIVE_STATE},
+    common_pipeline::{Sampler, SurfaceGeometry, U32Uniform, Vertex, PRIMITIVE_STATE},
     texture::{RGBATexture, YUVTextures},
 };
 
@@ -9,7 +9,7 @@ pub struct RGBAToYUVConverter {
     pipeline: wgpu::RenderPipeline,
     plane_selector: U32Uniform,
     sampler: Sampler,
-    planes: GeometryPlanes,
+    surfaces: SurfaceGeometry,
 }
 
 impl RGBAToYUVConverter {
@@ -19,7 +19,7 @@ impl RGBAToYUVConverter {
     ) -> Self {
         let plane_selector = U32Uniform::new(device);
         let sampler = Sampler::new(device);
-        let buffers = GeometryPlanes::new(device);
+        let surfaces = SurfaceGeometry::new(device);
 
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("RGBA to YUV color converter pipeline layout"),
@@ -65,7 +65,7 @@ impl RGBAToYUVConverter {
         Self {
             pipeline,
             sampler,
-            planes: buffers,
+            surfaces,
             plane_selector,
         }
     }
@@ -119,7 +119,7 @@ impl RGBAToYUVConverter {
                 render_pass.set_bind_group(0, src.1, &[]);
                 render_pass.set_bind_group(1, &self.sampler.bind_group, &[]);
                 render_pass.set_bind_group(2, &self.plane_selector.bind_group, &[]);
-                self.planes.draw_planes(&mut render_pass, 1);
+                self.surfaces.draw(&mut render_pass, 1);
             }
 
             ctx.queue.submit(Some(encoder.finish()));
