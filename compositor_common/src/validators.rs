@@ -235,13 +235,13 @@ impl SceneSpec {
                         }
                     }
                     BuiltinTransformationSpec::FixedPositionLayout {
-                        textures_layouts, ..
+                        texture_layouts, ..
                     } => {
-                        if node_spec.input_pads.len() != textures_layouts.len() {
+                        if node_spec.input_pads.len() != texture_layouts.len() {
                             return Err(SpecValidationError::InvalidBuiltinParams(
                                 node_id.clone(),
                                 transformation.clone(),
-                                Arc::from("input_pads length should match textures_layouts length"),
+                                Arc::from("input_pads length should match texture_layouts length"),
                             ));
                         }
                     }

@@ -48,7 +48,7 @@ impl BuiltinTransformations {
         match transformation {
             BuiltinTransformationSpec::TransformToResolution(_) => None,
             BuiltinTransformationSpec::FixedPositionLayout {
-                textures_layouts: textures_specs,
+                texture_layouts: textures_specs,
                 ..
             } => {
                 let mut layouts = Vec::new();
