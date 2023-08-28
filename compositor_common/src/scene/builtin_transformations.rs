@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::util::{Coord, RGBAColor};
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 #[serde(tag = "transformation", rename_all = "snake_case")]
 pub enum BuiltinTransformationSpec {
     TransformToResolution(TransformToResolution),
@@ -13,7 +13,7 @@ pub enum BuiltinTransformationSpec {
     },
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 #[serde(
     tag = "strategy",
     content = "background_color_rgba",
@@ -30,7 +30,7 @@ pub enum TransformToResolution {
     Fit(RGBAColor),
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct TextureLayout {
     pub top: Coord,
     pub left: Coord,
@@ -38,7 +38,7 @@ pub struct TextureLayout {
     pub rotation: Degree,
 }
 
-#[derive(Serialize, Deserialize, Clone, Default)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq)]
 pub struct Degree(pub i32);
 
 fn default_layout_background_color() -> RGBAColor {
