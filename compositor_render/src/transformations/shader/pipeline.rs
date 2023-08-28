@@ -3,7 +3,7 @@ use std::num::NonZeroU32;
 use wgpu::ShaderStages;
 
 use crate::renderer::{
-    common_pipeline::{Sampler, SurfaceGeometry, Vertex},
+    common_pipeline::{surface::Surfaces, Sampler, Vertex},
     texture::Texture,
     CommonShaderParameters, WgpuCtx,
 };
@@ -12,7 +12,7 @@ use super::INPUT_TEXTURES_AMOUNT;
 
 pub struct Pipeline {
     pipeline: wgpu::RenderPipeline,
-    planes: SurfaceGeometry,
+    planes: Surfaces,
     sampler: Sampler,
     pub(super) textures_bgl: wgpu::BindGroupLayout,
 }
@@ -53,7 +53,7 @@ impl Pipeline {
             source: shader_source,
         });
 
-        let geometry_buffers = SurfaceGeometry::new(device);
+        let geometry_buffers = Surfaces::new(device);
 
         let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("shader transformation pipeline :^)"),

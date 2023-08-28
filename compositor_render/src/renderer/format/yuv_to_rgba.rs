@@ -1,5 +1,5 @@
 use crate::renderer::{
-    common_pipeline::{Sampler, SurfaceGeometry, Vertex, PRIMITIVE_STATE},
+    common_pipeline::{surface::SingleSurface, Sampler, Vertex, PRIMITIVE_STATE},
     texture::{RGBATexture, YUVTextures},
 };
 
@@ -8,7 +8,7 @@ use super::WgpuCtx;
 pub struct YUVToRGBAConverter {
     pipeline: wgpu::RenderPipeline,
     sampler: Sampler,
-    surfaces: SurfaceGeometry,
+    surface: SingleSurface,
 }
 
 impl YUVToRGBAConverter {
@@ -18,7 +18,7 @@ impl YUVToRGBAConverter {
     ) -> Self {
         let shader_module = device.create_shader_module(wgpu::include_wgsl!("yuv_to_rgba.wgsl"));
         let sampler = Sampler::new(device);
-        let surfaces = SurfaceGeometry::new(device);
+        let surfaces = SingleSurface::new(device);
 
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("YUV to RGBA color converter render pipeline layout"),
@@ -59,7 +59,7 @@ impl YUVToRGBAConverter {
         Self {
             pipeline,
             sampler,
-            surfaces,
+            surface: surfaces,
         }
     }
 
@@ -88,7 +88,7 @@ impl YUVToRGBAConverter {
             render_pass.set_bind_group(0, src.1, &[]);
             render_pass.set_bind_group(1, &self.sampler.bind_group, &[]);
 
-            self.surfaces.draw(&mut render_pass, 1);
+            self.surface.draw(&mut render_pass);
         }
 
         ctx.queue.submit(Some(encoder.finish()));
