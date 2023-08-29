@@ -246,6 +246,7 @@ impl Scene {
     }
 }
 
+#[derive(Default)]
 pub struct SceneNodesSet {
     nodes: HashMap<NodeId, Node>,
 }
@@ -307,12 +308,6 @@ impl SceneNodesSet {
             })
             .collect::<Result<Vec<_>, SceneError>>()?;
         Ok(NodeRenderPass { node, inputs })
-    }
-}
-
-impl Default for SceneNodesSet {
-    fn default() -> Self {
-        Self::new()
     }
 }
 
