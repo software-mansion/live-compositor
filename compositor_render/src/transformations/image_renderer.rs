@@ -106,7 +106,7 @@ impl ImageNode {
         }
     }
 
-    pub fn render(&self, ctx: &mut RenderCtx, target: &NodeTexture, pts: Duration) {
+    pub fn render(&self, ctx: &mut RenderCtx, target: &mut NodeTexture, pts: Duration) {
         match self {
             ImageNode::Bitmap { asset, state } => asset.render(ctx.wgpu_ctx, target, state),
             ImageNode::Animated { asset, state } => asset.render(ctx.wgpu_ctx, target, state, pts),
@@ -147,7 +147,7 @@ impl BitmapAsset {
         Ok(Self { texture })
     }
 
-    fn render(&self, ctx: &WgpuCtx, target: &NodeTexture, state: &Mutex<BitmapNodeState>) {
+    fn render(&self, ctx: &WgpuCtx, target: &mut NodeTexture, state: &Mutex<BitmapNodeState>) {
         let mut state = state.lock().unwrap();
         if state.was_rendered {
             return;
@@ -216,7 +216,7 @@ impl SvgAsset {
         Ok(Self { texture })
     }
 
-    fn render(&self, ctx: &WgpuCtx, target: &NodeTexture, state: &Mutex<SvgNodeState>) {
+    fn render(&self, ctx: &WgpuCtx, target: &mut NodeTexture, state: &Mutex<SvgNodeState>) {
         let mut state = state.lock().unwrap();
         if state.was_rendered {
             return;
@@ -312,7 +312,7 @@ impl AnimatedAsset {
     fn render(
         &self,
         ctx: &WgpuCtx,
-        target: &NodeTexture,
+        target: &mut NodeTexture,
         state: &Mutex<AnimatedNodeState>,
         pts: Duration,
     ) {
@@ -346,7 +346,7 @@ impl AnimatedAsset {
     }
 }
 
-fn copy_texture_to_node_texture(ctx: &WgpuCtx, source: &RGBATexture, target: &NodeTexture) {
+fn copy_texture_to_node_texture(ctx: &WgpuCtx, source: &RGBATexture, target: &mut NodeTexture) {
     let mut encoder = ctx
         .device
         .create_command_encoder(&wgpu::CommandEncoderDescriptor {

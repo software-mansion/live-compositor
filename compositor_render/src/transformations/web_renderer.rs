@@ -75,7 +75,7 @@ impl WebRenderer {
         &self,
         ctx: &RenderCtx,
         _sources: &[(&NodeId, &NodeTexture)],
-        target: &NodeTexture,
+        target: &mut NodeTexture,
     ) {
         let mut state = self.state.lock().unwrap();
         if let Some(frame) = state.retrieve_frame() {
