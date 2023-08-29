@@ -116,14 +116,10 @@ pub struct Node {
 impl Node {
     pub fn new(ctx: &RenderCtx, spec: &NodeSpec, inputs: Vec<Arc<Node>>) -> Result<Self, GetError> {
         let node = RenderNode::new(ctx, &spec.params)?;
-        let output = NodeTexture::new(
-            ctx.wgpu_ctx,
-            // TODO: This will not be addressed when implementing fallback
-            node.resolution().unwrap_or(Resolution {
-                width: 1,
-                height: 1,
-            }),
-        );
+        let output = NodeTexture::new();
+        if let Some(resolution) = node.resolution() {
+            output.ensure_size(ctx.wgpu_ctx, resolution);
+        }
         Ok(Self {
             node_id: spec.node_id.clone(),
             renderer: node,
@@ -132,15 +128,8 @@ impl Node {
         })
     }
 
-    pub fn new_input(ctx: &RenderCtx, node_id: &NodeId) -> Result<Self, GetError> {
-        let output = NodeTexture::new(
-            ctx.wgpu_ctx,
-            // TODO: This will not be addressed when implementing fallback
-            Resolution {
-                width: 1,
-                height: 1,
-            },
-        );
+    pub fn new_input(node_id: &NodeId) -> Result<Self, GetError> {
+        let output = NodeTexture::new();
 
         Ok(Self {
             node_id: node_id.clone(),
@@ -191,12 +180,13 @@ impl Scene {
         let scope = WgpuErrorScope::push(&ctx.wgpu_ctx.device);
 
         let mut new_nodes = HashMap::new();
-        self.inputs = HashMap::new();
-        self.outputs = spec
+        let mut inputs = HashMap::new();
+        let outputs = spec
             .outputs
             .iter()
             .map(|output| {
-                let node = self.ensure_node(ctx, &output.input_pad, spec, &mut new_nodes)?;
+                let node =
+                    Self::ensure_node(ctx, &output.input_pad, spec, &mut inputs, &mut new_nodes)?;
                 let resolution = node.renderer.resolution().ok_or_else(|| {
                     SceneUpdateError::UnknownResolutionOnOutput(node.node_id.clone())
                 })?;
@@ -207,14 +197,17 @@ impl Scene {
 
         scope.pop(&ctx.wgpu_ctx.device)?;
 
+        self.inputs = inputs;
+        self.outputs = outputs;
+
         Ok(())
     }
 
     fn ensure_node(
-        &mut self,
         ctx: &RenderCtx,
         node_id: &NodeId,
         spec: &SceneSpec,
+        inputs: &mut HashMap<InputId, (Arc<Node>, InputTexture)>,
         new_nodes: &mut HashMap<NodeId, Arc<Node>>,
     ) -> Result<Arc<Node>, SceneUpdateError> {
         // check if node already exists
@@ -229,7 +222,7 @@ impl Scene {
                 let inputs = transform
                     .input_pads
                     .iter()
-                    .map(|node_id| self.ensure_node(ctx, node_id, spec, new_nodes))
+                    .map(|node_id| Self::ensure_node(ctx, node_id, spec, inputs, new_nodes))
                     .collect::<Result<_, _>>()?;
                 let node =
                     Node::new(ctx, transform, inputs).map_err(SceneUpdateError::RenderNodeError)?;
@@ -241,12 +234,12 @@ impl Scene {
 
         // If there is no node with id node_id, assume it's an input. Pipeline validation should
         // make sure that scene does not refer to missing entities.
-        let node = Node::new_input(ctx, node_id).map_err(SceneUpdateError::InputNodeError)?;
+        let node = Node::new_input(node_id).map_err(SceneUpdateError::InputNodeError)?;
         let node = Arc::new(node);
         new_nodes.insert(node_id.clone(), node.clone());
-        self.inputs.insert(
+        inputs.insert(
             InputId(node_id.clone()),
-            (node.clone(), InputTexture::new(ctx.wgpu_ctx, None)),
+            (node.clone(), InputTexture::new()),
         );
         Ok(node)
     }

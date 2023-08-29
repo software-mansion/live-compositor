@@ -6,7 +6,9 @@ use compositor_common::{
     scene::{NodeId, NodeSpec, OutputSpec, Resolution, SceneSpec},
     Frame, Framerate,
 };
-use compositor_render::{frame_set::FrameSet, Renderer, WebRendererOptions};
+use compositor_render::{
+    frame_set::FrameSet, renderer::RendererOptions, Renderer, WebRendererOptions,
+};
 
 const FRAMERATE: Framerate = Framerate(30);
 
@@ -82,13 +84,14 @@ fn main() {
     let frame = get_image("./examples/silly/crab.jpg");
     let resolution = frame.resolution;
 
-    let (mut renderer, _) = Renderer::new(
-        WebRendererOptions {
+    let (mut renderer, _) = Renderer::new(RendererOptions {
+        web_renderer: WebRendererOptions {
             init: false,
             ..Default::default()
         },
-        FRAMERATE,
-    )
+        framerate: FRAMERATE,
+        stream_fallback_timeout: Duration::from_secs(1),
+    })
     .expect("create renderer");
     let shader_key = RendererId("silly shader".into());
 

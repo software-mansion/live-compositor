@@ -3,28 +3,24 @@ use std::sync::{Arc, Mutex};
 use compositor_common::{
     renderer_spec::RendererSpec,
     scene::{InputId, OutputId, SceneSpec},
-    Framerate,
 };
 
 use crate::{
     event_loop::EventLoop,
     frame_set::FrameSet,
     renderer::{
-        scene::SceneUpdateError, RenderError, Renderer, RendererInitError, RendererRegisterError,
+        scene::SceneUpdateError, RenderError, Renderer, RendererInitError, RendererOptions,
+        RendererRegisterError,
     },
     transformations::{image_renderer::Image, shader::Shader, web_renderer::WebRenderer},
-    WebRendererOptions,
 };
 
 #[derive(Clone)]
 pub struct SyncRenderer(Arc<Mutex<Renderer>>);
 
 impl SyncRenderer {
-    pub fn new(
-        web_renderer_opts: WebRendererOptions,
-        web_renderer_framerate: Framerate,
-    ) -> Result<(Self, EventLoop), RendererInitError> {
-        let renderer = Renderer::new(web_renderer_opts, web_renderer_framerate)?;
+    pub fn new(opts: RendererOptions) -> Result<(Self, EventLoop), RendererInitError> {
+        let renderer = Renderer::new(opts)?;
         let event_loop = EventLoop::new(renderer.chromium_context.cef_context());
 
         Ok((Self(Arc::new(Mutex::new(renderer))), event_loop))

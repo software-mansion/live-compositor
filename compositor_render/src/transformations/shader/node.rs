@@ -75,10 +75,11 @@ impl ShaderNode {
     }
 
     pub fn render(&self, sources: &[(&NodeId, &NodeTexture)], target: &NodeTexture, pts: Duration) {
+        let target = target.ensure_size(&self.shader.wgpu_ctx, self.resolution);
         self.shader.render(
             &self.params_bind_group,
             sources,
-            target,
+            &target,
             pts,
             self.clear_color,
         )

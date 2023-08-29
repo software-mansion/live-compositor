@@ -45,6 +45,7 @@ fn start_example_client_code() -> Result<()> {
             "init": false
         },
         "framerate": FRAMERATE,
+        "stream_fallback_timeout_ms": 2000
     }))?;
 
     info!("[example] Start listening on output port.");
