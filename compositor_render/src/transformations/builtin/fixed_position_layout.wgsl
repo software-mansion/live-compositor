@@ -29,14 +29,8 @@ var<push_constant> common_params: CommonShaderParameters;
 @group(1) @binding(0) var<uniform> layouts: array<TextureLayout, 16>;
 @group(2) @binding(0) var sampler_: sampler;
 
-// Lineary interpolates x from [x_min, x_max] to [y_min, y_max] domain
-fn lerp(x: f32, x_min: f32, x_max: f32, y_min: f32, y_max: f32) -> f32 {
-    return (x - x_min) / (x_max - x_min) * (y_max - y_min) + y_min;
-}
-
 fn rotation_matrix(degrees: i32) -> mat3x3<f32> {
-    let pi: f32 = 3.14159;
-    let radians: f32 = f32(degrees) * pi / 180.0;
+    let radians: f32 = radians(f32(degrees));
     let col1: vec3<f32> = vec3<f32>(cos(radians), sin(radians), 0.0);
     let col2: vec3<f32> = vec3<f32>(-sin(radians), cos(radians), 0.0);
     let col3: vec3<f32> = vec3<f32>(0.0, 0.0, 1.0);
