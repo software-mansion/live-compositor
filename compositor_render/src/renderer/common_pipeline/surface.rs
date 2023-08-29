@@ -2,71 +2,6 @@ use wgpu::{util::DeviceExt, Buffer, BufferSlice};
 
 use super::{Vertex, MAX_TEXTURES_COUNT};
 
-/// Abstraction for buffers, holding vertices and indices of
-/// 2D planes, on which textures are rendered
-pub struct Surfaces {
-    inputs_vertices: Buffer,
-    inputs_indices: Buffer,
-    no_inputs_vertices: Buffer,
-    no_inputs_indices: Buffer,
-}
-
-macro_rules! const_vertices {
-    ($textures_count:expr) => {{
-        let mut vertices = [Vertex::empty(); 4 * $textures_count as usize];
-
-        let mut input_id = 0;
-        while input_id < $textures_count {
-            vertices[input_id as usize * 4] = Vertex {
-                position: [1.0, -1.0, 0.0],
-                texture_coords: [1.0, 1.0],
-                input_id: input_id as i32,
-            };
-
-            vertices[input_id as usize * 4 + 1] = Vertex {
-                position: [1.0, 1.0, 0.0],
-                texture_coords: [1.0, 0.0],
-                input_id: input_id as i32,
-            };
-
-            vertices[input_id as usize * 4 + 2] = Vertex {
-                position: [-1.0, 1.0, 0.0],
-                texture_coords: [0.0, 0.0],
-                input_id: input_id as i32,
-            };
-
-            vertices[input_id as usize * 4 + 3] = Vertex {
-                position: [-1.0, -1.0, 0.0],
-                texture_coords: [0.0, 1.0],
-                input_id: input_id as i32,
-            };
-
-            input_id += 1;
-        }
-
-        vertices
-    }};
-}
-
-macro_rules! const_indices {
-    ($textures_count:expr) => {{
-        let mut indices = [0u16; 6 * $textures_count as usize];
-
-        let mut i = 0;
-        while i < $textures_count {
-            indices[6 * i as usize] = (4 * i) as u16;
-            indices[6 * i as usize + 1] = (4 * i + 1) as u16;
-            indices[6 * i as usize + 2] = (4 * i + 2) as u16;
-            indices[6 * i as usize + 3] = (4 * i + 2) as u16;
-            indices[6 * i as usize + 4] = (4 * i + 3) as u16;
-            indices[6 * i as usize + 5] = (4 * i) as u16;
-            i += 1;
-        }
-
-        indices
-    }};
-}
-
 /// In case of no input texture, vertex shader receives plane
 /// with 4 vertices with input id -1. This allows using shaders without
 /// any input textures - e.g. shaders generating some texture
@@ -102,30 +37,103 @@ const SINGLE_PLANE_INDICES: [u16; 6] = [
 
 pub const INDEX_FORMAT: wgpu::IndexFormat = wgpu::IndexFormat::Uint16;
 
+struct Vertices<const N: usize>([Vertex; N]);
+
+impl<const N: usize> Vertices<N> {
+    const fn new() -> Self {
+        let mut vertices = [Vertex::empty(); N];
+
+        let mut input_id = 0;
+        while input_id < N / 4 {
+            vertices[input_id * 4] = Vertex {
+                position: [1.0, -1.0, 0.0],
+                texture_coords: [1.0, 1.0],
+                input_id: input_id as i32,
+            };
+
+            vertices[input_id * 4 + 1] = Vertex {
+                position: [1.0, 1.0, 0.0],
+                texture_coords: [1.0, 0.0],
+                input_id: input_id as i32,
+            };
+
+            vertices[input_id * 4 + 2] = Vertex {
+                position: [-1.0, 1.0, 0.0],
+                texture_coords: [0.0, 0.0],
+                input_id: input_id as i32,
+            };
+
+            vertices[input_id * 4 + 3] = Vertex {
+                position: [-1.0, -1.0, 0.0],
+                texture_coords: [0.0, 1.0],
+                input_id: input_id as i32,
+            };
+
+            input_id += 1;
+        }
+
+        Self(vertices)
+    }
+}
+
+struct Indices<const N: usize>([u16; N]);
+
+impl<const N: usize> Indices<N> {
+    const fn new() -> Self {
+        let mut indices = [0u16; N];
+
+        let mut i = 0;
+        while i < N / 6 {
+            indices[6 * i] = (4 * i) as u16;
+            indices[6 * i + 1] = (4 * i + 1) as u16;
+            indices[6 * i + 2] = (4 * i + 2) as u16;
+            indices[6 * i + 3] = (4 * i + 2) as u16;
+            indices[6 * i + 4] = (4 * i + 3) as u16;
+            indices[6 * i + 5] = (4 * i) as u16;
+            i += 1;
+        }
+
+        Self(indices)
+    }
+}
+
+/// Abstraction for buffers, holding vertices and indices of
+/// 2D planes, on which textures are rendered
+pub struct Surfaces {
+    inputs_vertices: Buffer,
+    inputs_indices: Buffer,
+    no_inputs_vertices: Buffer,
+    no_inputs_indices: Buffer,
+}
+
+const VERTICES_COUNT: usize = 4 * MAX_TEXTURES_COUNT as usize;
+const INDICES_COUNT: usize = 6 * MAX_TEXTURES_COUNT as usize;
+
 /// Vertex and index buffer that describe render area as an rectangle mapped to texture.
 impl Surfaces {
     /// Vertices of texture 2D planes passed to the vertex shader.
     /// Each plane has 4 vertices
-    const ALL_PLANES_VERTICES: [Vertex; 4 * MAX_TEXTURES_COUNT as usize] =
-        const_vertices!(MAX_TEXTURES_COUNT);
+    // const ALL_PLANES_VERTICES: [Vertex; 4 * MAX_TEXTURES_COUNT as usize] =
+    // const_vertices!(MAX_TEXTURES_COUNT);
+
+    const ALL_PLANES_VERTICES: Vertices<VERTICES_COUNT> = Vertices::new();
 
     /// Indexes vertices of texture 2D planes passed to vertex shader.
     /// Describes which vertices combine triangles.
     /// Each texture plane contain 2 triangles - 6 indices
-    const ALL_PLANES_INDICES: [u16; 6 * MAX_TEXTURES_COUNT as usize] =
-        const_indices!(MAX_TEXTURES_COUNT);
+    const ALL_PLANES_INDICES: Indices<INDICES_COUNT> = Indices::new();
 
     pub fn new(device: &wgpu::Device) -> Self {
         let inputs_vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("vertex buffer"),
             usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-            contents: bytemuck::cast_slice(&Self::ALL_PLANES_VERTICES),
+            contents: bytemuck::cast_slice(&Self::ALL_PLANES_VERTICES.0),
         });
 
         let inputs_index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("index buffer"),
             usage: wgpu::BufferUsages::INDEX | wgpu::BufferUsages::COPY_DST,
-            contents: bytemuck::cast_slice(&Self::ALL_PLANES_INDICES),
+            contents: bytemuck::cast_slice(&Self::ALL_PLANES_INDICES.0),
         });
 
         let no_inputs_vertex_buffer =
