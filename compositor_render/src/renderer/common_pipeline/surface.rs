@@ -113,9 +113,6 @@ const INDICES_COUNT: usize = 6 * MAX_TEXTURES_COUNT as usize;
 impl Surfaces {
     /// Vertices of texture 2D planes passed to the vertex shader.
     /// Each plane has 4 vertices
-    // const ALL_PLANES_VERTICES: [Vertex; 4 * MAX_TEXTURES_COUNT as usize] =
-    // const_vertices!(MAX_TEXTURES_COUNT);
-
     const ALL_PLANES_VERTICES: Vertices<VERTICES_COUNT> = Vertices::new();
 
     /// Indexes vertices of texture 2D planes passed to vertex shader.
