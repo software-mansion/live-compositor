@@ -17,7 +17,13 @@ fn main() -> Result<()> {
         .unwrap_or(out_dir.join("cef_root"));
 
     if !cef_root.exists() {
-        download_cef(&cef_root);
+        for i in 0..5 {
+            match download_cef(&cef_root) {
+                Ok(_) => break,
+                Err(_) if i < 4 => continue,
+                Err(err) => panic!("Failed to download CEF: {err}"),
+            }
+        }
     }
 
     // target/debug or target/release directory
@@ -117,7 +123,7 @@ impl ParseCallbacks for RemoveCommentsCallback {
     }
 }
 
-fn download_cef(cef_root_path: &Path) {
+fn download_cef(cef_root_path: &Path) -> Result<()> {
     let platform = if cfg!(target_os = "macos") {
         if cfg!(target_arch = "aarch64") {
             "macosarm64"
@@ -130,15 +136,17 @@ fn download_cef(cef_root_path: &Path) {
         panic!("Unsupported platform");
     };
 
-    let download_path = cef_root_path.parent().unwrap();
+    let download_path = cef_root_path
+        .parent()
+        .context("Failed to retrieve CEF_ROOT parent directory")?;
     let url = format!("https://cef-builds.spotifycdn.com/cef_binary_115.3.11%2Bga61da9b%2Bchromium-115.0.5790.114_{platform}_minimal.tar.bz2");
-    let resp = reqwest::blocking::get(url).unwrap();
+    let resp = reqwest::blocking::get(url)?;
 
     let archive_name = "cef.tar.bz2";
-    let content = resp.bytes().unwrap();
-    fs::write(download_path.join(archive_name), content).unwrap();
+    let content = resp.bytes()?;
+    fs::write(download_path.join(archive_name), content)?;
 
-    fs::create_dir_all(cef_root_path).expect("create cef_root lib directory");
+    fs::create_dir_all(cef_root_path)?;
 
     let tar_status = Command::new("tar")
         .args([
@@ -148,9 +156,10 @@ fn download_cef(cef_root_path: &Path) {
             &cef_root_path.display().to_string(),
             "--strip-components=1",
         ])
-        .status()
-        .unwrap();
+        .status()?;
     if !tar_status.success() {
         panic!("failed to unarchive CEF binaries");
     }
+
+    Ok(())
 }

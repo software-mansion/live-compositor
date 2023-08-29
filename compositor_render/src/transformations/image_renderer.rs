@@ -106,7 +106,7 @@ impl ImageNode {
         }
     }
 
-    pub fn render(&self, ctx: &mut RenderCtx, target: &NodeTexture, pts: Duration) {
+    pub fn render(&self, ctx: &mut RenderCtx, target: &mut NodeTexture, pts: Duration) {
         match self {
             ImageNode::Bitmap { asset, state } => asset.render(ctx.wgpu_ctx, target, state),
             ImageNode::Animated { asset, state } => asset.render(ctx.wgpu_ctx, target, state, pts),
@@ -147,36 +147,13 @@ impl BitmapAsset {
         Ok(Self { texture })
     }
 
-    fn render(&self, ctx: &WgpuCtx, target: &NodeTexture, state: &Mutex<BitmapNodeState>) {
+    fn render(&self, ctx: &WgpuCtx, target: &mut NodeTexture, state: &Mutex<BitmapNodeState>) {
         let mut state = state.lock().unwrap();
         if state.was_rendered {
             return;
         }
 
-        let mut encoder = ctx
-            .device
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                label: Some("copy static image asset to texture"),
-            });
-
-        let size = self.texture.size();
-        encoder.copy_texture_to_texture(
-            wgpu::ImageCopyTexture {
-                aspect: wgpu::TextureAspect::All,
-                mip_level: 0,
-                origin: wgpu::Origin3d::ZERO,
-                texture: &self.texture.texture().texture,
-            },
-            wgpu::ImageCopyTexture {
-                aspect: wgpu::TextureAspect::All,
-                mip_level: 0,
-                origin: wgpu::Origin3d::ZERO,
-                texture: &target.rgba_texture().texture().texture,
-            },
-            size,
-        );
-
-        ctx.queue.submit(Some(encoder.finish()));
+        copy_texture_to_node_texture(ctx, &self.texture, target);
         state.was_rendered = true;
     }
 
@@ -239,36 +216,13 @@ impl SvgAsset {
         Ok(Self { texture })
     }
 
-    fn render(&self, ctx: &WgpuCtx, target: &NodeTexture, state: &Mutex<SvgNodeState>) {
+    fn render(&self, ctx: &WgpuCtx, target: &mut NodeTexture, state: &Mutex<SvgNodeState>) {
         let mut state = state.lock().unwrap();
         if state.was_rendered {
             return;
         }
 
-        let mut encoder = ctx
-            .device
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                label: Some("copy static image asset to texture"),
-            });
-
-        let size = self.texture.size();
-        encoder.copy_texture_to_texture(
-            wgpu::ImageCopyTexture {
-                aspect: wgpu::TextureAspect::All,
-                mip_level: 0,
-                origin: wgpu::Origin3d::ZERO,
-                texture: &self.texture.texture().texture,
-            },
-            wgpu::ImageCopyTexture {
-                aspect: wgpu::TextureAspect::All,
-                mip_level: 0,
-                origin: wgpu::Origin3d::ZERO,
-                texture: &target.rgba_texture().texture().texture,
-            },
-            size,
-        );
-
-        ctx.queue.submit(Some(encoder.finish()));
+        copy_texture_to_node_texture(ctx, &self.texture, target);
         state.was_rendered = true;
     }
 
@@ -358,7 +312,7 @@ impl AnimatedAsset {
     fn render(
         &self,
         ctx: &WgpuCtx,
-        target: &NodeTexture,
+        target: &mut NodeTexture,
         state: &Mutex<AnimatedNodeState>,
         pts: Duration,
     ) {
@@ -380,30 +334,7 @@ impl AnimatedAsset {
             .iter()
             .min_by_key(|frame| u128::abs_diff(frame.pts.as_nanos(), animation_pts.as_nanos()))
             .unwrap();
-        let mut encoder = ctx
-            .device
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                label: Some("copy static image asset to texture"),
-            });
-
-        let size = closest_frame.texture.size();
-        encoder.copy_texture_to_texture(
-            wgpu::ImageCopyTexture {
-                aspect: wgpu::TextureAspect::All,
-                mip_level: 0,
-                origin: wgpu::Origin3d::ZERO,
-                texture: &closest_frame.texture.texture().texture,
-            },
-            wgpu::ImageCopyTexture {
-                aspect: wgpu::TextureAspect::All,
-                mip_level: 0,
-                origin: wgpu::Origin3d::ZERO,
-                texture: &target.rgba_texture().texture().texture,
-            },
-            size,
-        );
-
-        ctx.queue.submit(Some(encoder.finish()));
+        copy_texture_to_node_texture(ctx, &closest_frame.texture, target)
     }
 
     fn resolution(&self) -> Resolution {
@@ -413,6 +344,41 @@ impl AnimatedAsset {
             height: size.height as usize,
         }
     }
+}
+
+fn copy_texture_to_node_texture(ctx: &WgpuCtx, source: &RGBATexture, target: &mut NodeTexture) {
+    let mut encoder = ctx
+        .device
+        .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+            label: Some("copy static image asset to texture"),
+        });
+
+    let size = source.size();
+    let target = target.ensure_size(
+        ctx,
+        Resolution {
+            width: size.width as usize,
+            height: size.height as usize,
+        },
+    );
+
+    encoder.copy_texture_to_texture(
+        wgpu::ImageCopyTexture {
+            aspect: wgpu::TextureAspect::All,
+            mip_level: 0,
+            origin: wgpu::Origin3d::ZERO,
+            texture: &source.texture().texture,
+        },
+        wgpu::ImageCopyTexture {
+            aspect: wgpu::TextureAspect::All,
+            mip_level: 0,
+            origin: wgpu::Origin3d::ZERO,
+            texture: &target.rgba_texture().texture().texture,
+        },
+        size,
+    );
+
+    ctx.queue.submit(Some(encoder.finish()));
 }
 
 #[derive(Debug, thiserror::Error)]

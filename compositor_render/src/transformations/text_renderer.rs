@@ -93,7 +93,7 @@ impl TextRendererNode {
         self.resolution
     }
 
-    pub fn render(&self, renderer_ctx: &mut RenderCtx, target: &NodeTexture) {
+    pub fn render(&self, renderer_ctx: &mut RenderCtx, target: &mut NodeTexture) {
         let mut was_rendered = self.was_rendered.lock().unwrap();
         if *was_rendered {
             return;
@@ -124,8 +124,8 @@ impl TextRendererNode {
                 font_system,
                 &mut atlas,
                 glyphon::Resolution {
-                    width: target.resolution().width as u32,
-                    height: target.resolution().height as u32,
+                    width: self.resolution.width as u32,
+                    height: self.resolution.height as u32,
                 },
                 [TextArea {
                     buffer: &self.buffer,
@@ -135,8 +135,8 @@ impl TextRendererNode {
                     bounds: TextBounds {
                         left: 0,
                         top: 0,
-                        right: target.resolution().width as i32,
-                        bottom: target.resolution().height as i32,
+                        right: self.resolution.width as i32,
+                        bottom: self.resolution.height as i32,
                     },
                     default_color: Color::rgb(255, 255, 255),
                 }],
@@ -152,8 +152,8 @@ impl TextRendererNode {
                     label: Some("Text renderer encoder"),
                 });
 
-        let target_texture = &target.rgba_texture();
-        let view = &target_texture.texture().view;
+        let target_state = target.ensure_size(renderer_ctx.wgpu_ctx, self.resolution);
+        let view = &target_state.rgba_texture().texture().view;
         {
             let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
                 label: None,

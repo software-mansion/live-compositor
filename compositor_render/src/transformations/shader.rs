@@ -1,4 +1,7 @@
-use crate::renderer::{texture::NodeTexture, CommonShaderParameters, WgpuError, WgpuErrorScope};
+use crate::renderer::{
+    texture::{NodeTexture, NodeTextureState},
+    CommonShaderParameters, WgpuError, WgpuErrorScope,
+};
 
 use std::{sync::Arc, time::Duration};
 
@@ -91,7 +94,7 @@ impl Shader {
         &self,
         params: &wgpu::BindGroup,
         sources: &[(&NodeId, &NodeTexture)],
-        target: &NodeTexture,
+        target: &NodeTextureState,
         pts: Duration,
         clear_color: Option<wgpu::Color>,
     ) {
@@ -100,14 +103,17 @@ impl Shader {
         // TODO: sources need to be ordered
 
         // TODO: most things that happen in this method should not be done every frame
+
         let textures = sources
             .iter()
-            .map(|(_, texture)| texture.rgba_texture())
+            .map(|(_, node_texture)| node_texture.state())
             .collect::<Vec<_>>();
-
         let mut texture_views = textures
             .iter()
-            .map(|texture| &texture.texture().view)
+            .map(|node_texture| match node_texture {
+                Some(node_texture) => &node_texture.rgba_texture().texture().view,
+                None => &self.empty_texture.view,
+            })
             .collect::<Vec<_>>();
 
         texture_views.extend(
