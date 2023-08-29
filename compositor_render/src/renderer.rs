@@ -9,28 +9,24 @@ use log::error;
 
 use crate::{
     frame_set::FrameSet,
-    registry::RendererRegistry,
     render_loop::{populate_inputs, read_outputs},
     transformations::{
-        builtin::transformations::BuiltinTransformations,
-        image_renderer::{Image, ImageError},
+        image_renderer::ImageError,
         text_renderer::TextRendererCtx,
         web_renderer::chromium::{ChromiumContext, ChromiumContextError},
     },
     WebRendererOptions,
 };
 use crate::{
-    registry::{self, RegistryType},
+    registry::{self},
     render_loop::run_transforms,
-    transformations::{
-        shader::Shader,
-        web_renderer::{WebRenderer, WebRendererNewError},
-    },
+    transformations::{shader::Shader, web_renderer::WebRendererNewError},
 };
 
 use self::{
     format::TextureFormat,
     scene::{Scene, SceneUpdateError},
+    transformations_registry::TransformationsRegistry,
     utils::TextureUtils,
 };
 
@@ -38,6 +34,7 @@ pub mod common_pipeline;
 mod format;
 pub mod scene;
 pub mod texture;
+pub mod transformations_registry;
 mod utils;
 
 pub(crate) use format::bgra_to_rgba::BGRAToRGBAConverter;
@@ -56,10 +53,7 @@ pub struct Renderer {
     pub scene: Scene,
     pub scene_spec: Arc<SceneSpec>,
 
-    pub(crate) shader_registry: RendererRegistry<Arc<Shader>>,
-    pub(crate) web_renderers: RendererRegistry<Arc<WebRenderer>>,
-    pub(crate) image_registry: RendererRegistry<Image>,
-    pub(crate) builtin_transformations: BuiltinTransformations,
+    pub(crate) transformations: TransformationsRegistry,
 
     stream_fallback_timeout: Duration,
 }
@@ -70,10 +64,7 @@ pub struct RenderCtx<'a> {
     pub text_renderer_ctx: &'a TextRendererCtx,
     pub chromium: &'a Arc<ChromiumContext>,
 
-    pub(crate) shader_registry: &'a RendererRegistry<Arc<Shader>>,
-    pub(crate) web_renderers: &'a RendererRegistry<Arc<WebRenderer>>,
-    pub(crate) image_registry: &'a RendererRegistry<Image>,
-    pub(crate) builtin_transforms: &'a BuiltinTransformations,
+    pub(crate) transformations: &'a TransformationsRegistry,
 
     pub(crate) stream_fallback_timeout: Duration,
 }
@@ -119,10 +110,7 @@ impl Renderer {
             text_renderer_ctx: TextRendererCtx::new(),
             chromium_context: Arc::new(ChromiumContext::new(opts.web_renderer, opts.framerate)?),
             scene: Scene::empty(),
-            web_renderers: RendererRegistry::new(RegistryType::WebRenderer),
-            shader_registry: RendererRegistry::new(RegistryType::Shader),
-            image_registry: RendererRegistry::new(RegistryType::Image),
-            builtin_transformations: BuiltinTransformations::new(&wgpu_ctx)?,
+            transformations: TransformationsRegistry::new(wgpu_ctx)?,
             scene_spec: Arc::new(SceneSpec {
                 nodes: vec![],
                 outputs: vec![],
@@ -146,11 +134,8 @@ impl Renderer {
         let ctx = &mut RenderCtx {
             wgpu_ctx: &self.wgpu_ctx,
             chromium: &self.chromium_context,
-            shader_registry: &self.shader_registry,
-            web_renderers: &self.web_renderers,
             text_renderer_ctx: &self.text_renderer_ctx,
-            image_registry: &self.image_registry,
-            builtin_transforms: &self.builtin_transformations,
+            transformations: &self.transformations,
             stream_fallback_timeout: self.stream_fallback_timeout,
         };
 
@@ -174,10 +159,7 @@ impl Renderer {
                 wgpu_ctx: &self.wgpu_ctx,
                 text_renderer_ctx: &self.text_renderer_ctx,
                 chromium: &self.chromium_context,
-                shader_registry: &self.shader_registry,
-                web_renderers: &self.web_renderers,
-                image_registry: &self.image_registry,
-                builtin_transforms: &self.builtin_transformations,
+                transformations: &self.transformations,
                 stream_fallback_timeout: self.stream_fallback_timeout,
             },
             &scene_specs,
