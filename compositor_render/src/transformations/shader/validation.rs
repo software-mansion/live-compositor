@@ -2,22 +2,22 @@ use naga::{ArraySize, Constant, ConstantInner, Handle, Module, ShaderStage, Type
 
 #[derive(Debug, thiserror::Error)]
 pub enum ShaderValidationError {
-    #[error("a global that should be declared in the shader is not declared")]
+    #[error("A global that should be declared in the shader is not declared: {0:?}.")]
     GlobalNotFound(naga::GlobalVariable),
 
-    #[error("a global in the shader has a wrong type")]
+    #[error("A global in the shader has a wrong type.")]
     GlobalBadType(#[source] TypeEquivalenceError),
 
-    #[error("could not find a vertex shader entrypoint")]
+    #[error("Could not find a vertex shader entrypoint.")]
     VertexShaderNotFound,
 
-    #[error("wrong vertex shader argument amount: found {0}, expected 1")]
+    #[error("Wrong vertex shader argument amount: found {0}, expected 1.")]
     VertexShaderBadArgumentAmount(usize),
 
-    #[error("the input type of the vertex shader has a name that cannot be found in the header")]
+    #[error("The input type of the vertex shader has a name that cannot be found in the header.")]
     VertexShaderBadInputTypeName(Option<String>),
 
-    #[error("the vertex shader input has a wrong type")]
+    #[error("The vertex shader input has a wrong type.")]
     VertexShaderBadInput(#[source] TypeEquivalenceError),
 }
 
@@ -37,13 +37,15 @@ fn validate_globals(
     shader: &naga::Module,
 ) -> Result<(), ShaderValidationError> {
     for (_, global) in header.global_variables.iter() {
-        let Some((_, global_in_shader)) = shader.global_variables.iter().find(|(_, s_global)| {
-            s_global.space == global.space && s_global.binding == global.binding
-        }) else {
-            return Err(ShaderValidationError::GlobalNotFound(global.clone()));
-        };
+        let (_, global_in_shader) = shader
+            .global_variables
+            .iter()
+            .find(|(_, s_global)| {
+                s_global.space == global.space && s_global.binding == global.binding
+            })
+            .ok_or_else(|| ShaderValidationError::GlobalNotFound(global.clone()))?;
 
-        type_equivalent(global.ty, header, global_in_shader.ty, shader)
+        validate_type_equivalent(global.ty, header, global_in_shader.ty, shader)
             .map_err(ShaderValidationError::GlobalBadType)?;
     }
 
@@ -76,11 +78,11 @@ fn validate_vertex_input(
         .types
         .iter()
         .find(|(_, ty)| ty.name == vertex_input_type.name)
-        .ok_or(ShaderValidationError::VertexShaderBadInputTypeName(
-            vertex_input_type.name.clone(),
-        ))?;
+        .ok_or_else(|| {
+            ShaderValidationError::VertexShaderBadInputTypeName(vertex_input_type.name.clone())
+        })?;
 
-    type_equivalent(header_vertex_input, header, vertex_input, shader)
+    validate_type_equivalent(header_vertex_input, header, vertex_input, shader)
         .map_err(ShaderValidationError::VertexShaderBadInput)?;
 
     Ok(())
@@ -88,16 +90,16 @@ fn validate_vertex_input(
 
 #[derive(Debug, thiserror::Error)]
 pub enum TypeEquivalenceError {
-    #[error("type names don't match: {0:?} != {1:?}")]
+    #[error("Type names don't match: {0:?} != {1:?}.")]
     TypeNameMismatch(Option<String>, Option<String>),
 
-    #[error("type internal structure doesn't match: {0:?} != {1:?}")]
+    #[error("Type internal structure doesn't match: {0:?} != {1:?}.")]
     TypeStructureMismatch(naga::TypeInner, naga::TypeInner),
 
-    #[error("sizes of an array don't match: {0:?} != {1:?}")]
+    #[error("Sizes of an array don't match: {0:?} != {1:?}.")]
     ArraySizeMismatch(ArraySizeOrConstant, ArraySizeOrConstant),
 
-    #[error("a composite type was used as an array length specifier")]
+    #[error("A composite type was used as an array length specifier.")]
     // don't think this will ever happen
     CompositeTypeAsArrayLen(ConstantInner),
 }
@@ -108,7 +110,7 @@ pub enum ArraySizeOrConstant {
     Constant(Constant),
 }
 
-fn type_equivalent(
+fn validate_type_equivalent(
     ty1: Handle<Type>,
     mod1: &Module,
     ty2: Handle<Type>,
@@ -124,15 +126,13 @@ fn type_equivalent(
         ));
     }
 
-    let ti1 = if let Some(t) = type1.inner.canonical_form(&mod1.types) {
-        t
-    } else {
-        type1.inner.clone()
+    let ti1 = match type1.inner.canonical_form(&mod1.types) {
+        Some(t) => t,
+        None => type1.inner.clone(),
     };
-    let ti2 = if let Some(t) = type2.inner.canonical_form(&mod2.types) {
-        t
-    } else {
-        type2.inner.clone()
+    let ti2 = match type2.inner.canonical_form(&mod2.types) {
+        Some(t) => t,
+        None => type2.inner.clone(),
     };
 
     match ti1 {
@@ -158,65 +158,67 @@ fn type_equivalent(
             size: size1,
             stride: stride1,
         } => {
-            if let naga::TypeInner::Array {
+            let naga::TypeInner::Array {
                 base: base2,
                 size: size2,
                 stride: stride2,
             } = ti2
-            {
-                if stride1 != stride2 {
-                    return Err(TypeEquivalenceError::TypeStructureMismatch(ti1, ti2));
-                }
+            else {
+                return Err(TypeEquivalenceError::TypeStructureMismatch(ti1, ti2));
+            };
 
-                array_size_equivalent(size1, mod1, size2, mod2)?;
-                return type_equivalent(base1, mod1, base2, mod2);
+            if stride1 != stride2 {
+                return Err(TypeEquivalenceError::TypeStructureMismatch(ti1, ti2));
             }
-            return Err(TypeEquivalenceError::TypeStructureMismatch(ti1, ti2));
+
+            validate_array_size_equivalent(size1, mod1, size2, mod2)?;
+            return validate_type_equivalent(base1, mod1, base2, mod2);
         }
 
         naga::TypeInner::BindingArray {
             base: base1,
             size: size1,
         } => {
-            if let naga::TypeInner::BindingArray {
+            let naga::TypeInner::BindingArray {
                 base: base2,
                 size: size2,
             } = ti2
-            {
-                array_size_equivalent(size1, mod1, size2, mod2)?;
-                return type_equivalent(base1, mod1, base2, mod2);
-            }
-            return Err(TypeEquivalenceError::TypeStructureMismatch(ti1, ti2));
+            else {
+                return Err(TypeEquivalenceError::TypeStructureMismatch(ti1, ti2));
+            };
+
+            validate_array_size_equivalent(size1, mod1, size2, mod2)?;
+            return validate_type_equivalent(base1, mod1, base2, mod2);
         }
 
         naga::TypeInner::Struct {
             members: ref members1,
             span: span1,
         } => {
-            if let naga::TypeInner::Struct {
+            let naga::TypeInner::Struct {
                 members: ref members2,
                 span: span2,
             } = ti2
-            {
-                if span1 != span2 || members1.len() != members2.len() {
-                    return Err(TypeEquivalenceError::TypeStructureMismatch(
-                        ti1.clone(),
-                        ti2.clone(),
-                    ));
-                }
-
-                for (m1, m2) in members1.iter().zip(members2.iter()) {
-                    if m1.binding != m2.binding || m1.name != m2.name || m1.offset != m2.offset {
-                        return Err(TypeEquivalenceError::TypeStructureMismatch(ti1, ti2));
-                    }
-
-                    type_equivalent(m1.ty, mod1, m2.ty, mod2)?;
-                }
-            } else {
+            else {
                 return Err(TypeEquivalenceError::TypeStructureMismatch(
                     ti1.clone(),
                     ti2.clone(),
                 ));
+            };
+
+            if span1 != span2 || members1.len() != members2.len() {
+                return Err(TypeEquivalenceError::TypeStructureMismatch(
+                    ti1.clone(),
+                    ti2.clone(),
+                ));
+            }
+
+            for (m1, m2) in members1.iter().zip(members2.iter()) {
+                if m1.binding != m2.binding || m1.name != m2.name || m1.offset != m2.offset {
+                    return Err(TypeEquivalenceError::TypeStructureMismatch(ti1, ti2));
+                }
+
+                validate_type_equivalent(m1.ty, mod1, m2.ty, mod2)?;
             }
         }
 
@@ -228,7 +230,7 @@ fn type_equivalent(
     Ok(())
 }
 
-fn array_size_equivalent(
+fn validate_array_size_equivalent(
     size1: ArraySize,
     mod1: &Module,
     size2: ArraySize,
@@ -244,13 +246,13 @@ fn array_size_equivalent(
         }
 
         (ArraySize::Constant(c1), ArraySize::Constant(c2)) => {
-            constant_value_equivalent(c1, mod1, c2, mod2)
+            validate_constant_value_equivalent(c1, mod1, c2, mod2)
         }
         (ArraySize::Dynamic, ArraySize::Dynamic) => Ok(()),
     }
 }
 
-fn constant_value_equivalent(
+fn validate_constant_value_equivalent(
     c1: Handle<Constant>,
     mod1: &Module,
     c2: Handle<Constant>,

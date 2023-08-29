@@ -250,9 +250,7 @@ impl WgpuCtx {
 
         let shader_header =
             naga::front::wgsl::parse_str(include_str!("transformations/shader_header.wgsl"))
-                .expect(
-                    "couldn't find shader header file, which is necessary for shader validation",
-                );
+                .expect("failed to parse the shader header file");
 
         let scope = WgpuErrorScope::push(&device);
 

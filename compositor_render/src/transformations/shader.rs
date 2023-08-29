@@ -25,13 +25,13 @@ pub const FRAGMENT_ENTRYPOINT_NAME: &str = "fs_main";
 
 #[derive(Debug, thiserror::Error)]
 pub enum ShaderNewError {
-    #[error("wgpu error")]
+    #[error("wgpu error.")]
     Wgpu(#[from] WgpuError),
 
-    #[error("shader validation error")]
+    #[error("Shader validation error.")]
     Validation(#[from] ShaderValidationError),
 
-    #[error("shader parse error")]
+    #[error("Shader parse error.")]
     ParseError(#[from] naga::front::wgsl::ParseError),
 }
 
