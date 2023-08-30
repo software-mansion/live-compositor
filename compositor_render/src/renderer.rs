@@ -25,16 +25,16 @@ use crate::{
 
 use self::{
     format::TextureFormat,
+    renderers::Renderers,
     scene::{Scene, SceneUpdateError},
-    transformations_registry::TransformationsRegistry,
     utils::TextureUtils,
 };
 
 pub mod common_pipeline;
 mod format;
+pub mod renderers;
 pub mod scene;
 pub mod texture;
-pub mod transformations_registry;
 mod utils;
 
 pub(crate) use format::bgra_to_rgba::BGRAToRGBAConverter;
@@ -53,7 +53,7 @@ pub struct Renderer {
     pub scene: Scene,
     pub scene_spec: Arc<SceneSpec>,
 
-    pub(crate) transformations: TransformationsRegistry,
+    pub(crate) renderers: Renderers,
 
     stream_fallback_timeout: Duration,
 }
@@ -64,7 +64,7 @@ pub struct RenderCtx<'a> {
     pub text_renderer_ctx: &'a TextRendererCtx,
     pub chromium: &'a Arc<ChromiumContext>,
 
-    pub(crate) transformations: &'a TransformationsRegistry,
+    pub(crate) renderers: &'a Renderers,
 
     pub(crate) stream_fallback_timeout: Duration,
 }
@@ -110,7 +110,7 @@ impl Renderer {
             text_renderer_ctx: TextRendererCtx::new(),
             chromium_context: Arc::new(ChromiumContext::new(opts.web_renderer, opts.framerate)?),
             scene: Scene::empty(),
-            transformations: TransformationsRegistry::new(wgpu_ctx)?,
+            renderers: Renderers::new(wgpu_ctx)?,
             scene_spec: Arc::new(SceneSpec {
                 nodes: vec![],
                 outputs: vec![],
@@ -135,7 +135,7 @@ impl Renderer {
             wgpu_ctx: &self.wgpu_ctx,
             chromium: &self.chromium_context,
             text_renderer_ctx: &self.text_renderer_ctx,
-            transformations: &self.transformations,
+            renderers: &self.renderers,
             stream_fallback_timeout: self.stream_fallback_timeout,
         };
 
@@ -159,7 +159,7 @@ impl Renderer {
                 wgpu_ctx: &self.wgpu_ctx,
                 text_renderer_ctx: &self.text_renderer_ctx,
                 chromium: &self.chromium_context,
-                transformations: &self.transformations,
+                renderers: &self.renderers,
                 stream_fallback_timeout: self.stream_fallback_timeout,
             },
             &scene_specs,

@@ -9,8 +9,8 @@ use crate::{
     event_loop::EventLoop,
     frame_set::FrameSet,
     renderer::{
-        scene::SceneUpdateError, transformations_registry::RegistryEntry, RenderError, Renderer,
-        RendererInitError, RendererOptions, RendererRegisterError,
+        scene::SceneUpdateError, RenderError, Renderer, RendererInitError, RendererOptions,
+        RendererRegisterError,
     },
     transformations::{image_renderer::Image, shader::Shader, web_renderer::WebRenderer},
 };
@@ -28,27 +28,26 @@ impl SyncRenderer {
 
     pub fn register_renderer(&self, spec: RendererSpec) -> Result<(), RendererRegisterError> {
         let ctx = self.0.lock().unwrap().register_ctx();
-        let entry = match spec {
+        let mut guard = self.0.lock().unwrap();
+        match spec {
             RendererSpec::Shader(spec) => {
                 let shader = Arc::new(Shader::new(&ctx.wgpu_ctx, spec.source)?);
 
-                RegistryEntry::Shader(spec.shader_id, shader)
+                Ok(guard.renderers.shaders.register(spec.shader_id, shader)?)
             }
             RendererSpec::WebRenderer(params) => {
                 let instance_id = params.instance_id.clone();
                 let web = Arc::new(WebRenderer::new(&ctx, params)?);
 
-                RegistryEntry::WebRenderer(instance_id, web)
+                Ok(guard.renderers.web_renderers.register(instance_id, web)?)
             }
             RendererSpec::Image(spec) => {
                 let image_id = spec.image_id.clone();
                 let asset = Image::new(&ctx, spec)?;
 
-                RegistryEntry::Image(image_id, asset)
+                Ok(guard.renderers.images.register(image_id, asset)?)
             }
-        };
-
-        Ok(self.0.lock().unwrap().transformations.register(entry)?)
+        }
     }
 
     pub fn render(&self, input: FrameSet<InputId>) -> Result<FrameSet<OutputId>, RenderError> {
