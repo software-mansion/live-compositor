@@ -220,7 +220,7 @@ impl SceneSpec {
                 input_pads,
                 params,
             } = spec;
-                
+
             if let NodeParams::Builtin { transformation, .. } = params {
                 transformation.validate(node_id, input_pads)?;
             };

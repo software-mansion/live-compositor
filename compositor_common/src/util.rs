@@ -150,7 +150,7 @@ impl Coord {
 mod tests {
     use std::str::FromStr;
 
-    use crate::util::{RGBAColor, RGBColor, Coord, CoordParseError};
+    use crate::util::{Coord, CoordParseError, RGBAColor, RGBColor};
 
     #[test]
     fn test_rgb_serialization() {
@@ -217,7 +217,13 @@ mod tests {
         assert_eq!(Coord::from_str("-420px"), Ok(Coord::Pixel(-420)));
         assert_eq!(Coord::from_str("69%"), Ok(Coord::Percent(69)));
         assert_eq!(Coord::from_str("-1337%"), Ok(Coord::Percent(-1337)));
-        assert_eq!(Coord::from_str("-1-337%"), Err(CoordParseError::InvalidCoordFormat));
-        assert_eq!(Coord::from_str("1x"), Err(CoordParseError::InvalidCoordFormat));
+        assert_eq!(
+            Coord::from_str("-1-337%"),
+            Err(CoordParseError::InvalidCoordFormat)
+        );
+        assert_eq!(
+            Coord::from_str("1x"),
+            Err(CoordParseError::InvalidCoordFormat)
+        );
     }
 }
