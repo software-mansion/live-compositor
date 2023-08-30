@@ -1,37 +1,16 @@
+use std::{path::PathBuf, sync::Arc};
+
 use compositor_chromium::cef;
 use compositor_render::{
     EMBED_SOURCE_FRAMES_MESSAGE, SHMEM_FOLDER_PATH, UNEMBED_SOURCE_FRAMES_MESSAGE,
 };
-use log::{error, info};
-use shared_memory::{Shmem, ShmemConf};
-use std::{cell::RefCell, collections::HashMap, error::Error, path::PathBuf, rc::Rc};
+use log::error;
+use shared_memory::ShmemConf;
 
-type SourceStateMap = Rc<RefCell<HashMap<String, SourceState>>>;
+use crate::state::State;
 
-struct App {
-    states: SourceStateMap,
-}
-
-impl cef::App for App {
-    type RenderProcessHandlerType = RenderProcessHandler;
-
-    fn on_before_command_line_processing(
-        &mut self,
-        process_type: String,
-        _command_line: &mut cef::CommandLine,
-    ) {
-        info!("Chromium {process_type} subprocess started");
-    }
-
-    fn render_process_handler(&self) -> Option<Self::RenderProcessHandlerType> {
-        Some(RenderProcessHandler {
-            states: self.states.clone(),
-        })
-    }
-}
-
-struct RenderProcessHandler {
-    states: SourceStateMap,
+pub struct RenderProcessHandler {
+    state: Arc<State>,
 }
 
 impl cef::RenderProcessHandler for RenderProcessHandler {
@@ -52,6 +31,10 @@ impl cef::RenderProcessHandler for RenderProcessHandler {
 }
 
 impl RenderProcessHandler {
+    pub fn new(state: Arc<State>) -> Self {
+        Self { state }
+    }
+
     fn handle_embed_sources(&self, msg: &cef::ProcessMessage, surface: &cef::Frame) {
         let ctx = surface.v8_context().unwrap();
         let ctx_entered = ctx.enter().unwrap();
@@ -73,15 +56,13 @@ impl RenderProcessHandler {
                 continue;
             };
 
-            if !self.states.borrow().contains_key(&source_id) {
-                self.embed_frame(
-                    source_id.clone(),
-                    width,
-                    height,
-                    &mut global_object,
-                    &ctx_entered,
-                );
-            }
+            self.embed_frame(
+                source_id.clone(),
+                width,
+                height,
+                &mut global_object,
+                &ctx_entered,
+            );
         }
     }
 
@@ -93,6 +74,10 @@ impl RenderProcessHandler {
         global_object: &mut cef::V8Value,
         ctx_entered: &cef::V8ContextEntered,
     ) {
+        if self.state.contains_source(&source_id) {
+            return;
+        }
+
         let shmem = ShmemConf::new()
             .flink(PathBuf::from(SHMEM_FOLDER_PATH).join(&source_id))
             .open()
@@ -135,13 +120,7 @@ impl RenderProcessHandler {
             .unwrap();
         // ------
 
-        self.states.borrow_mut().insert(
-            source_id,
-            SourceState {
-                _shmem: shmem,
-                _array_buffer: array_buffer,
-            },
-        );
+        self.state.insert_source(source_id, shmem, array_buffer);
     }
 
     fn handle_unembed_source(&self, msg: &cef::ProcessMessage, surface: &cef::Frame) {
@@ -157,25 +136,6 @@ impl RenderProcessHandler {
             .delete_value_by_key(&ctx_entered, &source_id)
             .unwrap();
 
-        self.states.borrow_mut().remove(&source_id).unwrap();
+        self.state.remove_source(&source_id);
     }
-}
-
-struct SourceState {
-    _shmem: Shmem,
-    _array_buffer: cef::V8Value,
-}
-
-// Subprocess used by chromium
-fn main() -> Result<(), Box<dyn Error>> {
-    env_logger::init_from_env(
-        env_logger::Env::default().filter_or(env_logger::DEFAULT_FILTER_ENV, "info"),
-    );
-
-    let app = App {
-        states: Rc::new(RefCell::new(HashMap::new())),
-    };
-    let context = cef::Context::new_helper()?;
-    let exit_code = context.execute_process(app);
-    std::process::exit(exit_code);
 }
