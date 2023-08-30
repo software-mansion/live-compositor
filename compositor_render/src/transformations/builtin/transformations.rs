@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use compositor_common::scene::{
-    builtin_transformations::{BuiltinTransformationSpec, TextureLayout, TransformToResolution},
-    Resolution, ShaderParam, ShaderParamStructField,
+    builtin_transformations::{BuiltinTransformationSpec, TransformToResolution},
+    Resolution, ShaderParam,
 };
 
 use crate::{
