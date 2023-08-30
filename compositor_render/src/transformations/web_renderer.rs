@@ -1,4 +1,7 @@
-use std::sync::Mutex;
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex},
+};
 
 use crate::renderer::{
     texture::{BGRATexture, NodeTexture},
@@ -81,17 +84,20 @@ impl WebRenderer {
         &self,
         ctx: &RenderCtx,
         sources: &[(&NodeId, &NodeTexture)],
-        target: &NodeTexture,
+        buffers: &HashMap<NodeId, Arc<wgpu::Buffer>>,
+        target: &mut NodeTexture,
     ) -> Result<(), WebRendererRenderError> {
         let mut controller = self.controller.lock().unwrap();
-        controller.send_sources(ctx, sources)?;
+        controller.send_sources(ctx, sources, buffers)?;
 
         if let Some(frame) = controller.retrieve_frame() {
+            let target = target.ensure_size(ctx.wgpu_ctx, self.params.resolution);
+
             self.bgra_texture.upload(ctx.wgpu_ctx, frame);
             self.bgra_to_rgba.convert(
                 ctx.wgpu_ctx,
                 (&self.bgra_texture, &self.bgra_bind_group),
-                &target.rgba_texture(),
+                target.rgba_texture(),
             );
         }
 

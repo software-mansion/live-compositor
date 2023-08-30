@@ -1,59 +1,104 @@
-use std::{collections::HashMap, sync::Arc, time::Duration};
+use std::{collections::HashMap, time::Duration};
 
 use compositor_common::{
-    scene::{InputId, OutputId},
+    scene::{InputId, NodeId, OutputId},
+    util::RGBColor,
     Frame,
 };
 use log::error;
 
-use crate::renderer::{
-    scene::{Node, Scene},
-    RenderCtx,
+use crate::{
+    frame_set::FrameSet,
+    renderer::{
+        scene::{Node, Scene, SceneError},
+        RenderCtx,
+    },
 };
 
 pub(super) fn populate_inputs(
     ctx: &RenderCtx,
     scene: &mut Scene,
-    frames: &mut HashMap<InputId, Frame>,
-) {
-    for (input_id, (node, input_textures)) in &mut scene.inputs {
-        let Some(frame) = frames.remove(input_id) else {
+    frame_set: &mut FrameSet<InputId>,
+) -> Result<(), SceneError> {
+    for (input_id, input_textures) in &mut scene.inputs {
+        let Some(frame) = frame_set.frames.remove(input_id) else {
+            input_textures.clear();
             continue;
         };
-        node.output.ensure_size(ctx.wgpu_ctx, frame.resolution);
+        if Duration::saturating_sub(frame_set.pts, ctx.stream_fallback_timeout) > frame.pts {
+            input_textures.clear();
+            continue;
+        }
+
         input_textures.upload(ctx.wgpu_ctx, frame);
     }
 
     ctx.wgpu_ctx.queue.submit([]);
 
-    for (node, input_textures) in scene.inputs.values() {
-        ctx.wgpu_ctx.format.convert_yuv_to_rgba(
-            ctx.wgpu_ctx,
-            (input_textures.yuv_textures(), input_textures.bind_group()),
-            &node.output.rgba_texture(),
-        );
+    for (input_id, input_textures) in &mut scene.inputs {
+        let node = scene.nodes.node_mut(&input_id.0)?;
+        if let Some(input_textures) = input_textures.state() {
+            let node_texture = node
+                .output
+                .ensure_size(ctx.wgpu_ctx, input_textures.resolution());
+            ctx.wgpu_ctx.format.convert_yuv_to_rgba(
+                ctx.wgpu_ctx,
+                (input_textures.yuv_textures(), input_textures.bind_group()),
+                node_texture.rgba_texture(),
+            );
+        } else {
+            node.output.clear()
+        }
     }
+    Ok(())
 }
 
 pub(super) fn read_outputs(
     ctx: &RenderCtx,
-    scene: &Scene,
+    scene: &mut Scene,
     pts: Duration,
-) -> HashMap<OutputId, Frame> {
+) -> Result<HashMap<OutputId, Frame>, SceneError> {
     let mut pending_downloads = Vec::with_capacity(scene.outputs.len());
-    for (node_id, (node, output)) in &scene.outputs {
-        ctx.wgpu_ctx.format.convert_rgba_to_yuv(
-            ctx.wgpu_ctx,
-            (&node.output.rgba_texture(), &node.output.bind_group()),
-            output.yuv_textures(),
-        );
-        let yuv_pending = output.start_download(ctx.wgpu_ctx);
-        pending_downloads.push((node_id, yuv_pending, output.resolution().to_owned()));
+    for (output_id, (node_id, output_texture)) in &scene.outputs {
+        let node = scene.nodes.node(node_id)?;
+        match node.output.state() {
+            Some(node) => {
+                ctx.wgpu_ctx.format.convert_rgba_to_yuv(
+                    ctx.wgpu_ctx,
+                    ((node.rgba_texture()), (node.bind_group())),
+                    output_texture.yuv_textures(),
+                );
+                let yuv_pending = output_texture.start_download(ctx.wgpu_ctx);
+                pending_downloads.push((
+                    output_id,
+                    yuv_pending,
+                    output_texture.resolution().to_owned(),
+                ));
+            }
+            None => {
+                let (y, u, v) = RGBColor::BLACK.to_yuv();
+                ctx.wgpu_ctx.utils.fill_r8_with_value(
+                    ctx.wgpu_ctx,
+                    output_texture.yuv_textures().plane(0),
+                    y,
+                );
+                ctx.wgpu_ctx.utils.fill_r8_with_value(
+                    ctx.wgpu_ctx,
+                    output_texture.yuv_textures().plane(1),
+                    u,
+                );
+                ctx.wgpu_ctx.utils.fill_r8_with_value(
+                    ctx.wgpu_ctx,
+                    output_texture.yuv_textures().plane(2),
+                    v,
+                );
+            }
+        };
     }
     ctx.wgpu_ctx.device.poll(wgpu::MaintainBase::Wait);
 
     let mut result = HashMap::new();
-    for (node_id, yuv_pending, resolution) in pending_downloads {
+    for (output_id, yuv_pending, resolution) in pending_downloads {
         let yuv_data = match yuv_pending.wait() {
             Ok(data) => data,
             Err(err) => {
@@ -62,7 +107,7 @@ pub(super) fn read_outputs(
             }
         };
         result.insert(
-            node_id.clone(),
+            output_id.clone(),
             Frame {
                 data: yuv_data,
                 resolution,
@@ -70,38 +115,56 @@ pub(super) fn read_outputs(
             },
         );
     }
-    result
+    Ok(result)
 }
 
-pub(super) fn run_transforms(ctx: &mut RenderCtx, scene: &Scene, pts: Duration) {
-    for node in render_order_iter(scene) {
-        let sources: Vec<_> = node
-            .inputs
+pub(super) fn run_transforms(
+    ctx: &mut RenderCtx,
+    scene: &mut Scene,
+    pts: Duration,
+) -> Result<(), SceneError> {
+    let node_id_iter = render_order_iter(scene)?;
+    for node_id in node_id_iter {
+        let NodeRenderPass { node, inputs } = scene.nodes.node_render_pass(&node_id)?;
+        let input_textures: Vec<_> = inputs
             .iter()
             .map(|node| (&node.node_id, &node.output))
             .collect();
-        node.renderer.render(ctx, &sources, &node.output, pts)
+        node.renderer
+            .render(ctx, &input_textures, &mut node.output, pts)
     }
+    Ok(())
+}
+
+pub struct NodeRenderPass<'a> {
+    pub node: &'a mut Node,
+    pub inputs: Vec<&'a Node>,
 }
 
 /// Returns iterator that guarantees that nodes will be visited in
 /// the order that ensures that inputs of the current node were
 /// already visited in previous iterations
-fn render_order_iter(scene: &Scene) -> impl Iterator<Item = Arc<Node>> {
+fn render_order_iter(scene: &Scene) -> Result<impl Iterator<Item = NodeId>, SceneError> {
     let mut queue = vec![];
-    for (output_node, _output_texture) in scene.outputs.values() {
-        enqueue_nodes(output_node, &mut queue);
+    for (node_id, _) in scene.outputs.values() {
+        enqueue_nodes(node_id, &mut queue, scene)?;
     }
-    queue.into_iter()
+    Ok(queue.into_iter())
 }
 
-fn enqueue_nodes(parent_node: &Arc<Node>, queue: &mut Vec<Arc<Node>>) {
-    let already_in_queue = queue.iter().any(|i| Arc::ptr_eq(parent_node, i));
+fn enqueue_nodes(
+    parent_node_id: &NodeId,
+    queue: &mut Vec<NodeId>,
+    scene: &Scene,
+) -> Result<(), SceneError> {
+    let already_in_queue = queue.iter().any(|i| i == parent_node_id);
     if already_in_queue {
-        return;
+        return Ok(());
     }
-    for child in parent_node.inputs.iter() {
-        enqueue_nodes(child, queue);
+    let parent_node = scene.nodes.node(parent_node_id)?;
+    for child in &parent_node.inputs {
+        enqueue_nodes(child, queue, scene)?;
     }
-    queue.push(parent_node.clone());
+    queue.push(parent_node_id.clone());
+    Ok(())
 }

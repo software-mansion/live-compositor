@@ -61,7 +61,7 @@ impl NonSyncSendHandler {
     pub fn embed_sources(&self, sources: &[(&NodeId, &NodeTexture)]) {
         let sources_info = sources
             .iter()
-            .map(|(id, texture)| ((*id).clone(), texture.resolution()))
+            .filter_map(|(id, texture)| texture.resolution().map(|res| ((*id).clone(), res)))
             .collect();
         self.embed_sources_sender.send(sources_info).unwrap();
     }

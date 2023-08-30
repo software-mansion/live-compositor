@@ -1,4 +1,4 @@
-use std::{io, sync::Arc};
+use std::{collections::HashMap, io, sync::Arc};
 
 use compositor_chromium::cef;
 use compositor_common::scene::{NodeId, Resolution};
@@ -45,17 +45,24 @@ impl BrowserController {
         &mut self,
         ctx: &RenderCtx,
         sources: &[(&NodeId, &NodeTexture)],
+        buffers: &HashMap<NodeId, Arc<wgpu::Buffer>>,
     ) -> Result<(), EmbedFrameError> {
-        self.copy_sources_to_buffers(ctx, sources)?;
+        self.copy_sources_to_buffers(ctx, sources, buffers)?;
 
         let mut pending_downloads = Vec::new();
         for (id, texture) in sources.iter() {
-            let size = texture.rgba_texture().size();
-            let buffer = texture
-                .rgba_texture()
-                .download_buffer()
+            let Some(texture_state) = texture.state() else {
+                continue;
+            };
+            let size = texture_state.rgba_texture().size();
+            let buffer = buffers
+                .get(id)
                 .ok_or(EmbedFrameError::ExpectDownloadBuffer)?;
-            pending_downloads.push(self.download_buffer_to_shmem((*id).clone(), size, buffer));
+            pending_downloads.push(self.download_buffer_to_shmem(
+                (*id).clone(),
+                size,
+                buffer.clone(),
+            ));
         }
 
         ctx.wgpu_ctx.device.poll(wgpu::Maintain::Wait);
@@ -72,18 +79,23 @@ impl BrowserController {
         &self,
         ctx: &RenderCtx,
         sources: &[(&NodeId, &NodeTexture)],
+        buffers: &HashMap<NodeId, Arc<wgpu::Buffer>>,
     ) -> Result<(), EmbedFrameError> {
         let mut encoder = ctx
             .wgpu_ctx
             .device
             .create_command_encoder(&Default::default());
 
-        for (_id, texture) in sources.iter() {
-            let buffer = texture
-                .rgba_texture()
-                .download_buffer()
+        for (id, texture) in sources.iter() {
+            let Some(texture_state) = texture.state() else {
+                continue;
+            };
+            let buffer = buffers
+                .get(id)
                 .ok_or(EmbedFrameError::ExpectDownloadBuffer)?;
-            texture.rgba_texture().copy_to_buffer(&mut encoder, &buffer);
+            texture_state
+                .rgba_texture()
+                .copy_to_buffer(&mut encoder, buffer);
         }
         ctx.wgpu_ctx.queue.submit(Some(encoder.finish()));
 

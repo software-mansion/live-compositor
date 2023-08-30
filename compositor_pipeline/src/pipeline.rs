@@ -3,17 +3,19 @@ use std::error::Error;
 use std::sync::Arc;
 use std::sync::{Mutex, MutexGuard};
 use std::thread;
+use std::time::Duration;
 
 use compositor_common::renderer_spec::RendererSpec;
 use compositor_common::scene::{InputId, OutputId, SceneSpec};
 use compositor_common::{Frame, Framerate};
 use compositor_render::event_loop::EventLoop;
-use compositor_render::renderer::{RendererInitError, RendererRegisterError};
+use compositor_render::renderer::{RendererInitError, RendererOptions, RendererRegisterError};
 use compositor_render::WebRendererOptions;
 use compositor_render::{renderer::scene::SceneUpdateError, Renderer};
 use crossbeam_channel::unbounded;
 use log::{error, warn};
 use serde::{Deserialize, Serialize};
+use serde_with::{serde_as, DurationMilliSeconds};
 
 use crate::queue::Queue;
 
@@ -37,16 +39,26 @@ pub struct Pipeline<Input: PipelineInput, Output: PipelineOutput> {
     renderer: Renderer,
 }
 
+#[serde_as]
 #[derive(Serialize, Deserialize)]
 pub struct Options {
     pub framerate: Framerate,
+    #[serde_as(as = "Option<DurationMilliSeconds<f64>>")]
+    #[serde(rename = "stream_fallback_timeout_ms")]
+    pub stream_fallback_timeout: Option<Duration>,
     #[serde(default)]
     pub web_renderer: WebRendererOptions,
 }
 
 impl<Input: PipelineInput, Output: PipelineOutput> Pipeline<Input, Output> {
     pub fn new(opts: Options) -> Result<(Self, EventLoop), RendererInitError> {
-        let (renderer, event_loop) = Renderer::new(opts.web_renderer, opts.framerate)?;
+        let (renderer, event_loop) = Renderer::new(RendererOptions {
+            web_renderer: opts.web_renderer,
+            framerate: opts.framerate,
+            stream_fallback_timeout: opts
+                .stream_fallback_timeout
+                .unwrap_or(Duration::from_secs(1)),
+        })?;
         let pipeline = Pipeline {
             outputs: OutputRegistry::new(),
             inputs: HashMap::new(),

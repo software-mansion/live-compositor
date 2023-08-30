@@ -387,6 +387,7 @@ dependencies = [
  "crossbeam-channel",
  "log",
  "serde",
+ "serde_with",
  "thiserror",
 ]
 

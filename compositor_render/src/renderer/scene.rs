@@ -1,4 +1,8 @@
-use std::{collections::HashMap, sync::Arc, time::Duration};
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex},
+    time::Duration,
+};
 
 use compositor_common::{
     scene::{InputId, NodeId, NodeParams, NodeSpec, OutputId, Resolution, SceneSpec},
@@ -8,6 +12,7 @@ use log::error;
 
 use crate::{
     registry::GetError,
+    render_loop::NodeRenderPass,
     transformations::{
         builtin::transformations::BuiltinTransformations, image_renderer::ImageNode,
         shader::node::ShaderNode, text_renderer::TextRendererNode, web_renderer::WebRenderer,
@@ -15,13 +20,16 @@ use crate::{
 };
 
 use super::{
-    texture::{InputTexture, NodeTexture, OutputTexture},
+    texture::{utils::pad_to_256, InputTexture, NodeTexture, OutputTexture},
     RenderCtx, WgpuError, WgpuErrorScope,
 };
 
 pub enum RenderNode {
     Shader(ShaderNode),
-    Web { renderer: Arc<WebRenderer> },
+    Web {
+        renderer: Arc<WebRenderer>,
+        buffers: Mutex<HashMap<NodeId, Arc<wgpu::Buffer>>>,
+    },
     Text(TextRendererNode),
     Image(ImageNode),
     Builtin(ShaderNode),
@@ -29,15 +37,12 @@ pub enum RenderNode {
 }
 
 impl RenderNode {
-    fn new(ctx: &RenderCtx, spec: &NodeParams, inputs: &[Arc<Node>]) -> Result<Self, GetError> {
+    fn new(ctx: &RenderCtx, spec: &NodeParams) -> Result<Self, GetError> {
         match spec {
             NodeParams::WebRenderer { instance_id } => {
-                for input in inputs {
-                    input.output.ensure_download_buffer(ctx.wgpu_ctx);
-                }
-
                 let renderer = ctx.web_renderers.get(instance_id)?;
-                Ok(Self::Web { renderer })
+                let buffers = Mutex::new(HashMap::new());
+                Ok(Self::Web { renderer, buffers })
             }
             NodeParams::Shader {
                 shader_id,
@@ -78,14 +83,37 @@ impl RenderNode {
         &self,
         ctx: &mut RenderCtx,
         sources: &[(&NodeId, &NodeTexture)],
-        target: &NodeTexture,
+        target: &mut NodeTexture,
         pts: Duration,
     ) {
         match self {
             RenderNode::Shader(shader) => shader.render(sources, target, pts),
             RenderNode::Builtin(shader) => shader.render(sources, target, pts),
-            RenderNode::Web { renderer } => {
-                if let Err(err) = renderer.render(ctx, sources, target) {
+            RenderNode::Web { renderer, buffers } => {
+                let mut buffers = buffers.lock().unwrap();
+                for (id, texture) in sources {
+                    let Some(texture_state) = texture.state() else {
+                        continue;
+                    };
+
+                    let texture = texture_state.rgba_texture();
+                    let size = texture.size();
+                    let size = (4 * pad_to_256(size.width) * size.height) as u64;
+
+                    let recreate_buffer = match buffers.get(id) {
+                        Some(buffer) => buffer.size() != size,
+                        None => true,
+                    };
+
+                    if recreate_buffer {
+                        buffers.insert(
+                            (*id).clone(),
+                            Arc::new(texture.download_buffer(ctx.wgpu_ctx)),
+                        );
+                    }
+                }
+
+                if let Err(err) = renderer.render(ctx, sources, &buffers, target) {
                     error!("Failed to run web render: {err}");
                 }
             }
@@ -113,38 +141,24 @@ impl RenderNode {
 pub struct Node {
     pub node_id: NodeId,
     pub output: NodeTexture,
-    pub inputs: Vec<Arc<Node>>,
+    pub inputs: Vec<NodeId>,
     pub renderer: RenderNode,
 }
 
 impl Node {
-    pub fn new(ctx: &RenderCtx, spec: &NodeSpec, inputs: Vec<Arc<Node>>) -> Result<Self, GetError> {
-        let node = RenderNode::new(ctx, &spec.params, &inputs)?;
-        let output = NodeTexture::new(
-            ctx.wgpu_ctx,
-            // TODO: This will not be addressed when implementing fallback
-            node.resolution().unwrap_or(Resolution {
-                width: 1,
-                height: 1,
-            }),
-        );
+    pub fn new(ctx: &RenderCtx, spec: &NodeSpec) -> Result<Self, GetError> {
+        let node = RenderNode::new(ctx, &spec.params)?;
+        let output = NodeTexture::new();
         Ok(Self {
             node_id: spec.node_id.clone(),
             renderer: node,
-            inputs,
+            inputs: spec.input_pads.clone(),
             output,
         })
     }
 
-    pub fn new_input(ctx: &RenderCtx, node_id: &NodeId) -> Result<Self, GetError> {
-        let output = NodeTexture::new(
-            ctx.wgpu_ctx,
-            // TODO: This will not be addressed when implementing fallback
-            Resolution {
-                width: 1,
-                height: 1,
-            },
-        );
+    pub fn new_input(node_id: &NodeId) -> Result<Self, GetError> {
+        let output = NodeTexture::new();
 
         Ok(Self {
             node_id: node_id.clone(),
@@ -156,8 +170,9 @@ impl Node {
 }
 
 pub struct Scene {
-    pub outputs: HashMap<OutputId, (Arc<Node>, OutputTexture)>,
-    pub inputs: HashMap<InputId, (Arc<Node>, InputTexture)>,
+    pub nodes: SceneNodesSet,
+    pub outputs: HashMap<OutputId, (NodeId, OutputTexture)>,
+    pub inputs: HashMap<InputId, InputTexture>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -184,6 +199,7 @@ pub enum SceneUpdateError {
 impl Scene {
     pub fn empty() -> Self {
         Self {
+            nodes: SceneNodesSet::new(),
             outputs: HashMap::new(),
             inputs: HashMap::new(),
         }
@@ -195,63 +211,136 @@ impl Scene {
         let scope = WgpuErrorScope::push(&ctx.wgpu_ctx.device);
 
         let mut new_nodes = HashMap::new();
-        self.inputs = HashMap::new();
-        self.outputs = spec
+        let mut inputs = HashMap::new();
+        let outputs = spec
             .outputs
             .iter()
             .map(|output| {
-                let node = self.ensure_node(ctx, &output.input_pad, spec, &mut new_nodes)?;
+                Self::ensure_node(ctx, &output.input_pad, spec, &mut inputs, &mut new_nodes)?;
+                let node = new_nodes
+                    .get(&output.input_pad)
+                    .ok_or_else(|| SceneUpdateError::NoNodeWithIdError(output.input_pad.clone()))?;
                 let resolution = node.renderer.resolution().ok_or_else(|| {
                     SceneUpdateError::UnknownResolutionOnOutput(node.node_id.clone())
                 })?;
-                let buffers = OutputTexture::new(ctx.wgpu_ctx, resolution);
-                Ok((output.output_id.clone(), (node, buffers)))
+                let output_texture = OutputTexture::new(ctx.wgpu_ctx, resolution);
+                Ok((
+                    output.output_id.clone(),
+                    (node.node_id.clone(), output_texture),
+                ))
             })
             .collect::<Result<_, SceneUpdateError>>()?;
 
         scope.pop(&ctx.wgpu_ctx.device)?;
 
+        self.inputs = inputs;
+        self.outputs = outputs;
+        self.nodes = SceneNodesSet { nodes: new_nodes };
+
         Ok(())
     }
 
     fn ensure_node(
-        &mut self,
         ctx: &RenderCtx,
         node_id: &NodeId,
         spec: &SceneSpec,
-        new_nodes: &mut HashMap<NodeId, Arc<Node>>,
-    ) -> Result<Arc<Node>, SceneUpdateError> {
+        inputs: &mut HashMap<InputId, InputTexture>,
+        new_nodes: &mut HashMap<NodeId, Node>,
+    ) -> Result<(), SceneUpdateError> {
         // check if node already exists
-        if let Some(already_existing_node) = new_nodes.get(node_id) {
-            return Ok(already_existing_node.clone());
+        if new_nodes.get(node_id).is_some() {
+            return Ok(());
         }
 
         // handle a case where node_id refers to transform node
         {
-            let transform_spec = spec.nodes.iter().find(|node| &node.node_id == node_id);
-            if let Some(transform) = transform_spec {
-                let inputs = transform
-                    .input_pads
-                    .iter()
-                    .map(|node_id| self.ensure_node(ctx, node_id, spec, new_nodes))
-                    .collect::<Result<_, _>>()?;
-                let node =
-                    Node::new(ctx, transform, inputs).map_err(SceneUpdateError::RenderNodeError)?;
-                let node = Arc::new(node);
-                new_nodes.insert(node_id.clone(), node.clone());
-                return Ok(node);
+            let node_spec = spec.nodes.iter().find(|node| &node.node_id == node_id);
+            if let Some(node_spec) = node_spec {
+                for child_id in &node_spec.input_pads {
+                    Self::ensure_node(ctx, child_id, spec, inputs, new_nodes)?;
+                }
+                let node = Node::new(ctx, node_spec).map_err(SceneUpdateError::RenderNodeError)?;
+                new_nodes.insert(node_id.clone(), node);
+                return Ok(());
             }
         }
 
         // If there is no node with id node_id, assume it's an input. Pipeline validation should
         // make sure that scene does not refer to missing entities.
-        let node = Node::new_input(ctx, node_id).map_err(SceneUpdateError::InputNodeError)?;
-        let node = Arc::new(node);
-        new_nodes.insert(node_id.clone(), node.clone());
-        self.inputs.insert(
-            InputId(node_id.clone()),
-            (node.clone(), InputTexture::new(ctx.wgpu_ctx, None)),
-        );
-        Ok(node)
+        let node = Node::new_input(node_id).map_err(SceneUpdateError::InputNodeError)?;
+        new_nodes.insert(node_id.clone(), node);
+        inputs.insert(InputId(node_id.clone()), InputTexture::new());
+        Ok(())
     }
+}
+
+#[derive(Default)]
+pub struct SceneNodesSet {
+    nodes: HashMap<NodeId, Node>,
+}
+
+impl SceneNodesSet {
+    pub fn new() -> Self {
+        Self {
+            nodes: HashMap::new(),
+        }
+    }
+
+    pub fn node(&self, node_id: &NodeId) -> Result<&Node, SceneError> {
+        self.nodes
+            .get(node_id)
+            .ok_or_else(|| SceneError::MissingNode(node_id.clone()))
+    }
+
+    pub fn node_mut(&mut self, node_id: &NodeId) -> Result<&mut Node, SceneError> {
+        self.nodes
+            .get_mut(node_id)
+            .ok_or_else(|| SceneError::MissingNode(node_id.clone()))
+    }
+
+    /// Borrow all nodes that are needed to render node node_id.
+    pub fn node_render_pass<'a>(
+        &'a mut self,
+        node_id: &NodeId,
+    ) -> Result<NodeRenderPass<'a>, SceneError> {
+        let input_ids: Vec<NodeId> = self.node(node_id)?.inputs.to_vec();
+
+        // Borrow all the references we will need for a single node render.
+        let mut node_and_inputs: HashMap<&NodeId, &mut Node> = self
+            .nodes
+            .iter_mut()
+            .filter(|(id, _node)| input_ids.contains(id) || *id == node_id)
+            .collect();
+
+        // Extract mutable borrow for the node we will render.
+        let node = node_and_inputs
+            .remove(&node_id)
+            .ok_or_else(|| SceneError::MissingNode(node_id.clone()))?;
+
+        // Convert mutable borrows on rest of the nodes into immutable.
+        // One input might be used multiple times, so we might need to
+        // borrow it more than once, so it needs to be immutable.
+        let inputs_map: HashMap<&NodeId, &Node> = node_and_inputs
+            .into_iter()
+            .map(|(id, node)| (id, &*node))
+            .collect();
+
+        // Get immutable borrows for inputs.
+        let inputs: Vec<&Node> = input_ids
+            .into_iter()
+            .map(|input_id| {
+                inputs_map
+                    .get(&input_id)
+                    .copied()
+                    .ok_or_else(|| SceneError::MissingNode(node_id.clone()))
+            })
+            .collect::<Result<Vec<_>, SceneError>>()?;
+        Ok(NodeRenderPass { node, inputs })
+    }
+}
+
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+pub enum SceneError {
+    #[error("Missing node with id {0}")]
+    MissingNode(NodeId),
 }
