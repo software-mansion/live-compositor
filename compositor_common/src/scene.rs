@@ -136,3 +136,12 @@ pub struct ShaderParamStructField {
     #[serde(flatten)]
     pub value: ShaderParam,
 }
+
+impl From<(&'static str, ShaderParam)> for ShaderParamStructField {
+    fn from(value: (&'static str, ShaderParam)) -> Self {
+        Self {
+            field_name: value.0.to_owned(),
+            value: value.1,
+        }
+    }
+}

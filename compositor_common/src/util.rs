@@ -104,8 +104,8 @@ pub enum Coord {
 impl Display for Coord {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Coord::Pixel(pixels) => write!(f, "{} pixels", pixels),
-            Coord::Percent(percents) => write!(f, "{}, percents", percents),
+            Coord::Pixel(pixels) => write!(f, "{}px", pixels),
+            Coord::Percent(percents) => write!(f, "{}%", percents),
         }
     }
 }
@@ -131,7 +131,7 @@ fn parse_num(str: &str) -> Result<i32, CoordParseError> {
         .or(Err(CoordParseError::InvalidCoordFormat))
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum CoordParseError {
     #[error("Invalid format. Coord definition can only be specified as number (pixels count), number with `px` suffix (pixels count) or number with `%` suffix (percents count)")]
     InvalidCoordFormat,
@@ -150,7 +150,7 @@ impl Coord {
 mod tests {
     use std::str::FromStr;
 
-    use crate::util::{RGBAColor, RGBColor};
+    use crate::util::{RGBAColor, RGBColor, Coord, CoordParseError};
 
     #[test]
     fn test_rgb_serialization() {
@@ -202,5 +202,22 @@ mod tests {
             RGBAColor::from_str("#000").unwrap_err().to_string(),
             "Invalid format. Color has to be in #RRGGBBAA format"
         );
+    }
+
+    #[test]
+    fn test_coords_serialization() {
+        assert_eq!(format!("{}", Coord::Pixel(-31)), "-31px");
+        assert_eq!(format!("{}", Coord::Percent(67)), "67%");
+    }
+
+    #[test]
+    fn test_coords_deserialization() {
+        assert_eq!(Coord::from_str("100"), Ok(Coord::Pixel(100)));
+        assert_eq!(Coord::from_str("2137px"), Ok(Coord::Pixel(2137)));
+        assert_eq!(Coord::from_str("-420px"), Ok(Coord::Pixel(-420)));
+        assert_eq!(Coord::from_str("69%"), Ok(Coord::Percent(69)));
+        assert_eq!(Coord::from_str("-1337%"), Ok(Coord::Percent(-1337)));
+        assert_eq!(Coord::from_str("-1-337%"), Err(CoordParseError::InvalidCoordFormat));
+        assert_eq!(Coord::from_str("1x"), Err(CoordParseError::InvalidCoordFormat));
     }
 }

@@ -4,7 +4,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::scene::Resolution;
 
-// TODO: add type safety for RenderID, distinguishing on types different renderers
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct RendererId(pub Arc<str>);
 

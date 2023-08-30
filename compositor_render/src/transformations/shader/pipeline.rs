@@ -12,7 +12,7 @@ use super::INPUT_TEXTURES_AMOUNT;
 
 pub struct Pipeline {
     pipeline: wgpu::RenderPipeline,
-    planes: Surfaces,
+    surfaces: Surfaces,
     sampler: Sampler,
     pub(super) textures_bgl: wgpu::BindGroupLayout,
 }
@@ -53,7 +53,7 @@ impl Pipeline {
             source: shader_source,
         });
 
-        let geometry_buffers = Surfaces::new(device);
+        let surfaces = Surfaces::new(device);
 
         let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("shader transformation pipeline :^)"),
@@ -93,7 +93,7 @@ impl Pipeline {
         Self {
             pipeline,
             sampler,
-            planes: geometry_buffers,
+            surfaces,
             textures_bgl,
         }
     }
@@ -136,7 +136,7 @@ impl Pipeline {
             render_pass.set_bind_group(1, uniforms, &[]);
             render_pass.set_bind_group(2, &self.sampler.bind_group, &[]);
 
-            self.planes
+            self.surfaces
                 .draw(&mut render_pass, common_parameters.textures_count);
         }
 

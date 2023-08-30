@@ -215,14 +215,15 @@ impl SceneSpec {
 
     fn validate_builtin_transformations(&self) -> Result<(), SpecValidationError> {
         for spec in &self.nodes {
-            if let NodeSpec {
+            let NodeSpec {
                 node_id,
                 input_pads,
-                params: NodeParams::Builtin { transformation, .. },
-            } = spec
-            {
+                params,
+            } = spec;
+                
+            if let NodeParams::Builtin { transformation, .. } = params {
                 transformation.validate(node_id, input_pads)?;
-            }
+            };
         }
 
         Ok(())

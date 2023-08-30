@@ -51,40 +51,26 @@ impl BuiltinTransformations {
                 texture_layouts: textures_layouts,
                 ..
             } => {
-                fn shader_texture_layout(
-                    texture_layout: &TextureLayout,
-                    output_resolution: &Resolution,
-                ) -> ShaderParam {
-                    let top = ShaderParamStructField {
-                        field_name: "top".into(),
-                        value: ShaderParam::I32(
-                            texture_layout.top.pixels(output_resolution.height as u32),
-                        ),
-                    };
-
-                    let left = ShaderParamStructField {
-                        field_name: "left".into(),
-                        value: ShaderParam::I32(
-                            texture_layout.left.pixels(output_resolution.width as u32),
-                        ),
-                    };
-
-                    let rotation = ShaderParamStructField {
-                        field_name: "rotation".into(),
-                        value: ShaderParam::I32(texture_layout.rotation.0),
-                    };
-
-                    let padding = ShaderParamStructField {
-                        field_name: "_padding".into(),
-                        value: ShaderParam::I32(0),
-                    };
-
-                    ShaderParam::Struct(vec![top, left, rotation, padding])
-                }
-
                 let layouts: Vec<ShaderParam> = textures_layouts
                     .iter()
-                    .map(|layout| shader_texture_layout(layout, output_resolution))
+                    .map(|layout| {
+                        ShaderParam::Struct(vec![
+                            (
+                                "top",
+                                ShaderParam::I32(
+                                    texture_layout.top.pixels(output_resolution.height as u32),
+                                ),
+                            ),
+                            (
+                                "left",
+                                ShaderParam::I32(
+                                    texture_layout.left.pixels(output_resolution.width as u32),
+                                ),
+                            ),
+                            ("rotation", ShaderParam::I32(texture_layout.rotation.0)),
+                            ("_padding", ShaderParam::I32(0)),
+                        ])
+                    })
                     .collect();
 
                 Some(ShaderParam::List(layouts))

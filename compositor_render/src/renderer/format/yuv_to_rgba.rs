@@ -18,7 +18,7 @@ impl YUVToRGBAConverter {
     ) -> Self {
         let shader_module = device.create_shader_module(wgpu::include_wgsl!("yuv_to_rgba.wgsl"));
         let sampler = Sampler::new(device);
-        let surfaces = SingleSurface::new(device);
+        let surface = SingleSurface::new(device);
 
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("YUV to RGBA color converter render pipeline layout"),
@@ -59,7 +59,7 @@ impl YUVToRGBAConverter {
         Self {
             pipeline,
             sampler,
-            surface: surfaces,
+            surface,
         }
     }
 
