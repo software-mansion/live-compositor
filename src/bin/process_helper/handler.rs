@@ -56,13 +56,15 @@ impl RenderProcessHandler {
                 continue;
             };
 
-            self.embed_frame(
-                source_id.clone(),
-                width,
-                height,
-                &mut global_object,
-                &ctx_entered,
-            );
+            if !self.state.contains_source(&source_id) {
+                self.embed_frame(
+                    source_id.clone(),
+                    width,
+                    height,
+                    &mut global_object,
+                    &ctx_entered,
+                );
+            }
         }
     }
 
@@ -74,10 +76,6 @@ impl RenderProcessHandler {
         global_object: &mut cef::V8Value,
         ctx_entered: &cef::V8ContextEntered,
     ) {
-        if self.state.contains_source(&source_id) {
-            return;
-        }
-
         let shmem = ShmemConf::new()
             .flink(PathBuf::from(SHMEM_FOLDER_PATH).join(&source_id))
             .open()
