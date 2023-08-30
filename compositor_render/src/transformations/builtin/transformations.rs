@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use compositor_common::scene::{
     builtin_transformations::{BuiltinTransformationSpec, TextureLayout, TransformToResolution},
-    Resolution, ShaderParam,
+    Resolution, ShaderParam, ShaderParamStructField,
 };
 
 use crate::{
@@ -48,26 +48,45 @@ impl BuiltinTransformations {
         match transformation {
             BuiltinTransformationSpec::TransformToResolution(_) => None,
             BuiltinTransformationSpec::FixedPositionLayout {
-                texture_layouts: textures_specs,
+                texture_layouts: textures_layouts,
                 ..
             } => {
-                let mut layouts = Vec::new();
+                fn shader_texture_layout(
+                    texture_layout: &TextureLayout,
+                    output_resolution: &Resolution,
+                ) -> ShaderParam {
+                    let top = ShaderParamStructField {
+                        field_name: "top".into(),
+                        value: ShaderParam::I32(
+                            texture_layout.top.pixels(output_resolution.height as u32),
+                        ),
+                    };
 
-                for TextureLayout {
-                    top,
-                    left,
-                    rotation,
-                } in textures_specs
-                {
-                    layouts.push(ShaderParam::I32(
-                        top.pixels(output_resolution.height as u32),
-                    ));
-                    layouts.push(ShaderParam::I32(
-                        left.pixels(output_resolution.width as u32),
-                    ));
-                    layouts.push(ShaderParam::I32(rotation.0));
-                    layouts.push(ShaderParam::I32(0)); // padding
+                    let left = ShaderParamStructField {
+                        field_name: "left".into(),
+                        value: ShaderParam::I32(
+                            texture_layout.left.pixels(output_resolution.width as u32),
+                        ),
+                    };
+
+                    let rotation = ShaderParamStructField {
+                        field_name: "rotation".into(),
+                        value: ShaderParam::I32(texture_layout.rotation.0),
+                    };
+
+                    let padding = ShaderParamStructField {
+                        field_name: "_padding".into(),
+                        value: ShaderParam::I32(0),
+                    };
+
+                    ShaderParam::Struct(vec![top, left, rotation, padding])
                 }
+
+                let layouts: Vec<ShaderParam> = textures_layouts
+                    .iter()
+                    .map(|layout| shader_texture_layout(layout, output_resolution))
+                    .collect();
+
                 Some(ShaderParam::List(layouts))
             }
         }

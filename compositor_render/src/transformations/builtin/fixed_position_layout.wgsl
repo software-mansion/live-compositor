@@ -20,7 +20,7 @@ struct TextureLayout {
     top: i32,
     left: i32,
     rotation: i32,
-    padding: i32, // has to be alligned to 16
+    _padding: i32, // has to be alligned to 16
 }
 
 var<push_constant> common_params: CommonShaderParameters;
