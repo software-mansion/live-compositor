@@ -89,6 +89,7 @@ pub struct NodeSpec {
     pub node_id: NodeId,
     #[serde(default)]
     pub input_pads: Vec<NodeId>,
+    pub fallback_id: Option<NodeId>,
     #[serde(flatten)]
     pub params: NodeParams,
 }

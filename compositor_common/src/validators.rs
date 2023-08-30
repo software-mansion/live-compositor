@@ -139,10 +139,10 @@ impl SceneSpec {
 
         fn visit<'a>(
             node_id: &'a NodeId,
-            transform_nodes: &'a HashMap<&NodeId, &NodeSpec>,
+            nodes: &'a HashMap<&NodeId, &NodeSpec>,
             visited: &mut HashMap<&'a NodeId, NodeState>,
         ) -> Result<(), SpecValidationError> {
-            let Some(node) = transform_nodes.get(node_id) else {
+            let Some(node) = nodes.get(node_id) else {
                 return Ok(());
             };
 
@@ -155,7 +155,10 @@ impl SceneSpec {
             visited.insert(node_id, NodeState::BeingVisited);
 
             for child in &node.input_pads {
-                visit(child, transform_nodes, visited)?;
+                visit(child, nodes, visited)?;
+            }
+            if let Some(fallback_id) = &node.fallback_id {
+                visit(fallback_id, nodes, visited)?;
             }
 
             visited.insert(node_id, NodeState::Visited);
@@ -194,6 +197,9 @@ impl SceneSpec {
             for child in &node.input_pads {
                 visit(child, nodes, visited);
             }
+            if let Some(fallback_id) = &node.fallback_id {
+                visit(fallback_id, nodes, visited);
+            }
 
             visited.insert(node_id);
         }
@@ -219,6 +225,7 @@ impl SceneSpec {
                 node_id,
                 input_pads,
                 params,
+                ..
             } = spec;
 
             if let NodeParams::Builtin { transformation, .. } = params {
