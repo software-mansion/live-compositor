@@ -16,15 +16,30 @@ pub enum BuiltinTransformationSpec {
 }
 
 impl BuiltinTransformationSpec {
-    pub fn validate(&self, inputs: &Vec<NodeId>) -> Result<(), InvalidBuiltinTransformationSpec> {
+    pub fn validate(
+        &self,
+        node_id: &NodeId,
+        inputs: &Vec<NodeId>,
+    ) -> Result<(), InvalidBuiltinTransformationSpec> {
         match self {
-            BuiltinTransformationSpec::TransformToResolution(_) => Ok(()),
+            BuiltinTransformationSpec::TransformToResolution(_) => {
+                if inputs.len() != 1 {
+                    return Err(InvalidBuiltinTransformationSpec::InvalidInputsCount {
+                        node: node_id.clone(),
+                        expected_inputs_count: 1,
+                        specified_inputs_count: inputs.len() as u32,
+                    });
+                }
+
+                Ok(())
+            }
             BuiltinTransformationSpec::FixedPositionLayout {
                 texture_layouts, ..
             } => {
                 if texture_layouts.len() != inputs.len() {
                     return Err(
                         InvalidBuiltinTransformationSpec::InvalidTextureLayoutsCount {
+                            node: node_id.clone(),
                             texture_layouts_count: texture_layouts.len() as u32,
                             input_pads_count: inputs.len() as u32,
                         },
@@ -70,9 +85,16 @@ fn default_layout_background_color() -> RGBAColor {
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum InvalidBuiltinTransformationSpec {
-    #[error("Texture layouts should specify TextureLayout for every input pad. Received: {texture_layouts_count}, expected: {input_pads_count}.")]
+    #[error("Invalid texture layouts for node: {node}. Texture layouts should specify TextureLayout for every input pad. Received: {texture_layouts_count}, expected: {input_pads_count}.")]
     InvalidTextureLayoutsCount {
+        node: NodeId,
         texture_layouts_count: u32,
         input_pads_count: u32,
+    },
+    #[error("Node: {node} expected {expected_inputs_count} input pads, received {specified_inputs_count} input pads.")]
+    InvalidInputsCount {
+        node: NodeId,
+        expected_inputs_count: u32,
+        specified_inputs_count: u32,
     },
 }
