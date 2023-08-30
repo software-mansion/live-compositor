@@ -58,8 +58,8 @@ impl BuiltinTransformations {
                     .iter()
                     .map(|layout| {
                         ShaderParam::Struct(vec![
-                            ("top", ShaderParam::I32(layout.top.pixels(height as u32))).into(),
-                            ("left", ShaderParam::I32(layout.left.pixels(width as u32))).into(),
+                            ("top", ShaderParam::I32(layout.top.pixels(height))).into(),
+                            ("left", ShaderParam::I32(layout.left.pixels(width))).into(),
                             ("rotation", ShaderParam::I32(layout.rotation.0)).into(),
                             ("_padding", ShaderParam::I32(0)).into(),
                         ])
