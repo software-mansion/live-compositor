@@ -143,15 +143,19 @@ pub(super) fn render_node(
     if already_rendered.contains(node_id) {
         return Ok(());
     }
-    // render all inputs
+    // Make sure all input are rendered
     {
         let input_ids: Vec<_> = nodes.node(node_id)?.inputs.to_vec();
         for input_id in input_ids {
             render_node(ctx, nodes, pts, &input_id, already_rendered)?;
         }
     }
-    // render node `node_id` if render had an effect fallback_id returned
-    // from the block will be set to None even if fallback is defined
+    // Try to render node
+    //
+    // - If node texture is empty after the render and fallback_id was
+    // defined return that Some(fallback_id) from this block.
+    // - If node texture is not empty return None, even if fallback_id
+    // was defined
     let fallback_id = {
         let NodeRenderPass { node, inputs } = nodes.node_render_pass(node_id)?;
         let input_textures: Vec<_> = inputs
@@ -167,9 +171,7 @@ pub(super) fn render_node(
         }
     };
 
-    // render fallback if necessary, no need to copy because
-    // node_render_pass already provides textures extracted
-    // from fallback
+    // Try to render a fallback
     if let Some(fallback_id) = fallback_id {
         render_node(ctx, nodes, pts, &fallback_id, already_rendered)?;
     }
