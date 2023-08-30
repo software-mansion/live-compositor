@@ -111,6 +111,7 @@ pub struct Node {
     pub node_id: NodeId,
     pub output: NodeTexture,
     pub inputs: Vec<NodeId>,
+    pub fallback: Option<NodeId>,
     pub renderer: RenderNode,
 }
 
@@ -125,6 +126,7 @@ impl Node {
             node_id: spec.node_id.clone(),
             renderer: node,
             inputs: spec.input_pads.clone(),
+            fallback: spec.fallback_id.clone(),
             output,
         })
     }
@@ -136,6 +138,7 @@ impl Node {
             node_id: node_id.clone(),
             renderer: RenderNode::InputStream,
             inputs: vec![],
+            fallback: None,
             output,
         })
     }
@@ -231,6 +234,9 @@ impl Scene {
                 for child_id in &node_spec.input_pads {
                     Self::ensure_node(ctx, child_id, spec, inputs, new_nodes)?;
                 }
+                if let Some(fallback_id) = &node_spec.fallback_id {
+                    Self::ensure_node(ctx, fallback_id, spec, inputs, new_nodes)?;
+                }
                 let node = Node::new(ctx, node_spec).map_err(SceneUpdateError::RenderNodeError)?;
                 new_nodes.insert(node_id.clone(), node);
                 return Ok(());
@@ -270,44 +276,62 @@ impl SceneNodesSet {
             .ok_or_else(|| SceneError::MissingNode(node_id.clone()))
     }
 
+    pub fn node_or_fallback<'a>(&'a self, node_id: &NodeId) -> Result<&'a Node, SceneError> {
+        let nodes: HashMap<&NodeId, &Node> = self.nodes.iter().collect();
+        Self::find_fallback_node(&nodes, node_id)
+    }
+
     /// Borrow all nodes that are needed to render node node_id.
-    pub fn node_render_pass<'a>(
+    pub(crate) fn node_render_pass<'a>(
         &'a mut self,
         node_id: &NodeId,
     ) -> Result<NodeRenderPass<'a>, SceneError> {
         let input_ids: Vec<NodeId> = self.node(node_id)?.inputs.to_vec();
 
-        // Borrow all the references we will need for a single node render.
-        let mut node_and_inputs: HashMap<&NodeId, &mut Node> = self
-            .nodes
-            .iter_mut()
-            .filter(|(id, _node)| input_ids.contains(id) || *id == node_id)
-            .collect();
+        // Borrow all the references, Fallback technically can be applied on every
+        // level, so the easiest approach is to just borrow everything
+        let mut nodes_mut: HashMap<&NodeId, &mut Node> = self.nodes.iter_mut().collect();
 
         // Extract mutable borrow for the node we will render.
-        let node = node_and_inputs
+        let node = nodes_mut
             .remove(&node_id)
             .ok_or_else(|| SceneError::MissingNode(node_id.clone()))?;
 
         // Convert mutable borrows on rest of the nodes into immutable.
         // One input might be used multiple times, so we might need to
         // borrow it more than once, so it needs to be immutable.
-        let inputs_map: HashMap<&NodeId, &Node> = node_and_inputs
+        let nodes: HashMap<&NodeId, &Node> = nodes_mut
             .into_iter()
             .map(|(id, node)| (id, &*node))
             .collect();
 
-        // Get immutable borrows for inputs.
-        let inputs: Vec<&Node> = input_ids
+        // Get immutable borrows for inputs. For each input if node texture
+        // is empty go through the fallback chain
+        let inputs: Vec<(NodeId, &Node)> = input_ids
             .into_iter()
             .map(|input_id| {
-                inputs_map
-                    .get(&input_id)
-                    .copied()
-                    .ok_or_else(|| SceneError::MissingNode(node_id.clone()))
+                let node = Self::find_fallback_node(&nodes, &input_id)?;
+                // input_id and node.node_id are different if fallback is triggered
+                Ok((input_id, node))
             })
             .collect::<Result<Vec<_>, SceneError>>()?;
         Ok(NodeRenderPass { node, inputs })
+    }
+
+    fn find_fallback_node<'a>(
+        nodes: &HashMap<&NodeId, &'a Node>,
+        node_id: &NodeId,
+    ) -> Result<&'a Node, SceneError> {
+        let mut node: &Node = nodes
+            .get(node_id)
+            .ok_or_else(|| SceneError::MissingNode(node_id.clone()))?;
+        while node.output.is_empty() && node.fallback.is_some() {
+            let fallback_id = node.fallback.clone().unwrap();
+            node = nodes
+                .get(&fallback_id)
+                .ok_or_else(|| SceneError::MissingNode(fallback_id.clone()))?
+        }
+        Ok(node)
     }
 }
 

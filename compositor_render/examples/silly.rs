@@ -116,6 +116,7 @@ fn main() {
                     shader_params: None,
                     resolution,
                 },
+                fallback_id: None,
             }],
             outputs: vec![OutputSpec {
                 input_pad: shader_id,
