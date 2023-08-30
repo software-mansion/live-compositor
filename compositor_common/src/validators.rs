@@ -1,6 +1,9 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::scene::{NodeId, NodeSpec, OutputId, SceneSpec};
+use crate::scene::{
+    builtin_transformations::InvalidBuiltinTransformationSpec, NodeId, NodeParams, NodeSpec,
+    OutputId, SceneSpec,
+};
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum SpecValidationError {
@@ -19,6 +22,8 @@ pub enum SpecValidationError {
     CycleDetected,
     #[error("Unused nodes: {0:?}")]
     UnusedNodes(HashSet<NodeId>),
+    #[error("Invalid builtin transformation params: {0:?}")]
+    InvalidBuiltinTransformationParams(#[from] InvalidBuiltinTransformationSpec),
 }
 
 impl SceneSpec {
@@ -50,6 +55,7 @@ impl SceneSpec {
         self.validate_node_ids_uniqueness(defined_node_ids_iter)?;
         self.validate_cycles(&transform_nodes)?;
         self.validate_nodes_are_used(&transform_nodes)?;
+        self.validate_builtin_transformations()?;
 
         Ok(())
     }
@@ -208,6 +214,23 @@ impl SceneSpec {
         if unused_transforms.peek().is_some() {
             let unused_transforms = unused_transforms.copied().cloned().collect();
             return Err(SpecValidationError::UnusedNodes(unused_transforms));
+        }
+
+        Ok(())
+    }
+
+    fn validate_builtin_transformations(&self) -> Result<(), SpecValidationError> {
+        for spec in &self.nodes {
+            let NodeSpec {
+                node_id,
+                input_pads,
+                params,
+                ..
+            } = spec;
+
+            if let NodeParams::Builtin { transformation, .. } = params {
+                transformation.validate(node_id, input_pads)?;
+            };
         }
 
         Ok(())

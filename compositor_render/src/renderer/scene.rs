@@ -33,7 +33,7 @@ impl RenderNode {
     fn new(ctx: &RenderCtx, spec: &NodeParams) -> Result<Self, GetError> {
         match spec {
             NodeParams::WebRenderer { instance_id } => {
-                let renderer = ctx.web_renderers.get(instance_id)?;
+                let renderer = ctx.renderers.web_renderers.get(instance_id)?;
                 Ok(Self::Web { renderer })
             }
             NodeParams::Shader {
@@ -42,7 +42,7 @@ impl RenderNode {
                 resolution,
             } => Ok(Self::Shader(ShaderNode::new(
                 ctx.wgpu_ctx,
-                ctx.shader_registry.get(shader_id)?,
+                ctx.renderers.shaders.get(shader_id)?,
                 shader_params.as_ref(),
                 None,
                 *resolution,
@@ -52,8 +52,8 @@ impl RenderNode {
                 resolution,
             } => Ok(Self::Builtin(ShaderNode::new(
                 ctx.wgpu_ctx,
-                ctx.builtin_transforms.shader(transformation),
-                BuiltinTransformations::params(transformation).as_ref(),
+                ctx.renderers.builtin.shader(transformation),
+                BuiltinTransformations::params(transformation, resolution).as_ref(),
                 BuiltinTransformations::clear_color(transformation),
                 *resolution,
             ))),
@@ -65,7 +65,7 @@ impl RenderNode {
                 Ok(Self::Text(renderer))
             }
             NodeParams::Image { image_id } => {
-                let node = ImageNode::new(ctx.image_registry.get(image_id)?);
+                let node = ImageNode::new(ctx.renderers.images.get(image_id)?);
                 Ok(Self::Image(node))
             }
         }

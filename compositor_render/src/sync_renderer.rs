@@ -28,29 +28,26 @@ impl SyncRenderer {
 
     pub fn register_renderer(&self, spec: RendererSpec) -> Result<(), RendererRegisterError> {
         let ctx = self.0.lock().unwrap().register_ctx();
+        let mut guard = self.0.lock().unwrap();
         match spec {
             RendererSpec::Shader(spec) => {
                 let shader = Arc::new(Shader::new(&ctx.wgpu_ctx, spec.source)?);
 
-                let mut guard = self.0.lock().unwrap();
-                guard.shader_registry.register(spec.shader_id, shader)?
+                Ok(guard.renderers.shaders.register(spec.shader_id, shader)?)
             }
             RendererSpec::WebRenderer(params) => {
                 let instance_id = params.instance_id.clone();
                 let web = Arc::new(WebRenderer::new(&ctx, params)?);
 
-                let mut guard = self.0.lock().unwrap();
-                guard.web_renderers.register(instance_id, web)?
+                Ok(guard.renderers.web_renderers.register(instance_id, web)?)
             }
             RendererSpec::Image(spec) => {
                 let image_id = spec.image_id.clone();
                 let asset = Image::new(&ctx, spec)?;
 
-                let mut guard = self.0.lock().unwrap();
-                guard.image_registry.register(image_id, asset)?
+                Ok(guard.renderers.images.register(image_id, asset)?)
             }
         }
-        Ok(())
     }
 
     pub fn render(&self, input: FrameSet<InputId>) -> Result<FrameSet<OutputId>, RenderError> {

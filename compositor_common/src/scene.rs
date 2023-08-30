@@ -4,7 +4,7 @@ use std::{fmt::Display, sync::Arc};
 use crate::renderer_spec::RendererId;
 
 use self::{
-    builtin_transformations::BuiltinTransformation,
+    builtin_transformations::BuiltinTransformationSpec,
     text_spec::{TextDimensions, TextSpec},
 };
 
@@ -116,7 +116,7 @@ pub enum NodeParams {
     #[serde(rename = "built-in")]
     Builtin {
         #[serde(flatten)]
-        transformation: BuiltinTransformation,
+        transformation: BuiltinTransformationSpec,
         resolution: Resolution,
     },
 }
@@ -136,4 +136,13 @@ pub struct ShaderParamStructField {
     pub field_name: String,
     #[serde(flatten)]
     pub value: ShaderParam,
+}
+
+impl From<(&'static str, ShaderParam)> for ShaderParamStructField {
+    fn from(value: (&'static str, ShaderParam)) -> Self {
+        Self {
+            field_name: value.0.to_owned(),
+            value: value.1,
+        }
+    }
 }

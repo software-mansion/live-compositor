@@ -1,5 +1,7 @@
 use wgpu::{util::DeviceExt, BindGroup, BindGroupLayout, Buffer};
 
+pub mod surface;
+
 pub const PRIMITIVE_STATE: wgpu::PrimitiveState = wgpu::PrimitiveState {
     polygon_mode: wgpu::PolygonMode::Fill,
     topology: wgpu::PrimitiveTopology::TriangleList,
@@ -10,71 +12,28 @@ pub const PRIMITIVE_STATE: wgpu::PrimitiveState = wgpu::PrimitiveState {
     unclipped_depth: false,
 };
 
+pub const MAX_TEXTURES_COUNT: u32 = 16;
+
 #[repr(C)]
 #[derive(Debug, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Vertex {
     pub position: [f32; 3],
     pub texture_coords: [f32; 2],
+    pub input_id: i32,
 }
 
 impl Vertex {
     pub const LAYOUT: wgpu::VertexBufferLayout<'static> = wgpu::VertexBufferLayout {
         array_stride: std::mem::size_of::<Vertex>() as u64,
         step_mode: wgpu::VertexStepMode::Vertex,
-        attributes: &wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x2],
+        attributes: &wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x2, 2 => Sint32],
     };
-}
 
-pub struct RectangleRenderBuffers {
-    pub vertex: Buffer,
-    pub index: Buffer,
-}
-
-/// Vertex and index buffer that describe render area as an rectangle mapped to texture.
-impl RectangleRenderBuffers {
-    const VERTICES: [Vertex; 4] = [
+    const fn empty() -> Self {
         Vertex {
-            position: [1.0, -1.0, 0.0],
-            texture_coords: [1.0, 1.0],
-        },
-        Vertex {
-            position: [1.0, 1.0, 0.0],
-            texture_coords: [1.0, 0.0],
-        },
-        Vertex {
-            position: [-1.0, 1.0, 0.0],
+            position: [0.0, 0.0, 0.0],
             texture_coords: [0.0, 0.0],
-        },
-        Vertex {
-            position: [-1.0, -1.0, 0.0],
-            texture_coords: [0.0, 1.0],
-        },
-    ];
-
-    #[rustfmt::skip]
-    pub const INDICES: [u16; 6] = [
-        0, 1, 2,
-        2, 3, 0,
-    ];
-
-    pub const INDEX_FORMAT: wgpu::IndexFormat = wgpu::IndexFormat::Uint16;
-
-    pub fn new(device: &wgpu::Device) -> Self {
-        let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("vertex buffer"),
-            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-            contents: bytemuck::cast_slice(&Self::VERTICES),
-        });
-
-        let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("index buffer"),
-            usage: wgpu::BufferUsages::INDEX | wgpu::BufferUsages::COPY_DST,
-            contents: bytemuck::cast_slice(&Self::INDICES),
-        });
-
-        Self {
-            vertex: vertex_buffer,
-            index: index_buffer,
+            input_id: 0,
         }
     }
 }
