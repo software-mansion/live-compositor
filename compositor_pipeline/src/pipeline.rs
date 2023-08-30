@@ -17,6 +17,9 @@ use log::{error, warn};
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, DurationMilliSeconds};
 
+use crate::error::{
+    RegisterInputError, RegisterOutputError, UnregisterInputError, UnregisterOutputError,
+};
 use crate::queue::Queue;
 
 pub trait PipelineOutput: Send + Sync + 'static {
@@ -210,36 +213,6 @@ impl<Input: PipelineInput, Output: PipelineOutput> Pipeline<Input, Output> {
         let guard = self.outputs.lock();
         f(OutputIterator::new(guard.iter()))
     }
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum RegisterInputError {
-    #[error("Input {0} is already registered.")]
-    AlreadyRegistered(InputId),
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum RegisterOutputError {
-    #[error("Output {0} is already registered.")]
-    AlreadyRegistered(OutputId),
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum UnregisterInputError {
-    #[error("Input {0} does not exist.")]
-    NotFound(InputId),
-
-    #[error("Input {0} is still part of the scene.")]
-    StillInUse(InputId),
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum UnregisterOutputError {
-    #[error("Output {0} does not exists.")]
-    NotFound(OutputId),
-
-    #[error("Output {0} is still part of the scene")]
-    StillInUse(OutputId),
 }
 
 struct OutputRegistry<Output: PipelineOutput>(Arc<Mutex<HashMap<OutputId, Arc<Output>>>>);

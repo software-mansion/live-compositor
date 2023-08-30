@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use anyhow::{anyhow, Result};
 use compositor_common::{
     renderer_spec::{ImageSpec, RendererId, RendererSpec, ShaderSpec, WebRendererSpec},
     scene::{InputId, OutputId, Resolution, SceneSpec},
@@ -9,8 +8,10 @@ use compositor_pipeline::pipeline;
 use compositor_render::event_loop::EventLoop;
 use crossbeam_channel::{bounded, Receiver};
 use serde::{Deserialize, Serialize};
+use tiny_http::StatusCode;
 
 use crate::{
+    error::ApiError,
     rtp_receiver::{self, RtpReceiver},
     rtp_sender::{self, EncoderSettings, RtpSender},
 };
@@ -97,7 +98,7 @@ pub struct OutputInfo {
 pub enum ResponseHandler {
     Response(Response),
     Ok,
-    DeferredResponse(Receiver<Result<Response>>),
+    DeferredResponse(Receiver<Result<Response, ApiError>>),
 }
 
 pub struct Api {
@@ -105,14 +106,18 @@ pub struct Api {
 }
 
 impl Api {
-    pub fn new(opts: pipeline::Options) -> Result<(Api, EventLoop)> {
+    pub fn new(opts: pipeline::Options) -> Result<(Api, EventLoop), ApiError> {
         let (pipeline, event_loop) = Pipeline::new(opts)?;
         Ok((Api { pipeline }, event_loop))
     }
 
-    pub fn handle_request(&mut self, request: Request) -> Result<ResponseHandler> {
+    pub fn handle_request(&mut self, request: Request) -> Result<ResponseHandler, ApiError> {
         match request {
-            Request::Init(_) => Err(anyhow!("Video compositor is already initialized.")),
+            Request::Init(_) => Err(ApiError {
+                error_code: "COMPOSITOR_ALREADY_INITIALIZED",
+                message: "Compositor was already initialized.".to_string(),
+                http_status_code: StatusCode(400),
+            }),
             Request::Register(register_request) => {
                 self.handle_register_request(register_request)?;
                 Ok(ResponseHandler::Ok)
@@ -133,7 +138,7 @@ impl Api {
         }
     }
 
-    fn handle_query(&self, query: QueryRequest) -> Result<ResponseHandler> {
+    fn handle_query(&self, query: QueryRequest) -> Result<ResponseHandler, ApiError> {
         match query {
             QueryRequest::WaitForNextFrame { input_id } => {
                 let (sender, receiver) = bounded(1);
@@ -173,7 +178,7 @@ impl Api {
         }
     }
 
-    fn handle_register_request(&mut self, request: RegisterRequest) -> Result<()> {
+    fn handle_register_request(&mut self, request: RegisterRequest) -> Result<(), ApiError> {
         match request {
             RegisterRequest::InputStream(input_stream) => self.register_input(input_stream),
             RegisterRequest::OutputStream(output_stream) => self.register_output(output_stream),
@@ -192,7 +197,7 @@ impl Api {
         }
     }
 
-    fn handle_unregister_request(&mut self, request: UnregisterRequest) -> Result<()> {
+    fn handle_unregister_request(&mut self, request: UnregisterRequest) -> Result<(), ApiError> {
         match request {
             UnregisterRequest::InputStream { input_id } => {
                 Ok(self.pipeline.unregister_input(&input_id)?)
@@ -206,7 +211,7 @@ impl Api {
         }
     }
 
-    fn register_output(&mut self, request: RegisterOutputRequest) -> Result<()> {
+    fn register_output(&mut self, request: RegisterOutputRequest) -> Result<(), ApiError> {
         let RegisterOutputRequest {
             output_id,
             port,
@@ -217,9 +222,11 @@ impl Api {
 
         self.pipeline.with_outputs(|mut iter| {
             if let Some((node_id, _)) = iter.find(|(_, output)| output.port == port && output.ip == ip) {
-                return Err(anyhow!(
-                    "Failed to register output with id \"{output_id}\". Combination of port {port} and IP {ip} is already used by node \"{node_id}\""
-                ));
+                return Err(ApiError{
+                    error_code: "PORT_AND_IP_ALREADY_IN_USE",
+                    message: format!("Failed to register output stream with id \"{output_id}\". Combination of port {port} and IP {ip} is already used by node \"{node_id}\""),
+                    http_status_code: tiny_http::StatusCode(400)
+                });
             };
             Ok(())
         })?;
@@ -237,13 +244,15 @@ impl Api {
         Ok(())
     }
 
-    fn register_input(&mut self, request: RegisterInputRequest) -> Result<()> {
+    fn register_input(&mut self, request: RegisterInputRequest) -> Result<(), ApiError> {
         let RegisterInputRequest { input_id: id, port } = request;
 
         if let Some((node_id, _)) = self.pipeline.inputs().find(|(_, input)| input.port == port) {
-            return Err(anyhow!(
-                "Failed to register input with id \"{id}\". Port {port} is already used by node \"{node_id}\""
-            ));
+            return Err(ApiError{
+                error_code: "PORT_ALREADY_IN_USE",
+                message: format!("Failed to register input stream with id \"{id}\". Port {port} is already used by node \"{node_id}\""),
+                http_status_code: tiny_http::StatusCode(400)
+            });
         }
 
         self.pipeline

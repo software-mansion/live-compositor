@@ -1,16 +1,17 @@
-use anyhow::{anyhow, Result};
-use compositor_common::SpecValidationError;
 use compositor_pipeline::pipeline;
-use compositor_render::{event_loop::EventLoop, registry};
+use compositor_render::event_loop::EventLoop;
 use crossbeam_channel::RecvTimeoutError;
 use log::{error, info};
 
 use serde_json::json;
 use signal_hook::{consts, iterator::Signals};
-use std::{error::Error, io::Cursor, net::SocketAddr, sync::Arc, thread, time::Duration};
+use std::{io::Cursor, net::SocketAddr, sync::Arc, thread, time::Duration};
 use tiny_http::{Header, Response, StatusCode};
 
-use crate::api::{self, Api, Request, ResponseHandler};
+use crate::{
+    api::{self, Api, Request, ResponseHandler},
+    error::ApiError,
+};
 
 pub struct Server {
     server: tiny_http::Server,
@@ -52,13 +53,23 @@ impl Server {
                                     server.send_err_response(raw_request, err);
                                 }
                                 Err(RecvTimeoutError::Timeout) => {
-                                    server
-                                        .send_err_response(raw_request, anyhow!("query timed out"));
+                                    server.send_err_response(
+                                        raw_request,
+                                        ApiError {
+                                            error_code: "QUERY_TIMEOUT",
+                                            message: "query timed out".to_string(),
+                                            http_status_code: StatusCode(408),
+                                        },
+                                    );
                                 }
                                 Err(RecvTimeoutError::Disconnected) => {
                                     server.send_err_response(
                                         raw_request,
-                                        anyhow!("internal server error"),
+                                        ApiError {
+                                            error_code: "INTERNAL_SERVER_ERROR",
+                                            message: "Internal Server Error".to_string(),
+                                            http_status_code: StatusCode(500),
+                                        },
                                     );
                                 }
                             };
@@ -101,7 +112,7 @@ impl Server {
     fn handle_request_after_init(
         api: &mut Api,
         raw_request: &mut tiny_http::Request,
-    ) -> Result<ResponseHandler> {
+    ) -> Result<ResponseHandler, ApiError> {
         let request = Server::parse_request(raw_request)?;
         api.handle_request(request)
     }
@@ -109,13 +120,15 @@ impl Server {
     fn handle_request_before_init(
         &self,
         raw_request: &mut tiny_http::Request,
-    ) -> Result<pipeline::Options> {
+    ) -> Result<pipeline::Options, ApiError> {
         let request = Server::parse_request(raw_request)?;
         match request {
             Request::Init(opts) => Ok(opts),
-            _ => Err(anyhow!(
-                "No requests are supported before init request is completed."
-            )),
+            _ => Err(ApiError {
+                error_code: "COMPOSITOR_NOT_INITIALIZED",
+                message: "Compositor was not initialized, send \"init\" request first.".to_string(),
+                http_status_code: StatusCode(400),
+            }),
         }
     }
 
@@ -136,23 +149,15 @@ impl Server {
         }
     }
 
-    fn send_err_response(&self, raw_request: tiny_http::Request, err: anyhow::Error) {
-        let reason: Vec<String> = Sources(Some(err.as_ref()))
-            .map(|e| format!("{e}"))
-            .collect();
-        let status_code = match is_user_error(err) {
-            true => 400,
-            false => 500,
-        };
-
+    fn send_err_response(&self, raw_request: tiny_http::Request, err: ApiError) {
         let response_result = serde_json::to_string(&json!({
-            "msg": reason[0],
-            "reason": reason,
+            "msg": err.message,
+            "error_code": err.error_code,
         }))
         .map_err(Into::into)
         .and_then(|body| {
             raw_request.respond(Response::new(
-                StatusCode(status_code),
+                err.http_status_code,
                 vec![self.content_type_json.clone()],
                 Cursor::new(&body),
                 Some(body.len()),
@@ -164,35 +169,11 @@ impl Server {
         }
     }
 
-    fn parse_request(request: &mut tiny_http::Request) -> Result<Request> {
-        Ok(serde_json::from_reader::<_, Request>(request.as_reader())?)
-    }
-}
-
-fn is_user_error(err: anyhow::Error) -> bool {
-    let opt = Some(err.as_ref());
-    let mut sources = Sources(opt);
-    sources.any(|source| {
-        source.is::<SpecValidationError>()
-            || source.is::<registry::RegisterError>()
-            || source.is::<registry::GetError>()
-        // TODO: add more errors here
-    })
-}
-
-/// Replace with err.sources() when the feature stabilizes
-struct Sources<'a>(Option<&'a (dyn Error + 'static)>);
-
-impl<'a> Iterator for Sources<'a> {
-    type Item = &'a (dyn Error + 'static);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        match self.0 {
-            Some(err) => {
-                self.0 = err.source();
-                Some(err)
-            }
-            None => None,
-        }
+    fn parse_request(request: &mut tiny_http::Request) -> Result<Request, ApiError> {
+        serde_json::from_reader::<_, Request>(request.as_reader()).map_err(|err| ApiError {
+            error_code: "MALFORMED_REQUEST",
+            message: format!("Received malformed request:\n{err}"),
+            http_status_code: StatusCode(400),
+        })
     }
 }
