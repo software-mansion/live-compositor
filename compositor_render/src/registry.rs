@@ -3,14 +3,8 @@ use std::{collections::HashMap, sync::Arc};
 use compositor_common::renderer_spec::RendererId;
 
 #[derive(Debug, thiserror::Error)]
-pub enum GetError {
-    #[error("a {0} with a key {1} could not be found")]
-    KeyNotFound(&'static str, Arc<str>),
-}
-
-#[derive(Debug, thiserror::Error)]
 pub enum RegisterError {
-    #[error("a {0} with a key {1} is already registered")]
+    #[error("Failed to register a {0}, The \"{1}\" {0} was already registered.")]
     KeyTaken(&'static str, Arc<str>),
 }
 
@@ -23,7 +17,7 @@ pub enum RegistryType {
 impl RegistryType {
     fn registry_item_name(&self) -> &'static str {
         match self {
-            RegistryType::Shader => "shader transformation",
+            RegistryType::Shader => "shader",
             RegistryType::WebRenderer => "web renderer instance",
             RegistryType::Image => "image",
         }
@@ -43,15 +37,8 @@ impl<T: Clone> RendererRegistry<T> {
         }
     }
 
-    #[allow(dead_code)]
-    pub(crate) fn get(&self, key: &RendererId) -> Result<T, GetError> {
-        match self.registry.get(key) {
-            Some(val) => Ok(val.clone()),
-            None => Err(GetError::KeyNotFound(
-                self.registry_type.registry_item_name(),
-                key.0.clone(),
-            )),
-        }
+    pub(crate) fn get(&self, key: &RendererId) -> Option<T> {
+        self.registry.get(key).map(Clone::clone)
     }
 
     pub(crate) fn register(&mut self, id: RendererId, renderer: T) -> Result<(), RegisterError> {

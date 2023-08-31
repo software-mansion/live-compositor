@@ -1,4 +1,7 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    fmt::Display,
+};
 
 use crate::scene::{
     builtin_transformations::InvalidBuiltinTransformationSpec, NodeId, NodeParams, NodeSpec,
@@ -6,24 +9,43 @@ use crate::scene::{
 };
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
-pub enum SpecValidationError {
-    #[error("Unknown node with id {missing_node} used in node {node}. Node is not defined in the scene and it was not registered as an input.")]
+pub enum SceneSpecValidationError {
+    #[error("Unknown node \"{missing_node}\" used as an input in the node {node}. Node is not defined in the scene and it was not registered as an input.")]
     UnknownInputPadOnNode { missing_node: NodeId, node: NodeId },
-    #[error("Unknown node with id {missing_node} used in output {output} is not defined in scene and it was not registered as an input")]
+    #[error("Unknown node \"{missing_node}\" is connected to the output stream {output}.")]
     UnknownInputPadOnOutput {
         missing_node: NodeId,
         output: OutputId,
     },
-    #[error("Unknown output. Output with id {0} is not currently registered.")]
+    #[error(
+        "Unknown output stream \"{0}\". Register it first before using it in the scene definition."
+    )]
     UnknownOutput(NodeId),
-    #[error("Duplicate node id: {0}. There is more than one node or input with the same name.")]
-    DuplicateNames(NodeId),
-    #[error("detected cycle in scene graph, scene should acyclic graph")]
-    CycleDetected,
-    #[error("Unused nodes: {0:?}")]
-    UnusedNodes(HashSet<NodeId>),
-    #[error("Invalid builtin transformation params: {0:?}")]
+    #[error("Invalid node id. There is more than one node with the \"{0}\" id.")]
+    DuplicateNodeNames(NodeId),
+    #[error("Invalid node id. There is already an input stream with the \"{0}\" id.")]
+    DuplicateNodeAndInputNames(NodeId),
+    #[error("Cycles between nodes are not allowed. Node \"{0}\" depends on itself via input_pads or fallback option.")]
+    CycleDetected(NodeId),
+    #[error(transparent)]
+    UnusedNodes(#[from] UnusedNodesError),
+    #[error(transparent)]
     InvalidBuiltinTransformationParams(#[from] InvalidBuiltinTransformationSpec),
+}
+
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+pub struct UnusedNodesError(HashSet<NodeId>);
+
+impl Display for UnusedNodesError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut unused_nodes: Vec<String> = self.0.iter().map(ToString::to_string).collect();
+        unused_nodes.sort();
+        write!(
+            f,
+            "There are unused nodes in the scene definition: {0}",
+            unused_nodes.join(", ")
+        )
+    }
 }
 
 impl SceneSpec {
@@ -37,7 +59,7 @@ impl SceneSpec {
         &self,
         registered_inputs: &HashSet<&NodeId>,
         registered_outputs: &HashSet<&NodeId>,
-    ) -> Result<(), SpecValidationError> {
+    ) -> Result<(), SceneSpecValidationError> {
         let transform_iter = self.nodes.iter().map(|i| &i.node_id);
         let defined_node_ids_iter =
             Iterator::chain(transform_iter, registered_inputs.iter().copied());
@@ -52,7 +74,7 @@ impl SceneSpec {
         self.validate_input_pads_are_defined_on_node(&defined_node_ids)?;
         self.validate_input_pads_are_defined_on_output(&defined_node_ids)?;
         self.validate_outputs_registered(registered_outputs)?;
-        self.validate_node_ids_uniqueness(defined_node_ids_iter)?;
+        self.validate_node_ids_uniqueness(defined_node_ids_iter, registered_inputs)?;
         self.validate_cycles(&transform_nodes)?;
         self.validate_nodes_are_used(&transform_nodes)?;
         self.validate_builtin_transformations()?;
@@ -63,11 +85,11 @@ impl SceneSpec {
     fn validate_input_pads_are_defined_on_node(
         &self,
         defined_node_ids: &HashSet<&NodeId>,
-    ) -> Result<(), SpecValidationError> {
+    ) -> Result<(), SceneSpecValidationError> {
         for t in self.nodes.iter() {
             for input in &t.input_pads {
                 if !defined_node_ids.contains(input) {
-                    return Err(SpecValidationError::UnknownInputPadOnNode {
+                    return Err(SceneSpecValidationError::UnknownInputPadOnNode {
                         missing_node: input.clone(),
                         node: t.node_id.clone(),
                     });
@@ -81,12 +103,12 @@ impl SceneSpec {
     fn validate_input_pads_are_defined_on_output(
         &self,
         defined_node_ids: &HashSet<&NodeId>,
-    ) -> Result<(), SpecValidationError> {
+    ) -> Result<(), SceneSpecValidationError> {
         // TODO: We want to stop allowing connecting inputs to outputs
         for out in self.outputs.iter() {
             let node_id = &out.input_pad;
             if !defined_node_ids.contains(node_id) {
-                return Err(SpecValidationError::UnknownInputPadOnOutput {
+                return Err(SceneSpecValidationError::UnknownInputPadOnOutput {
                     missing_node: out.input_pad.clone(),
                     output: out.output_id.clone(),
                 });
@@ -99,10 +121,12 @@ impl SceneSpec {
     fn validate_outputs_registered(
         &self,
         registered_outputs: &HashSet<&NodeId>,
-    ) -> Result<(), SpecValidationError> {
+    ) -> Result<(), SceneSpecValidationError> {
         for out in self.outputs.iter() {
             if registered_outputs.get(&out.output_id.0).is_none() {
-                return Err(SpecValidationError::UnknownOutput(out.output_id.0.clone()));
+                return Err(SceneSpecValidationError::UnknownOutput(
+                    out.output_id.0.clone(),
+                ));
             }
         }
 
@@ -112,12 +136,24 @@ impl SceneSpec {
     fn validate_node_ids_uniqueness<'a, I: Iterator<Item = &'a NodeId>>(
         &self,
         defined_node_ids: I,
-    ) -> Result<(), SpecValidationError> {
+        registered_inputs: &HashSet<&NodeId>,
+    ) -> Result<(), SceneSpecValidationError> {
         let mut nodes_ids: HashSet<&NodeId> = HashSet::new();
 
         for node_id in defined_node_ids {
             if !nodes_ids.insert(node_id) {
-                return Err(SpecValidationError::DuplicateNames(node_id.clone()));
+                match registered_inputs.contains(node_id) {
+                    true => {
+                        return Err(SceneSpecValidationError::DuplicateNodeAndInputNames(
+                            node_id.clone(),
+                        ))
+                    }
+                    false => {
+                        return Err(SceneSpecValidationError::DuplicateNodeNames(
+                            node_id.clone(),
+                        ))
+                    }
+                }
             }
         }
 
@@ -129,7 +165,7 @@ impl SceneSpec {
     fn validate_cycles(
         &self,
         transform_nodes: &HashMap<&NodeId, &NodeSpec>,
-    ) -> Result<(), SpecValidationError> {
+    ) -> Result<(), SceneSpecValidationError> {
         enum NodeState {
             BeingVisited,
             Visited,
@@ -141,13 +177,15 @@ impl SceneSpec {
             node_id: &'a NodeId,
             nodes: &'a HashMap<&NodeId, &NodeSpec>,
             visited: &mut HashMap<&'a NodeId, NodeState>,
-        ) -> Result<(), SpecValidationError> {
+        ) -> Result<(), SceneSpecValidationError> {
             let Some(node) = nodes.get(node_id) else {
                 return Ok(());
             };
 
             match visited.get(node_id) {
-                Some(NodeState::BeingVisited) => return Err(SpecValidationError::CycleDetected),
+                Some(NodeState::BeingVisited) => {
+                    return Err(SceneSpecValidationError::CycleDetected(node_id.clone()))
+                }
                 Some(NodeState::Visited) => return Ok(()),
                 None => {}
             }
@@ -178,7 +216,7 @@ impl SceneSpec {
     fn validate_nodes_are_used(
         &self,
         transform_nodes: &HashMap<&NodeId, &NodeSpec>,
-    ) -> Result<(), SpecValidationError> {
+    ) -> Result<(), SceneSpecValidationError> {
         let mut visited: HashSet<&NodeId> = HashSet::new();
 
         fn visit<'a>(
@@ -213,13 +251,13 @@ impl SceneSpec {
 
         if unused_transforms.peek().is_some() {
             let unused_transforms = unused_transforms.copied().cloned().collect();
-            return Err(SpecValidationError::UnusedNodes(unused_transforms));
+            return Err(UnusedNodesError(unused_transforms).into());
         }
 
         Ok(())
     }
 
-    fn validate_builtin_transformations(&self) -> Result<(), SpecValidationError> {
+    fn validate_builtin_transformations(&self) -> Result<(), SceneSpecValidationError> {
         for spec in &self.nodes {
             let NodeSpec {
                 node_id,

@@ -6,12 +6,10 @@ use compositor_common::{
 };
 
 use crate::{
+    error::{InitRendererEngineError, RegisterRendererError, RenderSceneError},
     event_loop::EventLoop,
     frame_set::FrameSet,
-    renderer::{
-        scene::SceneUpdateError, RenderError, Renderer, RendererInitError, RendererOptions,
-        RendererRegisterError,
-    },
+    renderer::{scene::UpdateSceneError, Renderer, RendererOptions},
     transformations::{image_renderer::Image, shader::Shader, web_renderer::WebRenderer},
 };
 
@@ -19,14 +17,14 @@ use crate::{
 pub struct SyncRenderer(Arc<Mutex<Renderer>>);
 
 impl SyncRenderer {
-    pub fn new(opts: RendererOptions) -> Result<(Self, EventLoop), RendererInitError> {
+    pub fn new(opts: RendererOptions) -> Result<(Self, EventLoop), InitRendererEngineError> {
         let renderer = Renderer::new(opts)?;
         let event_loop = EventLoop::new(renderer.chromium_context.cef_context());
 
         Ok((Self(Arc::new(Mutex::new(renderer))), event_loop))
     }
 
-    pub fn register_renderer(&self, spec: RendererSpec) -> Result<(), RendererRegisterError> {
+    pub fn register_renderer(&self, spec: RendererSpec) -> Result<(), RegisterRendererError> {
         let ctx = self.0.lock().unwrap().register_ctx();
         let mut guard = self.0.lock().unwrap();
         match spec {
@@ -50,11 +48,11 @@ impl SyncRenderer {
         }
     }
 
-    pub fn render(&self, input: FrameSet<InputId>) -> Result<FrameSet<OutputId>, RenderError> {
+    pub fn render(&self, input: FrameSet<InputId>) -> Result<FrameSet<OutputId>, RenderSceneError> {
         self.0.lock().unwrap().render(input)
     }
 
-    pub fn update_scene(&mut self, scene_specs: Arc<SceneSpec>) -> Result<(), SceneUpdateError> {
+    pub fn update_scene(&mut self, scene_specs: Arc<SceneSpec>) -> Result<(), UpdateSceneError> {
         self.0.lock().unwrap().update_scene(scene_specs)
     }
 
