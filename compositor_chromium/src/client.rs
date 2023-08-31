@@ -18,6 +18,8 @@ pub trait Client {
         None
     }
 
+    /// Called when new process message is received.
+    /// Return `true` if message was handled, `false` otherwise
     fn on_process_message_received(
         &mut self,
         _browser: &Browser,
