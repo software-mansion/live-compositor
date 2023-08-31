@@ -6,8 +6,8 @@ use compositor_common::scene::{
 };
 
 use crate::{
-    renderer::{WgpuCtx, WgpuError},
-    transformations::shader::Shader,
+    renderer::WgpuCtx,
+    transformations::shader::{Shader, ShaderNewError},
     utils::rgba_to_wgpu_color,
 };
 
@@ -17,7 +17,7 @@ pub struct BuiltinTransformations {
 }
 
 impl BuiltinTransformations {
-    pub fn new(wgpu_ctx: &Arc<WgpuCtx>) -> Result<Self, WgpuError> {
+    pub fn new(wgpu_ctx: &Arc<WgpuCtx>) -> Result<Self, ShaderNewError> {
         Ok(Self {
             transform_resolution: ConvertResolutionTransformations::new(wgpu_ctx)?,
             fixed_position_layout: FixedPositionLayout::new(wgpu_ctx)?,
@@ -32,9 +32,9 @@ impl BuiltinTransformations {
             BuiltinTransformationSpec::TransformToResolution(TransformToResolution::Fill) => {
                 self.transform_resolution.fill.clone()
             }
-            BuiltinTransformationSpec::TransformToResolution(TransformToResolution::Fit(_)) => {
-                self.transform_resolution.fit.clone()
-            }
+            BuiltinTransformationSpec::TransformToResolution(TransformToResolution::Fit {
+                ..
+            }) => self.transform_resolution.fit.clone(),
             BuiltinTransformationSpec::FixedPositionLayout { .. } => {
                 self.fixed_position_layout.0.clone()
             }
@@ -73,9 +73,9 @@ impl BuiltinTransformations {
 
     pub fn clear_color(transformation: &BuiltinTransformationSpec) -> Option<wgpu::Color> {
         match transformation {
-            BuiltinTransformationSpec::TransformToResolution(TransformToResolution::Fit(
+            BuiltinTransformationSpec::TransformToResolution(TransformToResolution::Fit {
                 background_color_rgba,
-            )) => Some(rgba_to_wgpu_color(background_color_rgba)),
+            }) => Some(rgba_to_wgpu_color(background_color_rgba)),
             BuiltinTransformationSpec::TransformToResolution(_) => None,
             BuiltinTransformationSpec::FixedPositionLayout {
                 background_color_rgba,
@@ -92,7 +92,7 @@ pub struct ConvertResolutionTransformations {
 }
 
 impl ConvertResolutionTransformations {
-    pub(crate) fn new(wgpu_ctx: &Arc<WgpuCtx>) -> Result<Self, WgpuError> {
+    pub(crate) fn new(wgpu_ctx: &Arc<WgpuCtx>) -> Result<Self, ShaderNewError> {
         Ok(Self {
             stretch: Arc::new(Shader::new(
                 wgpu_ctx,
@@ -113,7 +113,7 @@ impl ConvertResolutionTransformations {
 pub struct FixedPositionLayout(Arc<Shader>);
 
 impl FixedPositionLayout {
-    fn new(wgpu_ctx: &Arc<WgpuCtx>) -> Result<Self, WgpuError> {
+    fn new(wgpu_ctx: &Arc<WgpuCtx>) -> Result<Self, ShaderNewError> {
         Ok(Self(Arc::new(Shader::new(
             wgpu_ctx,
             include_str!("./fixed_position_layout.wgsl").into(),

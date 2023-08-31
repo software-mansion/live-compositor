@@ -70,11 +70,11 @@ impl Pipeline {
             vertex: wgpu::VertexState {
                 buffers: &[Vertex::LAYOUT],
                 module: &shader_module,
-                entry_point: "vs_main",
+                entry_point: super::VERTEX_ENTRYPOINT_NAME,
             },
             fragment: Some(wgpu::FragmentState {
                 module: &shader_module,
-                entry_point: "fs_main",
+                entry_point: super::FRAGMENT_ENTRYPOINT_NAME,
                 targets: &[Some(wgpu::ColorTargetState {
                     format: wgpu::TextureFormat::Rgba8Unorm,
                     write_mask: wgpu::ColorWrites::all(),
