@@ -130,7 +130,7 @@ impl From<SceneUpdateError> for PipelineError {
         PipelineError {
             error_code: "UNKNOWN_SCENE_UPDATE_ERROR",
             error_type: ErrorType::ServerError,
-            message: err.to_string(),
+            message: format!("{:?}", err),
         }
     }
 }
