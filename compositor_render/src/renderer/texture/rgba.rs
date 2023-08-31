@@ -55,8 +55,8 @@ impl RGBATexture {
         self.0.upload_data(&ctx.queue, data, 4);
     }
 
-    pub fn download_buffer(&self, ctx: &WgpuCtx) -> wgpu::Buffer {
-        self.0.download_buffer(ctx)
+    pub fn new_download_buffer(&self, ctx: &WgpuCtx) -> wgpu::Buffer {
+        self.0.new_download_buffer(ctx)
     }
 
     pub fn copy_to_buffer(&self, encoder: &mut wgpu::CommandEncoder, buffer: &wgpu::Buffer) {

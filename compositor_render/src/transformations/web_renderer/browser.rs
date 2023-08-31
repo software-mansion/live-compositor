@@ -8,11 +8,11 @@ use shared_memory::ShmemError;
 
 use crate::renderer::{texture::NodeTexture, RenderCtx};
 
-use super::{chromium::ChromiumContext, non_sync_send_handler::NonSyncSendHandler};
+use super::{chromium_context::ChromiumContext, chromium_sender::ChromiumSender};
 
 pub(super) struct BrowserController {
     painted_frames_receiver: Receiver<Vec<u8>>,
-    handler: NonSyncSendHandler,
+    chromium_sender: ChromiumSender,
     frame_data: Option<Vec<u8>>,
 }
 
@@ -24,11 +24,11 @@ impl BrowserController {
     ) -> Result<Self, BrowserControllerNewError> {
         let (painted_frames_sender, painted_frames_receiver) = crossbeam_channel::unbounded();
         let client = BrowserClient::new(painted_frames_sender, resolution);
-        let handler = NonSyncSendHandler::new(ctx, url, client);
+        let chromium_sender = ChromiumSender::new(ctx, url, client);
 
         Ok(Self {
             painted_frames_receiver,
-            handler,
+            chromium_sender,
             frame_data: None,
         })
     }
@@ -58,11 +58,7 @@ impl BrowserController {
             let buffer = buffers
                 .get(id)
                 .ok_or(EmbedFrameError::ExpectDownloadBuffer)?;
-            pending_downloads.push(self.download_buffer_to_shmem(
-                (*id).clone(),
-                size,
-                buffer.clone(),
-            ));
+            pending_downloads.push(self.copy_buffer_to_shmem((*id).clone(), size, buffer.clone()));
         }
 
         ctx.wgpu_ctx.device.poll(wgpu::Maintain::Wait);
@@ -71,7 +67,7 @@ impl BrowserController {
             pending()?;
         }
 
-        self.handler.embed_sources(sources);
+        self.chromium_sender.embed_sources(sources);
         Ok(())
     }
 
@@ -102,7 +98,7 @@ impl BrowserController {
         Ok(())
     }
 
-    fn download_buffer_to_shmem(
+    fn copy_buffer_to_shmem(
         &self,
         id: NodeId,
         size: wgpu::Extent3d,
@@ -120,7 +116,8 @@ impl BrowserController {
         move || {
             r.recv().unwrap()?;
 
-            self.handler.update_shared_memory(id, source.clone(), size);
+            self.chromium_sender
+                .update_shared_memory(id, source.clone(), size);
             source.unmap();
 
             Ok(())
@@ -128,6 +125,7 @@ impl BrowserController {
     }
 }
 
+#[derive(Clone)]
 pub(super) struct BrowserClient {
     painted_frames_sender: Sender<Vec<u8>>,
     resolution: Resolution,

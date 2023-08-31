@@ -15,7 +15,7 @@ use crate::{
         builtin::transformations::BuiltinTransformations,
         image_renderer::{Image, ImageError},
         text_renderer::TextRendererCtx,
-        web_renderer::chromium::{ChromiumContext, ChromiumContextError},
+        web_renderer::chromium_context::{ChromiumContext, ChromiumContextError},
     },
     WebRendererOptions,
 };

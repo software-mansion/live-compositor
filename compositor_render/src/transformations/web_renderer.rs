@@ -1,5 +1,7 @@
 use std::{
     collections::HashMap,
+    io,
+    path::PathBuf,
     sync::{Arc, Mutex},
 };
 
@@ -15,14 +17,13 @@ use compositor_common::{
 use log::{error, info};
 use serde::{Deserialize, Serialize};
 
-use self::{
-    browser::{BrowserController, BrowserControllerNewError, EmbedFrameError},
-    chromium::ChromiumContextError,
-};
+use self::browser::{BrowserController, BrowserControllerNewError, EmbedFrameError};
 
 pub mod browser;
-pub mod chromium;
-mod non_sync_send_handler;
+pub mod chromium_context;
+mod chromium_sender;
+mod chromium_sender_thread;
+pub(crate) mod node;
 
 pub const EMBED_SOURCE_FRAMES_MESSAGE: &str = "EMBED_SOURCE_FRAMES";
 pub const UNEMBED_SOURCE_FRAMES_MESSAGE: &str = "UNEMBED_SOURCE_FRAMES";
@@ -63,6 +64,10 @@ impl WebRenderer {
         let bgra_bind_group_layout = BGRATexture::new_bind_group_layout(&ctx.wgpu_ctx.device);
         let bgra_bind_group = bgra_texture.new_bind_group(&ctx.wgpu_ctx, &bgra_bind_group_layout);
         let bgra_to_rgba = BGRAToRGBAConverter::new(&ctx.wgpu_ctx.device, &bgra_bind_group_layout);
+
+        if !PathBuf::from(SHMEM_FOLDER_PATH).exists() {
+            std::fs::create_dir_all(SHMEM_FOLDER_PATH)?;
+        }
 
         let controller = Mutex::new(BrowserController::new(
             ctx.chromium.clone(),
@@ -111,11 +116,11 @@ impl WebRenderer {
 
 #[derive(Debug, thiserror::Error)]
 pub enum WebRendererNewError {
-    #[error("Failed to create new web renderer session")]
-    CreateContext(#[from] ChromiumContextError),
-
     #[error("Failed to create browser controller")]
     CreateBrowserController(#[from] BrowserControllerNewError),
+
+    #[error("Failed to create shared memory folder")]
+    CreateSharedMemoryFolder(#[from] io::Error),
 }
 
 #[derive(Debug, thiserror::Error)]

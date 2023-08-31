@@ -121,9 +121,9 @@ impl YUVTextures {
 
     pub(super) fn new_download_buffers(&self, ctx: &WgpuCtx) -> [Buffer; 3] {
         [
-            self.planes[0].download_buffer(ctx),
-            self.planes[1].download_buffer(ctx),
-            self.planes[2].download_buffer(ctx),
+            self.planes[0].new_download_buffer(ctx),
+            self.planes[1].new_download_buffer(ctx),
+            self.planes[2].new_download_buffer(ctx),
         ]
     }
 

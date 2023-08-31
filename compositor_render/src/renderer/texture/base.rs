@@ -63,7 +63,7 @@ impl Texture {
         self.texture.format().block_size(None)
     }
 
-    pub(super) fn download_buffer(&self, ctx: &WgpuCtx) -> wgpu::Buffer {
+    pub(super) fn new_download_buffer(&self, ctx: &WgpuCtx) -> wgpu::Buffer {
         let size = self.size();
         let block_size = self.block_size().unwrap();
 
