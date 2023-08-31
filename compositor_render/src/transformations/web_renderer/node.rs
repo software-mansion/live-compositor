@@ -4,8 +4,8 @@ use compositor_common::scene::{NodeId, Resolution};
 use log::error;
 
 use crate::renderer::{
-    texture::{utils::pad_to_256, NodeTexture},
-    RenderCtx,
+    texture::{utils::pad_to_256, NodeTexture, RGBATexture},
+    RenderCtx, WgpuCtx,
 };
 
 use super::WebRenderer;
@@ -35,19 +35,9 @@ impl WebRendererNode {
             };
 
             let texture = texture_state.rgba_texture();
-            let size = texture.size();
-            let size = (4 * pad_to_256(size.width) * size.height) as u64;
-
-            let recreate_buffer = match self.buffers.get(id) {
-                Some(buffer) => buffer.size() != size,
-                None => true,
-            };
-
-            if recreate_buffer {
-                self.buffers.insert(
-                    (*id).clone(),
-                    Arc::new(texture.new_download_buffer(ctx.wgpu_ctx)),
-                );
+            match self.buffers.get(id) {
+                Some(buffer) => self.ensure_buffer_size(ctx.wgpu_ctx, id, buffer.size(), texture),
+                None => self.create_insert_buffer(ctx.wgpu_ctx, (*id).clone(), texture),
             }
         }
 
@@ -58,5 +48,24 @@ impl WebRendererNode {
 
     pub fn resolution(&self) -> Resolution {
         self.renderer.resolution()
+    }
+
+    fn ensure_buffer_size(
+        &mut self,
+        ctx: &WgpuCtx,
+        node_id: &NodeId,
+        buffer_size: u64,
+        texture: &RGBATexture,
+    ) {
+        let texture_size = texture.size();
+        let texture_size = (4 * pad_to_256(texture_size.width) * texture_size.height) as u64;
+        if buffer_size != texture_size {
+            self.create_insert_buffer(ctx, node_id.clone(), texture);
+        }
+    }
+
+    fn create_insert_buffer(&mut self, ctx: &WgpuCtx, node_id: NodeId, texture: &RGBATexture) {
+        self.buffers
+            .insert(node_id, Arc::new(texture.new_download_buffer(ctx)));
     }
 }
