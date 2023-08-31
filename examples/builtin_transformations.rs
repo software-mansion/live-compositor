@@ -98,10 +98,9 @@ fn start_example_client_code() -> Result<()> {
                 "node_id": "filled_image",
                 "type": "built-in",
                 "transformation": "transform_to_resolution",
-                "strategy": "fit",
+                "strategy": "fill",
                 "resolution": { "width": 960, "height": 540 },
                 "input_pads": ["image"],
-                "background_color_rgba": "#FFFFFFFF",
             },
             {
                 "node_id": "layout",

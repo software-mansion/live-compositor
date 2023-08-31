@@ -52,10 +52,7 @@ impl BuiltinTransformationSpec {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
-#[serde(
-    tag = "strategy",
-    rename_all = "snake_case"
-)]
+#[serde(tag = "strategy", rename_all = "snake_case")]
 pub enum TransformToResolution {
     /// Rescales input in both axis to match output resolution
     Stretch,
@@ -66,7 +63,7 @@ pub enum TransformToResolution {
     /// fill the rest of the texture with the provided color]
     Fit {
         #[serde(default)]
-        background_color_rgba: RGBAColor
+        background_color_rgba: RGBAColor,
     },
 }
 
