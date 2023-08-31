@@ -10,7 +10,7 @@ pub enum BuiltinTransformationSpec {
     TransformToResolution(TransformToResolution),
     FixedPositionLayout {
         texture_layouts: Vec<TextureLayout>,
-        #[serde(default = "default_layout_background_color")]
+        #[serde(default)]
         background_color_rgba: RGBAColor,
     },
 }
@@ -54,7 +54,6 @@ impl BuiltinTransformationSpec {
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 #[serde(
     tag = "strategy",
-    content = "background_color_rgba",
     rename_all = "snake_case"
 )]
 pub enum TransformToResolution {
@@ -64,8 +63,11 @@ pub enum TransformToResolution {
     /// from both sides in "sticking out" dimension
     Fill,
     /// Scales input preserving aspect ratio and
-    /// fill the rest of the texture with the provided color
-    Fit(RGBAColor),
+    /// fill the rest of the texture with the provided color]
+    Fit {
+        #[serde(default)]
+        background_color_rgba: RGBAColor
+    },
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
@@ -78,10 +80,6 @@ pub struct TextureLayout {
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq)]
 pub struct Degree(pub i32);
-
-fn default_layout_background_color() -> RGBAColor {
-    RGBAColor(0, 0, 0, 0)
-}
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum InvalidBuiltinTransformationSpec {

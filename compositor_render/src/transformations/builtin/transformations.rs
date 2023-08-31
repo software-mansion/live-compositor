@@ -32,9 +32,9 @@ impl BuiltinTransformations {
             BuiltinTransformationSpec::TransformToResolution(TransformToResolution::Fill) => {
                 self.transform_resolution.fill.clone()
             }
-            BuiltinTransformationSpec::TransformToResolution(TransformToResolution::Fit(_)) => {
-                self.transform_resolution.fit.clone()
-            }
+            BuiltinTransformationSpec::TransformToResolution(TransformToResolution::Fit {
+                ..
+            }) => self.transform_resolution.fit.clone(),
             BuiltinTransformationSpec::FixedPositionLayout { .. } => {
                 self.fixed_position_layout.0.clone()
             }
@@ -73,9 +73,9 @@ impl BuiltinTransformations {
 
     pub fn clear_color(transformation: &BuiltinTransformationSpec) -> Option<wgpu::Color> {
         match transformation {
-            BuiltinTransformationSpec::TransformToResolution(TransformToResolution::Fit(
+            BuiltinTransformationSpec::TransformToResolution(TransformToResolution::Fit {
                 background_color_rgba,
-            )) => Some(rgba_to_wgpu_color(background_color_rgba)),
+            }) => Some(rgba_to_wgpu_color(background_color_rgba)),
             BuiltinTransformationSpec::TransformToResolution(_) => None,
             BuiltinTransformationSpec::FixedPositionLayout {
                 background_color_rgba,
