@@ -1,4 +1,8 @@
+use std::os::raw::c_int;
+
 use crate::{
+    browser::Browser,
+    cef::{Frame, ProcessId, ProcessMessage},
     cef_ref::{CefRefData, CefStruct},
     render_handler::{RenderHandler, RenderHandlerWrapper},
 };
@@ -12,6 +16,16 @@ pub trait Client {
     /// **Important:** it's called every time a frame is rendered
     fn render_handler(&self) -> Option<Self::RenderHandlerType> {
         None
+    }
+
+    fn on_process_message_received(
+        &mut self,
+        _browser: &Browser,
+        _frame: &Frame,
+        _source_process: ProcessId,
+        _message: &ProcessMessage,
+    ) -> bool {
+        false
     }
 }
 
@@ -41,7 +55,7 @@ impl<C: Client> CefStruct for ClientWrapper<C> {
             get_print_handler: None,
             get_render_handler: Some(Self::render_handler),
             get_request_handler: None,
-            on_process_message_received: None,
+            on_process_message_received: Some(Self::on_process_message_received),
         }
     }
 
@@ -62,5 +76,27 @@ impl<C: Client> ClientWrapper<C> {
                 None => std::ptr::null_mut(),
             }
         }
+    }
+
+    extern "C" fn on_process_message_received(
+        self_: *mut chromium_sys::cef_client_t,
+        browser: *mut chromium_sys::cef_browser_t,
+        frame: *mut chromium_sys::cef_frame_t,
+        source_process: chromium_sys::cef_process_id_t,
+        message: *mut chromium_sys::cef_process_message_t,
+    ) -> c_int {
+        let self_ref = unsafe { CefRefData::<Self>::from_cef(self_) };
+        let browser = Browser::new(browser);
+        let frame = Frame::new(frame);
+        let message = ProcessMessage { inner: message };
+
+        let is_handled = self_ref.0.on_process_message_received(
+            &browser,
+            &frame,
+            source_process.into(),
+            &message,
+        );
+
+        is_handled as c_int
     }
 }
