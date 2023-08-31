@@ -96,7 +96,7 @@ impl ShaderNode {
     }
 }
 
-trait ShaderParamExt {
+pub trait ShaderParamExt {
     fn to_bytes(&self) -> bytes::Bytes;
 }
 

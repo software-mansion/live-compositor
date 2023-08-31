@@ -22,6 +22,12 @@ pub struct Resolution {
     pub height: usize,
 }
 
+impl Resolution {
+    pub fn ratio(&self) -> f32 {
+        self.width as f32 / self.height as f32
+    }
+}
+
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
 pub struct NodeId(pub Arc<str>);
 
@@ -115,9 +121,9 @@ pub enum NodeParams {
     },
     #[serde(rename = "built-in")]
     Builtin {
+        resolution: Resolution,
         #[serde(flatten)]
         transformation: BuiltinTransformationSpec,
-        resolution: Resolution,
     },
 }
 

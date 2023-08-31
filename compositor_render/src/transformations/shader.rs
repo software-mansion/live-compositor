@@ -26,7 +26,7 @@ const INPUT_TEXTURES_AMOUNT: u32 = 16;
 /// @group(2) @binding(0) var sampler_: sampler;
 /// ```
 pub struct Shader {
-    wgpu_ctx: Arc<WgpuCtx>,
+    pub wgpu_ctx: Arc<WgpuCtx>,
     pipeline: Pipeline,
     empty_texture: Texture,
 }
