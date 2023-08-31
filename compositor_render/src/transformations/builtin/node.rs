@@ -40,12 +40,6 @@ impl ParamsBuffer {
                         binding: 0,
                         resource: buffer.as_entire_binding(),
                     },
-                    wgpu::BindGroupEntry {
-                        binding: 1,
-                        resource: wgpu_ctx
-                            .compositor_provided_parameters_buffer
-                            .as_entire_binding(),
-                    },
                 ],
             });
 

@@ -1,4 +1,5 @@
-use naga::{ArraySize, Constant, ConstantInner, Handle, Module, ShaderStage, Type};
+use compositor_common::scene::ShaderParam;
+use naga::{ArraySize, ConstantInner, Handle, Module, ScalarKind, ShaderStage, Type, VectorSize};
 
 use super::VERTEX_ENTRYPOINT_NAME;
 
@@ -108,18 +109,11 @@ pub enum TypeEquivalenceError {
         actual: naga::TypeInner,
     },
 
+    #[error("Error while evaluating array size")]
+    BadArraySize(#[from] ConstArraySizeEvalError),
+
     #[error("Sizes of an array don't match: {0:?} != {1:?}.")]
-    ArraySizeMismatch(ArraySizeOrConstant, ArraySizeOrConstant),
-
-    #[error("A composite type was used as an array length specifier. {0:?}")]
-    // don't think this will ever happen
-    CompositeTypeAsArrayLen(ConstantInner),
-}
-
-#[derive(Debug)]
-pub enum ArraySizeOrConstant {
-    ArraySize(ArraySize),
-    Constant(Constant),
+    ArraySizeMismatch(u64, u64),
 }
 
 fn validate_type_equivalent(
@@ -254,100 +248,328 @@ fn validate_type_equivalent(
     Ok(())
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum ConstArraySizeEvalError {
+    #[error("Dynamic array size is not allowed.")]
+    DynamicSize,
+
+    #[error("A value below zero is not allowed as array size.")]
+    BelowZero(i64),
+
+    #[error("Composite types are not allowed as array sizes (found {0:?}).")]
+    CompositeType(ConstantInner),
+
+    #[error("Bools and floats are not allowed as array sizes (found {0:?}).")]
+    WrongType(naga::ScalarValue),
+}
+
+fn eval_array_size(size: ArraySize, module: &naga::Module) -> Result<u64, ConstArraySizeEvalError> {
+    match size {
+        ArraySize::Constant(c) => {
+            let c = &module.constants[c];
+
+            // TODO: what do we do with c1.specialization? It doesn't occur in WGSL, but it can occur in vulkan shaders, which we might want to support later.
+            // There are also plans of adding them to WGSL
+
+            match c.inner {
+                ConstantInner::Scalar { value, .. } => match value {
+                    naga::ScalarValue::Uint(v) => Ok(v),
+
+                    naga::ScalarValue::Sint(v) => {
+                        if v < 0 {
+                            Err(ConstArraySizeEvalError::BelowZero(v))
+                        } else {
+                            Ok(v as u64)
+                        }
+                    }
+
+                    naga::ScalarValue::Float(_) | naga::ScalarValue::Bool(_) => {
+                        Err(ConstArraySizeEvalError::WrongType(value))
+                    }
+                },
+                ConstantInner::Composite { .. } => {
+                    Err(ConstArraySizeEvalError::CompositeType(c.inner.clone()))
+                }
+            }
+        }
+        ArraySize::Dynamic => Err(ConstArraySizeEvalError::DynamicSize),
+    }
+}
+
 fn validate_array_size_equivalent(
     size1: ArraySize,
     mod1: &Module,
     size2: ArraySize,
     mod2: &Module,
 ) -> Result<(), TypeEquivalenceError> {
-    match (size1, size2) {
-        (ArraySize::Constant(_), ArraySize::Dynamic)
-        | (ArraySize::Dynamic, ArraySize::Constant(_)) => {
-            Err(TypeEquivalenceError::ArraySizeMismatch(
-                ArraySizeOrConstant::ArraySize(size1),
-                ArraySizeOrConstant::ArraySize(size2),
-            ))
+    let size1 = eval_array_size(size1, mod1)?;
+    let size2 = eval_array_size(size2, mod2)?;
+
+    if size1 != size2 {
+        return Err(TypeEquivalenceError::ArraySizeMismatch(size1, size2));
+    }
+
+    Ok(())
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum ParametersValidationError {
+    #[error("No user-defined binding was found in the shader, even though parameters were provided in the request.")]
+    NoBindingInShader,
+
+    #[error("A type used in the shader cannot be provided at node registration: {0}.")]
+    ForbiddenType(&'static str),
+
+    #[error("An unsupported scalar kind.")]
+    UnsupportedScalarKind(ScalarKind, u8),
+
+    #[error("Expected type {1:?}, got {0:?}.")]
+    WrongType(ShaderParam, naga::TypeInner),
+
+    #[error("A list type has wrong length: expected {expected}, got {provided}")]
+    WrongListLength { expected: usize, provided: usize },
+
+    #[error("Error while evaluating array size")]
+    ArraySizeEvalError(#[from] ConstArraySizeEvalError),
+
+    #[error("A struct has a wrong amount of fields: expected {expected}, got {provided}")]
+    WrongShaderFieldsAmount { expected: usize, provided: usize },
+
+    #[error("A field in the provided struct has a different name than in the expected struct: expected \"{expected}\", got \"{provided}\"")]
+    WrongFieldName { expected: String, provided: String },
+}
+
+pub fn validate_params(
+    params: &ShaderParam,
+    ty: Handle<Type>,
+    module: &naga::Module,
+) -> Result<(), ParametersValidationError> {
+    let ty = &module.types[ty];
+
+    // TODO: we should add more information about the error
+    // (e.g. if we errored while checking the insides of a struct we should add info about the struct)
+
+    // TODO: tests, make examples run
+
+    match &ty.inner {
+        naga::TypeInner::Scalar { kind, width } => validate_scalar(params, *kind, *width),
+
+        naga::TypeInner::Vector { size, kind, width } => {
+            validate_vector(params, *size, *kind, *width)
         }
 
-        (ArraySize::Constant(c1), ArraySize::Constant(c2)) => {
-            validate_constant_value_equivalent(c1, mod1, c2, mod2)
+        naga::TypeInner::Matrix {
+            columns,
+            rows,
+            width,
+        } => validate_matrix(params, *columns, *rows, *width),
+
+        naga::TypeInner::Array { base, size, stride } => {
+            validate_array(params, *base, *size, *stride, module)
         }
-        (ArraySize::Dynamic, ArraySize::Dynamic) => Ok(()),
+
+        naga::TypeInner::Struct { members, span } => validate_struct(params, members, *span),
+
+        naga::TypeInner::Pointer { .. }
+        | naga::TypeInner::ValuePointer { .. }
+        | naga::TypeInner::Atomic { .. }
+        | naga::TypeInner::Image { .. }
+        | naga::TypeInner::Sampler { .. }
+        | naga::TypeInner::AccelerationStructure
+        | naga::TypeInner::RayQuery
+        | naga::TypeInner::BindingArray { .. } => Err(ParametersValidationError::ForbiddenType(
+            ty.inner.type_name(),
+        )),
     }
 }
 
-fn validate_constant_value_equivalent(
-    c1: Handle<Constant>,
-    mod1: &Module,
-    c2: Handle<Constant>,
-    mod2: &Module,
-) -> Result<(), TypeEquivalenceError> {
-    let ci1 = &mod1.constants[c1].inner;
-    let ci2 = &mod2.constants[c2].inner;
+fn validate_struct(
+    params: &ShaderParam,
+    shader_members: &[naga::StructMember],
+    span: u32,
+) -> Result<(), ParametersValidationError> {
+    match params {
+        ShaderParam::Struct(param_fields) => {
+            if shader_members.len() != param_fields.len() {
+                return Err(ParametersValidationError::WrongShaderFieldsAmount {
+                    expected: shader_members.len(),
+                    provided: param_fields.len(),
+                });
+            }
 
-    // TODO: what do we do with c1.specialization? It doesn't occur in WGSL, but it can occur in vulkan shaders, which we might want to support later.
-    // There are also plans of adding them to WGSL
+            for (shader_member, param_field) in shader_members.iter().zip(param_fields.iter()) {
+                if shader_member.name.as_ref().unwrap() != &param_field.field_name {
+                    return Err(ParametersValidationError::WrongFieldName {
+                        expected: shader_member.name.as_ref().unwrap().clone(),
+                        provided: param_field.field_name.clone(),
+                    });
+                }
+            }
 
-    if let ConstantInner::Composite { .. } = ci2 {
-        return Err(TypeEquivalenceError::CompositeTypeAsArrayLen(ci2.clone()));
+            Ok(())
+        }
+
+        _ => Err(ParametersValidationError::WrongType(
+            params.clone(),
+            naga::TypeInner::Struct {
+                members: shader_members.to_owned(),
+                span,
+            },
+        )),
     }
+}
 
-    match (ci1, ci2) {
-        (
-            ConstantInner::Scalar {
-                width: _, // what about this
-                value: v1,
+fn validate_array(
+    params: &ShaderParam,
+    base: Handle<Type>,
+    size: ArraySize,
+    stride: u32,
+    module: &naga::Module,
+) -> Result<(), ParametersValidationError> {
+    // ignoring the `stride`, it probably doesn't matter if the types are correct
+    let evaluated_size = eval_array_size(size, module)?;
+
+    match params {
+        ShaderParam::List(list) => {
+            if list.len() != evaluated_size as usize {
+                return Err(ParametersValidationError::WrongListLength {
+                    expected: evaluated_size as usize,
+                    provided: list.len(),
+                });
+            }
+
+            for param in list {
+                validate_params(param, base, module)?;
+            }
+
+            Ok(())
+        }
+
+        _ => Err(ParametersValidationError::WrongType(
+            params.clone(),
+            naga::TypeInner::Array { base, size, stride },
+        )),
+    }
+}
+
+fn validate_matrix(
+    params: &ShaderParam,
+    columns: VectorSize,
+    rows: VectorSize,
+    width: u8,
+) -> Result<(), ParametersValidationError> {
+    match params {
+        ShaderParam::List(rows_list) => {
+            if rows_list.len() != rows as usize {
+                return Err(ParametersValidationError::WrongListLength {
+                    expected: rows as usize,
+                    provided: rows_list.len(),
+                });
+            }
+
+            for row in rows_list {
+                validate_vector(row, columns, ScalarKind::Float, width)?;
+            }
+
+            Ok(())
+        }
+
+        _ => Err(ParametersValidationError::WrongType(
+            params.clone(),
+            naga::TypeInner::Matrix {
+                columns,
+                rows,
+                width,
             },
-            ConstantInner::Scalar {
-                width: _,
-                value: v2,
-            },
-        ) => match (v1, v2) {
-            (naga::ScalarValue::Sint(a), naga::ScalarValue::Sint(b)) => {
-                if a == b {
-                    Ok(())
-                } else {
-                    Err(TypeEquivalenceError::ArraySizeMismatch(
-                        ArraySizeOrConstant::Constant(mod1.constants[c1].clone()),
-                        ArraySizeOrConstant::Constant(mod2.constants[c2].clone()),
-                    ))
-                }
-            }
+        )),
+    }
+}
 
-            (naga::ScalarValue::Uint(a), naga::ScalarValue::Uint(b)) => {
-                if a == b {
-                    Ok(())
-                } else {
-                    Err(TypeEquivalenceError::ArraySizeMismatch(
-                        ArraySizeOrConstant::Constant(mod1.constants[c1].clone()),
-                        ArraySizeOrConstant::Constant(mod2.constants[c2].clone()),
-                    ))
-                }
-            }
-
-            // don't really know whether this should be handled separately
-            (naga::ScalarValue::Sint(a), naga::ScalarValue::Uint(b))
-            | (naga::ScalarValue::Uint(b), naga::ScalarValue::Sint(a)) => {
-                if *a as u64 == *b {
-                    Ok(())
-                } else {
-                    Err(TypeEquivalenceError::ArraySizeMismatch(
-                        ArraySizeOrConstant::Constant(mod1.constants[c1].clone()),
-                        ArraySizeOrConstant::Constant(mod2.constants[c2].clone()),
-                    ))
-                }
-            }
-
-            _ => Err(TypeEquivalenceError::ArraySizeMismatch(
-                ArraySizeOrConstant::Constant(mod1.constants[c1].clone()),
-                ArraySizeOrConstant::Constant(mod2.constants[c2].clone()),
+fn validate_scalar(
+    params: &ShaderParam,
+    kind: ScalarKind,
+    width: u8,
+) -> Result<(), ParametersValidationError> {
+    match (kind, width) {
+        (ScalarKind::Float, 4) => match params {
+            ShaderParam::F32(_) => Ok(()),
+            _ => Err(ParametersValidationError::WrongType(
+                params.clone(),
+                naga::TypeInner::Scalar { kind, width },
             )),
         },
-        (ConstantInner::Composite { .. }, _) => {
-            Err(TypeEquivalenceError::CompositeTypeAsArrayLen(ci1.clone()))
+
+        (ScalarKind::Uint, 4) => match params {
+            ShaderParam::U32(_) => Ok(()),
+            _ => Err(ParametersValidationError::WrongType(
+                params.clone(),
+                naga::TypeInner::Scalar { kind, width },
+            )),
+        },
+
+        (ScalarKind::Sint, 4) => match params {
+            ShaderParam::I32(_) => Ok(()),
+            _ => Err(ParametersValidationError::WrongType(
+                params.clone(),
+                naga::TypeInner::Scalar { kind, width },
+            )),
+        },
+
+        _ => Err(ParametersValidationError::UnsupportedScalarKind(
+            kind, width,
+        )),
+    }
+}
+
+fn validate_vector(
+    params: &ShaderParam,
+    size: VectorSize,
+    kind: ScalarKind,
+    width: u8,
+) -> Result<(), ParametersValidationError> {
+    match params {
+        ShaderParam::List(list) => {
+            if list.len() != size as usize {
+                return Err(ParametersValidationError::WrongListLength {
+                    expected: size as usize,
+                    provided: list.len(),
+                });
+            }
+
+            for v in list {
+                validate_scalar(v, kind, width)?
+            }
+
+            Ok(())
         }
-        (_, ConstantInner::Composite { .. }) => {
-            Err(TypeEquivalenceError::CompositeTypeAsArrayLen(ci2.clone()))
+
+        _ => Err(ParametersValidationError::WrongType(
+            params.clone(),
+            naga::TypeInner::Vector { size, kind, width },
+        )),
+    }
+}
+
+trait TypeInnerExt {
+    fn type_name(&self) -> &'static str;
+}
+
+impl TypeInnerExt for naga::TypeInner {
+    fn type_name(&self) -> &'static str {
+        match self {
+            naga::TypeInner::Scalar { .. } => "scalar",
+            naga::TypeInner::Vector { .. } => "vector",
+            naga::TypeInner::Matrix { .. } => "matrix",
+            naga::TypeInner::Atomic { .. } => "atomic",
+            naga::TypeInner::Pointer { .. } => "pointer",
+            naga::TypeInner::ValuePointer { .. } => "value pointer",
+            naga::TypeInner::Array { .. } => "array",
+            naga::TypeInner::Struct { .. } => "struct",
+            naga::TypeInner::Image { .. } => "texture",
+            naga::TypeInner::Sampler { .. } => "sampler",
+            naga::TypeInner::AccelerationStructure => "acceleration structure",
+            naga::TypeInner::RayQuery => "ray query",
+            naga::TypeInner::BindingArray { .. } => "binding array",
         }
     }
 }
