@@ -137,7 +137,6 @@ fn start_example_client_code() -> Result<()> {
                 "strategy": "fit",
                 "resolution": { "width": 960, "height": 540 },
                 "input_pads": ["gif_1"],
-                "background_color_rgba": "#00000000",
             },
             {
                 "node_id": "png_1_rescaled",
@@ -146,7 +145,6 @@ fn start_example_client_code() -> Result<()> {
                 "strategy": "fit",
                 "resolution": { "width": 960, "height": 540 },
                 "input_pads": ["png_1"],
-                "background_color_rgba": "#00000000",
             },
             {
                 "node_id": "jpeg_1_rescaled",
@@ -164,7 +162,6 @@ fn start_example_client_code() -> Result<()> {
                 "strategy": "fit",
                 "resolution": { "width": 960, "height": 540 },
                 "input_pads": ["svg_1"],
-                "background_color_rgba": "#00000000",
             },
             {
                 "node_id": "layout",

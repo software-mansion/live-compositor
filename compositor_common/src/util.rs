@@ -46,7 +46,9 @@ impl FromStr for RGBColor {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, SerializeDisplay, DeserializeFromStr)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, SerializeDisplay, DeserializeFromStr, Default,
+)]
 pub struct RGBAColor(pub u8, pub u8, pub u8, pub u8);
 
 impl Display for RGBAColor {
