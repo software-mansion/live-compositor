@@ -1,57 +1,86 @@
 use std::sync::Arc;
 
 use compositor_common::scene::{
-    builtin_transformations::{BuiltinTransformation, TransformToResolution},
-    ShaderParam,
+    builtin_transformations::{BuiltinTransformationSpec, TransformToResolution},
+    Resolution, ShaderParam,
 };
 
 use crate::{
     renderer::{WgpuCtx, WgpuError},
     transformations::shader::Shader,
+    utils::rgba_to_wgpu_color,
 };
 
 pub struct BuiltinTransformations {
     transform_resolution: ConvertResolutionTransformations,
+    fixed_position_layout: FixedPositionLayout,
 }
 
 impl BuiltinTransformations {
     pub fn new(wgpu_ctx: &Arc<WgpuCtx>) -> Result<Self, WgpuError> {
         Ok(Self {
             transform_resolution: ConvertResolutionTransformations::new(wgpu_ctx)?,
+            fixed_position_layout: FixedPositionLayout::new(wgpu_ctx)?,
         })
     }
 
-    pub fn shader(&self, transformation: &BuiltinTransformation) -> Arc<Shader> {
+    pub fn shader(&self, transformation: &BuiltinTransformationSpec) -> Arc<Shader> {
         match transformation {
-            BuiltinTransformation::TransformToResolution(TransformToResolution::Stretch) => {
+            BuiltinTransformationSpec::TransformToResolution(TransformToResolution::Stretch) => {
                 self.transform_resolution.stretch.clone()
             }
-            BuiltinTransformation::TransformToResolution(TransformToResolution::Fill) => {
+            BuiltinTransformationSpec::TransformToResolution(TransformToResolution::Fill) => {
                 self.transform_resolution.fill.clone()
             }
-            BuiltinTransformation::TransformToResolution(TransformToResolution::Fit(_)) => {
+            BuiltinTransformationSpec::TransformToResolution(TransformToResolution::Fit(_)) => {
                 self.transform_resolution.fit.clone()
             }
-        }
-    }
-
-    pub fn params(transformation: &BuiltinTransformation) -> Option<ShaderParam> {
-        match transformation {
-            BuiltinTransformation::TransformToResolution(_) => None,
-        }
-    }
-
-    pub fn clear_color(transformation: &BuiltinTransformation) -> Option<wgpu::Color> {
-        match transformation {
-            BuiltinTransformation::TransformToResolution(TransformToResolution::Fit(color)) => {
-                Some(wgpu::Color {
-                    r: color.0 as f64 / 255.0,
-                    g: color.1 as f64 / 255.0,
-                    b: color.2 as f64 / 255.0,
-                    a: color.3 as f64 / 255.0,
-                })
+            BuiltinTransformationSpec::FixedPositionLayout { .. } => {
+                self.fixed_position_layout.0.clone()
             }
-            BuiltinTransformation::TransformToResolution(_) => None,
+        }
+    }
+
+    pub fn params(
+        transformation: &BuiltinTransformationSpec,
+        output_resolution: &Resolution,
+    ) -> Option<ShaderParam> {
+        match transformation {
+            BuiltinTransformationSpec::TransformToResolution(_) => None,
+            BuiltinTransformationSpec::FixedPositionLayout {
+                texture_layouts: textures_layouts,
+                ..
+            } => {
+                let width = output_resolution.width as u32;
+                let height = output_resolution.height as u32;
+
+                let layouts: Vec<ShaderParam> = textures_layouts
+                    .iter()
+                    .map(|layout| {
+                        ShaderParam::Struct(vec![
+                            ("top", ShaderParam::I32(layout.top.pixels(height))).into(),
+                            ("left", ShaderParam::I32(layout.left.pixels(width))).into(),
+                            ("rotation", ShaderParam::I32(layout.rotation.0)).into(),
+                            ("_padding", ShaderParam::I32(0)).into(),
+                        ])
+                    })
+                    .collect();
+
+                Some(ShaderParam::List(layouts))
+            }
+        }
+    }
+
+    pub fn clear_color(transformation: &BuiltinTransformationSpec) -> Option<wgpu::Color> {
+        match transformation {
+            BuiltinTransformationSpec::TransformToResolution(TransformToResolution::Fit(
+                background_color_rgba,
+            )) => Some(rgba_to_wgpu_color(background_color_rgba)),
+            BuiltinTransformationSpec::TransformToResolution(_) => None,
+            BuiltinTransformationSpec::FixedPositionLayout {
+                background_color_rgba,
+                ..
+            } => Some(rgba_to_wgpu_color(background_color_rgba)),
         }
     }
 }
@@ -78,5 +107,16 @@ impl ConvertResolutionTransformations {
                 include_str!("./transform_to_resolution/fit.wgsl").into(),
             )?),
         })
+    }
+}
+
+pub struct FixedPositionLayout(Arc<Shader>);
+
+impl FixedPositionLayout {
+    fn new(wgpu_ctx: &Arc<WgpuCtx>) -> Result<Self, WgpuError> {
+        Ok(Self(Arc::new(Shader::new(
+            wgpu_ctx,
+            include_str!("./fixed_position_layout.wgsl").into(),
+        )?)))
     }
 }

@@ -5,6 +5,7 @@ pub mod renderer;
 
 pub(crate) mod render_loop;
 pub(crate) mod transformations;
+pub(crate) mod utils;
 
 mod sync_renderer;
 

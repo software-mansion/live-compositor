@@ -2,6 +2,7 @@ use compositor_chromium::cef;
 use log::info;
 
 mod api;
+mod error;
 mod http;
 mod rtp_receiver;
 mod rtp_sender;

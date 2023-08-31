@@ -80,6 +80,11 @@ impl ShaderNode {
         target: &mut NodeTexture,
         pts: Duration,
     ) {
+        // TODO: temporary hack until builtins are stateless
+        if sources.len() == 1 && sources[0].1.is_empty() {
+            target.clear();
+            return;
+        }
         let target = target.ensure_size(&self.shader.wgpu_ctx, self.resolution);
         self.shader.render(
             &self.params_bind_group,

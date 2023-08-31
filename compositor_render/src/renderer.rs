@@ -9,33 +9,30 @@ use log::error;
 
 use crate::{
     frame_set::FrameSet,
-    registry::RendererRegistry,
     render_loop::{populate_inputs, read_outputs},
     transformations::{
-        builtin::transformations::BuiltinTransformations,
-        image_renderer::{Image, ImageError},
+        image_renderer::ImageError,
         text_renderer::TextRendererCtx,
         web_renderer::chromium_context::{ChromiumContext, ChromiumContextError},
     },
     WebRendererOptions,
 };
 use crate::{
-    registry::{self, RegistryType},
+    registry::{self},
     render_loop::run_transforms,
-    transformations::{
-        shader::Shader,
-        web_renderer::{WebRenderer, WebRendererNewError},
-    },
+    transformations::{shader::Shader, web_renderer::WebRendererNewError},
 };
 
 use self::{
     format::TextureFormat,
+    renderers::Renderers,
     scene::{Scene, SceneUpdateError},
     utils::TextureUtils,
 };
 
 pub mod common_pipeline;
 mod format;
+pub mod renderers;
 pub mod scene;
 pub mod texture;
 mod utils;
@@ -56,10 +53,7 @@ pub struct Renderer {
     pub scene: Scene,
     pub scene_spec: Arc<SceneSpec>,
 
-    pub(crate) shader_registry: RendererRegistry<Arc<Shader>>,
-    pub(crate) web_renderers: RendererRegistry<Arc<WebRenderer>>,
-    pub(crate) image_registry: RendererRegistry<Image>,
-    pub(crate) builtin_transformations: BuiltinTransformations,
+    pub(crate) renderers: Renderers,
 
     stream_fallback_timeout: Duration,
 }
@@ -70,10 +64,7 @@ pub struct RenderCtx<'a> {
     pub text_renderer_ctx: &'a TextRendererCtx,
     pub chromium: &'a Arc<ChromiumContext>,
 
-    pub(crate) shader_registry: &'a RendererRegistry<Arc<Shader>>,
-    pub(crate) web_renderers: &'a RendererRegistry<Arc<WebRenderer>>,
-    pub(crate) image_registry: &'a RendererRegistry<Image>,
-    pub(crate) builtin_transforms: &'a BuiltinTransformations,
+    pub(crate) renderers: &'a Renderers,
 
     pub(crate) stream_fallback_timeout: Duration,
 }
@@ -119,10 +110,7 @@ impl Renderer {
             text_renderer_ctx: TextRendererCtx::new(),
             chromium_context: Arc::new(ChromiumContext::new(opts.web_renderer, opts.framerate)?),
             scene: Scene::empty(),
-            web_renderers: RendererRegistry::new(RegistryType::WebRenderer),
-            shader_registry: RendererRegistry::new(RegistryType::Shader),
-            image_registry: RendererRegistry::new(RegistryType::Image),
-            builtin_transformations: BuiltinTransformations::new(&wgpu_ctx)?,
+            renderers: Renderers::new(wgpu_ctx)?,
             scene_spec: Arc::new(SceneSpec {
                 nodes: vec![],
                 outputs: vec![],
@@ -146,11 +134,8 @@ impl Renderer {
         let ctx = &mut RenderCtx {
             wgpu_ctx: &self.wgpu_ctx,
             chromium: &self.chromium_context,
-            shader_registry: &self.shader_registry,
-            web_renderers: &self.web_renderers,
             text_renderer_ctx: &self.text_renderer_ctx,
-            image_registry: &self.image_registry,
-            builtin_transforms: &self.builtin_transformations,
+            renderers: &self.renderers,
             stream_fallback_timeout: self.stream_fallback_timeout,
         };
 
@@ -174,10 +159,7 @@ impl Renderer {
                 wgpu_ctx: &self.wgpu_ctx,
                 text_renderer_ctx: &self.text_renderer_ctx,
                 chromium: &self.chromium_context,
-                shader_registry: &self.shader_registry,
-                web_renderers: &self.web_renderers,
-                image_registry: &self.image_registry,
-                builtin_transforms: &self.builtin_transformations,
+                renderers: &self.renderers,
                 stream_fallback_timeout: self.stream_fallback_timeout,
             },
             &scene_specs,
@@ -258,7 +240,10 @@ impl WgpuCtx {
                     max_push_constant_size: 128,
                     ..Default::default()
                 },
-                features: wgpu::Features::TEXTURE_BINDING_ARRAY | wgpu::Features::PUSH_CONSTANTS,
+                features: wgpu::Features::TEXTURE_BINDING_ARRAY
+                    | wgpu::Features::PUSH_CONSTANTS
+                    | wgpu::Features::SAMPLED_TEXTURE_AND_STORAGE_BUFFER_ARRAY_NON_UNIFORM_INDEXING
+                    | wgpu::Features::UNIFORM_BUFFER_AND_STORAGE_TEXTURE_ARRAY_NON_UNIFORM_INDEXING,
             },
             None,
         ))?;
@@ -298,7 +283,7 @@ impl WgpuCtx {
 #[derive(Debug, bytemuck::Pod, bytemuck::Zeroable, Clone, Copy)]
 pub struct CommonShaderParameters {
     time: f32,
-    textures_count: u32,
+    pub textures_count: u32,
     output_resolution: [u32; 2],
 }
 

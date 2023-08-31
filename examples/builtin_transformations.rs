@@ -82,7 +82,7 @@ fn start_example_client_code() -> Result<()> {
         "entity_type": "image",
         "image_id": "example_image",
         "asset_type": "jpeg",
-        "url": "https://i.postimg.cc/NfkxF1SV/wp5220836.jpg",
+        "url": "https://i.postimg.cc/CxcvtJC5/pexels-rohi-bernard-codillo-17908342.jpg",
     }))?;
 
     info!("[example] Update scene");
@@ -95,19 +95,49 @@ fn start_example_client_code() -> Result<()> {
                 "image_id": "example_image",
             },
             {
-                "node_id": "fitted",
+                "node_id": "filled_image",
                 "type": "built-in",
                 "transformation": "transform_to_resolution",
-                "strategy": "fit",
-                "background_color_rgba": "#FFFFFF00",
-                "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+                "strategy": "fill",
+                "resolution": { "width": 960, "height": 540 },
                 "input_pads": ["image"],
+            },
+            {
+                "node_id": "layout",
+                "type": "built-in",
+                "transformation": "fixed_position_layout",
+                "texture_layouts": [
+                    {
+                        "left": "0px",
+                        "top": "0px"
+                    },
+                    {
+                        "left": "960px",
+                        "top": "540px"
+                    },
+                    {
+                        "left": "0px",
+                        "top": "540px"
+                    },
+                    {
+                        "left": "960px",
+                        "top": "0px",
+                    },
+                    {
+                        "left": "25%",
+                        "top": "25%",
+                        "rotation": 90,
+                    }
+                ],
+                "background_color_rgba": "#0000FF00",
+                "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+                "input_pads": ["filled_image", "filled_image", "filled_image", "filled_image", "filled_image"],
             }
         ],
         "outputs": [
             {
                 "output_id": "output_1",
-                "input_pad": "fitted"
+                "input_pad": "layout"
             },
         ]
     }))?;

@@ -1,5 +1,5 @@
 use crate::renderer::{
-    common_pipeline::{RectangleRenderBuffers, Sampler, Vertex, PRIMITIVE_STATE},
+    common_pipeline::{surface::SingleSurface, Sampler, Vertex, PRIMITIVE_STATE},
     texture::{BGRATexture, RGBATexture},
     WgpuCtx,
 };
@@ -7,14 +7,14 @@ use crate::renderer::{
 pub struct BGRAToRGBAConverter {
     pipeline: wgpu::RenderPipeline,
     sampler: Sampler,
-    buffers: RectangleRenderBuffers,
+    surface: SingleSurface,
 }
 
 impl BGRAToRGBAConverter {
     pub fn new(device: &wgpu::Device, bgra_bind_group_layout: &wgpu::BindGroupLayout) -> Self {
         let shader_module = device.create_shader_module(wgpu::include_wgsl!("bgra_to_rgba.wgsl"));
         let sampler = Sampler::new(device);
-        let buffers = RectangleRenderBuffers::new(device);
+        let surface = SingleSurface::new(device);
 
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("BGRA to RGBA color converter render pipeline layout"),
@@ -52,7 +52,7 @@ impl BGRAToRGBAConverter {
         Self {
             pipeline,
             sampler,
-            buffers,
+            surface,
         }
     }
 
@@ -80,12 +80,8 @@ impl BGRAToRGBAConverter {
             render_pass.set_pipeline(&self.pipeline);
             render_pass.set_bind_group(0, src.1, &[]);
             render_pass.set_bind_group(1, &self.sampler.bind_group, &[]);
-            render_pass.set_vertex_buffer(0, self.buffers.vertex.slice(..));
-            render_pass.set_index_buffer(
-                self.buffers.index.slice(..),
-                RectangleRenderBuffers::INDEX_FORMAT,
-            );
-            render_pass.draw_indexed(0..RectangleRenderBuffers::INDICES.len() as u32, 0, 0..1);
+
+            self.surface.draw(&mut render_pass);
         }
 
         ctx.queue.submit(Some(encoder.finish()));

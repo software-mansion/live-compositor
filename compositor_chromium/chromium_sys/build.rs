@@ -5,6 +5,7 @@ use std::{
     env, fs,
     path::{Path, PathBuf},
     process::Command,
+    time::Duration,
 };
 
 fn main() -> Result<()> {
@@ -140,7 +141,10 @@ fn download_cef(cef_root_path: &Path) -> Result<()> {
         .parent()
         .context("Failed to retrieve CEF_ROOT parent directory")?;
     let url = format!("https://cef-builds.spotifycdn.com/cef_binary_115.3.11%2Bga61da9b%2Bchromium-115.0.5790.114_{platform}_minimal.tar.bz2");
-    let resp = reqwest::blocking::get(url)?;
+    let client = reqwest::blocking::ClientBuilder::new()
+        .timeout(Duration::from_secs(2 * 60))
+        .build()?;
+    let resp = client.get(url).send()?;
 
     let archive_name = "cef.tar.bz2";
     let content = resp.bytes()?;

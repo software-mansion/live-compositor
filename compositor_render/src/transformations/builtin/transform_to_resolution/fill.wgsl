@@ -1,11 +1,13 @@
 struct VertexInput {
     @location(0) position: vec3<f32>,
     @location(1) tex_coords: vec2<f32>,
+    @location(2) video_id: i32,
 }
 
 struct VertexOutput {
     @builtin(position) position: vec4<f32>,
     @location(0) tex_coords: vec2<f32>,
+    @location(1) @interpolate(flat) video_id: i32,
 }
 
 struct CommonShaderParameters {
@@ -18,14 +20,6 @@ var<push_constant> common_params: CommonShaderParameters;
 
 @group(0) @binding(0) var textures: binding_array<texture_2d<f32>, 16>;
 @group(2) @binding(0) var sampler_: sampler;
-
-fn get_scale_matrix(x_scale: f32, y_scale: f32) -> mat4x4<f32> {
-    let col1: vec4<f32> = vec4<f32>(x_scale, 0.0, 0.0, 0.0); 
-    let col2: vec4<f32> = vec4<f32>(0.0, y_scale, 0.0, 0.0); 
-    let col3: vec4<f32> = vec4<f32>(0.0, 0.0, 1.0, 0.0); 
-    let col4: vec4<f32> = vec4<f32>(0.0, 0.0, 0.0, 1.0); 
-    return mat4x4<f32>(col1, col2, col3, col4);
-}
 
 @vertex
 fn vs_main(input: VertexInput) -> VertexOutput {
@@ -64,9 +58,11 @@ fn vs_main(input: VertexInput) -> VertexOutput {
         y_scale = output_ratio / input_ratio;
     }
 
-    let scale_matrix: mat4x4<f32> = get_scale_matrix(x_scale, y_scale);
-
-    output.position = vec4(input.position, 1.0) * scale_matrix;
+    output.position = vec4<f32>(
+        input.position.x * x_scale, 
+        input.position.y * y_scale, 
+        input.position.z, 1.0
+    );
     output.tex_coords = input.tex_coords;
 
     return output;
