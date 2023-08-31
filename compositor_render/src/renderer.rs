@@ -12,6 +12,7 @@ use crate::{
     render_loop::{populate_inputs, read_outputs},
     transformations::{
         image_renderer::ImageError,
+        shader::ShaderNewError,
         text_renderer::TextRendererCtx,
         web_renderer::chromium::{ChromiumContext, ChromiumContextError},
     },
@@ -83,7 +84,7 @@ pub enum RendererInitError {
     FailedToInitChromiumCtx(#[from] ChromiumContextError),
 
     #[error("failed to initialize builtin transformation")]
-    BuiltInTransformationsInitError(#[from] WgpuError),
+    BuiltInTransformationsInitError(#[from] ShaderNewError),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -92,7 +93,7 @@ pub enum RendererRegisterError {
     RendererRegistry(#[from] registry::RegisterError),
 
     #[error("failed to to initialize the shader")]
-    Shader(#[from] WgpuError),
+    Shader(#[from] ShaderNewError),
 
     #[error("failed to create web renderer instance")]
     WebRendererInstance(#[from] WebRendererNewError),
@@ -176,11 +177,10 @@ pub enum RenderError {
 }
 
 pub struct WgpuCtx {
-    #[allow(dead_code)]
     pub device: wgpu::Device,
-
-    #[allow(dead_code)]
     pub queue: wgpu::Queue,
+
+    pub shader_header: naga::Module,
 
     pub format: TextureFormat,
     pub utils: TextureUtils,
@@ -248,6 +248,10 @@ impl WgpuCtx {
             None,
         ))?;
 
+        let shader_header =
+            naga::front::wgsl::parse_str(include_str!("transformations/shader_header.wgsl"))
+                .expect("failed to parse the shader header file");
+
         let scope = WgpuErrorScope::push(&device);
 
         let format = TextureFormat::new(&device);
@@ -271,6 +275,7 @@ impl WgpuCtx {
         Ok(Self {
             device,
             queue,
+            shader_header,
             format,
             utils,
             shader_parameters_bind_group_layout,

@@ -404,6 +404,7 @@ dependencies = [
  "glyphon",
  "image",
  "log",
+ "naga",
  "pollster",
  "reqwest",
  "resvg",
