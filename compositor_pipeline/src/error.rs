@@ -174,7 +174,7 @@ impl From<RegisterRendererError> for PipelineError {
     fn from(err: RegisterRendererError) -> Self {
         match err {
             RegisterRendererError::RendererRegistry(err) => match err {
-                RegisterError::KeyTaken(_, _) => {
+                RegisterError::KeyTaken { .. } => {
                     PipelineError::new(ENTITY_ALREADY_REGISTERED, err, ErrorType::UserError)
                 }
             },

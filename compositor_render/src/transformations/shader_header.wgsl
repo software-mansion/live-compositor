@@ -1,7 +1,7 @@
 struct VertexInput {
     @location(0) position: vec3<f32>,
     @location(1) tex_coords: vec2<f32>,
-    @location(2) video_id: i32,
+    @location(2) texture_id: i32,
 }
 
 struct CommonShaderParameters {

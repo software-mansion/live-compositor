@@ -4,8 +4,11 @@ use compositor_common::renderer_spec::RendererId;
 
 #[derive(Debug, thiserror::Error)]
 pub enum RegisterError {
-    #[error("Failed to register a {0}, The \"{1}\" {0} was already registered.")]
-    KeyTaken(&'static str, Arc<str>),
+    #[error("Failed to register a {item_type}, The \"{renderer_id}\" {item_type} was already registered.")]
+    KeyTaken {
+        item_type: &'static str,
+        renderer_id: Arc<str>,
+    },
 }
 
 pub enum RegistryType {
@@ -38,15 +41,15 @@ impl<T: Clone> RendererRegistry<T> {
     }
 
     pub(crate) fn get(&self, key: &RendererId) -> Option<T> {
-        self.registry.get(key).map(Clone::clone)
+        self.registry.get(key).cloned()
     }
 
     pub(crate) fn register(&mut self, id: RendererId, renderer: T) -> Result<(), RegisterError> {
         if self.registry.contains_key(&id) {
-            return Err(RegisterError::KeyTaken(
-                self.registry_type.registry_item_name(),
-                id.0.clone(),
-            ));
+            return Err(RegisterError::KeyTaken {
+                item_type: self.registry_type.registry_item_name(),
+                renderer_id: id.0.clone(),
+            });
         }
 
         self.registry.insert(id.clone(), renderer);

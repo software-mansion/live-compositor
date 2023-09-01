@@ -1,13 +1,13 @@
 struct VertexInput {
     @location(0) position: vec3<f32>,
     @location(1) tex_coords: vec2<f32>,
-    @location(2) video_id: i32,
+    @location(2) texture_id: i32,
 }
 
 struct VertexOutput {
     @builtin(position) position: vec4<f32>,
     @location(0) tex_coords: vec2<f32>,
-    @location(1) @interpolate(flat) video_id: i32,
+    @location(1) @interpolate(flat) texture_id: i32,
 }
 
 struct CommonShaderParameters {
@@ -47,15 +47,15 @@ fn scale_matrix(x_scale: f32, y_scale: f32) -> mat3x3<f32> {
 @vertex
 fn vs_main(input: VertexInput) -> VertexOutput {
     var output: VertexOutput;
-    if input.video_id == -1 {
+    if input.texture_id == -1 {
         output.position = vec4<f32>(input.position, 1.0);
         output.tex_coords = input.tex_coords;
-        output.video_id = 0;
+        output.texture_id = 0;
         return output;
     }
 
-    let input_texture_size: vec2<u32> = textureDimensions(textures[input.video_id]);
-    let texture_layout: TextureLayout = layouts[input.video_id];
+    let input_texture_size: vec2<u32> = textureDimensions(textures[input.texture_id]);
+    let texture_layout: TextureLayout = layouts[input.texture_id];
     let output_width: f32 = f32(common_params.output_resolution.x);
     let output_height: f32 = f32(common_params.output_resolution.y);
 
@@ -80,14 +80,14 @@ fn vs_main(input: VertexInput) -> VertexOutput {
 
     output.position = vec4<f32>(output_position_pixels.x * 2.0 / output_width, output_position_pixels.y * 2.0 / output_height, 0.0, 1.0);
     output.tex_coords = input.tex_coords;
-    output.video_id = input.video_id;
+    output.texture_id = input.texture_id;
 
     return output;
 }
 
 @fragment
 fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
-    let sample = textureSample(textures[input.video_id], sampler_, input.tex_coords);
+    let sample = textureSample(textures[input.texture_id], sampler_, input.tex_coords);
     
     if common_params.textures_count == 0u {
         return vec4<f32>(0.0, 0.0, 0.0, 0.0);

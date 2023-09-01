@@ -358,6 +358,6 @@ impl SceneNodesSet {
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum InternalSceneError {
-    #[error("Missing node {0}")]
+    #[error("Missing node \"{0}\"")]
     MissingNode(NodeId),
 }
