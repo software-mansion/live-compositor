@@ -10,9 +10,9 @@ use crate::scene::{
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum SceneSpecValidationError {
-    #[error("Unknown node \"{missing_node}\" used as an input in the node {node}. Node is not defined in the scene and it was not registered as an input.")]
+    #[error("Unknown node \"{missing_node}\" used as an input in the node \"{node}\". Node is not defined in the scene and it was not registered as an input.")]
     UnknownInputPadOnNode { missing_node: NodeId, node: NodeId },
-    #[error("Unknown node \"{missing_node}\" is connected to the output stream {output}.")]
+    #[error("Unknown node \"{missing_node}\" is connected to the output stream \"{output}\".")]
     UnknownInputPadOnOutput {
         missing_node: NodeId,
         output: OutputId,
@@ -142,17 +142,14 @@ impl SceneSpec {
 
         for node_id in defined_node_ids {
             if !nodes_ids.insert(node_id) {
-                match registered_inputs.contains(node_id) {
-                    true => {
-                        return Err(SceneSpecValidationError::DuplicateNodeAndInputNames(
-                            node_id.clone(),
-                        ))
-                    }
-                    false => {
-                        return Err(SceneSpecValidationError::DuplicateNodeNames(
-                            node_id.clone(),
-                        ))
-                    }
+                if registered_inputs.contains(node_id) {
+                    return Err(SceneSpecValidationError::DuplicateNodeAndInputNames(
+                        node_id.clone(),
+                    ));
+                } else {
+                    return Err(SceneSpecValidationError::DuplicateNodeNames(
+                        node_id.clone(),
+                    ));
                 }
             }
         }
