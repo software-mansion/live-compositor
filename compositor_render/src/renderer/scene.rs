@@ -10,11 +10,8 @@ use crate::{
     registry::GetError,
     render_loop::NodeRenderPass,
     transformations::{
-        builtin::{node::BuiltinTransformationNode, transformations::BuiltinTransformations},
-        image_renderer::ImageNode,
-        shader::node::ShaderNode,
-        text_renderer::TextRendererNode,
-        web_renderer::WebRenderer,
+        builtin::node::BuiltinNode, image_renderer::ImageNode, shader::node::ShaderNode,
+        text_renderer::TextRendererNode, web_renderer::WebRenderer,
     },
 };
 
@@ -28,7 +25,7 @@ pub enum RenderNode {
     Web { renderer: Arc<WebRenderer> },
     Text(TextRendererNode),
     Image(ImageNode),
-    Builtin(BuiltinTransformationNode),
+    Builtin(BuiltinNode),
     InputStream,
 }
 
@@ -50,11 +47,7 @@ impl RenderNode {
                 None,
                 *resolution,
             ))),
-            NodeParams::Builtin {
-                transformation,
-                resolution,
-            } => Ok(Self::Builtin(BuiltinTransformationNode::new(
-                ctx.wgpu_ctx,
+            NodeParams::Builtin { transformation } => Ok(Self::Builtin(BuiltinNode::new(
                 ctx.renderers.builtin.shader(transformation),
                 transformation.clone(),
             ))),
@@ -103,7 +96,7 @@ impl RenderNode {
             RenderNode::Text(node) => Some(node.resolution()),
             RenderNode::Image(node) => Some(node.resolution()),
             RenderNode::InputStream => None,
-            RenderNode::Builtin(node) => Some(node.resolution()),
+            RenderNode::Builtin(node) => node.resolution(),
         }
     }
 }

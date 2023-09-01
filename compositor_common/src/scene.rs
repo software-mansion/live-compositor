@@ -4,7 +4,7 @@ use std::{fmt::Display, sync::Arc};
 use crate::renderer_spec::RendererId;
 
 use self::{
-    builtin_transformations::BuiltinTransformationSpec,
+    builtin_transformations::BuiltinSpec,
     text_spec::{TextDimensions, TextSpec},
 };
 
@@ -121,9 +121,8 @@ pub enum NodeParams {
     },
     #[serde(rename = "built-in")]
     Builtin {
-        resolution: Resolution,
         #[serde(flatten)]
-        transformation: BuiltinTransformationSpec,
+        transformation: BuiltinSpec,
     },
 }
 

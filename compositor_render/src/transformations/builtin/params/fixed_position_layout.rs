@@ -1,35 +1,39 @@
 use compositor_common::scene::{builtin_transformations::TextureLayout, Resolution};
 use nalgebra_glm::{rotate, scale, translate, vec3, Mat4};
 
+use crate::transformations::builtin::utils::mat_as_slice;
+
 pub struct FixedPositionLayoutParams {
     transformation_matrices: Vec<Mat4>,
-    background_color: wgpu::Color,
 }
 
 impl FixedPositionLayoutParams {
+    // TODO take spec
     pub fn new(
-        texture_layouts: Vec<TextureLayout>,
-        background_color: wgpu::Color,
-        input_resolutions: Vec<Option<Resolution>>,
+        texture_layouts: &[TextureLayout],
+        input_resolutions: &[Option<Resolution>],
         output_resolution: Resolution,
     ) -> Self {
         let transformation_matrices: Vec<Mat4> = texture_layouts
             .iter()
             .zip(input_resolutions.iter())
-            .map(|(texture_layout, input_resolution)| {
-                Self::transformation_matrix(texture_layout, input_resolution, output_resolution)
+            .map(|(texture_layout, &input_resolution)| {
+                Self::transformation_matrix(
+                    texture_layout,
+                    input_resolution.as_ref(),
+                    output_resolution,
+                )
             })
             .collect();
 
         Self {
             transformation_matrices,
-            background_color,
         }
     }
 
     fn transformation_matrix(
         layout: &TextureLayout,
-        input_resolution: &Option<Resolution>,
+        input_resolution: Option<&Resolution>,
         output_resolution: Resolution,
     ) -> Mat4 {
         let mut transformation_matrix = Mat4::identity();
@@ -42,7 +46,7 @@ impl FixedPositionLayoutParams {
         let scale_to_pixels_y = output_resolution.height as f32 / 2.0;
 
         let x_scale = input_resolution.width as f32 / output_resolution.width as f32;
-        let y_scale = input_resolution.height as f32 / input_resolution.height as f32;
+        let y_scale = input_resolution.height as f32 / output_resolution.height as f32;
         // All operations in reverse order, due to matrix multiplication order (read from bottom)
 
         // Scale back to clip coords
@@ -91,5 +95,14 @@ impl FixedPositionLayoutParams {
         );
 
         transformation_matrix
+    }
+
+    pub fn shader_buffer_content(&self) -> bytes::Bytes {
+        let mut bytes = bytes::BytesMut::new();
+        for matrix in &self.transformation_matrices {
+            bytes.extend_from_slice(mat_as_slice(matrix));
+        }
+
+        bytes.freeze()
     }
 }

@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use compositor_common::scene::{
-    builtin_transformations::{BuiltinTransformationSpec, TransformToResolutionStrategy},
-    Resolution, ShaderParam,
+    builtin_transformations::{BuiltinSpec, TransformToResolutionStrategy},
+    Resolution,
 };
 
 use crate::{
@@ -24,53 +24,30 @@ impl BuiltinTransformations {
         })
     }
 
-    pub fn shader(&self, transformation: &BuiltinTransformationSpec) -> Arc<Shader> {
+    pub fn shader(&self, transformation: &BuiltinSpec) -> Arc<Shader> {
         match transformation {
-            BuiltinTransformationSpec::TransformToResolution { strategy, .. } => match strategy {
+            BuiltinSpec::TransformToResolution { strategy, .. } => match strategy {
                 TransformToResolutionStrategy::Stretch => self.transform_resolution.stretch.clone(),
                 TransformToResolutionStrategy::Fill => self.transform_resolution.fill.clone(),
                 TransformToResolutionStrategy::Fit { .. } => self.transform_resolution.fit.clone(),
             },
-            BuiltinTransformationSpec::FixedPositionLayout { .. } => {
-                self.fixed_position_layout.0.clone()
-            }
+            BuiltinSpec::FixedPositionLayout { .. } => self.fixed_position_layout.0.clone(),
         }
     }
 
-    pub fn params(
-        transformation: &BuiltinTransformationSpec,
-        input_resolutions: Vec<Option<Resolution>>,
-        output_resolution: Resolution,
-    ) -> Option<ShaderParam> {
-        match transformation {
-            BuiltinTransformationSpec::TransformToResolution { .. } => None,
-            BuiltinTransformationSpec::FixedPositionLayout {
-                texture_layouts: textures_layouts,
-                ..
-            } => {
-                let width = output_resolution.width as u32;
-                let height = output_resolution.height as u32;
-
-                let layouts: Vec<ShaderParam> = textures_layouts
-                    .iter()
-                    .map(|layout| {
-                        ShaderParam::Struct(vec![
-                            ("top", ShaderParam::I32(layout.top.pixels(height))).into(),
-                            ("left", ShaderParam::I32(layout.left.pixels(width))).into(),
-                            ("rotation", ShaderParam::I32(layout.rotation.0)).into(),
-                            ("_padding", ShaderParam::I32(0)).into(),
-                        ])
-                    })
-                    .collect();
-
-                Some(ShaderParam::List(layouts))
-            }
+    pub fn output_resolution(
+        spec: &BuiltinSpec,
+        _input_resolutions: &[Option<Resolution>],
+    ) -> Resolution {
+        match spec {
+            BuiltinSpec::TransformToResolution { resolution, .. } => *resolution,
+            BuiltinSpec::FixedPositionLayout { resolution, .. } => *resolution,
         }
     }
 
-    pub fn clear_color(transformation: &BuiltinTransformationSpec) -> Option<wgpu::Color> {
+    pub fn clear_color(transformation: &BuiltinSpec) -> Option<wgpu::Color> {
         match transformation {
-            BuiltinTransformationSpec::TransformToResolution { strategy, .. } => match strategy {
+            BuiltinSpec::TransformToResolution { strategy, .. } => match strategy {
                 TransformToResolutionStrategy::Fit {
                     background_color_rgba,
                 } => Some(rgba_to_wgpu_color(background_color_rgba)),
@@ -78,7 +55,7 @@ impl BuiltinTransformations {
                     None
                 }
             },
-            BuiltinTransformationSpec::FixedPositionLayout {
+            BuiltinSpec::FixedPositionLayout {
                 background_color_rgba,
                 ..
             } => Some(rgba_to_wgpu_color(background_color_rgba)),

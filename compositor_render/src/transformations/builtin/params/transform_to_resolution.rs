@@ -1,13 +1,12 @@
 use compositor_common::scene::Resolution;
 
 #[derive(Debug, Default)]
-pub struct TransformToResolutionFitParams {
+pub struct FitParams {
     x_scale: f32,
     y_scale: f32,
-    background_color: wgpu::Color,
 }
 
-impl TransformToResolutionFitParams {
+impl FitParams {
     /// This transformation preserves the input texture ratio.
     ///
     /// If the input ratio is larger than the output ratio, the texture is scaled,
@@ -24,11 +23,7 @@ impl TransformToResolutionFitParams {
     /// Analogously:
     /// scale_factor_x_clip_space = input_ratio / output_ratio
     /// scale_factor_y_clip_space = 1.0 (input y coords are already fitted)
-    pub fn new(
-        input_resolution: Resolution,
-        output_resolution: Resolution,
-        background_color: wgpu::Color,
-    ) -> Self {
+    pub fn new(input_resolution: Resolution, output_resolution: Resolution) -> Self {
         let input_ratio = input_resolution.ratio();
         let output_ratio = output_resolution.ratio();
 
@@ -36,25 +31,31 @@ impl TransformToResolutionFitParams {
             Self {
                 x_scale: 1.0,
                 y_scale: output_ratio / input_ratio,
-                background_color,
             }
         } else {
             Self {
                 x_scale: input_ratio / output_ratio,
                 y_scale: 1.0,
-                background_color,
             }
         }
+    }
+
+    pub fn shader_buffer_content(&self) -> bytes::Bytes {
+        let mut bytes = bytes::BytesMut::new();
+        bytes.extend_from_slice(&self.x_scale.to_le_bytes());
+        bytes.extend_from_slice(&self.y_scale.to_le_bytes());
+
+        bytes.freeze()
     }
 }
 
 #[derive(Debug, Default)]
-pub struct TransformToResolutionFillParams {
+pub struct FillParams {
     x_scale: f32,
     y_scale: f32,
 }
 
-impl TransformToResolutionFillParams {
+impl FillParams {
     // This transformation preserves the input texture ratio.
     //
     // If the input ratio is larger than the output ratio, the texture is scaled,
@@ -86,5 +87,13 @@ impl TransformToResolutionFillParams {
                 y_scale: output_ratio / input_ratio,
             }
         }
+    }
+
+    pub fn shader_buffer_content(&self) -> bytes::Bytes {
+        let mut bytes = bytes::BytesMut::new();
+        bytes.extend_from_slice(&self.x_scale.to_le_bytes());
+        bytes.extend_from_slice(&self.y_scale.to_le_bytes());
+
+        bytes.freeze()
     }
 }

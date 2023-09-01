@@ -1,136 +1,164 @@
-// use std::{collections::HashMap, sync::Arc, time::Duration};
+use std::{
+    sync::{Arc, Mutex},
+    time::Duration,
+};
 
-// use compositor_common::scene::{
-//     builtin_transformations::BuiltinTransformationSpec, NodeId, Resolution, ShaderParam,
-// };
-// use wgpu::util::DeviceExt;
+use compositor_common::scene::{builtin_transformations::BuiltinSpec, NodeId, Resolution};
+use wgpu::util::DeviceExt;
 
-// use crate::{
-//     renderer::{texture::NodeTexture, WgpuCtx},
-//     transformations::shader::{Shader},
-// };
+use crate::{renderer::texture::NodeTexture, transformations::shader::Shader};
 
-// use super::transformations::BuiltinTransformations;
+use super::{params::BuiltinParams, transformations::BuiltinTransformations};
 
-// struct ShaderParamsBufferState {
-//     bind_group: wgpu::BindGroup,
-//     buffer: wgpu::Buffer,
-//     params: ShaderParam,
-// }
+struct ConstructedBuiltinNode {
+    shader: Arc<Shader>,
+    spec: BuiltinSpec,
+}
 
-// pub struct BuiltinTransformationNode {
-//     shader: Arc<Shader>,
-//     shader_params_state: ShaderParamsBufferState,
-//     spec: BuiltinTransformationSpec,
-//     resolution: Resolution,
-//     sources_resolutions: Vec<Option<Resolution>>,
-// }
+struct ConfiguredBuiltinNode {
+    shader: Arc<Shader>,
+    spec: BuiltinSpec,
+    params_bind_group: wgpu::BindGroup,
+    params_buffer: wgpu::Buffer,
+    input_resolutions: Vec<Option<Resolution>>,
+    output_resolution: Resolution,
+    clear_color: Option<wgpu::Color>,
+}
 
-// impl BuiltinTransformationNode {
-//     pub fn new(
-//         ctx: &WgpuCtx,
-//         shader: Arc<Shader>,
-//         spec: BuiltinTransformationSpec,
-//         resolution: Resolution,
-//     ) -> Self {
-//         Self {
-//             shader,
-//             shader_params_state: ShaderParamsBufferState::Empty,
-//             spec,
-//             resolution,
-//             sources_resolutions: Vec::new(),
-//         }
-//     }
+impl ConfiguredBuiltinNode {
+    fn new(
+        constructed: &ConstructedBuiltinNode,
+        input_resolutions: Vec<Option<Resolution>>,
+    ) -> Self {
+        let output_resolution =
+            BuiltinTransformations::output_resolution(&constructed.spec, &input_resolutions);
+        let params = BuiltinParams::new(&constructed.spec, &input_resolutions);
+        let wgpu_ctx = constructed.shader.wgpu_ctx.clone();
 
-//     pub fn render(
-//         &self,
-//         sources: &[(&NodeId, &NodeTexture)],
-//         target: &mut NodeTexture,
-//         pts: Duration,
-//     ) {
-//         // TODO: temporary hack until builtins are stateless
-//         if sources.len() == 1 && sources[0].1.is_empty() {
-//             target.clear();
-//             return;
-//         }
+        let params_buffer = wgpu_ctx
+            .device
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("builtin node params buffer"),
+                usage: wgpu::BufferUsages::UNIFORM,
+                contents: &params.shader_buffer_content(),
+            });
 
-//         let sources_resolutions: Vec<Option<Resolution>> = sources
-//             .iter()
-//             .map(|(_, &node_texture)| node_texture.resolution())
-//             .collect();
+        let params_bind_group = wgpu_ctx
+            .device
+            .create_bind_group(&wgpu::BindGroupDescriptor {
+                label: Some("builtin node params bind group"),
+                layout: &wgpu_ctx.shader_parameters_bind_group_layout,
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: params_buffer.as_entire_binding(),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: wgpu_ctx
+                            .compositor_provided_parameters_buffer
+                            .as_entire_binding(),
+                    },
+                ],
+            });
 
-//         if self.sources_resolutions != sources_resolutions {
-//             self.update_params(sources_resolutions);
-//             self.sources_resolutions = sources_resolutions;
-//         }
+        let clear_color = BuiltinTransformations::clear_color(&constructed.spec);
 
-//         let target = target.ensure_size(&self.shader.wgpu_ctx, self.resolution);
-//         self.shader.render(
-//             &self.shader_params_bind_group,
-//             sources,
-//             target,
-//             pts,
-//             self.clear_color,
-//         )
-//     }
+        Self {
+            shader: constructed.shader.clone(),
+            spec: constructed.spec.clone(),
+            params_bind_group,
+            params_buffer,
+            input_resolutions,
+            output_resolution,
+            clear_color,
+        }
+    }
 
-//     fn update_params_buffer(&self, params: ShaderParam) {
+    fn ensure_configured(&mut self, input_resolutions: Vec<Option<Resolution>>) {
+        if self.input_resolutions != input_resolutions {
+            let params = BuiltinParams::new(&self.spec, &input_resolutions);
+            self.shader.wgpu_ctx.queue.write_buffer(
+                &self.params_buffer,
+                0,
+                &params.shader_buffer_content(),
+            );
+            self.input_resolutions = input_resolutions;
+        }
+    }
+}
 
-//         let queue = self.shader.wgpu_ctx.queue;
+enum BuiltinNodeState {
+    Constructed(ConstructedBuiltinNode),
+    Configured(ConfiguredBuiltinNode),
+}
 
-//         match self.shader_params_state {
-//             ShaderParamsBufferState::Created {
-//                 bind_group, buffer, ..
-//             } => {
-//                 queue.write_buffer(&buffer, 0, &params_bytes);
-//                 self.shader_params_state = ShaderParamsBufferState::Created {
-//                     bind_group,
-//                     buffer,
-//                     params,
-//                 };
-//             }
-//             ShaderParamsBufferState::Empty => {
-//                 let shader_params_buffer =
-//                     device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-//                         label: Some("shader node custom params buffer"),
-//                         usage: wgpu::BufferUsages::UNIFORM,
-//                         contents: &params_bytes,
-//                     });
+impl BuiltinNodeState {
+    fn new(shader: Arc<Shader>, spec: BuiltinSpec) -> Self {
+        Self::Constructed(ConstructedBuiltinNode { shader, spec })
+    }
 
-//                 let shader_params_bind_group =
-//                     device.create_bind_group(&wgpu::BindGroupDescriptor {
-//                         label: Some("shader node params bind group"),
-//                         layout: &self.shader.wgpu_ctx.shader_parameters_bind_group_layout,
-//                         entries: &[
-//                             wgpu::BindGroupEntry {
-//                                 binding: 0,
-//                                 resource: shader_params_buffer.as_entire_binding(),
-//                             },
-//                             wgpu::BindGroupEntry {
-//                                 binding: 1,
-//                                 resource: self
-//                                     .shader
-//                                     .wgpu_ctx
-//                                     .compositor_provided_parameters_buffer
-//                                     .as_entire_binding(),
-//                             },
-//                         ],
-//                     });
+    fn ensure_configured(&mut self, input_resolutions: Vec<Option<Resolution>>) {
+        match self {
+            BuiltinNodeState::Constructed(ref constructed) => {
+                let configured = ConfiguredBuiltinNode::new(constructed, input_resolutions);
+                *self = BuiltinNodeState::Configured(configured);
+            }
+            BuiltinNodeState::Configured(configured) => {
+                configured.ensure_configured(input_resolutions);
+            }
+        };
+    }
+}
 
-//                 self.shader_params_state = ShaderParamsBufferState: {
-//                     bind_group: shader_params_bind_group,
-//                     buffer: shader_params_buffer,
-//                     params,
-//                 };
-//             }
-//         }
-//     }
+pub struct BuiltinNode(Arc<Mutex<BuiltinNodeState>>);
 
-//     fn update_params(&self, sources_resolutions: Vec<Option<Resolution>>) {
-//         let params =
-//             BuiltinTransformations::params(&self.spec, sources_resolutions, self.resolution);
-//         if let Some(shader_params) = params {
-//             self.update_params_buffer(shader_params);
-//         }
-//     }
-// }
+impl BuiltinNode {
+    pub fn new(shader: Arc<Shader>, spec: BuiltinSpec) -> Self {
+        Self(Arc::new(Mutex::new(BuiltinNodeState::new(shader, spec))))
+    }
+
+    pub fn resolution(&self) -> Option<Resolution> {
+        match &*self.0.lock().unwrap() {
+            BuiltinNodeState::Constructed(constructed) => match constructed.spec {
+                BuiltinSpec::TransformToResolution { resolution, .. } => Some(resolution),
+                BuiltinSpec::FixedPositionLayout { resolution, .. } => Some(resolution),
+            },
+            BuiltinNodeState::Configured(configured) => Some(configured.output_resolution),
+        }
+    }
+
+    pub fn render(
+        &self,
+        sources: &[(&NodeId, &NodeTexture)],
+        target: &mut NodeTexture,
+        pts: Duration,
+    ) {
+        // TODO: think about fallbacks
+
+        let input_resolutions: Vec<Option<Resolution>> = sources
+            .iter()
+            .map(|(_, node_texture)| node_texture.resolution())
+            .collect();
+
+        let mut guard = self.0.lock().unwrap();
+
+        guard.ensure_configured(input_resolutions);
+
+        // TODO: figure out cleaner way to do this
+        let BuiltinNodeState::Configured(configured) = &*guard else {
+            panic!("Builtin node state should be configured before render!");
+        };
+
+        let shader = configured.shader.clone();
+
+        let target = target.ensure_size(&shader.wgpu_ctx, configured.output_resolution);
+        shader.render(
+            &configured.params_bind_group,
+            sources,
+            target,
+            pts,
+            configured.clear_color,
+        );
+    }
+}
