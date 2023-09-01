@@ -111,11 +111,11 @@ impl BuiltinNodeState {
     }
 }
 
-pub struct BuiltinNode(Arc<Mutex<BuiltinNodeState>>);
+pub struct BuiltinNode(Mutex<BuiltinNodeState>);
 
 impl BuiltinNode {
     pub fn new(shader: Arc<Shader>, spec: BuiltinSpec) -> Self {
-        Self(Arc::new(Mutex::new(BuiltinNodeState::new(shader, spec))))
+        Self(Mutex::new(BuiltinNodeState::new(shader, spec)))
     }
 
     pub fn resolution(&self) -> Option<Resolution> {
