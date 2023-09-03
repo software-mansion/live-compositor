@@ -66,22 +66,22 @@ impl RenderNode {
     }
 
     pub fn render(
-        &self,
+        &mut self,
         ctx: &mut RenderCtx,
         sources: &[(&NodeId, &NodeTexture)],
         target: &mut NodeTexture,
         pts: Duration,
     ) {
         match self {
-            RenderNode::Shader(shader) => {
+            RenderNode::Shader(ref shader) => {
                 shader.render(sources, target, pts);
             }
-            RenderNode::Builtin(shader) => shader.render(sources, target, pts),
-            RenderNode::Web { renderer } => renderer.render(ctx, sources, target),
-            RenderNode::Text(renderer) => {
+            RenderNode::Builtin(builtin_node) => builtin_node.render(sources, target, pts),
+            RenderNode::Web { ref renderer } => renderer.render(ctx, sources, target),
+            RenderNode::Text(ref renderer) => {
                 renderer.render(ctx, target);
             }
-            RenderNode::Image(node) => node.render(ctx, target, pts),
+            RenderNode::Image(ref node) => node.render(ctx, target, pts),
             RenderNode::InputStream => {
                 // Nothing to do, textures on input nodes should be populated
                 // at the start of render loop

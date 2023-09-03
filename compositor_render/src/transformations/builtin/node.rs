@@ -1,7 +1,4 @@
-use std::{
-    sync::{Arc, Mutex},
-    time::Duration,
-};
+use std::{sync::Arc, time::Duration};
 
 use compositor_common::scene::{builtin_transformations::BuiltinSpec, NodeId, Resolution};
 use wgpu::util::DeviceExt;
@@ -10,12 +7,12 @@ use crate::{renderer::texture::NodeTexture, transformations::shader::Shader};
 
 use super::{params::BuiltinParams, transformations::BuiltinTransformations};
 
-struct ConstructedBuiltinNode {
+pub struct ConstructedBuiltinNode {
     shader: Arc<Shader>,
     spec: BuiltinSpec,
 }
 
-struct ConfiguredBuiltinNode {
+pub struct ConfiguredBuiltinNode {
     shader: Arc<Shader>,
     spec: BuiltinSpec,
     params_bind_group: wgpu::BindGroup,
@@ -35,6 +32,8 @@ impl ConfiguredBuiltinNode {
         let params = BuiltinParams::new(&constructed.spec, &input_resolutions);
         let wgpu_ctx = constructed.shader.wgpu_ctx.clone();
 
+        // This could be created on ConstructedBuiltinNode initialization, but we would need
+        // to know size of buffer content
         let params_buffer = wgpu_ctx
             .device
             .create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -88,48 +87,28 @@ impl ConfiguredBuiltinNode {
     }
 }
 
-enum BuiltinNodeState {
+pub enum BuiltinNode {
     Constructed(ConstructedBuiltinNode),
     Configured(ConfiguredBuiltinNode),
 }
 
-impl BuiltinNodeState {
-    fn new(shader: Arc<Shader>, spec: BuiltinSpec) -> Self {
+impl BuiltinNode {
+    pub fn new(shader: Arc<Shader>, spec: BuiltinSpec) -> Self {
         Self::Constructed(ConstructedBuiltinNode { shader, spec })
     }
 
-    fn ensure_configured(&mut self, input_resolutions: Vec<Option<Resolution>>) {
-        match self {
-            BuiltinNodeState::Constructed(ref constructed) => {
-                let configured = ConfiguredBuiltinNode::new(constructed, input_resolutions);
-                *self = BuiltinNodeState::Configured(configured);
-            }
-            BuiltinNodeState::Configured(configured) => {
-                configured.ensure_configured(input_resolutions);
-            }
-        };
-    }
-}
-
-pub struct BuiltinNode(Mutex<BuiltinNodeState>);
-
-impl BuiltinNode {
-    pub fn new(shader: Arc<Shader>, spec: BuiltinSpec) -> Self {
-        Self(Mutex::new(BuiltinNodeState::new(shader, spec)))
-    }
-
     pub fn resolution(&self) -> Option<Resolution> {
-        match &*self.0.lock().unwrap() {
-            BuiltinNodeState::Constructed(constructed) => match constructed.spec {
+        match self {
+            BuiltinNode::Constructed(constructed) => match constructed.spec {
                 BuiltinSpec::TransformToResolution { resolution, .. } => Some(resolution),
                 BuiltinSpec::FixedPositionLayout { resolution, .. } => Some(resolution),
             },
-            BuiltinNodeState::Configured(configured) => Some(configured.output_resolution),
+            BuiltinNode::Configured(configured) => Some(configured.output_resolution),
         }
     }
 
     pub fn render(
-        &self,
+        &mut self,
         sources: &[(&NodeId, &NodeTexture)],
         target: &mut NodeTexture,
         pts: Duration,
@@ -141,14 +120,7 @@ impl BuiltinNode {
             .map(|(_, node_texture)| node_texture.resolution())
             .collect();
 
-        let mut guard = self.0.lock().unwrap();
-
-        guard.ensure_configured(input_resolutions);
-
-        // TODO: figure out cleaner way to do this
-        let BuiltinNodeState::Configured(configured) = &*guard else {
-            panic!("Builtin node state should be configured before render!");
-        };
+        let configured = self.ensure_configured(input_resolutions);
 
         let shader = configured.shader.clone();
 
@@ -160,5 +132,25 @@ impl BuiltinNode {
             pts,
             configured.clear_color,
         );
+    }
+
+    fn ensure_configured(
+        &mut self,
+        input_resolutions: Vec<Option<Resolution>>,
+    ) -> &ConfiguredBuiltinNode {
+        match self {
+            BuiltinNode::Constructed(ref constructed) => {
+                let configured = ConfiguredBuiltinNode::new(constructed, input_resolutions);
+                *self = BuiltinNode::Configured(configured);
+            }
+            BuiltinNode::Configured(configured) => {
+                configured.ensure_configured(input_resolutions);
+            }
+        };
+
+        match self {
+            BuiltinNode::Configured(ref configured) => configured,
+            BuiltinNode::Constructed(_) => unreachable!("Should be configured by previous call"),
+        }
     }
 }

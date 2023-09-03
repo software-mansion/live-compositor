@@ -1,7 +1,5 @@
 use compositor_common::scene::{builtin_transformations::TextureLayout, Resolution};
-use nalgebra_glm::{rotate, scale, translate, vec3, Mat4};
-
-use crate::transformations::builtin::utils::mat_as_slice;
+use nalgebra_glm::{rotate_z, scale, translate, vec3, Mat4};
 
 pub struct FixedPositionLayoutParams {
     transformation_matrices: Vec<Mat4>,
@@ -31,6 +29,7 @@ impl FixedPositionLayoutParams {
         }
     }
 
+    // TODO: explain this witchcraft
     fn transformation_matrix(
         layout: &TextureLayout,
         input_resolution: Option<&Resolution>,
@@ -41,68 +40,57 @@ impl FixedPositionLayoutParams {
         let Some(input_resolution) = input_resolution else {
             return transformation_matrix;
         };
+        
 
-        let scale_to_pixels_x = output_resolution.width as f32 / 2.0;
-        let scale_to_pixels_y = output_resolution.height as f32 / 2.0;
+        let left = layout.left.pixels(output_resolution.width as u32) as f32;
+        let top = layout.top.pixels(output_resolution.height as u32) as f32;
 
-        let x_scale = input_resolution.width as f32 / output_resolution.width as f32;
-        let y_scale = input_resolution.height as f32 / output_resolution.height as f32;
-        // All operations in reverse order, due to matrix multiplication order (read from bottom)
-
-        // Scale back to clip coords
         transformation_matrix = scale(
             &transformation_matrix,
-            &vec3(1.0 / scale_to_pixels_x, 1.0 / scale_to_pixels_y, 1.0),
-        );
-
-        // Translate to final position
-        // This is in different coords, but since it's translation in pixels, it doesn't matter
-        let top_left_corner_after_scale = (
-            -(output_resolution.width as f32) / 2.0 * x_scale,
-            -(output_resolution.height as f32) / 2.0 * y_scale,
-        );
-        let top_left_corner_final = (
-            layout.left.pixels(output_resolution.width as u32) as f32,
-            // minus, because user provides pixels from top and we need pixels from bottom
-            output_resolution.height as f32
-                - layout.top.pixels(output_resolution.height as u32) as f32,
+            &vec3(
+                2.0 / output_resolution.width as f32,
+                2.0 / output_resolution.height as f32,
+                1.0,
+            ),
         );
 
         transformation_matrix = translate(
             &transformation_matrix,
             &vec3(
-                top_left_corner_final.0 - top_left_corner_after_scale.0,
-                top_left_corner_final.1 - top_left_corner_after_scale.1,
+                -(output_resolution.width as f32) / 2.0
+                    + left
+                    + input_resolution.width as f32 / 2.0,
+                output_resolution.height as f32 / 2.0 - top - input_resolution.height as f32 / 2.0,
                 0.0,
             ),
         );
 
-        // Rotate
-        transformation_matrix = rotate(
+        transformation_matrix = rotate_z(
             &transformation_matrix,
             (layout.rotation.0 as f32).to_radians(),
-            &vec3(0.0, 0.0, 1.0),
         );
 
-        // Scale to texture size
-        transformation_matrix = scale(&transformation_matrix, &vec3(x_scale, y_scale, 1.0));
-
-        // Scale up to resolution space
-        // ([-output_width / 2, output_width / 2], [-output_height / 2, output_height /2])
         transformation_matrix = scale(
             &transformation_matrix,
-            &vec3(scale_to_pixels_x, scale_to_pixels_y, 1.0),
+            &vec3(
+                input_resolution.width as f32 / 2.0,
+                input_resolution.height as f32 / 2.0,
+                1.0,
+            ),
         );
 
         transformation_matrix
     }
 
     pub fn shader_buffer_content(&self) -> bytes::Bytes {
-        let mut bytes = bytes::BytesMut::new();
+        let mut matrices_bytes = bytes::BytesMut::new();
         for matrix in &self.transformation_matrices {
-            bytes.extend_from_slice(mat_as_slice(matrix));
+            let colum_based = matrix.transpose();
+            for el in &colum_based {
+                matrices_bytes.extend_from_slice(&el.to_ne_bytes())
+            };
         }
 
-        bytes.freeze()
+        matrices_bytes.freeze()
     }
 }
