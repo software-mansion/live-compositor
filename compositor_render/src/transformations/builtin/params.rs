@@ -63,6 +63,8 @@ impl BuiltinParams {
         }
     }
 
+    /// Returned bytes have to match shader memory layout to work properly.
+    /// https://www.w3.org/TR/WGSL/#memory-layouts
     pub fn shader_buffer_content(&self) -> bytes::Bytes {
         match self {
             BuiltinParams::FixedPositionLayout(fixed_position_layout) => {
