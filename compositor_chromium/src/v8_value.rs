@@ -14,7 +14,7 @@ pub struct V8Value {
 
 impl V8Value {
     pub(crate) fn from_raw(v8_value: *mut chromium_sys::cef_v8value_t) -> Self {
-        let inner = Validated(v8_value);
+        let inner = Validated::new(v8_value);
         Self { inner }
     }
 

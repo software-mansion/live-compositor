@@ -32,6 +32,11 @@ impl cef::RenderProcessHandler for RenderProcessHandler {
     ) -> bool {
         // TODO: Implement this
         info!("Message received: {}", message.name());
+        let ctx = _frame.v8_context().unwrap();
+        let result = ctx.eval("let a = 2+ 1; a");
+        match result {
+            Ok(value) => dbg!(value.),
+        }
         false
     }
 }

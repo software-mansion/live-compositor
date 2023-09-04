@@ -5,6 +5,7 @@ use crate::renderer::{
     BGRAToRGBAConverter, RegisterCtx, RenderCtx,
 };
 
+use compositor_chromium::cef;
 use compositor_common::{
     renderer_spec::WebRendererSpec,
     scene::{NodeId, Resolution},
@@ -55,6 +56,11 @@ impl WebRenderer {
         let state = Mutex::new(BrowserState::new(painted_frames_receiver));
         let client = BrowserClient::new(painted_frames_sender, params.resolution);
         let _browser = ctx.chromium.start_browser(&params.url, client)?;
+        let _frame = _browser.main_frame().unwrap();
+        let msg = cef::ProcessMessage::new("TEST");
+        _frame
+            .send_process_message(cef::ProcessId::Renderer, msg)
+            .unwrap();
 
         let bgra_texture = BGRATexture::new(&ctx.wgpu_ctx, params.resolution);
         let bgra_bind_group_layout = BGRATexture::new_bind_group_layout(&ctx.wgpu_ctx.device);

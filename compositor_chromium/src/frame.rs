@@ -12,7 +12,7 @@ pub struct Frame {
 
 impl Frame {
     pub(crate) fn new(frame: *mut chromium_sys::cef_frame_t) -> Self {
-        let inner = Validated(frame);
+        let inner = Validated::new(frame);
         Self { inner }
     }
 
