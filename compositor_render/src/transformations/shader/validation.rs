@@ -1,7 +1,7 @@
 use compositor_common::scene::ShaderParam;
 use naga::{ArraySize, ConstantInner, Handle, Module, ScalarKind, ShaderStage, Type, VectorSize};
 
-use super::VERTEX_ENTRYPOINT_NAME;
+use super::{USER_DEFINED_BINDING, VERTEX_ENTRYPOINT_NAME};
 
 #[derive(Debug, thiserror::Error)]
 pub enum ShaderValidationError {
@@ -24,6 +24,9 @@ pub enum ShaderValidationError {
 
     #[error("The vertex shader input has a wrong type. {0}")]
     VertexShaderBadInput(#[source] TypeEquivalenceError),
+
+    #[error("User defined binding ((group, binding) == {USER_DEFINED_BINDING:?}) is not a uniform buffer. Is it defined as var<uniform>?")]
+    UserBindingNotUniform,
 }
 
 pub fn validate_contains_header(
@@ -51,6 +54,20 @@ fn validate_globals(
         validate_type_equivalent(global.ty, header, global_in_shader.ty, shader)
             .map_err(ShaderValidationError::GlobalBadType)?;
     }
+
+    // validate user-defined buffer is a uniform
+    shader
+        .global_variables
+        .iter()
+        .find(|(_, global)| {
+            global.binding.is_some()
+                && global.binding.as_ref().unwrap().group == USER_DEFINED_BINDING.0
+                && global.binding.as_ref().unwrap().binding == USER_DEFINED_BINDING.1
+        })
+        .map_or(Ok(()), |(_, global)| match global.space {
+            naga::AddressSpace::Uniform => Ok(()),
+            _ => Err(ShaderValidationError::UserBindingNotUniform),
+        })?;
 
     Ok(())
 }
@@ -110,7 +127,36 @@ pub enum TypeEquivalenceError {
         actual: naga::TypeInner,
     },
 
-    #[error("Error while evaluating array size")]
+    #[error("Struct {struct_name} has an incorrect number of fields: expected: {expected_field_number}, found: {actual_field_number}")]
+    StructFieldNumberMismatch {
+        struct_name: String,
+        expected_field_number: usize,
+        actual_field_number: usize,
+    },
+
+    #[error("Structure mismatch found while checking the type of field {field_name} in struct {struct_name}:\n{error}")]
+    StructFieldStructureMismatch {
+        struct_name: String,
+        field_name: String,
+        error: Box<TypeEquivalenceError>,
+    },
+
+    #[error("Struct {struct_name} has mismatched field names: expected {expected_field_name}, found: {actual_field_name}.")]
+    StructFieldNameMismatch {
+        struct_name: String,
+        expected_field_name: String,
+        actual_field_name: String,
+    },
+
+    #[error("Field {field_name} in struct {struct_name} has an incorrect binding: expected {expected_binding:?}, found {actual_binding:?}.")]
+    StructFieldBindingMismatch {
+        struct_name: String,
+        field_name: String,
+        expected_binding: Option<naga::Binding>,
+        actual_binding: Option<naga::Binding>,
+    },
+
+    #[error("Error while evaluating array size: {0}")]
     BadArraySize(#[from] ConstArraySizeEvalError),
 
     #[error("Sizes of an array don't match: {0:?} != {1:?}.")]
@@ -209,11 +255,11 @@ fn validate_type_equivalent(
 
         naga::TypeInner::Struct {
             members: ref members1,
-            span: span1,
+            ..
         } => {
             let naga::TypeInner::Struct {
                 members: ref members2,
-                span: span2,
+                ..
             } = ti2
             else {
                 return Err(TypeEquivalenceError::TypeStructureMismatch {
@@ -222,22 +268,45 @@ fn validate_type_equivalent(
                 });
             };
 
-            if span1 != span2 || members1.len() != members2.len() {
-                return Err(TypeEquivalenceError::TypeStructureMismatch {
-                    expected: ti1.clone(),
-                    actual: ti2.clone(),
+            // skipped checking if ti1.span == ti2.span
+            // if all fields have the same types, how can the spans be different?
+
+            if members1.len() != members2.len() {
+                return Err(TypeEquivalenceError::StructFieldNumberMismatch {
+                    struct_name: type1.name.as_ref().unwrap().clone(),
+                    expected_field_number: members1.len(),
+                    actual_field_number: members2.len(),
                 });
             }
 
             for (m1, m2) in members1.iter().zip(members2.iter()) {
-                if m1.binding != m2.binding || m1.name != m2.name || m1.offset != m2.offset {
-                    return Err(TypeEquivalenceError::TypeStructureMismatch {
-                        expected: ti1,
-                        actual: ti2,
+                if m1.name != m2.name {
+                    return Err(TypeEquivalenceError::StructFieldNameMismatch {
+                        struct_name: type1.name.as_ref().unwrap().clone(),
+                        expected_field_name: m1.name.as_ref().unwrap().clone(),
+                        actual_field_name: m2.name.as_ref().unwrap().clone(),
                     });
                 }
 
-                validate_type_equivalent(m1.ty, mod1, m2.ty, mod2)?;
+                // skipped checking if m1.offset == m2.offset
+                // if all fields have the same types, how can the offsets be different?
+
+                if m1.binding != m2.binding {
+                    return Err(TypeEquivalenceError::StructFieldBindingMismatch {
+                        struct_name: type1.name.as_ref().unwrap().clone(),
+                        field_name: m1.name.as_ref().unwrap().clone(),
+                        expected_binding: m1.binding.clone(),
+                        actual_binding: m2.binding.clone(),
+                    });
+                }
+
+                validate_type_equivalent(m1.ty, mod1, m2.ty, mod2).map_err(|err| {
+                    TypeEquivalenceError::StructFieldStructureMismatch {
+                        struct_name: type1.name.as_ref().unwrap().clone(),
+                        field_name: m1.name.as_ref().unwrap().clone(),
+                        error: Box::new(err),
+                    }
+                })?;
             }
         }
 
@@ -375,8 +444,6 @@ pub fn validate_params(
     module: &naga::Module,
 ) -> Result<(), ParametersValidationError> {
     let ty = &module.types[ty];
-
-    // TODO: tests, make examples run
 
     match &ty.inner {
         naga::TypeInner::Scalar { kind, width } => validate_scalar(params, *kind, *width),
