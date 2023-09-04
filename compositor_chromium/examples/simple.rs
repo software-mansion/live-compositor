@@ -105,6 +105,7 @@ fn main() {
     };
     let browser_settings = cef::BrowserSettings {
         windowless_frame_rate: 60,
+        background_color: 0xfff,
     };
     let _ = ctx.start_browser(
         client,
