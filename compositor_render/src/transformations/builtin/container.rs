@@ -1,22 +1,20 @@
 use std::sync::Arc;
 
-use compositor_common::scene::{
-    builtin_transformations::{BuiltinSpec, TransformToResolutionStrategy},
-    Resolution,
+use compositor_common::scene::builtin_transformations::{
+    BuiltinSpec, TransformToResolutionStrategy,
 };
 
 use crate::{
     renderer::{WgpuCtx, WgpuError},
     transformations::shader::Shader,
-    utils::rgba_to_wgpu_color,
 };
 
-pub struct BuiltinTransformations {
+pub struct BuiltinsContainer {
     transform_resolution: ConvertResolutionTransformations,
     fixed_position_layout: FixedPositionLayout,
 }
 
-impl BuiltinTransformations {
+impl BuiltinsContainer {
     pub fn new(wgpu_ctx: &Arc<WgpuCtx>) -> Result<Self, WgpuError> {
         Ok(Self {
             transform_resolution: ConvertResolutionTransformations::new(wgpu_ctx)?,
@@ -32,33 +30,6 @@ impl BuiltinTransformations {
                 TransformToResolutionStrategy::Fit { .. } => self.transform_resolution.fit.clone(),
             },
             BuiltinSpec::FixedPositionLayout { .. } => self.fixed_position_layout.0.clone(),
-        }
-    }
-
-    pub fn output_resolution(
-        spec: &BuiltinSpec,
-        _input_resolutions: &[Option<Resolution>],
-    ) -> Resolution {
-        match spec {
-            BuiltinSpec::TransformToResolution { resolution, .. } => *resolution,
-            BuiltinSpec::FixedPositionLayout { resolution, .. } => *resolution,
-        }
-    }
-
-    pub fn clear_color(transformation: &BuiltinSpec) -> Option<wgpu::Color> {
-        match transformation {
-            BuiltinSpec::TransformToResolution { strategy, .. } => match strategy {
-                TransformToResolutionStrategy::Fit {
-                    background_color_rgba,
-                } => Some(rgba_to_wgpu_color(background_color_rgba)),
-                TransformToResolutionStrategy::Stretch | TransformToResolutionStrategy::Fill => {
-                    None
-                }
-            },
-            BuiltinSpec::FixedPositionLayout {
-                background_color_rgba,
-                ..
-            } => Some(rgba_to_wgpu_color(background_color_rgba)),
         }
     }
 }

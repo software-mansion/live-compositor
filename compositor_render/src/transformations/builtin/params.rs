@@ -8,6 +8,8 @@ use self::{
     transform_to_resolution::{FillParams, FitParams},
 };
 
+use super::Builtin;
+
 mod fixed_position_layout;
 mod transform_to_resolution;
 
@@ -19,8 +21,8 @@ pub enum BuiltinParams {
 }
 
 impl BuiltinParams {
-    pub fn new(spec: &BuiltinSpec, input_resolutions: &[Option<Resolution>]) -> Self {
-        match spec {
+    pub fn new(spec: &Builtin, input_resolutions: &[Option<Resolution>]) -> Self {
+        match &spec.0 {
             BuiltinSpec::TransformToResolution {
                 strategy,
                 resolution,

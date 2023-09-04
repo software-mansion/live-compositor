@@ -1,20 +1,20 @@
 use std::{sync::Arc, time::Duration};
 
-use compositor_common::scene::{builtin_transformations::BuiltinSpec, NodeId, Resolution};
+use compositor_common::scene::{NodeId, Resolution};
 use wgpu::util::DeviceExt;
 
 use crate::{renderer::texture::NodeTexture, transformations::shader::Shader};
 
-use super::{params::BuiltinParams, transformations::BuiltinTransformations};
+use super::{params::BuiltinParams, Builtin};
 
 pub struct ConstructedBuiltinNode {
     shader: Arc<Shader>,
-    spec: BuiltinSpec,
+    spec: Builtin,
 }
 
 pub struct ConfiguredBuiltinNode {
     shader: Arc<Shader>,
-    spec: BuiltinSpec,
+    spec: Builtin,
     params_bind_group: wgpu::BindGroup,
     params_buffer: wgpu::Buffer,
     input_resolutions: Vec<Option<Resolution>>,
@@ -27,8 +27,7 @@ impl ConfiguredBuiltinNode {
         constructed: &ConstructedBuiltinNode,
         input_resolutions: Vec<Option<Resolution>>,
     ) -> Self {
-        let output_resolution =
-            BuiltinTransformations::output_resolution(&constructed.spec, &input_resolutions);
+        let output_resolution = constructed.spec.output_resolution(&input_resolutions);
         let params = BuiltinParams::new(&constructed.spec, &input_resolutions);
         let wgpu_ctx = constructed.shader.wgpu_ctx.clone();
 
@@ -61,7 +60,7 @@ impl ConfiguredBuiltinNode {
                 ],
             });
 
-        let clear_color = BuiltinTransformations::clear_color(&constructed.spec);
+        let clear_color = constructed.spec.clear_color();
 
         Self {
             shader: constructed.shader.clone(),
@@ -93,17 +92,18 @@ pub enum BuiltinNode {
 }
 
 impl BuiltinNode {
-    pub fn new(shader: Arc<Shader>, spec: BuiltinSpec) -> Self {
+    pub fn new(shader: Arc<Shader>, spec: Builtin) -> Self {
         Self::Constructed(ConstructedBuiltinNode { shader, spec })
     }
 
-    pub fn resolution(&self) -> Option<Resolution> {
-        match self {
-            BuiltinNode::Constructed(constructed) => match constructed.spec {
-                BuiltinSpec::TransformToResolution { resolution, .. } => Some(resolution),
-                BuiltinSpec::FixedPositionLayout { resolution, .. } => Some(resolution),
-            },
-            BuiltinNode::Configured(configured) => Some(configured.output_resolution),
+    pub fn resolution_from_spec(&self) -> Option<Resolution> {
+        self.spec().resolution_from_spec()
+    }
+
+    fn spec(&self) -> &Builtin {
+        match &self {
+            BuiltinNode::Constructed(ConstructedBuiltinNode { spec, .. }) => spec,
+            BuiltinNode::Configured(ConfiguredBuiltinNode { spec, .. }) => spec,
         }
     }
 
