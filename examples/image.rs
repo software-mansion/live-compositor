@@ -92,7 +92,7 @@ fn start_example_client_code() -> Result<()> {
         "entity_type": "image",
         "asset_type": "svg",
         "image_id": "example_svg",
-        "url": PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("examples/assets/rust.svg"),
+        "path": PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("examples/assets/rust.svg"),
     }))?;
     common::post(&json!({
         "type": "register",

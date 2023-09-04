@@ -411,7 +411,6 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror",
- "url",
  "wgpu",
 ]
 

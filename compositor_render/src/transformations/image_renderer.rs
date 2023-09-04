@@ -1,5 +1,5 @@
 use std::{
-    fs,
+    fs, io,
     str::{from_utf8, Utf8Error},
     sync::{Arc, Mutex},
     time::Duration,
@@ -8,7 +8,7 @@ use std::{
 use bytes::{Bytes, BytesMut};
 
 use compositor_common::{
-    renderer_spec::{ImageSpec, ImageType},
+    renderer_spec::{ImageSpec, ImageSrc, ImageType},
     scene::Resolution,
 };
 use image::{codecs::gif::GifDecoder, AnimationDecoder, ImageFormat};
@@ -16,7 +16,6 @@ use resvg::{
     tiny_skia,
     usvg::{self, TreeParsing},
 };
-use url::Url;
 
 use crate::renderer::{
     texture::{NodeTexture, RGBATexture},
@@ -32,7 +31,7 @@ pub enum Image {
 
 impl Image {
     pub fn new(ctx: &RegisterCtx, spec: ImageSpec) -> Result<Self, ImageError> {
-        let file = Self::download_file(&spec.url)?;
+        let file = Self::download_file(&spec.src)?;
         let renderer = match spec.image_type {
             ImageType::Png => {
                 let asset = BitmapAsset::new(&ctx.wgpu_ctx, file, ImageFormat::Png)?;
@@ -61,20 +60,16 @@ impl Image {
         Ok(renderer)
     }
 
-    fn download_file(path_or_url: &str) -> Result<bytes::Bytes, ImageError> {
-        match Url::parse(path_or_url) {
-            Ok(_) => {
-                let response = reqwest::blocking::get(path_or_url)?;
+    fn download_file(src: &ImageSrc) -> Result<bytes::Bytes, ImageError> {
+        match src {
+            ImageSrc::Url { url } => {
+                let response = reqwest::blocking::get(url)?;
                 let response = response.error_for_status()?;
                 Ok(response.bytes()?)
             }
-            Err(err) => {
-                match fs::read(path_or_url) {
-                    Ok(file) => Ok(Bytes::from(file)),
-                    // Fallback to url parsing error if reading
-                    // from disk fails.
-                    Err(_) => Err(err.into()),
-                }
+            ImageSrc::LocalPath { path } => {
+                let file = fs::read(path)?;
+                Ok(Bytes::from(file))
             }
         }
     }
@@ -399,8 +394,8 @@ pub enum ImageError {
     #[error("Failed to download asset: {0}")]
     AssetDownload(#[from] reqwest::Error),
 
-    #[error("Failed to downland asset. Invalid URL: {0}")]
-    InvalidUrl(#[from] url::ParseError),
+    #[error("Failed to read image from disk: {0}")]
+    AssetDiskReadError(#[from] io::Error),
 
     #[error("Failed to parse an image: {0}")]
     FailedToReadAsBitmap(#[from] image::ImageError),
@@ -424,7 +419,7 @@ pub enum SvgError {
 #[derive(Debug, thiserror::Error)]
 pub enum AnimatedError {
     #[error(
-        "Detect over 1000 frames inside the animated image. This case is not currently supported."
+        "Detected over 1000 frames inside the animated image. This case is not currently supported."
     )]
     TooMuchFrames,
 
