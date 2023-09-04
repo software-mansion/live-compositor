@@ -1,4 +1,5 @@
 use std::{
+    fs, io,
     str::{from_utf8, Utf8Error},
     sync::{Arc, Mutex},
     time::Duration,
@@ -7,7 +8,7 @@ use std::{
 use bytes::{Bytes, BytesMut};
 
 use compositor_common::{
-    renderer_spec::{ImageSpec, ImageType},
+    renderer_spec::{ImageSpec, ImageSrc, ImageType},
     scene::Resolution,
 };
 use image::{codecs::gif::GifDecoder, AnimationDecoder, ImageFormat};
@@ -30,7 +31,7 @@ pub enum Image {
 
 impl Image {
     pub fn new(ctx: &RegisterCtx, spec: ImageSpec) -> Result<Self, ImageError> {
-        let file = Self::download_file(&spec.url)?;
+        let file = Self::download_file(&spec.src)?;
         let renderer = match spec.image_type {
             ImageType::Png => {
                 let asset = BitmapAsset::new(&ctx.wgpu_ctx, file, ImageFormat::Png)?;
@@ -59,11 +60,18 @@ impl Image {
         Ok(renderer)
     }
 
-    fn download_file(url: &str) -> Result<bytes::Bytes, ImageError> {
-        // TODO: support local files
-        let response = reqwest::blocking::get(url)?;
-        let response = response.error_for_status()?;
-        Ok(response.bytes()?)
+    fn download_file(src: &ImageSrc) -> Result<bytes::Bytes, ImageError> {
+        match src {
+            ImageSrc::Url { url } => {
+                let response = reqwest::blocking::get(url)?;
+                let response = response.error_for_status()?;
+                Ok(response.bytes()?)
+            }
+            ImageSrc::LocalPath { path } => {
+                let file = fs::read(path)?;
+                Ok(Bytes::from(file))
+            }
+        }
     }
 }
 
@@ -383,42 +391,49 @@ fn copy_texture_to_node_texture(ctx: &WgpuCtx, source: &RGBATexture, target: &mu
 
 #[derive(Debug, thiserror::Error)]
 pub enum ImageError {
-    #[error("Failed to download asset")]
+    #[error("Failed to download asset: {0}")]
     AssetDownload(#[from] reqwest::Error),
 
-    #[error("Failed to read as bitmap")]
+    #[error("Failed to read image from disk: {0}")]
+    AssetDiskReadError(#[from] io::Error),
+
+    #[error("Failed to parse an image: {0}")]
     FailedToReadAsBitmap(#[from] image::ImageError),
 
-    #[error("Failed to read SVG")]
+    #[error(transparent)]
     ParsingSvgFailed(#[from] SvgError),
 
-    #[error("Failed to read image with animations")]
+    #[error(transparent)]
     ParsingAnimatedFailed(#[from] AnimatedError),
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum SvgError {
-    #[error("Invalid utf-8 content")]
+    #[error("Invalid utf-8 content inside SVG file: {0}")]
     InvalidUtf8Content(#[from] Utf8Error),
 
-    #[error("Failed to parse the svg image")]
+    #[error("Failed to parse the SVG image: {0}")]
     ParsingSvgFailed(#[from] usvg::Error),
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum AnimatedError {
-    #[error("To much frames")]
+    #[error(
+        "Detected over 1000 frames inside the animated image. This case is not currently supported."
+    )]
     TooMuchFrames,
 
+    /// If there is only one frame we return error so the code can fallback to the more efficient
+    /// implementation.
     #[error("Single frame")]
     SingleFrame,
 
-    #[error("No frames")]
+    #[error("Animated image does not contain any frames.")]
     NoFrames,
 
-    #[error("Detected variable resolution")]
+    #[error("Failed to read animated image, variable resolution is not supported.")]
     UnsupportedVariableResolution,
 
-    #[error("Failed to parse image")]
+    #[error("Failed to parse image: {0}")]
     FailedToParse(#[from] image::ImageError),
 }

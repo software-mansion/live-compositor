@@ -6,6 +6,7 @@ use std::{
     fs::File,
     io::{self, Write},
     path::{Path, PathBuf},
+    time::Duration,
 };
 
 use serde::Serialize;
@@ -41,6 +42,7 @@ pub fn post<T: Serialize + ?Sized>(json: &T) -> Result<Response> {
     let client = reqwest::blocking::Client::new();
     let response = client
         .post("http://127.0.0.1:8001")
+        .timeout(Duration::from_secs(100))
         .json(json)
         .send()
         .unwrap();

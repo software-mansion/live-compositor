@@ -3,6 +3,7 @@ use compositor_common::{scene::Resolution, Framerate};
 use log::{error, info};
 use serde_json::json;
 use std::{
+    path::PathBuf,
     process::{Command, Stdio},
     thread,
     time::Duration,
@@ -91,9 +92,7 @@ fn start_example_client_code() -> Result<()> {
         "entity_type": "image",
         "asset_type": "svg",
         "image_id": "example_svg",
-        "url": "https://www.svgrepo.com/show/369528/rust.svg",
-        "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
-
+        "path": PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("examples/assets/rust.svg"),
     }))?;
     common::post(&json!({
         "type": "register",
@@ -102,7 +101,6 @@ fn start_example_client_code() -> Result<()> {
         "image_id": "example_png",
         "url": "https://rust-lang.org/logos/rust-logo-512x512.png",
         "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
-
     }))?;
 
     info!("[example] Update scene");
