@@ -32,7 +32,7 @@ pub enum RegisterRendererError {
     #[error("Failed to create web renderer instance. {0}")]
     WebRendererInstance(#[from] CreateWebRendererError),
 
-    #[error("Failed to prepare image.")]
+    #[error(transparent)]
     Image(#[from] ImageError),
 }
 

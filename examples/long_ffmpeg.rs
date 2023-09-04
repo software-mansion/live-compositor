@@ -94,8 +94,8 @@ fn start_example_client_code() -> Result<()> {
         "type": "register",
         "entity_type": "image",
         "image_id": "example_image",
-        "asset_type": "jpeg",
-        "url": "https://i.postimg.cc/NfkxF1SV/wp5220836.jpg",
+        "asset_type": "gif",
+        "url": "https://gifdb.com/images/high/rust-logo-on-fire-o41c0v9om8drr8dv.gif",
     }))?;
 
     info!("[example] Start pipeline");

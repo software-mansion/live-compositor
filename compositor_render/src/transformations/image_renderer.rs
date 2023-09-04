@@ -1,4 +1,5 @@
 use std::{
+    fs,
     str::{from_utf8, Utf8Error},
     sync::{Arc, Mutex},
     time::Duration,
@@ -15,6 +16,7 @@ use resvg::{
     tiny_skia,
     usvg::{self, TreeParsing},
 };
+use url::Url;
 
 use crate::renderer::{
     texture::{NodeTexture, RGBATexture},
@@ -59,11 +61,22 @@ impl Image {
         Ok(renderer)
     }
 
-    fn download_file(url: &str) -> Result<bytes::Bytes, ImageError> {
-        // TODO: support local files
-        let response = reqwest::blocking::get(url)?;
-        let response = response.error_for_status()?;
-        Ok(response.bytes()?)
+    fn download_file(path_or_url: &str) -> Result<bytes::Bytes, ImageError> {
+        match Url::parse(path_or_url) {
+            Ok(_) => {
+                let response = reqwest::blocking::get(path_or_url)?;
+                let response = response.error_for_status()?;
+                Ok(response.bytes()?)
+            }
+            Err(err) => {
+                match fs::read(path_or_url) {
+                    Ok(file) => Ok(Bytes::from(file)),
+                    // Fallback to url parsing error if reading
+                    // from disk fails.
+                    Err(_) => Err(err.into()),
+                }
+            }
+        }
     }
 }
 
@@ -383,42 +396,49 @@ fn copy_texture_to_node_texture(ctx: &WgpuCtx, source: &RGBATexture, target: &mu
 
 #[derive(Debug, thiserror::Error)]
 pub enum ImageError {
-    #[error("Failed to download asset")]
+    #[error("Failed to download asset: {0}")]
     AssetDownload(#[from] reqwest::Error),
 
-    #[error("Failed to read as bitmap")]
+    #[error("Failed to downland asset. Invalid URL: {0}")]
+    InvalidUrl(#[from] url::ParseError),
+
+    #[error("Failed to parse an image: {0}")]
     FailedToReadAsBitmap(#[from] image::ImageError),
 
-    #[error("Failed to read SVG")]
+    #[error(transparent)]
     ParsingSvgFailed(#[from] SvgError),
 
-    #[error("Failed to read image with animations")]
+    #[error(transparent)]
     ParsingAnimatedFailed(#[from] AnimatedError),
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum SvgError {
-    #[error("Invalid utf-8 content")]
+    #[error("Invalid utf-8 content inside SVG file: {0}")]
     InvalidUtf8Content(#[from] Utf8Error),
 
-    #[error("Failed to parse the svg image")]
+    #[error("Failed to parse the SVG image: {0}")]
     ParsingSvgFailed(#[from] usvg::Error),
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum AnimatedError {
-    #[error("To much frames")]
+    #[error(
+        "Detect over 1000 frames inside the animated image. This case is not currently supported."
+    )]
     TooMuchFrames,
 
+    /// If there is only one frame we return error so the code can fallback to the more efficient
+    /// implementation.
     #[error("Single frame")]
     SingleFrame,
 
-    #[error("No frames")]
+    #[error("Animated image does not contain any frames.")]
     NoFrames,
 
-    #[error("Detected variable resolution")]
+    #[error("Failed to read animated image, variable resolution is not supported.")]
     UnsupportedVariableResolution,
 
-    #[error("Failed to parse image")]
+    #[error("Failed to parse image: {0}")]
     FailedToParse(#[from] image::ImageError),
 }
