@@ -7,12 +7,12 @@ use crate::{renderer::texture::NodeTexture, transformations::shader::Shader};
 
 use super::{params::BuiltinParams, Builtin, InputState};
 
-pub struct ConstructedBuiltinNode {
+struct ConstructedBuiltinNode {
     shader: Arc<Shader>,
     builtin: Builtin,
 }
 
-pub struct ConfiguredBuiltinNode {
+struct ConfiguredBuiltinNode {
     shader: Arc<Shader>,
     builtin: Builtin,
     params_bind_group: wgpu::BindGroup,
@@ -86,17 +86,19 @@ impl ConfiguredBuiltinNode {
     }
 }
 
-pub enum BuiltinNode {
+enum BuiltinNodeState {
     Constructed(ConstructedBuiltinNode),
     Configured(ConfiguredBuiltinNode),
 }
 
+pub struct BuiltinNode(BuiltinNodeState);
+
 impl BuiltinNode {
     pub fn new(shader: Arc<Shader>, spec: Builtin) -> Self {
-        Self::Constructed(ConstructedBuiltinNode {
+        Self(BuiltinNodeState::Constructed(ConstructedBuiltinNode {
             shader,
             builtin: spec,
-        })
+        }))
     }
 
     // Returns Some(Resolution) if output resolution of node can be determined
@@ -107,9 +109,9 @@ impl BuiltinNode {
     }
 
     fn builtin(&self) -> &Builtin {
-        match &self {
-            BuiltinNode::Constructed(ConstructedBuiltinNode { builtin, .. }) => builtin,
-            BuiltinNode::Configured(ConfiguredBuiltinNode { builtin, .. }) => builtin,
+        match &self.0 {
+            BuiltinNodeState::Constructed(ConstructedBuiltinNode { builtin, .. }) => builtin,
+            BuiltinNodeState::Configured(ConfiguredBuiltinNode { builtin, .. }) => builtin,
         }
     }
 
@@ -149,18 +151,20 @@ impl BuiltinNode {
         input_resolutions: Vec<Option<Resolution>>,
     ) -> &ConfiguredBuiltinNode {
         match self {
-            BuiltinNode::Constructed(ref constructed) => {
+            BuiltinNode(BuiltinNodeState::Constructed(ref constructed)) => {
                 let configured = ConfiguredBuiltinNode::new(constructed, input_resolutions);
-                *self = BuiltinNode::Configured(configured);
+                *self = BuiltinNode(BuiltinNodeState::Configured(configured));
             }
-            BuiltinNode::Configured(configured) => {
+            BuiltinNode(BuiltinNodeState::Configured(configured)) => {
                 configured.ensure_configured(input_resolutions);
             }
         };
 
         match self {
-            BuiltinNode::Configured(ref configured) => configured,
-            BuiltinNode::Constructed(_) => unreachable!("Should be configured by previous call"),
+            BuiltinNode(BuiltinNodeState::Configured(ref configured)) => configured,
+            BuiltinNode(BuiltinNodeState::Constructed(_)) => {
+                unreachable!("Should be configured by previous call")
+            }
         }
     }
 
