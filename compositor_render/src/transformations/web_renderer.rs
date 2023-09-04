@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 
 use self::{
     browser::{BrowserClient, BrowserState},
-    chromium::ChromiumContextError,
+    chromium::WebRendererContextError,
 };
 
 mod browser;
@@ -48,7 +48,7 @@ pub struct WebRenderer {
 }
 
 impl WebRenderer {
-    pub fn new(ctx: &RegisterCtx, params: WebRendererSpec) -> Result<Self, WebRendererNewError> {
+    pub fn new(ctx: &RegisterCtx, params: WebRendererSpec) -> Result<Self, CreateWebRendererError> {
         info!("Starting web renderer for {}", &params.url);
 
         let (painted_frames_sender, painted_frames_receiver) = crossbeam_channel::bounded(1);
@@ -95,7 +95,7 @@ impl WebRenderer {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum WebRendererNewError {
+pub enum CreateWebRendererError {
     #[error("failed to create new web renderer session")]
-    CreateContextFailure(#[from] ChromiumContextError),
+    CreateContextFailure(#[from] WebRendererContextError),
 }

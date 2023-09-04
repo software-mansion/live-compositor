@@ -413,6 +413,7 @@ dependencies = [
  "glyphon",
  "image",
  "log",
+ "naga",
  "nalgebra-glm",
  "pollster",
  "reqwest",

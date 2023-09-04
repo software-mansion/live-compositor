@@ -9,12 +9,31 @@ use compositor_common::scene::NodeId;
 
 use crate::renderer::{texture::Texture, WgpuCtx};
 
-use self::pipeline::Pipeline;
+use self::{
+    pipeline::Pipeline,
+    validation::{validate_contains_header, ShaderValidationError},
+};
 
 pub mod node;
 mod pipeline;
+pub mod validation;
 
 const INPUT_TEXTURES_AMOUNT: u32 = 16;
+
+pub const VERTEX_ENTRYPOINT_NAME: &str = "vs_main";
+pub const FRAGMENT_ENTRYPOINT_NAME: &str = "fs_main";
+
+#[derive(Debug, thiserror::Error)]
+pub enum CreateShaderError {
+    #[error(transparent)]
+    Wgpu(#[from] WgpuError),
+
+    #[error(transparent)]
+    Validation(#[from] ShaderValidationError),
+
+    #[error("Shader parse error:\n{0}")]
+    ParseError(#[from] naga::front::wgsl::ParseError),
+}
 
 /// The bind group layout for the shader:
 ///
@@ -32,12 +51,16 @@ pub struct Shader {
 }
 
 impl Shader {
-    pub fn new(wgpu_ctx: &Arc<WgpuCtx>, shader_src: String) -> Result<Self, WgpuError> {
+    pub fn new(wgpu_ctx: &Arc<WgpuCtx>, shader_src: String) -> Result<Self, CreateShaderError> {
         let scope = WgpuErrorScope::push(&wgpu_ctx.device);
+
+        let shader = naga::front::wgsl::parse_str(&shader_src)?;
+
+        validate_contains_header(&wgpu_ctx.shader_header, &shader)?;
 
         let pipeline = Pipeline::new(
             &wgpu_ctx.device,
-            wgpu::ShaderSource::Wgsl(shader_src.into()),
+            wgpu::ShaderSource::Naga(std::borrow::Cow::Owned(shader)),
             &wgpu_ctx.shader_parameters_bind_group_layout,
         );
 
