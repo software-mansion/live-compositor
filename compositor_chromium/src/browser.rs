@@ -49,6 +49,7 @@ impl Validatable for chromium_sys::cef_browser_t {
 #[derive(Default)]
 pub struct BrowserSettings {
     pub windowless_frame_rate: i32,
+    pub background_color: u32,
 }
 
 impl BrowserSettings {
@@ -79,7 +80,7 @@ impl BrowserSettings {
             local_storage: chromium_sys::cef_state_t_STATE_DEFAULT,
             databases: chromium_sys::cef_state_t_STATE_DEFAULT,
             webgl: chromium_sys::cef_state_t_STATE_DEFAULT,
-            background_color: 0xFFFFFF00,
+            background_color: self.background_color,
             accept_language_list: CefString::empty_raw(),
             chrome_status_bubble: chromium_sys::cef_state_t_STATE_DEFAULT,
         }

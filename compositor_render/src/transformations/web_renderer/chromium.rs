@@ -61,6 +61,7 @@ impl ChromiumContext {
         };
         let settings = cef::BrowserSettings {
             windowless_frame_rate: self.framerate.0 as i32,
+            background_color: 0,
         };
 
         let (tx, rx) = crossbeam_channel::bounded(1);
