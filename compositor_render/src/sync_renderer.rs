@@ -29,7 +29,11 @@ impl SyncRenderer {
         let mut guard = self.0.lock().unwrap();
         match spec {
             RendererSpec::Shader(spec) => {
-                let shader = Arc::new(Shader::new(&ctx.wgpu_ctx, spec.source)?);
+                let shader = Arc::new(Shader::new(
+                    &ctx.wgpu_ctx,
+                    spec.source,
+                    spec.fallback_strategy,
+                )?);
 
                 Ok(guard.renderers.shaders.register(spec.shader_id, shader)?)
             }

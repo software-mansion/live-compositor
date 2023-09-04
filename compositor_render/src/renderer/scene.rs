@@ -1,6 +1,7 @@
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use compositor_common::{
+    renderer_spec::FallbackStrategy,
     scene::{InputId, NodeId, NodeParams, NodeSpec, OutputId, Resolution, SceneSpec},
     SpecValidationError,
 };
@@ -15,6 +16,7 @@ use crate::{
         text_renderer::TextRendererNode,
         web_renderer::WebRenderer,
     },
+    utils::{does_fallback, InputState},
 };
 
 use super::{
@@ -41,6 +43,7 @@ impl RenderNode {
                     .web_renderers
                     .get(instance_id)
                     .ok_or_else(|| CreateNodeError::WebRendererNotFound(instance_id.clone()))?;
+
                 Ok(Self::Web { renderer })
             }
             NodeParams::Shader {
@@ -53,6 +56,7 @@ impl RenderNode {
                     .shaders
                     .get(shader_id)
                     .ok_or_else(|| CreateNodeError::ShaderNotFound(shader_id.clone()))?;
+
                 let node = ShaderNode::new(
                     ctx.wgpu_ctx,
                     shader,
@@ -60,6 +64,7 @@ impl RenderNode {
                     None,
                     *resolution,
                 );
+
                 Ok(Self::Shader(node))
             }
             NodeParams::Builtin { transformation } => {
@@ -96,6 +101,22 @@ impl RenderNode {
         target: &mut NodeTexture,
         pts: Duration,
     ) {
+        let input_states: Vec<InputState> = sources
+            .iter()
+            .map(|(_, node_texture)| {
+                if node_texture.is_empty() {
+                    InputState::Empty
+                } else {
+                    InputState::Filled
+                }
+            })
+            .collect();
+
+        if does_fallback(&self.fallback_strategy(), &input_states) {
+            target.clear();
+            return;
+        }
+
         match self {
             RenderNode::Shader(ref shader) => {
                 shader.render(sources, target, pts);
@@ -121,6 +142,17 @@ impl RenderNode {
             RenderNode::Image(node) => Some(node.resolution()),
             RenderNode::InputStream => None,
             RenderNode::Builtin(node) => node.resolution_from_spec(),
+        }
+    }
+
+    fn fallback_strategy(&self) -> FallbackStrategy {
+        match self {
+            RenderNode::Shader(shader_node) => shader_node.fallback_strategy(),
+            RenderNode::Web { .. } => FallbackStrategy::FallbackIfOnlyInputMissing,
+            RenderNode::Text(_) => FallbackStrategy::NeverFallback,
+            RenderNode::Image(_) => FallbackStrategy::NeverFallback,
+            RenderNode::Builtin(builtin_node) => builtin_node.fallback_strategy(),
+            RenderNode::InputStream => FallbackStrategy::NeverFallback,
         }
     }
 }

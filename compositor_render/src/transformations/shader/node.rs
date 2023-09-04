@@ -1,6 +1,9 @@
 use std::{sync::Arc, time::Duration};
 
-use compositor_common::scene::{NodeId, Resolution, ShaderParam};
+use compositor_common::{
+    renderer_spec::FallbackStrategy,
+    scene::{NodeId, Resolution, ShaderParam},
+};
 use wgpu::util::DeviceExt;
 
 use crate::renderer::{texture::NodeTexture, WgpuCtx};
@@ -80,11 +83,6 @@ impl ShaderNode {
         target: &mut NodeTexture,
         pts: Duration,
     ) {
-        // TODO: temporary hack until builtins are stateless
-        if sources.len() == 1 && sources[0].1.is_empty() {
-            target.clear();
-            return;
-        }
         let target = target.ensure_size(&self.shader.wgpu_ctx, self.resolution);
         self.shader.render(
             &self.params_bind_group,
@@ -93,6 +91,10 @@ impl ShaderNode {
             pts,
             self.clear_color,
         )
+    }
+
+    pub fn fallback_strategy(&self) -> FallbackStrategy {
+        self.shader.fallback_strategy()
     }
 }
 

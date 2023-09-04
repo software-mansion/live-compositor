@@ -13,6 +13,21 @@ impl Display for RendererId {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum FallbackStrategy {
+    NeverFallback,
+    FallbackIfAllInputsMissing,
+    FallbackIfAnyInputsMissing,
+    FallbackIfOnlyInputMissing,
+}
+
+impl FallbackStrategy {
+    pub fn default_shader_fallback_strategy() -> FallbackStrategy {
+        FallbackStrategy::FallbackIfOnlyInputMissing
+    }
+}
+
 /// RendererSpec provides configuration necessary to construct Renderer. Renderers
 /// are entities like shader, image or chromium_instance and can be used by nodes
 /// to transform or generate frames.
@@ -28,6 +43,8 @@ pub enum RendererSpec {
 pub struct ShaderSpec {
     pub shader_id: RendererId,
     pub source: String,
+    #[serde(default = "FallbackStrategy::default_shader_fallback_strategy")]
+    pub fallback_strategy: FallbackStrategy,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

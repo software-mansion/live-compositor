@@ -1,11 +1,14 @@
 use std::{sync::Arc, time::Duration};
 
-use compositor_common::scene::{NodeId, Resolution};
+use compositor_common::{
+    renderer_spec::FallbackStrategy,
+    scene::{NodeId, Resolution},
+};
 use wgpu::util::DeviceExt;
 
 use crate::{renderer::texture::NodeTexture, transformations::shader::Shader};
 
-use super::{params::BuiltinParams, Builtin, InputState};
+use super::{params::BuiltinParams, Builtin};
 
 struct ConstructedBuiltinNode {
     shader: Arc<Shader>,
@@ -121,12 +124,6 @@ impl BuiltinNode {
         target: &mut NodeTexture,
         pts: Duration,
     ) {
-        let input_states = Self::input_states(sources);
-        if self.builtin().should_fallback(&input_states) {
-            target.clear();
-            return;
-        }
-
         let input_resolutions: Vec<Option<Resolution>> = sources
             .iter()
             .map(|(_, node_texture)| node_texture.resolution())
@@ -144,6 +141,10 @@ impl BuiltinNode {
             pts,
             configured.clear_color,
         );
+    }
+
+    pub fn fallback_strategy(&self) -> FallbackStrategy {
+        self.shader().fallback_strategy()
     }
 
     fn ensure_configured(
@@ -168,16 +169,14 @@ impl BuiltinNode {
         }
     }
 
-    fn input_states(inputs: &[(&NodeId, &NodeTexture)]) -> Vec<InputState> {
-        inputs
-            .iter()
-            .map(|(_node_id, node_texture)| {
-                if node_texture.is_empty() {
-                    InputState::Empty
-                } else {
-                    InputState::Filled
-                }
-            })
-            .collect()
+    fn shader(&self) -> Arc<Shader> {
+        match &self.0 {
+            BuiltinNodeState::Constructed(constructed_builtin_node) => {
+                constructed_builtin_node.shader.clone()
+            }
+            BuiltinNodeState::Configured(configured_builtin_node) => {
+                configured_builtin_node.shader.clone()
+            }
+        }
     }
 }

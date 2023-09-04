@@ -2,7 +2,7 @@ use std::{path::Path, process::Stdio, sync::Arc, time::Duration};
 
 use compositor_common::{
     frame::YuvData,
-    renderer_spec::{RendererId, RendererSpec, ShaderSpec},
+    renderer_spec::{FallbackStrategy, RendererId, RendererSpec, ShaderSpec},
     scene::{NodeId, NodeSpec, OutputSpec, Resolution, SceneSpec},
     Frame, Framerate,
 };
@@ -99,6 +99,7 @@ fn main() {
         .register_renderer(RendererSpec::Shader(ShaderSpec {
             shader_id: shader_key.clone(),
             source: include_str!("./silly/silly.wgsl").into(),
+            fallback_strategy: FallbackStrategy::FallbackIfOnlyInputMissing,
         }))
         .expect("create shader");
 
