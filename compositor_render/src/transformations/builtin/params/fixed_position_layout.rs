@@ -6,7 +6,6 @@ pub struct FixedPositionLayoutParams {
 }
 
 impl FixedPositionLayoutParams {
-    // TODO take spec
     pub fn new(
         texture_layouts: &[TextureLayout],
         input_resolutions: &[Option<Resolution>],
@@ -29,7 +28,6 @@ impl FixedPositionLayoutParams {
         }
     }
 
-    // TODO: explain this witchcraft
     fn transformation_matrix(
         layout: &TextureLayout,
         input_resolution: Option<&Resolution>,
@@ -40,11 +38,10 @@ impl FixedPositionLayoutParams {
         let Some(input_resolution) = input_resolution else {
             return transformation_matrix;
         };
-        
 
-        let left = layout.left.pixels(output_resolution.width as u32) as f32;
-        let top = layout.top.pixels(output_resolution.height as u32) as f32;
+        // All transformations are applied in reverse order, due to matrix multiplication order.
 
+        // 4. Scale back from pixel coords into clip space coords
         transformation_matrix = scale(
             &transformation_matrix,
             &vec3(
@@ -54,21 +51,41 @@ impl FixedPositionLayoutParams {
             ),
         );
 
+        // 3. Translate input texture into correct place on output texture.
+        // Calculates coords of center of input texture on output texture in pixel coords
+
+        let left = layout.left.pixels(output_resolution.width as u32) as f32;
+        // Left bound of pixel coords is -output_resolution.width / 2.0 (coords of left corners)
+        // `left` is a shift in x axis
+        // center of texture is input_resolution.width / 2.0 away from left corners of input texture
+        let input_center_left =
+            -(output_resolution.width as f32) / 2.0 + left + input_resolution.width as f32 / 2.0;
+
+        // Top bound of pixel coords is output_resolution.height / 2.0
+        // `top` is shift in y axis (user provided "top" is subtracted from top bound)
+        // center of texture is input_resolution.height / 2.0 away from top corners of input texture
+        let top = layout.top.pixels(output_resolution.height as u32) as f32;
+        let input_center_top =
+            output_resolution.height as f32 / 2.0 - top - input_resolution.height as f32 / 2.0;
+
         transformation_matrix = translate(
             &transformation_matrix,
-            &vec3(
-                -(output_resolution.width as f32) / 2.0
-                    + left
-                    + input_resolution.width as f32 / 2.0,
-                output_resolution.height as f32 / 2.0 - top - input_resolution.height as f32 / 2.0,
-                0.0,
-            ),
+            &vec3(input_center_left, input_center_top, 0.0),
         );
+
+        // 2. Rotate - we want to do this before translation,
+        // since we want to rotate around middle of input texture
 
         transformation_matrix = rotate_z(
             &transformation_matrix,
             (layout.rotation.0 as f32).to_radians(),
         );
+
+        // 1. Scale texture to ([-output_resolution.width / 2.0, output_resolution.width /2.0],
+        // [-output_resolution.height / 2.0, output_resolution.height /2.0]) coords.
+        // We need to scale it to match input resolution ratio, because rotation by degree non divisible
+        // by 90 degrees in clip space coords will be non-affine transformation
+        // (distorted, edges of the input texture won't be perpendicular) after mapping on output texture
 
         transformation_matrix = scale(
             &transformation_matrix,
@@ -88,7 +105,7 @@ impl FixedPositionLayoutParams {
             let colum_based = matrix.transpose();
             for el in &colum_based {
                 matrices_bytes.extend_from_slice(&el.to_ne_bytes())
-            };
+            }
         }
 
         matrices_bytes.freeze()
