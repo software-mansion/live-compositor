@@ -8,31 +8,24 @@ use compositor_common::{
 use log::error;
 
 use crate::{
+    error::{InitRendererEngineError, RenderSceneError},
     frame_set::FrameSet,
     render_loop::{populate_inputs, read_outputs},
-    transformations::{
-        image_renderer::ImageError,
-        shader::ShaderNewError,
-        text_renderer::TextRendererCtx,
-        web_renderer::chromium::{ChromiumContext, ChromiumContextError},
-    },
+    transformations::{text_renderer::TextRendererCtx, web_renderer::chromium::ChromiumContext},
     WebRendererOptions,
 };
-use crate::{
-    registry::{self},
-    render_loop::run_transforms,
-    transformations::{shader::Shader, web_renderer::WebRendererNewError},
-};
+use crate::{render_loop::run_transforms, transformations::shader::Shader};
 
 use self::{
     format::TextureFormat,
     renderers::Renderers,
-    scene::{Scene, SceneUpdateError},
+    scene::{Scene, UpdateSceneError},
     utils::TextureUtils,
 };
 
 pub mod common_pipeline;
 mod format;
+pub mod node;
 pub mod renderers;
 pub mod scene;
 pub mod texture;
@@ -75,35 +68,8 @@ pub struct RegisterCtx {
     pub chromium: Arc<ChromiumContext>,
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum RendererInitError {
-    #[error("failed to initialize a wgpu context")]
-    FailedToInitWgpuCtx(#[from] WgpuCtxNewError),
-
-    #[error("failed to init chromium context")]
-    FailedToInitChromiumCtx(#[from] ChromiumContextError),
-
-    #[error("failed to initialize builtin transformation")]
-    BuiltInTransformationsInitError(#[from] ShaderNewError),
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum RendererRegisterError {
-    #[error("failed to register a renderer")]
-    RendererRegistry(#[from] registry::RegisterError),
-
-    #[error("failed to to initialize the shader")]
-    Shader(#[from] ShaderNewError),
-
-    #[error("failed to create web renderer instance")]
-    WebRendererInstance(#[from] WebRendererNewError),
-
-    #[error("failed to prepare image")]
-    Image(#[from] ImageError),
-}
-
 impl Renderer {
-    pub fn new(opts: RendererOptions) -> Result<Self, RendererInitError> {
+    pub fn new(opts: RendererOptions) -> Result<Self, InitRendererEngineError> {
         let wgpu_ctx = Arc::new(WgpuCtx::new()?);
 
         Ok(Self {
@@ -131,7 +97,7 @@ impl Renderer {
     pub fn render(
         &mut self,
         mut inputs: FrameSet<InputId>,
-    ) -> Result<FrameSet<OutputId>, RenderError> {
+    ) -> Result<FrameSet<OutputId>, RenderSceneError> {
         let ctx = &mut RenderCtx {
             wgpu_ctx: &self.wgpu_ctx,
             chromium: &self.chromium_context,
@@ -154,7 +120,7 @@ impl Renderer {
         })
     }
 
-    pub fn update_scene(&mut self, scene_specs: Arc<SceneSpec>) -> Result<(), SceneUpdateError> {
+    pub fn update_scene(&mut self, scene_specs: Arc<SceneSpec>) -> Result<(), UpdateSceneError> {
         self.scene.update(
             &RenderCtx {
                 wgpu_ctx: &self.wgpu_ctx,
@@ -168,12 +134,6 @@ impl Renderer {
         self.scene_spec = scene_specs;
         Ok(())
     }
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum RenderError {
-    #[error("wgpu error encountered while rendering")]
-    WgpuError(#[from] WgpuError),
 }
 
 pub struct WgpuCtx {
@@ -190,36 +150,37 @@ pub struct WgpuCtx {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum WgpuCtxNewError {
-    #[error("failed to get a wgpu adapter")]
+pub enum CreateWgpuCtxError {
+    #[error("Failed to get a wgpu adapter.")]
     NoAdapter,
 
-    #[error("failed to get a wgpu device")]
+    #[error("Failed to get a wgpu device. {0}")]
     NoDevice(#[from] wgpu::RequestDeviceError),
 
-    #[error("wgpu error")]
+    #[error(transparent)]
     WgpuError(#[from] WgpuError),
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum WgpuError {
-    #[error("wgpu validation error: {0}")]
+    #[error("Wgpu validation error:\n{0}")]
     Validation(String),
-    #[error("wgpu out of memory error: {0}")]
+    #[error("Wgpu out of memory error: {0}")]
     OutOfMemory(String),
 }
 
+/// Convert to custom error because wgpu::Error is not Send/Sync
 impl From<wgpu::Error> for WgpuError {
     fn from(value: wgpu::Error) -> Self {
         match value {
-            wgpu::Error::OutOfMemory { .. } => Self::OutOfMemory(format!("{value}")),
-            wgpu::Error::Validation { .. } => Self::Validation(format!("{value}")),
+            wgpu::Error::OutOfMemory { .. } => Self::OutOfMemory(value.to_string()),
+            wgpu::Error::Validation { .. } => Self::Validation(value.to_string()),
         }
     }
 }
 
 impl WgpuCtx {
-    fn new() -> Result<Self, WgpuCtxNewError> {
+    fn new() -> Result<Self, CreateWgpuCtxError> {
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
             backends: wgpu::Backends::all(),
             ..Default::default()
@@ -231,7 +192,7 @@ impl WgpuCtx {
                 force_fallback_adapter: false,
                 compatible_surface: None,
             }))
-            .ok_or(WgpuCtxNewError::NoAdapter)?;
+            .ok_or(CreateWgpuCtxError::NoAdapter)?;
 
         let (device, queue) = pollster::block_on(adapter.request_device(
             &wgpu::DeviceDescriptor {

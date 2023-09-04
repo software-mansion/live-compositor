@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{fmt::Display, sync::Arc};
 
 use serde::{Deserialize, Serialize};
 
@@ -6,6 +6,12 @@ use crate::scene::Resolution;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct RendererId(pub Arc<str>);
+
+impl Display for RendererId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
 
 /// RendererSpec provides configuration necessary to construct Renderer. Renderers
 /// are entities like shader, image or chromium_instance and can be used by nodes

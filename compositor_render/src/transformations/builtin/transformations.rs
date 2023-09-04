@@ -7,9 +7,24 @@ use compositor_common::scene::{
 
 use crate::{
     renderer::WgpuCtx,
-    transformations::shader::{Shader, ShaderNewError},
+    transformations::shader::{CreateShaderError, Shader},
     utils::rgba_to_wgpu_color,
 };
+
+#[derive(Debug, thiserror::Error)]
+pub enum InitBuiltinError {
+    #[error("Failed to initialize fixed_position_layout transformation. {0}")]
+    FixedPositionLayout(#[source] CreateShaderError),
+
+    #[error("Failed to initialize fit transform_to_resolution transformation. {0}")]
+    FitToResolution(#[source] CreateShaderError),
+
+    #[error("Failed to initialize fill transform_to_resolution transformation. {0}")]
+    FillToResolution(#[source] CreateShaderError),
+
+    #[error("Failed to initialize stretch transform_to_resolution transformation. {0}")]
+    StretchToResolution(#[source] CreateShaderError),
+}
 
 pub struct BuiltinTransformations {
     transform_resolution: ConvertResolutionTransformations,
@@ -17,10 +32,11 @@ pub struct BuiltinTransformations {
 }
 
 impl BuiltinTransformations {
-    pub fn new(wgpu_ctx: &Arc<WgpuCtx>) -> Result<Self, ShaderNewError> {
+    pub fn new(wgpu_ctx: &Arc<WgpuCtx>) -> Result<Self, InitBuiltinError> {
         Ok(Self {
             transform_resolution: ConvertResolutionTransformations::new(wgpu_ctx)?,
-            fixed_position_layout: FixedPositionLayout::new(wgpu_ctx)?,
+            fixed_position_layout: FixedPositionLayout::new(wgpu_ctx)
+                .map_err(InitBuiltinError::FixedPositionLayout)?,
         })
     }
 
@@ -92,20 +108,29 @@ pub struct ConvertResolutionTransformations {
 }
 
 impl ConvertResolutionTransformations {
-    pub(crate) fn new(wgpu_ctx: &Arc<WgpuCtx>) -> Result<Self, ShaderNewError> {
+    pub(crate) fn new(wgpu_ctx: &Arc<WgpuCtx>) -> Result<Self, InitBuiltinError> {
         Ok(Self {
-            stretch: Arc::new(Shader::new(
-                wgpu_ctx,
-                include_str!("./transform_to_resolution/stretch.wgsl").into(),
-            )?),
-            fill: Arc::new(Shader::new(
-                wgpu_ctx,
-                include_str!("./transform_to_resolution/fill.wgsl").into(),
-            )?),
-            fit: Arc::new(Shader::new(
-                wgpu_ctx,
-                include_str!("./transform_to_resolution/fit.wgsl").into(),
-            )?),
+            stretch: Arc::new(
+                Shader::new(
+                    wgpu_ctx,
+                    include_str!("./transform_to_resolution/stretch.wgsl").into(),
+                )
+                .map_err(InitBuiltinError::StretchToResolution)?,
+            ),
+            fill: Arc::new(
+                Shader::new(
+                    wgpu_ctx,
+                    include_str!("./transform_to_resolution/fill.wgsl").into(),
+                )
+                .map_err(InitBuiltinError::FillToResolution)?,
+            ),
+            fit: Arc::new(
+                Shader::new(
+                    wgpu_ctx,
+                    include_str!("./transform_to_resolution/fit.wgsl").into(),
+                )
+                .map_err(InitBuiltinError::FitToResolution)?,
+            ),
         })
     }
 }
@@ -113,7 +138,7 @@ impl ConvertResolutionTransformations {
 pub struct FixedPositionLayout(Arc<Shader>);
 
 impl FixedPositionLayout {
-    fn new(wgpu_ctx: &Arc<WgpuCtx>) -> Result<Self, ShaderNewError> {
+    fn new(wgpu_ctx: &Arc<WgpuCtx>) -> Result<Self, CreateShaderError> {
         Ok(Self(Arc::new(Shader::new(
             wgpu_ctx,
             include_str!("./fixed_position_layout.wgsl").into(),

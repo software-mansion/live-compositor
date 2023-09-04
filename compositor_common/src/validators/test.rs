@@ -3,7 +3,7 @@ use std::{collections::HashSet, sync::Arc};
 use crate::{
     renderer_spec::RendererId,
     scene::{NodeId, NodeParams, NodeSpec, OutputId, OutputSpec, Resolution, SceneSpec},
-    validators::SpecValidationError,
+    validators::{SceneSpecValidationError, UnusedNodesError},
 };
 
 #[test]
@@ -47,7 +47,7 @@ fn scene_validation_finds_cycle() {
 
     let output = OutputSpec {
         output_id: OutputId(output_id.clone()),
-        input_pad: c_id,
+        input_pad: c_id.clone(),
     };
 
     let scene_spec = SceneSpec {
@@ -58,10 +58,10 @@ fn scene_validation_finds_cycle() {
     let registered_inputs = HashSet::from([&input_id]);
     let registered_outputs = HashSet::from([&output_id]);
 
-    assert!(matches!(
+    assert_eq!(
         scene_spec.validate(&registered_inputs, &registered_outputs),
-        Err(SpecValidationError::CycleDetected)
-    ));
+        Err(SceneSpecValidationError::CycleDetected(c_id.clone()))
+    );
 }
 
 #[test]
@@ -129,6 +129,6 @@ fn scene_validation_finds_unused_nodes() {
 
     assert_eq!(
         scene_spec.validate(&registered_inputs, &registered_outputs),
-        Err(SpecValidationError::UnusedNodes(unused_nodes))
+        Err(UnusedNodesError(unused_nodes).into())
     );
 }

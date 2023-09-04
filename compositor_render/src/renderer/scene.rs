@@ -7,7 +7,6 @@ use compositor_common::{
 use log::error;
 
 use crate::{
-    registry::GetError,
     render_loop::NodeRenderPass,
     transformations::{
         builtin::transformations::BuiltinTransformations, image_renderer::ImageNode,
@@ -16,6 +15,7 @@ use crate::{
 };
 
 use super::{
+    node::CreateNodeError,
     texture::{InputTexture, NodeTexture, OutputTexture},
     RenderCtx, WgpuError, WgpuErrorScope,
 };
@@ -30,33 +30,48 @@ pub enum RenderNode {
 }
 
 impl RenderNode {
-    fn new(ctx: &RenderCtx, spec: &NodeParams) -> Result<Self, GetError> {
-        match spec {
+    fn new(ctx: &RenderCtx, spec: &NodeSpec) -> Result<Self, CreateNodeError> {
+        match &spec.params {
             NodeParams::WebRenderer { instance_id } => {
-                let renderer = ctx.renderers.web_renderers.get(instance_id)?;
+                let renderer = ctx
+                    .renderers
+                    .web_renderers
+                    .get(instance_id)
+                    .ok_or_else(|| CreateNodeError::WebRendererNotFound(instance_id.clone()))?;
                 Ok(Self::Web { renderer })
             }
             NodeParams::Shader {
                 shader_id,
                 shader_params,
                 resolution,
-            } => Ok(Self::Shader(ShaderNode::new(
-                ctx.wgpu_ctx,
-                ctx.renderers.shaders.get(shader_id)?,
-                shader_params.as_ref(),
-                None,
-                *resolution,
-            ))),
+            } => {
+                let shader = ctx
+                    .renderers
+                    .shaders
+                    .get(shader_id)
+                    .ok_or_else(|| CreateNodeError::ShaderNotFound(shader_id.clone()))?;
+                let node = ShaderNode::new(
+                    ctx.wgpu_ctx,
+                    shader,
+                    shader_params.as_ref(),
+                    None,
+                    *resolution,
+                );
+                Ok(Self::Shader(node))
+            }
             NodeParams::Builtin {
                 transformation,
                 resolution,
-            } => Ok(Self::Builtin(ShaderNode::new(
-                ctx.wgpu_ctx,
-                ctx.renderers.builtin.shader(transformation),
-                BuiltinTransformations::params(transformation, resolution).as_ref(),
-                BuiltinTransformations::clear_color(transformation),
-                *resolution,
-            ))),
+            } => {
+                let node = ShaderNode::new(
+                    ctx.wgpu_ctx,
+                    ctx.renderers.builtin.shader(transformation),
+                    BuiltinTransformations::params(transformation, resolution).as_ref(),
+                    BuiltinTransformations::clear_color(transformation),
+                    *resolution,
+                );
+                Ok(Self::Builtin(node))
+            }
             NodeParams::TextRenderer {
                 text_params,
                 resolution,
@@ -65,7 +80,12 @@ impl RenderNode {
                 Ok(Self::Text(renderer))
             }
             NodeParams::Image { image_id } => {
-                let node = ImageNode::new(ctx.renderers.images.get(image_id)?);
+                let image = ctx
+                    .renderers
+                    .images
+                    .get(image_id)
+                    .ok_or_else(|| CreateNodeError::ImageNotFound(image_id.clone()))?;
+                let node = ImageNode::new(image);
                 Ok(Self::Image(node))
             }
         }
@@ -116,8 +136,8 @@ pub struct Node {
 }
 
 impl Node {
-    pub fn new(ctx: &RenderCtx, spec: &NodeSpec) -> Result<Self, GetError> {
-        let node = RenderNode::new(ctx, &spec.params)?;
+    pub fn new(ctx: &RenderCtx, spec: &NodeSpec) -> Result<Self, CreateNodeError> {
+        let node = RenderNode::new(ctx, spec)?;
         let mut output = NodeTexture::new();
         if let Some(resolution) = node.resolution() {
             output.ensure_size(ctx.wgpu_ctx, resolution);
@@ -131,16 +151,16 @@ impl Node {
         })
     }
 
-    pub fn new_input(node_id: &NodeId) -> Result<Self, GetError> {
+    pub fn new_input(node_id: &NodeId) -> Self {
         let output = NodeTexture::new();
 
-        Ok(Self {
+        Self {
             node_id: node_id.clone(),
             renderer: RenderNode::InputStream,
             inputs: vec![],
             fallback: None,
             output,
-        })
+        }
     }
 }
 
@@ -151,23 +171,20 @@ pub struct Scene {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum SceneUpdateError {
-    #[error("Failed to construct render node")]
-    RenderNodeError(#[source] GetError),
+pub enum UpdateSceneError {
+    #[error("Failed to create node \"{1}\". {0}")]
+    CreateNodeError(#[source] CreateNodeError, NodeId),
 
-    #[error("Failed to construct input node")]
-    InputNodeError(#[source] GetError),
-
-    #[error("No spec for node with id {0}")]
-    NoNodeWithIdError(NodeId),
-
-    #[error("Scene definition is invalid")]
+    #[error("Invalid scene: {0}")]
     InvalidSpec(#[from] SpecValidationError),
 
-    #[error("Wgpu error")]
+    #[error("Unknown node \"{0}\" used in scene.")]
+    NoNodeWithIdError(NodeId),
+
+    #[error(transparent)]
     WgpuError(#[from] WgpuError),
 
-    #[error("Unknown resolution in the output node")]
+    #[error("Unknown resolution on the output node. Nodes that are declared as outputs need to have constant resolution that is the same as resolution of the output stream.")]
     UnknownResolutionOnOutput(NodeId),
 }
 
@@ -180,7 +197,7 @@ impl Scene {
         }
     }
 
-    pub fn update(&mut self, ctx: &RenderCtx, spec: &SceneSpec) -> Result<(), SceneUpdateError> {
+    pub fn update(&mut self, ctx: &RenderCtx, spec: &SceneSpec) -> Result<(), UpdateSceneError> {
         // TODO: If we want nodes to be stateful we could try reusing nodes instead
         //       of recreating them on every scene update
         let scope = WgpuErrorScope::push(&ctx.wgpu_ctx.device);
@@ -194,9 +211,9 @@ impl Scene {
                 Self::ensure_node(ctx, &output.input_pad, spec, &mut inputs, &mut new_nodes)?;
                 let node = new_nodes
                     .get(&output.input_pad)
-                    .ok_or_else(|| SceneUpdateError::NoNodeWithIdError(output.input_pad.clone()))?;
+                    .ok_or_else(|| UpdateSceneError::NoNodeWithIdError(output.input_pad.clone()))?;
                 let resolution = node.renderer.resolution().ok_or_else(|| {
-                    SceneUpdateError::UnknownResolutionOnOutput(node.node_id.clone())
+                    UpdateSceneError::UnknownResolutionOnOutput(node.node_id.clone())
                 })?;
                 let output_texture = OutputTexture::new(ctx.wgpu_ctx, resolution);
                 Ok((
@@ -204,7 +221,7 @@ impl Scene {
                     (node.node_id.clone(), output_texture),
                 ))
             })
-            .collect::<Result<_, SceneUpdateError>>()?;
+            .collect::<Result<_, UpdateSceneError>>()?;
 
         scope.pop(&ctx.wgpu_ctx.device)?;
 
@@ -221,7 +238,7 @@ impl Scene {
         spec: &SceneSpec,
         inputs: &mut HashMap<InputId, InputTexture>,
         new_nodes: &mut HashMap<NodeId, Node>,
-    ) -> Result<(), SceneUpdateError> {
+    ) -> Result<(), UpdateSceneError> {
         // check if node already exists
         if new_nodes.get(node_id).is_some() {
             return Ok(());
@@ -237,7 +254,8 @@ impl Scene {
                 if let Some(fallback_id) = &node_spec.fallback_id {
                     Self::ensure_node(ctx, fallback_id, spec, inputs, new_nodes)?;
                 }
-                let node = Node::new(ctx, node_spec).map_err(SceneUpdateError::RenderNodeError)?;
+                let node = Node::new(ctx, node_spec)
+                    .map_err(|err| UpdateSceneError::CreateNodeError(err, node_id.clone()))?;
                 new_nodes.insert(node_id.clone(), node);
                 return Ok(());
             }
@@ -245,7 +263,7 @@ impl Scene {
 
         // If there is no node with id node_id, assume it's an input. Pipeline validation should
         // make sure that scene does not refer to missing entities.
-        let node = Node::new_input(node_id).map_err(SceneUpdateError::InputNodeError)?;
+        let node = Node::new_input(node_id);
         new_nodes.insert(node_id.clone(), node);
         inputs.insert(InputId(node_id.clone()), InputTexture::new());
         Ok(())
@@ -264,19 +282,22 @@ impl SceneNodesSet {
         }
     }
 
-    pub fn node(&self, node_id: &NodeId) -> Result<&Node, SceneError> {
+    pub fn node(&self, node_id: &NodeId) -> Result<&Node, InternalSceneError> {
         self.nodes
             .get(node_id)
-            .ok_or_else(|| SceneError::MissingNode(node_id.clone()))
+            .ok_or_else(|| InternalSceneError::MissingNode(node_id.clone()))
     }
 
-    pub fn node_mut(&mut self, node_id: &NodeId) -> Result<&mut Node, SceneError> {
+    pub fn node_mut(&mut self, node_id: &NodeId) -> Result<&mut Node, InternalSceneError> {
         self.nodes
             .get_mut(node_id)
-            .ok_or_else(|| SceneError::MissingNode(node_id.clone()))
+            .ok_or_else(|| InternalSceneError::MissingNode(node_id.clone()))
     }
 
-    pub fn node_or_fallback<'a>(&'a self, node_id: &NodeId) -> Result<&'a Node, SceneError> {
+    pub fn node_or_fallback<'a>(
+        &'a self,
+        node_id: &NodeId,
+    ) -> Result<&'a Node, InternalSceneError> {
         let nodes: HashMap<&NodeId, &Node> = self.nodes.iter().collect();
         Self::find_fallback_node(&nodes, node_id)
     }
@@ -285,7 +306,7 @@ impl SceneNodesSet {
     pub(crate) fn node_render_pass<'a>(
         &'a mut self,
         node_id: &NodeId,
-    ) -> Result<NodeRenderPass<'a>, SceneError> {
+    ) -> Result<NodeRenderPass<'a>, InternalSceneError> {
         let input_ids: Vec<NodeId> = self.node(node_id)?.inputs.to_vec();
 
         // Borrow all the references, Fallback technically can be applied on every
@@ -295,7 +316,7 @@ impl SceneNodesSet {
         // Extract mutable borrow for the node we will render.
         let node = nodes_mut
             .remove(&node_id)
-            .ok_or_else(|| SceneError::MissingNode(node_id.clone()))?;
+            .ok_or_else(|| InternalSceneError::MissingNode(node_id.clone()))?;
 
         // Convert mutable borrows on rest of the nodes into immutable.
         // One input might be used multiple times, so we might need to
@@ -314,29 +335,29 @@ impl SceneNodesSet {
                 // input_id and node.node_id are different if fallback is triggered
                 Ok((input_id, node))
             })
-            .collect::<Result<Vec<_>, SceneError>>()?;
+            .collect::<Result<Vec<_>, InternalSceneError>>()?;
         Ok(NodeRenderPass { node, inputs })
     }
 
     fn find_fallback_node<'a>(
         nodes: &HashMap<&NodeId, &'a Node>,
         node_id: &NodeId,
-    ) -> Result<&'a Node, SceneError> {
+    ) -> Result<&'a Node, InternalSceneError> {
         let mut node: &Node = nodes
             .get(node_id)
-            .ok_or_else(|| SceneError::MissingNode(node_id.clone()))?;
+            .ok_or_else(|| InternalSceneError::MissingNode(node_id.clone()))?;
         while node.output.is_empty() && node.fallback.is_some() {
             let fallback_id = node.fallback.clone().unwrap();
             node = nodes
                 .get(&fallback_id)
-                .ok_or_else(|| SceneError::MissingNode(fallback_id.clone()))?
+                .ok_or_else(|| InternalSceneError::MissingNode(fallback_id.clone()))?
         }
         Ok(node)
     }
 }
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
-pub enum SceneError {
-    #[error("Missing node with id {0}")]
+pub enum InternalSceneError {
+    #[error("Missing node \"{0}\"")]
     MissingNode(NodeId),
 }

@@ -24,14 +24,14 @@ pub const VERTEX_ENTRYPOINT_NAME: &str = "vs_main";
 pub const FRAGMENT_ENTRYPOINT_NAME: &str = "fs_main";
 
 #[derive(Debug, thiserror::Error)]
-pub enum ShaderNewError {
-    #[error("wgpu error.")]
+pub enum CreateShaderError {
+    #[error(transparent)]
     Wgpu(#[from] WgpuError),
 
-    #[error("Shader validation error.")]
+    #[error(transparent)]
     Validation(#[from] ShaderValidationError),
 
-    #[error("Shader parse error.")]
+    #[error("Shader parse error:\n{0}")]
     ParseError(#[from] naga::front::wgsl::ParseError),
 }
 
@@ -51,7 +51,7 @@ pub struct Shader {
 }
 
 impl Shader {
-    pub fn new(wgpu_ctx: &Arc<WgpuCtx>, shader_src: String) -> Result<Self, ShaderNewError> {
+    pub fn new(wgpu_ctx: &Arc<WgpuCtx>, shader_src: String) -> Result<Self, CreateShaderError> {
         let scope = WgpuErrorScope::push(&wgpu_ctx.device);
 
         let shader = naga::front::wgsl::parse_str(&shader_src)?;
