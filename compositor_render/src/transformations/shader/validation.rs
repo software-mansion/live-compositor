@@ -96,6 +96,7 @@ fn validate_vertex_input(
     Ok(())
 }
 
+// TODO: improve these errors, they're terrible
 #[derive(Debug, thiserror::Error)]
 pub enum TypeEquivalenceError {
     #[error("Type names don't match: {0:?} != {1:?}.")]
@@ -335,8 +336,37 @@ pub enum ParametersValidationError {
     #[error("A struct has a wrong amount of fields: expected {expected}, got {provided}")]
     WrongShaderFieldsAmount { expected: usize, provided: usize },
 
-    #[error("A field in the provided struct has a different name than in the expected struct: expected \"{expected}\", got \"{provided}\"")]
-    WrongFieldName { expected: String, provided: String },
+    #[error("A field in the provided {struct_name} struct has a different name than in the expected struct: expected \"{expected}\", got \"{provided}\"")]
+    WrongFieldName {
+        struct_name: String,
+        expected: String,
+        provided: String,
+    },
+
+    #[error("Error while verifying field {struct_field} in struct {struct_name}:\n{error}")]
+    WrongFieldType {
+        struct_name: String,
+        struct_field: String,
+        error: Box<ParametersValidationError>,
+    },
+
+    #[error("Error while verifying array element at index {idx}:\n{error}")]
+    WrongArrayElementType {
+        idx: usize,
+        error: Box<ParametersValidationError>,
+    },
+
+    #[error("Error while verifying vector element at index {idx}:\n{error}")]
+    WrongVectorElementType {
+        idx: usize,
+        error: Box<ParametersValidationError>,
+    },
+
+    #[error("Error while verifying matrix row {idx}:\n{error}")]
+    WrongMatrixRowType {
+        idx: usize,
+        error: Box<ParametersValidationError>,
+    },
 }
 
 pub fn validate_params(
@@ -345,9 +375,6 @@ pub fn validate_params(
     module: &naga::Module,
 ) -> Result<(), ParametersValidationError> {
     let ty = &module.types[ty];
-
-    // TODO: we should add more information about the error
-    // (e.g. if we errored while checking the insides of a struct we should add info about the struct)
 
     // TODO: tests, make examples run
 
@@ -368,7 +395,9 @@ pub fn validate_params(
             validate_array(params, *base, *size, *stride, module)
         }
 
-        naga::TypeInner::Struct { members, span } => validate_struct(params, members, *span),
+        naga::TypeInner::Struct { members, span } => {
+            validate_struct(params, ty.name.as_ref().unwrap(), members, *span, module)
+        }
 
         naga::TypeInner::Pointer { .. }
         | naga::TypeInner::ValuePointer { .. }
@@ -385,25 +414,38 @@ pub fn validate_params(
 
 fn validate_struct(
     params: &ShaderParam,
-    shader_members: &[naga::StructMember],
+    struct_name_in_shader: &str,
+    struct_members_in_shader: &[naga::StructMember],
     span: u32,
+    module: &naga::Module,
 ) -> Result<(), ParametersValidationError> {
     match params {
         ShaderParam::Struct(param_fields) => {
-            if shader_members.len() != param_fields.len() {
+            if struct_members_in_shader.len() != param_fields.len() {
                 return Err(ParametersValidationError::WrongShaderFieldsAmount {
-                    expected: shader_members.len(),
+                    expected: struct_members_in_shader.len(),
                     provided: param_fields.len(),
                 });
             }
 
-            for (shader_member, param_field) in shader_members.iter().zip(param_fields.iter()) {
+            for (shader_member, param_field) in
+                struct_members_in_shader.iter().zip(param_fields.iter())
+            {
                 if shader_member.name.as_ref().unwrap() != &param_field.field_name {
                     return Err(ParametersValidationError::WrongFieldName {
+                        struct_name: struct_name_in_shader.into(),
                         expected: shader_member.name.as_ref().unwrap().clone(),
                         provided: param_field.field_name.clone(),
                     });
                 }
+
+                validate_params(&param_field.value, shader_member.ty, module).map_err(|err| {
+                    ParametersValidationError::WrongFieldType {
+                        struct_name: struct_name_in_shader.into(),
+                        struct_field: param_field.field_name.clone(),
+                        error: Box::new(err),
+                    }
+                })?
             }
 
             Ok(())
@@ -412,7 +454,7 @@ fn validate_struct(
         _ => Err(ParametersValidationError::WrongType(
             params.clone(),
             naga::TypeInner::Struct {
-                members: shader_members.to_owned(),
+                members: struct_members_in_shader.to_owned(),
                 span,
             },
         )),
@@ -438,8 +480,13 @@ fn validate_array(
                 });
             }
 
-            for param in list {
-                validate_params(param, base, module)?;
+            for (idx, param) in list.iter().enumerate() {
+                validate_params(param, base, module).map_err(|err| {
+                    ParametersValidationError::WrongArrayElementType {
+                        idx,
+                        error: Box::new(err),
+                    }
+                })?
             }
 
             Ok(())
@@ -467,8 +514,13 @@ fn validate_matrix(
                 });
             }
 
-            for row in rows_list {
-                validate_vector(row, columns, ScalarKind::Float, width)?;
+            for (idx, row) in rows_list.iter().enumerate() {
+                validate_vector(row, columns, ScalarKind::Float, width).map_err(|err| {
+                    ParametersValidationError::WrongMatrixRowType {
+                        idx,
+                        error: Box::new(err),
+                    }
+                })?
             }
 
             Ok(())
@@ -481,6 +533,40 @@ fn validate_matrix(
                 rows,
                 width,
             },
+        )),
+    }
+}
+
+fn validate_vector(
+    params: &ShaderParam,
+    size: VectorSize,
+    kind: ScalarKind,
+    width: u8,
+) -> Result<(), ParametersValidationError> {
+    match params {
+        ShaderParam::List(list) => {
+            if list.len() != size as usize {
+                return Err(ParametersValidationError::WrongListLength {
+                    expected: size as usize,
+                    provided: list.len(),
+                });
+            }
+
+            for (idx, v) in list.iter().enumerate() {
+                validate_scalar(v, kind, width).map_err(|err| {
+                    ParametersValidationError::WrongVectorElementType {
+                        idx,
+                        error: Box::new(err),
+                    }
+                })?
+            }
+
+            Ok(())
+        }
+
+        _ => Err(ParametersValidationError::WrongType(
+            params.clone(),
+            naga::TypeInner::Vector { size, kind, width },
         )),
     }
 }
@@ -517,35 +603,6 @@ fn validate_scalar(
 
         _ => Err(ParametersValidationError::UnsupportedScalarKind(
             kind, width,
-        )),
-    }
-}
-
-fn validate_vector(
-    params: &ShaderParam,
-    size: VectorSize,
-    kind: ScalarKind,
-    width: u8,
-) -> Result<(), ParametersValidationError> {
-    match params {
-        ShaderParam::List(list) => {
-            if list.len() != size as usize {
-                return Err(ParametersValidationError::WrongListLength {
-                    expected: size as usize,
-                    provided: list.len(),
-                });
-            }
-
-            for v in list {
-                validate_scalar(v, kind, width)?
-            }
-
-            Ok(())
-        }
-
-        _ => Err(ParametersValidationError::WrongType(
-            params.clone(),
-            naga::TypeInner::Vector { size, kind, width },
         )),
     }
 }
