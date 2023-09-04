@@ -24,12 +24,12 @@ pub enum InitBuiltinError {
     StretchToResolution(#[source] CreateShaderError),
 }
 
-pub struct BuiltinsContainer {
+pub struct BuiltinsCollection {
     transform_resolution: ConvertResolutionTransformations,
     fixed_position_layout: FixedPositionLayout,
 }
 
-impl BuiltinsContainer {
+impl BuiltinsCollection {
     pub fn new(wgpu_ctx: &Arc<WgpuCtx>) -> Result<Self, InitBuiltinError> {
         Ok(Self {
             transform_resolution: ConvertResolutionTransformations::new(wgpu_ctx)?,

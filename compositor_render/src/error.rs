@@ -2,7 +2,7 @@ use crate::{
     registry,
     renderer::{CreateWgpuCtxError, WgpuError},
     transformations::{
-        builtin::container::InitBuiltinError,
+        builtin::collection::InitBuiltinError,
         image_renderer::ImageError,
         shader::CreateShaderError,
         web_renderer::{chromium::WebRendererContextError, CreateWebRendererError},

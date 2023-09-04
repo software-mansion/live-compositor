@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::{
     registry::{RegistryType, RendererRegistry},
     transformations::{
-        builtin::container::{BuiltinsContainer, InitBuiltinError},
+        builtin::collection::{BuiltinsCollection, InitBuiltinError},
         image_renderer::Image,
         shader::Shader,
         web_renderer::WebRenderer,
@@ -16,7 +16,7 @@ pub(crate) struct Renderers {
     pub(crate) shaders: RendererRegistry<Arc<Shader>>,
     pub(crate) web_renderers: RendererRegistry<Arc<WebRenderer>>,
     pub(crate) images: RendererRegistry<Image>,
-    pub(crate) builtin: BuiltinsContainer,
+    pub(crate) builtin: BuiltinsCollection,
 }
 
 impl Renderers {
@@ -25,7 +25,7 @@ impl Renderers {
             shaders: RendererRegistry::new(RegistryType::Shader),
             web_renderers: RendererRegistry::new(RegistryType::WebRenderer),
             images: RendererRegistry::new(RegistryType::Image),
-            builtin: BuiltinsContainer::new(&wgpu_ctx)?,
+            builtin: BuiltinsCollection::new(&wgpu_ctx)?,
         })
     }
 }
