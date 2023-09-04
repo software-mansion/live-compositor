@@ -5,7 +5,7 @@ use wgpu::util::DeviceExt;
 
 use crate::{renderer::texture::NodeTexture, transformations::shader::Shader};
 
-use super::{params::BuiltinParams, Builtin};
+use super::{params::BuiltinParams, Builtin, InputState};
 
 pub struct ConstructedBuiltinNode {
     shader: Arc<Shader>,
@@ -93,7 +93,10 @@ pub enum BuiltinNode {
 
 impl BuiltinNode {
     pub fn new(shader: Arc<Shader>, spec: Builtin) -> Self {
-        Self::Constructed(ConstructedBuiltinNode { shader, builtin: spec })
+        Self::Constructed(ConstructedBuiltinNode {
+            shader,
+            builtin: spec,
+        })
     }
 
     // Returns Some(Resolution) if output resolution of node can be determined
@@ -116,7 +119,11 @@ impl BuiltinNode {
         target: &mut NodeTexture,
         pts: Duration,
     ) {
-        // TODO: think about fallbacks
+        let input_states = Self::input_states(sources);
+        if self.builtin().should_fallback(&input_states) {
+            target.clear();
+            return;
+        }
 
         let input_resolutions: Vec<Option<Resolution>> = sources
             .iter()
@@ -155,5 +162,18 @@ impl BuiltinNode {
             BuiltinNode::Configured(ref configured) => configured,
             BuiltinNode::Constructed(_) => unreachable!("Should be configured by previous call"),
         }
+    }
+
+    fn input_states(inputs: &[(&NodeId, &NodeTexture)]) -> Vec<InputState> {
+        inputs
+            .iter()
+            .map(|(_node_id, node_texture)| {
+                if node_texture.is_empty() {
+                    InputState::Empty
+                } else {
+                    InputState::Filled
+                }
+            })
+            .collect()
     }
 }

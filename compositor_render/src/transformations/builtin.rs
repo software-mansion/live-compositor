@@ -9,6 +9,12 @@ pub mod container;
 pub mod node;
 pub mod params;
 
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) enum InputState {
+    Filled,
+    Empty,
+}
+
 #[derive(Debug, Clone)]
 pub struct Builtin(pub BuiltinSpec);
 
@@ -41,6 +47,15 @@ impl Builtin {
         match self.0 {
             BuiltinSpec::TransformToResolution { resolution, .. } => Some(resolution),
             BuiltinSpec::FixedPositionLayout { resolution, .. } => Some(resolution),
+        }
+    }
+
+    pub(crate) fn should_fallback(&self, input_states: &[InputState]) -> bool {
+        match self.0 {
+            BuiltinSpec::TransformToResolution { .. } => {
+                input_states.iter().all(|state| state == &InputState::Empty)
+            }
+            BuiltinSpec::FixedPositionLayout { .. } => false,
         }
     }
 }
