@@ -9,12 +9,12 @@ use super::{params::BuiltinParams, Builtin};
 
 pub struct ConstructedBuiltinNode {
     shader: Arc<Shader>,
-    spec: Builtin,
+    builtin: Builtin,
 }
 
 pub struct ConfiguredBuiltinNode {
     shader: Arc<Shader>,
-    spec: Builtin,
+    builtin: Builtin,
     params_bind_group: wgpu::BindGroup,
     params_buffer: wgpu::Buffer,
     input_resolutions: Vec<Option<Resolution>>,
@@ -27,8 +27,8 @@ impl ConfiguredBuiltinNode {
         constructed: &ConstructedBuiltinNode,
         input_resolutions: Vec<Option<Resolution>>,
     ) -> Self {
-        let output_resolution = constructed.spec.output_resolution(&input_resolutions);
-        let params = BuiltinParams::new(&constructed.spec, &input_resolutions);
+        let output_resolution = constructed.builtin.output_resolution(&input_resolutions);
+        let params = BuiltinParams::new(&constructed.builtin, &input_resolutions);
         let wgpu_ctx = constructed.shader.wgpu_ctx.clone();
 
         // This could be created on ConstructedBuiltinNode initialization, but we would need
@@ -60,11 +60,11 @@ impl ConfiguredBuiltinNode {
                 ],
             });
 
-        let clear_color = constructed.spec.clear_color();
+        let clear_color = constructed.builtin.clear_color();
 
         Self {
             shader: constructed.shader.clone(),
-            spec: constructed.spec.clone(),
+            builtin: constructed.builtin.clone(),
             params_bind_group,
             params_buffer,
             input_resolutions,
@@ -75,7 +75,7 @@ impl ConfiguredBuiltinNode {
 
     fn ensure_configured(&mut self, input_resolutions: Vec<Option<Resolution>>) {
         if self.input_resolutions != input_resolutions {
-            let params = BuiltinParams::new(&self.spec, &input_resolutions);
+            let params = BuiltinParams::new(&self.builtin, &input_resolutions);
             self.shader.wgpu_ctx.queue.write_buffer(
                 &self.params_buffer,
                 0,
@@ -93,17 +93,20 @@ pub enum BuiltinNode {
 
 impl BuiltinNode {
     pub fn new(shader: Arc<Shader>, spec: Builtin) -> Self {
-        Self::Constructed(ConstructedBuiltinNode { shader, spec })
+        Self::Constructed(ConstructedBuiltinNode { shader, builtin: spec })
     }
 
+    // Returns Some(Resolution) if output resolution of node can be determined
+    // from spec (on scene update). If output resolution is depended on input resolutions,
+    // then returns None.
     pub fn resolution_from_spec(&self) -> Option<Resolution> {
-        self.spec().resolution_from_spec()
+        self.builtin().resolution_from_spec()
     }
 
-    fn spec(&self) -> &Builtin {
+    fn builtin(&self) -> &Builtin {
         match &self {
-            BuiltinNode::Constructed(ConstructedBuiltinNode { spec, .. }) => spec,
-            BuiltinNode::Configured(ConfiguredBuiltinNode { spec, .. }) => spec,
+            BuiltinNode::Constructed(ConstructedBuiltinNode { builtin, .. }) => builtin,
+            BuiltinNode::Configured(ConfiguredBuiltinNode { builtin, .. }) => builtin,
         }
     }
 
