@@ -1,33 +1,13 @@
 use compositor_common::scene::ShaderParam;
 use naga::{ArraySize, ConstantInner, Handle, Module, ScalarKind, ShaderStage, Type, VectorSize};
 
-use super::{USER_DEFINED_BINDING, VERTEX_ENTRYPOINT_NAME};
-
-#[derive(Debug, thiserror::Error)]
-pub enum ShaderValidationError {
-    #[error("A global that should be declared in the shader is not declared: \n{0:#?}.")]
-    GlobalNotFound(naga::GlobalVariable),
-
-    #[error("A global in the shader has a wrong type. {0}")]
-    GlobalBadType(#[source] TypeEquivalenceError),
-
-    #[error("Could not find a vertex shader entrypoint. Expected \"fn {VERTEX_ENTRYPOINT_NAME}(input: VertexInput)\"")]
-    VertexShaderNotFound,
-
-    #[error("Wrong vertex shader argument amount: found {0}, expected 1.")]
-    VertexShaderBadArgumentAmount(usize),
-
-    // TODO: do we enforce type name from header?
-    // #[error("The input type of the vertex shader has a name that cannot be found in the header.")]
-    #[error("The input type of the vertex shader (\"{0}\") was not declared.")]
-    VertexShaderBadInputTypeName(String),
-
-    #[error("The vertex shader input has a wrong type. {0}")]
-    VertexShaderBadInput(#[source] TypeEquivalenceError),
-
-    #[error("User defined binding ((group, binding) == {USER_DEFINED_BINDING:?}) is not a uniform buffer. Is it defined as var<uniform>?")]
-    UserBindingNotUniform,
-}
+use super::{
+    error::{
+        ConstArraySizeEvalError, ParametersValidationError, ShaderValidationError,
+        TypeEquivalenceError,
+    },
+    USER_DEFINED_BUFFER_BINDING, USER_DEFINED_BUFFER_GROUP,
+};
 
 pub fn validate_contains_header(
     header: &naga::Module,
@@ -61,8 +41,9 @@ fn validate_globals(
         .iter()
         .find(|(_, global)| {
             global.binding.is_some()
-                && global.binding.as_ref().unwrap().group == USER_DEFINED_BINDING.0
-                && global.binding.as_ref().unwrap().binding == USER_DEFINED_BINDING.1
+                && global.binding.as_ref().unwrap().group == USER_DEFINED_BUFFER_GROUP
+                && global.binding.as_ref().unwrap().binding == USER_DEFINED_BUFFER_BINDING
+                && global.space == naga::AddressSpace::Uniform
         })
         .map_or(Ok(()), |(_, global)| match global.space {
             naga::AddressSpace::Uniform => Ok(()),
@@ -111,56 +92,6 @@ fn validate_vertex_input(
         .map_err(ShaderValidationError::VertexShaderBadInput)?;
 
     Ok(())
-}
-
-// TODO: improve these errors, they're terrible
-#[derive(Debug, thiserror::Error)]
-pub enum TypeEquivalenceError {
-    #[error("Type names don't match: {0:?} != {1:?}.")]
-    TypeNameMismatch(Option<String>, Option<String>),
-
-    #[error(
-        "Type internal structure doesn't match:\nExpected:\n{expected:#?}\n\nActual:\n{actual:#?}."
-    )]
-    TypeStructureMismatch {
-        expected: naga::TypeInner,
-        actual: naga::TypeInner,
-    },
-
-    #[error("Struct {struct_name} has an incorrect number of fields: expected: {expected_field_number}, found: {actual_field_number}")]
-    StructFieldNumberMismatch {
-        struct_name: String,
-        expected_field_number: usize,
-        actual_field_number: usize,
-    },
-
-    #[error("Structure mismatch found while checking the type of field {field_name} in struct {struct_name}:\n{error}")]
-    StructFieldStructureMismatch {
-        struct_name: String,
-        field_name: String,
-        error: Box<TypeEquivalenceError>,
-    },
-
-    #[error("Struct {struct_name} has mismatched field names: expected {expected_field_name}, found: {actual_field_name}.")]
-    StructFieldNameMismatch {
-        struct_name: String,
-        expected_field_name: String,
-        actual_field_name: String,
-    },
-
-    #[error("Field {field_name} in struct {struct_name} has an incorrect binding: expected {expected_binding:?}, found {actual_binding:?}.")]
-    StructFieldBindingMismatch {
-        struct_name: String,
-        field_name: String,
-        expected_binding: Option<naga::Binding>,
-        actual_binding: Option<naga::Binding>,
-    },
-
-    #[error("Error while evaluating array size: {0}")]
-    BadArraySize(#[from] ConstArraySizeEvalError),
-
-    #[error("Sizes of an array don't match: {0:?} != {1:?}.")]
-    ArraySizeMismatch(u64, u64),
 }
 
 fn validate_type_equivalent(
@@ -318,21 +249,6 @@ fn validate_type_equivalent(
     Ok(())
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum ConstArraySizeEvalError {
-    #[error("Dynamic array size is not allowed.")]
-    DynamicSize,
-
-    #[error("A value below zero is not allowed as array size.")]
-    BelowZero(i64),
-
-    #[error("Composite types are not allowed as array sizes (found {0:?}).")]
-    CompositeType(ConstantInner),
-
-    #[error("Bools and floats are not allowed as array sizes (found {0:?}).")]
-    WrongType(naga::ScalarValue),
-}
-
 fn eval_array_size(size: ArraySize, module: &naga::Module) -> Result<u64, ConstArraySizeEvalError> {
     match size {
         ArraySize::Constant(c) => {
@@ -347,7 +263,7 @@ fn eval_array_size(size: ArraySize, module: &naga::Module) -> Result<u64, ConstA
 
                     naga::ScalarValue::Sint(v) => {
                         if v < 0 {
-                            Err(ConstArraySizeEvalError::BelowZero(v))
+                            Err(ConstArraySizeEvalError::NegativeLength(v))
                         } else {
                             Ok(v as u64)
                         }
@@ -380,62 +296,6 @@ fn validate_array_size_equivalent(
     }
 
     Ok(())
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum ParametersValidationError {
-    #[error("No user-defined binding was found in the shader, even though parameters were provided in the request.")]
-    NoBindingInShader,
-
-    #[error("A type used in the shader cannot be provided at node registration: {0}.")]
-    ForbiddenType(&'static str),
-
-    #[error("An unsupported scalar kind.")]
-    UnsupportedScalarKind(ScalarKind, u8),
-
-    #[error("Expected type {1:?}, got {0:?}.")]
-    WrongType(ShaderParam, naga::TypeInner),
-
-    #[error("A list type has wrong length: expected {expected}, got {provided}")]
-    WrongListLength { expected: usize, provided: usize },
-
-    #[error("Error while evaluating array size")]
-    ArraySizeEvalError(#[from] ConstArraySizeEvalError),
-
-    #[error("A struct has a wrong amount of fields: expected {expected}, got {provided}")]
-    WrongShaderFieldsAmount { expected: usize, provided: usize },
-
-    #[error("A field in the provided {struct_name} struct has a different name than in the expected struct: expected \"{expected}\", got \"{provided}\"")]
-    WrongFieldName {
-        struct_name: String,
-        expected: String,
-        provided: String,
-    },
-
-    #[error("Error while verifying field {struct_field} in struct {struct_name}:\n{error}")]
-    WrongFieldType {
-        struct_name: String,
-        struct_field: String,
-        error: Box<ParametersValidationError>,
-    },
-
-    #[error("Error while verifying array element at index {idx}:\n{error}")]
-    WrongArrayElementType {
-        idx: usize,
-        error: Box<ParametersValidationError>,
-    },
-
-    #[error("Error while verifying vector element at index {idx}:\n{error}")]
-    WrongVectorElementType {
-        idx: usize,
-        error: Box<ParametersValidationError>,
-    },
-
-    #[error("Error while verifying matrix row {idx}:\n{error}")]
-    WrongMatrixRowType {
-        idx: usize,
-        error: Box<ParametersValidationError>,
-    },
 }
 
 pub fn validate_params(
@@ -540,8 +400,8 @@ fn validate_array(
 
     match params {
         ShaderParam::List(list) => {
-            if list.len() != evaluated_size as usize {
-                return Err(ParametersValidationError::WrongListLength {
+            if list.len() > evaluated_size as usize {
+                return Err(ParametersValidationError::ListTooLong {
                     expected: evaluated_size as usize,
                     provided: list.len(),
                 });
@@ -575,7 +435,7 @@ fn validate_matrix(
     match params {
         ShaderParam::List(rows_list) => {
             if rows_list.len() != rows as usize {
-                return Err(ParametersValidationError::WrongListLength {
+                return Err(ParametersValidationError::ListTooLong {
                     expected: rows as usize,
                     provided: rows_list.len(),
                 });
@@ -613,7 +473,7 @@ fn validate_vector(
     match params {
         ShaderParam::List(list) => {
             if list.len() != size as usize {
-                return Err(ParametersValidationError::WrongListLength {
+                return Err(ParametersValidationError::ListTooLong {
                     expected: size as usize,
                     provided: list.len(),
                 });

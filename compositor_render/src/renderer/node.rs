@@ -1,6 +1,6 @@
 use compositor_common::renderer_spec::RendererId;
 
-use crate::transformations::shader::validation::ParametersValidationError;
+use crate::transformations::shader::error::ParametersValidationError;
 
 // TODO: move here Node and RenderNode types
 

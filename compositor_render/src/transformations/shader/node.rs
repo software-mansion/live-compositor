@@ -5,7 +5,7 @@ use wgpu::util::DeviceExt;
 
 use crate::renderer::{texture::NodeTexture, WgpuCtx};
 
-use super::{validation::ParametersValidationError, Shader};
+use super::{error::ParametersValidationError, Shader};
 
 pub struct ShaderNode {
     params_bind_group: wgpu::BindGroup,

@@ -10,12 +10,12 @@ use compositor_common::scene::{NodeId, ShaderParam};
 use crate::renderer::{texture::Texture, WgpuCtx};
 
 use self::{
+    error::{ParametersValidationError, ShaderValidationError},
     pipeline::Pipeline,
-    validation::{
-        validate_contains_header, validate_params, ParametersValidationError, ShaderValidationError,
-    },
+    validation::{validate_contains_header, validate_params},
 };
 
+pub mod error;
 pub mod node;
 mod pipeline;
 pub mod validation;
@@ -25,7 +25,8 @@ const INPUT_TEXTURES_AMOUNT: u32 = 16;
 pub const VERTEX_ENTRYPOINT_NAME: &str = "vs_main";
 pub const FRAGMENT_ENTRYPOINT_NAME: &str = "fs_main";
 
-pub const USER_DEFINED_BINDING: (u32, u32) = (1, 0);
+pub const USER_DEFINED_BUFFER_GROUP: u32 = 1;
+pub const USER_DEFINED_BUFFER_BINDING: u32 = 0;
 
 #[derive(Debug, thiserror::Error)]
 pub enum CreateShaderError {
@@ -165,7 +166,10 @@ impl Shader {
             .global_variables
             .iter()
             .find(|(_, global)| match global.binding.as_ref() {
-                Some(binding) => (binding.group, binding.binding) == USER_DEFINED_BINDING,
+                Some(binding) => {
+                    (binding.group, binding.binding)
+                        == (USER_DEFINED_BUFFER_GROUP, USER_DEFINED_BUFFER_BINDING)
+                }
 
                 None => false,
             })
