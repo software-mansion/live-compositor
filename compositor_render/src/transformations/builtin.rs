@@ -3,17 +3,17 @@ use compositor_common::scene::{
     Resolution,
 };
 
-use crate::utils::rgba_to_wgpu_color;
+use crate::{renderer::texture::NodeTexture, utils::rgba_to_wgpu_color};
 
 pub mod collection;
 pub mod node;
 pub mod params;
 
-#[derive(Debug, PartialEq, Eq)]
-pub(crate) enum InputState {
-    Filled,
-    Empty,
-}
+// #[derive(Debug, PartialEq, Eq)]
+// pub(crate) enum InputState {
+//     Filled,
+//     Empty,
+// }
 
 #[derive(Debug, Clone)]
 pub struct Builtin(pub BuiltinSpec);
@@ -50,11 +50,14 @@ impl Builtin {
         }
     }
 
-    pub(crate) fn should_fallback(&self, input_states: &[InputState]) -> bool {
+    pub(crate) fn should_fallback<'a, I: Iterator<Item = &'a NodeTexture>>(
+        &self,
+        node_textures: I,
+    ) -> bool {
         match self.0 {
-            BuiltinSpec::TransformToResolution { .. } => {
-                input_states.iter().all(|state| state == &InputState::Empty)
-            }
+            BuiltinSpec::TransformToResolution { .. } => node_textures
+                .into_iter()
+                .all(|node_texture| node_texture.is_empty()),
             BuiltinSpec::FixedPositionLayout { .. } => false,
         }
     }

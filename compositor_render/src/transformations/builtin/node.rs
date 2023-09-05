@@ -8,7 +8,7 @@ use crate::{
     transformations::shader::Shader,
 };
 
-use super::{params::BuiltinParams, Builtin, InputState};
+use super::{params::BuiltinParams, Builtin};
 
 struct ParamsBuffer {
     bind_group: wgpu::BindGroup,
@@ -104,8 +104,11 @@ impl BuiltinNode {
         target: &mut NodeTexture,
         pts: Duration,
     ) {
-        let input_states = Self::input_states(sources);
-        if self.builtin.should_fallback(&input_states) {
+        let node_textures = sources
+            .iter()
+            .map(|(_, node_texture)| *node_texture);
+        
+        if self.builtin.should_fallback(node_textures) {
             target.clear();
             return;
         }
@@ -131,18 +134,5 @@ impl BuiltinNode {
             pts,
             self.clear_color,
         );
-    }
-
-    fn input_states(inputs: &[(&NodeId, &NodeTexture)]) -> Vec<InputState> {
-        inputs
-            .iter()
-            .map(|(_node_id, node_texture)| {
-                if node_texture.is_empty() {
-                    InputState::Empty
-                } else {
-                    InputState::Filled
-                }
-            })
-            .collect()
     }
 }

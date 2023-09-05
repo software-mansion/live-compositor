@@ -16,7 +16,7 @@ impl FitParams {
     /// scale_factor_x_clip_space = 1.0 (input x coords are already fitted)
     /// scale_factor_y_clip_space = scale_factor_pixels * input_height / output_height =
     /// = (output_width * input_height) / (output_height * input_width)
-    /// = scale_factor_y_clip_space = output_ratio / input_ratio
+    /// = output_ratio / input_ratio
     ///
     /// If the output ratio is larger, then the texture is scaled up,
     /// such that input_height = output_height.
