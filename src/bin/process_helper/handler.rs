@@ -1,4 +1,4 @@
-use std::{env, path::PathBuf, sync::Arc};
+use std::{env, sync::Arc};
 
 use compositor_chromium::cef;
 use compositor_render::{EMBED_SOURCE_FRAMES_MESSAGE, UNEMBED_SOURCE_FRAMES_MESSAGE};

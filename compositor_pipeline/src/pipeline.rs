@@ -8,10 +8,11 @@ use std::time::Duration;
 use compositor_common::renderer_spec::RendererSpec;
 use compositor_common::scene::{InputId, OutputId, SceneSpec};
 use compositor_common::{Frame, Framerate};
+use compositor_render::error::{InitRendererEngineError, RegisterRendererError};
 use compositor_render::event_loop::EventLoop;
-use compositor_render::renderer::{RendererInitError, RendererOptions, RendererRegisterError};
+use compositor_render::renderer::RendererOptions;
 use compositor_render::WebRendererOptions;
-use compositor_render::{renderer::scene::SceneUpdateError, Renderer};
+use compositor_render::{renderer::scene::UpdateSceneError, Renderer};
 use crossbeam_channel::unbounded;
 use log::{error, warn};
 use serde::{Deserialize, Serialize};
@@ -54,7 +55,7 @@ pub struct Options {
 }
 
 impl<Input: PipelineInput, Output: PipelineOutput> Pipeline<Input, Output> {
-    pub fn new(opts: Options) -> Result<(Self, EventLoop), RendererInitError> {
+    pub fn new(opts: Options) -> Result<(Self, EventLoop), InitRendererEngineError> {
         let (renderer, event_loop) = Renderer::new(RendererOptions {
             web_renderer: opts.web_renderer,
             framerate: opts.framerate,
@@ -151,18 +152,18 @@ impl<Input: PipelineInput, Output: PipelineOutput> Pipeline<Input, Output> {
     pub fn register_renderer(
         &self,
         transformation_spec: RendererSpec,
-    ) -> Result<(), RendererRegisterError> {
+    ) -> Result<(), RegisterRendererError> {
         self.renderer.register_renderer(transformation_spec)?;
         Ok(())
     }
 
-    pub fn update_scene(&mut self, scene_spec: Arc<SceneSpec>) -> Result<(), SceneUpdateError> {
+    pub fn update_scene(&mut self, scene_spec: Arc<SceneSpec>) -> Result<(), UpdateSceneError> {
         scene_spec
             .validate(
                 &self.inputs.keys().map(|i| &i.0).collect(),
                 &self.outputs.lock().keys().map(|i| &i.0).collect(),
             )
-            .map_err(SceneUpdateError::InvalidSpec)?;
+            .map_err(UpdateSceneError::InvalidSpec)?;
         self.renderer.update_scene(scene_spec)
     }
 

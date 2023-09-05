@@ -6,6 +6,7 @@ use std::{
     fs::File,
     io::{self, Write},
     path::{Path, PathBuf},
+    time::Duration,
 };
 
 use serde::Serialize;
@@ -41,6 +42,7 @@ pub fn post<T: Serialize + ?Sized>(json: &T) -> Result<Response> {
     let client = reqwest::blocking::Client::new();
     let response = client
         .post("http://127.0.0.1:8001")
+        .timeout(Duration::from_secs(100))
         .json(json)
         .send()
         .unwrap();
@@ -55,12 +57,33 @@ fn log_request_error<T: Serialize + ?Sized>(request_body: &T, response: Response
     let status = response.status();
     let request_str = serde_json::to_string_pretty(request_body).unwrap();
     let body_str = response.text().unwrap();
-    let formated_body = serde_json::from_str::<serde_json::Value>(&body_str)
-        .map(|parsed| serde_json::to_string_pretty(&parsed).unwrap())
-        .unwrap_or(body_str);
+
+    let formated_body = get_formated_body(&body_str);
     error!(
-        "Request failed:\nRequest: {}\nResponse code: {}\nResponse body:\n{}",
+        "Request failed:\n\nRequest: {}\n\nResponse code: {}\n\nResponse body:\n{}",
         request_str, status, formated_body
+    )
+}
+
+fn get_formated_body(body_str: &str) -> String {
+    let Ok(mut body_json) = serde_json::from_str::<serde_json::Value>(body_str) else {
+        return body_str.to_string();
+    };
+
+    let Some(msg_value) = body_json.get("msg") else {
+        return serde_json::to_string_pretty(&body_json).unwrap();
+    };
+
+    let Some(msg_string) = msg_value.as_str() else {
+        return serde_json::to_string_pretty(&body_json).unwrap();
+    };
+    let msg_string = msg_string.to_string();
+    let body_map = body_json.as_object_mut().unwrap();
+    body_map.remove("msg");
+    format!(
+        "{}\n\nError message:\n{}",
+        serde_json::to_string_pretty(&body_map).unwrap(),
+        msg_string,
     )
 }
 

@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use serde::{Deserialize, Serialize};
 
 use crate::util::{Coord, RGBAColor};
@@ -24,11 +26,11 @@ impl BuiltinTransformationSpec {
         match self {
             BuiltinTransformationSpec::TransformToResolution(_) => {
                 if inputs.len() != 1 {
-                    return Err(InvalidBuiltinTransformationSpec::InvalidInputsCount {
-                        node: node_id.clone(),
-                        expected_inputs_count: 1,
-                        specified_inputs_count: inputs.len() as u32,
-                    });
+                    return Err(
+                        InvalidBuiltinTransformationSpec::TransformToResolutionExactlyOneInput(
+                            node_id.clone(),
+                        ),
+                    );
                 }
 
                 Ok(())
@@ -37,13 +39,12 @@ impl BuiltinTransformationSpec {
                 texture_layouts, ..
             } => {
                 if texture_layouts.len() != inputs.len() {
-                    return Err(
-                        InvalidBuiltinTransformationSpec::InvalidTextureLayoutsCount {
-                            node: node_id.clone(),
-                            texture_layouts_count: texture_layouts.len() as u32,
-                            input_pads_count: inputs.len() as u32,
-                        },
-                    );
+                    return Err(InvalidTextureLayoutsCount {
+                        node: node_id.clone(),
+                        texture_layouts_count: texture_layouts.len() as u32,
+                        input_pads_count: inputs.len() as u32,
+                    }
+                    .into());
                 }
                 Ok(())
             }
@@ -80,16 +81,30 @@ pub struct Degree(pub i32);
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum InvalidBuiltinTransformationSpec {
-    #[error("Invalid texture layouts for node: {node}. Texture layouts should specify TextureLayout for every input pad. Received: {texture_layouts_count}, expected: {input_pads_count}.")]
-    InvalidTextureLayoutsCount {
-        node: NodeId,
-        texture_layouts_count: u32,
-        input_pads_count: u32,
-    },
-    #[error("Node: {node} expected {expected_inputs_count} input pads, received {specified_inputs_count} input pads.")]
-    InvalidInputsCount {
-        node: NodeId,
-        expected_inputs_count: u32,
-        specified_inputs_count: u32,
-    },
+    #[error(transparent)]
+    InvalidTextureLayoutsCount(#[from] InvalidTextureLayoutsCount),
+    #[error("Invalid node {0} specification. Nodes that use transformation \"transform_to_resolution\" need to have exactly one input pad.")]
+    TransformToResolutionExactlyOneInput(NodeId),
+}
+
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+pub struct InvalidTextureLayoutsCount {
+    node: NodeId,
+    texture_layouts_count: u32,
+    input_pads_count: u32,
+}
+
+impl Display for InvalidTextureLayoutsCount {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let Self {
+            node,
+            texture_layouts_count,
+            input_pads_count,
+        } = self;
+        if self.texture_layouts_count > self.input_pads_count {
+            write!(f, "Too many texture layouts defined in node \"{node}\". There are {input_pads_count} input pads, but {texture_layouts_count} texture layouts, were provided.")
+        } else {
+            write!(f, "Missing texture layouts in node \"{node}\". There are {input_pads_count} input pads, but only {texture_layouts_count} texture layouts were provided.")
+        }
+    }
 }

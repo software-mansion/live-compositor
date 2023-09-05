@@ -1,4 +1,4 @@
-use std::{collections::HashMap, io, sync::Arc};
+use std::{collections::HashMap, sync::Arc};
 
 use compositor_chromium::cef;
 use compositor_common::scene::{NodeId, Resolution};
@@ -17,20 +17,16 @@ pub(super) struct BrowserController {
 }
 
 impl BrowserController {
-    pub fn new(
-        ctx: Arc<ChromiumContext>,
-        url: String,
-        resolution: Resolution,
-    ) -> Result<Self, BrowserControllerNewError> {
+    pub fn new(ctx: Arc<ChromiumContext>, url: String, resolution: Resolution) -> Self {
         let (painted_frames_sender, painted_frames_receiver) = crossbeam_channel::unbounded();
         let client = BrowserClient::new(painted_frames_sender, resolution);
         let chromium_sender = ChromiumSender::new(ctx, url, client);
 
-        Ok(Self {
+        Self {
             painted_frames_receiver,
             chromium_sender,
             frame_data: None,
-        })
+        }
     }
 
     pub fn retrieve_frame(&mut self) -> Option<&[u8]> {
@@ -152,15 +148,9 @@ impl BrowserClient {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum BrowserControllerNewError {
-    #[error("Failed to create shared memory directory")]
-    SharedMemoryDirCreate(#[from] io::Error),
-}
-
-#[derive(Debug, thiserror::Error)]
 pub enum EmbedFrameError {
     #[error("Failed to create shared memory")]
-    SharedMemoryCreate(#[from] ShmemError),
+    CreateSharedMemory(#[from] ShmemError),
 
     #[error("Failed to download source frame")]
     DownloadFrame(#[from] wgpu::BufferAsyncError),

@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{fmt::Display, sync::Arc};
 
 use serde::{Deserialize, Serialize};
 
@@ -6,6 +6,12 @@ use crate::scene::Resolution;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct RendererId(pub Arc<str>);
+
+impl Display for RendererId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
 
 /// RendererSpec provides configuration necessary to construct Renderer. Renderers
 /// are entities like shader, image or chromium_instance and can be used by nodes
@@ -34,11 +40,19 @@ pub struct WebRendererSpec {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde()]
 pub struct ImageSpec {
-    pub url: String,
+    #[serde(flatten)]
+    pub src: ImageSrc,
     pub image_id: RendererId,
 
     #[serde(flatten)]
     pub image_type: ImageType,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum ImageSrc {
+    Url { url: String },
+    LocalPath { path: String },
 }
 
 #[derive(Debug, Serialize, Deserialize)]

@@ -1,7 +1,6 @@
 use std::{
     collections::HashMap,
     env,
-    path::PathBuf,
     sync::Arc,
     thread::{self, JoinHandle},
 };
@@ -179,5 +178,5 @@ enum ChromiumSenderThreadError {
     FrameNotAlive(#[from] cef::FrameError),
 
     #[error("Failed to create shared memory")]
-    ShmemCreateFailed(#[from] ShmemError),
+    CreateShmemFailed(#[from] ShmemError),
 }

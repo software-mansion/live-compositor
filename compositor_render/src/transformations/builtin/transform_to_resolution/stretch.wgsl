@@ -1,16 +1,16 @@
 struct VertexInput {
     @location(0) position: vec3<f32>,
     @location(1) tex_coords: vec2<f32>,
-    @location(2) video_id: i32,
+    @location(2) texture_id: i32,
 }
 
 struct VertexOutput {
     @builtin(position) position: vec4<f32>,
     @location(0) tex_coords: vec2<f32>,
-    @location(1) @interpolate(flat) video_id: i32,
+    @location(1) @interpolate(flat) texture_id: i32,
 }
 
-struct CommonParams {
+struct CommonShaderParameters {
     time: f32,
     textures_count: u32,
     output_resolution: vec2<u32>,
@@ -19,7 +19,7 @@ struct CommonParams {
 @group(0) @binding(0) var textures: binding_array<texture_2d<f32>, 16>;
 @group(2) @binding(0) var sampler_: sampler;
 
-var<push_constant> common_params: CommonParams;
+var<push_constant> common_params: CommonShaderParameters;
 
 @vertex
 fn vs_main(input: VertexInput) -> VertexOutput {

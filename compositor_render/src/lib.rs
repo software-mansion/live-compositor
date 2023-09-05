@@ -1,3 +1,4 @@
+pub mod error;
 pub mod event_loop;
 pub mod frame_set;
 pub mod registry;

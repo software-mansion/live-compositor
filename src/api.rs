@@ -224,7 +224,7 @@ impl Api {
             if let Some((node_id, _)) = iter.find(|(_, output)| output.port == port && output.ip == ip) {
                 return Err(ApiError{
                     error_code: "PORT_AND_IP_ALREADY_IN_USE",
-                    message: format!("Failed to register output stream with id \"{output_id}\". Combination of port {port} and IP {ip} is already used by node \"{node_id}\""),
+                    message: format!("Failed to register output stream \"{output_id}\". Combination of port {port} and IP {ip} is already used by node \"{node_id}\""),
                     http_status_code: tiny_http::StatusCode(400)
                 });
             };
@@ -250,7 +250,7 @@ impl Api {
         if let Some((node_id, _)) = self.pipeline.inputs().find(|(_, input)| input.port == port) {
             return Err(ApiError{
                 error_code: "PORT_ALREADY_IN_USE",
-                message: format!("Failed to register input stream with id \"{id}\". Port {port} is already used by node \"{node_id}\""),
+                message: format!("Failed to register input stream \"{id}\". Port {port} is already used by node \"{node_id}\""),
                 http_status_code: tiny_http::StatusCode(400)
             });
         }

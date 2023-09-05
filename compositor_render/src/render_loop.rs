@@ -13,7 +13,7 @@ use log::error;
 use crate::{
     frame_set::FrameSet,
     renderer::{
-        scene::{Node, Scene, SceneError, SceneNodesSet},
+        scene::{InternalSceneError, Node, Scene, SceneNodesSet},
         RenderCtx,
     },
 };
@@ -22,7 +22,7 @@ pub(super) fn populate_inputs(
     ctx: &RenderCtx,
     scene: &mut Scene,
     frame_set: &mut FrameSet<InputId>,
-) -> Result<(), SceneError> {
+) -> Result<(), InternalSceneError> {
     for (input_id, input_textures) in &mut scene.inputs {
         let Some(frame) = frame_set.frames.remove(input_id) else {
             input_textures.clear();
@@ -60,7 +60,7 @@ pub(super) fn read_outputs(
     ctx: &RenderCtx,
     scene: &mut Scene,
     pts: Duration,
-) -> Result<HashMap<OutputId, Frame>, SceneError> {
+) -> Result<HashMap<OutputId, Frame>, InternalSceneError> {
     let mut pending_downloads = Vec::with_capacity(scene.outputs.len());
     for (output_id, (node_id, output_texture)) in &scene.outputs {
         let node = scene.nodes.node_or_fallback(node_id)?;
@@ -125,7 +125,7 @@ pub(super) fn run_transforms(
     ctx: &mut RenderCtx,
     scene: &mut Scene,
     pts: Duration,
-) -> Result<(), SceneError> {
+) -> Result<(), InternalSceneError> {
     let mut already_rendered = HashSet::new();
     for (node_id, _) in scene.outputs.values() {
         render_node(ctx, &mut scene.nodes, pts, node_id, &mut already_rendered)?;
@@ -139,7 +139,7 @@ pub(super) fn render_node(
     pts: Duration,
     node_id: &NodeId,
     already_rendered: &mut HashSet<NodeId>,
-) -> Result<(), SceneError> {
+) -> Result<(), InternalSceneError> {
     if already_rendered.contains(node_id) {
         return Ok(());
     }

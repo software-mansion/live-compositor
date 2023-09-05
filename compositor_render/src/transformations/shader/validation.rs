@@ -1,23 +1,27 @@
 use naga::{ArraySize, Constant, ConstantInner, Handle, Module, ShaderStage, Type};
 
+use super::VERTEX_ENTRYPOINT_NAME;
+
 #[derive(Debug, thiserror::Error)]
 pub enum ShaderValidationError {
-    #[error("A global that should be declared in the shader is not declared: {0:?}.")]
+    #[error("A global that should be declared in the shader is not declared: \n{0:#?}.")]
     GlobalNotFound(naga::GlobalVariable),
 
-    #[error("A global in the shader has a wrong type.")]
+    #[error("A global in the shader has a wrong type. {0}")]
     GlobalBadType(#[source] TypeEquivalenceError),
 
-    #[error("Could not find a vertex shader entrypoint.")]
+    #[error("Could not find a vertex shader entrypoint. Expected \"fn {VERTEX_ENTRYPOINT_NAME}(input: VertexInput)\"")]
     VertexShaderNotFound,
 
     #[error("Wrong vertex shader argument amount: found {0}, expected 1.")]
     VertexShaderBadArgumentAmount(usize),
 
-    #[error("The input type of the vertex shader has a name that cannot be found in the header.")]
-    VertexShaderBadInputTypeName(Option<String>),
+    // TODO: do we enforce type name from header?
+    // #[error("The input type of the vertex shader has a name that cannot be found in the header.")]
+    #[error("The input type of the vertex shader (\"{0}\") was not declared.")]
+    VertexShaderBadInputTypeName(String),
 
-    #[error("The vertex shader input has a wrong type.")]
+    #[error("The vertex shader input has a wrong type. {0}")]
     VertexShaderBadInput(#[source] TypeEquivalenceError),
 }
 
@@ -26,9 +30,7 @@ pub fn validate_contains_header(
     shader: &naga::Module,
 ) -> Result<(), ShaderValidationError> {
     validate_globals(header, shader)?;
-
     validate_vertex_input(header, shader)?;
-
     Ok(())
 }
 
@@ -79,7 +81,12 @@ fn validate_vertex_input(
         .iter()
         .find(|(_, ty)| ty.name == vertex_input_type.name)
         .ok_or_else(|| {
-            ShaderValidationError::VertexShaderBadInputTypeName(vertex_input_type.name.clone())
+            ShaderValidationError::VertexShaderBadInputTypeName(
+                vertex_input_type
+                    .name
+                    .clone()
+                    .unwrap_or("<unknown>".to_string()),
+            )
         })?;
 
     validate_type_equivalent(header_vertex_input, header, vertex_input, shader)
@@ -93,13 +100,18 @@ pub enum TypeEquivalenceError {
     #[error("Type names don't match: {0:?} != {1:?}.")]
     TypeNameMismatch(Option<String>, Option<String>),
 
-    #[error("Type internal structure doesn't match: {0:?} != {1:?}.")]
-    TypeStructureMismatch(naga::TypeInner, naga::TypeInner),
+    #[error(
+        "Type internal structure doesn't match:\nExpected:\n{expected:#?}\n\nActual:\n{actual:#?}."
+    )]
+    TypeStructureMismatch {
+        expected: naga::TypeInner,
+        actual: naga::TypeInner,
+    },
 
     #[error("Sizes of an array don't match: {0:?} != {1:?}.")]
     ArraySizeMismatch(ArraySizeOrConstant, ArraySizeOrConstant),
 
-    #[error("A composite type was used as an array length specifier.")]
+    #[error("A composite type was used as an array length specifier. {0:?}")]
     // don't think this will ever happen
     CompositeTypeAsArrayLen(ConstantInner),
 }
@@ -146,10 +158,10 @@ fn validate_type_equivalent(
         | naga::TypeInner::RayQuery
         | naga::TypeInner::ValuePointer { .. } => {
             if ti1 != ti2 {
-                return Err(TypeEquivalenceError::TypeStructureMismatch(
-                    type1.inner.clone(),
-                    type2.inner.clone(),
-                ));
+                return Err(TypeEquivalenceError::TypeStructureMismatch {
+                    expected: type1.inner.clone(),
+                    actual: type2.inner.clone(),
+                });
             }
         }
 
@@ -164,11 +176,17 @@ fn validate_type_equivalent(
                 stride: stride2,
             } = ti2
             else {
-                return Err(TypeEquivalenceError::TypeStructureMismatch(ti1, ti2));
+                return Err(TypeEquivalenceError::TypeStructureMismatch {
+                    expected: ti1,
+                    actual: ti2,
+                });
             };
 
             if stride1 != stride2 {
-                return Err(TypeEquivalenceError::TypeStructureMismatch(ti1, ti2));
+                return Err(TypeEquivalenceError::TypeStructureMismatch {
+                    expected: ti1,
+                    actual: ti2,
+                });
             }
 
             validate_array_size_equivalent(size1, mod1, size2, mod2)?;
@@ -184,7 +202,10 @@ fn validate_type_equivalent(
                 size: size2,
             } = ti2
             else {
-                return Err(TypeEquivalenceError::TypeStructureMismatch(ti1, ti2));
+                return Err(TypeEquivalenceError::TypeStructureMismatch {
+                    expected: ti1,
+                    actual: ti2,
+                });
             };
 
             validate_array_size_equivalent(size1, mod1, size2, mod2)?;
@@ -200,22 +221,25 @@ fn validate_type_equivalent(
                 span: span2,
             } = ti2
             else {
-                return Err(TypeEquivalenceError::TypeStructureMismatch(
-                    ti1.clone(),
-                    ti2.clone(),
-                ));
+                return Err(TypeEquivalenceError::TypeStructureMismatch {
+                    expected: ti1.clone(),
+                    actual: ti2.clone(),
+                });
             };
 
             if span1 != span2 || members1.len() != members2.len() {
-                return Err(TypeEquivalenceError::TypeStructureMismatch(
-                    ti1.clone(),
-                    ti2.clone(),
-                ));
+                return Err(TypeEquivalenceError::TypeStructureMismatch {
+                    expected: ti1.clone(),
+                    actual: ti2.clone(),
+                });
             }
 
             for (m1, m2) in members1.iter().zip(members2.iter()) {
                 if m1.binding != m2.binding || m1.name != m2.name || m1.offset != m2.offset {
-                    return Err(TypeEquivalenceError::TypeStructureMismatch(ti1, ti2));
+                    return Err(TypeEquivalenceError::TypeStructureMismatch {
+                        expected: ti1,
+                        actual: ti2,
+                    });
                 }
 
                 validate_type_equivalent(m1.ty, mod1, m2.ty, mod2)?;

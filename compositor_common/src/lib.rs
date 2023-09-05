@@ -9,7 +9,7 @@ pub mod util;
 mod validators;
 
 pub type Frame = frame::Frame;
-pub type SpecValidationError = validators::SpecValidationError;
+pub type SpecValidationError = validators::SceneSpecValidationError;
 
 /// TODO: This should be a rational.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]

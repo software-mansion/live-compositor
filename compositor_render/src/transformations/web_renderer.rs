@@ -1,7 +1,5 @@
 use std::{
     collections::HashMap,
-    io,
-    path::PathBuf,
     sync::{Arc, Mutex},
 };
 
@@ -17,7 +15,7 @@ use compositor_common::{
 use log::{error, info};
 use serde::{Deserialize, Serialize};
 
-use self::browser::{BrowserController, BrowserControllerNewError, EmbedFrameError};
+use self::browser::{BrowserController, EmbedFrameError};
 
 pub mod browser;
 pub mod chromium_context;
@@ -55,7 +53,7 @@ pub struct WebRenderer {
 }
 
 impl WebRenderer {
-    pub fn new(ctx: &RegisterCtx, params: WebRendererSpec) -> Result<Self, WebRendererNewError> {
+    pub fn new(ctx: &RegisterCtx, params: WebRendererSpec) -> Self {
         info!("Starting web renderer for {}", &params.url);
 
         let bgra_texture = BGRATexture::new(&ctx.wgpu_ctx, params.resolution);
@@ -67,16 +65,16 @@ impl WebRenderer {
             ctx.chromium.clone(),
             params.url.clone(),
             params.resolution,
-        )?);
+        ));
 
-        Ok(Self {
+        Self {
             params,
             controller,
             bgra_texture,
             _bgra_bind_group_layout: bgra_bind_group_layout,
             bgra_bind_group,
             bgra_to_rgba,
-        })
+        }
     }
 
     pub fn render(
@@ -85,7 +83,7 @@ impl WebRenderer {
         sources: &[(&NodeId, &NodeTexture)],
         buffers: &HashMap<NodeId, Arc<wgpu::Buffer>>,
         target: &mut NodeTexture,
-    ) -> Result<(), WebRendererRenderError> {
+    ) -> Result<(), RenderWebsiteError> {
         let mut controller = self.controller.lock().unwrap();
         controller.send_sources(ctx, sources, buffers)?;
 
@@ -109,16 +107,7 @@ impl WebRenderer {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum WebRendererNewError {
-    #[error("Failed to create browser controller")]
-    CreateBrowserController(#[from] BrowserControllerNewError),
-
-    #[error("Failed to create shared memory folder")]
-    CreateSharedMemoryFolder(#[from] io::Error),
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum WebRendererRenderError {
+pub enum RenderWebsiteError {
     #[error("Failed to embed sources")]
     EmbedSources(#[from] EmbedFrameError),
 

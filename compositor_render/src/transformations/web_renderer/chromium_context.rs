@@ -18,7 +18,7 @@ impl ChromiumContext {
     pub(crate) fn new(
         opts: WebRendererOptions,
         framerate: Framerate,
-    ) -> Result<Self, ChromiumContextError> {
+    ) -> Result<Self, WebRendererContextError> {
         if !opts.init {
             info!("Chromium context disabled");
             return Ok(Self {
@@ -50,17 +50,18 @@ impl ChromiumContext {
         &self,
         url: &str,
         state: BrowserClient,
-    ) -> Result<cef::Browser, ChromiumContextError> {
+    ) -> Result<cef::Browser, WebRendererContextError> {
         let context = self
             .context
             .as_ref()
-            .ok_or(ChromiumContextError::NoContext)?;
+            .ok_or(WebRendererContextError::NoContext)?;
 
         let window_info = cef::WindowInfo {
             windowless_rendering_enabled: true,
         };
         let settings = cef::BrowserSettings {
             windowless_frame_rate: self.framerate.0 as i32,
+            background_color: 0,
         };
 
         let (tx, rx) = crossbeam_channel::bounded(1);
@@ -113,7 +114,7 @@ impl cef::App for ChromiumApp {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum ChromiumContextError {
+pub enum WebRendererContextError {
     #[error("Chromium context failed: {0}")]
     ContextFailure(#[from] cef::ContextError),
 
