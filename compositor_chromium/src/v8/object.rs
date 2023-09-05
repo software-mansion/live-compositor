@@ -31,7 +31,6 @@ impl V8Object {
         }
     }
 
-    /// Returns `true` if value was set successfully
     pub fn set(
         &mut self,
         key: &str,
@@ -50,7 +49,6 @@ impl V8Object {
         }
     }
 
-    /// Returns `true` if value was deleted successfully
     pub fn delete(
         &mut self,
         key: &str,
