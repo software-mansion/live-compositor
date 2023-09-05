@@ -16,7 +16,7 @@ use crate::{
         text_renderer::TextRendererNode,
         web_renderer::WebRenderer,
     },
-    utils::{does_fallback, InputState},
+    utils::does_fallback,
 };
 
 use super::{
@@ -69,10 +69,12 @@ impl RenderNode {
             }
             NodeParams::Builtin { transformation } => {
                 let shader = ctx.renderers.builtin.shader(transformation);
+                let input_count = spec.input_pads.len() as u32;
 
                 Ok(Self::Builtin(BuiltinNode::new(
                     shader,
                     Builtin(transformation.clone()),
+                    input_count,
                 )))
             }
             NodeParams::TextRenderer {
@@ -101,18 +103,12 @@ impl RenderNode {
         target: &mut NodeTexture,
         pts: Duration,
     ) {
-        let input_states: Vec<InputState> = sources
+        let input_node_textures: Vec<&NodeTexture> = sources
             .iter()
-            .map(|(_, node_texture)| {
-                if node_texture.is_empty() {
-                    InputState::Empty
-                } else {
-                    InputState::Filled
-                }
-            })
+            .map(|(_, node_texture)| *node_texture)
             .collect();
 
-        if does_fallback(&self.fallback_strategy(), &input_states) {
+        if does_fallback(&self.fallback_strategy(), &input_node_textures) {
             target.clear();
             return;
         }

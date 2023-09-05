@@ -13,6 +13,7 @@ use super::Builtin;
 mod fixed_position_layout;
 mod transform_to_resolution;
 
+#[derive(Debug)]
 pub enum BuiltinParams {
     FixedPositionLayout(FixedPositionLayoutParams),
     Fit(FitParams),
@@ -48,22 +49,25 @@ impl BuiltinParams {
         input_resolution: Option<&Resolution>,
         output_resolution: Resolution,
     ) -> Self {
-        let Some(input_resolution) = input_resolution else {
-            return BuiltinParams::None;
-        };
-
         match strategy {
             TransformToResolutionStrategy::Stretch => BuiltinParams::None,
-            TransformToResolutionStrategy::Fill => {
-                BuiltinParams::Fill(FillParams::new(*input_resolution, output_resolution))
-            }
-            TransformToResolutionStrategy::Fit { .. } => {
-                BuiltinParams::Fit(FitParams::new(*input_resolution, output_resolution))
-            }
+            TransformToResolutionStrategy::Fill => match input_resolution {
+                Some(input_resolution) => {
+                    BuiltinParams::Fill(FillParams::new(*input_resolution, output_resolution))
+                }
+                None => BuiltinParams::Fill(FillParams::default()),
+            },
+            TransformToResolutionStrategy::Fit { .. } => match input_resolution {
+                Some(input_resolution) => {
+                    BuiltinParams::Fit(FitParams::new(*input_resolution, output_resolution))
+                }
+                None => BuiltinParams::Fit(FitParams::default()),
+            },
         }
     }
 
     /// Returned bytes have to match shader memory layout to work properly.
+    /// Should produce buffer with the same size for the same inputs count
     /// https://www.w3.org/TR/WGSL/#memory-layouts
     pub fn shader_buffer_content(&self) -> bytes::Bytes {
         match self {
