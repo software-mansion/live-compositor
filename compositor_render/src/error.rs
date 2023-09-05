@@ -2,10 +2,8 @@ use crate::{
     registry,
     renderer::{CreateWgpuCtxError, WgpuError},
     transformations::{
-        builtin::transformations::InitBuiltinError,
-        image_renderer::ImageError,
-        shader::CreateShaderError,
-        web_renderer::{chromium::WebRendererContextError, CreateWebRendererError},
+        builtin::transformations::InitBuiltinError, image_renderer::ImageError,
+        shader::CreateShaderError, web_renderer::chromium_context::WebRendererContextError,
     },
 };
 
@@ -28,9 +26,6 @@ pub enum RegisterRendererError {
 
     #[error(transparent)]
     Shader(#[from] CreateShaderError),
-
-    #[error("Failed to create web renderer instance. {0}")]
-    WebRendererInstance(#[from] CreateWebRendererError),
 
     #[error(transparent)]
     Image(#[from] ImageError),

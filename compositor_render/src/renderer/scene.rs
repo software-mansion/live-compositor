@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc, time::Duration};
+use std::{collections::HashMap, time::Duration};
 
 use compositor_common::{
     scene::{InputId, NodeId, NodeParams, NodeSpec, OutputId, Resolution, SceneSpec},
@@ -10,7 +10,8 @@ use crate::{
     render_loop::NodeRenderPass,
     transformations::{
         builtin::transformations::BuiltinTransformations, image_renderer::ImageNode,
-        shader::node::ShaderNode, text_renderer::TextRendererNode, web_renderer::WebRenderer,
+        shader::node::ShaderNode, text_renderer::TextRendererNode,
+        web_renderer::node::WebRendererNode,
     },
 };
 
@@ -22,7 +23,7 @@ use super::{
 
 pub enum RenderNode {
     Shader(ShaderNode),
-    Web { renderer: Arc<WebRenderer> },
+    Web(WebRendererNode),
     Text(TextRendererNode),
     Image(ImageNode),
     Builtin(ShaderNode),
@@ -38,7 +39,7 @@ impl RenderNode {
                     .web_renderers
                     .get(instance_id)
                     .ok_or_else(|| CreateNodeError::WebRendererNotFound(instance_id.clone()))?;
-                Ok(Self::Web { renderer })
+                Ok(Self::Web(WebRendererNode::new(renderer)))
             }
             NodeParams::Shader {
                 shader_id,
@@ -92,21 +93,17 @@ impl RenderNode {
     }
 
     pub fn render(
-        &self,
+        &mut self,
         ctx: &mut RenderCtx,
         sources: &[(&NodeId, &NodeTexture)],
         target: &mut NodeTexture,
         pts: Duration,
     ) {
         match self {
-            RenderNode::Shader(shader) => {
-                shader.render(sources, target, pts);
-            }
+            RenderNode::Shader(shader) => shader.render(sources, target, pts),
             RenderNode::Builtin(shader) => shader.render(sources, target, pts),
-            RenderNode::Web { renderer } => renderer.render(ctx, sources, target),
-            RenderNode::Text(renderer) => {
-                renderer.render(ctx, target);
-            }
+            RenderNode::Web(node) => node.render(ctx, sources, target),
+            RenderNode::Text(renderer) => renderer.render(ctx, target),
             RenderNode::Image(node) => node.render(ctx, target, pts),
             RenderNode::InputStream => {
                 // Nothing to do, textures on input nodes should be populated
@@ -118,7 +115,7 @@ impl RenderNode {
     pub fn resolution(&self) -> Option<Resolution> {
         match self {
             RenderNode::Shader(node) => Some(node.resolution()),
-            RenderNode::Web { renderer } => Some(renderer.resolution()),
+            RenderNode::Web(node) => Some(node.resolution()),
             RenderNode::Text(node) => Some(node.resolution()),
             RenderNode::Image(node) => Some(node.resolution()),
             RenderNode::InputStream => None,
@@ -142,6 +139,7 @@ impl Node {
         if let Some(resolution) = node.resolution() {
             output.ensure_size(ctx.wgpu_ctx, resolution);
         }
+
         Ok(Self {
             node_id: spec.node_id.clone(),
             renderer: node,

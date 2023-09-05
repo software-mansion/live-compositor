@@ -167,7 +167,6 @@ impl From<InitRendererEngineError> for PipelineError {
 
 const ENTITY_ALREADY_REGISTERED: &str = "ENTITY_ALREADY_REGISTERED";
 const INVALID_SHADER: &str = "INVALID_SHADER";
-const REGISTER_WEB_RENDERER_INSTANCE_ERROR: &str = "REGISTER_WEB_RENDERER_INSTANCE_ERROR";
 const REGISTER_IMAGE_ERROR: &str = "REGISTER_IMAGE_ERROR";
 
 impl From<RegisterRendererError> for PipelineError {
@@ -181,11 +180,6 @@ impl From<RegisterRendererError> for PipelineError {
             RegisterRendererError::Shader(_) => {
                 PipelineError::new(INVALID_SHADER, err, ErrorType::UserError)
             }
-            RegisterRendererError::WebRendererInstance(_) => PipelineError::new(
-                REGISTER_WEB_RENDERER_INSTANCE_ERROR,
-                err,
-                ErrorType::ServerError,
-            ),
             RegisterRendererError::Image(_) => {
                 PipelineError::new(REGISTER_IMAGE_ERROR, err, ErrorType::UserError)
             }
