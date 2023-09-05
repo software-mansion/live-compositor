@@ -104,10 +104,8 @@ impl BuiltinNode {
         target: &mut NodeTexture,
         pts: Duration,
     ) {
-        let node_textures = sources
-            .iter()
-            .map(|(_, node_texture)| *node_texture);
-        
+        let node_textures = sources.iter().map(|(_, node_texture)| *node_texture);
+
         if self.builtin.should_fallback(node_textures) {
             target.clear();
             return;

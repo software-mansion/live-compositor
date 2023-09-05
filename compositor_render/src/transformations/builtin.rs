@@ -9,12 +9,6 @@ pub mod collection;
 pub mod node;
 pub mod params;
 
-// #[derive(Debug, PartialEq, Eq)]
-// pub(crate) enum InputState {
-//     Filled,
-//     Empty,
-// }
-
 #[derive(Debug, Clone)]
 pub struct Builtin(pub BuiltinSpec);
 
