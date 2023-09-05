@@ -25,6 +25,7 @@ thiserror = "1.0.40"
 crossbeam-channel = "0.5.8"
 reqwest = { version = "0.11.18", features = ["blocking", "json"] }
 signal-hook = "0.3.15"
+shared_memory = "0.12.4"
 
 [dependencies]
 compositor_render = { path = "compositor_render" }
@@ -41,6 +42,7 @@ crossbeam-channel = { workspace = true }
 env_logger = { workspace = true }
 log = { workspace = true }
 signal-hook = { workspace = true }
+shared_memory = { workspace = true }
 
 [dev-dependencies]
 reqwest = { workspace = true }

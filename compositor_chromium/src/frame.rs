@@ -21,7 +21,7 @@ impl Frame {
         &self,
         pid: ProcessId,
         msg: ProcessMessage,
-    ) -> Result<(), ValidatedError> {
+    ) -> Result<(), FrameError> {
         unsafe {
             let frame = self.inner.get()?;
             let send_message = (*frame).send_process_message.unwrap();

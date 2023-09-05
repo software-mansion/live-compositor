@@ -3,7 +3,7 @@ use crate::{
     validated::{Validated, ValidatedError},
 };
 
-use super::{value::V8Value, V8ValueError};
+use super::{value::V8Value, V8ContextEntered, V8ValueError};
 
 pub struct V8Object(pub(super) Validated<chromium_sys::cef_v8value_t>);
 
@@ -37,6 +37,7 @@ impl V8Object {
         key: &str,
         value: &V8Value,
         attribute: V8PropertyAttribute,
+        _context_entered: &V8ContextEntered,
     ) -> Result<(), V8ObjectError> {
         let inner = self.0.get()?;
         let key = CefString::new_raw(key);
@@ -50,7 +51,11 @@ impl V8Object {
     }
 
     /// Returns `true` if value was deleted successfully
-    pub fn delete(&mut self, key: &str) -> Result<(), V8ObjectError> {
+    pub fn delete(
+        &mut self,
+        key: &str,
+        _context_entered: &V8ContextEntered,
+    ) -> Result<(), V8ObjectError> {
         let inner = self.0.get()?;
         let key = CefString::new_raw(key);
         unsafe {

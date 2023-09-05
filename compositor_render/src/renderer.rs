@@ -11,7 +11,9 @@ use crate::{
     error::{InitRendererEngineError, RenderSceneError},
     frame_set::FrameSet,
     render_loop::{populate_inputs, read_outputs},
-    transformations::{text_renderer::TextRendererCtx, web_renderer::chromium::ChromiumContext},
+    transformations::{
+        text_renderer::TextRendererCtx, web_renderer::chromium_context::ChromiumContext,
+    },
     WebRendererOptions,
 };
 use crate::{render_loop::run_transforms, transformations::shader::Shader};

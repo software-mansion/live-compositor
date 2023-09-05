@@ -1,4 +1,4 @@
-use std::os::raw::c_void;
+use std::{ops::Deref, os::raw::c_void};
 
 use crate::{
     cef_ref::{CefRefData, CefStruct},
@@ -11,7 +11,7 @@ pub struct V8ArrayBuffer(pub(super) Validated<chromium_sys::cef_v8value_t>);
 
 impl V8ArrayBuffer {
     pub fn new(buffer: Vec<u8>, _context_entered: &V8ContextEntered) -> Self {
-        let release_callback = V8ArrayBufferReleaseCallback {
+        let release_callback = V8ArrayBufferReleaseCallback::Delete {
             buffer_len: buffer.len(),
             buffer_cap: buffer.capacity(),
         };
@@ -27,6 +27,29 @@ impl V8ArrayBuffer {
 
         Self(Validated(inner))
     }
+
+    /// Creates a new array buffer from raw pointer. It can be only created while in context.
+    /// The buffer's memory is shared with V8 engine.
+    ///
+    /// # Safety
+    /// Make sure the pointer is valid. Invalid pointer can cause undefined behavior.
+    pub unsafe fn from_ptr(
+        ptr: *mut u8,
+        ptr_len: usize,
+        _context_entered: &V8ContextEntered,
+    ) -> Self {
+        // We do not delete the buffer because it's not owned by this function
+        let release_callback = V8ArrayBufferReleaseCallback::DoNotDelete;
+        let inner = unsafe {
+            chromium_sys::cef_v8value_create_array_buffer(
+                ptr as *mut c_void,
+                ptr_len,
+                CefRefData::new_ptr(release_callback),
+            )
+        };
+
+        Self(Validated(inner))
+    }
 }
 
 impl From<V8ArrayBuffer> for V8Value {
@@ -35,9 +58,12 @@ impl From<V8ArrayBuffer> for V8Value {
     }
 }
 
-struct V8ArrayBufferReleaseCallback {
-    buffer_len: usize,
-    buffer_cap: usize,
+enum V8ArrayBufferReleaseCallback {
+    Delete {
+        buffer_len: usize,
+        buffer_cap: usize,
+    },
+    DoNotDelete,
 }
 
 impl CefStruct for V8ArrayBufferReleaseCallback {
@@ -62,7 +88,15 @@ impl V8ArrayBufferReleaseCallback {
     ) {
         unsafe {
             let self_ref = CefRefData::<Self>::from_cef(self_);
-            Vec::from_raw_parts(buffer, self_ref.buffer_len, self_ref.buffer_cap);
+            match (*self_ref).deref() {
+                V8ArrayBufferReleaseCallback::Delete {
+                    buffer_len,
+                    buffer_cap,
+                } => {
+                    Vec::from_raw_parts(buffer, *buffer_len, *buffer_cap);
+                }
+                V8ArrayBufferReleaseCallback::DoNotDelete => {}
+            };
         }
     }
 }

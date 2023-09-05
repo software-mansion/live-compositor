@@ -1,18 +1,18 @@
 use crate::validated::{Validatable, Validated, ValidatedError};
 
-use super::{array_buffer::V8ArrayBuffer, object::V8Object, string::V8String};
+use super::{array_buffer::V8ArrayBuffer, object::V8Object, string::V8String, V8Int};
 
 /// Represents JavaScript values
 pub enum V8Value {
     Undefined(V8GenericValue),
     Null(V8GenericValue),
+    Int(V8Int),
     String(V8String),
     ArrayBuffer(V8ArrayBuffer),
     Object(V8Object),
 
     // Not implemented
     Bool(V8GenericValue),
-    Int(V8GenericValue),
     Uint(V8GenericValue),
     Double(V8GenericValue),
     Array(V8GenericValue),
@@ -34,7 +34,7 @@ impl V8Value {
             return Self::Bool(V8GenericValue(validated_value));
         }
         if Self::is_int(v8_value) {
-            return Self::Int(V8GenericValue(validated_value));
+            return Self::Int(V8Int(validated_value));
         }
         if Self::is_uint(v8_value) {
             return Self::Uint(V8GenericValue(validated_value));
@@ -72,7 +72,7 @@ impl V8Value {
             V8Value::Undefined(V8GenericValue(v)) => v.get()?,
             V8Value::Null(V8GenericValue(v)) => v.get()?,
             V8Value::Bool(V8GenericValue(v)) => v.get()?,
-            V8Value::Int(V8GenericValue(v)) => v.get()?,
+            V8Value::Int(V8Int(v)) => v.get()?,
             V8Value::Uint(V8GenericValue(v)) => v.get()?,
             V8Value::Double(V8GenericValue(v)) => v.get()?,
             V8Value::String(V8String(v)) => v.get()?,

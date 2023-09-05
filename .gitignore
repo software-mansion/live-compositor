@@ -22,3 +22,6 @@ target/
 
 # MacOS
 **/.DS_Store
+
+# Generated during runtime
+/shmem
