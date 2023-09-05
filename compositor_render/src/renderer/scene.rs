@@ -64,10 +64,12 @@ impl RenderNode {
             }
             NodeParams::Builtin { transformation } => {
                 let shader = ctx.renderers.builtin.shader(transformation);
+                let input_count = spec.input_pads.len() as u32;
 
                 Ok(Self::Builtin(BuiltinNode::new(
                     shader,
                     Builtin(transformation.clone()),
+                    input_count,
                 )))
             }
             NodeParams::TextRenderer {

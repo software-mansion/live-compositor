@@ -1,6 +1,7 @@
 use compositor_common::scene::{builtin_transformations::TextureLayout, Resolution};
 use nalgebra_glm::{rotate_z, scale, translate, vec3, Mat4};
 
+#[derive(Debug)]
 pub struct FixedPositionLayoutParams {
     transformation_matrices: Vec<Mat4>,
 }
