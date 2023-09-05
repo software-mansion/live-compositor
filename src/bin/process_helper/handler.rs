@@ -1,9 +1,7 @@
-use std::{path::PathBuf, sync::Arc};
+use std::{env, path::PathBuf, sync::Arc};
 
 use compositor_chromium::cef;
-use compositor_render::{
-    EMBED_SOURCE_FRAMES_MESSAGE, SHMEM_FOLDER_PATH, UNEMBED_SOURCE_FRAMES_MESSAGE,
-};
+use compositor_render::{EMBED_SOURCE_FRAMES_MESSAGE, UNEMBED_SOURCE_FRAMES_MESSAGE};
 use log::error;
 use shared_memory::ShmemConf;
 
@@ -77,7 +75,7 @@ impl RenderProcessHandler {
         ctx_entered: &cef::V8ContextEntered,
     ) {
         let shmem = ShmemConf::new()
-            .flink(PathBuf::from(SHMEM_FOLDER_PATH).join(&source_id))
+            .flink(env::temp_dir().join(&source_id))
             .open()
             .unwrap();
         let data_ptr = shmem.as_ptr();

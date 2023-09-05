@@ -28,8 +28,6 @@ pub(crate) mod node;
 pub const EMBED_SOURCE_FRAMES_MESSAGE: &str = "EMBED_SOURCE_FRAMES";
 pub const UNEMBED_SOURCE_FRAMES_MESSAGE: &str = "UNEMBED_SOURCE_FRAMES";
 
-pub const SHMEM_FOLDER_PATH: &str = "shmem";
-
 #[derive(Serialize, Deserialize)]
 #[serde(default)]
 pub struct WebRendererOptions {
@@ -64,10 +62,6 @@ impl WebRenderer {
         let bgra_bind_group_layout = BGRATexture::new_bind_group_layout(&ctx.wgpu_ctx.device);
         let bgra_bind_group = bgra_texture.new_bind_group(&ctx.wgpu_ctx, &bgra_bind_group_layout);
         let bgra_to_rgba = BGRAToRGBAConverter::new(&ctx.wgpu_ctx.device, &bgra_bind_group_layout);
-
-        if !PathBuf::from(SHMEM_FOLDER_PATH).exists() {
-            std::fs::create_dir_all(SHMEM_FOLDER_PATH)?;
-        }
 
         let controller = Mutex::new(BrowserController::new(
             ctx.chromium.clone(),

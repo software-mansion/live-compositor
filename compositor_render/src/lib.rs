@@ -10,8 +10,7 @@ pub(crate) mod utils;
 mod sync_renderer;
 
 pub use transformations::web_renderer::{
-    WebRendererOptions, EMBED_SOURCE_FRAMES_MESSAGE, SHMEM_FOLDER_PATH,
-    UNEMBED_SOURCE_FRAMES_MESSAGE,
+    WebRendererOptions, EMBED_SOURCE_FRAMES_MESSAGE, UNEMBED_SOURCE_FRAMES_MESSAGE,
 };
 
 pub type Renderer = sync_renderer::SyncRenderer;

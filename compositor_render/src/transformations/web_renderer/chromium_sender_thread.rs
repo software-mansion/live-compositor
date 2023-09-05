@@ -1,5 +1,6 @@
 use std::{
     collections::HashMap,
+    env,
     path::PathBuf,
     sync::Arc,
     thread::{self, JoinHandle},
@@ -12,7 +13,7 @@ use log::error;
 use shared_memory::{Shmem, ShmemConf, ShmemError};
 
 use crate::{
-    renderer::texture::utils::pad_to_256, EMBED_SOURCE_FRAMES_MESSAGE, SHMEM_FOLDER_PATH,
+    renderer::texture::utils::pad_to_256, EMBED_SOURCE_FRAMES_MESSAGE,
     UNEMBED_SOURCE_FRAMES_MESSAGE,
 };
 
@@ -143,7 +144,7 @@ impl ChromiumSenderThread {
         shared_memories: &'a mut HashMap<NodeId, Shmem>,
     ) -> Result<&Shmem, ChromiumSenderThreadError> {
         let shmem = ShmemConf::new()
-            .flink(PathBuf::from(SHMEM_FOLDER_PATH).join(source_id.to_string()))
+            .flink(env::temp_dir().join(source_id.to_string()))
             .size((4 * size.width * size.height) as usize)
             .force_create_flink()
             .create()?;
