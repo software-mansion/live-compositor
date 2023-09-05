@@ -37,7 +37,10 @@ pub(crate) fn does_fallback(
             .iter()
             .any(|input_state| input_state.is_empty()),
         FallbackStrategy::FallbackIfOnlyInputMissing => {
-            input_states.len() == 1 && input_states[0].is_empty()
+            input_states.len() == 1
+                && input_states
+                    .get(0)
+                    .map_or(false, |input_state| input_state.is_empty())
         }
     }
 }
