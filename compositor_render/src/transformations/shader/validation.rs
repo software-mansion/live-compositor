@@ -1,4 +1,4 @@
-use compositor_common::scene::ShaderParam;
+use compositor_common::scene::shader::ShaderParam;
 use naga::{ArraySize, ConstantInner, Handle, Module, ScalarKind, ShaderStage, Type, VectorSize};
 
 use super::{

@@ -5,7 +5,7 @@ use crate::renderer::{
 
 use std::{sync::Arc, time::Duration};
 
-use compositor_common::scene::{NodeId, ShaderParam};
+use compositor_common::scene::{shader::ShaderParam, NodeId};
 
 use crate::renderer::{texture::Texture, WgpuCtx};
 

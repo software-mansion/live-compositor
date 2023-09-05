@@ -35,7 +35,7 @@ fn default_max_height() -> u32 {
     MAX_NODE_RESOLUTION.height as u32
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "snake_case")]
 pub enum Style {
     Normal,
@@ -43,7 +43,7 @@ pub enum Style {
     Oblique,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "snake_case")]
 pub enum Wrap {
     None,
@@ -61,7 +61,7 @@ impl From<Wrap> for glyphon::cosmic_text::Wrap {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "snake_case")]
 pub enum Align {
     Left,
@@ -81,7 +81,7 @@ impl From<Align> for glyphon::cosmic_text::Align {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(tag = "type")]
 pub struct TextSpec {
     pub content: Arc<str>,
@@ -127,7 +127,7 @@ impl From<&TextSpec> for AttrsOwned {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum TextDimensions {
     /// Renders text and "trims" texture to smallest possible size

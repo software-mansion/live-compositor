@@ -1,10 +1,12 @@
-use std::fmt::Display;
-
 use serde::{Deserialize, Serialize};
 
-use crate::util::{Coord, RGBAColor};
+use crate::{
+    error::BuiltinSpecValidationError,
+    util::{Coord, Degree, RGBAColor},
+};
 
-use super::{NodeId, Resolution};
+use super::NodeSpec;
+use super::Resolution;
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 #[serde(tag = "transformation", rename_all = "snake_case")]
@@ -20,41 +22,6 @@ pub enum BuiltinSpec {
         #[serde(default)]
         background_color_rgba: RGBAColor,
     },
-}
-
-impl BuiltinSpec {
-    pub fn validate(
-        &self,
-        node_id: &NodeId,
-        inputs: &Vec<NodeId>,
-    ) -> Result<(), InvalidBuiltinTransformationSpec> {
-        match self {
-            BuiltinSpec::TransformToResolution { .. } => {
-                if inputs.len() != 1 {
-                    return Err(
-                        InvalidBuiltinTransformationSpec::TransformToResolutionExactlyOneInput(
-                            node_id.clone(),
-                        ),
-                    );
-                }
-
-                Ok(())
-            }
-            BuiltinSpec::FixedPositionLayout {
-                texture_layouts, ..
-            } => {
-                if texture_layouts.len() != inputs.len() {
-                    return Err(InvalidTextureLayoutsCount {
-                        node: node_id.clone(),
-                        texture_layouts_count: texture_layouts.len() as u32,
-                        input_pads_count: inputs.len() as u32,
-                    }
-                    .into());
-                }
-                Ok(())
-            }
-        }
-    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
@@ -81,35 +48,27 @@ pub struct TextureLayout {
     pub rotation: Degree,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq)]
-pub struct Degree(pub i32);
+impl BuiltinSpec {
+    pub fn validate(&self, node_spec: &NodeSpec) -> Result<(), BuiltinSpecValidationError> {
+        match self {
+            BuiltinSpec::TransformToResolution { .. } => {
+                if node_spec.input_pads.len() != 1 {
+                    return Err(BuiltinSpecValidationError::TransformToResolutionExactlyOneInput);
+                }
 
-#[derive(Debug, thiserror::Error, PartialEq, Eq)]
-pub enum InvalidBuiltinTransformationSpec {
-    #[error(transparent)]
-    InvalidTextureLayoutsCount(#[from] InvalidTextureLayoutsCount),
-    #[error("Invalid node {0} specification. Nodes that use transformation \"transform_to_resolution\" need to have exactly one input pad.")]
-    TransformToResolutionExactlyOneInput(NodeId),
-}
-
-#[derive(Debug, thiserror::Error, PartialEq, Eq)]
-pub struct InvalidTextureLayoutsCount {
-    node: NodeId,
-    texture_layouts_count: u32,
-    input_pads_count: u32,
-}
-
-impl Display for InvalidTextureLayoutsCount {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let Self {
-            node,
-            texture_layouts_count,
-            input_pads_count,
-        } = self;
-        if self.texture_layouts_count > self.input_pads_count {
-            write!(f, "Too many texture layouts defined in node \"{node}\". There are {input_pads_count} input pads, but {texture_layouts_count} texture layouts, were provided.")
-        } else {
-            write!(f, "Missing texture layouts in node \"{node}\". There are {input_pads_count} input pads, but only {texture_layouts_count} texture layouts were provided.")
+                Ok(())
+            }
+            BuiltinSpec::FixedPositionLayout {
+                texture_layouts, ..
+            } => {
+                if texture_layouts.len() != node_spec.input_pads.len() {
+                    return Err(BuiltinSpecValidationError::FixedLayoutInvalidLayoutCount {
+                        layout_count: texture_layouts.len() as u32,
+                        input_count: node_spec.input_pads.len() as u32,
+                    });
+                }
+                Ok(())
+            }
         }
     }
 }
