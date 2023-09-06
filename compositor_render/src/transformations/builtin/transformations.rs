@@ -51,7 +51,7 @@ impl ConvertResolutionTransformations {
                 Shader::new(
                     wgpu_ctx,
                     include_str!("./transform_to_resolution/stretch.wgsl").into(),
-                    FallbackStrategy::FallbackIfOnlyInputMissing,
+                    FallbackStrategy::FallbackIfAllInputsMissing,
                 )
                 .map_err(InitBuiltinError::StretchToResolution)?,
             ),
@@ -59,7 +59,7 @@ impl ConvertResolutionTransformations {
                 Shader::new(
                     wgpu_ctx,
                     include_str!("./transform_to_resolution/fill.wgsl").into(),
-                    FallbackStrategy::FallbackIfOnlyInputMissing,
+                    FallbackStrategy::FallbackIfAllInputsMissing,
                 )
                 .map_err(InitBuiltinError::FillToResolution)?,
             ),
@@ -67,7 +67,7 @@ impl ConvertResolutionTransformations {
                 Shader::new(
                     wgpu_ctx,
                     include_str!("./transform_to_resolution/fit.wgsl").into(),
-                    FallbackStrategy::FallbackIfOnlyInputMissing,
+                    FallbackStrategy::FallbackIfAllInputsMissing,
                 )
                 .map_err(InitBuiltinError::FitToResolution)?,
             ),
@@ -82,7 +82,7 @@ impl FixedPositionLayout {
         Ok(Self(Arc::new(Shader::new(
             wgpu_ctx,
             include_str!("./fixed_position_layout.wgsl").into(),
-            FallbackStrategy::FallbackIfOnlyInputMissing,
+            FallbackStrategy::FallbackIfAllInputsMissing,
         )?)))
     }
 }

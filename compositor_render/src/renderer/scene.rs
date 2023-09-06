@@ -133,6 +133,10 @@ impl RenderNode {
     }
 
     fn should_fallback(&self, sources: &[(&NodeId, &NodeTexture)]) -> bool {
+        if sources.is_empty() {
+            return false;
+        }
+
         match self.fallback_strategy() {
             FallbackStrategy::NeverFallback => false,
             FallbackStrategy::FallbackIfAllInputsMissing => sources
@@ -141,12 +145,6 @@ impl RenderNode {
             FallbackStrategy::FallbackIfAnyInputsMissing => sources
                 .iter()
                 .any(|(_, node_texture)| node_texture.is_empty()),
-            FallbackStrategy::FallbackIfOnlyInputMissing => {
-                sources.len() == 1
-                    && sources
-                        .iter()
-                        .all(|(_, node_texture)| node_texture.is_empty())
-            }
         }
     }
 

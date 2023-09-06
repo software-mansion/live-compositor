@@ -19,16 +19,15 @@ pub enum FallbackStrategy {
     NeverFallback,
     FallbackIfAllInputsMissing,
     FallbackIfAnyInputsMissing,
-    FallbackIfOnlyInputMissing,
 }
 
 impl FallbackStrategy {
     pub fn default_shader_fallback_strategy() -> FallbackStrategy {
-        FallbackStrategy::FallbackIfOnlyInputMissing
+        FallbackStrategy::FallbackIfAllInputsMissing
     }
 
     pub fn default_shader_web_renderer_strategy() -> FallbackStrategy {
-        FallbackStrategy::FallbackIfOnlyInputMissing
+        FallbackStrategy::FallbackIfAllInputsMissing
     }
 }
 
