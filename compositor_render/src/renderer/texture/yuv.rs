@@ -6,7 +6,7 @@ use wgpu::Buffer;
 
 use crate::renderer::WgpuCtx;
 
-use super::{base::Texture, utils::pad_to_256};
+use super::base::Texture;
 
 pub struct YUVPendingDownload<'a, F, E>
 where
@@ -121,20 +121,10 @@ impl YUVTextures {
 
     pub(super) fn new_download_buffers(&self, ctx: &WgpuCtx) -> [Buffer; 3] {
         [
-            self.new_download_buffer(ctx, 0),
-            self.new_download_buffer(ctx, 1),
-            self.new_download_buffer(ctx, 2),
+            self.planes[0].new_download_buffer(ctx),
+            self.planes[1].new_download_buffer(ctx),
+            self.planes[2].new_download_buffer(ctx),
         ]
-    }
-
-    fn new_download_buffer(&self, ctx: &WgpuCtx, plane: usize) -> Buffer {
-        let size = self.planes[plane].size();
-        ctx.device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("output texture buffer"),
-            mapped_at_creation: false,
-            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
-            size: (pad_to_256(size.width) * size.height) as u64,
-        })
     }
 
     pub(super) fn copy_to_buffers(&self, ctx: &WgpuCtx, buffers: &[Buffer; 3]) {
@@ -145,25 +135,7 @@ impl YUVTextures {
             });
 
         for plane in [0, 1, 2] {
-            let texture = &self.planes[plane].texture;
-            let size = texture.size();
-            encoder.copy_texture_to_buffer(
-                wgpu::ImageCopyTexture {
-                    aspect: wgpu::TextureAspect::All,
-                    mip_level: 0,
-                    origin: wgpu::Origin3d::ZERO,
-                    texture,
-                },
-                wgpu::ImageCopyBuffer {
-                    buffer: &buffers[plane],
-                    layout: wgpu::ImageDataLayout {
-                        bytes_per_row: Some(pad_to_256(size.width)),
-                        rows_per_image: Some(size.height),
-                        offset: 0,
-                    },
-                },
-                size,
-            )
+            self.planes[plane].copy_to_buffer(&mut encoder, &buffers[plane]);
         }
 
         ctx.queue.submit(Some(encoder.finish()));

@@ -19,7 +19,15 @@ impl ProcessMessage {
         }
     }
 
-    pub fn write_string(&mut self, index: usize, data: &str) -> bool {
+    pub fn size(&self) -> usize {
+        unsafe {
+            let args = self.arg_list();
+            let get_size = (*args).get_size.unwrap();
+            get_size(args)
+        }
+    }
+
+    pub fn write_string(&mut self, index: usize, data: String) -> bool {
         unsafe {
             let args = self.arg_list();
             let set_string = (*args).set_string.unwrap();
