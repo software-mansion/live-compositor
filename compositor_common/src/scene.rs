@@ -4,7 +4,7 @@ use std::{fmt::Display, sync::Arc};
 use crate::renderer_spec::RendererId;
 
 use self::{
-    builtin_transformations::BuiltinTransformationSpec,
+    builtin_transformations::BuiltinSpec,
     text_spec::{TextDimensions, TextSpec},
 };
 
@@ -20,6 +20,12 @@ pub const MAX_NODE_RESOLUTION: Resolution = Resolution {
 pub struct Resolution {
     pub width: usize,
     pub height: usize,
+}
+
+impl Resolution {
+    pub fn ratio(&self) -> f32 {
+        self.width as f32 / self.height as f32
+    }
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
@@ -116,8 +122,7 @@ pub enum NodeParams {
     #[serde(rename = "built-in")]
     Builtin {
         #[serde(flatten)]
-        transformation: BuiltinTransformationSpec,
-        resolution: Resolution,
+        transformation: BuiltinSpec,
     },
 }
 

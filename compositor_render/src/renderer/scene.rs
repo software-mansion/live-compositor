@@ -9,8 +9,10 @@ use log::error;
 use crate::{
     render_loop::NodeRenderPass,
     transformations::{
-        builtin::transformations::BuiltinTransformations, image_renderer::ImageNode,
-        shader::node::ShaderNode, text_renderer::TextRendererNode,
+        builtin::{node::BuiltinNode, Builtin},
+        image_renderer::ImageNode,
+        shader::node::ShaderNode,
+        text_renderer::TextRendererNode,
         web_renderer::node::WebRendererNode,
     },
 };
@@ -26,7 +28,7 @@ pub enum RenderNode {
     Web(WebRendererNode),
     Text(TextRendererNode),
     Image(ImageNode),
-    Builtin(ShaderNode),
+    Builtin(BuiltinNode),
     InputStream,
 }
 
@@ -60,18 +62,15 @@ impl RenderNode {
                 );
                 Ok(Self::Shader(node))
             }
-            NodeParams::Builtin {
-                transformation,
-                resolution,
-            } => {
-                let node = ShaderNode::new(
-                    ctx.wgpu_ctx,
-                    ctx.renderers.builtin.shader(transformation),
-                    BuiltinTransformations::params(transformation, resolution).as_ref(),
-                    BuiltinTransformations::clear_color(transformation),
-                    *resolution,
-                );
-                Ok(Self::Builtin(node))
+            NodeParams::Builtin { transformation } => {
+                let shader = ctx.renderers.builtin.shader(transformation);
+                let input_count = spec.input_pads.len() as u32;
+
+                Ok(Self::Builtin(BuiltinNode::new(
+                    shader,
+                    Builtin(transformation.clone()),
+                    input_count,
+                )))
             }
             NodeParams::TextRenderer {
                 text_params,
@@ -100,11 +99,15 @@ impl RenderNode {
         pts: Duration,
     ) {
         match self {
-            RenderNode::Shader(shader) => shader.render(sources, target, pts),
-            RenderNode::Builtin(shader) => shader.render(sources, target, pts),
-            RenderNode::Web(node) => node.render(ctx, sources, target),
-            RenderNode::Text(renderer) => renderer.render(ctx, target),
-            RenderNode::Image(node) => node.render(ctx, target, pts),
+            RenderNode::Shader(ref shader) => {
+                shader.render(sources, target, pts);
+            }
+            RenderNode::Builtin(builtin_node) => builtin_node.render(sources, target, pts),
+            RenderNode::Web(renderer) => renderer.render(ctx, sources, target),
+            RenderNode::Text(ref renderer) => {
+                renderer.render(ctx, target);
+            }
+            RenderNode::Image(ref node) => node.render(ctx, target, pts),
             RenderNode::InputStream => {
                 // Nothing to do, textures on input nodes should be populated
                 // at the start of render loop
@@ -119,7 +122,7 @@ impl RenderNode {
             RenderNode::Text(node) => Some(node.resolution()),
             RenderNode::Image(node) => Some(node.resolution()),
             RenderNode::InputStream => None,
-            RenderNode::Builtin(node) => Some(node.resolution()),
+            RenderNode::Builtin(node) => node.resolution_from_spec(),
         }
     }
 }

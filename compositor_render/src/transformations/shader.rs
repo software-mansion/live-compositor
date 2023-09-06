@@ -45,7 +45,7 @@ pub enum CreateShaderError {
 /// @group(2) @binding(0) var sampler_: sampler;
 /// ```
 pub struct Shader {
-    wgpu_ctx: Arc<WgpuCtx>,
+    pub wgpu_ctx: Arc<WgpuCtx>,
     pipeline: Pipeline,
     empty_texture: Texture,
 }

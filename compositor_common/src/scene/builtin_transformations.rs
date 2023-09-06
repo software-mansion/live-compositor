@@ -4,27 +4,32 @@ use serde::{Deserialize, Serialize};
 
 use crate::util::{Coord, RGBAColor};
 
-use super::NodeId;
+use super::{NodeId, Resolution};
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 #[serde(tag = "transformation", rename_all = "snake_case")]
-pub enum BuiltinTransformationSpec {
-    TransformToResolution(TransformToResolution),
+pub enum BuiltinSpec {
+    TransformToResolution {
+        resolution: Resolution,
+        #[serde(flatten)]
+        strategy: TransformToResolutionStrategy,
+    },
     FixedPositionLayout {
+        resolution: Resolution,
         texture_layouts: Vec<TextureLayout>,
         #[serde(default)]
         background_color_rgba: RGBAColor,
     },
 }
 
-impl BuiltinTransformationSpec {
+impl BuiltinSpec {
     pub fn validate(
         &self,
         node_id: &NodeId,
         inputs: &Vec<NodeId>,
     ) -> Result<(), InvalidBuiltinTransformationSpec> {
         match self {
-            BuiltinTransformationSpec::TransformToResolution(_) => {
+            BuiltinSpec::TransformToResolution { .. } => {
                 if inputs.len() != 1 {
                     return Err(
                         InvalidBuiltinTransformationSpec::TransformToResolutionExactlyOneInput(
@@ -35,7 +40,7 @@ impl BuiltinTransformationSpec {
 
                 Ok(())
             }
-            BuiltinTransformationSpec::FixedPositionLayout {
+            BuiltinSpec::FixedPositionLayout {
                 texture_layouts, ..
             } => {
                 if texture_layouts.len() != inputs.len() {
@@ -54,7 +59,7 @@ impl BuiltinTransformationSpec {
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 #[serde(tag = "strategy", rename_all = "snake_case")]
-pub enum TransformToResolution {
+pub enum TransformToResolutionStrategy {
     /// Rescales input in both axis to match output resolution
     Stretch,
     /// Scales input preserving aspect ratio and cuts equal parts

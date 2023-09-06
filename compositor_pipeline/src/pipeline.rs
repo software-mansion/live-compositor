@@ -1,5 +1,4 @@
 use std::collections::{hash_map, HashMap};
-use std::error::Error;
 use std::sync::Arc;
 use std::sync::{Mutex, MutexGuard};
 use std::thread;
@@ -183,10 +182,7 @@ impl<Input: PipelineInput, Output: PipelineOutput> Pipeline<Input, Output> {
 
                 let output = renderer.render(input_frames);
                 let Ok(output_frames) = output else {
-                    error!(
-                        "Error while rendering: {}",
-                        output.unwrap_err().source().unwrap()
-                    );
+                    error!("Error while rendering: {}", output.unwrap_err());
                     continue;
                 };
 
