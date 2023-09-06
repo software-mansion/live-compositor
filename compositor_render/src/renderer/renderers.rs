@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::{
     registry::{RegistryType, RendererRegistry},
     transformations::{
-        builtin::collection::{BuiltinsCollection, InitBuiltinError},
+        builtin::{collection::BuiltinsCollection, error::InitBuiltinError},
         image_renderer::Image,
         shader::Shader,
         web_renderer::WebRenderer,
