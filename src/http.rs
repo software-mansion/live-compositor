@@ -1,3 +1,4 @@
+use compositor_common::error::ErrorStack;
 use compositor_pipeline::pipeline;
 use compositor_render::event_loop::EventLoop;
 use crossbeam_channel::RecvTimeoutError;
@@ -55,21 +56,21 @@ impl Server {
                                 Err(RecvTimeoutError::Timeout) => {
                                     server.send_err_response(
                                         raw_request,
-                                        ApiError {
-                                            error_code: "QUERY_TIMEOUT",
-                                            message: "query timed out".to_string(),
-                                            http_status_code: StatusCode(408),
-                                        },
+                                        ApiError::new(
+                                            "QUERY_TIMEOUT",
+                                            "query timed out".to_string(),
+                                            StatusCode(408),
+                                        ),
                                     );
                                 }
                                 Err(RecvTimeoutError::Disconnected) => {
                                     server.send_err_response(
                                         raw_request,
-                                        ApiError {
-                                            error_code: "INTERNAL_SERVER_ERROR",
-                                            message: "Internal Server Error".to_string(),
-                                            http_status_code: StatusCode(500),
-                                        },
+                                        ApiError::new(
+                                            "INTERNAL_SERVER_ERROR",
+                                            "Internal Server Error".to_string(),
+                                            StatusCode(500),
+                                        ),
                                     );
                                 }
                             };
@@ -87,7 +88,10 @@ impl Server {
             signals.forever().next();
         };
         if let Err(err) = event_loop.run_with_fallback(event_loop_fallback) {
-            error!("Event loop run failed: {err}")
+            error!(
+                "Failed to start event loop.\n{}",
+                ErrorStack::new(&err).into_string()
+            )
         }
     }
 
@@ -124,11 +128,11 @@ impl Server {
         let request = Server::parse_request(raw_request)?;
         match request {
             Request::Init(opts) => Ok(opts),
-            _ => Err(ApiError {
-                error_code: "COMPOSITOR_NOT_INITIALIZED",
-                message: "Compositor was not initialized, send \"init\" request first.".to_string(),
-                http_status_code: StatusCode(400),
-            }),
+            _ => Err(ApiError::new(
+                "COMPOSITOR_NOT_INITIALIZED",
+                "Compositor was not initialized, send \"init\" request first.".to_string(),
+                StatusCode(400),
+            )),
         }
     }
 
@@ -152,6 +156,7 @@ impl Server {
     fn send_err_response(&self, raw_request: tiny_http::Request, err: ApiError) {
         let response_result = serde_json::to_string(&json!({
             "msg": err.message,
+            "stack": err.stack,
             "error_code": err.error_code,
         }))
         .map_err(Into::into)
@@ -170,10 +175,12 @@ impl Server {
     }
 
     fn parse_request(request: &mut tiny_http::Request) -> Result<Request, ApiError> {
-        serde_json::from_reader::<_, Request>(request.as_reader()).map_err(|err| ApiError {
-            error_code: "MALFORMED_REQUEST",
-            message: format!("Received malformed request:\n{err}"),
-            http_status_code: StatusCode(400),
+        serde_json::from_reader::<_, Request>(request.as_reader()).map_err(|err| {
+            ApiError::new(
+                "MALFORMED_REQUEST",
+                format!("Received malformed request:\n{err}"),
+                StatusCode(400),
+            )
         })
     }
 }

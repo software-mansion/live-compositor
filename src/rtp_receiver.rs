@@ -1,5 +1,6 @@
 use anyhow::{anyhow, Result};
 use compositor_common::{
+    error::ErrorStack,
     frame::YuvData,
     scene::{InputId, Resolution},
     Frame,
@@ -134,7 +135,10 @@ impl RtpReceiver {
                     }
                 };
                 if let Err(err) = queue.enqueue_frame(input_id.clone(), frame) {
-                    error!("Failed to push frame: {}", err);
+                    error!(
+                        "Failed to push frame: {}",
+                        ErrorStack::new(&err).into_string()
+                    );
                 }
             }
         }

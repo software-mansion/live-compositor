@@ -6,7 +6,10 @@ use std::{
 };
 
 use compositor_chromium::cef;
-use compositor_common::scene::{NodeId, Resolution};
+use compositor_common::{
+    error::ErrorStack,
+    scene::{NodeId, Resolution},
+};
 use crossbeam_channel::{select, Receiver, Sender};
 use log::error;
 use shared_memory::{Shmem, ShmemConf, ShmemError};
@@ -68,7 +71,10 @@ impl ChromiumSenderThread {
             };
 
             if let Err(err) = result {
-                error!("Error occurred in chromium sender thread: {err}");
+                error!(
+                    "Error occurred in chromium sender thread.\n{}",
+                    ErrorStack::new(&err).into_string()
+                );
             }
         }
     }

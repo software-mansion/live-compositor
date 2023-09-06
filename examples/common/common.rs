@@ -70,18 +70,21 @@ fn get_formated_body(body_str: &str) -> String {
         return body_str.to_string();
     };
 
-    let Some(msg_value) = body_json.get("msg") else {
+    let Some(stack_value) = body_json.get("stack") else {
         return serde_json::to_string_pretty(&body_json).unwrap();
     };
 
-    let Some(msg_string) = msg_value.as_str() else {
-        return serde_json::to_string_pretty(&body_json).unwrap();
-    };
-    let msg_string = msg_string.to_string();
+    let errors: Vec<&str> = stack_value
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|value| value.as_str().unwrap())
+        .collect();
+    let msg_string = " - ".to_string() + &errors.join("\n - ");
     let body_map = body_json.as_object_mut().unwrap();
-    body_map.remove("msg");
+    body_map.remove("stack");
     format!(
-        "{}\n\nError message:\n{}",
+        "{}\n\nError stack:\n{}",
         serde_json::to_string_pretty(&body_map).unwrap(),
         msg_string,
     )

@@ -113,11 +113,11 @@ impl Api {
 
     pub fn handle_request(&mut self, request: Request) -> Result<ResponseHandler, ApiError> {
         match request {
-            Request::Init(_) => Err(ApiError {
-                error_code: "COMPOSITOR_ALREADY_INITIALIZED",
-                message: "Compositor was already initialized.".to_string(),
-                http_status_code: StatusCode(400),
-            }),
+            Request::Init(_) => Err(ApiError::new(
+                "COMPOSITOR_ALREADY_INITIALIZED",
+                "Compositor was already initialized.".to_string(),
+                StatusCode(400),
+            )),
             Request::Register(register_request) => {
                 self.handle_register_request(register_request)?;
                 Ok(ResponseHandler::Ok)
@@ -222,11 +222,11 @@ impl Api {
 
         self.pipeline.with_outputs(|mut iter| {
             if let Some((node_id, _)) = iter.find(|(_, output)| output.port == port && output.ip == ip) {
-                return Err(ApiError{
-                    error_code: "PORT_AND_IP_ALREADY_IN_USE",
-                    message: format!("Failed to register output stream \"{output_id}\". Combination of port {port} and IP {ip} is already used by node \"{node_id}\""),
-                    http_status_code: tiny_http::StatusCode(400)
-                });
+                return Err(ApiError::new(
+                    "PORT_AND_IP_ALREADY_IN_USE",
+                    format!("Failed to register output stream \"{output_id}\". Combination of port {port} and IP {ip} is already used by node \"{node_id}\""),
+                    tiny_http::StatusCode(400)
+                ));
             };
             Ok(())
         })?;
@@ -248,11 +248,11 @@ impl Api {
         let RegisterInputRequest { input_id: id, port } = request;
 
         if let Some((node_id, _)) = self.pipeline.inputs().find(|(_, input)| input.port == port) {
-            return Err(ApiError{
-                error_code: "PORT_ALREADY_IN_USE",
-                message: format!("Failed to register input stream \"{id}\". Port {port} is already used by node \"{node_id}\""),
-                http_status_code: tiny_http::StatusCode(400)
-            });
+            return Err(ApiError::new(
+                "PORT_ALREADY_IN_USE",
+                format!("Failed to register input stream \"{id}\". Port {port} is already used by node \"{node_id}\""),
+                tiny_http::StatusCode(400)
+            ));
         }
 
         self.pipeline

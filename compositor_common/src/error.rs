@@ -1,5 +1,7 @@
 use std::{collections::HashSet, fmt::Display};
 
+use log::error;
+
 use crate::scene::{NodeId, OutputId};
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
@@ -23,7 +25,7 @@ pub enum SceneSpecValidationError {
     CycleDetected(NodeId),
     #[error(transparent)]
     UnusedNodes(#[from] UnusedNodesError),
-    #[error("Invalid params for node \"{1}\". {0}")]
+    #[error("Invalid params for node \"{1}\".")]
     InvalidNodeSpec(#[source] NodeSpecValidationError, NodeId),
 }
 
@@ -54,4 +56,31 @@ pub enum BuiltinSpecValidationError {
     FixedLayoutInvalidLayoutCount { layout_count: u32, input_count: u32 },
     #[error("Nodes that use transformation \"transform_to_resolution\" need to have exactly one input pad.")]
     TransformToResolutionExactlyOneInput,
+}
+
+pub struct ErrorStack<'a>(Option<&'a (dyn std::error::Error + 'static)>);
+
+impl<'a> ErrorStack<'a> {
+    pub fn new(value: &'a (dyn std::error::Error + 'static)) -> Self {
+        ErrorStack(Some(value))
+    }
+
+    pub fn into_string(self) -> String {
+        let stack: Vec<String> = self.map(ToString::to_string).collect();
+        stack.join("\n")
+    }
+}
+
+impl<'a> Iterator for ErrorStack<'a> {
+    type Item = &'a (dyn std::error::Error + 'static);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.0 {
+            Some(err) => {
+                self.0 = err.source();
+                Some(err)
+            }
+            None => None,
+        }
+    }
 }

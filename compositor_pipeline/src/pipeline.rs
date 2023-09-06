@@ -4,6 +4,7 @@ use std::sync::{Mutex, MutexGuard};
 use std::thread;
 use std::time::Duration;
 
+use compositor_common::error::ErrorStack;
 use compositor_common::renderer_spec::RendererSpec;
 use compositor_common::scene::{InputId, OutputId, SceneSpec};
 use compositor_common::{Frame, Framerate};
@@ -182,7 +183,10 @@ impl<Input: PipelineInput, Output: PipelineOutput> Pipeline<Input, Output> {
 
                 let output = renderer.render(input_frames);
                 let Ok(output_frames) = output else {
-                    error!("Error while rendering: {}", output.unwrap_err());
+                    error!(
+                        "Error while rendering: {}",
+                        ErrorStack::new(&output.unwrap_err()).into_string()
+                    );
                     continue;
                 };
 
