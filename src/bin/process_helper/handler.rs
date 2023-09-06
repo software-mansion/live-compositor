@@ -36,7 +36,9 @@ impl RenderProcessHandler {
     fn handle_embed_sources(&self, msg: &cef::ProcessMessage, surface: &cef::Frame) {
         let ctx = surface.v8_context().unwrap();
         let ctx_entered = ctx.enter().unwrap();
-        let mut global_object = ctx.global().unwrap();
+        let cef::V8Value::Object(mut global) = ctx.global().unwrap() else {
+            panic!("Expected global to be an object");
+        };
 
         for i in (0..msg.size()).step_by(3) {
             let Some(source_id) = msg.read_string(i) else {
@@ -55,13 +57,7 @@ impl RenderProcessHandler {
             };
 
             if !self.state.contains_source(&source_id) {
-                self.embed_frame(
-                    source_id.clone(),
-                    width,
-                    height,
-                    &mut global_object,
-                    &ctx_entered,
-                );
+                self.embed_frame(source_id.clone(), width, height, &mut global, &ctx_entered);
             }
         }
     }
@@ -71,7 +67,7 @@ impl RenderProcessHandler {
         source_id: String,
         width: i32,
         height: i32,
-        global_object: &mut cef::V8Value,
+        global: &mut cef::V8Object,
         ctx_entered: &cef::V8ContextEntered,
     ) {
         let shmem = ShmemConf::new()
@@ -79,39 +75,39 @@ impl RenderProcessHandler {
             .open()
             .unwrap();
         let data_ptr = shmem.as_ptr();
-        let array_buffer = unsafe {
-            cef::V8Value::array_buffer_from_ptr(
-                ctx_entered,
-                data_ptr,
-                (4 * width * height) as usize,
-            )
-        };
+        let array_buffer: cef::V8Value = unsafe {
+            cef::V8ArrayBuffer::from_ptr(data_ptr, (4 * width * height) as usize, ctx_entered)
+        }
+        .into();
 
         // TODO: Figure out emedding API
         // NOTE TO REVIEWERS: The section below is not part of this PR
         // Currently we pass frame data, width and height to JS context.
         // User has to handle this data manually. This approach is not really ergonomic and elegant
-        global_object
-            .set_value_by_key(
+        global
+            .set(
                 &format!("{source_id}_data"),
                 &array_buffer,
                 cef::V8PropertyAttribute::DoNotDelete,
+                ctx_entered,
             )
             .unwrap();
 
-        global_object
-            .set_value_by_key(
+        global
+            .set(
                 &format!("{source_id}_width"),
-                &cef::V8Value::new_i32(width),
+                &cef::V8Int::new(width).into(),
                 cef::V8PropertyAttribute::DoNotDelete,
+                ctx_entered,
             )
             .unwrap();
 
-        global_object
-            .set_value_by_key(
+        global
+            .set(
                 &format!("{source_id}_height"),
-                &cef::V8Value::new_i32(height),
+                &cef::V8Int::new(height).into(),
                 cef::V8PropertyAttribute::DoNotDelete,
+                ctx_entered,
             )
             .unwrap();
         // ------
@@ -127,10 +123,11 @@ impl RenderProcessHandler {
 
         let ctx = surface.v8_context().unwrap();
         let ctx_entered = ctx.enter().unwrap();
-        let mut global_object = ctx.global().unwrap();
-        global_object
-            .delete_value_by_key(&ctx_entered, &source_id)
-            .unwrap();
+        if let cef::V8Value::Object(mut global) = ctx.global().unwrap() {
+            global.delete(&source_id, &ctx_entered).unwrap();
+        } else {
+            panic!("Expected global to be an object");
+        }
 
         self.state.remove_source(&source_id);
     }
