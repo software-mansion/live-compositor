@@ -1,6 +1,9 @@
 use std::{sync::Arc, time::Duration};
 
-use compositor_common::scene::{NodeId, Resolution};
+use compositor_common::{
+    renderer_spec::FallbackStrategy,
+    scene::{NodeId, Resolution},
+};
 use wgpu::util::DeviceExt;
 
 use crate::{
@@ -96,13 +99,6 @@ impl BuiltinNode {
         target: &mut NodeTexture,
         pts: Duration,
     ) {
-        let node_textures = sources.iter().map(|(_, node_texture)| *node_texture);
-
-        if self.builtin.should_fallback(node_textures) {
-            target.clear();
-            return;
-        }
-
         let input_resolutions: Vec<Option<Resolution>> = sources
             .iter()
             .map(|(_, node_texture)| node_texture.resolution())
@@ -124,5 +120,9 @@ impl BuiltinNode {
             pts,
             self.clear_color,
         );
+    }
+
+    pub fn fallback_strategy(&self) -> FallbackStrategy {
+        self.shader.fallback_strategy
     }
 }

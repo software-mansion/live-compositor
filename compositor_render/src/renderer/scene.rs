@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 use compositor_common::{
+    error::SceneSpecValidationError,
     scene::{InputId, NodeId, OutputId, SceneSpec},
-    SceneSpecValidationError,
 };
 use log::error;
 

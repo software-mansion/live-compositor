@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use compositor_common::renderer_spec::RendererId;
+use compositor_common::renderer_spec::{FallbackStrategy, RendererId};
 
 use crate::transformations::shader::error::ParametersValidationError;
 
@@ -92,6 +92,11 @@ impl RenderNode {
         target: &mut NodeTexture,
         pts: Duration,
     ) {
+        if self.should_fallback(sources) {
+            target.clear();
+            return;
+        }
+
         match self {
             RenderNode::Shader(ref shader) => {
                 shader.render(sources, target, pts);
@@ -117,6 +122,33 @@ impl RenderNode {
             RenderNode::Image(node) => Some(node.resolution()),
             RenderNode::InputStream => None,
             RenderNode::Builtin(node) => node.resolution_from_spec(),
+        }
+    }
+
+    fn should_fallback(&self, sources: &[(&NodeId, &NodeTexture)]) -> bool {
+        if sources.is_empty() {
+            return false;
+        }
+
+        match self.fallback_strategy() {
+            FallbackStrategy::NeverFallback => false,
+            FallbackStrategy::FallbackIfAllInputsMissing => sources
+                .iter()
+                .all(|(_, node_texture)| node_texture.is_empty()),
+            FallbackStrategy::FallbackIfAnyInputMissing => sources
+                .iter()
+                .any(|(_, node_texture)| node_texture.is_empty()),
+        }
+    }
+
+    fn fallback_strategy(&self) -> FallbackStrategy {
+        match self {
+            RenderNode::Shader(shader_node) => shader_node.fallback_strategy(),
+            RenderNode::Web(web_renderer_node) => web_renderer_node.fallback_strategy(),
+            RenderNode::Text(_) => FallbackStrategy::NeverFallback,
+            RenderNode::Image(_) => FallbackStrategy::NeverFallback,
+            RenderNode::Builtin(builtin_node) => builtin_node.fallback_strategy(),
+            RenderNode::InputStream => FallbackStrategy::NeverFallback,
         }
     }
 }
