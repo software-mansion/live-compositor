@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use compositor_common::{
     scene::{InputId, NodeId, OutputId, SceneSpec},
-    SpecValidationError,
+    SceneSpecValidationError,
 };
 use log::error;
 
@@ -25,8 +25,8 @@ pub enum UpdateSceneError {
     #[error("Failed to create node \"{1}\". {0}")]
     CreateNodeError(#[source] CreateNodeError, NodeId),
 
-    #[error("Invalid scene: {0}")]
-    InvalidSpec(#[from] SpecValidationError),
+    #[error("Invalid scene. {0}")]
+    InvalidSpec(#[from] SceneSpecValidationError),
 
     #[error("Unknown node \"{0}\" used in scene.")]
     NoNodeWithIdError(NodeId),
@@ -115,7 +115,7 @@ impl Scene {
         // make sure that scene does not refer to missing entities.
         let node = Node::new_input(node_id);
         new_nodes.insert(node_id.clone(), node);
-        inputs.insert(InputId(node_id.clone()), InputTexture::new());
+        inputs.insert(node_id.clone().into(), InputTexture::new());
         Ok(())
     }
 }

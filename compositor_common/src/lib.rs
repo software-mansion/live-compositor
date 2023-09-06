@@ -2,14 +2,14 @@ use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 
+pub mod error;
 pub mod frame;
 pub mod renderer_spec;
 pub mod scene;
 pub mod util;
-mod validators;
 
 pub type Frame = frame::Frame;
-pub type SpecValidationError = validators::SceneSpecValidationError;
+pub type SceneSpecValidationError = error::SceneSpecValidationError;
 
 /// TODO: This should be a rational.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]

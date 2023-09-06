@@ -3,7 +3,7 @@ use std::{path::Path, process::Stdio, sync::Arc, time::Duration};
 use compositor_common::{
     frame::YuvData,
     renderer_spec::{RendererId, RendererSpec, ShaderSpec},
-    scene::{NodeId, NodeSpec, OutputSpec, Resolution, SceneSpec},
+    scene::{id::NodeId, NodeSpec, OutputSpec, Resolution, SceneSpec},
     Frame, Framerate,
 };
 use compositor_render::{

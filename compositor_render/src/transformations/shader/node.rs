@@ -1,6 +1,6 @@
 use std::{sync::Arc, time::Duration};
 
-use compositor_common::scene::{NodeId, Resolution, ShaderParam};
+use compositor_common::scene::{shader::ShaderParam, NodeId, Resolution};
 use wgpu::util::DeviceExt;
 
 use crate::renderer::{texture::NodeTexture, WgpuCtx};

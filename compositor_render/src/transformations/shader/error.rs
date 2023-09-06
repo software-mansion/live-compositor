@@ -1,4 +1,4 @@
-use compositor_common::scene::ShaderParam;
+use compositor_common::scene::shader::ShaderParam;
 
 use super::{USER_DEFINED_BUFFER_BINDING, USER_DEFINED_BUFFER_GROUP, VERTEX_ENTRYPOINT_NAME};
 

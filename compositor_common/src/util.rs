@@ -1,6 +1,10 @@
 use std::{fmt::Display, num::ParseIntError, str::FromStr};
 
+use serde::{Deserialize, Serialize};
 use serde_with::{DeserializeFromStr, SerializeDisplay};
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq)]
+pub struct Degree(pub i32);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, SerializeDisplay, DeserializeFromStr)]
 pub struct RGBColor(pub u8, pub u8, pub u8);
