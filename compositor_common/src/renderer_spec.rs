@@ -21,16 +21,6 @@ pub enum FallbackStrategy {
     FallbackIfAnyInputsMissing,
 }
 
-impl FallbackStrategy {
-    pub fn default_shader_fallback_strategy() -> FallbackStrategy {
-        FallbackStrategy::FallbackIfAllInputsMissing
-    }
-
-    pub fn default_shader_web_renderer_strategy() -> FallbackStrategy {
-        FallbackStrategy::FallbackIfAllInputsMissing
-    }
-}
-
 /// RendererSpec provides configuration necessary to construct Renderer. Renderers
 /// are entities like shader, image or chromium_instance and can be used by nodes
 /// to transform or generate frames.
@@ -46,7 +36,7 @@ pub enum RendererSpec {
 pub struct ShaderSpec {
     pub shader_id: RendererId,
     pub source: String,
-    #[serde(default = "FallbackStrategy::default_shader_fallback_strategy")]
+    #[serde(default = "default_shader_fallback_strategy")]
     pub fallback_strategy: FallbackStrategy,
 }
 
@@ -55,7 +45,7 @@ pub struct WebRendererSpec {
     pub instance_id: RendererId,
     pub url: String,
     pub resolution: Resolution,
-    #[serde(default = "FallbackStrategy::default_shader_web_renderer_strategy")]
+    #[serde(default = "default_web_renderer_strategy")]
     pub fallback_strategy: FallbackStrategy,
 }
 
@@ -84,4 +74,12 @@ pub enum ImageType {
     Jpeg,
     Svg { resolution: Option<Resolution> },
     Gif,
+}
+
+fn default_shader_fallback_strategy() -> FallbackStrategy {
+    FallbackStrategy::FallbackIfAllInputsMissing
+}
+
+fn default_web_renderer_strategy() -> FallbackStrategy {
+    FallbackStrategy::FallbackIfAllInputsMissing
 }
