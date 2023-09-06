@@ -148,7 +148,6 @@ pub struct WgpuCtx {
     pub utils: TextureUtils,
 
     pub shader_parameters_bind_group_layout: wgpu::BindGroupLayout,
-    pub compositor_provided_parameters_buffer: wgpu::Buffer,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -222,13 +221,6 @@ impl WgpuCtx {
 
         let shader_parameters_bind_group_layout = Shader::new_parameters_bind_group_layout(&device);
 
-        let compositor_provided_parameters_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("global shader parameters buffer"),
-            mapped_at_creation: false,
-            size: std::mem::size_of::<CommonShaderParameters>() as u64,
-            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::UNIFORM,
-        });
-
         scope.pop(&device)?;
 
         device.on_uncaptured_error(Box::new(|e| {
@@ -242,7 +234,6 @@ impl WgpuCtx {
             format,
             utils,
             shader_parameters_bind_group_layout,
-            compositor_provided_parameters_buffer,
         })
     }
 }

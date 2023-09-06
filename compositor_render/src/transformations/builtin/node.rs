@@ -38,18 +38,10 @@ impl ParamsBuffer {
             .create_bind_group(&wgpu::BindGroupDescriptor {
                 label: Some("builtin node params bind group"),
                 layout: &wgpu_ctx.shader_parameters_bind_group_layout,
-                entries: &[
-                    wgpu::BindGroupEntry {
-                        binding: 0,
-                        resource: buffer.as_entire_binding(),
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 1,
-                        resource: wgpu_ctx
-                            .compositor_provided_parameters_buffer
-                            .as_entire_binding(),
-                    },
-                ],
+                entries: &[wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: buffer.as_entire_binding(),
+                }],
             });
 
         Self {
