@@ -13,7 +13,8 @@ use log::error;
 use crate::{
     frame_set::FrameSet,
     renderer::{
-        scene::{InternalSceneError, Node, Scene, SceneNodesSet},
+        node::Node,
+        scene::{InternalSceneError, Scene, SceneNodesSet},
         RenderCtx,
     },
 };
