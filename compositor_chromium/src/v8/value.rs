@@ -1,21 +1,24 @@
 use crate::validated::{Validatable, Validated, ValidatedError};
 
-use super::{array_buffer::V8ArrayBuffer, object::V8Object, string::V8String, V8Int};
+use super::{
+    array::V8Array, array_buffer::V8ArrayBuffer, bool::V8Bool, numbers::*, object::V8Object,
+    string::V8String,
+};
 
 /// Represents JavaScript values
 pub enum V8Value {
     Undefined(V8GenericValue),
     Null(V8GenericValue),
+    Bool(V8Bool),
     Int(V8Int),
+    Uint(V8Uint),
+    Double(V8Double),
     String(V8String),
+    Array(V8Array),
     ArrayBuffer(V8ArrayBuffer),
     Object(V8Object),
 
     // Not implemented
-    Bool(V8GenericValue),
-    Uint(V8GenericValue),
-    Double(V8GenericValue),
-    Array(V8GenericValue),
     Function(V8GenericValue),
     Date(V8GenericValue),
     Promise(V8GenericValue),
@@ -31,22 +34,22 @@ impl V8Value {
             return Self::Null(V8GenericValue(validated_value));
         }
         if Self::is_bool(v8_value) {
-            return Self::Bool(V8GenericValue(validated_value));
+            return Self::Bool(V8Bool(validated_value));
         }
         if Self::is_int(v8_value) {
             return Self::Int(V8Int(validated_value));
         }
         if Self::is_uint(v8_value) {
-            return Self::Uint(V8GenericValue(validated_value));
+            return Self::Uint(V8Uint(validated_value));
         }
         if Self::is_double(v8_value) {
-            return Self::Double(V8GenericValue(validated_value));
+            return Self::Double(V8Double(validated_value));
         }
         if Self::is_string(v8_value) {
             return Self::String(V8String(validated_value));
         }
         if Self::is_array(v8_value) {
-            return Self::Array(V8GenericValue(validated_value));
+            return Self::Array(V8Array(validated_value));
         }
         if Self::is_array_buffer(v8_value) {
             return Self::ArrayBuffer(V8ArrayBuffer(validated_value));
@@ -71,12 +74,12 @@ impl V8Value {
         let raw_value = match self {
             V8Value::Undefined(V8GenericValue(v)) => v.get()?,
             V8Value::Null(V8GenericValue(v)) => v.get()?,
-            V8Value::Bool(V8GenericValue(v)) => v.get()?,
+            V8Value::Bool(V8Bool(v)) => v.get()?,
             V8Value::Int(V8Int(v)) => v.get()?,
-            V8Value::Uint(V8GenericValue(v)) => v.get()?,
-            V8Value::Double(V8GenericValue(v)) => v.get()?,
+            V8Value::Uint(V8Uint(v)) => v.get()?,
+            V8Value::Double(V8Double(v)) => v.get()?,
             V8Value::String(V8String(v)) => v.get()?,
-            V8Value::Array(V8GenericValue(v)) => v.get()?,
+            V8Value::Array(V8Array(v)) => v.get()?,
             V8Value::Object(V8Object(v)) => v.get()?,
             V8Value::ArrayBuffer(V8ArrayBuffer(v)) => v.get()?,
             V8Value::Function(V8GenericValue(v)) => v.get()?,

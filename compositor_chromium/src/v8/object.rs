@@ -3,7 +3,10 @@ use crate::{
     validated::{Validated, ValidatedError},
 };
 
-use super::{value::V8Value, V8ContextEntered, V8ValueError};
+use super::{
+    value::{V8Value, V8ValueError},
+    V8ContextEntered,
+};
 
 pub struct V8Object(pub(super) Validated<chromium_sys::cef_v8value_t>);
 
