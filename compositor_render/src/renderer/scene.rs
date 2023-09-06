@@ -59,7 +59,7 @@ impl RenderNode {
                     shader_params.as_ref(),
                     None,
                     *resolution,
-                );
+                )?;
                 Ok(Self::Shader(node))
             }
             NodeParams::Builtin { transformation } => {

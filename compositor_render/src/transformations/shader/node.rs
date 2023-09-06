@@ -5,7 +5,7 @@ use wgpu::util::DeviceExt;
 
 use crate::renderer::{texture::NodeTexture, WgpuCtx};
 
-use super::Shader;
+use super::{error::ParametersValidationError, Shader};
 
 pub struct ShaderNode {
     params_bind_group: wgpu::BindGroup,
@@ -22,8 +22,10 @@ impl ShaderNode {
         params: Option<&ShaderParam>,
         clear_color: Option<wgpu::Color>,
         resolution: Resolution,
-    ) -> Self {
-        // TODO: validation
+    ) -> Result<Self, ParametersValidationError> {
+        if let Some(params) = params {
+            shader.validate_params(params)?;
+        }
 
         let custom_params_buffer = match params {
             Some(params) => {
@@ -47,27 +49,19 @@ impl ShaderNode {
         let params_bind_group = ctx.device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("shader node params bind group"),
             layout: &ctx.shader_parameters_bind_group_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: custom_params_buffer.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: ctx
-                        .compositor_provided_parameters_buffer
-                        .as_entire_binding(),
-                },
-            ],
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: custom_params_buffer.as_entire_binding(),
+            }],
         });
 
-        Self {
+        Ok(Self {
             params_bind_group,
             _custom_params_buffer: custom_params_buffer,
             shader,
             clear_color,
             resolution,
-        }
+        })
     }
 
     pub fn resolution(&self) -> Resolution {

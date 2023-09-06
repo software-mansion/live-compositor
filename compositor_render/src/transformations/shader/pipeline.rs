@@ -8,7 +8,7 @@ use crate::renderer::{
     CommonShaderParameters, WgpuCtx,
 };
 
-use super::INPUT_TEXTURES_AMOUNT;
+use super::{INPUT_TEXTURES_AMOUNT, USER_DEFINED_BUFFER_GROUP};
 
 pub struct Pipeline {
     pipeline: wgpu::RenderPipeline,
@@ -133,7 +133,7 @@ impl Pipeline {
             );
 
             render_pass.set_bind_group(0, inputs, &[]);
-            render_pass.set_bind_group(1, uniforms, &[]);
+            render_pass.set_bind_group(USER_DEFINED_BUFFER_GROUP, uniforms, &[]);
             render_pass.set_bind_group(2, &self.sampler.bind_group, &[]);
 
             self.surfaces
