@@ -11,12 +11,12 @@ use crate::{
 
 use super::error::InitBuiltinError;
 
-pub struct BuiltinsCollection {
+pub struct BuiltinTransformations {
     transform_resolution: ConvertResolutionTransformations,
     fixed_position_layout: FixedPositionLayout,
 }
 
-impl BuiltinsCollection {
+impl BuiltinTransformations {
     pub fn new(wgpu_ctx: &Arc<WgpuCtx>) -> Result<Self, InitBuiltinError> {
         Ok(Self {
             transform_resolution: ConvertResolutionTransformations::new(wgpu_ctx)?,

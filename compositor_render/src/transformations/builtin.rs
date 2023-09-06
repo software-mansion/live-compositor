@@ -5,7 +5,7 @@ use compositor_common::scene::{
 
 use crate::{renderer::texture::NodeTexture, utils::rgba_to_wgpu_color};
 
-pub mod collection;
+pub mod transformations;
 pub mod error;
 pub mod node;
 pub mod params;
