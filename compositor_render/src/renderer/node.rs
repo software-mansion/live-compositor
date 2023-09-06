@@ -135,7 +135,7 @@ impl RenderNode {
             FallbackStrategy::FallbackIfAllInputsMissing => sources
                 .iter()
                 .all(|(_, node_texture)| node_texture.is_empty()),
-            FallbackStrategy::FallbackIfAnyInputsMissing => sources
+            FallbackStrategy::FallbackIfAnyInputMissing => sources
                 .iter()
                 .any(|(_, node_texture)| node_texture.is_empty()),
         }

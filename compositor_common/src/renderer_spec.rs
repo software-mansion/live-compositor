@@ -18,7 +18,7 @@ impl Display for RendererId {
 pub enum FallbackStrategy {
     NeverFallback,
     FallbackIfAllInputsMissing,
-    FallbackIfAnyInputsMissing,
+    FallbackIfAnyInputMissing,
 }
 
 /// RendererSpec provides configuration necessary to construct Renderer. Renderers
