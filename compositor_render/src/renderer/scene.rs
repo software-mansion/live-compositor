@@ -1,6 +1,7 @@
 use std::{collections::HashMap, time::Duration};
 
 use compositor_common::{
+    renderer_spec::FallbackStrategy,
     scene::{InputId, NodeId, NodeParams, NodeSpec, OutputId, Resolution, SceneSpec},
     SpecValidationError,
 };
@@ -98,6 +99,11 @@ impl RenderNode {
         target: &mut NodeTexture,
         pts: Duration,
     ) {
+        if self.should_fallback(sources) {
+            target.clear();
+            return;
+        }
+
         match self {
             RenderNode::Shader(ref shader) => {
                 shader.render(sources, target, pts);
@@ -123,6 +129,35 @@ impl RenderNode {
             RenderNode::Image(node) => Some(node.resolution()),
             RenderNode::InputStream => None,
             RenderNode::Builtin(node) => node.resolution_from_spec(),
+        }
+    }
+
+    fn should_fallback(&self, sources: &[(&NodeId, &NodeTexture)]) -> bool {
+        match self.fallback_strategy() {
+            FallbackStrategy::NeverFallback => false,
+            FallbackStrategy::FallbackIfAllInputsMissing => sources
+                .iter()
+                .all(|(_, node_texture)| node_texture.is_empty()),
+            FallbackStrategy::FallbackIfAnyInputsMissing => sources
+                .iter()
+                .any(|(_, node_texture)| node_texture.is_empty()),
+            FallbackStrategy::FallbackIfOnlyInputMissing => {
+                sources.len() == 1
+                    && sources
+                        .iter()
+                        .all(|(_, node_texture)| node_texture.is_empty())
+            }
+        }
+    }
+
+    fn fallback_strategy(&self) -> FallbackStrategy {
+        match self {
+            RenderNode::Shader(shader_node) => shader_node.fallback_strategy(),
+            RenderNode::Web(web_renderer_node) => web_renderer_node.fallback_strategy(),
+            RenderNode::Text(_) => FallbackStrategy::NeverFallback,
+            RenderNode::Image(_) => FallbackStrategy::NeverFallback,
+            RenderNode::Builtin(builtin_node) => builtin_node.fallback_strategy(),
+            RenderNode::InputStream => FallbackStrategy::NeverFallback,
         }
     }
 }

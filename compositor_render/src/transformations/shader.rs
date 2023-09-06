@@ -5,7 +5,7 @@ use crate::renderer::{
 
 use std::{sync::Arc, time::Duration};
 
-use compositor_common::scene::NodeId;
+use compositor_common::{renderer_spec::FallbackStrategy, scene::NodeId};
 
 use crate::renderer::{texture::Texture, WgpuCtx};
 
@@ -48,10 +48,15 @@ pub struct Shader {
     pub wgpu_ctx: Arc<WgpuCtx>,
     pipeline: Pipeline,
     empty_texture: Texture,
+    pub fallback_strategy: FallbackStrategy,
 }
 
 impl Shader {
-    pub fn new(wgpu_ctx: &Arc<WgpuCtx>, shader_src: String) -> Result<Self, CreateShaderError> {
+    pub fn new(
+        wgpu_ctx: &Arc<WgpuCtx>,
+        shader_src: String,
+        fallback_strategy: FallbackStrategy,
+    ) -> Result<Self, CreateShaderError> {
         let scope = WgpuErrorScope::push(&wgpu_ctx.device);
 
         let shader = naga::front::wgsl::parse_str(&shader_src)?;
@@ -82,6 +87,7 @@ impl Shader {
             wgpu_ctx: wgpu_ctx.clone(),
             pipeline,
             empty_texture,
+            fallback_strategy,
         })
     }
 

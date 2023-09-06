@@ -9,7 +9,7 @@ use crate::renderer::{
 };
 
 use compositor_common::{
-    renderer_spec::WebRendererSpec,
+    renderer_spec::{FallbackStrategy, WebRendererSpec},
     scene::{NodeId, Resolution},
 };
 use log::{error, info};
@@ -43,6 +43,7 @@ impl Default for WebRendererOptions {
 }
 
 pub struct WebRenderer {
+    pub fallback_strategy: FallbackStrategy,
     params: WebRendererSpec,
     controller: Mutex<BrowserController>,
 
@@ -55,6 +56,7 @@ pub struct WebRenderer {
 impl WebRenderer {
     pub fn new(ctx: &RegisterCtx, params: WebRendererSpec) -> Self {
         info!("Starting web renderer for {}", &params.url);
+        let fallback_strategy = params.fallback_strategy;
 
         let bgra_texture = BGRATexture::new(&ctx.wgpu_ctx, params.resolution);
         let bgra_bind_group_layout = BGRATexture::new_bind_group_layout(&ctx.wgpu_ctx.device);
@@ -68,6 +70,7 @@ impl WebRenderer {
         ));
 
         Self {
+            fallback_strategy,
             params,
             controller,
             bgra_texture,

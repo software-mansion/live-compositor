@@ -1,6 +1,9 @@
 use std::{collections::HashMap, sync::Arc};
 
-use compositor_common::scene::{NodeId, Resolution};
+use compositor_common::{
+    renderer_spec::FallbackStrategy,
+    scene::{NodeId, Resolution},
+};
 use log::error;
 
 use crate::renderer::{
@@ -48,6 +51,10 @@ impl WebRendererNode {
 
     pub fn resolution(&self) -> Resolution {
         self.renderer.resolution()
+    }
+
+    pub fn fallback_strategy(&self) -> FallbackStrategy {
+        self.renderer.fallback_strategy
     }
 
     fn ensure_buffer_size(

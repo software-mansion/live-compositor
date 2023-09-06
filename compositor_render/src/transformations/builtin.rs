@@ -3,7 +3,7 @@ use compositor_common::scene::{
     Resolution,
 };
 
-use crate::{renderer::texture::NodeTexture, utils::rgba_to_wgpu_color};
+use crate::utils::rgba_to_wgpu_color;
 
 pub mod error;
 pub mod node;
@@ -42,18 +42,6 @@ impl Builtin {
         match self.0 {
             BuiltinSpec::TransformToResolution { resolution, .. } => Some(resolution),
             BuiltinSpec::FixedPositionLayout { resolution, .. } => Some(resolution),
-        }
-    }
-
-    pub(crate) fn should_fallback<'a, I: Iterator<Item = &'a NodeTexture>>(
-        &self,
-        node_textures: I,
-    ) -> bool {
-        match self.0 {
-            BuiltinSpec::TransformToResolution { .. } => node_textures
-                .into_iter()
-                .all(|node_texture| node_texture.is_empty()),
-            BuiltinSpec::FixedPositionLayout { .. } => false,
         }
     }
 }
