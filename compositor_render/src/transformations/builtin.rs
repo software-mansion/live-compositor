@@ -22,19 +22,25 @@ impl Builtin {
                 }
                 TransformToResolutionStrategy::Fit {
                     background_color_rgba,
-                } => Some(rgba_to_wgpu_color(background_color_rgba)),
+                } => Some(background_color_rgba),
             },
             BuiltinSpec::FixedPositionLayout {
                 background_color_rgba,
                 ..
-            } => Some(rgba_to_wgpu_color(background_color_rgba)),
+            } => Some(background_color_rgba),
+            BuiltinSpec::Grid {
+                background_color_rgba,
+                ..
+            } => Some(background_color_rgba),
         }
+        .map(rgba_to_wgpu_color)
     }
 
     pub fn output_resolution(&self, _input_resolutions: &[Option<Resolution>]) -> Resolution {
         match self.0 {
             BuiltinSpec::TransformToResolution { resolution, .. } => resolution,
             BuiltinSpec::FixedPositionLayout { resolution, .. } => resolution,
+            BuiltinSpec::Grid { resolution, .. } => resolution,
         }
     }
 
@@ -42,6 +48,7 @@ impl Builtin {
         match self.0 {
             BuiltinSpec::TransformToResolution { resolution, .. } => Some(resolution),
             BuiltinSpec::FixedPositionLayout { resolution, .. } => Some(resolution),
+            BuiltinSpec::Grid { resolution, .. } => Some(resolution),
         }
     }
 }

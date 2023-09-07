@@ -15,6 +15,7 @@ use super::error::InitBuiltinError;
 pub struct BuiltinTransformations {
     transform_resolution: ConvertResolutionTransformations,
     fixed_position_layout: FixedPositionLayout,
+    grid: Grid,
 }
 
 impl BuiltinTransformations {
@@ -23,6 +24,7 @@ impl BuiltinTransformations {
             transform_resolution: ConvertResolutionTransformations::new(wgpu_ctx)?,
             fixed_position_layout: FixedPositionLayout::new(wgpu_ctx)
                 .map_err(InitBuiltinError::FixedPositionLayout)?,
+            grid: Grid::new(wgpu_ctx).map_err(InitBuiltinError::Grid)?,
         })
     }
 
@@ -34,6 +36,7 @@ impl BuiltinTransformations {
                 TransformToResolutionStrategy::Fit { .. } => self.transform_resolution.fit.clone(),
             },
             BuiltinSpec::FixedPositionLayout { .. } => self.fixed_position_layout.0.clone(),
+            BuiltinSpec::Grid { .. } => self.grid.0.clone(),
         }
     }
 }
@@ -83,6 +86,18 @@ impl FixedPositionLayout {
             wgpu_ctx,
             include_str!("./fixed_position_layout.wgsl").into(),
             FallbackStrategy::FallbackIfAllInputsMissing,
+        )?)))
+    }
+}
+
+pub struct Grid(Arc<Shader>);
+
+impl Grid {
+    fn new(wgpu_ctx: &Arc<WgpuCtx>) -> Result<Self, CreateShaderError> {
+        Ok(Self(Arc::new(Shader::new(
+            wgpu_ctx,
+            include_str!("./grid.wgsl").into(),
+            FallbackStrategy::FallbackIfAllInputsMissing
         )?)))
     }
 }

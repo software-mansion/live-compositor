@@ -70,7 +70,7 @@ impl FixedPositionLayoutParams {
         (top as f32, left as f32)
     }
 
-    fn transformation_matrix(
+    pub fn transformation_matrix(
         layout: &TextureLayout,
         input_resolution: Option<&Resolution>,
         output_resolution: Resolution,

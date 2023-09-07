@@ -2,7 +2,7 @@ use std::{collections::HashSet, fmt::Display};
 
 use log::error;
 
-use crate::scene::{NodeId, OutputId};
+use crate::scene::{NodeId, OutputId, builtin_transformations::GRID_MAX_INPUTS_COUNT};
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum SceneSpecValidationError {
@@ -64,6 +64,11 @@ pub enum BuiltinSpecValidationError {
     FixedLayoutLeftRightOnlyOne,
     #[error("Nodes that use transformation \"transform_to_resolution\" need to have exactly one input pad.")]
     TransformToResolutionExactlyOneInput,
+    #[error("Nodes that use transformation \"grid\" need to have at most {GRID_MAX_INPUTS_COUNT}.")]
+    GridTooManyInputs,
+    #[error("Nodes that use transformation \"grid\" need to have at least one input pad.")]
+    GridNoInputs,
+    
 }
 
 pub struct ErrorStack<'a>(Option<&'a (dyn std::error::Error + 'static)>);

@@ -2,8 +2,8 @@ use compositor_common::scene::Resolution;
 
 #[derive(Debug, Default)]
 pub struct FitParams {
-    x_scale: f32,
-    y_scale: f32,
+    pub x_scale: f32,
+    pub y_scale: f32,
 }
 
 impl FitParams {

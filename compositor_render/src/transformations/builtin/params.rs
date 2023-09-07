@@ -5,12 +5,14 @@ use compositor_common::scene::{
 
 use self::{
     fixed_position_layout::FixedPositionLayoutParams,
+    grid::GridParams,
     transform_to_resolution::{FillParams, FitParams},
 };
 
 use super::Builtin;
 
 mod fixed_position_layout;
+mod grid;
 mod transform_to_resolution;
 
 #[derive(Debug)]
@@ -18,6 +20,7 @@ pub enum BuiltinParams {
     FixedPositionLayout(FixedPositionLayoutParams),
     Fit(FitParams),
     Fill(FillParams),
+    Grid(GridParams),
     None,
 }
 
@@ -40,6 +43,15 @@ impl BuiltinParams {
                 texture_layouts,
                 input_resolutions,
                 *resolution,
+            )),
+            BuiltinSpec::Grid {
+                resolution: output_resolution,
+                tile_aspect_ratio,
+                ..
+            } => BuiltinParams::Grid(GridParams::new(
+                input_resolutions,
+                *tile_aspect_ratio,
+                *output_resolution,
             )),
         }
     }
@@ -76,6 +88,7 @@ impl BuiltinParams {
             }
             BuiltinParams::Fit(fit_params) => fit_params.shader_buffer_content(),
             BuiltinParams::Fill(fill_params) => fill_params.shader_buffer_content(),
+            BuiltinParams::Grid(grid_params) => grid_params.shader_buffer_content(),
             BuiltinParams::None => bytes::Bytes::new(),
         }
     }

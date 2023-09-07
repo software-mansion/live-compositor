@@ -13,4 +13,7 @@ pub enum InitBuiltinError {
 
     #[error("Failed to initialize stretch transform_to_resolution transformation.")]
     StretchToResolution(#[source] CreateShaderError),
+
+    #[error("Failed to initialize grid transformation. {0}")]
+    Grid(#[source] CreateShaderError),
 }
