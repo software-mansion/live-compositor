@@ -1,3 +1,5 @@
+use compositor_common::renderer_spec::RendererId;
+
 use crate::{
     registry,
     renderer::{CreateWgpuCtxError, WgpuError},
@@ -9,10 +11,10 @@ use crate::{
 
 #[derive(Debug, thiserror::Error)]
 pub enum InitRendererEngineError {
-    #[error("Failed to initialize a wgpu context. {0}")]
+    #[error("Failed to initialize a wgpu context.")]
     FailedToInitWgpuCtx(#[from] CreateWgpuCtxError),
 
-    #[error("Failed to initialize chromium context. {0}")]
+    #[error("Failed to initialize chromium context.")]
     FailedToInitChromiumCtx(#[from] WebRendererContextError),
 
     #[error(transparent)]
@@ -24,11 +26,11 @@ pub enum RegisterRendererError {
     #[error(transparent)]
     RendererRegistry(#[from] registry::RegisterError),
 
-    #[error(transparent)]
-    Shader(#[from] CreateShaderError),
+    #[error("Failed to register shader \"{1}\".")]
+    Shader(#[source] CreateShaderError, RendererId),
 
-    #[error(transparent)]
-    Image(#[from] ImageError),
+    #[error("Failed to register image \"{1}\".")]
+    Image(#[source] ImageError, RendererId),
 }
 
 #[derive(Debug, thiserror::Error)]

@@ -29,13 +29,13 @@ impl SyncRenderer {
         let mut guard = self.0.lock().unwrap();
         match spec {
             RendererSpec::Shader(spec) => {
-                let shader = Arc::new(Shader::new(
-                    &ctx.wgpu_ctx,
-                    spec.source,
-                    spec.fallback_strategy,
-                )?);
+                let shader = Shader::new(&ctx.wgpu_ctx, spec.source, spec.fallback_strategy)
+                    .map_err(|err| RegisterRendererError::Shader(err, spec.shader_id.clone()))?;
 
-                Ok(guard.renderers.shaders.register(spec.shader_id, shader)?)
+                Ok(guard
+                    .renderers
+                    .shaders
+                    .register(spec.shader_id, Arc::new(shader))?)
             }
             RendererSpec::WebRenderer(params) => {
                 let instance_id = params.instance_id.clone();
@@ -45,7 +45,8 @@ impl SyncRenderer {
             }
             RendererSpec::Image(spec) => {
                 let image_id = spec.image_id.clone();
-                let asset = Image::new(&ctx, spec)?;
+                let asset = Image::new(&ctx, spec)
+                    .map_err(|err| RegisterRendererError::Image(err, image_id.clone()))?;
 
                 Ok(guard.renderers.images.register(image_id, asset)?)
             }

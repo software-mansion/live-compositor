@@ -7,7 +7,7 @@ pub enum ShaderValidationError {
     #[error("A global that should be declared in the shader is not declared: \n{0:#?}.")]
     GlobalNotFound(naga::GlobalVariable),
 
-    #[error("A global in the shader has a wrong type. {0}")]
+    #[error("A global in the shader has a wrong type.")]
     GlobalBadType(#[source] TypeEquivalenceError),
 
     #[error("Could not find a vertex shader entrypoint. Expected \"fn {VERTEX_ENTRYPOINT_NAME}(input: VertexInput)\"")]
@@ -21,7 +21,7 @@ pub enum ShaderValidationError {
     #[error("The input type of the vertex shader (\"{0}\") was not declared.")]
     VertexShaderBadInputTypeName(String),
 
-    #[error("The vertex shader input has a wrong type. {0}")]
+    #[error("The vertex shader input has a wrong type.")]
     VertexShaderBadInput(#[source] TypeEquivalenceError),
 
     #[error("User defined binding (group {USER_DEFINED_BUFFER_GROUP}, binding {USER_DEFINED_BUFFER_BINDING}) is not a uniform buffer. Is it defined as var<uniform>?")]

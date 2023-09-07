@@ -1,6 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use compositor_common::{
+    error::ErrorStack,
     renderer_spec::FallbackStrategy,
     scene::{NodeId, Resolution},
 };
@@ -45,7 +46,10 @@ impl WebRendererNode {
         }
 
         if let Err(err) = self.renderer.render(ctx, sources, &self.buffers, target) {
-            error!("Failed to run web render: {err}");
+            error!(
+                "Failed to run web render: {}",
+                ErrorStack::new(&err).into_string()
+            );
         }
     }
 

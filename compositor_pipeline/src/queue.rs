@@ -7,7 +7,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use compositor_common::{scene::InputId, Frame, Framerate};
+use compositor_common::{error::ErrorStack, scene::InputId, Frame, Framerate};
 use compositor_render::frame_set::FrameSet;
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use log::error;
@@ -112,7 +112,11 @@ impl Queue {
         let framerate_tick = Duration::from_secs_f64(1.0 / self.output_framerate.0 as f64);
         let estimated_pts = self.clock_start.elapsed() - framerate_tick;
         if let Err(err) = internal_queue.drop_old_frames_by_input_id(&input_id, estimated_pts) {
-            error!("Failed to drop frames on input {input_id}: {err}")
+            error!(
+                "Failed to drop frames on input {}:\n{}",
+                input_id,
+                ErrorStack::new(&err).into_string()
+            )
         }
 
         self.check_queue_channel.0.send(()).unwrap();
