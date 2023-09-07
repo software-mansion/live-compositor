@@ -2,13 +2,15 @@ use compositor_common::scene::shader::ShaderParam;
 
 use super::{USER_DEFINED_BUFFER_BINDING, USER_DEFINED_BUFFER_GROUP, VERTEX_ENTRYPOINT_NAME};
 
+const HEADER_DOCS_URL: &str = "https://docs.placeholder.com/shader_header";
+
 #[derive(Debug, thiserror::Error)]
 pub enum ShaderValidationError {
-    #[error("A global that should be declared in the shader is not declared: \n{0:#?}.")]
-    GlobalNotFound(naga::GlobalVariable),
+    #[error("A global \"{0}\" should be declared in the shader. Make sure to include the compositor header code inside your shader. Learn more: {HEADER_DOCS_URL}.")]
+    GlobalNotFound(String),
 
     #[error("A global in the shader has a wrong type.")]
-    GlobalBadType(#[source] TypeEquivalenceError),
+    GlobalBadType(#[source] TypeEquivalenceError, String),
 
     #[error("Could not find a vertex shader entrypoint. Expected \"fn {VERTEX_ENTRYPOINT_NAME}(input: VertexInput)\"")]
     VertexShaderNotFound,
@@ -16,9 +18,7 @@ pub enum ShaderValidationError {
     #[error("Wrong vertex shader argument amount: found {0}, expected 1.")]
     VertexShaderBadArgumentAmount(usize),
 
-    // TODO: do we enforce type name from header?
-    // #[error("The input type of the vertex shader has a name that cannot be found in the header.")]
-    #[error("The input type of the vertex shader (\"{0}\") was not declared.")]
+    #[error("The input type of the vertex shader has to be named \"VertexInput\".")]
     VertexShaderBadInputTypeName(String),
 
     #[error("The vertex shader input has a wrong type.")]
@@ -33,13 +33,8 @@ pub enum TypeEquivalenceError {
     #[error("Type names don't match: {0:?} != {1:?}.")]
     TypeNameMismatch(Option<String>, Option<String>),
 
-    #[error(
-        "Type internal structure doesn't match:\nExpected:\n{expected:#?}\n\nActual:\n{actual:#?}."
-    )]
-    TypeStructureMismatch {
-        expected: naga::TypeInner,
-        actual: naga::TypeInner,
-    },
+    #[error("Type mismatch (expected: {expected}, actual: {actual}).")]
+    TypeStructureMismatch { expected: String, actual: String },
 
     #[error("Struct {struct_name} has an incorrect number of fields: expected: {expected_field_number}, found: {actual_field_number}")]
     StructFieldNumberMismatch {
@@ -48,10 +43,11 @@ pub enum TypeEquivalenceError {
         actual_field_number: usize,
     },
 
-    #[error("Structure mismatch found while checking the type of field {field_name} in struct {struct_name}:\n{error}")]
+    #[error("Field \"{field_name}\" in struct {struct_name} has invalid type.")]
     StructFieldStructureMismatch {
         struct_name: String,
         field_name: String,
+        #[source]
         error: Box<TypeEquivalenceError>,
     },
 
@@ -146,4 +142,38 @@ pub enum ParametersValidationError {
         idx: usize,
         error: Box<ParametersValidationError>,
     },
+}
+
+pub(crate) trait ShaderGlobalVariableExt {
+    fn to_string(&self) -> String;
+}
+
+impl ShaderGlobalVariableExt for naga::GlobalVariable {
+    fn to_string(&self) -> String {
+        let group_and_binding = match self.binding {
+            Some(naga::ResourceBinding { group, binding }) => {
+                format!("@group({}) @binding({}) ", group, binding)
+            }
+            None => "".to_string(),
+        };
+        let space = match self.space {
+            naga::AddressSpace::Function => "<function>".to_string(),
+            naga::AddressSpace::Private => "<private>".to_string(),
+            naga::AddressSpace::WorkGroup => "<workgroup>".to_string(),
+            naga::AddressSpace::Uniform => "<uniform>".to_string(),
+            naga::AddressSpace::Storage { access } => {
+                let access = match access.bits() {
+                    1 => "read",
+                    2 => "write",
+                    3 => "read_write",
+                    _ => "",
+                };
+                format!("<storage, {}>", access)
+            }
+            naga::AddressSpace::Handle => "".to_string(),
+            naga::AddressSpace::PushConstant => "<push_constant>".to_string(),
+        };
+        let name = self.name.clone().unwrap_or("value".to_string());
+        format!("{group_and_binding}var{space} {name}")
+    }
 }

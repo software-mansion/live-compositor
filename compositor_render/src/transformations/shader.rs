@@ -39,8 +39,8 @@ pub enum CreateShaderError {
     #[error(transparent)]
     Validation(#[from] ShaderValidationError),
 
-    #[error("Shader parse error:\n{0}")]
-    ParseError(#[from] naga::front::wgsl::ParseError),
+    #[error("Shader parse error: {0}")]
+    ParseError(naga::front::wgsl::ParseError),
 }
 
 /// The bind group layout for the shader:
@@ -68,7 +68,8 @@ impl Shader {
     ) -> Result<Self, CreateShaderError> {
         let scope = WgpuErrorScope::push(&wgpu_ctx.device);
 
-        let shader = naga::front::wgsl::parse_str(&shader_src)?;
+        let shader =
+            naga::front::wgsl::parse_str(&shader_src).map_err(CreateShaderError::ParseError)?;
 
         validate_contains_header(&wgpu_ctx.shader_header, &shader)?;
 
