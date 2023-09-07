@@ -5,15 +5,20 @@ use crate::renderer::{
 
 use std::{sync::Arc, time::Duration};
 
-use compositor_common::scene::NodeId;
+use compositor_common::{
+    renderer_spec::FallbackStrategy,
+    scene::{shader::ShaderParam, NodeId},
+};
 
 use crate::renderer::{texture::Texture, WgpuCtx};
 
 use self::{
+    error::{ParametersValidationError, ShaderValidationError},
     pipeline::Pipeline,
-    validation::{validate_contains_header, ShaderValidationError},
+    validation::{validate_contains_header, validate_params},
 };
 
+pub mod error;
 pub mod node;
 mod pipeline;
 pub mod validation;
@@ -22,6 +27,9 @@ const INPUT_TEXTURES_AMOUNT: u32 = 16;
 
 pub const VERTEX_ENTRYPOINT_NAME: &str = "vs_main";
 pub const FRAGMENT_ENTRYPOINT_NAME: &str = "fs_main";
+
+pub const USER_DEFINED_BUFFER_GROUP: u32 = 1;
+pub const USER_DEFINED_BUFFER_BINDING: u32 = 0;
 
 #[derive(Debug, thiserror::Error)]
 pub enum CreateShaderError {
@@ -45,13 +53,19 @@ pub enum CreateShaderError {
 /// @group(2) @binding(0) var sampler_: sampler;
 /// ```
 pub struct Shader {
-    wgpu_ctx: Arc<WgpuCtx>,
+    pub wgpu_ctx: Arc<WgpuCtx>,
     pipeline: Pipeline,
     empty_texture: Texture,
+    pub fallback_strategy: FallbackStrategy,
+    shader: naga::Module,
 }
 
 impl Shader {
-    pub fn new(wgpu_ctx: &Arc<WgpuCtx>, shader_src: String) -> Result<Self, CreateShaderError> {
+    pub fn new(
+        wgpu_ctx: &Arc<WgpuCtx>,
+        shader_src: String,
+        fallback_strategy: FallbackStrategy,
+    ) -> Result<Self, CreateShaderError> {
         let scope = WgpuErrorScope::push(&wgpu_ctx.device);
 
         let shader = naga::front::wgsl::parse_str(&shader_src)?;
@@ -60,7 +74,7 @@ impl Shader {
 
         let pipeline = Pipeline::new(
             &wgpu_ctx.device,
-            wgpu::ShaderSource::Naga(std::borrow::Cow::Owned(shader)),
+            wgpu::ShaderSource::Naga(std::borrow::Cow::Owned(shader.clone())),
             &wgpu_ctx.shader_parameters_bind_group_layout,
         );
 
@@ -82,34 +96,24 @@ impl Shader {
             wgpu_ctx: wgpu_ctx.clone(),
             pipeline,
             empty_texture,
+            fallback_strategy,
+            shader,
         })
     }
 
     pub fn new_parameters_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
         device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("shader parameters bind group layout"),
-            entries: &[
-                wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    count: None,
-                    visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
+            entries: &[wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                count: None,
+                visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
                 },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 1,
-                    count: None,
-                    visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                },
-            ],
+            }],
         })
     }
 
@@ -163,5 +167,24 @@ impl Shader {
             common_shader_params,
             clear_color,
         );
+    }
+
+    pub fn validate_params(&self, params: &ShaderParam) -> Result<(), ParametersValidationError> {
+        let ty = self
+            .shader
+            .global_variables
+            .iter()
+            .find(|(_, global)| match global.binding.as_ref() {
+                Some(binding) => {
+                    (binding.group, binding.binding)
+                        == (USER_DEFINED_BUFFER_GROUP, USER_DEFINED_BUFFER_BINDING)
+                }
+
+                None => false,
+            })
+            .map(|(_, handle)| handle.ty)
+            .ok_or(ParametersValidationError::NoBindingInShader)?;
+
+        validate_params(params, ty, &self.shader)
     }
 }

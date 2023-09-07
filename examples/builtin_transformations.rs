@@ -126,7 +126,7 @@ fn start_example_client_code() -> Result<()> {
                     {
                         "left": "25%",
                         "top": "25%",
-                        "rotation": 90,
+                        "rotation": 30,
                     }
                 ],
                 "background_color_rgba": "#0000FF00",

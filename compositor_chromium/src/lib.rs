@@ -108,9 +108,7 @@ mod render_process_handler;
 mod settings;
 mod task;
 mod utils;
-mod v8_context;
-mod v8_exception;
-mod v8_value;
+mod v8;
 mod validated;
 mod window_info;
 

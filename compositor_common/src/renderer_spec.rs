@@ -13,6 +13,14 @@ impl Display for RendererId {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
+#[serde(rename_all = "snake_case")]
+pub enum FallbackStrategy {
+    NeverFallback,
+    FallbackIfAllInputsMissing,
+    FallbackIfAnyInputMissing,
+}
+
 /// RendererSpec provides configuration necessary to construct Renderer. Renderers
 /// are entities like shader, image or chromium_instance and can be used by nodes
 /// to transform or generate frames.
@@ -28,6 +36,8 @@ pub enum RendererSpec {
 pub struct ShaderSpec {
     pub shader_id: RendererId,
     pub source: String,
+    #[serde(default = "default_shader_fallback_strategy")]
+    pub fallback_strategy: FallbackStrategy,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -35,16 +45,26 @@ pub struct WebRendererSpec {
     pub instance_id: RendererId,
     pub url: String,
     pub resolution: Resolution,
+    #[serde(default = "default_web_renderer_strategy")]
+    pub fallback_strategy: FallbackStrategy,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde()]
 pub struct ImageSpec {
-    pub url: String,
+    #[serde(flatten)]
+    pub src: ImageSrc,
     pub image_id: RendererId,
 
     #[serde(flatten)]
     pub image_type: ImageType,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum ImageSrc {
+    Url { url: String },
+    LocalPath { path: String },
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -54,4 +74,12 @@ pub enum ImageType {
     Jpeg,
     Svg { resolution: Option<Resolution> },
     Gif,
+}
+
+fn default_shader_fallback_strategy() -> FallbackStrategy {
+    FallbackStrategy::FallbackIfAllInputsMissing
+}
+
+fn default_web_renderer_strategy() -> FallbackStrategy {
+    FallbackStrategy::FallbackIfAllInputsMissing
 }

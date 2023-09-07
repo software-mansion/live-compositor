@@ -1,20 +1,20 @@
+use compositor_common::renderer_spec::RendererId;
+
 use crate::{
     registry,
     renderer::{CreateWgpuCtxError, WgpuError},
     transformations::{
-        builtin::transformations::InitBuiltinError,
-        image_renderer::ImageError,
-        shader::CreateShaderError,
-        web_renderer::{chromium::WebRendererContextError, CreateWebRendererError},
+        builtin::error::InitBuiltinError, image_renderer::ImageError, shader::CreateShaderError,
+        web_renderer::chromium_context::WebRendererContextError,
     },
 };
 
 #[derive(Debug, thiserror::Error)]
 pub enum InitRendererEngineError {
-    #[error("Failed to initialize a wgpu context. {0}")]
+    #[error("Failed to initialize a wgpu context.")]
     FailedToInitWgpuCtx(#[from] CreateWgpuCtxError),
 
-    #[error("Failed to initialize chromium context. {0}")]
+    #[error("Failed to initialize chromium context.")]
     FailedToInitChromiumCtx(#[from] WebRendererContextError),
 
     #[error(transparent)]
@@ -26,14 +26,11 @@ pub enum RegisterRendererError {
     #[error(transparent)]
     RendererRegistry(#[from] registry::RegisterError),
 
-    #[error(transparent)]
-    Shader(#[from] CreateShaderError),
+    #[error("Failed to register shader \"{1}\".")]
+    Shader(#[source] CreateShaderError, RendererId),
 
-    #[error("Failed to create web renderer instance. {0}")]
-    WebRendererInstance(#[from] CreateWebRendererError),
-
-    #[error("Failed to prepare image.")]
-    Image(#[from] ImageError),
+    #[error("Failed to register image \"{1}\".")]
+    Image(#[source] ImageError, RendererId),
 }
 
 #[derive(Debug, thiserror::Error)]

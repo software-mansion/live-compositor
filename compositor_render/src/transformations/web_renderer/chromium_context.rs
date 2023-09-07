@@ -39,7 +39,9 @@ impl ChromiumContext {
             ..Default::default()
         };
 
-        let context = Arc::new(cef::Context::new(app, settings)?);
+        let context = Arc::new(
+            cef::Context::new(app, settings).map_err(WebRendererContextError::ContextFailure)?,
+        );
         Ok(Self {
             framerate,
             context: Some(context),
@@ -71,7 +73,7 @@ impl ChromiumContext {
         });
 
         task.run(cef::ThreadId::UI);
-        Ok(rx.recv()??)
+        rx.recv()?.map_err(WebRendererContextError::ContextFailure)
     }
 
     pub fn cef_context(&self) -> Option<Arc<cef::Context>> {
@@ -116,14 +118,14 @@ impl cef::App for ChromiumApp {
 #[derive(Debug, thiserror::Error)]
 pub enum WebRendererContextError {
     #[error("Chromium context failed: {0}")]
-    ContextFailure(#[from] cef::ContextError),
+    ContextFailure(cef::ContextError),
 
-    #[error("Thread communication failed")]
+    #[error("Thread communication failed.")]
     ThreadNoResponse(#[from] RecvError),
 
-    #[error("Chromium context not initialized")]
+    #[error("Chromium context not initialized.")]
     NoContext,
 
-    #[error("Chromium message loop can only run on the main thread")]
+    #[error("Chromium message loop can only run on the main thread.")]
     WrongThreadForMessageLoop,
 }

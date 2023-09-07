@@ -1,16 +1,30 @@
-use compositor_chromium::cef;
-use compositor_common::scene::Resolution;
-use crossbeam_channel::{Receiver, Sender};
+use std::{collections::HashMap, sync::Arc};
 
-pub(super) struct BrowserState {
+use compositor_chromium::cef;
+use compositor_common::scene::{NodeId, Resolution};
+use crossbeam_channel::{bounded, Receiver, Sender};
+use log::error;
+use shared_memory::ShmemError;
+
+use crate::renderer::{texture::NodeTexture, RenderCtx};
+
+use super::{chromium_context::ChromiumContext, chromium_sender::ChromiumSender};
+
+pub(super) struct BrowserController {
     painted_frames_receiver: Receiver<Vec<u8>>,
+    chromium_sender: ChromiumSender,
     frame_data: Option<Vec<u8>>,
 }
 
-impl BrowserState {
-    pub fn new(painted_frames_receiver: Receiver<Vec<u8>>) -> Self {
+impl BrowserController {
+    pub fn new(ctx: Arc<ChromiumContext>, url: String, resolution: Resolution) -> Self {
+        let (painted_frames_sender, painted_frames_receiver) = crossbeam_channel::unbounded();
+        let client = BrowserClient::new(painted_frames_sender, resolution);
+        let chromium_sender = ChromiumSender::new(ctx, url, client);
+
         Self {
             painted_frames_receiver,
+            chromium_sender,
             frame_data: None,
         }
     }
@@ -22,9 +36,93 @@ impl BrowserState {
 
         self.frame_data.as_deref()
     }
+
+    pub fn send_sources(
+        &mut self,
+        ctx: &RenderCtx,
+        sources: &[(&NodeId, &NodeTexture)],
+        buffers: &HashMap<NodeId, Arc<wgpu::Buffer>>,
+    ) -> Result<(), EmbedFrameError> {
+        self.copy_sources_to_buffers(ctx, sources, buffers)?;
+
+        let mut pending_downloads = Vec::new();
+        for (id, texture) in sources.iter() {
+            let Some(texture_state) = texture.state() else {
+                continue;
+            };
+            let size = texture_state.rgba_texture().size();
+            let buffer = buffers
+                .get(id)
+                .ok_or(EmbedFrameError::ExpectDownloadBuffer)?;
+            pending_downloads.push(self.copy_buffer_to_shmem((*id).clone(), size, buffer.clone()));
+        }
+
+        ctx.wgpu_ctx.device.poll(wgpu::Maintain::Wait);
+
+        for pending in pending_downloads {
+            pending()?;
+        }
+
+        self.chromium_sender.embed_sources(sources);
+        Ok(())
+    }
+
+    fn copy_sources_to_buffers(
+        &self,
+        ctx: &RenderCtx,
+        sources: &[(&NodeId, &NodeTexture)],
+        buffers: &HashMap<NodeId, Arc<wgpu::Buffer>>,
+    ) -> Result<(), EmbedFrameError> {
+        let mut encoder = ctx
+            .wgpu_ctx
+            .device
+            .create_command_encoder(&Default::default());
+
+        for (id, texture) in sources.iter() {
+            let Some(texture_state) = texture.state() else {
+                continue;
+            };
+            let buffer = buffers
+                .get(id)
+                .ok_or(EmbedFrameError::ExpectDownloadBuffer)?;
+            texture_state
+                .rgba_texture()
+                .copy_to_buffer(&mut encoder, buffer);
+        }
+        ctx.wgpu_ctx.queue.submit(Some(encoder.finish()));
+
+        Ok(())
+    }
+
+    fn copy_buffer_to_shmem(
+        &self,
+        id: NodeId,
+        size: wgpu::Extent3d,
+        source: Arc<wgpu::Buffer>,
+    ) -> impl FnOnce() -> Result<(), EmbedFrameError> + '_ {
+        let (s, r) = bounded(1);
+        source
+            .slice(..)
+            .map_async(wgpu::MapMode::Read, move |result| {
+                if let Err(err) = s.send(result) {
+                    error!("channel send error: {err}")
+                }
+            });
+
+        move || {
+            r.recv().unwrap()?;
+
+            self.chromium_sender
+                .update_shared_memory(id, source.clone(), size);
+            source.unmap();
+
+            Ok(())
+        }
+    }
 }
 
-pub struct BrowserClient {
+#[derive(Clone)]
+pub(super) struct BrowserClient {
     painted_frames_sender: Sender<Vec<u8>>,
     resolution: Resolution,
 }
@@ -49,7 +147,25 @@ impl BrowserClient {
     }
 }
 
-pub struct RenderHandler {
+#[derive(Debug, thiserror::Error)]
+pub enum EmbedFrameError {
+    #[error("Failed to create shared memory")]
+    CreateSharedMemory(#[from] ShmemError),
+
+    #[error("Failed to download source frame")]
+    DownloadFrame(#[from] wgpu::BufferAsyncError),
+
+    #[error("Browser is no longer alive")]
+    BrowserNotAlive(#[from] cef::BrowserError),
+
+    #[error("Could not send IPC message")]
+    MessageNotSent(#[from] cef::FrameError),
+
+    #[error("Download buffer does not exist")]
+    ExpectDownloadBuffer,
+}
+
+pub(super) struct RenderHandler {
     painted_frames_sender: Sender<Vec<u8>>,
     resolution: Resolution,
 }

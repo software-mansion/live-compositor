@@ -1,168 +1,18 @@
-use std::{collections::HashMap, sync::Arc, time::Duration};
+use std::collections::HashMap;
 
 use compositor_common::{
-    scene::{InputId, NodeId, NodeParams, NodeSpec, OutputId, Resolution, SceneSpec},
-    SpecValidationError,
+    error::SceneSpecValidationError,
+    scene::{InputId, NodeId, OutputId, SceneSpec},
 };
 use log::error;
 
-use crate::{
-    render_loop::NodeRenderPass,
-    transformations::{
-        builtin::transformations::BuiltinTransformations, image_renderer::ImageNode,
-        shader::node::ShaderNode, text_renderer::TextRendererNode, web_renderer::WebRenderer,
-    },
-};
+use crate::render_loop::NodeRenderPass;
 
 use super::{
-    node::CreateNodeError,
-    texture::{InputTexture, NodeTexture, OutputTexture},
+    node::{CreateNodeError, Node},
+    texture::{InputTexture, OutputTexture},
     RenderCtx, WgpuError, WgpuErrorScope,
 };
-
-pub enum RenderNode {
-    Shader(ShaderNode),
-    Web { renderer: Arc<WebRenderer> },
-    Text(TextRendererNode),
-    Image(ImageNode),
-    Builtin(ShaderNode),
-    InputStream,
-}
-
-impl RenderNode {
-    fn new(ctx: &RenderCtx, spec: &NodeSpec) -> Result<Self, CreateNodeError> {
-        match &spec.params {
-            NodeParams::WebRenderer { instance_id } => {
-                let renderer = ctx
-                    .renderers
-                    .web_renderers
-                    .get(instance_id)
-                    .ok_or_else(|| CreateNodeError::WebRendererNotFound(instance_id.clone()))?;
-                Ok(Self::Web { renderer })
-            }
-            NodeParams::Shader {
-                shader_id,
-                shader_params,
-                resolution,
-            } => {
-                let shader = ctx
-                    .renderers
-                    .shaders
-                    .get(shader_id)
-                    .ok_or_else(|| CreateNodeError::ShaderNotFound(shader_id.clone()))?;
-                let node = ShaderNode::new(
-                    ctx.wgpu_ctx,
-                    shader,
-                    shader_params.as_ref(),
-                    None,
-                    *resolution,
-                );
-                Ok(Self::Shader(node))
-            }
-            NodeParams::Builtin {
-                transformation,
-                resolution,
-            } => {
-                let node = ShaderNode::new(
-                    ctx.wgpu_ctx,
-                    ctx.renderers.builtin.shader(transformation),
-                    BuiltinTransformations::params(transformation, resolution).as_ref(),
-                    BuiltinTransformations::clear_color(transformation),
-                    *resolution,
-                );
-                Ok(Self::Builtin(node))
-            }
-            NodeParams::TextRenderer {
-                text_params,
-                resolution,
-            } => {
-                let renderer = TextRendererNode::new(ctx, text_params.clone(), resolution.clone());
-                Ok(Self::Text(renderer))
-            }
-            NodeParams::Image { image_id } => {
-                let image = ctx
-                    .renderers
-                    .images
-                    .get(image_id)
-                    .ok_or_else(|| CreateNodeError::ImageNotFound(image_id.clone()))?;
-                let node = ImageNode::new(image);
-                Ok(Self::Image(node))
-            }
-        }
-    }
-
-    pub fn render(
-        &self,
-        ctx: &mut RenderCtx,
-        sources: &[(&NodeId, &NodeTexture)],
-        target: &mut NodeTexture,
-        pts: Duration,
-    ) {
-        match self {
-            RenderNode::Shader(shader) => {
-                shader.render(sources, target, pts);
-            }
-            RenderNode::Builtin(shader) => shader.render(sources, target, pts),
-            RenderNode::Web { renderer } => renderer.render(ctx, sources, target),
-            RenderNode::Text(renderer) => {
-                renderer.render(ctx, target);
-            }
-            RenderNode::Image(node) => node.render(ctx, target, pts),
-            RenderNode::InputStream => {
-                // Nothing to do, textures on input nodes should be populated
-                // at the start of render loop
-            }
-        }
-    }
-
-    pub fn resolution(&self) -> Option<Resolution> {
-        match self {
-            RenderNode::Shader(node) => Some(node.resolution()),
-            RenderNode::Web { renderer } => Some(renderer.resolution()),
-            RenderNode::Text(node) => Some(node.resolution()),
-            RenderNode::Image(node) => Some(node.resolution()),
-            RenderNode::InputStream => None,
-            RenderNode::Builtin(node) => Some(node.resolution()),
-        }
-    }
-}
-
-pub struct Node {
-    pub node_id: NodeId,
-    pub output: NodeTexture,
-    pub inputs: Vec<NodeId>,
-    pub fallback: Option<NodeId>,
-    pub renderer: RenderNode,
-}
-
-impl Node {
-    pub fn new(ctx: &RenderCtx, spec: &NodeSpec) -> Result<Self, CreateNodeError> {
-        let node = RenderNode::new(ctx, spec)?;
-        let mut output = NodeTexture::new();
-        if let Some(resolution) = node.resolution() {
-            output.ensure_size(ctx.wgpu_ctx, resolution);
-        }
-        Ok(Self {
-            node_id: spec.node_id.clone(),
-            renderer: node,
-            inputs: spec.input_pads.clone(),
-            fallback: spec.fallback_id.clone(),
-            output,
-        })
-    }
-
-    pub fn new_input(node_id: &NodeId) -> Self {
-        let output = NodeTexture::new();
-
-        Self {
-            node_id: node_id.clone(),
-            renderer: RenderNode::InputStream,
-            inputs: vec![],
-            fallback: None,
-            output,
-        }
-    }
-}
 
 pub struct Scene {
     pub nodes: SceneNodesSet,
@@ -175,8 +25,8 @@ pub enum UpdateSceneError {
     #[error("Failed to create node \"{1}\". {0}")]
     CreateNodeError(#[source] CreateNodeError, NodeId),
 
-    #[error("Invalid scene: {0}")]
-    InvalidSpec(#[from] SpecValidationError),
+    #[error("Invalid scene. {0}")]
+    InvalidSpec(#[from] SceneSpecValidationError),
 
     #[error("Unknown node \"{0}\" used in scene.")]
     NoNodeWithIdError(NodeId),
@@ -265,7 +115,7 @@ impl Scene {
         // make sure that scene does not refer to missing entities.
         let node = Node::new_input(node_id);
         new_nodes.insert(node_id.clone(), node);
-        inputs.insert(InputId(node_id.clone()), InputTexture::new());
+        inputs.insert(node_id.clone().into(), InputTexture::new());
         Ok(())
     }
 }

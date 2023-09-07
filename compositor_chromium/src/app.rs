@@ -21,7 +21,7 @@ pub trait App {
     }
 
     /// Used for specifying renderer process handler.
-    /// Called by Chromium only when on renderer process
+    /// Called by Chromium every time a new IPC message is received by a renderer process.
     fn render_process_handler(&self) -> Option<Self::RenderProcessHandlerType> {
         None
     }

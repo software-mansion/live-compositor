@@ -1,9 +1,9 @@
 use std::{collections::HashSet, sync::Arc};
 
 use crate::{
+    error::{SceneSpecValidationError, UnusedNodesError},
     renderer_spec::RendererId,
-    scene::{NodeId, NodeParams, NodeSpec, OutputId, OutputSpec, Resolution, SceneSpec},
-    validators::{SceneSpecValidationError, UnusedNodesError},
+    scene::{id::NodeId, id::OutputId, NodeParams, NodeSpec, OutputSpec, Resolution, SceneSpec},
 };
 
 #[test]
@@ -58,9 +58,10 @@ fn scene_validation_finds_cycle() {
     let registered_inputs = HashSet::from([&input_id]);
     let registered_outputs = HashSet::from([&output_id]);
 
+    let validation_result = scene_spec.validate(&registered_inputs, &registered_outputs);
     assert_eq!(
-        scene_spec.validate(&registered_inputs, &registered_outputs),
-        Err(SceneSpecValidationError::CycleDetected(c_id.clone()))
+        validation_result.err(),
+        Some(SceneSpecValidationError::CycleDetected(c_id.clone()))
     );
 }
 
@@ -128,7 +129,9 @@ fn scene_validation_finds_unused_nodes() {
     let registered_outputs = HashSet::from([&output_id]);
 
     assert_eq!(
-        scene_spec.validate(&registered_inputs, &registered_outputs),
-        Err(UnusedNodesError(unused_nodes).into())
+        scene_spec
+            .validate(&registered_inputs, &registered_outputs)
+            .err(),
+        Some(UnusedNodesError(unused_nodes).into())
     );
 }

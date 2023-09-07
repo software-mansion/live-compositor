@@ -1,4 +1,7 @@
-use std::sync::Mutex;
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex},
+};
 
 use crate::renderer::{
     texture::{BGRATexture, NodeTexture},
@@ -7,19 +10,22 @@ use crate::renderer::{
 
 use compositor_chromium::cef;
 use compositor_common::{
-    renderer_spec::WebRendererSpec,
+    renderer_spec::{FallbackStrategy, WebRendererSpec},
     scene::{NodeId, Resolution},
 };
 use log::{error, info};
 use serde::{Deserialize, Serialize};
 
-use self::{
-    browser::{BrowserClient, BrowserState},
-    chromium::WebRendererContextError,
-};
+use self::browser::{BrowserController, EmbedFrameError};
 
-mod browser;
-pub mod chromium;
+pub mod browser;
+pub mod chromium_context;
+mod chromium_sender;
+mod chromium_sender_thread;
+pub(crate) mod node;
+
+pub const EMBED_SOURCE_FRAMES_MESSAGE: &str = "EMBED_SOURCE_FRAMES";
+pub const UNEMBED_SOURCE_FRAMES_MESSAGE: &str = "UNEMBED_SOURCE_FRAMES";
 
 #[derive(Serialize, Deserialize)]
 #[serde(default)]
@@ -38,9 +44,9 @@ impl Default for WebRendererOptions {
 }
 
 pub struct WebRenderer {
-    #[allow(dead_code)]
+    pub fallback_strategy: FallbackStrategy,
     params: WebRendererSpec,
-    state: Mutex<BrowserState>,
+    controller: Mutex<BrowserController>,
 
     bgra_texture: BGRATexture,
     _bgra_bind_group_layout: wgpu::BindGroupLayout,
@@ -49,43 +55,45 @@ pub struct WebRenderer {
 }
 
 impl WebRenderer {
-    pub fn new(ctx: &RegisterCtx, params: WebRendererSpec) -> Result<Self, CreateWebRendererError> {
+    pub fn new(ctx: &RegisterCtx, params: WebRendererSpec) -> Self {
         info!("Starting web renderer for {}", &params.url);
-
-        let (painted_frames_sender, painted_frames_receiver) = crossbeam_channel::bounded(1);
-        let state = Mutex::new(BrowserState::new(painted_frames_receiver));
-        let client = BrowserClient::new(painted_frames_sender, params.resolution);
-        let _browser = ctx.chromium.start_browser(&params.url, client)?;
-        let _frame = _browser.main_frame().unwrap();
-        let msg = cef::ProcessMessage::new("TEST");
-        _frame
-            .send_process_message(cef::ProcessId::Renderer, msg)
-            .unwrap();
+        let fallback_strategy = params.fallback_strategy;
 
         let bgra_texture = BGRATexture::new(&ctx.wgpu_ctx, params.resolution);
         let bgra_bind_group_layout = BGRATexture::new_bind_group_layout(&ctx.wgpu_ctx.device);
         let bgra_bind_group = bgra_texture.new_bind_group(&ctx.wgpu_ctx, &bgra_bind_group_layout);
         let bgra_to_rgba = BGRAToRGBAConverter::new(&ctx.wgpu_ctx.device, &bgra_bind_group_layout);
 
-        Ok(Self {
+        let controller = Mutex::new(BrowserController::new(
+            ctx.chromium.clone(),
+            params.url.clone(),
+            params.resolution,
+        ));
+
+        Self {
+            fallback_strategy,
             params,
-            state,
+            controller,
             bgra_texture,
             _bgra_bind_group_layout: bgra_bind_group_layout,
             bgra_bind_group,
             bgra_to_rgba,
-        })
+        }
     }
 
     pub fn render(
         &self,
         ctx: &RenderCtx,
-        _sources: &[(&NodeId, &NodeTexture)],
+        sources: &[(&NodeId, &NodeTexture)],
+        buffers: &HashMap<NodeId, Arc<wgpu::Buffer>>,
         target: &mut NodeTexture,
-    ) {
-        let mut state = self.state.lock().unwrap();
-        if let Some(frame) = state.retrieve_frame() {
+    ) -> Result<(), RenderWebsiteError> {
+        let mut controller = self.controller.lock().unwrap();
+        controller.send_sources(ctx, sources, buffers)?;
+
+        if let Some(frame) = controller.retrieve_frame() {
             let target = target.ensure_size(ctx.wgpu_ctx, self.params.resolution);
+
             self.bgra_texture.upload(ctx.wgpu_ctx, frame);
             self.bgra_to_rgba.convert(
                 ctx.wgpu_ctx,
@@ -93,6 +101,8 @@ impl WebRenderer {
                 target.rgba_texture(),
             );
         }
+
+        Ok(())
     }
 
     pub fn resolution(&self) -> Resolution {
@@ -101,7 +111,10 @@ impl WebRenderer {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum CreateWebRendererError {
-    #[error("failed to create new web renderer session")]
-    CreateContextFailure(#[from] WebRendererContextError),
+pub enum RenderWebsiteError {
+    #[error("Failed to embed sources")]
+    EmbedSources(#[from] EmbedFrameError),
+
+    #[error("Download buffer does not exist")]
+    ExpectDownloadBuffer,
 }

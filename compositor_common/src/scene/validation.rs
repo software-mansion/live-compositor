@@ -1,60 +1,10 @@
-use std::{
-    collections::{HashMap, HashSet},
-    fmt::Display,
-};
+use std::collections::{HashMap, HashSet};
 
-use crate::scene::{
-    builtin_transformations::InvalidBuiltinTransformationSpec, NodeId, NodeParams, NodeSpec,
-    OutputId, SceneSpec,
-};
+use crate::error::{SceneSpecValidationError, UnusedNodesError};
 
-#[derive(Debug, thiserror::Error, PartialEq, Eq)]
-pub enum SceneSpecValidationError {
-    #[error("Unknown node \"{missing_node}\" used as an input in the node \"{node}\". Node is not defined in the scene and it was not registered as an input.")]
-    UnknownInputPadOnNode { missing_node: NodeId, node: NodeId },
-    #[error("Unknown node \"{missing_node}\" is connected to the output stream \"{output}\".")]
-    UnknownInputPadOnOutput {
-        missing_node: NodeId,
-        output: OutputId,
-    },
-    #[error(
-        "Unknown output stream \"{0}\". Register it first before using it in the scene definition."
-    )]
-    UnknownOutput(NodeId),
-    #[error("Invalid node id. There is more than one node with the \"{0}\" id.")]
-    DuplicateNodeNames(NodeId),
-    #[error("Invalid node id. There is already an input stream with the \"{0}\" id.")]
-    DuplicateNodeAndInputNames(NodeId),
-    #[error("Cycles between nodes are not allowed. Node \"{0}\" depends on itself via input_pads or fallback option.")]
-    CycleDetected(NodeId),
-    #[error(transparent)]
-    UnusedNodes(#[from] UnusedNodesError),
-    #[error(transparent)]
-    InvalidBuiltinTransformationParams(#[from] InvalidBuiltinTransformationSpec),
-}
-
-#[derive(Debug, thiserror::Error, PartialEq, Eq)]
-pub struct UnusedNodesError(HashSet<NodeId>);
-
-impl Display for UnusedNodesError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut unused_nodes: Vec<String> = self.0.iter().map(ToString::to_string).collect();
-        unused_nodes.sort();
-        write!(
-            f,
-            "There are unused nodes in the scene definition: {0}",
-            unused_nodes.join(", ")
-        )
-    }
-}
+use super::{NodeId, NodeSpec, OutputSpec, SceneSpec};
 
 impl SceneSpec {
-    // Validate if SceneSpec represents valid scene:
-    // - check if each transform have inputs that are either registered or are a transformation
-    // itself
-    // - check if each input pad of each output is a either registered input or a transformation
-    // - check if each output in scene spec is registered output
-    // - check if each input in scene spec is registered input
     pub fn validate(
         &self,
         registered_inputs: &HashSet<&NodeId>,
@@ -71,22 +21,22 @@ impl SceneSpec {
             .map(|node| (&node.node_id, node))
             .collect();
 
-        self.validate_input_pads_are_defined_on_node(&defined_node_ids)?;
-        self.validate_input_pads_are_defined_on_output(&defined_node_ids)?;
-        self.validate_outputs_registered(registered_outputs)?;
-        self.validate_node_ids_uniqueness(defined_node_ids_iter, registered_inputs)?;
-        self.validate_cycles(&transform_nodes)?;
-        self.validate_nodes_are_used(&transform_nodes)?;
-        self.validate_builtin_transformations()?;
+        Self::validate_input_pads_are_defined_on_node(&self.nodes, &defined_node_ids)?;
+        Self::validate_input_pads_are_defined_on_output(&self.outputs, &defined_node_ids)?;
+        Self::validate_outputs_registered(&self.outputs, registered_outputs)?;
+        Self::validate_node_ids_uniqueness(defined_node_ids_iter, registered_inputs)?;
+        Self::validate_cycles(&self.outputs, &transform_nodes)?;
+        Self::validate_nodes_are_used(&self.outputs, &transform_nodes)?;
+        Self::validate_node_params(&self.nodes)?;
 
         Ok(())
     }
 
     fn validate_input_pads_are_defined_on_node(
-        &self,
+        nodes: &[NodeSpec],
         defined_node_ids: &HashSet<&NodeId>,
     ) -> Result<(), SceneSpecValidationError> {
-        for t in self.nodes.iter() {
+        for t in nodes.iter() {
             for input in &t.input_pads {
                 if !defined_node_ids.contains(input) {
                     return Err(SceneSpecValidationError::UnknownInputPadOnNode {
@@ -101,11 +51,10 @@ impl SceneSpec {
     }
 
     fn validate_input_pads_are_defined_on_output(
-        &self,
+        outputs: &[OutputSpec],
         defined_node_ids: &HashSet<&NodeId>,
     ) -> Result<(), SceneSpecValidationError> {
-        // TODO: We want to stop allowing connecting inputs to outputs
-        for out in self.outputs.iter() {
+        for out in outputs.iter() {
             let node_id = &out.input_pad;
             if !defined_node_ids.contains(node_id) {
                 return Err(SceneSpecValidationError::UnknownInputPadOnOutput {
@@ -119,10 +68,10 @@ impl SceneSpec {
     }
 
     fn validate_outputs_registered(
-        &self,
+        outputs: &[OutputSpec],
         registered_outputs: &HashSet<&NodeId>,
     ) -> Result<(), SceneSpecValidationError> {
-        for out in self.outputs.iter() {
+        for out in outputs.iter() {
             if registered_outputs.get(&out.output_id.0).is_none() {
                 return Err(SceneSpecValidationError::UnknownOutput(
                     out.output_id.0.clone(),
@@ -134,7 +83,6 @@ impl SceneSpec {
     }
 
     fn validate_node_ids_uniqueness<'a, I: Iterator<Item = &'a NodeId>>(
-        &self,
         defined_node_ids: I,
         registered_inputs: &HashSet<&NodeId>,
     ) -> Result<(), SceneSpecValidationError> {
@@ -160,8 +108,8 @@ impl SceneSpec {
     /// Assumes that all input pads refer to real nodes
     /// [`validate_input_pads_are_defined_on_node`] should be run before this function
     fn validate_cycles(
-        &self,
-        transform_nodes: &HashMap<&NodeId, &NodeSpec>,
+        outputs: &Vec<OutputSpec>,
+        nodes: &HashMap<&NodeId, &NodeSpec>,
     ) -> Result<(), SceneSpecValidationError> {
         enum NodeState {
             BeingVisited,
@@ -201,8 +149,8 @@ impl SceneSpec {
             Ok(())
         }
 
-        for output in &self.outputs {
-            visit(&output.input_pad, transform_nodes, &mut visited)?;
+        for output in outputs {
+            visit(&output.input_pad, nodes, &mut visited)?;
         }
 
         Ok(())
@@ -211,7 +159,7 @@ impl SceneSpec {
     /// Assumes that all input pads refer to real nodes
     /// [`validate_input_pads_are_defined_on_node`] should be run before this function
     fn validate_nodes_are_used(
-        &self,
+        outputs: &Vec<OutputSpec>,
         transform_nodes: &HashMap<&NodeId, &NodeSpec>,
     ) -> Result<(), SceneSpecValidationError> {
         let mut visited: HashSet<&NodeId> = HashSet::new();
@@ -239,7 +187,7 @@ impl SceneSpec {
             visited.insert(node_id);
         }
 
-        for output in &self.outputs {
+        for output in outputs {
             visit(&output.input_pad, transform_nodes, &mut visited)
         }
 
@@ -254,23 +202,13 @@ impl SceneSpec {
         Ok(())
     }
 
-    fn validate_builtin_transformations(&self) -> Result<(), SceneSpecValidationError> {
-        for spec in &self.nodes {
-            let NodeSpec {
-                node_id,
-                input_pads,
-                params,
-                ..
-            } = spec;
-
-            if let NodeParams::Builtin { transformation, .. } = params {
-                transformation.validate(node_id, input_pads)?;
-            };
+    fn validate_node_params(nodes: &Vec<NodeSpec>) -> Result<(), SceneSpecValidationError> {
+        for spec in nodes {
+            spec.validate().map_err(|err| {
+                SceneSpecValidationError::InvalidNodeSpec(err, spec.node_id.clone())
+            })?;
         }
 
         Ok(())
     }
 }
-
-#[cfg(test)]
-mod test;

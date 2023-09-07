@@ -1,10 +1,10 @@
 use std::collections::{hash_map, HashMap};
-use std::error::Error;
 use std::sync::Arc;
 use std::sync::{Mutex, MutexGuard};
 use std::thread;
 use std::time::Duration;
 
+use compositor_common::error::ErrorStack;
 use compositor_common::renderer_spec::RendererSpec;
 use compositor_common::scene::{InputId, OutputId, SceneSpec};
 use compositor_common::{Frame, Framerate};
@@ -185,7 +185,7 @@ impl<Input: PipelineInput, Output: PipelineOutput> Pipeline<Input, Output> {
                 let Ok(output_frames) = output else {
                     error!(
                         "Error while rendering: {}",
-                        output.unwrap_err().source().unwrap()
+                        ErrorStack::new(&output.unwrap_err()).into_string()
                     );
                     continue;
                 };
