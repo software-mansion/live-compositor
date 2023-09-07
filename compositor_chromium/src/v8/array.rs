@@ -5,6 +5,11 @@ use super::value::{V8Value, V8ValueError};
 pub struct V8Array(pub(super) Validated<chromium_sys::cef_v8value_t>);
 
 impl V8Array {
+    pub fn new(len: usize) -> Self {
+        let inner = unsafe { chromium_sys::cef_v8value_create_array(len as i32) };
+        Self(Validated(inner))
+    }
+
     pub fn has(&self, index: usize) -> Result<bool, V8ArrayError> {
         let inner = self.0.get()?;
         unsafe {
@@ -13,16 +18,12 @@ impl V8Array {
         }
     }
 
-    pub fn len(&self) -> Result<usize, V8ArrayError> {
+    pub fn max_len(&self) -> Result<usize, V8ArrayError> {
         let inner = self.0.get()?;
         unsafe {
             let get_len = (*inner).get_array_length.unwrap();
             Ok(get_len(inner) as usize)
         }
-    }
-
-    pub fn is_empty(&self) -> Result<bool, V8ArrayError> {
-        Ok(self.len()? == 0)
     }
 
     pub fn get(&self, index: usize) -> Result<V8Value, V8ArrayError> {
