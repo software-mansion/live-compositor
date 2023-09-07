@@ -70,18 +70,18 @@ impl From<V8Array> for V8Value {
 
 #[derive(Debug, thiserror::Error)]
 pub enum V8ArrayError {
-    #[error("V8Array is no longer valid")]
+    #[error("V8Array is no longer valid.")]
     ArrayNotValid(#[from] ValidatedError),
 
     #[error(transparent)]
     V8ValueError(#[from] V8ValueError),
 
-    #[error("V8Array element not found at index {0}")]
+    #[error("V8Array element not found at index \"{0}\".")]
     ElementNotFound(usize),
 
-    #[error("Failed to set V8Array at index {0}")]
+    #[error("Failed to set V8Array at index \"{0}\".")]
     SetFailed(usize),
 
-    #[error("Failed to delete V8Array element at index {0}")]
+    #[error("Failed to delete V8Array element at index \"{0}\".")]
     DeleteFailed(usize),
 }

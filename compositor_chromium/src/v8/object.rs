@@ -80,18 +80,18 @@ pub enum V8PropertyAttribute {
 
 #[derive(Debug, thiserror::Error)]
 pub enum V8ObjectError {
-    #[error("V8Object is no longer valid")]
+    #[error("V8Object is no longer valid.")]
     ObjectNotValid(#[from] ValidatedError),
 
     #[error(transparent)]
     V8ValueError(#[from] V8ValueError),
 
-    #[error("V8Object field not found")]
+    #[error("V8Object field not found.")]
     FieldNotFound,
 
-    #[error("Failed to set V8Object field")]
+    #[error("Failed to set V8Object field.")]
     SetFailed,
 
-    #[error("Failed to delete V8Object field")]
+    #[error("Failed to delete V8Object field.")]
     DeleteFailed,
 }
