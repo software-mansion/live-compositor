@@ -1,10 +1,11 @@
 use compositor_common::scene::{
-    builtin_transformations::{BuiltinSpec, TransformToResolutionStrategy},
+    builtin_transformations::{BuiltinSpec, MirrorMode, TransformToResolutionStrategy},
     Resolution,
 };
 
 use self::{
     fixed_position_layout::FixedPositionLayoutParams,
+    mirror_image::MirrorModeExt,
     tiled_layout::TiledLayoutParams,
     transform_to_resolution::{FillParams, FitParams},
 };
@@ -12,6 +13,7 @@ use self::{
 use super::Builtin;
 
 mod fixed_position_layout;
+mod mirror_image;
 mod tiled_layout;
 mod transform_to_resolution;
 
@@ -21,6 +23,7 @@ pub enum BuiltinParams {
     Fit(FitParams),
     Fill(FillParams),
     TiledLayout(TiledLayoutParams),
+    MirrorMode(MirrorMode),
     None,
 }
 
@@ -53,6 +56,7 @@ impl BuiltinParams {
                 *tile_aspect_ratio,
                 *output_resolution,
             )),
+            BuiltinSpec::MirrorImage { mode } => BuiltinParams::MirrorMode(*mode),
         }
     }
 
@@ -91,6 +95,7 @@ impl BuiltinParams {
             BuiltinParams::TiledLayout(tiled_layout_params) => {
                 tiled_layout_params.shader_buffer_content()
             }
+            BuiltinParams::MirrorMode(mode) => mode.shader_buffer_content(),
             BuiltinParams::None => bytes::Bytes::new(),
         }
     }
