@@ -75,12 +75,9 @@ impl<'a> Iterator for ErrorStack<'a> {
     type Item = &'a (dyn std::error::Error + 'static);
 
     fn next(&mut self) -> Option<Self::Item> {
-        match self.0 {
-            Some(err) => {
-                self.0 = err.source();
-                Some(err)
-            }
-            None => None,
-        }
+        self.0.map(|err| {
+            self.0 = err.source();
+            err
+        })
     }
 }
