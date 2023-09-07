@@ -125,10 +125,10 @@ impl GridParams {
         for bottom_tile in 0..bottom_row_tiles_count {
             let top_left_corner = (
                 (bottom_row_x_padding + tile_size.width as u32) * bottom_tile
-                + bottom_row_x_padding,
+                    + bottom_row_x_padding,
                 (rows_cols.rows - 1) * tile_size.height as u32 + y_padding,
             );
-            
+
             layouts.push(Tile {
                 top_left_corner,
                 width: tile_size.width as u32,
@@ -185,7 +185,7 @@ impl GridParams {
             interpolate_x(tile_center_pixels.0 as f32, output_resolution.width as f32),
             interpolate_y(tile_center_pixels.1 as f32, output_resolution.height as f32),
         );
-        
+
         transformation_matrix = translate(
             &transformation_matrix,
             &vec3(tile_center_clip_space.0, tile_center_clip_space.1, 0.0),

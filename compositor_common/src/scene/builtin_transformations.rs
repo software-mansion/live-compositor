@@ -118,7 +118,7 @@ impl BuiltinSpec {
                 }
 
                 Ok(())
-            },
+            }
         }
     }
 }

@@ -97,7 +97,7 @@ impl Grid {
         Ok(Self(Arc::new(Shader::new(
             wgpu_ctx,
             include_str!("./grid.wgsl").into(),
-            FallbackStrategy::FallbackIfAllInputsMissing
+            FallbackStrategy::FallbackIfAllInputsMissing,
         )?)))
     }
 }
