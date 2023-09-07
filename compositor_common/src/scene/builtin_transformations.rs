@@ -42,8 +42,10 @@ pub enum TransformToResolutionStrategy {
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct TextureLayout {
-    pub top: Coord,
-    pub left: Coord,
+    pub top: Option<Coord>,
+    pub bottom: Option<Coord>,
+    pub left: Option<Coord>,
+    pub right: Option<Coord>,
     #[serde(default)]
     pub rotation: Degree,
 }
@@ -66,6 +68,34 @@ impl BuiltinSpec {
                         layout_count: texture_layouts.len() as u32,
                         input_count: node_spec.input_pads.len() as u32,
                     });
+                }
+                for layout in texture_layouts {
+                    match layout {
+                        TextureLayout {
+                            top: None,
+                            bottom: None,
+                            ..
+                        } => return Err(BuiltinSpecValidationError::FixedLayoutTopBottomRequired),
+                        TextureLayout {
+                            top: Some(_),
+                            bottom: Some(_),
+                            ..
+                        } => return Err(BuiltinSpecValidationError::FixedLayoutTopBottomOnlyOne),
+                        _ => (),
+                    };
+                    match layout {
+                        TextureLayout {
+                            left: None,
+                            right: None,
+                            ..
+                        } => return Err(BuiltinSpecValidationError::FixedLayoutLeftRightRequired),
+                        TextureLayout {
+                            left: Some(_),
+                            right: Some(_),
+                            ..
+                        } => return Err(BuiltinSpecValidationError::FixedLayoutLeftRightOnlyOne),
+                        _ => (),
+                    };
                 }
                 Ok(())
             }

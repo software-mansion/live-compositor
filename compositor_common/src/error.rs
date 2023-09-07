@@ -52,6 +52,14 @@ pub enum NodeSpecValidationError {
 pub enum BuiltinSpecValidationError {
     #[error("Transformation \"fixed_position_layout\" expects {input_count} texture layouts (the same as number of input pads), but {layout_count} layouts were provided.")]
     FixedLayoutInvalidLayoutCount { layout_count: u32, input_count: u32 },
+    #[error("Each entry in texture_layouts in transformation \"fixed_position_layout\" requires either bottom or top coordinate.")]
+    FixedLayoutTopBottomRequired,
+    #[error("Each entry in texture_layouts in transformation \"fixed_position_layout\" requires either right or left coordinate.")]
+    FixedLayoutLeftRightRequired,
+    #[error("Fields \"top\" and \"bottom\" are mutually exclusive, you can only specify one in texture layout in \"fixed_position_layout\" transformation.")]
+    FixedLayoutTopBottomOnlyOne,
+    #[error("Fields \"left\" and \"right\" are mutually exclusive, you can only specify one in texture layout in \"fixed_position_layout\" transformation.")]
+    FixedLayoutLeftRightOnlyOne,
     #[error("Nodes that use transformation \"transform_to_resolution\" need to have exactly one input pad.")]
     TransformToResolutionExactlyOneInput,
 }
