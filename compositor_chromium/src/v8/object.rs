@@ -3,7 +3,10 @@ use crate::{
     validated::{Validated, ValidatedError},
 };
 
-use super::{value::V8Value, V8ContextEntered, V8ValueError};
+use super::{
+    value::{V8Value, V8ValueError},
+    V8ContextEntered,
+};
 
 pub struct V8Object(pub(super) Validated<chromium_sys::cef_v8value_t>);
 
@@ -77,18 +80,18 @@ pub enum V8PropertyAttribute {
 
 #[derive(Debug, thiserror::Error)]
 pub enum V8ObjectError {
-    #[error("V8Object is no longer valid")]
+    #[error("V8Object is no longer valid.")]
     ObjectNotValid(#[from] ValidatedError),
 
     #[error(transparent)]
     V8ValueError(#[from] V8ValueError),
 
-    #[error("V8Object field not found")]
+    #[error("V8Object field not found.")]
     FieldNotFound,
 
-    #[error("Failed to set V8Object field")]
+    #[error("Failed to set V8Object field.")]
     SetFailed,
 
-    #[error("Failed to delete V8Object field")]
+    #[error("Failed to delete V8Object field.")]
     DeleteFailed,
 }
