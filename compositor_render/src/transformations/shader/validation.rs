@@ -632,7 +632,7 @@ impl ConstantInnerExt for naga::ConstantInner {
                 naga::ScalarValue::Uint(v) => format!("{}", v),
                 naga::ScalarValue::Float(v) => format!("{}", v),
                 naga::ScalarValue::Bool(true) => "true".to_string(),
-                naga::ScalarValue::Bool(false) => "true".to_string(),
+                naga::ScalarValue::Bool(false) => "false".to_string(),
             },
             ConstantInner::Composite { .. } => format!("{:?}", self),
         }
