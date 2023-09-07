@@ -17,7 +17,7 @@ mod common;
 
 const VIDEO_RESOLUTION: Resolution = Resolution {
     width: 1920,
-    height: 1054,
+    height: 1080,
 };
 const FRAMERATE: Framerate = Framerate(30);
 
@@ -103,6 +103,7 @@ fn start_example_client_code() -> Result<()> {
         "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
     }))?;
 
+    let label_padding = "20px";
     info!("[example] Update scene");
     common::post(&json!({
         "type": "update_scene",
@@ -132,9 +133,37 @@ fn start_example_client_code() -> Result<()> {
                 "node_id": "gif_1_rescaled",
                 "type": "built-in",
                 "transformation": "transform_to_resolution",
-                "strategy": "fit",
+                "strategy": "fill",
                 "resolution": { "width": 960, "height": 540 },
                 "input_pads": ["gif_1"],
+            },
+            {
+                 "node_id": "gif_1_label",
+                 "type": "text_renderer",
+                 "content": "GIF example",
+                 "font_size": 40.0,
+                 "font_family": "Comic Sans MS",
+                 "resolution": {
+                     "type": "fitted",
+                 },
+            },
+            {
+                "node_id": "gif_1_layout",
+                "type": "built-in",
+                "transformation": "fixed_position_layout",
+                "texture_layouts": [
+                    {
+                        "left": "0px",
+                        "top": "0px"
+                    },
+                    {
+                        "right": label_padding,
+                        "bottom": label_padding
+                    },
+                ],
+                "background_color_rgba": "#0000FF00",
+                "resolution": { "width": 960, "height": 540 },
+                "input_pads": ["gif_1_rescaled", "gif_1_label"],
             },
             {
                 "node_id": "png_1_rescaled",
@@ -143,6 +172,34 @@ fn start_example_client_code() -> Result<()> {
                 "strategy": "fit",
                 "resolution": { "width": 960, "height": 540 },
                 "input_pads": ["png_1"],
+            },
+            {
+                 "node_id": "png_1_label",
+                 "type": "text_renderer",
+                 "content": "PNG example",
+                 "font_size": 40.0,
+                 "font_family": "Comic Sans MS",
+                 "resolution": {
+                     "type": "fitted",
+                 },
+            },
+            {
+                "node_id": "png_1_layout",
+                "type": "built-in",
+                "transformation": "fixed_position_layout",
+                "texture_layouts": [
+                    {
+                        "left": "0px",
+                        "top": "0px"
+                    },
+                    {
+                        "right": label_padding,
+                        "bottom": label_padding
+                    },
+                ],
+                "background_color_rgba": "#0000FF00",
+                "resolution": { "width": 960, "height": 540 },
+                "input_pads": ["png_1_rescaled", "png_1_label"],
             },
             {
                 "node_id": "jpeg_1_rescaled",
@@ -154,12 +211,69 @@ fn start_example_client_code() -> Result<()> {
                 "background_color_rgba": "#00000000",
             },
             {
+                 "node_id": "jpeg_1_label",
+                 "type": "text_renderer",
+                 "content": "JPEG example",
+                 "font_size": 40.0,
+                 "color_rgba": "#FF0000FF",
+                 "font_family": "Comic Sans MS",
+                 "resolution": {
+                     "type": "fitted",
+                 },
+            },
+            {
+                "node_id": "jpeg_1_layout",
+                "type": "built-in",
+                "transformation": "fixed_position_layout",
+                "texture_layouts": [
+                    {
+                        "left": "0px",
+                        "top": "0px"
+                    },
+                    {
+                        "right": label_padding,
+                        "bottom": label_padding
+                    },
+                ],
+                "background_color_rgba": "#0000FF00",
+                "resolution": { "width": 960, "height": 540 },
+                "input_pads": ["jpeg_1_rescaled", "jpeg_1_label"],
+            },
+            {
                 "node_id": "svg_1_rescaled",
                 "type": "built-in",
                 "transformation": "transform_to_resolution",
                 "strategy": "fit",
                 "resolution": { "width": 960, "height": 540 },
                 "input_pads": ["svg_1"],
+            },
+            {
+                 "node_id": "svg_1_label",
+                 "type": "text_renderer",
+                 "content": "SVG example",
+                 "font_size": 40.0,
+                 "font_family": "Comic Sans MS",
+                 "resolution": {
+                     "type": "fitted",
+                 },
+            },
+            {
+                "node_id": "svg_1_layout",
+                "type": "built-in",
+                "transformation": "fixed_position_layout",
+                "texture_layouts": [
+                    {
+                        "left": "0px",
+                        "top": "0px"
+                    },
+                    {
+                        "right": label_padding,
+                        "bottom": label_padding
+                    },
+                ],
+                "background_color_rgba": "#0000FF00",
+                "resolution": { "width": 960, "height": 540 },
+                "input_pads": ["svg_1_rescaled", "svg_1_label"],
             },
             {
                 "node_id": "layout",
@@ -185,7 +299,7 @@ fn start_example_client_code() -> Result<()> {
                 ],
                 "background_color_rgba": "#0000FF00",
                 "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
-                "input_pads": ["gif_1_rescaled", "png_1_rescaled", "jpeg_1_rescaled", "svg_1_rescaled"],
+                "input_pads": ["gif_1_layout", "png_1_layout", "jpeg_1_layout", "svg_1_layout"],
             }
         ],
         "outputs": [

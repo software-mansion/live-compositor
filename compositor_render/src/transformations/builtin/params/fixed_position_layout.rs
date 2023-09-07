@@ -1,4 +1,5 @@
 use compositor_common::scene::{builtin_transformations::TextureLayout, Resolution};
+use log::error;
 use nalgebra_glm::{rotate_z, scale, translate, vec3, Mat4};
 
 #[derive(Debug)]
@@ -29,6 +30,46 @@ impl FixedPositionLayoutParams {
         }
     }
 
+    fn spec_to_top_left_coords(
+        layout: &TextureLayout,
+        input_resolution: &Resolution,
+        output_resolution: &Resolution,
+    ) -> (f32, f32) {
+        let top = match layout {
+            TextureLayout { top: Some(top), .. } => top.pixels(output_resolution.height as u32),
+            TextureLayout {
+                bottom: Some(bottom),
+                ..
+            } => {
+                output_resolution.height as i32
+                    - input_resolution.height as i32
+                    - bottom.pixels(output_resolution.height as u32)
+            }
+            _ => {
+                error!("Invalid specs in fixed_position_layout: {:?}", layout);
+                0
+            }
+        };
+        let left = match layout {
+            TextureLayout {
+                left: Some(left), ..
+            } => left.pixels(output_resolution.width as u32),
+            TextureLayout {
+                right: Some(right), ..
+            } => {
+                output_resolution.width as i32
+                    - input_resolution.width as i32
+                    - right.pixels(output_resolution.width as u32)
+            }
+            _ => {
+                error!("Invalid specs in fixed_position_layout: {:?}", layout);
+                0
+            }
+        };
+
+        (top as f32, left as f32)
+    }
+
     fn transformation_matrix(
         layout: &TextureLayout,
         input_resolution: Option<&Resolution>,
@@ -39,6 +80,9 @@ impl FixedPositionLayoutParams {
         let Some(input_resolution) = input_resolution else {
             return transformation_matrix;
         };
+
+        let (top, left) =
+            Self::spec_to_top_left_coords(layout, input_resolution, &output_resolution);
 
         // All transformations are applied in reverse order, due to matrix multiplication order.
 
@@ -55,7 +99,6 @@ impl FixedPositionLayoutParams {
         // 3. Translate input texture into correct place on output texture.
         // Calculates coords of center of input texture on output texture in pixel coords
 
-        let left = layout.left.pixels(output_resolution.width as u32) as f32;
         // Left bound of pixel coords is -output_resolution.width / 2.0 (coords of left corners)
         // `left` is a shift in x axis
         // center of texture is input_resolution.width / 2.0 away from left corners of input texture
@@ -65,7 +108,6 @@ impl FixedPositionLayoutParams {
         // Top bound of pixel coords is output_resolution.height / 2.0
         // `top` is shift in y axis (user provided "top" is subtracted from top bound)
         // center of texture is input_resolution.height / 2.0 away from top corners of input texture
-        let top = layout.top.pixels(output_resolution.height as u32) as f32;
         let input_center_top =
             output_resolution.height as f32 / 2.0 - top - input_resolution.height as f32 / 2.0;
 
