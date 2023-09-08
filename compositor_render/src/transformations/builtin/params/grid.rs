@@ -1,5 +1,3 @@
-use std::vec;
-
 use compositor_common::scene::Resolution;
 
 use nalgebra_glm::{scale, translate, vec3, Mat4};
@@ -108,7 +106,7 @@ impl GridParams {
                     x_padding + col * tile_size.width as u32,
                     y_padding + row * tile_size.height as u32,
                 );
-                
+
                 layouts.push(Tile {
                     top_left_corner,
                     width: tile_size.width as u32,
@@ -120,8 +118,7 @@ impl GridParams {
         let bottom_row_tiles_count = inputs_count - ((rows_cols.rows - 1) * rows_cols.cols);
 
         let bottom_tiles_width = tile_size.width as u32 * bottom_row_tiles_count;
-        let bottom_row_x_padding =
-            (output_resolution.width as u32 - bottom_tiles_width) / 2;
+        let bottom_row_x_padding = (output_resolution.width as u32 - bottom_tiles_width) / 2;
 
         for bottom_tile in 0..bottom_row_tiles_count {
             let top_left_corner = (
@@ -199,11 +196,7 @@ impl GridParams {
 
         transformation_matrix = scale(
             &transformation_matrix,
-            &vec3(
-                scale_to_tile_resolution.0,
-                scale_to_tile_resolution.1,
-                1.0,
-            ),
+            &vec3(scale_to_tile_resolution.0, scale_to_tile_resolution.1, 1.0),
         );
 
         transformation_matrix *= fit_params.scale_matrix;

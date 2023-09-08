@@ -1,11 +1,11 @@
 use compositor_common::scene::Resolution;
-use nalgebra_glm::{Mat4, scaling, vec3};
+use nalgebra_glm::{scaling, vec3, Mat4};
 
 use crate::transformations::builtin::utils::mat4_to_bytes;
 
 #[derive(Debug, Default)]
 pub struct FitParams {
-    pub scale_matrix: Mat4
+    pub scale_matrix: Mat4,
 }
 
 impl FitParams {
@@ -35,7 +35,9 @@ impl FitParams {
             (input_ratio / output_ratio, 1.0)
         };
 
-        Self { scale_matrix: scaling(&vec3(x_scale, y_scale, 1.0)) }
+        Self {
+            scale_matrix: scaling(&vec3(x_scale, y_scale, 1.0)),
+        }
     }
 
     pub fn shader_buffer_content(&self) -> bytes::Bytes {
@@ -45,7 +47,7 @@ impl FitParams {
 
 #[derive(Debug, Default)]
 pub struct FillParams {
-    scale_matrix: Mat4
+    scale_matrix: Mat4,
 }
 
 impl FillParams {
@@ -70,12 +72,14 @@ impl FillParams {
         let output_ratio = output_resolution.ratio();
 
         let (x_scale, y_scale) = if input_ratio >= output_ratio {
-                (input_ratio / output_ratio, 1.0)
+            (input_ratio / output_ratio, 1.0)
         } else {
             (1.0, output_ratio / input_ratio)
         };
 
-        Self { scale_matrix: scaling(&vec3(x_scale, y_scale, 1.0)) }
+        Self {
+            scale_matrix: scaling(&vec3(x_scale, y_scale, 1.0)),
+        }
     }
 
     pub fn shader_buffer_content(&self) -> bytes::Bytes {

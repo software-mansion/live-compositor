@@ -13,13 +13,14 @@ use crate::{
 use super::error::InitBuiltinError;
 
 pub struct BuiltinTransformations {
-    apply_matrix: ApplyTransformationMatrix
+    apply_matrix: ApplyTransformationMatrix,
 }
 
 impl BuiltinTransformations {
     pub fn new(wgpu_ctx: &Arc<WgpuCtx>) -> Result<Self, InitBuiltinError> {
         Ok(Self {
-            apply_matrix: ApplyTransformationMatrix::new(wgpu_ctx).map_err(InitBuiltinError::ApplyTransformationMatrix)?,
+            apply_matrix: ApplyTransformationMatrix::new(wgpu_ctx)
+                .map_err(InitBuiltinError::ApplyTransformationMatrix)?,
         })
     }
 
