@@ -3,8 +3,8 @@ use naga::{ArraySize, ConstantInner, Handle, Module, ScalarKind, ShaderStage, Ty
 
 use super::{
     error::{
-        ConstArraySizeEvalError, ParametersValidationError, ShaderValidationError,
-        TypeEquivalenceError,
+        ConstArraySizeEvalError, ParametersValidationError, ShaderGlobalVariableExt,
+        ShaderValidationError, TypeEquivalenceError,
     },
     USER_DEFINED_BUFFER_BINDING, USER_DEFINED_BUFFER_GROUP,
 };
@@ -29,10 +29,16 @@ fn validate_globals(
             .find(|(_, s_global)| {
                 s_global.space == global.space && s_global.binding == global.binding
             })
-            .ok_or_else(|| ShaderValidationError::GlobalNotFound(global.clone()))?;
+            .ok_or_else(|| ShaderValidationError::GlobalNotFound(global.to_string()))?;
 
-        validate_type_equivalent(global.ty, header, global_in_shader.ty, shader)
-            .map_err(ShaderValidationError::GlobalBadType)?;
+        validate_type_equivalent(global.ty, header, global_in_shader.ty, shader).map_err(
+            |err| {
+                ShaderValidationError::GlobalBadType(
+                    err,
+                    global.name.clone().unwrap_or("value".to_string()),
+                )
+            },
+        )?;
     }
 
     // validate user-defined buffer is a uniform
@@ -131,8 +137,8 @@ fn validate_type_equivalent(
         | naga::TypeInner::ValuePointer { .. } => {
             if ti1 != ti2 {
                 return Err(TypeEquivalenceError::TypeStructureMismatch {
-                    expected: type1.inner.clone(),
-                    actual: type2.inner.clone(),
+                    expected: type1.inner.to_string(mod1),
+                    actual: type2.inner.to_string(mod2),
                 });
             }
         }
@@ -149,15 +155,15 @@ fn validate_type_equivalent(
             } = ti2
             else {
                 return Err(TypeEquivalenceError::TypeStructureMismatch {
-                    expected: ti1,
-                    actual: ti2,
+                    expected: ti1.to_string(mod1),
+                    actual: ti2.to_string(mod2),
                 });
             };
 
             if stride1 != stride2 {
                 return Err(TypeEquivalenceError::TypeStructureMismatch {
-                    expected: ti1,
-                    actual: ti2,
+                    expected: ti1.to_string(mod1),
+                    actual: ti2.to_string(mod2),
                 });
             }
 
@@ -175,8 +181,8 @@ fn validate_type_equivalent(
             } = ti2
             else {
                 return Err(TypeEquivalenceError::TypeStructureMismatch {
-                    expected: ti1,
-                    actual: ti2,
+                    expected: ti1.to_string(mod1),
+                    actual: ti2.to_string(mod2),
                 });
             };
 
@@ -194,8 +200,8 @@ fn validate_type_equivalent(
             } = ti2
             else {
                 return Err(TypeEquivalenceError::TypeStructureMismatch {
-                    expected: ti1.clone(),
-                    actual: ti2.clone(),
+                    expected: ti1.to_string(mod1),
+                    actual: ti2.to_string(mod2),
                 });
             };
 
@@ -536,6 +542,7 @@ fn validate_scalar(
 
 trait TypeInnerExt {
     fn type_name(&self) -> &'static str;
+    fn to_string(&self, module: &naga::Module) -> String;
 }
 
 impl TypeInnerExt for naga::TypeInner {
@@ -554,6 +561,95 @@ impl TypeInnerExt for naga::TypeInner {
             naga::TypeInner::AccelerationStructure => "acceleration structure",
             naga::TypeInner::RayQuery => "ray query",
             naga::TypeInner::BindingArray { .. } => "binding array",
+        }
+    }
+    fn to_string(&self, module: &naga::Module) -> String {
+        match self {
+            naga::TypeInner::Scalar { kind, width } => kind.to_string(*width),
+            naga::TypeInner::Vector { size, kind, width } => {
+                format!("vec{}<{}>", *size as u8, kind.to_string(*width))
+            }
+            naga::TypeInner::Matrix { .. } => "matrix".to_string(),
+            naga::TypeInner::Atomic { .. } => "atomic".to_string(),
+            naga::TypeInner::Pointer { .. } => "pointer".to_string(),
+            naga::TypeInner::ValuePointer { .. } => "value pointer".to_string(),
+            naga::TypeInner::Array { .. } => "array".to_string(),
+            naga::TypeInner::Struct { .. } => "struct".to_string(),
+            naga::TypeInner::Image {
+                dim,
+                arrayed,
+                class,
+            } => match (dim, arrayed, class) {
+                (naga::ImageDimension::D1, false, naga::ImageClass::Sampled { kind, .. }) => {
+                    format!("texture_1d<{}>", kind.to_string(4))
+                }
+                (naga::ImageDimension::D2, false, naga::ImageClass::Sampled { kind, .. }) => {
+                    format!("texture_2d<{}>", kind.to_string(4))
+                }
+                (naga::ImageDimension::D2, true, naga::ImageClass::Sampled { kind, .. }) => {
+                    format!("texture_2d_array<{}>", kind.to_string(4))
+                }
+                (naga::ImageDimension::D3, false, naga::ImageClass::Sampled { kind, .. }) => {
+                    format!("texture_3d<{}>", kind.to_string(4))
+                }
+                (naga::ImageDimension::Cube, false, naga::ImageClass::Sampled { kind, .. }) => {
+                    format!("texture_cube<{}>", kind.to_string(4))
+                }
+                (naga::ImageDimension::Cube, true, naga::ImageClass::Sampled { kind, .. }) => {
+                    format!("texture_cube_array<{}>", kind.to_string(4))
+                }
+                _ => format!("{:?}", self),
+            },
+            naga::TypeInner::Sampler { .. } => "sampler".to_string(),
+            naga::TypeInner::AccelerationStructure => "acceleration structure".to_string(),
+            naga::TypeInner::RayQuery => "ray query".to_string(),
+            naga::TypeInner::BindingArray { base, size } => {
+                let size: Option<&naga::Constant> = match size {
+                    ArraySize::Constant(size) => Some(&module.constants[*size]),
+                    ArraySize::Dynamic => None, // TODO: not sure how to handle this
+                };
+                let base: &naga::Type = &module.types[*base];
+                format!(
+                    "binding_array<{}, {}>",
+                    base.inner.to_string(module),
+                    size.map(|t| t.inner.to_string(module))
+                        .unwrap_or("_".to_string())
+                )
+            }
+        }
+    }
+}
+
+trait ConstantInnerExt {
+    fn to_string(&self, module: &naga::Module) -> String;
+}
+
+impl ConstantInnerExt for naga::ConstantInner {
+    fn to_string(&self, _module: &naga::Module) -> String {
+        match self {
+            ConstantInner::Scalar { value, .. } => match value {
+                naga::ScalarValue::Sint(v) => format!("{}", v),
+                naga::ScalarValue::Uint(v) => format!("{}", v),
+                naga::ScalarValue::Float(v) => format!("{}", v),
+                naga::ScalarValue::Bool(true) => "true".to_string(),
+                naga::ScalarValue::Bool(false) => "false".to_string(),
+            },
+            ConstantInner::Composite { .. } => format!("{:?}", self),
+        }
+    }
+}
+
+trait ScalarKindExt {
+    fn to_string(&self, width: u8) -> String;
+}
+
+impl ScalarKindExt for naga::ScalarKind {
+    fn to_string(&self, width: u8) -> String {
+        match self {
+            ScalarKind::Sint => format!("i{}", width * 8),
+            ScalarKind::Uint => format!("u{}", width * 8),
+            ScalarKind::Float => format!("f{}", width * 8),
+            ScalarKind::Bool => "bool".to_string(),
         }
     }
 }
