@@ -2,6 +2,7 @@ use compositor_common::scene::shader::ShaderParam;
 
 use super::{USER_DEFINED_BUFFER_BINDING, USER_DEFINED_BUFFER_GROUP, VERTEX_ENTRYPOINT_NAME};
 
+// TODO: Add real URL.
 const HEADER_DOCS_URL: &str = "https://docs.placeholder.com/shader_header";
 
 #[derive(Debug, thiserror::Error)]
@@ -18,7 +19,9 @@ pub enum ShaderValidationError {
     #[error("Wrong vertex shader argument amount: found {0}, expected 1.")]
     VertexShaderBadArgumentAmount(usize),
 
-    #[error("The input type of the vertex shader has to be named \"VertexInput\".")]
+    #[error(
+        "The input type of the vertex shader has to be named \"VertexInput\" (received: \"{0}\")."
+    )]
     VertexShaderBadInputTypeName(String),
 
     #[error("The vertex shader input has a wrong type.")]
