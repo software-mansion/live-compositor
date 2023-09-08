@@ -88,7 +88,9 @@ impl BuiltinParams {
             }
             BuiltinParams::Fit(fit_params) => fit_params.shader_buffer_content(),
             BuiltinParams::Fill(fill_params) => fill_params.shader_buffer_content(),
-            BuiltinParams::TiledLayout(tiled_layout_params) => tiled_layout_params.shader_buffer_content(),
+            BuiltinParams::TiledLayout(tiled_layout_params) => {
+                tiled_layout_params.shader_buffer_content()
+            }
             BuiltinParams::None => bytes::Bytes::new(),
         }
     }
