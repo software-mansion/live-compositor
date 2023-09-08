@@ -14,6 +14,7 @@ use super::error::InitBuiltinError;
 
 pub struct BuiltinTransformations {
     apply_matrix: ApplyTransformationMatrix,
+    mirror_image: MirrorImage,
 }
 
 impl BuiltinTransformations {
@@ -21,6 +22,7 @@ impl BuiltinTransformations {
         Ok(Self {
             apply_matrix: ApplyTransformationMatrix::new(wgpu_ctx)
                 .map_err(InitBuiltinError::ApplyTransformationMatrix)?,
+            mirror_image: MirrorImage::new(wgpu_ctx).map_err(InitBuiltinError::MirrorImage)?,
         })
     }
 
@@ -33,6 +35,7 @@ impl BuiltinTransformations {
             },
             BuiltinSpec::FixedPositionLayout { .. } => self.apply_matrix.0.clone(),
             BuiltinSpec::TiledLayout { .. } => self.apply_matrix.0.clone(),
+            BuiltinSpec::MirrorImage { .. } => self.mirror_image.0.clone(),
         }
     }
 }
@@ -44,6 +47,18 @@ impl ApplyTransformationMatrix {
         Ok(Self(Arc::new(Shader::new(
             wgpu_ctx,
             include_str!("./apply_transformation_matrix.wgsl").into(),
+            FallbackStrategy::FallbackIfAllInputsMissing,
+        )?)))
+    }
+}
+
+pub struct MirrorImage(Arc<Shader>);
+
+impl MirrorImage {
+    fn new(wgpu_ctx: &Arc<WgpuCtx>) -> Result<Self, CreateShaderError> {
+        Ok(Self(Arc::new(Shader::new(
+            wgpu_ctx,
+            include_str!("./mirror_image.wgsl").into(),
             FallbackStrategy::FallbackIfAllInputsMissing,
         )?)))
     }

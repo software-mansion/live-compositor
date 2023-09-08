@@ -1,4 +1,7 @@
+use std::{fmt::Display, str::FromStr};
+
 use serde::{Deserialize, Serialize};
+use serde_with::{DeserializeFromStr, SerializeDisplay};
 
 use crate::{
     error::BuiltinSpecValidationError,
@@ -31,6 +34,10 @@ pub enum BuiltinSpec {
         tile_aspect_ratio: (u32, u32),
         resolution: Resolution,
     },
+    MirrorImage {
+        #[serde(default)]
+        mode: MirrorMode,
+    },
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
@@ -57,6 +64,41 @@ pub struct TextureLayout {
     pub right: Option<Coord>,
     #[serde(default)]
     pub rotation: Degree,
+}
+
+#[derive(Debug, SerializeDisplay, DeserializeFromStr, Clone, Copy, PartialEq, Eq, Default)]
+pub enum MirrorMode {
+    #[default]
+    Horizontal,
+    Vertical,
+    HorizontalAndVertical,
+}
+
+#[derive(Debug, thiserror::Error)]
+#[error("\"mode\" field can only be set to \"vertical\" or \"horizontal\".")]
+pub struct MirrorModeParseError;
+
+impl Display for MirrorMode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            MirrorMode::Horizontal => write!(f, "horizontal"),
+            MirrorMode::Vertical => write!(f, "vertical"),
+            MirrorMode::HorizontalAndVertical => write!(f, "horizontal-vertical"),
+        }
+    }
+}
+
+impl FromStr for MirrorMode {
+    type Err = MirrorModeParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "vertical" => Ok(Self::Vertical),
+            "horizontal" => Ok(Self::Horizontal),
+            "horizontal-vertical" => Ok(Self::HorizontalAndVertical),
+            _ => Err(MirrorModeParseError),
+        }
+    }
 }
 
 impl BuiltinSpec {
@@ -119,6 +161,7 @@ impl BuiltinSpec {
 
                 Ok(())
             }
+            BuiltinSpec::MirrorImage { .. } => Ok(()),
         }
     }
 }

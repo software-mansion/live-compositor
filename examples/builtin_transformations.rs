@@ -95,6 +95,12 @@ fn start_example_client_code() -> Result<()> {
                 "image_id": "example_image",
             },
             {
+                "type": "built-in",
+                "transformation": "mirror_image",
+                "node_id": "mirrored_image",
+                "input_pads": ["filled_image"],
+            },
+            {
                 "node_id": "filled_image",
                 "type": "built-in",
                 "transformation": "transform_to_resolution",
@@ -108,7 +114,7 @@ fn start_example_client_code() -> Result<()> {
                 "transformation": "tiled_layout",
                 "background_color_rgba": "#FFFFFFFF",
                 "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
-                "input_pads": ["filled_image", "filled_image", "filled_image", "filled_image", "filled_image", "filled_image", "filled_image", "filled_image"],
+                "input_pads": ["mirrored_image", "filled_image", "filled_image", "filled_image", "filled_image", "filled_image", "filled_image", "filled_image"],
             }
         ],
         "outputs": [

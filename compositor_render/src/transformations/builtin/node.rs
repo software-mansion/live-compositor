@@ -21,17 +21,18 @@ struct ParamsBuffer {
 }
 
 impl ParamsBuffer {
-    pub fn new(mut content: bytes::Bytes, wgpu_ctx: &WgpuCtx) -> Self {
-        if content.is_empty() {
-            content = bytes::Bytes::copy_from_slice(&[0]);
-        }
+    pub fn new(content: bytes::Bytes, wgpu_ctx: &WgpuCtx) -> Self {
+        let content_or_zero = match content.is_empty() {
+            true => bytes::Bytes::copy_from_slice(&[0]),
+            false => content.clone(),
+        };
 
         let buffer = wgpu_ctx
             .device
             .create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some("builtin node params buffer"),
                 usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-                contents: &content,
+                contents: &content_or_zero,
             });
 
         let bind_group = wgpu_ctx

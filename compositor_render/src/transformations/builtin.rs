@@ -33,15 +33,24 @@ impl Builtin {
                 background_color_rgba,
                 ..
             } => Some(background_color_rgba),
+            BuiltinSpec::MirrorImage { .. } => None,
         }
         .map(rgba_to_wgpu_color)
     }
 
-    pub fn output_resolution(&self, _input_resolutions: &[Option<Resolution>]) -> Resolution {
+    pub fn output_resolution(&self, input_resolutions: &[Option<Resolution>]) -> Resolution {
         match self.0 {
             BuiltinSpec::TransformToResolution { resolution, .. } => resolution,
             BuiltinSpec::FixedPositionLayout { resolution, .. } => resolution,
             BuiltinSpec::TiledLayout { resolution, .. } => resolution,
+            BuiltinSpec::MirrorImage { .. } => input_resolutions
+                .first()
+                .copied()
+                .flatten()
+                .unwrap_or(Resolution {
+                    width: 1,
+                    height: 1,
+                }),
         }
     }
 
@@ -50,6 +59,7 @@ impl Builtin {
             BuiltinSpec::TransformToResolution { resolution, .. } => Some(resolution),
             BuiltinSpec::FixedPositionLayout { resolution, .. } => Some(resolution),
             BuiltinSpec::TiledLayout { resolution, .. } => Some(resolution),
+            BuiltinSpec::MirrorImage { .. } => None,
         }
     }
 }
