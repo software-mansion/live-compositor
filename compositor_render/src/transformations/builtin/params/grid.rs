@@ -235,7 +235,7 @@ impl GridParams {
         let mut best_row_cols = RowsCols::from_rows_count(inputs_count, 1);
         let mut best_tiles_scale = 0.0;
 
-        for rows in 1..inputs_count {
+        for rows in 1..=inputs_count {
             let row_cols = RowsCols::from_rows_count(inputs_count, rows);
             let tiles_scale = tiles_scale(&row_cols, tile_aspect_ratio, output_resolution);
 
