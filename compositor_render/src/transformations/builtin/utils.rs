@@ -13,7 +13,7 @@ pub fn mat4_to_bytes(mat: &Mat4) -> bytes::Bytes {
 }
 
 pub struct BoxLayout {
-    // pixels in [0 ]
+    // pixels in [0, output_resolution] coords
     pub top_left_corner: (f32, f32),
     pub width: f32,
     pub height: f32,
