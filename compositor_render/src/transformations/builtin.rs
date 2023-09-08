@@ -9,6 +9,7 @@ pub mod error;
 pub mod node;
 pub mod params;
 pub mod transformations;
+pub mod utils;
 
 #[derive(Debug, Clone)]
 pub struct Builtin(pub BuiltinSpec);
@@ -22,19 +23,25 @@ impl Builtin {
                 }
                 TransformToResolutionStrategy::Fit {
                     background_color_rgba,
-                } => Some(rgba_to_wgpu_color(background_color_rgba)),
+                } => Some(background_color_rgba),
             },
             BuiltinSpec::FixedPositionLayout {
                 background_color_rgba,
                 ..
-            } => Some(rgba_to_wgpu_color(background_color_rgba)),
+            } => Some(background_color_rgba),
+            BuiltinSpec::TiledLayout {
+                background_color_rgba,
+                ..
+            } => Some(background_color_rgba),
         }
+        .map(rgba_to_wgpu_color)
     }
 
     pub fn output_resolution(&self, _input_resolutions: &[Option<Resolution>]) -> Resolution {
         match self.0 {
             BuiltinSpec::TransformToResolution { resolution, .. } => resolution,
             BuiltinSpec::FixedPositionLayout { resolution, .. } => resolution,
+            BuiltinSpec::TiledLayout { resolution, .. } => resolution,
         }
     }
 
@@ -42,6 +49,7 @@ impl Builtin {
         match self.0 {
             BuiltinSpec::TransformToResolution { resolution, .. } => Some(resolution),
             BuiltinSpec::FixedPositionLayout { resolution, .. } => Some(resolution),
+            BuiltinSpec::TiledLayout { resolution, .. } => Some(resolution),
         }
     }
 }

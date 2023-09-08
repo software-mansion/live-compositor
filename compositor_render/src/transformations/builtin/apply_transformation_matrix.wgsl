@@ -10,11 +10,6 @@ struct VertexOutput {
     @location(1) @interpolate(flat) texture_id: i32,
 }
 
-struct FitParams {
-    x_scale: f32,
-    y_scale: f32
-}
-
 struct CommonShaderParameters {
     time: f32,
     textures_count: u32,
@@ -24,24 +19,38 @@ struct CommonShaderParameters {
 var<push_constant> common_params: CommonShaderParameters;
 
 @group(0) @binding(0) var textures: binding_array<texture_2d<f32>, 16>;
-@group(1) @binding(0) var<uniform> fit_params: FitParams;
+@group(1) @binding(0) var<uniform> transformation_matrices: array<mat4x4<f32>, 16>;
 @group(2) @binding(0) var sampler_: sampler;
+
 
 @vertex
 fn vs_main(input: VertexInput) -> VertexOutput {
     var output: VertexOutput;
+    
+    // 0 inputs case
+    if input.texture_id == -1 {
+        output.position = vec4<f32>(input.position, 1.0);
+        output.tex_coords = input.tex_coords;
+        output.texture_id = 0;
+        return output;
+    }
+    
+    let transformation_matrix: mat4x4<f32> = transformation_matrices[input.texture_id];
 
-    output.position = vec4<f32>(
-        input.position.x * fit_params.x_scale,
-        input.position.y * fit_params.y_scale,
-        input.position.z, 1.0
-    );
+    output.position = vec4(input.position, 1.0) * transformation_matrix;
     output.tex_coords = input.tex_coords;
+    output.texture_id = input.texture_id;
 
     return output;
 }
 
 @fragment
 fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
-    return textureSample(textures[0], sampler_, input.tex_coords);
+    let sample = textureSample(textures[input.texture_id], sampler_, input.tex_coords);
+    
+    if common_params.textures_count == 0u {
+        return vec4<f32>(0.0, 0.0, 0.0, 0.0);
+    }
+
+    return sample;
 }

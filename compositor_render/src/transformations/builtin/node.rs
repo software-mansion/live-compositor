@@ -4,6 +4,7 @@ use compositor_common::{
     renderer_spec::FallbackStrategy,
     scene::{NodeId, Resolution},
 };
+
 use wgpu::util::DeviceExt;
 
 use crate::{
@@ -53,8 +54,10 @@ impl ParamsBuffer {
 
     pub fn update(&mut self, content: bytes::Bytes, wgpu_ctx: &WgpuCtx) {
         if self.content.len() != content.len() {
-            panic!("Diff in len");
+            *self = Self::new(content, wgpu_ctx);
+            return;
         }
+
         if self.content != content {
             wgpu_ctx.queue.write_buffer(&self.buffer, 0, &content);
         }

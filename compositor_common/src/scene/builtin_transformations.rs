@@ -8,6 +8,8 @@ use crate::{
 use super::NodeSpec;
 use super::Resolution;
 
+pub const TILED_LAYOUT_MAX_INPUTS_COUNT: u32 = 16;
+
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 #[serde(tag = "transformation", rename_all = "snake_case")]
 pub enum BuiltinSpec {
@@ -21,6 +23,13 @@ pub enum BuiltinSpec {
         texture_layouts: Vec<TextureLayout>,
         #[serde(default)]
         background_color_rgba: RGBAColor,
+    },
+    TiledLayout {
+        #[serde(default)]
+        background_color_rgba: RGBAColor,
+        #[serde(default = "default_tile_aspect_ratio")]
+        tile_aspect_ratio: (u32, u32),
+        resolution: Resolution,
     },
 }
 
@@ -99,6 +108,21 @@ impl BuiltinSpec {
                 }
                 Ok(())
             }
+            BuiltinSpec::TiledLayout { .. } => {
+                if node_spec.input_pads.is_empty() {
+                    return Err(BuiltinSpecValidationError::TiledLayoutNoInputs);
+                }
+
+                if node_spec.input_pads.len() > 16 {
+                    return Err(BuiltinSpecValidationError::TiledLayoutTooManyInputs);
+                }
+
+                Ok(())
+            }
         }
     }
+}
+
+fn default_tile_aspect_ratio() -> (u32, u32) {
+    (16, 9)
 }

@@ -1,9 +1,11 @@
 use compositor_common::scene::Resolution;
+use nalgebra_glm::{scaling, vec3, Mat4};
+
+use crate::transformations::builtin::utils::mat4_to_bytes;
 
 #[derive(Debug, Default)]
 pub struct FitParams {
-    x_scale: f32,
-    y_scale: f32,
+    pub scale_matrix: Mat4,
 }
 
 impl FitParams {
@@ -27,32 +29,25 @@ impl FitParams {
         let input_ratio = input_resolution.ratio();
         let output_ratio = output_resolution.ratio();
 
-        if input_ratio >= output_ratio {
-            Self {
-                x_scale: 1.0,
-                y_scale: output_ratio / input_ratio,
-            }
+        let (x_scale, y_scale) = if input_ratio >= output_ratio {
+            (1.0, output_ratio / input_ratio)
         } else {
-            Self {
-                x_scale: input_ratio / output_ratio,
-                y_scale: 1.0,
-            }
+            (input_ratio / output_ratio, 1.0)
+        };
+
+        Self {
+            scale_matrix: scaling(&vec3(x_scale, y_scale, 1.0)),
         }
     }
 
     pub fn shader_buffer_content(&self) -> bytes::Bytes {
-        let mut bytes = bytes::BytesMut::new();
-        bytes.extend_from_slice(&self.x_scale.to_le_bytes());
-        bytes.extend_from_slice(&self.y_scale.to_le_bytes());
-
-        bytes.freeze()
+        mat4_to_bytes(&self.scale_matrix)
     }
 }
 
 #[derive(Debug, Default)]
 pub struct FillParams {
-    x_scale: f32,
-    y_scale: f32,
+    scale_matrix: Mat4,
 }
 
 impl FillParams {
@@ -76,24 +71,18 @@ impl FillParams {
         let input_ratio = input_resolution.ratio();
         let output_ratio = output_resolution.ratio();
 
-        if input_ratio >= output_ratio {
-            Self {
-                x_scale: input_ratio / output_ratio,
-                y_scale: 1.0,
-            }
+        let (x_scale, y_scale) = if input_ratio >= output_ratio {
+            (input_ratio / output_ratio, 1.0)
         } else {
-            Self {
-                x_scale: 1.0,
-                y_scale: output_ratio / input_ratio,
-            }
+            (1.0, output_ratio / input_ratio)
+        };
+
+        Self {
+            scale_matrix: scaling(&vec3(x_scale, y_scale, 1.0)),
         }
     }
 
     pub fn shader_buffer_content(&self) -> bytes::Bytes {
-        let mut bytes = bytes::BytesMut::new();
-        bytes.extend_from_slice(&self.x_scale.to_le_bytes());
-        bytes.extend_from_slice(&self.y_scale.to_le_bytes());
-
-        bytes.freeze()
+        mat4_to_bytes(&self.scale_matrix)
     }
 }

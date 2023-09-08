@@ -13,75 +13,37 @@ use crate::{
 use super::error::InitBuiltinError;
 
 pub struct BuiltinTransformations {
-    transform_resolution: ConvertResolutionTransformations,
-    fixed_position_layout: FixedPositionLayout,
+    apply_matrix: ApplyTransformationMatrix,
 }
 
 impl BuiltinTransformations {
     pub fn new(wgpu_ctx: &Arc<WgpuCtx>) -> Result<Self, InitBuiltinError> {
         Ok(Self {
-            transform_resolution: ConvertResolutionTransformations::new(wgpu_ctx)?,
-            fixed_position_layout: FixedPositionLayout::new(wgpu_ctx)
-                .map_err(InitBuiltinError::FixedPositionLayout)?,
+            apply_matrix: ApplyTransformationMatrix::new(wgpu_ctx)
+                .map_err(InitBuiltinError::ApplyTransformationMatrix)?,
         })
     }
 
     pub fn shader(&self, transformation: &BuiltinSpec) -> Arc<Shader> {
         match transformation {
             BuiltinSpec::TransformToResolution { strategy, .. } => match strategy {
-                TransformToResolutionStrategy::Stretch => self.transform_resolution.stretch.clone(),
-                TransformToResolutionStrategy::Fill => self.transform_resolution.fill.clone(),
-                TransformToResolutionStrategy::Fit { .. } => self.transform_resolution.fit.clone(),
+                TransformToResolutionStrategy::Stretch => self.apply_matrix.0.clone(),
+                TransformToResolutionStrategy::Fill => self.apply_matrix.0.clone(),
+                TransformToResolutionStrategy::Fit { .. } => self.apply_matrix.0.clone(),
             },
-            BuiltinSpec::FixedPositionLayout { .. } => self.fixed_position_layout.0.clone(),
+            BuiltinSpec::FixedPositionLayout { .. } => self.apply_matrix.0.clone(),
+            BuiltinSpec::TiledLayout { .. } => self.apply_matrix.0.clone(),
         }
     }
 }
 
-pub struct ConvertResolutionTransformations {
-    stretch: Arc<Shader>,
-    fill: Arc<Shader>,
-    fit: Arc<Shader>,
-}
+pub struct ApplyTransformationMatrix(Arc<Shader>);
 
-impl ConvertResolutionTransformations {
-    pub(crate) fn new(wgpu_ctx: &Arc<WgpuCtx>) -> Result<Self, InitBuiltinError> {
-        Ok(Self {
-            stretch: Arc::new(
-                Shader::new(
-                    wgpu_ctx,
-                    include_str!("./transform_to_resolution/stretch.wgsl").into(),
-                    FallbackStrategy::FallbackIfAllInputsMissing,
-                )
-                .map_err(InitBuiltinError::StretchToResolution)?,
-            ),
-            fill: Arc::new(
-                Shader::new(
-                    wgpu_ctx,
-                    include_str!("./transform_to_resolution/fill.wgsl").into(),
-                    FallbackStrategy::FallbackIfAllInputsMissing,
-                )
-                .map_err(InitBuiltinError::FillToResolution)?,
-            ),
-            fit: Arc::new(
-                Shader::new(
-                    wgpu_ctx,
-                    include_str!("./transform_to_resolution/fit.wgsl").into(),
-                    FallbackStrategy::FallbackIfAllInputsMissing,
-                )
-                .map_err(InitBuiltinError::FitToResolution)?,
-            ),
-        })
-    }
-}
-
-pub struct FixedPositionLayout(Arc<Shader>);
-
-impl FixedPositionLayout {
+impl ApplyTransformationMatrix {
     fn new(wgpu_ctx: &Arc<WgpuCtx>) -> Result<Self, CreateShaderError> {
         Ok(Self(Arc::new(Shader::new(
             wgpu_ctx,
-            include_str!("./fixed_position_layout.wgsl").into(),
+            include_str!("./apply_transformation_matrix.wgsl").into(),
             FallbackStrategy::FallbackIfAllInputsMissing,
         )?)))
     }
