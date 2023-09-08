@@ -108,11 +108,12 @@ impl GridParams {
                     x_padding + col * tile_size.width as u32,
                     y_padding + row * tile_size.height as u32,
                 );
+                
                 layouts.push(Tile {
                     top_left_corner,
                     width: tile_size.width as u32,
                     height: tile_size.height as u32,
-                })
+                });
             }
         }
 
@@ -120,12 +121,11 @@ impl GridParams {
 
         let bottom_tiles_width = tile_size.width as u32 * bottom_row_tiles_count;
         let bottom_row_x_padding =
-            (output_resolution.width as u32 - bottom_tiles_width) / (bottom_row_tiles_count + 1);
+            (output_resolution.width as u32 - bottom_tiles_width) / 2;
 
         for bottom_tile in 0..bottom_row_tiles_count {
             let top_left_corner = (
-                (bottom_row_x_padding + tile_size.width as u32) * bottom_tile
-                    + bottom_row_x_padding,
+                tile_size.width as u32 * bottom_tile + bottom_row_x_padding,
                 (rows_cols.rows - 1) * tile_size.height as u32 + y_padding,
             );
 
@@ -200,11 +200,13 @@ impl GridParams {
         transformation_matrix = scale(
             &transformation_matrix,
             &vec3(
-                fit_params.x_scale * scale_to_tile_resolution.0,
-                fit_params.y_scale * scale_to_tile_resolution.1,
+                scale_to_tile_resolution.0,
+                scale_to_tile_resolution.1,
                 1.0,
             ),
         );
+
+        transformation_matrix *= fit_params.scale_matrix;
 
         transformation_matrix
     }
@@ -227,11 +229,7 @@ impl GridParams {
                 / rows_cols.rows as f32
                 / tile_aspect_ratio.1 as f32;
 
-            if x_scale < y_scale {
-                x_scale
-            } else {
-                y_scale
-            }
+            f32_min(x_scale, y_scale)
         }
 
         let mut best_row_cols = RowsCols::from_rows_count(inputs_count, 1);
@@ -261,4 +259,12 @@ fn interpolate_x(x: f32, output_width: f32) -> f32 {
 
 fn interpolate_y(y: f32, output_height: f32) -> f32 {
     1.0 - (y / output_height * 2.0)
+}
+
+fn f32_min(a: f32, b: f32) -> f32 {
+    if a < b {
+        a
+    } else {
+        b
+    }
 }
