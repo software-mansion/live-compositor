@@ -65,7 +65,8 @@ pub enum BuiltinSpecValidationError {
     #[error("Nodes that use transformation \"transform_to_resolution\" need to have exactly one input pad.")]
     TransformToResolutionExactlyOneInput,
     #[error(
-        "Nodes that use transformation \"tiled_layout\" need to have at most {TILED_LAYOUT_MAX_INPUTS_COUNT}."
+        "Transformation \"tiled_layout\" supports up to {} inputs.",
+        TILED_LAYOUT_MAX_INPUTS_COUNT
     )]
     TiledLayoutTooManyInputs,
     #[error("Nodes that use transformation \"tiled_layout\" need to have at least one input pad.")]

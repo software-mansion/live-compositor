@@ -1,24 +1,10 @@
 use compositor_common::scene::Resolution;
 
-use nalgebra_glm::{scale, translate, vec3, Mat4};
+use nalgebra_glm::Mat4;
+
+use crate::transformations::builtin::utils::BoxLayout;
 
 use super::transform_to_resolution::FitParams;
-
-#[derive(Debug)]
-struct Tile {
-    top_left_corner: (u32, u32),
-    width: u32,
-    height: u32,
-}
-
-impl Tile {
-    fn resolution(&self) -> Resolution {
-        Resolution {
-            width: self.width as usize,
-            height: self.height as usize,
-        }
-    }
-}
 
 #[derive(Debug)]
 struct RowsCols {
@@ -73,10 +59,11 @@ impl TiledLayoutParams {
             .iter()
             .zip(inputs)
             .map(|(tile_layout, input_resolution)| {
-                Self::texture_transformation_matrix(
+                Self::transformation_matrix(
                     tile_layout,
                     input_resolution,
                     output_resolution,
+                    tile_size,
                 )
             })
             .collect();
@@ -91,7 +78,7 @@ impl TiledLayoutParams {
         rows_cols: &RowsCols,
         tile_size: Resolution,
         output_resolution: Resolution,
-    ) -> Vec<Tile> {
+    ) -> Vec<BoxLayout> {
         let mut layouts = Vec::with_capacity(inputs_count as usize);
 
         let tiles_width = tile_size.width as u32 * rows_cols.cols;
@@ -103,14 +90,15 @@ impl TiledLayoutParams {
         for row in 0..(rows_cols.rows - 1) {
             for col in 0..rows_cols.cols {
                 let top_left_corner = (
-                    x_padding + col * tile_size.width as u32,
-                    y_padding + row * tile_size.height as u32,
+                    x_padding as f32 + col as f32 * tile_size.width as f32,
+                    y_padding as f32 + row as f32 * tile_size.height as f32,
                 );
 
-                layouts.push(Tile {
+                layouts.push(BoxLayout {
                     top_left_corner,
-                    width: tile_size.width as u32,
-                    height: tile_size.height as u32,
+                    width: tile_size.width as f32,
+                    height: tile_size.height as f32,
+                    rotation_degrees: 0.0,
                 });
             }
         }
@@ -122,14 +110,15 @@ impl TiledLayoutParams {
 
         for bottom_tile in 0..bottom_row_tiles_count {
             let top_left_corner = (
-                tile_size.width as u32 * bottom_tile + bottom_row_x_padding,
-                (rows_cols.rows - 1) * tile_size.height as u32 + y_padding,
+                tile_size.width as f32 * bottom_tile as f32 + bottom_row_x_padding as f32,
+                (rows_cols.rows as f32 - 1.0) * tile_size.height as f32 + y_padding as f32,
             );
 
-            layouts.push(Tile {
+            layouts.push(BoxLayout {
                 top_left_corner,
-                width: tile_size.width as u32,
-                height: tile_size.height as u32,
+                width: tile_size.width as f32,
+                height: tile_size.height as f32,
+                rotation_degrees: 0.0,
             })
         }
 
@@ -166,49 +155,6 @@ impl TiledLayoutParams {
         matrices_bytes.freeze()
     }
 
-    fn texture_transformation_matrix(
-        tile_layout: &Tile,
-        input_resolution: Resolution,
-        output_resolution: Resolution,
-    ) -> Mat4 {
-        let mut transformation_matrix = Mat4::identity();
-
-        // Read in reverse order, due to matrix multiplication order
-
-        // 3. Translates inputs to final positions
-        let tile_center_pixels = (
-            tile_layout.top_left_corner.0 + (tile_layout.width / 2),
-            tile_layout.top_left_corner.1 + (tile_layout.height / 2),
-        );
-
-        let tile_center_clip_space = (
-            interpolate_x(tile_center_pixels.0 as f32, output_resolution.width as f32),
-            interpolate_y(tile_center_pixels.1 as f32, output_resolution.height as f32),
-        );
-
-        transformation_matrix = translate(
-            &transformation_matrix,
-            &vec3(tile_center_clip_space.0, tile_center_clip_space.1, 0.0),
-        );
-
-        // 2. Scales input texture to tile size
-        let scale_to_tile_resolution = (
-            tile_layout.width as f32 / output_resolution.width as f32,
-            tile_layout.height as f32 / output_resolution.height as f32,
-        );
-
-        transformation_matrix = scale(
-            &transformation_matrix,
-            &vec3(scale_to_tile_resolution.0, scale_to_tile_resolution.1, 1.0),
-        );
-
-        // 1. Performs fit to match tile aspect ratio
-        let fit_params = FitParams::new(input_resolution, tile_layout.resolution());
-        transformation_matrix *= fit_params.scale_matrix;
-
-        transformation_matrix
-    }
-
     /// Optimize number of rows and cols to maximize space covered by tiles,
     /// preserving tile aspect_ratio
     fn optimize_inputs_layout(
@@ -232,16 +178,18 @@ impl TiledLayoutParams {
 
         best_rows_cols
     }
+
+    fn transformation_matrix(
+        tile_layout: &BoxLayout,
+        input_resolution: Resolution,
+        output_resolution: Resolution,
+        tile_size: Resolution,
+    ) -> Mat4 {
+        let fit = FitParams::new(input_resolution, tile_size).scale_matrix;
+        tile_layout.transformation_matrix(output_resolution) * fit
+    }
 }
 
 fn ceil_div(a: u32, b: u32) -> u32 {
     (a + b - 1) / b
-}
-
-fn interpolate_x(x: f32, output_width: f32) -> f32 {
-    x / output_width * 2.0 - 1.0
-}
-
-fn interpolate_y(y: f32, output_height: f32) -> f32 {
-    1.0 - (y / output_height * 2.0)
 }
