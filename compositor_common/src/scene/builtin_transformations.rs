@@ -161,7 +161,13 @@ impl BuiltinSpec {
 
                 Ok(())
             }
-            BuiltinSpec::MirrorImage { .. } => Ok(()),
+            BuiltinSpec::MirrorImage { .. } => {
+                if node_spec.input_pads.len() != 1 {
+                    return Err(BuiltinSpecValidationError::MirrorImageExactlyOneInput);
+                }
+
+                Ok(())
+            }
         }
     }
 }

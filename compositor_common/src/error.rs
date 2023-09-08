@@ -70,6 +70,8 @@ pub enum BuiltinSpecValidationError {
     TiledLayoutTooManyInputs,
     #[error("Nodes that use transformation \"tiled_layout\" need to have at least one input pad.")]
     TiledLayoutNoInputs,
+    #[error("Nodes that use transformation \"mirror_image\" need to have exactly one input pad.")]
+    MirrorImageExactlyOneInput,
 }
 
 pub struct ErrorStack<'a>(Option<&'a (dyn std::error::Error + 'static)>);
