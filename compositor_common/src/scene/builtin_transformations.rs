@@ -38,6 +38,10 @@ pub enum BuiltinSpec {
         #[serde(default)]
         mode: MirrorMode,
     },
+    CornersRounding {
+        // in pixels
+        border_radius: u32
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
@@ -168,6 +172,13 @@ impl BuiltinSpec {
 
                 Ok(())
             }
+            BuiltinSpec::CornersRounding { .. } => {
+                if node_spec.input_pads.len() != 1 {
+                    return Err(BuiltinSpecValidationError::CornerRadiusExactlyOneInput);
+                }
+
+                Ok(())
+            },
         }
     }
 }

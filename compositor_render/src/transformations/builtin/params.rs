@@ -4,6 +4,7 @@ use compositor_common::scene::{
 };
 
 use self::{
+    corners_rounding::CornersRoundingParams,
     fixed_position_layout::FixedPositionLayoutParams,
     mirror_image::MirrorModeExt,
     tiled_layout::TiledLayoutParams,
@@ -12,6 +13,7 @@ use self::{
 
 use super::Builtin;
 
+mod corners_rounding;
 mod fixed_position_layout;
 mod mirror_image;
 mod tiled_layout;
@@ -24,6 +26,7 @@ pub enum BuiltinParams {
     Fill(FillParams),
     TiledLayout(TiledLayoutParams),
     MirrorMode(MirrorMode),
+    CornersRounding(CornersRoundingParams),
     None,
 }
 
@@ -57,6 +60,9 @@ impl BuiltinParams {
                 *output_resolution,
             )),
             BuiltinSpec::MirrorImage { mode } => BuiltinParams::MirrorMode(*mode),
+            BuiltinSpec::CornersRounding { border_radius } => {
+                BuiltinParams::CornersRounding(CornersRoundingParams::new(*border_radius))
+            }
         }
     }
 
@@ -96,6 +102,7 @@ impl BuiltinParams {
                 tiled_layout_params.shader_buffer_content()
             }
             BuiltinParams::MirrorMode(mode) => mode.shader_buffer_content(),
+            BuiltinParams::CornersRounding(corners_rounding_params) => corners_rounding_params.shader_buffer_content(),
             BuiltinParams::None => bytes::Bytes::new(),
         }
     }
