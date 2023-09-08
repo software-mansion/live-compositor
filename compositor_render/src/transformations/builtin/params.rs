@@ -102,7 +102,9 @@ impl BuiltinParams {
                 tiled_layout_params.shader_buffer_content()
             }
             BuiltinParams::MirrorMode(mode) => mode.shader_buffer_content(),
-            BuiltinParams::CornersRounding(corners_rounding_params) => corners_rounding_params.shader_buffer_content(),
+            BuiltinParams::CornersRounding(corners_rounding_params) => {
+                corners_rounding_params.shader_buffer_content()
+            }
             BuiltinParams::None => bytes::Bytes::new(),
         }
     }

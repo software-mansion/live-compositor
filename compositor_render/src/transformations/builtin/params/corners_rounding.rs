@@ -1,6 +1,6 @@
 #[derive(Debug)]
 pub struct CornersRoundingParams {
-    border_radius: u32
+    border_radius: u32,
 }
 
 impl CornersRoundingParams {

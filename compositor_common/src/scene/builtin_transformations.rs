@@ -40,8 +40,8 @@ pub enum BuiltinSpec {
     },
     CornersRounding {
         // in pixels
-        border_radius: u32
-    }
+        border_radius: u32,
+    },
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
@@ -178,7 +178,7 @@ impl BuiltinSpec {
                 }
 
                 Ok(())
-            },
+            }
         }
     }
 }

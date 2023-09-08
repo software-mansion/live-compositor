@@ -73,7 +73,7 @@ pub enum BuiltinSpecValidationError {
     #[error("Nodes that use transformation \"mirror_image\" need to have exactly one input pad.")]
     MirrorImageExactlyOneInput,
     #[error("Nodes that use transformation \"corner_radius\" need to have exactly one input pad.")]
-    CornerRadiusExactlyOneInput
+    CornerRadiusExactlyOneInput,
 }
 
 pub struct ErrorStack<'a>(Option<&'a (dyn std::error::Error + 'static)>);
