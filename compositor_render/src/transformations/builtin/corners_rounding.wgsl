@@ -17,7 +17,7 @@ struct CommonShaderParameters {
 }
 
 struct CornersRoudningParams {
-    border_radius: u32,
+    border_radius: f32,
 }
 
 var<push_constant> common_params: CommonShaderParameters;
@@ -62,7 +62,7 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
     // then calculates the distance to the center of the circle located in corner of the video
     // and applies the smoothstep functon to the alpha value of the pixel.
 
-    let border_radius: f32 = f32(corners_rounding_params.border_radius);
+    let border_radius: f32 = corners_rounding_params.border_radius;
     let input_resolution: vec2<u32> = textureDimensions(textures[0]);
     let input_width: f32 = f32(input_resolution.x);
     let input_height: f32 = f32(input_resolution.y);

@@ -60,9 +60,9 @@ impl BuiltinParams {
                 *output_resolution,
             )),
             BuiltinSpec::MirrorImage { mode } => BuiltinParams::MirrorMode(*mode),
-            BuiltinSpec::CornersRounding { border_radius } => {
-                BuiltinParams::CornersRounding(CornersRoundingParams::new(*border_radius))
-            }
+            BuiltinSpec::CornersRounding { border_radius } => BuiltinParams::CornersRounding(
+                CornersRoundingParams::new(*border_radius, input_resolutions),
+            ),
         }
     }
 

@@ -39,8 +39,7 @@ pub enum BuiltinSpec {
         mode: MirrorMode,
     },
     CornersRounding {
-        // in pixels
-        border_radius: u32,
+        border_radius: Coord,
     },
 }
 

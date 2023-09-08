@@ -112,7 +112,7 @@ fn start_example_client_code() -> Result<()> {
                 "node_id": "corners_rounded_image",
                 "type": "built-in",
                 "transformation": "corners_rounding",
-                "border_radius": 100,
+                "border_radius": "100px",
                 "input_pads": ["filled_image"]
             },
             {
