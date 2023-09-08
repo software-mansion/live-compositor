@@ -5,14 +5,14 @@ use compositor_common::scene::{
 
 use self::{
     fixed_position_layout::FixedPositionLayoutParams,
-    grid::GridParams,
+    tiled_layout::TiledLayoutParams,
     transform_to_resolution::{FillParams, FitParams},
 };
 
 use super::Builtin;
 
 mod fixed_position_layout;
-mod grid;
+mod tiled_layout;
 mod transform_to_resolution;
 
 #[derive(Debug)]
@@ -20,7 +20,7 @@ pub enum BuiltinParams {
     FixedPositionLayout(FixedPositionLayoutParams),
     Fit(FitParams),
     Fill(FillParams),
-    Grid(GridParams),
+    TiledLayout(TiledLayoutParams),
     None,
 }
 
@@ -44,11 +44,11 @@ impl BuiltinParams {
                 input_resolutions,
                 *resolution,
             )),
-            BuiltinSpec::Grid {
+            BuiltinSpec::TiledLayout {
                 resolution: output_resolution,
                 tile_aspect_ratio,
                 ..
-            } => BuiltinParams::Grid(GridParams::new(
+            } => BuiltinParams::TiledLayout(TiledLayoutParams::new(
                 input_resolutions,
                 *tile_aspect_ratio,
                 *output_resolution,
@@ -88,7 +88,7 @@ impl BuiltinParams {
             }
             BuiltinParams::Fit(fit_params) => fit_params.shader_buffer_content(),
             BuiltinParams::Fill(fill_params) => fill_params.shader_buffer_content(),
-            BuiltinParams::Grid(grid_params) => grid_params.shader_buffer_content(),
+            BuiltinParams::TiledLayout(tiled_layout_params) => tiled_layout_params.shader_buffer_content(),
             BuiltinParams::None => bytes::Bytes::new(),
         }
     }

@@ -105,11 +105,10 @@ fn start_example_client_code() -> Result<()> {
             {
                 "node_id": "layout",
                 "type": "built-in",
-                "transformation": "grid",
+                "transformation": "tiled_layout",
                 "background_color_rgba": "#FFFFFFFF",
-                // "tile_aspect_ratio": [16, 16],
                 "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
-                "input_pads": ["filled_image", "filled_image", "filled_image", "filled_image", "filled_image"],
+                "input_pads": ["filled_image", "filled_image", "filled_image", "filled_image", "filled_image", "filled_image", "filled_image", "filled_image"],
             }
         ],
         "outputs": [

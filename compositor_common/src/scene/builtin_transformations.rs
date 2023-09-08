@@ -8,7 +8,7 @@ use crate::{
 use super::NodeSpec;
 use super::Resolution;
 
-pub const GRID_MAX_INPUTS_COUNT: u32 = 16;
+pub const TILED_LAYOUT_MAX_INPUTS_COUNT: u32 = 16;
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 #[serde(tag = "transformation", rename_all = "snake_case")]
@@ -24,7 +24,7 @@ pub enum BuiltinSpec {
         #[serde(default)]
         background_color_rgba: RGBAColor,
     },
-    Grid {
+    TiledLayout {
         #[serde(default)]
         background_color_rgba: RGBAColor,
         #[serde(default = "default_tile_aspect_ratio")]
@@ -108,13 +108,13 @@ impl BuiltinSpec {
                 }
                 Ok(())
             }
-            BuiltinSpec::Grid { .. } => {
+            BuiltinSpec::TiledLayout { .. } => {
                 if node_spec.input_pads.is_empty() {
-                    return Err(BuiltinSpecValidationError::GridNoInputs);
+                    return Err(BuiltinSpecValidationError::TiledLayoutNoInputs);
                 }
 
                 if node_spec.input_pads.len() > 16 {
-                    return Err(BuiltinSpecValidationError::GridTooManyInputs);
+                    return Err(BuiltinSpecValidationError::TiledLayoutTooManyInputs);
                 }
 
                 Ok(())

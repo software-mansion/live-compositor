@@ -34,11 +34,11 @@ impl RowsCols {
 }
 
 #[derive(Debug)]
-pub struct GridParams {
+pub struct TiledLayoutParams {
     transformation_matrices: Vec<Mat4>,
 }
 
-impl GridParams {
+impl TiledLayoutParams {
     pub fn new(
         input_resolutions: &[Option<Resolution>],
         tile_aspect_ratio: (u32, u32),
@@ -173,6 +173,9 @@ impl GridParams {
     ) -> Mat4 {
         let mut transformation_matrix = Mat4::identity();
 
+        // Read in reverse order, due to matrix multiplication order
+
+        // 3. Translates inputs to final positions
         let tile_center_pixels = (
             tile_layout.top_left_corner.0 + (tile_layout.width / 2),
             tile_layout.top_left_corner.1 + (tile_layout.height / 2),
@@ -188,7 +191,7 @@ impl GridParams {
             &vec3(tile_center_clip_space.0, tile_center_clip_space.1, 0.0),
         );
 
-        let fit_params = FitParams::new(input_resolution, tile_layout.resolution());
+        // 2. Scales input texture to tile size
         let scale_to_tile_resolution = (
             tile_layout.width as f32 / output_resolution.width as f32,
             tile_layout.height as f32 / output_resolution.height as f32,
@@ -199,6 +202,8 @@ impl GridParams {
             &vec3(scale_to_tile_resolution.0, scale_to_tile_resolution.1, 1.0),
         );
 
+        // 1. Performs fit to match tile aspect ratio
+        let fit_params = FitParams::new(input_resolution, tile_layout.resolution());
         transformation_matrix *= fit_params.scale_matrix;
 
         transformation_matrix
@@ -211,34 +216,21 @@ impl GridParams {
         tile_aspect_ratio: (u32, u32),
         output_resolution: Resolution,
     ) -> RowsCols {
-        fn tiles_scale(
-            rows_cols: &RowsCols,
-            tile_aspect_ratio: (u32, u32),
-            output_resolution: Resolution,
-        ) -> f32 {
-            let x_scale =
-                output_resolution.width as f32 / rows_cols.cols as f32 / tile_aspect_ratio.0 as f32;
-            let y_scale = output_resolution.height as f32
-                / rows_cols.rows as f32
-                / tile_aspect_ratio.1 as f32;
-
-            f32_min(x_scale, y_scale)
-        }
-
-        let mut best_row_cols = RowsCols::from_rows_count(inputs_count, 1);
-        let mut best_tiles_scale = 0.0;
+        let mut best_rows_cols = RowsCols::from_rows_count(inputs_count, 1);
+        let mut best_tile_width = 0;
 
         for rows in 1..=inputs_count {
-            let row_cols = RowsCols::from_rows_count(inputs_count, rows);
-            let tiles_scale = tiles_scale(&row_cols, tile_aspect_ratio, output_resolution);
+            let rows_cols = RowsCols::from_rows_count(inputs_count, rows);
+            // larger width <=> larger tile size, because of const tile aspect ratio
+            let tile_size = Self::tile_size(&rows_cols, tile_aspect_ratio, output_resolution).width;
 
-            if tiles_scale > best_tiles_scale {
-                best_row_cols = row_cols;
-                best_tiles_scale = tiles_scale;
+            if tile_size > best_tile_width {
+                best_rows_cols = rows_cols;
+                best_tile_width = tile_size;
             }
         }
 
-        best_row_cols
+        best_rows_cols
     }
 }
 
@@ -252,12 +244,4 @@ fn interpolate_x(x: f32, output_width: f32) -> f32 {
 
 fn interpolate_y(y: f32, output_height: f32) -> f32 {
     1.0 - (y / output_height * 2.0)
-}
-
-fn f32_min(a: f32, b: f32) -> f32 {
-    if a < b {
-        a
-    } else {
-        b
-    }
 }

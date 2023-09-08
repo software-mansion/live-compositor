@@ -29,7 +29,7 @@ impl Builtin {
                 background_color_rgba,
                 ..
             } => Some(background_color_rgba),
-            BuiltinSpec::Grid {
+            BuiltinSpec::TiledLayout {
                 background_color_rgba,
                 ..
             } => Some(background_color_rgba),
@@ -41,7 +41,7 @@ impl Builtin {
         match self.0 {
             BuiltinSpec::TransformToResolution { resolution, .. } => resolution,
             BuiltinSpec::FixedPositionLayout { resolution, .. } => resolution,
-            BuiltinSpec::Grid { resolution, .. } => resolution,
+            BuiltinSpec::TiledLayout { resolution, .. } => resolution,
         }
     }
 
@@ -49,7 +49,7 @@ impl Builtin {
         match self.0 {
             BuiltinSpec::TransformToResolution { resolution, .. } => Some(resolution),
             BuiltinSpec::FixedPositionLayout { resolution, .. } => Some(resolution),
-            BuiltinSpec::Grid { resolution, .. } => Some(resolution),
+            BuiltinSpec::TiledLayout { resolution, .. } => Some(resolution),
         }
     }
 }

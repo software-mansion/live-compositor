@@ -32,7 +32,7 @@ impl BuiltinTransformations {
                 TransformToResolutionStrategy::Fit { .. } => self.apply_matrix.0.clone(),
             },
             BuiltinSpec::FixedPositionLayout { .. } => self.apply_matrix.0.clone(),
-            BuiltinSpec::Grid { .. } => self.apply_matrix.0.clone(),
+            BuiltinSpec::TiledLayout { .. } => self.apply_matrix.0.clone(),
         }
     }
 }
