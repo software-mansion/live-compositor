@@ -2,6 +2,8 @@ use compositor_common::scene::{builtin_transformations::TextureLayout, Resolutio
 use log::error;
 use nalgebra_glm::{rotate_z, scale, translate, vec3, Mat4};
 
+use crate::transformations::builtin::utils::mat4_to_bytes;
+
 #[derive(Debug)]
 pub struct FixedPositionLayoutParams {
     transformation_matrices: Vec<Mat4>,
@@ -145,10 +147,8 @@ impl FixedPositionLayoutParams {
     pub fn shader_buffer_content(&self) -> bytes::Bytes {
         let mut matrices_bytes = bytes::BytesMut::new();
         for matrix in &self.transformation_matrices {
-            let colum_based = matrix.transpose();
-            for el in &colum_based {
-                matrices_bytes.extend_from_slice(&el.to_ne_bytes())
-            }
+            let matrix_bytes = mat4_to_bytes(matrix);
+            matrices_bytes.extend(matrix_bytes);
         }
 
         matrices_bytes.freeze()
