@@ -9,6 +9,7 @@ pub(crate) mod transformations;
 pub(crate) mod utils;
 
 mod sync_renderer;
+mod validation;
 
 pub use transformations::web_renderer::{
     WebRendererOptions, EMBED_SOURCE_FRAMES_MESSAGE, UNEMBED_SOURCE_FRAMES_MESSAGE,

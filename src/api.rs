@@ -5,7 +5,7 @@ use compositor_common::{
     scene::{InputId, OutputId, Resolution, SceneSpec},
 };
 use compositor_pipeline::pipeline;
-use compositor_render::event_loop::EventLoop;
+use compositor_render::{event_loop::EventLoop, registry::RegistryType};
 use crossbeam_channel::{bounded, Receiver};
 use serde::{Deserialize, Serialize};
 use tiny_http::StatusCode;
@@ -205,9 +205,15 @@ impl Api {
             UnregisterRequest::OutputStream { output_id } => {
                 Ok(self.pipeline.unregister_output(&output_id)?)
             }
-            UnregisterRequest::Shader { .. } => todo!(),
-            UnregisterRequest::WebRenderer { .. } => todo!(),
-            UnregisterRequest::Image { .. } => todo!(),
+            UnregisterRequest::Shader { shader_id } => Ok(self
+                .pipeline
+                .unregister_renderer(&shader_id, RegistryType::Shader)?),
+            UnregisterRequest::WebRenderer { instance_id } => Ok(self
+                .pipeline
+                .unregister_renderer(&instance_id, RegistryType::WebRenderer)?),
+            UnregisterRequest::Image { image_id } => Ok(self
+                .pipeline
+                .unregister_renderer(&image_id, RegistryType::Image)?),
         }
     }
 

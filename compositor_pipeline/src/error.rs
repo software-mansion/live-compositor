@@ -1,6 +1,6 @@
 use compositor_common::scene::{InputId, OutputId};
 use compositor_render::{
-    error::{InitRendererEngineError, RegisterRendererError},
+    error::{InitRendererEngineError, RegisterRendererError, UnregisterRendererError},
     registry::RegisterError,
     renderer::{scene::UpdateSceneError, WgpuError},
 };
@@ -178,6 +178,28 @@ impl From<&RegisterRendererError> for PipelineErrorInfo {
             }
             RegisterRendererError::Image(_, _) => {
                 PipelineErrorInfo::new(REGISTER_IMAGE_ERROR, ErrorType::UserError)
+            }
+        }
+    }
+}
+
+const ENTITY_NOT_FOUND: &str = "ENTITY_NOT_FOUND";
+const ENTITY_STILL_IN_USE: &str = "ENTITY_STILL_IN_USE";
+
+impl From<&UnregisterRendererError> for PipelineErrorInfo {
+    fn from(err: &UnregisterRendererError) -> Self {
+        match err {
+            UnregisterRendererError::RendererRegistry(_) => {
+                PipelineErrorInfo::new(ENTITY_NOT_FOUND, ErrorType::EntityNotFound)
+            }
+            UnregisterRendererError::ImageStillInUse(_, _) => {
+                PipelineErrorInfo::new(ENTITY_STILL_IN_USE, ErrorType::EntityNotFound)
+            }
+            UnregisterRendererError::ShaderStillInUse(_, _) => {
+                PipelineErrorInfo::new(ENTITY_STILL_IN_USE, ErrorType::EntityNotFound)
+            }
+            UnregisterRendererError::WebRendererInstanceStillInUse(_, _) => {
+                PipelineErrorInfo::new(ENTITY_STILL_IN_USE, ErrorType::EntityNotFound)
             }
         }
     }
