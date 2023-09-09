@@ -11,7 +11,7 @@ pub struct CornersRoundingParams {
 impl CornersRoundingParams {
     pub fn new(border_radius: Coord, input_resolutions: &[Option<Resolution>]) -> Self {
         let Some(Some(input_resolution)) = input_resolutions.first() else {
-            return Self {border_radius: 0.0};
+            return Self { border_radius: 0.0 };
         };
 
         let pixels_border_radius = match border_radius {
