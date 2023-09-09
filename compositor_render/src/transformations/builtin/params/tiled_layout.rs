@@ -81,17 +81,17 @@ impl TiledLayoutParams {
     ) -> Vec<BoxLayout> {
         let mut layouts = Vec::with_capacity(inputs_count as usize);
 
-        let tiles_width = tile_size.width as u32 * rows_cols.cols;
-        let x_padding = (output_resolution.width as u32 - tiles_width) / 2;
+        let tiles_width = tile_size.width as f32 * rows_cols.cols as f32;
+        let x_padding = (output_resolution.width as f32 - tiles_width) / 2.0;
 
-        let tiles_height = tile_size.height as u32 * rows_cols.rows;
-        let y_padding = (output_resolution.height as u32 - tiles_height) / 2;
+        let tiles_height = tile_size.height as f32 * rows_cols.rows as f32;
+        let y_padding = (output_resolution.height as f32 - tiles_height) / 2.0;
 
         for row in 0..(rows_cols.rows - 1) {
             for col in 0..rows_cols.cols {
                 let top_left_corner = (
-                    x_padding as f32 + col as f32 * tile_size.width as f32,
-                    y_padding as f32 + row as f32 * tile_size.height as f32,
+                    x_padding + col as f32 * tile_size.width as f32,
+                    y_padding + row as f32 * tile_size.height as f32,
                 );
 
                 layouts.push(BoxLayout {
@@ -111,7 +111,7 @@ impl TiledLayoutParams {
         for bottom_tile in 0..bottom_row_tiles_count {
             let top_left_corner = (
                 tile_size.width as f32 * bottom_tile as f32 + bottom_row_x_padding as f32,
-                (rows_cols.rows as f32 - 1.0) * tile_size.height as f32 + y_padding as f32,
+                (rows_cols.rows as f32 - 1.0) * tile_size.height as f32 + y_padding,
             );
 
             layouts.push(BoxLayout {
