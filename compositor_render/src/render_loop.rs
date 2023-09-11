@@ -5,7 +5,7 @@ use std::{
 
 use compositor_common::{
     scene::{InputId, NodeId, OutputId},
-    util::RGBColor,
+    util::colors::RGBColor,
     Frame,
 };
 use log::error;

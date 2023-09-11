@@ -3,10 +3,10 @@ use std::{fmt::Display, str::FromStr};
 use serde::{Deserialize, Serialize};
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 
-use crate::{
-    error::BuiltinSpecValidationError,
-    util::{Coord, Degree, RGBAColor},
-};
+use crate::error::BuiltinSpecValidationError;
+use crate::util::colors::RGBAColor;
+use crate::util::coord::Coord;
+use crate::util::degree::Degree;
 
 use super::NodeSpec;
 use super::Resolution;

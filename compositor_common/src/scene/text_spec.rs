@@ -3,9 +3,9 @@ use std::sync::Arc;
 use glyphon::AttrsOwned;
 use serde::{Deserialize, Serialize};
 
-use super::{Resolution, MAX_NODE_RESOLUTION};
+use crate::util::{align::Align, colors::RGBAColor};
 
-use crate::util::RGBAColor;
+use super::{Resolution, MAX_NODE_RESOLUTION};
 
 fn default_color() -> RGBAColor {
     RGBAColor(255, 255, 255, 255)
@@ -57,26 +57,6 @@ impl From<Wrap> for glyphon::cosmic_text::Wrap {
             Wrap::None => glyphon::cosmic_text::Wrap::None,
             Wrap::Glyph => glyphon::cosmic_text::Wrap::Glyph,
             Wrap::Word => glyphon::cosmic_text::Wrap::Word,
-        }
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(rename_all = "snake_case")]
-pub enum Align {
-    Left,
-    Right,
-    Justified,
-    Center,
-}
-
-impl From<Align> for glyphon::cosmic_text::Align {
-    fn from(align: Align) -> Self {
-        match align {
-            Align::Left => glyphon::cosmic_text::Align::Left,
-            Align::Right => glyphon::cosmic_text::Align::Right,
-            Align::Justified => glyphon::cosmic_text::Align::Justified,
-            Align::Center => glyphon::cosmic_text::Align::Center,
         }
     }
 }

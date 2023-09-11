@@ -1,6 +1,6 @@
 use std::cmp::min;
 
-use compositor_common::{scene::Resolution, util::Coord};
+use compositor_common::{scene::Resolution, util::coord::Coord};
 
 #[derive(Debug)]
 pub struct CornersRoundingParams {
