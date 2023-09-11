@@ -11,6 +11,14 @@ pub enum RegisterError {
     },
 }
 
+#[derive(Debug, thiserror::Error)]
+#[error("Failed to unregister a {item_type}. The \"{renderer_id}\" {item_type} does not exist.")]
+pub struct UnregisterError {
+    item_type: &'static str,
+    renderer_id: RendererId,
+}
+
+#[derive(Debug, Clone, Copy)]
 pub enum RegistryType {
     Shader,
     WebRenderer,
@@ -55,5 +63,15 @@ impl<T: Clone> RendererRegistry<T> {
         self.registry.insert(id.clone(), renderer);
 
         Ok(())
+    }
+
+    pub(crate) fn unregister(&mut self, id: &RendererId) -> Result<(), UnregisterError> {
+        match self.registry.remove(id) {
+            Some(_) => Ok(()),
+            None => Err(UnregisterError {
+                item_type: self.registry_type.registry_item_name(),
+                renderer_id: id.clone(),
+            }),
+        }
     }
 }

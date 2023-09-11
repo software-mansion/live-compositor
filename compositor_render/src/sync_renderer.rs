@@ -1,16 +1,20 @@
 use std::sync::{Arc, Mutex};
 
 use compositor_common::{
-    renderer_spec::RendererSpec,
+    renderer_spec::{RendererId, RendererSpec},
     scene::{InputId, OutputId, SceneSpec},
 };
 
 use crate::{
-    error::{InitRendererEngineError, RegisterRendererError, RenderSceneError},
+    error::{
+        InitRendererEngineError, RegisterRendererError, RenderSceneError, UnregisterRendererError,
+    },
     event_loop::EventLoop,
     frame_set::FrameSet,
+    registry::RegistryType,
     renderer::{scene::UpdateSceneError, Renderer, RendererOptions},
     transformations::{image_renderer::Image, shader::Shader, web_renderer::WebRenderer},
+    validation::SceneSpecExt,
 };
 
 #[derive(Clone)]
@@ -51,6 +55,23 @@ impl SyncRenderer {
                 Ok(guard.renderers.images.register(image_id, asset)?)
             }
         }
+    }
+
+    pub fn unregister_renderer(
+        &self,
+        renderer_id: &RendererId,
+        registry_type: RegistryType,
+    ) -> Result<(), UnregisterRendererError> {
+        let mut guard = self.0.lock().unwrap();
+        guard
+            .scene_spec
+            .validate_can_unregister(renderer_id, registry_type)?;
+        match registry_type {
+            RegistryType::Shader => guard.renderers.shaders.unregister(renderer_id)?,
+            RegistryType::WebRenderer => guard.renderers.web_renderers.unregister(renderer_id)?,
+            RegistryType::Image => guard.renderers.images.unregister(renderer_id)?,
+        }
+        Ok(())
     }
 
     pub fn render(&self, input: FrameSet<InputId>) -> Result<FrameSet<OutputId>, RenderSceneError> {

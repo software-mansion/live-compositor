@@ -5,11 +5,14 @@ use std::thread;
 use std::time::Duration;
 
 use compositor_common::error::ErrorStack;
-use compositor_common::renderer_spec::RendererSpec;
+use compositor_common::renderer_spec::{RendererId, RendererSpec};
 use compositor_common::scene::{InputId, OutputId, SceneSpec};
 use compositor_common::{Frame, Framerate};
-use compositor_render::error::{InitRendererEngineError, RegisterRendererError};
+use compositor_render::error::{
+    InitRendererEngineError, RegisterRendererError, UnregisterRendererError,
+};
 use compositor_render::event_loop::EventLoop;
+use compositor_render::registry::RegistryType;
 use compositor_render::renderer::RendererOptions;
 use compositor_render::WebRendererOptions;
 use compositor_render::{renderer::scene::UpdateSceneError, Renderer};
@@ -155,6 +158,15 @@ impl<Input: PipelineInput, Output: PipelineOutput> Pipeline<Input, Output> {
     ) -> Result<(), RegisterRendererError> {
         self.renderer.register_renderer(transformation_spec)?;
         Ok(())
+    }
+
+    pub fn unregister_renderer(
+        &self,
+        renderer_id: &RendererId,
+        registry_type: RegistryType,
+    ) -> Result<(), UnregisterRendererError> {
+        self.renderer
+            .unregister_renderer(renderer_id, registry_type)
     }
 
     pub fn update_scene(&mut self, scene_spec: Arc<SceneSpec>) -> Result<(), UpdateSceneError> {
