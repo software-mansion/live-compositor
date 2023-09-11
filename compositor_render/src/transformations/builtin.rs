@@ -24,34 +24,39 @@ impl Builtin {
                 }
                 TransformToResolutionStrategy::Fit {
                     background_color_rgba,
-                } => Some(background_color_rgba),
+                } => Some(rgba_to_wgpu_color(background_color_rgba)),
             },
             BuiltinSpec::FixedPositionLayout {
                 background_color_rgba,
                 ..
-            } => Some(background_color_rgba),
+            } => Some(rgba_to_wgpu_color(background_color_rgba)),
             BuiltinSpec::TiledLayout {
                 background_color_rgba,
                 ..
-            } => Some(background_color_rgba),
+            } => Some(rgba_to_wgpu_color(background_color_rgba)),
+            BuiltinSpec::CornersRounding { .. } => Some(wgpu::Color::TRANSPARENT),
             BuiltinSpec::MirrorImage { .. } => None,
         }
-        .map(rgba_to_wgpu_color)
     }
 
     pub fn output_resolution(&self, input_resolutions: &[Option<Resolution>]) -> Resolution {
-        match self.0 {
-            BuiltinSpec::TransformToResolution { resolution, .. } => resolution,
-            BuiltinSpec::FixedPositionLayout { resolution, .. } => resolution,
-            BuiltinSpec::TiledLayout { resolution, .. } => resolution,
-            BuiltinSpec::MirrorImage { .. } => input_resolutions
+        fn first_input_resolution(input_resolutions: &[Option<Resolution>]) -> Resolution {
+            input_resolutions
                 .first()
                 .copied()
                 .flatten()
                 .unwrap_or(Resolution {
                     width: 1,
                     height: 1,
-                }),
+                })
+        }
+
+        match self.0 {
+            BuiltinSpec::TransformToResolution { resolution, .. } => resolution,
+            BuiltinSpec::FixedPositionLayout { resolution, .. } => resolution,
+            BuiltinSpec::TiledLayout { resolution, .. } => resolution,
+            BuiltinSpec::MirrorImage { .. } => first_input_resolution(input_resolutions),
+            BuiltinSpec::CornersRounding { .. } => first_input_resolution(input_resolutions),
         }
     }
 
@@ -61,6 +66,7 @@ impl Builtin {
             BuiltinSpec::FixedPositionLayout { resolution, .. } => Some(resolution),
             BuiltinSpec::TiledLayout { resolution, .. } => Some(resolution),
             BuiltinSpec::MirrorImage { .. } => None,
+            BuiltinSpec::CornersRounding { .. } => None,
         }
     }
 }

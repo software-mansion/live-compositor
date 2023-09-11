@@ -109,12 +109,19 @@ fn start_example_client_code() -> Result<()> {
                 "input_pads": ["image"],
             },
             {
+                "node_id": "corners_rounded_image",
+                "type": "built-in",
+                "transformation": "corners_rounding",
+                "border_radius": "100px",
+                "input_pads": ["filled_image"]
+            },
+            {
                 "node_id": "layout",
                 "type": "built-in",
                 "transformation": "tiled_layout",
                 "background_color_rgba": "#FFFFFFFF",
                 "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
-                "input_pads": ["mirrored_image", "filled_image", "filled_image", "filled_image", "filled_image", "filled_image", "filled_image", "filled_image"],
+                "input_pads": ["mirrored_image", "filled_image", "corners_rounded_image", "filled_image", "filled_image", "filled_image", "filled_image", "filled_image"],
             }
         ],
         "outputs": [
