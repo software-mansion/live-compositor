@@ -2,7 +2,7 @@ use compositor_common::scene::Resolution;
 
 use nalgebra_glm::Mat4;
 
-use crate::transformations::builtin::utils::BoxLayout;
+use crate::transformations::builtin::box_layout::BoxLayout;
 
 use super::transform_to_resolution::FitParams;
 

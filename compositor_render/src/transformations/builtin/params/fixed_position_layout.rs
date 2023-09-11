@@ -2,7 +2,7 @@ use compositor_common::scene::{builtin_transformations::TextureLayout, Resolutio
 use log::error;
 use nalgebra_glm::Mat4;
 
-use crate::transformations::builtin::utils::{mat4_to_bytes, BoxLayout};
+use crate::transformations::builtin::{box_layout::BoxLayout, utils::mat4_to_bytes};
 
 #[derive(Debug)]
 pub struct FixedPositionLayoutParams {

@@ -5,6 +5,7 @@ use compositor_common::scene::{
 
 use crate::utils::rgba_to_wgpu_color;
 
+mod box_layout;
 pub mod error;
 pub mod node;
 pub mod params;
