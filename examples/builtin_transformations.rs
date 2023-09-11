@@ -120,7 +120,6 @@ fn start_example_client_code() -> Result<()> {
                 "type": "built-in",
                 "transformation": "tiled_layout",
                 "background_color_rgba": "#FFFFFFFF",
-                "tile_aspect_ratio": [1, 1],
                 "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
                 "input_pads": ["mirrored_image", "filled_image", "corners_rounded_image", "filled_image", "filled_image", "filled_image", "filled_image", "filled_image"],
             }
