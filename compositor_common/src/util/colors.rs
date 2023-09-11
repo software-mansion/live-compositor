@@ -6,7 +6,7 @@ use serde_with::{DeserializeFromStr, SerializeDisplay};
 pub struct RGBColor(pub u8, pub u8, pub u8);
 
 impl RGBColor {
-    pub const BLACK: Self = Self(255, 255, 255);
+    pub const BLACK: Self = Self(0, 0, 0);
 
     pub fn to_yuv(&self) -> (f32, f32, f32) {
         let r = self.0 as f32 / 255.0;

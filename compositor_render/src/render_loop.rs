@@ -72,12 +72,6 @@ pub(super) fn read_outputs(
                     ((node.rgba_texture()), (node.bind_group())),
                     output_texture.yuv_textures(),
                 );
-                let yuv_pending = output_texture.start_download(ctx.wgpu_ctx);
-                pending_downloads.push((
-                    output_id,
-                    yuv_pending,
-                    output_texture.resolution().to_owned(),
-                ));
             }
             None => {
                 let (y, u, v) = RGBColor::BLACK.to_yuv();
@@ -98,6 +92,12 @@ pub(super) fn read_outputs(
                 );
             }
         };
+        let yuv_pending = output_texture.start_download(ctx.wgpu_ctx);
+        pending_downloads.push((
+            output_id,
+            yuv_pending,
+            output_texture.resolution().to_owned(),
+        ));
     }
     ctx.wgpu_ctx.device.poll(wgpu::MaintainBase::Wait);
 
