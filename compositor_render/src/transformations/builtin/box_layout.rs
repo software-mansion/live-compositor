@@ -2,7 +2,6 @@ use compositor_common::{
     scene::Resolution,
     util::align::{HorizontalAlign, VerticalAlign},
 };
-use log::info;
 use nalgebra_glm::{rotate_z, scale, translate, vec3, Mat4, Vec3};
 
 #[derive(Debug)]
@@ -23,18 +22,13 @@ impl BoxLayout {
         x_align: HorizontalAlign,
         y_align: VerticalAlign,
     ) -> BoxLayout {
-        info!("{:#?}, {:#?}", self, input_resolution);
-        let input_ratio = input_resolution.ratio();
-        let box_aspect_ratio = self.width / self.height;
+        let input_x_scale = self.width / input_resolution.width as f32;
+        let input_y_scale = self.height / input_resolution.height as f32;
 
-        // TODO: explain this
-        let (x_scale, y_scale) = if input_ratio > box_aspect_ratio {
-            (1.0, box_aspect_ratio / input_ratio)
-        } else {
-            (input_ratio / box_aspect_ratio, 1.0)
-        };
-        let x_padding = (1.0 - x_scale) * self.width;
-        let y_padding = (1.0 - y_scale) * self.height;
+        let input_scale = input_x_scale.min(input_y_scale);
+
+        let x_padding = self.width - input_resolution.width as f32 * input_scale;
+        let y_padding = self.height - input_resolution.height as f32 * input_scale;
 
         let left_padding = match x_align {
             HorizontalAlign::Left => 0.0,
@@ -48,7 +42,7 @@ impl BoxLayout {
             VerticalAlign::Bottom => y_padding,
         };
 
-        let a = BoxLayout {
+        BoxLayout {
             top_left_corner: (
                 self.top_left_corner.0 + left_padding,
                 self.top_left_corner.1 + top_padding,
@@ -56,10 +50,7 @@ impl BoxLayout {
             width: self.width - x_padding,
             height: self.height - y_padding,
             rotation_degrees: self.rotation_degrees,
-        };
-
-        dbg!(&a);
-        a
+        }
     }
 
     /// Returns matrix that transforms input plane vertices

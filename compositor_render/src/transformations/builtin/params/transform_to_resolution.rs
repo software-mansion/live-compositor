@@ -12,22 +12,6 @@ pub struct FitParams {
 }
 
 impl FitParams {
-    /// This transformation preserves the input texture ratio.
-    ///
-    /// If the input ratio is larger than the output ratio, the texture is scaled,
-    /// such that input width = output width. Then:
-    /// scale_factor_pixels = output_width / input_width
-    /// Using clip space coords ([-1, 1] range in both axis):
-    /// scale_factor_x_clip_space = 1.0 (input x coords are already fitted)
-    /// scale_factor_y_clip_space = scale_factor_pixels * input_height / output_height =
-    /// = (output_width * input_height) / (output_height * input_width)
-    /// = output_ratio / input_ratio
-    ///
-    /// If the output ratio is larger, then the texture is scaled up,
-    /// such that input_height = output_height.
-    /// Analogously:
-    /// scale_factor_x_clip_space = input_ratio / output_ratio
-    /// scale_factor_y_clip_space = 1.0 (input y coords are already fitted)
     pub fn new(
         input_resolution: Resolution,
         output_resolution: Resolution,
