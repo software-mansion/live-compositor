@@ -12,7 +12,7 @@ impl V8Bool {
         };
 
         let inner = unsafe { chromium_sys::cef_v8value_create_bool(value) };
-        Self(Validated(inner))
+        Self(Validated::new(inner))
     }
 
     pub fn get(&self) -> Result<bool, V8ValueError> {

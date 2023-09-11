@@ -9,7 +9,7 @@ impl V8String {
         let value = CefString::new_raw(value);
         let inner = unsafe { chromium_sys::cef_v8value_create_string(&value) };
 
-        Self(Validated(inner))
+        Self(Validated::new(inner))
     }
 
     pub fn get(&self) -> Result<String, V8ValueError> {

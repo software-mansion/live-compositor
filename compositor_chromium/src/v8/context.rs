@@ -1,8 +1,11 @@
 use log::warn;
 
-use crate::validated::{Validatable, Validated, ValidatedError};
+use crate::{
+    cef_string::CefString,
+    validated::{Validatable, Validated, ValidatedError},
+};
 
-use super::value::V8Value;
+use super::{value::V8Value, V8Exception};
 
 /// JavaScript V8 engine context.
 /// Available only on the renderer process

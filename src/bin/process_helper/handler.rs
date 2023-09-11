@@ -1,3 +1,4 @@
+use core::panic;
 use std::{env, sync::Arc};
 
 use compositor_chromium::cef;

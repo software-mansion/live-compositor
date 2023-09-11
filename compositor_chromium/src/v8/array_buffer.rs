@@ -25,7 +25,7 @@ impl V8ArrayBuffer {
             )
         };
 
-        Self(Validated(inner))
+        Self(Validated::new(inner))
     }
 
     /// Creates a new array buffer from raw pointer. It can be only created while in context.
@@ -48,7 +48,7 @@ impl V8ArrayBuffer {
             )
         };
 
-        Self(Validated(inner))
+        Self(Validated::new(inner))
     }
 }
 

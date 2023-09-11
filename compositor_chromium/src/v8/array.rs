@@ -7,7 +7,7 @@ pub struct V8Array(pub(super) Validated<chromium_sys::cef_v8value_t>);
 impl V8Array {
     pub fn new(len: usize) -> Self {
         let inner = unsafe { chromium_sys::cef_v8value_create_array(len as i32) };
-        Self(Validated(inner))
+        Self(Validated::new(inner))
     }
 
     pub fn has(&self, index: usize) -> Result<bool, V8ArrayError> {
