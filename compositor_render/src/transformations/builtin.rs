@@ -39,26 +39,23 @@ impl Builtin {
     }
 
     pub fn output_resolution(&self, input_resolutions: &[Option<Resolution>]) -> Resolution {
+        fn first_input_resolution(input_resolutions: &[Option<Resolution>]) -> Resolution {
+            input_resolutions
+                .first()
+                .copied()
+                .flatten()
+                .unwrap_or(Resolution {
+                    width: 1,
+                    height: 1,
+                })
+        }
+
         match self.0 {
             BuiltinSpec::TransformToResolution { resolution, .. } => resolution,
             BuiltinSpec::FixedPositionLayout { resolution, .. } => resolution,
             BuiltinSpec::TiledLayout { resolution, .. } => resolution,
-            BuiltinSpec::MirrorImage { .. } => input_resolutions
-                .first()
-                .copied()
-                .flatten()
-                .unwrap_or(Resolution {
-                    width: 1,
-                    height: 1,
-                }),
-            BuiltinSpec::CornersRounding { .. } => input_resolutions
-                .first()
-                .copied()
-                .flatten()
-                .unwrap_or(Resolution {
-                    width: 1,
-                    height: 1,
-                }),
+            BuiltinSpec::MirrorImage { .. } => first_input_resolution(input_resolutions),
+            BuiltinSpec::CornersRounding { .. } => first_input_resolution(input_resolutions),
         }
     }
 
