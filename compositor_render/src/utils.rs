@@ -1,4 +1,4 @@
-use compositor_common::util::RGBAColor;
+use compositor_common::util::colors::RGBAColor;
 
 pub(crate) fn rgba_to_wgpu_color(rgba_color: &RGBAColor) -> wgpu::Color {
     wgpu::Color {
