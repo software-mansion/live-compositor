@@ -1,10 +1,11 @@
-use compositor_common::scene::Resolution;
+use compositor_common::{
+    scene::Resolution,
+    util::align::{HorizontalAlign, VerticalAlign},
+};
 
 use nalgebra_glm::Mat4;
 
 use crate::transformations::builtin::box_layout::BoxLayout;
-
-use super::transform_to_resolution::FitParams;
 
 #[derive(Debug)]
 struct RowsCols {
@@ -59,12 +60,7 @@ impl TiledLayoutParams {
             .iter()
             .zip(inputs)
             .map(|(tile_layout, input_resolution)| {
-                Self::transformation_matrix(
-                    tile_layout,
-                    input_resolution,
-                    output_resolution,
-                    tile_size,
-                )
+                Self::transformation_matrix(tile_layout, input_resolution, output_resolution)
             })
             .collect();
 
@@ -183,10 +179,14 @@ impl TiledLayoutParams {
         tile_layout: &BoxLayout,
         input_resolution: Resolution,
         output_resolution: Resolution,
-        tile_size: Resolution,
     ) -> Mat4 {
-        let fit = FitParams::new(input_resolution, tile_size).scale_matrix;
-        tile_layout.transformation_matrix(output_resolution) * fit
+        tile_layout
+            .fit(
+                input_resolution,
+                HorizontalAlign::Center,
+                VerticalAlign::Center,
+            )
+            .transformation_matrix(output_resolution)
     }
 }
 

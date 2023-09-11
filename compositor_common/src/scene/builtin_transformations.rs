@@ -4,6 +4,8 @@ use serde::{Deserialize, Serialize};
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 
 use crate::error::BuiltinSpecValidationError;
+use crate::util::align::HorizontalAlign;
+use crate::util::align::VerticalAlign;
 use crate::util::colors::RGBAColor;
 use crate::util::coord::Coord;
 use crate::util::degree::Degree;
@@ -56,6 +58,8 @@ pub enum TransformToResolutionStrategy {
     Fit {
         #[serde(default)]
         background_color_rgba: RGBAColor,
+        horizontal_align: HorizontalAlign,
+        vertical_align: VerticalAlign,
     },
 }
 

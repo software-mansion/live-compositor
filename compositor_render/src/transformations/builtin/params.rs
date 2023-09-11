@@ -79,10 +79,17 @@ impl BuiltinParams {
                 }
                 None => BuiltinParams::Fill(FillParams::default()),
             },
-            TransformToResolutionStrategy::Fit { .. } => match input_resolution {
-                Some(input_resolution) => {
-                    BuiltinParams::Fit(FitParams::new(*input_resolution, output_resolution))
-                }
+            TransformToResolutionStrategy::Fit {
+                horizontal_align,
+                vertical_align,
+                ..
+            } => match input_resolution {
+                Some(input_resolution) => BuiltinParams::Fit(FitParams::new(
+                    *input_resolution,
+                    output_resolution,
+                    *horizontal_align,
+                    *vertical_align,
+                )),
                 None => BuiltinParams::Fit(FitParams::default()),
             },
         }

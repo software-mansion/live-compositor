@@ -3,7 +3,7 @@ use std::sync::Arc;
 use glyphon::AttrsOwned;
 use serde::{Deserialize, Serialize};
 
-use crate::util::{align::Align, colors::RGBAColor};
+use crate::util::{align::HorizontalAlign, colors::RGBAColor};
 
 use super::{Resolution, MAX_NODE_RESOLUTION};
 
@@ -19,8 +19,8 @@ fn default_style() -> Style {
     Style::Normal
 }
 
-fn default_align() -> Align {
-    Align::Left
+fn default_align() -> HorizontalAlign {
+    HorizontalAlign::Left
 }
 
 fn default_wrap() -> Wrap {
@@ -78,7 +78,7 @@ pub struct TextSpec {
     #[serde(default = "default_style")]
     pub style: Style,
     #[serde(default = "default_align")]
-    pub align: Align,
+    pub align: HorizontalAlign,
     #[serde(default = "default_wrap")]
     pub wrap: Wrap,
 }
