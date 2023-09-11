@@ -18,7 +18,7 @@ pub(super) struct BrowserController {
 
 impl BrowserController {
     pub fn new(ctx: Arc<ChromiumContext>, url: String, resolution: Resolution) -> Self {
-        let (painted_frames_sender, painted_frames_receiver) = crossbeam_channel::unbounded();
+        let (painted_frames_sender, painted_frames_receiver) = crossbeam_channel::bounded(1);
         let client = BrowserClient::new(painted_frames_sender, resolution);
         let chromium_sender = ChromiumSender::new(ctx, url, client);
 
@@ -176,9 +176,11 @@ impl cef::RenderHandler for RenderHandler {
     }
 
     fn on_paint(&self, _browser: &cef::Browser, buffer: &[u8], _resolution: Resolution) {
-        self.painted_frames_sender
-            .send(buffer.to_vec())
-            .expect("send frame");
+        if !self.painted_frames_sender.is_full() {
+            self.painted_frames_sender
+                .send(buffer.to_vec())
+                .expect("send frame");
+        }
     }
 }
 
