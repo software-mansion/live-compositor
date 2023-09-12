@@ -24,6 +24,7 @@ impl Builtin {
                 }
                 TransformToResolutionStrategy::Fit {
                     background_color_rgba,
+                    ..
                 } => Some(rgba_to_wgpu_color(background_color_rgba)),
             },
             BuiltinSpec::FixedPositionLayout {

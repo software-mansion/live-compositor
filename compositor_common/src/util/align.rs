@@ -1,21 +1,29 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
-pub enum Align {
+pub enum HorizontalAlign {
     Left,
     Right,
     Justified,
     Center,
 }
 
-impl From<Align> for glyphon::cosmic_text::Align {
-    fn from(align: Align) -> Self {
+impl From<HorizontalAlign> for glyphon::cosmic_text::Align {
+    fn from(align: HorizontalAlign) -> Self {
         match align {
-            Align::Left => glyphon::cosmic_text::Align::Left,
-            Align::Right => glyphon::cosmic_text::Align::Right,
-            Align::Justified => glyphon::cosmic_text::Align::Justified,
-            Align::Center => glyphon::cosmic_text::Align::Center,
+            HorizontalAlign::Left => glyphon::cosmic_text::Align::Left,
+            HorizontalAlign::Right => glyphon::cosmic_text::Align::Right,
+            HorizontalAlign::Justified => glyphon::cosmic_text::Align::Justified,
+            HorizontalAlign::Center => glyphon::cosmic_text::Align::Center,
         }
     }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum VerticalAlign {
+    Top,
+    Center,
+    Bottom,
 }
