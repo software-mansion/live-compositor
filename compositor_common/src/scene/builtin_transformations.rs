@@ -58,8 +58,8 @@ pub enum TransformToResolutionStrategy {
     Fit {
         #[serde(default)]
         background_color_rgba: RGBAColor,
-        horizontal_align: HorizontalAlign,
-        vertical_align: VerticalAlign,
+        horizontal_alignment: HorizontalAlign,
+        vertical_alignment: VerticalAlign,
     },
 }
 

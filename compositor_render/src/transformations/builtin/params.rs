@@ -80,8 +80,8 @@ impl BuiltinParams {
                 None => BuiltinParams::Fill(FillParams::default()),
             },
             TransformToResolutionStrategy::Fit {
-                horizontal_align,
-                vertical_align,
+                horizontal_alignment: horizontal_align,
+                vertical_alignment: vertical_align,
                 ..
             } => match input_resolution {
                 Some(input_resolution) => BuiltinParams::Fit(FitParams::new(
