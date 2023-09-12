@@ -101,31 +101,31 @@ fn validate_vertex_input(
 }
 
 fn validate_type_equivalent(
-    ty1: Handle<Type>,
-    mod1: &Module,
-    ty2: Handle<Type>,
-    mod2: &Module,
+    expected: Handle<Type>,
+    expected_module: &Module,
+    provided: Handle<Type>,
+    provided_module: &Module,
 ) -> Result<(), TypeEquivalenceError> {
-    let type1 = &mod1.types[ty1];
-    let type2 = &mod2.types[ty2];
+    let expected_type = &expected_module.types[expected];
+    let provided_type = &provided_module.types[provided];
 
-    if type1.name != type2.name {
+    if expected_type.name != provided_type.name {
         return Err(TypeEquivalenceError::TypeNameMismatch(
-            type1.name.clone(),
-            type2.name.clone(),
+            expected_type.name.clone(),
+            provided_type.name.clone(),
         ));
     }
 
-    let ti1 = match type1.inner.canonical_form(&mod1.types) {
+    let expected_inner = match expected_type.inner.canonical_form(&expected_module.types) {
         Some(t) => t,
-        None => type1.inner.clone(),
+        None => expected_type.inner.clone(),
     };
-    let ti2 = match type2.inner.canonical_form(&mod2.types) {
+    let provided_inner = match provided_type.inner.canonical_form(&provided_module.types) {
         Some(t) => t,
-        None => type2.inner.clone(),
+        None => provided_type.inner.clone(),
     };
 
-    match ti1 {
+    match expected_inner {
         naga::TypeInner::Scalar { .. }
         | naga::TypeInner::Vector { .. }
         | naga::TypeInner::Matrix { .. }
@@ -135,112 +135,140 @@ fn validate_type_equivalent(
         | naga::TypeInner::AccelerationStructure
         | naga::TypeInner::RayQuery
         | naga::TypeInner::ValuePointer { .. } => {
-            if ti1 != ti2 {
+            if expected_inner != provided_inner {
                 return Err(TypeEquivalenceError::TypeStructureMismatch {
-                    expected: type1.inner.to_string(mod1),
-                    actual: type2.inner.to_string(mod2),
+                    expected: expected_type.inner.to_string(expected_module),
+                    actual: provided_type.inner.to_string(provided_module),
                 });
             }
         }
 
         naga::TypeInner::Array {
-            base: base1,
-            size: size1,
-            stride: stride1,
+            base: expected_base,
+            size: expected_size,
+            stride: expected_stride,
         } => {
             let naga::TypeInner::Array {
-                base: base2,
-                size: size2,
-                stride: stride2,
-            } = ti2
+                base: provided_base,
+                size: provided_size,
+                stride: provided_stride,
+            } = provided_inner
             else {
                 return Err(TypeEquivalenceError::TypeStructureMismatch {
-                    expected: ti1.to_string(mod1),
-                    actual: ti2.to_string(mod2),
+                    expected: expected_inner.to_string(expected_module),
+                    actual: provided_inner.to_string(provided_module),
                 });
             };
 
-            if stride1 != stride2 {
+            if expected_stride != provided_stride {
                 return Err(TypeEquivalenceError::TypeStructureMismatch {
-                    expected: ti1.to_string(mod1),
-                    actual: ti2.to_string(mod2),
+                    expected: expected_inner.to_string(expected_module),
+                    actual: provided_inner.to_string(provided_module),
                 });
             }
 
-            validate_array_size_equivalent(size1, mod1, size2, mod2)?;
-            return validate_type_equivalent(base1, mod1, base2, mod2);
+            validate_array_size_equivalent(
+                expected_size,
+                expected_module,
+                provided_size,
+                provided_module,
+            )?;
+            return validate_type_equivalent(
+                expected_base,
+                expected_module,
+                provided_base,
+                provided_module,
+            );
         }
 
         naga::TypeInner::BindingArray {
-            base: base1,
-            size: size1,
+            base: expected_base,
+            size: expected_size,
         } => {
             let naga::TypeInner::BindingArray {
-                base: base2,
-                size: size2,
-            } = ti2
+                base: provided_base,
+                size: provided_size,
+            } = provided_inner
             else {
                 return Err(TypeEquivalenceError::TypeStructureMismatch {
-                    expected: ti1.to_string(mod1),
-                    actual: ti2.to_string(mod2),
+                    expected: expected_inner.to_string(expected_module),
+                    actual: provided_inner.to_string(provided_module),
                 });
             };
 
-            validate_array_size_equivalent(size1, mod1, size2, mod2)?;
-            return validate_type_equivalent(base1, mod1, base2, mod2);
+            validate_array_size_equivalent(
+                expected_size,
+                expected_module,
+                provided_size,
+                provided_module,
+            )?;
+            return validate_type_equivalent(
+                expected_base,
+                expected_module,
+                provided_base,
+                provided_module,
+            );
         }
 
         naga::TypeInner::Struct {
-            members: ref members1,
+            members: ref expected_members,
             ..
         } => {
             let naga::TypeInner::Struct {
-                members: ref members2,
+                members: ref provided_members,
                 ..
-            } = ti2
+            } = provided_inner
             else {
                 return Err(TypeEquivalenceError::TypeStructureMismatch {
-                    expected: ti1.to_string(mod1),
-                    actual: ti2.to_string(mod2),
+                    expected: expected_inner.to_string(expected_module),
+                    actual: provided_inner.to_string(provided_module),
                 });
             };
 
             // skipped checking if ti1.span == ti2.span
             // if all fields have the same types, how can the spans be different?
 
-            if members1.len() != members2.len() {
+            if expected_members.len() != provided_members.len() {
                 return Err(TypeEquivalenceError::StructFieldNumberMismatch {
-                    struct_name: type1.name.as_ref().unwrap().clone(),
-                    expected_field_number: members1.len(),
-                    actual_field_number: members2.len(),
+                    struct_name: expected_type.name.as_ref().unwrap().clone(),
+                    expected_field_number: expected_members.len(),
+                    actual_field_number: provided_members.len(),
                 });
             }
 
-            for (m1, m2) in members1.iter().zip(members2.iter()) {
-                if m1.name != m2.name {
+            for (expected_member, provided_member) in
+                expected_members.iter().zip(provided_members.iter())
+            {
+                if expected_member.name != provided_member.name {
                     return Err(TypeEquivalenceError::StructFieldNameMismatch {
-                        struct_name: type1.name.as_ref().unwrap().clone(),
-                        expected_field_name: m1.name.as_ref().unwrap().clone(),
-                        actual_field_name: m2.name.as_ref().unwrap().clone(),
+                        struct_name: expected_type.name.as_ref().unwrap().clone(),
+                        expected_field_name: expected_member.name.as_ref().unwrap().clone(),
+                        actual_field_name: provided_member.name.as_ref().unwrap().clone(),
                     });
                 }
 
                 // skipped checking if m1.offset == m2.offset
                 // if all fields have the same types, how can the offsets be different?
 
-                if m1.binding != m2.binding {
+                if expected_member.binding != provided_member.binding {
                     return Err(TypeEquivalenceError::StructFieldBindingMismatch {
-                        struct_name: type1.name.as_ref().unwrap().clone(),
-                        field_name: m1.name.as_ref().unwrap().clone(),
-                        expected_binding: m1.binding.clone(),
-                        actual_binding: m2.binding.clone(),
+                        struct_name: expected_type.name.as_ref().unwrap().clone(),
+                        field_name: expected_member.name.as_ref().unwrap().clone(),
+                        expected_binding: expected_member.binding.clone(),
+                        actual_binding: provided_member.binding.clone(),
                     });
                 }
 
-                validate_type_equivalent(m1.ty, mod1, m2.ty, mod2).map_err(|err| {
+                validate_type_equivalent(
+                    expected_member.ty,
+                    expected_module,
+                    provided_member.ty,
+                    provided_module,
+                )
+                .map_err(|err| {
                     TypeEquivalenceError::StructFieldStructureMismatch {
-                        struct_name: type1.name.as_ref().unwrap().clone(),
-                        field_name: m1.name.as_ref().unwrap().clone(),
+                        struct_name: expected_type.name.as_ref().unwrap().clone(),
+                        field_name: expected_member.name.as_ref().unwrap().clone(),
                         error: Box::new(err),
                     }
                 })?;
@@ -289,16 +317,19 @@ fn eval_array_size(size: ArraySize, module: &naga::Module) -> Result<u64, ConstA
 }
 
 fn validate_array_size_equivalent(
-    size1: ArraySize,
-    mod1: &Module,
-    size2: ArraySize,
-    mod2: &Module,
+    expected_size: ArraySize,
+    expected_module: &Module,
+    provided_size: ArraySize,
+    provided_module: &Module,
 ) -> Result<(), TypeEquivalenceError> {
-    let size1 = eval_array_size(size1, mod1)?;
-    let size2 = eval_array_size(size2, mod2)?;
+    let expected_size = eval_array_size(expected_size, expected_module)?;
+    let provided_size = eval_array_size(provided_size, provided_module)?;
 
-    if size1 != size2 {
-        return Err(TypeEquivalenceError::ArraySizeMismatch(size1, size2));
+    if expected_size != provided_size {
+        return Err(TypeEquivalenceError::ArraySizeMismatch(
+            expected_size,
+            provided_size,
+        ));
     }
 
     Ok(())
