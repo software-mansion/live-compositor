@@ -160,9 +160,9 @@ fn frame_from_av(decoded: &mut Video, pts_offset: &mut Option<i64>) -> Result<Fr
     let pts = Duration::from_secs_f64(f64::max((pts as f64) / 90000.0, 0.0));
     Ok(Frame {
         data: YuvData {
-            y_plane: bytes::Bytes::copy_from_slice(decoded.data(0)),
-            u_plane: bytes::Bytes::copy_from_slice(decoded.data(1)),
-            v_plane: bytes::Bytes::copy_from_slice(decoded.data(2)),
+            y_plane: copy_plane_from_av(decoded, 0),
+            u_plane: copy_plane_from_av(decoded, 1),
+            v_plane: copy_plane_from_av(decoded, 2),
         },
         resolution: Resolution {
             width: decoded.width().try_into()?,
@@ -170,6 +170,20 @@ fn frame_from_av(decoded: &mut Video, pts_offset: &mut Option<i64>) -> Result<Fr
         },
         pts,
     })
+}
+
+fn copy_plane_from_av(decoded: &Video, plane: usize) -> bytes::Bytes {
+    let mut output_buffer = bytes::BytesMut::with_capacity(
+        decoded.plane_width(plane) as usize * decoded.plane_height(plane) as usize,
+    );
+
+    decoded
+        .data(plane)
+        .chunks(decoded.stride(plane))
+        .map(|chunk| &chunk[..decoded.plane_width(plane) as usize])
+        .for_each(|chunk| output_buffer.extend_from_slice(chunk));
+
+    output_buffer.freeze()
 }
 
 /// Combined implementation of ffmpeg_next::format:input_with_interrupt and
