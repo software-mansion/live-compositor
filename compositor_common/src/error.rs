@@ -62,7 +62,7 @@ pub enum BuiltinSpecValidationError {
     FixedLayoutTopBottomOnlyOne,
     #[error("Fields \"left\" and \"right\" are mutually exclusive, you can only specify one in texture layout in \"fixed_position_layout\" transformation.")]
     FixedLayoutLeftRightOnlyOne,
-    #[error("Nodes that use transformation \"{}\" expects {} input pads, but {} were provided", transformation_name, valid_input_pads_count.error_message_inputs_count(), defined_input_pads_count)]
+    #[error("Nodes that use transformation \"{}\" expect {} input pads, but {} were provided", transformation_name, valid_input_pads_count.error_message_inputs_count(), defined_input_pads_count)]
     InvalidInputsCount {
         transformation_name: String,
         valid_input_pads_count: ValidNodeInputsCount,
