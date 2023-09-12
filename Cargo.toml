@@ -42,7 +42,7 @@ env_logger = { workspace = true }
 log = { workspace = true }
 signal-hook = { workspace = true }
 shared_memory = { workspace = true }
-serde_json.workspace = true
+serde_json = { workspace = true }
 
 [dev-dependencies]
 reqwest = { workspace = true }
