@@ -81,6 +81,7 @@ impl From<V8Function> for V8Value {
     }
 }
 
+/// Used for executing native functions
 struct V8Handler<F: Fn(&[V8Value]) -> Result<V8Value, NativeFunctionError>>(F);
 
 impl<F: Fn(&[V8Value]) -> Result<V8Value, NativeFunctionError>> CefStruct for V8Handler<F> {
