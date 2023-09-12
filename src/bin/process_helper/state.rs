@@ -1,22 +1,16 @@
-use std::{
-    collections::HashMap,
-    sync::{atomic::AtomicBool, Mutex},
-};
+use std::{collections::HashMap, sync::Mutex};
 
 use compositor_chromium::cef;
 use shared_memory::Shmem;
 
 pub struct State {
     sources: Mutex<HashMap<String, Source>>,
-    // TODO: it's debug, remove it later!
-    pub f_registered: AtomicBool,
 }
 
 impl State {
     pub fn new() -> Self {
         Self {
             sources: Mutex::new(HashMap::new()),
-            f_registered: AtomicBool::new(false),
         }
     }
 

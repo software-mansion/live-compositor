@@ -8,7 +8,7 @@ use crate::{
 
 use super::{
     value::{V8Value, V8ValueError},
-    V8ContextEntered, V8Exception, V8Object,
+    V8ContextEntered, V8Object,
 };
 
 pub struct V8Function(pub(super) Validated<chromium_sys::cef_v8value_t>);
@@ -66,17 +66,10 @@ impl V8Function {
         unsafe {
             let execute = (*inner).execute_function.unwrap();
             let result = execute(inner, this, args.len(), args.as_ptr());
-
-            // Some functions do not give us access to the exception. They just print it and return null
             if result.is_null() {
-                return Err(V8FunctionError::CallException(None));
+                return Err(V8FunctionError::CallException);
             }
-            let has_exception = (*result).has_exception.unwrap();
-            if has_exception(result) == 1 {
-                let get_exception = (*result).get_exception.unwrap();
-                let exception = V8Exception::new(get_exception(result));
-                return Err(V8FunctionError::CallException(Some(exception)));
-            }
+
             Ok(V8Value::from_raw(result))
         }
     }
@@ -153,7 +146,7 @@ pub enum V8FunctionError {
     ArgNotValid(#[source] V8ValueError, usize),
 
     #[error("V8Function call throwed exception.")]
-    CallException(#[source] Option<V8Exception>),
+    CallException,
 
     #[error(transparent)]
     V8ValueError(#[from] V8ValueError),
