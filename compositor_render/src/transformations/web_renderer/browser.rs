@@ -1,8 +1,12 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex},
+};
 
+use bytes::Bytes;
 use compositor_chromium::cef;
 use compositor_common::scene::{NodeId, Resolution};
-use crossbeam_channel::{bounded, Receiver, Sender};
+use crossbeam_channel::bounded;
 use log::error;
 use shared_memory::ShmemError;
 
@@ -11,30 +15,28 @@ use crate::renderer::{texture::NodeTexture, RenderCtx};
 use super::{chromium_context::ChromiumContext, chromium_sender::ChromiumSender};
 
 pub(super) struct BrowserController {
-    painted_frames_receiver: Receiver<Vec<u8>>,
     chromium_sender: ChromiumSender,
-    frame_data: Option<Vec<u8>>,
+    frame_data: Arc<Mutex<Bytes>>,
 }
 
 impl BrowserController {
     pub fn new(ctx: Arc<ChromiumContext>, url: String, resolution: Resolution) -> Self {
-        let (painted_frames_sender, painted_frames_receiver) = crossbeam_channel::bounded(1);
-        let client = BrowserClient::new(painted_frames_sender, resolution);
+        let frame_data = Arc::new(Mutex::new(Bytes::new()));
+        let client = BrowserClient::new(frame_data.clone(), resolution);
         let chromium_sender = ChromiumSender::new(ctx, url, client);
 
         Self {
-            painted_frames_receiver,
             chromium_sender,
-            frame_data: None,
+            frame_data,
         }
     }
 
-    pub fn retrieve_frame(&mut self) -> Option<&[u8]> {
-        if let Some(frame) = self.painted_frames_receiver.try_iter().last() {
-            self.frame_data.replace(frame);
+    pub fn retrieve_frame(&mut self) -> Option<Bytes> {
+        let frame_data = self.frame_data.lock().unwrap();
+        if frame_data.is_empty() {
+            return None;
         }
-
-        self.frame_data.as_deref()
+        Some(frame_data.clone())
     }
 
     pub fn send_sources(
@@ -123,7 +125,7 @@ impl BrowserController {
 
 #[derive(Clone)]
 pub(super) struct BrowserClient {
-    painted_frames_sender: Sender<Vec<u8>>,
+    frame_data: Arc<Mutex<Bytes>>,
     resolution: Resolution,
 }
 
@@ -131,17 +133,14 @@ impl cef::Client for BrowserClient {
     type RenderHandlerType = RenderHandler;
 
     fn render_handler(&self) -> Option<Self::RenderHandlerType> {
-        Some(RenderHandler::new(
-            self.painted_frames_sender.clone(),
-            self.resolution,
-        ))
+        Some(RenderHandler::new(self.frame_data.clone(), self.resolution))
     }
 }
 
 impl BrowserClient {
-    pub fn new(painted_frames_sender: Sender<Vec<u8>>, resolution: Resolution) -> Self {
+    pub fn new(frame_data: Arc<Mutex<Bytes>>, resolution: Resolution) -> Self {
         Self {
-            painted_frames_sender,
+            frame_data,
             resolution,
         }
     }
@@ -166,7 +165,7 @@ pub enum EmbedFrameError {
 }
 
 pub(super) struct RenderHandler {
-    painted_frames_sender: Sender<Vec<u8>>,
+    frame_data: Arc<Mutex<Bytes>>,
     resolution: Resolution,
 }
 
@@ -176,18 +175,15 @@ impl cef::RenderHandler for RenderHandler {
     }
 
     fn on_paint(&self, _browser: &cef::Browser, buffer: &[u8], _resolution: Resolution) {
-        if !self.painted_frames_sender.is_full() {
-            self.painted_frames_sender
-                .send(buffer.to_vec())
-                .expect("send frame");
-        }
+        let mut frame_data = self.frame_data.lock().unwrap();
+        *frame_data = Bytes::copy_from_slice(buffer);
     }
 }
 
 impl RenderHandler {
-    pub fn new(painted_frames_sender: Sender<Vec<u8>>, resolution: Resolution) -> Self {
+    pub fn new(frame_data: Arc<Mutex<Bytes>>, resolution: Resolution) -> Self {
         Self {
-            painted_frames_sender,
+            frame_data,
             resolution,
         }
     }
