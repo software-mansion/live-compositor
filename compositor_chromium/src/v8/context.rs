@@ -45,8 +45,8 @@ impl V8Context {
             let mut retval: *mut chromium_sys::cef_v8value_t = std::ptr::null_mut();
             let mut exception: *mut chromium_sys::cef_v8exception_t = std::ptr::null_mut();
 
-            let result = eval(ctx, &code, std::ptr::null(), 0, &mut retval, &mut exception);
-            if result == 0 || retval.is_null() {
+            eval(ctx, &code, std::ptr::null(), 0, &mut retval, &mut exception);
+            if !exception.is_null() {
                 let exception = V8Exception::new(exception);
                 return Err(V8ContextError::JSException(exception));
             }

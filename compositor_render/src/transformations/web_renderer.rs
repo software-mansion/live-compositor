@@ -8,7 +8,6 @@ use crate::renderer::{
     BGRAToRGBAConverter, RegisterCtx, RenderCtx,
 };
 
-use compositor_chromium::cef;
 use compositor_common::{
     renderer_spec::{FallbackStrategy, WebRendererSpec},
     scene::{NodeId, Resolution},
