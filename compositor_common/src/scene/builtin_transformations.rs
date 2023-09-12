@@ -8,10 +8,13 @@ use crate::util::colors::RGBAColor;
 use crate::util::coord::Coord;
 use crate::util::degree::Degree;
 
+use super::validation::node_inputs::InvalidInputsCountError;
+use super::validation::node_inputs::ValidNodeInputsCount;
 use super::NodeSpec;
 use super::Resolution;
 
 pub const TILED_LAYOUT_MAX_INPUTS_COUNT: u32 = 16;
+pub const FIXED_POSITION_LAYOUT_MAX_INPUTS_COUNT: u32 = 16;
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 #[serde(tag = "transformation", rename_all = "snake_case")]
@@ -105,15 +108,42 @@ impl FromStr for MirrorMode {
 }
 
 impl BuiltinSpec {
-    pub fn validate(&self, node_spec: &NodeSpec) -> Result<(), BuiltinSpecValidationError> {
-        match self {
-            BuiltinSpec::TransformToResolution { .. } => {
-                if node_spec.input_pads.len() != 1 {
-                    return Err(BuiltinSpecValidationError::TransformToResolutionExactlyOneInput);
-                }
+    fn transformation_name(&self) -> String {
+        serde_json::to_string(self).unwrap()
+    }
 
-                Ok(())
-            }
+    fn valid_inputs_count(&self) -> ValidNodeInputsCount {
+        match self {
+            BuiltinSpec::TransformToResolution { .. } => ValidNodeInputsCount::Exact(1),
+            BuiltinSpec::FixedPositionLayout { .. } => ValidNodeInputsCount::Bounded {
+                minimal: 1,
+                maximal: FIXED_POSITION_LAYOUT_MAX_INPUTS_COUNT,
+            },
+            BuiltinSpec::TiledLayout { .. } => ValidNodeInputsCount::Bounded {
+                minimal: 1,
+                maximal: TILED_LAYOUT_MAX_INPUTS_COUNT,
+            },
+            BuiltinSpec::MirrorImage { .. } => ValidNodeInputsCount::Exact(1),
+            BuiltinSpec::CornersRounding { .. } => ValidNodeInputsCount::Exact(1),
+        }
+    }
+
+    pub fn validate(&self, node_spec: &NodeSpec) -> Result<(), BuiltinSpecValidationError> {
+        let valid_input_pads_count = self.valid_inputs_count();
+        let defined_input_pads_count = node_spec.input_pads.len() as u32;
+
+        if let Err(InvalidInputsCountError()) =
+            valid_input_pads_count.validate(defined_input_pads_count)
+        {
+            return Err(BuiltinSpecValidationError::InvalidInputsCount {
+                transformation_name: self.transformation_name(),
+                valid_input_pads_count,
+                defined_input_pads_count,
+            });
+        }
+
+        match self {
+            BuiltinSpec::TransformToResolution { .. } => Ok(()),
             BuiltinSpec::FixedPositionLayout {
                 texture_layouts, ..
             } => {
@@ -123,6 +153,7 @@ impl BuiltinSpec {
                         input_count: node_spec.input_pads.len() as u32,
                     });
                 }
+
                 for layout in texture_layouts {
                     match layout {
                         TextureLayout {
@@ -153,31 +184,9 @@ impl BuiltinSpec {
                 }
                 Ok(())
             }
-            BuiltinSpec::TiledLayout { .. } => {
-                if node_spec.input_pads.is_empty() {
-                    return Err(BuiltinSpecValidationError::TiledLayoutNoInputs);
-                }
-
-                if node_spec.input_pads.len() > 16 {
-                    return Err(BuiltinSpecValidationError::TiledLayoutTooManyInputs);
-                }
-
-                Ok(())
-            }
-            BuiltinSpec::MirrorImage { .. } => {
-                if node_spec.input_pads.len() != 1 {
-                    return Err(BuiltinSpecValidationError::MirrorImageExactlyOneInput);
-                }
-
-                Ok(())
-            }
-            BuiltinSpec::CornersRounding { .. } => {
-                if node_spec.input_pads.len() != 1 {
-                    return Err(BuiltinSpecValidationError::CornerRadiusExactlyOneInput);
-                }
-
-                Ok(())
-            }
+            BuiltinSpec::TiledLayout { .. } => Ok(()),
+            BuiltinSpec::MirrorImage { .. } => Ok(()),
+            BuiltinSpec::CornersRounding { .. } => Ok(()),
         }
     }
 }

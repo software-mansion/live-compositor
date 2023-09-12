@@ -2,7 +2,7 @@ use std::{collections::HashSet, fmt::Display};
 
 use log::error;
 
-use crate::scene::{builtin_transformations::TILED_LAYOUT_MAX_INPUTS_COUNT, NodeId, OutputId};
+use crate::scene::{validation::node_inputs::ValidNodeInputsCount, NodeId, OutputId};
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum SceneSpecValidationError {
@@ -62,19 +62,12 @@ pub enum BuiltinSpecValidationError {
     FixedLayoutTopBottomOnlyOne,
     #[error("Fields \"left\" and \"right\" are mutually exclusive, you can only specify one in texture layout in \"fixed_position_layout\" transformation.")]
     FixedLayoutLeftRightOnlyOne,
-    #[error("Nodes that use transformation \"transform_to_resolution\" need to have exactly one input pad.")]
-    TransformToResolutionExactlyOneInput,
-    #[error(
-        "Transformation \"tiled_layout\" supports up to {} inputs.",
-        TILED_LAYOUT_MAX_INPUTS_COUNT
-    )]
-    TiledLayoutTooManyInputs,
-    #[error("Nodes that use transformation \"tiled_layout\" need to have at least one input pad.")]
-    TiledLayoutNoInputs,
-    #[error("Nodes that use transformation \"mirror_image\" need to have exactly one input pad.")]
-    MirrorImageExactlyOneInput,
-    #[error("Nodes that use transformation \"corner_radius\" need to have exactly one input pad.")]
-    CornerRadiusExactlyOneInput,
+    #[error("Nodes that use transformation \"{}\" expects {} input pads, but {} were provided", transformation_name, valid_input_pads_count.error_message_inputs_count(), defined_input_pads_count)]
+    InvalidInputsCount {
+        transformation_name: String,
+        valid_input_pads_count: ValidNodeInputsCount,
+        defined_input_pads_count: u32,
+    },
 }
 
 pub struct ErrorStack<'a>(Option<&'a (dyn std::error::Error + 'static)>);

@@ -4,6 +4,8 @@ use crate::error::{SceneSpecValidationError, UnusedNodesError};
 
 use super::{NodeId, NodeSpec, OutputSpec, SceneSpec};
 
+pub mod node_inputs;
+
 impl SceneSpec {
     pub fn validate(
         &self,

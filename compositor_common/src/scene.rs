@@ -5,7 +5,7 @@ pub mod id;
 pub mod node;
 pub mod shader;
 pub mod text_spec;
-mod validation;
+pub mod validation;
 
 #[cfg(test)]
 mod validation_test;
