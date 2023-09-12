@@ -109,7 +109,13 @@ impl FromStr for MirrorMode {
 
 impl BuiltinSpec {
     fn transformation_name(&self) -> String {
-        serde_json::to_string(self).unwrap()
+        match self {
+            BuiltinSpec::TransformToResolution { .. } => "transform_to_resolution".to_owned(),
+            BuiltinSpec::FixedPositionLayout { .. } => "fixed_position_layout".to_owned(),
+            BuiltinSpec::TiledLayout { .. } => "tiled_layout".to_owned(),
+            BuiltinSpec::MirrorImage { .. } => "mirror_image".to_owned(),
+            BuiltinSpec::CornersRounding { .. } => "corners_rounding".to_owned(),
+        }
     }
 
     fn valid_inputs_count(&self) -> ValidNodeInputsCount {

@@ -33,6 +33,7 @@ compositor_common = { path = "compositor_common" }
 compositor_pipeline = { path = "compositor_pipeline" }
 compositor_chromium = { path = "compositor_chromium" }
 serde = { workspace = true }
+serde_json = { workspace = true }
 anyhow = "1.0.71"
 bytes = { workspace = true }
 tiny_http = "0.12.0"
@@ -42,7 +43,6 @@ env_logger = { workspace = true }
 log = { workspace = true }
 signal-hook = { workspace = true }
 shared_memory = { workspace = true }
-serde_json = { workspace = true }
 
 [dev-dependencies]
 reqwest = { workspace = true }
