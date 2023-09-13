@@ -26,7 +26,7 @@ impl Constraints {
             .find(|node| &node.node_id == node_id)
             .unwrap();
 
-        self.inputs_count.validate(node_spec)?;
+        self.inputs_count.check(node_spec)?;
 
         Ok(())
     }

@@ -104,7 +104,7 @@ fn main() {
             source: include_str!("./silly/silly.wgsl").into(),
             fallback_strategy: FallbackStrategy::FallbackIfAllInputsMissing,
             constraints: Constraints {
-                inputs_count: InputsCountConstraint::Exact(1),
+                inputs_count: InputsCountConstraint::Exactly(1),
             },
         }))
         .expect("create shader");

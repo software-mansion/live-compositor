@@ -90,9 +90,9 @@ impl ShaderSpec {
 
     fn default_constraints() -> Constraints {
         Constraints {
-            inputs_count: InputsCountConstraint::Bounded {
-                minimal: 0,
-                maximal: 16,
+            inputs_count: InputsCountConstraint::Range {
+                lower_bound: 0,
+                upper_bound: 16,
             },
         }
     }
@@ -105,9 +105,9 @@ impl WebRendererSpec {
 
     fn default_constraints() -> Constraints {
         Constraints {
-            inputs_count: InputsCountConstraint::Bounded {
-                minimal: 0,
-                maximal: 16,
+            inputs_count: InputsCountConstraint::Range {
+                lower_bound: 0,
+                upper_bound: 16,
             },
         }
     }

@@ -60,10 +60,10 @@ impl NodeSpec {
 
 impl NodeParams {
     pub const TEXT_CONSTRAINTS: Constraints = Constraints {
-        inputs_count: InputsCountConstraint::Exact(0),
+        inputs_count: InputsCountConstraint::Exactly(0),
     };
 
     pub const IMAGE_CONSTRAINTS: Constraints = Constraints {
-        inputs_count: InputsCountConstraint::Exact(0),
+        inputs_count: InputsCountConstraint::Exactly(0),
     };
 }

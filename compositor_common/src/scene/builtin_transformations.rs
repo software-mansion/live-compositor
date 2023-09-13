@@ -176,25 +176,25 @@ impl BuiltinSpec {
     pub fn constrains(&self) -> Constraints {
         match self {
             BuiltinSpec::TransformToResolution { .. } => Constraints {
-                inputs_count: InputsCountConstraint::Exact(1),
+                inputs_count: InputsCountConstraint::Exactly(1),
             },
             BuiltinSpec::FixedPositionLayout { .. } => Constraints {
-                inputs_count: InputsCountConstraint::Bounded {
-                    minimal: 1,
-                    maximal: FIXED_POSITION_LAYOUT_MAX_INPUTS_COUNT,
+                inputs_count: InputsCountConstraint::Range {
+                    lower_bound: 1,
+                    upper_bound: FIXED_POSITION_LAYOUT_MAX_INPUTS_COUNT,
                 },
             },
             BuiltinSpec::TiledLayout { .. } => Constraints {
-                inputs_count: InputsCountConstraint::Bounded {
-                    minimal: 1,
-                    maximal: TILED_LAYOUT_MAX_INPUTS_COUNT,
+                inputs_count: InputsCountConstraint::Range {
+                    lower_bound: 1,
+                    upper_bound: TILED_LAYOUT_MAX_INPUTS_COUNT,
                 },
             },
             BuiltinSpec::MirrorImage { .. } => Constraints {
-                inputs_count: InputsCountConstraint::Exact(1),
+                inputs_count: InputsCountConstraint::Exactly(1),
             },
             BuiltinSpec::CornersRounding { .. } => Constraints {
-                inputs_count: InputsCountConstraint::Exact(1),
+                inputs_count: InputsCountConstraint::Exactly(1),
             },
         }
     }
