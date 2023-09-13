@@ -1,4 +1,4 @@
-use std::{fmt::Display, os::raw::c_int};
+use std::{fmt::Display, os::raw::c_int, panic};
 
 use crate::{
     cef_ref::{CefRefData, CefStruct},
@@ -112,16 +112,32 @@ impl<F: Fn(&[V8Value]) -> Result<V8Value, NativeFunctionError>> V8Handler<F> {
         const HANDLED: c_int = 1;
 
         unsafe {
-            let self_ref = CefRefData::<Self>::from_cef(self_);
-            let args: Vec<V8Value> = std::slice::from_raw_parts(arguments, arguments_count)
-                .iter()
-                .cloned()
-                .map(V8Value::from_raw)
-                .collect();
+            let result = panic::catch_unwind(|| {
+                let self_ref = CefRefData::<Self>::from_cef(self_);
+                let args: Vec<V8Value> = std::slice::from_raw_parts(arguments, arguments_count)
+                    .iter()
+                    .cloned()
+                    .map(V8Value::from_raw)
+                    .collect();
+                self_ref.0(&args)
+                    .map_err(V8FunctionError::NativeFuncError)
+                    .and_then(|v| Ok(v.get_raw()?))
+            });
 
-            let result = self_ref.0(&args)
-                .map_err(V8FunctionError::NativeFuncError)
-                .and_then(|v| Ok(v.get_raw()?));
+            let result = match result {
+                Ok(result) => result,
+                Err(panic_err) => {
+                    let err_msg = match panic_err.downcast::<&str>() {
+                        Ok(err) => err.to_string(),
+                        Err(_) => "function panicked".to_string(),
+                    };
+
+                    Err(V8FunctionError::NativeFuncError(NativeFunctionError(
+                        err_msg,
+                    )))
+                }
+            };
+
             match result {
                 Ok(v) => {
                     *retval = v;

@@ -1,11 +1,8 @@
 use log::warn;
 
-use crate::{
-    cef_string::CefString,
-    validated::{Validatable, Validated, ValidatedError},
-};
+use crate::validated::{Validatable, Validated, ValidatedError};
 
-use super::{value::V8Value, V8Exception};
+use super::value::V8Value;
 
 /// JavaScript V8 engine context.
 /// Available only on the renderer process
@@ -34,24 +31,6 @@ impl V8Context {
             let ctx = self.inner.get()?;
             let get_global = (*ctx).get_global.unwrap();
             Ok(V8Value::from_raw(get_global(ctx)))
-        }
-    }
-
-    pub fn eval(&self, code: &str) -> Result<V8Value, V8ContextError> {
-        unsafe {
-            let ctx = self.inner.get()?;
-            let eval = (*ctx).eval.unwrap();
-            let code = CefString::new_raw(code);
-            let mut retval: *mut chromium_sys::cef_v8value_t = std::ptr::null_mut();
-            let mut exception: *mut chromium_sys::cef_v8exception_t = std::ptr::null_mut();
-
-            eval(ctx, &code, std::ptr::null(), 0, &mut retval, &mut exception);
-            if !exception.is_null() {
-                let exception = V8Exception::new(exception);
-                return Err(V8ContextError::JSException(exception));
-            }
-
-            Ok(V8Value::from_raw(retval))
         }
     }
 }
@@ -83,7 +62,4 @@ impl Validatable for chromium_sys::cef_v8context_t {
 pub enum V8ContextError {
     #[error("V8Context is no longer valid")]
     NotValid(#[from] ValidatedError),
-
-    #[error(transparent)]
-    JSException(#[from] V8Exception),
 }
