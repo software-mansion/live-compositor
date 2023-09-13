@@ -66,11 +66,8 @@ impl RenderNode {
                     input_count,
                 )))
             }
-            NodeParams::TextRenderer {
-                text_params,
-                resolution,
-            } => {
-                let renderer = TextRendererNode::new(ctx, text_params.clone(), resolution.clone());
+            NodeParams::Text(text_spec) => {
+                let renderer = TextRendererNode::new(ctx, text_spec.clone());
                 Ok(Self::Text(renderer))
             }
             NodeParams::Image { image_id } => {

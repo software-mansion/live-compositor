@@ -139,11 +139,11 @@ fn start_example_client_code() -> Result<()> {
             },
             {
                  "node_id": "gif_1_label",
-                 "type": "text_renderer",
+                 "type": "text",
                  "content": "GIF example",
                  "font_size": 40.0,
                  "font_family": "Comic Sans MS",
-                 "resolution": {
+                 "dimensions": {
                      "type": "fitted",
                  },
             },
@@ -175,11 +175,11 @@ fn start_example_client_code() -> Result<()> {
             },
             {
                  "node_id": "png_1_label",
-                 "type": "text_renderer",
+                 "type": "text",
                  "content": "PNG example",
                  "font_size": 40.0,
                  "font_family": "Comic Sans MS",
-                 "resolution": {
+                 "dimensions": {
                      "type": "fitted",
                  },
             },
@@ -212,12 +212,12 @@ fn start_example_client_code() -> Result<()> {
             },
             {
                  "node_id": "jpeg_1_label",
-                 "type": "text_renderer",
+                 "type": "text",
                  "content": "JPEG example",
                  "font_size": 40.0,
                  "color_rgba": "#FF0000FF",
                  "font_family": "Comic Sans MS",
-                 "resolution": {
+                 "dimensions": {
                      "type": "fitted",
                  },
             },
@@ -249,11 +249,11 @@ fn start_example_client_code() -> Result<()> {
             },
             {
                  "node_id": "svg_1_label",
-                 "type": "text_renderer",
+                 "type": "text",
                  "content": "SVG example",
                  "font_size": 40.0,
                  "font_family": "Comic Sans MS",
-                 "resolution": {
+                 "dimensions": {
                      "type": "fitted",
                  },
             },
