@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use std::{fmt::Display, str::FromStr};
 
 use serde::{Deserialize, Serialize};
@@ -8,8 +9,7 @@ use crate::util::colors::RGBAColor;
 use crate::util::coord::Coord;
 use crate::util::degree::Degree;
 
-use super::validation::node_inputs::InvalidInputsCountError;
-use super::validation::node_inputs::ValidNodeInputsCount;
+use super::validation::inputs::InputsCountConstraint;
 use super::NodeSpec;
 use super::Resolution;
 
@@ -108,48 +108,18 @@ impl FromStr for MirrorMode {
 }
 
 impl BuiltinSpec {
-    fn transformation_name(&self) -> String {
+    pub fn transformation_name(&self) -> Arc<str> {
         match self {
-            BuiltinSpec::TransformToResolution { .. } => "transform_to_resolution".to_owned(),
-            BuiltinSpec::FixedPositionLayout { .. } => "fixed_position_layout".to_owned(),
-            BuiltinSpec::TiledLayout { .. } => "tiled_layout".to_owned(),
-            BuiltinSpec::MirrorImage { .. } => "mirror_image".to_owned(),
-            BuiltinSpec::CornersRounding { .. } => "corners_rounding".to_owned(),
+            BuiltinSpec::TransformToResolution { .. } => Arc::from("transform_to_resolution"),
+            BuiltinSpec::FixedPositionLayout { .. } => Arc::from("fixed_position_layout"),
+            BuiltinSpec::TiledLayout { .. } => Arc::from("tiled_layout"),
+            BuiltinSpec::MirrorImage { .. } => Arc::from("mirror_image"),
+            BuiltinSpec::CornersRounding { .. } => Arc::from("corners_rounding"),
         }
     }
 
-    fn valid_inputs_count(&self) -> ValidNodeInputsCount {
+    pub fn validate_params(&self, node_spec: &NodeSpec) -> Result<(), BuiltinSpecValidationError> {
         match self {
-            BuiltinSpec::TransformToResolution { .. } => ValidNodeInputsCount::Exact(1),
-            BuiltinSpec::FixedPositionLayout { .. } => ValidNodeInputsCount::Bounded {
-                minimal: 1,
-                maximal: FIXED_POSITION_LAYOUT_MAX_INPUTS_COUNT,
-            },
-            BuiltinSpec::TiledLayout { .. } => ValidNodeInputsCount::Bounded {
-                minimal: 1,
-                maximal: TILED_LAYOUT_MAX_INPUTS_COUNT,
-            },
-            BuiltinSpec::MirrorImage { .. } => ValidNodeInputsCount::Exact(1),
-            BuiltinSpec::CornersRounding { .. } => ValidNodeInputsCount::Exact(1),
-        }
-    }
-
-    pub fn validate(&self, node_spec: &NodeSpec) -> Result<(), BuiltinSpecValidationError> {
-        let valid_input_pads_count = self.valid_inputs_count();
-        let defined_input_pads_count = node_spec.input_pads.len() as u32;
-
-        if let Err(InvalidInputsCountError()) =
-            valid_input_pads_count.validate(defined_input_pads_count)
-        {
-            return Err(BuiltinSpecValidationError::InvalidInputsCount {
-                transformation_name: self.transformation_name(),
-                valid_input_pads_count,
-                defined_input_pads_count,
-            });
-        }
-
-        match self {
-            BuiltinSpec::TransformToResolution { .. } => Ok(()),
             BuiltinSpec::FixedPositionLayout {
                 texture_layouts, ..
             } => {
@@ -190,9 +160,26 @@ impl BuiltinSpec {
                 }
                 Ok(())
             }
-            BuiltinSpec::TiledLayout { .. } => Ok(()),
-            BuiltinSpec::MirrorImage { .. } => Ok(()),
-            BuiltinSpec::CornersRounding { .. } => Ok(()),
+            BuiltinSpec::TiledLayout { .. }
+            | BuiltinSpec::MirrorImage { .. }
+            | BuiltinSpec::CornersRounding { .. }
+            | BuiltinSpec::TransformToResolution { .. } => Ok(()),
+        }
+    }
+
+    pub fn inputs_constrains(&self) -> InputsCountConstraint {
+        match self {
+            BuiltinSpec::TransformToResolution { .. } => InputsCountConstraint::Exact(1),
+            BuiltinSpec::FixedPositionLayout { .. } => InputsCountConstraint::Bounded {
+                minimal: 1,
+                maximal: FIXED_POSITION_LAYOUT_MAX_INPUTS_COUNT,
+            },
+            BuiltinSpec::TiledLayout { .. } => InputsCountConstraint::Bounded {
+                minimal: 1,
+                maximal: TILED_LAYOUT_MAX_INPUTS_COUNT,
+            },
+            BuiltinSpec::MirrorImage { .. } => InputsCountConstraint::Exact(1),
+            BuiltinSpec::CornersRounding { .. } => InputsCountConstraint::Exact(1),
         }
     }
 }

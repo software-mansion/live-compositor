@@ -1,18 +1,22 @@
 use std::collections::HashMap;
 
 use compositor_common::{
-    error::SceneSpecValidationError,
+    error::{ConstraintsValidationError, SceneSpecValidationError},
     scene::{InputId, NodeId, OutputId, SceneSpec},
 };
 use log::error;
 
 use crate::render_loop::NodeRenderPass;
 
+use self::constraints::validate_constraints;
+
 use super::{
     node::{CreateNodeError, Node},
     texture::{InputTexture, OutputTexture},
     RenderCtx, WgpuError, WgpuErrorScope,
 };
+
+mod constraints;
 
 pub struct Scene {
     pub nodes: SceneNodesSet,
@@ -36,6 +40,9 @@ pub enum UpdateSceneError {
 
     #[error("Unknown resolution on the output node. Nodes that are declared as outputs need to have constant resolution that is the same as resolution of the output stream.")]
     UnknownResolutionOnOutput(NodeId),
+
+    #[error(transparent)]
+    ConstraintsValidationError(#[from] ConstraintsValidationError),
 }
 
 impl Scene {
@@ -48,6 +55,7 @@ impl Scene {
     }
 
     pub fn update(&mut self, ctx: &RenderCtx, spec: &SceneSpec) -> Result<(), UpdateSceneError> {
+        validate_constraints(spec)?;
         // TODO: If we want nodes to be stateful we could try reusing nodes instead
         //       of recreating them on every scene update
         let scope = WgpuErrorScope::push(&ctx.wgpu_ctx.device);

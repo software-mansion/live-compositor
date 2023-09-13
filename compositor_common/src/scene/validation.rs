@@ -4,7 +4,8 @@ use crate::error::{SceneSpecValidationError, UnusedNodesError};
 
 use super::{NodeId, NodeSpec, OutputSpec, SceneSpec};
 
-pub mod node_inputs;
+pub mod constraints;
+pub mod inputs;
 
 impl SceneSpec {
     pub fn validate(
@@ -206,7 +207,7 @@ impl SceneSpec {
 
     fn validate_node_params(nodes: &Vec<NodeSpec>) -> Result<(), SceneSpecValidationError> {
         for spec in nodes {
-            spec.validate().map_err(|err| {
+            spec.validate_params().map_err(|err| {
                 SceneSpecValidationError::InvalidNodeSpec(err, spec.node_id.clone())
             })?;
         }

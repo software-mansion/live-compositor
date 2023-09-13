@@ -1,8 +1,8 @@
-use std::{collections::HashSet, fmt::Display};
+use std::{collections::HashSet, fmt::Display, sync::Arc};
 
 use log::error;
 
-use crate::scene::{validation::node_inputs::ValidNodeInputsCount, NodeId, OutputId};
+use crate::scene::{NodeId, OutputId};
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum SceneSpecValidationError {
@@ -45,6 +45,58 @@ impl Display for UnusedNodesError {
 }
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
+pub enum ConstraintsValidationError {
+    #[error("Specification of node \"{1}\" doesn't satisfy node input pads count constraint.")]
+    InvalidInputsPads(#[source] InputsCountValidationError, NodeId),
+}
+
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+pub enum InputsCountValidationError {
+    #[error(
+        "Nodes that use transformation \"{}\" doesn't expect input pads, but {} input pads were specified.",
+        transformation_name,
+        defined_input_pads_count
+    )]
+    NoInputsRequired {
+        transformation_name: Arc<str>,
+        defined_input_pads_count: u32,
+    },
+    #[error(
+        "Nodes that use transformation \"{}\" expect single input pad, but {} input pads were specified.",
+        transformation_name,
+        defined_input_pads_count
+    )]
+    ExactlyOneInputRequired {
+        transformation_name: Arc<str>,
+        defined_input_pads_count: u32,
+    },
+    #[error(
+        "Nodes that use transformation \"{}\" expect {} input pads, but {} input pads were specified.",
+        transformation_name,
+        expected_input_pads_count,
+        defined_input_pads_count
+    )]
+    ExactNumberOfInputsRequired {
+        transformation_name: Arc<str>,
+        expected_input_pads_count: u32,
+        defined_input_pads_count: u32,
+    },
+    #[error(
+        "Nodes that use transformation \"{}\" expect at least {} and at most {} input pads, but {} were specified", 
+        transformation_name,
+        minimal_inputs_expected,
+        maximal_inputs_expected,
+        defined_input_pads_count
+    )]
+    InvalidBoundedInputsRequired {
+        transformation_name: Arc<str>,
+        minimal_inputs_expected: u32,
+        maximal_inputs_expected: u32,
+        defined_input_pads_count: u32,
+    },
+}
+
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum NodeSpecValidationError {
     #[error(transparent)]
     Builtin(#[from] BuiltinSpecValidationError),
@@ -52,7 +104,7 @@ pub enum NodeSpecValidationError {
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum BuiltinSpecValidationError {
-    #[error("Transformation \"fixed_position_layout\" expects {input_count} texture layouts (the same as number of input pads), but {layout_count} layouts were provided.")]
+    #[error("Transformation \"fixed_position_layout\" expect {input_count} texture layouts (the same as number of input pads), but {layout_count} layouts were specified.")]
     FixedLayoutInvalidLayoutCount { layout_count: u32, input_count: u32 },
     #[error("Each entry in texture_layouts in transformation \"fixed_position_layout\" requires either bottom or top coordinate.")]
     FixedLayoutTopBottomRequired,
@@ -62,12 +114,6 @@ pub enum BuiltinSpecValidationError {
     FixedLayoutTopBottomOnlyOne,
     #[error("Fields \"left\" and \"right\" are mutually exclusive, you can only specify one in texture layout in \"fixed_position_layout\" transformation.")]
     FixedLayoutLeftRightOnlyOne,
-    #[error("Nodes that use transformation \"{}\" expect {} input pads, but {} were provided", transformation_name, valid_input_pads_count.error_message_inputs_count(), defined_input_pads_count)]
-    InvalidInputsCount {
-        transformation_name: String,
-        valid_input_pads_count: ValidNodeInputsCount,
-        defined_input_pads_count: u32,
-    },
 }
 
 pub struct ErrorStack<'a>(Option<&'a (dyn std::error::Error + 'static)>);
