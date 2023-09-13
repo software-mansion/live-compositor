@@ -112,13 +112,14 @@ impl<F: Fn(&[V8Value]) -> Result<V8Value, NativeFunctionError>> V8Handler<F> {
         const HANDLED: c_int = 1;
 
         unsafe {
+            let args: Vec<V8Value> = std::slice::from_raw_parts(arguments, arguments_count)
+                .iter()
+                .cloned()
+                .map(V8Value::from_raw)
+                .collect();
+
             let result = panic::catch_unwind(|| {
                 let self_ref = CefRefData::<Self>::from_cef(self_);
-                let args: Vec<V8Value> = std::slice::from_raw_parts(arguments, arguments_count)
-                    .iter()
-                    .cloned()
-                    .map(V8Value::from_raw)
-                    .collect();
                 self_ref.0(&args)
                     .map_err(V8FunctionError::NativeFuncError)
                     .and_then(|v| Ok(v.get_raw()?))
