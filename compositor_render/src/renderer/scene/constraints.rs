@@ -19,6 +19,7 @@ pub fn validate_constraints(scene: &SceneSpec) -> Result<(), ConstraintsValidati
 }
 
 fn node_constraints(node: &NodeSpec) -> NodeConstraints {
+    // TODO: make web renderer and shader constraints API configurable
     match &node.params {
         NodeParams::WebRenderer { .. } => NodeConstraints {
             inputs_count: InputsCountConstraint::Bounded {
