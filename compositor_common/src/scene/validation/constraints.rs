@@ -3,7 +3,9 @@ use crate::{
     scene::{NodeId, SceneSpec},
 };
 
-use super::inputs::InputsCountConstraint;
+use self::input_count::InputsCountConstraint;
+
+pub mod input_count;
 
 pub struct NodeConstraints {
     pub inputs_count: InputsCountConstraint,

@@ -1,7 +1,7 @@
 use compositor_common::{
     error::ConstraintsValidationError,
     scene::{
-        validation::{constraints::NodeConstraints, inputs::InputsCountConstraint},
+        validation::constraints::{input_count::InputsCountConstraint, NodeConstraints},
         NodeParams, NodeSpec, SceneSpec,
     },
 };
@@ -18,9 +18,9 @@ pub fn validate_constraints(scene: &SceneSpec) -> Result<(), ConstraintsValidati
     Ok(())
 }
 
-fn node_constraints(node: &NodeSpec) -> NodeConstraints {
+pub fn node_constraints(node_spec: &NodeSpec) -> NodeConstraints {
     // TODO: make web renderer and shader constraints API configurable
-    match &node.params {
+    match &node_spec.params {
         NodeParams::WebRenderer { .. } => NodeConstraints {
             inputs_count: InputsCountConstraint::Bounded {
                 minimal: 0,
@@ -39,8 +39,6 @@ fn node_constraints(node: &NodeSpec) -> NodeConstraints {
         NodeParams::Image { .. } => NodeConstraints {
             inputs_count: InputsCountConstraint::Exact(0),
         },
-        NodeParams::Builtin { transformation } => NodeConstraints {
-            inputs_count: transformation.inputs_constrains(),
-        },
+        NodeParams::Builtin { transformation } => transformation.constrains(),
     }
 }

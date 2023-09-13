@@ -9,7 +9,8 @@ use crate::util::colors::RGBAColor;
 use crate::util::coord::Coord;
 use crate::util::degree::Degree;
 
-use super::validation::inputs::InputsCountConstraint;
+use super::validation::constraints::input_count::InputsCountConstraint;
+use super::validation::constraints::NodeConstraints;
 use super::NodeSpec;
 use super::Resolution;
 
@@ -167,19 +168,29 @@ impl BuiltinSpec {
         }
     }
 
-    pub fn inputs_constrains(&self) -> InputsCountConstraint {
+    pub fn constrains(&self) -> NodeConstraints {
         match self {
-            BuiltinSpec::TransformToResolution { .. } => InputsCountConstraint::Exact(1),
-            BuiltinSpec::FixedPositionLayout { .. } => InputsCountConstraint::Bounded {
-                minimal: 1,
-                maximal: FIXED_POSITION_LAYOUT_MAX_INPUTS_COUNT,
+            BuiltinSpec::TransformToResolution { .. } => NodeConstraints {
+                inputs_count: InputsCountConstraint::Exact(1),
             },
-            BuiltinSpec::TiledLayout { .. } => InputsCountConstraint::Bounded {
-                minimal: 1,
-                maximal: TILED_LAYOUT_MAX_INPUTS_COUNT,
+            BuiltinSpec::FixedPositionLayout { .. } => NodeConstraints {
+                inputs_count: InputsCountConstraint::Bounded {
+                    minimal: 1,
+                    maximal: FIXED_POSITION_LAYOUT_MAX_INPUTS_COUNT,
+                },
             },
-            BuiltinSpec::MirrorImage { .. } => InputsCountConstraint::Exact(1),
-            BuiltinSpec::CornersRounding { .. } => InputsCountConstraint::Exact(1),
+            BuiltinSpec::TiledLayout { .. } => NodeConstraints {
+                inputs_count: InputsCountConstraint::Bounded {
+                    minimal: 1,
+                    maximal: TILED_LAYOUT_MAX_INPUTS_COUNT,
+                },
+            },
+            BuiltinSpec::MirrorImage { .. } => NodeConstraints {
+                inputs_count: InputsCountConstraint::Exact(1),
+            },
+            BuiltinSpec::CornersRounding { .. } => NodeConstraints {
+                inputs_count: InputsCountConstraint::Exact(1),
+            },
         }
     }
 }
