@@ -4,7 +4,7 @@ use compositor_common::{
     frame::YuvData,
     renderer_spec::{FallbackStrategy, RendererId, RendererSpec, ShaderSpec},
     scene::{
-        validation::constraints::{input_count::InputsCountConstraint, NodeConstraints},
+        validation::constraints::{input_count::InputsCountConstraint, Constraints},
         NodeId, NodeSpec, OutputSpec, Resolution, SceneSpec,
     },
     Frame, Framerate,
@@ -103,7 +103,7 @@ fn main() {
             shader_id: shader_key.clone(),
             source: include_str!("./silly/silly.wgsl").into(),
             fallback_strategy: FallbackStrategy::FallbackIfAllInputsMissing,
-            constraints: NodeConstraints {
+            constraints: Constraints {
                 inputs_count: InputsCountConstraint::Exact(1),
             },
         }))

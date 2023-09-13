@@ -10,11 +10,11 @@ use self::input_count::InputsCountConstraint;
 pub mod input_count;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct NodeConstraints {
+pub struct Constraints {
     pub inputs_count: InputsCountConstraint,
 }
 
-impl NodeConstraints {
+impl Constraints {
     pub fn validate(
         &self,
         scene: &SceneSpec,

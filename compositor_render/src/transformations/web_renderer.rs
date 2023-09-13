@@ -10,7 +10,7 @@ use crate::renderer::{
 
 use compositor_common::{
     renderer_spec::{FallbackStrategy, WebRendererSpec},
-    scene::{validation::constraints::NodeConstraints, NodeId, Resolution},
+    scene::{validation::constraints::Constraints, NodeId, Resolution},
 };
 use log::{error, info};
 use serde::{Deserialize, Serialize};
@@ -109,7 +109,7 @@ impl WebRenderer {
         self.params.fallback_strategy
     }
 
-    pub fn constrains(&self) -> &NodeConstraints {
+    pub fn constrains(&self) -> &Constraints {
         &self.params.constraints
     }
 }

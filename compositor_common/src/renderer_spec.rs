@@ -3,7 +3,7 @@ use std::{fmt::Display, sync::Arc};
 use serde::{Deserialize, Serialize};
 
 use crate::scene::{
-    validation::constraints::{input_count::InputsCountConstraint, NodeConstraints},
+    validation::constraints::{input_count::InputsCountConstraint, Constraints},
     Resolution,
 };
 
@@ -42,7 +42,7 @@ pub struct ShaderSpec {
     #[serde(default = "ShaderSpec::default_fallback")]
     pub fallback_strategy: FallbackStrategy,
     #[serde(default = "ShaderSpec::default_constraints")]
-    pub constraints: NodeConstraints,
+    pub constraints: Constraints,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -53,7 +53,7 @@ pub struct WebRendererSpec {
     #[serde(default = "WebRendererSpec::default_fallback")]
     pub fallback_strategy: FallbackStrategy,
     #[serde(default = "WebRendererSpec::default_constraints")]
-    pub constraints: NodeConstraints,
+    pub constraints: Constraints,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -88,8 +88,8 @@ impl ShaderSpec {
         FallbackStrategy::FallbackIfAllInputsMissing
     }
 
-    fn default_constraints() -> NodeConstraints {
-        NodeConstraints {
+    fn default_constraints() -> Constraints {
+        Constraints {
             inputs_count: InputsCountConstraint::Bounded {
                 minimal: 0,
                 maximal: 16,
@@ -103,8 +103,8 @@ impl WebRendererSpec {
         FallbackStrategy::FallbackIfAllInputsMissing
     }
 
-    fn default_constraints() -> NodeConstraints {
-        NodeConstraints {
+    fn default_constraints() -> Constraints {
+        Constraints {
             inputs_count: InputsCountConstraint::Bounded {
                 minimal: 0,
                 maximal: 16,

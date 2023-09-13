@@ -2,7 +2,10 @@ use std::collections::HashMap;
 
 use compositor_common::{
     error::{SceneSpecValidationError, UnsatisfiedConstraintsError},
-    scene::{InputId, NodeId, OutputId, SceneSpec},
+    scene::{
+        validation::constraints::Constraints, InputId, NodeId, NodeParams, NodeSpec, OutputId,
+        SceneSpec,
+    },
 };
 use log::error;
 
@@ -12,6 +15,7 @@ use self::constraints::validate_constraints;
 
 use super::{
     node::{CreateNodeError, Node},
+    renderers::Renderers,
     texture::{InputTexture, OutputTexture},
     RenderCtx, WgpuError, WgpuErrorScope,
 };
@@ -55,7 +59,14 @@ impl Scene {
     }
 
     pub fn update(&mut self, ctx: &RenderCtx, spec: &SceneSpec) -> Result<(), UpdateSceneError> {
-        validate_constraints(spec)?;
+        let node_constraints = spec
+            .nodes
+            .iter()
+            .map(|node_spec| (node_spec, Self::node_constraints(node_spec, ctx.renderers)))
+            .filter(|(_, constraints)| constraints.is_some())
+            .map(|(node_spec, constraints)| (node_spec, constraints.unwrap()));
+
+        validate_constraints(node_constraints, spec)?;
         // TODO: If we want nodes to be stateful we could try reusing nodes instead
         //       of recreating them on every scene update
         let scope = WgpuErrorScope::push(&ctx.wgpu_ctx.device);
@@ -125,6 +136,22 @@ impl Scene {
         new_nodes.insert(node_id.clone(), node);
         inputs.insert(node_id.clone().into(), InputTexture::new());
         Ok(())
+    }
+
+    fn node_constraints(node: &NodeSpec, renderers: &Renderers) -> Option<Constraints> {
+        match &node.params {
+            NodeParams::WebRenderer { instance_id } => renderers
+                .web_renderers
+                .get(instance_id)
+                .map(|web_renderer| web_renderer.constrains().clone()),
+            NodeParams::Shader { shader_id, .. } => renderers
+                .shaders
+                .get(shader_id)
+                .map(|shader| shader.constraints().clone()),
+            NodeParams::Text(_) => Some(NodeParams::TEXT_CONSTRAINTS),
+            NodeParams::Image { .. } => Some(NodeParams::IMAGE_CONSTRAINTS),
+            NodeParams::Builtin { transformation } => Some(transformation.constrains().clone()),
+        }
     }
 }
 

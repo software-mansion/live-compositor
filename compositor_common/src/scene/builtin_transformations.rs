@@ -11,7 +11,7 @@ use crate::util::coord::Coord;
 use crate::util::degree::Degree;
 
 use super::validation::constraints::input_count::InputsCountConstraint;
-use super::validation::constraints::NodeConstraints;
+use super::validation::constraints::Constraints;
 use super::NodeSpec;
 use super::Resolution;
 
@@ -173,27 +173,27 @@ impl BuiltinSpec {
         }
     }
 
-    pub fn constrains(&self) -> NodeConstraints {
+    pub fn constrains(&self) -> Constraints {
         match self {
-            BuiltinSpec::TransformToResolution { .. } => NodeConstraints {
+            BuiltinSpec::TransformToResolution { .. } => Constraints {
                 inputs_count: InputsCountConstraint::Exact(1),
             },
-            BuiltinSpec::FixedPositionLayout { .. } => NodeConstraints {
+            BuiltinSpec::FixedPositionLayout { .. } => Constraints {
                 inputs_count: InputsCountConstraint::Bounded {
                     minimal: 1,
                     maximal: FIXED_POSITION_LAYOUT_MAX_INPUTS_COUNT,
                 },
             },
-            BuiltinSpec::TiledLayout { .. } => NodeConstraints {
+            BuiltinSpec::TiledLayout { .. } => Constraints {
                 inputs_count: InputsCountConstraint::Bounded {
                     minimal: 1,
                     maximal: TILED_LAYOUT_MAX_INPUTS_COUNT,
                 },
             },
-            BuiltinSpec::MirrorImage { .. } => NodeConstraints {
+            BuiltinSpec::MirrorImage { .. } => Constraints {
                 inputs_count: InputsCountConstraint::Exact(1),
             },
-            BuiltinSpec::CornersRounding { .. } => NodeConstraints {
+            BuiltinSpec::CornersRounding { .. } => Constraints {
                 inputs_count: InputsCountConstraint::Exact(1),
             },
         }
