@@ -93,7 +93,7 @@ impl WebRenderer {
         if let Some(frame) = controller.retrieve_frame() {
             let target = target.ensure_size(ctx.wgpu_ctx, self.params.resolution);
 
-            self.bgra_texture.upload(ctx.wgpu_ctx, frame);
+            self.bgra_texture.upload(ctx.wgpu_ctx, &frame);
             self.bgra_to_rgba.convert(
                 ctx.wgpu_ctx,
                 (&self.bgra_texture, &self.bgra_bind_group),

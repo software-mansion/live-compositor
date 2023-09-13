@@ -5,10 +5,8 @@ use serde::{Deserialize, Serialize};
 use crate::{error::NodeSpecValidationError, renderer_spec::RendererId};
 
 use super::{
-    builtin_transformations::BuiltinSpec,
-    shader::ShaderParam,
-    text_spec::{TextDimensions, TextSpec},
-    NodeSpec, Resolution,
+    builtin_transformations::BuiltinSpec, shader::ShaderParam, text_spec::TextSpec, NodeSpec,
+    Resolution,
 };
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -22,11 +20,7 @@ pub enum NodeParams {
         shader_params: Option<ShaderParam>,
         resolution: Resolution,
     },
-    TextRenderer {
-        #[serde(flatten)]
-        text_params: TextSpec,
-        resolution: TextDimensions,
-    },
+    Text(TextSpec),
     Image {
         image_id: RendererId,
     },
@@ -51,7 +45,7 @@ impl NodeSpec {
                 Rc::from(format!("\"{}\" web renderer", instance_id))
             }
             NodeParams::Shader { shader_id, .. } => Rc::from(format!("\"{}\" shader", shader_id)),
-            NodeParams::TextRenderer { .. } => Rc::from("Text renderer"),
+            NodeParams::Text(_) => Rc::from("Text renderer"),
             NodeParams::Image { .. } => Rc::from("Image"),
             NodeParams::Builtin { transformation } => Rc::from(format!(
                 "\"{}\" builtin transformation",

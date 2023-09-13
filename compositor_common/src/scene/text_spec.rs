@@ -3,9 +3,9 @@ use std::sync::Arc;
 use glyphon::AttrsOwned;
 use serde::{Deserialize, Serialize};
 
-use crate::util::{align::Align, colors::RGBAColor};
+use crate::util::{align::HorizontalAlign, colors::RGBAColor};
 
-use super::{Resolution, MAX_NODE_RESOLUTION};
+use super::MAX_NODE_RESOLUTION;
 
 fn default_color() -> RGBAColor {
     RGBAColor(255, 255, 255, 255)
@@ -19,8 +19,8 @@ fn default_style() -> Style {
     Style::Normal
 }
 
-fn default_align() -> Align {
-    Align::Left
+fn default_align() -> HorizontalAlign {
+    HorizontalAlign::Left
 }
 
 fn default_wrap() -> Wrap {
@@ -78,9 +78,10 @@ pub struct TextSpec {
     #[serde(default = "default_style")]
     pub style: Style,
     #[serde(default = "default_align")]
-    pub align: Align,
+    pub align: HorizontalAlign,
     #[serde(default = "default_wrap")]
     pub wrap: Wrap,
+    pub dimensions: TextDimensions,
 }
 
 impl From<&TextSpec> for AttrsOwned {
@@ -107,7 +108,7 @@ impl From<&TextSpec> for AttrsOwned {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum TextDimensions {
     /// Renders text and "trims" texture to smallest possible size
@@ -124,5 +125,5 @@ pub enum TextDimensions {
     },
     /// Renders text according to provided spec
     /// and outputs texture with provided fixed size
-    Fixed { resolution: Resolution },
+    Fixed { width: u32, height: u32 },
 }

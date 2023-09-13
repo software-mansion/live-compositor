@@ -78,15 +78,16 @@ fn start_example_client_code() -> Result<()> {
         "nodes": [
            {
                 "node_id": "text_renderer_1",
-                "type": "text_renderer",
+                "type": "text",
                 "content": "VideoCompositor🚀\nSecond Line\nLorem ipsum dolor sit amet consectetur adipisicing elit. Soluta delectus optio fugit maiores eaque ab totam, veritatis aperiam provident, aliquam consectetur deserunt cumque est? Saepe tenetur impedit culpa asperiores id?",
                 "font_size": 100.0,
                 "font_family": "Comic Sans MS",
                 "align": "center",
                 "wrap": "word",
-                "resolution": {
+                "dimensions": {
                     "type": "fixed",
-                    "resolution": {"width": 1920, "height": 1080},
+                    "width": 1920,
+                    "height": 1080,
                 },
            }
         ],

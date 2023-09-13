@@ -33,7 +33,7 @@ pub fn node_constraints(node_spec: &NodeSpec) -> NodeConstraints {
                 maximal: 16,
             },
         },
-        NodeParams::TextRenderer { .. } => NodeConstraints {
+        NodeParams::Text(_) => NodeConstraints {
             inputs_count: InputsCountConstraint::Exact(0),
         },
         NodeParams::Image { .. } => NodeConstraints {

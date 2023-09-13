@@ -198,9 +198,9 @@ impl RtpSender {
 }
 
 fn frame_into_av(frame: Frame, av_frame: &mut frame::Video) -> Result<()> {
-    let expected_y_plane_size = av_frame.data(0).len();
-    let expected_u_plane_size = av_frame.data(1).len();
-    let expected_v_plane_size = av_frame.data(2).len();
+    let expected_y_plane_size = (av_frame.plane_width(0) * av_frame.plane_height(0)) as usize;
+    let expected_u_plane_size = (av_frame.plane_width(1) * av_frame.plane_height(1)) as usize;
+    let expected_v_plane_size = (av_frame.plane_width(2) * av_frame.plane_height(2)) as usize;
     if expected_y_plane_size != frame.data.y_plane.len() {
         return Err(anyhow!(
             "Y plane is a wrong size, expected: {} received: {}",
@@ -224,8 +224,18 @@ fn frame_into_av(frame: Frame, av_frame: &mut frame::Video) -> Result<()> {
     }
 
     av_frame.set_pts(Some((frame.pts.as_secs_f64() * 90000.0) as i64));
-    av_frame.data_mut(0).copy_from_slice(&frame.data.y_plane);
-    av_frame.data_mut(1).copy_from_slice(&frame.data.u_plane);
-    av_frame.data_mut(2).copy_from_slice(&frame.data.v_plane);
+
+    write_plane_to_av(av_frame, 0, &frame.data.y_plane);
+    write_plane_to_av(av_frame, 1, &frame.data.u_plane);
+    write_plane_to_av(av_frame, 2, &frame.data.v_plane);
     Ok(())
+}
+
+fn write_plane_to_av(frame: &mut frame::Video, plane: usize, data: &[u8]) {
+    let stride = frame.stride(plane);
+    let width = frame.plane_width(plane) as usize;
+
+    data.chunks(width)
+        .zip(frame.data_mut(plane).chunks_mut(stride))
+        .for_each(|(data, target)| target[..width].copy_from_slice(data));
 }
