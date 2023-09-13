@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 use crate::{
     error::UnsatisfiedConstraintsError,
     scene::{NodeId, SceneSpec},
@@ -7,6 +9,7 @@ use self::input_count::InputsCountConstraint;
 
 pub mod input_count;
 
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct NodeConstraints {
     pub inputs_count: InputsCountConstraint,
 }

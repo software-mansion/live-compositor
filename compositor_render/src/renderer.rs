@@ -7,16 +7,17 @@ use compositor_common::{
 };
 use log::error;
 
+use crate::render_loop::run_transforms;
 use crate::{
     error::{InitRendererEngineError, RenderSceneError},
     frame_set::FrameSet,
     render_loop::{populate_inputs, read_outputs},
     transformations::{
-        text_renderer::TextRendererCtx, web_renderer::chromium_context::ChromiumContext,
+        shader_executor::ShaderExecutor, text_renderer::TextRendererCtx,
+        web_renderer::chromium_context::ChromiumContext,
     },
     WebRendererOptions,
 };
-use crate::{render_loop::run_transforms, transformations::shader::Shader};
 
 use self::{
     format::TextureFormat,
@@ -138,6 +139,7 @@ impl Renderer {
     }
 }
 
+#[derive(Debug)]
 pub struct WgpuCtx {
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
@@ -219,7 +221,8 @@ impl WgpuCtx {
         let format = TextureFormat::new(&device);
         let utils = TextureUtils::new(&device);
 
-        let shader_parameters_bind_group_layout = Shader::new_parameters_bind_group_layout(&device);
+        let shader_parameters_bind_group_layout =
+            ShaderExecutor::new_parameters_bind_group_layout(&device);
 
         scope.pop(&device)?;
 

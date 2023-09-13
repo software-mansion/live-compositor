@@ -1,8 +1,10 @@
 use std::rc::Rc;
 
+use serde::{Deserialize, Serialize};
+
 use crate::{error::UnsatisfiedConstraintsError, scene::NodeSpec};
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
 pub enum InputsCountConstraint {
     Exact(u32),
     Bounded { minimal: u32, maximal: u32 },

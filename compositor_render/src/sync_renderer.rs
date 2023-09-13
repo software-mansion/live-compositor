@@ -33,13 +33,15 @@ impl SyncRenderer {
         let mut guard = self.0.lock().unwrap();
         match spec {
             RendererSpec::Shader(spec) => {
-                let shader = Shader::new(&ctx.wgpu_ctx, spec.source, spec.fallback_strategy)
-                    .map_err(|err| RegisterRendererError::Shader(err, spec.shader_id.clone()))?;
+                let shader_id = spec.shader_id.clone();
 
-                Ok(guard
-                    .renderers
-                    .shaders
-                    .register(spec.shader_id, Arc::new(shader))?)
+                match Shader::new(&ctx.wgpu_ctx, spec) {
+                    Ok(shader) => Ok(guard
+                        .renderers
+                        .shaders
+                        .register(shader_id, Arc::new(shader))?),
+                    Err(err) => Err(RegisterRendererError::Shader(err, shader_id)),
+                }
             }
             RendererSpec::WebRenderer(params) => {
                 let instance_id = params.instance_id.clone();

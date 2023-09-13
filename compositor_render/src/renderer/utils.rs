@@ -4,6 +4,7 @@ use super::{texture::Texture, WgpuCtx};
 
 mod r8_fill_with_color;
 
+#[derive(Debug)]
 pub struct TextureUtils {
     pub r8_fill_with_value: R8FillWithValue,
 }

@@ -2,7 +2,10 @@ use std::{fmt::Display, sync::Arc};
 
 use serde::{Deserialize, Serialize};
 
-use crate::scene::Resolution;
+use crate::scene::{
+    validation::constraints::{input_count::InputsCountConstraint, NodeConstraints},
+    Resolution,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct RendererId(pub Arc<str>);
@@ -36,8 +39,10 @@ pub enum RendererSpec {
 pub struct ShaderSpec {
     pub shader_id: RendererId,
     pub source: String,
-    #[serde(default = "default_shader_fallback_strategy")]
+    #[serde(default = "ShaderSpec::default_fallback")]
     pub fallback_strategy: FallbackStrategy,
+    #[serde(default = "ShaderSpec::default_constraints")]
+    pub constraints: NodeConstraints,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -45,8 +50,10 @@ pub struct WebRendererSpec {
     pub instance_id: RendererId,
     pub url: String,
     pub resolution: Resolution,
-    #[serde(default = "default_web_renderer_strategy")]
+    #[serde(default = "WebRendererSpec::default_fallback")]
     pub fallback_strategy: FallbackStrategy,
+    #[serde(default = "WebRendererSpec::default_constraints")]
+    pub constraints: NodeConstraints,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -76,10 +83,32 @@ pub enum ImageType {
     Gif,
 }
 
-fn default_shader_fallback_strategy() -> FallbackStrategy {
-    FallbackStrategy::FallbackIfAllInputsMissing
+impl ShaderSpec {
+    fn default_fallback() -> FallbackStrategy {
+        FallbackStrategy::FallbackIfAllInputsMissing
+    }
+
+    fn default_constraints() -> NodeConstraints {
+        NodeConstraints {
+            inputs_count: InputsCountConstraint::Bounded {
+                minimal: 0,
+                maximal: 16,
+            },
+        }
+    }
 }
 
-fn default_web_renderer_strategy() -> FallbackStrategy {
-    FallbackStrategy::FallbackIfAllInputsMissing
+impl WebRendererSpec {
+    fn default_fallback() -> FallbackStrategy {
+        FallbackStrategy::FallbackIfAllInputsMissing
+    }
+
+    fn default_constraints() -> NodeConstraints {
+        NodeConstraints {
+            inputs_count: InputsCountConstraint::Bounded {
+                minimal: 0,
+                maximal: 16,
+            },
+        }
+    }
 }

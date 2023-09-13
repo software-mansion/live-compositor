@@ -2,16 +2,14 @@ use std::time::Duration;
 
 use compositor_common::renderer_spec::{FallbackStrategy, RendererId};
 
-use crate::transformations::shader::error::ParametersValidationError;
-
 use compositor_common::scene::{NodeId, NodeParams, NodeSpec, Resolution};
 use log::error;
 
+use crate::transformations::builtin::Builtin;
+use crate::transformations::shader::node::ShaderNode;
+use crate::transformations::shader_executor::error::ParametersValidationError;
 use crate::transformations::{
-    builtin::{node::BuiltinNode, Builtin},
-    image_renderer::ImageNode,
-    shader::node::ShaderNode,
-    text_renderer::TextRendererNode,
+    builtin::node::BuiltinNode, image_renderer::ImageNode, text_renderer::TextRendererNode,
     web_renderer::node::WebRendererNode,
 };
 
@@ -47,22 +45,20 @@ impl RenderNode {
                     .shaders
                     .get(shader_id)
                     .ok_or_else(|| CreateNodeError::ShaderNotFound(shader_id.clone()))?;
-                let node = ShaderNode::new(
-                    ctx.wgpu_ctx,
-                    shader,
-                    shader_params.as_ref(),
-                    None,
-                    *resolution,
-                )?;
+
+                let node =
+                    ShaderNode::new(ctx.wgpu_ctx, shader, shader_params.as_ref(), *resolution)?;
                 Ok(Self::Shader(node))
             }
             NodeParams::Builtin { transformation } => {
-                let shader = ctx.renderers.builtin.shader(transformation);
+                let shader_executor = ctx.renderers.builtin.shader(transformation);
                 let input_count = spec.input_pads.len() as u32;
 
                 Ok(Self::Builtin(BuiltinNode::new(
-                    shader,
-                    Builtin(transformation.clone()),
+                    Builtin {
+                        spec: transformation.clone(),
+                        executor: shader_executor,
+                    },
                     input_count,
                 )))
             }

@@ -1,4 +1,4 @@
-use std::{sync::Arc, time::Duration};
+use std::time::Duration;
 
 use compositor_common::{
     renderer_spec::FallbackStrategy,
@@ -7,10 +7,7 @@ use compositor_common::{
 
 use wgpu::util::DeviceExt;
 
-use crate::{
-    renderer::{texture::NodeTexture, WgpuCtx},
-    transformations::shader::Shader,
-};
+use crate::renderer::{texture::NodeTexture, WgpuCtx};
 
 use super::{params::BuiltinParams, Builtin};
 
@@ -66,24 +63,22 @@ impl ParamsBuffer {
 }
 
 pub struct BuiltinNode {
-    shader: Arc<Shader>,
     builtin: Builtin,
     params_buffer: ParamsBuffer,
     clear_color: Option<wgpu::Color>,
 }
 
 impl BuiltinNode {
-    pub fn new(shader: Arc<Shader>, builtin: Builtin, input_count: u32) -> Self {
+    pub fn new(builtin: Builtin, input_count: u32) -> Self {
         let input_resolutions = vec![None; input_count as usize];
 
         let params_buffer_content =
             BuiltinParams::new(&builtin, &input_resolutions).shader_buffer_content();
-        let params_buffer = ParamsBuffer::new(params_buffer_content, &shader.wgpu_ctx);
+        let params_buffer = ParamsBuffer::new(params_buffer_content, &builtin.executor.wgpu_ctx);
 
         let clear_color = builtin.clear_color();
 
         Self {
-            shader,
             builtin,
             params_buffer,
             clear_color,
@@ -114,10 +109,10 @@ impl BuiltinNode {
             BuiltinParams::new(&self.builtin, &input_resolutions).shader_buffer_content();
 
         self.params_buffer
-            .update(params_buffer_content, &self.shader.wgpu_ctx);
+            .update(params_buffer_content, &self.builtin.executor.wgpu_ctx);
 
-        let target = target.ensure_size(&self.shader.wgpu_ctx, output_resolution);
-        self.shader.render(
+        let target = target.ensure_size(&self.builtin.executor.wgpu_ctx, output_resolution);
+        self.builtin.executor.render(
             &self.params_buffer.bind_group,
             sources,
             target,
@@ -127,6 +122,6 @@ impl BuiltinNode {
     }
 
     pub fn fallback_strategy(&self) -> FallbackStrategy {
-        self.shader.fallback_strategy
+        self.builtin.fallback_strategy()
     }
 }

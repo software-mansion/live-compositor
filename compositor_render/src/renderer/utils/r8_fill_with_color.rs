@@ -6,6 +6,7 @@ use crate::renderer::{
     WgpuCtx,
 };
 
+#[derive(Debug)]
 pub struct R8FillWithValue {
     pipeline: wgpu::RenderPipeline,
     surface: SingleSurface,

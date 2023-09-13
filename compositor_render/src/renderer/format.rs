@@ -9,6 +9,7 @@ pub mod bgra_to_rgba;
 mod rgba_to_yuv;
 mod yuv_to_rgba;
 
+#[derive(Debug)]
 pub struct TextureFormat {
     yuv_to_rgba: YUVToRGBAConverter,
     rgba_to_yuv: RGBAToYUVConverter,

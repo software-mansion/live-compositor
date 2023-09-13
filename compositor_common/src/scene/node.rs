@@ -34,14 +34,14 @@ pub enum NodeParams {
 impl NodeSpec {
     pub fn validate_params(&self) -> Result<(), NodeSpecValidationError> {
         match &self.params {
-            NodeParams::Builtin { transformation, .. } => Ok(transformation.validate_params(self)?),
+            NodeParams::Builtin { transformation } => Ok(transformation.validate_params(self)?),
             _ => Ok(()),
         }
     }
 
     pub fn identification_name(&self) -> Rc<str> {
         match &self.params {
-            NodeParams::WebRenderer { instance_id } => {
+            NodeParams::WebRenderer { instance_id, .. } => {
                 Rc::from(format!("\"{}\" web renderer", instance_id))
             }
             NodeParams::Shader { shader_id, .. } => Rc::from(format!("\"{}\" shader", shader_id)),

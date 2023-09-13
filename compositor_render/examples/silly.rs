@@ -3,7 +3,10 @@ use std::{path::Path, process::Stdio, sync::Arc, time::Duration};
 use compositor_common::{
     frame::YuvData,
     renderer_spec::{FallbackStrategy, RendererId, RendererSpec, ShaderSpec},
-    scene::{NodeId, NodeSpec, OutputSpec, Resolution, SceneSpec},
+    scene::{
+        validation::constraints::{input_count::InputsCountConstraint, NodeConstraints},
+        NodeId, NodeSpec, OutputSpec, Resolution, SceneSpec,
+    },
     Frame, Framerate,
 };
 use compositor_render::{
@@ -100,6 +103,9 @@ fn main() {
             shader_id: shader_key.clone(),
             source: include_str!("./silly/silly.wgsl").into(),
             fallback_strategy: FallbackStrategy::FallbackIfAllInputsMissing,
+            constraints: NodeConstraints {
+                inputs_count: InputsCountConstraint::Exact(1),
+            },
         }))
         .expect("create shader");
 

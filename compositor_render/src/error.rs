@@ -4,7 +4,8 @@ use crate::{
     registry,
     renderer::{CreateWgpuCtxError, WgpuError},
     transformations::{
-        builtin::error::InitBuiltinError, image_renderer::ImageError, shader::CreateShaderError,
+        builtin::error::InitBuiltinError, image_renderer::ImageError,
+        shader_executor::CreateShaderError,
         web_renderer::chromium_context::WebRendererContextError,
     },
 };
