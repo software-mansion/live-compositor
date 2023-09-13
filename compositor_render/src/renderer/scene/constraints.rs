@@ -1,12 +1,12 @@
 use compositor_common::{
-    error::ConstraintsValidationError,
+    error::UnsatisfiedConstraintsError,
     scene::{
         validation::constraints::{input_count::InputsCountConstraint, NodeConstraints},
         NodeParams, NodeSpec, SceneSpec,
     },
 };
 
-pub fn validate_constraints(scene: &SceneSpec) -> Result<(), ConstraintsValidationError> {
+pub fn validate_constraints(scene: &SceneSpec) -> Result<(), UnsatisfiedConstraintsError> {
     for (node_id, node_constraints) in scene
         .nodes
         .iter()

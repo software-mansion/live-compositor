@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{rc::Rc};
 
 use serde::{Deserialize, Serialize};
 
@@ -45,13 +45,18 @@ impl NodeSpec {
         }
     }
 
-    pub fn transformation_name(&self) -> Arc<str> {
+    pub fn identification_name(&self) -> Rc<str> {
         match &self.params {
-            NodeParams::WebRenderer { instance_id } => instance_id.0.clone(),
-            NodeParams::Shader { shader_id, .. } => shader_id.0.clone(),
-            NodeParams::TextRenderer { .. } => Arc::from("text_renderer"),
-            NodeParams::Image { image_id } => image_id.0.clone(),
-            NodeParams::Builtin { transformation } => transformation.transformation_name(),
+            NodeParams::WebRenderer { instance_id } => {
+                Rc::from(format!("\"{}\" web renderer", instance_id))
+            }
+            NodeParams::Shader { shader_id, .. } => Rc::from(format!("\"{}\" shader", shader_id)),
+            NodeParams::TextRenderer { .. } => Rc::from("Text renderer"),
+            NodeParams::Image { .. } => Rc::from("Image"),
+            NodeParams::Builtin { transformation } => Rc::from(format!(
+                "\"{}\" builtin transformation",
+                transformation.transformation_name()
+            )),
         }
     }
 }

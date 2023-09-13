@@ -1,5 +1,5 @@
 use crate::{
-    error::ConstraintsValidationError,
+    error::UnsatisfiedConstraintsError,
     scene::{NodeId, SceneSpec},
 };
 
@@ -16,21 +16,15 @@ impl NodeConstraints {
         &self,
         scene: &SceneSpec,
         node_id: &NodeId,
-    ) -> Result<(), ConstraintsValidationError> {
+    ) -> Result<(), UnsatisfiedConstraintsError> {
         let node_spec = scene
             .nodes
             .iter()
             .find(|node| &node.node_id == node_id)
             .unwrap();
 
-        self.inputs_count
-            .validate(
-                node_spec.input_pads.len() as u32,
-                node_spec.transformation_name(),
-            )
-            .map_err(|err| {
-                ConstraintsValidationError::InvalidInputsPads(err, node_spec.node_id.clone())
-            })?;
+        self.inputs_count.validate(node_spec)?;
+
         Ok(())
     }
 }

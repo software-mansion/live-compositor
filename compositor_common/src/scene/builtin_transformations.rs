@@ -1,4 +1,3 @@
-use std::sync::Arc;
 use std::{fmt::Display, str::FromStr};
 
 use serde::{Deserialize, Serialize};
@@ -109,13 +108,13 @@ impl FromStr for MirrorMode {
 }
 
 impl BuiltinSpec {
-    pub fn transformation_name(&self) -> Arc<str> {
+    pub fn transformation_name(&self) -> &'static str {
         match self {
-            BuiltinSpec::TransformToResolution { .. } => Arc::from("transform_to_resolution"),
-            BuiltinSpec::FixedPositionLayout { .. } => Arc::from("fixed_position_layout"),
-            BuiltinSpec::TiledLayout { .. } => Arc::from("tiled_layout"),
-            BuiltinSpec::MirrorImage { .. } => Arc::from("mirror_image"),
-            BuiltinSpec::CornersRounding { .. } => Arc::from("corners_rounding"),
+            BuiltinSpec::TransformToResolution { .. } => "transform_to_resolution",
+            BuiltinSpec::FixedPositionLayout { .. } => "fixed_position_layout",
+            BuiltinSpec::TiledLayout { .. } => "tiled_layout",
+            BuiltinSpec::MirrorImage { .. } => "mirror_image",
+            BuiltinSpec::CornersRounding { .. } => "corners_rounding",
         }
     }
 

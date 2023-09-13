@@ -1,66 +1,48 @@
-use std::sync::Arc;
+use std::rc::Rc;
 
-use crate::error::InputsCountValidationError;
+use crate::{error::UnsatisfiedConstraintsError, scene::NodeSpec};
 
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum InputsCountConstraint {
     Exact(u32),
     Bounded { minimal: u32, maximal: u32 },
 }
 
 impl InputsCountConstraint {
-    pub fn validate(
-        &self,
-        defined_input_pads_count: u32,
-        transformation_name: Arc<str>,
-    ) -> Result<(), InputsCountValidationError> {
-        match self {
-            InputsCountConstraint::Exact(expected_input_pads_count) => {
-                if *expected_input_pads_count == defined_input_pads_count {
-                    Ok(())
-                } else {
-                    Err(Self::exact_inputs_error(
-                        defined_input_pads_count,
-                        *expected_input_pads_count,
-                        transformation_name,
-                    ))
-                }
+    pub fn validate(&self, node_spec: &NodeSpec) -> Result<(), UnsatisfiedConstraintsError> {
+        let defined_input_pads_count = node_spec.input_pads.len() as u32;
+        let is_valid = match self {
+            InputsCountConstraint::Exact(expected_inputs_count) => {
+                defined_input_pads_count == *expected_inputs_count
             }
             InputsCountConstraint::Bounded { minimal, maximal } => {
-                if *minimal <= defined_input_pads_count && defined_input_pads_count <= *maximal {
-                    Ok(())
-                } else {
-                    Err(InputsCountValidationError::InvalidBoundedInputsRequired {
-                        transformation_name,
-                        minimal_inputs_expected: *minimal,
-                        maximal_inputs_expected: *maximal,
-                        defined_input_pads_count,
-                    })
-                }
+                *minimal < defined_input_pads_count && defined_input_pads_count < *maximal
             }
+        };
+
+        if is_valid {
+            Ok(())
+        } else {
+            Err(UnsatisfiedConstraintsError::InvalidInputsCount {
+                node_id: node_spec.node_id.clone(),
+                identification_name: node_spec.identification_name(),
+                input_count_constrain: self.clone(),
+                defined_input_pads_count,
+            })
         }
     }
 
-    fn exact_inputs_error(
-        defined_input_pads_count: u32,
-        expected_input_pads_count: u32,
-        transformation_name: Arc<str>,
-    ) -> InputsCountValidationError {
-        if expected_input_pads_count == 0 {
-            InputsCountValidationError::NoInputsRequired {
-                transformation_name,
-                defined_input_pads_count,
+    pub fn required_inputs_message(&self) -> Rc<str> {
+        match &self {
+            InputsCountConstraint::Exact(expected) if *expected == 0 => Rc::from("no input pads"),
+            InputsCountConstraint::Exact(expected) if *expected == 1 => Rc::from("one input pad"),
+            InputsCountConstraint::Exact(expected) => {
+                Rc::from(format!("exactly {} input pads", expected))
             }
-        } else if expected_input_pads_count == 1 {
-            InputsCountValidationError::ExactlyOneInputRequired {
-                transformation_name,
-                defined_input_pads_count,
-            }
-        } else {
-            InputsCountValidationError::ExactNumberOfInputsRequired {
-                transformation_name,
-                expected_input_pads_count,
-                defined_input_pads_count,
-            }
+            InputsCountConstraint::Bounded { minimal, maximal } => Rc::from(format!(
+                "at least {} and at most {} input pads",
+                minimal, maximal
+            )),
         }
     }
 }

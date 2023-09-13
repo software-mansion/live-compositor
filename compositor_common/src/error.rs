@@ -1,8 +1,8 @@
-use std::{collections::HashSet, fmt::Display, sync::Arc};
+use std::{collections::HashSet, fmt::Display, rc::Rc};
 
 use log::error;
 
-use crate::scene::{NodeId, OutputId};
+use crate::scene::{validation::constraints::input_count::InputsCountConstraint, NodeId, OutputId};
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum SceneSpecValidationError {
@@ -45,53 +45,12 @@ impl Display for UnusedNodesError {
 }
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
-pub enum ConstraintsValidationError {
-    #[error("Specification of node \"{1}\" doesn't satisfy node input pads count constraint.")]
-    InvalidInputsPads(#[source] InputsCountValidationError, NodeId),
-}
-
-#[derive(Debug, thiserror::Error, PartialEq, Eq)]
-pub enum InputsCountValidationError {
-    #[error(
-        "Nodes that use transformation \"{}\" doesn't expect input pads, but {} input pads were specified.",
-        transformation_name,
-        defined_input_pads_count
-    )]
-    NoInputsRequired {
-        transformation_name: Arc<str>,
-        defined_input_pads_count: u32,
-    },
-    #[error(
-        "Nodes that use transformation \"{}\" expect single input pad, but {} input pads were specified.",
-        transformation_name,
-        defined_input_pads_count
-    )]
-    ExactlyOneInputRequired {
-        transformation_name: Arc<str>,
-        defined_input_pads_count: u32,
-    },
-    #[error(
-        "Nodes that use transformation \"{}\" expect {} input pads, but {} input pads were specified.",
-        transformation_name,
-        expected_input_pads_count,
-        defined_input_pads_count
-    )]
-    ExactNumberOfInputsRequired {
-        transformation_name: Arc<str>,
-        expected_input_pads_count: u32,
-        defined_input_pads_count: u32,
-    },
-    #[error(
-        "Nodes that use transformation \"{}\" expect at least {} and at most {} input pads, but {} were specified", 
-        transformation_name,
-        minimal_inputs_expected,
-        maximal_inputs_expected,
-        defined_input_pads_count
-    )]
-    InvalidBoundedInputsRequired {
-        transformation_name: Arc<str>,
-        minimal_inputs_expected: u32,
-        maximal_inputs_expected: u32,
+pub enum UnsatisfiedConstraintsError {
+    #[error("Invalid input pads specification for node \"{}\". {} requires {}. {} input pads were specified.", node_id, identification_name, input_count_constrain.required_inputs_message(), defined_input_pads_count)]
+    InvalidInputsCount {
+        node_id: NodeId,
+        identification_name: Rc<str>,
+        input_count_constrain: InputsCountConstraint,
         defined_input_pads_count: u32,
     },
 }

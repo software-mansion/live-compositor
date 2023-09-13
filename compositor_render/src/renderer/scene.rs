@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use compositor_common::{
-    error::{ConstraintsValidationError, SceneSpecValidationError},
+    error::{SceneSpecValidationError, UnsatisfiedConstraintsError},
     scene::{InputId, NodeId, OutputId, SceneSpec},
 };
 use log::error;
@@ -42,7 +42,7 @@ pub enum UpdateSceneError {
     UnknownResolutionOnOutput(NodeId),
 
     #[error(transparent)]
-    ConstraintsValidationError(#[from] ConstraintsValidationError),
+    ConstraintsValidationError(#[from] UnsatisfiedConstraintsError),
 }
 
 impl Scene {
