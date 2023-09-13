@@ -47,11 +47,11 @@ impl Display for UnusedNodesError {
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum UnsatisfiedConstraintsError {
     #[error(
-        "Invalid input pads specification for node \"{}\". {} requires {}. {} input pads were specified.",
+        "Invalid input pads specification for node \"{}\". {} requires {}. {}",
         node_id,
         identification_name,
         input_count_constrain.required_inputs_message(),
-        defined_input_pads_count
+        Self::defined_inputs_message(defined_input_pads_count)
     )]
     InvalidInputsCount {
         node_id: NodeId,
@@ -102,5 +102,15 @@ impl<'a> Iterator for ErrorStack<'a> {
             self.0 = err.source();
             err
         })
+    }
+}
+
+impl UnsatisfiedConstraintsError {
+    fn defined_inputs_message(defined_input_pads_count: &u32) -> String {
+        match defined_input_pads_count {
+            0 => "No input pads were specified.".to_owned(),
+            1 => "One input pad was specified.".to_owned(),
+            n => format!("{} input pads were specified.", n),
+        }
     }
 }
