@@ -58,7 +58,9 @@ pub enum TransformToResolutionStrategy {
     Fit {
         #[serde(default)]
         background_color_rgba: RGBAColor,
+        #[serde(default = "default_horizontal_alignment")]
         horizontal_alignment: HorizontalAlign,
+        #[serde(default = "default_vertical_alignment")]
         vertical_alignment: VerticalAlign,
     },
 }
@@ -188,4 +190,12 @@ impl BuiltinSpec {
 
 fn default_tile_aspect_ratio() -> (u32, u32) {
     (16, 9)
+}
+
+fn default_horizontal_alignment() -> HorizontalAlign {
+    HorizontalAlign::Center
+}
+
+fn default_vertical_alignment() -> VerticalAlign {
+    VerticalAlign::Center
 }
