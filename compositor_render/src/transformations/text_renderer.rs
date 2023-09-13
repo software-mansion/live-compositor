@@ -74,14 +74,11 @@ pub struct TextRendererNode {
 
 impl TextRendererNode {
     #[allow(dead_code)]
-    pub fn new(
-        renderer_ctx: &RenderCtx,
-        text_params: TextSpec,
-        text_resolution: TextDimensions,
-    ) -> Self {
+    pub fn new(renderer_ctx: &RenderCtx, text_spec: TextSpec) -> Self {
         let text_renderer_ctx = &renderer_ctx.text_renderer_ctx;
+        let text_dimensions = text_spec.dimensions;
         let (buffer, resolution) =
-            Self::layout_text(text_renderer_ctx, text_params.into(), text_resolution);
+            Self::layout_text(text_renderer_ctx, text_spec.into(), text_dimensions);
         Self {
             buffer,
             resolution,
@@ -197,19 +194,21 @@ impl TextRendererNode {
         buffer.set_wrap(font_system, text_params.wrap);
 
         match text_resolution {
-            TextDimensions::Fixed { resolution } => {
-                buffer.set_size(
-                    font_system,
-                    resolution.width as f32,
-                    resolution.height as f32,
-                );
+            TextDimensions::Fixed { width, height } => {
+                buffer.set_size(font_system, width as f32, height as f32);
 
                 for line in &mut buffer.lines {
                     line.set_align(Some(text_params.align));
                 }
 
                 buffer.shape_until_scroll(font_system);
-                (buffer, resolution)
+                (
+                    buffer,
+                    Resolution {
+                        width: width as usize,
+                        height: height as usize,
+                    },
+                )
             }
             TextDimensions::Fitted {
                 max_width,
