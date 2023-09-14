@@ -77,6 +77,30 @@ impl ProcessMessage {
         }
     }
 
+    pub fn write_double(&mut self, index: usize, data: f64) -> bool {
+        unsafe {
+            let args = self.arg_list();
+            let set_double = (*args).set_double.unwrap();
+
+            set_double(args, index, data) == 1
+        }
+    }
+
+    pub fn read_double(&self, index: usize) -> Option<f64> {
+        unsafe {
+            let args = self.arg_list();
+            let get_double = (*args).get_double.unwrap();
+            let get_type = (*args).get_type.unwrap();
+
+            let ty: ValueType = get_type(args, index).into();
+            if ty != ValueType::Double {
+                return None;
+            }
+
+            Some(get_double(args, index))
+        }
+    }
+
     fn arg_list(&self) -> *mut chromium_sys::cef_list_value_t {
         unsafe {
             let get_argument_list = (*self.inner).get_argument_list.unwrap();

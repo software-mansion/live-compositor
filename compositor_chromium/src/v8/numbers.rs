@@ -7,7 +7,7 @@ pub struct V8Int(pub(super) Validated<chromium_sys::cef_v8value_t>);
 impl V8Int {
     pub fn new(value: i32) -> Self {
         let inner = unsafe { chromium_sys::cef_v8value_create_int(value) };
-        Self(Validated(inner))
+        Self(Validated::new(inner))
     }
 
     pub fn get(&self) -> Result<i32, V8ValueError> {
@@ -30,7 +30,7 @@ pub struct V8Uint(pub(super) Validated<chromium_sys::cef_v8value_t>);
 impl V8Uint {
     pub fn new(value: u32) -> Self {
         let inner = unsafe { chromium_sys::cef_v8value_create_uint(value) };
-        Self(Validated(inner))
+        Self(Validated::new(inner))
     }
 
     pub fn get(&self) -> Result<u32, V8ValueError> {
@@ -53,7 +53,7 @@ pub struct V8Double(pub(super) Validated<chromium_sys::cef_v8value_t>);
 impl V8Double {
     pub fn new(value: f64) -> Self {
         let inner = unsafe { chromium_sys::cef_v8value_create_double(value) };
-        Self(Validated(inner))
+        Self(Validated::new(inner))
     }
 
     pub fn get(&self) -> Result<f64, V8ValueError> {

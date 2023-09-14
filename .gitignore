@@ -14,8 +14,9 @@ target/
 
 /target
 
-# VsCode 
+# IDE
 .vscode
+.idea
 
 # Assets
 **/*.mp4
