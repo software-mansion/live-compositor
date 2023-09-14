@@ -12,7 +12,7 @@ pub struct V8Context {
 
 impl V8Context {
     pub(crate) fn new(v8_context: *mut chromium_sys::cef_v8context_t) -> Self {
-        let inner = Validated(v8_context);
+        let inner = Validated::new(v8_context);
         Self { inner }
     }
 

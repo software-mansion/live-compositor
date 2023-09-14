@@ -2,7 +2,7 @@ use crate::validated::{Validatable, Validated, ValidatedError};
 
 use super::{
     array::V8Array, array_buffer::V8ArrayBuffer, bool::V8Bool, numbers::*, object::V8Object,
-    string::V8String,
+    string::V8String, V8Function,
 };
 
 /// Represents JavaScript values
@@ -16,17 +16,17 @@ pub enum V8Value {
     String(V8String),
     Array(V8Array),
     ArrayBuffer(V8ArrayBuffer),
+    Function(V8Function),
     Object(V8Object),
 
     // Not implemented
-    Function(V8GenericValue),
     Date(V8GenericValue),
     Promise(V8GenericValue),
 }
 
 impl V8Value {
     pub(crate) fn from_raw(v8_value: *mut chromium_sys::cef_v8value_t) -> Self {
-        let validated_value = Validated(v8_value);
+        let validated_value = Validated::new(v8_value);
         if Self::is_undefined(v8_value) {
             return Self::Undefined(V8GenericValue(validated_value));
         }
@@ -54,17 +54,17 @@ impl V8Value {
         if Self::is_array_buffer(v8_value) {
             return Self::ArrayBuffer(V8ArrayBuffer(validated_value));
         }
-        if Self::is_object(v8_value) {
-            return Self::Object(V8Object(validated_value));
-        }
         if Self::is_function(v8_value) {
-            return Self::Function(V8GenericValue(validated_value));
+            return Self::Function(V8Function(validated_value));
         }
         if Self::is_date(v8_value) {
             return Self::Date(V8GenericValue(validated_value));
         }
         if Self::is_promise(v8_value) {
             return Self::Promise(V8GenericValue(validated_value));
+        }
+        if Self::is_object(v8_value) {
+            return Self::Object(V8Object(validated_value));
         }
 
         unreachable!("Unknown v8 value")
@@ -82,7 +82,7 @@ impl V8Value {
             V8Value::Array(V8Array(v)) => v.get()?,
             V8Value::Object(V8Object(v)) => v.get()?,
             V8Value::ArrayBuffer(V8ArrayBuffer(v)) => v.get()?,
-            V8Value::Function(V8GenericValue(v)) => v.get()?,
+            V8Value::Function(V8Function(v)) => v.get()?,
             V8Value::Date(V8GenericValue(v)) => v.get()?,
             V8Value::Promise(V8GenericValue(v)) => v.get()?,
         };

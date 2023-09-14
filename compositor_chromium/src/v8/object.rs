@@ -5,7 +5,7 @@ use crate::{
 
 use super::{
     value::{V8Value, V8ValueError},
-    V8ContextEntered,
+    V8ContextEntered, V8FunctionError,
 };
 
 pub struct V8Object(pub(super) Validated<chromium_sys::cef_v8value_t>);
@@ -22,12 +22,12 @@ impl V8Object {
 
     pub fn get(&self, key: &str) -> Result<V8Value, V8ObjectError> {
         let inner = self.0.get()?;
-        let key = CefString::new_raw(key);
+        let cef_key = CefString::new_raw(key);
         unsafe {
             let get_value = (*inner).get_value_bykey.unwrap();
-            let value = get_value(inner, &key);
+            let value = get_value(inner, &cef_key);
             if value.is_null() {
-                return Err(V8ObjectError::FieldNotFound);
+                return Err(V8ObjectError::FieldNotFound(key.to_string()));
             }
 
             Ok(V8Value::from_raw(value))
@@ -42,11 +42,11 @@ impl V8Object {
         _context_entered: &V8ContextEntered,
     ) -> Result<(), V8ObjectError> {
         let inner = self.0.get()?;
-        let key = CefString::new_raw(key);
+        let cef_key = CefString::new_raw(key);
         unsafe {
             let set_value = (*inner).set_value_bykey.unwrap();
-            if set_value(inner, &key, value.get_raw()?, attribute as u32) != 1 {
-                return Err(V8ObjectError::SetFailed);
+            if set_value(inner, &cef_key, value.get_raw()?, attribute as u32) != 1 {
+                return Err(V8ObjectError::SetFailed(key.to_string()));
             }
             Ok(())
         }
@@ -58,15 +58,30 @@ impl V8Object {
         _context_entered: &V8ContextEntered,
     ) -> Result<(), V8ObjectError> {
         let inner = self.0.get()?;
-        let key = CefString::new_raw(key);
+        let cef_key = CefString::new_raw(key);
         unsafe {
             let delete_value = (*inner).delete_value_bykey.unwrap();
-            if delete_value(inner, &key) != 1 {
-                return Err(V8ObjectError::DeleteFailed);
+            if delete_value(inner, &cef_key) != 1 {
+                return Err(V8ObjectError::DeleteFailed(key.to_string()));
             }
 
             Ok(())
         }
+    }
+
+    pub fn call_method(
+        &self,
+        name: &str,
+        args: &[V8Value],
+        ctx_entered: &V8ContextEntered,
+    ) -> Result<V8Value, V8ObjectError> {
+        let V8Value::Function(method) = self.get(name)? else {
+            return Err(V8ObjectError::ExpectedMethod(name.to_string()));
+        };
+
+        method
+            .call_as_method(self, args, ctx_entered)
+            .map_err(|err| V8ObjectError::MethodCallFailed(err, name.to_string()))
     }
 }
 
@@ -86,12 +101,18 @@ pub enum V8ObjectError {
     #[error(transparent)]
     V8ValueError(#[from] V8ValueError),
 
-    #[error("V8Object field not found.")]
-    FieldNotFound,
+    #[error("\"{0}\" field not found.")]
+    FieldNotFound(String),
 
-    #[error("Failed to set V8Object field.")]
-    SetFailed,
+    #[error("Failed to set \"{0}\" field.")]
+    SetFailed(String),
 
-    #[error("Failed to delete V8Object field.")]
-    DeleteFailed,
+    #[error("Failed to delete \"{0}\" field.")]
+    DeleteFailed(String),
+
+    #[error("Expected \"{0}\" field to be a method.")]
+    ExpectedMethod(String),
+
+    #[error("Failed to call \"{1}\" method.")]
+    MethodCallFailed(#[source] V8FunctionError, String),
 }

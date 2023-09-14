@@ -12,7 +12,7 @@ pub struct Browser {
 
 impl Browser {
     pub(crate) fn new(browser: *mut chromium_sys::cef_browser_t) -> Self {
-        let inner = Validated(browser);
+        let inner = Validated::new(browser);
         Self { inner }
     }
 

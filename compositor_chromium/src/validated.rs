@@ -1,7 +1,11 @@
 /// Holds pointer to validatable data and checks if it's valid on retrieval
-pub(crate) struct Validated<T: Validatable>(pub *mut T);
+pub(crate) struct Validated<T: Validatable>(*mut T);
 
 impl<T: Validatable> Validated<T> {
+    pub fn new(data: *mut T) -> Self {
+        Self(data)
+    }
+
     pub fn get(&self) -> Result<*mut T, ValidatedError> {
         if self.0.is_null() {
             return Err(ValidatedError::NotValid);
