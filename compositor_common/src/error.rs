@@ -66,7 +66,7 @@ impl Display for InputsCountConstraintValidationError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let expects = match self.input_count_constrain {
             InputsCountConstraint::Exactly(expected) if expected == 0 => {
-                "doesn't except input pads".to_owned()
+                "does not except input pads".to_owned()
             }
             InputsCountConstraint::Exactly(expected) if expected == 1 => {
                 "expects exactly one input pad".to_owned()
