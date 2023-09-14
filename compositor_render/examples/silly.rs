@@ -4,7 +4,7 @@ use compositor_common::{
     frame::YuvData,
     renderer_spec::{FallbackStrategy, RendererId, RendererSpec, ShaderSpec},
     scene::{
-        validation::constraints::{input_count::InputsCountConstraint, Constraints},
+        constraints::{input_count::InputsCountConstraint, Constraints},
         NodeId, NodeSpec, OutputSpec, Resolution, SceneSpec,
     },
     Frame, Framerate,
