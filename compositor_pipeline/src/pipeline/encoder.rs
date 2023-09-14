@@ -9,6 +9,7 @@ use log::{error, warn};
 use serde::{Deserialize, Serialize};
 
 use super::{OutputOptions, PipelineOutput};
+use crate::error::OutputInitError;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -86,56 +87,49 @@ pub(crate) struct LibavH264Encoder {
     resolution: Resolution,
 }
 
-// TODO: errors in this file are atrocious
-
 impl LibavH264Encoder {
-    pub fn new(settings: EncoderSettings, resolution: Resolution) -> Result<Self, String> {
-        let codec = ffmpeg_next::codec::encoder::find(Id::H264).ok_or("Cannot find an encoder")?;
-        let mut encoder = Context::new()
-            .encoder()
-            .video()
-            .map_err(|e| e.to_string())?;
+    pub fn new(settings: EncoderSettings, resolution: Resolution) -> Result<Self, OutputInitError> {
+        let codec = ffmpeg_next::codec::encoder::find(Id::H264).ok_or(OutputInitError::NoCodec)?;
+        let mut encoder = Context::new().encoder().video()?;
         let pts_unit_secs = Rational::new(1, 90000);
         encoder.set_time_base(pts_unit_secs);
         encoder.set_format(Pixel::YUV420P);
         encoder.set_width(resolution.width as u32);
         encoder.set_height(resolution.height as u32);
 
-        let encoder = encoder
-            .open_as_with(
-                codec,
-                // TODO: audit settings bellow
-                // Those values are copied from somewhere, they have to be set because libx264
-                // is throwing an error if it detects default ffmpeg settings.
-                Dictionary::from_iter([
-                    ("preset", settings.preset.to_str()),
-                    // Quality-based VBR (0-51)
-                    ("crf", "23"),
-                    // Override ffmpeg defaults from https://github.com/mirror/x264/blob/eaa68fad9e5d201d42fde51665f2d137ae96baf0/encoder/encoder.c#L674
-                    // QP curve compression - libx264 defaults to 0.6 (in case of tune=grain to 0.8)
-                    ("qcomp", "0.6"),
-                    //  Maximum motion vector search range - libx264 defaults to 16 (in case of placebo
-                    //  or veryslow preset to 24)
-                    ("me_range", "16"),
-                    // Max QP step - libx264 defaults to 4
-                    ("qdiff", "4"),
-                    // Min QP - libx264 defaults to 0
-                    ("qmin", "0"),
-                    // Max QP - libx264 defaults to QP_MAX = 69
-                    ("qmax", "69"),
-                    //  Maximum GOP (Group of Pictures) size - libx264 defaults to 250
-                    ("g", "250"),
-                    // QP factor between I and P frames - libx264 defaults to 1.4 (in case of tune=grain to 1.1)
-                    ("i_qfactor", "1.4"),
-                    // QP factor between P and B frames - libx264 defaults to 1.4 (in case of tune=grain to 1.1)
-                    ("f_pb_factor", "1.3"),
-                    // A comma-separated list of partitions to consider. Possible values: p8x8, p4x4, b8x8, i8x8, i4x4, none, all
-                    ("partitions", settings.preset.default_partitions()),
-                    // Subpixel motion estimation and mode decision (decision quality: 1=fast, 11=best)
-                    ("subq", settings.preset.default_subq_mode()),
-                ]),
-            )
-            .map_err(|e| e.to_string())?;
+        let encoder = encoder.open_as_with(
+            codec,
+            // TODO: audit settings bellow
+            // Those values are copied from somewhere, they have to be set because libx264
+            // is throwing an error if it detects default ffmpeg settings.
+            Dictionary::from_iter([
+                ("preset", settings.preset.to_str()),
+                // Quality-based VBR (0-51)
+                ("crf", "23"),
+                // Override ffmpeg defaults from https://github.com/mirror/x264/blob/eaa68fad9e5d201d42fde51665f2d137ae96baf0/encoder/encoder.c#L674
+                // QP curve compression - libx264 defaults to 0.6 (in case of tune=grain to 0.8)
+                ("qcomp", "0.6"),
+                //  Maximum motion vector search range - libx264 defaults to 16 (in case of placebo
+                //  or veryslow preset to 24)
+                ("me_range", "16"),
+                // Max QP step - libx264 defaults to 4
+                ("qdiff", "4"),
+                // Min QP - libx264 defaults to 0
+                ("qmin", "0"),
+                // Max QP - libx264 defaults to QP_MAX = 69
+                ("qmax", "69"),
+                //  Maximum GOP (Group of Pictures) size - libx264 defaults to 250
+                ("g", "250"),
+                // QP factor between I and P frames - libx264 defaults to 1.4 (in case of tune=grain to 1.1)
+                ("i_qfactor", "1.4"),
+                // QP factor between P and B frames - libx264 defaults to 1.4 (in case of tune=grain to 1.1)
+                ("f_pb_factor", "1.3"),
+                // A comma-separated list of partitions to consider. Possible values: p8x8, p4x4, b8x8, i8x8, i4x4, none, all
+                ("partitions", settings.preset.default_partitions()),
+                // Subpixel motion estimation and mode decision (decision quality: 1=fast, 11=best)
+                ("subq", settings.preset.default_subq_mode()),
+            ]),
+        )?;
 
         Ok(Self {
             encoder,
@@ -236,15 +230,23 @@ pub struct Encoder<Output: PipelineOutput> {
 }
 
 impl<Output: PipelineOutput> Encoder<Output> {
-    pub fn new(opts: OutputOptions<Output>) -> Result<Self, String> {
+    pub fn new(opts: OutputOptions<Output>) -> Result<Self, OutputInitError> {
         let mut encoder = LibavH264Encoder::new(opts.encoder_settings, opts.resolution)?;
         let (frame_sender, frame_receiver) = crossbeam_channel::unbounded();
         // channel used to return information about the RtpSender initialization back to the API thread.
         let (output_sender, output_receiver) = crossbeam_channel::bounded(0);
 
         std::thread::spawn(move || {
-            let (output, mut context) = Output::new(opts.receiver_options, encoder.codec());
-            output_sender.send(output.clone()).unwrap();
+            let (output, mut context) = match Output::new(opts.receiver_options, encoder.codec()) {
+                Ok(r) => r,
+                Err(e) => {
+                    output_sender.send(Err(e)).unwrap();
+                    return;
+                }
+            };
+
+            output_sender.send(Ok(output.clone())).unwrap();
+
             for frame in frame_receiver.iter() {
                 if frame_receiver.len() > 20 {
                     warn!("Dropping frame: encoder queue is too long.");
@@ -259,7 +261,7 @@ impl<Output: PipelineOutput> Encoder<Output> {
 
         Ok(Self {
             sender: frame_sender,
-            output: output_receiver.recv().unwrap(),
+            output: output_receiver.recv().unwrap()?,
         })
     }
 

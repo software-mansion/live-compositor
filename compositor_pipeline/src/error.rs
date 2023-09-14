@@ -18,8 +18,8 @@ pub enum RegisterOutputError {
     #[error("Failed to register output stream. Stream \"{0}\" is already registered.")]
     AlreadyRegistered(OutputId),
 
-    #[error("Failed to register output stream for stream \"{0}\". Encoder error occurred: {1}")]
-    EncoderError(OutputId, String),
+    #[error("Encoder error while registering output stream for stream \"{0}\".")]
+    EncoderError(OutputId, #[source] OutputInitError),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -42,6 +42,18 @@ pub enum UnregisterOutputError {
         "Failed to unregister output stream. Stream \"{0}\" is still used in the current scene."
     )]
     StillInUse(OutputId),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum OutputInitError {
+    #[error("Could not find an ffmpeg codec")]
+    NoCodec,
+
+    #[error(transparent)]
+    FfmpegError(#[from] ffmpeg_next::Error),
+
+    #[error(transparent)]
+    OutputError(#[from] Box<dyn std::error::Error + Send + Sync + 'static>),
 }
 
 pub enum ErrorType {

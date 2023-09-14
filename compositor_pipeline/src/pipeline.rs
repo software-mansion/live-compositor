@@ -36,7 +36,10 @@ pub trait PipelineOutput: Send + Sync + Sized + Clone + 'static {
     type Context: 'static;
 
     fn send_packet(&self, context: &mut Self::Context, packet: Packet);
-    fn new(opts: Self::Opts, codec: Codec) -> (Self, Self::Context);
+    fn new(
+        opts: Self::Opts,
+        codec: Codec,
+    ) -> Result<(Self, Self::Context), Box<dyn std::error::Error + Send + Sync + 'static>>;
 }
 
 pub trait PipelineInput: Send + Sync + 'static {

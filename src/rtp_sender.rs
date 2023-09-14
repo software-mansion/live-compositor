@@ -22,13 +22,14 @@ pub struct Options {
     pub ip: Arc<str>,
 }
 
-// TODO: unwraps
-
 impl PipelineOutput for RtpSender {
     type Opts = Options;
     type Context = RtpContext;
 
-    fn new(options: Options, codec: Codec) -> (Self, RtpContext) {
+    fn new(
+        options: Options,
+        codec: Codec,
+    ) -> Result<(Self, RtpContext), Box<dyn std::error::Error + Send + Sync + 'static>> {
         let port = options.port;
         let ip = options.ip.clone();
 
@@ -38,17 +39,16 @@ impl PipelineOutput for RtpSender {
                 options.ip, options.port, options.port
             )),
             "rtp",
-        )
-        .unwrap();
+        )?;
 
-        let mut stream = output_ctx.add_stream(codec).unwrap();
+        let mut stream = output_ctx.add_stream(codec)?;
         unsafe {
             (*(*stream.as_mut_ptr()).codecpar).codec_id = codec::Id::H264.into();
         }
 
-        output_ctx.write_header().unwrap();
+        output_ctx.write_header()?;
 
-        (Self { port, ip }, RtpContext(output_ctx))
+        Ok((Self { port, ip }, RtpContext(output_ctx)))
     }
 
     fn send_packet(&self, context: &mut RtpContext, packet: Packet) {
