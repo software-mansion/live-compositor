@@ -10,7 +10,7 @@ use crate::renderer::{
 
 use compositor_common::{
     renderer_spec::{FallbackStrategy, WebRendererSpec},
-    scene::{validation::constraints::Constraints, NodeId, Resolution},
+    scene::{constraints::Constraints, NodeId, Resolution},
 };
 use log::{error, info};
 use serde::{Deserialize, Serialize};

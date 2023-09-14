@@ -2,9 +2,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use compositor_common::{
-    scene::{
-        validation::constraints::Constraints, InputId, NodeParams, OutputId, Resolution, SceneSpec,
-    },
+    scene::{constraints::Constraints, InputId, NodeParams, OutputId, Resolution, SceneSpec},
     Framerate,
 };
 use log::error;

@@ -10,8 +10,8 @@ use crate::util::colors::RGBAColor;
 use crate::util::coord::Coord;
 use crate::util::degree::Degree;
 
-use super::validation::constraints::input_count::InputsCountConstraint;
-use super::validation::constraints::Constraints;
+use super::constraints::input_count::InputsCountConstraint;
+use super::constraints::Constraints;
 use super::NodeSpec;
 use super::Resolution;
 

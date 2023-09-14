@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 pub mod builtin_transformations;
+pub mod constraints;
 pub mod id;
 pub mod node;
 pub mod shader;

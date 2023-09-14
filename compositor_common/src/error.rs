@@ -4,9 +4,7 @@ use log::error;
 
 use crate::{
     renderer_spec::RendererId,
-    scene::{
-        validation::constraints::input_count::InputsCountConstraint, NodeId, NodeParams, OutputId,
-    },
+    scene::{constraints::input_count::InputsCountConstraint, NodeId, NodeParams, OutputId},
 };
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]

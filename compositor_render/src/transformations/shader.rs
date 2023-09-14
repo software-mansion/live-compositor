@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use compositor_common::{
     renderer_spec::{FallbackStrategy, ShaderSpec},
-    scene::validation::constraints::Constraints,
+    scene::constraints::Constraints,
 };
 
 use crate::renderer::WgpuCtx;

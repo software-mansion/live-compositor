@@ -4,9 +4,9 @@ use crate::{error::NodeSpecValidationError, renderer_spec::RendererId};
 
 use super::{
     builtin_transformations::BuiltinSpec,
+    constraints::{input_count::InputsCountConstraint, Constraints},
     shader::ShaderParam,
     text_spec::TextSpec,
-    validation::constraints::{input_count::InputsCountConstraint, Constraints},
     NodeSpec, Resolution,
 };
 

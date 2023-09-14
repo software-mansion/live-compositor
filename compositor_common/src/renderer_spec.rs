@@ -3,7 +3,7 @@ use std::{fmt::Display, sync::Arc};
 use serde::{Deserialize, Serialize};
 
 use crate::scene::{
-    validation::constraints::{input_count::InputsCountConstraint, Constraints},
+    constraints::{input_count::InputsCountConstraint, Constraints},
     Resolution,
 };
 
