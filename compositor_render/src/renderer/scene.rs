@@ -45,8 +45,8 @@ pub enum UpdateSceneError {
     #[error("Unknown resolution on the output node. Nodes that are declared as outputs need to have constant resolution that is the same as resolution of the output stream.")]
     UnknownResolutionOnOutput(NodeId),
 
-    #[error(transparent)]
-    ConstraintsValidationError(#[from] UnsatisfiedConstraintsError),
+    #[error("Constraints for node \"{1}\" are not satisfied.")]
+    ConstraintsValidationError(#[source] UnsatisfiedConstraintsError, NodeId),
 }
 
 impl Scene {

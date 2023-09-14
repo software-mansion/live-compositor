@@ -2,7 +2,10 @@ use std::rc::Rc;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{error::UnsatisfiedConstraintsError, scene::NodeSpec};
+use crate::{
+    error::{InputsCountConstraintValidationError, UnsatisfiedConstraintsError},
+    scene::NodeSpec,
+};
 
 #[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
 #[serde(untagged)]
@@ -28,12 +31,13 @@ impl InputsCountConstraint {
         if is_valid {
             Ok(())
         } else {
-            Err(UnsatisfiedConstraintsError::InvalidInputsCount {
-                node_id: node_spec.node_id.clone(),
-                identification_name: node_spec.identification_name(),
-                input_count_constrain: self.clone(),
-                defined_input_pads_count,
-            })
+            Err(UnsatisfiedConstraintsError::InvalidInputsCount(
+                InputsCountConstraintValidationError {
+                    node_identifier: (&node_spec.params).into(),
+                    input_count_constrain: self.clone(),
+                    defined_input_pads_count,
+                },
+            ))
         }
     }
 

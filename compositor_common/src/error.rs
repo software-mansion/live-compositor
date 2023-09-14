@@ -1,8 +1,13 @@
-use std::{collections::HashSet, fmt::Display, rc::Rc};
+use std::{collections::HashSet, fmt::Display};
 
 use log::error;
 
-use crate::scene::{validation::constraints::input_count::InputsCountConstraint, NodeId, OutputId};
+use crate::{
+    renderer_spec::RendererId,
+    scene::{
+        validation::constraints::input_count::InputsCountConstraint, NodeId, NodeParams, OutputId,
+    },
+};
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum SceneSpecValidationError {
@@ -46,19 +51,43 @@ impl Display for UnusedNodesError {
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum UnsatisfiedConstraintsError {
-    #[error(
-        "Invalid input pads specification for node \"{}\". {} requires {}. {}",
-        node_id,
-        identification_name,
-        input_count_constrain.required_inputs_message(),
-        Self::defined_inputs_message(defined_input_pads_count)
-    )]
-    InvalidInputsCount {
-        node_id: NodeId,
-        identification_name: Rc<str>,
-        input_count_constrain: InputsCountConstraint,
-        defined_input_pads_count: u32,
-    },
+    #[error(transparent)]
+    InvalidInputsCount(InputsCountConstraintValidationError),
+}
+
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+pub struct InputsCountConstraintValidationError {
+    pub node_identifier: NodeIdentifier,
+    pub input_count_constrain: InputsCountConstraint,
+    pub defined_input_pads_count: u32,
+}
+
+impl Display for InputsCountConstraintValidationError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let expects = match self.input_count_constrain {
+            InputsCountConstraint::Exactly(expected) if expected == 0 => {
+                "doesn't except input pads".to_owned()
+            }
+            InputsCountConstraint::Exactly(expected) if expected == 1 => {
+                "expects exactly one input pad".to_owned()
+            }
+            InputsCountConstraint::Exactly(expected) => {
+                format!("expects exactly {expected} input pads")
+            }
+            InputsCountConstraint::Range {
+                lower_bound,
+                upper_bound,
+            } => format!("expects at least {lower_bound} and at most {upper_bound} input pads"),
+        };
+
+        let specified = match self.defined_input_pads_count {
+            0 => "none input pads were specified.".to_owned(),
+            1 => "one input pad was specified.".to_owned(),
+            n => format!("{n} input pads were specified."),
+        };
+
+        write!(f, "{} {}, but {}", self.node_identifier, expects, specified)
+    }
 }
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
@@ -79,6 +108,45 @@ pub enum BuiltinSpecValidationError {
     FixedLayoutTopBottomOnlyOne,
     #[error("Fields \"left\" and \"right\" are mutually exclusive, you can only specify one in texture layout in \"fixed_position_layout\" transformation.")]
     FixedLayoutLeftRightOnlyOne,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum NodeIdentifier {
+    WebRenderer(RendererId),
+    Shader(RendererId),
+    Text,
+    Image(RendererId),
+    Builtin(&'static str),
+}
+
+impl From<&NodeParams> for NodeIdentifier {
+    fn from(node_params: &NodeParams) -> Self {
+        match node_params {
+            NodeParams::WebRenderer { instance_id } => Self::WebRenderer(instance_id.clone()),
+            NodeParams::Shader { shader_id, .. } => Self::Shader(shader_id.clone()),
+            NodeParams::Text(_) => Self::Text,
+            NodeParams::Image { image_id } => Self::Image(image_id.clone()),
+            NodeParams::Builtin { transformation } => {
+                Self::Builtin(transformation.transformation_name())
+            }
+        }
+    }
+}
+
+impl Display for NodeIdentifier {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            NodeIdentifier::WebRenderer(instance_id) => {
+                write!(f, "\"{}\" web renderer", instance_id)
+            }
+            NodeIdentifier::Shader(shader_id) => write!(f, "\"{}\" shader", shader_id),
+            NodeIdentifier::Text => write!(f, "Text"),
+            NodeIdentifier::Image(image_id) => write!(f, "\"{}\" image", image_id),
+            NodeIdentifier::Builtin(builtin_name) => {
+                write!(f, "\"{}\" builtin transformation", builtin_name)
+            }
+        }
+    }
 }
 
 pub struct ErrorStack<'a>(Option<&'a (dyn std::error::Error + 'static)>);
@@ -102,15 +170,5 @@ impl<'a> Iterator for ErrorStack<'a> {
             self.0 = err.source();
             err
         })
-    }
-}
-
-impl UnsatisfiedConstraintsError {
-    fn defined_inputs_message(defined_input_pads_count: &u32) -> String {
-        match defined_input_pads_count {
-            0 => "No input pads were specified.".to_owned(),
-            1 => "One input pad was specified.".to_owned(),
-            n => format!("{} input pads were specified.", n),
-        }
     }
 }

@@ -1,5 +1,3 @@
-use std::rc::Rc;
-
 use serde::{Deserialize, Serialize};
 
 use crate::{error::NodeSpecValidationError, renderer_spec::RendererId};
@@ -39,21 +37,6 @@ impl NodeSpec {
         match &self.params {
             NodeParams::Builtin { transformation } => Ok(transformation.validate_params(self)?),
             _ => Ok(()),
-        }
-    }
-
-    pub fn identification_name(&self) -> Rc<str> {
-        match &self.params {
-            NodeParams::WebRenderer { instance_id, .. } => {
-                Rc::from(format!("\"{}\" web renderer", instance_id))
-            }
-            NodeParams::Shader { shader_id, .. } => Rc::from(format!("\"{}\" shader", shader_id)),
-            NodeParams::Text(_) => Rc::from("Text renderer"),
-            NodeParams::Image { .. } => Rc::from("Image"),
-            NodeParams::Builtin { transformation } => Rc::from(format!(
-                "\"{}\" builtin transformation",
-                transformation.transformation_name()
-            )),
         }
     }
 }

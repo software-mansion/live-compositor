@@ -138,7 +138,7 @@ impl From<&UpdateSceneError> for PipelineErrorInfo {
             UpdateSceneError::UnknownResolutionOnOutput(_) => {
                 PipelineErrorInfo::new(UNKNOWN_RESOLUTION_ON_OUTPUT_NODE, ErrorType::ServerError)
             }
-            UpdateSceneError::ConstraintsValidationError(_) => PipelineErrorInfo {
+            UpdateSceneError::ConstraintsValidationError(_, _) => PipelineErrorInfo {
                 error_code: CONSTRAINTS_VALIDATION_ERROR,
                 error_type: ErrorType::UserError,
             },
