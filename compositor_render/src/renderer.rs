@@ -246,7 +246,7 @@ impl WgpuCtx {
         ))?;
 
         let shader_header =
-            naga::front::wgsl::parse_str(include_str!("transformations/shader_header.wgsl"))
+            naga::front::wgsl::parse_str(include_str!("gpu_shader/shader_header.wgsl"))
                 .expect("failed to parse the shader header file");
 
         let scope = WgpuErrorScope::push(&device);
@@ -278,15 +278,15 @@ impl WgpuCtx {
 #[derive(Debug, bytemuck::Pod, bytemuck::Zeroable, Clone, Copy)]
 pub struct CommonShaderParameters {
     time: f32,
-    pub textures_count: u32,
+    pub texture_count: u32,
     output_resolution: [u32; 2],
 }
 
 impl CommonShaderParameters {
-    pub fn new(time: Duration, textures_count: u32, output_resolution: Resolution) -> Self {
+    pub fn new(time: Duration, texture_count: u32, output_resolution: Resolution) -> Self {
         Self {
             time: time.as_secs_f32(),
-            textures_count,
+            texture_count,
             output_resolution: [
                 output_resolution.width as u32,
                 output_resolution.height as u32,

@@ -12,7 +12,7 @@ struct VertexOutput {
 
 struct CommonShaderParameters {
     time: f32,
-    textures_count: u32,
+    texture_count: u32,
     output_resolution: vec2<u32>,
 }
 
@@ -48,7 +48,7 @@ fn vs_main(input: VertexInput) -> VertexOutput {
 fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
     let sample = textureSample(textures[input.texture_id], sampler_, input.tex_coords);
     
-    if common_params.textures_count == 0u {
+    if common_params.texture_count == 0u {
         return vec4<f32>(0.0, 0.0, 0.0, 0.0);
     }
 

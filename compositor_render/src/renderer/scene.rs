@@ -22,10 +22,10 @@ pub struct Scene {
 
 #[derive(Debug, thiserror::Error)]
 pub enum UpdateSceneError {
-    #[error("Failed to create node \"{1}\". {0}")]
+    #[error("Failed to create node \"{1}\".")]
     CreateNodeError(#[source] CreateNodeError, NodeId),
 
-    #[error("Invalid scene. {0}")]
+    #[error(transparent)]
     InvalidSpec(#[from] SceneSpecValidationError),
 
     #[error("Unknown node \"{0}\" used in scene.")]

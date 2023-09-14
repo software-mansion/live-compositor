@@ -21,7 +21,7 @@ fn vs_main(input: VertexInput) -> VertexOutput {
 
 struct CommonShaderParameters {
     time: f32,
-    textures_count: u32,
+    texture_count: u32,
     output_resolution: vec2<u32>,
 }
 
@@ -33,7 +33,7 @@ var<push_constant> common_params: CommonShaderParameters;
 @fragment
 fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
     // Return transparent frame in case of different input video count
-    if (common_params.textures_count != 1u) {
+    if (common_params.texture_count != 1u) {
         return vec4(0.0, 0.0, 0.0, 0.0);
     }
 

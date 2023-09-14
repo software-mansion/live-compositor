@@ -138,7 +138,7 @@ impl Pipeline {
             render_pass.set_bind_group(2, &self.sampler.bind_group, &[]);
 
             self.surfaces
-                .draw(&mut render_pass, common_parameters.textures_count);
+                .draw(&mut render_pass, common_parameters.texture_count);
         }
 
         // TODO: this should not submit, it should return the command buffer.

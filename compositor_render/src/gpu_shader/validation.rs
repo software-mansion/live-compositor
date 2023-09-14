@@ -3,7 +3,7 @@ use naga::{ArraySize, ConstantInner, Handle, Module, ScalarKind, ShaderStage, Ty
 
 use super::{
     error::{
-        ConstArraySizeEvalError, ParametersValidationError, ShaderGlobalVariableExt,
+        BindingExt, ConstArraySizeEvalError, ParametersValidationError, ShaderGlobalVariableExt,
         ShaderValidationError, TypeEquivalenceError,
     },
     USER_DEFINED_BUFFER_BINDING, USER_DEFINED_BUFFER_GROUP,
@@ -35,7 +35,7 @@ fn validate_globals(
             |err| {
                 ShaderValidationError::GlobalBadType(
                     err,
-                    global.name.clone().unwrap_or("value".to_string()),
+                    global_in_shader.name.clone().unwrap_with("<unknown>"),
                 )
             },
         )?;
@@ -87,10 +87,7 @@ fn validate_vertex_input(
         .find(|(_, ty)| ty.name == vertex_input_type.name)
         .ok_or_else(|| {
             ShaderValidationError::VertexShaderBadInputTypeName(
-                vertex_input_type
-                    .name
-                    .clone()
-                    .unwrap_or("<unknown>".to_string()),
+                vertex_input_type.name.clone().unwrap_with("<unknown>"),
             )
         })?;
 
@@ -109,11 +106,11 @@ fn validate_type_equivalent(
     let expected_type = &expected_module.types[expected];
     let provided_type = &provided_module.types[provided];
 
-    if expected_type.name != provided_type.name {
-        return Err(TypeEquivalenceError::TypeNameMismatch(
-            expected_type.name.clone(),
-            provided_type.name.clone(),
-        ));
+    if expected_type.name != provided_type.name && expected_type.name.is_some() {
+        return Err(TypeEquivalenceError::TypeNameMismatch {
+            expected: expected_type.name.clone().unwrap_with("<unknown>"),
+            actual: provided_type.name.clone().unwrap_with("<unknown>"),
+        });
     }
 
     let expected_inner = match expected_type.inner.canonical_form(&expected_module.types) {
@@ -230,7 +227,7 @@ fn validate_type_equivalent(
 
             if expected_members.len() != provided_members.len() {
                 return Err(TypeEquivalenceError::StructFieldNumberMismatch {
-                    struct_name: expected_type.name.as_ref().unwrap().clone(),
+                    struct_name: expected_type.name.unwrap_with("<unnamed>"),
                     expected_field_number: expected_members.len(),
                     actual_field_number: provided_members.len(),
                 });
@@ -241,23 +238,14 @@ fn validate_type_equivalent(
             {
                 if expected_member.name != provided_member.name {
                     return Err(TypeEquivalenceError::StructFieldNameMismatch {
-                        struct_name: expected_type.name.as_ref().unwrap().clone(),
-                        expected_field_name: expected_member.name.as_ref().unwrap().clone(),
-                        actual_field_name: provided_member.name.as_ref().unwrap().clone(),
+                        struct_name: expected_type.name.unwrap_with("<unnamed>"),
+                        expected_field_name: expected_member.name.unwrap_with("<unnamed>"),
+                        actual_field_name: provided_member.name.unwrap_with("<unnamed>"),
                     });
                 }
 
                 // skipped checking if m1.offset == m2.offset
                 // if all fields have the same types, how can the offsets be different?
-
-                if expected_member.binding != provided_member.binding {
-                    return Err(TypeEquivalenceError::StructFieldBindingMismatch {
-                        struct_name: expected_type.name.as_ref().unwrap().clone(),
-                        field_name: expected_member.name.as_ref().unwrap().clone(),
-                        expected_binding: expected_member.binding.clone(),
-                        actual_binding: provided_member.binding.clone(),
-                    });
-                }
 
                 validate_type_equivalent(
                     expected_member.ty,
@@ -267,11 +255,28 @@ fn validate_type_equivalent(
                 )
                 .map_err(|err| {
                     TypeEquivalenceError::StructFieldStructureMismatch {
-                        struct_name: expected_type.name.as_ref().unwrap().clone(),
-                        field_name: expected_member.name.as_ref().unwrap().clone(),
+                        struct_name: expected_type.name.unwrap_with("<unnamed>"),
+                        field_name: expected_member.name.unwrap_with("<unnamed>"),
                         error: Box::new(err),
                     }
                 })?;
+
+                if expected_member.binding != provided_member.binding {
+                    return Err(TypeEquivalenceError::StructFieldBindingMismatch {
+                        struct_name: expected_type.name.unwrap_with("<unnamed>"),
+                        field_name: expected_member.name.unwrap_with("<unnamed>"),
+                        expected_binding: expected_member
+                            .binding
+                            .as_ref()
+                            .map(BindingExt::to_string)
+                            .unwrap_with("<no binding>"),
+                        actual_binding: provided_member
+                            .binding
+                            .as_ref()
+                            .map(BindingExt::to_string)
+                            .unwrap_with("<no binding>"),
+                    });
+                }
             }
         }
 
@@ -343,25 +348,29 @@ pub fn validate_params(
     let ty = &module.types[ty];
 
     match &ty.inner {
-        naga::TypeInner::Scalar { kind, width } => validate_scalar(params, *kind, *width),
+        naga::TypeInner::Scalar { kind, width } => validate_scalar(params, *kind, *width, module),
 
         naga::TypeInner::Vector { size, kind, width } => {
-            validate_vector(params, *size, *kind, *width)
+            validate_vector(params, *size, *kind, *width, module)
         }
 
         naga::TypeInner::Matrix {
             columns,
             rows,
             width,
-        } => validate_matrix(params, *columns, *rows, *width),
+        } => validate_matrix(params, *columns, *rows, *width, module),
 
         naga::TypeInner::Array { base, size, stride } => {
             validate_array(params, *base, *size, *stride, module)
         }
 
-        naga::TypeInner::Struct { members, span } => {
-            validate_struct(params, ty.name.as_ref().unwrap(), members, *span, module)
-        }
+        naga::TypeInner::Struct { members, span } => validate_struct(
+            params,
+            ty.name.as_deref().unwrap_or("<unnamed>"),
+            members,
+            *span,
+            module,
+        ),
 
         naga::TypeInner::Pointer { .. }
         | naga::TypeInner::ValuePointer { .. }
@@ -387,19 +396,23 @@ fn validate_struct(
         ShaderParam::Struct(param_fields) => {
             if struct_members_in_shader.len() != param_fields.len() {
                 return Err(ParametersValidationError::WrongShaderFieldsAmount {
+                    struct_name: struct_name_in_shader.to_string(),
                     expected: struct_members_in_shader.len(),
-                    provided: param_fields.len(),
+                    actual: param_fields.len(),
                 });
             }
 
-            for (shader_member, param_field) in
-                struct_members_in_shader.iter().zip(param_fields.iter())
+            for (index, (shader_member, param_field)) in struct_members_in_shader
+                .iter()
+                .zip(param_fields.iter())
+                .enumerate()
             {
-                if shader_member.name.as_ref().unwrap() != &param_field.field_name {
+                if shader_member.name.as_deref().unwrap_or("<unnamed>") != param_field.field_name {
                     return Err(ParametersValidationError::WrongFieldName {
+                        index,
                         struct_name: struct_name_in_shader.into(),
-                        expected: shader_member.name.as_ref().unwrap().clone(),
-                        provided: param_field.field_name.clone(),
+                        expected: shader_member.name.unwrap_with("<unnamed>"),
+                        actual: param_field.field_name.clone(),
                     });
                 }
 
@@ -415,13 +428,14 @@ fn validate_struct(
             Ok(())
         }
 
-        _ => Err(ParametersValidationError::WrongType(
-            params.clone(),
-            naga::TypeInner::Struct {
+        _ => Err(ParametersValidationError::WrongType {
+            actual: params.to_string(),
+            expected: naga::TypeInner::Struct {
                 members: struct_members_in_shader.to_owned(),
                 span,
-            },
-        )),
+            }
+            .to_string(module),
+        }),
     }
 }
 
@@ -440,7 +454,7 @@ fn validate_array(
             if list.len() > evaluated_size as usize {
                 return Err(ParametersValidationError::ListTooLong {
                     expected: evaluated_size as usize,
-                    provided: list.len(),
+                    actual: list.len(),
                 });
             }
 
@@ -456,10 +470,10 @@ fn validate_array(
             Ok(())
         }
 
-        _ => Err(ParametersValidationError::WrongType(
-            params.clone(),
-            naga::TypeInner::Array { base, size, stride },
-        )),
+        _ => Err(ParametersValidationError::WrongType {
+            actual: params.to_string(),
+            expected: naga::TypeInner::Array { base, size, stride }.to_string(module),
+        }),
     }
 }
 
@@ -468,18 +482,19 @@ fn validate_matrix(
     columns: VectorSize,
     rows: VectorSize,
     width: u8,
+    module: &naga::Module,
 ) -> Result<(), ParametersValidationError> {
     match params {
         ShaderParam::List(rows_list) => {
             if rows_list.len() != rows as usize {
                 return Err(ParametersValidationError::ListTooLong {
                     expected: rows as usize,
-                    provided: rows_list.len(),
+                    actual: rows_list.len(),
                 });
             }
 
             for (idx, row) in rows_list.iter().enumerate() {
-                validate_vector(row, columns, ScalarKind::Float, width).map_err(|err| {
+                validate_vector(row, columns, ScalarKind::Float, width, module).map_err(|err| {
                     ParametersValidationError::WrongMatrixRowType {
                         idx,
                         error: Box::new(err),
@@ -490,14 +505,15 @@ fn validate_matrix(
             Ok(())
         }
 
-        _ => Err(ParametersValidationError::WrongType(
-            params.clone(),
-            naga::TypeInner::Matrix {
+        _ => Err(ParametersValidationError::WrongType {
+            actual: params.to_string(),
+            expected: naga::TypeInner::Matrix {
                 columns,
                 rows,
                 width,
-            },
-        )),
+            }
+            .to_string(module),
+        }),
     }
 }
 
@@ -506,18 +522,19 @@ fn validate_vector(
     size: VectorSize,
     kind: ScalarKind,
     width: u8,
+    module: &naga::Module,
 ) -> Result<(), ParametersValidationError> {
     match params {
         ShaderParam::List(list) => {
             if list.len() != size as usize {
                 return Err(ParametersValidationError::ListTooLong {
                     expected: size as usize,
-                    provided: list.len(),
+                    actual: list.len(),
                 });
             }
 
             for (idx, v) in list.iter().enumerate() {
-                validate_scalar(v, kind, width).map_err(|err| {
+                validate_scalar(v, kind, width, module).map_err(|err| {
                     ParametersValidationError::WrongVectorElementType {
                         idx,
                         error: Box::new(err),
@@ -528,10 +545,10 @@ fn validate_vector(
             Ok(())
         }
 
-        _ => Err(ParametersValidationError::WrongType(
-            params.clone(),
-            naga::TypeInner::Vector { size, kind, width },
-        )),
+        _ => Err(ParametersValidationError::WrongType {
+            actual: params.to_string(),
+            expected: naga::TypeInner::Vector { size, kind, width }.to_string(module),
+        }),
     }
 }
 
@@ -539,30 +556,31 @@ fn validate_scalar(
     params: &ShaderParam,
     kind: ScalarKind,
     width: u8,
+    module: &naga::Module,
 ) -> Result<(), ParametersValidationError> {
     match (kind, width) {
         (ScalarKind::Float, 4) => match params {
             ShaderParam::F32(_) => Ok(()),
-            _ => Err(ParametersValidationError::WrongType(
-                params.clone(),
-                naga::TypeInner::Scalar { kind, width },
-            )),
+            _ => Err(ParametersValidationError::WrongType {
+                actual: params.to_string(),
+                expected: naga::TypeInner::Scalar { kind, width }.to_string(module),
+            }),
         },
 
         (ScalarKind::Uint, 4) => match params {
             ShaderParam::U32(_) => Ok(()),
-            _ => Err(ParametersValidationError::WrongType(
-                params.clone(),
-                naga::TypeInner::Scalar { kind, width },
-            )),
+            _ => Err(ParametersValidationError::WrongType {
+                actual: params.to_string(),
+                expected: naga::TypeInner::Scalar { kind, width }.to_string(module),
+            }),
         },
 
         (ScalarKind::Sint, 4) => match params {
             ShaderParam::I32(_) => Ok(()),
-            _ => Err(ParametersValidationError::WrongType(
-                params.clone(),
-                naga::TypeInner::Scalar { kind, width },
-            )),
+            _ => Err(ParametersValidationError::WrongType {
+                actual: params.to_string(),
+                expected: naga::TypeInner::Scalar { kind, width }.to_string(module),
+            }),
         },
 
         _ => Err(ParametersValidationError::UnsupportedScalarKind(
@@ -682,6 +700,46 @@ impl ScalarKindExt for naga::ScalarKind {
             ScalarKind::Float => format!("f{}", width * 8),
             ScalarKind::Bool => "bool".to_string(),
         }
+    }
+}
+
+trait ShaderParamExt {
+    fn to_string(&self) -> String;
+}
+
+impl ShaderParamExt for ShaderParam {
+    fn to_string(&self) -> String {
+        match self {
+            ShaderParam::F32(_) => "f32".to_string(),
+            ShaderParam::U32(_) => "u32".to_string(),
+            ShaderParam::I32(_) => "i32".to_string(),
+            ShaderParam::List(list) => {
+                let list = list
+                    .iter()
+                    .map(|field| field.to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                format!("[{}]", list)
+            }
+            ShaderParam::Struct(fields) => {
+                let fields = fields
+                    .iter()
+                    .map(|field| format!("{}: {}", field.field_name, field.value.to_string()))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                format!("struct {{ {} }}", fields)
+            }
+        }
+    }
+}
+
+trait OptionUnwrapExt {
+    fn unwrap_with(self, fallback: &'static str) -> String;
+}
+
+impl OptionUnwrapExt for &Option<String> {
+    fn unwrap_with(self, fallback: &'static str) -> String {
+        self.clone().unwrap_or_else(|| fallback.to_string())
     }
 }
 
