@@ -1,7 +1,4 @@
-use std::{
-    collections::HashMap,
-    sync::{Arc, Mutex},
-};
+use std::sync::{Arc, Mutex};
 
 use bytes::Bytes;
 use compositor_chromium::cef;
@@ -42,21 +39,24 @@ impl BrowserController {
     pub fn send_sources(
         &mut self,
         ctx: &RenderCtx,
+        node_id: NodeId,
         sources: &[(&NodeId, &NodeTexture)],
-        buffers: &HashMap<NodeId, Arc<wgpu::Buffer>>,
+        buffers: &[Arc<wgpu::Buffer>],
     ) -> Result<(), EmbedFrameError> {
         self.copy_sources_to_buffers(ctx, sources, buffers)?;
 
         let mut pending_downloads = Vec::new();
-        for (id, texture) in sources.iter() {
+        for (i, ((_, texture), buffer)) in sources.iter().zip(buffers).enumerate() {
             let Some(texture_state) = texture.state() else {
                 continue;
             };
             let size = texture_state.rgba_texture().size();
-            let buffer = buffers
-                .get(id)
-                .ok_or(EmbedFrameError::ExpectDownloadBuffer)?;
-            pending_downloads.push(self.copy_buffer_to_shmem((*id).clone(), size, buffer.clone()));
+            pending_downloads.push(self.copy_buffer_to_shmem(
+                node_id.clone(),
+                i,
+                size,
+                buffer.clone(),
+            ));
         }
 
         ctx.wgpu_ctx.device.poll(wgpu::Maintain::Wait);
@@ -65,7 +65,7 @@ impl BrowserController {
             pending()?;
         }
 
-        self.chromium_sender.embed_sources(sources);
+        self.chromium_sender.embed_sources(node_id, sources);
         Ok(())
     }
 
@@ -73,20 +73,17 @@ impl BrowserController {
         &self,
         ctx: &RenderCtx,
         sources: &[(&NodeId, &NodeTexture)],
-        buffers: &HashMap<NodeId, Arc<wgpu::Buffer>>,
+        buffers: &[Arc<wgpu::Buffer>],
     ) -> Result<(), EmbedFrameError> {
         let mut encoder = ctx
             .wgpu_ctx
             .device
             .create_command_encoder(&Default::default());
 
-        for (id, texture) in sources.iter() {
+        for ((_, texture), buffer) in sources.iter().zip(buffers) {
             let Some(texture_state) = texture.state() else {
                 continue;
             };
-            let buffer = buffers
-                .get(id)
-                .ok_or(EmbedFrameError::ExpectDownloadBuffer)?;
             texture_state
                 .rgba_texture()
                 .copy_to_buffer(&mut encoder, buffer);
@@ -98,7 +95,8 @@ impl BrowserController {
 
     fn copy_buffer_to_shmem(
         &self,
-        id: NodeId,
+        node_id: NodeId,
+        source_idx: usize,
         size: wgpu::Extent3d,
         source: Arc<wgpu::Buffer>,
     ) -> impl FnOnce() -> Result<(), EmbedFrameError> + '_ {
@@ -115,7 +113,7 @@ impl BrowserController {
             r.recv().unwrap()?;
 
             self.chromium_sender
-                .update_shared_memory(id, source.clone(), size);
+                .update_shared_memory(node_id, source_idx, source.clone(), size);
             source.unmap();
 
             Ok(())

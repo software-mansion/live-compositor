@@ -1,6 +1,7 @@
 use std::{env, sync::Arc};
 
 use compositor_chromium::cef;
+use compositor_common::scene::NodeId;
 use compositor_render::{EMBED_SOURCE_FRAMES_MESSAGE, UNEMBED_SOURCE_FRAMES_MESSAGE};
 use log::error;
 use shared_memory::ShmemConf;
@@ -40,40 +41,64 @@ impl RenderProcessHandler {
             panic!("Expected global to be an object");
         };
 
-        for i in (0..msg.size()).step_by(3) {
-            let Some(source_id) = msg.read_string(i) else {
-                error!("Failed to read source ID at {i}");
+        let Some(node_id) = msg.read_string(0) else {
+            error!("Failed to read node ID");
+            return;
+        };
+
+        let node_id = NodeId(node_id.into());
+
+        for i in (1..msg.size()).step_by(3) {
+            let Some(source_index) = msg.read_int(i) else {
+                error!("Failed to read source index at {i}");
                 continue;
             };
+            let source_index = source_index as usize;
 
             let Some(width) = msg.read_int(i + 1) else {
-                error!("Failed to read width of {} at {}", source_id, i + 1);
+                error!(
+                    "Failed to read width of input {} at {}",
+                    source_index,
+                    i + 1
+                );
                 continue;
             };
 
             let Some(height) = msg.read_int(i + 2) else {
-                error!("Failed to read height of {} at {}", source_id, i + 2);
+                error!(
+                    "Failed to read height of input {} at {}",
+                    source_index,
+                    i + 2
+                );
                 continue;
             };
 
-            if !self.state.contains_source(&source_id) {
-                self.embed_frame(source_id.clone(), width, height, &mut global, &ctx_entered);
+            if !self.state.contains_source(&(node_id.clone(), source_index)) {
+                self.embed_frame(
+                    node_id.clone(),
+                    source_index,
+                    width,
+                    height,
+                    &mut global,
+                    &ctx_entered,
+                );
             }
         }
     }
 
     fn embed_frame(
         &self,
-        source_id: String,
+        node_id: NodeId,
+        source_idx: usize,
         width: i32,
         height: i32,
         global: &mut cef::V8Object,
         ctx_entered: &cef::V8ContextEntered,
     ) {
-        let shmem = ShmemConf::new()
-            .flink(env::temp_dir().join(&source_id))
-            .open()
-            .unwrap();
+        let shmem_path = env::temp_dir()
+            .join(node_id.to_string())
+            .join(source_idx.to_string());
+        let shmem = ShmemConf::new().flink(shmem_path).open().unwrap();
         let data_ptr = shmem.as_ptr();
         let array_buffer: cef::V8Value = unsafe {
             cef::V8ArrayBuffer::from_ptr(data_ptr, (4 * width * height) as usize, ctx_entered)
@@ -86,7 +111,7 @@ impl RenderProcessHandler {
         // User has to handle this data manually. This approach is not really ergonomic and elegant
         global
             .set(
-                &format!("{source_id}_data"),
+                &format!("input_{source_idx}_data"),
                 &array_buffer,
                 cef::V8PropertyAttribute::DoNotDelete,
                 ctx_entered,
@@ -95,7 +120,7 @@ impl RenderProcessHandler {
 
         global
             .set(
-                &format!("{source_id}_width"),
+                &format!("input_{source_idx}_width"),
                 &cef::V8Int::new(width).into(),
                 cef::V8PropertyAttribute::DoNotDelete,
                 ctx_entered,
@@ -104,7 +129,7 @@ impl RenderProcessHandler {
 
         global
             .set(
-                &format!("{source_id}_height"),
+                &format!("input_{source_idx}_height"),
                 &cef::V8Int::new(height).into(),
                 cef::V8PropertyAttribute::DoNotDelete,
                 ctx_entered,
@@ -112,15 +137,23 @@ impl RenderProcessHandler {
             .unwrap();
         // ------
 
-        self.state.insert_source(source_id, shmem, array_buffer);
+        self.state
+            .insert_source((node_id, source_idx), shmem, array_buffer);
     }
 
     fn handle_unembed_source(&self, msg: &cef::ProcessMessage, surface: &cef::Frame) {
-        let Some(source_id) = msg.read_string(0) else {
-            error!("Failed to read source ID");
+        let Some(node_id) = msg.read_string(0) else {
+            error!("Failed to read node ID");
+            return;
+        };
+        let node_id = NodeId(node_id.into());
+
+        let Some(source_index) = msg.read_int(1) else {
+            error!("Failed to read source index");
             return;
         };
 
+        let source_id = format!("input_{source_index}");
         let ctx = surface.v8_context().unwrap();
         let ctx_entered = ctx.enter().unwrap();
         if let cef::V8Value::Object(mut global) = ctx.global().unwrap() {
@@ -129,6 +162,6 @@ impl RenderProcessHandler {
             panic!("Expected global to be an object");
         }
 
-        self.state.remove_source(&source_id);
+        self.state.remove_source(&(node_id, source_index as usize));
     }
 }

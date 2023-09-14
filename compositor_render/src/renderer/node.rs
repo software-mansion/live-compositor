@@ -7,6 +7,7 @@ use crate::transformations::shader::error::ParametersValidationError;
 use compositor_common::scene::{NodeId, NodeParams, NodeSpec, Resolution};
 use log::error;
 
+use crate::transformations::web_renderer::node::WebRendererNodeError;
 use crate::transformations::{
     builtin::{node::BuiltinNode, Builtin},
     image_renderer::ImageNode,
@@ -35,7 +36,9 @@ impl RenderNode {
                     .web_renderers
                     .get(instance_id)
                     .ok_or_else(|| CreateNodeError::WebRendererNotFound(instance_id.clone()))?;
-                Ok(Self::Web(WebRendererNode::new(renderer)))
+                let node = WebRendererNode::new(spec.node_id.clone(), renderer)?;
+
+                Ok(Self::Web(node))
             }
             NodeParams::Shader {
                 shader_id,
@@ -198,6 +201,9 @@ pub enum CreateNodeError {
 
     #[error("Instance of web renderer \"{0}\" does not exist. You have to register it first before using it in the scene definition.")]
     WebRendererNotFound(RendererId),
+
+    #[error(transparent)]
+    CreateWebRendererNodeError(#[from] WebRendererNodeError),
 
     #[error("Image \"{0}\" does not exist. You have to register it first before using it in the scene definition.")]
     ImageNotFound(RendererId),

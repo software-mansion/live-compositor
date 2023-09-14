@@ -10,10 +10,11 @@ use compositor_common::{
     error::ErrorStack,
     scene::{NodeId, Resolution},
 };
-use crossbeam_channel::{select, Receiver, Sender};
+use crossbeam_channel::{Receiver, Sender};
 use log::error;
 use shared_memory::{Shmem, ShmemConf, ShmemError};
 
+use crate::transformations::web_renderer::chromium_sender::ChromiumSenderMessage;
 use crate::{
     renderer::texture::utils::pad_to_256, EMBED_SOURCE_FRAMES_MESSAGE,
     UNEMBED_SOURCE_FRAMES_MESSAGE,
@@ -26,8 +27,7 @@ pub(super) struct ChromiumSenderThread {
     url: String,
     browser_client: BrowserClient,
 
-    embed_sources_receiver: Receiver<Vec<(NodeId, Resolution)>>,
-    shmem_update_receiver: Receiver<(NodeId, Arc<wgpu::Buffer>, wgpu::Extent3d)>,
+    message_receiver: Receiver<ChromiumSenderMessage>,
     unmap_signal_sender: Sender<()>,
 }
 
@@ -36,16 +36,14 @@ impl ChromiumSenderThread {
         ctx: Arc<ChromiumContext>,
         url: String,
         browser_client: BrowserClient,
-        embed_sources_receiver: Receiver<Vec<(NodeId, Resolution)>>,
-        shmem_update_receiver: Receiver<(NodeId, Arc<wgpu::Buffer>, wgpu::Extent3d)>,
+        message_receiver: Receiver<ChromiumSenderMessage>,
         unmap_signal_sender: Sender<()>,
     ) -> Self {
         Self {
             ctx,
             url,
             browser_client,
-            embed_sources_receiver,
-            shmem_update_receiver,
+            message_receiver,
             unmap_signal_sender,
         }
     }
@@ -55,7 +53,6 @@ impl ChromiumSenderThread {
     }
 
     fn run(&mut self) {
-        let mut shared_memories = HashMap::new();
         let Ok(browser) = self
             .ctx
             .start_browser(&self.url, self.browser_client.clone())
@@ -64,10 +61,23 @@ impl ChromiumSenderThread {
             return;
         };
 
+        let mut state = ThreadState {
+            browser,
+            shared_memories: HashMap::new(),
+        };
+
         loop {
-            let result = select! {
-                recv(self.embed_sources_receiver) -> sources_info => self.handle_embed_frames(&browser, sources_info.unwrap()),
-                recv(self.shmem_update_receiver) -> data => self.handle_shmem_update(&browser, &mut shared_memories, data.unwrap()),
+            let result = match self.message_receiver.recv().unwrap() {
+                ChromiumSenderMessage::EmbedSources {
+                    node_id,
+                    resolutions,
+                } => self.handle_embed_frames(&state, node_id, resolutions),
+                ChromiumSenderMessage::UpdateSharedMemory {
+                    node_id,
+                    source_idx,
+                    buffer,
+                    size,
+                } => self.handle_shmem_update(&mut state, node_id, source_idx, buffer, size),
             };
 
             if let Err(err) = result {
@@ -81,24 +91,28 @@ impl ChromiumSenderThread {
 
     fn handle_embed_frames(
         &self,
-        browser: &cef::Browser,
-        sources_info: Vec<(NodeId, Resolution)>,
+        state: &ThreadState,
+        node_id: NodeId,
+        resolutions: Vec<Resolution>,
     ) -> Result<(), ChromiumSenderThreadError> {
         let mut process_message = cef::ProcessMessage::new(EMBED_SOURCE_FRAMES_MESSAGE);
         let mut index = 0;
 
         // IPC message to chromium renderer subprocess consists of:
-        // - input node ID - used for retrieving frame data from shared memory and it also serves as variable name in JS
+        // - web renderer node ID - used as a shared memory folder name
+        // - input node index - used for retrieving frame data from shared memory and it also serves as variable name in JS
         // - texture width
         // - texture height
-        for (id, resolution) in sources_info {
-            process_message.write_string(index, id.to_string());
+        process_message.write_string(index, node_id.to_string());
+        index += 1;
+        for (i, resolution) in resolutions.iter().enumerate() {
+            process_message.write_int(index, i as i32);
             process_message.write_int(index + 1, resolution.width as i32);
             process_message.write_int(index + 2, resolution.height as i32);
             index += 3;
         }
 
-        let frame = browser.main_frame()?;
+        let frame = state.browser.main_frame()?;
         frame.send_process_message(cef::ProcessId::Renderer, process_message)?;
 
         Ok(())
@@ -106,20 +120,22 @@ impl ChromiumSenderThread {
 
     // TODO: Synchronize shared memory access
     fn handle_shmem_update(
-        &mut self,
-        browser: &cef::Browser,
-        shared_memories: &mut HashMap<NodeId, Shmem>,
-        (id, buffer, size): (NodeId, Arc<wgpu::Buffer>, wgpu::Extent3d),
+        &self,
+        state: &mut ThreadState,
+        node_id: NodeId,
+        source_idx: usize,
+        buffer: Arc<wgpu::Buffer>,
+        size: wgpu::Extent3d,
     ) -> Result<(), ChromiumSenderThreadError> {
-        let shmem = match shared_memories.get(&id) {
+        let shmem = match state.shared_memories.get(&(node_id.clone(), source_idx)) {
             Some(shmem) => {
                 if shmem.len() != (4 * size.width * size.height) as usize {
-                    self.resize_shmem(id, size, browser, shared_memories)?
+                    state.resize_shmem((node_id.clone(), source_idx), size)?
                 } else {
                     shmem
                 }
             }
-            None => self.create_insert_shmem(id, size, shared_memories)?,
+            None => state.create_insert_shmem((node_id.clone(), source_idx), size)?,
         };
 
         // Writes buffer data to shared memory
@@ -141,37 +157,46 @@ impl ChromiumSenderThread {
         self.unmap_signal_sender.send(()).unwrap();
         Ok(())
     }
+}
 
-    fn create_insert_shmem<'a>(
-        &'a mut self,
-        source_id: NodeId,
+struct ThreadState {
+    browser: cef::Browser,
+    shared_memories: HashMap<(NodeId, usize), Shmem>,
+}
+
+impl ThreadState {
+    fn create_insert_shmem(
+        &mut self,
+        key: (NodeId, usize),
         size: wgpu::Extent3d,
-        shared_memories: &'a mut HashMap<NodeId, Shmem>,
     ) -> Result<&Shmem, ChromiumSenderThreadError> {
+        let shmem_path = env::temp_dir()
+            .join(key.0.to_string())
+            .join(key.1.to_string());
         let shmem = ShmemConf::new()
-            .flink(env::temp_dir().join(source_id.to_string()))
+            .flink(shmem_path)
             .size((4 * size.width * size.height) as usize)
             .force_create_flink()
             .create()?;
-        shared_memories.insert(source_id.clone(), shmem);
-        Ok(shared_memories.get(&source_id).unwrap())
+
+        self.shared_memories.insert(key.clone(), shmem);
+        Ok(self.shared_memories.get(&key).unwrap())
     }
 
-    fn resize_shmem<'a>(
-        &'a mut self,
-        source_id: NodeId,
+    fn resize_shmem(
+        &mut self,
+        key: (NodeId, usize),
         size: wgpu::Extent3d,
-        browser: &cef::Browser,
-        shared_memories: &'a mut HashMap<NodeId, Shmem>,
     ) -> Result<&Shmem, ChromiumSenderThreadError> {
         let mut process_message = cef::ProcessMessage::new(UNEMBED_SOURCE_FRAMES_MESSAGE);
-        process_message.write_string(0, source_id.to_string());
+        process_message.write_string(0, key.0.to_string());
+        process_message.write_int(1, key.1 as i32);
 
-        let frame = browser.main_frame()?;
+        let frame = self.browser.main_frame()?;
         frame.send_process_message(cef::ProcessId::Renderer, process_message)?;
 
-        shared_memories.remove(&source_id);
-        self.create_insert_shmem(source_id, size, shared_memories)
+        self.shared_memories.remove(&key);
+        self.create_insert_shmem(key, size)
     }
 }
 

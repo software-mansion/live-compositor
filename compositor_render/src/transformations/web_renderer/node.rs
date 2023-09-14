@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{env, fs, io, sync::Arc};
 
 use compositor_common::{
     error::ErrorStack,
@@ -15,16 +15,20 @@ use crate::renderer::{
 use super::WebRenderer;
 
 pub struct WebRendererNode {
+    node_id: NodeId,
     renderer: Arc<WebRenderer>,
-    buffers: HashMap<NodeId, Arc<wgpu::Buffer>>,
+    buffers: Vec<Arc<wgpu::Buffer>>,
 }
 
 impl WebRendererNode {
-    pub fn new(renderer: Arc<WebRenderer>) -> Self {
-        Self {
+    pub fn new(node_id: NodeId, renderer: Arc<WebRenderer>) -> Result<Self, WebRendererNodeError> {
+        Self::create_shmem_folder(&node_id)?;
+
+        Ok(Self {
+            node_id,
             renderer,
-            buffers: HashMap::new(),
-        }
+            buffers: Vec::new(),
+        })
     }
 
     pub fn render(
@@ -33,19 +37,26 @@ impl WebRendererNode {
         sources: &[(&NodeId, &NodeTexture)],
         target: &mut NodeTexture,
     ) {
-        for (id, texture) in sources {
+        for (i, (_, texture)) in sources.iter().enumerate() {
             let Some(texture_state) = texture.state() else {
                 continue;
             };
 
             let texture = texture_state.rgba_texture();
-            match self.buffers.get(id) {
-                Some(buffer) => self.ensure_buffer_size(ctx.wgpu_ctx, id, buffer.size(), texture),
-                None => self.create_insert_buffer(ctx.wgpu_ctx, (*id).clone(), texture),
+            match self.buffers.get_mut(i) {
+                Some(buffer) => Self::ensure_buffer_size(ctx.wgpu_ctx, buffer, texture),
+                None => self
+                    .buffers
+                    .push(Arc::new(texture.new_download_buffer(ctx.wgpu_ctx))),
             }
         }
 
-        if let Err(err) = self.renderer.render(ctx, sources, &self.buffers, target) {
+        self.buffers.truncate(sources.len());
+
+        if let Err(err) = self
+            .renderer
+            .render(ctx, &self.node_id, sources, &self.buffers, target)
+        {
             error!(
                 "Failed to run web render: {}",
                 ErrorStack::new(&err).into_string()
@@ -61,22 +72,27 @@ impl WebRendererNode {
         self.renderer.fallback_strategy
     }
 
-    fn ensure_buffer_size(
-        &mut self,
-        ctx: &WgpuCtx,
-        node_id: &NodeId,
-        buffer_size: u64,
-        texture: &RGBATexture,
-    ) {
+    fn ensure_buffer_size(ctx: &WgpuCtx, buffer: &mut Arc<wgpu::Buffer>, texture: &RGBATexture) {
         let texture_size = texture.size();
         let texture_size = (4 * pad_to_256(texture_size.width) * texture_size.height) as u64;
-        if buffer_size != texture_size {
-            self.create_insert_buffer(ctx, node_id.clone(), texture);
+        if buffer.size() != texture_size {
+            *buffer = Arc::new(texture.new_download_buffer(ctx));
         }
     }
 
-    fn create_insert_buffer(&mut self, ctx: &WgpuCtx, node_id: NodeId, texture: &RGBATexture) {
-        self.buffers
-            .insert(node_id, Arc::new(texture.new_download_buffer(ctx)));
+    /// Creates folder for shared memory descriptors used by this node
+    fn create_shmem_folder(node_id: &NodeId) -> Result<(), WebRendererNodeError> {
+        let path = env::temp_dir().join(node_id.to_string());
+        if path.exists() {
+            return Ok(());
+        }
+
+        fs::create_dir_all(path).map_err(WebRendererNodeError::CreateShmemFolderFailed)
     }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum WebRendererNodeError {
+    #[error("Failed to create folder for shared memories")]
+    CreateShmemFolderFailed(#[source] io::Error),
 }

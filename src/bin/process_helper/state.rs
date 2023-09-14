@@ -1,10 +1,13 @@
 use std::{collections::HashMap, sync::Mutex};
 
 use compositor_chromium::cef;
+use compositor_common::scene::NodeId;
 use shared_memory::Shmem;
 
+pub type SourceKey = (NodeId, usize);
+
 pub struct State {
-    sources: Mutex<HashMap<String, Source>>,
+    sources: Mutex<HashMap<SourceKey, Source>>,
 }
 
 impl State {
@@ -14,10 +17,10 @@ impl State {
         }
     }
 
-    pub fn insert_source(&self, id: String, shmem: Shmem, array_buffer: cef::V8Value) {
+    pub fn insert_source(&self, key: SourceKey, shmem: Shmem, array_buffer: cef::V8Value) {
         let mut sources = self.sources.lock().unwrap();
         sources.insert(
-            id,
+            key,
             Source {
                 _shmem: shmem,
                 _array_buffer: array_buffer,
@@ -25,14 +28,14 @@ impl State {
         );
     }
 
-    pub fn remove_source(&self, id: &str) {
+    pub fn remove_source(&self, key: &SourceKey) {
         let mut sources = self.sources.lock().unwrap();
-        sources.remove(id);
+        sources.remove(key);
     }
 
-    pub fn contains_source(&self, id: &str) -> bool {
+    pub fn contains_source(&self, key: &SourceKey) -> bool {
         let sources = self.sources.lock().unwrap();
-        sources.contains_key(id)
+        sources.contains_key(key)
     }
 }
 

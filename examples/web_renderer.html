@@ -14,7 +14,7 @@
         background-color: white;
     }
 
-    #input_1 {
+    canvas {
         border: 2px solid black;
         animation: anim infinite ease-in-out;
         animation-duration: 3s;
@@ -38,8 +38,8 @@
 </style>
 
 <body>
-    <h2>Frame embedding:</h2>
-    <canvas id="input_1"></canvas>
+<h2>Frame embedding:</h2>
+<canvas id="input_0"></canvas>
 </body>
 
 <script>
@@ -66,7 +66,8 @@
             ctx.putImageData(imageView, 0, 0);
         }, 16);
     }
-    run("input_1");
+
+    run("input_0");
 </script>
 
 </html>
