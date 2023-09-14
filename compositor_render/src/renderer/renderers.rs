@@ -12,11 +12,11 @@ use crate::{
 
 use super::WgpuCtx;
 
-pub struct Renderers {
-    pub shaders: RendererRegistry<Arc<Shader>>,
-    pub web_renderers: RendererRegistry<Arc<WebRenderer>>,
-    pub images: RendererRegistry<Image>,
-    pub builtin: BuiltinTransformations,
+pub(crate) struct Renderers {
+    pub(crate) shaders: RendererRegistry<Arc<Shader>>,
+    pub(crate) web_renderers: RendererRegistry<Arc<WebRenderer>>,
+    pub(crate) images: RendererRegistry<Image>,
+    pub(crate) builtin: BuiltinTransformations,
 }
 
 impl Renderers {

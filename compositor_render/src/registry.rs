@@ -35,7 +35,7 @@ impl RegistryType {
     }
 }
 
-pub struct RendererRegistry<T: Clone> {
+pub(crate) struct RendererRegistry<T: Clone> {
     registry: HashMap<RendererId, T>,
     registry_type: RegistryType,
 }
