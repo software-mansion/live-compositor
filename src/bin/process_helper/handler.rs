@@ -36,9 +36,7 @@ impl RenderProcessHandler {
     fn handle_embed_sources(&self, msg: &cef::ProcessMessage, surface: &cef::Frame) {
         let ctx = surface.v8_context().unwrap();
         let ctx_entered = ctx.enter().unwrap();
-        let cef::V8Value::Object(mut global) = ctx.global().unwrap() else {
-            panic!("Expected global to be an object");
-        };
+        let mut global = ctx.global().unwrap();
 
         for i in (0..msg.size()).step_by(3) {
             let Some(source_id) = msg.read_string(i) else {
@@ -67,7 +65,7 @@ impl RenderProcessHandler {
         source_id: String,
         width: i32,
         height: i32,
-        global: &mut cef::V8Object,
+        global: &mut cef::V8Global,
         ctx_entered: &cef::V8ContextEntered,
     ) {
         let shmem = ShmemConf::new()
@@ -123,11 +121,8 @@ impl RenderProcessHandler {
 
         let ctx = surface.v8_context().unwrap();
         let ctx_entered = ctx.enter().unwrap();
-        if let cef::V8Value::Object(mut global) = ctx.global().unwrap() {
-            global.delete(&source_id, &ctx_entered).unwrap();
-        } else {
-            panic!("Expected global to be an object");
-        }
+        let mut global = ctx.global().unwrap();
+        global.delete(&source_id, &ctx_entered).unwrap();
 
         self.state.remove_source(&source_id);
     }
