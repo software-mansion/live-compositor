@@ -2,10 +2,7 @@ use std::collections::HashMap;
 
 use compositor_common::{
     error::{SceneSpecValidationError, UnsatisfiedConstraintsError},
-    scene::{
-        validation::constraints::Constraints, InputId, NodeId, NodeParams, NodeSpec, OutputId,
-        SceneSpec,
-    },
+    scene::{InputId, NodeId, OutputId, SceneSpec},
 };
 use log::error;
 
