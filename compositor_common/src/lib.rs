@@ -1,6 +1,8 @@
-use std::time::Duration;
+#[macro_use]
+extern crate lazy_static;
 
 use serde::{Deserialize, Serialize};
+use std::time::Duration;
 
 pub mod error;
 pub mod frame;

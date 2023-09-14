@@ -4,7 +4,7 @@ use crate::{error::NodeSpecValidationError, renderer_spec::RendererId};
 
 use super::{
     builtin_transformations::BuiltinSpec,
-    constraints::{input_count::InputsCountConstraint, Constraints},
+    constraints::{input_count::InputsCountConstraint, Constraint, NodeConstraints},
     shader::ShaderParam,
     text_spec::TextSpec,
     NodeSpec, Resolution,
@@ -41,12 +41,21 @@ impl NodeSpec {
     }
 }
 
-impl NodeParams {
-    pub const TEXT_CONSTRAINTS: Constraints = Constraints {
-        inputs_count: InputsCountConstraint::Exactly(0),
-    };
+lazy_static! {
+    static ref TEXT_CONSTRAINTS: NodeConstraints = NodeConstraints(vec![Constraint::InputCount(
+        InputsCountConstraint::Exactly(0),
+    )]);
+    static ref IMAGE_CONSTRAINTS: NodeConstraints = NodeConstraints(vec![Constraint::InputCount(
+        InputsCountConstraint::Exactly(0),
+    )]);
+}
 
-    pub const IMAGE_CONSTRAINTS: Constraints = Constraints {
-        inputs_count: InputsCountConstraint::Exactly(0),
-    };
+impl NodeParams {
+    pub fn text_constraints() -> &'static NodeConstraints {
+        &TEXT_CONSTRAINTS
+    }
+
+    pub fn image_constraints() -> &'static NodeConstraints {
+        &IMAGE_CONSTRAINTS
+    }
 }

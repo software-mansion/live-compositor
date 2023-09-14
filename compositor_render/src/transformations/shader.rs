@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use compositor_common::{
     renderer_spec::{FallbackStrategy, ShaderSpec},
-    scene::constraints::Constraints,
+    scene::constraints::NodeConstraints,
 };
 
 use crate::renderer::WgpuCtx;
@@ -15,7 +15,7 @@ pub struct Shader {
     executor: ShaderExecutor,
     fallback_strategy: FallbackStrategy,
     clear_color: Option<wgpu::Color>,
-    constraints: Constraints,
+    constraints: NodeConstraints,
 }
 
 impl Shader {
@@ -33,7 +33,7 @@ impl Shader {
         })
     }
 
-    pub fn constraints(&self) -> &Constraints {
+    pub fn constraints(&self) -> &NodeConstraints {
         &self.constraints
     }
 }

@@ -2,7 +2,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use compositor_common::{
-    scene::{constraints::Constraints, InputId, NodeParams, OutputId, Resolution, SceneSpec},
+    scene::{constraints::NodeConstraints, InputId, NodeParams, OutputId, Resolution, SceneSpec},
     Framerate,
 };
 use log::error;
@@ -158,7 +158,7 @@ impl Renderer {
         Ok(())
     }
 
-    fn node_constraints(&self, node_params: &NodeParams) -> Option<&Constraints> {
+    fn node_constraints(&self, node_params: &NodeParams) -> Option<&NodeConstraints> {
         match node_params {
             NodeParams::WebRenderer { instance_id } => self
                 .renderers
@@ -170,8 +170,8 @@ impl Renderer {
                 .shaders
                 .get_ref(shader_id)
                 .map(|shader| shader.constraints()),
-            NodeParams::Text(_) => Some(&NodeParams::TEXT_CONSTRAINTS),
-            NodeParams::Image { .. } => Some(&NodeParams::IMAGE_CONSTRAINTS),
+            NodeParams::Text(_) => Some(NodeParams::text_constraints()),
+            NodeParams::Image { .. } => Some(NodeParams::image_constraints()),
             NodeParams::Builtin { transformation } => Some(transformation.constrains()),
         }
     }

@@ -7,14 +7,15 @@ use crate::{
 
 use self::input_count::InputsCountConstraint;
 
+use super::NodeSpec;
+
 pub mod input_count;
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct Constraints {
-    pub inputs_count: InputsCountConstraint,
-}
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct NodeConstraints(pub(crate) Vec<Constraint>);
 
-impl Constraints {
+impl NodeConstraints {
     pub fn validate(
         &self,
         scene: &SceneSpec,
@@ -26,8 +27,29 @@ impl Constraints {
             .find(|node| &node.node_id == node_id)
             .unwrap();
 
-        self.inputs_count.check(node_spec)?;
+        for constraint in &self.0 {
+            constraint.check(node_spec)?;
+        }
 
         Ok(())
+    }
+
+    pub fn empty() -> Self {
+        NodeConstraints(Vec::new())
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub(crate) enum Constraint {
+    InputCount(InputsCountConstraint),
+}
+
+impl Constraint {
+    fn check(&self, node_spec: &NodeSpec) -> Result<(), UnsatisfiedConstraintsError> {
+        match self {
+            Constraint::InputCount(inputs_count_constraint) => {
+                inputs_count_constraint.check(node_spec)
+            }
+        }
     }
 }

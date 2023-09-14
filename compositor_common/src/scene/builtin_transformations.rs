@@ -4,14 +4,15 @@ use serde::{Deserialize, Serialize};
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 
 use crate::error::BuiltinSpecValidationError;
+use crate::scene::constraints::input_count::InputsCountConstraint;
 use crate::util::align::HorizontalAlign;
 use crate::util::align::VerticalAlign;
 use crate::util::colors::RGBAColor;
 use crate::util::coord::Coord;
 use crate::util::degree::Degree;
 
-use super::constraints::input_count::InputsCountConstraint;
-use super::constraints::Constraints;
+use super::constraints::Constraint;
+use super::constraints::NodeConstraints;
 use super::NodeSpec;
 use super::Resolution;
 
@@ -113,6 +114,31 @@ impl FromStr for MirrorMode {
     }
 }
 
+lazy_static! {
+    static ref TRANSFORM_TO_RESOLUTION_CONSTRAINTS: NodeConstraints =
+        NodeConstraints(vec![Constraint::InputCount(
+            InputsCountConstraint::Exactly(1)
+        )]);
+    static ref FIXED_POSITION_LAYOUT_CONSTRAINTS: NodeConstraints =
+        NodeConstraints(vec![Constraint::InputCount(InputsCountConstraint::Range {
+            lower_bound: 1,
+            upper_bound: FIXED_POSITION_LAYOUT_MAX_INPUTS_COUNT,
+        })]);
+    static ref TILED_LAYOUT_CONSTRAINTS: NodeConstraints =
+        NodeConstraints(vec![Constraint::InputCount(InputsCountConstraint::Range {
+            lower_bound: 1,
+            upper_bound: FIXED_POSITION_LAYOUT_MAX_INPUTS_COUNT,
+        })]);
+    static ref MIRROR_IMAGE_CONSTRAINTS: NodeConstraints =
+        NodeConstraints(vec![Constraint::InputCount(
+            InputsCountConstraint::Exactly(1)
+        )]);
+    static ref CORNERS_ROUNDING_CONSTRAINTS: NodeConstraints =
+        NodeConstraints(vec![Constraint::InputCount(
+            InputsCountConstraint::Exactly(1)
+        )]);
+}
+
 impl BuiltinSpec {
     pub fn transformation_name(&self) -> &'static str {
         match self {
@@ -173,29 +199,13 @@ impl BuiltinSpec {
         }
     }
 
-    pub fn constrains(&self) -> &'static Constraints {
+    pub fn constrains(&self) -> &'static NodeConstraints {
         match self {
-            BuiltinSpec::TransformToResolution { .. } => &Constraints {
-                inputs_count: InputsCountConstraint::Exactly(1),
-            },
-            BuiltinSpec::FixedPositionLayout { .. } => &Constraints {
-                inputs_count: InputsCountConstraint::Range {
-                    lower_bound: 1,
-                    upper_bound: FIXED_POSITION_LAYOUT_MAX_INPUTS_COUNT,
-                },
-            },
-            BuiltinSpec::TiledLayout { .. } => &Constraints {
-                inputs_count: InputsCountConstraint::Range {
-                    lower_bound: 1,
-                    upper_bound: TILED_LAYOUT_MAX_INPUTS_COUNT,
-                },
-            },
-            BuiltinSpec::MirrorImage { .. } => &Constraints {
-                inputs_count: InputsCountConstraint::Exactly(1),
-            },
-            BuiltinSpec::CornersRounding { .. } => &Constraints {
-                inputs_count: InputsCountConstraint::Exactly(1),
-            },
+            BuiltinSpec::TransformToResolution { .. } => &TRANSFORM_TO_RESOLUTION_CONSTRAINTS,
+            BuiltinSpec::FixedPositionLayout { .. } => &FIXED_POSITION_LAYOUT_CONSTRAINTS,
+            BuiltinSpec::TiledLayout { .. } => &TILED_LAYOUT_CONSTRAINTS,
+            BuiltinSpec::MirrorImage { .. } => &MIRROR_IMAGE_CONSTRAINTS,
+            BuiltinSpec::CornersRounding { .. } => &CORNERS_ROUNDING_CONSTRAINTS,
         }
     }
 }
