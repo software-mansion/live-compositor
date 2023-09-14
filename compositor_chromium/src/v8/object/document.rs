@@ -1,6 +1,7 @@
 use crate::cef::{V8ContextEntered, V8Element, V8Object, V8ObjectError, V8String, V8Value};
 
 pub struct V8Document(pub V8Object);
+
 impl V8Document {
     pub fn element_by_id(
         &self,

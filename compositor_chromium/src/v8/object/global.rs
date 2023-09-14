@@ -2,6 +2,7 @@ use crate::cef::{V8Document, V8Object, V8ObjectError, V8Value};
 use crate::v8::{V8ContextEntered, V8PropertyAttribute};
 
 pub struct V8Global(pub V8Object);
+
 impl V8Global {
     pub fn has(&self, key: &str) -> Result<bool, V8ObjectError> {
         self.0.has(key)
@@ -35,7 +36,7 @@ impl V8Global {
         args: &[V8Value],
         ctx_entered: &V8ContextEntered,
     ) -> Result<V8Value, V8ObjectError> {
-       self.0.call_method(name, args, ctx_entered)
+        self.0.call_method(name, args, ctx_entered)
     }
 
     pub fn document(&self) -> Result<V8Document, V8ObjectError> {
