@@ -6,7 +6,7 @@ use std::time::Duration;
 
 use compositor_common::error::ErrorStack;
 use compositor_common::renderer_spec::{RendererId, RendererSpec};
-use compositor_common::scene::{InputId, OutputId, SceneSpec};
+use compositor_common::scene::{InputId, OutputId, Resolution, SceneSpec};
 use compositor_common::{Frame, Framerate};
 use compositor_render::error::{
     InitRendererEngineError, RegisterRendererError, UnregisterRendererError,
@@ -17,6 +17,8 @@ use compositor_render::renderer::RendererOptions;
 use compositor_render::WebRendererOptions;
 use compositor_render::{error::UpdateSceneError, Renderer};
 use crossbeam_channel::unbounded;
+use crossbeam_channel::Sender;
+use ffmpeg_next::{Codec, Packet};
 use log::{error, warn};
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, DurationMilliSeconds};
@@ -26,11 +28,17 @@ use crate::error::{
 };
 use crate::queue::Queue;
 
-pub trait PipelineOutput: Send + Sync + 'static {
-    type Opts;
+use self::encoder::{Encoder, EncoderSettings};
 
-    fn send_frame(&self, frame: Frame);
-    fn new(opts: Self::Opts) -> Self;
+pub mod encoder;
+
+pub trait PipelineOutputReceiver: 'static {
+    type Opts: Send + Sync + 'static;
+    type Identifier: Send + Sync + 'static;
+
+    fn send_packet(&mut self, packet: Packet);
+    fn new(opts: Self::Opts, codec: Codec) -> Self;
+    fn identifier(&self) -> Self::Identifier;
 }
 
 pub trait PipelineInput: Send + Sync + 'static {
@@ -39,9 +47,56 @@ pub trait PipelineInput: Send + Sync + 'static {
     fn new(queue: Arc<Queue>, opts: Self::Opts) -> Self;
 }
 
-pub struct Pipeline<Input: PipelineInput, Output: PipelineOutput> {
+pub struct OutputOptions<Receiver: PipelineOutputReceiver> {
+    pub receiver_options: Receiver::Opts,
+    pub encoder_settings: EncoderSettings,
+    pub resolution: Resolution,
+}
+
+pub struct PipelineOutput<Receiver: PipelineOutputReceiver> {
+    sender: Sender<Frame>,
+    receiver_identifier: Receiver::Identifier,
+}
+
+impl<Receiver: PipelineOutputReceiver> PipelineOutput<Receiver> {
+    fn new(opts: OutputOptions<Receiver>) -> Result<Self, String> {
+        let mut encoder = Encoder::new(opts.encoder_settings, opts.resolution)?;
+        let (tx, rx) = crossbeam_channel::unbounded();
+        let (id_tx, id_rx) = crossbeam_channel::bounded(1);
+
+        std::thread::spawn(move || {
+            let mut receiver = Receiver::new(opts.receiver_options, encoder.codec());
+            id_tx.send(receiver.identifier()).unwrap();
+            for frame in rx.iter() {
+                if rx.len() > 20 {
+                    warn!("Dropping frame: encoder queue is too long.");
+                    continue;
+                }
+
+                for packet in encoder.send_frame(frame) {
+                    receiver.send_packet(packet);
+                }
+            }
+        });
+
+        Ok(Self {
+            sender: tx,
+            receiver_identifier: id_rx.recv().unwrap(),
+        })
+    }
+
+    fn send_frame(&self, frame: Frame) {
+        self.sender.send(frame).unwrap();
+    }
+
+    pub fn identifier(&self) -> &Receiver::Identifier {
+        &self.receiver_identifier
+    }
+}
+
+pub struct Pipeline<Input: PipelineInput, Receiver: PipelineOutputReceiver> {
     inputs: HashMap<InputId, Arc<Input>>,
-    outputs: OutputRegistry<Output>,
+    outputs: OutputRegistry<PipelineOutput<Receiver>>,
     queue: Arc<Queue>,
     renderer: Renderer,
 }
@@ -57,7 +112,7 @@ pub struct Options {
     pub web_renderer: WebRendererOptions,
 }
 
-impl<Input: PipelineInput, Output: PipelineOutput> Pipeline<Input, Output> {
+impl<Input: PipelineInput, Receiver: PipelineOutputReceiver> Pipeline<Input, Receiver> {
     pub fn new(opts: Options) -> Result<(Self, EventLoop), InitRendererEngineError> {
         let (renderer, event_loop) = Renderer::new(RendererOptions {
             web_renderer: opts.web_renderer,
@@ -124,13 +179,16 @@ impl<Input: PipelineInput, Output: PipelineOutput> Pipeline<Input, Output> {
     pub fn register_output(
         &self,
         output_id: OutputId,
-        output_opts: Output::Opts,
+        output_opts: OutputOptions<Receiver>,
     ) -> Result<(), RegisterOutputError> {
         if self.outputs.contains_key(&output_id) {
             return Err(RegisterOutputError::AlreadyRegistered(output_id));
         }
-        self.outputs
-            .insert(output_id, Output::new(output_opts).into());
+
+        let output = PipelineOutput::new(output_opts)
+            .map_err(|e| RegisterOutputError::EncoderError(output_id.clone(), e))?;
+
+        self.outputs.insert(output_id, output.into());
         Ok(())
     }
 
@@ -221,22 +279,22 @@ impl<Input: PipelineInput, Output: PipelineOutput> Pipeline<Input, Output> {
 
     pub fn with_outputs<F, R>(&self, f: F) -> R
     where
-        F: Fn(OutputIterator<'_, Output>) -> R,
+        F: Fn(OutputIterator<'_, PipelineOutput<Receiver>>) -> R,
     {
         let guard = self.outputs.lock();
         f(OutputIterator::new(guard.iter()))
     }
 }
 
-struct OutputRegistry<Output: PipelineOutput>(Arc<Mutex<HashMap<OutputId, Arc<Output>>>>);
+struct OutputRegistry<T>(Arc<Mutex<HashMap<OutputId, Arc<T>>>>);
 
-impl<Output: PipelineOutput> Clone for OutputRegistry<Output> {
+impl<T> Clone for OutputRegistry<T> {
     fn clone(&self) -> Self {
         Self(self.0.clone())
     }
 }
 
-impl<Output: PipelineOutput> OutputRegistry<Output> {
+impl<T> OutputRegistry<T> {
     fn new() -> Self {
         Self(Arc::new(Mutex::new(HashMap::new())))
     }
@@ -245,31 +303,31 @@ impl<Output: PipelineOutput> OutputRegistry<Output> {
         self.0.lock().unwrap().contains_key(key)
     }
 
-    fn insert(&self, key: OutputId, value: Arc<Output>) -> Option<Arc<Output>> {
+    fn insert(&self, key: OutputId, value: Arc<T>) -> Option<Arc<T>> {
         self.0.lock().unwrap().insert(key, value)
     }
 
-    fn remove(&self, key: &OutputId) -> Option<Arc<Output>> {
+    fn remove(&self, key: &OutputId) -> Option<Arc<T>> {
         self.0.lock().unwrap().remove(key)
     }
 
-    fn lock(&self) -> MutexGuard<HashMap<OutputId, Arc<Output>>> {
+    fn lock(&self) -> MutexGuard<HashMap<OutputId, Arc<T>>> {
         self.0.lock().unwrap()
     }
 }
 
-pub struct OutputIterator<'a, Output: PipelineOutput> {
-    inner_iter: hash_map::Iter<'a, OutputId, Arc<Output>>,
+pub struct OutputIterator<'a, T> {
+    inner_iter: hash_map::Iter<'a, OutputId, Arc<T>>,
 }
 
-impl<'a, Output: PipelineOutput> OutputIterator<'a, Output> {
-    fn new(iter: hash_map::Iter<'a, OutputId, Arc<Output>>) -> Self {
+impl<'a, T> OutputIterator<'a, T> {
+    fn new(iter: hash_map::Iter<'a, OutputId, Arc<T>>) -> Self {
         Self { inner_iter: iter }
     }
 }
 
-impl<'a, Output: PipelineOutput> Iterator for OutputIterator<'a, Output> {
-    type Item = (&'a OutputId, &'a Output);
+impl<'a, T> Iterator for OutputIterator<'a, T> {
+    type Item = (&'a OutputId, &'a T);
 
     fn next(&mut self) -> Option<Self::Item> {
         self.inner_iter.next().map(|(id, node)| (id, node.as_ref()))
