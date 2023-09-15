@@ -11,12 +11,13 @@ use super::NodeSpec;
 
 pub mod input_count;
 
+// TODO validate constraints aren't self-contradictory
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct NodeConstraints(pub(crate) Vec<Constraint>);
 
 impl NodeConstraints {
-    pub fn validate(
+    pub fn check(
         &self,
         scene: &SceneSpec,
         node_id: &NodeId,
@@ -40,14 +41,15 @@ impl NodeConstraints {
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(tag = "type", rename_all = "snake_case")]
 pub(crate) enum Constraint {
-    InputCount(InputsCountConstraint),
+    InputsCount(InputsCountConstraint),
 }
 
 impl Constraint {
     fn check(&self, node_spec: &NodeSpec) -> Result<(), UnsatisfiedConstraintsError> {
         match self {
-            Constraint::InputCount(inputs_count_constraint) => {
+            Constraint::InputsCount(inputs_count_constraint) => {
                 inputs_count_constraint.check(node_spec)
             }
         }

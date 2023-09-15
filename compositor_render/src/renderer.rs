@@ -147,7 +147,7 @@ impl Renderer {
         for (node_spec, node_constraints) in node_constraints {
             if let Some(node_constraints) = node_constraints {
                 node_constraints
-                    .validate(scene_spec, &node_spec.node_id)
+                    .check(scene_spec, &node_spec.node_id)
                     .map_err(|err| {
                         UpdateSceneError::ConstraintsValidationError(err, node_spec.node_id.clone())
                     })?;

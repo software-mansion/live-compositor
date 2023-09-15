@@ -63,14 +63,14 @@ pub struct InputsCountConstraintValidationError {
 impl Display for InputsCountConstraintValidationError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let expects = match self.input_count_constrain {
-            InputsCountConstraint::Exactly(expected) if expected == 0 => {
+            InputsCountConstraint::Exact { fixed_count } if fixed_count == 0 => {
                 "does not except input pads".to_owned()
             }
-            InputsCountConstraint::Exactly(expected) if expected == 1 => {
+            InputsCountConstraint::Exact { fixed_count } if fixed_count == 1 => {
                 "expects exactly one input pad".to_owned()
             }
-            InputsCountConstraint::Exactly(expected) => {
-                format!("expects exactly {expected} input pads")
+            InputsCountConstraint::Exact { fixed_count } => {
+                format!("expects exactly {fixed_count} input pads")
             }
             InputsCountConstraint::Range {
                 lower_bound,

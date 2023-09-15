@@ -89,10 +89,12 @@ impl ShaderSpec {
     }
 
     fn default_constraints() -> NodeConstraints {
-        NodeConstraints(vec![Constraint::InputCount(InputsCountConstraint::Range {
-            lower_bound: 0,
-            upper_bound: 16,
-        })])
+        NodeConstraints(vec![Constraint::InputsCount(
+            InputsCountConstraint::Range {
+                lower_bound: 0,
+                upper_bound: 16,
+            },
+        )])
     }
 }
 
@@ -102,9 +104,11 @@ impl WebRendererSpec {
     }
 
     fn default_constraints() -> NodeConstraints {
-        NodeConstraints(vec![Constraint::InputCount(InputsCountConstraint::Range {
-            lower_bound: 0,
-            upper_bound: 16,
-        })])
+        NodeConstraints(vec![Constraint::InputsCount(
+            InputsCountConstraint::Range {
+                lower_bound: 0,
+                upper_bound: 16,
+            },
+        )])
     }
 }

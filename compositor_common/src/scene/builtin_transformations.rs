@@ -116,26 +116,30 @@ impl FromStr for MirrorMode {
 
 lazy_static! {
     static ref TRANSFORM_TO_RESOLUTION_CONSTRAINTS: NodeConstraints =
-        NodeConstraints(vec![Constraint::InputCount(
-            InputsCountConstraint::Exactly(1)
+        NodeConstraints(vec![Constraint::InputsCount(
+            InputsCountConstraint::Exact { fixed_count: 1 }
         )]);
     static ref FIXED_POSITION_LAYOUT_CONSTRAINTS: NodeConstraints =
-        NodeConstraints(vec![Constraint::InputCount(InputsCountConstraint::Range {
-            lower_bound: 1,
-            upper_bound: FIXED_POSITION_LAYOUT_MAX_INPUTS_COUNT,
-        })]);
+        NodeConstraints(vec![Constraint::InputsCount(
+            InputsCountConstraint::Range {
+                lower_bound: 1,
+                upper_bound: FIXED_POSITION_LAYOUT_MAX_INPUTS_COUNT,
+            }
+        )]);
     static ref TILED_LAYOUT_CONSTRAINTS: NodeConstraints =
-        NodeConstraints(vec![Constraint::InputCount(InputsCountConstraint::Range {
-            lower_bound: 1,
-            upper_bound: FIXED_POSITION_LAYOUT_MAX_INPUTS_COUNT,
-        })]);
+        NodeConstraints(vec![Constraint::InputsCount(
+            InputsCountConstraint::Range {
+                lower_bound: 1,
+                upper_bound: FIXED_POSITION_LAYOUT_MAX_INPUTS_COUNT,
+            }
+        )]);
     static ref MIRROR_IMAGE_CONSTRAINTS: NodeConstraints =
-        NodeConstraints(vec![Constraint::InputCount(
-            InputsCountConstraint::Exactly(1)
+        NodeConstraints(vec![Constraint::InputsCount(
+            InputsCountConstraint::Exact { fixed_count: 1 }
         )]);
     static ref CORNERS_ROUNDING_CONSTRAINTS: NodeConstraints =
-        NodeConstraints(vec![Constraint::InputCount(
-            InputsCountConstraint::Exactly(1)
+        NodeConstraints(vec![Constraint::InputsCount(
+            InputsCountConstraint::Exact { fixed_count: 1 }
         )]);
 }
 

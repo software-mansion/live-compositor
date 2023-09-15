@@ -42,11 +42,11 @@ impl NodeSpec {
 }
 
 lazy_static! {
-    static ref TEXT_CONSTRAINTS: NodeConstraints = NodeConstraints(vec![Constraint::InputCount(
-        InputsCountConstraint::Exactly(0),
+    static ref TEXT_CONSTRAINTS: NodeConstraints = NodeConstraints(vec![Constraint::InputsCount(
+        InputsCountConstraint::Exact { fixed_count: 0 }
     )]);
-    static ref IMAGE_CONSTRAINTS: NodeConstraints = NodeConstraints(vec![Constraint::InputCount(
-        InputsCountConstraint::Exactly(0),
+    static ref IMAGE_CONSTRAINTS: NodeConstraints = NodeConstraints(vec![Constraint::InputsCount(
+        InputsCountConstraint::Exact { fixed_count: 0 }
     )]);
 }
 
