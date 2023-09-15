@@ -6,7 +6,7 @@ use compositor_common::scene::builtin_transformations::{
 
 use crate::{
     renderer::WgpuCtx,
-    transformations::shader_executor::{CreateShaderError, ShaderExecutor},
+    shader_executor::{CreateShaderError, ShaderExecutor},
 };
 
 use super::error::InitBuiltinError;

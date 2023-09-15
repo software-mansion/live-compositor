@@ -8,9 +8,7 @@ use compositor_common::{
     },
 };
 
-use crate::utils::rgba_to_wgpu_color;
-
-use super::shader_executor::ShaderExecutor;
+use crate::{shader_executor::ShaderExecutor, utils::rgba_to_wgpu_color};
 
 mod box_layout;
 pub mod error;

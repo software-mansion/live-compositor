@@ -5,6 +5,7 @@ pub mod registry;
 pub mod renderer;
 
 pub(crate) mod render_loop;
+pub(crate) mod shader_executor;
 pub(crate) mod transformations;
 pub(crate) mod utils;
 

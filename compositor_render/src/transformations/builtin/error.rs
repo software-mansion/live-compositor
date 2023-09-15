@@ -1,4 +1,4 @@
-use crate::transformations::shader_executor::CreateShaderError;
+use crate::shader_executor::CreateShaderError;
 
 #[derive(Debug, thiserror::Error)]
 pub enum InitBuiltinError {

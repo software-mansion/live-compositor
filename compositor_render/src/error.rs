@@ -3,9 +3,9 @@ use compositor_common::{renderer_spec::RendererId, scene::NodeId};
 use crate::{
     registry,
     renderer::{CreateWgpuCtxError, WgpuError},
+    shader_executor::CreateShaderError,
     transformations::{
         builtin::error::InitBuiltinError, image_renderer::ImageError,
-        shader_executor::CreateShaderError,
         web_renderer::chromium_context::WebRendererContextError,
     },
 };

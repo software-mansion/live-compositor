@@ -7,17 +7,16 @@ use compositor_common::{
 };
 use log::error;
 
-use crate::render_loop::run_transforms;
 use crate::{
     error::{InitRendererEngineError, RenderSceneError},
     frame_set::FrameSet,
     render_loop::{populate_inputs, read_outputs},
     transformations::{
-        shader_executor::ShaderExecutor, text_renderer::TextRendererCtx,
-        web_renderer::chromium_context::ChromiumContext,
+        text_renderer::TextRendererCtx, web_renderer::chromium_context::ChromiumContext,
     },
     WebRendererOptions,
 };
+use crate::{render_loop::run_transforms, shader_executor::ShaderExecutor};
 
 use self::{
     format::TextureFormat,

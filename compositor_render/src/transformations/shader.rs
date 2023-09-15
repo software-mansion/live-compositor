@@ -5,9 +5,10 @@ use compositor_common::{
     scene::constraints::NodeConstraints,
 };
 
-use crate::renderer::WgpuCtx;
-
-use super::shader_executor::{CreateShaderError, ShaderExecutor};
+use crate::{
+    renderer::WgpuCtx,
+    shader_executor::{CreateShaderError, ShaderExecutor},
+};
 
 pub mod node;
 

@@ -8,7 +8,7 @@ use wgpu::util::DeviceExt;
 
 use crate::{
     renderer::{texture::NodeTexture, WgpuCtx},
-    transformations::shader_executor::error::ParametersValidationError,
+    shader_executor::error::ParametersValidationError,
 };
 
 use super::Shader;
