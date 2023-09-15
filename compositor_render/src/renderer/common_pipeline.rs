@@ -38,6 +38,7 @@ impl Vertex {
     }
 }
 
+#[derive(Debug)]
 pub struct Sampler {
     _sampler: wgpu::Sampler,
     pub bind_group_layout: BindGroupLayout,
@@ -85,6 +86,7 @@ impl Sampler {
 }
 
 // TODO: This should be done with push-constants, not with a buffer
+#[derive(Debug)]
 pub struct U32Uniform {
     pub buffer: Buffer,
     pub bind_group: wgpu::BindGroup,

@@ -1,13 +1,12 @@
 use std::sync::Arc;
 
-use compositor_common::{
-    renderer_spec::FallbackStrategy,
-    scene::builtin_transformations::{BuiltinSpec, TransformToResolutionStrategy},
+use compositor_common::scene::builtin_transformations::{
+    BuiltinSpec, TransformToResolutionStrategy,
 };
 
 use crate::{
+    gpu_shader::{CreateShaderError, GpuShader},
     renderer::WgpuCtx,
-    transformations::shader::{CreateShaderError, Shader},
 };
 
 use super::error::InitBuiltinError;
@@ -29,7 +28,7 @@ impl BuiltinTransformations {
         })
     }
 
-    pub fn shader(&self, transformation: &BuiltinSpec) -> Arc<Shader> {
+    pub fn gpu_shader(&self, transformation: &BuiltinSpec) -> Arc<GpuShader> {
         match transformation {
             BuiltinSpec::TransformToResolution { strategy, .. } => match strategy {
                 TransformToResolutionStrategy::Stretch => self.apply_matrix.0.clone(),
@@ -44,38 +43,35 @@ impl BuiltinTransformations {
     }
 }
 
-pub struct ApplyTransformationMatrix(Arc<Shader>);
+pub struct ApplyTransformationMatrix(Arc<GpuShader>);
 
 impl ApplyTransformationMatrix {
     fn new(wgpu_ctx: &Arc<WgpuCtx>) -> Result<Self, CreateShaderError> {
-        Ok(Self(Arc::new(Shader::new(
+        Ok(Self(Arc::new(GpuShader::new(
             wgpu_ctx,
             include_str!("./apply_transformation_matrix.wgsl").into(),
-            FallbackStrategy::FallbackIfAllInputsMissing,
         )?)))
     }
 }
 
-pub struct MirrorImage(Arc<Shader>);
+pub struct MirrorImage(Arc<GpuShader>);
 
 impl MirrorImage {
     fn new(wgpu_ctx: &Arc<WgpuCtx>) -> Result<Self, CreateShaderError> {
-        Ok(Self(Arc::new(Shader::new(
+        Ok(Self(Arc::new(GpuShader::new(
             wgpu_ctx,
             include_str!("./mirror_image.wgsl").into(),
-            FallbackStrategy::FallbackIfAllInputsMissing,
         )?)))
     }
 }
 
-pub struct CornersRounding(Arc<Shader>);
+pub struct CornersRounding(Arc<GpuShader>);
 
 impl CornersRounding {
     fn new(wgpu_ctx: &Arc<WgpuCtx>) -> Result<Self, CreateShaderError> {
-        Ok(Self(Arc::new(Shader::new(
+        Ok(Self(Arc::new(GpuShader::new(
             wgpu_ctx,
             include_str!("./corners_rounding.wgsl").into(),
-            FallbackStrategy::FallbackIfAllInputsMissing,
         )?)))
     }
 }

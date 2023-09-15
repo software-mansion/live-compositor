@@ -10,6 +10,7 @@ use crate::renderer::{
 
 use super::{INPUT_TEXTURES_AMOUNT, USER_DEFINED_BUFFER_GROUP};
 
+#[derive(Debug)]
 pub struct Pipeline {
     pipeline: wgpu::RenderPipeline,
     surfaces: Surfaces,

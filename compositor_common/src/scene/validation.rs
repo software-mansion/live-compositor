@@ -204,7 +204,7 @@ impl SceneSpec {
 
     fn validate_node_params(nodes: &Vec<NodeSpec>) -> Result<(), SceneSpecValidationError> {
         for spec in nodes {
-            spec.validate().map_err(|err| {
+            spec.validate_params().map_err(|err| {
                 SceneSpecValidationError::InvalidNodeSpec(err, spec.node_id.clone())
             })?;
         }

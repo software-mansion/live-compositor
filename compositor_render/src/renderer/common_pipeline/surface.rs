@@ -99,6 +99,7 @@ impl<const N: usize> Indices<N> {
 
 /// Abstraction for buffers, holding vertices and indices of
 /// 2D planes, on which textures are rendered
+#[derive(Debug)]
 pub struct Surfaces {
     inputs_vertices: Buffer,
     inputs_indices: Buffer,
@@ -191,6 +192,7 @@ impl Surfaces {
     }
 }
 
+#[derive(Debug)]
 pub struct SingleSurface {
     vertices: Buffer,
     indices: Buffer,

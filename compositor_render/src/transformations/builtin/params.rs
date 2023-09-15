@@ -32,7 +32,7 @@ pub enum BuiltinParams {
 
 impl BuiltinParams {
     pub fn new(builtin: &Builtin, input_resolutions: &[Option<Resolution>]) -> Self {
-        match &builtin.0 {
+        match &builtin.spec {
             BuiltinSpec::TransformToResolution {
                 strategy,
                 resolution,
