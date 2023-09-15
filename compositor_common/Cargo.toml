@@ -12,4 +12,4 @@ thiserror = { workspace = true }
 log = { workspace = true } 
 glyphon = "0.3.0"
 serde_with = { workspace = true }
-lazy_static = { workspace = true }
+lazy_static = "1.4.0"
