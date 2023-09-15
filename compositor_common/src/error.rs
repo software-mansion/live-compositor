@@ -4,7 +4,7 @@ use log::error;
 
 use crate::{
     renderer_spec::RendererId,
-    scene::{constraints::input_count::InputsCountConstraint, NodeId, NodeParams, OutputId},
+    scene::{constraints::input_count::InputCountConstraint, NodeId, NodeParams, OutputId},
 };
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
@@ -50,29 +50,29 @@ impl Display for UnusedNodesError {
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum UnsatisfiedConstraintsError {
     #[error(transparent)]
-    InvalidInputsCount(InputsCountConstraintValidationError),
+    InvalidInputsCount(InputCountConstraintValidationError),
 }
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
-pub struct InputsCountConstraintValidationError {
+pub struct InputCountConstraintValidationError {
     pub node_identifier: NodeIdentifier,
-    pub input_count_constrain: InputsCountConstraint,
+    pub input_count_constrain: InputCountConstraint,
     pub defined_input_pads_count: u32,
 }
 
-impl Display for InputsCountConstraintValidationError {
+impl Display for InputCountConstraintValidationError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let expects = match self.input_count_constrain {
-            InputsCountConstraint::Exact { fixed_count } if fixed_count == 0 => {
-                "does not except input pads".to_owned()
+            InputCountConstraint::Exact { fixed_count } if fixed_count == 0 => {
+                "does not excepts input pads".to_owned()
             }
-            InputsCountConstraint::Exact { fixed_count } if fixed_count == 1 => {
+            InputCountConstraint::Exact { fixed_count } if fixed_count == 1 => {
                 "expects exactly one input pad".to_owned()
             }
-            InputsCountConstraint::Exact { fixed_count } => {
+            InputCountConstraint::Exact { fixed_count } => {
                 format!("expects exactly {fixed_count} input pads")
             }
-            InputsCountConstraint::Range {
+            InputCountConstraint::Range {
                 lower_bound,
                 upper_bound,
             } => format!("expects at least {lower_bound} and at most {upper_bound} input pads"),

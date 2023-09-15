@@ -5,7 +5,7 @@ use crate::{
     scene::{NodeId, SceneSpec},
 };
 
-use self::input_count::InputsCountConstraint;
+use self::input_count::InputCountConstraint;
 
 use super::NodeSpec;
 
@@ -43,15 +43,13 @@ impl NodeConstraints {
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub(crate) enum Constraint {
-    InputsCount(InputsCountConstraint),
+    InputCount(InputCountConstraint),
 }
 
 impl Constraint {
     fn check(&self, node_spec: &NodeSpec) -> Result<(), UnsatisfiedConstraintsError> {
         match self {
-            Constraint::InputsCount(inputs_count_constraint) => {
-                inputs_count_constraint.check(node_spec)
-            }
+            Constraint::InputCount(constraint) => constraint.check(node_spec),
         }
     }
 }

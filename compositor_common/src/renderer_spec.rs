@@ -3,7 +3,7 @@ use std::{fmt::Display, sync::Arc};
 use serde::{Deserialize, Serialize};
 
 use crate::scene::{
-    constraints::{input_count::InputsCountConstraint, Constraint, NodeConstraints},
+    constraints::{input_count::InputCountConstraint, Constraint, NodeConstraints},
     Resolution,
 };
 
@@ -89,12 +89,10 @@ impl ShaderSpec {
     }
 
     fn default_constraints() -> NodeConstraints {
-        NodeConstraints(vec![Constraint::InputsCount(
-            InputsCountConstraint::Range {
-                lower_bound: 0,
-                upper_bound: 16,
-            },
-        )])
+        NodeConstraints(vec![Constraint::InputCount(InputCountConstraint::Range {
+            lower_bound: 0,
+            upper_bound: 16,
+        })])
     }
 }
 
@@ -104,11 +102,9 @@ impl WebRendererSpec {
     }
 
     fn default_constraints() -> NodeConstraints {
-        NodeConstraints(vec![Constraint::InputsCount(
-            InputsCountConstraint::Range {
-                lower_bound: 0,
-                upper_bound: 16,
-            },
-        )])
+        NodeConstraints(vec![Constraint::InputCount(InputCountConstraint::Range {
+            lower_bound: 0,
+            upper_bound: 16,
+        })])
     }
 }
