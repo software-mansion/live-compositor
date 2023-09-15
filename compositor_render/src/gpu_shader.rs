@@ -39,6 +39,8 @@ pub enum CreateShaderError {
     ParseError(naga::front::wgsl::ParseError),
 }
 
+/// Abstraction over single GPU shader. Used for builtins and shaders.
+///
 /// The bind group layout for the shader:
 ///
 /// ```wgsl
@@ -49,14 +51,14 @@ pub enum CreateShaderError {
 /// @group(2) @binding(0) var sampler_: sampler;
 /// ```
 #[derive(Debug)]
-pub struct ShaderExecutor {
+pub struct GpuShader {
     pub wgpu_ctx: Arc<WgpuCtx>,
     pipeline: Pipeline,
     empty_texture: Texture,
     shader: naga::Module,
 }
 
-impl ShaderExecutor {
+impl GpuShader {
     pub fn new(wgpu_ctx: &Arc<WgpuCtx>, shader_src: String) -> Result<Self, CreateShaderError> {
         let scope = WgpuErrorScope::push(&wgpu_ctx.device);
 

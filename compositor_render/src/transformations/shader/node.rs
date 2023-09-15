@@ -7,8 +7,8 @@ use compositor_common::{
 use wgpu::util::DeviceExt;
 
 use crate::{
+    gpu_shader::error::ParametersValidationError,
     renderer::{texture::NodeTexture, WgpuCtx},
-    shader_executor::error::ParametersValidationError,
 };
 
 use super::Shader;
@@ -28,7 +28,7 @@ impl ShaderNode {
         resolution: Resolution,
     ) -> Result<Self, ParametersValidationError> {
         if let Some(params) = params {
-            shader.executor.validate_params(params)?;
+            shader.gpu_shader.validate_params(params)?;
         }
 
         let custom_params_buffer = match params {
@@ -81,8 +81,8 @@ impl ShaderNode {
         target: &mut NodeTexture,
         pts: Duration,
     ) {
-        let target = target.ensure_size(&self.shader.executor.wgpu_ctx, self.resolution);
-        self.shader.executor.render(
+        let target = target.ensure_size(&self.shader.gpu_shader.wgpu_ctx, self.resolution);
+        self.shader.gpu_shader.render(
             &self.params_bind_group,
             sources,
             target,

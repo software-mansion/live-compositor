@@ -6,14 +6,14 @@ use compositor_common::{
 };
 
 use crate::{
+    gpu_shader::{CreateShaderError, GpuShader},
     renderer::WgpuCtx,
-    shader_executor::{CreateShaderError, ShaderExecutor},
 };
 
 pub mod node;
 
 pub struct Shader {
-    executor: ShaderExecutor,
+    gpu_shader: GpuShader,
     fallback_strategy: FallbackStrategy,
     clear_color: Option<wgpu::Color>,
     constraints: NodeConstraints,
@@ -24,10 +24,10 @@ impl Shader {
         let fallback_strategy = spec.fallback_strategy;
         let clear_color = None;
         let constraints = spec.constraints;
-        let executor = ShaderExecutor::new(wgpu_ctx, spec.source)?;
+        let gpu_shader = GpuShader::new(wgpu_ctx, spec.source)?;
 
         Ok(Self {
-            executor,
+            gpu_shader,
             fallback_strategy,
             clear_color,
             constraints,

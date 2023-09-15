@@ -8,7 +8,7 @@ use compositor_common::{
     },
 };
 
-use crate::{shader_executor::ShaderExecutor, utils::rgba_to_wgpu_color};
+use crate::{gpu_shader::GpuShader, utils::rgba_to_wgpu_color};
 
 mod box_layout;
 pub mod error;
@@ -20,7 +20,7 @@ pub mod utils;
 #[derive(Debug)]
 pub struct Builtin {
     pub spec: BuiltinSpec,
-    pub executor: Arc<ShaderExecutor>,
+    pub gpu_shader: Arc<GpuShader>,
 }
 
 impl Builtin {

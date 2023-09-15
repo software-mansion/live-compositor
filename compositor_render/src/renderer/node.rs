@@ -5,7 +5,7 @@ use compositor_common::renderer_spec::{FallbackStrategy, RendererId};
 use compositor_common::scene::{NodeId, NodeParams, NodeSpec, Resolution};
 use log::error;
 
-use crate::shader_executor::error::ParametersValidationError;
+use crate::gpu_shader::error::ParametersValidationError;
 use crate::transformations::builtin::Builtin;
 use crate::transformations::shader::node::ShaderNode;
 use crate::transformations::{
@@ -51,13 +51,13 @@ impl RenderNode {
                 Ok(Self::Shader(node))
             }
             NodeParams::Builtin { transformation } => {
-                let shader_executor = ctx.renderers.builtin.shader(transformation);
+                let gpu_shader = ctx.renderers.builtin.gpu_shader(transformation);
                 let input_count = spec.input_pads.len() as u32;
 
                 Ok(Self::Builtin(BuiltinNode::new(
                     Builtin {
                         spec: transformation.clone(),
-                        executor: shader_executor,
+                        gpu_shader,
                     },
                     input_count,
                 )))

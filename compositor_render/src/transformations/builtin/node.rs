@@ -74,7 +74,7 @@ impl BuiltinNode {
 
         let params_buffer_content =
             BuiltinParams::new(&builtin, &input_resolutions).shader_buffer_content();
-        let params_buffer = ParamsBuffer::new(params_buffer_content, &builtin.executor.wgpu_ctx);
+        let params_buffer = ParamsBuffer::new(params_buffer_content, &builtin.gpu_shader.wgpu_ctx);
 
         let clear_color = builtin.clear_color();
 
@@ -109,10 +109,10 @@ impl BuiltinNode {
             BuiltinParams::new(&self.builtin, &input_resolutions).shader_buffer_content();
 
         self.params_buffer
-            .update(params_buffer_content, &self.builtin.executor.wgpu_ctx);
+            .update(params_buffer_content, &self.builtin.gpu_shader.wgpu_ctx);
 
-        let target = target.ensure_size(&self.builtin.executor.wgpu_ctx, output_resolution);
-        self.builtin.executor.render(
+        let target = target.ensure_size(&self.builtin.gpu_shader.wgpu_ctx, output_resolution);
+        self.builtin.gpu_shader.render(
             &self.params_buffer.bind_group,
             sources,
             target,

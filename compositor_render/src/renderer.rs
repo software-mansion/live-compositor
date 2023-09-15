@@ -16,7 +16,7 @@ use crate::{
     },
     WebRendererOptions,
 };
-use crate::{render_loop::run_transforms, shader_executor::ShaderExecutor};
+use crate::{gpu_shader::GpuShader, render_loop::run_transforms};
 
 use self::{
     format::TextureFormat,
@@ -259,7 +259,7 @@ impl WgpuCtx {
         let utils = TextureUtils::new(&device);
 
         let shader_parameters_bind_group_layout =
-            ShaderExecutor::new_parameters_bind_group_layout(&device);
+            GpuShader::new_parameters_bind_group_layout(&device);
 
         scope.pop(&device)?;
 

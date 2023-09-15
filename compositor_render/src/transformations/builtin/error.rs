@@ -1,4 +1,4 @@
-use crate::shader_executor::CreateShaderError;
+use crate::gpu_shader::CreateShaderError;
 
 #[derive(Debug, thiserror::Error)]
 pub enum InitBuiltinError {
