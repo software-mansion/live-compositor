@@ -31,7 +31,7 @@ impl InputCountConstraint {
                 InputCountConstraintValidationError {
                     node_identifier: (&node_spec.params).into(),
                     input_count_constrain: self.clone(),
-                    defined_input_pads_count: defined_input_pad_count,
+                    defined_input_pad_count,
                 },
             ))
         }

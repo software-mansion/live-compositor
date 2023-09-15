@@ -57,7 +57,7 @@ pub enum UnsatisfiedConstraintsError {
 pub struct InputCountConstraintValidationError {
     pub node_identifier: NodeIdentifier,
     pub input_count_constrain: InputCountConstraint,
-    pub defined_input_pads_count: u32,
+    pub defined_input_pad_count: u32,
 }
 
 impl Display for InputCountConstraintValidationError {
@@ -78,7 +78,7 @@ impl Display for InputCountConstraintValidationError {
             } => format!("expects at least {lower_bound} and at most {upper_bound} input pads"),
         };
 
-        let specified = match self.defined_input_pads_count {
+        let specified = match self.defined_input_pad_count {
             0 => "none input pads were specified.".to_owned(),
             1 => "one input pad was specified.".to_owned(),
             n => format!("{n} input pads were specified."),
