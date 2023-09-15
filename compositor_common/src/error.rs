@@ -96,7 +96,7 @@ pub enum NodeSpecValidationError {
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum BuiltinSpecValidationError {
-    #[error("Transformation \"fixed_position_layout\" expect {input_count} texture layouts (the same as number of input pads), but {layout_count} layouts were specified.")]
+    #[error("Transformation \"fixed_position_layout\" expects {input_count} texture layouts (the same as number of input pads), but {layout_count} layouts were specified.")]
     FixedLayoutInvalidLayoutCount { layout_count: u32, input_count: u32 },
     #[error("Each entry in texture_layouts in transformation \"fixed_position_layout\" requires either bottom or top coordinate.")]
     FixedLayoutTopBottomRequired,
