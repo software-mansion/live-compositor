@@ -139,13 +139,8 @@ impl Renderer {
     }
 
     fn validate_constraints(&self, scene_spec: &SceneSpec) -> Result<(), UpdateSceneError> {
-        let node_constraints = scene_spec
-            .nodes
-            .iter()
-            .map(|node| (node, self.node_constraints(&node.params)));
-
-        for (node_spec, node_constraints) in node_constraints {
-            if let Some(node_constraints) = node_constraints {
+        for node_spec in &scene_spec.nodes {
+            if let Some(node_constraints) = self.node_constraints(&node_spec.params) {
                 node_constraints
                     .check(scene_spec, &node_spec.node_id)
                     .map_err(|err| {
@@ -157,6 +152,7 @@ impl Renderer {
         Ok(())
     }
 
+    /// Returns `None` if renderer doesn't exist
     fn node_constraints(&self, node_params: &NodeParams) -> Option<&NodeConstraints> {
         match node_params {
             NodeParams::WebRenderer { instance_id } => self
