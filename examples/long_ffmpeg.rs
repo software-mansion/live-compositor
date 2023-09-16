@@ -90,7 +90,7 @@ fn start_example_client_code() -> Result<()> {
         "fallback_strategy": "fallback_if_all_inputs_missing",
         "constraints": [
             {
-                "type": "inputs_count",
+                "type": "input_count",
                 "fixed_count": 1,
             }
         ]
