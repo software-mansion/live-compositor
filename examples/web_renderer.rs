@@ -110,7 +110,7 @@ fn start_example_client_code() -> Result<()> {
         "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
         "constraints": [
             {
-                "type": "inputs_count",
+                "type": "input_count",
                 "lower_bound": 1,
                 "upper_bound": 5,
             }
