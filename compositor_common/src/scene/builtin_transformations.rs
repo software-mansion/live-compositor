@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 
 use crate::error::BuiltinSpecValidationError;
+use crate::scene::builtin_transformations::tailed_layout::TailedLayoutSpec;
 use crate::scene::constraints::input_count::InputCountConstraint;
 use crate::util::align::HorizontalAlign;
 use crate::util::align::VerticalAlign;
@@ -15,6 +16,8 @@ use super::constraints::Constraint;
 use super::constraints::NodeConstraints;
 use super::NodeSpec;
 use super::Resolution;
+
+pub mod tailed_layout;
 
 pub const TILED_LAYOUT_MAX_INPUTS_COUNT: u32 = 16;
 pub const FIXED_POSITION_LAYOUT_MAX_INPUTS_COUNT: u32 = 16;
@@ -33,13 +36,7 @@ pub enum BuiltinSpec {
         #[serde(default)]
         background_color_rgba: RGBAColor,
     },
-    TiledLayout {
-        #[serde(default)]
-        background_color_rgba: RGBAColor,
-        #[serde(default = "default_tile_aspect_ratio")]
-        tile_aspect_ratio: (u32, u32),
-        resolution: Resolution,
-    },
+    TiledLayout(TailedLayoutSpec),
     MirrorImage {
         #[serde(default)]
         mode: MirrorMode,
@@ -208,10 +205,6 @@ impl BuiltinSpec {
             BuiltinSpec::CornersRounding { .. } => &CORNERS_ROUNDING_CONSTRAINTS,
         }
     }
-}
-
-fn default_tile_aspect_ratio() -> (u32, u32) {
-    (16, 9)
 }
 
 fn default_horizontal_alignment() -> HorizontalAlign {

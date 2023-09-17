@@ -50,15 +50,9 @@ impl BuiltinParams {
                 input_resolutions,
                 *resolution,
             )),
-            BuiltinSpec::TiledLayout {
-                resolution: output_resolution,
-                tile_aspect_ratio,
-                ..
-            } => BuiltinParams::TiledLayout(TiledLayoutParams::new(
-                input_resolutions,
-                *tile_aspect_ratio,
-                *output_resolution,
-            )),
+            BuiltinSpec::TiledLayout(tailed_layout_spec) => BuiltinParams::TiledLayout(
+                TiledLayoutParams::new(input_resolutions, tailed_layout_spec),
+            ),
             BuiltinSpec::MirrorImage { mode } => BuiltinParams::MirrorMode(*mode),
             BuiltinSpec::CornersRounding { border_radius } => BuiltinParams::CornersRounding(
                 CornersRoundingParams::new(*border_radius, input_resolutions),
