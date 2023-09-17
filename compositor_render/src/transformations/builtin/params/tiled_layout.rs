@@ -79,11 +79,13 @@ impl TiledLayoutParams {
     ) -> Vec<BoxLayout> {
         let mut layouts = Vec::with_capacity(inputs_count as usize);
 
+        // Because scaled tails with padding and margin don't have to cover whole output frame,
+        // additional padding is distributed is distributed accordingly to alignment
         let additional_y_padding = tailed_layout_spec.resolution.height as u32
             - (tile_size.height as u32 + 2 * tailed_layout_spec.padding) * rows_cols.rows
             - (tailed_layout_spec.margin * (rows_cols.rows + 1));
 
-        let (additional_top_padding, between_padding_y) =
+        let (additional_top_padding, justified_padding_y) =
             match tailed_layout_spec.vertical_alignment {
                 VerticalAlign::Top => (0.0, 0.0),
                 VerticalAlign::Center => (additional_y_padding as f32 / 2.0, 0.0),
@@ -95,7 +97,7 @@ impl TiledLayoutParams {
             };
 
         let mut top = additional_top_padding
-            + between_padding_y
+            + justified_padding_y
             + tailed_layout_spec.padding as f32
             + tailed_layout_spec.margin as f32;
         for row in 0..rows_cols.rows {
@@ -109,7 +111,7 @@ impl TiledLayoutParams {
                 - (tile_size.width as u32 + 2 * tailed_layout_spec.padding) * tiles_in_row
                 - (tailed_layout_spec.margin * (tiles_in_row + 1));
 
-            let (additional_left_padding, between_padding_x) =
+            let (additional_left_padding, justified_padding_x) =
                 match tailed_layout_spec.horizontal_alignment {
                     HorizontalAlign::Left => (0.0, 0.0),
                     HorizontalAlign::Right => (additional_x_padding as f32, 0.0),
@@ -121,7 +123,7 @@ impl TiledLayoutParams {
                 };
 
             let mut left = additional_left_padding
-                + between_padding_x
+                + justified_padding_x
                 + tailed_layout_spec.margin as f32
                 + tailed_layout_spec.padding as f32;
 
@@ -136,12 +138,12 @@ impl TiledLayoutParams {
                 left += tile_size.width as f32
                     + tailed_layout_spec.margin as f32
                     + tailed_layout_spec.padding as f32 * 2.0
-                    + between_padding_x;
+                    + justified_padding_x;
             }
             top += tile_size.height as f32
                 + tailed_layout_spec.margin as f32
                 + tailed_layout_spec.padding as f32 * 2.0
-                + between_padding_y;
+                + justified_padding_y;
         }
 
         layouts
