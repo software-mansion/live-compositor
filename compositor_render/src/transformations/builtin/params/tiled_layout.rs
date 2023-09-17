@@ -91,6 +91,7 @@ impl TiledLayoutParams {
             };
 
         let mut top = additional_top_padding
+            + between_padding_y
             + tailed_layout_spec.padding as f32
             + tailed_layout_spec.margin as f32;
         for row in 0..rows_cols.rows {
@@ -109,13 +110,14 @@ impl TiledLayoutParams {
                     HorizontalAlign::Left => (0.0, 0.0),
                     HorizontalAlign::Right => (additional_x_padding as f32, 0.0),
                     HorizontalAlign::Justified => {
-                        let space = additional_x_padding as f32 / (rows_cols.cols + 1) as f32;
-                        (space, space)
+                        let space = additional_x_padding as f32 / (tiles_in_row + 1) as f32;
+                        (0.0, space)
                     }
                     HorizontalAlign::Center => (additional_x_padding as f32 / 2.0, 0.0),
                 };
 
             let mut left = additional_left_padding
+                + between_padding_x
                 + tailed_layout_spec.margin as f32
                 + tailed_layout_spec.padding as f32;
 
