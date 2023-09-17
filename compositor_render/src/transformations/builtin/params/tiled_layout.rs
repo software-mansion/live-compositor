@@ -88,6 +88,10 @@ impl TiledLayoutParams {
                 VerticalAlign::Top => (0.0, 0.0),
                 VerticalAlign::Center => (additional_y_padding as f32 / 2.0, 0.0),
                 VerticalAlign::Bottom => (additional_y_padding as f32, 0.0),
+                VerticalAlign::Justified => {
+                    let space = additional_y_padding as f32 / (rows_cols.rows + 1) as f32;
+                    (0.0, space)
+                }
             };
 
         let mut top = additional_top_padding

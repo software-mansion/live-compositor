@@ -38,8 +38,8 @@ impl BoxLayout {
 
         let top_padding = match y_align {
             VerticalAlign::Top => 0.0,
-            VerticalAlign::Center => y_padding / 2.0,
             VerticalAlign::Bottom => y_padding,
+            VerticalAlign::Center | VerticalAlign::Justified => y_padding / 2.0,
         };
 
         BoxLayout {
