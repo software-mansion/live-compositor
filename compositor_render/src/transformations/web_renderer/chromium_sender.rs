@@ -1,27 +1,12 @@
 use std::sync::Arc;
 
+use crate::renderer::RegisterCtx;
 use compositor_common::scene::{NodeId, Resolution};
 use crossbeam_channel::{Receiver, Sender};
 
 use crate::renderer::texture::NodeTexture;
 
-use super::{
-    browser::BrowserClient, chromium_context::ChromiumContext,
-    chromium_sender_thread::ChromiumSenderThread,
-};
-
-pub(super) enum ChromiumSenderMessage {
-    EmbedSources {
-        node_id: NodeId,
-        resolutions: Vec<Resolution>,
-    },
-    UpdateSharedMemory {
-        node_id: NodeId,
-        source_idx: usize,
-        buffer: Arc<wgpu::Buffer>,
-        size: wgpu::Extent3d,
-    },
-}
+use super::{browser::BrowserClient, chromium_sender_thread::ChromiumSenderThread};
 
 pub(super) struct ChromiumSender {
     message_sender: Sender<ChromiumSenderMessage>,
@@ -30,7 +15,7 @@ pub(super) struct ChromiumSender {
 }
 
 impl ChromiumSender {
-    pub fn new(ctx: Arc<ChromiumContext>, url: String, browser_client: BrowserClient) -> Self {
+    pub fn new(ctx: &RegisterCtx, url: String, browser_client: BrowserClient) -> Self {
         let (message_sender, message_receiver) = crossbeam_channel::unbounded();
         let (unmap_signal_sender, unmap_signal_receiver) = crossbeam_channel::bounded(0);
 
@@ -62,6 +47,17 @@ impl ChromiumSender {
             .unwrap();
     }
 
+    pub fn alloc_shared_memory(&self, node_id: NodeId, sources: &[(&NodeId, &NodeTexture)]) {
+        let sizes = sources
+            .iter()
+            .filter_map(|(_, texture)| texture.resolution())
+            .map(|res| 4 * res.width * res.height)
+            .collect();
+        self.message_sender
+            .send(ChromiumSenderMessage::AllocSharedMemory { node_id, sizes })
+            .unwrap();
+    }
+
     pub fn update_shared_memory(
         &self,
         node_id: NodeId,
@@ -69,16 +65,37 @@ impl ChromiumSender {
         buffer: Arc<wgpu::Buffer>,
         size: wgpu::Extent3d,
     ) {
+        let info = UpdateSharedMemoryInfo {
+            node_id,
+            source_idx,
+            buffer,
+            size,
+        };
+
         self.message_sender
-            .send(ChromiumSenderMessage::UpdateSharedMemory {
-                node_id,
-                source_idx,
-                buffer,
-                size,
-            })
+            .send(ChromiumSenderMessage::UpdateSharedMemory(info))
             .unwrap();
 
         // Wait until buffer unmap is possible
         self.unmap_signal_receiver.recv().unwrap();
     }
+}
+
+pub(super) enum ChromiumSenderMessage {
+    EmbedSources {
+        node_id: NodeId,
+        resolutions: Vec<Resolution>,
+    },
+    AllocSharedMemory {
+        node_id: NodeId,
+        sizes: Vec<usize>,
+    },
+    UpdateSharedMemory(UpdateSharedMemoryInfo),
+}
+
+pub(super) struct UpdateSharedMemoryInfo {
+    pub node_id: NodeId,
+    pub source_idx: usize,
+    pub buffer: Arc<wgpu::Buffer>,
+    pub size: wgpu::Extent3d,
 }

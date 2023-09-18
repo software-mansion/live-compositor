@@ -1,4 +1,4 @@
-use std::{env, fs, io, sync::Arc};
+use std::{fs, io, sync::Arc};
 
 use compositor_common::{
     error::ErrorStack,
@@ -15,18 +15,22 @@ use crate::renderer::{
 use super::WebRenderer;
 
 pub struct WebRendererNode {
-    node_id: NodeId,
     renderer: Arc<WebRenderer>,
+    node_id: NodeId,
     buffers: Vec<Arc<wgpu::Buffer>>,
 }
 
 impl WebRendererNode {
-    pub fn new(node_id: NodeId, renderer: Arc<WebRenderer>) -> Result<Self, WebRendererNodeError> {
-        Self::create_shmem_folder(&node_id)?;
+    pub fn new(
+        renderer_id: &str,
+        node_id: &NodeId,
+        renderer: Arc<WebRenderer>,
+    ) -> Result<Self, WebRendererNodeError> {
+        Self::init_shared_memory_folder(renderer_id, node_id)?;
 
         Ok(Self {
-            node_id,
             renderer,
+            node_id: node_id.clone(),
             buffers: Vec::new(),
         })
     }
@@ -81,18 +85,21 @@ impl WebRendererNode {
     }
 
     /// Creates folder for shared memory descriptors used by this node
-    fn create_shmem_folder(node_id: &NodeId) -> Result<(), WebRendererNodeError> {
-        let path = env::temp_dir().join(node_id.to_string());
+    fn init_shared_memory_folder(
+        renderer_id: &str,
+        node_id: &NodeId,
+    ) -> Result<(), WebRendererNodeError> {
+        let path = WebRenderer::shared_memory_root_path(renderer_id).join(node_id.to_string());
         if path.exists() {
             return Ok(());
         }
 
-        fs::create_dir_all(path).map_err(WebRendererNodeError::CreateShmemFolderFailed)
+        fs::create_dir_all(&path).map_err(WebRendererNodeError::CreateShmemFolderFailed)
     }
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum WebRendererNodeError {
-    #[error("Failed to create folder for shared memories")]
+    #[error("Failed to create folder for shared memory")]
     CreateShmemFolderFailed(#[source] io::Error),
 }

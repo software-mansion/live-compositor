@@ -6,6 +6,8 @@ use compositor_common::{
     Framerate,
 };
 use log::error;
+use rand::distributions::Alphanumeric;
+use rand::{thread_rng, Rng};
 
 use crate::{
     error::{InitRendererEngineError, RenderSceneError},
@@ -42,6 +44,10 @@ pub struct RendererOptions {
 }
 
 pub struct Renderer {
+    /// Random ID created during renderer init.
+    /// Currently used for specifying globally unique shared memory root path
+    pub(crate) renderer_id: Arc<str>,
+
     pub wgpu_ctx: Arc<WgpuCtx>,
     pub text_renderer_ctx: TextRendererCtx,
     pub chromium_context: Arc<ChromiumContext>,
@@ -55,6 +61,7 @@ pub struct Renderer {
 }
 
 pub struct RenderCtx<'a> {
+    pub renderer_id: &'a Arc<str>,
     pub wgpu_ctx: &'a Arc<WgpuCtx>,
 
     pub text_renderer_ctx: &'a TextRendererCtx,
@@ -66,6 +73,7 @@ pub struct RenderCtx<'a> {
 }
 
 pub struct RegisterCtx {
+    pub renderer_id: Arc<str>,
     pub wgpu_ctx: Arc<WgpuCtx>,
     pub chromium: Arc<ChromiumContext>,
 }
@@ -73,8 +81,15 @@ pub struct RegisterCtx {
 impl Renderer {
     pub fn new(opts: RendererOptions) -> Result<Self, InitRendererEngineError> {
         let wgpu_ctx = Arc::new(WgpuCtx::new()?);
+        let renderer_id = thread_rng()
+            .sample_iter(&Alphanumeric)
+            .take(30)
+            .map(char::from)
+            .collect::<String>()
+            .into();
 
         Ok(Self {
+            renderer_id,
             wgpu_ctx: wgpu_ctx.clone(),
             text_renderer_ctx: TextRendererCtx::new(),
             chromium_context: Arc::new(ChromiumContext::new(opts.web_renderer, opts.framerate)?),
@@ -91,6 +106,7 @@ impl Renderer {
 
     pub(super) fn register_ctx(&self) -> RegisterCtx {
         RegisterCtx {
+            renderer_id: self.renderer_id.clone(),
             wgpu_ctx: self.wgpu_ctx.clone(),
             chromium: self.chromium_context.clone(),
         }
@@ -101,6 +117,7 @@ impl Renderer {
         mut inputs: FrameSet<InputId>,
     ) -> Result<FrameSet<OutputId>, RenderSceneError> {
         let ctx = &mut RenderCtx {
+            renderer_id: &self.renderer_id,
             wgpu_ctx: &self.wgpu_ctx,
             chromium: &self.chromium_context,
             text_renderer_ctx: &self.text_renderer_ctx,
@@ -125,6 +142,7 @@ impl Renderer {
     pub fn update_scene(&mut self, scene_specs: Arc<SceneSpec>) -> Result<(), UpdateSceneError> {
         self.scene.update(
             &RenderCtx {
+                renderer_id: &self.renderer_id,
                 wgpu_ctx: &self.wgpu_ctx,
                 text_renderer_ctx: &self.text_renderer_ctx,
                 chromium: &self.chromium_context,

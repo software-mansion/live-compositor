@@ -1,3 +1,5 @@
+use std::env;
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 use crate::renderer::{
@@ -19,6 +21,7 @@ pub mod chromium_context;
 mod chromium_sender;
 mod chromium_sender_thread;
 pub(crate) mod node;
+mod shared_memory;
 
 pub const EMBED_SOURCE_FRAMES_MESSAGE: &str = "EMBED_SOURCE_FRAMES";
 pub const UNEMBED_SOURCE_FRAMES_MESSAGE: &str = "UNEMBED_SOURCE_FRAMES";
@@ -61,7 +64,7 @@ impl WebRenderer {
         let bgra_to_rgba = BGRAToRGBAConverter::new(&ctx.wgpu_ctx.device, &bgra_bind_group_layout);
 
         let controller = Mutex::new(BrowserController::new(
-            ctx.chromium.clone(),
+            ctx,
             params.url.clone(),
             params.resolution,
         ));
@@ -104,6 +107,12 @@ impl WebRenderer {
 
     pub fn resolution(&self) -> Resolution {
         self.params.resolution
+    }
+
+    pub fn shared_memory_root_path(renderer_id: &str) -> PathBuf {
+        env::temp_dir()
+            .join("video_compositor")
+            .join(format!("instance_{}", renderer_id))
     }
 }
 

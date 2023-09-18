@@ -7,9 +7,9 @@ use crossbeam_channel::bounded;
 use log::error;
 use shared_memory::ShmemError;
 
-use crate::renderer::{texture::NodeTexture, RenderCtx};
+use crate::renderer::{texture::NodeTexture, RegisterCtx, RenderCtx};
 
-use super::{chromium_context::ChromiumContext, chromium_sender::ChromiumSender};
+use super::chromium_sender::ChromiumSender;
 
 pub(super) struct BrowserController {
     chromium_sender: ChromiumSender,
@@ -17,7 +17,7 @@ pub(super) struct BrowserController {
 }
 
 impl BrowserController {
-    pub fn new(ctx: Arc<ChromiumContext>, url: String, resolution: Resolution) -> Self {
+    pub fn new(ctx: &RegisterCtx, url: String, resolution: Resolution) -> Self {
         let frame_data = Arc::new(Mutex::new(Bytes::new()));
         let client = BrowserClient::new(frame_data.clone(), resolution);
         let chromium_sender = ChromiumSender::new(ctx, url, client);
@@ -43,6 +43,8 @@ impl BrowserController {
         sources: &[(&NodeId, &NodeTexture)],
         buffers: &[Arc<wgpu::Buffer>],
     ) -> Result<(), EmbedFrameError> {
+        self.chromium_sender
+            .alloc_shared_memory(node_id.clone(), sources);
         self.copy_sources_to_buffers(ctx, sources, buffers)?;
 
         let mut pending_downloads = Vec::new();
