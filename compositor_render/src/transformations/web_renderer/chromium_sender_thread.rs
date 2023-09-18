@@ -94,7 +94,9 @@ impl ChromiumSenderThread {
         node_id: NodeId,
         resolutions: Vec<Resolution>,
     ) -> Result<(), ChromiumSenderThreadError> {
-        let shared_memory = state.shared_memory(&node_id)?;
+        let Some(shared_memory) = state.shared_memory.get(&node_id) else {
+            return Err(ChromiumSenderThreadError::SharedMemoryNotAllocated(node_id));
+        };
         let mut process_message = cef::ProcessMessage::new(EMBED_SOURCE_FRAMES_MESSAGE);
         let mut index = 0;
 
@@ -153,8 +155,7 @@ impl ChromiumSenderThread {
         state: &mut ThreadState,
         info: UpdateSharedMemoryInfo,
     ) -> Result<(), ChromiumSenderThreadError> {
-        let shared_memory = state.shared_memory(&info.node_id)?;
-        let shared_memory = &mut shared_memory[info.source_idx];
+        let shared_memory = state.shared_memory(&info.node_id, info.source_idx)?;
 
         // Writes buffer data to shared memory
         {
@@ -192,11 +193,14 @@ impl ThreadState {
     fn shared_memory(
         &mut self,
         node_id: &NodeId,
-    ) -> Result<&mut [SharedMemory], ChromiumSenderThreadError> {
-        self.shared_memory
-            .get_mut(&node_id)
-            .map(|shared_memory| shared_memory.as_mut_slice())
-            .ok_or_else(|| ChromiumSenderThreadError::SharedMemoryNotAllocated(node_id.clone()))
+        source_idx: usize,
+    ) -> Result<&mut SharedMemory, ChromiumSenderThreadError> {
+        let node_shared_memory = self
+            .shared_memory
+            .get_mut(node_id)
+            .ok_or_else(|| ChromiumSenderThreadError::SharedMemoryNotAllocated(node_id.clone()))?;
+
+        Ok(&mut node_shared_memory[source_idx])
     }
 }
 

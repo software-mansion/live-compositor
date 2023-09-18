@@ -47,7 +47,7 @@ impl SharedMemory {
         frame: &cef::Frame,
     ) -> Result<(), SharedMemoryError> {
         let shmem_len = self.inner.as_ref().map(|shmem| shmem.len()).unwrap();
-        if shmem_len == size as usize {
+        if shmem_len == size {
             return Ok(());
         }
 
