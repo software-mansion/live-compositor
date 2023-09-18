@@ -2,13 +2,13 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use compositor_common::{
-    scene::{constraints::NodeConstraints, InputId, NodeParams, OutputId, Resolution, SceneSpec},
+    scene::{InputId, OutputId, Resolution, SceneSpec},
     Framerate,
 };
 use log::error;
 
 use crate::{
-    error::{InitRendererEngineError, RenderSceneError},
+    error::{InitRendererEngineError, RenderSceneError, UpdateSceneError},
     frame_set::FrameSet,
     render_loop::{populate_inputs, read_outputs},
     transformations::{
@@ -19,9 +19,7 @@ use crate::{
 use crate::{gpu_shader::GpuShader, render_loop::run_transforms};
 
 use self::{
-    format::TextureFormat,
-    renderers::Renderers,
-    scene::{Scene, UpdateSceneError},
+    format::TextureFormat, node::NodeSpecExt, renderers::Renderers, scene::Scene,
     utils::TextureUtils,
 };
 
@@ -140,35 +138,15 @@ impl Renderer {
 
     fn validate_constraints(&self, scene_spec: &SceneSpec) -> Result<(), UpdateSceneError> {
         for node_spec in &scene_spec.nodes {
-            if let Some(node_constraints) = self.node_constraints(&node_spec.params) {
-                node_constraints
-                    .check(scene_spec, &node_spec.node_id)
-                    .map_err(|err| {
-                        UpdateSceneError::ConstraintsValidationError(err, node_spec.node_id.clone())
-                    })?;
-            }
+            node_spec
+                .constraints(&self.renderers)?
+                .check(scene_spec, &node_spec.node_id)
+                .map_err(|err| {
+                    UpdateSceneError::ConstraintsValidationError(err, node_spec.node_id.clone())
+                })?;
         }
 
         Ok(())
-    }
-
-    /// Returns `None` if renderer doesn't exist
-    fn node_constraints(&self, node_params: &NodeParams) -> Option<&NodeConstraints> {
-        match node_params {
-            NodeParams::WebRenderer { instance_id } => self
-                .renderers
-                .web_renderers
-                .get_ref(instance_id)
-                .map(|web_renderer| web_renderer.constrains()),
-            NodeParams::Shader { shader_id, .. } => self
-                .renderers
-                .shaders
-                .get_ref(shader_id)
-                .map(|shader| shader.constraints()),
-            NodeParams::Text(_) => Some(NodeParams::text_constraints()),
-            NodeParams::Image { .. } => Some(NodeParams::image_constraints()),
-            NodeParams::Builtin { transformation } => Some(transformation.constrains()),
-        }
     }
 }
 

@@ -1,18 +1,20 @@
 use std::time::Duration;
 
-use compositor_common::renderer_spec::{FallbackStrategy, RendererId};
+use compositor_common::renderer_spec::FallbackStrategy;
 
+use compositor_common::scene::constraints::NodeConstraints;
 use compositor_common::scene::{NodeId, NodeParams, NodeSpec, Resolution};
-use log::error;
 
-use crate::gpu_shader::error::ParametersValidationError;
-use crate::transformations::builtin::Builtin;
+use crate::error::{CreateNodeError, UpdateSceneError};
+
 use crate::transformations::shader::node::ShaderNode;
+
 use crate::transformations::{
     builtin::node::BuiltinNode, image_renderer::ImageNode, text_renderer::TextRendererNode,
     web_renderer::node::WebRendererNode,
 };
 
+use super::renderers::Renderers;
 use super::{texture::NodeTexture, RenderCtx};
 
 pub enum RenderNode {
@@ -45,7 +47,6 @@ impl RenderNode {
                     .shaders
                     .get(shader_id)
                     .ok_or_else(|| CreateNodeError::ShaderNotFound(shader_id.clone()))?;
-
                 let node =
                     ShaderNode::new(ctx.wgpu_ctx, shader, shader_params.as_ref(), *resolution)
                         .map_err(|err| {
@@ -57,16 +58,9 @@ impl RenderNode {
                 Ok(Self::Shader(node))
             }
             NodeParams::Builtin { transformation } => {
-                let gpu_shader = ctx.renderers.builtin.gpu_shader(transformation);
-                let input_count = spec.input_pads.len() as u32;
+                let node = BuiltinNode::new(ctx, transformation, spec.input_pads.len());
 
-                Ok(Self::Builtin(BuiltinNode::new(
-                    Builtin {
-                        spec: transformation.clone(),
-                        gpu_shader,
-                    },
-                    input_count,
-                )))
+                Ok(Self::Builtin(node))
             }
             NodeParams::Text(text_spec) => {
                 let renderer = TextRendererNode::new(ctx, text_spec.clone());
@@ -190,17 +184,42 @@ impl Node {
     }
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum CreateNodeError {
-    #[error("Shader \"{0}\" does not exist. You have to register it first before using it in the scene definition.")]
-    ShaderNotFound(RendererId),
+pub(crate) trait NodeSpecExt {
+    fn constraints<'a>(
+        &self,
+        renderers: &'a Renderers,
+    ) -> Result<&'a NodeConstraints, UpdateSceneError>;
+}
 
-    #[error("Invalid parameter passed to \"{1}\" shader.")]
-    ShaderNodeParametersValidationError(#[source] ParametersValidationError, RendererId),
-
-    #[error("Instance of web renderer \"{0}\" does not exist. You have to register it first before using it in the scene definition.")]
-    WebRendererNotFound(RendererId),
-
-    #[error("Image \"{0}\" does not exist. You have to register it first before using it in the scene definition.")]
-    ImageNotFound(RendererId),
+impl NodeSpecExt for NodeSpec {
+    fn constraints<'a>(
+        &self,
+        renderers: &'a Renderers,
+    ) -> Result<&'a NodeConstraints, UpdateSceneError> {
+        match &self.params {
+            NodeParams::WebRenderer { instance_id } => renderers
+                .web_renderers
+                .get_ref(instance_id)
+                .map(|web_renderer| web_renderer.constraints())
+                .ok_or_else(|| {
+                    UpdateSceneError::CreateNodeError(
+                        crate::error::CreateNodeError::WebRendererNotFound(instance_id.clone()),
+                        self.node_id.clone(),
+                    )
+                }),
+            NodeParams::Shader { shader_id, .. } => renderers
+                .shaders
+                .get_ref(shader_id)
+                .map(|shader| shader.constraints())
+                .ok_or_else(|| {
+                    UpdateSceneError::CreateNodeError(
+                        crate::error::CreateNodeError::ShaderNotFound(shader_id.clone()),
+                        self.node_id.clone(),
+                    )
+                }),
+            NodeParams::Text(_) => Ok(NodeParams::text_constraints()),
+            NodeParams::Image { .. } => Ok(NodeParams::image_constraints()),
+            NodeParams::Builtin { transformation } => Ok(transformation.constrains()),
+        }
+    }
 }

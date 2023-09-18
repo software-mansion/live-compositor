@@ -1,7 +1,10 @@
-use compositor_common::{renderer_spec::RendererId, scene::NodeId};
+use compositor_common::{
+    error::UnsatisfiedConstraintsError, renderer_spec::RendererId, scene::NodeId,
+    SceneSpecValidationError,
+};
 
 use crate::{
-    gpu_shader::CreateShaderError,
+    gpu_shader::{error::ParametersValidationError, CreateShaderError},
     registry,
     renderer::{CreateWgpuCtxError, WgpuError},
     transformations::{
@@ -57,4 +60,40 @@ pub enum UnregisterRendererError {
 pub enum RenderSceneError {
     #[error(transparent)]
     WgpuError(#[from] WgpuError),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum UpdateSceneError {
+    #[error("Failed to create node \"{1}\".")]
+    CreateNodeError(#[source] CreateNodeError, NodeId),
+
+    #[error(transparent)]
+    InvalidSpec(#[from] SceneSpecValidationError),
+
+    #[error("Unknown node \"{0}\" used in scene.")]
+    NoNodeWithIdError(NodeId),
+
+    #[error(transparent)]
+    WgpuError(#[from] WgpuError),
+
+    #[error("Unknown resolution on the output node. Nodes that are declared as outputs need to have constant resolution that is the same as resolution of the output stream.")]
+    UnknownResolutionOnOutput(NodeId),
+
+    #[error("Constraints for node \"{1}\" are not satisfied.")]
+    ConstraintsValidationError(#[source] UnsatisfiedConstraintsError, NodeId),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum CreateNodeError {
+    #[error("Shader \"{0}\" does not exist. You have to register it first before using it in the scene definition.")]
+    ShaderNotFound(RendererId),
+
+    #[error("Invalid parameter passed to \"{1}\" shader.")]
+    ShaderNodeParametersValidationError(#[source] ParametersValidationError, RendererId),
+
+    #[error("Instance of web renderer \"{0}\" does not exist. You have to register it first before using it in the scene definition.")]
+    WebRendererNotFound(RendererId),
+
+    #[error("Image \"{0}\" does not exist. You have to register it first before using it in the scene definition.")]
+    ImageNotFound(RendererId),
 }

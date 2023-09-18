@@ -15,7 +15,7 @@ use compositor_render::event_loop::EventLoop;
 use compositor_render::registry::RegistryType;
 use compositor_render::renderer::RendererOptions;
 use compositor_render::WebRendererOptions;
-use compositor_render::{renderer::scene::UpdateSceneError, Renderer};
+use compositor_render::{error::UpdateSceneError, Renderer};
 use crossbeam_channel::unbounded;
 use log::{error, warn};
 use serde::{Deserialize, Serialize};

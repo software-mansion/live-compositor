@@ -2,12 +2,12 @@ use std::time::Duration;
 
 use compositor_common::{
     renderer_spec::FallbackStrategy,
-    scene::{NodeId, Resolution},
+    scene::{builtin_transformations::BuiltinSpec, NodeId, Resolution},
 };
 
 use wgpu::util::DeviceExt;
 
-use crate::renderer::{texture::NodeTexture, WgpuCtx};
+use crate::renderer::{texture::NodeTexture, RenderCtx, WgpuCtx};
 
 use super::{params::BuiltinParams, Builtin};
 
@@ -69,8 +69,14 @@ pub struct BuiltinNode {
 }
 
 impl BuiltinNode {
-    pub fn new(builtin: Builtin, input_count: u32) -> Self {
-        let input_resolutions = vec![None; input_count as usize];
+    pub fn new(ctx: &RenderCtx, spec: &BuiltinSpec, input_count: usize) -> Self {
+        let gpu_shader = ctx.renderers.builtin.gpu_shader(spec);
+        let builtin = Builtin {
+            spec: spec.clone(),
+            gpu_shader,
+        };
+
+        let input_resolutions = vec![None; input_count];
 
         let params_buffer_content =
             BuiltinParams::new(&builtin, &input_resolutions).shader_buffer_content();
