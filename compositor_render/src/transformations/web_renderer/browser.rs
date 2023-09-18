@@ -48,14 +48,14 @@ impl BrowserController {
         self.copy_sources_to_buffers(ctx, sources, buffers)?;
 
         let mut pending_downloads = Vec::new();
-        for (i, ((_, texture), buffer)) in sources.iter().zip(buffers).enumerate() {
+        for (source_idx, ((_, texture), buffer)) in sources.iter().zip(buffers).enumerate() {
             let Some(texture_state) = texture.state() else {
                 continue;
             };
             let size = texture_state.rgba_texture().size();
             pending_downloads.push(self.copy_buffer_to_shmem(
                 node_id.clone(),
-                i,
+                source_idx,
                 size,
                 buffer.clone(),
             ));
