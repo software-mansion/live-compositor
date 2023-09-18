@@ -35,7 +35,7 @@ fn validate_globals(
             |err| {
                 ShaderValidationError::GlobalBadType(
                     err,
-                    global_in_shader.name.clone().unwrap_with("<unknown>"),
+                    global_in_shader.name.unwrap_with("<unknown>"),
                 )
             },
         )?;
@@ -87,7 +87,7 @@ fn validate_vertex_input(
         .find(|(_, ty)| ty.name == vertex_input_type.name)
         .ok_or_else(|| {
             ShaderValidationError::VertexShaderBadInputTypeName(
-                vertex_input_type.name.clone().unwrap_with("<unknown>"),
+                vertex_input_type.name.unwrap_with("<unknown>"),
             )
         })?;
 
@@ -108,8 +108,8 @@ fn validate_type_equivalent(
 
     if expected_type.name != provided_type.name && expected_type.name.is_some() {
         return Err(TypeEquivalenceError::TypeNameMismatch {
-            expected: expected_type.name.clone().unwrap_with("<unknown>"),
-            actual: provided_type.name.clone().unwrap_with("<unknown>"),
+            expected: expected_type.name.unwrap_with("<unknown>"),
+            actual: provided_type.name.unwrap_with("<unknown>"),
         });
     }
 
