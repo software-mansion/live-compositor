@@ -378,6 +378,7 @@ version = "0.1.0"
 dependencies = [
  "bytes",
  "glyphon",
+ "lazy_static",
  "log",
  "serde",
  "serde_with",
@@ -2812,6 +2813,7 @@ dependencies = [
  "crossbeam-channel",
  "env_logger",
  "ffmpeg-next",
+ "lazy_static",
  "log",
  "reqwest",
  "serde",

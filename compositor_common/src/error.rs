@@ -2,7 +2,10 @@ use std::{collections::HashSet, fmt::Display};
 
 use log::error;
 
-use crate::scene::{builtin_transformations::TILED_LAYOUT_MAX_INPUTS_COUNT, NodeId, OutputId};
+use crate::{
+    renderer_spec::RendererId,
+    scene::{constraints::input_count::InputCountConstraint, NodeId, NodeParams, OutputId},
+};
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum SceneSpecValidationError {
@@ -45,6 +48,47 @@ impl Display for UnusedNodesError {
 }
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
+pub enum UnsatisfiedConstraintsError {
+    #[error(transparent)]
+    InvalidInputsCount(InputCountConstraintValidationError),
+}
+
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+pub struct InputCountConstraintValidationError {
+    pub node_identifier: NodeIdentifier,
+    pub input_count_constrain: InputCountConstraint,
+    pub defined_input_pad_count: u32,
+}
+
+impl Display for InputCountConstraintValidationError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let expects = match self.input_count_constrain {
+            InputCountConstraint::Exact { fixed_count } if fixed_count == 0 => {
+                "does not excepts input pads".to_owned()
+            }
+            InputCountConstraint::Exact { fixed_count } if fixed_count == 1 => {
+                "expects exactly one input pad".to_owned()
+            }
+            InputCountConstraint::Exact { fixed_count } => {
+                format!("expects exactly {fixed_count} input pads")
+            }
+            InputCountConstraint::Range {
+                lower_bound,
+                upper_bound,
+            } => format!("expects at least {lower_bound} and at most {upper_bound} input pads"),
+        };
+
+        let specified = match self.defined_input_pad_count {
+            0 => "none input pads were specified.".to_owned(),
+            1 => "one input pad was specified.".to_owned(),
+            n => format!("{n} input pads were specified."),
+        };
+
+        write!(f, "{} {}, but {}", self.node_identifier, expects, specified)
+    }
+}
+
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum NodeSpecValidationError {
     #[error(transparent)]
     Builtin(#[from] BuiltinSpecValidationError),
@@ -52,7 +96,7 @@ pub enum NodeSpecValidationError {
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum BuiltinSpecValidationError {
-    #[error("Transformation \"fixed_position_layout\" expects {input_count} texture layouts (the same as number of input pads), but {layout_count} layouts were provided.")]
+    #[error("Transformation \"fixed_position_layout\" expects {input_count} texture layouts (the same as number of input pads), but {layout_count} layouts were specified.")]
     FixedLayoutInvalidLayoutCount { layout_count: u32, input_count: u32 },
     #[error("Each entry in texture_layouts in transformation \"fixed_position_layout\" requires either bottom or top coordinate.")]
     FixedLayoutTopBottomRequired,
@@ -62,19 +106,45 @@ pub enum BuiltinSpecValidationError {
     FixedLayoutTopBottomOnlyOne,
     #[error("Fields \"left\" and \"right\" are mutually exclusive, you can only specify one in texture layout in \"fixed_position_layout\" transformation.")]
     FixedLayoutLeftRightOnlyOne,
-    #[error("Nodes that use transformation \"transform_to_resolution\" need to have exactly one input pad.")]
-    TransformToResolutionExactlyOneInput,
-    #[error(
-        "Transformation \"tiled_layout\" supports up to {} inputs.",
-        TILED_LAYOUT_MAX_INPUTS_COUNT
-    )]
-    TiledLayoutTooManyInputs,
-    #[error("Nodes that use transformation \"tiled_layout\" need to have at least one input pad.")]
-    TiledLayoutNoInputs,
-    #[error("Nodes that use transformation \"mirror_image\" need to have exactly one input pad.")]
-    MirrorImageExactlyOneInput,
-    #[error("Nodes that use transformation \"corner_radius\" need to have exactly one input pad.")]
-    CornerRadiusExactlyOneInput,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum NodeIdentifier {
+    WebRenderer(RendererId),
+    Shader(RendererId),
+    Text,
+    Image(RendererId),
+    Builtin(&'static str),
+}
+
+impl From<&NodeParams> for NodeIdentifier {
+    fn from(node_params: &NodeParams) -> Self {
+        match node_params {
+            NodeParams::WebRenderer { instance_id } => Self::WebRenderer(instance_id.clone()),
+            NodeParams::Shader { shader_id, .. } => Self::Shader(shader_id.clone()),
+            NodeParams::Text(_) => Self::Text,
+            NodeParams::Image { image_id } => Self::Image(image_id.clone()),
+            NodeParams::Builtin { transformation } => {
+                Self::Builtin(transformation.transformation_name())
+            }
+        }
+    }
+}
+
+impl Display for NodeIdentifier {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            NodeIdentifier::WebRenderer(instance_id) => {
+                write!(f, "\"{}\" web renderer", instance_id)
+            }
+            NodeIdentifier::Shader(shader_id) => write!(f, "\"{}\" shader", shader_id),
+            NodeIdentifier::Text => write!(f, "Text"),
+            NodeIdentifier::Image(image_id) => write!(f, "\"{}\" image", image_id),
+            NodeIdentifier::Builtin(builtin_name) => {
+                write!(f, "\"{}\" builtin transformation", builtin_name)
+            }
+        }
+    }
 }
 
 pub struct ErrorStack<'a>(Option<&'a (dyn std::error::Error + 'static)>);

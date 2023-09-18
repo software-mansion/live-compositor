@@ -2,6 +2,7 @@ use crate::renderer::WgpuCtx;
 
 use super::utils::pad_to_256;
 
+#[derive(Debug)]
 pub struct Texture {
     pub texture: wgpu::Texture,
     pub view: wgpu::TextureView,

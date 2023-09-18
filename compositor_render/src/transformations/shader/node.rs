@@ -6,15 +6,17 @@ use compositor_common::{
 };
 use wgpu::util::DeviceExt;
 
-use crate::renderer::{texture::NodeTexture, WgpuCtx};
+use crate::{
+    gpu_shader::error::ParametersValidationError,
+    renderer::{texture::NodeTexture, WgpuCtx},
+};
 
-use super::{error::ParametersValidationError, Shader};
+use super::Shader;
 
 pub struct ShaderNode {
     params_bind_group: wgpu::BindGroup,
     _custom_params_buffer: wgpu::Buffer,
     shader: Arc<Shader>,
-    clear_color: Option<wgpu::Color>,
     resolution: Resolution,
 }
 
@@ -23,11 +25,10 @@ impl ShaderNode {
         ctx: &WgpuCtx,
         shader: Arc<Shader>,
         params: Option<&ShaderParam>,
-        clear_color: Option<wgpu::Color>,
         resolution: Resolution,
     ) -> Result<Self, ParametersValidationError> {
         if let Some(params) = params {
-            shader.validate_params(params)?;
+            shader.gpu_shader.validate_params(params)?;
         }
 
         let custom_params_buffer = match params {
@@ -62,7 +63,6 @@ impl ShaderNode {
             params_bind_group,
             _custom_params_buffer: custom_params_buffer,
             shader,
-            clear_color,
             resolution,
         })
     }
@@ -71,24 +71,24 @@ impl ShaderNode {
         self.resolution
     }
 
+    pub fn fallback_strategy(&self) -> FallbackStrategy {
+        self.shader.fallback_strategy
+    }
+
     pub fn render(
         &self,
         sources: &[(&NodeId, &NodeTexture)],
         target: &mut NodeTexture,
         pts: Duration,
     ) {
-        let target = target.ensure_size(&self.shader.wgpu_ctx, self.resolution);
-        self.shader.render(
+        let target = target.ensure_size(&self.shader.gpu_shader.wgpu_ctx, self.resolution);
+        self.shader.gpu_shader.render(
             &self.params_bind_group,
             sources,
             target,
             pts,
-            self.clear_color,
+            self.shader.clear_color,
         )
-    }
-
-    pub fn fallback_strategy(&self) -> FallbackStrategy {
-        self.shader.fallback_strategy
     }
 }
 

@@ -52,6 +52,10 @@ impl<T: Clone> RendererRegistry<T> {
         self.registry.get(key).cloned()
     }
 
+    pub(crate) fn get_ref(&self, key: &RendererId) -> Option<&T> {
+        self.registry.get(key)
+    }
+
     pub(crate) fn register(&mut self, id: RendererId, renderer: T) -> Result<(), RegisterError> {
         if self.registry.contains_key(&id) {
             return Err(RegisterError::KeyTaken {

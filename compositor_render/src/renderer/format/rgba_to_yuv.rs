@@ -5,6 +5,7 @@ use crate::renderer::{
 
 use super::WgpuCtx;
 
+#[derive(Debug)]
 pub struct RGBAToYUVConverter {
     pipeline: wgpu::RenderPipeline,
     plane_selector: U32Uniform,

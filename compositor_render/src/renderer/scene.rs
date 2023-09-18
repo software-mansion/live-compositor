@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use compositor_common::{
-    error::SceneSpecValidationError,
+    error::{SceneSpecValidationError, UnsatisfiedConstraintsError},
     scene::{InputId, NodeId, OutputId, SceneSpec},
 };
 use log::error;
@@ -36,6 +36,9 @@ pub enum UpdateSceneError {
 
     #[error("Unknown resolution on the output node. Nodes that are declared as outputs need to have constant resolution that is the same as resolution of the output stream.")]
     UnknownResolutionOnOutput(NodeId),
+
+    #[error("Constraints for node \"{1}\" are not satisfied.")]
+    ConstraintsValidationError(#[source] UnsatisfiedConstraintsError, NodeId),
 }
 
 impl Scene {

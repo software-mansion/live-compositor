@@ -15,5 +15,6 @@ pub use context::*;
 pub use function::*;
 pub use numbers::*;
 pub use object::*;
+pub use object::*;
 pub use string::*;
 pub use value::*;

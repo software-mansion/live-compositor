@@ -32,7 +32,7 @@ pub enum BuiltinParams {
 
 impl BuiltinParams {
     pub fn new(builtin: &Builtin, input_resolutions: &[Option<Resolution>]) -> Self {
-        match &builtin.0 {
+        match &builtin.spec {
             BuiltinSpec::TransformToResolution {
                 strategy,
                 resolution,
@@ -50,15 +50,9 @@ impl BuiltinParams {
                 input_resolutions,
                 *resolution,
             )),
-            BuiltinSpec::TiledLayout {
-                resolution: output_resolution,
-                tile_aspect_ratio,
-                ..
-            } => BuiltinParams::TiledLayout(TiledLayoutParams::new(
-                input_resolutions,
-                *tile_aspect_ratio,
-                *output_resolution,
-            )),
+            BuiltinSpec::TiledLayout(spec) => {
+                BuiltinParams::TiledLayout(TiledLayoutParams::new(input_resolutions, spec))
+            }
             BuiltinSpec::MirrorImage { mode } => BuiltinParams::MirrorMode(*mode),
             BuiltinSpec::CornersRounding { border_radius } => BuiltinParams::CornersRounding(
                 CornersRoundingParams::new(*border_radius, input_resolutions),

@@ -119,6 +119,8 @@ fn start_example_client_code() -> Result<()> {
                 "node_id": "layout",
                 "type": "built-in",
                 "transformation": "tiled_layout",
+                "margin": 10,
+                "horizontal_alignment": "justified",
                 "background_color_rgba": "#FFFFFFFF",
                 "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
                 "input_pads": ["mirrored_image", "filled_image", "corners_rounded_image", "filled_image", "filled_image", "filled_image", "filled_image", "filled_image"],

@@ -5,6 +5,7 @@ use crate::renderer::{
 
 use super::WgpuCtx;
 
+#[derive(Debug)]
 pub struct YUVToRGBAConverter {
     pipeline: wgpu::RenderPipeline,
     sampler: Sampler,

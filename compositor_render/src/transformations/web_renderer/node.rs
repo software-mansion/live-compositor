@@ -73,7 +73,7 @@ impl WebRendererNode {
     }
 
     pub fn fallback_strategy(&self) -> FallbackStrategy {
-        self.renderer.fallback_strategy
+        self.renderer.fallback_strategy()
     }
 
     fn ensure_buffer_size(ctx: &WgpuCtx, buffer: &mut Arc<wgpu::Buffer>, texture: &RGBATexture) {

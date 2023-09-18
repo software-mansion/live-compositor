@@ -3,8 +3,11 @@ use serde::{Deserialize, Serialize};
 use crate::{error::NodeSpecValidationError, renderer_spec::RendererId};
 
 use super::{
-    builtin_transformations::BuiltinSpec, shader::ShaderParam, text_spec::TextSpec, NodeSpec,
-    Resolution,
+    builtin_transformations::BuiltinSpec,
+    constraints::{input_count::InputCountConstraint, Constraint, NodeConstraints},
+    shader::ShaderParam,
+    text_spec::TextSpec,
+    NodeSpec, Resolution,
 };
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -30,10 +33,31 @@ pub enum NodeParams {
 }
 
 impl NodeSpec {
-    pub fn validate(&self) -> Result<(), NodeSpecValidationError> {
+    pub fn validate_params(&self) -> Result<(), NodeSpecValidationError> {
         match &self.params {
-            NodeParams::Builtin { transformation, .. } => Ok(transformation.validate(self)?),
+            NodeParams::Builtin { transformation } => Ok(transformation.validate_params(self)?),
             _ => Ok(()),
         }
+    }
+}
+
+lazy_static! {
+    static ref TEXT_CONSTRAINTS: NodeConstraints =
+        NodeConstraints(vec![Constraint::InputCount(InputCountConstraint::Exact {
+            fixed_count: 0
+        })]);
+    static ref IMAGE_CONSTRAINTS: NodeConstraints =
+        NodeConstraints(vec![Constraint::InputCount(InputCountConstraint::Exact {
+            fixed_count: 0
+        })]);
+}
+
+impl NodeParams {
+    pub fn text_constraints() -> &'static NodeConstraints {
+        &TEXT_CONSTRAINTS
+    }
+
+    pub fn image_constraints() -> &'static NodeConstraints {
+        &IMAGE_CONSTRAINTS
     }
 }

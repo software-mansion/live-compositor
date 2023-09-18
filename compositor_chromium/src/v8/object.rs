@@ -8,6 +8,16 @@ use super::{
     V8ContextEntered, V8FunctionError,
 };
 
+mod document;
+mod dom_rect;
+mod element;
+mod global;
+
+pub use document::*;
+pub use dom_rect::*;
+pub use element::*;
+pub use global::*;
+
 pub struct V8Object(pub(super) Validated<chromium_sys::cef_v8value_t>);
 
 impl V8Object {
@@ -76,12 +86,31 @@ impl V8Object {
         ctx_entered: &V8ContextEntered,
     ) -> Result<V8Value, V8ObjectError> {
         let V8Value::Function(method) = self.get(name)? else {
-            return Err(V8ObjectError::ExpectedMethod(name.to_string()));
+            return Err(V8ObjectError::ExpectedType {
+                name: name.to_owned(),
+                expected: "method".to_owned(),
+            });
         };
 
         method
             .call_as_method(self, args, ctx_entered)
             .map_err(|err| V8ObjectError::MethodCallFailed(err, name.to_string()))
+    }
+
+    pub fn get_number(&self, key: &str) -> Result<f64, V8ObjectError> {
+        let value = match self.get(key)? {
+            V8Value::Double(v) => v.get()?,
+            V8Value::Int(v) => v.get()? as f64,
+            V8Value::Uint(v) => v.get()? as f64,
+            _ => {
+                return Err(V8ObjectError::ExpectedType {
+                    name: key.to_owned(),
+                    expected: "number".to_owned(),
+                })
+            }
+        };
+
+        Ok(value)
     }
 }
 
@@ -110,8 +139,8 @@ pub enum V8ObjectError {
     #[error("Failed to delete \"{0}\" field.")]
     DeleteFailed(String),
 
-    #[error("Expected \"{0}\" field to be a method.")]
-    ExpectedMethod(String),
+    #[error("Expected \"{name}\" to be a {expected}.")]
+    ExpectedType { name: String, expected: String },
 
     #[error("Failed to call \"{1}\" method.")]
     MethodCallFailed(#[source] V8FunctionError, String),

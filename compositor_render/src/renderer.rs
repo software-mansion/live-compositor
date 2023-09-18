@@ -2,7 +2,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use compositor_common::{
-    scene::{InputId, OutputId, Resolution, SceneSpec},
+    scene::{constraints::NodeConstraints, InputId, NodeParams, OutputId, Resolution, SceneSpec},
     Framerate,
 };
 use log::error;
@@ -18,7 +18,7 @@ use crate::{
     },
     WebRendererOptions,
 };
-use crate::{render_loop::run_transforms, transformations::shader::Shader};
+use crate::{gpu_shader::GpuShader, render_loop::run_transforms};
 
 use self::{
     format::TextureFormat,
@@ -139,7 +139,8 @@ impl Renderer {
         })
     }
 
-    pub fn update_scene(&mut self, scene_specs: Arc<SceneSpec>) -> Result<(), UpdateSceneError> {
+    pub fn update_scene(&mut self, scene_spec: Arc<SceneSpec>) -> Result<(), UpdateSceneError> {
+        self.validate_constraints(&scene_spec)?;
         self.scene.update(
             &RenderCtx {
                 renderer_id: &self.renderer_id,
@@ -149,13 +150,47 @@ impl Renderer {
                 renderers: &self.renderers,
                 stream_fallback_timeout: self.stream_fallback_timeout,
             },
-            &scene_specs,
+            &scene_spec,
         )?;
-        self.scene_spec = scene_specs;
+        self.scene_spec = scene_spec;
         Ok(())
+    }
+
+    fn validate_constraints(&self, scene_spec: &SceneSpec) -> Result<(), UpdateSceneError> {
+        for node_spec in &scene_spec.nodes {
+            if let Some(node_constraints) = self.node_constraints(&node_spec.params) {
+                node_constraints
+                    .check(scene_spec, &node_spec.node_id)
+                    .map_err(|err| {
+                        UpdateSceneError::ConstraintsValidationError(err, node_spec.node_id.clone())
+                    })?;
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Returns `None` if renderer doesn't exist
+    fn node_constraints(&self, node_params: &NodeParams) -> Option<&NodeConstraints> {
+        match node_params {
+            NodeParams::WebRenderer { instance_id } => self
+                .renderers
+                .web_renderers
+                .get_ref(instance_id)
+                .map(|web_renderer| web_renderer.constrains()),
+            NodeParams::Shader { shader_id, .. } => self
+                .renderers
+                .shaders
+                .get_ref(shader_id)
+                .map(|shader| shader.constraints()),
+            NodeParams::Text(_) => Some(NodeParams::text_constraints()),
+            NodeParams::Image { .. } => Some(NodeParams::image_constraints()),
+            NodeParams::Builtin { transformation } => Some(transformation.constrains()),
+        }
     }
 }
 
+#[derive(Debug)]
 pub struct WgpuCtx {
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
@@ -237,7 +272,8 @@ impl WgpuCtx {
         let format = TextureFormat::new(&device);
         let utils = TextureUtils::new(&device);
 
-        let shader_parameters_bind_group_layout = Shader::new_parameters_bind_group_layout(&device);
+        let shader_parameters_bind_group_layout =
+            GpuShader::new_parameters_bind_group_layout(&device);
 
         scope.pop(&device)?;
 

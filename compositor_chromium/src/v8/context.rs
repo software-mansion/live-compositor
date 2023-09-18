@@ -1,8 +1,11 @@
 use log::warn;
 
-use crate::validated::{Validatable, Validated, ValidatedError};
+use crate::{
+    cef::V8Global,
+    validated::{Validatable, Validated, ValidatedError},
+};
 
-use super::value::V8Value;
+use super::V8Object;
 
 /// JavaScript V8 engine context.
 /// Available only on the renderer process
@@ -26,11 +29,13 @@ impl V8Context {
         Ok(V8ContextEntered(self))
     }
 
-    pub fn global(&self) -> Result<V8Value, V8ContextError> {
+    pub fn global(&self) -> Result<V8Global, V8ContextError> {
         unsafe {
             let ctx = self.inner.get()?;
             let get_global = (*ctx).get_global.unwrap();
-            Ok(V8Value::from_raw(get_global(ctx)))
+            let global = Validated::new(get_global(ctx));
+
+            Ok(V8Global(V8Object(global)))
         }
     }
 }
