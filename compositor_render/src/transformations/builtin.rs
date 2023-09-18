@@ -39,9 +39,7 @@ impl Builtin {
                 background_color_rgba,
                 ..
             } => Some(rgba_to_wgpu_color(background_color_rgba)),
-            BuiltinSpec::TiledLayout(tailed_layout_spec) => Some(rgba_to_wgpu_color(
-                &tailed_layout_spec.background_color_rgba,
-            )),
+            BuiltinSpec::TiledLayout(spec) => Some(rgba_to_wgpu_color(&spec.background_color_rgba)),
             BuiltinSpec::CornersRounding { .. } => Some(wgpu::Color::TRANSPARENT),
             BuiltinSpec::MirrorImage { .. } => None,
         }
@@ -62,7 +60,7 @@ impl Builtin {
         match &self.spec {
             BuiltinSpec::TransformToResolution { resolution, .. } => *resolution,
             BuiltinSpec::FixedPositionLayout { resolution, .. } => *resolution,
-            BuiltinSpec::TiledLayout(tailed_layout_spec) => tailed_layout_spec.resolution,
+            BuiltinSpec::TiledLayout(spec) => spec.resolution,
             BuiltinSpec::MirrorImage { .. } => first_input_resolution(input_resolutions),
             BuiltinSpec::CornersRounding { .. } => first_input_resolution(input_resolutions),
         }
@@ -72,7 +70,7 @@ impl Builtin {
         match &self.spec {
             BuiltinSpec::TransformToResolution { resolution, .. } => Some(*resolution),
             BuiltinSpec::FixedPositionLayout { resolution, .. } => Some(*resolution),
-            BuiltinSpec::TiledLayout(tailed_layout_spec) => Some(tailed_layout_spec.resolution),
+            BuiltinSpec::TiledLayout(spec) => Some(spec.resolution),
             BuiltinSpec::MirrorImage { .. } => None,
             BuiltinSpec::CornersRounding { .. } => None,
         }
