@@ -1,3 +1,4 @@
+use log::error;
 use crate::{
     cef_string::CefString,
     validated::{Validated, ValidatedError},
@@ -85,7 +86,9 @@ impl V8Object {
         args: &[V8Value],
         ctx_entered: &V8ContextEntered,
     ) -> Result<V8Value, V8ObjectError> {
-        let V8Value::Function(method) = self.get(name)? else {
+        let value = self.get(name)?;
+        error!("VALUE {} TY: {:?}",name, std::mem::discriminant(&value));
+        let V8Value::Function(method) = value else {
             return Err(V8ObjectError::ExpectedType {
                 name: name.to_owned(),
                 expected: "method".to_owned(),

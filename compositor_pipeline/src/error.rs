@@ -169,6 +169,7 @@ impl From<&InitRendererEngineError> for PipelineErrorInfo {
 const ENTITY_ALREADY_REGISTERED: &str = "ENTITY_ALREADY_REGISTERED";
 const INVALID_SHADER: &str = "INVALID_SHADER";
 const REGISTER_IMAGE_ERROR: &str = "REGISTER_IMAGE_ERROR";
+const REGISTER_WEB_RENDERER_ERROR: &str = "REGISTER_WEB_RENDERER_ERROR";
 
 impl From<&RegisterRendererError> for PipelineErrorInfo {
     fn from(err: &RegisterRendererError) -> Self {
@@ -183,6 +184,9 @@ impl From<&RegisterRendererError> for PipelineErrorInfo {
             }
             RegisterRendererError::Image(_, _) => {
                 PipelineErrorInfo::new(REGISTER_IMAGE_ERROR, ErrorType::UserError)
+            }
+            RegisterRendererError::Web(_, _) => {
+                PipelineErrorInfo::new(REGISTER_WEB_RENDERER_ERROR, ErrorType::ServerError)
             }
         }
     }

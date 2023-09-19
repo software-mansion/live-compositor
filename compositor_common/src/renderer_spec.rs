@@ -50,6 +50,10 @@ pub struct WebRendererSpec {
     pub instance_id: RendererId,
     pub url: String,
     pub resolution: Resolution,
+    #[serde(default = "WebRendererSpec::default_use_native_embedding")]
+    pub use_native_embedding: bool,
+    #[serde(default = "WebRendererSpec::default_embed_on_top")]
+    pub embed_on_top: bool,
     #[serde(default = "WebRendererSpec::default_fallback")]
     pub fallback_strategy: FallbackStrategy,
     #[serde(default = "WebRendererSpec::default_constraints")]
@@ -106,5 +110,13 @@ impl WebRendererSpec {
             lower_bound: 0,
             upper_bound: 16,
         })])
+    }
+
+    fn default_use_native_embedding() -> bool {
+        false
+    }
+
+    fn default_embed_on_top() -> bool {
+        true
     }
 }

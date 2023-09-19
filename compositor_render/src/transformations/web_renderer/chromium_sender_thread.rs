@@ -19,7 +19,7 @@ use crate::transformations::web_renderer::chromium_sender::{
 };
 use crate::transformations::web_renderer::shared_memory::{SharedMemory, SharedMemoryError};
 use crate::transformations::web_renderer::WebRenderer;
-use crate::{renderer::texture::utils::pad_to_256, EMBED_SOURCE_FRAMES_MESSAGE};
+use crate::{renderer::texture::utils::pad_to_256, EMBED_SOURCE_FRAMES_MESSAGE, GET_FRAME_POSITIONS_MESSAGE};
 
 use super::{browser::BrowserClient, chromium_context::ChromiumContext};
 
@@ -76,6 +76,9 @@ impl ChromiumSenderThread {
                 }
                 ChromiumSenderMessage::UpdateSharedMemory(info) => {
                     self.handle_shmem_update(&mut state, info)
+                }
+                ChromiumSenderMessage::GetFramePositions { source_count } => {
+                    self.handle_get_frame_positions(&state, source_count)
                 }
             };
 
@@ -168,6 +171,20 @@ impl ChromiumSenderThread {
         }
 
         self.unmap_signal_sender.send(()).unwrap();
+        Ok(())
+    }
+
+    fn handle_get_frame_positions(
+        &self,
+        state: &ThreadState,
+        source_count: usize,
+    ) -> Result<(), ChromiumSenderThreadError> {
+        let mut message = cef::ProcessMessage::new(GET_FRAME_POSITIONS_MESSAGE);
+        message.write_int(0, source_count as i32);
+
+        let frame = state.browser.main_frame()?;
+        frame.send_process_message(cef::ProcessId::Renderer, message)?;
+
         Ok(())
     }
 }

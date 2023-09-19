@@ -1,13 +1,18 @@
 use std::sync::{Arc, Mutex};
 
-use bytes::Bytes;
+use crate::GET_FRAME_POSITIONS_MESSAGE;
+use bytes::{Bytes, BytesMut};
 use compositor_chromium::cef;
+use compositor_chromium::cef::{Browser, Frame, ProcessId, ProcessMessage};
 use compositor_common::scene::{NodeId, Resolution};
 use crossbeam_channel::bounded;
 use log::error;
 use shared_memory::ShmemError;
 
 use crate::renderer::{texture::NodeTexture, RegisterCtx, RenderCtx};
+use crate::transformations::builtin::box_layout::BoxLayout;
+use crate::transformations::builtin::utils::mat4_to_bytes;
+use crate::transformations::web_renderer::frame_embedder::FrameTransforms;
 
 use super::chromium_sender::ChromiumSender;
 
@@ -17,9 +22,14 @@ pub(super) struct BrowserController {
 }
 
 impl BrowserController {
-    pub fn new(ctx: &RegisterCtx, url: String, resolution: Resolution) -> Self {
+    pub fn new(
+        ctx: &RegisterCtx,
+        url: String,
+        resolution: Resolution,
+        frame_positions: FrameTransforms,
+    ) -> Self {
         let frame_data = Arc::new(Mutex::new(Bytes::new()));
-        let client = BrowserClient::new(frame_data.clone(), resolution);
+        let client = BrowserClient::new(frame_data.clone(), frame_positions, resolution);
         let chromium_sender = ChromiumSender::new(ctx, url, client);
 
         Self {
@@ -69,6 +79,10 @@ impl BrowserController {
 
         self.chromium_sender.embed_sources(node_id, sources);
         Ok(())
+    }
+
+    pub fn request_frame_positions(&self, sources: &[(&NodeId, &NodeTexture)]) {
+        self.chromium_sender.request_frame_positions(sources);
     }
 
     fn copy_sources_to_buffers(
@@ -126,6 +140,7 @@ impl BrowserController {
 #[derive(Clone)]
 pub(super) struct BrowserClient {
     frame_data: Arc<Mutex<Bytes>>,
+    frame_positions: FrameTransforms,
     resolution: Resolution,
 }
 
@@ -135,12 +150,64 @@ impl cef::Client for BrowserClient {
     fn render_handler(&self) -> Option<Self::RenderHandlerType> {
         Some(RenderHandler::new(self.frame_data.clone(), self.resolution))
     }
+
+    fn on_process_message_received(
+        &mut self,
+        _browser: &Browser,
+        _frame: &Frame,
+        _source_process: ProcessId,
+        message: &ProcessMessage,
+    ) -> bool {
+        match message.name().as_str() {
+            GET_FRAME_POSITIONS_MESSAGE => {
+                let mut transformations_matrices = BytesMut::new();
+                for i in (0..message.size()).step_by(4) {
+                    let Some(x) = message.read_double(i) else {
+                        error!("Expected \"x\" value of DOMRect");
+                        continue;
+                    };
+                    let Some(y) = message.read_double(i + 1) else {
+                        error!("Expected \"y\" value of DOMRect");
+                        continue;
+                    };
+                    let Some(width) = message.read_double(i + 2) else {
+                        error!("Expected \"width\" value of DOMRect");
+                        continue;
+                    };
+                    let Some(height) = message.read_double(i + 3) else {
+                        error!("Expected \"height\" value of DOMRect");
+                        continue;
+                    };
+
+                    let transformations_matrix = BoxLayout {
+                        top_left_corner: (x as f32, y as f32),
+                        width: width as f32,
+                        height: height as f32,
+                        rotation_degrees: 0.0,
+                    }
+                    .transformation_matrix(self.resolution);
+
+                    transformations_matrices.extend(mat4_to_bytes(&transformations_matrix));
+                }
+
+                let mut frame_positions = self.frame_positions.lock().unwrap();
+                *frame_positions = transformations_matrices.freeze();
+            }
+            ty => error!("Unknown process message type \"{ty}\""),
+        }
+        true
+    }
 }
 
 impl BrowserClient {
-    pub fn new(frame_data: Arc<Mutex<Bytes>>, resolution: Resolution) -> Self {
+    pub fn new(
+        frame_data: Arc<Mutex<Bytes>>,
+        frame_positions: FrameTransforms,
+        resolution: Resolution,
+    ) -> Self {
         Self {
             frame_data,
+            frame_positions,
             resolution,
         }
     }

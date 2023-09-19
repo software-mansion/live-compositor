@@ -1,3 +1,4 @@
+use log::error;
 use crate::cef::{V8ContextEntered, V8Element, V8Object, V8ObjectError, V8String, V8Value};
 
 pub struct V8Document(pub V8Object);

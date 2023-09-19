@@ -10,7 +10,7 @@ use compositor_common::{
 
 use crate::{gpu_shader::GpuShader, utils::rgba_to_wgpu_color};
 
-mod box_layout;
+pub mod box_layout;
 pub mod error;
 pub mod node;
 pub mod params;

@@ -11,15 +11,17 @@
 <style>
     html,
     body {
-        background-color: white;
+        color: white;
+        background-color: transparent;
     }
 
     canvas {
-        border: 2px solid black;
+        border: 4px solid red;
         animation: anim infinite ease-in-out;
         animation-duration: 3s;
-        min-width: 800px;
-        min-height: 600px;
+        width: 800px;
+        height: 600px;
+        border-radius: 512px;
     }
 
     @keyframes anim {
@@ -27,12 +29,11 @@
         0%,
         100% {
             rotate: 0deg;
-            border-radius: 0;
+            margin-left: 0px;
         }
 
         50% {
-            rotate: -10deg;
-            border-radius: 512px;
+            margin-left: 150px;
         }
     }
 </style>
@@ -40,6 +41,7 @@
 <body>
 <h2>Frame embedding:</h2>
 <canvas id="input_0"></canvas>
+<canvas id="input_1"></canvas>
 </body>
 
 <script>
@@ -68,6 +70,7 @@
     }
 
     run("input_0");
+    run("input_1");
 </script>
 
 </html>
