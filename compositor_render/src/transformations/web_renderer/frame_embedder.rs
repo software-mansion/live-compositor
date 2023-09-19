@@ -65,7 +65,7 @@ impl FrameEmbedder {
     }
 
     /// Send sources to chromium and render them on canvases via JS API
-    pub fn native_embed(
+    pub fn chromium_embed(
         &mut self,
         node_id: NodeId,
         sources: &[(&NodeId, &NodeTexture)],

@@ -9,6 +9,7 @@ use crate::renderer::{
 };
 
 use crate::transformations::web_renderer::frame_embedder::{FrameEmbedder, FrameEmbedderError};
+use compositor_common::renderer_spec::WebEmbeddingMethod;
 use compositor_common::{
     renderer_spec::{FallbackStrategy, WebRendererSpec},
     scene::{constraints::NodeConstraints, NodeId, Resolution},
@@ -50,7 +51,6 @@ pub struct WebRenderer {
     spec: WebRendererSpec,
     frame_embedder: Mutex<FrameEmbedder>,
     frame_bytes: FrameBytes,
-    rendering_mode: WebRenderingMode,
 
     bgra_texture: BGRATexture,
     _bgra_bind_group_layout: wgpu::BindGroupLayout,
@@ -75,13 +75,10 @@ impl WebRenderer {
             spec.resolution,
         )?);
 
-        let rendering_mode = WebRenderingMode::from_spec(&spec);
-
         Ok(Self {
             spec,
             frame_embedder,
             frame_bytes,
-            rendering_mode,
             bgra_texture,
             _bgra_bind_group_layout: bgra_bind_group_layout,
             bgra_bind_group,
@@ -98,15 +95,17 @@ impl WebRenderer {
         target: &mut NodeTexture,
     ) -> Result<(), RenderWebsiteError> {
         let mut frame_embedder = self.frame_embedder.lock().unwrap();
-        if self.rendering_mode == WebRenderingMode::NativeEmbedding {
-            frame_embedder.native_embed(node_id.clone(), sources, buffers)?;
+        let mut clear_target_texture = sources.is_empty();
+
+        if self.spec.embedding_method == WebEmbeddingMethod::ChromiumEmbedding {
+            clear_target_texture = true;
+            frame_embedder.chromium_embed(node_id.clone(), sources, buffers)?;
         }
 
         if let Some(frame) = self.retrieve_frame() {
-            let clear_target_texture = self.spec.use_native_embedding || sources.is_empty();
             let target = target.ensure_size(ctx.wgpu_ctx, self.spec.resolution);
 
-            if self.rendering_mode == WebRenderingMode::FrameEmbeddingOnTop {
+            if self.spec.embedding_method == WebEmbeddingMethod::EmbedBelow {
                 frame_embedder.embed(sources, target);
             }
 
@@ -118,7 +117,7 @@ impl WebRenderer {
                 clear_target_texture,
             );
 
-            if self.rendering_mode == WebRenderingMode::FrameEmbedding {
+            if self.spec.embedding_method == WebEmbeddingMethod::EmbedOnTop {
                 frame_embedder.embed(sources, target);
             }
         }
@@ -150,33 +149,6 @@ impl WebRenderer {
 
     pub fn constrains(&self) -> &NodeConstraints {
         &self.spec.constraints
-    }
-}
-
-#[derive(Debug, PartialEq)]
-enum WebRenderingMode {
-    /// Send frames to chromium directly and render it on canvas
-    NativeEmbedding,
-
-    /// Render website to texture and then place sources onto the rendered texture
-    FrameEmbeddingOnTop,
-
-    /// Render sources to texture and then render website on top.
-    /// The website's background has to be transparent
-    FrameEmbedding,
-}
-
-impl WebRenderingMode {
-    fn from_spec(spec: &WebRendererSpec) -> Self {
-        if spec.use_native_embedding {
-            return Self::NativeEmbedding;
-        }
-
-        if spec.embed_on_top {
-            Self::FrameEmbeddingOnTop
-        } else {
-            Self::FrameEmbedding
-        }
     }
 }
 
