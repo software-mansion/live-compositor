@@ -1,11 +1,14 @@
 use compositor_common::{scene::Resolution, Frame};
+use crossbeam_channel::Sender;
 use ffmpeg_next::{
     codec::{packet::Packet, Context, Id},
     format::Pixel,
     frame, Codec, Dictionary, Rational,
 };
-use log::error;
+use log::{error, warn};
 use serde::{Deserialize, Serialize};
+
+use super::{OutputOptions, PipelineOutput};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -77,7 +80,7 @@ pub struct EncoderSettings {
     preset: EncoderPreset,
 }
 
-pub(crate) struct Encoder {
+pub(crate) struct LibavH264Encoder {
     encoder: ffmpeg_next::codec::encoder::video::Encoder,
     codec: Codec,
     resolution: Resolution,
@@ -85,7 +88,7 @@ pub(crate) struct Encoder {
 
 // TODO: errors in this file are atrocious
 
-impl Encoder {
+impl LibavH264Encoder {
     pub fn new(settings: EncoderSettings, resolution: Resolution) -> Result<Self, String> {
         let codec = ffmpeg_next::codec::encoder::find(Id::H264).ok_or("Cannot find an encoder")?;
         let mut encoder = Context::new()
@@ -163,7 +166,7 @@ impl Encoder {
 }
 
 pub struct PacketIterator<'a> {
-    encoder: &'a mut Encoder,
+    encoder: &'a mut LibavH264Encoder,
 }
 
 impl<'a> Iterator for PacketIterator<'a> {
@@ -225,4 +228,46 @@ fn write_plane_to_av(frame: &mut frame::Video, plane: usize, data: &[u8]) {
     data.chunks(width)
         .zip(frame.data_mut(plane).chunks_mut(stride))
         .for_each(|(data, target)| target[..width].copy_from_slice(data));
+}
+
+pub struct Encoder<Output: PipelineOutput> {
+    sender: Sender<Frame>,
+    output: Output,
+}
+
+impl<Output: PipelineOutput> Encoder<Output> {
+    pub fn new(opts: OutputOptions<Output>) -> Result<Self, String> {
+        let mut encoder = LibavH264Encoder::new(opts.encoder_settings, opts.resolution)?;
+        let (frame_sender, frame_receiver) = crossbeam_channel::unbounded();
+        // channel used to return information about the RtpSender initialization back to the API thread.
+        let (output_sender, output_receiver) = crossbeam_channel::bounded(0);
+
+        std::thread::spawn(move || {
+            let (output, mut context) = Output::new(opts.receiver_options, encoder.codec());
+            output_sender.send(output.clone()).unwrap();
+            for frame in frame_receiver.iter() {
+                if frame_receiver.len() > 20 {
+                    warn!("Dropping frame: encoder queue is too long.");
+                    continue;
+                }
+
+                for packet in encoder.send_frame(frame) {
+                    output.send_packet(&mut context, packet);
+                }
+            }
+        });
+
+        Ok(Self {
+            sender: frame_sender,
+            output: output_receiver.recv().unwrap(),
+        })
+    }
+
+    pub fn send_frame(&self, frame: Frame) {
+        self.sender.send(frame).unwrap();
+    }
+
+    pub fn output(&self) -> &Output {
+        &self.output
+    }
 }

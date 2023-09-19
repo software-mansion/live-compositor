@@ -166,10 +166,10 @@ impl Api {
             }
             QueryRequest::Outputs => {
                 let outputs = self.pipeline.with_outputs(|iter| {
-                    iter.map(|(id, node)| OutputInfo {
+                    iter.map(|(id, output)| OutputInfo {
                         id: id.clone(),
-                        port: node.identifier().port,
-                        ip: node.identifier().ip.clone(),
+                        port: output.port,
+                        ip: output.ip.clone(),
                     })
                     .collect()
                 });
@@ -227,7 +227,7 @@ impl Api {
         } = request;
 
         self.pipeline.with_outputs(|mut iter| {
-            if let Some((node_id, _)) = iter.find(|(_, output)| output.identifier().port == port && output.identifier().ip == ip) {
+            if let Some((node_id, _)) = iter.find(|(_, output)| output.port == port && output.ip == ip) {
                 return Err(ApiError::new(
                     "PORT_AND_IP_ALREADY_IN_USE",
                     format!("Failed to register output stream \"{output_id}\". Combination of port {port} and IP {ip} is already used by node \"{node_id}\""),

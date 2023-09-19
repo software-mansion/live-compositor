@@ -1,18 +1,20 @@
 use log::error;
 use std::{path::PathBuf, sync::Arc};
 
-use compositor_pipeline::pipeline::PipelineOutputReceiver;
+use compositor_pipeline::pipeline::PipelineOutput;
 use ffmpeg_next::{
     codec,
     format::{self, context::Output},
     Codec, Packet,
 };
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct RtpSender {
-    output_ctx: Output,
     pub(crate) port: u16,
     pub(crate) ip: Arc<str>,
 }
+
+pub struct RtpContext(Output);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Options {
@@ -22,11 +24,11 @@ pub struct Options {
 
 // TODO: unwraps
 
-impl PipelineOutputReceiver for RtpSender {
+impl PipelineOutput for RtpSender {
     type Opts = Options;
-    type Identifier = Options;
+    type Context = RtpContext;
 
-    fn new(options: Options, codec: Codec) -> Self {
+    fn new(options: Options, codec: Codec) -> (Self, RtpContext) {
         let port = options.port;
         let ip = options.ip.clone();
 
@@ -46,23 +48,12 @@ impl PipelineOutputReceiver for RtpSender {
 
         output_ctx.write_header().unwrap();
 
-        Self {
-            output_ctx,
-            port,
-            ip,
-        }
+        (Self { port, ip }, RtpContext(output_ctx))
     }
 
-    fn send_packet(&mut self, packet: Packet) {
-        if let Err(err) = packet.write_interleaved(&mut self.output_ctx) {
+    fn send_packet(&self, context: &mut RtpContext, packet: Packet) {
+        if let Err(err) = packet.write_interleaved(&mut context.0) {
             error!("Failed to send rtp packets: {err}")
-        }
-    }
-
-    fn identifier(&self) -> Self::Identifier {
-        Options {
-            port: self.port,
-            ip: self.ip.clone(),
         }
     }
 }
