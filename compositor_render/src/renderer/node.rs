@@ -5,10 +5,10 @@ use compositor_common::renderer_spec::{FallbackStrategy, RendererId};
 use compositor_common::scene::{NodeId, NodeParams, NodeSpec, Resolution};
 use log::error;
 
-use crate::transformations::web_renderer::node::WebRendererNodeError;
 use crate::gpu_shader::error::ParametersValidationError;
 use crate::transformations::builtin::Builtin;
 use crate::transformations::shader::node::ShaderNode;
+use crate::transformations::web_renderer::node::WebRendererNodeError;
 use crate::transformations::{
     builtin::node::BuiltinNode, image_renderer::ImageNode, text_renderer::TextRendererNode,
     web_renderer::node::WebRendererNode,
