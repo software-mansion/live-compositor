@@ -1,5 +1,7 @@
 use compositor_common::{
-    error::UnsatisfiedConstraintsError, renderer_spec::RendererId, scene::NodeId,
+    error::UnsatisfiedConstraintsError,
+    renderer_spec::RendererId,
+    scene::{transition::TransitionValidationError, NodeId},
     SceneSpecValidationError,
 };
 
@@ -96,4 +98,7 @@ pub enum CreateNodeError {
 
     #[error("Image \"{0}\" does not exist. You have to register it first before using it in the scene definition.")]
     ImageNotFound(RendererId),
+
+    #[error(transparent)]
+    TransitionValidation(#[from] TransitionValidationError),
 }

@@ -2,7 +2,7 @@ use std::cmp::min;
 
 use compositor_common::{scene::Resolution, util::coord::Coord};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CornersRoundingParams {
     // pixels
     border_radius: f32,

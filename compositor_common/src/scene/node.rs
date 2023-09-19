@@ -7,6 +7,7 @@ use super::{
     constraints::{input_count::InputCountConstraint, Constraint, NodeConstraints},
     shader::ShaderParam,
     text_spec::TextSpec,
+    transition::TransitionSpec,
     NodeSpec, Resolution,
 };
 
@@ -30,6 +31,7 @@ pub enum NodeParams {
         #[serde(flatten)]
         transformation: BuiltinSpec,
     },
+    Transition(TransitionSpec),
 }
 
 impl NodeSpec {

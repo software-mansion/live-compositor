@@ -9,8 +9,9 @@ use crate::error::{CreateNodeError, UpdateSceneError};
 
 use crate::transformations::shader::node::ShaderNode;
 
+use crate::transformations::transition::TransitionNode;
 use crate::transformations::{
-    builtin::node::BuiltinNode, image_renderer::ImageNode, text_renderer::TextRendererNode,
+    builtin::BuiltinNode, image_renderer::ImageNode, text_renderer::TextRendererNode,
     web_renderer::node::WebRendererNode,
 };
 
@@ -23,6 +24,7 @@ pub enum RenderNode {
     Text(TextRendererNode),
     Image(ImageNode),
     Builtin(BuiltinNode),
+    Transition(TransitionNode),
     InputStream,
 }
 
@@ -46,7 +48,7 @@ impl RenderNode {
                 Ok(Self::Shader(node))
             }
             NodeParams::Builtin { transformation } => {
-                let node = BuiltinNode::new(ctx, transformation, spec.input_pads.len());
+                let node = BuiltinNode::new_static(ctx, transformation, spec.input_pads.len());
 
                 Ok(Self::Builtin(node))
             }
@@ -62,6 +64,10 @@ impl RenderNode {
                     .ok_or_else(|| CreateNodeError::ImageNotFound(image_id.clone()))?;
                 let node = ImageNode::new(image);
                 Ok(Self::Image(node))
+            }
+            NodeParams::Transition(transition_spec) => {
+                let node = TransitionNode::new(ctx, transition_spec, spec.input_pads.len())?;
+                Ok(Self::Transition(node))
             }
         }
     }
@@ -88,6 +94,7 @@ impl RenderNode {
                 renderer.render(ctx, target);
             }
             RenderNode::Image(ref node) => node.render(ctx, target, pts),
+            RenderNode::Transition(node) => node.render(sources, target, pts),
             RenderNode::InputStream => {
                 // Nothing to do, textures on input nodes should be populated
                 // at the start of render loop
@@ -95,6 +102,7 @@ impl RenderNode {
         }
     }
 
+    // TODO: remove this function (should be handled dynamically on output)
     pub fn resolution(&self) -> Option<Resolution> {
         match self {
             RenderNode::Shader(node) => Some(node.resolution()),
@@ -103,9 +111,11 @@ impl RenderNode {
             RenderNode::Image(node) => Some(node.resolution()),
             RenderNode::InputStream => None,
             RenderNode::Builtin(node) => node.resolution_from_spec(),
+            RenderNode::Transition(node) => node.resolution(),
         }
     }
 
+    // TODO: move to FallbackStrategyExt
     fn should_fallback(&self, sources: &[(&NodeId, &NodeTexture)]) -> bool {
         if sources.is_empty() {
             return false;
@@ -130,6 +140,7 @@ impl RenderNode {
             RenderNode::Image(_) => FallbackStrategy::NeverFallback,
             RenderNode::Builtin(builtin_node) => builtin_node.fallback_strategy(),
             RenderNode::InputStream => FallbackStrategy::NeverFallback,
+            RenderNode::Transition(_) => FallbackStrategy::NeverFallback,
         }
     }
 }
@@ -207,7 +218,8 @@ impl NodeSpecExt for NodeSpec {
                 }),
             NodeParams::Text(_) => Ok(NodeParams::text_constraints()),
             NodeParams::Image { .. } => Ok(NodeParams::image_constraints()),
-            NodeParams::Builtin { transformation } => Ok(transformation.constrains()),
+            NodeParams::Builtin { transformation } => Ok(transformation.constraints()),
+            NodeParams::Transition(spec) => Ok(spec.end.constraints()),
         }
     }
 }
