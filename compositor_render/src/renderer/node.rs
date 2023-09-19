@@ -9,7 +9,6 @@ use crate::error::{CreateNodeError, UpdateSceneError};
 
 use crate::transformations::shader::node::ShaderNode;
 
-use crate::transformations::web_renderer::node::WebRendererNodeError;
 use crate::transformations::{
     builtin::node::BuiltinNode, image_renderer::ImageNode, text_renderer::TextRendererNode,
     web_renderer::node::WebRendererNode,

@@ -6,6 +6,7 @@ use std::{
 };
 
 use compositor_chromium::cef;
+use compositor_common::renderer_spec::RendererId;
 use compositor_common::{
     error::ErrorStack,
     scene::{NodeId, Resolution},
@@ -25,7 +26,7 @@ use super::{browser::BrowserClient, chromium_context::ChromiumContext};
 
 pub(super) struct ChromiumSenderThread {
     chromium_ctx: Arc<ChromiumContext>,
-    renderer_id: Arc<str>,
+    renderer_id: RendererId,
     url: String,
     browser_client: BrowserClient,
 
@@ -179,7 +180,7 @@ struct ThreadState {
 }
 
 impl ThreadState {
-    fn new(browser: cef::Browser, renderer_id: &str) -> Self {
+    fn new(browser: cef::Browser, renderer_id: &RendererId) -> Self {
         let shared_memory_root_path = WebRenderer::shared_memory_root_path(renderer_id);
         let shared_memory = HashMap::new();
 

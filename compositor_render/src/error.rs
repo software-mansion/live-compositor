@@ -3,6 +3,7 @@ use compositor_common::{
     SceneSpecValidationError,
 };
 
+use crate::transformations::web_renderer::node::WebRendererNodeError;
 use crate::{
     gpu_shader::{error::ParametersValidationError, CreateShaderError},
     registry,
@@ -93,6 +94,9 @@ pub enum CreateNodeError {
 
     #[error("Instance of web renderer \"{0}\" does not exist. You have to register it first before using it in the scene definition.")]
     WebRendererNotFound(RendererId),
+
+    #[error(transparent)]
+    CreateWebRendererNodeError(#[from] WebRendererNodeError),
 
     #[error("Image \"{0}\" does not exist. You have to register it first before using it in the scene definition.")]
     ImageNotFound(RendererId),

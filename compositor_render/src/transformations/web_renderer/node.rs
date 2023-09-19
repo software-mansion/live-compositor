@@ -1,5 +1,6 @@
 use std::{fs, io, sync::Arc};
 
+use compositor_common::renderer_spec::RendererId;
 use compositor_common::{
     error::ErrorStack,
     renderer_spec::FallbackStrategy,
@@ -22,7 +23,7 @@ pub struct WebRendererNode {
 
 impl WebRendererNode {
     pub fn new(
-        renderer_id: &str,
+        renderer_id: &RendererId,
         node_id: &NodeId,
         renderer: Arc<WebRenderer>,
     ) -> Result<Self, WebRendererNodeError> {
@@ -86,7 +87,7 @@ impl WebRendererNode {
 
     /// Creates folder for shared memory descriptors used by this node
     fn init_shared_memory_folder(
-        renderer_id: &str,
+        renderer_id: &RendererId,
         node_id: &NodeId,
     ) -> Result<(), WebRendererNodeError> {
         let path = WebRenderer::shared_memory_root_path(renderer_id).join(node_id.to_string());

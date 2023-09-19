@@ -1,6 +1,7 @@
 use std::sync::Arc;
 use std::time::Duration;
 
+use compositor_common::renderer_spec::RendererId;
 use compositor_common::{
     scene::{InputId, OutputId, Resolution, SceneSpec},
     Framerate,
@@ -43,7 +44,7 @@ pub struct RendererOptions {
 pub struct Renderer {
     /// Random ID created during renderer init.
     /// Currently used for specifying globally unique shared memory root path
-    pub(crate) renderer_id: Arc<str>,
+    pub(crate) renderer_id: RendererId,
 
     pub wgpu_ctx: Arc<WgpuCtx>,
     pub text_renderer_ctx: TextRendererCtx,
@@ -58,7 +59,7 @@ pub struct Renderer {
 }
 
 pub struct RenderCtx<'a> {
-    pub renderer_id: &'a Arc<str>,
+    pub renderer_id: &'a RendererId,
     pub wgpu_ctx: &'a Arc<WgpuCtx>,
 
     pub text_renderer_ctx: &'a TextRendererCtx,
@@ -70,7 +71,7 @@ pub struct RenderCtx<'a> {
 }
 
 pub struct RegisterCtx {
-    pub renderer_id: Arc<str>,
+    pub renderer_id: RendererId,
     pub wgpu_ctx: Arc<WgpuCtx>,
     pub chromium: Arc<ChromiumContext>,
 }
@@ -78,7 +79,7 @@ pub struct RegisterCtx {
 impl Renderer {
     pub fn new(opts: RendererOptions) -> Result<Self, InitRendererEngineError> {
         let wgpu_ctx = Arc::new(WgpuCtx::new()?);
-        let renderer_id = random_string(30).into();
+        let renderer_id = RendererId(random_string(30).into());
 
         Ok(Self {
             renderer_id,

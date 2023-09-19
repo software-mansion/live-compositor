@@ -7,6 +7,7 @@ use crate::renderer::{
     BGRAToRGBAConverter, RegisterCtx, RenderCtx,
 };
 
+use compositor_common::renderer_spec::RendererId;
 use compositor_common::{
     renderer_spec::{FallbackStrategy, WebRendererSpec},
     scene::{constraints::NodeConstraints, NodeId, Resolution},
@@ -106,7 +107,7 @@ impl WebRenderer {
         self.params.resolution
     }
 
-    pub fn shared_memory_root_path(renderer_id: &str) -> PathBuf {
+    pub fn shared_memory_root_path(renderer_id: &RendererId) -> PathBuf {
         env::temp_dir()
             .join("video_compositor")
             .join(format!("instance_{}", renderer_id))
