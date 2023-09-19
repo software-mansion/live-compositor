@@ -8,11 +8,12 @@ use compositor_common::{
 use crate::{
     error::{
         InitRendererEngineError, RegisterRendererError, RenderSceneError, UnregisterRendererError,
+        UpdateSceneError,
     },
     event_loop::EventLoop,
     frame_set::FrameSet,
     registry::RegistryType,
-    renderer::{scene::UpdateSceneError, Renderer, RendererOptions},
+    renderer::{Renderer, RendererOptions},
     transformations::{image_renderer::Image, shader::Shader, web_renderer::WebRenderer},
     validation::SceneSpecExt,
 };

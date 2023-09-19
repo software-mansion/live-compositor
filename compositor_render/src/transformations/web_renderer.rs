@@ -109,7 +109,7 @@ impl WebRenderer {
         self.params.fallback_strategy
     }
 
-    pub fn constrains(&self) -> &NodeConstraints {
+    pub fn constraints(&self) -> &NodeConstraints {
         &self.params.constraints
     }
 }
