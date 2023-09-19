@@ -56,7 +56,18 @@ impl BGRAToRGBAConverter {
         }
     }
 
-    pub fn convert(&self, ctx: &WgpuCtx, src: (&BGRATexture, &wgpu::BindGroup), dst: &RGBATexture) {
+    pub fn convert(
+        &self,
+        ctx: &WgpuCtx,
+        src: (&BGRATexture, &wgpu::BindGroup),
+        dst: &RGBATexture,
+        clear_dst: bool,
+    ) {
+        let load = match clear_dst {
+            true => wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+            false => wgpu::LoadOp::Load,
+        };
+
         let mut encoder = ctx
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor {
@@ -69,10 +80,7 @@ impl BGRAToRGBAConverter {
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: &dst.texture().view,
                     resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Load,
-                        store: true,
-                    },
+                    ops: wgpu::Operations { load, store: true },
                 })],
                 depth_stencil_attachment: None,
             });

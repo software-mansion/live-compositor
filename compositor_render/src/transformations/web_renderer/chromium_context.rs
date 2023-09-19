@@ -7,7 +7,7 @@ use log::info;
 
 use crate::WebRendererOptions;
 
-use super::browser::BrowserClient;
+use super::browser_client::BrowserClient;
 
 pub struct ChromiumContext {
     context: Option<Arc<cef::Context>>,

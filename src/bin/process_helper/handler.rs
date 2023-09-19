@@ -139,7 +139,6 @@ impl RenderProcessHandler {
     }
 
     fn handle_unembed_source(&self, msg: &cef::ProcessMessage, surface: &cef::Frame) {
-        error!("HERE");
         let Some(shmem_path) = msg.read_string(0) else {
             error!("Failed to read node ID");
             return;

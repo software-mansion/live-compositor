@@ -6,7 +6,7 @@ use crossbeam_channel::{Receiver, Sender};
 
 use crate::renderer::texture::NodeTexture;
 
-use super::{browser::BrowserClient, chromium_sender_thread::ChromiumSenderThread};
+use super::{browser_client::BrowserClient, chromium_sender_thread::ChromiumSenderThread};
 
 pub(super) struct ChromiumSender {
     message_sender: Sender<ChromiumSenderMessage>,

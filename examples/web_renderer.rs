@@ -114,6 +114,7 @@ fn start_example_client_code() -> Result<()> {
         "instance_id": "example_website",
         "url": format!("file://{file_path}"), // or other way of providing source
         "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+        "use_native_embedding": false,
         "constraints": [
             {
                 "type": "input_count",
