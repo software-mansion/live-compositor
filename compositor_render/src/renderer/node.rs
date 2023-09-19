@@ -47,7 +47,13 @@ impl RenderNode {
                     .ok_or_else(|| CreateNodeError::ShaderNotFound(shader_id.clone()))?;
 
                 let node =
-                    ShaderNode::new(ctx.wgpu_ctx, shader, shader_params.as_ref(), *resolution)?;
+                    ShaderNode::new(ctx.wgpu_ctx, shader, shader_params.as_ref(), *resolution)
+                        .map_err(|err| {
+                            CreateNodeError::ShaderNodeParametersValidationError(
+                                err,
+                                shader_id.clone(),
+                            )
+                        })?;
                 Ok(Self::Shader(node))
             }
             NodeParams::Builtin { transformation } => {
@@ -189,8 +195,8 @@ pub enum CreateNodeError {
     #[error("Shader \"{0}\" does not exist. You have to register it first before using it in the scene definition.")]
     ShaderNotFound(RendererId),
 
-    #[error("Error while validating the parameters for the shader node:\n{0}")]
-    ShaderNodeParametersValidationError(#[from] ParametersValidationError),
+    #[error("Invalid parameter passed to \"{1}\" shader.")]
+    ShaderNodeParametersValidationError(#[source] ParametersValidationError, RendererId),
 
     #[error("Instance of web renderer \"{0}\" does not exist. You have to register it first before using it in the scene definition.")]
     WebRendererNotFound(RendererId),

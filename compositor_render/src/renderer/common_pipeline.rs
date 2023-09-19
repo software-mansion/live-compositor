@@ -12,7 +12,7 @@ pub const PRIMITIVE_STATE: wgpu::PrimitiveState = wgpu::PrimitiveState {
     unclipped_depth: false,
 };
 
-pub const MAX_TEXTURES_COUNT: u32 = 16;
+pub const MAX_TEXTURE_COUNT: u32 = 16;
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]

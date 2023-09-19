@@ -12,7 +12,7 @@ struct VertexOutput {
 
 struct CommonShaderParameters {
     time: f32,
-    textures_count: u32,
+    texture_count: u32,
     output_resolution: vec2<u32>,
 }
 
