@@ -42,19 +42,7 @@ impl RenderNode {
                 shader_params,
                 resolution,
             } => {
-                let shader = ctx
-                    .renderers
-                    .shaders
-                    .get(shader_id)
-                    .ok_or_else(|| CreateNodeError::ShaderNotFound(shader_id.clone()))?;
-                let node =
-                    ShaderNode::new(ctx.wgpu_ctx, shader, shader_params.as_ref(), *resolution)
-                        .map_err(|err| {
-                            CreateNodeError::ShaderNodeParametersValidationError(
-                                err,
-                                shader_id.clone(),
-                            )
-                        })?;
+                let node = ShaderNode::new(ctx, shader_id, shader_params, resolution)?;
                 Ok(Self::Shader(node))
             }
             NodeParams::Builtin { transformation } => {
