@@ -6,8 +6,6 @@ use compositor_common::{
     Framerate,
 };
 use log::error;
-use rand::distributions::Alphanumeric;
-use rand::{thread_rng, Rng};
 
 use crate::{
     error::{InitRendererEngineError, RenderSceneError},
@@ -35,6 +33,7 @@ pub mod scene;
 pub mod texture;
 mod utils;
 
+use crate::utils::random_string;
 pub(crate) use format::bgra_to_rgba::BGRAToRGBAConverter;
 
 pub struct RendererOptions {
@@ -81,12 +80,7 @@ pub struct RegisterCtx {
 impl Renderer {
     pub fn new(opts: RendererOptions) -> Result<Self, InitRendererEngineError> {
         let wgpu_ctx = Arc::new(WgpuCtx::new()?);
-        let renderer_id = thread_rng()
-            .sample_iter(&Alphanumeric)
-            .take(30)
-            .map(char::from)
-            .collect::<String>()
-            .into();
+        let renderer_id = random_string(30).into();
 
         Ok(Self {
             renderer_id,
