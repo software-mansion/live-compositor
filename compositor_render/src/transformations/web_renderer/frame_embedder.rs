@@ -128,10 +128,6 @@ impl FrameEmbedder {
         (buffer, bind_group)
     }
 
-    pub fn request_frame_positions(&self, sources: &[(&NodeId, &NodeTexture)]) {
-        self.chromium_sender.request_frame_positions(sources);
-    }
-
     fn copy_sources_to_buffers(
         &self,
         sources: &[(&NodeId, &NodeTexture)],

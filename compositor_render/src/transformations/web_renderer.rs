@@ -15,8 +15,6 @@ use compositor_common::{
 };
 use log::{error, info};
 use serde::{Deserialize, Serialize};
-use crate::renderer::texture::RGBATexture;
-
 
 pub mod browser_client;
 pub mod chromium_context;
@@ -70,7 +68,12 @@ impl WebRenderer {
         let bgra_to_rgba = BGRAToRGBAConverter::new(&ctx.wgpu_ctx.device, &bgra_bind_group_layout);
 
         let frame_bytes = Arc::new(Mutex::new(Bytes::new()));
-        let frame_embedder = Mutex::new(FrameEmbedder::new(ctx, frame_bytes.clone(), spec.url.clone(), spec.resolution)?);
+        let frame_embedder = Mutex::new(FrameEmbedder::new(
+            ctx,
+            frame_bytes.clone(),
+            spec.url.clone(),
+            spec.resolution,
+        )?);
 
         let rendering_mode = WebRenderingMode::from_spec(&spec);
 
@@ -131,7 +134,6 @@ impl WebRenderer {
         Some(frame_data.clone())
     }
 
-
     pub fn resolution(&self) -> Resolution {
         self.spec.resolution
     }
@@ -161,7 +163,7 @@ enum WebRenderingMode {
 
     /// Render sources to texture and then render website on top.
     /// The website's background has to be transparent
-    FrameEmbedding
+    FrameEmbedding,
 }
 
 impl WebRenderingMode {
@@ -177,7 +179,6 @@ impl WebRenderingMode {
         }
     }
 }
-
 
 #[derive(Debug, thiserror::Error)]
 pub enum CreateWebRendererError {

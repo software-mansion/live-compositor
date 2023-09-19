@@ -86,8 +86,7 @@ impl V8Object {
         args: &[V8Value],
         ctx_entered: &V8ContextEntered,
     ) -> Result<V8Value, V8ObjectError> {
-        let value = self.get(name)?;
-        let V8Value::Function(method) = value else {
+        let V8Value::Function(method) = self.get(name)? else {
             return Err(V8ObjectError::ExpectedType {
                 name: name.to_owned(),
                 expected: "method".to_owned(),

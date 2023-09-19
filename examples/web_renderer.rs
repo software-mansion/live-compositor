@@ -99,12 +99,6 @@ fn start_example_client_code() -> Result<()> {
         "input_id": "input_1",
         "port": 8004
     }))?;
-    common::post(&json!({
-        "type": "register",
-        "entity_type": "input_stream",
-        "input_id": "input_2",
-        "port": 8006
-    }))?;
 
     info!("[example] Register web renderer transform");
 
@@ -133,8 +127,7 @@ fn start_example_client_code() -> Result<()> {
                "type": "web_renderer",
                "instance_id": "example_website",
                "input_pads": [
-                    "input_1",
-                    "input_2"
+                    "input_1"
                 ],
                "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
            }
@@ -163,18 +156,6 @@ fn start_example_client_code() -> Result<()> {
             "-f",
             "rtp",
             "rtp://127.0.0.1:8004?rtcpport=8004",
-        ])
-        .spawn()?;
-    Command::new("ffmpeg")
-        .args(["-re", "-i"])
-        .arg(sample_path)
-        .args([
-            "-an",
-            "-c:v",
-            "libx264",
-            "-f",
-            "rtp",
-            "rtp://127.0.0.1:8006?rtcpport=8006",
         ])
         .spawn()?;
     Ok(())
