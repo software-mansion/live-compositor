@@ -1,6 +1,6 @@
 use wgpu::{util::DeviceExt, Buffer, BufferSlice};
 
-use super::{Vertex, MAX_TEXTURES_COUNT};
+use super::{Vertex, MAX_TEXTURE_COUNT};
 
 /// In case of no input texture, vertex shader receives plane
 /// with 4 vertices with input id -1. This allows using shaders without
@@ -107,8 +107,8 @@ pub struct Surfaces {
     no_inputs_indices: Buffer,
 }
 
-const VERTICES_COUNT: usize = 4 * MAX_TEXTURES_COUNT as usize;
-const INDICES_COUNT: usize = 6 * MAX_TEXTURES_COUNT as usize;
+const VERTICES_COUNT: usize = 4 * MAX_TEXTURE_COUNT as usize;
+const INDICES_COUNT: usize = 6 * MAX_TEXTURE_COUNT as usize;
 
 /// Vertex and index buffer that describe render area as an rectangle mapped to texture.
 impl Surfaces {
@@ -155,39 +155,39 @@ impl Surfaces {
         }
     }
 
-    pub fn draw<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>, input_textures_count: u32) {
-        render_pass.set_vertex_buffer(0, self.vertices(input_textures_count));
+    pub fn draw<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>, input_texture_count: u32) {
+        render_pass.set_vertex_buffer(0, self.vertices(input_texture_count));
 
-        render_pass.set_index_buffer(self.indices(input_textures_count), INDEX_FORMAT);
+        render_pass.set_index_buffer(self.indices(input_texture_count), INDEX_FORMAT);
 
-        render_pass.draw_indexed(0..Self::indices_len(input_textures_count), 0, 0..1);
+        render_pass.draw_indexed(0..Self::indices_len(input_texture_count), 0, 0..1);
     }
 
-    fn vertices(&self, input_textures_count: u32) -> BufferSlice {
-        if input_textures_count == 0 {
+    fn vertices(&self, input_texture_count: u32) -> BufferSlice {
+        if input_texture_count == 0 {
             self.no_inputs_vertices.slice(..)
         } else {
             let vertex_buffer_len =
-                4 * input_textures_count as u64 * std::mem::size_of::<Vertex>() as u64;
+                4 * input_texture_count as u64 * std::mem::size_of::<Vertex>() as u64;
             self.inputs_vertices.slice(..vertex_buffer_len)
         }
     }
 
-    fn indices(&self, input_textures_count: u32) -> BufferSlice {
-        if input_textures_count == 0 {
+    fn indices(&self, input_texture_count: u32) -> BufferSlice {
+        if input_texture_count == 0 {
             self.no_inputs_indices.slice(..)
         } else {
             let index_buffer_len =
-                6 * input_textures_count as u64 * std::mem::size_of::<u16>() as u64;
+                6 * input_texture_count as u64 * std::mem::size_of::<u16>() as u64;
             self.inputs_indices.slice(..index_buffer_len)
         }
     }
 
-    fn indices_len(input_textures_count: u32) -> u32 {
-        if input_textures_count == 0 {
+    fn indices_len(input_texture_count: u32) -> u32 {
+        if input_texture_count == 0 {
             6
         } else {
-            input_textures_count * 6
+            input_texture_count * 6
         }
     }
 }

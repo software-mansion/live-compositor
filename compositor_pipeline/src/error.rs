@@ -1,8 +1,10 @@
 use compositor_common::scene::{InputId, OutputId};
 use compositor_render::{
-    error::{InitRendererEngineError, RegisterRendererError, UnregisterRendererError},
+    error::{
+        InitRendererEngineError, RegisterRendererError, UnregisterRendererError, UpdateSceneError,
+    },
     registry::RegisterError,
-    renderer::{scene::UpdateSceneError, WgpuError},
+    renderer::WgpuError,
 };
 
 #[derive(Debug, thiserror::Error)]

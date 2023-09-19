@@ -1,19 +1,17 @@
-use compositor_common::scene::shader::ShaderParam;
-
 use super::{USER_DEFINED_BUFFER_BINDING, USER_DEFINED_BUFFER_GROUP, VERTEX_ENTRYPOINT_NAME};
 
-// TODO: Add real URL.
-const HEADER_DOCS_URL: &str = "https://docs.placeholder.com/shader_header";
+const HEADER_DOCS_URL: &str =
+    "https://github.com/membraneframework/video_compositor/wiki/Shader#header";
 
 #[derive(Debug, thiserror::Error)]
 pub enum ShaderValidationError {
     #[error("A global \"{0}\" should be declared in the shader. Make sure to include the compositor header code inside your shader. Learn more: {HEADER_DOCS_URL}.")]
     GlobalNotFound(String),
 
-    #[error("A global in the shader has a wrong type.")]
+    #[error("A global variable \"{1}\" has a wrong type. Learn more: {HEADER_DOCS_URL}.")]
     GlobalBadType(#[source] TypeEquivalenceError, String),
 
-    #[error("Could not find a vertex shader entrypoint. Expected \"fn {VERTEX_ENTRYPOINT_NAME}(input: VertexInput)\"")]
+    #[error("Could not find a vertex shader entrypoint. Expected \"fn {VERTEX_ENTRYPOINT_NAME}(input: VertexInput)\".")]
     VertexShaderNotFound,
 
     #[error("Wrong vertex shader argument amount: found {0}, expected 1.")]
@@ -24,7 +22,7 @@ pub enum ShaderValidationError {
     )]
     VertexShaderBadInputTypeName(String),
 
-    #[error("The vertex shader input has a wrong type.")]
+    #[error("The vertex shader input has a wrong type. Learn more: {HEADER_DOCS_URL}.")]
     VertexShaderBadInput(#[source] TypeEquivalenceError),
 
     #[error("User defined binding (group {USER_DEFINED_BUFFER_GROUP}, binding {USER_DEFINED_BUFFER_BINDING}) is not a uniform buffer. Is it defined as var<uniform>?")]
@@ -33,20 +31,20 @@ pub enum ShaderValidationError {
 
 #[derive(Debug, thiserror::Error)]
 pub enum TypeEquivalenceError {
-    #[error("Type names don't match: {0:?} != {1:?}.")]
-    TypeNameMismatch(Option<String>, Option<String>),
+    #[error("Type names don't match (expected: {expected}, actual: {actual}).")]
+    TypeNameMismatch { expected: String, actual: String },
 
     #[error("Type mismatch (expected: {expected}, actual: {actual}).")]
     TypeStructureMismatch { expected: String, actual: String },
 
-    #[error("Struct {struct_name} has an incorrect number of fields: expected: {expected_field_number}, found: {actual_field_number}")]
+    #[error("Struct \"{struct_name}\" has an incorrect number of fields: expected: {expected_field_number}, found: {actual_field_number}")]
     StructFieldNumberMismatch {
         struct_name: String,
         expected_field_number: usize,
         actual_field_number: usize,
     },
 
-    #[error("Field \"{field_name}\" in struct {struct_name} has invalid type.")]
+    #[error("Field \"{field_name}\" in struct \"{struct_name}\" has an invalid type.")]
     StructFieldStructureMismatch {
         struct_name: String,
         field_name: String,
@@ -61,12 +59,12 @@ pub enum TypeEquivalenceError {
         actual_field_name: String,
     },
 
-    #[error("Field {field_name} in struct {struct_name} has an incorrect binding: expected {expected_binding:?}, found {actual_binding:?}.")]
+    #[error("Field {field_name} in struct {struct_name} has an incorrect binding: expected \"{expected_binding} {field_name}\", found \"{actual_binding} {field_name}\".")]
     StructFieldBindingMismatch {
         struct_name: String,
         field_name: String,
-        expected_binding: Option<naga::Binding>,
-        actual_binding: Option<naga::Binding>,
+        expected_binding: String,
+        actual_binding: String,
     },
 
     #[error(transparent)]
@@ -93,7 +91,7 @@ pub enum ConstArraySizeEvalError {
 
 #[derive(Debug, thiserror::Error)]
 pub enum ParametersValidationError {
-    #[error("No user-defined binding was found in the shader, even though parameters were provided in the request.")]
+    #[error("No user-defined binding was found in the shader, even though parameters were provided in the request. Add \"@group(1) @binding(0) var<uniform> example_params: ExampleType;\" in your shader code.")]
     NoBindingInShader,
 
     #[error("A type used in the shader cannot be provided at node registration: {0}.")]
@@ -102,47 +100,56 @@ pub enum ParametersValidationError {
     #[error("An unsupported scalar kind.")]
     UnsupportedScalarKind(naga::ScalarKind, u8),
 
-    #[error("Expected type {1:?}, got {0:?}.")]
-    WrongType(ShaderParam, naga::TypeInner),
+    #[error("Type mismatch (expected: {expected}, actual: {actual}).")]
+    WrongType { expected: String, actual: String },
 
-    #[error("A list of parameters is too long: expected a max of {expected}, got {provided}")]
-    ListTooLong { expected: usize, provided: usize },
+    #[error("A list of parameters is too long (expected: {expected}, actual: {actual}).")]
+    ListTooLong { expected: usize, actual: usize },
 
     #[error("Error while evaluating array size")]
     ArraySizeEvalError(#[from] ConstArraySizeEvalError),
 
-    #[error("A struct has a wrong amount of fields: expected {expected}, got {provided}")]
-    WrongShaderFieldsAmount { expected: usize, provided: usize },
-
-    #[error("A field in the provided {struct_name} struct has a different name than in the expected struct: expected \"{expected}\", got \"{provided}\"")]
-    WrongFieldName {
+    #[error("Struct \"{struct_name}\" has {expected} field(s), but {actual} were provided via shader parameters.")]
+    WrongShaderFieldsAmount {
         struct_name: String,
-        expected: String,
-        provided: String,
+        expected: usize,
+        actual: usize,
     },
 
-    #[error("Error while verifying field {struct_field} in struct {struct_name}:\n{error}")]
+    #[error("The field at index {index} in struct \"{struct_name}\" is named \"{expected}\", but \"{actual}\" were provided via shader parameters.")]
+    WrongFieldName {
+        index: usize,
+        struct_name: String,
+        expected: String,
+        actual: String,
+    },
+
+    #[error("Error while verifying field \"{struct_field}\" in struct \"{struct_name}\".")]
     WrongFieldType {
         struct_name: String,
         struct_field: String,
+        #[source]
         error: Box<ParametersValidationError>,
     },
 
-    #[error("Error while verifying array element at index {idx}:\n{error}")]
+    #[error("Error while verifying array element at index {idx}.")]
     WrongArrayElementType {
         idx: usize,
+        #[source]
         error: Box<ParametersValidationError>,
     },
 
-    #[error("Error while verifying vector element at index {idx}:\n{error}")]
+    #[error("Error while verifying vector element at index {idx}.")]
     WrongVectorElementType {
         idx: usize,
+        #[source]
         error: Box<ParametersValidationError>,
     },
 
-    #[error("Error while verifying matrix row {idx}:\n{error}")]
+    #[error("Error while verifying matrix row {idx}.")]
     WrongMatrixRowType {
         idx: usize,
+        #[source]
         error: Box<ParametersValidationError>,
     },
 }
@@ -178,5 +185,22 @@ impl ShaderGlobalVariableExt for naga::GlobalVariable {
         };
         let name = self.name.clone().unwrap_or("value".to_string());
         format!("{group_and_binding}var{space} {name}")
+    }
+}
+
+pub(crate) trait BindingExt {
+    fn to_string(&self) -> String;
+}
+
+impl BindingExt for naga::Binding {
+    fn to_string(&self) -> String {
+        match self {
+            naga::Binding::BuiltIn(builtin) => format!("{:?}", builtin),
+            // default interpolation and sampling depends on type, so it's hard to detect if
+            // provided value is a default or not. For now we are just printing location.
+            // If we ever start using @interpolate in header this implementation needs to be
+            // updated.
+            naga::Binding::Location { location, .. } => format!("@location({})", location),
+        }
     }
 }

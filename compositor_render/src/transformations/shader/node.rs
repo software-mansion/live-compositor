@@ -1,14 +1,14 @@
 use std::{sync::Arc, time::Duration};
 
 use compositor_common::{
-    renderer_spec::FallbackStrategy,
+    renderer_spec::{FallbackStrategy, RendererId},
     scene::{shader::ShaderParam, NodeId, Resolution},
 };
 use wgpu::util::DeviceExt;
 
 use crate::{
-    gpu_shader::error::ParametersValidationError,
-    renderer::{texture::NodeTexture, WgpuCtx},
+    error::CreateNodeError,
+    renderer::{texture::NodeTexture, RenderCtx, WgpuCtx},
 };
 
 use super::Shader;
@@ -22,16 +22,36 @@ pub struct ShaderNode {
 
 impl ShaderNode {
     pub fn new(
-        ctx: &WgpuCtx,
-        shader: Arc<Shader>,
-        params: Option<&ShaderParam>,
-        resolution: Resolution,
-    ) -> Result<Self, ParametersValidationError> {
-        if let Some(params) = params {
-            shader.gpu_shader.validate_params(params)?;
+        ctx: &RenderCtx,
+        shader_id: &RendererId,
+        shader_params: &Option<ShaderParam>,
+        resolution: &Resolution,
+    ) -> Result<Self, CreateNodeError> {
+        let shader = ctx
+            .renderers
+            .shaders
+            .get(shader_id)
+            .ok_or_else(|| CreateNodeError::ShaderNotFound(shader_id.clone()))?;
+
+        if let Some(params) = shader_params {
+            shader.gpu_shader.validate_params(params).map_err(|err| {
+                CreateNodeError::ShaderNodeParametersValidationError(err, shader_id.clone())
+            })?
         }
 
-        let custom_params_buffer = match params {
+        let custom_params_buffer = Self::new_params_buffer(ctx.wgpu_ctx, shader_params);
+        let params_bind_group = Self::new_params_bind_group(ctx.wgpu_ctx, &custom_params_buffer);
+
+        Ok(Self {
+            params_bind_group,
+            _custom_params_buffer: custom_params_buffer,
+            shader,
+            resolution: *resolution,
+        })
+    }
+
+    fn new_params_buffer(ctx: &WgpuCtx, shader_params: &Option<ShaderParam>) -> wgpu::Buffer {
+        match shader_params {
             Some(params) => {
                 let params = params.to_bytes();
                 ctx.device
@@ -48,22 +68,17 @@ impl ShaderNode {
                     contents: &[0],
                     usage: wgpu::BufferUsages::UNIFORM,
                 }),
-        };
+        }
+    }
 
-        let params_bind_group = ctx.device.create_bind_group(&wgpu::BindGroupDescriptor {
+    fn new_params_bind_group(ctx: &WgpuCtx, buffer: &wgpu::Buffer) -> wgpu::BindGroup {
+        ctx.device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("shader node params bind group"),
             layout: &ctx.shader_parameters_bind_group_layout,
             entries: &[wgpu::BindGroupEntry {
                 binding: 0,
-                resource: custom_params_buffer.as_entire_binding(),
+                resource: buffer.as_entire_binding(),
             }],
-        });
-
-        Ok(Self {
-            params_bind_group,
-            _custom_params_buffer: custom_params_buffer,
-            shader,
-            resolution,
         })
     }
 

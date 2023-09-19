@@ -1,44 +1,20 @@
 use std::collections::HashMap;
 
-use compositor_common::{
-    error::{SceneSpecValidationError, UnsatisfiedConstraintsError},
-    scene::{InputId, NodeId, OutputId, SceneSpec},
-};
+use compositor_common::scene::{InputId, NodeId, OutputId, SceneSpec};
 use log::error;
 
-use crate::render_loop::NodeRenderPass;
+use crate::{error::UpdateSceneError, render_loop::NodeRenderPass};
 
 use super::{
-    node::{CreateNodeError, Node},
+    node::Node,
     texture::{InputTexture, OutputTexture},
-    RenderCtx, WgpuError, WgpuErrorScope,
+    RenderCtx, WgpuErrorScope,
 };
 
 pub struct Scene {
     pub nodes: SceneNodesSet,
     pub outputs: HashMap<OutputId, (NodeId, OutputTexture)>,
     pub inputs: HashMap<InputId, InputTexture>,
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum UpdateSceneError {
-    #[error("Failed to create node \"{1}\". {0}")]
-    CreateNodeError(#[source] CreateNodeError, NodeId),
-
-    #[error("Invalid scene. {0}")]
-    InvalidSpec(#[from] SceneSpecValidationError),
-
-    #[error("Unknown node \"{0}\" used in scene.")]
-    NoNodeWithIdError(NodeId),
-
-    #[error(transparent)]
-    WgpuError(#[from] WgpuError),
-
-    #[error("Unknown resolution on the output node. Nodes that are declared as outputs need to have constant resolution that is the same as resolution of the output stream.")]
-    UnknownResolutionOnOutput(NodeId),
-
-    #[error("Constraints for node \"{1}\" are not satisfied.")]
-    ConstraintsValidationError(#[source] UnsatisfiedConstraintsError, NodeId),
 }
 
 impl Scene {
