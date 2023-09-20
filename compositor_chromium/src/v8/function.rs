@@ -16,7 +16,7 @@ pub struct V8Function(pub(super) Validated<chromium_sys::cef_v8value_t>);
 impl V8Function {
     pub fn new<F>(name: &str, func: F) -> Self
     where
-        F: Fn(&[V8Value]) -> Result<V8Value, NativeFunctionError>,
+        F: Fn(&[V8Value]) -> Result<V8Value, NativeFunctionError> + 'static,
     {
         let name = CefString::new_raw(name);
         let handler = CefRefData::new_ptr(V8Handler(func));
