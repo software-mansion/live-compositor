@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use compositor_chromium::cef;
 use compositor_render::{EMBED_SOURCE_FRAMES_MESSAGE, UNEMBED_SOURCE_FRAMES_MESSAGE};
-use log::error;
+use log::{error, warn};
 use shared_memory::ShmemConf;
 
 use crate::state::{FrameInfo, Source, State};
@@ -58,6 +58,10 @@ impl RenderProcessHandler {
                 error!("Failed to read height of input {} at {}", source_idx, i + 2);
                 continue;
             };
+
+            if width == 0 && height == 0 {
+                continue;
+            }
 
             if !self.state.contains_source(&shmem_path) {
                 let frame_info = FrameInfo {
@@ -142,7 +146,7 @@ impl RenderProcessHandler {
         };
         let shmem_path = PathBuf::from(shmem_path);
         let Some(source_idx) = self.state.source_index(&shmem_path) else {
-            error!("Source {shmem_path:?} not found");
+            warn!("Source {shmem_path:?} not found");
             return;
         };
         let ctx = surface.v8_context().unwrap();

@@ -6,7 +6,6 @@ use std::{
 };
 
 use compositor_chromium::cef;
-use compositor_common::renderer_spec::RendererId;
 use compositor_common::{
     error::ErrorStack,
     scene::{NodeId, Resolution},
@@ -26,7 +25,6 @@ use super::{browser::BrowserClient, chromium_context::ChromiumContext};
 
 pub(super) struct ChromiumSenderThread {
     chromium_ctx: Arc<ChromiumContext>,
-    renderer_id: RendererId,
     url: String,
     browser_client: BrowserClient,
 
@@ -44,7 +42,6 @@ impl ChromiumSenderThread {
     ) -> Self {
         Self {
             chromium_ctx: ctx.chromium.clone(),
-            renderer_id: ctx.renderer_id.clone(),
             url,
             browser_client,
             message_receiver,
@@ -65,16 +62,17 @@ impl ChromiumSenderThread {
             return;
         };
 
-        let mut state = ThreadState::new(browser, &self.renderer_id);
+        let mut state = ThreadState::new(browser, self.chromium_ctx.instance_id());
         loop {
             let result = match self.message_receiver.recv().unwrap() {
                 ChromiumSenderMessage::EmbedSources {
                     node_id,
                     resolutions,
                 } => self.handle_embed_frames(&mut state, node_id, resolutions),
-                ChromiumSenderMessage::AllocSharedMemory { node_id, sizes } => {
-                    self.handle_alloc_shared_memory(&mut state, node_id, sizes)
-                }
+                ChromiumSenderMessage::EnsureSharedMemory {
+                    node_id,
+                    resolutions,
+                } => self.handle_ensure_shared_memory(&mut state, node_id, resolutions),
                 ChromiumSenderMessage::UpdateSharedMemory(info) => {
                     self.handle_shmem_update(&mut state, info)
                 }
@@ -93,7 +91,7 @@ impl ChromiumSenderThread {
         &self,
         state: &mut ThreadState,
         node_id: NodeId,
-        resolutions: Vec<Resolution>,
+        resolutions: Vec<Option<Resolution>>,
     ) -> Result<(), ChromiumSenderThreadError> {
         let Some(shared_memory) = state.shared_memory.get(&node_id) else {
             return Err(ChromiumSenderThreadError::SharedMemoryNotAllocated(node_id));
@@ -102,13 +100,17 @@ impl ChromiumSenderThread {
         let mut index = 0;
 
         // IPC message to chromium renderer subprocess consists of:
-        // - shmem path
+        // - shared memory path
         // - texture width
         // - texture height
         for (i, resolution) in resolutions.iter().enumerate() {
+            let Resolution { width, height } = resolution.unwrap_or_else(|| Resolution {
+                width: 0,
+                height: 0,
+            });
             process_message.write_string(index, shared_memory[i].to_path_string());
-            process_message.write_int(index + 1, resolution.width as i32);
-            process_message.write_int(index + 2, resolution.height as i32);
+            process_message.write_int(index + 1, width as i32);
+            process_message.write_int(index + 2, height as i32);
 
             index += 3;
         }
@@ -119,11 +121,11 @@ impl ChromiumSenderThread {
         Ok(())
     }
 
-    fn handle_alloc_shared_memory(
+    fn handle_ensure_shared_memory(
         &self,
         state: &mut ThreadState,
         node_id: NodeId,
-        sizes: Vec<usize>,
+        resolutions: Vec<Option<Resolution>>,
     ) -> Result<(), ChromiumSenderThreadError> {
         if !state.shared_memory.contains_key(&node_id) {
             state.shared_memory.insert(node_id.clone(), Vec::new());
@@ -131,7 +133,12 @@ impl ChromiumSenderThread {
 
         let frame = state.browser.main_frame()?;
         let shared_memory = state.shared_memory.get_mut(&node_id).unwrap();
-        for (source_idx, size) in sizes.into_iter().enumerate() {
+        for (source_idx, resolution) in resolutions.into_iter().enumerate() {
+            let size = match resolution {
+                Some(res) => 4 * res.width * res.height,
+                None => 1,
+            };
+
             match shared_memory.get_mut(source_idx) {
                 Some(shmem) => {
                     shmem.ensure_size(size, &frame)?;
@@ -180,7 +187,7 @@ struct ThreadState {
 }
 
 impl ThreadState {
-    fn new(browser: cef::Browser, renderer_id: &RendererId) -> Self {
+    fn new(browser: cef::Browser, renderer_id: &str) -> Self {
         let shared_memory_root_path = WebRenderer::shared_memory_root_path(renderer_id);
         let shared_memory = HashMap::new();
 

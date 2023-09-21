@@ -37,7 +37,7 @@ impl ChromiumSender {
     pub fn embed_sources(&self, node_id: NodeId, sources: &[(&NodeId, &NodeTexture)]) {
         let resolutions = sources
             .iter()
-            .filter_map(|(_, texture)| texture.resolution())
+            .map(|(_, texture)| texture.resolution())
             .collect();
         self.message_sender
             .send(ChromiumSenderMessage::EmbedSources {
@@ -47,14 +47,16 @@ impl ChromiumSender {
             .unwrap();
     }
 
-    pub fn alloc_shared_memory(&self, node_id: NodeId, sources: &[(&NodeId, &NodeTexture)]) {
-        let sizes = sources
+    pub fn ensure_shared_memory(&self, node_id: NodeId, sources: &[(&NodeId, &NodeTexture)]) {
+        let resolutions = sources
             .iter()
-            .filter_map(|(_, texture)| texture.resolution())
-            .map(|res| 4 * res.width * res.height)
+            .map(|(_, texture)| texture.resolution())
             .collect();
         self.message_sender
-            .send(ChromiumSenderMessage::AllocSharedMemory { node_id, sizes })
+            .send(ChromiumSenderMessage::EnsureSharedMemory {
+                node_id,
+                resolutions,
+            })
             .unwrap();
     }
 
@@ -84,11 +86,11 @@ impl ChromiumSender {
 pub(super) enum ChromiumSenderMessage {
     EmbedSources {
         node_id: NodeId,
-        resolutions: Vec<Resolution>,
+        resolutions: Vec<Option<Resolution>>,
     },
-    AllocSharedMemory {
+    EnsureSharedMemory {
         node_id: NodeId,
-        sizes: Vec<usize>,
+        resolutions: Vec<Option<Resolution>>,
     },
     UpdateSharedMemory(UpdateSharedMemoryInfo),
 }

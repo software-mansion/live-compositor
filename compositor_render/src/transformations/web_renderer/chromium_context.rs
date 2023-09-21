@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::utils::random_string;
 use compositor_chromium::cef;
 use compositor_common::Framerate;
 use crossbeam_channel::RecvError;
@@ -10,6 +11,7 @@ use crate::WebRendererOptions;
 use super::browser::BrowserClient;
 
 pub struct ChromiumContext {
+    instance_id: String,
     context: Option<Arc<cef::Context>>,
     framerate: Framerate,
 }
@@ -19,9 +21,12 @@ impl ChromiumContext {
         opts: WebRendererOptions,
         framerate: Framerate,
     ) -> Result<Self, WebRendererContextError> {
+        let instance_id = random_string(30);
+
         if !opts.init {
             info!("Chromium context disabled");
             return Ok(Self {
+                instance_id,
                 framerate,
                 context: None,
             });
@@ -43,6 +48,7 @@ impl ChromiumContext {
             cef::Context::new(app, settings).map_err(WebRendererContextError::ContextFailure)?,
         );
         Ok(Self {
+            instance_id,
             framerate,
             context: Some(context),
         })
@@ -78,6 +84,10 @@ impl ChromiumContext {
 
     pub fn cef_context(&self) -> Option<Arc<cef::Context>> {
         self.context.clone()
+    }
+
+    pub fn instance_id(&self) -> &str {
+        &self.instance_id
     }
 }
 

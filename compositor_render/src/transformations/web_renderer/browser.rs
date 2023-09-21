@@ -44,7 +44,7 @@ impl BrowserController {
         buffers: &[Arc<wgpu::Buffer>],
     ) -> Result<(), EmbedFrameError> {
         self.chromium_sender
-            .alloc_shared_memory(node_id.clone(), sources);
+            .ensure_shared_memory(node_id.clone(), sources);
         self.copy_sources_to_buffers(ctx, sources, buffers)?;
 
         let mut pending_downloads = Vec::new();

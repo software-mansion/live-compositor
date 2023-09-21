@@ -36,7 +36,7 @@ impl RenderNode {
                     .get(instance_id)
                     .ok_or_else(|| CreateNodeError::WebRendererNotFound(instance_id.clone()))?;
 
-                let node = WebRendererNode::new(ctx.renderer_id, &spec.node_id, renderer)?;
+                let node = WebRendererNode::new(&spec.node_id, renderer);
                 Ok(Self::Web(node))
             }
             NodeParams::Shader {

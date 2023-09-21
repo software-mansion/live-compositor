@@ -4,6 +4,7 @@ use compositor_common::scene::NodeId;
 use log::error;
 use shared_memory::{Shmem, ShmemConf, ShmemError};
 use std::path::{Path, PathBuf};
+use std::{fs, io};
 
 pub struct SharedMemory {
     inner: Option<Shmem>,
@@ -17,11 +18,10 @@ impl SharedMemory {
         source_idx: usize,
         size: usize,
     ) -> Result<Self, SharedMemoryError> {
-        let path = root_path
-            .join(node_id.to_string())
-            .join(source_idx.to_string());
+        let path = root_path.join(node_id.to_string());
+        Self::init_shared_memory_folder(&path)?;
 
-        Self::from_path(path, size)
+        Self::from_path(path.join(source_idx.to_string()), size)
     }
 
     pub fn from_path(path: PathBuf, size: usize) -> Result<Self, SharedMemoryError> {
@@ -82,6 +82,14 @@ impl SharedMemory {
 
         Ok(())
     }
+
+    fn init_shared_memory_folder(root_shmem_folder: &Path) -> Result<(), SharedMemoryError> {
+        if root_shmem_folder.exists() {
+            return Ok(());
+        }
+
+        fs::create_dir_all(root_shmem_folder).map_err(SharedMemoryError::CreateShmemFolderFailed)
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -99,4 +107,7 @@ pub enum SharedMemoryError {
 
     #[error("Browser frame is no longer alive")]
     FrameNotAlive(#[from] cef::FrameError),
+
+    #[error("Failed to create folder for shared memory")]
+    CreateShmemFolderFailed(#[source] io::Error),
 }
