@@ -6,8 +6,8 @@ use std::time::Duration;
 
 use compositor_common::error::ErrorStack;
 use compositor_common::renderer_spec::{RendererId, RendererSpec};
-use compositor_common::scene::{InputId, OutputId, SceneSpec};
-use compositor_common::{Frame, Framerate};
+use compositor_common::scene::{InputId, OutputId, Resolution, SceneSpec};
+use compositor_common::Framerate;
 use compositor_render::error::{
     InitRendererEngineError, RegisterRendererError, UnregisterRendererError,
 };
@@ -17,6 +17,7 @@ use compositor_render::renderer::RendererOptions;
 use compositor_render::WebRendererOptions;
 use compositor_render::{error::UpdateSceneError, Renderer};
 use crossbeam_channel::unbounded;
+use ffmpeg_next::{Codec, Packet};
 use log::{error, warn};
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, DurationMilliSeconds};
@@ -26,11 +27,16 @@ use crate::error::{
 };
 use crate::queue::Queue;
 
-pub trait PipelineOutput: Send + Sync + 'static {
-    type Opts;
+use self::encoder::{Encoder, EncoderSettings};
 
-    fn send_frame(&self, frame: Frame);
-    fn new(opts: Self::Opts) -> Self;
+pub mod encoder;
+
+pub trait PipelineOutput: Send + Sync + Sized + Clone + 'static {
+    type Opts: Send + Sync + 'static;
+    type Context: 'static;
+
+    fn send_packet(&self, context: &mut Self::Context, packet: Packet);
+    fn new(opts: Self::Opts, codec: Codec) -> (Self, Self::Context);
 }
 
 pub trait PipelineInput: Send + Sync + 'static {
@@ -39,9 +45,15 @@ pub trait PipelineInput: Send + Sync + 'static {
     fn new(queue: Arc<Queue>, opts: Self::Opts) -> Self;
 }
 
+pub struct OutputOptions<Output: PipelineOutput> {
+    pub receiver_options: Output::Opts,
+    pub encoder_settings: EncoderSettings,
+    pub resolution: Resolution,
+}
+
 pub struct Pipeline<Input: PipelineInput, Output: PipelineOutput> {
     inputs: HashMap<InputId, Arc<Input>>,
-    outputs: OutputRegistry<Output>,
+    outputs: OutputRegistry<Encoder<Output>>,
     queue: Arc<Queue>,
     renderer: Renderer,
 }
@@ -124,13 +136,16 @@ impl<Input: PipelineInput, Output: PipelineOutput> Pipeline<Input, Output> {
     pub fn register_output(
         &self,
         output_id: OutputId,
-        output_opts: Output::Opts,
+        output_opts: OutputOptions<Output>,
     ) -> Result<(), RegisterOutputError> {
         if self.outputs.contains_key(&output_id) {
             return Err(RegisterOutputError::AlreadyRegistered(output_id));
         }
-        self.outputs
-            .insert(output_id, Output::new(output_opts).into());
+
+        let output = Encoder::new(output_opts)
+            .map_err(|e| RegisterOutputError::EncoderError(output_id.clone(), e))?;
+
+        self.outputs.insert(output_id, output.into());
         Ok(())
     }
 
@@ -228,15 +243,15 @@ impl<Input: PipelineInput, Output: PipelineOutput> Pipeline<Input, Output> {
     }
 }
 
-struct OutputRegistry<Output: PipelineOutput>(Arc<Mutex<HashMap<OutputId, Arc<Output>>>>);
+struct OutputRegistry<T>(Arc<Mutex<HashMap<OutputId, Arc<T>>>>);
 
-impl<Output: PipelineOutput> Clone for OutputRegistry<Output> {
+impl<T> Clone for OutputRegistry<T> {
     fn clone(&self) -> Self {
         Self(self.0.clone())
     }
 }
 
-impl<Output: PipelineOutput> OutputRegistry<Output> {
+impl<T> OutputRegistry<T> {
     fn new() -> Self {
         Self(Arc::new(Mutex::new(HashMap::new())))
     }
@@ -245,25 +260,25 @@ impl<Output: PipelineOutput> OutputRegistry<Output> {
         self.0.lock().unwrap().contains_key(key)
     }
 
-    fn insert(&self, key: OutputId, value: Arc<Output>) -> Option<Arc<Output>> {
+    fn insert(&self, key: OutputId, value: Arc<T>) -> Option<Arc<T>> {
         self.0.lock().unwrap().insert(key, value)
     }
 
-    fn remove(&self, key: &OutputId) -> Option<Arc<Output>> {
+    fn remove(&self, key: &OutputId) -> Option<Arc<T>> {
         self.0.lock().unwrap().remove(key)
     }
 
-    fn lock(&self) -> MutexGuard<HashMap<OutputId, Arc<Output>>> {
+    fn lock(&self) -> MutexGuard<HashMap<OutputId, Arc<T>>> {
         self.0.lock().unwrap()
     }
 }
 
 pub struct OutputIterator<'a, Output: PipelineOutput> {
-    inner_iter: hash_map::Iter<'a, OutputId, Arc<Output>>,
+    inner_iter: hash_map::Iter<'a, OutputId, Arc<Encoder<Output>>>,
 }
 
 impl<'a, Output: PipelineOutput> OutputIterator<'a, Output> {
-    fn new(iter: hash_map::Iter<'a, OutputId, Arc<Output>>) -> Self {
+    fn new(iter: hash_map::Iter<'a, OutputId, Arc<Encoder<Output>>>) -> Self {
         Self { inner_iter: iter }
     }
 }
@@ -272,6 +287,6 @@ impl<'a, Output: PipelineOutput> Iterator for OutputIterator<'a, Output> {
     type Item = (&'a OutputId, &'a Output);
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.inner_iter.next().map(|(id, node)| (id, node.as_ref()))
+        self.inner_iter.next().map(|(id, node)| (id, node.output()))
     }
 }

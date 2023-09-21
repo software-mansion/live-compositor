@@ -17,6 +17,9 @@ pub enum RegisterInputError {
 pub enum RegisterOutputError {
     #[error("Failed to register output stream. Stream \"{0}\" is already registered.")]
     AlreadyRegistered(OutputId),
+
+    #[error("Failed to register output stream for stream \"{0}\". Encoder error occurred: {1}")]
+    EncoderError(OutputId, String),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -74,12 +77,17 @@ impl From<&RegisterInputError> for PipelineErrorInfo {
 }
 
 const OUTPUT_STREAM_ALREADY_REGISTERED: &str = "OUTPUT_STREAM_ALREADY_REGISTERED";
+const ENCODER_ERROR: &str = "ENCODER_ERROR";
 
 impl From<&RegisterOutputError> for PipelineErrorInfo {
     fn from(err: &RegisterOutputError) -> Self {
         match err {
             RegisterOutputError::AlreadyRegistered(_) => {
                 PipelineErrorInfo::new(OUTPUT_STREAM_ALREADY_REGISTERED, ErrorType::UserError)
+            }
+
+            RegisterOutputError::EncoderError(_, _) => {
+                PipelineErrorInfo::new(ENCODER_ERROR, ErrorType::ServerError)
             }
         }
     }

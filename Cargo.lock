@@ -395,6 +395,7 @@ dependencies = [
  "compositor_common",
  "compositor_render",
  "crossbeam-channel",
+ "ffmpeg-next",
  "log",
  "serde",
  "serde_with",

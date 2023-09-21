@@ -4,7 +4,7 @@ use compositor_common::{
     renderer_spec::{ImageSpec, RendererId, RendererSpec, ShaderSpec, WebRendererSpec},
     scene::{InputId, OutputId, Resolution, SceneSpec},
 };
-use compositor_pipeline::pipeline;
+use compositor_pipeline::pipeline::{self, encoder::EncoderSettings};
 use compositor_render::{event_loop::EventLoop, registry::RegistryType};
 use crossbeam_channel::{bounded, Receiver};
 use serde::{Deserialize, Serialize};
@@ -13,7 +13,7 @@ use tiny_http::StatusCode;
 use crate::{
     error::ApiError,
     rtp_receiver::{self, RtpReceiver},
-    rtp_sender::{self, EncoderSettings, RtpSender},
+    rtp_sender::{self, RtpSender},
 };
 
 pub type Pipeline = compositor_pipeline::Pipeline<RtpReceiver, RtpSender>;
@@ -166,10 +166,10 @@ impl Api {
             }
             QueryRequest::Outputs => {
                 let outputs = self.pipeline.with_outputs(|iter| {
-                    iter.map(|(id, node)| OutputInfo {
+                    iter.map(|(id, output)| OutputInfo {
                         id: id.clone(),
-                        port: node.port,
-                        ip: node.ip.clone(),
+                        port: output.port,
+                        ip: output.ip.clone(),
                     })
                     .collect()
                 });
@@ -239,11 +239,10 @@ impl Api {
 
         self.pipeline.register_output(
             output_id,
-            rtp_sender::Options {
-                port,
-                ip,
+            pipeline::OutputOptions {
                 resolution,
                 encoder_settings,
+                receiver_options: rtp_sender::Options { port, ip },
             },
         )?;
 
