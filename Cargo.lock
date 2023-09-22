@@ -418,6 +418,7 @@ dependencies = [
  "naga",
  "nalgebra-glm",
  "pollster",
+ "rand",
  "reqwest",
  "resvg",
  "serde",
