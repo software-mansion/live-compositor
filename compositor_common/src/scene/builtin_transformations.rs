@@ -10,19 +10,22 @@ use crate::util::align::HorizontalAlign;
 use crate::util::align::VerticalAlign;
 use crate::util::colors::RGBAColor;
 use crate::util::coord::Coord;
-use crate::util::degree::Degree;
 
 use super::constraints::Constraint;
 use super::constraints::NodeConstraints;
 use super::NodeSpec;
 use super::Resolution;
 
+pub(crate) mod fixed_postion_layout;
 pub mod tailed_layout;
+
+pub use fixed_postion_layout::FixedPositionLayoutSpec;
+pub use fixed_postion_layout::TextureLayout;
 
 pub const TILED_LAYOUT_MAX_INPUTS_COUNT: u32 = 16;
 pub const FIXED_POSITION_LAYOUT_MAX_INPUTS_COUNT: u32 = 16;
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(tag = "transformation", rename_all = "snake_case")]
 pub enum BuiltinSpec {
     TransformToResolution {
@@ -30,12 +33,7 @@ pub enum BuiltinSpec {
         #[serde(flatten)]
         strategy: TransformToResolutionStrategy,
     },
-    FixedPositionLayout {
-        resolution: Resolution,
-        texture_layouts: Vec<TextureLayout>,
-        #[serde(default)]
-        background_color_rgba: RGBAColor,
-    },
+    FixedPositionLayout(FixedPositionLayoutSpec),
     TiledLayout(TailedLayoutSpec),
     MirrorImage {
         #[serde(default)]
@@ -66,16 +64,6 @@ pub enum TransformToResolutionStrategy {
     },
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
-pub struct TextureLayout {
-    pub top: Option<Coord>,
-    pub bottom: Option<Coord>,
-    pub left: Option<Coord>,
-    pub right: Option<Coord>,
-    #[serde(default)]
-    pub rotation: Degree,
-}
-
 #[derive(Debug, SerializeDisplay, DeserializeFromStr, Clone, Copy, PartialEq, Eq, Default)]
 pub enum MirrorMode {
     #[default]
@@ -85,7 +73,9 @@ pub enum MirrorMode {
 }
 
 #[derive(Debug, thiserror::Error)]
-#[error("\"mode\" field can only be set to \"vertical\" or \"horizontal\".")]
+#[error(
+    "\"mode\" field can only be set to \"vertical\", \"horizontal\", or \"horizontal-vertical\"."
+)]
 pub struct MirrorModeParseError;
 
 impl Display for MirrorMode {
@@ -149,9 +139,9 @@ impl BuiltinSpec {
 
     pub fn validate_params(&self, node_spec: &NodeSpec) -> Result<(), BuiltinSpecValidationError> {
         match self {
-            BuiltinSpec::FixedPositionLayout {
+            BuiltinSpec::FixedPositionLayout(FixedPositionLayoutSpec {
                 texture_layouts, ..
-            } => {
+            }) => {
                 if texture_layouts.len() != node_spec.input_pads.len() {
                     return Err(BuiltinSpecValidationError::FixedLayoutInvalidLayoutCount {
                         layout_count: texture_layouts.len() as u32,
@@ -196,7 +186,7 @@ impl BuiltinSpec {
         }
     }
 
-    pub fn constrains(&self) -> &'static NodeConstraints {
+    pub fn constraints(&self) -> &'static NodeConstraints {
         match self {
             BuiltinSpec::TransformToResolution { .. } => &TRANSFORM_TO_RESOLUTION_CONSTRAINTS,
             BuiltinSpec::FixedPositionLayout { .. } => &FIXED_POSITION_LAYOUT_CONSTRAINTS,

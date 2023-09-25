@@ -1,10 +1,13 @@
 use compositor_common::{
     scene::Resolution,
-    util::align::{HorizontalAlign, VerticalAlign},
+    util::{
+        align::{HorizontalAlign, VerticalAlign},
+        ContinuousValue, InterpolationState,
+    },
 };
 use nalgebra_glm::{rotate_z, scale, translate, vec3, Mat4, Vec3};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct BoxLayout {
     // pixels in [0, output_resolution] coords
     pub top_left_corner: (f32, f32),
@@ -14,6 +17,13 @@ pub struct BoxLayout {
 }
 
 impl BoxLayout {
+    pub const NONE: Self = Self {
+        top_left_corner: (0.0, 0.0),
+        width: 0.0,
+        height: 0.0,
+        rotation_degrees: 0.0,
+    };
+
     /// Returns box representing position of input frame fitted into `self`,     
     /// Fitted means scaled to input resolution without cropping or changing aspect ratio
     pub fn fit(
@@ -99,5 +109,23 @@ impl BoxLayout {
             (output_resolution.height as f32 / 2.0) - self.top_left_corner.1 - (self.height / 2.0),
             0.0,
         )
+    }
+}
+
+impl ContinuousValue for BoxLayout {
+    fn interpolate(start: &Self, end: &Self, state: InterpolationState) -> Self {
+        Self {
+            top_left_corner: (
+                f32::interpolate(&start.top_left_corner.0, &end.top_left_corner.0, state),
+                f32::interpolate(&start.top_left_corner.1, &end.top_left_corner.1, state),
+            ),
+            width: f32::interpolate(&start.width, &end.width, state),
+            height: f32::interpolate(&start.height, &end.height, state),
+            rotation_degrees: f32::interpolate(
+                &start.rotation_degrees,
+                &end.rotation_degrees,
+                state,
+            ),
+        }
     }
 }

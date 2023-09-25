@@ -1,88 +1,38 @@
-use std::sync::Arc;
-
 use compositor_common::{
-    renderer_spec::FallbackStrategy,
-    scene::{
-        builtin_transformations::{BuiltinSpec, TransformToResolutionStrategy},
-        Resolution,
-    },
+    scene::builtin_transformations::{BuiltinSpec, FixedPositionLayoutSpec},
+    util::InterpolationState,
 };
-
-use crate::{gpu_shader::GpuShader, utils::rgba_to_wgpu_color};
 
 mod box_layout;
 pub mod error;
-pub mod node;
+mod node;
 pub mod params;
+mod shader_params;
 pub mod transformations;
 pub mod utils;
 
+pub use node::BuiltinNode;
+
 #[derive(Debug)]
-pub struct Builtin {
-    pub spec: BuiltinSpec,
-    pub gpu_shader: Arc<GpuShader>,
+pub enum BuiltinState {
+    Static(BuiltinSpec),
+    Interpolated {
+        transition: BuiltinTransition,
+        state: InterpolationState,
+    },
 }
 
-impl Builtin {
-    pub fn clear_color(&self) -> Option<wgpu::Color> {
-        match &self.spec {
-            BuiltinSpec::TransformToResolution { strategy, .. } => match strategy {
-                TransformToResolutionStrategy::Stretch | TransformToResolutionStrategy::Fill => {
-                    None
-                }
-                TransformToResolutionStrategy::Fit {
-                    background_color_rgba,
-                    ..
-                } => Some(rgba_to_wgpu_color(background_color_rgba)),
-            },
-            BuiltinSpec::FixedPositionLayout {
-                background_color_rgba,
-                ..
-            } => Some(rgba_to_wgpu_color(background_color_rgba)),
-            BuiltinSpec::TiledLayout(spec) => Some(rgba_to_wgpu_color(&spec.background_color_rgba)),
-            BuiltinSpec::CornersRounding { .. } => Some(wgpu::Color::TRANSPARENT),
-            BuiltinSpec::MirrorImage { .. } => None,
-        }
-    }
+#[derive(Debug)]
+pub enum BuiltinTransition {
+    FixedPositionLayout(FixedPositionLayoutSpec, FixedPositionLayoutSpec),
+}
 
-    pub fn output_resolution(&self, input_resolutions: &[Option<Resolution>]) -> Resolution {
-        fn first_input_resolution(input_resolutions: &[Option<Resolution>]) -> Resolution {
-            input_resolutions
-                .first()
-                .copied()
-                .flatten()
-                .unwrap_or(Resolution {
-                    width: 1,
-                    height: 1,
-                })
-        }
-
-        match &self.spec {
-            BuiltinSpec::TransformToResolution { resolution, .. } => *resolution,
-            BuiltinSpec::FixedPositionLayout { resolution, .. } => *resolution,
-            BuiltinSpec::TiledLayout(spec) => spec.resolution,
-            BuiltinSpec::MirrorImage { .. } => first_input_resolution(input_resolutions),
-            BuiltinSpec::CornersRounding { .. } => first_input_resolution(input_resolutions),
-        }
-    }
-
-    pub fn resolution_from_spec(&self) -> Option<Resolution> {
-        match &self.spec {
-            BuiltinSpec::TransformToResolution { resolution, .. } => Some(*resolution),
-            BuiltinSpec::FixedPositionLayout { resolution, .. } => Some(*resolution),
-            BuiltinSpec::TiledLayout(spec) => Some(spec.resolution),
-            BuiltinSpec::MirrorImage { .. } => None,
-            BuiltinSpec::CornersRounding { .. } => None,
-        }
-    }
-
-    pub fn fallback_strategy(&self) -> FallbackStrategy {
-        match self.spec {
-            BuiltinSpec::TransformToResolution { .. }
-            | BuiltinSpec::FixedPositionLayout { .. }
-            | BuiltinSpec::TiledLayout { .. }
-            | BuiltinSpec::MirrorImage { .. }
-            | BuiltinSpec::CornersRounding { .. } => FallbackStrategy::FallbackIfAllInputsMissing,
+impl BuiltinTransition {
+    pub fn final_state(&self) -> BuiltinSpec {
+        match self {
+            BuiltinTransition::FixedPositionLayout(_, end) => {
+                BuiltinSpec::FixedPositionLayout(end.clone())
+            }
         }
     }
 }

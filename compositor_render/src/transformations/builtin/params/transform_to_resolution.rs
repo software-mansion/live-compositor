@@ -6,36 +6,30 @@ use nalgebra_glm::{scaling, vec3, Mat4};
 
 use crate::transformations::builtin::{box_layout::BoxLayout, utils::mat4_to_bytes};
 
-#[derive(Debug, Default)]
-pub struct FitParams {
-    pub scale_matrix: Mat4,
-}
+use super::box_layout_params::BoxLayoutParams;
 
-impl FitParams {
-    pub fn new(
-        input_resolution: Resolution,
-        output_resolution: Resolution,
-        x_align: HorizontalAlign,
-        y_align: VerticalAlign,
-    ) -> Self {
-        let scale_matrix = BoxLayout {
-            top_left_corner: (0.0, 0.0),
-            width: output_resolution.width as f32,
-            height: output_resolution.height as f32,
-            rotation_degrees: 0.0,
-        }
-        .fit(input_resolution, x_align, y_align)
-        .transformation_matrix(output_resolution);
-
-        Self { scale_matrix }
+pub fn new_fit_to_resolution_params(
+    input_resolution: Resolution,
+    output_resolution: Resolution,
+    x_align: HorizontalAlign,
+    y_align: VerticalAlign,
+) -> BoxLayoutParams {
+    let box_layout = BoxLayout {
+        top_left_corner: (0.0, 0.0),
+        width: output_resolution.width as f32,
+        height: output_resolution.height as f32,
+        rotation_degrees: 0.0,
     }
+    .fit(input_resolution, x_align, y_align);
 
-    pub fn shader_buffer_content(&self) -> bytes::Bytes {
-        mat4_to_bytes(&self.scale_matrix)
+    BoxLayoutParams {
+        boxes: vec![box_layout],
+        output_resolution,
     }
 }
 
-#[derive(Debug, Default)]
+// TODO: move to BoxLayout
+#[derive(Debug, Default, Clone)]
 pub struct FillParams {
     scale_matrix: Mat4,
 }

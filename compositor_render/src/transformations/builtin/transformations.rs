@@ -9,7 +9,7 @@ use crate::{
     renderer::WgpuCtx,
 };
 
-use super::error::InitBuiltinError;
+use super::{error::InitBuiltinError, BuiltinState, BuiltinTransition};
 
 pub struct BuiltinTransformations {
     apply_matrix: ApplyTransformationMatrix,
@@ -28,17 +28,22 @@ impl BuiltinTransformations {
         })
     }
 
-    pub fn gpu_shader(&self, transformation: &BuiltinSpec) -> Arc<GpuShader> {
-        match transformation {
-            BuiltinSpec::TransformToResolution { strategy, .. } => match strategy {
-                TransformToResolutionStrategy::Stretch => self.apply_matrix.0.clone(),
-                TransformToResolutionStrategy::Fill => self.apply_matrix.0.clone(),
-                TransformToResolutionStrategy::Fit { .. } => self.apply_matrix.0.clone(),
+    pub fn gpu_shader(&self, state: &BuiltinState) -> Arc<GpuShader> {
+        match state {
+            BuiltinState::Interpolated { transition, .. } => match transition {
+                BuiltinTransition::FixedPositionLayout(_, _) => self.apply_matrix.0.clone(),
             },
-            BuiltinSpec::FixedPositionLayout { .. } => self.apply_matrix.0.clone(),
-            BuiltinSpec::TiledLayout { .. } => self.apply_matrix.0.clone(),
-            BuiltinSpec::MirrorImage { .. } => self.mirror_image.0.clone(),
-            BuiltinSpec::CornersRounding { .. } => self.corners_rounding.0.clone(),
+            BuiltinState::Static(spec) => match spec {
+                BuiltinSpec::TransformToResolution { strategy, .. } => match strategy {
+                    TransformToResolutionStrategy::Stretch => self.apply_matrix.0.clone(),
+                    TransformToResolutionStrategy::Fill => self.apply_matrix.0.clone(),
+                    TransformToResolutionStrategy::Fit { .. } => self.apply_matrix.0.clone(),
+                },
+                BuiltinSpec::FixedPositionLayout { .. } => self.apply_matrix.0.clone(),
+                BuiltinSpec::TiledLayout { .. } => self.apply_matrix.0.clone(),
+                BuiltinSpec::MirrorImage { .. } => self.mirror_image.0.clone(),
+                BuiltinSpec::CornersRounding { .. } => self.corners_rounding.0.clone(),
+            },
         }
     }
 }
