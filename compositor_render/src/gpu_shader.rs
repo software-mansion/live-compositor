@@ -1,11 +1,10 @@
 use crate::renderer::{
-    texture::{NodeTexture, NodeTextureState},
-    CommonShaderParameters, WgpuError, WgpuErrorScope,
+    texture::NodeTextureState, CommonShaderParameters, WgpuError, WgpuErrorScope,
 };
 
 use std::{sync::Arc, time::Duration};
 
-use compositor_common::scene::{shader::ShaderParam, NodeId};
+use compositor_common::scene::shader::ShaderParam;
 
 use crate::renderer::{texture::Texture, WgpuCtx};
 
@@ -114,7 +113,7 @@ impl GpuShader {
     pub fn render(
         &self,
         params: &wgpu::BindGroup,
-        sources: &[(&NodeId, &NodeTexture)],
+        textures: &[Option<&Texture>],
         target: &NodeTextureState,
         pts: Duration,
         clear_color: Option<wgpu::Color>,
@@ -125,14 +124,10 @@ impl GpuShader {
 
         // TODO: most things that happen in this method should not be done every frame
 
-        let textures = sources
-            .iter()
-            .map(|(_, node_texture)| node_texture.state())
-            .collect::<Vec<_>>();
         let mut texture_views = textures
             .iter()
-            .map(|node_texture| match node_texture {
-                Some(node_texture) => &node_texture.rgba_texture().texture().view,
+            .map(|texture| match texture {
+                Some(texture) => &texture.view,
                 None => &self.empty_texture.view,
             })
             .collect::<Vec<_>>();
@@ -151,7 +146,7 @@ impl GpuShader {
         });
 
         let common_shader_params =
-            CommonShaderParameters::new(pts, sources.len() as u32, target.resolution());
+            CommonShaderParameters::new(pts, textures.len() as u32, target.resolution());
 
         self.pipeline.render(
             &input_textures_bg,

@@ -31,8 +31,6 @@ pub mod scene;
 pub mod texture;
 mod utils;
 
-pub(crate) use format::bgra_to_rgba::BGRAToRGBAConverter;
-
 pub struct RendererOptions {
     pub web_renderer: WebRendererOptions,
     pub framerate: Framerate,

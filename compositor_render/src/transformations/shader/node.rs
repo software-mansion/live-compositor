@@ -6,6 +6,7 @@ use compositor_common::{
 };
 use wgpu::util::DeviceExt;
 
+use crate::renderer::texture::utils::sources_to_textures;
 use crate::{
     error::CreateNodeError,
     renderer::{texture::NodeTexture, RenderCtx, WgpuCtx},
@@ -97,9 +98,10 @@ impl ShaderNode {
         pts: Duration,
     ) {
         let target = target.ensure_size(&self.shader.gpu_shader.wgpu_ctx, self.resolution);
+        let textures = sources_to_textures(sources);
         self.shader.gpu_shader.render(
             &self.params_bind_group,
-            sources,
+            &textures,
             target,
             pts,
             self.shader.clear_color,

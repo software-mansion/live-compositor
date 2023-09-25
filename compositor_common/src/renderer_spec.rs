@@ -50,10 +50,26 @@ pub struct WebRendererSpec {
     pub instance_id: RendererId,
     pub url: String,
     pub resolution: Resolution,
+    #[serde(default = "WebRendererSpec::default_embedding_method")]
+    pub embedding_method: WebEmbeddingMethod,
     #[serde(default = "WebRendererSpec::default_fallback")]
     pub fallback_strategy: FallbackStrategy,
     #[serde(default = "WebRendererSpec::default_constraints")]
     pub constraints: NodeConstraints,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum WebEmbeddingMethod {
+    /// Send frames to chromium directly and render it on canvas
+    ChromiumEmbedding,
+
+    /// Render sources on top of the rendered website
+    EmbedOnTop,
+
+    /// Render sources below the website.
+    /// The website's background has to be transparent
+    EmbedBelow,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -106,5 +122,9 @@ impl WebRendererSpec {
             lower_bound: 0,
             upper_bound: 16,
         })])
+    }
+
+    fn default_embedding_method() -> WebEmbeddingMethod {
+        WebEmbeddingMethod::EmbedOnTop
     }
 }

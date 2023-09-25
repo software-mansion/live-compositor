@@ -2,7 +2,9 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use compositor_chromium::cef;
-use compositor_render::{EMBED_SOURCE_FRAMES_MESSAGE, UNEMBED_SOURCE_FRAMES_MESSAGE};
+use compositor_render::{
+    EMBED_SOURCE_FRAMES_MESSAGE, GET_FRAME_POSITIONS_MESSAGE, UNEMBED_SOURCE_FRAMES_MESSAGE,
+};
 use log::{error, warn};
 use shared_memory::ShmemConf;
 
@@ -23,6 +25,7 @@ impl cef::RenderProcessHandler for RenderProcessHandler {
         match message.name().as_str() {
             EMBED_SOURCE_FRAMES_MESSAGE => self.handle_embed_sources(message, frame),
             UNEMBED_SOURCE_FRAMES_MESSAGE => self.handle_unembed_source(message, frame),
+            GET_FRAME_POSITIONS_MESSAGE => self.handle_get_frame_positions(message, frame),
             name => error!("Unknown message type: {name}"),
         }
         false
@@ -158,5 +161,43 @@ impl RenderProcessHandler {
         global.delete(&source_id, &ctx_entered).unwrap();
 
         self.state.remove_source(&shmem_path);
+    }
+
+    fn handle_get_frame_positions(&self, msg: &cef::ProcessMessage, surface: &cef::Frame) {
+        let ctx = surface.v8_context().unwrap();
+        let ctx_entered = ctx.enter().unwrap();
+        let global = ctx.global().unwrap();
+
+        let Some(source_count) = msg.read_int(0) else {
+            error!("Expected source count");
+            return;
+        };
+
+        let mut response = cef::ProcessMessage::new(GET_FRAME_POSITIONS_MESSAGE);
+        let mut index = 0;
+        for source_idx in 0..(source_count as usize) {
+            // NOTE: This will change once embedding API is finished
+            let source_id = format!("input_{}", source_idx);
+            let document = global.document().unwrap();
+            let element = match document.element_by_id(&source_id, &ctx_entered) {
+                Ok(element) => element,
+                Err(err) => {
+                    warn!("Failed to retrieve element \"{source_id}\": {err}");
+                    return;
+                }
+            };
+            let rect = element.bounding_rect(&ctx_entered).unwrap();
+
+            response.write_double(index, rect.x);
+            response.write_double(index + 1, rect.y);
+            response.write_double(index + 2, rect.width);
+            response.write_double(index + 3, rect.height);
+
+            index += 4;
+        }
+
+        surface
+            .send_process_message(cef::ProcessId::Browser, response)
+            .unwrap();
     }
 }

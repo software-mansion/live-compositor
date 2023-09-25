@@ -126,7 +126,7 @@ fn start_example_client_code() -> Result<()> {
                "type": "web_renderer",
                "instance_id": "example_website",
                "input_pads": [
-                    "input_1",
+                    "input_1"
                 ],
                "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
            }

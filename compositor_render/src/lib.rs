@@ -13,7 +13,8 @@ mod sync_renderer;
 mod validation;
 
 pub use transformations::web_renderer::{
-    WebRendererOptions, EMBED_SOURCE_FRAMES_MESSAGE, UNEMBED_SOURCE_FRAMES_MESSAGE,
+    WebRendererOptions, EMBED_SOURCE_FRAMES_MESSAGE, GET_FRAME_POSITIONS_MESSAGE,
+    UNEMBED_SOURCE_FRAMES_MESSAGE,
 };
 
 pub type Renderer = sync_renderer::SyncRenderer;

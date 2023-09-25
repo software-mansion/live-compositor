@@ -8,18 +8,20 @@ use compositor_common::{
     },
 };
 
+use crate::renderer::texture::utils::sources_to_textures;
+use crate::transformations::shader_params::ShaderParamsBuffer;
 use crate::{
     gpu_shader::GpuShader,
     renderer::{texture::NodeTexture, RenderCtx},
     utils::rgba_to_wgpu_color,
 };
 
-use super::{params::RenderParams, shader_params::ParamsBuffer, BuiltinState};
+use super::{params::RenderParams, BuiltinState};
 
 pub struct BuiltinNode {
     state: BuiltinState,
     gpu_shader: Arc<GpuShader>,
-    params_buffer: ParamsBuffer,
+    params_buffer: ShaderParamsBuffer,
 }
 
 impl BuiltinNode {
@@ -34,7 +36,7 @@ impl BuiltinNode {
 
         let params_buffer_content =
             RenderParams::new(&state, &input_resolutions).shader_buffer_content();
-        let params_buffer = ParamsBuffer::new(params_buffer_content, &gpu_shader.wgpu_ctx);
+        let params_buffer = ShaderParamsBuffer::new(params_buffer_content, &gpu_shader.wgpu_ctx);
 
         Self {
             state,
@@ -71,9 +73,10 @@ impl BuiltinNode {
             .update(params_buffer_content, &self.gpu_shader.wgpu_ctx);
 
         let target = target.ensure_size(&self.gpu_shader.wgpu_ctx, output_resolution);
+        let textures = sources_to_textures(sources);
         self.gpu_shader.render(
             self.params_buffer.bind_group(),
-            sources,
+            &textures,
             target,
             pts,
             self.clear_color(),
