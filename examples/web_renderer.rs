@@ -1,5 +1,5 @@
 use anyhow::Result;
-use compositor_chromium::cef;
+use compositor_chromium::cef::bundle_for_development;
 use compositor_common::{scene::Resolution, Framerate};
 use log::{error, info};
 use serde_json::json;
@@ -38,8 +38,11 @@ fn main() {
         .unwrap()
         .join("..");
 
-    if cef::bundle_app(target_path).is_err() {
-        panic!("Build process helper first: cargo build --bin process_helper");
+    if let Err(err) = bundle_for_development(target_path) {
+        panic!(
+            "Build process helper first: cargo build --bin process_helper. {:?}",
+            err
+        );
     }
     thread::spawn(|| {
         if let Err(err) = start_example_client_code() {
