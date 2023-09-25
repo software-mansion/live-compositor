@@ -25,7 +25,7 @@ pub use fixed_postion_layout::TextureLayout;
 pub const TILED_LAYOUT_MAX_INPUTS_COUNT: u32 = 16;
 pub const FIXED_POSITION_LAYOUT_MAX_INPUTS_COUNT: u32 = 16;
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(tag = "transformation", rename_all = "snake_case")]
 pub enum BuiltinSpec {
     TransformToResolution {

@@ -135,8 +135,8 @@ fn start_example_client_code() -> Result<()> {
         "type": "update_scene",
         "nodes": [
             {
-                "node_id": "image",
                 "type": "image",
+                "node_id": "image",
                 "image_id": "example_image",
             },
             {
@@ -150,8 +150,8 @@ fn start_example_client_code() -> Result<()> {
                 "resolution": { "width": 960, "height": 540 },
             },
             {
-                "node_id": "transition_1",
                 "type": "transition",
+                "node_id": "transition_1",
                 "start": {
                     "transformation": "fixed_position_layout",
                     "texture_layouts": [
@@ -176,7 +176,7 @@ fn start_example_client_code() -> Result<()> {
                     "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
                 },
                 "interpolation": "spring",
-                "transition_duration_ms": 10000,
+                "transition_duration_ms": 10_000,
                 "input_pads": ["shader_1"],
             }
         ],

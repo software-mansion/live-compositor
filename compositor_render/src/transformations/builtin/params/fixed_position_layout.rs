@@ -32,12 +32,7 @@ fn new_box_layout(
     output_resolution: Resolution,
 ) -> BoxLayout {
     let Some(input_resolution) = input_resolution else {
-        return BoxLayout {
-            top_left_corner: (0.0, 0.0),
-            width: 0.0,
-            height: 0.0,
-            rotation_degrees: 0.0,
-        };
+        return BoxLayout::NONE;
     };
 
     let (top, left) = spec_to_top_left_coords(layout, input_resolution, &output_resolution);

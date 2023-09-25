@@ -5,7 +5,7 @@ use crate::{
     util::{colors::RGBAColor, coord::Coord, degree::Degree},
 };
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct TextureLayout {
     pub top: Option<Coord>,
     pub bottom: Option<Coord>,
@@ -15,7 +15,7 @@ pub struct TextureLayout {
     pub rotation: Degree,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct FixedPositionLayoutSpec {
     pub resolution: Resolution,
     pub texture_layouts: Vec<TextureLayout>,

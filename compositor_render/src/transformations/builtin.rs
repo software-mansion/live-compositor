@@ -27,14 +27,6 @@ pub enum BuiltinTransition {
     FixedPositionLayout(FixedPositionLayoutSpec, FixedPositionLayoutSpec),
 }
 
-impl BuiltinState {
-    pub fn final_state(&self) -> BuiltinSpec {
-        match self {
-            BuiltinState::Static(spec) => spec.clone(),
-            BuiltinState::Interpolated { transition, .. } => transition.final_state(),
-        }
-    }
-}
 impl BuiltinTransition {
     pub fn final_state(&self) -> BuiltinSpec {
         match self {
