@@ -1,10 +1,10 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use anyhow::{anyhow, Result};
 use compositor_chromium::cef;
 use compositor_render::{EMBED_SOURCE_FRAMES_MESSAGE, UNEMBED_SOURCE_FRAMES_MESSAGE};
-use log::{debug, error, warn};
-use anyhow::{Result, anyhow, Context};
+use log::{debug, error};
 
 use crate::state::{FrameInfo, State};
 
@@ -24,8 +24,7 @@ impl cef::RenderProcessHandler for RenderProcessHandler {
 
         context.eval(include_str!("render_frame.js")).unwrap();
         if let Err(err) = self.register_native_funcs(&mut global, &ctx_entered) {
-            error!("Failed to register native functions for V8Context");
-            return;
+            error!("Failed to register native functions for V8Context: {err}");
         }
     }
 
@@ -70,11 +69,19 @@ impl RenderProcessHandler {
             let shmem_path = PathBuf::from(shmem_path);
 
             let Some(width) = msg.read_int(i + 1) else {
-                return Err(anyhow!("Failed to read width of input {} at {}", source_idx, i + 1));
+                return Err(anyhow!(
+                    "Failed to read width of input {} at {}",
+                    source_idx,
+                    i + 1
+                ));
             };
 
             let Some(height) = msg.read_int(i + 2) else {
-                return Err(anyhow!("Failed to read height of input {} at {}", source_idx, i + 2));
+                return Err(anyhow!(
+                    "Failed to read height of input {} at {}",
+                    source_idx,
+                    i + 2
+                ));
             };
 
             if width == 0 && height == 0 {
@@ -105,17 +112,16 @@ impl RenderProcessHandler {
             None => self.state.create_source(frame_info, ctx_entered)?,
         };
 
-        global
-            .call_method(
-                "renderFrame",
-                &[
-                    &source.source_id,
-                    &source.array_buffer,
-                    &source.width,
-                    &source.height,
-                ],
-                ctx_entered,
-            )?;
+        global.call_method(
+            "renderFrame",
+            &[
+                &source.source_id,
+                &source.array_buffer,
+                &source.width,
+                &source.height,
+            ],
+            ctx_entered,
+        )?;
 
         Ok(())
     }
@@ -168,13 +174,12 @@ impl RenderProcessHandler {
             Ok(cef::V8Undefined::new().into())
         });
 
-        global
-            .set(
-                "register_inputs",
-                &cef::V8Value::from(func),
-                cef::V8PropertyAttribute::None,
-                ctx_entered,
-            )?;
+        global.set(
+            "register_inputs",
+            &cef::V8Value::from(func),
+            cef::V8PropertyAttribute::None,
+            ctx_entered,
+        )?;
 
         Ok(())
     }

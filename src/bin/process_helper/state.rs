@@ -31,9 +31,7 @@ impl State {
     ) -> Result<Arc<Source>> {
         let mut sources = self.sources.lock().unwrap();
         let source_id = self.input_name(frame_info.source_idx)?;
-        let shmem = ShmemConf::new()
-            .flink(&frame_info.shmem_path)
-            .open()?;
+        let shmem = ShmemConf::new().flink(&frame_info.shmem_path).open()?;
         let data_ptr = shmem.as_ptr();
 
         let source_id = cef::V8String::new(&source_id).into();
