@@ -1,5 +1,6 @@
 use std::{fmt::Display, os::raw::c_int, panic};
 
+use crate::cef_ref::increment_ref_count;
 use crate::{
     cef_ref::{CefRefData, CefStruct},
     cef_string::CefString,
@@ -27,7 +28,7 @@ impl V8Function {
 
     pub fn call(
         &self,
-        args: &[V8Value],
+        args: &[&V8Value],
         ctx_entered: &V8ContextEntered,
     ) -> Result<V8Value, V8FunctionError> {
         self.inner_call(None, args, ctx_entered)
@@ -36,7 +37,7 @@ impl V8Function {
     pub(super) fn call_as_method(
         &self,
         this: &V8Object,
-        args: &[V8Value],
+        args: &[&V8Value],
         ctx_entered: &V8ContextEntered,
     ) -> Result<V8Value, V8FunctionError> {
         self.inner_call(Some(this), args, ctx_entered)
@@ -45,20 +46,31 @@ impl V8Function {
     fn inner_call(
         &self,
         this: Option<&V8Object>,
-        args: &[V8Value],
+        args: &[&V8Value],
         _ctx_entered: &V8ContextEntered,
     ) -> Result<V8Value, V8FunctionError> {
         let inner = self.0.get()?;
 
         let this = match this {
-            Some(this) => this.0.get()?,
+            Some(this) => {
+                let this = this.0.get()?;
+                unsafe {
+                    increment_ref_count(&mut (*this).base);
+                }
+
+                this
+            }
             None => std::ptr::null_mut(),
         };
         let args = args
             .iter()
             .enumerate()
-            .map(|(i, v)| {
-                v.get_raw()
+            .map(|(i, arg)| {
+                arg.get_raw()
+                    .map(|inner| unsafe {
+                        increment_ref_count(&mut (*inner).base);
+                        inner
+                    })
                     .map_err(|err| V8FunctionError::ArgNotValid(err, i))
             })
             .collect::<Result<Vec<_>, _>>()?;
@@ -181,5 +193,17 @@ impl std::error::Error for NativeFunctionError {}
 impl Display for NativeFunctionError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(&self.0)
+    }
+}
+
+impl From<String> for NativeFunctionError {
+    fn from(value: String) -> Self {
+        Self(value)
+    }
+}
+
+impl From<&str> for NativeFunctionError {
+    fn from(value: &str) -> Self {
+        Self(value.to_owned())
     }
 }

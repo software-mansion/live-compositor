@@ -5,6 +5,7 @@ mod context;
 mod function;
 mod numbers;
 mod object;
+mod other;
 mod string;
 mod value;
 
@@ -15,6 +16,6 @@ pub use context::*;
 pub use function::*;
 pub use numbers::*;
 pub use object::*;
-pub use object::*;
+pub use other::*;
 pub use string::*;
 pub use value::*;

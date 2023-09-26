@@ -2,13 +2,13 @@ use crate::validated::{Validatable, Validated, ValidatedError};
 
 use super::{
     array::V8Array, array_buffer::V8ArrayBuffer, bool::V8Bool, numbers::*, object::V8Object,
-    string::V8String, V8Function,
+    string::V8String, V8Function, V8GenericValue, V8Null, V8Undefined,
 };
 
 /// Represents JavaScript values
 pub enum V8Value {
-    Undefined(V8GenericValue),
-    Null(V8GenericValue),
+    Undefined(V8Undefined),
+    Null(V8Null),
     Bool(V8Bool),
     Int(V8Int),
     Uint(V8Uint),
@@ -28,10 +28,10 @@ impl V8Value {
     pub(crate) fn from_raw(v8_value: *mut chromium_sys::cef_v8value_t) -> Self {
         let validated_value = Validated::new(v8_value);
         if Self::is_undefined(v8_value) {
-            return Self::Undefined(V8GenericValue(validated_value));
+            return Self::Undefined(V8Undefined(validated_value));
         }
         if Self::is_null(v8_value) {
-            return Self::Null(V8GenericValue(validated_value));
+            return Self::Null(V8Null(validated_value));
         }
         if Self::is_bool(v8_value) {
             return Self::Bool(V8Bool(validated_value));
@@ -72,8 +72,8 @@ impl V8Value {
 
     pub(crate) fn get_raw(&self) -> Result<*mut chromium_sys::cef_v8value_t, V8ValueError> {
         let raw_value = match self {
-            V8Value::Undefined(V8GenericValue(v)) => v.get()?,
-            V8Value::Null(V8GenericValue(v)) => v.get()?,
+            V8Value::Undefined(V8Undefined(v)) => v.get()?,
+            V8Value::Null(V8Null(v)) => v.get()?,
             V8Value::Bool(V8Bool(v)) => v.get()?,
             V8Value::Int(V8Int(v)) => v.get()?,
             V8Value::Uint(V8Uint(v)) => v.get()?,
@@ -188,8 +188,6 @@ impl Validatable for chromium_sys::cef_v8value_t {
         unsafe { is_valid(self) == 1 }
     }
 }
-
-pub struct V8GenericValue(Validated<chromium_sys::cef_v8value_t>);
 
 #[derive(Debug, thiserror::Error)]
 pub enum V8ValueError {
