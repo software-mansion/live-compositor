@@ -140,7 +140,7 @@ fn download_cef(cef_root_path: &Path) -> Result<()> {
     let download_path = cef_root_path
         .parent()
         .context("Failed to retrieve CEF_ROOT parent directory")?;
-    let url = format!("https://cef-builds.spotifycdn.com/cef_binary_115.3.11%2Bga61da9b%2Bchromium-115.0.5790.114_{platform}_minimal.tar.bz2");
+    let url = format!("https://cef-builds.spotifycdn.com/cef_binary_117.1.4%2Bga26f38b%2Bchromium-117.0.5938.92_{platform}_minimal.tar.bz2");
     let client = reqwest::blocking::ClientBuilder::new()
         .timeout(Duration::from_secs(2 * 60))
         .build()?;

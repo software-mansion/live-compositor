@@ -64,6 +64,7 @@ impl Settings {
             locale: CefString::empty_raw(),
             log_file: CefString::empty_raw(),
             log_severity: self.log_severity as u32,
+            log_items: chromium_sys::cef_log_items_t_LOG_ITEMS_DEFAULT,
             javascript_flags: CefString::empty_raw(),
             resources_dir_path: CefString::empty_raw(),
             locales_dir_path: CefString::empty_raw(),
