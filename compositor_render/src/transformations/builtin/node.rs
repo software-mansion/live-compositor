@@ -9,9 +9,8 @@ use compositor_common::{
 };
 
 use crate::renderer::texture::utils::sources_to_textures;
-use crate::transformations::shader_params::ParamsBuffer;
 use crate::{
-    gpu_shader::GpuShader,
+    gpu_shader::{GpuShader, ParamsBuffer},
     renderer::{texture::NodeTexture, RenderCtx},
     utils::rgba_to_wgpu_color,
 };

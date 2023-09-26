@@ -1,4 +1,4 @@
-use bytes::Bytes;
+use bytes::{Bytes, BytesMut};
 use std::env;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
@@ -8,10 +8,11 @@ use crate::renderer::{
     RegisterCtx, RenderCtx,
 };
 
-use crate::gpu_shader::{CreateShaderError, GpuShader};
+use crate::gpu_shader::{
+    CreateShaderError, {GpuShader, ParamsBuffer},
+};
 use crate::renderer::texture::utils::sources_to_textures;
 use crate::renderer::texture::Texture;
-use crate::transformations::shader_params::ParamsBuffer;
 use crate::transformations::web_renderer::browser_client::BrowserClient;
 use crate::transformations::web_renderer::chromium_sender::ChromiumSender;
 use crate::transformations::web_renderer::embedder::{EmbedError, EmbeddingHelper, TextureInfo};
@@ -62,8 +63,8 @@ pub struct WebRenderer {
     embedding_helper: EmbeddingHelper,
 
     website_texture: BGRATexture,
-    shader: GpuShader,
-    shader_params: Mutex<ParamsBuffer>,
+    website_render_shader: GpuShader,
+    website_render_params: Mutex<ParamsBuffer>,
 }
 
 impl WebRenderer {
@@ -81,11 +82,11 @@ impl WebRenderer {
         let chromium_sender = ChromiumSender::new(ctx, spec.url.clone(), client);
         let embedding_helper = EmbeddingHelper::new(ctx, chromium_sender, spec.embedding_method);
 
-        let shader = GpuShader::new(
+        let website_render_shader = GpuShader::new(
             &ctx.wgpu_ctx,
             include_str!("web_renderer/render_website.wgsl").into(),
         )?;
-        let shader_params = Mutex::new(ParamsBuffer::new(Bytes::new(), &ctx.wgpu_ctx));
+        let website_render_params = Mutex::new(ParamsBuffer::new(Bytes::new(), &ctx.wgpu_ctx));
         let website_texture = BGRATexture::new(&ctx.wgpu_ctx, spec.resolution);
 
         Ok(Self {
@@ -94,8 +95,8 @@ impl WebRenderer {
             source_transforms,
             embedding_helper,
             website_texture,
-            shader_params,
-            shader,
+            website_render_params,
+            website_render_shader,
         })
     }
 
@@ -116,10 +117,10 @@ impl WebRenderer {
             self.website_texture.upload(ctx.wgpu_ctx, &frame);
 
             let (textures, textures_info) = self.prepare_textures(sources);
-            let mut shader_params = self.shader_params.lock().unwrap();
+            let mut shader_params = self.website_render_params.lock().unwrap();
             shader_params.update(textures_info, ctx.wgpu_ctx);
 
-            self.shader.render(
+            self.website_render_shader.render(
                 &shader_params.bind_group,
                 &textures,
                 target,
@@ -135,30 +136,38 @@ impl WebRenderer {
         &'a self,
         sources: &'a [(&NodeId, &NodeTexture)],
     ) -> (Vec<Option<&'a Texture>>, Bytes) {
-        let source_textures = sources_to_textures(sources);
+        let mut source_textures = sources_to_textures(sources);
         let source_transforms = TextureInfo::sources(&self.source_transforms.lock().unwrap());
 
-        let textures = match self.spec.embedding_method {
+        let mut textures = Vec::new();
+        match self.spec.embedding_method {
             WebEmbeddingMethod::EmbedOnTop => {
-                [vec![Some(self.website_texture.texture())], source_textures].concat()
+                textures.push(Some(self.website_texture.texture()));
+                textures.append(&mut source_textures);
             }
             WebEmbeddingMethod::EmbedBelow => {
-                [source_textures, vec![Some(self.website_texture.texture())]].concat()
+                textures.append(&mut source_textures);
+                textures.push(Some(self.website_texture.texture()));
             }
-            WebEmbeddingMethod::ChromiumEmbedding => vec![Some(self.website_texture.texture())],
+            WebEmbeddingMethod::ChromiumEmbedding => {
+                textures.push(Some(self.website_texture.texture()));
+            }
         };
 
-        let textures_info = match self.spec.embedding_method {
+        let mut textures_info = BytesMut::new();
+        match self.spec.embedding_method {
             WebEmbeddingMethod::EmbedOnTop => {
-                [TextureInfo::website(), source_transforms].concat().into()
+                textures_info.extend(TextureInfo::website());
+                textures_info.extend(source_transforms);
             }
             WebEmbeddingMethod::EmbedBelow => {
-                [source_transforms, TextureInfo::website()].concat().into()
+                textures_info.extend(source_transforms);
+                textures_info.extend(TextureInfo::website());
             }
-            WebEmbeddingMethod::ChromiumEmbedding => TextureInfo::website(),
+            WebEmbeddingMethod::ChromiumEmbedding => textures_info.extend(TextureInfo::website()),
         };
 
-        (textures, textures_info)
+        (textures, textures_info.freeze())
     }
 
     fn retrieve_frame(&self) -> Option<Bytes> {
