@@ -11,7 +11,7 @@ use crate::renderer::{
 use crate::gpu_shader::{CreateShaderError, GpuShader};
 use crate::renderer::texture::utils::sources_to_textures;
 use crate::renderer::texture::Texture;
-use crate::transformations::shader_params::ShaderParamsBuffer;
+use crate::transformations::shader_params::ParamsBuffer;
 use crate::transformations::web_renderer::browser_client::BrowserClient;
 use crate::transformations::web_renderer::chromium_sender::ChromiumSender;
 use crate::transformations::web_renderer::embedder::{EmbedError, EmbeddingHelper, TextureInfo};
@@ -63,7 +63,7 @@ pub struct WebRenderer {
 
     website_texture: BGRATexture,
     shader: GpuShader,
-    shader_params: Mutex<ShaderParamsBuffer>,
+    shader_params: Mutex<ParamsBuffer>,
 }
 
 impl WebRenderer {
@@ -85,7 +85,7 @@ impl WebRenderer {
             &ctx.wgpu_ctx,
             include_str!("web_renderer/render_website.wgsl").into(),
         )?;
-        let shader_params = Mutex::new(ShaderParamsBuffer::new(Bytes::new(), &ctx.wgpu_ctx));
+        let shader_params = Mutex::new(ParamsBuffer::new(Bytes::new(), &ctx.wgpu_ctx));
         let website_texture = BGRATexture::new(&ctx.wgpu_ctx, spec.resolution);
 
         Ok(Self {

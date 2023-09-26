@@ -9,7 +9,7 @@ use compositor_common::{
 };
 
 use crate::renderer::texture::utils::sources_to_textures;
-use crate::transformations::shader_params::ShaderParamsBuffer;
+use crate::transformations::shader_params::ParamsBuffer;
 use crate::{
     gpu_shader::GpuShader,
     renderer::{texture::NodeTexture, RenderCtx},
@@ -21,7 +21,7 @@ use super::{params::RenderParams, BuiltinState};
 pub struct BuiltinNode {
     state: BuiltinState,
     gpu_shader: Arc<GpuShader>,
-    params_buffer: ShaderParamsBuffer,
+    params_buffer: ParamsBuffer,
 }
 
 impl BuiltinNode {
@@ -36,7 +36,7 @@ impl BuiltinNode {
 
         let params_buffer_content =
             RenderParams::new(&state, &input_resolutions).shader_buffer_content();
-        let params_buffer = ShaderParamsBuffer::new(params_buffer_content, &gpu_shader.wgpu_ctx);
+        let params_buffer = ParamsBuffer::new(params_buffer_content, &gpu_shader.wgpu_ctx);
 
         Self {
             state,
