@@ -93,6 +93,10 @@
 //! [`Context`]: crate::context::Context
 //!
 
+// Things that I'm not 100% sure about:
+// - There might be some cases where I missed increments or decrements of ref counting
+//
+
 mod app;
 mod browser;
 mod cef_ref;
