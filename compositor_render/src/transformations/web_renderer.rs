@@ -63,8 +63,8 @@ pub struct WebRenderer {
     embedding_helper: EmbeddingHelper,
 
     website_texture: BGRATexture,
-    website_render_shader: GpuShader,
-    website_render_params: Mutex<ParamsBuffer>,
+    render_website_shader: GpuShader,
+    shader_params: Mutex<ParamsBuffer>,
 }
 
 impl WebRenderer {
@@ -86,7 +86,7 @@ impl WebRenderer {
             &ctx.wgpu_ctx,
             include_str!("web_renderer/render_website.wgsl").into(),
         )?;
-        let website_render_params = Mutex::new(ParamsBuffer::new(Bytes::new(), &ctx.wgpu_ctx));
+        let shader_params = Mutex::new(ParamsBuffer::new(Bytes::new(), &ctx.wgpu_ctx));
         let website_texture = BGRATexture::new(&ctx.wgpu_ctx, spec.resolution);
 
         Ok(Self {
@@ -95,8 +95,8 @@ impl WebRenderer {
             source_transforms,
             embedding_helper,
             website_texture,
-            website_render_params,
-            website_render_shader,
+            render_website_shader: website_render_shader,
+            shader_params,
         })
     }
 
@@ -117,10 +117,10 @@ impl WebRenderer {
             self.website_texture.upload(ctx.wgpu_ctx, &frame);
 
             let (textures, textures_info) = self.prepare_textures(sources);
-            let mut shader_params = self.website_render_params.lock().unwrap();
+            let mut shader_params = self.shader_params.lock().unwrap();
             shader_params.update(textures_info, ctx.wgpu_ctx);
 
-            self.website_render_shader.render(
+            self.render_website_shader.render(
                 &shader_params.bind_group,
                 &textures,
                 target,
