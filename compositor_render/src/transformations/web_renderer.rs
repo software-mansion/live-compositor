@@ -82,7 +82,7 @@ impl WebRenderer {
         let chromium_sender = ChromiumSender::new(ctx, spec.url.clone(), client);
         let embedding_helper = EmbeddingHelper::new(ctx, chromium_sender, spec.embedding_method);
 
-        let website_render_shader = GpuShader::new(
+        let render_website_shader = GpuShader::new(
             &ctx.wgpu_ctx,
             include_str!("web_renderer/render_website.wgsl").into(),
         )?;
@@ -95,7 +95,7 @@ impl WebRenderer {
             source_transforms,
             embedding_helper,
             website_texture,
-            render_website_shader: website_render_shader,
+            render_website_shader,
             shader_params,
         })
     }
