@@ -33,7 +33,7 @@ impl V8Global {
     pub fn call_method(
         &self,
         name: &str,
-        args: &[V8Value],
+        args: &[&V8Value],
         ctx_entered: &V8ContextEntered,
     ) -> Result<V8Value, V8ObjectError> {
         self.0.call_method(name, args, ctx_entered)

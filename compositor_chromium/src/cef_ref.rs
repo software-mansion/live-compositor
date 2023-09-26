@@ -127,3 +127,13 @@ impl<T: CefStruct> CefRefData<T> {
         has_any_refs as c_int
     }
 }
+
+/// # Safety
+///
+/// Make sure the pointer points to valid information
+pub(crate) unsafe fn increment_ref_count(base: *mut chromium_sys::cef_base_ref_counted_t) {
+    unsafe {
+        let add_ref = (*base).add_ref.unwrap();
+        add_ref(base);
+    }
+}

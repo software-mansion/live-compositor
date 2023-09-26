@@ -17,11 +17,7 @@ impl V8String {
         unsafe {
             let get_value = (*inner).get_string_value.unwrap();
             let value = get_value(inner);
-
-            let cef_string = CefString::from_raw(value);
-            chromium_sys::cef_string_userfree_utf16_free(value);
-
-            Ok(cef_string)
+            Ok(CefString::from_userfree(value))
         }
     }
 }

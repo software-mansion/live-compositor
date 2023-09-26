@@ -36,6 +36,15 @@ impl CefString {
         }
     }
 
+    pub fn from_userfree(ptr: chromium_sys::cef_string_userfree_utf16_t) -> String {
+        let cef_string = CefString::from_raw(ptr);
+        unsafe {
+            chromium_sys::cef_string_userfree_utf16_free(ptr);
+        }
+
+        cef_string
+    }
+
     /// Creates a new empty `cef_string_t`
     pub fn empty_raw() -> chromium_sys::cef_string_t {
         unsafe { std::mem::zeroed() }

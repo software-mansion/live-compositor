@@ -1,3 +1,4 @@
+use crate::cef_ref::increment_ref_count;
 use crate::validated::{Validated, ValidatedError};
 
 use super::value::{V8Value, V8ValueError};
@@ -43,7 +44,9 @@ impl V8Array {
         let inner = self.0.get()?;
         unsafe {
             let set_value = (*inner).set_value_byindex.unwrap();
-            if set_value(inner, index as i32, value.get_raw()?) != 1 {
+            let value = value.get_raw()?;
+            increment_ref_count(&mut (*value).base);
+            if set_value(inner, index as i32, value) != 1 {
                 return Err(V8ArrayError::SetFailed(index));
             }
 

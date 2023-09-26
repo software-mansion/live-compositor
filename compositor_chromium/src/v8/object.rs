@@ -14,6 +14,7 @@ mod dom_rect;
 mod element;
 mod global;
 
+use crate::cef_ref::increment_ref_count;
 pub use document::*;
 pub use dom_rect::*;
 pub use element::*;
@@ -56,7 +57,9 @@ impl V8Object {
         let cef_key = CefString::new_raw(key);
         unsafe {
             let set_value = (*inner).set_value_bykey.unwrap();
-            if set_value(inner, &cef_key, value.get_raw()?, attribute as u32) != 1 {
+            let value = value.get_raw()?;
+            increment_ref_count(&mut (*value).base);
+            if set_value(inner, &cef_key, value, attribute as u32) != 1 {
                 return Err(V8ObjectError::SetFailed(key.to_string()));
             }
             Ok(())
@@ -83,7 +86,7 @@ impl V8Object {
     pub fn call_method(
         &self,
         name: &str,
-        args: &[V8Value],
+        args: &[&V8Value],
         ctx_entered: &V8ContextEntered,
     ) -> Result<V8Value, V8ObjectError> {
         let V8Value::Function(method) = self.get(name)? else {
