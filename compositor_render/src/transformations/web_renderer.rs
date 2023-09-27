@@ -8,9 +8,8 @@ use crate::renderer::{
     RegisterCtx, RenderCtx,
 };
 
-use crate::gpu_shader::{
-    CreateShaderError, {GpuShader, ParamsBuffer},
-};
+use crate::gpu_shader::params_buffer::ParamsBuffer;
+use crate::gpu_shader::{CreateShaderError, GpuShader};
 use crate::renderer::texture::utils::sources_to_textures;
 use crate::renderer::texture::Texture;
 use crate::transformations::web_renderer::browser_client::BrowserClient;
@@ -120,7 +119,7 @@ impl WebRenderer {
             let mut shader_params = self.shader_params.lock().unwrap();
             shader_params.update(textures_info, ctx.wgpu_ctx);
 
-            self.render_website_shader.render(
+            self.render_website_shader.render_with_textures(
                 &shader_params.bind_group,
                 &textures,
                 target,
@@ -141,11 +140,11 @@ impl WebRenderer {
 
         let mut textures = Vec::new();
         match self.spec.embedding_method {
-            WebEmbeddingMethod::EmbedOnTop => {
+            WebEmbeddingMethod::NativeEmbeddingOverContent => {
                 textures.push(Some(self.website_texture.texture()));
                 textures.append(&mut source_textures);
             }
-            WebEmbeddingMethod::EmbedBelow => {
+            WebEmbeddingMethod::NativeEmbeddingUnderContent => {
                 textures.append(&mut source_textures);
                 textures.push(Some(self.website_texture.texture()));
             }
@@ -156,11 +155,11 @@ impl WebRenderer {
 
         let mut textures_info = BytesMut::new();
         match self.spec.embedding_method {
-            WebEmbeddingMethod::EmbedOnTop => {
+            WebEmbeddingMethod::NativeEmbeddingOverContent => {
                 textures_info.extend(TextureInfo::website());
                 textures_info.extend(source_transforms);
             }
-            WebEmbeddingMethod::EmbedBelow => {
+            WebEmbeddingMethod::NativeEmbeddingUnderContent => {
                 textures_info.extend(source_transforms);
                 textures_info.extend(TextureInfo::website());
             }

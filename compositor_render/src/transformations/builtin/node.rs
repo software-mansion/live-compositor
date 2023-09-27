@@ -8,9 +8,9 @@ use compositor_common::{
     },
 };
 
-use crate::renderer::texture::utils::sources_to_textures;
+use crate::gpu_shader::params_buffer::ParamsBuffer;
 use crate::{
-    gpu_shader::{GpuShader, ParamsBuffer},
+    gpu_shader::GpuShader,
     renderer::{texture::NodeTexture, RenderCtx},
     utils::rgba_to_wgpu_color,
 };
@@ -72,10 +72,9 @@ impl BuiltinNode {
             .update(params_buffer_content, &self.gpu_shader.wgpu_ctx);
 
         let target = target.ensure_size(&self.gpu_shader.wgpu_ctx, output_resolution);
-        let textures = sources_to_textures(sources);
         self.gpu_shader.render(
             self.params_buffer.bind_group(),
-            &textures,
+            sources,
             target,
             pts,
             self.clear_color(),

@@ -65,11 +65,11 @@ pub enum WebEmbeddingMethod {
     ChromiumEmbedding,
 
     /// Render sources on top of the rendered website
-    EmbedOnTop,
+    NativeEmbeddingOverContent,
 
     /// Render sources below the website.
     /// The website's background has to be transparent
-    EmbedBelow,
+    NativeEmbeddingUnderContent,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -125,6 +125,6 @@ impl WebRendererSpec {
     }
 
     fn default_embedding_method() -> WebEmbeddingMethod {
-        WebEmbeddingMethod::EmbedOnTop
+        WebEmbeddingMethod::NativeEmbeddingOverContent
     }
 }

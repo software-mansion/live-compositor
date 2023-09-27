@@ -38,7 +38,8 @@ impl EmbeddingHelper {
             WebEmbeddingMethod::ChromiumEmbedding => {
                 self.chromium_embedding(node_id, sources, buffers)?
             }
-            WebEmbeddingMethod::EmbedOnTop | WebEmbeddingMethod::EmbedBelow => {
+            WebEmbeddingMethod::NativeEmbeddingOverContent
+            | WebEmbeddingMethod::NativeEmbeddingUnderContent => {
                 self.chromium_sender.request_frame_positions(sources)
             }
         }

@@ -2,11 +2,13 @@ use crate::renderer::{
     texture::NodeTextureState, CommonShaderParameters, WgpuError, WgpuErrorScope,
 };
 
+use compositor_common::scene::NodeId;
 use std::{sync::Arc, time::Duration};
-use wgpu::util::DeviceExt;
 
 use compositor_common::scene::shader::ShaderParam;
 
+use crate::renderer::texture::utils::sources_to_textures;
+use crate::renderer::texture::NodeTexture;
 use crate::renderer::{texture::Texture, WgpuCtx};
 
 use self::{
@@ -16,6 +18,7 @@ use self::{
 };
 
 pub mod error;
+pub mod params_buffer;
 mod pipeline;
 pub mod validation;
 
@@ -114,6 +117,18 @@ impl GpuShader {
     pub fn render(
         &self,
         params: &wgpu::BindGroup,
+        sources: &[(&NodeId, &NodeTexture)],
+        target: &NodeTextureState,
+        pts: Duration,
+        clear_color: Option<wgpu::Color>,
+    ) {
+        let textures = sources_to_textures(sources);
+        self.render_with_textures(params, &textures, target, pts, clear_color);
+    }
+
+    pub fn render_with_textures(
+        &self,
+        params: &wgpu::BindGroup,
         textures: &[Option<&Texture>],
         target: &NodeTextureState,
         pts: Duration,
@@ -121,7 +136,7 @@ impl GpuShader {
     ) {
         let ctx = &self.wgpu_ctx;
 
-        // TODO: sources need to be ordered
+        // TODO: sources/textures need to be ordered
 
         // TODO: most things that happen in this method should not be done every frame
 
@@ -147,7 +162,7 @@ impl GpuShader {
         });
 
         let common_shader_params =
-            CommonShaderParameters::new(pts, textures.len() as u32, target.resolution());
+            CommonShaderParameters::new(pts, texture_views.len() as u32, target.resolution());
 
         self.pipeline.render(
             &input_textures_bg,
@@ -176,60 +191,5 @@ impl GpuShader {
             .ok_or(ParametersValidationError::NoBindingInShader)?;
 
         validate_params(params, ty, &self.shader)
-    }
-}
-
-pub(super) struct ParamsBuffer {
-    pub bind_group: wgpu::BindGroup,
-    buffer: wgpu::Buffer,
-    content: bytes::Bytes,
-}
-
-impl ParamsBuffer {
-    pub fn new(content: bytes::Bytes, wgpu_ctx: &WgpuCtx) -> Self {
-        let content_or_zero = match content.is_empty() {
-            true => bytes::Bytes::copy_from_slice(&[0]),
-            false => content.clone(),
-        };
-
-        let buffer = wgpu_ctx
-            .device
-            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some("params buffer"),
-                usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-                contents: &content_or_zero,
-            });
-
-        let bind_group = wgpu_ctx
-            .device
-            .create_bind_group(&wgpu::BindGroupDescriptor {
-                label: Some("params bind group"),
-                layout: &wgpu_ctx.shader_parameters_bind_group_layout,
-                entries: &[wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: buffer.as_entire_binding(),
-                }],
-            });
-
-        Self {
-            bind_group,
-            buffer,
-            content,
-        }
-    }
-
-    pub fn bind_group(&self) -> &wgpu::BindGroup {
-        &self.bind_group
-    }
-
-    pub fn update(&mut self, content: bytes::Bytes, wgpu_ctx: &WgpuCtx) {
-        if self.content.len() != content.len() {
-            *self = Self::new(content, wgpu_ctx);
-            return;
-        }
-
-        if self.content != content {
-            wgpu_ctx.queue.write_buffer(&self.buffer, 0, &content);
-        }
     }
 }
