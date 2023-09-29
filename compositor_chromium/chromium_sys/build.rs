@@ -1,6 +1,7 @@
 use anyhow::{Context, Result};
 use bindgen::callbacks::ParseCallbacks;
 use fs_extra::dir::{self, CopyOptions};
+use reqwest::StatusCode;
 use std::{
     env, fs,
     path::{Path, PathBuf},
@@ -124,27 +125,31 @@ impl ParseCallbacks for RemoveCommentsCallback {
     }
 }
 
-fn download_cef(cef_root_path: &Path) -> Result<()> {
-    let platform = if cfg!(target_os = "macos") {
+fn cef_url() -> &'static str {
+    if cfg!(target_os = "macos") {
         if cfg!(target_arch = "aarch64") {
-            "macosarm64"
-        } else {
-            "macosx64"
+            return "https://cef-builds.spotifycdn.com/cef_binary_117.1.4%2Bga26f38b%2Bchromium-117.0.5938.92_macosarm64_minimal.tar.bz2";
+        } else if cfg!(target_arch = "x86_64") {
+            return "https://cef-builds.spotifycdn.com/cef_binary_115.3.11%2Bga61da9b%2Bchromium-115.0.5790.114_macosx64_minimal.tar.bz2";
         }
     } else if cfg!(target_os = "linux") {
-        "linux64"
-    } else {
-        panic!("Unsupported platform");
+        return "https://cef-builds.spotifycdn.com/cef_binary_117.1.4%2Bga26f38b%2Bchromium-117.0.5938.92_linux64_minimal.tar.bz2";
     };
+    panic!("Unsupported platform");
+}
 
+fn download_cef(cef_root_path: &Path) -> Result<()> {
+    let url = cef_url();
     let download_path = cef_root_path
         .parent()
         .context("Failed to retrieve CEF_ROOT parent directory")?;
-    let url = format!("https://cef-builds.spotifycdn.com/cef_binary_117.1.4%2Bga26f38b%2Bchromium-117.0.5938.92_{platform}_minimal.tar.bz2");
     let client = reqwest::blocking::ClientBuilder::new()
         .timeout(Duration::from_secs(2 * 60))
         .build()?;
     let resp = client.get(url).send()?;
+    if resp.status() != StatusCode::OK {
+        panic!("Request to {} failed. Status code: {}", url, resp.status());
+    }
 
     let archive_name = "cef.tar.bz2";
     let content = resp.bytes()?;

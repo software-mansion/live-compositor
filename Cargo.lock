@@ -364,6 +364,7 @@ checksum = "bf43edc576402991846b093a7ca18a3477e0ef9c588cde84964b5d3e43016642"
 name = "compositor_chromium"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "chromium_sys",
  "compositor_common",
  "fs_extra",
@@ -2814,6 +2815,7 @@ dependencies = [
  "crossbeam-channel",
  "env_logger",
  "ffmpeg-next",
+ "fs_extra",
  "lazy_static",
  "log",
  "reqwest",

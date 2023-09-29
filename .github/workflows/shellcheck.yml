@@ -1,0 +1,28 @@
+name: shellcheck
+on:
+    push:
+        branches: [master]
+        paths:
+            - "scripts/*"
+            - .github/workflows/shellcheck.yml
+    pull_request:
+        types: [opened, synchronize]
+        paths:
+            - "scripts/*"
+            - .github/workflows/shellcheck.yml
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
+
+jobs:
+    dockerfile:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v2
+
+            - name: shellcheck
+              run: |
+                shellcheck ./scripts/release.sh ./scripts/compositor_runtime_wrapper.sh

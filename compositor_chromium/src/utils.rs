@@ -1,11 +1,26 @@
-use std::error::Error;
-use std::path::Path;
-use std::{env, fs};
+use anyhow::Result;
+use std::env;
+use std::{fs, path::Path};
+
+/// Creates MacOS app bundle in the same directory as the main executable.
+/// Bundles `process_helper` into multiple subprocess bundles.
+/// Copies CEF and subprocess bundles to `Frameworks` directory.
+/// `process_helper` has to be built before the function is called
+#[cfg(target_os = "macos")]
+pub fn bundle_for_development(target_path: &Path) -> Result<()> {
+    let current_exe = env::current_exe()?;
+    let current_dir = current_exe.parent().unwrap();
+    let bundle_path = current_dir.join("video_compositor.app");
+
+    bundle_app(target_path, &bundle_path)?;
+
+    Ok(())
+}
 
 /// Moves the `process_helper` to the same directory as the main executable
 /// `process_helper` has to be built before the function is called
 #[cfg(target_os = "linux")]
-pub fn bundle_app(target_path: &Path) -> Result<(), Box<dyn Error>> {
+pub fn bundle_for_development(target_path: &Path) -> Result<()> {
     let current_exe = env::current_exe()?;
     let current_dir = current_exe.parent().unwrap();
 
@@ -19,22 +34,22 @@ pub fn bundle_app(target_path: &Path) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-/// Creates MacOS app bundle in the same directory as the main executable.
-/// Bundles `process_helper` into multiple subprocess bundles.
-/// Copies CEF and subprocess bundles to `Frameworks` directory.
-/// `process_helper` has to be built before the function is called
 #[cfg(target_os = "macos")]
-pub fn bundle_app(target_path: &Path) -> Result<(), Box<dyn Error>> {
+pub fn bundle_app(target_path: &Path, bundle_path: &Path) -> Result<()> {
     use fs_extra::dir::{self, CopyOptions};
 
-    let current_exe = env::current_exe()?;
-    let current_dir = current_exe.parent().unwrap();
-    let bundle_path = current_dir.join("video_compositor.app").join("Contents");
-
-    let _ = fs::remove_dir_all(&bundle_path);
+    let _ = fs::remove_dir_all(bundle_path);
+    let bundle_path = bundle_path.join("Contents");
 
     for dir in ["MacOS", "Resources"] {
         fs::create_dir_all(bundle_path.join(dir))?;
+    }
+
+    if cfg!(feature = "standalone") {
+        fs::copy(
+            target_path.join("main_process"),
+            bundle_path.join("MacOS/video_compositor"),
+        )?;
     }
 
     dir::copy(
@@ -60,7 +75,13 @@ pub fn bundle_app(target_path: &Path) -> Result<(), Box<dyn Error>> {
     ];
 
     for (name, bundle_id) in helpers {
-        bundle_helper(name, bundle_id, &helper_info, target_path, &bundle_path)?;
+        bundle_helper(
+            name,
+            bundle_id,
+            &helper_info,
+            &target_path.join("process_helper"),
+            &bundle_path,
+        )?;
     }
 
     Ok(())
@@ -71,9 +92,9 @@ fn bundle_helper(
     name: &str,
     bundle_id: &str,
     info_data: &str,
-    target_path: &Path,
+    helper_path: &Path,
     bundle_path: &Path,
-) -> Result<(), Box<dyn Error>> {
+) -> Result<()> {
     let bundle_path = bundle_path
         .join("Frameworks")
         .join(format!("{name}.app"))
@@ -83,10 +104,7 @@ fn bundle_helper(
         fs::create_dir_all(bundle_path.join(dir))?;
     }
 
-    fs::copy(
-        target_path.join("process_helper"),
-        bundle_path.join("MacOS").join(name),
-    )?;
+    fs::copy(helper_path, bundle_path.join("MacOS").join(name))?;
 
     let info_data = info_data
         .replace("${EXECUTABLE_NAME}", name)

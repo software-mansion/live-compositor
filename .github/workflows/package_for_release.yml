@@ -1,0 +1,49 @@
+name: package for release
+on:
+    workflow_dispatch: {}
+
+jobs:
+    linux:
+        runs-on: ubuntu-latest
+        container:
+            image: ubuntu:mantic-20230712
+        steps:
+            - name: 🛠 Install system dependencies
+              run: |
+                  apt-get update -y -qq
+                  apt-get install -y libegl1-mesa-dev libgl1-mesa-dri libxcb-xfixes0-dev ffmpeg libavcodec-dev libavformat-dev libavfilter-dev libavdevice-dev
+                  # TMP until we need to build in docker container
+                  apt-get install -y curl build-essential curl pkg-config libssl-dev libclang-dev git libnss3 libatk1.0-0 libatk-bridge2.0-0 libgdk-pixbuf2.0-0 libgtk-3-0
+            - name: 🔧 Install the rust toolchain
+              uses: dtolnay/rust-toolchain@stable
+
+            - name: 📥 Checkout repo
+              uses: actions/checkout@v3
+
+            - name: 📦 Package
+              run: cargo run --bin package_for_release --features standalone
+
+            - uses: actions/upload-artifact@v3
+              with:
+                name: video_compositor_linux_x86_64.tar.gz
+                path: video_compositor_linux_x86_64.tar.gz
+
+    macos:
+        runs-on: macos-latest
+        steps:
+            - name: 🛠 Install system dependencies
+              run: brew install ffmpeg
+
+            - name: 🔧 Install the rust toolchain
+              uses: dtolnay/rust-toolchain@stable
+
+            - name: 📥 Checkout repo
+              uses: actions/checkout@v3
+
+            - name: 📦 Package
+              run: cargo run --bin package_for_release --features standalone
+
+            - uses: actions/upload-artifact@v3
+              with:
+                name: video_compositor_darwin_x86_64.app.tar.gz
+                path: video_compositor_darwin_x86_64.app.tar.gz
