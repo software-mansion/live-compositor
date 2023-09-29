@@ -1,8 +1,6 @@
 name: package for release
 on:
     workflow_dispatch: {}
-    pull_request:
-        types: [opened, synchronize]
 
 jobs:
     linux:
