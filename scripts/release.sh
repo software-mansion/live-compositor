@@ -23,9 +23,9 @@ mkdir -p "$ROOT_DIR/release_tmp"
 cd "$ROOT_DIR/release_tmp"
 
 gh run download "$WORKFLOW_RUN_ID" -n video_compositor_linux_x86_64.tar.gz
-gh run download "$WORKFLOW_RUN_ID" -n video_compositor_darwin_x86_64.app.tar.gz
+gh run download "$WORKFLOW_RUN_ID" -n video_compositor_darwin_x86_64.tar.gz
 gh release create "$RELEASE_TAG"
 gh release upload "$RELEASE_TAG" video_compositor_linux_x86_64.tar.gz
-gh release upload "$RELEASE_TAG" video_compositor_darwin_x86_64.app.tar.gz
+gh release upload "$RELEASE_TAG" video_compositor_darwin_x86_64.tar.gz
 
 rm -rf "$ROOT_DIR/release_tmp"

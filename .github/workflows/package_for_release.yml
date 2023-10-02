@@ -45,5 +45,5 @@ jobs:
 
             - uses: actions/upload-artifact@v3
               with:
-                name: video_compositor_darwin_x86_64.app.tar.gz
-                path: video_compositor_darwin_x86_64.app.tar.gz
+                name: video_compositor_darwin_x86_64.tar.gz
+                path: video_compositor_darwin_x86_64.tar.gz
