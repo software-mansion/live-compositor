@@ -10,9 +10,9 @@ use crate::utils;
 use compositor_chromium::cef;
 
 const ARM_MAC_TARGET: &str = "aarch64-apple-darwin";
-const ARM_OUTPUT_FILE: &str = "video_compositor_darwin_aarch64.app.tar.gz";
+const ARM_OUTPUT_FILE: &str = "video_compositor_darwin_aarch64.tar.gz";
 const INTEL_MAC_TARGET: &str = "x86_64-apple-darwin";
-const INTEL_OUTPUT_FILE: &str = "video_compositor_darwin_x86_64.app.tar.gz";
+const INTEL_OUTPUT_FILE: &str = "video_compositor_darwin_x86_64.tar.gz";
 
 pub fn bundle_macos_app() -> Result<()> {
     if cfg!(target_arch = "x86_64") {
