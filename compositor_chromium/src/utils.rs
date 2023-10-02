@@ -45,13 +45,6 @@ pub fn bundle_app(target_path: &Path, bundle_path: &Path) -> Result<()> {
         fs::create_dir_all(bundle_path.join(dir))?;
     }
 
-    if cfg!(feature = "standalone") {
-        fs::copy(
-            target_path.join("main_process"),
-            bundle_path.join("MacOS/video_compositor"),
-        )?;
-    }
-
     dir::copy(
         target_path.join("Frameworks"),
         &bundle_path,

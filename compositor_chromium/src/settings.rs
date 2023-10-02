@@ -95,30 +95,21 @@ fn executables_paths() -> (_cef_string_utf16_t, _cef_string_utf16_t) {
 fn executables_paths() -> (_cef_string_utf16_t, _cef_string_utf16_t) {
     use std::path::PathBuf;
 
-    if cfg!(feature = "standalone") {
-        return (CefString::empty_raw(), CefString::empty_raw());
-    }
-
     let current_exe = env::current_exe().unwrap();
     let current_dir = current_exe.parent().unwrap();
 
-    let main_bundle_path = PathBuf::from(current_dir)
-        .join("video_compositor.app")
-        .display()
-        .to_string();
+    let main_bundle_path = PathBuf::from(current_dir).join("video_compositor.app");
 
-    let browser_subprocess_path = PathBuf::from(&main_bundle_path)
+    let browser_subprocess_path = main_bundle_path
         .join("Contents")
         .join("Frameworks")
         .join("video_compositor Helper.app")
         .join("Contents")
         .join("MacOS")
-        .join("video_compositor Helper")
-        .display()
-        .to_string();
+        .join("video_compositor Helper");
 
     (
-        CefString::new_raw(main_bundle_path),
-        CefString::new_raw(browser_subprocess_path),
+        CefString::new_raw(main_bundle_path.display().to_string()),
+        CefString::new_raw(browser_subprocess_path.display().to_string()),
     )
 }

@@ -22,9 +22,9 @@ Currently we do not have a CI to build for Apple silicon, so for now compositor 
 - Follow instructions above for other platforms to create new GitHub release. 
 - To build and upload binaries for existing release run bellow command on an Apple silicon device.
   ```bash
-  RELEASE_TAG={VERSION} cargo run --bin package_for_release --features standalone
+  RELEASE_TAG={VERSION} cargo run --bin package_for_release
   ```
   e.g.
   ```bash
-  RELEASE_TAG=v1.2.3 cargo run --bin package_for_release --features standalone
+  RELEASE_TAG=v1.2.3 cargo run --bin package_for_release
   ```

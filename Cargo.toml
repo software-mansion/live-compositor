@@ -14,10 +14,6 @@ members = [
 ]
 resolver = "2"
 
-[features]
-default = []
-standalone = ["compositor_chromium/standalone"]
-
 [workspace.dependencies]
 bytes = "1.4.0"
 env_logger = "0.10.0"
