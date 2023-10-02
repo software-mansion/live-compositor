@@ -1,4 +1,5 @@
 use std::env;
+use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
 
@@ -49,7 +50,7 @@ fn bundle_app(target: &'static str, output_name: &'static str) -> Result<()> {
     let root_dir_str = env!("CARGO_MANIFEST_DIR");
     let root_dir: PathBuf = root_dir_str.into();
     let build_dir = root_dir.join(format!("target/{target}/release"));
-    let tmp_dir = root_dir.join("video_compositor.app");
+    let tmp_dir = root_dir.join("video_compositor");
 
     info!("Build main_process binary.");
     utils::cargo_build("main_process", target)?;
@@ -57,17 +58,16 @@ fn bundle_app(target: &'static str, output_name: &'static str) -> Result<()> {
     utils::cargo_build("process_helper", target)?;
 
     info!("Create macOS bundle.");
-    cef::bundle_app(&build_dir, &tmp_dir)?;
+    cef::bundle_app(&build_dir, &tmp_dir.join("video_compositor.app"))?;
+
+    fs::copy(
+        build_dir.join("main_process"),
+        tmp_dir.join("video_compositor"),
+    )?;
 
     info!("Create tar.gz archive.");
     let exit_code = Command::new("tar")
-        .args([
-            "-C",
-            root_dir_str,
-            "-czvf",
-            output_name,
-            "video_compositor.app",
-        ])
+        .args(["-C", root_dir_str, "-czvf", output_name, "video_compositor"])
         .spawn()?
         .wait()?
         .code();

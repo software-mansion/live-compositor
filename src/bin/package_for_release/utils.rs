@@ -6,8 +6,6 @@ pub fn cargo_build(bin: &'static str, target: &'static str) -> Result<()> {
     let args = vec![
         "build",
         "--release",
-        "--features",
-        "standalone",
         "--target",
         target,
         "--locked",
