@@ -104,7 +104,6 @@ fn start_example_client_code() -> Result<()> {
     }))?;
 
     info!("[example] Register web renderer transform");
-
     common::post(&json!({
         "type": "register",
         "entity_type": "web_renderer",

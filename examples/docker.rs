@@ -66,8 +66,6 @@ fn build_and_start_docker(skip_build: bool) -> Result<()> {
             "-it",
             "--device",
             "/dev/dri", // expose gpu to container
-            "--cap-add",
-            "SYS_ADMIN", // or enable suid based namespacing
             "-p",
             "8004:8004/udp",
             "-p",
