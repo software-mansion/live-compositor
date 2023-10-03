@@ -19,24 +19,6 @@ pub fn bundle_macos_app() -> Result<()> {
         bundle_app(INTEL_MAC_TARGET, INTEL_OUTPUT_FILE)?;
     } else if cfg!(target_arch = "aarch64") {
         bundle_app(ARM_MAC_TARGET, ARM_OUTPUT_FILE)?;
-        // We do not have CI with M1 yet, so this will be built locally for now.
-        let release_tag = env::var("RELEASE_TAG")?;
-        let root_dir_str = env!("CARGO_MANIFEST_DIR");
-        let root_dir: PathBuf = root_dir_str.into();
-        let upload_path = root_dir.join(ARM_OUTPUT_FILE);
-        let exit_code = Command::new("gh")
-            .args([
-                "release",
-                "upload",
-                &release_tag,
-                &upload_path.display().to_string(),
-            ])
-            .spawn()?
-            .wait()?
-            .code();
-        if exit_code != Some(0) {
-            return Err(anyhow!("Command gh failed with exit code {:?}", exit_code));
-        }
     } else {
         panic!("Unknown architecture")
     }
