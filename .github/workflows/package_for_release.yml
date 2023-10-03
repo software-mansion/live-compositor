@@ -25,7 +25,7 @@ jobs:
                 name: video_compositor_linux_x86_64.tar.gz
                 path: video_compositor_linux_x86_64.tar.gz
 
-    macos:
+    macos_x86_64:
         runs-on: macos-latest
         steps:
             - name: 🛠 Install system dependencies
@@ -44,3 +44,23 @@ jobs:
               with:
                 name: video_compositor_darwin_x86_64.tar.gz
                 path: video_compositor_darwin_x86_64.tar.gz
+
+    macos-aarch64:
+        runs-on: macos-latest-xlarge
+        steps:
+            - name: 🛠 Install system dependencies
+              run: brew install ffmpeg
+
+            - name: 🔧 Install the rust toolchain
+              uses: dtolnay/rust-toolchain@stable
+
+            - name: 📥 Checkout repo
+              uses: actions/checkout@v3
+
+            - name: 📦 Package
+              run: cargo run --bin package_for_release
+
+            - uses: actions/upload-artifact@v3
+              with:
+                name: video_compositor_darwin_aarch64.tar.gz
+                path: video_compositor_darwin_aarch64.tar.gz
