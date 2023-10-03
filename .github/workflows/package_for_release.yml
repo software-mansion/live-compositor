@@ -5,15 +5,12 @@ on:
 jobs:
     linux:
         runs-on: ubuntu-latest
-        container:
-            image: ubuntu:mantic-20230712
         steps:
             - name: 🛠 Install system dependencies
               run: |
-                  apt-get update -y -qq
-                  apt-get install -y libegl1-mesa-dev libgl1-mesa-dri libxcb-xfixes0-dev ffmpeg libavcodec-dev libavformat-dev libavfilter-dev libavdevice-dev
-                  # TMP until we need to build in docker container
-                  apt-get install -y curl build-essential curl pkg-config libssl-dev libclang-dev git libnss3 libatk1.0-0 libatk-bridge2.0-0 libgdk-pixbuf2.0-0 libgtk-3-0
+                  sudo add-apt-repository ppa:ubuntuhandbook1/ffmpeg6
+                  sudo apt-get update -y -qq
+                  sudo apt-get install -y libegl1-mesa-dev libgl1-mesa-dri libxcb-xfixes0-dev ffmpeg libavcodec-dev libavformat-dev libavfilter-dev libavdevice-dev
             - name: 🔧 Install the rust toolchain
               uses: dtolnay/rust-toolchain@stable
 
