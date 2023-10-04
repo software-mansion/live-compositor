@@ -147,6 +147,10 @@ impl<Input: PipelineInput, Output: PipelineOutput> Pipeline<Input, Output> {
             return Err(RegisterOutputError::AlreadyRegistered(output_id));
         }
 
+        if output_opts.resolution.height % 2 != 0 || output_opts.resolution.width % 2 != 0 {
+            return Err(RegisterOutputError::UnsupportedResolution(output_id));
+        }
+
         let output = Encoder::new(output_opts)
             .map_err(|e| RegisterOutputError::EncoderError(output_id.clone(), e))?;
 
