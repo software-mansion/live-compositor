@@ -27,6 +27,7 @@ RUN source ~/.cargo/env && rustup install $RUST_VERSION && rustup default $RUST_
 
 ENV DISPLAY=:99
 ENV XDG_RUNTIME_DIR=/home/$USERNAME/.cache/xdgr
+ENV NVIDIA_DRIVER_CAPABILITIES compute,graphics,utility
 
 COPY --chown=$USERNAME:$USERNAME . /home/$USERNAME/project
 WORKDIR /home/$USERNAME/project
