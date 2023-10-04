@@ -21,7 +21,7 @@ pub enum RegisterOutputError {
     #[error("Encoder error while registering output stream for stream \"{0}\".")]
     EncoderError(OutputId, #[source] OutputInitError),
 
-    #[error("Failed to register input stream \"{0}\". Resolution in each dimension has to be divisible by 2.")]
+    #[error("Failed to register output stream \"{0}\". Resolution in each dimension has to be divisible by 2.")]
     UnsupportedResolution(OutputId),
 }
 
