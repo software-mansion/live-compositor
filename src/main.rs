@@ -10,6 +10,7 @@ mod error;
 mod http;
 mod rtp_receiver;
 mod rtp_sender;
+mod types;
 
 fn main() {
     env_logger::init_from_env(

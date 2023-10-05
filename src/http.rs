@@ -197,12 +197,7 @@ impl Server {
     }
 
     fn parse_request(request: &mut tiny_http::Request) -> Result<Request, ApiError> {
-        serde_json::from_reader::<_, Request>(request.as_reader()).map_err(|err| {
-            ApiError::new(
-                "MALFORMED_REQUEST",
-                format!("Received malformed request:\n{err}"),
-                StatusCode(400),
-            )
-        })
+        serde_json::from_reader::<_, Request>(request.as_reader())
+            .map_err(|err| ApiError::malformed_request(&err))
     }
 }
