@@ -137,7 +137,7 @@ impl InternalQueue {
     ) {
         self.inputs_listeners
             .entry(input_id)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(callback)
     }
 
