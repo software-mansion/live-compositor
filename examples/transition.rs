@@ -169,14 +169,15 @@ fn start_example_client_code() -> Result<()> {
                         {
                             "right": "0px",
                             "bottom": "0px",
+                            "scale": 2.0,
                             "rotation": 180,
                         },
                     ],
                     "background_color_rgba": "#0000FF00",
                     "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
                 },
-                "interpolation": "spring",
-                "transition_duration_ms": 10_000,
+                "interpolation": "linear",
+                "transition_duration_ms": 3_000,
                 "input_pads": ["shader_1"],
             }
         ],
