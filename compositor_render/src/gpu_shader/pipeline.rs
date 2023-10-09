@@ -109,7 +109,7 @@ impl Pipeline {
         clear_color: Option<wgpu::Color>,
     ) {
         let mut encoder = ctx.device.create_command_encoder(&Default::default());
-        let clear_color = clear_color.unwrap_or(wgpu::Color::BLACK);
+        let clear_color = clear_color.unwrap_or(wgpu::Color::TRANSPARENT);
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: None,
