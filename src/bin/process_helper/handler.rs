@@ -1,5 +1,5 @@
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use anyhow::{anyhow, Result};
 use compositor_chromium::cef;
@@ -9,7 +9,7 @@ use log::{debug, error};
 use crate::state::{FrameInfo, State};
 
 pub struct RenderProcessHandler {
-    state: Arc<State>,
+    state: Arc<Mutex<State>>,
 }
 
 impl cef::RenderProcessHandler for RenderProcessHandler {
@@ -35,6 +35,7 @@ impl cef::RenderProcessHandler for RenderProcessHandler {
         _source_process: cef::ProcessId,
         message: &cef::ProcessMessage,
     ) -> bool {
+        const IS_HANDLED: bool = true;
         let result = match message.name().as_str() {
             EMBED_SOURCE_FRAMES_MESSAGE => self.embed_sources(message, frame),
             UNEMBED_SOURCE_FRAMES_MESSAGE => self.unembed_source(message, frame),
@@ -45,12 +46,12 @@ impl cef::RenderProcessHandler for RenderProcessHandler {
             error!("Error occurred while processing IPC message: {err}");
         }
 
-        true
+        IS_HANDLED
     }
 }
 
 impl RenderProcessHandler {
-    pub fn new(state: Arc<State>) -> Self {
+    pub fn new(state: Arc<Mutex<State>>) -> Self {
         Self { state }
     }
 
@@ -107,9 +108,10 @@ impl RenderProcessHandler {
         global: &mut cef::V8Global,
         ctx_entered: &cef::V8ContextEntered,
     ) -> Result<()> {
-        let source = match self.state.source(&frame_info.shmem_path) {
+        let mut state = self.state.lock().unwrap();
+        let source = match state.source(&frame_info.shmem_path) {
             Some(source) => source,
-            None => self.state.create_source(frame_info, ctx_entered)?,
+            None => state.create_source(frame_info, ctx_entered)?,
         };
 
         global.call_method(
@@ -127,11 +129,12 @@ impl RenderProcessHandler {
     }
 
     fn unembed_source(&self, msg: &cef::ProcessMessage, surface: &cef::Frame) -> Result<()> {
+        let mut state = self.state.lock().unwrap();
         let Some(shmem_path) = msg.read_string(0) else {
             return Err(anyhow!("Failed to read node ID"));
         };
         let shmem_path = PathBuf::from(shmem_path);
-        let Some(source) = self.state.source(&shmem_path) else {
+        let Some(source) = state.source(&shmem_path) else {
             debug!("Source {shmem_path:?} not found");
             return Ok(());
         };
@@ -139,10 +142,10 @@ impl RenderProcessHandler {
         let ctx = surface.v8_context()?;
         let ctx_entered = ctx.enter()?;
 
-        let source_id = self.state.input_name(source.source_index)?;
+        let source_id = state.input_name(source.source_index)?;
         let mut global = ctx.global()?;
         global.delete(&source_id, &ctx_entered)?;
-        self.state.remove_source(&shmem_path);
+        state.remove_source(&shmem_path);
 
         Ok(())
     }
@@ -170,6 +173,7 @@ impl RenderProcessHandler {
                 input_mappings.push(element_id);
             }
 
+            let mut state = state.lock().unwrap();
             state.set_input_mappings(input_mappings);
             Ok(cef::V8Undefined::new().into())
         });

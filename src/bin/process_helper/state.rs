@@ -1,35 +1,33 @@
 use anyhow::{Context, Result};
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::{collections::HashMap, sync::Mutex};
 
 use compositor_chromium::cef;
 use shared_memory::{Shmem, ShmemConf};
 
 pub struct State {
-    input_mappings: Mutex<Vec<Arc<str>>>,
-    sources: Mutex<HashMap<PathBuf, Arc<Source>>>,
+    input_mappings: Vec<Arc<str>>,
+    sources: HashMap<PathBuf, Arc<Source>>,
 }
 
 impl State {
     pub fn new() -> Self {
         Self {
-            input_mappings: Mutex::new(Vec::new()),
-            sources: Mutex::new(HashMap::new()),
+            input_mappings: Vec::new(),
+            sources: HashMap::new(),
         }
     }
 
     pub fn source(&self, key: &Path) -> Option<Arc<Source>> {
-        let sources = self.sources.lock().unwrap();
-        sources.get(key).cloned()
+        self.sources.get(key).cloned()
     }
 
     pub fn create_source(
-        &self,
+        &mut self,
         frame_info: FrameInfo,
         ctx_entered: &cef::V8ContextEntered,
     ) -> Result<Arc<Source>> {
-        let mut sources = self.sources.lock().unwrap();
         let source_id = self.input_name(frame_info.source_idx)?;
         let shmem = ShmemConf::new().flink(&frame_info.shmem_path).open()?;
         let data_ptr = shmem.as_ptr();
@@ -46,6 +44,7 @@ impl State {
         let width = cef::V8Uint::new(frame_info.width).into();
         let height = cef::V8Uint::new(frame_info.height).into();
 
+        // `Arc` is used instead of `Rc` because we can't make any guarantees that Chromium will run this code on a single thread.
         #[allow(clippy::arc_with_non_send_sync)]
         let source = Arc::new(Source {
             _shmem: shmem,
@@ -56,26 +55,21 @@ impl State {
             height,
         });
 
-        sources.insert(frame_info.shmem_path, source.clone());
+        self.sources.insert(frame_info.shmem_path, source.clone());
         Ok(source)
     }
 
-    pub fn remove_source(&self, key: &Path) {
-        let mut sources = self.sources.lock().unwrap();
-        sources.remove(key);
+    pub fn remove_source(&mut self, key: &Path) {
+        self.sources.remove(key);
     }
 
-    pub fn set_input_mappings(&self, new_input_mappings: Vec<Arc<str>>) {
-        let mut sources = self.sources.lock().unwrap();
-        sources.clear();
-
-        let mut input_mappings = self.input_mappings.lock().unwrap();
-        *input_mappings = new_input_mappings;
+    pub fn set_input_mappings(&mut self, new_input_mappings: Vec<Arc<str>>) {
+        self.sources.clear();
+        self.input_mappings = new_input_mappings;
     }
 
     pub fn input_name(&self, source_idx: usize) -> Result<Arc<str>> {
-        let input_mappings = self.input_mappings.lock().unwrap();
-        input_mappings.get(source_idx).cloned().with_context(|| {
+        self.input_mappings.get(source_idx).cloned().with_context(|| {
             format!("Could not retrieve input name. Expected registered input for index {source_idx}. Use register_inputs(\"input_name1\", ...)")
         })
     }
