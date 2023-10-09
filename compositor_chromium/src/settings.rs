@@ -1,6 +1,10 @@
-use std::{env, os::raw::c_int, path::PathBuf};
+use std::{env, os::raw::c_int};
+
+use chromium_sys::_cef_string_utf16_t;
 
 use crate::cef_string::CefString;
+
+pub const PROCESS_HELPER_PATH_ENV: &str = "MEMBRANE_VIDEO_COMPOSITOR_PROCESS_HELPER_PATH";
 
 /// Main process settings
 #[derive(Default)]
@@ -18,38 +22,14 @@ pub struct Settings {
 
 impl Settings {
     pub fn into_raw(self) -> chromium_sys::cef_settings_t {
-        let current_exe = env::current_exe().unwrap();
-        let current_dir = current_exe.parent().unwrap();
-
-        let main_bundle_path = if cfg!(target_os = "linux") {
-            String::new()
-        } else {
-            PathBuf::from(current_dir)
-                .join("video_compositor.app")
-                .display()
-                .to_string()
-        };
-
-        let browser_subprocess_path = if cfg!(target_os = "linux") {
-            current_dir.join("process_helper").display().to_string()
-        } else {
-            PathBuf::from(&main_bundle_path)
-                .join("Contents")
-                .join("Frameworks")
-                .join("video_compositor Helper.app")
-                .join("Contents")
-                .join("MacOS")
-                .join("video_compositor Helper")
-                .display()
-                .to_string()
-        };
+        let (main_path, helper_path) = executables_paths();
 
         chromium_sys::cef_settings_t {
             size: std::mem::size_of::<chromium_sys::cef_settings_t>(),
             no_sandbox: true as c_int,
-            browser_subprocess_path: CefString::new_raw(browser_subprocess_path),
+            browser_subprocess_path: helper_path,
             framework_dir_path: CefString::empty_raw(),
-            main_bundle_path: CefString::new_raw(main_bundle_path),
+            main_bundle_path: main_path,
             chrome_runtime: false as c_int,
             multi_threaded_message_loop: self.multi_threaded_message_loop as c_int,
             external_message_pump: self.external_message_pump as c_int,
@@ -64,6 +44,7 @@ impl Settings {
             locale: CefString::empty_raw(),
             log_file: CefString::empty_raw(),
             log_severity: self.log_severity as u32,
+            #[cfg(not(all(target_os = "macos", target_arch = "x86_64")))]
             log_items: chromium_sys::cef_log_items_t_LOG_ITEMS_DEFAULT,
             javascript_flags: CefString::empty_raw(),
             resources_dir_path: CefString::empty_raw(),
@@ -94,4 +75,41 @@ impl Default for LogSeverity {
     fn default() -> Self {
         Self::Default
     }
+}
+
+#[cfg(target_os = "linux")]
+fn executables_paths() -> (_cef_string_utf16_t, _cef_string_utf16_t) {
+    let browser_subprocess_path = env::var(PROCESS_HELPER_PATH_ENV).unwrap_or_else(|_| {
+        let current_exe = env::current_exe().unwrap();
+        let current_dir = current_exe.parent().unwrap();
+        current_dir.join("process_helper").display().to_string()
+    });
+
+    (
+        CefString::empty_raw(),
+        CefString::new_raw(browser_subprocess_path),
+    )
+}
+
+#[cfg(target_os = "macos")]
+fn executables_paths() -> (_cef_string_utf16_t, _cef_string_utf16_t) {
+    use std::path::PathBuf;
+
+    let current_exe = env::current_exe().unwrap();
+    let current_dir = current_exe.parent().unwrap();
+
+    let main_bundle_path = PathBuf::from(current_dir).join("video_compositor.app");
+
+    let browser_subprocess_path = main_bundle_path
+        .join("Contents")
+        .join("Frameworks")
+        .join("video_compositor Helper.app")
+        .join("Contents")
+        .join("MacOS")
+        .join("video_compositor Helper");
+
+    (
+        CefString::new_raw(main_bundle_path.display().to_string()),
+        CefString::new_raw(browser_subprocess_path.display().to_string()),
+    )
 }

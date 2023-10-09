@@ -39,8 +39,8 @@ fn new_box_layout(
 
     BoxLayout {
         top_left_corner: (left, top),
-        width: input_resolution.width as f32,
-        height: input_resolution.height as f32,
+        width: input_resolution.width as f32 * layout.scale,
+        height: input_resolution.height as f32 * layout.scale,
         rotation_degrees: layout.rotation.0 as f32,
     }
 }
@@ -57,7 +57,7 @@ fn spec_to_top_left_coords(
             ..
         } => {
             output_resolution.height as i32
-                - input_resolution.height as i32
+                - (input_resolution.height as f32 * layout.scale) as i32
                 - bottom.pixels(output_resolution.height as u32)
         }
         _ => {
@@ -73,7 +73,7 @@ fn spec_to_top_left_coords(
             right: Some(right), ..
         } => {
             output_resolution.width as i32
-                - input_resolution.width as i32
+                - (input_resolution.width as f32 * layout.scale) as i32
                 - right.pixels(output_resolution.width as u32)
         }
         _ => {
