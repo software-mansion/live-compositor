@@ -157,7 +157,7 @@ impl NodeTexture {
                 OptionalState::Some(new_inner)
             }
         };
-        self.0.state().unwrap().clone()
+        self.0.state().unwrap()
     }
 
     pub fn state(&self) -> Option<&NodeTextureState> {
