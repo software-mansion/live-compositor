@@ -1,18 +1,33 @@
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
+use anyhow::{anyhow, Result};
 use compositor_chromium::cef;
 use compositor_render::{EMBED_SOURCE_FRAMES_MESSAGE, UNEMBED_SOURCE_FRAMES_MESSAGE};
-use log::{error, warn};
-use shared_memory::ShmemConf;
+use log::{debug, error};
 
-use crate::state::{FrameInfo, Source, State};
+use crate::state::{FrameInfo, State};
 
 pub struct RenderProcessHandler {
-    state: Arc<State>,
+    state: Arc<Mutex<State>>,
 }
 
 impl cef::RenderProcessHandler for RenderProcessHandler {
+    fn on_context_created(
+        &mut self,
+        _browser: &cef::Browser,
+        _frame: &cef::Frame,
+        context: &cef::V8Context,
+    ) {
+        let mut global = context.global().unwrap();
+        let ctx_entered = context.enter().unwrap();
+
+        context.eval(include_str!("render_frame.js")).unwrap();
+        if let Err(err) = self.register_native_funcs(&mut global, &ctx_entered) {
+            error!("Failed to register native functions for V8Context: {err}");
+        }
+    }
+
     fn on_process_message_received(
         &mut self,
         _browser: &cef::Browser,
@@ -20,143 +35,156 @@ impl cef::RenderProcessHandler for RenderProcessHandler {
         _source_process: cef::ProcessId,
         message: &cef::ProcessMessage,
     ) -> bool {
-        match message.name().as_str() {
-            EMBED_SOURCE_FRAMES_MESSAGE => self.handle_embed_sources(message, frame),
-            UNEMBED_SOURCE_FRAMES_MESSAGE => self.handle_unembed_source(message, frame),
-            name => error!("Unknown message type: {name}"),
+        const IS_HANDLED: bool = true;
+        let result = match message.name().as_str() {
+            EMBED_SOURCE_FRAMES_MESSAGE => self.embed_sources(message, frame),
+            UNEMBED_SOURCE_FRAMES_MESSAGE => self.unembed_source(message, frame),
+            name => Err(anyhow!("Unknown message type: {name}")),
+        };
+
+        if let Err(err) = result {
+            error!("Error occurred while processing IPC message: {err}");
         }
-        false
+
+        IS_HANDLED
     }
 }
 
 impl RenderProcessHandler {
-    pub fn new(state: Arc<State>) -> Self {
+    pub fn new(state: Arc<Mutex<State>>) -> Self {
         Self { state }
     }
 
-    fn handle_embed_sources(&self, msg: &cef::ProcessMessage, surface: &cef::Frame) {
-        let ctx = surface.v8_context().unwrap();
-        let ctx_entered = ctx.enter().unwrap();
-        let mut global = ctx.global().unwrap();
+    fn embed_sources(&self, msg: &cef::ProcessMessage, surface: &cef::Frame) -> Result<()> {
+        let ctx = surface.v8_context()?;
+        let ctx_entered = ctx.enter()?;
+        let mut global = ctx.global()?;
 
         const MSG_SIZE: usize = 3;
         for i in (0..msg.size()).step_by(3) {
             let source_idx = i / MSG_SIZE;
 
             let Some(shmem_path) = msg.read_string(i) else {
-                error!("Failed to read shared memory path at {i}");
-                continue;
+                return Err(anyhow!("Failed to read shared memory path at {i}"));
             };
             let shmem_path = PathBuf::from(shmem_path);
 
             let Some(width) = msg.read_int(i + 1) else {
-                error!("Failed to read width of input {} at {}", source_idx, i + 1);
-                continue;
+                return Err(anyhow!(
+                    "Failed to read width of input {} at {}",
+                    source_idx,
+                    i + 1
+                ));
             };
 
             let Some(height) = msg.read_int(i + 2) else {
-                error!("Failed to read height of input {} at {}", source_idx, i + 2);
-                continue;
+                return Err(anyhow!(
+                    "Failed to read height of input {} at {}",
+                    source_idx,
+                    i + 2
+                ));
             };
 
             if width == 0 && height == 0 {
                 continue;
             }
 
-            if !self.state.contains_source(&shmem_path) {
-                let frame_info = FrameInfo {
-                    source_idx,
-                    width: width as u32,
-                    height: height as u32,
-                    shmem_path,
-                };
+            let frame_info = FrameInfo {
+                source_idx,
+                width: width as u32,
+                height: height as u32,
+                shmem_path,
+            };
 
-                self.embed_frame(frame_info, &mut global, &ctx_entered);
-            }
+            self.render_frame(frame_info, &mut global, &ctx_entered)?;
         }
+
+        Ok(())
     }
 
-    fn embed_frame(
+    fn render_frame(
         &self,
         frame_info: FrameInfo,
         global: &mut cef::V8Global,
         ctx_entered: &cef::V8ContextEntered,
-    ) {
-        let shmem = ShmemConf::new()
-            .flink(&frame_info.shmem_path)
-            .open()
-            .unwrap();
-        let data_ptr = shmem.as_ptr();
+    ) -> Result<()> {
+        let mut state = self.state.lock().unwrap();
+        let source = match state.source(&frame_info.shmem_path) {
+            Some(source) => source,
+            None => state.create_source(frame_info, ctx_entered)?,
+        };
 
-        let array_buffer: cef::V8Value = unsafe {
-            cef::V8ArrayBuffer::from_ptr(
-                data_ptr,
-                (4 * frame_info.width * frame_info.height) as usize,
-                ctx_entered,
-            )
-        }
-        .into();
+        global.call_method(
+            "renderFrame",
+            &[
+                &source.source_id,
+                &source.array_buffer,
+                &source.width,
+                &source.height,
+            ],
+            ctx_entered,
+        )?;
 
-        // TODO: Figure out emedding API
-        // NOTE TO REVIEWERS: The section below is not part of this PR
-        // Currently we pass frame data, width and height to JS context.
-        // User has to handle this data manually. This approach is not really ergonomic and elegant
-        global
-            .set(
-                &format!("input_{}_data", frame_info.source_idx),
-                &array_buffer,
-                cef::V8PropertyAttribute::DoNotDelete,
-                ctx_entered,
-            )
-            .unwrap();
-
-        global
-            .set(
-                &format!("input_{}_width", frame_info.source_idx),
-                &cef::V8Uint::new(frame_info.width).into(),
-                cef::V8PropertyAttribute::DoNotDelete,
-                ctx_entered,
-            )
-            .unwrap();
-
-        global
-            .set(
-                &format!("input_{}_height", frame_info.source_idx),
-                &cef::V8Uint::new(frame_info.height).into(),
-                cef::V8PropertyAttribute::DoNotDelete,
-                ctx_entered,
-            )
-            .unwrap();
-        // ------
-
-        self.state.insert_source(
-            frame_info.shmem_path.clone(),
-            Source {
-                _shmem: shmem,
-                _array_buffer: array_buffer,
-                info: frame_info,
-            },
-        );
+        Ok(())
     }
 
-    fn handle_unembed_source(&self, msg: &cef::ProcessMessage, surface: &cef::Frame) {
+    fn unembed_source(&self, msg: &cef::ProcessMessage, surface: &cef::Frame) -> Result<()> {
+        let mut state = self.state.lock().unwrap();
         let Some(shmem_path) = msg.read_string(0) else {
-            error!("Failed to read node ID");
-            return;
+            return Err(anyhow!("Failed to read node ID"));
         };
         let shmem_path = PathBuf::from(shmem_path);
-        let Some(source_idx) = self.state.source_index(&shmem_path) else {
-            warn!("Source {shmem_path:?} not found");
-            return;
+        let Some(source) = state.source(&shmem_path) else {
+            debug!("Source {shmem_path:?} not found");
+            return Ok(());
         };
-        let ctx = surface.v8_context().unwrap();
-        let ctx_entered = ctx.enter().unwrap();
 
-        // NOTE: This will change once embedding API is finished
-        let source_id = format!("input_{}_data", source_idx);
-        let mut global = ctx.global().unwrap();
-        global.delete(&source_id, &ctx_entered).unwrap();
+        let ctx = surface.v8_context()?;
+        let ctx_entered = ctx.enter()?;
 
-        self.state.remove_source(&shmem_path);
+        let source_id = state.input_name(source.source_index)?;
+        let mut global = ctx.global()?;
+        global.delete(&source_id, &ctx_entered)?;
+        state.remove_source(&shmem_path);
+
+        Ok(())
+    }
+
+    pub fn register_native_funcs(
+        &self,
+        global: &mut cef::V8Global,
+        ctx_entered: &cef::V8ContextEntered,
+    ) -> Result<()> {
+        let state = self.state.clone();
+        let func = cef::V8Function::new("register_inputs", move |args| {
+            let mut input_mappings = Vec::new();
+            for arg in args {
+                let cef::V8Value::String(element_id) = arg else {
+                    return Err("Expected string value".into());
+                };
+                let element_id = element_id.get().unwrap().into();
+                if input_mappings.contains(&element_id) {
+                    return Err(format!(
+                        "\"{element_id}\" already exists in the provided input mappings"
+                    )
+                    .into());
+                }
+
+                input_mappings.push(element_id);
+            }
+
+            let mut state = state.lock().unwrap();
+            state.set_input_mappings(input_mappings);
+            Ok(cef::V8Undefined::new().into())
+        });
+
+        global.set(
+            "register_inputs",
+            &cef::V8Value::from(func),
+            cef::V8PropertyAttribute::None,
+            ctx_entered,
+        )?;
+
+        Ok(())
     }
 }

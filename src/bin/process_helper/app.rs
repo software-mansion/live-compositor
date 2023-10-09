@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use compositor_chromium::cef;
 use log::info;
@@ -7,7 +7,7 @@ use crate::{handler::RenderProcessHandler, state::State};
 
 pub struct App {
     // `Arc` is used instead of `Rc` because we are not sure what CEF does underneath
-    state: Arc<State>,
+    state: Arc<Mutex<State>>,
 }
 
 impl cef::App for App {
@@ -30,7 +30,7 @@ impl App {
     #[allow(clippy::arc_with_non_send_sync)]
     pub fn new() -> Self {
         Self {
-            state: Arc::new(State::new()),
+            state: Arc::new(Mutex::new(State::new())),
         }
     }
 }
