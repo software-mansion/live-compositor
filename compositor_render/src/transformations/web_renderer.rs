@@ -23,8 +23,8 @@ mod chromium_sender_thread;
 pub(crate) mod node;
 mod shared_memory;
 
-pub const EMBED_SOURCE_FRAMES_MESSAGE: &str = "EMBED_SOURCE_FRAMES";
-pub const UNEMBED_SOURCE_FRAMES_MESSAGE: &str = "UNEMBED_SOURCE_FRAMES";
+pub const EMBED_SOURCES_MESSAGE: &str = "EMBED_SOURCE_FRAMES";
+pub const UNEMBED_SOURCE_MESSAGE: &str = "UNEMBED_SOURCE_FRAME";
 
 #[derive(Serialize, Deserialize)]
 #[serde(default)]

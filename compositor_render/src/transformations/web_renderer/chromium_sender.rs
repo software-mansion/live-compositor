@@ -16,17 +16,12 @@ pub(super) struct ChromiumSender {
 
 impl ChromiumSender {
     pub fn new(ctx: &RegisterCtx, url: String, browser_client: BrowserClient) -> Self {
-        let (message_sender, message_receiver) = crossbeam_channel::unbounded();
         let (unmap_signal_sender, unmap_signal_receiver) = crossbeam_channel::bounded(0);
+        let chromium_thread =
+            ChromiumSenderThread::new(ctx, url, browser_client, unmap_signal_sender);
+        let message_sender = chromium_thread.sender();
 
-        ChromiumSenderThread::new(
-            ctx,
-            url,
-            browser_client,
-            message_receiver,
-            unmap_signal_sender,
-        )
-        .spawn();
+        chromium_thread.spawn();
 
         Self {
             message_sender,
@@ -48,15 +43,17 @@ impl ChromiumSender {
     }
 
     pub fn ensure_shared_memory(&self, node_id: NodeId, sources: &[(&NodeId, &NodeTexture)]) {
-        let resolutions = sources
+        let sizes = sources
             .iter()
-            .map(|(_, texture)| texture.resolution())
+            .map(|(_, texture)| {
+                texture
+                    .resolution()
+                    .map(|res| 4 * res.width * res.height)
+                    .unwrap_or_default()
+            })
             .collect();
         self.message_sender
-            .send(ChromiumSenderMessage::EnsureSharedMemory {
-                node_id,
-                resolutions,
-            })
+            .send(ChromiumSenderMessage::EnsureSharedMemory { node_id, sizes })
             .unwrap();
     }
 
@@ -90,9 +87,13 @@ pub(super) enum ChromiumSenderMessage {
     },
     EnsureSharedMemory {
         node_id: NodeId,
-        resolutions: Vec<Option<Resolution>>,
+        sizes: Vec<usize>,
     },
     UpdateSharedMemory(UpdateSharedMemoryInfo),
+    ResolveSharedMemoryResize {
+        node_id: NodeId,
+        source_idx: usize,
+    },
 }
 
 pub(super) struct UpdateSharedMemoryInfo {

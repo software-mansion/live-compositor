@@ -3,13 +3,16 @@ use std::sync::{Arc, Mutex};
 use bytes::Bytes;
 use compositor_chromium::cef;
 use compositor_common::scene::{NodeId, Resolution};
-use crossbeam_channel::bounded;
+use crossbeam_channel::{bounded, Sender};
 use log::error;
 use shared_memory::ShmemError;
 
-use crate::renderer::{texture::NodeTexture, RegisterCtx, RenderCtx};
+use crate::{
+    renderer::{texture::NodeTexture, RegisterCtx, RenderCtx},
+    UNEMBED_SOURCE_MESSAGE,
+};
 
-use super::chromium_sender::ChromiumSender;
+use super::chromium_sender::{ChromiumSender, ChromiumSenderMessage};
 
 pub(super) struct BrowserController {
     chromium_sender: ChromiumSender,
@@ -127,6 +130,7 @@ impl BrowserController {
 pub(super) struct BrowserClient {
     frame_data: Arc<Mutex<Bytes>>,
     resolution: Resolution,
+    chromium_thread_sender: Option<Sender<ChromiumSenderMessage>>,
 }
 
 impl cef::Client for BrowserClient {
@@ -135,6 +139,22 @@ impl cef::Client for BrowserClient {
     fn render_handler(&self) -> Option<Self::RenderHandlerType> {
         Some(RenderHandler::new(self.frame_data.clone(), self.resolution))
     }
+
+    fn on_process_message_received(
+        &mut self,
+        _browser: &cef::Browser,
+        _frame: &cef::Frame,
+        _source_process: cef::ProcessId,
+        message: &cef::ProcessMessage,
+    ) -> bool {
+        match message.name().as_str() {
+            UNEMBED_SOURCE_MESSAGE => self.resolve_shared_memory_resize(message),
+            ty => error!("Unknown process message type \"{ty}\""),
+        }
+
+        // Message handled
+        true
+    }
 }
 
 impl BrowserClient {
@@ -142,6 +162,31 @@ impl BrowserClient {
         Self {
             frame_data,
             resolution,
+            chromium_thread_sender: None,
+        }
+    }
+
+    pub fn set_chromium_thread_sender(&mut self, sender: Sender<ChromiumSenderMessage>) {
+        self.chromium_thread_sender.replace(sender);
+    }
+
+    fn resolve_shared_memory_resize(&mut self, message: &cef::ProcessMessage) {
+        let Some(node_id) = message.read_string(0) else {
+            error!("Failed to read node_id");
+            return;
+        };
+        let Some(source_idx) = message.read_int(1) else {
+            error!("Failed to read source index of shared memory");
+            return;
+        };
+
+        if let Some(chromium_sender) = &self.chromium_thread_sender {
+            chromium_sender
+                .send(ChromiumSenderMessage::ResolveSharedMemoryResize {
+                    node_id: NodeId(node_id.into()),
+                    source_idx: source_idx as usize,
+                })
+                .unwrap();
         }
     }
 }

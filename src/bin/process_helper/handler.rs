@@ -3,8 +3,8 @@ use std::sync::{Arc, Mutex};
 
 use anyhow::{anyhow, Result};
 use compositor_chromium::cef;
-use compositor_render::{EMBED_SOURCE_FRAMES_MESSAGE, UNEMBED_SOURCE_FRAMES_MESSAGE};
-use log::{debug, error};
+use compositor_render::{EMBED_SOURCES_MESSAGE, UNEMBED_SOURCE_MESSAGE};
+use log::error;
 
 use crate::state::{FrameInfo, State};
 
@@ -37,8 +37,8 @@ impl cef::RenderProcessHandler for RenderProcessHandler {
     ) -> bool {
         const IS_HANDLED: bool = true;
         let result = match message.name().as_str() {
-            EMBED_SOURCE_FRAMES_MESSAGE => self.embed_sources(message, frame),
-            UNEMBED_SOURCE_FRAMES_MESSAGE => self.unembed_source(message, frame),
+            EMBED_SOURCES_MESSAGE => self.embed_sources(message, frame),
+            UNEMBED_SOURCE_MESSAGE => self.unembed_source(message, frame),
             name => Err(anyhow!("Unknown message type: {name}")),
         };
 
@@ -129,23 +129,31 @@ impl RenderProcessHandler {
     }
 
     fn unembed_source(&self, msg: &cef::ProcessMessage, surface: &cef::Frame) -> Result<()> {
-        let mut state = self.state.lock().unwrap();
         let Some(shmem_path) = msg.read_string(0) else {
-            return Err(anyhow!("Failed to read node ID"));
+            return Err(anyhow!("Failed to read shared memory path"));
         };
+        let Some(node_id) = msg.read_string(1) else {
+            return Err(anyhow!("Failed to read shared memory node ID"));
+        };
+        let Some(source_idx) = msg.read_int(2) else {
+            return Err(anyhow!("Failed to read shared memory source index"));
+        };
+
+        let mut state = self.state.lock().unwrap();
         let shmem_path = PathBuf::from(shmem_path);
-        let Some(source) = state.source(&shmem_path) else {
-            debug!("Source {shmem_path:?} not found");
-            return Ok(());
-        };
+        if let Ok(input_name) = state.input_name(source_idx as usize) {
+            let ctx = surface.v8_context()?;
+            let ctx_entered = ctx.enter()?;
+            let mut global = ctx.global()?;
 
-        let ctx = surface.v8_context()?;
-        let ctx_entered = ctx.enter()?;
+            global.delete(&input_name, &ctx_entered)?;
+            state.remove_source(&shmem_path);
+        }
 
-        let source_id = state.input_name(source.source_index)?;
-        let mut global = ctx.global()?;
-        global.delete(&source_id, &ctx_entered)?;
-        state.remove_source(&shmem_path);
+        let mut response = cef::ProcessMessage::new(UNEMBED_SOURCE_MESSAGE);
+        response.write_string(0, node_id);
+        response.write_int(1, source_idx);
+        surface.send_process_message(cef::ProcessId::Browser, response)?;
 
         Ok(())
     }
