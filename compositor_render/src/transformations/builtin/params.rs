@@ -11,7 +11,7 @@ use self::{
     corners_rounding::CornersRoundingParams,
     fixed_position_layout::new_fixed_position_layout_params,
     mirror_image::MirrorModeExt,
-    tiled_layout::new_tailed_layout_params,
+    tiled_layout::new_tiled_layout_params,
     transform_to_resolution::{new_fit_to_resolution_params, FillParams},
 };
 
@@ -77,7 +77,7 @@ impl RenderParams {
                 RenderParams::BoxLayout(new_fixed_position_layout_params(spec, input_resolutions))
             }
             BuiltinSpec::TiledLayout(spec) => {
-                RenderParams::BoxLayout(new_tailed_layout_params(spec, input_resolutions))
+                RenderParams::BoxLayout(new_tiled_layout_params(spec, input_resolutions))
             }
             BuiltinSpec::MirrorImage { mode } => RenderParams::MirrorMode(*mode),
             BuiltinSpec::CornersRounding { border_radius } => RenderParams::CornersRounding(

@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 
 use crate::error::BuiltinSpecValidationError;
-use crate::scene::builtin_transformations::tailed_layout::TailedLayoutSpec;
+use crate::scene::builtin_transformations::tiled_layout::TiledLayoutSpec;
 use crate::scene::constraints::input_count::InputCountConstraint;
 use crate::util::align::HorizontalAlign;
 use crate::util::align::VerticalAlign;
@@ -17,7 +17,7 @@ use super::NodeSpec;
 use super::Resolution;
 
 pub(crate) mod fixed_postion_layout;
-pub mod tailed_layout;
+pub mod tiled_layout;
 
 pub use fixed_postion_layout::FixedPositionLayoutSpec;
 pub use fixed_postion_layout::TextureLayout;
@@ -34,7 +34,7 @@ pub enum BuiltinSpec {
         strategy: TransformToResolutionStrategy,
     },
     FixedPositionLayout(FixedPositionLayoutSpec),
-    TiledLayout(TailedLayoutSpec),
+    TiledLayout(TiledLayoutSpec),
     MirrorImage {
         #[serde(default)]
         mode: MirrorMode,
