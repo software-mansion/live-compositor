@@ -84,6 +84,7 @@ fn start_example_client_code() -> Result<()> {
                 "font_family": "Comic Sans MS",
                 "align": "center",
                 "wrap": "word",
+                "background_color_rgba": "#00800000",
                 "dimensions": {
                     "type": "fixed",
                     "width": 1920,

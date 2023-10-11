@@ -18,7 +18,10 @@ use wgpu::{
     RenderPassDescriptor, TextureFormat,
 };
 
-use crate::renderer::{texture::NodeTexture, RenderCtx};
+use crate::{
+    renderer::{texture::NodeTexture, RenderCtx},
+    utils::rgba_to_wgpu_color,
+};
 
 #[allow(dead_code)]
 pub struct TextParams {
@@ -69,6 +72,7 @@ impl Default for TextRendererCtx {
 pub struct TextRendererNode {
     buffer: Buffer,
     resolution: Resolution,
+    background_color: wgpu::Color,
     was_rendered: Mutex<bool>,
 }
 
@@ -77,11 +81,13 @@ impl TextRendererNode {
     pub fn new(renderer_ctx: &RenderCtx, text_spec: TextSpec) -> Self {
         let text_renderer_ctx = &renderer_ctx.text_renderer_ctx;
         let text_dimensions = text_spec.dimensions;
+        let background_color = rgba_to_wgpu_color(&text_spec.background_color_rgba);
         let (buffer, resolution) =
             Self::layout_text(text_renderer_ctx, text_spec.into(), text_dimensions);
         Self {
             buffer,
             resolution,
+            background_color,
             was_rendered: Mutex::new(false),
         }
     }
@@ -158,7 +164,7 @@ impl TextRendererNode {
                     view,
                     resolve_target: None,
                     ops: Operations {
-                        load: LoadOp::Clear(wgpu::Color::TRANSPARENT),
+                        load: LoadOp::Clear(self.background_color),
                         store: true,
                     },
                 })],
@@ -178,7 +184,6 @@ impl TextRendererNode {
         text_resolution: TextDimensions,
     ) -> (Buffer, Resolution) {
         let font_system = &mut text_renderer_ctx.font_system.lock().unwrap();
-
         let mut buffer = Buffer::new(
             font_system,
             Metrics::new(text_params.font_size, text_params.line_height),
@@ -190,7 +195,6 @@ impl TextRendererNode {
             text_params.attributes.as_attrs(),
             Shaping::Advanced,
         );
-
         buffer.set_wrap(font_system, text_params.wrap);
 
         match text_resolution {

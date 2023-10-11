@@ -81,6 +81,8 @@ pub struct TextSpec {
     pub align: HorizontalAlign,
     #[serde(default = "default_wrap")]
     pub wrap: Wrap,
+    #[serde(default)]
+    pub background_color_rgba: RGBAColor,
     pub dimensions: TextDimensions,
 }
 
