@@ -179,7 +179,6 @@ impl TextRendererNode {
         text_resolution: TextDimensions,
     ) -> (Buffer, Resolution) {
         let font_system = &mut text_renderer_ctx.font_system.lock().unwrap();
-
         let mut buffer = Buffer::new(
             font_system,
             Metrics::new(text_params.font_size, text_params.line_height),
@@ -191,7 +190,6 @@ impl TextRendererNode {
             text_params.attributes.as_attrs(),
             Shaping::Advanced,
         );
-
         buffer.set_wrap(font_system, text_params.wrap);
 
         let texture_size = match text_resolution {
@@ -204,16 +202,12 @@ impl TextRendererNode {
                 max_height,
             } => {
                 buffer.set_size(font_system, max_width as f32, max_height as f32);
-
                 buffer.shape_until_scroll(font_system);
-
                 Self::get_text_resolution(buffer.lines.iter(), text_params.line_height)
             }
             TextDimensions::FittedColumn { width, max_height } => {
                 buffer.set_size(font_system, width as f32, max_height as f32);
-
                 buffer.shape_until_scroll(font_system);
-
                 let text_size =
                     Self::get_text_resolution(buffer.lines.iter(), text_params.line_height);
 
@@ -229,11 +223,9 @@ impl TextRendererNode {
             texture_size.width as f32,
             texture_size.height as f32,
         );
-
         for line in &mut buffer.lines {
             line.set_align(Some(text_params.align));
         }
-
         buffer.shape_until_scroll(font_system);
 
         (buffer, texture_size)
