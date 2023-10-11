@@ -203,13 +203,20 @@ impl TextRendererNode {
             } => {
                 buffer.set_size(font_system, max_width as f32, max_height as f32);
                 buffer.shape_until_scroll(font_system);
-                Self::get_text_resolution(buffer.lines.iter(), text_params.line_height)
+                Self::get_text_resolution(
+                    buffer.lines.iter(),
+                    text_params.line_height,
+                    text_params.font_size,
+                )
             }
             TextDimensions::FittedColumn { width, max_height } => {
                 buffer.set_size(font_system, width as f32, max_height as f32);
                 buffer.shape_until_scroll(font_system);
-                let text_size =
-                    Self::get_text_resolution(buffer.lines.iter(), text_params.line_height);
+                let text_size = Self::get_text_resolution(
+                    buffer.lines.iter(),
+                    text_params.line_height,
+                    text_params.font_size,
+                );
 
                 Resolution {
                     width: width as usize,
@@ -234,6 +241,7 @@ impl TextRendererNode {
     fn get_text_resolution<'a, I: Iterator<Item = &'a glyphon::BufferLine>>(
         lines: I,
         line_height: f32,
+        font_size: f32,
     ) -> Resolution {
         let mut width = 0;
         let mut lines_count = 0u32;
@@ -242,15 +250,12 @@ impl TextRendererNode {
             if let Some(layout) = line.layout_opt() {
                 for layout_line in layout {
                     lines_count += 1;
-                    width = max(width, layout_line.w.ceil() as u32);
+                    width = max(width, layout_line.w.ceil() as usize);
                 }
             }
         }
 
-        let height = lines_count * line_height.ceil() as u32;
-        Resolution {
-            width: width as usize,
-            height: height as usize,
-        }
+        let height = (lines_count as f32 * line_height.ceil() + font_size / 4.0) as usize;
+        Resolution { width, height }
     }
 }
