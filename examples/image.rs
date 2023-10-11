@@ -278,25 +278,7 @@ fn start_example_client_code() -> Result<()> {
             {
                 "node_id": "layout",
                 "type": "built-in",
-                "transformation": "fixed_position_layout",
-                "texture_layouts": [
-                    {
-                        "left": "0px",
-                        "top": "0px"
-                    },
-                    {
-                        "left": "960px",
-                        "top": "540px"
-                    },
-                    {
-                        "left": "0px",
-                        "top": "540px"
-                    },
-                    {
-                        "left": "960px",
-                        "top": "0px",
-                    },
-                ],
+                "transformation": "tiled_layout",
                 "background_color_rgba": "#0000FF00",
                 "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
                 "input_pads": ["gif_1_layout", "png_1_layout", "jpeg_1_layout", "svg_1_layout"],
