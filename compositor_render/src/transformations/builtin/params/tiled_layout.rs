@@ -1,5 +1,5 @@
 use compositor_common::{
-    scene::{builtin_transformations::tailed_layout::TailedLayoutSpec, Resolution},
+    scene::{builtin_transformations::tiled_layout::TiledLayoutSpec, Resolution},
     util::align::{HorizontalAlign, VerticalAlign},
 };
 
@@ -20,8 +20,8 @@ impl RowsCols {
     }
 }
 
-pub fn new_tailed_layout_params(
-    spec: &TailedLayoutSpec,
+pub fn new_tiled_layout_params(
+    spec: &TiledLayoutSpec,
     input_resolutions: &[Option<Resolution>],
 ) -> BoxLayoutParams {
     let inputs = input_resolutions
@@ -60,7 +60,7 @@ fn layout_tiles(
     inputs_count: u32,
     rows_cols: &RowsCols,
     tile_size: Resolution,
-    spec: &TailedLayoutSpec,
+    spec: &TiledLayoutSpec,
 ) -> Vec<BoxLayout> {
     let mut layouts = Vec::with_capacity(inputs_count as usize);
 
@@ -130,7 +130,7 @@ fn layout_tiles(
     layouts
 }
 
-fn tile_size(rows_cols: &RowsCols, spec: &TailedLayoutSpec) -> Resolution {
+fn tile_size(rows_cols: &RowsCols, spec: &TiledLayoutSpec) -> Resolution {
     let x_padding = (rows_cols.cols * 2 * spec.padding) as f32;
     let y_padding = (rows_cols.rows * 2 * spec.padding) as f32;
     let x_margin = ((rows_cols.cols + 1) * spec.margin) as f32;
@@ -153,7 +153,7 @@ fn tile_size(rows_cols: &RowsCols, spec: &TailedLayoutSpec) -> Resolution {
 
 /// Optimize number of rows and cols to maximize space covered by tiles,
 /// preserving tile aspect_ratio
-fn optimize_inputs_layout(inputs_count: u32, spec: &TailedLayoutSpec) -> RowsCols {
+fn optimize_inputs_layout(inputs_count: u32, spec: &TiledLayoutSpec) -> RowsCols {
     let mut best_rows_cols = RowsCols::from_rows_count(inputs_count, 1);
     let mut best_tile_width = 0;
 

@@ -59,6 +59,7 @@ pub struct Pipeline<Input: PipelineInput, Output: PipelineOutput> {
     outputs: OutputRegistry<Encoder<Output>>,
     queue: Arc<Queue>,
     renderer: Renderer,
+    is_started: bool,
 }
 
 #[serde_as]
@@ -86,6 +87,7 @@ impl<Input: PipelineInput, Output: PipelineOutput> Pipeline<Input, Output> {
             inputs: HashMap::new(),
             queue: Arc::new(Queue::new(opts.framerate)),
             renderer,
+            is_started: false,
         };
 
         Ok((pipeline, event_loop))
@@ -145,6 +147,10 @@ impl<Input: PipelineInput, Output: PipelineOutput> Pipeline<Input, Output> {
             return Err(RegisterOutputError::AlreadyRegistered(output_id));
         }
 
+        if output_opts.resolution.height % 2 != 0 || output_opts.resolution.width % 2 != 0 {
+            return Err(RegisterOutputError::UnsupportedResolution(output_id));
+        }
+
         let output = Encoder::new(output_opts)
             .map_err(|e| RegisterOutputError::EncoderError(output_id.clone(), e))?;
 
@@ -197,7 +203,11 @@ impl<Input: PipelineInput, Output: PipelineOutput> Pipeline<Input, Output> {
         self.renderer.update_scene(scene_spec)
     }
 
-    pub fn start(&self) {
+    pub fn start(&mut self) {
+        if self.is_started {
+            error!("Pipeline already started.");
+            return;
+        }
         let (frames_sender, frames_receiver) = unbounded();
         let renderer = self.renderer.clone();
         let outputs = self.outputs.clone();

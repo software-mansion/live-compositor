@@ -11,6 +11,8 @@ pub struct TextureLayout {
     pub bottom: Option<Coord>,
     pub left: Option<Coord>,
     pub right: Option<Coord>,
+    #[serde(default = "default_scale")]
+    pub scale: f32,
     #[serde(default)]
     pub rotation: Degree,
 }
@@ -49,4 +51,8 @@ impl FixedPositionLayoutSpec {
 
         Ok(())
     }
+}
+
+fn default_scale() -> f32 {
+    1.0
 }

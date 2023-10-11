@@ -59,22 +59,20 @@ fn build_and_start_docker(skip_build: bool) -> Result<()> {
         warn!("Skipping image build, using old version.")
     }
 
+    let mut args = vec!["run", "-it", "-p", "8004:8004/udp", "-p", "8001:8001"];
+
+    if env::var("NVIDIA").is_ok() {
+        info!("[example] configured for nvidia GPUs");
+        args.extend_from_slice(&["--gpus", "all", "--runtime=nvidia"]);
+    } else {
+        info!("[example] configured for non-nvidia GPUs");
+        args.extend_from_slice(&["--device", "/dev/dri"]);
+    }
+
+    args.push("video-compositor");
+
     info!("[example] docker run");
-    Command::new("docker")
-        .args([
-            "run",
-            "-it",
-            "--device",
-            "/dev/dri", // expose gpu to container
-            "--cap-add",
-            "SYS_ADMIN", // or enable suid based namespacing
-            "-p",
-            "8004:8004/udp",
-            "-p",
-            "8001:8001",
-            "video-compositor",
-        ])
-        .spawn()?;
+    Command::new("docker").args(args).spawn()?;
     Ok(())
 }
 

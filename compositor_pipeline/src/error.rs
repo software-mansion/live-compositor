@@ -20,6 +20,9 @@ pub enum RegisterOutputError {
 
     #[error("Encoder error while registering output stream for stream \"{0}\".")]
     EncoderError(OutputId, #[source] OutputInitError),
+
+    #[error("Failed to register output stream \"{0}\". Resolution in each dimension has to be divisible by 2.")]
+    UnsupportedResolution(OutputId),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -90,6 +93,7 @@ impl From<&RegisterInputError> for PipelineErrorInfo {
 
 const OUTPUT_STREAM_ALREADY_REGISTERED: &str = "OUTPUT_STREAM_ALREADY_REGISTERED";
 const ENCODER_ERROR: &str = "ENCODER_ERROR";
+const UNSUPPORTED_RESOLUTION: &str = "UNSUPPORTED_RESOLUTION";
 
 impl From<&RegisterOutputError> for PipelineErrorInfo {
     fn from(err: &RegisterOutputError) -> Self {
@@ -100,6 +104,9 @@ impl From<&RegisterOutputError> for PipelineErrorInfo {
 
             RegisterOutputError::EncoderError(_, _) => {
                 PipelineErrorInfo::new(ENCODER_ERROR, ErrorType::ServerError)
+            }
+            RegisterOutputError::UnsupportedResolution(_) => {
+                PipelineErrorInfo::new(UNSUPPORTED_RESOLUTION, ErrorType::UserError)
             }
         }
     }

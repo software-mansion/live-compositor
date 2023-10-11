@@ -38,35 +38,13 @@
 
 <body>
 <h2>Frame embedding:</h2>
-<canvas id="input_0"></canvas>
+<canvas id="input_1"></canvas>
 </body>
 
 <script>
-    // TODO: Figure out embedding API
-    // NOTE TO REVIEWERS: The section below is not part of this PR
-    async function run(sourceID, interval) {
-        const sourceCanvas = document.getElementById(sourceID);
-        const ctx = sourceCanvas.getContext("2d");
-
-        setInterval(() => {
-            const data = window[`${sourceID}_data`];
-            const width = window[`${sourceID}_width`];
-            const height = window[`${sourceID}_height`];
-            if (data == undefined || width == undefined || height == undefined) {
-                return;
-            }
-            if (width == 1 || height == 1) {
-                return;
-            }
-
-            sourceCanvas.width = width;
-            sourceCanvas.height = height;
-            const imageView = new ImageData(new Uint8ClampedArray(data), width, height);
-            ctx.putImageData(imageView, 0, 0);
-        }, 16);
-    }
-
-    run("input_0");
+    register_inputs(
+        "input_1"
+    );
 </script>
 
 </html>

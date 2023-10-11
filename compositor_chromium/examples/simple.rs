@@ -86,7 +86,7 @@ fn main() {
         .unwrap()
         .join("..");
 
-    if cef::bundle_app(target_path).is_err() {
+    if cef::bundle_for_development(target_path).is_err() {
         panic!("Build process helper first: cargo build --bin process_helper");
     }
 

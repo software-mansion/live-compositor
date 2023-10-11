@@ -4,7 +4,7 @@ use crate::{scene::Resolution, util::align::HorizontalAlign};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
-pub struct TailedLayoutSpec {
+pub struct TiledLayoutSpec {
     #[serde(default)]
     pub background_color_rgba: RGBAColor,
     #[serde(default = "default_tile_aspect_ratio")]
