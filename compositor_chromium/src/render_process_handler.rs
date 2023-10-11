@@ -11,6 +11,8 @@ pub trait RenderProcessHandler {
     /// Called when a new [`V8Context`] for a [`Frame`] was created
     fn on_context_created(&mut self, _browser: &Browser, _frame: &Frame, _context: &V8Context) {}
 
+    /// Called when new process message is received.
+    /// Return `true` if message was handled, `false` otherwise
     fn on_process_message_received(
         &mut self,
         _browser: &Browser,
