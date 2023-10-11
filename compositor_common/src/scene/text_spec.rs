@@ -76,7 +76,7 @@ pub enum Weight {
     Semibold,
     Bold,
     ExtraBold,
-    Black
+    Black,
 }
 
 impl From<&Weight> for glyphon::Weight {
