@@ -35,7 +35,6 @@ impl cef::RenderProcessHandler for RenderProcessHandler {
         _source_process: cef::ProcessId,
         message: &cef::ProcessMessage,
     ) -> bool {
-        const IS_HANDLED: bool = true;
         let result = match message.name().as_str() {
             EMBED_SOURCE_FRAMES_MESSAGE => self.embed_sources(message, frame),
             UNEMBED_SOURCE_FRAMES_MESSAGE => self.unembed_source(message, frame),
@@ -44,9 +43,12 @@ impl cef::RenderProcessHandler for RenderProcessHandler {
 
         if let Err(err) = result {
             error!("Error occurred while processing IPC message: {err}");
+            // Message was not handled
+            return false;
         }
 
-        IS_HANDLED
+        // Message was handled
+        true
     }
 }
 
