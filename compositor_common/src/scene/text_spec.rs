@@ -12,7 +12,7 @@ fn default_color() -> RGBAColor {
 }
 
 fn default_family() -> String {
-    String::from("Verdana")
+    String::from("Arial")
 }
 
 fn default_style() -> Style {
@@ -25,6 +25,10 @@ fn default_align() -> HorizontalAlign {
 
 fn default_wrap() -> Wrap {
     Wrap::None
+}
+
+fn default_weight() -> Weight {
+    Weight::Normal
 }
 
 fn default_max_width() -> u32 {
@@ -62,6 +66,36 @@ impl From<Wrap> for glyphon::cosmic_text::Wrap {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "snake_case")]
+pub enum Weight {
+    Thin,
+    ExtraLight,
+    Light,
+    Normal,
+    Medium,
+    Semibold,
+    Bold,
+    ExtraBold,
+    Black
+}
+
+impl From<&Weight> for glyphon::Weight {
+    fn from(value: &Weight) -> Self {
+        match value {
+            Weight::Thin => glyphon::Weight::THIN,
+            Weight::ExtraLight => glyphon::Weight::EXTRA_LIGHT,
+            Weight::Light => glyphon::Weight::LIGHT,
+            Weight::Normal => glyphon::Weight::NORMAL,
+            Weight::Medium => glyphon::Weight::MEDIUM,
+            Weight::Semibold => glyphon::Weight::SEMIBOLD,
+            Weight::Bold => glyphon::Weight::BOLD,
+            Weight::ExtraBold => glyphon::Weight::EXTRA_BOLD,
+            Weight::Black => glyphon::Weight::BLACK,
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(tag = "type")]
 pub struct TextSpec {
     pub content: Arc<str>,
@@ -79,6 +113,8 @@ pub struct TextSpec {
     pub style: Style,
     #[serde(default = "default_align")]
     pub align: HorizontalAlign,
+    #[serde(default = "default_weight")]
+    pub weight: Weight,
     #[serde(default = "default_wrap")]
     pub wrap: Wrap,
     pub dimensions: TextDimensions,
@@ -102,7 +138,7 @@ impl From<&TextSpec> for AttrsOwned {
             family_owned: family,
             stretch: Default::default(),
             style,
-            weight: Default::default(),
+            weight: (&text_params.weight).into(),
             metadata: Default::default(),
         }
     }
