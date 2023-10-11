@@ -10,8 +10,7 @@ use crate::renderer::{
 
 use crate::gpu_shader::params_buffer::ParamsBuffer;
 use crate::gpu_shader::{CreateShaderError, GpuShader};
-use crate::renderer::texture::utils::sources_to_textures;
-use crate::renderer::texture::Texture;
+use crate::renderer::texture::{NodeTextureState, RGBATexture, Texture};
 use crate::transformations::web_renderer::browser_client::BrowserClient;
 use crate::transformations::web_renderer::chromium_sender::ChromiumSender;
 use crate::transformations::web_renderer::embedder::{EmbedError, EmbeddingHelper, TextureInfo};
@@ -135,8 +134,16 @@ impl WebRenderer {
         &'a self,
         sources: &'a [(&NodeId, &NodeTexture)],
     ) -> (Vec<Option<&'a Texture>>, Bytes) {
-        let mut source_textures = sources_to_textures(sources);
         let source_transforms = TextureInfo::sources(&self.source_transforms.lock().unwrap());
+        let mut source_textures = sources
+            .iter()
+            .map(|(_, texture)| {
+                texture
+                    .state()
+                    .map(NodeTextureState::rgba_texture)
+                    .map(RGBATexture::texture)
+            })
+            .collect::<Vec<_>>();
 
         let mut textures = Vec::new();
         match self.spec.embedding_method {

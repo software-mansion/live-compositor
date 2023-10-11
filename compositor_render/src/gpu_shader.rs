@@ -7,8 +7,7 @@ use std::{sync::Arc, time::Duration};
 
 use compositor_common::scene::shader::ShaderParam;
 
-use crate::renderer::texture::utils::sources_to_textures;
-use crate::renderer::texture::NodeTexture;
+use crate::renderer::texture::{NodeTexture, RGBATexture};
 use crate::renderer::{texture::Texture, WgpuCtx};
 
 use self::{
@@ -122,7 +121,15 @@ impl GpuShader {
         pts: Duration,
         clear_color: Option<wgpu::Color>,
     ) {
-        let textures = sources_to_textures(sources);
+        let textures = sources
+            .iter()
+            .map(|(_, texture)| {
+                texture
+                    .state()
+                    .map(NodeTextureState::rgba_texture)
+                    .map(RGBATexture::texture)
+            })
+            .collect::<Vec<_>>();
         self.render_with_textures(params, &textures, target, pts, clear_color);
     }
 
@@ -135,8 +142,6 @@ impl GpuShader {
         clear_color: Option<wgpu::Color>,
     ) {
         let ctx = &self.wgpu_ctx;
-
-        // TODO: sources/textures need to be ordered
 
         // TODO: most things that happen in this method should not be done every frame
 
