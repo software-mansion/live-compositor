@@ -117,6 +117,8 @@ pub struct TextSpec {
     pub weight: Weight,
     #[serde(default = "default_wrap")]
     pub wrap: Wrap,
+    #[serde(default)]
+    pub background_color_rgba: RGBAColor,
     pub dimensions: TextDimensions,
 }
 
