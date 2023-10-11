@@ -255,7 +255,8 @@ impl TextRendererNode {
             }
         }
 
-        let height = (lines_count as f32 * line_height.ceil() + font_size / 4.0) as usize;
+        let last_line_padding = font_size / 5.0;
+        let height = (lines_count as f32 * line_height.ceil() + last_line_padding) as usize;
         Resolution { width, height }
     }
 }
