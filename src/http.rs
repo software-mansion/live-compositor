@@ -6,7 +6,13 @@ use log::{error, info};
 
 use serde_json::json;
 use signal_hook::{consts, iterator::Signals};
-use std::{io::Cursor, net::SocketAddr, sync::Arc, thread, time::Duration};
+use std::{
+    io::{Cursor, ErrorKind},
+    net::SocketAddr,
+    sync::Arc,
+    thread,
+    time::Duration,
+};
 use tiny_http::{Header, Response, StatusCode};
 
 use crate::{
@@ -34,9 +40,14 @@ impl Server {
                 .unwrap(),
             }
             .into(),
-            Err(err) => {
-                panic!("Failed to start video compositor HTTP server.\n{PORT_AVAILABLE_MESSAGE}\n{err}");
-            }
+            Err(err) => match err.downcast_ref::<std::io::Error>() {
+                Some(io_error) if io_error.kind() == ErrorKind::AddrInUse => {
+                    panic!("Failed to start video compositor HTTP server.\n{PORT_AVAILABLE_MESSAGE}\nError: {err}")
+                }
+                Some(_) | None => {
+                    panic!("Failed to start video compositor HTTP server.\nError: {err}")
+                }
+            },
         }
     }
 
