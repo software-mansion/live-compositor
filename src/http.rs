@@ -6,13 +6,21 @@ use log::{error, info};
 
 use serde_json::json;
 use signal_hook::{consts, iterator::Signals};
-use std::{io::Cursor, net::SocketAddr, sync::Arc, thread, time::Duration};
+use std::{
+    io::{Cursor, ErrorKind},
+    net::SocketAddr,
+    sync::Arc,
+    thread,
+    time::Duration,
+};
 use tiny_http::{Header, Response, StatusCode};
 
 use crate::{
     api::{self, Api, Request, ResponseHandler},
     error::ApiError,
 };
+
+pub const API_PORT_ENV: &str = "MEMBRANE_VIDEO_COMPOSITOR_API_PORT";
 
 pub struct Server {
     server: tiny_http::Server,
@@ -21,12 +29,26 @@ pub struct Server {
 
 impl Server {
     pub fn new(port: u16) -> Arc<Self> {
-        Self {
-            server: tiny_http::Server::http(SocketAddr::from(([0, 0, 0, 0], port))).unwrap(),
-            content_type_json: Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..])
+        match tiny_http::Server::http(SocketAddr::from(([0, 0, 0, 0], port))) {
+            Ok(server) => Self {
+                server,
+                content_type_json: Header::from_bytes(
+                    &b"Content-Type"[..],
+                    &b"application/json"[..],
+                )
                 .unwrap(),
+            }
+            .into(),
+            Err(err) => {
+                match err.downcast_ref::<std::io::Error>() {
+                    Some(io_error) if io_error.kind() == ErrorKind::AddrInUse => {
+                        error!("Port {port} is already used. Stop using it or specify port using {API_PORT_ENV} environment variable.");
+                    }
+                    Some(_) | None => {}
+                };
+                panic!("Failed to start video compositor HTTP server.\nError: {err}")
+            }
         }
-        .into()
     }
 
     pub fn run(self: Arc<Self>) {
