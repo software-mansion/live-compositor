@@ -1,9 +1,7 @@
 use std::env;
 
 use log::info;
-use video_compositor::http;
-
-pub const API_PORT_ENV: &str = "MEMBRANE_VIDEO_COMPOSITOR_API_PORT";
+use video_compositor::http::{self, API_PORT_ENV};
 
 fn main() {
     env_logger::init_from_env(

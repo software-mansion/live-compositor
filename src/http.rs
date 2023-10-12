@@ -14,6 +14,9 @@ use crate::{
     error::ApiError,
 };
 
+pub const API_PORT_ENV: &str = "MEMBRANE_VIDEO_COMPOSITOR_API_PORT";
+const PORT_AVAILABLE_MESSAGE: &str = "Make sure that used port is available. For specifying port use: MEMBRANE_VIDEO_COMPOSITOR_API_PORT environment variable.";
+
 pub struct Server {
     server: tiny_http::Server,
     content_type_json: Header,
@@ -21,12 +24,20 @@ pub struct Server {
 
 impl Server {
     pub fn new(port: u16) -> Arc<Self> {
-        Self {
-            server: tiny_http::Server::http(SocketAddr::from(([0, 0, 0, 0], port))).unwrap(),
-            content_type_json: Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..])
+        match tiny_http::Server::http(SocketAddr::from(([0, 0, 0, 0], port))) {
+            Ok(server) => Self {
+                server,
+                content_type_json: Header::from_bytes(
+                    &b"Content-Type"[..],
+                    &b"application/json"[..],
+                )
                 .unwrap(),
+            }
+            .into(),
+            Err(err) => {
+                panic!("Failed to start video compositor HTTP server.\n{PORT_AVAILABLE_MESSAGE}\n{err}");
+            }
         }
-        .into()
     }
 
     pub fn run(self: Arc<Self>) {

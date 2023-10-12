@@ -40,7 +40,7 @@ fn main() {
 
     if let Err(err) = bundle_for_development(target_path) {
         panic!(
-            "Build process helper first: cargo build --bin process_helper. {:?}",
+            "Build process helper first. For release profile use: cargo build -r --bin process_helper. {:?}",
             err
         );
     }
