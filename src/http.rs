@@ -21,7 +21,6 @@ use crate::{
 };
 
 pub const API_PORT_ENV: &str = "MEMBRANE_VIDEO_COMPOSITOR_API_PORT";
-const PORT_AVAILABLE_MESSAGE: &str = "Make sure that used port is available. For specifying port use: MEMBRANE_VIDEO_COMPOSITOR_API_PORT environment variable.";
 
 pub struct Server {
     server: tiny_http::Server,
@@ -40,14 +39,15 @@ impl Server {
                 .unwrap(),
             }
             .into(),
-            Err(err) => match err.downcast_ref::<std::io::Error>() {
-                Some(io_error) if io_error.kind() == ErrorKind::AddrInUse => {
-                    panic!("Failed to start video compositor HTTP server.\n{PORT_AVAILABLE_MESSAGE}\nError: {err}")
-                }
-                Some(_) | None => {
-                    panic!("Failed to start video compositor HTTP server.\nError: {err}")
-                }
-            },
+            Err(err) => {
+                match err.downcast_ref::<std::io::Error>() {
+                    Some(io_error) if io_error.kind() == ErrorKind::AddrInUse => {
+                        error!("Port {port} is already used. Stop using it or specify port using {API_PORT_ENV} environment variable.");
+                    }
+                    Some(_) | None => {}
+                };
+                panic!("Failed to start video compositor HTTP server.\nError: {err}")
+            }
         }
     }
 
