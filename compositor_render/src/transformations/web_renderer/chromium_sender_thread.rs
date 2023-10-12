@@ -112,21 +112,20 @@ impl ChromiumSenderThread {
         // - texture height
         for (source_idx, resolution) in resolutions.iter().enumerate() {
             let shared_memory = state.shared_memory(&node_id, source_idx)?;
-            let (width, height) = if shared_memory.is_accessible() {
-                let Resolution { width, height } = resolution.unwrap_or_else(|| Resolution {
-                    width: 0,
-                    height: 0,
-                });
-                (width, height)
-            } else {
-                (0, 0)
-            };
+            if !shared_memory.is_accessible() {
+                continue;
+            }
 
+            let Resolution { width, height } = resolution.unwrap_or_else(|| Resolution {
+                width: 0,
+                height: 0,
+            });
             process_message.write_string(index, shared_memory.to_path_string());
-            process_message.write_int(index + 1, width as i32);
-            process_message.write_int(index + 2, height as i32);
+            process_message.write_int(index + 1, source_idx as i32);
+            process_message.write_int(index + 2, width as i32);
+            process_message.write_int(index + 3, height as i32);
 
-            index += 3;
+            index += 4;
         }
 
         let frame = state.browser.main_frame()?;

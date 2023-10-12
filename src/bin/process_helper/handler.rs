@@ -60,28 +60,25 @@ impl RenderProcessHandler {
         let ctx_entered = ctx.enter()?;
         let mut global = ctx.global()?;
 
-        const MSG_SIZE: usize = 3;
-        for i in (0..msg.size()).step_by(3) {
-            let source_idx = i / MSG_SIZE;
-
+        for i in (0..msg.size()).step_by(4) {
             let Some(shmem_path) = msg.read_string(i) else {
                 return Err(anyhow!("Failed to read shared memory path at {i}"));
             };
-            let shmem_path = PathBuf::from(shmem_path);
-
-            let Some(width) = msg.read_int(i + 1) else {
+            let Some(source_idx) = msg.read_int(i + 1) else {
+                return Err(anyhow!("Failed to read input source index at {}", i + 1));
+            };
+            let Some(width) = msg.read_int(i + 2) else {
                 return Err(anyhow!(
                     "Failed to read width of input {} at {}",
                     source_idx,
-                    i + 1
+                    i + 2
                 ));
             };
-
-            let Some(height) = msg.read_int(i + 2) else {
+            let Some(height) = msg.read_int(i + 3) else {
                 return Err(anyhow!(
                     "Failed to read height of input {} at {}",
                     source_idx,
-                    i + 2
+                    i + 3
                 ));
             };
 
@@ -90,10 +87,10 @@ impl RenderProcessHandler {
             }
 
             let frame_info = FrameInfo {
-                source_idx,
+                source_idx: source_idx as usize,
                 width: width as u32,
                 height: height as u32,
-                shmem_path,
+                shmem_path: shmem_path.into(),
             };
 
             self.render_frame(frame_info, &mut global, &ctx_entered)?;
