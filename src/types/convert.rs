@@ -38,24 +38,6 @@ impl From<scene::OutputId> for OutputId {
     }
 }
 
-impl From<Resolution> for scene::Resolution {
-    fn from(resolution: Resolution) -> Self {
-        Self {
-            width: resolution.width,
-            height: resolution.height,
-        }
-    }
-}
-
-impl From<scene::Resolution> for Resolution {
-    fn from(resolution: scene::Resolution) -> Self {
-        Self {
-            width: resolution.width,
-            height: resolution.height,
-        }
-    }
-}
-
 impl TryFrom<Scene> for scene::SceneSpec {
     type Error = anyhow::Error;
 

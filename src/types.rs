@@ -23,12 +23,6 @@ pub struct RendererId(Arc<str>);
 pub struct OutputId(Arc<str>);
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-pub struct Resolution {
-    pub width: usize,
-    pub height: usize,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 pub struct Scene {
     pub nodes: Vec<Node>,
     pub outputs: Vec<Output>,

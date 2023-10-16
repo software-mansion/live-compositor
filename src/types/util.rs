@@ -2,6 +2,12 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+pub struct Resolution {
+    pub width: usize,
+    pub height: usize,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum HorizontalAlign {
     Left,

@@ -1,7 +1,28 @@
 use anyhow::{anyhow, Result};
-use compositor_common::util::{align, colors, coord, degree};
+use compositor_common::{
+    scene,
+    util::{align, colors, coord, degree},
+};
 
-use super::util::{Coord, Degree, HorizontalAlign, RGBAColor, RGBColor, VerticalAlign};
+use super::util::*;
+
+impl From<Resolution> for scene::Resolution {
+    fn from(resolution: Resolution) -> Self {
+        Self {
+            width: resolution.width,
+            height: resolution.height,
+        }
+    }
+}
+
+impl From<scene::Resolution> for Resolution {
+    fn from(resolution: scene::Resolution) -> Self {
+        Self {
+            width: resolution.width,
+            height: resolution.height,
+        }
+    }
+}
 
 impl From<HorizontalAlign> for align::HorizontalAlign {
     fn from(alignment: HorizontalAlign) -> Self {

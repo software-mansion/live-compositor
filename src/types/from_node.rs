@@ -14,12 +14,8 @@ use compositor_common::{
     util::colors::{self, RGBAColor},
 };
 
-use super::{
-    util::{Degree, HorizontalAlign, VerticalAlign},
-    WebRenderer,
-};
-
 use super::node::*;
+use super::util::*;
 
 impl TryFrom<Node> for NodeSpec {
     type Error = anyhow::Error;

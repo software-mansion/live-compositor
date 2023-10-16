@@ -3,10 +3,8 @@ use std::sync::Arc;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use super::{
-    util::{Coord, Degree, HorizontalAlign, RGBAColor, VerticalAlign},
-    NodeId, RendererId, Resolution,
-};
+use super::util::*;
+use super::*;
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 pub struct Node {
