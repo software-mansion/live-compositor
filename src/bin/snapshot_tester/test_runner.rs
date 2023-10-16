@@ -8,7 +8,7 @@ use std::{
 use anyhow::{anyhow, Result};
 use compositor_common::{
     renderer_spec::RendererSpec,
-    scene::{OutputId, OutputSpec, SceneSpec},
+    scene::{OutputId, SceneSpec},
     Framerate,
 };
 use compositor_render::{
