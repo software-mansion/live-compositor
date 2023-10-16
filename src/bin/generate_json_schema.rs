@@ -9,6 +9,7 @@ fn main() {
     let update_flag = std::env::args().any(|arg| &arg == "--update");
 
     generate_schema(schema_for!(types::Scene), "scene", update_flag);
+    generate_schema(schema_for!(types::RegisterRequest), "register", update_flag);
 }
 
 fn generate_schema(current_schema: RootSchema, name: &'static str, update: bool) {

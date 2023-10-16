@@ -292,7 +292,7 @@
             },
             {
               "additionalProperties": false,
-              "description": "Scales input preserving aspect ratio and fill the rest of the texture with the provided color]",
+              "description": "Scales input preserving aspect ratio and fills the rest of the texture with the provided color",
               "properties": {
                 "background_color_rgba": {
                   "anyOf": [

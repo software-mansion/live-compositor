@@ -1,6 +1,5 @@
 use std::time::Duration;
 
-use anyhow::anyhow;
 use compositor_common::{
     scene::{
         self,
@@ -18,7 +17,7 @@ use super::node::*;
 use super::util::*;
 
 impl TryFrom<Node> for NodeSpec {
-    type Error = anyhow::Error;
+    type Error = TypeError;
 
     fn try_from(node: Node) -> Result<Self, Self::Error> {
         let params = match node.params {
@@ -107,7 +106,7 @@ impl From<Image> for scene::NodeParams {
 }
 
 impl TryFrom<Text> for scene::NodeParams {
-    type Error = anyhow::Error;
+    type Error = TypeError;
 
     fn try_from(node: Text) -> Result<Self, Self::Error> {
         let style = match node.style {
@@ -176,7 +175,7 @@ impl TryFrom<Text> for scene::NodeParams {
 }
 
 impl TryFrom<TransformToResolution> for BuiltinSpec {
-    type Error = anyhow::Error;
+    type Error = TypeError;
 
     fn try_from(node: TransformToResolution) -> Result<Self, Self::Error> {
         let result = match node {
@@ -211,7 +210,7 @@ impl TryFrom<TransformToResolution> for BuiltinSpec {
 }
 
 impl TryFrom<Transition> for scene::NodeParams {
-    type Error = anyhow::Error;
+    type Error = TypeError;
 
     fn try_from(node: Transition) -> Result<Self, Self::Error> {
         let result = Self::Transition(transition::TransitionSpec {
@@ -225,7 +224,7 @@ impl TryFrom<Transition> for scene::NodeParams {
 }
 
 impl TryFrom<TransitionState> for BuiltinSpec {
-    type Error = anyhow::Error;
+    type Error = TypeError;
 
     fn try_from(state: TransitionState) -> Result<Self, Self::Error> {
         match state {
@@ -244,7 +243,7 @@ impl From<Interpolation> for transition::Interpolation {
 }
 
 impl TryFrom<FixedPositionLayout> for BuiltinSpec {
-    type Error = anyhow::Error;
+    type Error = TypeError;
 
     fn try_from(node: FixedPositionLayout) -> Result<Self, Self::Error> {
         let result = Self::FixedPositionLayout(FixedPositionLayoutSpec {
@@ -264,7 +263,7 @@ impl TryFrom<FixedPositionLayout> for BuiltinSpec {
 }
 
 impl TryFrom<TextureLayout> for builtin_transformations::TextureLayout {
-    type Error = anyhow::Error;
+    type Error = TypeError;
 
     fn try_from(value: TextureLayout) -> Result<Self, Self::Error> {
         match value {
@@ -272,12 +271,12 @@ impl TryFrom<TextureLayout> for builtin_transformations::TextureLayout {
                     top: None,
                     bottom: None,
                     ..
-                } => return Err(anyhow!("Each entry in texture_layouts in transformation \"fixed_position_layout\" requires either bottom or top coordinate.")),
+                } => return Err(TypeError::new("Each entry in texture_layouts in transformation \"fixed_position_layout\" requires either bottom or top coordinate.")),
                 TextureLayout {
                     top: Some(_),
                     bottom: Some(_),
                     ..
-                } => return Err(anyhow!("Fields \"top\" and \"bottom\" are mutually exclusive, you can only specify one in texture layout in \"fixed_position_layout\" transformation.")),
+                } => return Err(TypeError::new("Fields \"top\" and \"bottom\" are mutually exclusive, you can only specify one in texture layout in \"fixed_position_layout\" transformation.")),
                 _ => (),
             };
         match value {
@@ -285,12 +284,12 @@ impl TryFrom<TextureLayout> for builtin_transformations::TextureLayout {
                     left: None,
                     right: None,
                     ..
-                } => return Err(anyhow!("Each entry in texture_layouts in transformation \"fixed_position_layout\" requires either right or left coordinate.")),
+                } => return Err(TypeError::new("Each entry in texture_layouts in transformation \"fixed_position_layout\" requires either right or left coordinate.")),
                 TextureLayout {
                     left: Some(_),
                     right: Some(_),
                     ..
-                } => return Err(anyhow!("Fields \"left\" and \"right\" are mutually exclusive, you can only specify one in texture layout in \"fixed_position_layout\" transformation.")),
+                } => return Err(TypeError::new("Fields \"left\" and \"right\" are mutually exclusive, you can only specify one in texture layout in \"fixed_position_layout\" transformation.")),
                 _ => (),
             };
 
@@ -306,7 +305,7 @@ impl TryFrom<TextureLayout> for builtin_transformations::TextureLayout {
 }
 
 impl TryFrom<TiledLayout> for BuiltinSpec {
-    type Error = anyhow::Error;
+    type Error = TypeError;
 
     fn try_from(layout: TiledLayout) -> Result<Self, Self::Error> {
         let result = Self::TiledLayout(TiledLayoutSpec {
@@ -346,7 +345,7 @@ impl From<MirrorImage> for BuiltinSpec {
 }
 
 impl TryFrom<CornersRounding> for BuiltinSpec {
-    type Error = anyhow::Error;
+    type Error = TypeError;
 
     fn try_from(node: CornersRounding) -> Result<Self, Self::Error> {
         let result = Self::CornersRounding {

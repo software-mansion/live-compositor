@@ -1,5 +1,6 @@
 use compositor_common::{renderer_spec, scene};
 
+use super::util::*;
 use super::*;
 
 impl From<NodeId> for scene::NodeId {
@@ -38,8 +39,20 @@ impl From<scene::OutputId> for OutputId {
     }
 }
 
+impl From<InputId> for scene::InputId {
+    fn from(id: InputId) -> Self {
+        Self(scene::NodeId(id.0))
+    }
+}
+
+impl From<scene::InputId> for InputId {
+    fn from(id: scene::InputId) -> Self {
+        Self(id.0 .0)
+    }
+}
+
 impl TryFrom<Scene> for scene::SceneSpec {
-    type Error = anyhow::Error;
+    type Error = TypeError;
 
     fn try_from(scene: Scene) -> Result<Self, Self::Error> {
         fn from_output(output: Output) -> scene::OutputSpec {

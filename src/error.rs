@@ -1,6 +1,10 @@
+use std::fmt::Display;
+
 use compositor_common::error::ErrorStack;
 use compositor_pipeline::error::{ErrorType, PipelineErrorInfo};
 use tiny_http::StatusCode;
+
+use crate::types::TypeError;
 
 pub struct ApiError {
     pub error_code: &'static str,
@@ -23,7 +27,7 @@ impl ApiError {
         }
     }
 
-    pub fn malformed_request(err: &dyn std::error::Error) -> Self {
+    pub fn malformed_request(err: &dyn Display) -> Self {
         ApiError::new(
             "MALFORMED_REQUEST",
             format!("Received malformed request:\n{err}"),
@@ -50,5 +54,11 @@ where
                 ErrorType::EntityNotFound => StatusCode(404),
             },
         }
+    }
+}
+
+impl From<TypeError> for ApiError {
+    fn from(err: TypeError) -> Self {
+        ApiError::malformed_request(&err)
     }
 }

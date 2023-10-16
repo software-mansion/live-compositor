@@ -78,7 +78,7 @@ impl EncoderPreset {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct EncoderSettings {
     #[serde(default)]
-    preset: EncoderPreset,
+    pub preset: EncoderPreset,
 }
 
 pub(crate) struct LibavH264Encoder {

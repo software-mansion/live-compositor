@@ -93,6 +93,7 @@ fn start_example_client_code() -> Result<()> {
         "asset_type": "svg",
         "image_id": "example_svg",
         "path": PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("examples/assets/rust.svg"),
+        "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
     }))?;
     common::post(&json!({
         "type": "register",
@@ -100,7 +101,6 @@ fn start_example_client_code() -> Result<()> {
         "asset_type": "png",
         "image_id": "example_png",
         "url": "https://rust-lang.org/logos/rust-logo-512x512.png",
-        "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
     }))?;
 
     let label_padding = "20px";
