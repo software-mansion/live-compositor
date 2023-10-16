@@ -177,7 +177,7 @@ pub enum TransformToResolution {
     /// from both sides in "sticking out" dimension
     Fill { resolution: Resolution },
     /// Scales input preserving aspect ratio and
-    /// fill the rest of the texture with the provided color]
+    /// fills the rest of the texture with the provided color
     Fit {
         resolution: Resolution,
         background_color_rgba: Option<RGBAColor>,
