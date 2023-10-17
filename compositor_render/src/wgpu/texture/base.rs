@@ -1,4 +1,4 @@
-use crate::renderer::WgpuCtx;
+use crate::wgpu::WgpuCtx;
 
 use super::utils::pad_to_256;
 

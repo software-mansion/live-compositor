@@ -4,7 +4,7 @@ use crate::renderer::RegisterCtx;
 use compositor_common::scene::{NodeId, Resolution};
 use crossbeam_channel::{Receiver, Sender};
 
-use crate::renderer::texture::NodeTexture;
+use crate::wgpu::texture::NodeTexture;
 
 use super::{browser::BrowserClient, chromium_sender_thread::ChromiumSenderThread};
 

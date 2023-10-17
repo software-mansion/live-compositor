@@ -4,7 +4,7 @@ use bytes::Bytes;
 use compositor_common::{frame::YuvData, scene::Resolution};
 use wgpu::Buffer;
 
-use crate::renderer::WgpuCtx;
+use crate::wgpu::WgpuCtx;
 
 use super::base::Texture;
 

@@ -5,15 +5,15 @@ use compositor_common::{
     scene::constraints::NodeConstraints,
 };
 
-use crate::{
-    gpu_shader::{CreateShaderError, GpuShader},
-    renderer::WgpuCtx,
+use crate::wgpu::{
+    shader::{CreateShaderError, WgpuShader},
+    WgpuCtx,
 };
 
 pub mod node;
 
 pub struct Shader {
-    gpu_shader: GpuShader,
+    wgpu_shader: WgpuShader,
     fallback_strategy: FallbackStrategy,
     clear_color: Option<wgpu::Color>,
     constraints: NodeConstraints,
@@ -24,10 +24,10 @@ impl Shader {
         let fallback_strategy = spec.fallback_strategy;
         let clear_color = None;
         let constraints = spec.constraints;
-        let gpu_shader = GpuShader::new(wgpu_ctx, spec.source)?;
+        let wgpu_shader = WgpuShader::new(wgpu_ctx, spec.source)?;
 
         Ok(Self {
-            gpu_shader,
+            wgpu_shader,
             fallback_strategy,
             clear_color,
             constraints,

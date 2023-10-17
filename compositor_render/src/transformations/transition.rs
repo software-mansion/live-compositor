@@ -9,10 +9,7 @@ use compositor_common::{
 };
 use log::error;
 
-use crate::{
-    error::CreateNodeError,
-    renderer::{texture::NodeTexture, RenderCtx},
-};
+use crate::{error::CreateNodeError, renderer::RenderCtx, wgpu::texture::NodeTexture};
 
 use super::builtin::{BuiltinNode, BuiltinState, BuiltinTransition};
 

@@ -6,14 +6,16 @@ use compositor_common::{
 };
 
 use crate::{
-    gpu_shader::{error::ParametersValidationError, CreateShaderError},
     registry,
-    renderer::{CreateWgpuCtxError, WgpuError},
     transformations::{
         builtin::error::InitBuiltinError, image_renderer::ImageError,
         web_renderer::chromium_context::WebRendererContextError,
     },
+    wgpu::{shader::CreateShaderError, validation::ParametersValidationError, CreateWgpuCtxError},
 };
+
+pub use crate::registry::RegisterError;
+pub use crate::wgpu::WgpuError;
 
 #[derive(Debug, thiserror::Error)]
 pub enum InitRendererEngineError {

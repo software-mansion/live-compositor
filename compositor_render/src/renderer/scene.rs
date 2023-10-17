@@ -3,13 +3,11 @@ use std::collections::HashMap;
 use compositor_common::scene::{InputId, NodeId, OutputId, SceneSpec};
 use log::error;
 
-use crate::{error::UpdateSceneError, render_loop::NodeRenderPass};
+use crate::wgpu::texture::{InputTexture, OutputTexture};
+use crate::{error::UpdateSceneError, wgpu::WgpuErrorScope};
 
-use super::{
-    node::Node,
-    texture::{InputTexture, OutputTexture},
-    RenderCtx, WgpuErrorScope,
-};
+use super::NodeRenderPass;
+use super::{node::Node, RenderCtx};
 
 pub struct Scene {
     pub nodes: SceneNodesSet,
