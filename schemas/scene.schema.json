@@ -1,0 +1,1079 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "Coord": {
+      "anyOf": [
+        {
+          "format": "int32",
+          "type": "integer"
+        },
+        {
+          "type": "string"
+        }
+      ]
+    },
+    "Degree": {
+      "format": "double",
+      "type": "number"
+    },
+    "HorizontalAlign": {
+      "enum": [
+        "left",
+        "right",
+        "justified",
+        "center"
+      ],
+      "type": "string"
+    },
+    "Interpolation": {
+      "enum": [
+        "linear",
+        "spring"
+      ],
+      "type": "string"
+    },
+    "MirrorMode": {
+      "enum": [
+        "horizontal",
+        "vertical",
+        "horizontal-vertical"
+      ],
+      "type": "string"
+    },
+    "Node": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "instance_id": {
+              "$ref": "#/definitions/RendererId"
+            },
+            "type": {
+              "enum": [
+                "web_renderer"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "instance_id",
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "resolution": {
+              "$ref": "#/definitions/Resolution"
+            },
+            "shader_id": {
+              "$ref": "#/definitions/RendererId"
+            },
+            "shader_params": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ShaderParam"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": {
+              "enum": [
+                "shader"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "resolution",
+            "shader_id",
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "image_id": {
+              "$ref": "#/definitions/RendererId"
+            },
+            "type": {
+              "enum": [
+                "image"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "image_id",
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "align": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/HorizontalAlign"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "background_color_rgba": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/RGBAColor"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "color_rgba": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/RGBAColor"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "content": {
+              "type": "string"
+            },
+            "dimensions": {
+              "$ref": "#/definitions/TextDimensions"
+            },
+            "font_family": {
+              "description": "https://www.w3.org/TR/2018/REC-css-fonts-3-20180920/#family-name-value use font family name, not generic family name",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "font_size": {
+              "format": "float",
+              "type": "number"
+            },
+            "line_height": {
+              "format": "float",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "style": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/TextStyle"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": {
+              "enum": [
+                "text"
+              ],
+              "type": "string"
+            },
+            "weight": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/TextWeight"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "wrap": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/TextWrapMode"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "content",
+            "dimensions",
+            "font_size",
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "end": {
+              "$ref": "#/definitions/TransitionState"
+            },
+            "interpolation": {
+              "$ref": "#/definitions/Interpolation"
+            },
+            "start": {
+              "$ref": "#/definitions/TransitionState"
+            },
+            "transition_duration_ms": {
+              "format": "double",
+              "type": "number"
+            },
+            "type": {
+              "enum": [
+                "transition"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "end",
+            "interpolation",
+            "start",
+            "transition_duration_ms",
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "oneOf": [
+            {
+              "additionalProperties": false,
+              "description": "Rescales input in both axis to match output resolution",
+              "properties": {
+                "resolution": {
+                  "$ref": "#/definitions/Resolution"
+                },
+                "strategy": {
+                  "enum": [
+                    "stretch"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "resolution",
+                "strategy"
+              ],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "description": "Scales input preserving aspect ratio and cuts equal parts from both sides in \"sticking out\" dimension",
+              "properties": {
+                "resolution": {
+                  "$ref": "#/definitions/Resolution"
+                },
+                "strategy": {
+                  "enum": [
+                    "fill"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "resolution",
+                "strategy"
+              ],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "description": "Scales input preserving aspect ratio and fill the rest of the texture with the provided color]",
+              "properties": {
+                "background_color_rgba": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/definitions/RGBAColor"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "horizontal_alignment": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/definitions/HorizontalAlign"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "resolution": {
+                  "$ref": "#/definitions/Resolution"
+                },
+                "strategy": {
+                  "enum": [
+                    "fit"
+                  ],
+                  "type": "string"
+                },
+                "vertical_alignment": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/definitions/VerticalAlign"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "resolution",
+                "strategy"
+              ],
+              "type": "object"
+            }
+          ],
+          "properties": {
+            "type": {
+              "enum": [
+                "builtin:transform_to_resolution"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "background_color_rgba": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/RGBAColor"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "resolution": {
+              "$ref": "#/definitions/Resolution"
+            },
+            "texture_layouts": {
+              "items": {
+                "$ref": "#/definitions/TextureLayout"
+              },
+              "type": "array"
+            },
+            "type": {
+              "enum": [
+                "builtin:fixed_position_layout"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "resolution",
+            "texture_layouts",
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "background_color_rgba": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/RGBAColor"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "horizontal_alignment": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/HorizontalAlign"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "margin": {
+              "format": "uint32",
+              "minimum": 0.0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "padding": {
+              "format": "uint32",
+              "minimum": 0.0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "resolution": {
+              "$ref": "#/definitions/Resolution"
+            },
+            "tile_aspect_ratio": {
+              "items": [
+                {
+                  "format": "uint32",
+                  "minimum": 0.0,
+                  "type": "integer"
+                },
+                {
+                  "format": "uint32",
+                  "minimum": 0.0,
+                  "type": "integer"
+                }
+              ],
+              "maxItems": 2,
+              "minItems": 2,
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "type": {
+              "enum": [
+                "builtin:tiled_layout"
+              ],
+              "type": "string"
+            },
+            "vertical_alignment": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/VerticalAlign"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "resolution",
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "mode": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/MirrorMode"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": {
+              "enum": [
+                "builtin:mirror_image"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "border_radius": {
+              "$ref": "#/definitions/Coord"
+            },
+            "type": {
+              "enum": [
+                "builtin:corners_rounding"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "border_radius",
+            "type"
+          ],
+          "type": "object"
+        }
+      ],
+      "properties": {
+        "fallback_id": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/NodeId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "input_pads": {
+          "items": {
+            "$ref": "#/definitions/NodeId"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "node_id": {
+          "$ref": "#/definitions/NodeId"
+        }
+      },
+      "required": [
+        "node_id"
+      ],
+      "type": "object"
+    },
+    "NodeId": {
+      "type": "string"
+    },
+    "Output": {
+      "properties": {
+        "input_pad": {
+          "$ref": "#/definitions/NodeId"
+        },
+        "output_id": {
+          "$ref": "#/definitions/OutputId"
+        }
+      },
+      "required": [
+        "input_pad",
+        "output_id"
+      ],
+      "type": "object"
+    },
+    "OutputId": {
+      "type": "string"
+    },
+    "RGBAColor": {
+      "type": "string"
+    },
+    "RendererId": {
+      "type": "string"
+    },
+    "Resolution": {
+      "properties": {
+        "height": {
+          "format": "uint",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "width": {
+          "format": "uint",
+          "minimum": 0.0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "height",
+        "width"
+      ],
+      "type": "object"
+    },
+    "ShaderParam": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "enum": [
+                "f32"
+              ],
+              "type": "string"
+            },
+            "value": {
+              "format": "float",
+              "type": "number"
+            }
+          },
+          "required": [
+            "type",
+            "value"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "enum": [
+                "u32"
+              ],
+              "type": "string"
+            },
+            "value": {
+              "format": "uint32",
+              "minimum": 0.0,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "type",
+            "value"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "enum": [
+                "i32"
+              ],
+              "type": "string"
+            },
+            "value": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "type",
+            "value"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "enum": [
+                "list"
+              ],
+              "type": "string"
+            },
+            "value": {
+              "items": {
+                "$ref": "#/definitions/ShaderParam"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "type",
+            "value"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "enum": [
+                "struct"
+              ],
+              "type": "string"
+            },
+            "value": {
+              "items": {
+                "$ref": "#/definitions/ShaderParamStructField"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "type",
+            "value"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "ShaderParamStructField": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "enum": [
+                "f32"
+              ],
+              "type": "string"
+            },
+            "value": {
+              "format": "float",
+              "type": "number"
+            }
+          },
+          "required": [
+            "type",
+            "value"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "enum": [
+                "u32"
+              ],
+              "type": "string"
+            },
+            "value": {
+              "format": "uint32",
+              "minimum": 0.0,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "type",
+            "value"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "enum": [
+                "i32"
+              ],
+              "type": "string"
+            },
+            "value": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "type",
+            "value"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "enum": [
+                "list"
+              ],
+              "type": "string"
+            },
+            "value": {
+              "items": {
+                "$ref": "#/definitions/ShaderParam"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "type",
+            "value"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "enum": [
+                "struct"
+              ],
+              "type": "string"
+            },
+            "value": {
+              "items": {
+                "$ref": "#/definitions/ShaderParamStructField"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "type",
+            "value"
+          ],
+          "type": "object"
+        }
+      ],
+      "properties": {
+        "field_name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "field_name"
+      ],
+      "type": "object"
+    },
+    "TextDimensions": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "max_height": {
+              "format": "uint32",
+              "minimum": 0.0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "max_width": {
+              "format": "uint32",
+              "minimum": 0.0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "type": {
+              "enum": [
+                "fitted"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "max_height": {
+              "format": "uint32",
+              "minimum": 0.0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "type": {
+              "enum": [
+                "fitted_column"
+              ],
+              "type": "string"
+            },
+            "width": {
+              "format": "uint32",
+              "minimum": 0.0,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "type",
+            "width"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "height": {
+              "format": "uint32",
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "type": {
+              "enum": [
+                "fixed"
+              ],
+              "type": "string"
+            },
+            "width": {
+              "format": "uint32",
+              "minimum": 0.0,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "height",
+            "type",
+            "width"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "TextStyle": {
+      "enum": [
+        "normal",
+        "italic",
+        "oblique"
+      ],
+      "type": "string"
+    },
+    "TextWeight": {
+      "enum": [
+        "thin",
+        "extra_light",
+        "light",
+        "normal",
+        "medium",
+        "semi_bold",
+        "bold",
+        "extra_bold",
+        "black"
+      ],
+      "type": "string"
+    },
+    "TextWrapMode": {
+      "enum": [
+        "none",
+        "glyph",
+        "word"
+      ],
+      "type": "string"
+    },
+    "TextureLayout": {
+      "additionalProperties": false,
+      "properties": {
+        "bottom": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Coord"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "left": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Coord"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "right": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Coord"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "rotation": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Degree"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "scale": {
+          "format": "float",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "top": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Coord"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "TransitionState": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "background_color_rgba": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/RGBAColor"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "resolution": {
+              "$ref": "#/definitions/Resolution"
+            },
+            "texture_layouts": {
+              "items": {
+                "$ref": "#/definitions/TextureLayout"
+              },
+              "type": "array"
+            },
+            "type": {
+              "enum": [
+                "builtin:fixed_position_layout"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "resolution",
+            "texture_layouts",
+            "type"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "VerticalAlign": {
+      "enum": [
+        "top",
+        "center",
+        "bottom",
+        "justified"
+      ],
+      "type": "string"
+    }
+  },
+  "properties": {
+    "nodes": {
+      "items": {
+        "$ref": "#/definitions/Node"
+      },
+      "type": "array"
+    },
+    "outputs": {
+      "items": {
+        "$ref": "#/definitions/Output"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "nodes",
+    "outputs"
+  ],
+  "title": "Scene",
+  "type": "object"
+}

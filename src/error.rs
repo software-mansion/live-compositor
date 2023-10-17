@@ -22,6 +22,14 @@ impl ApiError {
             http_status_code,
         }
     }
+
+    pub fn malformed_request(err: &dyn std::error::Error) -> Self {
+        ApiError::new(
+            "MALFORMED_REQUEST",
+            format!("Received malformed request:\n{err}"),
+            StatusCode(400),
+        )
+    }
 }
 
 impl<T> From<T> for ApiError

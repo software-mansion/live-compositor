@@ -2,11 +2,12 @@ use std::sync::Arc;
 
 use compositor_common::{
     renderer_spec::{ImageSpec, RendererId, RendererSpec, ShaderSpec, WebRendererSpec},
-    scene::{InputId, OutputId, Resolution, SceneSpec},
+    scene::{InputId, OutputId, Resolution},
 };
 use compositor_pipeline::pipeline::{self, encoder::EncoderSettings};
 use compositor_render::{event_loop::EventLoop, registry::RegistryType};
 use crossbeam_channel::{bounded, Receiver};
+
 use serde::{Deserialize, Serialize};
 use tiny_http::StatusCode;
 
@@ -14,6 +15,7 @@ use crate::{
     error::ApiError,
     rtp_receiver::{self, RtpReceiver},
     rtp_sender::{self, RtpSender},
+    types::{self, Scene},
 };
 
 pub type Pipeline = compositor_pipeline::Pipeline<RtpReceiver, RtpSender>;
@@ -39,7 +41,7 @@ pub enum Request {
     Init(pipeline::Options),
     Register(RegisterRequest),
     Unregister(UnregisterRequest),
-    UpdateScene(Arc<SceneSpec>),
+    UpdateScene(types::Scene),
     Query(QueryRequest),
     Start,
 }
@@ -77,7 +79,7 @@ pub enum QueryRequest {
 #[serde(untagged)]
 pub enum Response {
     Ok {},
-    Scene(Arc<SceneSpec>),
+    Scene(Scene),
     Inputs { inputs: Vec<InputInfo> },
     Outputs { outputs: Vec<OutputInfo> },
 }
@@ -131,7 +133,11 @@ impl Api {
                 Ok(ResponseHandler::Ok)
             }
             Request::UpdateScene(scene_spec) => {
-                self.pipeline.update_scene(scene_spec)?;
+                self.pipeline.update_scene(Arc::new(
+                    scene_spec
+                        .try_into()
+                        .map_err(|err: anyhow::Error| ApiError::malformed_request(err.as_ref()))?,
+                ))?;
                 Ok(ResponseHandler::Ok)
             }
             Request::Query(query) => self.handle_query(query),
@@ -151,7 +157,12 @@ impl Api {
                 Ok(ResponseHandler::DeferredResponse(receiver))
             }
             QueryRequest::Scene => Ok(ResponseHandler::Response(Response::Scene(
-                self.pipeline.renderer().scene_spec(),
+                self.pipeline
+                    .renderer()
+                    .scene_spec()
+                    .as_ref()
+                    .clone()
+                    .into(),
             ))),
             QueryRequest::Inputs => {
                 let inputs = self
