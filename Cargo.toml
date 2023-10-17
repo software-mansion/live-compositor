@@ -11,6 +11,7 @@ members = [
     "compositor_render",
     "compositor_pipeline",
     "compositor_chromium",
+    "compositor_snapshot_test",
 ]
 resolver = "2"
 
@@ -34,6 +35,7 @@ compositor_common = { path = "compositor_common" }
 compositor_render = { path = "compositor_render" }
 compositor_pipeline = { path = "compositor_pipeline" }
 compositor_chromium = { path = "compositor_chromium" }
+compositor_snapshot_test = { path = "compositor_snapshot_test" }
 serde = { workspace = true }
 serde_json = { workspace = true }
 anyhow = { workspace = true }

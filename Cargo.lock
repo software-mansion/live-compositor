@@ -430,6 +430,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "compositor_snapshot_test"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "compositor_common",
+ "compositor_render",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "core-foundation"
 version = "0.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2812,6 +2823,7 @@ dependencies = [
  "compositor_common",
  "compositor_pipeline",
  "compositor_render",
+ "compositor_snapshot_test",
  "crossbeam-channel",
  "env_logger",
  "ffmpeg-next",

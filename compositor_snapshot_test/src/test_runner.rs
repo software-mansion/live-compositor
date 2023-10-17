@@ -1,9 +1,4 @@
-use std::{
-    fs,
-    path::{Path, PathBuf},
-    sync::Arc,
-    time::Duration,
-};
+use std::{fs, path::PathBuf, sync::Arc, time::Duration};
 
 use anyhow::{anyhow, Result};
 use compositor_common::{
@@ -16,18 +11,19 @@ use compositor_render::{
 };
 use serde::Deserialize;
 
-use crate::utils::{ask, frame_to_bytes};
+use crate::{
+    utils::{are_snapshots_equal, frame_to_bytes},
+    SNAPSHOTS_DIR_NAME,
+};
 
 pub struct TestRunner<'a> {
-    run_mode: RunMode,
-    config_path: &'a Path,
+    test_name: &'a str,
     scene: Arc<SceneSpec>,
     renderer: Renderer,
 }
 
 impl<'a> TestRunner<'a> {
-    pub fn new(run_mode: RunMode, config_path: &'a Path) -> Result<Self> {
-        let config: SnapshotTestConfig = serde_json::from_str(&fs::read_to_string(config_path)?)?;
+    pub fn new(test_name: &'a str, config: SnapshotTestConfig) -> Result<Self> {
         let scene = config.scene.clone();
         let (mut renderer, _event_loop) = Renderer::new(RendererOptions {
             web_renderer: WebRendererOptions {
@@ -47,10 +43,9 @@ impl<'a> TestRunner<'a> {
         renderer.update_scene(scene.clone())?;
 
         Ok(Self {
-            run_mode,
-            config_path,
             scene,
             renderer,
+            test_name,
         })
     }
 
@@ -62,33 +57,13 @@ impl<'a> TestRunner<'a> {
             let output_frame = outputs.frames.get(&spec.output_id).unwrap();
             let new_snapshot = frame_to_bytes(output_frame);
             let save_path = self.snapshot_save_path(&pts, &spec.output_id);
-
-            if self.run_mode == RunMode::UpdateSnapshots || !save_path.exists() {
+            if !save_path.exists() {
                 fs::write(&save_path, new_snapshot)?;
                 continue;
             }
 
             let old_snapshot = fs::read(&save_path)?;
-            if Self::compare_snapshots(&old_snapshot, &new_snapshot) {
-                continue;
-            }
-
-            if self.run_mode == RunMode::Interactive {
-                let answer = ask(&format!(
-                    "\n\"{}\", PTS({}): Snapshots are different.\nDo you want to overwrite the old snapshot?",
-                    self.config_path.to_string_lossy(),
-                    pts.as_secs_f32()
-                ))?;
-
-                match answer {
-                    true => {
-                        fs::write(&save_path, new_snapshot)?;
-                    }
-                    false => {
-                        println!("Snapshot check skipped");
-                    }
-                }
-
+            if are_snapshots_equal(&old_snapshot, &new_snapshot) {
                 continue;
             }
 
@@ -97,35 +72,22 @@ impl<'a> TestRunner<'a> {
         Ok(())
     }
 
-    // TODO: Results may slightly differ depending on the platform. There should be an accepted margin of error here
-    fn compare_snapshots(old_snapshot: &[u8], new_snapshot: &[u8]) -> bool {
-        old_snapshot == new_snapshot
-    }
-
     fn snapshot_save_path(&self, pts: &Duration, output_id: &OutputId) -> PathBuf {
-        let snapshots_path = self.config_path.parent().unwrap().join("snapshots");
+        let snapshots_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .unwrap()
+            .join(SNAPSHOTS_DIR_NAME)
+            .join("snapshots");
         if !snapshots_path.exists() {
             fs::create_dir_all(&snapshots_path).unwrap();
         }
-        let out_file_name = format!(
-            "{}_{}_{}.yuv",
-            self.config_path.file_stem().unwrap().to_string_lossy(),
-            pts.as_millis(),
-            output_id
-        );
+        let out_file_name = format!("{}_{}_{}.yuv", self.test_name, pts.as_millis(), output_id);
         snapshots_path.join(out_file_name)
     }
 }
 
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub enum RunMode {
-    Interactive,
-    NonInteractive,
-    UpdateSnapshots,
-}
-
 #[derive(Debug, Deserialize)]
-struct SnapshotTestConfig {
+pub struct SnapshotTestConfig {
     renderers: Vec<RendererSpec>,
     scene: Arc<SceneSpec>,
 }
