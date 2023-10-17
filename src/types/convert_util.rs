@@ -84,9 +84,9 @@ impl TryFrom<Coord> for coord::Coord {
     type Error = anyhow::Error;
 
     fn try_from(value: Coord) -> Result<Self, Self::Error> {
+        const PARSE_ERROR_MESSAGE: &str = "Invalid format. Coord definition can only be specified as number (pixels count), number with `px` suffix (pixels count) or number with `%` suffix (percents count)";
         fn parse_i32(str: &str) -> Result<i32> {
-            str.parse::<i32>()
-                .or(Err(anyhow!("{str} is not a valid integer.")))
+            str.parse::<i32>().or(Err(anyhow!(PARSE_ERROR_MESSAGE)))
         }
         match value {
             Coord::Number(value) => Ok(coord::Coord::Pixel(value)),
