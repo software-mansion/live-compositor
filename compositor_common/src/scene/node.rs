@@ -23,16 +23,14 @@ pub enum NodeParams {
     Image {
         image_id: RendererId,
     },
-    Builtin {
-        transformation: BuiltinSpec,
-    },
+    Builtin(BuiltinSpec),
     Transition(TransitionSpec),
 }
 
 impl NodeSpec {
     pub fn validate_params(&self) -> Result<(), NodeSpecValidationError> {
         match &self.params {
-            NodeParams::Builtin { transformation } => Ok(transformation.validate_params(self)?),
+            NodeParams::Builtin(transformation) => Ok(transformation.validate_params(self)?),
             NodeParams::Transition(TransitionSpec { start, end, .. }) => {
                 start.validate_params(self)?;
                 end.validate_params(self)?;
