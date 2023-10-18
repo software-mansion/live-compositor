@@ -1,4 +1,3 @@
-use anyhow::{anyhow, Result};
 use compositor_common::{
     scene,
     util::{align, colors, coord, degree},
@@ -81,12 +80,13 @@ impl From<degree::Degree> for Degree {
 }
 
 impl TryFrom<Coord> for coord::Coord {
-    type Error = anyhow::Error;
+    type Error = TypeError;
 
     fn try_from(value: Coord) -> Result<Self, Self::Error> {
         const PARSE_ERROR_MESSAGE: &str = "Invalid format. Coord definition can only be specified as number (pixels count), number with `px` suffix (pixels count) or number with `%` suffix (percents count)";
-        fn parse_i32(str: &str) -> Result<i32> {
-            str.parse::<i32>().or(Err(anyhow!(PARSE_ERROR_MESSAGE)))
+        fn parse_i32(str: &str) -> Result<i32, TypeError> {
+            str.parse::<i32>()
+                .or(Err(TypeError::new(PARSE_ERROR_MESSAGE)))
         }
         match value {
             Coord::Number(value) => Ok(coord::Coord::Pixel(value)),
@@ -116,18 +116,18 @@ impl From<coord::Coord> for Coord {
 }
 
 impl TryFrom<RGBColor> for colors::RGBColor {
-    type Error = anyhow::Error;
+    type Error = TypeError;
 
     fn try_from(value: RGBColor) -> std::result::Result<Self, Self::Error> {
         let s = &value.0;
         if s.len() != 7 {
-            return Err(anyhow!(
-                "Invalid format. Color has to be in #RRGGBB format."
+            return Err(TypeError::new(
+                "Invalid format. Color has to be in #RRGGBB format.",
             ));
         }
         if !s.starts_with('#') {
-            return Err(anyhow!(
-                "Invalid format. Color definition has to start with #"
+            return Err(TypeError::new(
+                "Invalid format. Color definition has to start with #",
             ));
         }
         let (r, g, b) = (&s[1..3], &s[3..5], &s[5..7]);
@@ -147,18 +147,18 @@ impl From<colors::RGBColor> for RGBColor {
 }
 
 impl TryFrom<RGBAColor> for colors::RGBAColor {
-    type Error = anyhow::Error;
+    type Error = TypeError;
 
     fn try_from(value: RGBAColor) -> std::result::Result<Self, Self::Error> {
         let s = &value.0;
         if s.len() != 9 {
-            return Err(anyhow!(
-                "Invalid format. Color has to be in #RRGGBBAA format."
+            return Err(TypeError::new(
+                "Invalid format. Color has to be in #RRGGBBAA format.",
             ));
         }
         if !s.starts_with('#') {
-            return Err(anyhow!(
-                "Invalid format. Color definition has to start with #"
+            return Err(TypeError::new(
+                "Invalid format. Color definition has to start with #",
             ));
         }
         let (r, g, b, a) = (&s[1..3], &s[3..5], &s[5..7], &s[7..9]);

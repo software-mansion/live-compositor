@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -40,3 +42,26 @@ pub struct RGBColor(pub String);
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 pub struct RGBAColor(pub String);
+
+pub struct TypeError(String);
+
+impl<E> From<E> for TypeError
+where
+    E: std::error::Error + Send + Sync + 'static,
+{
+    fn from(err: E) -> Self {
+        Self(err.to_string())
+    }
+}
+
+impl Display for TypeError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl TypeError {
+    pub fn new<S: Into<String>>(msg: S) -> Self {
+        Self(msg.into())
+    }
+}

@@ -43,6 +43,9 @@ jobs:
             - name: 📎 Run clippy
               run: cargo clippy --workspace --all-targets --all-features -- -D warnings
 
+            - name: Generate JSON schema
+              run: cargo run --bin generate_json_schema
+
             - name: 🧪 Run tests
               run: cargo nextest run --no-fail-fast --workspace
 
