@@ -14,9 +14,10 @@ use crate::transformations::{
     builtin::BuiltinNode, image_renderer::ImageNode, text_renderer::TextRendererNode,
     web_renderer::node::WebRendererNode,
 };
+use crate::wgpu::texture::NodeTexture;
 
 use super::renderers::Renderers;
-use super::{texture::NodeTexture, RenderCtx};
+use super::RenderCtx;
 
 pub enum RenderNode {
     Shader(ShaderNode),

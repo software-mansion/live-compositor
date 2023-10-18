@@ -18,10 +18,7 @@ use wgpu::{
     RenderPassDescriptor, TextureFormat,
 };
 
-use crate::{
-    renderer::{texture::NodeTexture, RenderCtx},
-    utils::rgba_to_wgpu_color,
-};
+use crate::{renderer::RenderCtx, utils::rgba_to_wgpu_color, wgpu::texture::NodeTexture};
 
 #[allow(dead_code)]
 pub struct TextParams {

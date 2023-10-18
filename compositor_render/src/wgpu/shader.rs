@@ -1,23 +1,19 @@
-use crate::renderer::{
-    texture::{NodeTexture, NodeTextureState},
-    CommonShaderParameters, WgpuError, WgpuErrorScope,
-};
-
 use std::{sync::Arc, time::Duration};
 
 use compositor_common::scene::{shader::ShaderParam, NodeId};
 
-use crate::renderer::{texture::Texture, WgpuCtx};
+use self::{common_params::CommonShaderParameters, pipeline::Pipeline};
 
-use self::{
-    error::{ParametersValidationError, ShaderValidationError},
-    pipeline::Pipeline,
-    validation::{validate_contains_header, validate_params},
+use super::{
+    texture::{NodeTexture, NodeTextureState, Texture},
+    validation::{
+        validate_contains_header, validate_params, ParametersValidationError, ShaderValidationError,
+    },
+    WgpuCtx, WgpuError, WgpuErrorScope,
 };
 
-pub mod error;
-mod pipeline;
-pub mod validation;
+pub(super) mod common_params;
+pub(super) mod pipeline;
 
 const INPUT_TEXTURES_AMOUNT: u32 = 16;
 
@@ -51,14 +47,14 @@ pub enum CreateShaderError {
 /// @group(2) @binding(0) var sampler_: sampler;
 /// ```
 #[derive(Debug)]
-pub struct GpuShader {
+pub struct WgpuShader {
     pub wgpu_ctx: Arc<WgpuCtx>,
     pipeline: Pipeline,
     empty_texture: Texture,
     shader: naga::Module,
 }
 
-impl GpuShader {
+impl WgpuShader {
     pub fn new(wgpu_ctx: &Arc<WgpuCtx>, shader_src: String) -> Result<Self, CreateShaderError> {
         let scope = WgpuErrorScope::push(&wgpu_ctx.device);
 

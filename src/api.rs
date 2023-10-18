@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use compositor_pipeline::pipeline;
-use compositor_render::{event_loop::EventLoop, registry::RegistryType};
+use compositor_pipeline::pipeline::{self};
+use compositor_render::{EventLoop, RegistryType};
 use crossbeam_channel::{bounded, Receiver};
 
 use serde::{Deserialize, Serialize};
