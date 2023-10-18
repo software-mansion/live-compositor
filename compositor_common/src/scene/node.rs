@@ -1,5 +1,3 @@
-use serde::{Deserialize, Serialize};
-
 use crate::{error::NodeSpecValidationError, renderer_spec::RendererId};
 
 use super::{
@@ -11,8 +9,7 @@ use super::{
     NodeSpec, Resolution,
 };
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(tag = "type", rename_all = "snake_case")]
+#[derive(Debug, Clone)]
 pub enum NodeParams {
     WebRenderer {
         instance_id: RendererId,
@@ -26,9 +23,7 @@ pub enum NodeParams {
     Image {
         image_id: RendererId,
     },
-    #[serde(rename = "built-in")]
     Builtin {
-        #[serde(flatten)]
         transformation: BuiltinSpec,
     },
     Transition(TransitionSpec),

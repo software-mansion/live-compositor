@@ -1,26 +1,18 @@
 use std::{f64::consts::PI, time::Duration};
 
-use serde::{Deserialize, Serialize};
-use serde_with::{serde_as, DurationMilliSeconds};
-
 use crate::util::InterpolationState;
 
 use super::builtin_transformations::{BuiltinSpec, FixedPositionLayoutSpec};
 
-#[serde_as]
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Clone)]
 pub struct TransitionSpec {
     pub start: BuiltinSpec,
     pub end: BuiltinSpec,
-    #[serde_as(as = "DurationMilliSeconds<f64>")]
-    #[serde(rename = "transition_duration_ms")]
     pub transition_duration: Duration,
-    #[serde(flatten)]
     pub interpolation: Interpolation,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(tag = "interpolation", rename_all = "snake_case")]
+#[derive(Debug, Clone)]
 pub enum Interpolation {
     Linear,
     Spring,

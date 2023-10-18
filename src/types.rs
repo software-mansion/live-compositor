@@ -14,6 +14,9 @@ mod register_request;
 mod renderer;
 mod util;
 
+#[cfg(test)]
+mod convert_util_test;
+
 pub use node::Node;
 pub use node::WebRenderer;
 pub use register_request::RegisterInputRequest;

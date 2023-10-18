@@ -1,14 +1,12 @@
 use std::{fmt::Display, sync::Arc};
 
-use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct NodeId(pub Arc<str>);
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct InputId(pub NodeId);
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct OutputId(pub NodeId);
 
 impl Display for InputId {

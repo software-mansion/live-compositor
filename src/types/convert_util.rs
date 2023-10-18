@@ -127,15 +127,23 @@ impl TryFrom<RGBColor> for colors::RGBColor {
         }
         if !s.starts_with('#') {
             return Err(TypeError::new(
-                "Invalid format. Color definition has to start with #",
+                "Invalid format. Color definition has to start with #.",
             ));
         }
         let (r, g, b) = (&s[1..3], &s[3..5], &s[5..7]);
 
+        fn parse_color_channel(value: &str) -> Result<u8, TypeError> {
+            u8::from_str_radix(value, 16).map_err(|_err| {
+                TypeError::new(
+                    "Invalid format. Color representation is not a valid hexadecimal number.",
+                )
+            })
+        }
+
         Ok(Self(
-            u8::from_str_radix(r, 16)?,
-            u8::from_str_radix(g, 16)?,
-            u8::from_str_radix(b, 16)?,
+            parse_color_channel(r)?,
+            parse_color_channel(g)?,
+            parse_color_channel(b)?,
         ))
     }
 }
@@ -158,16 +166,24 @@ impl TryFrom<RGBAColor> for colors::RGBAColor {
         }
         if !s.starts_with('#') {
             return Err(TypeError::new(
-                "Invalid format. Color definition has to start with #",
+                "Invalid format. Color definition has to start with #.",
             ));
         }
         let (r, g, b, a) = (&s[1..3], &s[3..5], &s[5..7], &s[7..9]);
 
+        fn parse_color_channel(value: &str) -> Result<u8, TypeError> {
+            u8::from_str_radix(value, 16).map_err(|_err| {
+                TypeError::new(
+                    "Invalid format. Color representation is not a valid hexadecimal number.",
+                )
+            })
+        }
+
         Ok(Self(
-            u8::from_str_radix(r, 16)?,
-            u8::from_str_radix(g, 16)?,
-            u8::from_str_radix(b, 16)?,
-            u8::from_str_radix(a, 16)?,
+            parse_color_channel(r)?,
+            parse_color_channel(g)?,
+            parse_color_channel(b)?,
+            parse_color_channel(a)?,
         ))
     }
 }

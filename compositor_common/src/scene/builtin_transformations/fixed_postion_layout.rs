@@ -1,27 +1,22 @@
-use serde::{Deserialize, Serialize};
-
 use crate::{
     scene::{transition::TransitionValidationError, Resolution},
     util::{colors::RGBAColor, coord::Coord, degree::Degree},
 };
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct TextureLayout {
     pub top: Option<Coord>,
     pub bottom: Option<Coord>,
     pub left: Option<Coord>,
     pub right: Option<Coord>,
-    #[serde(default = "default_scale")]
     pub scale: f32,
-    #[serde(default)]
     pub rotation: Degree,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct FixedPositionLayoutSpec {
     pub resolution: Resolution,
     pub texture_layouts: Vec<TextureLayout>,
-    #[serde(default)]
     pub background_color_rgba: RGBAColor,
 }
 
@@ -51,8 +46,4 @@ impl FixedPositionLayoutSpec {
 
         Ok(())
     }
-}
-
-fn default_scale() -> f32 {
-    1.0
 }

@@ -1,12 +1,9 @@
-use serde::{Deserialize, Serialize};
-
 use crate::{
     error::{InputCountConstraintValidationError, UnsatisfiedConstraintsError},
     scene::NodeSpec,
 };
 
-#[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
-#[serde(untagged)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum InputCountConstraint {
     Exact { fixed_count: u32 },
     // TODO validate that lower bound <= upper bound

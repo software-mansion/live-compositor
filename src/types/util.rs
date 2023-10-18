@@ -27,7 +27,7 @@ pub enum VerticalAlign {
     Justified,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema, PartialEq)]
 #[serde(untagged)]
 pub enum Coord {
     Number(i32),
@@ -37,12 +37,13 @@ pub enum Coord {
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 pub struct Degree(pub f64);
 
-#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema, PartialEq)]
 pub struct RGBColor(pub String);
 
-#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema, PartialEq)]
 pub struct RGBAColor(pub String);
 
+#[derive(Debug, PartialEq)]
 pub struct TypeError(String);
 
 impl<E> From<E> for TypeError
