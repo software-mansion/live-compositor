@@ -1,0 +1,24 @@
+name: 'Close issue when opened'
+on:
+  issues:
+    types:
+      - opened
+jobs:
+  close:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout membrane_core
+      uses: actions/checkout@v3
+      with:
+        repository: membraneframework/membrane_core
+    - name: Create label if it not exists
+      uses: ./.github/actions/create_label
+      with:
+        GITHUB_TOKEN: ${{ secrets.MEMBRANEFRAMEWORKADMIN_TOKEN }}
+    - name: Close issue 
+      uses: ./.github/actions/close_issue
+      with:
+        GITHUB_TOKEN: ${{ secrets.MEMBRANEFRAMEWORKADMIN_TOKEN }}
+        ISSUE_URL: ${{ github.event.issue.html_url }}
+        ISSUE_NUMBER: ${{ github.event.issue.number }}
+        REPOSITORY: ${{ github.repository }}
