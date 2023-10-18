@@ -1,5 +1,3 @@
-use serde::{Deserialize, Serialize};
-
 pub mod builtin_transformations;
 pub mod constraints;
 pub mod id;
@@ -22,7 +20,7 @@ pub const MAX_NODE_RESOLUTION: Resolution = Resolution {
     height: 4320,
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Resolution {
     pub width: usize,
     pub height: usize,

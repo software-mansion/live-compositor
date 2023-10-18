@@ -1,54 +1,17 @@
 use std::sync::Arc;
 
 use glyphon::AttrsOwned;
-use serde::{Deserialize, Serialize};
 
 use crate::util::{align::HorizontalAlign, colors::RGBAColor};
 
-use super::MAX_NODE_RESOLUTION;
-
-fn default_color() -> RGBAColor {
-    RGBAColor(255, 255, 255, 255)
-}
-
-fn default_family() -> String {
-    String::from("Arial")
-}
-
-fn default_style() -> Style {
-    Style::Normal
-}
-
-fn default_align() -> HorizontalAlign {
-    HorizontalAlign::Left
-}
-
-fn default_wrap() -> Wrap {
-    Wrap::None
-}
-
-fn default_weight() -> Weight {
-    Weight::Normal
-}
-
-fn default_max_width() -> u32 {
-    MAX_NODE_RESOLUTION.width as u32
-}
-
-fn default_max_height() -> u32 {
-    MAX_NODE_RESOLUTION.height as u32
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(rename_all = "snake_case")]
+#[derive(Debug, Clone)]
 pub enum Style {
     Normal,
     Italic,
     Oblique,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(rename_all = "snake_case")]
+#[derive(Debug, Clone)]
 pub enum Wrap {
     None,
     Glyph,
@@ -65,8 +28,7 @@ impl From<Wrap> for glyphon::cosmic_text::Wrap {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(rename_all = "snake_case")]
+#[derive(Debug, Clone)]
 pub enum Weight {
     Thin,
     ExtraLight,
@@ -95,29 +57,21 @@ impl From<&Weight> for glyphon::Weight {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(tag = "type")]
+#[derive(Debug, Clone)]
 pub struct TextSpec {
     pub content: Arc<str>,
     /// in pixels
     pub font_size: f32,
     /// in pixels, default: same as font_size
     pub line_height: Option<f32>,
-    #[serde(default = "default_color")]
     pub color_rgba: RGBAColor,
     /// https://www.w3.org/TR/2018/REC-css-fonts-3-20180920/#family-name-value   
     /// use font family name, not generic family name
-    #[serde(default = "default_family")]
     pub font_family: String,
-    #[serde(default = "default_style")]
     pub style: Style,
-    #[serde(default = "default_align")]
     pub align: HorizontalAlign,
-    #[serde(default = "default_weight")]
     pub weight: Weight,
-    #[serde(default = "default_wrap")]
     pub wrap: Wrap,
-    #[serde(default)]
     pub background_color_rgba: RGBAColor,
     pub dimensions: TextDimensions,
 }
@@ -146,22 +100,21 @@ impl From<&TextSpec> for AttrsOwned {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
-#[serde(tag = "type", rename_all = "snake_case")]
+#[derive(Debug, Clone, Copy)]
 pub enum TextDimensions {
     /// Renders text and "trims" texture to smallest possible size
     Fitted {
-        #[serde(default = "default_max_width")]
         max_width: u32,
-        #[serde(default = "default_max_height")]
         max_height: u32,
     },
     FittedColumn {
         width: u32,
-        #[serde(default = "default_max_height")]
         max_height: u32,
     },
     /// Renders text according to provided spec
     /// and outputs texture with provided fixed size
-    Fixed { width: u32, height: u32 },
+    Fixed {
+        width: u32,
+        height: u32,
+    },
 }

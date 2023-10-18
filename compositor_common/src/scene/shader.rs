@@ -1,7 +1,4 @@
-use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(tag = "type", rename_all = "snake_case", content = "value")]
+#[derive(Debug, Clone)]
 pub enum ShaderParam {
     F32(f32),
     U32(u32),
@@ -10,10 +7,9 @@ pub enum ShaderParam {
     Struct(Vec<ShaderParamStructField>),
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Clone)]
 pub struct ShaderParamStructField {
     pub field_name: String,
-    #[serde(flatten)]
     pub value: ShaderParam,
 }
 

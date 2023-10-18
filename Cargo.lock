@@ -382,7 +382,6 @@ dependencies = [
  "lazy_static",
  "log",
  "serde",
- "serde_with",
  "thiserror",
 ]
 
