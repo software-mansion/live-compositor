@@ -1,7 +1,7 @@
 use std::{fs, io, path::PathBuf};
 
-#[path = "../../snapshot_tests.rs"]
 #[allow(dead_code)]
+#[path = "../../snapshot_tests.rs"]
 mod snapshot_tests;
 
 use snapshot_tests::SNAPSHOTS_DIR_NAME;
@@ -16,5 +16,6 @@ fn main() {
         }
     }
 
-    snapshot_tests::snapshot_tests();
+    println!("Updating all snapshots:");
+    snapshot_tests::run_snapshot_tests();
 }
