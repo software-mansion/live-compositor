@@ -180,7 +180,7 @@ impl TestCase {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TestInput {
     pub name: String,
     pub resolution: Resolution,

@@ -1,0 +1,20 @@
+{
+    "nodes": [
+        {
+            "node_id": "text_1",
+            "type": "text",
+            "content": "Example text",
+            "font_size": 100,
+            "font_family": "Arial",
+            "dimensions": {
+                "type": "fitted"
+            }
+        }
+    ],
+    "outputs": [
+        {
+            "output_id": "output_1",
+            "input_pad": "text_1"
+        }
+    ]
+}

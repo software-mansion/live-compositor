@@ -1,0 +1,28 @@
+{
+    "nodes": [
+        {
+            "node_id": "layout",
+            "type": "builtin:tiled_layout",
+            "input_pads": [
+                "input_1",
+                "input_2",
+                "input_3"
+            ],
+            "vertical_alignment": "top",
+            "horizontal_alignment": "left",
+            "background_color_rgba": "#333333FF",
+            "margin": 20,
+            "padding": 20,
+            "resolution": {
+                "width": 1280,
+                "height": 720
+            }
+        }
+    ],
+    "outputs": [
+        {
+            "output_id": "output_1",
+            "input_pad": "layout"
+        }
+    ]
+}
