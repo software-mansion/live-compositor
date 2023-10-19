@@ -5,12 +5,22 @@ use crate::{
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct TextureLayout {
-    pub top: Option<Coord>,
-    pub bottom: Option<Coord>,
-    pub left: Option<Coord>,
-    pub right: Option<Coord>,
+    pub horizontal_position: HorizontalPosition,
+    pub vertical_position: VerticalPosition,
     pub scale: f32,
     pub rotation: Degree,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum VerticalPosition {
+    Top(Coord),
+    Bottom(Coord),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum HorizontalPosition {
+    Left(Coord),
+    Right(Coord),
 }
 
 #[derive(Debug, Clone, PartialEq)]

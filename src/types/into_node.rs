@@ -31,7 +31,7 @@ impl From<NodeSpec> for Node {
                 image_id: image_id.into(),
             }),
             scene::NodeParams::Transition(spec) => NodeParams::Transition(spec.into()),
-            scene::NodeParams::Builtin { transformation } => match transformation {
+            scene::NodeParams::Builtin(transformation) => match transformation {
                 scene::builtin_transformations::BuiltinSpec::TransformToResolution {
                     resolution,
                     strategy,
@@ -220,10 +220,24 @@ impl From<builtin_transformations::FixedPositionLayoutSpec> for FixedPositionLay
     fn from(spec: builtin_transformations::FixedPositionLayoutSpec) -> Self {
         fn from_texture_layout(layout: builtin_transformations::TextureLayout) -> TextureLayout {
             TextureLayout {
-                top: layout.top.map(Into::into),
-                bottom: layout.bottom.map(Into::into),
-                left: layout.left.map(Into::into),
-                right: layout.right.map(Into::into),
+                top: match layout.vertical_position {
+                    builtin_transformations::VerticalPosition::Top(top) => Some(top.into()),
+                    builtin_transformations::VerticalPosition::Bottom(_) => None,
+                },
+                bottom: match layout.vertical_position {
+                    builtin_transformations::VerticalPosition::Top(_) => None,
+                    builtin_transformations::VerticalPosition::Bottom(bottom) => {
+                        Some(bottom.into())
+                    }
+                },
+                left: match layout.horizontal_position {
+                    builtin_transformations::HorizontalPosition::Left(left) => Some(left.into()),
+                    builtin_transformations::HorizontalPosition::Right(_) => None,
+                },
+                right: match layout.horizontal_position {
+                    builtin_transformations::HorizontalPosition::Left(_) => None,
+                    builtin_transformations::HorizontalPosition::Right(right) => Some(right.into()),
+                },
                 scale: Some(layout.scale),
                 rotation: Some(layout.rotation.into()),
             }

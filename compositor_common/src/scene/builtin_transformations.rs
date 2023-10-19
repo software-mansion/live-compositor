@@ -15,7 +15,9 @@ pub(crate) mod fixed_postion_layout;
 pub mod tiled_layout;
 
 pub use fixed_postion_layout::FixedPositionLayoutSpec;
+pub use fixed_postion_layout::HorizontalPosition;
 pub use fixed_postion_layout::TextureLayout;
+pub use fixed_postion_layout::VerticalPosition;
 
 pub const TILED_LAYOUT_MAX_INPUTS_COUNT: u32 = 16;
 pub const FIXED_POSITION_LAYOUT_MAX_INPUTS_COUNT: u32 = 16;
@@ -105,35 +107,6 @@ impl BuiltinSpec {
                         layout_count: texture_layouts.len() as u32,
                         input_count: node_spec.input_pads.len() as u32,
                     });
-                }
-
-                for layout in texture_layouts {
-                    match layout {
-                        TextureLayout {
-                            top: None,
-                            bottom: None,
-                            ..
-                        } => return Err(BuiltinSpecValidationError::FixedLayoutTopBottomRequired),
-                        TextureLayout {
-                            top: Some(_),
-                            bottom: Some(_),
-                            ..
-                        } => return Err(BuiltinSpecValidationError::FixedLayoutTopBottomOnlyOne),
-                        _ => (),
-                    };
-                    match layout {
-                        TextureLayout {
-                            left: None,
-                            right: None,
-                            ..
-                        } => return Err(BuiltinSpecValidationError::FixedLayoutLeftRightRequired),
-                        TextureLayout {
-                            left: Some(_),
-                            right: Some(_),
-                            ..
-                        } => return Err(BuiltinSpecValidationError::FixedLayoutLeftRightOnlyOne),
-                        _ => (),
-                    };
                 }
                 Ok(())
             }

@@ -5,6 +5,7 @@ use compositor_common::{
         self,
         builtin_transformations::{
             self, tiled_layout::TiledLayoutSpec, BuiltinSpec, FixedPositionLayoutSpec,
+            HorizontalPosition, VerticalPosition,
         },
         shader,
         text_spec::{self, TextSpec},
@@ -26,21 +27,11 @@ impl TryFrom<Node> for NodeSpec {
             NodeParams::Image(node) => node.into(),
             NodeParams::Text(node) => node.try_into()?,
             NodeParams::Transition(node) => node.try_into()?,
-            NodeParams::TransformToResolution(node) => scene::NodeParams::Builtin {
-                transformation: node.try_into()?,
-            },
-            NodeParams::FixedPositionLayout(node) => scene::NodeParams::Builtin {
-                transformation: node.try_into()?,
-            },
-            NodeParams::TiledLayout(node) => scene::NodeParams::Builtin {
-                transformation: node.try_into()?,
-            },
-            NodeParams::MirrorImage(node) => scene::NodeParams::Builtin {
-                transformation: node.into(),
-            },
-            NodeParams::CornersRounding(node) => scene::NodeParams::Builtin {
-                transformation: node.try_into()?,
-            },
+            NodeParams::TransformToResolution(node) => scene::NodeParams::Builtin(node.try_into()?),
+            NodeParams::FixedPositionLayout(node) => scene::NodeParams::Builtin(node.try_into()?),
+            NodeParams::TiledLayout(node) => scene::NodeParams::Builtin(node.try_into()?),
+            NodeParams::MirrorImage(node) => scene::NodeParams::Builtin(node.into()),
+            NodeParams::CornersRounding(node) => scene::NodeParams::Builtin(node.try_into()?),
         };
         let spec = Self {
             node_id: node.node_id.into(),
@@ -266,38 +257,26 @@ impl TryFrom<TextureLayout> for builtin_transformations::TextureLayout {
     type Error = TypeError;
 
     fn try_from(value: TextureLayout) -> Result<Self, Self::Error> {
-        match value {
-                TextureLayout {
-                    top: None,
-                    bottom: None,
-                    ..
-                } => return Err(TypeError::new("Each entry in texture_layouts in transformation \"fixed_position_layout\" requires either bottom or top coordinate.")),
-                TextureLayout {
-                    top: Some(_),
-                    bottom: Some(_),
-                    ..
-                } => return Err(TypeError::new("Fields \"top\" and \"bottom\" are mutually exclusive, you can only specify one in texture layout in \"fixed_position_layout\" transformation.")),
-                _ => (),
-            };
-        match value {
-                TextureLayout {
-                    left: None,
-                    right: None,
-                    ..
-                } => return Err(TypeError::new("Each entry in texture_layouts in transformation \"fixed_position_layout\" requires either right or left coordinate.")),
-                TextureLayout {
-                    left: Some(_),
-                    right: Some(_),
-                    ..
-                } => return Err(TypeError::new("Fields \"left\" and \"right\" are mutually exclusive, you can only specify one in texture layout in \"fixed_position_layout\" transformation.")),
-                _ => (),
-            };
+        const VERTICAL_REQUIRED_MSG: &str = "Each entry in texture_layouts in transformation \"fixed_position_layout\" requires either bottom or top coordinate.";
+        const VERTICAL_ONLY_ONE_MSG: &str = "Fields \"top\" and \"bottom\" are mutually exclusive, you can only specify one in texture layout in \"fixed_position_layout\" transformation.";
+        const HORIZONTAL_REQUIRED_MSG: &str = "Each entry in texture_layouts in transformation \"fixed_position_layout\" requires either right or left coordinate.";
+        const HORIZONTAL_ONLY_ONE_MSG: &str = "Fields \"left\" and \"right\" are mutually exclusive, you can only specify one in texture layout in \"fixed_position_layout\" transformation.";
+        let vertical_position = match (value.top, value.bottom) {
+            (Some(top), None) => VerticalPosition::Top(top.try_into()?),
+            (None, Some(bottom)) => VerticalPosition::Bottom(bottom.try_into()?),
+            (None, None) => return Err(TypeError::new(VERTICAL_REQUIRED_MSG)),
+            (Some(_), Some(_)) => return Err(TypeError::new(VERTICAL_ONLY_ONE_MSG)),
+        };
+        let horizontal_position = match (value.left, value.right) {
+            (Some(left), None) => HorizontalPosition::Left(left.try_into()?),
+            (None, Some(right)) => HorizontalPosition::Right(right.try_into()?),
+            (None, None) => return Err(TypeError::new(HORIZONTAL_REQUIRED_MSG)),
+            (Some(_), Some(_)) => return Err(TypeError::new(HORIZONTAL_ONLY_ONE_MSG)),
+        };
 
         Ok(Self {
-            top: value.top.map_or(Ok(None), |v| v.try_into().map(Some))?,
-            bottom: value.bottom.map_or(Ok(None), |v| v.try_into().map(Some))?,
-            left: value.left.map_or(Ok(None), |v| v.try_into().map(Some))?,
-            right: value.right.map_or(Ok(None), |v| v.try_into().map(Some))?,
+            vertical_position,
+            horizontal_position,
             scale: value.scale.unwrap_or(1.0),
             rotation: value.rotation.unwrap_or(Degree(0.0)).into(),
         })
