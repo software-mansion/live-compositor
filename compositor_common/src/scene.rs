@@ -1,5 +1,3 @@
-use serde::{Deserialize, Serialize};
-
 pub mod builtin_transformations;
 pub mod constraints;
 pub mod id;
@@ -22,7 +20,7 @@ pub const MAX_NODE_RESOLUTION: Resolution = Resolution {
     height: 4320,
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Resolution {
     pub width: usize,
     pub height: usize,
@@ -36,13 +34,13 @@ impl Resolution {
 
 /// SceneSpec represents configuration that can be used to create new Scene
 /// or update an existing one.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct SceneSpec {
     pub nodes: Vec<NodeSpec>,
     pub outputs: Vec<OutputSpec>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct OutputSpec {
     pub output_id: OutputId,
     pub input_pad: NodeId,
@@ -57,12 +55,10 @@ pub struct OutputSpec {
 /// on how long the initialization is. Heavy operations should be part of renderer and
 /// light ones part of the Node. Simple rule of thumb for what is heavy/light is answer
 /// to the question: Would it still work if it's done every frame.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct NodeSpec {
     pub node_id: NodeId,
-    #[serde(default)]
     pub input_pads: Vec<NodeId>,
     pub fallback_id: Option<NodeId>,
-    #[serde(flatten)]
     pub params: NodeParams,
 }

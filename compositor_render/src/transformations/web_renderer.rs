@@ -2,10 +2,9 @@ use std::env;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
-use crate::renderer::{
-    texture::{BGRATexture, NodeTexture},
-    BGRAToRGBAConverter, RegisterCtx, RenderCtx,
-};
+use crate::renderer::{RegisterCtx, RenderCtx};
+use crate::wgpu::format::bgra_to_rgba::BGRAToRGBAConverter;
+use crate::wgpu::texture::{BGRATexture, NodeTexture};
 
 use compositor_common::{
     renderer_spec::{FallbackStrategy, WebRendererSpec},

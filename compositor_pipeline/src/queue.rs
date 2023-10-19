@@ -8,7 +8,7 @@ use std::{
 };
 
 use compositor_common::{error::ErrorStack, scene::InputId, Frame, Framerate};
-use compositor_render::frame_set::FrameSet;
+use compositor_render::FrameSet;
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use log::error;
 use thiserror::Error;

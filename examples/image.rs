@@ -93,6 +93,7 @@ fn start_example_client_code() -> Result<()> {
         "asset_type": "svg",
         "image_id": "example_svg",
         "path": PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("examples/assets/rust.svg"),
+        "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
     }))?;
     common::post(&json!({
         "type": "register",
@@ -100,7 +101,6 @@ fn start_example_client_code() -> Result<()> {
         "asset_type": "png",
         "image_id": "example_png",
         "url": "https://rust-lang.org/logos/rust-logo-512x512.png",
-        "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
     }))?;
 
     let label_padding = "20px";
@@ -131,8 +131,7 @@ fn start_example_client_code() -> Result<()> {
             },
             {
                 "node_id": "gif_1_rescaled",
-                "type": "built-in",
-                "transformation": "transform_to_resolution",
+                "type": "builtin:transform_to_resolution",
                 "strategy": "fill",
                 "resolution": { "width": 960, "height": 540 },
                 "input_pads": ["gif_1"],
@@ -149,8 +148,7 @@ fn start_example_client_code() -> Result<()> {
             },
             {
                 "node_id": "gif_1_layout",
-                "type": "built-in",
-                "transformation": "fixed_position_layout",
+                "type": "builtin:fixed_position_layout",
                 "texture_layouts": [
                     {
                         "left": "0px",
@@ -167,8 +165,7 @@ fn start_example_client_code() -> Result<()> {
             },
             {
                 "node_id": "png_1_rescaled",
-                "type": "built-in",
-                "transformation": "transform_to_resolution",
+                "type": "builtin:transform_to_resolution",
                 "strategy": "fit",
                 "resolution": { "width": 960, "height": 540 },
                 "input_pads": ["png_1"],
@@ -185,8 +182,7 @@ fn start_example_client_code() -> Result<()> {
             },
             {
                 "node_id": "png_1_layout",
-                "type": "built-in",
-                "transformation": "fixed_position_layout",
+                "type": "builtin:fixed_position_layout",
                 "texture_layouts": [
                     {
                         "left": "0px",
@@ -203,8 +199,7 @@ fn start_example_client_code() -> Result<()> {
             },
             {
                 "node_id": "jpeg_1_rescaled",
-                "type": "built-in",
-                "transformation": "transform_to_resolution",
+                "type": "builtin:transform_to_resolution",
                 "strategy": "fit",
                 "resolution": { "width": 960, "height": 540 },
                 "input_pads": ["jpeg_1"],
@@ -223,8 +218,7 @@ fn start_example_client_code() -> Result<()> {
             },
             {
                 "node_id": "jpeg_1_layout",
-                "type": "built-in",
-                "transformation": "fixed_position_layout",
+                "type": "builtin:fixed_position_layout",
                 "texture_layouts": [
                     {
                         "left": "0px",
@@ -241,8 +235,7 @@ fn start_example_client_code() -> Result<()> {
             },
             {
                 "node_id": "svg_1_rescaled",
-                "type": "built-in",
-                "transformation": "transform_to_resolution",
+                "type": "builtin:transform_to_resolution",
                 "strategy": "fit",
                 "resolution": { "width": 960, "height": 540 },
                 "input_pads": ["svg_1"],
@@ -259,8 +252,7 @@ fn start_example_client_code() -> Result<()> {
             },
             {
                 "node_id": "svg_1_layout",
-                "type": "built-in",
-                "transformation": "fixed_position_layout",
+                "type": "builtin:fixed_position_layout",
                 "texture_layouts": [
                     {
                         "left": "0px",
@@ -277,8 +269,7 @@ fn start_example_client_code() -> Result<()> {
             },
             {
                 "node_id": "layout",
-                "type": "built-in",
-                "transformation": "tiled_layout",
+                "type": "builtin:tiled_layout",
                 "background_color_rgba": "#0000FF00",
                 "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
                 "input_pads": ["gif_1_layout", "png_1_layout", "jpeg_1_layout", "svg_1_layout"],

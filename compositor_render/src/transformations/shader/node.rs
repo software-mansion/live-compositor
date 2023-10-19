@@ -8,7 +8,8 @@ use wgpu::util::DeviceExt;
 
 use crate::{
     error::CreateNodeError,
-    renderer::{texture::NodeTexture, RenderCtx, WgpuCtx},
+    renderer::RenderCtx,
+    wgpu::{texture::NodeTexture, WgpuCtx},
 };
 
 use super::Shader;
@@ -34,7 +35,7 @@ impl ShaderNode {
             .ok_or_else(|| CreateNodeError::ShaderNotFound(shader_id.clone()))?;
 
         if let Some(params) = shader_params {
-            shader.gpu_shader.validate_params(params).map_err(|err| {
+            shader.wgpu_shader.validate_params(params).map_err(|err| {
                 CreateNodeError::ShaderNodeParametersValidationError(err, shader_id.clone())
             })?
         }
@@ -96,8 +97,8 @@ impl ShaderNode {
         target: &mut NodeTexture,
         pts: Duration,
     ) {
-        let target = target.ensure_size(&self.shader.gpu_shader.wgpu_ctx, self.resolution);
-        self.shader.gpu_shader.render(
+        let target = target.ensure_size(&self.shader.wgpu_shader.wgpu_ctx, self.resolution);
+        self.shader.wgpu_shader.render(
             &self.params_bind_group,
             sources,
             target,

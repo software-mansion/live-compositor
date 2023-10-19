@@ -1,4 +1,4 @@
-use crate::renderer::{
+use crate::wgpu::{
     common_pipeline::{surface::SingleSurface, Sampler, Vertex, PRIMITIVE_STATE},
     texture::{RGBATexture, YUVTextures},
 };

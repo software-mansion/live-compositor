@@ -2,13 +2,15 @@ use std::num::NonZeroU32;
 
 use wgpu::ShaderStages;
 
-use crate::renderer::{
+use crate::wgpu::{
     common_pipeline::{surface::Surfaces, Sampler, Vertex},
     texture::Texture,
-    CommonShaderParameters, WgpuCtx,
+    WgpuCtx,
 };
 
-use super::{INPUT_TEXTURES_AMOUNT, USER_DEFINED_BUFFER_GROUP};
+use super::{
+    common_params::CommonShaderParameters, INPUT_TEXTURES_AMOUNT, USER_DEFINED_BUFFER_GROUP,
+};
 
 #[derive(Debug)]
 pub struct Pipeline {

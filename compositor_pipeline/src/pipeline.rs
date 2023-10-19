@@ -11,11 +11,10 @@ use compositor_common::Framerate;
 use compositor_render::error::{
     InitRendererEngineError, RegisterRendererError, UnregisterRendererError,
 };
-use compositor_render::event_loop::EventLoop;
-use compositor_render::registry::RegistryType;
 use compositor_render::renderer::RendererOptions;
-use compositor_render::WebRendererOptions;
+use compositor_render::EventLoop;
 use compositor_render::{error::UpdateSceneError, Renderer};
+use compositor_render::{RegistryType, WebRendererOptions};
 use crossbeam_channel::unbounded;
 use ffmpeg_next::{Codec, Packet};
 use log::{error, warn};

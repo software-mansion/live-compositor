@@ -14,9 +14,10 @@ use crate::transformations::{
     builtin::BuiltinNode, image_renderer::ImageNode, text_renderer::TextRendererNode,
     web_renderer::node::WebRendererNode,
 };
+use crate::wgpu::texture::NodeTexture;
 
 use super::renderers::Renderers;
-use super::{texture::NodeTexture, RenderCtx};
+use super::RenderCtx;
 
 pub enum RenderNode {
     Shader(ShaderNode),
@@ -49,7 +50,7 @@ impl RenderNode {
                 let node = ShaderNode::new(ctx, shader_id, shader_params, resolution)?;
                 Ok(Self::Shader(node))
             }
-            NodeParams::Builtin { transformation } => {
+            NodeParams::Builtin(transformation) => {
                 let node = BuiltinNode::new_static(ctx, transformation, spec.input_pads.len());
 
                 Ok(Self::Builtin(node))
@@ -220,7 +221,7 @@ impl NodeSpecExt for NodeSpec {
                 }),
             NodeParams::Text(_) => Ok(NodeParams::text_constraints()),
             NodeParams::Image { .. } => Ok(NodeParams::image_constraints()),
-            NodeParams::Builtin { transformation } => Ok(transformation.constraints()),
+            NodeParams::Builtin(transformation) => Ok(transformation.constraints()),
             NodeParams::Transition(spec) => Ok(spec.end.constraints()),
         }
     }

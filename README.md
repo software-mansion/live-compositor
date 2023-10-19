@@ -33,6 +33,8 @@ For better performance, build examples with the [release compilation profile](ht
 cargo run --release --example <example_name>
 ```
 
+You can also check out [RTC.ON 2023 workshops repo](https://github.com/membraneframework-labs/rtcon_video_compositor_workshops) for more examples / exercises.
+
 ## Supported platforms
 
 Linux and MacOS.

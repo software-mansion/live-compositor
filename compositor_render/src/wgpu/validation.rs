@@ -1,13 +1,19 @@
 use compositor_common::scene::shader::ShaderParam;
 use naga::{ArraySize, ConstantInner, Handle, Module, ScalarKind, ShaderStage, Type, VectorSize};
 
-use super::{
-    error::{
-        BindingExt, ConstArraySizeEvalError, ParametersValidationError, ShaderGlobalVariableExt,
-        ShaderValidationError, TypeEquivalenceError,
-    },
-    USER_DEFINED_BUFFER_BINDING, USER_DEFINED_BUFFER_GROUP,
-};
+use self::error::BindingExt;
+
+use super::shader::VERTEX_ENTRYPOINT_NAME;
+use super::shader::{USER_DEFINED_BUFFER_BINDING, USER_DEFINED_BUFFER_GROUP};
+
+use error::ShaderGlobalVariableExt;
+
+mod error;
+
+pub use error::ConstArraySizeEvalError;
+pub use error::ParametersValidationError;
+pub use error::ShaderValidationError;
+pub use error::TypeEquivalenceError;
 
 pub fn validate_contains_header(
     header: &naga::Module,
@@ -67,8 +73,7 @@ fn validate_vertex_input(
         .entry_points
         .iter()
         .find(|entry_point| {
-            entry_point.name == super::VERTEX_ENTRYPOINT_NAME
-                && entry_point.stage == ShaderStage::Vertex
+            entry_point.name == VERTEX_ENTRYPOINT_NAME && entry_point.stage == ShaderStage::Vertex
         })
         .ok_or(ShaderValidationError::VertexShaderNotFound)?;
 

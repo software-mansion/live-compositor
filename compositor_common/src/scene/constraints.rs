@@ -1,5 +1,3 @@
-use serde::{Deserialize, Serialize};
-
 use crate::{
     error::UnsatisfiedConstraintsError,
     scene::{NodeId, SceneSpec},
@@ -12,9 +10,8 @@ use super::NodeSpec;
 pub mod input_count;
 
 // TODO validate constraints aren't self-contradictory
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(transparent)]
-pub struct NodeConstraints(pub(crate) Vec<Constraint>);
+#[derive(Debug)]
+pub struct NodeConstraints(pub Vec<Constraint>);
 
 impl NodeConstraints {
     pub fn check(
@@ -40,9 +37,8 @@ impl NodeConstraints {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
-#[serde(tag = "type", rename_all = "snake_case")]
-pub(crate) enum Constraint {
+#[derive(Debug, Clone)]
+pub enum Constraint {
     InputCount(InputCountConstraint),
 }
 

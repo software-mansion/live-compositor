@@ -1,12 +1,9 @@
 use std::sync::Arc;
 
-use compositor_common::{
-    renderer_spec::{ImageSpec, RendererId, RendererSpec, ShaderSpec, WebRendererSpec},
-    scene::{InputId, OutputId, Resolution, SceneSpec},
-};
-use compositor_pipeline::pipeline::{self, encoder::EncoderSettings};
-use compositor_render::{event_loop::EventLoop, registry::RegistryType};
+use compositor_pipeline::pipeline::{self};
+use compositor_render::{EventLoop, RegistryType};
 use crossbeam_channel::{bounded, Receiver};
+
 use serde::{Deserialize, Serialize};
 use tiny_http::StatusCode;
 
@@ -14,24 +11,13 @@ use crate::{
     error::ApiError,
     rtp_receiver::{self, RtpReceiver},
     rtp_sender::{self, RtpSender},
+    types::{
+        self, InputId, OutputId, RegisterInputRequest, RegisterOutputRequest, RegisterRequest,
+        RendererId, Scene,
+    },
 };
 
 pub type Pipeline = compositor_pipeline::Pipeline<RtpReceiver, RtpSender>;
-
-#[derive(Serialize, Deserialize)]
-pub struct RegisterInputRequest {
-    pub input_id: InputId,
-    pub port: u16,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct RegisterOutputRequest {
-    pub output_id: OutputId,
-    pub port: u16,
-    pub ip: Arc<str>,
-    pub resolution: Resolution,
-    pub encoder_settings: EncoderSettings,
-}
 
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
@@ -39,19 +25,9 @@ pub enum Request {
     Init(pipeline::Options),
     Register(RegisterRequest),
     Unregister(UnregisterRequest),
-    UpdateScene(Arc<SceneSpec>),
+    UpdateScene(types::Scene),
     Query(QueryRequest),
     Start,
-}
-
-#[derive(Serialize, Deserialize)]
-#[serde(tag = "entity_type", rename_all = "snake_case")]
-pub enum RegisterRequest {
-    InputStream(RegisterInputRequest),
-    OutputStream(RegisterOutputRequest),
-    Shader(ShaderSpec),
-    WebRenderer(WebRendererSpec),
-    Image(ImageSpec),
 }
 
 #[derive(Serialize, Deserialize)]
@@ -77,7 +53,7 @@ pub enum QueryRequest {
 #[serde(untagged)]
 pub enum Response {
     Ok {},
-    Scene(Arc<SceneSpec>),
+    Scene(Scene),
     Inputs { inputs: Vec<InputInfo> },
     Outputs { outputs: Vec<OutputInfo> },
 }
@@ -131,7 +107,8 @@ impl Api {
                 Ok(ResponseHandler::Ok)
             }
             Request::UpdateScene(scene_spec) => {
-                self.pipeline.update_scene(scene_spec)?;
+                self.pipeline
+                    .update_scene(Arc::new(scene_spec.try_into()?))?;
                 Ok(ResponseHandler::Ok)
             }
             Request::Query(query) => self.handle_query(query),
@@ -143,7 +120,7 @@ impl Api {
             QueryRequest::WaitForNextFrame { input_id } => {
                 let (sender, receiver) = bounded(1);
                 self.pipeline.queue().subscribe_input_listener(
-                    input_id,
+                    input_id.into(),
                     Box::new(move || {
                         sender.send(Ok(Response::Ok {})).unwrap();
                     }),
@@ -151,14 +128,19 @@ impl Api {
                 Ok(ResponseHandler::DeferredResponse(receiver))
             }
             QueryRequest::Scene => Ok(ResponseHandler::Response(Response::Scene(
-                self.pipeline.renderer().scene_spec(),
+                self.pipeline
+                    .renderer()
+                    .scene_spec()
+                    .as_ref()
+                    .clone()
+                    .into(),
             ))),
             QueryRequest::Inputs => {
                 let inputs = self
                     .pipeline
                     .inputs()
                     .map(|(id, node)| InputInfo {
-                        id: id.clone(),
+                        id: id.clone().into(),
                         port: node.port,
                     })
                     .collect();
@@ -167,7 +149,7 @@ impl Api {
             QueryRequest::Outputs => {
                 let outputs = self.pipeline.with_outputs(|iter| {
                     iter.map(|(id, output)| OutputInfo {
-                        id: id.clone(),
+                        id: id.clone().into(),
                         port: output.port,
                         ip: output.ip.clone(),
                     })
@@ -183,15 +165,15 @@ impl Api {
             RegisterRequest::InputStream(input_stream) => self.register_input(input_stream),
             RegisterRequest::OutputStream(output_stream) => self.register_output(output_stream),
             RegisterRequest::Shader(spec) => {
-                let spec = RendererSpec::Shader(spec);
+                let spec = spec.try_into()?;
                 Ok(self.pipeline.register_renderer(spec)?)
             }
             RegisterRequest::WebRenderer(spec) => {
-                let spec = RendererSpec::WebRenderer(spec);
+                let spec = spec.try_into()?;
                 Ok(self.pipeline.register_renderer(spec)?)
             }
             RegisterRequest::Image(spec) => {
-                let spec = RendererSpec::Image(spec);
+                let spec = spec.try_into()?;
                 Ok(self.pipeline.register_renderer(spec)?)
             }
         }
@@ -200,20 +182,20 @@ impl Api {
     fn handle_unregister_request(&mut self, request: UnregisterRequest) -> Result<(), ApiError> {
         match request {
             UnregisterRequest::InputStream { input_id } => {
-                Ok(self.pipeline.unregister_input(&input_id)?)
+                Ok(self.pipeline.unregister_input(&input_id.into())?)
             }
             UnregisterRequest::OutputStream { output_id } => {
-                Ok(self.pipeline.unregister_output(&output_id)?)
+                Ok(self.pipeline.unregister_output(&output_id.into())?)
             }
             UnregisterRequest::Shader { shader_id } => Ok(self
                 .pipeline
-                .unregister_renderer(&shader_id, RegistryType::Shader)?),
+                .unregister_renderer(&shader_id.into(), RegistryType::Shader)?),
             UnregisterRequest::WebRenderer { instance_id } => Ok(self
                 .pipeline
-                .unregister_renderer(&instance_id, RegistryType::WebRenderer)?),
+                .unregister_renderer(&instance_id.into(), RegistryType::WebRenderer)?),
             UnregisterRequest::Image { image_id } => Ok(self
                 .pipeline
-                .unregister_renderer(&image_id, RegistryType::Image)?),
+                .unregister_renderer(&image_id.into(), RegistryType::Image)?),
         }
     }
 
@@ -238,10 +220,10 @@ impl Api {
         })?;
 
         self.pipeline.register_output(
-            output_id,
+            output_id.into(),
             pipeline::OutputOptions {
-                resolution,
-                encoder_settings,
+                resolution: resolution.into(),
+                encoder_settings: encoder_settings.into(),
                 receiver_options: rtp_sender::Options { port, ip },
             },
         )?;
@@ -260,8 +242,13 @@ impl Api {
             ));
         }
 
-        self.pipeline
-            .register_input(id.clone(), rtp_receiver::Options { port, input_id: id })?;
+        self.pipeline.register_input(
+            id.clone().into(),
+            rtp_receiver::Options {
+                port,
+                input_id: id.into(),
+            },
+        )?;
 
         Ok(())
     }

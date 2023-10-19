@@ -3,16 +3,14 @@ use std::env;
 use compositor_chromium::cef::bundle_for_development;
 use log::info;
 
+use crate::http::API_PORT_ENV;
+
 mod api;
 mod error;
 mod http;
 mod rtp_receiver;
 mod rtp_sender;
-
-#[cfg(test)]
-mod snapshot_tests;
-
-pub const API_PORT_ENV: &str = "MEMBRANE_VIDEO_COMPOSITOR_API_PORT";
+mod types;
 
 fn main() {
     env_logger::init_from_env(
@@ -25,7 +23,7 @@ fn main() {
         .unwrap()
         .to_owned();
     if bundle_for_development(&target_path).is_err() {
-        panic!("Build process helper first: cargo build --bin process_helper");
+        panic!("Build process helper first. For release profile use: cargo build -r --bin process_helper");
     }
 
     ffmpeg_next::format::network::init();

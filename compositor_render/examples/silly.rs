@@ -6,9 +6,7 @@ use compositor_common::{
     scene::{constraints::NodeConstraints, NodeId, NodeSpec, OutputSpec, Resolution, SceneSpec},
     Frame, Framerate,
 };
-use compositor_render::{
-    frame_set::FrameSet, renderer::RendererOptions, Renderer, WebRendererOptions,
-};
+use compositor_render::{renderer::RendererOptions, FrameSet, Renderer, WebRendererOptions};
 
 const FRAMERATE: Framerate = Framerate(30);
 

@@ -4,9 +4,9 @@ use compositor_common::scene::builtin_transformations::{
     BuiltinSpec, TransformToResolutionStrategy,
 };
 
-use crate::{
-    gpu_shader::{CreateShaderError, GpuShader},
-    renderer::WgpuCtx,
+use crate::wgpu::{
+    shader::{CreateShaderError, WgpuShader},
+    WgpuCtx,
 };
 
 use super::{error::InitBuiltinError, BuiltinState, BuiltinTransition};
@@ -28,7 +28,7 @@ impl BuiltinTransformations {
         })
     }
 
-    pub fn gpu_shader(&self, state: &BuiltinState) -> Arc<GpuShader> {
+    pub fn gpu_shader(&self, state: &BuiltinState) -> Arc<WgpuShader> {
         match state {
             BuiltinState::Interpolated { transition, .. } => match transition {
                 BuiltinTransition::FixedPositionLayout(_, _) => self.apply_matrix.0.clone(),
@@ -48,33 +48,33 @@ impl BuiltinTransformations {
     }
 }
 
-pub struct ApplyTransformationMatrix(Arc<GpuShader>);
+pub struct ApplyTransformationMatrix(Arc<WgpuShader>);
 
 impl ApplyTransformationMatrix {
     fn new(wgpu_ctx: &Arc<WgpuCtx>) -> Result<Self, CreateShaderError> {
-        Ok(Self(Arc::new(GpuShader::new(
+        Ok(Self(Arc::new(WgpuShader::new(
             wgpu_ctx,
             include_str!("./apply_transformation_matrix.wgsl").into(),
         )?)))
     }
 }
 
-pub struct MirrorImage(Arc<GpuShader>);
+pub struct MirrorImage(Arc<WgpuShader>);
 
 impl MirrorImage {
     fn new(wgpu_ctx: &Arc<WgpuCtx>) -> Result<Self, CreateShaderError> {
-        Ok(Self(Arc::new(GpuShader::new(
+        Ok(Self(Arc::new(WgpuShader::new(
             wgpu_ctx,
             include_str!("./mirror_image.wgsl").into(),
         )?)))
     }
 }
 
-pub struct CornersRounding(Arc<GpuShader>);
+pub struct CornersRounding(Arc<WgpuShader>);
 
 impl CornersRounding {
     fn new(wgpu_ctx: &Arc<WgpuCtx>) -> Result<Self, CreateShaderError> {
-        Ok(Self(Arc::new(GpuShader::new(
+        Ok(Self(Arc::new(WgpuShader::new(
             wgpu_ctx,
             include_str!("./corners_rounding.wgsl").into(),
         )?)))

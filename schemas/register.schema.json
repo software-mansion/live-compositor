@@ -1,0 +1,421 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "Constraint": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "fixed_count": {
+              "format": "uint32",
+              "minimum": 0.0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "lower_bound": {
+              "format": "uint32",
+              "minimum": 0.0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "type": {
+              "enum": [
+                "input_count"
+              ],
+              "type": "string"
+            },
+            "upper_bound": {
+              "format": "uint32",
+              "minimum": 0.0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "EncoderPreset": {
+      "enum": [
+        "ultrafast",
+        "superfast",
+        "veryfast",
+        "faster",
+        "fast",
+        "medium",
+        "slow",
+        "slower",
+        "veryslow",
+        "placebo"
+      ],
+      "type": "string"
+    },
+    "EncoderSettings": {
+      "properties": {
+        "preset": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/EncoderPreset"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "FallbackStrategy": {
+      "enum": [
+        "never_fallback",
+        "fallback_if_all_inputs_missing",
+        "fallback_if_any_input_missing"
+      ],
+      "type": "string"
+    },
+    "InputId": {
+      "type": "string"
+    },
+    "NodeConstraints": {
+      "items": {
+        "$ref": "#/definitions/Constraint"
+      },
+      "type": "array"
+    },
+    "OutputId": {
+      "type": "string"
+    },
+    "RendererId": {
+      "type": "string"
+    },
+    "Resolution": {
+      "properties": {
+        "height": {
+          "format": "uint",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "width": {
+          "format": "uint",
+          "minimum": 0.0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "height",
+        "width"
+      ],
+      "type": "object"
+    }
+  },
+  "oneOf": [
+    {
+      "properties": {
+        "entity_type": {
+          "enum": [
+            "input_stream"
+          ],
+          "type": "string"
+        },
+        "input_id": {
+          "$ref": "#/definitions/InputId"
+        },
+        "port": {
+          "format": "uint16",
+          "minimum": 0.0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "entity_type",
+        "input_id",
+        "port"
+      ],
+      "type": "object"
+    },
+    {
+      "properties": {
+        "encoder_settings": {
+          "$ref": "#/definitions/EncoderSettings"
+        },
+        "entity_type": {
+          "enum": [
+            "output_stream"
+          ],
+          "type": "string"
+        },
+        "ip": {
+          "type": "string"
+        },
+        "output_id": {
+          "$ref": "#/definitions/OutputId"
+        },
+        "port": {
+          "format": "uint16",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "resolution": {
+          "$ref": "#/definitions/Resolution"
+        }
+      },
+      "required": [
+        "encoder_settings",
+        "entity_type",
+        "ip",
+        "output_id",
+        "port",
+        "resolution"
+      ],
+      "type": "object"
+    },
+    {
+      "properties": {
+        "constraints": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/NodeConstraints"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "entity_type": {
+          "enum": [
+            "shader"
+          ],
+          "type": "string"
+        },
+        "fallback_strategy": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/FallbackStrategy"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "shader_id": {
+          "$ref": "#/definitions/RendererId"
+        },
+        "source": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "entity_type",
+        "shader_id",
+        "source"
+      ],
+      "type": "object"
+    },
+    {
+      "properties": {
+        "constraints": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/NodeConstraints"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "entity_type": {
+          "enum": [
+            "web_renderer"
+          ],
+          "type": "string"
+        },
+        "fallback_strategy": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/FallbackStrategy"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "instance_id": {
+          "$ref": "#/definitions/RendererId"
+        },
+        "resolution": {
+          "$ref": "#/definitions/Resolution"
+        },
+        "url": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "entity_type",
+        "instance_id",
+        "resolution",
+        "url"
+      ],
+      "type": "object"
+    },
+    {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "asset_type": {
+              "enum": [
+                "png"
+              ],
+              "type": "string"
+            },
+            "image_id": {
+              "$ref": "#/definitions/RendererId"
+            },
+            "path": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "url": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "asset_type",
+            "image_id"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "asset_type": {
+              "enum": [
+                "jpeg"
+              ],
+              "type": "string"
+            },
+            "image_id": {
+              "$ref": "#/definitions/RendererId"
+            },
+            "path": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "url": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "asset_type",
+            "image_id"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "asset_type": {
+              "enum": [
+                "svg"
+              ],
+              "type": "string"
+            },
+            "image_id": {
+              "$ref": "#/definitions/RendererId"
+            },
+            "path": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "resolution": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Resolution"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "url": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "asset_type",
+            "image_id"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "asset_type": {
+              "enum": [
+                "gif"
+              ],
+              "type": "string"
+            },
+            "image_id": {
+              "$ref": "#/definitions/RendererId"
+            },
+            "path": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "url": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "asset_type",
+            "image_id"
+          ],
+          "type": "object"
+        }
+      ],
+      "properties": {
+        "entity_type": {
+          "enum": [
+            "image"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "entity_type"
+      ],
+      "type": "object"
+    }
+  ],
+  "title": "RegisterRequest"
+}

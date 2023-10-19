@@ -7,7 +7,10 @@ use crossbeam_channel::bounded;
 use log::error;
 use shared_memory::ShmemError;
 
-use crate::renderer::{texture::NodeTexture, RegisterCtx, RenderCtx};
+use crate::{
+    renderer::{RegisterCtx, RenderCtx},
+    wgpu::texture::NodeTexture,
+};
 
 use super::chromium_sender::ChromiumSender;
 

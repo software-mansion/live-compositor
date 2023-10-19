@@ -1,6 +1,6 @@
 use wgpu::util::DeviceExt;
 
-use crate::renderer::WgpuCtx;
+use crate::wgpu::WgpuCtx;
 
 pub(super) struct ParamsBuffer {
     bind_group: wgpu::BindGroup,
