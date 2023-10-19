@@ -45,8 +45,30 @@
         {
           "additionalProperties": false,
           "properties": {
+            "fallback_id": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/NodeId"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "input_pads": {
+              "items": {
+                "$ref": "#/definitions/NodeId"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
             "instance_id": {
               "$ref": "#/definitions/RendererId"
+            },
+            "node_id": {
+              "$ref": "#/definitions/NodeId"
             },
             "type": {
               "enum": [
@@ -64,6 +86,28 @@
         {
           "additionalProperties": false,
           "properties": {
+            "fallback_id": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/NodeId"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "input_pads": {
+              "items": {
+                "$ref": "#/definitions/NodeId"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "node_id": {
+              "$ref": "#/definitions/NodeId"
+            },
             "resolution": {
               "$ref": "#/definitions/Resolution"
             },
@@ -97,8 +141,30 @@
         {
           "additionalProperties": false,
           "properties": {
+            "fallback_id": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/NodeId"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
             "image_id": {
               "$ref": "#/definitions/RendererId"
+            },
+            "input_pads": {
+              "items": {
+                "$ref": "#/definitions/NodeId"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "node_id": {
+              "$ref": "#/definitions/NodeId"
             },
             "type": {
               "enum": [
@@ -152,6 +218,16 @@
             "dimensions": {
               "$ref": "#/definitions/TextDimensions"
             },
+            "fallback_id": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/NodeId"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
             "font_family": {
               "description": "https://www.w3.org/TR/2018/REC-css-fonts-3-20180920/#family-name-value use font family name, not generic family name",
               "type": [
@@ -163,12 +239,24 @@
               "format": "float",
               "type": "number"
             },
+            "input_pads": {
+              "items": {
+                "$ref": "#/definitions/NodeId"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
             "line_height": {
               "format": "float",
               "type": [
                 "number",
                 "null"
               ]
+            },
+            "node_id": {
+              "$ref": "#/definitions/NodeId"
             },
             "style": {
               "anyOf": [
@@ -221,8 +309,30 @@
             "end": {
               "$ref": "#/definitions/TransitionState"
             },
+            "fallback_id": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/NodeId"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "input_pads": {
+              "items": {
+                "$ref": "#/definitions/NodeId"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
             "interpolation": {
               "$ref": "#/definitions/Interpolation"
+            },
+            "node_id": {
+              "$ref": "#/definitions/NodeId"
             },
             "start": {
               "$ref": "#/definitions/TransitionState"
@@ -342,6 +452,28 @@
             }
           ],
           "properties": {
+            "fallback_id": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/NodeId"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "input_pads": {
+              "items": {
+                "$ref": "#/definitions/NodeId"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "node_id": {
+              "$ref": "#/definitions/NodeId"
+            },
             "type": {
               "enum": [
                 "builtin:transform_to_resolution"
@@ -366,6 +498,28 @@
                   "type": "null"
                 }
               ]
+            },
+            "fallback_id": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/NodeId"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "input_pads": {
+              "items": {
+                "$ref": "#/definitions/NodeId"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "node_id": {
+              "$ref": "#/definitions/NodeId"
             },
             "resolution": {
               "$ref": "#/definitions/Resolution"
@@ -403,6 +557,16 @@
                 }
               ]
             },
+            "fallback_id": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/NodeId"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
             "horizontal_alignment": {
               "anyOf": [
                 {
@@ -413,6 +577,15 @@
                 }
               ]
             },
+            "input_pads": {
+              "items": {
+                "$ref": "#/definitions/NodeId"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
             "margin": {
               "format": "uint32",
               "minimum": 0.0,
@@ -420,6 +593,9 @@
                 "integer",
                 "null"
               ]
+            },
+            "node_id": {
+              "$ref": "#/definitions/NodeId"
             },
             "padding": {
               "format": "uint32",
@@ -478,6 +654,25 @@
         {
           "additionalProperties": false,
           "properties": {
+            "fallback_id": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/NodeId"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "input_pads": {
+              "items": {
+                "$ref": "#/definitions/NodeId"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
             "mode": {
               "anyOf": [
                 {
@@ -487,6 +682,9 @@
                   "type": "null"
                 }
               ]
+            },
+            "node_id": {
+              "$ref": "#/definitions/NodeId"
             },
             "type": {
               "enum": [
@@ -505,6 +703,28 @@
           "properties": {
             "border_radius": {
               "$ref": "#/definitions/Coord"
+            },
+            "fallback_id": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/NodeId"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "input_pads": {
+              "items": {
+                "$ref": "#/definitions/NodeId"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "node_id": {
+              "$ref": "#/definitions/NodeId"
             },
             "type": {
               "enum": [
@@ -709,6 +929,9 @@
         {
           "additionalProperties": false,
           "properties": {
+            "field_name": {
+              "type": "string"
+            },
             "type": {
               "enum": [
                 "f32"
@@ -729,6 +952,9 @@
         {
           "additionalProperties": false,
           "properties": {
+            "field_name": {
+              "type": "string"
+            },
             "type": {
               "enum": [
                 "u32"
@@ -750,6 +976,9 @@
         {
           "additionalProperties": false,
           "properties": {
+            "field_name": {
+              "type": "string"
+            },
             "type": {
               "enum": [
                 "i32"
@@ -770,6 +999,9 @@
         {
           "additionalProperties": false,
           "properties": {
+            "field_name": {
+              "type": "string"
+            },
             "type": {
               "enum": [
                 "list"
@@ -792,6 +1024,9 @@
         {
           "additionalProperties": false,
           "properties": {
+            "field_name": {
+              "type": "string"
+            },
             "type": {
               "enum": [
                 "struct"
