@@ -1,0 +1,6 @@
+{
+    "entity_type": "image",
+    "image_id": "example_jpeg",
+    "asset_type": "jpeg",
+    "url": "https://www.rust-lang.org/static/images/rust-social.jpg"
+}

@@ -17,5 +17,9 @@ fn main() {
     }
 
     println!("Updating all snapshots:");
-    snapshot_tests::run_snapshot_tests();
+    for test_runner in snapshot_tests::snapshot_test_runners() {
+        for snapshot in test_runner.generate_snapshots().unwrap() {
+            fs::write(snapshot.save_path(), snapshot.data).unwrap();
+        }
+    }
 }

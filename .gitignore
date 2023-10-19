@@ -33,4 +33,4 @@ target/
 /video_compositor_darwin_aarch64.tar.gz
 /video_compositor_darwin_x86_64.tar.gz
 
-/snapshot_tests
+/snapshot_tests/snapshots
