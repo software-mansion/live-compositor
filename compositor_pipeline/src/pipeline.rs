@@ -45,7 +45,9 @@ pub trait PipelineInput: Send + Sync + Sized + 'static {
     type Opts: Send + Sync;
     type PacketIterator: Iterator<Item = Packet> + Send;
 
-    fn new(opts: Self::Opts) -> (Self, Self::PacketIterator);
+    fn new(
+        opts: Self::Opts,
+    ) -> Result<(Self, Self::PacketIterator), Box<dyn std::error::Error + Send + Sync + 'static>>;
     fn decoder_parameters(&self) -> decoder::DecoderParameters;
 }
 
@@ -106,7 +108,9 @@ impl<Input: PipelineInput, Output: PipelineOutput> Pipeline<Input, Output> {
 
         self.inputs.insert(
             input_id.clone(),
-            Decoder::new(self.queue.clone(), input_opts, input_id.clone()).into(),
+            Decoder::new(self.queue.clone(), input_opts, input_id.clone())
+                .map_err(|e| RegisterInputError::DecoderError(input_id.clone(), e))?
+                .into(),
         );
         self.queue.add_input(input_id);
         Ok(())

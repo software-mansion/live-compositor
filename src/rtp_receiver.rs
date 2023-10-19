@@ -16,7 +16,7 @@ use ffmpeg_next::{
         avformat_alloc_context, avformat_close_input, avformat_find_stream_info,
         avformat_open_input,
     },
-    format::context,
+    format::context::{self},
     media::Type,
     util::interrupt,
     Dictionary, Packet,
@@ -38,7 +38,10 @@ impl PipelineInput for RtpReceiver {
     type Opts = Options;
     type PacketIterator = crossbeam_channel::IntoIter<Packet>;
 
-    fn new(opts: Self::Opts) -> (Self, Self::PacketIterator) {
+    fn new(
+        opts: Self::Opts,
+    ) -> Result<(Self, Self::PacketIterator), Box<dyn std::error::Error + Send + Sync + 'static>>
+    {
         let (drop_sender, drop_receiver) = bounded(0);
         let (should_close_sender, should_close_receiver) = bounded(1);
         let (decoder_params_sender, decoder_params_receiver) = bounded(0);
@@ -52,20 +55,19 @@ impl PipelineInput for RtpReceiver {
                 should_close_receiver,
                 packet_sender,
                 decoder_params_sender,
-            )
-            .unwrap();
+            );
             drop_sender.send(())
         });
 
-        (
+        Ok((
             Self {
                 thread_finished: drop_receiver,
                 should_close: should_close_sender,
-                decoder_parameters: decoder_params_receiver.recv().unwrap(),
+                decoder_parameters: decoder_params_receiver.recv().unwrap()?,
                 port,
             },
             packet_receiver.into_iter(),
-        )
+        ))
     }
 
     fn decoder_parameters(&self) -> DecoderParameters {
@@ -99,47 +101,68 @@ impl RtpReceiver {
         port: u16,
         should_close: Receiver<()>,
         packet_sender: Sender<Packet>,
-        decoder_params_sender: Sender<DecoderParameters>,
-    ) -> Result<()> {
+        decoder_params_sender: Sender<Result<DecoderParameters>>,
+    ) {
         let sdp_filepath = PathBuf::from(format!("/tmp/sdp_input_{}.sdp", port));
-        let mut file = File::create(&sdp_filepath)?;
-        file.write_all(
-            format!(
-                "\
-                    v=0\n\
-                    o=- 0 0 IN IP4 127.0.0.1\n\
-                    s=No Name\n\
-                    c=IN IP4 127.0.0.1\n\
-                    m=video {} RTP/AVP 96\n\
-                    a=rtpmap:96 H264/90000\n\
-                    a=fmtp:96 packetization-mode=1\n\
-                    a=rtcp-mux\n\
-                ",
-                port
-            )
-            .as_bytes(),
-        )?;
-        let input_ctx = input_with_dictionary_and_interrupt(
-            &sdp_filepath,
-            Dictionary::from_iter([("protocol_whitelist", "file,udp,rtp")]),
-            || should_close.try_recv().is_ok(),
-        )?;
 
-        let input = input_ctx
+        let result = File::create(&sdp_filepath)
+            .and_then(|mut file| {
+                file.write_all(
+                    format!(
+                        "\
+                        v=0\n\
+                        o=- 0 0 IN IP4 127.0.0.1\n\
+                        s=No Name\n\
+                        c=IN IP4 127.0.0.1\n\
+                        m=video {} RTP/AVP 96\n\
+                        a=rtpmap:96 H264/90000\n\
+                        a=fmtp:96 packetization-mode=1\n\
+                        a=rtcp-mux\n\
+                    ",
+                        port
+                    )
+                    .as_bytes(),
+                )
+            })
+            .and_then(|_| {
+                let input_ctx = input_with_dictionary_and_interrupt(
+                    &sdp_filepath,
+                    Dictionary::from_iter([("protocol_whitelist", "file,udp,rtp")]),
+                    || should_close.try_recv().is_ok(),
+                )?;
+
+                Ok(input_ctx)
+            });
+
+        let input_ctx = match result {
+            Ok(input_ctx) => input_ctx,
+            Err(e) => {
+                decoder_params_sender.send(Err(e.into())).unwrap();
+                return;
+            }
+        };
+
+        let input = match input_ctx
             .streams()
             .best(Type::Video)
-            .ok_or(ffmpeg_next::Error::StreamNotFound)?;
+            .ok_or(ffmpeg_next::Error::StreamNotFound)
+        {
+            Ok(input) => input,
+            Err(e) => {
+                decoder_params_sender.send(Err(e.into())).unwrap();
+                return;
+            }
+        };
+
         let input_index = input.index();
 
         decoder_params_sender
-            .send(ParamsWrapper(input.parameters()).into())
+            .send(Ok(ParamsWrapper(input.parameters()).into()))
             .unwrap();
 
         for packet in PacketIter::new(input_ctx, input_index) {
             packet_sender.send(packet).unwrap();
         }
-
-        Ok(())
     }
 }
 

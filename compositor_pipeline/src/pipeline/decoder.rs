@@ -1,9 +1,10 @@
 use std::{sync::Arc, time::Duration};
 
-use crate::queue::Queue;
+use crate::{error::InputInitError, queue::Queue};
 
 use super::PipelineInput;
 use compositor_common::{
+    error::ErrorStack,
     frame::YuvData,
     scene::{InputId, Resolution},
     Frame,
@@ -13,7 +14,7 @@ use ffmpeg_next::{
     frame::Video,
     media::Type,
 };
-use log::warn;
+use log::{error, warn};
 
 pub struct Decoder<Input: PipelineInput> {
     input: Input,
@@ -36,15 +37,36 @@ enum DecoderError {
 }
 
 impl<Input: PipelineInput> Decoder<Input> {
-    pub fn new(queue: Arc<Queue>, input_options: Input::Opts, input_id: InputId) -> Self {
-        let (input, packets) = Input::new(input_options);
+    pub fn new(
+        queue: Arc<Queue>,
+        input_options: Input::Opts,
+        input_id: InputId,
+    ) -> Result<Self, InputInitError> {
+        let (input, packets) = Input::new(input_options)?;
+        let (init_result_sender, init_result_receiver) = crossbeam_channel::bounded(0);
 
         let parameters = input.decoder_parameters();
 
         std::thread::spawn(move || {
-            let decoder = Context::from_parameters(parameters).unwrap();
-            let decoder = decoder.decoder();
-            let mut decoder = decoder.open_as(Into::<Id>::into(parameters.codec)).unwrap();
+            let decoder = Context::from_parameters(parameters)
+                .map_err(InputInitError::FfmpegError)
+                .and_then(|decoder| {
+                    let decoder = decoder.decoder();
+                    decoder
+                        .open_as(Into::<Id>::into(parameters.codec))
+                        .map_err(InputInitError::FfmpegError)
+                });
+
+            let mut decoder = match decoder {
+                Ok(decoder) => {
+                    init_result_sender.send(Ok(())).unwrap();
+                    decoder
+                }
+                Err(err) => {
+                    init_result_sender.send(Err(err)).unwrap();
+                    return;
+                }
+            };
 
             let mut decoded_frame = ffmpeg_next::frame::Video::empty();
             let mut pts_offset = None;
@@ -55,16 +77,24 @@ impl<Input: PipelineInput> Decoder<Input> {
                     let frame = match frame_from_av(&mut decoded_frame, &mut pts_offset) {
                         Ok(frame) => frame,
                         Err(err) => {
-                            warn!("Error converting frame: {}", err);
+                            warn!("Dropping frame: {}", err);
                             continue;
                         }
                     };
-                    queue.enqueue_frame(input_id.clone(), frame).unwrap();
+
+                    if let Err(err) = queue.enqueue_frame(input_id.clone(), frame) {
+                        error!(
+                            "Failed to push frame: {}",
+                            ErrorStack::new(&err).into_string()
+                        );
+                    }
                 }
             }
         });
 
-        Self { input }
+        init_result_receiver.recv().unwrap()?;
+
+        Ok(Self { input })
     }
 
     pub fn input(&self) -> &Input {

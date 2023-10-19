@@ -8,6 +8,9 @@ use compositor_render::error::{
 pub enum RegisterInputError {
     #[error("Failed to register input stream. Stream \"{0}\" is already registered.")]
     AlreadyRegistered(InputId),
+
+    #[error("Decoder error while registering input stream for stream \"{0}\".")]
+    DecoderError(InputId, #[source] InputInitError),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -56,6 +59,15 @@ pub enum OutputInitError {
     OutputError(#[from] Box<dyn std::error::Error + Send + Sync + 'static>),
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum InputInitError {
+    #[error(transparent)]
+    FfmpegError(#[from] ffmpeg_next::Error),
+
+    #[error(transparent)]
+    InputError(#[from] Box<dyn std::error::Error + Send + Sync + 'static>),
+}
+
 pub enum ErrorType {
     UserError,
     ServerError,
@@ -77,12 +89,17 @@ impl PipelineErrorInfo {
 }
 
 const INPUT_STREAM_ALREADY_REGISTERED: &str = "INPUT_STREAM_ALREADY_REGISTERED";
+const DECODER_ERROR: &str = "INPUT_STREAM_DECODER_ERROR";
 
 impl From<&RegisterInputError> for PipelineErrorInfo {
     fn from(err: &RegisterInputError) -> Self {
         match err {
             RegisterInputError::AlreadyRegistered(_) => {
                 PipelineErrorInfo::new(INPUT_STREAM_ALREADY_REGISTERED, ErrorType::UserError)
+            }
+
+            RegisterInputError::DecoderError(_, _) => {
+                PipelineErrorInfo::new(DECODER_ERROR, ErrorType::ServerError)
             }
         }
     }
