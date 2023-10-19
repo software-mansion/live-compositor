@@ -9,6 +9,9 @@ mod http;
 mod rtp_receiver;
 mod rtp_sender;
 
+#[cfg(test)]
+mod snapshot_tests;
+
 pub const API_PORT_ENV: &str = "MEMBRANE_VIDEO_COMPOSITOR_API_PORT";
 
 fn main() {

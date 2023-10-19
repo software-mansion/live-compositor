@@ -1,6 +1,10 @@
-use std::{fs, io, path::PathBuf, process::Command};
+use std::{fs, io, path::PathBuf};
 
-use compositor_snapshot_test::SNAPSHOTS_DIR_NAME;
+#[path = "../../snapshot_tests.rs"]
+#[allow(dead_code)]
+mod snapshot_tests;
+
+use snapshot_tests::SNAPSHOTS_DIR_NAME;
 
 fn main() {
     let saved_snapshots_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -12,8 +16,5 @@ fn main() {
         }
     }
 
-    Command::new("cargo")
-        .args(["test", "--all"])
-        .output()
-        .unwrap();
+    snapshot_tests::snapshot_tests();
 }

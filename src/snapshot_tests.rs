@@ -1,22 +1,28 @@
 use std::{fs, path::PathBuf, sync::Arc, time::Duration};
 
 use anyhow::{anyhow, Result};
+
 use compositor_common::{
     renderer_spec::RendererSpec,
     scene::{OutputId, SceneSpec},
-    Framerate,
+    Frame, Framerate,
 };
 use compositor_render::{
     frame_set::FrameSet, renderer::RendererOptions, Renderer, WebRendererOptions,
 };
 use serde::Deserialize;
 
-use crate::{
-    utils::{are_snapshots_equal, frame_to_bytes},
-    SNAPSHOTS_DIR_NAME,
-};
+pub const SNAPSHOTS_DIR_NAME: &str = "snapshot_tests";
 
-pub struct TestRunner<'a> {
+pub fn snapshot_tests() {
+    test(
+        include_str!("../snapshot_tests/basic.json"),
+        "basic",
+        vec![Duration::from_secs(3)],
+    )
+}
+
+struct TestRunner<'a> {
     test_name: &'a str,
     scene: Arc<SceneSpec>,
     renderer: Renderer,
@@ -90,4 +96,38 @@ impl<'a> TestRunner<'a> {
 pub struct SnapshotTestConfig {
     renderers: Vec<RendererSpec>,
     scene: Arc<SceneSpec>,
+}
+
+pub fn test(config_source: &str, test_name: &str, timestamps: Vec<Duration>) {
+    let config: SnapshotTestConfig = serde_json::from_str(config_source).unwrap();
+    let test_runner = TestRunner::new(test_name, config).unwrap();
+    for pts in timestamps {
+        if let Err(err) = test_runner.run(pts) {
+            panic!(
+                "Test \"{}\", PTS({}) failed: {}",
+                test_name,
+                pts.as_secs_f32(),
+                err
+            );
+        }
+    }
+}
+
+pub fn frame_to_bytes(frame: &Frame) -> Vec<u8> {
+    let mut data = Vec::with_capacity(frame.resolution.width * frame.resolution.height * 3 / 2);
+    data.extend_from_slice(&frame.data.y_plane);
+    data.extend_from_slice(&frame.data.u_plane);
+    data.extend_from_slice(&frame.data.v_plane);
+
+    data
+}
+
+// TODO: Results may slightly differ depending on the platform. There should be an accepted margin of error here
+pub fn are_snapshots_equal(old_snapshot: &[u8], new_snapshot: &[u8]) -> bool {
+    old_snapshot == new_snapshot
+}
+
+#[test]
+fn run_shanpshot_tests() {
+    snapshot_tests();
 }
