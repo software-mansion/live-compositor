@@ -1,4 +1,4 @@
-use std::{fs, io, path::PathBuf};
+use std::{fs, path::PathBuf};
 
 #[path = "../../snapshot_tests/tests.rs"]
 mod tests;
@@ -13,10 +13,9 @@ fn main() {
     let saved_snapshots_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join(SNAPSHOTS_DIR_NAME)
         .join("snapshots");
-    if let Err(err) = fs::remove_dir_all(saved_snapshots_path) {
-        if err.kind() != io::ErrorKind::NotFound {
-            panic!("Failed to remove old snapshots: {err}");
-        }
+
+    for snapshot in fs::read_dir(saved_snapshots_path).unwrap() {
+        fs::remove_file(snapshot.unwrap().path()).unwrap();
     }
 
     println!("Updating all snapshots:");

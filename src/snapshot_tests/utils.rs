@@ -156,9 +156,6 @@ impl Snapshot {
         let snapshots_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join(SNAPSHOTS_DIR_NAME)
             .join("snapshots");
-        if !snapshots_path.exists() {
-            fs::create_dir_all(&snapshots_path).unwrap();
-        }
 
         let out_file_name = format!(
             "{}_{}_{}.yuv",
