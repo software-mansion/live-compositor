@@ -14,8 +14,12 @@ fn main() {
         .join(SNAPSHOTS_DIR_NAME)
         .join("snapshots");
 
-    for snapshot in fs::read_dir(saved_snapshots_path).unwrap() {
-        fs::remove_file(snapshot.unwrap().path()).unwrap();
+    for snapshot_file in fs::read_dir(saved_snapshots_path).unwrap() {
+        let snapshot_file = snapshot_file.unwrap();
+        if snapshot_file.file_name() == ".git" {
+            continue;
+        }
+        fs::remove_file(snapshot_file.path()).unwrap();
     }
 
     println!("Updating all snapshots:");
