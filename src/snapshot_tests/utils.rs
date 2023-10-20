@@ -9,7 +9,7 @@ use compositor_common::{
 use compositor_render::{renderer::RendererOptions, FrameSet, Renderer, WebRendererOptions};
 use video_compositor::types::{RegisterRequest, Scene};
 
-use super::SNAPSHOTS_DIR_NAME;
+pub const SNAPSHOTS_DIR_NAME: &str = "snapshot_tests";
 
 pub struct SceneTest {
     pub test_name: String,

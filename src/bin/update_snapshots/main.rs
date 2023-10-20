@@ -1,10 +1,13 @@
 use std::{fs, io, path::PathBuf};
 
+#[path = "../../snapshot_tests/tests.rs"]
+mod tests;
 #[allow(dead_code)]
-#[path = "../../snapshot_tests.rs"]
-mod snapshot_tests;
+#[path = "../../snapshot_tests/utils.rs"]
+mod utils;
 
-use snapshot_tests::SNAPSHOTS_DIR_NAME;
+use tests::snapshot_test_runners;
+use utils::SNAPSHOTS_DIR_NAME;
 
 fn main() {
     let saved_snapshots_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -17,7 +20,7 @@ fn main() {
     }
 
     println!("Updating all snapshots:");
-    for test_runner in snapshot_tests::snapshot_test_runners() {
+    for test_runner in snapshot_test_runners() {
         for snapshot in test_runner.generate_snapshots().unwrap() {
             fs::write(snapshot.save_path(), snapshot.data).unwrap();
         }
