@@ -43,12 +43,12 @@ impl TestCase {
 
             let save_path = snapshot.save_path();
             if !save_path.exists() {
-                return Err(SceneTestError::SnapshotNotFound(snapshot.clone()).into());
+                return Err(TestCaseError::SnapshotNotFound(snapshot.clone()).into());
             }
 
             let snapshot_from_disk = image::open(&save_path)?.to_rgba8();
             if !are_snapshots_equal(&snapshot_from_disk, &snapshot.data) {
-                return Err(SceneTestError::Mismatch(snapshot.clone()).into());
+                return Err(TestCaseError::Mismatch(snapshot.clone()).into());
             }
         }
 
@@ -56,11 +56,11 @@ impl TestCase {
         for output_id in self.outputs.iter() {
             let was_present = produced_outputs.remove(*output_id);
             if !was_present {
-                return Err(SceneTestError::OutputNotFound(output_id).into());
+                return Err(TestCaseError::OutputNotFound(output_id).into());
             }
         }
         if !produced_outputs.is_empty() {
-            return Err(SceneTestError::UnknownOutputs {
+            return Err(TestCaseError::UnknownOutputs {
                 expected: self.outputs.clone(),
                 unknown: Vec::from_iter(produced_outputs),
             }
@@ -131,7 +131,7 @@ impl TestCase {
                 continue;
             }
             if !snapshots.iter().any(|s| s.save_path() == entry.path()) {
-                return Err(SceneTestError::UnusedSnapshot(entry.path()).into());
+                return Err(TestCaseError::UnusedSnapshot(entry.path()).into());
             }
         }
         Ok(())
@@ -227,7 +227,7 @@ impl Snapshot {
 }
 
 #[derive(Debug)]
-pub enum SceneTestError {
+pub enum TestCaseError {
     SnapshotNotFound(Snapshot),
     Mismatch(Snapshot),
     UnusedSnapshot(PathBuf),
@@ -238,12 +238,12 @@ pub enum SceneTestError {
     },
 }
 
-impl std::error::Error for SceneTestError {}
+impl std::error::Error for TestCaseError {}
 
-impl Display for SceneTestError {
+impl Display for TestCaseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let err_msg = match self {
-            SceneTestError::SnapshotNotFound(Snapshot {
+            TestCaseError::SnapshotNotFound(Snapshot {
                 test_name,
                 output_id,
                 pts,
@@ -254,7 +254,7 @@ impl Display for SceneTestError {
                 output_id,
                 pts.as_secs()
             ),
-            SceneTestError::Mismatch(Snapshot {
+            TestCaseError::Mismatch(Snapshot {
                 test_name,
                 output_id,
                 pts,
@@ -267,9 +267,9 @@ impl Display for SceneTestError {
                     pts.as_secs_f32()
                 )
             }
-            SceneTestError::UnusedSnapshot(path) => format!("Snapshot \"{}\" was not used during testing", path.to_string_lossy()),
-            SceneTestError::OutputNotFound(output_id) => format!("Output \"{output_id}\" is missing"),
-            SceneTestError::UnknownOutputs { expected, unknown } => format!("Unknown outputs: {unknown:?}. Expected: {expected:?}"),
+            TestCaseError::UnusedSnapshot(path) => format!("Snapshot \"{}\" was not used during testing", path.to_string_lossy()),
+            TestCaseError::OutputNotFound(output_id) => format!("Output \"{output_id}\" is missing"),
+            TestCaseError::UnknownOutputs { expected, unknown } => format!("Unknown outputs: {unknown:?}. Expected: {expected:?}"),
         };
 
         f.write_str(&err_msg)
