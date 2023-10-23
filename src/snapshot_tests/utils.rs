@@ -1,4 +1,4 @@
-use std::{fmt::Display, fs, path::PathBuf, sync::Arc, time::Duration};
+use std::{fmt::Display, path::PathBuf, sync::Arc, time::Duration};
 
 use anyhow::{anyhow, Result};
 use compositor_common::{
@@ -8,7 +8,6 @@ use compositor_common::{
     Frame, Framerate,
 };
 use compositor_render::{renderer::RendererOptions, FrameSet, Renderer, WebRendererOptions};
-use image::{ImageBuffer, Rgba};
 use video_compositor::types::{RegisterRequest, Scene};
 
 pub const SNAPSHOTS_DIR_NAME: &str = "snapshot_tests";
