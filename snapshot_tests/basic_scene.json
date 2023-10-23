@@ -40,6 +40,10 @@
                 {
                     "right": "20px",
                     "bottom": "20px"
+                },
+                {
+                    "right": "0px",
+                    "top": "0px"
                 }
             ],
             "background_color_rgba": "#0000FF00",
@@ -49,7 +53,8 @@
             },
             "input_pads": [
                 "jpeg_1_rescaled",
-                "jpeg_1_label"
+                "jpeg_1_label",
+                "input1"
             ]
         }
     ],
