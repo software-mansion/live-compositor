@@ -10,7 +10,7 @@ use compositor_common::{
 use compositor_render::{renderer::RendererOptions, FrameSet, Renderer, WebRendererOptions};
 use video_compositor::types::{RegisterRequest, Scene};
 
-pub const SNAPSHOTS_DIR_NAME: &str = "snapshot_tests";
+pub const SNAPSHOTS_DIR_NAME: &str = "snapshot_tests/snapshots/render_snapshots";
 
 pub struct SceneTest {
     pub test_name: String,
@@ -171,9 +171,7 @@ pub struct Snapshot {
 
 impl Snapshot {
     pub fn save_path(&self) -> PathBuf {
-        let snapshots_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join(SNAPSHOTS_DIR_NAME)
-            .join("snapshots");
+        let snapshots_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(SNAPSHOTS_DIR_NAME);
 
         let out_file_name = format!(
             "{}_{}_{}.bmp",
