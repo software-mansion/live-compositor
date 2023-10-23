@@ -1,8 +1,6 @@
 use std::sync::Arc;
 
-use compositor_common::scene::builtin_transformations::{
-    BuiltinSpec, TransformToResolutionStrategy,
-};
+use compositor_common::scene::builtin_transformations::BuiltinSpec;
 
 use crate::wgpu::{
     shader::{CreateShaderError, WgpuShader},
@@ -34,13 +32,11 @@ impl BuiltinTransformations {
                 BuiltinTransition::FixedPositionLayout(_, _) => self.apply_matrix.0.clone(),
             },
             BuiltinState::Static(spec) => match spec {
-                BuiltinSpec::TransformToResolution { strategy, .. } => match strategy {
-                    TransformToResolutionStrategy::Stretch => self.apply_matrix.0.clone(),
-                    TransformToResolutionStrategy::Fill => self.apply_matrix.0.clone(),
-                    TransformToResolutionStrategy::Fit { .. } => self.apply_matrix.0.clone(),
-                },
-                BuiltinSpec::FixedPositionLayout { .. } => self.apply_matrix.0.clone(),
-                BuiltinSpec::TiledLayout { .. } => self.apply_matrix.0.clone(),
+                BuiltinSpec::FitToResolution(_)
+                | BuiltinSpec::FillToResolution { .. }
+                | BuiltinSpec::StretchToResolution { .. }
+                | BuiltinSpec::FixedPositionLayout { .. }
+                | BuiltinSpec::TiledLayout { .. } => self.apply_matrix.0.clone(),
                 BuiltinSpec::MirrorImage { .. } => self.mirror_image.0.clone(),
                 BuiltinSpec::CornersRounding { .. } => self.corners_rounding.0.clone(),
             },

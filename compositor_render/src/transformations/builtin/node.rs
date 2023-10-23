@@ -3,7 +3,7 @@ use std::{sync::Arc, time::Duration};
 use compositor_common::{
     renderer_spec::FallbackStrategy,
     scene::{
-        builtin_transformations::{BuiltinSpec, TransformToResolutionStrategy},
+        builtin_transformations::{BuiltinSpec, FitToResolutionSpec},
         NodeId, Resolution,
     },
 };
@@ -130,21 +130,18 @@ trait BuiltinSpecExt {
 impl BuiltinSpecExt for BuiltinSpec {
     fn clear_color(&self) -> Option<wgpu::Color> {
         match self {
-            BuiltinSpec::TransformToResolution { strategy, .. } => match strategy {
-                TransformToResolutionStrategy::Stretch | TransformToResolutionStrategy::Fill => {
-                    None
-                }
-                TransformToResolutionStrategy::Fit {
-                    background_color_rgba,
-                    ..
-                } => Some(rgba_to_wgpu_color(background_color_rgba)),
-            },
             BuiltinSpec::FixedPositionLayout(spec) => {
                 Some(rgba_to_wgpu_color(&spec.background_color_rgba))
             }
             BuiltinSpec::TiledLayout(spec) => Some(rgba_to_wgpu_color(&spec.background_color_rgba)),
             BuiltinSpec::CornersRounding { .. } => Some(wgpu::Color::TRANSPARENT),
             BuiltinSpec::MirrorImage { .. } => None,
+            BuiltinSpec::FitToResolution(FitToResolutionSpec {
+                background_color_rgba,
+                ..
+            }) => Some(rgba_to_wgpu_color(background_color_rgba)),
+            BuiltinSpec::FillToResolution { .. } => None,
+            BuiltinSpec::StretchToResolution { .. } => None,
         }
     }
 
@@ -161,27 +158,35 @@ impl BuiltinSpecExt for BuiltinSpec {
         }
 
         match &self {
-            BuiltinSpec::TransformToResolution { resolution, .. } => *resolution,
             BuiltinSpec::FixedPositionLayout(spec) => spec.resolution,
             BuiltinSpec::TiledLayout(spec) => spec.resolution,
             BuiltinSpec::MirrorImage { .. } => first_input_resolution(input_resolutions),
             BuiltinSpec::CornersRounding { .. } => first_input_resolution(input_resolutions),
+            BuiltinSpec::FitToResolution(FitToResolutionSpec { resolution, .. }) => *resolution,
+            BuiltinSpec::FillToResolution { resolution } => *resolution,
+            BuiltinSpec::StretchToResolution { resolution } => *resolution,
         }
     }
 
     fn resolution(&self) -> Option<Resolution> {
         match self {
-            BuiltinSpec::TransformToResolution { resolution, .. } => Some(*resolution),
             BuiltinSpec::FixedPositionLayout(spec) => Some(spec.resolution),
             BuiltinSpec::TiledLayout(spec) => Some(spec.resolution),
             BuiltinSpec::MirrorImage { .. } => None,
             BuiltinSpec::CornersRounding { .. } => None,
+            BuiltinSpec::FitToResolution(FitToResolutionSpec { resolution, .. }) => {
+                Some(*resolution)
+            }
+            BuiltinSpec::FillToResolution { resolution } => Some(*resolution),
+            BuiltinSpec::StretchToResolution { resolution } => Some(*resolution),
         }
     }
 
     fn fallback_strategy(&self) -> FallbackStrategy {
         match self {
-            BuiltinSpec::TransformToResolution { .. }
+            BuiltinSpec::FitToResolution(_)
+            | BuiltinSpec::FillToResolution { .. }
+            | BuiltinSpec::StretchToResolution { .. }
             | BuiltinSpec::FixedPositionLayout { .. }
             | BuiltinSpec::TiledLayout { .. }
             | BuiltinSpec::MirrorImage { .. }

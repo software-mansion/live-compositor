@@ -32,25 +32,36 @@ impl From<NodeSpec> for Node {
             }),
             scene::NodeParams::Transition(spec) => NodeParams::Transition(spec.into()),
             scene::NodeParams::Builtin(transformation) => match transformation {
-                scene::builtin_transformations::BuiltinSpec::TransformToResolution {
-                    resolution,
-                    strategy,
-                } => (strategy, resolution).into(),
-                scene::builtin_transformations::BuiltinSpec::FixedPositionLayout(layout) => {
+                BuiltinSpec::FixedPositionLayout(layout) => {
                     NodeParams::FixedPositionLayout(layout.into())
                 }
-                scene::builtin_transformations::BuiltinSpec::TiledLayout(layout) => {
-                    NodeParams::TiledLayout(layout.into())
-                }
-                scene::builtin_transformations::BuiltinSpec::MirrorImage { mode } => {
-                    NodeParams::MirrorImage(MirrorImage {
-                        mode: Some(mode.into()),
-                    })
-                }
-                scene::builtin_transformations::BuiltinSpec::CornersRounding { border_radius } => {
+                BuiltinSpec::TiledLayout(layout) => NodeParams::TiledLayout(layout.into()),
+                BuiltinSpec::MirrorImage { mode } => NodeParams::MirrorImage(MirrorImage {
+                    mode: Some(mode.into()),
+                }),
+                BuiltinSpec::CornersRounding { border_radius } => {
                     NodeParams::CornersRounding(CornersRounding {
                         border_radius: border_radius.into(),
                     })
+                }
+                BuiltinSpec::FitToResolution(builtin_transformations::FitToResolutionSpec {
+                    resolution,
+                    background_color_rgba,
+                    horizontal_alignment,
+                    vertical_alignment,
+                }) => NodeParams::FitToResolution(FitToResolution {
+                    resolution: resolution.into(),
+                    background_color_rgba: Some(background_color_rgba.into()),
+                    horizontal_alignment: Some(horizontal_alignment.into()),
+                    vertical_alignment: Some(vertical_alignment.into()),
+                }),
+                BuiltinSpec::FillToResolution { resolution } => NodeParams::FillToResolution {
+                    resolution: resolution.into(),
+                },
+                BuiltinSpec::StretchToResolution { resolution } => {
+                    NodeParams::StretchToResolution {
+                        resolution: resolution.into(),
+                    }
                 }
             },
         };
@@ -170,48 +181,13 @@ impl From<transition::Interpolation> for Interpolation {
 impl From<BuiltinSpec> for TransitionState {
     fn from(spec: BuiltinSpec) -> Self {
         match spec {
-            BuiltinSpec::TransformToResolution { .. } => panic!("not supported"),
             BuiltinSpec::FixedPositionLayout(spec) => Self::FixedPositionLayout(spec.into()),
             BuiltinSpec::TiledLayout(_) => panic!("not supported"),
             BuiltinSpec::MirrorImage { .. } => panic!("not supported"),
             BuiltinSpec::CornersRounding { .. } => panic!("not supported"),
-        }
-    }
-}
-
-impl
-    From<(
-        builtin_transformations::TransformToResolutionStrategy,
-        scene::Resolution,
-    )> for NodeParams
-{
-    fn from(
-        (strategy, resolution): (
-            builtin_transformations::TransformToResolutionStrategy,
-            scene::Resolution,
-        ),
-    ) -> Self {
-        match strategy {
-            builtin_transformations::TransformToResolutionStrategy::Stretch => {
-                NodeParams::StretchToResolution {
-                    resolution: resolution.into(),
-                }
-            }
-            builtin_transformations::TransformToResolutionStrategy::Fill => {
-                NodeParams::FillToResolution {
-                    resolution: resolution.into(),
-                }
-            }
-            builtin_transformations::TransformToResolutionStrategy::Fit {
-                background_color_rgba,
-                horizontal_alignment,
-                vertical_alignment,
-            } => NodeParams::FitToResolution(FitToResolution {
-                resolution: resolution.into(),
-                background_color_rgba: Some(background_color_rgba.into()),
-                horizontal_alignment: Some(horizontal_alignment.into()),
-                vertical_alignment: Some(vertical_alignment.into()),
-            }),
+            BuiltinSpec::FitToResolution(_) => panic!("not supported"),
+            BuiltinSpec::FillToResolution { .. } => panic!("not supported"),
+            BuiltinSpec::StretchToResolution { .. } => panic!("not supported"),
         }
     }
 }

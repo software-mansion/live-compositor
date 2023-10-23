@@ -1,6 +1,6 @@
 use compositor_common::{
     scene::{
-        builtin_transformations::{BuiltinSpec, MirrorMode, TransformToResolutionStrategy},
+        builtin_transformations::{BuiltinSpec, FitToResolutionSpec, MirrorMode},
         Resolution,
     },
     util::{ContinuousValue, InterpolationState},
@@ -65,14 +65,6 @@ impl RenderParams {
 
     fn new_from_spec(spec: &BuiltinSpec, input_resolutions: &[Option<Resolution>]) -> Self {
         match spec {
-            BuiltinSpec::TransformToResolution {
-                strategy,
-                resolution,
-            } => {
-                let input_resolution = input_resolutions[0];
-
-                Self::new_transform_to_resolution(strategy, input_resolution.as_ref(), *resolution)
-            }
             BuiltinSpec::FixedPositionLayout(spec) => {
                 RenderParams::BoxLayout(new_fixed_position_layout_params(spec, input_resolutions))
             }
@@ -83,38 +75,32 @@ impl RenderParams {
             BuiltinSpec::CornersRounding { border_radius } => RenderParams::CornersRounding(
                 CornersRoundingParams::new(*border_radius, input_resolutions),
             ),
-        }
-    }
-
-    fn new_transform_to_resolution(
-        strategy: &TransformToResolutionStrategy,
-        input_resolution: Option<&Resolution>,
-        output_resolution: Resolution,
-    ) -> Self {
-        match strategy {
-            TransformToResolutionStrategy::Stretch => RenderParams::None,
-            TransformToResolutionStrategy::Fill => match input_resolution {
-                Some(input_resolution) => {
-                    RenderParams::Fill(FillParams::new(*input_resolution, output_resolution))
-                }
-                None => RenderParams::Fill(FillParams::default()),
-            },
-            TransformToResolutionStrategy::Fit {
-                horizontal_alignment: horizontal_align,
-                vertical_alignment: vertical_align,
-                ..
-            } => match input_resolution {
+            BuiltinSpec::FitToResolution(FitToResolutionSpec {
+                background_color_rgba: _,
+                horizontal_alignment,
+                vertical_alignment,
+                resolution,
+            }) => match input_resolutions.get(0).unwrap_or(&None) {
                 Some(input_resolution) => RenderParams::BoxLayout(new_fit_to_resolution_params(
                     *input_resolution,
-                    output_resolution,
-                    *horizontal_align,
-                    *vertical_align,
+                    *resolution,
+                    *horizontal_alignment,
+                    *vertical_alignment,
                 )),
                 None => RenderParams::BoxLayout(BoxLayoutParams {
                     boxes: vec![BoxLayout::NONE],
-                    output_resolution,
+                    output_resolution: *resolution,
                 }),
             },
+            BuiltinSpec::FillToResolution { resolution } => {
+                match input_resolutions.get(0).unwrap_or(&None) {
+                    Some(input_resolution) => {
+                        RenderParams::Fill(FillParams::new(*input_resolution, *resolution))
+                    }
+                    None => RenderParams::Fill(FillParams::default()),
+                }
+            }
+            BuiltinSpec::StretchToResolution { .. } => RenderParams::None,
         }
     }
 

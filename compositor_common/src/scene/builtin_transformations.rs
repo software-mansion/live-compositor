@@ -24,34 +24,21 @@ pub const FIXED_POSITION_LAYOUT_MAX_INPUTS_COUNT: u32 = 16;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum BuiltinSpec {
-    TransformToResolution {
-        resolution: Resolution,
-        strategy: TransformToResolutionStrategy,
-    },
+    FitToResolution(FitToResolutionSpec),
+    FillToResolution { resolution: Resolution },
+    StretchToResolution { resolution: Resolution },
     FixedPositionLayout(FixedPositionLayoutSpec),
     TiledLayout(TiledLayoutSpec),
-    MirrorImage {
-        mode: MirrorMode,
-    },
-    CornersRounding {
-        border_radius: Coord,
-    },
+    MirrorImage { mode: MirrorMode },
+    CornersRounding { border_radius: Coord },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum TransformToResolutionStrategy {
-    /// Rescales input in both axis to match output resolution
-    Stretch,
-    /// Scales input preserving aspect ratio and cuts equal parts
-    /// from both sides in "sticking out" dimension
-    Fill,
-    /// Scales input preserving aspect ratio and
-    /// fill the rest of the texture with the provided color]
-    Fit {
-        background_color_rgba: RGBAColor,
-        horizontal_alignment: HorizontalAlign,
-        vertical_alignment: VerticalAlign,
-    },
+pub struct FitToResolutionSpec {
+    pub resolution: Resolution,
+    pub background_color_rgba: RGBAColor,
+    pub horizontal_alignment: HorizontalAlign,
+    pub vertical_alignment: VerticalAlign,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -62,7 +49,15 @@ pub enum MirrorMode {
 }
 
 lazy_static! {
-    static ref TRANSFORM_TO_RESOLUTION_CONSTRAINTS: NodeConstraints =
+    static ref FIT_TO_RESOLUTION_CONSTRAINTS: NodeConstraints =
+        NodeConstraints(vec![Constraint::InputCount(InputCountConstraint::Exact {
+            fixed_count: 1
+        })]);
+    static ref FILL_TO_RESOLUTION_CONSTRAINTS: NodeConstraints =
+        NodeConstraints(vec![Constraint::InputCount(InputCountConstraint::Exact {
+            fixed_count: 1
+        })]);
+    static ref STRETCH_TO_RESOLUTION_CONSTRAINTS: NodeConstraints =
         NodeConstraints(vec![Constraint::InputCount(InputCountConstraint::Exact {
             fixed_count: 1
         })]);
@@ -89,11 +84,13 @@ lazy_static! {
 impl BuiltinSpec {
     pub fn transformation_name(&self) -> &'static str {
         match self {
-            BuiltinSpec::TransformToResolution { .. } => "transform_to_resolution",
             BuiltinSpec::FixedPositionLayout { .. } => "fixed_position_layout",
             BuiltinSpec::TiledLayout { .. } => "tiled_layout",
             BuiltinSpec::MirrorImage { .. } => "mirror_image",
             BuiltinSpec::CornersRounding { .. } => "corners_rounding",
+            BuiltinSpec::FitToResolution(_) => "fit_to_resolution",
+            BuiltinSpec::FillToResolution { .. } => "fill_to_resolution",
+            BuiltinSpec::StretchToResolution { .. } => "stretch_to_resolution",
         }
     }
 
@@ -113,17 +110,21 @@ impl BuiltinSpec {
             BuiltinSpec::TiledLayout { .. }
             | BuiltinSpec::MirrorImage { .. }
             | BuiltinSpec::CornersRounding { .. }
-            | BuiltinSpec::TransformToResolution { .. } => Ok(()),
+            | BuiltinSpec::FitToResolution(_)
+            | BuiltinSpec::FillToResolution { .. }
+            | BuiltinSpec::StretchToResolution { .. } => Ok(()),
         }
     }
 
     pub fn constraints(&self) -> &'static NodeConstraints {
         match self {
-            BuiltinSpec::TransformToResolution { .. } => &TRANSFORM_TO_RESOLUTION_CONSTRAINTS,
             BuiltinSpec::FixedPositionLayout { .. } => &FIXED_POSITION_LAYOUT_CONSTRAINTS,
             BuiltinSpec::TiledLayout { .. } => &TILED_LAYOUT_CONSTRAINTS,
             BuiltinSpec::MirrorImage { .. } => &MIRROR_IMAGE_CONSTRAINTS,
             BuiltinSpec::CornersRounding { .. } => &CORNERS_ROUNDING_CONSTRAINTS,
+            BuiltinSpec::FitToResolution(_) => &FIT_TO_RESOLUTION_CONSTRAINTS,
+            BuiltinSpec::FillToResolution { .. } => &FILL_TO_RESOLUTION_CONSTRAINTS,
+            BuiltinSpec::StretchToResolution { .. } => &STRETCH_TO_RESOLUTION_CONSTRAINTS,
         }
     }
 }
