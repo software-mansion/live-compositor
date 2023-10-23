@@ -42,8 +42,15 @@ impl SceneTest {
         for output_id in self.outputs.iter() {
             let was_present = produced_outputs.remove(*output_id);
             if !was_present {
-                return Err(SceneTestError::OutputsNotFound(output_id).into());
+                return Err(SceneTestError::OutputNotFound(output_id).into());
             }
+        }
+        if !produced_outputs.is_empty() {
+            return Err(SceneTestError::TooManyOutputs {
+                expected: self.outputs.clone(),
+                produced: Vec::from_iter(produced_outputs),
+            }
+            .into());
         }
 
         self.check_for_unused_snapshots(&snapshots)?;
@@ -139,7 +146,11 @@ pub enum SceneTestError {
     SnapshotNotFound(Snapshot),
     Mismatch(Snapshot),
     UnusedSnapshot(PathBuf),
-    OutputsNotFound(&'static str),
+    OutputNotFound(&'static str),
+    TooManyOutputs {
+        expected: Vec<&'static str>,
+        produced: Vec<String>,
+    },
 }
 
 impl std::error::Error for SceneTestError {}
@@ -172,7 +183,8 @@ impl Display for SceneTestError {
                 )
             }
             SceneTestError::UnusedSnapshot(path) => format!("Snapshot \"{}\" was not used during testing", path.to_string_lossy()),
-            SceneTestError::OutputsNotFound(output_id) => format!("Output \"{output_id}\" is missing"),
+            SceneTestError::OutputNotFound(output_id) => format!("Output \"{output_id}\" is missing"),
+            SceneTestError::TooManyOutputs { expected, produced } => format!("Too many outputs produced. Expected: {expected:?}, produced: {produced:?}"),
         };
 
         f.write_str(&err_msg)
