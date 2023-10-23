@@ -33,15 +33,13 @@ impl TryFrom<Node> for NodeSpec {
             NodeParams::CornersRounding(node) => scene::NodeParams::Builtin(node.try_into()?),
             NodeParams::FitToResolution(node) => scene::NodeParams::Builtin(node.try_into()?),
             NodeParams::FillToResolution { resolution } => {
-                scene::NodeParams::Builtin(BuiltinSpec::TransformToResolution {
+                scene::NodeParams::Builtin(BuiltinSpec::FillToResolution {
                     resolution: resolution.into(),
-                    strategy: builtin_transformations::TransformToResolutionStrategy::Fill,
                 })
             }
             NodeParams::StretchToResolution { resolution } => {
-                scene::NodeParams::Builtin(BuiltinSpec::TransformToResolution {
+                scene::NodeParams::Builtin(BuiltinSpec::StretchToResolution {
                     resolution: resolution.into(),
-                    strategy: builtin_transformations::TransformToResolutionStrategy::Stretch,
                 })
             }
         };
@@ -181,23 +179,21 @@ impl TryFrom<FitToResolution> for BuiltinSpec {
     type Error = TypeError;
 
     fn try_from(node: FitToResolution) -> Result<Self, Self::Error> {
-        let result = Self::TransformToResolution {
+        let result = Self::FitToResolution(builtin_transformations::FitToResolutionSpec {
             resolution: node.resolution.into(),
-            strategy: builtin_transformations::TransformToResolutionStrategy::Fit {
-                background_color_rgba: node
-                    .background_color_rgba
-                    .map(TryInto::try_into)
-                    .unwrap_or(Ok(RGBAColor(0, 0, 0, 0)))?,
-                horizontal_alignment: node
-                    .horizontal_alignment
-                    .unwrap_or(HorizontalAlign::Center)
-                    .into(),
-                vertical_alignment: node
-                    .vertical_alignment
-                    .unwrap_or(VerticalAlign::Center)
-                    .into(),
-            },
-        };
+            background_color_rgba: node
+                .background_color_rgba
+                .map(TryInto::try_into)
+                .unwrap_or(Ok(RGBAColor(0, 0, 0, 0)))?,
+            horizontal_alignment: node
+                .horizontal_alignment
+                .unwrap_or(HorizontalAlign::Center)
+                .into(),
+            vertical_alignment: node
+                .vertical_alignment
+                .unwrap_or(VerticalAlign::Center)
+                .into(),
+        });
         Ok(result)
     }
 }
