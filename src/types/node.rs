@@ -24,8 +24,16 @@ pub enum NodeParams {
     Image(Image),
     Text(Text),
     Transition(Transition),
-    #[serde(rename = "builtin:transform_to_resolution")]
-    TransformToResolution(TransformToResolution),
+    #[serde(rename = "builtin:fit_to_resolution")]
+    FitToResolution(FitToResolution),
+    #[serde(rename = "builtin:fill_to_resolution")]
+    FillToResolution {
+        resolution: Resolution,
+    },
+    #[serde(rename = "builtin:stretch_to_resolution")]
+    StretchToResolution {
+        resolution: Resolution,
+    },
     #[serde(rename = "builtin:fixed_position_layout")]
     FixedPositionLayout(FixedPositionLayout),
     #[serde(rename = "builtin:tiled_layout")]
@@ -167,21 +175,12 @@ pub enum Interpolation {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-#[serde(tag = "strategy", rename_all = "snake_case", deny_unknown_fields)]
-pub enum TransformToResolution {
-    /// Rescales input in both axis to match output resolution
-    Stretch { resolution: Resolution },
-    /// Scales input preserving aspect ratio and cuts equal parts
-    /// from both sides in "sticking out" dimension
-    Fill { resolution: Resolution },
-    /// Scales input preserving aspect ratio and
-    /// fills the rest of the texture with the provided color
-    Fit {
-        resolution: Resolution,
-        background_color_rgba: Option<RGBAColor>,
-        horizontal_alignment: Option<HorizontalAlign>,
-        vertical_alignment: Option<VerticalAlign>,
-    },
+#[serde(deny_unknown_fields)]
+pub struct FitToResolution {
+    pub resolution: Resolution,
+    pub background_color_rgba: Option<RGBAColor>,
+    pub horizontal_alignment: Option<HorizontalAlign>,
+    pub vertical_alignment: Option<VerticalAlign>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]

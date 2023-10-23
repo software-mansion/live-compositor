@@ -131,8 +131,7 @@ fn start_example_client_code() -> Result<()> {
             },
             {
                 "node_id": "gif_1_rescaled",
-                "type": "builtin:transform_to_resolution",
-                "strategy": "fill",
+                "type": "builtin:fill_to_resolution",
                 "resolution": { "width": 960, "height": 540 },
                 "input_pads": ["gif_1"],
             },
@@ -165,8 +164,7 @@ fn start_example_client_code() -> Result<()> {
             },
             {
                 "node_id": "png_1_rescaled",
-                "type": "builtin:transform_to_resolution",
-                "strategy": "fit",
+                "type": "builtin:fit_to_resolution",
                 "resolution": { "width": 960, "height": 540 },
                 "input_pads": ["png_1"],
             },
@@ -199,8 +197,7 @@ fn start_example_client_code() -> Result<()> {
             },
             {
                 "node_id": "jpeg_1_rescaled",
-                "type": "builtin:transform_to_resolution",
-                "strategy": "fit",
+                "type": "builtin:fit_to_resolution",
                 "resolution": { "width": 960, "height": 540 },
                 "input_pads": ["jpeg_1"],
                 "background_color_rgba": "#00000000",
@@ -235,8 +232,7 @@ fn start_example_client_code() -> Result<()> {
             },
             {
                 "node_id": "svg_1_rescaled",
-                "type": "builtin:transform_to_resolution",
-                "strategy": "fit",
+                "type": "builtin:fit_to_resolution",
                 "resolution": { "width": 960, "height": 540 },
                 "input_pads": ["svg_1"],
             },

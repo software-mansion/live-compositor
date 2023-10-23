@@ -35,7 +35,7 @@ impl From<NodeSpec> for Node {
                 scene::builtin_transformations::BuiltinSpec::TransformToResolution {
                     resolution,
                     strategy,
-                } => NodeParams::TransformToResolution((strategy, resolution).into()),
+                } => (strategy, resolution).into(),
                 scene::builtin_transformations::BuiltinSpec::FixedPositionLayout(layout) => {
                     NodeParams::FixedPositionLayout(layout.into())
                 }
@@ -183,7 +183,7 @@ impl
     From<(
         builtin_transformations::TransformToResolutionStrategy,
         scene::Resolution,
-    )> for TransformToResolution
+    )> for NodeParams
 {
     fn from(
         (strategy, resolution): (
@@ -193,12 +193,12 @@ impl
     ) -> Self {
         match strategy {
             builtin_transformations::TransformToResolutionStrategy::Stretch => {
-                TransformToResolution::Stretch {
+                NodeParams::StretchToResolution {
                     resolution: resolution.into(),
                 }
             }
             builtin_transformations::TransformToResolutionStrategy::Fill => {
-                TransformToResolution::Fill {
+                NodeParams::FillToResolution {
                     resolution: resolution.into(),
                 }
             }
@@ -206,12 +206,12 @@ impl
                 background_color_rgba,
                 horizontal_alignment,
                 vertical_alignment,
-            } => TransformToResolution::Fit {
+            } => NodeParams::FitToResolution(FitToResolution {
                 resolution: resolution.into(),
                 background_color_rgba: Some(background_color_rgba.into()),
                 horizontal_alignment: Some(horizontal_alignment.into()),
                 vertical_alignment: Some(vertical_alignment.into()),
-            },
+            }),
         }
     }
 }
