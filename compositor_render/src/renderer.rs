@@ -2,34 +2,32 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use compositor_common::{
-    scene::{InputId, OutputId, Resolution, SceneSpec},
+    scene::{InputId, OutputId, SceneSpec},
     Framerate,
 };
-use log::error;
 
+use crate::wgpu::{WgpuCtx, WgpuErrorScope};
 use crate::{
     error::{InitRendererEngineError, RenderSceneError, UpdateSceneError},
-    frame_set::FrameSet,
-    render_loop::{populate_inputs, read_outputs},
     transformations::{
         text_renderer::TextRendererCtx, web_renderer::chromium_context::ChromiumContext,
     },
-    WebRendererOptions,
+    FrameSet, WebRendererOptions,
 };
-use crate::{gpu_shader::GpuShader, render_loop::run_transforms};
 
 use self::{
-    format::TextureFormat, node::NodeSpecExt, renderers::Renderers, scene::Scene,
-    utils::TextureUtils,
+    node::NodeSpecExt,
+    render_loop::{populate_inputs, read_outputs, run_transforms},
+    renderers::Renderers,
+    scene::Scene,
 };
 
-pub mod common_pipeline;
-mod format;
 pub mod node;
+mod render_loop;
 pub mod renderers;
 pub mod scene;
-pub mod texture;
-mod utils;
+
+pub(crate) use render_loop::NodeRenderPass;
 
 pub struct RendererOptions {
     pub web_renderer: WebRendererOptions,
@@ -142,163 +140,6 @@ impl Renderer {
                 .map_err(|err| {
                     UpdateSceneError::ConstraintsValidationError(err, node_spec.node_id.clone())
                 })?;
-        }
-
-        Ok(())
-    }
-}
-
-#[derive(Debug)]
-pub struct WgpuCtx {
-    pub device: wgpu::Device,
-    pub queue: wgpu::Queue,
-
-    pub shader_header: naga::Module,
-
-    pub format: TextureFormat,
-    pub utils: TextureUtils,
-
-    pub shader_parameters_bind_group_layout: wgpu::BindGroupLayout,
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum CreateWgpuCtxError {
-    #[error("Failed to get a wgpu adapter.")]
-    NoAdapter,
-
-    #[error("Failed to get a wgpu device.")]
-    NoDevice(#[from] wgpu::RequestDeviceError),
-
-    #[error(transparent)]
-    WgpuError(#[from] WgpuError),
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum WgpuError {
-    #[error("Wgpu validation error:\n{0}")]
-    Validation(String),
-    #[error("Wgpu out of memory error: {0}")]
-    OutOfMemory(String),
-}
-
-/// Convert to custom error because wgpu::Error is not Send/Sync
-impl From<wgpu::Error> for WgpuError {
-    fn from(value: wgpu::Error) -> Self {
-        match value {
-            wgpu::Error::OutOfMemory { .. } => Self::OutOfMemory(value.to_string()),
-            wgpu::Error::Validation { .. } => Self::Validation(value.to_string()),
-        }
-    }
-}
-
-impl WgpuCtx {
-    fn new() -> Result<Self, CreateWgpuCtxError> {
-        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
-            backends: wgpu::Backends::all(),
-            ..Default::default()
-        });
-
-        let adapter =
-            pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptionsBase {
-                power_preference: wgpu::PowerPreference::HighPerformance,
-                force_fallback_adapter: false,
-                compatible_surface: None,
-            }))
-            .ok_or(CreateWgpuCtxError::NoAdapter)?;
-
-        let (device, queue) = pollster::block_on(adapter.request_device(
-            &wgpu::DeviceDescriptor {
-                label: Some("Video Compositor's GPU :^)"),
-                limits: wgpu::Limits {
-                    max_push_constant_size: 128,
-                    ..Default::default()
-                },
-                features: wgpu::Features::TEXTURE_BINDING_ARRAY
-                    | wgpu::Features::PUSH_CONSTANTS
-                    | wgpu::Features::SAMPLED_TEXTURE_AND_STORAGE_BUFFER_ARRAY_NON_UNIFORM_INDEXING
-                    | wgpu::Features::UNIFORM_BUFFER_AND_STORAGE_TEXTURE_ARRAY_NON_UNIFORM_INDEXING,
-            },
-            None,
-        ))?;
-
-        let shader_header =
-            naga::front::wgsl::parse_str(include_str!("gpu_shader/shader_header.wgsl"))
-                .expect("failed to parse the shader header file");
-
-        let scope = WgpuErrorScope::push(&device);
-
-        let format = TextureFormat::new(&device);
-        let utils = TextureUtils::new(&device);
-
-        let shader_parameters_bind_group_layout =
-            GpuShader::new_parameters_bind_group_layout(&device);
-
-        scope.pop(&device)?;
-
-        device.on_uncaptured_error(Box::new(|e| {
-            error!("wgpu error: {:?}", e);
-        }));
-
-        Ok(Self {
-            device,
-            queue,
-            shader_header,
-            format,
-            utils,
-            shader_parameters_bind_group_layout,
-        })
-    }
-}
-
-#[repr(C)]
-#[derive(Debug, bytemuck::Pod, bytemuck::Zeroable, Clone, Copy)]
-pub struct CommonShaderParameters {
-    time: f32,
-    pub texture_count: u32,
-    output_resolution: [u32; 2],
-}
-
-impl CommonShaderParameters {
-    pub fn new(time: Duration, texture_count: u32, output_resolution: Resolution) -> Self {
-        Self {
-            time: time.as_secs_f32(),
-            texture_count,
-            output_resolution: [
-                output_resolution.width as u32,
-                output_resolution.height as u32,
-            ],
-        }
-    }
-
-    pub fn push_constant_size() -> u32 {
-        let size = std::mem::size_of::<CommonShaderParameters>() as u32;
-        match size % 4 {
-            0 => size,
-            rest => size + (4 - rest),
-        }
-    }
-
-    pub fn push_constant(&self) -> &[u8] {
-        bytemuck::bytes_of(self)
-    }
-}
-
-#[must_use]
-pub(crate) struct WgpuErrorScope;
-
-impl WgpuErrorScope {
-    pub(crate) fn push(device: &wgpu::Device) -> Self {
-        device.push_error_scope(wgpu::ErrorFilter::Validation);
-        device.push_error_scope(wgpu::ErrorFilter::OutOfMemory);
-
-        Self
-    }
-
-    pub(crate) fn pop(self, device: &wgpu::Device) -> Result<(), WgpuError> {
-        for _ in 0..2 {
-            if let Some(error) = pollster::block_on(device.pop_error_scope()) {
-                return Err(error.into());
-            }
         }
 
         Ok(())

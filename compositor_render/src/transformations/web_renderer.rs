@@ -3,14 +3,11 @@ use std::env;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
-use crate::renderer::{
-    texture::{BGRATexture, NodeTexture},
-    RegisterCtx, RenderCtx,
-};
+use crate::renderer::{RegisterCtx, RenderCtx};
+use crate::wgpu::shader::shader_params::ParamsBuffer;
+use crate::wgpu::shader::{CreateShaderError, WgpuShader};
+use crate::wgpu::texture::{BGRATexture, NodeTexture, NodeTextureState, RGBATexture, Texture};
 
-use crate::gpu_shader::params_buffer::ParamsBuffer;
-use crate::gpu_shader::{CreateShaderError, GpuShader};
-use crate::renderer::texture::{NodeTextureState, RGBATexture, Texture};
 use crate::transformations::web_renderer::browser_client::BrowserClient;
 use crate::transformations::web_renderer::chromium_sender::ChromiumSender;
 use crate::transformations::web_renderer::embedder::{EmbedError, EmbeddingHelper, TextureInfo};
@@ -61,7 +58,7 @@ pub struct WebRenderer {
     embedding_helper: EmbeddingHelper,
 
     website_texture: BGRATexture,
-    render_website_shader: GpuShader,
+    render_website_shader: WgpuShader,
     shader_params: Mutex<ParamsBuffer>,
 }
 
@@ -80,7 +77,7 @@ impl WebRenderer {
         let chromium_sender = ChromiumSender::new(ctx, spec.url.clone(), client);
         let embedding_helper = EmbeddingHelper::new(ctx, chromium_sender, spec.embedding_method);
 
-        let render_website_shader = GpuShader::new(
+        let render_website_shader = WgpuShader::new(
             &ctx.wgpu_ctx,
             include_str!("web_renderer/render_website.wgsl").into(),
         )?;
@@ -119,7 +116,7 @@ impl WebRenderer {
             shader_params.update(textures_info, ctx.wgpu_ctx);
 
             self.render_website_shader.render_with_textures(
-                &shader_params.bind_group,
+                shader_params.bind_group(),
                 &textures,
                 target,
                 Default::default(),

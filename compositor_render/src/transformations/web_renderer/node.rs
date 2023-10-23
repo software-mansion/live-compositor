@@ -7,9 +7,12 @@ use compositor_common::{
 };
 use log::error;
 
-use crate::renderer::{
-    texture::{utils::pad_to_256, NodeTexture, RGBATexture},
-    RenderCtx, WgpuCtx,
+use crate::{
+    renderer::RenderCtx,
+    wgpu::{
+        texture::{utils::pad_to_256, NodeTexture, RGBATexture},
+        WgpuCtx,
+    },
 };
 
 use super::WebRenderer;

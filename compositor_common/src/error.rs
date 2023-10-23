@@ -128,7 +128,7 @@ impl From<&NodeParams> for NodeIdentifier {
             NodeParams::Shader { shader_id, .. } => Self::Shader(shader_id.clone()),
             NodeParams::Text(_) => Self::Text,
             NodeParams::Image { image_id } => Self::Image(image_id.clone()),
-            NodeParams::Builtin { transformation } => {
+            NodeParams::Builtin(transformation) => {
                 Self::Builtin(transformation.transformation_name())
             }
             NodeParams::Transition(TransitionSpec { start, end, .. }) => {

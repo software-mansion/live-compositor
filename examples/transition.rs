@@ -153,7 +153,7 @@ fn start_example_client_code() -> Result<()> {
                 "type": "transition",
                 "node_id": "transition_1",
                 "start": {
-                    "transformation": "fixed_position_layout",
+                    "type": "builtin:fixed_position_layout",
                     "texture_layouts": [
                         {
                             "left": "0px",
@@ -164,7 +164,7 @@ fn start_example_client_code() -> Result<()> {
                     "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
                 },
                 "end": {
-                    "transformation": "fixed_position_layout",
+                    "type": "builtin:fixed_position_layout",
                     "texture_layouts": [
                         {
                             "right": "0px",

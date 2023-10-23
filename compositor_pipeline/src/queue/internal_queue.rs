@@ -1,6 +1,6 @@
 use compositor_common::scene::InputId;
 use compositor_common::Frame;
-use compositor_render::frame_set::FrameSet;
+use compositor_render::FrameSet;
 
 use std::collections::HashMap;
 use std::time::Duration;

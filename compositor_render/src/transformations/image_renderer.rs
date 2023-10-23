@@ -17,9 +17,12 @@ use resvg::{
     usvg::{self, TreeParsing},
 };
 
-use crate::renderer::{
-    texture::{NodeTexture, RGBATexture},
-    RegisterCtx, RenderCtx, WgpuCtx,
+use crate::{
+    renderer::{RegisterCtx, RenderCtx},
+    wgpu::{
+        texture::{NodeTexture, RGBATexture},
+        WgpuCtx,
+    },
 };
 
 #[derive(Clone)]

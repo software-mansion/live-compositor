@@ -1,8 +1,9 @@
 use compositor_common::scene::{
-    builtin_transformations::{FixedPositionLayoutSpec, TextureLayout},
+    builtin_transformations::{
+        FixedPositionLayoutSpec, HorizontalPosition, TextureLayout, VerticalPosition,
+    },
     Resolution,
 };
-use log::error;
 
 use crate::transformations::builtin::box_layout::BoxLayout;
 
@@ -50,35 +51,20 @@ fn spec_to_top_left_coords(
     input_resolution: &Resolution,
     output_resolution: &Resolution,
 ) -> (f32, f32) {
-    let top = match layout {
-        TextureLayout { top: Some(top), .. } => top.pixels(output_resolution.height as u32),
-        TextureLayout {
-            bottom: Some(bottom),
-            ..
-        } => {
+    let top = match layout.vertical_position {
+        VerticalPosition::Top(top) => top.pixels(output_resolution.height as u32),
+        VerticalPosition::Bottom(bottom) => {
             output_resolution.height as i32
                 - (input_resolution.height as f32 * layout.scale) as i32
                 - bottom.pixels(output_resolution.height as u32)
         }
-        _ => {
-            error!("Invalid specs in fixed_position_layout: {:?}", layout);
-            0
-        }
     };
-    let left = match layout {
-        TextureLayout {
-            left: Some(left), ..
-        } => left.pixels(output_resolution.width as u32),
-        TextureLayout {
-            right: Some(right), ..
-        } => {
+    let left = match layout.horizontal_position {
+        HorizontalPosition::Left(left) => left.pixels(output_resolution.width as u32),
+        HorizontalPosition::Right(right) => {
             output_resolution.width as i32
                 - (input_resolution.width as f32 * layout.scale) as i32
                 - right.pixels(output_resolution.width as u32)
-        }
-        _ => {
-            error!("Invalid specs in fixed_position_layout: {:?}", layout);
-            0
         }
     };
 

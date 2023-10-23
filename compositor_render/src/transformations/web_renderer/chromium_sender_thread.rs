@@ -20,7 +20,7 @@ use crate::transformations::web_renderer::chromium_sender::{
 use crate::transformations::web_renderer::shared_memory::{SharedMemory, SharedMemoryError};
 use crate::transformations::web_renderer::WebRenderer;
 use crate::{
-    renderer::texture::utils::pad_to_256, EMBED_SOURCE_FRAMES_MESSAGE, GET_FRAME_POSITIONS_MESSAGE,
+    wgpu::texture::utils::pad_to_256, EMBED_SOURCE_FRAMES_MESSAGE, GET_FRAME_POSITIONS_MESSAGE,
 };
 
 use super::{browser_client::BrowserClient, chromium_context::ChromiumContext};

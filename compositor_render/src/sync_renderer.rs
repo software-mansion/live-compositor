@@ -11,11 +11,11 @@ use crate::{
         UpdateSceneError,
     },
     event_loop::EventLoop,
-    frame_set::FrameSet,
     registry::RegistryType,
     renderer::{Renderer, RendererOptions},
     transformations::{image_renderer::Image, shader::Shader, web_renderer::WebRenderer},
     validation::SceneSpecExt,
+    FrameSet,
 };
 
 #[derive(Clone)]

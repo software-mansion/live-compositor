@@ -8,18 +8,20 @@ use compositor_common::{
     },
 };
 
-use crate::gpu_shader::params_buffer::ParamsBuffer;
 use crate::{
-    gpu_shader::GpuShader,
-    renderer::{texture::NodeTexture, RenderCtx},
+    renderer::RenderCtx,
     utils::rgba_to_wgpu_color,
+    wgpu::{
+        shader::{shader_params::ParamsBuffer, WgpuShader},
+        texture::NodeTexture,
+    },
 };
 
 use super::{params::RenderParams, BuiltinState};
 
 pub struct BuiltinNode {
     state: BuiltinState,
-    gpu_shader: Arc<GpuShader>,
+    gpu_shader: Arc<WgpuShader>,
     params_buffer: ParamsBuffer,
 }
 

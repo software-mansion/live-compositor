@@ -40,7 +40,7 @@ fn main() {
 
     if let Err(err) = bundle_for_development(target_path) {
         panic!(
-            "Build process helper first: cargo build --bin process_helper. {:?}",
+            "Build process helper first. For release profile use: cargo build -r --bin process_helper. {:?}",
             err
         );
     }
@@ -123,15 +123,14 @@ fn start_example_client_code() -> Result<()> {
     common::post(&json!({
         "type": "update_scene",
         "nodes": [
-           {
-               "node_id": "embed_input_on_website",
-               "type": "web_renderer",
-               "instance_id": "example_website",
-               "input_pads": [
-                    "input_1"
-                ],
-               "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
-           }
+            {
+                "node_id": "embed_input_on_website",
+                "type": "web_renderer",
+                "instance_id": "example_website",
+                "input_pads": [
+                     "input_1",
+                 ]
+            }
         ],
         "outputs": [
             {

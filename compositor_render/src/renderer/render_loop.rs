@@ -11,12 +11,12 @@ use compositor_common::{
 use log::error;
 
 use crate::{
-    frame_set::FrameSet,
     renderer::{
         node::Node,
         scene::{InternalSceneError, Scene, SceneNodesSet},
         RenderCtx,
     },
+    FrameSet,
 };
 
 pub(super) fn populate_inputs(

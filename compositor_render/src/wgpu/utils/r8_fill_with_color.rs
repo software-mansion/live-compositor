@@ -1,6 +1,6 @@
 use wgpu::ShaderStages;
 
-use crate::renderer::{
+use crate::wgpu::{
     common_pipeline::{surface::SingleSurface, Vertex, PRIMITIVE_STATE},
     texture::Texture,
     WgpuCtx,

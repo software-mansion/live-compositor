@@ -1,50 +1,17 @@
 use std::sync::Arc;
 
 use glyphon::AttrsOwned;
-use serde::{Deserialize, Serialize};
 
 use crate::util::{align::HorizontalAlign, colors::RGBAColor};
 
-use super::MAX_NODE_RESOLUTION;
-
-fn default_color() -> RGBAColor {
-    RGBAColor(255, 255, 255, 255)
-}
-
-fn default_family() -> String {
-    String::from("Verdana")
-}
-
-fn default_style() -> Style {
-    Style::Normal
-}
-
-fn default_align() -> HorizontalAlign {
-    HorizontalAlign::Left
-}
-
-fn default_wrap() -> Wrap {
-    Wrap::None
-}
-
-fn default_max_width() -> u32 {
-    MAX_NODE_RESOLUTION.width as u32
-}
-
-fn default_max_height() -> u32 {
-    MAX_NODE_RESOLUTION.height as u32
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(rename_all = "snake_case")]
+#[derive(Debug, Clone)]
 pub enum Style {
     Normal,
     Italic,
     Oblique,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(rename_all = "snake_case")]
+#[derive(Debug, Clone)]
 pub enum Wrap {
     None,
     Glyph,
@@ -61,26 +28,51 @@ impl From<Wrap> for glyphon::cosmic_text::Wrap {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(tag = "type")]
+#[derive(Debug, Clone)]
+pub enum Weight {
+    Thin,
+    ExtraLight,
+    Light,
+    Normal,
+    Medium,
+    SemiBold,
+    Bold,
+    ExtraBold,
+    Black,
+}
+
+impl From<&Weight> for glyphon::Weight {
+    fn from(value: &Weight) -> Self {
+        match value {
+            Weight::Thin => glyphon::Weight::THIN,
+            Weight::ExtraLight => glyphon::Weight::EXTRA_LIGHT,
+            Weight::Light => glyphon::Weight::LIGHT,
+            Weight::Normal => glyphon::Weight::NORMAL,
+            Weight::Medium => glyphon::Weight::MEDIUM,
+            Weight::SemiBold => glyphon::Weight::SEMIBOLD,
+            Weight::Bold => glyphon::Weight::BOLD,
+            Weight::ExtraBold => glyphon::Weight::EXTRA_BOLD,
+            Weight::Black => glyphon::Weight::BLACK,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct TextSpec {
     pub content: Arc<str>,
     /// in pixels
     pub font_size: f32,
     /// in pixels, default: same as font_size
     pub line_height: Option<f32>,
-    #[serde(default = "default_color")]
     pub color_rgba: RGBAColor,
     /// https://www.w3.org/TR/2018/REC-css-fonts-3-20180920/#family-name-value   
     /// use font family name, not generic family name
-    #[serde(default = "default_family")]
     pub font_family: String,
-    #[serde(default = "default_style")]
     pub style: Style,
-    #[serde(default = "default_align")]
     pub align: HorizontalAlign,
-    #[serde(default = "default_wrap")]
+    pub weight: Weight,
     pub wrap: Wrap,
+    pub background_color_rgba: RGBAColor,
     pub dimensions: TextDimensions,
 }
 
@@ -102,28 +94,27 @@ impl From<&TextSpec> for AttrsOwned {
             family_owned: family,
             stretch: Default::default(),
             style,
-            weight: Default::default(),
+            weight: (&text_params.weight).into(),
             metadata: Default::default(),
         }
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
-#[serde(tag = "type", rename_all = "snake_case")]
+#[derive(Debug, Clone, Copy)]
 pub enum TextDimensions {
     /// Renders text and "trims" texture to smallest possible size
     Fitted {
-        #[serde(default = "default_max_width")]
         max_width: u32,
-        #[serde(default = "default_max_height")]
         max_height: u32,
     },
     FittedColumn {
         width: u32,
-        #[serde(default = "default_max_height")]
         max_height: u32,
     },
     /// Renders text according to provided spec
     /// and outputs texture with provided fixed size
-    Fixed { width: u32, height: u32 },
+    Fixed {
+        width: u32,
+        height: u32,
+    },
 }

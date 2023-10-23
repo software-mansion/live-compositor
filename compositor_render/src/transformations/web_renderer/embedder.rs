@@ -1,6 +1,7 @@
-use crate::renderer::texture::NodeTexture;
-use crate::renderer::{RegisterCtx, WgpuCtx};
+use crate::renderer::RegisterCtx;
 use crate::transformations::web_renderer::chromium_sender::ChromiumSender;
+use crate::wgpu::texture::NodeTexture;
+use crate::wgpu::WgpuCtx;
 use bytes::{Bytes, BytesMut};
 use compositor_common::renderer_spec::WebEmbeddingMethod;
 use compositor_common::scene::NodeId;

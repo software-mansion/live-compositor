@@ -1,13 +1,8 @@
 use std::{fmt::Display, sync::Arc};
 
-use serde::{Deserialize, Serialize};
+use crate::scene::{constraints::NodeConstraints, Resolution};
 
-use crate::scene::{
-    constraints::{input_count::InputCountConstraint, Constraint, NodeConstraints},
-    Resolution,
-};
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct RendererId(pub Arc<str>);
 
 impl Display for RendererId {
@@ -16,8 +11,7 @@ impl Display for RendererId {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
-#[serde(rename_all = "snake_case")]
+#[derive(Debug, Clone, Copy)]
 pub enum FallbackStrategy {
     NeverFallback,
     FallbackIfAllInputsMissing,
@@ -27,39 +21,32 @@ pub enum FallbackStrategy {
 /// RendererSpec provides configuration necessary to construct Renderer. Renderers
 /// are entities like shader, image or chromium_instance and can be used by nodes
 /// to transform or generate frames.
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(tag = "type", rename_all = "snake_case")]
+#[derive(Debug)]
 pub enum RendererSpec {
     Shader(ShaderSpec),
     WebRenderer(WebRendererSpec),
     Image(ImageSpec),
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug)]
 pub struct ShaderSpec {
     pub shader_id: RendererId,
     pub source: String,
-    #[serde(default = "ShaderSpec::default_fallback")]
     pub fallback_strategy: FallbackStrategy,
-    #[serde(default = "ShaderSpec::default_constraints")]
     pub constraints: NodeConstraints,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug)]
 pub struct WebRendererSpec {
     pub instance_id: RendererId,
     pub url: String,
     pub resolution: Resolution,
-    #[serde(default = "WebRendererSpec::default_embedding_method")]
     pub embedding_method: WebEmbeddingMethod,
-    #[serde(default = "WebRendererSpec::default_fallback")]
     pub fallback_strategy: FallbackStrategy,
-    #[serde(default = "WebRendererSpec::default_constraints")]
     pub constraints: NodeConstraints,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum WebEmbeddingMethod {
     /// Send frames to chromium directly and render it on canvas
     ChromiumEmbedding,
@@ -72,59 +59,23 @@ pub enum WebEmbeddingMethod {
     NativeEmbeddingUnderContent,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-#[serde()]
+#[derive(Debug)]
 pub struct ImageSpec {
-    #[serde(flatten)]
     pub src: ImageSrc,
     pub image_id: RendererId,
-
-    #[serde(flatten)]
     pub image_type: ImageType,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(untagged)]
+#[derive(Debug)]
 pub enum ImageSrc {
     Url { url: String },
     LocalPath { path: String },
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(tag = "asset_type", rename_all = "snake_case")]
+#[derive(Debug)]
 pub enum ImageType {
     Png,
     Jpeg,
     Svg { resolution: Option<Resolution> },
     Gif,
-}
-
-impl ShaderSpec {
-    fn default_fallback() -> FallbackStrategy {
-        FallbackStrategy::FallbackIfAllInputsMissing
-    }
-
-    fn default_constraints() -> NodeConstraints {
-        NodeConstraints(vec![Constraint::InputCount(InputCountConstraint::Range {
-            lower_bound: 0,
-            upper_bound: 16,
-        })])
-    }
-}
-
-impl WebRendererSpec {
-    fn default_fallback() -> FallbackStrategy {
-        FallbackStrategy::FallbackIfAllInputsMissing
-    }
-
-    fn default_constraints() -> NodeConstraints {
-        NodeConstraints(vec![Constraint::InputCount(InputCountConstraint::Range {
-            lower_bound: 0,
-            upper_bound: 16,
-        })])
-    }
-
-    fn default_embedding_method() -> WebEmbeddingMethod {
-        WebEmbeddingMethod::NativeEmbeddingOverContent
-    }
 }
