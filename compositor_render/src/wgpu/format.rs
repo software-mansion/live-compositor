@@ -5,6 +5,7 @@ use super::{
     WgpuCtx,
 };
 
+pub mod bgra_to_rgba;
 mod rgba_to_yuv;
 mod yuv_to_rgba;
 

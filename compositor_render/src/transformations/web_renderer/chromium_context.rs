@@ -8,7 +8,7 @@ use log::info;
 
 use crate::WebRendererOptions;
 
-use super::browser_client::BrowserClient;
+use super::browser::BrowserClient;
 
 pub struct ChromiumContext {
     instance_id: String,

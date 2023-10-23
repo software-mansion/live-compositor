@@ -115,14 +115,6 @@
         "width"
       ],
       "type": "object"
-    },
-    "WebEmbeddingMethod": {
-      "enum": [
-        "chromium_embedding",
-        "native_embedding_over_content",
-        "native_embedding_under_content"
-      ],
-      "type": "string"
     }
   },
   "oneOf": [
@@ -234,16 +226,6 @@
           "anyOf": [
             {
               "$ref": "#/definitions/NodeConstraints"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "embedding_method": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/WebEmbeddingMethod"
             },
             {
               "type": "null"

@@ -46,13 +46,9 @@ impl SyncRenderer {
             }
             RendererSpec::WebRenderer(params) => {
                 let instance_id = params.instance_id.clone();
-                let web = WebRenderer::new(&ctx, params)
-                    .map_err(|err| RegisterRendererError::Web(err, instance_id.clone()))?;
+                let web = Arc::new(WebRenderer::new(&ctx, params));
 
-                Ok(guard
-                    .renderers
-                    .web_renderers
-                    .register(instance_id, Arc::new(web))?)
+                Ok(guard.renderers.web_renderers.register(instance_id, web)?)
             }
             RendererSpec::Image(spec) => {
                 let image_id = spec.image_id.clone();

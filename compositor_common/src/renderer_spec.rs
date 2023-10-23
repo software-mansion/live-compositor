@@ -41,22 +41,8 @@ pub struct WebRendererSpec {
     pub instance_id: RendererId,
     pub url: String,
     pub resolution: Resolution,
-    pub embedding_method: WebEmbeddingMethod,
     pub fallback_strategy: FallbackStrategy,
     pub constraints: NodeConstraints,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum WebEmbeddingMethod {
-    /// Send frames to chromium directly and render it on canvas
-    ChromiumEmbedding,
-
-    /// Render sources on top of the rendered website
-    NativeEmbeddingOverContent,
-
-    /// Render sources below the website.
-    /// The website's background has to be transparent
-    NativeEmbeddingUnderContent,
 }
 
 #[derive(Debug)]

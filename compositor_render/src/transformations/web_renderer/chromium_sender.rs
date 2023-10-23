@@ -6,7 +6,7 @@ use crossbeam_channel::{Receiver, Sender};
 
 use crate::wgpu::texture::NodeTexture;
 
-use super::{browser_client::BrowserClient, chromium_sender_thread::ChromiumSenderThread};
+use super::{browser::BrowserClient, chromium_sender_thread::ChromiumSenderThread};
 
 pub(super) struct ChromiumSender {
     message_sender: Sender<ChromiumSenderMessage>,
@@ -81,14 +81,6 @@ impl ChromiumSender {
         // Wait until buffer unmap is possible
         self.unmap_signal_receiver.recv().unwrap();
     }
-
-    pub fn request_frame_positions(&self, sources: &[(&NodeId, &NodeTexture)]) {
-        self.message_sender
-            .send(ChromiumSenderMessage::GetFramePositions {
-                source_count: sources.len(),
-            })
-            .unwrap();
-    }
 }
 
 pub(super) enum ChromiumSenderMessage {
@@ -101,9 +93,6 @@ pub(super) enum ChromiumSenderMessage {
         resolutions: Vec<Option<Resolution>>,
     },
     UpdateSharedMemory(UpdateSharedMemoryInfo),
-    GetFramePositions {
-        source_count: usize,
-    },
 }
 
 pub(super) struct UpdateSharedMemoryInfo {

@@ -3,9 +3,7 @@ use std::sync::{Arc, Mutex};
 
 use anyhow::{anyhow, Result};
 use compositor_chromium::cef;
-use compositor_render::{
-    EMBED_SOURCE_FRAMES_MESSAGE, GET_FRAME_POSITIONS_MESSAGE, UNEMBED_SOURCE_FRAMES_MESSAGE,
-};
+use compositor_render::{EMBED_SOURCE_FRAMES_MESSAGE, UNEMBED_SOURCE_FRAMES_MESSAGE};
 use log::{debug, error};
 
 use crate::state::{FrameInfo, State};
@@ -40,7 +38,6 @@ impl cef::RenderProcessHandler for RenderProcessHandler {
         let result = match message.name().as_str() {
             EMBED_SOURCE_FRAMES_MESSAGE => self.embed_sources(message, frame),
             UNEMBED_SOURCE_FRAMES_MESSAGE => self.unembed_source(message, frame),
-            GET_FRAME_POSITIONS_MESSAGE => self.send_frame_positions(message, frame),
             name => Err(anyhow!("Unknown message type: {name}")),
         };
 
@@ -151,42 +148,6 @@ impl RenderProcessHandler {
         let mut global = ctx.global()?;
         global.delete(&source_id, &ctx_entered)?;
         state.remove_source(&shmem_path);
-
-        Ok(())
-    }
-
-    fn send_frame_positions(&self, msg: &cef::ProcessMessage, surface: &cef::Frame) -> Result<()> {
-        let ctx = surface.v8_context()?;
-        let ctx_entered = ctx.enter()?;
-        let global = ctx.global()?;
-        let document = global.document()?;
-
-        let Some(source_count) = msg.read_int(0) else {
-            return Err(anyhow!("Expected source count"));
-        };
-
-        let state = self.state.lock().unwrap();
-        let mut response = cef::ProcessMessage::new(GET_FRAME_POSITIONS_MESSAGE);
-        let mut index = 0;
-        for source_idx in 0..(source_count as usize) {
-            let source_id = state.input_name(source_idx)?;
-            let element = match document.element_by_id(&source_id, &ctx_entered) {
-                Ok(element) => element,
-                Err(err) => {
-                    return Err(anyhow!("Failed to retrieve element \"{source_id}\": {err}"));
-                }
-            };
-            let rect = element.bounding_rect(&ctx_entered)?;
-
-            response.write_double(index, rect.x);
-            response.write_double(index + 1, rect.y);
-            response.write_double(index + 2, rect.width);
-            response.write_double(index + 3, rect.height);
-
-            index += 4;
-        }
-
-        surface.send_process_message(cef::ProcessId::Browser, response)?;
 
         Ok(())
     }

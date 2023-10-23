@@ -2,7 +2,6 @@ use crate::{
     cef_string::CefString,
     validated::{Validated, ValidatedError},
 };
-use log::error;
 
 use super::{
     value::{V8Value, V8ValueError},

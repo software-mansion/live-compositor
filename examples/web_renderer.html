@@ -11,12 +11,11 @@
 <style>
     html,
     body {
-        color: white;
-        background-color: transparent;
+        background-color: white;
     }
 
     canvas {
-        border: 2px solid red;
+        border: 2px solid black;
         animation: anim infinite ease-in-out;
         animation-duration: 3s;
         width: 800px;
@@ -27,11 +26,13 @@
 
         0%,
         100% {
-            margin-left: 0;
+            rotate: 0deg;
+            border-radius: 0;
         }
 
         50% {
-            margin-left: 250px;
+            rotate: -10deg;
+            border-radius: 512px;
         }
     }
 </style>

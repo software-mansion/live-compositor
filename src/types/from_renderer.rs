@@ -92,19 +92,6 @@ impl TryFrom<WebRendererSpec> for renderer_spec::RendererSpec {
     type Error = TypeError;
 
     fn try_from(spec: WebRendererSpec) -> Result<Self, Self::Error> {
-        let embedding_method = match spec.embedding_method {
-            Some(WebEmbeddingMethod::ChromiumEmbedding) => {
-                renderer_spec::WebEmbeddingMethod::ChromiumEmbedding
-            }
-            Some(WebEmbeddingMethod::NativeEmbeddingOverContent) => {
-                renderer_spec::WebEmbeddingMethod::NativeEmbeddingOverContent
-            }
-            Some(WebEmbeddingMethod::NativeEmbeddingUnderContent) => {
-                renderer_spec::WebEmbeddingMethod::NativeEmbeddingUnderContent
-            }
-            None => renderer_spec::WebEmbeddingMethod::NativeEmbeddingOverContent,
-        };
-
         let spec = renderer_spec::WebRendererSpec {
             instance_id: spec.instance_id.into(),
             url: spec.url,
@@ -123,7 +110,6 @@ impl TryFrom<WebRendererSpec> for renderer_spec::RendererSpec {
                     })])
                 })
                 .try_into()?,
-            embedding_method,
         };
         Ok(Self::WebRenderer(spec))
     }

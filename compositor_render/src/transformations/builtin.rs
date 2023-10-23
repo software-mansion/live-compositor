@@ -3,10 +3,11 @@ use compositor_common::{
     util::InterpolationState,
 };
 
-pub mod box_layout;
+mod box_layout;
 pub mod error;
 mod node;
 pub mod params;
+mod shader_params;
 pub mod transformations;
 pub mod utils;
 

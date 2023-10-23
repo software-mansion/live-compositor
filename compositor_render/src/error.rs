@@ -5,7 +5,6 @@ use compositor_common::{
     SceneSpecValidationError,
 };
 
-use crate::transformations::web_renderer::CreateWebRendererError;
 use crate::{
     registry,
     transformations::{
@@ -40,9 +39,6 @@ pub enum RegisterRendererError {
 
     #[error("Failed to register image \"{1}\".")]
     Image(#[source] ImageError, RendererId),
-
-    #[error("Failed to register web renderer \"{1}\".")]
-    Web(#[source] CreateWebRendererError, RendererId),
 }
 
 #[derive(Debug, thiserror::Error)]

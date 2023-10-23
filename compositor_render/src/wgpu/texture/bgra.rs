@@ -21,11 +21,30 @@ impl BGRATexture {
         ))
     }
 
-    pub fn upload(&self, ctx: &WgpuCtx, data: &[u8]) {
-        self.0.upload_data(&ctx.queue, data, 4);
+    pub fn new_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+        device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("BGRA texture bind group layout"),
+            entries: &[wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: Texture::DEFAULT_BINDING_TYPE,
+                count: None,
+            }],
+        })
     }
 
-    pub fn texture(&self) -> &Texture {
-        &self.0
+    pub fn new_bind_group(&self, ctx: &WgpuCtx, layout: &wgpu::BindGroupLayout) -> wgpu::BindGroup {
+        ctx.device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("BGRA texture bind group"),
+            layout,
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: wgpu::BindingResource::TextureView(&self.0.view),
+            }],
+        })
+    }
+
+    pub fn upload(&self, ctx: &WgpuCtx, data: &[u8]) {
+        self.0.upload_data(&ctx.queue, data, 4);
     }
 }
