@@ -176,6 +176,41 @@ pub struct TestInput {
 }
 
 impl TestInput {
+    const COLOR_VARIANTS: [(u8, u8, u8); 16] = [
+        // RED, input_1
+        (255, 0, 0),
+        // BLUE, input_2
+        (0, 0, 255),
+        // GREEN, input_3
+        (0, 255, 0),
+        // YELLOW, input_4
+        (255, 255, 0),
+        // MAGENTA, input_5
+        (255, 0, 255),
+        // CYAN, input_6
+        (0, 255, 255),
+        // BLACK, input_7
+        (0, 0, 0),
+        // WHITE, input_8
+        (255, 255, 255),
+        // GRAY, input_9
+        (128, 128, 128),
+        // LIGHT_RED, input_10
+        (255, 128, 128),
+        // LIGHT_BLUE, input_11
+        (128, 128, 255),
+        // LIGHT_GREEN, input_12
+        (128, 255, 128),
+        // ORANGE, input_13
+        (255, 165, 0),
+        // PINK, input_14
+        (255, 192, 203),
+        // PURPLE, input_15
+        (128, 0, 128),
+        // BROWN, input_16
+        (165, 42, 42),
+    ];
+
     pub fn new(index: usize) -> Self {
         Self::new_with_resolution(
             index,
@@ -187,12 +222,22 @@ impl TestInput {
     }
 
     pub fn new_with_resolution(index: usize, resolution: Resolution) -> Self {
-        let color = ((index * 123) % 255) as u8;
+        if index > Self::COLOR_VARIANTS.len() {
+            panic!("Reached input amount limit: {}", Self::COLOR_VARIANTS.len())
+        }
 
+        let color = Self::COLOR_VARIANTS[index - 1];
+        let r = color.0 as f32;
+        let g = color.1 as f32;
+        let b = color.2 as f32;
+
+        let y = (r * 0.299 + g * 0.587 + b * 0.144).clamp(0.0, 255.0);
+        let u = (r * -0.168736 + g * -0.331264 + b * 0.5 + 128.0).clamp(0.0, 255.0);
+        let v = (r * 0.5 + g * -0.418688 + b * -0.081312 + 128.0).clamp(0.0, 255.0);
         let data = YuvData {
-            y_plane: vec![255; resolution.width * resolution.height].into(),
-            u_plane: vec![color; (resolution.width * resolution.height) / 4].into(),
-            v_plane: vec![color; (resolution.width * resolution.height) / 4].into(),
+            y_plane: vec![y as u8; resolution.width * resolution.height].into(),
+            u_plane: vec![u as u8; (resolution.width * resolution.height) / 4].into(),
+            v_plane: vec![v as u8; (resolution.width * resolution.height) / 4].into(),
         };
 
         Self {
