@@ -54,7 +54,7 @@
             "input_pads": [
                 "jpeg_1_rescaled",
                 "jpeg_1_label",
-                "input1"
+                "input_1"
             ]
         }
     ],
