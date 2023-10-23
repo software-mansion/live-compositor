@@ -2,7 +2,6 @@ use std::env;
 
 use self::tests::snapshot_tests;
 
-mod scene_test;
 mod test_case;
 mod tests;
 mod utils;
@@ -15,8 +14,7 @@ fn test_snapshots() {
 
     for snapshot_test in snapshot_tests() {
         eprintln!("Test \"{}\"", snapshot_test.name);
-        let scene_test = snapshot_test.into_scene_test();
-        if let Err(err) = scene_test.run() {
+        if let Err(err) = snapshot_test.run() {
             panic!("{err}");
         }
     }

@@ -7,9 +7,6 @@ mod tests;
 #[path = "../../snapshot_tests/utils.rs"]
 mod utils;
 
-#[path = "../../snapshot_tests/scene_test.rs"]
-mod scene_test;
-
 #[path = "../../snapshot_tests/test_case.rs"]
 mod test_case;
 
@@ -18,13 +15,12 @@ use tests::snapshot_tests;
 fn main() {
     println!("Updating snapshots:");
     for snapshot_test in snapshot_tests() {
-        let scene_test = snapshot_test.into_scene_test();
-        if scene_test.run().is_ok() {
+        if snapshot_test.run().is_ok() {
             continue;
         }
 
-        println!("Test \"{}\"", scene_test.test_name);
-        for snapshot in scene_test.generate_snapshots().unwrap() {
+        println!("Test \"{}\"", snapshot_test.name);
+        for snapshot in snapshot_test.generate_snapshots().unwrap() {
             let snapshot_path = snapshot.save_path();
             if let Err(err) = fs::remove_file(&snapshot_path) {
                 if err.kind() != io::ErrorKind::NotFound {

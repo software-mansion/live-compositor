@@ -1,6 +1,5 @@
 use std::{sync::Arc, time::Duration};
 
-use super::test_case::TestInput;
 use compositor_common::{
     frame::YuvData, renderer_spec::RendererSpec, scene::SceneSpec, Frame, Framerate,
 };
@@ -35,19 +34,6 @@ pub(super) fn frame_to_rgba(frame: &Frame) -> Vec<u8> {
 // TODO: Results may slightly differ depending on the platform. There should be an accepted margin of error here
 pub(super) fn are_snapshots_equal(old_snapshot: &[u8], new_snapshot: &[u8]) -> bool {
     old_snapshot == new_snapshot
-}
-
-pub(super) fn populate_test_inputs(inputs: &mut [TestInput]) {
-    for (i, input) in inputs.iter_mut().enumerate() {
-        let color = ((i * 123) % 255) as u8;
-        let width = input.resolution.width;
-        let height = input.resolution.height;
-        input.data = YuvData {
-            y_plane: vec![255; width * height].into(),
-            u_plane: vec![color; (width * height) / 4].into(),
-            v_plane: vec![color; (width * height) / 4].into(),
-        };
-    }
 }
 
 pub(super) fn create_renderer(renderers: Vec<RendererSpec>, scene: Arc<SceneSpec>) -> Renderer {
