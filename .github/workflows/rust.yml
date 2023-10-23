@@ -30,6 +30,8 @@ jobs:
 
             - name: 📥 Checkout repo
               uses: actions/checkout@v3
+              with:
+                  submodules: 'true'
 
             - name: 📁 Rust cache
               uses: Swatinem/rust-cache@v2

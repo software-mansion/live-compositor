@@ -1,0 +1,62 @@
+{
+    "nodes": [
+        {
+            "node_id": "jpeg_1",
+            "type": "image",
+            "image_id": "example_jpeg"
+        },
+        {
+            "node_id": "jpeg_1_rescaled",
+            "type": "builtin:transform_to_resolution",
+            "strategy": "fit",
+            "resolution": {
+                "width": 960,
+                "height": 540
+            },
+            "input_pads": [
+                "jpeg_1"
+            ],
+            "background_color_rgba": "#00000000"
+        },
+        {
+            "node_id": "jpeg_1_label",
+            "type": "text",
+            "content": "JPEG example",
+            "font_size": 20.0,
+            "color_rgba": "#FF0000FF",
+            "font_family": "Comic Sans MS",
+            "dimensions": {
+                "type": "fitted"
+            }
+        },
+        {
+            "node_id": "jpeg_1_layout",
+            "type": "builtin:fixed_position_layout",
+            "texture_layouts": [
+                {
+                    "left": "0px",
+                    "top": "0px"
+                },
+                {
+                    "right": "20px",
+                    "bottom": "20px"
+                }
+            ],
+            "background_color_rgba": "#0000FF00",
+            "resolution": {
+                "width": 960,
+                "height": 540
+            },
+            "input_pads": [
+                "jpeg_1_rescaled",
+                "jpeg_1_label"
+            ]
+        }
+    ],
+    "outputs": [
+        {
+            "output_id": "output_1",
+            "input_pad": "jpeg_1_layout"
+        }
+    ]
+}

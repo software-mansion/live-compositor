@@ -28,10 +28,11 @@ signal-hook = "0.3.15"
 shared_memory = "0.12.4"
 ffmpeg-next = "6.0.0"
 anyhow = "1.0.71"
+image = { version = "0.24.7", features = ["jpeg", "png"] }
 
 [dependencies]
-compositor_render = { path = "compositor_render" }
 compositor_common = { path = "compositor_common" }
+compositor_render = { path = "compositor_render" }
 compositor_pipeline = { path = "compositor_pipeline" }
 compositor_chromium = { path = "compositor_chromium" }
 serde = { workspace = true }
@@ -48,6 +49,7 @@ shared_memory = { workspace = true }
 lazy_static = "1.4.0"
 fs_extra = "1.3.0"
 schemars = "0.8.15"
+image = { workspace = true }
 
 [dev-dependencies]
 reqwest = { workspace = true }

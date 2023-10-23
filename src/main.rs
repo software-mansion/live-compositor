@@ -12,6 +12,9 @@ mod rtp_receiver;
 mod rtp_sender;
 mod types;
 
+#[cfg(test)]
+mod snapshot_tests;
+
 fn main() {
     env_logger::init_from_env(
         env_logger::Env::default().filter_or(env_logger::DEFAULT_FILTER_ENV, "info"),
