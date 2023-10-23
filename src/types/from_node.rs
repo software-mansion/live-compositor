@@ -27,11 +27,23 @@ impl TryFrom<Node> for NodeSpec {
             NodeParams::Image(node) => node.into(),
             NodeParams::Text(node) => node.try_into()?,
             NodeParams::Transition(node) => node.try_into()?,
-            NodeParams::TransformToResolution(node) => scene::NodeParams::Builtin(node.try_into()?),
             NodeParams::FixedPositionLayout(node) => scene::NodeParams::Builtin(node.try_into()?),
             NodeParams::TiledLayout(node) => scene::NodeParams::Builtin(node.try_into()?),
             NodeParams::MirrorImage(node) => scene::NodeParams::Builtin(node.into()),
             NodeParams::CornersRounding(node) => scene::NodeParams::Builtin(node.try_into()?),
+            NodeParams::FitToResolution(node) => scene::NodeParams::Builtin(node.try_into()?),
+            NodeParams::FillToResolution { resolution } => {
+                scene::NodeParams::Builtin(BuiltinSpec::TransformToResolution {
+                    resolution: resolution.into(),
+                    strategy: builtin_transformations::TransformToResolutionStrategy::Fill,
+                })
+            }
+            NodeParams::StretchToResolution { resolution } => {
+                scene::NodeParams::Builtin(BuiltinSpec::TransformToResolution {
+                    resolution: resolution.into(),
+                    strategy: builtin_transformations::TransformToResolutionStrategy::Stretch,
+                })
+            }
         };
         let spec = Self {
             node_id: node.node_id.into(),
@@ -165,35 +177,25 @@ impl TryFrom<Text> for scene::NodeParams {
     }
 }
 
-impl TryFrom<TransformToResolution> for BuiltinSpec {
+impl TryFrom<FitToResolution> for BuiltinSpec {
     type Error = TypeError;
 
-    fn try_from(node: TransformToResolution) -> Result<Self, Self::Error> {
-        let result = match node {
-            TransformToResolution::Stretch { resolution } => Self::TransformToResolution {
-                resolution: resolution.into(),
-                strategy: builtin_transformations::TransformToResolutionStrategy::Stretch,
-            },
-            TransformToResolution::Fill { resolution } => Self::TransformToResolution {
-                resolution: resolution.into(),
-                strategy: builtin_transformations::TransformToResolutionStrategy::Fill,
-            },
-            TransformToResolution::Fit {
-                resolution,
-                background_color_rgba,
-                horizontal_alignment,
-                vertical_alignment,
-            } => Self::TransformToResolution {
-                resolution: resolution.into(),
-                strategy: builtin_transformations::TransformToResolutionStrategy::Fit {
-                    background_color_rgba: background_color_rgba
-                        .map(TryInto::try_into)
-                        .unwrap_or(Ok(RGBAColor(0, 0, 0, 0)))?,
-                    horizontal_alignment: horizontal_alignment
-                        .unwrap_or(HorizontalAlign::Center)
-                        .into(),
-                    vertical_alignment: vertical_alignment.unwrap_or(VerticalAlign::Center).into(),
-                },
+    fn try_from(node: FitToResolution) -> Result<Self, Self::Error> {
+        let result = Self::TransformToResolution {
+            resolution: node.resolution.into(),
+            strategy: builtin_transformations::TransformToResolutionStrategy::Fit {
+                background_color_rgba: node
+                    .background_color_rgba
+                    .map(TryInto::try_into)
+                    .unwrap_or(Ok(RGBAColor(0, 0, 0, 0)))?,
+                horizontal_alignment: node
+                    .horizontal_alignment
+                    .unwrap_or(HorizontalAlign::Center)
+                    .into(),
+                vertical_alignment: node
+                    .vertical_alignment
+                    .unwrap_or(VerticalAlign::Center)
+                    .into(),
             },
         };
         Ok(result)

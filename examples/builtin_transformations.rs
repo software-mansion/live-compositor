@@ -101,8 +101,7 @@ fn start_example_client_code() -> Result<()> {
             },
             {
                 "node_id": "filled_image",
-                "type": "builtin:transform_to_resolution",
-                "strategy": "fill",
+                "type": "builtin:fill_to_resolution",
                 "resolution": { "width": 960, "height": 540 },
                 "input_pads": ["image"],
             },

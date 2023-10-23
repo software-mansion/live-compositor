@@ -7,8 +7,7 @@
         },
         {
             "node_id": "jpeg_1_rescaled",
-            "type": "builtin:transform_to_resolution",
-            "strategy": "fit",
+            "type": "builtin:fit_to_resolution",
             "resolution": {
                 "width": 960,
                 "height": 540
