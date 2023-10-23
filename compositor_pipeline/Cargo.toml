@@ -14,6 +14,4 @@ crossbeam-channel = { workspace = true }
 anyhow = "1.0.71"
 thiserror = { workspace = true }
 log = { workspace = true }
-serde = { workspace = true }
-serde_with = { workspace = true }
 ffmpeg-next = { workspace = true }

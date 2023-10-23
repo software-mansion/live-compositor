@@ -1,5 +1,5 @@
 use anyhow::Result;
-use compositor_common::{scene::Resolution, Framerate};
+use compositor_common::scene::Resolution;
 use log::{error, info};
 use serde_json::json;
 use std::{
@@ -21,7 +21,7 @@ const VIDEO_RESOLUTION: Resolution = Resolution {
     width: 1280,
     height: 720,
 };
-const FRAMERATE: Framerate = Framerate(30);
+const FRAMERATE: u32 = 30;
 
 fn main() {
     env_logger::init_from_env(

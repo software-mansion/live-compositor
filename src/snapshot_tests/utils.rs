@@ -42,7 +42,7 @@ pub(super) fn create_renderer(renderers: Vec<RendererSpec>, scene: Arc<SceneSpec
             init: false,
             disable_gpu: false,
         },
-        framerate: Framerate(30),
+        framerate: Framerate { num: 30, den: 1 },
         stream_fallback_timeout: Duration::from_secs(3),
     })
     .unwrap();

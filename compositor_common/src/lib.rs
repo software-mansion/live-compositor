@@ -1,7 +1,6 @@
 #[macro_use]
 extern crate lazy_static;
 
-use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
 pub mod error;
@@ -13,12 +12,14 @@ pub mod util;
 pub type Frame = frame::Frame;
 pub type SceneSpecValidationError = error::SceneSpecValidationError;
 
-/// TODO: This should be a rational.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub struct Framerate(pub u32);
+#[derive(Debug, Clone, Copy)]
+pub struct Framerate {
+    pub num: u32,
+    pub den: u32,
+}
 
 impl Framerate {
     pub fn get_interval_duration(self) -> Duration {
-        Duration::from_nanos((1_000_000_000 / self.0).into())
+        Duration::from_nanos(1_000_000_000u64 * self.den as u64 / self.num as u64)
     }
 }

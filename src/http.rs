@@ -149,7 +149,7 @@ impl Server {
     ) -> Result<pipeline::Options, ApiError> {
         let request = Server::parse_request(raw_request)?;
         match request {
-            Request::Init(opts) => Ok(opts),
+            Request::Init(opts) => Ok(opts.try_into()?),
             _ => Err(ApiError::new(
                 "COMPOSITOR_NOT_INITIALIZED",
                 "Compositor was not initialized, send \"init\" request first.".to_string(),

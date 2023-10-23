@@ -6,14 +6,11 @@ use ffmpeg_next::{
     frame, Codec, Dictionary, Rational,
 };
 use log::{error, warn};
-use serde::{Deserialize, Serialize};
 
 use super::{OutputOptions, PipelineOutput};
 use crate::error::OutputInitError;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-#[derive(Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
 pub enum EncoderPreset {
     Ultrafast,
     Superfast,
@@ -75,9 +72,8 @@ impl EncoderPreset {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct EncoderSettings {
-    #[serde(default)]
     pub preset: EncoderPreset,
 }
 

@@ -12,8 +12,8 @@ use crate::{
     rtp_receiver::{self, RtpReceiver},
     rtp_sender::{self, RtpSender},
     types::{
-        self, InputId, OutputId, RegisterInputRequest, RegisterOutputRequest, RegisterRequest,
-        RendererId, Scene,
+        self, InitOptions, InputId, OutputId, RegisterInputRequest, RegisterOutputRequest,
+        RegisterRequest, RendererId, Scene,
     },
 };
 
@@ -22,7 +22,7 @@ pub type Pipeline = compositor_pipeline::Pipeline<RtpReceiver, RtpSender>;
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum Request {
-    Init(pipeline::Options),
+    Init(InitOptions),
     Register(RegisterRequest),
     Unregister(UnregisterRequest),
     UpdateScene(types::Scene),

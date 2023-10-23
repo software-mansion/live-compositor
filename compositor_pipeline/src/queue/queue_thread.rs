@@ -77,7 +77,8 @@ impl QueueThread {
 
     fn get_next_output_buffer_pts(&self) -> Duration {
         Duration::from_secs_f64(
-            self.sent_batches_counter as f64 / self.opts.output_framerate.0 as f64,
+            self.sent_batches_counter as f64 * self.opts.output_framerate.den as f64
+                / self.opts.output_framerate.num as f64,
         ) + self.output_frame_offset
     }
 

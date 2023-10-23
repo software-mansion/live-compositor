@@ -1,4 +1,7 @@
+use std::time::Duration;
+
 use compositor_common::{renderer_spec, scene};
+use compositor_pipeline::pipeline;
 
 use super::util::*;
 use super::*;
@@ -85,5 +88,30 @@ impl From<scene::SceneSpec> for Scene {
             nodes: scene.nodes.into_iter().map(Into::into).collect(),
             outputs: scene.outputs.into_iter().map(from_output).collect(),
         }
+    }
+}
+
+impl TryFrom<InitOptions> for pipeline::Options {
+    type Error = TypeError;
+    fn try_from(opts: InitOptions) -> Result<Self, Self::Error> {
+        let result = Self {
+            framerate: opts.framerate.try_into()?,
+            stream_fallback_timeout: Duration::from_millis(
+                opts.stream_fallback_timeout_ms.unwrap_or(1000.0) as u64,
+            ),
+            web_renderer: compositor_render::WebRendererOptions {
+                init: opts
+                    .web_renderer
+                    .as_ref()
+                    .and_then(|r| r.init)
+                    .unwrap_or(true),
+                disable_gpu: opts
+                    .web_renderer
+                    .as_ref()
+                    .and_then(|r| r.disable_gpu)
+                    .unwrap_or(false),
+            },
+        };
+        Ok(result)
     }
 }

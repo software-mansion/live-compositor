@@ -79,6 +79,29 @@ impl From<degree::Degree> for Degree {
     }
 }
 
+impl TryFrom<Framerate> for compositor_common::Framerate {
+    type Error = TypeError;
+
+    fn try_from(framerate: Framerate) -> Result<Self, Self::Error> {
+        const ERROR_MESSAGE: &str = "Framerate needs to be an unsigned integer or a string in the \"NUM/DEN\" format, where NUM and DEN are both unsigned integers.";
+        match framerate {
+            Framerate::String(text) => {
+                let Some((num_str, den_str)) = text.split_once('/') else {
+                    return Err(TypeError::new(ERROR_MESSAGE));
+                };
+                let num = num_str
+                    .parse::<u32>()
+                    .or(Err(TypeError::new(ERROR_MESSAGE)))?;
+                let den = den_str
+                    .parse::<u32>()
+                    .or(Err(TypeError::new(ERROR_MESSAGE)))?;
+                Ok(compositor_common::Framerate { num, den })
+            }
+            Framerate::U32(num) => Ok(compositor_common::Framerate { num, den: 1 }),
+        }
+    }
+}
+
 impl TryFrom<Coord> for coord::Coord {
     type Error = TypeError;
 
