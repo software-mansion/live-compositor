@@ -2,6 +2,8 @@ use std::env;
 
 use self::tests::snapshot_tests;
 
+mod scene_test;
+mod test_case;
 mod tests;
 mod utils;
 

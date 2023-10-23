@@ -2,9 +2,16 @@ use std::{fs, io};
 
 #[path = "../../snapshot_tests/tests.rs"]
 mod tests;
+
 #[allow(dead_code)]
 #[path = "../../snapshot_tests/utils.rs"]
 mod utils;
+
+#[path = "../../snapshot_tests/scene_test.rs"]
+mod scene_test;
+
+#[path = "../../snapshot_tests/test_case.rs"]
+mod test_case;
 
 use tests::snapshot_tests;
 

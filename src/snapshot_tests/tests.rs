@@ -1,7 +1,7 @@
-use super::utils::{SnapshotTest, TestInput};
+use super::test_case::{TestCase, TestInput};
 
-pub fn snapshot_tests() -> Vec<SnapshotTest> {
-    vec![SnapshotTest {
+pub fn snapshot_tests() -> Vec<TestCase> {
+    vec![TestCase {
         name: "basic/test",
         inputs: vec![TestInput {
             name: "input1",
