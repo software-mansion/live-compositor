@@ -5,7 +5,7 @@ use compositor_common::scene::{shader::ShaderParam, NodeId};
 use self::{common_params::CommonShaderParameters, pipeline::Pipeline};
 
 use super::{
-    texture::{NodeTexture, NodeTextureState, Texture},
+    texture::{NodeTexture, NodeTextureState, RGBATexture, Texture},
     validation::{
         validate_contains_header, validate_params, ParametersValidationError, ShaderValidationError,
     },
@@ -14,6 +14,7 @@ use super::{
 
 pub(super) mod common_params;
 pub(super) mod pipeline;
+pub(crate) mod shader_params;
 
 const INPUT_TEXTURES_AMOUNT: u32 = 16;
 
@@ -115,20 +116,34 @@ impl WgpuShader {
         pts: Duration,
         clear_color: Option<wgpu::Color>,
     ) {
-        let ctx = &self.wgpu_ctx;
+        let textures = sources
+            .iter()
+            .map(|(_, texture)| {
+                texture
+                    .state()
+                    .map(NodeTextureState::rgba_texture)
+                    .map(RGBATexture::texture)
+            })
+            .collect::<Vec<_>>();
+        self.render_with_textures(params, &textures, target, pts, clear_color);
+    }
 
-        // TODO: sources need to be ordered
+    pub fn render_with_textures(
+        &self,
+        params: &wgpu::BindGroup,
+        textures: &[Option<&Texture>],
+        target: &NodeTextureState,
+        pts: Duration,
+        clear_color: Option<wgpu::Color>,
+    ) {
+        let ctx = &self.wgpu_ctx;
 
         // TODO: most things that happen in this method should not be done every frame
 
-        let textures = sources
-            .iter()
-            .map(|(_, node_texture)| node_texture.state())
-            .collect::<Vec<_>>();
         let mut texture_views = textures
             .iter()
-            .map(|node_texture| match node_texture {
-                Some(node_texture) => &node_texture.rgba_texture().texture().view,
+            .map(|texture| match texture {
+                Some(texture) => &texture.view,
                 None => &self.empty_texture.view,
             })
             .collect::<Vec<_>>();
@@ -147,7 +162,7 @@ impl WgpuShader {
         });
 
         let common_shader_params =
-            CommonShaderParameters::new(pts, sources.len() as u32, target.resolution());
+            CommonShaderParameters::new(pts, texture_views.len() as u32, target.resolution());
 
         self.pipeline.render(
             &input_textures_bg,
