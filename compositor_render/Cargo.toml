@@ -11,7 +11,7 @@ thiserror = { workspace = true }
 wgpu = { version = "0.16.1", features = ["naga"] }
 compositor_common = { path = "../compositor_common" }
 compositor_chromium = { path = "../compositor_chromium" }
-image = { version = "0.24.6", features = ["jpeg", "png"] }
+image = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 reqwest = { workspace = true }

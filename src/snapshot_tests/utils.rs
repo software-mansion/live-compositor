@@ -2,11 +2,13 @@ use std::{fmt::Display, fs, path::PathBuf, sync::Arc, time::Duration};
 
 use anyhow::{anyhow, Result};
 use compositor_common::{
+    frame::YuvData,
     renderer_spec::RendererSpec,
-    scene::{OutputId, SceneSpec},
+    scene::{OutputId, Resolution, SceneSpec},
     Frame, Framerate,
 };
 use compositor_render::{renderer::RendererOptions, FrameSet, Renderer, WebRendererOptions};
+use image::{ImageBuffer, Rgba};
 use video_compositor::types::{RegisterRequest, Scene};
 
 pub const SNAPSHOTS_DIR_NAME: &str = "snapshot_tests";
@@ -57,7 +59,7 @@ impl SceneTest {
                 return Err(SnapshotTestError::NotFound(new_snapshot).into());
             }
 
-            let old_snapshot_data = fs::read(&save_path)?;
+            let old_snapshot_data = image::open(&save_path)?.to_rgba8();
             if !are_snapshots_equal(&old_snapshot_data, &new_snapshot.data) {
                 return Err(SnapshotTestError::Mismatch(new_snapshot).into());
             }
@@ -85,11 +87,12 @@ impl SceneTest {
 
         for spec in output_specs {
             let output_frame = outputs.frames.get(&spec.output_id).unwrap();
-            let new_snapshot = frame_to_bytes(output_frame);
+            let new_snapshot = frame_to_rgba(output_frame);
             snapshots.push(Snapshot {
                 test_name: self.test_name.to_owned(),
                 output_id: spec.output_id.clone(),
                 pts,
+                resolution: output_frame.resolution,
                 data: new_snapshot,
             });
         }
@@ -129,13 +132,28 @@ pub fn snapshot_test(
     SceneTest::new(test_name, renderers, scene, timestamps).unwrap()
 }
 
-fn frame_to_bytes(frame: &Frame) -> Vec<u8> {
-    let mut data = Vec::with_capacity(frame.resolution.width * frame.resolution.height * 3 / 2);
-    data.extend_from_slice(&frame.data.y_plane);
-    data.extend_from_slice(&frame.data.u_plane);
-    data.extend_from_slice(&frame.data.v_plane);
+fn frame_to_rgba(frame: &Frame) -> Vec<u8> {
+    let YuvData {
+        y_plane,
+        u_plane,
+        v_plane,
+    } = &frame.data;
 
-    data
+    let mut rgba_data = Vec::with_capacity(y_plane.len() * 4);
+    for (i, y_plane) in y_plane.chunks(frame.resolution.width).enumerate() {
+        for (j, y) in y_plane.iter().enumerate() {
+            let y = (*y) as f32;
+            let u = u_plane[(i / 2) * (frame.resolution.width / 2) + (j / 2)] as f32;
+            let v = v_plane[(i / 2) * (frame.resolution.width / 2) + (j / 2)] as f32;
+
+            let r = (y + 1.40200 * (v - 128.0)).clamp(0.0, 255.0);
+            let g = (y - 0.34414 * (u - 128.0) - 0.71414 * (v - 128.0)).clamp(0.0, 255.0);
+            let b = (y + 1.77200 * (u - 128.0)).clamp(0.0, 255.0);
+            rgba_data.extend_from_slice(&[r as u8, g as u8, b as u8, 255]);
+        }
+    }
+
+    rgba_data
 }
 
 // TODO: Results may slightly differ depending on the platform. There should be an accepted margin of error here
@@ -148,6 +166,7 @@ pub struct Snapshot {
     pub test_name: String,
     pub output_id: OutputId,
     pub pts: Duration,
+    pub resolution: Resolution,
     pub data: Vec<u8>,
 }
 
@@ -158,7 +177,7 @@ impl Snapshot {
             .join("snapshots");
 
         let out_file_name = format!(
-            "{}_{}_{}.yuv",
+            "{}_{}_{}.bmp",
             self.test_name,
             self.pts.as_millis(),
             self.output_id

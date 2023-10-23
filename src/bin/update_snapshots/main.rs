@@ -25,7 +25,14 @@ fn main() {
     println!("Updating all snapshots:");
     for test_runner in snapshot_test_runners() {
         for snapshot in test_runner.generate_snapshots().unwrap() {
-            fs::write(snapshot.save_path(), snapshot.data).unwrap();
+            image::save_buffer(
+                snapshot.save_path(),
+                &snapshot.data,
+                snapshot.resolution.width as u32,
+                snapshot.resolution.height as u32,
+                image::ColorType::Rgba8,
+            )
+            .unwrap();
         }
     }
 }
