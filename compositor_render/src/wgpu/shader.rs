@@ -162,7 +162,7 @@ impl WgpuShader {
         });
 
         let common_shader_params =
-            CommonShaderParameters::new(pts, texture_views.len() as u32, target.resolution());
+            CommonShaderParameters::new(pts, textures.len() as u32, target.resolution());
 
         self.pipeline.render(
             &input_textures_bg,
