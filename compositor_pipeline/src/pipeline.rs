@@ -16,7 +16,7 @@ use compositor_render::EventLoop;
 use compositor_render::{error::UpdateSceneError, Renderer};
 use compositor_render::{RegistryType, WebRendererOptions};
 use crossbeam_channel::unbounded;
-use ffmpeg_next::{Codec, Packet};
+use ffmpeg_next::Packet;
 use log::{error, warn};
 
 use crate::error::{
@@ -24,8 +24,10 @@ use crate::error::{
 };
 use crate::queue::Queue;
 
+use self::decoder::Decoder;
 use self::encoder::{Encoder, EncoderSettings};
 
+pub mod decoder;
 pub mod encoder;
 
 pub trait PipelineOutput: Send + Sync + Sized + Clone + 'static {
@@ -35,14 +37,16 @@ pub trait PipelineOutput: Send + Sync + Sized + Clone + 'static {
     fn send_packet(&self, context: &mut Self::Context, packet: Packet);
     fn new(
         opts: Self::Opts,
-        codec: Codec,
+        codec: ffmpeg_next::Codec,
     ) -> Result<(Self, Self::Context), Box<dyn std::error::Error + Send + Sync + 'static>>;
 }
 
-pub trait PipelineInput: Send + Sync + 'static {
-    type Opts;
+pub trait PipelineInput: Send + Sync + Sized + 'static {
+    type Opts: Send + Sync;
+    type PacketIterator: Iterator<Item = Packet> + Send;
 
-    fn new(queue: Arc<Queue>, opts: Self::Opts) -> Self;
+    fn new(opts: Self::Opts) -> (Self, Self::PacketIterator);
+    fn decoder_parameters(&self) -> decoder::DecoderParameters;
 }
 
 pub struct OutputOptions<Output: PipelineOutput> {
@@ -52,7 +56,7 @@ pub struct OutputOptions<Output: PipelineOutput> {
 }
 
 pub struct Pipeline<Input: PipelineInput, Output: PipelineOutput> {
-    inputs: HashMap<InputId, Arc<Input>>,
+    inputs: HashMap<InputId, Arc<Decoder<Input>>>,
     outputs: OutputRegistry<Encoder<Output>>,
     queue: Arc<Queue>,
     renderer: Renderer,
@@ -102,7 +106,7 @@ impl<Input: PipelineInput, Output: PipelineOutput> Pipeline<Input, Output> {
 
         self.inputs.insert(
             input_id.clone(),
-            Input::new(self.queue.clone(), input_opts).into(),
+            Decoder::new(self.queue.clone(), input_opts, input_id.clone()).into(),
         );
         self.queue.add_input(input_id);
         Ok(())
@@ -234,7 +238,7 @@ impl<Input: PipelineInput, Output: PipelineOutput> Pipeline<Input, Output> {
     }
 
     pub fn inputs(&self) -> impl Iterator<Item = (&InputId, &Input)> {
-        self.inputs.iter().map(|(id, node)| (id, node.as_ref()))
+        self.inputs.iter().map(|(id, node)| (id, node.input()))
     }
 
     pub fn with_outputs<F, R>(&self, f: F) -> R

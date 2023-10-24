@@ -1,44 +1,31 @@
-use anyhow::{anyhow, Result};
-use compositor_common::{
-    error::ErrorStack,
-    frame::YuvData,
-    scene::{InputId, Resolution},
-    Frame,
-};
-use compositor_pipeline::{pipeline::PipelineInput, queue::Queue};
-use crossbeam_channel::{bounded, Receiver};
-use log::{error, warn};
+use anyhow::Result;
+use compositor_common::scene::InputId;
+use compositor_pipeline::pipeline::{decoder::DecoderParameters, PipelineInput};
+use crossbeam_channel::{bounded, Receiver, Sender};
+use log::warn;
 use std::{
     ffi::CString,
     fs::File,
     io::Write,
-    mem,
     path::{Path, PathBuf},
-    ptr,
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc,
-    },
-    thread,
-    time::Duration,
+    ptr, thread,
 };
 
 use ffmpeg_next::{
-    codec::{self, Context, Id},
     ffi::{
         avformat_alloc_context, avformat_close_input, avformat_find_stream_info,
         avformat_open_input,
     },
-    format::{self, context},
-    frame::{self, Video},
+    format::context,
     media::Type,
     util::interrupt,
-    Dictionary, Packet, Stream,
+    Dictionary, Packet,
 };
 
 pub struct RtpReceiver {
-    drop_receiver: Receiver<()>,
-    should_close: Arc<AtomicBool>,
+    thread_finished: Receiver<()>,
+    should_close: Sender<()>,
+    decoder_parameters: DecoderParameters,
     pub(crate) port: u16,
 }
 
@@ -49,39 +36,70 @@ pub struct Options {
 
 impl PipelineInput for RtpReceiver {
     type Opts = Options;
+    type PacketIterator = crossbeam_channel::IntoIter<Packet>;
 
-    fn new(queue: Arc<Queue>, opts: Self::Opts) -> Self {
+    fn new(opts: Self::Opts) -> (Self, Self::PacketIterator) {
         let (drop_sender, drop_receiver) = bounded(0);
-        let should_close = Arc::new(AtomicBool::new(false));
-        let should_close_clone = should_close.clone();
+        let (should_close_sender, should_close_receiver) = bounded(1);
+        let (decoder_params_sender, decoder_params_receiver) = bounded(0);
+
         let port = opts.port;
+        let (packet_sender, packet_receiver) = bounded(0);
+
         thread::spawn(move || {
-            RtpReceiver::start(queue, opts.port, opts.input_id, should_close_clone).unwrap();
+            RtpReceiver::start(
+                opts.port,
+                should_close_receiver,
+                packet_sender,
+                decoder_params_sender,
+            )
+            .unwrap();
             drop_sender.send(())
         });
-        Self {
-            drop_receiver,
-            should_close,
-            port,
-        }
+
+        (
+            Self {
+                thread_finished: drop_receiver,
+                should_close: should_close_sender,
+                decoder_parameters: decoder_params_receiver.recv().unwrap(),
+                port,
+            },
+            packet_receiver.into_iter(),
+        )
+    }
+
+    fn decoder_parameters(&self) -> DecoderParameters {
+        self.decoder_parameters
     }
 }
 
 impl Drop for RtpReceiver {
     fn drop(&mut self) {
-        // - AtomicBool signals to RTP thread that it should abort
-        // - Channel signals to drop method that RTP thread finished cleanup
-        self.should_close.store(true, Ordering::Relaxed);
-        self.drop_receiver.recv().unwrap();
+        // - should_close signals to RTP thread that it should abort
+        // - drop_receiver signals to drop method that RTP thread finished cleanup
+        self.should_close.send(()).unwrap();
+        self.thread_finished.recv().unwrap();
+    }
+}
+
+struct ParamsWrapper(ffmpeg_next::codec::Parameters);
+impl From<ParamsWrapper> for DecoderParameters {
+    fn from(params: ParamsWrapper) -> Self {
+        DecoderParameters {
+            codec: match params.0.id() {
+                ffmpeg_next::codec::Id::H264 => compositor_pipeline::pipeline::decoder::Codec::H264,
+                _ => unimplemented!(),
+            },
+        }
     }
 }
 
 impl RtpReceiver {
     fn start(
-        queue: Arc<Queue>,
         port: u16,
-        input_id: InputId,
-        should_close: Arc<AtomicBool>,
+        should_close: Receiver<()>,
+        packet_sender: Sender<Packet>,
+        decoder_params_sender: Sender<DecoderParameters>,
     ) -> Result<()> {
         let sdp_filepath = PathBuf::from(format!("/tmp/sdp_input_{}.sdp", port));
         let mut file = File::create(&sdp_filepath)?;
@@ -101,10 +119,10 @@ impl RtpReceiver {
             )
             .as_bytes(),
         )?;
-        let mut input_ctx = input_with_dictionary_and_interrupt(
+        let input_ctx = input_with_dictionary_and_interrupt(
             &sdp_filepath,
             Dictionary::from_iter([("protocol_whitelist", "file,udp,rtp")]),
-            || should_close.load(Ordering::Relaxed),
+            || should_close.try_recv().is_ok(),
         )?;
 
         let input = input_ctx
@@ -112,78 +130,17 @@ impl RtpReceiver {
             .best(Type::Video)
             .ok_or(ffmpeg_next::Error::StreamNotFound)?;
         let input_index = input.index();
-        let decoder = Context::from_parameters(input.parameters())?;
-        let decoder = decoder.decoder();
-        let h264_codec = codec::decoder::find(Id::H264).unwrap();
-        let mut decoder = decoder.open_as(h264_codec)?;
 
-        let mut pts_offset: Option<i64> = None;
-        let mut decoded_frame = frame::Video::empty();
-        for (stream, packet) in PacketIter::new(&mut input_ctx) {
-            if stream.index() != input_index {
-                warn!("Received frame from unknown stream, skipping");
-                continue;
-            }
+        decoder_params_sender
+            .send(ParamsWrapper(input.parameters()).into())
+            .unwrap();
 
-            decoder.send_packet(&packet)?;
-            while decoder.receive_frame(&mut decoded_frame).is_ok() {
-                let frame = match frame_from_av(&mut decoded_frame, &mut pts_offset) {
-                    Ok(frame) => frame,
-                    Err(err) => {
-                        warn!("Dropping frame: {err}");
-                        continue;
-                    }
-                };
-                if let Err(err) = queue.enqueue_frame(input_id.clone(), frame) {
-                    error!(
-                        "Failed to push frame: {}",
-                        ErrorStack::new(&err).into_string()
-                    );
-                }
-            }
+        for packet in PacketIter::new(input_ctx, input_index) {
+            packet_sender.send(packet).unwrap();
         }
+
         Ok(())
     }
-}
-
-fn frame_from_av(decoded: &mut Video, pts_offset: &mut Option<i64>) -> Result<Frame> {
-    if decoded.format() != format::pixel::Pixel::YUV420P {
-        return Err(anyhow!("only YUV420P is supported"));
-    }
-    let original_pts = decoded.pts();
-    if let (Some(pts), None) = (decoded.pts(), &pts_offset) {
-        *pts_offset = Some(-pts)
-    }
-    let pts = original_pts
-        .map(|original_pts| original_pts + pts_offset.unwrap_or(0))
-        .ok_or_else(|| anyhow!("missing pts"))?;
-    let pts = Duration::from_secs_f64(f64::max((pts as f64) / 90000.0, 0.0));
-    Ok(Frame {
-        data: YuvData {
-            y_plane: copy_plane_from_av(decoded, 0),
-            u_plane: copy_plane_from_av(decoded, 1),
-            v_plane: copy_plane_from_av(decoded, 2),
-        },
-        resolution: Resolution {
-            width: decoded.width().try_into()?,
-            height: decoded.height().try_into()?,
-        },
-        pts,
-    })
-}
-
-fn copy_plane_from_av(decoded: &Video, plane: usize) -> bytes::Bytes {
-    let mut output_buffer = bytes::BytesMut::with_capacity(
-        decoded.plane_width(plane) as usize * decoded.plane_height(plane) as usize,
-    );
-
-    decoded
-        .data(plane)
-        .chunks(decoded.stride(plane))
-        .map(|chunk| &chunk[..decoded.plane_width(plane) as usize])
-        .for_each(|chunk| output_buffer.extend_from_slice(chunk));
-
-    output_buffer.freeze()
 }
 
 /// Combined implementation of ffmpeg_next::format:input_with_interrupt and
@@ -229,30 +186,36 @@ where
 /// Implementation based on PacketIter from ffmpeg_next. Original code
 /// was ignoring ffmpeg_next::Error::Exit, so it was not impossible
 /// to stop RTP reader using interrupt callback.
-pub struct PacketIter<'a> {
-    context: &'a mut context::Input,
+pub struct PacketIter {
+    context: context::Input,
+    stream_index: usize,
 }
 
-impl<'a> PacketIter<'a> {
-    pub fn new(context: &mut context::Input) -> PacketIter {
-        PacketIter { context }
+impl PacketIter {
+    pub fn new(context: context::Input, stream_index: usize) -> Self {
+        PacketIter {
+            context,
+            stream_index,
+        }
     }
 }
 
-impl<'a> Iterator for PacketIter<'a> {
-    type Item = (Stream<'a>, Packet);
+impl Iterator for PacketIter {
+    type Item = Packet;
 
     fn next(&mut self) -> Option<<Self as Iterator>::Item> {
         let mut packet = Packet::empty();
 
         loop {
-            match packet.read(self.context) {
-                Ok(..) => unsafe {
-                    return Some((
-                        Stream::wrap(mem::transmute_copy(&self.context), packet.stream()),
-                        packet,
-                    ));
-                },
+            match packet.read(&mut self.context) {
+                Ok(..) => {
+                    if packet.stream() != self.stream_index {
+                        warn!("Received packet from unknown stream, skipping");
+                        continue;
+                    }
+
+                    return Some(packet);
+                }
 
                 Err(ffmpeg_next::Error::Eof | ffmpeg_next::Error::Exit) => return None,
                 Err(_) => (),
