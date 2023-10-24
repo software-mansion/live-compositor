@@ -1,29 +1,39 @@
-use std::{fs, io, path::PathBuf};
+use std::{fs, io};
 
 #[path = "../../snapshot_tests/tests.rs"]
 mod tests;
+
 #[allow(dead_code)]
 #[path = "../../snapshot_tests/utils.rs"]
 mod utils;
 
-use tests::snapshot_test_runners;
-use utils::SNAPSHOTS_DIR_NAME;
+#[path = "../../snapshot_tests/test_case.rs"]
+mod test_case;
+
+use tests::snapshot_tests;
 
 fn main() {
-    let saved_snapshots_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(SNAPSHOTS_DIR_NAME);
-    if let Err(err) = fs::remove_dir_all(&saved_snapshots_path) {
-        if err.kind() != io::ErrorKind::NotFound {
-            panic!("Failed to remove old snapshots: {err}");
+    println!("Updating snapshots:");
+    for snapshot_test in snapshot_tests() {
+        if snapshot_test.run().is_ok() {
+            continue;
         }
-    }
 
-    fs::create_dir(saved_snapshots_path).unwrap();
+        println!("Test \"{}\"", snapshot_test.name);
+        for snapshot in snapshot_test.generate_snapshots().unwrap() {
+            let snapshot_path = snapshot.save_path();
+            if let Err(err) = fs::remove_file(&snapshot_path) {
+                if err.kind() != io::ErrorKind::NotFound {
+                    panic!("Failed to remove old snapshots: {err}");
+                }
+            }
+            let parent_folder = snapshot_path.parent().unwrap();
+            if !parent_folder.exists() {
+                fs::create_dir_all(parent_folder).unwrap();
+            }
 
-    println!("Updating all snapshots:");
-    for test_runner in snapshot_test_runners() {
-        for snapshot in test_runner.generate_snapshots().unwrap() {
             image::save_buffer(
-                snapshot.save_path(),
+                snapshot_path,
                 &snapshot.data,
                 snapshot.resolution.width as u32,
                 snapshot.resolution.height as u32,
@@ -32,4 +42,6 @@ fn main() {
             .unwrap();
         }
     }
+
+    println!("Update finished");
 }

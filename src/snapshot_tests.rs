@@ -1,7 +1,8 @@
 use std::env;
 
-use self::tests::snapshot_test_runners;
+use self::tests::snapshot_tests;
 
+mod test_case;
 mod tests;
 mod utils;
 
@@ -11,8 +12,9 @@ fn test_snapshots() {
         return;
     }
 
-    for scene_test in snapshot_test_runners() {
-        if let Err(err) = scene_test.run() {
+    for snapshot_test in snapshot_tests() {
+        eprintln!("Test \"{}\"", snapshot_test.name);
+        if let Err(err) = snapshot_test.run() {
             panic!("{err}");
         }
     }
