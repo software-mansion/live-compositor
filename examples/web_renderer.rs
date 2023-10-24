@@ -1,6 +1,6 @@
 use anyhow::Result;
 use compositor_chromium::cef::bundle_for_development;
-use compositor_common::{scene::Resolution, Framerate};
+use compositor_common::scene::Resolution;
 use log::{error, info};
 use serde_json::json;
 use std::{
@@ -25,7 +25,7 @@ const VIDEO_RESOLUTION: Resolution = Resolution {
     width: 1920,
     height: 1080,
 };
-const FRAMERATE: Framerate = Framerate(60);
+const FRAMERATE: u32 = 60;
 
 fn main() {
     env_logger::init_from_env(

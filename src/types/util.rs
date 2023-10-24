@@ -37,6 +37,13 @@ pub enum Coord {
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 pub struct Degree(pub f64);
 
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+#[serde(untagged)]
+pub enum Framerate {
+    String(String),
+    U32(u32),
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema, PartialEq)]
 pub struct RGBColor(pub String);
 

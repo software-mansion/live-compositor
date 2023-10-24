@@ -11,7 +11,6 @@ use compositor_common::{
     scene::{constraints::NodeConstraints, NodeId, Resolution},
 };
 use log::{error, info};
-use serde::{Deserialize, Serialize};
 
 use self::browser::{BrowserController, EmbedFrameError};
 
@@ -25,8 +24,6 @@ mod shared_memory;
 pub const EMBED_SOURCE_FRAMES_MESSAGE: &str = "EMBED_SOURCE_FRAMES";
 pub const UNEMBED_SOURCE_FRAMES_MESSAGE: &str = "UNEMBED_SOURCE_FRAMES";
 
-#[derive(Serialize, Deserialize)]
-#[serde(default)]
 pub struct WebRendererOptions {
     pub init: bool,
     pub disable_gpu: bool,

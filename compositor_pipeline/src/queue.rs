@@ -109,7 +109,9 @@ impl Queue {
         // We don't know when pipeline is started, so we can't resolve real_next_pts,
         // but we can remove frames based on estimated PTS. This only works if queue
         // is able to push frames in real time and is never behind more than one frame.
-        let framerate_tick = Duration::from_secs_f64(1.0 / self.output_framerate.0 as f64);
+        let framerate_tick = Duration::from_secs_f64(
+            self.output_framerate.den as f64 / self.output_framerate.num as f64,
+        );
         let estimated_pts = self.clock_start.elapsed() - framerate_tick;
         if let Err(err) = internal_queue.drop_old_frames_by_input_id(&input_id, estimated_pts) {
             error!(

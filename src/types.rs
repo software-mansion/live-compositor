@@ -25,6 +25,8 @@ pub use register_request::RegisterRequest;
 pub use util::Resolution;
 pub use util::TypeError;
 
+use self::util::Framerate;
+
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 pub struct NodeId(Arc<str>);
 
@@ -47,6 +49,19 @@ pub struct Scene {
 pub struct Output {
     pub output_id: OutputId,
     pub input_pad: NodeId,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+pub struct InitOptions {
+    pub framerate: Framerate,
+    pub stream_fallback_timeout_ms: Option<f64>,
+    pub web_renderer: Option<WebRendererOptions>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+pub struct WebRendererOptions {
+    pub init: Option<bool>,
+    pub disable_gpu: Option<bool>,
 }
 
 impl Display for InputId {

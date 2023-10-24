@@ -8,7 +8,7 @@ use compositor_common::{
 };
 use compositor_render::{renderer::RendererOptions, FrameSet, Renderer, WebRendererOptions};
 
-const FRAMERATE: Framerate = Framerate(30);
+const FRAMERATE: Framerate = Framerate { num: 30, den: 1 };
 
 fn ffmpeg_yuv_to_jpeg(
     input_file: impl AsRef<Path>,

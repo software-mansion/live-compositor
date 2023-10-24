@@ -18,8 +18,6 @@ use compositor_render::{RegistryType, WebRendererOptions};
 use crossbeam_channel::unbounded;
 use ffmpeg_next::{Codec, Packet};
 use log::{error, warn};
-use serde::{Deserialize, Serialize};
-use serde_with::{serde_as, DurationMilliSeconds};
 
 use crate::error::{
     RegisterInputError, RegisterOutputError, UnregisterInputError, UnregisterOutputError,
@@ -61,14 +59,9 @@ pub struct Pipeline<Input: PipelineInput, Output: PipelineOutput> {
     is_started: bool,
 }
 
-#[serde_as]
-#[derive(Serialize, Deserialize)]
 pub struct Options {
     pub framerate: Framerate,
-    #[serde_as(as = "Option<DurationMilliSeconds<f64>>")]
-    #[serde(rename = "stream_fallback_timeout_ms")]
-    pub stream_fallback_timeout: Option<Duration>,
-    #[serde(default)]
+    pub stream_fallback_timeout: Duration,
     pub web_renderer: WebRendererOptions,
 }
 
@@ -77,9 +70,7 @@ impl<Input: PipelineInput, Output: PipelineOutput> Pipeline<Input, Output> {
         let (renderer, event_loop) = Renderer::new(RendererOptions {
             web_renderer: opts.web_renderer,
             framerate: opts.framerate,
-            stream_fallback_timeout: opts
-                .stream_fallback_timeout
-                .unwrap_or(Duration::from_secs(1)),
+            stream_fallback_timeout: opts.stream_fallback_timeout,
         })?;
         let pipeline = Pipeline {
             outputs: OutputRegistry::new(),
