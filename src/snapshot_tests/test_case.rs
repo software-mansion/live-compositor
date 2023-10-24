@@ -1,4 +1,6 @@
-use std::{collections::HashSet, fmt::Display, fs, path::PathBuf, sync::Arc, time::Duration};
+use std::{
+    collections::HashSet, fmt::Display, fs, ops::Deref, path::PathBuf, sync::Arc, time::Duration,
+};
 
 use super::utils::{are_snapshots_equal, create_renderer, frame_to_rgba, SNAPSHOTS_DIR_NAME};
 
@@ -124,12 +126,22 @@ impl TestCase {
             .join(SNAPSHOTS_DIR_NAME)
             .join(self.name);
         let parent_path = snapshot_path.parent().unwrap();
+        let snapshot_name_prefix =
+            format!("{}_", snapshot_path.file_name().unwrap().to_string_lossy());
 
         for entry in fs::read_dir(parent_path).unwrap() {
             let entry = entry.unwrap();
-            if !entry.file_name().to_string_lossy().ends_with(".bmp") {
+            let file_name = entry.file_name();
+            let file_name = file_name.to_string_lossy();
+
+            if !entry.file_type().unwrap().is_file() {
                 continue;
             }
+            if !file_name.starts_with(snapshot_name_prefix.deref()) || !file_name.ends_with(".png")
+            {
+                continue;
+            }
+
             if !snapshots.iter().any(|s| s.save_path() == entry.path()) {
                 return Err(TestCaseError::UnusedSnapshot(entry.path()).into());
             }
@@ -264,7 +276,7 @@ impl Snapshot {
         let snapshots_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(SNAPSHOTS_DIR_NAME);
 
         let out_file_name = format!(
-            "{}_{}_{}.bmp",
+            "{}_{}_{}.png",
             self.test_name,
             self.pts.as_millis(),
             self.output_id
