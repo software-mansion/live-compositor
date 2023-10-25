@@ -1,6 +1,9 @@
 use anyhow::Result;
 use compositor_common::scene::InputId;
-use compositor_pipeline::pipeline::{decoder::DecoderParameters, PipelineInput};
+use compositor_pipeline::{
+    error::CustomError,
+    pipeline::{decoder::DecoderParameters, PipelineInput},
+};
 use crossbeam_channel::{bounded, Receiver, Sender};
 use log::warn;
 use std::{
@@ -16,7 +19,7 @@ use ffmpeg_next::{
         avformat_alloc_context, avformat_close_input, avformat_find_stream_info,
         avformat_open_input,
     },
-    format::context::{self},
+    format::context,
     media::Type,
     util::interrupt,
     Dictionary, Packet,
@@ -38,10 +41,7 @@ impl PipelineInput for RtpReceiver {
     type Opts = Options;
     type PacketIterator = crossbeam_channel::IntoIter<Packet>;
 
-    fn new(
-        opts: Self::Opts,
-    ) -> Result<(Self, Self::PacketIterator), Box<dyn std::error::Error + Send + Sync + 'static>>
-    {
+    fn new(opts: Self::Opts) -> Result<(Self, Self::PacketIterator), CustomError> {
         let (drop_sender, drop_receiver) = bounded(0);
         let (should_close_sender, should_close_receiver) = bounded(1);
         let (decoder_params_sender, decoder_params_receiver) = bounded(0);
@@ -50,7 +50,7 @@ impl PipelineInput for RtpReceiver {
         let (packet_sender, packet_receiver) = bounded(0);
 
         thread::spawn(move || {
-            RtpReceiver::start(
+            RtpReceiver::run(
                 opts.port,
                 should_close_receiver,
                 packet_sender,
@@ -63,7 +63,10 @@ impl PipelineInput for RtpReceiver {
             Self {
                 thread_finished: drop_receiver,
                 should_close: should_close_sender,
-                decoder_parameters: decoder_params_receiver.recv().unwrap()?,
+                decoder_parameters: decoder_params_receiver
+                    .recv()
+                    .unwrap()
+                    .map_err(CustomError)?,
                 port,
             },
             packet_receiver.into_iter(),
@@ -96,16 +99,26 @@ impl From<ParamsWrapper> for DecoderParameters {
     }
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum InitError {
+    #[error(transparent)]
+    FfmpegError(#[from] ffmpeg_next::Error),
+    #[error(transparent)]
+    IoError(#[from] std::io::Error),
+}
+
 impl RtpReceiver {
-    fn start(
+    fn run(
         port: u16,
         should_close: Receiver<()>,
         packet_sender: Sender<Packet>,
-        decoder_params_sender: Sender<Result<DecoderParameters>>,
+        decoder_params_sender: Sender<
+            Result<DecoderParameters, Box<dyn std::error::Error + Send + Sync + 'static>>,
+        >,
     ) {
         let sdp_filepath = PathBuf::from(format!("/tmp/sdp_input_{}.sdp", port));
-
-        let result = File::create(&sdp_filepath)
+        let sdp_file_result = File::create(&sdp_filepath)
+            .map_err(InitError::IoError)
             .and_then(|mut file| {
                 file.write_all(
                     format!(
@@ -123,21 +136,26 @@ impl RtpReceiver {
                     )
                     .as_bytes(),
                 )
-            })
-            .and_then(|_| {
-                let input_ctx = input_with_dictionary_and_interrupt(
-                    &sdp_filepath,
-                    Dictionary::from_iter([("protocol_whitelist", "file,udp,rtp")]),
-                    || should_close.try_recv().is_ok(),
-                )?;
-
-                Ok(input_ctx)
+                .map_err(InitError::IoError)
             });
 
-        let input_ctx = match result {
-            Ok(input_ctx) => input_ctx,
+        if let Err(e) = sdp_file_result {
+            decoder_params_sender.send(Err(e.into())).unwrap();
+            return;
+        }
+
+        // careful: moving the input context in any way will cause ffmpeg to segfault
+        // I do not know why this happens
+        let input_ctx = match input_with_dictionary_and_interrupt(
+            &sdp_filepath,
+            Dictionary::from_iter([("protocol_whitelist", "file,udp,rtp")]),
+            || should_close.try_recv().is_ok(),
+        ) {
+            Ok(i) => i,
             Err(e) => {
-                decoder_params_sender.send(Err(e.into())).unwrap();
+                decoder_params_sender
+                    .send(Err(Box::new(InitError::FfmpegError(e))))
+                    .unwrap();
                 return;
             }
         };

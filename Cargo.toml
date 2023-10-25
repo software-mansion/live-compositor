@@ -50,6 +50,7 @@ lazy_static = "1.4.0"
 fs_extra = "1.3.0"
 schemars = "0.8.15"
 image = { workspace = true }
+thiserror = { workspace = true }
 
 [dev-dependencies]
 reqwest = { workspace = true }

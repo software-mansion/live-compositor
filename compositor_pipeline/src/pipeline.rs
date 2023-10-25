@@ -20,7 +20,8 @@ use ffmpeg_next::Packet;
 use log::{error, warn};
 
 use crate::error::{
-    RegisterInputError, RegisterOutputError, UnregisterInputError, UnregisterOutputError,
+    CustomError, RegisterInputError, RegisterOutputError, UnregisterInputError,
+    UnregisterOutputError,
 };
 use crate::queue::Queue;
 
@@ -38,16 +39,14 @@ pub trait PipelineOutput: Send + Sync + Sized + Clone + 'static {
     fn new(
         opts: Self::Opts,
         codec: ffmpeg_next::Codec,
-    ) -> Result<(Self, Self::Context), Box<dyn std::error::Error + Send + Sync + 'static>>;
+    ) -> Result<(Self, Self::Context), CustomError>;
 }
 
 pub trait PipelineInput: Send + Sync + Sized + 'static {
     type Opts: Send + Sync;
     type PacketIterator: Iterator<Item = Packet> + Send;
 
-    fn new(
-        opts: Self::Opts,
-    ) -> Result<(Self, Self::PacketIterator), Box<dyn std::error::Error + Send + Sync + 'static>>;
+    fn new(opts: Self::Opts) -> Result<(Self, Self::PacketIterator), CustomError>;
     fn decoder_parameters(&self) -> decoder::DecoderParameters;
 }
 

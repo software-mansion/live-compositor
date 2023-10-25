@@ -47,6 +47,26 @@ pub enum UnregisterOutputError {
     StillInUse(OutputId),
 }
 
+pub struct CustomError(pub Box<dyn std::error::Error + Send + Sync + 'static>);
+
+impl std::fmt::Display for CustomError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(&self.0, f)
+    }
+}
+
+impl std::fmt::Debug for CustomError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Debug::fmt(&self.0, f)
+    }
+}
+
+impl std::error::Error for CustomError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        Some(&*self.0)
+    }
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum OutputInitError {
     #[error("Could not find an ffmpeg codec")]
@@ -56,7 +76,7 @@ pub enum OutputInitError {
     FfmpegError(#[from] ffmpeg_next::Error),
 
     #[error(transparent)]
-    OutputError(#[from] Box<dyn std::error::Error + Send + Sync + 'static>),
+    OutputError(#[from] CustomError),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -65,7 +85,7 @@ pub enum InputInitError {
     FfmpegError(#[from] ffmpeg_next::Error),
 
     #[error(transparent)]
-    InputError(#[from] Box<dyn std::error::Error + Send + Sync + 'static>),
+    InputError(#[from] CustomError),
 }
 
 pub enum ErrorType {
