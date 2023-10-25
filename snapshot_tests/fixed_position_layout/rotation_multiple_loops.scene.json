@@ -1,0 +1,28 @@
+{
+    "nodes": [
+        {
+            "node_id": "layout",
+            "type": "builtin:fixed_position_layout",
+            "texture_layouts": [
+                {
+                    "top": 0,
+                    "left": 0,
+                    "rotation": 3630
+                }
+            ],
+            "resolution": {
+                "width": 1280,
+                "height": 720
+            },
+            "input_pads": [
+                "input_1"
+            ]
+        }
+    ],
+    "outputs": [
+        {
+            "output_id": "output_1",
+            "input_pad": "layout"
+        }
+    ]
+}

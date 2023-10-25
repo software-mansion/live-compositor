@@ -1,0 +1,39 @@
+{
+    "nodes": [
+        {
+            "node_id": "layout",
+            "type": "builtin:tiled_layout",
+            "input_pads": [
+                "input_1",
+                "input_2",
+                "input_3",
+                "input_4",
+                "input_6",
+                "input_7",
+                "input_8",
+                "input_9",
+                "input_10",
+                "input_11",
+                "input_12",
+                "input_13",
+                "input_14",
+                "input_15"
+            ],
+            "background_color_rgba": "#333333FF",
+            "tile_aspect_ratio": [
+                9,
+                16
+            ],
+            "resolution": {
+                "width": 1280,
+                "height": 720
+            }
+        }
+    ],
+    "outputs": [
+        {
+            "output_id": "output_1",
+            "input_pad": "layout"
+        }
+    ]
+}

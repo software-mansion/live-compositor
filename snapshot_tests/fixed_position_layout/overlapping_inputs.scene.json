@@ -1,0 +1,42 @@
+{
+    "nodes": [
+        {
+            "node_id": "layout",
+            "type": "builtin:fixed_position_layout",
+            "texture_layouts": [
+                {
+                    "top": 0,
+                    "right": 0
+                },
+                {
+                    "top": 40,
+                    "right": 40
+                },
+                {
+                    "top": 80,
+                    "right": 80
+                },
+                {
+                    "top": 120,
+                    "right": 120
+                }
+            ],
+            "resolution": {
+                "width": 1280,
+                "height": 720
+            },
+            "input_pads": [
+                "input_1",
+                "input_2",
+                "input_3",
+                "input_4"
+            ]
+        }
+    ],
+    "outputs": [
+        {
+            "output_id": "output_1",
+            "input_pad": "layout"
+        }
+    ]
+}

@@ -5,8 +5,8 @@
             "url": "./schemas/scene.schema.json"
         },
         {
-            "fileMatch": ["*.renderer.json"],
-            "url": "./schemas/renderer.schema.json"
+            "fileMatch": ["*.register.json"],
+            "url": "./schemas/register.schema.json"
         }
     ]
 }
