@@ -17,27 +17,30 @@ use compositor_common::{
 use super::node::*;
 use super::util::*;
 
-impl TryFrom<Node> for NodeSpec {
+impl TryFrom<Component> for NodeSpec {
     type Error = TypeError;
 
-    fn try_from(node: Node) -> Result<Self, Self::Error> {
+    fn try_from(node: Component) -> Result<Self, Self::Error> {
         let params = match node.params {
-            NodeParams::WebRenderer(node) => node.into(),
-            NodeParams::Shader(node) => node.into(),
-            NodeParams::Image(node) => node.into(),
-            NodeParams::Text(node) => node.try_into()?,
-            NodeParams::Transition(node) => node.try_into()?,
-            NodeParams::FixedPositionLayout(node) => scene::NodeParams::Builtin(node.try_into()?),
-            NodeParams::TiledLayout(node) => scene::NodeParams::Builtin(node.try_into()?),
-            NodeParams::MirrorImage(node) => scene::NodeParams::Builtin(node.into()),
-            NodeParams::CornersRounding(node) => scene::NodeParams::Builtin(node.try_into()?),
-            NodeParams::FitToResolution(node) => scene::NodeParams::Builtin(node.try_into()?),
-            NodeParams::FillToResolution { resolution } => {
+            ComponentParams::InputStream(_) => todo!("input stream does not have it's own entity"),
+            ComponentParams::WebRenderer(node) => node.into(),
+            ComponentParams::Shader(node) => node.into(),
+            ComponentParams::Image(node) => node.into(),
+            ComponentParams::Text(node) => node.try_into()?,
+            ComponentParams::Transition(node) => node.try_into()?,
+            ComponentParams::FixedPositionLayout(node) => {
+                scene::NodeParams::Builtin(node.try_into()?)
+            }
+            ComponentParams::TiledLayout(node) => scene::NodeParams::Builtin(node.try_into()?),
+            ComponentParams::MirrorImage(node) => scene::NodeParams::Builtin(node.into()),
+            ComponentParams::CornersRounding(node) => scene::NodeParams::Builtin(node.try_into()?),
+            ComponentParams::FitToResolution(node) => scene::NodeParams::Builtin(node.try_into()?),
+            ComponentParams::FillToResolution { resolution } => {
                 scene::NodeParams::Builtin(BuiltinSpec::FillToResolution {
                     resolution: resolution.into(),
                 })
             }
-            NodeParams::StretchToResolution { resolution } => {
+            ComponentParams::StretchToResolution { resolution } => {
                 scene::NodeParams::Builtin(BuiltinSpec::StretchToResolution {
                     resolution: resolution.into(),
                 })
@@ -46,12 +49,12 @@ impl TryFrom<Node> for NodeSpec {
         let spec = Self {
             node_id: node.node_id.into(),
             input_pads: node
-                .input_pads
+                .children
                 .unwrap_or_default()
                 .into_iter()
-                .map(Into::into)
+                .map(|n| n.node_id.into())
                 .collect(),
-            fallback_id: node.fallback_id.map(Into::into),
+            fallback_id: None,
             params,
         };
         Ok(spec)

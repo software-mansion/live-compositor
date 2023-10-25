@@ -17,7 +17,7 @@ mod util;
 #[cfg(test)]
 mod convert_util_test;
 
-pub use node::Node;
+pub use node::Component;
 pub use node::WebRenderer;
 pub use register_request::RegisterInputRequest;
 pub use register_request::RegisterOutputRequest;
@@ -28,7 +28,7 @@ pub use util::TypeError;
 use self::util::Framerate;
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-pub struct NodeId(Arc<str>);
+pub struct ComponentId(Arc<str>);
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 pub struct RendererId(Arc<str>);
@@ -41,14 +41,8 @@ pub struct InputId(Arc<str>);
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 pub struct Scene {
-    pub nodes: Vec<Node>,
-    pub outputs: Vec<Output>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-pub struct Output {
     pub output_id: OutputId,
-    pub input_pad: NodeId,
+    pub root: Component,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]

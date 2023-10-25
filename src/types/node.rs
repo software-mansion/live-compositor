@@ -7,18 +7,18 @@ use super::util::*;
 use super::*;
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-pub struct Node {
-    pub node_id: NodeId,
-    pub input_pads: Option<Vec<NodeId>>,
-    pub fallback_id: Option<NodeId>,
+pub struct Component {
+    pub node_id: ComponentId,
+    pub children: Option<Vec<Component>>,
 
     #[serde(flatten)]
-    pub params: NodeParams,
+    pub params: ComponentParams,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
-pub enum NodeParams {
+pub enum ComponentParams {
+    InputStream(InputStream),
     WebRenderer(WebRenderer),
     Shader(Shader),
     Image(Image),
@@ -42,6 +42,11 @@ pub enum NodeParams {
     MirrorImage(MirrorImage),
     #[serde(rename = "builtin:corners_rounding")]
     CornersRounding(CornersRounding),
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+pub struct InputStream {
+    pub input_id: ComponentId,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]

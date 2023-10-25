@@ -16,7 +16,7 @@ use compositor_common::{
     Frame,
 };
 use compositor_render::{FrameSet, Renderer};
-use video_compositor::types::{RegisterRequest, Scene};
+use video_compositor::{api::UpdateScene, types::RegisterRequest};
 
 pub struct TestCase {
     pub name: &'static str,
@@ -174,7 +174,7 @@ impl TestCase {
             .map(register_requests_to_renderers)
             .collect();
 
-        let scene: Scene = serde_json::from_str(self.scene_json).unwrap();
+        let scene: UpdateScene = serde_json::from_str(self.scene_json).unwrap();
         let scene: Arc<SceneSpec> = Arc::new(scene.try_into().unwrap());
 
         let renderer = create_renderer(renderers, scene.clone());

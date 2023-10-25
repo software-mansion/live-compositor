@@ -4,75 +4,8 @@ use compositor_common::scene::builtin_transformations::BuiltinSpec;
 use compositor_common::scene::shader;
 use compositor_common::scene::text_spec;
 use compositor_common::scene::transition;
-use compositor_common::scene::NodeSpec;
 
 use super::node::*;
-use super::Node;
-
-impl From<NodeSpec> for Node {
-    fn from(node: NodeSpec) -> Self {
-        let params = match node.params {
-            scene::NodeParams::WebRenderer { instance_id } => {
-                NodeParams::WebRenderer(WebRenderer {
-                    instance_id: instance_id.into(),
-                })
-            }
-            scene::NodeParams::Shader {
-                shader_id,
-                shader_params,
-                resolution,
-            } => NodeParams::Shader(Shader {
-                shader_id: shader_id.into(),
-                shader_params: shader_params.map(Into::into),
-                resolution: resolution.into(),
-            }),
-            scene::NodeParams::Text(spec) => NodeParams::Text(spec.into()),
-            scene::NodeParams::Image { image_id } => NodeParams::Image(Image {
-                image_id: image_id.into(),
-            }),
-            scene::NodeParams::Transition(spec) => NodeParams::Transition(spec.into()),
-            scene::NodeParams::Builtin(transformation) => match transformation {
-                BuiltinSpec::FixedPositionLayout(layout) => {
-                    NodeParams::FixedPositionLayout(layout.into())
-                }
-                BuiltinSpec::TiledLayout(layout) => NodeParams::TiledLayout(layout.into()),
-                BuiltinSpec::MirrorImage { mode } => NodeParams::MirrorImage(MirrorImage {
-                    mode: Some(mode.into()),
-                }),
-                BuiltinSpec::CornersRounding { border_radius } => {
-                    NodeParams::CornersRounding(CornersRounding {
-                        border_radius: border_radius.into(),
-                    })
-                }
-                BuiltinSpec::FitToResolution(builtin_transformations::FitToResolutionSpec {
-                    resolution,
-                    background_color_rgba,
-                    horizontal_alignment,
-                    vertical_alignment,
-                }) => NodeParams::FitToResolution(FitToResolution {
-                    resolution: resolution.into(),
-                    background_color_rgba: Some(background_color_rgba.into()),
-                    horizontal_alignment: Some(horizontal_alignment.into()),
-                    vertical_alignment: Some(vertical_alignment.into()),
-                }),
-                BuiltinSpec::FillToResolution { resolution } => NodeParams::FillToResolution {
-                    resolution: resolution.into(),
-                },
-                BuiltinSpec::StretchToResolution { resolution } => {
-                    NodeParams::StretchToResolution {
-                        resolution: resolution.into(),
-                    }
-                }
-            },
-        };
-        Self {
-            node_id: node.node_id.into(),
-            input_pads: Some(node.input_pads.into_iter().map(Into::into).collect()),
-            fallback_id: node.fallback_id.map(Into::into),
-            params,
-        }
-    }
-}
 
 impl From<shader::ShaderParam> for ShaderParam {
     fn from(param: scene::shader::ShaderParam) -> Self {

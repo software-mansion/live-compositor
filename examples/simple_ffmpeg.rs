@@ -99,23 +99,22 @@ fn start_example_client_code() -> Result<()> {
     info!("[example] Update scene");
     common::post(&json!({
         "type": "update_scene",
-        "nodes": [
-            {
+        "scenes": [{
+            "output_id": "output_1",
+            "root": {
                 "type": "shader",
                 "node_id": "shader_node_1",
                 "shader_id": "shader_example_1",
-                "input_pads": [
-                    "input_1",
+                "children": [
+                    {
+                        "node_id": "input_1",
+                        "type": "input_stream",
+                        "input_id": "input_1",
+                    }
                 ],
                 "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
-            },
-        ],
-        "outputs": [
-            {
-                "output_id": "output_1",
-                "input_pad": "shader_node_1"
             }
-        ]
+        }]
     }))?;
 
     info!("[example] Start pipeline");
