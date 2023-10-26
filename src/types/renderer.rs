@@ -44,8 +44,17 @@ pub struct WebRendererSpec {
     pub instance_id: RendererId,
     pub url: String,
     pub resolution: Resolution,
+    pub embedding_method: Option<WebEmbeddingMethod>,
     pub fallback_strategy: Option<FallbackStrategy>,
     pub constraints: Option<NodeConstraints>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case", deny_unknown_fields)]
+pub enum WebEmbeddingMethod {
+    ChromiumEmbedding,
+    NativeEmbeddingOverContent,
+    NativeEmbeddingUnderContent,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
