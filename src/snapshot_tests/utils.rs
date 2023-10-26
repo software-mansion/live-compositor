@@ -43,7 +43,7 @@ pub(super) fn are_snapshots_near_equal(old_snapshot: &[u8], new_snapshot: &[u8])
     const ALLOWED_ERROR: f32 = 2.5;
 
     if old_snapshot.len() != new_snapshot.len() {
-        return true;
+        return false;
     }
     let square_error: f32 = old_snapshot
         .iter()
@@ -51,7 +51,7 @@ pub(super) fn are_snapshots_near_equal(old_snapshot: &[u8], new_snapshot: &[u8])
         .map(|(a, b)| (*a as i32 - *b as i32).pow(2) as f32)
         .sum();
 
-    (square_error / old_snapshot.len() as f32) < ALLOWED_ERROR
+    dbg!(square_error / old_snapshot.len() as f32) < ALLOWED_ERROR
 }
 
 pub(super) fn create_renderer(renderers: Vec<RendererSpec>, scene: Arc<SceneSpec>) -> Renderer {
