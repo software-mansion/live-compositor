@@ -1,28 +1,38 @@
+use bytes::{Bytes, BytesMut};
+use nalgebra_glm::Mat4;
 use std::env;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 use crate::renderer::{RegisterCtx, RenderCtx};
-use crate::wgpu::format::bgra_to_rgba::BGRAToRGBAConverter;
-use crate::wgpu::texture::{BGRATexture, NodeTexture};
+use crate::wgpu::shader::shader_params::ParamsBuffer;
+use crate::wgpu::shader::{CreateShaderError, WgpuShader};
+use crate::wgpu::texture::{BGRATexture, NodeTexture, NodeTextureState, RGBATexture, Texture};
 
+use crate::transformations::web_renderer::browser_client::BrowserClient;
+use crate::transformations::web_renderer::chromium_sender::ChromiumSender;
+use crate::transformations::web_renderer::embedder::{EmbedError, EmbeddingHelper, TextureInfo};
+use compositor_common::renderer_spec::WebEmbeddingMethod;
 use compositor_common::{
     renderer_spec::{FallbackStrategy, WebRendererSpec},
     scene::{constraints::NodeConstraints, NodeId, Resolution},
 };
 use log::{error, info};
 
-use self::browser::{BrowserController, EmbedFrameError};
-
-pub mod browser;
+pub mod browser_client;
 pub mod chromium_context;
 mod chromium_sender;
 mod chromium_sender_thread;
+mod embedder;
 pub(crate) mod node;
 mod shared_memory;
 
 pub const EMBED_SOURCE_FRAMES_MESSAGE: &str = "EMBED_SOURCE_FRAMES";
 pub const UNEMBED_SOURCE_FRAMES_MESSAGE: &str = "UNEMBED_SOURCE_FRAMES";
+pub const GET_FRAME_POSITIONS_MESSAGE: &str = "GET_FRAME_POSITIONS";
+
+pub(super) type FrameData = Arc<Mutex<Bytes>>;
+pub(super) type SourceTransforms = Arc<Mutex<Vec<Mat4>>>;
 
 pub struct WebRendererOptions {
     pub init: bool,
@@ -39,38 +49,47 @@ impl Default for WebRendererOptions {
 }
 
 pub struct WebRenderer {
-    params: WebRendererSpec,
-    controller: Mutex<BrowserController>,
+    spec: WebRendererSpec,
+    frame_data: FrameData,
+    source_transforms: SourceTransforms,
+    embedding_helper: EmbeddingHelper,
 
-    bgra_texture: BGRATexture,
-    _bgra_bind_group_layout: wgpu::BindGroupLayout,
-    bgra_bind_group: wgpu::BindGroup,
-    bgra_to_rgba: BGRAToRGBAConverter,
+    website_texture: BGRATexture,
+    render_website_shader: WgpuShader,
+    shader_params: Mutex<ParamsBuffer>,
 }
 
 impl WebRenderer {
-    pub fn new(ctx: &RegisterCtx, params: WebRendererSpec) -> Self {
-        info!("Starting web renderer for {}", &params.url);
+    pub fn new(ctx: &RegisterCtx, spec: WebRendererSpec) -> Result<Self, CreateWebRendererError> {
+        info!("Starting web renderer for {}", &spec.url);
 
-        let bgra_texture = BGRATexture::new(&ctx.wgpu_ctx, params.resolution);
-        let bgra_bind_group_layout = BGRATexture::new_bind_group_layout(&ctx.wgpu_ctx.device);
-        let bgra_bind_group = bgra_texture.new_bind_group(&ctx.wgpu_ctx, &bgra_bind_group_layout);
-        let bgra_to_rgba = BGRAToRGBAConverter::new(&ctx.wgpu_ctx.device, &bgra_bind_group_layout);
+        let frame_data = Arc::new(Mutex::new(Bytes::new()));
+        let source_transforms = Arc::new(Mutex::new(Vec::new()));
 
-        let controller = Mutex::new(BrowserController::new(
-            ctx,
-            params.url.clone(),
-            params.resolution,
-        ));
+        let client = BrowserClient::new(
+            frame_data.clone(),
+            source_transforms.clone(),
+            spec.resolution,
+        );
+        let chromium_sender = ChromiumSender::new(ctx, spec.url.clone(), client);
+        let embedding_helper = EmbeddingHelper::new(ctx, chromium_sender, spec.embedding_method);
 
-        Self {
-            params,
-            controller,
-            bgra_texture,
-            _bgra_bind_group_layout: bgra_bind_group_layout,
-            bgra_bind_group,
-            bgra_to_rgba,
-        }
+        let render_website_shader = WgpuShader::new(
+            &ctx.wgpu_ctx,
+            include_str!("web_renderer/render_website.wgsl").into(),
+        )?;
+        let shader_params = Mutex::new(ParamsBuffer::new(Bytes::new(), &ctx.wgpu_ctx));
+        let website_texture = BGRATexture::new(&ctx.wgpu_ctx, spec.resolution);
+
+        Ok(Self {
+            spec,
+            frame_data,
+            source_transforms,
+            embedding_helper,
+            website_texture,
+            render_website_shader,
+            shader_params,
+        })
     }
 
     pub fn render(
@@ -81,25 +100,85 @@ impl WebRenderer {
         buffers: &[Arc<wgpu::Buffer>],
         target: &mut NodeTexture,
     ) -> Result<(), RenderWebsiteError> {
-        let mut controller = self.controller.lock().unwrap();
-        controller.send_sources(ctx, node_id.clone(), sources, buffers)?;
+        self.embedding_helper
+            .prepare_embedding(node_id, sources, buffers)
+            .map_err(|err| RenderWebsiteError::EmbeddingFailed(self.spec.url.clone(), err))?;
 
-        if let Some(frame) = controller.retrieve_frame() {
-            let target = target.ensure_size(ctx.wgpu_ctx, self.params.resolution);
+        if let Some(frame) = self.retrieve_frame() {
+            let target = target.ensure_size(ctx.wgpu_ctx, self.spec.resolution);
+            self.website_texture.upload(ctx.wgpu_ctx, &frame);
 
-            self.bgra_texture.upload(ctx.wgpu_ctx, &frame);
-            self.bgra_to_rgba.convert(
-                ctx.wgpu_ctx,
-                (&self.bgra_texture, &self.bgra_bind_group),
-                target.rgba_texture(),
+            let (textures, textures_info) = self.prepare_textures(sources);
+            let mut shader_params = self.shader_params.lock().unwrap();
+            shader_params.update(textures_info, ctx.wgpu_ctx);
+
+            self.render_website_shader.render_with_textures(
+                shader_params.bind_group(),
+                &textures,
+                target,
+                Default::default(),
+                None,
             );
         }
 
         Ok(())
     }
 
+    fn prepare_textures<'a>(
+        &'a self,
+        sources: &'a [(&NodeId, &NodeTexture)],
+    ) -> (Vec<Option<&'a Texture>>, Bytes) {
+        let source_transforms = TextureInfo::sources(&self.source_transforms.lock().unwrap());
+        let mut source_textures = sources
+            .iter()
+            .map(|(_, texture)| {
+                texture
+                    .state()
+                    .map(NodeTextureState::rgba_texture)
+                    .map(RGBATexture::texture)
+            })
+            .collect::<Vec<_>>();
+
+        let mut textures = Vec::new();
+        match self.spec.embedding_method {
+            WebEmbeddingMethod::NativeEmbeddingOverContent => {
+                textures.push(Some(self.website_texture.texture()));
+                textures.append(&mut source_textures);
+            }
+            WebEmbeddingMethod::NativeEmbeddingUnderContent => {
+                textures.append(&mut source_textures);
+                textures.push(Some(self.website_texture.texture()));
+            }
+            WebEmbeddingMethod::ChromiumEmbedding => {
+                textures.push(Some(self.website_texture.texture()));
+            }
+        };
+
+        let mut textures_info = BytesMut::new();
+        match self.spec.embedding_method {
+            WebEmbeddingMethod::NativeEmbeddingOverContent => {
+                textures_info.extend(TextureInfo::website());
+                textures_info.extend(source_transforms);
+            }
+            WebEmbeddingMethod::NativeEmbeddingUnderContent => {
+                textures_info.extend(source_transforms);
+                textures_info.extend(TextureInfo::website());
+            }
+            WebEmbeddingMethod::ChromiumEmbedding => textures_info.extend(TextureInfo::website()),
+        };
+
+        (textures, textures_info.freeze())
+    }
+
+    fn retrieve_frame(&self) -> Option<Bytes> {
+        let frame_data = self.frame_data.lock().unwrap();
+        if frame_data.is_empty() {
+            return None;
+        }
+        Some(frame_data.clone())
+    }
     pub fn resolution(&self) -> Resolution {
-        self.params.resolution
+        self.spec.resolution
     }
 
     pub fn shared_memory_root_path(renderer_id: &str) -> PathBuf {
@@ -109,19 +188,22 @@ impl WebRenderer {
     }
 
     pub fn fallback_strategy(&self) -> FallbackStrategy {
-        self.params.fallback_strategy
+        self.spec.fallback_strategy
     }
 
     pub fn constraints(&self) -> &NodeConstraints {
-        &self.params.constraints
+        &self.spec.constraints
     }
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum RenderWebsiteError {
-    #[error("Failed to embed sources")]
-    EmbedSources(#[from] EmbedFrameError),
+pub enum CreateWebRendererError {
+    #[error(transparent)]
+    CreateShaderFailed(#[from] CreateShaderError),
+}
 
-    #[error("Download buffer does not exist")]
-    ExpectDownloadBuffer,
+#[derive(Debug, thiserror::Error)]
+pub enum RenderWebsiteError {
+    #[error("Failed to embed source on the website \"{0}\": {1}")]
+    EmbeddingFailed(String, #[source] EmbedError),
 }

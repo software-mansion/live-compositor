@@ -8,6 +8,9 @@ use compositor_render::error::{
 pub enum RegisterInputError {
     #[error("Failed to register input stream. Stream \"{0}\" is already registered.")]
     AlreadyRegistered(InputId),
+
+    #[error("Decoder error while registering input stream for stream \"{0}\".")]
+    DecoderError(InputId, #[source] InputInitError),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -44,6 +47,26 @@ pub enum UnregisterOutputError {
     StillInUse(OutputId),
 }
 
+pub struct CustomError(pub Box<dyn std::error::Error + Send + Sync + 'static>);
+
+impl std::fmt::Display for CustomError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(&self.0, f)
+    }
+}
+
+impl std::fmt::Debug for CustomError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Debug::fmt(&self.0, f)
+    }
+}
+
+impl std::error::Error for CustomError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        Some(&*self.0)
+    }
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum OutputInitError {
     #[error("Could not find an ffmpeg codec")]
@@ -53,7 +76,16 @@ pub enum OutputInitError {
     FfmpegError(#[from] ffmpeg_next::Error),
 
     #[error(transparent)]
-    OutputError(#[from] Box<dyn std::error::Error + Send + Sync + 'static>),
+    OutputError(#[from] CustomError),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum InputInitError {
+    #[error(transparent)]
+    FfmpegError(#[from] ffmpeg_next::Error),
+
+    #[error(transparent)]
+    InputError(#[from] CustomError),
 }
 
 pub enum ErrorType {
@@ -77,12 +109,17 @@ impl PipelineErrorInfo {
 }
 
 const INPUT_STREAM_ALREADY_REGISTERED: &str = "INPUT_STREAM_ALREADY_REGISTERED";
+const DECODER_ERROR: &str = "INPUT_STREAM_DECODER_ERROR";
 
 impl From<&RegisterInputError> for PipelineErrorInfo {
     fn from(err: &RegisterInputError) -> Self {
         match err {
             RegisterInputError::AlreadyRegistered(_) => {
                 PipelineErrorInfo::new(INPUT_STREAM_ALREADY_REGISTERED, ErrorType::UserError)
+            }
+
+            RegisterInputError::DecoderError(_, _) => {
+                PipelineErrorInfo::new(DECODER_ERROR, ErrorType::ServerError)
             }
         }
     }
@@ -195,6 +232,7 @@ impl From<&InitRendererEngineError> for PipelineErrorInfo {
 const ENTITY_ALREADY_REGISTERED: &str = "ENTITY_ALREADY_REGISTERED";
 const INVALID_SHADER: &str = "INVALID_SHADER";
 const REGISTER_IMAGE_ERROR: &str = "REGISTER_IMAGE_ERROR";
+const REGISTER_WEB_RENDERER_ERROR: &str = "REGISTER_WEB_RENDERER_ERROR";
 
 impl From<&RegisterRendererError> for PipelineErrorInfo {
     fn from(err: &RegisterRendererError) -> Self {
@@ -209,6 +247,9 @@ impl From<&RegisterRendererError> for PipelineErrorInfo {
             }
             RegisterRendererError::Image(_, _) => {
                 PipelineErrorInfo::new(REGISTER_IMAGE_ERROR, ErrorType::UserError)
+            }
+            RegisterRendererError::Web(_, _) => {
+                PipelineErrorInfo::new(REGISTER_WEB_RENDERER_ERROR, ErrorType::ServerError)
             }
         }
     }
