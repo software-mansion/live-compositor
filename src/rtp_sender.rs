@@ -1,7 +1,7 @@
 use log::error;
 use std::{path::PathBuf, sync::Arc};
 
-use compositor_pipeline::pipeline::PipelineOutput;
+use compositor_pipeline::{error::CustomError, pipeline::PipelineOutput};
 use ffmpeg_next::{
     codec,
     format::{self, context::Output},
@@ -26,10 +26,7 @@ impl PipelineOutput for RtpSender {
     type Opts = Options;
     type Context = RtpContext;
 
-    fn new(
-        options: Options,
-        codec: Codec,
-    ) -> Result<(Self, RtpContext), Box<dyn std::error::Error + Send + Sync + 'static>> {
+    fn new(options: Options, codec: Codec) -> Result<(Self, RtpContext), CustomError> {
         let port = options.port;
         let ip = options.ip.clone();
 
@@ -39,14 +36,19 @@ impl PipelineOutput for RtpSender {
                 options.ip, options.port, options.port
             )),
             "rtp",
-        )?;
+        )
+        .map_err(|e| CustomError(e.into()))?;
 
-        let mut stream = output_ctx.add_stream(codec)?;
+        let mut stream = output_ctx
+            .add_stream(codec)
+            .map_err(|e| CustomError(e.into()))?;
         unsafe {
             (*(*stream.as_mut_ptr()).codecpar).codec_id = codec::Id::H264.into();
         }
 
-        output_ctx.write_header()?;
+        output_ctx
+            .write_header()
+            .map_err(|e| CustomError(e.into()))?;
 
         Ok((Self { port, ip }, RtpContext(output_ctx)))
     }

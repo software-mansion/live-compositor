@@ -1,6 +1,9 @@
 use std::sync::Arc;
 
-use compositor_pipeline::pipeline::{self};
+use compositor_pipeline::{
+    error::{InputInitError, RegisterInputError},
+    pipeline::{self},
+};
 use compositor_render::{EventLoop, RegistryType};
 use crossbeam_channel::{bounded, Receiver};
 
@@ -242,14 +245,46 @@ impl Api {
             ));
         }
 
-        self.pipeline.register_input(
+        let result = self.pipeline.register_input(
             id.clone().into(),
             rtp_receiver::Options {
                 port,
                 input_id: id.into(),
             },
-        )?;
+        );
+
+        Self::check_port_not_available(&result, port)?;
+
+        result?;
 
         Ok(())
+    }
+
+    /// Returns Ok(()) if there isn't an error or the error is not a port already in use error.
+    /// Returns Err(ApiError) if the error is a port already in use error.
+    fn check_port_not_available<T>(
+        register_input_error: &Result<T, RegisterInputError>,
+        port: u16,
+    ) -> Result<(), ApiError> {
+        if let Err(RegisterInputError::DecoderError(ref id, InputInitError::InputError(ref err))) =
+            register_input_error
+        {
+            if let Some(err) = err.0.downcast_ref::<rtp_receiver::InitError>() {
+                match err {
+                    rtp_receiver::InitError::FfmpegError(ffmpeg_next::Error::Other { errno: ffmpeg_next::error::EADDRINUSE })
+                    | rtp_receiver::InitError::FfmpegError(ffmpeg_next::Error::Other { errno: ffmpeg_next::error::EADDRNOTAVAIL }) =>
+                        Err(ApiError::new(
+                        "PORT_ALREADY_IN_USE",
+                        format!("Failed to register input stream \"{id}\". Port {port} is already in use or not available."),
+                        tiny_http::StatusCode(400)
+                    )),
+                    _ => Ok(())
+                }
+            } else {
+                Ok(())
+            }
+        } else {
+            Ok(())
+        }
     }
 }
