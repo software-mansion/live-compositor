@@ -1,4 +1,10 @@
-use std::{collections::HashSet, fmt::Display, path::PathBuf, sync::Arc, time::Duration};
+use std::{
+    collections::{hash_map::RandomState, HashSet},
+    fmt::Display,
+    path::PathBuf,
+    sync::Arc,
+    time::Duration,
+};
 
 use super::utils::{are_snapshots_near_equal, create_renderer, frame_to_rgba, snapshots_path};
 
@@ -72,6 +78,8 @@ impl TestCase {
 
     pub fn generate_snapshots(&self) -> Result<Vec<Snapshot>> {
         let (renderer, scene) = self.prepare_renderer_and_scene();
+        self.validate_scene(&scene)?;
+
         let snapshots = self
             .timestamps
             .iter()
@@ -80,6 +88,20 @@ impl TestCase {
             .collect::<Result<Vec<_>>>()?;
 
         Ok(snapshots.into_iter().flatten().collect())
+    }
+
+    fn validate_scene(&self, scene: &SceneSpec) -> Result<()> {
+        let inputs: HashSet<NodeId, RandomState> = HashSet::from_iter(
+            self.inputs
+                .iter()
+                .map(|input| NodeId(input.name.as_str().into())),
+        );
+        let outputs: HashSet<NodeId, RandomState> =
+            HashSet::from_iter(self.outputs.iter().map(|output| NodeId((*output).into())));
+
+        scene
+            .validate(&inputs.iter().collect(), &outputs.iter().collect())
+            .map_err(Into::into)
     }
 
     fn snapshots_for_pts(
