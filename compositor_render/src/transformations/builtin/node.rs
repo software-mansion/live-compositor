@@ -11,10 +11,13 @@ use compositor_common::{
 use crate::{
     renderer::RenderCtx,
     utils::rgba_to_wgpu_color,
-    wgpu::{shader::WgpuShader, texture::NodeTexture},
+    wgpu::{
+        shader::{shader_params::ParamsBuffer, WgpuShader},
+        texture::NodeTexture,
+    },
 };
 
-use super::{params::RenderParams, shader_params::ParamsBuffer, BuiltinState};
+use super::{params::RenderParams, BuiltinState};
 
 pub struct BuiltinNode {
     state: BuiltinState,

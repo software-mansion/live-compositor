@@ -2,7 +2,7 @@ use wgpu::util::DeviceExt;
 
 use crate::wgpu::WgpuCtx;
 
-pub(super) struct ParamsBuffer {
+pub(crate) struct ParamsBuffer {
     bind_group: wgpu::BindGroup,
     buffer: wgpu::Buffer,
     content: bytes::Bytes,
@@ -18,7 +18,7 @@ impl ParamsBuffer {
         let buffer = wgpu_ctx
             .device
             .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some("builtin node params buffer"),
+                label: Some("params buffer"),
                 usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
                 contents: &content_or_zero,
             });
@@ -26,7 +26,7 @@ impl ParamsBuffer {
         let bind_group = wgpu_ctx
             .device
             .create_bind_group(&wgpu::BindGroupDescriptor {
-                label: Some("builtin node params bind group"),
+                label: Some("params bind group"),
                 layout: &wgpu_ctx.shader_parameters_bind_group_layout,
                 entries: &[wgpu::BindGroupEntry {
                     binding: 0,
