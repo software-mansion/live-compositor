@@ -19,8 +19,9 @@ fn test_snapshots() {
     let mut produced_snapshots = HashSet::new();
     for snapshot_test in snapshot_tests() {
         eprintln!("Test \"{}\"", snapshot_test.name);
-        match snapshot_test.run() {
-            Ok(snapshots) => produced_snapshots.extend(snapshots.iter().map(Snapshot::save_path)),
+        let snapshots = snapshot_test.generate_snapshots().unwrap();
+        match snapshot_test.test_snapshots(&snapshots) {
+            Ok(_) => produced_snapshots.extend(snapshots.iter().map(Snapshot::save_path)),
             Err(err) => panic!("{err}"),
         }
     }

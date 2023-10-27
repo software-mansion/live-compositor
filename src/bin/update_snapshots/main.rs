@@ -19,12 +19,15 @@ fn main() {
 
     println!("Updating snapshots:");
     for snapshot_test in snapshot_tests() {
-        let was_test_successful = snapshot_test.run().is_ok();
-        if !was_test_successful {
-            println!("Test \"{}\"", snapshot_test.name);
+        let snapshots = snapshot_test.generate_snapshots().unwrap();
+        let was_test_successful = snapshot_test.test_snapshots(&snapshots).is_ok();
+        if was_test_successful {
+            println!("PASS: \"{}\"", snapshot_test.name);
+        } else {
+            println!("UPDATE: \"{}\"", snapshot_test.name);
         }
 
-        for snapshot in snapshot_test.generate_snapshots().unwrap() {
+        for snapshot in snapshots {
             let snapshot_path = snapshot.save_path();
             produced_snapshots.insert(snapshot_path.clone());
             if was_test_successful {

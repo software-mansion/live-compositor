@@ -41,9 +41,22 @@ impl Default for TestCase {
 }
 
 impl TestCase {
-    pub fn run(&self) -> Result<Vec<Snapshot>> {
+    pub fn generate_snapshots(&self) -> Result<Vec<Snapshot>> {
+        let (renderer, scene) = self.prepare_renderer_and_scene();
+        self.validate_scene(&scene)?;
+
+        let snapshots = self
+            .timestamps
+            .iter()
+            .cloned()
+            .map(|pts| self.snapshots_for_pts(&renderer, &scene, pts))
+            .collect::<Result<Vec<_>>>()?;
+
+        Ok(snapshots.into_iter().flatten().collect())
+    }
+
+    pub fn test_snapshots(&self, snapshots: &[Snapshot]) -> Result<()> {
         let mut produced_outputs = HashSet::new();
-        let snapshots = self.generate_snapshots()?;
         for snapshot in snapshots.iter() {
             produced_outputs.insert(snapshot.output_id.to_string());
 
@@ -73,21 +86,7 @@ impl TestCase {
             .into());
         }
 
-        Ok(snapshots)
-    }
-
-    pub fn generate_snapshots(&self) -> Result<Vec<Snapshot>> {
-        let (renderer, scene) = self.prepare_renderer_and_scene();
-        self.validate_scene(&scene)?;
-
-        let snapshots = self
-            .timestamps
-            .iter()
-            .cloned()
-            .map(|pts| self.snapshots_for_pts(&renderer, &scene, pts))
-            .collect::<Result<Vec<_>>>()?;
-
-        Ok(snapshots.into_iter().flatten().collect())
+        Ok(())
     }
 
     fn validate_scene(&self, scene: &SceneSpec) -> Result<()> {
