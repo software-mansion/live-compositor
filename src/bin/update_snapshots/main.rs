@@ -26,15 +26,13 @@ fn main() {
         let was_test_successful = snapshot_test.test_snapshots(&snapshots).is_ok();
         if was_test_successful {
             println!("PASS: \"{}\"", snapshot_test.name);
+            continue;
         } else {
             println!("UPDATE: \"{}\"", snapshot_test.name);
         }
 
         for snapshot in snapshots {
             let snapshot_path = snapshot.save_path();
-            if was_test_successful {
-                continue;
-            }
 
             if let Err(err) = fs::remove_file(&snapshot_path) {
                 if err.kind() != io::ErrorKind::NotFound {
