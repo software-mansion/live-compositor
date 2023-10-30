@@ -4,12 +4,12 @@ use std::sync::Arc;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+mod component;
 mod convert;
 mod convert_util;
-mod from_node;
+mod from_component;
 mod from_renderer;
-mod into_node;
-mod node;
+mod into_component;
 mod register_request;
 mod renderer;
 mod util;
@@ -17,8 +17,8 @@ mod util;
 #[cfg(test)]
 mod convert_util_test;
 
-pub use node::Component;
-pub use node::WebRenderer;
+pub use component::Component;
+pub use component::WebRenderer;
 pub use register_request::RegisterInputRequest;
 pub use register_request::RegisterOutputRequest;
 pub use register_request::RegisterRequest;

@@ -14,7 +14,7 @@ use compositor_common::{
     util::colors::{self, RGBAColor},
 };
 
-use super::node::*;
+use super::component::*;
 use super::util::*;
 
 impl TryFrom<Component> for NodeSpec {

@@ -5,7 +5,7 @@ use compositor_common::scene::shader;
 use compositor_common::scene::text_spec;
 use compositor_common::scene::transition;
 
-use super::node::*;
+use super::component::*;
 
 impl From<shader::ShaderParam> for ShaderParam {
     fn from(param: scene::shader::ShaderParam) -> Self {
