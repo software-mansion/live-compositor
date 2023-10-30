@@ -103,3 +103,8 @@ pub fn find_unused_snapshots(
 
     unused_snapshots
 }
+
+pub(super) fn snaphot_save_path(test_name: &str, pts: &Duration, output_id: &str) -> PathBuf {
+    let out_file_name = format!("{}_{}_{}.png", test_name, pts.as_millis(), output_id);
+    snapshots_path().join(out_file_name)
+}

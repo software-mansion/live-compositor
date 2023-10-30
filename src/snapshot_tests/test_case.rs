@@ -6,7 +6,7 @@ use std::{
     time::Duration,
 };
 
-use super::utils::{are_snapshots_near_equal, create_renderer, frame_to_rgba, snapshots_path};
+use super::utils::{are_snapshots_near_equal, create_renderer, frame_to_rgba, snaphot_save_path};
 
 use anyhow::Result;
 use compositor_common::{
@@ -89,6 +89,18 @@ impl TestCase {
         Ok(())
     }
 
+    #[allow(dead_code)]
+    pub fn snapshot_paths(&self) -> Vec<PathBuf> {
+        let mut paths = Vec::new();
+        for pts in self.timestamps.iter() {
+            for output_id in self.outputs.iter() {
+                paths.push(snaphot_save_path(self.name, pts, output_id));
+            }
+        }
+
+        paths
+    }
+
     fn validate_scene(&self, scene: &SceneSpec) -> Result<()> {
         let inputs: HashSet<NodeId, RandomState> = HashSet::from_iter(
             self.inputs
@@ -139,7 +151,7 @@ impl TestCase {
         Ok(snapshots)
     }
 
-    pub fn prepare_renderer_and_scene(&self) -> (Renderer, Arc<SceneSpec>) {
+    fn prepare_renderer_and_scene(&self) -> (Renderer, Arc<SceneSpec>) {
         fn register_requests_to_renderers(register_request: RegisterRequest) -> RendererSpec {
             match register_request {
                 RegisterRequest::InputStream(_) | RegisterRequest::OutputStream(_) => {
@@ -263,13 +275,7 @@ pub struct Snapshot {
 
 impl Snapshot {
     pub fn save_path(&self) -> PathBuf {
-        let out_file_name = format!(
-            "{}_{}_{}.png",
-            self.test_name,
-            self.pts.as_millis(),
-            self.output_id
-        );
-        snapshots_path().join(out_file_name)
+        snaphot_save_path(&self.test_name, &self.pts, &self.output_id.to_string())
     }
 }
 

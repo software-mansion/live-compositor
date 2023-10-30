@@ -12,13 +12,16 @@ mod test_case;
 
 use tests::snapshot_tests;
 
-use crate::utils::{find_unused_snapshots, snapshots_path};
+use crate::{
+    test_case::TestCase,
+    utils::{find_unused_snapshots, snapshots_path},
+};
 
 fn main() {
-    let mut produced_snapshots = HashSet::new();
-
     println!("Updating snapshots:");
-    for snapshot_test in snapshot_tests() {
+
+    let test_cases = snapshot_tests();
+    for snapshot_test in test_cases.iter() {
         let snapshots = snapshot_test.generate_snapshots().unwrap();
         let was_test_successful = snapshot_test.test_snapshots(&snapshots).is_ok();
         if was_test_successful {
@@ -29,7 +32,6 @@ fn main() {
 
         for snapshot in snapshots {
             let snapshot_path = snapshot.save_path();
-            produced_snapshots.insert(snapshot_path.clone());
             if was_test_successful {
                 continue;
             }
@@ -57,8 +59,12 @@ fn main() {
         }
     }
 
-    let unused_snapshots = find_unused_snapshots(&produced_snapshots, snapshots_path());
-    for path in unused_snapshots {
+    // Check for unused snapshots
+    let snapshot_paths = test_cases
+        .iter()
+        .flat_map(TestCase::snapshot_paths)
+        .collect::<HashSet<_>>();
+    for path in find_unused_snapshots(&snapshot_paths, snapshots_path()) {
         println!("Removed unused snapshot {path:?}");
         fs::remove_file(path).unwrap();
     }
