@@ -62,6 +62,7 @@ jobs:
               with:
                   name: failed_snapshot_tests
                   path: failed_snapshot_tests
+                  retention-days: 2
 
             - name: 📚 Run doctests
               run: cargo test --workspace --doc
