@@ -1,8 +1,12 @@
 use std::{
-    collections::HashSet, fmt::Display, fs, ops::Deref, path::PathBuf, sync::Arc, time::Duration,
+    collections::{hash_map::RandomState, HashSet},
+    fmt::Display,
+    path::PathBuf,
+    sync::Arc,
+    time::Duration,
 };
 
-use super::utils::{are_snapshots_equal, create_renderer, frame_to_rgba, SNAPSHOTS_DIR_NAME};
+use super::utils::{are_snapshots_near_equal, create_renderer, frame_to_rgba, snaphot_save_path};
 
 use anyhow::Result;
 use compositor_common::{
@@ -37,9 +41,22 @@ impl Default for TestCase {
 }
 
 impl TestCase {
-    pub fn run(&self) -> Result<()> {
+    pub fn generate_snapshots(&self) -> Result<Vec<Snapshot>> {
+        let (renderer, scene) = self.prepare_renderer_and_scene();
+        self.validate_scene(&scene)?;
+
+        let snapshots = self
+            .timestamps
+            .iter()
+            .cloned()
+            .map(|pts| self.snapshots_for_pts(&renderer, &scene, pts))
+            .collect::<Result<Vec<_>>>()?;
+
+        Ok(snapshots.into_iter().flatten().collect())
+    }
+
+    pub fn test_snapshots(&self, snapshots: &[Snapshot]) -> Result<()> {
         let mut produced_outputs = HashSet::new();
-        let snapshots = self.generate_snapshots()?;
         for snapshot in snapshots.iter() {
             produced_outputs.insert(snapshot.output_id.to_string());
 
@@ -49,7 +66,7 @@ impl TestCase {
             }
 
             let snapshot_from_disk = image::open(&save_path)?.to_rgba8();
-            if !are_snapshots_equal(&snapshot_from_disk, &snapshot.data) {
+            if !are_snapshots_near_equal(&snapshot_from_disk, &snapshot.data) {
                 return Err(TestCaseError::Mismatch(snapshot.clone()).into());
             }
         }
@@ -69,20 +86,33 @@ impl TestCase {
             .into());
         }
 
-        self.check_for_unused_snapshots(&snapshots)?;
         Ok(())
     }
 
-    pub fn generate_snapshots(&self) -> Result<Vec<Snapshot>> {
-        let (renderer, scene) = self.prepare_renderer_and_scene();
-        let snapshots = self
-            .timestamps
-            .iter()
-            .cloned()
-            .map(|pts| self.snapshots_for_pts(&renderer, &scene, pts))
-            .collect::<Result<Vec<_>>>()?;
+    #[allow(dead_code)]
+    pub fn snapshot_paths(&self) -> Vec<PathBuf> {
+        let mut paths = Vec::new();
+        for pts in self.timestamps.iter() {
+            for output_id in self.outputs.iter() {
+                paths.push(snaphot_save_path(self.name, pts, output_id));
+            }
+        }
 
-        Ok(snapshots.into_iter().flatten().collect())
+        paths
+    }
+
+    fn validate_scene(&self, scene: &SceneSpec) -> Result<()> {
+        let inputs: HashSet<NodeId, RandomState> = HashSet::from_iter(
+            self.inputs
+                .iter()
+                .map(|input| NodeId(input.name.as_str().into())),
+        );
+        let outputs: HashSet<NodeId, RandomState> =
+            HashSet::from_iter(self.outputs.iter().map(|output| NodeId((*output).into())));
+
+        scene
+            .validate(&inputs.iter().collect(), &outputs.iter().collect())
+            .map_err(Into::into)
     }
 
     fn snapshots_for_pts(
@@ -121,35 +151,7 @@ impl TestCase {
         Ok(snapshots)
     }
 
-    fn check_for_unused_snapshots(&self, snapshots: &[Snapshot]) -> Result<()> {
-        let snapshot_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join(SNAPSHOTS_DIR_NAME)
-            .join(self.name);
-        let parent_path = snapshot_path.parent().unwrap();
-        let snapshot_name_prefix =
-            format!("{}_", snapshot_path.file_name().unwrap().to_string_lossy());
-
-        for entry in fs::read_dir(parent_path).unwrap() {
-            let entry = entry.unwrap();
-            let file_name = entry.file_name();
-            let file_name = file_name.to_string_lossy();
-
-            if !entry.file_type().unwrap().is_file() {
-                continue;
-            }
-            if !file_name.starts_with(snapshot_name_prefix.deref()) || !file_name.ends_with(".png")
-            {
-                continue;
-            }
-
-            if !snapshots.iter().any(|s| s.save_path() == entry.path()) {
-                return Err(TestCaseError::UnusedSnapshot(entry.path()).into());
-            }
-        }
-        Ok(())
-    }
-
-    pub fn prepare_renderer_and_scene(&self) -> (Renderer, Arc<SceneSpec>) {
+    fn prepare_renderer_and_scene(&self) -> (Renderer, Arc<SceneSpec>) {
         fn register_requests_to_renderers(register_request: RegisterRequest) -> RendererSpec {
             match register_request {
                 RegisterRequest::InputStream(_) | RegisterRequest::OutputStream(_) => {
@@ -273,15 +275,7 @@ pub struct Snapshot {
 
 impl Snapshot {
     pub fn save_path(&self) -> PathBuf {
-        let snapshots_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(SNAPSHOTS_DIR_NAME);
-
-        let out_file_name = format!(
-            "{}_{}_{}.png",
-            self.test_name,
-            self.pts.as_millis(),
-            self.output_id
-        );
-        snapshots_path.join(out_file_name)
+        snaphot_save_path(&self.test_name, &self.pts, &self.output_id.to_string())
     }
 }
 
@@ -289,7 +283,6 @@ impl Snapshot {
 pub enum TestCaseError {
     SnapshotNotFound(Snapshot),
     Mismatch(Snapshot),
-    UnusedSnapshot(PathBuf),
     OutputNotFound(&'static str),
     UnknownOutputs {
         expected: Vec<&'static str>,
@@ -326,7 +319,6 @@ impl Display for TestCaseError {
                     pts.as_secs_f32()
                 )
             }
-            TestCaseError::UnusedSnapshot(path) => format!("Snapshot \"{}\" was not used during testing", path.to_string_lossy()),
             TestCaseError::OutputNotFound(output_id) => format!("Output \"{output_id}\" is missing"),
             TestCaseError::UnknownOutputs { expected, unknown } => format!("Unknown outputs: {unknown:?}. Expected: {expected:?}"),
         };

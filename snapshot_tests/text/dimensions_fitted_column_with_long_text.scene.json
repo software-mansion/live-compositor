@@ -5,7 +5,7 @@
             "type": "text",
             "content": "Example long text that should be longer that underlaying texture.",
             "font_size": 30,
-            "font_family": "Arial",
+            "font_family": "Verdana",
             "dimensions": {
                 "type": "fitted_column",
                 "width": 300

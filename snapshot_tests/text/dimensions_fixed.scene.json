@@ -5,7 +5,7 @@
             "type": "text",
             "content": "Example text",
             "font_size": 100,
-            "font_family": "Arial",
+            "font_family": "Verdana",
             "dimensions": {
                 "type": "fixed",
                 "width": 1000,

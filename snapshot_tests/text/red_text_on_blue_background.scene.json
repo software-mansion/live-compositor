@@ -5,7 +5,7 @@
             "type": "text",
             "content": "Example text",
             "font_size": 50,
-            "font_family": "Arial",
+            "font_family": "Verdana",
             "align": "left",
             "wrap": "word",
             "color_rgba": "#FF0000FF",
