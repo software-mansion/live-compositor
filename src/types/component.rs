@@ -23,7 +23,6 @@ pub enum ComponentParams {
     Shader(Shader),
     Image(Image),
     Text(Text),
-    Transition(Transition),
     #[serde(rename = "builtin:fit_to_resolution")]
     FitToResolution(FitToResolution),
     #[serde(rename = "builtin:fill_to_resolution")]
@@ -154,15 +153,6 @@ pub enum TextDimensions {
         width: u32,
         height: u32,
     },
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-#[serde(deny_unknown_fields)]
-pub struct Transition {
-    pub start: TransitionState,
-    pub end: TransitionState,
-    pub transition_duration_ms: f64,
-    pub interpolation: Interpolation,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]

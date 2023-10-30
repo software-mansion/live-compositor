@@ -257,50 +257,6 @@
         {
           "additionalProperties": false,
           "properties": {
-            "children": {
-              "items": {
-                "$ref": "#/definitions/Component"
-              },
-              "type": [
-                "array",
-                "null"
-              ]
-            },
-            "end": {
-              "$ref": "#/definitions/TransitionState"
-            },
-            "interpolation": {
-              "$ref": "#/definitions/Interpolation"
-            },
-            "node_id": {
-              "$ref": "#/definitions/ComponentId"
-            },
-            "start": {
-              "$ref": "#/definitions/TransitionState"
-            },
-            "transition_duration_ms": {
-              "format": "double",
-              "type": "number"
-            },
-            "type": {
-              "enum": [
-                "transition"
-              ],
-              "type": "string"
-            }
-          },
-          "required": [
-            "end",
-            "interpolation",
-            "start",
-            "transition_duration_ms",
-            "type"
-          ],
-          "type": "object"
-        },
-        {
-          "additionalProperties": false,
-          "properties": {
             "background_color_rgba": {
               "anyOf": [
                 {
@@ -678,13 +634,6 @@
         "right",
         "justified",
         "center"
-      ],
-      "type": "string"
-    },
-    "Interpolation": {
-      "enum": [
-        "linear",
-        "spring"
       ],
       "type": "string"
     },
@@ -1149,46 +1098,6 @@
         }
       },
       "type": "object"
-    },
-    "TransitionState": {
-      "oneOf": [
-        {
-          "additionalProperties": false,
-          "properties": {
-            "background_color_rgba": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/RGBAColor"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "resolution": {
-              "$ref": "#/definitions/Resolution"
-            },
-            "texture_layouts": {
-              "items": {
-                "$ref": "#/definitions/TextureLayout"
-              },
-              "type": "array"
-            },
-            "type": {
-              "enum": [
-                "builtin:fixed_position_layout"
-              ],
-              "type": "string"
-            }
-          },
-          "required": [
-            "resolution",
-            "texture_layouts",
-            "type"
-          ],
-          "type": "object"
-        }
-      ]
     },
     "VerticalAlign": {
       "enum": [

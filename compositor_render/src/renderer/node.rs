@@ -9,10 +9,8 @@ use crate::error::{CreateNodeError, UpdateSceneError};
 
 use crate::transformations::shader::node::ShaderNode;
 
-use crate::transformations::transition::TransitionNode;
 use crate::transformations::{
-    builtin::BuiltinNode, image_renderer::ImageNode, text_renderer::TextRendererNode,
-    web_renderer::node::WebRendererNode,
+    image_renderer::ImageNode, text_renderer::TextRendererNode, web_renderer::node::WebRendererNode,
 };
 use crate::wgpu::texture::NodeTexture;
 
@@ -24,8 +22,6 @@ pub enum RenderNode {
     Web(WebRendererNode),
     Text(TextRendererNode),
     Image(ImageNode),
-    Builtin(BuiltinNode),
-    Transition(TransitionNode),
     InputStream,
 }
 
@@ -50,11 +46,6 @@ impl RenderNode {
                 let node = ShaderNode::new(ctx, shader_id, shader_params, resolution)?;
                 Ok(Self::Shader(node))
             }
-            NodeParams::Builtin(transformation) => {
-                let node = BuiltinNode::new_static(ctx, transformation, spec.input_pads.len());
-
-                Ok(Self::Builtin(node))
-            }
             NodeParams::Text(text_spec) => {
                 let renderer = TextRendererNode::new(ctx, text_spec.clone());
                 Ok(Self::Text(renderer))
@@ -67,10 +58,6 @@ impl RenderNode {
                     .ok_or_else(|| CreateNodeError::ImageNotFound(image_id.clone()))?;
                 let node = ImageNode::new(image);
                 Ok(Self::Image(node))
-            }
-            NodeParams::Transition(transition_spec) => {
-                let node = TransitionNode::new(ctx, transition_spec, spec.input_pads.len())?;
-                Ok(Self::Transition(node))
             }
         }
     }
@@ -91,13 +78,11 @@ impl RenderNode {
             RenderNode::Shader(ref shader) => {
                 shader.render(sources, target, pts);
             }
-            RenderNode::Builtin(builtin_node) => builtin_node.render(sources, target, pts),
             RenderNode::Web(renderer) => renderer.render(ctx, sources, target),
             RenderNode::Text(ref renderer) => {
                 renderer.render(ctx, target);
             }
             RenderNode::Image(ref node) => node.render(ctx, target, pts),
-            RenderNode::Transition(node) => node.render(sources, target, pts),
             RenderNode::InputStream => {
                 // Nothing to do, textures on input nodes should be populated
                 // at the start of render loop
@@ -113,8 +98,6 @@ impl RenderNode {
             RenderNode::Text(node) => Some(node.resolution()),
             RenderNode::Image(node) => Some(node.resolution()),
             RenderNode::InputStream => None,
-            RenderNode::Builtin(node) => node.resolution_from_spec(),
-            RenderNode::Transition(node) => node.resolution(),
         }
     }
 
@@ -141,9 +124,7 @@ impl RenderNode {
             RenderNode::Web(web_renderer_node) => web_renderer_node.fallback_strategy(),
             RenderNode::Text(_) => FallbackStrategy::NeverFallback,
             RenderNode::Image(_) => FallbackStrategy::NeverFallback,
-            RenderNode::Builtin(builtin_node) => builtin_node.fallback_strategy(),
             RenderNode::InputStream => FallbackStrategy::NeverFallback,
-            RenderNode::Transition(_) => FallbackStrategy::NeverFallback,
         }
     }
 }
@@ -221,8 +202,6 @@ impl NodeSpecExt for NodeSpec {
                 }),
             NodeParams::Text(_) => Ok(NodeParams::text_constraints()),
             NodeParams::Image { .. } => Ok(NodeParams::image_constraints()),
-            NodeParams::Builtin(transformation) => Ok(transformation.constraints()),
-            NodeParams::Transition(spec) => Ok(spec.end.constraints()),
         }
     }
 }

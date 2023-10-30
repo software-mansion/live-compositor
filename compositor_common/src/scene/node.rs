@@ -1,11 +1,9 @@
 use crate::{error::NodeSpecValidationError, renderer_spec::RendererId};
 
 use super::{
-    builtin_transformations::BuiltinSpec,
     constraints::{input_count::InputCountConstraint, Constraint, NodeConstraints},
     shader::ShaderParam,
     text_spec::TextSpec,
-    transition::TransitionSpec,
     NodeSpec, Resolution,
 };
 
@@ -23,21 +21,11 @@ pub enum NodeParams {
     Image {
         image_id: RendererId,
     },
-    Builtin(BuiltinSpec),
-    Transition(TransitionSpec),
 }
 
 impl NodeSpec {
     pub fn validate_params(&self) -> Result<(), NodeSpecValidationError> {
-        match &self.params {
-            NodeParams::Builtin(transformation) => Ok(transformation.validate_params(self)?),
-            NodeParams::Transition(TransitionSpec { start, end, .. }) => {
-                start.validate_params(self)?;
-                end.validate_params(self)?;
-                Ok(())
-            }
-            _ => Ok(()),
-        }
+        Ok(())
     }
 }
 
