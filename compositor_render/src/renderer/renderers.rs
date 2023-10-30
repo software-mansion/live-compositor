@@ -5,6 +5,7 @@ use crate::{
     transformations::{
         builtin::{error::InitBuiltinError, transformations::BuiltinTransformations},
         image_renderer::Image,
+        layout::LayoutRenderer,
         shader::Shader,
         web_renderer::WebRenderer,
     },
@@ -17,6 +18,7 @@ pub(crate) struct Renderers {
     pub(crate) web_renderers: RendererRegistry<Arc<WebRenderer>>,
     pub(crate) images: RendererRegistry<Image>,
     pub(crate) builtin: BuiltinTransformations,
+    pub(crate) layout: LayoutRenderer,
 }
 
 impl Renderers {
@@ -26,6 +28,8 @@ impl Renderers {
             web_renderers: RendererRegistry::new(RegistryType::WebRenderer),
             images: RendererRegistry::new(RegistryType::Image),
             builtin: BuiltinTransformations::new(&wgpu_ctx)?,
+            layout: LayoutRenderer::new(&wgpu_ctx)
+                .map_err(InitBuiltinError::ApplyTransformationMatrix)?,
         })
     }
 }

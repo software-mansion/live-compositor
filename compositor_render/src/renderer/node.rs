@@ -7,6 +7,7 @@ use compositor_common::scene::{NodeId, NodeParams, NodeSpec, Resolution};
 
 use crate::error::{CreateNodeError, UpdateSceneError};
 
+use crate::transformations::layout::LayoutNode;
 use crate::transformations::shader::node::ShaderNode;
 
 use crate::transformations::{
@@ -17,11 +18,13 @@ use crate::wgpu::texture::NodeTexture;
 use super::renderers::Renderers;
 use super::RenderCtx;
 
-pub enum RenderNode {
+pub(crate) enum RenderNode {
     Shader(ShaderNode),
     Web(WebRendererNode),
     Text(TextRendererNode),
     Image(ImageNode),
+    #[allow(dead_code)]
+    Layout(LayoutNode),
     InputStream,
 }
 
@@ -87,6 +90,7 @@ impl RenderNode {
                 // Nothing to do, textures on input nodes should be populated
                 // at the start of render loop
             }
+            RenderNode::Layout(node) => node.render(ctx, sources, target, pts),
         }
     }
 
@@ -98,6 +102,10 @@ impl RenderNode {
             RenderNode::Text(node) => Some(node.resolution()),
             RenderNode::Image(node) => Some(node.resolution()),
             RenderNode::InputStream => None,
+            RenderNode::Layout(_) => Some(Resolution {
+                width: 1920,
+                height: 1080,
+            }),
         }
     }
 
@@ -125,16 +133,17 @@ impl RenderNode {
             RenderNode::Text(_) => FallbackStrategy::NeverFallback,
             RenderNode::Image(_) => FallbackStrategy::NeverFallback,
             RenderNode::InputStream => FallbackStrategy::NeverFallback,
+            RenderNode::Layout(_) => FallbackStrategy::NeverFallback,
         }
     }
 }
 
 pub struct Node {
-    pub node_id: NodeId,
-    pub output: NodeTexture,
-    pub inputs: Vec<NodeId>,
-    pub fallback: Option<NodeId>,
-    pub renderer: RenderNode,
+    pub(crate) node_id: NodeId,
+    pub(crate) output: NodeTexture,
+    pub(crate) inputs: Vec<NodeId>,
+    pub(crate) fallback: Option<NodeId>,
+    pub(crate) renderer: RenderNode,
 }
 
 impl Node {
