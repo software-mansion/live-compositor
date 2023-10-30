@@ -17,8 +17,13 @@ jobs:
               run: |
                   set -e
 
+                  wget -qO - https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo apt-key add -
+                  sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-jammy.list https://packages.lunarg.com/vulkan/lunarg-vulkan-jammy.list
+                  sudo add-apt-repository ppa:kisak/kisak-mesa
+                  echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | sudo debconf-set-selections
+
                   sudo apt-get update -y -qq
-                  sudo apt-get install -y libegl1-mesa libgl1-mesa-dri libxcb-xfixes0-dev ffmpeg libavcodec-dev libavformat-dev libavfilter-dev libavdevice-dev
+                  sudo apt-get install -y libegl1-mesa libgl1-mesa-dri libxcb-xfixes0-dev vulkan-sdk mesa-vulkan-drivers ffmpeg libavcodec-dev libavformat-dev libavfilter-dev libavdevice-dev ttf-mscorefonts-installer
 
             - name: 🔧 Install the rust toolchain
               uses: dtolnay/rust-toolchain@stable
@@ -45,11 +50,18 @@ jobs:
             - name: 📎 Run clippy
               run: cargo clippy --workspace --all-targets --all-features -- -D warnings
 
-            - name: Generate JSON schema
+            - name: 📄 Generate JSON schema
               run: cargo run --bin generate_json_schema
 
             - name: 🧪 Run tests
               run: cargo nextest run --no-fail-fast --workspace
+
+            - name: 📦 Upload failed snapshot test artifacts
+              if: failure()
+              uses: actions/upload-artifact@v3
+              with:
+                  name: failed_snapshot_tests
+                  path: failed_snapshot_tests
 
             - name: 📚 Run doctests
               run: cargo test --workspace --doc

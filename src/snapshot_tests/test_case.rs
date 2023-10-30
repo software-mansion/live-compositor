@@ -16,6 +16,7 @@ use compositor_common::{
     Frame,
 };
 use compositor_render::{FrameSet, Renderer};
+use image::ImageBuffer;
 use video_compositor::types::{RegisterRequest, Scene};
 
 pub struct TestCase {
@@ -25,6 +26,7 @@ pub struct TestCase {
     pub scene_json: &'static str,
     pub timestamps: Vec<Duration>,
     pub outputs: Vec<&'static str>,
+    pub allowed_error: f32,
 }
 
 impl Default for TestCase {
@@ -36,6 +38,7 @@ impl Default for TestCase {
             scene_json: "",
             timestamps: vec![Duration::from_secs(0)],
             outputs: vec!["output_1"],
+            allowed_error: 5.0,
         }
     }
 }
@@ -66,8 +69,12 @@ impl TestCase {
             }
 
             let snapshot_from_disk = image::open(&save_path)?.to_rgba8();
-            if !are_snapshots_near_equal(&snapshot_from_disk, &snapshot.data) {
-                return Err(TestCaseError::Mismatch(snapshot.clone()).into());
+            if !are_snapshots_near_equal(&snapshot_from_disk, &snapshot.data, self.allowed_error) {
+                return Err(TestCaseError::Mismatch {
+                    snapshot_from_disk,
+                    produced_snapshot: snapshot.clone(),
+                }
+                .into());
             }
         }
 
@@ -282,7 +289,10 @@ impl Snapshot {
 #[derive(Debug)]
 pub enum TestCaseError {
     SnapshotNotFound(Snapshot),
-    Mismatch(Snapshot),
+    Mismatch {
+        snapshot_from_disk: ImageBuffer<image::Rgba<u8>, Vec<u8>>,
+        produced_snapshot: Snapshot,
+    },
     OutputNotFound(&'static str),
     UnknownOutputs {
         expected: Vec<&'static str>,
@@ -301,19 +311,21 @@ impl Display for TestCaseError {
                 pts,
                 ..
             }) => format!(
-                "Test \"{}\": OutputId({}) & PTS({}). Snapshot file not found. Generate snapshots first",
+                "FAILED: \"{}\", OutputId({}), PTS({}). Snapshot file not found. Generate snapshots first",
                 test_name,
                 output_id,
                 pts.as_secs()
             ),
-            TestCaseError::Mismatch(Snapshot {
+            TestCaseError::Mismatch{produced_snapshot: Snapshot {
                 test_name,
                 output_id,
                 pts,
                 ..
-            }) => {
+            },
+            ..
+            } => {
                 format!(
-                    "Test \"{}\": OutputId({}) & PTS({}). Snapshots are different",
+                    "FAILED: \"{}\", OutputId({}), PTS({}). Snapshots are different",
                     test_name,
                     output_id,
                     pts.as_secs_f32()

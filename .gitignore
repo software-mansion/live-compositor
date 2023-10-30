@@ -27,6 +27,7 @@ target/
 
 # Generated during runtime
 /shmem
+/failed_snapshot_tests
 
 /video_compositor.app
 /video_compositor
