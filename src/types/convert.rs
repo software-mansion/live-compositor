@@ -3,16 +3,18 @@ use std::time::Duration;
 use compositor_common::{renderer_spec, scene};
 use compositor_pipeline::pipeline;
 
+use crate::api::UpdateScene;
+
 use super::util::*;
 use super::*;
 
-impl From<NodeId> for scene::NodeId {
-    fn from(id: NodeId) -> Self {
+impl From<ComponentId> for scene::NodeId {
+    fn from(id: ComponentId) -> Self {
         Self(id.0)
     }
 }
 
-impl From<scene::NodeId> for NodeId {
+impl From<scene::NodeId> for ComponentId {
     fn from(id: scene::NodeId) -> Self {
         Self(id.0)
     }
@@ -54,40 +56,44 @@ impl From<scene::InputId> for InputId {
     }
 }
 
-impl TryFrom<Scene> for scene::SceneSpec {
+impl TryFrom<UpdateScene> for scene::SceneSpec {
     type Error = TypeError;
 
-    fn try_from(scene: Scene) -> Result<Self, Self::Error> {
-        fn from_output(output: Output) -> scene::OutputSpec {
-            scene::OutputSpec {
-                input_pad: output.input_pad.into(),
-                output_id: output.output_id.into(),
+    // very temporary and inefficient
+    fn try_from(update_scene: UpdateScene) -> Result<Self, Self::Error> {
+        fn try_from_node(node: Component) -> Result<Vec<scene::NodeSpec>, TypeError> {
+            if let component::ComponentParams::InputStream(_) = node.params {
+                return Ok(vec![]);
             }
+            let spec = node.clone().try_into()?;
+            let child_specs: Vec<Vec<scene::NodeSpec>> = node
+                .children
+                .unwrap_or_default()
+                .iter()
+                .map(|n| try_from_node(n.clone()))
+                .collect::<Result<Vec<_>, TypeError>>()?;
+            let mut t: Vec<_> = child_specs.into_iter().flatten().collect();
+            t.push(spec);
+            Ok(t)
         }
-        let result = Self {
-            nodes: scene
-                .nodes
-                .into_iter()
-                .map(TryInto::try_into)
-                .collect::<Result<_, _>>()?,
-            outputs: scene.outputs.into_iter().map(from_output).collect(),
-        };
+        let outputs = update_scene
+            .scenes
+            .iter()
+            .map(|scene| scene::OutputSpec {
+                output_id: scene.output_id.clone().into(),
+                input_pad: scene.root.node_id.clone().into(),
+            })
+            .collect();
+        let nodes: Vec<scene::NodeSpec> = update_scene
+            .scenes
+            .iter()
+            .map(|scene| try_from_node(scene.root.clone()))
+            .collect::<Result<Vec<_>, _>>()?
+            .into_iter()
+            .flatten()
+            .collect();
+        let result = Self { nodes, outputs };
         Ok(result)
-    }
-}
-
-impl From<scene::SceneSpec> for Scene {
-    fn from(scene: scene::SceneSpec) -> Self {
-        fn from_output(output: scene::OutputSpec) -> Output {
-            Output {
-                input_pad: output.input_pad.into(),
-                output_id: output.output_id.into(),
-            }
-        }
-        Self {
-            nodes: scene.nodes.into_iter().map(Into::into).collect(),
-            outputs: scene.outputs.into_iter().map(from_output).collect(),
-        }
     }
 }
 

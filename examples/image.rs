@@ -1,7 +1,7 @@
 use anyhow::Result;
 use compositor_common::scene::Resolution;
 use log::{error, info};
-use serde_json::json;
+use serde_json::{json, Value};
 use std::{
     path::PathBuf,
     process::{Command, Stdio},
@@ -104,47 +104,78 @@ fn start_example_client_code() -> Result<()> {
     }))?;
 
     let label_padding = "20px";
-    info!("[example] Update scene");
-    common::post(&json!({
-        "type": "update_scene",
-        "inputs": [],
-        "nodes": [
-            {
-                 "node_id": "gif_1",
-                 "type": "image",
-                 "image_id": "example_gif",
+
+    fn label(text: &str, id: &str) -> Value {
+        json! ({
+            "node_id": id,
+            "type": "text",
+            "content": text,
+            "font_size": 40.0,
+            "font_family": "Comic Sans MS",
+            "dimensions": {
+                "type": "fitted",
             },
+        })
+    }
+
+    let png = json!( {
+        "node_id": "png_1_rescaled",
+        "type": "builtin:fit_to_resolution",
+        "resolution": { "width": 960, "height": 540 },
+        "children": [
             {
                  "node_id": "png_1",
                  "type": "image",
                  "image_id": "example_png",
-            },
-            {
-                 "node_id": "jpeg_1",
-                 "type": "image",
-                 "image_id": "example_jpeg",
-            },
+            }
+        ],
+    });
+
+    let svg = json!( {
+        "node_id": "svg_1_rescaled",
+        "type": "builtin:fit_to_resolution",
+        "resolution": { "width": 960, "height": 540 },
+        "children": [
             {
                  "node_id": "svg_1",
                  "type": "image",
                  "image_id": "example_svg",
-            },
+            }
+        ],
+    });
+
+    let jpeg = json!( {
+        "node_id": "jpeg_1_rescaled",
+        "type": "builtin:fit_to_resolution",
+        "resolution": { "width": 960, "height": 540 },
+        "children": [
             {
-                "node_id": "gif_1_rescaled",
-                "type": "builtin:fill_to_resolution",
-                "resolution": { "width": 960, "height": 540 },
-                "input_pads": ["gif_1"],
-            },
+                 "node_id": "jpeg_1",
+                 "type": "image",
+                 "image_id": "example_jpeg",
+            }
+        ],
+    });
+
+    let gif = json!( {
+        "node_id": "gif_1_rescaled",
+        "type": "builtin:fill_to_resolution",
+        "resolution": { "width": 960, "height": 540 },
+        "children": [
             {
-                 "node_id": "gif_1_label",
-                 "type": "text",
-                 "content": "GIF example",
-                 "font_size": 40.0,
-                 "font_family": "Comic Sans MS",
-                 "dimensions": {
-                     "type": "fitted",
-                 },
-            },
+                 "node_id": "gif_1",
+                 "type": "image",
+                 "image_id": "example_gif",
+            }
+        ],
+    });
+
+    let scene = json!( {
+        "node_id": "layout",
+        "type": "builtin:tiled_layout",
+        "background_color_rgba": "#0000FF00",
+        "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+        "children": [
             {
                 "node_id": "gif_1_layout",
                 "type": "builtin:fixed_position_layout",
@@ -160,23 +191,7 @@ fn start_example_client_code() -> Result<()> {
                 ],
                 "background_color_rgba": "#0000FF00",
                 "resolution": { "width": 960, "height": 540 },
-                "input_pads": ["gif_1_rescaled", "gif_1_label"],
-            },
-            {
-                "node_id": "png_1_rescaled",
-                "type": "builtin:fit_to_resolution",
-                "resolution": { "width": 960, "height": 540 },
-                "input_pads": ["png_1"],
-            },
-            {
-                 "node_id": "png_1_label",
-                 "type": "text",
-                 "content": "PNG example",
-                 "font_size": 40.0,
-                 "font_family": "Comic Sans MS",
-                 "dimensions": {
-                     "type": "fitted",
-                 },
+                "children": [gif, label("GIF example", "gif_1_label")],
             },
             {
                 "node_id": "png_1_layout",
@@ -193,25 +208,7 @@ fn start_example_client_code() -> Result<()> {
                 ],
                 "background_color_rgba": "#0000FF00",
                 "resolution": { "width": 960, "height": 540 },
-                "input_pads": ["png_1_rescaled", "png_1_label"],
-            },
-            {
-                "node_id": "jpeg_1_rescaled",
-                "type": "builtin:fit_to_resolution",
-                "resolution": { "width": 960, "height": 540 },
-                "input_pads": ["jpeg_1"],
-                "background_color_rgba": "#00000000",
-            },
-            {
-                 "node_id": "jpeg_1_label",
-                 "type": "text",
-                 "content": "JPEG example",
-                 "font_size": 40.0,
-                 "color_rgba": "#FF0000FF",
-                 "font_family": "Comic Sans MS",
-                 "dimensions": {
-                     "type": "fitted",
-                 },
+                "children": [png, label("PNG example", "png_1_label")],
             },
             {
                 "node_id": "jpeg_1_layout",
@@ -228,23 +225,7 @@ fn start_example_client_code() -> Result<()> {
                 ],
                 "background_color_rgba": "#0000FF00",
                 "resolution": { "width": 960, "height": 540 },
-                "input_pads": ["jpeg_1_rescaled", "jpeg_1_label"],
-            },
-            {
-                "node_id": "svg_1_rescaled",
-                "type": "builtin:fit_to_resolution",
-                "resolution": { "width": 960, "height": 540 },
-                "input_pads": ["svg_1"],
-            },
-            {
-                 "node_id": "svg_1_label",
-                 "type": "text",
-                 "content": "SVG example",
-                 "font_size": 40.0,
-                 "font_family": "Comic Sans MS",
-                 "dimensions": {
-                     "type": "fitted",
-                 },
+                "children": [jpeg, label("JPEG example", "jpeg_1_label")],
             },
             {
                 "node_id": "svg_1_layout",
@@ -261,21 +242,20 @@ fn start_example_client_code() -> Result<()> {
                 ],
                 "background_color_rgba": "#0000FF00",
                 "resolution": { "width": 960, "height": 540 },
-                "input_pads": ["svg_1_rescaled", "svg_1_label"],
+                "children": [svg, label("SVG example", "svg_1_label")],
             },
-            {
-                "node_id": "layout",
-                "type": "builtin:tiled_layout",
-                "background_color_rgba": "#0000FF00",
-                "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
-                "input_pads": ["gif_1_layout", "png_1_layout", "jpeg_1_layout", "svg_1_layout"],
-            }
         ],
-        "outputs": [
+    });
+
+    info!("[example] Update scene");
+    common::post(&json!({
+        "type": "update_scene",
+        "inputs": [],
+        "scenes": [
             {
                 "output_id": "output_1",
-                "input_pad": "layout"
-            },
+                "root": scene,
+            }
         ]
     }))?;
 

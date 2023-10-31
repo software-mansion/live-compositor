@@ -133,29 +133,24 @@ fn start_example_client_code() -> Result<()> {
     info!("[example] Update scene");
     common::post(&json!({
         "type": "update_scene",
-        "nodes": [
-            {
-                "node_id": "image",
-                "type": "image",
-                "image_id": "example_image",
-            },
-            {
-                "type": "shader",
-                "node_id": "shader_1",
-                "shader_id": "example_shader",
-                "fallback_id": "image",
-                "input_pads": [
-                    "input_1",
-                ],
-                "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
-            },
-        ],
-        "outputs": [
+        "scenes": [
             {
                 "output_id": "output_1",
-                "input_pad": "shader_1"
+                "root" : {
+                    "type": "shader",
+                    "node_id": "shader_1",
+                    "shader_id": "example_shader",
+                    "children": [
+                        {
+                            "type": "input_stream",
+                            "input_id": "input_1",
+                            "node_id": "input_1"
+                        }
+                    ],
+                    "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+                },
             }
-        ]
+        ],
     }))?;
 
     Ok(())

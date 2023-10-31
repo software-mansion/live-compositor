@@ -1,63 +1,44 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "definitions": {
-    "Coord": {
-      "anyOf": [
-        {
-          "format": "int32",
-          "type": "integer"
-        },
-        {
-          "type": "string"
-        }
-      ]
-    },
-    "Degree": {
-      "format": "double",
-      "type": "number"
-    },
-    "HorizontalAlign": {
-      "enum": [
-        "left",
-        "right",
-        "justified",
-        "center"
-      ],
-      "type": "string"
-    },
-    "Interpolation": {
-      "enum": [
-        "linear",
-        "spring"
-      ],
-      "type": "string"
-    },
-    "MirrorMode": {
-      "enum": [
-        "horizontal",
-        "vertical",
-        "horizontal-vertical"
-      ],
-      "type": "string"
-    },
-    "Node": {
+    "Component": {
       "oneOf": [
+        {
+          "properties": {
+            "children": {
+              "items": {
+                "$ref": "#/definitions/Component"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "input_id": {
+              "$ref": "#/definitions/ComponentId"
+            },
+            "node_id": {
+              "$ref": "#/definitions/ComponentId"
+            },
+            "type": {
+              "enum": [
+                "input_stream"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "input_id",
+            "type"
+          ],
+          "type": "object"
+        },
         {
           "additionalProperties": false,
           "properties": {
-            "fallback_id": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/NodeId"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "input_pads": {
+            "children": {
               "items": {
-                "$ref": "#/definitions/NodeId"
+                "$ref": "#/definitions/Component"
               },
               "type": [
                 "array",
@@ -68,7 +49,7 @@
               "$ref": "#/definitions/RendererId"
             },
             "node_id": {
-              "$ref": "#/definitions/NodeId"
+              "$ref": "#/definitions/ComponentId"
             },
             "type": {
               "enum": [
@@ -86,19 +67,9 @@
         {
           "additionalProperties": false,
           "properties": {
-            "fallback_id": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/NodeId"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "input_pads": {
+            "children": {
               "items": {
-                "$ref": "#/definitions/NodeId"
+                "$ref": "#/definitions/Component"
               },
               "type": [
                 "array",
@@ -106,7 +77,7 @@
               ]
             },
             "node_id": {
-              "$ref": "#/definitions/NodeId"
+              "$ref": "#/definitions/ComponentId"
             },
             "resolution": {
               "$ref": "#/definitions/Resolution"
@@ -141,30 +112,20 @@
         {
           "additionalProperties": false,
           "properties": {
-            "fallback_id": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/NodeId"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "image_id": {
-              "$ref": "#/definitions/RendererId"
-            },
-            "input_pads": {
+            "children": {
               "items": {
-                "$ref": "#/definitions/NodeId"
+                "$ref": "#/definitions/Component"
               },
               "type": [
                 "array",
                 "null"
               ]
             },
+            "image_id": {
+              "$ref": "#/definitions/RendererId"
+            },
             "node_id": {
-              "$ref": "#/definitions/NodeId"
+              "$ref": "#/definitions/ComponentId"
             },
             "type": {
               "enum": [
@@ -202,6 +163,15 @@
                 }
               ]
             },
+            "children": {
+              "items": {
+                "$ref": "#/definitions/Component"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
             "color_rgba": {
               "anyOf": [
                 {
@@ -218,16 +188,6 @@
             "dimensions": {
               "$ref": "#/definitions/TextDimensions"
             },
-            "fallback_id": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/NodeId"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
             "font_family": {
               "description": "https://www.w3.org/TR/2018/REC-css-fonts-3-20180920/#family-name-value use font family name, not generic family name",
               "type": [
@@ -239,15 +199,6 @@
               "format": "float",
               "type": "number"
             },
-            "input_pads": {
-              "items": {
-                "$ref": "#/definitions/NodeId"
-              },
-              "type": [
-                "array",
-                "null"
-              ]
-            },
             "line_height": {
               "format": "float",
               "type": [
@@ -256,7 +207,7 @@
               ]
             },
             "node_id": {
-              "$ref": "#/definitions/NodeId"
+              "$ref": "#/definitions/ComponentId"
             },
             "style": {
               "anyOf": [
@@ -306,33 +257,23 @@
         {
           "additionalProperties": false,
           "properties": {
-            "end": {
-              "$ref": "#/definitions/TransitionState"
-            },
-            "fallback_id": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/NodeId"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "input_pads": {
+            "children": {
               "items": {
-                "$ref": "#/definitions/NodeId"
+                "$ref": "#/definitions/Component"
               },
               "type": [
                 "array",
                 "null"
               ]
             },
+            "end": {
+              "$ref": "#/definitions/TransitionState"
+            },
             "interpolation": {
               "$ref": "#/definitions/Interpolation"
             },
             "node_id": {
-              "$ref": "#/definitions/NodeId"
+              "$ref": "#/definitions/ComponentId"
             },
             "start": {
               "$ref": "#/definitions/TransitionState"
@@ -370,14 +311,13 @@
                 }
               ]
             },
-            "fallback_id": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/NodeId"
-                },
-                {
-                  "type": "null"
-                }
+            "children": {
+              "items": {
+                "$ref": "#/definitions/Component"
+              },
+              "type": [
+                "array",
+                "null"
               ]
             },
             "horizontal_alignment": {
@@ -390,17 +330,8 @@
                 }
               ]
             },
-            "input_pads": {
-              "items": {
-                "$ref": "#/definitions/NodeId"
-              },
-              "type": [
-                "array",
-                "null"
-              ]
-            },
             "node_id": {
-              "$ref": "#/definitions/NodeId"
+              "$ref": "#/definitions/ComponentId"
             },
             "resolution": {
               "$ref": "#/definitions/Resolution"
@@ -431,19 +362,9 @@
         {
           "additionalProperties": false,
           "properties": {
-            "fallback_id": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/NodeId"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "input_pads": {
+            "children": {
               "items": {
-                "$ref": "#/definitions/NodeId"
+                "$ref": "#/definitions/Component"
               },
               "type": [
                 "array",
@@ -451,7 +372,7 @@
               ]
             },
             "node_id": {
-              "$ref": "#/definitions/NodeId"
+              "$ref": "#/definitions/ComponentId"
             },
             "resolution": {
               "$ref": "#/definitions/Resolution"
@@ -472,19 +393,9 @@
         {
           "additionalProperties": false,
           "properties": {
-            "fallback_id": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/NodeId"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "input_pads": {
+            "children": {
               "items": {
-                "$ref": "#/definitions/NodeId"
+                "$ref": "#/definitions/Component"
               },
               "type": [
                 "array",
@@ -492,7 +403,7 @@
               ]
             },
             "node_id": {
-              "$ref": "#/definitions/NodeId"
+              "$ref": "#/definitions/ComponentId"
             },
             "resolution": {
               "$ref": "#/definitions/Resolution"
@@ -523,19 +434,9 @@
                 }
               ]
             },
-            "fallback_id": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/NodeId"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "input_pads": {
+            "children": {
               "items": {
-                "$ref": "#/definitions/NodeId"
+                "$ref": "#/definitions/Component"
               },
               "type": [
                 "array",
@@ -543,7 +444,7 @@
               ]
             },
             "node_id": {
-              "$ref": "#/definitions/NodeId"
+              "$ref": "#/definitions/ComponentId"
             },
             "resolution": {
               "$ref": "#/definitions/Resolution"
@@ -581,14 +482,13 @@
                 }
               ]
             },
-            "fallback_id": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/NodeId"
-                },
-                {
-                  "type": "null"
-                }
+            "children": {
+              "items": {
+                "$ref": "#/definitions/Component"
+              },
+              "type": [
+                "array",
+                "null"
               ]
             },
             "horizontal_alignment": {
@@ -601,15 +501,6 @@
                 }
               ]
             },
-            "input_pads": {
-              "items": {
-                "$ref": "#/definitions/NodeId"
-              },
-              "type": [
-                "array",
-                "null"
-              ]
-            },
             "margin": {
               "format": "uint32",
               "minimum": 0.0,
@@ -619,7 +510,7 @@
               ]
             },
             "node_id": {
-              "$ref": "#/definitions/NodeId"
+              "$ref": "#/definitions/ComponentId"
             },
             "padding": {
               "format": "uint32",
@@ -678,19 +569,9 @@
         {
           "additionalProperties": false,
           "properties": {
-            "fallback_id": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/NodeId"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "input_pads": {
+            "children": {
               "items": {
-                "$ref": "#/definitions/NodeId"
+                "$ref": "#/definitions/Component"
               },
               "type": [
                 "array",
@@ -708,7 +589,7 @@
               ]
             },
             "node_id": {
-              "$ref": "#/definitions/NodeId"
+              "$ref": "#/definitions/ComponentId"
             },
             "type": {
               "enum": [
@@ -728,19 +609,9 @@
             "border_radius": {
               "$ref": "#/definitions/Coord"
             },
-            "fallback_id": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/NodeId"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "input_pads": {
+            "children": {
               "items": {
-                "$ref": "#/definitions/NodeId"
+                "$ref": "#/definitions/Component"
               },
               "type": [
                 "array",
@@ -748,7 +619,7 @@
               ]
             },
             "node_id": {
-              "$ref": "#/definitions/NodeId"
+              "$ref": "#/definitions/ComponentId"
             },
             "type": {
               "enum": [
@@ -765,19 +636,9 @@
         }
       ],
       "properties": {
-        "fallback_id": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/NodeId"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "input_pads": {
+        "children": {
           "items": {
-            "$ref": "#/definitions/NodeId"
+            "$ref": "#/definitions/Component"
           },
           "type": [
             "array",
@@ -785,7 +646,7 @@
           ]
         },
         "node_id": {
-          "$ref": "#/definitions/NodeId"
+          "$ref": "#/definitions/ComponentId"
         }
       },
       "required": [
@@ -793,23 +654,47 @@
       ],
       "type": "object"
     },
-    "NodeId": {
+    "ComponentId": {
       "type": "string"
     },
-    "Output": {
-      "properties": {
-        "input_pad": {
-          "$ref": "#/definitions/NodeId"
+    "Coord": {
+      "anyOf": [
+        {
+          "format": "int32",
+          "type": "integer"
         },
-        "output_id": {
-          "$ref": "#/definitions/OutputId"
+        {
+          "type": "string"
         }
-      },
-      "required": [
-        "input_pad",
-        "output_id"
+      ]
+    },
+    "Degree": {
+      "format": "double",
+      "type": "number"
+    },
+    "HorizontalAlign": {
+      "enum": [
+        "left",
+        "right",
+        "justified",
+        "center"
       ],
-      "type": "object"
+      "type": "string"
+    },
+    "Interpolation": {
+      "enum": [
+        "linear",
+        "spring"
+      ],
+      "type": "string"
+    },
+    "MirrorMode": {
+      "enum": [
+        "horizontal",
+        "vertical",
+        "horizontal-vertical"
+      ],
+      "type": "string"
     },
     "OutputId": {
       "type": "string"
@@ -1316,22 +1201,16 @@
     }
   },
   "properties": {
-    "nodes": {
-      "items": {
-        "$ref": "#/definitions/Node"
-      },
-      "type": "array"
+    "output_id": {
+      "$ref": "#/definitions/OutputId"
     },
-    "outputs": {
-      "items": {
-        "$ref": "#/definitions/Output"
-      },
-      "type": "array"
+    "root": {
+      "$ref": "#/definitions/Component"
     }
   },
   "required": [
-    "nodes",
-    "outputs"
+    "output_id",
+    "root"
   ],
   "title": "Scene",
   "type": "object"

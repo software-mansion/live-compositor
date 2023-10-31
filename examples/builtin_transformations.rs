@@ -85,47 +85,55 @@ fn start_example_client_code() -> Result<()> {
         "url": "https://i.postimg.cc/CxcvtJC5/pexels-rohi-bernard-codillo-17908342.jpg",
     }))?;
 
+    let image = |id| {
+        json!( {
+            "node_id": format!("filled_image_{}", id),
+            "type": "builtin:fill_to_resolution",
+            "resolution": { "width": 960, "height": 540 },
+            "children": [
+                {
+                    "node_id": format!("image_{}", id),
+                    "type": "image",
+                    "image_id": "example_image",
+                },
+            ],
+        })
+    };
+
     info!("[example] Update scene");
     common::post(&json!({
         "type": "update_scene",
-        "nodes": [
-            {
-                "node_id": "image",
-                "type": "image",
-                "image_id": "example_image",
-            },
-            {
-                "type": "builtin:mirror_image",
-                "node_id": "mirrored_image",
-                "input_pads": ["filled_image"],
-            },
-            {
-                "node_id": "filled_image",
-                "type": "builtin:fill_to_resolution",
-                "resolution": { "width": 960, "height": 540 },
-                "input_pads": ["image"],
-            },
-            {
-                "node_id": "corners_rounded_image",
-                "type": "builtin:corners_rounding",
-                "border_radius": "100px",
-                "input_pads": ["filled_image"]
-            },
-            {
-                "node_id": "layout",
-                "type": "builtin:tiled_layout",
-                "margin": 10,
-                "horizontal_alignment": "justified",
-                "background_color_rgba": "#FFFFFFFF",
-                "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
-                "input_pads": ["mirrored_image", "filled_image", "corners_rounded_image", "filled_image", "filled_image", "filled_image", "filled_image", "filled_image"],
-            }
-        ],
-        "outputs": [
+        "scenes": [
             {
                 "output_id": "output_1",
-                "input_pad": "layout"
-            },
+                "root": {
+                    "node_id": "layout",
+                    "type": "builtin:tiled_layout",
+                    "margin": 10,
+                    "horizontal_alignment": "justified",
+                    "background_color_rgba": "#FFFFFFFF",
+                    "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+                    "children": [
+                        {
+                            "type": "builtin:mirror_image",
+                            "node_id": "mirrored_image",
+                            "children": [image(0)],
+                        },
+                        image(1),
+                        {
+                            "node_id": "corners_rounded_image",
+                            "type": "builtin:corners_rounding",
+                            "border_radius": "100px",
+                            "children": [image(2)]
+                        },
+                        image(3),
+                        image(4),
+                        image(5),
+                        image(6),
+                        image(7),
+                    ]
+                }
+            }
         ]
     }))?;
 
