@@ -19,7 +19,7 @@ jobs:
               run: |
                   set -e
 
-                  echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | sudo debconf-set-selections
+                  echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | debconf-set-selections
 
                   apt-get update -y -qq
                   apt-get install -y libegl1-mesa libgl1-mesa-dri libxcb-xfixes0-dev ffmpeg libavcodec-dev libavformat-dev libavfilter-dev libavdevice-dev ttf-mscorefonts-installer
