@@ -21,8 +21,8 @@ jobs:
 
                   echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | sudo debconf-set-selections
 
-                  sudo apt-get update -y -qq
-                  sudo apt-get install -y libegl1-mesa libgl1-mesa-dri libxcb-xfixes0-dev ffmpeg libavcodec-dev libavformat-dev libavfilter-dev libavdevice-dev ttf-mscorefonts-installer
+                  apt-get update -y -qq
+                  apt-get install -y libegl1-mesa libgl1-mesa-dri libxcb-xfixes0-dev ffmpeg libavcodec-dev libavformat-dev libavfilter-dev libavdevice-dev ttf-mscorefonts-installer
 
             - name: 🔧 Install the rust toolchain
               uses: dtolnay/rust-toolchain@stable
