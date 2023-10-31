@@ -38,12 +38,12 @@ impl TryFrom<Component> for NodeSpec {
             ComponentParams::StretchToResolution { resolution: _ } => todo!(),
         };
         let spec = Self {
-            node_id: node.node_id.into(),
+            node_id: node.id.into(),
             input_pads: node
                 .children
                 .unwrap_or_default()
                 .into_iter()
-                .map(|n| n.node_id.into())
+                .map(|n| n.id.into())
                 .collect(),
             fallback_id: None,
             params,

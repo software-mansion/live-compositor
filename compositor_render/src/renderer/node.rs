@@ -18,7 +18,7 @@ use crate::wgpu::texture::NodeTexture;
 use super::renderers::Renderers;
 use super::RenderCtx;
 
-pub(crate) enum RenderNode {
+pub(crate) enum InnerRenderNode {
     Shader(ShaderNode),
     Web(WebRendererNode),
     Text(TextRendererNode),
@@ -28,7 +28,7 @@ pub(crate) enum RenderNode {
     InputStream,
 }
 
-impl RenderNode {
+impl InnerRenderNode {
     fn new(ctx: &RenderCtx, spec: &NodeSpec) -> Result<Self, CreateNodeError> {
         match &spec.params {
             NodeParams::WebRenderer { instance_id } => {
@@ -78,31 +78,31 @@ impl RenderNode {
         }
 
         match self {
-            RenderNode::Shader(ref shader) => {
+            InnerRenderNode::Shader(ref shader) => {
                 shader.render(sources, target, pts);
             }
-            RenderNode::Web(renderer) => renderer.render(ctx, sources, target),
-            RenderNode::Text(ref renderer) => {
+            InnerRenderNode::Web(renderer) => renderer.render(ctx, sources, target),
+            InnerRenderNode::Text(ref renderer) => {
                 renderer.render(ctx, target);
             }
-            RenderNode::Image(ref node) => node.render(ctx, target, pts),
-            RenderNode::InputStream => {
+            InnerRenderNode::Image(ref node) => node.render(ctx, target, pts),
+            InnerRenderNode::InputStream => {
                 // Nothing to do, textures on input nodes should be populated
                 // at the start of render loop
             }
-            RenderNode::Layout(node) => node.render(ctx, sources, target, pts),
+            InnerRenderNode::Layout(node) => node.render(ctx, sources, target, pts),
         }
     }
 
     // TODO: remove this function (should be handled dynamically on output)
     pub fn resolution(&self) -> Option<Resolution> {
         match self {
-            RenderNode::Shader(node) => Some(node.resolution()),
-            RenderNode::Web(node) => Some(node.resolution()),
-            RenderNode::Text(node) => Some(node.resolution()),
-            RenderNode::Image(node) => Some(node.resolution()),
-            RenderNode::InputStream => None,
-            RenderNode::Layout(_) => Some(Resolution {
+            InnerRenderNode::Shader(node) => Some(node.resolution()),
+            InnerRenderNode::Web(node) => Some(node.resolution()),
+            InnerRenderNode::Text(node) => Some(node.resolution()),
+            InnerRenderNode::Image(node) => Some(node.resolution()),
+            InnerRenderNode::InputStream => None,
+            InnerRenderNode::Layout(_) => Some(Resolution {
                 width: 1920,
                 height: 1080,
             }),
@@ -128,27 +128,27 @@ impl RenderNode {
 
     fn fallback_strategy(&self) -> FallbackStrategy {
         match self {
-            RenderNode::Shader(shader_node) => shader_node.fallback_strategy(),
-            RenderNode::Web(web_renderer_node) => web_renderer_node.fallback_strategy(),
-            RenderNode::Text(_) => FallbackStrategy::NeverFallback,
-            RenderNode::Image(_) => FallbackStrategy::NeverFallback,
-            RenderNode::InputStream => FallbackStrategy::NeverFallback,
-            RenderNode::Layout(_) => FallbackStrategy::NeverFallback,
+            InnerRenderNode::Shader(shader_node) => shader_node.fallback_strategy(),
+            InnerRenderNode::Web(web_renderer_node) => web_renderer_node.fallback_strategy(),
+            InnerRenderNode::Text(_) => FallbackStrategy::NeverFallback,
+            InnerRenderNode::Image(_) => FallbackStrategy::NeverFallback,
+            InnerRenderNode::InputStream => FallbackStrategy::NeverFallback,
+            InnerRenderNode::Layout(_) => FallbackStrategy::NeverFallback,
         }
     }
 }
 
-pub struct Node {
+pub struct RenderNode {
     pub(crate) node_id: NodeId,
     pub(crate) output: NodeTexture,
     pub(crate) inputs: Vec<NodeId>,
     pub(crate) fallback: Option<NodeId>,
-    pub(crate) renderer: RenderNode,
+    pub(crate) renderer: InnerRenderNode,
 }
 
-impl Node {
+impl RenderNode {
     pub fn new(ctx: &RenderCtx, spec: &NodeSpec) -> Result<Self, CreateNodeError> {
-        let node = RenderNode::new(ctx, spec)?;
+        let node = InnerRenderNode::new(ctx, spec)?;
         let mut output = NodeTexture::new();
         if let Some(resolution) = node.resolution() {
             output.ensure_size(ctx.wgpu_ctx, resolution);
@@ -168,7 +168,7 @@ impl Node {
 
         Self {
             node_id: node_id.clone(),
-            renderer: RenderNode::InputStream,
+            renderer: InnerRenderNode::InputStream,
             inputs: vec![],
             fallback: None,
             output,

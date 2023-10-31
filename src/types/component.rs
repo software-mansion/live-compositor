@@ -8,7 +8,7 @@ use super::*;
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 pub struct Component {
-    pub node_id: ComponentId,
+    pub id: ComponentId,
     pub children: Option<Vec<Component>>,
 
     #[serde(flatten)]

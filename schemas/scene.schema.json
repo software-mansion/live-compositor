@@ -14,10 +14,10 @@
                 "null"
               ]
             },
-            "input_id": {
+            "id": {
               "$ref": "#/definitions/ComponentId"
             },
-            "node_id": {
+            "input_id": {
               "$ref": "#/definitions/ComponentId"
             },
             "type": {
@@ -45,11 +45,11 @@
                 "null"
               ]
             },
+            "id": {
+              "$ref": "#/definitions/ComponentId"
+            },
             "instance_id": {
               "$ref": "#/definitions/RendererId"
-            },
-            "node_id": {
-              "$ref": "#/definitions/ComponentId"
             },
             "type": {
               "enum": [
@@ -76,7 +76,7 @@
                 "null"
               ]
             },
-            "node_id": {
+            "id": {
               "$ref": "#/definitions/ComponentId"
             },
             "resolution": {
@@ -121,11 +121,11 @@
                 "null"
               ]
             },
+            "id": {
+              "$ref": "#/definitions/ComponentId"
+            },
             "image_id": {
               "$ref": "#/definitions/RendererId"
-            },
-            "node_id": {
-              "$ref": "#/definitions/ComponentId"
             },
             "type": {
               "enum": [
@@ -199,15 +199,15 @@
               "format": "float",
               "type": "number"
             },
+            "id": {
+              "$ref": "#/definitions/ComponentId"
+            },
             "line_height": {
               "format": "float",
               "type": [
                 "number",
                 "null"
               ]
-            },
-            "node_id": {
-              "$ref": "#/definitions/ComponentId"
             },
             "style": {
               "anyOf": [
@@ -286,7 +286,7 @@
                 }
               ]
             },
-            "node_id": {
+            "id": {
               "$ref": "#/definitions/ComponentId"
             },
             "resolution": {
@@ -327,7 +327,7 @@
                 "null"
               ]
             },
-            "node_id": {
+            "id": {
               "$ref": "#/definitions/ComponentId"
             },
             "resolution": {
@@ -358,7 +358,7 @@
                 "null"
               ]
             },
-            "node_id": {
+            "id": {
               "$ref": "#/definitions/ComponentId"
             },
             "resolution": {
@@ -399,7 +399,7 @@
                 "null"
               ]
             },
-            "node_id": {
+            "id": {
               "$ref": "#/definitions/ComponentId"
             },
             "resolution": {
@@ -457,6 +457,9 @@
                 }
               ]
             },
+            "id": {
+              "$ref": "#/definitions/ComponentId"
+            },
             "margin": {
               "format": "uint32",
               "minimum": 0.0,
@@ -464,9 +467,6 @@
                 "integer",
                 "null"
               ]
-            },
-            "node_id": {
-              "$ref": "#/definitions/ComponentId"
             },
             "padding": {
               "format": "uint32",
@@ -534,6 +534,9 @@
                 "null"
               ]
             },
+            "id": {
+              "$ref": "#/definitions/ComponentId"
+            },
             "mode": {
               "anyOf": [
                 {
@@ -543,9 +546,6 @@
                   "type": "null"
                 }
               ]
-            },
-            "node_id": {
-              "$ref": "#/definitions/ComponentId"
             },
             "type": {
               "enum": [
@@ -574,7 +574,7 @@
                 "null"
               ]
             },
-            "node_id": {
+            "id": {
               "$ref": "#/definitions/ComponentId"
             },
             "type": {
@@ -601,12 +601,12 @@
             "null"
           ]
         },
-        "node_id": {
+        "id": {
           "$ref": "#/definitions/ComponentId"
         }
       },
       "required": [
-        "node_id"
+        "id"
       ],
       "type": "object"
     },
