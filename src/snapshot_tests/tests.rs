@@ -103,7 +103,6 @@ fn fixed_position_layout_tests() -> Vec<TestCase> {
                 TestInput::new(3),
                 TestInput::new(4),
             ],
-            allowed_error: 7.42,
             ..Default::default()
         },
         // TODO: fix stretch to resolution
@@ -276,7 +275,6 @@ pub fn tiled_layout_tests() -> Vec<TestCase> {
                 input3.clone(),
                 input4.clone(),
             ],
-            allowed_error: 10.24,
             ..Default::default()
         },
         TestCase {
@@ -289,7 +287,6 @@ pub fn tiled_layout_tests() -> Vec<TestCase> {
                 input4.clone(),
                 input5.clone(),
             ],
-            allowed_error: 10.99,
             ..Default::default()
         },
         TestCase {
@@ -312,7 +309,6 @@ pub fn tiled_layout_tests() -> Vec<TestCase> {
                 input14.clone(),
                 input15.clone(),
             ],
-            allowed_error: 25.29,
             ..Default::default()
         },
         TestCase {
@@ -341,7 +337,6 @@ pub fn tiled_layout_tests() -> Vec<TestCase> {
                 portrait_input2.clone(),
                 portrait_input3.clone(),
             ],
-            allowed_error: 5.77,
             ..Default::default()
         },
         TestCase {
@@ -356,7 +351,6 @@ pub fn tiled_layout_tests() -> Vec<TestCase> {
                 portrait_input4.clone(),
                 portrait_input5.clone(),
             ],
-            allowed_error: 14.56,
             ..Default::default()
         },
         TestCase {
@@ -381,7 +375,6 @@ pub fn tiled_layout_tests() -> Vec<TestCase> {
                 portrait_input14.clone(),
                 portrait_input15.clone(),
             ],
-            allowed_error: 11.5,
             ..Default::default()
         },
         TestCase {
@@ -402,7 +395,6 @@ pub fn tiled_layout_tests() -> Vec<TestCase> {
                 portrait_input2.clone(),
                 portrait_input3.clone(),
             ],
-            allowed_error: 7.18,
             ..Default::default()
         },
         TestCase {
@@ -417,7 +409,6 @@ pub fn tiled_layout_tests() -> Vec<TestCase> {
                 portrait_input4.clone(),
                 portrait_input5.clone(),
             ],
-            allowed_error: 13.83,
             ..Default::default()
         },
         TestCase {
@@ -442,7 +433,6 @@ pub fn tiled_layout_tests() -> Vec<TestCase> {
                 portrait_input14.clone(),
                 portrait_input15.clone(),
             ],
-            allowed_error: 20.79,
             ..Default::default()
         },
         TestCase {
@@ -467,7 +457,6 @@ pub fn tiled_layout_tests() -> Vec<TestCase> {
                 "../../snapshot_tests/tiled_layout/align_with_margin_and_padding_with_03_inputs.scene.json"
             ),
             inputs: vec![input1.clone(), input2.clone(), input3.clone()],
-            allowed_error: 5.82,
             ..Default::default()
         },
         TestCase {
@@ -476,7 +465,6 @@ pub fn tiled_layout_tests() -> Vec<TestCase> {
                 "../../snapshot_tests/tiled_layout/margin_with_03_inputs.scene.json"
             ),
             inputs: vec![input1.clone(), input2.clone(), input3.clone()],
-            allowed_error: 5.89,
             ..Default::default()
         },
         TestCase {

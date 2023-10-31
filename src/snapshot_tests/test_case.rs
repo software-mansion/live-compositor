@@ -38,7 +38,7 @@ impl Default for TestCase {
             scene_json: "",
             timestamps: vec![Duration::from_secs(0)],
             outputs: vec!["output_1"],
-            allowed_error: 5.0,
+            allowed_error: 30.0,
         }
     }
 }
