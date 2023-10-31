@@ -28,7 +28,7 @@ jobs:
             - name: 🔧 Install the rust toolchain
               uses: dtolnay/rust-toolchain@stable
               with:
-                  components: rustfmt
+                  components: rustfmt, clippy
 
             - name: 🔬 Install nextest
               uses: taiki-e/install-action@v2
