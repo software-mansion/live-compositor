@@ -4,10 +4,7 @@ use log::error;
 
 use crate::{
     renderer_spec::RendererId,
-    scene::{
-        constraints::input_count::InputCountConstraint, transition::TransitionSpec, NodeId,
-        NodeParams, OutputId,
-    },
+    scene::{constraints::input_count::InputCountConstraint, NodeId, NodeParams, OutputId},
 };
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
@@ -117,8 +114,6 @@ pub enum NodeIdentifier {
     Shader(RendererId),
     Text,
     Image(RendererId),
-    Builtin(&'static str),
-    Transition(&'static str, &'static str),
 }
 
 impl From<&NodeParams> for NodeIdentifier {
@@ -128,12 +123,6 @@ impl From<&NodeParams> for NodeIdentifier {
             NodeParams::Shader { shader_id, .. } => Self::Shader(shader_id.clone()),
             NodeParams::Text(_) => Self::Text,
             NodeParams::Image { image_id } => Self::Image(image_id.clone()),
-            NodeParams::Builtin(transformation) => {
-                Self::Builtin(transformation.transformation_name())
-            }
-            NodeParams::Transition(TransitionSpec { start, end, .. }) => {
-                Self::Transition(start.transformation_name(), end.transformation_name())
-            }
         }
     }
 }
@@ -147,13 +136,6 @@ impl Display for NodeIdentifier {
             NodeIdentifier::Shader(shader_id) => write!(f, "\"{}\" shader", shader_id),
             NodeIdentifier::Text => write!(f, "Text"),
             NodeIdentifier::Image(image_id) => write!(f, "\"{}\" image", image_id),
-            NodeIdentifier::Builtin(builtin_name) => {
-                write!(f, "\"{}\" builtin transformation", builtin_name)
-            }
-            NodeIdentifier::Transition(_, end) => {
-                // end state of a transition is a source of constraints
-                write!(f, "\"{}\" builtin transformation", end)
-            }
         }
     }
 }

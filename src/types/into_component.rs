@@ -91,17 +91,6 @@ impl From<text_spec::TextDimensions> for TextDimensions {
     }
 }
 
-impl From<transition::TransitionSpec> for Transition {
-    fn from(spec: transition::TransitionSpec) -> Self {
-        Self {
-            start: spec.start.into(),
-            end: spec.end.into(),
-            transition_duration_ms: spec.transition_duration.as_secs_f64() * 1000.0,
-            interpolation: spec.interpolation.into(),
-        }
-    }
-}
-
 impl From<transition::Interpolation> for Interpolation {
     fn from(interpolation: transition::Interpolation) -> Self {
         match interpolation {

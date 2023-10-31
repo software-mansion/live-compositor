@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use compositor_common::{
     scene::{
         self,
@@ -27,24 +25,17 @@ impl TryFrom<Component> for NodeSpec {
             ComponentParams::Shader(node) => node.into(),
             ComponentParams::Image(node) => node.into(),
             ComponentParams::Text(node) => node.try_into()?,
-            ComponentParams::Transition(node) => node.try_into()?,
-            ComponentParams::FixedPositionLayout(node) => {
-                scene::NodeParams::Builtin(node.try_into()?)
+            ComponentParams::FixedPositionLayout(_node) => {
+                todo!()
             }
-            ComponentParams::TiledLayout(node) => scene::NodeParams::Builtin(node.try_into()?),
-            ComponentParams::MirrorImage(node) => scene::NodeParams::Builtin(node.into()),
-            ComponentParams::CornersRounding(node) => scene::NodeParams::Builtin(node.try_into()?),
-            ComponentParams::FitToResolution(node) => scene::NodeParams::Builtin(node.try_into()?),
-            ComponentParams::FillToResolution { resolution } => {
-                scene::NodeParams::Builtin(BuiltinSpec::FillToResolution {
-                    resolution: resolution.into(),
-                })
+            ComponentParams::TiledLayout(_node) => todo!(),
+            ComponentParams::MirrorImage(_node) => todo!(),
+            ComponentParams::CornersRounding(_node) => todo!(),
+            ComponentParams::FitToResolution(_node) => todo!(),
+            ComponentParams::FillToResolution { resolution: _ } => {
+                todo!()
             }
-            ComponentParams::StretchToResolution { resolution } => {
-                scene::NodeParams::Builtin(BuiltinSpec::StretchToResolution {
-                    resolution: resolution.into(),
-                })
-            }
+            ComponentParams::StretchToResolution { resolution: _ } => todo!(),
         };
         let spec = Self {
             node_id: node.node_id.into(),
@@ -198,30 +189,6 @@ impl TryFrom<FitToResolution> for BuiltinSpec {
                 .into(),
         });
         Ok(result)
-    }
-}
-
-impl TryFrom<Transition> for scene::NodeParams {
-    type Error = TypeError;
-
-    fn try_from(node: Transition) -> Result<Self, Self::Error> {
-        let result = Self::Transition(transition::TransitionSpec {
-            start: node.start.try_into()?,
-            end: node.end.try_into()?,
-            transition_duration: Duration::try_from_secs_f64(node.transition_duration_ms / 1000.0)?,
-            interpolation: node.interpolation.into(),
-        });
-        Ok(result)
-    }
-}
-
-impl TryFrom<TransitionState> for BuiltinSpec {
-    type Error = TypeError;
-
-    fn try_from(state: TransitionState) -> Result<Self, Self::Error> {
-        match state {
-            TransitionState::FixedPositionLayout(state) => state.try_into(),
-        }
     }
 }
 
