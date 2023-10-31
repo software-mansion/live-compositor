@@ -1,10 +1,9 @@
-use crate::renderer::RegisterCtx;
+use crate::renderer::{render_graph::NodeId, RegisterCtx};
 use crate::transformations::web_renderer::chromium_sender::ChromiumSender;
 use crate::wgpu::texture::NodeTexture;
 use crate::wgpu::WgpuCtx;
 use bytes::{Bytes, BytesMut};
 use compositor_common::renderer_spec::WebEmbeddingMethod;
-use compositor_common::scene::NodeId;
 use crossbeam_channel::bounded;
 use log::error;
 use nalgebra_glm::Mat4;
@@ -55,8 +54,7 @@ impl EmbeddingHelper {
         sources: &[(&NodeId, &NodeTexture)],
         buffers: &[Arc<wgpu::Buffer>],
     ) -> Result<(), EmbedError> {
-        self.chromium_sender
-            .ensure_shared_memory(node_id.clone(), sources);
+        self.chromium_sender.ensure_shared_memory(*node_id, sources);
         self.copy_sources_to_buffers(sources, buffers)?;
 
         let mut pending_downloads = Vec::new();
@@ -66,7 +64,7 @@ impl EmbeddingHelper {
             };
             let size = texture_state.rgba_texture().size();
             pending_downloads.push(self.copy_buffer_to_shmem(
-                node_id.clone(),
+                *node_id,
                 source_idx,
                 size,
                 buffer.clone(),
@@ -79,7 +77,7 @@ impl EmbeddingHelper {
             pending()?;
         }
 
-        self.chromium_sender.embed_sources(node_id.clone(), sources);
+        self.chromium_sender.embed_sources(*node_id, sources);
         Ok(())
     }
 

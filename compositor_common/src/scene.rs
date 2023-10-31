@@ -11,7 +11,7 @@ pub mod validation;
 mod validation_test;
 
 pub use id::InputId;
-pub use id::NodeId;
+pub(crate) use id::NodeId;
 pub use id::OutputId;
 pub use node::NodeParams;
 

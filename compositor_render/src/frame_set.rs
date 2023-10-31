@@ -1,11 +1,11 @@
-use std::{collections::HashMap, time::Duration};
+use std::{collections::HashMap, sync::Arc, time::Duration};
 
-use compositor_common::{scene::NodeId, Frame};
+use compositor_common::Frame;
 
 #[derive(Debug)]
 pub struct FrameSet<Id>
 where
-    Id: From<NodeId>,
+    Id: From<Arc<str>>,
 {
     pub frames: HashMap<Id, Frame>,
     pub pts: Duration,
@@ -13,7 +13,7 @@ where
 
 impl<Id> FrameSet<Id>
 where
-    Id: From<NodeId>,
+    Id: From<Arc<str>>,
 {
     pub fn new(pts: Duration) -> Self {
         FrameSet {

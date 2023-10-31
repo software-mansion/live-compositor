@@ -80,7 +80,7 @@ fn start_example_client_code() -> Result<()> {
         "port": 8004
     }))?;
 
-    let shader_source = include_str!("../compositor_render/examples/silly/silly.wgsl");
+    let shader_source = include_str!("./silly.wgsl");
     info!("[example] Register shader transform");
     common::post(&json!({
         "type": "register",
@@ -129,6 +129,46 @@ fn start_example_client_code() -> Result<()> {
             "rtp://127.0.0.1:8004?rtcpport=8004",
         ])
         .spawn()?;
+    thread::sleep(Duration::from_secs(5));
+
+    let input_with_shader = json!( {
+        "type": "shader",
+        "id": "shader_1",
+        "shader_id": "example_shader",
+        "children": [
+            {
+                "type": "view",
+                "width": 1080,
+                "height": 1080,
+                "children": [
+                    {
+                        "type": "input_stream",
+                        "input_id": "input_1",
+                        "id": "input_1"
+                    }
+                ]
+            }
+        ],
+        "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+    });
+
+    let layout = json!({
+        "type": "view",
+        "children": [
+            {
+                "type": "view",
+                "background_color_rgba": "#FF0000FF",
+                "width": 200,
+            },
+            {
+                "type": "view",
+                "background_color_rgba": "#00FF00FF",
+                "children": [
+                    input_with_shader,
+                ]
+            },
+        ]
+    });
 
     info!("[example] Update scene");
     common::post(&json!({
@@ -136,19 +176,7 @@ fn start_example_client_code() -> Result<()> {
         "scenes": [
             {
                 "output_id": "output_1",
-                "root" : {
-                    "type": "shader",
-                    "id": "shader_1",
-                    "shader_id": "example_shader",
-                    "children": [
-                        {
-                            "type": "input_stream",
-                            "input_id": "input_1",
-                            "id": "input_1"
-                        }
-                    ],
-                    "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
-                },
+                "root": layout,
             }
         ],
     }))?;

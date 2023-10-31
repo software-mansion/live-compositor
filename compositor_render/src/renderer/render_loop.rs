@@ -4,7 +4,7 @@ use std::{
 };
 
 use compositor_common::{
-    scene::{InputId, NodeId, OutputId},
+    scene::{InputId, OutputId},
     util::colors::RGBColor,
     Frame,
 };
@@ -19,12 +19,14 @@ use crate::{
     FrameSet,
 };
 
+use super::render_graph::NodeId;
+
 pub(super) fn populate_inputs(
     ctx: &RenderCtx,
     scene: &mut RenderGraph,
     frame_set: &mut FrameSet<InputId>,
 ) -> Result<(), InternalSceneError> {
-    for (input_id, input_textures) in &mut scene.inputs {
+    for (input_id, (_node_id, input_textures)) in &mut scene.inputs {
         let Some(frame) = frame_set.frames.remove(input_id) else {
             input_textures.clear();
             continue;
@@ -39,8 +41,8 @@ pub(super) fn populate_inputs(
 
     ctx.wgpu_ctx.queue.submit([]);
 
-    for (input_id, input_textures) in &mut scene.inputs {
-        let node = scene.nodes.node_mut(&input_id.0)?;
+    for (node_id, input_textures) in scene.inputs.values_mut() {
+        let node = scene.nodes.node_mut(node_id)?;
         if let Some(input_textures) = input_textures.state() {
             let node_texture = node
                 .output
@@ -167,7 +169,7 @@ pub(super) fn render_node(
             .render(ctx, &input_textures, &mut node.output, pts);
 
         match node.output.is_empty() {
-            true => node.fallback.clone(),
+            true => node.fallback,
             false => None,
         }
     };

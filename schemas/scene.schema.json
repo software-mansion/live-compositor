@@ -4,21 +4,20 @@
     "Component": {
       "oneOf": [
         {
+          "additionalProperties": false,
           "properties": {
-            "children": {
-              "items": {
-                "$ref": "#/definitions/Component"
-              },
-              "type": [
-                "array",
-                "null"
+            "id": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ComponentId"
+                },
+                {
+                  "type": "null"
+                }
               ]
             },
-            "id": {
-              "$ref": "#/definitions/ComponentId"
-            },
             "input_id": {
-              "$ref": "#/definitions/ComponentId"
+              "$ref": "#/definitions/InputId"
             },
             "type": {
               "enum": [
@@ -36,6 +35,66 @@
         {
           "additionalProperties": false,
           "properties": {
+            "background_color_rgba": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/RGBAColor"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "children": {
+              "items": {
+                "$ref": "#/definitions/Component"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "height": {
+              "format": "uint",
+              "minimum": 0.0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "id": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ComponentId"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": {
+              "enum": [
+                "view"
+              ],
+              "type": "string"
+            },
+            "width": {
+              "format": "uint",
+              "minimum": 0.0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
             "children": {
               "items": {
                 "$ref": "#/definitions/Component"
@@ -46,7 +105,14 @@
               ]
             },
             "id": {
-              "$ref": "#/definitions/ComponentId"
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ComponentId"
+                },
+                {
+                  "type": "null"
+                }
+              ]
             },
             "instance_id": {
               "$ref": "#/definitions/RendererId"
@@ -77,7 +143,14 @@
               ]
             },
             "id": {
-              "$ref": "#/definitions/ComponentId"
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ComponentId"
+                },
+                {
+                  "type": "null"
+                }
+              ]
             },
             "resolution": {
               "$ref": "#/definitions/Resolution"
@@ -122,7 +195,14 @@
               ]
             },
             "id": {
-              "$ref": "#/definitions/ComponentId"
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ComponentId"
+                },
+                {
+                  "type": "null"
+                }
+              ]
             },
             "image_id": {
               "$ref": "#/definitions/RendererId"
@@ -163,15 +243,6 @@
                 }
               ]
             },
-            "children": {
-              "items": {
-                "$ref": "#/definitions/Component"
-              },
-              "type": [
-                "array",
-                "null"
-              ]
-            },
             "color_rgba": {
               "anyOf": [
                 {
@@ -198,9 +269,6 @@
             "font_size": {
               "format": "float",
               "type": "number"
-            },
-            "id": {
-              "$ref": "#/definitions/ComponentId"
             },
             "line_height": {
               "format": "float",
@@ -267,15 +335,6 @@
                 }
               ]
             },
-            "children": {
-              "items": {
-                "$ref": "#/definitions/Component"
-              },
-              "type": [
-                "array",
-                "null"
-              ]
-            },
             "horizontal_alignment": {
               "anyOf": [
                 {
@@ -285,9 +344,6 @@
                   "type": "null"
                 }
               ]
-            },
-            "id": {
-              "$ref": "#/definitions/ComponentId"
             },
             "resolution": {
               "$ref": "#/definitions/Resolution"
@@ -318,18 +374,6 @@
         {
           "additionalProperties": false,
           "properties": {
-            "children": {
-              "items": {
-                "$ref": "#/definitions/Component"
-              },
-              "type": [
-                "array",
-                "null"
-              ]
-            },
-            "id": {
-              "$ref": "#/definitions/ComponentId"
-            },
             "resolution": {
               "$ref": "#/definitions/Resolution"
             },
@@ -349,18 +393,6 @@
         {
           "additionalProperties": false,
           "properties": {
-            "children": {
-              "items": {
-                "$ref": "#/definitions/Component"
-              },
-              "type": [
-                "array",
-                "null"
-              ]
-            },
-            "id": {
-              "$ref": "#/definitions/ComponentId"
-            },
             "resolution": {
               "$ref": "#/definitions/Resolution"
             },
@@ -389,18 +421,6 @@
                   "type": "null"
                 }
               ]
-            },
-            "children": {
-              "items": {
-                "$ref": "#/definitions/Component"
-              },
-              "type": [
-                "array",
-                "null"
-              ]
-            },
-            "id": {
-              "$ref": "#/definitions/ComponentId"
             },
             "resolution": {
               "$ref": "#/definitions/Resolution"
@@ -438,15 +458,6 @@
                 }
               ]
             },
-            "children": {
-              "items": {
-                "$ref": "#/definitions/Component"
-              },
-              "type": [
-                "array",
-                "null"
-              ]
-            },
             "horizontal_alignment": {
               "anyOf": [
                 {
@@ -456,9 +467,6 @@
                   "type": "null"
                 }
               ]
-            },
-            "id": {
-              "$ref": "#/definitions/ComponentId"
             },
             "margin": {
               "format": "uint32",
@@ -525,18 +533,6 @@
         {
           "additionalProperties": false,
           "properties": {
-            "children": {
-              "items": {
-                "$ref": "#/definitions/Component"
-              },
-              "type": [
-                "array",
-                "null"
-              ]
-            },
-            "id": {
-              "$ref": "#/definitions/ComponentId"
-            },
             "mode": {
               "anyOf": [
                 {
@@ -565,18 +561,6 @@
             "border_radius": {
               "$ref": "#/definitions/Coord"
             },
-            "children": {
-              "items": {
-                "$ref": "#/definitions/Component"
-              },
-              "type": [
-                "array",
-                "null"
-              ]
-            },
-            "id": {
-              "$ref": "#/definitions/ComponentId"
-            },
             "type": {
               "enum": [
                 "builtin:corners_rounding"
@@ -590,25 +574,7 @@
           ],
           "type": "object"
         }
-      ],
-      "properties": {
-        "children": {
-          "items": {
-            "$ref": "#/definitions/Component"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
-        },
-        "id": {
-          "$ref": "#/definitions/ComponentId"
-        }
-      },
-      "required": [
-        "id"
-      ],
-      "type": "object"
+      ]
     },
     "ComponentId": {
       "type": "string"
@@ -635,6 +601,9 @@
         "justified",
         "center"
       ],
+      "type": "string"
+    },
+    "InputId": {
       "type": "string"
     },
     "MirrorMode": {
@@ -1121,6 +1090,6 @@
     "output_id",
     "root"
   ],
-  "title": "Scene",
+  "title": "OutputScene",
   "type": "object"
 }

@@ -3,11 +3,12 @@ use std::time::Duration;
 use compositor_common::renderer_spec::FallbackStrategy;
 
 use compositor_common::scene::constraints::NodeConstraints;
-use compositor_common::scene::{NodeId, NodeParams, NodeSpec, Resolution};
+use compositor_common::scene::{NodeParams, NodeSpec};
 
 use crate::error::{CreateNodeError, UpdateSceneError};
 
-use crate::transformations::layout::LayoutNode;
+use crate::scene::{self, ShaderComponent};
+use crate::transformations::layout::{LayoutNode, LayoutProvider};
 use crate::transformations::shader::node::ShaderNode;
 
 use crate::transformations::{
@@ -15,13 +16,17 @@ use crate::transformations::{
 };
 use crate::wgpu::texture::NodeTexture;
 
+use super::render_graph::NodeId;
 use super::renderers::Renderers;
 use super::RenderCtx;
 
 pub(crate) enum InnerRenderNode {
     Shader(ShaderNode),
+    #[allow(dead_code)]
     Web(WebRendererNode),
+    #[allow(dead_code)]
     Text(TextRendererNode),
+    #[allow(dead_code)]
     Image(ImageNode),
     #[allow(dead_code)]
     Layout(LayoutNode),
@@ -29,42 +34,6 @@ pub(crate) enum InnerRenderNode {
 }
 
 impl InnerRenderNode {
-    fn new(ctx: &RenderCtx, spec: &NodeSpec) -> Result<Self, CreateNodeError> {
-        match &spec.params {
-            NodeParams::WebRenderer { instance_id } => {
-                let renderer = ctx
-                    .renderers
-                    .web_renderers
-                    .get(instance_id)
-                    .ok_or_else(|| CreateNodeError::WebRendererNotFound(instance_id.clone()))?;
-
-                let node = WebRendererNode::new(&spec.node_id, renderer);
-                Ok(Self::Web(node))
-            }
-            NodeParams::Shader {
-                shader_id,
-                shader_params,
-                resolution,
-            } => {
-                let node = ShaderNode::new(ctx, shader_id, shader_params, resolution)?;
-                Ok(Self::Shader(node))
-            }
-            NodeParams::Text(text_spec) => {
-                let renderer = TextRendererNode::new(ctx, text_spec.clone());
-                Ok(Self::Text(renderer))
-            }
-            NodeParams::Image { image_id } => {
-                let image = ctx
-                    .renderers
-                    .images
-                    .get(image_id)
-                    .ok_or_else(|| CreateNodeError::ImageNotFound(image_id.clone()))?;
-                let node = ImageNode::new(image);
-                Ok(Self::Image(node))
-            }
-        }
-    }
-
     pub fn render(
         &mut self,
         ctx: &mut RenderCtx,
@@ -91,21 +60,6 @@ impl InnerRenderNode {
                 // at the start of render loop
             }
             InnerRenderNode::Layout(node) => node.render(ctx, sources, target, pts),
-        }
-    }
-
-    // TODO: remove this function (should be handled dynamically on output)
-    pub fn resolution(&self) -> Option<Resolution> {
-        match self {
-            InnerRenderNode::Shader(node) => Some(node.resolution()),
-            InnerRenderNode::Web(node) => Some(node.resolution()),
-            InnerRenderNode::Text(node) => Some(node.resolution()),
-            InnerRenderNode::Image(node) => Some(node.resolution()),
-            InnerRenderNode::InputStream => None,
-            InnerRenderNode::Layout(_) => Some(Resolution {
-                width: 1920,
-                height: 1080,
-            }),
         }
     }
 
@@ -139,7 +93,6 @@ impl InnerRenderNode {
 }
 
 pub struct RenderNode {
-    pub(crate) node_id: NodeId,
     pub(crate) output: NodeTexture,
     pub(crate) inputs: Vec<NodeId>,
     pub(crate) fallback: Option<NodeId>,
@@ -147,27 +100,50 @@ pub struct RenderNode {
 }
 
 impl RenderNode {
-    pub fn new(ctx: &RenderCtx, spec: &NodeSpec) -> Result<Self, CreateNodeError> {
-        let node = InnerRenderNode::new(ctx, spec)?;
+    pub fn new_shader_node(
+        ctx: &RenderCtx,
+        inputs: Vec<NodeId>,
+        shader: ShaderComponent,
+    ) -> Result<Self, CreateNodeError> {
+        let node = InnerRenderNode::Shader(ShaderNode::new(
+            ctx,
+            &shader.shader_id,
+            &shader.shader_param,
+            &shader.size,
+        )?);
         let mut output = NodeTexture::new();
-        if let Some(resolution) = node.resolution() {
-            output.ensure_size(ctx.wgpu_ctx, resolution);
-        }
+        output.ensure_size(ctx.wgpu_ctx, shader.size);
 
         Ok(Self {
-            node_id: spec.node_id.clone(),
             renderer: node,
-            inputs: spec.input_pads.clone(),
-            fallback: spec.fallback_id.clone(),
+            inputs,
+            fallback: None,
             output,
         })
     }
 
-    pub fn new_input(node_id: &NodeId) -> Self {
+    pub(crate) fn new_layout_node(
+        ctx: &RenderCtx,
+        inputs: Vec<NodeId>,
+        provider: scene::LayoutNode,
+    ) -> Result<Self, CreateNodeError> {
+        let resolution = provider.resolution();
+        let node = InnerRenderNode::Layout(LayoutNode::new(ctx, Box::new(provider)));
+        let mut output = NodeTexture::new();
+        output.ensure_size(ctx.wgpu_ctx, resolution);
+
+        Ok(Self {
+            renderer: node,
+            inputs,
+            fallback: None,
+            output,
+        })
+    }
+
+    pub(crate) fn new_input() -> Self {
         let output = NodeTexture::new();
 
         Self {
-            node_id: node_id.clone(),
             renderer: InnerRenderNode::InputStream,
             inputs: vec![],
             fallback: None,
@@ -196,7 +172,7 @@ impl NodeSpecExt for NodeSpec {
                 .ok_or_else(|| {
                     UpdateSceneError::CreateNodeError(
                         crate::error::CreateNodeError::WebRendererNotFound(instance_id.clone()),
-                        self.node_id.clone(),
+                        0,
                     )
                 }),
             NodeParams::Shader { shader_id, .. } => renderers
@@ -206,7 +182,7 @@ impl NodeSpecExt for NodeSpec {
                 .ok_or_else(|| {
                     UpdateSceneError::CreateNodeError(
                         crate::error::CreateNodeError::ShaderNotFound(shader_id.clone()),
-                        self.node_id.clone(),
+                        0, //TODO
                     )
                 }),
             NodeParams::Text(_) => Ok(NodeParams::text_constraints()),

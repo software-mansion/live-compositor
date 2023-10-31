@@ -1,21 +1,22 @@
 use std::time::Duration;
 
-use compositor_common::{renderer_spec, scene};
+use compositor_common::renderer_spec;
 use compositor_pipeline::pipeline;
+use compositor_render::scene;
 
 use crate::api::UpdateScene;
 
 use super::util::*;
 use super::*;
 
-impl From<ComponentId> for scene::NodeId {
+impl From<ComponentId> for scene::ComponentId {
     fn from(id: ComponentId) -> Self {
         Self(id.0)
     }
 }
 
-impl From<scene::NodeId> for ComponentId {
-    fn from(id: scene::NodeId) -> Self {
+impl From<scene::ComponentId> for ComponentId {
+    fn from(id: scene::ComponentId) -> Self {
         Self(id.0)
     }
 }
@@ -32,68 +33,44 @@ impl From<renderer_spec::RendererId> for RendererId {
     }
 }
 
-impl From<OutputId> for scene::OutputId {
+impl From<OutputId> for compositor_common::scene::OutputId {
     fn from(id: OutputId) -> Self {
-        Self(scene::NodeId(id.0))
+        id.0.into()
     }
 }
 
-impl From<scene::OutputId> for OutputId {
-    fn from(id: scene::OutputId) -> Self {
+impl From<compositor_common::scene::OutputId> for OutputId {
+    fn from(id: compositor_common::scene::OutputId) -> Self {
         Self(id.0 .0)
     }
 }
 
-impl From<InputId> for scene::InputId {
+impl From<InputId> for compositor_common::scene::InputId {
     fn from(id: InputId) -> Self {
-        Self(scene::NodeId(id.0))
+        id.0.into()
     }
 }
 
-impl From<scene::InputId> for InputId {
-    fn from(id: scene::InputId) -> Self {
+impl From<compositor_common::scene::InputId> for InputId {
+    fn from(id: compositor_common::scene::InputId) -> Self {
         Self(id.0 .0)
     }
 }
 
-impl TryFrom<UpdateScene> for scene::SceneSpec {
+impl TryFrom<UpdateScene> for Vec<compositor_pipeline::pipeline::OutputScene> {
     type Error = TypeError;
 
-    // very temporary and inefficient
     fn try_from(update_scene: UpdateScene) -> Result<Self, Self::Error> {
-        fn try_from_node(node: Component) -> Result<Vec<scene::NodeSpec>, TypeError> {
-            if let component::ComponentParams::InputStream(_) = node.params {
-                return Ok(vec![]);
-            }
-            let spec = node.clone().try_into()?;
-            let child_specs: Vec<Vec<scene::NodeSpec>> = node
-                .children
-                .unwrap_or_default()
-                .iter()
-                .map(|n| try_from_node(n.clone()))
-                .collect::<Result<Vec<_>, TypeError>>()?;
-            let mut t: Vec<_> = child_specs.into_iter().flatten().collect();
-            t.push(spec);
-            Ok(t)
-        }
-        let outputs = update_scene
+        update_scene
             .scenes
-            .iter()
-            .map(|scene| scene::OutputSpec {
-                output_id: scene.output_id.clone().into(),
-                input_pad: scene.root.id.clone().into(),
-            })
-            .collect();
-        let nodes: Vec<scene::NodeSpec> = update_scene
-            .scenes
-            .iter()
-            .map(|scene| try_from_node(scene.root.clone()))
-            .collect::<Result<Vec<_>, _>>()?
             .into_iter()
-            .flatten()
-            .collect();
-        let result = Self { nodes, outputs };
-        Ok(result)
+            .map(|component| {
+                Ok(compositor_pipeline::pipeline::OutputScene {
+                    output_id: component.output_id.try_into()?,
+                    root: component.root.try_into()?,
+                })
+            })
+            .collect::<Result<Vec<_>, TypeError>>()
     }
 }
 

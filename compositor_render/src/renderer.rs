@@ -2,11 +2,10 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use compositor_common::{
-    scene::{InputId, OutputId, SceneSpec},
+    scene::{InputId, OutputId},
     Framerate,
 };
 
-use crate::wgpu::{WgpuCtx, WgpuErrorScope};
 use crate::{
     error::{InitRendererEngineError, RenderSceneError, UpdateSceneError},
     transformations::{
@@ -14,9 +13,12 @@ use crate::{
     },
     FrameSet, WebRendererOptions,
 };
+use crate::{
+    scene::{self, SceneState},
+    wgpu::{WgpuCtx, WgpuErrorScope},
+};
 
 use self::{
-    node::NodeSpecExt,
     render_graph::RenderGraph,
     render_loop::{populate_inputs, read_outputs, run_transforms},
     renderers::Renderers,
@@ -41,7 +43,7 @@ pub struct Renderer {
     pub chromium_context: Arc<ChromiumContext>,
 
     pub render_graph: RenderGraph,
-    pub scene_spec: Arc<SceneSpec>,
+    pub(crate) scene: SceneState,
 
     pub(crate) renderers: Renderers,
 
@@ -74,12 +76,8 @@ impl Renderer {
             chromium_context: Arc::new(ChromiumContext::new(opts.web_renderer, opts.framerate)?),
             render_graph: RenderGraph::empty(),
             renderers: Renderers::new(wgpu_ctx)?,
-            scene_spec: Arc::new(SceneSpec {
-                nodes: vec![],
-                outputs: vec![],
-            }),
-
             stream_fallback_timeout: opts.stream_fallback_timeout,
+            scene: SceneState::new(),
         })
     }
 
@@ -116,8 +114,11 @@ impl Renderer {
         })
     }
 
-    pub fn update_scene(&mut self, scene_spec: Arc<SceneSpec>) -> Result<(), UpdateSceneError> {
-        self.validate_constraints(&scene_spec)?;
+    pub fn update_scene(
+        &mut self,
+        scenes: Vec<scene::OutputScene>,
+    ) -> Result<(), UpdateSceneError> {
+        let output_nodes = self.scene.update_scene(scenes)?;
         self.render_graph.update(
             &RenderCtx {
                 wgpu_ctx: &self.wgpu_ctx,
@@ -126,22 +127,8 @@ impl Renderer {
                 renderers: &self.renderers,
                 stream_fallback_timeout: self.stream_fallback_timeout,
             },
-            &scene_spec,
+            output_nodes,
         )?;
-        self.scene_spec = scene_spec;
-        Ok(())
-    }
-
-    fn validate_constraints(&self, scene_spec: &SceneSpec) -> Result<(), UpdateSceneError> {
-        for node_spec in &scene_spec.nodes {
-            node_spec
-                .constraints(&self.renderers)?
-                .check(scene_spec, &node_spec.node_id)
-                .map_err(|err| {
-                    UpdateSceneError::ConstraintsValidationError(err, node_spec.node_id.clone())
-                })?;
-        }
-
         Ok(())
     }
 }

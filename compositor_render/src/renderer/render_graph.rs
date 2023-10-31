@@ -1,18 +1,43 @@
 use std::collections::HashMap;
+use std::fmt::Display;
 
-use compositor_common::scene::{InputId, NodeId, OutputId, SceneSpec};
+use compositor_common::scene::{InputId, OutputId};
 use log::error;
 
+use crate::scene::{self, OutputNode};
 use crate::wgpu::texture::{InputTexture, OutputTexture};
 use crate::{error::UpdateSceneError, wgpu::WgpuErrorScope};
 
 use super::NodeRenderPass;
 use super::{node::RenderNode, RenderCtx};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct NodeId(pub usize);
+
+impl Display for NodeId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
 pub struct RenderGraph {
     pub nodes: RenderNodesSet,
     pub outputs: HashMap<OutputId, (NodeId, OutputTexture)>,
-    pub inputs: HashMap<InputId, InputTexture>,
+    pub inputs: HashMap<InputId, (NodeId, InputTexture)>,
+}
+
+#[derive(Debug)]
+struct NodeIdProvider(NodeId);
+
+impl NodeIdProvider {
+    fn new() -> Self {
+        Self(NodeId(0))
+    }
+
+    fn next(&mut self) -> NodeId {
+        self.0 = NodeId(self.0 .0 + 1);
+        self.0
+    }
 }
 
 impl RenderGraph {
@@ -24,29 +49,30 @@ impl RenderGraph {
         }
     }
 
-    pub fn update(&mut self, ctx: &RenderCtx, spec: &SceneSpec) -> Result<(), UpdateSceneError> {
+    pub(crate) fn update(
+        &mut self,
+        ctx: &RenderCtx,
+        output_nodes: Vec<OutputNode>,
+    ) -> Result<(), UpdateSceneError> {
         // TODO: If we want nodes to be stateful we could try reusing nodes instead
         //       of recreating them on every scene update
         let scope = WgpuErrorScope::push(&ctx.wgpu_ctx.device);
 
         let mut new_nodes = HashMap::new();
         let mut inputs = HashMap::new();
-        let outputs = spec
-            .outputs
-            .iter()
+        let mut id_provider = NodeIdProvider::new();
+        let outputs = output_nodes
+            .into_iter()
             .map(|output| {
-                Self::ensure_node(ctx, &output.input_pad, spec, &mut inputs, &mut new_nodes)?;
-                let node = new_nodes
-                    .get(&output.input_pad)
-                    .ok_or_else(|| UpdateSceneError::NoNodeWithIdError(output.input_pad.clone()))?;
-                let resolution = node.renderer.resolution().ok_or_else(|| {
-                    UpdateSceneError::UnknownResolutionOnOutput(node.node_id.clone())
-                })?;
-                let output_texture = OutputTexture::new(ctx.wgpu_ctx, resolution);
-                Ok((
-                    output.output_id.clone(),
-                    (node.node_id.clone(), output_texture),
-                ))
+                let node_id = Self::ensure_node(
+                    ctx,
+                    output.node,
+                    &mut inputs,
+                    &mut new_nodes,
+                    &mut id_provider,
+                )?;
+                let output_texture = OutputTexture::new(ctx.wgpu_ctx, output.resolution);
+                Ok((output.output_id.clone(), (node_id, output_texture)))
             })
             .collect::<Result<_, UpdateSceneError>>()?;
 
@@ -61,39 +87,43 @@ impl RenderGraph {
 
     fn ensure_node(
         ctx: &RenderCtx,
-        node_id: &NodeId,
-        spec: &SceneSpec,
-        inputs: &mut HashMap<InputId, InputTexture>,
+        node: scene::Node,
+        inputs: &mut HashMap<InputId, (NodeId, InputTexture)>,
         new_nodes: &mut HashMap<NodeId, RenderNode>,
-    ) -> Result<(), UpdateSceneError> {
-        // check if node already exists
-        if new_nodes.get(node_id).is_some() {
-            return Ok(());
-        }
-
-        // handle a case where node_id refers to transform node
-        {
-            let node_spec = spec.nodes.iter().find(|node| &node.node_id == node_id);
-            if let Some(node_spec) = node_spec {
-                for child_id in &node_spec.input_pads {
-                    Self::ensure_node(ctx, child_id, spec, inputs, new_nodes)?;
-                }
-                if let Some(fallback_id) = &node_spec.fallback_id {
-                    Self::ensure_node(ctx, fallback_id, spec, inputs, new_nodes)?;
-                }
-                let node = RenderNode::new(ctx, node_spec)
-                    .map_err(|err| UpdateSceneError::CreateNodeError(err, node_id.clone()))?;
-                new_nodes.insert(node_id.clone(), node);
-                return Ok(());
+        id_provider: &mut NodeIdProvider,
+    ) -> Result<NodeId, UpdateSceneError> {
+        // check if input stream already registered
+        if let scene::NodeKind::InputStream(input) = &node.kind {
+            if let Some((node_id, _)) = inputs.get(&input.input_id) {
+                return Ok(*node_id);
             }
         }
 
-        // If there is no node with id node_id, assume it's an input. Pipeline validation should
-        // make sure that scene does not refer to missing entities.
-        let node = RenderNode::new_input(node_id);
-        new_nodes.insert(node_id.clone(), node);
-        inputs.insert(node_id.clone().into(), InputTexture::new());
-        Ok(())
+        let node_id = id_provider.next();
+        let input_pads: Vec<NodeId> = node
+            .children
+            .into_iter()
+            .map(|node| Self::ensure_node(ctx, node, inputs, new_nodes, id_provider))
+            .collect::<Result<Vec<_>, _>>()?;
+
+        match node.kind {
+            scene::NodeKind::InputStream(input) => {
+                let node = RenderNode::new_input();
+                new_nodes.insert(node_id, node);
+                inputs.insert(input.input_id.clone(), (node_id, InputTexture::new()));
+            }
+            scene::NodeKind::Shader(shader) => {
+                let node = RenderNode::new_shader_node(ctx, input_pads, shader)
+                    .map_err(|err| UpdateSceneError::CreateNodeError(err, node_id.0))?;
+                new_nodes.insert(node_id, node);
+            }
+            scene::NodeKind::Layout(layout) => {
+                let node = RenderNode::new_layout_node(ctx, input_pads, layout)
+                    .map_err(|err| UpdateSceneError::CreateNodeError(err, node_id.0))?;
+                new_nodes.insert(node_id, node);
+            }
+        }
+        Ok(node_id)
     }
 }
 
@@ -112,13 +142,13 @@ impl RenderNodesSet {
     pub fn node(&self, node_id: &NodeId) -> Result<&RenderNode, InternalSceneError> {
         self.nodes
             .get(node_id)
-            .ok_or_else(|| InternalSceneError::MissingNode(node_id.clone()))
+            .ok_or(InternalSceneError::MissingNode(node_id.0))
     }
 
     pub fn node_mut(&mut self, node_id: &NodeId) -> Result<&mut RenderNode, InternalSceneError> {
         self.nodes
             .get_mut(node_id)
-            .ok_or_else(|| InternalSceneError::MissingNode(node_id.clone()))
+            .ok_or(InternalSceneError::MissingNode(node_id.0))
     }
 
     pub fn node_or_fallback<'a>(
@@ -143,7 +173,7 @@ impl RenderNodesSet {
         // Extract mutable borrow for the node we will render.
         let node = nodes_mut
             .remove(&node_id)
-            .ok_or_else(|| InternalSceneError::MissingNode(node_id.clone()))?;
+            .ok_or(InternalSceneError::MissingNode(node_id.0))?;
 
         // Convert mutable borrows on rest of the nodes into immutable.
         // One input might be used multiple times, so we might need to
@@ -172,12 +202,12 @@ impl RenderNodesSet {
     ) -> Result<&'a RenderNode, InternalSceneError> {
         let mut node: &RenderNode = nodes
             .get(node_id)
-            .ok_or_else(|| InternalSceneError::MissingNode(node_id.clone()))?;
+            .ok_or(InternalSceneError::MissingNode(node_id.0))?;
         while node.output.is_empty() && node.fallback.is_some() {
-            let fallback_id = node.fallback.clone().unwrap();
+            let fallback_id = node.fallback.unwrap();
             node = nodes
                 .get(&fallback_id)
-                .ok_or_else(|| InternalSceneError::MissingNode(fallback_id.clone()))?
+                .ok_or(InternalSceneError::MissingNode(fallback_id.0))?
         }
         Ok(node)
     }
@@ -186,5 +216,5 @@ impl RenderNodesSet {
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum InternalSceneError {
     #[error("Missing node \"{0}\"")]
-    MissingNode(NodeId),
+    MissingNode(usize),
 }

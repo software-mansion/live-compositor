@@ -4,12 +4,12 @@ use compositor_common::{
     renderer_spec::FallbackStrategy,
     scene::{
         builtin_transformations::{BuiltinSpec, FitToResolutionSpec},
-        NodeId, Resolution,
+        Resolution,
     },
 };
 
 use crate::{
-    renderer::RenderCtx,
+    renderer::{render_graph::NodeId, RenderCtx},
     utils::rgba_to_wgpu_color,
     wgpu::{
         shader::{shader_params::ParamsBuffer, WgpuShader},

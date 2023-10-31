@@ -7,18 +7,10 @@ use super::util::*;
 use super::*;
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-pub struct Component {
-    pub id: ComponentId,
-    pub children: Option<Vec<Component>>,
-
-    #[serde(flatten)]
-    pub params: ComponentParams,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
-pub enum ComponentParams {
+pub enum Component {
     InputStream(InputStream),
+    View(View),
     WebRenderer(WebRenderer),
     Shader(Shader),
     Image(Image),
@@ -44,25 +36,43 @@ pub enum ComponentParams {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+#[serde(deny_unknown_fields)]
 pub struct InputStream {
-    pub input_id: ComponentId,
+    pub id: Option<ComponentId>,
+    pub input_id: InputId,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct View {
+    pub id: Option<ComponentId>,
+    pub children: Option<Vec<Component>>,
+    pub width: Option<usize>,
+    pub height: Option<usize>,
+    pub background_color_rgba: Option<RGBAColor>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct WebRenderer {
+    pub id: Option<ComponentId>,
+    pub children: Option<Vec<Component>>,
     pub instance_id: RendererId,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct Image {
+    pub id: Option<ComponentId>,
+    pub children: Option<Vec<Component>>,
     pub image_id: RendererId,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct Shader {
+    pub id: Option<ComponentId>,
+    pub children: Option<Vec<Component>>,
     pub shader_id: RendererId,
     pub shader_params: Option<ShaderParam>,
     pub resolution: Resolution,

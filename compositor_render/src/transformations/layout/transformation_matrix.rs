@@ -46,8 +46,8 @@ impl Layout {
     /// coordinate system
     fn translation_to_final_position(&self, output_resolution: Resolution) -> Vec3 {
         vec3(
-            -(output_resolution.width as f32 / 2.0) + self.top_left_corner.0 + (self.width / 2.0),
-            (output_resolution.height as f32 / 2.0) - self.top_left_corner.1 - (self.height / 2.0),
+            -(output_resolution.width as f32 / 2.0) + self.left + (self.width / 2.0),
+            (output_resolution.height as f32 / 2.0) - self.top - (self.height / 2.0),
             0.0,
         )
     }
