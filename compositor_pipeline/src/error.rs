@@ -212,6 +212,7 @@ impl From<&UpdateSceneError> for PipelineErrorInfo {
 const WGPU_INIT_ERROR: &str = "WGPU_INIT_ERROR";
 const WEB_RENDERER_INIT_ERROR: &str = "WEB_RENDERER_INIT_ERROR";
 const BUILTIN_INIT_ERROR: &str = "BUILTIN_INIT_ERROR";
+const LAYOUT_INIT_ERROR: &str = "LAYOUT_INIT_ERROR";
 
 impl From<&InitRendererEngineError> for PipelineErrorInfo {
     fn from(err: &InitRendererEngineError) -> Self {
@@ -224,6 +225,9 @@ impl From<&InitRendererEngineError> for PipelineErrorInfo {
             }
             InitRendererEngineError::BuiltInTransformationsInitError(_) => {
                 PipelineErrorInfo::new(BUILTIN_INIT_ERROR, ErrorType::ServerError)
+            }
+            InitRendererEngineError::LayoutTransformationsInitError(_) => {
+                PipelineErrorInfo::new(LAYOUT_INIT_ERROR, ErrorType::ServerError)
             }
         }
     }

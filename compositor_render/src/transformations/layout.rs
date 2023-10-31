@@ -35,8 +35,13 @@ pub struct Layout {
     pub width: f32,
     pub height: f32,
     pub rotation_degrees: f32,
-    pub background_color: RGBAColor,
-    pub embeded_child_index: Option<usize>,
+    pub content: LayoutContent,
+}
+
+#[derive(Debug, Clone)]
+pub enum LayoutContent {
+    Color(RGBAColor),
+    ChildNode(/* input pad index */ usize),
 }
 
 impl LayoutNode {
@@ -67,10 +72,16 @@ impl LayoutNode {
 
         let params = layouts
             .iter()
-            .map(|layout| LayoutNodeParams {
-                transformation_matrix: layout.transformation_matrix(output_resolution),
-                texture_id: layout.embeded_child_index.map(|v| v as i32).unwrap_or(-1),
-                background_color: layout.background_color,
+            .map(|layout| {
+                let (texture_id, background_color) = match layout.content {
+                    LayoutContent::Color(color) => (-1, color),
+                    LayoutContent::ChildNode(index) => (index as i32, RGBAColor(0, 0, 0, 0)),
+                };
+                LayoutNodeParams {
+                    transformation_matrix: layout.transformation_matrix(output_resolution),
+                    texture_id,
+                    background_color,
+                }
             })
             .collect();
         self.params.update(params, ctx.wgpu_ctx);
