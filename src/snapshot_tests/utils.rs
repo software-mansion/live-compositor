@@ -39,9 +39,11 @@ pub(super) fn frame_to_rgba(frame: &Frame) -> Vec<u8> {
     rgba_data
 }
 
-pub(super) fn are_snapshots_near_equal(old_snapshot: &[u8], new_snapshot: &[u8]) -> bool {
-    const ALLOWED_ERROR: f32 = 2.5;
-
+pub(super) fn are_snapshots_near_equal(
+    old_snapshot: &[u8],
+    new_snapshot: &[u8],
+    allowed_error: f32,
+) -> bool {
     if old_snapshot.len() != new_snapshot.len() {
         return false;
     }
@@ -51,7 +53,7 @@ pub(super) fn are_snapshots_near_equal(old_snapshot: &[u8], new_snapshot: &[u8])
         .map(|(a, b)| (*a as i32 - *b as i32).pow(2) as f32)
         .sum();
 
-    (square_error / old_snapshot.len() as f32) < ALLOWED_ERROR
+    (square_error / old_snapshot.len() as f32) < allowed_error
 }
 
 pub(super) fn create_renderer(renderers: Vec<RendererSpec>, scene: Arc<SceneSpec>) -> Renderer {
