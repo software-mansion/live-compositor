@@ -4,7 +4,7 @@
             "node_id": "layout",
             "type": "builtin:fit_to_resolution",
             "resolution": {
-                "width": 1280,
+                "width": 1289,
                 "height": 1280
             },
             "background_color_rgba": "#00FF00FF",

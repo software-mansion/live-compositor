@@ -16,9 +16,9 @@ mod utils;
 
 #[test]
 fn test_snapshots() {
-    let artifact_save_path = artifacts_path();
-    if artifact_save_path.exists() {
-        fs::remove_dir_all(artifact_save_path).unwrap();
+    let failed_snapshot_path = failed_snapshot_path();
+    if failed_snapshot_path.exists() {
+        fs::remove_dir_all(failed_snapshot_path).unwrap();
     }
 
     let test_cases = snapshot_tests();
@@ -35,16 +35,14 @@ fn test_snapshots() {
         .iter()
         .flat_map(TestCase::snapshot_paths)
         .collect::<HashSet<_>>();
-    for path in find_unused_snapshots(&snapshot_paths, snapshots_path()) {
-        println!("Removed unused snapshot {path:?}");
-        fs::remove_file(path).unwrap();
+    let unused_snapshots = find_unused_snapshots(&snapshot_paths, snapshots_path());
+    if !unused_snapshots.is_empty() {
+        panic!("Some snapshots were not used: {unused_snapshots:#?}")
     }
 }
 
 fn handle_error(err: Error) {
-    let Some(test_case_err) = err.downcast_ref::<TestCaseError>() else {
-        panic!("{err}");
-    };
+    let test_case_err = err.downcast_ref::<TestCaseError>().unwrap();
     let TestCaseError::Mismatch {
         snapshot_from_disk,
         produced_snapshot,
@@ -53,15 +51,15 @@ fn handle_error(err: Error) {
         panic!("{err}");
     };
 
-    let artifact_save_path = artifacts_path();
-    if !artifact_save_path.exists() {
-        fs::create_dir_all(&artifact_save_path).unwrap();
+    let failed_snapshot_path = failed_snapshot_path();
+    if !failed_snapshot_path.exists() {
+        fs::create_dir_all(&failed_snapshot_path).unwrap();
     }
 
     let width = produced_snapshot.resolution.width - (produced_snapshot.resolution.width % 2);
     let height = produced_snapshot.resolution.height - (produced_snapshot.resolution.height % 2);
     image::save_buffer(
-        artifact_save_path.join("produced.png"),
+        failed_snapshot_path.join("produced.png"),
         &produced_snapshot.data,
         width as u32,
         height as u32,
@@ -70,12 +68,12 @@ fn handle_error(err: Error) {
     .unwrap();
 
     snapshot_from_disk
-        .save(artifact_save_path.join("original.png"))
+        .save(failed_snapshot_path.join("original.png"))
         .unwrap();
 
     panic!("{err}");
 }
 
-fn artifacts_path() -> PathBuf {
+fn failed_snapshot_path() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("failed_snapshot_tests")
 }
