@@ -60,21 +60,13 @@ jobs:
             - name: 🧪 Run tests
               run: cargo nextest run --no-fail-fast --workspace
 
-            - name: 📦 Upload original snapshot
+            - name: 📦 Upload failed snapshot test artifacts
               if: failure()
               uses: actions/upload-artifact@v3
               with:
-                  name: original_snapshot.png
-                  path: failed_snapshot_tests/original.png
+                  name: failed_snapshot_tests
+                  path: failed_snapshot_tests
                   retention-days: 2
-
-            - name: 📦 Upload produced snapshot
-              if: failure()
-              uses: actions/upload-artifact@v3
-              with:
-                name: produced_snapshot
-                path: failed_snapshot_tests/produced.png
-                retention-days: 2
 
             - name: 📚 Run doctests
               run: cargo test --workspace --doc

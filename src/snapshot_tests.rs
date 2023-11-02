@@ -55,11 +55,13 @@ fn handle_error(err: Error) {
     if !failed_snapshot_path.exists() {
         fs::create_dir_all(&failed_snapshot_path).unwrap();
     }
+    let snapshot_save_path = produced_snapshot.save_path();
+    let snapshot_name = snapshot_save_path.file_name().unwrap().to_string_lossy();
 
     let width = produced_snapshot.resolution.width - (produced_snapshot.resolution.width % 2);
     let height = produced_snapshot.resolution.height - (produced_snapshot.resolution.height % 2);
     image::save_buffer(
-        failed_snapshot_path.join("produced.png"),
+        failed_snapshot_path.join(format!("mismatched_{snapshot_name}")),
         &produced_snapshot.data,
         width as u32,
         height as u32,
@@ -68,7 +70,7 @@ fn handle_error(err: Error) {
     .unwrap();
 
     snapshot_from_disk
-        .save(failed_snapshot_path.join("original.png"))
+        .save(failed_snapshot_path.join(format!("original_{snapshot_name}")))
         .unwrap();
 
     panic!("{err}");
