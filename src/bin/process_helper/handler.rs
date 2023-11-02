@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex};
 use anyhow::{anyhow, Result};
 use compositor_chromium::cef;
 use compositor_render::{
-    EMBED_SOURCE_FRAMES_MESSAGE, GET_FRAME_POSITIONS_MESSAGE, UNEMBED_SOURCE_FRAMES_MESSAGE,
+    EMBED_SOURCES_MESSAGE, GET_FRAME_POSITIONS_MESSAGE, UNEMBED_SOURCE_MESSAGE,
 };
 use log::{debug, error};
 
@@ -38,8 +38,8 @@ impl cef::RenderProcessHandler for RenderProcessHandler {
         message: &cef::ProcessMessage,
     ) -> bool {
         let result = match message.name().as_str() {
-            EMBED_SOURCE_FRAMES_MESSAGE => self.embed_sources(message, frame),
-            UNEMBED_SOURCE_FRAMES_MESSAGE => self.unembed_source(message, frame),
+            EMBED_SOURCES_MESSAGE => self.embed_sources(message, frame),
+            UNEMBED_SOURCE_MESSAGE => self.unembed_source(message, frame),
             GET_FRAME_POSITIONS_MESSAGE => self.send_frame_positions(message, frame),
             name => Err(anyhow!("Unknown message type: {name}")),
         };
@@ -65,28 +65,30 @@ impl RenderProcessHandler {
         let ctx_entered = ctx.enter()?;
         let mut global = ctx.global()?;
 
-        const MSG_SIZE: usize = 3;
-        for i in (0..msg.size()).step_by(3) {
-            let source_idx = i / MSG_SIZE;
-
+        for i in (0..msg.size()).step_by(4) {
             let Some(shmem_path) = msg.read_string(i) else {
                 return Err(anyhow!("Failed to read shared memory path at {i}"));
             };
             let shmem_path = PathBuf::from(shmem_path);
 
-            let Some(width) = msg.read_int(i + 1) else {
+            let Some(source_idx) = msg.read_int(i + 1) else {
+                return Err(anyhow!("Failed to read source index of input at {}", i + 1));
+            };
+            let source_idx = source_idx as usize;
+
+            let Some(width) = msg.read_int(i + 2) else {
                 return Err(anyhow!(
                     "Failed to read width of input {} at {}",
                     source_idx,
-                    i + 1
+                    i + 2
                 ));
             };
 
-            let Some(height) = msg.read_int(i + 2) else {
+            let Some(height) = msg.read_int(i + 3) else {
                 return Err(anyhow!(
                     "Failed to read height of input {} at {}",
                     source_idx,
-                    i + 2
+                    i + 3
                 ));
             };
 
@@ -151,6 +153,11 @@ impl RenderProcessHandler {
         let mut global = ctx.global()?;
         global.delete(&source_id, &ctx_entered)?;
         state.remove_source(&shmem_path);
+
+        // Confirm successful unembedding
+        let mut response = cef::ProcessMessage::new(UNEMBED_SOURCE_MESSAGE);
+        response.write_string(0, shmem_path.display().to_string());
+        surface.send_process_message(cef::ProcessId::Browser, response)?;
 
         Ok(())
     }

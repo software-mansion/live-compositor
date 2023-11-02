@@ -110,6 +110,7 @@ fn start_example_client_code() -> Result<()> {
         "instance_id": "example_website",
         "url": format!("file://{file_path}"), // or other way of providing source
         "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+        "embedding_method": "chromium_embedding",
         "constraints": [
             {
                 "type": "input_count",
@@ -122,20 +123,21 @@ fn start_example_client_code() -> Result<()> {
     info!("[example] Update scene");
     common::post(&json!({
         "type": "update_scene",
-        "nodes": [
-            {
-                "node_id": "embed_input_on_website",
-                "type": "web_renderer",
-                "instance_id": "example_website",
-                "input_pads": [
-                     "input_1",
-                 ]
-            }
-        ],
-        "outputs": [
+        "scenes": [
             {
                 "output_id": "output_1",
-                "input_pad": "embed_input_on_website"
+                "root": {
+                    "node_id": "embed_input_on_website",
+                    "type": "web_renderer",
+                    "instance_id": "example_website",
+                    "children": [
+                        {
+                            "node_id": "input_1",
+                            "type": "input_stream",
+                            "input_id": "input_1",
+                        },
+                    ]
+                }
             }
         ]
     }))?;
@@ -158,5 +160,6 @@ fn start_example_client_code() -> Result<()> {
             "rtp://127.0.0.1:8004?rtcpport=8004",
         ])
         .spawn()?;
+
     Ok(())
 }

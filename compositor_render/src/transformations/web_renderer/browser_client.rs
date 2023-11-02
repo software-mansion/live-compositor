@@ -1,19 +1,23 @@
 use std::sync::{Arc, Mutex};
 
-use crate::GET_FRAME_POSITIONS_MESSAGE;
+use crate::{GET_FRAME_POSITIONS_MESSAGE, UNEMBED_SOURCE_MESSAGE};
 use bytes::Bytes;
 use compositor_chromium::cef;
 use compositor_common::scene::Resolution;
-use log::error;
+use crossbeam_channel::Sender;
+use log::{debug, error};
 
 use crate::transformations::builtin::box_layout::BoxLayout;
 use crate::transformations::web_renderer::{FrameData, SourceTransforms};
+
+use super::chromium_sender::ChromiumSenderMessage;
 
 #[derive(Clone)]
 pub(super) struct BrowserClient {
     frame_data: FrameData,
     source_transforms: SourceTransforms,
     resolution: Resolution,
+    chromium_thread_sender: Option<Sender<ChromiumSenderMessage>>,
 }
 
 impl cef::Client for BrowserClient {
@@ -31,40 +35,8 @@ impl cef::Client for BrowserClient {
         message: &cef::ProcessMessage,
     ) -> bool {
         match message.name().as_str() {
-            GET_FRAME_POSITIONS_MESSAGE => {
-                let mut transforms_matrices = Vec::new();
-                for i in (0..message.size()).step_by(4) {
-                    let Some(x) = message.read_double(i) else {
-                        error!("Expected \"x\" value of DOMRect");
-                        continue;
-                    };
-                    let Some(y) = message.read_double(i + 1) else {
-                        error!("Expected \"y\" value of DOMRect");
-                        continue;
-                    };
-                    let Some(width) = message.read_double(i + 2) else {
-                        error!("Expected \"width\" value of DOMRect");
-                        continue;
-                    };
-                    let Some(height) = message.read_double(i + 3) else {
-                        error!("Expected \"height\" value of DOMRect");
-                        continue;
-                    };
-
-                    let transformations_matrix = BoxLayout {
-                        top_left_corner: (x as f32, y as f32),
-                        width: width as f32,
-                        height: height as f32,
-                        rotation_degrees: 0.0,
-                    }
-                    .transformation_matrix(self.resolution);
-
-                    transforms_matrices.push(transformations_matrix);
-                }
-
-                let mut source_transforms = self.source_transforms.lock().unwrap();
-                *source_transforms = transforms_matrices;
-            }
+            GET_FRAME_POSITIONS_MESSAGE => self.update_source_transforms(message),
+            UNEMBED_SOURCE_MESSAGE => self.handle_unembed_source_confirmation(message),
             ty => error!("Unknown process message type \"{ty}\""),
         }
         true
@@ -81,6 +53,61 @@ impl BrowserClient {
             frame_data,
             source_transforms,
             resolution,
+            chromium_thread_sender: None,
+        }
+    }
+
+    pub fn set_chromium_thread_sender(&mut self, sender: Sender<ChromiumSenderMessage>) {
+        self.chromium_thread_sender.replace(sender);
+    }
+
+    fn update_source_transforms(&self, msg: &cef::ProcessMessage) {
+        let mut transforms_matrices = Vec::new();
+        for i in (0..msg.size()).step_by(4) {
+            let Some(x) = msg.read_double(i) else {
+                error!("Expected \"x\" value of DOMRect");
+                continue;
+            };
+            let Some(y) = msg.read_double(i + 1) else {
+                error!("Expected \"y\" value of DOMRect");
+                continue;
+            };
+            let Some(width) = msg.read_double(i + 2) else {
+                error!("Expected \"width\" value of DOMRect");
+                continue;
+            };
+            let Some(height) = msg.read_double(i + 3) else {
+                error!("Expected \"height\" value of DOMRect");
+                continue;
+            };
+
+            let transformations_matrix = BoxLayout {
+                top_left_corner: (x as f32, y as f32),
+                width: width as f32,
+                height: height as f32,
+                rotation_degrees: 0.0,
+            }
+            .transformation_matrix(self.resolution);
+
+            transforms_matrices.push(transformations_matrix);
+        }
+
+        let mut source_transforms = self.source_transforms.lock().unwrap();
+        *source_transforms = transforms_matrices;
+    }
+
+    fn handle_unembed_source_confirmation(&self, msg: &cef::ProcessMessage) {
+        let Some(shared_memory_path) = msg.read_string(0) else {
+            error!("Expected shared memory path");
+            return;
+        };
+        debug!("Process helper successfuly unembedded source. \"{shared_memory_path}\" is no longer used");
+        if let Some(chromium_thread_sender) = &self.chromium_thread_sender {
+            chromium_thread_sender
+                .send(ChromiumSenderMessage::FinalizePendingResize {
+                    shared_memory_path: shared_memory_path.into(),
+                })
+                .unwrap()
         }
     }
 }

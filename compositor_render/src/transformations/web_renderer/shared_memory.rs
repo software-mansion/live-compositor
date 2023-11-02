@@ -1,4 +1,3 @@
-use crate::UNEMBED_SOURCE_FRAMES_MESSAGE;
 use compositor_chromium::cef;
 use compositor_common::scene::NodeId;
 use log::error;
@@ -37,26 +36,19 @@ impl SharedMemory {
         })
     }
 
+    pub fn len(&self) -> usize {
+        self.inner.as_ref().map(Shmem::len).unwrap_or_default()
+    }
+
+    pub fn path(&self) -> &Path {
+        &self.path
+    }
+
     pub fn to_path_string(&self) -> String {
         self.path.display().to_string()
     }
 
-    pub fn ensure_size(
-        &mut self,
-        size: usize,
-        frame: &cef::Frame,
-    ) -> Result<(), SharedMemoryError> {
-        let shmem_len = self.inner.as_ref().map(|shmem| shmem.len()).unwrap();
-        if shmem_len == size {
-            return Ok(());
-        }
-
-        // TODO: This should be synchronised
-        let mut process_message = cef::ProcessMessage::new(UNEMBED_SOURCE_FRAMES_MESSAGE);
-        process_message.write_string(0, self.path.display().to_string());
-        frame.send_process_message(cef::ProcessId::Renderer, process_message)?;
-        // -----
-
+    pub fn resize(&mut self, size: usize) -> Result<(), SharedMemoryError> {
         // Releasing the current `Shmem` instance to ensure it does not erase the shared memory descriptor from the file system
         // This is critical to ensure when a new `Shmem` is created at the same location, it doesn't conflict with the old descriptor
         drop(self.inner.take());

@@ -15,8 +15,7 @@ pub use event_loop::EventLoop;
 pub use frame_set::FrameSet;
 
 pub use transformations::web_renderer::{
-    WebRendererOptions, EMBED_SOURCE_FRAMES_MESSAGE, GET_FRAME_POSITIONS_MESSAGE,
-    UNEMBED_SOURCE_FRAMES_MESSAGE,
+    WebRendererOptions, EMBED_SOURCES_MESSAGE, GET_FRAME_POSITIONS_MESSAGE, UNEMBED_SOURCE_MESSAGE,
 };
 
 pub type Renderer = sync_renderer::SyncRenderer;

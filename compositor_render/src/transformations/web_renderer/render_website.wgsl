@@ -51,7 +51,6 @@ fn vs_main(input: VertexInput) -> VertexOutput {
 
 @fragment
 fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
-
     let sample = textureSample(textures[input.texture_id], sampler_, input.tex_coords);
 
     if common_params.texture_count == 0u {

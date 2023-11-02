@@ -22,13 +22,12 @@ use log::{error, info};
 pub mod browser_client;
 pub mod chromium_context;
 mod chromium_sender;
-mod chromium_sender_thread;
 mod embedder;
 pub(crate) mod node;
 mod shared_memory;
 
-pub const EMBED_SOURCE_FRAMES_MESSAGE: &str = "EMBED_SOURCE_FRAMES";
-pub const UNEMBED_SOURCE_FRAMES_MESSAGE: &str = "UNEMBED_SOURCE_FRAMES";
+pub const EMBED_SOURCES_MESSAGE: &str = "EMBED_SOURCES";
+pub const UNEMBED_SOURCE_MESSAGE: &str = "UNEMBED_SOURCE";
 pub const GET_FRAME_POSITIONS_MESSAGE: &str = "GET_FRAME_POSITIONS";
 
 pub(super) type FrameData = Arc<Mutex<Bytes>>;
