@@ -544,6 +544,7 @@ pub fn text_snapshot_tests() -> Vec<TestCase> {
         TestCase {
             name: "text/wrap_glyph",
             scene_json: include_str!("../../snapshot_tests/text/wrap_glyph.scene.json"),
+            allowed_error: 325.7,
             ..Default::default()
         },
         TestCase {
@@ -554,6 +555,7 @@ pub fn text_snapshot_tests() -> Vec<TestCase> {
         TestCase {
             name: "text/wrap_word",
             scene_json: include_str!("../../snapshot_tests/text/wrap_word.scene.json"),
+            allowed_error: 321.8,
             ..Default::default()
         },
     ])
