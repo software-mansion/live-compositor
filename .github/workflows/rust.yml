@@ -72,7 +72,7 @@ jobs:
               if: failure()
               uses: actions/upload-artifact@v3
               with:
-                name: produced_snapshot.png
+                name: produced_snapshot
                 path: failed_snapshot_tests/produced.png
                 retention-days: 2
 
