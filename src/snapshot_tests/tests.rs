@@ -6,7 +6,7 @@ pub fn snapshot_tests() -> Vec<TestCase> {
     let mut tests = Vec::new();
     tests.append(&mut text_snapshot_tests());
     tests.append(&mut tiled_layout_tests());
-    // tests.append(&mut stretch_to_resolution_tests());
+    tests.append(&mut stretch_to_resolution_tests());
     tests.append(&mut fill_to_resolution_tests());
     tests.append(&mut fit_to_resolution_tests());
     tests.append(&mut fixed_position_layout_tests());
@@ -105,23 +105,22 @@ fn fixed_position_layout_tests() -> Vec<TestCase> {
             ],
             ..Default::default()
         },
-        // TODO: fix stretch to resolution
-        //TestCase {
-        //    name: "fixed_position_layout/scale_2x",
-        //    scene_json: include_str!(
-        //        "../../snapshot_tests/fixed_position_layout/scale_2x.scene.json"
-        //    ),
-        //    inputs: vec![input1.clone()],
-        //    ..Default::default()
-        //},
-        //TestCase {
-        //    name: "fixed_position_layout/scale_0_5x",
-        //    scene_json: include_str!(
-        //        "../../snapshot_tests/fixed_position_layout/scale_0_5x.scene.json"
-        //    ),
-        //    inputs: vec![input1.clone()],
-        //    ..Default::default()
-        //},
+        TestCase {
+            name: "fixed_position_layout/scale_2x",
+            scene_json: include_str!(
+                "../../snapshot_tests/fixed_position_layout/scale_2x.scene.json"
+            ),
+            inputs: vec![input1.clone()],
+            ..Default::default()
+        },
+        TestCase {
+            name: "fixed_position_layout/scale_0_5x",
+            scene_json: include_str!(
+                "../../snapshot_tests/fixed_position_layout/scale_0_5x.scene.json"
+            ),
+            inputs: vec![input1.clone()],
+            ..Default::default()
+        },
     ])
 }
 
