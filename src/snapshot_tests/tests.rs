@@ -6,7 +6,7 @@ pub fn snapshot_tests() -> Vec<TestCase> {
     let mut tests = Vec::new();
     tests.append(&mut text_snapshot_tests());
     tests.append(&mut tiled_layout_tests());
-    // tests.append(&mut stretch_to_resolution_tests());
+    tests.append(&mut stretch_to_resolution_tests());
     tests.append(&mut fill_to_resolution_tests());
     tests.append(&mut fit_to_resolution_tests());
     tests.append(&mut fixed_position_layout_tests());
