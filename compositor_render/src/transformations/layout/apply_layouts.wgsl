@@ -14,7 +14,7 @@ struct VertexOutput {
 struct Layout {
     position_transformation: mat4x4<f32>,
     texture_id: i32,
-    background_color: vec4<f32>,
+    color: vec4<f32>, // used only when texture_id = -1
 }
 
 @group(0) @binding(0) var textures: binding_array<texture_2d<f32>, 16>;
@@ -57,6 +57,6 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
     if current_layout.texture_id != -1 {
         return sample;
     } else {
-        return current_layout.background_color;
+        return current_layout.color;
     }
 }

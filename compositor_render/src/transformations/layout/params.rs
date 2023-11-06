@@ -88,7 +88,7 @@ impl LayoutNodeParams {
             (value as f32 / 255.0).to_ne_bytes()
         }
 
-        result[0..64].copy_from_slice(&mat4_shader_buffer_content(transformation_matrix));
+        result[0..64].copy_from_slice(bytemuck::bytes_of(&transformation_matrix.transpose()));
         result[64..68].copy_from_slice(&texture_id.to_ne_bytes());
         // 12 bytes padding
         result[80..84].copy_from_slice(&from_u8_color(background_color.0));
@@ -97,17 +97,4 @@ impl LayoutNodeParams {
         result[92..96].copy_from_slice(&from_u8_color(background_color.3));
         result
     }
-}
-
-pub fn mat4_shader_buffer_content(mat: &Mat4) -> [u8; 64] {
-    let mut result = [0; 64];
-
-    let colum_based = mat.transpose();
-    for (index, value) in colum_based.iter().enumerate() {
-        let start = index * 4;
-        let end = (index + 1) * 4;
-        result[start..end].copy_from_slice(&value.to_ne_bytes())
-    }
-
-    result
 }
