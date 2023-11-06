@@ -105,23 +105,22 @@ fn fixed_position_layout_tests() -> Vec<TestCase> {
             ],
             ..Default::default()
         },
-        // TODO: fix stretch to resolution
-        //TestCase {
-        //    name: "fixed_position_layout/scale_2x",
-        //    scene_json: include_str!(
-        //        "../../snapshot_tests/fixed_position_layout/scale_2x.scene.json"
-        //    ),
-        //    inputs: vec![input1.clone()],
-        //    ..Default::default()
-        //},
-        //TestCase {
-        //    name: "fixed_position_layout/scale_0_5x",
-        //    scene_json: include_str!(
-        //        "../../snapshot_tests/fixed_position_layout/scale_0_5x.scene.json"
-        //    ),
-        //    inputs: vec![input1.clone()],
-        //    ..Default::default()
-        //},
+        TestCase {
+            name: "fixed_position_layout/scale_2x",
+            scene_json: include_str!(
+                "../../snapshot_tests/fixed_position_layout/scale_2x.scene.json"
+            ),
+            inputs: vec![input1.clone()],
+            ..Default::default()
+        },
+        TestCase {
+            name: "fixed_position_layout/scale_0_5x",
+            scene_json: include_str!(
+                "../../snapshot_tests/fixed_position_layout/scale_0_5x.scene.json"
+            ),
+            inputs: vec![input1.clone()],
+            ..Default::default()
+        },
     ])
 }
 

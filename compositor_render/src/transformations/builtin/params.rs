@@ -5,6 +5,7 @@ use compositor_common::{
     },
     util::{ContinuousValue, InterpolationState},
 };
+use nalgebra_glm::Mat4;
 
 use self::{
     box_layout_params::BoxLayoutParams,
@@ -15,7 +16,7 @@ use self::{
     transform_to_resolution::{new_fit_to_resolution_params, FillParams},
 };
 
-use super::{box_layout::BoxLayout, BuiltinState, BuiltinTransition};
+use super::{box_layout::BoxLayout, utils::mat4_to_bytes, BuiltinState, BuiltinTransition};
 
 mod box_layout_params;
 mod corners_rounding;
@@ -115,7 +116,7 @@ impl RenderParams {
                 corners_rounding_params.shader_buffer_content()
             }
             RenderParams::Fill(fill_params) => fill_params.shader_buffer_content(),
-            RenderParams::None => bytes::Bytes::new(),
+            RenderParams::None => mat4_to_bytes(&Mat4::identity()),
         }
     }
 }
