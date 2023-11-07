@@ -81,7 +81,7 @@ impl TryFrom<UpdateScene> for scene::SceneSpec {
             .iter()
             .map(|scene| scene::OutputSpec {
                 output_id: scene.output_id.clone().into(),
-                input_pad: scene.root.node_id.clone().into(),
+                input_pad: scene.root.id.clone().into(),
             })
             .collect();
         let nodes: Vec<scene::NodeSpec> = update_scene

@@ -7,18 +7,18 @@ use crate::wgpu::texture::{InputTexture, OutputTexture};
 use crate::{error::UpdateSceneError, wgpu::WgpuErrorScope};
 
 use super::NodeRenderPass;
-use super::{node::Node, RenderCtx};
+use super::{node::RenderNode, RenderCtx};
 
-pub struct Scene {
-    pub nodes: SceneNodesSet,
+pub struct RenderGraph {
+    pub nodes: RenderNodesSet,
     pub outputs: HashMap<OutputId, (NodeId, OutputTexture)>,
     pub inputs: HashMap<InputId, InputTexture>,
 }
 
-impl Scene {
+impl RenderGraph {
     pub fn empty() -> Self {
         Self {
-            nodes: SceneNodesSet::new(),
+            nodes: RenderNodesSet::new(),
             outputs: HashMap::new(),
             inputs: HashMap::new(),
         }
@@ -54,7 +54,7 @@ impl Scene {
 
         self.inputs = inputs;
         self.outputs = outputs;
-        self.nodes = SceneNodesSet { nodes: new_nodes };
+        self.nodes = RenderNodesSet { nodes: new_nodes };
 
         Ok(())
     }
@@ -64,7 +64,7 @@ impl Scene {
         node_id: &NodeId,
         spec: &SceneSpec,
         inputs: &mut HashMap<InputId, InputTexture>,
-        new_nodes: &mut HashMap<NodeId, Node>,
+        new_nodes: &mut HashMap<NodeId, RenderNode>,
     ) -> Result<(), UpdateSceneError> {
         // check if node already exists
         if new_nodes.get(node_id).is_some() {
@@ -81,7 +81,7 @@ impl Scene {
                 if let Some(fallback_id) = &node_spec.fallback_id {
                     Self::ensure_node(ctx, fallback_id, spec, inputs, new_nodes)?;
                 }
-                let node = Node::new(ctx, node_spec)
+                let node = RenderNode::new(ctx, node_spec)
                     .map_err(|err| UpdateSceneError::CreateNodeError(err, node_id.clone()))?;
                 new_nodes.insert(node_id.clone(), node);
                 return Ok(());
@@ -90,7 +90,7 @@ impl Scene {
 
         // If there is no node with id node_id, assume it's an input. Pipeline validation should
         // make sure that scene does not refer to missing entities.
-        let node = Node::new_input(node_id);
+        let node = RenderNode::new_input(node_id);
         new_nodes.insert(node_id.clone(), node);
         inputs.insert(node_id.clone().into(), InputTexture::new());
         Ok(())
@@ -98,24 +98,24 @@ impl Scene {
 }
 
 #[derive(Default)]
-pub struct SceneNodesSet {
-    nodes: HashMap<NodeId, Node>,
+pub struct RenderNodesSet {
+    nodes: HashMap<NodeId, RenderNode>,
 }
 
-impl SceneNodesSet {
+impl RenderNodesSet {
     pub fn new() -> Self {
         Self {
             nodes: HashMap::new(),
         }
     }
 
-    pub fn node(&self, node_id: &NodeId) -> Result<&Node, InternalSceneError> {
+    pub fn node(&self, node_id: &NodeId) -> Result<&RenderNode, InternalSceneError> {
         self.nodes
             .get(node_id)
             .ok_or_else(|| InternalSceneError::MissingNode(node_id.clone()))
     }
 
-    pub fn node_mut(&mut self, node_id: &NodeId) -> Result<&mut Node, InternalSceneError> {
+    pub fn node_mut(&mut self, node_id: &NodeId) -> Result<&mut RenderNode, InternalSceneError> {
         self.nodes
             .get_mut(node_id)
             .ok_or_else(|| InternalSceneError::MissingNode(node_id.clone()))
@@ -124,8 +124,8 @@ impl SceneNodesSet {
     pub fn node_or_fallback<'a>(
         &'a self,
         node_id: &NodeId,
-    ) -> Result<&'a Node, InternalSceneError> {
-        let nodes: HashMap<&NodeId, &Node> = self.nodes.iter().collect();
+    ) -> Result<&'a RenderNode, InternalSceneError> {
+        let nodes: HashMap<&NodeId, &RenderNode> = self.nodes.iter().collect();
         Self::find_fallback_node(&nodes, node_id)
     }
 
@@ -138,7 +138,7 @@ impl SceneNodesSet {
 
         // Borrow all the references, Fallback technically can be applied on every
         // level, so the easiest approach is to just borrow everything
-        let mut nodes_mut: HashMap<&NodeId, &mut Node> = self.nodes.iter_mut().collect();
+        let mut nodes_mut: HashMap<&NodeId, &mut RenderNode> = self.nodes.iter_mut().collect();
 
         // Extract mutable borrow for the node we will render.
         let node = nodes_mut
@@ -148,14 +148,14 @@ impl SceneNodesSet {
         // Convert mutable borrows on rest of the nodes into immutable.
         // One input might be used multiple times, so we might need to
         // borrow it more than once, so it needs to be immutable.
-        let nodes: HashMap<&NodeId, &Node> = nodes_mut
+        let nodes: HashMap<&NodeId, &RenderNode> = nodes_mut
             .into_iter()
             .map(|(id, node)| (id, &*node))
             .collect();
 
         // Get immutable borrows for inputs. For each input if node texture
         // is empty go through the fallback chain
-        let inputs: Vec<(NodeId, &Node)> = input_ids
+        let inputs: Vec<(NodeId, &RenderNode)> = input_ids
             .into_iter()
             .map(|input_id| {
                 let node = Self::find_fallback_node(&nodes, &input_id)?;
@@ -167,10 +167,10 @@ impl SceneNodesSet {
     }
 
     fn find_fallback_node<'a>(
-        nodes: &HashMap<&NodeId, &'a Node>,
+        nodes: &HashMap<&NodeId, &'a RenderNode>,
         node_id: &NodeId,
-    ) -> Result<&'a Node, InternalSceneError> {
-        let mut node: &Node = nodes
+    ) -> Result<&'a RenderNode, InternalSceneError> {
+        let mut node: &RenderNode = nodes
             .get(node_id)
             .ok_or_else(|| InternalSceneError::MissingNode(node_id.clone()))?;
         while node.output.is_empty() && node.fallback.is_some() {

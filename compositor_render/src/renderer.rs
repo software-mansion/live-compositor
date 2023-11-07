@@ -17,15 +17,15 @@ use crate::{
 
 use self::{
     node::NodeSpecExt,
+    render_graph::RenderGraph,
     render_loop::{populate_inputs, read_outputs, run_transforms},
     renderers::Renderers,
-    scene::Scene,
 };
 
 pub mod node;
+pub mod render_graph;
 mod render_loop;
 pub mod renderers;
-pub mod scene;
 
 pub(crate) use render_loop::NodeRenderPass;
 
@@ -40,7 +40,7 @@ pub struct Renderer {
     pub text_renderer_ctx: TextRendererCtx,
     pub chromium_context: Arc<ChromiumContext>,
 
-    pub scene: Scene,
+    pub render_graph: RenderGraph,
     pub scene_spec: Arc<SceneSpec>,
 
     pub(crate) renderers: Renderers,
@@ -72,7 +72,7 @@ impl Renderer {
             wgpu_ctx: wgpu_ctx.clone(),
             text_renderer_ctx: TextRendererCtx::new(),
             chromium_context: Arc::new(ChromiumContext::new(opts.web_renderer, opts.framerate)?),
-            scene: Scene::empty(),
+            render_graph: RenderGraph::empty(),
             renderers: Renderers::new(wgpu_ctx)?,
             scene_spec: Arc::new(SceneSpec {
                 nodes: vec![],
@@ -104,9 +104,9 @@ impl Renderer {
 
         let scope = WgpuErrorScope::push(&ctx.wgpu_ctx.device);
 
-        populate_inputs(ctx, &mut self.scene, &mut inputs).unwrap();
-        run_transforms(ctx, &mut self.scene, inputs.pts).unwrap();
-        let frames = read_outputs(ctx, &mut self.scene, inputs.pts).unwrap();
+        populate_inputs(ctx, &mut self.render_graph, &mut inputs).unwrap();
+        run_transforms(ctx, &mut self.render_graph, inputs.pts).unwrap();
+        let frames = read_outputs(ctx, &mut self.render_graph, inputs.pts).unwrap();
 
         scope.pop(&ctx.wgpu_ctx.device)?;
 
@@ -118,7 +118,7 @@ impl Renderer {
 
     pub fn update_scene(&mut self, scene_spec: Arc<SceneSpec>) -> Result<(), UpdateSceneError> {
         self.validate_constraints(&scene_spec)?;
-        self.scene.update(
+        self.render_graph.update(
             &RenderCtx {
                 wgpu_ctx: &self.wgpu_ctx,
                 text_renderer_ctx: &self.text_renderer_ctx,
