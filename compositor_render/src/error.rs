@@ -28,6 +28,9 @@ pub enum InitRendererEngineError {
 
     #[error(transparent)]
     BuiltInTransformationsInitError(#[from] InitBuiltinError),
+
+    #[error("Failed to initialize apply_layout transformation.")]
+    LayoutTransformationsInitError(#[source] CreateShaderError),
 }
 
 #[derive(Debug, thiserror::Error)]
