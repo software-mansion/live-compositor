@@ -138,13 +138,13 @@ fn start_example_client_code() -> Result<()> {
                 "output_id": "output_1",
                 "root" : {
                     "type": "shader",
-                    "node_id": "shader_1",
+                    "id": "shader_1",
                     "shader_id": "example_shader",
                     "children": [
                         {
                             "type": "input_stream",
                             "input_id": "input_1",
-                            "node_id": "input_1"
+                            "id": "input_1"
                         }
                     ],
                     "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
