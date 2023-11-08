@@ -21,7 +21,14 @@ pub enum RegisterRequest {
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 pub struct RegisterInputRequest {
     pub input_id: InputId,
-    pub port: u16,
+    pub port: Port,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema, PartialEq, Eq)]
+#[serde(untagged)]
+pub enum Port {
+    String(String),
+    U16(u16),
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
