@@ -81,6 +81,7 @@ impl ChromiumSenderThread {
                 ChromiumSenderMessage::GetFramePositions { source_count } => {
                     self.get_frame_positions(&state, source_count)
                 }
+                ChromiumSenderMessage::Quit => return,
             };
 
             if let Err(err) = result {
@@ -120,7 +121,7 @@ impl ChromiumSenderThread {
             index += 3;
         }
 
-        let frame = state.browser.main_frame()?;
+        let frame = state.browser().main_frame()?;
         frame.send_process_message(cef::ProcessId::Renderer, process_message)?;
 
         Ok(())
@@ -136,7 +137,7 @@ impl ChromiumSenderThread {
             state.shared_memory.insert(node_id.clone(), Vec::new());
         }
 
-        let frame = state.browser.main_frame()?;
+        let frame = state.browser().main_frame()?;
         let shared_memory = state.shared_memory.get_mut(&node_id).unwrap();
         for (source_idx, resolution) in resolutions.into_iter().enumerate() {
             let size = match resolution {
@@ -192,7 +193,7 @@ impl ChromiumSenderThread {
         let mut message = cef::ProcessMessage::new(GET_FRAME_POSITIONS_MESSAGE);
         message.write_int(0, source_count as i32);
 
-        let frame = state.browser.main_frame()?;
+        let frame = state.browser().main_frame()?;
         frame.send_process_message(cef::ProcessId::Renderer, message)?;
 
         Ok(())
@@ -200,9 +201,19 @@ impl ChromiumSenderThread {
 }
 
 struct ThreadState {
-    browser: cef::Browser,
+    browser: Option<cef::Browser>,
     shared_memory: HashMap<NodeId, Vec<SharedMemory>>,
     shared_memory_root_path: PathBuf,
+}
+
+impl Drop for ThreadState {
+    fn drop(&mut self) {
+        if let Some(browser) = self.browser.take() {
+            if let Err(err) = browser.close() {
+                error!("Failed to close browser: {err}")
+            }
+        }
+    }
 }
 
 impl ThreadState {
@@ -211,7 +222,7 @@ impl ThreadState {
         let shared_memory = HashMap::new();
 
         Self {
-            browser,
+            browser: Some(browser),
             shared_memory,
             shared_memory_root_path,
         }
@@ -228,6 +239,10 @@ impl ThreadState {
             .ok_or_else(|| ChromiumSenderThreadError::SharedMemoryNotAllocated(node_id.clone()))?;
 
         Ok(&mut node_shared_memory[source_idx])
+    }
+
+    fn browser(&self) -> &cef::Browser {
+        self.browser.as_ref().unwrap()
     }
 }
 
