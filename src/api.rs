@@ -7,6 +7,7 @@ use compositor_pipeline::{
 use compositor_render::{EventLoop, RegistryType};
 use crossbeam_channel::{bounded, Receiver};
 
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use tiny_http::StatusCode;
 
@@ -33,7 +34,7 @@ pub enum Request {
     Start,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, JsonSchema)]
 pub struct UpdateScene {
     pub scenes: Vec<types::OutputScene>,
 }

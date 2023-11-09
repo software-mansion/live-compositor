@@ -1,10 +1,4 @@
-use std::{
-    collections::{hash_map::RandomState, HashSet},
-    fmt::Display,
-    path::PathBuf,
-    sync::Arc,
-    time::Duration,
-};
+use std::{collections::HashSet, fmt::Display, path::PathBuf, sync::Arc, time::Duration};
 
 use super::utils::{are_snapshots_near_equal, create_renderer, frame_to_rgba, snaphot_save_path};
 
@@ -12,20 +6,20 @@ use anyhow::Result;
 use compositor_common::{
     frame::YuvData,
     renderer_spec::RendererSpec,
-    scene::{InputId, NodeId, OutputId, Resolution, SceneSpec},
+    scene::{InputId, OutputId, Resolution},
     Frame,
 };
-use compositor_render::{FrameSet, Renderer};
+use compositor_pipeline::pipeline;
+use compositor_render::{scene::OutputScene, FrameSet, Renderer};
 use image::ImageBuffer;
-use video_compositor::types::{RegisterRequest, Scene};
+use video_compositor::types::{self, RegisterRequest};
 
 pub struct TestCase {
     pub name: &'static str,
     pub inputs: Vec<TestInput>,
     pub renderers: Vec<&'static str>,
-    pub scene_json: &'static str,
     pub timestamps: Vec<Duration>,
-    pub outputs: Vec<&'static str>,
+    pub outputs: Vec<(&'static str, Resolution)>,
     pub allowed_error: f32,
 }
 
@@ -35,130 +29,21 @@ impl Default for TestCase {
             name: "",
             inputs: Vec::new(),
             renderers: Vec::new(),
-            scene_json: "",
             timestamps: vec![Duration::from_secs(0)],
-            outputs: vec!["output_1"],
+            outputs: vec![],
             allowed_error: 30.0,
         }
     }
 }
 
-impl TestCase {
-    pub fn generate_snapshots(&self) -> Result<Vec<Snapshot>> {
-        let (renderer, scene) = self.prepare_renderer_and_scene();
-        self.validate_scene(&scene)?;
+pub struct TestCaseInstance {
+    pub case: TestCase,
+    pub scene: Vec<OutputScene>,
+    pub renderer: Renderer,
+}
 
-        let snapshots = self
-            .timestamps
-            .iter()
-            .cloned()
-            .map(|pts| self.snapshots_for_pts(&renderer, &scene, pts))
-            .collect::<Result<Vec<_>>>()?;
-
-        Ok(snapshots.into_iter().flatten().collect())
-    }
-
-    pub fn test_snapshots(&self, snapshots: &[Snapshot]) -> Result<()> {
-        let mut produced_outputs = HashSet::new();
-        for snapshot in snapshots.iter() {
-            produced_outputs.insert(snapshot.output_id.to_string());
-
-            let save_path = snapshot.save_path();
-            if !save_path.exists() {
-                return Err(TestCaseError::SnapshotNotFound(snapshot.clone()).into());
-            }
-
-            let snapshot_from_disk = image::open(&save_path)?.to_rgba8();
-            if !are_snapshots_near_equal(&snapshot_from_disk, &snapshot.data, self.allowed_error) {
-                return Err(TestCaseError::Mismatch {
-                    snapshot_from_disk,
-                    produced_snapshot: snapshot.clone(),
-                }
-                .into());
-            }
-        }
-
-        // Check if every output was produced
-        for output_id in self.outputs.iter() {
-            let was_present = produced_outputs.remove(*output_id);
-            if !was_present {
-                return Err(TestCaseError::OutputNotFound(output_id).into());
-            }
-        }
-        if !produced_outputs.is_empty() {
-            return Err(TestCaseError::UnknownOutputs {
-                expected: self.outputs.clone(),
-                unknown: Vec::from_iter(produced_outputs),
-            }
-            .into());
-        }
-
-        Ok(())
-    }
-
-    #[allow(dead_code)]
-    pub fn snapshot_paths(&self) -> Vec<PathBuf> {
-        let mut paths = Vec::new();
-        for pts in self.timestamps.iter() {
-            for output_id in self.outputs.iter() {
-                paths.push(snaphot_save_path(self.name, pts, output_id));
-            }
-        }
-
-        paths
-    }
-
-    fn validate_scene(&self, scene: &SceneSpec) -> Result<()> {
-        let inputs: HashSet<NodeId, RandomState> = HashSet::from_iter(
-            self.inputs
-                .iter()
-                .map(|input| NodeId(input.name.as_str().into())),
-        );
-        let outputs: HashSet<NodeId, RandomState> =
-            HashSet::from_iter(self.outputs.iter().map(|output| NodeId((*output).into())));
-
-        scene
-            .validate(&inputs.iter().collect(), &outputs.iter().collect())
-            .map_err(Into::into)
-    }
-
-    fn snapshots_for_pts(
-        &self,
-        renderer: &Renderer,
-        scene: &SceneSpec,
-        pts: Duration,
-    ) -> Result<Vec<Snapshot>> {
-        let mut frame_set = FrameSet::new(pts);
-        for input in self.inputs.iter() {
-            let input_id = InputId(NodeId(input.name.clone().into()));
-            let frame = Frame {
-                data: input.data.clone(),
-                resolution: input.resolution,
-                pts,
-            };
-            frame_set.frames.insert(input_id, frame);
-        }
-
-        let outputs = renderer.render(frame_set)?;
-        let output_specs = &scene.outputs;
-        let mut snapshots = Vec::new();
-
-        for spec in output_specs {
-            let output_frame = outputs.frames.get(&spec.output_id).unwrap();
-            let new_snapshot = frame_to_rgba(output_frame);
-            snapshots.push(Snapshot {
-                test_name: self.name.to_owned(),
-                output_id: spec.output_id.clone(),
-                pts,
-                resolution: output_frame.resolution,
-                data: new_snapshot,
-            });
-        }
-
-        Ok(snapshots)
-    }
-
-    fn prepare_renderer_and_scene(&self) -> (Renderer, Arc<SceneSpec>) {
+impl TestCaseInstance {
+    pub fn new(test_case: TestCase) -> TestCaseInstance {
         fn register_requests_to_renderers(register_request: RegisterRequest) -> RendererSpec {
             match register_request {
                 RegisterRequest::InputStream(_) | RegisterRequest::OutputStream(_) => {
@@ -170,10 +55,10 @@ impl TestCase {
             }
         }
 
-        if self.name.is_empty() {
+        if test_case.name.is_empty() {
             panic!("Snapshot test name has to be provided");
         }
-        let renderers: Vec<RendererSpec> = self
+        let renderers: Vec<RendererSpec> = test_case
             .renderers
             .iter()
             .cloned()
@@ -181,11 +66,135 @@ impl TestCase {
             .map(register_requests_to_renderers)
             .collect();
 
-        let scene: Scene = serde_json::from_str(self.scene_json).unwrap();
-        let scene: Arc<SceneSpec> = Arc::new(scene.try_into().unwrap());
+        let scene: Vec<OutputScene> = test_case
+            .outputs
+            .iter()
+            .map(|output| {
+                let scene: types::OutputScene = serde_json::from_str(output.0).unwrap();
+                let scene: pipeline::OutputScene = scene.try_into().unwrap();
+                OutputScene {
+                    output_id: scene.output_id,
+                    root: scene.root,
+                    resolution: output.1,
+                }
+            })
+            .collect();
 
         let renderer = create_renderer(renderers, scene.clone());
-        (renderer, scene)
+        TestCaseInstance {
+            case: test_case,
+            scene,
+            renderer,
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn run(&self) -> Result<(), TestCaseError> {
+        for pts in self.case.timestamps.iter() {
+            let (_, test_result) = self.test_snapshots_for_pts(*pts);
+            test_result?;
+        }
+        Ok(())
+    }
+
+    pub fn test_snapshots_for_pts(
+        &self,
+        pts: Duration,
+    ) -> (Vec<Snapshot>, Result<(), TestCaseError>) {
+        let snapshots = self.snapshots_for_pts(pts).unwrap();
+
+        for snapshot in snapshots.iter() {
+            let save_path = snapshot.save_path();
+            if !save_path.exists() {
+                return (
+                    snapshots.clone(),
+                    Err(TestCaseError::SnapshotNotFound(snapshot.clone())),
+                );
+            }
+
+            let snapshot_from_disk = image::open(&save_path).unwrap().to_rgba8();
+            if !are_snapshots_near_equal(
+                &snapshot_from_disk,
+                &snapshot.data,
+                self.case.allowed_error,
+            ) {
+                return (
+                    snapshots.clone(),
+                    Err(TestCaseError::Mismatch {
+                        snapshot_from_disk: snapshot_from_disk.into(),
+                        produced_snapshot: snapshot.clone(),
+                    }),
+                );
+            }
+        }
+
+        // Check if every output was produced
+        let produced_outputs: HashSet<OutputId> = snapshots
+            .iter()
+            .map(|snapshot| snapshot.output_id.clone())
+            .collect();
+        let expected_outputs: HashSet<OutputId> = self
+            .scene
+            .iter()
+            .map(|output| output.output_id.clone())
+            .collect();
+        if produced_outputs != expected_outputs {
+            return (
+                snapshots,
+                Err(TestCaseError::OutputMismatch {
+                    expected: expected_outputs,
+                    received: produced_outputs,
+                }),
+            );
+        }
+
+        (snapshots, Ok(()))
+    }
+
+    #[allow(dead_code)]
+    pub fn snapshot_paths(&self) -> Vec<PathBuf> {
+        let mut paths = Vec::new();
+        for pts in self.case.timestamps.iter() {
+            for output in self.scene.iter() {
+                paths.push(snaphot_save_path(
+                    self.case.name,
+                    pts,
+                    output.output_id.clone(),
+                ));
+            }
+        }
+
+        paths
+    }
+
+    pub fn snapshots_for_pts(&self, pts: Duration) -> Result<Vec<Snapshot>> {
+        let mut frame_set = FrameSet::new(pts);
+        for input in self.case.inputs.iter() {
+            let input_id = InputId::from(Arc::from(input.name.clone()));
+            let frame = Frame {
+                data: input.data.clone(),
+                resolution: input.resolution,
+                pts,
+            };
+            frame_set.frames.insert(input_id, frame);
+        }
+
+        let outputs = self.renderer.render(frame_set)?;
+        let mut snapshots = Vec::new();
+
+        for scene in &self.scene {
+            let output_frame = outputs.frames.get(&scene.output_id).unwrap();
+            let new_snapshot = frame_to_rgba(output_frame);
+            snapshots.push(Snapshot {
+                test_name: self.case.name.to_owned(),
+                output_id: scene.output_id.clone(),
+                pts,
+                resolution: output_frame.resolution,
+                data: new_snapshot,
+            });
+        }
+
+        Ok(snapshots)
     }
 }
 
@@ -282,7 +291,7 @@ pub struct Snapshot {
 
 impl Snapshot {
     pub fn save_path(&self) -> PathBuf {
-        snaphot_save_path(&self.test_name, &self.pts, &self.output_id.to_string())
+        snaphot_save_path(&self.test_name, &self.pts, self.output_id.clone())
     }
 }
 
@@ -290,13 +299,12 @@ impl Snapshot {
 pub enum TestCaseError {
     SnapshotNotFound(Snapshot),
     Mismatch {
-        snapshot_from_disk: ImageBuffer<image::Rgba<u8>, Vec<u8>>,
+        snapshot_from_disk: Box<ImageBuffer<image::Rgba<u8>, Vec<u8>>>,
         produced_snapshot: Snapshot,
     },
-    OutputNotFound(&'static str),
-    UnknownOutputs {
-        expected: Vec<&'static str>,
-        unknown: Vec<String>,
+    OutputMismatch {
+        expected: HashSet<OutputId>,
+        received: HashSet<OutputId>,
     },
 }
 
@@ -331,8 +339,7 @@ impl Display for TestCaseError {
                     pts.as_secs_f32()
                 )
             }
-            TestCaseError::OutputNotFound(output_id) => format!("Output \"{output_id}\" is missing"),
-            TestCaseError::UnknownOutputs { expected, unknown } => format!("Unknown outputs: {unknown:?}. Expected: {expected:?}"),
+            TestCaseError::OutputMismatch { expected, received } => format!("Mismatched output\nexpected: {expected:#?}\nreceived: {received:#?}"),
         };
 
         f.write_str(&err_msg)

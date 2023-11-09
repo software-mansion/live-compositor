@@ -64,13 +64,19 @@ impl TryFrom<UpdateScene> for Vec<compositor_pipeline::pipeline::OutputScene> {
         update_scene
             .scenes
             .into_iter()
-            .map(|component| {
-                Ok(compositor_pipeline::pipeline::OutputScene {
-                    output_id: component.output_id.try_into()?,
-                    root: component.root.try_into()?,
-                })
-            })
+            .map(TryInto::try_into)
             .collect::<Result<Vec<_>, TypeError>>()
+    }
+}
+
+impl TryFrom<OutputScene> for compositor_pipeline::pipeline::OutputScene {
+    type Error = TypeError;
+
+    fn try_from(scene: OutputScene) -> Result<Self, Self::Error> {
+        Ok(compositor_pipeline::pipeline::OutputScene {
+            output_id: scene.output_id.try_into()?,
+            root: scene.root.try_into()?,
+        })
     }
 }
 
