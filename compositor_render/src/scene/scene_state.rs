@@ -9,6 +9,7 @@ pub(crate) struct SceneState {
     outputs: Vec<OutputScene>,
 }
 
+#[derive(Debug, Clone)]
 pub struct OutputScene {
     pub output_id: OutputId,
     pub root: Component,

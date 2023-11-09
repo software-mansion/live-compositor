@@ -12,9 +12,8 @@ mod rtp_receiver;
 mod rtp_sender;
 mod types;
 
-// TODO enbale it back
-//#[cfg(test)]
-//mod snapshot_tests;
+#[cfg(test)]
+mod snapshot_tests;
 
 fn main() {
     env_logger::init_from_env(

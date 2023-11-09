@@ -1,11 +1,7 @@
 use std::{collections::HashSet, env, fs, path::PathBuf};
 
-use anyhow::Error;
-
-use crate::snapshot_tests::test_case::TestCase;
-
 use self::{
-    test_case::TestCaseError,
+    test_case::{TestCaseError, TestCaseInstance},
     tests::snapshot_tests,
     utils::{find_unused_snapshots, snapshots_path},
 };
@@ -21,19 +17,21 @@ fn test_snapshots() {
         fs::remove_dir_all(failed_snapshot_path).unwrap();
     }
 
-    let test_cases = snapshot_tests();
-    for test_case in test_cases.iter() {
-        eprintln!("Test \"{}\"", test_case.name);
-        let snapshots = test_case.generate_snapshots().unwrap();
-        if let Err(err) = test_case.test_snapshots(&snapshots) {
+    let test: Vec<_> = snapshot_tests()
+        .into_iter()
+        .map(TestCaseInstance::new)
+        .collect();
+    for test in test.iter() {
+        eprintln!("Test \"{}\"", test.case.name);
+        if let Err(err) = test.run() {
             handle_error(err);
         }
     }
 
     // Check for unused snapshots
-    let snapshot_paths = test_cases
+    let snapshot_paths = test
         .iter()
-        .flat_map(TestCase::snapshot_paths)
+        .flat_map(TestCaseInstance::snapshot_paths)
         .collect::<HashSet<_>>();
     let unused_snapshots = find_unused_snapshots(&snapshot_paths, snapshots_path());
     if !unused_snapshots.is_empty() {
@@ -41,12 +39,11 @@ fn test_snapshots() {
     }
 }
 
-fn handle_error(err: Error) {
-    let test_case_err = err.downcast_ref::<TestCaseError>().unwrap();
+fn handle_error(err: TestCaseError) {
     let TestCaseError::Mismatch {
-        snapshot_from_disk,
-        produced_snapshot,
-    } = test_case_err
+        ref snapshot_from_disk,
+        ref produced_snapshot,
+    } = err
     else {
         panic!("{err}");
     };
