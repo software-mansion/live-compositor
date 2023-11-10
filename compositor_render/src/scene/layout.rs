@@ -1,8 +1,11 @@
 use compositor_common::{scene::Resolution, util::colors::RGBAColor};
 
-use crate::transformations::layout::{self, NestedLayout};
+use crate::transformations::layout::{self, Layout, LayoutContent, NestedLayout};
 
-use super::{Component, ComponentId, LayoutComponent, LayoutNode};
+use super::{
+    Component, ComponentId, HorizontalPosition, LayoutComponent, LayoutNode, Position,
+    RelativePosition, VerticalPosition,
+};
 
 #[derive(Debug)]
 pub(crate) struct SizedLayoutComponent {
@@ -37,15 +40,9 @@ impl LayoutComponent {
         }
     }
 
-    pub(super) fn width(&self) -> Option<usize> {
+    pub(super) fn position(&self) -> Position {
         match self {
-            LayoutComponent::View(view) => view.width,
-        }
-    }
-
-    pub(super) fn height(&self) -> Option<usize> {
-        match self {
-            LayoutComponent::View(view) => view.height,
+            LayoutComponent::View(view) => view.position,
         }
     }
 
@@ -110,6 +107,53 @@ impl LayoutComponent {
             }
         }
     }
+
+    pub(super) fn layout_relative_child(
+        child: &Component,
+        position: RelativePosition,
+        parent_size: Resolution,
+    ) -> NestedLayout {
+        let layout = Layout {
+            top: match position.position_vertical {
+                VerticalPosition::Top(top) => top as f32,
+                VerticalPosition::Bottom(bottom) => {
+                    parent_size.height as f32 - bottom as f32 - position.height as f32
+                }
+            },
+            left: match position.position_horizontal {
+                HorizontalPosition::Left(left) => left as f32,
+                HorizontalPosition::Right(right) => {
+                    parent_size.width as f32 - right as f32 - position.width as f32
+                }
+            },
+            width: position.width as f32,
+            height: position.height as f32,
+            rotation_degrees: position.rotation_degrees,
+            content: match child {
+                Component::Layout(layout) => {
+                    LayoutContent::Color(layout.background_color().unwrap_or(RGBAColor(0, 0, 0, 0)))
+                }
+                _ => LayoutContent::ChildNode(0),
+            },
+        };
+
+        match child {
+            Component::Layout(layout_component) => {
+                let children_layouts = layout_component.layout(Resolution {
+                    width: layout.width as usize,
+                    height: layout.height as usize,
+                });
+                NestedLayout {
+                    layout,
+                    children: children_layouts,
+                }
+            }
+            _non_layout_components => NestedLayout {
+                layout,
+                children: vec![],
+            },
+        }
+    }
 }
 
 impl SizedLayoutComponent {
@@ -120,18 +164,16 @@ impl SizedLayoutComponent {
         }
     }
 
-    fn width(&self) -> usize {
-        self.component.width().unwrap_or(self.resolution.width)
-    }
-
-    fn height(&self) -> usize {
-        self.component.height().unwrap_or(self.resolution.height)
-    }
-
     fn resolution(&self) -> Resolution {
-        Resolution {
-            width: self.width(),
-            height: self.height(),
+        match self.component.position() {
+            Position::Static { width, height } => Resolution {
+                width: width.unwrap_or(self.resolution.width),
+                height: height.unwrap_or(self.resolution.height),
+            },
+            Position::Relative(position) => Resolution {
+                width: position.width,
+                height: position.height,
+            },
         }
     }
 
