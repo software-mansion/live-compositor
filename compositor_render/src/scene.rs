@@ -10,8 +10,8 @@ pub use components::*;
 
 mod components;
 mod layout;
+mod non_layout_components;
 mod scene_state;
-mod shader_component;
 mod view_component;
 
 #[derive(Debug, Clone)]

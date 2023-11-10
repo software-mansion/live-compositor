@@ -83,7 +83,7 @@ impl LayoutComponent {
         self.children()
             .into_iter()
             .flat_map(|child| match child {
-                Component::Layout(layout) => layout.children(),
+                Component::Layout(layout) => layout.node_children(),
                 _ => vec![child],
             })
             .collect()
