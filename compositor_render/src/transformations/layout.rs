@@ -43,32 +43,39 @@ pub struct Layout {
 #[derive(Debug, Clone)]
 pub struct NestedLayout {
     pub(crate) layout: Layout,
+    pub(crate) child_nodes_count: usize,
     pub(crate) children: Vec<NestedLayout>,
 }
 
 impl NestedLayout {
-    pub fn flatten(self) -> Vec<Layout> {
-        let mut child_index = 0;
+    pub fn flatten(mut self, child_index_offset: usize) -> Vec<Layout> {
+        let mut child_index_offset = child_index_offset;
+        if let LayoutContent::ChildNode(index) = self.layout.content {
+            self.layout.content = LayoutContent::ChildNode(index + child_index_offset);
+            child_index_offset += 1
+        }
         let children: Vec<_> = self
             .children
             .into_iter()
-            .flat_map(NestedLayout::flatten)
+            .flat_map(|child| {
+                let child_nodes_count = child.child_nodes_count;
+                let layouts = child.flatten(child_index_offset);
+                child_index_offset += child_nodes_count;
+                layouts
+            })
             .map(|layout| Layout {
                 top: layout.top + self.layout.top,
                 left: layout.left + self.layout.left,
                 width: layout.width,
                 height: layout.height,
                 rotation_degrees: layout.rotation_degrees + self.layout.rotation_degrees, // TODO: not exactly correct
-                content: match layout.content {
-                    LayoutContent::Color(color) => LayoutContent::Color(color),
-                    LayoutContent::ChildNode(_) => {
-                        let content = LayoutContent::ChildNode(child_index);
-                        // TODO: this will break if will have nodes that are not part of the layout
-                        // tree
-                        child_index += 1;
-                        content
-                    }
-                },
+                content: layout.content,
+            })
+            .filter(|layout| {
+                !matches!(
+                    layout.content,
+                    LayoutContent::None | LayoutContent::Color(RGBAColor(0, 0, 0, 0))
+                )
             })
             .collect();
         [vec![self.layout], children].concat()
@@ -79,6 +86,7 @@ impl NestedLayout {
 pub enum LayoutContent {
     Color(RGBAColor),
     ChildNode(/* input pad index */ usize),
+    None,
 }
 
 impl LayoutNode {
@@ -113,6 +121,7 @@ impl LayoutNode {
                 let (texture_id, background_color) = match layout.content {
                     LayoutContent::Color(color) => (-1, color),
                     LayoutContent::ChildNode(index) => (index as i32, RGBAColor(0, 0, 0, 0)),
+                    LayoutContent::None => (-1, RGBAColor(0, 0, 0, 0)),
                 };
                 LayoutNodeParams {
                     transformation_matrix: layout.transformation_matrix(output_resolution),

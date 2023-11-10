@@ -1,4 +1,4 @@
-use compositor_common::{scene::Resolution, util::colors::RGBAColor};
+use compositor_common::scene::Resolution;
 
 use crate::transformations::layout::{self, Layout, LayoutContent, NestedLayout};
 
@@ -21,11 +21,7 @@ impl layout::LayoutProvider for LayoutNode {
     ) -> Vec<layout::Layout> {
         self.root.component.update_state(&inputs);
 
-        self.root
-            .layout()
-            .into_iter()
-            .flat_map(|layout| layout.flatten())
-            .collect()
+        self.root.layout().flatten(0)
     }
 
     fn resolution(&self) -> Resolution {
@@ -34,7 +30,7 @@ impl layout::LayoutProvider for LayoutNode {
 }
 
 impl LayoutComponent {
-    pub(super) fn layout(&self, resolution: Resolution) -> Vec<NestedLayout> {
+    pub(super) fn layout(&self, resolution: Resolution) -> NestedLayout {
         match self {
             LayoutComponent::View(view) => view.layout(resolution),
         }
@@ -55,12 +51,6 @@ impl LayoutComponent {
     pub(crate) fn component_type(&self) -> &'static str {
         match self {
             LayoutComponent::View(_) => "View",
-        }
-    }
-
-    pub(super) fn background_color(&self) -> Option<RGBAColor> {
-        match self {
-            LayoutComponent::View(view) => Some(view.background_color),
         }
     }
 
@@ -130,9 +120,7 @@ impl LayoutComponent {
             height: position.height as f32,
             rotation_degrees: position.rotation_degrees,
             content: match child {
-                Component::Layout(layout) => {
-                    LayoutContent::Color(layout.background_color().unwrap_or(RGBAColor(0, 0, 0, 0)))
-                }
+                Component::Layout(_layout) => LayoutContent::None,
                 _ => LayoutContent::ChildNode(0),
             },
         };
@@ -143,12 +131,21 @@ impl LayoutComponent {
                     width: layout.width as usize,
                     height: layout.height as usize,
                 });
+                let child_nodes_count = match layout.content {
+                    LayoutContent::ChildNode(_) => children_layouts.child_nodes_count + 1,
+                    _ => children_layouts.child_nodes_count,
+                };
                 NestedLayout {
+                    child_nodes_count,
                     layout,
-                    children: children_layouts,
+                    children: vec![children_layouts],
                 }
             }
             _non_layout_components => NestedLayout {
+                child_nodes_count: match layout.content {
+                    LayoutContent::ChildNode(_) => 1,
+                    _ => 0,
+                },
                 layout,
                 children: vec![],
             },
@@ -177,7 +174,7 @@ impl SizedLayoutComponent {
         }
     }
 
-    fn layout(&self) -> Vec<NestedLayout> {
+    fn layout(&self) -> NestedLayout {
         self.component.layout(self.resolution)
     }
 }
