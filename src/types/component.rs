@@ -47,9 +47,42 @@ pub struct InputStream {
 pub struct View {
     pub id: Option<ComponentId>,
     pub children: Option<Vec<Component>>,
+
     pub width: Option<usize>,
     pub height: Option<usize>,
+
+    /// Direction defines how static children are positioned inside the View.
+    /// "row" - Children positioned from left to right.
+    /// "column" - Children positioned from top to bottom.
+    pub direction: Option<ViewDirection>,
+
+    /// Distance between the top edge of this component and the top edge of it's parent. If this
+    /// field is defined, then component will not use static layout of it's parent (component will
+    /// ignore layout defined by it's parent).
+    pub top: Option<usize>,
+    /// Distance between the left edge of this component and the left edge of it's parent. If this
+    /// field is defined, then component will not use static layout of it's parent (component will
+    /// ignore layout defined by it's parent).
+    pub left: Option<usize>,
+    /// Distance between the bottom edge of this component and the bottom edge of it's parent. If this
+    /// field is defined, then component will not use static layout of it's parent (component will
+    /// ignore layout defined by it's parent).
+    pub bottom: Option<usize>,
+    /// Distance between the right edge of this component and the right edge of it's parent. If this
+    /// field is defined, then component will not use static layout of it's parent (component will
+    /// ignore layout defined by it's parent).
+    pub right: Option<usize>,
+    /// Rotation of a component in degrees. If this field is defined, then component will not use
+    /// static layout of it's parent (component will ignore layout defined by it's parent).
+    pub rotation: Option<f32>,
+
     pub background_color_rgba: Option<RGBAColor>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+pub enum ViewDirection {
+    Row,
+    Column,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]

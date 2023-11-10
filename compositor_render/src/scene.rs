@@ -53,7 +53,10 @@ impl Component {
         match self {
             Component::InputStream(input) => input.size.map(|s| s.width),
             Component::Shader(shader) => Some(shader.size.width),
-            Component::Layout(layout) => layout.width(),
+            Component::Layout(layout) => match layout.position() {
+                Position::Static { width, .. } => width,
+                Position::Relative(position) => Some(position.width),
+            },
         }
     }
 
@@ -61,7 +64,10 @@ impl Component {
         match self {
             Component::InputStream(input) => input.size.map(|s| s.height),
             Component::Shader(shader) => Some(shader.size.height),
-            Component::Layout(layout) => layout.height(),
+            Component::Layout(layout) => match layout.position() {
+                Position::Static { height, .. } => height,
+                Position::Relative(position) => Some(position.height),
+            },
         }
     }
 

@@ -2,7 +2,7 @@ use compositor_common::scene::{OutputId, Resolution};
 
 use super::{
     layout::SizedLayoutComponent, BuildSceneError, Component, InputStreamComponent,
-    LayoutComponent, LayoutNode, Node, NodeKind, ShaderComponent,
+    LayoutComponent, LayoutNode, Node, NodeKind, Position, ShaderComponent,
 };
 
 pub(crate) struct SceneState {
@@ -103,8 +103,12 @@ impl BaseNode {
                 children: _,
             } => Ok(shader.size),
             BaseNode::Layout { root, children: _ } => {
-                let width = root.width();
-                let height = root.height();
+                let (width, height) = match root.position() {
+                    Position::Static { width, height } => (width, height),
+                    // Technically relative positioning is a bug here, but I think throwing error
+                    // in this case would be to invasive. It's better to just ignore those values.
+                    Position::Relative(position) => (Some(position.width), Some(position.height)),
+                };
                 if let (Some(width), Some(height)) = (width, height) {
                     Ok(Resolution { width, height })
                 } else {

@@ -45,6 +45,15 @@
                 }
               ]
             },
+            "bottom": {
+              "description": "Distance between the bottom edge of this component and the bottom edge of it's parent. If this field is defined, then component will not use static layout of it's parent (component will ignore layout defined by it's parent).",
+              "format": "uint",
+              "minimum": 0.0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
             "children": {
               "items": {
                 "$ref": "#/definitions/Component"
@@ -53,6 +62,17 @@
                 "array",
                 "null"
               ]
+            },
+            "direction": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ViewDirection"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Direction defines how static children are positioned inside the View. \"row\" - Children positioned from left to right. \"column\" - Children positioned from top to bottom."
             },
             "height": {
               "format": "uint",
@@ -70,6 +90,41 @@
                 {
                   "type": "null"
                 }
+              ]
+            },
+            "left": {
+              "description": "Distance between the left edge of this component and the left edge of it's parent. If this field is defined, then component will not use static layout of it's parent (component will ignore layout defined by it's parent).",
+              "format": "uint",
+              "minimum": 0.0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "right": {
+              "description": "Distance between the right edge of this component and the right edge of it's parent. If this field is defined, then component will not use static layout of it's parent (component will ignore layout defined by it's parent).",
+              "format": "uint",
+              "minimum": 0.0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "rotation": {
+              "description": "Rotation of a component in degrees. If this field is defined, then component will not use static layout of it's parent (component will ignore layout defined by it's parent).",
+              "format": "float",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "top": {
+              "description": "Distance between the top edge of this component and the top edge of it's parent. If this field is defined, then component will not use static layout of it's parent (component will ignore layout defined by it's parent).",
+              "format": "uint",
+              "minimum": 0.0,
+              "type": [
+                "integer",
+                "null"
               ]
             },
             "type": {
@@ -1074,6 +1129,13 @@
         "center",
         "bottom",
         "justified"
+      ],
+      "type": "string"
+    },
+    "ViewDirection": {
+      "enum": [
+        "Row",
+        "Column"
       ],
       "type": "string"
     }
