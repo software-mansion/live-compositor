@@ -1,4 +1,4 @@
-use compositor_common::{scene::Resolution, util::colors::RGBAColor};
+use compositor_common::scene::Resolution;
 
 use crate::{
     scene::ViewChildrenDirection,
@@ -52,14 +52,15 @@ impl ViewComponent {
         self.children.iter_mut().collect()
     }
 
-    pub(super) fn layout(&self, size: Resolution) -> Vec<NestedLayout> {
+    pub(super) fn layout(&self, size: Resolution) -> NestedLayout {
         let dynamic_child_size = self.dynamic_size_for_static_children(size);
 
         // offset along x or y direction (depends on self.direction) where next
         // child component should be placed
         let mut static_offset = 0;
 
-        self.children
+        let children: Vec<_> = self
+            .children
             .iter()
             .map(|child| {
                 let position = match child {
@@ -90,7 +91,19 @@ impl ViewComponent {
                     }
                 }
             })
-            .collect()
+            .collect();
+        NestedLayout {
+            layout: Layout {
+                top: 0.0,
+                left: 0.0,
+                width: size.width as f32,
+                height: size.height as f32,
+                rotation_degrees: 0.0,
+                content: LayoutContent::Color(self.background_color),
+            },
+            child_nodes_count: children.iter().map(|l| l.child_nodes_count).sum(),
+            children,
+        }
     }
 
     fn layout_static_child(
@@ -130,13 +143,10 @@ impl ViewComponent {
                         width,
                         height,
                         rotation_degrees: 0.0,
-                        content: LayoutContent::Color(
-                            layout_component
-                                .background_color()
-                                .unwrap_or(RGBAColor(0, 0, 0, 0)),
-                        ),
+                        content: LayoutContent::None,
                     },
-                    children: children_layouts,
+                    child_nodes_count: children_layouts.child_nodes_count,
+                    children: vec![children_layouts],
                 }
             }
             _ => NestedLayout {
@@ -148,6 +158,7 @@ impl ViewComponent {
                     rotation_degrees: 0.0,
                     content: LayoutContent::ChildNode(0),
                 },
+                child_nodes_count: 1,
                 children: vec![],
             },
         };

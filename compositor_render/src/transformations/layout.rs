@@ -44,31 +44,45 @@ pub struct Layout {
 pub struct NestedLayout {
     pub(crate) layout: Layout,
     pub(crate) children: Vec<NestedLayout>,
+    /// describes how many children of this component are nodes. This value also
+    /// counts `layout` if it's content is a `LayoutContent::ChildNode`.
+    ///
+    /// This value is not necessarily equal to number of `LayoutContent::ChildNode` in
+    /// a sub-tree. For example, if we have a component that conditionally shows one
+    /// of it's children then child_nodes_count will count all of those components even
+    /// though only one of those children will be present in the layouts tree.
+    pub(crate) child_nodes_count: usize,
 }
 
 impl NestedLayout {
-    pub fn flatten(self) -> Vec<Layout> {
-        let mut child_index = 0;
+    pub fn flatten(mut self, child_index_offset: usize) -> Vec<Layout> {
+        let mut child_index_offset = child_index_offset;
+        if let LayoutContent::ChildNode(index) = self.layout.content {
+            self.layout.content = LayoutContent::ChildNode(index + child_index_offset);
+            child_index_offset += 1
+        }
         let children: Vec<_> = self
             .children
             .into_iter()
-            .flat_map(NestedLayout::flatten)
+            .flat_map(|child| {
+                let child_nodes_count = child.child_nodes_count;
+                let layouts = child.flatten(child_index_offset);
+                child_index_offset += child_nodes_count;
+                layouts
+            })
             .map(|layout| Layout {
                 top: layout.top + self.layout.top,
                 left: layout.left + self.layout.left,
                 width: layout.width,
                 height: layout.height,
                 rotation_degrees: layout.rotation_degrees + self.layout.rotation_degrees, // TODO: not exactly correct
-                content: match layout.content {
-                    LayoutContent::Color(color) => LayoutContent::Color(color),
-                    LayoutContent::ChildNode(_) => {
-                        let content = LayoutContent::ChildNode(child_index);
-                        // TODO: this will break if will have nodes that are not part of the layout
-                        // tree
-                        child_index += 1;
-                        content
-                    }
-                },
+                content: layout.content,
+            })
+            .filter(|layout| {
+                !matches!(
+                    layout.content,
+                    LayoutContent::None | LayoutContent::Color(RGBAColor(0, 0, 0, 0))
+                )
             })
             .collect();
         [vec![self.layout], children].concat()
@@ -79,6 +93,7 @@ impl NestedLayout {
 pub enum LayoutContent {
     Color(RGBAColor),
     ChildNode(/* input pad index */ usize),
+    None,
 }
 
 impl LayoutNode {
@@ -113,6 +128,7 @@ impl LayoutNode {
                 let (texture_id, background_color) = match layout.content {
                     LayoutContent::Color(color) => (-1, color),
                     LayoutContent::ChildNode(index) => (index as i32, RGBAColor(0, 0, 0, 0)),
+                    LayoutContent::None => (-1, RGBAColor(0, 0, 0, 0)),
                 };
                 LayoutNodeParams {
                     transformation_matrix: layout.transformation_matrix(output_resolution),
