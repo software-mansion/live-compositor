@@ -21,7 +21,7 @@ pub(crate) use layout_renderer::LayoutRenderer;
 
 pub(crate) trait LayoutProvider: Send {
     fn layouts(&mut self, pts: Duration, inputs: Vec<Option<Resolution>>) -> Vec<Layout>;
-    fn resolution(&self) -> Resolution;
+    fn resolution(&self, pts: Duration) -> Resolution;
 }
 
 pub(crate) struct LayoutNode {
@@ -120,7 +120,7 @@ impl LayoutNode {
             .collect();
         let layouts = self.layout_provider.layouts(pts, input_resolutions);
         let layout_count = layouts.len();
-        let output_resolution = self.layout_provider.resolution();
+        let output_resolution = self.layout_provider.resolution(pts);
 
         let params = layouts
             .iter()

@@ -1,76 +1,88 @@
+use std::time::Duration;
+
 use compositor_common::scene::Resolution;
 
 use crate::transformations::layout::{self, Layout, LayoutContent, NestedLayout};
 
 use super::{
-    Component, ComponentId, HorizontalPosition, LayoutComponent, LayoutNode, Position,
+    view_component::ViewComponentState, ComponentId, ComponentState, HorizontalPosition, Position,
     RelativePosition, VerticalPosition,
 };
 
+#[derive(Debug, Clone)]
+pub(super) enum LayoutComponentState {
+    View(ViewComponentState),
+}
+
 #[derive(Debug)]
 pub(crate) struct SizedLayoutComponent {
-    component: LayoutComponent,
+    component: LayoutComponentState,
     resolution: Resolution,
+}
+
+#[derive(Debug)]
+pub(crate) struct LayoutNode {
+    pub(crate) root: SizedLayoutComponent,
 }
 
 impl layout::LayoutProvider for LayoutNode {
     fn layouts(
         &mut self,
-        _pts: std::time::Duration,
+        pts: std::time::Duration,
         inputs: Vec<Option<Resolution>>,
     ) -> Vec<layout::Layout> {
         self.root.component.update_state(&inputs);
 
-        self.root.layout().flatten(0)
+        self.root.layout(pts).flatten(0)
     }
 
-    fn resolution(&self) -> Resolution {
-        self.root.resolution()
+    fn resolution(&self, pts: Duration) -> Resolution {
+        self.root.resolution(pts)
     }
 }
 
-impl LayoutComponent {
-    pub(super) fn layout(&self, resolution: Resolution) -> NestedLayout {
+impl LayoutComponentState {
+    pub(super) fn layout(&self, resolution: Resolution, pts: Duration) -> NestedLayout {
         match self {
-            LayoutComponent::View(view) => view.layout(resolution),
+            LayoutComponentState::View(view) => view.layout(resolution, pts),
         }
     }
 
-    pub(super) fn position(&self) -> Position {
+    pub(super) fn position(&self, pts: Duration) -> Position {
         match self {
-            LayoutComponent::View(view) => view.position,
+            LayoutComponentState::View(view) => view.position(pts), // TODO
         }
     }
 
     pub(crate) fn component_id(&self) -> Option<&ComponentId> {
         match self {
-            LayoutComponent::View(view) => view.id.as_ref(),
+            LayoutComponentState::View(view) => view.component_id(),
         }
     }
 
     pub(crate) fn component_type(&self) -> &'static str {
         match self {
-            LayoutComponent::View(_) => "View",
+            LayoutComponentState::View(_) => "View",
         }
     }
 
-    pub(super) fn children(&self) -> Vec<&Component> {
+    pub(super) fn children(&self) -> Vec<&ComponentState> {
         match self {
-            LayoutComponent::View(view) => view.children(),
+            LayoutComponentState::View(view) => view.children(),
         }
     }
 
-    pub(super) fn children_mut(&mut self) -> Vec<&mut Component> {
+    pub(super) fn children_mut(&mut self) -> Vec<&mut ComponentState> {
         match self {
-            LayoutComponent::View(view) => view.children_mut(),
+            LayoutComponentState::View(view) => view.children_mut(),
         }
     }
 
-    pub(super) fn node_children(&self) -> Vec<&Component> {
+    pub(super) fn node_children(&self) -> Vec<&ComponentState> {
         self.children()
             .into_iter()
             .flat_map(|child| match child {
-                Component::Layout(layout) => layout.node_children(),
+                ComponentState::Layout(layout) => layout.node_children(),
                 _ => vec![child],
             })
             .collect()
@@ -80,14 +92,14 @@ impl LayoutComponent {
         let mut child_index_offset = 0;
         for child in self.children_mut().iter_mut() {
             match child {
-                Component::InputStream(input) => {
+                ComponentState::InputStream(input) => {
                     input.size = input_resolutions[child_index_offset];
                     child_index_offset += 1;
                 }
-                Component::Shader(_) => {
+                ComponentState::Shader(_) => {
                     child_index_offset += 1; // no state
                 }
-                Component::Layout(layout) => {
+                ComponentState::Layout(layout) => {
                     let node_children = layout.node_children().len();
                     layout.update_state(
                         &input_resolutions[child_index_offset..child_index_offset + node_children],
@@ -99,9 +111,10 @@ impl LayoutComponent {
     }
 
     pub(super) fn layout_relative_child(
-        child: &Component,
+        child: &ComponentState,
         position: RelativePosition,
         parent_size: Resolution,
+        pts: Duration,
     ) -> NestedLayout {
         let layout = Layout {
             top: match position.position_vertical {
@@ -120,17 +133,20 @@ impl LayoutComponent {
             height: position.height as f32,
             rotation_degrees: position.rotation_degrees,
             content: match child {
-                Component::Layout(_layout) => LayoutContent::None,
+                ComponentState::Layout(_layout) => LayoutContent::None,
                 _ => LayoutContent::ChildNode(0),
             },
         };
 
         match child {
-            Component::Layout(layout_component) => {
-                let children_layouts = layout_component.layout(Resolution {
-                    width: layout.width as usize,
-                    height: layout.height as usize,
-                });
+            ComponentState::Layout(layout_component) => {
+                let children_layouts = layout_component.layout(
+                    Resolution {
+                        width: layout.width as usize,
+                        height: layout.height as usize,
+                    },
+                    pts,
+                );
                 let child_nodes_count = match layout.content {
                     LayoutContent::ChildNode(_) => children_layouts.child_nodes_count + 1,
                     _ => children_layouts.child_nodes_count,
@@ -154,15 +170,15 @@ impl LayoutComponent {
 }
 
 impl SizedLayoutComponent {
-    pub(super) fn new(component: LayoutComponent, resolution: Resolution) -> Self {
+    pub(super) fn new(component: LayoutComponentState, resolution: Resolution) -> Self {
         Self {
             component,
             resolution,
         }
     }
 
-    fn resolution(&self) -> Resolution {
-        match self.component.position() {
+    fn resolution(&self, pts: Duration) -> Resolution {
+        match self.component.position(pts) {
             Position::Static { width, height } => Resolution {
                 width: width.unwrap_or(self.resolution.width),
                 height: height.unwrap_or(self.resolution.height),
@@ -174,7 +190,7 @@ impl SizedLayoutComponent {
         }
     }
 
-    fn layout(&self) -> NestedLayout {
-        self.component.layout(self.resolution)
+    fn layout(&self, pts: Duration) -> NestedLayout {
+        self.component.layout(self.resolution, pts)
     }
 }

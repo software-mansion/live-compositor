@@ -1,11 +1,11 @@
-use compositor_common::{
-    scene,
-    util::{align, colors, coord, degree},
-};
+use std::time::Duration;
+
+use compositor_common::util::{align, colors, coord, degree};
+use compositor_render::scene;
 
 use super::util::*;
 
-impl From<Resolution> for scene::Resolution {
+impl From<Resolution> for compositor_common::scene::Resolution {
     fn from(resolution: Resolution) -> Self {
         Self {
             width: resolution.width,
@@ -14,11 +14,19 @@ impl From<Resolution> for scene::Resolution {
     }
 }
 
-impl From<scene::Resolution> for Resolution {
-    fn from(resolution: scene::Resolution) -> Self {
+impl From<compositor_common::scene::Resolution> for Resolution {
+    fn from(resolution: compositor_common::scene::Resolution) -> Self {
         Self {
             width: resolution.width,
             height: resolution.height,
+        }
+    }
+}
+
+impl From<Transition> for scene::Transition {
+    fn from(transition: Transition) -> Self {
+        Self {
+            duration: Duration::from_secs_f64(transition.duration_ms / 1000.0),
         }
     }
 }

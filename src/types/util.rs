@@ -10,6 +10,11 @@ pub struct Resolution {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+pub struct Transition {
+    pub duration_ms: f64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum HorizontalAlign {
     Left,

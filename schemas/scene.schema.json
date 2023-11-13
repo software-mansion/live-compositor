@@ -129,6 +129,16 @@
                 "null"
               ]
             },
+            "transition": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Transition"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
             "type": {
               "enum": [
                 "view"
@@ -1124,6 +1134,18 @@
           ]
         }
       },
+      "type": "object"
+    },
+    "Transition": {
+      "properties": {
+        "duration_ms": {
+          "format": "double",
+          "type": "number"
+        }
+      },
+      "required": [
+        "duration_ms"
+      ],
       "type": "object"
     },
     "VerticalAlign": {

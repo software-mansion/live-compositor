@@ -102,6 +102,8 @@ impl Renderer {
 
         let scope = WgpuErrorScope::push(&ctx.wgpu_ctx.device);
 
+        self.scene.register_render_event(inputs.pts);
+
         populate_inputs(ctx, &mut self.render_graph, &mut inputs).unwrap();
         run_transforms(ctx, &mut self.render_graph, inputs.pts).unwrap();
         let frames = read_outputs(ctx, &mut self.render_graph, inputs.pts).unwrap();

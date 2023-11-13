@@ -12,9 +12,7 @@ impl TryFrom<Component> for scene::Component {
     fn try_from(node: Component) -> Result<Self, Self::Error> {
         match node {
             Component::InputStream(input) => Ok(Self::InputStream(input.into())),
-            Component::View(view) => {
-                Ok(Self::Layout(scene::LayoutComponent::View(view.try_into()?)))
-            }
+            Component::View(view) => Ok(Self::View(view.try_into()?)),
             Component::WebRenderer(_node) => todo!(),
             Component::Shader(shader) => Ok(Self::Shader(shader.try_into()?)),
             Component::Image(_node) => todo!(),
@@ -39,7 +37,6 @@ impl From<InputStream> for scene::InputStreamComponent {
         Self {
             id: input.id.map(Into::into),
             input_id: input.input_id.into(),
-            size: None,
         }
     }
 }
@@ -112,6 +109,7 @@ impl TryFrom<View> for scene::ViewComponent {
                 .background_color_rgba
                 .map(TryInto::try_into)
                 .unwrap_or(Ok(colors::RGBAColor(0, 0, 0, 0)))?,
+            transition: view.transition.map(Into::into),
         })
     }
 }

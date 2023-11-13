@@ -93,7 +93,7 @@ impl RenderGraph {
         id_provider: &mut NodeIdProvider,
     ) -> Result<NodeId, UpdateSceneError> {
         // check if input stream already registered
-        if let scene::NodeKind::InputStream(input) = &node.kind {
+        if let scene::NodeParams::InputStream(input) = &node.params {
             if let Some((node_id, _)) = inputs.get(&input.input_id) {
                 return Ok(*node_id);
             }
@@ -106,18 +106,18 @@ impl RenderGraph {
             .map(|node| Self::ensure_node(ctx, node, inputs, new_nodes, id_provider))
             .collect::<Result<Vec<_>, _>>()?;
 
-        match node.kind {
-            scene::NodeKind::InputStream(input) => {
+        match node.params {
+            scene::NodeParams::InputStream(input) => {
                 let node = RenderNode::new_input();
                 new_nodes.insert(node_id, node);
                 inputs.insert(input.input_id.clone(), (node_id, InputTexture::new()));
             }
-            scene::NodeKind::Shader(shader) => {
+            scene::NodeParams::Shader(shader) => {
                 let node = RenderNode::new_shader_node(ctx, input_pads, shader)
                     .map_err(|err| UpdateSceneError::CreateNodeError(err, node_id.0))?;
                 new_nodes.insert(node_id, node);
             }
-            scene::NodeKind::Layout(layout) => {
+            scene::NodeParams::Layout(layout) => {
                 let node = RenderNode::new_layout_node(ctx, input_pads, layout)
                     .map_err(|err| UpdateSceneError::CreateNodeError(err, node_id.0))?;
                 new_nodes.insert(node_id, node);
