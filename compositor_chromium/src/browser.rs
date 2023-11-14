@@ -34,7 +34,7 @@ impl Browser {
         }
     }
 
-    pub fn close(self) -> Result<(), BrowserError> {
+    pub fn close(&mut self) -> Result<(), BrowserError> {
         unsafe {
             let browser = self.inner.get()?;
             let get_host = (*browser).get_host.unwrap();
