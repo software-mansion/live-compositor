@@ -43,10 +43,11 @@
                 {
                   "type": "null"
                 }
-              ]
+              ],
+              "description": "Background color of a component in a \"#RRGGBBAA\" format. Defaults to transparent \"#00000000\"."
             },
             "bottom": {
-              "description": "Distance between the bottom edge of this component and the bottom edge of it's parent. If this field is defined, then component will not use static layout of it's parent (component will ignore layout defined by it's parent).",
+              "description": "Distance between the bottom edge of this component and the bottom edge of its parent. If this field is defined, then component will ignore a layout defined by its parent.",
               "format": "uint",
               "minimum": 0.0,
               "type": [
@@ -75,6 +76,7 @@
               "description": "Direction defines how static children are positioned inside the View. \"row\" - Children positioned from left to right. \"column\" - Children positioned from top to bottom."
             },
             "height": {
+              "description": "Height of a component in pixels. Required when using absolute positioning.",
               "format": "uint",
               "minimum": 0.0,
               "type": [
@@ -93,7 +95,7 @@
               ]
             },
             "left": {
-              "description": "Distance between the left edge of this component and the left edge of it's parent. If this field is defined, then component will not use static layout of it's parent (component will ignore layout defined by it's parent).",
+              "description": "Distance between the left edge of this component and the left edge of its parent. If this field is defined, then component will ignore a layout defined by its parent.",
               "format": "uint",
               "minimum": 0.0,
               "type": [
@@ -102,7 +104,7 @@
               ]
             },
             "right": {
-              "description": "Distance between the right edge of this component and the right edge of it's parent. If this field is defined, then component will not use static layout of it's parent (component will ignore layout defined by it's parent).",
+              "description": "Distance between the right edge of this component and the right edge of its parent. If this field is defined, then component will ignore  layout defined by its parent.",
               "format": "uint",
               "minimum": 0.0,
               "type": [
@@ -111,7 +113,7 @@
               ]
             },
             "rotation": {
-              "description": "Rotation of a component in degrees. If this field is defined, then component will not use static layout of it's parent (component will ignore layout defined by it's parent).",
+              "description": "Rotation of a component in degrees. If this field is defined, then component will ignore a layout defined by its parent.",
               "format": "float",
               "type": [
                 "number",
@@ -119,7 +121,7 @@
               ]
             },
             "top": {
-              "description": "Distance between the top edge of this component and the top edge of it's parent. If this field is defined, then component will not use static layout of it's parent (component will ignore layout defined by it's parent).",
+              "description": "Distance between the top edge of this component and the top edge of its parent. If this field is defined, then component will ignore a layout defined by its parent.",
               "format": "uint",
               "minimum": 0.0,
               "type": [
@@ -134,6 +136,7 @@
               "type": "string"
             },
             "width": {
+              "description": "Width of a component in pixels. Required when using absolute positioning.",
               "format": "uint",
               "minimum": 0.0,
               "type": [

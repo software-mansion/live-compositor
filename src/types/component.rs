@@ -48,7 +48,9 @@ pub struct View {
     pub id: Option<ComponentId>,
     pub children: Option<Vec<Component>>,
 
+    /// Width of a component in pixels. Required when using absolute positioning.
     pub width: Option<usize>,
+    /// Height of a component in pixels. Required when using absolute positioning.
     pub height: Option<usize>,
 
     /// Direction defines how static children are positioned inside the View.
@@ -56,26 +58,24 @@ pub struct View {
     /// "column" - Children positioned from top to bottom.
     pub direction: Option<ViewDirection>,
 
-    /// Distance between the top edge of this component and the top edge of it's parent. If this
-    /// field is defined, then component will not use static layout of it's parent (component will
-    /// ignore layout defined by it's parent).
+    /// Distance between the top edge of this component and the top edge of its parent.
+    /// If this field is defined, then component will ignore a layout defined by its parent.
     pub top: Option<usize>,
-    /// Distance between the left edge of this component and the left edge of it's parent. If this
-    /// field is defined, then component will not use static layout of it's parent (component will
-    /// ignore layout defined by it's parent).
+    /// Distance between the left edge of this component and the left edge of its parent.
+    /// If this field is defined, then component will ignore a layout defined by its parent.
     pub left: Option<usize>,
-    /// Distance between the bottom edge of this component and the bottom edge of it's parent. If this
-    /// field is defined, then component will not use static layout of it's parent (component will
-    /// ignore layout defined by it's parent).
+    /// Distance between the bottom edge of this component and the bottom edge of its parent.
+    /// If this field is defined, then component will ignore a layout defined by its parent.
     pub bottom: Option<usize>,
-    /// Distance between the right edge of this component and the right edge of it's parent. If this
-    /// field is defined, then component will not use static layout of it's parent (component will
-    /// ignore layout defined by it's parent).
+    /// Distance between the right edge of this component and the right edge of its parent.
+    /// If this field is defined, then component will ignore  layout defined by its parent.
     pub right: Option<usize>,
-    /// Rotation of a component in degrees. If this field is defined, then component will not use
-    /// static layout of it's parent (component will ignore layout defined by it's parent).
+    /// Rotation of a component in degrees. If this field is defined, then component will
+    /// ignore a layout defined by its parent.
     pub rotation: Option<f32>,
 
+    /// Background color of a component in a "#RRGGBBAA" format. Defaults to transparent
+    /// "#00000000".
     pub background_color_rgba: Option<RGBAColor>,
 }
 

@@ -44,12 +44,12 @@ pub struct Layout {
 pub struct NestedLayout {
     pub(crate) layout: Layout,
     pub(crate) children: Vec<NestedLayout>,
-    /// describes how many children of this component are nodes. This value also
-    /// counts `layout` if it's content is a `LayoutContent::ChildNode`.
+    /// Describes how many children of this component are nodes. This value also
+    /// counts `layout` if its content is a `LayoutContent::ChildNode`.
     ///
-    /// This value is not necessarily equal to number of `LayoutContent::ChildNode` in
+    /// `child_nodes_count` is not necessarily equal to number of `LayoutContent::ChildNode` in
     /// a sub-tree. For example, if we have a component that conditionally shows one
-    /// of it's children then child_nodes_count will count all of those components even
+    /// of its children then child_nodes_count will count all of those components even
     /// though only one of those children will be present in the layouts tree.
     pub(crate) child_nodes_count: usize,
 }
