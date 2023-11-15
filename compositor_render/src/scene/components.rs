@@ -2,12 +2,13 @@ use std::{fmt::Display, sync::Arc, time::Duration};
 
 use compositor_common::{
     renderer_spec::RendererId,
-    scene::{shader::ShaderParam, InputId, Resolution},
+    scene::{shader::ShaderParam, InputId},
     util::colors::RGBAColor,
 };
 
 use super::Component;
 
+mod convert;
 mod interpolation;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -32,8 +33,8 @@ pub struct ShaderComponent {
 
     pub shader_id: RendererId,
     pub shader_param: Option<ShaderParam>,
-    /// Render resolution
-    pub size: Resolution,
+
+    pub size: Size,
 }
 
 #[derive(Debug, Clone)]
@@ -56,16 +57,22 @@ pub struct Transition {
 #[derive(Debug, Clone, Copy)]
 pub enum Position {
     Static {
-        width: Option<usize>,
-        height: Option<usize>,
+        width: Option<f32>,
+        height: Option<f32>,
     },
-    Relative(RelativePosition),
+    Absolute(AbsolutePosition),
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct RelativePosition {
-    pub width: usize,
-    pub height: usize,
+pub struct Size {
+    pub width: f32,
+    pub height: f32,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct AbsolutePosition {
+    pub width: f32,
+    pub height: f32,
     pub position_horizontal: HorizontalPosition,
     pub position_vertical: VerticalPosition,
     pub rotation_degrees: f32,
@@ -79,12 +86,12 @@ pub enum ViewChildrenDirection {
 
 #[derive(Debug, Clone, Copy)]
 pub enum VerticalPosition {
-    Top(usize),
-    Bottom(usize),
+    TopOffset(f32),
+    BottomOffset(f32),
 }
 
 #[derive(Debug, Clone, Copy)]
 pub enum HorizontalPosition {
-    Left(usize),
-    Right(usize),
+    LeftOffset(f32),
+    RightOffset(f32),
 }

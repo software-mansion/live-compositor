@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use self::input_stream_component::InputStreamComponentState;
 use self::layout::LayoutComponentState;
-use self::scene_state::{BaseNode, BuildStateTreeCtx};
+use self::scene_state::{BuildStateTreeCtx, IntermediateNode};
 use self::shader_component::ShaderComponentState;
 
 use compositor_common::scene::{OutputId, Resolution};
@@ -69,29 +69,29 @@ pub(crate) enum NodeParams {
 }
 
 impl ComponentState {
-    fn width(&self, pts: Duration) -> Option<usize> {
+    fn width(&self, pts: Duration) -> Option<f32> {
         match self {
             ComponentState::InputStream(input) => input.size.map(|s| s.width),
             ComponentState::Shader(shader) => Some(shader.component.size.width),
             ComponentState::Layout(layout) => match layout.position(pts) {
                 Position::Static { width, .. } => width,
-                Position::Relative(position) => Some(position.width),
+                Position::Absolute(position) => Some(position.width),
             },
         }
     }
 
-    fn height(&self, pts: Duration) -> Option<usize> {
+    fn height(&self, pts: Duration) -> Option<f32> {
         match self {
             ComponentState::InputStream(input) => input.size.map(|s| s.height),
             ComponentState::Shader(shader) => Some(shader.component.size.height),
             ComponentState::Layout(layout) => match layout.position(pts) {
                 Position::Static { height, .. } => height,
-                Position::Relative(position) => Some(position.height),
+                Position::Absolute(position) => Some(position.height),
             },
         }
     }
 
-    fn base_node(&self) -> Result<BaseNode, BuildSceneError> {
+    fn base_node(&self) -> Result<IntermediateNode, BuildSceneError> {
         match self {
             ComponentState::InputStream(input) => input.base_node(),
             ComponentState::Shader(shader) => shader.base_node(),

@@ -1,15 +1,13 @@
 use std::{ops::Add, time::Duration};
 
-use compositor_common::{
-    scene::Resolution,
-    util::{colors::RGBAColor, ContinuousValue, InterpolationState},
-};
+use compositor_common::util::{colors::RGBAColor, ContinuousValue, InterpolationState};
 
 use crate::{scene::ViewChildrenDirection, transformations::layout::NestedLayout};
 
 use super::{
     components::ViewComponent, layout::LayoutComponentState, scene_state::BuildStateTreeCtx,
-    BaseNode, BuildSceneError, Component, ComponentId, ComponentState, Position, Transition,
+    BuildSceneError, Component, ComponentId, ComponentState, IntermediateNode, Position, Size,
+    Transition,
 };
 
 mod interpolation;
@@ -72,14 +70,14 @@ impl ViewComponentState {
         self.end.id.as_ref()
     }
 
-    pub(super) fn base_node(&self) -> Result<BaseNode, BuildSceneError> {
+    pub(super) fn base_node(&self) -> Result<IntermediateNode, BuildSceneError> {
         let children = self
             .children
             .iter()
             .map(|component| {
                 let node = component.base_node()?;
                 match node {
-                    BaseNode::Layout { root: _, children } => Ok(children),
+                    IntermediateNode::Layout { root: _, children } => Ok(children),
                     _ => Ok(vec![node]),
                 }
             })
@@ -88,13 +86,13 @@ impl ViewComponentState {
             .flatten()
             .collect();
 
-        Ok(BaseNode::Layout {
+        Ok(IntermediateNode::Layout {
             root: LayoutComponentState::View(self.clone()),
             children,
         })
     }
 
-    pub(super) fn layout(&self, size: Resolution, pts: Duration) -> NestedLayout {
+    pub(super) fn layout(&self, size: Size, pts: Duration) -> NestedLayout {
         self.view(pts).layout(size, &self.children, pts)
     }
 }

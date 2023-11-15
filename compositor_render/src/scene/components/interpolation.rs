@@ -1,6 +1,6 @@
 use compositor_common::util::{ContinuousValue, InterpolationState};
 
-use super::{HorizontalPosition, Position, RelativePosition, VerticalPosition};
+use super::{AbsolutePosition, HorizontalPosition, Position, VerticalPosition};
 
 impl ContinuousValue for Position {
     fn interpolate(start: &Self, end: &Self, state: InterpolationState) -> Self {
@@ -15,15 +15,15 @@ impl ContinuousValue for Position {
                 width: ContinuousValue::interpolate(width, width_end, state),
                 height: ContinuousValue::interpolate(height, height_end, state),
             },
-            (Position::Relative(start), Position::Relative(end)) => {
-                Position::Relative(ContinuousValue::interpolate(start, end, state))
+            (Position::Absolute(start), Position::Absolute(end)) => {
+                Position::Absolute(ContinuousValue::interpolate(start, end, state))
             }
             (_, end) => *end,
         }
     }
 }
 
-impl ContinuousValue for RelativePosition {
+impl ContinuousValue for AbsolutePosition {
     fn interpolate(start: &Self, end: &Self, state: InterpolationState) -> Self {
         Self {
             width: ContinuousValue::interpolate(&start.width, &end.width, state),
@@ -50,11 +50,11 @@ impl ContinuousValue for RelativePosition {
 impl ContinuousValue for VerticalPosition {
     fn interpolate(start: &Self, end: &Self, state: InterpolationState) -> Self {
         match (start, end) {
-            (VerticalPosition::Top(start), VerticalPosition::Top(end)) => {
-                Self::Top(ContinuousValue::interpolate(start, end, state))
+            (VerticalPosition::TopOffset(start), VerticalPosition::TopOffset(end)) => {
+                Self::TopOffset(ContinuousValue::interpolate(start, end, state))
             }
-            (VerticalPosition::Bottom(start), VerticalPosition::Bottom(end)) => {
-                Self::Bottom(ContinuousValue::interpolate(start, end, state))
+            (VerticalPosition::BottomOffset(start), VerticalPosition::BottomOffset(end)) => {
+                Self::BottomOffset(ContinuousValue::interpolate(start, end, state))
             }
             (_, end) => *end,
         }
@@ -64,11 +64,11 @@ impl ContinuousValue for VerticalPosition {
 impl ContinuousValue for HorizontalPosition {
     fn interpolate(start: &Self, end: &Self, state: InterpolationState) -> Self {
         match (start, end) {
-            (HorizontalPosition::Left(start), HorizontalPosition::Left(end)) => {
-                Self::Left(ContinuousValue::interpolate(start, end, state))
+            (HorizontalPosition::LeftOffset(start), HorizontalPosition::LeftOffset(end)) => {
+                Self::LeftOffset(ContinuousValue::interpolate(start, end, state))
             }
-            (HorizontalPosition::Right(start), HorizontalPosition::Right(end)) => {
-                Self::Right(ContinuousValue::interpolate(start, end, state))
+            (HorizontalPosition::RightOffset(start), HorizontalPosition::RightOffset(end)) => {
+                Self::RightOffset(ContinuousValue::interpolate(start, end, state))
             }
             (_, end) => *end,
         }

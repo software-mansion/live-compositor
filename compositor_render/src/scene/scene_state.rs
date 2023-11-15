@@ -6,7 +6,7 @@ use super::{
     input_stream_component::InputStreamComponentState,
     layout::{LayoutComponentState, LayoutNode, SizedLayoutComponent},
     shader_component::ShaderComponentState,
-    BuildSceneError, ComponentId, ComponentState, Node, NodeParams, OutputScene, Position,
+    BuildSceneError, ComponentId, ComponentState, Node, NodeParams, OutputScene, Position, Size,
 };
 
 pub(super) struct BuildStateTreeCtx<'a> {
@@ -88,19 +88,19 @@ impl SceneState {
 }
 
 /// Intermediate representation of a node tree while it's being constructed.
-pub(super) enum BaseNode {
+pub(super) enum IntermediateNode {
     InputStream(InputStreamComponentState),
     Shader {
         shader: ShaderComponentState,
-        children: Vec<BaseNode>,
+        children: Vec<IntermediateNode>,
     },
     Layout {
         root: LayoutComponentState,
-        children: Vec<BaseNode>,
+        children: Vec<IntermediateNode>,
     },
 }
 
-impl BaseNode {
+impl IntermediateNode {
     /// * `resolution` - Forces resolution of a node, primary use case for this
     ///   param is to force resolution on a top level component to match resolution
     ///   of an output stream. TODO: Currently only layouts respect that value
@@ -111,25 +111,25 @@ impl BaseNode {
         resolution: Option<Resolution>,
         pts: Duration,
     ) -> Result<Node, BuildSceneError> {
-        let resolution = match resolution {
-            Some(resolution) => resolution,
+        let size = match resolution {
+            Some(resolution) => resolution.into(),
             None => self.node_size(pts)?,
         };
         match self {
-            BaseNode::InputStream(input) => Ok(Node {
+            IntermediateNode::InputStream(input) => Ok(Node {
                 params: NodeParams::InputStream(input.component), // TODO: enforce resolution
                 children: vec![],
             }),
-            BaseNode::Shader { shader, children } => Ok(Node {
+            IntermediateNode::Shader { shader, children } => Ok(Node {
                 params: NodeParams::Shader(shader.component), // TODO: enforce resolution
                 children: children
                     .into_iter()
                     .map(|node| node.build_tree(None, pts))
                     .collect::<Result<_, _>>()?,
             }),
-            BaseNode::Layout { root, children } => Ok(Node {
+            IntermediateNode::Layout { root, children } => Ok(Node {
                 params: NodeParams::Layout(LayoutNode {
-                    root: SizedLayoutComponent::new(root, resolution),
+                    root: SizedLayoutComponent::new(root, size),
                 }),
                 children: children
                     .into_iter()
@@ -139,25 +139,25 @@ impl BaseNode {
         }
     }
 
-    fn node_size(&self, pts: Duration) -> Result<Resolution, BuildSceneError> {
+    fn node_size(&self, pts: Duration) -> Result<Size, BuildSceneError> {
         match self {
-            BaseNode::InputStream(input) => Ok(input.size.unwrap_or(Resolution {
-                width: 1,
-                height: 1,
+            IntermediateNode::InputStream(input) => Ok(input.size.unwrap_or(Size {
+                width: 1.0,
+                height: 1.0,
             })),
-            BaseNode::Shader {
+            IntermediateNode::Shader {
                 shader,
                 children: _,
             } => Ok(shader.component.size),
-            BaseNode::Layout { root, children: _ } => {
+            IntermediateNode::Layout { root, children: _ } => {
                 let (width, height) = match root.position(pts) {
                     Position::Static { width, height } => (width, height),
-                    // Technically relative positioning is a bug here, but I think throwing error
+                    // Technically absolute positioning is a bug here, but I think throwing error
                     // in this case would be to invasive. It's better to just ignore those values.
-                    Position::Relative(position) => (Some(position.width), Some(position.height)),
+                    Position::Absolute(position) => (Some(position.width), Some(position.height)),
                 };
                 if let (Some(width), Some(height)) = (width, height) {
-                    Ok(Resolution { width, height })
+                    Ok(Size { width, height })
                 } else {
                     Err(BuildSceneError::UnknownDimensionsForLayoutNodeRoot {
                         component: root.component_type(),

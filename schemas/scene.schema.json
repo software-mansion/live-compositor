@@ -47,7 +47,7 @@
               "description": "Background color of a component in a \"#RRGGBBAA\" format. Defaults to transparent \"#00000000\"."
             },
             "bottom": {
-              "description": "Distance between the bottom edge of this component and the bottom edge of its parent. If this field is defined, then component will ignore a layout defined by its parent.",
+              "description": "Distance between the bottom edge of this component and the bottom edge of its parent. If this field is defined, this element will be absolutely positioned, instead of being laid out by it's parent.",
               "format": "uint",
               "minimum": 0.0,
               "type": [
@@ -95,7 +95,7 @@
               ]
             },
             "left": {
-              "description": "Distance between the left edge of this component and the left edge of its parent. If this field is defined, then component will ignore a layout defined by its parent.",
+              "description": "Distance between the left edge of this component and the left edge of its parent. If this field is defined, this element will be absolutely positioned, instead of being laid out by it's parent.",
               "format": "uint",
               "minimum": 0.0,
               "type": [
@@ -104,7 +104,7 @@
               ]
             },
             "right": {
-              "description": "Distance between the right edge of this component and the right edge of its parent. If this field is defined, then component will ignore  layout defined by its parent.",
+              "description": "Distance between the right edge of this component and the right edge of its parent. If this field is defined, this element will be absolutely positioned, instead of being laid out by it's parent.",
               "format": "uint",
               "minimum": 0.0,
               "type": [
@@ -113,7 +113,7 @@
               ]
             },
             "rotation": {
-              "description": "Rotation of a component in degrees. If this field is defined, then component will ignore a layout defined by its parent.",
+              "description": "Rotation of a component in degrees. If this field is defined, this element will be absolutely positioned, instead of being laid out by it's parent.",
               "format": "float",
               "type": [
                 "number",

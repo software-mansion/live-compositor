@@ -62,16 +62,19 @@ pub struct View {
     /// If this field is defined, then component will ignore a layout defined by its parent.
     pub top: Option<usize>,
     /// Distance between the left edge of this component and the left edge of its parent.
-    /// If this field is defined, then component will ignore a layout defined by its parent.
+    /// If this field is defined, this element will be absolutely positioned, instead of being
+    /// laid out by it's parent.
     pub left: Option<usize>,
     /// Distance between the bottom edge of this component and the bottom edge of its parent.
-    /// If this field is defined, then component will ignore a layout defined by its parent.
+    /// If this field is defined, this element will be absolutely positioned, instead of being
+    /// laid out by it's parent.
     pub bottom: Option<usize>,
     /// Distance between the right edge of this component and the right edge of its parent.
-    /// If this field is defined, then component will ignore  layout defined by its parent.
+    /// If this field is defined, this element will be absolutely positioned, instead of being
+    /// laid out by it's parent.
     pub right: Option<usize>,
-    /// Rotation of a component in degrees. If this field is defined, then component will
-    /// ignore a layout defined by its parent.
+    /// Rotation of a component in degrees. If this field is defined, this element will be
+    /// absolutely positioned, instead of being laid out by it's parent.
     pub rotation: Option<f32>,
 
     pub transition: Option<Transition>,

@@ -1,11 +1,8 @@
-use compositor_common::{
-    renderer_spec::RendererId,
-    scene::{shader::ShaderParam, Resolution},
-};
+use compositor_common::{renderer_spec::RendererId, scene::shader::ShaderParam};
 
 use super::{
-    scene_state::BuildStateTreeCtx, BaseNode, BuildSceneError, Component, ComponentId,
-    ComponentState, ShaderComponent,
+    scene_state::BuildStateTreeCtx, BuildSceneError, Component, ComponentId, ComponentState,
+    IntermediateNode, ShaderComponent, Size,
 };
 
 #[derive(Debug, Clone)]
@@ -19,7 +16,7 @@ pub(crate) struct ShaderComponentParams {
     pub(crate) id: Option<ComponentId>,
     pub(crate) shader_id: RendererId,
     pub(crate) shader_param: Option<ShaderParam>,
-    pub(crate) size: Resolution,
+    pub(crate) size: Size,
 }
 
 impl ShaderComponentState {
@@ -27,14 +24,14 @@ impl ShaderComponentState {
         self.component.id.as_ref()
     }
 
-    pub(super) fn base_node(&self) -> Result<BaseNode, BuildSceneError> {
+    pub(super) fn base_node(&self) -> Result<IntermediateNode, BuildSceneError> {
         let children = self
             .children
             .iter()
             .map(ComponentState::base_node)
             .collect::<Result<Vec<_>, _>>()?;
 
-        Ok(BaseNode::Shader {
+        Ok(IntermediateNode::Shader {
             shader: self.clone(),
             children,
         })

@@ -109,10 +109,10 @@ impl RenderNode {
             ctx,
             &shader.shader_id,
             &shader.shader_param,
-            &shader.size,
+            &shader.size.into(),
         )?);
         let mut output = NodeTexture::new();
-        output.ensure_size(ctx.wgpu_ctx, shader.size);
+        output.ensure_size(ctx.wgpu_ctx, shader.size.into());
 
         Ok(Self {
             renderer: node,
