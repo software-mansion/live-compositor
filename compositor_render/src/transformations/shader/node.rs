@@ -2,13 +2,13 @@ use std::{sync::Arc, time::Duration};
 
 use compositor_common::{
     renderer_spec::{FallbackStrategy, RendererId},
-    scene::{shader::ShaderParam, NodeId, Resolution},
+    scene::{shader::ShaderParam, Resolution},
 };
 use wgpu::util::DeviceExt;
 
 use crate::{
     error::CreateNodeError,
-    renderer::RenderCtx,
+    renderer::{render_graph::NodeId, RenderCtx},
     wgpu::{texture::NodeTexture, WgpuCtx},
 };
 
@@ -81,10 +81,6 @@ impl ShaderNode {
                 resource: buffer.as_entire_binding(),
             }],
         })
-    }
-
-    pub fn resolution(&self) -> Resolution {
-        self.resolution
     }
 
     pub fn fallback_strategy(&self) -> FallbackStrategy {

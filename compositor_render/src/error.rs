@@ -1,18 +1,21 @@
 use compositor_common::{
     error::UnsatisfiedConstraintsError,
     renderer_spec::RendererId,
-    scene::{transition::TransitionValidationError, NodeId},
+    scene::{transition::TransitionValidationError, OutputId},
     SceneSpecValidationError,
 };
 
-use crate::transformations::web_renderer::CreateWebRendererError;
 use crate::{
     registry,
+    scene::BuildSceneError,
     transformations::{
         builtin::error::InitBuiltinError, image_renderer::ImageError,
         web_renderer::chromium_context::WebRendererContextError,
     },
     wgpu::{shader::CreateShaderError, validation::ParametersValidationError, CreateWgpuCtxError},
+};
+use crate::{
+    renderer::render_graph::NodeId, transformations::web_renderer::CreateWebRendererError,
 };
 
 pub use crate::registry::RegisterError;
@@ -76,7 +79,7 @@ pub enum RenderSceneError {
 #[derive(Debug, thiserror::Error)]
 pub enum UpdateSceneError {
     #[error("Failed to create node \"{1}\".")]
-    CreateNodeError(#[source] CreateNodeError, NodeId),
+    CreateNodeError(#[source] CreateNodeError, usize),
 
     #[error(transparent)]
     InvalidSpec(#[from] SceneSpecValidationError),
@@ -87,11 +90,16 @@ pub enum UpdateSceneError {
     #[error(transparent)]
     WgpuError(#[from] WgpuError),
 
-    #[error("Unknown resolution on the output node. Nodes that are declared as outputs need to have constant resolution that is the same as resolution of the output stream.")]
-    UnknownResolutionOnOutput(NodeId),
+    #[error(
+        "Output \"{0}\" does not exist, register it first before using it in the scene definition"
+    )]
+    OutputNotRegistered(OutputId),
 
     #[error("Constraints for node \"{1}\" are not satisfied.")]
     ConstraintsValidationError(#[source] UnsatisfiedConstraintsError, NodeId),
+
+    #[error(transparent)]
+    BuildSceneError(#[from] BuildSceneError),
 }
 
 #[derive(Debug, thiserror::Error)]

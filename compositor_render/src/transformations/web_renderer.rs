@@ -4,6 +4,7 @@ use std::env;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
+use crate::renderer::render_graph::NodeId;
 use crate::renderer::{RegisterCtx, RenderCtx};
 use crate::wgpu::shader::shader_params::ParamsBuffer;
 use crate::wgpu::shader::{CreateShaderError, WgpuShader};
@@ -15,7 +16,7 @@ use crate::transformations::web_renderer::embedder::{EmbedError, EmbeddingHelper
 use compositor_common::renderer_spec::WebEmbeddingMethod;
 use compositor_common::{
     renderer_spec::{FallbackStrategy, WebRendererSpec},
-    scene::{constraints::NodeConstraints, NodeId, Resolution},
+    scene::{constraints::NodeConstraints, Resolution},
 };
 use log::{error, info};
 

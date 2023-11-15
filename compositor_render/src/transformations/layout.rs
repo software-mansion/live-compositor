@@ -1,22 +1,23 @@
 use std::{sync::Arc, time::Duration};
 
-use crate::{renderer::RenderCtx, wgpu::texture::NodeTexture};
+use crate::{
+    renderer::{render_graph::NodeId, RenderCtx},
+    wgpu::texture::NodeTexture,
+};
 
 mod layout_renderer;
 mod params;
 mod shader;
 mod transformation_matrix;
 
-use compositor_common::{
-    scene::{NodeId, Resolution},
-    util::colors::RGBAColor,
-};
-pub(crate) use layout_renderer::LayoutRenderer;
+use compositor_common::{scene::Resolution, util::colors::RGBAColor};
 
 use self::{
     params::{LayoutNodeParams, ParamsBuffer},
     shader::LayoutShader,
 };
+
+pub(crate) use layout_renderer::LayoutRenderer;
 
 pub(crate) trait LayoutProvider: Send {
     fn layouts(&mut self, pts: Duration, inputs: Vec<Option<Resolution>>) -> Vec<Layout>;
@@ -31,11 +32,47 @@ pub(crate) struct LayoutNode {
 
 #[derive(Debug, Clone)]
 pub struct Layout {
-    pub top_left_corner: (f32, f32),
+    pub top: f32,
+    pub left: f32,
     pub width: f32,
     pub height: f32,
     pub rotation_degrees: f32,
     pub content: LayoutContent,
+}
+
+#[derive(Debug, Clone)]
+pub struct NestedLayout {
+    pub(crate) layout: Layout,
+    pub(crate) children: Vec<NestedLayout>,
+}
+
+impl NestedLayout {
+    pub fn flatten(self) -> Vec<Layout> {
+        let mut child_index = 0;
+        let children: Vec<_> = self
+            .children
+            .into_iter()
+            .flat_map(NestedLayout::flatten)
+            .map(|layout| Layout {
+                top: layout.top + self.layout.top,
+                left: layout.left + self.layout.left,
+                width: layout.width,
+                height: layout.height,
+                rotation_degrees: layout.rotation_degrees + self.layout.rotation_degrees, // TODO: not exactly correct
+                content: match layout.content {
+                    LayoutContent::Color(color) => LayoutContent::Color(color),
+                    LayoutContent::ChildNode(_) => {
+                        let content = LayoutContent::ChildNode(child_index);
+                        // TODO: this will break if will have nodes that are not part of the layout
+                        // tree
+                        child_index += 1;
+                        content
+                    }
+                },
+            })
+            .collect();
+        [vec![self.layout], children].concat()
+    }
 }
 
 #[derive(Debug, Clone)]

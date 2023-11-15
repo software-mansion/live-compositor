@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use crate::renderer::RegisterCtx;
-use compositor_common::scene::{NodeId, Resolution};
+use crate::renderer::{render_graph::NodeId, RegisterCtx};
+use compositor_common::scene::Resolution;
 use crossbeam_channel::{Receiver, Sender};
 
 use crate::wgpu::texture::NodeTexture;

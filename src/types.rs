@@ -40,7 +40,7 @@ pub struct OutputId(Arc<str>);
 pub struct InputId(Arc<str>);
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-pub struct Scene {
+pub struct OutputScene {
     pub output_id: OutputId,
     pub root: Component,
 }

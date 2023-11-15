@@ -1,13 +1,15 @@
 use std::sync::Arc;
 
-use compositor_common::scene::NodeId;
 use wgpu::ShaderSource;
 
-use crate::wgpu::{
-    common_pipeline::{surface::Surfaces, Sampler},
-    shader::{pipeline, CreateShaderError},
-    texture::{NodeTexture, NodeTextureState, Texture},
-    WgpuCtx, WgpuErrorScope,
+use crate::{
+    renderer::render_graph::NodeId,
+    wgpu::{
+        common_pipeline::{surface::Surfaces, Sampler},
+        shader::{pipeline, CreateShaderError},
+        texture::{NodeTexture, NodeTextureState, Texture},
+        WgpuCtx, WgpuErrorScope,
+    },
 };
 
 pub(super) const INPUT_TEXTURES_AMOUNT: u32 = 16;

@@ -38,3 +38,15 @@ impl From<NodeId> for OutputId {
         Self(value)
     }
 }
+
+impl From<Arc<str>> for InputId {
+    fn from(value: Arc<str>) -> Self {
+        Self(NodeId(value))
+    }
+}
+
+impl From<Arc<str>> for OutputId {
+    fn from(value: Arc<str>) -> Self {
+        Self(NodeId(value))
+    }
+}

@@ -1,6 +1,8 @@
 use std::{sync::Arc, time::Duration};
 
-use compositor_common::scene::{shader::ShaderParam, NodeId};
+use compositor_common::scene::shader::ShaderParam;
+
+use crate::renderer::render_graph::NodeId;
 
 use self::{common_params::CommonShaderParameters, pipeline::Pipeline};
 

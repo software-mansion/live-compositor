@@ -35,7 +35,7 @@ pub enum Request {
 
 #[derive(Serialize, Deserialize)]
 pub struct UpdateScene {
-    pub scenes: Vec<types::Scene>,
+    pub scenes: Vec<types::OutputScene>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -113,8 +113,7 @@ impl Api {
                 Ok(ResponseHandler::Ok)
             }
             Request::UpdateScene(scene_spec) => {
-                self.pipeline
-                    .update_scene(Arc::new(scene_spec.try_into()?))?;
+                self.pipeline.update_scene(scene_spec.try_into()?)?;
                 Ok(ResponseHandler::Ok)
             }
             Request::Query(query) => self.handle_query(query),

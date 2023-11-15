@@ -183,6 +183,7 @@ const SCENE_SPEC_VALIDATION_ERROR: &str = "SCENE_SPEC_VALIDATION_ERROR";
 const MISSING_NODE_WITH_ID: &str = "MISSING_NODE_WITH_ID";
 const UNKNOWN_RESOLUTION_ON_OUTPUT_NODE: &str = "UNKNOWN_RESOLUTION_ON_OUTPUT_NODE";
 const CONSTRAINTS_VALIDATION_ERROR: &str = "CONSTRAINTS_VALIDATION_ERROR";
+const BUILD_SCENE_ERROR: &str = "BUILD_SCENE_ERROR";
 
 impl From<&UpdateSceneError> for PipelineErrorInfo {
     fn from(err: &UpdateSceneError) -> Self {
@@ -198,11 +199,15 @@ impl From<&UpdateSceneError> for PipelineErrorInfo {
                 PipelineErrorInfo::new(MISSING_NODE_WITH_ID, ErrorType::ServerError)
             }
             UpdateSceneError::WgpuError(err) => err.into(),
-            UpdateSceneError::UnknownResolutionOnOutput(_) => {
+            UpdateSceneError::OutputNotRegistered(_) => {
                 PipelineErrorInfo::new(UNKNOWN_RESOLUTION_ON_OUTPUT_NODE, ErrorType::ServerError)
             }
             UpdateSceneError::ConstraintsValidationError(_, _) => PipelineErrorInfo {
                 error_code: CONSTRAINTS_VALIDATION_ERROR,
+                error_type: ErrorType::UserError,
+            },
+            UpdateSceneError::BuildSceneError(_) => PipelineErrorInfo {
+                error_code: BUILD_SCENE_ERROR,
                 error_type: ErrorType::UserError,
             },
         }
