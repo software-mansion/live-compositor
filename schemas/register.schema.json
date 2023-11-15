@@ -94,6 +94,18 @@
     "OutputId": {
       "type": "string"
     },
+    "Port": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "format": "uint16",
+          "minimum": 0.0,
+          "type": "integer"
+        }
+      ]
+    },
     "RendererId": {
       "type": "string"
     },
@@ -138,9 +150,7 @@
           "$ref": "#/definitions/InputId"
         },
         "port": {
-          "format": "uint16",
-          "minimum": 0.0,
-          "type": "integer"
+          "$ref": "#/definitions/Port"
         }
       },
       "required": [

@@ -1,9 +1,6 @@
 use std::sync::Arc;
 
-use compositor_pipeline::{
-    error::{InputInitError, RegisterInputError},
-    pipeline::{self},
-};
+use compositor_pipeline::pipeline::{self};
 use compositor_render::{EventLoop, RegistryType};
 use crossbeam_channel::{bounded, Receiver};
 
@@ -13,13 +10,12 @@ use tiny_http::StatusCode;
 
 use crate::{
     error::ApiError,
-    rtp_receiver::{self, RtpReceiver},
-    rtp_sender::{self, RtpSender},
-    types::{
-        self, InitOptions, InputId, OutputId, RegisterInputRequest, RegisterOutputRequest,
-        RegisterRequest, RendererId,
-    },
+    rtp_receiver::RtpReceiver,
+    rtp_sender::RtpSender,
+    types::{self, InitOptions, InputId, OutputId, RegisterRequest, RendererId},
 };
+
+mod register_request;
 
 pub type Pipeline = compositor_pipeline::Pipeline<RtpReceiver, RtpSender>;
 
@@ -57,21 +53,28 @@ pub enum QueryRequest {
     Outputs,
 }
 
-#[derive(Serialize, Deserialize)]
-#[serde(untagged)]
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(untagged, deny_unknown_fields)]
 pub enum Response {
     Ok {},
     Inputs { inputs: Vec<InputInfo> },
     Outputs { outputs: Vec<OutputInfo> },
+    RegisteredPort(u16),
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Port {
+    Range((u16, u16)),
+    Exact(u16),
+}
+
+#[derive(Serialize, Deserialize, Debug)]
 pub struct InputInfo {
     pub id: InputId,
     pub port: u16,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct OutputInfo {
     pub id: OutputId,
     pub port: u16,
@@ -102,8 +105,10 @@ impl Api {
                 StatusCode(400),
             )),
             Request::Register(register_request) => {
-                self.handle_register_request(register_request)?;
-                Ok(ResponseHandler::Ok)
+                match register_request::handle_register_request(self, register_request)? {
+                    Some(response) => Ok(response),
+                    None => Ok(ResponseHandler::Ok),
+                }
             }
             Request::Unregister(unregister_request) => {
                 self.handle_unregister_request(unregister_request)?;
@@ -158,25 +163,6 @@ impl Api {
         }
     }
 
-    fn handle_register_request(&mut self, request: RegisterRequest) -> Result<(), ApiError> {
-        match request {
-            RegisterRequest::InputStream(input_stream) => self.register_input(input_stream),
-            RegisterRequest::OutputStream(output_stream) => self.register_output(output_stream),
-            RegisterRequest::Shader(spec) => {
-                let spec = spec.try_into()?;
-                Ok(self.pipeline.register_renderer(spec)?)
-            }
-            RegisterRequest::WebRenderer(spec) => {
-                let spec = spec.try_into()?;
-                Ok(self.pipeline.register_renderer(spec)?)
-            }
-            RegisterRequest::Image(spec) => {
-                let spec = spec.try_into()?;
-                Ok(self.pipeline.register_renderer(spec)?)
-            }
-        }
-    }
-
     fn handle_unregister_request(&mut self, request: UnregisterRequest) -> Result<(), ApiError> {
         match request {
             UnregisterRequest::InputStream { input_id } => {
@@ -194,92 +180,6 @@ impl Api {
             UnregisterRequest::Image { image_id } => Ok(self
                 .pipeline
                 .unregister_renderer(&image_id.into(), RegistryType::Image)?),
-        }
-    }
-
-    fn register_output(&mut self, request: RegisterOutputRequest) -> Result<(), ApiError> {
-        let RegisterOutputRequest {
-            output_id,
-            port,
-            resolution,
-            encoder_settings,
-            ip,
-        } = request;
-
-        self.pipeline.with_outputs(|mut iter| {
-            if let Some((node_id, _)) = iter.find(|(_, output)| output.port == port && output.ip == ip) {
-                return Err(ApiError::new(
-                    "PORT_AND_IP_ALREADY_IN_USE",
-                    format!("Failed to register output stream \"{output_id}\". Combination of port {port} and IP {ip} is already used by node \"{node_id}\""),
-                    tiny_http::StatusCode(400)
-                ));
-            };
-            Ok(())
-        })?;
-
-        self.pipeline.register_output(
-            output_id.into(),
-            pipeline::OutputOptions {
-                resolution: resolution.into(),
-                encoder_settings: encoder_settings.into(),
-                receiver_options: rtp_sender::Options { port, ip },
-            },
-        )?;
-
-        Ok(())
-    }
-
-    fn register_input(&mut self, request: RegisterInputRequest) -> Result<(), ApiError> {
-        let RegisterInputRequest { input_id: id, port } = request;
-
-        if let Some((node_id, _)) = self.pipeline.inputs().find(|(_, input)| input.port == port) {
-            return Err(ApiError::new(
-                "PORT_ALREADY_IN_USE",
-                format!("Failed to register input stream \"{id}\". Port {port} is already used by node \"{node_id}\""),
-                tiny_http::StatusCode(400)
-            ));
-        }
-
-        let result = self.pipeline.register_input(
-            id.clone().into(),
-            rtp_receiver::Options {
-                port,
-                input_id: id.into(),
-            },
-        );
-
-        Self::check_port_not_available(&result, port)?;
-
-        result?;
-
-        Ok(())
-    }
-
-    /// Returns Ok(()) if there isn't an error or the error is not a port already in use error.
-    /// Returns Err(ApiError) if the error is a port already in use error.
-    fn check_port_not_available<T>(
-        register_input_error: &Result<T, RegisterInputError>,
-        port: u16,
-    ) -> Result<(), ApiError> {
-        if let Err(RegisterInputError::DecoderError(ref id, InputInitError::InputError(ref err))) =
-            register_input_error
-        {
-            if let Some(err) = err.0.downcast_ref::<rtp_receiver::InitError>() {
-                match err {
-                    rtp_receiver::InitError::FfmpegError(ffmpeg_next::Error::Other { errno: ffmpeg_next::error::EADDRINUSE })
-                    | rtp_receiver::InitError::FfmpegError(ffmpeg_next::Error::Other { errno: ffmpeg_next::error::EADDRNOTAVAIL }) =>
-                        Err(ApiError::new(
-                        "PORT_ALREADY_IN_USE",
-                        format!("Failed to register input stream \"{id}\". Port {port} is already in use or not available."),
-                        tiny_http::StatusCode(400)
-                    )),
-                    _ => Ok(())
-                }
-            } else {
-                Ok(())
-            }
-        } else {
-            Ok(())
         }
     }
 }

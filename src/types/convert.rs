@@ -4,7 +4,7 @@ use compositor_common::renderer_spec;
 use compositor_pipeline::pipeline;
 use compositor_render::scene;
 
-use crate::api::UpdateScene;
+use crate::api::{self, UpdateScene};
 
 use super::util::*;
 use super::*;
@@ -102,5 +102,39 @@ impl TryFrom<InitOptions> for pipeline::Options {
             },
         };
         Ok(result)
+    }
+}
+
+impl TryFrom<register_request::Port> for api::Port {
+    type Error = TypeError;
+
+    fn try_from(value: register_request::Port) -> Result<Self, Self::Error> {
+        const PORT_CONVERSION_ERROR_MESSAGE: &str = "Port needs to be a number between 1 and 65535 or a string in the \"START:END\" format, where START and END represent a range of ports.";
+        match value {
+            Port::U16(0) => Err(TypeError::new(PORT_CONVERSION_ERROR_MESSAGE)),
+            Port::U16(v) => Ok(api::Port::Exact(v)),
+            Port::String(s) => {
+                let (start, end) = s
+                    .split_once(':')
+                    .ok_or(TypeError::new(PORT_CONVERSION_ERROR_MESSAGE))?;
+
+                let start = start
+                    .parse::<u16>()
+                    .or(Err(TypeError::new(PORT_CONVERSION_ERROR_MESSAGE)))?;
+                let end = end
+                    .parse::<u16>()
+                    .or(Err(TypeError::new(PORT_CONVERSION_ERROR_MESSAGE)))?;
+
+                if start > end {
+                    return Err(TypeError::new(PORT_CONVERSION_ERROR_MESSAGE));
+                }
+
+                if start == 0 || end == 0 {
+                    return Err(TypeError::new(PORT_CONVERSION_ERROR_MESSAGE));
+                }
+
+                Ok(api::Port::Range((start, end)))
+            }
+        }
     }
 }

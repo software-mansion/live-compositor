@@ -7,7 +7,7 @@ use std::{
     thread,
     time::Duration,
 };
-use video_compositor::http;
+use video_compositor::{api::Response, http};
 
 use crate::common::write_example_sdp_file;
 
@@ -73,12 +73,21 @@ fn start_example_client_code() -> Result<()> {
     }))?;
 
     info!("[example] Send register input request.");
-    common::post(&json!({
+    let response = common::post(&json!({
         "type": "register",
         "entity_type": "input_stream",
         "input_id": "input_1",
-        "port": 8004
-    }))?;
+        "port": "8004:8008"
+    }))?
+    .json()?;
+
+    let input_port = match response {
+        Response::RegisteredPort(port) => port,
+        _ => panic!(
+            "Unexpected response for registering an input: {:?}",
+            response
+        ),
+    };
 
     let shader_source = include_str!("./silly.wgsl");
     info!("[example] Register shader transform");
@@ -126,7 +135,7 @@ fn start_example_client_code() -> Result<()> {
             "libx264",
             "-f",
             "rtp",
-            "rtp://127.0.0.1:8004?rtcpport=8004",
+            &format!("rtp://127.0.0.1:{}?rtcpport={}", input_port, input_port),
         ])
         .spawn()?;
     thread::sleep(Duration::from_secs(5));

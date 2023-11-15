@@ -19,6 +19,7 @@ mod convert_util_test;
 
 pub use component::Component;
 pub use component::WebRenderer;
+pub use register_request::Port;
 pub use register_request::RegisterInputRequest;
 pub use register_request::RegisterOutputRequest;
 pub use register_request::RegisterRequest;
