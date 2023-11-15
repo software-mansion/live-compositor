@@ -37,14 +37,44 @@ pub struct ViewComponent {
     pub id: Option<ComponentId>,
     pub children: Vec<Component>,
 
-    pub width: Option<usize>,
-    pub height: Option<usize>,
     pub direction: ViewChildrenDirection,
+    pub position: Position,
+
     pub background_color: RGBAColor,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum Position {
+    Static {
+        width: Option<usize>,
+        height: Option<usize>,
+    },
+    Relative(RelativePosition),
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct RelativePosition {
+    pub width: usize,
+    pub height: usize,
+    pub position_horizontal: HorizontalPosition,
+    pub position_vertical: VerticalPosition,
+    pub rotation_degrees: f32,
 }
 
 #[derive(Debug, Clone)]
 pub enum ViewChildrenDirection {
     Row,
     Column,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum VerticalPosition {
+    Top(usize),
+    Bottom(usize),
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum HorizontalPosition {
+    Left(usize),
+    Right(usize),
 }

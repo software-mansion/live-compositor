@@ -1,11 +1,25 @@
-use compositor_common::{scene::Resolution, util::colors::RGBAColor};
+use compositor_common::scene::Resolution;
 
 use crate::{
     scene::ViewChildrenDirection,
     transformations::layout::{Layout, LayoutContent, NestedLayout},
 };
 
-use super::{components::ViewComponent, BaseNode, BuildSceneError, Component, LayoutComponent};
+use super::{
+    components::ViewComponent, BaseNode, BuildSceneError, Component, LayoutComponent, Position,
+};
+
+#[derive(Debug)]
+struct StaticChildLayoutOpts {
+    width: Option<usize>,
+    height: Option<usize>,
+    /// offset inside parent component
+    static_offset: usize,
+    /// For direction=row defines width of a dynamically sized component
+    /// For direction=column defines height of a dynamically sized component
+    dynamic_child_size: usize,
+    parent_size: Resolution,
+}
 
 impl ViewComponent {
     pub(super) fn base_node(&self) -> Result<BaseNode, BuildSceneError> {
@@ -38,101 +52,117 @@ impl ViewComponent {
         self.children.iter_mut().collect()
     }
 
-    pub(super) fn layout(&self, size: Resolution) -> Vec<NestedLayout> {
+    pub(super) fn layout(&self, size: Resolution) -> NestedLayout {
         let dynamic_child_size = self.dynamic_size_for_static_children(size);
 
         // offset along x or y direction (depends on self.direction) where next
         // child component should be placed
         let mut static_offset = 0;
 
-        let create_static_layout = match self.direction {
-            ViewChildrenDirection::Row => Self::create_static_layout_row,
-            ViewChildrenDirection::Column => Self::create_static_layout_column,
-        };
-
-        self.children
+        let children: Vec<_> = self
+            .children
             .iter()
             .map(|child| {
-                if Self::is_static_child(child) {
-                    let layout =
-                        create_static_layout(child, static_offset, dynamic_child_size, size);
-                    match self.direction {
-                        ViewChildrenDirection::Row => static_offset += layout.width as usize,
-                        ViewChildrenDirection::Column => static_offset += layout.height as usize,
-                    };
-                    match child {
-                        Component::Layout(layout_component) => {
-                            let children_layouts = layout_component.layout(Resolution {
-                                width: layout.width as usize,
-                                height: layout.height as usize,
-                            });
-                            NestedLayout {
-                                layout: Layout {
-                                    content: LayoutContent::Color(
-                                        layout_component
-                                            .background_color()
-                                            .unwrap_or(RGBAColor(0, 0, 0, 0)),
-                                    ),
-                                    ..layout
-                                },
-                                children: children_layouts,
-                            }
-                        }
-                        _ => {
-                            NestedLayout {
-                                layout: layout.clone(),
-                                children: vec![NestedLayout {
-                                    layout: Layout {
-                                        top: 0.0,
-                                        left: 0.0,
-                                        content: LayoutContent::ChildNode(0), // TODO: this will be recalculated latter
-                                        ..layout
-                                    },
-                                    children: vec![],
-                                }],
-                            }
-                        }
+                let position = match child {
+                    Component::Layout(layout) => layout.position(),
+                    non_layout_component => Position::Static {
+                        width: non_layout_component.width(),
+                        height: non_layout_component.height(),
+                    },
+                };
+                match position {
+                    Position::Static { width, height } => {
+                        let (layout, updated_static_offset) = self.layout_static_child(
+                            child,
+                            StaticChildLayoutOpts {
+                                width,
+                                height,
+                                static_offset,
+                                dynamic_child_size,
+                                parent_size: size,
+                            },
+                        );
+
+                        static_offset = updated_static_offset;
+                        layout
                     }
-                } else {
-                    // Add support to top/left/right/bottom options
-                    todo!()
+                    Position::Relative(position) => {
+                        LayoutComponent::layout_relative_child(child, position, size)
+                    }
                 }
             })
-            .collect()
-    }
-
-    fn create_static_layout_row(
-        component: &Component,
-        offset: usize,
-        width_for_dynamic: usize,
-        parent_size: Resolution,
-    ) -> Layout {
-        let width = component.width().unwrap_or(width_for_dynamic);
-        Layout {
-            top: 0.0,
-            left: offset as f32,
-            width: width as f32,
-            height: component.height().unwrap_or(parent_size.height) as f32,
-            rotation_degrees: 0.0,
-            content: LayoutContent::Color(RGBAColor(0, 0, 0, 0)),
+            .collect();
+        NestedLayout {
+            layout: Layout {
+                top: 0.0,
+                left: 0.0,
+                width: size.width as f32,
+                height: size.height as f32,
+                rotation_degrees: 0.0,
+                content: LayoutContent::Color(self.background_color),
+            },
+            child_nodes_count: children.iter().map(|l| l.child_nodes_count).sum(),
+            children,
         }
     }
 
-    fn create_static_layout_column(
-        component: &Component,
-        offset: usize,
-        height_for_dynamic: usize,
-        parent_size: Resolution,
-    ) -> Layout {
-        let height = component.height().unwrap_or(height_for_dynamic);
-        Layout {
-            top: offset as f32,
-            left: 0.0,
-            width: component.width().unwrap_or(parent_size.width) as f32,
-            height: height as f32,
-            rotation_degrees: 0.0,
-            content: LayoutContent::Color(RGBAColor(0, 0, 0, 0)),
-        }
+    fn layout_static_child(
+        &self,
+        child: &Component,
+        opts: StaticChildLayoutOpts,
+    ) -> (NestedLayout, usize) {
+        let mut static_offset = opts.static_offset;
+        let (top, left, width, height) = match self.direction {
+            ViewChildrenDirection::Row => {
+                let width = opts.width.unwrap_or(opts.dynamic_child_size);
+                let height = opts.height.unwrap_or(opts.parent_size.height);
+                let top = 0.0;
+                let left = static_offset;
+                static_offset += width;
+                (top as f32, left as f32, width as f32, height as f32)
+            }
+            ViewChildrenDirection::Column => {
+                let height = opts.height.unwrap_or(opts.dynamic_child_size);
+                let width = opts.width.unwrap_or(opts.parent_size.width);
+                let top = static_offset;
+                let left = 0.0;
+                static_offset += height;
+                (top as f32, left as f32, width as f32, height as f32)
+            }
+        };
+        let layout = match child {
+            Component::Layout(layout_component) => {
+                let children_layouts = layout_component.layout(Resolution {
+                    width: width as usize,
+                    height: height as usize,
+                });
+                NestedLayout {
+                    layout: Layout {
+                        top,
+                        left,
+                        width,
+                        height,
+                        rotation_degrees: 0.0,
+                        content: LayoutContent::None,
+                    },
+                    child_nodes_count: children_layouts.child_nodes_count,
+                    children: vec![children_layouts],
+                }
+            }
+            _ => NestedLayout {
+                layout: Layout {
+                    top,
+                    left,
+                    width,
+                    height,
+                    rotation_degrees: 0.0,
+                    content: LayoutContent::ChildNode(0),
+                },
+                child_nodes_count: 1,
+                children: vec![],
+            },
+        };
+        (layout, static_offset)
     }
 
     /// Calculate size of a dynamically sized child component. Returned value
@@ -151,14 +181,14 @@ impl ViewComponent {
                 ViewChildrenDirection::Column => child.height().is_none(),
             })
             .count();
-        let static_children_sizes = self.sum_static_children_sizes();
+        let static_children_sum = self.sum_static_children_sizes();
 
         if dynamic_children_count == 0 {
             return 0; // if there is no dynamically sized children then this value does not matter
         }
         f32::max(
             0.0,
-            (max_size as f32 - static_children_sizes as f32) / dynamic_children_count as f32,
+            (max_size as f32 - static_children_sum as f32) / dynamic_children_count as f32,
         ) as usize
     }
 
@@ -174,15 +204,12 @@ impl ViewComponent {
     }
 
     fn static_children_iter(&self) -> impl Iterator<Item = &Component> {
-        self.children.iter().filter(|v| Self::is_static_child(v))
-    }
-
-    /// Resolves if specific component will be positioned in the row or column layout. Function
-    /// should return false for components that are positioned absolutely inside the parent component.
-    fn is_static_child(component: &Component) -> bool {
-        match component {
-            super::Component::Layout(_layout) => true, // TODO: add support for top/left/right/bottom
+        self.children.iter().filter(|child| match child {
+            Component::Layout(layout) => match layout.position() {
+                super::Position::Static { .. } => true,
+                super::Position::Relative(_) => false,
+            },
             _ => true,
-        }
+        })
     }
 }

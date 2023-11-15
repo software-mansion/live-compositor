@@ -623,6 +623,33 @@ pub fn view_snapshot_tests() -> Vec<TestCase> {
             )],
             inputs: vec![TestInput::new(1)],
             ..Default::default()
+        },
+        TestCase {
+            name: "view/view_with_relative_positioning_partially_covered_by_sibling",
+            outputs: vec![(
+                include_str!("../../snapshot_tests/view/view_with_relative_positioning_partially_covered_by_sibling.scene.json"),
+                DEFAULT_RESOLUTION,
+            )],
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "view/view_with_relative_positioning_render_over_siblings",
+            outputs: vec![(
+                include_str!("../../snapshot_tests/view/view_with_relative_positioning_render_over_siblings.scene.json"),
+                DEFAULT_RESOLUTION,
+            )],
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "view/root_view_with_background_color",
+            outputs: vec![(
+                include_str!("../../snapshot_tests/view/root_view_with_background_color.scene.json"),
+                DEFAULT_RESOLUTION,
+            )],
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
         }
     ])
 }

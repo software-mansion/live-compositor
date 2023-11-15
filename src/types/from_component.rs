@@ -1,6 +1,7 @@
 use compositor_common::scene::shader;
 use compositor_common::util::colors;
 use compositor_render::scene;
+use compositor_render::scene::Position;
 
 use super::component::*;
 use super::util::*;
@@ -47,6 +48,56 @@ impl TryFrom<View> for scene::ViewComponent {
     type Error = TypeError;
 
     fn try_from(view: View) -> Result<Self, Self::Error> {
+        const WIDTH_REQUIRED_MSG: &str =
+            "Non-static \"View\" component requires \"width\" to be specified.";
+        const HEIGHT_REQUIRED_MSG: &str =
+            "Non-static \"View\" component requires \"height\" to be specified.";
+        const VERTICAL_REQUIRED_MSG: &str =
+            "Non-static \"View\" component requires either \"top\" or \"bottom\" coordinate.";
+        const VERTICAL_ONLY_ONE_MSG: &str = "Fields \"top\" and \"bottom\" are mutually exclusive, you can only specify one on a \"View\" component.";
+        const HORIZONTAL_REQUIRED_MSG: &str =
+            "Non-static \"View\" component requires either \"left\" or \"right\" coordinate.";
+        const HORIZONTAL_ONLY_ONE_MSG: &str = "Fields \"left\" and \"right\" are mutually exclusive, you can only specify one on a \"View\" component.";
+        let is_relative_position = view.top.is_some()
+            || view.bottom.is_some()
+            || view.left.is_some()
+            || view.right.is_some()
+            || view.rotation.is_some();
+        let position = if is_relative_position {
+            let position_vertical = match (view.top, view.bottom) {
+                (Some(top), None) => scene::VerticalPosition::Top(top),
+                (None, Some(bottom)) => scene::VerticalPosition::Bottom(bottom),
+                (None, None) => return Err(TypeError::new(VERTICAL_REQUIRED_MSG)),
+                (Some(_), Some(_)) => return Err(TypeError::new(VERTICAL_ONLY_ONE_MSG)),
+            };
+            let position_horizontal = match (view.left, view.right) {
+                (Some(left), None) => scene::HorizontalPosition::Left(left),
+                (None, Some(right)) => scene::HorizontalPosition::Right(right),
+                (None, None) => return Err(TypeError::new(HORIZONTAL_REQUIRED_MSG)),
+                (Some(_), Some(_)) => return Err(TypeError::new(HORIZONTAL_ONLY_ONE_MSG)),
+            };
+            Position::Relative(scene::RelativePosition {
+                width: view
+                    .width
+                    .ok_or_else(|| TypeError::new(WIDTH_REQUIRED_MSG))?,
+                height: view
+                    .height
+                    .ok_or_else(|| TypeError::new(HEIGHT_REQUIRED_MSG))?,
+                position_horizontal,
+                position_vertical,
+                rotation_degrees: view.rotation.unwrap_or(0.0),
+            })
+        } else {
+            Position::Static {
+                width: view.width,
+                height: view.height,
+            }
+        };
+        let direction = match view.direction {
+            Some(ViewDirection::Row) => scene::ViewChildrenDirection::Row,
+            Some(ViewDirection::Column) => scene::ViewChildrenDirection::Column,
+            None => scene::ViewChildrenDirection::Row,
+        };
         Ok(Self {
             id: view.id.map(Into::into),
             children: view
@@ -55,9 +106,8 @@ impl TryFrom<View> for scene::ViewComponent {
                 .into_iter()
                 .map(TryInto::try_into)
                 .collect::<Result<Vec<_>, _>>()?,
-            width: view.width,
-            height: view.height,
-            direction: scene::ViewChildrenDirection::Row,
+            direction,
+            position,
             background_color: view
                 .background_color_rgba
                 .map(TryInto::try_into)
