@@ -58,7 +58,10 @@ pub(super) fn are_snapshots_near_equal(
     (square_error / old_snapshot.len() as f32) < allowed_error
 }
 
-pub(super) fn create_renderer(renderers: Vec<RendererSpec>, scene: Vec<OutputScene>) -> Renderer {
+pub(super) fn create_renderer(
+    renderers: Vec<RendererSpec>,
+    scenes: Vec<Vec<OutputScene>>,
+) -> Renderer {
     let (mut renderer, _event_loop) = Renderer::new(RendererOptions {
         web_renderer: WebRendererOptions {
             init: false,
@@ -75,7 +78,9 @@ pub(super) fn create_renderer(renderers: Vec<RendererSpec>, scene: Vec<OutputSce
         }
         renderer.register_renderer(spec).unwrap();
     }
-    renderer.update_scene(scene.clone()).unwrap();
+    for scene in scenes {
+        renderer.update_scene(scene.clone()).unwrap();
+    }
 
     renderer
 }

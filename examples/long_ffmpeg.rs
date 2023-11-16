@@ -158,16 +158,30 @@ fn start_example_client_code() -> Result<()> {
                 ]
             }
         ],
-        "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+        "resolution": { "width": VIDEO_RESOLUTION.width / 5, "height": VIDEO_RESOLUTION.height / 5 },
     });
 
     let layout = json!({
         "type": "view",
         "children": [
             {
+                "id": "test_1",
                 "type": "view",
                 "background_color_rgba": "#FF0000FF",
                 "width": 200,
+                "children": [
+                    {
+                        "type": "view",
+                        "background_color_rgba": "#0000FFFF",
+                        "height": 500
+                    },
+                    {
+                        "type": "view",
+                        "background_color_rgba": "#00FFFFFF",
+                        "height": 500,
+                        "width": 100,
+                    }
+                ]
             },
             {
                 "type": "view",
@@ -189,6 +203,52 @@ fn start_example_client_code() -> Result<()> {
             }
         ],
     }))?;
+    thread::sleep(Duration::from_secs(5));
 
+    let layout_2 = json!({
+        "type": "view",
+        "children": [
+            {
+                "id": "test_1",
+                "type": "view",
+                "background_color_rgba": "#FF0000FF",
+                "width": 800,
+                "transition": {
+                    "duration_ms": 10000
+                },
+                "children": [
+                    {
+                        "type": "view",
+                        "background_color_rgba": "#0000FFFF",
+                        "height": 500
+                    },
+                    {
+                        "type": "view",
+                        "background_color_rgba": "#00FFFFFF",
+                        "height": 500,
+                        "width": 100,
+                    }
+                ]
+            },
+            {
+                "type": "view",
+                "background_color_rgba": "#00FF00FF",
+                "children": [
+                    input_with_shader,
+                ]
+            },
+        ]
+    });
+
+    info!("[example] Update scene");
+    common::post(&json!({
+        "type": "update_scene",
+        "scenes": [
+            {
+                "output_id": "output_1",
+                "root": layout_2,
+            }
+        ],
+    }))?;
     Ok(())
 }

@@ -7,8 +7,8 @@ use compositor_common::scene::{NodeParams, NodeSpec};
 
 use crate::error::{CreateNodeError, UpdateSceneError};
 
-use crate::scene::{self, ShaderComponent};
-use crate::transformations::layout::{LayoutNode, LayoutProvider};
+use crate::scene::{self, ShaderComponentParams};
+use crate::transformations::layout::LayoutNode;
 use crate::transformations::shader::node::ShaderNode;
 
 use crate::transformations::{
@@ -100,10 +100,10 @@ pub struct RenderNode {
 }
 
 impl RenderNode {
-    pub fn new_shader_node(
+    pub(super) fn new_shader_node(
         ctx: &RenderCtx,
         inputs: Vec<NodeId>,
-        shader: ShaderComponent,
+        shader: ShaderComponentParams,
     ) -> Result<Self, CreateNodeError> {
         let node = InnerRenderNode::Shader(ShaderNode::new(
             ctx,
@@ -122,15 +122,13 @@ impl RenderNode {
         })
     }
 
-    pub(crate) fn new_layout_node(
+    pub(super) fn new_layout_node(
         ctx: &RenderCtx,
         inputs: Vec<NodeId>,
         provider: scene::LayoutNode,
     ) -> Result<Self, CreateNodeError> {
-        let resolution = provider.resolution();
         let node = InnerRenderNode::Layout(LayoutNode::new(ctx, Box::new(provider)));
-        let mut output = NodeTexture::new();
-        output.ensure_size(ctx.wgpu_ctx, resolution);
+        let output = NodeTexture::new();
 
         Ok(Self {
             renderer: node,

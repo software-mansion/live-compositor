@@ -19,8 +19,13 @@ pub struct TestCase {
     pub inputs: Vec<TestInput>,
     pub renderers: Vec<&'static str>,
     pub timestamps: Vec<Duration>,
-    pub outputs: Vec<(&'static str, Resolution)>,
+    pub outputs: Outputs,
     pub allowed_error: f32,
+}
+
+pub enum Outputs {
+    Scene(Vec<(&'static str, Resolution)>),
+    Scenes(Vec<Vec<(&'static str, Resolution)>>),
 }
 
 impl Default for TestCase {
@@ -30,7 +35,7 @@ impl Default for TestCase {
             inputs: Vec::new(),
             renderers: Vec::new(),
             timestamps: vec![Duration::from_secs(0)],
-            outputs: vec![],
+            outputs: Outputs::Scene(vec![]),
             allowed_error: 30.0,
         }
     }
@@ -38,7 +43,7 @@ impl Default for TestCase {
 
 pub struct TestCaseInstance {
     pub case: TestCase,
-    pub scene: Vec<OutputScene>,
+    pub last_scene: Vec<OutputScene>,
     pub renderer: Renderer,
 }
 
@@ -66,24 +71,32 @@ impl TestCaseInstance {
             .map(register_requests_to_renderers)
             .collect();
 
-        let scene: Vec<OutputScene> = test_case
-            .outputs
+        let outputs = match test_case.outputs {
+            Outputs::Scene(ref scene) => vec![scene.clone()],
+            Outputs::Scenes(ref scenes) => scenes.clone(),
+        };
+        let scenes: Vec<Vec<OutputScene>> = outputs
             .iter()
-            .map(|output| {
-                let scene: types::OutputScene = serde_json::from_str(output.0).unwrap();
-                let scene: pipeline::OutputScene = scene.try_into().unwrap();
-                OutputScene {
-                    output_id: scene.output_id,
-                    root: scene.root,
-                    resolution: output.1,
-                }
+            .map(|scene| {
+                scene
+                    .iter()
+                    .map(|output| {
+                        let scene: types::OutputScene = serde_json::from_str(output.0).unwrap();
+                        let scene: pipeline::OutputScene = scene.try_into().unwrap();
+                        OutputScene {
+                            output_id: scene.output_id,
+                            root: scene.root,
+                            resolution: output.1,
+                        }
+                    })
+                    .collect::<Vec<_>>()
             })
             .collect();
 
-        let renderer = create_renderer(renderers, scene.clone());
+        let renderer = create_renderer(renderers, scenes.clone());
         TestCaseInstance {
             case: test_case,
-            scene,
+            last_scene: scenes.last().unwrap().clone(),
             renderer,
         }
     }
@@ -134,7 +147,7 @@ impl TestCaseInstance {
             .map(|snapshot| snapshot.output_id.clone())
             .collect();
         let expected_outputs: HashSet<OutputId> = self
-            .scene
+            .last_scene
             .iter()
             .map(|output| output.output_id.clone())
             .collect();
@@ -155,7 +168,7 @@ impl TestCaseInstance {
     pub fn snapshot_paths(&self) -> Vec<PathBuf> {
         let mut paths = Vec::new();
         for pts in self.case.timestamps.iter() {
-            for output in self.scene.iter() {
+            for output in self.last_scene.iter() {
                 paths.push(snaphot_save_path(
                     self.case.name,
                     pts,
@@ -182,7 +195,7 @@ impl TestCaseInstance {
         let outputs = self.renderer.render(frame_set)?;
         let mut snapshots = Vec::new();
 
-        for scene in &self.scene {
+        for scene in &self.last_scene {
             let output_frame = outputs.frames.get(&scene.output_id).unwrap();
             let new_snapshot = frame_to_rgba(output_frame);
             snapshots.push(Snapshot {

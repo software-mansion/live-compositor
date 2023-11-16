@@ -1,6 +1,8 @@
+use std::time::Duration;
+
 use compositor_common::scene::Resolution;
 
-use super::test_case::{TestCase, TestInput};
+use super::test_case::{Outputs, TestCase, TestInput};
 
 const DEFAULT_RESOLUTION: Resolution = Resolution {
     width: 640,
@@ -11,6 +13,7 @@ pub fn snapshot_tests() -> Vec<TestCase> {
     let mut tests = Vec::new();
     tests.append(&mut base_snapshot_tests());
     tests.append(&mut view_snapshot_tests());
+    tests.append(&mut transition_snapshot_tests());
     // tests.append(&mut text_snapshot_tests());
     // tests.append(&mut tiled_layout_tests());
     // tests.append(&mut stretch_to_resolution_tests());
@@ -568,86 +571,162 @@ pub fn snapshot_tests() -> Vec<TestCase> {
 //    ])
 //}
 
+pub fn transition_snapshot_tests() -> Vec<TestCase> {
+    Vec::from([
+        TestCase {
+            name: "transition/change_view_width",
+            outputs: Outputs::Scenes(vec![
+                vec![(
+                    include_str!(
+                        "../../snapshot_tests/transition/change_view_width_start.scene.json"
+                    ),
+                    DEFAULT_RESOLUTION,
+                )],
+                vec![(
+                    include_str!(
+                        "../../snapshot_tests/transition/change_view_width_end.scene.json"
+                    ),
+                    DEFAULT_RESOLUTION,
+                )],
+            ]),
+            timestamps: vec![
+                Duration::from_secs(0),
+                Duration::from_secs(5),
+                Duration::from_secs(10),
+                Duration::from_secs(100),
+            ],
+            ..Default::default()
+        },
+        TestCase {
+            name: "transition/change_view_height",
+            outputs: Outputs::Scenes(vec![
+                vec![(
+                    include_str!(
+                        "../../snapshot_tests/transition/change_view_height_start.scene.json"
+                    ),
+                    DEFAULT_RESOLUTION,
+                )],
+                vec![(
+                    include_str!(
+                        "../../snapshot_tests/transition/change_view_height_end.scene.json"
+                    ),
+                    DEFAULT_RESOLUTION,
+                )],
+            ]),
+            timestamps: vec![
+                Duration::from_secs(0),
+                Duration::from_secs(5),
+                Duration::from_secs(10),
+            ],
+            ..Default::default()
+        },
+        TestCase {
+            name: "transition/change_view_absolute",
+            outputs: Outputs::Scenes(vec![
+                vec![(
+                    include_str!(
+                        "../../snapshot_tests/transition/change_view_absolute_start.scene.json"
+                    ),
+                    DEFAULT_RESOLUTION,
+                )],
+                vec![(
+                    include_str!(
+                        "../../snapshot_tests/transition/change_view_absolute_end.scene.json"
+                    ),
+                    DEFAULT_RESOLUTION,
+                )],
+            ]),
+            timestamps: vec![
+                Duration::from_secs(0),
+                Duration::from_secs(5),
+                Duration::from_secs(9),
+                Duration::from_secs(10),
+            ],
+            ..Default::default()
+        },
+    ])
+}
+
 pub fn view_snapshot_tests() -> Vec<TestCase> {
     Vec::from([
         TestCase {
             name: "view/constant_width_views_row",
-            outputs: vec![(
-                include_str!("../../snapshot_tests/view/constant_width_views_row.scene.json"),
-                DEFAULT_RESOLUTION,
-            )],
+            outputs: Outputs::Scene(vec![(
+                    include_str!("../../snapshot_tests/view/constant_width_views_row.scene.json"),
+                    DEFAULT_RESOLUTION,
+            )]),
             inputs: vec![TestInput::new(1)],
             ..Default::default()
         },
         TestCase {
             name: "view/constant_width_views_row_with_overflow",
-            outputs: vec![(
-                include_str!("../../snapshot_tests/view/constant_width_views_row_with_overflow.scene.json"),
-                DEFAULT_RESOLUTION,
-            )],
+            outputs: Outputs::Scene(vec![(
+                    include_str!("../../snapshot_tests/view/constant_width_views_row_with_overflow.scene.json"),
+                    DEFAULT_RESOLUTION,
+            )]),
             inputs: vec![TestInput::new(1)],
             ..Default::default()
         },
         TestCase {
             name: "view/dynamic_width_views_row",
-            outputs: vec![(
-                include_str!("../../snapshot_tests/view/dynamic_width_views_row.scene.json"),
-                DEFAULT_RESOLUTION,
-            )],
+            outputs: Outputs::Scene(vec![(
+                    include_str!("../../snapshot_tests/view/dynamic_width_views_row.scene.json"),
+                    DEFAULT_RESOLUTION,
+            )]),
             inputs: vec![TestInput::new(1)],
             ..Default::default()
         },
         TestCase {
             name: "view/dynamic_and_constant_width_views_row",
-            outputs: vec![(
-                include_str!("../../snapshot_tests/view/dynamic_and_constant_width_views_row.scene.json"),
-                DEFAULT_RESOLUTION,
-            )],
+            outputs: Outputs::Scene(vec![(
+                    include_str!("../../snapshot_tests/view/dynamic_and_constant_width_views_row.scene.json"),
+                    DEFAULT_RESOLUTION,
+            )]),
             inputs: vec![TestInput::new(1)],
             ..Default::default()
         },
         TestCase {
             name: "view/dynamic_and_constant_width_views_row_with_overflow",
-            outputs: vec![(
-                include_str!("../../snapshot_tests/view/dynamic_and_constant_width_views_row_with_overflow.scene.json"),
-                DEFAULT_RESOLUTION,
-            )],
+            outputs: Outputs::Scene(vec![(
+                    include_str!("../../snapshot_tests/view/dynamic_and_constant_width_views_row_with_overflow.scene.json"),
+                    DEFAULT_RESOLUTION,
+            )]),
             inputs: vec![TestInput::new(1)],
             ..Default::default()
         },
         TestCase {
             name: "view/constant_width_and_height_views_row",
-            outputs: vec![(
-                include_str!("../../snapshot_tests/view/constant_width_and_height_views_row.scene.json"),
-                DEFAULT_RESOLUTION,
-            )],
+            outputs: Outputs::Scene(vec![(
+                    include_str!("../../snapshot_tests/view/constant_width_and_height_views_row.scene.json"),
+                    DEFAULT_RESOLUTION,
+            )]),
             inputs: vec![TestInput::new(1)],
             ..Default::default()
         },
         TestCase {
             name: "view/view_with_relative_positioning_partially_covered_by_sibling",
-            outputs: vec![(
-                include_str!("../../snapshot_tests/view/view_with_relative_positioning_partially_covered_by_sibling.scene.json"),
-                DEFAULT_RESOLUTION,
-            )],
+            outputs: Outputs::Scene(vec![(
+                    include_str!("../../snapshot_tests/view/view_with_relative_positioning_partially_covered_by_sibling.scene.json"),
+                    DEFAULT_RESOLUTION,
+            )]),
             inputs: vec![TestInput::new(1)],
             ..Default::default()
         },
         TestCase {
             name: "view/view_with_relative_positioning_render_over_siblings",
-            outputs: vec![(
-                include_str!("../../snapshot_tests/view/view_with_relative_positioning_render_over_siblings.scene.json"),
-                DEFAULT_RESOLUTION,
-            )],
+            outputs: Outputs::Scene(vec![(
+                    include_str!("../../snapshot_tests/view/view_with_relative_positioning_render_over_siblings.scene.json"),
+                    DEFAULT_RESOLUTION,
+            )]),
             inputs: vec![TestInput::new(1)],
             ..Default::default()
         },
         TestCase {
             name: "view/root_view_with_background_color",
-            outputs: vec![(
-                include_str!("../../snapshot_tests/view/root_view_with_background_color.scene.json"),
-                DEFAULT_RESOLUTION,
-            )],
+            outputs: Outputs::Scene(vec![(
+                    include_str!("../../snapshot_tests/view/root_view_with_background_color.scene.json"),
+                    DEFAULT_RESOLUTION,
+            )]),
             inputs: vec![TestInput::new(1)],
             ..Default::default()
         }
@@ -657,10 +736,10 @@ pub fn view_snapshot_tests() -> Vec<TestCase> {
 pub fn base_snapshot_tests() -> Vec<TestCase> {
     Vec::from([TestCase {
         name: "simple_input_pass_through",
-        outputs: vec![(
+        outputs: Outputs::Scene(vec![(
             include_str!("../../snapshot_tests/simple_input_pass_through.scene.json"),
             DEFAULT_RESOLUTION,
-        )],
+        )]),
         inputs: vec![TestInput::new(1)],
         ..Default::default()
     }])

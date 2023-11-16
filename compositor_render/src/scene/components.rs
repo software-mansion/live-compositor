@@ -1,19 +1,28 @@
+use std::{fmt::Display, sync::Arc, time::Duration};
+
 use compositor_common::{
     renderer_spec::RendererId,
     scene::{shader::ShaderParam, InputId, Resolution},
     util::colors::RGBAColor,
 };
 
-use super::{Component, ComponentId};
+use super::Component;
+
+mod interpolation;
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct ComponentId(pub Arc<str>);
+
+impl Display for ComponentId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct InputStreamComponent {
     pub id: Option<ComponentId>,
     pub input_id: InputId,
-
-    // part of state, not part of API
-    // TODO: separate logic into stateful and stateless components
-    pub size: Option<Resolution>,
 }
 
 #[derive(Debug, Clone)]
@@ -28,19 +37,20 @@ pub struct ShaderComponent {
 }
 
 #[derive(Debug, Clone)]
-pub enum LayoutComponent {
-    View(ViewComponent),
-}
-
-#[derive(Debug, Clone)]
 pub struct ViewComponent {
     pub id: Option<ComponentId>,
     pub children: Vec<Component>,
 
     pub direction: ViewChildrenDirection,
     pub position: Position,
+    pub transition: Option<Transition>,
 
     pub background_color: RGBAColor,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct Transition {
+    pub duration: Duration,
 }
 
 #[derive(Debug, Clone, Copy)]

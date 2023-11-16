@@ -1,70 +1,90 @@
-use std::{fmt::Display, sync::Arc};
+use std::time::Duration;
 
-use self::layout::SizedLayoutComponent;
-use self::scene_state::BaseNode;
+use self::input_stream_component::InputStreamComponentState;
+use self::layout::LayoutComponentState;
+use self::scene_state::{BaseNode, BuildStateTreeCtx};
+use self::shader_component::ShaderComponentState;
 
-pub use scene_state::OutputScene;
+use compositor_common::scene::{OutputId, Resolution};
+
+pub(crate) use layout::LayoutNode;
 pub(crate) use scene_state::{OutputNode, SceneState};
+pub(crate) use shader_component::ShaderComponentParams;
 
 pub use components::*;
 
 mod components;
+mod input_stream_component;
 mod layout;
-mod non_layout_components;
 mod scene_state;
+mod shader_component;
 mod view_component;
 
 #[derive(Debug, Clone)]
-pub struct ComponentId(pub Arc<str>);
-
-impl Display for ComponentId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.0.fmt(f)
-    }
+pub struct OutputScene {
+    pub output_id: OutputId,
+    pub root: Component,
+    pub resolution: Resolution,
 }
 
 #[derive(Debug, Clone)]
 pub enum Component {
     InputStream(InputStreamComponent),
     Shader(ShaderComponent),
-    Layout(LayoutComponent),
+    View(ViewComponent),
 }
 
+/// Stateful version of a `Component`. Represents the same element as
+/// `Component`, but additionally it has its own state that can be used
+/// keep track of transition or to preserve some information from
+/// a previous scene update.
+#[derive(Debug, Clone)]
+enum ComponentState {
+    InputStream(InputStreamComponentState),
+    Shader(ShaderComponentState),
+    Layout(LayoutComponentState),
+}
+
+/// Defines a tree structure that is a base to construct a `RenderGraph`.
+/// Each `prams` element defines a parameters to construct a `RenderNode`
+/// and `children` define connections between them.
+///
+/// In most cases each `Node` will be used to construct a RenderNode, but
+/// in some cases multiple Nodes might be reduced to just one RenderNode
+/// e.g. `NodeParams::InputStream` for the same input stream might be present
+/// multiple times inside the tree, but it will result in only one `RenderNode`
+/// in the `RenderGraph`
 #[derive(Debug)]
 pub(crate) struct Node {
-    pub(crate) kind: NodeKind,
+    pub(crate) params: NodeParams,
     pub(crate) children: Vec<Node>,
 }
 
+/// Set of params used to construct a `RenderNode`.
 #[derive(Debug)]
-pub(crate) enum NodeKind {
+pub(crate) enum NodeParams {
     InputStream(InputStreamComponent),
-    Shader(ShaderComponent),
+    Shader(ShaderComponentParams),
     Layout(LayoutNode),
 }
 
-#[derive(Debug)]
-pub(crate) struct LayoutNode {
-    pub(crate) root: SizedLayoutComponent,
-}
-
-impl Component {
-    pub(crate) fn width(&self) -> Option<usize> {
+impl ComponentState {
+    fn width(&self, pts: Duration) -> Option<usize> {
         match self {
-            Component::InputStream(input) => input.size.map(|s| s.width),
-            Component::Shader(shader) => Some(shader.size.width),
-            Component::Layout(layout) => match layout.position() {
+            ComponentState::InputStream(input) => input.size.map(|s| s.width),
+            ComponentState::Shader(shader) => Some(shader.component.size.width),
+            ComponentState::Layout(layout) => match layout.position(pts) {
                 Position::Static { width, .. } => width,
                 Position::Relative(position) => Some(position.width),
             },
         }
     }
 
-    pub(crate) fn height(&self) -> Option<usize> {
+    fn height(&self, pts: Duration) -> Option<usize> {
         match self {
-            Component::InputStream(input) => input.size.map(|s| s.height),
-            Component::Shader(shader) => Some(shader.size.height),
-            Component::Layout(layout) => match layout.position() {
+            ComponentState::InputStream(input) => input.size.map(|s| s.height),
+            ComponentState::Shader(shader) => Some(shader.component.size.height),
+            ComponentState::Layout(layout) => match layout.position(pts) {
                 Position::Static { height, .. } => height,
                 Position::Relative(position) => Some(position.height),
             },
@@ -73,11 +93,26 @@ impl Component {
 
     fn base_node(&self) -> Result<BaseNode, BuildSceneError> {
         match self {
-            Component::InputStream(input) => input.base_node(),
-            Component::Shader(shader) => shader.base_node(),
-            Component::Layout(layout) => match layout {
-                LayoutComponent::View(view) => view.base_node(),
+            ComponentState::InputStream(input) => input.base_node(),
+            ComponentState::Shader(shader) => shader.base_node(),
+            ComponentState::Layout(layout) => match layout {
+                LayoutComponentState::View(view) => view.base_node(),
             },
+        }
+    }
+}
+
+impl Component {
+    /// Recursively convert `Component` tree provided by a user into a
+    /// `ComponentState` tree. `ComponentState` includes all the information
+    /// from `Component`, but additionally it has it's own state. When calculating
+    /// initial value of that state, the component has access to state of that
+    /// component from before scene update.
+    fn state_component(self, ctx: &BuildStateTreeCtx) -> ComponentState {
+        match self {
+            Component::InputStream(input) => input.state_component(ctx),
+            Component::Shader(shader) => shader.state_component(ctx),
+            Component::View(view) => view.state_component(ctx),
         }
     }
 }

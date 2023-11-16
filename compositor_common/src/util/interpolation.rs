@@ -27,6 +27,21 @@ impl ContinuousValue for f32 {
     }
 }
 
+impl ContinuousValue for usize {
+    fn interpolate(start: &Self, end: &Self, state: InterpolationState) -> Self {
+        interpolate_f64(*start as f64, *end as f64, state) as usize
+    }
+}
+
+impl<T: ContinuousValue + Clone> ContinuousValue for Option<T> {
+    fn interpolate(start: &Self, end: &Self, state: InterpolationState) -> Self {
+        match (start, end) {
+            (Some(start), Some(end)) => Some(ContinuousValue::interpolate(start, end, state)),
+            (_, end) => end.clone(),
+        }
+    }
+}
+
 impl From<InterpolationState> for f64 {
     fn from(value: InterpolationState) -> Self {
         value.0

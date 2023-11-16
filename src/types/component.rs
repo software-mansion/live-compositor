@@ -74,6 +74,8 @@ pub struct View {
     /// ignore a layout defined by its parent.
     pub rotation: Option<f32>,
 
+    pub transition: Option<Transition>,
+
     /// Background color of a component in a "#RRGGBBAA" format. Defaults to transparent
     /// "#00000000".
     pub background_color_rgba: Option<RGBAColor>,
