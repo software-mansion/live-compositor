@@ -704,18 +704,18 @@ pub fn view_snapshot_tests() -> Vec<TestCase> {
             ..Default::default()
         },
         TestCase {
-            name: "view/view_with_relative_positioning_partially_covered_by_sibling",
+            name: "view/view_with_absolute_positioning_partially_covered_by_sibling",
             outputs: Outputs::Scene(vec![(
-                    include_str!("../../snapshot_tests/view/view_with_relative_positioning_partially_covered_by_sibling.scene.json"),
+                    include_str!("../../snapshot_tests/view/view_with_absolute_positioning_partially_covered_by_sibling.scene.json"),
                     DEFAULT_RESOLUTION,
             )]),
             inputs: vec![TestInput::new(1)],
             ..Default::default()
         },
         TestCase {
-            name: "view/view_with_relative_positioning_render_over_siblings",
+            name: "view/view_with_absolute_positioning_render_over_siblings",
             outputs: Outputs::Scene(vec![(
-                    include_str!("../../snapshot_tests/view/view_with_relative_positioning_render_over_siblings.scene.json"),
+                    include_str!("../../snapshot_tests/view/view_with_absolute_positioning_render_over_siblings.scene.json"),
                     DEFAULT_RESOLUTION,
             )]),
             inputs: vec![TestInput::new(1)],

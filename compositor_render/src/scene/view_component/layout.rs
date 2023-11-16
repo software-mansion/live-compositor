@@ -1,9 +1,9 @@
 use std::time::Duration;
 
-use compositor_common::scene::Resolution;
-
 use crate::{
-    scene::{layout::LayoutComponentState, ComponentState, Position, ViewChildrenDirection},
+    scene::{
+        layout::StatefulLayoutComponent, Position, Size, StatefulComponent, ViewChildrenDirection,
+    },
     transformations::layout::{Layout, LayoutContent, NestedLayout},
 };
 
@@ -11,34 +11,36 @@ use super::ViewComponentParam;
 
 #[derive(Debug)]
 struct StaticChildLayoutOpts {
-    width: Option<usize>,
-    height: Option<usize>,
-    /// offset inside parent component
-    static_offset: usize,
-    /// For direction=row defines width of a dynamically sized component
-    /// For direction=column defines height of a dynamically sized component
-    dynamic_child_size: usize,
-    parent_size: Resolution,
+    width: Option<f32>,
+    height: Option<f32>,
+    /// Offset inside parent component (position where next static child should start).
+    static_offset: f32,
+    /// Define size(width or height) of a static component if it's not
+    /// already defined explicitly.
+    /// For direction=row defines width of a static component
+    /// For direction=column defines height of a static component
+    static_child_size: f32,
+    parent_size: Size,
 }
 
 impl ViewComponentParam {
     pub(super) fn layout(
         &self,
-        size: Resolution,
-        children: &[ComponentState],
+        size: Size,
+        children: &[StatefulComponent],
         pts: Duration,
     ) -> NestedLayout {
-        let dynamic_child_size = self.dynamic_size_for_static_children(size, children, pts);
+        let static_child_size = self.static_child_size(size, children, pts);
 
         // offset along x or y direction (depends on self.direction) where next
         // child component should be placed
-        let mut static_offset = 0;
+        let mut static_offset = 0.0;
 
         let children: Vec<_> = children
             .iter()
             .map(|child| {
                 let position = match child {
-                    ComponentState::Layout(layout) => layout.position(pts),
+                    StatefulComponent::Layout(layout) => layout.position(pts),
                     non_layout_component => Position::Static {
                         width: non_layout_component.width(pts),
                         height: non_layout_component.height(pts),
@@ -52,7 +54,7 @@ impl ViewComponentParam {
                                 width,
                                 height,
                                 static_offset,
-                                dynamic_child_size,
+                                static_child_size,
                                 parent_size: size,
                             },
                             pts,
@@ -61,8 +63,10 @@ impl ViewComponentParam {
                         static_offset = updated_static_offset;
                         layout
                     }
-                    Position::Relative(position) => {
-                        LayoutComponentState::layout_relative_child(child, position, size, pts)
+                    Position::Absolute(position) => {
+                        StatefulLayoutComponent::layout_absolute_position_child(
+                            child, position, size, pts,
+                        )
                     }
                 }
             })
@@ -71,8 +75,8 @@ impl ViewComponentParam {
             layout: Layout {
                 top: 0.0,
                 left: 0.0,
-                width: size.width as f32,
-                height: size.height as f32,
+                width: size.width,
+                height: size.height,
                 rotation_degrees: 0.0,
                 content: LayoutContent::Color(self.background_color),
             },
@@ -83,38 +87,32 @@ impl ViewComponentParam {
 
     fn layout_static_child(
         &self,
-        child: &ComponentState,
+        child: &StatefulComponent,
         opts: StaticChildLayoutOpts,
         pts: Duration,
-    ) -> (NestedLayout, usize) {
+    ) -> (NestedLayout, f32) {
         let mut static_offset = opts.static_offset;
         let (top, left, width, height) = match self.direction {
             ViewChildrenDirection::Row => {
-                let width = opts.width.unwrap_or(opts.dynamic_child_size);
+                let width = opts.width.unwrap_or(opts.static_child_size);
                 let height = opts.height.unwrap_or(opts.parent_size.height);
                 let top = 0.0;
                 let left = static_offset;
                 static_offset += width;
-                (top as f32, left as f32, width as f32, height as f32)
+                (top as f32, left, width, height)
             }
             ViewChildrenDirection::Column => {
-                let height = opts.height.unwrap_or(opts.dynamic_child_size);
+                let height = opts.height.unwrap_or(opts.static_child_size);
                 let width = opts.width.unwrap_or(opts.parent_size.width);
                 let top = static_offset;
                 let left = 0.0;
                 static_offset += height;
-                (top as f32, left as f32, width as f32, height as f32)
+                (top, left as f32, width, height)
             }
         };
         let layout = match child {
-            ComponentState::Layout(layout_component) => {
-                let children_layouts = layout_component.layout(
-                    Resolution {
-                        width: width as usize,
-                        height: height as usize,
-                    },
-                    pts,
-                );
+            StatefulComponent::Layout(layout_component) => {
+                let children_layouts = layout_component.layout(Size { width, height }, pts);
                 NestedLayout {
                     layout: Layout {
                         top,
@@ -144,21 +142,16 @@ impl ViewComponentParam {
         (layout, static_offset)
     }
 
-    /// Calculate size of a dynamically sized child component. Returned value
-    /// represents width if the direction is `ViewChildrenDirection::Row` or height if
-    /// the direction is `ViewChildrenDirection::Column`.
-    fn dynamic_size_for_static_children(
-        &self,
-        size: Resolution,
-        children: &[ComponentState],
-        pts: Duration,
-    ) -> usize {
+    /// Calculate a size of a static child component that does not have it explicitly defined.
+    /// Returned value represents width if the direction is `ViewChildrenDirection::Row` or
+    /// height if the direction is `ViewChildrenDirection::Column`.
+    fn static_child_size(&self, size: Size, children: &[StatefulComponent], pts: Duration) -> f32 {
         let max_size = match self.direction {
             super::ViewChildrenDirection::Row => size.width,
             super::ViewChildrenDirection::Column => size.height,
         };
 
-        let dynamic_children_count = Self::static_children_iter(children, pts)
+        let children_with_unknown_size_count = Self::static_children_iter(children, pts)
             .filter(|child| match self.direction {
                 ViewChildrenDirection::Row => child.width(pts).is_none(),
                 ViewChildrenDirection::Column => child.height(pts).is_none(),
@@ -166,34 +159,34 @@ impl ViewComponentParam {
             .count();
         let static_children_sum = self.sum_static_children_sizes(children, pts);
 
-        if dynamic_children_count == 0 {
-            return 0; // if there is no dynamically sized children then this value does not matter
+        if children_with_unknown_size_count == 0 {
+            return 0.0; // if there is no dynamically sized children then this value does not matter
         }
         f32::max(
             0.0,
-            (max_size as f32 - static_children_sum as f32) / dynamic_children_count as f32,
-        ) as usize
+            (max_size - static_children_sum) / children_with_unknown_size_count as f32,
+        )
     }
 
-    fn sum_static_children_sizes(&self, children: &[ComponentState], pts: Duration) -> usize {
+    fn sum_static_children_sizes(&self, children: &[StatefulComponent], pts: Duration) -> f32 {
         let size_accessor = match self.direction {
-            super::ViewChildrenDirection::Row => ComponentState::width,
-            super::ViewChildrenDirection::Column => ComponentState::height,
+            super::ViewChildrenDirection::Row => StatefulComponent::width,
+            super::ViewChildrenDirection::Column => StatefulComponent::height,
         };
 
         Self::static_children_iter(children, pts)
-            .map(|component| size_accessor(component, pts).unwrap_or(0))
+            .map(|component| size_accessor(component, pts).unwrap_or(0.0))
             .sum()
     }
 
     fn static_children_iter(
-        children: &[ComponentState],
+        children: &[StatefulComponent],
         pts: Duration,
-    ) -> impl Iterator<Item = &ComponentState> {
+    ) -> impl Iterator<Item = &StatefulComponent> {
         children.iter().filter(move |child| match child {
-            ComponentState::Layout(layout) => match layout.position(pts) {
+            StatefulComponent::Layout(layout) => match layout.position(pts) {
                 super::Position::Static { .. } => true,
-                super::Position::Relative(_) => false,
+                super::Position::Absolute(_) => false,
             },
             _ => true,
         })

@@ -1,26 +1,24 @@
 use std::{ops::Add, time::Duration};
 
-use compositor_common::{
-    scene::Resolution,
-    util::{colors::RGBAColor, ContinuousValue, InterpolationState},
-};
+use compositor_common::util::{colors::RGBAColor, ContinuousValue, InterpolationState};
 
 use crate::{scene::ViewChildrenDirection, transformations::layout::NestedLayout};
 
 use super::{
-    components::ViewComponent, layout::LayoutComponentState, scene_state::BuildStateTreeCtx,
-    BaseNode, BuildSceneError, Component, ComponentId, ComponentState, Position, Transition,
+    components::ViewComponent, layout::StatefulLayoutComponent, scene_state::BuildStateTreeCtx,
+    BuildSceneError, Component, ComponentId, IntermediateNode, Position, Size, StatefulComponent,
+    Transition,
 };
 
 mod interpolation;
 mod layout;
 
 #[derive(Debug, Clone)]
-pub(super) struct ViewComponentState {
+pub(super) struct StatefulViewComponent {
     start: Option<ViewComponentParam>,
     end: ViewComponentParam,
     transition: Option<Transition>,
-    children: Vec<ComponentState>,
+    children: Vec<StatefulComponent>,
     start_pts: Duration,
 }
 
@@ -34,7 +32,7 @@ struct ViewComponentParam {
     background_color: RGBAColor,
 }
 
-impl ViewComponentState {
+impl StatefulViewComponent {
     fn view(&self, pts: Duration) -> ViewComponentParam {
         let (Some(transition), Some(start)) = (self.transition, &self.start) else {
             return self.end.clone();
@@ -56,11 +54,11 @@ impl ViewComponentState {
         })
     }
 
-    pub(super) fn children(&self) -> Vec<&ComponentState> {
+    pub(super) fn children(&self) -> Vec<&StatefulComponent> {
         self.children.iter().collect()
     }
 
-    pub(super) fn children_mut(&mut self) -> Vec<&mut ComponentState> {
+    pub(super) fn children_mut(&mut self) -> Vec<&mut StatefulComponent> {
         self.children.iter_mut().collect()
     }
 
@@ -72,14 +70,14 @@ impl ViewComponentState {
         self.end.id.as_ref()
     }
 
-    pub(super) fn base_node(&self) -> Result<BaseNode, BuildSceneError> {
+    pub(super) fn intermediate_node(&self) -> Result<IntermediateNode, BuildSceneError> {
         let children = self
             .children
             .iter()
             .map(|component| {
-                let node = component.base_node()?;
+                let node = component.intermediate_node()?;
                 match node {
-                    BaseNode::Layout { root: _, children } => Ok(children),
+                    IntermediateNode::Layout { root: _, children } => Ok(children),
                     _ => Ok(vec![node]),
                 }
             })
@@ -88,25 +86,27 @@ impl ViewComponentState {
             .flatten()
             .collect();
 
-        Ok(BaseNode::Layout {
-            root: LayoutComponentState::View(self.clone()),
+        Ok(IntermediateNode::Layout {
+            root: StatefulLayoutComponent::View(self.clone()),
             children,
         })
     }
 
-    pub(super) fn layout(&self, size: Resolution, pts: Duration) -> NestedLayout {
+    pub(super) fn layout(&self, size: Size, pts: Duration) -> NestedLayout {
         self.view(pts).layout(size, &self.children, pts)
     }
 }
 
 impl ViewComponent {
-    pub(super) fn state_component(self, ctx: &BuildStateTreeCtx) -> ComponentState {
+    pub(super) fn stateful_component(self, ctx: &BuildStateTreeCtx) -> StatefulComponent {
         let previous_state = self
             .id
             .as_ref()
             .and_then(|id| ctx.prev_state.get(id))
             .and_then(|component| match component {
-                ComponentState::Layout(LayoutComponentState::View(view_state)) => Some(view_state),
+                StatefulComponent::Layout(StatefulLayoutComponent::View(view_state)) => {
+                    Some(view_state)
+                }
                 _ => None,
             });
 
@@ -123,7 +123,7 @@ impl ViewComponent {
             };
             previous_state.transition.map(|_| Transition { duration })
         });
-        ComponentState::Layout(LayoutComponentState::View(ViewComponentState {
+        StatefulComponent::Layout(StatefulLayoutComponent::View(StatefulViewComponent {
             start,
             end: ViewComponentParam {
                 id: self.id,
@@ -135,7 +135,7 @@ impl ViewComponent {
             children: self
                 .children
                 .into_iter()
-                .map(|c| Component::state_component(c, ctx))
+                .map(|c| Component::stateful_component(c, ctx))
                 .collect(),
             start_pts: ctx.last_render_pts,
         }))

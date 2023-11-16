@@ -91,7 +91,7 @@ pub enum UpdateSceneError {
     WgpuError(#[from] WgpuError),
 
     #[error(
-        "Output \"{0}\" does not exist, register it first before using it in the scene definition"
+        "Output \"{0}\" does not exist, register it first before using it in the scene definition."
     )]
     OutputNotRegistered(OutputId),
 

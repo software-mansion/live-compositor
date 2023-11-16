@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use compositor_common::util::{align, colors, coord, degree};
-use compositor_render::scene;
+use compositor_render::scene::{self};
 
 use super::util::*;
 
@@ -10,6 +10,15 @@ impl From<Resolution> for compositor_common::scene::Resolution {
         Self {
             width: resolution.width,
             height: resolution.height,
+        }
+    }
+}
+
+impl From<Resolution> for scene::Size {
+    fn from(resolution: Resolution) -> Self {
+        Self {
+            width: resolution.width as f32,
+            height: resolution.height as f32,
         }
     }
 }

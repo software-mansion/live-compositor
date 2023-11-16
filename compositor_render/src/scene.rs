@@ -1,9 +1,9 @@
 use std::time::Duration;
 
-use self::input_stream_component::InputStreamComponentState;
-use self::layout::LayoutComponentState;
-use self::scene_state::{BaseNode, BuildStateTreeCtx};
-use self::shader_component::ShaderComponentState;
+use self::input_stream_component::StatefulInputStreamComponent;
+use self::layout::StatefulLayoutComponent;
+use self::scene_state::{BuildStateTreeCtx, IntermediateNode};
+use self::shader_component::StatefulShaderComponent;
 
 use compositor_common::scene::{OutputId, Resolution};
 
@@ -39,10 +39,10 @@ pub enum Component {
 /// keep track of transition or to preserve some information from
 /// a previous scene update.
 #[derive(Debug, Clone)]
-enum ComponentState {
-    InputStream(InputStreamComponentState),
-    Shader(ShaderComponentState),
-    Layout(LayoutComponentState),
+enum StatefulComponent {
+    InputStream(StatefulInputStreamComponent),
+    Shader(StatefulShaderComponent),
+    Layout(StatefulLayoutComponent),
 }
 
 /// Defines a tree structure that is a base to construct a `RenderGraph`.
@@ -68,35 +68,35 @@ pub(crate) enum NodeParams {
     Layout(LayoutNode),
 }
 
-impl ComponentState {
-    fn width(&self, pts: Duration) -> Option<usize> {
+impl StatefulComponent {
+    fn width(&self, pts: Duration) -> Option<f32> {
         match self {
-            ComponentState::InputStream(input) => input.size.map(|s| s.width),
-            ComponentState::Shader(shader) => Some(shader.component.size.width),
-            ComponentState::Layout(layout) => match layout.position(pts) {
+            StatefulComponent::InputStream(input) => input.size.map(|s| s.width),
+            StatefulComponent::Shader(shader) => Some(shader.component.size.width),
+            StatefulComponent::Layout(layout) => match layout.position(pts) {
                 Position::Static { width, .. } => width,
-                Position::Relative(position) => Some(position.width),
+                Position::Absolute(position) => Some(position.width),
             },
         }
     }
 
-    fn height(&self, pts: Duration) -> Option<usize> {
+    fn height(&self, pts: Duration) -> Option<f32> {
         match self {
-            ComponentState::InputStream(input) => input.size.map(|s| s.height),
-            ComponentState::Shader(shader) => Some(shader.component.size.height),
-            ComponentState::Layout(layout) => match layout.position(pts) {
+            StatefulComponent::InputStream(input) => input.size.map(|s| s.height),
+            StatefulComponent::Shader(shader) => Some(shader.component.size.height),
+            StatefulComponent::Layout(layout) => match layout.position(pts) {
                 Position::Static { height, .. } => height,
-                Position::Relative(position) => Some(position.height),
+                Position::Absolute(position) => Some(position.height),
             },
         }
     }
 
-    fn base_node(&self) -> Result<BaseNode, BuildSceneError> {
+    fn intermediate_node(&self) -> Result<IntermediateNode, BuildSceneError> {
         match self {
-            ComponentState::InputStream(input) => input.base_node(),
-            ComponentState::Shader(shader) => shader.base_node(),
-            ComponentState::Layout(layout) => match layout {
-                LayoutComponentState::View(view) => view.base_node(),
+            StatefulComponent::InputStream(input) => input.intermediate_node(),
+            StatefulComponent::Shader(shader) => shader.intermediate_node(),
+            StatefulComponent::Layout(layout) => match layout {
+                StatefulLayoutComponent::View(view) => view.intermediate_node(),
             },
         }
     }
@@ -108,11 +108,11 @@ impl Component {
     /// from `Component`, but additionally it has it's own state. When calculating
     /// initial value of that state, the component has access to state of that
     /// component from before scene update.
-    fn state_component(self, ctx: &BuildStateTreeCtx) -> ComponentState {
+    fn stateful_component(self, ctx: &BuildStateTreeCtx) -> StatefulComponent {
         match self {
-            Component::InputStream(input) => input.state_component(ctx),
-            Component::Shader(shader) => shader.state_component(ctx),
-            Component::View(view) => view.state_component(ctx),
+            Component::InputStream(input) => input.stateful_component(ctx),
+            Component::Shader(shader) => shader.stateful_component(ctx),
+            Component::View(view) => view.stateful_component(ctx),
         }
     }
 }
