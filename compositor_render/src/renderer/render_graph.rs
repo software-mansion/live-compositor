@@ -117,6 +117,11 @@ impl RenderGraph {
                     .map_err(|err| UpdateSceneError::CreateNodeError(err, node_id.0))?;
                 new_nodes.insert(node_id, node);
             }
+            scene::NodeParams::Image(image) => {
+                let node = RenderNode::new_image_node(ctx, image)
+                    .map_err(|err| UpdateSceneError::CreateNodeError(err, node_id.0))?;
+                new_nodes.insert(node_id, node);
+            }
             scene::NodeParams::Layout(layout) => {
                 let node = RenderNode::new_layout_node(ctx, input_pads, layout)
                     .map_err(|err| UpdateSceneError::CreateNodeError(err, node_id.0))?;

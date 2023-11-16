@@ -7,7 +7,7 @@ use compositor_common::scene::{NodeParams, NodeSpec};
 
 use crate::error::{CreateNodeError, UpdateSceneError};
 
-use crate::scene::{self, ShaderComponentParams};
+use crate::scene::{self, ImageComponent, ShaderComponentParams};
 use crate::transformations::layout::LayoutNode;
 use crate::transformations::shader::node::ShaderNode;
 
@@ -117,6 +117,26 @@ impl RenderNode {
         Ok(Self {
             renderer: node,
             inputs,
+            fallback: None,
+            output,
+        })
+    }
+
+    pub(super) fn new_image_node(
+        ctx: &RenderCtx,
+        image_component: ImageComponent,
+    ) -> Result<Self, CreateNodeError> {
+        let image = ctx
+            .renderers
+            .images
+            .get(&image_component.image_id)
+            .ok_or_else(|| CreateNodeError::ImageNotFound(image_component.image_id.clone()))?;
+        let node = InnerRenderNode::Image(ImageNode::new(image));
+        let output = NodeTexture::new();
+
+        Ok(Self {
+            renderer: node,
+            inputs: vec![],
             fallback: None,
             output,
         })

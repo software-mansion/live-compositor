@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use self::image_component::StatefulImageComponent;
 use self::input_stream_component::StatefulInputStreamComponent;
 use self::layout::StatefulLayoutComponent;
 use self::scene_state::{BuildStateTreeCtx, IntermediateNode};
@@ -14,6 +15,7 @@ pub(crate) use shader_component::ShaderComponentParams;
 pub use components::*;
 
 mod components;
+mod image_component;
 mod input_stream_component;
 mod layout;
 mod scene_state;
@@ -31,6 +33,7 @@ pub struct OutputScene {
 pub enum Component {
     InputStream(InputStreamComponent),
     Shader(ShaderComponent),
+    Image(ImageComponent),
     View(ViewComponent),
 }
 
@@ -42,6 +45,7 @@ pub enum Component {
 enum StatefulComponent {
     InputStream(StatefulInputStreamComponent),
     Shader(StatefulShaderComponent),
+    Image(StatefulImageComponent),
     Layout(StatefulLayoutComponent),
 }
 
@@ -65,6 +69,7 @@ pub(crate) struct Node {
 pub(crate) enum NodeParams {
     InputStream(InputStreamComponent),
     Shader(ShaderComponentParams),
+    Image(ImageComponent),
     Layout(LayoutNode),
 }
 
@@ -73,6 +78,7 @@ impl StatefulComponent {
         match self {
             StatefulComponent::InputStream(input) => input.size.map(|s| s.width),
             StatefulComponent::Shader(shader) => Some(shader.component.size.width),
+            StatefulComponent::Image(image) => image.size.map(|s| s.width),
             StatefulComponent::Layout(layout) => match layout.position(pts) {
                 Position::Static { width, .. } => width,
                 Position::Absolute(position) => Some(position.width),
@@ -84,6 +90,7 @@ impl StatefulComponent {
         match self {
             StatefulComponent::InputStream(input) => input.size.map(|s| s.height),
             StatefulComponent::Shader(shader) => Some(shader.component.size.height),
+            StatefulComponent::Image(image) => image.size.map(|s| s.height),
             StatefulComponent::Layout(layout) => match layout.position(pts) {
                 Position::Static { height, .. } => height,
                 Position::Absolute(position) => Some(position.height),
@@ -95,6 +102,7 @@ impl StatefulComponent {
         match self {
             StatefulComponent::InputStream(input) => input.intermediate_node(),
             StatefulComponent::Shader(shader) => shader.intermediate_node(),
+            StatefulComponent::Image(image) => image.intermediate_node(),
             StatefulComponent::Layout(layout) => match layout {
                 StatefulLayoutComponent::View(view) => view.intermediate_node(),
             },
@@ -113,6 +121,7 @@ impl Component {
             Component::InputStream(input) => input.stateful_component(ctx),
             Component::Shader(shader) => shader.stateful_component(ctx),
             Component::View(view) => view.stateful_component(ctx),
+            Component::Image(image) => image.stateful_component(ctx),
         }
     }
 }

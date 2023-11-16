@@ -118,6 +118,7 @@ impl ImageNode {
     }
 
     pub fn render(&self, ctx: &mut RenderCtx, target: &mut NodeTexture, pts: Duration) {
+        target.ensure_size(ctx.wgpu_ctx, self.resolution());
         match self {
             ImageNode::Bitmap { asset, state } => asset.render(ctx.wgpu_ctx, target, state),
             ImageNode::Animated { asset, state } => asset.render(ctx.wgpu_ctx, target, state, pts),
@@ -125,7 +126,7 @@ impl ImageNode {
         }
     }
 
-    pub fn resolution(&self) -> Resolution {
+    fn resolution(&self) -> Resolution {
         match self {
             ImageNode::Bitmap { asset, .. } => asset.resolution(),
             ImageNode::Animated { asset, .. } => asset.resolution(),

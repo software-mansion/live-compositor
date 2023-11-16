@@ -89,6 +89,15 @@ fn start_example_client_code() -> Result<()> {
         ),
     };
 
+    info!("[example] Register static images");
+    common::post(&json!({
+        "type": "register",
+        "entity_type": "image",
+        "image_id": "example_gif",
+        "asset_type": "gif",
+        "url": "https://gifdb.com/images/high/rust-logo-on-fire-o41c0v9om8drr8dv.gif",
+    }))?;
+
     let shader_source = include_str!("./silly.wgsl");
     info!("[example] Register shader transform");
     common::post(&json!({
@@ -151,9 +160,8 @@ fn start_example_client_code() -> Result<()> {
                 "height": 1080,
                 "children": [
                     {
-                        "type": "input_stream",
-                        "input_id": "input_1",
-                        "id": "input_1"
+                        "type": "image",
+                        "image_id": "example_gif",
                     }
                 ]
             }

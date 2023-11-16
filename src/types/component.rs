@@ -102,7 +102,6 @@ pub struct WebRenderer {
 #[serde(deny_unknown_fields)]
 pub struct Image {
     pub id: Option<ComponentId>,
-    pub children: Option<Vec<Component>>,
     pub image_id: RendererId,
 }
 

@@ -99,6 +99,10 @@ impl StatefulLayoutComponent {
                 StatefulComponent::Shader(_) => {
                     child_index_offset += 1; // no state
                 }
+                StatefulComponent::Image(image) => {
+                    image.size = input_resolutions[child_index_offset].map(Into::into);
+                    child_index_offset += 1;
+                }
                 StatefulComponent::Layout(layout) => {
                     let node_children = layout.node_children().len();
                     layout.update_state(

@@ -3,6 +3,7 @@ use std::{collections::HashMap, time::Duration};
 use compositor_common::scene::{OutputId, Resolution};
 
 use super::{
+    image_component::StatefulImageComponent,
     input_stream_component::StatefulInputStreamComponent,
     layout::{LayoutNode, SizedLayoutComponent, StatefulLayoutComponent},
     shader_component::StatefulShaderComponent,
@@ -94,6 +95,7 @@ pub(super) enum IntermediateNode {
         shader: StatefulShaderComponent,
         children: Vec<IntermediateNode>,
     },
+    Image(StatefulImageComponent),
     Layout {
         root: StatefulLayoutComponent,
         children: Vec<IntermediateNode>,
@@ -136,6 +138,10 @@ impl IntermediateNode {
                     .map(|node| node.build_tree(None, pts))
                     .collect::<Result<_, _>>()?,
             }),
+            IntermediateNode::Image(image) => Ok(Node {
+                params: NodeParams::Image(image.component),
+                children: vec![],
+            }),
         }
     }
 
@@ -149,6 +155,10 @@ impl IntermediateNode {
                 shader,
                 children: _,
             } => Ok(shader.component.size),
+            IntermediateNode::Image(image) => Ok(image.size.unwrap_or(Size {
+                width: 1.0,
+                height: 1.0,
+            })),
             IntermediateNode::Layout { root, children: _ } => {
                 let (width, height) = match root.position(pts) {
                     Position::Static { width, height } => (width, height),
@@ -188,6 +198,11 @@ fn gather_components_with_id<'a>(
             }
             for child in shader.children.iter() {
                 gather_components_with_id(child, components);
+            }
+        }
+        StatefulComponent::Image(image) => {
+            if let Some(id) = image.component_id() {
+                components.insert(id.clone(), component);
             }
         }
         StatefulComponent::Layout(layout) => {

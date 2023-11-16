@@ -15,7 +15,7 @@ impl TryFrom<Component> for scene::Component {
             Component::View(view) => Ok(Self::View(view.try_into()?)),
             Component::WebRenderer(_node) => todo!(),
             Component::Shader(shader) => Ok(Self::Shader(shader.try_into()?)),
-            Component::Image(_node) => todo!(),
+            Component::Image(node) => Ok(Self::Image(node.into())),
             Component::Text(_node) => todo!(),
             Component::FixedPositionLayout(_node) => {
                 todo!()
@@ -153,6 +153,15 @@ impl From<ShaderParam> for shader::ShaderParam {
             ShaderParam::Struct(v) => {
                 shader::ShaderParam::Struct(v.into_iter().map(from_struct_field).collect())
             }
+        }
+    }
+}
+
+impl From<Image> for scene::ImageComponent {
+    fn from(image: Image) -> Self {
+        Self {
+            id: image.id.map(Into::into),
+            image_id: image.image_id.into(),
         }
     }
 }
