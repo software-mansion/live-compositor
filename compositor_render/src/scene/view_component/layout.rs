@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use crate::{
-    scene::{layout::LayoutComponentState, ComponentState, Position, Size, ViewChildrenDirection},
+    scene::{layout::StatefulLayoutComponent, StatefulComponent, Position, Size, ViewChildrenDirection},
     transformations::layout::{Layout, LayoutContent, NestedLayout},
 };
 
@@ -25,7 +25,7 @@ impl ViewComponentParam {
     pub(super) fn layout(
         &self,
         size: Size,
-        children: &[ComponentState],
+        children: &[StatefulComponent],
         pts: Duration,
     ) -> NestedLayout {
         let static_child_size = self.static_child_size(size, children, pts);
@@ -38,7 +38,7 @@ impl ViewComponentParam {
             .iter()
             .map(|child| {
                 let position = match child {
-                    ComponentState::Layout(layout) => layout.position(pts),
+                    StatefulComponent::Layout(layout) => layout.position(pts),
                     non_layout_component => Position::Static {
                         width: non_layout_component.width(pts),
                         height: non_layout_component.height(pts),
@@ -62,7 +62,7 @@ impl ViewComponentParam {
                         layout
                     }
                     Position::Absolute(position) => {
-                        LayoutComponentState::layout_absolute_position_child(
+                        StatefulLayoutComponent::layout_absolute_position_child(
                             child, position, size, pts,
                         )
                     }
@@ -85,7 +85,7 @@ impl ViewComponentParam {
 
     fn layout_static_child(
         &self,
-        child: &ComponentState,
+        child: &StatefulComponent,
         opts: StaticChildLayoutOpts,
         pts: Duration,
     ) -> (NestedLayout, f32) {
@@ -109,7 +109,7 @@ impl ViewComponentParam {
             }
         };
         let layout = match child {
-            ComponentState::Layout(layout_component) => {
+            StatefulComponent::Layout(layout_component) => {
                 let children_layouts = layout_component.layout(Size { width, height }, pts);
                 NestedLayout {
                     layout: Layout {
@@ -143,7 +143,7 @@ impl ViewComponentParam {
     /// Calculate a size of a static child component that does not have it explicitly defined.
     /// Returned value represents width if the direction is `ViewChildrenDirection::Row` or
     /// height if the direction is `ViewChildrenDirection::Column`.
-    fn static_child_size(&self, size: Size, children: &[ComponentState], pts: Duration) -> f32 {
+    fn static_child_size(&self, size: Size, children: &[StatefulComponent], pts: Duration) -> f32 {
         let max_size = match self.direction {
             super::ViewChildrenDirection::Row => size.width,
             super::ViewChildrenDirection::Column => size.height,
@@ -166,10 +166,10 @@ impl ViewComponentParam {
         )
     }
 
-    fn sum_static_children_sizes(&self, children: &[ComponentState], pts: Duration) -> f32 {
+    fn sum_static_children_sizes(&self, children: &[StatefulComponent], pts: Duration) -> f32 {
         let size_accessor = match self.direction {
-            super::ViewChildrenDirection::Row => ComponentState::width,
-            super::ViewChildrenDirection::Column => ComponentState::height,
+            super::ViewChildrenDirection::Row => StatefulComponent::width,
+            super::ViewChildrenDirection::Column => StatefulComponent::height,
         };
 
         Self::static_children_iter(children, pts)
@@ -178,11 +178,11 @@ impl ViewComponentParam {
     }
 
     fn static_children_iter(
-        children: &[ComponentState],
+        children: &[StatefulComponent],
         pts: Duration,
-    ) -> impl Iterator<Item = &ComponentState> {
+    ) -> impl Iterator<Item = &StatefulComponent> {
         children.iter().filter(move |child| match child {
-            ComponentState::Layout(layout) => match layout.position(pts) {
+            StatefulComponent::Layout(layout) => match layout.position(pts) {
                 super::Position::Static { .. } => true,
                 super::Position::Absolute(_) => false,
             },

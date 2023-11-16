@@ -1,15 +1,15 @@
 use super::{
-    scene_state::BuildStateTreeCtx, BuildSceneError, ComponentId, ComponentState,
+    scene_state::BuildStateTreeCtx, BuildSceneError, ComponentId, StatefulComponent,
     InputStreamComponent, IntermediateNode, Size,
 };
 
 #[derive(Debug, Clone)]
-pub(super) struct InputStreamComponentState {
+pub(super) struct StatefulInputStreamComponent {
     pub(super) component: InputStreamComponent,
     pub(super) size: Option<Size>,
 }
 
-impl InputStreamComponentState {
+impl StatefulInputStreamComponent {
     pub(super) fn component_id(&self) -> Option<&ComponentId> {
         self.component.id.as_ref()
     }
@@ -20,8 +20,8 @@ impl InputStreamComponentState {
 }
 
 impl InputStreamComponent {
-    pub(super) fn state_component(self, _ctx: &BuildStateTreeCtx) -> ComponentState {
-        ComponentState::InputStream(InputStreamComponentState {
+    pub(super) fn state_component(self, _ctx: &BuildStateTreeCtx) -> StatefulComponent {
+        StatefulComponent::InputStream(StatefulInputStreamComponent {
             component: self,
             size: None, // TODO: get from ctx
         })

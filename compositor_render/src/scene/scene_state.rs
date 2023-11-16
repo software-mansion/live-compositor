@@ -3,14 +3,14 @@ use std::{collections::HashMap, time::Duration};
 use compositor_common::scene::{OutputId, Resolution};
 
 use super::{
-    input_stream_component::InputStreamComponentState,
-    layout::{LayoutComponentState, LayoutNode, SizedLayoutComponent},
-    shader_component::ShaderComponentState,
-    BuildSceneError, ComponentId, ComponentState, Node, NodeParams, OutputScene, Position, Size,
+    input_stream_component::StatefulInputStreamComponent,
+    layout::{StatefulLayoutComponent, LayoutNode, SizedLayoutComponent},
+    shader_component::StatefulShaderComponent,
+    BuildSceneError, ComponentId, StatefulComponent, Node, NodeParams, OutputScene, Position, Size,
 };
 
 pub(super) struct BuildStateTreeCtx<'a> {
-    pub(super) prev_state: HashMap<ComponentId, &'a ComponentState>,
+    pub(super) prev_state: HashMap<ComponentId, &'a StatefulComponent>,
     pub(super) last_render_pts: Duration,
 }
 
@@ -22,7 +22,7 @@ pub(crate) struct SceneState {
 #[derive(Debug, Clone)]
 struct OutputSceneState {
     output_id: OutputId,
-    root: ComponentState,
+    root: StatefulComponent,
     resolution: Resolution,
 }
 
@@ -89,13 +89,13 @@ impl SceneState {
 
 /// Intermediate representation of a node tree while it's being constructed.
 pub(super) enum IntermediateNode {
-    InputStream(InputStreamComponentState),
+    InputStream(StatefulInputStreamComponent),
     Shader {
-        shader: ShaderComponentState,
+        shader: StatefulShaderComponent,
         children: Vec<IntermediateNode>,
     },
     Layout {
-        root: LayoutComponentState,
+        root: StatefulLayoutComponent,
         children: Vec<IntermediateNode>,
     },
 }
@@ -173,16 +173,16 @@ impl IntermediateNode {
 }
 
 fn gather_components_with_id<'a>(
-    component: &'a ComponentState,
-    components: &mut HashMap<ComponentId, &'a ComponentState>,
+    component: &'a StatefulComponent,
+    components: &mut HashMap<ComponentId, &'a StatefulComponent>,
 ) {
     match component {
-        ComponentState::InputStream(input) => {
+        StatefulComponent::InputStream(input) => {
             if let Some(id) = input.component_id() {
                 components.insert(id.clone(), component);
             }
         }
-        ComponentState::Shader(shader) => {
+        StatefulComponent::Shader(shader) => {
             if let Some(id) = shader.component_id() {
                 components.insert(id.clone(), component);
             }
@@ -190,7 +190,7 @@ fn gather_components_with_id<'a>(
                 gather_components_with_id(child, components);
             }
         }
-        ComponentState::Layout(layout) => {
+        StatefulComponent::Layout(layout) => {
             if let Some(id) = layout.component_id() {
                 components.insert(id.clone(), component);
             }

@@ -1,14 +1,14 @@
 use compositor_common::{renderer_spec::RendererId, scene::shader::ShaderParam};
 
 use super::{
-    scene_state::BuildStateTreeCtx, BuildSceneError, Component, ComponentId, ComponentState,
+    scene_state::BuildStateTreeCtx, BuildSceneError, Component, ComponentId, StatefulComponent,
     IntermediateNode, ShaderComponent, Size,
 };
 
 #[derive(Debug, Clone)]
-pub(super) struct ShaderComponentState {
+pub(super) struct StatefulShaderComponent {
     pub(super) component: ShaderComponentParams,
-    pub(super) children: Vec<ComponentState>,
+    pub(super) children: Vec<StatefulComponent>,
 }
 
 #[derive(Debug, Clone)]
@@ -19,7 +19,7 @@ pub(crate) struct ShaderComponentParams {
     pub(crate) size: Size,
 }
 
-impl ShaderComponentState {
+impl StatefulShaderComponent {
     pub(super) fn component_id(&self) -> Option<&ComponentId> {
         self.component.id.as_ref()
     }
@@ -28,7 +28,7 @@ impl ShaderComponentState {
         let children = self
             .children
             .iter()
-            .map(ComponentState::base_node)
+            .map(StatefulComponent::base_node)
             .collect::<Result<Vec<_>, _>>()?;
 
         Ok(IntermediateNode::Shader {
@@ -39,12 +39,12 @@ impl ShaderComponentState {
 }
 
 impl ShaderComponent {
-    pub(super) fn state_component(mut self, ctx: &BuildStateTreeCtx) -> ComponentState {
+    pub(super) fn state_component(mut self, ctx: &BuildStateTreeCtx) -> StatefulComponent {
         let children = std::mem::take(&mut self.children)
             .into_iter()
             .map(|c| Component::state_component(c, ctx))
             .collect();
-        ComponentState::Shader(ShaderComponentState {
+        StatefulComponent::Shader(StatefulShaderComponent {
             component: ShaderComponentParams {
                 id: self.id,
                 shader_id: self.shader_id,

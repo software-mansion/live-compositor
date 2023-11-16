@@ -5,8 +5,8 @@ use compositor_common::util::{colors::RGBAColor, ContinuousValue, InterpolationS
 use crate::{scene::ViewChildrenDirection, transformations::layout::NestedLayout};
 
 use super::{
-    components::ViewComponent, layout::LayoutComponentState, scene_state::BuildStateTreeCtx,
-    BuildSceneError, Component, ComponentId, ComponentState, IntermediateNode, Position, Size,
+    components::ViewComponent, layout::StatefulLayoutComponent, scene_state::BuildStateTreeCtx,
+    BuildSceneError, Component, ComponentId, StatefulComponent, IntermediateNode, Position, Size,
     Transition,
 };
 
@@ -14,11 +14,11 @@ mod interpolation;
 mod layout;
 
 #[derive(Debug, Clone)]
-pub(super) struct ViewComponentState {
+pub(super) struct StatefulViewComponent {
     start: Option<ViewComponentParam>,
     end: ViewComponentParam,
     transition: Option<Transition>,
-    children: Vec<ComponentState>,
+    children: Vec<StatefulComponent>,
     start_pts: Duration,
 }
 
@@ -32,7 +32,7 @@ struct ViewComponentParam {
     background_color: RGBAColor,
 }
 
-impl ViewComponentState {
+impl StatefulViewComponent {
     fn view(&self, pts: Duration) -> ViewComponentParam {
         let (Some(transition), Some(start)) = (self.transition, &self.start) else {
             return self.end.clone();
@@ -54,11 +54,11 @@ impl ViewComponentState {
         })
     }
 
-    pub(super) fn children(&self) -> Vec<&ComponentState> {
+    pub(super) fn children(&self) -> Vec<&StatefulComponent> {
         self.children.iter().collect()
     }
 
-    pub(super) fn children_mut(&mut self) -> Vec<&mut ComponentState> {
+    pub(super) fn children_mut(&mut self) -> Vec<&mut StatefulComponent> {
         self.children.iter_mut().collect()
     }
 
@@ -87,7 +87,7 @@ impl ViewComponentState {
             .collect();
 
         Ok(IntermediateNode::Layout {
-            root: LayoutComponentState::View(self.clone()),
+            root: StatefulLayoutComponent::View(self.clone()),
             children,
         })
     }
@@ -98,13 +98,13 @@ impl ViewComponentState {
 }
 
 impl ViewComponent {
-    pub(super) fn state_component(self, ctx: &BuildStateTreeCtx) -> ComponentState {
+    pub(super) fn state_component(self, ctx: &BuildStateTreeCtx) -> StatefulComponent {
         let previous_state = self
             .id
             .as_ref()
             .and_then(|id| ctx.prev_state.get(id))
             .and_then(|component| match component {
-                ComponentState::Layout(LayoutComponentState::View(view_state)) => Some(view_state),
+                StatefulComponent::Layout(StatefulLayoutComponent::View(view_state)) => Some(view_state),
                 _ => None,
             });
 
@@ -121,7 +121,7 @@ impl ViewComponent {
             };
             previous_state.transition.map(|_| Transition { duration })
         });
-        ComponentState::Layout(LayoutComponentState::View(ViewComponentState {
+        StatefulComponent::Layout(StatefulLayoutComponent::View(StatefulViewComponent {
             start,
             end: ViewComponentParam {
                 id: self.id,
