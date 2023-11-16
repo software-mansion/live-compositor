@@ -102,7 +102,13 @@ impl Renderer {
 
         let scope = WgpuErrorScope::push(&ctx.wgpu_ctx.device);
 
-        self.scene.register_render_event(inputs.pts);
+        let input_resolutions = inputs
+            .frames
+            .iter()
+            .map(|(input_id, frame)| (input_id.clone(), frame.resolution))
+            .collect();
+        self.scene
+            .register_render_event(inputs.pts, input_resolutions);
 
         populate_inputs(ctx, &mut self.render_graph, &mut inputs).unwrap();
         run_transforms(ctx, &mut self.render_graph, inputs.pts).unwrap();
@@ -120,7 +126,7 @@ impl Renderer {
         &mut self,
         scenes: Vec<scene::OutputScene>,
     ) -> Result<(), UpdateSceneError> {
-        let output_nodes = self.scene.update_scene(scenes)?;
+        let output_nodes = self.scene.update_scene(scenes, &self.renderers)?;
         self.render_graph.update(
             &RenderCtx {
                 wgpu_ctx: &self.wgpu_ctx,

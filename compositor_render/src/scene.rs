@@ -1,4 +1,8 @@
+use std::sync::Arc;
 use std::time::Duration;
+
+use crate::transformations::image_renderer::Image;
+use crate::transformations::shader::Shader;
 
 use self::image_component::StatefulImageComponent;
 use self::input_stream_component::StatefulInputStreamComponent;
@@ -6,7 +10,8 @@ use self::layout::StatefulLayoutComponent;
 use self::scene_state::{BuildStateTreeCtx, IntermediateNode};
 use self::shader_component::StatefulShaderComponent;
 
-use compositor_common::scene::{OutputId, Resolution};
+use compositor_common::renderer_spec::RendererId;
+use compositor_common::scene::{InputId, OutputId, Resolution};
 
 pub(crate) use layout::LayoutNode;
 pub(crate) use scene_state::{OutputNode, SceneState};
@@ -67,18 +72,18 @@ pub(crate) struct Node {
 /// Set of params used to construct a `RenderNode`.
 #[derive(Debug)]
 pub(crate) enum NodeParams {
-    InputStream(InputStreamComponent),
-    Shader(ShaderComponentParams),
-    Image(ImageComponent),
+    InputStream(InputId),
+    Shader(ShaderComponentParams, Arc<Shader>),
+    Image(Image),
     Layout(LayoutNode),
 }
 
 impl StatefulComponent {
     fn width(&self, pts: Duration) -> Option<f32> {
         match self {
-            StatefulComponent::InputStream(input) => input.size.map(|s| s.width),
+            StatefulComponent::InputStream(input) => Some(input.size.width),
             StatefulComponent::Shader(shader) => Some(shader.component.size.width),
-            StatefulComponent::Image(image) => image.size.map(|s| s.width),
+            StatefulComponent::Image(image) => Some(image.size().width),
             StatefulComponent::Layout(layout) => match layout.position(pts) {
                 Position::Static { width, .. } => width,
                 Position::Absolute(position) => Some(position.width),
@@ -88,9 +93,9 @@ impl StatefulComponent {
 
     fn height(&self, pts: Duration) -> Option<f32> {
         match self {
-            StatefulComponent::InputStream(input) => input.size.map(|s| s.height),
+            StatefulComponent::InputStream(input) => Some(input.size.height),
             StatefulComponent::Shader(shader) => Some(shader.component.size.height),
-            StatefulComponent::Image(image) => image.size.map(|s| s.height),
+            StatefulComponent::Image(image) => Some(image.size().height),
             StatefulComponent::Layout(layout) => match layout.position(pts) {
                 Position::Static { height, .. } => height,
                 Position::Absolute(position) => Some(position.height),
@@ -116,7 +121,10 @@ impl Component {
     /// from `Component`, but additionally it has it's own state. When calculating
     /// initial value of that state, the component has access to state of that
     /// component from before scene update.
-    fn stateful_component(self, ctx: &BuildStateTreeCtx) -> StatefulComponent {
+    fn stateful_component(
+        self,
+        ctx: &BuildStateTreeCtx,
+    ) -> Result<StatefulComponent, BuildSceneError> {
         match self {
             Component::InputStream(input) => input.stateful_component(ctx),
             Component::Shader(shader) => shader.stateful_component(ctx),
@@ -133,4 +141,10 @@ pub enum BuildSceneError {
         component: &'static str,
         msg: String,
     },
+
+    #[error("Image \"{0}\" does not exist. You have to register it first before using it in the scene definition.")]
+    ImageNotFound(RendererId),
+
+    #[error("Shader \"{0}\" does not exist. You have to register it first before using it in the scene definition.")]
+    ShaderNotFound(RendererId),
 }

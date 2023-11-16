@@ -25,7 +25,7 @@ use crate::{
     },
 };
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub enum Image {
     Bitmap(Arc<BitmapAsset>),
     Animated(Arc<AnimatedAsset>),
@@ -61,6 +61,14 @@ impl Image {
             }
         };
         Ok(renderer)
+    }
+
+    pub fn resolution(&self) -> Resolution {
+        match self {
+            Image::Bitmap(asset) => asset.resolution(),
+            Image::Animated(asset) => asset.resolution(),
+            Image::Svg(asset) => asset.resolution(),
+        }
     }
 
     fn download_file(src: &ImageSrc) -> Result<bytes::Bytes, ImageError> {
@@ -139,6 +147,7 @@ pub struct BitmapNodeState {
     was_rendered: bool,
 }
 
+#[derive(Debug)]
 pub struct BitmapAsset {
     texture: RGBATexture,
 }
@@ -182,6 +191,7 @@ pub struct SvgNodeState {
     was_rendered: bool,
 }
 
+#[derive(Debug)]
 pub struct SvgAsset {
     texture: RGBATexture,
 }
@@ -251,11 +261,13 @@ pub struct AnimatedNodeState {
     first_pts: Option<Duration>,
 }
 
+#[derive(Debug)]
 pub struct AnimatedAsset {
     frames: Vec<AnimationFrame>,
     animation_duration: Duration,
 }
 
+#[derive(Debug)]
 struct AnimationFrame {
     texture: RGBATexture,
     pts: Duration,
