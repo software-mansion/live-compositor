@@ -1,6 +1,6 @@
 use super::{
-    scene_state::BuildStateTreeCtx, BuildSceneError, ComponentId, StatefulComponent,
-    InputStreamComponent, IntermediateNode, Size,
+    scene_state::BuildStateTreeCtx, BuildSceneError, ComponentId, InputStreamComponent,
+    IntermediateNode, Size, StatefulComponent,
 };
 
 #[derive(Debug, Clone)]
@@ -14,13 +14,13 @@ impl StatefulInputStreamComponent {
         self.component.id.as_ref()
     }
 
-    pub(super) fn base_node(&self) -> Result<IntermediateNode, BuildSceneError> {
+    pub(super) fn intermediate_node(&self) -> Result<IntermediateNode, BuildSceneError> {
         Ok(IntermediateNode::InputStream(self.clone()))
     }
 }
 
 impl InputStreamComponent {
-    pub(super) fn state_component(self, _ctx: &BuildStateTreeCtx) -> StatefulComponent {
+    pub(super) fn stateful_component(self, _ctx: &BuildStateTreeCtx) -> StatefulComponent {
         StatefulComponent::InputStream(StatefulInputStreamComponent {
             component: self,
             size: None, // TODO: get from ctx

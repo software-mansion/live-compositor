@@ -91,12 +91,12 @@ impl StatefulComponent {
         }
     }
 
-    fn base_node(&self) -> Result<IntermediateNode, BuildSceneError> {
+    fn intermediate_node(&self) -> Result<IntermediateNode, BuildSceneError> {
         match self {
-            StatefulComponent::InputStream(input) => input.base_node(),
-            StatefulComponent::Shader(shader) => shader.base_node(),
+            StatefulComponent::InputStream(input) => input.intermediate_node(),
+            StatefulComponent::Shader(shader) => shader.intermediate_node(),
             StatefulComponent::Layout(layout) => match layout {
-                StatefulLayoutComponent::View(view) => view.base_node(),
+                StatefulLayoutComponent::View(view) => view.intermediate_node(),
             },
         }
     }
@@ -108,11 +108,11 @@ impl Component {
     /// from `Component`, but additionally it has it's own state. When calculating
     /// initial value of that state, the component has access to state of that
     /// component from before scene update.
-    fn state_component(self, ctx: &BuildStateTreeCtx) -> StatefulComponent {
+    fn stateful_component(self, ctx: &BuildStateTreeCtx) -> StatefulComponent {
         match self {
-            Component::InputStream(input) => input.state_component(ctx),
-            Component::Shader(shader) => shader.state_component(ctx),
-            Component::View(view) => view.state_component(ctx),
+            Component::InputStream(input) => input.stateful_component(ctx),
+            Component::Shader(shader) => shader.stateful_component(ctx),
+            Component::View(view) => view.stateful_component(ctx),
         }
     }
 }

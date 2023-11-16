@@ -4,9 +4,9 @@ use compositor_common::scene::{OutputId, Resolution};
 
 use super::{
     input_stream_component::StatefulInputStreamComponent,
-    layout::{StatefulLayoutComponent, LayoutNode, SizedLayoutComponent},
+    layout::{LayoutNode, SizedLayoutComponent, StatefulLayoutComponent},
     shader_component::StatefulShaderComponent,
-    BuildSceneError, ComponentId, StatefulComponent, Node, NodeParams, OutputScene, Position, Size,
+    BuildSceneError, ComponentId, Node, NodeParams, OutputScene, Position, Size, StatefulComponent,
 };
 
 pub(super) struct BuildStateTreeCtx<'a> {
@@ -65,7 +65,7 @@ impl SceneState {
             .into_iter()
             .map(|o| OutputSceneState {
                 output_id: o.output_id,
-                root: o.root.state_component(&ctx),
+                root: o.root.stateful_component(&ctx),
                 resolution: o.resolution,
             })
             .collect::<Vec<_>>();
@@ -76,7 +76,7 @@ impl SceneState {
                     output_id: output.output_id.clone(),
                     node: output
                         .root
-                        .base_node()?
+                        .intermediate_node()?
                         .build_tree(Some(output.resolution), self.last_pts)?,
                     resolution: output.resolution,
                 })

@@ -1,7 +1,9 @@
 use std::time::Duration;
 
 use crate::{
-    scene::{layout::StatefulLayoutComponent, StatefulComponent, Position, Size, ViewChildrenDirection},
+    scene::{
+        layout::StatefulLayoutComponent, Position, Size, StatefulComponent, ViewChildrenDirection,
+    },
     transformations::layout::{Layout, LayoutContent, NestedLayout},
 };
 

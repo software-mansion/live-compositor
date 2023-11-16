@@ -1,8 +1,8 @@
 use compositor_common::{renderer_spec::RendererId, scene::shader::ShaderParam};
 
 use super::{
-    scene_state::BuildStateTreeCtx, BuildSceneError, Component, ComponentId, StatefulComponent,
-    IntermediateNode, ShaderComponent, Size,
+    scene_state::BuildStateTreeCtx, BuildSceneError, Component, ComponentId, IntermediateNode,
+    ShaderComponent, Size, StatefulComponent,
 };
 
 #[derive(Debug, Clone)]
@@ -24,11 +24,11 @@ impl StatefulShaderComponent {
         self.component.id.as_ref()
     }
 
-    pub(super) fn base_node(&self) -> Result<IntermediateNode, BuildSceneError> {
+    pub(super) fn intermediate_node(&self) -> Result<IntermediateNode, BuildSceneError> {
         let children = self
             .children
             .iter()
-            .map(StatefulComponent::base_node)
+            .map(StatefulComponent::intermediate_node)
             .collect::<Result<Vec<_>, _>>()?;
 
         Ok(IntermediateNode::Shader {
@@ -39,10 +39,10 @@ impl StatefulShaderComponent {
 }
 
 impl ShaderComponent {
-    pub(super) fn state_component(mut self, ctx: &BuildStateTreeCtx) -> StatefulComponent {
+    pub(super) fn stateful_component(mut self, ctx: &BuildStateTreeCtx) -> StatefulComponent {
         let children = std::mem::take(&mut self.children)
             .into_iter()
-            .map(|c| Component::state_component(c, ctx))
+            .map(|c| Component::stateful_component(c, ctx))
             .collect();
         StatefulComponent::Shader(StatefulShaderComponent {
             component: ShaderComponentParams {

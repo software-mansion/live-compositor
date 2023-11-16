@@ -6,7 +6,7 @@ use crate::{scene::ViewChildrenDirection, transformations::layout::NestedLayout}
 
 use super::{
     components::ViewComponent, layout::StatefulLayoutComponent, scene_state::BuildStateTreeCtx,
-    BuildSceneError, Component, ComponentId, StatefulComponent, IntermediateNode, Position, Size,
+    BuildSceneError, Component, ComponentId, IntermediateNode, Position, Size, StatefulComponent,
     Transition,
 };
 
@@ -70,12 +70,12 @@ impl StatefulViewComponent {
         self.end.id.as_ref()
     }
 
-    pub(super) fn base_node(&self) -> Result<IntermediateNode, BuildSceneError> {
+    pub(super) fn intermediate_node(&self) -> Result<IntermediateNode, BuildSceneError> {
         let children = self
             .children
             .iter()
             .map(|component| {
-                let node = component.base_node()?;
+                let node = component.intermediate_node()?;
                 match node {
                     IntermediateNode::Layout { root: _, children } => Ok(children),
                     _ => Ok(vec![node]),
@@ -98,13 +98,15 @@ impl StatefulViewComponent {
 }
 
 impl ViewComponent {
-    pub(super) fn state_component(self, ctx: &BuildStateTreeCtx) -> StatefulComponent {
+    pub(super) fn stateful_component(self, ctx: &BuildStateTreeCtx) -> StatefulComponent {
         let previous_state = self
             .id
             .as_ref()
             .and_then(|id| ctx.prev_state.get(id))
             .and_then(|component| match component {
-                StatefulComponent::Layout(StatefulLayoutComponent::View(view_state)) => Some(view_state),
+                StatefulComponent::Layout(StatefulLayoutComponent::View(view_state)) => {
+                    Some(view_state)
+                }
                 _ => None,
             });
 
@@ -133,7 +135,7 @@ impl ViewComponent {
             children: self
                 .children
                 .into_iter()
-                .map(|c| Component::state_component(c, ctx))
+                .map(|c| Component::stateful_component(c, ctx))
                 .collect(),
             start_pts: ctx.last_render_pts,
         }))

@@ -5,8 +5,8 @@ use compositor_common::scene::Resolution;
 use crate::transformations::layout::{self, Layout, LayoutContent, NestedLayout};
 
 use super::{
-    view_component::StatefulViewComponent, AbsolutePosition, ComponentId, StatefulComponent,
-    HorizontalPosition, Position, Size, VerticalPosition,
+    view_component::StatefulViewComponent, AbsolutePosition, ComponentId, HorizontalPosition,
+    Position, Size, StatefulComponent, VerticalPosition,
 };
 
 #[derive(Debug, Clone)]
