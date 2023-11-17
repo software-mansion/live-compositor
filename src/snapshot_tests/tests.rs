@@ -14,6 +14,7 @@ pub fn snapshot_tests() -> Vec<TestCase> {
     tests.append(&mut base_snapshot_tests());
     tests.append(&mut view_snapshot_tests());
     tests.append(&mut transition_snapshot_tests());
+    tests.append(&mut image_snapshot_tests());
     // tests.append(&mut text_snapshot_tests());
     // tests.append(&mut tiled_layout_tests());
     // tests.append(&mut stretch_to_resolution_tests());
@@ -570,6 +571,33 @@ pub fn snapshot_tests() -> Vec<TestCase> {
 //        },
 //    ])
 //}
+
+pub fn image_snapshot_tests() -> Vec<TestCase> {
+    let image_renderer = include_str!("../../snapshot_tests/register/image_jpeg.register.json");
+
+    Vec::from([
+        TestCase {
+            name: "image/jpeg_as_root",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/image/jpeg_as_root.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
+            renderers: vec![image_renderer],
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "image/jpeg_in_view",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/image/jpeg_in_view.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
+            renderers: vec![image_renderer],
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
+    ])
+}
 
 pub fn transition_snapshot_tests() -> Vec<TestCase> {
     Vec::from([

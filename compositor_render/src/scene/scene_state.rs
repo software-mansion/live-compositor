@@ -1,8 +1,11 @@
 use std::{collections::HashMap, time::Duration};
 
-use compositor_common::scene::{OutputId, Resolution};
+use compositor_common::scene::{InputId, OutputId, Resolution};
+
+use crate::renderer::renderers::Renderers;
 
 use super::{
+    image_component::StatefulImageComponent,
     input_stream_component::StatefulInputStreamComponent,
     layout::{LayoutNode, SizedLayoutComponent, StatefulLayoutComponent},
     shader_component::StatefulShaderComponent,
@@ -12,11 +15,15 @@ use super::{
 pub(super) struct BuildStateTreeCtx<'a> {
     pub(super) prev_state: HashMap<ComponentId, &'a StatefulComponent>,
     pub(super) last_render_pts: Duration,
+    pub(super) renderers: &'a Renderers,
+    pub(super) input_resolutions: &'a HashMap<InputId, Resolution>,
 }
 
 pub(crate) struct SceneState {
     outputs: Vec<OutputSceneState>,
     last_pts: Duration,
+    // Input resolutions from the last render
+    input_resolutions: HashMap<InputId, Resolution>,
 }
 
 #[derive(Debug, Clone)]
@@ -37,17 +44,24 @@ impl SceneState {
         Self {
             outputs: vec![],
             last_pts: Duration::ZERO,
+            input_resolutions: HashMap::new(),
         }
     }
 
-    pub(crate) fn register_render_event(&mut self, pts: Duration) {
-        self.last_pts = pts
+    pub(crate) fn register_render_event(
+        &mut self,
+        pts: Duration,
+        input_resolutions: HashMap<InputId, Resolution>,
+    ) {
+        self.last_pts = pts;
+        self.input_resolutions = input_resolutions;
         // TODO: pass input stream sizes and populate it in the ComponentState tree
     }
 
     pub(crate) fn update_scene(
         &mut self,
         outputs: Vec<OutputScene>,
+        renderers: &Renderers,
     ) -> Result<Vec<OutputNode>, BuildSceneError> {
         let ctx = BuildStateTreeCtx {
             prev_state: self
@@ -60,15 +74,19 @@ impl SceneState {
                 })
                 .collect(),
             last_render_pts: self.last_pts,
+            input_resolutions: &self.input_resolutions,
+            renderers,
         };
         let output_states = outputs
             .into_iter()
-            .map(|o| OutputSceneState {
-                output_id: o.output_id,
-                root: o.root.stateful_component(&ctx),
-                resolution: o.resolution,
+            .map(|o| {
+                Ok(OutputSceneState {
+                    output_id: o.output_id,
+                    root: o.root.stateful_component(&ctx)?,
+                    resolution: o.resolution,
+                })
             })
-            .collect::<Vec<_>>();
+            .collect::<Result<Vec<_>, _>>()?;
         let nodes = output_states
             .iter()
             .map(|output| {
@@ -94,6 +112,7 @@ pub(super) enum IntermediateNode {
         shader: StatefulShaderComponent,
         children: Vec<IntermediateNode>,
     },
+    Image(StatefulImageComponent),
     Layout {
         root: StatefulLayoutComponent,
         children: Vec<IntermediateNode>,
@@ -117,11 +136,11 @@ impl IntermediateNode {
         };
         match self {
             IntermediateNode::InputStream(input) => Ok(Node {
-                params: NodeParams::InputStream(input.component), // TODO: enforce resolution
+                params: NodeParams::InputStream(input.component.input_id), // TODO: enforce resolution
                 children: vec![],
             }),
             IntermediateNode::Shader { shader, children } => Ok(Node {
-                params: NodeParams::Shader(shader.component), // TODO: enforce resolution
+                params: NodeParams::Shader(shader.component, shader.shader), // TODO: enforce resolution
                 children: children
                     .into_iter()
                     .map(|node| node.build_tree(None, pts))
@@ -136,19 +155,21 @@ impl IntermediateNode {
                     .map(|node| node.build_tree(None, pts))
                     .collect::<Result<_, _>>()?,
             }),
+            IntermediateNode::Image(image) => Ok(Node {
+                params: NodeParams::Image(image.image),
+                children: vec![],
+            }),
         }
     }
 
     fn node_size(&self, pts: Duration) -> Result<Size, BuildSceneError> {
         match self {
-            IntermediateNode::InputStream(input) => Ok(input.size.unwrap_or(Size {
-                width: 1.0,
-                height: 1.0,
-            })),
+            IntermediateNode::InputStream(input) => Ok(input.size),
             IntermediateNode::Shader {
                 shader,
                 children: _,
             } => Ok(shader.component.size),
+            IntermediateNode::Image(image) => Ok(image.size()),
             IntermediateNode::Layout { root, children: _ } => {
                 let (width, height) = match root.position(pts) {
                     Position::Static { width, height } => (width, height),
@@ -188,6 +209,11 @@ fn gather_components_with_id<'a>(
             }
             for child in shader.children.iter() {
                 gather_components_with_id(child, components);
+            }
+        }
+        StatefulComponent::Image(image) => {
+            if let Some(id) = image.component_id() {
+                components.insert(id.clone(), component);
             }
         }
         StatefulComponent::Layout(layout) => {

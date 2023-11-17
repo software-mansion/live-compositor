@@ -24,16 +24,11 @@ pub struct ShaderNode {
 impl ShaderNode {
     pub fn new(
         ctx: &RenderCtx,
+        shader: Arc<Shader>,
         shader_id: &RendererId,
         shader_params: &Option<ShaderParam>,
         resolution: &Resolution,
     ) -> Result<Self, CreateNodeError> {
-        let shader = ctx
-            .renderers
-            .shaders
-            .get(shader_id)
-            .ok_or_else(|| CreateNodeError::ShaderNotFound(shader_id.clone()))?;
-
         if let Some(params) = shader_params {
             shader.wgpu_shader.validate_params(params).map_err(|err| {
                 CreateNodeError::ShaderNodeParametersValidationError(err, shader_id.clone())

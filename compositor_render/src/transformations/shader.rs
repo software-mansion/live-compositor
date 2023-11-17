@@ -12,6 +12,7 @@ use crate::wgpu::{
 
 pub mod node;
 
+#[derive(Debug)]
 pub struct Shader {
     wgpu_shader: WgpuShader,
     fallback_strategy: FallbackStrategy,

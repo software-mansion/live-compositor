@@ -253,15 +253,6 @@
         {
           "additionalProperties": false,
           "properties": {
-            "children": {
-              "items": {
-                "$ref": "#/definitions/Component"
-              },
-              "type": [
-                "array",
-                "null"
-              ]
-            },
             "id": {
               "anyOf": [
                 {

@@ -93,10 +93,16 @@ impl StatefulLayoutComponent {
         for child in self.children_mut().iter_mut() {
             match child {
                 StatefulComponent::InputStream(input) => {
-                    input.size = input_resolutions[child_index_offset].map(Into::into);
+                    // TODO
+                    input.size = input_resolutions[child_index_offset]
+                        .map(Into::into)
+                        .unwrap_or(Size {
+                            width: 0.0,
+                            height: 0.0,
+                        });
                     child_index_offset += 1;
                 }
-                StatefulComponent::Shader(_) => {
+                StatefulComponent::Shader(_) | StatefulComponent::Image(_) => {
                     child_index_offset += 1; // no state
                 }
                 StatefulComponent::Layout(layout) => {

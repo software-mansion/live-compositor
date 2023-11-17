@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use std::time::Duration;
 
 use compositor_common::renderer_spec::FallbackStrategy;
@@ -8,8 +9,10 @@ use compositor_common::scene::{NodeParams, NodeSpec};
 use crate::error::{CreateNodeError, UpdateSceneError};
 
 use crate::scene::{self, ShaderComponentParams};
+use crate::transformations::image_renderer::Image;
 use crate::transformations::layout::LayoutNode;
 use crate::transformations::shader::node::ShaderNode;
+use crate::transformations::shader::Shader;
 
 use crate::transformations::{
     image_renderer::ImageNode, text_renderer::TextRendererNode, web_renderer::node::WebRendererNode,
@@ -103,16 +106,18 @@ impl RenderNode {
     pub(super) fn new_shader_node(
         ctx: &RenderCtx,
         inputs: Vec<NodeId>,
-        shader: ShaderComponentParams,
+        shader_params: ShaderComponentParams,
+        shader: Arc<Shader>,
     ) -> Result<Self, CreateNodeError> {
         let node = InnerRenderNode::Shader(ShaderNode::new(
             ctx,
-            &shader.shader_id,
-            &shader.shader_param,
-            &shader.size.into(),
+            shader,
+            &shader_params.shader_id,
+            &shader_params.shader_param,
+            &shader_params.size.into(),
         )?);
         let mut output = NodeTexture::new();
-        output.ensure_size(ctx.wgpu_ctx, shader.size.into());
+        output.ensure_size(ctx.wgpu_ctx, shader_params.size.into());
 
         Ok(Self {
             renderer: node,
@@ -120,6 +125,18 @@ impl RenderNode {
             fallback: None,
             output,
         })
+    }
+
+    pub(super) fn new_image_node(image: Image) -> Self {
+        let node = InnerRenderNode::Image(ImageNode::new(image));
+        let output = NodeTexture::new();
+
+        Self {
+            renderer: node,
+            inputs: vec![],
+            fallback: None,
+            output,
+        }
     }
 
     pub(super) fn new_layout_node(
