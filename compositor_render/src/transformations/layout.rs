@@ -2,9 +2,11 @@ use std::{sync::Arc, time::Duration};
 
 use crate::{
     renderer::{render_graph::NodeId, RenderCtx},
+    scene::Size,
     wgpu::texture::NodeTexture,
 };
 
+mod flatten;
 mod layout_renderer;
 mod params;
 mod shader;
@@ -20,7 +22,7 @@ use self::{
 pub(crate) use layout_renderer::LayoutRenderer;
 
 pub(crate) trait LayoutProvider: Send {
-    fn layouts(&mut self, pts: Duration, inputs: Vec<Option<Resolution>>) -> Vec<Layout>;
+    fn layouts(&mut self, pts: Duration, inputs: Vec<Option<Resolution>>) -> NestedLayout;
     fn resolution(&self, pts: Duration) -> Resolution;
 }
 
@@ -31,18 +33,46 @@ pub(crate) struct LayoutNode {
 }
 
 #[derive(Debug, Clone)]
-pub struct Layout {
+pub struct Crop {
+    pub top: f32,
+    pub left: f32,
+    pub width: f32,
+    pub height: f32,
+}
+
+#[derive(Debug, Clone)]
+struct RenderLayout {
+    top: f32,
+    left: f32,
+    width: f32,
+    height: f32,
+    rotation_degrees: f32,
+    content: RenderLayoutContent,
+}
+
+#[derive(Debug, Clone)]
+enum RenderLayoutContent {
+    Color(RGBAColor),
+    ChildNode { index: usize, crop: Crop },
+}
+
+#[derive(Debug, Clone)]
+pub enum LayoutContent {
+    Color(RGBAColor),
+    ChildNode { index: usize, size: Size },
+    None,
+}
+
+#[derive(Debug, Clone)]
+pub struct NestedLayout {
     pub top: f32,
     pub left: f32,
     pub width: f32,
     pub height: f32,
     pub rotation_degrees: f32,
+    pub crop: Option<Crop>,
     pub content: LayoutContent,
-}
 
-#[derive(Debug, Clone)]
-pub struct NestedLayout {
-    pub(crate) layout: Layout,
     pub(crate) children: Vec<NestedLayout>,
     /// Describes how many children of this component are nodes. This value also
     /// counts `layout` if its content is a `LayoutContent::ChildNode`.
@@ -52,48 +82,6 @@ pub struct NestedLayout {
     /// of its children then child_nodes_count will count all of those components even
     /// though only one of those children will be present in the layouts tree.
     pub(crate) child_nodes_count: usize,
-}
-
-impl NestedLayout {
-    pub fn flatten(mut self, child_index_offset: usize) -> Vec<Layout> {
-        let mut child_index_offset = child_index_offset;
-        if let LayoutContent::ChildNode(index) = self.layout.content {
-            self.layout.content = LayoutContent::ChildNode(index + child_index_offset);
-            child_index_offset += 1
-        }
-        let children: Vec<_> = self
-            .children
-            .into_iter()
-            .flat_map(|child| {
-                let child_nodes_count = child.child_nodes_count;
-                let layouts = child.flatten(child_index_offset);
-                child_index_offset += child_nodes_count;
-                layouts
-            })
-            .map(|layout| Layout {
-                top: layout.top + self.layout.top,
-                left: layout.left + self.layout.left,
-                width: layout.width,
-                height: layout.height,
-                rotation_degrees: layout.rotation_degrees + self.layout.rotation_degrees, // TODO: not exactly correct
-                content: layout.content,
-            })
-            .filter(|layout| {
-                !matches!(
-                    layout.content,
-                    LayoutContent::None | LayoutContent::Color(RGBAColor(0, 0, 0, 0))
-                )
-            })
-            .collect();
-        [vec![self.layout], children].concat()
-    }
-}
-
-#[derive(Debug, Clone)]
-pub enum LayoutContent {
-    Color(RGBAColor),
-    ChildNode(/* input pad index */ usize),
-    None,
 }
 
 impl LayoutNode {
@@ -118,7 +106,10 @@ impl LayoutNode {
             .iter()
             .map(|(_, node_texture)| node_texture.resolution())
             .collect();
-        let layouts = self.layout_provider.layouts(pts, input_resolutions);
+        let layouts = self
+            .layout_provider
+            .layouts(pts, input_resolutions)
+            .flatten(0);
         let layout_count = layouts.len();
         let output_resolution = self.layout_provider.resolution(pts);
 
@@ -126,9 +117,10 @@ impl LayoutNode {
             .iter()
             .map(|layout| {
                 let (texture_id, background_color) = match layout.content {
-                    LayoutContent::Color(color) => (-1, color),
-                    LayoutContent::ChildNode(index) => (index as i32, RGBAColor(0, 0, 0, 0)),
-                    LayoutContent::None => (-1, RGBAColor(0, 0, 0, 0)),
+                    RenderLayoutContent::Color(color) => (-1, color),
+                    RenderLayoutContent::ChildNode { index, .. } => {
+                        (index as i32, RGBAColor(0, 0, 0, 0))
+                    }
                 };
                 LayoutNodeParams {
                     transformation_matrix: layout.transformation_matrix(output_resolution),

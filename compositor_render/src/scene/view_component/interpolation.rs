@@ -9,6 +9,7 @@ impl ContinuousValue for ViewComponentParam {
             direction: end.direction.clone(),
             position: ContinuousValue::interpolate(&start.position, &end.position, state),
             background_color: end.background_color,
+            overflow: end.overflow,
         }
     }
 }

@@ -687,9 +687,18 @@ pub fn view_snapshot_tests() -> Vec<TestCase> {
             ..Default::default()
         },
         TestCase {
-            name: "view/constant_width_views_row_with_overflow",
+            name: "view/constant_width_views_row_with_overflow_hidden",
             outputs: Outputs::Scene(vec![(
-                    include_str!("../../snapshot_tests/view/constant_width_views_row_with_overflow.scene.json"),
+                    include_str!("../../snapshot_tests/view/constant_width_views_row_with_overflow_hidden.scene.json"),
+                    DEFAULT_RESOLUTION,
+            )]),
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "view/constant_width_views_row_with_overflow_visible",
+            outputs: Outputs::Scene(vec![(
+                    include_str!("../../snapshot_tests/view/constant_width_views_row_with_overflow_visible.scene.json"),
                     DEFAULT_RESOLUTION,
             )]),
             inputs: vec![TestInput::new(1)],

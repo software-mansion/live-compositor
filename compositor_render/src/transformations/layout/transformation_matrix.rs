@@ -1,9 +1,9 @@
 use compositor_common::scene::Resolution;
 use nalgebra_glm::{rotate_z, scale, translate, vec3, Mat4, Vec3};
 
-use super::Layout;
+use super::RenderLayout;
 
-impl Layout {
+impl RenderLayout {
     /// Returns matrix that transforms input plane vertices
     /// (located in corners of clip space), to final position
     pub(super) fn transformation_matrix(&self, output_resolution: Resolution) -> Mat4 {
