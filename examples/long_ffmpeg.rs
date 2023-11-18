@@ -114,15 +114,6 @@ fn start_example_client_code() -> Result<()> {
         ]
     }))?;
 
-    info!("[example] Register static image");
-    common::post(&json!({
-        "type": "register",
-        "entity_type": "image",
-        "image_id": "example_image",
-        "asset_type": "gif",
-        "url": "https://gifdb.com/images/high/rust-logo-on-fire-o41c0v9om8drr8dv.gif",
-    }))?;
-
     info!("[example] Start pipeline");
     common::post(&json!({
         "type": "start",
