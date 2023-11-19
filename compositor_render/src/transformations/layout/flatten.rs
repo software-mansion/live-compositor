@@ -37,10 +37,10 @@ impl NestedLayout {
         let left = layout.left + self.left;
         match &self.crop {
             None => RenderLayout {
-                top,
-                left,
-                width: layout.width,
-                height: layout.height,
+                top: top * self.scale_y,
+                left: left * self.scale_x,
+                width: layout.width * self.scale_x,
+                height: layout.height * self.scale_y,
                 rotation_degrees: layout.rotation_degrees + self.rotation_degrees, // TODO: not exactly correct
                 content: layout.content,
             },
@@ -58,10 +58,10 @@ impl NestedLayout {
                 match layout.content {
                     RenderLayoutContent::Color(color) => {
                         RenderLayout {
-                            top: crop_top,
-                            left: crop_left,
-                            width: crop_width,
-                            height: crop_height,
+                            top: crop_top * self.scale_y,
+                            left: crop_left * self.scale_x,
+                            width: crop_width * self.scale_x,
+                            height: crop_height * self.scale_y,
                             rotation_degrees: layout.rotation_degrees + self.rotation_degrees, // TODO: not exactly correct
                             content: RenderLayoutContent::Color(color),
                         }
@@ -86,10 +86,10 @@ impl NestedLayout {
                         };
 
                         RenderLayout {
-                            top: crop_top,
-                            left: crop_left,
-                            width: crop_width,
-                            height: crop_height,
+                            top: crop_top * self.scale_y,
+                            left: crop_left * self.scale_x,
+                            width: crop_width * self.scale_x,
+                            height: crop_height * self.scale_y,
                             rotation_degrees: layout.rotation_degrees + self.rotation_degrees, // TODO: not exactly correct
                             content: RenderLayoutContent::ChildNode { index, crop },
                         }

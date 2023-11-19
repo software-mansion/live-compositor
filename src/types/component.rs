@@ -91,6 +91,7 @@ pub struct View {
 pub enum Overflow {
     Visible,
     Hidden,
+    Fit,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]

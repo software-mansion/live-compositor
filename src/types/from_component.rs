@@ -100,6 +100,7 @@ impl TryFrom<View> for scene::ViewComponent {
         let overflow = match view.overflow {
             Some(Overflow::Visible) => scene::Overflow::Visible,
             Some(Overflow::Hidden) => scene::Overflow::Hidden,
+            Some(Overflow::Fit) => scene::Overflow::Fit,
             None => scene::Overflow::Hidden,
         };
         Ok(Self {

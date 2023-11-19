@@ -32,14 +32,21 @@ impl ViewComponentParam {
         pts: Duration,
     ) -> NestedLayout {
         let static_child_size = self.static_child_size(size, children, pts);
-        let crop = match self.overflow {
-            Overflow::Visible => None,
-            Overflow::Hidden => Some(Crop {
-                top: 0.0,
-                left: 0.0,
-                width: size.width,
-                height: size.height,
-            }),
+        let (scale, crop) = match self.overflow {
+            Overflow::Visible => (1.0, None),
+            Overflow::Hidden => (
+                1.0,
+                Some(Crop {
+                    top: 0.0,
+                    left: 0.0,
+                    width: size.width,
+                    height: size.height,
+                }),
+            ),
+            Overflow::Fit => (
+                self.scale_factor_for_overflow_fit(size, children, pts),
+                None,
+            ),
         };
 
         // offset along x or y direction (depends on self.direction) where next
@@ -87,6 +94,8 @@ impl ViewComponentParam {
             width: size.width,
             height: size.height,
             rotation_degrees: 0.0,
+            scale_x: scale,
+            scale_y: scale,
             crop,
             content: LayoutContent::Color(self.background_color),
             child_nodes_count: children.iter().map(|l| l.child_nodes_count).sum(),
@@ -128,6 +137,8 @@ impl ViewComponentParam {
                     width,
                     height,
                     rotation_degrees: 0.0,
+                    scale_x: 1.0,
+                    scale_y: 1.0,
                     crop: None,
                     content: LayoutContent::None,
                     child_nodes_count: children_layouts.child_nodes_count,
@@ -140,6 +151,8 @@ impl ViewComponentParam {
                 width,
                 height,
                 rotation_degrees: 0.0,
+                scale_x: 1.0,
+                scale_y: 1.0,
                 crop: None,
                 content: StatefulLayoutComponent::layout_content(child, 0),
                 child_nodes_count: 1,
@@ -172,6 +185,32 @@ impl ViewComponentParam {
         f32::max(
             0.0,
             (max_size - static_children_sum) / children_with_unknown_size_count as f32,
+        )
+    }
+
+    fn scale_factor_for_overflow_fit(
+        &self,
+        size: Size,
+        children: &[StatefulComponent],
+        pts: Duration,
+    ) -> f32 {
+        let sum_size = self.sum_static_children_sizes(children, pts);
+        let (max_size, max_alternative_size) = match self.direction {
+            super::ViewChildrenDirection::Row => (size.width, size.height),
+            super::ViewChildrenDirection::Column => (size.height, size.width),
+        };
+        let max_alternative_size_for_child = Self::static_children_iter(children, pts)
+            .map(|child| match self.direction {
+                ViewChildrenDirection::Row => child.height(pts).unwrap_or(0.0),
+                ViewChildrenDirection::Column => child.width(pts).unwrap_or(0.0),
+            })
+            .max_by(|a, b| f32::partial_cmp(a, b).unwrap()) // will panic if comparing NaN
+            .unwrap_or(0.0)
+            .max(0.000000001); // avoid division by 0
+
+        f32::min(
+            max_size / sum_size,
+            max_alternative_size / max_alternative_size_for_child,
         )
     }
 
