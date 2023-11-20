@@ -67,7 +67,7 @@ impl RenderLayout {
         input_resolution: &Option<Resolution>,
     ) -> Mat4 {
         let Some(input_resolution) = input_resolution else {
-            return  Mat4::identity();
+            return Mat4::identity();
         };
 
         match self.content {
