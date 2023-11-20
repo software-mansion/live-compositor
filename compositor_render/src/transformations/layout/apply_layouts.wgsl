@@ -12,9 +12,10 @@ struct VertexOutput {
 
 
 struct Layout {
-    position_transformation: mat4x4<f32>,
-    texture_id: i32,
+    vertices_transformation: mat4x4<f32>,
+    texture_coord_transformation: mat4x4<f32>,
     color: vec4<f32>, // used only when texture_id = -1
+    texture_id: i32,
 }
 
 @group(0) @binding(0) var textures: binding_array<texture_2d<f32>, 16>;
@@ -33,10 +34,11 @@ fn vs_main(input: VertexInput) -> VertexOutput {
         return output;
     }
     
-    let transformation_matrix: mat4x4<f32> = layouts[input.layout_id].position_transformation;
+    let vertices_transformation_matrix: mat4x4<f32> = layouts[input.layout_id].vertices_transformation;
+    let texture_coord_transformation_matrix: mat4x4<f32> = layouts[input.layout_id].texture_coord_transformation;
 
-    output.position = vec4(input.position, 1.0) * transformation_matrix;
-    output.tex_coords = input.tex_coords;
+    output.position = vec4(input.position, 1.0) * vertices_transformation_matrix;
+    output.tex_coords = (vec4(input.tex_coords, 0.0, 1.0) * texture_coord_transformation_matrix).xy;
     output.layout_id = input.layout_id;
 
     return output;
@@ -52,7 +54,11 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
     if texture_id == -1 {
         texture_id = 0;
     }
-    let sample = textureSample(textures[texture_id], sampler_, input.tex_coords);
+    // clamp transparent, when crop > input texture
+    let is_inside: f32 = round(f32(input.tex_coords.x < 1.0 && input.tex_coords.x > 0.0 && input.tex_coords.y > 0.0 && input.tex_coords.y < 1.0));
+    
+    let sample = is_inside * textureSample(textures[texture_id], sampler_, input.tex_coords) 
+        + (1.0 - is_inside) * vec4<f32>(0.0, 0.0, 0.0, 0.0);
 
     if current_layout.texture_id != -1 {
         return sample;

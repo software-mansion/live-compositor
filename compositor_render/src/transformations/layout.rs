@@ -10,7 +10,7 @@ mod flatten;
 mod layout_renderer;
 mod params;
 mod shader;
-mod transformation_matrix;
+mod transformation_matrices;
 
 use compositor_common::{scene::Resolution, util::colors::RGBAColor};
 
@@ -22,7 +22,7 @@ use self::{
 pub(crate) use layout_renderer::LayoutRenderer;
 
 pub(crate) trait LayoutProvider: Send {
-    fn layouts(&mut self, pts: Duration, inputs: Vec<Option<Resolution>>) -> NestedLayout;
+    fn layouts(&mut self, pts: Duration, inputs: &[Option<Resolution>]) -> NestedLayout;
     fn resolution(&self, pts: Duration) -> Resolution;
 }
 
@@ -108,24 +108,29 @@ impl LayoutNode {
             .collect();
         let layouts = self
             .layout_provider
-            .layouts(pts, input_resolutions)
+            .layouts(pts, &input_resolutions)
             .flatten(0);
         let layout_count = layouts.len();
         let output_resolution = self.layout_provider.resolution(pts);
 
-        let params = layouts
+        let params: Vec<LayoutNodeParams> = layouts
             .iter()
             .map(|layout| {
-                let (texture_id, background_color) = match layout.content {
-                    RenderLayoutContent::Color(color) => (-1, color),
-                    RenderLayoutContent::ChildNode { index, .. } => {
-                        (index as i32, RGBAColor(0, 0, 0, 0))
-                    }
+                let (texture_id, background_color, input_resolution) = match layout.content {
+                    RenderLayoutContent::ChildNode { index, .. } => (
+                        index as i32,
+                        RGBAColor(0, 0, 0, 0),
+                        *input_resolutions.get(index).unwrap_or(&None),
+                    ),
+                    RenderLayoutContent::Color(color) => (-1, color, None),
                 };
+
                 LayoutNodeParams {
-                    transformation_matrix: layout.transformation_matrix(output_resolution),
                     texture_id,
                     background_color,
+                    transform_vertices_matrix: layout.transform_vertices_matrix(&output_resolution),
+                    transform_texture_coords_matrix: layout
+                        .transform_texture_coords_matrix(&input_resolution),
                 }
             })
             .collect();

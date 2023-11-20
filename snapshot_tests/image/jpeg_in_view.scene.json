@@ -1,7 +1,6 @@
 {
     "root": {
         "type": "view",
-        "overflow": "visible",
         "children": [
             {
                 "type": "image",
