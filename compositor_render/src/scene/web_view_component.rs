@@ -39,7 +39,7 @@ impl StatefulWebViewComponent {
 
 impl WebViewComponent {
     pub(super) fn stateful_component(
-        mut self,
+        self,
         ctx: &BuildStateTreeCtx,
     ) -> Result<StatefulComponent, BuildSceneError> {
         let instance = ctx
@@ -48,7 +48,8 @@ impl WebViewComponent {
             .get(&self.instance_id)
             .ok_or_else(|| BuildSceneError::WebRendererNotFound(self.instance_id.clone()))?;
 
-        let children = std::mem::take(&mut self.children)
+        let children = self
+            .children
             .into_iter()
             .map(|c| Component::stateful_component(c, ctx))
             .collect::<Result<_, _>>()?;
