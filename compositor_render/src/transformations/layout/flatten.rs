@@ -33,12 +33,10 @@ impl NestedLayout {
     }
 
     fn flatten_child(&self, layout: RenderLayout) -> RenderLayout {
-        let top = layout.top + self.top;
-        let left = layout.left + self.left;
         match &self.crop {
             None => RenderLayout {
-                top: top * self.scale_y,
-                left: left * self.scale_x,
+                top: self.top + (layout.top * self.scale_y),
+                left: self.left + (layout.left * self.scale_x),
                 width: layout.width * self.scale_x,
                 height: layout.height * self.scale_y,
                 rotation_degrees: layout.rotation_degrees + self.rotation_degrees, // TODO: not exactly correct
@@ -50,24 +48,18 @@ impl NestedLayout {
                 // will always be fulfilled as long NestedLayout with LayoutContent::ChildNode
                 // does not have any child layouts.
 
-                // the same as
-                // f32::max(layout.top, crop.top) - crop.top + self.top
-                //
-                // f32::max(layout.top, crop.top) - select boundary that takes precedence in
-                //                                  coordinates relative to `self` top-left corner
-                // (- crop.top)                   - translate component by cropped value
-                // (+ self.top)                   - translate to parent component coordinates
-                let crop_top = f32::max(top - crop.top, self.top);
-                let crop_left = f32::max(left - crop.left, self.left);
-                let crop_bottom = f32::min(top + layout.height - crop.top, self.top + crop.height);
-                let crop_right = f32::min(left + layout.width - crop.left, self.left + crop.width);
+                // value in coordinates of `self` (relative to it's top-left corner).
+                let crop_top = f32::max(layout.top - crop.top, 0.0);
+                let crop_left = f32::max(layout.left - crop.left, 0.0);
+                let crop_bottom = f32::min(layout.top + layout.height - crop.top, crop.height);
+                let crop_right = f32::min(layout.left + layout.width - crop.left, crop.width);
                 let crop_width = crop_right - crop_left;
                 let crop_height = crop_bottom - crop_top;
                 match layout.content {
                     RenderLayoutContent::Color(color) => {
                         RenderLayout {
-                            top: crop_top * self.scale_y,
-                            left: crop_left * self.scale_x,
+                            top: self.top + (crop_top * self.scale_y),
+                            left: self.left + (crop_left * self.scale_x),
                             width: crop_width * self.scale_x,
                             height: crop_height * self.scale_y,
                             rotation_degrees: layout.rotation_degrees + self.rotation_degrees, // TODO: not exactly correct
@@ -78,8 +70,8 @@ impl NestedLayout {
                         index,
                         crop: child_crop,
                     } => {
-                        let top_diff = crop_top - top;
-                        let left_diff = crop_left - left;
+                        let top_diff = crop_top - layout.top;
+                        let left_diff = crop_left - layout.left;
 
                         // Factor to translate from `layout` coordinates to child node coord.
                         // The same factor holds for translations from `self.layout`
@@ -94,8 +86,8 @@ impl NestedLayout {
                         };
 
                         RenderLayout {
-                            top: crop_top * self.scale_y,
-                            left: crop_left * self.scale_x,
+                            top: self.top + (crop_top * self.scale_y),
+                            left: self.left + (crop_left * self.scale_x),
                             width: crop_width * self.scale_x,
                             height: crop_height * self.scale_y,
                             rotation_degrees: layout.rotation_degrees + self.rotation_degrees, // TODO: not exactly correct
