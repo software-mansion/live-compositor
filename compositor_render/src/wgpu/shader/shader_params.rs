@@ -2,6 +2,7 @@ use wgpu::util::DeviceExt;
 
 use crate::wgpu::WgpuCtx;
 
+#[derive(Debug)]
 pub(crate) struct ParamsBuffer {
     bind_group: wgpu::BindGroup,
     buffer: wgpu::Buffer,

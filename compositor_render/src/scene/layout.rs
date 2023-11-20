@@ -97,7 +97,9 @@ impl StatefulLayoutComponent {
                         });
                     child_index_offset += 1;
                 }
-                StatefulComponent::Shader(_) | StatefulComponent::Image(_) => {
+                StatefulComponent::Shader(_)
+                | StatefulComponent::Image(_)
+                | StatefulComponent::WebView(_) => {
                     child_index_offset += 1; // no state
                 }
                 StatefulComponent::Layout(layout) => {
@@ -121,6 +123,10 @@ impl StatefulLayoutComponent {
             StatefulComponent::Shader(shader) => LayoutContent::ChildNode {
                 index,
                 size: shader.component.size,
+            },
+            StatefulComponent::WebView(web) => LayoutContent::ChildNode {
+                index,
+                size: web.size(),
             },
             StatefulComponent::Image(image) => LayoutContent::ChildNode {
                 index,

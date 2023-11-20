@@ -38,6 +38,14 @@ pub struct ShaderComponent {
 }
 
 #[derive(Debug, Clone)]
+pub struct WebViewComponent {
+    pub id: Option<ComponentId>,
+    pub children: Vec<Component>,
+
+    pub instance_id: RendererId,
+}
+
+#[derive(Debug, Clone)]
 pub struct ImageComponent {
     pub id: Option<ComponentId>,
     pub image_id: RendererId,

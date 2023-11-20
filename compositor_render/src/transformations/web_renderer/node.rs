@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use compositor_common::{error::ErrorStack, renderer_spec::FallbackStrategy, scene::Resolution};
+use compositor_common::{error::ErrorStack, renderer_spec::FallbackStrategy};
 use log::error;
 
 use crate::{
@@ -45,10 +45,6 @@ impl WebRendererNode {
                 ErrorStack::new(&err).into_string()
             );
         }
-    }
-
-    pub fn resolution(&self) -> Resolution {
-        self.renderer.resolution()
     }
 
     pub fn fallback_strategy(&self) -> FallbackStrategy {

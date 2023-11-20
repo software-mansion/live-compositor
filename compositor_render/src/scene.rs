@@ -3,12 +3,14 @@ use std::time::Duration;
 
 use crate::transformations::image_renderer::Image;
 use crate::transformations::shader::Shader;
+use crate::transformations::web_renderer::WebRenderer;
 
 use self::image_component::StatefulImageComponent;
 use self::input_stream_component::StatefulInputStreamComponent;
 use self::layout::StatefulLayoutComponent;
 use self::scene_state::{BuildStateTreeCtx, IntermediateNode};
 use self::shader_component::StatefulShaderComponent;
+use self::web_view_component::StatefulWebViewComponent;
 
 use compositor_common::renderer_spec::RendererId;
 use compositor_common::scene::{InputId, OutputId, Resolution};
@@ -26,6 +28,7 @@ mod layout;
 mod scene_state;
 mod shader_component;
 mod view_component;
+mod web_view_component;
 
 #[derive(Debug, Clone)]
 pub struct OutputScene {
@@ -38,6 +41,7 @@ pub struct OutputScene {
 pub enum Component {
     InputStream(InputStreamComponent),
     Shader(ShaderComponent),
+    WebView(WebViewComponent),
     Image(ImageComponent),
     View(ViewComponent),
 }
@@ -50,6 +54,7 @@ pub enum Component {
 enum StatefulComponent {
     InputStream(StatefulInputStreamComponent),
     Shader(StatefulShaderComponent),
+    WebView(StatefulWebViewComponent),
     Image(StatefulImageComponent),
     Layout(StatefulLayoutComponent),
 }
@@ -74,6 +79,7 @@ pub(crate) struct Node {
 pub(crate) enum NodeParams {
     InputStream(InputId),
     Shader(ShaderComponentParams, Arc<Shader>),
+    Web(Arc<WebRenderer>),
     Image(Image),
     Layout(LayoutNode),
 }
@@ -83,6 +89,7 @@ impl StatefulComponent {
         match self {
             StatefulComponent::InputStream(input) => Some(input.size.width),
             StatefulComponent::Shader(shader) => Some(shader.component.size.width),
+            StatefulComponent::WebView(web) => Some(web.size().width),
             StatefulComponent::Image(image) => Some(image.size().width),
             StatefulComponent::Layout(layout) => match layout.position(pts) {
                 Position::Static { width, .. } => width,
@@ -95,6 +102,7 @@ impl StatefulComponent {
         match self {
             StatefulComponent::InputStream(input) => Some(input.size.height),
             StatefulComponent::Shader(shader) => Some(shader.component.size.height),
+            StatefulComponent::WebView(web) => Some(web.size().height),
             StatefulComponent::Image(image) => Some(image.size().height),
             StatefulComponent::Layout(layout) => match layout.position(pts) {
                 Position::Static { height, .. } => height,
@@ -107,6 +115,7 @@ impl StatefulComponent {
         match self {
             StatefulComponent::InputStream(input) => input.intermediate_node(),
             StatefulComponent::Shader(shader) => shader.intermediate_node(),
+            StatefulComponent::WebView(web) => web.intermediate_node(),
             StatefulComponent::Image(image) => image.intermediate_node(),
             StatefulComponent::Layout(layout) => match layout {
                 StatefulLayoutComponent::View(view) => view.intermediate_node(),
@@ -128,8 +137,9 @@ impl Component {
         match self {
             Component::InputStream(input) => input.stateful_component(ctx),
             Component::Shader(shader) => shader.stateful_component(ctx),
-            Component::View(view) => view.stateful_component(ctx),
+            Component::WebView(shader) => shader.stateful_component(ctx),
             Component::Image(image) => image.stateful_component(ctx),
+            Component::View(view) => view.stateful_component(ctx),
         }
     }
 }
@@ -147,4 +157,7 @@ pub enum BuildSceneError {
 
     #[error("Shader \"{0}\" does not exist. You have to register it first before using it in the scene definition.")]
     ShaderNotFound(RendererId),
+
+    #[error("Instance of web renderer \"{0}\" does not exist. You have to register it first before using it in the scene definition.")]
+    WebRendererNotFound(RendererId),
 }

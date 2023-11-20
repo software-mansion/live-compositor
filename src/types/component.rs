@@ -11,7 +11,7 @@ use super::*;
 pub enum Component {
     InputStream(InputStream),
     View(View),
-    WebRenderer(WebRenderer),
+    WebView(WebView),
     Shader(Shader),
     Image(Image),
     Text(Text),
@@ -103,7 +103,7 @@ pub enum ViewDirection {
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(deny_unknown_fields)]
-pub struct WebRenderer {
+pub struct WebView {
     pub id: Option<ComponentId>,
     pub children: Option<Vec<Component>>,
     pub instance_id: RendererId,
