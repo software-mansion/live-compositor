@@ -2,13 +2,14 @@ use std::{collections::HashMap, time::Duration};
 
 use compositor_common::scene::{InputId, OutputId, Resolution};
 
-use crate::renderer::renderers::Renderers;
+use crate::{renderer::renderers::Renderers, transformations::text_renderer::TextRendererCtx};
 
 use super::{
     image_component::StatefulImageComponent,
     input_stream_component::StatefulInputStreamComponent,
     layout::{LayoutNode, SizedLayoutComponent, StatefulLayoutComponent},
     shader_component::StatefulShaderComponent,
+    text_component::StatefulTextComponent,
     web_view_component::StatefulWebViewComponent,
     BuildSceneError, ComponentId, Node, NodeParams, OutputScene, Position, Size, StatefulComponent,
 };
@@ -17,6 +18,7 @@ pub(super) struct BuildStateTreeCtx<'a> {
     pub(super) prev_state: HashMap<ComponentId, &'a StatefulComponent>,
     pub(super) last_render_pts: Duration,
     pub(super) renderers: &'a Renderers,
+    pub(super) text_renderer_ctx: &'a TextRendererCtx,
     pub(super) input_resolutions: &'a HashMap<InputId, Resolution>,
 }
 
@@ -63,6 +65,7 @@ impl SceneState {
         &mut self,
         outputs: Vec<OutputScene>,
         renderers: &Renderers,
+        text_renderer_ctx: &TextRendererCtx,
     ) -> Result<Vec<OutputNode>, BuildSceneError> {
         let ctx = BuildStateTreeCtx {
             prev_state: self
@@ -76,6 +79,7 @@ impl SceneState {
                 .collect(),
             last_render_pts: self.last_pts,
             input_resolutions: &self.input_resolutions,
+            text_renderer_ctx,
             renderers,
         };
         let output_states = outputs
@@ -118,6 +122,7 @@ pub(super) enum IntermediateNode {
         children: Vec<IntermediateNode>,
     },
     Image(StatefulImageComponent),
+    Text(StatefulTextComponent),
     Layout {
         root: StatefulLayoutComponent,
         children: Vec<IntermediateNode>,
@@ -171,6 +176,10 @@ impl IntermediateNode {
                 params: NodeParams::Image(image.image),
                 children: vec![],
             }),
+            IntermediateNode::Text(text) => Ok(Node {
+                params: NodeParams::Text(text.params),
+                children: vec![],
+            }),
         }
     }
 
@@ -183,6 +192,7 @@ impl IntermediateNode {
             } => Ok(shader.component.size),
             IntermediateNode::WebView { web, children: _ } => Ok(web.size()),
             IntermediateNode::Image(image) => Ok(image.size()),
+            IntermediateNode::Text(text) => Ok(text.size()),
             IntermediateNode::Layout { root, children: _ } => {
                 let (width, height) = match root.position(pts) {
                     Position::Static { width, height } => (width, height),
@@ -233,6 +243,11 @@ fn gather_components_with_id<'a>(
             }
         }
         StatefulComponent::Image(image) => {
+            if let Some(id) = image.component_id() {
+                components.insert(id.clone(), component);
+            }
+        }
+        StatefulComponent::Text(image) => {
             if let Some(id) = image.component_id() {
                 components.insert(id.clone(), component);
             }

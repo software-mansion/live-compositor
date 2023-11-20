@@ -38,11 +38,11 @@ pub struct RendererOptions {
 }
 
 pub struct Renderer {
-    pub wgpu_ctx: Arc<WgpuCtx>,
-    pub text_renderer_ctx: TextRendererCtx,
-    pub chromium_context: Arc<ChromiumContext>,
+    pub(crate) wgpu_ctx: Arc<WgpuCtx>,
+    pub(crate) text_renderer_ctx: TextRendererCtx,
+    pub(crate) chromium_context: Arc<ChromiumContext>,
 
-    pub render_graph: RenderGraph,
+    pub(crate) render_graph: RenderGraph,
     pub(crate) scene: SceneState,
 
     pub(crate) renderers: Renderers,
@@ -51,10 +51,9 @@ pub struct Renderer {
 }
 
 pub struct RenderCtx<'a> {
-    pub wgpu_ctx: &'a Arc<WgpuCtx>,
+    pub(crate) wgpu_ctx: &'a Arc<WgpuCtx>,
 
-    pub text_renderer_ctx: &'a TextRendererCtx,
-    pub chromium: &'a Arc<ChromiumContext>,
+    pub(crate) text_renderer_ctx: &'a TextRendererCtx,
 
     pub(crate) renderers: &'a Renderers,
 
@@ -94,7 +93,6 @@ impl Renderer {
     ) -> Result<FrameSet<OutputId>, RenderSceneError> {
         let ctx = &mut RenderCtx {
             wgpu_ctx: &self.wgpu_ctx,
-            chromium: &self.chromium_context,
             text_renderer_ctx: &self.text_renderer_ctx,
             renderers: &self.renderers,
             stream_fallback_timeout: self.stream_fallback_timeout,
@@ -126,12 +124,13 @@ impl Renderer {
         &mut self,
         scenes: Vec<scene::OutputScene>,
     ) -> Result<(), UpdateSceneError> {
-        let output_nodes = self.scene.update_scene(scenes, &self.renderers)?;
+        let output_nodes =
+            self.scene
+                .update_scene(scenes, &self.renderers, &self.text_renderer_ctx)?;
         self.render_graph.update(
             &RenderCtx {
                 wgpu_ctx: &self.wgpu_ctx,
                 text_renderer_ctx: &self.text_renderer_ctx,
-                chromium: &self.chromium_context,
                 renderers: &self.renderers,
                 stream_fallback_timeout: self.stream_fallback_timeout,
             },

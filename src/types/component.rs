@@ -151,9 +151,15 @@ pub struct ShaderParamStructField {
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct Text {
-    pub content: Arc<str>,
+    pub id: Option<ComponentId>,
+    pub text: Arc<str>,
+
+    pub width: Option<f32>,
+    pub height: Option<f32>,
+    pub max_width: Option<f32>,
+    pub max_height: Option<f32>,
+
     pub font_size: f32,
-    pub dimensions: TextDimensions, // TODO: support "fitted" | { "type": "fitted" }
     pub line_height: Option<f32>,
     pub color_rgba: Option<RGBAColor>,
     pub background_color_rgba: Option<RGBAColor>,
@@ -194,23 +200,6 @@ pub enum TextWeight {
     Bold,
     ExtraBold,
     Black,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, JsonSchema)]
-#[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
-pub enum TextDimensions {
-    Fitted {
-        max_width: Option<u32>,
-        max_height: Option<u32>,
-    },
-    FittedColumn {
-        width: u32,
-        max_height: Option<u32>,
-    },
-    Fixed {
-        width: u32,
-        height: u32,
-    },
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]

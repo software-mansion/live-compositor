@@ -112,7 +112,6 @@ pub enum BuiltinSpecValidationError {
 pub enum NodeIdentifier {
     WebRenderer(RendererId),
     Shader(RendererId),
-    Text,
     Image(RendererId),
 }
 
@@ -121,7 +120,6 @@ impl From<&NodeParams> for NodeIdentifier {
         match node_params {
             NodeParams::WebRenderer { instance_id } => Self::WebRenderer(instance_id.clone()),
             NodeParams::Shader { shader_id, .. } => Self::Shader(shader_id.clone()),
-            NodeParams::Text(_) => Self::Text,
             NodeParams::Image { image_id } => Self::Image(image_id.clone()),
         }
     }
@@ -134,7 +132,6 @@ impl Display for NodeIdentifier {
                 write!(f, "\"{}\" web renderer", instance_id)
             }
             NodeIdentifier::Shader(shader_id) => write!(f, "\"{}\" shader", shader_id),
-            NodeIdentifier::Text => write!(f, "Text"),
             NodeIdentifier::Image(image_id) => write!(f, "\"{}\" image", image_id),
         }
     }

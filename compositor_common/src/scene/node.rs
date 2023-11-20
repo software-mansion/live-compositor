@@ -3,7 +3,6 @@ use crate::{error::NodeSpecValidationError, renderer_spec::RendererId};
 use super::{
     constraints::{input_count::InputCountConstraint, Constraint, NodeConstraints},
     shader::ShaderParam,
-    text_spec::TextSpec,
     NodeSpec, Resolution,
 };
 
@@ -17,7 +16,6 @@ pub enum NodeParams {
         shader_params: Option<ShaderParam>,
         resolution: Resolution,
     },
-    Text(TextSpec),
     Image {
         image_id: RendererId,
     },

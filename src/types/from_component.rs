@@ -1,4 +1,5 @@
 use compositor_common::scene::shader;
+use compositor_common::scene::MAX_NODE_RESOLUTION;
 use compositor_common::util::colors;
 use compositor_render::scene;
 use compositor_render::scene::Position;
@@ -15,8 +16,8 @@ impl TryFrom<Component> for scene::Component {
             Component::View(view) => Ok(Self::View(view.try_into()?)),
             Component::WebView(web) => Ok(Self::WebView(web.try_into()?)),
             Component::Shader(shader) => Ok(Self::Shader(shader.try_into()?)),
-            Component::Image(node) => Ok(Self::Image(node.into())),
-            Component::Text(_node) => todo!(),
+            Component::Image(image) => Ok(Self::Image(image.into())),
+            Component::Text(text) => Ok(Self::Text(text.try_into()?)),
             Component::FixedPositionLayout(_node) => {
                 todo!()
             }
@@ -170,6 +171,75 @@ impl From<Image> for scene::ImageComponent {
             id: image.id.map(Into::into),
             image_id: image.image_id.into(),
         }
+    }
+}
+
+impl TryFrom<Text> for scene::TextComponent {
+    type Error = TypeError;
+
+    fn try_from(text: Text) -> Result<Self, Self::Error> {
+        let style = match text.style {
+            Some(TextStyle::Normal) => scene::TextStyle::Normal,
+            Some(TextStyle::Italic) => scene::TextStyle::Italic,
+            Some(TextStyle::Oblique) => scene::TextStyle::Oblique,
+            None => scene::TextStyle::Normal,
+        };
+        let wrap = match text.wrap {
+            Some(TextWrapMode::None) => scene::TextWrap::None,
+            Some(TextWrapMode::Word) => scene::TextWrap::Word,
+            Some(TextWrapMode::Glyph) => scene::TextWrap::Glyph,
+            None => scene::TextWrap::None,
+        };
+        let weight = match text.weight {
+            Some(TextWeight::Thin) => scene::TextWeight::Thin,
+            Some(TextWeight::ExtraLight) => scene::TextWeight::ExtraLight,
+            Some(TextWeight::Light) => scene::TextWeight::Light,
+            Some(TextWeight::Normal) => scene::TextWeight::Normal,
+            Some(TextWeight::Medium) => scene::TextWeight::Medium,
+            Some(TextWeight::SemiBold) => scene::TextWeight::SemiBold,
+            Some(TextWeight::Bold) => scene::TextWeight::Bold,
+            Some(TextWeight::ExtraBold) => scene::TextWeight::ExtraBold,
+            Some(TextWeight::Black) => scene::TextWeight::Black,
+            None => scene::TextWeight::Normal,
+        };
+        let dimensions = match (text.width, text.height, text.max_width, text.max_height) {
+            (Some(width), Some(height), _, _) => scene::TextDimensions::Fixed { width, height },
+            (None, Some(_), _, _) => {
+                //error height can only be define if width is
+                return Err(TypeError::new(
+                    "height can only be provided if width is also defined.",
+                ));
+            }
+            (Some(width), None, _max_width, max_height) => scene::TextDimensions::FittedColumn {
+                width,
+                max_height: max_height.unwrap_or(MAX_NODE_RESOLUTION.height as f32),
+            },
+            (None, None, max_width, max_height) => scene::TextDimensions::Fitted {
+                max_width: max_width.unwrap_or(MAX_NODE_RESOLUTION.width as f32),
+                max_height: max_height.unwrap_or(MAX_NODE_RESOLUTION.height as f32),
+            },
+        };
+        let text = Self {
+            id: text.id.map(Into::into),
+            text: text.text,
+            font_size: text.font_size,
+            dimensions,
+            line_height: Some(text.line_height.unwrap_or(text.font_size)), // TODO: remove Some
+            color: text
+                .color_rgba
+                .map(TryInto::try_into)
+                .unwrap_or(Ok(colors::RGBAColor(255, 255, 255, 255)))?,
+            font_family: text.font_family.unwrap_or_else(|| String::from("Verdana")),
+            style,
+            align: text.align.unwrap_or(HorizontalAlign::Left).into(),
+            wrap,
+            weight,
+            background_color: text
+                .background_color_rgba
+                .map(TryInto::try_into)
+                .unwrap_or(Ok(colors::RGBAColor(0, 0, 0, 0)))?,
+        };
+        Ok(text)
     }
 }
 

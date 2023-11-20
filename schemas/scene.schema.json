@@ -318,12 +318,6 @@
                 }
               ]
             },
-            "content": {
-              "type": "string"
-            },
-            "dimensions": {
-              "$ref": "#/definitions/TextDimensions"
-            },
             "font_family": {
               "description": "https://www.w3.org/TR/2018/REC-css-fonts-3-20180920/#family-name-value use font family name, not generic family name",
               "type": [
@@ -335,7 +329,38 @@
               "format": "float",
               "type": "number"
             },
+            "height": {
+              "format": "float",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "id": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ComponentId"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
             "line_height": {
+              "format": "float",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "max_height": {
+              "format": "float",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "max_width": {
               "format": "float",
               "type": [
                 "number",
@@ -351,6 +376,9 @@
                   "type": "null"
                 }
               ]
+            },
+            "text": {
+              "type": "string"
             },
             "type": {
               "enum": [
@@ -368,6 +396,13 @@
                 }
               ]
             },
+            "width": {
+              "format": "float",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
             "wrap": {
               "anyOf": [
                 {
@@ -380,9 +415,8 @@
             }
           },
           "required": [
-            "content",
-            "dimensions",
             "font_size",
+            "text",
             "type"
           ],
           "type": "object"
@@ -956,97 +990,6 @@
         "field_name"
       ],
       "type": "object"
-    },
-    "TextDimensions": {
-      "oneOf": [
-        {
-          "additionalProperties": false,
-          "properties": {
-            "max_height": {
-              "format": "uint32",
-              "minimum": 0.0,
-              "type": [
-                "integer",
-                "null"
-              ]
-            },
-            "max_width": {
-              "format": "uint32",
-              "minimum": 0.0,
-              "type": [
-                "integer",
-                "null"
-              ]
-            },
-            "type": {
-              "enum": [
-                "fitted"
-              ],
-              "type": "string"
-            }
-          },
-          "required": [
-            "type"
-          ],
-          "type": "object"
-        },
-        {
-          "additionalProperties": false,
-          "properties": {
-            "max_height": {
-              "format": "uint32",
-              "minimum": 0.0,
-              "type": [
-                "integer",
-                "null"
-              ]
-            },
-            "type": {
-              "enum": [
-                "fitted_column"
-              ],
-              "type": "string"
-            },
-            "width": {
-              "format": "uint32",
-              "minimum": 0.0,
-              "type": "integer"
-            }
-          },
-          "required": [
-            "type",
-            "width"
-          ],
-          "type": "object"
-        },
-        {
-          "additionalProperties": false,
-          "properties": {
-            "height": {
-              "format": "uint32",
-              "minimum": 0.0,
-              "type": "integer"
-            },
-            "type": {
-              "enum": [
-                "fixed"
-              ],
-              "type": "string"
-            },
-            "width": {
-              "format": "uint32",
-              "minimum": 0.0,
-              "type": "integer"
-            }
-          },
-          "required": [
-            "height",
-            "type",
-            "width"
-          ],
-          "type": "object"
-        }
-      ]
     },
     "TextStyle": {
       "enum": [
