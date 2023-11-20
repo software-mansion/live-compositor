@@ -51,8 +51,15 @@ pub struct ViewComponent {
     pub direction: ViewChildrenDirection,
     pub position: Position,
     pub transition: Option<Transition>,
+    pub overflow: Overflow,
 
     pub background_color: RGBAColor,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum Overflow {
+    Visible,
+    Hidden,
 }
 
 #[derive(Debug, Clone, Copy)]

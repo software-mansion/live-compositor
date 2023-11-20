@@ -60,24 +60,26 @@ pub struct View {
 
     /// Distance between the top edge of this component and the top edge of its parent.
     /// If this field is defined, then component will ignore a layout defined by its parent.
-    pub top: Option<usize>,
+    pub top: Option<f32>,
     /// Distance between the left edge of this component and the left edge of its parent.
     /// If this field is defined, this element will be absolutely positioned, instead of being
     /// laid out by it's parent.
-    pub left: Option<usize>,
+    pub left: Option<f32>,
     /// Distance between the bottom edge of this component and the bottom edge of its parent.
     /// If this field is defined, this element will be absolutely positioned, instead of being
     /// laid out by it's parent.
-    pub bottom: Option<usize>,
+    pub bottom: Option<f32>,
     /// Distance between the right edge of this component and the right edge of its parent.
     /// If this field is defined, this element will be absolutely positioned, instead of being
     /// laid out by it's parent.
-    pub right: Option<usize>,
+    pub right: Option<f32>,
     /// Rotation of a component in degrees. If this field is defined, this element will be
     /// absolutely positioned, instead of being laid out by it's parent.
     pub rotation: Option<f32>,
 
     pub transition: Option<Transition>,
+
+    pub overflow: Option<Overflow>,
 
     /// Background color of a component in a "#RRGGBBAA" format. Defaults to transparent
     /// "#00000000".
@@ -85,6 +87,14 @@ pub struct View {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum Overflow {
+    Visible,
+    Hidden,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+#[serde(rename_all = "snake_case")]
 pub enum ViewDirection {
     Row,
     Column,

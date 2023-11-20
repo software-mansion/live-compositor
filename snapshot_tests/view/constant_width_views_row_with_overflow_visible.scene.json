@@ -11,7 +11,18 @@
             {
                 "type": "view",
                 "width": 300,
-                "background_color_rgba": "#00FF00FF"
+                "background_color_rgba": "#00FF00FF",
+                "overflow": "visible",
+                "children": [
+                    {
+                        "type": "view",
+                        "width": 500,
+                        "height": 100,
+                        "background_color_rgba": "#FFFF00FF",
+                        "top": 100,
+                        "left": -100
+                    }
+                ]
             },
             {
                 "type": "view",

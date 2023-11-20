@@ -6,8 +6,8 @@ use crate::{scene::ViewChildrenDirection, transformations::layout::NestedLayout}
 
 use super::{
     components::ViewComponent, layout::StatefulLayoutComponent, scene_state::BuildStateTreeCtx,
-    BuildSceneError, Component, ComponentId, IntermediateNode, Position, Size, StatefulComponent,
-    Transition,
+    BuildSceneError, Component, ComponentId, IntermediateNode, Overflow, Position, Size,
+    StatefulComponent, Transition,
 };
 
 mod interpolation;
@@ -28,6 +28,7 @@ struct ViewComponentParam {
 
     direction: ViewChildrenDirection,
     position: Position,
+    overflow: Overflow,
 
     background_color: RGBAColor,
 }
@@ -133,6 +134,7 @@ impl ViewComponent {
                 direction: self.direction,
                 position: self.position,
                 background_color: self.background_color,
+                overflow: self.overflow,
             },
             transition,
             children: self
