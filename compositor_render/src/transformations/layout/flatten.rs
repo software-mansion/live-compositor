@@ -48,20 +48,21 @@ impl NestedLayout {
                 // will always be fulfilled as long NestedLayout with LayoutContent::ChildNode
                 // does not have any child layouts.
 
-                // value in coordinates of `self` (relative to it's top-left corner).
-                let crop_top = f32::max(layout.top - crop.top, 0.0);
-                let crop_left = f32::max(layout.left - crop.left, 0.0);
-                let crop_bottom = f32::min(layout.top + layout.height - crop.top, crop.height);
-                let crop_right = f32::min(layout.left + layout.width - crop.left, crop.width);
-                let crop_width = crop_right - crop_left;
-                let crop_height = crop_bottom - crop_top;
+                // Value in coordinates of `self` (relative to it's top-left corner). Represents
+                // a position after cropping and translated back to (layout.top, layout.left).
+                let cropped_top = f32::max(layout.top - crop.top, 0.0);
+                let cropped_left = f32::max(layout.left - crop.left, 0.0);
+                let cropped_bottom = f32::min(layout.top + layout.height - crop.top, crop.height);
+                let cropped_right = f32::min(layout.left + layout.width - crop.left, crop.width);
+                let cropped_width = cropped_right - cropped_left;
+                let cropped_height = cropped_bottom - cropped_top;
                 match layout.content {
                     RenderLayoutContent::Color(color) => {
                         RenderLayout {
-                            top: self.top + (crop_top * self.scale_y),
-                            left: self.left + (crop_left * self.scale_x),
-                            width: crop_width * self.scale_x,
-                            height: crop_height * self.scale_y,
+                            top: self.top + (cropped_top * self.scale_y),
+                            left: self.left + (cropped_left * self.scale_x),
+                            width: cropped_width * self.scale_x,
+                            height: cropped_height * self.scale_y,
                             rotation_degrees: layout.rotation_degrees + self.rotation_degrees, // TODO: not exactly correct
                             content: RenderLayoutContent::Color(color),
                         }
@@ -70,8 +71,10 @@ impl NestedLayout {
                         index,
                         crop: child_crop,
                     } => {
-                        let top_diff = crop_top - layout.top;
-                        let left_diff = crop_left - layout.left;
+                        // Calculate how much top/left coordinates changed when cropping. Ignore the
+                        // change of a position that was a result of a translation after cropping.
+                        let top_diff = cropped_top + crop.top - layout.top;
+                        let left_diff = cropped_left + crop.left - layout.left;
 
                         // Factor to translate from `layout` coordinates to child node coord.
                         // The same factor holds for translations from `self.layout`
@@ -81,15 +84,15 @@ impl NestedLayout {
                         let crop = Crop {
                             top: child_crop.top + (top_diff * vertical_scale_factor),
                             left: child_crop.left + (left_diff * horizontal_scale_factor),
-                            width: crop_width * horizontal_scale_factor,
-                            height: crop_height * vertical_scale_factor,
+                            width: cropped_width * horizontal_scale_factor,
+                            height: cropped_height * vertical_scale_factor,
                         };
 
                         RenderLayout {
-                            top: self.top + (crop_top * self.scale_y),
-                            left: self.left + (crop_left * self.scale_x),
-                            width: crop_width * self.scale_x,
-                            height: crop_height * self.scale_y,
+                            top: self.top + (cropped_top * self.scale_y),
+                            left: self.left + (cropped_left * self.scale_x),
+                            width: cropped_width * self.scale_x,
+                            height: cropped_height * self.scale_y,
                             rotation_degrees: layout.rotation_degrees + self.rotation_degrees, // TODO: not exactly correct
                             content: RenderLayoutContent::ChildNode { index, crop },
                         }
