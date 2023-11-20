@@ -49,10 +49,18 @@ impl NestedLayout {
                 // system as self.top/self.left/self.width/self.height. This condition
                 // will always be fulfilled as long NestedLayout with LayoutContent::ChildNode
                 // does not have any child layouts.
-                let crop_top = f32::max(top, crop.top);
-                let crop_left = f32::max(left, crop.left);
-                let crop_bottom = f32::min(top + layout.height, crop.top + crop.height);
-                let crop_right = f32::min(left + layout.width, crop.left + crop.width);
+
+                // the same as
+                // f32::max(layout.top, crop.top) - crop.top + self.top
+                //
+                // f32::max(layout.top, crop.top) - select boundary that takes precedence in
+                //                                  coordinates relative to `self` top-left corner
+                // (- crop.top)                   - translate component by cropped value
+                // (+ self.top)                   - translate to parent component coordinates
+                let crop_top = f32::max(top - crop.top, self.top);
+                let crop_left = f32::max(left - crop.left, self.left);
+                let crop_bottom = f32::min(top + layout.height - crop.top, self.top + crop.height);
+                let crop_right = f32::min(left + layout.width - crop.left, self.left + crop.width);
                 let crop_width = crop_right - crop_left;
                 let crop_height = crop_bottom - crop_top;
                 match layout.content {
