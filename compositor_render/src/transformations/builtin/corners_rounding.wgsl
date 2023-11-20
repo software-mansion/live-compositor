@@ -90,5 +90,5 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
 
     let alpha = smoothstep(border_radius + anti_aliasing_pixels, border_radius - anti_aliasing_pixels, d);
 
-    return vec4(color.xyz, is_in_corner * alpha + (1. - is_in_corner));
+    return vec4(color.xyz, is_in_corner * alpha + (1.0 - is_in_corner));
 }

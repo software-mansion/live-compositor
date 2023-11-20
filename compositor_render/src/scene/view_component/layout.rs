@@ -4,7 +4,7 @@ use crate::{
     scene::{
         layout::StatefulLayoutComponent, Position, Size, StatefulComponent, ViewChildrenDirection,
     },
-    transformations::layout::{Layout, LayoutContent, NestedLayout},
+    transformations::layout::{Layout, LayoutContent, NestedLayout, Crop},
 };
 
 use super::ViewComponentParam;
@@ -133,7 +133,8 @@ impl ViewComponentParam {
                     width,
                     height,
                     rotation_degrees: 0.0,
-                    content: LayoutContent::ChildNode(0),
+                // TODO: Fix this
+                content: LayoutContent::ChildNode{index: 0, crop: Crop { top: 0.0, left: 0.0, width: 1920.0, height: 1080.0 }},
                 },
                 child_nodes_count: 1,
                 children: vec![],

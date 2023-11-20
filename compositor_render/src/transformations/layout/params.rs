@@ -6,7 +6,8 @@ use crate::wgpu::WgpuCtx;
 
 #[derive(Debug)]
 pub(super) struct LayoutNodeParams {
-    pub(super) transformation_matrix: Mat4,
+    pub(super) transform_vertices_matrix: Mat4,
+    pub(super) transform_texture_coords_matrix: Mat4,
     pub(super) texture_id: i32,
     pub(super) background_color: RGBAColor,
 }
@@ -70,31 +71,38 @@ impl ParamsBuffer {
         params
             .iter()
             .map(LayoutNodeParams::shader_buffer_content)
-            .collect::<Vec<[u8; 96]>>()
+            .collect::<Vec<[u8; 160]>>()
             .concat()
             .into()
     }
 }
 
 impl LayoutNodeParams {
-    fn shader_buffer_content(&self) -> [u8; 96] {
+    fn shader_buffer_content(&self) -> [u8; 160] {
         let Self {
-            transformation_matrix,
+            transform_vertices_matrix,
+            transform_texture_coords_matrix,
             texture_id,
             background_color,
         } = self;
-        let mut result = [0; 96];
+        let mut result = [0; 160];
         fn from_u8_color(value: u8) -> [u8; 4] {
             (value as f32 / 255.0).to_ne_bytes()
         }
 
-        result[0..64].copy_from_slice(bytemuck::bytes_of(&transformation_matrix.transpose()));
-        result[64..68].copy_from_slice(&texture_id.to_ne_bytes());
+        result[0..64].copy_from_slice(bytemuck::bytes_of(&transform_vertices_matrix.transpose()));
+        result[64..128].copy_from_slice(bytemuck::bytes_of(
+            &transform_texture_coords_matrix.transpose(),
+        ));
         // 12 bytes padding
-        result[80..84].copy_from_slice(&from_u8_color(background_color.0));
-        result[84..88].copy_from_slice(&from_u8_color(background_color.1));
-        result[88..92].copy_from_slice(&from_u8_color(background_color.2));
-        result[92..96].copy_from_slice(&from_u8_color(background_color.3));
+        result[128..132].copy_from_slice(&from_u8_color(background_color.0));
+        result[132..136].copy_from_slice(&from_u8_color(background_color.1));
+        result[136..140].copy_from_slice(&from_u8_color(background_color.2));
+        result[140..144].copy_from_slice(&from_u8_color(background_color.3));
+
+        result[144..148].copy_from_slice(&texture_id.to_ne_bytes());
+        // 12 bytes padding
+
         result
     }
 }
