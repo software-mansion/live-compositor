@@ -1,0 +1,13 @@
+{
+    "root": {
+        "type": "view",
+        "overflow": "fit",
+        "children": [
+            {
+                "type": "image",
+                "image_id": "image_jpeg"
+            }
+        ]
+    },
+    "output_id": "output_1"
+}
