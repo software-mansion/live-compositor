@@ -10,7 +10,10 @@ impl RenderLayout {
         /// Calculates translation vector from origin to middle of cropped layout box
         /// in ([-output_width / 2, output_width / 2], [-output_height / 2, output_height / 2])
         /// coordinate system
-        fn translation_to_final_position(layout: &RenderLayout, output_resolution: &Resolution) -> Vec3 {
+        fn translation_to_final_position(
+            layout: &RenderLayout,
+            output_resolution: &Resolution,
+        ) -> Vec3 {
             let left_border_x = -(output_resolution.width as f32 / 2.0);
             let distance_left_to_middle = layout.left + (layout.width / 2.0);
 
@@ -59,7 +62,10 @@ impl RenderLayout {
         transform_position_matrix
     }
 
-    pub(super) fn transform_texture_coords_matrix(&self, input_resolution: &Option<Resolution>) -> Mat4 {
+    pub(super) fn transform_texture_coords_matrix(
+        &self,
+        input_resolution: &Option<Resolution>,
+    ) -> Mat4 {
         let Some(input_resolution) = input_resolution else {
             return  Mat4::identity();
         };

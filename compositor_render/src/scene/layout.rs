@@ -26,12 +26,8 @@ pub(crate) struct LayoutNode {
 }
 
 impl layout::LayoutProvider for LayoutNode {
-    fn layouts(
-        &mut self,
-        pts: std::time::Duration,
-        inputs: &[Option<Resolution>],
-    ) -> NestedLayout {
-        self.root.component.update_state(&inputs);
+    fn layouts(&mut self, pts: std::time::Duration, inputs: &[Option<Resolution>]) -> NestedLayout {
+        self.root.component.update_state(inputs);
         self.root.layout(pts)
     }
 
