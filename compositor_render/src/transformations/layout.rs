@@ -179,7 +179,7 @@ impl LayoutNode {
                         },
                     ),
                 };
-                
+
                 // TODO remove this - it's hard coded for crop example
                 let cropped_layout = match layout.content {
                     LayoutContent::Color(_) | LayoutContent::None => layout.clone(),

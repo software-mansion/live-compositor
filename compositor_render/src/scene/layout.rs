@@ -134,7 +134,10 @@ impl StatefulLayoutComponent {
             rotation_degrees: position.rotation_degrees,
             content: match child {
                 StatefulComponent::Layout(_layout) => LayoutContent::None,
-                _ => LayoutContent::ChildNode { index: 0, crop: todo!("Figure out child resolution here!") },
+                _ => LayoutContent::ChildNode {
+                    index: 0,
+                    crop: todo!("Figure out child resolution here!"),
+                },
             },
         };
 
@@ -148,7 +151,7 @@ impl StatefulLayoutComponent {
                     pts,
                 );
                 let child_nodes_count = match layout.content {
-                    LayoutContent::ChildNode{..} => children_layouts.child_nodes_count + 1,
+                    LayoutContent::ChildNode { .. } => children_layouts.child_nodes_count + 1,
                     _ => children_layouts.child_nodes_count,
                 };
                 NestedLayout {
@@ -159,7 +162,7 @@ impl StatefulLayoutComponent {
             }
             _non_layout_components => NestedLayout {
                 child_nodes_count: match layout.content {
-                    LayoutContent::ChildNode{..} => 1,
+                    LayoutContent::ChildNode { .. } => 1,
                     _ => 0,
                 },
                 layout,
