@@ -48,10 +48,9 @@
             },
             "bottom": {
               "description": "Distance between the bottom edge of this component and the bottom edge of its parent. If this field is defined, this element will be absolutely positioned, instead of being laid out by it's parent.",
-              "format": "uint",
-              "minimum": 0.0,
+              "format": "float",
               "type": [
-                "integer",
+                "number",
                 "null"
               ]
             },
@@ -96,19 +95,27 @@
             },
             "left": {
               "description": "Distance between the left edge of this component and the left edge of its parent. If this field is defined, this element will be absolutely positioned, instead of being laid out by it's parent.",
-              "format": "uint",
-              "minimum": 0.0,
+              "format": "float",
               "type": [
-                "integer",
+                "number",
                 "null"
+              ]
+            },
+            "overflow": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Overflow"
+                },
+                {
+                  "type": "null"
+                }
               ]
             },
             "right": {
               "description": "Distance between the right edge of this component and the right edge of its parent. If this field is defined, this element will be absolutely positioned, instead of being laid out by it's parent.",
-              "format": "uint",
-              "minimum": 0.0,
+              "format": "float",
               "type": [
-                "integer",
+                "number",
                 "null"
               ]
             },
@@ -122,10 +129,9 @@
             },
             "top": {
               "description": "Distance between the top edge of this component and the top edge of its parent. If this field is defined, then component will ignore a layout defined by its parent.",
-              "format": "uint",
-              "minimum": 0.0,
+              "format": "float",
               "type": [
-                "integer",
+                "number",
                 "null"
               ]
             },
@@ -253,15 +259,6 @@
         {
           "additionalProperties": false,
           "properties": {
-            "children": {
-              "items": {
-                "$ref": "#/definitions/Component"
-              },
-              "type": [
-                "array",
-                "null"
-              ]
-            },
             "id": {
               "anyOf": [
                 {
@@ -683,6 +680,13 @@
       "type": "string"
     },
     "OutputId": {
+      "type": "string"
+    },
+    "Overflow": {
+      "enum": [
+        "visible",
+        "hidden"
+      ],
       "type": "string"
     },
     "RGBAColor": {
@@ -1159,8 +1163,8 @@
     },
     "ViewDirection": {
       "enum": [
-        "Row",
-        "Column"
+        "row",
+        "column"
       ],
       "type": "string"
     }

@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use compositor_common::scene::Resolution;
 
-use crate::transformations::layout::{self, Layout, LayoutContent, NestedLayout};
+use crate::transformations::layout::{self, LayoutContent, NestedLayout};
 
 use super::{
     view_component::StatefulViewComponent, AbsolutePosition, ComponentId, HorizontalPosition,
@@ -30,10 +30,9 @@ impl layout::LayoutProvider for LayoutNode {
         &mut self,
         pts: std::time::Duration,
         inputs: &[Option<Resolution>],
-    ) -> Vec<layout::Layout> {
-        self.root.component.update_state(inputs);
-
-        self.root.layout(pts).flatten(0)
+    ) -> NestedLayout {
+        self.root.component.update_state(&inputs);
+        self.root.layout(pts)
     }
 
     fn resolution(&self, pts: Duration) -> Resolution {
@@ -93,10 +92,16 @@ impl StatefulLayoutComponent {
         for child in self.children_mut().iter_mut() {
             match child {
                 StatefulComponent::InputStream(input) => {
-                    input.size = input_resolutions[child_index_offset].map(Into::into);
+                    // TODO
+                    input.size = input_resolutions[child_index_offset]
+                        .map(Into::into)
+                        .unwrap_or(Size {
+                            width: 0.0,
+                            height: 0.0,
+                        });
                     child_index_offset += 1;
                 }
-                StatefulComponent::Shader(_) => {
+                StatefulComponent::Shader(_) | StatefulComponent::Image(_) => {
                     child_index_offset += 1; // no state
                 }
                 StatefulComponent::Layout(layout) => {
@@ -110,64 +115,83 @@ impl StatefulLayoutComponent {
         }
     }
 
+    pub(super) fn layout_content(component: &StatefulComponent, index: usize) -> LayoutContent {
+        match component {
+            StatefulComponent::Layout(_layout) => LayoutContent::None,
+            StatefulComponent::InputStream(input) => LayoutContent::ChildNode {
+                index,
+                size: input.size,
+            },
+            StatefulComponent::Shader(shader) => LayoutContent::ChildNode {
+                index,
+                size: shader.component.size,
+            },
+            StatefulComponent::Image(image) => LayoutContent::ChildNode {
+                index,
+                size: image.size(),
+            },
+        }
+    }
+
     pub(super) fn layout_absolute_position_child(
         child: &StatefulComponent,
         position: AbsolutePosition,
         parent_size: Size,
         pts: Duration,
     ) -> NestedLayout {
-        let layout = Layout {
-            top: match position.position_vertical {
-                VerticalPosition::TopOffset(top) => top,
-                VerticalPosition::BottomOffset(bottom) => {
-                    parent_size.height - bottom - position.height
-                }
-            },
-            left: match position.position_horizontal {
-                HorizontalPosition::LeftOffset(left) => left,
-                HorizontalPosition::RightOffset(right) => {
-                    parent_size.width - right - position.width
-                }
-            },
-            width: position.width,
-            height: position.height,
-            rotation_degrees: position.rotation_degrees,
-            content: match child {
-                StatefulComponent::Layout(_layout) => LayoutContent::None,
-                _ => LayoutContent::ChildNode {
-                    index: 0,
-                    crop: todo!("Figure out child resolution here!"),
-                },
-            },
+        let top = match position.position_vertical {
+            VerticalPosition::TopOffset(top) => top,
+            VerticalPosition::BottomOffset(bottom) => parent_size.height - bottom - position.height,
         };
+        let left = match position.position_horizontal {
+            HorizontalPosition::LeftOffset(left) => left,
+            HorizontalPosition::RightOffset(right) => parent_size.width - right - position.width,
+        };
+        let width = position.width;
+        let height = position.height;
+        let rotation_degrees = position.rotation_degrees;
+        let content = Self::layout_content(child, 0);
+        let crop = None;
 
         match child {
             StatefulComponent::Layout(layout_component) => {
-                let children_layouts = layout_component.layout(
-                    Size {
-                        width: layout.width,
-                        height: layout.height,
-                    },
-                    pts,
-                );
-                let child_nodes_count = match layout.content {
+                let children_layouts = layout_component.layout(Size { width, height }, pts);
+                let child_nodes_count = match content {
                     LayoutContent::ChildNode { .. } => children_layouts.child_nodes_count + 1,
                     _ => children_layouts.child_nodes_count,
                 };
                 NestedLayout {
+                    top,
+                    left,
+                    width,
+                    height,
+                    rotation_degrees,
+                    crop,
+
+                    content,
                     child_nodes_count,
-                    layout,
                     children: vec![children_layouts],
                 }
             }
-            _non_layout_components => NestedLayout {
-                child_nodes_count: match layout.content {
+            _non_layout_components => {
+                let child_nodes_count = match content {
                     LayoutContent::ChildNode { .. } => 1,
                     _ => 0,
-                },
-                layout,
-                children: vec![],
-            },
+                };
+
+                NestedLayout {
+                    top,
+                    left,
+                    width,
+                    height,
+                    rotation_degrees,
+                    crop,
+
+                    content,
+                    child_nodes_count,
+                    children: vec![],
+                }
+            }
         }
     }
 }

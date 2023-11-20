@@ -38,6 +38,12 @@ pub struct ShaderComponent {
 }
 
 #[derive(Debug, Clone)]
+pub struct ImageComponent {
+    pub id: Option<ComponentId>,
+    pub image_id: RendererId,
+}
+
+#[derive(Debug, Clone)]
 pub struct ViewComponent {
     pub id: Option<ComponentId>,
     pub children: Vec<Component>,
@@ -45,8 +51,15 @@ pub struct ViewComponent {
     pub direction: ViewChildrenDirection,
     pub position: Position,
     pub transition: Option<Transition>,
+    pub overflow: Overflow,
 
     pub background_color: RGBAColor,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum Overflow {
+    Visible,
+    Hidden,
 }
 
 #[derive(Debug, Clone, Copy)]

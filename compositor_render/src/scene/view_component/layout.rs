@@ -2,9 +2,10 @@ use std::time::Duration;
 
 use crate::{
     scene::{
-        layout::StatefulLayoutComponent, Position, Size, StatefulComponent, ViewChildrenDirection,
+        layout::StatefulLayoutComponent, Overflow, Position, Size, StatefulComponent,
+        ViewChildrenDirection,
     },
-    transformations::layout::{Crop, Layout, LayoutContent, NestedLayout},
+    transformations::layout::{Crop, LayoutContent, NestedLayout},
 };
 
 use super::ViewComponentParam;
@@ -31,6 +32,15 @@ impl ViewComponentParam {
         pts: Duration,
     ) -> NestedLayout {
         let static_child_size = self.static_child_size(size, children, pts);
+        let crop = match self.overflow {
+            Overflow::Visible => None,
+            Overflow::Hidden => Some(Crop {
+                top: 0.0,
+                left: 0.0,
+                width: size.width,
+                height: size.height,
+            }),
+        };
 
         // offset along x or y direction (depends on self.direction) where next
         // child component should be placed
@@ -72,14 +82,13 @@ impl ViewComponentParam {
             })
             .collect();
         NestedLayout {
-            layout: Layout {
-                top: 0.0,
-                left: 0.0,
-                width: size.width,
-                height: size.height,
-                rotation_degrees: 0.0,
-                content: LayoutContent::Color(self.background_color),
-            },
+            top: 0.0,
+            left: 0.0,
+            width: size.width,
+            height: size.height,
+            rotation_degrees: 0.0,
+            crop,
+            content: LayoutContent::Color(self.background_color),
             child_nodes_count: children.iter().map(|l| l.child_nodes_count).sum(),
             children,
         }
@@ -114,36 +123,25 @@ impl ViewComponentParam {
             StatefulComponent::Layout(layout_component) => {
                 let children_layouts = layout_component.layout(Size { width, height }, pts);
                 NestedLayout {
-                    layout: Layout {
-                        top,
-                        left,
-                        width,
-                        height,
-                        rotation_degrees: 0.0,
-                        content: LayoutContent::None,
-                    },
-                    child_nodes_count: children_layouts.child_nodes_count,
-                    children: vec![children_layouts],
-                }
-            }
-            _ => NestedLayout {
-                layout: Layout {
                     top,
                     left,
                     width,
                     height,
                     rotation_degrees: 0.0,
-                    // TODO: Fix this
-                    content: LayoutContent::ChildNode {
-                        index: 0,
-                        crop: Crop {
-                            top: 0.0,
-                            left: 0.0,
-                            width: 1920.0,
-                            height: 1080.0,
-                        },
-                    },
-                },
+                    crop: None,
+                    content: LayoutContent::None,
+                    child_nodes_count: children_layouts.child_nodes_count,
+                    children: vec![children_layouts],
+                }
+            }
+            _ => NestedLayout {
+                top,
+                left,
+                width,
+                height,
+                rotation_degrees: 0.0,
+                crop: None,
+                content: StatefulLayoutComponent::layout_content(child, 0),
                 child_nodes_count: 1,
                 children: vec![],
             },

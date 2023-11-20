@@ -6,8 +6,8 @@ use crate::{scene::ViewChildrenDirection, transformations::layout::NestedLayout}
 
 use super::{
     components::ViewComponent, layout::StatefulLayoutComponent, scene_state::BuildStateTreeCtx,
-    BuildSceneError, Component, ComponentId, IntermediateNode, Position, Size, StatefulComponent,
-    Transition,
+    BuildSceneError, Component, ComponentId, IntermediateNode, Overflow, Position, Size,
+    StatefulComponent, Transition,
 };
 
 mod interpolation;
@@ -28,6 +28,7 @@ struct ViewComponentParam {
 
     direction: ViewChildrenDirection,
     position: Position,
+    overflow: Overflow,
 
     background_color: RGBAColor,
 }
@@ -98,7 +99,10 @@ impl StatefulViewComponent {
 }
 
 impl ViewComponent {
-    pub(super) fn stateful_component(self, ctx: &BuildStateTreeCtx) -> StatefulComponent {
+    pub(super) fn stateful_component(
+        self,
+        ctx: &BuildStateTreeCtx,
+    ) -> Result<StatefulComponent, BuildSceneError> {
         let previous_state = self
             .id
             .as_ref()
@@ -123,21 +127,25 @@ impl ViewComponent {
             };
             previous_state.transition.map(|_| Transition { duration })
         });
-        StatefulComponent::Layout(StatefulLayoutComponent::View(StatefulViewComponent {
+        let view = StatefulViewComponent {
             start,
             end: ViewComponentParam {
                 id: self.id,
                 direction: self.direction,
                 position: self.position,
                 background_color: self.background_color,
+                overflow: self.overflow,
             },
             transition,
             children: self
                 .children
                 .into_iter()
                 .map(|c| Component::stateful_component(c, ctx))
-                .collect(),
+                .collect::<Result<_, _>>()?,
             start_pts: ctx.last_render_pts,
-        }))
+        };
+        Ok(StatefulComponent::Layout(StatefulLayoutComponent::View(
+            view,
+        )))
     }
 }
