@@ -162,6 +162,8 @@ impl StatefulLayoutComponent {
                     width,
                     height,
                     rotation_degrees,
+                    scale_x: 1.0,
+                    scale_y: 1.0,
                     crop,
 
                     content,
@@ -181,6 +183,8 @@ impl StatefulLayoutComponent {
                     width,
                     height,
                     rotation_degrees,
+                    scale_x: 1.0,
+                    scale_y: 1.0,
                     crop,
 
                     content,

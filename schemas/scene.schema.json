@@ -685,7 +685,8 @@
     "Overflow": {
       "enum": [
         "visible",
-        "hidden"
+        "hidden",
+        "fit"
       ],
       "type": "string"
     },

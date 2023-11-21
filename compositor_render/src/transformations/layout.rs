@@ -70,6 +70,9 @@ pub struct NestedLayout {
     pub width: f32,
     pub height: f32,
     pub rotation_degrees: f32,
+    pub scale_x: f32,
+    pub scale_y: f32,
+    /// Crop is applied before scaling.
     pub crop: Option<Crop>,
     pub content: LayoutContent,
 

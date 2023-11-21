@@ -60,6 +60,7 @@ pub struct ViewComponent {
 pub enum Overflow {
     Visible,
     Hidden,
+    Fit,
 }
 
 #[derive(Debug, Clone, Copy)]

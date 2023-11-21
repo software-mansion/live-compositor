@@ -596,6 +596,16 @@ pub fn image_snapshot_tests() -> Vec<TestCase> {
             inputs: vec![TestInput::new(1)],
             ..Default::default()
         },
+        TestCase {
+            name: "image/jpeg_in_view_overflow_fit",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/image/jpeg_in_view_overflow_fit.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
+            renderers: vec![image_renderer],
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
     ])
 }
 
@@ -699,6 +709,15 @@ pub fn view_snapshot_tests() -> Vec<TestCase> {
             name: "view/constant_width_views_row_with_overflow_visible",
             outputs: Outputs::Scene(vec![(
                     include_str!("../../snapshot_tests/view/constant_width_views_row_with_overflow_visible.scene.json"),
+                    DEFAULT_RESOLUTION,
+            )]),
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "view/constant_width_views_row_with_overflow_fit",
+            outputs: Outputs::Scene(vec![(
+                    include_str!("../../snapshot_tests/view/constant_width_views_row_with_overflow_fit.scene.json"),
                     DEFAULT_RESOLUTION,
             )]),
             inputs: vec![TestInput::new(1)],
