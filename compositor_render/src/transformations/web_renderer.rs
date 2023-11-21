@@ -49,6 +49,7 @@ impl Default for WebRendererOptions {
     }
 }
 
+#[derive(Debug)]
 pub struct WebRenderer {
     spec: WebRendererSpec,
     frame_data: FrameData,
@@ -178,6 +179,7 @@ impl WebRenderer {
         }
         Some(frame_data.clone())
     }
+
     pub fn resolution(&self) -> Resolution {
         self.spec.resolution
     }

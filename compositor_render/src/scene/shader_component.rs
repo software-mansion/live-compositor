@@ -45,7 +45,7 @@ impl StatefulShaderComponent {
 
 impl ShaderComponent {
     pub(super) fn stateful_component(
-        mut self,
+        self,
         ctx: &BuildStateTreeCtx,
     ) -> Result<StatefulComponent, BuildSceneError> {
         let shader = ctx
@@ -54,7 +54,8 @@ impl ShaderComponent {
             .get(&self.shader_id)
             .ok_or_else(|| BuildSceneError::ShaderNotFound(self.shader_id.clone()))?;
 
-        let children = std::mem::take(&mut self.children)
+        let children = self
+            .children
             .into_iter()
             .map(|c| Component::stateful_component(c, ctx))
             .collect::<Result<_, _>>()?;

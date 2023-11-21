@@ -8,6 +8,7 @@ use crate::wgpu::texture::NodeTexture;
 
 use super::{browser_client::BrowserClient, chromium_sender_thread::ChromiumSenderThread};
 
+#[derive(Debug)]
 pub(super) struct ChromiumSender {
     message_sender: Sender<ChromiumSenderMessage>,
     /// Used for synchronizing buffer map and unmap operations

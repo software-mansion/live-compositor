@@ -122,14 +122,20 @@ fn start_example_client_code() -> Result<()> {
     info!("[example] Update scene");
     common::post(&json!({
         "type": "update_scene",
-        "nodes": [
+        "scenes": [
             {
-                "node_id": "embed_input_on_website",
-                "type": "web_renderer",
-                "instance_id": "example_website",
-                "input_pads": [
-                     "input_1",
-                 ]
+                "output_id": "output_1",
+                "root": {
+                    "id": "embed_input_on_website",
+                    "type": "web_view",
+                    "instance_id": "example_website",
+                    "children": [
+                        {
+                            "type": "input_stream",
+                            "input_id": "input_1",
+                        }
+                    ]
+                }
             }
         ],
         "outputs": [

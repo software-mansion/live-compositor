@@ -9,6 +9,7 @@ use super::{
     input_stream_component::StatefulInputStreamComponent,
     layout::{LayoutNode, SizedLayoutComponent, StatefulLayoutComponent},
     shader_component::StatefulShaderComponent,
+    web_view_component::StatefulWebViewComponent,
     BuildSceneError, ComponentId, Node, NodeParams, OutputScene, Position, Size, StatefulComponent,
 };
 
@@ -112,6 +113,10 @@ pub(super) enum IntermediateNode {
         shader: StatefulShaderComponent,
         children: Vec<IntermediateNode>,
     },
+    WebView {
+        web: StatefulWebViewComponent,
+        children: Vec<IntermediateNode>,
+    },
     Image(StatefulImageComponent),
     Layout {
         root: StatefulLayoutComponent,
@@ -146,6 +151,13 @@ impl IntermediateNode {
                     .map(|node| node.build_tree(None, pts))
                     .collect::<Result<_, _>>()?,
             }),
+            IntermediateNode::WebView { web, children } => Ok(Node {
+                params: NodeParams::Web(web.instance), // TODO: enforce resolution
+                children: children
+                    .into_iter()
+                    .map(|node| node.build_tree(None, pts))
+                    .collect::<Result<_, _>>()?,
+            }),
             IntermediateNode::Layout { root, children } => Ok(Node {
                 params: NodeParams::Layout(LayoutNode {
                     root: SizedLayoutComponent::new(root, size),
@@ -169,6 +181,7 @@ impl IntermediateNode {
                 shader,
                 children: _,
             } => Ok(shader.component.size),
+            IntermediateNode::WebView { web, children: _ } => Ok(web.size()),
             IntermediateNode::Image(image) => Ok(image.size()),
             IntermediateNode::Layout { root, children: _ } => {
                 let (width, height) = match root.position(pts) {
@@ -208,6 +221,14 @@ fn gather_components_with_id<'a>(
                 components.insert(id.clone(), component);
             }
             for child in shader.children.iter() {
+                gather_components_with_id(child, components);
+            }
+        }
+        StatefulComponent::WebView(web) => {
+            if let Some(id) = web.component_id() {
+                components.insert(id.clone(), component);
+            }
+            for child in web.children.iter() {
                 gather_components_with_id(child, components);
             }
         }

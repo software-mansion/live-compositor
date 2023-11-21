@@ -14,6 +14,7 @@ use crate::transformations::layout::LayoutNode;
 use crate::transformations::shader::node::ShaderNode;
 use crate::transformations::shader::Shader;
 
+use crate::transformations::web_renderer::WebRenderer;
 use crate::transformations::{
     image_renderer::ImageNode, text_renderer::TextRendererNode, web_renderer::node::WebRendererNode,
 };
@@ -125,6 +126,25 @@ impl RenderNode {
             fallback: None,
             output,
         })
+    }
+
+    pub(super) fn new_web_renderer_node(
+        ctx: &RenderCtx,
+        inputs: Vec<NodeId>,
+        node_id: &NodeId,
+        web_renderer: Arc<WebRenderer>,
+    ) -> Self {
+        let resolution = web_renderer.resolution();
+        let node = InnerRenderNode::Web(WebRendererNode::new(node_id, web_renderer));
+        let mut output = NodeTexture::new();
+        output.ensure_size(ctx.wgpu_ctx, resolution);
+
+        Self {
+            renderer: node,
+            inputs,
+            fallback: None,
+            output,
+        }
     }
 
     pub(super) fn new_image_node(image: Image) -> Self {

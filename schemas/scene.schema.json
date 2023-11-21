@@ -193,7 +193,7 @@
             },
             "type": {
               "enum": [
-                "web_renderer"
+                "web_view"
               ],
               "type": "string"
             }

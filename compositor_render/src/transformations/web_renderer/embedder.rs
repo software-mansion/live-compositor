@@ -9,6 +9,7 @@ use log::error;
 use nalgebra_glm::Mat4;
 use std::sync::Arc;
 
+#[derive(Debug)]
 pub(super) struct EmbeddingHelper {
     wgpu_ctx: Arc<WgpuCtx>,
     chromium_sender: ChromiumSender,

@@ -13,7 +13,7 @@ impl TryFrom<Component> for scene::Component {
         match node {
             Component::InputStream(input) => Ok(Self::InputStream(input.into())),
             Component::View(view) => Ok(Self::View(view.try_into()?)),
-            Component::WebRenderer(_node) => todo!(),
+            Component::WebView(web) => Ok(Self::WebView(web.try_into()?)),
             Component::Shader(shader) => Ok(Self::Shader(shader.try_into()?)),
             Component::Image(node) => Ok(Self::Image(node.into())),
             Component::Text(_node) => todo!(),
@@ -170,5 +170,22 @@ impl From<Image> for scene::ImageComponent {
             id: image.id.map(Into::into),
             image_id: image.image_id.into(),
         }
+    }
+}
+
+impl TryFrom<WebView> for scene::WebViewComponent {
+    type Error = TypeError;
+
+    fn try_from(web: WebView) -> Result<Self, Self::Error> {
+        Ok(Self {
+            id: web.id.map(Into::into),
+            children: web
+                .children
+                .unwrap_or_default()
+                .into_iter()
+                .map(TryInto::try_into)
+                .collect::<Result<Vec<_>, _>>()?,
+            instance_id: web.instance_id.into(),
+        })
     }
 }
