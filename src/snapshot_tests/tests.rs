@@ -15,7 +15,7 @@ pub fn snapshot_tests() -> Vec<TestCase> {
     tests.append(&mut view_snapshot_tests());
     tests.append(&mut transition_snapshot_tests());
     tests.append(&mut image_snapshot_tests());
-    // tests.append(&mut text_snapshot_tests());
+    tests.append(&mut text_snapshot_tests());
     // tests.append(&mut tiled_layout_tests());
     // tests.append(&mut stretch_to_resolution_tests());
     // tests.append(&mut fill_to_resolution_tests());
@@ -497,80 +497,112 @@ pub fn snapshot_tests() -> Vec<TestCase> {
 //    ])
 //}
 //
-//pub fn text_snapshot_tests() -> Vec<TestCase> {
-//    Vec::from([
-//        TestCase {
-//            name: "text/align_center",
-//            scene_json: include_str!("../../snapshot_tests/text/align_center.scene.json"),
-//            ..Default::default()
-//        },
-//        TestCase {
-//            name: "text/align_right",
-//            scene_json: include_str!("../../snapshot_tests/text/align_right.scene.json"),
-//            ..Default::default()
-//        },
-//        TestCase {
-//            name: "text/bold_text",
-//            scene_json: include_str!("../../snapshot_tests/text/bold_text.scene.json"),
-//            ..Default::default()
-//        },
-//        TestCase {
-//            name: "text/dimensions_fitted_column_with_long_text",
-//            scene_json: include_str!(
-//                "../../snapshot_tests/text/dimensions_fitted_column_with_long_text.scene.json"
-//            ),
-//            ..Default::default()
-//        },
-//        TestCase {
-//            name: "text/dimensions_fitted_column_with_short_text",
-//            scene_json: include_str!(
-//                "../../snapshot_tests/text/dimensions_fitted_column_with_short_text.scene.json"
-//            ),
-//            ..Default::default()
-//        },
-//        TestCase {
-//            name: "text/dimensions_fitted",
-//            scene_json: include_str!("../../snapshot_tests/text/dimensions_fitted.scene.json"),
-//            ..Default::default()
-//        },
-//        TestCase {
-//            name: "text/dimensions_fixed",
-//            scene_json: include_str!("../../snapshot_tests/text/dimensions_fixed.scene.json"),
-//            ..Default::default()
-//        },
-//        TestCase {
-//            name: "text/dimensions_fixed_with_overflow",
-//            scene_json: include_str!(
-//                "../../snapshot_tests/text/dimensions_fixed_with_overflow.scene.json"
-//            ),
-//            ..Default::default()
-//        },
-//        TestCase {
-//            name: "text/red_text_on_blue_background",
-//            scene_json: include_str!(
-//                "../../snapshot_tests/text/red_text_on_blue_background.scene.json"
-//            ),
-//            ..Default::default()
-//        },
-//        TestCase {
-//            name: "text/wrap_glyph",
-//            scene_json: include_str!("../../snapshot_tests/text/wrap_glyph.scene.json"),
-//            allowed_error: 325.7,
-//            ..Default::default()
-//        },
-//        TestCase {
-//            name: "text/wrap_none",
-//            scene_json: include_str!("../../snapshot_tests/text/wrap_none.scene.json"),
-//            ..Default::default()
-//        },
-//        TestCase {
-//            name: "text/wrap_word",
-//            scene_json: include_str!("../../snapshot_tests/text/wrap_word.scene.json"),
-//            allowed_error: 321.8,
-//            ..Default::default()
-//        },
-//    ])
-//}
+pub fn text_snapshot_tests() -> Vec<TestCase> {
+    Vec::from([
+        TestCase {
+            name: "text/align_center",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/text/align_center.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
+            ..Default::default()
+        },
+        TestCase {
+            name: "text/align_right",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/text/align_right.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
+            ..Default::default()
+        },
+        TestCase {
+            name: "text/bold_text",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/text/bold_text.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
+            ..Default::default()
+        },
+        TestCase {
+            name: "text/dimensions_fitted_column_with_long_text",
+            outputs: Outputs::Scene(vec![(
+                include_str!(
+                    "../../snapshot_tests/text/dimensions_fitted_column_with_long_text.scene.json"
+                ),
+                DEFAULT_RESOLUTION,
+            )]),
+            ..Default::default()
+        },
+        TestCase {
+            name: "text/dimensions_fitted_column_with_short_text",
+            outputs: Outputs::Scene(vec![(
+                include_str!(
+                    "../../snapshot_tests/text/dimensions_fitted_column_with_short_text.scene.json"
+                ),
+                DEFAULT_RESOLUTION,
+            )]),
+            ..Default::default()
+        },
+        TestCase {
+            name: "text/dimensions_fitted",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/text/dimensions_fitted.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
+            ..Default::default()
+        },
+        TestCase {
+            name: "text/dimensions_fixed",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/text/dimensions_fixed.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
+            ..Default::default()
+        },
+        TestCase {
+            name: "text/dimensions_fixed_with_overflow",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/text/dimensions_fixed_with_overflow.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
+            ..Default::default()
+        },
+        TestCase {
+            name: "text/red_text_on_blue_background",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/text/red_text_on_blue_background.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
+            ..Default::default()
+        },
+        TestCase {
+            name: "text/wrap_glyph",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/text/wrap_glyph.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
+            allowed_error: 325.7,
+            ..Default::default()
+        },
+        TestCase {
+            name: "text/wrap_none",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/text/wrap_none.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
+            ..Default::default()
+        },
+        TestCase {
+            name: "text/wrap_word",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/text/wrap_word.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
+            allowed_error: 321.8,
+            ..Default::default()
+        },
+    ])
+}
 
 pub fn image_snapshot_tests() -> Vec<TestCase> {
     let image_renderer = include_str!("../../snapshot_tests/register/image_jpeg.register.json");

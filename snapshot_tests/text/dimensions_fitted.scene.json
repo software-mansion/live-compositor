@@ -1,20 +1,16 @@
 {
-    "nodes": [
-        {
-            "node_id": "text_1",
-            "type": "text",
-            "content": "Example text",
-            "font_size": 100,
-            "font_family": "Verdana",
-            "dimensions": {
-                "type": "fitted"
+    "output_id": "output_1",
+    "root": {
+        "type": "view",
+        "overflow": "fit",
+        "children": [
+            {
+                "type": "text",
+                "text": "Example text",
+                "font_size": 100,
+                "font_family": "Verdana",
+                "background_color_rgba": "#FF0000FF"
             }
-        }
-    ],
-    "outputs": [
-        {
-            "output_id": "output_1",
-            "input_pad": "text_1"
-        }
-    ]
+        ]
+    }
 }
