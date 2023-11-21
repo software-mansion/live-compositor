@@ -71,13 +71,14 @@ impl NestedLayout {
                         index,
                         crop: child_crop,
                     } => {
-                        // Calculate how much top/left coordinates changed when cropping. Ignore the
-                        // change of a position that was a result of a translation after cropping.
-                        let top_diff = cropped_top + crop.top - layout.top;
-                        let left_diff = cropped_left + crop.left - layout.left;
+                        // Calculate how much top/left coordinates changed when cropping. It represents
+                        // how much was removed in layout coordinates. Ignore the change of a position that
+                        // was a result of a translation after cropping.
+                        let top_diff = f32::max(crop.top - layout.top, 0.0);
+                        let left_diff = f32::max(crop.left - layout.left, 0.0);
 
                         // Factor to translate from `layout` coordinates to child node coord.
-                        // The same factor holds for translations from `self.layout`
+                        // The same factor holds for translations from `self.layout`.
                         let horizontal_scale_factor = child_crop.width / layout.width;
                         let vertical_scale_factor = child_crop.height / layout.height;
 
