@@ -15,24 +15,7 @@ pub enum Component {
     Shader(Shader),
     Image(Image),
     Text(Text),
-    #[serde(rename = "builtin:fit_to_resolution")]
-    FitToResolution(FitToResolution),
-    #[serde(rename = "builtin:fill_to_resolution")]
-    FillToResolution {
-        resolution: Resolution,
-    },
-    #[serde(rename = "builtin:stretch_to_resolution")]
-    StretchToResolution {
-        resolution: Resolution,
-    },
-    #[serde(rename = "builtin:fixed_position_layout")]
-    FixedPositionLayout(FixedPositionLayout),
-    #[serde(rename = "builtin:tiled_layout")]
-    TiledLayout(TiledLayout),
-    #[serde(rename = "builtin:mirror_image")]
-    MirrorImage(MirrorImage),
-    #[serde(rename = "builtin:corners_rounding")]
-    CornersRounding(CornersRounding),
+    Tiles(Tiles),
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
@@ -49,9 +32,9 @@ pub struct View {
     pub children: Option<Vec<Component>>,
 
     /// Width of a component in pixels. Required when using absolute positioning.
-    pub width: Option<usize>,
+    pub width: Option<f32>,
     /// Height of a component in pixels. Required when using absolute positioning.
-    pub height: Option<usize>,
+    pub height: Option<f32>,
 
     /// Direction defines how static children are positioned inside the View.
     /// "row" - Children positioned from left to right.
@@ -203,13 +186,6 @@ pub enum TextWeight {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-#[serde(tag = "type", deny_unknown_fields)]
-pub enum TransitionState {
-    #[serde(rename = "builtin:fixed_position_layout")]
-    FixedPositionLayout(FixedPositionLayout),
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum Interpolation {
     Linear,
@@ -218,62 +194,17 @@ pub enum Interpolation {
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(deny_unknown_fields)]
-pub struct FitToResolution {
-    pub resolution: Resolution,
+pub struct Tiles {
+    pub id: Option<ComponentId>,
+    pub children: Option<Vec<Component>>,
+
+    pub width: Option<f32>,
+    pub height: Option<f32>,
+
     pub background_color_rgba: Option<RGBAColor>,
+    pub tile_aspect_ratio: Option<AspectRatio>,
+    pub margin: Option<f32>,
+    pub padding: Option<f32>,
     pub horizontal_alignment: Option<HorizontalAlign>,
     pub vertical_alignment: Option<VerticalAlign>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-#[serde(deny_unknown_fields)]
-pub struct FixedPositionLayout {
-    pub resolution: Resolution,
-    pub texture_layouts: Vec<TextureLayout>,
-    pub background_color_rgba: Option<RGBAColor>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-#[serde(deny_unknown_fields)]
-pub struct TextureLayout {
-    pub top: Option<Coord>,
-    pub bottom: Option<Coord>,
-    pub left: Option<Coord>,
-    pub right: Option<Coord>,
-    pub scale: Option<f32>,
-    pub rotation: Option<Degree>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-#[serde(deny_unknown_fields)]
-pub struct TiledLayout {
-    pub resolution: Resolution,
-    pub background_color_rgba: Option<RGBAColor>,
-    pub tile_aspect_ratio: Option<(u32, u32)>,
-    pub margin: Option<u32>,
-    pub padding: Option<u32>,
-    pub horizontal_alignment: Option<HorizontalAlign>,
-    pub vertical_alignment: Option<VerticalAlign>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-#[serde(deny_unknown_fields)]
-pub struct MirrorImage {
-    pub mode: Option<MirrorMode>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-pub enum MirrorMode {
-    #[serde(rename = "horizontal")]
-    Horizontal,
-    #[serde(rename = "vertical")]
-    Vertical,
-    #[serde(rename = "horizontal-vertical")]
-    HorizontalAndVertical,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-#[serde(deny_unknown_fields)]
-pub struct CornersRounding {
-    pub border_radius: Coord,
 }

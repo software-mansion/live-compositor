@@ -5,13 +5,15 @@ use compositor_common::scene::Resolution;
 use crate::transformations::layout::{self, LayoutContent, NestedLayout};
 
 use super::{
-    view_component::StatefulViewComponent, AbsolutePosition, ComponentId, HorizontalPosition,
-    Position, Size, StatefulComponent, VerticalPosition,
+    tiles_component::StatefulTilesComponent, view_component::StatefulViewComponent,
+    AbsolutePosition, ComponentId, HorizontalPosition, Position, Size, StatefulComponent,
+    VerticalPosition,
 };
 
 #[derive(Debug, Clone)]
 pub(super) enum StatefulLayoutComponent {
     View(StatefulViewComponent),
+    Tiles(StatefulTilesComponent),
 }
 
 #[derive(Debug)]
@@ -40,36 +42,42 @@ impl StatefulLayoutComponent {
     pub(super) fn layout(&self, size: Size, pts: Duration) -> NestedLayout {
         match self {
             StatefulLayoutComponent::View(view) => view.layout(size, pts),
+            StatefulLayoutComponent::Tiles(tiles) => tiles.layout(size, pts),
         }
     }
 
     pub(super) fn position(&self, pts: Duration) -> Position {
         match self {
-            StatefulLayoutComponent::View(view) => view.position(pts), // TODO
+            StatefulLayoutComponent::View(view) => view.position(pts),
+            StatefulLayoutComponent::Tiles(tiles) => tiles.position(pts),
         }
     }
 
     pub(crate) fn component_id(&self) -> Option<&ComponentId> {
         match self {
             StatefulLayoutComponent::View(view) => view.component_id(),
+            StatefulLayoutComponent::Tiles(tiles) => tiles.component_id(),
         }
     }
 
     pub(crate) fn component_type(&self) -> &'static str {
         match self {
             StatefulLayoutComponent::View(_) => "View",
+            StatefulLayoutComponent::Tiles(_) => "Tiles",
         }
     }
 
     pub(super) fn children(&self) -> Vec<&StatefulComponent> {
         match self {
             StatefulLayoutComponent::View(view) => view.children(),
+            StatefulLayoutComponent::Tiles(tiles) => tiles.children(),
         }
     }
 
     pub(super) fn children_mut(&mut self) -> Vec<&mut StatefulComponent> {
         match self {
             StatefulLayoutComponent::View(view) => view.children_mut(),
+            StatefulLayoutComponent::Tiles(tiles) => tiles.children_mut(),
         }
     }
 

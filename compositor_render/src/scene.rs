@@ -30,6 +30,7 @@ mod layout;
 mod scene_state;
 mod shader_component;
 mod text_component;
+mod tiles_component;
 mod view_component;
 mod web_view_component;
 
@@ -48,6 +49,7 @@ pub enum Component {
     Image(ImageComponent),
     Text(TextComponent),
     View(ViewComponent),
+    Tiles(TilesComponent),
 }
 
 /// Stateful version of a `Component`. Represents the same element as
@@ -128,6 +130,7 @@ impl StatefulComponent {
             StatefulComponent::Text(text) => text.intermediate_node(),
             StatefulComponent::Layout(layout) => match layout {
                 StatefulLayoutComponent::View(view) => view.intermediate_node(),
+                StatefulLayoutComponent::Tiles(tiles) => tiles.intermediate_node(),
             },
         }
     }
@@ -150,6 +153,7 @@ impl Component {
             Component::Image(image) => image.stateful_component(ctx),
             Component::Text(text) => text.stateful_component(ctx),
             Component::View(view) => view.stateful_component(ctx),
+            Component::Tiles(tiles) => tiles.stateful_component(ctx),
         }
     }
 }
