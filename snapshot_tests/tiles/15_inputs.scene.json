@@ -1,0 +1,69 @@
+{
+    "output_id": "output_1",
+    "root": {
+        "type": "tiles",
+        "children": [
+            {
+                "type": "input_stream",
+                "input_id": "input_1"
+            },
+            {
+                "type": "input_stream",
+                "input_id": "input_2"
+            },
+            {
+                "type": "input_stream",
+                "input_id": "input_3"
+            },
+            {
+                "type": "input_stream",
+                "input_id": "input_4"
+            },
+            {
+                "type": "input_stream",
+                "input_id": "input_5"
+            },
+            {
+                "type": "input_stream",
+                "input_id": "input_6"
+            },
+            {
+                "type": "input_stream",
+                "input_id": "input_7"
+            },
+            {
+                "type": "input_stream",
+                "input_id": "input_8"
+            },
+            {
+                "type": "input_stream",
+                "input_id": "input_9"
+            },
+            {
+                "type": "input_stream",
+                "input_id": "input_10"
+            },
+            {
+                "type": "input_stream",
+                "input_id": "input_11"
+            },
+            {
+                "type": "input_stream",
+                "input_id": "input_12"
+            },
+            {
+                "type": "input_stream",
+                "input_id": "input_13"
+            },
+            {
+                "type": "input_stream",
+                "input_id": "input_14"
+            },
+            {
+                "type": "input_stream",
+                "input_id": "input_15"
+            }
+        ],
+        "background_color_rgba": "#333333FF"
+    }
+}

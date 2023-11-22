@@ -23,16 +23,6 @@ struct Tile {
     height: f32,
 }
 
-impl RowsCols {
-    pub fn from_rows_count(inputs_count: u32, rows: u32) -> Self {
-        let cols = (inputs_count + rows - 1) / rows;
-        Self {
-            rows,
-            columns: cols,
-        }
-    }
-}
-
 impl TilesComponentParams {
     pub(super) fn layout(
         &self,
@@ -112,14 +102,17 @@ impl TilesComponentParams {
     /// Optimize number of rows and cols to maximize space covered by tiles,
     /// preserving tile aspect_ratio
     fn optimal_row_column_count(&self, inputs_count: u32, layout_size: Size) -> RowsCols {
-        let mut best_rows_cols = RowsCols::from_rows_count(inputs_count, 1);
+        fn from_rows_count(inputs_count: u32, rows: u32) -> RowsCols {
+            let columns = (inputs_count + rows - 1) / rows;
+            RowsCols { rows, columns }
+        }
+        let mut best_rows_cols = from_rows_count(inputs_count, 1);
         let mut best_tile_width = 0.0;
 
         for rows in 1..=inputs_count {
-            let rows_cols = RowsCols::from_rows_count(inputs_count, rows);
+            let rows_cols = from_rows_count(inputs_count, rows);
             // larger width <=> larger tile size, because of const tile aspect ratio
             let tile_size = self.tile_size(rows_cols, layout_size).width;
-
             if tile_size > best_tile_width {
                 best_rows_cols = rows_cols;
                 best_tile_width = tile_size;
