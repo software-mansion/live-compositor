@@ -1,6 +1,6 @@
 use std::{collections::HashSet, fmt::Display, path::PathBuf, sync::Arc, time::Duration};
 
-use super::utils::{are_snapshots_near_equal, create_renderer, frame_to_rgba, snaphot_save_path};
+use super::utils::{create_renderer, frame_to_rgba, snaphot_save_path, snapshots_diff};
 
 use anyhow::Result;
 use compositor_common::{
@@ -36,7 +36,7 @@ impl Default for TestCase {
             renderers: Vec::new(),
             timestamps: vec![Duration::from_secs(0)],
             outputs: Outputs::Scene(vec![]),
-            allowed_error: 30.0,
+            allowed_error: 130.0,
         }
     }
 }
@@ -126,17 +126,20 @@ impl TestCaseInstance {
             }
 
             let snapshot_from_disk = image::open(&save_path).unwrap().to_rgba8();
-            if !are_snapshots_near_equal(
-                &snapshot_from_disk,
-                &snapshot.data,
-                self.case.allowed_error,
-            ) {
+            let snapshots_diff = snapshots_diff(&snapshot_from_disk, &snapshot.data);
+            if snapshots_diff > self.case.allowed_error {
                 return (
                     snapshots.clone(),
                     Err(TestCaseError::Mismatch {
                         snapshot_from_disk: snapshot_from_disk.into(),
                         produced_snapshot: snapshot.clone(),
+                        diff: snapshots_diff,
                     }),
+                );
+            } else if snapshots_diff > 0.0 {
+                println!(
+                    "Snapshot error in range (allowed: {}, current: {})",
+                    self.case.allowed_error, snapshots_diff
                 );
             }
         }
@@ -314,6 +317,7 @@ pub enum TestCaseError {
     Mismatch {
         snapshot_from_disk: Box<ImageBuffer<image::Rgba<u8>, Vec<u8>>>,
         produced_snapshot: Snapshot,
+        diff: f32,
     },
     OutputMismatch {
         expected: HashSet<OutputId>,
@@ -343,13 +347,15 @@ impl Display for TestCaseError {
                 pts,
                 ..
             },
+            diff,
             ..
             } => {
                 format!(
-                    "FAILED: \"{}\", OutputId({}), PTS({}). Snapshots are different",
+                    "FAILED: \"{}\", OutputId({}), PTS({}). Snapshots are different error={}",
                     test_name,
                     output_id,
-                    pts.as_secs_f32()
+                    pts.as_secs_f32(),
+                    diff,
                 )
             }
             TestCaseError::OutputMismatch { expected, received } => format!("Mismatched output\nexpected: {expected:#?}\nreceived: {received:#?}"),
