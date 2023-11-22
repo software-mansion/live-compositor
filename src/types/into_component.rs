@@ -1,14 +1,12 @@
-use compositor_common::scene;
 use compositor_common::scene::builtin_transformations;
 use compositor_common::scene::builtin_transformations::BuiltinSpec;
 use compositor_common::scene::shader;
-use compositor_common::scene::text_spec;
 use compositor_common::scene::transition;
 
 use super::component::*;
 
 impl From<shader::ShaderParam> for ShaderParam {
-    fn from(param: scene::shader::ShaderParam) -> Self {
+    fn from(param: shader::ShaderParam) -> Self {
         fn from_struct_field(field: shader::ShaderParamStructField) -> ShaderParamStructField {
             ShaderParamStructField {
                 field_name: field.field_name,
@@ -24,68 +22,6 @@ impl From<shader::ShaderParam> for ShaderParam {
             }
             shader::ShaderParam::Struct(value) => {
                 ShaderParam::Struct(value.into_iter().map(from_struct_field).collect())
-            }
-        }
-    }
-}
-
-impl From<text_spec::TextSpec> for Text {
-    fn from(spec: text_spec::TextSpec) -> Self {
-        let style = match spec.style {
-            text_spec::Style::Normal => TextStyle::Normal,
-            text_spec::Style::Italic => TextStyle::Italic,
-            text_spec::Style::Oblique => TextStyle::Oblique,
-        };
-        let wrap = match spec.wrap {
-            text_spec::Wrap::None => TextWrapMode::None,
-            text_spec::Wrap::Glyph => TextWrapMode::Glyph,
-            text_spec::Wrap::Word => TextWrapMode::Word,
-        };
-        let weight = match spec.weight {
-            text_spec::Weight::Thin => TextWeight::Thin,
-            text_spec::Weight::ExtraLight => TextWeight::ExtraLight,
-            text_spec::Weight::Light => TextWeight::Light,
-            text_spec::Weight::Normal => TextWeight::Normal,
-            text_spec::Weight::Medium => TextWeight::Medium,
-            text_spec::Weight::SemiBold => TextWeight::SemiBold,
-            text_spec::Weight::Bold => TextWeight::Bold,
-            text_spec::Weight::ExtraBold => TextWeight::ExtraBold,
-            text_spec::Weight::Black => TextWeight::Black,
-        };
-        Self {
-            content: spec.content,
-            font_size: spec.font_size,
-            dimensions: spec.dimensions.into(),
-            line_height: spec.line_height,
-            color_rgba: Some(spec.color_rgba.into()),
-            background_color_rgba: Some(spec.background_color_rgba.into()),
-            font_family: Some(spec.font_family),
-            style: Some(style),
-            align: Some(spec.align.into()),
-            wrap: Some(wrap),
-            weight: Some(weight),
-        }
-    }
-}
-
-impl From<text_spec::TextDimensions> for TextDimensions {
-    fn from(dim: text_spec::TextDimensions) -> Self {
-        match dim {
-            text_spec::TextDimensions::Fitted {
-                max_width,
-                max_height,
-            } => TextDimensions::Fitted {
-                max_width: Some(max_width),
-                max_height: Some(max_height),
-            },
-            text_spec::TextDimensions::FittedColumn { width, max_height } => {
-                TextDimensions::FittedColumn {
-                    width,
-                    max_height: Some(max_height),
-                }
-            }
-            text_spec::TextDimensions::Fixed { width, height } => {
-                TextDimensions::Fixed { width, height }
             }
         }
     }

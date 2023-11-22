@@ -1,23 +1,18 @@
 {
-    "nodes": [
-        {
-            "node_id": "text_1",
-            "type": "text",
-            "content": "Example text",
-            "font_size": 100,
-            "font_family": "Verdana",
-            "align": "right",
-            "dimensions": {
-                "type": "fixed",
+    "output_id": "output_1",
+    "root": {
+        "type": "view",
+        "overflow": "fit",
+        "children": [
+            {
+                "type": "text",
+                "text": "Example text",
+                "font_size": 100,
+                "font_family": "Verdana",
+                "align": "right",
                 "width": 1000,
                 "height": 200
             }
-        }
-    ],
-    "outputs": [
-        {
-            "output_id": "output_1",
-            "input_pad": "text_1"
-        }
-    ]
+        ]
+    }
 }

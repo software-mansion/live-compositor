@@ -14,6 +14,7 @@ use crate::transformations::layout::LayoutNode;
 use crate::transformations::shader::node::ShaderNode;
 use crate::transformations::shader::Shader;
 
+use crate::transformations::text_renderer::TextRenderParams;
 use crate::transformations::web_renderer::WebRenderer;
 use crate::transformations::{
     image_renderer::ImageNode, text_renderer::TextRendererNode, web_renderer::node::WebRendererNode,
@@ -55,7 +56,7 @@ impl InnerRenderNode {
                 shader.render(sources, target, pts);
             }
             InnerRenderNode::Web(renderer) => renderer.render(ctx, sources, target),
-            InnerRenderNode::Text(ref renderer) => {
+            InnerRenderNode::Text(renderer) => {
                 renderer.render(ctx, target);
             }
             InnerRenderNode::Image(ref node) => node.render(ctx, target, pts),
@@ -159,6 +160,18 @@ impl RenderNode {
         }
     }
 
+    pub(super) fn new_text_node(params: TextRenderParams) -> Self {
+        let node = InnerRenderNode::Text(TextRendererNode::new(params));
+        let output = NodeTexture::new();
+
+        Self {
+            renderer: node,
+            inputs: vec![],
+            fallback: None,
+            output,
+        }
+    }
+
     pub(super) fn new_layout_node(
         ctx: &RenderCtx,
         inputs: Vec<NodeId>,
@@ -220,7 +233,6 @@ impl NodeSpecExt for NodeSpec {
                         0, //TODO
                     )
                 }),
-            NodeParams::Text(_) => Ok(NodeParams::text_constraints()),
             NodeParams::Image { .. } => Ok(NodeParams::image_constraints()),
         }
     }

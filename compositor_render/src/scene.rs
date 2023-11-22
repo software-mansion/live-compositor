@@ -3,6 +3,7 @@ use std::time::Duration;
 
 use crate::transformations::image_renderer::Image;
 use crate::transformations::shader::Shader;
+use crate::transformations::text_renderer::TextRenderParams;
 use crate::transformations::web_renderer::WebRenderer;
 
 use self::image_component::StatefulImageComponent;
@@ -10,6 +11,7 @@ use self::input_stream_component::StatefulInputStreamComponent;
 use self::layout::StatefulLayoutComponent;
 use self::scene_state::{BuildStateTreeCtx, IntermediateNode};
 use self::shader_component::StatefulShaderComponent;
+use self::text_component::StatefulTextComponent;
 use self::web_view_component::StatefulWebViewComponent;
 
 use compositor_common::renderer_spec::RendererId;
@@ -27,6 +29,7 @@ mod input_stream_component;
 mod layout;
 mod scene_state;
 mod shader_component;
+mod text_component;
 mod view_component;
 mod web_view_component;
 
@@ -43,6 +46,7 @@ pub enum Component {
     Shader(ShaderComponent),
     WebView(WebViewComponent),
     Image(ImageComponent),
+    Text(TextComponent),
     View(ViewComponent),
 }
 
@@ -56,6 +60,7 @@ enum StatefulComponent {
     Shader(StatefulShaderComponent),
     WebView(StatefulWebViewComponent),
     Image(StatefulImageComponent),
+    Text(StatefulTextComponent),
     Layout(StatefulLayoutComponent),
 }
 
@@ -81,6 +86,7 @@ pub(crate) enum NodeParams {
     Shader(ShaderComponentParams, Arc<Shader>),
     Web(Arc<WebRenderer>),
     Image(Image),
+    Text(TextRenderParams),
     Layout(LayoutNode),
 }
 
@@ -91,6 +97,7 @@ impl StatefulComponent {
             StatefulComponent::Shader(shader) => Some(shader.component.size.width),
             StatefulComponent::WebView(web) => Some(web.size().width),
             StatefulComponent::Image(image) => Some(image.size().width),
+            StatefulComponent::Text(text) => Some(text.width()),
             StatefulComponent::Layout(layout) => match layout.position(pts) {
                 Position::Static { width, .. } => width,
                 Position::Absolute(position) => Some(position.width),
@@ -104,6 +111,7 @@ impl StatefulComponent {
             StatefulComponent::Shader(shader) => Some(shader.component.size.height),
             StatefulComponent::WebView(web) => Some(web.size().height),
             StatefulComponent::Image(image) => Some(image.size().height),
+            StatefulComponent::Text(text) => Some(text.height()),
             StatefulComponent::Layout(layout) => match layout.position(pts) {
                 Position::Static { height, .. } => height,
                 Position::Absolute(position) => Some(position.height),
@@ -117,6 +125,7 @@ impl StatefulComponent {
             StatefulComponent::Shader(shader) => shader.intermediate_node(),
             StatefulComponent::WebView(web) => web.intermediate_node(),
             StatefulComponent::Image(image) => image.intermediate_node(),
+            StatefulComponent::Text(text) => text.intermediate_node(),
             StatefulComponent::Layout(layout) => match layout {
                 StatefulLayoutComponent::View(view) => view.intermediate_node(),
             },
@@ -139,6 +148,7 @@ impl Component {
             Component::Shader(shader) => shader.stateful_component(ctx),
             Component::WebView(shader) => shader.stateful_component(ctx),
             Component::Image(image) => image.stateful_component(ctx),
+            Component::Text(text) => text.stateful_component(ctx),
             Component::View(view) => view.stateful_component(ctx),
         }
     }

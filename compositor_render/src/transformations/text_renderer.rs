@@ -1,106 +1,69 @@
 use std::{
     cmp::max,
+    fmt,
     sync::{Arc, Mutex},
 };
 
-use compositor_common::scene::{
-    text_spec::{self, TextDimensions},
-    Resolution,
+use compositor_common::{
+    scene::Resolution,
+    util::{align::HorizontalAlign, colors::RGBAColor},
 };
 use glyphon::{
     AttrsOwned, Buffer, Color, FontSystem, Metrics, Shaping, SwashCache, TextArea, TextAtlas,
     TextBounds,
 };
-use log::info;
-use text_spec::TextSpec;
 use wgpu::{
     CommandEncoderDescriptor, LoadOp, MultisampleState, Operations, RenderPassColorAttachment,
     RenderPassDescriptor, TextureFormat,
 };
 
-use crate::{renderer::RenderCtx, utils::rgba_to_wgpu_color, wgpu::texture::NodeTexture};
+use crate::{
+    renderer::RenderCtx,
+    scene::{TextComponent, TextDimensions, TextStyle, TextWeight, TextWrap},
+    utils::rgba_to_wgpu_color,
+    wgpu::texture::NodeTexture,
+};
 
-#[allow(dead_code)]
-pub struct TextParams {
-    content: Arc<str>,
-    attributes: AttrsOwned,
-    font_size: f32,
-    line_height: f32,
-    align: glyphon::cosmic_text::Align,
-    wrap: glyphon::cosmic_text::Wrap,
+#[derive(Debug, Clone)]
+pub(crate) struct TextRenderParams {
+    pub(crate) buffer: TextBuffer,
+    pub(crate) resolution: Resolution,
+    pub(crate) background_color: RGBAColor,
 }
 
-impl From<TextSpec> for TextParams {
-    fn from(text_params: TextSpec) -> Self {
-        Self {
-            attributes: Into::into(&text_params),
-            content: text_params.content,
-            font_size: text_params.font_size,
-            line_height: text_params.line_height.unwrap_or(text_params.font_size),
-            align: text_params.align.into(),
-            wrap: text_params.wrap.into(),
-        }
+#[derive(Clone)]
+pub(crate) struct TextBuffer(Arc<glyphon::Buffer>);
+
+impl fmt::Debug for TextBuffer {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "(glyphon::Buffer))")
     }
 }
 
-#[allow(dead_code)]
-pub struct TextRendererCtx {
-    font_system: Mutex<FontSystem>,
-    swash_cache: Mutex<SwashCache>,
-}
-
-impl TextRendererCtx {
-    #[allow(dead_code)]
-    pub fn new() -> Self {
-        Self {
-            font_system: Mutex::new(FontSystem::new()),
-            swash_cache: Mutex::new(SwashCache::new()),
-        }
-    }
-}
-
-impl Default for TextRendererCtx {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-#[allow(dead_code)]
-pub struct TextRendererNode {
-    buffer: Buffer,
+pub(crate) struct TextRendererNode {
+    buffer: TextBuffer,
     resolution: Resolution,
     background_color: wgpu::Color,
-    was_rendered: Mutex<bool>,
+    was_rendered: bool,
 }
 
 impl TextRendererNode {
-    #[allow(dead_code)]
-    pub fn new(renderer_ctx: &RenderCtx, text_spec: TextSpec) -> Self {
-        let text_renderer_ctx = &renderer_ctx.text_renderer_ctx;
-        let text_dimensions = text_spec.dimensions;
-        let background_color = rgba_to_wgpu_color(&text_spec.background_color_rgba);
-        let (buffer, resolution) =
-            Self::layout_text(text_renderer_ctx, text_spec.into(), text_dimensions);
+    pub(crate) fn new(params: TextRenderParams) -> Self {
+        let background_color = rgba_to_wgpu_color(&params.background_color);
 
         Self {
-            buffer,
-            resolution,
+            buffer: params.buffer,
+            resolution: params.resolution,
             background_color,
-            was_rendered: Mutex::new(false),
+            was_rendered: false,
         }
     }
 
-    pub fn resolution(&self) -> Resolution {
-        self.resolution
-    }
-
-    pub fn render(&self, renderer_ctx: &mut RenderCtx, target: &mut NodeTexture) {
-        let mut was_rendered = self.was_rendered.lock().unwrap();
-        if *was_rendered {
+    pub(crate) fn render(&mut self, renderer_ctx: &mut RenderCtx, target: &mut NodeTexture) {
+        if self.was_rendered {
             return;
         }
 
-        info!("Text render");
         let text_renderer = renderer_ctx.text_renderer_ctx;
         let font_system = &mut text_renderer.font_system.lock().unwrap();
         let cache = &mut text_renderer.swash_cache.lock().unwrap();
@@ -129,7 +92,7 @@ impl TextRendererNode {
                     height: self.resolution.height as u32,
                 },
                 [TextArea {
-                    buffer: &self.buffer,
+                    buffer: &self.buffer.0,
                     left: 0 as f32,
                     top: 0 as f32,
                     scale: 1.0,
@@ -173,15 +136,93 @@ impl TextRendererNode {
         }
 
         renderer_ctx.wgpu_ctx.queue.submit(Some(encoder.finish()));
-        *was_rendered = true;
+        self.was_rendered = true;
     }
+}
 
-    fn layout_text(
-        text_renderer_ctx: &TextRendererCtx,
+pub(crate) struct TextParams {
+    content: Arc<str>,
+    attributes: AttrsOwned,
+    font_size: f32,
+    line_height: f32,
+    align: glyphon::cosmic_text::Align,
+    wrap: glyphon::cosmic_text::Wrap,
+}
+
+impl From<&TextComponent> for TextParams {
+    fn from(text: &TextComponent) -> Self {
+        let RGBAColor(r, g, b, a) = text.color;
+        let color = glyphon::Color::rgba(r, g, b, a);
+
+        let family = glyphon::FamilyOwned::Name(text.font_family.clone());
+
+        let style = match text.style {
+            TextStyle::Normal => glyphon::Style::Normal,
+            TextStyle::Italic => glyphon::Style::Italic,
+            TextStyle::Oblique => glyphon::Style::Oblique,
+        };
+        let weight = match text.weight {
+            TextWeight::Thin => glyphon::Weight::THIN,
+            TextWeight::ExtraLight => glyphon::Weight::EXTRA_LIGHT,
+            TextWeight::Light => glyphon::Weight::LIGHT,
+            TextWeight::Normal => glyphon::Weight::NORMAL,
+            TextWeight::Medium => glyphon::Weight::MEDIUM,
+            TextWeight::SemiBold => glyphon::Weight::SEMIBOLD,
+            TextWeight::Bold => glyphon::Weight::BOLD,
+            TextWeight::ExtraBold => glyphon::Weight::EXTRA_BOLD,
+            TextWeight::Black => glyphon::Weight::BLACK,
+        };
+        let wrap = match text.wrap {
+            TextWrap::None => glyphon::cosmic_text::Wrap::None,
+            TextWrap::Glyph => glyphon::cosmic_text::Wrap::Glyph,
+            TextWrap::Word => glyphon::cosmic_text::Wrap::Word,
+        };
+        let align = match text.align {
+            HorizontalAlign::Left => glyphon::cosmic_text::Align::Left,
+            HorizontalAlign::Right => glyphon::cosmic_text::Align::Right,
+            HorizontalAlign::Justified => glyphon::cosmic_text::Align::Justified,
+            HorizontalAlign::Center => glyphon::cosmic_text::Align::Center,
+        };
+
+        Self {
+            attributes: glyphon::AttrsOwned {
+                color_opt: Some(color),
+                family_owned: family,
+                stretch: Default::default(),
+                style,
+                weight,
+                metadata: Default::default(),
+            },
+            content: text.text.clone(),
+            font_size: text.font_size,
+            line_height: text.line_height,
+            align,
+            wrap,
+        }
+    }
+}
+
+pub(crate) struct TextRendererCtx {
+    font_system: Mutex<FontSystem>,
+    swash_cache: Mutex<SwashCache>,
+}
+
+impl TextRendererCtx {
+    pub(crate) fn new() -> Self {
+        Self {
+            font_system: Mutex::new(FontSystem::new()),
+            swash_cache: Mutex::new(SwashCache::new()),
+        }
+    }
+}
+
+impl TextRendererCtx {
+    pub(crate) fn layout_text(
+        &self,
         text_params: TextParams,
         text_resolution: TextDimensions,
-    ) -> (Buffer, Resolution) {
-        let font_system = &mut text_renderer_ctx.font_system.lock().unwrap();
+    ) -> (TextBuffer, Resolution) {
+        let font_system = &mut self.font_system.lock().unwrap();
         let mut buffer = Buffer::new(
             font_system,
             Metrics::new(text_params.font_size, text_params.line_height),
@@ -204,7 +245,7 @@ impl TextRendererNode {
                 max_width,
                 max_height,
             } => {
-                buffer.set_size(font_system, max_width as f32, max_height as f32);
+                buffer.set_size(font_system, max_width, max_height);
                 buffer.shape_until_scroll(font_system);
                 Self::get_text_resolution(
                     buffer.lines.iter(),
@@ -213,7 +254,7 @@ impl TextRendererNode {
                 )
             }
             TextDimensions::FittedColumn { width, max_height } => {
-                buffer.set_size(font_system, width as f32, max_height as f32);
+                buffer.set_size(font_system, width, max_height);
                 buffer.shape_until_scroll(font_system);
                 let text_size = Self::get_text_resolution(
                     buffer.lines.iter(),
@@ -238,7 +279,7 @@ impl TextRendererNode {
         }
         buffer.shape_until_scroll(font_system);
 
-        (buffer, texture_size)
+        (TextBuffer(buffer.into()), texture_size)
     }
 
     fn get_text_resolution<'a, I: Iterator<Item = &'a glyphon::BufferLine>>(

@@ -3,7 +3,6 @@ pub mod constraints;
 pub mod id;
 pub mod node;
 pub mod shader;
-pub mod text_spec;
 pub mod transition;
 pub mod validation;
 

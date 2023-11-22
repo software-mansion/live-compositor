@@ -160,6 +160,15 @@ fn start_example_client_code() -> Result<()> {
         "resolution": { "width": VIDEO_RESOLUTION.width / 5, "height": VIDEO_RESOLUTION.height / 5 },
     });
 
+    let text = json!({
+        "type": "text",
+        "text": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc facilisis faucibus lacus et ornare. Vestibulum sed felis id metus maximus consectetur a eget nisi. Nullam in fringilla ipsum. Morbi faucibus eget enim vel pellentesque. Nullam semper ex nec nibh fringilla dapibus.",
+        "width": 400,
+        "font_size": 20,
+        "wrap": "word",
+        "color_rgba": "#FFFFFFFF"
+    });
+
     let layout = json!({
         "type": "view",
         "children": [
@@ -172,7 +181,8 @@ fn start_example_client_code() -> Result<()> {
                     {
                         "type": "view",
                         "background_color_rgba": "#0000FFFF",
-                        "height": 500
+                        "height": 500,
+                        "children": [text]
                     },
                     {
                         "type": "view",
@@ -219,7 +229,8 @@ fn start_example_client_code() -> Result<()> {
                     {
                         "type": "view",
                         "background_color_rgba": "#0000FFFF",
-                        "height": 500
+                        "height": 500,
+                        "children": [text]
                     },
                     {
                         "type": "view",
