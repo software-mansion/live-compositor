@@ -97,6 +97,7 @@ pub enum TextWeight {
     ExtraBold,
     Black,
 }
+
 #[derive(Debug, Clone, Copy)]
 pub enum TextDimensions {
     /// Renders text and "trims" texture to smallest possible size
