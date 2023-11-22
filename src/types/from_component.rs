@@ -205,12 +205,11 @@ impl TryFrom<Text> for scene::TextComponent {
         let dimensions = match (text.width, text.height, text.max_width, text.max_height) {
             (Some(width), Some(height), _, _) => scene::TextDimensions::Fixed { width, height },
             (None, Some(_), _, _) => {
-                //error height can only be define if width is
                 return Err(TypeError::new(
-                    "height can only be provided if width is also defined.",
+                    "\"height\" property on a Text component can only be provided if \"width\" is also defined.",
                 ));
             }
-            (Some(width), None, _max_width, max_height) => scene::TextDimensions::FittedColumn {
+            (Some(width), None, _, max_height) => scene::TextDimensions::FittedColumn {
                 width,
                 max_height: max_height.unwrap_or(MAX_NODE_RESOLUTION.height as f32),
             },
@@ -224,7 +223,7 @@ impl TryFrom<Text> for scene::TextComponent {
             text: text.text,
             font_size: text.font_size,
             dimensions,
-            line_height: Some(text.line_height.unwrap_or(text.font_size)), // TODO: remove Some
+            line_height: text.line_height.unwrap_or(text.font_size),
             color: text
                 .color_rgba
                 .map(TryInto::try_into)

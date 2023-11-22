@@ -195,7 +195,7 @@ impl From<&TextComponent> for TextParams {
             },
             content: text.text.clone(),
             font_size: text.font_size,
-            line_height: text.line_height.unwrap_or(text.font_size),
+            line_height: text.line_height,
             align,
             wrap,
         }

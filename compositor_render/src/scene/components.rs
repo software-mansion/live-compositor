@@ -58,7 +58,7 @@ pub struct TextComponent {
     /// in pixels
     pub font_size: f32,
     /// in pixels, default: same as font_size
-    pub line_height: Option<f32>,
+    pub line_height: f32,
     pub color: RGBAColor,
     /// https://www.w3.org/TR/2018/REC-css-fonts-3-20180920/#family-name-value   
     /// use font family name, not generic family name
