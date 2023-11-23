@@ -18,17 +18,7 @@ impl TryFrom<Component> for scene::Component {
             Component::Shader(shader) => Ok(Self::Shader(shader.try_into()?)),
             Component::Image(image) => Ok(Self::Image(image.into())),
             Component::Text(text) => Ok(Self::Text(text.try_into()?)),
-            Component::FixedPositionLayout(_node) => {
-                todo!()
-            }
-            Component::TiledLayout(_node) => todo!(),
-            Component::MirrorImage(_node) => todo!(),
-            Component::CornersRounding(_node) => todo!(),
-            Component::FitToResolution(_node) => todo!(),
-            Component::FillToResolution { resolution: _ } => {
-                todo!()
-            }
-            Component::StretchToResolution { resolution: _ } => todo!(),
+            Component::Tiles(tiles) => Ok(Self::Tiles(tiles.try_into()?)),
         }
     }
 }
@@ -77,20 +67,18 @@ impl TryFrom<View> for scene::ViewComponent {
             Position::Absolute(scene::AbsolutePosition {
                 width: (view
                     .width
-                    .ok_or_else(|| TypeError::new(WIDTH_REQUIRED_MSG))?)
-                    as f32,
+                    .ok_or_else(|| TypeError::new(WIDTH_REQUIRED_MSG))?),
                 height: (view
                     .height
-                    .ok_or_else(|| TypeError::new(HEIGHT_REQUIRED_MSG))?)
-                    as f32,
+                    .ok_or_else(|| TypeError::new(HEIGHT_REQUIRED_MSG))?),
                 position_horizontal,
                 position_vertical,
                 rotation_degrees: view.rotation.unwrap_or(0.0),
             })
         } else {
             Position::Static {
-                width: view.width.map(|v| v as f32),
-                height: view.height.map(|v| v as f32),
+                width: view.width,
+                height: view.height,
             }
         };
         let direction = match view.direction {
@@ -256,5 +244,43 @@ impl TryFrom<WebView> for scene::WebViewComponent {
                 .collect::<Result<Vec<_>, _>>()?,
             instance_id: web.instance_id.into(),
         })
+    }
+}
+
+impl TryFrom<Tiles> for scene::TilesComponent {
+    type Error = TypeError;
+
+    fn try_from(tiles: Tiles) -> Result<Self, Self::Error> {
+        let result = Self {
+            id: tiles.id.map(Into::into),
+            children: tiles
+                .children
+                .unwrap_or_default()
+                .into_iter()
+                .map(TryInto::try_into)
+                .collect::<Result<Vec<_>, _>>()?,
+            width: tiles.width,
+            height: tiles.height,
+
+            background_color: tiles
+                .background_color_rgba
+                .map(TryInto::try_into)
+                .unwrap_or(Ok(colors::RGBAColor(0, 0, 0, 0)))?,
+            tile_aspect_ratio: tiles
+                .tile_aspect_ratio
+                .map(TryInto::try_into)
+                .unwrap_or(Ok((16, 9)))?,
+            margin: tiles.margin.unwrap_or(0.0),
+            padding: tiles.padding.unwrap_or(0.0),
+            horizontal_alignment: tiles
+                .horizontal_alignment
+                .unwrap_or(HorizontalAlign::Center)
+                .into(),
+            vertical_alignment: tiles
+                .vertical_alignment
+                .unwrap_or(VerticalAlign::Center)
+                .into(),
+        };
+        Ok(result)
     }
 }

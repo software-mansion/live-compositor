@@ -3,7 +3,10 @@ use std::{fmt::Display, sync::Arc, time::Duration};
 use compositor_common::{
     renderer_spec::RendererId,
     scene::{shader::ShaderParam, InputId},
-    util::{align::HorizontalAlign, colors::RGBAColor},
+    util::{
+        align::{HorizontalAlign, VerticalAlign},
+        colors::RGBAColor,
+    },
 };
 
 use super::Component;
@@ -182,4 +185,20 @@ pub enum VerticalPosition {
 pub enum HorizontalPosition {
     LeftOffset(f32),
     RightOffset(f32),
+}
+
+#[derive(Debug, Clone)]
+pub struct TilesComponent {
+    pub id: Option<ComponentId>,
+    pub children: Vec<Component>,
+
+    pub width: Option<f32>,
+    pub height: Option<f32>,
+
+    pub background_color: RGBAColor,
+    pub tile_aspect_ratio: (u32, u32),
+    pub margin: f32,
+    pub padding: f32,
+    pub horizontal_alignment: HorizontalAlign,
+    pub vertical_alignment: VerticalAlign,
 }
