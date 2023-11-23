@@ -1,0 +1,47 @@
+name: deploy to gh-pages
+
+on:
+    workflow_dispatch: {}
+    push:
+        branches: [master]
+        paths:
+            - "docs/**"
+            - "schemas/**"
+
+permissions:
+  contents: write
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
+
+jobs:
+    deploy:
+        name: Deploy to GitHub Pages
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: ./docs
+        steps:
+            - name: 📥 Checkout repo
+              uses: actions/checkout@v3
+
+            - name: 🛠 Setup Node.JS
+              uses: actions/setup-node@v3
+
+            - name: 🛠 Install dependencies
+              run: yarn ci
+
+            - name: 📦 Build website
+              run: yarn build
+
+            - name: 🖋️ Deploy to GitHub Pages
+              uses: peaceiris/actions-gh-pages@v3
+              with:
+                  github_token: ${{ secrets.GITHUB_TOKEN }}
+                  # Build output to publish to the `gh-pages` branch:
+                  publish_dir: ./build
+                  # The following lines assign commit authorship to the official
+                  # GH-Actions bot for deploys to `gh-pages` branch:
+                  user_name: github-actions[bot]
+                  user_email: 41898282+github-actions[bot]@users.noreply.github.com
