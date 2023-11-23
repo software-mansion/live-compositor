@@ -272,7 +272,7 @@ impl TextRendererCtx {
         buffer.set_size(
             font_system,
             texture_size.width as f32,
-            (texture_size.height as f32).max(buffer.lines.len() as f32 * text_params.line_height),
+            texture_size.height as f32 + text_params.line_height,
         );
         for line in &mut buffer.lines {
             line.set_align(Some(text_params.align));
