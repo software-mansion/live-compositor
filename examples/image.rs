@@ -149,7 +149,6 @@ fn start_example_client_code() -> Result<()> {
     info!("[example] Update scene");
     common::post(&json!({
         "type": "update_scene",
-        "inputs": [],
         "scenes": [
             {
                 "output_id": "output_1",
