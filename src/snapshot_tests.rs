@@ -43,6 +43,7 @@ fn handle_error(err: TestCaseError) {
     let TestCaseError::Mismatch {
         ref snapshot_from_disk,
         ref produced_snapshot,
+        ..
     } = err
     else {
         panic!("{err}");

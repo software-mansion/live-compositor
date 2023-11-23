@@ -1,7 +1,7 @@
 use anyhow::Result;
 use compositor_common::scene::Resolution;
 use log::{error, info};
-use serde_json::{json, Value};
+use serde_json::json;
 use std::{
     path::PathBuf,
     process::{Command, Stdio},
@@ -103,154 +103,52 @@ fn start_example_client_code() -> Result<()> {
         "url": "https://rust-lang.org/logos/rust-logo-512x512.png",
     }))?;
 
-    let label_padding = "20px";
-
-    fn label(text: &str, id: &str) -> Value {
-        json! ({
-            "node_id": id,
-            "type": "text",
-            "content": text,
-            "font_size": 40.0,
-            "font_family": "Comic Sans MS",
-            "dimensions": {
-                "type": "fitted",
-            },
+    let new_image = |image_id, label| {
+        json!({
+            "type": "view",
+            "children": [
+                {
+                    "type": "view",
+                    "background_color_rgba": "#0000FFFF",
+                    "overflow": "fit",
+                    "children": [{
+                        "type": "image",
+                        "image_id": image_id,
+                    }]
+                },
+                {
+                    "type": "view",
+                    "bottom": 20,
+                    "right": 20,
+                    "width": 400,
+                    "height": 40,
+                    "children": [{
+                        "type": "text",
+                        "text": label,
+                        "align": "right",
+                        "width": 400,
+                        "font_size": 40.0,
+                        "font_family": "Comic Sans MS",
+                    }]
+                }
+            ]
         })
-    }
+    };
 
-    let png = json!( {
-        "node_id": "png_1_rescaled",
-        "type": "builtin:fit_to_resolution",
-        "resolution": { "width": 960, "height": 540 },
+    let scene = json!({
+        "type": "tiles",
+        "margin" : 20,
         "children": [
-            {
-                 "node_id": "png_1",
-                 "type": "image",
-                 "image_id": "example_png",
-            }
-        ],
-    });
-
-    let svg = json!( {
-        "node_id": "svg_1_rescaled",
-        "type": "builtin:fit_to_resolution",
-        "resolution": { "width": 960, "height": 540 },
-        "children": [
-            {
-                 "node_id": "svg_1",
-                 "type": "image",
-                 "image_id": "example_svg",
-            }
-        ],
-    });
-
-    let jpeg = json!( {
-        "node_id": "jpeg_1_rescaled",
-        "type": "builtin:fit_to_resolution",
-        "resolution": { "width": 960, "height": 540 },
-        "children": [
-            {
-                 "node_id": "jpeg_1",
-                 "type": "image",
-                 "image_id": "example_jpeg",
-            }
-        ],
-    });
-
-    let gif = json!( {
-        "node_id": "gif_1_rescaled",
-        "type": "builtin:fill_to_resolution",
-        "resolution": { "width": 960, "height": 540 },
-        "children": [
-            {
-                 "node_id": "gif_1",
-                 "type": "image",
-                 "image_id": "example_gif",
-            }
-        ],
-    });
-
-    let scene = json!( {
-        "node_id": "layout",
-        "type": "builtin:tiled_layout",
-        "background_color_rgba": "#0000FF00",
-        "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
-        "children": [
-            {
-                "node_id": "gif_1_layout",
-                "type": "builtin:fixed_position_layout",
-                "texture_layouts": [
-                    {
-                        "left": "0px",
-                        "top": "0px"
-                    },
-                    {
-                        "right": label_padding,
-                        "bottom": label_padding
-                    },
-                ],
-                "background_color_rgba": "#0000FF00",
-                "resolution": { "width": 960, "height": 540 },
-                "children": [gif, label("GIF example", "gif_1_label")],
-            },
-            {
-                "node_id": "png_1_layout",
-                "type": "builtin:fixed_position_layout",
-                "texture_layouts": [
-                    {
-                        "left": "0px",
-                        "top": "0px"
-                    },
-                    {
-                        "right": label_padding,
-                        "bottom": label_padding
-                    },
-                ],
-                "background_color_rgba": "#0000FF00",
-                "resolution": { "width": 960, "height": 540 },
-                "children": [png, label("PNG example", "png_1_label")],
-            },
-            {
-                "node_id": "jpeg_1_layout",
-                "type": "builtin:fixed_position_layout",
-                "texture_layouts": [
-                    {
-                        "left": "0px",
-                        "top": "0px"
-                    },
-                    {
-                        "right": label_padding,
-                        "bottom": label_padding
-                    },
-                ],
-                "background_color_rgba": "#0000FF00",
-                "resolution": { "width": 960, "height": 540 },
-                "children": [jpeg, label("JPEG example", "jpeg_1_label")],
-            },
-            {
-                "node_id": "svg_1_layout",
-                "type": "builtin:fixed_position_layout",
-                "texture_layouts": [
-                    {
-                        "left": "0px",
-                        "top": "0px"
-                    },
-                    {
-                        "right": label_padding,
-                        "bottom": label_padding
-                    },
-                ],
-                "background_color_rgba": "#0000FF00",
-                "resolution": { "width": 960, "height": 540 },
-                "children": [svg, label("SVG example", "svg_1_label")],
-            },
-        ],
+            new_image("example_png", "PNG example"),
+            new_image("example_jpeg", "JPEG example"),
+            new_image("example_svg", "SVG example"),
+            new_image("example_gif", "GIF example"),
+        ]
     });
 
     info!("[example] Update scene");
     common::post(&json!({
         "type": "update_scene",
-        "inputs": [],
         "scenes": [
             {
                 "output_id": "output_1",

@@ -41,13 +41,9 @@ pub(super) fn frame_to_rgba(frame: &Frame) -> Vec<u8> {
     rgba_data
 }
 
-pub(super) fn are_snapshots_near_equal(
-    old_snapshot: &[u8],
-    new_snapshot: &[u8],
-    allowed_error: f32,
-) -> bool {
+pub(super) fn snapshots_diff(old_snapshot: &[u8], new_snapshot: &[u8]) -> f32 {
     if old_snapshot.len() != new_snapshot.len() {
-        return false;
+        return 10000.0;
     }
     let square_error: f32 = old_snapshot
         .iter()
@@ -55,7 +51,7 @@ pub(super) fn are_snapshots_near_equal(
         .map(|(a, b)| (*a as i32 - *b as i32).pow(2) as f32)
         .sum();
 
-    (square_error / old_snapshot.len() as f32) < allowed_error
+    square_error / old_snapshot.len() as f32
 }
 
 pub(super) fn create_renderer(

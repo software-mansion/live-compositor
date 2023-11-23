@@ -1,6 +1,9 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "definitions": {
+    "AspectRatio": {
+      "type": "string"
+    },
     "Component": {
       "oneOf": [
         {
@@ -76,10 +79,9 @@
             },
             "height": {
               "description": "Height of a component in pixels. Required when using absolute positioning.",
-              "format": "uint",
-              "minimum": 0.0,
+              "format": "float",
               "type": [
-                "integer",
+                "number",
                 "null"
               ]
             },
@@ -153,10 +155,9 @@
             },
             "width": {
               "description": "Width of a component in pixels. Required when using absolute positioning.",
-              "format": "uint",
-              "minimum": 0.0,
+              "format": "float",
               "type": [
-                "integer",
+                "number",
                 "null"
               ]
             }
@@ -434,133 +435,36 @@
                 }
               ]
             },
-            "horizontal_alignment": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/HorizontalAlign"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "resolution": {
-              "$ref": "#/definitions/Resolution"
-            },
-            "type": {
-              "enum": [
-                "builtin:fit_to_resolution"
-              ],
-              "type": "string"
-            },
-            "vertical_alignment": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/VerticalAlign"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            }
-          },
-          "required": [
-            "resolution",
-            "type"
-          ],
-          "type": "object"
-        },
-        {
-          "additionalProperties": false,
-          "properties": {
-            "resolution": {
-              "$ref": "#/definitions/Resolution"
-            },
-            "type": {
-              "enum": [
-                "builtin:fill_to_resolution"
-              ],
-              "type": "string"
-            }
-          },
-          "required": [
-            "resolution",
-            "type"
-          ],
-          "type": "object"
-        },
-        {
-          "additionalProperties": false,
-          "properties": {
-            "resolution": {
-              "$ref": "#/definitions/Resolution"
-            },
-            "type": {
-              "enum": [
-                "builtin:stretch_to_resolution"
-              ],
-              "type": "string"
-            }
-          },
-          "required": [
-            "resolution",
-            "type"
-          ],
-          "type": "object"
-        },
-        {
-          "additionalProperties": false,
-          "properties": {
-            "background_color_rgba": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/RGBAColor"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "resolution": {
-              "$ref": "#/definitions/Resolution"
-            },
-            "texture_layouts": {
+            "children": {
               "items": {
-                "$ref": "#/definitions/TextureLayout"
+                "$ref": "#/definitions/Component"
               },
-              "type": "array"
+              "type": [
+                "array",
+                "null"
+              ]
             },
-            "type": {
-              "enum": [
-                "builtin:fixed_position_layout"
-              ],
-              "type": "string"
-            }
-          },
-          "required": [
-            "resolution",
-            "texture_layouts",
-            "type"
-          ],
-          "type": "object"
-        },
-        {
-          "additionalProperties": false,
-          "properties": {
-            "background_color_rgba": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/RGBAColor"
-                },
-                {
-                  "type": "null"
-                }
+            "height": {
+              "format": "float",
+              "type": [
+                "number",
+                "null"
               ]
             },
             "horizontal_alignment": {
               "anyOf": [
                 {
                   "$ref": "#/definitions/HorizontalAlign"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "id": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ComponentId"
                 },
                 {
                   "type": "null"
@@ -568,47 +472,32 @@
               ]
             },
             "margin": {
-              "format": "uint32",
-              "minimum": 0.0,
+              "format": "float",
               "type": [
-                "integer",
+                "number",
                 "null"
               ]
             },
             "padding": {
-              "format": "uint32",
-              "minimum": 0.0,
+              "format": "float",
               "type": [
-                "integer",
+                "number",
                 "null"
               ]
             },
-            "resolution": {
-              "$ref": "#/definitions/Resolution"
-            },
             "tile_aspect_ratio": {
-              "items": [
+              "anyOf": [
                 {
-                  "format": "uint32",
-                  "minimum": 0.0,
-                  "type": "integer"
+                  "$ref": "#/definitions/AspectRatio"
                 },
                 {
-                  "format": "uint32",
-                  "minimum": 0.0,
-                  "type": "integer"
+                  "type": "null"
                 }
-              ],
-              "maxItems": 2,
-              "minItems": 2,
-              "type": [
-                "array",
-                "null"
               ]
             },
             "type": {
               "enum": [
-                "builtin:tiled_layout"
+                "tiles"
               ],
               "type": "string"
             },
@@ -621,54 +510,16 @@
                   "type": "null"
                 }
               ]
-            }
-          },
-          "required": [
-            "resolution",
-            "type"
-          ],
-          "type": "object"
-        },
-        {
-          "additionalProperties": false,
-          "properties": {
-            "mode": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/MirrorMode"
-                },
-                {
-                  "type": "null"
-                }
+            },
+            "width": {
+              "format": "float",
+              "type": [
+                "number",
+                "null"
               ]
-            },
-            "type": {
-              "enum": [
-                "builtin:mirror_image"
-              ],
-              "type": "string"
             }
           },
           "required": [
-            "type"
-          ],
-          "type": "object"
-        },
-        {
-          "additionalProperties": false,
-          "properties": {
-            "border_radius": {
-              "$ref": "#/definitions/Coord"
-            },
-            "type": {
-              "enum": [
-                "builtin:corners_rounding"
-              ],
-              "type": "string"
-            }
-          },
-          "required": [
-            "border_radius",
             "type"
           ],
           "type": "object"
@@ -677,21 +528,6 @@
     },
     "ComponentId": {
       "type": "string"
-    },
-    "Coord": {
-      "anyOf": [
-        {
-          "format": "int32",
-          "type": "integer"
-        },
-        {
-          "type": "string"
-        }
-      ]
-    },
-    "Degree": {
-      "format": "double",
-      "type": "number"
     },
     "HorizontalAlign": {
       "enum": [
@@ -703,14 +539,6 @@
       "type": "string"
     },
     "InputId": {
-      "type": "string"
-    },
-    "MirrorMode": {
-      "enum": [
-        "horizontal",
-        "vertical",
-        "horizontal-vertical"
-      ],
       "type": "string"
     },
     "OutputId": {
@@ -1020,69 +848,6 @@
         "word"
       ],
       "type": "string"
-    },
-    "TextureLayout": {
-      "additionalProperties": false,
-      "properties": {
-        "bottom": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/Coord"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "left": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/Coord"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "right": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/Coord"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "rotation": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/Degree"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "scale": {
-          "format": "float",
-          "type": [
-            "number",
-            "null"
-          ]
-        },
-        "top": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/Coord"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        }
-      },
-      "type": "object"
     },
     "Transition": {
       "properties": {

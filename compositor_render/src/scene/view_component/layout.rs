@@ -209,8 +209,11 @@ impl ViewComponentParam {
             .max(0.000000001); // avoid division by 0
 
         f32::min(
-            max_size / sum_size,
-            max_alternative_size / max_alternative_size_for_child,
+            1.0,
+            f32::min(
+                max_size / sum_size,
+                max_alternative_size / max_alternative_size_for_child,
+            ),
         )
     }
 

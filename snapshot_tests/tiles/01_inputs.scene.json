@@ -1,0 +1,13 @@
+{
+    "output_id": "output_1",
+    "root": {
+        "type": "tiles",
+        "children": [
+            {
+                "type": "input_stream",
+                "input_id": "input_1"
+            }
+        ],
+        "background_color_rgba": "#333333FF"
+    }
+}
