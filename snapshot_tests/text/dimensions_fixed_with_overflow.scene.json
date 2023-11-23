@@ -7,9 +7,9 @@
             {
                 "type": "text",
                 "text": "Example text",
-                "font_size": 100,
+                "font_size": 120,
                 "font_family": "Verdana",
-                "width": 200,
+                "width": 640,
                 "height": 80
             }
         ]
