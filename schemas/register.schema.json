@@ -1,49 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "definitions": {
-    "Constraint": {
-      "oneOf": [
-        {
-          "additionalProperties": false,
-          "properties": {
-            "fixed_count": {
-              "format": "uint32",
-              "minimum": 0.0,
-              "type": [
-                "integer",
-                "null"
-              ]
-            },
-            "lower_bound": {
-              "format": "uint32",
-              "minimum": 0.0,
-              "type": [
-                "integer",
-                "null"
-              ]
-            },
-            "type": {
-              "enum": [
-                "input_count"
-              ],
-              "type": "string"
-            },
-            "upper_bound": {
-              "format": "uint32",
-              "minimum": 0.0,
-              "type": [
-                "integer",
-                "null"
-              ]
-            }
-          },
-          "required": [
-            "type"
-          ],
-          "type": "object"
-        }
-      ]
-    },
     "EncoderPreset": {
       "enum": [
         "ultrafast",
@@ -84,12 +41,6 @@
     },
     "InputId": {
       "type": "string"
-    },
-    "NodeConstraints": {
-      "items": {
-        "$ref": "#/definitions/Constraint"
-      },
-      "type": "array"
     },
     "OutputId": {
       "type": "string"
@@ -198,16 +149,6 @@
     },
     {
       "properties": {
-        "constraints": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/NodeConstraints"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
         "entity_type": {
           "enum": [
             "shader"
@@ -240,16 +181,6 @@
     },
     {
       "properties": {
-        "constraints": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/NodeConstraints"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
         "embedding_method": {
           "anyOf": [
             {
