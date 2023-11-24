@@ -65,7 +65,7 @@ pub struct TextComponent {
     pub color: RGBAColor,
     /// https://www.w3.org/TR/2018/REC-css-fonts-3-20180920/#family-name-value   
     /// use font family name, not generic family name
-    pub font_family: String,
+    pub font_family: Arc<str>,
     pub style: TextStyle,
     pub align: HorizontalAlign,
     pub weight: TextWeight,

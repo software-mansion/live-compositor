@@ -1,11 +1,6 @@
 pub mod id;
 pub mod shader;
 
-//pub mod validation;
-//
-//#[cfg(test)]
-//mod validation_test;
-
 pub use id::InputId;
 pub use id::OutputId;
 

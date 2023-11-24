@@ -18,6 +18,8 @@ pub enum Component {
     Tiles(Tiles),
 }
 
+/// Component that represents incoming RTP stream. Stream is identified
+/// by an `input_id` that was defined in an `RegisterInputStream` request.
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct InputStream {
@@ -36,7 +38,7 @@ pub struct View {
     /// Height of a component in pixels. Required when using absolute positioning.
     pub height: Option<f32>,
 
-    /// Direction defines how static children are positioned inside the View.
+    /// Direction defines how static children are positioned inside the View component.
     /// "row" - Children positioned from left to right.
     /// "column" - Children positioned from top to bottom.
     pub direction: Option<ViewDirection>,
@@ -60,20 +62,32 @@ pub struct View {
     /// absolutely positioned, instead of being laid out by it's parent.
     pub rotation: Option<f32>,
 
+    /// Defines how this component will behave during a scene update. This will only have an
+    /// effect if previous scene already contained a View component with the same id.
     pub transition: Option<Transition>,
 
+    /// (default="hidden") Controls what happens to content that is too big to fit into an area.
     pub overflow: Option<Overflow>,
 
-    /// Background color of a component in a "#RRGGBBAA" format. Defaults to transparent
-    /// "#00000000".
+    /// (default="#00000000") Background color in a "#RRGGBBAA" format.
     pub background_color_rgba: Option<RGBAColor>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum Overflow {
+    /// Components that are outside of their parent area will be rendered.
     Visible,
+    /// Only render parts of the children that are inside their parent area.
     Hidden,
+    /// If children component are to big to fit inside the parent resize everything inside to fit.
+    ///
+    /// Components that have dynamic size will be treated as if they had a size 0 when calculating
+    /// scaling factor.
+    ///
+    /// Warning: This will resize everything inside even absolutely positioned
+    /// elements. For example, if you have an element in the bottom right corner and content will
+    /// be rescaled by a factor 0.5x then that component will end up in the middle of it's parent
     Fit,
 }
 
@@ -84,11 +98,16 @@ pub enum ViewDirection {
     Column,
 }
 
+/// WebView component renders a website using Chromium.
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct WebView {
     pub id: Option<ComponentId>,
     pub children: Option<Vec<Component>>,
+
+    /// ID of a previously registered `WebRenderer`.
+    ///
+    /// Warning: You can only refer to specific instance in one Component at the time.
     pub instance_id: RendererId,
 }
 
@@ -96,6 +115,8 @@ pub struct WebView {
 #[serde(deny_unknown_fields)]
 pub struct Image {
     pub id: Option<ComponentId>,
+
+    /// ID of a previously registered Image.
     pub image_id: RendererId,
 }
 
@@ -104,8 +125,17 @@ pub struct Image {
 pub struct Shader {
     pub id: Option<ComponentId>,
     pub children: Option<Vec<Component>>,
+
+    /// ID of a previously registered Shader.
     pub shader_id: RendererId,
-    pub shader_params: Option<ShaderParam>,
+    /// Object that will be serialized into a `struct` and passed inside the shader as:
+    /// ```wgsl
+    /// @group(1) @binding(0) var<uniform>
+    /// ```
+    ///
+    /// Note: Structure of this object has to match the structure defined in a shader source code.
+    pub shader_param: Option<ShaderParam>,
+    /// Resolution of a texture where shader will be executed.
     pub resolution: Resolution,
 }
 
@@ -137,21 +167,41 @@ pub struct Text {
     pub id: Option<ComponentId>,
     pub text: Arc<str>,
 
+    /// Width of a texture that text will be rendered on. If not provided the resulting texture
+    /// will be sized based on the defined text, but limited to `max_width` value.
     pub width: Option<f32>,
+    /// Height of a texture that text will be rendered on. If not provided the resulting texture
+    /// will be sized based on the defined text, but limited to `max_width` value.
+    ///
+    /// It's an error to provide `height` if width is not defined.
     pub height: Option<f32>,
+    /// (default=7682) Width of a texture that text will be rendered on. Value is ignored if width
+    /// is defined.
     pub max_width: Option<f32>,
+    /// (default=4320) Height of a texture that text will be rendered on. Value is ignored if
+    /// height is defined.
     pub max_height: Option<f32>,
 
+    /// Font size in pixels.
     pub font_size: f32,
+    /// Distance between lines. Defaults to value of a `font_size` property.
     pub line_height: Option<f32>,
+    /// (default="#FFFFFFFF") Font color in `#RRGGBBAA` format.
     pub color_rgba: Option<RGBAColor>,
+    /// (default="#00000000") Background color in `#RRGGBBAA` format.
     pub background_color_rgba: Option<RGBAColor>,
+    /// (default="Verdana") Font family.
+    ///
+    /// Provide family-name for specific font. "generic-family" values like e.g. "sans-serif" will not work.
     /// https://www.w3.org/TR/2018/REC-css-fonts-3-20180920/#family-name-value   
-    /// use font family name, not generic family name
-    pub font_family: Option<String>, // TODO: Arc<str>
+    pub font_family: Option<Arc<str>>,
+    /// (default="normal") Font style. Font that you selected needs to support the selected weight.
     pub style: Option<TextStyle>,
+    /// (default="left") Text align.
     pub align: Option<HorizontalAlign>,
+    /// (default="none") Text wrapping options.
     pub wrap: Option<TextWrapMode>,
+    /// (default="normal") Font weight. Font that you selected needs to support the selected weight.
     pub weight: Option<TextWeight>,
 }
 
@@ -166,22 +216,34 @@ pub enum TextStyle {
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum TextWrapMode {
+    /// Disable text wrapping. Text that does not fit inside the texture will be cut off.
     None,
+    /// Wraps at a glyph level.
     Glyph,
+    /// Preserve words when wrapping.
     Word,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum TextWeight {
+    /// Thin weight (100), the thinnest value.
     Thin,
+    /// Extra light weight (200).
     ExtraLight,
+    /// Light weight (300).
     Light,
+    /// Normal (400).
     Normal,
+    /// Medium weight (500, higher than normal).
     Medium,
+    /// Semibold weight (600).
     SemiBold,
+    /// Bold weight (700).
     Bold,
+    /// Extra-bold weight (800).
     ExtraBold,
+    /// Black weight (900), the thickest value.
     Black,
 }
 
@@ -198,13 +260,21 @@ pub struct Tiles {
     pub id: Option<ComponentId>,
     pub children: Option<Vec<Component>>,
 
+    /// Width of a component in pixels.
     pub width: Option<f32>,
+    /// Height of a component in pixels.
     pub height: Option<f32>,
 
+    /// (default="#00000000") Background color in a "#RRGGBBAA" format.
     pub background_color_rgba: Option<RGBAColor>,
+    /// (default="16:9") Aspect ration of a tile in "W:H" format, where W and H are integers.
     pub tile_aspect_ratio: Option<AspectRatio>,
+    /// (default=0) Margin of each tile in pixels.
     pub margin: Option<f32>,
+    /// (default=0) Padding on each tile in pixels.
     pub padding: Option<f32>,
+    /// (default="center") Horizontal alignment of tiles.
     pub horizontal_alignment: Option<HorizontalAlign>,
+    /// (default="center") Vertical alignment of tiles.
     pub vertical_alignment: Option<VerticalAlign>,
 }
