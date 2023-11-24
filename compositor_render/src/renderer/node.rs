@@ -3,11 +3,6 @@ use std::time::Duration;
 
 use compositor_common::renderer_spec::FallbackStrategy;
 
-use compositor_common::scene::constraints::NodeConstraints;
-use compositor_common::scene::{NodeParams, NodeSpec};
-
-use crate::error::{CreateNodeError, UpdateSceneError};
-
 use crate::scene::{self, ShaderComponentParams};
 use crate::transformations::image_renderer::Image;
 use crate::transformations::layout::LayoutNode;
@@ -22,18 +17,13 @@ use crate::transformations::{
 use crate::wgpu::texture::NodeTexture;
 
 use super::render_graph::NodeId;
-use super::renderers::Renderers;
 use super::RenderCtx;
 
 pub(crate) enum InnerRenderNode {
     Shader(ShaderNode),
-    #[allow(dead_code)]
     Web(WebRendererNode),
-    #[allow(dead_code)]
     Text(TextRendererNode),
-    #[allow(dead_code)]
     Image(ImageNode),
-    #[allow(dead_code)]
     Layout(LayoutNode),
     InputStream,
 }
@@ -110,23 +100,22 @@ impl RenderNode {
         inputs: Vec<NodeId>,
         shader_params: ShaderComponentParams,
         shader: Arc<Shader>,
-    ) -> Result<Self, CreateNodeError> {
+    ) -> Self {
         let node = InnerRenderNode::Shader(ShaderNode::new(
             ctx,
             shader,
-            &shader_params.shader_id,
             &shader_params.shader_param,
             &shader_params.size.into(),
-        )?);
+        ));
         let mut output = NodeTexture::new();
         output.ensure_size(ctx.wgpu_ctx, shader_params.size.into());
 
-        Ok(Self {
+        Self {
             renderer: node,
             inputs,
             fallback: None,
             output,
-        })
+        }
     }
 
     pub(super) fn new_web_renderer_node(
@@ -176,16 +165,16 @@ impl RenderNode {
         ctx: &RenderCtx,
         inputs: Vec<NodeId>,
         provider: scene::LayoutNode,
-    ) -> Result<Self, CreateNodeError> {
+    ) -> Self {
         let node = InnerRenderNode::Layout(LayoutNode::new(ctx, Box::new(provider)));
         let output = NodeTexture::new();
 
-        Ok(Self {
+        Self {
             renderer: node,
             inputs,
             fallback: None,
             output,
-        })
+        }
     }
 
     pub(crate) fn new_input() -> Self {
@@ -196,44 +185,6 @@ impl RenderNode {
             inputs: vec![],
             fallback: None,
             output,
-        }
-    }
-}
-
-pub(crate) trait NodeSpecExt {
-    fn constraints<'a>(
-        &self,
-        renderers: &'a Renderers,
-    ) -> Result<&'a NodeConstraints, UpdateSceneError>;
-}
-
-impl NodeSpecExt for NodeSpec {
-    fn constraints<'a>(
-        &self,
-        renderers: &'a Renderers,
-    ) -> Result<&'a NodeConstraints, UpdateSceneError> {
-        match &self.params {
-            NodeParams::WebRenderer { instance_id } => renderers
-                .web_renderers
-                .get_ref(instance_id)
-                .map(|web_renderer| web_renderer.constraints())
-                .ok_or_else(|| {
-                    UpdateSceneError::CreateNodeError(
-                        crate::error::CreateNodeError::WebRendererNotFound(instance_id.clone()),
-                        0,
-                    )
-                }),
-            NodeParams::Shader { shader_id, .. } => renderers
-                .shaders
-                .get_ref(shader_id)
-                .map(|shader| shader.constraints())
-                .ok_or_else(|| {
-                    UpdateSceneError::CreateNodeError(
-                        crate::error::CreateNodeError::ShaderNotFound(shader_id.clone()),
-                        0, //TODO
-                    )
-                }),
-            NodeParams::Image { .. } => Ok(NodeParams::image_constraints()),
         }
     }
 }

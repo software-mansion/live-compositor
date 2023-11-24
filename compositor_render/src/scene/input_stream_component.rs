@@ -1,8 +1,8 @@
 use compositor_common::scene::Resolution;
 
 use super::{
-    scene_state::BuildStateTreeCtx, BuildSceneError, ComponentId, InputStreamComponent,
-    IntermediateNode, Size, StatefulComponent,
+    scene_state::BuildStateTreeCtx, ComponentId, InputStreamComponent, IntermediateNode,
+    SceneError, Size, StatefulComponent,
 };
 
 #[derive(Debug, Clone)]
@@ -16,8 +16,8 @@ impl StatefulInputStreamComponent {
         self.component.id.as_ref()
     }
 
-    pub(super) fn intermediate_node(&self) -> Result<IntermediateNode, BuildSceneError> {
-        Ok(IntermediateNode::InputStream(self.clone()))
+    pub(super) fn intermediate_node(&self) -> IntermediateNode {
+        IntermediateNode::InputStream(self.clone())
     }
 }
 
@@ -25,7 +25,7 @@ impl InputStreamComponent {
     pub(super) fn stateful_component(
         self,
         ctx: &BuildStateTreeCtx,
-    ) -> Result<StatefulComponent, BuildSceneError> {
+    ) -> Result<StatefulComponent, SceneError> {
         let input = ctx
             .input_resolutions
             .get(&self.input_id)

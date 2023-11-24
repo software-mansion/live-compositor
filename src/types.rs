@@ -9,7 +9,6 @@ mod convert;
 mod convert_util;
 mod from_component;
 mod from_renderer;
-mod into_component;
 mod register_request;
 mod renderer;
 mod util;

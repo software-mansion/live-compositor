@@ -16,7 +16,7 @@ use crate::transformations::web_renderer::embedder::{EmbedError, EmbeddingHelper
 use compositor_common::renderer_spec::WebEmbeddingMethod;
 use compositor_common::{
     renderer_spec::{FallbackStrategy, WebRendererSpec},
-    scene::{constraints::NodeConstraints, Resolution},
+    scene::Resolution,
 };
 use log::{error, info};
 
@@ -192,10 +192,6 @@ impl WebRenderer {
 
     pub fn fallback_strategy(&self) -> FallbackStrategy {
         self.spec.fallback_strategy
-    }
-
-    pub fn constraints(&self) -> &NodeConstraints {
-        &self.spec.constraints
     }
 }
 

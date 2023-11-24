@@ -1,6 +1,3 @@
-#[macro_use]
-extern crate lazy_static;
-
 use std::time::Duration;
 
 pub mod error;
@@ -10,7 +7,6 @@ pub mod scene;
 pub mod util;
 
 pub type Frame = frame::Frame;
-pub type SceneSpecValidationError = error::SceneSpecValidationError;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Framerate {

@@ -3,8 +3,8 @@ use std::sync::Arc;
 use crate::transformations::web_renderer::WebRenderer;
 
 use super::{
-    scene_state::BuildStateTreeCtx, BuildSceneError, Component, ComponentId, IntermediateNode,
-    Size, StatefulComponent, WebViewComponent,
+    scene_state::BuildStateTreeCtx, Component, ComponentId, IntermediateNode, SceneError, Size,
+    StatefulComponent, WebViewComponent,
 };
 
 #[derive(Debug, Clone)]
@@ -23,17 +23,17 @@ impl StatefulWebViewComponent {
         self.instance.resolution().into()
     }
 
-    pub(super) fn intermediate_node(&self) -> Result<IntermediateNode, BuildSceneError> {
+    pub(super) fn intermediate_node(&self) -> IntermediateNode {
         let children = self
             .children
             .iter()
             .map(StatefulComponent::intermediate_node)
-            .collect::<Result<Vec<_>, _>>()?;
+            .collect();
 
-        Ok(IntermediateNode::WebView {
+        IntermediateNode::WebView {
             web: self.clone(),
             children,
-        })
+        }
     }
 }
 
@@ -41,12 +41,12 @@ impl WebViewComponent {
     pub(super) fn stateful_component(
         self,
         ctx: &BuildStateTreeCtx,
-    ) -> Result<StatefulComponent, BuildSceneError> {
+    ) -> Result<StatefulComponent, SceneError> {
         let instance = ctx
             .renderers
             .web_renderers
             .get(&self.instance_id)
-            .ok_or_else(|| BuildSceneError::WebRendererNotFound(self.instance_id.clone()))?;
+            .ok_or_else(|| SceneError::WebRendererNotFound(self.instance_id.clone()))?;
 
         let children = self
             .children

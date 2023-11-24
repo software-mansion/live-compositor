@@ -20,6 +20,7 @@ use self::{
 };
 
 pub(crate) use layout_renderer::LayoutRenderer;
+pub(crate) use transformation_matrices::{vertices_transformation_matrix, Position};
 
 pub(crate) trait LayoutProvider: Send {
     fn layouts(&mut self, pts: Duration, inputs: &[Option<Resolution>]) -> NestedLayout;
@@ -131,9 +132,10 @@ impl LayoutNode {
                 LayoutNodeParams {
                     texture_id,
                     background_color,
-                    transform_vertices_matrix: layout.transform_vertices_matrix(&output_resolution),
+                    transform_vertices_matrix: layout
+                        .vertices_transformation_matrix(&output_resolution),
                     transform_texture_coords_matrix: layout
-                        .transform_texture_coords_matrix(&input_resolution),
+                        .texture_coords_transformation_matrix(&input_resolution),
                 }
             })
             .collect();

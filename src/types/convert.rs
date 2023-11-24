@@ -41,7 +41,7 @@ impl From<OutputId> for compositor_common::scene::OutputId {
 
 impl From<compositor_common::scene::OutputId> for OutputId {
     fn from(id: compositor_common::scene::OutputId) -> Self {
-        Self(id.0 .0)
+        Self(id.0)
     }
 }
 
@@ -53,7 +53,7 @@ impl From<InputId> for compositor_common::scene::InputId {
 
 impl From<compositor_common::scene::InputId> for InputId {
     fn from(id: compositor_common::scene::InputId) -> Self {
-        Self(id.0 .0)
+        Self(id.0)
     }
 }
 

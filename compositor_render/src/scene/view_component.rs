@@ -6,7 +6,7 @@ use crate::{scene::ViewChildrenDirection, transformations::layout::NestedLayout}
 
 use super::{
     components::ViewComponent, layout::StatefulLayoutComponent, scene_state::BuildStateTreeCtx,
-    BuildSceneError, Component, ComponentId, IntermediateNode, Overflow, Position, Size,
+    Component, ComponentId, IntermediateNode, Overflow, Position, SceneError, Size,
     StatefulComponent, Transition,
 };
 
@@ -71,26 +71,23 @@ impl StatefulViewComponent {
         self.end.id.as_ref()
     }
 
-    pub(super) fn intermediate_node(&self) -> Result<IntermediateNode, BuildSceneError> {
+    pub(super) fn intermediate_node(&self) -> IntermediateNode {
         let children = self
             .children
             .iter()
-            .map(|component| {
-                let node = component.intermediate_node()?;
+            .flat_map(|component| {
+                let node = component.intermediate_node();
                 match node {
-                    IntermediateNode::Layout { root: _, children } => Ok(children),
-                    _ => Ok(vec![node]),
+                    IntermediateNode::Layout { root: _, children } => children,
+                    _ => vec![node],
                 }
             })
-            .collect::<Result<Vec<_>, _>>()? // convert Vec<Result<Vec<_>>> into Result<Vec<Vec<_>>>
-            .into_iter()
-            .flatten()
             .collect();
 
-        Ok(IntermediateNode::Layout {
+        IntermediateNode::Layout {
             root: StatefulLayoutComponent::View(self.clone()),
             children,
-        })
+        }
     }
 
     pub(super) fn layout(&self, size: Size, pts: Duration) -> NestedLayout {
@@ -102,7 +99,7 @@ impl ViewComponent {
     pub(super) fn stateful_component(
         self,
         ctx: &BuildStateTreeCtx,
-    ) -> Result<StatefulComponent, BuildSceneError> {
+    ) -> Result<StatefulComponent, SceneError> {
         let previous_state = self
             .id
             .as_ref()
