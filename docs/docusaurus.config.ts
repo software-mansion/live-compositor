@@ -10,7 +10,7 @@ const config: Config = {
   url: 'https://compositor.live',
   // Set the /<baseUrl>/ pathname under which your site is served
   // For GitHub pages deployment, it is often '/<projectName>/'
-  baseUrl: '/',
+  baseUrl: '/video_compositor/',
 
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.

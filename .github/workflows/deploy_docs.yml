@@ -3,7 +3,7 @@ name: deploy to gh-pages
 on:
     workflow_dispatch: {}
     push:
-        branches: [master]
+        branches: ['@wkozyra95/setup-docusaurus']
         paths:
             - "docs/**"
             - "schemas/**"
