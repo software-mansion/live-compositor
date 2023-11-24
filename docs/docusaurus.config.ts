@@ -55,7 +55,7 @@ const config: Config = {
       },
       items: [
         {
-          href: 'https://github.com/facebook/docusaurus',
+          href: 'https://github.com/membraneframework/video_compositor',
           label: 'GitHub',
           position: 'right',
         },
@@ -77,8 +77,8 @@ const config: Config = {
           title: 'Community',
           items: [
             {
-              label: 'Twitter',
-              href: 'https://twitter.com/docusaurus',
+              label: 'Discord',
+              href: 'https://discord.com/invite/nwnfVSY',
             },
           ],
         },
