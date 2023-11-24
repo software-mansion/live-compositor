@@ -10,8 +10,9 @@ use super::{
     layout::{LayoutNode, SizedLayoutComponent, StatefulLayoutComponent},
     shader_component::StatefulShaderComponent,
     text_component::StatefulTextComponent,
+    validation::validate_scene_update,
     web_view_component::StatefulWebViewComponent,
-    BuildSceneError, ComponentId, Node, NodeParams, OutputScene, Position, Size, StatefulComponent,
+    ComponentId, Node, NodeParams, OutputScene, Position, SceneError, Size, StatefulComponent,
 };
 
 pub(super) struct BuildStateTreeCtx<'a> {
@@ -66,7 +67,9 @@ impl SceneState {
         outputs: Vec<OutputScene>,
         renderers: &Renderers,
         text_renderer_ctx: &TextRendererCtx,
-    ) -> Result<Vec<OutputNode>, BuildSceneError> {
+    ) -> Result<Vec<OutputNode>, SceneError> {
+        validate_scene_update(&outputs)?;
+
         let ctx = BuildStateTreeCtx {
             prev_state: self
                 .outputs
@@ -99,7 +102,7 @@ impl SceneState {
                     output_id: output.output_id.clone(),
                     node: output
                         .root
-                        .intermediate_node()?
+                        .intermediate_node()
                         .build_tree(Some(output.resolution), self.last_pts)?,
                     resolution: output.resolution,
                 })
@@ -135,11 +138,7 @@ impl IntermediateNode {
     ///   of an output stream. TODO: Currently only layouts respect that value
     /// * `pts` - PTS from the last render (this function is not called on render
     ///   so we can't have exact PTS here)
-    fn build_tree(
-        self,
-        resolution: Option<Resolution>,
-        pts: Duration,
-    ) -> Result<Node, BuildSceneError> {
+    fn build_tree(self, resolution: Option<Resolution>, pts: Duration) -> Result<Node, SceneError> {
         let size = match resolution {
             Some(resolution) => resolution.into(),
             None => self.node_size(pts)?,
@@ -183,7 +182,7 @@ impl IntermediateNode {
         }
     }
 
-    fn node_size(&self, pts: Duration) -> Result<Size, BuildSceneError> {
+    fn node_size(&self, pts: Duration) -> Result<Size, SceneError> {
         match self {
             IntermediateNode::InputStream(input) => Ok(input.size),
             IntermediateNode::Shader {
@@ -203,7 +202,7 @@ impl IntermediateNode {
                 if let (Some(width), Some(height)) = (width, height) {
                     Ok(Size { width, height })
                 } else {
-                    Err(BuildSceneError::UnknownDimensionsForLayoutNodeRoot {
+                    Err(SceneError::UnknownDimensionsForLayoutNodeRoot {
                         component: root.component_type(),
                         msg: match root.component_id() {
                             Some(id) => format!("Please provide width and height values for component with id \"{id}\""),

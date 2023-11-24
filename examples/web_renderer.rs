@@ -110,13 +110,6 @@ fn start_example_client_code() -> Result<()> {
         "instance_id": "example_website",
         "url": format!("file://{file_path}"), // or other way of providing source
         "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
-        "constraints": [
-            {
-                "type": "input_count",
-                "lower_bound": 1,
-                "upper_bound": 5,
-            }
-        ]
     }))?;
 
     info!("[example] Update scene");

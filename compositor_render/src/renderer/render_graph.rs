@@ -113,8 +113,7 @@ impl RenderGraph {
                 inputs.insert(input_id.clone(), (node_id, InputTexture::new()));
             }
             scene::NodeParams::Shader(shader_params, shader) => {
-                let node = RenderNode::new_shader_node(ctx, input_pads, shader_params, shader)
-                    .map_err(|err| UpdateSceneError::CreateNodeError(err, node_id.0))?;
+                let node = RenderNode::new_shader_node(ctx, input_pads, shader_params, shader);
                 new_nodes.insert(node_id, node);
             }
             scene::NodeParams::Web(web_renderer) => {
@@ -131,8 +130,7 @@ impl RenderGraph {
                 new_nodes.insert(node_id, node);
             }
             scene::NodeParams::Layout(layout) => {
-                let node = RenderNode::new_layout_node(ctx, input_pads, layout)
-                    .map_err(|err| UpdateSceneError::CreateNodeError(err, node_id.0))?;
+                let node = RenderNode::new_layout_node(ctx, input_pads, layout);
                 new_nodes.insert(node_id, node);
             }
         }

@@ -89,12 +89,6 @@ fn start_example_client_code() -> Result<()> {
         "shader_id": "example_shader",
         "source": shader_source,
         "fallback_strategy": "fallback_if_all_inputs_missing",
-        "constraints": [
-            {
-                "type": "input_count",
-                "fixed_count": 1,
-            }
-        ]
     }))?;
 
     info!("[example] Register static image");

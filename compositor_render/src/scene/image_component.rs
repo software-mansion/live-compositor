@@ -1,7 +1,7 @@
 use crate::transformations::image_renderer::Image;
 
 use super::{
-    scene_state::BuildStateTreeCtx, BuildSceneError, ComponentId, ImageComponent, IntermediateNode,
+    scene_state::BuildStateTreeCtx, ComponentId, ImageComponent, IntermediateNode, SceneError,
     Size, StatefulComponent,
 };
 
@@ -20,8 +20,8 @@ impl StatefulImageComponent {
         self.image.resolution().into()
     }
 
-    pub(super) fn intermediate_node(&self) -> Result<IntermediateNode, BuildSceneError> {
-        Ok(IntermediateNode::Image(self.clone()))
+    pub(super) fn intermediate_node(&self) -> IntermediateNode {
+        IntermediateNode::Image(self.clone())
     }
 }
 
@@ -29,12 +29,12 @@ impl ImageComponent {
     pub(super) fn stateful_component(
         self,
         ctx: &BuildStateTreeCtx,
-    ) -> Result<StatefulComponent, BuildSceneError> {
+    ) -> Result<StatefulComponent, SceneError> {
         let image = ctx
             .renderers
             .images
             .get(&self.image_id)
-            .ok_or_else(|| BuildSceneError::ImageNotFound(self.image_id.clone()))?;
+            .ok_or_else(|| SceneError::ImageNotFound(self.image_id.clone()))?;
         Ok(StatefulComponent::Image(StatefulImageComponent {
             component: self,
             image,

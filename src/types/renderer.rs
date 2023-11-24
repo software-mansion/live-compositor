@@ -13,29 +13,11 @@ pub enum FallbackStrategy {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-pub struct NodeConstraints(pub Vec<Constraint>);
-
-#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-#[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
-pub enum Constraint {
-    InputCount(InputCountConstraint),
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-#[serde(deny_unknown_fields)]
-pub struct InputCountConstraint {
-    pub fixed_count: Option<u32>,
-    pub lower_bound: Option<u32>,
-    pub upper_bound: Option<u32>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct ShaderSpec {
     pub shader_id: RendererId,
     pub source: String,
     pub fallback_strategy: Option<FallbackStrategy>,
-    pub constraints: Option<NodeConstraints>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
@@ -46,7 +28,6 @@ pub struct WebRendererSpec {
     pub resolution: Resolution,
     pub embedding_method: Option<WebEmbeddingMethod>,
     pub fallback_strategy: Option<FallbackStrategy>,
-    pub constraints: Option<NodeConstraints>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]

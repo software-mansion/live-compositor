@@ -127,16 +127,6 @@ impl<Input: PipelineInput, Output: PipelineOutput> Pipeline<Input, Output> {
             return Err(UnregisterInputError::NotFound(input_id.clone()));
         }
 
-        let scene_spec = self.renderer.scene_spec();
-        let is_still_in_use = scene_spec
-            .nodes
-            .iter()
-            .flat_map(|node| &node.input_pads)
-            .any(|input_pad_id| &input_id.0 == input_pad_id);
-        if is_still_in_use {
-            return Err(UnregisterInputError::StillInUse(input_id.clone()));
-        }
-
         self.inputs.remove(input_id);
         self.queue.remove_input(input_id);
         Ok(())
@@ -165,15 +155,6 @@ impl<Input: PipelineInput, Output: PipelineOutput> Pipeline<Input, Output> {
     pub fn unregister_output(&self, output_id: &OutputId) -> Result<(), UnregisterOutputError> {
         if !self.outputs.contains_key(output_id) {
             return Err(UnregisterOutputError::NotFound(output_id.clone()));
-        }
-
-        let scene_spec = self.renderer.scene_spec();
-        let is_still_in_use = scene_spec
-            .outputs
-            .iter()
-            .any(|node| &node.output_id == output_id);
-        if is_still_in_use {
-            return Err(UnregisterOutputError::StillInUse(output_id.clone()));
         }
 
         self.outputs.remove(output_id);

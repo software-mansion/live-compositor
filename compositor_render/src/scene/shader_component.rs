@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
-use compositor_common::{renderer_spec::RendererId, scene::shader::ShaderParam};
+use compositor_common::scene::shader::ShaderParam;
 
 use crate::transformations::shader::Shader;
 
 use super::{
-    scene_state::BuildStateTreeCtx, BuildSceneError, Component, ComponentId, IntermediateNode,
+    scene_state::BuildStateTreeCtx, Component, ComponentId, IntermediateNode, SceneError,
     ShaderComponent, Size, StatefulComponent,
 };
 
@@ -19,7 +19,6 @@ pub(super) struct StatefulShaderComponent {
 #[derive(Debug, Clone)]
 pub(crate) struct ShaderComponentParams {
     pub(crate) id: Option<ComponentId>,
-    pub(crate) shader_id: RendererId,
     pub(crate) shader_param: Option<ShaderParam>,
     pub(crate) size: Size,
 }
@@ -29,17 +28,17 @@ impl StatefulShaderComponent {
         self.component.id.as_ref()
     }
 
-    pub(super) fn intermediate_node(&self) -> Result<IntermediateNode, BuildSceneError> {
+    pub(super) fn intermediate_node(&self) -> IntermediateNode {
         let children = self
             .children
             .iter()
             .map(StatefulComponent::intermediate_node)
-            .collect::<Result<Vec<_>, _>>()?;
+            .collect();
 
-        Ok(IntermediateNode::Shader {
+        IntermediateNode::Shader {
             shader: self.clone(),
             children,
-        })
+        }
     }
 }
 
@@ -47,12 +46,17 @@ impl ShaderComponent {
     pub(super) fn stateful_component(
         self,
         ctx: &BuildStateTreeCtx,
-    ) -> Result<StatefulComponent, BuildSceneError> {
+    ) -> Result<StatefulComponent, SceneError> {
         let shader = ctx
             .renderers
             .shaders
             .get(&self.shader_id)
-            .ok_or_else(|| BuildSceneError::ShaderNotFound(self.shader_id.clone()))?;
+            .ok_or_else(|| SceneError::ShaderNotFound(self.shader_id.clone()))?;
+        if let Some(params) = &self.shader_param {
+            shader.validate_params(params).map_err(|err| {
+                SceneError::ShaderNodeParametersValidationError(err, self.shader_id.clone())
+            })?
+        }
 
         let children = self
             .children
@@ -62,7 +66,6 @@ impl ShaderComponent {
         Ok(StatefulComponent::Shader(StatefulShaderComponent {
             component: ShaderComponentParams {
                 id: self.id,
-                shader_id: self.shader_id,
                 shader_param: self.shader_param,
                 size: self.size,
             },

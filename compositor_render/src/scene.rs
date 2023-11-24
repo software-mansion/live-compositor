@@ -5,6 +5,7 @@ use crate::transformations::image_renderer::Image;
 use crate::transformations::shader::Shader;
 use crate::transformations::text_renderer::TextRenderParams;
 use crate::transformations::web_renderer::WebRenderer;
+use crate::wgpu::validation::ParametersValidationError;
 
 use self::image_component::StatefulImageComponent;
 use self::input_stream_component::StatefulInputStreamComponent;
@@ -31,6 +32,7 @@ mod scene_state;
 mod shader_component;
 mod text_component;
 mod tiles_component;
+mod validation;
 mod view_component;
 mod web_view_component;
 
@@ -121,7 +123,7 @@ impl StatefulComponent {
         }
     }
 
-    fn intermediate_node(&self) -> Result<IntermediateNode, BuildSceneError> {
+    fn intermediate_node(&self) -> IntermediateNode {
         match self {
             StatefulComponent::InputStream(input) => input.intermediate_node(),
             StatefulComponent::Shader(shader) => shader.intermediate_node(),
@@ -142,10 +144,7 @@ impl Component {
     /// from `Component`, but additionally it has it's own state. When calculating
     /// initial value of that state, the component has access to state of that
     /// component from before scene update.
-    fn stateful_component(
-        self,
-        ctx: &BuildStateTreeCtx,
-    ) -> Result<StatefulComponent, BuildSceneError> {
+    fn stateful_component(self, ctx: &BuildStateTreeCtx) -> Result<StatefulComponent, SceneError> {
         match self {
             Component::InputStream(input) => input.stateful_component(ctx),
             Component::Shader(shader) => shader.stateful_component(ctx),
@@ -159,7 +158,7 @@ impl Component {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum BuildSceneError {
+pub enum SceneError {
     #[error("\"{component}\" that is a child of an non-layout component e.g. \"Shader\", \"WebView\" need to have known size. {msg}")]
     UnknownDimensionsForLayoutNodeRoot {
         component: &'static str,
@@ -174,4 +173,10 @@ pub enum BuildSceneError {
 
     #[error("Instance of web renderer \"{0}\" does not exist. You have to register it first before using it in the scene definition.")]
     WebRendererNotFound(RendererId),
+
+    #[error("Invalid parameter passed to \"{1}\" shader.")]
+    ShaderNodeParametersValidationError(#[source] ParametersValidationError, RendererId),
+
+    #[error("More than one component has an id \"{0}\". Component IDs in scene definition need to be unique.")]
+    DuplicateComponentId(ComponentId),
 }

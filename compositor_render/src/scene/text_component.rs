@@ -1,7 +1,7 @@
 use crate::transformations::text_renderer::TextRenderParams;
 
 use super::{
-    scene_state::BuildStateTreeCtx, BuildSceneError, ComponentId, IntermediateNode, Size,
+    scene_state::BuildStateTreeCtx, ComponentId, IntermediateNode, SceneError, Size,
     StatefulComponent, TextComponent,
 };
 
@@ -28,8 +28,8 @@ impl StatefulTextComponent {
         self.params.resolution.into()
     }
 
-    pub(super) fn intermediate_node(&self) -> Result<IntermediateNode, BuildSceneError> {
-        Ok(IntermediateNode::Text(self.clone()))
+    pub(super) fn intermediate_node(&self) -> IntermediateNode {
+        IntermediateNode::Text(self.clone())
     }
 }
 
@@ -37,7 +37,7 @@ impl TextComponent {
     pub(super) fn stateful_component(
         self,
         ctx: &BuildStateTreeCtx,
-    ) -> Result<StatefulComponent, BuildSceneError> {
+    ) -> Result<StatefulComponent, SceneError> {
         let (buffer, resolution) = ctx
             .text_renderer_ctx
             .layout_text((&self).into(), self.dimensions);

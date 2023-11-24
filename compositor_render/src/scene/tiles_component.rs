@@ -8,8 +8,8 @@ use compositor_common::util::{
 use crate::transformations::layout::NestedLayout;
 
 use super::{
-    layout::StatefulLayoutComponent, scene_state::BuildStateTreeCtx, BuildSceneError, Component,
-    ComponentId, IntermediateNode, Position, Size, StatefulComponent, TilesComponent,
+    layout::StatefulLayoutComponent, scene_state::BuildStateTreeCtx, Component, ComponentId,
+    IntermediateNode, Position, SceneError, Size, StatefulComponent, TilesComponent,
 };
 
 mod layout;
@@ -55,26 +55,23 @@ impl StatefulTilesComponent {
         self.children.iter_mut().collect()
     }
 
-    pub(super) fn intermediate_node(&self) -> Result<IntermediateNode, BuildSceneError> {
+    pub(super) fn intermediate_node(&self) -> IntermediateNode {
         let children = self
             .children
             .iter()
-            .map(|component| {
-                let node = component.intermediate_node()?;
+            .flat_map(|component| {
+                let node = component.intermediate_node();
                 match node {
-                    IntermediateNode::Layout { root: _, children } => Ok(children),
-                    _ => Ok(vec![node]),
+                    IntermediateNode::Layout { root: _, children } => children,
+                    _ => vec![node],
                 }
             })
-            .collect::<Result<Vec<_>, _>>()? // convert Vec<Result<Vec<_>>> into Result<Vec<Vec<_>>>
-            .into_iter()
-            .flatten()
             .collect();
 
-        Ok(IntermediateNode::Layout {
+        IntermediateNode::Layout {
             root: StatefulLayoutComponent::Tiles(self.clone()),
             children,
-        })
+        }
     }
 
     pub(super) fn layout(&self, size: Size, pts: Duration) -> NestedLayout {
@@ -86,7 +83,7 @@ impl TilesComponent {
     pub(super) fn stateful_component(
         self,
         ctx: &BuildStateTreeCtx,
-    ) -> Result<StatefulComponent, BuildSceneError> {
+    ) -> Result<StatefulComponent, SceneError> {
         let tiles = StatefulTilesComponent {
             component: TilesComponentParams {
                 id: self.id,

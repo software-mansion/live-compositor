@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use compositor_common::{
     renderer_spec::{RendererId, RendererSpec},
-    scene::{InputId, OutputId, SceneSpec},
+    scene::{InputId, OutputId},
 };
 
 use crate::{
@@ -88,10 +88,5 @@ impl SyncRenderer {
 
     pub fn update_scene(&mut self, scene_specs: Vec<OutputScene>) -> Result<(), UpdateSceneError> {
         self.0.lock().unwrap().update_scene(scene_specs)
-    }
-
-    pub fn scene_spec(&self) -> Arc<SceneSpec> {
-        todo!();
-        //self.0.lock().unwrap().scene_spec.clone()
     }
 }
