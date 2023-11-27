@@ -6,7 +6,7 @@ mod docs_builder;
 mod types;
 
 fn main() {
-    let docs_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("docs");
+    let docs_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("docs/pages/api/components");
     if !docs_path.exists() {
         fs::create_dir(&docs_path).unwrap();
     }

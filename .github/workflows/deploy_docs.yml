@@ -24,11 +24,17 @@ jobs:
             run:
                 working-directory: ./docs
         steps:
+            - name: 🛠 Setup Node.JS
+              uses: actions/setup-node@v3
+
+            - name: 🔧 Install the rust toolchain
+              uses: dtolnay/rust-toolchain@stable
+
             - name: 📥 Checkout repo
               uses: actions/checkout@v3
 
-            - name: 🛠 Setup Node.JS
-              uses: actions/setup-node@v3
+            - name: 📄 Generate docs from JSON schema
+              run: cargo run --bin generate_wiki
 
             - name: 🛠 Install dependencies
               run: npm ci
