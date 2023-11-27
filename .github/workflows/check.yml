@@ -1,4 +1,4 @@
-name: lint and test
+name: build, lint and test
 on:
     push:
         branches: [master]
@@ -10,7 +10,7 @@ concurrency:
     cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
 
 jobs:
-    rust:
+    check:
         runs-on: ubuntu-latest
         container:
             image: ubuntu:mantic-20231011
@@ -37,6 +37,11 @@ jobs:
               with:
                   tool: cargo-nextest
 
+            - name: 🛠 Setup Node.JS
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 20
+
             - name: 📥 Checkout repo
               uses: actions/checkout@v3
               with:
@@ -55,7 +60,15 @@ jobs:
               run: cargo clippy --workspace --all-targets --all-features -- -D warnings
 
             - name: 📄 Generate JSON schema
-              run: cargo run --bin generate_json_schema
+              run: |
+                cargo run --bin generate_json_schema
+                cargo run --bin generate_wiki
+
+            - name: 🖋️ Run website lint + typecheck + build
+              working-directory: ./docs
+              run: |
+                npm ci
+                npm run typecheck && npm run lint --max-warnings=0 && npm run build
 
             - name: 🧪 Run tests
               run: cargo nextest run --no-fail-fast --workspace
