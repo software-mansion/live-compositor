@@ -18,8 +18,8 @@ pub enum Component {
     Tiles(Tiles),
 }
 
-/// Component that represents incoming RTP stream. Stream is identified
-/// by an `input_id` that was defined in an `RegisterInputStream` request.
+/// Component representing incoming RTP stream. Specific streams can be identified
+/// by an `input_id` that was part of a `RegisterInputStream` request.
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct InputStream {
@@ -133,7 +133,7 @@ pub struct Shader {
     /// @group(1) @binding(0) var<uniform>
     /// ```
     ///
-    /// Note: Structure of this object has to match the structure defined in a shader source code.
+    /// Note: This object's structure must match the structure defined in a shader source code.
     pub shader_param: Option<ShaderParam>,
     /// Resolution of a texture where shader will be executed.
     pub resolution: Resolution,
@@ -175,16 +175,16 @@ pub struct Text {
     ///
     /// It's an error to provide `height` if width is not defined.
     pub height: Option<f32>,
-    /// (default=7682) Width of a texture that text will be rendered on. Value is ignored if width
-    /// is defined.
+    /// (default=7682) Maximal width. Limits the width of a texture that text will be rendered on.
+    /// Value is ignored if width is defined.
     pub max_width: Option<f32>,
-    /// (default=4320) Height of a texture that text will be rendered on. Value is ignored if
-    /// height is defined.
+    /// (default=4320) Maximal height. Limits the height of a texture that text will be rendered on.
+    /// Value is ignored if height is defined.
     pub max_height: Option<f32>,
 
     /// Font size in pixels.
     pub font_size: f32,
-    /// Distance between lines. Defaults to value of a `font_size` property.
+    /// Distance between lines in pixels. Defaults to the value of the `font_size` property.
     pub line_height: Option<f32>,
     /// (default="#FFFFFFFF") Font color in `#RRGGBBAA` format.
     pub color_rgba: Option<RGBAColor>,
@@ -193,15 +193,15 @@ pub struct Text {
     /// (default="Verdana") Font family.
     ///
     /// Provide family-name for specific font. "generic-family" values like e.g. "sans-serif" will not work.
-    /// https://www.w3.org/TR/2018/REC-css-fonts-3-20180920/#family-name-value   
+    /// https://www.w3.org/TR/2018/REC-css-fonts-3-20180920/#family-name-value
     pub font_family: Option<Arc<str>>,
-    /// (default="normal") Font style. Font that you selected needs to support the selected weight.
+    /// (default="normal") Font style. The selected font needs to support this specific style.
     pub style: Option<TextStyle>,
     /// (default="left") Text align.
     pub align: Option<HorizontalAlign>,
     /// (default="none") Text wrapping options.
     pub wrap: Option<TextWrapMode>,
-    /// (default="normal") Font weight. Font that you selected needs to support the selected weight.
+    /// (default="normal") Font weight. The selected font needs to support this specific weight.
     pub weight: Option<TextWeight>,
 }
 
@@ -220,30 +220,31 @@ pub enum TextWrapMode {
     None,
     /// Wraps at a glyph level.
     Glyph,
-    /// Preserve words when wrapping.
+    /// Wraps at a word level. Prevent splitting words when wrapping.
     Word,
 }
 
+/// Font weight, based on [OpenType specification](https://learn.microsoft.com/en-gb/typography/opentype/spec/os2#usweightclass).
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum TextWeight {
-    /// Thin weight (100), the thinnest value.
+    /// Weight 100.
     Thin,
-    /// Extra light weight (200).
+    /// Weight 200.
     ExtraLight,
-    /// Light weight (300).
+    /// Weight 300.
     Light,
-    /// Normal (400).
+    /// Weight 400.
     Normal,
-    /// Medium weight (500, higher than normal).
+    /// Weight 500.
     Medium,
-    /// Semibold weight (600).
+    /// Weight 600.
     SemiBold,
-    /// Bold weight (700).
+    /// Weight 700.
     Bold,
-    /// Extra-bold weight (800).
+    /// Weight 800.
     ExtraBold,
-    /// Black weight (900), the thickest value.
+    /// Weight 900.
     Black,
 }
 
