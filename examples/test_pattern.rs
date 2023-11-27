@@ -134,66 +134,17 @@ fn start_example_client_code() -> Result<()> {
         .spawn()?;
     thread::sleep(Duration::from_secs(5));
 
-    let input_with_shader = json!( {
+    let scene = json!( {
         "type": "shader",
         "id": "shader_1",
         "shader_id": "example_shader",
         "children": [
             {
-                "type": "view",
-                "width": 1080,
-                "height": 1080,
-                "children": [
-                    {
-                        "type": "image",
-                        "image_id": "example_gif",
-                    }
-                ]
+                "type": "input_stream",
+                "input_id": "input_1",
             }
         ],
-        "resolution": { "width": VIDEO_RESOLUTION.width / 5, "height": VIDEO_RESOLUTION.height / 5 },
-    });
-
-    let text = json!({
-        "type": "text",
-        "text": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc facilisis faucibus lacus et ornare. Vestibulum sed felis id metus maximus consectetur a eget nisi. Nullam in fringilla ipsum. Morbi faucibus eget enim vel pellentesque. Nullam semper ex nec nibh fringilla dapibus.",
-        "width": 400,
-        "font_size": 20,
-        "wrap": "word",
-        "color_rgba": "#FFFFFFFF"
-    });
-
-    let layout = json!({
-        "type": "view",
-        "children": [
-            {
-                "id": "test_1",
-                "type": "view",
-                "background_color_rgba": "#FF0000FF",
-                "width": 200,
-                "children": [
-                    {
-                        "type": "view",
-                        "background_color_rgba": "#0000FFFF",
-                        "height": 500,
-                        "children": [text]
-                    },
-                    {
-                        "type": "view",
-                        "background_color_rgba": "#00FFFFFF",
-                        "height": 500,
-                        "width": 100,
-                    }
-                ]
-            },
-            {
-                "type": "view",
-                "background_color_rgba": "#00FF00FF",
-                "children": [
-                    input_with_shader,
-                ]
-            },
-        ]
+        "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
     });
 
     info!("[example] Update scene");
@@ -202,55 +153,7 @@ fn start_example_client_code() -> Result<()> {
         "scenes": [
             {
                 "output_id": "output_1",
-                "root": layout,
-            }
-        ],
-    }))?;
-    thread::sleep(Duration::from_secs(5));
-
-    let layout_2 = json!({
-        "type": "view",
-        "children": [
-            {
-                "id": "test_1",
-                "type": "view",
-                "background_color_rgba": "#FF0000FF",
-                "width": 800,
-                "transition": {
-                    "duration_ms": 10000
-                },
-                "children": [
-                    {
-                        "type": "view",
-                        "background_color_rgba": "#0000FFFF",
-                        "height": 500,
-                        "children": [text]
-                    },
-                    {
-                        "type": "view",
-                        "background_color_rgba": "#00FFFFFF",
-                        "height": 500,
-                        "width": 100,
-                    }
-                ]
-            },
-            {
-                "type": "view",
-                "background_color_rgba": "#00FF00FF",
-                "children": [
-                    input_with_shader,
-                ]
-            },
-        ]
-    });
-
-    info!("[example] Update scene");
-    common::post(&json!({
-        "type": "update_scene",
-        "scenes": [
-            {
-                "output_id": "output_1",
-                "root": layout_2,
+                "root": scene,
             }
         ],
     }))?;

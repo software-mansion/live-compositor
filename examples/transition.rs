@@ -125,61 +125,83 @@ fn start_example_client_code() -> Result<()> {
         ])
         .spawn()?;
 
+    let scene1 = json!({
+        "type": "view",
+        "background_color_rgba": "#444444FF",
+        "children": [
+            {
+                "type": "view",
+                "id": "resized",
+                "overflow": "fit",
+                "width": 480,
+                "height": 270,
+                "top": 100,
+                "right": 100,
+                "children": [
+                    {
+                        "type": "shader",
+                        "shader_id": "example_shader",
+                        "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+                        "children": [{
+                            "type": "input_stream",
+                            "input_id": "input_1",
+                        }]
+                    }
+                ]
+            }
+        ]
+    });
+
+    let scene2 = json!({
+        "type": "view",
+        "background_color_rgba": "#444444FF",
+        "children": [
+            {
+                "type": "view",
+                "id": "resized",
+                "overflow": "fit",
+                "width": VIDEO_RESOLUTION.width,
+                "height": VIDEO_RESOLUTION.height,
+                "top": 0,
+                "right": 0,
+                "transition": {
+                    "duration_ms": 10000
+                },
+                "children": [
+                    {
+                        "type": "shader",
+                        "shader_id": "example_shader",
+                        "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+                        "children": [{
+                            "type": "input_stream",
+                            "input_id": "input_1",
+                        }]
+                    }
+                ]
+            }
+        ]
+    });
+
     info!("[example] Update scene");
     common::post(&json!({
         "type": "update_scene",
-        "nodes": [
-            {
-                "type": "image",
-                "node_id": "image",
-                "image_id": "example_image",
-            },
-            {
-                "type": "shader",
-                "node_id": "shader_1",
-                "shader_id": "example_shader",
-                "fallback_id": "image",
-                "input_pads": [
-                    "input_1",
-                ],
-                "resolution": { "width": 960, "height": 540 },
-            },
-            {
-                "type": "transition",
-                "node_id": "transition_1",
-                "start": {
-                    "type": "builtin:fixed_position_layout",
-                    "texture_layouts": [
-                        {
-                            "left": "0px",
-                            "top": "0px"
-                        },
-                    ],
-                    "background_color_rgba": "#0000FF00",
-                    "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
-                },
-                "end": {
-                    "type": "builtin:fixed_position_layout",
-                    "texture_layouts": [
-                        {
-                            "right": "0px",
-                            "bottom": "0px",
-                            "scale": 2.0,
-                            "rotation": 180,
-                        },
-                    ],
-                    "background_color_rgba": "#0000FF00",
-                    "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
-                },
-                "interpolation": "linear",
-                "transition_duration_ms": 3_000,
-                "input_pads": ["shader_1"],
-            }
-        ],
-        "outputs": [
+        "scenes": [
             {
                 "output_id": "output_1",
-                "input_pad": "transition_1"
+                "root": scene1,
+            }
+        ]
+    }))?;
+
+    thread::sleep(Duration::from_secs(5));
+
+    info!("[example] Update scene");
+    common::post(&json!({
+        "type": "update_scene",
+        "scenes": [
+            {
+                "output_id": "output_1",
+                "root": scene2,
             }
         ]
     }))?;
