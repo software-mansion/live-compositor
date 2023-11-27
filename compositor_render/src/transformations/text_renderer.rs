@@ -154,7 +154,7 @@ impl From<&TextComponent> for TextParams {
         let RGBAColor(r, g, b, a) = text.color;
         let color = glyphon::Color::rgba(r, g, b, a);
 
-        let family = glyphon::FamilyOwned::Name(text.font_family.clone());
+        let family = glyphon::FamilyOwned::Name(text.font_family.to_string());
 
         let style = match text.style {
             TextStyle::Normal => glyphon::Style::Normal,

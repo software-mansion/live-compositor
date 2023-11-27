@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use compositor_common::scene::shader;
 use compositor_common::scene::MAX_NODE_RESOLUTION;
 use compositor_common::util::colors;
@@ -119,7 +121,7 @@ impl TryFrom<Shader> for scene::ShaderComponent {
         Ok(Self {
             id: shader.id.map(Into::into),
             shader_id: shader.shader_id.into(),
-            shader_param: shader.shader_params.map(Into::into),
+            shader_param: shader.shader_param.map(Into::into),
             size: shader.resolution.into(),
             children: shader
                 .children
@@ -216,7 +218,7 @@ impl TryFrom<Text> for scene::TextComponent {
                 .color_rgba
                 .map(TryInto::try_into)
                 .unwrap_or(Ok(colors::RGBAColor(255, 255, 255, 255)))?,
-            font_family: text.font_family.unwrap_or_else(|| String::from("Verdana")),
+            font_family: text.font_family.unwrap_or_else(|| Arc::from("Verdana")),
             style,
             align: text.align.unwrap_or(HorizontalAlign::Left).into(),
             wrap,

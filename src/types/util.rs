@@ -5,7 +5,9 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 pub struct Resolution {
+    /// Width in pixels.
     pub width: usize,
+    /// Height in pixels.
     pub height: usize,
 }
 

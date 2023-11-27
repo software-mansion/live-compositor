@@ -8,6 +8,7 @@
       "oneOf": [
         {
           "additionalProperties": false,
+          "description": "Component representing incoming RTP stream. Specific streams can be identified by an `input_id` that was part of a `RegisterInputStream` request.",
           "properties": {
             "id": {
               "anyOf": [
@@ -47,7 +48,7 @@
                   "type": "null"
                 }
               ],
-              "description": "Background color of a component in a \"#RRGGBBAA\" format. Defaults to transparent \"#00000000\"."
+              "description": "(default=\"#00000000\") Background color in a \"#RRGGBBAA\" format."
             },
             "bottom": {
               "description": "Distance between the bottom edge of this component and the bottom edge of its parent. If this field is defined, this element will be absolutely positioned, instead of being laid out by it's parent.",
@@ -75,7 +76,7 @@
                   "type": "null"
                 }
               ],
-              "description": "Direction defines how static children are positioned inside the View. \"row\" - Children positioned from left to right. \"column\" - Children positioned from top to bottom."
+              "description": "Direction defines how static children are positioned inside the View component. \"row\" - Children positioned from left to right. \"column\" - Children positioned from top to bottom."
             },
             "height": {
               "description": "Height of a component in pixels. Required when using absolute positioning.",
@@ -111,7 +112,8 @@
                 {
                   "type": "null"
                 }
-              ]
+              ],
+              "description": "(default=\"hidden\") Controls what happens to content that is too big to fit into an area."
             },
             "right": {
               "description": "Distance between the right edge of this component and the right edge of its parent. If this field is defined, this element will be absolutely positioned, instead of being laid out by it's parent.",
@@ -145,7 +147,8 @@
                 {
                   "type": "null"
                 }
-              ]
+              ],
+              "description": "Defines how this component will behave during a scene update. This will only have an effect if previous scene already contained a View component with the same id."
             },
             "type": {
               "enum": [
@@ -169,6 +172,7 @@
         },
         {
           "additionalProperties": false,
+          "description": "WebView component renders a website using Chromium.",
           "properties": {
             "children": {
               "items": {
@@ -190,7 +194,12 @@
               ]
             },
             "instance_id": {
-              "$ref": "#/definitions/RendererId"
+              "allOf": [
+                {
+                  "$ref": "#/definitions/RendererId"
+                }
+              ],
+              "description": "ID of a previously registered `WebRenderer`.\n\nWarning: You can only refer to specific instance in one Component at the time."
             },
             "type": {
               "enum": [
@@ -228,12 +237,22 @@
               ]
             },
             "resolution": {
-              "$ref": "#/definitions/Resolution"
+              "allOf": [
+                {
+                  "$ref": "#/definitions/Resolution"
+                }
+              ],
+              "description": "Resolution of a texture where shader will be executed."
             },
             "shader_id": {
-              "$ref": "#/definitions/RendererId"
+              "allOf": [
+                {
+                  "$ref": "#/definitions/RendererId"
+                }
+              ],
+              "description": "ID of a previously registered Shader."
             },
-            "shader_params": {
+            "shader_param": {
               "anyOf": [
                 {
                   "$ref": "#/definitions/ShaderParam"
@@ -241,7 +260,8 @@
                 {
                   "type": "null"
                 }
-              ]
+              ],
+              "description": "Object that will be serialized into a `struct` and passed inside the shader as: ```wgsl @group(1) @binding(0) var<uniform> ```\n\nNote: This object's structure must match the structure defined in a shader source code."
             },
             "type": {
               "enum": [
@@ -271,7 +291,12 @@
               ]
             },
             "image_id": {
-              "$ref": "#/definitions/RendererId"
+              "allOf": [
+                {
+                  "$ref": "#/definitions/RendererId"
+                }
+              ],
+              "description": "ID of a previously registered Image."
             },
             "type": {
               "enum": [
@@ -297,7 +322,8 @@
                 {
                   "type": "null"
                 }
-              ]
+              ],
+              "description": "(default=\"left\") Text align."
             },
             "background_color_rgba": {
               "anyOf": [
@@ -307,7 +333,8 @@
                 {
                   "type": "null"
                 }
-              ]
+              ],
+              "description": "(default=\"#00000000\") Background color in `#RRGGBBAA` format."
             },
             "color_rgba": {
               "anyOf": [
@@ -317,20 +344,23 @@
                 {
                   "type": "null"
                 }
-              ]
+              ],
+              "description": "(default=\"#FFFFFFFF\") Font color in `#RRGGBBAA` format."
             },
             "font_family": {
-              "description": "https://www.w3.org/TR/2018/REC-css-fonts-3-20180920/#family-name-value use font family name, not generic family name",
+              "description": "(default=\"Verdana\") Font family.\n\nProvide family-name for specific font. \"generic-family\" values like e.g. \"sans-serif\" will not work. https://www.w3.org/TR/2018/REC-css-fonts-3-20180920/#family-name-value",
               "type": [
                 "string",
                 "null"
               ]
             },
             "font_size": {
+              "description": "Font size in pixels.",
               "format": "float",
               "type": "number"
             },
             "height": {
+              "description": "Height of a texture that text will be rendered on. If not provided the resulting texture will be sized based on the defined text, but limited to `max_width` value.\n\nIt's an error to provide `height` if width is not defined.",
               "format": "float",
               "type": [
                 "number",
@@ -348,6 +378,7 @@
               ]
             },
             "line_height": {
+              "description": "Distance between lines in pixels. Defaults to the value of the `font_size` property.",
               "format": "float",
               "type": [
                 "number",
@@ -355,6 +386,7 @@
               ]
             },
             "max_height": {
+              "description": "(default=4320) Maximal height. Limits the height of a texture that text will be rendered on. Value is ignored if height is defined.",
               "format": "float",
               "type": [
                 "number",
@@ -362,6 +394,7 @@
               ]
             },
             "max_width": {
+              "description": "(default=7682) Maximal width. Limits the width of a texture that text will be rendered on. Value is ignored if width is defined.",
               "format": "float",
               "type": [
                 "number",
@@ -376,7 +409,8 @@
                 {
                   "type": "null"
                 }
-              ]
+              ],
+              "description": "(default=\"normal\") Font style. The selected font needs to support this specific style."
             },
             "text": {
               "type": "string"
@@ -395,9 +429,11 @@
                 {
                   "type": "null"
                 }
-              ]
+              ],
+              "description": "(default=\"normal\") Font weight. The selected font needs to support this specific weight."
             },
             "width": {
+              "description": "Width of a texture that text will be rendered on. If not provided the resulting texture will be sized based on the defined text, but limited to `max_width` value.",
               "format": "float",
               "type": [
                 "number",
@@ -412,7 +448,8 @@
                 {
                   "type": "null"
                 }
-              ]
+              ],
+              "description": "(default=\"none\") Text wrapping options."
             }
           },
           "required": [
@@ -433,7 +470,8 @@
                 {
                   "type": "null"
                 }
-              ]
+              ],
+              "description": "(default=\"#00000000\") Background color in a \"#RRGGBBAA\" format."
             },
             "children": {
               "items": {
@@ -445,6 +483,7 @@
               ]
             },
             "height": {
+              "description": "Height of a component in pixels.",
               "format": "float",
               "type": [
                 "number",
@@ -459,7 +498,8 @@
                 {
                   "type": "null"
                 }
-              ]
+              ],
+              "description": "(default=\"center\") Horizontal alignment of tiles."
             },
             "id": {
               "anyOf": [
@@ -472,6 +512,7 @@
               ]
             },
             "margin": {
+              "description": "(default=0) Margin of each tile in pixels.",
               "format": "float",
               "type": [
                 "number",
@@ -479,6 +520,7 @@
               ]
             },
             "padding": {
+              "description": "(default=0) Padding on each tile in pixels.",
               "format": "float",
               "type": [
                 "number",
@@ -493,7 +535,8 @@
                 {
                   "type": "null"
                 }
-              ]
+              ],
+              "description": "(default=\"16:9\") Aspect ration of a tile in \"W:H\" format, where W and H are integers."
             },
             "type": {
               "enum": [
@@ -509,9 +552,11 @@
                 {
                   "type": "null"
                 }
-              ]
+              ],
+              "description": "(default=\"center\") Vertical alignment of tiles."
             },
             "width": {
+              "description": "Width of a component in pixels.",
               "format": "float",
               "type": [
                 "number",
@@ -545,12 +590,29 @@
       "type": "string"
     },
     "Overflow": {
-      "enum": [
-        "visible",
-        "hidden",
-        "fit"
-      ],
-      "type": "string"
+      "oneOf": [
+        {
+          "description": "Components that are outside of their parent area will be rendered.",
+          "enum": [
+            "visible"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Only render parts of the children that are inside their parent area.",
+          "enum": [
+            "hidden"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "If children component are to big to fit inside the parent resize everything inside to fit.\n\nComponents that have dynamic size will be treated as if they had a size 0 when calculating scaling factor.\n\nWarning: This will resize everything inside even absolutely positioned elements. For example, if you have an element in the bottom right corner and content will be rescaled by a factor 0.5x then that component will end up in the middle of it's parent",
+          "enum": [
+            "fit"
+          ],
+          "type": "string"
+        }
+      ]
     },
     "RGBAColor": {
       "type": "string"
@@ -561,11 +623,13 @@
     "Resolution": {
       "properties": {
         "height": {
+          "description": "Height in pixels.",
           "format": "uint",
           "minimum": 0.0,
           "type": "integer"
         },
         "width": {
+          "description": "Width in pixels.",
           "format": "uint",
           "minimum": 0.0,
           "type": "integer"
@@ -828,26 +892,97 @@
       "type": "string"
     },
     "TextWeight": {
-      "enum": [
-        "thin",
-        "extra_light",
-        "light",
-        "normal",
-        "medium",
-        "semi_bold",
-        "bold",
-        "extra_bold",
-        "black"
-      ],
-      "type": "string"
+      "description": "Font weight, based on [OpenType specification](https://learn.microsoft.com/en-gb/typography/opentype/spec/os2#usweightclass).",
+      "oneOf": [
+        {
+          "description": "Weight 100.",
+          "enum": [
+            "thin"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Weight 200.",
+          "enum": [
+            "extra_light"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Weight 300.",
+          "enum": [
+            "light"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Weight 400.",
+          "enum": [
+            "normal"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Weight 500.",
+          "enum": [
+            "medium"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Weight 600.",
+          "enum": [
+            "semi_bold"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Weight 700.",
+          "enum": [
+            "bold"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Weight 800.",
+          "enum": [
+            "extra_bold"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Weight 900.",
+          "enum": [
+            "black"
+          ],
+          "type": "string"
+        }
+      ]
     },
     "TextWrapMode": {
-      "enum": [
-        "none",
-        "glyph",
-        "word"
-      ],
-      "type": "string"
+      "oneOf": [
+        {
+          "description": "Disable text wrapping. Text that does not fit inside the texture will be cut off.",
+          "enum": [
+            "none"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Wraps at a glyph level.",
+          "enum": [
+            "glyph"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Wraps at a word level. Prevent splitting words when wrapping.",
+          "enum": [
+            "word"
+          ],
+          "type": "string"
+        }
+      ]
     },
     "Transition": {
       "properties": {
