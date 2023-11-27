@@ -123,7 +123,7 @@ fn start_example_client_code() -> Result<()> {
     }))?;
 
     Command::new("ffmpeg")
-        .args(["-re", "-i"])
+        .args(["-stream_loop", "-1", "-re", "-i"])
         .arg(sample_path)
         .args([
             "-an",

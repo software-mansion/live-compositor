@@ -1,9 +1,10 @@
 use anyhow::Result;
+use compositor_chromium::cef::bundle_for_development;
 use compositor_common::scene::Resolution;
 use log::{error, info};
 use serde_json::json;
-use signal_hook::{consts, iterator::Signals};
 use std::{
+    env, fs,
     process::{Command, Stdio},
     thread,
     time::Duration,
@@ -15,19 +16,34 @@ use crate::common::write_example_sdp_file;
 #[path = "./common/common.rs"]
 mod common;
 
+const SAMPLE_FILE_URL: &str =
+    "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_10mb.mp4";
+const SAMPLE_FILE_PATH: &str = "examples/assets/big_buck_bunny_720p_10mb.mp4";
+const HTML_FILE_PATH: &str = "examples/web_view.html";
+
 const VIDEO_RESOLUTION: Resolution = Resolution {
     width: 1920,
     height: 1080,
 };
-
-const FRAMERATE: u32 = 30;
+const FRAMERATE: u32 = 60;
 
 fn main() {
     env_logger::init_from_env(
         env_logger::Env::default().filter_or(env_logger::DEFAULT_FILTER_ENV, "info"),
     );
     ffmpeg_next::format::network::init();
+    let target_path = &std::env::current_exe()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .join("..");
 
+    if let Err(err) = bundle_for_development(target_path) {
+        panic!(
+            "Build process helper first. For release profile use: cargo build -r --bin process_helper. {:?}",
+            err
+        );
+    }
     thread::spawn(|| {
         if let Err(err) = start_example_client_code() {
             error!("{err}")
@@ -35,9 +51,6 @@ fn main() {
     });
 
     http::Server::new(8001).run();
-
-    let mut signals = Signals::new([consts::SIGINT]).unwrap();
-    signals.forever().next();
 }
 
 fn start_example_client_code() -> Result<()> {
@@ -47,9 +60,6 @@ fn start_example_client_code() -> Result<()> {
     common::post(&json!({
         "type": "init",
         "framerate": FRAMERATE,
-        "web_renderer": {
-            "init": false
-        },
     }))?;
 
     info!("[example] Start listening on output port.");
@@ -59,6 +69,15 @@ fn start_example_client_code() -> Result<()> {
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .spawn()?;
+
+    info!("[example] Download sample.");
+    let sample_path = env::current_dir()?.join(SAMPLE_FILE_PATH);
+    fs::create_dir_all(sample_path.parent().unwrap())?;
+    common::ensure_downloaded(SAMPLE_FILE_URL, &sample_path)?;
+    let file_path = env::current_dir()?
+        .join(HTML_FILE_PATH)
+        .display()
+        .to_string();
 
     info!("[example] Send register output request.");
     common::post(&json!({
@@ -76,29 +95,22 @@ fn start_example_client_code() -> Result<()> {
         }
     }))?;
 
-    info!("[example] Register static image");
+    info!("[example] Send register input request.");
     common::post(&json!({
         "type": "register",
-        "entity_type": "image",
-        "image_id": "example_image",
-        "asset_type": "jpeg",
-        "url": "https://i.postimg.cc/CxcvtJC5/pexels-rohi-bernard-codillo-17908342.jpg",
+        "entity_type": "input_stream",
+        "input_id": "input_1",
+        "port": 8004
     }))?;
 
-    let image = |id| {
-        json!( {
-            "node_id": format!("filled_image_{}", id),
-            "type": "builtin:fill_to_resolution",
-            "resolution": { "width": 960, "height": 540 },
-            "children": [
-                {
-                    "node_id": format!("image_{}", id),
-                    "type": "image",
-                    "image_id": "example_image",
-                },
-            ],
-        })
-    };
+    info!("[example] Register web renderer transform");
+    common::post(&json!({
+        "type": "register",
+        "entity_type": "web_renderer",
+        "instance_id": "example_website",
+        "url": format!("file://{file_path}"), // or other way of providing source
+        "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+    }))?;
 
     info!("[example] Update scene");
     common::post(&json!({
@@ -107,32 +119,22 @@ fn start_example_client_code() -> Result<()> {
             {
                 "output_id": "output_1",
                 "root": {
-                    "node_id": "layout",
-                    "type": "builtin:tiled_layout",
-                    "margin": 10,
-                    "horizontal_alignment": "justified",
-                    "background_color_rgba": "#FFFFFFFF",
-                    "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+                    "id": "embed_input_on_website",
+                    "type": "web_view",
+                    "instance_id": "example_website",
                     "children": [
                         {
-                            "type": "builtin:mirror_image",
-                            "node_id": "mirrored_image",
-                            "children": [image(0)],
-                        },
-                        image(1),
-                        {
-                            "node_id": "corners_rounded_image",
-                            "type": "builtin:corners_rounding",
-                            "border_radius": "100px",
-                            "children": [image(2)]
-                        },
-                        image(3),
-                        image(4),
-                        image(5),
-                        image(6),
-                        image(7),
+                            "type": "input_stream",
+                            "input_id": "input_1",
+                        }
                     ]
                 }
+            }
+        ],
+        "outputs": [
+            {
+                "output_id": "output_1",
+                "input_pad": "embed_input_on_website"
             }
         ]
     }))?;
@@ -143,17 +145,11 @@ fn start_example_client_code() -> Result<()> {
     }))?;
 
     info!("[example] Start input stream");
-    let ffmpeg_source = format!(
-        "testsrc=s={}x{}:r=30,format=yuv420p",
-        VIDEO_RESOLUTION.width, VIDEO_RESOLUTION.height
-    );
     Command::new("ffmpeg")
+        .args(["-re", "-i"])
+        .arg(sample_path)
         .args([
-            "-re",
-            "-f",
-            "lavfi",
-            "-i",
-            &ffmpeg_source,
+            "-an",
             "-c:v",
             "libx264",
             "-f",
