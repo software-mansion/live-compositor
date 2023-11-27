@@ -115,6 +115,17 @@
               ],
               "description": "(default=\"hidden\") Controls what happens to content that is too big to fit into an area."
             },
+            "resize_content": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ResizeMode"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "(default=\"none\") Controls how content of an element should be resized."
+            },
             "right": {
               "description": "Distance between the right edge of this component and the right edge of its parent. If this field is defined, this element will be absolutely positioned, instead of being laid out by it's parent.",
               "format": "float",
@@ -606,7 +617,7 @@
           "type": "string"
         },
         {
-          "description": "If children component are to big to fit inside the parent resize everything inside to fit.\n\nComponents that have dynamic size will be treated as if they had a size 0 when calculating scaling factor.\n\nWarning: This will resize everything inside even absolutely positioned elements. For example, if you have an element in the bottom right corner and content will be rescaled by a factor 0.5x then that component will end up in the middle of it's parent",
+          "description": "If children component are to big to fit inside the parent resize everything inside to fit.\n\nComponents that have do not have defined size will be treated as if they had a size 0 when calculating scaling factor.\n\nWarning: This will resize everything inside even absolutely positioned elements. For example, if you have an element in the bottom right corner and content will be rescaled by a factor 0.5x then that component will end up in the middle of it's parent",
           "enum": [
             "fit"
           ],
@@ -619,6 +630,31 @@
     },
     "RendererId": {
       "type": "string"
+    },
+    "ResizeMode": {
+      "oneOf": [
+        {
+          "description": "Never resize.\n\nNote: Setting `overflow=fit` might still cause elements to be resized even if this mode is selected",
+          "enum": [
+            "none"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Resize elements while preserving aspect ratio, so width or height of a content is the same as its parent's, but entire content is still inside.",
+          "enum": [
+            "fit"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Resize elements while preserving aspect ratio, so width or height of a content is the same as its parent's, and parts of the content are outside of the parent.",
+          "enum": [
+            "fill"
+          ],
+          "type": "string"
+        }
+      ]
     },
     "Resolution": {
       "properties": {

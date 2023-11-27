@@ -94,6 +94,12 @@ impl TryFrom<View> for scene::ViewComponent {
             Some(Overflow::Fit) => scene::Overflow::Fit,
             None => scene::Overflow::Hidden,
         };
+        let resize_content = match view.resize_content {
+            Some(ResizeMode::None) => scene::ResizeMode::None,
+            Some(ResizeMode::Fit) => scene::ResizeMode::Fit,
+            Some(ResizeMode::Fill) => scene::ResizeMode::Fill,
+            None => scene::ResizeMode::None,
+        };
         Ok(Self {
             id: view.id.map(Into::into),
             children: view
@@ -105,6 +111,7 @@ impl TryFrom<View> for scene::ViewComponent {
             direction,
             position,
             overflow,
+            resize_content,
             background_color: view
                 .background_color_rgba
                 .map(TryInto::try_into)

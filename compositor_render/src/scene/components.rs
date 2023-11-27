@@ -129,6 +129,7 @@ pub struct ViewComponent {
     pub position: Position,
     pub transition: Option<Transition>,
     pub overflow: Overflow,
+    pub resize_content: ResizeMode,
 
     pub background_color: RGBAColor,
 }
@@ -138,6 +139,13 @@ pub enum Overflow {
     Visible,
     Hidden,
     Fit,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum ResizeMode {
+    None,
+    Fit,
+    Fill,
 }
 
 #[derive(Debug, Clone, Copy)]

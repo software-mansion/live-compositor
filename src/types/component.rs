@@ -69,6 +69,9 @@ pub struct View {
     /// (default="hidden") Controls what happens to content that is too big to fit into an area.
     pub overflow: Option<Overflow>,
 
+    /// (default="none") Controls how content of an element should be resized.
+    pub resize_content: Option<ResizeMode>,
+
     /// (default="#00000000") Background color in a "#RRGGBBAA" format.
     pub background_color_rgba: Option<RGBAColor>,
 }
@@ -82,13 +85,29 @@ pub enum Overflow {
     Hidden,
     /// If children component are to big to fit inside the parent resize everything inside to fit.
     ///
-    /// Components that have dynamic size will be treated as if they had a size 0 when calculating
-    /// scaling factor.
+    /// Components that have do not have defined size will be treated as if they had a size 0 when
+    /// calculating scaling factor.
     ///
     /// Warning: This will resize everything inside even absolutely positioned
     /// elements. For example, if you have an element in the bottom right corner and content will
     /// be rescaled by a factor 0.5x then that component will end up in the middle of it's parent
     Fit,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum ResizeMode {
+    /// Never resize.
+    ///
+    /// Note: Setting `overflow=fit` might still cause elements to be resized even if this mode is
+    /// selected
+    None,
+    /// Resize elements while preserving aspect ratio, so width or height of a content is the same
+    /// as its parent's, but entire content is still inside.
+    Fit,
+    /// Resize elements while preserving aspect ratio, so width or height of a content is the same
+    /// as its parent's, and parts of the content are outside of the parent.
+    Fill,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]

@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use crate::{
     scene::{
-        layout::StatefulLayoutComponent, Overflow, Position, Size, StatefulComponent,
+        layout::StatefulLayoutComponent, Overflow, Position, ResizeMode, Size, StatefulComponent,
         ViewChildrenDirection,
     },
     transformations::layout::{Crop, LayoutContent, NestedLayout},
@@ -24,6 +24,13 @@ struct StaticChildLayoutOpts {
     parent_size: Size,
 }
 
+#[derive(Debug)]
+struct FillParams {
+    scale: f32,
+    offset_x: f32,
+    offset_y: f32,
+}
+
 impl ViewComponentParam {
     pub(super) fn layout(
         &self,
@@ -32,21 +39,34 @@ impl ViewComponentParam {
         pts: Duration,
     ) -> NestedLayout {
         let static_child_size = self.static_child_size(size, children, pts);
-        let (scale, crop) = match self.overflow {
-            Overflow::Visible => (1.0, None),
-            Overflow::Hidden => (
-                1.0,
-                Some(Crop {
-                    top: 0.0,
-                    left: 0.0,
-                    width: size.width,
-                    height: size.height,
-                }),
-            ),
-            Overflow::Fit => (
-                self.scale_factor_for_overflow_fit(size, children, pts),
-                None,
-            ),
+        let (mut scale, (offset_x, offset_y)) = match self.resize_content {
+            ResizeMode::None => (1.0, (0.0, 0.0)),
+            ResizeMode::Fit => (self.scale_factor_for_fit(size, children, pts), (0.0, 0.0)),
+            ResizeMode::Fill => {
+                let fill_params = self.scale_factor_for_fill(size, children, pts);
+                (
+                    fill_params.scale,
+                    (fill_params.offset_x, fill_params.offset_y),
+                )
+            }
+        };
+        let crop = match self.overflow {
+            Overflow::Visible => None,
+            Overflow::Hidden => Some(Crop {
+                top: 0.0,
+                left: 0.0,
+                width: size.width,
+                height: size.height,
+            }),
+            Overflow::Fit => {
+                if matches!(self.resize_content, ResizeMode::None) {
+                    let scale_for_overflow = self.scale_factor_for_fit(size, children, pts);
+                    if scale_for_overflow < 1.0 {
+                        scale = scale_for_overflow
+                    }
+                }
+                None
+            }
         };
 
         // offset along x or y direction (depends on self.direction) where next
@@ -89,8 +109,8 @@ impl ViewComponentParam {
             })
             .collect();
         NestedLayout {
-            top: 0.0,
-            left: 0.0,
+            top: offset_y,
+            left: offset_x,
             width: size.width,
             height: size.height,
             rotation_degrees: 0.0,
@@ -188,16 +208,18 @@ impl ViewComponentParam {
         )
     }
 
-    fn scale_factor_for_overflow_fit(
+    fn scale_factor_for_fit(
         &self,
         size: Size,
         children: &[StatefulComponent],
         pts: Duration,
     ) -> f32 {
-        let sum_size = self.sum_static_children_sizes(children, pts);
+        let sum_size = self
+            .sum_static_children_sizes(children, pts)
+            .max(0.000000001); // avoid division by 0
         let (max_size, max_alternative_size) = match self.direction {
-            super::ViewChildrenDirection::Row => (size.width, size.height),
-            super::ViewChildrenDirection::Column => (size.height, size.width),
+            ViewChildrenDirection::Row => (size.width, size.height),
+            ViewChildrenDirection::Column => (size.height, size.width),
         };
         let max_alternative_size_for_child = Self::static_children_iter(children, pts)
             .map(|child| match self.direction {
@@ -208,13 +230,88 @@ impl ViewComponentParam {
             .unwrap_or(0.0)
             .max(0.000000001); // avoid division by 0
 
-        f32::min(
-            1.0,
-            f32::min(
-                max_size / sum_size,
-                max_alternative_size / max_alternative_size_for_child,
-            ),
-        )
+        let has_dynamically_sized_children = Self::static_children_iter(children, pts)
+            .any(|component| component.width(pts).is_none() || component.height(pts).is_none());
+
+        let scale = f32::min(
+            max_size / sum_size,
+            max_alternative_size / max_alternative_size_for_child,
+        );
+
+        // If we have dynamically sized children then never upscale
+        // because those children can always fill that space. It does
+        // not matter here whether height or width is dynamic.
+        //
+        // If we are downscaling then dynamic elements will have size 0.
+        if has_dynamically_sized_children && scale >= 1.0 {
+            1.0
+        } else {
+            scale
+        }
+    }
+
+    fn scale_factor_for_fill(
+        &self,
+        size: Size,
+        children: &[StatefulComponent],
+        pts: Duration,
+    ) -> FillParams {
+        let sum_size = self.sum_static_children_sizes(children, pts);
+        let (max_size, max_alternative_size) = match self.direction {
+            ViewChildrenDirection::Row => (size.width, size.height),
+            ViewChildrenDirection::Column => (size.height, size.width),
+        };
+        let max_alternative_size_for_child = Self::static_children_iter(children, pts)
+            .map(|child| match self.direction {
+                ViewChildrenDirection::Row => child.height(pts).unwrap_or(0.0),
+                ViewChildrenDirection::Column => child.width(pts).unwrap_or(0.0),
+            })
+            .max_by(|a, b| f32::partial_cmp(a, b).unwrap()) // will panic if comparing NaN
+            .unwrap_or(0.0);
+        let has_dynamically_sized_children = Self::static_children_iter(children, pts)
+            .any(|component| component.width(pts).is_none() || component.height(pts).is_none());
+
+        // Do not scale if size is very small. This condition will mostly
+        // catch cases where all children have a dynamic size.
+        if sum_size < 0.1 || max_alternative_size_for_child < 0.1 {
+            return FillParams {
+                scale: 1.0,
+                offset_x: 0.0,
+                offset_y: 0.0,
+            };
+        }
+
+        let scale = f32::max(
+            max_size / sum_size,
+            max_alternative_size / max_alternative_size_for_child,
+        );
+
+        // If we have dynamically sized children then never upscale
+        // because those children can always fill that space. It does
+        // not matter here whether height or width is dynamic.
+        //
+        // If we are downscaling then dynamic elements will have size 0.
+        if has_dynamically_sized_children && scale >= 1.0 {
+            // TODO: Change `has_dynamically_sized_children` condition to `has_dynamic_width_child`
+            // and `has_dynamic_height_child`. When we have dynamic values along only one dimension
+            // we can still implement fill, but it complicates implementation significantly, so
+            // we are leaving it for now this way.
+            FillParams {
+                scale: 1.0,
+                offset_x: 0.0,
+                offset_y: 0.0,
+            }
+        } else {
+            let (width, height) = match self.direction {
+                ViewChildrenDirection::Row => (sum_size, max_alternative_size_for_child),
+                ViewChildrenDirection::Column => (max_alternative_size_for_child, sum_size),
+            };
+            FillParams {
+                scale,
+                offset_x: (size.width - (width * scale)) / 2.0,
+                offset_y: (size.height - (height * scale)) / 2.0,
+            }
+        }
     }
 
     fn sum_static_children_sizes(&self, children: &[StatefulComponent], pts: Duration) -> f32 {

@@ -6,7 +6,7 @@ use crate::{scene::ViewChildrenDirection, transformations::layout::NestedLayout}
 
 use super::{
     components::ViewComponent, layout::StatefulLayoutComponent, scene_state::BuildStateTreeCtx,
-    Component, ComponentId, IntermediateNode, Overflow, Position, SceneError, Size,
+    Component, ComponentId, IntermediateNode, Overflow, Position, ResizeMode, SceneError, Size,
     StatefulComponent, Transition,
 };
 
@@ -29,6 +29,7 @@ struct ViewComponentParam {
     direction: ViewChildrenDirection,
     position: Position,
     overflow: Overflow,
+    resize_content: ResizeMode,
 
     background_color: RGBAColor,
 }
@@ -132,6 +133,7 @@ impl ViewComponent {
                 position: self.position,
                 background_color: self.background_color,
                 overflow: self.overflow,
+                resize_content: self.resize_content,
             },
             transition,
             children: self
