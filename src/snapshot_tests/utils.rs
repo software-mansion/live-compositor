@@ -56,7 +56,7 @@ pub(super) fn snapshots_diff(old_snapshot: &[u8], new_snapshot: &[u8]) -> f32 {
 
 pub(super) fn create_renderer(
     renderers: Vec<RendererSpec>,
-    scenes: Vec<Vec<OutputScene>>,
+    scene_updates: Vec<Vec<OutputScene>>,
 ) -> Renderer {
     let (mut renderer, _event_loop) = Renderer::new(RendererOptions {
         web_renderer: WebRendererOptions {
@@ -74,8 +74,8 @@ pub(super) fn create_renderer(
         }
         renderer.register_renderer(spec).unwrap();
     }
-    for scene in scenes {
-        renderer.update_scene(scene.clone()).unwrap();
+    for scene_update in scene_updates {
+        renderer.update_scene(scene_update.clone()).unwrap();
     }
 
     renderer

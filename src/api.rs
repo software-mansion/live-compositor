@@ -32,7 +32,7 @@ pub enum Request {
 
 #[derive(Serialize, Deserialize, JsonSchema)]
 pub struct UpdateScene {
-    pub scenes: Vec<types::OutputScene>,
+    pub outputs: Vec<types::OutputScene>,
 }
 
 #[derive(Serialize, Deserialize)]
