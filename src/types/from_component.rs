@@ -21,6 +21,7 @@ impl TryFrom<Component> for scene::Component {
             Component::Image(image) => Ok(Self::Image(image.into())),
             Component::Text(text) => Ok(Self::Text(text.try_into()?)),
             Component::Tiles(tiles) => Ok(Self::Tiles(tiles.try_into()?)),
+            Component::Rescaler(rescaler) => Ok(Self::Rescaler(rescaler.try_into()?)),
         }
     }
 }
@@ -110,6 +111,78 @@ impl TryFrom<View> for scene::ViewComponent {
                 .map(TryInto::try_into)
                 .unwrap_or(Ok(colors::RGBAColor(0, 0, 0, 0)))?,
             transition: view.transition.map(Into::into),
+        })
+    }
+}
+
+impl TryFrom<Rescaler> for scene::RescalerComponent {
+    type Error = TypeError;
+
+    fn try_from(rescaler: Rescaler) -> Result<Self, Self::Error> {
+        const WIDTH_REQUIRED_MSG: &str =
+            "\"Rescaler\" component with absolute positioning requires \"width\" to be specified.";
+        const HEIGHT_REQUIRED_MSG: &str =
+            "\"Rescaler\" component with absolute positioning requires \"height\" to be specified.";
+        const VERTICAL_REQUIRED_MSG: &str =
+            "\"Rescaler\" component with absolute positioning requires either \"top\" or \"bottom\" coordinate.";
+        const VERTICAL_ONLY_ONE_MSG: &str = "Fields \"top\" and \"bottom\" are mutually exclusive, you can only specify one on a \"Rescaler\" component.";
+        const HORIZONTAL_REQUIRED_MSG: &str =
+            "Non-static \"Rescaler\" component requires either \"left\" or \"right\" coordinate.";
+        const HORIZONTAL_ONLY_ONE_MSG: &str = "Fields \"left\" and \"right\" are mutually exclusive, you can only specify one on a \"Rescaler\" component.";
+        let is_absolute_position = rescaler.top.is_some()
+            || rescaler.bottom.is_some()
+            || rescaler.left.is_some()
+            || rescaler.right.is_some()
+            || rescaler.rotation.is_some();
+        let position = if is_absolute_position {
+            let position_vertical = match (rescaler.top, rescaler.bottom) {
+                (Some(top), None) => scene::VerticalPosition::TopOffset(top),
+                (None, Some(bottom)) => scene::VerticalPosition::BottomOffset(bottom),
+                (None, None) => return Err(TypeError::new(VERTICAL_REQUIRED_MSG)),
+                (Some(_), Some(_)) => return Err(TypeError::new(VERTICAL_ONLY_ONE_MSG)),
+            };
+            let position_horizontal = match (rescaler.left, rescaler.right) {
+                (Some(left), None) => scene::HorizontalPosition::LeftOffset(left),
+                (None, Some(right)) => scene::HorizontalPosition::RightOffset(right),
+                (None, None) => return Err(TypeError::new(HORIZONTAL_REQUIRED_MSG)),
+                (Some(_), Some(_)) => return Err(TypeError::new(HORIZONTAL_ONLY_ONE_MSG)),
+            };
+            Position::Absolute(scene::AbsolutePosition {
+                width: (rescaler
+                    .width
+                    .ok_or_else(|| TypeError::new(WIDTH_REQUIRED_MSG))?),
+                height: (rescaler
+                    .height
+                    .ok_or_else(|| TypeError::new(HEIGHT_REQUIRED_MSG))?),
+                position_horizontal,
+                position_vertical,
+                rotation_degrees: rescaler.rotation.unwrap_or(0.0),
+            })
+        } else {
+            Position::Static {
+                width: rescaler.width,
+                height: rescaler.height,
+            }
+        };
+        let mode = match rescaler.mode {
+            Some(ResizeMode::Fit) => scene::ResizeMode::Fit,
+            Some(ResizeMode::Fill) => scene::ResizeMode::Fill,
+            None => scene::ResizeMode::Fit,
+        };
+        Ok(Self {
+            id: rescaler.id.map(Into::into),
+            child: Box::new((*rescaler.child).try_into()?),
+            position,
+            mode,
+            horizontal_align: rescaler
+                .horizontal_align
+                .unwrap_or(HorizontalAlign::Center)
+                .into(),
+            vertical_align: rescaler
+                .vertical_align
+                .unwrap_or(VerticalAlign::Center)
+                .into(),
+            transition: rescaler.transition.map(Into::into),
         })
     }
 }

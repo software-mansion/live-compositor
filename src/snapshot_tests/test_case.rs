@@ -20,6 +20,7 @@ pub struct TestCase {
     pub renderers: Vec<&'static str>,
     pub timestamps: Vec<Duration>,
     pub outputs: Outputs,
+    pub only: bool,
     pub allowed_error: f32,
 }
 
@@ -36,6 +37,7 @@ impl Default for TestCase {
             renderers: Vec::new(),
             timestamps: vec![Duration::from_secs(0)],
             outputs: Outputs::Scene(vec![]),
+            only: false,
             allowed_error: 130.0,
         }
     }

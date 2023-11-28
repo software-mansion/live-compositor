@@ -16,6 +16,7 @@ pub enum Component {
     Image(Image),
     Text(Text),
     Tiles(Tiles),
+    Rescaler(Rescaler),
 }
 
 /// Component representing incoming RTP stream. Specific streams can be identified
@@ -96,6 +97,53 @@ pub enum Overflow {
 pub enum ViewDirection {
     Row,
     Column,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct Rescaler {
+    // TODO: better name
+    pub id: Option<ComponentId>,
+    pub child: Box<Component>,
+
+    pub mode: Option<ResizeMode>,
+    pub horizontal_align: Option<HorizontalAlign>,
+    pub vertical_align: Option<VerticalAlign>,
+
+    /// Width of a component in pixels. Required when using absolute positioning.
+    pub width: Option<f32>,
+    /// Height of a component in pixels. Required when using absolute positioning.
+    pub height: Option<f32>,
+
+    /// Distance between the top edge of this component and the top edge of its parent.
+    /// If this field is defined, then component will ignore a layout defined by its parent.
+    pub top: Option<f32>,
+    /// Distance between the left edge of this component and the left edge of its parent.
+    /// If this field is defined, this element will be absolutely positioned, instead of being
+    /// laid out by it's parent.
+    pub left: Option<f32>,
+    /// Distance between the bottom edge of this component and the bottom edge of its parent.
+    /// If this field is defined, this element will be absolutely positioned, instead of being
+    /// laid out by it's parent.
+    pub bottom: Option<f32>,
+    /// Distance between the right edge of this component and the right edge of its parent.
+    /// If this field is defined, this element will be absolutely positioned, instead of being
+    /// laid out by it's parent.
+    pub right: Option<f32>,
+    /// Rotation of a component in degrees. If this field is defined, this element will be
+    /// absolutely positioned, instead of being laid out by it's parent.
+    pub rotation: Option<f32>,
+
+    /// Defines how this component will behave during a scene update. This will only have an
+    /// effect if previous scene already contained a View component with the same id.
+    pub transition: Option<Transition>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum ResizeMode {
+    Fit,
+    Fill,
 }
 
 /// WebView component renders a website using Chromium.

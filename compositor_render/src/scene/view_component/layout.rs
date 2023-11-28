@@ -194,7 +194,9 @@ impl ViewComponentParam {
         children: &[StatefulComponent],
         pts: Duration,
     ) -> f32 {
-        let sum_size = self.sum_static_children_sizes(children, pts);
+        let sum_size = self
+            .sum_static_children_sizes(children, pts)
+            .max(0.000000001); // avoid division by 0
         let (max_size, max_alternative_size) = match self.direction {
             super::ViewChildrenDirection::Row => (size.width, size.height),
             super::ViewChildrenDirection::Column => (size.height, size.width),
