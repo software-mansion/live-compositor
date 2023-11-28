@@ -17,7 +17,6 @@ pub enum FallbackStrategy {
 pub struct ShaderSpec {
     pub shader_id: RendererId,
     pub source: String,
-    pub fallback_strategy: Option<FallbackStrategy>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
@@ -27,7 +26,6 @@ pub struct WebRendererSpec {
     pub url: String,
     pub resolution: Resolution,
     pub embedding_method: Option<WebEmbeddingMethod>,
-    pub fallback_strategy: Option<FallbackStrategy>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]

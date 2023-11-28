@@ -2,8 +2,8 @@
     "output_id": "output_1",
     "root": {
         "type": "tiles",
-        "vertical_alignment": "center",
-        "horizontal_alignment": "center",
+        "vertical_align": "center",
+        "horizontal_align": "center",
         "children": [
             {
                 "type": "input_stream",

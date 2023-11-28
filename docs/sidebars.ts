@@ -15,6 +15,12 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: 'category',
+      label: 'Concepts',
+      collapsible: false,
+      items: ['concept/component', 'concept/layouts', 'concept/shaders'],
+    },
+    {
+      type: 'category',
       label: 'API Reference',
       collapsible: false,
       link: {
@@ -48,7 +54,7 @@ const sidebars: SidebarsConfig = {
           label: 'Renderers',
           collapsible: false,
           description: 'Resources that need to be registered first before they can be used.',
-          items: ['api/renderers/shader'],
+          items: ['api/renderers/shader', 'api/renderers/image', 'api/renderers/web'],
         },
       ],
     },
