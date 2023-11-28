@@ -178,8 +178,8 @@ impl<Input: PipelineInput, Output: PipelineOutput> Pipeline<Input, Output> {
             .unregister_renderer(renderer_id, registry_type)
     }
 
-    pub fn update_scene(&mut self, scenes: Vec<OutputScene>) -> Result<(), UpdateSceneError> {
-        let scenes = scenes
+    pub fn update_scene(&mut self, outputs: Vec<OutputScene>) -> Result<(), UpdateSceneError> {
+        let outputs = outputs
             .into_iter()
             .map(|output| {
                 let resolution = self
@@ -195,7 +195,7 @@ impl<Input: PipelineInput, Output: PipelineOutput> Pipeline<Input, Output> {
                 })
             })
             .collect::<Result<Vec<_>, UpdateSceneError>>()?;
-        self.renderer.update_scene(scenes)
+        self.renderer.update_scene(outputs)
     }
 
     pub fn start(&mut self) {

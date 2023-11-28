@@ -134,7 +134,7 @@ fn start_example_client_code(host_ip: String) -> Result<()> {
     info!("[example] Update scene");
     common::post(&json!({
         "type": "update_scene",
-        "scenes": [
+        "outputs": [
             {
                 "output_id": "output_1",
                 "root": {

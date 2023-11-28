@@ -62,7 +62,7 @@ impl TryFrom<UpdateScene> for Vec<compositor_pipeline::pipeline::OutputScene> {
 
     fn try_from(update_scene: UpdateScene) -> Result<Self, Self::Error> {
         update_scene
-            .scenes
+            .outputs
             .into_iter()
             .map(TryInto::try_into)
             .collect::<Result<Vec<_>, TypeError>>()
