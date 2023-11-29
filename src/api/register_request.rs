@@ -160,11 +160,9 @@ fn check_port_not_available<T>(
     if let Err(RegisterInputError::DecoderError(ref id, InputInitError::InputError(ref err))) =
         register_input_error
     {
-        if let Some(err) = err.0.downcast_ref::<rtp_receiver::InitError>() {
-            match err {
-                rtp_receiver::InitError::FfmpegError(ffmpeg_next::Error::Other { errno: ffmpeg_next::error::EADDRINUSE })
-                | rtp_receiver::InitError::FfmpegError(ffmpeg_next::Error::Other { errno: ffmpeg_next::error::EADDRNOTAVAIL })
-                | rtp_receiver::InitError::FfmpegError(ffmpeg_next::Error::InvalidData) =>
+        if let Some(err) = err.0.downcast_ref::<std::io::Error>() {
+            match err.kind() {
+                std::io::ErrorKind::AddrInUse =>
                     Err(ApiError::new(
                         PORT_ALREADY_IN_USE_ERROR_CODE,
                         format!("Failed to register input stream \"{id}\". Port {port} is already in use or not available."),
