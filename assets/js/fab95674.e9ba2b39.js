@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkcompositor_live=self.webpackChunkcompositor_live||[]).push([[874],{5312:e=>{e.exports=JSON.parse('{"title":"API Reference","slug":"/category/api-reference","permalink":"/docs/category/api-reference","navigation":{"previous":{"title":"Node.js","permalink":"/docs/get-started/node"},"next":{"title":"Routes","permalink":"/docs/api/routes"}}}')}}]);
