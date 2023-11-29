@@ -664,6 +664,94 @@ pub fn image_snapshot_tests() -> Vec<TestCase> {
 pub fn transition_snapshot_tests() -> Vec<TestCase> {
     Vec::from([
         TestCase {
+            name: "transition/change_rescaler_absolute_and_send_next_update",
+            outputs: Outputs::Scenes(vec![
+                vec![(
+                    include_str!(
+                        "../../snapshot_tests/transition/change_rescaler_absolute_start.scene.json"
+                    ),
+                    DEFAULT_RESOLUTION,
+                )],
+                vec![(
+                    include_str!(
+                        "../../snapshot_tests/transition/change_rescaler_absolute_end.scene.json"
+                    ),
+                    DEFAULT_RESOLUTION,
+                )],
+                vec![(
+                    include_str!(
+                        "../../snapshot_tests/transition/change_rescaler_absolute_after_end.scene.json"
+                    ),
+                    DEFAULT_RESOLUTION,
+                )],
+            ]),
+            timestamps: vec![
+                Duration::from_secs(0),
+                Duration::from_secs(5),
+                Duration::from_secs(9),
+                Duration::from_secs(10),
+            ],
+            ..Default::default()
+        },
+        TestCase {
+            name: "transition/change_view_width_and_send_abort_transition",
+            outputs: Outputs::Scenes(vec![
+                vec![(
+                    include_str!(
+                        "../../snapshot_tests/transition/change_view_width_start.scene.json"
+                    ),
+                    DEFAULT_RESOLUTION,
+                )],
+                vec![(
+                    include_str!(
+                        "../../snapshot_tests/transition/change_view_width_end.scene.json"
+                    ),
+                    DEFAULT_RESOLUTION,
+                )],
+                vec![(
+                    include_str!(
+                        "../../snapshot_tests/transition/change_view_width_after_end_without_id.scene.json"
+                    ),
+                    DEFAULT_RESOLUTION,
+                )],
+            ]),
+            timestamps: vec![
+                Duration::from_secs(0),
+                Duration::from_secs(5),
+                Duration::from_secs(10),
+            ],
+            ..Default::default()
+        },
+        TestCase {
+            name: "transition/change_view_width_and_send_next_update",
+            outputs: Outputs::Scenes(vec![
+                vec![(
+                    include_str!(
+                        "../../snapshot_tests/transition/change_view_width_start.scene.json"
+                    ),
+                    DEFAULT_RESOLUTION,
+                )],
+                vec![(
+                    include_str!(
+                        "../../snapshot_tests/transition/change_view_width_end.scene.json"
+                    ),
+                    DEFAULT_RESOLUTION,
+                )],
+                vec![(
+                    include_str!(
+                        "../../snapshot_tests/transition/change_view_width_after_end.scene.json"
+                    ),
+                    DEFAULT_RESOLUTION,
+                )],
+            ]),
+            timestamps: vec![
+                Duration::from_secs(0),
+                Duration::from_secs(5),
+                Duration::from_secs(10),
+            ],
+            ..Default::default()
+        },
+        TestCase {
             name: "transition/change_view_width",
             outputs: Outputs::Scenes(vec![
                 vec![(

@@ -186,6 +186,37 @@ fn start_example_client_code() -> Result<()> {
         ]
     });
 
+    let scene3 = json!({
+        "type": "view",
+        "background_color_rgba": "#444444FF",
+        "children": [
+            {
+                "type": "view",
+                "id": "resized",
+                "width": VIDEO_RESOLUTION.width,
+                "height": VIDEO_RESOLUTION.height,
+                "top": 0,
+                "right": 0,
+                "children": [
+                    {
+                        "type": "rescaler",
+                        "mode": "fit",
+                        "child": {
+                            "type": "shader",
+                            "shader_id": "example_shader",
+                            "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+                            "children": [{
+                                "type": "input_stream",
+                                "input_id": "input_1",
+                            }]
+                        }
+
+                    }
+                ]
+            }
+        ]
+    });
+
     info!("[example] Update scene");
     common::post(&json!({
         "type": "update_scene",
@@ -210,5 +241,18 @@ fn start_example_client_code() -> Result<()> {
         ]
     }))?;
 
+    thread::sleep(Duration::from_secs(2));
+
+    // this should not abort in progress transition
+    info!("[example] Update scene");
+    common::post(&json!({
+        "type": "update_scene",
+        "outputs": [
+            {
+                "output_id": "output_1",
+                "root": scene3,
+            }
+        ]
+    }))?;
     Ok(())
 }
