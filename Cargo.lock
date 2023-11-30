@@ -633,8 +633,7 @@ dependencies = [
 [[package]]
 name = "ffmpeg-next"
 version = "6.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8af03c47ad26832ab3aabc4cdbf210af3d3b878783edd5a7ba044ba33aab7a60"
+source = "git+https://github.com/membraneframework-labs/rust-ffmpeg.git?branch=fix-for-ffmepg-6.1#1d41052de0f844dd1bcb649bfb4684a400ef5f0f"
 dependencies = [
  "bitflags 1.3.2",
  "ffmpeg-sys-next",
@@ -644,8 +643,7 @@ dependencies = [
 [[package]]
 name = "ffmpeg-sys-next"
 version = "6.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf650f461ccf130f4eef4927affed703cc387b183bfc4a7dfee86a076c131127"
+source = "git+https://github.com/membraneframework-labs/rust-ffmpeg-sys.git?branch=fix-for-ffmepg-6.1#cfd7a1dc23f83731c94bc6ae85f01bcf90a1a63a"
 dependencies = [
  "bindgen 0.64.0",
  "cc",
