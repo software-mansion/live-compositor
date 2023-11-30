@@ -1,15 +1,39 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "OutputScene",
+  "type": "object",
+  "required": [
+    "output_id",
+    "root"
+  ],
+  "properties": {
+    "output_id": {
+      "$ref": "#/definitions/OutputId"
+    },
+    "root": {
+      "$ref": "#/definitions/Component"
+    }
+  },
   "definitions": {
-    "AspectRatio": {
+    "OutputId": {
       "type": "string"
     },
     "Component": {
       "oneOf": [
         {
-          "additionalProperties": false,
           "description": "Component representing incoming RTP stream. Specific streams can be identified by an `input_id` that was part of a `RegisterInputStream` request.",
+          "type": "object",
+          "required": [
+            "input_id",
+            "type"
+          ],
           "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "input_stream"
+              ]
+            },
             "id": {
               "anyOf": [
                 {
@@ -22,52 +46,59 @@
             },
             "input_id": {
               "$ref": "#/definitions/InputId"
-            },
-            "type": {
-              "enum": [
-                "input_stream"
-              ],
-              "type": "string"
             }
           },
-          "required": [
-            "input_id",
-            "type"
-          ],
-          "type": "object"
+          "additionalProperties": false
         },
         {
-          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "type"
+          ],
           "properties": {
-            "background_color_rgba": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "view"
+              ]
+            },
+            "id": {
               "anyOf": [
                 {
-                  "$ref": "#/definitions/RGBAColor"
+                  "$ref": "#/definitions/ComponentId"
                 },
                 {
                   "type": "null"
                 }
-              ],
-              "description": "(default=\"#00000000\") Background color in a \"#RRGGBBAA\" format."
-            },
-            "bottom": {
-              "description": "Distance between the bottom edge of this component and the bottom edge of its parent. If this field is defined, this element will be absolutely positioned, instead of being laid out by it's parent.",
-              "format": "float",
-              "type": [
-                "number",
-                "null"
               ]
             },
             "children": {
-              "items": {
-                "$ref": "#/definitions/Component"
-              },
               "type": [
                 "array",
                 "null"
-              ]
+              ],
+              "items": {
+                "$ref": "#/definitions/Component"
+              }
+            },
+            "width": {
+              "description": "Width of a component in pixels. Required when using absolute positioning.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "float"
+            },
+            "height": {
+              "description": "Height of a component in pixels. Required when using absolute positioning.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "float"
             },
             "direction": {
+              "description": "Direction defines how static children are positioned inside the View component. \"row\" - Children positioned from left to right. \"column\" - Children positioned from top to bottom.",
               "anyOf": [
                 {
                   "$ref": "#/definitions/ViewDirection"
@@ -75,71 +106,50 @@
                 {
                   "type": "null"
                 }
-              ],
-              "description": "Direction defines how static children are positioned inside the View component. \"row\" - Children positioned from left to right. \"column\" - Children positioned from top to bottom."
-            },
-            "height": {
-              "description": "Height of a component in pixels. Required when using absolute positioning.",
-              "format": "float",
-              "type": [
-                "number",
-                "null"
-              ]
-            },
-            "id": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/ComponentId"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "left": {
-              "description": "Distance between the left edge of this component and the left edge of its parent. If this field is defined, this element will be absolutely positioned, instead of being laid out by it's parent.",
-              "format": "float",
-              "type": [
-                "number",
-                "null"
-              ]
-            },
-            "overflow": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/Overflow"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "(default=\"hidden\") Controls what happens to content that is too big to fit into an area."
-            },
-            "right": {
-              "description": "Distance between the right edge of this component and the right edge of its parent. If this field is defined, this element will be absolutely positioned, instead of being laid out by it's parent.",
-              "format": "float",
-              "type": [
-                "number",
-                "null"
-              ]
-            },
-            "rotation": {
-              "description": "Rotation of a component in degrees. If this field is defined, this element will be absolutely positioned, instead of being laid out by it's parent.",
-              "format": "float",
-              "type": [
-                "number",
-                "null"
               ]
             },
             "top": {
               "description": "Distance between the top edge of this component and the top edge of its parent. If this field is defined, then component will ignore a layout defined by its parent.",
-              "format": "float",
               "type": [
                 "number",
                 "null"
-              ]
+              ],
+              "format": "float"
+            },
+            "left": {
+              "description": "Distance between the left edge of this component and the left edge of its parent. If this field is defined, this element will be absolutely positioned, instead of being laid out by it's parent.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "float"
+            },
+            "bottom": {
+              "description": "Distance between the bottom edge of this component and the bottom edge of its parent. If this field is defined, this element will be absolutely positioned, instead of being laid out by it's parent.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "float"
+            },
+            "right": {
+              "description": "Distance between the right edge of this component and the right edge of its parent. If this field is defined, this element will be absolutely positioned, instead of being laid out by it's parent.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "float"
+            },
+            "rotation": {
+              "description": "Rotation of a component in degrees. If this field is defined, this element will be absolutely positioned, instead of being laid out by it's parent.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "float"
             },
             "transition": {
+              "description": "Defines how this component will behave during a scene update. This will only have an effect if previous scene already contained a View component with the same id.",
               "anyOf": [
                 {
                   "$ref": "#/definitions/Transition"
@@ -147,83 +157,45 @@
                 {
                   "type": "null"
                 }
-              ],
-              "description": "Defines how this component will behave during a scene update. This will only have an effect if previous scene already contained a View component with the same id."
-            },
-            "type": {
-              "enum": [
-                "view"
-              ],
-              "type": "string"
-            },
-            "width": {
-              "description": "Width of a component in pixels. Required when using absolute positioning.",
-              "format": "float",
-              "type": [
-                "number",
-                "null"
-              ]
-            }
-          },
-          "required": [
-            "type"
-          ],
-          "type": "object"
-        },
-        {
-          "additionalProperties": false,
-          "description": "WebView component renders a website using Chromium.",
-          "properties": {
-            "children": {
-              "items": {
-                "$ref": "#/definitions/Component"
-              },
-              "type": [
-                "array",
-                "null"
               ]
             },
-            "id": {
+            "overflow": {
+              "description": "(default=\"hidden\") Controls what happens to content that is too big to fit into an area.",
               "anyOf": [
                 {
-                  "$ref": "#/definitions/ComponentId"
+                  "$ref": "#/definitions/Overflow"
                 },
                 {
                   "type": "null"
                 }
               ]
             },
-            "instance_id": {
-              "allOf": [
+            "background_color_rgba": {
+              "description": "(default=\"#00000000\") Background color in a \"#RRGGBBAA\" format.",
+              "anyOf": [
                 {
-                  "$ref": "#/definitions/RendererId"
+                  "$ref": "#/definitions/RGBAColor"
+                },
+                {
+                  "type": "null"
                 }
-              ],
-              "description": "ID of a previously registered `WebRenderer`.\n\nWarning: You can only refer to specific instance in one Component at the time."
-            },
-            "type": {
-              "enum": [
-                "web_view"
-              ],
-              "type": "string"
+              ]
             }
           },
+          "additionalProperties": false
+        },
+        {
+          "description": "WebView component renders a website using Chromium.",
+          "type": "object",
           "required": [
             "instance_id",
             "type"
           ],
-          "type": "object"
-        },
-        {
-          "additionalProperties": false,
           "properties": {
-            "children": {
-              "items": {
-                "$ref": "#/definitions/Component"
-              },
-              "type": [
-                "array",
-                "null"
+            "type": {
+              "type": "string",
+              "enum": [
+                "web_view"
               ]
             },
             "id": {
@@ -236,23 +208,69 @@
                 }
               ]
             },
-            "resolution": {
-              "allOf": [
-                {
-                  "$ref": "#/definitions/Resolution"
-                }
+            "children": {
+              "type": [
+                "array",
+                "null"
               ],
-              "description": "Resolution of a texture where shader will be executed."
+              "items": {
+                "$ref": "#/definitions/Component"
+              }
             },
-            "shader_id": {
+            "instance_id": {
+              "description": "ID of a previously registered `WebRenderer`.\n\nWarning: You can only refer to specific instance in one Component at the time.",
               "allOf": [
                 {
                   "$ref": "#/definitions/RendererId"
                 }
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "resolution",
+            "shader_id",
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "shader"
+              ]
+            },
+            "id": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ComponentId"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "children": {
+              "type": [
+                "array",
+                "null"
               ],
-              "description": "ID of a previously registered Shader."
+              "items": {
+                "$ref": "#/definitions/Component"
+              }
+            },
+            "shader_id": {
+              "description": "ID of a previously registered Shader.",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/RendererId"
+                }
+              ]
             },
             "shader_param": {
+              "description": "Object that will be serialized into a `struct` and passed inside the shader as: ```wgsl @group(1) @binding(0) var<uniform> ```\n\nNote: This object's structure must match the structure defined in a shader source code.",
               "anyOf": [
                 {
                   "$ref": "#/definitions/ShaderParam"
@@ -260,26 +278,32 @@
                 {
                   "type": "null"
                 }
-              ],
-              "description": "Object that will be serialized into a `struct` and passed inside the shader as: ```wgsl @group(1) @binding(0) var<uniform> ```\n\nNote: This object's structure must match the structure defined in a shader source code."
+              ]
             },
-            "type": {
-              "enum": [
-                "shader"
-              ],
-              "type": "string"
+            "resolution": {
+              "description": "Resolution of a texture where shader will be executed.",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/Resolution"
+                }
+              ]
             }
           },
-          "required": [
-            "resolution",
-            "shader_id",
-            "type"
-          ],
-          "type": "object"
+          "additionalProperties": false
         },
         {
-          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "image_id",
+            "type"
+          ],
           "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "image"
+              ]
+            },
             "id": {
               "anyOf": [
                 {
@@ -291,52 +315,90 @@
               ]
             },
             "image_id": {
+              "description": "ID of a previously registered Image.",
               "allOf": [
                 {
                   "$ref": "#/definitions/RendererId"
                 }
-              ],
-              "description": "ID of a previously registered Image."
-            },
-            "type": {
-              "enum": [
-                "image"
-              ],
-              "type": "string"
+              ]
             }
           },
-          "required": [
-            "image_id",
-            "type"
-          ],
-          "type": "object"
+          "additionalProperties": false
         },
         {
-          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "font_size",
+            "text",
+            "type"
+          ],
           "properties": {
-            "align": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/HorizontalAlign"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "(default=\"left\") Text align."
+            "type": {
+              "type": "string",
+              "enum": [
+                "text"
+              ]
             },
-            "background_color_rgba": {
+            "id": {
               "anyOf": [
                 {
-                  "$ref": "#/definitions/RGBAColor"
+                  "$ref": "#/definitions/ComponentId"
                 },
                 {
                   "type": "null"
                 }
+              ]
+            },
+            "text": {
+              "type": "string"
+            },
+            "width": {
+              "description": "Width of a texture that text will be rendered on. If not provided the resulting texture will be sized based on the defined text, but limited to `max_width` value.",
+              "type": [
+                "number",
+                "null"
               ],
-              "description": "(default=\"#00000000\") Background color in `#RRGGBBAA` format."
+              "format": "float"
+            },
+            "height": {
+              "description": "Height of a texture that text will be rendered on. If not provided the resulting texture will be sized based on the defined text, but limited to `max_width` value.\n\nIt's an error to provide `height` if width is not defined.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "float"
+            },
+            "max_width": {
+              "description": "(default=7682) Maximal width. Limits the width of a texture that text will be rendered on. Value is ignored if width is defined.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "float"
+            },
+            "max_height": {
+              "description": "(default=4320) Maximal height. Limits the height of a texture that text will be rendered on. Value is ignored if height is defined.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "float"
+            },
+            "font_size": {
+              "description": "Font size in pixels.",
+              "type": "number",
+              "format": "float"
+            },
+            "line_height": {
+              "description": "Distance between lines in pixels. Defaults to the value of the `font_size` property.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "float"
             },
             "color_rgba": {
+              "description": "(default=\"#FFFFFFFF\") Font color in `#RRGGBBAA` format.",
               "anyOf": [
                 {
                   "$ref": "#/definitions/RGBAColor"
@@ -344,8 +406,18 @@
                 {
                   "type": "null"
                 }
-              ],
-              "description": "(default=\"#FFFFFFFF\") Font color in `#RRGGBBAA` format."
+              ]
+            },
+            "background_color_rgba": {
+              "description": "(default=\"#00000000\") Background color in `#RRGGBBAA` format.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/RGBAColor"
+                },
+                {
+                  "type": "null"
+                }
+              ]
             },
             "font_family": {
               "description": "(default=\"Verdana\") Font family.\n\nProvide family-name for specific font. \"generic-family\" values like e.g. \"sans-serif\" will not work. https://www.w3.org/TR/2018/REC-css-fonts-3-20180920/#family-name-value",
@@ -354,54 +426,8 @@
                 "null"
               ]
             },
-            "font_size": {
-              "description": "Font size in pixels.",
-              "format": "float",
-              "type": "number"
-            },
-            "height": {
-              "description": "Height of a texture that text will be rendered on. If not provided the resulting texture will be sized based on the defined text, but limited to `max_width` value.\n\nIt's an error to provide `height` if width is not defined.",
-              "format": "float",
-              "type": [
-                "number",
-                "null"
-              ]
-            },
-            "id": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/ComponentId"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "line_height": {
-              "description": "Distance between lines in pixels. Defaults to the value of the `font_size` property.",
-              "format": "float",
-              "type": [
-                "number",
-                "null"
-              ]
-            },
-            "max_height": {
-              "description": "(default=4320) Maximal height. Limits the height of a texture that text will be rendered on. Value is ignored if height is defined.",
-              "format": "float",
-              "type": [
-                "number",
-                "null"
-              ]
-            },
-            "max_width": {
-              "description": "(default=7682) Maximal width. Limits the width of a texture that text will be rendered on. Value is ignored if width is defined.",
-              "format": "float",
-              "type": [
-                "number",
-                "null"
-              ]
-            },
             "style": {
+              "description": "(default=\"normal\") Font style. The selected font needs to support this specific style.",
               "anyOf": [
                 {
                   "$ref": "#/definitions/TextStyle"
@@ -409,88 +435,10 @@
                 {
                   "type": "null"
                 }
-              ],
-              "description": "(default=\"normal\") Font style. The selected font needs to support this specific style."
-            },
-            "text": {
-              "type": "string"
-            },
-            "type": {
-              "enum": [
-                "text"
-              ],
-              "type": "string"
-            },
-            "weight": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/TextWeight"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "(default=\"normal\") Font weight. The selected font needs to support this specific weight."
-            },
-            "width": {
-              "description": "Width of a texture that text will be rendered on. If not provided the resulting texture will be sized based on the defined text, but limited to `max_width` value.",
-              "format": "float",
-              "type": [
-                "number",
-                "null"
               ]
             },
-            "wrap": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/TextWrapMode"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "(default=\"none\") Text wrapping options."
-            }
-          },
-          "required": [
-            "font_size",
-            "text",
-            "type"
-          ],
-          "type": "object"
-        },
-        {
-          "additionalProperties": false,
-          "properties": {
-            "background_color_rgba": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/RGBAColor"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "(default=\"#00000000\") Background color in a \"#RRGGBBAA\" format."
-            },
-            "children": {
-              "items": {
-                "$ref": "#/definitions/Component"
-              },
-              "type": [
-                "array",
-                "null"
-              ]
-            },
-            "height": {
-              "description": "Height of a component in pixels.",
-              "format": "float",
-              "type": [
-                "number",
-                "null"
-              ]
-            },
-            "horizontal_alignment": {
+            "align": {
+              "description": "(default=\"left\") Text align.",
               "anyOf": [
                 {
                   "$ref": "#/definitions/HorizontalAlign"
@@ -498,13 +446,96 @@
                 {
                   "type": "null"
                 }
-              ],
-              "description": "(default=\"center\") Horizontal alignment of tiles."
+              ]
+            },
+            "wrap": {
+              "description": "(default=\"none\") Text wrapping options.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/TextWrapMode"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "weight": {
+              "description": "(default=\"normal\") Font weight. The selected font needs to support this specific weight.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/TextWeight"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "tiles"
+              ]
             },
             "id": {
               "anyOf": [
                 {
                   "$ref": "#/definitions/ComponentId"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "children": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "$ref": "#/definitions/Component"
+              }
+            },
+            "width": {
+              "description": "Width of a component in pixels.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "float"
+            },
+            "height": {
+              "description": "Height of a component in pixels.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "float"
+            },
+            "background_color_rgba": {
+              "description": "(default=\"#00000000\") Background color in a \"#RRGGBBAA\" format.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/RGBAColor"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "tile_aspect_ratio": {
+              "description": "(default=\"16:9\") Aspect ration of a tile in \"W:H\" format, where W and H are integers.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/AspectRatio"
                 },
                 {
                   "type": "null"
@@ -513,85 +544,22 @@
             },
             "margin": {
               "description": "(default=0) Margin of each tile in pixels.",
-              "format": "float",
               "type": [
                 "number",
                 "null"
-              ]
+              ],
+              "format": "float"
             },
             "padding": {
               "description": "(default=0) Padding on each tile in pixels.",
-              "format": "float",
               "type": [
                 "number",
                 "null"
-              ]
-            },
-            "tile_aspect_ratio": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/AspectRatio"
-                },
-                {
-                  "type": "null"
-                }
               ],
-              "description": "(default=\"16:9\") Aspect ration of a tile in \"W:H\" format, where W and H are integers."
+              "format": "float"
             },
-            "type": {
-              "enum": [
-                "tiles"
-              ],
-              "type": "string"
-            },
-            "vertical_alignment": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/VerticalAlign"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "(default=\"center\") Vertical alignment of tiles."
-            },
-            "width": {
-              "description": "Width of a component in pixels.",
-              "format": "float",
-              "type": [
-                "number",
-                "null"
-              ]
-            }
-          },
-          "required": [
-            "type"
-          ],
-          "type": "object"
-        },
-        {
-          "additionalProperties": false,
-          "properties": {
-            "bottom": {
-              "description": "Distance between the bottom edge of this component and the bottom edge of its parent. If this field is defined, this element will be absolutely positioned, instead of being laid out by it's parent.",
-              "format": "float",
-              "type": [
-                "number",
-                "null"
-              ]
-            },
-            "child": {
-              "$ref": "#/definitions/Component"
-            },
-            "height": {
-              "description": "Height of a component in pixels. Required when using absolute positioning.",
-              "format": "float",
-              "type": [
-                "number",
-                "null"
-              ]
-            },
-            "horizontal_align": {
+            "horizontal_alignment": {
+              "description": "(default=\"center\") Horizontal alignment of tiles.",
               "anyOf": [
                 {
                   "$ref": "#/definitions/HorizontalAlign"
@@ -599,6 +567,33 @@
                 {
                   "type": "null"
                 }
+              ]
+            },
+            "vertical_alignment": {
+              "description": "(default=\"center\") Vertical alignment of tiles.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/VerticalAlign"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "child",
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "rescaler"
               ]
             },
             "id": {
@@ -611,13 +606,8 @@
                 }
               ]
             },
-            "left": {
-              "description": "Distance between the left edge of this component and the left edge of its parent. If this field is defined, this element will be absolutely positioned, instead of being laid out by it's parent.",
-              "format": "float",
-              "type": [
-                "number",
-                "null"
-              ]
+            "child": {
+              "$ref": "#/definitions/Component"
             },
             "mode": {
               "anyOf": [
@@ -629,46 +619,15 @@
                 }
               ]
             },
-            "right": {
-              "description": "Distance between the right edge of this component and the right edge of its parent. If this field is defined, this element will be absolutely positioned, instead of being laid out by it's parent.",
-              "format": "float",
-              "type": [
-                "number",
-                "null"
-              ]
-            },
-            "rotation": {
-              "description": "Rotation of a component in degrees. If this field is defined, this element will be absolutely positioned, instead of being laid out by it's parent.",
-              "format": "float",
-              "type": [
-                "number",
-                "null"
-              ]
-            },
-            "top": {
-              "description": "Distance between the top edge of this component and the top edge of its parent. If this field is defined, then component will ignore a layout defined by its parent.",
-              "format": "float",
-              "type": [
-                "number",
-                "null"
-              ]
-            },
-            "transition": {
+            "horizontal_align": {
               "anyOf": [
                 {
-                  "$ref": "#/definitions/Transition"
+                  "$ref": "#/definitions/HorizontalAlign"
                 },
                 {
                   "type": "null"
                 }
-              ],
-              "description": "Defines how this component will behave during a scene update. This will only have an effect if previous scene already contained a View component with the same id."
-            },
-            "type": {
-              "enum": [
-                "rescaler"
-              ],
-              "type": "string"
+              ]
             },
             "vertical_align": {
               "anyOf": [
@@ -682,61 +641,123 @@
             },
             "width": {
               "description": "Width of a component in pixels. Required when using absolute positioning.",
-              "format": "float",
               "type": [
                 "number",
                 "null"
+              ],
+              "format": "float"
+            },
+            "height": {
+              "description": "Height of a component in pixels. Required when using absolute positioning.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "float"
+            },
+            "top": {
+              "description": "Distance between the top edge of this component and the top edge of its parent. If this field is defined, then component will ignore a layout defined by its parent.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "float"
+            },
+            "left": {
+              "description": "Distance between the left edge of this component and the left edge of its parent. If this field is defined, this element will be absolutely positioned, instead of being laid out by it's parent.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "float"
+            },
+            "bottom": {
+              "description": "Distance between the bottom edge of this component and the bottom edge of its parent. If this field is defined, this element will be absolutely positioned, instead of being laid out by it's parent.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "float"
+            },
+            "right": {
+              "description": "Distance between the right edge of this component and the right edge of its parent. If this field is defined, this element will be absolutely positioned, instead of being laid out by it's parent.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "float"
+            },
+            "rotation": {
+              "description": "Rotation of a component in degrees. If this field is defined, this element will be absolutely positioned, instead of being laid out by it's parent.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "float"
+            },
+            "transition": {
+              "description": "Defines how this component will behave during a scene update. This will only have an effect if previous scene already contained a View component with the same id.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Transition"
+                },
+                {
+                  "type": "null"
+                }
               ]
             }
           },
-          "required": [
-            "child",
-            "type"
-          ],
-          "type": "object"
+          "additionalProperties": false
         }
       ]
     },
     "ComponentId": {
       "type": "string"
     },
-    "HorizontalAlign": {
-      "enum": [
-        "left",
-        "right",
-        "justified",
-        "center"
-      ],
-      "type": "string"
-    },
     "InputId": {
       "type": "string"
     },
-    "OutputId": {
-      "type": "string"
+    "ViewDirection": {
+      "type": "string",
+      "enum": [
+        "row",
+        "column"
+      ]
+    },
+    "Transition": {
+      "type": "object",
+      "required": [
+        "duration_ms"
+      ],
+      "properties": {
+        "duration_ms": {
+          "type": "number",
+          "format": "double"
+        }
+      }
     },
     "Overflow": {
       "oneOf": [
         {
           "description": "Components that are outside of their parent area will be rendered.",
+          "type": "string",
           "enum": [
             "visible"
-          ],
-          "type": "string"
+          ]
         },
         {
           "description": "Only render parts of the children that are inside their parent area.",
+          "type": "string",
           "enum": [
             "hidden"
-          ],
-          "type": "string"
+          ]
         },
         {
           "description": "If children component are to big to fit inside the parent resize everything inside to fit.\n\nComponents that have dynamic size will be treated as if they had a size 0 when calculating scaling factor.\n\nWarning: This will resize everything inside even absolutely positioned elements. For example, if you have an element in the bottom right corner and content will be rescaled by a factor 0.5x then that component will end up in the middle of it's parent",
+          "type": "string",
           "enum": [
             "fit"
-          ],
-          "type": "string"
+          ]
         }
       ]
     },
@@ -746,418 +767,397 @@
     "RendererId": {
       "type": "string"
     },
-    "ResizeMode": {
-      "enum": [
-        "fit",
-        "fill"
-      ],
-      "type": "string"
-    },
-    "Resolution": {
-      "properties": {
-        "height": {
-          "description": "Height in pixels.",
-          "format": "uint",
-          "minimum": 0.0,
-          "type": "integer"
-        },
-        "width": {
-          "description": "Width in pixels.",
-          "format": "uint",
-          "minimum": 0.0,
-          "type": "integer"
-        }
-      },
-      "required": [
-        "height",
-        "width"
-      ],
-      "type": "object"
-    },
     "ShaderParam": {
       "oneOf": [
         {
-          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "type",
+            "value"
+          ],
           "properties": {
             "type": {
+              "type": "string",
               "enum": [
                 "f32"
-              ],
-              "type": "string"
+              ]
             },
             "value": {
-              "format": "float",
-              "type": "number"
+              "type": "number",
+              "format": "float"
             }
           },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
           "required": [
             "type",
             "value"
           ],
-          "type": "object"
-        },
-        {
-          "additionalProperties": false,
           "properties": {
             "type": {
+              "type": "string",
               "enum": [
                 "u32"
-              ],
-              "type": "string"
+              ]
             },
             "value": {
+              "type": "integer",
               "format": "uint32",
-              "minimum": 0.0,
-              "type": "integer"
+              "minimum": 0.0
             }
           },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
           "required": [
             "type",
             "value"
           ],
-          "type": "object"
-        },
-        {
-          "additionalProperties": false,
           "properties": {
             "type": {
+              "type": "string",
               "enum": [
                 "i32"
-              ],
-              "type": "string"
+              ]
             },
             "value": {
-              "format": "int32",
-              "type": "integer"
+              "type": "integer",
+              "format": "int32"
             }
           },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
           "required": [
             "type",
             "value"
           ],
-          "type": "object"
-        },
-        {
-          "additionalProperties": false,
           "properties": {
             "type": {
+              "type": "string",
               "enum": [
                 "list"
-              ],
-              "type": "string"
+              ]
             },
             "value": {
+              "type": "array",
               "items": {
                 "$ref": "#/definitions/ShaderParam"
-              },
-              "type": "array"
+              }
             }
           },
-          "required": [
-            "type",
-            "value"
-          ],
-          "type": "object"
+          "additionalProperties": false
         },
         {
-          "additionalProperties": false,
-          "properties": {
-            "type": {
-              "enum": [
-                "struct"
-              ],
-              "type": "string"
-            },
-            "value": {
-              "items": {
-                "$ref": "#/definitions/ShaderParamStructField"
-              },
-              "type": "array"
-            }
-          },
+          "type": "object",
           "required": [
             "type",
             "value"
           ],
-          "type": "object"
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "struct"
+              ]
+            },
+            "value": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ShaderParamStructField"
+              }
+            }
+          },
+          "additionalProperties": false
         }
       ]
     },
     "ShaderParamStructField": {
+      "type": "object",
       "oneOf": [
         {
-          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "type",
+            "value"
+          ],
           "properties": {
-            "field_name": {
-              "type": "string"
-            },
             "type": {
+              "type": "string",
               "enum": [
                 "f32"
-              ],
-              "type": "string"
+              ]
             },
             "value": {
-              "format": "float",
-              "type": "number"
+              "type": "number",
+              "format": "float"
+            },
+            "field_name": {
+              "type": "string"
             }
           },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
           "required": [
             "type",
             "value"
           ],
-          "type": "object"
-        },
-        {
-          "additionalProperties": false,
           "properties": {
-            "field_name": {
-              "type": "string"
-            },
             "type": {
+              "type": "string",
               "enum": [
                 "u32"
-              ],
-              "type": "string"
+              ]
             },
             "value": {
+              "type": "integer",
               "format": "uint32",
-              "minimum": 0.0,
-              "type": "integer"
+              "minimum": 0.0
+            },
+            "field_name": {
+              "type": "string"
             }
           },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
           "required": [
             "type",
             "value"
           ],
-          "type": "object"
-        },
-        {
-          "additionalProperties": false,
           "properties": {
-            "field_name": {
-              "type": "string"
-            },
             "type": {
+              "type": "string",
               "enum": [
                 "i32"
-              ],
-              "type": "string"
+              ]
             },
             "value": {
-              "format": "int32",
-              "type": "integer"
+              "type": "integer",
+              "format": "int32"
+            },
+            "field_name": {
+              "type": "string"
             }
           },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
           "required": [
             "type",
             "value"
           ],
-          "type": "object"
-        },
-        {
-          "additionalProperties": false,
           "properties": {
-            "field_name": {
-              "type": "string"
-            },
             "type": {
+              "type": "string",
               "enum": [
                 "list"
-              ],
-              "type": "string"
+              ]
             },
             "value": {
+              "type": "array",
               "items": {
                 "$ref": "#/definitions/ShaderParam"
-              },
-              "type": "array"
-            }
-          },
-          "required": [
-            "type",
-            "value"
-          ],
-          "type": "object"
-        },
-        {
-          "additionalProperties": false,
-          "properties": {
+              }
+            },
             "field_name": {
               "type": "string"
-            },
-            "type": {
-              "enum": [
-                "struct"
-              ],
-              "type": "string"
-            },
-            "value": {
-              "items": {
-                "$ref": "#/definitions/ShaderParamStructField"
-              },
-              "type": "array"
             }
           },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
           "required": [
             "type",
             "value"
           ],
-          "type": "object"
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "struct"
+              ]
+            },
+            "value": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ShaderParamStructField"
+              }
+            },
+            "field_name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
         }
+      ],
+      "required": [
+        "field_name"
       ],
       "properties": {
         "field_name": {
           "type": "string"
         }
-      },
+      }
+    },
+    "Resolution": {
+      "type": "object",
       "required": [
-        "field_name"
+        "height",
+        "width"
       ],
-      "type": "object"
+      "properties": {
+        "width": {
+          "description": "Width in pixels.",
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0.0
+        },
+        "height": {
+          "description": "Height in pixels.",
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0.0
+        }
+      }
     },
     "TextStyle": {
+      "type": "string",
       "enum": [
         "normal",
         "italic",
         "oblique"
-      ],
-      "type": "string"
+      ]
     },
-    "TextWeight": {
-      "description": "Font weight, based on [OpenType specification](https://learn.microsoft.com/en-gb/typography/opentype/spec/os2#usweightclass).",
-      "oneOf": [
-        {
-          "description": "Weight 100.",
-          "enum": [
-            "thin"
-          ],
-          "type": "string"
-        },
-        {
-          "description": "Weight 200.",
-          "enum": [
-            "extra_light"
-          ],
-          "type": "string"
-        },
-        {
-          "description": "Weight 300.",
-          "enum": [
-            "light"
-          ],
-          "type": "string"
-        },
-        {
-          "description": "Weight 400.",
-          "enum": [
-            "normal"
-          ],
-          "type": "string"
-        },
-        {
-          "description": "Weight 500.",
-          "enum": [
-            "medium"
-          ],
-          "type": "string"
-        },
-        {
-          "description": "Weight 600.",
-          "enum": [
-            "semi_bold"
-          ],
-          "type": "string"
-        },
-        {
-          "description": "Weight 700.",
-          "enum": [
-            "bold"
-          ],
-          "type": "string"
-        },
-        {
-          "description": "Weight 800.",
-          "enum": [
-            "extra_bold"
-          ],
-          "type": "string"
-        },
-        {
-          "description": "Weight 900.",
-          "enum": [
-            "black"
-          ],
-          "type": "string"
-        }
+    "HorizontalAlign": {
+      "type": "string",
+      "enum": [
+        "left",
+        "right",
+        "justified",
+        "center"
       ]
     },
     "TextWrapMode": {
       "oneOf": [
         {
           "description": "Disable text wrapping. Text that does not fit inside the texture will be cut off.",
+          "type": "string",
           "enum": [
             "none"
-          ],
-          "type": "string"
+          ]
         },
         {
           "description": "Wraps at a glyph level.",
+          "type": "string",
           "enum": [
             "glyph"
-          ],
-          "type": "string"
+          ]
         },
         {
           "description": "Wraps at a word level. Prevent splitting words when wrapping.",
+          "type": "string",
           "enum": [
             "word"
-          ],
-          "type": "string"
+          ]
         }
       ]
     },
-    "Transition": {
-      "properties": {
-        "duration_ms": {
-          "format": "double",
-          "type": "number"
+    "TextWeight": {
+      "description": "Font weight, based on [OpenType specification](https://learn.microsoft.com/en-gb/typography/opentype/spec/os2#usweightclass).",
+      "oneOf": [
+        {
+          "description": "Weight 100.",
+          "type": "string",
+          "enum": [
+            "thin"
+          ]
+        },
+        {
+          "description": "Weight 200.",
+          "type": "string",
+          "enum": [
+            "extra_light"
+          ]
+        },
+        {
+          "description": "Weight 300.",
+          "type": "string",
+          "enum": [
+            "light"
+          ]
+        },
+        {
+          "description": "Weight 400.",
+          "type": "string",
+          "enum": [
+            "normal"
+          ]
+        },
+        {
+          "description": "Weight 500.",
+          "type": "string",
+          "enum": [
+            "medium"
+          ]
+        },
+        {
+          "description": "Weight 600.",
+          "type": "string",
+          "enum": [
+            "semi_bold"
+          ]
+        },
+        {
+          "description": "Weight 700.",
+          "type": "string",
+          "enum": [
+            "bold"
+          ]
+        },
+        {
+          "description": "Weight 800.",
+          "type": "string",
+          "enum": [
+            "extra_bold"
+          ]
+        },
+        {
+          "description": "Weight 900.",
+          "type": "string",
+          "enum": [
+            "black"
+          ]
         }
-      },
-      "required": [
-        "duration_ms"
-      ],
-      "type": "object"
+      ]
+    },
+    "AspectRatio": {
+      "type": "string"
     },
     "VerticalAlign": {
+      "type": "string",
       "enum": [
         "top",
         "center",
         "bottom",
         "justified"
-      ],
-      "type": "string"
+      ]
     },
-    "ViewDirection": {
+    "ResizeMode": {
+      "type": "string",
       "enum": [
-        "row",
-        "column"
-      ],
-      "type": "string"
+        "fit",
+        "fill"
+      ]
     }
-  },
-  "properties": {
-    "output_id": {
-      "$ref": "#/definitions/OutputId"
-    },
-    "root": {
-      "$ref": "#/definitions/Component"
-    }
-  },
-  "required": [
-    "output_id",
-    "root"
-  ],
-  "title": "OutputScene",
-  "type": "object"
+  }
 }
