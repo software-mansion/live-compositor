@@ -48,9 +48,9 @@ impl StatefulViewComponent {
     fn remaining_transition_duration(&self, pts: Duration) -> Option<Duration> {
         self.transition.and_then(|transition| {
             if self.start_pts + transition.duration > pts {
-                None
-            } else {
                 self.start_pts.add(transition.duration).checked_sub(pts)
+            } else {
+                None
             }
         })
     }
