@@ -93,7 +93,7 @@ fn start_example_client_code() -> Result<()> {
         "asset_type": "svg",
         "image_id": "example_svg",
         "path": PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("examples/assets/rust.svg"),
-        "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+        "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.width},
     }))?;
     common::post(&json!({
         "type": "register",
@@ -106,15 +106,15 @@ fn start_example_client_code() -> Result<()> {
     let new_image = |image_id, label| {
         json!({
             "type": "view",
+            "background_color_rgba": "#0000FFFF",
             "children": [
                 {
-                    "type": "view",
-                    "background_color_rgba": "#0000FFFF",
-                    "overflow": "fit",
-                    "children": [{
+                    "type": "rescaler",
+                    "mode": "fit",
+                    "child": {
                         "type": "image",
                         "image_id": image_id,
-                    }]
+                    }
                 },
                 {
                     "type": "view",

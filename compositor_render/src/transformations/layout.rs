@@ -71,6 +71,8 @@ pub struct NestedLayout {
     pub width: f32,
     pub height: f32,
     pub rotation_degrees: f32,
+    /// scale will affect content/children, but not the properties of current layout like
+    /// top/left/widht/height
     pub scale_x: f32,
     pub scale_y: f32,
     /// Crop is applied before scaling.
@@ -114,6 +116,7 @@ impl LayoutNode {
             .layout_provider
             .layouts(pts, &input_resolutions)
             .flatten(0);
+
         let layout_count = layouts.len();
         let output_resolution = self.layout_provider.resolution(pts);
 

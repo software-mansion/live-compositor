@@ -17,7 +17,184 @@ pub fn snapshot_tests() -> Vec<TestCase> {
     tests.append(&mut image_snapshot_tests());
     tests.append(&mut text_snapshot_tests());
     tests.append(&mut tiles_snapshot_tests());
+    tests.append(&mut rescaler_snapshot_tests());
     tests
+}
+
+pub fn rescaler_snapshot_tests() -> Vec<TestCase> {
+    let higher_than_default = Resolution {
+        width: DEFAULT_RESOLUTION.width,
+        height: DEFAULT_RESOLUTION.height + 100,
+    };
+    let lower_than_default = Resolution {
+        width: DEFAULT_RESOLUTION.width,
+        height: DEFAULT_RESOLUTION.height - 100,
+    };
+    let portrait_resolution = Resolution {
+        width: 360,
+        height: 640,
+    };
+    Vec::from([
+        TestCase {
+            name: "rescaler/fit_view_with_known_height",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/rescaler/fit_view_with_known_height.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
+            ..Default::default()
+        },
+        TestCase {
+            name: "rescaler/fit_view_with_known_width",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/rescaler/fit_view_with_known_width.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
+            ..Default::default()
+        },
+        TestCase {
+            name: "rescaler/fit_view_with_unknown_width_and_height",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/rescaler/fit_view_with_unknown_width_and_height.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
+            ..Default::default()
+        },
+        TestCase {
+            name: "rescaler/fill_input_stream_inverted_aspect_ratio_align_top_left",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/rescaler/fill_input_stream_align_top_left.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
+            inputs: vec![TestInput::new_with_resolution(1, portrait_resolution)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "rescaler/fill_input_stream_inverted_aspect_ratio_align_bottom_right",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/rescaler/fill_input_stream_align_bottom_right.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
+            inputs: vec![TestInput::new_with_resolution(1, portrait_resolution)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "rescaler/fill_input_stream_lower_aspect_ratio_align_bottom_right",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/rescaler/fill_input_stream_align_bottom_right.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
+            inputs: vec![TestInput::new_with_resolution(1, lower_than_default)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "rescaler/fill_input_stream_lower_aspect_ratio",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/rescaler/fill_input_stream.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
+            inputs: vec![TestInput::new_with_resolution(1, lower_than_default)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "rescaler/fill_input_stream_higher_aspect_ratio",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/rescaler/fill_input_stream.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
+            inputs: vec![TestInput::new_with_resolution(1, higher_than_default)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "rescaler/fill_input_stream_inverted_aspect_ratio",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/rescaler/fill_input_stream.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
+            inputs: vec![TestInput::new_with_resolution(1, portrait_resolution)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "rescaler/fill_input_stream_matching_aspect_ratio",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/rescaler/fill_input_stream.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "rescaler/fit_input_stream_lower_aspect_ratio",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/rescaler/fit_input_stream.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
+            inputs: vec![TestInput::new_with_resolution(1, lower_than_default)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "rescaler/fit_input_stream_higher_aspect_ratio",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/rescaler/fit_input_stream.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
+            inputs: vec![TestInput::new_with_resolution(1, higher_than_default)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "rescaler/fit_input_stream_higher_aspect_ratio_small_resolution",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/rescaler/fit_input_stream.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
+            inputs: vec![TestInput::new_with_resolution(1, Resolution { width: higher_than_default.width / 10, height: higher_than_default.height / 10 })],
+            ..Default::default()
+        },
+        TestCase {
+            name: "rescaler/fit_input_stream_inverted_aspect_ratio_align_top_left",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/rescaler/fit_input_stream_align_top_left.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
+            inputs: vec![TestInput::new_with_resolution(1, portrait_resolution)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "rescaler/fit_input_stream_inverted_aspect_ratio_align_bottom_right",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/rescaler/fit_input_stream_align_bottom_right.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
+            inputs: vec![TestInput::new_with_resolution(1, portrait_resolution)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "rescaler/fit_input_stream_lower_aspect_ratio_align_bottom_right",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/rescaler/fit_input_stream_align_bottom_right.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
+            inputs: vec![TestInput::new_with_resolution(1, lower_than_default)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "rescaler/fit_input_stream_inverted_aspect_ratio",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/rescaler/fit_input_stream.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
+            inputs: vec![TestInput::new_with_resolution(1, portrait_resolution)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "rescaler/fit_input_stream_matching_aspect_ratio",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/rescaler/fit_input_stream.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
+    ])
 }
 
 pub fn tiles_snapshot_tests() -> Vec<TestCase> {

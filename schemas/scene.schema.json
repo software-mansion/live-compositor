@@ -568,6 +568,132 @@
             "type"
           ],
           "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "bottom": {
+              "description": "Distance between the bottom edge of this component and the bottom edge of its parent. If this field is defined, this element will be absolutely positioned, instead of being laid out by it's parent.",
+              "format": "float",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "child": {
+              "$ref": "#/definitions/Component"
+            },
+            "height": {
+              "description": "Height of a component in pixels. Required when using absolute positioning.",
+              "format": "float",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "horizontal_align": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/HorizontalAlign"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "id": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ComponentId"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "left": {
+              "description": "Distance between the left edge of this component and the left edge of its parent. If this field is defined, this element will be absolutely positioned, instead of being laid out by it's parent.",
+              "format": "float",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "mode": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ResizeMode"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "right": {
+              "description": "Distance between the right edge of this component and the right edge of its parent. If this field is defined, this element will be absolutely positioned, instead of being laid out by it's parent.",
+              "format": "float",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "rotation": {
+              "description": "Rotation of a component in degrees. If this field is defined, this element will be absolutely positioned, instead of being laid out by it's parent.",
+              "format": "float",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "top": {
+              "description": "Distance between the top edge of this component and the top edge of its parent. If this field is defined, then component will ignore a layout defined by its parent.",
+              "format": "float",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "transition": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Transition"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Defines how this component will behave during a scene update. This will only have an effect if previous scene already contained a View component with the same id."
+            },
+            "type": {
+              "enum": [
+                "rescaler"
+              ],
+              "type": "string"
+            },
+            "vertical_align": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/VerticalAlign"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "width": {
+              "description": "Width of a component in pixels. Required when using absolute positioning.",
+              "format": "float",
+              "type": [
+                "number",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "child",
+            "type"
+          ],
+          "type": "object"
         }
       ]
     },
@@ -618,6 +744,13 @@
       "type": "string"
     },
     "RendererId": {
+      "type": "string"
+    },
+    "ResizeMode": {
+      "enum": [
+        "fit",
+        "fill"
+      ],
       "type": "string"
     },
     "Resolution": {

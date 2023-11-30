@@ -12,6 +12,7 @@ impl Component {
             Component::Text(text) => text.id.as_ref(),
             Component::View(view) => view.id.as_ref(),
             Component::Tiles(tiles) => tiles.id.as_ref(),
+            Component::Rescaler(rescaler) => rescaler.id.as_ref(),
         }
     }
 
@@ -24,6 +25,7 @@ impl Component {
             Component::Text(_text) => vec![],
             Component::View(view) => view.children.iter().collect(),
             Component::Tiles(tiles) => tiles.children.iter().collect(),
+            Component::Rescaler(rescaler) => vec![rescaler.child.as_ref()],
         }
     }
 }

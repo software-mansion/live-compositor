@@ -159,7 +159,6 @@ fn start_example_client_code() -> Result<()> {
             {
                 "type": "view",
                 "id": "resized",
-                "overflow": "fit",
                 "width": VIDEO_RESOLUTION.width,
                 "height": VIDEO_RESOLUTION.height,
                 "top": 0,
@@ -169,13 +168,18 @@ fn start_example_client_code() -> Result<()> {
                 },
                 "children": [
                     {
-                        "type": "shader",
-                        "shader_id": "example_shader",
-                        "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
-                        "children": [{
-                            "type": "input_stream",
-                            "input_id": "input_1",
-                        }]
+                        "type": "rescaler",
+                        "mode": "fit",
+                        "child": {
+                            "type": "shader",
+                            "shader_id": "example_shader",
+                            "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+                            "children": [{
+                                "type": "input_stream",
+                                "input_id": "input_1",
+                            }]
+                        }
+
                     }
                 ]
             }

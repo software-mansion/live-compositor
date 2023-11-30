@@ -188,6 +188,25 @@ pub enum HorizontalPosition {
 }
 
 #[derive(Debug, Clone)]
+pub struct RescalerComponent {
+    pub id: Option<ComponentId>,
+    pub child: Box<Component>,
+
+    pub position: Position,
+    pub transition: Option<Transition>,
+
+    pub mode: ResizeMode,
+    pub horizontal_align: HorizontalAlign,
+    pub vertical_align: VerticalAlign,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum ResizeMode {
+    Fit,
+    Fill,
+}
+
+#[derive(Debug, Clone)]
 pub struct TilesComponent {
     pub id: Option<ComponentId>,
     pub children: Vec<Component>,

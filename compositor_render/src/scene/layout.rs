@@ -5,15 +5,16 @@ use compositor_common::scene::Resolution;
 use crate::transformations::layout::{self, LayoutContent, NestedLayout};
 
 use super::{
-    tiles_component::StatefulTilesComponent, view_component::StatefulViewComponent,
-    AbsolutePosition, ComponentId, HorizontalPosition, Position, Size, StatefulComponent,
-    VerticalPosition,
+    rescaler_component::StatefulRescalerComponent, tiles_component::StatefulTilesComponent,
+    view_component::StatefulViewComponent, AbsolutePosition, ComponentId, HorizontalPosition,
+    Position, Size, StatefulComponent, VerticalPosition,
 };
 
 #[derive(Debug, Clone)]
 pub(super) enum StatefulLayoutComponent {
     View(StatefulViewComponent),
     Tiles(StatefulTilesComponent),
+    Rescaler(StatefulRescalerComponent),
 }
 
 #[derive(Debug)]
@@ -43,6 +44,7 @@ impl StatefulLayoutComponent {
         match self {
             StatefulLayoutComponent::View(view) => view.layout(size, pts),
             StatefulLayoutComponent::Tiles(tiles) => tiles.layout(size, pts),
+            StatefulLayoutComponent::Rescaler(rescaler) => rescaler.layout(size, pts),
         }
     }
 
@@ -50,6 +52,7 @@ impl StatefulLayoutComponent {
         match self {
             StatefulLayoutComponent::View(view) => view.position(pts),
             StatefulLayoutComponent::Tiles(tiles) => tiles.position(pts),
+            StatefulLayoutComponent::Rescaler(rescaler) => rescaler.position(pts),
         }
     }
 
@@ -57,6 +60,7 @@ impl StatefulLayoutComponent {
         match self {
             StatefulLayoutComponent::View(view) => view.component_id(),
             StatefulLayoutComponent::Tiles(tiles) => tiles.component_id(),
+            StatefulLayoutComponent::Rescaler(rescaler) => rescaler.component_id(),
         }
     }
 
@@ -64,6 +68,7 @@ impl StatefulLayoutComponent {
         match self {
             StatefulLayoutComponent::View(_) => "View",
             StatefulLayoutComponent::Tiles(_) => "Tiles",
+            StatefulLayoutComponent::Rescaler(_) => "Rescaler",
         }
     }
 
@@ -71,6 +76,7 @@ impl StatefulLayoutComponent {
         match self {
             StatefulLayoutComponent::View(view) => view.children(),
             StatefulLayoutComponent::Tiles(tiles) => tiles.children(),
+            StatefulLayoutComponent::Rescaler(rescaler) => rescaler.children(),
         }
     }
 
@@ -78,6 +84,7 @@ impl StatefulLayoutComponent {
         match self {
             StatefulLayoutComponent::View(view) => view.children_mut(),
             StatefulLayoutComponent::Tiles(tiles) => tiles.children_mut(),
+            StatefulLayoutComponent::Rescaler(rescaler) => rescaler.children_mut(),
         }
     }
 

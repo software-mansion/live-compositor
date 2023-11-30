@@ -28,6 +28,7 @@ mod components;
 mod image_component;
 mod input_stream_component;
 mod layout;
+mod rescaler_component;
 mod scene_state;
 mod shader_component;
 mod text_component;
@@ -52,6 +53,7 @@ pub enum Component {
     Text(TextComponent),
     View(ViewComponent),
     Tiles(TilesComponent),
+    Rescaler(RescalerComponent),
 }
 
 /// Stateful version of a `Component`. Represents the same element as
@@ -133,6 +135,7 @@ impl StatefulComponent {
             StatefulComponent::Layout(layout) => match layout {
                 StatefulLayoutComponent::View(view) => view.intermediate_node(),
                 StatefulLayoutComponent::Tiles(tiles) => tiles.intermediate_node(),
+                StatefulLayoutComponent::Rescaler(rescaler) => rescaler.intermediate_node(),
             },
         }
     }
@@ -153,6 +156,7 @@ impl Component {
             Component::Text(text) => text.stateful_component(ctx),
             Component::View(view) => view.stateful_component(ctx),
             Component::Tiles(tiles) => tiles.stateful_component(ctx),
+            Component::Rescaler(rescaler) => rescaler.stateful_component(ctx),
         }
     }
 }
