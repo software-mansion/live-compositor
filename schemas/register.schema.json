@@ -1,103 +1,20 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "definitions": {
-    "EncoderPreset": {
-      "enum": [
-        "ultrafast",
-        "superfast",
-        "veryfast",
-        "faster",
-        "fast",
-        "medium",
-        "slow",
-        "slower",
-        "veryslow",
-        "placebo"
-      ],
-      "type": "string"
-    },
-    "EncoderSettings": {
-      "properties": {
-        "preset": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/EncoderPreset"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        }
-      },
-      "type": "object"
-    },
-    "FallbackStrategy": {
-      "enum": [
-        "never_fallback",
-        "fallback_if_all_inputs_missing",
-        "fallback_if_any_input_missing"
-      ],
-      "type": "string"
-    },
-    "InputId": {
-      "type": "string"
-    },
-    "OutputId": {
-      "type": "string"
-    },
-    "Port": {
-      "anyOf": [
-        {
-          "type": "string"
-        },
-        {
-          "format": "uint16",
-          "minimum": 0.0,
-          "type": "integer"
-        }
-      ]
-    },
-    "RendererId": {
-      "type": "string"
-    },
-    "Resolution": {
-      "properties": {
-        "height": {
-          "description": "Height in pixels.",
-          "format": "uint",
-          "minimum": 0.0,
-          "type": "integer"
-        },
-        "width": {
-          "description": "Width in pixels.",
-          "format": "uint",
-          "minimum": 0.0,
-          "type": "integer"
-        }
-      },
-      "required": [
-        "height",
-        "width"
-      ],
-      "type": "object"
-    },
-    "WebEmbeddingMethod": {
-      "enum": [
-        "chromium_embedding",
-        "native_embedding_over_content",
-        "native_embedding_under_content"
-      ],
-      "type": "string"
-    }
-  },
+  "title": "RegisterRequest",
   "oneOf": [
     {
+      "type": "object",
+      "required": [
+        "entity_type",
+        "input_id",
+        "port"
+      ],
       "properties": {
         "entity_type": {
+          "type": "string",
           "enum": [
             "input_stream"
-          ],
-          "type": "string"
+          ]
         },
         "input_id": {
           "$ref": "#/definitions/InputId"
@@ -105,40 +22,10 @@
         "port": {
           "$ref": "#/definitions/Port"
         }
-      },
-      "required": [
-        "entity_type",
-        "input_id",
-        "port"
-      ],
-      "type": "object"
+      }
     },
     {
-      "properties": {
-        "encoder_settings": {
-          "$ref": "#/definitions/EncoderSettings"
-        },
-        "entity_type": {
-          "enum": [
-            "output_stream"
-          ],
-          "type": "string"
-        },
-        "ip": {
-          "type": "string"
-        },
-        "output_id": {
-          "$ref": "#/definitions/OutputId"
-        },
-        "port": {
-          "format": "uint16",
-          "minimum": 0.0,
-          "type": "integer"
-        },
-        "resolution": {
-          "$ref": "#/definitions/Resolution"
-        }
-      },
+      "type": "object",
       "required": [
         "encoder_settings",
         "entity_type",
@@ -147,14 +34,50 @@
         "port",
         "resolution"
       ],
-      "type": "object"
-    },
-    {
       "properties": {
         "entity_type": {
+          "type": "string",
+          "enum": [
+            "output_stream"
+          ]
+        },
+        "output_id": {
+          "$ref": "#/definitions/OutputId"
+        },
+        "port": {
+          "type": "integer",
+          "format": "uint16",
+          "minimum": 0.0
+        },
+        "ip": {
+          "type": "string"
+        },
+        "resolution": {
+          "$ref": "#/definitions/Resolution"
+        },
+        "encoder_settings": {
+          "$ref": "#/definitions/EncoderSettings"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "entity_type",
+        "shader_id",
+        "source"
+      ],
+      "properties": {
+        "entity_type": {
+          "type": "string",
           "enum": [
             "shader"
-          ],
+          ]
+        },
+        "shader_id": {
+          "$ref": "#/definitions/RendererId"
+        },
+        "source": {
           "type": "string"
         },
         "fallback_strategy": {
@@ -166,23 +89,33 @@
               "type": "null"
             }
           ]
-        },
-        "shader_id": {
-          "$ref": "#/definitions/RendererId"
-        },
-        "source": {
-          "type": "string"
         }
-      },
-      "required": [
-        "entity_type",
-        "shader_id",
-        "source"
-      ],
-      "type": "object"
+      }
     },
     {
+      "type": "object",
+      "required": [
+        "entity_type",
+        "instance_id",
+        "resolution",
+        "url"
+      ],
       "properties": {
+        "entity_type": {
+          "type": "string",
+          "enum": [
+            "web_renderer"
+          ]
+        },
+        "instance_id": {
+          "$ref": "#/definitions/RendererId"
+        },
+        "url": {
+          "type": "string"
+        },
+        "resolution": {
+          "$ref": "#/definitions/Resolution"
+        },
         "embedding_method": {
           "anyOf": [
             {
@@ -193,12 +126,6 @@
             }
           ]
         },
-        "entity_type": {
-          "enum": [
-            "web_renderer"
-          ],
-          "type": "string"
-        },
         "fallback_strategy": {
           "anyOf": [
             {
@@ -208,100 +135,95 @@
               "type": "null"
             }
           ]
-        },
-        "instance_id": {
-          "$ref": "#/definitions/RendererId"
-        },
-        "resolution": {
-          "$ref": "#/definitions/Resolution"
-        },
-        "url": {
-          "type": "string"
         }
-      },
-      "required": [
-        "entity_type",
-        "instance_id",
-        "resolution",
-        "url"
-      ],
-      "type": "object"
+      }
     },
     {
+      "type": "object",
       "oneOf": [
         {
-          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "asset_type",
+            "image_id"
+          ],
           "properties": {
             "asset_type": {
+              "type": "string",
               "enum": [
                 "png"
-              ],
-              "type": "string"
+              ]
             },
             "image_id": {
               "$ref": "#/definitions/RendererId"
-            },
-            "path": {
-              "type": [
-                "string",
-                "null"
-              ]
             },
             "url": {
               "type": [
                 "string",
                 "null"
               ]
+            },
+            "path": {
+              "type": [
+                "string",
+                "null"
+              ]
             }
           },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
           "required": [
             "asset_type",
             "image_id"
           ],
-          "type": "object"
-        },
-        {
-          "additionalProperties": false,
           "properties": {
             "asset_type": {
+              "type": "string",
               "enum": [
                 "jpeg"
-              ],
-              "type": "string"
+              ]
             },
             "image_id": {
               "$ref": "#/definitions/RendererId"
-            },
-            "path": {
-              "type": [
-                "string",
-                "null"
-              ]
             },
             "url": {
               "type": [
                 "string",
                 "null"
               ]
+            },
+            "path": {
+              "type": [
+                "string",
+                "null"
+              ]
             }
           },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
           "required": [
             "asset_type",
             "image_id"
           ],
-          "type": "object"
-        },
-        {
-          "additionalProperties": false,
           "properties": {
             "asset_type": {
+              "type": "string",
               "enum": [
                 "svg"
-              ],
-              "type": "string"
+              ]
             },
             "image_id": {
               "$ref": "#/definitions/RendererId"
+            },
+            "url": {
+              "type": [
+                "string",
+                "null"
+              ]
             },
             "path": {
               "type": [
@@ -318,65 +240,143 @@
                   "type": "null"
                 }
               ]
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "asset_type",
+            "image_id"
+          ],
+          "properties": {
+            "asset_type": {
+              "type": "string",
+              "enum": [
+                "gif"
+              ]
+            },
+            "image_id": {
+              "$ref": "#/definitions/RendererId"
             },
             "url": {
               "type": [
                 "string",
                 "null"
               ]
-            }
-          },
-          "required": [
-            "asset_type",
-            "image_id"
-          ],
-          "type": "object"
-        },
-        {
-          "additionalProperties": false,
-          "properties": {
-            "asset_type": {
-              "enum": [
-                "gif"
-              ],
-              "type": "string"
-            },
-            "image_id": {
-              "$ref": "#/definitions/RendererId"
             },
             "path": {
               "type": [
                 "string",
                 "null"
               ]
-            },
-            "url": {
-              "type": [
-                "string",
-                "null"
-              ]
             }
           },
-          "required": [
-            "asset_type",
-            "image_id"
-          ],
-          "type": "object"
+          "additionalProperties": false
         }
       ],
-      "properties": {
-        "entity_type": {
-          "enum": [
-            "image"
-          ],
-          "type": "string"
-        }
-      },
       "required": [
         "entity_type"
       ],
-      "type": "object"
+      "properties": {
+        "entity_type": {
+          "type": "string",
+          "enum": [
+            "image"
+          ]
+        }
+      }
     }
   ],
-  "title": "RegisterRequest"
+  "definitions": {
+    "InputId": {
+      "type": "string"
+    },
+    "Port": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "integer",
+          "format": "uint16",
+          "minimum": 0.0
+        }
+      ]
+    },
+    "OutputId": {
+      "type": "string"
+    },
+    "Resolution": {
+      "type": "object",
+      "required": [
+        "height",
+        "width"
+      ],
+      "properties": {
+        "width": {
+          "description": "Width in pixels.",
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0.0
+        },
+        "height": {
+          "description": "Height in pixels.",
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0.0
+        }
+      }
+    },
+    "EncoderSettings": {
+      "type": "object",
+      "properties": {
+        "preset": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/EncoderPreset"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "EncoderPreset": {
+      "type": "string",
+      "enum": [
+        "ultrafast",
+        "superfast",
+        "veryfast",
+        "faster",
+        "fast",
+        "medium",
+        "slow",
+        "slower",
+        "veryslow",
+        "placebo"
+      ]
+    },
+    "RendererId": {
+      "type": "string"
+    },
+    "FallbackStrategy": {
+      "type": "string",
+      "enum": [
+        "never_fallback",
+        "fallback_if_all_inputs_missing",
+        "fallback_if_any_input_missing"
+      ]
+    },
+    "WebEmbeddingMethod": {
+      "type": "string",
+      "enum": [
+        "chromium_embedding",
+        "native_embedding_over_content",
+        "native_embedding_under_content"
+      ]
+    }
+  }
 }
