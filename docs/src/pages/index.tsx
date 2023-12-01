@@ -9,7 +9,7 @@ import {
   FaLink,
   FaMicrochip,
 } from 'react-icons/fa6';
-import { MdStream } from 'react-icons/md';
+import { MdLiveTv } from 'react-icons/md';
 import Link from '@docusaurus/Link';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import Layout from '@theme/Layout';
@@ -34,7 +34,7 @@ function HomepageHeader() {
                 The best solution for programmatic live video compositing.
               </Heading>
               <p>
-                Process live video sources in real-time. Apply effects, combine videos, or add
+                Process live video streams in real-time. Apply effects, combine videos, or add
                 transitions to produce any output you want.
               </p>
               <div className="row">
@@ -84,7 +84,7 @@ function ProsCards() {
           <p className="padding--md">
             Rendering is GPU accelerated using {wgpuLink} library, which implements API based on the
             WebGPU standard. Parts of the standard, like the ability to run WGSL shaders, are
-            directly accessible via API.
+            directly accessible via Live Compositor API.
           </p>
         </ProsCard>
       </div>
@@ -174,18 +174,18 @@ function Features() {
 
       <Feature
         text="WebGPU APIs"
-        secondaryText="Use existing WebGPU-based components provided by the compositor. If you need anything not covered by the existing components, you can always write your own WGSL shader that implements that effect."
+        secondaryText="Utilize existing WebGPU-based components or craft your own WGSL shader to achieve any desired effect and directly leverage GPU parallel processing capabilities."
         image={wgpuLogo}
       />
       <Feature
         text="Real-time processing"
-        secondaryText="Process live video sources in real-time with low latency."
-        image={<MdStream className="margin--lg" style={{ fontSize: 100 }} />}
+        secondaryText="Process live video streams in real-time with low latency. Blazingly fast processing makes video conferencing, live-streaming, and broadcasting an everyday bread and butter for Live Compositor."
+        image={<MdLiveTv className="margin--lg" style={{ fontSize: 100 }} />}
         inverted
       />
       <Feature
         text="Static content"
-        secondaryText="Render text and static images onto your scene or pass them to other components for further processing. Currently we support: PNG, JPEG, SVG, and GIFs."
+        secondaryText="Render text and static images onto your output streams or pass them to other components for further processing."
         image={imageTextRendering}
       />
       <Feature
@@ -211,8 +211,8 @@ function IntegrationMembranePlugin() {
         <div className="card__body container">
           <p>
             Membrane is a developer-friendly multimedia framework for Elixir. You can easily add
-            video composing functionality into your multimedia pipeline using Live Compositor
-            plugin.
+            video composing functionality into your multimedia pipeline using Membrane Live
+            Compositor Plugin.
           </p>
           <p>For more, see:</p>
           <p>
