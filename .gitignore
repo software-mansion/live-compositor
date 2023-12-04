@@ -28,7 +28,9 @@ target/
 # Generated during runtime
 /shmem
 /failed_snapshot_tests
+# TODO: /components will be removed in the near future (next PR).
 /docs/pages/api/components
+/docs/pages/api/generated
 
 /video_compositor.app
 /video_compositor
