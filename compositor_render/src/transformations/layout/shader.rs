@@ -5,7 +5,7 @@ use wgpu::ShaderSource;
 use crate::{
     renderer::render_graph::NodeId,
     wgpu::{
-        common_pipeline::{surface::Surfaces, Sampler},
+        common_pipeline::Sampler,
         shader::{pipeline, CreateShaderError},
         texture::{NodeTexture, NodeTextureState, Texture},
         WgpuCtx, WgpuErrorScope,
@@ -17,7 +17,6 @@ pub(super) const INPUT_TEXTURES_AMOUNT: u32 = 16;
 #[derive(Debug)]
 pub struct LayoutShader {
     pipeline: wgpu::RenderPipeline,
-    surfaces: Surfaces,
     sampler: Sampler,
     textures_bgl: wgpu::BindGroupLayout,
 
@@ -73,8 +72,6 @@ impl LayoutShader {
                 source: shader_src,
             });
 
-        let surfaces = Surfaces::new(&wgpu_ctx.device);
-
         let pipeline = pipeline::Pipeline::create_render_pipeline(
             &wgpu_ctx.device,
             &pipeline_layout,
@@ -85,7 +82,6 @@ impl LayoutShader {
 
         Ok(Self {
             pipeline,
-            surfaces,
             sampler,
             textures_bgl,
             empty_texture,
@@ -124,14 +120,18 @@ impl LayoutShader {
             });
 
         let mut encoder = wgpu_ctx.device.create_command_encoder(&Default::default());
-        {
+
+        for layout_id in 0..layout_count {
+            let load = if layout_id == 0 {
+                wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT)
+            } else {
+                wgpu::LoadOp::Load
+            };
+
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: None,
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
-                        store: true,
-                    },
+                    ops: wgpu::Operations { load, store: true },
                     view: &target.rgba_texture().texture().view,
                     resolve_target: None,
                 })],
@@ -145,9 +145,12 @@ impl LayoutShader {
             render_pass.set_bind_group(1, params, &[]);
             render_pass.set_bind_group(2, &self.sampler.bind_group, &[]);
 
-            self.surfaces.draw(&mut render_pass, layout_count);
+            wgpu_ctx
+                .planes
+                .get_plane(layout_id as i32)
+                .unwrap()
+                .draw(&mut render_pass);
         }
-
         wgpu_ctx.queue.submit(Some(encoder.finish()));
     }
 }

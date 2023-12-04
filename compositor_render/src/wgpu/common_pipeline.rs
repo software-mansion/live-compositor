@@ -1,6 +1,6 @@
 use wgpu::{util::DeviceExt, BindGroup, BindGroupLayout, Buffer};
 
-pub mod surface;
+pub mod plane;
 
 pub const PRIMITIVE_STATE: wgpu::PrimitiveState = wgpu::PrimitiveState {
     polygon_mode: wgpu::PolygonMode::Fill,
@@ -12,7 +12,7 @@ pub const PRIMITIVE_STATE: wgpu::PrimitiveState = wgpu::PrimitiveState {
     unclipped_depth: false,
 };
 
-pub const MAX_TEXTURE_COUNT: u32 = 16;
+pub const MAX_PLANES_COUNT: u32 = 128;
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
@@ -28,14 +28,6 @@ impl Vertex {
         step_mode: wgpu::VertexStepMode::Vertex,
         attributes: &wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x2, 2 => Sint32],
     };
-
-    const fn empty() -> Self {
-        Vertex {
-            position: [0.0, 0.0, 0.0],
-            texture_coords: [0.0, 0.0],
-            input_id: 0,
-        }
-    }
 }
 
 #[derive(Debug)]
