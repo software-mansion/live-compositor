@@ -97,13 +97,23 @@ impl TypeDefinition {
 
         let variants = variants
             .iter()
-            .map(|ty| ty.to_pretty_string(variant_indent));
-        if variants.len() > 4 {
-            variants.into_iter().fold(String::new(), |acc, ty| {
-                format!("{}\n{}| {}", acc, INDENT.repeat(base_indent + 2), ty)
-            })
+            .map(|ty: &TypeDefinition| ty.to_pretty_string(variant_indent));
+        let variants_to_string = |use_new_lines: bool| {
+            let variants = variants.clone();
+            if use_new_lines {
+                variants.into_iter().fold(String::new(), |acc, ty| {
+                    format!("{}\n{}| {}", acc, INDENT.repeat(base_indent + 2), ty)
+                })
+            } else {
+                variants.collect::<Vec<_>>().join(" | ")
+            }
+        };
+
+        let union_string = variants_to_string(variants.len() > 4);
+        if union_string.len() > 80 {
+            variants_to_string(true)
         } else {
-            variants.collect::<Vec<_>>().join(" | ")
+            union_string
         }
     }
 

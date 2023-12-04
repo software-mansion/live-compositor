@@ -141,28 +141,45 @@ impl DocPage {
     }
 }
 
-pub fn generate_component_docs(root_schema: &RootSchema, name: &str, variant: &str) -> DocPage {
-    fn component_variant_name(schema: &SchemaObject) -> String {
+pub fn generate_component_docs(
+    root_schema: &RootSchema,
+    name: &str,
+    variant_name: &str,
+) -> DocPage {
+    generate_docs_from_enum(root_schema, "type", name, variant_name)
+}
+
+pub fn generate_renderer_docs(root_schema: &RootSchema, name: &str, variant_name: &str) -> DocPage {
+    generate_docs_from_enum(root_schema, "entity_type", name, variant_name)
+}
+
+pub fn generate_docs_from_enum(
+    root_schema: &RootSchema,
+    type_key_name: &str,
+    name: &str,
+    variant_name: &str,
+) -> DocPage {
+    let retrieve_type_value = |schema: &SchemaObject| -> String {
         let properties = &schema.object.as_ref().unwrap().properties;
-        let type_enum = properties
-            .get("type")
+        let type_enum: Vec<serde_json::Value> = properties
+            .get(type_key_name)
             .unwrap()
             .clone()
             .into_object()
             .enum_values
             .unwrap();
         type_enum[0].as_str().unwrap().to_owned()
-    }
+    };
 
     let name: Rc<str> = name.into();
     let mut page = DocPage::new(name.clone());
     let subschemas = flatten_subschemas(root_schema.schema.subschemas.as_ref().unwrap());
-    let component = subschemas
+    let schema = subschemas
         .iter()
-        .find(|schema| component_variant_name(schema) == variant)
+        .find(|schema| retrieve_type_value(schema) == variant_name)
         .unwrap();
 
-    populate_page(&mut page, name, component, root_schema);
+    populate_page(&mut page, name, schema, root_schema);
     page.simplify();
     page
 }
