@@ -15,10 +15,7 @@ use std::{
 };
 
 use ffmpeg_next::{
-    ffi::{
-        avformat_alloc_context, avformat_close_input, avformat_find_stream_info,
-        avformat_open_input,
-    },
+    ffi::{avformat_alloc_context, avformat_open_input},
     format::context,
     media::Type,
     util::interrupt,
@@ -211,14 +208,7 @@ where
         Dictionary::own(opts);
 
         match res {
-            0 => match avformat_find_stream_info(ps, ptr::null_mut()) {
-                r if r >= 0 => Ok(context::Input::wrap(ps)),
-                e => {
-                    avformat_close_input(&mut ps);
-                    Err(ffmpeg_next::Error::from(e))
-                }
-            },
-
+            0 => Ok(context::Input::wrap(ps)),
             e => Err(ffmpeg_next::Error::from(e)),
         }
     }
