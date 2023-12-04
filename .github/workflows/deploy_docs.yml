@@ -48,7 +48,7 @@ jobs:
               uses: dtolnay/rust-toolchain@stable
 
             - name: 📄 Generate docs from JSON schema
-              run: cargo run --bin generate_wiki
+              run: cargo run --bin generate_docs
 
             - name: 🛠 Install dependencies
               run: npm ci

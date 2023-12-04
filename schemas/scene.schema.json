@@ -218,7 +218,7 @@
               }
             },
             "instance_id": {
-              "description": "ID of a previously registered `WebRenderer`.\n\nWarning: You can only refer to specific instance in one Component at the time.",
+              "description": "ID of a previously registered `WebRenderer`.\n\n<br/> <br/>\n\n:::warning\n\nYou can only refer to specific instance in one Component at the time.\n\n:::",
               "allOf": [
                 {
                   "$ref": "#/definitions/RendererId"
@@ -270,7 +270,7 @@
               ]
             },
             "shader_param": {
-              "description": "Object that will be serialized into a `struct` and passed inside the shader as: ```wgsl @group(1) @binding(0) var<uniform> ```\n\nNote: This object's structure must match the structure defined in a shader source code.",
+              "description": "Object that will be serialized into a `struct` and passed inside the shader as:\n\n<br/><br/>\n\n```wgsl\n\n@group(1) @binding(0) var<uniform>\n\n```\n\nNote: This object's structure must match the structure defined in a shader source code.",
               "anyOf": [
                 {
                   "$ref": "#/definitions/ShaderParam"

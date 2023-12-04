@@ -62,7 +62,7 @@ jobs:
             - name: 📄 Generate JSON schema
               run: |
                 cargo run --bin generate_json_schema
-                cargo run --bin generate_wiki
+                cargo run --bin generate_docs
 
             - name: 🖋️ Run website lint + typecheck + build
               working-directory: ./docs
