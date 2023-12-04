@@ -155,7 +155,13 @@ pub struct WebView {
 
     /// ID of a previously registered `WebRenderer`.
     ///
-    /// Warning: You can only refer to specific instance in one Component at the time.
+    /// <br/> <br/>
+    ///
+    /// :::warning
+    ///
+    /// You can only refer to specific instance in one Component at the time.
+    ///
+    /// :::
     pub instance_id: RendererId,
 }
 
@@ -177,8 +183,13 @@ pub struct Shader {
     /// ID of a previously registered Shader.
     pub shader_id: RendererId,
     /// Object that will be serialized into a `struct` and passed inside the shader as:
+    ///
+    /// <br/><br/>
+    ///
     /// ```wgsl
+    ///
     /// @group(1) @binding(0) var<uniform>
+    ///
     /// ```
     ///
     /// Note: This object's structure must match the structure defined in a shader source code.
