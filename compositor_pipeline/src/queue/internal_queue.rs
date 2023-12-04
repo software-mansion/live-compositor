@@ -6,12 +6,15 @@ use std::collections::HashMap;
 use std::time::Duration;
 use std::time::Instant;
 
+use super::FramePts;
 use super::QueueError;
+
+type InputListenCallback = Box<dyn FnOnce(FramePts) + Send>;
 
 pub struct InternalQueue {
     /// frames are PTS ordered. PTS include timestamps offsets
     inputs_queues: HashMap<InputId, Vec<Frame>>,
-    inputs_listeners: HashMap<InputId, Vec<Box<dyn FnOnce() + Send>>>,
+    inputs_listeners: HashMap<InputId, Vec<InputListenCallback>>,
     /// offsets that normalize input pts to zero relative to the
     /// Queue:clock_start value.
     timestamp_offsets: HashMap<InputId, Duration>,
@@ -130,21 +133,17 @@ impl InternalQueue {
         Ok(())
     }
 
-    pub fn subscribe_input_listener(
-        &mut self,
-        input_id: InputId,
-        callback: Box<dyn FnOnce() + Send>,
-    ) {
+    pub fn subscribe_input_listener(&mut self, input_id: InputId, callback: InputListenCallback) {
         self.inputs_listeners
             .entry(input_id)
             .or_default()
             .push(callback)
     }
 
-    pub fn call_input_listeners(&mut self, input_id: &InputId) {
+    pub fn call_input_listeners(&mut self, input_id: &InputId, next_buffer_pts: Duration) {
         let callbacks = self.inputs_listeners.remove(input_id).unwrap_or_default();
         for cb in callbacks.into_iter() {
-            cb()
+            cb(next_buffer_pts)
         }
     }
 }

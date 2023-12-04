@@ -56,6 +56,7 @@ pub enum QueryRequest {
 #[serde(untagged)]
 pub enum Response {
     Ok {},
+    InputListenQuery { next_frame_pts: i64 },
     Scene(Scene),
     Inputs { inputs: Vec<InputInfo> },
     Outputs { outputs: Vec<OutputInfo> },
@@ -124,8 +125,11 @@ impl Api {
                 let (sender, receiver) = bounded(1);
                 self.pipeline.queue().subscribe_input_listener(
                     input_id.into(),
-                    Box::new(move || {
-                        sender.send(Ok(Response::Ok {})).unwrap();
+                    Box::new(move |pts| {
+                        let next_frame_pts = (pts.as_secs_f64() * 90_000.0) as i64;
+                        sender
+                            .send(Ok(Response::InputListenQuery { next_frame_pts }))
+                            .unwrap();
                     }),
                 );
                 Ok(ResponseHandler::DeferredResponse(receiver))

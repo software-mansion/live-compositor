@@ -15,6 +15,8 @@ use thiserror::Error;
 
 use self::{internal_queue::InternalQueue, queue_thread::QueueThread};
 
+pub type FramePts = Duration;
+
 #[derive(Error, Debug)]
 pub enum QueueError {
     #[error("the input id `{:#?}` is unknown", 0)]
@@ -126,7 +128,11 @@ impl Queue {
         Ok(())
     }
 
-    pub fn subscribe_input_listener(&self, input_id: InputId, callback: Box<dyn FnOnce() + Send>) {
+    pub fn subscribe_input_listener(
+        &self,
+        input_id: InputId,
+        callback: Box<dyn FnOnce(FramePts) + Send>,
+    ) {
         self.internal_queue
             .lock()
             .unwrap()

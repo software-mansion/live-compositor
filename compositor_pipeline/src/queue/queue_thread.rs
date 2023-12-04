@@ -69,7 +69,7 @@ impl QueueThread {
 
         let frames_batch = internal_queue.get_frames_batch(next_buffer_pts);
         for input_id in frames_batch.frames.keys() {
-            internal_queue.call_input_listeners(input_id)
+            internal_queue.call_input_listeners(input_id, next_buffer_pts);
         }
         self.sender.send(frames_batch).unwrap();
         self.sent_batches_counter += 1;
