@@ -51,7 +51,7 @@ pub trait PipelineOutput: Send + Sync + Sized + Clone + 'static {
 
 pub trait PipelineInput: Send + Sync + Sized + 'static {
     type Opts: Send + Sync;
-    type PacketIterator: Iterator<Item = Packet> + Send;
+    type PacketIterator: Iterator<Item = rtp::packet::Packet> + Send;
 
     fn new(opts: Self::Opts) -> Result<(Self, Self::PacketIterator), CustomError>;
     fn decoder_parameters(&self) -> decoder::DecoderParameters;
