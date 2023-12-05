@@ -154,7 +154,7 @@ impl Pipeline {
             render_pass.set_bind_group(2, &self.sampler.bind_group, &[]);
 
             ctx.plane_cache
-                .get_plane(input_id)
+                .plane(input_id)
                 .unwrap()
                 .draw(&mut render_pass);
         };

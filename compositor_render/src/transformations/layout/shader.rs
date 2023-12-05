@@ -146,7 +146,7 @@ impl LayoutShader {
 
             wgpu_ctx
                 .plane_cache
-                .get_plane(layout_id as i32)
+                .plane(layout_id as i32)
                 .unwrap()
                 .draw(&mut render_pass);
         }

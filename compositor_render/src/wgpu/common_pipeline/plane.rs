@@ -32,7 +32,7 @@ impl PlaneCache {
 
     /// Return plane with vertices with provided input_id
     /// Return None if input_id >= cached planes count
-    pub fn get_plane(&self, input_id: i32) -> Option<&Plane> {
+    pub fn plane(&self, input_id: i32) -> Option<&Plane> {
         if input_id == -1 {
             Some(&self.non_indexed_plane)
         } else {
