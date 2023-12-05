@@ -125,10 +125,9 @@ impl Pipeline {
         let clear_color = clear_color.unwrap_or(wgpu::Color::TRANSPARENT);
 
         let mut render_plane = |input_id: i32, clear: bool| {
-            let load = if clear {
-                wgpu::LoadOp::Clear(clear_color)
-            } else {
-                wgpu::LoadOp::Load
+            let load = match clear {
+                true => wgpu::LoadOp::Clear(clear_color),
+                false => wgpu::LoadOp::Load,
             };
 
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -154,7 +153,7 @@ impl Pipeline {
             render_pass.set_bind_group(USER_DEFINED_BUFFER_GROUP, uniforms, &[]);
             render_pass.set_bind_group(2, &self.sampler.bind_group, &[]);
 
-            ctx.planes
+            ctx.plane_cache
                 .get_plane(input_id)
                 .unwrap()
                 .draw(&mut render_pass);

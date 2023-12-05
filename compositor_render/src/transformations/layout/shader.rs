@@ -122,10 +122,9 @@ impl LayoutShader {
         let mut encoder = wgpu_ctx.device.create_command_encoder(&Default::default());
 
         for layout_id in 0..layout_count {
-            let load = if layout_id == 0 {
-                wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT)
-            } else {
-                wgpu::LoadOp::Load
+            let load = match layout_id {
+                0 => wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
+                _ => wgpu::LoadOp::Load,
             };
 
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -146,7 +145,7 @@ impl LayoutShader {
             render_pass.set_bind_group(2, &self.sampler.bind_group, &[]);
 
             wgpu_ctx
-                .planes
+                .plane_cache
                 .get_plane(layout_id as i32)
                 .unwrap()
                 .draw(&mut render_pass);

@@ -1,8 +1,8 @@
 use log::error;
 
 use super::{
-    common_pipeline::plane::Planes, format::TextureFormat, shader::WgpuShader, utils::TextureUtils,
-    CreateWgpuCtxError, WgpuErrorScope,
+    common_pipeline::plane::PlaneCache, format::TextureFormat, shader::WgpuShader,
+    utils::TextureUtils, CreateWgpuCtxError, WgpuErrorScope,
 };
 
 #[derive(Debug)]
@@ -16,7 +16,7 @@ pub struct WgpuCtx {
     pub utils: TextureUtils,
 
     pub shader_parameters_bind_group_layout: wgpu::BindGroupLayout,
-    pub planes: Planes,
+    pub plane_cache: PlaneCache,
 }
 
 impl WgpuCtx {
@@ -61,7 +61,7 @@ impl WgpuCtx {
         let shader_parameters_bind_group_layout =
             WgpuShader::new_parameters_bind_group_layout(&device);
 
-        let planes = Planes::new(&device);
+        let plane_cache = PlaneCache::new(&device);
 
         scope.pop(&device)?;
 
@@ -76,7 +76,7 @@ impl WgpuCtx {
             format,
             utils,
             shader_parameters_bind_group_layout,
-            planes,
+            plane_cache,
         })
     }
 }

@@ -83,7 +83,7 @@ impl YUVToRGBAConverter {
             render_pass.set_bind_group(0, src.1, &[]);
             render_pass.set_bind_group(1, &self.sampler.bind_group, &[]);
 
-            ctx.planes.single_plane().draw(&mut render_pass);
+            ctx.plane_cache.non_indexed_plane().draw(&mut render_pass);
         }
 
         ctx.queue.submit(Some(encoder.finish()));

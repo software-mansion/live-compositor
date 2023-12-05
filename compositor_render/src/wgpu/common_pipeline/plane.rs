@@ -11,14 +11,14 @@ const INDICES: [u16; 6] = [
 pub const INDEX_FORMAT: wgpu::IndexFormat = wgpu::IndexFormat::Uint16;
 
 #[derive(Debug)]
-pub struct Planes {
+pub struct PlaneCache {
     // Plane with vertices with id == -1
     non_indexed_plane: Plane,
-    // Planes with vertices with id 0..MAX_TEXTURE_COUNT
+    // Planes with vertices with id 0..MAX_PLANES_COUNT
     indexed_planes: Vec<Plane>,
 }
 
-impl Planes {
+impl PlaneCache {
     pub fn new(device: &wgpu::Device) -> Self {
         let indexed_planes = (0..MAX_PLANES_COUNT)
             .map(|input_id| Plane::new(device, input_id as i32))
@@ -30,6 +30,8 @@ impl Planes {
         }
     }
 
+    /// Return plane with vertices with provided input_id
+    /// Return None if input_id >= cached planes count
     pub fn get_plane(&self, input_id: i32) -> Option<&Plane> {
         if input_id == -1 {
             Some(&self.non_indexed_plane)
@@ -38,7 +40,8 @@ impl Planes {
         }
     }
 
-    pub fn single_plane(&self) -> &Plane {
+    /// Returns plane with vertices with input_id = -1
+    pub fn non_indexed_plane(&self) -> &Plane {
         &self.non_indexed_plane
     }
 }
