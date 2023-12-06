@@ -105,7 +105,7 @@
               "format": "float"
             },
             "direction": {
-              "description": "Direction defines how static children are positioned inside a View component.\n\n- `\"row\"` - Children positioned from left to right.\n\n- `\"column\"` - Children positioned from top to bottom.",
+              "description": "Direction defines how static children are positioned inside a View component.",
               "anyOf": [
                 {
                   "$ref": "#/definitions/ViewDirection"
@@ -167,7 +167,7 @@
               ]
             },
             "overflow": {
-              "description": "(default=`\"hidden\"`) Controls what happens to content that is too big to fit into an area.",
+              "description": "(**default=`\"hidden\"`**) Controls what happens to content that is too big to fit into an area.",
               "anyOf": [
                 {
                   "$ref": "#/definitions/Overflow"
@@ -178,7 +178,7 @@
               ]
             },
             "background_color_rgba": {
-              "description": "(default=`\"#00000000\"`) Background color in a `\"#RRGGBBAA\"` format.",
+              "description": "(**default=`\"#00000000\"`**) Background color in a `\"#RRGGBBAA\"` format.",
               "anyOf": [
                 {
                   "$ref": "#/definitions/RGBAColor"
@@ -382,7 +382,7 @@
               "format": "float"
             },
             "max_width": {
-              "description": "(default=`7682`) Maximal `width`. Limits the width of the texture that the text will be rendered on. Value is ignored if `width` is defined.",
+              "description": "(**default=`7682`**) Maximal `width`. Limits the width of the texture that the text will be rendered on. Value is ignored if `width` is defined.",
               "type": [
                 "number",
                 "null"
@@ -390,7 +390,7 @@
               "format": "float"
             },
             "max_height": {
-              "description": "(default=`4320`) Maximal height. Limits the height of the texture that the text will be rendered on. Value is ignored if height is defined.",
+              "description": "(**default=`4320`**) Maximal `height`. Limits the height of the texture that the text will be rendered on. Value is ignored if height is defined.",
               "type": [
                 "number",
                 "null"
@@ -411,7 +411,7 @@
               "format": "float"
             },
             "color_rgba": {
-              "description": "(default=`\"#FFFFFFFF\"`) Font color in `#RRGGBBAA` format.",
+              "description": "(**default=`\"#FFFFFFFF\"`**) Font color in `#RRGGBBAA` format.",
               "anyOf": [
                 {
                   "$ref": "#/definitions/RGBAColor"
@@ -422,7 +422,7 @@
               ]
             },
             "background_color_rgba": {
-              "description": "(default=`\"#00000000\"`) Background color in `#RRGGBBAA` format.",
+              "description": "(**default=`\"#00000000\"`**) Background color in `#RRGGBBAA` format.",
               "anyOf": [
                 {
                   "$ref": "#/definitions/RGBAColor"
@@ -433,14 +433,14 @@
               ]
             },
             "font_family": {
-              "description": "(default=`\"Verdana\"`) Font family. Provide [family-name](https://www.w3.org/TR/2018/REC-css-fonts-3-20180920/#family-name-value) for a specific font. \"generic-family\" values like e.g. \"sans-serif\" will not work.",
+              "description": "(**default=`\"Verdana\"`**) Font family. Provide [family-name](https://www.w3.org/TR/2018/REC-css-fonts-3-20180920/#family-name-value) for a specific font. \"generic-family\" values like e.g. \"sans-serif\" will not work.",
               "type": [
                 "string",
                 "null"
               ]
             },
             "style": {
-              "description": "(default=`\"normal\"`) Font style. The selected font needs to support the specified style.",
+              "description": "(**default=`\"normal\"`**) Font style. The selected font needs to support the specified style.",
               "anyOf": [
                 {
                   "$ref": "#/definitions/TextStyle"
@@ -451,7 +451,7 @@
               ]
             },
             "align": {
-              "description": "(default=`\"left\"`) Text align.",
+              "description": "(**default=`\"left\"`**) Text align.",
               "anyOf": [
                 {
                   "$ref": "#/definitions/HorizontalAlign"
@@ -462,7 +462,7 @@
               ]
             },
             "wrap": {
-              "description": "(default=`\"none\"`) Text wrapping options.",
+              "description": "(**default=`\"none\"`**) Text wrapping options.",
               "anyOf": [
                 {
                   "$ref": "#/definitions/TextWrapMode"
@@ -473,7 +473,7 @@
               ]
             },
             "weight": {
-              "description": "(default=`\"normal\"`) Font weight. The selected font needs to support the specified weight.",
+              "description": "(**default=`\"normal\"`**) Font weight. The selected font needs to support the specified weight.",
               "anyOf": [
                 {
                   "$ref": "#/definitions/TextWeight"
@@ -536,7 +536,7 @@
               "format": "float"
             },
             "background_color_rgba": {
-              "description": "(default=`\"#00000000\"`) Background color in a `\"#RRGGBBAA\"` format.",
+              "description": "(**default=`\"#00000000\"`**) Background color in a `\"#RRGGBBAA\"` format.",
               "anyOf": [
                 {
                   "$ref": "#/definitions/RGBAColor"
@@ -547,7 +547,7 @@
               ]
             },
             "tile_aspect_ratio": {
-              "description": "(default=`\"16:9\"`) Aspect ratio of a tile in `\"W:H\"` format, where W and H are integers.",
+              "description": "(**default=`\"16:9\"`**) Aspect ratio of a tile in `\"W:H\"` format, where W and H are integers.",
               "anyOf": [
                 {
                   "$ref": "#/definitions/AspectRatio"
@@ -558,7 +558,7 @@
               ]
             },
             "margin": {
-              "description": "(default=`0`) Margin of each tile in pixels.",
+              "description": "(**default=`0`**) Margin of each tile in pixels.",
               "type": [
                 "number",
                 "null"
@@ -566,7 +566,7 @@
               "format": "float"
             },
             "padding": {
-              "description": "(default=`0`) Padding on each tile in pixels.",
+              "description": "(**default=`0`**) Padding on each tile in pixels.",
               "type": [
                 "number",
                 "null"
@@ -574,7 +574,7 @@
               "format": "float"
             },
             "horizontal_align": {
-              "description": "(default=`\"center\"`) Horizontal alignment of tiles.",
+              "description": "(**default=`\"center\"`**) Horizontal alignment of tiles.",
               "anyOf": [
                 {
                   "$ref": "#/definitions/HorizontalAlign"
@@ -585,7 +585,7 @@
               ]
             },
             "vertical_align": {
-              "description": "(default=`\"center\"`) Vertical alignment of tiles.",
+              "description": "(**default=`\"center\"`**) Vertical alignment of tiles.",
               "anyOf": [
                 {
                   "$ref": "#/definitions/VerticalAlign"
@@ -631,7 +631,7 @@
               ]
             },
             "mode": {
-              "description": "Resize mode:\n\n- `\"fit\"` - Resize the component proportionally, so one of the dimensions is the same as its parent, but it still fits inside it.\n\n- `\"fill\"` - Resize the component proportionally, so one of the dimensions is the same as its parent and the entire area of the parent is covered. Parts of a child that do not fit inside the parent are not rendered.",
+              "description": "(**default=`\"fit\"`**) Resize mode:",
               "anyOf": [
                 {
                   "$ref": "#/definitions/RescaleMode"
@@ -642,7 +642,7 @@
               ]
             },
             "horizontal_align": {
-              "description": "(default=`\"center\"`) Horizontal alignment.",
+              "description": "(**default=`\"center\"`**) Horizontal alignment.",
               "anyOf": [
                 {
                   "$ref": "#/definitions/HorizontalAlign"
@@ -653,7 +653,7 @@
               ]
             },
             "vertical_align": {
-              "description": "(default=`\"center\"`) Vertical alignment.",
+              "description": "(**default=`\"center\"`**) Vertical alignment.",
               "anyOf": [
                 {
                   "$ref": "#/definitions/VerticalAlign"
@@ -742,10 +742,21 @@
       "type": "string"
     },
     "ViewDirection": {
-      "type": "string",
-      "enum": [
-        "row",
-        "column"
+      "oneOf": [
+        {
+          "description": "Children positioned from left to right.",
+          "type": "string",
+          "enum": [
+            "row"
+          ]
+        },
+        {
+          "description": "Children positioned from top to bottom.",
+          "type": "string",
+          "enum": [
+            "column"
+          ]
+        }
       ]
     },
     "Transition": {
@@ -778,7 +789,7 @@
           ]
         },
         {
-          "description": "If children components are too big to fit inside the parent, resize everything inside to fit.\n\nComponents that have unknown sizes will be treated as if they had a size 0 when calculating scaling factor.\n\n:::warning\n\nThis will resize everything inside, even absolutely positioned elements. For example, if you have an element in the bottom right corner and the content will be rescaled by a factor 0.5x, then that component will end up in the middle of its parent\n\n:::",
+          "description": "If children components are too big to fit inside the parent, resize everything inside to fit.\n\nComponents that have unknown sizes will be treated as if they had a size 0 when calculating scaling factor.\n\n<br/><br/>\n\n:::warning\n\nThis will resize everything inside, even absolutely positioned elements. For example, if you have an element in the bottom right corner and the content will be rescaled by a factor 0.5x, then that component will end up in the middle of its parent\n\n:::",
           "type": "string",
           "enum": [
             "fit"
@@ -1178,10 +1189,21 @@
       ]
     },
     "RescaleMode": {
-      "type": "string",
-      "enum": [
-        "fit",
-        "fill"
+      "oneOf": [
+        {
+          "description": "Resize the component proportionally, so one of the dimensions is the same as its parent, but it still fits inside it.",
+          "type": "string",
+          "enum": [
+            "fit"
+          ]
+        },
+        {
+          "description": "Resize the component proportionally, so one of the dimensions is the same as its parent and the entire area of the parent is covered. Parts of a child that do not fit inside the parent are not rendered.",
+          "type": "string",
+          "enum": [
+            "fill"
+          ]
+        }
       ]
     }
   }

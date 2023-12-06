@@ -1,13 +1,17 @@
 ---
 sidebar_position: 4
+hide_table_of_contents: true
 ---
 import Docs from "@site/pages/api/generated/component-Tiles.md"
+import AbsolutePositionDefinition from "@site/pages/common/absolute-position.md"
 
 # Tiles
 
 `Tiles` is a layout component that places all the child components next to each other while maximizing the use of available space. The component divides its area into multiple rectangles/tiles, one for each child component. All of those rectangles are the same size and do not overlap over each other.
 
 ### Absolute positioning
+
+<AbsolutePositionDefinition />
 
 - `Tiles` **does not** support absolute positioning for its child components. All children will still be rendered, but all fields like `top`, `left`, `right`, `bottom`, and `rotation` will be ignored.
 - `Tiles` **can not** be absolutely positioned relative to it's parent.

@@ -7,27 +7,32 @@ description: API routes to configure the compositor.
 ### Init
 
 ```typescript
-Init = {
-  type: "init",
-  web_renderer: WebRendererOptions,
-  framerate: number,
-  stream_fallback_timeout_ms?: number // default: 1000
+type Init = {
+  type: "init";
+  web_renderer?: {
+    init?: boolean;
+    disable_gpu?: boolean;
+  };
+  framerate: number;
+  stream_fallback_timeout_ms?: number;
 }
 ```
 
 Init request triggers the initial setup of a compositor. It defines the base settings of a compositor that need to be evaluated before any other work happens.
 
-- `web_renderer` - Web renderer specific options. Read more [here](https://github.com/membraneframework/video_compositor/wiki/Web-renderer#global-options).
+- `web_renderer` - Web renderer specific options. [Learn more](./renderers/web).
+  - `web_renderer.init` - (**default=`true`**). Enable web rendering capabilities. With this option disabled, you can not use [`WebView` components](./components/WebView) or register [`WebRenderer` instances](./renderers/web).
+  - `web_renderer.disable_gpu` - (**default=`false`**). Disable GPU support inside embedded Chromium instance.
 - `framerate` - Target framerate of the output streams.
-- `stream_fallback_timeout_ms` (default: 1000) - Timeout that defines when the compositor should switch to fallback on the input stream that stopped sending frames. See [fallback](https://github.com/membraneframework/video_compositor/wiki/Main-concepts#fallback) to learn more.
+- `stream_fallback_timeout_ms` (**default: 1000**) - Timeout that defines when the compositor should switch to fallback on the input stream that stopped sending frames.
 
 ***
 
 ### Start
 
 ```typescript
-Start = {
-  type: "start"
+type Start = {
+  type: "start";
 }
 ```
 
@@ -38,78 +43,61 @@ Starts the processing pipeline. If outputs are registered and defined in the sce
 ### Update scene
 
 ```typescript
-UpdateScene = {
-  type: "update_scene",
-  nodes: Array<Node>,
-  outputs: Array<Output>,
+type UpdateScene = {
+  type: "update_scene";
+  outputs: OutputScene[];
 }
 
-Node = {
-  type: "shader" | "web_renderer" | "text_renderer" | "built-in",
-  node_id: NodeId,
-  input_pads: Array<NodeId>,
-  fallback_id?: NodeId,
-  ...
+type OutputScene = {
+    output_id: string;
+    root: Component;
 }
-
-Output = {
-  output_id: string,
-  input_pad: NodeId,
-}
-
-NodeId = string
 ```
 
-Update [scene](https://github.com/membraneframework/video_compositor/wiki/Main-concepts#scene).
-
-- `nodes` - List of nodes in the pipeline. Each node defines how inputs are converted into an output.
-  - `nodes[].node_id` - Id of a node.
-  - `nodes[].input_pads` - List of node ids that identify nodes needed for a current node to render. The actual meaning of that list depends on specific node implementation.
-  - `nodes[].fallback_id` - Id of a node that will be used instead of the current one if [fallback](https://github.com/membraneframework/video_compositor/wiki/Main-concepts#fallback) is triggered.
-  - `nodes[].*` - other params depend on the node type. See [Api - nodes](https://github.com/membraneframework/video_compositor/wiki/API-%E2%80%90-nodes) for more.
-- `outputs` - List of outputs. Identifies which nodes should be used to produce RTP output streams.
-  - `outputs[].output_id` - Id of an already registered output stream. See `RegisterOutputStream`.
-  - `outputs[].input_pad` - Id of a node that will be used to produce frames for output `output_id`.
+- `outputs` - List of outputs. Identifies what should be rendered for each RTP output streams.
+  - `outputs[].output_id` - Id of an already registered output stream. See [`RegisterOutputStream`](./routes#register-output-stream).
+  - `outputs[].root` - Root of a component tree that should be rendered for the output. [Learn more](../concept/component)
 
 ***
 
 ### Register input stream
 
 ```typescript
-RegisterInputStream = {
-  type: "register",
-  entity_type: "input_stream",
-  input_id: string,
-  port: number
+type RegisterInputStream = {
+  type: "register";
+  entity_type: "input_stream";
+  input_id: string;
+  port: u16 | string;
 }
 ```
 
-Register a new [input stream](https://github.com/membraneframework/video_compositor/wiki/Main-concepts#inputoutput-streams).
+Register a new RTP input stream.
 
-- `input_id` - Identifier that can be used in `UpdateScene` request to connect that stream to transformations or outputs.
-- `port` - UDP port that the compositor should listen for stream.
+- `input_id` - An identifier for the input stream. It can be used in the [`InputStream`](./components/InputStream) component to render the stream content.
+- `port` - UDP port or port range that the compositor should listen for stream. Integer value between 1 and 65535 representing specific port or
+  string in the `START:END` format for a port range.
 
 ***
 
 ### Register output stream
 
 ```typescript
-RegisterOutputStream = {
-  type: "register",
-  entity_type: "output_stream",
-  output_id: string,
-  port: number,
-  ip: string,
+type RegisterOutputStream = {
+  type: "register";
+  entity_type: "output_stream";
+  output_id: string;
+  port: u16;
+  ip: string;
   resolution: {
-    width: number,
-    height: number,
-  },
+    width: number;
+    height: number;
+  };
   encoder_settings: {
-    preset: EncoderPreset
-  }
+    preset: EncoderPreset;
+  };
 }
 
-EncoderPreset =
+type EncoderPreset =
   | "ultrafast"
   | "superfast"
   | "veryfast"
@@ -122,32 +110,39 @@ EncoderPreset =
   | "placebo"
 ```
 
-Register a new [output stream](https://github.com/membraneframework/video_compositor/wiki/Main-concepts#inputoutput-streams).
+Register a new RTP output stream.
 
-- `output_id` - Identifier that can be used in `UpdateScene` request to assign a node that will be used to produce frames for a stream.
+- `output_id` - An identifier for the output stream. It can be used in the `UpdateScene` request to define what to render for the output stream.
 - `port` / `ip` - UDP port and IP where compositor should send the stream. 
 - `resolution` - Output resolution in pixels.
 - `encoder_settings.preset` - Preset for an encoder. See `FFmpeg` [docs](https://trac.ffmpeg.org/wiki/Encode/H.264#Preset) to learn more.
 
+***
+
 ### Register renderer
 
 ```typescript
-RegisterRenderer = {
-  type: "register",
-  entity_type: "shader" | "web_renderer" | "image",
+type RegisterRenderer = {
+  type: "register";
+  entity_type: "shader" | "web_renderer" | "image";
   ... // renderer specific options
 }
 ```
 
-See [renderer documentation](https://github.com/membraneframework/video_compositor/wiki/Api-%E2%80%90-renderers) to learn more.
+See renderers documentation to learn more.
+- [Image](./renderers/image)
+- [Shader](./renderers/shader)
+- [WebRenderer](./renderers/web)
+
+***
 
 ### Unregister request
 
 ```typescript
-Unregister =
-  | { entity_type: "input_stream", input_id: string }
-  | { entity_type: "output_stream", output_id: string }
-  | { entity_type: "shader", shader_id: string }
-  | { entity_type: "image", image_id: string }
-  | { entity_type: "web_renderer", instance_id: string };
+type Unregister =
+  | { type: "unregister", entity_type: "input_stream", input_id: string }
+  | { type: "unregister", entity_type: "output_stream", output_id: string }
+  | { type: "unregister", entity_type: "shader", shader_id: string }
+  | { type: "unregister", entity_type: "image", image_id: string }
+  | { type: "unregister", entity_type: "web_renderer", instance_id: string }
 ```

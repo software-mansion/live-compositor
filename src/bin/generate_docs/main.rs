@@ -1,8 +1,7 @@
 use parsing::generate_docs;
 use std::{fs, path::PathBuf};
 use video_compositor::types::{
-    Image, ImageSpec, InputStream, RegisterInputRequest, RegisterOutputRequest, Rescaler, Shader,
-    ShaderSpec, Text, Tiles, View, WebRendererSpec, WebView,
+    Image, InputStream, Rescaler, Shader, ShaderSpec, Text, Tiles, View, WebRendererSpec, WebView,
 };
 
 mod parsing;
@@ -16,11 +15,8 @@ fn main() {
     fs::create_dir(&docs_path).unwrap();
 
     let renderer_pages = [
-        generate_docs::<RegisterInputRequest>("InputStream"),
-        generate_docs::<RegisterOutputRequest>("OutputStream"),
         generate_docs::<ShaderSpec>("Shader"),
         generate_docs::<WebRendererSpec>("WebRenderer"),
-        generate_docs::<ImageSpec>("Image"),
     ];
 
     let component_pages = [

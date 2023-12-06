@@ -1,7 +1,9 @@
 ---
 sidebar_position: 2
+hide_table_of_contents: true
 ---
 import Docs from "@site/pages/api/generated/component-View.md"
+import AbsolutePositionDefinition from "@site/pages/common/absolute-position.md"
 
 # View
 
@@ -10,9 +12,7 @@ import Docs from "@site/pages/api/generated/component-View.md"
 
 ### Absolute positioning
 
-A component is absolutely positioned if it defines fields like `top`, `left`, `right`, `bottom`, or `rotation`.
-Those fields define the component's position relative to its parent. However, to respect those
-values, the parent component has to be a layout component that supports absolute positioning.
+<AbsolutePositionDefinition />
 
 - `View` supports absolute positioning for its child components.
 - `View` can be absolutely positioned relative to its parent if the parent component supports it.

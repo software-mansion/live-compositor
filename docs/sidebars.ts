@@ -33,11 +33,6 @@ const sidebars: SidebarsConfig = {
           label: 'HTTP Routes',
         },
         {
-          type: 'doc',
-          id: 'api/io',
-          label: 'Input/Output streams',
-        },
-        {
           type: 'category',
           label: 'Components',
           collapsible: false,

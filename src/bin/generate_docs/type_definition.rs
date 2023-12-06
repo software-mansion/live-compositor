@@ -80,7 +80,7 @@ impl TypeDefinition {
                 _ => 0,
             };
             out += &format!(
-                "{}{}: {},\n",
+                "{}{}: {};\n",
                 INDENT.repeat(base_indent + 2),
                 name,
                 prop.type_def.to_pretty_string(indent)

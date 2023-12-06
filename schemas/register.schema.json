@@ -75,9 +75,15 @@
           ]
         },
         "shader_id": {
-          "$ref": "#/definitions/RendererId"
+          "description": "Id of a shader. It can be used in a [`Shader`](../components/Shader) component after registration.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/RendererId"
+            }
+          ]
         },
         "source": {
+          "description": "Shader source code. [Learn more.](../../concept/shaders)",
           "type": "string"
         }
       }
@@ -98,15 +104,27 @@
           ]
         },
         "instance_id": {
-          "$ref": "#/definitions/RendererId"
+          "description": "Id of a web renderer instance. It can be used in a [`WebView`](../components/WebView) component after registration.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/RendererId"
+            }
+          ]
         },
         "url": {
+          "description": "Url of a website that you want to render.",
           "type": "string"
         },
         "resolution": {
-          "$ref": "#/definitions/Resolution"
+          "description": "Resolution.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Resolution"
+            }
+          ]
         },
         "embedding_method": {
+          "description": "Mechanism used to render input frames on the website.",
           "anyOf": [
             {
               "$ref": "#/definitions/WebEmbeddingMethod"
@@ -343,11 +361,28 @@
       "type": "string"
     },
     "WebEmbeddingMethod": {
-      "type": "string",
-      "enum": [
-        "chromium_embedding",
-        "native_embedding_over_content",
-        "native_embedding_under_content"
+      "oneOf": [
+        {
+          "description": "Pass raw input frames as JS buffers so they can be rendered, for example, using a `<canvas>` component.\n\n<br/> <br/>\n\n:::warning\n\nThis method might have a significant performance impact, especially for a large number of inputs.\n\n:::",
+          "type": "string",
+          "enum": [
+            "chromium_embedding"
+          ]
+        },
+        {
+          "description": "Render a website without any inputs and overlay them over the website content.",
+          "type": "string",
+          "enum": [
+            "native_embedding_over_content"
+          ]
+        },
+        {
+          "description": "Render a website without any inputs and overlay them under the website content.",
+          "type": "string",
+          "enum": [
+            "native_embedding_under_content"
+          ]
+        }
       ]
     }
   }
