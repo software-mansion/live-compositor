@@ -120,17 +120,14 @@ impl LayoutShader {
             });
 
         let mut encoder = wgpu_ctx.device.create_command_encoder(&Default::default());
-
-        for layout_id in 0..layout_count {
-            let load = match layout_id {
-                0 => wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
-                _ => wgpu::LoadOp::Load,
-            };
-
+        {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: None,
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    ops: wgpu::Operations { load, store: true },
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
+                        store: true,
+                    },
                     view: &target.rgba_texture().texture().view,
                     resolve_target: None,
                 })],
@@ -138,17 +135,19 @@ impl LayoutShader {
                 depth_stencil_attachment: None,
             });
 
-            render_pass.set_pipeline(&self.pipeline);
+            for layout_id in 0..layout_count {
+                render_pass.set_pipeline(&self.pipeline);
 
-            render_pass.set_bind_group(0, &input_textures_bg, &[]);
-            render_pass.set_bind_group(1, params, &[]);
-            render_pass.set_bind_group(2, &self.sampler.bind_group, &[]);
+                render_pass.set_bind_group(0, &input_textures_bg, &[]);
+                render_pass.set_bind_group(1, params, &[]);
+                render_pass.set_bind_group(2, &self.sampler.bind_group, &[]);
 
-            wgpu_ctx
-                .plane_cache
-                .plane(layout_id as i32)
-                .unwrap()
-                .draw(&mut render_pass);
+                wgpu_ctx
+                    .plane_cache
+                    .plane(layout_id as i32)
+                    .unwrap()
+                    .draw(&mut render_pass);
+            }
         }
         wgpu_ctx.queue.submit(Some(encoder.finish()));
     }
