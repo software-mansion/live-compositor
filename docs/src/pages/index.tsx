@@ -51,7 +51,7 @@ function HomepageHeader() {
               </div>
             </div>
           </div>
-          <div className="col col--6">Image</div>
+          <div className="col col--6"></div>
         </div>
       </div>
     </header>

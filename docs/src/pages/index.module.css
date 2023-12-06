@@ -25,6 +25,7 @@
 
 .card {
   flex: 1;
+  min-width: 350px;
   margin: 10px;
   margin-top: 50px;
   padding-top: 20px;

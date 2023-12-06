@@ -64,35 +64,6 @@ const config: Config = {
     },
     footer: {
       style: 'dark',
-      links: [
-        {
-          title: 'Introduction',
-          items: [
-            {
-              label: 'Tutorial',
-              to: '/docs/intro',
-            },
-          ],
-        },
-        {
-          title: 'Community',
-          items: [
-            {
-              label: 'Discord',
-              href: 'https://discord.com/invite/nwnfVSY',
-            },
-          ],
-        },
-        {
-          title: 'More',
-          items: [
-            {
-              label: 'GitHub',
-              href: 'https://github.com/membraneframework/video_compositor',
-            },
-          ],
-        },
-      ],
       copyright: `Copyright © ${new Date().getFullYear()} Software Mansion S.A.`,
     },
     prism: {
