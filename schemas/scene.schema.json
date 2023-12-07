@@ -433,14 +433,14 @@
               ]
             },
             "font_family": {
-              "description": "(default=`\"Verdana\"`) Font family. Provide family-name for a specific font. \"generic-family\" values like e.g. \"sans-serif\" will not work. https://www.w3.org/TR/2018/REC-css-fonts-3-20180920/#family-name-value",
+              "description": "(default=`\"Verdana\"`) Font family. Provide [family-name](https://www.w3.org/TR/2018/REC-css-fonts-3-20180920/#family-name-value) for a specific font. \"generic-family\" values like e.g. \"sans-serif\" will not work.",
               "type": [
                 "string",
                 "null"
               ]
             },
             "style": {
-              "description": "(default=`\"normal\"`) Font style. The selected font needs to support this specific style.",
+              "description": "(default=`\"normal\"`) Font style. The selected font needs to support the specified style.",
               "anyOf": [
                 {
                   "$ref": "#/definitions/TextStyle"
@@ -473,7 +473,7 @@
               ]
             },
             "weight": {
-              "description": "(default=`\"normal\"`) Font weight. The selected font needs to support this specific weight.",
+              "description": "(default=`\"normal\"`) Font weight. The selected font needs to support the specified weight.",
               "anyOf": [
                 {
                   "$ref": "#/definitions/TextWeight"

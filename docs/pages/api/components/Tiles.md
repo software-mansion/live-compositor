@@ -23,6 +23,6 @@ An optimal number of rows and columns should result in a layout that covers the 
 
 When placing a child component inside a tile, the component might change its size.
 - Non-layout component scales proportionally to fit inside the parent. If the aspect ratios of a child and its parent do not match, then the component will be centered vertically or horizontally.
-- Layout component takes the `width` and `height` of a tile. It ignores its own `with`/`height` fields if they are defined.
+- Layout component takes the `width` and `height` of a tile. It ignores its own `width`/`height` fields if they are defined.
 
 <Docs />

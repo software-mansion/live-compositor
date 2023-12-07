@@ -277,16 +277,16 @@ pub struct Text {
     pub color_rgba: Option<RGBAColor>,
     /// (default=`"#00000000"`) Background color in `#RRGGBBAA` format.
     pub background_color_rgba: Option<RGBAColor>,
-    /// (default=`"Verdana"`) Font family. Provide family-name for a specific font. "generic-family" values
-    /// like e.g. "sans-serif" will not work. https://www.w3.org/TR/2018/REC-css-fonts-3-20180920/#family-name-value
+    /// (default=`"Verdana"`) Font family. Provide [family-name](https://www.w3.org/TR/2018/REC-css-fonts-3-20180920/#family-name-value)
+    /// for a specific font. "generic-family" values like e.g. "sans-serif" will not work.
     pub font_family: Option<Arc<str>>,
-    /// (default=`"normal"`) Font style. The selected font needs to support this specific style.
+    /// (default=`"normal"`) Font style. The selected font needs to support the specified style.
     pub style: Option<TextStyle>,
     /// (default=`"left"`) Text align.
     pub align: Option<HorizontalAlign>,
     /// (default=`"none"`) Text wrapping options.
     pub wrap: Option<TextWrapMode>,
-    /// (default=`"normal"`) Font weight. The selected font needs to support this specific weight.
+    /// (default=`"normal"`) Font weight. The selected font needs to support the specified weight.
     pub weight: Option<TextWeight>,
 }
 
