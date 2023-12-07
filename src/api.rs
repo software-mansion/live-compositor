@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use compositor_common::scene;
 use compositor_pipeline::pipeline::{self};
 use compositor_render::{EventLoop, RegistryType};
 use crossbeam_channel::{bounded, Receiver};
@@ -49,6 +50,7 @@ pub enum UnregisterRequest {
 #[serde(tag = "query", rename_all = "snake_case")]
 pub enum QueryRequest {
     WaitForNextFrame { input_id: InputId },
+    WaitForEos { input_id: InputId },
     Inputs,
     Outputs,
 }
@@ -159,6 +161,28 @@ impl Api {
                     .collect()
                 });
                 Ok(ResponseHandler::Response(Response::Outputs { outputs }))
+            }
+            QueryRequest::WaitForEos { input_id } => {
+                let input_id: scene::id::InputId = input_id.into();
+                let Some((_, input)) = self.pipeline.inputs().find(|(id, _)| id == &&input_id)
+                else {
+                    return Err(ApiError::input_stream_not_found(
+                        &input_id.0,
+                        "Failed to subscribe to EOS event.",
+                    ));
+                };
+                let (sender, receiver) = bounded(1);
+                input
+                    .subscribe_eos_listener(Box::new(move || {
+                        sender.send(Ok(Response::Ok {})).unwrap();
+                    }))
+                    .map_err(|_err| {
+                        ApiError::input_stream_not_found(
+                            &input_id.0,
+                            "Failed to subscribe to EOS event.",
+                        )
+                    })?;
+                Ok(ResponseHandler::DeferredResponse(receiver))
             }
         }
     }

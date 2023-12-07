@@ -36,6 +36,14 @@ impl ApiError {
             StatusCode(400),
         )
     }
+
+    pub fn input_stream_not_found(input_id: &str, msg: &str) -> Self {
+        ApiError::new(
+            "INPUT_STREAM_NOT_FOUND",
+            format!("{msg} Stream \"{input_id}\" does not exist."),
+            StatusCode(404),
+        )
+    }
 }
 
 impl<T> From<T> for ApiError
