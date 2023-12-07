@@ -17,10 +17,21 @@ mod util;
 mod convert_util_test;
 
 pub use component::Component;
+pub use component::Image;
+pub use component::InputStream;
+pub use component::Rescaler;
+pub use component::Shader;
+pub use component::Text;
+pub use component::Tiles;
+pub use component::View;
+pub use component::WebView;
 pub use register_request::Port;
 pub use register_request::RegisterInputRequest;
 pub use register_request::RegisterOutputRequest;
 pub use register_request::RegisterRequest;
+pub use renderer::ImageSpec;
+pub use renderer::ShaderSpec;
+pub use renderer::WebRendererSpec;
 pub use util::Resolution;
 pub use util::TypeError;
 
