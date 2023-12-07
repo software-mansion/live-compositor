@@ -1,9 +1,8 @@
 name: deploy to gh-pages
 
 on:
-    workflow_dispatch: {}
     push:
-        branches: [master, new-api]
+        branches: [master]
         paths:
             - "docs/**"
             - "schemas/**"
