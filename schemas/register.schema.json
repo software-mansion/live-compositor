@@ -79,16 +79,6 @@
         },
         "source": {
           "type": "string"
-        },
-        "fallback_strategy": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/FallbackStrategy"
-            },
-            {
-              "type": "null"
-            }
-          ]
         }
       }
     },
@@ -120,16 +110,6 @@
           "anyOf": [
             {
               "$ref": "#/definitions/WebEmbeddingMethod"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "fallback_strategy": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/FallbackStrategy"
             },
             {
               "type": "null"
@@ -361,14 +341,6 @@
     },
     "RendererId": {
       "type": "string"
-    },
-    "FallbackStrategy": {
-      "type": "string",
-      "enum": [
-        "never_fallback",
-        "fallback_if_all_inputs_missing",
-        "fallback_if_any_input_missing"
-      ]
     },
     "WebEmbeddingMethod": {
       "type": "string",

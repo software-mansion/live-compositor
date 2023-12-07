@@ -165,9 +165,9 @@ impl TryFrom<Rescaler> for scene::RescalerComponent {
             }
         };
         let mode = match rescaler.mode {
-            Some(ResizeMode::Fit) => scene::ResizeMode::Fit,
-            Some(ResizeMode::Fill) => scene::ResizeMode::Fill,
-            None => scene::ResizeMode::Fit,
+            Some(RescaleMode::Fit) => scene::RescaleMode::Fit,
+            Some(RescaleMode::Fill) => scene::RescaleMode::Fill,
+            None => scene::RescaleMode::Fit,
         };
         Ok(Self {
             id: rescaler.id.map(Into::into),
@@ -347,14 +347,11 @@ impl TryFrom<Tiles> for scene::TilesComponent {
                 .unwrap_or(Ok((16, 9)))?,
             margin: tiles.margin.unwrap_or(0.0),
             padding: tiles.padding.unwrap_or(0.0),
-            horizontal_alignment: tiles
-                .horizontal_alignment
+            horizontal_align: tiles
+                .horizontal_align
                 .unwrap_or(HorizontalAlign::Center)
                 .into(),
-            vertical_alignment: tiles
-                .vertical_alignment
-                .unwrap_or(VerticalAlign::Center)
-                .into(),
+            vertical_align: tiles.vertical_align.unwrap_or(VerticalAlign::Center).into(),
         };
         Ok(result)
     }

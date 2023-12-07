@@ -45,16 +45,9 @@ fn main() {
         )
         .unwrap();
     }
-
-    // TODO: Make it work the same way `renderers` work
-    let tmp_components_path =
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("docs/pages/api/components");
-    if !tmp_components_path.exists() {
-        fs::create_dir(&tmp_components_path).unwrap();
-    }
     for page in component_pages {
         fs::write(
-            tmp_components_path.join(format!("{}.md", page.title)),
+            docs_path.join(format!("component-{}.md", page.title)),
             page.to_markdown(),
         )
         .unwrap();

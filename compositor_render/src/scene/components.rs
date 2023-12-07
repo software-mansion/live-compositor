@@ -195,13 +195,13 @@ pub struct RescalerComponent {
     pub position: Position,
     pub transition: Option<Transition>,
 
-    pub mode: ResizeMode,
+    pub mode: RescaleMode,
     pub horizontal_align: HorizontalAlign,
     pub vertical_align: VerticalAlign,
 }
 
 #[derive(Debug, Clone, Copy)]
-pub enum ResizeMode {
+pub enum RescaleMode {
     Fit,
     Fill,
 }
@@ -218,6 +218,6 @@ pub struct TilesComponent {
     pub tile_aspect_ratio: (u32, u32),
     pub margin: f32,
     pub padding: f32,
-    pub horizontal_alignment: HorizontalAlign,
-    pub vertical_alignment: VerticalAlign,
+    pub horizontal_align: HorizontalAlign,
+    pub vertical_align: VerticalAlign,
 }

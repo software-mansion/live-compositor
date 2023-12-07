@@ -3,7 +3,7 @@ use std::time::Duration;
 use compositor_common::util::align::{HorizontalAlign, VerticalAlign};
 
 use crate::{
-    scene::{layout::StatefulLayoutComponent, ResizeMode, Size, StatefulComponent},
+    scene::{layout::StatefulLayoutComponent, RescaleMode, Size, StatefulComponent},
     transformations::layout::{Crop, LayoutContent, NestedLayout},
 };
 
@@ -28,10 +28,10 @@ impl RescalerComponentParam {
             }
             (Some(child_width), Some(child_height)) => {
                 let scale = match self.mode {
-                    ResizeMode::Fit => {
+                    RescaleMode::Fit => {
                         f32::min(size.width / child_width, size.height / child_height)
                     }
-                    ResizeMode::Fill => {
+                    RescaleMode::Fill => {
                         f32::max(size.width / child_width, size.height / child_height)
                     }
                 };

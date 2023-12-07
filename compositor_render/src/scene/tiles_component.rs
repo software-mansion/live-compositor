@@ -31,8 +31,8 @@ struct TilesComponentParams {
     tile_aspect_ratio: (u32, u32),
     margin: f32,
     padding: f32,
-    horizontal_alignment: HorizontalAlign,
-    vertical_alignment: VerticalAlign,
+    horizontal_align: HorizontalAlign,
+    vertical_align: VerticalAlign,
 }
 
 impl StatefulTilesComponent {
@@ -93,8 +93,8 @@ impl TilesComponent {
                 tile_aspect_ratio: self.tile_aspect_ratio,
                 margin: self.margin,
                 padding: self.padding,
-                horizontal_alignment: self.horizontal_alignment,
-                vertical_alignment: self.vertical_alignment,
+                horizontal_align: self.horizontal_align,
+                vertical_align: self.vertical_align,
             },
             children: self
                 .children

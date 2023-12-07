@@ -158,7 +158,7 @@ impl TilesComponentParams {
             - (tile_size.height + 2.0 * self.padding) * rows_cols.rows as f32
             - (self.margin * (rows_cols.rows as f32 + 1.0));
 
-        let (additional_top_padding, justified_padding_y) = match self.vertical_alignment {
+        let (additional_top_padding, justified_padding_y) = match self.vertical_align {
             VerticalAlign::Top => (0.0, 0.0),
             VerticalAlign::Center => (additional_y_padding / 2.0, 0.0),
             VerticalAlign::Bottom => (additional_y_padding, 0.0),
@@ -180,7 +180,7 @@ impl TilesComponentParams {
                 - (tile_size.width + 2.0 * self.padding) * tiles_in_row as f32
                 - (self.margin * (tiles_in_row as f32 + 1.0));
 
-            let (additional_left_padding, justified_padding_x) = match self.horizontal_alignment {
+            let (additional_left_padding, justified_padding_x) = match self.horizontal_align {
                 HorizontalAlign::Left => (0.0, 0.0),
                 HorizontalAlign::Right => (additional_x_padding, 0.0),
                 HorizontalAlign::Justified => {

@@ -9,7 +9,7 @@ use crate::transformations::layout::NestedLayout;
 
 use super::{
     components::RescalerComponent, layout::StatefulLayoutComponent, scene_state::BuildStateTreeCtx,
-    Component, ComponentId, IntermediateNode, Position, ResizeMode, SceneError, Size,
+    Component, ComponentId, IntermediateNode, Position, RescaleMode, SceneError, Size,
     StatefulComponent, Transition,
 };
 
@@ -30,7 +30,7 @@ struct RescalerComponentParam {
     id: Option<ComponentId>,
 
     position: Position,
-    mode: ResizeMode,
+    mode: RescaleMode,
     horizontal_align: HorizontalAlign,
     vertical_align: VerticalAlign,
 }

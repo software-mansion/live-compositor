@@ -13,6 +13,7 @@ pub struct Resolution {
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 pub struct Transition {
+    /// Duration of a transition in milliseconds.
     pub duration_ms: f64,
 }
 

@@ -24,10 +24,7 @@ impl TryFrom<ShaderSpec> for renderer_spec::RendererSpec {
         let spec = renderer_spec::ShaderSpec {
             shader_id: spec.shader_id.into(),
             source: spec.source,
-            fallback_strategy: spec
-                .fallback_strategy
-                .map(Into::into)
-                .unwrap_or(renderer_spec::FallbackStrategy::FallbackIfAllInputsMissing),
+            fallback_strategy: renderer_spec::FallbackStrategy::FallbackIfAllInputsMissing,
         };
         Ok(Self::Shader(spec))
     }
@@ -54,10 +51,7 @@ impl TryFrom<WebRendererSpec> for renderer_spec::RendererSpec {
             instance_id: spec.instance_id.into(),
             url: spec.url,
             resolution: spec.resolution.into(),
-            fallback_strategy: spec
-                .fallback_strategy
-                .map(Into::into)
-                .unwrap_or(renderer_spec::FallbackStrategy::FallbackIfAllInputsMissing),
+            fallback_strategy: renderer_spec::FallbackStrategy::FallbackIfAllInputsMissing,
             embedding_method,
         };
         Ok(Self::WebRenderer(spec))
