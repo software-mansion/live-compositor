@@ -1,6 +1,6 @@
+use crate::renderer::render_graph::NodeId;
 use crate::UNEMBED_SOURCE_FRAMES_MESSAGE;
 use compositor_chromium::cef;
-use compositor_common::scene::NodeId;
 use log::error;
 use shared_memory::{Shmem, ShmemConf, ShmemError};
 use std::path::{Path, PathBuf};

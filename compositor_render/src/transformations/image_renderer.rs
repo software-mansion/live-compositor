@@ -25,7 +25,7 @@ use crate::{
     },
 };
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub enum Image {
     Bitmap(Arc<BitmapAsset>),
     Animated(Arc<AnimatedAsset>),
@@ -61,6 +61,14 @@ impl Image {
             }
         };
         Ok(renderer)
+    }
+
+    pub fn resolution(&self) -> Resolution {
+        match self {
+            Image::Bitmap(asset) => asset.resolution(),
+            Image::Animated(asset) => asset.resolution(),
+            Image::Svg(asset) => asset.resolution(),
+        }
     }
 
     fn download_file(src: &ImageSrc) -> Result<bytes::Bytes, ImageError> {
@@ -118,6 +126,7 @@ impl ImageNode {
     }
 
     pub fn render(&self, ctx: &mut RenderCtx, target: &mut NodeTexture, pts: Duration) {
+        target.ensure_size(ctx.wgpu_ctx, self.resolution());
         match self {
             ImageNode::Bitmap { asset, state } => asset.render(ctx.wgpu_ctx, target, state),
             ImageNode::Animated { asset, state } => asset.render(ctx.wgpu_ctx, target, state, pts),
@@ -125,7 +134,7 @@ impl ImageNode {
         }
     }
 
-    pub fn resolution(&self) -> Resolution {
+    fn resolution(&self) -> Resolution {
         match self {
             ImageNode::Bitmap { asset, .. } => asset.resolution(),
             ImageNode::Animated { asset, .. } => asset.resolution(),
@@ -138,6 +147,7 @@ pub struct BitmapNodeState {
     was_rendered: bool,
 }
 
+#[derive(Debug)]
 pub struct BitmapAsset {
     texture: RGBATexture,
 }
@@ -181,6 +191,7 @@ pub struct SvgNodeState {
     was_rendered: bool,
 }
 
+#[derive(Debug)]
 pub struct SvgAsset {
     texture: RGBATexture,
 }
@@ -250,11 +261,13 @@ pub struct AnimatedNodeState {
     first_pts: Option<Duration>,
 }
 
+#[derive(Debug)]
 pub struct AnimatedAsset {
     frames: Vec<AnimationFrame>,
     animation_duration: Duration,
 }
 
+#[derive(Debug)]
 struct AnimationFrame {
     texture: RGBATexture,
     pts: Duration,

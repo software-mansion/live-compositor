@@ -1,14 +1,10 @@
 use std::sync::Arc;
 
-use compositor_common::{
-    error::ErrorStack,
-    renderer_spec::FallbackStrategy,
-    scene::{NodeId, Resolution},
-};
+use compositor_common::{error::ErrorStack, renderer_spec::FallbackStrategy};
 use log::error;
 
 use crate::{
-    renderer::RenderCtx,
+    renderer::{render_graph::NodeId, RenderCtx},
     wgpu::{
         texture::{utils::pad_to_256, NodeTexture, RGBATexture},
         WgpuCtx,
@@ -27,7 +23,7 @@ impl WebRendererNode {
     pub fn new(node_id: &NodeId, renderer: Arc<WebRenderer>) -> Self {
         Self {
             renderer,
-            node_id: node_id.clone(),
+            node_id: *node_id,
             buffers: Vec::new(),
         }
     }
@@ -49,10 +45,6 @@ impl WebRendererNode {
                 ErrorStack::new(&err).into_string()
             );
         }
-    }
-
-    pub fn resolution(&self) -> Resolution {
-        self.renderer.resolution()
     }
 
     pub fn fallback_strategy(&self) -> FallbackStrategy {

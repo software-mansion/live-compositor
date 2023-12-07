@@ -1,5 +1,6 @@
 pub mod error;
 pub mod renderer;
+pub mod scene;
 
 pub(crate) mod registry;
 pub(crate) mod transformations;
@@ -9,7 +10,6 @@ pub(crate) mod wgpu;
 mod event_loop;
 mod frame_set;
 mod sync_renderer;
-mod validation;
 
 pub use event_loop::EventLoop;
 pub use frame_set::FrameSet;

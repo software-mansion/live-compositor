@@ -64,6 +64,8 @@ fn build_and_start_docker(skip_build: bool) -> Result<()> {
     if env::var("NVIDIA").is_ok() {
         info!("[example] configured for nvidia GPUs");
         args.extend_from_slice(&["--gpus", "all", "--runtime=nvidia"]);
+    } else if env::var("NO_GPU").is_ok() || cfg!(target_os = "macos") {
+        info!("[example] configured for software based rendering");
     } else {
         info!("[example] configured for non-nvidia GPUs");
         args.extend_from_slice(&["--device", "/dev/dri"]);
@@ -120,34 +122,32 @@ fn start_example_client_code(host_ip: String) -> Result<()> {
         "port": 8004,
     }))?;
 
-    let shader_source = include_str!("../compositor_render/examples/silly/silly.wgsl");
+    let shader_source = include_str!("./silly.wgsl");
     info!("[example] Register shader transform");
     common::post(&json!({
         "type": "register",
-        "entity_type": "shader",
         "shader_id": "example_shader",
+        "entity_type": "shader",
         "source": shader_source,
     }))?;
 
     info!("[example] Update scene");
     common::post(&json!({
         "type": "update_scene",
-        "nodes": [
-           {
-                "node_id": "shader_1",
-                "type": "shader",
-                "shader_id": "example_shader",
-                "input_pads": [
-                    "input_1",
-                ],
-                "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
-           },
-
-        ],
         "outputs": [
             {
                 "output_id": "output_1",
-                "input_pad": "shader_1"
+                "root": {
+                     "type": "shader",
+                     "shader_id": "example_shader",
+                     "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+                     "children": [
+                         {
+                            "type": "input_stream",
+                            "input_id": "input_1",
+                         }
+                     ]
+                }
             }
         ]
     }))?;

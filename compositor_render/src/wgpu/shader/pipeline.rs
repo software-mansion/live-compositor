@@ -28,19 +28,7 @@ impl Pipeline {
     ) -> Self {
         let sampler = Sampler::new(device);
 
-        let textures_bgl = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("shader transformation textures bgl"),
-            entries: &[wgpu::BindGroupLayoutEntry {
-                binding: 0,
-                count: NonZeroU32::new(INPUT_TEXTURES_AMOUNT),
-                visibility: wgpu::ShaderStages::FRAGMENT | wgpu::ShaderStages::VERTEX,
-                ty: wgpu::BindingType::Texture {
-                    multisampled: false,
-                    sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                    view_dimension: wgpu::TextureViewDimension::D2,
-                },
-            }],
-        });
+        let textures_bgl = Self::create_texture_bind_group_layout(device, INPUT_TEXTURES_AMOUNT);
 
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("shader transformation pipeline layout"),
@@ -58,7 +46,22 @@ impl Pipeline {
 
         let surfaces = Surfaces::new(device);
 
-        let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+        let pipeline = Self::create_render_pipeline(device, &pipeline_layout, &shader_module);
+
+        Self {
+            pipeline,
+            sampler,
+            surfaces,
+            textures_bgl,
+        }
+    }
+
+    pub fn create_render_pipeline(
+        device: &wgpu::Device,
+        pipeline_layout: &wgpu::PipelineLayout,
+        shader_module: &wgpu::ShaderModule,
+    ) -> wgpu::RenderPipeline {
+        device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("shader transformation pipeline :^)"),
             depth_stencil: None,
             primitive: wgpu::PrimitiveState {
@@ -72,11 +75,11 @@ impl Pipeline {
             },
             vertex: wgpu::VertexState {
                 buffers: &[Vertex::LAYOUT],
-                module: &shader_module,
+                module: shader_module,
                 entry_point: super::VERTEX_ENTRYPOINT_NAME,
             },
             fragment: Some(wgpu::FragmentState {
-                module: &shader_module,
+                module: shader_module,
                 entry_point: super::FRAGMENT_ENTRYPOINT_NAME,
                 targets: &[Some(wgpu::ColorTargetState {
                     format: wgpu::TextureFormat::Rgba8Unorm,
@@ -84,21 +87,33 @@ impl Pipeline {
                     blend: Some(wgpu::BlendState::ALPHA_BLENDING),
                 })],
             }),
-            layout: Some(&pipeline_layout),
+            layout: Some(pipeline_layout),
             multisample: wgpu::MultisampleState {
                 count: 1,
                 mask: !0,
                 alpha_to_coverage_enabled: false,
             },
             multiview: None,
-        });
+        })
+    }
 
-        Self {
-            pipeline,
-            sampler,
-            surfaces,
-            textures_bgl,
-        }
+    pub fn create_texture_bind_group_layout(
+        device: &wgpu::Device,
+        texture_count: u32,
+    ) -> wgpu::BindGroupLayout {
+        device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("shader transformation textures bgl"),
+            entries: &[wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                count: NonZeroU32::new(texture_count),
+                visibility: wgpu::ShaderStages::FRAGMENT | wgpu::ShaderStages::VERTEX,
+                ty: wgpu::BindingType::Texture {
+                    multisampled: false,
+                    sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                    view_dimension: wgpu::TextureViewDimension::D2,
+                },
+            }],
+        })
     }
 
     pub fn render(

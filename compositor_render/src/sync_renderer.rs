@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use compositor_common::{
     renderer_spec::{RendererId, RendererSpec},
-    scene::{InputId, OutputId, SceneSpec},
+    scene::{InputId, OutputId},
 };
 
 use crate::{
@@ -13,8 +13,8 @@ use crate::{
     event_loop::EventLoop,
     registry::RegistryType,
     renderer::{Renderer, RendererOptions},
+    scene::OutputScene,
     transformations::{image_renderer::Image, shader::Shader, web_renderer::WebRenderer},
-    validation::SceneSpecExt,
     FrameSet,
 };
 
@@ -70,9 +70,10 @@ impl SyncRenderer {
         registry_type: RegistryType,
     ) -> Result<(), UnregisterRendererError> {
         let mut guard = self.0.lock().unwrap();
-        guard
-            .scene_spec
-            .validate_can_unregister(renderer_id, registry_type)?;
+        // TODO
+        //guard
+        //    .scene_spec
+        //    .validate_can_unregister(renderer_id, registry_type)?;
         match registry_type {
             RegistryType::Shader => guard.renderers.shaders.unregister(renderer_id)?,
             RegistryType::WebRenderer => guard.renderers.web_renderers.unregister(renderer_id)?,
@@ -85,11 +86,7 @@ impl SyncRenderer {
         self.0.lock().unwrap().render(input)
     }
 
-    pub fn update_scene(&mut self, scene_specs: Arc<SceneSpec>) -> Result<(), UpdateSceneError> {
+    pub fn update_scene(&mut self, scene_specs: Vec<OutputScene>) -> Result<(), UpdateSceneError> {
         self.0.lock().unwrap().update_scene(scene_specs)
-    }
-
-    pub fn scene_spec(&self) -> Arc<SceneSpec> {
-        self.0.lock().unwrap().scene_spec.clone()
     }
 }

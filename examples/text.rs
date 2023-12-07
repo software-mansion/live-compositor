@@ -75,30 +75,23 @@ fn start_example_client_code() -> Result<()> {
     info!("[example] Update scene");
     common::post(&json!({
         "type": "update_scene",
-        "nodes": [
-           {
-                "node_id": "text_renderer_1",
-                "type": "text",
-                "content": "VideoCompositor🚀\nSecond Line\nLorem ipsum dolor sit amet consectetur adipisicing elit. Soluta delectus optio fugit maiores eaque ab totam, veritatis aperiam provident, aliquam consectetur deserunt cumque est? Saepe tenetur impedit culpa asperiores id?",
-                "font_size": 100.0,
-                "font_family": "Comic Sans MS",
-                "align": "center",
-                "wrap": "word",
-                "background_color_rgba": "#00800000",
-                "weight": "bold",
-                "dimensions": {
-                    "type": "fixed",
-                    "width": 1920,
-                    "height": 1080,
-                },
-           }
-        ],
         "outputs": [
             {
                 "output_id": "output_1",
-                "input_pad": "text_renderer_1"
+                "root": {
+                    "type": "text",
+                    "text": "VideoCompositor🚀\nSecond Line\nLorem ipsum dolor sit amet consectetur adipisicing elit. Soluta delectus optio fugit maiores eaque ab totam, veritatis aperiam provident, aliquam consectetur deserunt cumque est? Saepe tenetur impedit culpa asperiores id?",
+                    "font_size": 100.0,
+                    "font_family": "Comic Sans MS",
+                    "align": "center",
+                    "wrap": "word",
+                    "background_color_rgba": "#00800000",
+                    "weight": "bold",
+                    "width": 1920,
+                    "height": 1080,
+                }
             }
-        ]
+        ],
     }))?;
 
     info!("[example] Start pipeline");

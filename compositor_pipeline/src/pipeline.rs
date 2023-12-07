@@ -6,14 +6,15 @@ use std::time::Duration;
 
 use compositor_common::error::ErrorStack;
 use compositor_common::renderer_spec::{RendererId, RendererSpec};
-use compositor_common::scene::{InputId, OutputId, Resolution, SceneSpec};
+use compositor_common::scene::{InputId, OutputId, Resolution};
 use compositor_common::Framerate;
 use compositor_render::error::{
     InitRendererEngineError, RegisterRendererError, UnregisterRendererError,
 };
 use compositor_render::renderer::RendererOptions;
-use compositor_render::EventLoop;
+use compositor_render::scene::Component;
 use compositor_render::{error::UpdateSceneError, Renderer};
+use compositor_render::{scene, EventLoop};
 use compositor_render::{RegistryType, WebRendererOptions};
 use crossbeam_channel::unbounded;
 use ffmpeg_next::Packet;
@@ -31,6 +32,12 @@ use self::encoder::{Encoder, EncoderSettings};
 pub mod decoder;
 pub mod encoder;
 
+#[derive(Debug, Clone)]
+pub struct OutputScene {
+    pub output_id: OutputId,
+    pub root: Component,
+}
+
 pub trait PipelineOutput: Send + Sync + Sized + Clone + 'static {
     type Opts: Send + Sync + 'static;
     type Context: 'static;
@@ -44,7 +51,7 @@ pub trait PipelineOutput: Send + Sync + Sized + Clone + 'static {
 
 pub trait PipelineInput: Send + Sync + Sized + 'static {
     type Opts: Send + Sync;
-    type PacketIterator: Iterator<Item = Packet> + Send;
+    type PacketIterator: Iterator<Item = rtp::packet::Packet> + Send;
 
     fn new(opts: Self::Opts) -> Result<(Self, Self::PacketIterator), CustomError>;
     fn decoder_parameters(&self) -> decoder::DecoderParameters;
@@ -120,16 +127,6 @@ impl<Input: PipelineInput, Output: PipelineOutput> Pipeline<Input, Output> {
             return Err(UnregisterInputError::NotFound(input_id.clone()));
         }
 
-        let scene_spec = self.renderer.scene_spec();
-        let is_still_in_use = scene_spec
-            .nodes
-            .iter()
-            .flat_map(|node| &node.input_pads)
-            .any(|input_pad_id| &input_id.0 == input_pad_id);
-        if is_still_in_use {
-            return Err(UnregisterInputError::StillInUse(input_id.clone()));
-        }
-
         self.inputs.remove(input_id);
         self.queue.remove_input(input_id);
         Ok(())
@@ -160,15 +157,6 @@ impl<Input: PipelineInput, Output: PipelineOutput> Pipeline<Input, Output> {
             return Err(UnregisterOutputError::NotFound(output_id.clone()));
         }
 
-        let scene_spec = self.renderer.scene_spec();
-        let is_still_in_use = scene_spec
-            .outputs
-            .iter()
-            .any(|node| &node.output_id == output_id);
-        if is_still_in_use {
-            return Err(UnregisterOutputError::StillInUse(output_id.clone()));
-        }
-
         self.outputs.remove(output_id);
         Ok(())
     }
@@ -190,14 +178,24 @@ impl<Input: PipelineInput, Output: PipelineOutput> Pipeline<Input, Output> {
             .unregister_renderer(renderer_id, registry_type)
     }
 
-    pub fn update_scene(&mut self, scene_spec: Arc<SceneSpec>) -> Result<(), UpdateSceneError> {
-        scene_spec
-            .validate(
-                &self.inputs.keys().map(|i| &i.0).collect(),
-                &self.outputs.lock().keys().map(|i| &i.0).collect(),
-            )
-            .map_err(UpdateSceneError::InvalidSpec)?;
-        self.renderer.update_scene(scene_spec)
+    pub fn update_scene(&mut self, outputs: Vec<OutputScene>) -> Result<(), UpdateSceneError> {
+        let outputs = outputs
+            .into_iter()
+            .map(|output| {
+                let resolution = self
+                    .outputs
+                    .lock()
+                    .get(&output.output_id)
+                    .ok_or_else(|| UpdateSceneError::OutputNotRegistered(output.output_id.clone()))?
+                    .resolution();
+                Ok(scene::OutputScene {
+                    output_id: output.output_id,
+                    root: output.root,
+                    resolution,
+                })
+            })
+            .collect::<Result<Vec<_>, UpdateSceneError>>()?;
+        self.renderer.update_scene(outputs)
     }
 
     pub fn start(&mut self) {

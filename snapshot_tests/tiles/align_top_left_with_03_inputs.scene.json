@@ -1,0 +1,23 @@
+{
+    "output_id": "output_1",
+    "root": {
+        "type": "tiles",
+        "vertical_align": "top",
+        "horizontal_align": "left",
+        "children": [
+            {
+                "type": "input_stream",
+                "input_id": "input_1"
+            },
+            {
+                "type": "input_stream",
+                "input_id": "input_2"
+            },
+            {
+                "type": "input_stream",
+                "input_id": "input_3"
+            }
+        ],
+        "background_color_rgba": "#333333FF"
+    }
+}

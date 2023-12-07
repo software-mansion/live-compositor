@@ -1,80 +1,34 @@
+use std::sync::Arc;
 use std::time::Duration;
 
 use compositor_common::renderer_spec::FallbackStrategy;
 
-use compositor_common::scene::constraints::NodeConstraints;
-use compositor_common::scene::{NodeId, NodeParams, NodeSpec, Resolution};
-
-use crate::error::{CreateNodeError, UpdateSceneError};
-
+use crate::scene::{self, ShaderComponentParams};
+use crate::transformations::image_renderer::Image;
+use crate::transformations::layout::LayoutNode;
 use crate::transformations::shader::node::ShaderNode;
+use crate::transformations::shader::Shader;
 
-use crate::transformations::transition::TransitionNode;
+use crate::transformations::text_renderer::TextRenderParams;
+use crate::transformations::web_renderer::WebRenderer;
 use crate::transformations::{
-    builtin::BuiltinNode, image_renderer::ImageNode, text_renderer::TextRendererNode,
-    web_renderer::node::WebRendererNode,
+    image_renderer::ImageNode, text_renderer::TextRendererNode, web_renderer::node::WebRendererNode,
 };
 use crate::wgpu::texture::NodeTexture;
 
-use super::renderers::Renderers;
+use super::render_graph::NodeId;
 use super::RenderCtx;
 
-pub enum RenderNode {
+pub(crate) enum InnerRenderNode {
     Shader(ShaderNode),
     Web(WebRendererNode),
     Text(TextRendererNode),
     Image(ImageNode),
-    Builtin(BuiltinNode),
-    Transition(TransitionNode),
+    Layout(LayoutNode),
     InputStream,
 }
 
-impl RenderNode {
-    fn new(ctx: &RenderCtx, spec: &NodeSpec) -> Result<Self, CreateNodeError> {
-        match &spec.params {
-            NodeParams::WebRenderer { instance_id } => {
-                let renderer = ctx
-                    .renderers
-                    .web_renderers
-                    .get(instance_id)
-                    .ok_or_else(|| CreateNodeError::WebRendererNotFound(instance_id.clone()))?;
-
-                let node = WebRendererNode::new(&spec.node_id, renderer);
-                Ok(Self::Web(node))
-            }
-            NodeParams::Shader {
-                shader_id,
-                shader_params,
-                resolution,
-            } => {
-                let node = ShaderNode::new(ctx, shader_id, shader_params, resolution)?;
-                Ok(Self::Shader(node))
-            }
-            NodeParams::Builtin(transformation) => {
-                let node = BuiltinNode::new_static(ctx, transformation, spec.input_pads.len());
-
-                Ok(Self::Builtin(node))
-            }
-            NodeParams::Text(text_spec) => {
-                let renderer = TextRendererNode::new(ctx, text_spec.clone());
-                Ok(Self::Text(renderer))
-            }
-            NodeParams::Image { image_id } => {
-                let image = ctx
-                    .renderers
-                    .images
-                    .get(image_id)
-                    .ok_or_else(|| CreateNodeError::ImageNotFound(image_id.clone()))?;
-                let node = ImageNode::new(image);
-                Ok(Self::Image(node))
-            }
-            NodeParams::Transition(transition_spec) => {
-                let node = TransitionNode::new(ctx, transition_spec, spec.input_pads.len())?;
-                Ok(Self::Transition(node))
-            }
-        }
-    }
-
+impl InnerRenderNode {
     pub fn render(
         &mut self,
         ctx: &mut RenderCtx,
@@ -88,33 +42,19 @@ impl RenderNode {
         }
 
         match self {
-            RenderNode::Shader(ref shader) => {
+            InnerRenderNode::Shader(ref shader) => {
                 shader.render(sources, target, pts);
             }
-            RenderNode::Builtin(builtin_node) => builtin_node.render(sources, target, pts),
-            RenderNode::Web(renderer) => renderer.render(ctx, sources, target),
-            RenderNode::Text(ref renderer) => {
+            InnerRenderNode::Web(renderer) => renderer.render(ctx, sources, target),
+            InnerRenderNode::Text(renderer) => {
                 renderer.render(ctx, target);
             }
-            RenderNode::Image(ref node) => node.render(ctx, target, pts),
-            RenderNode::Transition(node) => node.render(sources, target, pts),
-            RenderNode::InputStream => {
+            InnerRenderNode::Image(ref node) => node.render(ctx, target, pts),
+            InnerRenderNode::InputStream => {
                 // Nothing to do, textures on input nodes should be populated
                 // at the start of render loop
             }
-        }
-    }
-
-    // TODO: remove this function (should be handled dynamically on output)
-    pub fn resolution(&self) -> Option<Resolution> {
-        match self {
-            RenderNode::Shader(node) => Some(node.resolution()),
-            RenderNode::Web(node) => Some(node.resolution()),
-            RenderNode::Text(node) => Some(node.resolution()),
-            RenderNode::Image(node) => Some(node.resolution()),
-            RenderNode::InputStream => None,
-            RenderNode::Builtin(node) => node.resolution_from_spec(),
-            RenderNode::Transition(node) => node.resolution(),
+            InnerRenderNode::Layout(node) => node.render(ctx, sources, target, pts),
         }
     }
 
@@ -137,92 +77,114 @@ impl RenderNode {
 
     fn fallback_strategy(&self) -> FallbackStrategy {
         match self {
-            RenderNode::Shader(shader_node) => shader_node.fallback_strategy(),
-            RenderNode::Web(web_renderer_node) => web_renderer_node.fallback_strategy(),
-            RenderNode::Text(_) => FallbackStrategy::NeverFallback,
-            RenderNode::Image(_) => FallbackStrategy::NeverFallback,
-            RenderNode::Builtin(builtin_node) => builtin_node.fallback_strategy(),
-            RenderNode::InputStream => FallbackStrategy::NeverFallback,
-            RenderNode::Transition(_) => FallbackStrategy::NeverFallback,
+            InnerRenderNode::Shader(shader_node) => shader_node.fallback_strategy(),
+            InnerRenderNode::Web(web_renderer_node) => web_renderer_node.fallback_strategy(),
+            InnerRenderNode::Text(_) => FallbackStrategy::NeverFallback,
+            InnerRenderNode::Image(_) => FallbackStrategy::NeverFallback,
+            InnerRenderNode::InputStream => FallbackStrategy::NeverFallback,
+            InnerRenderNode::Layout(_) => FallbackStrategy::NeverFallback,
         }
     }
 }
 
-pub struct Node {
-    pub node_id: NodeId,
-    pub output: NodeTexture,
-    pub inputs: Vec<NodeId>,
-    pub fallback: Option<NodeId>,
-    pub renderer: RenderNode,
+pub struct RenderNode {
+    pub(crate) output: NodeTexture,
+    pub(crate) inputs: Vec<NodeId>,
+    pub(crate) fallback: Option<NodeId>,
+    pub(crate) renderer: InnerRenderNode,
 }
 
-impl Node {
-    pub fn new(ctx: &RenderCtx, spec: &NodeSpec) -> Result<Self, CreateNodeError> {
-        let node = RenderNode::new(ctx, spec)?;
+impl RenderNode {
+    pub(super) fn new_shader_node(
+        ctx: &RenderCtx,
+        inputs: Vec<NodeId>,
+        shader_params: ShaderComponentParams,
+        shader: Arc<Shader>,
+    ) -> Self {
+        let node = InnerRenderNode::Shader(ShaderNode::new(
+            ctx,
+            shader,
+            &shader_params.shader_param,
+            &shader_params.size.into(),
+        ));
         let mut output = NodeTexture::new();
-        if let Some(resolution) = node.resolution() {
-            output.ensure_size(ctx.wgpu_ctx, resolution);
-        }
+        output.ensure_size(ctx.wgpu_ctx, shader_params.size.into());
 
-        Ok(Self {
-            node_id: spec.node_id.clone(),
+        Self {
             renderer: node,
-            inputs: spec.input_pads.clone(),
-            fallback: spec.fallback_id.clone(),
+            inputs,
+            fallback: None,
             output,
-        })
+        }
     }
 
-    pub fn new_input(node_id: &NodeId) -> Self {
+    pub(super) fn new_web_renderer_node(
+        ctx: &RenderCtx,
+        inputs: Vec<NodeId>,
+        node_id: &NodeId,
+        web_renderer: Arc<WebRenderer>,
+    ) -> Self {
+        let resolution = web_renderer.resolution();
+        let node = InnerRenderNode::Web(WebRendererNode::new(node_id, web_renderer));
+        let mut output = NodeTexture::new();
+        output.ensure_size(ctx.wgpu_ctx, resolution);
+
+        Self {
+            renderer: node,
+            inputs,
+            fallback: None,
+            output,
+        }
+    }
+
+    pub(super) fn new_image_node(image: Image) -> Self {
+        let node = InnerRenderNode::Image(ImageNode::new(image));
         let output = NodeTexture::new();
 
         Self {
-            node_id: node_id.clone(),
-            renderer: RenderNode::InputStream,
+            renderer: node,
             inputs: vec![],
             fallback: None,
             output,
         }
     }
-}
 
-pub(crate) trait NodeSpecExt {
-    fn constraints<'a>(
-        &self,
-        renderers: &'a Renderers,
-    ) -> Result<&'a NodeConstraints, UpdateSceneError>;
-}
+    pub(super) fn new_text_node(params: TextRenderParams) -> Self {
+        let node = InnerRenderNode::Text(TextRendererNode::new(params));
+        let output = NodeTexture::new();
 
-impl NodeSpecExt for NodeSpec {
-    fn constraints<'a>(
-        &self,
-        renderers: &'a Renderers,
-    ) -> Result<&'a NodeConstraints, UpdateSceneError> {
-        match &self.params {
-            NodeParams::WebRenderer { instance_id } => renderers
-                .web_renderers
-                .get_ref(instance_id)
-                .map(|web_renderer| web_renderer.constraints())
-                .ok_or_else(|| {
-                    UpdateSceneError::CreateNodeError(
-                        crate::error::CreateNodeError::WebRendererNotFound(instance_id.clone()),
-                        self.node_id.clone(),
-                    )
-                }),
-            NodeParams::Shader { shader_id, .. } => renderers
-                .shaders
-                .get_ref(shader_id)
-                .map(|shader| shader.constraints())
-                .ok_or_else(|| {
-                    UpdateSceneError::CreateNodeError(
-                        crate::error::CreateNodeError::ShaderNotFound(shader_id.clone()),
-                        self.node_id.clone(),
-                    )
-                }),
-            NodeParams::Text(_) => Ok(NodeParams::text_constraints()),
-            NodeParams::Image { .. } => Ok(NodeParams::image_constraints()),
-            NodeParams::Builtin(transformation) => Ok(transformation.constraints()),
-            NodeParams::Transition(spec) => Ok(spec.end.constraints()),
+        Self {
+            renderer: node,
+            inputs: vec![],
+            fallback: None,
+            output,
+        }
+    }
+
+    pub(super) fn new_layout_node(
+        ctx: &RenderCtx,
+        inputs: Vec<NodeId>,
+        provider: scene::LayoutNode,
+    ) -> Self {
+        let node = InnerRenderNode::Layout(LayoutNode::new(ctx, Box::new(provider)));
+        let output = NodeTexture::new();
+
+        Self {
+            renderer: node,
+            inputs,
+            fallback: None,
+            output,
+        }
+    }
+
+    pub(crate) fn new_input() -> Self {
+        let output = NodeTexture::new();
+
+        Self {
+            renderer: InnerRenderNode::InputStream,
+            inputs: vec![],
+            fallback: None,
+            output,
         }
     }
 }

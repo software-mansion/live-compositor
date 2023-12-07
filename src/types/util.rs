@@ -5,8 +5,16 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 pub struct Resolution {
+    /// Width in pixels.
     pub width: usize,
+    /// Height in pixels.
     pub height: usize,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+pub struct Transition {
+    /// Duration of a transition in milliseconds.
+    pub duration_ms: f64,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
@@ -26,6 +34,9 @@ pub enum VerticalAlign {
     Bottom,
     Justified,
 }
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+pub struct AspectRatio(pub(super) String);
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema, PartialEq)]
 #[serde(untagged)]

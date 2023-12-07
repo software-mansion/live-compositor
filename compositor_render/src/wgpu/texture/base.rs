@@ -14,6 +14,7 @@ impl Texture {
         view_dimension: wgpu::TextureViewDimension::D2,
         multisampled: false,
     };
+
     pub fn new(
         ctx: &WgpuCtx,
         label: Option<&str>,
@@ -35,6 +36,20 @@ impl Texture {
         let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
 
         Self { texture, view }
+    }
+
+    pub fn empty(ctx: &WgpuCtx) -> Self {
+        Self::new(
+            ctx,
+            Some("empty texture"),
+            wgpu::Extent3d {
+                width: 1,
+                height: 1,
+                depth_or_array_layers: 1,
+            },
+            wgpu::TextureFormat::Rgba8Unorm,
+            wgpu::TextureUsages::TEXTURE_BINDING,
+        )
     }
 
     pub fn size(&self) -> wgpu::Extent3d {

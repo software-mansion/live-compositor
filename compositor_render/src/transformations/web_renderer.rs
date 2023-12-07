@@ -4,6 +4,7 @@ use std::env;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
+use crate::renderer::render_graph::NodeId;
 use crate::renderer::{RegisterCtx, RenderCtx};
 use crate::wgpu::shader::shader_params::ParamsBuffer;
 use crate::wgpu::shader::{CreateShaderError, WgpuShader};
@@ -15,7 +16,7 @@ use crate::transformations::web_renderer::embedder::{EmbedError, EmbeddingHelper
 use compositor_common::renderer_spec::WebEmbeddingMethod;
 use compositor_common::{
     renderer_spec::{FallbackStrategy, WebRendererSpec},
-    scene::{constraints::NodeConstraints, NodeId, Resolution},
+    scene::Resolution,
 };
 use log::{error, info};
 
@@ -48,6 +49,7 @@ impl Default for WebRendererOptions {
     }
 }
 
+#[derive(Debug)]
 pub struct WebRenderer {
     spec: WebRendererSpec,
     frame_data: FrameData,
@@ -177,6 +179,7 @@ impl WebRenderer {
         }
         Some(frame_data.clone())
     }
+
     pub fn resolution(&self) -> Resolution {
         self.spec.resolution
     }
@@ -189,10 +192,6 @@ impl WebRenderer {
 
     pub fn fallback_strategy(&self) -> FallbackStrategy {
         self.spec.fallback_strategy
-    }
-
-    pub fn constraints(&self) -> &NodeConstraints {
-        &self.spec.constraints
     }
 }
 

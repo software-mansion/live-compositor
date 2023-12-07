@@ -1,9 +1,11 @@
-use std::{collections::HashSet, fs, path::PathBuf, sync::Arc, time::Duration};
+use std::{collections::HashSet, fs, path::PathBuf, time::Duration};
 
 use compositor_common::{
-    frame::YuvData, renderer_spec::RendererSpec, scene::SceneSpec, Frame, Framerate,
+    frame::YuvData, renderer_spec::RendererSpec, scene::OutputId, Frame, Framerate,
 };
-use compositor_render::{renderer::RendererOptions, Renderer, WebRendererOptions};
+use compositor_render::{
+    renderer::RendererOptions, scene::OutputScene, Renderer, WebRendererOptions,
+};
 
 pub const SNAPSHOTS_DIR_NAME: &str = "snapshot_tests/snapshots/render_snapshots";
 
@@ -39,13 +41,9 @@ pub(super) fn frame_to_rgba(frame: &Frame) -> Vec<u8> {
     rgba_data
 }
 
-pub(super) fn are_snapshots_near_equal(
-    old_snapshot: &[u8],
-    new_snapshot: &[u8],
-    allowed_error: f32,
-) -> bool {
+pub(super) fn snapshots_diff(old_snapshot: &[u8], new_snapshot: &[u8]) -> f32 {
     if old_snapshot.len() != new_snapshot.len() {
-        return false;
+        return 10000.0;
     }
     let square_error: f32 = old_snapshot
         .iter()
@@ -53,10 +51,13 @@ pub(super) fn are_snapshots_near_equal(
         .map(|(a, b)| (*a as i32 - *b as i32).pow(2) as f32)
         .sum();
 
-    (square_error / old_snapshot.len() as f32) < allowed_error
+    square_error / old_snapshot.len() as f32
 }
 
-pub(super) fn create_renderer(renderers: Vec<RendererSpec>, scene: Arc<SceneSpec>) -> Renderer {
+pub(super) fn create_renderer(
+    renderers: Vec<RendererSpec>,
+    scene_updates: Vec<Vec<OutputScene>>,
+) -> Renderer {
     let (mut renderer, _event_loop) = Renderer::new(RendererOptions {
         web_renderer: WebRendererOptions {
             init: false,
@@ -73,7 +74,9 @@ pub(super) fn create_renderer(renderers: Vec<RendererSpec>, scene: Arc<SceneSpec
         }
         renderer.register_renderer(spec).unwrap();
     }
-    renderer.update_scene(scene.clone()).unwrap();
+    for scene_update in scene_updates {
+        renderer.update_scene(scene_update.clone()).unwrap();
+    }
 
     renderer
 }
@@ -106,7 +109,7 @@ pub fn find_unused_snapshots(
     unused_snapshots
 }
 
-pub(super) fn snaphot_save_path(test_name: &str, pts: &Duration, output_id: &str) -> PathBuf {
+pub(super) fn snaphot_save_path(test_name: &str, pts: &Duration, output_id: OutputId) -> PathBuf {
     let out_file_name = format!("{}_{}_{}.png", test_name, pts.as_millis(), output_id);
     snapshots_path().join(out_file_name)
 }
