@@ -1,6 +1,6 @@
 # Image
 
-Represents an image asset uploaded available to compositor. Used by a [`Image` component](../components/Image).
+Represents an image asset uploaded to the compositor. Used by a [`Image` component](../components/Image).
 
 ## Image
 

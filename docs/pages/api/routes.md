@@ -74,8 +74,8 @@ type RegisterInputStream = {
 Register a new RTP input stream.
 
 - `input_id` - An identifier for the input stream. It can be used in the [`InputStream`](./components/InputStream) component to render the stream content.
-- `port` - UDP port or port range that the compositor should listen for stream. Integer value between 1 and 65535 representing specific port or
-  string in the `START:END` format for a port range.
+- `port` - UDP port or port range on which the compositor should listen for the stream. An integer value between 1 and 65535 that represents a specific port
+or string in the `START:END` format for a port range.
 
 ***
 
@@ -113,7 +113,7 @@ type EncoderPreset =
 Register a new RTP output stream.
 
 - `output_id` - An identifier for the output stream. It can be used in the `UpdateScene` request to define what to render for the output stream.
-- `port` / `ip` - UDP port and IP where compositor should send the stream. 
+- `port` / `ip` - UDP port and IP where compositor should send the stream.
 - `resolution` - Output resolution in pixels.
 - `encoder_settings.preset` - Preset for an encoder. See `FFmpeg` [docs](https://trac.ffmpeg.org/wiki/Encode/H.264#Preset) to learn more.
 

@@ -2,7 +2,6 @@
 sidebar_position: 6
 hide_table_of_contents: true
 ---
-import Docs from "@site/pages/api/generated/component-Shader.md"
 
 # Shader
 
@@ -35,10 +34,11 @@ type Shader = {
 - `shader_param` - Object that will be serialized into a `struct` and passed inside the shader as:
 
   ```wgsl
-  @group(1) @binding(0) var<uniform> user_defined_var UserDefinedStruct;
+  @group(1) @binding(0) var<uniform> user_defined_var: UserDefinedStruct;
   ```
   :::note
-  This object's structure must match the structure defined in a shader source code.
+  This object's structure must match the structure defined in a shader source code. Currently, we do not handle memory layout automatically.
+  To achieve the correct memory alignment, you might need to pad your data with additional fields. See [WGSL documentation](https://www.w3.org/TR/WGSL/#alignment-and-size) for more details.
   :::
 - `resolution` - Resolution of a texture where shader will be executed.
 

@@ -1,7 +1,7 @@
 use parsing::generate_docs;
 use std::{fs, path::PathBuf};
 use video_compositor::types::{
-    Image, InputStream, Rescaler, Shader, ShaderSpec, Text, Tiles, View, WebRendererSpec, WebView,
+    Image, InputStream, Rescaler, ShaderSpec, Text, Tiles, View, WebRendererSpec, WebView,
 };
 
 mod parsing;
@@ -23,7 +23,6 @@ fn main() {
         generate_docs::<InputStream>("InputStream"),
         generate_docs::<View>("View"),
         generate_docs::<WebView>("WebView"),
-        generate_docs::<Shader>("Shader"),
         generate_docs::<Image>("Image"),
         generate_docs::<Text>("Text"),
         generate_docs::<Tiles>("Tiles"),
