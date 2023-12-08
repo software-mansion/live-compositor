@@ -155,27 +155,30 @@ pub struct ObjectProperty {
 impl ObjectProperty {
     fn to_markdown(&self) -> String {
         fn format_description(name: &str, description: &str, indent_size: usize) -> String {
-            description
-                .split('\n')
-                .enumerate()
-                .flat_map(|(i, desc)| match desc.is_empty() {
-                    true => None,
-                    false if i == 0 => Some(format!(
-                        "{}- `{}` - {}\n",
-                        INDENT.repeat(indent_size),
-                        name,
-                        desc
-                    )),
-                    false => Some(format!("{}{}\n", INDENT.repeat(indent_size + 2), desc)),
-                })
-                .collect()
-        }
+            let mut description_parts = description.split('\n');
+            let mut output_description = format!("{}- `{}` ", INDENT.repeat(indent_size), name);
+            match description_parts.next() {
+                Some(desc) if !desc.trim().is_empty() => {
+                    output_description += &format!("- {desc}\n");
+                }
+                _ => output_description += "\n",
+            }
+            for desc in description_parts {
+                if desc.trim().is_empty() {
+                    continue;
+                }
+                output_description += &format!("{}{}\n", INDENT.repeat(indent_size + 2), desc);
+            }
 
-        let mut output_markdown = String::new();
-        let description = self.type_def.description.as_ref();
-        if let Some(description) = description {
-            output_markdown += &format_description(&self.name, description, 0);
+            output_description
         }
+        let description = self
+            .type_def
+            .description
+            .as_ref()
+            .map(|desc| desc.to_string())
+            .unwrap_or_default();
+        let mut output_markdown = format_description(&self.name, &description, 0);
 
         let variants = match &self.type_def.kind {
             Kind::Union(variants) => variants.clone(),
@@ -186,7 +189,6 @@ impl ObjectProperty {
             let Some(description) = &variant.description else {
                 continue;
             };
-
             output_markdown += &format_description(&name, description, 2)
         }
 

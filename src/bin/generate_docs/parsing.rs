@@ -1,10 +1,14 @@
 use std::{collections::HashMap, ops::Deref, rc::Rc};
 
-use schemars::schema::{
-    InstanceType, RootSchema, Schema, SchemaObject, SingleOrVec, SubschemaValidation,
+use schemars::{
+    gen::{SchemaGenerator, SchemaSettings},
+    schema::{InstanceType, RootSchema, Schema, SchemaObject, SingleOrVec, SubschemaValidation},
+    JsonSchema,
 };
 
 use crate::type_definition::{Kind, ObjectProperty, TypeDefinition};
+
+const SKIPPED_DEFINITIONS: [&str; 1] = ["Component"];
 
 #[derive(Debug)]
 pub struct DocPage {
@@ -60,13 +64,21 @@ impl DocPage {
                             def.description.clone(),
                             inline_def.description.clone(),
                         );
-                        *def = inline_def.clone();
+                        def.kind = inline_def.kind.clone();
                         def.description = description;
+                        def.is_optional = def.is_optional || inline_def.is_optional;
                     }
                 }
-                Kind::Tuple(types) | Kind::Union(types) => types
+                Kind::Tuple(types) => types
                     .iter_mut()
                     .for_each(|def| inline_definition(def, inline_definitions)),
+                Kind::Union(variants) => {
+                    variants
+                        .iter_mut()
+                        .for_each(|def| inline_definition(def, inline_definitions));
+
+                    flatten_union_definition(def);
+                }
                 Kind::Array(ty) => inline_definition(ty, inline_definitions),
                 Kind::Object(properties) => properties
                     .iter_mut()
@@ -75,33 +87,33 @@ impl DocPage {
             }
         }
 
-        fn simplify_single_variant_unions(def: &mut TypeDefinition) {
-            match &mut def.kind {
-                Kind::Tuple(types) => types.iter_mut().for_each(simplify_single_variant_unions),
-                Kind::Array(def) => simplify_single_variant_unions(def),
-                Kind::Union(variants) => {
-                    if variants.len() == 1 {
-                        let variant_def = variants.remove(0);
-                        let description = merge_descriptions(
-                            def.description.clone(),
-                            variant_def.description.clone(),
-                        );
+        fn flatten_union_definition(def: &mut TypeDefinition) {
+            let Kind::Union(variants) = &mut def.kind else {
+                return;
+            };
 
-                        *def = variant_def.clone();
-                        def.description = description;
-                    } else {
-                        variants.iter_mut().for_each(simplify_single_variant_unions)
-                    }
+            let mut variants_to_merge = Vec::new();
+            let mut variants_to_remove = Vec::new();
+            for (i, variant) in variants.iter_mut().enumerate() {
+                if let Kind::Union(mut subvariants) = variant.kind.clone() {
+                    flatten_union_definition(variant);
+                    variants_to_merge.append(&mut subvariants);
+                    variants_to_remove.push(i);
+                    def.description =
+                        merge_descriptions(def.description.clone(), variant.description.clone());
                 }
-                Kind::Object(properties) => properties
-                    .iter_mut()
-                    .for_each(|prop| simplify_single_variant_unions(&mut prop.type_def)),
-                _ => {}
             }
+
+            for idx in variants_to_remove.iter().rev() {
+                variants.remove(*idx);
+            }
+            variants.append(&mut variants_to_merge);
         }
 
         let mut inline_definitions = HashMap::new();
-        for def in self.definitions.iter() {
+        for def in self.definitions.iter_mut() {
+            flatten_union_definition(def);
+
             let should_inline = match &def.kind {
                 Kind::Null
                 | Kind::I32
@@ -128,7 +140,6 @@ impl DocPage {
 
         for def in self.definitions.iter_mut() {
             inline_definition(def, &inline_definitions);
-            simplify_single_variant_unions(def);
         }
     }
 
@@ -141,45 +152,16 @@ impl DocPage {
     }
 }
 
-pub fn generate_component_docs(
-    root_schema: &RootSchema,
-    name: &str,
-    variant_name: &str,
-) -> DocPage {
-    generate_docs_from_enum(root_schema, "type", name, variant_name)
-}
+pub fn generate_docs<T: JsonSchema>(title: &str) -> DocPage {
+    let title: Rc<str> = title.into();
+    let mut settings = SchemaSettings::default();
+    // Remove not needed prefix from references
+    settings.definitions_path.clear();
+    let schema_generator = SchemaGenerator::new(settings);
+    let root_schema = schema_generator.into_root_schema_for::<T>();
 
-pub fn generate_renderer_docs(root_schema: &RootSchema, name: &str, variant_name: &str) -> DocPage {
-    generate_docs_from_enum(root_schema, "entity_type", name, variant_name)
-}
-
-pub fn generate_docs_from_enum(
-    root_schema: &RootSchema,
-    type_key_name: &str,
-    name: &str,
-    variant_name: &str,
-) -> DocPage {
-    let retrieve_type_value = |schema: &SchemaObject| -> String {
-        let properties = &schema.object.as_ref().unwrap().properties;
-        let type_enum: Vec<serde_json::Value> = properties
-            .get(type_key_name)
-            .unwrap()
-            .clone()
-            .into_object()
-            .enum_values
-            .unwrap();
-        type_enum[0].as_str().unwrap().to_owned()
-    };
-
-    let name: Rc<str> = name.into();
-    let mut page = DocPage::new(name.clone());
-    let subschemas = flatten_subschemas(root_schema.schema.subschemas.as_ref().unwrap());
-    let schema = subschemas
-        .iter()
-        .find(|schema| retrieve_type_value(schema) == variant_name)
-        .unwrap();
-
-    populate_page(&mut page, name, schema, root_schema);
+    let mut page = DocPage::new(title.clone());
+    populate_page(&mut page, title, &root_schema.schema.clone(), &root_schema);
     page.simplify();
     page
 }
@@ -190,12 +172,6 @@ fn populate_page(
     schema: &SchemaObject,
     root_schema: &RootSchema,
 ) {
-    let root_schema_name = root_schema
-        .schema
-        .metadata
-        .as_ref()
-        .and_then(|metadata| metadata.title.as_ref())
-        .map(String::as_str);
     let mut definition = parse_schema(schema);
     definition.name = Some(name.clone());
 
@@ -204,7 +180,7 @@ fn populate_page(
 
     // Parse every definition mentioned in `schema`
     for refer in references {
-        if root_schema_name == Some(refer.deref()) {
+        if SKIPPED_DEFINITIONS.contains(&refer.as_ref()) {
             continue;
         }
         if page.contains_definition(&refer) {
