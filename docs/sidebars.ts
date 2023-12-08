@@ -33,6 +33,11 @@ const sidebars: SidebarsConfig = {
           label: 'HTTP Routes',
         },
         {
+          type: 'doc',
+          id: 'api/query',
+          label: 'Queries',
+        },
+        {
           type: 'category',
           label: 'Components',
           collapsible: false,

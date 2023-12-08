@@ -59,7 +59,7 @@ pub enum Response {
     Ok {},
     Inputs { inputs: Vec<InputInfo> },
     Outputs { outputs: Vec<OutputInfo> },
-    RegisteredPort(u16),
+    RegisterInput { port: u16 },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

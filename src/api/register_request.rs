@@ -111,7 +111,7 @@ fn register_input(
                 return match result {
                     Ok(_) => {
                         trace!("[input {id}] port registration succeeded for port {port}");
-                        Ok(ResponseHandler::Response(Response::RegisteredPort(port)))
+                        Ok(ResponseHandler::Response(Response::RegisterInput { port }))
                     }
                     Err(e) => Err(e.into()),
                 };
@@ -146,7 +146,7 @@ fn register_input(
 
             result?;
 
-            Ok(ResponseHandler::Response(Response::RegisteredPort(port)))
+            Ok(ResponseHandler::Response(Response::RegisterInput { port }))
         }
     }
 }

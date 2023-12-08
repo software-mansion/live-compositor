@@ -77,6 +77,15 @@ Register a new RTP input stream.
 - `port` - UDP port or port range on which the compositor should listen for the stream. An integer value between 1 and 65535 that represents a specific port
 or string in the `START:END` format for a port range.
 
+
+```typescript
+type Response = {
+  port: u16;
+}
+```
+
+- `port` - UDP port that compositor is listening on.
+
 ***
 
 ### Register output stream
@@ -146,3 +155,21 @@ type Unregister =
   | { type: "unregister", entity_type: "image", image_id: string }
   | { type: "unregister", entity_type: "web_renderer", instance_id: string }
 ```
+
+***
+
+### Query request
+
+```typescript
+type Query = {
+  type: "query",
+  query:
+    | "inputs"
+    | "outputs"
+    | "wait_for_next_frame"
+    | "wait_for_eos"
+  ... // query specific options
+}
+```
+
+See [query documentation page](./query) to learn more.
