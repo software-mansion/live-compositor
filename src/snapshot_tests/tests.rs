@@ -1,217 +1,203 @@
+use std::time::Duration;
+
 use compositor_common::scene::Resolution;
 
-use super::test_case::{TestCase, TestInput};
+use super::test_case::{Outputs, TestCase, TestInput};
+
+const DEFAULT_RESOLUTION: Resolution = Resolution {
+    width: 640,
+    height: 360,
+};
 
 pub fn snapshot_tests() -> Vec<TestCase> {
     let mut tests = Vec::new();
+    tests.append(&mut base_snapshot_tests());
+    tests.append(&mut view_snapshot_tests());
+    tests.append(&mut transition_snapshot_tests());
+    tests.append(&mut image_snapshot_tests());
     tests.append(&mut text_snapshot_tests());
-    tests.append(&mut tiled_layout_tests());
-    tests.append(&mut stretch_to_resolution_tests());
-    tests.append(&mut fill_to_resolution_tests());
-    tests.append(&mut fit_to_resolution_tests());
-    tests.append(&mut fixed_position_layout_tests());
-    tests.append(&mut corners_rounding_tests());
-    tests.append(&mut mirror_image());
+    tests.append(&mut tiles_snapshot_tests());
+    tests.append(&mut rescaler_snapshot_tests());
     tests
 }
 
-fn mirror_image() -> Vec<TestCase> {
-    let image_renderer = include_str!("../../snapshot_tests/register/image_jpeg.register.json");
-
+pub fn rescaler_snapshot_tests() -> Vec<TestCase> {
+    let higher_than_default = Resolution {
+        width: DEFAULT_RESOLUTION.width,
+        height: DEFAULT_RESOLUTION.height + 100,
+    };
+    let lower_than_default = Resolution {
+        width: DEFAULT_RESOLUTION.width,
+        height: DEFAULT_RESOLUTION.height - 100,
+    };
+    let portrait_resolution = Resolution {
+        width: 360,
+        height: 640,
+    };
     Vec::from([
         TestCase {
-            name: "mirror_image/vertical",
-            scene_json: include_str!("../../snapshot_tests/mirror_image/vertical.scene.json"),
-            renderers: vec![image_renderer],
+            name: "rescaler/fit_view_with_known_height",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/rescaler/fit_view_with_known_height.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
             ..Default::default()
         },
         TestCase {
-            name: "mirror_image/horizontal",
-            scene_json: include_str!("../../snapshot_tests/mirror_image/horizontal.scene.json"),
-            renderers: vec![image_renderer],
+            name: "rescaler/fit_view_with_known_width",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/rescaler/fit_view_with_known_width.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
             ..Default::default()
         },
         TestCase {
-            name: "mirror_image/horizontal-vertical",
-            scene_json: include_str!(
-                "../../snapshot_tests/mirror_image/horizontal_and_vertical.scene.json"
-            ),
-            renderers: vec![image_renderer],
+            name: "rescaler/fit_view_with_unknown_width_and_height",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/rescaler/fit_view_with_unknown_width_and_height.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
+            ..Default::default()
+        },
+        TestCase {
+            name: "rescaler/fill_input_stream_inverted_aspect_ratio_align_top_left",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/rescaler/fill_input_stream_align_top_left.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
+            inputs: vec![TestInput::new_with_resolution(1, portrait_resolution)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "rescaler/fill_input_stream_inverted_aspect_ratio_align_bottom_right",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/rescaler/fill_input_stream_align_bottom_right.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
+            inputs: vec![TestInput::new_with_resolution(1, portrait_resolution)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "rescaler/fill_input_stream_lower_aspect_ratio_align_bottom_right",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/rescaler/fill_input_stream_align_bottom_right.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
+            inputs: vec![TestInput::new_with_resolution(1, lower_than_default)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "rescaler/fill_input_stream_lower_aspect_ratio",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/rescaler/fill_input_stream.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
+            inputs: vec![TestInput::new_with_resolution(1, lower_than_default)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "rescaler/fill_input_stream_higher_aspect_ratio",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/rescaler/fill_input_stream.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
+            inputs: vec![TestInput::new_with_resolution(1, higher_than_default)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "rescaler/fill_input_stream_inverted_aspect_ratio",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/rescaler/fill_input_stream.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
+            inputs: vec![TestInput::new_with_resolution(1, portrait_resolution)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "rescaler/fill_input_stream_matching_aspect_ratio",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/rescaler/fill_input_stream.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "rescaler/fit_input_stream_lower_aspect_ratio",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/rescaler/fit_input_stream.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
+            inputs: vec![TestInput::new_with_resolution(1, lower_than_default)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "rescaler/fit_input_stream_higher_aspect_ratio",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/rescaler/fit_input_stream.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
+            inputs: vec![TestInput::new_with_resolution(1, higher_than_default)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "rescaler/fit_input_stream_higher_aspect_ratio_small_resolution",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/rescaler/fit_input_stream.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
+            inputs: vec![TestInput::new_with_resolution(1, Resolution { width: higher_than_default.width / 10, height: higher_than_default.height / 10 })],
+            ..Default::default()
+        },
+        TestCase {
+            name: "rescaler/fit_input_stream_inverted_aspect_ratio_align_top_left",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/rescaler/fit_input_stream_align_top_left.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
+            inputs: vec![TestInput::new_with_resolution(1, portrait_resolution)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "rescaler/fit_input_stream_inverted_aspect_ratio_align_bottom_right",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/rescaler/fit_input_stream_align_bottom_right.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
+            inputs: vec![TestInput::new_with_resolution(1, portrait_resolution)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "rescaler/fit_input_stream_lower_aspect_ratio_align_bottom_right",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/rescaler/fit_input_stream_align_bottom_right.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
+            inputs: vec![TestInput::new_with_resolution(1, lower_than_default)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "rescaler/fit_input_stream_inverted_aspect_ratio",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/rescaler/fit_input_stream.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
+            inputs: vec![TestInput::new_with_resolution(1, portrait_resolution)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "rescaler/fit_input_stream_matching_aspect_ratio",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/rescaler/fit_input_stream.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
+            inputs: vec![TestInput::new(1)],
             ..Default::default()
         },
     ])
 }
 
-fn corners_rounding_tests() -> Vec<TestCase> {
-    let input1 = TestInput::new(1);
-    Vec::from([
-        TestCase {
-            name: "corners_rounding/border_radius_50px",
-            scene_json: include_str!(
-                "../../snapshot_tests/corners_rounding/border_radius_50px.scene.json"
-            ),
-            inputs: vec![input1.clone()],
-            ..Default::default()
-        },
-        TestCase {
-            name: "corners_rounding/border_radius_5px",
-            scene_json: include_str!(
-                "../../snapshot_tests/corners_rounding/border_radius_5px.scene.json"
-            ),
-            inputs: vec![input1.clone()],
-            ..Default::default()
-        },
-    ])
-}
-
-fn fixed_position_layout_tests() -> Vec<TestCase> {
-    let input1 = TestInput::new(1);
-
-    Vec::from([
-        TestCase {
-            name: "fixed_position_layout/top_right_corner",
-            scene_json: include_str!(
-                "../../snapshot_tests/fixed_position_layout/top_right_corner.scene.json"
-            ),
-            inputs: vec![input1.clone()],
-            ..Default::default()
-        },
-        TestCase {
-            name: "fixed_position_layout/rotation_30_degree",
-            scene_json: include_str!(
-                "../../snapshot_tests/fixed_position_layout/rotation_30_degree.scene.json"
-            ),
-            inputs: vec![input1.clone()],
-            ..Default::default()
-        },
-        TestCase {
-            name: "fixed_position_layout/rotation_multiple_loops",
-            scene_json: include_str!(
-                "../../snapshot_tests/fixed_position_layout/rotation_multiple_loops.scene.json"
-            ),
-            inputs: vec![input1.clone()],
-            ..Default::default()
-        },
-        TestCase {
-            name: "fixed_position_layout/overlapping_inputs",
-            scene_json: include_str!(
-                "../../snapshot_tests/fixed_position_layout/overlapping_inputs.scene.json"
-            ),
-            inputs: vec![
-                input1.clone(),
-                TestInput::new(2),
-                TestInput::new(3),
-                TestInput::new(4),
-            ],
-            ..Default::default()
-        },
-        TestCase {
-            name: "fixed_position_layout/scale_2x",
-            scene_json: include_str!(
-                "../../snapshot_tests/fixed_position_layout/scale_2x.scene.json"
-            ),
-            inputs: vec![input1.clone()],
-            ..Default::default()
-        },
-        TestCase {
-            name: "fixed_position_layout/scale_0_5x",
-            scene_json: include_str!(
-                "../../snapshot_tests/fixed_position_layout/scale_0_5x.scene.json"
-            ),
-            inputs: vec![input1.clone()],
-            ..Default::default()
-        },
-    ])
-}
-
-pub fn fit_to_resolution_tests() -> Vec<TestCase> {
-    let input1 = TestInput::new(1);
-    Vec::from([
-        TestCase {
-            name: "fit_to_resolution/narrow_column",
-            scene_json: include_str!(
-                "../../snapshot_tests/fit_to_resolution/narrow_column.scene.json"
-            ),
-            inputs: vec![input1.clone()],
-            ..Default::default()
-        },
-        TestCase {
-            name: "fit_to_resolution/wide_row",
-            scene_json: include_str!("../../snapshot_tests/fit_to_resolution/wide_row.scene.json"),
-            inputs: vec![input1.clone()],
-            ..Default::default()
-        },
-        TestCase {
-            name: "fit_to_resolution/green_background",
-            scene_json: include_str!(
-                "../../snapshot_tests/fit_to_resolution/green_background.scene.json"
-            ),
-            inputs: vec![input1.clone()],
-            ..Default::default()
-        },
-        TestCase {
-            name: "fit_to_resolution/vertical_align_top",
-            scene_json: include_str!(
-                "../../snapshot_tests/fit_to_resolution/vertical_align_top.scene.json"
-            ),
-            inputs: vec![input1.clone()],
-            ..Default::default()
-        },
-        TestCase {
-            name: "fit_to_resolution/horizontal_align_right",
-            scene_json: include_str!(
-                "../../snapshot_tests/fit_to_resolution/horizontal_align_right.scene.json"
-            ),
-            inputs: vec![input1.clone()],
-            ..Default::default()
-        },
-    ])
-}
-
-pub fn fill_to_resolution_tests() -> Vec<TestCase> {
-    let input1 = TestInput::new(1);
-    Vec::from([
-        TestCase {
-            name: "fill_to_resolution/narrow_column",
-            scene_json: include_str!(
-                "../../snapshot_tests/fill_to_resolution/narrow_column.scene.json"
-            ),
-            inputs: vec![input1.clone()],
-            ..Default::default()
-        },
-        TestCase {
-            name: "fill_to_resolution/wide_row",
-            scene_json: include_str!("../../snapshot_tests/fill_to_resolution/wide_row.scene.json"),
-            inputs: vec![input1.clone()],
-            ..Default::default()
-        },
-    ])
-}
-
-#[allow(dead_code)]
-pub fn stretch_to_resolution_tests() -> Vec<TestCase> {
-    let input1 = TestInput::new(1);
-    Vec::from([
-        TestCase {
-            name: "stretch_to_resolution/narrow_column",
-            scene_json: include_str!(
-                "../../snapshot_tests/stretch_to_resolution/narrow_column.scene.json"
-            ),
-            inputs: vec![input1.clone()],
-            ..Default::default()
-        },
-        TestCase {
-            name: "stretch_to_resolution/wide_row",
-            scene_json: include_str!(
-                "../../snapshot_tests/stretch_to_resolution/wide_row.scene.json"
-            ),
-            inputs: vec![input1.clone()],
-            ..Default::default()
-        },
-    ])
-}
-
-pub fn tiled_layout_tests() -> Vec<TestCase> {
+pub fn tiles_snapshot_tests() -> Vec<TestCase> {
     let input1 = TestInput::new(1);
     let input2 = TestInput::new(2);
     let input3 = TestInput::new(3);
@@ -248,26 +234,38 @@ pub fn tiled_layout_tests() -> Vec<TestCase> {
     let portrait_input15 = TestInput::new_with_resolution(15, portrait_resolution);
     Vec::from([
         TestCase {
-            name: "tiled_layout/01_inputs",
-            scene_json: include_str!("../../snapshot_tests/tiled_layout/01_inputs.scene.json"),
+            name: "tiles/01_inputs",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/tiles/01_inputs.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
             inputs: vec![input1.clone()],
             ..Default::default()
         },
         TestCase {
-            name: "tiled_layout/02_inputs",
-            scene_json: include_str!("../../snapshot_tests/tiled_layout/02_inputs.scene.json"),
+            name: "tiles/02_inputs",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/tiles/02_inputs.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
             inputs: vec![input1.clone(), input2.clone()],
             ..Default::default()
         },
         TestCase {
-            name: "tiled_layout/03_inputs",
-            scene_json: include_str!("../../snapshot_tests/tiled_layout/03_inputs.scene.json"),
+            name: "tiles/03_inputs",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/tiles/03_inputs.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
             inputs: vec![input1.clone(), input2.clone(), input3.clone()],
             ..Default::default()
         },
         TestCase {
-            name: "tiled_layout/04_inputs",
-            scene_json: include_str!("../../snapshot_tests/tiled_layout/04_inputs.scene.json"),
+            name: "tiles/04_inputs",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/tiles/04_inputs.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
             inputs: vec![
                 input1.clone(),
                 input2.clone(),
@@ -277,8 +275,11 @@ pub fn tiled_layout_tests() -> Vec<TestCase> {
             ..Default::default()
         },
         TestCase {
-            name: "tiled_layout/05_inputs",
-            scene_json: include_str!("../../snapshot_tests/tiled_layout/05_inputs.scene.json"),
+            name: "tiles/05_inputs",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/tiles/05_inputs.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
             inputs: vec![
                 input1.clone(),
                 input2.clone(),
@@ -289,8 +290,11 @@ pub fn tiled_layout_tests() -> Vec<TestCase> {
             ..Default::default()
         },
         TestCase {
-            name: "tiled_layout/15_inputs",
-            scene_json: include_str!("../../snapshot_tests/tiled_layout/15_inputs.scene.json"),
+            name: "tiles/15_inputs",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/tiles/15_inputs.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
             inputs: vec![
                 input1.clone(),
                 input2.clone(),
@@ -311,26 +315,29 @@ pub fn tiled_layout_tests() -> Vec<TestCase> {
             ..Default::default()
         },
         TestCase {
-            name: "tiled_layout/01_portrait_inputs",
-            scene_json: include_str!(
-                "../../snapshot_tests/tiled_layout/01_portrait_inputs.scene.json"
-            ),
+            name: "tiles/01_portrait_inputs",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/tiles/01_portrait_inputs.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
             inputs: vec![portrait_input1.clone()],
             ..Default::default()
         },
         TestCase {
-            name: "tiled_layout/02_portrait_inputs",
-            scene_json: include_str!(
-                "../../snapshot_tests/tiled_layout/02_portrait_inputs.scene.json"
-            ),
+            name: "tiles/02_portrait_inputs",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/tiles/02_portrait_inputs.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
             inputs: vec![portrait_input1.clone(), portrait_input2.clone()],
             ..Default::default()
         },
         TestCase {
-            name: "tiled_layout/03_portrait_inputs",
-            scene_json: include_str!(
-                "../../snapshot_tests/tiled_layout/03_portrait_inputs.scene.json"
-            ),
+            name: "tiles/03_portrait_inputs",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/tiles/03_portrait_inputs.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
             inputs: vec![
                 portrait_input1.clone(),
                 portrait_input2.clone(),
@@ -339,10 +346,11 @@ pub fn tiled_layout_tests() -> Vec<TestCase> {
             ..Default::default()
         },
         TestCase {
-            name: "tiled_layout/05_portrait_inputs",
-            scene_json: include_str!(
-                "../../snapshot_tests/tiled_layout/05_portrait_inputs.scene.json"
-            ),
+            name: "tiles/05_portrait_inputs",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/tiles/05_portrait_inputs.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
             inputs: vec![
                 portrait_input1.clone(),
                 portrait_input2.clone(),
@@ -353,10 +361,11 @@ pub fn tiled_layout_tests() -> Vec<TestCase> {
             ..Default::default()
         },
         TestCase {
-            name: "tiled_layout/15_portrait_inputs",
-            scene_json: include_str!(
-                "../../snapshot_tests/tiled_layout/15_portrait_inputs.scene.json"
-            ),
+            name: "tiles/15_portrait_inputs",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/tiles/15_portrait_inputs.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
             inputs: vec![
                 portrait_input1.clone(),
                 portrait_input2.clone(),
@@ -377,18 +386,20 @@ pub fn tiled_layout_tests() -> Vec<TestCase> {
             ..Default::default()
         },
         TestCase {
-            name: "tiled_layout/01_inputs_on_portrait_output",
-            scene_json: include_str!(
-                "../../snapshot_tests/tiled_layout/01_inputs_on_portrait_output.scene.json"
-            ),
+            name: "tiles/01_portrait_inputs_on_portrait_output",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/tiles/01_portrait_inputs.scene.json"),
+                portrait_resolution,
+            )]),
             inputs: vec![portrait_input1.clone()],
             ..Default::default()
         },
         TestCase {
-            name: "tiled_layout/03_inputs_on_portrait_output",
-            scene_json: include_str!(
-                "../../snapshot_tests/tiled_layout/03_inputs_on_portrait_output.scene.json"
-            ),
+            name: "tiles/03_portrait_inputs_on_portrait_output",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/tiles/03_portrait_inputs.scene.json"),
+                portrait_resolution,
+            )]),
             inputs: vec![
                 portrait_input1.clone(),
                 portrait_input2.clone(),
@@ -397,10 +408,20 @@ pub fn tiled_layout_tests() -> Vec<TestCase> {
             ..Default::default()
         },
         TestCase {
-            name: "tiled_layout/05_portrait_inputs_on_portrait_output",
-            scene_json: include_str!(
-                "../../snapshot_tests/tiled_layout/05_portrait_inputs_on_portrait_output.scene.json"
-            ),
+            name: "tiles/03_inputs_on_portrait_output",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/tiles/03_inputs.scene.json"),
+                portrait_resolution,
+            )]),
+            inputs: vec![input1.clone(), input2.clone(), input3.clone()],
+            ..Default::default()
+        },
+        TestCase {
+            name: "tiles/05_portrait_inputs_on_portrait_output",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/tiles/05_portrait_inputs.scene.json"),
+                portrait_resolution,
+            )]),
             inputs: vec![
                 portrait_input1.clone(),
                 portrait_input2.clone(),
@@ -411,10 +432,11 @@ pub fn tiled_layout_tests() -> Vec<TestCase> {
             ..Default::default()
         },
         TestCase {
-            name: "tiled_layout/15_portrait_inputs_on_portrait_output",
-            scene_json: include_str!(
-                "../../snapshot_tests/tiled_layout/15_portrait_inputs_on_portrait_output.scene.json"
-            ),
+            name: "tiles/15_portrait_inputs_on_portrait_output",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/tiles/15_portrait_inputs.scene.json"),
+                portrait_resolution,
+            )]),
             inputs: vec![
                 portrait_input1.clone(),
                 portrait_input2.clone(),
@@ -435,50 +457,60 @@ pub fn tiled_layout_tests() -> Vec<TestCase> {
             ..Default::default()
         },
         TestCase {
-            name: "tiled_layout/align_center_with_03_inputs",
-            scene_json: include_str!(
-                "../../snapshot_tests/tiled_layout/align_center_with_03_inputs.scene.json"
-            ),
+            name: "tiles/align_center_with_03_inputs",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/tiles/align_center_with_03_inputs.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
             inputs: vec![input1.clone(), input2.clone(), input3.clone()],
             ..Default::default()
         },
         TestCase {
-            name: "tiled_layout/align_top_left_with_03_inputs",
-            scene_json: include_str!(
-                "../../snapshot_tests/tiled_layout/align_top_left_with_03_inputs.scene.json"
-            ),
+            name: "tiles/align_top_left_with_03_inputs",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/tiles/align_top_left_with_03_inputs.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
             inputs: vec![input1.clone(), input2.clone(), input3.clone()],
             ..Default::default()
         },
         TestCase {
-            name: "tiled_layout/align_with_margin_and_padding_with_03_inputs",
-            scene_json: include_str!(
-                "../../snapshot_tests/tiled_layout/align_with_margin_and_padding_with_03_inputs.scene.json"
+            name: "tiles/align_with_margin_and_padding_with_03_inputs",
+            outputs: Outputs::Scene(vec![(
+                include_str!(
+                "../../snapshot_tests/tiles/align_with_margin_and_padding_with_03_inputs.scene.json"
             ),
+                DEFAULT_RESOLUTION,
+            )]),
             inputs: vec![input1.clone(), input2.clone(), input3.clone()],
             ..Default::default()
         },
         TestCase {
-            name: "tiled_layout/margin_with_03_inputs",
-            scene_json: include_str!(
-                "../../snapshot_tests/tiled_layout/margin_with_03_inputs.scene.json"
-            ),
+            name: "tiles/margin_with_03_inputs",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/tiles/margin_with_03_inputs.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
             inputs: vec![input1.clone(), input2.clone(), input3.clone()],
             ..Default::default()
         },
         TestCase {
-            name: "tiled_layout/margin_and_padding_with_03_inputs",
-            scene_json: include_str!(
-                "../../snapshot_tests/tiled_layout/margin_and_padding_with_03_inputs.scene.json"
-            ),
+            name: "tiles/margin_and_padding_with_03_inputs",
+            outputs: Outputs::Scene(vec![(
+                include_str!(
+                    "../../snapshot_tests/tiles/margin_and_padding_with_03_inputs.scene.json"
+                ),
+                DEFAULT_RESOLUTION,
+            )]),
             inputs: vec![input1.clone(), input2.clone(), input3.clone()],
             ..Default::default()
         },
         TestCase {
-            name: "tiled_layout/padding_with_03_inputs",
-            scene_json: include_str!(
-                "../../snapshot_tests/tiled_layout/padding_with_03_inputs.scene.json"
-            ),
+            name: "tiles/padding_with_03_inputs",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/tiles/padding_with_03_inputs.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
             inputs: vec![input1.clone(), input2.clone(), input3.clone()],
             ..Default::default()
         },
@@ -489,73 +521,422 @@ pub fn text_snapshot_tests() -> Vec<TestCase> {
     Vec::from([
         TestCase {
             name: "text/align_center",
-            scene_json: include_str!("../../snapshot_tests/text/align_center.scene.json"),
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/text/align_center.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
             ..Default::default()
         },
         TestCase {
             name: "text/align_right",
-            scene_json: include_str!("../../snapshot_tests/text/align_right.scene.json"),
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/text/align_right.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
             ..Default::default()
         },
         TestCase {
             name: "text/bold_text",
-            scene_json: include_str!("../../snapshot_tests/text/bold_text.scene.json"),
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/text/bold_text.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
             ..Default::default()
         },
         TestCase {
             name: "text/dimensions_fitted_column_with_long_text",
-            scene_json: include_str!(
-                "../../snapshot_tests/text/dimensions_fitted_column_with_long_text.scene.json"
-            ),
+            outputs: Outputs::Scene(vec![(
+                include_str!(
+                    "../../snapshot_tests/text/dimensions_fitted_column_with_long_text.scene.json"
+                ),
+                DEFAULT_RESOLUTION,
+            )]),
             ..Default::default()
         },
         TestCase {
             name: "text/dimensions_fitted_column_with_short_text",
-            scene_json: include_str!(
-                "../../snapshot_tests/text/dimensions_fitted_column_with_short_text.scene.json"
-            ),
+            outputs: Outputs::Scene(vec![(
+                include_str!(
+                    "../../snapshot_tests/text/dimensions_fitted_column_with_short_text.scene.json"
+                ),
+                DEFAULT_RESOLUTION,
+            )]),
             ..Default::default()
         },
         TestCase {
             name: "text/dimensions_fitted",
-            scene_json: include_str!("../../snapshot_tests/text/dimensions_fitted.scene.json"),
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/text/dimensions_fitted.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
             ..Default::default()
         },
         TestCase {
             name: "text/dimensions_fixed",
-            scene_json: include_str!("../../snapshot_tests/text/dimensions_fixed.scene.json"),
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/text/dimensions_fixed.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
             ..Default::default()
         },
         TestCase {
             name: "text/dimensions_fixed_with_overflow",
-            scene_json: include_str!(
-                "../../snapshot_tests/text/dimensions_fixed_with_overflow.scene.json"
-            ),
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/text/dimensions_fixed_with_overflow.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
             ..Default::default()
         },
         TestCase {
             name: "text/red_text_on_blue_background",
-            scene_json: include_str!(
-                "../../snapshot_tests/text/red_text_on_blue_background.scene.json"
-            ),
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/text/red_text_on_blue_background.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
             ..Default::default()
         },
         TestCase {
             name: "text/wrap_glyph",
-            scene_json: include_str!("../../snapshot_tests/text/wrap_glyph.scene.json"),
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/text/wrap_glyph.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
             allowed_error: 325.7,
             ..Default::default()
         },
         TestCase {
             name: "text/wrap_none",
-            scene_json: include_str!("../../snapshot_tests/text/wrap_none.scene.json"),
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/text/wrap_none.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
             ..Default::default()
         },
         TestCase {
             name: "text/wrap_word",
-            scene_json: include_str!("../../snapshot_tests/text/wrap_word.scene.json"),
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/text/wrap_word.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
             allowed_error: 321.8,
             ..Default::default()
         },
     ])
+}
+
+pub fn image_snapshot_tests() -> Vec<TestCase> {
+    let image_renderer = include_str!("../../snapshot_tests/register/image_jpeg.register.json");
+
+    Vec::from([
+        TestCase {
+            name: "image/jpeg_as_root",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/image/jpeg_as_root.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
+            renderers: vec![image_renderer],
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "image/jpeg_in_view",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/image/jpeg_in_view.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
+            renderers: vec![image_renderer],
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "image/jpeg_in_view_overflow_fit",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/image/jpeg_in_view_overflow_fit.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
+            renderers: vec![image_renderer],
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
+    ])
+}
+
+pub fn transition_snapshot_tests() -> Vec<TestCase> {
+    Vec::from([
+        TestCase {
+            name: "transition/change_rescaler_absolute_and_send_next_update",
+            outputs: Outputs::Scenes(vec![
+                vec![(
+                    include_str!(
+                        "../../snapshot_tests/transition/change_rescaler_absolute_start.scene.json"
+                    ),
+                    DEFAULT_RESOLUTION,
+                )],
+                vec![(
+                    include_str!(
+                        "../../snapshot_tests/transition/change_rescaler_absolute_end.scene.json"
+                    ),
+                    DEFAULT_RESOLUTION,
+                )],
+                vec![(
+                    include_str!(
+                        "../../snapshot_tests/transition/change_rescaler_absolute_after_end.scene.json"
+                    ),
+                    DEFAULT_RESOLUTION,
+                )],
+            ]),
+            timestamps: vec![
+                Duration::from_secs(0),
+                Duration::from_secs(5),
+                Duration::from_secs(9),
+                Duration::from_secs(10),
+            ],
+            ..Default::default()
+        },
+        TestCase {
+            name: "transition/change_view_width_and_send_abort_transition",
+            outputs: Outputs::Scenes(vec![
+                vec![(
+                    include_str!(
+                        "../../snapshot_tests/transition/change_view_width_start.scene.json"
+                    ),
+                    DEFAULT_RESOLUTION,
+                )],
+                vec![(
+                    include_str!(
+                        "../../snapshot_tests/transition/change_view_width_end.scene.json"
+                    ),
+                    DEFAULT_RESOLUTION,
+                )],
+                vec![(
+                    include_str!(
+                        "../../snapshot_tests/transition/change_view_width_after_end_without_id.scene.json"
+                    ),
+                    DEFAULT_RESOLUTION,
+                )],
+            ]),
+            timestamps: vec![
+                Duration::from_secs(0),
+                Duration::from_secs(5),
+                Duration::from_secs(10),
+            ],
+            ..Default::default()
+        },
+        TestCase {
+            name: "transition/change_view_width_and_send_next_update",
+            outputs: Outputs::Scenes(vec![
+                vec![(
+                    include_str!(
+                        "../../snapshot_tests/transition/change_view_width_start.scene.json"
+                    ),
+                    DEFAULT_RESOLUTION,
+                )],
+                vec![(
+                    include_str!(
+                        "../../snapshot_tests/transition/change_view_width_end.scene.json"
+                    ),
+                    DEFAULT_RESOLUTION,
+                )],
+                vec![(
+                    include_str!(
+                        "../../snapshot_tests/transition/change_view_width_after_end.scene.json"
+                    ),
+                    DEFAULT_RESOLUTION,
+                )],
+            ]),
+            timestamps: vec![
+                Duration::from_secs(0),
+                Duration::from_secs(5),
+                Duration::from_secs(10),
+            ],
+            ..Default::default()
+        },
+        TestCase {
+            name: "transition/change_view_width",
+            outputs: Outputs::Scenes(vec![
+                vec![(
+                    include_str!(
+                        "../../snapshot_tests/transition/change_view_width_start.scene.json"
+                    ),
+                    DEFAULT_RESOLUTION,
+                )],
+                vec![(
+                    include_str!(
+                        "../../snapshot_tests/transition/change_view_width_end.scene.json"
+                    ),
+                    DEFAULT_RESOLUTION,
+                )],
+            ]),
+            timestamps: vec![
+                Duration::from_secs(0),
+                Duration::from_secs(5),
+                Duration::from_secs(10),
+                Duration::from_secs(100),
+            ],
+            ..Default::default()
+        },
+        TestCase {
+            name: "transition/change_view_height",
+            outputs: Outputs::Scenes(vec![
+                vec![(
+                    include_str!(
+                        "../../snapshot_tests/transition/change_view_height_start.scene.json"
+                    ),
+                    DEFAULT_RESOLUTION,
+                )],
+                vec![(
+                    include_str!(
+                        "../../snapshot_tests/transition/change_view_height_end.scene.json"
+                    ),
+                    DEFAULT_RESOLUTION,
+                )],
+            ]),
+            timestamps: vec![
+                Duration::from_secs(0),
+                Duration::from_secs(5),
+                Duration::from_secs(10),
+            ],
+            ..Default::default()
+        },
+        TestCase {
+            name: "transition/change_view_absolute",
+            outputs: Outputs::Scenes(vec![
+                vec![(
+                    include_str!(
+                        "../../snapshot_tests/transition/change_view_absolute_start.scene.json"
+                    ),
+                    DEFAULT_RESOLUTION,
+                )],
+                vec![(
+                    include_str!(
+                        "../../snapshot_tests/transition/change_view_absolute_end.scene.json"
+                    ),
+                    DEFAULT_RESOLUTION,
+                )],
+            ]),
+            timestamps: vec![
+                Duration::from_secs(0),
+                Duration::from_secs(5),
+                Duration::from_secs(9),
+                Duration::from_secs(10),
+            ],
+            ..Default::default()
+        },
+    ])
+}
+
+pub fn view_snapshot_tests() -> Vec<TestCase> {
+    Vec::from([
+        TestCase {
+            name: "view/constant_width_views_row",
+            outputs: Outputs::Scene(vec![(
+                    include_str!("../../snapshot_tests/view/constant_width_views_row.scene.json"),
+                    DEFAULT_RESOLUTION,
+            )]),
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "view/constant_width_views_row_with_overflow_hidden",
+            outputs: Outputs::Scene(vec![(
+                    include_str!("../../snapshot_tests/view/constant_width_views_row_with_overflow_hidden.scene.json"),
+                    DEFAULT_RESOLUTION,
+            )]),
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "view/constant_width_views_row_with_overflow_visible",
+            outputs: Outputs::Scene(vec![(
+                    include_str!("../../snapshot_tests/view/constant_width_views_row_with_overflow_visible.scene.json"),
+                    DEFAULT_RESOLUTION,
+            )]),
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "view/constant_width_views_row_with_overflow_fit",
+            outputs: Outputs::Scene(vec![(
+                    include_str!("../../snapshot_tests/view/constant_width_views_row_with_overflow_fit.scene.json"),
+                    DEFAULT_RESOLUTION,
+            )]),
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "view/dynamic_width_views_row",
+            outputs: Outputs::Scene(vec![(
+                    include_str!("../../snapshot_tests/view/dynamic_width_views_row.scene.json"),
+                    DEFAULT_RESOLUTION,
+            )]),
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "view/dynamic_and_constant_width_views_row",
+            outputs: Outputs::Scene(vec![(
+                    include_str!("../../snapshot_tests/view/dynamic_and_constant_width_views_row.scene.json"),
+                    DEFAULT_RESOLUTION,
+            )]),
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "view/dynamic_and_constant_width_views_row_with_overflow",
+            outputs: Outputs::Scene(vec![(
+                    include_str!("../../snapshot_tests/view/dynamic_and_constant_width_views_row_with_overflow.scene.json"),
+                    DEFAULT_RESOLUTION,
+            )]),
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "view/constant_width_and_height_views_row",
+            outputs: Outputs::Scene(vec![(
+                    include_str!("../../snapshot_tests/view/constant_width_and_height_views_row.scene.json"),
+                    DEFAULT_RESOLUTION,
+            )]),
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "view/view_with_absolute_positioning_partially_covered_by_sibling",
+            outputs: Outputs::Scene(vec![(
+                    include_str!("../../snapshot_tests/view/view_with_absolute_positioning_partially_covered_by_sibling.scene.json"),
+                    DEFAULT_RESOLUTION,
+            )]),
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "view/view_with_absolute_positioning_render_over_siblings",
+            outputs: Outputs::Scene(vec![(
+                    include_str!("../../snapshot_tests/view/view_with_absolute_positioning_render_over_siblings.scene.json"),
+                    DEFAULT_RESOLUTION,
+            )]),
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "view/root_view_with_background_color",
+            outputs: Outputs::Scene(vec![(
+                    include_str!("../../snapshot_tests/view/root_view_with_background_color.scene.json"),
+                    DEFAULT_RESOLUTION,
+            )]),
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        }
+    ])
+}
+
+pub fn base_snapshot_tests() -> Vec<TestCase> {
+    Vec::from([TestCase {
+        name: "simple_input_pass_through",
+        outputs: Outputs::Scene(vec![(
+            include_str!("../../snapshot_tests/simple_input_pass_through.scene.json"),
+            DEFAULT_RESOLUTION,
+        )]),
+        inputs: vec![TestInput::new(1)],
+        ..Default::default()
+    }])
 }

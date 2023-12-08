@@ -1,0 +1,18 @@
+{
+    "output_id": "output_1",
+    "root": {
+        "type": "tiles",
+        "tile_aspect_ratio": "1:2",
+        "children": [
+            {
+                "type": "input_stream",
+                "input_id": "input_1"
+            },
+            {
+                "type": "input_stream",
+                "input_id": "input_2"
+            }
+        ],
+        "background_color_rgba": "#333333FF"
+    }
+}

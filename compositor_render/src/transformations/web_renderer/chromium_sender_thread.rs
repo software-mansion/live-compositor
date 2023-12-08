@@ -6,13 +6,11 @@ use std::{
 };
 
 use compositor_chromium::cef;
-use compositor_common::{
-    error::ErrorStack,
-    scene::{NodeId, Resolution},
-};
+use compositor_common::{error::ErrorStack, scene::Resolution};
 use crossbeam_channel::{Receiver, Sender};
 use log::error;
 
+use crate::renderer::render_graph::NodeId;
 use crate::renderer::RegisterCtx;
 use crate::transformations::web_renderer::chromium_sender::{
     ChromiumSenderMessage, UpdateSharedMemoryInfo,
@@ -133,9 +131,7 @@ impl ChromiumSenderThread {
         node_id: NodeId,
         resolutions: Vec<Option<Resolution>>,
     ) -> Result<(), ChromiumSenderThreadError> {
-        if !state.shared_memory.contains_key(&node_id) {
-            state.shared_memory.insert(node_id.clone(), Vec::new());
-        }
+        state.shared_memory.entry(node_id).or_default();
 
         let frame = state.browser.main_frame()?;
         let shared_memory = state.shared_memory.get_mut(&node_id).unwrap();
@@ -234,7 +230,7 @@ impl ThreadState {
         let node_shared_memory = self
             .shared_memory
             .get_mut(node_id)
-            .ok_or_else(|| ChromiumSenderThreadError::SharedMemoryNotAllocated(node_id.clone()))?;
+            .ok_or_else(|| ChromiumSenderThreadError::SharedMemoryNotAllocated(*node_id))?;
 
         Ok(&mut node_shared_memory[source_idx])
     }

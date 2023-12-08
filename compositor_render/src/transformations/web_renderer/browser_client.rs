@@ -1,12 +1,14 @@
 use std::sync::{Arc, Mutex};
 
-use crate::GET_FRAME_POSITIONS_MESSAGE;
+use crate::{
+    transformations::layout::{vertices_transformation_matrix, Position},
+    GET_FRAME_POSITIONS_MESSAGE,
+};
 use bytes::Bytes;
 use compositor_chromium::cef;
 use compositor_common::scene::Resolution;
 use log::error;
 
-use crate::transformations::builtin::box_layout::BoxLayout;
 use crate::transformations::web_renderer::{FrameData, SourceTransforms};
 
 #[derive(Clone)]
@@ -51,13 +53,16 @@ impl cef::Client for BrowserClient {
                         continue;
                     };
 
-                    let transformations_matrix = BoxLayout {
-                        top_left_corner: (x as f32, y as f32),
-                        width: width as f32,
-                        height: height as f32,
-                        rotation_degrees: 0.0,
-                    }
-                    .transformation_matrix(self.resolution);
+                    let transformations_matrix = vertices_transformation_matrix(
+                        &Position {
+                            top: y as f32,
+                            left: x as f32,
+                            width: width as f32,
+                            height: height as f32,
+                            rotation_degrees: 0.0,
+                        },
+                        &self.resolution,
+                    );
 
                     transforms_matrices.push(transformations_matrix);
                 }

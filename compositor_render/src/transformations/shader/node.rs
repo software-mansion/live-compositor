@@ -1,14 +1,13 @@
 use std::{sync::Arc, time::Duration};
 
 use compositor_common::{
-    renderer_spec::{FallbackStrategy, RendererId},
-    scene::{shader::ShaderParam, NodeId, Resolution},
+    renderer_spec::FallbackStrategy,
+    scene::{shader::ShaderParam, Resolution},
 };
 use wgpu::util::DeviceExt;
 
 use crate::{
-    error::CreateNodeError,
-    renderer::RenderCtx,
+    renderer::{render_graph::NodeId, RenderCtx},
     wgpu::{texture::NodeTexture, WgpuCtx},
 };
 
@@ -24,31 +23,19 @@ pub struct ShaderNode {
 impl ShaderNode {
     pub fn new(
         ctx: &RenderCtx,
-        shader_id: &RendererId,
+        shader: Arc<Shader>,
         shader_params: &Option<ShaderParam>,
         resolution: &Resolution,
-    ) -> Result<Self, CreateNodeError> {
-        let shader = ctx
-            .renderers
-            .shaders
-            .get(shader_id)
-            .ok_or_else(|| CreateNodeError::ShaderNotFound(shader_id.clone()))?;
-
-        if let Some(params) = shader_params {
-            shader.wgpu_shader.validate_params(params).map_err(|err| {
-                CreateNodeError::ShaderNodeParametersValidationError(err, shader_id.clone())
-            })?
-        }
-
+    ) -> Self {
         let custom_params_buffer = Self::new_params_buffer(ctx.wgpu_ctx, shader_params);
         let params_bind_group = Self::new_params_bind_group(ctx.wgpu_ctx, &custom_params_buffer);
 
-        Ok(Self {
+        Self {
             params_bind_group,
             _custom_params_buffer: custom_params_buffer,
             shader,
             resolution: *resolution,
-        })
+        }
     }
 
     fn new_params_buffer(ctx: &WgpuCtx, shader_params: &Option<ShaderParam>) -> wgpu::Buffer {
@@ -81,10 +68,6 @@ impl ShaderNode {
                 resource: buffer.as_entire_binding(),
             }],
         })
-    }
-
-    pub fn resolution(&self) -> Resolution {
-        self.resolution
     }
 
     pub fn fallback_strategy(&self) -> FallbackStrategy {

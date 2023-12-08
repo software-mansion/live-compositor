@@ -1,0 +1,85 @@
+name: build, lint and test
+on:
+    push:
+        branches: [master]
+    pull_request:
+        types: [opened, synchronize]
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
+
+jobs:
+    check:
+        runs-on: ubuntu-latest
+        container:
+            image: ubuntu:mantic-20231011
+        steps:
+            - name: 🛠 Install system dependencies
+              run: |
+                  set -e
+
+                  echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | debconf-set-selections
+
+                  apt-get update -y -qq
+                  apt-get install -y libegl1-mesa-dev libgl1-mesa-dri libxcb-xfixes0-dev ffmpeg libavcodec-dev libavformat-dev libavfilter-dev libavdevice-dev ttf-mscorefonts-installer
+                
+                  # required when job is running in docker container                
+                  apt-get install -y build-essential curl pkg-config git libssl-dev libclang-dev libnss3 libatk1.0-0 libatk-bridge2.0-0 libgdk-pixbuf2.0-0 libgtk-3-0
+
+            - name: 🔧 Install the rust toolchain
+              uses: dtolnay/rust-toolchain@stable
+              with:
+                  components: rustfmt, clippy
+
+            - name: 🔬 Install nextest
+              uses: taiki-e/install-action@v2
+              with:
+                  tool: cargo-nextest
+
+            - name: 🛠 Setup Node.JS
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 20
+
+            - name: 📥 Checkout repo
+              uses: actions/checkout@v3
+              with:
+                  submodules: 'true'
+
+            - name: 📁 Rust cache
+              uses: Swatinem/rust-cache@v2
+
+            - name: 🪢 Generate Chromium Embedded Framework bindings
+              run: cargo build --package compositor_chromium
+
+            - name: 📖 Check formatting
+              run: cargo fmt --all --check
+
+            - name: 📎 Run clippy
+              run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+
+            - name: 📄 Generate JSON schema
+              run: |
+                cargo run --bin generate_json_schema
+                cargo run --bin generate_docs
+
+            - name: 🖋️ Run website lint + typecheck + build
+              working-directory: ./docs
+              run: |
+                npm ci
+                npm run typecheck && npm run lint --max-warnings=0 && npm run build
+
+            - name: 🧪 Run tests
+              run: cargo nextest run --no-fail-fast --workspace
+
+            - name: 📦 Upload failed snapshot test artifacts
+              if: failure()
+              uses: actions/upload-artifact@v3
+              with:
+                  name: failed_snapshot_tests
+                  path: failed_snapshot_tests
+                  retention-days: 2
+
+            - name: 📚 Run doctests
+              run: cargo test --workspace --doc

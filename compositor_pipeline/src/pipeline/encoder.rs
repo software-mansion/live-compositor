@@ -223,6 +223,7 @@ fn write_plane_to_av(frame: &mut frame::Video, plane: usize, data: &[u8]) {
 pub struct Encoder<Output: PipelineOutput> {
     sender: Sender<Frame>,
     output: Output,
+    resolution: Resolution,
 }
 
 impl<Output: PipelineOutput> Encoder<Output> {
@@ -258,6 +259,7 @@ impl<Output: PipelineOutput> Encoder<Output> {
         Ok(Self {
             sender: frame_sender,
             output: output_receiver.recv().unwrap()?,
+            resolution: opts.resolution,
         })
     }
 
@@ -267,5 +269,9 @@ impl<Output: PipelineOutput> Encoder<Output> {
 
     pub fn output(&self) -> &Output {
         &self.output
+    }
+
+    pub fn resolution(&self) -> Resolution {
+        self.resolution
     }
 }

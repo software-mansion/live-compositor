@@ -93,7 +93,7 @@ fn start_example_client_code() -> Result<()> {
         "asset_type": "svg",
         "image_id": "example_svg",
         "path": PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("examples/assets/rust.svg"),
-        "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+        "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.width},
     }))?;
     common::post(&json!({
         "type": "register",
@@ -103,179 +103,57 @@ fn start_example_client_code() -> Result<()> {
         "url": "https://rust-lang.org/logos/rust-logo-512x512.png",
     }))?;
 
-    let label_padding = "20px";
+    let new_image = |image_id, label| {
+        json!({
+            "type": "view",
+            "background_color_rgba": "#0000FFFF",
+            "children": [
+                {
+                    "type": "rescaler",
+                    "mode": "fit",
+                    "child": {
+                        "type": "image",
+                        "image_id": image_id,
+                    }
+                },
+                {
+                    "type": "view",
+                    "bottom": 20,
+                    "right": 20,
+                    "width": 400,
+                    "height": 40,
+                    "children": [{
+                        "type": "text",
+                        "text": label,
+                        "align": "right",
+                        "width": 400,
+                        "font_size": 40.0,
+                        "font_family": "Comic Sans MS",
+                    }]
+                }
+            ]
+        })
+    };
+
+    let scene = json!({
+        "type": "tiles",
+        "margin" : 20,
+        "children": [
+            new_image("example_png", "PNG example"),
+            new_image("example_jpeg", "JPEG example"),
+            new_image("example_svg", "SVG example"),
+            new_image("example_gif", "GIF example"),
+        ]
+    });
+
     info!("[example] Update scene");
     common::post(&json!({
         "type": "update_scene",
-        "inputs": [],
-        "nodes": [
-            {
-                 "node_id": "gif_1",
-                 "type": "image",
-                 "image_id": "example_gif",
-            },
-            {
-                 "node_id": "png_1",
-                 "type": "image",
-                 "image_id": "example_png",
-            },
-            {
-                 "node_id": "jpeg_1",
-                 "type": "image",
-                 "image_id": "example_jpeg",
-            },
-            {
-                 "node_id": "svg_1",
-                 "type": "image",
-                 "image_id": "example_svg",
-            },
-            {
-                "node_id": "gif_1_rescaled",
-                "type": "builtin:fill_to_resolution",
-                "resolution": { "width": 960, "height": 540 },
-                "input_pads": ["gif_1"],
-            },
-            {
-                 "node_id": "gif_1_label",
-                 "type": "text",
-                 "content": "GIF example",
-                 "font_size": 40.0,
-                 "font_family": "Comic Sans MS",
-                 "dimensions": {
-                     "type": "fitted",
-                 },
-            },
-            {
-                "node_id": "gif_1_layout",
-                "type": "builtin:fixed_position_layout",
-                "texture_layouts": [
-                    {
-                        "left": "0px",
-                        "top": "0px"
-                    },
-                    {
-                        "right": label_padding,
-                        "bottom": label_padding
-                    },
-                ],
-                "background_color_rgba": "#0000FF00",
-                "resolution": { "width": 960, "height": 540 },
-                "input_pads": ["gif_1_rescaled", "gif_1_label"],
-            },
-            {
-                "node_id": "png_1_rescaled",
-                "type": "builtin:fit_to_resolution",
-                "resolution": { "width": 960, "height": 540 },
-                "input_pads": ["png_1"],
-            },
-            {
-                 "node_id": "png_1_label",
-                 "type": "text",
-                 "content": "PNG example",
-                 "font_size": 40.0,
-                 "font_family": "Comic Sans MS",
-                 "dimensions": {
-                     "type": "fitted",
-                 },
-            },
-            {
-                "node_id": "png_1_layout",
-                "type": "builtin:fixed_position_layout",
-                "texture_layouts": [
-                    {
-                        "left": "0px",
-                        "top": "0px"
-                    },
-                    {
-                        "right": label_padding,
-                        "bottom": label_padding
-                    },
-                ],
-                "background_color_rgba": "#0000FF00",
-                "resolution": { "width": 960, "height": 540 },
-                "input_pads": ["png_1_rescaled", "png_1_label"],
-            },
-            {
-                "node_id": "jpeg_1_rescaled",
-                "type": "builtin:fit_to_resolution",
-                "resolution": { "width": 960, "height": 540 },
-                "input_pads": ["jpeg_1"],
-                "background_color_rgba": "#00000000",
-            },
-            {
-                 "node_id": "jpeg_1_label",
-                 "type": "text",
-                 "content": "JPEG example",
-                 "font_size": 40.0,
-                 "color_rgba": "#FF0000FF",
-                 "font_family": "Comic Sans MS",
-                 "dimensions": {
-                     "type": "fitted",
-                 },
-            },
-            {
-                "node_id": "jpeg_1_layout",
-                "type": "builtin:fixed_position_layout",
-                "texture_layouts": [
-                    {
-                        "left": "0px",
-                        "top": "0px"
-                    },
-                    {
-                        "right": label_padding,
-                        "bottom": label_padding
-                    },
-                ],
-                "background_color_rgba": "#0000FF00",
-                "resolution": { "width": 960, "height": 540 },
-                "input_pads": ["jpeg_1_rescaled", "jpeg_1_label"],
-            },
-            {
-                "node_id": "svg_1_rescaled",
-                "type": "builtin:fit_to_resolution",
-                "resolution": { "width": 960, "height": 540 },
-                "input_pads": ["svg_1"],
-            },
-            {
-                 "node_id": "svg_1_label",
-                 "type": "text",
-                 "content": "SVG example",
-                 "font_size": 40.0,
-                 "font_family": "Comic Sans MS",
-                 "dimensions": {
-                     "type": "fitted",
-                 },
-            },
-            {
-                "node_id": "svg_1_layout",
-                "type": "builtin:fixed_position_layout",
-                "texture_layouts": [
-                    {
-                        "left": "0px",
-                        "top": "0px"
-                    },
-                    {
-                        "right": label_padding,
-                        "bottom": label_padding
-                    },
-                ],
-                "background_color_rgba": "#0000FF00",
-                "resolution": { "width": 960, "height": 540 },
-                "input_pads": ["svg_1_rescaled", "svg_1_label"],
-            },
-            {
-                "node_id": "layout",
-                "type": "builtin:tiled_layout",
-                "background_color_rgba": "#0000FF00",
-                "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
-                "input_pads": ["gif_1_layout", "png_1_layout", "jpeg_1_layout", "svg_1_layout"],
-            }
-        ],
         "outputs": [
             {
                 "output_id": "output_1",
-                "input_pad": "layout"
-            },
+                "root": scene,
+            }
         ]
     }))?;
 

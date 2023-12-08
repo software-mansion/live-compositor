@@ -178,31 +178,17 @@ impl From<&UnregisterOutputError> for PipelineErrorInfo {
     }
 }
 
-const FAILED_TO_CREATE_NODE: &str = "FAILED_TO_CREATE_NODE";
-const SCENE_SPEC_VALIDATION_ERROR: &str = "SCENE_SPEC_VALIDATION_ERROR";
-const MISSING_NODE_WITH_ID: &str = "MISSING_NODE_WITH_ID";
-const UNKNOWN_RESOLUTION_ON_OUTPUT_NODE: &str = "UNKNOWN_RESOLUTION_ON_OUTPUT_NODE";
-const CONSTRAINTS_VALIDATION_ERROR: &str = "CONSTRAINTS_VALIDATION_ERROR";
+const BUILD_SCENE_ERROR: &str = "BUILD_SCENE_ERROR";
 
 impl From<&UpdateSceneError> for PipelineErrorInfo {
     fn from(err: &UpdateSceneError) -> Self {
         match err {
-            UpdateSceneError::CreateNodeError(_, _) => {
-                PipelineErrorInfo::new(FAILED_TO_CREATE_NODE, ErrorType::UserError)
-            }
-            UpdateSceneError::InvalidSpec(_) => {
-                PipelineErrorInfo::new(SCENE_SPEC_VALIDATION_ERROR, ErrorType::UserError)
-            }
-            UpdateSceneError::NoNodeWithIdError(_) => {
-                // ServerError because it should be validated is spec validation
-                PipelineErrorInfo::new(MISSING_NODE_WITH_ID, ErrorType::ServerError)
-            }
             UpdateSceneError::WgpuError(err) => err.into(),
-            UpdateSceneError::UnknownResolutionOnOutput(_) => {
-                PipelineErrorInfo::new(UNKNOWN_RESOLUTION_ON_OUTPUT_NODE, ErrorType::ServerError)
+            UpdateSceneError::OutputNotRegistered(_) => {
+                PipelineErrorInfo::new(OUTPUT_STREAM_NOT_FOUND, ErrorType::UserError)
             }
-            UpdateSceneError::ConstraintsValidationError(_, _) => PipelineErrorInfo {
-                error_code: CONSTRAINTS_VALIDATION_ERROR,
+            UpdateSceneError::SceneError(_) => PipelineErrorInfo {
+                error_code: BUILD_SCENE_ERROR,
                 error_type: ErrorType::UserError,
             },
         }
@@ -211,7 +197,7 @@ impl From<&UpdateSceneError> for PipelineErrorInfo {
 
 const WGPU_INIT_ERROR: &str = "WGPU_INIT_ERROR";
 const WEB_RENDERER_INIT_ERROR: &str = "WEB_RENDERER_INIT_ERROR";
-const BUILTIN_INIT_ERROR: &str = "BUILTIN_INIT_ERROR";
+const LAYOUT_INIT_ERROR: &str = "LAYOUT_INIT_ERROR";
 
 impl From<&InitRendererEngineError> for PipelineErrorInfo {
     fn from(err: &InitRendererEngineError) -> Self {
@@ -222,8 +208,8 @@ impl From<&InitRendererEngineError> for PipelineErrorInfo {
             InitRendererEngineError::FailedToInitChromiumCtx(_) => {
                 PipelineErrorInfo::new(WEB_RENDERER_INIT_ERROR, ErrorType::ServerError)
             }
-            InitRendererEngineError::BuiltInTransformationsInitError(_) => {
-                PipelineErrorInfo::new(BUILTIN_INIT_ERROR, ErrorType::ServerError)
+            InitRendererEngineError::LayoutTransformationsInitError(_) => {
+                PipelineErrorInfo::new(LAYOUT_INIT_ERROR, ErrorType::ServerError)
             }
         }
     }
@@ -256,22 +242,12 @@ impl From<&RegisterRendererError> for PipelineErrorInfo {
 }
 
 const ENTITY_NOT_FOUND: &str = "ENTITY_NOT_FOUND";
-const ENTITY_STILL_IN_USE: &str = "ENTITY_STILL_IN_USE";
 
 impl From<&UnregisterRendererError> for PipelineErrorInfo {
     fn from(err: &UnregisterRendererError) -> Self {
         match err {
             UnregisterRendererError::RendererRegistry(_) => {
                 PipelineErrorInfo::new(ENTITY_NOT_FOUND, ErrorType::EntityNotFound)
-            }
-            UnregisterRendererError::ImageStillInUse(_, _) => {
-                PipelineErrorInfo::new(ENTITY_STILL_IN_USE, ErrorType::EntityNotFound)
-            }
-            UnregisterRendererError::ShaderStillInUse(_, _) => {
-                PipelineErrorInfo::new(ENTITY_STILL_IN_USE, ErrorType::EntityNotFound)
-            }
-            UnregisterRendererError::WebRendererInstanceStillInUse(_, _) => {
-                PipelineErrorInfo::new(ENTITY_STILL_IN_USE, ErrorType::EntityNotFound)
             }
         }
     }

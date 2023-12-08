@@ -1,6 +1,6 @@
 use std::{fmt::Display, sync::Arc};
 
-use crate::scene::{constraints::NodeConstraints, Resolution};
+use crate::scene::Resolution;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct RendererId(pub Arc<str>);
@@ -33,7 +33,6 @@ pub struct ShaderSpec {
     pub shader_id: RendererId,
     pub source: String,
     pub fallback_strategy: FallbackStrategy,
-    pub constraints: NodeConstraints,
 }
 
 #[derive(Debug)]
@@ -43,7 +42,6 @@ pub struct WebRendererSpec {
     pub resolution: Resolution,
     pub embedding_method: WebEmbeddingMethod,
     pub fallback_strategy: FallbackStrategy,
-    pub constraints: NodeConstraints,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]

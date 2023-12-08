@@ -4,12 +4,11 @@ use std::sync::Arc;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+mod component;
 mod convert;
 mod convert_util;
-mod from_node;
+mod from_component;
 mod from_renderer;
-mod into_node;
-mod node;
 mod register_request;
 mod renderer;
 mod util;
@@ -17,18 +16,29 @@ mod util;
 #[cfg(test)]
 mod convert_util_test;
 
-pub use node::Node;
-pub use node::WebRenderer;
+pub use component::Component;
+pub use component::Image;
+pub use component::InputStream;
+pub use component::Rescaler;
+pub use component::Shader;
+pub use component::Text;
+pub use component::Tiles;
+pub use component::View;
+pub use component::WebView;
+pub use register_request::Port;
 pub use register_request::RegisterInputRequest;
 pub use register_request::RegisterOutputRequest;
 pub use register_request::RegisterRequest;
+pub use renderer::ImageSpec;
+pub use renderer::ShaderSpec;
+pub use renderer::WebRendererSpec;
 pub use util::Resolution;
 pub use util::TypeError;
 
 use self::util::Framerate;
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-pub struct NodeId(Arc<str>);
+pub struct ComponentId(Arc<str>);
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 pub struct RendererId(Arc<str>);
@@ -40,15 +50,9 @@ pub struct OutputId(Arc<str>);
 pub struct InputId(Arc<str>);
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-pub struct Scene {
-    pub nodes: Vec<Node>,
-    pub outputs: Vec<Output>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-pub struct Output {
+pub struct OutputScene {
     pub output_id: OutputId,
-    pub input_pad: NodeId,
+    pub root: Component,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use crate::renderer::RegisterCtx;
-use compositor_common::scene::{NodeId, Resolution};
+use crate::renderer::{render_graph::NodeId, RegisterCtx};
+use compositor_common::scene::Resolution;
 use crossbeam_channel::{Receiver, Sender};
 use log::error;
 
@@ -9,6 +9,7 @@ use crate::wgpu::texture::NodeTexture;
 
 use super::{browser_client::BrowserClient, chromium_sender_thread::ChromiumSenderThread};
 
+#[derive(Debug)]
 pub(super) struct ChromiumSender {
     message_sender: Sender<ChromiumSenderMessage>,
     /// Used for synchronizing buffer map and unmap operations

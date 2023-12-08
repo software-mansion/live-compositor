@@ -1,11 +1,11 @@
-use compositor_common::{
-    scene,
-    util::{align, colors, coord, degree},
-};
+use std::time::Duration;
+
+use compositor_common::util::{align, colors, coord, degree};
+use compositor_render::scene::{self};
 
 use super::util::*;
 
-impl From<Resolution> for scene::Resolution {
+impl From<Resolution> for compositor_common::scene::Resolution {
     fn from(resolution: Resolution) -> Self {
         Self {
             width: resolution.width,
@@ -14,11 +14,28 @@ impl From<Resolution> for scene::Resolution {
     }
 }
 
-impl From<scene::Resolution> for Resolution {
-    fn from(resolution: scene::Resolution) -> Self {
+impl From<Resolution> for scene::Size {
+    fn from(resolution: Resolution) -> Self {
+        Self {
+            width: resolution.width as f32,
+            height: resolution.height as f32,
+        }
+    }
+}
+
+impl From<compositor_common::scene::Resolution> for Resolution {
+    fn from(resolution: compositor_common::scene::Resolution) -> Self {
         Self {
             width: resolution.width,
             height: resolution.height,
+        }
+    }
+}
+
+impl From<Transition> for scene::Transition {
+    fn from(transition: Transition) -> Self {
+        Self {
+            duration: Duration::from_secs_f64(transition.duration_ms / 1000.0),
         }
     }
 }
@@ -99,6 +116,24 @@ impl TryFrom<Framerate> for compositor_common::Framerate {
             }
             Framerate::U32(num) => Ok(compositor_common::Framerate { num, den: 1 }),
         }
+    }
+}
+
+impl TryFrom<AspectRatio> for (u32, u32) {
+    type Error = TypeError;
+
+    fn try_from(text: AspectRatio) -> Result<Self, Self::Error> {
+        const ERROR_MESSAGE: &str = "Aspect ratio needs to be a string in the \"W:H\" format, where W and H are both unsigned integers.";
+        let Some((v1_str, v2_str)) = text.0.split_once(':') else {
+            return Err(TypeError::new(ERROR_MESSAGE));
+        };
+        let v1 = v1_str
+            .parse::<u32>()
+            .or(Err(TypeError::new(ERROR_MESSAGE)))?;
+        let v2 = v2_str
+            .parse::<u32>()
+            .or(Err(TypeError::new(ERROR_MESSAGE)))?;
+        Ok((v1, v2))
     }
 }
 

@@ -1,6 +1,8 @@
 use std::{sync::Arc, time::Duration};
 
-use compositor_common::scene::{shader::ShaderParam, NodeId};
+use compositor_common::scene::shader::ShaderParam;
+
+use crate::renderer::render_graph::NodeId;
 
 use self::{common_params::CommonShaderParameters, pipeline::Pipeline};
 
@@ -13,7 +15,7 @@ use super::{
 };
 
 pub(super) mod common_params;
-pub(super) mod pipeline;
+pub(crate) mod pipeline;
 pub(crate) mod shader_params;
 
 const INPUT_TEXTURES_AMOUNT: u32 = 16;
@@ -69,18 +71,7 @@ impl WgpuShader {
             wgpu::ShaderSource::Naga(std::borrow::Cow::Owned(shader.clone())),
             &wgpu_ctx.shader_parameters_bind_group_layout,
         );
-
-        let empty_texture = Texture::new(
-            wgpu_ctx,
-            Some("empty texture"),
-            wgpu::Extent3d {
-                width: 1,
-                height: 1,
-                depth_or_array_layers: 1,
-            },
-            wgpu::TextureFormat::Rgba8Unorm,
-            wgpu::TextureUsages::TEXTURE_BINDING,
-        );
+        let empty_texture = Texture::empty(wgpu_ctx);
 
         scope.pop(&wgpu_ctx.device)?;
 

@@ -4,6 +4,7 @@ use crate::wgpu::WgpuCtx;
 
 use super::base::Texture;
 
+#[derive(Debug)]
 pub struct RGBATexture(Texture);
 
 impl RGBATexture {
