@@ -111,4 +111,21 @@ impl PipelineOutput for RtpSender {
             context.next_sequence_number = context.next_sequence_number.wrapping_add(1);
         }
     }
+
+    fn send_eos(&self, context: &mut RtpContext) {
+        let packet = rtcp::goodbye::Goodbye {
+            sources: vec![context.ssrc],
+            reason: Bytes::from("Unregister output stream"),
+        };
+
+        let raw_packet = match packet.marshal() {
+            Ok(raw_packet) => raw_packet,
+            Err(_err) => {
+                error!("Failed to construct");
+                return;
+            }
+        };
+
+        context.socket.send(&raw_packet).unwrap();
+    }
 }

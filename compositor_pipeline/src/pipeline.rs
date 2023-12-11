@@ -43,6 +43,7 @@ pub trait PipelineOutput: Send + Sync + Sized + Clone + 'static {
     type Context: 'static;
 
     fn send_packet(&self, context: &mut Self::Context, packet: Packet);
+    fn send_eos(&self, context: &mut Self::Context);
     fn new(
         opts: Self::Opts,
         codec: ffmpeg_next::Codec,

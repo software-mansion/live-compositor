@@ -254,6 +254,7 @@ impl<Output: PipelineOutput> Encoder<Output> {
                     output.send_packet(&mut context, packet);
                 }
             }
+            output.send_eos(&mut context);
         });
 
         Ok(Self {
