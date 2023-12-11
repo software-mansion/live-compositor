@@ -228,14 +228,14 @@ impl TestInput {
     const COLOR_VARIANTS: [RGBColor; 17] = [
         // RED, input_0
         RGBColor(255, 0, 0),
-        // BLUE, input_1
-        RGBColor(0, 0, 255),
-        // GREEN, input_2
+        // GREEN, input_1
         RGBColor(0, 255, 0),
-        // YELLOW, input_3
+        // YELLOW, input_2
         RGBColor(255, 255, 0),
-        // MAGENTA, input_4
+        // MAGENTA, input_3
         RGBColor(255, 0, 255),
+        // BLUE, input_4
+        RGBColor(0, 0, 255),
         // CYAN, input_5
         RGBColor(0, 255, 255),
         // ORANGE, input_6
