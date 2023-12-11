@@ -279,7 +279,7 @@ impl TestInput {
         let mut v_plane = vec![0; (resolution.width * resolution.height) / 4];
 
         let yuv_color = |x: usize, y: usize| {
-            const BORDER_SIZE: usize = 10;
+            const BORDER_SIZE: usize = 18;
             const GRID_SIZE: usize = 72;
 
             let is_border_in_x =
@@ -288,18 +288,21 @@ impl TestInput {
                 || (y <= resolution.height && y >= resolution.height - BORDER_SIZE);
             let is_on_grid = (x / GRID_SIZE + y / GRID_SIZE) % 2 == 0;
 
-            if is_border_in_x || is_border_in_y || is_on_grid {
-                let mut y = color.0;
-                if y < 0.1 {
-                    y += 0.1;
-                } else {
-                    y -= 0.1;
-                }
-
-                (y, color.1, color.2)
+            let mut y = color.0;
+            let y_offset = if is_border_in_x || is_border_in_y {
+                0.1
+            } else if is_on_grid {
+                0.05
             } else {
-                color
+                0.0
+            };
+
+            if y < y_offset {
+                y += y_offset;
+            } else {
+                y -= y_offset;
             }
+            (y.clamp(0.0, 1.0), color.1, color.2)
         };
 
         for x_coord in 0..resolution.width {
