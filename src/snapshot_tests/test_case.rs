@@ -217,15 +217,6 @@ impl TestCaseInstance {
     }
 }
 
-#[allow(dead_code)]
-#[derive(Debug, Clone)]
-pub enum TestInputPattern {
-    Border,
-    Grid,
-    Stripes,
-    Plain,
-}
-
 #[derive(Debug, Clone)]
 pub struct TestInput {
     pub name: String,
@@ -272,17 +263,8 @@ impl TestInput {
     ];
 
     pub fn new(index: usize) -> Self {
-        Self::new_patterned(index, TestInputPattern::Plain)
-    }
-
-    pub fn new_with_resolution(index: usize, resolution: Resolution) -> Self {
-        Self::new_patterned_with_resolution(index, TestInputPattern::Plain, resolution)
-    }
-
-    pub fn new_patterned(index: usize, pattern: TestInputPattern) -> Self {
-        Self::new_patterned_with_resolution(
+        Self::new_with_resolution(
             index,
-            pattern,
             Resolution {
                 width: 640,
                 height: 360,
@@ -290,56 +272,43 @@ impl TestInput {
         )
     }
 
-    pub fn new_patterned_with_resolution(
-        index: usize,
-        pattern: TestInputPattern,
-        resolution: Resolution,
-    ) -> Self {
-        let color = Self::COLOR_VARIANTS[index];
+    pub fn new_with_resolution(index: usize, resolution: Resolution) -> Self {
+        let color = Self::COLOR_VARIANTS[index].to_yuv();
         let mut y_plane = vec![0; resolution.width * resolution.height];
         let mut u_plane = vec![0; (resolution.width * resolution.height) / 4];
         let mut v_plane = vec![0; (resolution.width * resolution.height) / 4];
 
-        let rgb_color = |x: usize, y: usize| match pattern {
-            TestInputPattern::Border => {
-                let border_size = resolution.width / 50;
-                let is_border_in_x = x <= border_size
-                    || (x <= resolution.width && x >= resolution.width - border_size);
-                let is_border_in_y: bool = y <= border_size
-                    || (y <= resolution.height && y >= resolution.height - border_size);
+        let yuv_color = |x: usize, y: usize| {
+            const BORDER_SIZE: usize = 10;
+            const GRID_SIZE: usize = 72;
 
-                if is_border_in_x || is_border_in_y {
-                    RGBColor::BLACK
+            let is_border_in_x =
+                x <= BORDER_SIZE || (x <= resolution.width && x >= resolution.width - BORDER_SIZE);
+            let is_border_in_y: bool = y <= BORDER_SIZE
+                || (y <= resolution.height && y >= resolution.height - BORDER_SIZE);
+            let is_on_grid = (x / GRID_SIZE + y / GRID_SIZE) % 2 == 0;
+
+            if is_border_in_x || is_border_in_y || is_on_grid {
+                let mut y = color.0;
+                if y < 0.1 {
+                    y += 0.1;
                 } else {
-                    color
+                    y -= 0.1;
                 }
+
+                (y, color.1, color.2)
+            } else {
+                color
             }
-            TestInputPattern::Grid => {
-                let gap_size = resolution.width / 10;
-                if x % gap_size == 0 || y % gap_size == 0 {
-                    RGBColor::BLACK
-                } else {
-                    color
-                }
-            }
-            TestInputPattern::Stripes => {
-                let gap_size = resolution.width / 10;
-                if x % gap_size == 0 {
-                    RGBColor::BLACK
-                } else {
-                    color
-                }
-            }
-            TestInputPattern::Plain => color,
         };
 
         for x_coord in 0..resolution.width {
             for y_coord in 0..resolution.height {
-                let (y, u, v) = rgb_color(x_coord, y_coord).to_yuv();
+                let (y, u, v) = yuv_color(x_coord, y_coord);
                 if x_coord % 2 == 0 && y_coord % 2 == 0 {
-                    let (_, u2, v2) = rgb_color(x_coord + 1, y_coord).to_yuv();
-                    let (_, u3, v3) = rgb_color(x_coord, y_coord + 1).to_yuv();
-                    let (_, u4, v4) = rgb_color(x_coord + 1, y_coord + 1).to_yuv();
+                    let (_, u2, v2) = yuv_color(x_coord + 1, y_coord);
+                    let (_, u3, v3) = yuv_color(x_coord, y_coord + 1);
+                    let (_, u4, v4) = yuv_color(x_coord + 1, y_coord + 1);
 
                     let coord = (y_coord / 2) * (resolution.width / 2) + (x_coord / 2);
                     u_plane[coord] = ((u + u2 + u3 + u4) * 64.0) as u8;
