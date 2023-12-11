@@ -3,7 +3,7 @@ use std::num::NonZeroU32;
 use wgpu::ShaderStages;
 
 use crate::wgpu::{
-    common_pipeline::{surface::Surfaces, Sampler, Vertex},
+    common_pipeline::{Sampler, Vertex},
     texture::Texture,
     WgpuCtx,
 };
@@ -15,7 +15,6 @@ use super::{
 #[derive(Debug)]
 pub struct Pipeline {
     pipeline: wgpu::RenderPipeline,
-    surfaces: Surfaces,
     sampler: Sampler,
     pub(super) textures_bgl: wgpu::BindGroupLayout,
 }
@@ -44,14 +43,11 @@ impl Pipeline {
             source: shader_source,
         });
 
-        let surfaces = Surfaces::new(device);
-
         let pipeline = Self::create_render_pipeline(device, &pipeline_layout, &shader_module);
 
         Self {
             pipeline,
             sampler,
-            surfaces,
             textures_bgl,
         }
     }
@@ -127,14 +123,17 @@ impl Pipeline {
     ) {
         let mut encoder = ctx.device.create_command_encoder(&Default::default());
         let clear_color = clear_color.unwrap_or(wgpu::Color::TRANSPARENT);
-        {
+
+        let mut render_plane = |input_id: i32, clear: bool| {
+            let load = match clear {
+                true => wgpu::LoadOp::Clear(clear_color),
+                false => wgpu::LoadOp::Load,
+            };
+
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: None,
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(clear_color),
-                        store: true,
-                    },
+                    ops: wgpu::Operations { load, store: true },
                     view: &target.view,
                     resolve_target: None,
                 })],
@@ -154,8 +153,19 @@ impl Pipeline {
             render_pass.set_bind_group(USER_DEFINED_BUFFER_GROUP, uniforms, &[]);
             render_pass.set_bind_group(2, &self.sampler.bind_group, &[]);
 
-            self.surfaces
-                .draw(&mut render_pass, common_parameters.texture_count);
+            ctx.plane_cache
+                .plane(input_id)
+                .unwrap()
+                .draw(&mut render_pass);
+        };
+
+        if common_parameters.texture_count == 0 {
+            render_plane(-1, true);
+        } else {
+            render_plane(0, false);
+            for input_id in 1..common_parameters.texture_count {
+                render_plane(input_id as i32, true);
+            }
         }
 
         // TODO: this should not submit, it should return the command buffer.

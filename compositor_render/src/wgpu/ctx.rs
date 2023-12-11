@@ -1,8 +1,8 @@
 use log::error;
 
 use super::{
-    format::TextureFormat, shader::WgpuShader, utils::TextureUtils, CreateWgpuCtxError,
-    WgpuErrorScope,
+    common_pipeline::plane::PlaneCache, format::TextureFormat, shader::WgpuShader,
+    utils::TextureUtils, CreateWgpuCtxError, WgpuErrorScope,
 };
 
 #[derive(Debug)]
@@ -16,6 +16,7 @@ pub struct WgpuCtx {
     pub utils: TextureUtils,
 
     pub shader_parameters_bind_group_layout: wgpu::BindGroupLayout,
+    pub plane_cache: PlaneCache,
 }
 
 impl WgpuCtx {
@@ -60,6 +61,8 @@ impl WgpuCtx {
         let shader_parameters_bind_group_layout =
             WgpuShader::new_parameters_bind_group_layout(&device);
 
+        let plane_cache = PlaneCache::new(&device);
+
         scope.pop(&device)?;
 
         device.on_uncaptured_error(Box::new(|e| {
@@ -73,6 +76,7 @@ impl WgpuCtx {
             format,
             utils,
             shader_parameters_bind_group_layout,
+            plane_cache,
         })
     }
 }

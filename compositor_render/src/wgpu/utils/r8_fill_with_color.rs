@@ -1,7 +1,7 @@
 use wgpu::ShaderStages;
 
 use crate::wgpu::{
-    common_pipeline::{surface::SingleSurface, Vertex, PRIMITIVE_STATE},
+    common_pipeline::{Vertex, PRIMITIVE_STATE},
     texture::Texture,
     WgpuCtx,
 };
@@ -9,13 +9,11 @@ use crate::wgpu::{
 #[derive(Debug)]
 pub struct R8FillWithValue {
     pipeline: wgpu::RenderPipeline,
-    surface: SingleSurface,
 }
 
 impl R8FillWithValue {
     pub fn new(device: &wgpu::Device) -> Self {
         let shader_module = device.create_shader_module(wgpu::include_wgsl!("r8_fill_value.wgsl"));
-        let surfaces = SingleSurface::new(device);
 
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("Fill with value render pipeline layout"),
@@ -53,10 +51,7 @@ impl R8FillWithValue {
             multiview: None,
         });
 
-        Self {
-            pipeline,
-            surface: surfaces,
-        }
+        Self { pipeline }
     }
 
     pub fn fill(&self, ctx: &WgpuCtx, dst: &Texture, value: f32) {
@@ -82,7 +77,7 @@ impl R8FillWithValue {
 
             render_pass.set_pipeline(&self.pipeline);
             render_pass.set_push_constants(ShaderStages::FRAGMENT, 0, bytemuck::bytes_of(&value));
-            self.surface.draw(&mut render_pass);
+            ctx.plane_cache.non_indexed_plane().draw(&mut render_pass);
         }
 
         ctx.queue.submit(Some(encoder.finish()));
