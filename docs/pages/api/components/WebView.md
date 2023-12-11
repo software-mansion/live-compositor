@@ -1,5 +1,6 @@
 ---
 sidebar_position: 8
+hide_table_of_contents: true
 ---
 import Docs from "@site/pages/api/generated/component-WebView.md"
 

@@ -1,7 +1,9 @@
 ---
 sidebar_position: 3
+hide_table_of_contents: true
 ---
 import Docs from "@site/pages/api/generated/component-Rescaler.md"
+import AbsolutePositionDefinition from "@site/pages/common/absolute-position.md"
 
 # Rescaler
 
@@ -9,11 +11,9 @@ import Docs from "@site/pages/api/generated/component-Rescaler.md"
 
 ### Absolute positioning
 
-A component is absolutely positioned if it defines fields like `top`, `left`, `right`, `bottom`, or `rotation`.
-Those fields define the component's position relative to its parent. However, to respect those
-values, the parent component has to be a layout component that supports absolute positioning.
+<AbsolutePositionDefinition />
 
-- `Rescaler` **does not** support absolute positioning for its child components. All children will still be rendered, but all fields like `top`, `left`, `right`, `bottom`, and `rotation` will be ignored.
+- `Rescaler` **does not** support absolute positioning for its child components. A child component will still be rendered, but all fields like `top`, `left`, `right`, `bottom`, and `rotation` will be ignored.
 - `Rescaler` can be absolutely positioned relative to its parent, if the parent component supports it.
 
 ### Static positioning

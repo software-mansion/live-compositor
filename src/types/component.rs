@@ -42,10 +42,6 @@ pub struct View {
     pub height: Option<f32>,
 
     /// Direction defines how static children are positioned inside a View component.
-    ///
-    /// - `"row"` - Children positioned from left to right.
-    ///
-    /// - `"column"` - Children positioned from top to bottom.
     pub direction: Option<ViewDirection>,
 
     /// Distance in pixels between this component's top edge and its parent's top edge.
@@ -71,10 +67,10 @@ pub struct View {
     /// effect if the previous scene already contained a View component with the same id.
     pub transition: Option<Transition>,
 
-    /// (default=`"hidden"`) Controls what happens to content that is too big to fit into an area.
+    /// (**default=`"hidden"`**) Controls what happens to content that is too big to fit into an area.
     pub overflow: Option<Overflow>,
 
-    /// (default=`"#00000000"`) Background color in a `"#RRGGBBAA"` format.
+    /// (**default=`"#00000000"`**) Background color in a `"#RRGGBBAA"` format.
     pub background_color_rgba: Option<RGBAColor>,
 }
 
@@ -90,6 +86,8 @@ pub enum Overflow {
     /// Components that have unknown sizes will be treated as if they had a size 0 when calculating
     /// scaling factor.
     ///
+    /// <br/><br/>
+    ///
     /// :::warning
     ///
     /// This will resize everything inside, even absolutely positioned elements. For example, if
@@ -103,7 +101,9 @@ pub enum Overflow {
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ViewDirection {
+    /// Children positioned from left to right.
     Row,
+    /// Children positioned from top to bottom.
     Column,
 }
 
@@ -115,17 +115,11 @@ pub struct Rescaler {
     /// List of component's children.
     pub child: Box<Component>,
 
-    /// Resize mode:
-    ///
-    /// - `"fit"` - Resize the component proportionally, so one of the dimensions is the same as its parent,
-    /// but it still fits inside it.
-    ///
-    /// - `"fill"` - Resize the component proportionally, so one of the dimensions is the same as its
-    /// parent and the entire area of the parent is covered. Parts of a child that do not fit inside the parent are not rendered.
+    /// (**default=`"fit"`**) Resize mode:
     pub mode: Option<RescaleMode>,
-    /// (default=`"center"`) Horizontal alignment.
+    /// (**default=`"center"`**) Horizontal alignment.
     pub horizontal_align: Option<HorizontalAlign>,
-    /// (default=`"center"`) Vertical alignment.
+    /// (**default=`"center"`**) Vertical alignment.
     pub vertical_align: Option<VerticalAlign>,
 
     /// Width of a component in pixels. Required when using absolute positioning.
@@ -160,7 +154,11 @@ pub struct Rescaler {
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum RescaleMode {
+    /// Resize the component proportionally, so one of the dimensions is the same as its parent,
+    /// but it still fits inside it.
     Fit,
+    /// Resize the component proportionally, so one of the dimensions is the same as its parent
+    /// and the entire area of the parent is covered. Parts of a child that do not fit inside the parent are not rendered.
     Fill,
 }
 
@@ -262,10 +260,10 @@ pub struct Text {
     ///
     /// It's an error to provide `height` if `width` is not defined.
     pub height: Option<f32>,
-    /// (default=`7682`) Maximal `width`. Limits the width of the texture that the text will be rendered on.
+    /// (**default=`7682`**) Maximal `width`. Limits the width of the texture that the text will be rendered on.
     /// Value is ignored if `width` is defined.
     pub max_width: Option<f32>,
-    /// (default=`4320`) Maximal height. Limits the height of the texture that the text will be rendered on.
+    /// (**default=`4320`**) Maximal `height`. Limits the height of the texture that the text will be rendered on.
     /// Value is ignored if height is defined.
     pub max_height: Option<f32>,
 
@@ -273,20 +271,20 @@ pub struct Text {
     pub font_size: f32,
     /// Distance between lines in pixels. Defaults to the value of the `font_size` property.
     pub line_height: Option<f32>,
-    /// (default=`"#FFFFFFFF"`) Font color in `#RRGGBBAA` format.
+    /// (**default=`"#FFFFFFFF"`**) Font color in `#RRGGBBAA` format.
     pub color_rgba: Option<RGBAColor>,
-    /// (default=`"#00000000"`) Background color in `#RRGGBBAA` format.
+    /// (**default=`"#00000000"`**) Background color in `#RRGGBBAA` format.
     pub background_color_rgba: Option<RGBAColor>,
-    /// (default=`"Verdana"`) Font family. Provide [family-name](https://www.w3.org/TR/2018/REC-css-fonts-3-20180920/#family-name-value)
+    /// (**default=`"Verdana"`**) Font family. Provide [family-name](https://www.w3.org/TR/2018/REC-css-fonts-3-20180920/#family-name-value)
     /// for a specific font. "generic-family" values like e.g. "sans-serif" will not work.
     pub font_family: Option<Arc<str>>,
-    /// (default=`"normal"`) Font style. The selected font needs to support the specified style.
+    /// (**default=`"normal"`**) Font style. The selected font needs to support the specified style.
     pub style: Option<TextStyle>,
-    /// (default=`"left"`) Text align.
+    /// (**default=`"left"`**) Text align.
     pub align: Option<HorizontalAlign>,
-    /// (default=`"none"`) Text wrapping options.
+    /// (**default=`"none"`**) Text wrapping options.
     pub wrap: Option<TextWrapMode>,
-    /// (default=`"normal"`) Font weight. The selected font needs to support the specified weight.
+    /// (**default=`"normal"`**) Font weight. The selected font needs to support the specified weight.
     pub weight: Option<TextWeight>,
 }
 
@@ -353,16 +351,16 @@ pub struct Tiles {
     /// Height of a component in pixels.
     pub height: Option<f32>,
 
-    /// (default=`"#00000000"`) Background color in a `"#RRGGBBAA"` format.
+    /// (**default=`"#00000000"`**) Background color in a `"#RRGGBBAA"` format.
     pub background_color_rgba: Option<RGBAColor>,
-    /// (default=`"16:9"`) Aspect ratio of a tile in `"W:H"` format, where W and H are integers.
+    /// (**default=`"16:9"`**) Aspect ratio of a tile in `"W:H"` format, where W and H are integers.
     pub tile_aspect_ratio: Option<AspectRatio>,
-    /// (default=`0`) Margin of each tile in pixels.
+    /// (**default=`0`**) Margin of each tile in pixels.
     pub margin: Option<f32>,
-    /// (default=`0`) Padding on each tile in pixels.
+    /// (**default=`0`**) Padding on each tile in pixels.
     pub padding: Option<f32>,
-    /// (default=`"center"`) Horizontal alignment of tiles.
+    /// (**default=`"center"`**) Horizontal alignment of tiles.
     pub horizontal_align: Option<HorizontalAlign>,
-    /// (default=`"center"`) Vertical alignment of tiles.
+    /// (**default=`"center"`**) Vertical alignment of tiles.
     pub vertical_align: Option<VerticalAlign>,
 }
