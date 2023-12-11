@@ -162,9 +162,9 @@ impl Pipeline {
         if common_parameters.texture_count == 0 {
             render_plane(-1, true);
         } else {
-            for input_id in 0..common_parameters.texture_count {
-                let is_first = input_id == 0;
-                render_plane(input_id as i32, is_first);
+            render_plane(0, false);
+            for input_id in 1..common_parameters.texture_count {
+                render_plane(input_id as i32, true);
             }
         }
 
