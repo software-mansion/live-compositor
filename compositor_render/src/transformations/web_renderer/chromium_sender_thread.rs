@@ -79,6 +79,7 @@ impl ChromiumSenderThread {
                 ChromiumSenderMessage::GetFramePositions { source_count } => {
                     self.get_frame_positions(&state, source_count)
                 }
+                ChromiumSenderMessage::Quit => return,
             };
 
             if let Err(err) = result {
@@ -199,6 +200,14 @@ struct ThreadState {
     browser: cef::Browser,
     shared_memory: HashMap<NodeId, Vec<SharedMemory>>,
     shared_memory_root_path: PathBuf,
+}
+
+impl Drop for ThreadState {
+    fn drop(&mut self) {
+        if let Err(err) = self.browser.close() {
+            error!("Failed to close browser: {err}")
+        }
+    }
 }
 
 impl ThreadState {

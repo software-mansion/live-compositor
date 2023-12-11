@@ -63,6 +63,10 @@ pub struct WebRenderer {
 
 impl WebRenderer {
     pub fn new(ctx: &RegisterCtx, spec: WebRendererSpec) -> Result<Self, CreateWebRendererError> {
+        if ctx.chromium.cef_context().is_none() {
+            return Err(CreateWebRendererError::WebRendererDisabled);
+        }
+
         info!("Starting web renderer for {}", &spec.url);
 
         let frame_data = Arc::new(Mutex::new(Bytes::new()));
@@ -199,6 +203,9 @@ impl WebRenderer {
 pub enum CreateWebRendererError {
     #[error(transparent)]
     CreateShaderFailed(#[from] CreateShaderError),
+
+    #[error("Web rendering is disabled")]
+    WebRendererDisabled,
 }
 
 #[derive(Debug, thiserror::Error)]

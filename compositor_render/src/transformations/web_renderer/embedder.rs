@@ -9,6 +9,8 @@ use log::error;
 use nalgebra_glm::Mat4;
 use std::sync::Arc;
 
+use super::chromium_sender::ChromiumSenderError;
+
 #[derive(Debug)]
 pub(super) struct EmbeddingHelper {
     wgpu_ctx: Arc<WgpuCtx>,
@@ -41,7 +43,7 @@ impl EmbeddingHelper {
             }
             WebEmbeddingMethod::NativeEmbeddingOverContent
             | WebEmbeddingMethod::NativeEmbeddingUnderContent => {
-                self.chromium_sender.request_frame_positions(sources)
+                self.chromium_sender.request_frame_positions(sources)?
             }
         }
 
@@ -55,7 +57,8 @@ impl EmbeddingHelper {
         sources: &[(&NodeId, &NodeTexture)],
         buffers: &[Arc<wgpu::Buffer>],
     ) -> Result<(), EmbedError> {
-        self.chromium_sender.ensure_shared_memory(*node_id, sources);
+        self.chromium_sender
+            .ensure_shared_memory(*node_id, sources)?;
         self.copy_sources_to_buffers(sources, buffers)?;
 
         let mut pending_downloads = Vec::new();
@@ -78,8 +81,9 @@ impl EmbeddingHelper {
             pending()?;
         }
 
-        self.chromium_sender.embed_sources(*node_id, sources);
-        Ok(())
+        self.chromium_sender
+            .embed_sources(*node_id, sources)
+            .map_err(EmbedError::ChromiumSenderError)
     }
 
     fn copy_sources_to_buffers(
@@ -125,7 +129,7 @@ impl EmbeddingHelper {
             r.recv().unwrap()?;
 
             self.chromium_sender
-                .update_shared_memory(node_id, source_idx, source.clone(), size);
+                .update_shared_memory(node_id, source_idx, source.clone(), size)?;
             source.unmap();
 
             Ok(())
@@ -171,4 +175,7 @@ impl TextureInfo {
 pub enum EmbedError {
     #[error("Failed to download source frame")]
     DownloadFrame(#[from] wgpu::BufferAsyncError),
+
+    #[error(transparent)]
+    ChromiumSenderError(#[from] ChromiumSenderError),
 }

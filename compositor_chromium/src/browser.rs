@@ -1,3 +1,5 @@
+use std::os::raw::c_int;
+
 use crate::{
     cef_string::CefString,
     frame::Frame,
@@ -30,6 +32,19 @@ impl Browser {
             let get_main_frame = (*browser).get_main_frame.unwrap();
             Ok(Frame::new(get_main_frame(browser)))
         }
+    }
+
+    pub fn close(&mut self) -> Result<(), BrowserError> {
+        unsafe {
+            let browser = self.inner.get()?;
+            let get_host = (*browser).get_host.unwrap();
+            let host = get_host(browser);
+            let close_browser = (*host).close_browser.unwrap();
+            // `true` means that the close request won't be cancelable
+            close_browser(host, true as c_int);
+        }
+
+        Ok(())
     }
 }
 
