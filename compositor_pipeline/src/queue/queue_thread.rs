@@ -5,8 +5,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use compositor_common::{scene::InputId, Framerate};
-use compositor_render::FrameSet;
+use compositor_render::{FrameSet, Framerate, InputId};
 use crossbeam_channel::{tick, Sender};
 
 use super::Queue;

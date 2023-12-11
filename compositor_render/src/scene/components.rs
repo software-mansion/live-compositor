@@ -1,17 +1,9 @@
 use std::{fmt::Display, sync::Arc, time::Duration};
 
-use compositor_common::{
-    renderer_spec::RendererId,
-    scene::{shader::ShaderParam, InputId},
-    util::{
-        align::{HorizontalAlign, VerticalAlign},
-        colors::RGBAColor,
-    },
-};
+use crate::{InputId, RendererId};
 
-use super::Component;
+use super::{AbsolutePosition, Component, HorizontalAlign, RGBAColor, Size, VerticalAlign};
 
-mod convert;
 mod interpolation;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -38,6 +30,21 @@ pub struct ShaderComponent {
     pub shader_param: Option<ShaderParam>,
 
     pub size: Size,
+}
+
+#[derive(Debug, Clone)]
+pub enum ShaderParam {
+    F32(f32),
+    U32(u32),
+    I32(i32),
+    List(Vec<ShaderParam>),
+    Struct(Vec<ShaderParamStructField>),
+}
+
+#[derive(Debug, Clone)]
+pub struct ShaderParamStructField {
+    pub field_name: String,
+    pub value: ShaderParam,
 }
 
 #[derive(Debug, Clone)]
@@ -154,37 +161,10 @@ pub enum Position {
     Absolute(AbsolutePosition),
 }
 
-#[derive(Debug, Clone, Copy)]
-pub struct Size {
-    pub width: f32,
-    pub height: f32,
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct AbsolutePosition {
-    pub width: f32,
-    pub height: f32,
-    pub position_horizontal: HorizontalPosition,
-    pub position_vertical: VerticalPosition,
-    pub rotation_degrees: f32,
-}
-
 #[derive(Debug, Clone)]
 pub enum ViewChildrenDirection {
     Row,
     Column,
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum VerticalPosition {
-    TopOffset(f32),
-    BottomOffset(f32),
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum HorizontalPosition {
-    LeftOffset(f32),
-    RightOffset(f32),
 }
 
 #[derive(Debug, Clone)]

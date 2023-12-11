@@ -1,6 +1,4 @@
-use compositor_common::scene::Resolution;
-
-use crate::wgpu::WgpuCtx;
+use crate::{wgpu::WgpuCtx, Resolution};
 
 use super::base::Texture;
 

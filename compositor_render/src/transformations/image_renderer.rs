@@ -7,10 +7,6 @@ use std::{
 
 use bytes::{Bytes, BytesMut};
 
-use compositor_common::{
-    renderer_spec::{ImageSpec, ImageSrc, ImageType},
-    scene::Resolution,
-};
 use image::{codecs::gif::GifDecoder, AnimationDecoder, ImageFormat};
 use resvg::{
     tiny_skia,
@@ -23,7 +19,29 @@ use crate::{
         texture::{NodeTexture, RGBATexture},
         WgpuCtx,
     },
+    RendererId, Resolution,
 };
+
+#[derive(Debug)]
+pub struct ImageSpec {
+    pub src: ImageSrc,
+    pub image_id: RendererId,
+    pub image_type: ImageType,
+}
+
+#[derive(Debug)]
+pub enum ImageSrc {
+    Url { url: String },
+    LocalPath { path: String },
+}
+
+#[derive(Debug)]
+pub enum ImageType {
+    Png,
+    Jpeg,
+    Svg { resolution: Option<Resolution> },
+    Gif,
+}
 
 #[derive(Debug, Clone)]
 pub enum Image {

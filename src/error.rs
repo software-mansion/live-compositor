@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
-use compositor_common::error::ErrorStack;
 use compositor_pipeline::error::{ErrorType, PipelineErrorInfo};
+use compositor_render::error::ErrorStack;
 use tiny_http::StatusCode;
 
 use crate::types::TypeError;

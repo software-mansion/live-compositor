@@ -1,6 +1,5 @@
 use anyhow::Result;
 use compositor_chromium::cef::bundle_for_development;
-use compositor_common::scene::Resolution;
 use log::{error, info};
 use serde_json::json;
 use std::{
@@ -9,7 +8,7 @@ use std::{
     thread,
     time::Duration,
 };
-use video_compositor::http;
+use video_compositor::{http, types::Resolution};
 
 use crate::common::write_example_sdp_file;
 

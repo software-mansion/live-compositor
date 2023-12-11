@@ -97,7 +97,7 @@ fn register_input(
                     id.clone().into(),
                     rtp_receiver::Options {
                         port,
-                        input_id: id.clone().into(),
+                        input_id: id.clone(),
                     },
                 );
 
@@ -136,10 +136,7 @@ fn register_input(
 
             let result = api.pipeline.register_input(
                 id.clone().into(),
-                rtp_receiver::Options {
-                    port,
-                    input_id: id.into(),
-                },
+                rtp_receiver::Options { port, input_id: id },
             );
 
             check_port_not_available(&result, port)?;

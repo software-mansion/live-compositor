@@ -3,11 +3,6 @@ use std::{
     time::Duration,
 };
 
-use compositor_common::{
-    scene::{InputId, OutputId},
-    util::colors::RGBColor,
-    Frame,
-};
 use log::error;
 
 use crate::{
@@ -16,7 +11,8 @@ use crate::{
         render_graph::{InternalSceneError, RenderGraph, RenderNodesSet},
         RenderCtx,
     },
-    FrameSet,
+    scene::RGBColor,
+    Frame, FrameSet, InputId, OutputId,
 };
 
 use super::render_graph::NodeId;

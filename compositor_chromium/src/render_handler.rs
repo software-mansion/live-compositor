@@ -1,11 +1,14 @@
 use std::os::raw::{c_int, c_void};
 
-use compositor_common::scene::Resolution;
-
 use crate::{
     browser::Browser,
     cef_ref::{CefRefData, CefStruct},
 };
+
+pub struct Resolution {
+    pub width: usize,
+    pub height: usize,
+}
 
 /// Handles browser render callbacks
 pub trait RenderHandler {

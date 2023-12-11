@@ -1,6 +1,7 @@
-use compositor_common::util::colors::RGBAColor;
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
+
+use crate::scene::RGBAColor;
 
 pub(crate) fn rgba_to_wgpu_color(rgba_color: &RGBAColor) -> wgpu::Color {
     wgpu::Color {

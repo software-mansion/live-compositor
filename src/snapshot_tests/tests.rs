@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use compositor_common::scene::Resolution;
+use compositor_render::Resolution;
 
 use super::test_case::{Outputs, TestCase, TestInput};
 

@@ -1,11 +1,10 @@
 use std::time::Duration;
 
-use compositor_common::util::{align, colors, coord, degree};
 use compositor_render::scene::{self};
 
 use super::util::*;
 
-impl From<Resolution> for compositor_common::scene::Resolution {
+impl From<Resolution> for compositor_render::Resolution {
     fn from(resolution: Resolution) -> Self {
         Self {
             width: resolution.width,
@@ -23,8 +22,8 @@ impl From<Resolution> for scene::Size {
     }
 }
 
-impl From<compositor_common::scene::Resolution> for Resolution {
-    fn from(resolution: compositor_common::scene::Resolution) -> Self {
+impl From<compositor_render::Resolution> for Resolution {
+    fn from(resolution: compositor_render::Resolution) -> Self {
         Self {
             width: resolution.width,
             height: resolution.height,
@@ -40,63 +39,63 @@ impl From<Transition> for scene::Transition {
     }
 }
 
-impl From<HorizontalAlign> for align::HorizontalAlign {
+impl From<HorizontalAlign> for scene::HorizontalAlign {
     fn from(alignment: HorizontalAlign) -> Self {
         match alignment {
-            HorizontalAlign::Left => align::HorizontalAlign::Left,
-            HorizontalAlign::Right => align::HorizontalAlign::Right,
-            HorizontalAlign::Justified => align::HorizontalAlign::Justified,
-            HorizontalAlign::Center => align::HorizontalAlign::Center,
+            HorizontalAlign::Left => scene::HorizontalAlign::Left,
+            HorizontalAlign::Right => scene::HorizontalAlign::Right,
+            HorizontalAlign::Justified => scene::HorizontalAlign::Justified,
+            HorizontalAlign::Center => scene::HorizontalAlign::Center,
         }
     }
 }
 
-impl From<align::HorizontalAlign> for HorizontalAlign {
-    fn from(alignment: align::HorizontalAlign) -> Self {
+impl From<scene::HorizontalAlign> for HorizontalAlign {
+    fn from(alignment: scene::HorizontalAlign) -> Self {
         match alignment {
-            align::HorizontalAlign::Left => HorizontalAlign::Left,
-            align::HorizontalAlign::Right => HorizontalAlign::Right,
-            align::HorizontalAlign::Justified => HorizontalAlign::Justified,
-            align::HorizontalAlign::Center => HorizontalAlign::Center,
+            scene::HorizontalAlign::Left => HorizontalAlign::Left,
+            scene::HorizontalAlign::Right => HorizontalAlign::Right,
+            scene::HorizontalAlign::Justified => HorizontalAlign::Justified,
+            scene::HorizontalAlign::Center => HorizontalAlign::Center,
         }
     }
 }
 
-impl From<VerticalAlign> for align::VerticalAlign {
+impl From<VerticalAlign> for scene::VerticalAlign {
     fn from(alignment: VerticalAlign) -> Self {
         match alignment {
-            VerticalAlign::Top => align::VerticalAlign::Top,
-            VerticalAlign::Center => align::VerticalAlign::Center,
-            VerticalAlign::Bottom => align::VerticalAlign::Bottom,
-            VerticalAlign::Justified => align::VerticalAlign::Justified,
+            VerticalAlign::Top => scene::VerticalAlign::Top,
+            VerticalAlign::Center => scene::VerticalAlign::Center,
+            VerticalAlign::Bottom => scene::VerticalAlign::Bottom,
+            VerticalAlign::Justified => scene::VerticalAlign::Justified,
         }
     }
 }
 
-impl From<align::VerticalAlign> for VerticalAlign {
-    fn from(alignment: align::VerticalAlign) -> Self {
+impl From<scene::VerticalAlign> for VerticalAlign {
+    fn from(alignment: scene::VerticalAlign) -> Self {
         match alignment {
-            align::VerticalAlign::Top => VerticalAlign::Top,
-            align::VerticalAlign::Center => VerticalAlign::Center,
-            align::VerticalAlign::Bottom => VerticalAlign::Bottom,
-            align::VerticalAlign::Justified => VerticalAlign::Justified,
+            scene::VerticalAlign::Top => VerticalAlign::Top,
+            scene::VerticalAlign::Center => VerticalAlign::Center,
+            scene::VerticalAlign::Bottom => VerticalAlign::Bottom,
+            scene::VerticalAlign::Justified => VerticalAlign::Justified,
         }
     }
 }
 
-impl From<Degree> for degree::Degree {
+impl From<Degree> for scene::Degree {
     fn from(value: Degree) -> Self {
         Self(value.0)
     }
 }
 
-impl From<degree::Degree> for Degree {
-    fn from(degree: degree::Degree) -> Self {
+impl From<scene::Degree> for Degree {
+    fn from(degree: scene::Degree) -> Self {
         Self(degree.0)
     }
 }
 
-impl TryFrom<Framerate> for compositor_common::Framerate {
+impl TryFrom<Framerate> for compositor_render::Framerate {
     type Error = TypeError;
 
     fn try_from(framerate: Framerate) -> Result<Self, Self::Error> {
@@ -112,9 +111,9 @@ impl TryFrom<Framerate> for compositor_common::Framerate {
                 let den = den_str
                     .parse::<u32>()
                     .or(Err(TypeError::new(ERROR_MESSAGE)))?;
-                Ok(compositor_common::Framerate { num, den })
+                Ok(compositor_render::Framerate { num, den })
             }
-            Framerate::U32(num) => Ok(compositor_common::Framerate { num, den: 1 }),
+            Framerate::U32(num) => Ok(compositor_render::Framerate { num, den: 1 }),
         }
     }
 }
@@ -137,43 +136,7 @@ impl TryFrom<AspectRatio> for (u32, u32) {
     }
 }
 
-impl TryFrom<Coord> for coord::Coord {
-    type Error = TypeError;
-
-    fn try_from(value: Coord) -> Result<Self, Self::Error> {
-        const PARSE_ERROR_MESSAGE: &str = "Invalid format. Coord definition can only be specified as number (pixels count), number with `px` suffix (pixels count) or number with `%` suffix (percents count)";
-        fn parse_i32(str: &str) -> Result<i32, TypeError> {
-            str.parse::<i32>()
-                .or(Err(TypeError::new(PARSE_ERROR_MESSAGE)))
-        }
-        match value {
-            Coord::Number(value) => Ok(coord::Coord::Pixel(value)),
-            Coord::String(value) => {
-                if let Some(percents) = value.strip_suffix('%') {
-                    // TODO: support f64
-                    return Ok(coord::Coord::Percent(parse_i32(percents)?));
-                }
-
-                if let Some(pixels) = value.strip_suffix("px") {
-                    return Ok(coord::Coord::Pixel(parse_i32(pixels)?));
-                }
-
-                Ok(coord::Coord::Pixel(parse_i32(&value)?))
-            }
-        }
-    }
-}
-
-impl From<coord::Coord> for Coord {
-    fn from(value: coord::Coord) -> Self {
-        match value {
-            coord::Coord::Pixel(value) => Self::String(format!("{value}px")),
-            coord::Coord::Percent(value) => Self::String(format!("{value}%")),
-        }
-    }
-}
-
-impl TryFrom<RGBColor> for colors::RGBColor {
+impl TryFrom<RGBColor> for scene::RGBColor {
     type Error = TypeError;
 
     fn try_from(value: RGBColor) -> std::result::Result<Self, Self::Error> {
@@ -206,13 +169,13 @@ impl TryFrom<RGBColor> for colors::RGBColor {
     }
 }
 
-impl From<colors::RGBColor> for RGBColor {
-    fn from(value: colors::RGBColor) -> Self {
+impl From<scene::RGBColor> for RGBColor {
+    fn from(value: scene::RGBColor) -> Self {
         RGBColor(format!("#{:02X}{:02X}{:02X}", value.0, value.1, value.2))
     }
 }
 
-impl TryFrom<RGBAColor> for colors::RGBAColor {
+impl TryFrom<RGBAColor> for scene::RGBAColor {
     type Error = TypeError;
 
     fn try_from(value: RGBAColor) -> std::result::Result<Self, Self::Error> {
@@ -246,8 +209,8 @@ impl TryFrom<RGBAColor> for colors::RGBAColor {
     }
 }
 
-impl From<colors::RGBAColor> for RGBAColor {
-    fn from(value: colors::RGBAColor) -> Self {
+impl From<scene::RGBAColor> for RGBAColor {
+    fn from(value: scene::RGBAColor) -> Self {
         Self(format!(
             "#{:02X}{:02X}{:02X}{:02X}",
             value.0, value.1, value.2, value.3

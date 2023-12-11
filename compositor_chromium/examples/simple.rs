@@ -1,7 +1,6 @@
 use std::{fs, path::Path, process::Stdio};
 
-use compositor_chromium::cef;
-use compositor_common::scene::Resolution;
+use compositor_chromium::cef::{self, Resolution};
 
 fn bgra_to_png(
     input_file: impl AsRef<Path>,

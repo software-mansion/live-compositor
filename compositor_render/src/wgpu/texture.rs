@@ -1,10 +1,11 @@
 use std::{io::Write, mem};
 
 use bytes::{BufMut, Bytes, BytesMut};
-use compositor_common::{scene::Resolution, Frame};
 use crossbeam_channel::bounded;
 use log::error;
 use wgpu::{Buffer, BufferAsyncError, MapMode};
+
+use crate::{Frame, Resolution};
 
 use self::{
     utils::{pad_to_256, texture_size_to_resolution},

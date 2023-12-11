@@ -3,13 +3,13 @@ use crate::transformations::web_renderer::chromium_sender::ChromiumSender;
 use crate::wgpu::texture::NodeTexture;
 use crate::wgpu::WgpuCtx;
 use bytes::{Bytes, BytesMut};
-use compositor_common::renderer_spec::WebEmbeddingMethod;
 use crossbeam_channel::bounded;
 use log::error;
 use nalgebra_glm::Mat4;
 use std::sync::Arc;
 
 use super::chromium_sender::ChromiumSenderError;
+use super::WebEmbeddingMethod;
 
 #[derive(Debug)]
 pub(super) struct EmbeddingHelper {

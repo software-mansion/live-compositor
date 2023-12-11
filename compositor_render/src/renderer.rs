@@ -1,17 +1,13 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use compositor_common::{
-    scene::{InputId, OutputId},
-    Framerate,
-};
-
 use crate::{
     error::{InitRendererEngineError, RenderSceneError, UpdateSceneError},
     transformations::{
         text_renderer::TextRendererCtx, web_renderer::chromium_context::ChromiumContext,
     },
-    FrameSet, WebRendererOptions,
+    types::Framerate,
+    FrameSet, InputId, OutputId, WebRendererOptions,
 };
 use crate::{
     scene::{self, SceneState},

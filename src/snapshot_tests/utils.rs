@@ -1,10 +1,8 @@
 use std::{collections::HashSet, fs, path::PathBuf, time::Duration};
 
-use compositor_common::{
-    frame::YuvData, renderer_spec::RendererSpec, scene::OutputId, Frame, Framerate,
-};
 use compositor_render::{
-    renderer::RendererOptions, scene::OutputScene, Renderer, WebRendererOptions,
+    renderer::RendererOptions, scene::OutputScene, Frame, Framerate, OutputId, Renderer,
+    RendererSpec, WebRendererOptions, YuvData,
 };
 
 pub const SNAPSHOTS_DIR_NAME: &str = "snapshot_tests/snapshots/render_snapshots";

@@ -1,13 +1,12 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use compositor_common::renderer_spec::FallbackStrategy;
-
 use crate::scene::{self, ShaderComponentParams};
 use crate::transformations::image_renderer::Image;
 use crate::transformations::layout::LayoutNode;
 use crate::transformations::shader::node::ShaderNode;
 use crate::transformations::shader::Shader;
+use crate::FallbackStrategy;
 
 use crate::transformations::text_renderer::TextRenderParams;
 use crate::transformations::web_renderer::WebRenderer;

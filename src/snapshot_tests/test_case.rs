@@ -3,15 +3,11 @@ use std::{collections::HashSet, fmt::Display, path::PathBuf, sync::Arc, time::Du
 use super::utils::{create_renderer, frame_to_rgba, snaphot_save_path, snapshots_diff};
 
 use anyhow::Result;
-use compositor_common::{
-    frame::YuvData,
-    renderer_spec::RendererSpec,
-    scene::{InputId, OutputId, Resolution},
-    util::colors::RGBColor,
-    Frame,
-};
 use compositor_pipeline::pipeline;
-use compositor_render::{scene::OutputScene, FrameSet, Renderer};
+use compositor_render::{
+    scene::{OutputScene, RGBColor},
+    Frame, FrameSet, InputId, OutputId, Renderer, RendererSpec, Resolution, YuvData,
+};
 use image::ImageBuffer;
 use video_compositor::types::{self, RegisterRequest};
 

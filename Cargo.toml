@@ -7,7 +7,6 @@ edition = "2021"
 
 [workspace]
 members = [
-    "compositor_common",
     "compositor_render",
     "compositor_pipeline",
     "compositor_chromium",
@@ -31,7 +30,6 @@ image = { version = "0.24.7", features = ["jpeg", "png"] }
 rtp = "0.9.0"
 
 [dependencies]
-compositor_common = { path = "compositor_common" }
 compositor_render = { path = "compositor_render" }
 compositor_pipeline = { path = "compositor_pipeline" }
 compositor_chromium = { path = "compositor_chromium" }

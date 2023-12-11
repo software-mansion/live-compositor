@@ -4,10 +4,6 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use compositor_common::{
-    scene::Resolution,
-    util::{align::HorizontalAlign, colors::RGBAColor},
-};
 use glyphon::{
     AttrsOwned, Buffer, Color, FontSystem, Metrics, Shaping, SwashCache, TextArea, TextAtlas,
     TextBounds,
@@ -19,9 +15,12 @@ use wgpu::{
 
 use crate::{
     renderer::RenderCtx,
-    scene::{TextComponent, TextDimensions, TextStyle, TextWeight, TextWrap},
+    scene::{
+        HorizontalAlign, RGBAColor, TextComponent, TextDimensions, TextStyle, TextWeight, TextWrap,
+    },
     utils::rgba_to_wgpu_color,
     wgpu::texture::NodeTexture,
+    Resolution,
 };
 
 #[derive(Debug, Clone)]

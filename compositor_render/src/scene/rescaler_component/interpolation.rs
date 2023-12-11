@@ -1,4 +1,4 @@
-use compositor_common::util::{ContinuousValue, InterpolationState};
+use crate::scene::interpolation::{ContinuousValue, InterpolationState};
 
 use super::RescalerComponentParam;
 

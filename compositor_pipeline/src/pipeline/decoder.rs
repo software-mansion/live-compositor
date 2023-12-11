@@ -3,12 +3,7 @@ use std::{sync::Arc, time::Duration};
 use crate::{error::InputInitError, queue::Queue};
 
 use super::PipelineInput;
-use compositor_common::{
-    error::ErrorStack,
-    frame::YuvData,
-    scene::{InputId, Resolution},
-    Frame,
-};
+use compositor_render::{error::ErrorStack, Frame, InputId, Resolution, YuvData};
 use ffmpeg_next::{
     codec::{Context, Id},
     ffi::AV_CODEC_FLAG2_CHUNKS,

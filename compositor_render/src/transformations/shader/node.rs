@@ -1,14 +1,12 @@
 use std::{sync::Arc, time::Duration};
 
-use compositor_common::{
-    renderer_spec::FallbackStrategy,
-    scene::{shader::ShaderParam, Resolution},
-};
 use wgpu::util::DeviceExt;
 
 use crate::{
     renderer::{render_graph::NodeId, RenderCtx},
+    scene::ShaderParam,
     wgpu::{texture::NodeTexture, WgpuCtx},
+    FallbackStrategy, Resolution,
 };
 
 use super::Shader;

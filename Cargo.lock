@@ -542,21 +542,10 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "chromium_sys",
- "compositor_common",
  "fs_extra",
  "log",
  "thiserror",
  "widestring",
-]
-
-[[package]]
-name = "compositor_common"
-version = "0.1.0"
-dependencies = [
- "bytes",
- "glyphon",
- "log",
- "thiserror",
 ]
 
 [[package]]
@@ -566,7 +555,6 @@ dependencies = [
  "anyhow",
  "bytes",
  "compositor_chromium",
- "compositor_common",
  "compositor_render",
  "crossbeam-channel",
  "ffmpeg-next",
@@ -582,7 +570,6 @@ dependencies = [
  "bytemuck",
  "bytes",
  "compositor_chromium",
- "compositor_common",
  "crossbeam-channel",
  "env_logger",
  "glyphon",
@@ -3127,7 +3114,6 @@ dependencies = [
  "anyhow",
  "bytes",
  "compositor_chromium",
- "compositor_common",
  "compositor_pipeline",
  "compositor_render",
  "crossbeam-channel",

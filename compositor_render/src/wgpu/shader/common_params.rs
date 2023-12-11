@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use compositor_common::scene::Resolution;
+use crate::Resolution;
 
 #[repr(C)]
 #[derive(Debug, bytemuck::Pod, bytemuck::Zeroable, Clone, Copy)]

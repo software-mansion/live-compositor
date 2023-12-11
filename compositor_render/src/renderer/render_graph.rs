@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 use std::fmt::Display;
 
-use compositor_common::scene::{InputId, OutputId};
 use log::error;
 
 use crate::scene::{self, OutputNode};
 use crate::wgpu::texture::{InputTexture, OutputTexture};
 use crate::{error::UpdateSceneError, wgpu::WgpuErrorScope};
+use crate::{InputId, OutputId};
 
 use super::NodeRenderPass;
 use super::{node::RenderNode, RenderCtx};

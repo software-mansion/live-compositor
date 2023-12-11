@@ -1,8 +1,9 @@
 use std::{collections::HashMap, time::Duration};
 
-use compositor_common::scene::{InputId, OutputId, Resolution};
-
-use crate::{renderer::renderers::Renderers, transformations::text_renderer::TextRendererCtx};
+use crate::{
+    renderer::renderers::Renderers, transformations::text_renderer::TextRendererCtx, InputId,
+    OutputId, Resolution,
+};
 
 use super::{
     image_component::StatefulImageComponent,

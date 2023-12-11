@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
-use compositor_common::renderer_spec::RendererId;
+use crate::RendererId;
 
 #[derive(Debug, thiserror::Error)]
 pub enum RegisterError {

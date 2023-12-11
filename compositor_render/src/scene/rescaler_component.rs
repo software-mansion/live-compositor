@@ -1,16 +1,14 @@
 use std::{ops::Add, time::Duration};
 
-use compositor_common::util::{
-    align::{HorizontalAlign, VerticalAlign},
-    ContinuousValue, InterpolationState,
-};
-
 use crate::transformations::layout::NestedLayout;
 
 use super::{
-    components::RescalerComponent, layout::StatefulLayoutComponent, scene_state::BuildStateTreeCtx,
-    Component, ComponentId, IntermediateNode, Position, RescaleMode, SceneError, Size,
-    StatefulComponent, Transition,
+    components::RescalerComponent,
+    interpolation::{ContinuousValue, InterpolationState},
+    layout::StatefulLayoutComponent,
+    scene_state::BuildStateTreeCtx,
+    Component, ComponentId, HorizontalAlign, IntermediateNode, Position, RescaleMode, SceneError,
+    Size, StatefulComponent, Transition, VerticalAlign,
 };
 
 mod interpolation;

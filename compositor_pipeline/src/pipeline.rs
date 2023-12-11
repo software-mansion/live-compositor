@@ -4,17 +4,15 @@ use std::sync::{Mutex, MutexGuard};
 use std::thread;
 use std::time::Duration;
 
-use compositor_common::error::ErrorStack;
-use compositor_common::renderer_spec::{RendererId, RendererSpec};
-use compositor_common::scene::{InputId, OutputId, Resolution};
-use compositor_common::Framerate;
 use compositor_render::error::{
-    InitRendererEngineError, RegisterRendererError, UnregisterRendererError,
+    ErrorStack, InitRendererEngineError, RegisterRendererError, UnregisterRendererError,
 };
 use compositor_render::renderer::RendererOptions;
 use compositor_render::scene::Component;
 use compositor_render::{error::UpdateSceneError, Renderer};
-use compositor_render::{scene, EventLoop};
+use compositor_render::{
+    scene, EventLoop, Framerate, InputId, OutputId, RendererId, RendererSpec, Resolution,
+};
 use compositor_render::{RegistryType, WebRendererOptions};
 use crossbeam_channel::unbounded;
 use ffmpeg_next::Packet;

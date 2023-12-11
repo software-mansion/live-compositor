@@ -38,13 +38,6 @@ pub enum VerticalAlign {
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 pub struct AspectRatio(pub(super) String);
 
-#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema, PartialEq)]
-#[serde(untagged)]
-pub enum Coord {
-    Number(i32),
-    String(String),
-}
-
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 pub struct Degree(pub f64);
 

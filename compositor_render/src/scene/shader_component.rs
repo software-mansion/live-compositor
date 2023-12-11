@@ -1,12 +1,10 @@
 use std::sync::Arc;
 
-use compositor_common::scene::shader::ShaderParam;
-
 use crate::transformations::shader::Shader;
 
 use super::{
     scene_state::BuildStateTreeCtx, Component, ComponentId, IntermediateNode, SceneError,
-    ShaderComponent, Size, StatefulComponent,
+    ShaderComponent, ShaderParam, Size, StatefulComponent,
 };
 
 #[derive(Debug, Clone)]

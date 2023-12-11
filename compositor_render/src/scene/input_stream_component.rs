@@ -1,4 +1,4 @@
-use compositor_common::scene::Resolution;
+use crate::Resolution;
 
 use super::{
     scene_state::BuildStateTreeCtx, ComponentId, InputStreamComponent, IntermediateNode,

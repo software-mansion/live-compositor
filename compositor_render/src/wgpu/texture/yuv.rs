@@ -1,10 +1,9 @@
 use std::marker::PhantomData;
 
 use bytes::Bytes;
-use compositor_common::{frame::YuvData, scene::Resolution};
 use wgpu::Buffer;
 
-use crate::wgpu::WgpuCtx;
+use crate::{wgpu::WgpuCtx, Resolution, YuvData};
 
 use super::base::Texture;
 
