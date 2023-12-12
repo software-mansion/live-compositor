@@ -1,8 +1,8 @@
 use std::{collections::HashSet, fs, path::PathBuf, time::Duration};
 
 use compositor_render::{
-    renderer::RendererOptions, scene::OutputScene, Frame, Framerate, OutputId, Renderer,
-    RendererSpec, WebRendererOptions, YuvData,
+    scene::OutputScene, web_renderer, Frame, Framerate, OutputId, Renderer, RendererOptions,
+    RendererSpec, YuvData,
 };
 
 pub const SNAPSHOTS_DIR_NAME: &str = "snapshot_tests/snapshots/render_snapshots";
@@ -57,7 +57,7 @@ pub(super) fn create_renderer(
     scene_updates: Vec<Vec<OutputScene>>,
 ) -> Renderer {
     let (mut renderer, _event_loop) = Renderer::new(RendererOptions {
-        web_renderer: WebRendererOptions {
+        web_renderer: web_renderer::WebRendererInitOptions {
             init: false,
             disable_gpu: false,
         },

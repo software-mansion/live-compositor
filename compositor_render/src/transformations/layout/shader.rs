@@ -3,7 +3,7 @@ use std::sync::Arc;
 use wgpu::ShaderSource;
 
 use crate::{
-    renderer::render_graph::NodeId,
+    state::render_graph::NodeId,
     wgpu::{
         common_pipeline::Sampler,
         shader::{pipeline, CreateShaderError},

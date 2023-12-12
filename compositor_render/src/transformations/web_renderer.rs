@@ -4,8 +4,8 @@ use std::env;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
-use crate::renderer::render_graph::NodeId;
-use crate::renderer::{RegisterCtx, RenderCtx};
+use crate::state::render_graph::NodeId;
+use crate::state::{RegisterCtx, RenderCtx};
 use crate::wgpu::shader::shader_params::ParamsBuffer;
 use crate::wgpu::shader::{CreateShaderError, WgpuShader};
 use crate::wgpu::texture::{BGRATexture, NodeTexture, NodeTextureState, RGBATexture, Texture};
@@ -31,12 +31,12 @@ pub const GET_FRAME_POSITIONS_MESSAGE: &str = "GET_FRAME_POSITIONS";
 pub(super) type FrameData = Arc<Mutex<Bytes>>;
 pub(super) type SourceTransforms = Arc<Mutex<Vec<Mat4>>>;
 
-pub struct WebRendererOptions {
+pub struct WebRendererInitOptions {
     pub init: bool,
     pub disable_gpu: bool,
 }
 
-impl Default for WebRendererOptions {
+impl Default for WebRendererInitOptions {
     fn default() -> Self {
         Self {
             init: true,

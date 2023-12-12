@@ -4,7 +4,7 @@ use log::error;
 
 use crate::{
     error::ErrorStack,
-    renderer::{render_graph::NodeId, RenderCtx},
+    state::{render_graph::NodeId, RenderCtx},
     wgpu::{
         texture::{utils::pad_to_256, NodeTexture, RGBATexture},
         WgpuCtx,

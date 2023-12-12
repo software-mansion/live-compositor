@@ -1,7 +1,7 @@
 use std::{collections::HashMap, time::Duration};
 
 use crate::{
-    renderer::renderers::Renderers, transformations::text_renderer::TextRendererCtx, InputId,
+    state::renderers::Renderers, transformations::text_renderer::TextRendererCtx, InputId,
     OutputId, Resolution,
 };
 

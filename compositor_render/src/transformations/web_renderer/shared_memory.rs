@@ -1,10 +1,11 @@
-use crate::renderer::render_graph::NodeId;
-use crate::UNEMBED_SOURCE_FRAMES_MESSAGE;
+use crate::state::render_graph::NodeId;
 use compositor_chromium::cef;
 use log::error;
 use shared_memory::{Shmem, ShmemConf, ShmemError};
 use std::path::{Path, PathBuf};
 use std::{fs, io};
+
+use super::UNEMBED_SOURCE_FRAMES_MESSAGE;
 
 pub struct SharedMemory {
     inner: Option<Shmem>,

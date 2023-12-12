@@ -1,6 +1,6 @@
 use std::{sync::Arc, time::Duration};
 
-use crate::{renderer::render_graph::NodeId, scene::ShaderParam};
+use crate::{scene::ShaderParam, state::render_graph::NodeId};
 
 use self::{common_params::CommonShaderParameters, pipeline::Pipeline};
 

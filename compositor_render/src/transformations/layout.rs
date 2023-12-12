@@ -1,8 +1,8 @@
 use std::{sync::Arc, time::Duration};
 
 use crate::{
-    renderer::{render_graph::NodeId, RenderCtx},
     scene::{RGBAColor, Size},
+    state::{render_graph::NodeId, RenderCtx},
     wgpu::texture::NodeTexture,
     Resolution,
 };

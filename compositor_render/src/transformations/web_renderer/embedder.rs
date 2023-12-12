@@ -1,4 +1,4 @@
-use crate::renderer::{render_graph::NodeId, RegisterCtx};
+use crate::state::{render_graph::NodeId, RegisterCtx};
 use crate::transformations::web_renderer::chromium_sender::ChromiumSender;
 use crate::wgpu::texture::NodeTexture;
 use crate::wgpu::WgpuCtx;

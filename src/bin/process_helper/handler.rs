@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 
 use anyhow::{anyhow, Result};
 use compositor_chromium::cef;
-use compositor_render::{
+use compositor_render::web_renderer::{
     EMBED_SOURCE_FRAMES_MESSAGE, GET_FRAME_POSITIONS_MESSAGE, UNEMBED_SOURCE_FRAMES_MESSAGE,
 };
 use log::{debug, error};

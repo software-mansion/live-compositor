@@ -3,8 +3,8 @@ use std::{sync::Arc, time::Duration};
 use wgpu::util::DeviceExt;
 
 use crate::{
-    renderer::{render_graph::NodeId, RenderCtx},
     scene::ShaderParam,
+    state::{render_graph::NodeId, RenderCtx},
     wgpu::{texture::NodeTexture, WgpuCtx},
     FallbackStrategy, Resolution,
 };

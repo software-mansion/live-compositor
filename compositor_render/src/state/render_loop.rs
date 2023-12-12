@@ -6,12 +6,12 @@ use std::{
 use log::error;
 
 use crate::{
-    renderer::{
+    scene::RGBColor,
+    state::{
         node::RenderNode,
         render_graph::{InternalSceneError, RenderGraph, RenderNodesSet},
         RenderCtx,
     },
-    scene::RGBColor,
     Frame, FrameSet, InputId, OutputId,
 };
 
