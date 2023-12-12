@@ -3137,6 +3137,7 @@ dependencies = [
  "image",
  "lazy_static",
  "log",
+ "rand",
  "reqwest",
  "rtcp",
  "rtp",
