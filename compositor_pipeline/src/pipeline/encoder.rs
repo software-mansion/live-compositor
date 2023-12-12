@@ -3,11 +3,14 @@ use crossbeam_channel::Sender;
 use ffmpeg_next::{
     codec::{packet::Packet, Context, Id},
     format::Pixel,
-    frame, Codec, Dictionary, Rational,
+    frame, Dictionary, Rational,
 };
 use log::{error, warn};
 
-use super::{OutputOptions, PipelineOutput};
+use super::{
+    structs::{Codec, EncodedChunk, EncodedChunkKind},
+    OutputOptions, PipelineOutput,
+};
 use crate::error::OutputInitError;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
@@ -79,7 +82,6 @@ pub struct EncoderSettings {
 
 pub(crate) struct LibavH264Encoder {
     encoder: ffmpeg_next::codec::encoder::video::Encoder,
-    codec: Codec,
     resolution: Resolution,
 }
 
@@ -129,13 +131,8 @@ impl LibavH264Encoder {
 
         Ok(Self {
             encoder,
-            codec,
             resolution,
         })
-    }
-
-    pub fn codec(&self) -> Codec {
-        self.codec
     }
 
     pub fn send_frame(&mut self, frame: Frame) -> PacketIterator {
@@ -160,13 +157,22 @@ pub struct PacketIterator<'a> {
 }
 
 impl<'a> Iterator for PacketIterator<'a> {
-    type Item = Packet;
+    type Item = EncodedChunk;
 
     fn next(&mut self) -> Option<Self::Item> {
         let mut packet = Packet::empty();
 
         if self.encoder.encoder.receive_packet(&mut packet).is_ok() {
-            Some(packet)
+            match EncodedChunk::from_av_packet(&packet, EncodedChunkKind::Video(Codec::H264)) {
+                Ok(chunk) => Some(chunk),
+                Err(e) => {
+                    warn!(
+                        "failed to parse an ffmpeg packet received from encoder: {}",
+                        e
+                    );
+                    None // TODO: this will terminate iteration. Is this what we want?
+                }
+            }
         } else {
             None
         }
@@ -227,14 +233,18 @@ pub struct Encoder<Output: PipelineOutput> {
 }
 
 impl<Output: PipelineOutput> Encoder<Output> {
-    pub fn new(opts: OutputOptions<Output>) -> Result<Self, OutputInitError> {
+    pub fn new(opts: OutputOptions<Output>, codec: Codec) -> Result<Self, OutputInitError> {
+        if codec != Codec::H264 {
+            unimplemented!("Only H264 is supported");
+        }
+
         let mut encoder = LibavH264Encoder::new(opts.encoder_settings, opts.resolution)?;
         let (frame_sender, frame_receiver) = crossbeam_channel::unbounded();
         // channel used to return information about the RtpSender initialization back to the API thread.
         let (output_sender, output_receiver) = crossbeam_channel::bounded(0);
 
         std::thread::spawn(move || {
-            let (output, mut context) = match Output::new(opts.receiver_options, encoder.codec()) {
+            let (output, mut context) = match Output::new(opts.receiver_options, Codec::H264) {
                 Ok(r) => r,
                 Err(e) => {
                     output_sender.send(Err(e)).unwrap();
@@ -250,8 +260,8 @@ impl<Output: PipelineOutput> Encoder<Output> {
                     continue;
                 }
 
-                for packet in encoder.send_frame(frame) {
-                    output.send_packet(&mut context, packet);
+                for chunk in encoder.send_frame(frame) {
+                    output.send_data(&mut context, chunk)
                 }
             }
         });

@@ -4,16 +4,12 @@ use std::{
     thread,
 };
 
+use crate::pipeline::structs::{Codec, EncodedChunk, EncodedChunkKind};
 use bytes::BytesMut;
-use compositor_pipeline::{
-    error::CustomError,
-    pipeline::{decoder::DecoderParameters, PipelineInput},
-};
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use log::{error, warn};
+use rtp::{codecs::h264::H264Packet, packetizer::Depacketizer};
 use webrtc_util::Unmarshal;
-
-use crate::types::InputId;
 
 pub struct RtpReceiver {
     receiver_thread: Option<thread::JoinHandle<()>>,
@@ -21,16 +17,22 @@ pub struct RtpReceiver {
     pub port: u16,
 }
 
-pub struct Options {
-    pub port: u16,
-    pub input_id: InputId,
+#[derive(Debug, thiserror::Error)]
+pub enum RtpReceiverError {
+    #[error("Error while setting socket options.")]
+    SocketOptions(#[source] std::io::Error),
+
+    #[error("Error while binding the socket.")]
+    SocketBind(#[source] std::io::Error),
 }
 
-impl PipelineInput for RtpReceiver {
-    type Opts = Options;
-    type PacketIterator = PacketIter;
+pub struct RtpReceiverOptions {
+    pub port: u16,
+    pub input_id: compositor_render::InputId,
+}
 
-    fn new(opts: Self::Opts) -> Result<(Self, Self::PacketIterator), CustomError> {
+impl RtpReceiver {
+    pub fn new(opts: RtpReceiverOptions) -> Result<(Self, ChunkIter), RtpReceiverError> {
         let should_close = Arc::new(AtomicBool::new(false));
         let (packets_tx, packets_rx) = unbounded();
 
@@ -39,12 +41,12 @@ impl PipelineInput for RtpReceiver {
             socket2::Type::DGRAM,
             Some(socket2::Protocol::UDP),
         )
-        .map_err(|e| CustomError(Box::new(e)))?;
+        .map_err(RtpReceiverError::SocketOptions)?;
 
         // This doesn't fail if the requested size is larger than the system limit
         socket
             .set_recv_buffer_size(16 * 1024 * 1024)
-            .map_err(|e| CustomError(Box::new(e)))?;
+            .map_err(RtpReceiverError::SocketOptions)?;
 
         socket
             .bind(
@@ -54,7 +56,11 @@ impl PipelineInput for RtpReceiver {
                 ))
                 .into(),
             )
-            .map_err(|e| CustomError(Box::new(e)))?;
+            .map_err(RtpReceiverError::SocketBind)?;
+
+        socket
+            .set_read_timeout(Some(std::time::Duration::from_millis(50)))
+            .map_err(RtpReceiverError::SocketOptions)?;
 
         let socket = std::net::UdpSocket::from(socket);
 
@@ -71,16 +77,11 @@ impl PipelineInput for RtpReceiver {
                 receiver_thread: Some(receiver_thread),
                 should_close,
             },
-            PacketIter {
+            ChunkIter {
                 receiver: packets_rx,
+                depayloader: H264Packet::default(),
             },
         ))
-    }
-
-    fn decoder_parameters(&self) -> DecoderParameters {
-        DecoderParameters {
-            codec: compositor_pipeline::pipeline::decoder::Codec::H264,
-        }
     }
 }
 
@@ -91,9 +92,6 @@ impl RtpReceiver {
         should_close: Arc<AtomicBool>,
     ) {
         let mut buffer = BytesMut::zeroed(65536);
-        socket
-            .set_read_timeout(Some(std::time::Duration::from_millis(50)))
-            .unwrap();
 
         loop {
             if should_close.load(std::sync::atomic::Ordering::Relaxed) {
@@ -130,12 +128,13 @@ impl Drop for RtpReceiver {
     }
 }
 
-pub struct PacketIter {
+pub struct ChunkIter {
     receiver: Receiver<bytes::Bytes>,
+    depayloader: H264Packet,
 }
 
-impl Iterator for PacketIter {
-    type Item = rtp::packet::Packet;
+impl Iterator for ChunkIter {
+    type Item = EncodedChunk;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -151,7 +150,14 @@ impl Iterator for PacketIter {
                 Ok(packet)
                     if packet.header.payload_type < 64 || packet.header.payload_type > 95 =>
                 {
-                    return Some(packet);
+                    match chunk_from_rtp(packet, &mut self.depayloader) {
+                        Ok(Some(chunk)) => return Some(chunk),
+                        Ok(None) => continue,
+                        Err(err) => {
+                            warn!("RTP depayloading error: {}", err);
+                            continue;
+                        }
+                    }
                 }
                 Ok(_) | Err(_) => {
                     if rtcp::packet::unmarshal(&mut buffer).is_err() {
@@ -162,5 +168,40 @@ impl Iterator for PacketIter {
                 }
             };
         }
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+enum DepayloadingError {
+    #[error("Bad payload type {0}")]
+    BadPayloadType(u8),
+    #[error(transparent)]
+    Rtp(#[from] rtp::Error),
+}
+
+fn chunk_from_rtp(
+    packet: rtp::packet::Packet,
+    depayloader: &mut H264Packet,
+) -> Result<Option<EncodedChunk>, DepayloadingError> {
+    match packet.header.payload_type {
+        96 => {
+            let kind = EncodedChunkKind::Video(Codec::H264);
+
+            let h264_packet = depayloader.depacketize(&packet.payload)?;
+
+            if h264_packet.is_empty() {
+                return Ok(None);
+            }
+
+            Ok(Some(EncodedChunk {
+                data: h264_packet,
+                pts: packet.header.timestamp as i64,
+                dts: None,
+
+                kind,
+            }))
+        }
+
+        v => Err(DepayloadingError::BadPayloadType(v)),
     }
 }

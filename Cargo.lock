@@ -374,8 +374,11 @@ dependencies = [
  "crossbeam-channel",
  "ffmpeg-next",
  "log",
+ "rtcp",
  "rtp",
+ "socket2 0.5.5",
  "thiserror",
+ "webrtc-util",
 ]
 
 [[package]]
@@ -2849,14 +2852,12 @@ dependencies = [
  "log",
  "rand",
  "reqwest",
- "rtcp",
  "rtp",
  "schemars",
  "serde",
  "serde_json",
  "shared_memory",
  "signal-hook",
- "socket2 0.5.5",
  "thiserror",
  "tiny_http",
  "tracing",
