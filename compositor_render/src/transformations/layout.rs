@@ -2,8 +2,9 @@ use std::{sync::Arc, time::Duration};
 
 use crate::{
     renderer::{render_graph::NodeId, RenderCtx},
-    scene::Size,
+    scene::{RGBAColor, Size},
     wgpu::texture::NodeTexture,
+    Resolution,
 };
 
 mod flatten;
@@ -11,8 +12,6 @@ mod layout_renderer;
 mod params;
 mod shader;
 mod transformation_matrices;
-
-use compositor_common::{scene::Resolution, util::colors::RGBAColor};
 
 use self::{
     params::{LayoutNodeParams, ParamsBuffer},

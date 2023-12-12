@@ -1,5 +1,6 @@
-use compositor_common::scene::Resolution;
 use nalgebra_glm::{rotate_z, scale, translate, vec3, Mat4, Vec3};
+
+use crate::Resolution;
 
 use super::RenderLayout;
 

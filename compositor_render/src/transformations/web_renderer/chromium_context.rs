@@ -1,8 +1,7 @@
 use std::sync::Arc;
 
-use crate::utils::random_string;
+use crate::{types::Framerate, utils::random_string};
 use compositor_chromium::cef;
-use compositor_common::Framerate;
 use crossbeam_channel::RecvError;
 use log::info;
 

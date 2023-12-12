@@ -1,12 +1,13 @@
 use std::{ops::Add, time::Duration};
 
-use compositor_common::util::{colors::RGBAColor, ContinuousValue, InterpolationState};
-
 use crate::{scene::ViewChildrenDirection, transformations::layout::NestedLayout};
 
 use super::{
-    components::ViewComponent, layout::StatefulLayoutComponent, scene_state::BuildStateTreeCtx,
-    Component, ComponentId, IntermediateNode, Overflow, Position, SceneError, Size,
+    components::ViewComponent,
+    interpolation::{ContinuousValue, InterpolationState},
+    layout::StatefulLayoutComponent,
+    scene_state::BuildStateTreeCtx,
+    Component, ComponentId, IntermediateNode, Overflow, Position, RGBAColor, SceneError, Size,
     StatefulComponent, Transition,
 };
 

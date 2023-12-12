@@ -1,14 +1,13 @@
 use std::sync::Arc;
 
-use compositor_common::{
-    renderer_spec::{FallbackStrategy, ShaderSpec},
-    scene::shader::ShaderParam,
-};
-
-use crate::wgpu::{
-    shader::{CreateShaderError, WgpuShader},
-    validation::ParametersValidationError,
-    WgpuCtx,
+use crate::{
+    scene::ShaderParam,
+    wgpu::{
+        shader::{CreateShaderError, WgpuShader},
+        validation::ParametersValidationError,
+        WgpuCtx,
+    },
+    FallbackStrategy, RendererId,
 };
 
 pub mod node;
@@ -18,6 +17,13 @@ pub struct Shader {
     wgpu_shader: WgpuShader,
     fallback_strategy: FallbackStrategy,
     clear_color: Option<wgpu::Color>,
+}
+
+#[derive(Debug)]
+pub struct ShaderSpec {
+    pub shader_id: RendererId,
+    pub source: String,
+    pub fallback_strategy: FallbackStrategy,
 }
 
 impl Shader {

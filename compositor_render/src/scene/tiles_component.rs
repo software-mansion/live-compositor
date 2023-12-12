@@ -1,15 +1,11 @@
 use std::time::Duration;
 
-use compositor_common::util::{
-    align::{HorizontalAlign, VerticalAlign},
-    colors::RGBAColor,
-};
-
 use crate::transformations::layout::NestedLayout;
 
 use super::{
     layout::StatefulLayoutComponent, scene_state::BuildStateTreeCtx, Component, ComponentId,
-    IntermediateNode, Position, SceneError, Size, StatefulComponent, TilesComponent,
+    HorizontalAlign, IntermediateNode, Position, RGBAColor, SceneError, Size, StatefulComponent,
+    TilesComponent, VerticalAlign,
 };
 
 mod layout;

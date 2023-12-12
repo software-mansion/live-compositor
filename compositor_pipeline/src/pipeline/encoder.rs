@@ -1,4 +1,4 @@
-use compositor_common::{scene::Resolution, Frame};
+use compositor_render::{Frame, Resolution};
 use crossbeam_channel::Sender;
 use ffmpeg_next::{
     codec::{packet::Packet, Context, Id},

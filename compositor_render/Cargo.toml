@@ -9,7 +9,6 @@ edition = "2021"
 pollster = "0.3.0"
 thiserror = { workspace = true }
 wgpu = { version = "0.16.1", features = ["naga"] }
-compositor_common = { path = "../compositor_common" }
 compositor_chromium = { path = "../compositor_chromium" }
 image = { workspace = true }
 reqwest = { workspace = true }

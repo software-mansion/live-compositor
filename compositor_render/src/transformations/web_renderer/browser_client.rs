@@ -2,11 +2,10 @@ use std::sync::{Arc, Mutex};
 
 use crate::{
     transformations::layout::{vertices_transformation_matrix, Position},
-    GET_FRAME_POSITIONS_MESSAGE,
+    Resolution, GET_FRAME_POSITIONS_MESSAGE,
 };
 use bytes::Bytes;
 use compositor_chromium::cef;
-use compositor_common::scene::Resolution;
 use log::error;
 
 use crate::transformations::web_renderer::{FrameData, SourceTransforms};
@@ -96,11 +95,14 @@ pub(super) struct RenderHandler {
 }
 
 impl cef::RenderHandler for RenderHandler {
-    fn resolution(&self, _browser: &cef::Browser) -> Resolution {
-        self.resolution
+    fn resolution(&self, _browser: &cef::Browser) -> cef::Resolution {
+        cef::Resolution {
+            width: self.resolution.width,
+            height: self.resolution.height,
+        }
     }
 
-    fn on_paint(&self, _browser: &cef::Browser, buffer: &[u8], _resolution: Resolution) {
+    fn on_paint(&self, _browser: &cef::Browser, buffer: &[u8], _resolution: cef::Resolution) {
         let mut frame_data = self.frame_data.lock().unwrap();
         *frame_data = Bytes::copy_from_slice(buffer);
     }

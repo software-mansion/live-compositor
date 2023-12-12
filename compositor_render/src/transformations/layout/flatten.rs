@@ -1,4 +1,4 @@
-use compositor_common::util::colors::RGBAColor;
+use crate::scene::RGBAColor;
 
 use super::{Crop, LayoutContent, NestedLayout, RenderLayout, RenderLayoutContent};
 

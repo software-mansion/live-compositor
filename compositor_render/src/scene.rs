@@ -6,6 +6,7 @@ use crate::transformations::shader::Shader;
 use crate::transformations::text_renderer::TextRenderParams;
 use crate::transformations::web_renderer::WebRenderer;
 use crate::wgpu::validation::ParametersValidationError;
+use crate::{InputId, OutputId, RendererId, Resolution};
 
 use self::image_component::StatefulImageComponent;
 use self::input_stream_component::StatefulInputStreamComponent;
@@ -15,14 +16,12 @@ use self::shader_component::StatefulShaderComponent;
 use self::text_component::StatefulTextComponent;
 use self::web_view_component::StatefulWebViewComponent;
 
-use compositor_common::renderer_spec::RendererId;
-use compositor_common::scene::{InputId, OutputId, Resolution};
-
 pub(crate) use layout::LayoutNode;
 pub(crate) use scene_state::{OutputNode, SceneState};
 pub(crate) use shader_component::ShaderComponentParams;
 
 pub use components::*;
+pub use types::*;
 
 mod components;
 mod image_component;
@@ -33,6 +32,7 @@ mod scene_state;
 mod shader_component;
 mod text_component;
 mod tiles_component;
+mod types;
 mod validation;
 mod view_component;
 mod web_view_component;

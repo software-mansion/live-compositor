@@ -1,6 +1,5 @@
-use compositor_common::error::ErrorStack;
 use compositor_pipeline::pipeline;
-use compositor_render::EventLoop;
+use compositor_render::{error::ErrorStack, EventLoop};
 use crossbeam_channel::RecvTimeoutError;
 use log::{error, info};
 

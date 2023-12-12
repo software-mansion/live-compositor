@@ -1,3 +1,5 @@
+use super::{HorizontalPosition, VerticalPosition};
+
 #[derive(Debug, Clone, Copy)]
 pub struct InterpolationState(pub f64);
 
@@ -45,5 +47,33 @@ impl<T: ContinuousValue + Clone> ContinuousValue for Option<T> {
 impl From<InterpolationState> for f64 {
     fn from(value: InterpolationState) -> Self {
         value.0
+    }
+}
+
+impl ContinuousValue for VerticalPosition {
+    fn interpolate(start: &Self, end: &Self, state: InterpolationState) -> Self {
+        match (start, end) {
+            (VerticalPosition::TopOffset(start), VerticalPosition::TopOffset(end)) => {
+                Self::TopOffset(ContinuousValue::interpolate(start, end, state))
+            }
+            (VerticalPosition::BottomOffset(start), VerticalPosition::BottomOffset(end)) => {
+                Self::BottomOffset(ContinuousValue::interpolate(start, end, state))
+            }
+            (_, end) => *end,
+        }
+    }
+}
+
+impl ContinuousValue for HorizontalPosition {
+    fn interpolate(start: &Self, end: &Self, state: InterpolationState) -> Self {
+        match (start, end) {
+            (HorizontalPosition::LeftOffset(start), HorizontalPosition::LeftOffset(end)) => {
+                Self::LeftOffset(ContinuousValue::interpolate(start, end, state))
+            }
+            (HorizontalPosition::RightOffset(start), HorizontalPosition::RightOffset(end)) => {
+                Self::RightOffset(ContinuousValue::interpolate(start, end, state))
+            }
+            (_, end) => *end,
+        }
     }
 }

@@ -1,7 +1,6 @@
 use std::thread;
 
 use bytes::BytesMut;
-use compositor_common::scene::InputId;
 use compositor_pipeline::{
     error::CustomError,
     pipeline::{decoder::DecoderParameters, PipelineInput},
@@ -12,6 +11,8 @@ use smol::{
     future, net,
 };
 use webrtc_util::Unmarshal;
+
+use crate::types::InputId;
 
 pub struct RtpReceiver {
     receiver_thread: Option<thread::JoinHandle<()>>,

@@ -1,7 +1,9 @@
-use compositor_common::scene::{InputId, OutputId};
-use compositor_render::error::{
-    InitRendererEngineError, RegisterError, RegisterRendererError, UnregisterRendererError,
-    UpdateSceneError, WgpuError,
+use compositor_render::{
+    error::{
+        InitRendererEngineError, RegisterError, RegisterRendererError, UnregisterRendererError,
+        UpdateSceneError, WgpuError,
+    },
+    InputId, OutputId,
 };
 
 #[derive(Debug, thiserror::Error)]

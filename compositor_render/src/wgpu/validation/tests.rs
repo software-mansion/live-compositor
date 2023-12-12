@@ -101,7 +101,7 @@ mod header_checking {
 }
 
 mod params_validation {
-    use compositor_common::scene::shader::ShaderParamStructField;
+    use crate::scene::ShaderParamStructField;
 
     use super::super::*;
 

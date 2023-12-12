@@ -1,10 +1,8 @@
 use std::sync::Arc;
 
-use compositor_common::scene::shader;
-use compositor_common::scene::MAX_NODE_RESOLUTION;
-use compositor_common::util::colors;
 use compositor_render::scene;
 use compositor_render::scene::Position;
+use compositor_render::MAX_NODE_RESOLUTION;
 
 use super::component::*;
 use super::util::*;
@@ -109,7 +107,7 @@ impl TryFrom<View> for scene::ViewComponent {
             background_color: view
                 .background_color_rgba
                 .map(TryInto::try_into)
-                .unwrap_or(Ok(colors::RGBAColor(0, 0, 0, 0)))?,
+                .unwrap_or(Ok(scene::RGBAColor(0, 0, 0, 0)))?,
             transition: view.transition.map(Into::into),
         })
     }
@@ -206,23 +204,23 @@ impl TryFrom<Shader> for scene::ShaderComponent {
     }
 }
 
-impl From<ShaderParam> for shader::ShaderParam {
+impl From<ShaderParam> for scene::ShaderParam {
     fn from(param: ShaderParam) -> Self {
-        fn from_struct_field(field: ShaderParamStructField) -> shader::ShaderParamStructField {
-            shader::ShaderParamStructField {
+        fn from_struct_field(field: ShaderParamStructField) -> scene::ShaderParamStructField {
+            scene::ShaderParamStructField {
                 field_name: field.field_name,
                 value: field.value.into(),
             }
         }
         match param {
-            ShaderParam::F32(v) => shader::ShaderParam::F32(v),
-            ShaderParam::U32(v) => shader::ShaderParam::U32(v),
-            ShaderParam::I32(v) => shader::ShaderParam::I32(v),
+            ShaderParam::F32(v) => scene::ShaderParam::F32(v),
+            ShaderParam::U32(v) => scene::ShaderParam::U32(v),
+            ShaderParam::I32(v) => scene::ShaderParam::I32(v),
             ShaderParam::List(v) => {
-                shader::ShaderParam::List(v.into_iter().map(Into::into).collect())
+                scene::ShaderParam::List(v.into_iter().map(Into::into).collect())
             }
             ShaderParam::Struct(v) => {
-                shader::ShaderParam::Struct(v.into_iter().map(from_struct_field).collect())
+                scene::ShaderParam::Struct(v.into_iter().map(from_struct_field).collect())
             }
         }
     }
@@ -290,7 +288,7 @@ impl TryFrom<Text> for scene::TextComponent {
             color: text
                 .color_rgba
                 .map(TryInto::try_into)
-                .unwrap_or(Ok(colors::RGBAColor(255, 255, 255, 255)))?,
+                .unwrap_or(Ok(scene::RGBAColor(255, 255, 255, 255)))?,
             font_family: text.font_family.unwrap_or_else(|| Arc::from("Verdana")),
             style,
             align: text.align.unwrap_or(HorizontalAlign::Left).into(),
@@ -299,7 +297,7 @@ impl TryFrom<Text> for scene::TextComponent {
             background_color: text
                 .background_color_rgba
                 .map(TryInto::try_into)
-                .unwrap_or(Ok(colors::RGBAColor(0, 0, 0, 0)))?,
+                .unwrap_or(Ok(scene::RGBAColor(0, 0, 0, 0)))?,
         };
         Ok(text)
     }
@@ -340,7 +338,7 @@ impl TryFrom<Tiles> for scene::TilesComponent {
             background_color: tiles
                 .background_color_rgba
                 .map(TryInto::try_into)
-                .unwrap_or(Ok(colors::RGBAColor(0, 0, 0, 0)))?,
+                .unwrap_or(Ok(scene::RGBAColor(0, 0, 0, 0)))?,
             tile_aspect_ratio: tiles
                 .tile_aspect_ratio
                 .map(TryInto::try_into)

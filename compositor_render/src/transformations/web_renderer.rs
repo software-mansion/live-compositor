@@ -9,15 +9,11 @@ use crate::renderer::{RegisterCtx, RenderCtx};
 use crate::wgpu::shader::shader_params::ParamsBuffer;
 use crate::wgpu::shader::{CreateShaderError, WgpuShader};
 use crate::wgpu::texture::{BGRATexture, NodeTexture, NodeTextureState, RGBATexture, Texture};
+use crate::{FallbackStrategy, RendererId, Resolution};
 
 use crate::transformations::web_renderer::browser_client::BrowserClient;
 use crate::transformations::web_renderer::chromium_sender::ChromiumSender;
 use crate::transformations::web_renderer::embedder::{EmbedError, EmbeddingHelper, TextureInfo};
-use compositor_common::renderer_spec::WebEmbeddingMethod;
-use compositor_common::{
-    renderer_spec::{FallbackStrategy, WebRendererSpec},
-    scene::Resolution,
-};
 use log::{error, info};
 
 pub mod browser_client;
@@ -47,6 +43,28 @@ impl Default for WebRendererOptions {
             disable_gpu: false,
         }
     }
+}
+
+#[derive(Debug)]
+pub struct WebRendererSpec {
+    pub instance_id: RendererId,
+    pub url: String,
+    pub resolution: Resolution,
+    pub embedding_method: WebEmbeddingMethod,
+    pub fallback_strategy: FallbackStrategy,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum WebEmbeddingMethod {
+    /// Send frames to chromium directly and render it on canvas
+    ChromiumEmbedding,
+
+    /// Render sources on top of the rendered website
+    NativeEmbeddingOverContent,
+
+    /// Render sources below the website.
+    /// The website's background has to be transparent
+    NativeEmbeddingUnderContent,
 }
 
 #[derive(Debug)]

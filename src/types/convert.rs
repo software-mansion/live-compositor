@@ -1,6 +1,5 @@
 use std::time::Duration;
 
-use compositor_common::renderer_spec;
 use compositor_pipeline::pipeline;
 use compositor_render::scene;
 
@@ -21,38 +20,38 @@ impl From<scene::ComponentId> for ComponentId {
     }
 }
 
-impl From<RendererId> for renderer_spec::RendererId {
+impl From<RendererId> for compositor_render::RendererId {
     fn from(id: RendererId) -> Self {
         Self(id.0)
     }
 }
 
-impl From<renderer_spec::RendererId> for RendererId {
-    fn from(id: renderer_spec::RendererId) -> Self {
+impl From<compositor_render::RendererId> for RendererId {
+    fn from(id: compositor_render::RendererId) -> Self {
         Self(id.0)
     }
 }
 
-impl From<OutputId> for compositor_common::scene::OutputId {
+impl From<OutputId> for compositor_render::OutputId {
     fn from(id: OutputId) -> Self {
         id.0.into()
     }
 }
 
-impl From<compositor_common::scene::OutputId> for OutputId {
-    fn from(id: compositor_common::scene::OutputId) -> Self {
+impl From<compositor_render::OutputId> for OutputId {
+    fn from(id: compositor_render::OutputId) -> Self {
         Self(id.0)
     }
 }
 
-impl From<InputId> for compositor_common::scene::InputId {
+impl From<InputId> for compositor_render::InputId {
     fn from(id: InputId) -> Self {
         id.0.into()
     }
 }
 
-impl From<compositor_common::scene::InputId> for InputId {
-    fn from(id: compositor_common::scene::InputId) -> Self {
+impl From<compositor_render::InputId> for InputId {
+    fn from(id: compositor_render::InputId) -> Self {
         Self(id.0)
     }
 }

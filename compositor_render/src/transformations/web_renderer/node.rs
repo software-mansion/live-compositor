@@ -1,14 +1,15 @@
 use std::sync::Arc;
 
-use compositor_common::{error::ErrorStack, renderer_spec::FallbackStrategy};
 use log::error;
 
 use crate::{
+    error::ErrorStack,
     renderer::{render_graph::NodeId, RenderCtx},
     wgpu::{
         texture::{utils::pad_to_256, NodeTexture, RGBATexture},
         WgpuCtx,
     },
+    FallbackStrategy,
 };
 
 use super::WebRenderer;

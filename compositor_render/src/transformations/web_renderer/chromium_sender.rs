@@ -1,7 +1,9 @@
 use std::sync::Arc;
 
-use crate::renderer::{render_graph::NodeId, RegisterCtx};
-use compositor_common::scene::Resolution;
+use crate::{
+    renderer::{render_graph::NodeId, RegisterCtx},
+    Resolution,
+};
 use crossbeam_channel::{Receiver, Sender};
 use log::error;
 

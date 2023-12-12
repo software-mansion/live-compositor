@@ -1,9 +1,9 @@
 use std::time::Duration;
 
-use compositor_common::util::align::{HorizontalAlign, VerticalAlign};
-
 use crate::{
-    scene::{layout::StatefulLayoutComponent, Size, StatefulComponent},
+    scene::{
+        layout::StatefulLayoutComponent, HorizontalAlign, Size, StatefulComponent, VerticalAlign,
+    },
     transformations::layout::{LayoutContent, NestedLayout},
 };
 

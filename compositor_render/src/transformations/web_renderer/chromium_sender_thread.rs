@@ -6,10 +6,10 @@ use std::{
 };
 
 use compositor_chromium::cef;
-use compositor_common::{error::ErrorStack, scene::Resolution};
 use crossbeam_channel::{Receiver, Sender};
 use log::error;
 
+use crate::error::ErrorStack;
 use crate::renderer::render_graph::NodeId;
 use crate::renderer::RegisterCtx;
 use crate::transformations::web_renderer::chromium_sender::{
@@ -17,6 +17,7 @@ use crate::transformations::web_renderer::chromium_sender::{
 };
 use crate::transformations::web_renderer::shared_memory::{SharedMemory, SharedMemoryError};
 use crate::transformations::web_renderer::WebRenderer;
+use crate::Resolution;
 use crate::{
     wgpu::texture::utils::pad_to_256, EMBED_SOURCE_FRAMES_MESSAGE, GET_FRAME_POSITIONS_MESSAGE,
 };

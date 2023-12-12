@@ -1,8 +1,9 @@
 use std::time::Duration;
 
-use compositor_common::scene::Resolution;
-
-use crate::transformations::layout::{self, LayoutContent, NestedLayout};
+use crate::{
+    transformations::layout::{self, LayoutContent, NestedLayout},
+    Resolution,
+};
 
 use super::{
     rescaler_component::StatefulRescalerComponent, tiles_component::StatefulTilesComponent,

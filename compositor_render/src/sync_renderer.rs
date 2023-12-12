@@ -1,10 +1,5 @@
 use std::sync::{Arc, Mutex};
 
-use compositor_common::{
-    renderer_spec::{RendererId, RendererSpec},
-    scene::{InputId, OutputId},
-};
-
 use crate::{
     error::{
         InitRendererEngineError, RegisterRendererError, RenderSceneError, UnregisterRendererError,
@@ -14,9 +9,23 @@ use crate::{
     registry::RegistryType,
     renderer::{Renderer, RendererOptions},
     scene::OutputScene,
-    transformations::{image_renderer::Image, shader::Shader, web_renderer::WebRenderer},
-    FrameSet,
+    transformations::{
+        image_renderer::{Image, ImageSpec},
+        shader::{Shader, ShaderSpec},
+        web_renderer::{WebRenderer, WebRendererSpec},
+    },
+    FrameSet, InputId, OutputId, RendererId,
 };
+
+/// RendererSpec provides configuration necessary to construct Renderer. Renderers
+/// are entities like shader, image or chromium_instance and can be used by nodes
+/// to transform or generate frames.
+#[derive(Debug)]
+pub enum RendererSpec {
+    Shader(ShaderSpec),
+    WebRenderer(WebRendererSpec),
+    Image(ImageSpec),
+}
 
 #[derive(Clone)]
 pub struct SyncRenderer(Arc<Mutex<Renderer>>);

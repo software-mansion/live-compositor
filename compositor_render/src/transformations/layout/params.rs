@@ -1,8 +1,7 @@
-use compositor_common::util::colors::RGBAColor;
 use nalgebra_glm::Mat4;
 use wgpu::util::DeviceExt;
 
-use crate::wgpu::WgpuCtx;
+use crate::{scene::RGBAColor, wgpu::WgpuCtx};
 
 #[derive(Debug)]
 pub(super) struct LayoutNodeParams {

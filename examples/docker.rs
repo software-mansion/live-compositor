@@ -1,5 +1,4 @@
 use anyhow::{anyhow, Result};
-use compositor_common::scene::Resolution;
 use log::{error, info, warn};
 use serde_json::json;
 use signal_hook::{consts, iterator::Signals};
@@ -9,6 +8,7 @@ use std::{
     thread,
     time::Duration,
 };
+use video_compositor::types::Resolution;
 
 use crate::common::write_example_sdp_file;
 
