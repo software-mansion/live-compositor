@@ -2,13 +2,15 @@ use std::sync::{Arc, Mutex};
 
 use crate::{
     transformations::layout::{vertices_transformation_matrix, Position},
-    Resolution, GET_FRAME_POSITIONS_MESSAGE,
+    Resolution,
 };
 use bytes::Bytes;
 use compositor_chromium::cef;
 use log::error;
 
 use crate::transformations::web_renderer::{FrameData, SourceTransforms};
+
+use super::GET_FRAME_POSITIONS_MESSAGE;
 
 #[derive(Clone)]
 pub(super) struct BrowserClient {

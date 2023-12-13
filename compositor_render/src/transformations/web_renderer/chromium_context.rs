@@ -5,9 +5,7 @@ use compositor_chromium::cef;
 use crossbeam_channel::RecvError;
 use log::info;
 
-use crate::WebRendererOptions;
-
-use super::browser_client::BrowserClient;
+use super::{browser_client::BrowserClient, WebRendererInitOptions};
 
 pub struct ChromiumContext {
     instance_id: String,
@@ -17,7 +15,7 @@ pub struct ChromiumContext {
 
 impl ChromiumContext {
     pub(crate) fn new(
-        opts: WebRendererOptions,
+        opts: WebRendererInitOptions,
         framerate: Framerate,
     ) -> Result<Self, WebRendererContextError> {
         let instance_id = random_string(30);

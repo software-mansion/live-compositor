@@ -14,10 +14,10 @@ use wgpu::{
 };
 
 use crate::{
-    renderer::RenderCtx,
     scene::{
         HorizontalAlign, RGBAColor, TextComponent, TextDimensions, TextStyle, TextWeight, TextWrap,
     },
+    state::RenderCtx,
     utils::rgba_to_wgpu_color,
     wgpu::texture::NodeTexture,
     Resolution,

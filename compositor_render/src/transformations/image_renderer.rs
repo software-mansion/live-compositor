@@ -14,7 +14,7 @@ use resvg::{
 };
 
 use crate::{
-    renderer::{RegisterCtx, RenderCtx},
+    state::{RegisterCtx, RenderCtx},
     wgpu::{
         texture::{NodeTexture, RGBATexture},
         WgpuCtx,
@@ -24,13 +24,13 @@ use crate::{
 
 #[derive(Debug)]
 pub struct ImageSpec {
-    pub src: ImageSrc,
+    pub src: ImageSource,
     pub image_id: RendererId,
     pub image_type: ImageType,
 }
 
 #[derive(Debug)]
-pub enum ImageSrc {
+pub enum ImageSource {
     Url { url: String },
     LocalPath { path: String },
 }
@@ -89,14 +89,14 @@ impl Image {
         }
     }
 
-    fn download_file(src: &ImageSrc) -> Result<bytes::Bytes, ImageError> {
+    fn download_file(src: &ImageSource) -> Result<bytes::Bytes, ImageError> {
         match src {
-            ImageSrc::Url { url } => {
+            ImageSource::Url { url } => {
                 let response = reqwest::blocking::get(url)?;
                 let response = response.error_for_status()?;
                 Ok(response.bytes()?)
             }
-            ImageSrc::LocalPath { path } => {
+            ImageSource::LocalPath { path } => {
                 let file = fs::read(path)?;
                 Ok(Bytes::from(file))
             }

@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use compositor_pipeline::pipeline;
-use compositor_render::scene;
+use compositor_render::{scene, web_renderer};
 
 use crate::api::{self, UpdateScene};
 
@@ -87,7 +87,7 @@ impl TryFrom<InitOptions> for pipeline::Options {
             stream_fallback_timeout: Duration::from_millis(
                 opts.stream_fallback_timeout_ms.unwrap_or(1000.0) as u64,
             ),
-            web_renderer: compositor_render::WebRendererOptions {
+            web_renderer: web_renderer::WebRendererInitOptions {
                 init: opts
                     .web_renderer
                     .as_ref()

@@ -1,3 +1,7 @@
+use compositor_render::image;
+use compositor_render::shader;
+use compositor_render::web_renderer;
+
 use super::renderer::*;
 use super::util::*;
 
@@ -19,7 +23,7 @@ impl TryFrom<ShaderSpec> for compositor_render::RendererSpec {
     type Error = TypeError;
 
     fn try_from(spec: ShaderSpec) -> Result<Self, Self::Error> {
-        let spec = compositor_render::ShaderSpec {
+        let spec = shader::ShaderSpec {
             shader_id: spec.shader_id.into(),
             source: spec.source,
             fallback_strategy: compositor_render::FallbackStrategy::FallbackIfAllInputsMissing,
@@ -34,18 +38,18 @@ impl TryFrom<WebRendererSpec> for compositor_render::RendererSpec {
     fn try_from(spec: WebRendererSpec) -> Result<Self, Self::Error> {
         let embedding_method = match spec.embedding_method {
             Some(WebEmbeddingMethod::ChromiumEmbedding) => {
-                compositor_render::WebEmbeddingMethod::ChromiumEmbedding
+                web_renderer::WebEmbeddingMethod::ChromiumEmbedding
             }
             Some(WebEmbeddingMethod::NativeEmbeddingOverContent) => {
-                compositor_render::WebEmbeddingMethod::NativeEmbeddingOverContent
+                web_renderer::WebEmbeddingMethod::NativeEmbeddingOverContent
             }
             Some(WebEmbeddingMethod::NativeEmbeddingUnderContent) => {
-                compositor_render::WebEmbeddingMethod::NativeEmbeddingUnderContent
+                web_renderer::WebEmbeddingMethod::NativeEmbeddingUnderContent
             }
-            None => compositor_render::WebEmbeddingMethod::NativeEmbeddingOverContent,
+            None => web_renderer::WebEmbeddingMethod::NativeEmbeddingOverContent,
         };
 
-        let spec = compositor_render::WebRendererSpec {
+        let spec = web_renderer::WebRendererSpec {
             instance_id: spec.instance_id.into(),
             url: spec.url,
             resolution: spec.resolution.into(),
@@ -63,13 +67,13 @@ impl TryFrom<ImageSpec> for compositor_render::RendererSpec {
         fn from_url_or_path(
             url: Option<String>,
             path: Option<String>,
-        ) -> Result<compositor_render::ImageSrc, TypeError> {
+        ) -> Result<image::ImageSource, TypeError> {
             match (url, path) {
                 (None, None) => Err(TypeError::new(
                     "\"url\" or \"path\" field is required when registering an image.",
                 )),
-                (None, Some(path)) => Ok(compositor_render::ImageSrc::LocalPath { path }),
-                (Some(url), None) => Ok(compositor_render::ImageSrc::Url { url }),
+                (None, Some(path)) => Ok(image::ImageSource::LocalPath { path }),
+                (Some(url), None) => Ok(image::ImageSource::Url { url }),
                 (Some(_), Some(_)) => Err(TypeError::new(
                     "\"url\" and \"path\" fields are mutually exclusive when registering an image.",
                 )),
@@ -80,29 +84,29 @@ impl TryFrom<ImageSpec> for compositor_render::RendererSpec {
                 image_id,
                 url,
                 path,
-            } => compositor_render::ImageSpec {
+            } => image::ImageSpec {
                 src: from_url_or_path(url, path)?,
                 image_id: image_id.into(),
-                image_type: compositor_render::ImageType::Png,
+                image_type: image::ImageType::Png,
             },
             ImageSpec::Jpeg {
                 image_id,
                 url,
                 path,
-            } => compositor_render::ImageSpec {
+            } => image::ImageSpec {
                 src: from_url_or_path(url, path)?,
                 image_id: image_id.into(),
-                image_type: compositor_render::ImageType::Jpeg,
+                image_type: image::ImageType::Jpeg,
             },
             ImageSpec::Svg {
                 image_id,
                 url,
                 path,
                 resolution,
-            } => compositor_render::ImageSpec {
+            } => image::ImageSpec {
                 src: from_url_or_path(url, path)?,
                 image_id: image_id.into(),
-                image_type: compositor_render::ImageType::Svg {
+                image_type: image::ImageType::Svg {
                     resolution: resolution.map(Into::into),
                 },
             },
@@ -110,10 +114,10 @@ impl TryFrom<ImageSpec> for compositor_render::RendererSpec {
                 image_id,
                 url,
                 path,
-            } => compositor_render::ImageSpec {
+            } => image::ImageSpec {
                 src: from_url_or_path(url, path)?,
                 image_id: image_id.into(),
-                image_type: compositor_render::ImageType::Gif,
+                image_type: image::ImageType::Gif,
             },
         };
         Ok(Self::Image(image))
