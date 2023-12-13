@@ -117,8 +117,6 @@ impl LayoutNode {
             .layouts(pts, &input_resolutions)
             .flatten(&input_resolutions, output_resolution);
 
-        let layout_count = layouts.len();
-
         let params: Vec<LayoutNodeParams> = layouts
             .iter()
             .map(|layout| {
@@ -143,13 +141,21 @@ impl LayoutNode {
             .collect();
         self.params.update(params, ctx.wgpu_ctx);
 
+        let textures: Vec<Option<&NodeTexture>> = layouts
+            .iter()
+            .map(|layout| match layout.content {
+                RenderLayoutContent::Color(_) => None,
+                RenderLayoutContent::ChildNode { index, .. } => Some(
+                    sources
+                        .get(index)
+                        .expect("Invalid source index in layout")
+                        .1,
+                ),
+            })
+            .collect();
+
         let target = target.ensure_size(ctx.wgpu_ctx, output_resolution);
-        self.shader.render(
-            ctx.wgpu_ctx,
-            self.params.bind_group(),
-            sources,
-            target,
-            layout_count as u32,
-        );
+        self.shader
+            .render(ctx.wgpu_ctx, self.params.bind_group(), &textures, target);
     }
 }

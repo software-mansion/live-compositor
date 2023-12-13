@@ -1,24 +1,19 @@
 use std::sync::Arc;
 
-use wgpu::ShaderSource;
+use wgpu::{ShaderSource, ShaderStages};
 
-use crate::{
-    state::render_graph::NodeId,
-    wgpu::{
-        common_pipeline::Sampler,
-        shader::{pipeline, CreateShaderError},
-        texture::{NodeTexture, NodeTextureState, Texture},
-        WgpuCtx, WgpuErrorScope,
-    },
+use crate::wgpu::{
+    common_pipeline::Sampler,
+    shader::{pipeline, CreateShaderError},
+    texture::{NodeTexture, NodeTextureState, Texture},
+    WgpuCtx, WgpuErrorScope,
 };
-
-pub(super) const INPUT_TEXTURES_AMOUNT: u32 = 16;
 
 #[derive(Debug)]
 pub struct LayoutShader {
     pipeline: wgpu::RenderPipeline,
     sampler: Sampler,
-    textures_bgl: wgpu::BindGroupLayout,
+    texture_bgl: wgpu::BindGroupLayout,
 
     empty_texture: Texture,
 }
@@ -47,10 +42,19 @@ impl LayoutShader {
     ) -> Result<Self, CreateShaderError> {
         let sampler = Sampler::new(&wgpu_ctx.device);
 
-        let textures_bgl = pipeline::Pipeline::create_texture_bind_group_layout(
-            &wgpu_ctx.device,
-            INPUT_TEXTURES_AMOUNT,
-        );
+        let texture_bgl = wgpu_ctx.device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("Layout texture bgl"),
+            entries: &[wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                count: None,
+                visibility: wgpu::ShaderStages::FRAGMENT | wgpu::ShaderStages::VERTEX,
+                ty: wgpu::BindingType::Texture {
+                    multisampled: false,
+                    sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                    view_dimension: wgpu::TextureViewDimension::D2,
+                },
+            }],
+        });
 
         let pipeline_layout =
             wgpu_ctx
@@ -58,11 +62,14 @@ impl LayoutShader {
                 .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                     label: Some("shader transformation pipeline layout"),
                     bind_group_layouts: &[
-                        &textures_bgl,
+                        &texture_bgl,
                         &wgpu_ctx.shader_parameters_bind_group_layout,
                         &sampler.bind_group_layout,
                     ],
-                    push_constant_ranges: &[],
+                    push_constant_ranges: &[wgpu::PushConstantRange {
+                        stages: wgpu::ShaderStages::VERTEX_FRAGMENT,
+                        range: 0..4,
+                    }],
                 });
 
         let shader_module = wgpu_ctx
@@ -83,7 +90,7 @@ impl LayoutShader {
         Ok(Self {
             pipeline,
             sampler,
-            textures_bgl,
+            texture_bgl,
             empty_texture,
         })
     }
@@ -92,32 +99,30 @@ impl LayoutShader {
         &self,
         wgpu_ctx: &Arc<WgpuCtx>,
         params: &wgpu::BindGroup,
-        sources: &[(&NodeId, &NodeTexture)],
+        textures: &[Option<&NodeTexture>],
         target: &NodeTextureState,
-        layout_count: u32,
     ) {
-        let mut texture_views = sources
+        let input_texture_bgs: Vec<wgpu::BindGroup> = textures
             .iter()
-            .map(|(_id, texture)| match texture.state() {
-                Some(texture) => &texture.rgba_texture().texture().view,
-                None => &self.empty_texture.view,
+            .map(|texture| {
+                texture
+                    .and_then(|texture| texture.state())
+                    .map(|state| &state.rgba_texture().texture().view)
+                    .unwrap_or(&self.empty_texture.view)
             })
-            .collect::<Vec<_>>();
-
-        texture_views.extend(
-            (texture_views.len()..INPUT_TEXTURES_AMOUNT as usize).map(|_| &self.empty_texture.view),
-        );
-
-        let input_textures_bg = wgpu_ctx
-            .device
-            .create_bind_group(&wgpu::BindGroupDescriptor {
-                layout: &self.textures_bgl,
-                label: None,
-                entries: &[wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::TextureViewArray(&texture_views),
-                }],
-            });
+            .map(|view| {
+                wgpu_ctx
+                    .device
+                    .create_bind_group(&wgpu::BindGroupDescriptor {
+                        layout: &self.texture_bgl,
+                        label: None,
+                        entries: &[wgpu::BindGroupEntry {
+                            binding: 0,
+                            resource: wgpu::BindingResource::TextureView(view),
+                        }],
+                    })
+            })
+            .collect();
 
         let mut encoder = wgpu_ctx.device.create_command_encoder(&Default::default());
         {
@@ -135,10 +140,16 @@ impl LayoutShader {
                 depth_stencil_attachment: None,
             });
 
-            for layout_id in 0..layout_count {
+            for (layout_id, texture_bg) in input_texture_bgs.iter().enumerate() {
                 render_pass.set_pipeline(&self.pipeline);
 
-                render_pass.set_bind_group(0, &input_textures_bg, &[]);
+                render_pass.set_push_constants(
+                    ShaderStages::VERTEX_FRAGMENT,
+                    0,
+                    &(layout_id as u32).to_le_bytes(),
+                );
+
+                render_pass.set_bind_group(0, texture_bg, &[]);
                 render_pass.set_bind_group(1, params, &[]);
                 render_pass.set_bind_group(2, &self.sampler.bind_group, &[]);
 
