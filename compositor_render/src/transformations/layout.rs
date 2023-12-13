@@ -111,13 +111,13 @@ impl LayoutNode {
             .iter()
             .map(|(_, node_texture)| node_texture.resolution())
             .collect();
+        let output_resolution = self.layout_provider.resolution(pts);
         let layouts = self
             .layout_provider
             .layouts(pts, &input_resolutions)
-            .flatten(0);
+            .flatten(&input_resolutions, output_resolution);
 
         let layout_count = layouts.len();
-        let output_resolution = self.layout_provider.resolution(pts);
 
         let params: Vec<LayoutNodeParams> = layouts
             .iter()
