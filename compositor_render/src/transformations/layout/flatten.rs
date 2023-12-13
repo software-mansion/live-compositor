@@ -1,9 +1,21 @@
-use crate::scene::RGBAColor;
+use crate::{scene::RGBAColor, Resolution};
 
 use super::{Crop, LayoutContent, NestedLayout, RenderLayout, RenderLayoutContent};
 
 impl NestedLayout {
-    pub(super) fn flatten(mut self, child_index_offset: usize) -> Vec<RenderLayout> {
+    pub(super) fn flatten(
+        self,
+        input_resolutions: &[Option<Resolution>],
+        resolution: Resolution,
+    ) -> Vec<RenderLayout> {
+        let layouts = self.inner_flatten(0);
+        layouts
+            .into_iter()
+            .filter(|layout| Self::should_render(layout, input_resolutions, resolution))
+            .collect()
+    }
+
+    fn inner_flatten(mut self, child_index_offset: usize) -> Vec<RenderLayout> {
         let mut child_index_offset = child_index_offset;
         if let LayoutContent::ChildNode { index, size } = self.content {
             self.content = LayoutContent::ChildNode {
@@ -17,19 +29,43 @@ impl NestedLayout {
             .into_iter()
             .flat_map(|child| {
                 let child_nodes_count = child.child_nodes_count;
-                let layouts = child.flatten(child_index_offset);
+                let layouts = child.inner_flatten(child_index_offset);
                 child_index_offset += child_nodes_count;
                 layouts
             })
             .map(|l| self.flatten_child(l))
-            .filter(|layout| {
-                !matches!(
-                    layout.content,
-                    RenderLayoutContent::Color(RGBAColor(0, 0, 0, 0))
-                )
-            })
             .collect();
         [vec![layout], children].concat()
+    }
+
+    fn should_render(
+        layout: &RenderLayout,
+        input_resolutions: &[Option<Resolution>],
+        resolution: Resolution,
+    ) -> bool {
+        if layout.width <= 0.0
+            || layout.height <= 0.0
+            || layout.top > resolution.height as f32
+            || layout.left > resolution.width as f32
+        {
+            return false;
+        }
+        match &layout.content {
+            RenderLayoutContent::Color(RGBAColor(_, _, _, 0)) => false,
+            RenderLayoutContent::Color(_) => true,
+            RenderLayoutContent::ChildNode { crop, index } => {
+                let size = input_resolutions.get(*index).copied().flatten();
+                if let Some(size) = size {
+                    if crop.left > size.width as f32 || crop.top > size.height as f32 {
+                        return false;
+                    }
+                }
+                if crop.top + crop.height < 0.0 || crop.left + crop.width < 0.0 {
+                    return false;
+                }
+                true
+            }
+        }
     }
 
     fn flatten_child(&self, layout: RenderLayout) -> RenderLayout {

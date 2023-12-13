@@ -828,6 +828,24 @@ pub fn transition_snapshot_tests() -> Vec<TestCase> {
 pub fn view_snapshot_tests() -> Vec<TestCase> {
     Vec::from([
         TestCase {
+            name: "view/overflow_hidden_with_input_stream_children",
+            outputs: Outputs::Scene(vec![(
+                    include_str!("../../snapshot_tests/view/overflow_hidden_with_input_stream_children.scene.json"),
+                    DEFAULT_RESOLUTION,
+            )]),
+            inputs: vec![TestInput::new_with_resolution(1, Resolution { width: 180, height: 200 })],
+            ..Default::default()
+        },
+        TestCase {
+            name: "view/overflow_hidden_with_view_children",
+            outputs: Outputs::Scene(vec![(
+                    include_str!("../../snapshot_tests/view/overflow_hidden_with_view_children.scene.json"),
+                    DEFAULT_RESOLUTION,
+            )]),
+            inputs: vec![],
+            ..Default::default()
+        },
+        TestCase {
             name: "view/constant_width_views_row",
             outputs: Outputs::Scene(vec![(
                     include_str!("../../snapshot_tests/view/constant_width_views_row.scene.json"),
