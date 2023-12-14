@@ -8,7 +8,7 @@ pub struct BGRATexture(Texture);
 impl BGRATexture {
     pub fn new(ctx: &WgpuCtx, resolution: Resolution) -> Self {
         Self(Texture::new(
-            ctx,
+            &ctx.device,
             None,
             wgpu::Extent3d {
                 width: resolution.width as u32,

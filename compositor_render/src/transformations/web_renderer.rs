@@ -6,8 +6,9 @@ use std::sync::{Arc, Mutex};
 
 use crate::state::render_graph::NodeId;
 use crate::state::{RegisterCtx, RenderCtx};
-use crate::wgpu::shader::shader_params::ParamsBuffer;
-use crate::wgpu::shader::{CreateShaderError, WgpuShader};
+use crate::transformations::web_renderer::shader::WebRendererShader;
+use crate::wgpu::common_pipeline::shader_params::ParamsBuffer;
+use crate::wgpu::shader::CreateShaderError;
 use crate::wgpu::texture::{BGRATexture, NodeTexture, NodeTextureState, RGBATexture, Texture};
 use crate::{FallbackStrategy, RendererId, Resolution};
 
@@ -22,11 +23,14 @@ mod chromium_sender;
 mod chromium_sender_thread;
 mod embedder;
 pub(crate) mod node;
+mod shader;
 mod shared_memory;
 
 pub const EMBED_SOURCE_FRAMES_MESSAGE: &str = "EMBED_SOURCE_FRAMES";
 pub const UNEMBED_SOURCE_FRAMES_MESSAGE: &str = "UNEMBED_SOURCE_FRAMES";
 pub const GET_FRAME_POSITIONS_MESSAGE: &str = "GET_FRAME_POSITIONS";
+
+const MAX_WEB_RENDERER_TEXTURES_COUNT: u32 = 16;
 
 pub(super) type FrameData = Arc<Mutex<Bytes>>;
 pub(super) type SourceTransforms = Arc<Mutex<Vec<Mat4>>>;
@@ -75,7 +79,7 @@ pub struct WebRenderer {
     embedding_helper: EmbeddingHelper,
 
     website_texture: BGRATexture,
-    render_website_shader: WgpuShader,
+    render_website_shader: WebRendererShader,
     shader_params: Mutex<ParamsBuffer>,
 }
 
@@ -97,11 +101,8 @@ impl WebRenderer {
         );
         let chromium_sender = ChromiumSender::new(ctx, spec.url.clone(), client);
         let embedding_helper = EmbeddingHelper::new(ctx, chromium_sender, spec.embedding_method);
+        let render_website_shader = WebRendererShader::new(&ctx.wgpu_ctx)?;
 
-        let render_website_shader = WgpuShader::new(
-            &ctx.wgpu_ctx,
-            include_str!("web_renderer/render_website.wgsl").into(),
-        )?;
         let shader_params = Mutex::new(ParamsBuffer::new(Bytes::new(), &ctx.wgpu_ctx));
         let website_texture = BGRATexture::new(&ctx.wgpu_ctx, spec.resolution);
 
@@ -136,7 +137,7 @@ impl WebRenderer {
             let mut shader_params = self.shader_params.lock().unwrap();
             shader_params.update(textures_info, ctx.wgpu_ctx);
 
-            self.render_website_shader.render_with_textures(
+            self.render_website_shader.render(
                 shader_params.bind_group(),
                 &textures,
                 target,

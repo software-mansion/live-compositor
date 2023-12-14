@@ -65,7 +65,7 @@ impl YUVTextures {
 
     fn new_plane(ctx: &WgpuCtx, width: usize, height: usize) -> Texture {
         Texture::new(
-            ctx,
+            &ctx.device,
             None,
             wgpu::Extent3d {
                 width: width as u32,

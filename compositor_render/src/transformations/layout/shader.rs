@@ -7,7 +7,7 @@ use crate::{
     wgpu::{
         common_pipeline::Sampler,
         shader::{pipeline, CreateShaderError},
-        texture::{NodeTexture, NodeTextureState, Texture},
+        texture::{NodeTexture, NodeTextureState},
         WgpuCtx, WgpuErrorScope,
     },
 };
@@ -19,8 +19,6 @@ pub struct LayoutShader {
     pipeline: wgpu::RenderPipeline,
     sampler: Sampler,
     textures_bgl: wgpu::BindGroupLayout,
-
-    empty_texture: Texture,
 }
 
 impl LayoutShader {
@@ -78,13 +76,10 @@ impl LayoutShader {
             &shader_module,
         );
 
-        let empty_texture = Texture::empty(wgpu_ctx);
-
         Ok(Self {
             pipeline,
             sampler,
             textures_bgl,
-            empty_texture,
         })
     }
 
@@ -100,12 +95,13 @@ impl LayoutShader {
             .iter()
             .map(|(_id, texture)| match texture.state() {
                 Some(texture) => &texture.rgba_texture().texture().view,
-                None => &self.empty_texture.view,
+                None => &wgpu_ctx.empty_texture.view,
             })
             .collect::<Vec<_>>();
 
         texture_views.extend(
-            (texture_views.len()..INPUT_TEXTURES_AMOUNT as usize).map(|_| &self.empty_texture.view),
+            (texture_views.len()..INPUT_TEXTURES_AMOUNT as usize)
+                .map(|_| &wgpu_ctx.empty_texture.view),
         );
 
         let input_textures_bg = wgpu_ctx

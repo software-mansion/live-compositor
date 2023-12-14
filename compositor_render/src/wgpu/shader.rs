@@ -12,9 +12,8 @@ use super::{
     WgpuCtx, WgpuError, WgpuErrorScope,
 };
 
-pub(super) mod common_params;
+pub(crate) mod common_params;
 pub(crate) mod pipeline;
-pub(crate) mod shader_params;
 
 const INPUT_TEXTURES_AMOUNT: u32 = 16;
 
@@ -51,7 +50,6 @@ pub enum CreateShaderError {
 pub struct WgpuShader {
     pub wgpu_ctx: Arc<WgpuCtx>,
     pipeline: Pipeline,
-    empty_texture: Texture,
     shader: naga::Module,
 }
 
@@ -69,14 +67,12 @@ impl WgpuShader {
             wgpu::ShaderSource::Naga(std::borrow::Cow::Owned(shader.clone())),
             &wgpu_ctx.shader_parameters_bind_group_layout,
         );
-        let empty_texture = Texture::empty(wgpu_ctx);
 
         scope.pop(&wgpu_ctx.device)?;
 
         Ok(Self {
             wgpu_ctx: wgpu_ctx.clone(),
             pipeline,
-            empty_texture,
             shader,
         })
     }
@@ -133,12 +129,13 @@ impl WgpuShader {
             .iter()
             .map(|texture| match texture {
                 Some(texture) => &texture.view,
-                None => &self.empty_texture.view,
+                None => &self.wgpu_ctx.empty_texture.view,
             })
             .collect::<Vec<_>>();
 
         texture_views.extend(
-            (textures.len()..INPUT_TEXTURES_AMOUNT as usize).map(|_| &self.empty_texture.view),
+            (textures.len()..INPUT_TEXTURES_AMOUNT as usize)
+                .map(|_| &self.wgpu_ctx.empty_texture.view),
         );
 
         let input_textures_bg = ctx.device.create_bind_group(&wgpu::BindGroupDescriptor {
