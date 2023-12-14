@@ -91,8 +91,8 @@ impl StatefulViewComponent {
         }
     }
 
-    pub(super) fn layout(&self, size: Size, pts: Duration) -> NestedLayout {
-        self.view(pts).layout(size, &self.children, pts)
+    pub(super) fn layout(&mut self, size: Size, pts: Duration) -> NestedLayout {
+        self.view(pts).layout(size, &mut self.children, pts)
     }
 }
 

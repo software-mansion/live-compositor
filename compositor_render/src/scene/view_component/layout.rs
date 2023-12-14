@@ -28,7 +28,7 @@ impl ViewComponentParam {
     pub(super) fn layout(
         &self,
         size: Size,
-        children: &[StatefulComponent],
+        children: &mut [StatefulComponent],
         pts: Duration,
     ) -> NestedLayout {
         let static_child_size = self.static_child_size(size, children, pts);
@@ -54,11 +54,11 @@ impl ViewComponentParam {
         let mut static_offset = 0.0;
 
         let children: Vec<_> = children
-            .iter()
+            .iter_mut()
             .map(|child| {
                 let position = match child {
                     StatefulComponent::Layout(layout) => layout.position(pts),
-                    non_layout_component => Position::Static {
+                    ref non_layout_component => Position::Static {
                         width: non_layout_component.width(pts),
                         height: non_layout_component.height(pts),
                     },
@@ -105,7 +105,7 @@ impl ViewComponentParam {
 
     fn layout_static_child(
         &self,
-        child: &StatefulComponent,
+        child: &mut StatefulComponent,
         opts: StaticChildLayoutOpts,
         pts: Duration,
     ) -> (NestedLayout, f32) {

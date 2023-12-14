@@ -234,6 +234,193 @@ pub fn tiles_snapshot_tests() -> Vec<TestCase> {
     let portrait_input15 = TestInput::new_with_resolution(15, portrait_resolution);
     Vec::from([
         TestCase {
+            name: "tiles_transitions/tile_resize_entire_component_with_parent_transition",
+            outputs: Outputs::Scenes(vec![
+                vec![(
+                    include_str!("../../snapshot_tests/tiles_transitions/start_tile_resize.scene.json"),
+                    DEFAULT_RESOLUTION,
+                )],
+                vec![(
+                    include_str!("../../snapshot_tests/tiles_transitions/end_tile_resize_with_view_transition.scene.json"),
+                    DEFAULT_RESOLUTION,
+                )]
+            ]),
+            inputs: vec![
+                input1.clone(),
+                input2.clone(),
+                input3.clone(),
+            ],
+            timestamps: vec![
+                Duration::from_millis(0),
+                Duration::from_millis(150),
+                Duration::from_millis(350),
+                // TODO: This transition does not look great, but it would require automatic
+                // transitions triggered by a size change (not scene update)
+                Duration::from_millis(450),
+                Duration::from_millis(500),
+            ],
+            ..Default::default()
+        },
+        TestCase {
+            name: "tiles_transitions/tile_resize_entire_component_without_parent_transition",
+            outputs: Outputs::Scenes(vec![
+                vec![(
+                    include_str!("../../snapshot_tests/tiles_transitions/start_tile_resize.scene.json"),
+                    DEFAULT_RESOLUTION,
+                )],
+                vec![(
+                    include_str!("../../snapshot_tests/tiles_transitions/end_tile_resize.scene.json"),
+                    DEFAULT_RESOLUTION,
+                )]
+            ]),
+            inputs: vec![
+                input1.clone(),
+                input2.clone(),
+                input3.clone(),
+            ],
+            timestamps: vec![
+                Duration::from_millis(0),
+                Duration::from_millis(150),
+                Duration::from_millis(350),
+                Duration::from_millis(500),
+            ],
+            ..Default::default()
+        },
+        TestCase {
+            name: "tiles_transitions/change_order_of_3_inputs_with_id",
+            outputs: Outputs::Scenes(vec![
+                vec![(
+                    include_str!("../../snapshot_tests/tiles_transitions/start_with_3_inputs_all_id.scene.json"),
+                    DEFAULT_RESOLUTION,
+                )],
+                vec![(
+                    include_str!("../../snapshot_tests/tiles_transitions/end_with_3_inputs_3_id_different_order.scene.json"),
+                    DEFAULT_RESOLUTION,
+                )]
+            ]),
+            inputs: vec![
+                input1.clone(),
+                input2.clone(),
+                input3.clone(),
+            ],
+            timestamps: vec![
+                Duration::from_millis(0),
+                Duration::from_millis(150),
+                Duration::from_millis(350),
+                Duration::from_millis(500),
+            ],
+            ..Default::default()
+        },
+        TestCase {
+            name: "tiles_transitions/replace_component_by_adding_id",
+            outputs: Outputs::Scenes(vec![
+                vec![(
+                    include_str!("../../snapshot_tests/tiles_transitions/start_with_3_inputs_no_id.scene.json"),
+                    DEFAULT_RESOLUTION,
+                )],
+                vec![(
+                    include_str!("../../snapshot_tests/tiles_transitions/end_with_3_inputs_1_id.scene.json"),
+                    DEFAULT_RESOLUTION,
+                )]
+            ]),
+            inputs: vec![
+                input1.clone(),
+                input2.clone(),
+                input3.clone(),
+                input4.clone(),
+            ],
+            timestamps: vec![
+                Duration::from_millis(0),
+                Duration::from_millis(150),
+                Duration::from_millis(350),
+                Duration::from_millis(500),
+            ],
+            ..Default::default()
+        },
+        TestCase {
+            name: "tiles_transitions/add_2_inputs_at_the_end_to_3_tiles_scene",
+            outputs: Outputs::Scenes(vec![
+                vec![(
+                    include_str!("../../snapshot_tests/tiles_transitions/start_with_3_inputs_no_id.scene.json"),
+                    DEFAULT_RESOLUTION,
+                )],
+                vec![(
+                    include_str!("../../snapshot_tests/tiles_transitions/end_with_5_inputs_no_id.scene.json"),
+                    DEFAULT_RESOLUTION,
+                )]
+            ]),
+            inputs: vec![
+                input1.clone(),
+                input2.clone(),
+                input3.clone(),
+                input4.clone(),
+                input5.clone(),
+            ],
+            timestamps: vec![
+                Duration::from_millis(0),
+                Duration::from_millis(150),
+                Duration::from_millis(350),
+                Duration::from_millis(500),
+            ],
+            ..Default::default()
+        },
+       TestCase {
+            name: "tiles_transitions/add_input_on_2nd_pos_to_3_tiles_scene",
+            outputs: Outputs::Scenes(vec![
+                vec![(
+                    include_str!("../../snapshot_tests/tiles_transitions/start_with_3_inputs_no_id.scene.json"),
+                    DEFAULT_RESOLUTION,
+                )],
+                vec![(
+                    include_str!("../../snapshot_tests/tiles_transitions/end_with_4_inputs_1_id.scene.json"),
+                    DEFAULT_RESOLUTION,
+                )]
+            ]),
+            inputs: vec![
+                input1.clone(),
+                input2.clone(),
+                input3.clone(),
+                input4.clone(),
+            ],
+            timestamps: vec![
+                Duration::from_millis(0),
+                Duration::from_millis(150),
+                Duration::from_millis(350),
+                Duration::from_millis(500),
+            ],
+            ..Default::default()
+        },
+        TestCase {
+            name: "tiles_transitions/add_input_at_the_end_to_3_tiles_scene",
+            outputs: Outputs::Scenes(vec![
+                vec![(
+                    include_str!("../../snapshot_tests/tiles_transitions/start_with_3_inputs_no_id.scene.json"),
+                    DEFAULT_RESOLUTION,
+                )],
+                vec![(
+                    include_str!("../../snapshot_tests/tiles_transitions/end_with_4_inputs_no_id.scene.json"),
+                    DEFAULT_RESOLUTION,
+                )],
+                vec![(
+                    include_str!("../../snapshot_tests/tiles_transitions/after_end_with_4_inputs_no_id.scene.json"),
+                    DEFAULT_RESOLUTION,
+                )]
+            ]),
+            inputs: vec![
+                input1.clone(),
+                input2.clone(),
+                input3.clone(),
+                input4.clone(),
+            ],
+            timestamps: vec![
+                Duration::from_millis(0),
+                Duration::from_millis(150),
+                Duration::from_millis(350),
+                Duration::from_millis(500),
+            ],
+            ..Default::default()
+        },
+        TestCase {
             name: "tiles/01_inputs",
             outputs: Outputs::Scene(vec![(
                 include_str!("../../snapshot_tests/tiles/01_inputs.scene.json"),

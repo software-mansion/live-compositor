@@ -87,8 +87,9 @@ impl StatefulRescalerComponent {
         }
     }
 
-    pub(super) fn layout(&self, size: Size, pts: Duration) -> NestedLayout {
-        self.transition_snapshot(pts).layout(size, &self.child, pts)
+    pub(super) fn layout(&mut self, size: Size, pts: Duration) -> NestedLayout {
+        self.transition_snapshot(pts)
+            .layout(size, &mut self.child, pts)
     }
 }
 
