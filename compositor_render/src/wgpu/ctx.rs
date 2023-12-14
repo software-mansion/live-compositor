@@ -1,8 +1,8 @@
 use log::error;
 
 use super::{
-    common_pipeline::plane::PlaneCache, format::TextureFormat, shader::WgpuShader,
-    texture::Texture, utils::TextureUtils, CreateWgpuCtxError, WgpuErrorScope,
+    common_pipeline::plane::PlaneCache, format::TextureFormat, texture::Texture,
+    utils::TextureUtils, CreateWgpuCtxError, WgpuErrorScope,
 };
 
 #[derive(Debug)]
@@ -59,8 +59,7 @@ impl WgpuCtx {
         let format = TextureFormat::new(&device);
         let utils = TextureUtils::new(&device);
 
-        let shader_parameters_bind_group_layout =
-            WgpuShader::new_parameters_bind_group_layout(&device);
+        let shader_parameters_bind_group_layout = Self::parameters_bind_group_layout(&device);
 
         let plane_cache = PlaneCache::new(&device);
         let empty_texture = Texture::empty(&device);
@@ -80,6 +79,22 @@ impl WgpuCtx {
             shader_parameters_bind_group_layout,
             plane_cache,
             empty_texture,
+        })
+    }
+
+    fn parameters_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+        device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("shader parameters bind group layout"),
+            entries: &[wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                count: None,
+                visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+            }],
         })
     }
 }
