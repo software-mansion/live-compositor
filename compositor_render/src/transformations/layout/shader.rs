@@ -1,7 +1,5 @@
 use std::sync::Arc;
 
-use wgpu::ShaderSource;
-
 use crate::{
     state::render_graph::NodeId,
     wgpu::{
@@ -25,16 +23,12 @@ pub struct LayoutShader {
 
 impl LayoutShader {
     pub fn new(wgpu_ctx: &Arc<WgpuCtx>) -> Result<Self, CreateShaderError> {
-        let shader_src = include_str!("./apply_layouts.wgsl");
-
         let scope = WgpuErrorScope::push(&wgpu_ctx.device);
 
-        let shader_module =
-            naga::front::wgsl::parse_str(shader_src).map_err(CreateShaderError::ParseError)?;
-        let result = Self::new_pipeline(
-            wgpu_ctx,
-            wgpu::ShaderSource::Naga(std::borrow::Cow::Owned(shader_module.clone())),
-        )?;
+        let shader_module = wgpu_ctx
+            .device
+            .create_shader_module(wgpu::include_wgsl!("./apply_layouts.wgsl"));
+        let result = Self::new_pipeline(wgpu_ctx, shader_module)?;
 
         scope.pop(&wgpu_ctx.device)?;
 
@@ -43,7 +37,7 @@ impl LayoutShader {
 
     fn new_pipeline(
         wgpu_ctx: &Arc<WgpuCtx>,
-        shader_src: ShaderSource,
+        shader_module: wgpu::ShaderModule,
     ) -> Result<Self, CreateShaderError> {
         let sampler = Sampler::new(&wgpu_ctx.device);
 
@@ -64,13 +58,6 @@ impl LayoutShader {
                     ],
                     push_constant_ranges: &[],
                 });
-
-        let shader_module = wgpu_ctx
-            .device
-            .create_shader_module(wgpu::ShaderModuleDescriptor {
-                label: None,
-                source: shader_src,
-            });
 
         let pipeline = pipeline::Pipeline::create_render_pipeline(
             &wgpu_ctx.device,
