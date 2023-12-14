@@ -47,5 +47,5 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
     // clamp transparent, when crop > input texture
     let is_inside: f32 = round(f32(input.tex_coords.x < 1.0 && input.tex_coords.x > 0.0 && input.tex_coords.y > 0.0 && input.tex_coords.y < 1.0));
     
-    return is_inside * textureSample(texture, sampler_, input.tex_coords) + (1.0 - is_inside) * vec4<f32>(0.0, 0.0, 0.0, 0.0);
+    return is_inside * textureSample(texture, sampler_, input.tex_coords);
 }
