@@ -19,6 +19,7 @@ use self::{
 };
 
 pub(crate) use layout_renderer::LayoutRenderer;
+use log::error;
 pub(crate) use transformation_matrices::{vertices_transformation_matrix, Position};
 
 pub(crate) trait LayoutProvider: Send {
@@ -117,22 +118,20 @@ impl LayoutNode {
             .layouts(pts, &input_resolutions)
             .flatten(&input_resolutions, output_resolution);
 
-        let layout_count = layouts.len();
-
         let params: Vec<LayoutNodeParams> = layouts
             .iter()
             .map(|layout| {
-                let (texture_id, background_color, input_resolution) = match layout.content {
+                let (is_texture, background_color, input_resolution) = match layout.content {
                     RenderLayoutContent::ChildNode { index, .. } => (
-                        index as i32,
+                        1,
                         RGBAColor(0, 0, 0, 0),
                         *input_resolutions.get(index).unwrap_or(&None),
                     ),
-                    RenderLayoutContent::Color(color) => (-1, color, None),
+                    RenderLayoutContent::Color(color) => (0, color, None),
                 };
 
                 LayoutNodeParams {
-                    texture_id,
+                    is_texture,
                     background_color,
                     transform_vertices_matrix: layout
                         .vertices_transformation_matrix(&output_resolution),
@@ -143,13 +142,22 @@ impl LayoutNode {
             .collect();
         self.params.update(params, ctx.wgpu_ctx);
 
+        let textures: Vec<Option<&NodeTexture>> = layouts
+            .iter()
+            .map(|layout| match layout.content {
+                RenderLayoutContent::Color(_) => None,
+                RenderLayoutContent::ChildNode { index, .. } => match sources.get(index) {
+                    Some((_node_id, node_texture)) => Some(*node_texture),
+                    None => {
+                        error!("Invalid source index in layout");
+                        None
+                    }
+                },
+            })
+            .collect();
+
         let target = target.ensure_size(ctx.wgpu_ctx, output_resolution);
-        self.shader.render(
-            ctx.wgpu_ctx,
-            self.params.bind_group(),
-            sources,
-            target,
-            layout_count as u32,
-        );
+        self.shader
+            .render(ctx.wgpu_ctx, self.params.bind_group(), &textures, target);
     }
 }
