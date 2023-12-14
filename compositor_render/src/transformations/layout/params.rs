@@ -7,7 +7,7 @@ use crate::{scene::RGBAColor, wgpu::WgpuCtx};
 pub(super) struct LayoutNodeParams {
     pub(super) transform_vertices_matrix: Mat4,
     pub(super) transform_texture_coords_matrix: Mat4,
-    pub(super) texture_id: i32,
+    pub(super) is_texture: u32,
     pub(super) background_color: RGBAColor,
 }
 
@@ -81,7 +81,7 @@ impl LayoutNodeParams {
         let Self {
             transform_vertices_matrix,
             transform_texture_coords_matrix,
-            texture_id,
+            is_texture,
             background_color,
         } = self;
         let mut result = [0; 160];
@@ -99,7 +99,7 @@ impl LayoutNodeParams {
         result[136..140].copy_from_slice(&from_u8_color(background_color.2));
         result[140..144].copy_from_slice(&from_u8_color(background_color.3));
 
-        result[144..148].copy_from_slice(&texture_id.to_ne_bytes());
+        result[144..148].copy_from_slice(&is_texture.to_ne_bytes());
         // 12 bytes padding
 
         result
