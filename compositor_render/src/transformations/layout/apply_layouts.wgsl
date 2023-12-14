@@ -41,7 +41,7 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
 
     // sampling can't be conditional, so in case of texture_id == -1
     // sample textures[0], but ignore the result.
-    if current_layout.is_texture == 0 {
+    if (current_layout.is_texture == 0u) {
         return current_layout.color;
     }
     // clamp transparent, when crop > input texture
