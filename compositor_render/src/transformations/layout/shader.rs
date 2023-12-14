@@ -5,7 +5,7 @@ use wgpu::ShaderStages;
 use crate::wgpu::{
     common_pipeline::Sampler,
     shader::{pipeline, CreateShaderError},
-    texture::{NodeTexture, NodeTextureState, Texture},
+    texture::{NodeTexture, NodeTextureState},
     WgpuCtx, WgpuErrorScope,
 };
 
@@ -14,8 +14,6 @@ pub struct LayoutShader {
     pipeline: wgpu::RenderPipeline,
     sampler: Sampler,
     texture_bgl: wgpu::BindGroupLayout,
-
-    empty_texture: Texture,
 }
 
 impl LayoutShader {
@@ -77,13 +75,10 @@ impl LayoutShader {
             &shader_module,
         );
 
-        let empty_texture = Texture::empty(&wgpu_ctx.device);
-
         Ok(Self {
             pipeline,
             sampler,
             texture_bgl,
-            empty_texture,
         })
     }
 
@@ -100,7 +95,7 @@ impl LayoutShader {
                 texture
                     .and_then(|texture| texture.state())
                     .map(|state| &state.rgba_texture().texture().view)
-                    .unwrap_or(&self.empty_texture.view)
+                    .unwrap_or(&wgpu_ctx.empty_texture.view)
             })
             .map(|view| {
                 wgpu_ctx
