@@ -22,7 +22,6 @@ const USER_DEFINED_BUFFER_GROUP: u32 = 1;
 
 #[derive(Debug)]
 pub(super) struct ShaderPipeline {
-    wgpu_ctx: Arc<WgpuCtx>,
     pipeline: wgpu::RenderPipeline,
     sampler: Sampler,
     textures_bgl: wgpu::BindGroupLayout,
@@ -120,53 +119,23 @@ impl ShaderPipeline {
             sampler,
             textures_bgl,
             module,
-            wgpu_ctx: wgpu_ctx.clone(),
         })
     }
 
     pub fn render(
         &self,
+        wgpu_ctx: &Arc<WgpuCtx>,
         params: &wgpu::BindGroup,
         sources: &[(&NodeId, &NodeTexture)],
         target: &NodeTextureState,
         pts: Duration,
         clear_color: Option<wgpu::Color>,
     ) {
-        let mut texture_views: Vec<&wgpu::TextureView> = sources
-            .iter()
-            .map(|(_, texture)| {
-                texture
-                    .state()
-                    .map(NodeTextureState::rgba_texture)
-                    .map(RGBATexture::texture)
-                    .map_or(&self.wgpu_ctx.empty_texture.view, |texture| &texture.view)
-            })
-            .collect();
-
-        texture_views.extend(
-            (sources.len()..super::SHADER_INPUT_TEXTURES_AMOUNT as usize)
-                .map(|_| &self.wgpu_ctx.empty_texture.view),
-        );
-
-        let input_textures_bg =
-            self.wgpu_ctx
-                .device
-                .create_bind_group(&wgpu::BindGroupDescriptor {
-                    layout: &self.textures_bgl,
-                    label: None,
-                    entries: &[wgpu::BindGroupEntry {
-                        binding: 0,
-                        resource: wgpu::BindingResource::TextureViewArray(&texture_views),
-                    }],
-                });
-
+        let input_textures_bg = self.input_textures_bg(wgpu_ctx, sources);
         let common_shader_params =
             CommonShaderParameters::new(pts, sources.len() as u32, target.resolution());
 
-        let mut encoder = self
-            .wgpu_ctx
-            .device
-            .create_command_encoder(&Default::default());
+        let mut encoder = wgpu_ctx.device.create_command_encoder(&Default::default());
         let clear_color = clear_color.unwrap_or(wgpu::Color::TRANSPARENT);
 
         let mut render_plane = |input_id: i32, clear: bool| {
@@ -197,7 +166,7 @@ impl ShaderPipeline {
             render_pass.set_bind_group(USER_DEFINED_BUFFER_GROUP, params, &[]);
             render_pass.set_bind_group(2, &self.sampler.bind_group, &[]);
 
-            self.wgpu_ctx
+            wgpu_ctx
                 .plane_cache
                 .plane(input_id)
                 .unwrap()
@@ -216,7 +185,7 @@ impl ShaderPipeline {
         // TODO: this should not submit, it should return the command buffer.
         //       the buffer should then be put in an array with other command
         //       buffers and submitted as a whole
-        self.wgpu_ctx.queue.submit(Some(encoder.finish()));
+        wgpu_ctx.queue.submit(Some(encoder.finish()));
     }
 
     pub fn validate_params(&self, params: &ShaderParam) -> Result<(), ParametersValidationError> {
@@ -236,5 +205,38 @@ impl ShaderPipeline {
             .ok_or(ParametersValidationError::NoBindingInShader)?;
 
         crate::wgpu::validation::validate_params(params, ty, &self.module)
+    }
+
+    fn input_textures_bg(
+        &self,
+        wgpu_ctx: &Arc<WgpuCtx>,
+        sources: &[(&NodeId, &NodeTexture)],
+    ) -> wgpu::BindGroup {
+        let mut texture_views: Vec<&wgpu::TextureView> = sources
+            .iter()
+            .map(|(_, texture)| {
+                texture
+                    .state()
+                    .map(NodeTextureState::rgba_texture)
+                    .map(RGBATexture::texture)
+                    .map_or(&wgpu_ctx.empty_texture.view, |texture| &texture.view)
+            })
+            .collect();
+
+        texture_views.extend(
+            (sources.len()..super::SHADER_INPUT_TEXTURES_AMOUNT as usize)
+                .map(|_| &wgpu_ctx.empty_texture.view),
+        );
+
+        wgpu_ctx
+            .device
+            .create_bind_group(&wgpu::BindGroupDescriptor {
+                layout: &self.textures_bgl,
+                label: None,
+                entries: &[wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::TextureViewArray(&texture_views),
+                }],
+            })
     }
 }

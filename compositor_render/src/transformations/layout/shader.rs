@@ -120,27 +120,7 @@ impl LayoutShader {
         textures: &[Option<&NodeTexture>],
         target: &NodeTextureState,
     ) {
-        let input_texture_bgs: Vec<wgpu::BindGroup> = textures
-            .iter()
-            .map(|texture| {
-                texture
-                    .and_then(|texture| texture.state())
-                    .map(|state| &state.rgba_texture().texture().view)
-                    .unwrap_or(&wgpu_ctx.empty_texture.view)
-            })
-            .map(|view| {
-                wgpu_ctx
-                    .device
-                    .create_bind_group(&wgpu::BindGroupDescriptor {
-                        layout: &self.texture_bgl,
-                        label: None,
-                        entries: &[wgpu::BindGroupEntry {
-                            binding: 0,
-                            resource: wgpu::BindingResource::TextureView(view),
-                        }],
-                    })
-            })
-            .collect();
+        let input_texture_bgs: Vec<wgpu::BindGroup> = self.input_textures_bg(wgpu_ctx, textures);
 
         let mut encoder = wgpu_ctx.device.create_command_encoder(&Default::default());
         {
@@ -179,5 +159,33 @@ impl LayoutShader {
             }
         }
         wgpu_ctx.queue.submit(Some(encoder.finish()));
+    }
+
+    fn input_textures_bg(
+        &self,
+        wgpu_ctx: &Arc<WgpuCtx>,
+        textures: &[Option<&NodeTexture>],
+    ) -> Vec<wgpu::BindGroup> {
+        textures
+            .iter()
+            .map(|texture| {
+                texture
+                    .and_then(|texture| texture.state())
+                    .map(|state| &state.rgba_texture().texture().view)
+                    .unwrap_or(&wgpu_ctx.empty_texture.view)
+            })
+            .map(|view| {
+                wgpu_ctx
+                    .device
+                    .create_bind_group(&wgpu::BindGroupDescriptor {
+                        layout: &self.texture_bgl,
+                        label: None,
+                        entries: &[wgpu::BindGroupEntry {
+                            binding: 0,
+                            resource: wgpu::BindingResource::TextureView(view),
+                        }],
+                    })
+            })
+            .collect()
     }
 }

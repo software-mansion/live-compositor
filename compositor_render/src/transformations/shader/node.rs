@@ -83,6 +83,7 @@ impl ShaderNode {
         let target = target.ensure_size(&self.wgpu_ctx, self.resolution);
 
         self.shader.pipeline.render(
+            &self.wgpu_ctx,
             &self.params_bind_group,
             sources,
             target,
