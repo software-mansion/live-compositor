@@ -5,7 +5,7 @@ use crate::{scene::ShaderParam, state::render_graph::NodeId};
 use self::{common_params::CommonShaderParameters, pipeline::Pipeline};
 
 use super::{
-    texture::{NodeTexture, NodeTextureState, RGBATexture, Texture},
+    texture::{NodeTexture, NodeTextureState, RGBATexture},
     validation::{
         validate_contains_header, validate_params, ParametersValidationError, ShaderValidationError,
     },
@@ -110,42 +110,34 @@ impl WgpuShader {
                     .map(RGBATexture::texture)
             })
             .collect::<Vec<_>>();
-        self.render_with_textures(params, &textures, target, pts, clear_color);
-    }
 
-    pub fn render_with_textures(
-        &self,
-        params: &wgpu::BindGroup,
-        textures: &[Option<&Texture>],
-        target: &NodeTextureState,
-        pts: Duration,
-        clear_color: Option<wgpu::Color>,
-    ) {
-        let ctx = &self.wgpu_ctx;
-
-        // TODO: most things that happen in this method should not be done every frame
-
-        let mut texture_views = textures
+        let mut texture_views: Vec<&wgpu::TextureView> = sources
             .iter()
-            .map(|texture| match texture {
-                Some(texture) => &texture.view,
-                None => &self.wgpu_ctx.empty_texture.view,
+            .map(|(_, texture)| {
+                texture
+                    .state()
+                    .map(NodeTextureState::rgba_texture)
+                    .map(RGBATexture::texture)
+                    .map_or(&self.wgpu_ctx.empty_texture.view, |texture| &texture.view)
             })
-            .collect::<Vec<_>>();
+            .collect();
 
         texture_views.extend(
             (textures.len()..INPUT_TEXTURES_AMOUNT as usize)
                 .map(|_| &self.wgpu_ctx.empty_texture.view),
         );
 
-        let input_textures_bg = ctx.device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout: &self.pipeline.textures_bgl,
-            label: None,
-            entries: &[wgpu::BindGroupEntry {
-                binding: 0,
-                resource: wgpu::BindingResource::TextureViewArray(&texture_views),
-            }],
-        });
+        let input_textures_bg =
+            self.wgpu_ctx
+                .device
+                .create_bind_group(&wgpu::BindGroupDescriptor {
+                    layout: &self.pipeline.textures_bgl,
+                    label: None,
+                    entries: &[wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: wgpu::BindingResource::TextureViewArray(&texture_views),
+                    }],
+                });
 
         let common_shader_params =
             CommonShaderParameters::new(pts, textures.len() as u32, target.resolution());
@@ -154,7 +146,7 @@ impl WgpuShader {
             &input_textures_bg,
             params,
             target.rgba_texture().texture(),
-            ctx,
+            &self.wgpu_ctx,
             common_shader_params,
             clear_color,
         );
