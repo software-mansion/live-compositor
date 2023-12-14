@@ -6,11 +6,8 @@ use crate::{
     scene::ShaderParam,
     state::render_graph::NodeId,
     wgpu::{
-        common_pipeline::{Sampler, Vertex},
-        shader::{
-            common_params::CommonShaderParameters, CreateShaderError, FRAGMENT_ENTRYPOINT_NAME,
-            VERTEX_ENTRYPOINT_NAME,
-        },
+        common_pipeline::{common_params::CommonShaderParameters, Sampler, Vertex},
+        shader::{CreateShaderError, FRAGMENT_ENTRYPOINT_NAME, VERTEX_ENTRYPOINT_NAME},
         texture::{NodeTexture, NodeTextureState, RGBATexture},
         validation::{validate_contains_header, ParametersValidationError},
         WgpuCtx, WgpuErrorScope,

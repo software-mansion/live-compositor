@@ -1,5 +1,6 @@
 use wgpu::{util::DeviceExt, BindGroup, BindGroupLayout, Buffer};
 
+pub mod common_params;
 pub mod plane;
 pub mod shader_params;
 

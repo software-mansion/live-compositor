@@ -3,11 +3,8 @@ use std::{num::NonZeroU32, sync::Arc, time::Duration};
 use wgpu::ShaderStages;
 
 use crate::wgpu::{
-    common_pipeline::{Sampler, Vertex},
-    shader::{
-        common_params::CommonShaderParameters, CreateShaderError, FRAGMENT_ENTRYPOINT_NAME,
-        VERTEX_ENTRYPOINT_NAME,
-    },
+    common_pipeline::{common_params::CommonShaderParameters, Sampler, Vertex},
+    shader::{CreateShaderError, FRAGMENT_ENTRYPOINT_NAME, VERTEX_ENTRYPOINT_NAME},
     texture::{NodeTextureState, Texture},
     WgpuCtx, WgpuErrorScope,
 };

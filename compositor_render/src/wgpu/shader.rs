@@ -1,7 +1,5 @@
 use super::{validation::ShaderValidationError, WgpuError};
 
-pub(crate) mod common_params;
-
 pub const VERTEX_ENTRYPOINT_NAME: &str = "vs_main";
 pub const FRAGMENT_ENTRYPOINT_NAME: &str = "fs_main";
 
