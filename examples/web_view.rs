@@ -5,7 +5,7 @@ use serde_json::json;
 use std::{
     env, fs,
     process::{Command, Stdio},
-    thread,
+    thread::{self, sleep},
     time::Duration,
 };
 use video_compositor::{http, types::Resolution};
@@ -68,6 +68,9 @@ fn start_example_client_code() -> Result<()> {
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .spawn()?;
+
+    // Letting ffplay start up and open receiving socket
+    sleep(Duration::from_secs(1));
 
     info!("[example] Download sample.");
     let sample_path = env::current_dir()?.join(SAMPLE_FILE_PATH);
