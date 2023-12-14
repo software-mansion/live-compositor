@@ -116,6 +116,8 @@ fn start_example_client_code() -> Result<()> {
         }]
     }))?;
 
+    std::thread::sleep(Duration::from_millis(500));
+
     info!("[example] Start pipeline");
     common::post(&json!({
         "type": "start",
@@ -127,9 +129,11 @@ fn start_example_client_code() -> Result<()> {
         .args([
             "-an",
             "-c:v",
-            "libx264",
+            "copy",
             "-f",
             "rtp",
+            "-bsf:v",
+            "h264_mp4toannexb",
             "rtp://127.0.0.1:8004?rtcpport=8004",
         ])
         .spawn()?;
