@@ -8,11 +8,11 @@ There are two kinds of shaders that are used in the video compositor: vertex sha
 
 ### Vertex shaders
 
-Vertex shaders receive the data of a single vertex as input. It can manipulate them to make them form the shape we want to see as the output. 
+Vertex shaders receive the data of a single vertex as input. It can manipulate them to make them form the shape we want to see as the output.
 
 The videos are represented in vertex shaders as two triangles, aligned like so:
 
-```
+```console
  ______
 |     /|
 |    / |
