@@ -39,7 +39,7 @@ fn vs_main(input: VertexInput) -> VertexOutput {
 fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
     let current_layout = layouts[layout_id];
 
-    // sampling can't be conditional, so in case of texture_id == -1
+    // sampling can't be conditional, so in case of plane_id == -1
     // sample textures[0], but ignore the result.
     if (current_layout.is_texture == 0u) {
         return current_layout.color;

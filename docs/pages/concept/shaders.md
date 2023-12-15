@@ -24,9 +24,12 @@ The videos are represented in vertex shaders as two triangles, aligned like so:
 
 The rectangle formed by these triangles spans the whole clip space, i.e. [-1, 1] X [-1, 1].
 
-Each video passed in as input gets a separate rectangle, with the field `texture_id` describing which video this is.
+Each video passed in as input gets a separate rectangle.
+`plane_id` in `base_params` `push_constant` represents number of currently rendered plane (texture).
 
-Since the compositor doesn't deal with complex geometry and most positioning/resizing/cropping should be taken care of by [builtin transformations](https://github.com/membraneframework/video_compositor/wiki/API-%E2%80%90-nodes#built-in-transformations), we don't expect the users to write nontrivial vertex shaders very often. For just applying some effects to the video, fragment shaders are the way to go. This vertex shader should take care of most of your needs (for transformations that receive a single video and only process it in the fragment shader):
+If there are no input textures, `plane_id` is equal to -1 and a single rectangle is passed into shader. It's useful for shaders only generating something in fragment shader.
+
+Since the compositor doesn't deal with complex geometry and most positioning/resizing/cropping should be taken care of by [layouts](https://compositor.live/docs/concept/layouts), we don't expect the users to write nontrivial vertex shaders very often. For just applying some effects to the video, fragment shaders are the way to go. This vertex shader should take care of most of your needs (for transformations that receive a single video and only process it in the fragment shader):
 
 ```wgsl
 struct VertexOutput {
@@ -80,11 +83,11 @@ Every user-provided shader should include the code below.
 struct VertexInput {
     @location(0) position: vec3<f32>,
     @location(1) tex_coords: vec2<f32>,
-    @location(2) texture_id: i32,
 }
 
 struct BaseShaderParameters {
     time: f32,
+    plane_id: i32,
     texture_count: u32,
     output_resolution: vec2<u32>,
 }
@@ -97,7 +100,7 @@ var<push_constant> base_params: BaseShaderParameters;
 
 ### Custom parameters
 
-You can define a custom WGSL struct and bind a value of this type as 
+You can define a custom WGSL struct and bind a value of this type as
 
 ```wgsl
 @group(1) @binding(0) var<uniform> custom_name: CustomStruct;
