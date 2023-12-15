@@ -77,7 +77,7 @@ impl R8FillWithValue {
 
             render_pass.set_pipeline(&self.pipeline);
             render_pass.set_push_constants(ShaderStages::FRAGMENT, 0, bytemuck::bytes_of(&value));
-            ctx.plane_cache.non_indexed_plane().draw(&mut render_pass);
+            ctx.plane.draw(&mut render_pass);
         }
 
         ctx.queue.submit(Some(encoder.finish()));

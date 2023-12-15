@@ -5,13 +5,19 @@ use crate::Resolution;
 #[repr(C)]
 #[derive(Debug, bytemuck::Pod, bytemuck::Zeroable, Clone, Copy)]
 pub struct BaseShaderParameters {
+    plane_id: i32,
     time: f32,
-    pub texture_count: u32,
+    texture_count: u32,
     output_resolution: [u32; 2],
 }
 
 impl BaseShaderParameters {
-    pub fn new(time: Duration, texture_count: u32, output_resolution: Resolution) -> Self {
+    pub fn new(
+        plane_id: i32,
+        time: Duration,
+        texture_count: u32,
+        output_resolution: Resolution,
+    ) -> Self {
         Self {
             time: time.as_secs_f32(),
             texture_count,
@@ -19,6 +25,7 @@ impl BaseShaderParameters {
                 output_resolution.width as u32,
                 output_resolution.height as u32,
             ],
+            plane_id,
         }
     }
 

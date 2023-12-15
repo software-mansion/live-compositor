@@ -12,21 +12,18 @@ pub const PRIMITIVE_STATE: wgpu::PrimitiveState = wgpu::PrimitiveState {
     unclipped_depth: false,
 };
 
-pub const MAX_PLANES_COUNT: u32 = 128;
-
 #[repr(C)]
 #[derive(Debug, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Vertex {
     pub position: [f32; 3],
     pub texture_coords: [f32; 2],
-    pub input_id: i32,
 }
 
 impl Vertex {
     pub const LAYOUT: wgpu::VertexBufferLayout<'static> = wgpu::VertexBufferLayout {
         array_stride: std::mem::size_of::<Vertex>() as u64,
         step_mode: wgpu::VertexStepMode::Vertex,
-        attributes: &wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x2, 2 => Sint32],
+        attributes: &wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x2],
     };
 }
 

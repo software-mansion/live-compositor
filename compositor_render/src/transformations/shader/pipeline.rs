@@ -131,18 +131,18 @@ impl ShaderPipeline {
         clear_color: Option<wgpu::Color>,
     ) {
         let input_textures_bg = self.input_textures_bg(wgpu_ctx, sources);
-        let common_shader_params =
-            BaseShaderParameters::new(pts, sources.len() as u32, target.resolution());
 
         let mut encoder = wgpu_ctx.device.create_command_encoder(&Default::default());
         let clear_color = clear_color.unwrap_or(wgpu::Color::TRANSPARENT);
 
-        let mut render_plane = |input_id: i32, clear: bool| {
+        let mut render_plane = |plane_id: i32, clear: bool| {
             let load = match clear {
                 true => wgpu::LoadOp::Clear(clear_color),
                 false => wgpu::LoadOp::Load,
             };
 
+            let base_params =
+                BaseShaderParameters::new(plane_id, pts, sources.len() as u32, target.resolution());
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: None,
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
@@ -158,32 +158,25 @@ impl ShaderPipeline {
             render_pass.set_push_constants(
                 ShaderStages::VERTEX_FRAGMENT,
                 0,
-                common_shader_params.push_constant(),
+                base_params.push_constant(),
             );
 
             render_pass.set_bind_group(0, &input_textures_bg, &[]);
             render_pass.set_bind_group(USER_DEFINED_BUFFER_GROUP, params, &[]);
             render_pass.set_bind_group(2, &self.sampler.bind_group, &[]);
 
-            wgpu_ctx
-                .plane_cache
-                .plane(input_id)
-                .unwrap()
-                .draw(&mut render_pass);
+            wgpu_ctx.plane.draw(&mut render_pass);
         };
 
-        if common_shader_params.texture_count == 0 {
-            render_plane(-1, true);
+        if sources.is_empty() {
+            render_plane(-1, true)
         } else {
-            render_plane(0, false);
-            for input_id in 1..common_shader_params.texture_count {
-                render_plane(input_id as i32, true);
+            render_plane(0, true);
+            for plane_id in 1..sources.len() {
+                render_plane(plane_id as i32, false);
             }
         }
 
-        // TODO: this should not submit, it should return the command buffer.
-        //       the buffer should then be put in an array with other command
-        //       buffers and submitted as a whole
         wgpu_ctx.queue.submit(Some(encoder.finish()));
     }
 

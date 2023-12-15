@@ -151,11 +151,7 @@ impl LayoutShader {
                 render_pass.set_bind_group(1, params, &[]);
                 render_pass.set_bind_group(2, &self.sampler.bind_group, &[]);
 
-                wgpu_ctx
-                    .plane_cache
-                    .plane(layout_id as i32)
-                    .unwrap()
-                    .draw(&mut render_pass);
+                wgpu_ctx.plane.draw(&mut render_pass);
             }
         }
         wgpu_ctx.queue.submit(Some(encoder.finish()));

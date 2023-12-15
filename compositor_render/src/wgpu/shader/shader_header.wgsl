@@ -1,10 +1,10 @@
 struct VertexInput {
     @location(0) position: vec3<f32>,
     @location(1) tex_coords: vec2<f32>,
-    @location(2) texture_id: i32,
 }
 
 struct BaseShaderParameters {
+    plane_id: i32,
     time: f32,
     texture_count: u32,
     output_resolution: vec2<u32>,

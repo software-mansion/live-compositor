@@ -146,10 +146,7 @@ impl WebRendererShader {
             render_pass.set_bind_group(0, &input_texture_bg, &[]);
             render_pass.set_bind_group(1, &self.sampler.bind_group, &[]);
 
-            wgpu_ctx
-                .plane_cache
-                .non_indexed_plane()
-                .draw(&mut render_pass);
+            wgpu_ctx.plane.draw(&mut render_pass);
         };
 
         for (id, render_texture) in textures.iter().enumerate() {
