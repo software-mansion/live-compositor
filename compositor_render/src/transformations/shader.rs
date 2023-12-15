@@ -10,6 +10,7 @@ use self::pipeline::ShaderPipeline;
 
 pub mod node;
 mod pipeline;
+mod base_params;
 
 const SHADER_INPUT_TEXTURES_AMOUNT: u32 = 16;
 

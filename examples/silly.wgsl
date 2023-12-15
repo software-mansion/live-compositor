@@ -19,7 +19,7 @@ fn vs_main(input: VertexInput) -> VertexOutput {
     return output;
 }
 
-struct CommonShaderParameters {
+struct BaseShaderParameters {
     time: f32,
     texture_count: u32,
     output_resolution: vec2<u32>,
@@ -28,18 +28,18 @@ struct CommonShaderParameters {
 @group(0) @binding(0) var textures: binding_array<texture_2d<f32>, 16>;
 @group(2) @binding(0) var sampler_: sampler;
 
-var<push_constant> common_params: CommonShaderParameters;
+var<push_constant> base_params: BaseShaderParameters;
 
 @fragment
 fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
     // Return transparent frame in case of different input video count
-    if (common_params.texture_count != 1u) {
+    if (base_params.texture_count != 1u) {
         return vec4(0.0, 0.0, 0.0, 0.0);
     }
 
     let pi = 3.14159;
-    let effect_radius = abs(sin(common_params.time) / 2.0);
-    let effect_angle = 2.0 * pi * abs(sin(common_params.time) / 2.0);
+    let effect_radius = abs(sin(base_params.time) / 2.0);
+    let effect_angle = 2.0 * pi * abs(sin(base_params.time) / 2.0);
 
     let center = vec2(0.5, 0.5);
     let uv = input.tex_coords - center;

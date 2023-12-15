@@ -6,13 +6,15 @@ use crate::{
     scene::ShaderParam,
     state::render_graph::NodeId,
     wgpu::{
-        common_pipeline::{common_params::CommonShaderParameters, Sampler, Vertex},
+        common_pipeline::{Sampler, Vertex},
         shader::{CreateShaderError, FRAGMENT_ENTRYPOINT_NAME, VERTEX_ENTRYPOINT_NAME},
         texture::{NodeTexture, NodeTextureState, RGBATexture},
         validation::{validate_contains_header, ParametersValidationError},
         WgpuCtx, WgpuErrorScope,
     },
 };
+
+use super::base_params::BaseShaderParameters;
 
 const USER_DEFINED_BUFFER_BINDING: u32 = 0;
 const USER_DEFINED_BUFFER_GROUP: u32 = 1;
@@ -69,7 +71,7 @@ impl ShaderPipeline {
                     ],
                     push_constant_ranges: &[wgpu::PushConstantRange {
                         stages: wgpu::ShaderStages::VERTEX_FRAGMENT,
-                        range: 0..CommonShaderParameters::push_constant_size(),
+                        range: 0..BaseShaderParameters::push_constant_size(),
                     }],
                 });
         let pipeline = wgpu_ctx
@@ -130,7 +132,7 @@ impl ShaderPipeline {
     ) {
         let input_textures_bg = self.input_textures_bg(wgpu_ctx, sources);
         let common_shader_params =
-            CommonShaderParameters::new(pts, sources.len() as u32, target.resolution());
+            BaseShaderParameters::new(pts, sources.len() as u32, target.resolution());
 
         let mut encoder = wgpu_ctx.device.create_command_encoder(&Default::default());
         let clear_color = clear_color.unwrap_or(wgpu::Color::TRANSPARENT);

@@ -10,12 +10,6 @@ struct VertexOutput {
     @location(1) @interpolate(flat) texture_id: i32,
 }
 
-struct CommonShaderParameters {
-    time: f32,
-    texture_count: u32,
-    output_resolution: vec2<u32>,
-}
-
 struct TextureInfo {
      is_website_texture: i32,
      transformation_matrix: mat4x4<f32>,
