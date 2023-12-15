@@ -1,4 +1,4 @@
-use std::{num::NonZeroU32, sync::Arc};
+use std::sync::Arc;
 
 use wgpu::ShaderStages;
 
@@ -9,11 +9,12 @@ use crate::wgpu::{
     WgpuCtx, WgpuErrorScope,
 };
 
+use super::embedder::RenderInfo;
+
 #[derive(Debug)]
 pub(super) struct WebRendererShader {
-    wgpu_ctx: Arc<WgpuCtx>,
     pipeline: wgpu::RenderPipeline,
-    textures_bgl: wgpu::BindGroupLayout,
+    texture_bgl: wgpu::BindGroupLayout,
     sampler: Sampler,
 }
 
@@ -25,20 +26,20 @@ impl WebRendererShader {
             .device
             .create_shader_module(wgpu::include_wgsl!("../web_renderer/render_website.wgsl"));
         let sampler = Sampler::new(&wgpu_ctx.device);
-        let textures_bgl =
+        let texture_bgl =
             wgpu_ctx
                 .device
                 .create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                    label: Some("web renderer textures bgl"),
+                    label: Some("Web renderer texture bgl"),
                     entries: &[wgpu::BindGroupLayoutEntry {
                         binding: 0,
+                        count: None,
                         visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
                         ty: wgpu::BindingType::Texture {
+                            multisampled: false,
                             sample_type: wgpu::TextureSampleType::Float { filterable: true },
                             view_dimension: wgpu::TextureViewDimension::D2,
-                            multisampled: false,
                         },
-                        count: NonZeroU32::new(super::MAX_WEB_RENDERER_TEXTURES_COUNT),
                     }],
                 });
 
@@ -47,21 +48,17 @@ impl WebRendererShader {
                 .device
                 .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                     label: Some("Web renderer pipeline layout"),
-                    bind_group_layouts: &[
-                        &textures_bgl,
-                        &wgpu_ctx.shader_parameters_bind_group_layout,
-                        &sampler.bind_group_layout,
-                    ],
+                    bind_group_layouts: &[&texture_bgl, &sampler.bind_group_layout],
                     push_constant_ranges: &[wgpu::PushConstantRange {
                         stages: wgpu::ShaderStages::VERTEX_FRAGMENT,
-                        range: 0..4,
+                        range: 0..RenderInfo::size(),
                     }],
                 });
 
         let pipeline = wgpu_ctx
             .device
             .create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-                label: Some("shader transformation pipeline :^)"),
+                label: Some("Web renderer pipeline"),
                 depth_stencil: None,
                 primitive: wgpu::PrimitiveState {
                     conservative: false,
@@ -98,54 +95,40 @@ impl WebRendererShader {
         scope.pop(&wgpu_ctx.device)?;
 
         Ok(Self {
-            wgpu_ctx: wgpu_ctx.clone(),
             pipeline,
-            textures_bgl,
+            texture_bgl,
             sampler,
         })
     }
 
     pub(super) fn render(
         &self,
-        params: &wgpu::BindGroup,
-        textures: &[Option<&Texture>],
+        wgpu_ctx: &Arc<WgpuCtx>,
+        textures: &[(Option<&Texture>, RenderInfo)],
         target: &NodeTextureState,
     ) {
-        let mut texture_views: Vec<&wgpu::TextureView> = textures
-            .iter()
-            .map(|texture| match texture {
-                Some(texture) => &texture.view,
-                None => &self.wgpu_ctx.empty_texture.view,
-            })
-            .collect();
+        let mut encoder = wgpu_ctx.device.create_command_encoder(&Default::default());
 
-        texture_views.extend(
-            (texture_views.len()..super::MAX_WEB_RENDERER_TEXTURES_COUNT as usize)
-                .map(|_| &self.wgpu_ctx.empty_texture.view),
-        );
-
-        let input_textures_bg =
-            self.wgpu_ctx
-                .device
-                .create_bind_group(&wgpu::BindGroupDescriptor {
-                    label: Some("Web renderer input textures bgl"),
-                    layout: &self.textures_bgl,
-                    entries: &[wgpu::BindGroupEntry {
-                        binding: 0,
-                        resource: wgpu::BindingResource::TextureViewArray(&texture_views),
-                    }],
-                });
-
-        let mut encoder = self
-            .wgpu_ctx
-            .device
-            .create_command_encoder(&Default::default());
-
-        let mut render_plane = |input_id: i32, clear: bool| {
+        let mut render_plane = |(texture, render_info): &(Option<&Texture>, RenderInfo),
+                                clear: bool| {
             let load = match clear {
                 true => wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
                 false => wgpu::LoadOp::Load,
             };
+
+            let texture_view =
+                texture.map_or(&wgpu_ctx.empty_texture.view, |texture| &texture.view);
+
+            let input_texture_bg = wgpu_ctx
+                .device
+                .create_bind_group(&wgpu::BindGroupDescriptor {
+                    label: Some("Web renderer input textures bgl"),
+                    layout: &self.texture_bgl,
+                    entries: &[wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: wgpu::BindingResource::TextureView(texture_view),
+                    }],
+                });
 
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: None,
@@ -159,28 +142,20 @@ impl WebRendererShader {
 
             render_pass.set_pipeline(&self.pipeline);
 
-            render_pass.set_push_constants(
-                ShaderStages::VERTEX_FRAGMENT,
-                0,
-                &(textures.len() as u32).to_le_bytes(),
-            );
+            render_pass.set_push_constants(ShaderStages::VERTEX_FRAGMENT, 0, &render_info.bytes());
+            render_pass.set_bind_group(0, &input_texture_bg, &[]);
+            render_pass.set_bind_group(1, &self.sampler.bind_group, &[]);
 
-            render_pass.set_bind_group(0, &input_textures_bg, &[]);
-            render_pass.set_bind_group(1, params, &[]);
-            render_pass.set_bind_group(2, &self.sampler.bind_group, &[]);
-
-            self.wgpu_ctx
+            wgpu_ctx
                 .plane_cache
-                .plane(input_id)
-                .unwrap()
+                .non_indexed_plane()
                 .draw(&mut render_pass);
         };
 
-        render_plane(0, false);
-        for input_id in 1..textures.len() {
-            render_plane(input_id as i32, true);
+        for (id, render_texture) in textures.iter().enumerate() {
+            render_plane(render_texture, id == 0);
         }
 
-        self.wgpu_ctx.queue.submit(Some(encoder.finish()));
+        wgpu_ctx.queue.submit(Some(encoder.finish()));
     }
 }

@@ -1,7 +1,6 @@
 use wgpu::{BindGroup, BindGroupLayout};
 
 pub mod plane;
-pub mod shader_params;
 
 pub const PRIMITIVE_STATE: wgpu::PrimitiveState = wgpu::PrimitiveState {
     polygon_mode: wgpu::PolygonMode::Fill,

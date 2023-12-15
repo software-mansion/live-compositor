@@ -2,7 +2,7 @@ use crate::state::{render_graph::NodeId, RegisterCtx};
 use crate::transformations::web_renderer::chromium_sender::ChromiumSender;
 use crate::wgpu::texture::NodeTexture;
 use crate::wgpu::WgpuCtx;
-use bytes::{Bytes, BytesMut};
+use bytes::Bytes;
 use crossbeam_channel::bounded;
 use log::error;
 use nalgebra_glm::Mat4;
@@ -139,35 +139,35 @@ impl EmbeddingHelper {
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, bytemuck::Zeroable, bytemuck::Pod)]
-pub(super) struct TextureInfo {
+pub(super) struct RenderInfo {
     is_website_texture: i32,
-    _padding: [f32; 3],
+    _padding: [i32; 3],
     transformation_matrix: [[f32; 4]; 4],
 }
 
-impl TextureInfo {
-    pub fn website() -> Bytes {
-        let texture_info = Self {
+impl RenderInfo {
+    pub fn website() -> Self {
+        Self {
             is_website_texture: 1,
             _padding: Default::default(),
             transformation_matrix: Mat4::identity().transpose().into(),
-        };
-
-        Bytes::copy_from_slice(bytemuck::cast_slice(&[texture_info]))
+        }
     }
 
-    pub fn sources(transformation_matrices: &[Mat4]) -> Bytes {
-        let mut textures_info = BytesMut::new();
-        for transform in transformation_matrices {
-            let info = Self {
-                is_website_texture: 0,
-                _padding: Default::default(),
-                transformation_matrix: transform.transpose().into(),
-            };
-            textures_info.extend(bytemuck::cast_slice(&[info]));
+    pub fn source_transform(transformation_matrix: &Mat4) -> Self {
+        Self {
+            is_website_texture: 0,
+            _padding: [0; 3],
+            transformation_matrix: transformation_matrix.transpose().into(),
         }
+    }
 
-        textures_info.freeze()
+    pub fn bytes(self) -> Bytes {
+        Bytes::copy_from_slice(bytemuck::cast_slice(&[self]))
+    }
+
+    pub fn size() -> u32 {
+        std::mem::size_of::<RenderInfo>() as u32
     }
 }
 
