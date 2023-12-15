@@ -2,19 +2,21 @@ use std::sync::Arc;
 
 use crate::{
     scene::ShaderParam,
-    wgpu::{
-        shader::{CreateShaderError, WgpuShader},
-        validation::ParametersValidationError,
-        WgpuCtx,
-    },
+    wgpu::{shader::CreateShaderError, validation::ParametersValidationError, WgpuCtx},
     FallbackStrategy, RendererId,
 };
 
+use self::pipeline::ShaderPipeline;
+
+mod base_params;
 pub mod node;
+mod pipeline;
+
+const SHADER_INPUT_TEXTURES_AMOUNT: u32 = 16;
 
 #[derive(Debug)]
 pub struct Shader {
-    wgpu_shader: WgpuShader,
+    pipeline: ShaderPipeline,
     fallback_strategy: FallbackStrategy,
     clear_color: Option<wgpu::Color>,
 }
@@ -30,10 +32,11 @@ impl Shader {
     pub fn new(wgpu_ctx: &Arc<WgpuCtx>, spec: ShaderSpec) -> Result<Self, CreateShaderError> {
         let fallback_strategy = spec.fallback_strategy;
         let clear_color = None;
-        let wgpu_shader = WgpuShader::new(wgpu_ctx, spec.source)?;
+        // let wgpu_shader = WgpuShader::new(wgpu_ctx, spec.source)?;
+        let pipeline = ShaderPipeline::new(wgpu_ctx, &spec.source)?;
 
         Ok(Self {
-            wgpu_shader,
+            pipeline,
             fallback_strategy,
             clear_color,
         })
@@ -43,6 +46,6 @@ impl Shader {
         &self,
         params: &ShaderParam,
     ) -> Result<(), ParametersValidationError> {
-        self.wgpu_shader.validate_params(params)
+        self.pipeline.validate_params(params)
     }
 }

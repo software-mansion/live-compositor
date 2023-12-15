@@ -137,13 +137,8 @@ impl WebRenderer {
             let mut shader_params = self.shader_params.lock().unwrap();
             shader_params.update(textures_info, ctx.wgpu_ctx);
 
-            self.render_website_shader.render(
-                shader_params.bind_group(),
-                &textures,
-                target,
-                Default::default(),
-                None,
-            );
+            self.render_website_shader
+                .render(shader_params.bind_group(), &textures, target);
         }
 
         Ok(())

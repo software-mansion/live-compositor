@@ -3,8 +3,8 @@ use std::sync::Arc;
 use wgpu::ShaderStages;
 
 use crate::wgpu::{
-    common_pipeline::Sampler,
-    shader::{pipeline, CreateShaderError},
+    common_pipeline::{Sampler, Vertex},
+    shader::{CreateShaderError, FRAGMENT_ENTRYPOINT_NAME, VERTEX_ENTRYPOINT_NAME},
     texture::{NodeTexture, NodeTextureState},
     WgpuCtx, WgpuErrorScope,
 };
@@ -69,11 +69,42 @@ impl LayoutShader {
                     }],
                 });
 
-        let pipeline = pipeline::Pipeline::create_render_pipeline(
-            &wgpu_ctx.device,
-            &pipeline_layout,
-            &shader_module,
-        );
+        let pipeline = wgpu_ctx
+            .device
+            .create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+                label: Some("shader transformation pipeline :^)"),
+                depth_stencil: None,
+                primitive: wgpu::PrimitiveState {
+                    conservative: false,
+                    cull_mode: Some(wgpu::Face::Back),
+                    front_face: wgpu::FrontFace::Ccw,
+                    polygon_mode: wgpu::PolygonMode::Fill,
+                    topology: wgpu::PrimitiveTopology::TriangleList,
+                    strip_index_format: None,
+                    unclipped_depth: false,
+                },
+                vertex: wgpu::VertexState {
+                    buffers: &[Vertex::LAYOUT],
+                    module: &shader_module,
+                    entry_point: VERTEX_ENTRYPOINT_NAME,
+                },
+                fragment: Some(wgpu::FragmentState {
+                    module: &shader_module,
+                    entry_point: FRAGMENT_ENTRYPOINT_NAME,
+                    targets: &[Some(wgpu::ColorTargetState {
+                        format: wgpu::TextureFormat::Rgba8Unorm,
+                        write_mask: wgpu::ColorWrites::all(),
+                        blend: Some(wgpu::BlendState::ALPHA_BLENDING),
+                    })],
+                }),
+                layout: Some(&pipeline_layout),
+                multisample: wgpu::MultisampleState {
+                    count: 1,
+                    mask: !0,
+                    alpha_to_coverage_enabled: false,
+                },
+                multiview: None,
+            });
 
         Ok(Self {
             pipeline,
@@ -89,27 +120,7 @@ impl LayoutShader {
         textures: &[Option<&NodeTexture>],
         target: &NodeTextureState,
     ) {
-        let input_texture_bgs: Vec<wgpu::BindGroup> = textures
-            .iter()
-            .map(|texture| {
-                texture
-                    .and_then(|texture| texture.state())
-                    .map(|state| &state.rgba_texture().texture().view)
-                    .unwrap_or(&wgpu_ctx.empty_texture.view)
-            })
-            .map(|view| {
-                wgpu_ctx
-                    .device
-                    .create_bind_group(&wgpu::BindGroupDescriptor {
-                        layout: &self.texture_bgl,
-                        label: None,
-                        entries: &[wgpu::BindGroupEntry {
-                            binding: 0,
-                            resource: wgpu::BindingResource::TextureView(view),
-                        }],
-                    })
-            })
-            .collect();
+        let input_texture_bgs: Vec<wgpu::BindGroup> = self.input_textures_bg(wgpu_ctx, textures);
 
         let mut encoder = wgpu_ctx.device.create_command_encoder(&Default::default());
         {
@@ -148,5 +159,33 @@ impl LayoutShader {
             }
         }
         wgpu_ctx.queue.submit(Some(encoder.finish()));
+    }
+
+    fn input_textures_bg(
+        &self,
+        wgpu_ctx: &Arc<WgpuCtx>,
+        textures: &[Option<&NodeTexture>],
+    ) -> Vec<wgpu::BindGroup> {
+        textures
+            .iter()
+            .map(|texture| {
+                texture
+                    .and_then(|texture| texture.state())
+                    .map(|state| &state.rgba_texture().texture().view)
+                    .unwrap_or(&wgpu_ctx.empty_texture.view)
+            })
+            .map(|view| {
+                wgpu_ctx
+                    .device
+                    .create_bind_group(&wgpu::BindGroupDescriptor {
+                        layout: &self.texture_bgl,
+                        label: None,
+                        entries: &[wgpu::BindGroupEntry {
+                            binding: 0,
+                            resource: wgpu::BindingResource::TextureView(view),
+                        }],
+                    })
+            })
+            .collect()
     }
 }

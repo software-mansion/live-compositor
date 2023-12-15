@@ -1,4 +1,4 @@
-use wgpu::{util::DeviceExt, BindGroup, BindGroupLayout, Buffer};
+use wgpu::{BindGroup, BindGroupLayout};
 
 pub mod plane;
 pub mod shader_params;
@@ -74,56 +74,6 @@ impl Sampler {
             _sampler: sampler,
             bind_group,
             bind_group_layout,
-        }
-    }
-}
-
-// TODO: This should be done with push-constants, not with a buffer
-#[derive(Debug)]
-pub struct U32Uniform {
-    pub buffer: Buffer,
-    pub bind_group: wgpu::BindGroup,
-    pub bind_group_layout: wgpu::BindGroupLayout,
-}
-
-impl U32Uniform {
-    pub fn new(device: &wgpu::Device) -> Self {
-        let buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("uniform u32 buffer"),
-            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-            contents: bytemuck::bytes_of(&0u32),
-        });
-
-        let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("uniform bind group layout"),
-            entries: &[wgpu::BindGroupLayoutEntry {
-                binding: 0,
-                count: None,
-                visibility: wgpu::ShaderStages::FRAGMENT,
-                ty: wgpu::BindingType::Buffer {
-                    ty: wgpu::BufferBindingType::Uniform,
-                    has_dynamic_offset: false,
-                    min_binding_size: None,
-                },
-            }],
-        });
-
-        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("uniform bind group"),
-            layout: &bind_group_layout,
-            entries: &[wgpu::BindGroupEntry {
-                binding: 0,
-                resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
-                    buffer: &buffer,
-                    offset: 0,
-                    size: std::num::NonZeroU64::new(std::mem::size_of::<u32>() as u64),
-                }),
-            }],
-        });
-        Self {
-            buffer,
-            bind_group_layout,
-            bind_group,
         }
     }
 }

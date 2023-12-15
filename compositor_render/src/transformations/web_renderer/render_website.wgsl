@@ -10,18 +10,12 @@ struct VertexOutput {
     @location(1) @interpolate(flat) texture_id: i32,
 }
 
-struct CommonShaderParameters {
-    time: f32,
-    texture_count: u32,
-    output_resolution: vec2<u32>,
-}
-
 struct TextureInfo {
      is_website_texture: i32,
      transformation_matrix: mat4x4<f32>,
 }
 
-var<push_constant> common_params: CommonShaderParameters;
+var<push_constant> texture_count: u32;
 
 @group(0) @binding(0) var textures: binding_array<texture_2d<f32>, 16>;
 @group(1) @binding(0) var<uniform> textures_info: array<TextureInfo, 16>;
@@ -54,7 +48,7 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
 
     let sample = textureSample(textures[input.texture_id], sampler_, input.tex_coords);
 
-    if common_params.texture_count == 0u {
+    if texture_count == 0u {
         return vec4<f32>(0.0, 0.0, 0.0, 0.0);
     }
 

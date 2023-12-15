@@ -83,7 +83,7 @@ struct VertexInput {
     @location(2) texture_id: i32,
 }
 
-struct CommonShaderParameters {
+struct BaseShaderParameters {
     time: f32,
     texture_count: u32,
     output_resolution: vec2<u32>,
@@ -92,7 +92,7 @@ struct CommonShaderParameters {
 @group(0) @binding(0) var textures: binding_array<texture_2d<f32>, 16>;
 @group(2) @binding(0) var sampler_: sampler;
 
-var<push_constant> common_params: CommonShaderParameters;
+var<push_constant> base_params: BaseShaderParameters;
 ```
 
 ### Custom parameters

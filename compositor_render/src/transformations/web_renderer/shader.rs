@@ -1,13 +1,10 @@
-use std::{num::NonZeroU32, sync::Arc, time::Duration};
+use std::{num::NonZeroU32, sync::Arc};
 
 use wgpu::ShaderStages;
 
 use crate::wgpu::{
     common_pipeline::{Sampler, Vertex},
-    shader::{
-        common_params::CommonShaderParameters, CreateShaderError, FRAGMENT_ENTRYPOINT_NAME,
-        VERTEX_ENTRYPOINT_NAME,
-    },
+    shader::{CreateShaderError, FRAGMENT_ENTRYPOINT_NAME, VERTEX_ENTRYPOINT_NAME},
     texture::{NodeTextureState, Texture},
     WgpuCtx, WgpuErrorScope,
 };
@@ -57,7 +54,7 @@ impl WebRendererShader {
                     ],
                     push_constant_ranges: &[wgpu::PushConstantRange {
                         stages: wgpu::ShaderStages::VERTEX_FRAGMENT,
-                        range: 0..CommonShaderParameters::push_constant_size(),
+                        range: 0..4,
                     }],
                 });
 
@@ -113,8 +110,6 @@ impl WebRendererShader {
         params: &wgpu::BindGroup,
         textures: &[Option<&Texture>],
         target: &NodeTextureState,
-        pts: Duration,
-        clear_color: Option<wgpu::Color>,
     ) {
         let mut texture_views: Vec<&wgpu::TextureView> = textures
             .iter()
@@ -141,18 +136,14 @@ impl WebRendererShader {
                     }],
                 });
 
-        let common_params =
-            CommonShaderParameters::new(pts, textures.len() as u32, target.resolution());
-
         let mut encoder = self
             .wgpu_ctx
             .device
             .create_command_encoder(&Default::default());
-        let clear_color = clear_color.unwrap_or(wgpu::Color::TRANSPARENT);
 
         let mut render_plane = |input_id: i32, clear: bool| {
             let load = match clear {
-                true => wgpu::LoadOp::Clear(clear_color),
+                true => wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
                 false => wgpu::LoadOp::Load,
             };
 
@@ -171,7 +162,7 @@ impl WebRendererShader {
             render_pass.set_push_constants(
                 ShaderStages::VERTEX_FRAGMENT,
                 0,
-                common_params.push_constant(),
+                &(textures.len() as u32).to_le_bytes(),
             );
 
             render_pass.set_bind_group(0, &input_textures_bg, &[]);
@@ -185,13 +176,9 @@ impl WebRendererShader {
                 .draw(&mut render_pass);
         };
 
-        if common_params.texture_count == 0 {
-            render_plane(-1, true);
-        } else {
-            render_plane(0, false);
-            for input_id in 1..common_params.texture_count {
-                render_plane(input_id as i32, true);
-            }
+        render_plane(0, false);
+        for input_id in 1..textures.len() {
+            render_plane(input_id as i32, true);
         }
 
         self.wgpu_ctx.queue.submit(Some(encoder.finish()));

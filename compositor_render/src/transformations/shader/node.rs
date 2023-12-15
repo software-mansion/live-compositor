@@ -16,6 +16,7 @@ pub struct ShaderNode {
     _custom_params_buffer: wgpu::Buffer,
     shader: Arc<Shader>,
     resolution: Resolution,
+    wgpu_ctx: Arc<WgpuCtx>,
 }
 
 impl ShaderNode {
@@ -33,6 +34,7 @@ impl ShaderNode {
             _custom_params_buffer: custom_params_buffer,
             shader,
             resolution: *resolution,
+            wgpu_ctx: ctx.wgpu_ctx.clone(),
         }
     }
 
@@ -78,8 +80,10 @@ impl ShaderNode {
         target: &mut NodeTexture,
         pts: Duration,
     ) {
-        let target = target.ensure_size(&self.shader.wgpu_shader.wgpu_ctx, self.resolution);
-        self.shader.wgpu_shader.render(
+        let target = target.ensure_size(&self.wgpu_ctx, self.resolution);
+
+        self.shader.pipeline.render(
+            &self.wgpu_ctx,
             &self.params_bind_group,
             sources,
             target,

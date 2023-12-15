@@ -1,0 +1,241 @@
+use std::{borrow::Cow, num::NonZeroU32, sync::Arc, time::Duration};
+
+use wgpu::ShaderStages;
+
+use crate::{
+    scene::ShaderParam,
+    state::render_graph::NodeId,
+    wgpu::{
+        common_pipeline::{Sampler, Vertex},
+        shader::{CreateShaderError, FRAGMENT_ENTRYPOINT_NAME, VERTEX_ENTRYPOINT_NAME},
+        texture::{NodeTexture, NodeTextureState, RGBATexture},
+        validation::{validate_contains_header, ParametersValidationError},
+        WgpuCtx, WgpuErrorScope,
+    },
+};
+
+use super::base_params::BaseShaderParameters;
+
+const USER_DEFINED_BUFFER_BINDING: u32 = 0;
+const USER_DEFINED_BUFFER_GROUP: u32 = 1;
+
+#[derive(Debug)]
+pub(super) struct ShaderPipeline {
+    pipeline: wgpu::RenderPipeline,
+    sampler: Sampler,
+    textures_bgl: wgpu::BindGroupLayout,
+    module: naga::Module,
+}
+
+impl ShaderPipeline {
+    pub fn new(wgpu_ctx: &Arc<WgpuCtx>, shader_src: &str) -> Result<Self, CreateShaderError> {
+        let scope = WgpuErrorScope::push(&wgpu_ctx.device);
+
+        let module =
+            naga::front::wgsl::parse_str(shader_src).map_err(CreateShaderError::ParseError)?;
+        validate_contains_header(&wgpu_ctx.shader_header, &module)?;
+
+        let shader_source = wgpu::ShaderSource::Naga(Cow::Owned(module.clone()));
+        let sampler = Sampler::new(&wgpu_ctx.device);
+        let textures_bgl =
+            wgpu_ctx
+                .device
+                .create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                    label: Some("shader transformation textures bgl"),
+                    entries: &[wgpu::BindGroupLayoutEntry {
+                        binding: 0,
+                        count: NonZeroU32::new(super::SHADER_INPUT_TEXTURES_AMOUNT),
+                        visibility: wgpu::ShaderStages::FRAGMENT | wgpu::ShaderStages::VERTEX,
+                        ty: wgpu::BindingType::Texture {
+                            multisampled: false,
+                            sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                            view_dimension: wgpu::TextureViewDimension::D2,
+                        },
+                    }],
+                });
+        let shader_module = wgpu_ctx
+            .device
+            .create_shader_module(wgpu::ShaderModuleDescriptor {
+                label: None,
+                source: shader_source,
+            });
+        let pipeline_layout =
+            wgpu_ctx
+                .device
+                .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                    label: Some("shader transformation pipeline layout"),
+                    bind_group_layouts: &[
+                        &textures_bgl,
+                        &wgpu_ctx.shader_parameters_bind_group_layout,
+                        &sampler.bind_group_layout,
+                    ],
+                    push_constant_ranges: &[wgpu::PushConstantRange {
+                        stages: wgpu::ShaderStages::VERTEX_FRAGMENT,
+                        range: 0..BaseShaderParameters::push_constant_size(),
+                    }],
+                });
+        let pipeline = wgpu_ctx
+            .device
+            .create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+                label: Some("shader transformation pipeline"),
+                depth_stencil: None,
+                primitive: wgpu::PrimitiveState {
+                    conservative: false,
+                    cull_mode: Some(wgpu::Face::Back),
+                    front_face: wgpu::FrontFace::Ccw,
+                    polygon_mode: wgpu::PolygonMode::Fill,
+                    topology: wgpu::PrimitiveTopology::TriangleList,
+                    strip_index_format: None,
+                    unclipped_depth: false,
+                },
+                vertex: wgpu::VertexState {
+                    buffers: &[Vertex::LAYOUT],
+                    module: &shader_module,
+                    entry_point: VERTEX_ENTRYPOINT_NAME,
+                },
+                fragment: Some(wgpu::FragmentState {
+                    module: &shader_module,
+                    entry_point: FRAGMENT_ENTRYPOINT_NAME,
+                    targets: &[Some(wgpu::ColorTargetState {
+                        format: wgpu::TextureFormat::Rgba8Unorm,
+                        write_mask: wgpu::ColorWrites::all(),
+                        blend: Some(wgpu::BlendState::ALPHA_BLENDING),
+                    })],
+                }),
+                layout: Some(&pipeline_layout),
+                multisample: wgpu::MultisampleState {
+                    count: 1,
+                    mask: !0,
+                    alpha_to_coverage_enabled: false,
+                },
+                multiview: None,
+            });
+
+        scope.pop(&wgpu_ctx.device)?;
+
+        Ok(Self {
+            pipeline,
+            sampler,
+            textures_bgl,
+            module,
+        })
+    }
+
+    pub fn render(
+        &self,
+        wgpu_ctx: &Arc<WgpuCtx>,
+        params: &wgpu::BindGroup,
+        sources: &[(&NodeId, &NodeTexture)],
+        target: &NodeTextureState,
+        pts: Duration,
+        clear_color: Option<wgpu::Color>,
+    ) {
+        let input_textures_bg = self.input_textures_bg(wgpu_ctx, sources);
+        let common_shader_params =
+            BaseShaderParameters::new(pts, sources.len() as u32, target.resolution());
+
+        let mut encoder = wgpu_ctx.device.create_command_encoder(&Default::default());
+        let clear_color = clear_color.unwrap_or(wgpu::Color::TRANSPARENT);
+
+        let mut render_plane = |input_id: i32, clear: bool| {
+            let load = match clear {
+                true => wgpu::LoadOp::Clear(clear_color),
+                false => wgpu::LoadOp::Load,
+            };
+
+            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: None,
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    ops: wgpu::Operations { load, store: true },
+                    view: &target.rgba_texture().texture().view,
+                    resolve_target: None,
+                })],
+                depth_stencil_attachment: None,
+            });
+
+            render_pass.set_pipeline(&self.pipeline);
+
+            render_pass.set_push_constants(
+                ShaderStages::VERTEX_FRAGMENT,
+                0,
+                common_shader_params.push_constant(),
+            );
+
+            render_pass.set_bind_group(0, &input_textures_bg, &[]);
+            render_pass.set_bind_group(USER_DEFINED_BUFFER_GROUP, params, &[]);
+            render_pass.set_bind_group(2, &self.sampler.bind_group, &[]);
+
+            wgpu_ctx
+                .plane_cache
+                .plane(input_id)
+                .unwrap()
+                .draw(&mut render_pass);
+        };
+
+        if common_shader_params.texture_count == 0 {
+            render_plane(-1, true);
+        } else {
+            render_plane(0, false);
+            for input_id in 1..common_shader_params.texture_count {
+                render_plane(input_id as i32, true);
+            }
+        }
+
+        // TODO: this should not submit, it should return the command buffer.
+        //       the buffer should then be put in an array with other command
+        //       buffers and submitted as a whole
+        wgpu_ctx.queue.submit(Some(encoder.finish()));
+    }
+
+    pub fn validate_params(&self, params: &ShaderParam) -> Result<(), ParametersValidationError> {
+        let ty = self
+            .module
+            .global_variables
+            .iter()
+            .find(|(_, global)| match global.binding.as_ref() {
+                Some(binding) => {
+                    (binding.group, binding.binding)
+                        == (USER_DEFINED_BUFFER_GROUP, USER_DEFINED_BUFFER_BINDING)
+                }
+
+                None => false,
+            })
+            .map(|(_, handle)| handle.ty)
+            .ok_or(ParametersValidationError::NoBindingInShader)?;
+
+        crate::wgpu::validation::validate_params(params, ty, &self.module)
+    }
+
+    fn input_textures_bg(
+        &self,
+        wgpu_ctx: &Arc<WgpuCtx>,
+        sources: &[(&NodeId, &NodeTexture)],
+    ) -> wgpu::BindGroup {
+        let mut texture_views: Vec<&wgpu::TextureView> = sources
+            .iter()
+            .map(|(_, texture)| {
+                texture
+                    .state()
+                    .map(NodeTextureState::rgba_texture)
+                    .map(RGBATexture::texture)
+                    .map_or(&wgpu_ctx.empty_texture.view, |texture| &texture.view)
+            })
+            .collect();
+
+        texture_views.extend(
+            (sources.len()..super::SHADER_INPUT_TEXTURES_AMOUNT as usize)
+                .map(|_| &wgpu_ctx.empty_texture.view),
+        );
+
+        wgpu_ctx
+            .device
+            .create_bind_group(&wgpu::BindGroupDescriptor {
+                layout: &self.textures_bgl,
+                label: None,
+                entries: &[wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::TextureViewArray(&texture_views),
+                }],
+            })
+    }
+}
