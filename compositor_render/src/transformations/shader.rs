@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     scene::ShaderParam,
-    wgpu::{shader::CreateShaderError, validation::ParametersValidationError, WgpuCtx},
+    wgpu::{common_pipeline::CreateShaderError, validation::ParametersValidationError, WgpuCtx},
     FallbackStrategy, RendererId,
 };
 

@@ -3,8 +3,7 @@ use std::sync::Arc;
 use wgpu::ShaderStages;
 
 use crate::wgpu::{
-    common_pipeline::{Sampler, Vertex},
-    shader::{CreateShaderError, FRAGMENT_ENTRYPOINT_NAME, VERTEX_ENTRYPOINT_NAME},
+    common_pipeline::{CreateShaderError, Sampler, Vertex},
     texture::{NodeTexture, NodeTextureState},
     WgpuCtx, WgpuErrorScope,
 };
@@ -86,11 +85,11 @@ impl LayoutShader {
                 vertex: wgpu::VertexState {
                     buffers: &[Vertex::LAYOUT],
                     module: &shader_module,
-                    entry_point: VERTEX_ENTRYPOINT_NAME,
+                    entry_point: crate::wgpu::common_pipeline::VERTEX_ENTRYPOINT_NAME,
                 },
                 fragment: Some(wgpu::FragmentState {
                     module: &shader_module,
-                    entry_point: FRAGMENT_ENTRYPOINT_NAME,
+                    entry_point: crate::wgpu::common_pipeline::FRAGMENT_ENTRYPOINT_NAME,
                     targets: &[Some(wgpu::ColorTargetState {
                         format: wgpu::TextureFormat::Rgba8Unorm,
                         write_mask: wgpu::ColorWrites::all(),

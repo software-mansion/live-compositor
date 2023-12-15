@@ -4,9 +4,6 @@ use crate::scene::ShaderParam;
 
 use self::error::BindingExt;
 
-use super::shader::VERTEX_ENTRYPOINT_NAME;
-use super::shader::{USER_DEFINED_BUFFER_BINDING, USER_DEFINED_BUFFER_GROUP};
-
 use error::ShaderGlobalVariableExt;
 
 mod error;
@@ -54,8 +51,10 @@ fn validate_globals(
         .iter()
         .find(|(_, global)| {
             global.binding.is_some()
-                && global.binding.as_ref().unwrap().group == USER_DEFINED_BUFFER_GROUP
-                && global.binding.as_ref().unwrap().binding == USER_DEFINED_BUFFER_BINDING
+                && global.binding.as_ref().unwrap().group
+                    == super::common_pipeline::USER_DEFINED_BUFFER_GROUP
+                && global.binding.as_ref().unwrap().binding
+                    == super::common_pipeline::USER_DEFINED_BUFFER_BINDING
                 && global.space == naga::AddressSpace::Uniform
         })
         .map_or(Ok(()), |(_, global)| match global.space {
@@ -74,7 +73,8 @@ fn validate_vertex_input(
         .entry_points
         .iter()
         .find(|entry_point| {
-            entry_point.name == VERTEX_ENTRYPOINT_NAME && entry_point.stage == ShaderStage::Vertex
+            entry_point.name == super::common_pipeline::VERTEX_ENTRYPOINT_NAME
+                && entry_point.stage == ShaderStage::Vertex
         })
         .ok_or(ShaderValidationError::VertexShaderNotFound)?;
 

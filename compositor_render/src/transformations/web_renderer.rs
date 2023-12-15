@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex};
 use crate::state::render_graph::NodeId;
 use crate::state::{RegisterCtx, RenderCtx};
 use crate::transformations::web_renderer::shader::WebRendererShader;
-use crate::wgpu::shader::CreateShaderError;
+use crate::wgpu::common_pipeline::CreateShaderError;
 use crate::wgpu::texture::{BGRATexture, NodeTexture, Texture};
 use crate::{FallbackStrategy, RendererId, Resolution};
 

@@ -51,7 +51,7 @@ impl WgpuCtx {
         ))?;
 
         let shader_header =
-            naga::front::wgsl::parse_str(include_str!("./shader/shader_header.wgsl"))
+            naga::front::wgsl::parse_str(include_str!("./validation/shader_header.wgsl"))
                 .expect("failed to parse the shader header file");
 
         let scope = WgpuErrorScope::push(&device);
