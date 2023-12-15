@@ -8,9 +8,9 @@ use crate::{
 
 use self::pipeline::ShaderPipeline;
 
+mod base_params;
 pub mod node;
 mod pipeline;
-mod base_params;
 
 const SHADER_INPUT_TEXTURES_AMOUNT: u32 = 16;
 
