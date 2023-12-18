@@ -12,7 +12,10 @@ use crate::{
     },
 };
 
-use super::{base_params::BaseShaderParameters, validation::{validate_contains_header, validate_params, error::ParametersValidationError}};
+use super::{
+    base_params::BaseShaderParameters,
+    validation::{error::ParametersValidationError, validate_contains_header, validate_params},
+};
 
 const USER_DEFINED_BUFFER_BINDING: u32 = 0;
 const USER_DEFINED_BUFFER_GROUP: u32 = 1;
