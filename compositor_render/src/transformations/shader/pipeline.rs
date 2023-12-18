@@ -17,8 +17,8 @@ use super::{
     validation::{error::ParametersValidationError, validate_contains_header, validate_params},
 };
 
-const USER_DEFINED_BUFFER_BINDING: u32 = 0;
-const USER_DEFINED_BUFFER_GROUP: u32 = 1;
+pub(super) const USER_DEFINED_BUFFER_BINDING: u32 = 0;
+pub(super) const USER_DEFINED_BUFFER_GROUP: u32 = 1;
 
 #[derive(Debug)]
 pub(super) struct ShaderPipeline {

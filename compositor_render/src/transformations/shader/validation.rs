@@ -53,9 +53,9 @@ fn validate_globals(
         .find(|(_, global)| {
             global.binding.is_some()
                 && global.binding.as_ref().unwrap().group
-                    == crate::wgpu::common_pipeline::USER_DEFINED_BUFFER_GROUP
+                    == super::pipeline::USER_DEFINED_BUFFER_GROUP
                 && global.binding.as_ref().unwrap().binding
-                    == crate::wgpu::common_pipeline::USER_DEFINED_BUFFER_BINDING
+                    == super::pipeline::USER_DEFINED_BUFFER_BINDING
                 && global.space == naga::AddressSpace::Uniform
         })
         .map_or(Ok(()), |(_, global)| match global.space {

@@ -1,5 +1,6 @@
-use crate::wgpu::common_pipeline::{
-    USER_DEFINED_BUFFER_BINDING, USER_DEFINED_BUFFER_GROUP, VERTEX_ENTRYPOINT_NAME,
+use crate::{
+    transformations::shader::pipeline::{USER_DEFINED_BUFFER_BINDING, USER_DEFINED_BUFFER_GROUP},
+    wgpu::common_pipeline::VERTEX_ENTRYPOINT_NAME,
 };
 
 const HEADER_DOCS_URL: &str =
