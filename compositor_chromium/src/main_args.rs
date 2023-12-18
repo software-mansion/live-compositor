@@ -3,7 +3,11 @@ use std::ffi::CString;
 /// Holds the processes's program arguments
 pub struct MainArgs {
     inner: chromium_sys::cef_main_args_t,
+
     // We keep it here so that the data is not dropped before it's used
+    #[cfg(all(target_os = "linux", target_arch = "aarch64"))]
+    _argv: Vec<*mut u8>,
+    #[cfg(not(all(target_os = "linux", target_arch = "aarch64")))]
     _argv: Vec<*mut i8>,
 }
 

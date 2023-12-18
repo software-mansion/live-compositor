@@ -27,7 +27,15 @@ fn main() {
     );
 
     let Ok(host_ip) = env::var("DOCKER_HOST_IP") else {
-        error!("DOCKER_HOST_IP is not specified. You can find ip using 'ip addr show docker0'.");
+        if cfg!(target_os = "macos") {
+            error!(
+                "DOCKER_HOST_IP is not specified. You can find ip using 'ipconfig getifaddr en0' or 'ipconfig getifaddr en1'."
+            );
+        } else {
+            error!(
+                "DOCKER_HOST_IP is not specified. You can find ip using 'ip addr show docker0'."
+            );
+        }
         return;
     };
 
@@ -59,7 +67,15 @@ fn build_and_start_docker(skip_build: bool) -> Result<()> {
         warn!("Skipping image build, using old version.")
     }
 
-    let mut args = vec!["run", "-it", "-p", "8004:8004/udp", "-p", "8001:8001"];
+    let mut args = vec![
+        "run",
+        "-it",
+        "-p",
+        "8004:8004/udp",
+        "-p",
+        "8001:8001",
+        "--rm",
+    ];
 
     if env::var("NVIDIA").is_ok() {
         info!("[example] configured for nvidia GPUs");

@@ -34,7 +34,7 @@ impl PipelineInput for RtpReceiver {
         let (packets_tx, packets_rx) = bounded(1);
 
         let socket = future::block_on(net::UdpSocket::bind(net::SocketAddrV4::new(
-            net::Ipv4Addr::LOCALHOST,
+            net::Ipv4Addr::UNSPECIFIED,
             opts.port,
         )))
         .map_err(|e| CustomError(Box::new(e)))?;
