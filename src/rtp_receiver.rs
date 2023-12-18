@@ -1,4 +1,4 @@
-use std::thread;
+use std::{sync::Arc, thread};
 
 use bytes::BytesMut;
 use compositor_pipeline::{
@@ -7,7 +7,7 @@ use compositor_pipeline::{
 };
 use log::{error, warn};
 use smol::{
-    channel::{bounded, Receiver, Sender},
+    channel::{bounded, unbounded, Receiver, Sender},
     future, net,
 };
 use webrtc_util::Unmarshal;
@@ -31,7 +31,7 @@ impl PipelineInput for RtpReceiver {
 
     fn new(opts: Self::Opts) -> Result<(Self, Self::PacketIterator), CustomError> {
         let (should_close_tx, should_close_rx) = bounded(1);
-        let (packets_tx, packets_rx) = bounded(1);
+        let (packets_tx, packets_rx) = unbounded();
 
         let socket = future::block_on(net::UdpSocket::bind(net::SocketAddrV4::new(
             net::Ipv4Addr::UNSPECIFIED,
@@ -74,7 +74,7 @@ impl PipelineInput for RtpReceiver {
 impl RtpReceiver {
     async fn rtp_receiver(
         socket: net::UdpSocket,
-        packets_tx: Sender<rtp::packet::Packet>,
+        packets_tx: Sender<Arc<rtp::packet::Packet>>,
         should_close_rx: Receiver<()>,
     ) {
         let mut buffer = BytesMut::zeroed(65536);
@@ -116,8 +116,7 @@ impl RtpReceiver {
                     continue;
                 }
             };
-
-            packets_tx.send(packet).await.unwrap();
+            packets_tx.send(Arc::new(packet)).await.unwrap();
         }
     }
 }
@@ -134,11 +133,11 @@ impl Drop for RtpReceiver {
 }
 
 pub struct PacketIter {
-    receiver: Receiver<rtp::packet::Packet>,
+    receiver: Receiver<Arc<rtp::packet::Packet>>,
 }
 
 impl Iterator for PacketIter {
-    type Item = rtp::packet::Packet;
+    type Item = Arc<rtp::packet::Packet>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.receiver.recv_blocking().ok()

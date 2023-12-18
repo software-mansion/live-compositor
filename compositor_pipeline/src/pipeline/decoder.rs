@@ -138,7 +138,7 @@ enum DepayloadingError {
 const H264_DEFAULT_PAYLOAD_TYPE: u8 = 96;
 
 fn packet_to_av(
-    packet: rtp::packet::Packet,
+    packet: Arc<rtp::packet::Packet>,
     ctx: &mut rtp::codecs::h264::H264Packet,
 ) -> Result<Option<ffmpeg_next::packet::Packet>, DepayloadingError> {
     if packet.header.payload_type != H264_DEFAULT_PAYLOAD_TYPE {
