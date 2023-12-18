@@ -6,7 +6,7 @@ use crate::{
     scene::ShaderParam,
     state::render_graph::NodeId,
     wgpu::{
-        common_pipeline::{CreateShaderError, Sampler, Vertex},
+        common_pipeline::{self, CreateShaderError, Sampler},
         texture::{NodeTexture, NodeTextureState, RGBATexture},
         WgpuCtx, WgpuErrorScope,
     },
@@ -75,42 +75,11 @@ impl ShaderPipeline {
                         range: 0..BaseShaderParameters::push_constant_size(),
                     }],
                 });
-        let pipeline = wgpu_ctx
-            .device
-            .create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-                label: Some("shader transformation pipeline"),
-                depth_stencil: None,
-                primitive: wgpu::PrimitiveState {
-                    conservative: false,
-                    cull_mode: Some(wgpu::Face::Back),
-                    front_face: wgpu::FrontFace::Ccw,
-                    polygon_mode: wgpu::PolygonMode::Fill,
-                    topology: wgpu::PrimitiveTopology::TriangleList,
-                    strip_index_format: None,
-                    unclipped_depth: false,
-                },
-                vertex: wgpu::VertexState {
-                    buffers: &[Vertex::LAYOUT],
-                    module: &shader_module,
-                    entry_point: crate::wgpu::common_pipeline::VERTEX_ENTRYPOINT_NAME,
-                },
-                fragment: Some(wgpu::FragmentState {
-                    module: &shader_module,
-                    entry_point: crate::wgpu::common_pipeline::FRAGMENT_ENTRYPOINT_NAME,
-                    targets: &[Some(wgpu::ColorTargetState {
-                        format: wgpu::TextureFormat::Rgba8Unorm,
-                        write_mask: wgpu::ColorWrites::all(),
-                        blend: Some(wgpu::BlendState::ALPHA_BLENDING),
-                    })],
-                }),
-                layout: Some(&pipeline_layout),
-                multisample: wgpu::MultisampleState {
-                    count: 1,
-                    mask: !0,
-                    alpha_to_coverage_enabled: false,
-                },
-                multiview: None,
-            });
+        let pipeline = common_pipeline::create_render_pipeline(
+            &wgpu_ctx.device,
+            &pipeline_layout,
+            &shader_module,
+        );
 
         scope.pop(&wgpu_ctx.device)?;
 

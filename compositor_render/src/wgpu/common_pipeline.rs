@@ -1,5 +1,3 @@
-use wgpu::{BindGroup, BindGroupLayout};
-
 pub mod plane;
 
 pub const PRIMITIVE_STATE: wgpu::PrimitiveState = wgpu::PrimitiveState {
@@ -49,8 +47,8 @@ impl Vertex {
 #[derive(Debug)]
 pub struct Sampler {
     _sampler: wgpu::Sampler,
-    pub bind_group_layout: BindGroupLayout,
-    pub bind_group: BindGroup,
+    pub bind_group_layout: wgpu::BindGroupLayout,
+    pub bind_group: wgpu::BindGroup,
 }
 
 impl Sampler {
@@ -91,4 +89,61 @@ impl Sampler {
             bind_group_layout,
         }
     }
+}
+
+pub fn create_render_pipeline(
+    device: &wgpu::Device,
+    pipeline_layout: &wgpu::PipelineLayout,
+    shader_module: &wgpu::ShaderModule,
+) -> wgpu::RenderPipeline {
+    device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+        label: None,
+        depth_stencil: None,
+        primitive: wgpu::PrimitiveState {
+            conservative: false,
+            cull_mode: Some(wgpu::Face::Back),
+            front_face: wgpu::FrontFace::Ccw,
+            polygon_mode: wgpu::PolygonMode::Fill,
+            topology: wgpu::PrimitiveTopology::TriangleList,
+            strip_index_format: None,
+            unclipped_depth: false,
+        },
+        vertex: wgpu::VertexState {
+            buffers: &[Vertex::LAYOUT],
+            module: shader_module,
+            entry_point: crate::wgpu::common_pipeline::VERTEX_ENTRYPOINT_NAME,
+        },
+        fragment: Some(wgpu::FragmentState {
+            module: shader_module,
+            entry_point: crate::wgpu::common_pipeline::FRAGMENT_ENTRYPOINT_NAME,
+            targets: &[Some(wgpu::ColorTargetState {
+                format: wgpu::TextureFormat::Rgba8Unorm,
+                write_mask: wgpu::ColorWrites::all(),
+                blend: Some(wgpu::BlendState::ALPHA_BLENDING),
+            })],
+        }),
+        layout: Some(pipeline_layout),
+        multisample: wgpu::MultisampleState {
+            count: 1,
+            mask: !0,
+            alpha_to_coverage_enabled: false,
+        },
+        multiview: None,
+    })
+}
+
+pub fn create_single_texture_bgl(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+    device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        label: None,
+        entries: &[wgpu::BindGroupLayoutEntry {
+            binding: 0,
+            count: None,
+            visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
+            ty: wgpu::BindingType::Texture {
+                multisampled: false,
+                sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                view_dimension: wgpu::TextureViewDimension::D2,
+            },
+        }],
+    })
 }

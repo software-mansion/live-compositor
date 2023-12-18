@@ -3,7 +3,7 @@ use std::sync::Arc;
 use wgpu::ShaderStages;
 
 use crate::wgpu::{
-    common_pipeline::{CreateShaderError, Sampler, Vertex},
+    common_pipeline::{self, CreateShaderError, Sampler, Vertex},
     texture::{NodeTextureState, Texture},
     WgpuCtx, WgpuErrorScope,
 };
@@ -25,22 +25,7 @@ impl WebRendererShader {
             .device
             .create_shader_module(wgpu::include_wgsl!("../web_renderer/render_website.wgsl"));
         let sampler = Sampler::new(&wgpu_ctx.device);
-        let texture_bgl =
-            wgpu_ctx
-                .device
-                .create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                    label: Some("Web renderer texture bgl"),
-                    entries: &[wgpu::BindGroupLayoutEntry {
-                        binding: 0,
-                        count: None,
-                        visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
-                        ty: wgpu::BindingType::Texture {
-                            multisampled: false,
-                            sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                            view_dimension: wgpu::TextureViewDimension::D2,
-                        },
-                    }],
-                });
+        let texture_bgl = common_pipeline::create_single_texture_bgl(&wgpu_ctx.device);
 
         let pipeline_layout =
             wgpu_ctx
