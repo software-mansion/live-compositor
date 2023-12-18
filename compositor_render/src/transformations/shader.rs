@@ -2,15 +2,16 @@ use std::sync::Arc;
 
 use crate::{
     scene::ShaderParam,
-    wgpu::{common_pipeline::CreateShaderError, validation::ParametersValidationError, WgpuCtx},
+    wgpu::{common_pipeline::CreateShaderError, WgpuCtx},
     FallbackStrategy, RendererId,
 };
 
-use self::pipeline::ShaderPipeline;
+use self::{pipeline::ShaderPipeline, validation::error::ParametersValidationError};
 
 mod base_params;
 pub mod node;
 mod pipeline;
+pub mod validation;
 
 const SHADER_INPUT_TEXTURES_AMOUNT: u32 = 16;
 

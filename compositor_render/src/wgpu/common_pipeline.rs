@@ -12,7 +12,9 @@ pub const PRIMITIVE_STATE: wgpu::PrimitiveState = wgpu::PrimitiveState {
     unclipped_depth: false,
 };
 
-use super::{validation::ShaderValidationError, WgpuError};
+use crate::transformations::shader::validation::error::ShaderValidationError;
+
+use super::WgpuError;
 
 pub const VERTEX_ENTRYPOINT_NAME: &str = "vs_main";
 pub const FRAGMENT_ENTRYPOINT_NAME: &str = "fs_main";

@@ -2,18 +2,19 @@ use naga::{ArraySize, ConstantInner, Handle, Module, ScalarKind, ShaderStage, Ty
 
 use crate::scene::ShaderParam;
 
-use self::error::BindingExt;
+pub mod error;
 
-use error::ShaderGlobalVariableExt;
+use error::{
+    BindingExt, ConstArraySizeEvalError, ParametersValidationError, ShaderGlobalVariableExt,
+    ShaderValidationError, TypeEquivalenceError,
+};
 
-mod error;
+pub fn shader_header() -> Module {
+    naga::front::wgsl::parse_str(include_str!("./validation/shader_header.wgsl"))
+        .expect("failed to parse the shader header file")
+}
 
-pub use error::ConstArraySizeEvalError;
-pub use error::ParametersValidationError;
-pub use error::ShaderValidationError;
-pub use error::TypeEquivalenceError;
-
-pub fn validate_contains_header(
+pub(super) fn validate_contains_header(
     header: &naga::Module,
     shader: &naga::Module,
 ) -> Result<(), ShaderValidationError> {
@@ -52,9 +53,9 @@ fn validate_globals(
         .find(|(_, global)| {
             global.binding.is_some()
                 && global.binding.as_ref().unwrap().group
-                    == super::common_pipeline::USER_DEFINED_BUFFER_GROUP
+                    == crate::wgpu::common_pipeline::USER_DEFINED_BUFFER_GROUP
                 && global.binding.as_ref().unwrap().binding
-                    == super::common_pipeline::USER_DEFINED_BUFFER_BINDING
+                    == crate::wgpu::common_pipeline::USER_DEFINED_BUFFER_BINDING
                 && global.space == naga::AddressSpace::Uniform
         })
         .map_or(Ok(()), |(_, global)| match global.space {
@@ -73,7 +74,7 @@ fn validate_vertex_input(
         .entry_points
         .iter()
         .find(|entry_point| {
-            entry_point.name == super::common_pipeline::VERTEX_ENTRYPOINT_NAME
+            entry_point.name == crate::wgpu::common_pipeline::VERTEX_ENTRYPOINT_NAME
                 && entry_point.stage == ShaderStage::Vertex
         })
         .ok_or(ShaderValidationError::VertexShaderNotFound)?;
@@ -346,7 +347,7 @@ fn validate_array_size_equivalent(
     Ok(())
 }
 
-pub fn validate_params(
+pub(super) fn validate_params(
     params: &ShaderParam,
     ty: Handle<Type>,
     module: &naga::Module,

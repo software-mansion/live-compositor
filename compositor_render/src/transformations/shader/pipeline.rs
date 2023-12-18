@@ -8,12 +8,11 @@ use crate::{
     wgpu::{
         common_pipeline::{CreateShaderError, Sampler, Vertex},
         texture::{NodeTexture, NodeTextureState, RGBATexture},
-        validation::{validate_contains_header, ParametersValidationError},
         WgpuCtx, WgpuErrorScope,
     },
 };
 
-use super::base_params::BaseShaderParameters;
+use super::{base_params::BaseShaderParameters, validation::{validate_contains_header, validate_params, error::ParametersValidationError}};
 
 const USER_DEFINED_BUFFER_BINDING: u32 = 0;
 const USER_DEFINED_BUFFER_GROUP: u32 = 1;
@@ -195,7 +194,7 @@ impl ShaderPipeline {
             .map(|(_, handle)| handle.ty)
             .ok_or(ParametersValidationError::NoBindingInShader)?;
 
-        crate::wgpu::validation::validate_params(params, ty, &self.module)
+        validate_params(params, ty, &self.module)
     }
 
     fn input_textures_bg(

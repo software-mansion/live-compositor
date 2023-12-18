@@ -3,9 +3,9 @@ use std::time::Duration;
 
 use crate::transformations::image_renderer::Image;
 use crate::transformations::shader::Shader;
+use crate::transformations::shader::validation::error::ParametersValidationError;
 use crate::transformations::text_renderer::TextRenderParams;
 use crate::transformations::web_renderer::WebRenderer;
-use crate::wgpu::validation::ParametersValidationError;
 use crate::{InputId, OutputId, RendererId, Resolution};
 
 use self::image_component::StatefulImageComponent;
