@@ -15,7 +15,7 @@ pub struct WgpuCtx {
     pub format: TextureFormat,
     pub utils: TextureUtils,
 
-    pub shader_parameters_bind_group_layout: wgpu::BindGroupLayout,
+    pub uniform_bgl: wgpu::BindGroupLayout,
     pub plane: Plane,
     pub empty_texture: Texture,
 }
@@ -57,7 +57,7 @@ impl WgpuCtx {
         let format = TextureFormat::new(&device);
         let utils = TextureUtils::new(&device);
 
-        let shader_parameters_bind_group_layout = Self::parameters_bind_group_layout(&device);
+        let uniform_bgl = uniform_bind_group_layout(&device);
 
         let plane = Plane::new(&device);
         let empty_texture = Texture::empty(&device);
@@ -74,25 +74,25 @@ impl WgpuCtx {
             shader_header,
             format,
             utils,
-            shader_parameters_bind_group_layout,
+            uniform_bgl,
             plane,
             empty_texture,
         })
     }
+}
 
-    fn parameters_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
-        device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("shader parameters bind group layout"),
-            entries: &[wgpu::BindGroupLayoutEntry {
-                binding: 0,
-                count: None,
-                visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
-                ty: wgpu::BindingType::Buffer {
-                    ty: wgpu::BufferBindingType::Uniform,
-                    has_dynamic_offset: false,
-                    min_binding_size: None,
-                },
-            }],
-        })
-    }
+fn uniform_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+    device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        label: Some("uniform bind group layout"),
+        entries: &[wgpu::BindGroupLayoutEntry {
+            binding: 0,
+            count: None,
+            visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
+            ty: wgpu::BindingType::Buffer {
+                ty: wgpu::BufferBindingType::Uniform,
+                has_dynamic_offset: false,
+                min_binding_size: None,
+            },
+        }],
+    })
 }

@@ -36,7 +36,7 @@ impl ParamsBuffer {
             .device
             .create_bind_group(&wgpu::BindGroupDescriptor {
                 label: Some("params bind group"),
-                layout: &wgpu_ctx.shader_parameters_bind_group_layout,
+                layout: &wgpu_ctx.uniform_bgl,
                 entries: &[wgpu::BindGroupEntry {
                     binding: 0,
                     resource: buffer.as_entire_binding(),

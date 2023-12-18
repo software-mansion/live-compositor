@@ -60,7 +60,7 @@ impl ShaderNode {
     fn new_params_bind_group(ctx: &WgpuCtx, buffer: &wgpu::Buffer) -> wgpu::BindGroup {
         ctx.device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("shader node params bind group"),
-            layout: &ctx.shader_parameters_bind_group_layout,
+            layout: &ctx.uniform_bgl,
             entries: &[wgpu::BindGroupEntry {
                 binding: 0,
                 resource: buffer.as_entire_binding(),

@@ -44,7 +44,7 @@ impl LayoutShader {
                     label: Some("shader transformation pipeline layout"),
                     bind_group_layouts: &[
                         &texture_bgl,
-                        &wgpu_ctx.shader_parameters_bind_group_layout,
+                        &wgpu_ctx.uniform_bgl,
                         &sampler.bind_group_layout,
                     ],
                     push_constant_ranges: &[wgpu::PushConstantRange {
