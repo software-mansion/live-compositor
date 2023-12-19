@@ -16,13 +16,13 @@ impl Texture {
     };
 
     pub fn new(
-        ctx: &WgpuCtx,
+        device: &wgpu::Device,
         label: Option<&str>,
         size: wgpu::Extent3d,
         format: wgpu::TextureFormat,
         usage: wgpu::TextureUsages,
     ) -> Self {
-        let texture = ctx.device.create_texture(&wgpu::TextureDescriptor {
+        let texture = device.create_texture(&wgpu::TextureDescriptor {
             label,
             size,
             mip_level_count: 1,
@@ -38,9 +38,9 @@ impl Texture {
         Self { texture, view }
     }
 
-    pub fn empty(ctx: &WgpuCtx) -> Self {
+    pub fn empty(device: &wgpu::Device) -> Self {
         Self::new(
-            ctx,
+            device,
             Some("empty texture"),
             wgpu::Extent3d {
                 width: 1,

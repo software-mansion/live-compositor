@@ -1,4 +1,7 @@
-use crate::{wgpu::WgpuCtx, Resolution};
+use crate::{
+    wgpu::{common_pipeline, WgpuCtx},
+    Resolution,
+};
 
 use super::base::Texture;
 
@@ -8,7 +11,7 @@ pub struct RGBATexture(Texture);
 impl RGBATexture {
     pub fn new(ctx: &WgpuCtx, resolution: Resolution) -> Self {
         Self(Texture::new(
-            ctx,
+            &ctx.device,
             None,
             wgpu::Extent3d {
                 width: resolution.width as u32,
@@ -24,15 +27,7 @@ impl RGBATexture {
     }
 
     pub fn new_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
-        device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("single texture bind group layout"),
-            entries: &[wgpu::BindGroupLayoutEntry {
-                binding: 0,
-                ty: Texture::DEFAULT_BINDING_TYPE,
-                visibility: wgpu::ShaderStages::FRAGMENT,
-                count: None,
-            }],
-        })
+        common_pipeline::create_single_texture_bgl(device)
     }
 
     pub(super) fn new_bind_group(

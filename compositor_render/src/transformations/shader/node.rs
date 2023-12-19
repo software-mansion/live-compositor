@@ -60,7 +60,7 @@ impl ShaderNode {
     fn new_params_bind_group(ctx: &WgpuCtx, buffer: &wgpu::Buffer) -> wgpu::BindGroup {
         ctx.device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("shader node params bind group"),
-            layout: &ctx.shader_parameters_bind_group_layout,
+            layout: &ctx.uniform_bgl,
             entries: &[wgpu::BindGroupEntry {
                 binding: 0,
                 resource: buffer.as_entire_binding(),
@@ -74,12 +74,15 @@ impl ShaderNode {
 
     pub fn render(
         &self,
+        wgpu_ctx: &Arc<WgpuCtx>,
         sources: &[(&NodeId, &NodeTexture)],
         target: &mut NodeTexture,
         pts: Duration,
     ) {
-        let target = target.ensure_size(&self.shader.wgpu_shader.wgpu_ctx, self.resolution);
-        self.shader.wgpu_shader.render(
+        let target = target.ensure_size(wgpu_ctx, self.resolution);
+
+        self.shader.pipeline.render(
+            wgpu_ctx,
             &self.params_bind_group,
             sources,
             target,

@@ -20,7 +20,8 @@ fn vs_main(input: VertexInput) -> VertexOutput {
 
 @group(0) @binding(0) var texture: texture_2d<f32>;
 @group(1) @binding(0) var sampler_: sampler;
-@group(2) @binding(0) var<uniform> plane_selector: u32;
+
+var<push_constant> plane_selector: u32;
 
 @fragment
 fn fs_main(input: VertexOutput) -> @location(0) f32 {

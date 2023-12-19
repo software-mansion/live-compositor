@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::wgpu::{shader::CreateShaderError, WgpuCtx};
+use crate::wgpu::{common_pipeline::CreateShaderError, WgpuCtx};
 
 use super::shader::LayoutShader;
 

@@ -1,8 +1,8 @@
 use log::error;
 
 use super::{
-    common_pipeline::plane::PlaneCache, format::TextureFormat, shader::WgpuShader,
-    utils::TextureUtils, CreateWgpuCtxError, WgpuErrorScope,
+    common_pipeline::plane::Plane, format::TextureFormat, texture::Texture, utils::TextureUtils,
+    CreateWgpuCtxError, WgpuErrorScope,
 };
 
 #[derive(Debug)]
@@ -15,8 +15,9 @@ pub struct WgpuCtx {
     pub format: TextureFormat,
     pub utils: TextureUtils,
 
-    pub shader_parameters_bind_group_layout: wgpu::BindGroupLayout,
-    pub plane_cache: PlaneCache,
+    pub uniform_bgl: wgpu::BindGroupLayout,
+    pub plane: Plane,
+    pub empty_texture: Texture,
 }
 
 impl WgpuCtx {
@@ -49,19 +50,17 @@ impl WgpuCtx {
             None,
         ))?;
 
-        let shader_header =
-            naga::front::wgsl::parse_str(include_str!("./shader/shader_header.wgsl"))
-                .expect("failed to parse the shader header file");
+        let shader_header = crate::transformations::shader::validation::shader_header();
 
         let scope = WgpuErrorScope::push(&device);
 
         let format = TextureFormat::new(&device);
         let utils = TextureUtils::new(&device);
 
-        let shader_parameters_bind_group_layout =
-            WgpuShader::new_parameters_bind_group_layout(&device);
+        let uniform_bgl = uniform_bind_group_layout(&device);
 
-        let plane_cache = PlaneCache::new(&device);
+        let plane = Plane::new(&device);
+        let empty_texture = Texture::empty(&device);
 
         scope.pop(&device)?;
 
@@ -75,8 +74,25 @@ impl WgpuCtx {
             shader_header,
             format,
             utils,
-            shader_parameters_bind_group_layout,
-            plane_cache,
+            uniform_bgl,
+            plane,
+            empty_texture,
         })
     }
+}
+
+fn uniform_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+    device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        label: Some("uniform bind group layout"),
+        entries: &[wgpu::BindGroupLayoutEntry {
+            binding: 0,
+            count: None,
+            visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
+            ty: wgpu::BindingType::Buffer {
+                ty: wgpu::BufferBindingType::Uniform,
+                has_dynamic_offset: false,
+                min_binding_size: None,
+            },
+        }],
+    })
 }

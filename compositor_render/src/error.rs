@@ -1,11 +1,12 @@
 use crate::transformations::web_renderer::CreateWebRendererError;
+use crate::wgpu::common_pipeline::CreateShaderError;
+use crate::wgpu::CreateWgpuCtxError;
 use crate::{
     registry,
     scene::SceneError,
     transformations::{
         image_renderer::ImageError, web_renderer::chromium_context::WebRendererContextError,
     },
-    wgpu::{shader::CreateShaderError, CreateWgpuCtxError},
 };
 use crate::{OutputId, RendererId};
 

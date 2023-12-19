@@ -1,5 +1,3 @@
-use wgpu::{util::DeviceExt, BindGroup, BindGroupLayout, Buffer};
-
 pub mod plane;
 
 pub const PRIMITIVE_STATE: wgpu::PrimitiveState = wgpu::PrimitiveState {
@@ -12,29 +10,45 @@ pub const PRIMITIVE_STATE: wgpu::PrimitiveState = wgpu::PrimitiveState {
     unclipped_depth: false,
 };
 
-pub const MAX_PLANES_COUNT: u32 = 128;
+use crate::transformations::shader::validation::error::ShaderValidationError;
+
+use super::WgpuError;
+
+pub const VERTEX_ENTRYPOINT_NAME: &str = "vs_main";
+pub const FRAGMENT_ENTRYPOINT_NAME: &str = "fs_main";
+
+#[derive(Debug, thiserror::Error)]
+pub enum CreateShaderError {
+    #[error(transparent)]
+    Wgpu(#[from] WgpuError),
+
+    #[error(transparent)]
+    Validation(#[from] ShaderValidationError),
+
+    #[error("Shader parse error: {0}")]
+    ParseError(naga::front::wgsl::ParseError),
+}
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Vertex {
     pub position: [f32; 3],
     pub texture_coords: [f32; 2],
-    pub input_id: i32,
 }
 
 impl Vertex {
     pub const LAYOUT: wgpu::VertexBufferLayout<'static> = wgpu::VertexBufferLayout {
         array_stride: std::mem::size_of::<Vertex>() as u64,
         step_mode: wgpu::VertexStepMode::Vertex,
-        attributes: &wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x2, 2 => Sint32],
+        attributes: &wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x2],
     };
 }
 
 #[derive(Debug)]
 pub struct Sampler {
     _sampler: wgpu::Sampler,
-    pub bind_group_layout: BindGroupLayout,
-    pub bind_group: BindGroup,
+    pub bind_group_layout: wgpu::BindGroupLayout,
+    pub bind_group: wgpu::BindGroup,
 }
 
 impl Sampler {
@@ -77,52 +91,59 @@ impl Sampler {
     }
 }
 
-// TODO: This should be done with push-constants, not with a buffer
-#[derive(Debug)]
-pub struct U32Uniform {
-    pub buffer: Buffer,
-    pub bind_group: wgpu::BindGroup,
-    pub bind_group_layout: wgpu::BindGroupLayout,
+pub fn create_render_pipeline(
+    device: &wgpu::Device,
+    pipeline_layout: &wgpu::PipelineLayout,
+    shader_module: &wgpu::ShaderModule,
+) -> wgpu::RenderPipeline {
+    device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+        label: None,
+        depth_stencil: None,
+        primitive: wgpu::PrimitiveState {
+            conservative: false,
+            cull_mode: Some(wgpu::Face::Back),
+            front_face: wgpu::FrontFace::Ccw,
+            polygon_mode: wgpu::PolygonMode::Fill,
+            topology: wgpu::PrimitiveTopology::TriangleList,
+            strip_index_format: None,
+            unclipped_depth: false,
+        },
+        vertex: wgpu::VertexState {
+            buffers: &[Vertex::LAYOUT],
+            module: shader_module,
+            entry_point: crate::wgpu::common_pipeline::VERTEX_ENTRYPOINT_NAME,
+        },
+        fragment: Some(wgpu::FragmentState {
+            module: shader_module,
+            entry_point: crate::wgpu::common_pipeline::FRAGMENT_ENTRYPOINT_NAME,
+            targets: &[Some(wgpu::ColorTargetState {
+                format: wgpu::TextureFormat::Rgba8Unorm,
+                write_mask: wgpu::ColorWrites::all(),
+                blend: Some(wgpu::BlendState::ALPHA_BLENDING),
+            })],
+        }),
+        layout: Some(pipeline_layout),
+        multisample: wgpu::MultisampleState {
+            count: 1,
+            mask: !0,
+            alpha_to_coverage_enabled: false,
+        },
+        multiview: None,
+    })
 }
 
-impl U32Uniform {
-    pub fn new(device: &wgpu::Device) -> Self {
-        let buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("uniform u32 buffer"),
-            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-            contents: bytemuck::bytes_of(&0u32),
-        });
-
-        let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("uniform bind group layout"),
-            entries: &[wgpu::BindGroupLayoutEntry {
-                binding: 0,
-                count: None,
-                visibility: wgpu::ShaderStages::FRAGMENT,
-                ty: wgpu::BindingType::Buffer {
-                    ty: wgpu::BufferBindingType::Uniform,
-                    has_dynamic_offset: false,
-                    min_binding_size: None,
-                },
-            }],
-        });
-
-        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("uniform bind group"),
-            layout: &bind_group_layout,
-            entries: &[wgpu::BindGroupEntry {
-                binding: 0,
-                resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
-                    buffer: &buffer,
-                    offset: 0,
-                    size: std::num::NonZeroU64::new(std::mem::size_of::<u32>() as u64),
-                }),
-            }],
-        });
-        Self {
-            buffer,
-            bind_group_layout,
-            bind_group,
-        }
-    }
+pub fn create_single_texture_bgl(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+    device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        label: None,
+        entries: &[wgpu::BindGroupLayoutEntry {
+            binding: 0,
+            count: None,
+            visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
+            ty: wgpu::BindingType::Texture {
+                multisampled: false,
+                sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                view_dimension: wgpu::TextureViewDimension::D2,
+            },
+        }],
+    })
 }

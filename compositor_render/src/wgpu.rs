@@ -3,10 +3,8 @@ use log::error;
 pub(crate) mod common_pipeline;
 mod ctx;
 pub(crate) mod format;
-pub(crate) mod shader;
 pub(crate) mod texture;
 pub(crate) mod utils;
-pub(crate) mod validation;
 
 pub(crate) use ctx::WgpuCtx;
 

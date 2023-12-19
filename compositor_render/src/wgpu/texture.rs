@@ -172,6 +172,10 @@ impl NodeTexture {
     pub fn resolution(&self) -> Option<Resolution> {
         self.0.state().map(NodeTextureState::resolution)
     }
+
+    pub fn texture(&self) -> Option<&Texture> {
+        self.state().map(|state| state.rgba_texture().texture())
+    }
 }
 
 impl Default for NodeTexture {
