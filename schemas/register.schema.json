@@ -167,8 +167,7 @@
                 "null"
               ]
             }
-          },
-          "additionalProperties": false
+          }
         },
         {
           "type": "object",
@@ -198,8 +197,7 @@
                 "null"
               ]
             }
-          },
-          "additionalProperties": false
+          }
         },
         {
           "type": "object",
@@ -239,8 +237,7 @@
                 }
               ]
             }
-          },
-          "additionalProperties": false
+          }
         },
         {
           "type": "object",
@@ -270,8 +267,7 @@
                 "null"
               ]
             }
-          },
-          "additionalProperties": false
+          }
         }
       ],
       "required": [
