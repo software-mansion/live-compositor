@@ -13,7 +13,6 @@ pub enum FallbackStrategy {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-#[serde(deny_unknown_fields)]
 pub struct ShaderSpec {
     /// Id of a shader. It can be used in a [`Shader`](../components/Shader) component after registration.
     pub shader_id: RendererId,
@@ -22,7 +21,6 @@ pub struct ShaderSpec {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-#[serde(deny_unknown_fields)]
 pub struct WebRendererSpec {
     /// Id of a web renderer instance. It can be used in a [`WebView`](../components/WebView) component after registration.
     pub instance_id: RendererId,
@@ -35,7 +33,7 @@ pub struct WebRendererSpec {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[serde(rename_all = "snake_case", deny_unknown_fields)]
+#[serde(rename_all = "snake_case")]
 pub enum WebEmbeddingMethod {
     /// Pass raw input frames as JS buffers so they can be rendered, for example, using a `<canvas>` component.
     ///
@@ -56,7 +54,7 @@ pub enum WebEmbeddingMethod {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-#[serde(tag = "asset_type", rename_all = "snake_case", deny_unknown_fields)]
+#[serde(tag = "asset_type", rename_all = "snake_case")]
 pub enum ImageSpec {
     Png {
         image_id: RendererId,
