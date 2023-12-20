@@ -3,6 +3,8 @@
 /// green if inputs count == 1
 /// blue if inputs count > 1
 
+/// Depends on base_params.texture_count
+
 struct VertexInput {
     @location(0) position: vec3<f32>,
     @location(1) tex_coords: vec2<f32>,
