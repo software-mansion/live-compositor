@@ -20,17 +20,6 @@ struct BaseShaderParameters {
 
 var<push_constant> base_params: BaseShaderParameters;
 
-fn rotation_matrix(angle: f32) -> mat3x3<f32> {
-  let cosAngle = cos(angle);
-  let sinAngle = sin(angle);
-
-  return mat3x3<f32>(
-    cosAngle, -sinAngle, 0.0,
-    sinAngle, cosAngle, 0.0,
-    0.0, 0.0, 1.0
-  );
-}
-
 @vertex
 fn vs_main(input: VertexInput) -> VertexOutput {
     var output: VertexOutput;
