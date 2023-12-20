@@ -161,3 +161,24 @@ impl LayoutNode {
             .render(ctx.wgpu_ctx, self.params.bind_group(), &textures, target);
     }
 }
+
+impl NestedLayout {
+    /// NestedLayout that won't ever be rendered. It's intended to be optimized out
+    /// in the flattening process. Its only purpose is to keep track of child nodes that are not
+    /// currently used so the index offset can be calculated correctly.
+    pub(crate) fn child_nodes_placeholder(child_nodes_count: usize) -> Self {
+        Self {
+            top: 0.0,
+            left: 0.0,
+            width: 0.0,
+            height: 0.0,
+            rotation_degrees: 0.0,
+            scale_x: 1.0,
+            scale_y: 1.0,
+            crop: None,
+            content: LayoutContent::None,
+            children: vec![],
+            child_nodes_count,
+        }
+    }
+}

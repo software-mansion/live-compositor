@@ -200,4 +200,6 @@ pub struct TilesComponent {
     pub padding: f32,
     pub horizontal_align: HorizontalAlign,
     pub vertical_align: VerticalAlign,
+
+    pub transition: Option<Transition>,
 }

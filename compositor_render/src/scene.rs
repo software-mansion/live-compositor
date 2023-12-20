@@ -139,6 +139,28 @@ impl StatefulComponent {
             },
         }
     }
+
+    fn children_mut(&mut self) -> Vec<&mut StatefulComponent> {
+        match self {
+            StatefulComponent::InputStream(_) => vec![],
+            StatefulComponent::Shader(shader) => shader.children.iter_mut().collect(),
+            StatefulComponent::WebView(web) => web.children.iter_mut().collect(),
+            StatefulComponent::Image(_) => todo!(),
+            StatefulComponent::Text(_) => todo!(),
+            StatefulComponent::Layout(layout) => layout.children_mut(),
+        }
+    }
+
+    fn component_id(&self) -> Option<&ComponentId> {
+        match self {
+            StatefulComponent::InputStream(input) => input.component_id(),
+            StatefulComponent::Shader(shader) => shader.component_id(),
+            StatefulComponent::WebView(web) => web.component_id(),
+            StatefulComponent::Image(image) => image.component_id(),
+            StatefulComponent::Text(text) => text.component_id(),
+            StatefulComponent::Layout(layout) => layout.component_id(),
+        }
+    }
 }
 
 impl Component {

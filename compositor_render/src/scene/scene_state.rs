@@ -1,5 +1,7 @@
 use std::{collections::HashMap, time::Duration};
 
+use log::error;
+
 use crate::{
     state::renderers::Renderers, transformations::text_renderer::TextRendererCtx, InputId,
     OutputId, Resolution,
@@ -70,6 +72,15 @@ impl SceneState {
         text_renderer_ctx: &TextRendererCtx,
     ) -> Result<Vec<OutputNode>, SceneError> {
         validate_scene_update(&outputs)?;
+
+        for output in self.outputs.iter_mut() {
+            recalculate_layout(
+                &mut output.root,
+                Some(output.resolution.into()),
+                self.last_pts,
+                false,
+            )
+        }
 
         let ctx = BuildStateTreeCtx {
             prev_state: self
@@ -211,6 +222,39 @@ impl IntermediateNode {
                         },
                     })
                 }
+            }
+        }
+    }
+}
+
+fn recalculate_layout(
+    component: &mut StatefulComponent,
+    size: Option<Size>,
+    pts: Duration,
+    parent_is_layout: bool,
+) {
+    let (width, height) = (component.width(pts), component.height(pts));
+    match component {
+        StatefulComponent::Layout(layout) => {
+            if !parent_is_layout {
+                let size = size.or_else(|| {
+                    let (Some(width), Some(height)) = (width, height) else {
+                        error!("Unknown dimensions on root layout component.");
+                        return None;
+                    };
+                    Some(Size { width, height })
+                });
+                if let Some(size) = size {
+                    layout.layout(size, pts);
+                }
+            }
+            for child in layout.children_mut() {
+                recalculate_layout(child, None, pts, true)
+            }
+        }
+        component => {
+            for child in component.children_mut() {
+                recalculate_layout(child, None, pts, false)
             }
         }
     }

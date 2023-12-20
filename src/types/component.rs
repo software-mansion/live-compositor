@@ -363,4 +363,8 @@ pub struct Tiles {
     pub horizontal_align: Option<HorizontalAlign>,
     /// (**default=`"center"`**) Vertical alignment of tiles.
     pub vertical_align: Option<VerticalAlign>,
+
+    /// Defines how this component will behave during a scene update. This will only have an
+    /// effect if the previous scene already contained a `Tiles` component with the same id.
+    pub transition: Option<Transition>,
 }

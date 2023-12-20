@@ -41,7 +41,7 @@ impl layout::LayoutProvider for LayoutNode {
 }
 
 impl StatefulLayoutComponent {
-    pub(super) fn layout(&self, size: Size, pts: Duration) -> NestedLayout {
+    pub(super) fn layout(&mut self, size: Size, pts: Duration) -> NestedLayout {
         match self {
             StatefulLayoutComponent::View(view) => view.layout(size, pts),
             StatefulLayoutComponent::Tiles(tiles) => tiles.layout(size, pts),
@@ -157,7 +157,7 @@ impl StatefulLayoutComponent {
     }
 
     pub(super) fn layout_absolute_position_child(
-        child: &StatefulComponent,
+        child: &mut StatefulComponent,
         position: AbsolutePosition,
         parent_size: Size,
         pts: Duration,
@@ -242,7 +242,7 @@ impl SizedLayoutComponent {
         .into()
     }
 
-    fn layout(&self, pts: Duration) -> NestedLayout {
+    fn layout(&mut self, pts: Duration) -> NestedLayout {
         self.component.layout(self.size, pts)
     }
 }
