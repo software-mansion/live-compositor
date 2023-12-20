@@ -1,0 +1,12 @@
+{
+    "output_id": "output_1",
+    "root": {
+        "type": "shader",
+        "shader_id": "base_params_output_resolution",
+        "resolution": {
+            "width": 1920,
+            "height": 1080
+        },
+        "children": []
+    }
+}

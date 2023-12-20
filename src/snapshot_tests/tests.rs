@@ -1,6 +1,8 @@
 use std::time::Duration;
 
 use compositor_render::Resolution;
+use lazy_static::lazy_static;
+use serde_json::json;
 
 use super::test_case::{Outputs, TestCase, TestInput};
 
@@ -18,10 +20,143 @@ pub fn snapshot_tests() -> Vec<TestCase> {
     tests.append(&mut text_snapshot_tests());
     tests.append(&mut tiles_snapshot_tests());
     tests.append(&mut rescaler_snapshot_tests());
+    tests.append(&mut shader_tests());
     tests
 }
 
-pub fn rescaler_snapshot_tests() -> Vec<TestCase> {
+fn shader_tests() -> Vec<TestCase> {
+    let input1 = TestInput::new(1);
+    let input2 = TestInput::new(2);
+    let input3 = TestInput::new(3);
+    let input4 = TestInput::new(4);
+    let input5 = TestInput::new(5);
+
+    lazy_static! {
+        static ref PLANE_ID_SHADER: String = json!({
+            "type": "register",
+            "entity_type": "shader",
+            "shader_id": "base_params_plane_id",
+            "source": include_str!("../../snapshot_tests/shader/base_params_plane_id.wgsl")
+        })
+        .to_string();
+        static ref TIME_SHADER: String = json!({
+            "type": "register",
+            "entity_type": "shader",
+            "shader_id": "base_params_time",
+            "source": include_str!("../../snapshot_tests/shader/base_params_time.wgsl")
+        })
+        .to_string();
+        static ref TEXTURE_COUNT_SHADER: String = json!({
+            "type": "register",
+            "entity_type": "shader",
+            "shader_id": "base_params_texture_count",
+            "source": include_str!("../../snapshot_tests/shader/base_params_texture_count.wgsl")
+        })
+        .to_string();
+        static ref OUTPUT_RESOLUTION_SHADER: String = json!({
+            "type": "register",
+            "entity_type": "shader",
+            "shader_id": "base_params_output_resolution",
+            "source": include_str!("../../snapshot_tests/shader/base_params_output_resolution.wgsl")
+        })
+        .to_string();
+    };
+
+    Vec::from([
+        TestCase {
+            name: "shader/base_params_plane_id_no_inputs",
+            outputs: Outputs::Scene(vec![(
+                include_str!(
+                    "../../snapshot_tests/shader/base_params_plane_id_no_inputs.scene.json"
+                ),
+                DEFAULT_RESOLUTION,
+            )]),
+            renderers: vec![&PLANE_ID_SHADER],
+            ..Default::default()
+        },
+        TestCase {
+            name: "shader/base_params_plane_id_5_inputs",
+            outputs: Outputs::Scene(vec![(
+                include_str!(
+                    "../../snapshot_tests/shader/base_params_plane_id_5_inputs.scene.json"
+                ),
+                DEFAULT_RESOLUTION,
+            )]),
+            renderers: vec![&PLANE_ID_SHADER],
+            inputs: vec![
+                input1.clone(),
+                input2.clone(),
+                input3.clone(),
+                input4.clone(),
+                input5.clone(),
+            ],
+            ..Default::default()
+        },
+        TestCase {
+            name: "shader/base_params_time_5s",
+            outputs: Outputs::Scene(vec![(
+                include_str!("../../snapshot_tests/shader/base_params_time.scene.json"),
+                DEFAULT_RESOLUTION,
+            )]),
+            renderers: vec![&TIME_SHADER],
+            inputs: vec![input1.clone()],
+            timestamps: vec![
+                Duration::from_secs(0),
+                Duration::from_secs(1),
+                Duration::from_secs(2),
+            ],
+            ..Default::default()
+        },
+        TestCase {
+            name: "shader/base_params_texture_count_no_inputs",
+            outputs: Outputs::Scene(vec![(
+                include_str!(
+                    "../../snapshot_tests/shader/base_params_texture_count_no_inputs.scene.json"
+                ),
+                DEFAULT_RESOLUTION,
+            )]),
+            renderers: vec![&TEXTURE_COUNT_SHADER],
+            ..Default::default()
+        },
+        TestCase {
+            name: "shader/base_params_texture_count_1_input",
+            outputs: Outputs::Scene(vec![(
+                include_str!(
+                    "../../snapshot_tests/shader/base_params_texture_count_1_input.scene.json"
+                ),
+                DEFAULT_RESOLUTION,
+            )]),
+            renderers: vec![&TEXTURE_COUNT_SHADER],
+            inputs: vec![input1.clone()],
+            ..Default::default()
+        },
+        TestCase {
+            name: "shader/base_params_texture_count_2_inputs",
+            outputs: Outputs::Scene(vec![(
+                include_str!(
+                    "../../snapshot_tests/shader/base_params_texture_count_2_inputs.scene.json"
+                ),
+                DEFAULT_RESOLUTION,
+            )]),
+            renderers: vec![&TEXTURE_COUNT_SHADER],
+            inputs: vec![input1.clone(), input2.clone()],
+            ..Default::default()
+        },
+        TestCase {
+            name: "shader/base_params_output_resolution",
+            outputs: Outputs::Scene(vec![(
+                include_str!(
+                    "../../snapshot_tests/shader/base_params_output_resolution.scene.json"
+                ),
+                DEFAULT_RESOLUTION,
+            )]),
+            renderers: vec![&OUTPUT_RESOLUTION_SHADER],
+            ..Default::default()
+        },
+    ])
+}
+
+fn rescaler_snapshot_tests() -> Vec<TestCase> {
     let higher_than_default = Resolution {
         width: DEFAULT_RESOLUTION.width,
         height: DEFAULT_RESOLUTION.height + 100,
@@ -197,7 +332,7 @@ pub fn rescaler_snapshot_tests() -> Vec<TestCase> {
     ])
 }
 
-pub fn tiles_snapshot_tests() -> Vec<TestCase> {
+fn tiles_snapshot_tests() -> Vec<TestCase> {
     let input1 = TestInput::new(1);
     let input2 = TestInput::new(2);
     let input3 = TestInput::new(3);
@@ -517,7 +652,7 @@ pub fn tiles_snapshot_tests() -> Vec<TestCase> {
     ])
 }
 
-pub fn text_snapshot_tests() -> Vec<TestCase> {
+fn text_snapshot_tests() -> Vec<TestCase> {
     Vec::from([
         TestCase {
             name: "text/align_center",
@@ -624,7 +759,7 @@ pub fn text_snapshot_tests() -> Vec<TestCase> {
     ])
 }
 
-pub fn image_snapshot_tests() -> Vec<TestCase> {
+fn image_snapshot_tests() -> Vec<TestCase> {
     let image_renderer = include_str!("../../snapshot_tests/register/image_jpeg.register.json");
 
     Vec::from([
@@ -661,7 +796,7 @@ pub fn image_snapshot_tests() -> Vec<TestCase> {
     ])
 }
 
-pub fn transition_snapshot_tests() -> Vec<TestCase> {
+fn transition_snapshot_tests() -> Vec<TestCase> {
     Vec::from([
         TestCase {
             name: "transition/change_rescaler_absolute_and_send_next_update",
@@ -825,7 +960,7 @@ pub fn transition_snapshot_tests() -> Vec<TestCase> {
     ])
 }
 
-pub fn view_snapshot_tests() -> Vec<TestCase> {
+fn view_snapshot_tests() -> Vec<TestCase> {
     Vec::from([
         TestCase {
             name: "view/overflow_hidden_with_input_stream_children",
@@ -947,7 +1082,7 @@ pub fn view_snapshot_tests() -> Vec<TestCase> {
     ])
 }
 
-pub fn base_snapshot_tests() -> Vec<TestCase> {
+fn base_snapshot_tests() -> Vec<TestCase> {
     Vec::from([TestCase {
         name: "simple_input_pass_through",
         outputs: Outputs::Scene(vec![(
