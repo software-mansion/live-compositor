@@ -21,7 +21,12 @@ fn test_snapshots() {
         .into_iter()
         .map(TestCaseInstance::new)
         .collect();
+    let mut test_names = HashSet::new();
+
     for test in test.iter() {
+        if !test_names.insert(test.case.name) {
+            panic!("Multiple snapshots tests with the same name: \"{}\".", test.case.name);
+        }
         eprintln!("Test \"{}\"", test.case.name);
         if let Err(err) = test.run() {
             handle_error(err);
