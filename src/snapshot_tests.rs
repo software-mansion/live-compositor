@@ -21,8 +21,8 @@ fn test_snapshots() {
         .into_iter()
         .map(TestCaseInstance::new)
         .collect();
-    let mut test_names = HashSet::new();
 
+    let mut test_names = HashSet::new();
     for test in test.iter() {
         if !test_names.insert(test.case.name) {
             panic!(
@@ -30,6 +30,9 @@ fn test_snapshots() {
                 test.case.name
             );
         }
+    }
+
+    for test in test.iter() {
         eprintln!("Test \"{}\"", test.case.name);
         if let Err(err) = test.run() {
             handle_error(err);
