@@ -30,21 +30,25 @@ fn shader_snapshot_tests() -> Vec<TestCase> {
     let input4 = TestInput::new(4);
     let input5 = TestInput::new(5);
 
-    let plane_id_shader = Box::new(json!({
+    let plane_id_shader = Box::new(
+        json!({
             "type": "register",
             "entity_type": "shader",
             "shader_id": "base_params_plane_id",
             "source": include_str!("../../snapshot_tests/shader/layout_planes.wgsl")
         })
-        .to_string());
+        .to_string(),
+    );
 
-    let time_shader = Box::new(json!({
+    let time_shader = Box::new(
+        json!({
             "type": "register",
             "entity_type": "shader",
             "shader_id": "base_params_time",
             "source": include_str!("../../snapshot_tests/shader/fade_to_ball.wgsl")
         })
-        .to_string());
+        .to_string(),
+    );
 
     let texture_count_shader = Box::new(json!({
             "type": "register",
@@ -54,13 +58,15 @@ fn shader_snapshot_tests() -> Vec<TestCase> {
         })
         .to_string());
 
-    let output_resolution_shader = Box::new(json!({
+    let output_resolution_shader = Box::new(
+        json!({
             "type": "register",
             "entity_type": "shader",
             "shader_id": "base_params_output_resolution",
             "source": include_str!("../../snapshot_tests/shader/red_border.wgsl")
         })
-        .to_string());
+        .to_string(),
+    );
 
     Vec::from([
         TestCase {
@@ -153,7 +159,7 @@ fn shader_snapshot_tests() -> Vec<TestCase> {
             renderers: vec![texture_count_shader.clone().leak()],
             inputs: vec![input1.clone(), input2.clone()],
             ..Default::default()
-        }
+        },
     ])
 }
 
