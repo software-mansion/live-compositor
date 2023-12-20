@@ -1,17 +1,37 @@
-use std::time::Duration;
+use std::{ops::Add, time::Duration};
 
 use crate::transformations::layout::NestedLayout;
 
-use super::{
-    layout::StatefulLayoutComponent, scene_state::BuildStateTreeCtx, Component, ComponentId,
-    HorizontalAlign, IntermediateNode, Position, RGBAColor, SceneError, Size, StatefulComponent,
-    TilesComponent, VerticalAlign,
+use self::{
+    layout::{layout_tiles, resize_tiles},
+    tiles::Tile,
 };
 
+use super::{
+    interpolation::{ContinuousValue, InterpolationState},
+    layout::StatefulLayoutComponent,
+    scene_state::BuildStateTreeCtx,
+    Component, ComponentId, HorizontalAlign, IntermediateNode, Position, RGBAColor, SceneError,
+    Size, StatefulComponent, TilesComponent, Transition, VerticalAlign,
+};
+
+mod interpolation;
 mod layout;
+mod tiles;
 
 #[derive(Debug, Clone)]
 pub(super) struct StatefulTilesComponent {
+    /// Initial state for transition. To calculate scene at specific PTS you need
+    /// to interpolate between this state and `self.component.tiles(...)`.
+    start: Option<(Vec<Option<Tile>>, Size)>,
+
+    /// Tile positions from last layout call. This field is a source for
+    /// `start` value after scene update.
+    last_layout: Option<(Vec<Option<Tile>>, Size)>,
+
+    transition: Option<Transition>,
+    start_pts: Duration,
+
     component: TilesComponentParams,
     children: Vec<StatefulComponent>,
 }
@@ -34,6 +54,29 @@ struct TilesComponentParams {
 impl StatefulTilesComponent {
     pub(super) fn component_id(&self) -> Option<&ComponentId> {
         self.component.id.as_ref()
+    }
+
+    fn tiles(&self, size: Size, pts: Duration) -> Vec<Option<Tile>> {
+        let end = self.component.tiles(size, &self.children);
+        let (Some((start, start_size)), Some(transition)) = (&self.start, self.transition) else {
+            return end.clone();
+        };
+        let start = resize_tiles(start, start_size, &size);
+        let interpolation_progress = InterpolationState(f64::min(
+            1.0,
+            (pts.as_secs_f64() - self.start_pts.as_secs_f64()) / transition.duration.as_secs_f64(),
+        ));
+        ContinuousValue::interpolate(&start, &end, interpolation_progress)
+    }
+
+    fn remaining_transition_duration(&self, pts: Duration) -> Option<Duration> {
+        self.transition.and_then(|transition| {
+            if self.start_pts + transition.duration > pts {
+                self.start_pts.add(transition.duration).checked_sub(pts)
+            } else {
+                None
+            }
+        })
     }
 
     pub(super) fn position(&self, _pts: Duration) -> Position {
@@ -70,8 +113,17 @@ impl StatefulTilesComponent {
         }
     }
 
-    pub(super) fn layout(&self, size: Size, pts: Duration) -> NestedLayout {
-        self.component.layout(size, &self.children, pts)
+    pub(super) fn layout(&mut self, size: Size, pts: Duration) -> NestedLayout {
+        let tiles = self.tiles(size, pts);
+        let layout = layout_tiles(
+            &tiles,
+            size,
+            &mut self.children,
+            pts,
+            self.component.background_color,
+        );
+        self.last_layout = Some((tiles, size));
+        layout
     }
 }
 
@@ -80,7 +132,33 @@ impl TilesComponent {
         self,
         ctx: &BuildStateTreeCtx,
     ) -> Result<StatefulComponent, SceneError> {
+        let previous_state = self
+            .id
+            .as_ref()
+            .and_then(|id| ctx.prev_state.get(id))
+            .and_then(|component| match component {
+                StatefulComponent::Layout(StatefulLayoutComponent::Tiles(tiles_state)) => {
+                    Some(tiles_state)
+                }
+                _ => None,
+            });
+
+        let start = previous_state.and_then(|state| state.last_layout.clone());
+        // TODO: this is incorrect for non linear transformations
+        let transition = self.transition.or_else(|| {
+            let Some(previous_state) = previous_state else {
+                return None;
+            };
+            let Some(duration) = previous_state.remaining_transition_duration(ctx.last_render_pts)
+            else {
+                return None;
+            };
+            previous_state.transition.map(|_| Transition { duration })
+        });
+
         let tiles = StatefulTilesComponent {
+            start,
+            last_layout: previous_state.and_then(|state| state.last_layout.clone()),
             component: TilesComponentParams {
                 id: self.id,
                 width: self.width,
@@ -92,6 +170,8 @@ impl TilesComponent {
                 horizontal_align: self.horizontal_align,
                 vertical_align: self.vertical_align,
             },
+            transition,
+            start_pts: ctx.last_render_pts,
             children: self
                 .children
                 .into_iter()

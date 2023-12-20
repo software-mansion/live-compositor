@@ -14,7 +14,7 @@ impl RescalerComponentParam {
     pub(super) fn layout(
         &self,
         size: Size,
-        child: &StatefulComponent,
+        child: &mut StatefulComponent,
         pts: Duration,
     ) -> NestedLayout {
         let child_width = child.width(pts);
@@ -44,7 +44,7 @@ impl RescalerComponentParam {
     fn layout_with_scale(
         &self,
         size: Size,
-        child: &StatefulComponent,
+        child: &mut StatefulComponent,
         pts: Duration,
         scale: f32,
     ) -> NestedLayout {
@@ -64,7 +64,7 @@ impl RescalerComponentParam {
                     child_nodes_count,
                 )
             }
-            _non_layout => (StatefulLayoutComponent::layout_content(child, 0), vec![], 1),
+            ref _non_layout => (StatefulLayoutComponent::layout_content(child, 0), vec![], 1),
         };
 
         let top = match self.vertical_align {

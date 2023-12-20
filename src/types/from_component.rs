@@ -350,6 +350,7 @@ impl TryFrom<Tiles> for scene::TilesComponent {
                 .unwrap_or(HorizontalAlign::Center)
                 .into(),
             vertical_align: tiles.vertical_align.unwrap_or(VerticalAlign::Center).into(),
+            transition: tiles.transition.map(Into::into),
         };
         Ok(result)
     }
