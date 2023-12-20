@@ -1,12 +1,17 @@
 {
     "json.schemas": [
         {
-            "fileMatch": ["*.scene.json"],
+            "fileMatch": [
+                "*.scene.json"
+            ],
             "url": "./schemas/scene.schema.json"
         },
         {
-            "fileMatch": ["*.register.json"],
+            "fileMatch": [
+                "*.register.json"
+            ],
             "url": "./schemas/register.schema.json"
         }
-    ]
+    ],
+    "files.insertFinalNewline": true
 }
