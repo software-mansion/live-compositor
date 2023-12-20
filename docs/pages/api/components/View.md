@@ -34,4 +34,11 @@ Children of a `View` component form a row, with items aligned to the top. The si
 
 Analogous to the `direction=row` case, but children form a column instead, with items aligned to the left.
 
+### Transitions
+
+On the scene update, a `View` component will animate between the original state and the new one if the `transition` field is defined. Both the original and the new scene need to define a component with the same `id`. Currently, only some of the fields support animated transitions:
+
+- `width` / `height` - Only supported within the same positioning mode. If the positioning mode changes between the old scene and the new one, the transition will not work.
+- `bottom` / `top` / `left` / `right` / `rotation` - Only supports transition when changing a value of the same field. If the old scene defines a `left` field and the new one does not, the transition will not work.
+
 <Docs/>
