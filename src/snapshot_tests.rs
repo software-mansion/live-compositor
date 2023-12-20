@@ -1,7 +1,7 @@
 use std::{collections::HashSet, env, fs, path::PathBuf};
 
 use self::{
-    test_case::{TestCase, TestCaseError, TestCaseInstance},
+    test_case::{TestCaseError, TestCaseInstance},
     tests::snapshot_tests,
     utils::{find_unused_snapshots, snapshots_path},
 };
@@ -17,7 +17,7 @@ fn test_snapshots() {
         fs::remove_dir_all(failed_snapshot_path).unwrap();
     }
 
-    let tests: Vec<_> = snapshot_tests()
+    let tests: Vec<TestCaseInstance> = snapshot_tests()
         .into_iter()
         .map(TestCaseInstance::new)
         .collect();
@@ -81,7 +81,7 @@ fn failed_snapshot_path() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("failed_snapshot_tests")
 }
 
-fn check_test_names_uniqueness(tests: &[TestCase]) {
+fn check_test_names_uniqueness(tests: &[TestCaseInstance]) {
     let mut test_names = HashSet::new();
     for test in tests.iter() {
         if !test_names.insert(test.case.name) {
