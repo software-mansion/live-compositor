@@ -7,8 +7,8 @@ use crate::Resolution;
 pub struct BaseShaderParameters {
     plane_id: i32,
     time: f32,
-    texture_count: u32,
     output_resolution: [u32; 2],
+    texture_count: u32,
 }
 
 impl BaseShaderParameters {

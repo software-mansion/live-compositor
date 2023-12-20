@@ -88,8 +88,8 @@ struct VertexInput {
 struct BaseShaderParameters {
     plane_id: i32,
     time: f32,
-    texture_count: u32,
     output_resolution: vec2<u32>,
+    texture_count: u32,
 }
 
 @group(0) @binding(0) var textures: binding_array<texture_2d<f32>, 16>;

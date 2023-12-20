@@ -1,0 +1,12 @@
+{
+    "output_id": "output_1",
+    "root": {
+        "type": "shader",
+        "shader_id": "base_params_texture_count",
+        "resolution": {
+            "width": 640,
+            "height": 360
+        },
+        "children": []
+    }
+}
