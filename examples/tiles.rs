@@ -48,6 +48,8 @@ fn start_example_client_code() -> Result<()> {
         "stream_fallback_timeout_ms": 2000
     }))?;
 
+    thread::sleep(Duration::from_secs(1));
+
     info!("[example] Start listening on output port.");
     let output_sdp = write_example_sdp_file("127.0.0.1", 8002)?;
     Command::new("ffplay")
@@ -78,15 +80,6 @@ fn start_example_client_code() -> Result<()> {
         "entity_type": "input_stream",
         "input_id": "input_1",
         "port": 8004
-    }))?;
-
-    let shader_source = include_str!("./silly.wgsl");
-    info!("[example] Register shader transform");
-    common::post(&json!({
-        "type": "register",
-        "entity_type": "shader",
-        "shader_id": "example_shader",
-        "source": shader_source,
     }))?;
 
     info!("[example] Start pipeline");
@@ -166,5 +159,17 @@ fn start_example_client_code() -> Result<()> {
 
         thread::sleep(Duration::from_secs(1));
     }
+
+    info!("[example] Update scene");
+    common::post(&json!({
+        "type": "update_scene",
+        "outputs": [
+            {
+                "output_id": "output_1",
+                "root": scene_with_inputs(4),
+            }
+        ]
+    }))?;
+
     Ok(())
 }

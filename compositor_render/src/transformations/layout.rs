@@ -163,9 +163,9 @@ impl LayoutNode {
 }
 
 impl NestedLayout {
-    /// NestedLayout that can won't ever be rendered. It's intended to optimized out
-    /// in the flattening process. Its only propose is to keep track of child nodes that are not
-    /// currently used, so the index offset can be calculated correctly.
+    /// NestedLayout that won't ever be rendered. It's intended to be optimized out
+    /// in the flattening process. Its only purpose is to keep track of child nodes that are not
+    /// currently used so the index offset can be calculated correctly.
     pub(crate) fn child_nodes_placeholder(child_nodes_count: usize) -> Self {
         Self {
             top: 0.0,

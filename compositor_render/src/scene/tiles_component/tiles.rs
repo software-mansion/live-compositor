@@ -108,7 +108,7 @@ impl TilesComponentParams {
         let mut layouts = Vec::with_capacity(inputs_count as usize);
 
         // Because scaled tiles with padding and margin don't have to cover whole output frame,
-        // additional padding is distributed is distributed accordingly to alignment
+        // additional padding is distributed according to the alignment
         let additional_y_padding = layout_size.height
             - (tile_size.height + 2.0 * self.padding) * rows_cols.rows as f32
             - (self.margin * (rows_cols.rows as f32 + 1.0));
