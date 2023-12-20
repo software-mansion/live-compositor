@@ -13,5 +13,4 @@
             "url": "./schemas/register.schema.json"
         }
     ],
-    "files.insertFinalNewline": true
 }
