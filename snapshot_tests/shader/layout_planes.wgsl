@@ -1,3 +1,6 @@
+/// Layouts first 4 inputs in top left, top right, bottom left, bottom right quaters
+/// and next ones in the center
+
 struct VertexInput {
     @location(0) position: vec3<f32>,
     @location(1) tex_coords: vec2<f32>,
@@ -26,9 +29,6 @@ fn vs_main(input: VertexInput) -> VertexOutput {
 
     let scaled_position = input.position.xy / 2.0;
 
-    // puts first 4 texture planes in top left, top right, bottom left, bottom right quaters
-    // all other texture planes are put in ceneter (scaled down)
-    // if no texture planes are provided, then returns plane covering whole render area
     if (base_params.plane_id == -1) {
         output.position = vec4(input.position, 1.0);
     } else if (base_params.plane_id == 0) {

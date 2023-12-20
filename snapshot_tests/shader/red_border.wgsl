@@ -24,10 +24,7 @@ var<push_constant> base_params: BaseShaderParameters;
 fn vs_main(input: VertexInput) -> VertexOutput {
     var output: VertexOutput;
 
-    let scale_factor_x = f32(base_params.output_resolution.x) / 4000.0;
-    let scale_factor_y = f32(base_params.output_resolution.y) / 2000.0;
-
-    output.position = vec4(input.position.x * scale_factor_x, input.position.y * scale_factor_y, input.position.z, 1.0);
+    output.position = vec4(input.position.x, input.position.y, input.position.z, 1.0);
     output.tex_coords = input.tex_coords;
 
     return output;
@@ -35,6 +32,17 @@ fn vs_main(input: VertexInput) -> VertexOutput {
 
 @fragment
 fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
+    let sample = textureSample(textures[0], sampler_, input.tex_coords);
+    let border_size = 50.0;
+
+    // input.position is interpolated into ([0, output_width], [0, output_height], ..) range
+    // by wgpu between vertex shader output and fragment shader input
+    if (input.position.x > border_size && input.position.x < f32(base_params.output_resolution.x) - border_size) {
+        if (input.position.y > border_size && input.position.y < f32(base_params.output_resolution.y) - border_size) {
+            return sample;
+        }
+    }
+    
     return vec4(1.0, 0.0, 0.0, 1.0);
 }
 

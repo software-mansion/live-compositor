@@ -4,9 +4,14 @@
         "type": "shader",
         "shader_id": "base_params_output_resolution",
         "resolution": {
-            "width": 1920,
-            "height": 1080
+            "width": 640,
+            "height": 360
         },
-        "children": []
+        "children": [
+            {
+                "type": "input_stream",
+                "input_id": "input_1"
+            }
+        ]
     }
 }

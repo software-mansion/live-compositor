@@ -1,3 +1,8 @@
+/// Colors output texture:
+/// red if inputs count == 0
+/// green if inputs count == 1
+/// blue if inputs count > 1
+
 struct VertexInput {
     @location(0) position: vec3<f32>,
     @location(1) tex_coords: vec2<f32>,
@@ -32,17 +37,12 @@ fn vs_main(input: VertexInput) -> VertexOutput {
 
 @fragment
 fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
-    let sample = textureSample(textures[0], sampler_, input.tex_coords);
-
-    let roll_to_ball_time = 5.0;
-    let circle_radius = base_params.time / roll_to_ball_time;
-    let epsilon = 0.15;
-
-    let center = vec2(0.5, 0.5);
-    let len = length(input.tex_coords - center);
-
-    let transparency = smoothstep(circle_radius + epsilon, circle_radius - epsilon, len);
-
-    return sample * transparency;
+    if (base_params.texture_count == 0u) {
+        return vec4(1.0, 0.0, 0.0, 1.0);
+    } else if (base_params.texture_count == 1u) {
+        return vec4(0.0, 1.0, 0.0, 1.0);
+    } else {
+        return vec4(0.0, 0.0, 1.0, 1.0);
+    }
 }
 

@@ -1,7 +1,6 @@
 use std::time::Duration;
 
 use compositor_render::Resolution;
-use lazy_static::lazy_static;
 use serde_json::json;
 
 use super::test_case::{Outputs, TestCase, TestInput};
@@ -20,47 +19,48 @@ pub fn snapshot_tests() -> Vec<TestCase> {
     tests.append(&mut text_snapshot_tests());
     tests.append(&mut tiles_snapshot_tests());
     tests.append(&mut rescaler_snapshot_tests());
-    tests.append(&mut shader_tests());
+    tests.append(&mut shader_snapshot_tests());
     tests
 }
 
-fn shader_tests() -> Vec<TestCase> {
+fn shader_snapshot_tests() -> Vec<TestCase> {
     let input1 = TestInput::new(1);
     let input2 = TestInput::new(2);
     let input3 = TestInput::new(3);
     let input4 = TestInput::new(4);
     let input5 = TestInput::new(5);
 
-    lazy_static! {
-        static ref PLANE_ID_SHADER: String = json!({
+    let plane_id_shader = Box::new(json!({
             "type": "register",
             "entity_type": "shader",
             "shader_id": "base_params_plane_id",
-            "source": include_str!("../../snapshot_tests/shader/base_params_plane_id.wgsl")
+            "source": include_str!("../../snapshot_tests/shader/layout_planes.wgsl")
         })
-        .to_string();
-        static ref TIME_SHADER: String = json!({
+        .to_string());
+
+    let time_shader = Box::new(json!({
             "type": "register",
             "entity_type": "shader",
             "shader_id": "base_params_time",
-            "source": include_str!("../../snapshot_tests/shader/base_params_time.wgsl")
+            "source": include_str!("../../snapshot_tests/shader/fade_to_ball.wgsl")
         })
-        .to_string();
-        static ref TEXTURE_COUNT_SHADER: String = json!({
+        .to_string());
+
+    let texture_count_shader = Box::new(json!({
             "type": "register",
             "entity_type": "shader",
             "shader_id": "base_params_texture_count",
-            "source": include_str!("../../snapshot_tests/shader/base_params_texture_count.wgsl")
+            "source": include_str!("../../snapshot_tests/shader/color_output_with_texture_count.wgsl")
         })
-        .to_string();
-        static ref OUTPUT_RESOLUTION_SHADER: String = json!({
+        .to_string());
+
+    let output_resolution_shader = Box::new(json!({
             "type": "register",
             "entity_type": "shader",
             "shader_id": "base_params_output_resolution",
-            "source": include_str!("../../snapshot_tests/shader/base_params_output_resolution.wgsl")
+            "source": include_str!("../../snapshot_tests/shader/red_border.wgsl")
         })
-        .to_string();
-    };
+        .to_string());
 
     Vec::from([
         TestCase {
@@ -71,7 +71,7 @@ fn shader_tests() -> Vec<TestCase> {
                 ),
                 DEFAULT_RESOLUTION,
             )]),
-            renderers: vec![&PLANE_ID_SHADER],
+            renderers: vec![plane_id_shader.clone().leak()],
             ..Default::default()
         },
         TestCase {
@@ -82,7 +82,7 @@ fn shader_tests() -> Vec<TestCase> {
                 ),
                 DEFAULT_RESOLUTION,
             )]),
-            renderers: vec![&PLANE_ID_SHADER],
+            renderers: vec![plane_id_shader.clone().leak()],
             inputs: vec![
                 input1.clone(),
                 input2.clone(),
@@ -93,18 +93,30 @@ fn shader_tests() -> Vec<TestCase> {
             ..Default::default()
         },
         TestCase {
-            name: "shader/base_params_time_5s",
+            name: "shader/base_params_time",
             outputs: Outputs::Scene(vec![(
                 include_str!("../../snapshot_tests/shader/base_params_time.scene.json"),
                 DEFAULT_RESOLUTION,
             )]),
-            renderers: vec![&TIME_SHADER],
+            renderers: vec![time_shader.clone().leak()],
             inputs: vec![input1.clone()],
             timestamps: vec![
                 Duration::from_secs(0),
                 Duration::from_secs(1),
                 Duration::from_secs(2),
             ],
+            ..Default::default()
+        },
+        TestCase {
+            name: "shader/base_params_output_resolution",
+            outputs: Outputs::Scene(vec![(
+                include_str!(
+                    "../../snapshot_tests/shader/base_params_output_resolution.scene.json"
+                ),
+                DEFAULT_RESOLUTION,
+            )]),
+            renderers: vec![output_resolution_shader.clone().leak()],
+            inputs: vec![input1.clone()],
             ..Default::default()
         },
         TestCase {
@@ -115,7 +127,7 @@ fn shader_tests() -> Vec<TestCase> {
                 ),
                 DEFAULT_RESOLUTION,
             )]),
-            renderers: vec![&TEXTURE_COUNT_SHADER],
+            renderers: vec![texture_count_shader.clone().leak()],
             ..Default::default()
         },
         TestCase {
@@ -126,7 +138,7 @@ fn shader_tests() -> Vec<TestCase> {
                 ),
                 DEFAULT_RESOLUTION,
             )]),
-            renderers: vec![&TEXTURE_COUNT_SHADER],
+            renderers: vec![texture_count_shader.clone().leak()],
             inputs: vec![input1.clone()],
             ..Default::default()
         },
@@ -138,21 +150,10 @@ fn shader_tests() -> Vec<TestCase> {
                 ),
                 DEFAULT_RESOLUTION,
             )]),
-            renderers: vec![&TEXTURE_COUNT_SHADER],
+            renderers: vec![texture_count_shader.clone().leak()],
             inputs: vec![input1.clone(), input2.clone()],
             ..Default::default()
-        },
-        TestCase {
-            name: "shader/base_params_output_resolution",
-            outputs: Outputs::Scene(vec![(
-                include_str!(
-                    "../../snapshot_tests/shader/base_params_output_resolution.scene.json"
-                ),
-                DEFAULT_RESOLUTION,
-            )]),
-            renderers: vec![&OUTPUT_RESOLUTION_SHADER],
-            ..Default::default()
-        },
+        }
     ])
 }
 
