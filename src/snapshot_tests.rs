@@ -83,7 +83,7 @@ fn failed_snapshot_path() -> PathBuf {
 
 fn check_test_names_uniqueness(tests: &[TestCase]) {
     let mut test_names = HashSet::new();
-    for test in test.iter() {
+    for test in tests.iter() {
         if !test_names.insert(test.case.name) {
             panic!(
                 "Multiple snapshots tests with the same name: \"{}\".",
