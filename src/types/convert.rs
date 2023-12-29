@@ -73,7 +73,7 @@ impl TryFrom<OutputScene> for compositor_pipeline::pipeline::OutputScene {
 
     fn try_from(scene: OutputScene) -> Result<Self, Self::Error> {
         Ok(compositor_pipeline::pipeline::OutputScene {
-            output_id: scene.output_id.try_into()?,
+            output_id: scene.output_id.into(),
             root: scene.root.try_into()?,
         })
     }

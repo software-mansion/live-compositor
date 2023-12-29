@@ -184,7 +184,7 @@ fn shader_user_params_snapshot_tests() -> Vec<TestCase> {
         name: "shader/user_params_circle_layout",
         outputs: Outputs::Scene(vec![(circle_layout_scene.leak(), DEFAULT_RESOLUTION)]),
         renderers: vec![circle_layout_shader.leak()],
-        inputs: inputs,
+        inputs,
         ..Default::default()
     }])
 }
