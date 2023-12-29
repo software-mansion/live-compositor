@@ -1,3 +1,5 @@
+/// Depends on uniform params (1st bind group)
+
 struct VertexInput {
     @location(0) position: vec3<f32>,
     @location(1) tex_coords: vec2<f32>,
@@ -37,10 +39,12 @@ fn vs_main(input: VertexInput) -> VertexOutput {
     let x_scale: f32 = f32(circle_layout.width_px) / f32(base_params.output_resolution.x);
     let y_scale: f32 = f32(circle_layout.height_px) / f32(base_params.output_resolution.y);
 
-    /// where scaled center of layout should be after transition in clip space coords
+    /// Location of scaled center of layout after transition in clip space coords.
+    /// "circle_layout.left_px + circle_layout.width_px) / 2.0" -> the middle of layout in pixel coords
+    /// "/ base_params.output_resolution.x" -> scaled to [0, 1.0] coords
+    /// "* 2.0 - 1.0" -> scaled to clip space coords ([-1.0, 1.0] range)
     let center_x: f32 = ((f32(circle_layout.left_px) + (f32(circle_layout.width_px) / 2.0)) / f32(base_params.output_resolution.x)) * 2.0 - 1.0;
     let center_y: f32 = 1.0 - ((f32(circle_layout.top_px) + (f32(circle_layout.height_px) / 2.0)) / f32(base_params.output_resolution.y)) * 2.0;
-
 
     let output_x = input.position.x * x_scale + center_x;
     let output_y = input.position.y * y_scale + center_y;
