@@ -33,7 +33,6 @@ impl Shader {
     pub fn new(wgpu_ctx: &Arc<WgpuCtx>, spec: ShaderSpec) -> Result<Self, CreateShaderError> {
         let fallback_strategy = spec.fallback_strategy;
         let clear_color = None;
-        // let wgpu_shader = WgpuShader::new(wgpu_ctx, spec.source)?;
         let pipeline = ShaderPipeline::new(wgpu_ctx, &spec.source)?;
 
         Ok(Self {
