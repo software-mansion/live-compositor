@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use compositor_render::Resolution;
-use serde_json::json;
+use serde_json::{json, Value};
 
 use super::test_case::{Outputs, TestCase, TestInput};
 
@@ -24,6 +24,172 @@ pub fn snapshot_tests() -> Vec<TestCase> {
 }
 
 fn shader_snapshot_tests() -> Vec<TestCase> {
+    let mut base_params_snapshot_tests = shader_base_params_snapshot_tests();
+    let mut user_params_snapshot_tests = shader_user_params_snapshot_tests();
+
+    base_params_snapshot_tests.append(&mut user_params_snapshot_tests);
+    base_params_snapshot_tests
+}
+
+fn shader_user_params_snapshot_tests() -> Vec<TestCase> {
+    struct CircleLayout {
+        pub left_px: u32,
+        pub top_px: u32,
+        pub width_px: u32,
+        pub height_px: u32,
+        /// RGBA 0.0 - 1.0 range
+        pub background_color: [f32; 4],
+    }
+
+    impl CircleLayout {
+        pub fn shader_param(&self) -> Value {
+            let background_color_params: Vec<Value> = self
+                .background_color
+                .iter()
+                .map(|val| {
+                    {
+                        json!({
+                            "type": "f32",
+                            "value": val
+                        })
+                    }
+                })
+                .collect();
+
+            json!({
+                "type": "struct",
+                "value": [
+                    {
+                        "field_name": "left_px",
+                        "type": "u32",
+                        "value": self.left_px
+                    },
+                    {
+                        "field_name": "top_px",
+                        "type": "u32",
+                        "value": self.top_px
+                    },
+                    {
+                        "field_name": "width_px",
+                        "type": "u32",
+                        "value": self.width_px
+                    },
+                    {
+                        "field_name": "height_px",
+                        "type": "u32",
+                        "value": self.height_px
+                    },
+                    {
+                        "field_name": "background_color",
+                        "type": "list",
+                        "value": background_color_params
+                    },
+                ]
+            })
+        }
+    }
+
+    let input1 = TestInput::new(1);
+    let input2 = TestInput::new(2);
+    let input3 = TestInput::new(3);
+    let input4 = TestInput::new(4);
+
+    const RED: [f32; 4] = [1.0, 0.0, 0.0, 1.0];
+    const GREEN: [f32; 4] = [0.0, 1.0, 0.0, 1.0];
+    const BLUE: [f32; 4] = [0.0, 0.0, 1.0, 1.0];
+    const WHITE: [f32; 4] = [1.0, 1.0, 1.0, 1.0];
+
+    let circle_layout_shader = Box::new(
+        json!({
+            "type": "register",
+            "entity_type": "shader",
+            "shader_id": "user_params_circle_layout",
+            "source": include_str!("../../snapshot_tests/shader/circle_layout.wgsl")
+        })
+        .to_string(),
+    );
+
+    let layout1 = CircleLayout {
+        left_px: 0,
+        top_px: 0,
+        width_px: (DEFAULT_RESOLUTION.width / 2) as u32,
+        height_px: (DEFAULT_RESOLUTION.height / 2) as u32,
+        background_color: RED,
+    };
+
+    let layout2 = CircleLayout {
+        left_px: (DEFAULT_RESOLUTION.width / 2) as u32,
+        top_px: 0,
+        width_px: (DEFAULT_RESOLUTION.width / 2) as u32,
+        height_px: (DEFAULT_RESOLUTION.height / 2) as u32,
+        background_color: GREEN,
+    };
+
+    let layout3 = CircleLayout {
+        left_px: 0,
+        top_px: (DEFAULT_RESOLUTION.height / 2) as u32,
+        width_px: (DEFAULT_RESOLUTION.width / 2) as u32,
+        height_px: (DEFAULT_RESOLUTION.height / 2) as u32,
+        background_color: BLUE,
+    };
+
+    let layout4 = CircleLayout {
+        left_px: (DEFAULT_RESOLUTION.width / 2) as u32,
+        top_px: (DEFAULT_RESOLUTION.height / 2) as u32,
+        width_px: (DEFAULT_RESOLUTION.width / 2) as u32,
+        height_px: (DEFAULT_RESOLUTION.height / 2) as u32,
+        background_color: WHITE,
+    };
+
+    let shader_param = json!({
+            "type": "list",
+            "value": [
+                layout1.shader_param(),
+                layout2.shader_param(),
+                layout3.shader_param(),
+                layout4.shader_param(),
+            ]
+    });
+
+    let inputs = Vec::from([input1, input2, input3, input4]);
+
+    let children: Vec<Value> = inputs
+        .iter()
+        .map(|input| {
+            json!({
+                "type": "input_stream",
+                "input_id": input.name
+            })
+        })
+        .collect();
+
+    let circle_layout_scene = Box::new(
+        json!({
+            "output_id": "output_1",
+            "root": {
+                "type": "shader",
+                "shader_id": "user_params_circle_layout",
+                "resolution": {
+                    "width": DEFAULT_RESOLUTION.width,
+                    "height": DEFAULT_RESOLUTION.height
+                },
+                "shader_param": shader_param,
+                "children": children,
+            }
+        })
+        .to_string(),
+    );
+
+    Vec::from([TestCase {
+        name: "shader/user_params_circle_layout",
+        outputs: Outputs::Scene(vec![(circle_layout_scene.leak(), DEFAULT_RESOLUTION)]),
+        renderers: vec![circle_layout_shader.leak()],
+        inputs,
+        ..Default::default()
+    }])
+}
+
+fn shader_base_params_snapshot_tests() -> Vec<TestCase> {
     let input1 = TestInput::new(1);
     let input2 = TestInput::new(2);
     let input3 = TestInput::new(3);
