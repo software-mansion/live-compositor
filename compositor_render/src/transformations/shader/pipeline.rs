@@ -32,10 +32,10 @@ pub(super) struct ShaderPipeline {
 }
 
 impl ShaderPipeline {
-    pub fn new(wgpu_ctx: &Arc<WgpuCtx>, shader_src: &str) -> Result<Self, CreateShaderError> {
+    pub fn new(wgpu_ctx: &Arc<WgpuCtx>, shader_src: Arc<str>) -> Result<Self, CreateShaderError> {
         let scope = WgpuErrorScope::push(&wgpu_ctx.device);
 
-        let module = naga::front::wgsl::parse_str(shader_src)
+        let module = naga::front::wgsl::parse_str(&shader_src)
             .map_err(|err| CreateShaderError::ParseError(ShaderParseError::new(err, shader_src)))?;
 
         validate_contains_header(&wgpu_ctx.shader_header, &module)?;

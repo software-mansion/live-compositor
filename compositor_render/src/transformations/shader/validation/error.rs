@@ -1,6 +1,4 @@
-use std::fmt::Display;
-
-use naga::SourceLocation;
+use std::{fmt::Display, sync::Arc};
 
 use crate::{
     transformations::shader::pipeline::{USER_DEFINED_BUFFER_BINDING, USER_DEFINED_BUFFER_GROUP},
@@ -12,28 +10,28 @@ const HEADER_DOCS_URL: &str =
 
 #[derive(Debug, thiserror::Error)]
 pub struct ShaderParseError {
+    #[source]
     parse_error: naga::front::wgsl::ParseError,
-    location: Option<SourceLocation>,
+    source: Arc<str>,
 }
 
 impl ShaderParseError {
-    pub fn new(parse_error: naga::front::wgsl::ParseError, source: &str) -> Self {
-        let location = parse_error.location(source);
+    pub fn new(parse_error: naga::front::wgsl::ParseError, source: Arc<str>) -> Self {
         Self {
             parse_error,
-            location,
+            source,
         }
     }
 }
 
 impl Display for ShaderParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self.location {
+        match self.parse_error.location(&self.source) {
             Some(location) => f.write_str(&format!(
-                "Shader parse error in line {} column {}: {}.",
+                "Shader parsing error in line {} column {}: {}.",
                 location.line_number, location.line_position, self.parse_error
             )),
-            None => f.write_str(&format!("Shader parse error: {}. ", self.parse_error)),
+            None => f.write_str(&format!("Shader parsing error: {}.", self.parse_error)),
         }
     }
 }
