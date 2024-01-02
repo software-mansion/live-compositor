@@ -14,7 +14,10 @@ use crate::{
 
 use super::{
     base_params::BaseShaderParameters,
-    validation::{error::ParametersValidationError, validate_contains_header, validate_params},
+    validation::{
+        error::{ParametersValidationError, ShaderParseError},
+        validate_contains_header, validate_params,
+    },
 };
 
 pub(super) const USER_DEFINED_BUFFER_BINDING: u32 = 0;
@@ -32,8 +35,9 @@ impl ShaderPipeline {
     pub fn new(wgpu_ctx: &Arc<WgpuCtx>, shader_src: &str) -> Result<Self, CreateShaderError> {
         let scope = WgpuErrorScope::push(&wgpu_ctx.device);
 
-        let module =
-            naga::front::wgsl::parse_str(shader_src).map_err(CreateShaderError::ParseError)?;
+        let module = naga::front::wgsl::parse_str(shader_src)
+            .map_err(|err| CreateShaderError::ParseError(ShaderParseError::new(err, shader_src)))?;
+
         validate_contains_header(&wgpu_ctx.shader_header, &module)?;
 
         let shader_source = wgpu::ShaderSource::Naga(Cow::Owned(module.clone()));
