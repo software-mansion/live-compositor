@@ -28,10 +28,10 @@ impl Display for ShaderParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.parse_error.location(&self.source) {
             Some(location) => f.write_str(&format!(
-                "Shader parsing error in line {} column {}: {}.",
-                location.line_number, location.line_position, self.parse_error
+                "Shader parsing error in line {} column {}.",
+                location.line_number, location.line_position
             )),
-            None => f.write_str(&format!("Shader parsing error: {}.", self.parse_error)),
+            None => f.write_str("Shader parsing error."),
         }
     }
 }
