@@ -65,7 +65,7 @@ fn start_example_client_code() -> Result<()> {
     info!("[example] Send register output request.");
     common::post(&json!({
         "type": "register",
-        "entity_type": "output_stream",
+        "entity_type": "output_video",
         "output_id": "output_1",
         "port": 8002,
         "ip": "127.0.0.1",
@@ -78,12 +78,20 @@ fn start_example_client_code() -> Result<()> {
         }
     }))?;
 
-    info!("[example] Send register input request.");
+    info!("[example] Send register input video request.");
     common::post(&json!({
         "type": "register",
-        "entity_type": "input_stream",
-        "input_id": "input_1",
+        "entity_type": "input_video",
+        "input_id": "input_video_1",
         "port": 8004
+    }))?;
+
+    info!("[example] Send register input audio request.");
+    common::post(&json!({
+        "type": "register",
+        "entity_type": "input_audio",
+        "input_id": "input_audio_1",
+        "port": 8006
     }))?;
 
     let shader_source = include_str!("./silly.wgsl");
@@ -95,10 +103,10 @@ fn start_example_client_code() -> Result<()> {
         "source": shader_source,
     }))?;
 
-    info!("[example] Update scene");
+    info!("[example] Update composition");
     common::post(&json!({
-        "type": "update_scene",
-        "outputs": [{
+        "type": "update_composition",
+        "video_outputs": [{
             "output_id": "output_1",
             "root": {
                 "type": "shader",
@@ -108,11 +116,17 @@ fn start_example_client_code() -> Result<()> {
                     {
                         "id": "input_1",
                         "type": "input_stream",
-                        "input_id": "input_1",
+                        "input_id": "input_video_1",
                     }
                 ],
                 "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
             }
+        }],
+        "audio_outputs": [{
+            "output_id": "output_audio_1",
+            "tracks": [{
+                "input_id": "input_audio_1"
+            }]
         }]
     }))?;
 

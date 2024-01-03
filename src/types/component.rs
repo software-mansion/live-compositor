@@ -25,7 +25,7 @@ pub struct InputStream {
     /// Id of a component.
     pub id: Option<ComponentId>,
     /// Id of an input. It identifies a stream registered using a [`RegisterInputStream`](../routes#register-input-stream) request.
-    pub input_id: InputId,
+    pub input_id: VideoInputId,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]

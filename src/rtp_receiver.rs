@@ -12,7 +12,7 @@ use smol::{
 };
 use webrtc_util::Unmarshal;
 
-use crate::types::InputId;
+use crate::types::VideoInputId;
 
 pub struct RtpReceiver {
     receiver_thread: Option<thread::JoinHandle<()>>,
@@ -22,7 +22,7 @@ pub struct RtpReceiver {
 
 pub struct Options {
     pub port: u16,
-    pub input_id: InputId,
+    pub input_id: VideoInputId,
 }
 
 impl PipelineInput for RtpReceiver {

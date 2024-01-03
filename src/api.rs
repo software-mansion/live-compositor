@@ -12,7 +12,10 @@ use crate::{
     error::ApiError,
     rtp_receiver::RtpReceiver,
     rtp_sender::RtpSender,
-    types::{self, InitOptions, InputId, OutputId, RegisterRequest, RendererId},
+    types::{
+        self, AudioInputId, AudioOutputId, InitOptions, RegisterRequest, RendererId, VideoInputId,
+        VideoOutputId,
+    },
 };
 
 mod register_request;
@@ -25,21 +28,24 @@ pub enum Request {
     Init(InitOptions),
     Register(RegisterRequest),
     Unregister(UnregisterRequest),
-    UpdateScene(UpdateScene),
+    UpdateComposition(UpdateComposition),
     Query(QueryRequest),
     Start,
 }
 
 #[derive(Serialize, Deserialize, JsonSchema)]
-pub struct UpdateScene {
-    pub outputs: Vec<types::OutputScene>,
+pub struct UpdateComposition {
+    pub video_outputs: Vec<types::VideoCompositionParams>,
+    pub audio_outputs: Vec<types::AudioMixParams>,
 }
 
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "entity_type", rename_all = "snake_case")]
 pub enum UnregisterRequest {
-    InputStream { input_id: InputId },
-    OutputStream { output_id: OutputId },
+    VideoInput { input_id: VideoInputId },
+    AudioInput { input_id: AudioInputId },
+    VideoOutput { output_id: VideoOutputId },
+    AudioOutput { output_id: AudioOutputId },
     Shader { shader_id: RendererId },
     WebRenderer { instance_id: RendererId },
     Image { image_id: RendererId },
@@ -48,7 +54,7 @@ pub enum UnregisterRequest {
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "query", rename_all = "snake_case")]
 pub enum QueryRequest {
-    WaitForNextFrame { input_id: InputId },
+    WaitForNextFrame { input_id: VideoInputId },
     Inputs,
     Outputs,
 }
@@ -70,13 +76,13 @@ pub enum Port {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct InputInfo {
-    pub id: InputId,
+    pub id: VideoInputId,
     pub port: u16,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct OutputInfo {
-    pub id: OutputId,
+    pub id: VideoOutputId,
     pub port: u16,
     pub ip: Arc<str>,
 }
@@ -118,7 +124,7 @@ impl Api {
                 self.pipeline.start();
                 Ok(ResponseHandler::Ok)
             }
-            Request::UpdateScene(scene_spec) => {
+            Request::UpdateComposition(scene_spec) => {
                 self.pipeline.update_scene(scene_spec.try_into()?)?;
                 Ok(ResponseHandler::Ok)
             }
@@ -165,10 +171,10 @@ impl Api {
 
     fn handle_unregister_request(&mut self, request: UnregisterRequest) -> Result<(), ApiError> {
         match request {
-            UnregisterRequest::InputStream { input_id } => {
+            UnregisterRequest::VideoInput { input_id } => {
                 Ok(self.pipeline.unregister_input(&input_id.into())?)
             }
-            UnregisterRequest::OutputStream { output_id } => {
+            UnregisterRequest::VideoOutput { output_id } => {
                 Ok(self.pipeline.unregister_output(&output_id.into())?)
             }
             UnregisterRequest::Shader { shader_id } => Ok(self
@@ -180,6 +186,8 @@ impl Api {
             UnregisterRequest::Image { image_id } => Ok(self
                 .pipeline
                 .unregister_renderer(&image_id.into(), RegistryType::Image)?),
+            UnregisterRequest::AudioInput { .. } => todo!(),
+            UnregisterRequest::AudioOutput { .. } => todo!(),
         }
     }
 }

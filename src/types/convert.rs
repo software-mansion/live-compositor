@@ -3,7 +3,7 @@ use std::time::Duration;
 use compositor_pipeline::pipeline;
 use compositor_render::{scene, web_renderer};
 
-use crate::api::{self, UpdateScene};
+use crate::api::{self, UpdateComposition};
 
 use super::util::*;
 use super::*;
@@ -32,46 +32,46 @@ impl From<compositor_render::RendererId> for RendererId {
     }
 }
 
-impl From<OutputId> for compositor_render::OutputId {
-    fn from(id: OutputId) -> Self {
+impl From<VideoOutputId> for compositor_render::OutputId {
+    fn from(id: VideoOutputId) -> Self {
         id.0.into()
     }
 }
 
-impl From<compositor_render::OutputId> for OutputId {
+impl From<compositor_render::OutputId> for VideoOutputId {
     fn from(id: compositor_render::OutputId) -> Self {
         Self(id.0)
     }
 }
 
-impl From<InputId> for compositor_render::InputId {
-    fn from(id: InputId) -> Self {
+impl From<VideoInputId> for compositor_render::InputId {
+    fn from(id: VideoInputId) -> Self {
         id.0.into()
     }
 }
 
-impl From<compositor_render::InputId> for InputId {
+impl From<compositor_render::InputId> for VideoInputId {
     fn from(id: compositor_render::InputId) -> Self {
         Self(id.0)
     }
 }
 
-impl TryFrom<UpdateScene> for Vec<compositor_pipeline::pipeline::OutputScene> {
+impl TryFrom<UpdateComposition> for Vec<compositor_pipeline::pipeline::OutputScene> {
     type Error = TypeError;
 
-    fn try_from(update_scene: UpdateScene) -> Result<Self, Self::Error> {
+    fn try_from(update_scene: UpdateComposition) -> Result<Self, Self::Error> {
         update_scene
-            .outputs
+            .video_outputs
             .into_iter()
             .map(TryInto::try_into)
             .collect::<Result<Vec<_>, TypeError>>()
     }
 }
 
-impl TryFrom<OutputScene> for compositor_pipeline::pipeline::OutputScene {
+impl TryFrom<VideoCompositionParams> for compositor_pipeline::pipeline::OutputScene {
     type Error = TypeError;
 
-    fn try_from(scene: OutputScene) -> Result<Self, Self::Error> {
+    fn try_from(scene: VideoCompositionParams) -> Result<Self, Self::Error> {
         Ok(compositor_pipeline::pipeline::OutputScene {
             output_id: scene.output_id.into(),
             root: scene.root.try_into()?,

@@ -8,7 +8,7 @@ use crate::{
     api::Response,
     error::{ApiError, PORT_ALREADY_IN_USE_ERROR_CODE},
     rtp_receiver, rtp_sender,
-    types::{RegisterInputRequest, RegisterOutputRequest, RegisterRequest},
+    types::{RegisterInputVideoRequest, RegisterOutputVideoRequest, RegisterRequest},
 };
 
 use super::{Api, Port, ResponseHandler};
@@ -18,9 +18,17 @@ pub fn handle_register_request(
     request: RegisterRequest,
 ) -> Result<Option<ResponseHandler>, ApiError> {
     match request {
-        RegisterRequest::InputStream(input_stream) => register_input(api, input_stream).map(Some),
-        RegisterRequest::OutputStream(output_stream) => {
+        RegisterRequest::InputVideo(input_stream) => register_input(api, input_stream).map(Some),
+        RegisterRequest::InputAudio(..) => {
+            // TODO
+            Ok(None)
+        }
+        RegisterRequest::OutputVideo(output_stream) => {
             register_output(api, output_stream).map(|_| None)
+        }
+        RegisterRequest::OutputAudio(..) => {
+            // TODO
+            Ok(None)
         }
         RegisterRequest::Shader(spec) => {
             let spec = spec.try_into()?;
@@ -40,8 +48,8 @@ pub fn handle_register_request(
     }
 }
 
-fn register_output(api: &mut Api, request: RegisterOutputRequest) -> Result<(), ApiError> {
-    let RegisterOutputRequest {
+fn register_output(api: &mut Api, request: RegisterOutputVideoRequest) -> Result<(), ApiError> {
+    let RegisterOutputVideoRequest {
         output_id,
         port,
         resolution,
@@ -74,9 +82,9 @@ fn register_output(api: &mut Api, request: RegisterOutputRequest) -> Result<(), 
 
 fn register_input(
     api: &mut Api,
-    request: RegisterInputRequest,
+    request: RegisterInputVideoRequest,
 ) -> Result<ResponseHandler, ApiError> {
-    let RegisterInputRequest { input_id: id, port } = request;
+    let RegisterInputVideoRequest { input_id: id, port } = request;
     let port: Port = port.try_into()?;
 
     match port {
