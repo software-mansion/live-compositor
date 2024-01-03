@@ -28,13 +28,13 @@ pub enum Request {
     Init(InitOptions),
     Register(RegisterRequest),
     Unregister(UnregisterRequest),
-    UpdateComposition(UpdateComposition),
+    UpdateComposition(UpdateCompositionRequest),
     Query(QueryRequest),
     Start,
 }
 
 #[derive(Serialize, Deserialize, JsonSchema)]
-pub struct UpdateComposition {
+pub struct UpdateCompositionRequest {
     pub video_outputs: Vec<types::VideoCompositionParams>,
     pub audio_outputs: Vec<types::AudioMixParams>,
 }
