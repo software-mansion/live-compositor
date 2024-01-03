@@ -25,7 +25,7 @@ impl TryFrom<ShaderSpec> for compositor_render::RendererSpec {
     fn try_from(spec: ShaderSpec) -> Result<Self, Self::Error> {
         let spec = shader::ShaderSpec {
             shader_id: spec.shader_id.into(),
-            source: spec.source,
+            source: spec.source.into(),
             fallback_strategy: compositor_render::FallbackStrategy::FallbackIfAllInputsMissing,
         };
         Ok(Self::Shader(spec))

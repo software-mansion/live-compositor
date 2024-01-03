@@ -1,3 +1,5 @@
+use std::{fmt::Display, sync::Arc};
+
 use crate::{
     transformations::shader::pipeline::{USER_DEFINED_BUFFER_BINDING, USER_DEFINED_BUFFER_GROUP},
     wgpu::common_pipeline::VERTEX_ENTRYPOINT_NAME,
@@ -5,6 +7,35 @@ use crate::{
 
 const HEADER_DOCS_URL: &str =
     "https://github.com/membraneframework/video_compositor/wiki/Shader#header";
+
+#[derive(Debug, thiserror::Error)]
+pub struct ShaderParseError {
+    #[source]
+    parse_error: naga::front::wgsl::ParseError,
+    source: Arc<str>,
+}
+
+impl ShaderParseError {
+    pub fn new(parse_error: naga::front::wgsl::ParseError, source: Arc<str>) -> Self {
+        Self {
+            parse_error,
+            source,
+        }
+    }
+}
+
+impl Display for ShaderParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.parse_error.location(&self.source) {
+            Some(location) => write!(
+                f,
+                "Shader parsing error in line {} column {}.",
+                location.line_number, location.line_position
+            ),
+            None => f.write_str("Shader parsing error."),
+        }
+    }
+}
 
 #[derive(Debug, thiserror::Error)]
 pub enum ShaderValidationError {
