@@ -5,14 +5,6 @@ use super::util::*;
 use super::*;
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-#[serde(rename_all = "snake_case")]
-pub enum FallbackStrategy {
-    NeverFallback,
-    FallbackIfAllInputsMissing,
-    FallbackIfAnyInputMissing,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 pub struct ShaderSpec {
     /// Id of a shader. It can be used in a [`Shader`](../components/Shader) component after registration.
     pub shader_id: RendererId,
