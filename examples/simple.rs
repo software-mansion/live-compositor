@@ -127,12 +127,6 @@ fn start_example_client_code() -> Result<()> {
                 }],
                 // some other options for whole output track like volume, etc.
             }
-        }],
-        "audio_outputs": [{
-            "output_id": "output_audio_1",
-            "tracks": [{
-                "input_id": "input_audio_1"
-            }]
         }]
     }))?;
 
