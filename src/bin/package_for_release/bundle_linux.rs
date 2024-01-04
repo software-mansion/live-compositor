@@ -20,7 +20,7 @@ pub fn bundle_linux_app(enable_web_rendering: bool) -> Result<()> {
     fs::create_dir_all(&tmp_dir)?;
 
     info!("Build main_process binary.");
-    utils::cargo_build("main_process", X86_TARGET, !enable_web_rendering);
+    utils::cargo_build("main_process", X86_TARGET, !enable_web_rendering)?;
 
     if enable_web_rendering {
         info!("Build process_helper binary.");
