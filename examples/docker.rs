@@ -8,7 +8,7 @@ use std::{
     thread,
     time::Duration,
 };
-use video_compositor::types::Resolution;
+use video_compositor::{logger, types::Resolution};
 
 use crate::common::write_example_sdp_file;
 
@@ -22,9 +22,7 @@ const VIDEO_RESOLUTION: Resolution = Resolution {
 const FRAMERATE: u32 = 30;
 
 fn main() {
-    env_logger::init_from_env(
-        env_logger::Env::default().filter_or(env_logger::DEFAULT_FILTER_ENV, "info"),
-    );
+    logger::init_logger();
 
     let Ok(host_ip) = env::var("DOCKER_HOST_IP") else {
         if cfg!(target_os = "macos") {
