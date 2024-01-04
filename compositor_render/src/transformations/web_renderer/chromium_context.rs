@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::{
-    event_loop::{EventLoopRunError, MessageLoop},
+    event_loop::{EventLoop, EventLoopRunError},
     types::Framerate,
     utils::random_string,
 };
@@ -27,6 +27,9 @@ impl ChromiumContext {
         let instance_id = random_string(30);
         #[cfg(not(feature = "web_renderer"))]
         {
+            if opts.init {
+                return Err(WebRendererContextError::WebRenderingNotAvailable);
+            }
             return Ok(Self {
                 instance_id,
                 framerate,
@@ -72,7 +75,7 @@ impl ChromiumContext {
     pub(super) fn start_browser(
         &self,
         url: &str,
-        state: super::BrowserClient,
+        state: super::browser_client::BrowserClient,
     ) -> Result<cef::Browser, WebRendererContextError> {
         let context = self
             .context
@@ -97,11 +100,15 @@ impl ChromiumContext {
         rx.recv()?.map_err(WebRendererContextError::ContextFailure)
     }
 
-    pub fn message_loop(&self) -> Option<Arc<dyn MessageLoop>> {
+    pub fn event_loop(&self) -> Arc<dyn EventLoop> {
         #[cfg(feature = "web_renderer")]
-        return self.context.clone().map(|ctx| ctx as Arc<dyn MessageLoop>);
+        return self
+            .context
+            .clone()
+            .map(|ctx| ctx as Arc<dyn EventLoop>)
+            .unwrap_or_else(|| Arc::new(FallbackEventLoop));
         #[cfg(not(feature = "web_renderer"))]
-        return None;
+        return Arc::new(FallbackEventLoop);
     }
 
     pub fn instance_id(&self) -> &str {
@@ -145,13 +152,22 @@ impl cef::App for ChromiumApp {
 }
 
 #[cfg(feature = "web_renderer")]
-impl MessageLoop for cef::Context {
-    fn run(&self) -> Result<(), EventLoopRunError> {
+impl EventLoop for cef::Context {
+    fn run_with_fallback(&self, _fallback: &dyn Fn()) -> Result<(), EventLoopRunError> {
         if !self.currently_on_thread(cef::ThreadId::UI) {
             return Err(EventLoopRunError::WrongThread);
         }
 
         self.run_message_loop();
+        Ok(())
+    }
+}
+
+struct FallbackEventLoop;
+
+impl EventLoop for FallbackEventLoop {
+    fn run_with_fallback(&self, fallback: &dyn Fn()) -> Result<(), EventLoopRunError> {
+        fallback();
         Ok(())
     }
 }
@@ -170,4 +186,7 @@ pub enum WebRendererContextError {
 
     #[error("Chromium message loop can only run on the main thread.")]
     WrongThreadForMessageLoop,
+
+    #[error("Web rendering feature is not available")]
+    WebRenderingNotAvailable,
 }

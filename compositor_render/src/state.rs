@@ -79,9 +79,11 @@ pub enum RendererSpec {
 }
 
 impl Renderer {
-    pub fn new(opts: RendererOptions) -> Result<(Self, EventLoop), InitRendererEngineError> {
+    pub fn new(
+        opts: RendererOptions,
+    ) -> Result<(Self, Arc<dyn EventLoop>), InitRendererEngineError> {
         let renderer = InnerRenderer::new(opts)?;
-        let event_loop = EventLoop::new(renderer.chromium_context.message_loop());
+        let event_loop = renderer.chromium_context.event_loop();
 
         Ok((Self(Arc::new(Mutex::new(renderer))), event_loop))
     }

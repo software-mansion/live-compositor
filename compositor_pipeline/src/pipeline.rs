@@ -77,7 +77,7 @@ pub struct Options {
 }
 
 impl<Input: PipelineInput, Output: PipelineOutput> Pipeline<Input, Output> {
-    pub fn new(opts: Options) -> Result<(Self, EventLoop), InitRendererEngineError> {
+    pub fn new(opts: Options) -> Result<(Self, Arc<dyn EventLoop>), InitRendererEngineError> {
         let (renderer, event_loop) = Renderer::new(RendererOptions {
             web_renderer: opts.web_renderer,
             framerate: opts.framerate,

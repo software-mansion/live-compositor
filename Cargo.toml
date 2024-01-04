@@ -10,8 +10,8 @@ members = ["compositor_render", "compositor_pipeline", "compositor_chromium"]
 resolver = "2"
 
 [features]
-default = ["web_view"]
-web_view = ["dep:compositor_chromium", "compositor_render/web_renderer"]
+default = ["web_renderer"]
+web_renderer = ["dep:compositor_chromium", "compositor_render/web_renderer"]
 
 [workspace.dependencies]
 bytes = "1.4.0"
@@ -61,9 +61,4 @@ reqwest = { workspace = true }
 [[bin]]
 name = "process_helper"
 path = "src/bin/process_helper/main.rs"
-required-features = ["web_view"]
-
-[[example]]
-name = "web_view"
-path = "examples/web_view.rs"
-required-features = ["web_view"]
+required-features = ["web_renderer"]

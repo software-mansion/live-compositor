@@ -92,7 +92,7 @@ pub struct Api {
 }
 
 impl Api {
-    pub fn new(opts: pipeline::Options) -> Result<(Api, EventLoop), ApiError> {
+    pub fn new(opts: pipeline::Options) -> Result<(Api, Arc<dyn EventLoop>), ApiError> {
         let (pipeline, event_loop) = Pipeline::new(opts)?;
         Ok((Api { pipeline }, event_loop))
     }

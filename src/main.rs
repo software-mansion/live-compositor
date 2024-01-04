@@ -19,7 +19,7 @@ fn main() {
         env_logger::Env::default().filter_or(env_logger::DEFAULT_FILTER_ENV, "info"),
     );
 
-    #[cfg(feature = "web_view")]
+    #[cfg(feature = "web_renderer")]
     {
         use compositor_chromium::cef::bundle_for_development;
 
