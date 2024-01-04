@@ -65,33 +65,30 @@ fn start_example_client_code() -> Result<()> {
     info!("[example] Send register output request.");
     common::post(&json!({
         "type": "register",
-        "entity_type": "output_video",
+        "entity_type": "output",
         "output_id": "output_1",
         "port": 8002,
         "ip": "127.0.0.1",
-        "resolution": {
-            "width": VIDEO_RESOLUTION.width,
-            "height": VIDEO_RESOLUTION.height,
+        "video": {
+            "resolution": {
+                "width": VIDEO_RESOLUTION.width,
+                "height": VIDEO_RESOLUTION.height,
+            },
+            "encoder_settings": {
+                "preset": "medium"
+            }
         },
-        "encoder_settings": {
-            "preset": "medium"
+        "audio": {
+            "sample_rate": 44_100
         }
     }))?;
 
     info!("[example] Send register input video request.");
     common::post(&json!({
         "type": "register",
-        "entity_type": "input_video",
-        "input_id": "input_video_1",
+        "entity_type": "input",
+        "input_id": "input_1",
         "port": 8004
-    }))?;
-
-    info!("[example] Send register input audio request.");
-    common::post(&json!({
-        "type": "register",
-        "entity_type": "input_audio",
-        "input_id": "input_audio_1",
-        "port": 8006
     }))?;
 
     let shader_source = include_str!("./silly.wgsl");
@@ -103,10 +100,10 @@ fn start_example_client_code() -> Result<()> {
         "source": shader_source,
     }))?;
 
-    info!("[example] Update composition");
+    info!("[example] Update scene");
     common::post(&json!({
-        "type": "update_composition",
-        "video_outputs": [{
+        "type": "update_scene",
+        "outputs": [{
             "output_id": "output_1",
             "root": {
                 "type": "shader",
@@ -116,10 +113,17 @@ fn start_example_client_code() -> Result<()> {
                     {
                         "id": "input_1",
                         "type": "input_stream",
-                        "input_id": "input_video_1",
+                        "input_id": "input_1",
                     }
                 ],
                 "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+            },
+            "track": {
+                "children": [{
+                    "input_id": "input_1"
+                    // some other options per input potentially
+                }],
+                // some other options for whole output track like volume, etc.
             }
         }],
         "audio_outputs": [{

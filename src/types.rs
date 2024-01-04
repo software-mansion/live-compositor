@@ -1,8 +1,7 @@
-use std::fmt::Display;
-use std::sync::Arc;
-
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use std::fmt::Display;
+use std::sync::Arc;
 
 mod component;
 mod convert;
@@ -36,8 +35,8 @@ pub use component::View;
 pub use component::WebView;
 
 pub use register_request::Port;
-pub use register_request::RegisterInputVideoRequest;
-pub use register_request::RegisterOutputVideoRequest;
+pub use register_request::RegisterInputRequest;
+pub use register_request::RegisterOutputRequest;
 pub use register_request::RegisterRequest;
 
 #[allow(unused_imports)]
@@ -51,7 +50,7 @@ pub use renderer::WebRendererSpec;
 pub use util::Resolution;
 pub use util::TypeError;
 
-use self::track_properties::TrackProperties;
+use self::track_properties::MixingProperties;
 use self::util::Framerate;
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
@@ -61,27 +60,21 @@ pub struct ComponentId(Arc<str>);
 pub struct RendererId(Arc<str>);
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-pub struct VideoOutputId(Arc<str>);
+pub struct OutputId(Arc<str>);
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-pub struct VideoInputId(Arc<str>);
+pub struct InputId(Arc<str>);
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-pub struct AudioOutputId(Arc<str>);
-
-#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-pub struct AudioInputId(Arc<str>);
-
-#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-pub struct VideoCompositionParams {
-    pub output_id: VideoOutputId,
+pub struct OutputScene {
+    pub output_id: OutputId,
     pub root: Component,
+    track: AudioMixParams,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 pub struct AudioMixParams {
-    pub output_id: AudioOutputId,
-    pub tracks: Vec<TrackProperties>,
+    children: Vec<MixingProperties>,
     // Probably some other fields, specifying params of mixed audio
 }
 
@@ -98,13 +91,13 @@ pub struct WebRendererOptions {
     pub disable_gpu: Option<bool>,
 }
 
-impl Display for VideoInputId {
+impl Display for InputId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.0.fmt(f)
     }
 }
 
-impl Display for VideoOutputId {
+impl Display for OutputId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.0.fmt(f)
     }

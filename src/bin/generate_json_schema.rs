@@ -11,11 +11,7 @@ const ROOT_DIR: &str = env!("CARGO_MANIFEST_DIR");
 fn main() {
     let update_flag = std::env::args().any(|arg| &arg == "--update");
 
-    generate_schema(
-        schema_for!(types::VideoCompositionParams),
-        "scene",
-        update_flag,
-    );
+    generate_schema(schema_for!(types::OutputScene), "scene", update_flag);
     generate_schema(schema_for!(types::RegisterRequest), "register", update_flag);
 }
 

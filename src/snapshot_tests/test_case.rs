@@ -50,14 +50,12 @@ impl TestCaseInstance {
     pub fn new(test_case: TestCase) -> TestCaseInstance {
         fn register_requests_to_renderers(register_request: RegisterRequest) -> RendererSpec {
             match register_request {
-                RegisterRequest::InputVideo(_) | RegisterRequest::OutputVideo(_) => {
+                RegisterRequest::Input(_) | RegisterRequest::Output(_) => {
                     panic!("Input and output streams are not supported in snapshot tests")
                 }
                 RegisterRequest::Shader(shader) => shader.try_into().unwrap(),
                 RegisterRequest::WebRenderer(web_renderer) => web_renderer.try_into().unwrap(),
                 RegisterRequest::Image(img) => img.try_into().unwrap(),
-                RegisterRequest::InputAudio(_) => todo!(),
-                RegisterRequest::OutputAudio(_) => todo!(),
             }
         }
 
@@ -82,8 +80,7 @@ impl TestCaseInstance {
                 scene
                     .iter()
                     .map(|output| {
-                        let scene: types::VideoCompositionParams =
-                            serde_json::from_str(output.0).unwrap();
+                        let scene: types::OutputScene = serde_json::from_str(output.0).unwrap();
                         let scene: pipeline::OutputScene = scene.try_into().unwrap();
                         OutputScene {
                             output_id: scene.output_id,

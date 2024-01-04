@@ -8,7 +8,7 @@ use crate::{
     api::Response,
     error::{ApiError, PORT_ALREADY_IN_USE_ERROR_CODE},
     rtp_receiver, rtp_sender,
-    types::{RegisterInputVideoRequest, RegisterOutputVideoRequest, RegisterRequest},
+    types::{RegisterInputRequest, RegisterOutputRequest, RegisterRequest},
 };
 
 use super::{Api, Port, ResponseHandler};
@@ -18,18 +18,8 @@ pub fn handle_register_request(
     request: RegisterRequest,
 ) -> Result<Option<ResponseHandler>, ApiError> {
     match request {
-        RegisterRequest::InputVideo(input_stream) => register_input(api, input_stream).map(Some),
-        RegisterRequest::InputAudio(..) => {
-            // TODO
-            Ok(None)
-        }
-        RegisterRequest::OutputVideo(output_stream) => {
-            register_output(api, output_stream).map(|_| None)
-        }
-        RegisterRequest::OutputAudio(..) => {
-            // TODO
-            Ok(None)
-        }
+        RegisterRequest::Input(input_stream) => register_input(api, input_stream).map(Some),
+        RegisterRequest::Output(output_stream) => register_output(api, output_stream).map(|_| None),
         RegisterRequest::Shader(spec) => {
             let spec = spec.try_into()?;
             api.pipeline.register_renderer(spec)?;
@@ -48,13 +38,13 @@ pub fn handle_register_request(
     }
 }
 
-fn register_output(api: &mut Api, request: RegisterOutputVideoRequest) -> Result<(), ApiError> {
-    let RegisterOutputVideoRequest {
+fn register_output(api: &mut Api, request: RegisterOutputRequest) -> Result<(), ApiError> {
+    let RegisterOutputRequest {
         output_id,
         port,
-        resolution,
-        encoder_settings,
+        video,
         ip,
+        ..
     } = request;
 
     api.pipeline.with_outputs(|mut iter| {
@@ -71,8 +61,8 @@ fn register_output(api: &mut Api, request: RegisterOutputVideoRequest) -> Result
     api.pipeline.register_output(
         output_id.into(),
         pipeline::OutputOptions {
-            resolution: resolution.into(),
-            encoder_settings: encoder_settings.into(),
+            resolution: video.resolution.into(),
+            encoder_settings: video.encoder_settings.into(),
             receiver_options: rtp_sender::Options { port, ip },
         },
     )?;
@@ -82,9 +72,9 @@ fn register_output(api: &mut Api, request: RegisterOutputVideoRequest) -> Result
 
 fn register_input(
     api: &mut Api,
-    request: RegisterInputVideoRequest,
+    request: RegisterInputRequest,
 ) -> Result<ResponseHandler, ApiError> {
-    let RegisterInputVideoRequest { input_id: id, port } = request;
+    let RegisterInputRequest { input_id: id, port } = request;
     let port: Port = port.try_into()?;
 
     match port {

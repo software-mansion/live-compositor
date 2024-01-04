@@ -11,24 +11,16 @@ use super::*;
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(tag = "entity_type", rename_all = "snake_case")]
 pub enum RegisterRequest {
-    InputVideo(RegisterInputVideoRequest),
-    InputAudio(RegisterInputAudioRequest),
-    OutputVideo(RegisterOutputVideoRequest),
-    OutputAudio(RegisterOutputAudioRequest),
+    Input(RegisterInputRequest),
+    Output(RegisterOutputRequest),
     Shader(ShaderSpec),
     WebRenderer(WebRendererSpec),
     Image(ImageSpec),
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-pub struct RegisterInputVideoRequest {
-    pub input_id: VideoInputId,
-    pub port: Port,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-pub struct RegisterInputAudioRequest {
-    pub input_id: VideoInputId,
+pub struct RegisterInputRequest {
+    pub input_id: InputId,
     pub port: Port,
 }
 
@@ -40,17 +32,28 @@ pub enum Port {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-pub struct RegisterOutputVideoRequest {
-    pub output_id: VideoOutputId,
+pub struct RegisterOutputRequest {
+    pub output_id: OutputId,
     pub port: u16,
     pub ip: Arc<str>,
+    pub audio: OutputAudioOptions,
+    pub video: OutputVideoOptions,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+pub struct OutputAudioOptions {
+    sample_rate: u32,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+pub struct OutputVideoOptions {
     pub resolution: Resolution,
     pub encoder_settings: EncoderSettings,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 pub struct RegisterOutputAudioRequest {
-    pub output_id: VideoOutputId,
+    pub output_id: OutputId,
     pub port: u16,
     pub ip: Arc<str>,
     // At this point I'm not sure what params should be set here.
