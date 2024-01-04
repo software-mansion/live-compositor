@@ -88,7 +88,9 @@ fn start_example_client_code() -> Result<()> {
         "type": "register",
         "entity_type": "input",
         "input_id": "input_1",
-        "port": 8004
+        "port": 8004,
+        "video_encoding": "h264", // default
+        "audio_encoding": "opus",
     }))?;
 
     let shader_source = include_str!("./silly.wgsl");

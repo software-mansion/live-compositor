@@ -22,6 +22,23 @@ pub enum RegisterRequest {
 pub struct RegisterInputRequest {
     pub input_id: InputId,
     pub port: Port,
+    #[serde(default)]
+    pub video: VideoEncoding,
+    #[serde(default)]
+    pub audio: AudioEncoding,
+}
+
+#[derive(Debug, Default, Serialize, Deserialize, Clone, JsonSchema)]
+pub enum VideoEncoding {
+    #[default]
+    H264,
+}
+
+#[derive(Debug, Default, Serialize, Deserialize, Clone, JsonSchema)]
+pub enum AudioEncoding {
+    #[default]
+    Aac,
+    Opus,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema, PartialEq, Eq)]

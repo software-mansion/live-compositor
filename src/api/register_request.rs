@@ -74,7 +74,9 @@ fn register_input(
     api: &mut Api,
     request: RegisterInputRequest,
 ) -> Result<ResponseHandler, ApiError> {
-    let RegisterInputRequest { input_id: id, port } = request;
+    let RegisterInputRequest {
+        input_id: id, port, ..
+    } = request;
     let port: Port = port.try_into()?;
 
     match port {
