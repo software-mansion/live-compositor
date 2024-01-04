@@ -22,20 +22,36 @@ pub enum RegisterRequest {
 pub struct RegisterInputRequest {
     pub input_id: InputId,
     pub port: Port,
-    #[serde(default)]
-    pub video: VideoEncoding,
-    #[serde(default)]
-    pub audio: AudioEncoding,
+    pub video: InputVideoOptions,
+    pub audio: InputAudioOptions,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+pub struct InputVideoOptions {
+    codec: VideoCodec,
+    rtp_payload_type: Option<u32>,
+    /// Default 90_000
+    clock_rate: Option<u32>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+pub struct InputAudioOptions {
+    codec: AudioCodec,
+    rtp_payload_type: Option<u32>,
+    /// Default 48_000
+    clock_rate: Option<u32>,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone, JsonSchema)]
-pub enum VideoEncoding {
+#[serde(rename_all = "snake_case")]
+pub enum VideoCodec {
     #[default]
     H264,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone, JsonSchema)]
-pub enum AudioEncoding {
+#[serde(rename_all = "snake_case")]
+pub enum AudioCodec {
     #[default]
     Aac,
     Opus,

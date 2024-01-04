@@ -89,8 +89,15 @@ fn start_example_client_code() -> Result<()> {
         "entity_type": "input",
         "input_id": "input_1",
         "port": 8004,
-        "video_encoding": "h264", // default
-        "audio_encoding": "opus",
+        "video": {
+            "codec": "h264",
+            "rtp_payload_type": 96,
+            "clock_rate": 90_000
+        },
+        "audio": {
+            "codec": "aac",
+            "clock_rate": 44_000
+        }
     }))?;
 
     let shader_source = include_str!("./silly.wgsl");
