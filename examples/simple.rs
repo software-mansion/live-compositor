@@ -77,9 +77,18 @@ fn start_example_client_code() -> Result<()> {
             "encoder_settings": {
                 "preset": "medium"
             }
+            // Not necessary
+            // "stream": {
+            //     "rtp_payload_type": 96,
+            //     "clock_rate": 90_000
+            // }
         },
         "audio": {
             "sample_rate": 44_100
+            // Not necessary
+            // "stream": {
+            //     "clock_rate": 44_000
+            // }
         }
     }))?;
 
@@ -91,12 +100,18 @@ fn start_example_client_code() -> Result<()> {
         "port": 8004,
         "video": {
             "codec": "h264",
-            "rtp_payload_type": 96,
-            "clock_rate": 90_000
+            // Not necessary
+            // "stream": {
+            //     "rtp_payload_type": 96,
+            //     "clock_rate": 90_000
+            // }
         },
         "audio": {
             "codec": "aac",
-            "clock_rate": 44_000
+            // Not necessary
+            // "stream": {
+            //     "clock_rate": 44_000
+            // }
         }
     }))?;
 

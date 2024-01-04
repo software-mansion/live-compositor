@@ -47,6 +47,11 @@ fn register_output(api: &mut Api, request: RegisterOutputRequest) -> Result<(), 
         ..
     } = request;
 
+    let Some(video) = video else {
+        // TODO error
+        return Ok(());
+    };
+
     api.pipeline.with_outputs(|mut iter| {
         if let Some((node_id, _)) = iter.find(|(_, output)| output.port == port && output.ip == ip) {
             return Err(ApiError::new(

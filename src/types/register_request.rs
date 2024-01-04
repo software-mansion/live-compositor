@@ -19,26 +19,39 @@ pub enum RegisterRequest {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+/// At least one of video / audio options have to be provided.
 pub struct RegisterInputRequest {
     pub input_id: InputId,
     pub port: Port,
-    pub video: InputVideoOptions,
-    pub audio: InputAudioOptions,
+    pub video: Option<InputVideoOptions>,
+    pub audio: Option<InputAudioOptions>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 pub struct InputVideoOptions {
-    codec: VideoCodec,
-    rtp_payload_type: Option<u32>,
-    /// Default 90_000
-    clock_rate: Option<u32>,
+    pub codec: VideoCodec,
+    // Default: RTP clock rate 90_000, payload type -> first received >= 96
+    pub stream: Option<Stream>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 pub struct InputAudioOptions {
-    codec: AudioCodec,
+    pub codec: AudioCodec,
+    // Default: RTP clock rate 44_000, payload type -> first received <= 35
+    pub stream: Option<Stream>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+pub enum Stream {
+    Rtp(RtpOptions),
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+pub struct RtpOptions {
+    /// If not specified, takes payload type of first input packet
+    /// of range [96, 127] for video and [35, 63] for audio
     rtp_payload_type: Option<u32>,
-    /// Default 48_000
+    /// If not specified use 90_000 for video and 48_000 for audio
     clock_rate: Option<u32>,
 }
 
@@ -69,29 +82,27 @@ pub struct RegisterOutputRequest {
     pub output_id: OutputId,
     pub port: u16,
     pub ip: Arc<str>,
-    pub audio: OutputAudioOptions,
-    pub video: OutputVideoOptions,
+    pub audio: Option<OutputAudioOptions>,
+    pub video: Option<OutputVideoOptions>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 pub struct OutputAudioOptions {
     sample_rate: u32,
+    // Default aac
+    codec: Option<AudioCodec>,
+    // Default RTP, clock rate 44_000, rtp pty 35
+    stream: Option<Stream>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 pub struct OutputVideoOptions {
     pub resolution: Resolution,
     pub encoder_settings: EncoderSettings,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-pub struct RegisterOutputAudioRequest {
-    pub output_id: OutputId,
-    pub port: u16,
-    pub ip: Arc<str>,
-    // At this point I'm not sure what params should be set here.
-    // I think that it's implementation dependent and should be decided later on
-    pub sample_rate: u32,
+    // Default h264
+    codec: Option<VideoCodec>,
+    // Default RTP, clock rate 90_000, rtp pty 96
+    stream: Option<Stream>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
