@@ -4,10 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 compositor_render = { path = "../compositor_render" }
-compositor_chromium = { path = "../compositor_chromium" }
 bytes = { workspace = true }
 crossbeam-channel = { workspace = true }
 anyhow = "1.0.71"

@@ -1,31 +1,48 @@
+use crate::state::render_graph::NodeId;
+use crate::state::{RegisterCtx, RenderCtx};
+use crate::wgpu::common_pipeline::CreateShaderError;
+use crate::wgpu::texture::NodeTexture;
+
+use crate::{FallbackStrategy, RendererId, Resolution};
 use bytes::Bytes;
 use nalgebra_glm::Mat4;
 use std::env;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
-use crate::state::render_graph::NodeId;
-use crate::state::{RegisterCtx, RenderCtx};
-use crate::transformations::web_renderer::shader::WebRendererShader;
-use crate::wgpu::common_pipeline::CreateShaderError;
-use crate::wgpu::texture::{BGRATexture, NodeTexture, Texture};
-use crate::{FallbackStrategy, RendererId, Resolution};
+#[cfg(feature = "web_renderer")]
+mod imports {
+    pub(super) use crate::transformations::web_renderer::{
+        browser_client::BrowserClient,
+        chromium_sender::ChromiumSender,
+        embedder::{EmbedError, EmbeddingHelper, RenderInfo},
+        shader::WebRendererShader,
+    };
+    pub(super) use crate::wgpu::texture::{BGRATexture, Texture};
+}
 
-use crate::transformations::web_renderer::browser_client::BrowserClient;
-use crate::transformations::web_renderer::chromium_sender::ChromiumSender;
-use crate::transformations::web_renderer::embedder::{EmbedError, EmbeddingHelper};
+#[cfg(not(feature = "web_renderer"))]
+mod imports {}
+
+use imports::*;
+
 use log::{error, info};
 
-use self::embedder::RenderInfo;
-
+#[cfg(feature = "web_renderer")]
 pub mod browser_client;
-pub mod chromium_context;
+#[cfg(feature = "web_renderer")]
 mod chromium_sender;
+#[cfg(feature = "web_renderer")]
 mod chromium_sender_thread;
+#[cfg(feature = "web_renderer")]
 mod embedder;
-pub(crate) mod node;
+#[cfg(feature = "web_renderer")]
 mod shader;
+#[cfg(feature = "web_renderer")]
 mod shared_memory;
+
+pub mod chromium_context;
+pub(crate) mod node;
 
 pub const EMBED_SOURCE_FRAMES_MESSAGE: &str = "EMBED_SOURCE_FRAMES";
 pub const UNEMBED_SOURCE_FRAMES_MESSAGE: &str = "UNEMBED_SOURCE_FRAMES";
@@ -70,6 +87,7 @@ pub enum WebEmbeddingMethod {
     NativeEmbeddingUnderContent,
 }
 
+#[cfg(feature = "web_renderer")]
 #[derive(Debug)]
 pub struct WebRenderer {
     spec: WebRendererSpec,
@@ -81,9 +99,16 @@ pub struct WebRenderer {
     render_website_shader: WebRendererShader,
 }
 
+#[cfg(not(feature = "web_renderer"))]
+#[derive(Debug)]
+pub struct WebRenderer {
+    spec: WebRendererSpec,
+}
+
+#[cfg(feature = "web_renderer")]
 impl WebRenderer {
     pub fn new(ctx: &RegisterCtx, spec: WebRendererSpec) -> Result<Self, CreateWebRendererError> {
-        if ctx.chromium.cef_context().is_none() {
+        if ctx.chromium.context.is_none() {
             return Err(CreateWebRendererError::WebRendererDisabled);
         }
 
@@ -195,17 +220,47 @@ impl WebRenderer {
     }
 }
 
+#[cfg(not(feature = "web_renderer"))]
+impl WebRenderer {
+    pub fn new(_ctx: &RegisterCtx, _spec: WebRendererSpec) -> Result<Self, CreateWebRendererError> {
+        return Err(CreateWebRendererError::WebRenderingNotAvailable);
+    }
+
+    pub fn render(
+        &self,
+        _ctx: &RenderCtx,
+        _node_id: &NodeId,
+        _sources: &[(&NodeId, &NodeTexture)],
+        _buffers: &[Arc<wgpu::Buffer>],
+        _target: &mut NodeTexture,
+    ) -> Result<(), RenderWebsiteError> {
+        Ok(())
+    }
+
+    pub fn resolution(&self) -> Resolution {
+        self.spec.resolution
+    }
+
+    pub fn fallback_strategy(&self) -> FallbackStrategy {
+        self.spec.fallback_strategy
+    }
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum CreateWebRendererError {
     #[error(transparent)]
     CreateShaderFailed(#[from] CreateShaderError),
 
-    #[error("Web rendering is disabled")]
+    #[error("Web rendering can not be used because it was disabled in the init request")]
     WebRendererDisabled,
+
+    #[error("Web rendering feature is not available")]
+    WebRenderingNotAvailable,
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum RenderWebsiteError {
+    #[cfg(feature = "web_renderer")]
     #[error("Failed to embed source on the website \"{0}\": {1}")]
     EmbeddingFailed(String, #[source] EmbedError),
 }

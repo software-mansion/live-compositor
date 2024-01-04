@@ -1,6 +1,5 @@
 use std::env;
 
-use compositor_chromium::cef::bundle_for_development;
 use log::info;
 
 use crate::http::API_PORT_ENV;
@@ -20,13 +19,18 @@ fn main() {
         env_logger::Env::default().filter_or(env_logger::DEFAULT_FILTER_ENV, "info"),
     );
 
-    let target_path = std::env::current_exe()
-        .unwrap()
-        .parent()
-        .unwrap()
-        .to_owned();
-    if bundle_for_development(&target_path).is_err() {
-        panic!("Build process helper first. For release profile use: cargo build -r --bin process_helper");
+    #[cfg(feature = "web_view")]
+    {
+        use compositor_chromium::cef::bundle_for_development;
+
+        let target_path = std::env::current_exe()
+            .unwrap()
+            .parent()
+            .unwrap()
+            .to_owned();
+        if bundle_for_development(&target_path).is_err() {
+            panic!("Build process helper first. For release profile use: cargo build -r --bin process_helper");
+        }
     }
 
     ffmpeg_next::format::network::init();

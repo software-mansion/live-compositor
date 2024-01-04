@@ -554,7 +554,6 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "bytes",
- "compositor_chromium",
  "compositor_render",
  "crossbeam-channel",
  "ffmpeg-next",

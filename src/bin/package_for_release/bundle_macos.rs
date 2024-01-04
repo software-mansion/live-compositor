@@ -7,40 +7,58 @@ use anyhow::{anyhow, Result};
 use log::info;
 
 use crate::utils;
-use compositor_chromium::cef;
 
 const ARM_MAC_TARGET: &str = "aarch64-apple-darwin";
-const ARM_OUTPUT_FILE: &str = "video_compositor_darwin_aarch64.tar.gz";
 const INTEL_MAC_TARGET: &str = "x86_64-apple-darwin";
-const INTEL_OUTPUT_FILE: &str = "video_compositor_darwin_x86_64.tar.gz";
 
-pub fn bundle_macos_app() -> Result<()> {
+pub fn bundle_macos_app(enable_web_rendering: bool) -> Result<()> {
+    let output_name = match enable_web_rendering {
+        true => root_dir.join("video_compositor_with_web_rendering"),
+        false => root_dir.join("video_compositor"),
+    };
+
     if cfg!(target_arch = "x86_64") {
-        bundle_app(INTEL_MAC_TARGET, INTEL_OUTPUT_FILE)?;
+        bundle_app(
+            INTEL_MAC_TARGET,
+            format!("{output_name}_x86_64.tar.gz"),
+            enable_web_rendering,
+        )?;
     } else if cfg!(target_arch = "aarch64") {
-        bundle_app(ARM_MAC_TARGET, ARM_OUTPUT_FILE)?;
+        bundle_app(
+            ARM_MAC_TARGET,
+            format!("{output_name}_aarch64.tar.gz"),
+            enable_web_rendering,
+        )?;
     } else {
         panic!("Unknown architecture")
     }
     Ok(())
 }
 
-fn bundle_app(target: &'static str, output_name: &'static str) -> Result<()> {
-    env_logger::init_from_env(
-        env_logger::Env::default().filter_or(env_logger::DEFAULT_FILTER_ENV, "info"),
-    );
+fn bundle_app(
+    target: &'static str,
+    output_name: &'static str,
+    enable_web_rendering: bool,
+) -> Result<()> {
     let root_dir_str = env!("CARGO_MANIFEST_DIR");
     let root_dir: PathBuf = root_dir_str.into();
     let build_dir = root_dir.join(format!("target/{target}/release"));
     let tmp_dir = root_dir.join("video_compositor");
 
     info!("Build main_process binary.");
-    utils::cargo_build("main_process", target)?;
-    info!("Build process_helper binary.");
-    utils::cargo_build("process_helper", target)?;
+    utils::cargo_build("main_process", target, !enable_web_rendering)?;
 
     info!("Create macOS bundle.");
-    cef::bundle_app(&build_dir, &tmp_dir.join("video_compositor.app"))?;
+    if enable_web_rendering {
+        use compositor_chromium::cef;
+
+        info!("Build process_helper binary.");
+        utils::cargo_build("process_helper", target)?;
+        cef::bundle_app(&build_dir, &tmp_dir.join("video_compositor.app"), false)?;
+    } else {
+        let _ = fs::remove_dir_all(&tmp_dir);
+        fs::create_dir_all(&tmp_dir)?;
+    }
 
     fs::copy(
         build_dir.join("main_process"),

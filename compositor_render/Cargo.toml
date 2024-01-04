@@ -4,12 +4,14 @@ version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[features]
+web_renderer = ["dep:compositor_chromium"]
 
 [dependencies]
 pollster = "0.3.0"
 thiserror = { workspace = true }
 wgpu = { version = "0.16.1", features = ["naga"] }
-compositor_chromium = { path = "../compositor_chromium" }
+compositor_chromium = { path = "../compositor_chromium", optional = true }
 image = { workspace = true }
 reqwest = { workspace = true }
 bytes = { workspace = true }
