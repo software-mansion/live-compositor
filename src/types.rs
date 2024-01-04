@@ -69,13 +69,12 @@ pub struct InputId(Arc<str>);
 pub struct OutputScene {
     pub output_id: OutputId,
     pub root: Component,
-    track: AudioMixParams,
+    audio: AudioMixParams,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 pub struct AudioMixParams {
-    children: Vec<MixingProperties>,
-    // Probably some other fields, specifying params of mixed audio
+    inputs: Vec<MixingProperties>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]

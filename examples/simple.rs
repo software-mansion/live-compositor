@@ -74,21 +74,11 @@ fn start_example_client_code() -> Result<()> {
                 "width": VIDEO_RESOLUTION.width,
                 "height": VIDEO_RESOLUTION.height,
             },
-            "encoder_settings": {
-                "preset": "medium"
-            }
-            // Not necessary
-            // "stream": {
-            //     "rtp_payload_type": 96,
-            //     "clock_rate": 90_000
-            // }
+            "encoder_preset": "medium",
         },
         "audio": {
-            "sample_rate": 44_100
-            // Not necessary
-            // "stream": {
-            //     "clock_rate": 44_000
-            // }
+            "sample_rate": 44_100,
+            "rtp_clock_rate": 48_000,
         }
     }))?;
 
@@ -100,18 +90,11 @@ fn start_example_client_code() -> Result<()> {
         "port": 8004,
         "video": {
             "codec": "h264",
-            // Not necessary
-            // "stream": {
-            //     "rtp_payload_type": 96,
-            //     "clock_rate": 90_000
-            // }
         },
         "audio": {
             "codec": "aac",
-            // Not necessary
-            // "stream": {
-            //     "clock_rate": 44_000
-            // }
+            "sample_rate": 44_100,
+            "rtp_clock_rate": 48_000
         }
     }))?;
 
@@ -142,8 +125,8 @@ fn start_example_client_code() -> Result<()> {
                 ],
                 "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
             },
-            "track": {
-                "children": [{
+            "audio": {
+                "inputs": [{
                     "input_id": "input_1"
                     // some other options per input potentially
                 }],

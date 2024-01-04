@@ -1,6 +1,6 @@
 use compositor_pipeline::{
     error::{InputInitError, RegisterInputError},
-    pipeline,
+    pipeline::{self},
 };
 use log::trace;
 
@@ -67,7 +67,7 @@ fn register_output(api: &mut Api, request: RegisterOutputRequest) -> Result<(), 
         output_id.into(),
         pipeline::OutputOptions {
             resolution: video.resolution.into(),
-            encoder_settings: video.encoder_settings.into(),
+            encoder_settings: video.encoder_preset.into(),
             receiver_options: rtp_sender::Options { port, ip },
         },
     )?;
