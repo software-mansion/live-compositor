@@ -13,9 +13,7 @@ const X86_WITH_WEB_RENDERING_OUTPUT_FILE: &str =
     "video_compositor_with_web_rendering_linux_x86_64.tar.gz";
 
 pub fn bundle_linux_app() -> Result<()> {
-    env_logger::init_from_env(
-        env_logger::Env::default().filter_or(env_logger::DEFAULT_FILTER_ENV, "info"),
-    );
+    tracing_subscriber::fmt().init();
 
     info!("Bundling compositor without web rendering");
     bundle_app(false)?;

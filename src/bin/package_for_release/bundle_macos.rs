@@ -19,9 +19,7 @@ const INTEL_WITH_WEB_RENDERING_OUTPUT_FILE: &str =
     "video_compositor_with_web_rendering_darwin_x86_64.tar.gz";
 
 pub fn bundle_macos_app() -> Result<()> {
-    env_logger::init_from_env(
-        env_logger::Env::default().filter_or(env_logger::DEFAULT_FILTER_ENV, "info"),
-    );
+    tracing_subscriber::fmt().init();
 
     if cfg!(target_arch = "x86_64") {
         bundle_app(INTEL_MAC_TARGET, INTEL_OUTPUT_FILE, false)?;

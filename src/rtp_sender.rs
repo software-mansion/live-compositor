@@ -42,7 +42,11 @@ impl PipelineOutput for RtpSender {
         let next_sequence_number = rng.gen::<u16>();
         let payloader = rtp::codecs::h264::H264Payloader::default();
 
-        let socket = std::net::UdpSocket::bind("0.0.0.0:0").map_err(|e| CustomError(e.into()))?;
+        let socket = std::net::UdpSocket::bind(std::net::SocketAddrV4::new(
+            std::net::Ipv4Addr::UNSPECIFIED,
+            0,
+        ))
+        .map_err(|e| CustomError(e.into()))?;
         socket
             .connect((options.ip.as_ref(), options.port))
             .map_err(|e| CustomError(e.into()))?;
