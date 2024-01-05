@@ -9,8 +9,8 @@ use crate::utils;
 
 const X86_TARGET: &str = "x86_64-unknown-linux-gnu";
 const X86_OUTPUT_FILE: &str = "video_compositor_linux_x86_64.tar.gz";
-const X86_WITH_WEB_RENDERING_OUTPUT_FILE: &str =
-    "video_compositor_with_web_rendering_linux_x86_64.tar.gz";
+const X86_WITH_WEB_RENDERER_OUTPUT_FILE: &str =
+    "video_compositor_with_web_renderer_linux_x86_64.tar.gz";
 
 pub fn bundle_linux_app() -> Result<()> {
     tracing_subscriber::fmt().init();
@@ -76,7 +76,7 @@ fn bundle_app(enable_web_rendering: bool) -> Result<()> {
 
     info!("Create tar.gz archive.");
     let archive_name = match enable_web_rendering {
-        true => X86_WITH_WEB_RENDERING_OUTPUT_FILE,
+        true => X86_WITH_WEB_RENDERER_OUTPUT_FILE,
         false => X86_OUTPUT_FILE,
     };
     let exit_code = Command::new("tar")

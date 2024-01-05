@@ -10,23 +10,23 @@ use crate::utils;
 
 const ARM_MAC_TARGET: &str = "aarch64-apple-darwin";
 const ARM_OUTPUT_FILE: &str = "video_compositor_darwin_aarch64.tar.gz";
-const ARM_WITH_WEB_RENDERING_OUTPUT_FILE: &str =
-    "video_compositor_with_web_rendering_darwin_aarch64.tar.gz";
+const ARM_WITH_WEB_RENDERER_OUTPUT_FILE: &str =
+    "video_compositor_with_web_renderer_darwin_aarch64.tar.gz";
 
 const INTEL_MAC_TARGET: &str = "x86_64-apple-darwin";
 const INTEL_OUTPUT_FILE: &str = "video_compositor_darwin_x86_64.tar.gz";
-const INTEL_WITH_WEB_RENDERING_OUTPUT_FILE: &str =
-    "video_compositor_with_web_rendering_darwin_x86_64.tar.gz";
+const INTEL_WITH_WEB_RENDERER_OUTPUT_FILE: &str =
+    "video_compositor_with_web_renderer_darwin_x86_64.tar.gz";
 
 pub fn bundle_macos_app() -> Result<()> {
     tracing_subscriber::fmt().init();
 
     if cfg!(target_arch = "x86_64") {
         bundle_app(INTEL_MAC_TARGET, INTEL_OUTPUT_FILE, false)?;
-        bundle_app(INTEL_MAC_TARGET, INTEL_WITH_WEB_RENDERING_OUTPUT_FILE, true)?;
+        bundle_app(INTEL_MAC_TARGET, INTEL_WITH_WEB_RENDERER_OUTPUT_FILE, true)?;
     } else if cfg!(target_arch = "aarch64") {
         bundle_app(ARM_MAC_TARGET, ARM_OUTPUT_FILE, false)?;
-        bundle_app(ARM_MAC_TARGET, ARM_WITH_WEB_RENDERING_OUTPUT_FILE, true)?;
+        bundle_app(ARM_MAC_TARGET, ARM_WITH_WEB_RENDERER_OUTPUT_FILE, true)?;
     } else {
         panic!("Unknown architecture")
     }

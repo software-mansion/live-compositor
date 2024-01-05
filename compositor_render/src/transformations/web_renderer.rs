@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex};
 mod renderer;
 
 #[cfg(not(feature = "web_renderer"))]
-#[path = "web_renderer/renderer_disabled.rs"]
+#[path = "web_renderer/disabled_renderer.rs"]
 mod renderer;
 
 pub use renderer::*;

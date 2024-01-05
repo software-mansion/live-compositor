@@ -27,8 +27,8 @@ jobs:
 
             - uses: actions/upload-artifact@v3
               with:
-                name: video_compositor_with_web_rendering_linux_x86_64.tar.gz
-                path: video_compositor_with_web_rendering_linux_x86_64.tar.gz
+                name: video_compositor_with_web_renderer_linux_x86_64.tar.gz
+                path: video_compositor_with_web_renderer_linux_x86_64.tar.gz
 
     macos_x86_64:
         runs-on: macos-latest
@@ -52,8 +52,8 @@ jobs:
             
             - uses: actions/upload-artifact@v3
               with:
-                name: video_compositor_with_web_rendering_darwin_x86_64.tar.gz
-                path: video_compositor_with_web_rendering_darwin_x86_64.tar.gz
+                name: video_compositor_with_web_renderer_darwin_x86_64.tar.gz
+                path: video_compositor_with_web_renderer_darwin_x86_64.tar.gz
 
     macos-aarch64:
         runs-on: macos-latest-xlarge
@@ -77,5 +77,5 @@ jobs:
 
             - uses: actions/upload-artifact@v3
               with:
-                name: video_compositor_with_web_rendering_darwin_aarch64.tar.gz
-                path: video_compositor_with_web_rendering_darwin_aarch64.tar.gz
+                name: video_compositor_with_web_renderer_darwin_aarch64.tar.gz
+                path: video_compositor_with_web_renderer_darwin_aarch64.tar.gz
