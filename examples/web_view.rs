@@ -30,15 +30,16 @@ fn main() {
         env_logger::Env::default().filter_or(env_logger::DEFAULT_FILTER_ENV, "info"),
     );
     ffmpeg_next::format::network::init();
-    let target_path = &std::env::current_exe()
-        .unwrap()
-        .parent()
-        .unwrap()
-        .join("..");
 
     #[cfg(feature = "web_renderer")]
     {
         use compositor_chromium::cef::bundle_for_development;
+
+        let target_path = &std::env::current_exe()
+            .unwrap()
+            .parent()
+            .unwrap()
+            .join("..");
         if let Err(err) = bundle_for_development(target_path) {
             panic!(
                 "Build process helper first. For release profile use: cargo build -r --bin process_helper. {:?}",

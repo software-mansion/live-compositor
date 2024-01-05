@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 use log::{info, warn};
-use std::{process::Command, str::from_utf8};
+use std::{fs, path::PathBuf, process::Command, str::from_utf8};
 
 pub fn cargo_build(
     bin: &'static str,
@@ -30,5 +30,21 @@ pub fn cargo_build(
         warn!("stderr: {:?}", &from_utf8(&output.stderr));
         return Err(anyhow!("Command failed with exit code {}.", output.status));
     }
+    Ok(())
+}
+
+pub fn setup_bundle_dir(dir: &PathBuf) -> Result<()> {
+    if dir.exists() {
+        if !dir.is_dir() {
+            return Err(anyhow!("Expected directory path"));
+        }
+
+        info!("Bundle directory already exists. Removing...");
+        fs::remove_dir_all(dir)?;
+    }
+
+    info!("Creating new bundle directory");
+    fs::create_dir_all(dir)?;
+
     Ok(())
 }

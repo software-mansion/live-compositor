@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+#
+#   Runtime wrapper which provides paths to native libs used by the web renderer
+#  
+
 set -eo pipefail
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
