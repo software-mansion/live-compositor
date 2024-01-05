@@ -25,7 +25,10 @@ extern "C" fn ffmpeg_log_callback(
     arg1: *mut libc::c_void,
     log_level: libc::c_int,
     fmt: *const libc::c_char,
+    #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
     va_list_tag: *mut ffmpeg_next::sys::__va_list_tag,
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    va_list_tag: ffmpeg_next::sys::va_list,
 ) {
     unsafe {
         match ffmpeg_log_level() {
