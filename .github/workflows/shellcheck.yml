@@ -25,4 +25,4 @@ jobs:
 
             - name: shellcheck
               run: |
-                shellcheck ./scripts/release.sh ./scripts/compositor_runtime_wrapper.sh
+                shellcheck ./scripts/release.sh ./src/bin/package_for_release/linux_runtime_wrapper.sh

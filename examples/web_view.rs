@@ -1,5 +1,4 @@
 use anyhow::Result;
-use compositor_chromium::cef::bundle_for_development;
 use log::{error, info};
 use serde_json::json;
 use std::{
@@ -30,17 +29,21 @@ fn main() {
     ffmpeg_next::format::network::init();
     logger::init_logger();
 
-    let target_path = &std::env::current_exe()
-        .unwrap()
-        .parent()
-        .unwrap()
-        .join("..");
+    #[cfg(feature = "web_renderer")]
+    {
+        use compositor_chromium::cef::bundle_for_development;
 
-    if let Err(err) = bundle_for_development(target_path) {
-        panic!(
-            "Build process helper first. For release profile use: cargo build -r --bin process_helper. {:?}",
-            err
-        );
+        let target_path = &std::env::current_exe()
+            .unwrap()
+            .parent()
+            .unwrap()
+            .join("..");
+        if let Err(err) = bundle_for_development(target_path) {
+            panic!(
+                "Build process helper first. For release profile use: cargo build -r --bin process_helper. {:?}",
+                err
+            );
+        }
     }
     thread::spawn(|| {
         if let Err(err) = start_example_client_code() {

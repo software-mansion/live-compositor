@@ -6,7 +6,7 @@ use crate::image;
 use crate::scene::OutputScene;
 use crate::transformations::image_renderer::Image;
 use crate::transformations::shader::Shader;
-use crate::transformations::web_renderer::WebRenderer;
+use crate::transformations::web_renderer::{self, WebRenderer};
 use crate::{
     error::{InitRendererEngineError, RenderSceneError, UpdateSceneError},
     transformations::{
@@ -19,7 +19,7 @@ use crate::{
     scene::{self, SceneState},
     wgpu::{WgpuCtx, WgpuErrorScope},
 };
-use crate::{shader, web_renderer, RegistryType, RendererId};
+use crate::{shader, RegistryType, RendererId};
 
 use self::{
     render_graph::RenderGraph,
@@ -79,9 +79,11 @@ pub enum RendererSpec {
 }
 
 impl Renderer {
-    pub fn new(opts: RendererOptions) -> Result<(Self, EventLoop), InitRendererEngineError> {
+    pub fn new(
+        opts: RendererOptions,
+    ) -> Result<(Self, Arc<dyn EventLoop>), InitRendererEngineError> {
         let renderer = InnerRenderer::new(opts)?;
-        let event_loop = EventLoop::new(renderer.chromium_context.cef_context());
+        let event_loop = renderer.chromium_context.event_loop();
 
         Ok((Self(Arc::new(Mutex::new(renderer))), event_loop))
     }

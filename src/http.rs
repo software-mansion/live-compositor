@@ -108,7 +108,7 @@ impl Server {
             let mut signals = Signals::new([consts::SIGINT]).unwrap();
             signals.forever().next();
         };
-        if let Err(err) = event_loop.run_with_fallback(event_loop_fallback) {
+        if let Err(err) = event_loop.run_with_fallback(&event_loop_fallback) {
             error!(
                 "Failed to start event loop.\n{}",
                 ErrorStack::new(&err).into_string()
@@ -116,7 +116,7 @@ impl Server {
         }
     }
 
-    fn handle_init(&self) -> (Api, EventLoop) {
+    fn handle_init(&self) -> (Api, Arc<dyn EventLoop>) {
         for mut raw_request in self.server.incoming_requests() {
             let result = self
                 .handle_request_before_init(&mut raw_request)
