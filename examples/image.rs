@@ -7,7 +7,7 @@ use std::{
     thread,
     time::Duration,
 };
-use video_compositor::{http, logger, types::Resolution};
+use video_compositor::{config::config, http, logger, types::Resolution};
 
 use crate::common::write_example_sdp_file;
 
@@ -18,7 +18,6 @@ const VIDEO_RESOLUTION: Resolution = Resolution {
     width: 1920,
     height: 1080,
 };
-const FRAMERATE: u32 = 30;
 
 fn main() {
     ffmpeg_next::format::network::init();
@@ -30,21 +29,10 @@ fn main() {
         }
     });
 
-    http::Server::new(8001).run();
+    http::Server::new(config().api_port).run();
 }
 
 fn start_example_client_code() -> Result<()> {
-    thread::sleep(Duration::from_secs(2));
-
-    info!("[example] Sending init request.");
-    common::post(&json!({
-        "type": "init",
-        "framerate": FRAMERATE,
-        "web_renderer": {
-            "init": false
-        },
-    }))?;
-
     info!("[example] Start listening on output port.");
     let output_sdp = write_example_sdp_file("127.0.0.1", 8002)?;
     Command::new("ffplay")
@@ -52,6 +40,8 @@ fn start_example_client_code() -> Result<()> {
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .spawn()?;
+
+    thread::sleep(Duration::from_secs(2));
 
     info!("[example] Send register output request.");
     common::post(&json!({

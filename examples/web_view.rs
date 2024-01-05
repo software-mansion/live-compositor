@@ -4,10 +4,10 @@ use serde_json::json;
 use std::{
     env, fs,
     process::{Command, Stdio},
-    thread::{self, sleep},
+    thread::{self},
     time::Duration,
 };
-use video_compositor::{http, logger, types::Resolution};
+use video_compositor::{config::config, http, logger, types::Resolution};
 
 use crate::common::write_example_sdp_file;
 
@@ -23,7 +23,6 @@ const VIDEO_RESOLUTION: Resolution = Resolution {
     width: 1920,
     height: 1080,
 };
-const FRAMERATE: u32 = 60;
 
 fn main() {
     ffmpeg_next::format::network::init();
@@ -51,18 +50,10 @@ fn main() {
         }
     });
 
-    http::Server::new(8001).run();
+    http::Server::new(config().api_port).run();
 }
 
 fn start_example_client_code() -> Result<()> {
-    thread::sleep(Duration::from_secs(2));
-
-    info!("[example] Sending init request.");
-    common::post(&json!({
-        "type": "init",
-        "framerate": FRAMERATE,
-    }))?;
-
     info!("[example] Start listening on output port.");
     let output_sdp = write_example_sdp_file("127.0.0.1", 8002)?;
     Command::new("ffplay")
@@ -71,8 +62,7 @@ fn start_example_client_code() -> Result<()> {
         .stderr(Stdio::null())
         .spawn()?;
 
-    // Letting ffplay start up and open receiving socket
-    sleep(Duration::from_secs(1));
+    thread::sleep(Duration::from_secs(2));
 
     info!("[example] Download sample.");
     let sample_path = env::current_dir()?.join(SAMPLE_FILE_PATH);

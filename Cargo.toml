@@ -52,7 +52,7 @@ rtcp = "0.10.0"
 rand = "0.8.5"
 socket2 = "0.5.5"
 tracing = "0.1.40"
-tracing-subscriber = { version = "0.3.18", features = ["json"] }
+tracing-subscriber = { version = "0.3.18", features = ["json", "env-filter"] }
 libc = "0.2.151"
 
 [dev-dependencies]

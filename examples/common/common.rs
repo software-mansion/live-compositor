@@ -8,6 +8,7 @@ use std::{
     path::{Path, PathBuf},
     time::Duration,
 };
+use video_compositor::config::config;
 
 use serde::Serialize;
 
@@ -41,7 +42,7 @@ pub fn write_example_sdp_file(ip: &str, port: u16) -> Result<String> {
 pub fn post<T: Serialize + ?Sized>(json: &T) -> Result<Response> {
     let client = reqwest::blocking::Client::new();
     let response = client
-        .post("http://127.0.0.1:8001")
+        .post(format!("http://127.0.0.1:{}", config().api_port))
         .timeout(Duration::from_secs(100))
         .json(json)
         .send()

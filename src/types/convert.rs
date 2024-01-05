@@ -1,7 +1,4 @@
-use std::time::Duration;
-
-use compositor_pipeline::pipeline;
-use compositor_render::{scene, web_renderer};
+use compositor_render::scene;
 
 use crate::api::{self, UpdateScene};
 
@@ -76,31 +73,6 @@ impl TryFrom<OutputScene> for compositor_pipeline::pipeline::OutputScene {
             output_id: scene.output_id.into(),
             root: scene.root.try_into()?,
         })
-    }
-}
-
-impl TryFrom<InitOptions> for pipeline::Options {
-    type Error = TypeError;
-    fn try_from(opts: InitOptions) -> Result<Self, Self::Error> {
-        let result = Self {
-            framerate: opts.framerate.try_into()?,
-            stream_fallback_timeout: Duration::from_millis(
-                opts.stream_fallback_timeout_ms.unwrap_or(1000.0) as u64,
-            ),
-            web_renderer: web_renderer::WebRendererInitOptions {
-                init: opts
-                    .web_renderer
-                    .as_ref()
-                    .and_then(|r| r.init)
-                    .unwrap_or(true),
-                disable_gpu: opts
-                    .web_renderer
-                    .as_ref()
-                    .and_then(|r| r.disable_gpu)
-                    .unwrap_or(false),
-            },
-        };
-        Ok(result)
     }
 }
 

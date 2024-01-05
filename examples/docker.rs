@@ -8,7 +8,7 @@ use std::{
     thread,
     time::Duration,
 };
-use video_compositor::{logger, types::Resolution};
+use video_compositor::{config::config, logger, types::Resolution};
 
 use crate::common::write_example_sdp_file;
 
@@ -19,7 +19,6 @@ const VIDEO_RESOLUTION: Resolution = Resolution {
     width: 1920,
     height: 1080,
 };
-const FRAMERATE: u32 = 30;
 
 fn main() {
     logger::init_logger();
@@ -71,7 +70,7 @@ fn build_and_start_docker(skip_build: bool) -> Result<()> {
         "-p",
         "8004:8004/udp",
         "-p",
-        "8001:8001",
+        format!("{}:{}", config().api_port, config().api_port).leak(),
         "--rm",
     ];
 
@@ -94,15 +93,6 @@ fn build_and_start_docker(skip_build: bool) -> Result<()> {
 
 fn start_example_client_code(host_ip: String) -> Result<()> {
     thread::sleep(Duration::from_secs(5));
-
-    info!("[example] Sending init request.");
-    common::post(&json!({
-        "type": "init",
-        "framerate": FRAMERATE,
-        "web_renderer": {
-            "init": false
-        },
-    }))?;
 
     info!("[example] Start listening on output port.");
     let output_sdp = write_example_sdp_file(&host_ip, 8002)?;
