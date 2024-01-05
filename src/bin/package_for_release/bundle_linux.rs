@@ -10,9 +10,8 @@ use crate::utils;
 const X86_TARGET: &str = "x86_64-unknown-linux-gnu";
 
 pub fn bundle_linux_app() -> Result<()> {
-    env_logger::init_from_env(
-        env_logger::Env::default().filter_or(env_logger::DEFAULT_FILTER_ENV, "info"),
-    );
+    tracing_subscriber::fmt().init();
+
     let root_dir_str = env!("CARGO_MANIFEST_DIR");
     let root_dir: PathBuf = root_dir_str.into();
     let release_dir = root_dir.join("target/x86_64-unknown-linux-gnu/release");

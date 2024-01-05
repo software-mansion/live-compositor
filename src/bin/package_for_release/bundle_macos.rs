@@ -26,9 +26,8 @@ pub fn bundle_macos_app() -> Result<()> {
 }
 
 fn bundle_app(target: &'static str, output_name: &'static str) -> Result<()> {
-    env_logger::init_from_env(
-        env_logger::Env::default().filter_or(env_logger::DEFAULT_FILTER_ENV, "info"),
-    );
+    tracing_subscriber::fmt().init();
+
     let root_dir_str = env!("CARGO_MANIFEST_DIR");
     let root_dir: PathBuf = root_dir_str.into();
     let build_dir = root_dir.join(format!("target/{target}/release"));

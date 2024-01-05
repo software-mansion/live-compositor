@@ -8,6 +8,7 @@ use crate::http::API_PORT_ENV;
 mod api;
 mod error;
 mod http;
+mod logger;
 mod rtp_receiver;
 mod rtp_sender;
 mod types;
@@ -16,9 +17,7 @@ mod types;
 mod snapshot_tests;
 
 fn main() {
-    env_logger::init_from_env(
-        env_logger::Env::default().filter_or(env_logger::DEFAULT_FILTER_ENV, "info"),
-    );
+    logger::init_logger();
 
     let target_path = std::env::current_exe()
         .unwrap()

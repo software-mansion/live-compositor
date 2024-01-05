@@ -7,7 +7,7 @@ use std::{
     thread,
     time::Duration,
 };
-use video_compositor::{http, types::Resolution};
+use video_compositor::{http, logger, types::Resolution};
 
 use crate::common::write_example_sdp_file;
 
@@ -23,10 +23,8 @@ const VIDEO_RESOLUTION: Resolution = Resolution {
 const FRAMERATE: u32 = 30;
 
 fn main() {
-    env_logger::init_from_env(
-        env_logger::Env::default().filter_or(env_logger::DEFAULT_FILTER_ENV, "info"),
-    );
     ffmpeg_next::format::network::init();
+    logger::init_logger();
 
     thread::spawn(|| {
         if let Err(err) = start_example_client_code() {

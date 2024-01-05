@@ -9,9 +9,7 @@ mod state;
 
 // Subprocess used by chromium
 fn main() -> Result<(), Box<dyn Error>> {
-    env_logger::init_from_env(
-        env_logger::Env::default().filter_or(env_logger::DEFAULT_FILTER_ENV, "info"),
-    );
+    tracing_subscriber::fmt().json().init();
 
     let app = App::new();
     let context = cef::Context::new_helper()?;
