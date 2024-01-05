@@ -144,8 +144,11 @@ impl cef::App for ChromiumApp {
         }
         if self.disable_gpu {
             command_line.append_switch("disable-gpu");
+            // TODO: This is probably only needed in docker container
+            command_line.append_switch("disable-software-rasterizer");
         }
 
+        command_line.append_switch("disable-dev-shm-usage");
         command_line.append_switch("disable-gpu-shader-disk-cache");
         command_line.append_switch_with_value("autoplay-policy", "no-user-gesture-required");
     }
