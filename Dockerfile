@@ -37,11 +37,12 @@ ENV NVIDIA_DRIVER_CAPABILITIES compute,graphics,utility
 ENV MEMBRANE_VIDEO_COMPOSITOR_MAIN_EXECUTABLE_PATH=/home/$USERNAME/video_compositor/main_process
 ENV MEMBRANE_VIDEO_COMPOSITOR_PROCESS_HELPER_PATH=/home/$USERNAME/video_compositor/process_helper
 ENV LD_LIBRARY_PATH=/home/$USERNAME/video_compositor/lib
+ENV XDG_RUNTIME_DIR=/tmp
 
 RUN apt-get update -y -qq && \
   apt-get install -y \
     sudo adduser ffmpeg \
-    libnss3 libatk1.0-0 libatk-bridge2.0-0 libgdk-pixbuf2.0-0 libgtk-3-0 && \
+    libnss3 libatk1.0-0 libatk-bridge2.0-0 libgdk-pixbuf2.0-0 libgtk-3-0 xvfb && \
   rm -rf /var/lib/apt/lists/*
 
 RUN useradd -ms /bin/bash $USERNAME && adduser $USERNAME sudo
