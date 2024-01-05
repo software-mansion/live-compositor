@@ -10,7 +10,7 @@ pub const PRIMITIVE_STATE: wgpu::PrimitiveState = wgpu::PrimitiveState {
     unclipped_depth: false,
 };
 
-use crate::transformations::shader::validation::error::ShaderValidationError;
+use crate::transformations::shader::validation::error::{ShaderParseError, ShaderValidationError};
 
 use super::WgpuError;
 
@@ -25,8 +25,8 @@ pub enum CreateShaderError {
     #[error(transparent)]
     Validation(#[from] ShaderValidationError),
 
-    #[error("Shader parse error: {0}")]
-    ParseError(naga::front::wgsl::ParseError),
+    #[error(transparent)]
+    ParseError(#[from] ShaderParseError),
 }
 
 #[repr(C)]

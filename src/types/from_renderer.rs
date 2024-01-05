@@ -5,27 +5,13 @@ use compositor_render::web_renderer;
 use super::renderer::*;
 use super::util::*;
 
-impl From<FallbackStrategy> for compositor_render::FallbackStrategy {
-    fn from(strategy: FallbackStrategy) -> Self {
-        match strategy {
-            FallbackStrategy::NeverFallback => compositor_render::FallbackStrategy::NeverFallback,
-            FallbackStrategy::FallbackIfAllInputsMissing => {
-                compositor_render::FallbackStrategy::FallbackIfAllInputsMissing
-            }
-            FallbackStrategy::FallbackIfAnyInputMissing => {
-                compositor_render::FallbackStrategy::FallbackIfAnyInputMissing
-            }
-        }
-    }
-}
-
 impl TryFrom<ShaderSpec> for compositor_render::RendererSpec {
     type Error = TypeError;
 
     fn try_from(spec: ShaderSpec) -> Result<Self, Self::Error> {
         let spec = shader::ShaderSpec {
             shader_id: spec.shader_id.into(),
-            source: spec.source,
+            source: spec.source.into(),
             fallback_strategy: compositor_render::FallbackStrategy::FallbackIfAllInputsMissing,
         };
         Ok(Self::Shader(spec))
