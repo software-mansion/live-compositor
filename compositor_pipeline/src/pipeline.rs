@@ -1,4 +1,5 @@
 use std::collections::{hash_map, HashMap};
+use std::ops::Deref;
 use std::sync::Arc;
 use std::sync::{Mutex, MutexGuard};
 use std::thread;
@@ -71,7 +72,6 @@ pub struct Options {
     pub stream_fallback_timeout: Duration,
     pub web_renderer: WebRendererInitOptions,
 }
-
 
 impl<Output: PipelineOutput> Pipeline<Output> {
     pub fn new(opts: Options) -> Result<(Self, Arc<dyn EventLoop>), InitRendererEngineError> {
@@ -241,7 +241,7 @@ impl<Output: PipelineOutput> Pipeline<Output> {
     }
 
     pub fn inputs(&self) -> impl Iterator<Item = (&InputId, &PipelineInput)> {
-        self.inputs.iter().map(|(id, node)| (id, &**node))
+        self.inputs.iter().map(|(id, node)| (id, node.deref()))
     }
 
     pub fn with_outputs<F, R>(&self, f: F) -> R

@@ -43,10 +43,15 @@ impl RtpReceiver {
         )
         .map_err(RtpReceiverError::SocketOptions)?;
 
-        // This doesn't fail if the requested size is larger than the system limit
-        socket
+        match socket
             .set_recv_buffer_size(16 * 1024 * 1024)
-            .map_err(RtpReceiverError::SocketOptions)?;
+            .map_err(RtpReceiverError::SocketOptions)
+        {
+            Ok(_) => {}
+            Err(e) => {
+                warn!("Failed to set socket receive buffer size: {e}. This may cause packet loss, especially on high-bitrate streams.");
+            }
+        }
 
         socket
             .bind(

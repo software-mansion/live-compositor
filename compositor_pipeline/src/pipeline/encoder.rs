@@ -166,10 +166,7 @@ impl<'a> Iterator for PacketIterator<'a> {
             match EncodedChunk::from_av_packet(&packet, EncodedChunkKind::Video(Codec::H264)) {
                 Ok(chunk) => Some(chunk),
                 Err(e) => {
-                    warn!(
-                        "failed to parse an ffmpeg packet received from encoder: {}",
-                        e
-                    );
+                    warn!("failed to parse an ffmpeg packet received from encoder: {e}",);
                     None // TODO: this will terminate iteration. Is this what we want?
                 }
             }
