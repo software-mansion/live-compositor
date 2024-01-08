@@ -54,7 +54,14 @@ fn build_and_start_docker(skip_build: bool) -> Result<()> {
     if !skip_build {
         info!("[example] docker build");
         let mut process = Command::new("docker")
-            .args(["build", "-t", "video-compositor", "."])
+            .args([
+                "build",
+                "-f",
+                "build-tools/docker/slim.Dockerfile",
+                "-t",
+                "video-compositor",
+                ".",
+            ])
             .spawn()?;
         let exit_code = process.wait()?;
         if Some(0) != exit_code.code() {
