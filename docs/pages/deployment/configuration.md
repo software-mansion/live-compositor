@@ -48,5 +48,5 @@ Enable web rendering capabilities. With this option disabled, you can not use [`
 
 ### `LIVE_COMPOSITOR_WEB_RENDERER_GPU_ENABLE`
 
-Disable GPU support inside the embedded Chromium instance.
+Enable GPU support inside the embedded Chromium instance.
 
