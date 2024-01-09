@@ -2,6 +2,7 @@ use anyhow::Result;
 use log::{error, info};
 use serde_json::json;
 use std::{
+    env,
     path::PathBuf,
     process::{Command, Stdio},
     thread,
@@ -20,6 +21,7 @@ const VIDEO_RESOLUTION: Resolution = Resolution {
 };
 
 fn main() {
+    env::set_var("LIVE_COMPOSITOR_WEB_RENDERER_ENABLE", "0");
     ffmpeg_next::format::network::init();
     logger::init_logger();
 
