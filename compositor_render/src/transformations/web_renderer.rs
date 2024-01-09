@@ -35,18 +35,10 @@ pub const GET_FRAME_POSITIONS_MESSAGE: &str = "GET_FRAME_POSITIONS";
 pub(super) type FrameData = Arc<Mutex<Bytes>>;
 pub(super) type SourceTransforms = Arc<Mutex<Vec<Mat4>>>;
 
+#[derive(Debug, Clone, Copy)]
 pub struct WebRendererInitOptions {
-    pub init: bool,
-    pub disable_gpu: bool,
-}
-
-impl Default for WebRendererInitOptions {
-    fn default() -> Self {
-        Self {
-            init: cfg!(feature = "web_renderer"),
-            disable_gpu: false,
-        }
-    }
+    pub enable: bool,
+    pub enable_gpu: bool,
 }
 
 #[derive(Debug)]

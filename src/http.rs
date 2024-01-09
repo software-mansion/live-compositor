@@ -1,5 +1,4 @@
-use compositor_pipeline::pipeline;
-use compositor_render::{error::ErrorStack, EventLoop};
+use compositor_render::error::ErrorStack;
 use crossbeam_channel::RecvTimeoutError;
 use log::{error, info};
 
@@ -18,8 +17,6 @@ use crate::{
     api::{self, Api, Request, ResponseHandler},
     error::ApiError,
 };
-
-pub const API_PORT_ENV: &str = "MEMBRANE_VIDEO_COMPOSITOR_API_PORT";
 
 pub struct Server {
     server: tiny_http::Server,
@@ -41,7 +38,7 @@ impl Server {
             Err(err) => {
                 match err.downcast_ref::<std::io::Error>() {
                     Some(io_error) if io_error.kind() == ErrorKind::AddrInUse => {
-                        error!("Port {port} is already used. Stop using it or specify port using {API_PORT_ENV} environment variable.");
+                        error!("Port {port} is already used. Stop using it or specify port using LIVE_COMPOSITOR_API_PORT environment variable.");
                     }
                     Some(_) | None => {}
                 };
@@ -52,55 +49,15 @@ impl Server {
 
     pub fn run(self: Arc<Self>) {
         info!("Listening on port {}", self.server.server_addr());
-        let (mut api, event_loop) = self.handle_init();
+        let (mut api, event_loop) = Api::new().unwrap_or_else(|err| {
+            panic!(
+                "Failed to start event loop.\n{}",
+                ErrorStack::new(&err).into_string()
+            )
+        });
         thread::spawn(move || {
-            for mut raw_request in self.server.incoming_requests() {
-                let result = Self::handle_request_after_init(&mut api, &mut raw_request);
-                match result {
-                    Ok(ResponseHandler::Ok) => {
-                        self.send_response(raw_request, api::Response::Ok {});
-                    }
-                    Ok(ResponseHandler::Response(response)) => {
-                        self.send_response(raw_request, response);
-                    }
-                    Ok(ResponseHandler::DeferredResponse(response)) => {
-                        let server = self.clone();
-                        thread::spawn(move || {
-                            let response = response.recv_timeout(Duration::from_secs(60));
-                            match response {
-                                Ok(Ok(response)) => {
-                                    server.send_response(raw_request, response);
-                                }
-                                Ok(Err(err)) => {
-                                    server.send_err_response(raw_request, err);
-                                }
-                                Err(RecvTimeoutError::Timeout) => {
-                                    server.send_err_response(
-                                        raw_request,
-                                        ApiError::new(
-                                            "QUERY_TIMEOUT",
-                                            "query timed out".to_string(),
-                                            StatusCode(408),
-                                        ),
-                                    );
-                                }
-                                Err(RecvTimeoutError::Disconnected) => {
-                                    server.send_err_response(
-                                        raw_request,
-                                        ApiError::new(
-                                            "INTERNAL_SERVER_ERROR",
-                                            "Internal Server Error".to_string(),
-                                            StatusCode(500),
-                                        ),
-                                    );
-                                }
-                            };
-                        });
-                    }
-                    Err(err) => {
-                        self.send_err_response(raw_request, err);
-                    }
-                }
+            for raw_request in self.server.incoming_requests() {
+                self.handle_request(&mut api, raw_request)
             }
         });
 
@@ -109,51 +66,60 @@ impl Server {
             signals.forever().next();
         };
         if let Err(err) = event_loop.run_with_fallback(&event_loop_fallback) {
-            error!(
+            panic!(
                 "Failed to start event loop.\n{}",
                 ErrorStack::new(&err).into_string()
             )
         }
     }
 
-    fn handle_init(&self) -> (Api, Arc<dyn EventLoop>) {
-        for mut raw_request in self.server.incoming_requests() {
-            let result = self
-                .handle_request_before_init(&mut raw_request)
-                .and_then(Api::new);
-            match result {
-                Ok(new_api) => {
-                    self.send_response(raw_request, api::Response::Ok {});
-                    return new_api;
-                }
-                Err(err) => {
-                    self.send_err_response(raw_request, err);
-                }
+    fn handle_request(self: &Arc<Self>, api: &mut Api, mut raw_request: tiny_http::Request) {
+        let response =
+            Server::parse_request(&mut raw_request).and_then(|request| api.handle_request(request));
+        match response {
+            Ok(ResponseHandler::Ok) => {
+                self.send_response(raw_request, api::Response::Ok {});
             }
-        }
-        panic!("Server shutdown unexpectedly.")
-    }
-
-    fn handle_request_after_init(
-        api: &mut Api,
-        raw_request: &mut tiny_http::Request,
-    ) -> Result<ResponseHandler, ApiError> {
-        let request = Server::parse_request(raw_request)?;
-        api.handle_request(request)
-    }
-
-    fn handle_request_before_init(
-        &self,
-        raw_request: &mut tiny_http::Request,
-    ) -> Result<pipeline::Options, ApiError> {
-        let request = Server::parse_request(raw_request)?;
-        match request {
-            Request::Init(opts) => Ok(opts.try_into()?),
-            _ => Err(ApiError::new(
-                "COMPOSITOR_NOT_INITIALIZED",
-                "Compositor was not initialized, send \"init\" request first.".to_string(),
-                StatusCode(400),
-            )),
+            Ok(ResponseHandler::Response(response)) => {
+                self.send_response(raw_request, response);
+            }
+            Ok(ResponseHandler::DeferredResponse(response)) => {
+                let server = self.clone();
+                thread::spawn(move || {
+                    let response = response.recv_timeout(Duration::from_secs(60));
+                    match response {
+                        Ok(Ok(response)) => {
+                            server.send_response(raw_request, response);
+                        }
+                        Ok(Err(err)) => {
+                            server.send_err_response(raw_request, err);
+                        }
+                        Err(RecvTimeoutError::Timeout) => {
+                            server.send_err_response(
+                                raw_request,
+                                ApiError::new(
+                                    "QUERY_TIMEOUT",
+                                    "query timed out".to_string(),
+                                    StatusCode(408),
+                                ),
+                            );
+                        }
+                        Err(RecvTimeoutError::Disconnected) => {
+                            server.send_err_response(
+                                raw_request,
+                                ApiError::new(
+                                    "INTERNAL_SERVER_ERROR",
+                                    "Internal Server Error".to_string(),
+                                    StatusCode(500),
+                                ),
+                            );
+                        }
+                    };
+                });
+            }
+            Err(err) => {
+                self.send_err_response(raw_request, err);
+            }
         }
     }
 

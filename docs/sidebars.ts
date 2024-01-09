@@ -21,6 +21,21 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: 'category',
+      label: 'Deployment',
+      collapsible: true,
+      link: {
+        type: 'generated-index',
+      },
+      items: [
+        {
+          type: 'doc',
+          id: 'deployment/configuration',
+          label: 'Configuration',
+        },
+      ],
+    },
+    {
+      type: 'category',
       label: 'API Reference',
       collapsible: false,
       link: {

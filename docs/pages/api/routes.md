@@ -4,30 +4,6 @@ description: API routes to configure the compositor.
 
 # Routes
 
-### Init
-
-```typescript
-type Init = {
-  type: "init";
-  web_renderer?: {
-    init?: boolean;
-    disable_gpu?: boolean;
-  };
-  framerate: number;
-  stream_fallback_timeout_ms?: number;
-}
-```
-
-Init request triggers the initial setup of a compositor. It defines the base settings of a compositor that need to be evaluated before any other work happens.
-
-- `web_renderer` - Web renderer specific options. [Learn more](./renderers/web).
-  - `web_renderer.init` - (**default=`true`**). Enable web rendering capabilities. With this option disabled, you can not use [`WebView` components](./components/WebView) or register [`WebRenderer` instances](./renderers/web).
-  - `web_renderer.disable_gpu` - (**default=`false`**). Disable GPU support inside embedded Chromium instance.
-- `framerate` - Target framerate of the output streams.
-- `stream_fallback_timeout_ms` (**default: 1000**) - Timeout that defines when the compositor should switch to fallback on the input stream that stopped sending frames.
-
-***
-
 ### Start
 
 ```typescript

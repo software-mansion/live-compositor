@@ -58,8 +58,8 @@ pub(super) fn create_renderer(
 ) -> Renderer {
     let (mut renderer, _event_loop) = Renderer::new(RendererOptions {
         web_renderer: web_renderer::WebRendererInitOptions {
-            init: false,
-            disable_gpu: false,
+            enable: false,
+            enable_gpu: false,
         },
         framerate: Framerate { num: 30, den: 1 },
         stream_fallback_timeout: Duration::from_secs(3),

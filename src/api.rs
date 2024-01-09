@@ -1,18 +1,18 @@
 use std::sync::Arc;
 
 use compositor_pipeline::pipeline::{self};
-use compositor_render::{EventLoop, RegistryType};
+use compositor_render::{error::InitRendererEngineError, EventLoop, RegistryType};
 use crossbeam_channel::{bounded, Receiver};
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use tiny_http::StatusCode;
 
 use crate::{
+    config::{config, Config},
     error::ApiError,
     rtp_receiver::RtpReceiver,
     rtp_sender::RtpSender,
-    types::{self, InitOptions, InputId, OutputId, RegisterRequest, RendererId},
+    types::{self, InputId, OutputId, RegisterRequest, RendererId},
 };
 
 mod register_request;
@@ -22,7 +22,6 @@ pub type Pipeline = compositor_pipeline::Pipeline<RtpReceiver, RtpSender>;
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum Request {
-    Init(InitOptions),
     Register(RegisterRequest),
     Unregister(UnregisterRequest),
     UpdateScene(UpdateScene),
@@ -92,18 +91,23 @@ pub struct Api {
 }
 
 impl Api {
-    pub fn new(opts: pipeline::Options) -> Result<(Api, Arc<dyn EventLoop>), ApiError> {
-        let (pipeline, event_loop) = Pipeline::new(opts)?;
+    pub fn new() -> Result<(Api, Arc<dyn EventLoop>), InitRendererEngineError> {
+        let Config {
+            framerate,
+            stream_fallback_timeout,
+            web_renderer,
+            ..
+        } = config();
+        let (pipeline, event_loop) = Pipeline::new(pipeline::Options {
+            framerate: *framerate,
+            stream_fallback_timeout: *stream_fallback_timeout,
+            web_renderer: *web_renderer,
+        })?;
         Ok((Api { pipeline }, event_loop))
     }
 
     pub fn handle_request(&mut self, request: Request) -> Result<ResponseHandler, ApiError> {
         match request {
-            Request::Init(_) => Err(ApiError::new(
-                "COMPOSITOR_ALREADY_INITIALIZED",
-                "Compositor was already initialized.".to_string(),
-                StatusCode(400),
-            )),
             Request::Register(register_request) => {
                 match register_request::handle_register_request(self, register_request)? {
                     Some(response) => Ok(response),

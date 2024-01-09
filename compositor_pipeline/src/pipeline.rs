@@ -70,6 +70,7 @@ pub struct Pipeline<Input: PipelineInput, Output: PipelineOutput> {
     is_started: bool,
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct Options {
     pub framerate: Framerate,
     pub stream_fallback_timeout: Duration,

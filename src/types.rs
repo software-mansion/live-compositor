@@ -50,8 +50,6 @@ pub use renderer::WebRendererSpec;
 pub use util::Resolution;
 pub use util::TypeError;
 
-use self::util::Framerate;
-
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 pub struct ComponentId(Arc<str>);
 
@@ -68,19 +66,6 @@ pub struct InputId(Arc<str>);
 pub struct OutputScene {
     pub output_id: OutputId,
     pub root: Component,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-pub struct InitOptions {
-    pub framerate: Framerate,
-    pub stream_fallback_timeout_ms: Option<f64>,
-    pub web_renderer: Option<WebRendererOptions>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-pub struct WebRendererOptions {
-    pub init: Option<bool>,
-    pub disable_gpu: Option<bool>,
 }
 
 impl Display for InputId {
