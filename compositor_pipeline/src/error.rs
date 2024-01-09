@@ -12,7 +12,10 @@ pub enum RegisterInputError {
     AlreadyRegistered(InputId),
 
     #[error("Decoder error while registering input stream for stream \"{0}\".")]
-    DecoderError(InputId, #[source] InputInitError),
+    DecoderError(InputId, #[source] DecoderInitError),
+
+    #[error("Input initialization error while registering input for stream \"{0}\".")]
+    InputError(InputId, #[source] InputInitError),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -82,12 +85,15 @@ pub enum OutputInitError {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum InputInitError {
+pub enum DecoderInitError {
     #[error(transparent)]
     FfmpegError(#[from] ffmpeg_next::Error),
+}
 
+#[derive(Debug, thiserror::Error)]
+pub enum InputInitError {
     #[error(transparent)]
-    InputError(#[from] CustomError),
+    Rtp(#[from] crate::pipeline::input::rtp::RtpReceiverError),
 }
 
 pub enum ErrorType {
@@ -112,6 +118,7 @@ impl PipelineErrorInfo {
 
 const INPUT_STREAM_ALREADY_REGISTERED: &str = "INPUT_STREAM_ALREADY_REGISTERED";
 const DECODER_ERROR: &str = "INPUT_STREAM_DECODER_ERROR";
+const INPUT_ERROR: &str = "INPUT_STREAM_INPUT_ERROR";
 
 impl From<&RegisterInputError> for PipelineErrorInfo {
     fn from(err: &RegisterInputError) -> Self {
@@ -122,6 +129,10 @@ impl From<&RegisterInputError> for PipelineErrorInfo {
 
             RegisterInputError::DecoderError(_, _) => {
                 PipelineErrorInfo::new(DECODER_ERROR, ErrorType::ServerError)
+            }
+
+            RegisterInputError::InputError(_, _) => {
+                PipelineErrorInfo::new(INPUT_ERROR, ErrorType::ServerError)
             }
         }
     }

@@ -10,14 +10,13 @@ use serde::{Deserialize, Serialize};
 use crate::{
     config::{config, Config},
     error::ApiError,
-    rtp_receiver::RtpReceiver,
     rtp_sender::RtpSender,
     types::{self, InputId, OutputId, RegisterRequest, RendererId},
 };
 
 mod register_request;
 
-pub type Pipeline = compositor_pipeline::Pipeline<RtpReceiver, RtpSender>;
+pub type Pipeline = compositor_pipeline::Pipeline<RtpSender>;
 
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
@@ -146,9 +145,11 @@ impl Api {
                 let inputs = self
                     .pipeline
                     .inputs()
-                    .map(|(id, node)| InputInfo {
-                        id: id.clone().into(),
-                        port: node.port,
+                    .map(|(id, node)| match node.input {
+                        pipeline::input::Input::Rtp(ref rtp) => InputInfo {
+                            id: id.clone().into(),
+                            port: rtp.port,
+                        },
                     })
                     .collect();
                 Ok(ResponseHandler::Response(Response::Inputs { inputs }))

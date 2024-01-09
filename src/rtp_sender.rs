@@ -1,9 +1,13 @@
-use bytes::Bytes;
-use log::{error, warn};
+use log::error;
 use std::sync::Arc;
 
-use compositor_pipeline::{error::CustomError, pipeline::PipelineOutput};
-use ffmpeg_next::{codec, Codec, Packet};
+use compositor_pipeline::{
+    error::CustomError,
+    pipeline::{
+        structs::{Codec, EncodedChunk},
+        PipelineOutput,
+    },
+};
 
 use rand::Rng;
 use rtp::packetizer::Payloader;
@@ -33,8 +37,10 @@ impl PipelineOutput for RtpSender {
     type Context = RtpContext;
 
     fn new(options: Options, codec: Codec) -> Result<(Self, RtpContext), CustomError> {
-        if codec.id() != codec::Id::H264 {
-            unimplemented!("Only H264 is supported");
+        if codec != Codec::H264 {
+            return Err(CustomError(
+                "Only H264 codec is supported for RTP sender".into(),
+            ));
         }
 
         let mut rng = rand::thread_rng();
@@ -66,18 +72,10 @@ impl PipelineOutput for RtpSender {
     }
 
     /// this assumes, that a "packet" contains data about a single frame (access unit)
-    fn send_packet(&self, context: &mut RtpContext, packet: Packet) {
-        let Some(data) = packet.data() else {
-            warn!("No data is present in a packet received from the encoder");
-            return;
-        };
+    fn send_data(&self, context: &mut RtpContext, packet: EncodedChunk) {
+        // TODO: check if this is h264
+        let EncodedChunk { data, pts, .. } = packet;
 
-        let Some(pts) = packet.pts() else {
-            warn!("No pts is present in a packet received from the encoder");
-            return;
-        };
-
-        let data = Bytes::copy_from_slice(data);
         let payloads = match context.payloader.payload(1500, &data) {
             Ok(p) => p,
             Err(e) => {

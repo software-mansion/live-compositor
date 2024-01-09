@@ -1,13 +1,16 @@
 use compositor_pipeline::{
     error::{InputInitError, RegisterInputError},
-    pipeline,
+    pipeline::{
+        self,
+        input::rtp::{RtpReceiverError, RtpReceiverOptions},
+    },
 };
 use log::trace;
 
 use crate::{
     api::Response,
     error::{ApiError, PORT_ALREADY_IN_USE_ERROR_CODE},
-    rtp_receiver, rtp_sender,
+    rtp_sender,
     types::{RegisterInputRequest, RegisterOutputRequest, RegisterRequest},
 };
 
@@ -87,7 +90,11 @@ fn register_input(
                 if api
                     .pipeline
                     .inputs()
-                    .any(|(_, input)| input.port == port || input.port + 1 == port)
+                    // flat_map so that you can skip other inputs in the future by doing => None on them
+                    .flat_map(|(_, input)| match input.input {
+                        pipeline::input::Input::Rtp(ref rtp) => Some(rtp),
+                    })
+                    .any(|input| input.port == port || input.port + 1 == port)
                 {
                     trace!("[input {id}] port {port} is already used by another input",);
                     continue;
@@ -95,10 +102,11 @@ fn register_input(
 
                 let result = api.pipeline.register_input(
                     id.clone().into(),
-                    rtp_receiver::Options {
+                    pipeline::input::InputOptions::Rtp(RtpReceiverOptions {
                         port,
-                        input_id: id.clone(),
-                    },
+                        input_id: id.clone().into(),
+                    }),
+                    pipeline::decoder::DecoderOptions::H264,
                 );
 
                 if check_port_not_available(&result, port).is_err() {
@@ -125,7 +133,14 @@ fn register_input(
         }
 
         Port::Exact(port) => {
-            if let Some((node_id, _)) = api.pipeline.inputs().find(|(_, input)| input.port == port)
+            if let Some((node_id, _)) = api
+                .pipeline
+                .inputs()
+                // flat_map so that you can skip other inputs in the future by doing => None on them
+                .flat_map(|(id, input)| match input.input {
+                    pipeline::input::Input::Rtp(ref rtp) => Some((id, rtp)),
+                })
+                .find(|(_, input)| input.port == port)
             {
                 return Err(ApiError::new(
                     PORT_ALREADY_IN_USE_ERROR_CODE,
@@ -136,7 +151,11 @@ fn register_input(
 
             let result = api.pipeline.register_input(
                 id.clone().into(),
-                rtp_receiver::Options { port, input_id: id },
+                pipeline::input::InputOptions::Rtp(RtpReceiverOptions {
+                    port,
+                    input_id: id.clone().into(),
+                }),
+                pipeline::decoder::DecoderOptions::H264,
             );
 
             check_port_not_available(&result, port)?;
@@ -154,23 +173,21 @@ fn check_port_not_available<T>(
     register_input_error: &Result<T, RegisterInputError>,
     port: u16,
 ) -> Result<(), ApiError> {
-    if let Err(RegisterInputError::DecoderError(ref id, InputInitError::InputError(ref err))) =
-        register_input_error
-    {
-        if let Some(err) = err.0.downcast_ref::<std::io::Error>() {
-            match err.kind() {
-                std::io::ErrorKind::AddrInUse =>
-                    Err(ApiError::new(
-                        PORT_ALREADY_IN_USE_ERROR_CODE,
-                        format!("Failed to register input stream \"{id}\". Port {port} is already in use or not available."),
-                        tiny_http::StatusCode(400)
-                    )),
-                _ => Ok(())
-            }
-        } else {
-            Ok(())
-        }
-    } else {
-        Ok(())
+    let Err(RegisterInputError::InputError(ref id, err)) = register_input_error else {
+        return Ok(());
+    };
+
+    let InputInitError::Rtp(RtpReceiverError::SocketBind(ref err)) = err else {
+        return Ok(());
+    };
+
+    match err.kind() {
+        std::io::ErrorKind::AddrInUse =>
+            Err(ApiError::new(
+                PORT_ALREADY_IN_USE_ERROR_CODE,
+                format!("Failed to register input stream \"{id}\". Port {port} is already in use or not available."),
+                tiny_http::StatusCode(400)
+            )),
+        _ => Ok(())
     }
 }
