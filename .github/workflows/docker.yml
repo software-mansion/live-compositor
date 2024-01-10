@@ -25,7 +25,14 @@ jobs:
 
             - uses: hadolint/hadolint-action@v3.1.0
               with:
-                dockerfile: Dockerfile
+                dockerfile: build-tools/docker/slim.Dockerfile
 
-            - name: Build image
-              run: docker build -t video-compositor .
+            - uses: hadolint/hadolint-action@v3.1.0
+              with:
+                dockerfile: build-tools/docker/full.Dockerfile
+
+            - name: Build image - slim
+              run: docker build -f build-tools/docker/slim.Dockerfile -t video-compositor .
+
+            - name: Build image - full
+              run: docker build -f build-tools/docker/full.Dockerfile -t video-compositor .
