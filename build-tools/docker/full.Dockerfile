@@ -32,7 +32,7 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 ARG USERNAME=compositor
 
 ENV DEBIAN_FRONTEND=noninteractive
-ENV NVIDIA_DRIVER_CAPABILITIES compute,graphics,utility
+ENV NVIDIA_DRIVER_CAPABILITIES=compute,graphics,utility
 
 ENV MEMBRANE_VIDEO_COMPOSITOR_MAIN_EXECUTABLE_PATH=/home/$USERNAME/video_compositor/main_process
 ENV MEMBRANE_VIDEO_COMPOSITOR_PROCESS_HELPER_PATH=/home/$USERNAME/video_compositor/process_helper

@@ -31,5 +31,8 @@ jobs:
               with:
                 dockerfile: build-tools/docker/full.Dockerfile
 
-            - name: Build image
+            - name: Build image - slim
               run: docker build -f build-tools/docker/slim.Dockerfile -t video-compositor .
+
+            - name: Build image - full
+              run: docker build -f build-tools/docker/full.Dockerfile -t video-compositor .
