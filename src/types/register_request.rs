@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
 use compositor_pipeline::pipeline::encoder;
+use compositor_pipeline::pipeline::output;
+use compositor_pipeline::pipeline::structs::Codec;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -60,20 +62,39 @@ pub enum EncoderPreset {
     Placebo,
 }
 
-impl From<EncoderSettings> for encoder::EncoderSettings {
-    fn from(settings: EncoderSettings) -> Self {
-        let preset = match settings.preset.unwrap_or(EncoderPreset::Medium) {
-            EncoderPreset::Ultrafast => encoder::EncoderPreset::Ultrafast,
-            EncoderPreset::Superfast => encoder::EncoderPreset::Superfast,
-            EncoderPreset::Veryfast => encoder::EncoderPreset::Veryfast,
-            EncoderPreset::Faster => encoder::EncoderPreset::Faster,
-            EncoderPreset::Fast => encoder::EncoderPreset::Fast,
-            EncoderPreset::Medium => encoder::EncoderPreset::Medium,
-            EncoderPreset::Slow => encoder::EncoderPreset::Slow,
-            EncoderPreset::Slower => encoder::EncoderPreset::Slower,
-            EncoderPreset::Veryslow => encoder::EncoderPreset::Veryslow,
-            EncoderPreset::Placebo => encoder::EncoderPreset::Placebo,
+impl From<RegisterOutputRequest> for encoder::EncoderOptions {
+    fn from(request: RegisterOutputRequest) -> Self {
+        let preset = match request
+            .encoder_settings
+            .preset
+            .unwrap_or(EncoderPreset::Medium)
+        {
+            EncoderPreset::Ultrafast => encoder::ffmpeg_h264::EncoderPreset::Ultrafast,
+            EncoderPreset::Superfast => encoder::ffmpeg_h264::EncoderPreset::Superfast,
+            EncoderPreset::Veryfast => encoder::ffmpeg_h264::EncoderPreset::Veryfast,
+            EncoderPreset::Faster => encoder::ffmpeg_h264::EncoderPreset::Faster,
+            EncoderPreset::Fast => encoder::ffmpeg_h264::EncoderPreset::Fast,
+            EncoderPreset::Medium => encoder::ffmpeg_h264::EncoderPreset::Medium,
+            EncoderPreset::Slow => encoder::ffmpeg_h264::EncoderPreset::Slow,
+            EncoderPreset::Slower => encoder::ffmpeg_h264::EncoderPreset::Slower,
+            EncoderPreset::Veryslow => encoder::ffmpeg_h264::EncoderPreset::Veryslow,
+            EncoderPreset::Placebo => encoder::ffmpeg_h264::EncoderPreset::Placebo,
         };
-        Self { preset }
+        Self::H264(encoder::ffmpeg_h264::Options {
+            preset,
+            resolution: request.resolution.into(),
+            output_id: request.output_id.into(),
+        })
+    }
+}
+
+impl From<RegisterOutputRequest> for output::OutputOptions {
+    fn from(value: RegisterOutputRequest) -> Self {
+        output::OutputOptions::Rtp(output::rtp::RtpSenderOptions {
+            codec: Codec::H264,
+            ip: value.ip,
+            port: value.port,
+            output_id: value.output_id.into(),
+        })
     }
 }

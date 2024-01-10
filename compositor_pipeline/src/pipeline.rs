@@ -13,24 +13,22 @@ use compositor_render::web_renderer::WebRendererInitOptions;
 use compositor_render::RegistryType;
 use compositor_render::RendererOptions;
 use compositor_render::{error::UpdateSceneError, Renderer};
-use compositor_render::{
-    scene, EventLoop, Framerate, InputId, OutputId, RendererId, RendererSpec, Resolution,
-};
+use compositor_render::{scene, EventLoop, Framerate, InputId, OutputId, RendererId, RendererSpec};
 use crossbeam_channel::unbounded;
 use log::{error, warn};
 
 use crate::error::{
-    CustomError, RegisterInputError, RegisterOutputError, UnregisterInputError,
-    UnregisterOutputError,
+    RegisterInputError, RegisterOutputError, UnregisterInputError, UnregisterOutputError,
 };
 use crate::queue::Queue;
 
-use self::encoder::{Encoder, EncoderSettings};
-use self::structs::Codec;
+use self::encoder::{Encoder, EncoderOptions};
+use self::output::{Output, OutputOptions};
 
 pub mod decoder;
 pub mod encoder;
 pub mod input;
+pub mod output;
 pub mod structs;
 
 #[derive(Debug, Clone)]
@@ -39,28 +37,19 @@ pub struct OutputScene {
     pub root: Component,
 }
 
-pub trait PipelineOutput: Send + Sync + Sized + Clone + 'static {
-    type Opts: Send + Sync + 'static;
-    type Context: 'static;
-
-    fn send_data(&self, context: &mut Self::Context, chunk: structs::EncodedChunk);
-    fn new(opts: Self::Opts, codec: structs::Codec) -> Result<(Self, Self::Context), CustomError>;
-}
-
 pub struct PipelineInput {
     pub input: input::Input,
     pub decoder: decoder::Decoder,
 }
 
-pub struct OutputOptions<Output: PipelineOutput> {
-    pub receiver_options: Output::Opts,
-    pub encoder_settings: EncoderSettings,
-    pub resolution: Resolution,
+pub struct PipelineOutput {
+    pub encoder: encoder::Encoder,
+    pub output: output::Output,
 }
 
-pub struct Pipeline<Output: PipelineOutput> {
+pub struct Pipeline {
     inputs: HashMap<InputId, Arc<PipelineInput>>,
-    outputs: OutputRegistry<Encoder<Output>>,
+    outputs: OutputRegistry<PipelineOutput>,
     queue: Arc<Queue>,
     renderer: Renderer,
     is_started: bool,
@@ -73,7 +62,7 @@ pub struct Options {
     pub web_renderer: WebRendererInitOptions,
 }
 
-impl<Output: PipelineOutput> Pipeline<Output> {
+impl Pipeline {
     pub fn new(opts: Options) -> Result<(Self, Arc<dyn EventLoop>), InitRendererEngineError> {
         let (renderer, event_loop) = Renderer::new(RendererOptions {
             web_renderer: opts.web_renderer,
@@ -137,18 +126,25 @@ impl<Output: PipelineOutput> Pipeline<Output> {
     pub fn register_output(
         &self,
         output_id: OutputId,
-        output_opts: OutputOptions<Output>,
+        encoder_opts: EncoderOptions,
+        output_opts: OutputOptions,
     ) -> Result<(), RegisterOutputError> {
         if self.outputs.contains_key(&output_id) {
             return Err(RegisterOutputError::AlreadyRegistered(output_id));
         }
 
-        if output_opts.resolution.height % 2 != 0 || output_opts.resolution.width % 2 != 0 {
+        let EncoderOptions::H264(ref opts) = encoder_opts;
+        if opts.resolution.width % 2 != 0 || opts.resolution.height % 2 != 0 {
             return Err(RegisterOutputError::UnsupportedResolution(output_id));
         }
 
-        let output = Encoder::new(output_opts, Codec::H264)
+        let (encoder, packets) = Encoder::new(encoder_opts)
             .map_err(|e| RegisterOutputError::EncoderError(output_id.clone(), e))?;
+
+        let output = Output::new(output_opts, packets)
+            .map_err(|e| RegisterOutputError::OutputError(output_id.clone(), e))?;
+
+        let output = PipelineOutput { encoder, output };
 
         self.outputs.insert(output_id, output.into());
         Ok(())
@@ -189,6 +185,7 @@ impl<Output: PipelineOutput> Pipeline<Output> {
                     .lock()
                     .get(&output.output_id)
                     .ok_or_else(|| UpdateSceneError::OutputNotRegistered(output.output_id.clone()))?
+                    .encoder
                     .resolution();
                 Ok(scene::OutputScene {
                     output_id: output.output_id,
@@ -234,7 +231,7 @@ impl<Output: PipelineOutput> Pipeline<Output> {
                         continue;
                     };
 
-                    output.send_frame(frame);
+                    output.encoder.send_frame(frame);
                 }
             }
         });
@@ -246,7 +243,7 @@ impl<Output: PipelineOutput> Pipeline<Output> {
 
     pub fn with_outputs<F, R>(&self, f: F) -> R
     where
-        F: Fn(OutputIterator<'_, Output>) -> R,
+        F: Fn(OutputIterator<'_>) -> R,
     {
         let guard = self.outputs.lock();
         f(OutputIterator::new(guard.iter()))
@@ -283,20 +280,20 @@ impl<T> OutputRegistry<T> {
     }
 }
 
-pub struct OutputIterator<'a, Output: PipelineOutput> {
-    inner_iter: hash_map::Iter<'a, OutputId, Arc<Encoder<Output>>>,
+pub struct OutputIterator<'a> {
+    inner_iter: hash_map::Iter<'a, OutputId, Arc<PipelineOutput>>,
 }
 
-impl<'a, Output: PipelineOutput> OutputIterator<'a, Output> {
-    fn new(iter: hash_map::Iter<'a, OutputId, Arc<Encoder<Output>>>) -> Self {
+impl<'a> OutputIterator<'a> {
+    fn new(iter: hash_map::Iter<'a, OutputId, Arc<PipelineOutput>>) -> Self {
         Self { inner_iter: iter }
     }
 }
 
-impl<'a, Output: PipelineOutput> Iterator for OutputIterator<'a, Output> {
-    type Item = (&'a OutputId, &'a Output);
+impl<'a> Iterator for OutputIterator<'a> {
+    type Item = (&'a OutputId, &'a PipelineOutput);
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.inner_iter.next().map(|(id, node)| (id, node.output()))
+        self.inner_iter.next().map(|(id, node)| (id, node.deref()))
     }
 }

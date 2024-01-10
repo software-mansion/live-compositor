@@ -48,7 +48,6 @@ image = { workspace = true }
 thiserror = { workspace = true }
 rtp = { workspace = true }
 webrtc-util = "0.8.0"
-rand = "0.8.5"
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["json", "env-filter"] }
 libc = "0.2.151"
