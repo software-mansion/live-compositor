@@ -37,7 +37,7 @@ ENV NVIDIA_DRIVER_CAPABILITIES=compute,graphics,utility
 ENV MEMBRANE_VIDEO_COMPOSITOR_MAIN_EXECUTABLE_PATH=/home/$USERNAME/video_compositor/main_process
 ENV MEMBRANE_VIDEO_COMPOSITOR_PROCESS_HELPER_PATH=/home/$USERNAME/video_compositor/process_helper
 ENV LD_LIBRARY_PATH=/home/$USERNAME/video_compositor/lib
-ENV XDG_RUNTIME_DIR=/tmp
+ENV XDG_RUNTIME_DIR=/home/$USERNAME
 
 RUN apt-get update -y -qq && \
   apt-get install -y \
