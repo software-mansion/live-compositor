@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::scene::{
-    interpolation::{ContinuousValue, InterpolationState},
+    types::interpolation::{ContinuousValue, InterpolationState},
     ComponentId,
 };
 

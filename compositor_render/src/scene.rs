@@ -32,6 +32,7 @@ mod scene_state;
 mod shader_component;
 mod text_component;
 mod tiles_component;
+mod transition;
 mod types;
 mod validation;
 mod view_component;

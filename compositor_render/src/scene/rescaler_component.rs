@@ -1,14 +1,15 @@
-use std::{ops::Add, time::Duration};
+use std::time::Duration;
 
 use crate::transformations::layout::NestedLayout;
 
 use super::{
     components::RescalerComponent,
-    interpolation::{ContinuousValue, InterpolationState},
     layout::StatefulLayoutComponent,
     scene_state::BuildStateTreeCtx,
+    transition::{TransitionOptions, TransitionState},
+    types::interpolation::ContinuousValue,
     Component, ComponentId, HorizontalAlign, IntermediateNode, Position, RescaleMode, SceneError,
-    Size, StatefulComponent, Transition, VerticalAlign,
+    Size, StatefulComponent, VerticalAlign,
 };
 
 mod interpolation;
@@ -18,9 +19,8 @@ mod layout;
 pub(super) struct StatefulRescalerComponent {
     start: Option<RescalerComponentParam>,
     end: RescalerComponentParam,
-    transition: Option<Transition>,
+    transition: Option<TransitionState>,
     child: Box<StatefulComponent>,
-    start_pts: Duration,
 }
 
 #[derive(Debug, Clone)]
@@ -36,24 +36,11 @@ struct RescalerComponentParam {
 impl StatefulRescalerComponent {
     /// Generate state of the component for particular pts value.
     fn transition_snapshot(&self, pts: Duration) -> RescalerComponentParam {
-        let (Some(transition), Some(start)) = (self.transition, &self.start) else {
+        let (Some(transition), Some(start)) = (&self.transition, &self.start) else {
             return self.end.clone();
         };
-        let interpolation_progress = InterpolationState(f64::min(
-            1.0,
-            (pts.as_secs_f64() - self.start_pts.as_secs_f64()) / transition.duration.as_secs_f64(),
-        ));
+        let interpolation_progress = transition.state(pts);
         ContinuousValue::interpolate(start, &self.end, interpolation_progress)
-    }
-
-    fn remaining_transition_duration(&self, pts: Duration) -> Option<Duration> {
-        self.transition.and_then(|transition| {
-            if self.start_pts + transition.duration > pts {
-                self.start_pts.add(transition.duration).checked_sub(pts)
-            } else {
-                None
-            }
-        })
     }
 
     pub(super) fn children(&self) -> Vec<&StatefulComponent> {
@@ -112,17 +99,14 @@ impl RescalerComponent {
         // TODO: to handle cases like transition from top to bottom this view needs
         // to be further processed to use the same type of coordinates as end
         let start = previous_state.map(|state| state.transition_snapshot(ctx.last_render_pts));
-        // TODO: this is incorrect for non linear transformations
-        let transition = self.transition.or_else(|| {
-            let Some(previous_state) = previous_state else {
-                return None;
-            };
-            let Some(duration) = previous_state.remaining_transition_duration(ctx.last_render_pts)
-            else {
-                return None;
-            };
-            previous_state.transition.map(|_| Transition { duration })
-        });
+        let transition = TransitionState::from_previous_transition(
+            self.transition.map(|transition| TransitionOptions {
+                duration: transition.duration,
+                interpolation_kind: super::InterpolationKind::Linear,
+            }),
+            previous_state.and_then(|s| s.transition.clone()),
+            ctx.last_render_pts,
+        );
         let view = StatefulRescalerComponent {
             start,
             end: RescalerComponentParam {
@@ -134,7 +118,6 @@ impl RescalerComponent {
             },
             transition,
             child: Box::new(Component::stateful_component(*self.child, ctx)?),
-            start_pts: ctx.last_render_pts,
         };
         Ok(StatefulComponent::Layout(
             StatefulLayoutComponent::Rescaler(view),
