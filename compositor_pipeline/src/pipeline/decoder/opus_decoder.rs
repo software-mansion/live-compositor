@@ -69,7 +69,6 @@ impl OpusDecoder {
                             input_id, err
                         );
                     };
-                    todo!()
                 }
             })
             .unwrap();

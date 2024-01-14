@@ -75,7 +75,7 @@ impl VideoDepayloader {
         }
     }
 
-    pub fn depayload(
+    fn depayload(
         &mut self,
         packet: rtp::packet::Packet,
     ) -> Result<Option<EncodedChunk>, DepayloadingError> {
@@ -110,7 +110,7 @@ impl AudioDepayloader {
         }
     }
 
-    pub fn depayload(
+    fn depayload(
         &mut self,
         packet: rtp::packet::Packet,
     ) -> Result<Option<EncodedChunk>, DepayloadingError> {
