@@ -39,11 +39,11 @@ pub use register_request::RegisterInputRequest;
 pub use register_request::RegisterOutputRequest;
 pub use register_request::RegisterRequest;
 
-pub use register_request::Video;
 pub use register_request::Audio;
-pub use register_request::VideoCodec;
-pub use register_request::AudioCodec;
 pub use register_request::AudioChannels;
+pub use register_request::AudioCodec;
+pub use register_request::Video;
+pub use register_request::VideoCodec;
 
 #[allow(unused_imports)]
 pub use renderer::ImageSpec;

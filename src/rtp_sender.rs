@@ -3,7 +3,10 @@ use std::sync::Arc;
 
 use compositor_pipeline::{
     error::CustomError,
-    pipeline::{structs::{EncodedChunk, VideoCodec}, PipelineOutput},
+    pipeline::{
+        structs::{EncodedChunk, VideoCodec},
+        PipelineOutput,
+    },
 };
 
 use rand::Rng;

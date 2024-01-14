@@ -52,7 +52,7 @@ pub struct Audio {
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 pub enum AudioChannels {
     Mono,
-    Stereo
+    Stereo,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone, JsonSchema)]

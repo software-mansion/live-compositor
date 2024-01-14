@@ -4,13 +4,13 @@ use std::{collections::HashMap, fmt::Display, sync::Arc, time::Duration};
 pub struct AudioSamplesBatch {
     pub samples: AudioSamples,
     pub pts: Duration,
-    pub sample_rate: u32
+    pub sample_rate: u32,
 }
 
 #[derive(Debug, Clone)]
 pub enum AudioSamples {
     Mono(Vec<i16>),
-    Stereo(Vec<(i16, i16)>)
+    Stereo(Vec<(i16, i16)>),
 }
 
 #[derive(Debug, Clone)]
