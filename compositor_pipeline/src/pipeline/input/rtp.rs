@@ -4,12 +4,17 @@ use std::{
     thread,
 };
 
-use crate::pipeline::structs::{Codec, EncodedChunk, EncodedChunkKind};
+use crate::pipeline::structs::{
+    AudioChannels, AudioCodec, EncodedChunk, EncodedChunkKind, VideoCodec,
+};
 use bytes::BytesMut;
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use log::{error, warn};
-use rtp::{codecs::h264::H264Packet, packetizer::Depacketizer};
 use webrtc_util::Unmarshal;
+
+use self::depayloader::Depayloader;
+
+mod depayloader;
 
 pub struct RtpReceiver {
     receiver_thread: Option<thread::JoinHandle<()>>,
@@ -29,6 +34,33 @@ pub enum RtpReceiverError {
 pub struct RtpReceiverOptions {
     pub port: u16,
     pub input_id: compositor_render::InputId,
+    pub stream: RtpStream,
+}
+
+#[derive(Debug, Clone)]
+pub enum RtpStream {
+    Video(VideoCodec),
+    Audio {
+        codec: AudioCodec,
+        sample_rate: u32,
+        channels: AudioChannels,
+    },
+    VideoWithAudio {
+        video_codec: VideoCodec,
+        video_payload_type: u8,
+        audio_codec: AudioCodec,
+        audio_payload_type: u8,
+        audio_channels: AudioChannels,
+    },
+}
+
+pub enum ChunksReceiver {
+    Video(Receiver<EncodedChunk>),
+    Audio(Receiver<EncodedChunk>),
+    VideoWithAudio {
+        video: Receiver<EncodedChunk>,
+        audio: Receiver<EncodedChunk>,
+    },
 }
 
 impl RtpReceiver {
@@ -76,21 +108,18 @@ impl RtpReceiver {
             .spawn(move || RtpReceiver::rtp_receiver(socket, packets_tx, should_close2))
             .unwrap();
 
+        let depayloader = Depayloader::new(&opts.stream);
+
         Ok((
             Self {
                 port: opts.port,
                 receiver_thread: Some(receiver_thread),
                 should_close,
             },
-            ChunkIter {
-                receiver: packets_rx,
-                depayloader: H264Packet::default(),
-            },
+            ChunkIter::new(packets_rx, depayloader),
         ))
     }
-}
 
-impl RtpReceiver {
     fn rtp_receiver(
         socket: std::net::UdpSocket,
         packets_tx: Sender<bytes::Bytes>,
@@ -133,80 +162,90 @@ impl Drop for RtpReceiver {
     }
 }
 
-pub struct ChunkIter {
-    receiver: Receiver<bytes::Bytes>,
-    depayloader: H264Packet,
+#[derive(Debug)]
+pub enum ChunkIter {
+    Video(Receiver<EncodedChunk>),
+    Audio(Receiver<EncodedChunk>),
+    VideoWithAudio {
+        video: Receiver<EncodedChunk>,
+        audio: Receiver<EncodedChunk>,
+    },
 }
 
-impl Iterator for ChunkIter {
-    type Item = EncodedChunk;
+impl ChunkIter {
+    pub fn new(receiver: Receiver<bytes::Bytes>, mut depayloader: Depayloader) -> Self {
+        let (chunk_iter, video_sender, audio_sender) = match &depayloader {
+            Depayloader::Video(_) => {
+                let (video_sender, video_receiver) = unbounded();
+                (ChunkIter::Video(video_receiver), Some(video_sender), None)
+            }
+            Depayloader::Audio(_) => {
+                let (audio_sender, audio_receiver) = unbounded();
+                (ChunkIter::Audio(audio_receiver), None, Some(audio_sender))
+            }
+            Depayloader::VideoWithAudio { .. } => {
+                let (video_sender, video_receiver) = unbounded();
+                let (audio_sender, audio_receiver) = unbounded();
+                (
+                    ChunkIter::VideoWithAudio {
+                        video: video_receiver,
+                        audio: audio_receiver,
+                    },
+                    Some(video_sender),
+                    Some(audio_sender),
+                )
+            }
+        };
 
-    fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            let mut buffer = self.receiver.recv().ok()?;
+        std::thread::spawn(move || {
+            loop {
+                let mut buffer = receiver.recv().unwrap();
 
-            match rtp::packet::Packet::unmarshal(&mut buffer.clone()) {
-                // https://datatracker.ietf.org/doc/html/rfc5761#section-4
-                //
-                // Given these constraints, it is RECOMMENDED to follow the guidelines
-                // in the RTP/AVP profile [7] for the choice of RTP payload type values,
-                // with the additional restriction that payload type values in the range
-                // 64-95 MUST NOT be used.
-                Ok(packet)
-                    if packet.header.payload_type < 64 || packet.header.payload_type > 95 =>
-                {
-                    match chunk_from_rtp(packet, &mut self.depayloader) {
-                        Ok(Some(chunk)) => return Some(chunk),
-                        Ok(None) => continue,
-                        Err(err) => {
-                            warn!("RTP depayloading error: {}", err);
-                            continue;
+                match rtp::packet::Packet::unmarshal(&mut buffer.clone()) {
+                    // https://datatracker.ietf.org/doc/html/rfc5761#section-4
+                    //
+                    // Given these constraints, it is RECOMMENDED to follow the guidelines
+                    // in the RTP/AVP profile [7] for the choice of RTP payload type values,
+                    // with the additional restriction that payload type values in the range
+                    // 64-95 MUST NOT be used.
+                    Ok(packet)
+                        if packet.header.payload_type < 64 || packet.header.payload_type > 95 =>
+                    {
+                        match depayloader.depayload(packet) {
+                            Ok(Some(chunk)) => match &chunk.kind {
+                                EncodedChunkKind::Video(_) => video_sender
+                                    .as_ref()
+                                    .map(|video_sender| video_sender.send(chunk)),
+                                EncodedChunkKind::Audio(_) => audio_sender
+                                    .as_ref()
+                                    .map(|audio_sender| audio_sender.send(chunk)),
+                            },
+                            Ok(None) => continue,
+                            Err(err) => {
+                                warn!("RTP depayloading error: {}", err);
+                                continue;
+                            }
                         }
                     }
-                }
-                Ok(_) | Err(_) => {
-                    if rtcp::packet::unmarshal(&mut buffer).is_err() {
-                        warn!("Received an unexpected packet, which is not recognized either as RTP or RTCP. Dropping.");
-                    }
+                    Ok(_) | Err(_) => {
+                        if rtcp::packet::unmarshal(&mut buffer).is_err() {
+                            warn!("Received an unexpected packet, which is not recognized either as RTP or RTCP. Dropping.");
+                        }
 
-                    continue;
-                }
-            };
-        }
+                        continue;
+                    }
+                };
+            }
+        });
+
+        chunk_iter
     }
 }
 
 #[derive(Debug, thiserror::Error)]
-enum DepayloadingError {
+pub enum DepayloadingError {
     #[error("Bad payload type {0}")]
     BadPayloadType(u8),
     #[error(transparent)]
     Rtp(#[from] rtp::Error),
-}
-
-fn chunk_from_rtp(
-    packet: rtp::packet::Packet,
-    depayloader: &mut H264Packet,
-) -> Result<Option<EncodedChunk>, DepayloadingError> {
-    match packet.header.payload_type {
-        96 => {
-            let kind = EncodedChunkKind::Video(Codec::H264);
-
-            let h264_packet = depayloader.depacketize(&packet.payload)?;
-
-            if h264_packet.is_empty() {
-                return Ok(None);
-            }
-
-            Ok(Some(EncodedChunk {
-                data: h264_packet,
-                pts: packet.header.timestamp as i64,
-                dts: None,
-
-                kind,
-            }))
-        }
-
-        v => Err(DepayloadingError::BadPayloadType(v)),
-    }
 }

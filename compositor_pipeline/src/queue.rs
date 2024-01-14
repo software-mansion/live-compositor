@@ -7,9 +7,11 @@ use std::{
     time::{Duration, Instant},
 };
 
-use compositor_render::{error::ErrorStack, Frame, FrameSet, Framerate, InputId};
+use compositor_render::{
+    error::ErrorStack, AudioSamplesBatch, Frame, FrameSet, Framerate, InputId,
+};
 use crossbeam_channel::{unbounded, Receiver, Sender};
-use log::error;
+use log::{debug, error};
 use thiserror::Error;
 
 use self::{internal_queue::InternalQueue, queue_thread::QueueThread};
@@ -86,6 +88,19 @@ impl Queue {
             },
         )
         .spawn();
+    }
+
+    pub fn enqueue_samples(
+        &self,
+        input_id: InputId,
+        samples: AudioSamplesBatch,
+    ) -> Result<(), QueueError> {
+        // TODO
+        debug!(
+            "Queue received samples: {:?}, for input: {}",
+            samples, input_id
+        );
+        Ok(())
     }
 
     pub fn enqueue_frame(&self, input_id: InputId, frame: Frame) -> Result<(), QueueError> {

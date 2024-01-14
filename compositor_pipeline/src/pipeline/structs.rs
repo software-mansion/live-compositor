@@ -13,7 +13,8 @@ pub struct EncodedChunk {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EncodedChunkKind {
-    Video(Codec),
+    Video(VideoCodec),
+    Audio(AudioCodec),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -44,8 +45,13 @@ impl EncodedChunk {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Codec {
+pub enum VideoCodec {
     H264,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AudioCodec {
+    Opus,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -54,7 +60,7 @@ pub enum CodecFromFfmpegError {
     UnsupportedCodec(ffmpeg_next::codec::Id),
 }
 
-impl TryFrom<ffmpeg_next::Codec> for Codec {
+impl TryFrom<ffmpeg_next::Codec> for VideoCodec {
     type Error = CodecFromFfmpegError;
 
     fn try_from(value: ffmpeg_next::Codec) -> Result<Self, Self::Error> {
@@ -63,4 +69,19 @@ impl TryFrom<ffmpeg_next::Codec> for Codec {
             v => Err(CodecFromFfmpegError::UnsupportedCodec(v)),
         }
     }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum AudioChannels {
+    Mono,
+    Stereo,
+}
+
+pub enum InputType {
+    Video(VideoCodec),
+    Audio(AudioCodec),
+    VideoWithAudio {
+        video: VideoCodec,
+        audio: AudioCodec,
+    },
 }

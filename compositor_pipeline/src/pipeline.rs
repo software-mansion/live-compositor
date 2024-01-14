@@ -26,7 +26,7 @@ use crate::error::{
 use crate::queue::Queue;
 
 use self::encoder::{Encoder, EncoderSettings};
-use self::structs::Codec;
+use self::structs::VideoCodec;
 
 pub mod decoder;
 pub mod encoder;
@@ -44,7 +44,10 @@ pub trait PipelineOutput: Send + Sync + Sized + Clone + 'static {
     type Context: 'static;
 
     fn send_data(&self, context: &mut Self::Context, chunk: structs::EncodedChunk);
-    fn new(opts: Self::Opts, codec: structs::Codec) -> Result<(Self, Self::Context), CustomError>;
+    fn new(
+        opts: Self::Opts,
+        codec: structs::VideoCodec,
+    ) -> Result<(Self, Self::Context), CustomError>;
 }
 
 pub struct PipelineInput {
@@ -113,7 +116,7 @@ impl<Output: PipelineOutput> Pipeline<Output> {
             .map_err(|e| RegisterInputError::InputError(input_id.clone(), e))?;
 
         let decoder =
-            decoder::Decoder::new(decoder_opts, chunks, self.queue.clone(), input_id.clone())
+            decoder::Decoder::new(input_id.clone(), self.queue.clone(), chunks, decoder_opts)
                 .map_err(|e| RegisterInputError::DecoderError(input_id.clone(), e))?;
 
         let pipeline_input = PipelineInput { input, decoder };
@@ -147,7 +150,7 @@ impl<Output: PipelineOutput> Pipeline<Output> {
             return Err(RegisterOutputError::UnsupportedResolution(output_id));
         }
 
-        let output = Encoder::new(output_opts, Codec::H264)
+        let output = Encoder::new(output_opts, VideoCodec::H264)
             .map_err(|e| RegisterOutputError::EncoderError(output_id.clone(), e))?;
 
         self.outputs.insert(output_id, output.into());

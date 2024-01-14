@@ -8,7 +8,7 @@ use ffmpeg_next::{
 use log::{error, warn};
 
 use super::{
-    structs::{Codec, EncodedChunk, EncodedChunkKind},
+    structs::{EncodedChunk, EncodedChunkKind, VideoCodec},
     OutputOptions, PipelineOutput,
 };
 use crate::error::OutputInitError;
@@ -163,7 +163,7 @@ impl<'a> Iterator for PacketIterator<'a> {
         let mut packet = Packet::empty();
 
         if self.encoder.encoder.receive_packet(&mut packet).is_ok() {
-            match EncodedChunk::from_av_packet(&packet, EncodedChunkKind::Video(Codec::H264)) {
+            match EncodedChunk::from_av_packet(&packet, EncodedChunkKind::Video(VideoCodec::H264)) {
                 Ok(chunk) => Some(chunk),
                 Err(e) => {
                     warn!("failed to parse an ffmpeg packet received from encoder: {e}",);
@@ -230,8 +230,8 @@ pub struct Encoder<Output: PipelineOutput> {
 }
 
 impl<Output: PipelineOutput> Encoder<Output> {
-    pub fn new(opts: OutputOptions<Output>, codec: Codec) -> Result<Self, OutputInitError> {
-        if codec != Codec::H264 {
+    pub fn new(opts: OutputOptions<Output>, codec: VideoCodec) -> Result<Self, OutputInitError> {
+        if codec != VideoCodec::H264 {
             unimplemented!("Only H264 is supported");
         }
 
@@ -241,7 +241,7 @@ impl<Output: PipelineOutput> Encoder<Output> {
         let (output_sender, output_receiver) = crossbeam_channel::bounded(0);
 
         std::thread::spawn(move || {
-            let (output, mut context) = match Output::new(opts.receiver_options, Codec::H264) {
+            let (output, mut context) = match Output::new(opts.receiver_options, VideoCodec::H264) {
                 Ok(r) => r,
                 Err(e) => {
                     output_sender.send(Err(e)).unwrap();
