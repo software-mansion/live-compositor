@@ -3,10 +3,7 @@ use std::sync::Arc;
 
 use compositor_pipeline::{
     error::CustomError,
-    pipeline::{
-        structs::{Codec, EncodedChunk},
-        PipelineOutput,
-    },
+    pipeline::{structs::{EncodedChunk, VideoCodec}, PipelineOutput},
 };
 
 use rand::Rng;
@@ -36,8 +33,8 @@ impl PipelineOutput for RtpSender {
     type Opts = Options;
     type Context = RtpContext;
 
-    fn new(options: Options, codec: Codec) -> Result<(Self, RtpContext), CustomError> {
-        if codec != Codec::H264 {
+    fn new(options: Options, codec: VideoCodec) -> Result<(Self, RtpContext), CustomError> {
+        if codec != VideoCodec::H264 {
             return Err(CustomError(
                 "Only H264 codec is supported for RTP sender".into(),
             ));

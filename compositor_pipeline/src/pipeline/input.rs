@@ -2,7 +2,7 @@ use crate::error::InputInitError;
 
 use rtp::{RtpReceiver, RtpReceiverOptions};
 
-use self::rtp::ChunkIter;
+use self::rtp::ChunksReceiver;
 
 pub mod rtp;
 
@@ -11,10 +11,10 @@ pub enum Input {
 }
 
 impl Input {
-    pub fn new(options: InputOptions) -> Result<(Self, ChunkIter), InputInitError> {
+    pub fn new(options: InputOptions) -> Result<(Self, ChunksReceiver), InputInitError> {
         match options {
             InputOptions::Rtp(opts) => Ok(RtpReceiver::new(opts)
-                .map(|(receiver, chunk_iter)| (Self::Rtp(receiver), chunk_iter))?),
+                .map(|(receiver, chunks_receiver)| (Self::Rtp(receiver), chunks_receiver))?),
         }
     }
 }

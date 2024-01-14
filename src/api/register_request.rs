@@ -2,7 +2,11 @@ use compositor_pipeline::{
     error::{InputInitError, RegisterInputError},
     pipeline::{
         self,
-        input::rtp::{RtpReceiverError, RtpReceiverOptions},
+        decoder::{AudioDecoderOptions, DecoderOptions, VideoDecoderOptions},
+        input::{
+            rtp::{RtpReceiverError, RtpReceiverOptions, RtpStream},
+            InputOptions,
+        },
     },
 };
 use log::trace;
@@ -79,8 +83,15 @@ fn register_input(
     api: &mut Api,
     request: RegisterInputRequest,
 ) -> Result<ResponseHandler, ApiError> {
-    let RegisterInputRequest { input_id: id, port } = request;
+    let RegisterInputRequest {
+        input_id: id,
+        port,
+        video,
+        audio,
+    } = request;
     let port: Port = port.try_into()?;
+
+    let (rtp_stream, decoder_opts) = input_options(video, audio);
 
     match port {
         Port::Range((start, end)) => {
@@ -100,13 +111,16 @@ fn register_input(
                     continue;
                 }
 
+                let input_opts = pipeline::input::InputOptions::Rtp(RtpReceiverOptions {
+                    port,
+                    input_id: id.clone().into(),
+                    stream: rtp_stream.clone(),
+                });
+
                 let result = api.pipeline.register_input(
                     id.clone().into(),
-                    pipeline::input::InputOptions::Rtp(RtpReceiverOptions {
-                        port,
-                        input_id: id.clone().into(),
-                    }),
-                    pipeline::decoder::DecoderOptions::H264,
+                    input_opts,
+                    decoder_opts.clone(),
                 );
 
                 if check_port_not_available(&result, port).is_err() {
@@ -149,14 +163,15 @@ fn register_input(
                 ));
             }
 
-            let result = api.pipeline.register_input(
-                id.clone().into(),
-                pipeline::input::InputOptions::Rtp(RtpReceiverOptions {
-                    port,
-                    input_id: id.clone().into(),
-                }),
-                pipeline::decoder::DecoderOptions::H264,
-            );
+            let input_opts = InputOptions::Rtp(RtpReceiverOptions {
+                port,
+                input_id: id.clone().into(),
+                stream: rtp_stream,
+            });
+
+            let result = api
+                .pipeline
+                .register_input(id.clone().into(), input_opts, decoder_opts);
 
             check_port_not_available(&result, port)?;
 
@@ -189,5 +204,86 @@ fn check_port_not_available<T>(
                 tiny_http::StatusCode(400)
             )),
         _ => Ok(())
+    }
+}
+
+fn input_options(
+    video: Option<crate::types::Video>,
+    audio: Option<crate::types::Audio>,
+) -> (RtpStream, DecoderOptions) {
+    match (video, audio) {
+        (Some(video), Some(audio)) => {
+            let rtp_stream = RtpStream::VideoWithAudio {
+                video_codec: video.codec.clone().into(),
+                video_payload_type: video.rtp_payload_type.unwrap_or(96),
+                audio_codec: audio.codec.clone().into(),
+                audio_payload_type: audio.rtp_payload_type.unwrap_or(97),
+                audio_channels: audio.channels.clone().into(),
+            };
+            let decoder_opts = DecoderOptions::VideoWithAudio {
+                video: VideoDecoderOptions {
+                    codec: video.codec.into(),
+                },
+                audio: AudioDecoderOptions {
+                    sample_rate: audio.sample_rate,
+                    channels: audio.channels.into(),
+                    codec: audio.codec.into(),
+                },
+            };
+
+            (rtp_stream, decoder_opts)
+        }
+        (Some(video), None) => {
+            let rtp_stream = RtpStream::Video(video.codec.clone().into());
+            let decoder_opts = DecoderOptions::Video(VideoDecoderOptions {
+                codec: video.codec.into(),
+            });
+            (rtp_stream, decoder_opts)
+        }
+        (None, Some(audio)) => {
+            let rtp_stream = RtpStream::Audio {
+                codec: audio.codec.clone().into(),
+                sample_rate: audio.sample_rate,
+                channels: audio.channels.clone().into(),
+            };
+            let decoder_opts = DecoderOptions::Audio(AudioDecoderOptions {
+                sample_rate: audio.sample_rate,
+                channels: audio.channels.into(),
+                codec: audio.codec.into(),
+            });
+            (rtp_stream, decoder_opts)
+        }
+        (None, None) => {
+            let codec = crate::types::VideoCodec::default().into();
+            (
+                RtpStream::Video(codec),
+                DecoderOptions::Video(VideoDecoderOptions { codec }),
+            )
+        }
+    }
+}
+
+impl From<crate::types::VideoCodec> for pipeline::structs::VideoCodec {
+    fn from(value: crate::types::VideoCodec) -> Self {
+        match value {
+            crate::types::VideoCodec::H264 => pipeline::structs::VideoCodec::H264,
+        }
+    }
+}
+
+impl From<crate::types::AudioCodec> for pipeline::structs::AudioCodec {
+    fn from(value: crate::types::AudioCodec) -> Self {
+        match value {
+            crate::types::AudioCodec::Opus => pipeline::structs::AudioCodec::Opus,
+        }
+    }
+}
+
+impl From<crate::types::AudioChannels> for pipeline::structs::AudioChannels {
+    fn from(value: crate::types::AudioChannels) -> Self {
+        match value {
+            crate::types::AudioChannels::Mono => pipeline::structs::AudioChannels::Mono,
+            crate::types::AudioChannels::Stereo => pipeline::structs::AudioChannels::Stereo,
+        }
     }
 }

@@ -5,7 +5,7 @@ use crate::{error::DecoderInitError, queue::Queue};
 use self::{ffmpeg_h264::H264FfmpegDecoder, opus_decoder::OpusDecoder};
 
 use super::{
-    input::rtp::ChunkIter,
+    input::rtp::ChunksReceiver,
     structs::{AudioChannels, AudioCodec, EncodedChunk, VideoCodec},
 };
 use compositor_render::InputId;
@@ -37,12 +37,12 @@ impl Decoder {
     pub fn new(
         input_id: InputId,
         queue: Arc<Queue>,
-        chunk: ChunkIter,
+        chunk: ChunksReceiver,
         decoder_options: DecoderOptions,
     ) -> Result<Self, DecoderInitError> {
         match &decoder_options {
             DecoderOptions::Video(opts) => {
-                let ChunkIter::Video(receiver) = chunk else {
+                let ChunksReceiver::Video(receiver) = chunk else {
                     return Err(DecoderInitError::InvalidDecoderOptions(chunk, decoder_options));
                 };
 
@@ -51,7 +51,7 @@ impl Decoder {
                 )?))
             }
             DecoderOptions::Audio(opts) => {
-                let ChunkIter::Audio(receiver) = chunk else {
+                let ChunksReceiver::Audio(receiver) = chunk else {
                     return Err(DecoderInitError::InvalidDecoderOptions(chunk, decoder_options));
                 };
 
@@ -63,7 +63,7 @@ impl Decoder {
                 video: video_opts,
                 audio: audio_opts,
             } => {
-                let ChunkIter::VideoWithAudio { video: video_receiver, audio: audio_receiver } = chunk else {
+                let ChunksReceiver::VideoWithAudio { video: video_receiver, audio: audio_receiver } = chunk else {
                     return Err(DecoderInitError::InvalidDecoderOptions(chunk, decoder_options));
                 };
 

@@ -6,7 +6,7 @@ use compositor_render::{
     InputId, OutputId,
 };
 
-use crate::pipeline::{decoder::DecoderOptions, input::rtp::ChunkIter};
+use crate::pipeline::{decoder::DecoderOptions, input::rtp::ChunksReceiver};
 
 #[derive(Debug, thiserror::Error)]
 pub enum RegisterInputError {
@@ -93,7 +93,7 @@ pub enum DecoderInitError {
     #[error(transparent)]
     OpusError(#[from] opus::Error),
     #[error("Decoder options doesn't match input chunk iter type. Chunk iter: {0:#?}, decoder options: {1:?}")]
-    InvalidDecoderOptions(ChunkIter, DecoderOptions),
+    InvalidDecoderOptions(ChunksReceiver, DecoderOptions),
 }
 
 #[derive(Debug, thiserror::Error)]

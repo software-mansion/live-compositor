@@ -112,12 +112,16 @@ impl<Output: PipelineOutput> Pipeline<Output> {
             return Err(RegisterInputError::AlreadyRegistered(input_id));
         }
 
-        let (input, chunks) = input::Input::new(input_opts)
+        let (input, chunks_receiver) = input::Input::new(input_opts)
             .map_err(|e| RegisterInputError::InputError(input_id.clone(), e))?;
 
-        let decoder =
-            decoder::Decoder::new(input_id.clone(), self.queue.clone(), chunks, decoder_opts)
-                .map_err(|e| RegisterInputError::DecoderError(input_id.clone(), e))?;
+        let decoder = decoder::Decoder::new(
+            input_id.clone(),
+            self.queue.clone(),
+            chunks_receiver,
+            decoder_opts,
+        )
+        .map_err(|e| RegisterInputError::DecoderError(input_id.clone(), e))?;
 
         let pipeline_input = PipelineInput { input, decoder };
 

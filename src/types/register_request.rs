@@ -22,6 +22,43 @@ pub enum RegisterRequest {
 pub struct RegisterInputRequest {
     pub input_id: InputId,
     pub port: Port,
+    pub video: Option<Video>,
+    pub audio: Option<Audio>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+pub struct Video {
+    #[serde(default)]
+    pub codec: VideoCodec,
+    /// Default 96
+    pub rtp_payload_type: Option<u8>,
+}
+
+#[derive(Debug, Default, Serialize, Deserialize, Clone, JsonSchema)]
+pub enum VideoCodec {
+    #[default]
+    H264,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+pub struct Audio {
+    pub codec: AudioCodec,
+    pub sample_rate: u32,
+    pub channels: AudioChannels,
+    /// Default 97
+    pub rtp_payload_type: Option<u8>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+pub enum AudioChannels {
+    Mono,
+    Stereo
+}
+
+#[derive(Debug, Default, Serialize, Deserialize, Clone, JsonSchema)]
+pub enum AudioCodec {
+    #[default]
+    Opus,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema, PartialEq, Eq)]

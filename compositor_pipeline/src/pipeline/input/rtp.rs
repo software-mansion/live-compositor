@@ -54,17 +54,8 @@ pub enum RtpStream {
     },
 }
 
-pub enum ChunksReceiver {
-    Video(Receiver<EncodedChunk>),
-    Audio(Receiver<EncodedChunk>),
-    VideoWithAudio {
-        video: Receiver<EncodedChunk>,
-        audio: Receiver<EncodedChunk>,
-    },
-}
-
 impl RtpReceiver {
-    pub fn new(opts: RtpReceiverOptions) -> Result<(Self, ChunkIter), RtpReceiverError> {
+    pub fn new(opts: RtpReceiverOptions) -> Result<(Self, ChunksReceiver), RtpReceiverError> {
         let should_close = Arc::new(AtomicBool::new(false));
         let (packets_tx, packets_rx) = unbounded();
 
@@ -116,7 +107,7 @@ impl RtpReceiver {
                 receiver_thread: Some(receiver_thread),
                 should_close,
             },
-            ChunkIter::new(packets_rx, depayloader),
+            ChunksReceiver::new(packets_rx, depayloader),
         ))
     }
 
@@ -163,7 +154,7 @@ impl Drop for RtpReceiver {
 }
 
 #[derive(Debug)]
-pub enum ChunkIter {
+pub enum ChunksReceiver {
     Video(Receiver<EncodedChunk>),
     Audio(Receiver<EncodedChunk>),
     VideoWithAudio {
@@ -172,22 +163,30 @@ pub enum ChunkIter {
     },
 }
 
-impl ChunkIter {
+impl ChunksReceiver {
     pub fn new(receiver: Receiver<bytes::Bytes>, mut depayloader: Depayloader) -> Self {
-        let (chunk_iter, video_sender, audio_sender) = match &depayloader {
+        let (chunks_receiver, video_sender, audio_sender) = match &depayloader {
             Depayloader::Video(_) => {
                 let (video_sender, video_receiver) = unbounded();
-                (ChunkIter::Video(video_receiver), Some(video_sender), None)
+                (
+                    ChunksReceiver::Video(video_receiver),
+                    Some(video_sender),
+                    None,
+                )
             }
             Depayloader::Audio(_) => {
                 let (audio_sender, audio_receiver) = unbounded();
-                (ChunkIter::Audio(audio_receiver), None, Some(audio_sender))
+                (
+                    ChunksReceiver::Audio(audio_receiver),
+                    None,
+                    Some(audio_sender),
+                )
             }
             Depayloader::VideoWithAudio { .. } => {
                 let (video_sender, video_receiver) = unbounded();
                 let (audio_sender, audio_receiver) = unbounded();
                 (
-                    ChunkIter::VideoWithAudio {
+                    ChunksReceiver::VideoWithAudio {
                         video: video_receiver,
                         audio: audio_receiver,
                     },
@@ -238,7 +237,7 @@ impl ChunkIter {
             }
         });
 
-        chunk_iter
+        chunks_receiver
     }
 }
 
