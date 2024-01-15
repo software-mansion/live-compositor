@@ -323,7 +323,7 @@
       "type": "object",
       "properties": {
         "codec": {
-          "default": "H264",
+          "default": "h264",
           "allOf": [
             {
               "$ref": "#/definitions/VideoCodec"
@@ -344,7 +344,7 @@
     "VideoCodec": {
       "type": "string",
       "enum": [
-        "H264"
+        "h264"
       ]
     },
     "Audio": {
@@ -355,7 +355,7 @@
       ],
       "properties": {
         "codec": {
-          "default": "Opus",
+          "default": "opus",
           "allOf": [
             {
               "$ref": "#/definitions/AudioCodec"
@@ -391,7 +391,7 @@
     "AudioCodec": {
       "type": "string",
       "enum": [
-        "Opus"
+        "opus"
       ]
     },
     "AudioChannels": {

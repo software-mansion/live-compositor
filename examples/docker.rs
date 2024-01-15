@@ -131,6 +131,9 @@ fn start_example_client_code(host_ip: String) -> Result<()> {
         "entity_type": "input_stream",
         "input_id": "input_1",
         "port": 8004,
+        "video": {
+            "codec": "h264"
+        }
     }))?;
 
     let shader_source = include_str!("./silly.wgsl");

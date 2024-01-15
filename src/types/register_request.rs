@@ -35,6 +35,7 @@ pub struct Video {
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone, JsonSchema)]
+#[serde(rename_all = "snake_case")]
 pub enum VideoCodec {
     #[default]
     H264,
@@ -60,6 +61,7 @@ pub enum AudioChannels {
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone, JsonSchema)]
+#[serde(rename_all = "snake_case")]
 pub enum AudioCodec {
     #[default]
     Opus,
