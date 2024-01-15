@@ -101,14 +101,18 @@ impl LibavH264Encoder {
         let (packet_sender, packet_receiver) = crossbeam_channel::unbounded();
         let (result_sender, result_receiver) = crossbeam_channel::bounded(0);
 
-        let options2 = options.clone();
+        let options_clone = options.clone();
 
         let encoder_thread = std::thread::Builder::new()
             .name(format!("Encoder thread for output {}", options.output_id))
             .spawn(move || {
-                match Self::encoder_thread(options2, frame_receiver, packet_sender, &result_sender)
-                {
-                    Ok(_) => todo!(),
+                match Self::encoder_thread(
+                    options_clone,
+                    frame_receiver,
+                    packet_sender,
+                    &result_sender,
+                ) {
+                    Ok(_) => log::debug!("Encoder thread exited normally."),
                     Err(e) => result_sender.send(Err(e)).unwrap(),
                 }
             })
@@ -192,6 +196,8 @@ impl LibavH264Encoder {
 
         result_sender.send(Ok(())).unwrap();
 
+        let mut packet = Packet::empty();
+
         loop {
             let frame = match frame_receiver.recv() {
                 Ok(Message::Frame(f)) => f,
@@ -210,21 +216,40 @@ impl LibavH264Encoder {
                 options.resolution.height as u32,
             );
 
-            frame_into_av(frame, &mut av_frame);
-
-            if let Err(e) = encoder.send_frame(&av_frame) {
-                error!("Encoder error: {e}.")
+            if let Err(e) = frame_into_av(frame, &mut av_frame) {
+                error!(
+                    "Failed to convert a frame to an ffmpeg frame: {}. Dropping",
+                    e.0
+                );
+                continue;
             }
 
-            let mut packet = Packet::empty();
+            if let Err(e) = encoder.send_frame(&av_frame) {
+                error!("Encoder error: {e}.");
+                continue;
+            }
 
-            while encoder.receive_packet(&mut packet).is_ok() {
-                match EncodedChunk::from_av_packet(&packet, EncodedChunkKind::Video(Codec::H264)) {
-                    Ok(chunk) => {
-                        packet_sender.send(chunk).unwrap();
-                    }
+            loop {
+                match encoder.receive_packet(&mut packet) {
+                    Ok(_) => match EncodedChunk::from_av_packet(
+                        &packet,
+                        EncodedChunkKind::Video(Codec::H264),
+                    ) {
+                        Ok(chunk) => {
+                            packet_sender.send(chunk).unwrap();
+                        }
+                        Err(e) => {
+                            warn!("failed to parse an ffmpeg packet received from encoder: {e}",);
+                            break;
+                        }
+                    },
+
+                    Err(ffmpeg_next::Error::Other {
+                        errno: ffmpeg_next::error::EAGAIN,
+                    }) => break, // encoder needs more frames to produce a packet
+
                     Err(e) => {
-                        warn!("failed to parse an ffmpeg packet received from encoder: {e}",);
+                        error!("Encoder error: {e}.");
                         break;
                     }
                 }
@@ -241,41 +266,40 @@ impl Drop for LibavH264Encoder {
         match self.encoder_thread.take() {
             Some(handle) => handle.join().unwrap(),
             None => error!(
-                "[output {}] Encoder thread was already joined. Something very bad has happened.",
+                "[output {}] Encoder thread was already joined. This should not happen.",
                 self.output_id
             ),
         }
     }
 }
 
-fn frame_into_av(frame: Frame, av_frame: &mut frame::Video) {
+#[derive(Debug)]
+struct FrameConversionError(String);
+
+fn frame_into_av(frame: Frame, av_frame: &mut frame::Video) -> Result<(), FrameConversionError> {
     let expected_y_plane_size = (av_frame.plane_width(0) * av_frame.plane_height(0)) as usize;
     let expected_u_plane_size = (av_frame.plane_width(1) * av_frame.plane_height(1)) as usize;
     let expected_v_plane_size = (av_frame.plane_width(2) * av_frame.plane_height(2)) as usize;
     if expected_y_plane_size != frame.data.y_plane.len() {
-        error!(
-            "Encoder: Y plane is a wrong size, expected: {} received: {}",
+        return Err(FrameConversionError(format!(
+            "Y plane is a wrong size, expected: {} received: {}",
             expected_y_plane_size,
             frame.data.y_plane.len()
-        );
-        return;
+        )));
     }
     if expected_u_plane_size != frame.data.u_plane.len() {
-        error!(
-            "Encoder: U plane is a wrong size, expected: {} received: {}",
+        return Err(FrameConversionError(format!(
+            "U plane is a wrong size, expected: {} received: {}",
             expected_u_plane_size,
             frame.data.u_plane.len()
-        );
-
-        return;
+        )));
     }
     if expected_v_plane_size != frame.data.v_plane.len() {
-        error!(
-            "Encoder: V plane is a wrong size, expected: {} received: {}",
+        return Err(FrameConversionError(format!(
+            "V plane is a wrong size, expected: {} received: {}",
             expected_v_plane_size,
             frame.data.v_plane.len()
-        );
-        return;
+        )));
     }
 
     av_frame.set_pts(Some((frame.pts.as_secs_f64() * 90000.0) as i64));
@@ -283,6 +307,8 @@ fn frame_into_av(frame: Frame, av_frame: &mut frame::Video) {
     write_plane_to_av(av_frame, 0, &frame.data.y_plane);
     write_plane_to_av(av_frame, 1, &frame.data.u_plane);
     write_plane_to_av(av_frame, 2, &frame.data.v_plane);
+
+    Ok(())
 }
 
 fn write_plane_to_av(frame: &mut frame::Video, plane: usize, data: &[u8]) {

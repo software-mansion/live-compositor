@@ -129,6 +129,5 @@ impl Drop for RtpSender {
             Some(handle) => handle.join().unwrap(),
             None => error!("RTP sender thread was already joined."),
         }
-        println!("rtp cleaned up nicely")
     }
 }
