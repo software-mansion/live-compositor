@@ -118,12 +118,12 @@ pub struct VideoDecoderOptions {
 
 #[derive(Debug, Clone)]
 pub enum AudioDecoderOptions {
-    Opus(OpusDecoderOptions)
+    Opus(OpusDecoderOptions),
 }
 
 #[derive(Debug, Clone)]
 pub struct OpusDecoderOptions {
     pub sample_rate: u32,
     pub channels: AudioChannels,
-    pub forward_error_correction: bool
+    pub forward_error_correction: bool,
 }

@@ -49,7 +49,7 @@ pub struct Audio {
     /// Default 97
     pub rtp_payload_type: Option<u8>,
     /// Default false
-    pub forward_error_correction: Option<bool>
+    pub forward_error_correction: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
