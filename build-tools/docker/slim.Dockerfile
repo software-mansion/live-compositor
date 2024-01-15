@@ -12,7 +12,7 @@ RUN apt-get update -y -qq && \
   apt-get install -y \
     build-essential curl pkg-config libssl-dev libclang-dev git sudo \
     libegl1-mesa-dev libgl1-mesa-dri libxcb-xfixes0-dev mesa-vulkan-drivers \
-    ffmpeg libavcodec-dev libavformat-dev libavfilter-dev libavdevice-dev && \
+    ffmpeg libavcodec-dev libavformat-dev libavfilter-dev libavdevice-dev libopus-dev && \
   rm -rf /var/lib/apt/lists/*
 
 RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
@@ -32,6 +32,7 @@ ARG USERNAME=compositor
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV NVIDIA_DRIVER_CAPABILITIES=compute,graphics,utility
+ENV LIBOPUS_LIB_DIR=/usr/lib/x86_64-linux-gnu
 
 RUN apt-get update -y -qq && \
   apt-get install -y \
@@ -43,6 +44,7 @@ RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 USER $USERNAME
 RUN mkdir -p /home/$USERNAME/video_compositor
 WORKDIR /home/$USERNAME/video_compositor
+
 
 COPY --from=builder --chown=$USERNAME:$USERNAME /root/project/target/release/main_process /home/$USERNAME/video_compositor/main_process
 
