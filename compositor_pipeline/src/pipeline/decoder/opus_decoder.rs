@@ -10,17 +10,18 @@ use crate::{
     queue::Queue,
 };
 
+use super::OpusDecoderOptions;
+
 pub struct OpusDecoder;
 
 impl OpusDecoder {
     pub fn new(
-        sample_rate: u32,
-        channels: AudioChannels,
+        opts: OpusDecoderOptions,
         chunks_receiver: Receiver<EncodedChunk>,
         queue: Arc<Queue>,
         input_id: InputId,
     ) -> Result<Self, DecoderInitError> {
-        let mut decoder = opus::Decoder::new(sample_rate, channels.into())?;
+        let mut decoder = opus::Decoder::new(opts.sample_rate, opts.channels.into())?;
 
         std::thread::Builder::new()
             .name(format!("opus decoder {}", input_id.0))
@@ -36,7 +37,7 @@ impl OpusDecoder {
                             }
                         };
 
-                    let samples = match channels {
+                    let samples = match opts.channels {
                         AudioChannels::Mono => {
                             let samples =
                                 buffer.iter().take(decoded_samples_count).cloned().collect();
@@ -55,7 +56,7 @@ impl OpusDecoder {
                     let samples = AudioSamplesBatch {
                         samples,
                         pts,
-                        sample_rate,
+                        sample_rate: opts.sample_rate,
                     };
 
                     if let Err(err) = queue.enqueue_samples(input_id.clone(), samples) {

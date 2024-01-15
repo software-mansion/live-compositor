@@ -2,7 +2,7 @@ use compositor_pipeline::{
     error::{InputInitError, RegisterInputError},
     pipeline::{
         self,
-        decoder::{AudioDecoderOptions, DecoderOptions, VideoDecoderOptions},
+        decoder::{AudioDecoderOptions, DecoderOptions, OpusDecoderOptions, VideoDecoderOptions},
         input::{
             rtp::{RtpReceiverError, RtpReceiverOptions, RtpStream},
             InputOptions,
@@ -214,10 +214,12 @@ fn input_options(
     let video_decoder_opts = video.clone().map(|video| VideoDecoderOptions {
         codec: video.codec.into(),
     });
-    let audio_decoder_opts = audio.clone().map(|audio| AudioDecoderOptions {
-        sample_rate: audio.sample_rate,
-        channels: audio.channels.into(),
-        codec: audio.codec.into(),
+    let audio_decoder_opts = audio.clone().map(|audio| match audio.codec {
+        crate::types::AudioCodec::Opus => AudioDecoderOptions::Opus(OpusDecoderOptions {
+            sample_rate: audio.sample_rate,
+            channels: audio.channels.into(),
+            forward_error_correction: audio.forward_error_correction.unwrap_or(false),
+        }),
     });
     let decoder_opts = if let (None, None) = (&video_decoder_opts, &audio_decoder_opts) {
         DecoderOptions {

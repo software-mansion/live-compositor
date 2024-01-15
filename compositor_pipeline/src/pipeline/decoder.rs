@@ -6,7 +6,7 @@ use self::{ffmpeg_h264::H264FfmpegDecoder, opus_decoder::OpusDecoder};
 
 use super::{
     input::rtp::ChunksReceiver,
-    structs::{AudioChannels, AudioCodec, EncodedChunk, VideoCodec},
+    structs::{AudioChannels, EncodedChunk, VideoCodec},
 };
 use compositor_render::InputId;
 use crossbeam_channel::Receiver;
@@ -56,7 +56,7 @@ impl Decoder {
             };
         let audio_decoder =
             if let (Some(opt), Some(audio_receiver)) = (audio_decoder_opt, audio_receiver) {
-                Some(AudioDecoder::new(&opt, audio_receiver, queue, input_id)?)
+                Some(AudioDecoder::new(opt, audio_receiver, queue, input_id)?)
             } else {
                 None
             };
@@ -74,20 +74,14 @@ pub enum AudioDecoder {
 
 impl AudioDecoder {
     pub fn new(
-        opts: &AudioDecoderOptions,
+        opts: AudioDecoderOptions,
         chunks_receiver: Receiver<EncodedChunk>,
         queue: Arc<Queue>,
         input_id: InputId,
     ) -> Result<Self, DecoderInitError> {
-        let AudioDecoderOptions {
-            sample_rate,
-            channels,
-            codec,
-        } = opts;
-        match codec {
-            AudioCodec::Opus => Ok(AudioDecoder::Opus(OpusDecoder::new(
-                *sample_rate,
-                *channels,
+        match opts {
+            AudioDecoderOptions::Opus(opus_opt) => Ok(AudioDecoder::Opus(OpusDecoder::new(
+                opus_opt,
                 chunks_receiver,
                 queue,
                 input_id,
@@ -123,8 +117,13 @@ pub struct VideoDecoderOptions {
 }
 
 #[derive(Debug, Clone)]
-pub struct AudioDecoderOptions {
+pub enum AudioDecoderOptions {
+    Opus(OpusDecoderOptions)
+}
+
+#[derive(Debug, Clone)]
+pub struct OpusDecoderOptions {
     pub sample_rate: u32,
     pub channels: AudioChannels,
-    pub codec: AudioCodec,
+    pub forward_error_correction: bool
 }
