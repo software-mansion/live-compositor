@@ -10,8 +10,6 @@ use crate::{
     queue::Queue,
 };
 
-const OPUS_DECODER_FORWARD_ERROR_CORRECTION_ENABLE: bool = true;
-
 pub struct OpusDecoder;
 
 impl OpusDecoder {
@@ -27,19 +25,16 @@ impl OpusDecoder {
         std::thread::Builder::new()
             .name(format!("opus decoder {}", input_id.0))
             .spawn(move || {
-                let mut buffer: Vec<i16> = Vec::with_capacity(100_000);
+                let mut buffer = [0i16; 100_000];
                 for chunk in chunks_receiver {
-                    let decoded_samples_count = match decoder.decode(
-                        &chunk.data,
-                        &mut buffer,
-                        OPUS_DECODER_FORWARD_ERROR_CORRECTION_ENABLE,
-                    ) {
-                        Ok(samples_count) => samples_count,
-                        Err(err) => {
-                            error!("Failed to decode opus packet: {}", err);
-                            continue;
-                        }
-                    };
+                    let decoded_samples_count =
+                        match decoder.decode(&chunk.data, &mut buffer, false) {
+                            Ok(samples_count) => samples_count,
+                            Err(err) => {
+                                error!("Failed to decode opus packet: {}", err);
+                                continue;
+                            }
+                        };
 
                     let samples = match channels {
                         AudioChannels::Mono => {

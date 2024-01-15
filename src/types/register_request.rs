@@ -42,6 +42,7 @@ pub enum VideoCodec {
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 pub struct Audio {
+    #[serde(default)]
     pub codec: AudioCodec,
     pub sample_rate: u32,
     pub channels: AudioChannels,
@@ -50,6 +51,7 @@ pub struct Audio {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+#[serde(rename_all = "snake_case")]
 pub enum AudioChannels {
     Mono,
     Stereo,

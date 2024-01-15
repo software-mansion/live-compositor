@@ -11,7 +11,7 @@ use compositor_render::{
     error::ErrorStack, AudioSamplesBatch, Frame, FrameSet, Framerate, InputId,
 };
 use crossbeam_channel::{unbounded, Receiver, Sender};
-use log::{debug, error};
+use log::{error, info};
 use thiserror::Error;
 
 use self::{internal_queue::InternalQueue, queue_thread::QueueThread};
@@ -96,7 +96,7 @@ impl Queue {
         samples: AudioSamplesBatch,
     ) -> Result<(), QueueError> {
         // TODO
-        debug!(
+        info!(
             "Queue received samples: {:?}, for input: {}",
             samples, input_id
         );
