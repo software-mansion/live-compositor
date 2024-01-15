@@ -6,8 +6,6 @@ use compositor_render::{
     InputId, OutputId,
 };
 
-use crate::pipeline::{decoder::DecoderOptions, input::rtp::ChunksReceiver};
-
 #[derive(Debug, thiserror::Error)]
 pub enum RegisterInputError {
     #[error("Failed to register input stream. Stream \"{0}\" is already registered.")]
@@ -92,8 +90,6 @@ pub enum DecoderInitError {
     FfmpegError(#[from] ffmpeg_next::Error),
     #[error(transparent)]
     OpusError(#[from] opus::Error),
-    #[error("Decoder options doesn't match input chunk iter type. Chunk iter: {0:#?}, decoder options: {1:?}")]
-    InvalidDecoderOptions(ChunksReceiver, DecoderOptions),
 }
 
 #[derive(Debug, thiserror::Error)]

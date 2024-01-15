@@ -14,23 +14,17 @@ use crossbeam_channel::Receiver;
 pub mod ffmpeg_h264;
 mod opus_decoder;
 
-pub enum Decoder {
-    Video(VideoDecoder),
-    Audio(AudioDecoder),
-    VideoWithAudio {
-        video: VideoDecoder,
-        audio: AudioDecoder,
-    },
+pub struct Decoder {
+    #[allow(dead_code)]
+    video: Option<VideoDecoder>,
+    #[allow(dead_code)]
+    audio: Option<AudioDecoder>,
 }
 
 #[derive(Debug, Clone)]
-pub enum DecoderOptions {
-    Video(VideoDecoderOptions),
-    Audio(AudioDecoderOptions),
-    VideoWithAudio {
-        video: VideoDecoderOptions,
-        audio: AudioDecoderOptions,
-    },
+pub struct DecoderOptions {
+    pub video: Option<VideoDecoderOptions>,
+    pub audio: Option<AudioDecoderOptions>,
 }
 
 impl Decoder {
@@ -40,44 +34,37 @@ impl Decoder {
         chunk: ChunksReceiver,
         decoder_options: DecoderOptions,
     ) -> Result<Self, DecoderInitError> {
-        match &decoder_options {
-            DecoderOptions::Video(opts) => {
-                let ChunksReceiver::Video(receiver) = chunk else {
-                    return Err(DecoderInitError::InvalidDecoderOptions(chunk, decoder_options));
-                };
+        let DecoderOptions {
+            video: video_decoder_opt,
+            audio: audio_decoder_opt,
+        } = decoder_options;
+        let ChunksReceiver {
+            video: video_receiver,
+            audio: audio_receiver,
+        } = chunk;
 
-                Ok(Decoder::Video(VideoDecoder::new(
-                    opts, receiver, queue, input_id,
-                )?))
-            }
-            DecoderOptions::Audio(opts) => {
-                let ChunksReceiver::Audio(receiver) = chunk else {
-                    return Err(DecoderInitError::InvalidDecoderOptions(chunk, decoder_options));
-                };
+        let video_decoder =
+            if let (Some(opt), Some(video_receiver)) = (video_decoder_opt, video_receiver) {
+                Some(VideoDecoder::new(
+                    &opt,
+                    video_receiver,
+                    queue.clone(),
+                    input_id.clone(),
+                )?)
+            } else {
+                None
+            };
+        let audio_decoder =
+            if let (Some(opt), Some(audio_receiver)) = (audio_decoder_opt, audio_receiver) {
+                Some(AudioDecoder::new(&opt, audio_receiver, queue, input_id)?)
+            } else {
+                None
+            };
 
-                Ok(Decoder::Audio(AudioDecoder::new(
-                    opts, receiver, queue, input_id,
-                )?))
-            }
-            DecoderOptions::VideoWithAudio {
-                video: video_opts,
-                audio: audio_opts,
-            } => {
-                let ChunksReceiver::VideoWithAudio { video: video_receiver, audio: audio_receiver } = chunk else {
-                    return Err(DecoderInitError::InvalidDecoderOptions(chunk, decoder_options));
-                };
-
-                Ok(Decoder::VideoWithAudio {
-                    video: VideoDecoder::new(
-                        video_opts,
-                        video_receiver,
-                        queue.clone(),
-                        input_id.clone(),
-                    )?,
-                    audio: AudioDecoder::new(audio_opts, audio_receiver, queue, input_id)?,
-                })
-            }
-        }
+        Ok(Self {
+            video: video_decoder,
+            audio: audio_decoder,
+        })
     }
 }
 

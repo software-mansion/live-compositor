@@ -40,11 +40,7 @@ pub struct RtpReceiverOptions {
 #[derive(Debug, Clone)]
 pub enum RtpStream {
     Video(VideoCodec),
-    Audio {
-        codec: AudioCodec,
-        sample_rate: u32,
-        channels: AudioChannels,
-    },
+    Audio(AudioCodec),
     VideoWithAudio {
         video_codec: VideoCodec,
         video_payload_type: u8,
@@ -154,13 +150,9 @@ impl Drop for RtpReceiver {
 }
 
 #[derive(Debug)]
-pub enum ChunksReceiver {
-    Video(Receiver<EncodedChunk>),
-    Audio(Receiver<EncodedChunk>),
-    VideoWithAudio {
-        video: Receiver<EncodedChunk>,
-        audio: Receiver<EncodedChunk>,
-    },
+pub struct ChunksReceiver {
+    pub video: Option<Receiver<EncodedChunk>>,
+    pub audio: Option<Receiver<EncodedChunk>>,
 }
 
 impl ChunksReceiver {
@@ -169,7 +161,10 @@ impl ChunksReceiver {
             Depayloader::Video(_) => {
                 let (video_sender, video_receiver) = unbounded();
                 (
-                    ChunksReceiver::Video(video_receiver),
+                    ChunksReceiver {
+                        video: Some(video_receiver),
+                        audio: None,
+                    },
                     Some(video_sender),
                     None,
                 )
@@ -177,7 +172,10 @@ impl ChunksReceiver {
             Depayloader::Audio(_) => {
                 let (audio_sender, audio_receiver) = unbounded();
                 (
-                    ChunksReceiver::Audio(audio_receiver),
+                    ChunksReceiver {
+                        video: None,
+                        audio: Some(audio_receiver),
+                    },
                     None,
                     Some(audio_sender),
                 )
@@ -186,9 +184,9 @@ impl ChunksReceiver {
                 let (video_sender, video_receiver) = unbounded();
                 let (audio_sender, audio_receiver) = unbounded();
                 (
-                    ChunksReceiver::VideoWithAudio {
-                        video: video_receiver,
-                        audio: audio_receiver,
+                    ChunksReceiver {
+                        video: Some(video_receiver),
+                        audio: Some(audio_receiver),
                     },
                     Some(video_sender),
                     Some(audio_sender),

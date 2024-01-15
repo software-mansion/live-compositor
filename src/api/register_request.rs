@@ -211,56 +211,42 @@ fn input_options(
     video: Option<crate::types::Video>,
     audio: Option<crate::types::Audio>,
 ) -> (RtpStream, DecoderOptions) {
-    match (video, audio) {
-        (Some(video), Some(audio)) => {
-            let rtp_stream = RtpStream::VideoWithAudio {
-                video_codec: video.codec.clone().into(),
-                video_payload_type: video.rtp_payload_type.unwrap_or(96),
-                audio_codec: audio.codec.clone().into(),
-                audio_payload_type: audio.rtp_payload_type.unwrap_or(97),
-                audio_channels: audio.channels.clone().into(),
-            };
-            let decoder_opts = DecoderOptions::VideoWithAudio {
-                video: VideoDecoderOptions {
-                    codec: video.codec.into(),
-                },
-                audio: AudioDecoderOptions {
-                    sample_rate: audio.sample_rate,
-                    channels: audio.channels.into(),
-                    codec: audio.codec.into(),
-                },
-            };
+    let video_decoder_opts = video.clone().map(|video| VideoDecoderOptions {
+        codec: video.codec.into(),
+    });
+    let audio_decoder_opts = audio.clone().map(|audio| AudioDecoderOptions {
+        sample_rate: audio.sample_rate,
+        channels: audio.channels.into(),
+        codec: audio.codec.into(),
+    });
+    let decoder_opts = if let (None, None) = (&video_decoder_opts, &audio_decoder_opts) {
+        DecoderOptions {
+            video: Some(VideoDecoderOptions {
+                codec: crate::types::VideoCodec::default().into(),
+            }),
+            audio: None,
+        }
+    } else {
+        DecoderOptions {
+            video: video_decoder_opts,
+            audio: audio_decoder_opts,
+        }
+    };
 
-            (rtp_stream, decoder_opts)
-        }
-        (Some(video), None) => {
-            let rtp_stream = RtpStream::Video(video.codec.clone().into());
-            let decoder_opts = DecoderOptions::Video(VideoDecoderOptions {
-                codec: video.codec.into(),
-            });
-            (rtp_stream, decoder_opts)
-        }
-        (None, Some(audio)) => {
-            let rtp_stream = RtpStream::Audio {
-                codec: audio.codec.clone().into(),
-                sample_rate: audio.sample_rate,
-                channels: audio.channels.clone().into(),
-            };
-            let decoder_opts = DecoderOptions::Audio(AudioDecoderOptions {
-                sample_rate: audio.sample_rate,
-                channels: audio.channels.into(),
-                codec: audio.codec.into(),
-            });
-            (rtp_stream, decoder_opts)
-        }
-        (None, None) => {
-            let codec = crate::types::VideoCodec::default().into();
-            (
-                RtpStream::Video(codec),
-                DecoderOptions::Video(VideoDecoderOptions { codec }),
-            )
-        }
-    }
+    let rtp_stream = match (video, audio) {
+        (Some(video), Some(audio)) => RtpStream::VideoWithAudio {
+            video_codec: video.codec.clone().into(),
+            video_payload_type: video.rtp_payload_type.unwrap_or(96),
+            audio_codec: audio.codec.clone().into(),
+            audio_payload_type: audio.rtp_payload_type.unwrap_or(97),
+            audio_channels: audio.channels.clone().into(),
+        },
+        (Some(video), None) => RtpStream::Video(video.codec.clone().into()),
+        (None, Some(audio)) => RtpStream::Audio(audio.codec.into()),
+        (None, None) => RtpStream::Video(crate::types::VideoCodec::default().into()),
+    };
+
+    (rtp_stream, decoder_opts)
 }
 
 impl From<crate::types::VideoCodec> for pipeline::structs::VideoCodec {

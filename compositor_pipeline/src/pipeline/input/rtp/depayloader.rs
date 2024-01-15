@@ -22,7 +22,7 @@ impl Depayloader {
     pub fn new(stream: &RtpStream) -> Self {
         match stream {
             RtpStream::Video(codec) => Depayloader::Video(VideoDepayloader::new(codec)),
-            RtpStream::Audio { codec, .. } => Depayloader::Audio(AudioDepayloader::new(codec)),
+            RtpStream::Audio(codec) => Depayloader::Audio(AudioDepayloader::new(codec)),
             RtpStream::VideoWithAudio {
                 video_codec,
                 video_payload_type,
