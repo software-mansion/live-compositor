@@ -6,8 +6,6 @@ use tiny_http::StatusCode;
 
 use crate::types::TypeError;
 
-pub const PORT_ALREADY_IN_USE_ERROR_CODE: &str = "PORT_ALREADY_IN_USE";
-
 pub struct ApiError {
     pub error_code: &'static str,
     pub message: String,

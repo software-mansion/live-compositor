@@ -4,7 +4,10 @@ use std::{
     thread,
 };
 
-use crate::pipeline::structs::{AudioCodec, EncodedChunk, EncodedChunkKind, VideoCodec};
+use crate::pipeline::{
+    structs::{AudioCodec, EncodedChunk, EncodedChunkKind, VideoCodec},
+    Port, ExactPort,
+};
 use bytes::BytesMut;
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use log::{error, warn};
@@ -25,12 +28,15 @@ pub enum RtpReceiverError {
     #[error("Error while setting socket options.")]
     SocketOptions(#[source] std::io::Error),
 
-    #[error("Error while binding the socket.")]
-    SocketBind(#[source] std::io::Error),
+    #[error("Failed to register input. Port: {0} is already used or not available.")]
+    PortAlreadyUsed(u16),
+
+    #[error("Failed to register input. All ports in range {lower_bound} to {upper_bound} are already used or not available.")]
+    AllPortsUsed { lower_bound: u16, upper_bound: u16 },
 }
 
 pub struct RtpReceiverOptions {
-    pub port: u16,
+    pub port: Port,
     pub input_id: compositor_render::InputId,
     pub stream: RtpStream,
 }
@@ -54,7 +60,7 @@ pub struct RtpStream {
 }
 
 impl RtpReceiver {
-    pub fn new(opts: RtpReceiverOptions) -> Result<(Self, ChunksReceiver), RtpReceiverError> {
+    pub fn new(opts: RtpReceiverOptions) -> Result<(Self, ChunksReceiver, ExactPort), RtpReceiverError> {
         let should_close = Arc::new(AtomicBool::new(false));
         let (packets_tx, packets_rx) = unbounded();
 
@@ -75,15 +81,43 @@ impl RtpReceiver {
             }
         }
 
-        socket
-            .bind(
-                &net::SocketAddr::V4(net::SocketAddrV4::new(
-                    net::Ipv4Addr::UNSPECIFIED,
-                    opts.port,
-                ))
-                .into(),
-            )
-            .map_err(RtpReceiverError::SocketBind)?;
+        let port = match opts.port {
+            Port::Exact(port) => {
+                socket
+                    .bind(
+                        &net::SocketAddr::V4(net::SocketAddrV4::new(
+                            net::Ipv4Addr::UNSPECIFIED,
+                            port,
+                        ))
+                        .into(),
+                    )
+                    .map_err(|_| RtpReceiverError::PortAlreadyUsed(port))?;
+                port
+            }
+            Port::Range((lower_bound, upper_bound)) => {
+                let port = (lower_bound..upper_bound).find(|port| {
+                    let bind_res = socket.bind(
+                        &net::SocketAddr::V4(net::SocketAddrV4::new(
+                            net::Ipv4Addr::UNSPECIFIED,
+                            *port,
+                        ))
+                        .into(),
+                    );
+
+                    bind_res.is_ok()
+                });
+
+                match port {
+                    Some(port) => port,
+                    None => {
+                        return Err(RtpReceiverError::AllPortsUsed {
+                            lower_bound,
+                            upper_bound,
+                        })
+                    }
+                }
+            }
+        };
 
         socket
             .set_read_timeout(Some(std::time::Duration::from_millis(50)))
@@ -102,11 +136,12 @@ impl RtpReceiver {
 
         Ok((
             Self {
-                port: opts.port,
+                port,
                 receiver_thread: Some(receiver_thread),
                 should_close,
             },
             ChunksReceiver::new(packets_rx, depayloader),
+            ExactPort(port)
         ))
     }
 

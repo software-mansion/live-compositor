@@ -1,3 +1,7 @@
+use compositor_pipeline::pipeline::decoder::{
+    AudioDecoderOptions, OpusDecoderOptions, VideoDecoderOptions,
+};
+use compositor_pipeline::pipeline::input::rtp::RtpReceiverOptions;
 use compositor_render::scene;
 
 use crate::api::{self, UpdateScene};
@@ -105,6 +109,107 @@ impl TryFrom<register_request::Port> for api::Port {
                 }
 
                 Ok(api::Port::Range((start, end)))
+            }
+        }
+    }
+}
+
+impl TryFrom<register_request::RegisterInputRequest>
+    for compositor_pipeline::pipeline::RegisterInputOptions
+{
+    type Error = TypeError;
+
+    fn try_from(value: register_request::RegisterInputRequest) -> Result<Self, Self::Error> {
+        const NO_VIDEO_AUDIO_SPEC: &str =
+            "At least one of `video` or `audio` has to be specified in `register_input` request.";
+        if value.video.is_none() && value.audio.is_none() {
+            return Err(TypeError::new(NO_VIDEO_AUDIO_SPEC));
+        }
+        let rtp_stream = compositor_pipeline::pipeline::input::rtp::RtpStream {
+            video: value.video.as_ref().map(|video| {
+                compositor_pipeline::pipeline::input::rtp::VideoStream {
+                    codec: video.codec.clone().into(),
+                    payload_type: video.rtp_payload_type.unwrap_or(96),
+                }
+            }),
+            audio: value.audio.as_ref().map(|audio| {
+                compositor_pipeline::pipeline::input::rtp::AudioStream {
+                    codec: audio.codec.clone().into(),
+                    payload_type: audio.rtp_payload_type.unwrap_or(97),
+                }
+            }),
+        };
+
+        let input_options =
+            compositor_pipeline::pipeline::input::InputOptions::Rtp(RtpReceiverOptions {
+                port: value.port.try_into()?,
+                input_id: value.input_id.clone().into(),
+                stream: rtp_stream,
+            });
+
+        let decoder_options = compositor_pipeline::pipeline::decoder::DecoderOptions {
+            video: value.video.map(|video| VideoDecoderOptions {
+                codec: video.codec.into(),
+            }),
+            audio: value.audio.map(|audio| match audio.codec {
+                AudioCodec::Opus => AudioDecoderOptions::Opus(OpusDecoderOptions {
+                    sample_rate: audio.sample_rate,
+                    channels: audio.channels.into(),
+                    forward_error_correction: audio.forward_error_correction.unwrap_or(false),
+                }),
+            }),
+        };
+
+        Ok(compositor_pipeline::pipeline::RegisterInputOptions {
+            input_id: value.input_id.into(),
+            input_options,
+            decoder_options,
+        })
+    }
+}
+
+impl TryFrom<crate::types::Port> for compositor_pipeline::pipeline::Port {
+    type Error = TypeError;
+
+    fn try_from(value: crate::types::Port) -> Result<Self, Self::Error> {
+        let port: api::Port = value.try_into()?;
+        match port {
+            api::Port::Range((lower, upper)) => {
+                Ok(compositor_pipeline::pipeline::Port::Range((lower, upper)))
+            }
+            api::Port::Exact(port) => Ok(compositor_pipeline::pipeline::Port::Exact(port)),
+        }
+    }
+}
+
+impl From<crate::types::VideoCodec> for compositor_pipeline::pipeline::structs::VideoCodec {
+    fn from(value: crate::types::VideoCodec) -> Self {
+        match value {
+            crate::types::VideoCodec::H264 => {
+                compositor_pipeline::pipeline::structs::VideoCodec::H264
+            }
+        }
+    }
+}
+
+impl From<crate::types::AudioCodec> for compositor_pipeline::pipeline::structs::AudioCodec {
+    fn from(value: crate::types::AudioCodec) -> Self {
+        match value {
+            crate::types::AudioCodec::Opus => {
+                compositor_pipeline::pipeline::structs::AudioCodec::Opus
+            }
+        }
+    }
+}
+
+impl From<crate::types::AudioChannels> for compositor_pipeline::pipeline::structs::AudioChannels {
+    fn from(value: crate::types::AudioChannels) -> Self {
+        match value {
+            crate::types::AudioChannels::Mono => {
+                compositor_pipeline::pipeline::structs::AudioChannels::Mono
+            }
+            crate::types::AudioChannels::Stereo => {
+                compositor_pipeline::pipeline::structs::AudioChannels::Stereo
             }
         }
     }

@@ -32,7 +32,6 @@ ARG USERNAME=compositor
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV NVIDIA_DRIVER_CAPABILITIES=compute,graphics,utility
-ENV LIBOPUS_LIB_DIR=/usr/lib/x86_64-linux-gnu
 
 RUN apt-get update -y -qq && \
   apt-get install -y \

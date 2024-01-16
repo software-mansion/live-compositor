@@ -38,7 +38,6 @@ ENV MEMBRANE_VIDEO_COMPOSITOR_MAIN_EXECUTABLE_PATH=/home/$USERNAME/video_composi
 ENV MEMBRANE_VIDEO_COMPOSITOR_PROCESS_HELPER_PATH=/home/$USERNAME/video_compositor/process_helper
 ENV LD_LIBRARY_PATH=/home/$USERNAME/video_compositor/lib
 ENV XDG_RUNTIME_DIR=/home/$USERNAME/video_compositor/xdg_runtime
-ENV LIBOPUS_LIB_DIR=/usr/lib/x86_64-linux-gnu
 
 RUN apt-get update -y -qq && \
   apt-get install -y \
