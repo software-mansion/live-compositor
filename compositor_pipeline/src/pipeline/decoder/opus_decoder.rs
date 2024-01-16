@@ -26,6 +26,9 @@ impl OpusDecoder {
         std::thread::Builder::new()
             .name(format!("opus decoder {}", input_id.0))
             .spawn(move || {
+                // Max sample rate for opus is 48kHz.
+                // Usually packets contain 20ms audio chunks, but for safety we use buffer
+                // that can hold >1s of 48kHz stereo audio (96k samples)
                 let mut buffer = [0i16; 100_000];
                 for chunk in chunks_receiver {
                     let decoded_samples_count =
@@ -51,6 +54,8 @@ impl OpusDecoder {
                             AudioSamples::Stereo(samples)
                         }
                     };
+                    // TODO fix pts separation between input and decoder
+                    // This is RTP specific. 48000 here is a RTP clock rate.
                     let pts = Duration::from_secs_f64(f64::max(chunk.pts as f64 / 48000.0, 0.0));
 
                     let samples = AudioSamplesBatch {
