@@ -4,7 +4,7 @@ use compositor_pipeline::{
         self,
         decoder::{AudioDecoderOptions, DecoderOptions, OpusDecoderOptions, VideoDecoderOptions},
         input::{
-            rtp::{RtpReceiverError, RtpReceiverOptions, RtpStream},
+            rtp::{AudioStream, RtpReceiverError, RtpReceiverOptions, RtpStream, VideoStream},
             InputOptions,
         },
     },
@@ -234,18 +234,15 @@ fn input_options(
             audio: audio_decoder_opts,
         }
     };
-
-    let rtp_stream = match (video, audio) {
-        (Some(video), Some(audio)) => RtpStream::VideoWithAudio {
-            video_codec: video.codec.clone().into(),
-            video_payload_type: video.rtp_payload_type.unwrap_or(96),
-            audio_codec: audio.codec.clone().into(),
-            audio_payload_type: audio.rtp_payload_type.unwrap_or(97),
-            audio_channels: audio.channels.clone().into(),
-        },
-        (Some(video), None) => RtpStream::Video(video.codec.clone().into()),
-        (None, Some(audio)) => RtpStream::Audio(audio.codec.into()),
-        (None, None) => RtpStream::Video(crate::types::VideoCodec::default().into()),
+    let rtp_stream = RtpStream {
+        video: video.map(|video| VideoStream {
+            codec: video.codec.into(),
+            payload_type: video.rtp_payload_type.unwrap_or(96),
+        }),
+        audio: audio.map(|audio| AudioStream {
+            codec: audio.codec.into(),
+            payload_type: audio.rtp_payload_type.unwrap_or(97),
+        }),
     };
 
     (rtp_stream, decoder_opts)

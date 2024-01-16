@@ -4,9 +4,7 @@ use std::{
     thread,
 };
 
-use crate::pipeline::structs::{
-    AudioChannels, AudioCodec, EncodedChunk, EncodedChunkKind, VideoCodec,
-};
+use crate::pipeline::structs::{AudioCodec, EncodedChunk, EncodedChunkKind, VideoCodec};
 use bytes::BytesMut;
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use log::{error, warn};
@@ -38,16 +36,21 @@ pub struct RtpReceiverOptions {
 }
 
 #[derive(Debug, Clone)]
-pub enum RtpStream {
-    Video(VideoCodec),
-    Audio(AudioCodec),
-    VideoWithAudio {
-        video_codec: VideoCodec,
-        video_payload_type: u8,
-        audio_codec: AudioCodec,
-        audio_payload_type: u8,
-        audio_channels: AudioChannels,
-    },
+pub struct VideoStream {
+    pub codec: VideoCodec,
+    pub payload_type: u8,
+}
+
+#[derive(Debug, Clone)]
+pub struct AudioStream {
+    pub codec: AudioCodec,
+    pub payload_type: u8,
+}
+
+#[derive(Debug, Clone)]
+pub struct RtpStream {
+    pub video: Option<VideoStream>,
+    pub audio: Option<AudioStream>,
 }
 
 impl RtpReceiver {
@@ -157,42 +160,13 @@ pub struct ChunksReceiver {
 
 impl ChunksReceiver {
     pub fn new(receiver: Receiver<bytes::Bytes>, mut depayloader: Depayloader) -> Self {
-        let (chunks_receiver, video_sender, audio_sender) = match &depayloader {
-            Depayloader::Video(_) => {
-                let (video_sender, video_receiver) = unbounded();
-                (
-                    ChunksReceiver {
-                        video: Some(video_receiver),
-                        audio: None,
-                    },
-                    Some(video_sender),
-                    None,
-                )
-            }
-            Depayloader::Audio(_) => {
-                let (audio_sender, audio_receiver) = unbounded();
-                (
-                    ChunksReceiver {
-                        video: None,
-                        audio: Some(audio_receiver),
-                    },
-                    None,
-                    Some(audio_sender),
-                )
-            }
-            Depayloader::VideoWithAudio { .. } => {
-                let (video_sender, video_receiver) = unbounded();
-                let (audio_sender, audio_receiver) = unbounded();
-                (
-                    ChunksReceiver {
-                        video: Some(video_receiver),
-                        audio: Some(audio_receiver),
-                    },
-                    Some(video_sender),
-                    Some(audio_sender),
-                )
-            }
-        };
+        let video_channel = depayloader.video.as_ref().map(|_| unbounded());
+        let audio_channel = depayloader.audio.as_ref().map(|_| unbounded());
+
+        let (video_sender, video_receiver) =
+            video_channel.map_or((None, None), |(tx, rx)| (Some(tx), Some(rx)));
+        let (audio_sender, audio_receiver) =
+            audio_channel.map_or((None, None), |(tx, rx)| (Some(tx), Some(rx)));
 
         std::thread::spawn(move || {
             loop {
@@ -235,7 +209,10 @@ impl ChunksReceiver {
             }
         });
 
-        chunks_receiver
+        Self {
+            video: video_receiver,
+            audio: audio_receiver,
+        }
     }
 }
 

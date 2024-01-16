@@ -76,12 +76,3 @@ pub enum AudioChannels {
     Mono,
     Stereo,
 }
-
-pub enum InputType {
-    Video(VideoCodec),
-    Audio(AudioCodec),
-    VideoWithAudio {
-        video: VideoCodec,
-        audio: AudioCodec,
-    },
-}

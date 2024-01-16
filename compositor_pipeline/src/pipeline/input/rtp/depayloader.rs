@@ -7,60 +7,44 @@ use crate::pipeline::structs::{AudioCodec, EncodedChunk, EncodedChunkKind, Video
 
 use super::{DepayloadingError, RtpStream};
 
-pub enum Depayloader {
-    Video(VideoDepayloader),
-    Audio(AudioDepayloader),
-    VideoWithAudio {
-        video: VideoDepayloader,
-        video_payload_type: u8,
-        audio: AudioDepayloader,
-        audio_payload_type: u8,
-    },
+pub struct Depayloader {
+    /// (Depayloader, payload type)
+    pub video: Option<(VideoDepayloader, u8)>,
+    pub audio: Option<(AudioDepayloader, u8)>,
 }
 
 impl Depayloader {
     pub fn new(stream: &RtpStream) -> Self {
-        match stream {
-            RtpStream::Video(codec) => Depayloader::Video(VideoDepayloader::new(codec)),
-            RtpStream::Audio(codec) => Depayloader::Audio(AudioDepayloader::new(codec)),
-            RtpStream::VideoWithAudio {
-                video_codec,
-                video_payload_type,
-                audio_codec,
-                audio_payload_type,
-                ..
-            } => Depayloader::VideoWithAudio {
-                video: VideoDepayloader::new(video_codec),
-                video_payload_type: *video_payload_type,
-                audio: AudioDepayloader::new(audio_codec),
-                audio_payload_type: *audio_payload_type,
-            },
-        }
+        let video = stream
+            .video
+            .as_ref()
+            .map(|video| (VideoDepayloader::new(&video.codec), video.payload_type));
+        let audio = stream
+            .audio
+            .as_ref()
+            .map(|audio| (AudioDepayloader::new(&audio.codec), audio.payload_type));
+
+        Self { video, audio }
     }
 
     pub fn depayload(
         &mut self,
         packet: rtp::packet::Packet,
     ) -> Result<Option<EncodedChunk>, DepayloadingError> {
-        match self {
-            Depayloader::Video(video) => video.depayload(packet),
-            Depayloader::Audio(audio) => audio.depayload(packet),
-            Depayloader::VideoWithAudio {
-                video,
-                video_payload_type,
-                audio,
-                audio_payload_type,
-            } => {
-                let pty = packet.header.payload_type;
-                if pty == *video_payload_type {
-                    video.depayload(packet)
-                } else if pty == *audio_payload_type {
-                    audio.depayload(packet)
-                } else {
-                    Err(DepayloadingError::BadPayloadType(pty))
-                }
+        let pty = packet.header.payload_type;
+        if let Some((video_depayloader, video_payload_type)) = &mut self.video {
+            if *video_payload_type == pty {
+                return video_depayloader.depayload(packet);
             }
         }
+
+        if let Some((audio_depayloader, audio_payload_type)) = &mut self.audio {
+            if *audio_payload_type == pty {
+                return audio_depayloader.depayload(packet);
+            }
+        }
+
+        Err(DepayloadingError::BadPayloadType(pty))
     }
 }
 
