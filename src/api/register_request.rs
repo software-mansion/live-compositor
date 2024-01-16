@@ -10,7 +10,6 @@ use log::trace;
 use crate::{
     api::Response,
     error::{ApiError, PORT_ALREADY_IN_USE_ERROR_CODE},
-    rtp_sender,
     types::{RegisterInputRequest, RegisterOutputRequest, RegisterRequest},
 };
 
@@ -47,13 +46,14 @@ fn register_output(api: &mut Api, request: RegisterOutputRequest) -> Result<(), 
     let RegisterOutputRequest {
         output_id,
         port,
-        resolution,
-        encoder_settings,
         ip,
-    } = request;
+        ..
+    } = request.clone();
 
     api.pipeline.with_outputs(|mut iter| {
-        if let Some((node_id, _)) = iter.find(|(_, output)| output.port == port && output.ip == ip) {
+        if let Some((node_id, _)) = iter.find(|(_, output)| match &output.output {
+            pipeline::output::Output::Rtp(rtp) => rtp.port == port && rtp.ip == ip,
+        }) {
             return Err(ApiError::new(
                 "PORT_AND_IP_ALREADY_IN_USE",
                 format!("Failed to register output stream \"{output_id}\". Combination of port {port} and IP {ip} is already used by node \"{node_id}\""),
@@ -63,14 +63,8 @@ fn register_output(api: &mut Api, request: RegisterOutputRequest) -> Result<(), 
         Ok(())
     })?;
 
-    api.pipeline.register_output(
-        output_id.into(),
-        pipeline::OutputOptions {
-            resolution: resolution.into(),
-            encoder_settings: encoder_settings.into(),
-            receiver_options: rtp_sender::Options { port, ip },
-        },
-    )?;
+    api.pipeline
+        .register_output(output_id.into(), request.clone().into(), request.into())?;
 
     Ok(())
 }

@@ -10,13 +10,12 @@ use serde::{Deserialize, Serialize};
 use crate::{
     config::{config, Config},
     error::ApiError,
-    rtp_sender::RtpSender,
     types::{self, InputId, OutputId, RegisterRequest, RendererId},
 };
 
 mod register_request;
 
-pub type Pipeline = compositor_pipeline::Pipeline<RtpSender>;
+pub type Pipeline = compositor_pipeline::Pipeline;
 
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
@@ -156,10 +155,12 @@ impl Api {
             }
             QueryRequest::Outputs => {
                 let outputs = self.pipeline.with_outputs(|iter| {
-                    iter.map(|(id, output)| OutputInfo {
-                        id: id.clone().into(),
-                        port: output.port,
-                        ip: output.ip.clone(),
+                    iter.map(|(id, output)| match output.output {
+                        pipeline::output::Output::Rtp(ref rtp) => OutputInfo {
+                            id: id.clone().into(),
+                            port: rtp.port,
+                            ip: rtp.ip.clone(),
+                        },
                     })
                     .collect()
                 });

@@ -1,22 +1,21 @@
+use compositor_render::OutputId;
 use log::error;
 use std::sync::Arc;
 
-use compositor_pipeline::{
-    error::CustomError,
-    pipeline::{
-        structs::{Codec, EncodedChunk},
-        PipelineOutput,
-    },
+use crate::{
+    error::OutputInitError,
+    pipeline::structs::{Codec, EncodedChunk},
 };
 
 use rand::Rng;
 use rtp::packetizer::Payloader;
 use webrtc_util::Marshal;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug)]
 pub struct RtpSender {
-    pub(crate) port: u16,
-    pub(crate) ip: Arc<str>,
+    pub port: u16,
+    pub ip: Arc<str>,
+    sender_thread: Option<std::thread::JoinHandle<()>>,
 }
 
 pub struct RtpContext {
@@ -26,21 +25,21 @@ pub struct RtpContext {
     socket: std::net::UdpSocket,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Options {
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RtpSenderOptions {
     pub port: u16,
     pub ip: Arc<str>,
+    pub codec: Codec,
+    pub output_id: OutputId,
 }
 
-impl PipelineOutput for RtpSender {
-    type Opts = Options;
-    type Context = RtpContext;
-
-    fn new(options: Options, codec: Codec) -> Result<(Self, RtpContext), CustomError> {
-        if codec != Codec::H264 {
-            return Err(CustomError(
-                "Only H264 codec is supported for RTP sender".into(),
-            ));
+impl RtpSender {
+    pub fn new(
+        options: RtpSenderOptions,
+        packets: Box<dyn Iterator<Item = EncodedChunk> + Send>,
+    ) -> Result<Self, OutputInitError> {
+        if options.codec != Codec::H264 {
+            return Err(OutputInitError::UnsupportedCodec(options.codec));
         }
 
         let mut rng = rand::thread_rng();
@@ -51,28 +50,35 @@ impl PipelineOutput for RtpSender {
         let socket = std::net::UdpSocket::bind(std::net::SocketAddrV4::new(
             std::net::Ipv4Addr::UNSPECIFIED,
             0,
-        ))
-        .map_err(|e| CustomError(e.into()))?;
-        socket
-            .connect((options.ip.as_ref(), options.port))
-            .map_err(|e| CustomError(e.into()))?;
+        ))?;
 
-        Ok((
-            Self {
-                port: options.port,
-                ip: options.ip,
-            },
-            RtpContext {
-                ssrc,
-                next_sequence_number,
-                payloader,
-                socket,
-            },
-        ))
+        socket.connect((options.ip.as_ref(), options.port))?;
+
+        let mut ctx = RtpContext {
+            ssrc,
+            next_sequence_number,
+            payloader,
+            socket,
+        };
+
+        let sender_thread = std::thread::Builder::new()
+            .name(format!("RTP sender for output {}", options.output_id))
+            .spawn(move || {
+                for packet in packets {
+                    Self::send_data(&mut ctx, packet);
+                }
+            })
+            .unwrap();
+
+        Ok(Self {
+            port: options.port,
+            ip: options.ip,
+            sender_thread: Some(sender_thread),
+        })
     }
 
     /// this assumes, that a "packet" contains data about a single frame (access unit)
-    fn send_data(&self, context: &mut RtpContext, packet: EncodedChunk) {
+    fn send_data(context: &mut RtpContext, packet: EncodedChunk) {
         // TODO: check if this is h264
         let EncodedChunk { data, pts, .. } = packet;
 
@@ -113,6 +119,15 @@ impl PipelineOutput for RtpSender {
             }
 
             context.next_sequence_number = context.next_sequence_number.wrapping_add(1);
+        }
+    }
+}
+
+impl Drop for RtpSender {
+    fn drop(&mut self) {
+        match self.sender_thread.take() {
+            Some(handle) => handle.join().unwrap(),
+            None => error!("RTP sender thread was already joined."),
         }
     }
 }
