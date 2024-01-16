@@ -10,7 +10,7 @@ jobs:
               run: |
                   sudo add-apt-repository ppa:ubuntuhandbook1/ffmpeg6
                   sudo apt-get update -y -qq
-                  sudo apt-get install -y libegl1-mesa-dev libgl1-mesa-dri libxcb-xfixes0-dev ffmpeg libavcodec-dev libavformat-dev libavfilter-dev libavdevice-dev
+                  sudo apt-get install -y libegl1-mesa-dev libgl1-mesa-dri libxcb-xfixes0-dev ffmpeg libavcodec-dev libavformat-dev libavfilter-dev libavdevice-dev libopus-dev
             - name: 🔧 Install the rust toolchain
               uses: dtolnay/rust-toolchain@stable
 

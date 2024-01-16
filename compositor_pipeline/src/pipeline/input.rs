@@ -15,8 +15,9 @@ pub enum Input {
 impl Input {
     pub fn new(options: InputOptions) -> Result<(Self, ChunksReceiver, ExactPort), InputInitError> {
         match options {
-            InputOptions::Rtp(opts) => Ok(RtpReceiver::new(opts)
-                .map(|(receiver, chunks_receiver, port)| (Self::Rtp(receiver), chunks_receiver, port))?),
+            InputOptions::Rtp(opts) => Ok(RtpReceiver::new(opts).map(
+                |(receiver, chunks_receiver, port)| (Self::Rtp(receiver), chunks_receiver, port),
+            )?),
         }
     }
 }

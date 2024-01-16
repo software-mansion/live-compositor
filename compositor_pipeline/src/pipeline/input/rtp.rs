@@ -6,7 +6,7 @@ use std::{
 
 use crate::pipeline::{
     structs::{AudioCodec, EncodedChunk, EncodedChunkKind, VideoCodec},
-    Port, ExactPort,
+    ExactPort, Port,
 };
 use bytes::BytesMut;
 use crossbeam_channel::{unbounded, Receiver, Sender};
@@ -60,7 +60,9 @@ pub struct RtpStream {
 }
 
 impl RtpReceiver {
-    pub fn new(opts: RtpReceiverOptions) -> Result<(Self, ChunksReceiver, ExactPort), RtpReceiverError> {
+    pub fn new(
+        opts: RtpReceiverOptions,
+    ) -> Result<(Self, ChunksReceiver, ExactPort), RtpReceiverError> {
         let should_close = Arc::new(AtomicBool::new(false));
         let (packets_tx, packets_rx) = unbounded();
 
@@ -141,7 +143,7 @@ impl RtpReceiver {
                 should_close,
             },
             ChunksReceiver::new(packets_rx, depayloader),
-            ExactPort(port)
+            ExactPort(port),
         ))
     }
 
