@@ -8,7 +8,6 @@ mod error;
 mod http;
 mod logger;
 
-mod rtp_sender;
 mod types;
 
 #[cfg(test)]

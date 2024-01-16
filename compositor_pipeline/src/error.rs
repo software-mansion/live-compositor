@@ -6,6 +6,8 @@ use compositor_render::{
     InputId, OutputId,
 };
 
+use crate::pipeline::structs::VideoCodec;
+
 #[derive(Debug, thiserror::Error)]
 pub enum RegisterInputError {
     #[error("Failed to register input stream. Stream \"{0}\" is already registered.")]
@@ -24,7 +26,10 @@ pub enum RegisterOutputError {
     AlreadyRegistered(OutputId),
 
     #[error("Encoder error while registering output stream for stream \"{0}\".")]
-    EncoderError(OutputId, #[source] OutputInitError),
+    EncoderError(OutputId, #[source] EncoderInitError),
+
+    #[error("Output initialization error while registering output for stream \"{0}\".")]
+    OutputError(OutputId, #[source] OutputInitError),
 
     #[error("Failed to register output stream \"{0}\". Resolution in each dimension has to be divisible by 2.")]
     UnsupportedResolution(OutputId),
@@ -52,36 +57,22 @@ pub enum UnregisterOutputError {
     StillInUse(OutputId),
 }
 
-pub struct CustomError(pub Box<dyn std::error::Error + Send + Sync + 'static>);
+#[derive(Debug, thiserror::Error)]
+pub enum OutputInitError {
+    #[error("An unsupported codec was requested: {0:?}.")]
+    UnsupportedCodec(VideoCodec),
 
-impl std::fmt::Display for CustomError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        std::fmt::Display::fmt(&self.0, f)
-    }
-}
-
-impl std::fmt::Debug for CustomError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        std::fmt::Debug::fmt(&self.0, f)
-    }
-}
-
-impl std::error::Error for CustomError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        Some(&*self.0)
-    }
+    #[error(transparent)]
+    SocketError(#[from] std::io::Error),
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum OutputInitError {
+pub enum EncoderInitError {
     #[error("Could not find an ffmpeg codec")]
     NoCodec,
 
     #[error(transparent)]
     FfmpegError(#[from] ffmpeg_next::Error),
-
-    #[error(transparent)]
-    OutputError(#[from] CustomError),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -141,7 +132,8 @@ impl From<&RegisterInputError> for PipelineErrorInfo {
 }
 
 const OUTPUT_STREAM_ALREADY_REGISTERED: &str = "OUTPUT_STREAM_ALREADY_REGISTERED";
-const ENCODER_ERROR: &str = "ENCODER_ERROR";
+const ENCODER_ERROR: &str = "OUTPUT_STREAM_ENCODER_ERROR";
+const OUTPUT_ERROR: &str = "OUTPUT_STREAM_OUTPUT_ERROR";
 const UNSUPPORTED_RESOLUTION: &str = "UNSUPPORTED_RESOLUTION";
 
 impl From<&RegisterOutputError> for PipelineErrorInfo {
@@ -154,6 +146,11 @@ impl From<&RegisterOutputError> for PipelineErrorInfo {
             RegisterOutputError::EncoderError(_, _) => {
                 PipelineErrorInfo::new(ENCODER_ERROR, ErrorType::ServerError)
             }
+
+            RegisterOutputError::OutputError(_, _) => {
+                PipelineErrorInfo::new(OUTPUT_ERROR, ErrorType::ServerError)
+            }
+
             RegisterOutputError::UnsupportedResolution(_) => {
                 PipelineErrorInfo::new(UNSUPPORTED_RESOLUTION, ErrorType::UserError)
             }
