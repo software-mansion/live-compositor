@@ -81,7 +81,7 @@ impl RtpReceiver {
         {
             Ok(_) => {}
             Err(e) => {
-                warn!("Failed to set socket receive buffer size: {e}. This may cause packet loss, especially on high-bitrate streams.");
+                warn!("Failed to set socket receive buffer size: {e} This may cause packet loss, especially on high-bitrate streams.");
             }
         }
 
@@ -195,11 +195,16 @@ impl Drop for RtpReceiver {
 }
 
 #[derive(Debug)]
+pub struct ChunksSenderThread {
+    should_close: Arc<AtomicBool>,
+    depayloader_thread: Option<thread::JoinHandle<()>>,
+}
+
+#[derive(Debug)]
 pub struct ChunksReceiver {
     pub video: Option<Receiver<EncodedChunk>>,
     pub audio: Option<Receiver<EncodedChunk>>,
-    should_close: Arc<AtomicBool>,
-    depayloader_thread: Option<thread::JoinHandle<()>>,
+    pub sender_thread: ChunksSenderThread,
 }
 
 impl ChunksReceiver {
@@ -269,16 +274,20 @@ impl ChunksReceiver {
         })
         .unwrap();
 
+        let sender_thread = ChunksSenderThread {
+            should_close,
+            depayloader_thread: Some(depayloader_thread),
+        };
+
         Self {
             video: video_receiver,
             audio: audio_receiver,
-            should_close,
-            depayloader_thread: Some(depayloader_thread),
+            sender_thread,
         }
     }
 }
 
-impl Drop for ChunksReceiver {
+impl Drop for ChunksSenderThread {
     fn drop(&mut self) {
         self.should_close
             .store(true, std::sync::atomic::Ordering::Relaxed);
