@@ -29,6 +29,9 @@ pub enum RtpReceiverError {
     #[error("Error while setting socket options.")]
     SocketOptions(#[source] std::io::Error),
 
+    #[error("Error while binding the socket.")]
+    SocketBind(#[source] std::io::Error),
+
     #[error("Failed to register input. Port: {0} is already used or not available.")]
     PortAlreadyUsed(u16),
 
@@ -94,7 +97,10 @@ impl RtpReceiver {
                         ))
                         .into(),
                     )
-                    .map_err(|_| RtpReceiverError::PortAlreadyUsed(port))?;
+                    .map_err(|err| match err.kind() {
+                        std::io::ErrorKind::AddrInUse => RtpReceiverError::PortAlreadyUsed(port),
+                        _ => RtpReceiverError::SocketBind(err),
+                    })?;
                 port
             }
             Port::Range((lower_bound, upper_bound)) => {

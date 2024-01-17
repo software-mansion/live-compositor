@@ -198,7 +198,7 @@ impl From<AudioChannels> for pipeline::AudioChannels {
 
 impl From<RegisterOutputRequest> for pipeline::output::OutputOptions {
     fn from(value: RegisterOutputRequest) -> Self {
-        pipeline::output::OutputOptions::Rtp(RtpSenderOptions {
+        pipeline::output::OutputOptions::Rtp(pipeline::output::rtp::RtpSenderOptions {
             codec: compositor_pipeline::pipeline::VideoCodec::H264,
             ip: value.ip,
             port: value.port,
