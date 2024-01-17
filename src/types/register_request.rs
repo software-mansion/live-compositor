@@ -43,7 +43,7 @@ pub enum VideoCodec {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-/// Represents audio input. 
+/// Represents audio input.
 pub struct Audio {
     /// Default opus
     pub codec: Option<AudioCodec>,

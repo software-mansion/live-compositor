@@ -71,7 +71,7 @@ impl RtpReceiver {
         let (packets_tx, packets_rx) = unbounded();
 
         let socket = socket2::Socket::new(
-        socket2::Domain::IPV4,
+            socket2::Domain::IPV4,
             socket2::Type::DGRAM,
             Some(socket2::Protocol::UDP),
         )
