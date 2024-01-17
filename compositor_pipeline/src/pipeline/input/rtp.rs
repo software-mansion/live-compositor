@@ -197,13 +197,16 @@ pub struct ChunksReceiver {
 
 impl ChunksReceiver {
     pub fn new(receiver: Receiver<bytes::Bytes>, mut depayloader: Depayloader) -> Self {
-        let video_channel = depayloader.video.as_ref().map(|_| unbounded());
-        let audio_channel = depayloader.audio.as_ref().map(|_| unbounded());
-
-        let (video_sender, video_receiver) =
-            video_channel.map_or((None, None), |(tx, rx)| (Some(tx), Some(rx)));
-        let (audio_sender, audio_receiver) =
-            audio_channel.map_or((None, None), |(tx, rx)| (Some(tx), Some(rx)));
+        let (video_sender, video_receiver) = depayloader
+            .video
+            .as_ref()
+            .map(|_| unbounded())
+            .map_or((None, None), |(tx, rx)| (Some(tx), Some(rx)));
+        let (audio_sender, audio_receiver) = depayloader
+            .audio
+            .as_ref()
+            .map(|_| unbounded())
+            .map_or((None, None), |(tx, rx)| (Some(tx), Some(rx)));
 
         std::thread::spawn(move || {
             loop {
