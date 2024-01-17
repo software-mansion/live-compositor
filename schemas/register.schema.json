@@ -3,6 +3,7 @@
   "title": "RegisterRequest",
   "oneOf": [
     {
+      "description": "At least one of the `video` or `audio` fields have to be specified.",
       "type": "object",
       "required": [
         "entity_type",
@@ -320,13 +321,17 @@
       ]
     },
     "Video": {
+      "description": "Represents video input.",
       "type": "object",
       "properties": {
         "codec": {
-          "default": "h264",
-          "allOf": [
+          "description": "Default h264",
+          "anyOf": [
             {
               "$ref": "#/definitions/VideoCodec"
+            },
+            {
+              "type": "null"
             }
           ]
         },
@@ -348,6 +353,7 @@
       ]
     },
     "Audio": {
+      "description": "Represents audio input.",
       "type": "object",
       "required": [
         "channels",
@@ -355,14 +361,18 @@
       ],
       "properties": {
         "codec": {
-          "default": "opus",
-          "allOf": [
+          "description": "Default opus",
+          "anyOf": [
             {
               "$ref": "#/definitions/AudioCodec"
+            },
+            {
+              "type": "null"
             }
           ]
         },
         "sample_rate": {
+          "description": "Sample rate of input audio",
           "type": "integer",
           "format": "uint32",
           "minimum": 0.0
