@@ -38,10 +38,8 @@ impl Decoder {
             video: video_decoder_opt,
             audio: audio_decoder_opt,
         } = decoder_options;
-        let ChunksReceiver {
-            video: video_receiver,
-            audio: audio_receiver,
-        } = chunk;
+        let video_receiver = chunk.video.clone();
+        let audio_receiver = chunk.audio.clone();
 
         let video_decoder =
             if let (Some(opt), Some(video_receiver)) = (video_decoder_opt, video_receiver) {

@@ -18,12 +18,6 @@ use self::depayloader::Depayloader;
 
 mod depayloader;
 
-pub struct RtpReceiver {
-    receiver_thread: Option<thread::JoinHandle<()>>,
-    should_close: Arc<AtomicBool>,
-    pub port: u16,
-}
-
 #[derive(Debug, thiserror::Error)]
 pub enum RtpReceiverError {
     #[error("Error while setting socket options.")]
@@ -63,6 +57,12 @@ pub struct RtpStream {
     pub audio: Option<AudioStream>,
 }
 
+pub struct RtpReceiver {
+    receiver_thread: Option<thread::JoinHandle<()>>,
+    should_close: Arc<AtomicBool>,
+    pub port: u16,
+}
+
 impl RtpReceiver {
     pub fn new(
         opts: RtpReceiverOptions,
@@ -71,7 +71,7 @@ impl RtpReceiver {
         let (packets_tx, packets_rx) = unbounded();
 
         let socket = socket2::Socket::new(
-            socket2::Domain::IPV4,
+        socket2::Domain::IPV4,
             socket2::Type::DGRAM,
             Some(socket2::Protocol::UDP),
         )
@@ -200,6 +200,8 @@ impl Drop for RtpReceiver {
 pub struct ChunksReceiver {
     pub video: Option<Receiver<EncodedChunk>>,
     pub audio: Option<Receiver<EncodedChunk>>,
+    should_close: Arc<AtomicBool>,
+    depayloader_thread: Option<thread::JoinHandle<()>>,
 }
 
 impl ChunksReceiver {
@@ -208,6 +210,7 @@ impl ChunksReceiver {
         receiver: Receiver<bytes::Bytes>,
         mut depayloader: Depayloader,
     ) -> Self {
+        let should_close = Arc::new(AtomicBool::new(false));
         let (video_sender, video_receiver) = depayloader
             .video
             .as_ref()
@@ -219,10 +222,15 @@ impl ChunksReceiver {
             .map(|_| unbounded())
             .map_or((None, None), |(tx, rx)| (Some(tx), Some(rx)));
 
-        std::thread::Builder::new()
+        let should_close2 = should_close.clone();
+        let depayloader_thread = std::thread::Builder::new()
         .name(format!("Depayloading thread for input: {}", input_id.0))
         .spawn(move || {
             loop {
+                if should_close2.load(std::sync::atomic::Ordering::Relaxed) {
+                    return;
+                }
+
                 let mut buffer = receiver.recv().unwrap();
 
                 match rtp::packet::Packet::unmarshal(&mut buffer.clone()) {
@@ -266,6 +274,20 @@ impl ChunksReceiver {
         Self {
             video: video_receiver,
             audio: audio_receiver,
+            should_close,
+            depayloader_thread: Some(depayloader_thread),
+        }
+    }
+}
+
+impl Drop for ChunksReceiver {
+    fn drop(&mut self) {
+        self.should_close
+            .store(true, std::sync::atomic::Ordering::Relaxed);
+        if let Some(thread) = self.depayloader_thread.take() {
+            thread.join().unwrap();
+        } else {
+            error!("RTP depayloader does not hold a thread handle to the receiving thread.")
         }
     }
 }

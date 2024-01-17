@@ -19,6 +19,7 @@ pub enum RegisterRequest {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+/// At least one of the `video` or `audio` fields have to be specified.
 pub struct RegisterInputRequest {
     pub input_id: InputId,
     pub port: Port,
@@ -27,6 +28,7 @@ pub struct RegisterInputRequest {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+/// Represents video input.
 pub struct Video {
     /// Default h264
     pub codec: Option<VideoCodec>,
@@ -41,9 +43,11 @@ pub enum VideoCodec {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+/// Represents audio input. 
 pub struct Audio {
     /// Default opus
     pub codec: Option<AudioCodec>,
+    /// Sample rate of input audio
     pub sample_rate: u32,
     pub channels: AudioChannels,
     /// Default 97
