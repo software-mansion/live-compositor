@@ -37,9 +37,9 @@ pub use self::structs::AudioChannels;
 pub use self::structs::AudioCodec;
 pub use self::structs::VideoCodec;
 
-pub struct ExactPort(pub u16);
+pub struct Port(pub u16);
 
-pub enum Port {
+pub enum RequestedPort {
     Exact(u16),
     Range((u16, u16)),
 }
@@ -110,7 +110,7 @@ impl Pipeline {
     pub fn register_input(
         &mut self,
         register_options: RegisterInputOptions,
-    ) -> Result<ExactPort, RegisterInputError> {
+    ) -> Result<Port, RegisterInputError> {
         let RegisterInputOptions {
             input_id,
             input_options,

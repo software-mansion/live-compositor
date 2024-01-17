@@ -1,4 +1,4 @@
-use compositor_pipeline::pipeline::{self, ExactPort};
+use compositor_pipeline::pipeline::{self, Port};
 
 use crate::{
     error::ApiError,
@@ -14,7 +14,7 @@ pub fn handle_register_request(
     match request {
         RegisterRequest::InputStream(input_stream) => {
             let register_options = input_stream.try_into()?;
-            let ExactPort(port) = api.pipeline.register_input(register_options)?;
+            let Port(port) = api.pipeline.register_input(register_options)?;
             Ok(Some(ResponseHandler::Response(
                 super::Response::RegisteredPort(port),
             )))

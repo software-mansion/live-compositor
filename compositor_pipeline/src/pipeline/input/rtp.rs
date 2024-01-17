@@ -6,7 +6,7 @@ use std::{
 
 use crate::pipeline::{
     structs::{AudioCodec, EncodedChunk, EncodedChunkKind, VideoCodec},
-    ExactPort, Port,
+    Port, RequestedPort,
 };
 use bytes::BytesMut;
 use compositor_render::InputId;
@@ -34,7 +34,7 @@ pub enum RtpReceiverError {
 }
 
 pub struct RtpReceiverOptions {
-    pub port: Port,
+    pub port: RequestedPort,
     pub input_id: compositor_render::InputId,
     pub stream: RtpStream,
 }
@@ -64,9 +64,7 @@ pub struct RtpReceiver {
 }
 
 impl RtpReceiver {
-    pub fn new(
-        opts: RtpReceiverOptions,
-    ) -> Result<(Self, ChunksReceiver, ExactPort), RtpReceiverError> {
+    pub fn new(opts: RtpReceiverOptions) -> Result<(Self, ChunksReceiver, Port), RtpReceiverError> {
         let should_close = Arc::new(AtomicBool::new(false));
         let (packets_tx, packets_rx) = unbounded();
 
@@ -88,7 +86,7 @@ impl RtpReceiver {
         }
 
         let port = match opts.port {
-            Port::Exact(port) => {
+            RequestedPort::Exact(port) => {
                 socket
                     .bind(
                         &net::SocketAddr::V4(net::SocketAddrV4::new(
@@ -103,7 +101,7 @@ impl RtpReceiver {
                     })?;
                 port
             }
-            Port::Range((lower_bound, upper_bound)) => {
+            RequestedPort::Range((lower_bound, upper_bound)) => {
                 let port = (lower_bound..upper_bound).find(|port| {
                     let bind_res = socket.bind(
                         &net::SocketAddr::V4(net::SocketAddrV4::new(
@@ -150,7 +148,7 @@ impl RtpReceiver {
                 should_close,
             },
             ChunksReceiver::new(&opts.input_id, packets_rx, depayloader),
-            ExactPort(port),
+            Port(port),
         ))
     }
 
