@@ -160,4 +160,3 @@ fn start_example_client_code() -> Result<()> {
 
     Ok(())
 }
-
