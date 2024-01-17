@@ -19,54 +19,68 @@ pub enum RegisterRequest {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-/// At least one of the `video` or `audio` fields have to be specified.
+/// Parameters of registered RTP input stream.
+/// Before using input in video composition or output mixing,
+/// input has to be firstly registered using `register_input` request.
+///
+/// At least one of `video` and `audio` has to be defined.
 pub struct RegisterInputRequest {
     pub input_id: InputId,
+    /// Port on which RTP stream is send.
     pub port: Port,
+    /// Represents video received on input.
+    /// If set, `input_id` stream can be used in video composition.
     pub video: Option<Video>,
+    /// Represents audio received on input.
+    /// If set, `input_id` stream can be used in audio mixing.
     pub audio: Option<Audio>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-/// Represents video input.
 pub struct Video {
-    /// Default h264
+    /// (**default=`"h264"`**) Video codec of input stream.
     pub codec: Option<VideoCodec>,
-    /// Default 96
+    /// (**default=`"96"`**) Value of payload type field in received RTP packets.
+    /// If the packet payload type is different, packet won't be used as video.
     pub rtp_payload_type: Option<u8>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum VideoCodec {
+    /// H264 video.
     H264,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-/// Represents audio input.
 pub struct Audio {
-    /// Default opus
+    /// (**default=`"opus"`**) Audio codec of input stream.
     pub codec: Option<AudioCodec>,
-    /// Sample rate of input audio
+    /// Sample rate of input audio. If specified sample rate doesn't match
+    /// real sample rate, audio won't be mixed properly.
     pub sample_rate: u32,
+    /// Audio channels in received audio stream.
     pub channels: AudioChannels,
-    /// Default 97
+    /// (**default=`"97"`**) Value of payload type field in received RTP packets.
+    /// If the packet payload type is different, packet won't be used as video.
     pub rtp_payload_type: Option<u8>,
-    /// Default false
+    /// (**default=`"false"`**) Specifies if received audio stream use forward error correction.
     pub forward_error_correction: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum AudioChannels {
+    /// Mono audio (single channel).
     Mono,
+    /// Stereo audio (two channels).
     Stereo,
 }
 
-#[derive(Debug, Default, Serialize, Deserialize, Clone, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum AudioCodec {
-    #[default]
+    /// Opus audio.
     Opus,
 }
 
