@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use compositor_pipeline::pipeline::encoder;
-use compositor_pipeline::pipeline::output;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -29,23 +28,22 @@ pub struct RegisterInputRequest {
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 pub struct Video {
-    #[serde(default)]
-    pub codec: VideoCodec,
+    /// Default h264
+    pub codec: Option<VideoCodec>,
     /// Default 96
     pub rtp_payload_type: Option<u8>,
 }
 
-#[derive(Debug, Default, Serialize, Deserialize, Clone, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum VideoCodec {
-    #[default]
     H264,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 pub struct Audio {
-    #[serde(default)]
-    pub codec: AudioCodec,
+    /// Default opus
+    pub codec: Option<AudioCodec>,
     pub sample_rate: u32,
     pub channels: AudioChannels,
     /// Default 97
@@ -126,17 +124,6 @@ impl From<RegisterOutputRequest> for encoder::EncoderOptions {
             preset,
             resolution: request.resolution.into(),
             output_id: request.output_id.into(),
-        })
-    }
-}
-
-impl From<RegisterOutputRequest> for output::OutputOptions {
-    fn from(value: RegisterOutputRequest) -> Self {
-        output::OutputOptions::Rtp(output::rtp::RtpSenderOptions {
-            codec: compositor_pipeline::pipeline::structs::VideoCodec::H264,
-            ip: value.ip,
-            port: value.port,
-            output_id: value.output_id.into(),
         })
     }
 }

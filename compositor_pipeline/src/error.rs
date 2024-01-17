@@ -6,7 +6,7 @@ use compositor_render::{
     InputId, OutputId,
 };
 
-use crate::pipeline::structs::VideoCodec;
+use crate::pipeline::VideoCodec;
 
 #[derive(Debug, thiserror::Error)]
 pub enum RegisterInputError {

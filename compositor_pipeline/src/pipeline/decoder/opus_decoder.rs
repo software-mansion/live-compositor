@@ -54,7 +54,7 @@ impl OpusDecoder {
                             AudioSamples::Stereo(samples)
                         }
                     };
-                    // TODO fix pts separation between input and decoder
+
                     // This is RTP specific. 48000 here is a RTP clock rate.
                     let pts = Duration::from_secs_f64(f64::max(chunk.pts as f64 / 48000.0, 0.0));
 

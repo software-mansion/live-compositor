@@ -9,6 +9,7 @@ use crate::pipeline::{
     ExactPort, Port,
 };
 use bytes::BytesMut;
+use compositor_render::InputId;
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use log::{error, warn};
 use webrtc_util::Unmarshal;
@@ -142,7 +143,7 @@ impl RtpReceiver {
                 receiver_thread: Some(receiver_thread),
                 should_close,
             },
-            ChunksReceiver::new(packets_rx, depayloader),
+            ChunksReceiver::new(&opts.input_id, packets_rx, depayloader),
             ExactPort(port),
         ))
     }
@@ -196,7 +197,11 @@ pub struct ChunksReceiver {
 }
 
 impl ChunksReceiver {
-    pub fn new(receiver: Receiver<bytes::Bytes>, mut depayloader: Depayloader) -> Self {
+    pub fn new(
+        input_id: &InputId,
+        receiver: Receiver<bytes::Bytes>,
+        mut depayloader: Depayloader,
+    ) -> Self {
         let (video_sender, video_receiver) = depayloader
             .video
             .as_ref()
@@ -208,7 +213,9 @@ impl ChunksReceiver {
             .map(|_| unbounded())
             .map_or((None, None), |(tx, rx)| (Some(tx), Some(rx)));
 
-        std::thread::spawn(move || {
+        std::thread::Builder::new()
+        .name(format!("Depayloading thread for input: {}", input_id.0))
+        .spawn(move || {
             loop {
                 let mut buffer = receiver.recv().unwrap();
 
@@ -247,7 +254,8 @@ impl ChunksReceiver {
                     }
                 };
             }
-        });
+        })
+        .unwrap();
 
         Self {
             video: video_receiver,

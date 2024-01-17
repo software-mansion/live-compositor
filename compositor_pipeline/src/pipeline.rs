@@ -31,7 +31,11 @@ pub mod decoder;
 pub mod encoder;
 pub mod input;
 pub mod output;
-pub mod structs;
+mod structs;
+
+pub use self::structs::AudioChannels;
+pub use self::structs::AudioCodec;
+pub use self::structs::VideoCodec;
 
 pub struct ExactPort(pub u16);
 

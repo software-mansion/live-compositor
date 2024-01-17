@@ -7,22 +7,28 @@ use crate::pipeline::structs::{AudioCodec, EncodedChunk, EncodedChunkKind, Video
 
 use super::{DepayloadingError, RtpStream};
 
+pub struct PayloadType(u8);
+
 pub struct Depayloader {
     /// (Depayloader, payload type)
-    pub video: Option<(VideoDepayloader, u8)>,
-    pub audio: Option<(AudioDepayloader, u8)>,
+    pub video: Option<(VideoDepayloader, PayloadType)>,
+    pub audio: Option<(AudioDepayloader, PayloadType)>,
 }
 
 impl Depayloader {
     pub fn new(stream: &RtpStream) -> Self {
-        let video = stream
-            .video
-            .as_ref()
-            .map(|video| (VideoDepayloader::new(&video.codec), video.payload_type));
-        let audio = stream
-            .audio
-            .as_ref()
-            .map(|audio| (AudioDepayloader::new(&audio.codec), audio.payload_type));
+        let video = stream.video.as_ref().map(|video| {
+            (
+                VideoDepayloader::new(&video.codec),
+                PayloadType(video.payload_type),
+            )
+        });
+        let audio = stream.audio.as_ref().map(|audio| {
+            (
+                AudioDepayloader::new(&audio.codec),
+                PayloadType(audio.payload_type),
+            )
+        });
 
         Self { video, audio }
     }
@@ -33,13 +39,13 @@ impl Depayloader {
     ) -> Result<Option<EncodedChunk>, DepayloadingError> {
         let pty = packet.header.payload_type;
         if let Some((video_depayloader, video_payload_type)) = &mut self.video {
-            if *video_payload_type == pty {
+            if video_payload_type.0 == pty {
                 return video_depayloader.depayload(packet);
             }
         }
 
         if let Some((audio_depayloader, audio_payload_type)) = &mut self.audio {
-            if *audio_payload_type == pty {
+            if audio_payload_type.0 == pty {
                 return audio_depayloader.depayload(packet);
             }
         }
@@ -66,14 +72,14 @@ impl VideoDepayloader {
         match self {
             VideoDepayloader::H264(depayloader) => {
                 let kind = EncodedChunkKind::Video(VideoCodec::H264);
-                let h264_packet = depayloader.depacketize(&packet.payload)?;
+                let h264_chunk = depayloader.depacketize(&packet.payload)?;
 
-                if h264_packet.is_empty() {
+                if h264_chunk.is_empty() {
                     return Ok(None);
                 }
 
                 Ok(Some(EncodedChunk {
-                    data: h264_packet,
+                    data: h264_chunk,
                     pts: packet.header.timestamp as i64,
                     dts: None,
                     kind,

@@ -59,12 +59,6 @@ pub enum Response {
     RegisteredPort(u16),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Port {
-    Range((u16, u16)),
-    Exact(u16),
-}
-
 #[derive(Serialize, Deserialize, Debug)]
 pub struct InputInfo {
     pub id: InputId,

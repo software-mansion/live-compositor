@@ -34,13 +34,8 @@ pub use component::View;
 #[allow(unused_imports)]
 pub use component::WebView;
 
-pub use register_request::Port;
 pub use register_request::RegisterOutputRequest;
 pub use register_request::RegisterRequest;
-
-pub use register_request::AudioChannels;
-pub use register_request::AudioCodec;
-pub use register_request::VideoCodec;
 
 #[allow(unused_imports)]
 pub use renderer::ImageSpec;

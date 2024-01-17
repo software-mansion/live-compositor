@@ -44,7 +44,6 @@ USER $USERNAME
 RUN mkdir -p /home/$USERNAME/video_compositor
 WORKDIR /home/$USERNAME/video_compositor
 
-
 COPY --from=builder --chown=$USERNAME:$USERNAME /root/project/target/release/main_process /home/$USERNAME/video_compositor/main_process
 
 ENV LIVE_COMPOSITOR_WEB_RENDERER_ENABLE=0
