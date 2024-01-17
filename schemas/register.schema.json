@@ -3,7 +3,7 @@
   "title": "RegisterRequest",
   "oneOf": [
     {
-      "description": "At least one of the `video` or `audio` fields have to be specified.",
+      "description": "Parameters of registered RTP input stream. Before using input in video composition or output mixing, input has to be firstly registered using `register_input` request.\n\nAt least one of `video` and `audio` has to be defined.",
       "type": "object",
       "required": [
         "entity_type",
@@ -21,9 +21,15 @@
           "$ref": "#/definitions/InputId"
         },
         "port": {
-          "$ref": "#/definitions/Port"
+          "description": "Port on which RTP stream is send.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Port"
+            }
+          ]
         },
         "video": {
+          "description": "Represents video received on input. If set, `input_id` stream can be used in video composition.",
           "anyOf": [
             {
               "$ref": "#/definitions/Video"
@@ -34,6 +40,7 @@
           ]
         },
         "audio": {
+          "description": "Represents audio received on input. If set, `input_id` stream can be used in audio mixing.",
           "anyOf": [
             {
               "$ref": "#/definitions/Audio"
@@ -321,11 +328,10 @@
       ]
     },
     "Video": {
-      "description": "Represents video input.",
       "type": "object",
       "properties": {
         "codec": {
-          "description": "Default h264",
+          "description": "(**default=`\"h264\"`**) Video codec of input stream.",
           "anyOf": [
             {
               "$ref": "#/definitions/VideoCodec"
@@ -336,7 +342,7 @@
           ]
         },
         "rtp_payload_type": {
-          "description": "Default 96",
+          "description": "(**default=`\"96\"`**) Value of payload type field in received RTP packets. If the packet payload type is different, packet won't be used as video.",
           "type": [
             "integer",
             "null"
@@ -347,13 +353,17 @@
       }
     },
     "VideoCodec": {
-      "type": "string",
-      "enum": [
-        "h264"
+      "oneOf": [
+        {
+          "description": "H264 video.",
+          "type": "string",
+          "enum": [
+            "h264"
+          ]
+        }
       ]
     },
     "Audio": {
-      "description": "Represents audio input.",
       "type": "object",
       "required": [
         "channels",
@@ -361,7 +371,7 @@
       ],
       "properties": {
         "codec": {
-          "description": "Default opus",
+          "description": "(**default=`\"opus\"`**) Audio codec of input stream.",
           "anyOf": [
             {
               "$ref": "#/definitions/AudioCodec"
@@ -372,16 +382,21 @@
           ]
         },
         "sample_rate": {
-          "description": "Sample rate of input audio",
+          "description": "Sample rate of input audio. If specified sample rate doesn't match real sample rate, audio won't be mixed properly.",
           "type": "integer",
           "format": "uint32",
           "minimum": 0.0
         },
         "channels": {
-          "$ref": "#/definitions/AudioChannels"
+          "description": "Audio channels in received audio stream.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/AudioChannels"
+            }
+          ]
         },
         "rtp_payload_type": {
-          "description": "Default 97",
+          "description": "(**default=`\"97\"`**) Value of payload type field in received RTP packets. If the packet payload type is different, packet won't be used as video.",
           "type": [
             "integer",
             "null"
@@ -390,7 +405,7 @@
           "minimum": 0.0
         },
         "forward_error_correction": {
-          "description": "Default false",
+          "description": "(**default=`\"false\"`**) Specifies if received audio stream use forward error correction.",
           "type": [
             "boolean",
             "null"
@@ -399,16 +414,32 @@
       }
     },
     "AudioCodec": {
-      "type": "string",
-      "enum": [
-        "opus"
+      "oneOf": [
+        {
+          "description": "Opus audio.",
+          "type": "string",
+          "enum": [
+            "opus"
+          ]
+        }
       ]
     },
     "AudioChannels": {
-      "type": "string",
-      "enum": [
-        "mono",
-        "stereo"
+      "oneOf": [
+        {
+          "description": "Mono audio (single channel).",
+          "type": "string",
+          "enum": [
+            "mono"
+          ]
+        },
+        {
+          "description": "Stereo audio (two channels).",
+          "type": "string",
+          "enum": [
+            "stereo"
+          ]
+        }
       ]
     },
     "OutputId": {

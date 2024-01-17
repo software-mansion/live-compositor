@@ -11,7 +11,7 @@ use super::{
 use compositor_render::InputId;
 use crossbeam_channel::Receiver;
 
-pub mod ffmpeg_h264;
+mod ffmpeg_h264;
 mod opus_decoder;
 
 pub struct Decoder {
