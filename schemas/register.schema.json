@@ -361,7 +361,8 @@
           "format": "uint8",
           "minimum": 0.0
         }
-      }
+      },
+      "additionalProperties": false
     },
     "VideoCodec": {
       "oneOf": [
@@ -422,7 +423,8 @@
             "null"
           ]
         }
-      }
+      },
+      "additionalProperties": false
     },
     "AudioCodec": {
       "oneOf": [

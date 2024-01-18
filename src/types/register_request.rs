@@ -18,12 +18,13 @@ pub enum RegisterRequest {
     Image(ImageSpec),
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 /// Parameters of registered RTP input stream.
 /// Before using input in video composition or output mixing,
 /// input has to be firstly registered using `register_input` request.
 ///
 /// At least one of `video` and `audio` has to be defined.
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+#[serde(deny_unknown_fields)]
 pub struct RegisterInputRequest {
     /// An identifier for the input stream.
     pub input_id: InputId,
@@ -36,6 +37,7 @@ pub struct RegisterInputRequest {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+#[serde(deny_unknown_fields)]
 pub struct Video {
     /// (**default=`"h264"`**) Video codec.
     pub codec: Option<VideoCodec>,
@@ -56,6 +58,7 @@ pub enum VideoCodec {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+#[serde(deny_unknown_fields)]
 pub struct Audio {
     /// (**default=`"opus"`**) Audio codec.
     pub codec: Option<AudioCodec>,
@@ -77,7 +80,7 @@ pub struct Audio {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-#[serde(rename_all = "snake_case")]
+#[serde(deny_unknown_fields, rename_all = "snake_case")]
 pub enum AudioChannels {
     /// Mono audio (single channel).
     Mono,
@@ -100,6 +103,7 @@ pub enum Port {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+#[serde(deny_unknown_fields)]
 pub struct RegisterOutputRequest {
     pub output_id: OutputId,
     pub port: u16,
