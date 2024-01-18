@@ -31,7 +31,7 @@ pub(super) struct TransitionOptions {
 }
 
 impl TransitionState {
-    pub fn from_previous_transition(
+    pub fn new(
         current_transition: Option<TransitionOptions>,
         previous_transition: Option<TransitionState>,
         last_pts: Duration,

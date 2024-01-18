@@ -131,7 +131,7 @@ impl TilesComponent {
             });
 
         let start = previous_state.and_then(|state| state.last_layout.clone());
-        let transition = TransitionState::from_previous_transition(
+        let transition = TransitionState::new(
             self.transition.map(|transition| TransitionOptions {
                 duration: transition.duration,
                 interpolation_kind: super::InterpolationKind::Linear,

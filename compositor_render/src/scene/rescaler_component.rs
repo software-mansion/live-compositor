@@ -99,7 +99,7 @@ impl RescalerComponent {
         // TODO: to handle cases like transition from top to bottom this view needs
         // to be further processed to use the same type of coordinates as end
         let start = previous_state.map(|state| state.transition_snapshot(ctx.last_render_pts));
-        let transition = TransitionState::from_previous_transition(
+        let transition = TransitionState::new(
             self.transition.map(|transition| TransitionOptions {
                 duration: transition.duration,
                 interpolation_kind: super::InterpolationKind::Linear,
