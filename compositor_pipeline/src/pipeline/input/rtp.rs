@@ -27,10 +27,10 @@ pub enum RtpReceiverError {
     SocketBind(#[source] std::io::Error),
 
     #[error("Failed to register input. Port: {0} is already used or not available.")]
-    PortAlreadyUsed(u16),
+    PortAlreadyInUse(u16),
 
     #[error("Failed to register input. All ports in range {lower_bound} to {upper_bound} are already used or not available.")]
-    AllPortsUsed { lower_bound: u16, upper_bound: u16 },
+    AllPortsAlreadyInUse { lower_bound: u16, upper_bound: u16 },
 }
 
 pub struct RtpReceiverOptions {
@@ -96,7 +96,7 @@ impl RtpReceiver {
                         .into(),
                     )
                     .map_err(|err| match err.kind() {
-                        std::io::ErrorKind::AddrInUse => RtpReceiverError::PortAlreadyUsed(port),
+                        std::io::ErrorKind::AddrInUse => RtpReceiverError::PortAlreadyInUse(port),
                         _ => RtpReceiverError::SocketBind(err),
                     })?;
                 port
@@ -117,7 +117,7 @@ impl RtpReceiver {
                 match port {
                     Some(port) => port,
                     None => {
-                        return Err(RtpReceiverError::AllPortsUsed {
+                        return Err(RtpReceiverError::AllPortsAlreadyInUse {
                             lower_bound,
                             upper_bound,
                         })
@@ -227,52 +227,52 @@ impl ChunksReceiver {
 
         let should_close2 = should_close.clone();
         let depayloader_thread = std::thread::Builder::new()
-        .name(format!("Depayloading thread for input: {}", input_id.0))
-        .spawn(move || {
-            loop {
-                if should_close2.load(std::sync::atomic::Ordering::Relaxed) {
-                    return;
-                }
+            .name(format!("Depayloading thread for input: {}", input_id.0))
+            .spawn(move || {
+                loop {
+                    if should_close2.load(std::sync::atomic::Ordering::Relaxed) {
+                        return;
+                    }
 
-                let mut buffer = receiver.recv().unwrap();
+                    let mut buffer = receiver.recv().unwrap();
 
-                match rtp::packet::Packet::unmarshal(&mut buffer.clone()) {
-                    // https://datatracker.ietf.org/doc/html/rfc5761#section-4
-                    //
-                    // Given these constraints, it is RECOMMENDED to follow the guidelines
-                    // in the RTP/AVP profile [7] for the choice of RTP payload type values,
-                    // with the additional restriction that payload type values in the range
-                    // 64-95 MUST NOT be used.
-                    Ok(packet)
-                        if packet.header.payload_type < 64 || packet.header.payload_type > 95 =>
-                    {
-                        match depayloader.depayload(packet) {
-                            Ok(Some(chunk)) => match &chunk.kind {
-                                EncodedChunkKind::Video(_) => video_sender
-                                    .as_ref()
-                                    .map(|video_sender| video_sender.send(chunk)),
-                                EncodedChunkKind::Audio(_) => audio_sender
-                                    .as_ref()
-                                    .map(|audio_sender| audio_sender.send(chunk)),
-                            },
-                            Ok(None) => continue,
-                            Err(err) => {
-                                warn!("RTP depayloading error: {}", err);
-                                continue;
+                    match rtp::packet::Packet::unmarshal(&mut buffer.clone()) {
+                        // https://datatracker.ietf.org/doc/html/rfc5761#section-4
+                        //
+                        // Given these constraints, it is RECOMMENDED to follow the guidelines
+                        // in the RTP/AVP profile [7] for the choice of RTP payload type values,
+                        // with the additional restriction that payload type values in the range
+                        // 64-95 MUST NOT be used.
+                        Ok(packet)
+                            if packet.header.payload_type < 64 || packet.header.payload_type > 95 =>
+                        {
+                            match depayloader.depayload(packet) {
+                                Ok(Some(chunk)) => match &chunk.kind {
+                                    EncodedChunkKind::Video(_) => video_sender
+                                        .as_ref()
+                                        .map(|video_sender| video_sender.send(chunk)),
+                                    EncodedChunkKind::Audio(_) => audio_sender
+                                        .as_ref()
+                                        .map(|audio_sender| audio_sender.send(chunk)),
+                                },
+                                Ok(None) => continue,
+                                Err(err) => {
+                                    warn!("RTP depayloading error: {}", err);
+                                    continue;
+                                }
                             }
                         }
-                    }
-                    Ok(_) | Err(_) => {
-                        if rtcp::packet::unmarshal(&mut buffer).is_err() {
-                            warn!("Received an unexpected packet, which is not recognized either as RTP or RTCP. Dropping.");
-                        }
+                        Ok(_) | Err(_) => {
+                            if rtcp::packet::unmarshal(&mut buffer).is_err() {
+                                warn!("Received an unexpected packet, which is not recognized either as RTP or RTCP. Dropping.");
+                            }
 
-                        continue;
-                    }
-                };
-            }
-        })
-        .unwrap();
+                            continue;
+                        }
+                    };
+                }
+            })
+            .unwrap();
 
         let sender_thread = ChunksSenderThread {
             should_close,

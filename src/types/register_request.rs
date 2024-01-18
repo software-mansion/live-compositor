@@ -25,23 +25,26 @@ pub enum RegisterRequest {
 ///
 /// At least one of `video` and `audio` has to be defined.
 pub struct RegisterInputRequest {
+    /// An identifier for the input stream.
     pub input_id: InputId,
-    /// Port on which RTP stream is send.
+    /// UDP port or port range on which the compositor should listen for the stream.
     pub port: Port,
-    /// Represents video received on input.
-    /// If set, `input_id` stream can be used in video composition.
+    /// Parameters of a video source included in the RTP stream.
     pub video: Option<Video>,
-    /// Represents audio received on input.
-    /// If set, `input_id` stream can be used in audio mixing.
+    /// Parameters of an audio source included in the RTP stream.
     pub audio: Option<Audio>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 pub struct Video {
-    /// (**default=`"h264"`**) Video codec of input stream.
+    /// (**default=`"h264"`**) Video codec.
     pub codec: Option<VideoCodec>,
-    /// (**default=`"96"`**) Value of payload type field in received RTP packets.
-    /// If the packet payload type is different, packet won't be used as video.
+    /// (**default=`96`**) Value of payload type field in received RTP packets.
+    ///
+    /// Packets with different payload type won't be treated as audio and included in composing.
+    /// Values should be in [0, 64] or [96, 255]. Values in range [65, 95] can't be used.
+    /// For more information, see [RFC](https://datatracker.ietf.org/doc/html/rfc5761#section-4)
+    /// Packets with different payload type won't be treated as video and included in composing.
     pub rtp_payload_type: Option<u8>,
 }
 
@@ -54,17 +57,22 @@ pub enum VideoCodec {
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 pub struct Audio {
-    /// (**default=`"opus"`**) Audio codec of input stream.
+    /// (**default=`"opus"`**) Audio codec.
     pub codec: Option<AudioCodec>,
-    /// Sample rate of input audio. If specified sample rate doesn't match
+    /// Sample rate. If the specified sample rate doesn't match
     /// real sample rate, audio won't be mixed properly.
     pub sample_rate: u32,
-    /// Audio channels in received audio stream.
+    /// Audio channels.
     pub channels: AudioChannels,
-    /// (**default=`"97"`**) Value of payload type field in received RTP packets.
-    /// If the packet payload type is different, packet won't be used as video.
+    /// (**default=`97`**) Value of payload type field in received RTP packets.
+    ///
+    /// Packets with different payload type won't be treated as audio and included in mixing.
+    /// Values should be in range [0, 64] or [96, 255]. Values in range [65, 95] can't be used.
+    /// For more information, check out [RFC](https://datatracker.ietf.org/doc/html/rfc5761#section-4).
     pub rtp_payload_type: Option<u8>,
     /// (**default=`"false"`**) Specifies if received audio stream use forward error correction.
+    /// Specific to Opus audio format.
+    /// For more information, check out [RFC](https://datatracker.ietf.org/doc/html/rfc6716#section-2.1.7).
     pub forward_error_correction: Option<bool>,
 }
 
@@ -97,12 +105,7 @@ pub struct RegisterOutputRequest {
     pub port: u16,
     pub ip: Arc<str>,
     pub resolution: Resolution,
-    pub encoder_settings: EncoderSettings,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-pub struct EncoderSettings {
-    preset: Option<EncoderPreset>,
+    pub encoder_preset: Option<EncoderPreset>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
@@ -122,11 +125,7 @@ pub enum EncoderPreset {
 
 impl From<RegisterOutputRequest> for encoder::EncoderOptions {
     fn from(request: RegisterOutputRequest) -> Self {
-        let preset = match request
-            .encoder_settings
-            .preset
-            .unwrap_or(EncoderPreset::Medium)
-        {
+        let preset = match request.encoder_preset.unwrap_or(EncoderPreset::Medium) {
             EncoderPreset::Ultrafast => encoder::ffmpeg_h264::EncoderPreset::Ultrafast,
             EncoderPreset::Superfast => encoder::ffmpeg_h264::EncoderPreset::Superfast,
             EncoderPreset::Veryfast => encoder::ffmpeg_h264::EncoderPreset::Veryfast,

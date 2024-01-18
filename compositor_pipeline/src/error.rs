@@ -60,7 +60,7 @@ pub enum UnregisterOutputError {
 #[derive(Debug, thiserror::Error)]
 pub enum OutputInitError {
     #[error("An unsupported codec was requested: {0:?}.")]
-    UnsupportedCodec(VideoCodec),
+    UnsupportedVideoCodec(VideoCodec),
 
     #[error(transparent)]
     SocketError(#[from] std::io::Error),

@@ -39,7 +39,7 @@ impl RtpSender {
         packets: Box<dyn Iterator<Item = EncodedChunk> + Send>,
     ) -> Result<Self, OutputInitError> {
         if options.codec != VideoCodec::H264 {
-            return Err(OutputInitError::UnsupportedCodec(options.codec));
+            return Err(OutputInitError::UnsupportedVideoCodec(options.codec));
         }
 
         let mut rng = rand::thread_rng();

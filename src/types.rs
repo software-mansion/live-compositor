@@ -35,6 +35,8 @@ pub use component::View;
 #[allow(unused_imports)]
 pub use component::WebView;
 
+#[allow(unused_imports)]
+pub use register_request::RegisterInputRequest;
 pub use register_request::RegisterOutputRequest;
 pub use register_request::RegisterRequest;
 
