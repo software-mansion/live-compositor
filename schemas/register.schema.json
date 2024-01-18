@@ -55,7 +55,7 @@
     {
       "type": "object",
       "required": [
-        "encoder_settings",
+        "encoder_preset",
         "entity_type",
         "ip",
         "output_id",
@@ -83,7 +83,7 @@
         "resolution": {
           "$ref": "#/definitions/Resolution"
         },
-        "encoder_settings": {
+        "encoder_preset": {
           "$ref": "#/definitions/EncoderSettings"
         }
       }

@@ -76,7 +76,7 @@ Register a new RTP output stream.
 - `output_id` - An identifier for the output stream. It can be used in the `UpdateScene` request to define what to render for the output stream.
 - `port` / `ip` - UDP port and IP where compositor should send the stream.
 - `resolution` - Output resolution in pixels.
-- `encoder_settings.preset` - Preset for an encoder. See `FFmpeg` [docs](https://trac.ffmpeg.org/wiki/Encode/H.264#Preset) to learn more.
+- `encoder_preset` - (**default=`"fast"`**) Preset for an encoder. See `FFmpeg` [docs](https://trac.ffmpeg.org/wiki/Encode/H.264#Preset) to learn more.
 
 ***
 

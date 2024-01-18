@@ -55,9 +55,7 @@ fn start_example_client_code() -> Result<()> {
             "width": VIDEO_RESOLUTION.width,
             "height": VIDEO_RESOLUTION.height,
         },
-        "encoder_settings": {
-            "preset": "ultrafast"
-        }
+        "encoder_preset": "ultrafast"
     }))?;
 
     info!("[example] Send register input request.");

@@ -41,7 +41,7 @@ pub struct Video {
     pub codec: Option<VideoCodec>,
     /// (**default=`96`**) Value of payload type field in received RTP packets.
     ///
-    /// Packets with different payload type won't be treated as audio and included in composing.
+    /// Packets with different payload type won't be treated as video and included in composing.
     /// Values should be in [0, 64] or [96, 255]. Values in range [65, 95] can't be used.
     /// For more information, see [RFC](https://datatracker.ietf.org/doc/html/rfc5761#section-4)
     /// Packets with different payload type won't be treated as video and included in composing.
@@ -70,8 +70,8 @@ pub struct Audio {
     /// Values should be in range [0, 64] or [96, 255]. Values in range [65, 95] can't be used.
     /// For more information, check out [RFC](https://datatracker.ietf.org/doc/html/rfc5761#section-4).
     pub rtp_payload_type: Option<u8>,
-    /// (**default=`"false"`**) Specifies if received audio stream use forward error correction.
-    /// Specific to Opus audio format.
+    /// (**default=`"false"`**) Specifies whether the stream uses forward error correction.
+    /// It's specific for Opus codec.
     /// For more information, check out [RFC](https://datatracker.ietf.org/doc/html/rfc6716#section-2.1.7).
     pub forward_error_correction: Option<bool>,
 }
@@ -125,7 +125,7 @@ pub enum EncoderPreset {
 
 impl From<RegisterOutputRequest> for encoder::EncoderOptions {
     fn from(request: RegisterOutputRequest) -> Self {
-        let preset = match request.encoder_preset.unwrap_or(EncoderPreset::Medium) {
+        let preset = match request.encoder_preset.unwrap_or(EncoderPreset::Fast) {
             EncoderPreset::Ultrafast => encoder::ffmpeg_h264::EncoderPreset::Ultrafast,
             EncoderPreset::Superfast => encoder::ffmpeg_h264::EncoderPreset::Superfast,
             EncoderPreset::Veryfast => encoder::ffmpeg_h264::EncoderPreset::Veryfast,

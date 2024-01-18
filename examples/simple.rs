@@ -61,9 +61,7 @@ fn start_example_client_code() -> Result<()> {
             "width": VIDEO_RESOLUTION.width,
             "height": VIDEO_RESOLUTION.height,
         },
-        "encoder_settings": {
-            "preset": "medium"
-        }
+        "encoder_preset": "medium"
     }))?;
 
     info!("[example] Send register input request.");

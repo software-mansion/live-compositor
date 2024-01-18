@@ -120,9 +120,7 @@ fn start_example_client_code(host_ip: String) -> Result<()> {
             "width": VIDEO_RESOLUTION.width,
             "height": VIDEO_RESOLUTION.height,
         },
-        "encoder_settings": {
-            "preset": "ultrafast"
-        }
+        "encoder_preset": "ultrafast",
     }))?;
 
     info!("[example] Send register input request.");
