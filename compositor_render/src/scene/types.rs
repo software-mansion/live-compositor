@@ -67,3 +67,8 @@ pub enum HorizontalPosition {
     LeftOffset(f32),
     RightOffset(f32),
 }
+
+#[derive(Debug, Clone, Copy)]
+pub enum InterpolationKind {
+    Linear,
+}

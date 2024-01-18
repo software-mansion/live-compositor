@@ -1,4 +1,4 @@
-use crate::scene::interpolation::{ContinuousValue, InterpolationState};
+use crate::scene::types::interpolation::{ContinuousValue, InterpolationState};
 
 use super::RescalerComponentParam;
 

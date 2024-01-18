@@ -1,4 +1,4 @@
-use std::{ops::Add, time::Duration};
+use std::time::Duration;
 
 use crate::transformations::layout::NestedLayout;
 
@@ -8,11 +8,12 @@ use self::{
 };
 
 use super::{
-    interpolation::{ContinuousValue, InterpolationState},
     layout::StatefulLayoutComponent,
     scene_state::BuildStateTreeCtx,
+    transition::{TransitionOptions, TransitionState},
+    types::interpolation::ContinuousValue,
     Component, ComponentId, HorizontalAlign, IntermediateNode, Position, RGBAColor, SceneError,
-    Size, StatefulComponent, TilesComponent, Transition, VerticalAlign,
+    Size, StatefulComponent, TilesComponent, VerticalAlign,
 };
 
 mod interpolation;
@@ -29,8 +30,7 @@ pub(super) struct StatefulTilesComponent {
     /// `start` value after scene update.
     last_layout: Option<(Vec<Option<Tile>>, Size)>,
 
-    transition: Option<Transition>,
-    start_pts: Duration,
+    transition: Option<TransitionState>,
 
     component: TilesComponentParams,
     children: Vec<StatefulComponent>,
@@ -58,25 +58,12 @@ impl StatefulTilesComponent {
 
     fn tiles(&self, size: Size, pts: Duration) -> Vec<Option<Tile>> {
         let end = self.component.tiles(size, &self.children);
-        let (Some((start, start_size)), Some(transition)) = (&self.start, self.transition) else {
+        let (Some((start, start_size)), Some(transition)) = (&self.start, &self.transition) else {
             return end.clone();
         };
         let start = resize_tiles(start, start_size, &size);
-        let interpolation_progress = InterpolationState(f64::min(
-            1.0,
-            (pts.as_secs_f64() - self.start_pts.as_secs_f64()) / transition.duration.as_secs_f64(),
-        ));
+        let interpolation_progress = transition.state(pts);
         ContinuousValue::interpolate(&start, &end, interpolation_progress)
-    }
-
-    fn remaining_transition_duration(&self, pts: Duration) -> Option<Duration> {
-        self.transition.and_then(|transition| {
-            if self.start_pts + transition.duration > pts {
-                self.start_pts.add(transition.duration).checked_sub(pts)
-            } else {
-                None
-            }
-        })
     }
 
     pub(super) fn position(&self, _pts: Duration) -> Position {
@@ -144,17 +131,14 @@ impl TilesComponent {
             });
 
         let start = previous_state.and_then(|state| state.last_layout.clone());
-        // TODO: this is incorrect for non linear transformations
-        let transition = self.transition.or_else(|| {
-            let Some(previous_state) = previous_state else {
-                return None;
-            };
-            let Some(duration) = previous_state.remaining_transition_duration(ctx.last_render_pts)
-            else {
-                return None;
-            };
-            previous_state.transition.map(|_| Transition { duration })
-        });
+        let transition = TransitionState::new(
+            self.transition.map(|transition| TransitionOptions {
+                duration: transition.duration,
+                interpolation_kind: super::InterpolationKind::Linear,
+            }),
+            previous_state.and_then(|s| s.transition.clone()),
+            ctx.last_render_pts,
+        );
 
         let tiles = StatefulTilesComponent {
             start,
@@ -171,7 +155,6 @@ impl TilesComponent {
                 vertical_align: self.vertical_align,
             },
             transition,
-            start_pts: ctx.last_render_pts,
             children: self
                 .children
                 .into_iter()
