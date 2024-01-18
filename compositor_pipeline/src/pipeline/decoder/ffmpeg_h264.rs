@@ -2,11 +2,12 @@ use std::{sync::Arc, time::Duration};
 
 use crate::{
     error::DecoderInitError,
-    pipeline::structs::{Codec, EncodedChunk, EncodedChunkKind},
+    pipeline::structs::{EncodedChunk, EncodedChunkKind, VideoCodec},
     queue::Queue,
 };
 
 use compositor_render::{error::ErrorStack, Frame, InputId, Resolution, YuvData};
+use crossbeam_channel::Receiver;
 use ffmpeg_next::{
     codec::{Context, Id},
     ffi::AV_CODEC_FLAG2_CHUNKS,
@@ -19,7 +20,7 @@ pub struct H264FfmpegDecoder;
 
 impl H264FfmpegDecoder {
     pub fn new(
-        chunks: Box<dyn Iterator<Item = EncodedChunk> + Send>,
+        chunks_receiver: Receiver<EncodedChunk>,
         queue: Arc<Queue>,
         input_id: InputId,
     ) -> Result<Self, DecoderInitError> {
@@ -65,7 +66,15 @@ impl H264FfmpegDecoder {
 
                 let mut decoded_frame = ffmpeg_next::frame::Video::empty();
                 let mut pts_offset = None;
-                for chunk in chunks {
+                for chunk in chunks_receiver {
+                    if chunk.kind != EncodedChunkKind::Video(VideoCodec::H264) {
+                        error!(
+                            "H264 decoder received chunk of wrong kind: {:?}",
+                            chunk.kind
+                        );
+                        continue;
+                    }
+
                     let av_packet: ffmpeg_next::Packet = match chunk_to_av(chunk) {
                         Ok(packet) => packet,
                         Err(err) => {
@@ -117,7 +126,7 @@ enum DecoderChunkConversionError {
 }
 
 fn chunk_to_av(chunk: EncodedChunk) -> Result<ffmpeg_next::Packet, DecoderChunkConversionError> {
-    if chunk.kind != EncodedChunkKind::Video(Codec::H264) {
+    if chunk.kind != EncodedChunkKind::Video(VideoCodec::H264) {
         return Err(DecoderChunkConversionError::BadPayloadType(chunk.kind));
     }
 

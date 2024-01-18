@@ -8,6 +8,7 @@ mod component;
 mod convert;
 mod convert_util;
 mod from_component;
+mod from_register_request;
 mod from_renderer;
 mod register_request;
 mod renderer;
@@ -34,7 +35,7 @@ pub use component::View;
 #[allow(unused_imports)]
 pub use component::WebView;
 
-pub use register_request::Port;
+#[allow(unused_imports)]
 pub use register_request::RegisterInputRequest;
 pub use register_request::RegisterOutputRequest;
 pub use register_request::RegisterRequest;

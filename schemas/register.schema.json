@@ -3,6 +3,7 @@
   "title": "RegisterRequest",
   "oneOf": [
     {
+      "description": "Parameters of registered RTP input stream. Before using input in video composition or output mixing, input has to be firstly registered using `register_input` request.\n\nAt least one of `video` and `audio` has to be defined.",
       "type": "object",
       "required": [
         "entity_type",
@@ -17,17 +18,48 @@
           ]
         },
         "input_id": {
-          "$ref": "#/definitions/InputId"
+          "description": "An identifier for the input stream.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/InputId"
+            }
+          ]
         },
         "port": {
-          "$ref": "#/definitions/Port"
+          "description": "UDP port or port range on which the compositor should listen for the stream.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Port"
+            }
+          ]
+        },
+        "video": {
+          "description": "Parameters of a video source included in the RTP stream.",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Video"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "audio": {
+          "description": "Parameters of an audio source included in the RTP stream.",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Audio"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       }
     },
     {
       "type": "object",
       "required": [
-        "encoder_settings",
         "entity_type",
         "ip",
         "output_id",
@@ -55,8 +87,15 @@
         "resolution": {
           "$ref": "#/definitions/Resolution"
         },
-        "encoder_settings": {
-          "$ref": "#/definitions/EncoderSettings"
+        "encoder_preset": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/EncoderPreset"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       }
     },
@@ -299,6 +338,123 @@
         }
       ]
     },
+    "Video": {
+      "type": "object",
+      "properties": {
+        "codec": {
+          "description": "(**default=`\"h264\"`**) Video codec.",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/VideoCodec"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "rtp_payload_type": {
+          "description": "(**default=`96`**) Value of payload type field in received RTP packets.\n\nPackets with different payload type won't be treated as video and included in composing. Values should be in [0, 64] or [96, 255]. Values in range [65, 95] can't be used. For more information, see [RFC](https://datatracker.ietf.org/doc/html/rfc5761#section-4) Packets with different payload type won't be treated as video and included in composing.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint8",
+          "minimum": 0.0
+        }
+      },
+      "additionalProperties": false
+    },
+    "VideoCodec": {
+      "oneOf": [
+        {
+          "description": "H264 video.",
+          "type": "string",
+          "enum": [
+            "h264"
+          ]
+        }
+      ]
+    },
+    "Audio": {
+      "type": "object",
+      "required": [
+        "channels",
+        "sample_rate"
+      ],
+      "properties": {
+        "codec": {
+          "description": "(**default=`\"opus\"`**) Audio codec.",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/AudioCodec"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sample_rate": {
+          "description": "Sample rate. If the specified sample rate doesn't match real sample rate, audio won't be mixed properly.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        },
+        "channels": {
+          "description": "Audio channels.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/AudioChannels"
+            }
+          ]
+        },
+        "rtp_payload_type": {
+          "description": "(**default=`97`**) Value of payload type field in received RTP packets.\n\nPackets with different payload type won't be treated as audio and included in mixing. Values should be in range [0, 64] or [96, 255]. Values in range [65, 95] can't be used. For more information, check out [RFC](https://datatracker.ietf.org/doc/html/rfc5761#section-4).",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint8",
+          "minimum": 0.0
+        },
+        "forward_error_correction": {
+          "description": "(**default=`\"false\"`**) Specifies whether the stream uses forward error correction. It's specific for Opus codec. For more information, check out [RFC](https://datatracker.ietf.org/doc/html/rfc6716#section-2.1.7).",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "AudioCodec": {
+      "oneOf": [
+        {
+          "description": "Opus audio.",
+          "type": "string",
+          "enum": [
+            "opus"
+          ]
+        }
+      ]
+    },
+    "AudioChannels": {
+      "oneOf": [
+        {
+          "description": "Mono audio (single channel).",
+          "type": "string",
+          "enum": [
+            "mono"
+          ]
+        },
+        {
+          "description": "Stereo audio (two channels).",
+          "type": "string",
+          "enum": [
+            "stereo"
+          ]
+        }
+      ]
+    },
     "OutputId": {
       "type": "string"
     },
@@ -320,21 +476,6 @@
           "type": "integer",
           "format": "uint",
           "minimum": 0.0
-        }
-      }
-    },
-    "EncoderSettings": {
-      "type": "object",
-      "properties": {
-        "preset": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/EncoderPreset"
-            },
-            {
-              "type": "null"
-            }
-          ]
         }
       }
     },

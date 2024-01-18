@@ -12,7 +12,7 @@ RUN apt-get update -y -qq && \
   apt-get install -y \
     build-essential curl pkg-config libssl-dev libclang-dev git sudo \
     libegl1-mesa-dev libgl1-mesa-dri libxcb-xfixes0-dev mesa-vulkan-drivers \
-    ffmpeg libavcodec-dev libavformat-dev libavfilter-dev libavdevice-dev && \
+    ffmpeg libavcodec-dev libavformat-dev libavfilter-dev libavdevice-dev libopus-dev && \
   rm -rf /var/lib/apt/lists/*
 
 RUN curl https://sh.rustup.rs -sSf | bash -s -- -y

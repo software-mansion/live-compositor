@@ -75,6 +75,19 @@ fn start_example_client_code() -> Result<()> {
         }
     }))?;
 
+    info!("[example] Send register input request.");
+    common::post(&json!({
+        "type": "register",
+        "entity_type": "input_stream",
+        "input_id": "input_2",
+        "port": 8006,
+        "audio": {
+            "codec": "opus",
+            "sample_rate": 48_000,
+            "channels": "stereo",
+        }
+    }))?;
+
     let shader_source = include_str!("./silly.wgsl");
     info!("[example] Register shader transform");
     common::post(&json!({
@@ -126,5 +139,22 @@ fn start_example_client_code() -> Result<()> {
             "rtp://127.0.0.1:8004?rtcpport=8004",
         ])
         .spawn()?;
+
+    Command::new("ffmpeg")
+        .args([
+            "-re",
+            "-f",
+            "lavfi",
+            "-i",
+            "sine=frequency=1000:duration=60", // Generates a sine wave tone
+            "-vn",                             // No Video
+            "-c:a",
+            "libopus", // Specify audio codec
+            "-f",
+            "rtp",
+            "rtp://127.0.0.1:8006?rtcpport=8006", // Streaming endpoint
+        ])
+        .spawn()?;
+
     Ok(())
 }

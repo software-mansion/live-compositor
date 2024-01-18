@@ -2,14 +2,14 @@ use compositor_render::OutputId;
 use log::error;
 use std::sync::Arc;
 
-use crate::{
-    error::OutputInitError,
-    pipeline::structs::{Codec, EncodedChunk},
-};
-
 use rand::Rng;
 use rtp::packetizer::Payloader;
 use webrtc_util::Marshal;
+
+use crate::{
+    error::OutputInitError,
+    pipeline::structs::{EncodedChunk, VideoCodec},
+};
 
 #[derive(Debug)]
 pub struct RtpSender {
@@ -29,7 +29,7 @@ pub struct RtpContext {
 pub struct RtpSenderOptions {
     pub port: u16,
     pub ip: Arc<str>,
-    pub codec: Codec,
+    pub codec: VideoCodec,
     pub output_id: OutputId,
 }
 
@@ -38,8 +38,8 @@ impl RtpSender {
         options: RtpSenderOptions,
         packets: Box<dyn Iterator<Item = EncodedChunk> + Send>,
     ) -> Result<Self, OutputInitError> {
-        if options.codec != Codec::H264 {
-            return Err(OutputInitError::UnsupportedCodec(options.codec));
+        if options.codec != VideoCodec::H264 {
+            return Err(OutputInitError::UnsupportedVideoCodec(options.codec));
         }
 
         let mut rng = rand::thread_rng();

@@ -1,8 +1,6 @@
 use std::sync::Arc;
 
 use compositor_pipeline::pipeline::encoder;
-use compositor_pipeline::pipeline::output;
-use compositor_pipeline::pipeline::structs::Codec;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -20,10 +18,81 @@ pub enum RegisterRequest {
     Image(ImageSpec),
 }
 
+/// Parameters of registered RTP input stream.
+/// Before using input in video composition or output mixing,
+/// input has to be firstly registered using `register_input` request.
+///
+/// At least one of `video` and `audio` has to be defined.
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+#[serde(deny_unknown_fields)]
 pub struct RegisterInputRequest {
+    /// An identifier for the input stream.
     pub input_id: InputId,
+    /// UDP port or port range on which the compositor should listen for the stream.
     pub port: Port,
+    /// Parameters of a video source included in the RTP stream.
+    pub video: Option<Video>,
+    /// Parameters of an audio source included in the RTP stream.
+    pub audio: Option<Audio>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct Video {
+    /// (**default=`"h264"`**) Video codec.
+    pub codec: Option<VideoCodec>,
+    /// (**default=`96`**) Value of payload type field in received RTP packets.
+    ///
+    /// Packets with different payload type won't be treated as video and included in composing.
+    /// Values should be in [0, 64] or [96, 255]. Values in range [65, 95] can't be used.
+    /// For more information, see [RFC](https://datatracker.ietf.org/doc/html/rfc5761#section-4)
+    /// Packets with different payload type won't be treated as video and included in composing.
+    pub rtp_payload_type: Option<u8>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum VideoCodec {
+    /// H264 video.
+    H264,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct Audio {
+    /// (**default=`"opus"`**) Audio codec.
+    pub codec: Option<AudioCodec>,
+    /// Sample rate. If the specified sample rate doesn't match
+    /// real sample rate, audio won't be mixed properly.
+    pub sample_rate: u32,
+    /// Audio channels.
+    pub channels: AudioChannels,
+    /// (**default=`97`**) Value of payload type field in received RTP packets.
+    ///
+    /// Packets with different payload type won't be treated as audio and included in mixing.
+    /// Values should be in range [0, 64] or [96, 255]. Values in range [65, 95] can't be used.
+    /// For more information, check out [RFC](https://datatracker.ietf.org/doc/html/rfc5761#section-4).
+    pub rtp_payload_type: Option<u8>,
+    /// (**default=`"false"`**) Specifies whether the stream uses forward error correction.
+    /// It's specific for Opus codec.
+    /// For more information, check out [RFC](https://datatracker.ietf.org/doc/html/rfc6716#section-2.1.7).
+    pub forward_error_correction: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+#[serde(deny_unknown_fields, rename_all = "snake_case")]
+pub enum AudioChannels {
+    /// Mono audio (single channel).
+    Mono,
+    /// Stereo audio (two channels).
+    Stereo,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum AudioCodec {
+    /// Opus audio.
+    Opus,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema, PartialEq, Eq)]
@@ -34,17 +103,13 @@ pub enum Port {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+#[serde(deny_unknown_fields)]
 pub struct RegisterOutputRequest {
     pub output_id: OutputId,
     pub port: u16,
     pub ip: Arc<str>,
     pub resolution: Resolution,
-    pub encoder_settings: EncoderSettings,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-pub struct EncoderSettings {
-    preset: Option<EncoderPreset>,
+    pub encoder_preset: Option<EncoderPreset>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
@@ -64,11 +129,7 @@ pub enum EncoderPreset {
 
 impl From<RegisterOutputRequest> for encoder::EncoderOptions {
     fn from(request: RegisterOutputRequest) -> Self {
-        let preset = match request
-            .encoder_settings
-            .preset
-            .unwrap_or(EncoderPreset::Medium)
-        {
+        let preset = match request.encoder_preset.unwrap_or(EncoderPreset::Fast) {
             EncoderPreset::Ultrafast => encoder::ffmpeg_h264::EncoderPreset::Ultrafast,
             EncoderPreset::Superfast => encoder::ffmpeg_h264::EncoderPreset::Superfast,
             EncoderPreset::Veryfast => encoder::ffmpeg_h264::EncoderPreset::Veryfast,
@@ -84,17 +145,6 @@ impl From<RegisterOutputRequest> for encoder::EncoderOptions {
             preset,
             resolution: request.resolution.into(),
             output_id: request.output_id.into(),
-        })
-    }
-}
-
-impl From<RegisterOutputRequest> for output::OutputOptions {
-    fn from(value: RegisterOutputRequest) -> Self {
-        output::OutputOptions::Rtp(output::rtp::RtpSenderOptions {
-            codec: Codec::H264,
-            ip: value.ip,
-            port: value.port,
-            output_id: value.output_id.into(),
         })
     }
 }

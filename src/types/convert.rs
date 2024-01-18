@@ -1,6 +1,7 @@
+use compositor_pipeline::pipeline;
 use compositor_render::scene;
 
-use crate::api::{self, UpdateScene};
+use crate::api::UpdateScene;
 
 use super::util::*;
 use super::*;
@@ -53,7 +54,7 @@ impl From<compositor_render::InputId> for InputId {
     }
 }
 
-impl TryFrom<UpdateScene> for Vec<compositor_pipeline::pipeline::OutputScene> {
+impl TryFrom<UpdateScene> for Vec<pipeline::OutputScene> {
     type Error = TypeError;
 
     fn try_from(update_scene: UpdateScene) -> Result<Self, Self::Error> {
@@ -65,47 +66,13 @@ impl TryFrom<UpdateScene> for Vec<compositor_pipeline::pipeline::OutputScene> {
     }
 }
 
-impl TryFrom<OutputScene> for compositor_pipeline::pipeline::OutputScene {
+impl TryFrom<OutputScene> for pipeline::OutputScene {
     type Error = TypeError;
 
     fn try_from(scene: OutputScene) -> Result<Self, Self::Error> {
-        Ok(compositor_pipeline::pipeline::OutputScene {
+        Ok(pipeline::OutputScene {
             output_id: scene.output_id.into(),
             root: scene.root.try_into()?,
         })
-    }
-}
-
-impl TryFrom<register_request::Port> for api::Port {
-    type Error = TypeError;
-
-    fn try_from(value: register_request::Port) -> Result<Self, Self::Error> {
-        const PORT_CONVERSION_ERROR_MESSAGE: &str = "Port needs to be a number between 1 and 65535 or a string in the \"START:END\" format, where START and END represent a range of ports.";
-        match value {
-            Port::U16(0) => Err(TypeError::new(PORT_CONVERSION_ERROR_MESSAGE)),
-            Port::U16(v) => Ok(api::Port::Exact(v)),
-            Port::String(s) => {
-                let (start, end) = s
-                    .split_once(':')
-                    .ok_or(TypeError::new(PORT_CONVERSION_ERROR_MESSAGE))?;
-
-                let start = start
-                    .parse::<u16>()
-                    .or(Err(TypeError::new(PORT_CONVERSION_ERROR_MESSAGE)))?;
-                let end = end
-                    .parse::<u16>()
-                    .or(Err(TypeError::new(PORT_CONVERSION_ERROR_MESSAGE)))?;
-
-                if start > end {
-                    return Err(TypeError::new(PORT_CONVERSION_ERROR_MESSAGE));
-                }
-
-                if start == 0 || end == 0 {
-                    return Err(TypeError::new(PORT_CONVERSION_ERROR_MESSAGE));
-                }
-
-                Ok(api::Port::Range((start, end)))
-            }
-        }
     }
 }

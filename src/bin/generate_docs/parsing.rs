@@ -259,6 +259,7 @@ fn parse_schema(schema: &SchemaObject) -> TypeDefinition {
             "uint32" | "uint" => Kind::U32,
             "int32" | "int" => Kind::I32,
             "uint16" => Kind::U16,
+            "uint8" => Kind::U8,
             format => unimplemented!("Unknown integer format \"{format}\""),
         },
         InstanceType::Object => parse_object(schema),

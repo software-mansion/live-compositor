@@ -6,7 +6,7 @@ use compositor_render::{
     InputId, OutputId,
 };
 
-use crate::pipeline::structs::Codec;
+use crate::pipeline::VideoCodec;
 
 #[derive(Debug, thiserror::Error)]
 pub enum RegisterInputError {
@@ -60,7 +60,7 @@ pub enum UnregisterOutputError {
 #[derive(Debug, thiserror::Error)]
 pub enum OutputInitError {
     #[error("An unsupported codec was requested: {0:?}.")]
-    UnsupportedCodec(Codec),
+    UnsupportedVideoCodec(VideoCodec),
 
     #[error(transparent)]
     SocketError(#[from] std::io::Error),
@@ -79,6 +79,8 @@ pub enum EncoderInitError {
 pub enum DecoderInitError {
     #[error(transparent)]
     FfmpegError(#[from] ffmpeg_next::Error),
+    #[error(transparent)]
+    OpusError(#[from] opus::Error),
 }
 
 #[derive(Debug, thiserror::Error)]

@@ -2,6 +2,8 @@
 description: API routes to configure the compositor.
 ---
 
+import Docs from "@site/pages/api/generated/renderer-RegisterInputRequest.md"
+
 # Routes
 
 ### Start
@@ -36,22 +38,7 @@ type OutputScene = {
 
 ***
 
-### Register input stream
-
-```typescript
-type RegisterInputStream = {
-  type: "register";
-  entity_type: "input_stream";
-  input_id: string;
-  port: u16 | string;
-}
-```
-
-Register a new RTP input stream.
-
-- `input_id` - An identifier for the input stream. It can be used in the [`InputStream`](./components/InputStream) component to render the stream content.
-- `port` - UDP port or port range on which the compositor should listen for the stream. An integer value between 1 and 65535 that represents a specific port
-or string in the `START:END` format for a port range.
+<Docs />
 
 ***
 
@@ -68,9 +55,7 @@ type RegisterOutputStream = {
     width: number;
     height: number;
   };
-  encoder_settings: {
-    preset: EncoderPreset;
-  };
+  encoder_preset?: EncoderPreset; 
 }
 
 type EncoderPreset =
@@ -91,7 +76,7 @@ Register a new RTP output stream.
 - `output_id` - An identifier for the output stream. It can be used in the `UpdateScene` request to define what to render for the output stream.
 - `port` / `ip` - UDP port and IP where compositor should send the stream.
 - `resolution` - Output resolution in pixels.
-- `encoder_settings.preset` - Preset for an encoder. See `FFmpeg` [docs](https://trac.ffmpeg.org/wiki/Encode/H.264#Preset) to learn more.
+- `encoder_preset` - (**default=`"fast"`**) Preset for an encoder. See `FFmpeg` [docs](https://trac.ffmpeg.org/wiki/Encode/H.264#Preset) to learn more.
 
 ***
 
@@ -106,6 +91,7 @@ type RegisterRenderer = {
 ```
 
 See renderers documentation to learn more.
+
 - [Image](./renderers/image)
 - [Shader](./renderers/shader)
 - [WebRenderer](./renderers/web)

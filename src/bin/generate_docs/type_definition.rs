@@ -125,6 +125,7 @@ impl TypeDefinition {
             Kind::F64 => "f64".into(),
             Kind::U32 => "u32".into(),
             Kind::U16 => "u16".into(),
+            Kind::U8 => "u8".into(),
             Kind::Bool => "bool".into(),
             Kind::String(value) => match value {
                 Some(value) => format!("\"{value}\""),
@@ -204,6 +205,7 @@ pub enum Kind {
     F64,
     U32,
     U16,
+    U8,
     Bool,
     String(Option<Rc<str>>),
     Ref(Rc<str>),

@@ -9,7 +9,7 @@ use log::{error, warn};
 
 use crate::{
     error::EncoderInitError,
-    pipeline::structs::{Codec, EncodedChunk, EncodedChunkKind},
+    pipeline::structs::{EncodedChunk, EncodedChunkKind, VideoCodec},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
@@ -233,7 +233,7 @@ impl LibavH264Encoder {
                 match encoder.receive_packet(&mut packet) {
                     Ok(_) => match EncodedChunk::from_av_packet(
                         &packet,
-                        EncodedChunkKind::Video(Codec::H264),
+                        EncodedChunkKind::Video(VideoCodec::H264),
                     ) {
                         Ok(chunk) => {
                             packet_sender.send(chunk).unwrap();

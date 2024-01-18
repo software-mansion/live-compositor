@@ -16,4 +16,5 @@ rtp = { workspace = true }
 webrtc-util = "0.8.0"
 socket2 = "0.5.5"
 rtcp = "0.10.0"
+opus = "0.3.0"
 rand = { workspace = true }

@@ -55,9 +55,7 @@ fn start_example_client_code() -> Result<()> {
             "width": VIDEO_RESOLUTION.width,
             "height": VIDEO_RESOLUTION.height,
         },
-        "encoder_settings": {
-            "preset": "ultrafast"
-        }
+        "encoder_preset": "ultrafast"
     }))?;
 
     info!("[example] Send register input request.");
@@ -65,7 +63,10 @@ fn start_example_client_code() -> Result<()> {
         "type": "register",
         "entity_type": "input_stream",
         "input_id": "input_1",
-        "port": "8004:8008"
+        "port": "8004:8008",
+        "video": {
+            "codec": "h264"
+        }
     }))?
     .json()?;
 

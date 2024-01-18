@@ -13,7 +13,7 @@ RUN apt-get update -y -qq && \
     build-essential curl pkg-config libssl-dev libclang-dev git sudo \
     libnss3 libatk1.0-0 libatk-bridge2.0-0 libgdk-pixbuf2.0-0 libgtk-3-0 \
     libegl1-mesa-dev libgl1-mesa-dri libxcb-xfixes0-dev mesa-vulkan-drivers \
-    ffmpeg libavcodec-dev libavformat-dev libavfilter-dev libavdevice-dev && \
+    ffmpeg libavcodec-dev libavformat-dev libavfilter-dev libavdevice-dev libopus-dev && \
   rm -rf /var/lib/apt/lists/*
 
 RUN curl https://sh.rustup.rs -sSf | bash -s -- -y

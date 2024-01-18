@@ -22,14 +22,33 @@ use crate::error::{
 };
 use crate::queue::Queue;
 
+use self::decoder::DecoderOptions;
 use self::encoder::{Encoder, EncoderOptions};
+use self::input::InputOptions;
 use self::output::{Output, OutputOptions};
 
 pub mod decoder;
 pub mod encoder;
 pub mod input;
 pub mod output;
-pub mod structs;
+mod structs;
+
+pub use self::structs::AudioChannels;
+pub use self::structs::AudioCodec;
+pub use self::structs::VideoCodec;
+
+pub struct Port(pub u16);
+
+pub enum RequestedPort {
+    Exact(u16),
+    Range((u16, u16)),
+}
+
+pub struct RegisterInputOptions {
+    pub input_id: InputId,
+    pub input_options: InputOptions,
+    pub decoder_options: DecoderOptions,
+}
 
 #[derive(Debug, Clone)]
 pub struct OutputScene {
@@ -90,27 +109,35 @@ impl Pipeline {
 
     pub fn register_input(
         &mut self,
-        input_id: InputId,
-        input_opts: input::InputOptions,
-        decoder_opts: decoder::DecoderOptions,
-    ) -> Result<(), RegisterInputError> {
+        register_options: RegisterInputOptions,
+    ) -> Result<Port, RegisterInputError> {
+        let RegisterInputOptions {
+            input_id,
+            input_options,
+            decoder_options,
+        } = register_options;
+
         if self.inputs.contains_key(&input_id) {
             return Err(RegisterInputError::AlreadyRegistered(input_id));
         }
 
-        let (input, chunks) = input::Input::new(input_opts)
+        let (input, chunks_receiver, port) = input::Input::new(input_options)
             .map_err(|e| RegisterInputError::InputError(input_id.clone(), e))?;
 
-        let decoder =
-            decoder::Decoder::new(decoder_opts, chunks, self.queue.clone(), input_id.clone())
-                .map_err(|e| RegisterInputError::DecoderError(input_id.clone(), e))?;
+        let decoder = decoder::Decoder::new(
+            input_id.clone(),
+            self.queue.clone(),
+            chunks_receiver,
+            decoder_options,
+        )
+        .map_err(|e| RegisterInputError::DecoderError(input_id.clone(), e))?;
 
         let pipeline_input = PipelineInput { input, decoder };
 
         self.inputs.insert(input_id.clone(), pipeline_input.into());
 
         self.queue.add_input(input_id);
-        Ok(())
+        Ok(port)
     }
 
     pub fn unregister_input(&mut self, input_id: &InputId) -> Result<(), UnregisterInputError> {
