@@ -36,14 +36,16 @@ pub(super) fn validate_scene_update(outputs: &[OutputScene]) -> Result<(), Scene
 }
 
 fn validate_component_ids_uniqueness(outputs: &[OutputScene]) -> Result<(), SceneError> {
-    let mut ids: HashSet<&ComponentId> = HashSet::new();
+    let mut ids: HashSet<ComponentId> = HashSet::new();
 
-    fn visit(component: &Component, ids: &mut HashSet<&ComponentId>) -> Result<(), SceneError> {
+    fn visit(component: &Component, ids: &mut HashSet<ComponentId>) -> Result<(), SceneError> {
         let id = component.component_id();
         if let Some(id) = id {
             if ids.contains(id) {
                 return Err(SceneError::DuplicateComponentId(id.clone()));
             }
+
+            ids.insert(id.clone());
         }
 
         component
