@@ -87,6 +87,9 @@
               env.LD_LIBRARY_PATH = lib.makeLibraryPath (maybeDarwinPkgs ++ maybeLinuxPkgs ++ libcefDependencies ++ [ pkgs.libGL ]);
             };
           };
+          packages = {
+            default = (pkgs.callPackage ./package.nix {});
+          };
         };
     };
 }
