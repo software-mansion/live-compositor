@@ -201,6 +201,11 @@ pub enum SceneError {
     #[error("Instance of web renderer \"{0}\" does not exist. You have to register it first before using it in the scene definition.")]
     WebRendererNotFound(RendererId),
 
+    #[error(
+        "Instance of web renderer \"{0}\" was used more than once. Only one component can use specific web renderer at the time."
+    )]
+    WebRendererUsageNotExclusive(RendererId),
+
     #[error("Invalid parameter passed to \"{1}\" shader.")]
     ShaderNodeParametersValidationError(#[source] ParametersValidationError, RendererId),
 

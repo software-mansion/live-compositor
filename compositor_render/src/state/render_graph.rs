@@ -117,8 +117,7 @@ impl RenderGraph {
                 new_nodes.insert(node_id, node);
             }
             scene::NodeParams::Web(web_renderer) => {
-                let node =
-                    RenderNode::new_web_renderer_node(ctx, input_pads, &node_id, web_renderer);
+                let node = RenderNode::new_web_renderer_node(ctx, input_pads, web_renderer);
                 new_nodes.insert(node_id, node);
             }
             scene::NodeParams::Image(image) => {

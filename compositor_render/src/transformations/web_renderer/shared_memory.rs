@@ -1,11 +1,8 @@
-use crate::state::render_graph::NodeId;
 use compositor_chromium::cef;
 use log::error;
 use shared_memory::{Shmem, ShmemConf, ShmemError};
 use std::path::{Path, PathBuf};
 use std::{fs, io};
-
-use super::UNEMBED_SOURCE_FRAMES_MESSAGE;
 
 pub struct SharedMemory {
     inner: Option<Shmem>,
@@ -15,14 +12,11 @@ pub struct SharedMemory {
 impl SharedMemory {
     pub fn new(
         root_path: &Path,
-        node_id: &NodeId,
         source_idx: usize,
         size: usize,
     ) -> Result<Self, SharedMemoryError> {
-        let path = root_path.join(node_id.to_string());
-        Self::init_shared_memory_folder(&path)?;
-
-        Self::from_path(path.join(source_idx.to_string()), size)
+        Self::init_shared_memory_folder(root_path)?;
+        Self::from_path(root_path.join(source_idx.to_string()), size)
     }
 
     pub fn from_path(path: PathBuf, size: usize) -> Result<Self, SharedMemoryError> {
@@ -42,22 +36,11 @@ impl SharedMemory {
         self.path.display().to_string()
     }
 
-    pub fn ensure_size(
-        &mut self,
-        size: usize,
-        frame: &cef::Frame,
-    ) -> Result<(), SharedMemoryError> {
-        let shmem_len = self.inner.as_ref().map(|shmem| shmem.len()).unwrap();
-        if shmem_len == size {
-            return Ok(());
-        }
+    pub fn len(&self) -> usize {
+        self.inner.as_ref().map(|shmem| shmem.len()).unwrap()
+    }
 
-        // TODO: This should be synchronised
-        let mut process_message = cef::ProcessMessage::new(UNEMBED_SOURCE_FRAMES_MESSAGE);
-        process_message.write_string(0, self.path.display().to_string());
-        frame.send_process_message(cef::ProcessId::Renderer, process_message)?;
-        // -----
-
+    pub fn resize(&mut self, size: usize) -> Result<(), SharedMemoryError> {
         // Releasing the current `Shmem` instance to ensure it does not erase the shared memory descriptor from the file system
         // This is critical to ensure when a new `Shmem` is created at the same location, it doesn't conflict with the old descriptor
         drop(self.inner.take());

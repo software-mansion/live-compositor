@@ -9,7 +9,9 @@ use log::error;
 
 use crate::wgpu::texture::NodeTexture;
 
-use super::{browser_client::BrowserClient, chromium_sender_thread::ChromiumSenderThread};
+use super::{
+    browser_client::BrowserClient, chromium_sender_thread::ChromiumSenderThread, WebRendererSpec,
+};
 
 #[derive(Debug)]
 pub(super) struct ChromiumSender {
@@ -27,13 +29,13 @@ impl Drop for ChromiumSender {
 }
 
 impl ChromiumSender {
-    pub fn new(ctx: &RegisterCtx, url: String, browser_client: BrowserClient) -> Self {
+    pub fn new(ctx: &RegisterCtx, spec: &WebRendererSpec, browser_client: BrowserClient) -> Self {
         let (message_sender, message_receiver) = crossbeam_channel::unbounded();
         let (unmap_signal_sender, unmap_signal_receiver) = crossbeam_channel::bounded(0);
 
         ChromiumSenderThread::new(
             ctx,
-            url,
+            spec,
             browser_client,
             message_receiver,
             unmap_signal_sender,
@@ -48,7 +50,6 @@ impl ChromiumSender {
 
     pub fn embed_sources(
         &self,
-        node_id: NodeId,
         sources: &[(&NodeId, &NodeTexture)],
     ) -> Result<(), ChromiumSenderError> {
         let resolutions = sources
@@ -56,16 +57,12 @@ impl ChromiumSender {
             .map(|(_, texture)| texture.resolution())
             .collect();
         self.message_sender
-            .send(ChromiumSenderMessage::EmbedSources {
-                node_id,
-                resolutions,
-            })
+            .send(ChromiumSenderMessage::EmbedSources { resolutions })
             .map_err(|_| ChromiumSenderError::MessageChannelDisconnected)
     }
 
     pub fn ensure_shared_memory(
         &self,
-        node_id: NodeId,
         sources: &[(&NodeId, &NodeTexture)],
     ) -> Result<(), ChromiumSenderError> {
         let resolutions = sources
@@ -73,22 +70,17 @@ impl ChromiumSender {
             .map(|(_, texture)| texture.resolution())
             .collect();
         self.message_sender
-            .send(ChromiumSenderMessage::EnsureSharedMemory {
-                node_id,
-                resolutions,
-            })
+            .send(ChromiumSenderMessage::EnsureSharedMemory { resolutions })
             .map_err(|_| ChromiumSenderError::MessageChannelDisconnected)
     }
 
     pub fn update_shared_memory(
         &self,
-        node_id: NodeId,
         source_idx: usize,
         buffer: Arc<wgpu::Buffer>,
         size: wgpu::Extent3d,
     ) -> Result<(), ChromiumSenderError> {
         let info = UpdateSharedMemoryInfo {
-            node_id,
             source_idx,
             buffer,
             size,
@@ -118,11 +110,9 @@ impl ChromiumSender {
 
 pub(super) enum ChromiumSenderMessage {
     EmbedSources {
-        node_id: NodeId,
         resolutions: Vec<Option<Resolution>>,
     },
     EnsureSharedMemory {
-        node_id: NodeId,
         resolutions: Vec<Option<Resolution>>,
     },
     UpdateSharedMemory(UpdateSharedMemoryInfo),
@@ -133,7 +123,6 @@ pub(super) enum ChromiumSenderMessage {
 }
 
 pub(super) struct UpdateSharedMemoryInfo {
-    pub node_id: NodeId,
     pub source_idx: usize,
     pub buffer: Arc<wgpu::Buffer>,
     pub size: wgpu::Extent3d,
