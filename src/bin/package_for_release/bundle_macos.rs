@@ -50,6 +50,7 @@ fn bundle_app(target: &'static str, output_name: &str, enable_web_rendering: boo
     utils::cargo_build("main_process", target, !enable_web_rendering)?;
 
     info!("Create macOS bundle.");
+    #[cfg(feature = "web_renderer")]
     if enable_web_rendering {
         use compositor_chromium::cef;
 

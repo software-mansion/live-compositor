@@ -10,22 +10,19 @@
       systems = [ "x86_64-linux" "aarch64-linux" "aarch64-darwin" "x86_64-darwin" ];
       perSystem = { config, self', inputs', pkgs, system, lib, ... }:
         let
-          maybeDarwinPkgs = with pkgs; lib.optionals stdenv.isDarwin [
-            darwin.apple_sdk.frameworks.Metal
-            darwin.apple_sdk.frameworks.Foundation
-            darwin.apple_sdk.frameworks.QuartzCore
-            darwin.libobjc
-
-            libiconv
-          ];
-          maybeLinuxPkgs = with pkgs; lib.optionals stdenv.isLinux [
-            vulkan-tools
-            vulkan-headers
-            vulkan-loader
-            vulkan-validation-layers
-            wayland
-            mesa.drivers
-          ];
+          packageWithoutChromium = (pkgs.callPackage ./package.nix { });
+          ffmpeg =
+            (if pkgs.stdenv.isDarwin then
+              (pkgs.ffmpeg_6-full.override {
+                x264 = pkgs.x264.overrideAttrs (old: {
+                  postPatch = old.postPatch + ''
+                    substituteInPlace Makefile --replace '$(if $(STRIP), $(STRIP) -x $@)' '$(if $(STRIP), $(STRIP) -S $@)'
+                  '';
+                });
+              })
+            else
+              pkgs.ffmpeg_6-full
+            );
           # https://github.com/NixOS/nixpkgs/blob/master/pkgs/development/libraries/libcef/default.nix#L33
           libcefDependencies = with pkgs;  [
             glib
@@ -56,39 +53,31 @@
               alsa-lib
             ]
           );
-          compositorBuildDependencies = with pkgs; [
-            cargo
-            rustc
-            libGL
-            libopus
-
-            pkg-config
-            openssl
-            ffmpeg_6-full
-
-            llvmPackages_16.clang
-          ] ++ maybeDarwinPkgs ++ maybeLinuxPkgs;
           devDependencies = with pkgs; [
+            ffmpeg # to add ffplay
             nodejs_18
             rustfmt
             clippy
             rust-analyzer
+            pkgs.mesa.drivers
           ];
         in
         {
           devShells = {
             default = pkgs.mkShell {
-              packages = compositorBuildDependencies ++ devDependencies;
+              packages = devDependencies;
 
               # Fixes "ffplay" used in examples on Linux (not needed on NixOS)
               env.LIBGL_DRIVERS_PATH = "${pkgs.mesa.drivers}/lib/dri";
 
               env.LIBCLANG_PATH = "${pkgs.llvmPackages_16.libclang.lib}/lib";
-              env.LD_LIBRARY_PATH = lib.makeLibraryPath (maybeDarwinPkgs ++ maybeLinuxPkgs ++ libcefDependencies ++ [ pkgs.libGL ]);
+              env.LD_LIBRARY_PATH = lib.makeLibraryPath (libcefDependencies ++ [ pkgs.mesa.drivers pkgs.libGL ]);
+
+              inputsFrom = [ packageWithoutChromium ];
             };
           };
           packages = {
-            default = (pkgs.callPackage ./package.nix {});
+            default = packageWithoutChromium;
           };
         };
     };
