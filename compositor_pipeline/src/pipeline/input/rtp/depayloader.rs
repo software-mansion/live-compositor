@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use rtp::{
     codecs::{h264::H264Packet, opus::OpusPacket},
     packetizer::Depacketizer,
@@ -80,7 +82,7 @@ impl VideoDepayloader {
 
                 Ok(Some(EncodedChunk {
                     data: h264_chunk,
-                    pts: packet.header.timestamp as i64,
+                    pts: Duration::from_secs_f64(packet.header.timestamp as f64 / 90000.0),
                     dts: None,
                     kind,
                 }))
@@ -107,15 +109,15 @@ impl AudioDepayloader {
         match self {
             AudioDepayloader::Opus(depayloader) => {
                 let kind = EncodedChunkKind::Audio(AudioCodec::Opus);
-                let h264_packet = depayloader.depacketize(&packet.payload)?;
+                let opus_packet = depayloader.depacketize(&packet.payload)?;
 
-                if h264_packet.is_empty() {
+                if opus_packet.is_empty() {
                     return Ok(None);
                 }
 
                 Ok(Some(EncodedChunk {
-                    data: h264_packet,
-                    pts: packet.header.timestamp as i64,
+                    data: opus_packet,
+                    pts: Duration::from_secs_f64(packet.header.timestamp as f64 / 48000.0),
                     dts: None,
                     kind,
                 }))

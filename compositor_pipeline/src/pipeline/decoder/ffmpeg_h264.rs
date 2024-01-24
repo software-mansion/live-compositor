@@ -133,8 +133,8 @@ fn chunk_to_av(chunk: EncodedChunk) -> Result<ffmpeg_next::Packet, DecoderChunkC
     let mut packet = ffmpeg_next::Packet::new(chunk.data.len());
 
     packet.data_mut().unwrap().copy_from_slice(&chunk.data);
-    packet.set_pts(Some(chunk.pts));
-    packet.set_dts(chunk.dts);
+    packet.set_pts(Some((chunk.pts.as_secs_f64() * 90000.0) as i64));
+    packet.set_dts(chunk.dts.map(|dts| (dts.as_secs_f64() * 90000.0) as i64));
 
     Ok(packet)
 }

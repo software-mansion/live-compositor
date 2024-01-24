@@ -8,62 +8,99 @@ impl TryFrom<register_request::RegisterInputRequest> for pipeline::RegisterInput
     type Error = TypeError;
 
     fn try_from(value: register_request::RegisterInputRequest) -> Result<Self, Self::Error> {
-        const NO_VIDEO_AUDIO_SPEC: &str =
-            "At least one of `video` or `audio` has to be specified in `register_input` request.";
+        match value {
+            register_request::RegisterInputRequest::Rtp {
+                input_id,
+                port,
+                video,
+                audio,
+            } => {
+                const NO_VIDEO_AUDIO_SPEC: &str =
+                    "At least one of `video` or `audio` has to be specified in `register_input` request.";
 
-        if value.video.is_none() && value.audio.is_none() {
-            return Err(TypeError::new(NO_VIDEO_AUDIO_SPEC));
-        }
-        let rtp_stream = pipeline::input::rtp::RtpStream {
-            video: value
-                .video
-                .as_ref()
-                .map(|video| pipeline::input::rtp::VideoStream {
-                    codec: video.codec.clone().unwrap_or(VideoCodec::H264).into(),
-                    payload_type: video.rtp_payload_type.unwrap_or(96),
-                }),
-            audio: value
-                .audio
-                .as_ref()
-                .map(|audio| pipeline::input::rtp::AudioStream {
-                    codec: audio.codec.clone().unwrap_or(AudioCodec::Opus).into(),
-                    payload_type: audio.rtp_payload_type.unwrap_or(97),
-                }),
-        };
+                if video.is_none() && audio.is_none() {
+                    return Err(TypeError::new(NO_VIDEO_AUDIO_SPEC));
+                }
+                let rtp_stream = pipeline::input::rtp::RtpStream {
+                    video: video
+                        .as_ref()
+                        .map(|video| pipeline::input::rtp::VideoStream {
+                            codec: video.codec.clone().unwrap_or(VideoCodec::H264).into(),
+                            payload_type: video.rtp_payload_type.unwrap_or(96),
+                        }),
+                    audio: audio
+                        .as_ref()
+                        .map(|audio| pipeline::input::rtp::AudioStream {
+                            codec: audio.codec.clone().unwrap_or(AudioCodec::Opus).into(),
+                            payload_type: audio.rtp_payload_type.unwrap_or(97),
+                        }),
+                };
 
-        let input_options =
-            pipeline::input::InputOptions::Rtp(pipeline::input::rtp::RtpReceiverOptions {
-                port: value.port.try_into()?,
-                input_id: value.input_id.clone().into(),
-                stream: rtp_stream,
-            });
+                let input_options =
+                    pipeline::input::InputOptions::Rtp(pipeline::input::rtp::RtpReceiverOptions {
+                        port: port.try_into()?,
+                        input_id: input_id.clone().into(),
+                        stream: rtp_stream,
+                    });
 
-        let decoder_options = pipeline::decoder::DecoderOptions {
-            video: value
-                .video
-                .map(|video| pipeline::decoder::VideoDecoderOptions {
-                    codec: video.codec.unwrap_or(VideoCodec::H264).into(),
-                }),
-            audio: value
-                .audio
-                .map(|audio| match audio.codec.unwrap_or(AudioCodec::Opus) {
-                    AudioCodec::Opus => pipeline::decoder::AudioDecoderOptions::Opus(
-                        pipeline::decoder::OpusDecoderOptions {
-                            sample_rate: audio.sample_rate,
-                            channels: audio.channels.into(),
-                            forward_error_correction: audio
-                                .forward_error_correction
-                                .unwrap_or(false),
+                let decoder_options = pipeline::decoder::DecoderOptions {
+                    video: video.map(|video| pipeline::decoder::VideoDecoderOptions {
+                        codec: video.codec.unwrap_or(VideoCodec::H264).into(),
+                    }),
+                    audio: audio.map(|audio| match audio.codec.unwrap_or(AudioCodec::Opus) {
+                        AudioCodec::Opus => pipeline::decoder::AudioDecoderOptions::Opus(
+                            pipeline::decoder::OpusDecoderOptions {
+                                sample_rate: audio.sample_rate,
+                                channels: audio.channels.into(),
+                                forward_error_correction: audio
+                                    .forward_error_correction
+                                    .unwrap_or(false),
+                            },
+                        ),
+                    }),
+                };
+
+                Ok(pipeline::RegisterInputOptions {
+                    input_id: input_id.into(),
+                    input_options,
+                    decoder_options,
+                })
+            }
+
+            register_request::RegisterInputRequest::Mp4 {
+                input_id,
+                url,
+                path,
+            } => {
+                const BAD_URL_PATH_SPEC: &str =
+                    "Exactly one of `url` or `path` has to be specified in an mp4 `register_input` request.";
+
+                let source = match (url, path) {
+                    (Some(_), Some(_)) | (None, None) => {
+                        return Err(TypeError::new(BAD_URL_PATH_SPEC));
+                    }
+
+                    (Some(url), None) => pipeline::input::mp4::Source::Url(url),
+                    (None, Some(path)) => pipeline::input::mp4::Source::File(path.into()),
+                };
+
+                Ok(pipeline::RegisterInputOptions {
+                    input_id: input_id.clone().into(),
+                    input_options: pipeline::input::InputOptions::Mp4(
+                        pipeline::input::mp4::Mp4Options {
+                            input_id: input_id.into(),
+                            source,
                         },
                     ),
-                }),
-        };
-
-        Ok(pipeline::RegisterInputOptions {
-            input_id: value.input_id.into(),
-            input_options,
-            decoder_options,
-        })
+                    decoder_options: pipeline::decoder::DecoderOptions {
+                        video: Some(pipeline::decoder::VideoDecoderOptions {
+                            codec: pipeline::VideoCodec::H264,
+                        }),
+                        audio: None,
+                    },
+                })
+            }
+        }
     }
 }
 

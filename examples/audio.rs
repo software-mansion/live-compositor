@@ -68,6 +68,7 @@ fn start_example_client_code() -> Result<()> {
     common::post(&json!({
         "type": "register",
         "entity_type": "input_stream",
+        "input_type": "rtp",
         "input_id": "input_1",
         "port": 8004,
         "video": {
@@ -80,6 +81,7 @@ fn start_example_client_code() -> Result<()> {
         "type": "register",
         "entity_type": "input_stream",
         "input_id": "input_2",
+        "input_type": "rtp",
         "port": 8006,
         "audio": {
             "codec": "opus",

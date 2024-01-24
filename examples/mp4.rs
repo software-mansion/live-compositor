@@ -2,7 +2,7 @@ use anyhow::Result;
 use log::{error, info};
 use serde_json::json;
 use std::{
-    env, fs,
+    env,
     process::{Command, Stdio},
     thread,
     time::Duration,
@@ -14,8 +14,7 @@ use crate::common::write_example_sdp_file;
 #[path = "./common/common.rs"]
 mod common;
 
-const SAMPLE_FILE_URL: &str = "https://filesamples.com/samples/video/mp4/sample_1280x720.mp4";
-const SAMPLE_FILE_PATH: &str = "examples/assets/sample_1280_720.mp4";
+const MP4_URL: &str = "https://filesamples.com/samples/video/mp4/sample_960x400_ocean_with_audio.mp4";
 const VIDEO_RESOLUTION: Resolution = Resolution {
     width: 1280,
     height: 720,
@@ -45,11 +44,6 @@ fn start_example_client_code() -> Result<()> {
         .spawn()?;
     thread::sleep(Duration::from_secs(2));
 
-    info!("[example] Download sample.");
-    let sample_path = env::current_dir()?.join(SAMPLE_FILE_PATH);
-    fs::create_dir_all(sample_path.parent().unwrap())?;
-    common::ensure_downloaded(SAMPLE_FILE_URL, &sample_path)?;
-
     info!("[example] Send register output request.");
     common::post(&json!({
         "type": "register",
@@ -68,12 +62,9 @@ fn start_example_client_code() -> Result<()> {
     common::post(&json!({
         "type": "register",
         "entity_type": "input_stream",
-        "input_type": "rtp",
+        "input_type": "mp4",
         "input_id": "input_1",
-        "port": 8004,
-        "video": {
-            "codec": "h264"
-        }
+        "url": MP4_URL
     }))?;
 
     let shader_source = include_str!("./silly.wgsl");
@@ -113,19 +104,5 @@ fn start_example_client_code() -> Result<()> {
         "type": "start",
     }))?;
 
-    Command::new("ffmpeg")
-        .args(["-stream_loop", "-1", "-re", "-i"])
-        .arg(sample_path)
-        .args([
-            "-an",
-            "-c:v",
-            "copy",
-            "-f",
-            "rtp",
-            "-bsf:v",
-            "h264_mp4toannexb",
-            "rtp://127.0.0.1:8004?rtcpport=8004",
-        ])
-        .spawn()?;
     Ok(())
 }

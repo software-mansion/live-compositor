@@ -60,9 +60,10 @@ pub enum Response {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct InputInfo {
-    pub id: InputId,
-    pub port: u16,
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum InputInfo {
+    Rtp { id: InputId, port: u16 },
+    Mp4 { id: InputId },
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -141,9 +142,13 @@ impl Api {
                     .pipeline
                     .inputs()
                     .map(|(id, node)| match node.input {
-                        pipeline::input::Input::Rtp(ref rtp) => InputInfo {
+                        pipeline::input::Input::Rtp(ref rtp) => InputInfo::Rtp {
                             id: id.clone().into(),
                             port: rtp.port,
+                        },
+
+                        pipeline::input::Input::Mp4(ref mp4) => InputInfo::Mp4 {
+                            id: mp4.input_id.clone().into(),
                         },
                     })
                     .collect();

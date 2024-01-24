@@ -5,7 +5,7 @@ use crate::{error::DecoderInitError, queue::Queue};
 use self::{ffmpeg_h264::H264FfmpegDecoder, opus_decoder::OpusDecoder};
 
 use super::{
-    input::rtp::{ChunksReceiver, ChunksSenderThread},
+    input::ChunksReceiver,
     structs::{AudioChannels, EncodedChunk, VideoCodec},
 };
 use compositor_render::InputId;
@@ -19,8 +19,6 @@ pub struct Decoder {
     video: Option<VideoDecoder>,
     #[allow(dead_code)]
     audio: Option<AudioDecoder>,
-    #[allow(dead_code)]
-    chunks_sender: ChunksSenderThread,
 }
 
 #[derive(Debug, Clone)]
@@ -43,7 +41,6 @@ impl Decoder {
         let ChunksReceiver {
             video: video_receiver,
             audio: audio_receiver,
-            sender_thread,
         } = chunks;
 
         let video_decoder =
@@ -67,7 +64,6 @@ impl Decoder {
         Ok(Self {
             video: video_decoder,
             audio: audio_decoder,
-            chunks_sender: sender_thread,
         })
     }
 }

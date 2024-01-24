@@ -234,6 +234,7 @@ impl LibavH264Encoder {
                     Ok(_) => match EncodedChunk::from_av_packet(
                         &packet,
                         EncodedChunkKind::Video(VideoCodec::H264),
+                        90000,
                     ) {
                         Ok(chunk) => {
                             packet_sender.send(chunk).unwrap();

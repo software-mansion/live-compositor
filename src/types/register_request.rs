@@ -18,22 +18,36 @@ pub enum RegisterRequest {
     Image(ImageSpec),
 }
 
-/// Parameters of registered RTP input stream.
+/// Parameters of registered input stream.
 /// Before using input in video composition or output mixing,
-/// input has to be firstly registered using `register_input` request.
-///
-/// At least one of `video` and `audio` has to be defined.
+/// input has to be registered using the `register_input` request.
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(deny_unknown_fields)]
-pub struct RegisterInputRequest {
-    /// An identifier for the input stream.
-    pub input_id: InputId,
-    /// UDP port or port range on which the compositor should listen for the stream.
-    pub port: Port,
-    /// Parameters of a video source included in the RTP stream.
-    pub video: Option<Video>,
-    /// Parameters of an audio source included in the RTP stream.
-    pub audio: Option<Audio>,
+#[serde(tag = "input_type", rename_all = "snake_case")]
+pub enum RegisterInputRequest {
+    /// Input stream from RTP source.
+    /// At least one of `video` and `audio` has to be defined.
+    Rtp {
+        /// An identifier for the input stream.
+        input_id: InputId,
+        /// UDP port or port range on which the compositor should listen for the stream.
+        port: Port,
+        /// Parameters of a video source included in the RTP stream.
+        video: Option<Video>,
+        /// Parameters of an audio source included in the RTP stream.
+        audio: Option<Audio>,
+    },
+
+    /// Input stream from MP4 file.
+    /// Exactly one of `url` and `path` has to be defined.
+    Mp4 {
+        /// An identifier for the input stream.
+        input_id: InputId,
+        /// URL of the MP4 file.
+        url: Option<String>,
+        /// Path to the MP4 file.
+        path: Option<String>,
+    },
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]

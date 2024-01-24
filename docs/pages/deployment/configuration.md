@@ -48,6 +48,10 @@ Minimal log level that should be logged. Supported options:
 
 See `-loglevel` option in [FFmpeg documentation](https://ffmpeg.org/ffmpeg.html).
 
+### `LIVE_COMPOSITOR_TMP_PATH`
+
+A path to a directory in which temporary files will be stored. Uses the location provided by the OS if not set.
+
 ### `LIVE_COMPOSITOR_WEB_RENDERER_ENABLE`
 
 Enable web rendering capabilities. With this option disabled, you can not use [`WebView` components](../api/components/WebView) or register [`WebRenderer` instances](../api/renderers/web).

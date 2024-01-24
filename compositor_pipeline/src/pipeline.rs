@@ -112,7 +112,7 @@ impl Pipeline {
     pub fn register_input(
         &mut self,
         register_options: RegisterInputOptions,
-    ) -> Result<Port, RegisterInputError> {
+    ) -> Result<Option<Port>, RegisterInputError> {
         let RegisterInputOptions {
             input_id,
             input_options,

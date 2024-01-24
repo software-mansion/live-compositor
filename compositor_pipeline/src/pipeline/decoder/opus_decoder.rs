@@ -1,4 +1,4 @@
-use std::{sync::Arc, time::Duration};
+use std::sync::Arc;
 
 use compositor_render::{AudioSamples, AudioSamplesBatch, InputId};
 use crossbeam_channel::Receiver;
@@ -65,12 +65,9 @@ impl OpusDecoder {
                 }
             };
 
-            // This is RTP specific. 48000 here is a RTP clock rate.
-            let pts = Duration::from_secs_f64(f64::max(chunk.pts as f64 / 48000.0, 0.0));
-
             let samples = AudioSamplesBatch {
                 samples,
-                pts,
+                pts: chunk.pts,
                 sample_rate: opts.sample_rate,
             };
 

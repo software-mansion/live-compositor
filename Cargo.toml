@@ -60,3 +60,4 @@ reqwest = { workspace = true }
 name = "process_helper"
 path = "src/bin/process_helper/main.rs"
 required-features = ["web_renderer"]
+

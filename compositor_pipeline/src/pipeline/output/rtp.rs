@@ -99,7 +99,7 @@ impl RtpSender {
                 marker: i == packets_amount - 1, // marker needs to be set on the last packet of each frame
                 payload_type: 96,
                 sequence_number: context.next_sequence_number,
-                timestamp: pts as u32,
+                timestamp: (pts.as_secs_f64() * 90000.0) as u32,
                 ssrc: context.ssrc,
                 ..Default::default()
             };

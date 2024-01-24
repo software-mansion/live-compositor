@@ -128,6 +128,7 @@ fn start_example_client_code(host_ip: String) -> Result<()> {
         "type": "register",
         "entity_type": "input_stream",
         "input_id": "input_1",
+        "input_type": "rtp",
         "port": 8004,
         "video": {
             "codec": "h264"

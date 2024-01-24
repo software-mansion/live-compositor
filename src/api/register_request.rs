@@ -14,10 +14,13 @@ pub fn handle_register_request(
     match request {
         RegisterRequest::InputStream(input_stream) => {
             let register_options = input_stream.try_into()?;
-            let Port(port) = api.pipeline.register_input(register_options)?;
-            Ok(Some(ResponseHandler::Response(
-                super::Response::RegisteredPort(port),
-            )))
+            match api.pipeline.register_input(register_options)? {
+                Some(Port(port)) => Ok(Some(ResponseHandler::Response(
+                    super::Response::RegisteredPort(port),
+                ))),
+
+                None => Ok(Some(ResponseHandler::Ok)),
+            }
         }
         RegisterRequest::OutputStream(output_stream) => {
             register_output(api, output_stream).map(|_| None)
