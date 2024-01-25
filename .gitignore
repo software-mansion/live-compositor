@@ -37,3 +37,4 @@ target/
 /video_compositor_darwin_x86_64.tar.gz
 
 .direnv
+/result
