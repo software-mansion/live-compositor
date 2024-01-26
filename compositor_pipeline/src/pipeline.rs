@@ -79,6 +79,7 @@ pub struct Options {
     pub framerate: Framerate,
     pub stream_fallback_timeout: Duration,
     pub web_renderer: WebRendererInitOptions,
+    pub force_gpu: bool,
 }
 
 impl Pipeline {
@@ -87,6 +88,7 @@ impl Pipeline {
             web_renderer: opts.web_renderer,
             framerate: opts.framerate,
             stream_fallback_timeout: opts.stream_fallback_timeout,
+            force_gpu: opts.force_gpu,
         })?;
         let pipeline = Pipeline {
             outputs: OutputRegistry::new(),

@@ -38,6 +38,7 @@ pub struct RendererOptions {
     pub web_renderer: web_renderer::WebRendererInitOptions,
     pub framerate: Framerate,
     pub stream_fallback_timeout: Duration,
+    pub force_gpu: bool,
 }
 
 #[derive(Clone)]
@@ -150,7 +151,7 @@ impl Renderer {
 
 impl InnerRenderer {
     pub fn new(opts: RendererOptions) -> Result<Self, InitRendererEngineError> {
-        let wgpu_ctx = Arc::new(WgpuCtx::new()?);
+        let wgpu_ctx = Arc::new(WgpuCtx::new(opts.force_gpu)?);
 
         Ok(Self {
             wgpu_ctx: wgpu_ctx.clone(),

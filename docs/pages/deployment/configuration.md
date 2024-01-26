@@ -10,6 +10,10 @@ API port. Defaults to 8001.
 
 Output framerate for all output streams. This value can be a number or string in the `NUM/DEN` format , where both `NUM` and `DEN` are unsigned integers.
 
+### `LIVE_COMPOSITOR_FORCE_GPU`
+
+If enabled, GPU will be required for rendering. If only CPU based adapters will be found then process will exit with an error. Defaults to `false`.
+
 ### `LIVE_COMPOSITOR_STREAM_FALLBACK_TIMEOUT_MS`
 
 A timeout that defines when the compositor should switch to fallback on the input stream that stopped sending frames.
@@ -19,6 +23,8 @@ A timeout that defines when the compositor should switch to fallback on the inpu
 Logger level. Value can be defined as `error`/`warn`/`info`/`debug`/`trace`.
 
 This value also supports syntax for more detailed configuration. See [`tracing-subscriber` crate documentation](https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#example-syntax) for more info.
+
+Defaults to `info,wgpu_hal=warn,wgpu_core=warn`.
 
 ### `LIVE_COMPOSITOR_LOGGER_FORMAT`
 

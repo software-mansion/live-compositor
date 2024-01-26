@@ -1,4 +1,4 @@
-use log::error;
+use log::{error, info};
 
 use super::{
     common_pipeline::plane::Plane, format::TextureFormat, texture::Texture, utils::TextureUtils,
@@ -21,11 +21,13 @@ pub struct WgpuCtx {
 }
 
 impl WgpuCtx {
-    pub fn new() -> Result<Self, CreateWgpuCtxError> {
+    pub fn new(force_gpu: bool) -> Result<Self, CreateWgpuCtxError> {
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
             backends: wgpu::Backends::all(),
             ..Default::default()
         });
+
+        log_available_adapters(&instance);
 
         let adapter =
             pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptionsBase {
@@ -35,9 +37,19 @@ impl WgpuCtx {
             }))
             .ok_or(CreateWgpuCtxError::NoAdapter)?;
 
+        let adapter_info = adapter.get_info();
+        info!(
+            "Using {} adapter with {:?} backend",
+            adapter_info.name, adapter_info.backend
+        );
+        if force_gpu && adapter_info.device_type != wgpu::DeviceType::Cpu {
+            error!("Selected adapter is CPU based. Aborting.");
+            return Err(CreateWgpuCtxError::NoAdapter);
+        }
+
         let (device, queue) = pollster::block_on(adapter.request_device(
             &wgpu::DeviceDescriptor {
-                label: Some("Video Compositor's GPU :^)"),
+                label: None,
                 limits: wgpu::Limits {
                     max_push_constant_size: 128,
                     ..Default::default()
@@ -95,4 +107,15 @@ fn uniform_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
             },
         }],
     })
+}
+
+fn log_available_adapters(instance: &wgpu::Instance) {
+    let adapters: Vec<_> = instance
+        .enumerate_adapters(wgpu::Backends::all())
+        .map(|adapter| {
+            let info = adapter.get_info();
+            format!("\n - {info:?}")
+        })
+        .collect();
+    info!("Available adapters: {}", adapters.join(""))
 }

@@ -1,5 +1,5 @@
 use compositor_render::OutputId;
-use log::error;
+use log::{debug, error};
 use std::sync::Arc;
 
 use rand::Rng;
@@ -115,7 +115,7 @@ impl RtpSender {
             };
 
             if let Err(err) = context.socket.send(&packet) {
-                error!("Failed to send packet: {err}");
+                debug!("Failed to send packet: {err}");
             }
 
             context.next_sequence_number = context.next_sequence_number.wrapping_add(1);
