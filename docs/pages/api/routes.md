@@ -105,7 +105,7 @@ type Audio = {
   - `"stereo"` - Stereo audio (two channels).
 - `rtp_payload_type` - (**default=`97`**) Value of payload type field in received RTP packets.
   Packets with different payload type won't be treated as audio and included in mixing. Values should be in range [0, 64] or [96, 255]. Values in range [65, 95] can't be used. For more information, check out [RFC](https://datatracker.ietf.org/doc/html/rfc5761#section-4).
-- `forward_error_correction` - (**default=`"false"`**) Specifies whether the stream uses forward error correction. It's specific for Opus codec. For more information, check out [RFC](https://datatracker.ietf.org/doc/html/rfc6716#section-2.1.7).
+- `forward_error_correction` - (**default=`false`**) Specifies whether the stream uses forward error correction. It's specific for Opus codec. For more information, check out [RFC](https://datatracker.ietf.org/doc/html/rfc6716#section-2.1.7).
 
 ***
 
