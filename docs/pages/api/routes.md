@@ -4,6 +4,13 @@ description: API routes to configure the compositor.
 
 # Routes
 
+API is served by default on the port 8081. Different port can be configured using [`LIVE_COMPOSITOR_API_PORT`](../deployment/configuration#live_compositor_api_port) environment variable.
+
+
+## Endpoint `POST /--/api`
+
+Main endpoint for configuring the compositor server.
+
 ### Start
 
 ```typescript
@@ -168,3 +175,7 @@ type Unregister =
   | { type: "unregister", entity_type: "image", image_id: string }
   | { type: "unregister", entity_type: "web_renderer", instance_id: string }
 ```
+
+## Endpoint `GET /status`
+
+Status/health check endpoint. Returns `200 OK`.

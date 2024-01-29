@@ -7,7 +7,7 @@ mod config;
 mod error;
 mod http;
 mod logger;
-
+mod routes;
 mod types;
 
 #[cfg(test)]
