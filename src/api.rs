@@ -88,12 +88,14 @@ impl Api {
             framerate,
             stream_fallback_timeout,
             web_renderer,
+            force_gpu,
             ..
         } = config();
         let (pipeline, event_loop) = Pipeline::new(pipeline::Options {
             framerate: *framerate,
             stream_fallback_timeout: *stream_fallback_timeout,
             web_renderer: *web_renderer,
+            force_gpu: *force_gpu,
         })?;
         Ok((Api { pipeline }, event_loop))
     }

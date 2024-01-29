@@ -36,7 +36,7 @@ type OutputScene = {
 
 ***
 
-### RegisterInputRequest
+### Register input stream
 
 ```typescript
 type RegisterInputStream = {

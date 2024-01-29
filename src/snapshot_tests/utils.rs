@@ -61,6 +61,7 @@ pub(super) fn create_renderer(
             enable: false,
             enable_gpu: false,
         },
+        force_gpu: false,
         framerate: Framerate { num: 30, den: 1 },
         stream_fallback_timeout: Duration::from_secs(3),
     })

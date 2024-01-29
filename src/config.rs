@@ -11,6 +11,7 @@ pub struct Config {
     pub framerate: Framerate,
     pub stream_fallback_timeout: Duration,
     pub web_renderer: WebRendererInitOptions,
+    pub force_gpu: bool,
 }
 
 pub struct LoggerConfig {
@@ -64,7 +65,7 @@ fn read_config() -> Result<Config, &'static str> {
 
     let logger_level = match env::var("LIVE_COMPOSITOR_LOGGER_LEVEL") {
         Ok(level) => level,
-        Err(_) => "info".to_string(),
+        Err(_) => "info,wgpu_hal=warn,wgpu_core=warn".to_string(),
     };
 
     // When building in repo use compact logger
@@ -94,6 +95,11 @@ fn read_config() -> Result<Config, &'static str> {
         Err(_) => true,
     };
 
+    let force_gpu = match env::var("LIVE_COMPOSITOR_FORCE_GPU") {
+        Ok(enable) => bool_env_from_str(&enable).unwrap_or(false),
+        Err(_) => false,
+    };
+
     const DEFAULT_STREAM_FALLBACK_TIMEOUT: Duration = Duration::from_millis(2000);
     let stream_fallback_timeout = match env::var("LIVE_COMPOSITOR_STREAM_FALLBACK_TIMEOUT_MS") {
         Ok(timeout_ms) => match timeout_ms.parse::<f64>() {
@@ -115,6 +121,7 @@ fn read_config() -> Result<Config, &'static str> {
         },
         framerate,
         stream_fallback_timeout,
+        force_gpu,
         web_renderer: WebRendererInitOptions {
             enable: web_renderer_enable,
             enable_gpu: web_renderer_gpu_enable,
