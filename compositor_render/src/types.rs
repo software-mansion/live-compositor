@@ -1,5 +1,12 @@
 use std::{collections::HashMap, fmt::Display, sync::Arc, time::Duration};
 
+#[derive(Debug)]
+pub struct AudioSamplesSet {
+    pub samples: HashMap<InputId, AudioSamples>,
+    pub pts: Duration,
+    pub length: Duration,
+}
+
 #[derive(Debug, Clone)]
 pub struct AudioSamplesBatch {
     pub samples: AudioSamples,

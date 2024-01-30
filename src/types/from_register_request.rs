@@ -14,6 +14,15 @@ impl TryFrom<register_request::RegisterInputRequest> for pipeline::RegisterInput
         if value.video.is_none() && value.audio.is_none() {
             return Err(TypeError::new(NO_VIDEO_AUDIO_SPEC));
         }
+        let input_type = pipeline::InputType {
+            input_id: value.input_id.clone().into(),
+            has_video: value.video.is_some(),
+            audio: value.audio.as_ref().map(|audio| pipeline::AudioOptions {
+                sample_rate: audio.sample_rate,
+                channels: audio.channels.clone().into(),
+            }),
+        };
+
         let rtp_stream = pipeline::input::rtp::RtpStream {
             video: value
                 .video
@@ -63,6 +72,7 @@ impl TryFrom<register_request::RegisterInputRequest> for pipeline::RegisterInput
             input_id: value.input_id.into(),
             input_options,
             decoder_options,
+            input_type,
         })
     }
 }

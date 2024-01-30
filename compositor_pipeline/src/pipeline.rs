@@ -10,12 +10,12 @@ use compositor_render::error::{
 };
 use compositor_render::scene::Component;
 use compositor_render::web_renderer::WebRendererInitOptions;
-use compositor_render::RegistryType;
 use compositor_render::RendererOptions;
 use compositor_render::{error::UpdateSceneError, Renderer};
 use compositor_render::{scene, EventLoop, Framerate, InputId, OutputId, RendererId, RendererSpec};
-use crossbeam_channel::unbounded;
-use log::{error, warn};
+use compositor_render::{AudioSamplesSet, FrameSet, RegistryType};
+use crossbeam_channel::{unbounded, Receiver};
+use log::{debug, error, warn};
 
 use crate::error::{
     RegisterInputError, RegisterOutputError, UnregisterInputError, UnregisterOutputError,
@@ -36,6 +36,8 @@ mod structs;
 pub use self::structs::AudioChannels;
 pub use self::structs::AudioCodec;
 pub use self::structs::VideoCodec;
+pub use crate::queue::AudioOptions;
+pub use crate::queue::InputType;
 
 pub struct Port(pub u16);
 
@@ -47,6 +49,7 @@ pub enum RequestedPort {
 pub struct RegisterInputOptions {
     pub input_id: InputId,
     pub input_options: InputOptions,
+    pub input_type: InputType,
     pub decoder_options: DecoderOptions,
 }
 
@@ -116,6 +119,7 @@ impl Pipeline {
         let RegisterInputOptions {
             input_id,
             input_options,
+            input_type,
             decoder_options,
         } = register_options;
 
@@ -138,7 +142,7 @@ impl Pipeline {
 
         self.inputs.insert(input_id.clone(), pipeline_input.into());
 
-        self.queue.add_input(input_id);
+        self.queue.add_input(input_type);
         Ok(port)
     }
 
@@ -232,38 +236,52 @@ impl Pipeline {
             return;
         }
         let (frames_sender, frames_receiver) = unbounded();
+        let (audio_sender, audio_receiver) = unbounded();
         let renderer = self.renderer.clone();
         let outputs = self.outputs.clone();
 
-        self.queue.start(frames_sender);
+        self.queue.start(frames_sender, audio_sender);
 
-        thread::spawn(move || {
-            for input_frames in frames_receiver.iter() {
-                if frames_receiver.len() > 20 {
-                    warn!("Dropping frame: render queue is too long.",);
-                    continue;
-                }
+        thread::spawn(move || Self::run_renderer_thread(frames_receiver, renderer, outputs));
+        thread::spawn(move || Self::run_audio_mixer_thread(audio_receiver));
+    }
 
-                let output = renderer.render(input_frames);
-                let Ok(output_frames) = output else {
-                    error!(
-                        "Error while rendering: {}",
-                        ErrorStack::new(&output.unwrap_err()).into_string()
-                    );
+    fn run_renderer_thread(
+        frames_receiver: Receiver<FrameSet<InputId>>,
+        renderer: Renderer,
+        outputs: OutputRegistry<PipelineOutput>,
+    ) {
+        for input_frames in frames_receiver.iter() {
+            if frames_receiver.len() > 20 {
+                warn!("Dropping frame: render queue is too long.",);
+                continue;
+            }
+
+            let output = renderer.render(input_frames);
+            let Ok(output_frames) = output else {
+                error!(
+                    "Error while rendering: {}",
+                    ErrorStack::new(&output.unwrap_err()).into_string()
+                );
+                continue;
+            };
+
+            for (id, frame) in output_frames.frames {
+                let output = outputs.lock().get(&id).map(Clone::clone);
+                let Some(output) = output else {
+                    error!("no output with id {}", &id);
                     continue;
                 };
 
-                for (id, frame) in output_frames.frames {
-                    let output = outputs.lock().get(&id).map(Clone::clone);
-                    let Some(output) = output else {
-                        error!("no output with id {}", &id);
-                        continue;
-                    };
-
-                    output.encoder.send_frame(frame);
-                }
+                output.encoder.send_frame(frame);
             }
-        });
+        }
+    }
+
+    fn run_audio_mixer_thread(audio_receiver: Receiver<AudioSamplesSet>) {
+        for samples in audio_receiver {
+            debug!("Received audio samples {:#?}", samples);
+        }
     }
 
     pub fn inputs(&self) -> impl Iterator<Item = (&InputId, &PipelineInput)> {
