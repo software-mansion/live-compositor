@@ -1,4 +1,4 @@
-use compositor_pipeline::pipeline::{self, Port};
+use compositor_pipeline::pipeline::{self, Port, RegisterInputOptions};
 
 use crate::{
     error::ApiError,
@@ -7,20 +7,31 @@ use crate::{
 
 use super::{Api, ResponseHandler};
 
+fn handle_register_input(
+    api: &mut Api,
+    register_options: RegisterInputOptions,
+) -> Result<Option<ResponseHandler>, ApiError> {
+    match api.pipeline.register_input(register_options)? {
+        Some(Port(port)) => Ok(Some(ResponseHandler::Response(
+            super::Response::RegisteredPort(port),
+        ))),
+
+        None => Ok(Some(ResponseHandler::Ok)),
+    }
+}
+
 pub fn handle_register_request(
     api: &mut Api,
     request: RegisterRequest,
 ) -> Result<Option<ResponseHandler>, ApiError> {
     match request {
-        RegisterRequest::InputStream(input_stream) => {
-            let register_options = input_stream.try_into()?;
-            match api.pipeline.register_input(register_options)? {
-                Some(Port(port)) => Ok(Some(ResponseHandler::Response(
-                    super::Response::RegisteredPort(port),
-                ))),
-
-                None => Ok(Some(ResponseHandler::Ok)),
-            }
+        RegisterRequest::RtpInputStream(rtp) => {
+            let register_options = rtp.try_into()?;
+            handle_register_input(api, register_options)
+        }
+        RegisterRequest::Mp4(mp4) => {
+            let register_options = mp4.try_into()?;
+            handle_register_input(api, register_options)
         }
         RegisterRequest::OutputStream(output_stream) => {
             register_output(api, output_stream).map(|_| None)

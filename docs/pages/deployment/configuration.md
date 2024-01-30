@@ -48,9 +48,11 @@ Minimal log level that should be logged. Supported options:
 
 See `-loglevel` option in [FFmpeg documentation](https://ffmpeg.org/ffmpeg.html).
 
-### `LIVE_COMPOSITOR_TMP_PATH`
+### `LIVE_COMPOSITOR_DOWNLOAD_DIR`
 
-A path to a directory in which temporary files will be stored. Uses the location provided by the OS if not set.
+A path to a directory in which downloaded files will be stored. Uses the location provided by the OS if not set.
+
+In this directory, an instance of the compositor will create a subdirectory named `live-compositor-<random number>`. Downloaded temporary files will be stored there.
 
 ### `LIVE_COMPOSITOR_WEB_RENDERER_ENABLE`
 

@@ -13,6 +13,7 @@ use ffmpeg_next::{
     ffi::AV_CODEC_FLAG2_CHUNKS,
     frame::Video,
     media::Type,
+    Rational,
 };
 use log::{error, warn};
 
@@ -45,6 +46,11 @@ impl H264FfmpegDecoder {
                         // and the bindings don't even expose `flags2` so we have to do the unsafe manually
                         unsafe {
                             (*decoder.as_mut_ptr()).flags2 |= AV_CODEC_FLAG2_CHUNKS;
+
+                            // This is because we use microseconds as pts and dts in the packets.
+                            // See `chunk_to_av` and `frame_from_av`.
+                            (*decoder.as_mut_ptr()).pkt_timebase =
+                                Rational::new(1, 1_000_000).into();
                         }
 
                         let decoder = decoder.decoder();
@@ -133,8 +139,8 @@ fn chunk_to_av(chunk: EncodedChunk) -> Result<ffmpeg_next::Packet, DecoderChunkC
     let mut packet = ffmpeg_next::Packet::new(chunk.data.len());
 
     packet.data_mut().unwrap().copy_from_slice(&chunk.data);
-    packet.set_pts(Some((chunk.pts.as_secs_f64() * 90000.0) as i64));
-    packet.set_dts(chunk.dts.map(|dts| (dts.as_secs_f64() * 90000.0) as i64));
+    packet.set_pts(Some(chunk.pts.as_micros() as i64));
+    packet.set_dts(chunk.dts.map(|dts| dts.as_micros() as i64));
 
     Ok(packet)
 }
@@ -161,7 +167,7 @@ fn frame_from_av(
         .ok_or_else(|| {
             DecoderFrameConversionError::FrameConversionError("missing pts".to_owned())
         })?;
-    let pts = Duration::from_secs_f64(f64::max((pts as f64) / 90000.0, 0.0));
+    let pts = Duration::from_micros(u64::max(pts as u64, 0));
     Ok(Frame {
         data: YuvData {
             y_plane: copy_plane_from_av(decoded, 0),

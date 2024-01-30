@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use crate::error::InputInitError;
 
 use crossbeam_channel::Receiver;
@@ -18,6 +20,7 @@ pub enum Input {
 impl Input {
     pub fn new(
         options: InputOptions,
+        download_dir: &Path,
     ) -> Result<(Self, ChunksReceiver, Option<Port>), InputInitError> {
         match options {
             InputOptions::Rtp(opts) => Ok(RtpReceiver::new(opts).map(
@@ -26,7 +29,7 @@ impl Input {
                 },
             )?),
 
-            InputOptions::Mp4(opts) => Ok(Mp4::new(opts)
+            InputOptions::Mp4(opts) => Ok(Mp4::new(opts, download_dir)
                 .map(|(mp4, chunks_receiver)| (Self::Mp4(mp4), chunks_receiver, None))?),
         }
     }

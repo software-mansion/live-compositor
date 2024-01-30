@@ -154,7 +154,8 @@ impl LibavH264Encoder {
 
         let mut encoder = Context::new().encoder().video()?;
 
-        let pts_unit_secs = Rational::new(1, 90000);
+        // We set this to 1 / 1_000_000, bc we use `as_micros` to convert frames to AV packets.
+        let pts_unit_secs = Rational::new(1, 1_000_000);
         encoder.set_time_base(pts_unit_secs);
         encoder.set_format(Pixel::YUV420P);
         encoder.set_width(options.resolution.width as u32);
@@ -234,7 +235,7 @@ impl LibavH264Encoder {
                     Ok(_) => match EncodedChunk::from_av_packet(
                         &packet,
                         EncodedChunkKind::Video(VideoCodec::H264),
-                        90000,
+                        1_000_000,
                     ) {
                         Ok(chunk) => {
                             packet_sender.send(chunk).unwrap();
@@ -303,7 +304,7 @@ fn frame_into_av(frame: Frame, av_frame: &mut frame::Video) -> Result<(), FrameC
         )));
     }
 
-    av_frame.set_pts(Some((frame.pts.as_secs_f64() * 90000.0) as i64));
+    av_frame.set_pts(Some(frame.pts.as_micros() as i64));
 
     write_plane_to_av(av_frame, 0, &frame.data.y_plane);
     write_plane_to_av(av_frame, 1, &frame.data.u_plane);
