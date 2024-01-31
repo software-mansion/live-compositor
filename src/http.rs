@@ -14,8 +14,9 @@ use std::{
 use tiny_http::{Header, Response, StatusCode};
 
 use crate::{
-    api::{self, Api, Request, ResponseHandler},
+    api::{self, Api, ResponseHandler},
     error::ApiError,
+    routes,
 };
 
 pub struct Server {
@@ -74,8 +75,7 @@ impl Server {
     }
 
     fn handle_request(self: &Arc<Self>, api: &mut Api, mut raw_request: tiny_http::Request) {
-        let response =
-            Server::parse_request(&mut raw_request).and_then(|request| api.handle_request(request));
+        let response = routes::handle_request(api, &mut raw_request);
         match response {
             Ok(ResponseHandler::Ok) => {
                 self.send_response(raw_request, api::Response::Ok {});
@@ -159,10 +159,5 @@ impl Server {
         if let Err(err) = response_result {
             error!("Failed to send response {}.", err);
         }
-    }
-
-    fn parse_request(request: &mut tiny_http::Request) -> Result<Request, ApiError> {
-        serde_json::from_reader::<_, Request>(request.as_reader())
-            .map_err(|err| ApiError::malformed_request(&err))
     }
 }

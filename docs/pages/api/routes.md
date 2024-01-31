@@ -4,6 +4,13 @@ description: API routes to configure the compositor.
 
 # Routes
 
+API is served by default on the port 8081. Different port can be configured using [`LIVE_COMPOSITOR_API_PORT`](../deployment/configuration#live_compositor_api_port) environment variable.
+
+
+## Endpoint `POST /--/api`
+
+Main endpoint for configuring the compositor server.
+
 ### Start
 
 ```typescript
@@ -98,7 +105,7 @@ type Audio = {
   - `"stereo"` - Stereo audio (two channels).
 - `rtp_payload_type` - (**default=`97`**) Value of payload type field in received RTP packets.
   Packets with different payload type won't be treated as audio and included in mixing. Values should be in range [0, 64] or [96, 255]. Values in range [65, 95] can't be used. For more information, check out [RFC](https://datatracker.ietf.org/doc/html/rfc5761#section-4).
-- `forward_error_correction` - (**default=`"false"`**) Specifies whether the stream uses forward error correction. It's specific for Opus codec. For more information, check out [RFC](https://datatracker.ietf.org/doc/html/rfc6716#section-2.1.7).
+- `forward_error_correction` - (**default=`false`**) Specifies whether the stream uses forward error correction. It's specific for Opus codec. For more information, check out [RFC](https://datatracker.ietf.org/doc/html/rfc6716#section-2.1.7).
 
 ***
 
@@ -168,3 +175,7 @@ type Unregister =
   | { type: "unregister", entity_type: "image", image_id: string }
   | { type: "unregister", entity_type: "web_renderer", instance_id: string }
 ```
+
+## Endpoint `GET /status`
+
+Status/health check endpoint. Returns `200 OK`.

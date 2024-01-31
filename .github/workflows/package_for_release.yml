@@ -56,7 +56,7 @@ jobs:
                 path: video_compositor_with_web_renderer_darwin_x86_64.tar.gz
 
     macos-aarch64:
-        runs-on: macos-latest-xlarge
+        runs-on: macos-14
         steps:
             - name: 🛠 Install system dependencies
               run: brew install ffmpeg
