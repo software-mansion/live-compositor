@@ -20,6 +20,20 @@ pub enum AudioSamples {
     Stereo(Vec<(i16, i16)>),
 }
 
+impl AudioSamples {
+    pub fn len(&self) -> usize {
+        match self {
+            AudioSamples::Mono(samples) => samples.len(),
+            AudioSamples::Stereo(samples) => samples.len(),
+        }
+    }
+
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Frame {
     pub data: YuvData,

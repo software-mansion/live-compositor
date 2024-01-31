@@ -58,7 +58,7 @@ impl OpusDecoder {
                 }
                 AudioChannels::Stereo => {
                     let mut samples = Vec::with_capacity(decoded_samples_count / 2);
-                    for i in 0..(decoded_samples_count / 2) {
+                    for i in 0..decoded_samples_count {
                         samples.push((buffer[2 * i], buffer[2 * i + 1]));
                     }
                     AudioSamples::Stereo(samples)
