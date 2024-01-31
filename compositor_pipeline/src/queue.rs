@@ -145,7 +145,7 @@ impl Queue {
             audio_sender,
             audio_queue_thread::Options {
                 buffer_duration: self.buffer_duration,
-                chunk_length: self.audio_chunk_duration,
+                pushed_chunk_length: self.audio_chunk_duration,
                 clock_start: self.clock_start,
             },
         )

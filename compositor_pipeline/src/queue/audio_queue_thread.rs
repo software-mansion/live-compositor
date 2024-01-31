@@ -11,7 +11,7 @@ use super::Queue;
 
 pub struct Options {
     pub buffer_duration: Duration,
-    pub chunk_length: Duration,
+    pub pushed_chunk_length: Duration,
     pub clock_start: Instant,
 }
 
@@ -29,7 +29,7 @@ impl AudioQueueThread {
             queue,
             sender,
             buffer_duration: opts.buffer_duration,
-            chunk_length: opts.chunk_length,
+            chunk_length: opts.pushed_chunk_length,
             send_chunks: 0,
         }
     }
