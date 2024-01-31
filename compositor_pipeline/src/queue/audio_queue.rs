@@ -116,7 +116,7 @@ impl InputQueue {
                 let AudioSamples::Mono(samples) = samples else {
                     return Err(QueueError::MismatchedSamplesChannels {
                         expected: AudioChannels::Mono,
-                        received: samples
+                        received: samples,
                     });
                 };
                 // To account for calculation precision errors
@@ -129,7 +129,7 @@ impl InputQueue {
                 let AudioSamples::Stereo(samples) = samples else {
                     return Err(QueueError::MismatchedSamplesChannels {
                         expected: AudioChannels::Stereo,
-                        received: samples
+                        received: samples,
                     });
                 };
 
