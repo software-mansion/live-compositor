@@ -10,12 +10,12 @@ use compositor_render::error::{
 };
 use compositor_render::scene::Component;
 use compositor_render::web_renderer::WebRendererInitOptions;
-use compositor_render::RendererOptions;
 use compositor_render::{error::UpdateSceneError, Renderer};
 use compositor_render::{scene, EventLoop, Framerate, InputId, OutputId, RendererId, RendererSpec};
+use compositor_render::{AudioMixer, RendererOptions};
 use compositor_render::{AudioSamplesSet, FrameSet, RegistryType};
 use crossbeam_channel::{unbounded, Receiver};
-use log::{debug, error, warn};
+use log::{error, warn};
 
 use crate::error::{
     RegisterInputError, RegisterOutputError, UnregisterInputError, UnregisterOutputError,
@@ -74,6 +74,7 @@ pub struct Pipeline {
     outputs: OutputRegistry<PipelineOutput>,
     queue: Arc<Queue>,
     renderer: Renderer,
+    audio_mixer: AudioMixer,
     is_started: bool,
 }
 
@@ -98,6 +99,7 @@ impl Pipeline {
             inputs: HashMap::new(),
             queue: Arc::new(Queue::new(opts.framerate)),
             renderer,
+            audio_mixer: AudioMixer::new(),
             is_started: false,
         };
 
@@ -238,12 +240,13 @@ impl Pipeline {
         let (frames_sender, frames_receiver) = unbounded();
         let (audio_sender, audio_receiver) = unbounded();
         let renderer = self.renderer.clone();
+        let audio_mixer = self.audio_mixer.clone();
         let outputs = self.outputs.clone();
 
         self.queue.start(frames_sender, audio_sender);
 
         thread::spawn(move || Self::run_renderer_thread(frames_receiver, renderer, outputs));
-        thread::spawn(move || Self::run_audio_mixer_thread(audio_receiver));
+        thread::spawn(move || Self::run_audio_mixer_thread(audio_mixer, audio_receiver));
     }
 
     fn run_renderer_thread(
@@ -278,9 +281,9 @@ impl Pipeline {
         }
     }
 
-    fn run_audio_mixer_thread(audio_receiver: Receiver<AudioSamplesSet>) {
+    fn run_audio_mixer_thread(audio_mixer: AudioMixer, audio_receiver: Receiver<AudioSamplesSet>) {
         for samples in audio_receiver {
-            debug!("Received audio samples {:#?}", samples);
+            audio_mixer.mix_samples(samples);
         }
     }
 
