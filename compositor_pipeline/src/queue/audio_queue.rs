@@ -52,10 +52,11 @@ impl AudioQueue {
 
     pub fn pop_samples_set(&mut self, pts: Duration, length: Duration) -> AudioSamplesSet {
         let mut samples = HashMap::new();
-
-        for (input_id, input_queue) in self.input_queues.iter_mut() {
-            samples.insert(input_id.clone(), input_queue.pop(length));
-        }
+        self.input_queues
+            .iter_mut()
+            .for_each(|(input_id, input_queue)| {
+                samples.insert(input_id.clone(), input_queue.pop(length));
+            });
 
         AudioSamplesSet {
             samples,
