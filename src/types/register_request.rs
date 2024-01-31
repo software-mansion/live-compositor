@@ -73,7 +73,7 @@ pub struct Audio {
     /// Values should be in range [0, 64] or [96, 255]. Values in range [65, 95] can't be used.
     /// For more information, check out [RFC](https://datatracker.ietf.org/doc/html/rfc5761#section-4).
     pub rtp_payload_type: Option<u8>,
-    /// (**default=`"false"`**) Specifies whether the stream uses forward error correction.
+    /// (**default=`false`**) Specifies whether the stream uses forward error correction.
     /// It's specific for Opus codec.
     /// For more information, check out [RFC](https://datatracker.ietf.org/doc/html/rfc6716#section-2.1.7).
     pub forward_error_correction: Option<bool>,
