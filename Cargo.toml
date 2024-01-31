@@ -52,6 +52,7 @@ webrtc-util = "0.8.0"
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["json", "env-filter"] }
 libc = "0.2.151"
+rand = { workspace = true }
 
 [dev-dependencies]
 reqwest = { workspace = true }
@@ -60,3 +61,4 @@ reqwest = { workspace = true }
 name = "process_helper"
 path = "src/bin/process_helper/main.rs"
 required-features = ["web_renderer"]
+

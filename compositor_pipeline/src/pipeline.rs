@@ -1,12 +1,13 @@
 use std::collections::{hash_map, HashMap};
 use std::ops::Deref;
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::{Mutex, MutexGuard};
 use std::thread;
 use std::time::Duration;
 
 use compositor_render::error::{
-    ErrorStack, InitRendererEngineError, RegisterRendererError, UnregisterRendererError,
+    ErrorStack, InitPipelineError, RegisterRendererError, UnregisterRendererError,
 };
 use compositor_render::scene::Component;
 use compositor_render::web_renderer::WebRendererInitOptions;
@@ -72,30 +73,38 @@ pub struct Pipeline {
     queue: Arc<Queue>,
     renderer: Renderer,
     is_started: bool,
+    download_dir: PathBuf,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct Options {
     pub framerate: Framerate,
     pub stream_fallback_timeout: Duration,
     pub web_renderer: WebRendererInitOptions,
     pub force_gpu: bool,
+    pub download_root: PathBuf,
 }
 
 impl Pipeline {
-    pub fn new(opts: Options) -> Result<(Self, Arc<dyn EventLoop>), InitRendererEngineError> {
+    pub fn new(opts: Options) -> Result<(Self, Arc<dyn EventLoop>), InitPipelineError> {
         let (renderer, event_loop) = Renderer::new(RendererOptions {
             web_renderer: opts.web_renderer,
             framerate: opts.framerate,
             stream_fallback_timeout: opts.stream_fallback_timeout,
             force_gpu: opts.force_gpu,
         })?;
+
+        let mut download_dir = opts.download_root;
+        download_dir.push(format!("live-compositor-{}", rand::random::<u64>()));
+        std::fs::create_dir_all(&download_dir).map_err(InitPipelineError::CreateDownloadDir)?;
+
         let pipeline = Pipeline {
             outputs: OutputRegistry::new(),
             inputs: HashMap::new(),
             queue: Arc::new(Queue::new(opts.framerate)),
             renderer,
             is_started: false,
+            download_dir,
         };
 
         Ok((pipeline, event_loop))
@@ -112,7 +121,8 @@ impl Pipeline {
     pub fn register_input(
         &mut self,
         register_options: RegisterInputOptions,
-    ) -> Result<Port, RegisterInputError> {
+    ) -> Result<Option<Port>, RegisterInputError> {
+        // TODO: the Option<Port> in the return type is a bit weird
         let RegisterInputOptions {
             input_id,
             input_options,
@@ -123,8 +133,9 @@ impl Pipeline {
             return Err(RegisterInputError::AlreadyRegistered(input_id));
         }
 
-        let (input, chunks_receiver, port) = input::Input::new(input_options)
-            .map_err(|e| RegisterInputError::InputError(input_id.clone(), e))?;
+        let (input, chunks_receiver, port) =
+            input::Input::new(input_options, &self.download_dir)
+                .map_err(|e| RegisterInputError::InputError(input_id.clone(), e))?;
 
         let decoder = decoder::Decoder::new(
             input_id.clone(),

@@ -1,4 +1,4 @@
-use std::{env, str::FromStr, sync::OnceLock, time::Duration};
+use std::{env, path::PathBuf, str::FromStr, sync::OnceLock, time::Duration};
 
 use compositor_render::{web_renderer::WebRendererInitOptions, Framerate};
 use log::error;
@@ -12,6 +12,7 @@ pub struct Config {
     pub stream_fallback_timeout: Duration,
     pub web_renderer: WebRendererInitOptions,
     pub force_gpu: bool,
+    pub download_root: PathBuf,
 }
 
 pub struct LoggerConfig {
@@ -48,7 +49,7 @@ pub fn config() -> &'static Config {
     })
 }
 
-fn read_config() -> Result<Config, &'static str> {
+fn read_config() -> Result<Config, String> {
     let api_port = match env::var("LIVE_COMPOSITOR_API_PORT") {
         Ok(api_port) => api_port
             .parse::<u16>()
@@ -112,6 +113,10 @@ fn read_config() -> Result<Config, &'static str> {
         Err(_) => DEFAULT_STREAM_FALLBACK_TIMEOUT,
     };
 
+    let download_root = env::var("LIVE_COMPOSITOR_DOWNLOAD_DIR")
+        .map(PathBuf::from)
+        .unwrap_or(env::temp_dir());
+
     Ok(Config {
         api_port,
         logger: LoggerConfig {
@@ -126,6 +131,7 @@ fn read_config() -> Result<Config, &'static str> {
             enable: web_renderer_enable,
             enable_gpu: web_renderer_gpu_enable,
         },
+        download_root,
     })
 }
 

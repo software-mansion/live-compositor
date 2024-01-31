@@ -5,7 +5,7 @@ use std::{
 };
 
 use crate::pipeline::{
-    structs::{AudioCodec, EncodedChunk, EncodedChunkKind, VideoCodec},
+    structs::{AudioCodec, EncodedChunkKind, VideoCodec},
     Port, RequestedPort,
 };
 use bytes::BytesMut;
@@ -15,6 +15,8 @@ use log::{error, warn};
 use webrtc_util::Unmarshal;
 
 use self::depayloader::Depayloader;
+
+use super::ChunksReceiver;
 
 mod depayloader;
 
@@ -61,6 +63,8 @@ pub struct RtpReceiver {
     receiver_thread: Option<thread::JoinHandle<()>>,
     should_close: Arc<AtomicBool>,
     pub port: u16,
+
+    _depayloader_thread: Option<DepayloaderThread>,
 }
 
 impl RtpReceiver {
@@ -141,13 +145,17 @@ impl RtpReceiver {
 
         let depayloader = Depayloader::new(&opts.stream);
 
+        let (depayloader_thread, chunks_receiver) =
+            DepayloaderThread::new(&opts.input_id, packets_rx, depayloader);
+
         Ok((
             Self {
                 port,
                 receiver_thread: Some(receiver_thread),
                 should_close,
+                _depayloader_thread: Some(depayloader_thread),
             },
-            ChunksReceiver::new(&opts.input_id, packets_rx, depayloader),
+            chunks_receiver,
             Port(port),
         ))
     }
@@ -195,24 +203,17 @@ impl Drop for RtpReceiver {
 }
 
 #[derive(Debug)]
-pub struct ChunksSenderThread {
+pub struct DepayloaderThread {
     should_close: Arc<AtomicBool>,
     depayloader_thread: Option<thread::JoinHandle<()>>,
 }
 
-#[derive(Debug)]
-pub struct ChunksReceiver {
-    pub video: Option<Receiver<EncodedChunk>>,
-    pub audio: Option<Receiver<EncodedChunk>>,
-    pub sender_thread: ChunksSenderThread,
-}
-
-impl ChunksReceiver {
+impl DepayloaderThread {
     pub fn new(
         input_id: &InputId,
         receiver: Receiver<bytes::Bytes>,
         mut depayloader: Depayloader,
-    ) -> Self {
+    ) -> (Self, ChunksReceiver) {
         let should_close = Arc::new(AtomicBool::new(false));
         let (video_sender, video_receiver) = depayloader
             .video
@@ -274,20 +275,22 @@ impl ChunksReceiver {
             })
             .unwrap();
 
-        let sender_thread = ChunksSenderThread {
+        let sender_thread = DepayloaderThread {
             should_close,
             depayloader_thread: Some(depayloader_thread),
         };
 
-        Self {
-            video: video_receiver,
-            audio: audio_receiver,
+        (
             sender_thread,
-        }
+            ChunksReceiver {
+                video: video_receiver,
+                audio: audio_receiver,
+            },
+        )
     }
 }
 
-impl Drop for ChunksSenderThread {
+impl Drop for DepayloaderThread {
     fn drop(&mut self) {
         self.should_close
             .store(true, std::sync::atomic::Ordering::Relaxed);

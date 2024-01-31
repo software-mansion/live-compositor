@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use bytes::Bytes;
 
 /// A struct representing a chunk of encoded data.
@@ -6,8 +8,8 @@ use bytes::Bytes;
 /// For example, H264 splits the data into NAL units and AV1 splits the data into OBU frames.
 pub struct EncodedChunk {
     pub data: Bytes,
-    pub pts: i64,
-    pub dts: Option<i64>,
+    pub pts: Duration,
+    pub dts: Option<Duration>,
     pub kind: EncodedChunkKind,
 }
 
@@ -29,16 +31,22 @@ impl EncodedChunk {
     pub fn from_av_packet(
         value: &ffmpeg_next::Packet,
         kind: EncodedChunkKind,
+        timescale: i64,
     ) -> Result<Self, ChunkFromFfmpegError> {
         let data = match value.data() {
             Some(data) => Bytes::copy_from_slice(data),
             None => return Err(ChunkFromFfmpegError::NoData),
         };
 
+        let rescale = |v: i64| Duration::from_secs_f64((v as f64) * (1.0 / timescale as f64));
+
         Ok(Self {
             data,
-            pts: value.pts().ok_or(ChunkFromFfmpegError::NoPts)?,
-            dts: value.dts(),
+            pts: value
+                .pts()
+                .map(rescale)
+                .ok_or(ChunkFromFfmpegError::NoPts)?,
+            dts: value.dts().map(rescale),
             kind,
         })
     }

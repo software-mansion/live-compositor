@@ -48,7 +48,7 @@ type OutputScene = {
 ```typescript
 type RegisterInputStream = {
   type: "register";
-  entity_type: "input_stream";
+  entity_type: "rtp_input_stream";
   input_id: string;
   port: Port;
   video?: Video;

@@ -67,7 +67,7 @@ fn start_example_client_code() -> Result<()> {
     info!("[example] Send register input request.");
     common::post(&json!({
         "type": "register",
-        "entity_type": "input_stream",
+        "entity_type": "rtp_input_stream",
         "input_id": "input_1",
         "port": 8004,
         "video": {
@@ -78,7 +78,7 @@ fn start_example_client_code() -> Result<()> {
     info!("[example] Send register input request.");
     common::post(&json!({
         "type": "register",
-        "entity_type": "input_stream",
+        "entity_type": "rtp_input_stream",
         "input_id": "input_2",
         "port": 8006,
         "audio": {

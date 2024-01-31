@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use compositor_pipeline::pipeline::{self};
-use compositor_render::{error::InitRendererEngineError, EventLoop, RegistryType};
+use compositor_render::{error::InitPipelineError, EventLoop, RegistryType};
 use crossbeam_channel::{bounded, Receiver};
 
 use schemars::JsonSchema;
@@ -60,9 +60,10 @@ pub enum Response {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct InputInfo {
-    pub id: InputId,
-    pub port: u16,
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum InputInfo {
+    Rtp { id: InputId, port: u16 },
+    Mp4 { id: InputId },
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -83,12 +84,13 @@ pub struct Api {
 }
 
 impl Api {
-    pub fn new() -> Result<(Api, Arc<dyn EventLoop>), InitRendererEngineError> {
+    pub fn new() -> Result<(Api, Arc<dyn EventLoop>), InitPipelineError> {
         let Config {
             framerate,
             stream_fallback_timeout,
             web_renderer,
             force_gpu,
+            download_root,
             ..
         } = config();
         let (pipeline, event_loop) = Pipeline::new(pipeline::Options {
@@ -96,6 +98,7 @@ impl Api {
             stream_fallback_timeout: *stream_fallback_timeout,
             web_renderer: *web_renderer,
             force_gpu: *force_gpu,
+            download_root: download_root.clone(),
         })?;
         Ok((Api { pipeline }, event_loop))
     }
@@ -141,9 +144,13 @@ impl Api {
                     .pipeline
                     .inputs()
                     .map(|(id, node)| match node.input {
-                        pipeline::input::Input::Rtp(ref rtp) => InputInfo {
+                        pipeline::input::Input::Rtp(ref rtp) => InputInfo::Rtp {
                             id: id.clone().into(),
                             port: rtp.port,
+                        },
+
+                        pipeline::input::Input::Mp4(ref mp4) => InputInfo::Mp4 {
+                            id: mp4.input_id.clone().into(),
                         },
                     })
                     .collect();
