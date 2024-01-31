@@ -12,6 +12,8 @@ mod utils;
 
 #[test]
 fn test_snapshots() {
+    compositor_render::use_global_wgpu_ctx();
+
     let failed_snapshot_path = failed_snapshot_path();
     if failed_snapshot_path.exists() {
         fs::remove_dir_all(failed_snapshot_path).unwrap();
