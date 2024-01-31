@@ -58,7 +58,10 @@ impl InputQueue {
         match &mut self.queue {
             SamplesQueue::Mono(queue) => {
                 let AudioSamples::Mono(samples) = samples else {
-                    return Err(QueueError::MismatchedSamplesChannels { expected: AudioChannels::Mono, received: samples});
+                    return Err(QueueError::MismatchedSamplesChannels { 
+                        expected: AudioChannels::Mono, 
+                        received: samples
+                    });
                 };
                 // To account for calculation precision errors
                 if missing_samples > 5 {
@@ -68,7 +71,10 @@ impl InputQueue {
             }
             SamplesQueue::Stereo(queue) => {
                 let AudioSamples::Stereo(samples) = samples else {
-                    return Err(QueueError::MismatchedSamplesChannels { expected: AudioChannels::Stereo, received: samples });
+                    return Err(QueueError::MismatchedSamplesChannels { 
+                        expected: AudioChannels::Stereo, 
+                        received: samples 
+                    });
                 };
 
                 if missing_samples > 5 {
