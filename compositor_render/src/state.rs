@@ -151,7 +151,7 @@ impl Renderer {
 
 impl InnerRenderer {
     pub fn new(opts: RendererOptions) -> Result<Self, InitRendererEngineError> {
-        let wgpu_ctx = Arc::new(WgpuCtx::new(opts.force_gpu)?);
+        let wgpu_ctx = WgpuCtx::new(opts.force_gpu)?;
 
         Ok(Self {
             wgpu_ctx: wgpu_ctx.clone(),
