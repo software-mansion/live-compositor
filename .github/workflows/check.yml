@@ -27,6 +27,8 @@ jobs:
                   # required when job is running in docker container                
                   apt-get install -y build-essential curl pkg-config git libssl-dev libclang-dev libnss3 libatk1.0-0 libatk-bridge2.0-0 libgdk-pixbuf2.0-0 libgtk-3-0
 
+                  fc-cache -f
+
             - name: 🔧 Install the rust toolchain
               uses: dtolnay/rust-toolchain@stable
               with:
