@@ -51,12 +51,12 @@ pub enum QueryRequest {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-#[serde(untagged, deny_unknown_fields)]
+#[serde(untagged)]
 pub enum Response {
     Ok {},
     Inputs { inputs: Vec<InputInfo> },
     Outputs { outputs: Vec<OutputInfo> },
-    RegisteredPort(u16),
+    RegisteredPort { port: u16 },
 }
 
 #[derive(Serialize, Deserialize, Debug)]

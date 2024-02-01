@@ -13,7 +13,7 @@ fn handle_register_input(
 ) -> Result<Option<ResponseHandler>, ApiError> {
     match api.pipeline.register_input(register_options)? {
         Some(Port(port)) => Ok(Some(ResponseHandler::Response(
-            super::Response::RegisteredPort(port),
+            super::Response::RegisteredPort { port },
         ))),
 
         None => Ok(Some(ResponseHandler::Ok)),

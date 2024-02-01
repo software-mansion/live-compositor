@@ -71,7 +71,7 @@ fn start_example_client_code() -> Result<()> {
     .json()?;
 
     let input_port = match response {
-        Response::RegisteredPort(port) => port,
+        Response::RegisteredPort { port } => port,
         _ => panic!(
             "Unexpected response for registering an input: {:?}",
             response
