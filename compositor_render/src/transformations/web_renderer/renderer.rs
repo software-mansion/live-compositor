@@ -52,7 +52,7 @@ impl WebRenderer {
             source_transforms.clone(),
             spec.resolution,
         );
-        let chromium_sender = ChromiumSender::new(ctx, spec.url.clone(), client);
+        let chromium_sender = ChromiumSender::new(ctx, &spec, client);
         let embedding_helper = EmbeddingHelper::new(ctx, chromium_sender, spec.embedding_method);
         let render_website_shader = WebRendererShader::new(&ctx.wgpu_ctx)?;
         let website_texture = BGRATexture::new(&ctx.wgpu_ctx, spec.resolution);
@@ -70,13 +70,12 @@ impl WebRenderer {
     pub fn render(
         &self,
         ctx: &RenderCtx,
-        node_id: &NodeId,
         sources: &[(&NodeId, &NodeTexture)],
         buffers: &[Arc<wgpu::Buffer>],
         target: &mut NodeTexture,
     ) -> Result<(), RenderWebsiteError> {
         self.embedding_helper
-            .prepare_embedding(node_id, sources, buffers)
+            .prepare_embedding(sources, buffers)
             .map_err(|err| RenderWebsiteError::EmbeddingFailed(self.spec.url.clone(), err))?;
 
         if let Some(frame) = self.retrieve_frame() {
@@ -139,10 +138,11 @@ impl WebRenderer {
         self.spec.resolution
     }
 
-    pub fn shared_memory_root_path(renderer_id: &str) -> PathBuf {
+    pub fn shared_memory_root_path(compositor_instance_id: &str, web_renderer_id: &str) -> PathBuf {
         env::temp_dir()
             .join("video_compositor")
-            .join(format!("instance_{}", renderer_id))
+            .join(format!("instance_{compositor_instance_id}"))
+            .join(web_renderer_id)
     }
 
     pub fn fallback_strategy(&self) -> FallbackStrategy {

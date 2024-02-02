@@ -16,15 +16,13 @@ use super::WebRenderer;
 
 pub struct WebRendererNode {
     renderer: Arc<WebRenderer>,
-    node_id: NodeId,
     buffers: Vec<Arc<wgpu::Buffer>>,
 }
 
 impl WebRendererNode {
-    pub fn new(node_id: &NodeId, renderer: Arc<WebRenderer>) -> Self {
+    pub fn new(renderer: Arc<WebRenderer>) -> Self {
         Self {
             renderer,
-            node_id: *node_id,
             buffers: Vec::new(),
         }
     }
@@ -37,10 +35,7 @@ impl WebRendererNode {
     ) {
         self.ensure_buffers(ctx.wgpu_ctx, sources);
 
-        if let Err(err) = self
-            .renderer
-            .render(ctx, &self.node_id, sources, &self.buffers, target)
-        {
+        if let Err(err) = self.renderer.render(ctx, sources, &self.buffers, target) {
             error!(
                 "Failed to run web render: {}",
                 ErrorStack::new(&err).into_string()

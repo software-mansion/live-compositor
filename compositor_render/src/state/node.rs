@@ -120,11 +120,10 @@ impl RenderNode {
     pub(super) fn new_web_renderer_node(
         ctx: &RenderCtx,
         inputs: Vec<NodeId>,
-        node_id: &NodeId,
         web_renderer: Arc<WebRenderer>,
     ) -> Self {
         let resolution = web_renderer.resolution();
-        let node = InnerRenderNode::Web(WebRendererNode::new(node_id, web_renderer));
+        let node = InnerRenderNode::Web(WebRendererNode::new(web_renderer));
         let mut output = NodeTexture::new();
         output.ensure_size(ctx.wgpu_ctx, resolution);
 

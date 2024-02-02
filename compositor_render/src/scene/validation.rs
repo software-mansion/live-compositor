@@ -1,5 +1,7 @@
 use std::collections::HashSet;
 
+use crate::RendererId;
+
 use super::{Component, ComponentId, OutputScene, SceneError};
 
 impl Component {
@@ -32,6 +34,7 @@ impl Component {
 
 pub(super) fn validate_scene_update(outputs: &[OutputScene]) -> Result<(), SceneError> {
     validate_component_ids_uniqueness(outputs)?;
+    validate_web_renderer_ids_uniqueness(outputs)?;
     Ok(())
 }
 
@@ -60,4 +63,32 @@ fn validate_component_ids_uniqueness(outputs: &[OutputScene]) -> Result<(), Scen
     outputs
         .iter()
         .try_for_each(|output| visit(&output.root, &mut ids))
+}
+
+fn validate_web_renderer_ids_uniqueness(outputs: &[OutputScene]) -> Result<(), SceneError> {
+    let mut web_renderer_ids: HashSet<&RendererId> = HashSet::new();
+
+    fn visit<'a>(
+        component: &'a Component,
+        ids: &mut HashSet<&'a RendererId>,
+    ) -> Result<(), SceneError> {
+        if let Component::WebView(web_view) = component {
+            let instance_id = &web_view.instance_id;
+            if ids.contains(instance_id) {
+                return Err(SceneError::WebRendererUsageNotExclusive(
+                    instance_id.clone(),
+                ));
+            }
+            ids.insert(instance_id);
+        }
+
+        component
+            .children()
+            .into_iter()
+            .try_for_each(|c| visit(c, ids))
+    }
+
+    outputs
+        .iter()
+        .try_for_each(|output| visit(&output.root, &mut web_renderer_ids))
 }
