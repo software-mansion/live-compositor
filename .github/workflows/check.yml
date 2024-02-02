@@ -58,6 +58,11 @@ jobs:
             - name: 📖 Check formatting
               run: cargo fmt --all --check
 
+            - name: 🛠 Cargo build
+              run: |
+                cargo build
+                cargo build --no-default-features
+
             - name: 📎 Run clippy
               run: cargo clippy --workspace --all-targets --all-features -- -D warnings
 

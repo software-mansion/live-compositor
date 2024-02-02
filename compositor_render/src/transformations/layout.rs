@@ -2,7 +2,7 @@ use std::{sync::Arc, time::Duration};
 
 use crate::{
     scene::{RGBAColor, Size},
-    state::{render_graph::NodeId, RenderCtx},
+    state::RenderCtx,
     wgpu::texture::NodeTexture,
     Resolution,
 };
@@ -104,13 +104,13 @@ impl LayoutNode {
     pub fn render(
         &mut self,
         ctx: &RenderCtx,
-        sources: &[(&NodeId, &NodeTexture)],
+        sources: &[&NodeTexture],
         target: &mut NodeTexture,
         pts: Duration,
     ) {
         let input_resolutions: Vec<Option<Resolution>> = sources
             .iter()
-            .map(|(_, node_texture)| node_texture.resolution())
+            .map(|node_texture| node_texture.resolution())
             .collect();
         let output_resolution = self.layout_provider.resolution(pts);
         let layouts = self
@@ -147,7 +147,7 @@ impl LayoutNode {
             .map(|layout| match layout.content {
                 RenderLayoutContent::Color(_) => None,
                 RenderLayoutContent::ChildNode { index, .. } => match sources.get(index) {
-                    Some((_node_id, node_texture)) => Some(*node_texture),
+                    Some(node_texture) => Some(*node_texture),
                     None => {
                         error!("Invalid source index in layout");
                         None

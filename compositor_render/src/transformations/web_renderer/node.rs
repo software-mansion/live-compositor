@@ -4,12 +4,11 @@ use log::error;
 
 use crate::{
     error::ErrorStack,
-    state::{render_graph::NodeId, RenderCtx},
+    state::RenderCtx,
     wgpu::{
         texture::{utils::pad_to_256, NodeTexture, RGBATexture},
         WgpuCtx,
     },
-    FallbackStrategy,
 };
 
 use super::WebRenderer;
@@ -30,7 +29,7 @@ impl WebRendererNode {
     pub fn render(
         &mut self,
         ctx: &mut RenderCtx,
-        sources: &[(&NodeId, &NodeTexture)],
+        sources: &[&NodeTexture],
         target: &mut NodeTexture,
     ) {
         self.ensure_buffers(ctx.wgpu_ctx, sources);
@@ -43,11 +42,7 @@ impl WebRendererNode {
         }
     }
 
-    pub fn fallback_strategy(&self) -> FallbackStrategy {
-        self.renderer.fallback_strategy()
-    }
-
-    fn ensure_buffers(&mut self, wgpu_ctx: &WgpuCtx, sources: &[(&NodeId, &NodeTexture)]) {
+    fn ensure_buffers(&mut self, wgpu_ctx: &WgpuCtx, sources: &[&NodeTexture]) {
         self.buffers.resize_with(sources.len(), || {
             let buffer = wgpu_ctx.device.create_buffer(&wgpu::BufferDescriptor {
                 label: Some("Temporary texture buffer"),
@@ -59,7 +54,7 @@ impl WebRendererNode {
             Arc::new(buffer)
         });
 
-        for ((_, texture), buffer) in sources.iter().zip(&mut self.buffers) {
+        for (texture, buffer) in sources.iter().zip(&mut self.buffers) {
             let Some(texture_state) = texture.state() else {
                 continue;
             };

@@ -1,4 +1,4 @@
-use crate::state::{render_graph::NodeId, RegisterCtx};
+use crate::state::RegisterCtx;
 use crate::transformations::web_renderer::chromium_sender::ChromiumSender;
 use crate::wgpu::texture::NodeTexture;
 use crate::wgpu::WgpuCtx;
@@ -33,7 +33,7 @@ impl EmbeddingHelper {
 
     pub fn prepare_embedding(
         &self,
-        sources: &[(&NodeId, &NodeTexture)],
+        sources: &[&NodeTexture],
         buffers: &[Arc<wgpu::Buffer>],
     ) -> Result<(), EmbedError> {
         match self.embedding_method {
@@ -50,14 +50,14 @@ impl EmbeddingHelper {
     /// Send sources to chromium and render them on canvases via JS API
     fn chromium_embedding(
         &self,
-        sources: &[(&NodeId, &NodeTexture)],
+        sources: &[&NodeTexture],
         buffers: &[Arc<wgpu::Buffer>],
     ) -> Result<(), EmbedError> {
         self.chromium_sender.ensure_shared_memory(sources)?;
         self.copy_sources_to_buffers(sources, buffers)?;
 
         let mut pending_downloads = Vec::new();
-        for (source_idx, ((_, texture), buffer)) in sources.iter().zip(buffers).enumerate() {
+        for (source_idx, (texture, buffer)) in sources.iter().zip(buffers).enumerate() {
             let Some(texture_state) = texture.state() else {
                 continue;
             };
@@ -78,7 +78,7 @@ impl EmbeddingHelper {
 
     fn copy_sources_to_buffers(
         &self,
-        sources: &[(&NodeId, &NodeTexture)],
+        sources: &[&NodeTexture],
         buffers: &[Arc<wgpu::Buffer>],
     ) -> Result<(), EmbedError> {
         let mut encoder = self
@@ -86,7 +86,7 @@ impl EmbeddingHelper {
             .device
             .create_command_encoder(&Default::default());
 
-        for ((_, texture), buffer) in sources.iter().zip(buffers) {
+        for (texture, buffer) in sources.iter().zip(buffers) {
             let Some(texture_state) = texture.state() else {
                 continue;
             };

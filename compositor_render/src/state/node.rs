@@ -1,45 +1,41 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
+use std::vec;
 
 use crate::scene::{self, ShaderComponentParams};
 use crate::transformations::image_renderer::Image;
 use crate::transformations::layout::LayoutNode;
 use crate::transformations::shader::node::ShaderNode;
 use crate::transformations::shader::Shader;
-use crate::FallbackStrategy;
+use crate::InputId;
 
 use crate::transformations::text_renderer::TextRenderParams;
 use crate::transformations::web_renderer::WebRenderer;
 use crate::transformations::{
     image_renderer::ImageNode, text_renderer::TextRendererNode, web_renderer::node::WebRendererNode,
 };
-use crate::wgpu::texture::NodeTexture;
+use crate::wgpu::texture::{InputTexture, NodeTexture};
 
-use super::render_graph::NodeId;
 use super::RenderCtx;
 
-pub(crate) enum InnerRenderNode {
+pub(super) enum InnerRenderNode {
     Shader(ShaderNode),
     Web(WebRendererNode),
     Text(TextRendererNode),
     Image(ImageNode),
     Layout(LayoutNode),
-    InputStream,
+    InputStreamRef(InputId),
 }
 
 impl InnerRenderNode {
     pub fn render(
         &mut self,
         ctx: &mut RenderCtx,
-        sources: &[(&NodeId, &NodeTexture)],
+        sources: &[&NodeTexture],
         target: &mut NodeTexture,
         pts: Duration,
     ) {
-        if self.should_fallback(sources) {
-            target.clear();
-            return;
-        }
-
         match self {
             InnerRenderNode::Shader(ref shader) => {
                 shader.render(ctx.wgpu_ctx, sources, target, pts);
@@ -49,54 +45,66 @@ impl InnerRenderNode {
                 renderer.render(ctx, target);
             }
             InnerRenderNode::Image(ref node) => node.render(ctx, target, pts),
-            InnerRenderNode::InputStream => {
+            InnerRenderNode::InputStreamRef(_) => {
                 // Nothing to do, textures on input nodes should be populated
                 // at the start of render loop
             }
             InnerRenderNode::Layout(node) => node.render(ctx, sources, target, pts),
         }
     }
-
-    // TODO: move to FallbackStrategyExt
-    fn should_fallback(&self, sources: &[(&NodeId, &NodeTexture)]) -> bool {
-        if sources.is_empty() {
-            return false;
-        }
-
-        match self.fallback_strategy() {
-            FallbackStrategy::NeverFallback => false,
-            FallbackStrategy::FallbackIfAllInputsMissing => sources
-                .iter()
-                .all(|(_, node_texture)| node_texture.is_empty()),
-            FallbackStrategy::FallbackIfAnyInputMissing => sources
-                .iter()
-                .any(|(_, node_texture)| node_texture.is_empty()),
-        }
-    }
-
-    fn fallback_strategy(&self) -> FallbackStrategy {
-        match self {
-            InnerRenderNode::Shader(shader_node) => shader_node.fallback_strategy(),
-            InnerRenderNode::Web(web_renderer_node) => web_renderer_node.fallback_strategy(),
-            InnerRenderNode::Text(_) => FallbackStrategy::NeverFallback,
-            InnerRenderNode::Image(_) => FallbackStrategy::NeverFallback,
-            InnerRenderNode::InputStream => FallbackStrategy::NeverFallback,
-            InnerRenderNode::Layout(_) => FallbackStrategy::NeverFallback,
-        }
-    }
 }
 
-pub struct RenderNode {
-    pub(crate) output: NodeTexture,
-    pub(crate) inputs: Vec<NodeId>,
-    pub(crate) fallback: Option<NodeId>,
-    pub(crate) renderer: InnerRenderNode,
+pub(super) struct RenderNode {
+    pub(super) output: NodeTexture,
+    pub(super) renderer: InnerRenderNode,
+    pub(super) children: Vec<RenderNode>,
 }
 
 impl RenderNode {
-    pub(super) fn new_shader_node(
+    pub(super) fn new(
         ctx: &RenderCtx,
-        inputs: Vec<NodeId>,
+        params: scene::NodeParams,
+        children: Vec<RenderNode>,
+    ) -> Self {
+        match params {
+            scene::NodeParams::InputStream(id) => Self {
+                output: NodeTexture::new(),
+                renderer: InnerRenderNode::InputStreamRef(id),
+                children,
+            },
+            scene::NodeParams::Shader(shader_params, shader) => {
+                Self::new_shader_node(ctx, children, shader_params, shader)
+            }
+            scene::NodeParams::Web(web_renderer) => {
+                Self::new_web_renderer_node(ctx, children, web_renderer)
+            }
+            scene::NodeParams::Image(image) => Self::new_image_node(image),
+            scene::NodeParams::Text(text_params) => Self::new_text_node(text_params),
+            scene::NodeParams::Layout(layout_provider) => {
+                Self::new_layout_node(ctx, children, layout_provider)
+            }
+        }
+    }
+
+    /// Helper to access real texture backing up specific node. For all nodes this is
+    /// equivalent of accessing output field, but in case of InputStreamRef `output` field
+    /// is just a stub that does not do anything.
+    pub(super) fn output_texture<'a>(
+        &'a self,
+        inputs: &'a HashMap<InputId, (NodeTexture, InputTexture)>,
+    ) -> &'a NodeTexture {
+        match &self.renderer {
+            InnerRenderNode::InputStreamRef(id) => inputs
+                .get(id)
+                .map(|(node_texture, _)| node_texture)
+                .unwrap_or(&self.output),
+            _non_input_stream => &self.output,
+        }
+    }
+
+    fn new_shader_node(
+        ctx: &RenderCtx,
+        children: Vec<RenderNode>,
         shader_params: ShaderComponentParams,
         shader: Arc<Shader>,
     ) -> Self {
@@ -111,15 +119,14 @@ impl RenderNode {
 
         Self {
             renderer: node,
-            inputs,
-            fallback: None,
             output,
+            children,
         }
     }
 
     pub(super) fn new_web_renderer_node(
         ctx: &RenderCtx,
-        inputs: Vec<NodeId>,
+        children: Vec<RenderNode>,
         web_renderer: Arc<WebRenderer>,
     ) -> Self {
         let resolution = web_renderer.resolution();
@@ -129,9 +136,8 @@ impl RenderNode {
 
         Self {
             renderer: node,
-            inputs,
-            fallback: None,
             output,
+            children,
         }
     }
 
@@ -141,9 +147,8 @@ impl RenderNode {
 
         Self {
             renderer: node,
-            inputs: vec![],
-            fallback: None,
             output,
+            children: vec![],
         }
     }
 
@@ -153,15 +158,14 @@ impl RenderNode {
 
         Self {
             renderer: node,
-            inputs: vec![],
-            fallback: None,
             output,
+            children: vec![],
         }
     }
 
     pub(super) fn new_layout_node(
         ctx: &RenderCtx,
-        inputs: Vec<NodeId>,
+        children: Vec<RenderNode>,
         provider: scene::LayoutNode,
     ) -> Self {
         let node = InnerRenderNode::Layout(LayoutNode::new(ctx, Box::new(provider)));
@@ -169,20 +173,8 @@ impl RenderNode {
 
         Self {
             renderer: node,
-            inputs,
-            fallback: None,
             output,
-        }
-    }
-
-    pub(crate) fn new_input() -> Self {
-        let output = NodeTexture::new();
-
-        Self {
-            renderer: InnerRenderNode::InputStream,
-            inputs: vec![],
-            fallback: None,
-            output,
+            children,
         }
     }
 }

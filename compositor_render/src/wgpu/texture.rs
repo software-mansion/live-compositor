@@ -165,10 +165,6 @@ impl NodeTexture {
         self.0.state()
     }
 
-    pub fn is_empty(&self) -> bool {
-        self.0.state().is_none()
-    }
-
     pub fn resolution(&self) -> Option<Resolution> {
         self.0.state().map(NodeTextureState::resolution)
     }
