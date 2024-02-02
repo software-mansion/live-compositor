@@ -48,7 +48,6 @@ RUN apt-get update -y -qq && \
 RUN useradd -ms /bin/bash $USERNAME && adduser $USERNAME sudo
 RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 USER $USERNAME
-RUN mkdir -p /home/$USERNAME/video_compositor
 RUN mkdir -p /home/$USERNAME/video_compositor/xdg_runtime
 WORKDIR /home/$USERNAME/video_compositor
 
