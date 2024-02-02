@@ -57,7 +57,7 @@ fn build_and_start_docker(skip_build: bool) -> Result<()> {
             .args([
                 "build",
                 "-f",
-                "build-tools/docker/slim.Dockerfile",
+                "build_tools/docker/slim.Dockerfile",
                 "-t",
                 "video-compositor",
                 ".",
