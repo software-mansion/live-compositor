@@ -76,7 +76,7 @@ impl Texture {
 
     /// Returns `None` for some depth formats
     pub(super) fn block_size(&self) -> Option<u32> {
-        self.texture.format().block_size(None)
+        self.texture.format().block_copy_size(None)
     }
 
     pub(super) fn new_download_buffer(&self, ctx: &WgpuCtx) -> wgpu::Buffer {
