@@ -44,6 +44,38 @@ fn start_example_client_code() -> Result<()> {
 
     thread::sleep(Duration::from_secs(2));
 
+    info!("[example] Send register input request.");
+    common::post(&json!({
+        "type": "register",
+        "entity_type": "rtp_input_stream",
+        "input_id": "input_1",
+        "port": 8004,
+        "video": {
+            "codec": "h264"
+        }
+    }))?;
+
+    let scene_with_inputs = |n: usize| {
+        let children: Vec<_> = (0..n)
+            .map(|_| {
+                json!({
+                    "type": "input_stream",
+                    "input_id": "input_1",
+                })
+            })
+            .collect();
+        json!({
+            "type": "tiles",
+            "id": "tile",
+            "padding": 5,
+            "background_color_rgba": "#444444FF",
+            "children": children,
+            "transition": {
+                "duration_ms": 500,
+            },
+        })
+    };
+
     info!("[example] Send register output request.");
     common::post(&json!({
         "type": "register",
@@ -55,18 +87,8 @@ fn start_example_client_code() -> Result<()> {
             "width": VIDEO_RESOLUTION.width,
             "height": VIDEO_RESOLUTION.height,
         },
-        "encoder_preset": "ultrafast"
-    }))?;
-
-    info!("[example] Send register input request.");
-    common::post(&json!({
-        "type": "register",
-        "entity_type": "rtp_input_stream",
-        "input_id": "input_1",
-        "port": 8004,
-        "video": {
-            "codec": "h264"
-        }
+        "encoder_preset": "ultrafast",
+        "initial_scene": scene_with_inputs(0)
     }))?;
 
     info!("[example] Start pipeline");
@@ -94,39 +116,14 @@ fn start_example_client_code() -> Result<()> {
         ])
         .spawn()?;
 
-    let scene_with_inputs = |n: usize| {
-        let children: Vec<_> = (0..n)
-            .map(|_| {
-                json!({
-                    "type": "input_stream",
-                    "input_id": "input_1",
-                })
-            })
-            .collect();
-        json!({
-            "type": "tiles",
-            "id": "tile",
-            "padding": 5,
-            "background_color_rgba": "#444444FF",
-            "children": children,
-            "transition": {
-                "duration_ms": 500,
-            },
-        })
-    };
-
     thread::sleep(Duration::from_secs(1));
 
     for i in 1..=16 {
         info!("[example] Update scene");
         common::post(&json!({
             "type": "update_scene",
-            "outputs": [
-                {
-                    "output_id": "output_1",
-                    "root": scene_with_inputs(i),
-                }
-            ]
+            "output_id": "output_1",
+            "root": scene_with_inputs(i),
         }))?;
 
         thread::sleep(Duration::from_secs(1));
@@ -136,12 +133,8 @@ fn start_example_client_code() -> Result<()> {
         info!("[example] Update scene");
         common::post(&json!({
             "type": "update_scene",
-            "outputs": [
-                {
-                    "output_id": "output_1",
-                    "root": scene_with_inputs(i),
-                }
-            ]
+            "output_id": "output_1",
+            "root": scene_with_inputs(i),
         }))?;
 
         thread::sleep(Duration::from_secs(1));
@@ -150,12 +143,8 @@ fn start_example_client_code() -> Result<()> {
     info!("[example] Update scene");
     common::post(&json!({
         "type": "update_scene",
-        "outputs": [
-            {
-                "output_id": "output_1",
-                "root": scene_with_inputs(4),
-            }
-        ]
+        "output_id": "output_1",
+        "root": scene_with_inputs(4),
     }))?;
 
     Ok(())

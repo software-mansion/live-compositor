@@ -33,6 +33,9 @@ pub enum RegisterOutputError {
 
     #[error("Failed to register output stream \"{0}\". Resolution in each dimension has to be divisible by 2.")]
     UnsupportedResolution(OutputId),
+
+    #[error("Failed to initialize the scene when registering output \"{0}\"")]
+    SceneError(OutputId, #[source] UpdateSceneError),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -157,6 +160,7 @@ impl From<&RegisterOutputError> for PipelineErrorInfo {
             RegisterOutputError::UnsupportedResolution(_) => {
                 PipelineErrorInfo::new(UNSUPPORTED_RESOLUTION, ErrorType::UserError)
             }
+            RegisterOutputError::SceneError(_, err) => err.into(),
         }
     }
 }

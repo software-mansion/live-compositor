@@ -1,5 +1,6 @@
 use anyhow::Result;
 use log::{error, info};
+use serde::Deserialize;
 use serde_json::json;
 use std::{
     env,
@@ -7,7 +8,7 @@ use std::{
     thread,
     time::Duration,
 };
-use video_compositor::{api::Response, config::config, http, logger, types::Resolution};
+use video_compositor::{config::config, http, logger, types::Resolution};
 
 use crate::common::write_example_sdp_file;
 
@@ -33,6 +34,11 @@ fn main() {
     http::Server::new(config().api_port).run();
 }
 
+#[derive(Deserialize)]
+struct RegisterResponse {
+    port: u16,
+}
+
 fn start_example_client_code() -> Result<()> {
     info!("[example] Start listening on output port.");
     let output_sdp = write_example_sdp_file("127.0.0.1", 8002)?;
@@ -44,22 +50,8 @@ fn start_example_client_code() -> Result<()> {
 
     thread::sleep(Duration::from_secs(2));
 
-    info!("[example] Send register output request.");
-    common::post(&json!({
-        "type": "register",
-        "entity_type": "output_stream",
-        "output_id": "output_1",
-        "port": 8002,
-        "ip": "127.0.0.1",
-        "resolution": {
-            "width": VIDEO_RESOLUTION.width,
-            "height": VIDEO_RESOLUTION.height,
-        },
-        "encoder_preset": "ultrafast"
-    }))?;
-
     info!("[example] Send register input request.");
-    let response = common::post(&json!({
+    let RegisterResponse { port: input_port } = common::post(&json!({
         "type": "register",
         "entity_type": "rtp_input_stream",
         "input_id": "input_1",
@@ -68,15 +60,7 @@ fn start_example_client_code() -> Result<()> {
             "codec": "h264"
         }
     }))?
-    .json()?;
-
-    let input_port = match response {
-        Response::RegisteredPort { port } => port,
-        _ => panic!(
-            "Unexpected response for registering an input: {:?}",
-            response
-        ),
-    };
+    .json::<RegisterResponse>()?;
 
     info!("[example] Register static images");
     common::post(&json!({
@@ -94,6 +78,34 @@ fn start_example_client_code() -> Result<()> {
         "entity_type": "shader",
         "shader_id": "example_shader",
         "source": shader_source,
+    }))?;
+
+    let scene = json!( {
+        "type": "shader",
+        "id": "shader_1",
+        "shader_id": "example_shader",
+        "children": [
+            {
+                "type": "input_stream",
+                "input_id": "input_1",
+            }
+        ],
+        "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+    });
+
+    info!("[example] Send register output request.");
+    common::post(&json!({
+        "type": "register",
+        "entity_type": "output_stream",
+        "output_id": "output_1",
+        "port": 8002,
+        "ip": "127.0.0.1",
+        "resolution": {
+            "width": VIDEO_RESOLUTION.width,
+            "height": VIDEO_RESOLUTION.height,
+        },
+        "encoder_preset": "ultrafast",
+        "initial_scene": scene
     }))?;
 
     info!("[example] Start pipeline");
@@ -120,30 +132,6 @@ fn start_example_client_code() -> Result<()> {
             &format!("rtp://127.0.0.1:{}?rtcpport={}", input_port, input_port),
         ])
         .spawn()?;
-    thread::sleep(Duration::from_secs(5));
 
-    let scene = json!( {
-        "type": "shader",
-        "id": "shader_1",
-        "shader_id": "example_shader",
-        "children": [
-            {
-                "type": "input_stream",
-                "input_id": "input_1",
-            }
-        ],
-        "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
-    });
-
-    info!("[example] Update scene");
-    common::post(&json!({
-        "type": "update_scene",
-        "outputs": [
-            {
-                "output_id": "output_1",
-                "root": scene,
-            }
-        ],
-    }))?;
     Ok(())
 }

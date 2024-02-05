@@ -43,20 +43,6 @@ fn start_example_client_code() -> Result<()> {
         .spawn()?;
     thread::sleep(Duration::from_secs(2));
 
-    info!("[example] Send register output request.");
-    common::post(&json!({
-        "type": "register",
-        "entity_type": "output_stream",
-        "output_id": "output_1",
-        "port": 8002,
-        "ip": "127.0.0.1",
-        "resolution": {
-            "width": VIDEO_RESOLUTION.width,
-            "height": VIDEO_RESOLUTION.height,
-        },
-        "encoder_preset": "ultrafast"
-    }))?;
-
     info!("[example] Send register input request.");
     common::post(&json!({
         "type": "register",
@@ -85,31 +71,6 @@ fn start_example_client_code() -> Result<()> {
         "asset_type": "gif",
         "url": "https://gifdb.com/images/high/rust-logo-on-fire-o41c0v9om8drr8dv.gif",
     }))?;
-
-    info!("[example] Start pipeline");
-    common::post(&json!({
-        "type": "start",
-    }))?;
-
-    info!("[example] Start input stream");
-    let ffmpeg_source = format!(
-        "testsrc=s={}x{}:r=30,format=yuv420p",
-        VIDEO_RESOLUTION.width, VIDEO_RESOLUTION.height
-    );
-    Command::new("ffmpeg")
-        .args([
-            "-re",
-            "-f",
-            "lavfi",
-            "-i",
-            &ffmpeg_source,
-            "-c:v",
-            "libx264",
-            "-f",
-            "rtp",
-            "rtp://127.0.0.1:8004?rtcpport=8004",
-        ])
-        .spawn()?;
 
     let scene1 = json!({
         "type": "view",
@@ -203,42 +164,63 @@ fn start_example_client_code() -> Result<()> {
         ]
     });
 
-    info!("[example] Update scene");
+    info!("[example] Send register output request.");
     common::post(&json!({
-        "type": "update_scene",
-        "outputs": [
-            {
-                "output_id": "output_1",
-                "root": scene1,
-            }
-        ]
+        "type": "register",
+        "entity_type": "output_stream",
+        "output_id": "output_1",
+        "port": 8002,
+        "ip": "127.0.0.1",
+        "resolution": {
+            "width": VIDEO_RESOLUTION.width,
+            "height": VIDEO_RESOLUTION.height,
+        },
+        "encoder_preset": "ultrafast",
+        "initial_scene": scene1
     }))?;
+
+    info!("[example] Start pipeline");
+    common::post(&json!({
+        "type": "start",
+    }))?;
+
+    info!("[example] Start input stream");
+    let ffmpeg_source = format!(
+        "testsrc=s={}x{}:r=30,format=yuv420p",
+        VIDEO_RESOLUTION.width, VIDEO_RESOLUTION.height
+    );
+    Command::new("ffmpeg")
+        .args([
+            "-re",
+            "-f",
+            "lavfi",
+            "-i",
+            &ffmpeg_source,
+            "-c:v",
+            "libx264",
+            "-f",
+            "rtp",
+            "rtp://127.0.0.1:8004?rtcpport=8004",
+        ])
+        .spawn()?;
 
     thread::sleep(Duration::from_secs(5));
 
     info!("[example] Update scene");
     common::post(&json!({
         "type": "update_scene",
-        "outputs": [
-            {
-                "output_id": "output_1",
-                "root": scene2,
-            }
-        ]
+        "output_id": "output_1",
+        "root": scene2,
     }))?;
 
     thread::sleep(Duration::from_secs(2));
 
-    // this should not abort in progress transition
     info!("[example] Update scene");
     common::post(&json!({
         "type": "update_scene",
-        "outputs": [
-            {
-                "output_id": "output_1",
-                "root": scene3,
-            }
-        ]
+        "output_id": "output_1",
+        "root": scene3,
     }))?;
+
     Ok(())
 }

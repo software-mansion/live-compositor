@@ -4,13 +4,12 @@ use compositor_pipeline::pipeline::{self};
 use compositor_render::{error::InitPipelineError, EventLoop, RegistryType};
 use crossbeam_channel::{bounded, Receiver};
 
-use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::{
     config::{config, Config},
     error::ApiError,
-    types::{self, InputId, OutputId, RegisterRequest, RendererId},
+    types::{InputId, OutputId, OutputScene, RegisterRequest, RendererId},
 };
 
 mod register_request;
@@ -22,14 +21,9 @@ pub type Pipeline = compositor_pipeline::Pipeline;
 pub enum Request {
     Register(RegisterRequest),
     Unregister(UnregisterRequest),
-    UpdateScene(UpdateScene),
+    UpdateScene(OutputScene),
     Query(QueryRequest),
     Start,
-}
-
-#[derive(Serialize, Deserialize, JsonSchema)]
-pub struct UpdateScene {
-    pub outputs: Vec<types::OutputScene>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -50,7 +44,7 @@ pub enum QueryRequest {
     Outputs,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Debug)]
 #[serde(untagged)]
 pub enum Response {
     Ok {},
@@ -120,7 +114,8 @@ impl Api {
                 Ok(ResponseHandler::Ok)
             }
             Request::UpdateScene(scene_spec) => {
-                self.pipeline.update_scene(scene_spec.try_into()?)?;
+                self.pipeline
+                    .update_scene(scene_spec.output_id.into(), scene_spec.root.try_into()?)?;
                 Ok(ResponseHandler::Ok)
             }
             Request::Query(query) => self.handle_query(query),
