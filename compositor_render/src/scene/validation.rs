@@ -36,13 +36,16 @@ pub(super) fn validate_scene_update(
     old_outputs: &HashMap<OutputId, OutputScene>,
     updated_output: &OutputScene,
 ) -> Result<(), SceneError> {
-    let updated_outputs: Vec<&OutputScene> = old_outputs
-        .iter()
-        .map(|(id, output)| match id {
-            id if id == &updated_output.output_id => updated_output,
-            _ => output,
-        })
-        .collect();
+    let updated_outputs = match old_outputs.is_empty() {
+        true => vec![updated_output],
+        false => old_outputs
+            .iter()
+            .map(|(id, output)| match id {
+                id if id == &updated_output.output_id => updated_output,
+                _ => output,
+            })
+            .collect(),
+    };
 
     validate_component_ids_uniqueness(&updated_outputs)?;
     validate_web_renderer_ids_uniqueness(&updated_outputs)?;
