@@ -26,28 +26,21 @@ Component tree that represents what will be rendered for a specific output.
 Example scene:
 ```typescript
 {
-    "outputs": [
+    "type": "view",
+    "background_color_rgba": "#0000FFFF"
+    "children": [
         {
-            "output_id": "example_output_1"
-            "root": {
-                "type": "view",
-                "background_color_rgba": "#0000FFFF"
-                "children": [
-                    {
-                        "type": "input-stream",
-                        "input_id": "example_input_1",
-                    }
-                ]
-            }
+            "type": "input-stream",
+            "input_id": "example_input_1",
         }
     ]
 }
 ```
 
-In the example above, we define a scene for a single output `example_output_1` where an input stream `example_input_1` is rendered inside a [`View` component](../api/components/View).
+In the example above, we define a scene where an input stream `example_input_1` is rendered inside a [`View` component](../api/components/View). You can configure that scene for a specific output in the [`RegisterOutputStream` request](../api/routes#register-output-stream) using `intial_scene` field or in the [`UpdateScene` request](../api/routes#update-scene).
 
 :::note
-You need to register `"example_output_1"` and `"example_input_1"` before using them in the scene definition.
+You need to register `"example_input_1"` before using them in the scene definition.
 :::
 
 ### Renderers

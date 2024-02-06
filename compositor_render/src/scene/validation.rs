@@ -73,7 +73,7 @@ fn validate_component_ids_uniqueness(outputs: &[&OutputScene]) -> Result<(), Sce
 
     outputs
         .iter()
-        .try_for_each(|output| visit(&output.root, &mut ids))
+        .try_for_each(|output| visit(&output.scene_root, &mut ids))
 }
 
 fn validate_web_renderer_ids_uniqueness(outputs: &[&OutputScene]) -> Result<(), SceneError> {
@@ -101,5 +101,5 @@ fn validate_web_renderer_ids_uniqueness(outputs: &[&OutputScene]) -> Result<(), 
 
     outputs
         .iter()
-        .try_for_each(|output| visit(&output.root, &mut web_renderer_ids))
+        .try_for_each(|output| visit(&output.scene_root, &mut web_renderer_ids))
 }

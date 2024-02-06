@@ -237,7 +237,7 @@ impl InnerRenderer {
     ) -> Result<(), UpdateSceneError> {
         let output = OutputScene {
             output_id: output_id.clone(),
-            root: scene_root,
+            scene_root,
             resolution,
         };
         let output_node =

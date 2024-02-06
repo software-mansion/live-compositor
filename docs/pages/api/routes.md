@@ -28,18 +28,13 @@ Starts the processing pipeline. If outputs are registered and defined in the sce
 ```typescript
 type UpdateScene = {
   type: "update_scene";
-  outputs: OutputScene[];
-}
-
-type OutputScene = {
-    output_id: string;
-    root: Component;
+  output_id: string;
+  scene: Component;
 }
 ```
 
-- `outputs` - List of outputs. Identifies what should be rendered for each RTP output streams.
-  - `outputs[].output_id` - Id of an already registered output stream. See [`RegisterOutputStream`](./routes#register-output-stream).
-  - `outputs[].root` - Root of a component tree that should be rendered for the output. [Learn more](../concept/component)
+- `output_id` - Id of an already registered output stream. See [`RegisterOutputStream`](./routes#register-output-stream).
+- `scene` - Root of a component tree/scene that should be rendered for the output. [Learn more](../concept/component)
 
 ***
 
@@ -123,6 +118,7 @@ type RegisterOutputStream = {
     height: number;
   };
   encoder_preset?: EncoderPreset; 
+  initial_scene: Component
 }
 
 type EncoderPreset =
@@ -144,6 +140,7 @@ Register a new RTP output stream.
 - `port` / `ip` - UDP port and IP where compositor should send the stream.
 - `resolution` - Output resolution in pixels.
 - `encoder_preset` - (**default=`"fast"`**) Preset for an encoder. See `FFmpeg` [docs](https://trac.ffmpeg.org/wiki/Encode/H.264#Preset) to learn more.
+- `initial_scene` - Root of a component tree/scene that should be rendered for the output. Use [`update_scene` request](#update-scene) to update this value after registration. [Learn more](../concept/component).
 
 ***
 

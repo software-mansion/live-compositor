@@ -54,7 +54,7 @@ pub struct RegisterInputOptions {
 #[derive(Debug, Clone)]
 pub struct OutputScene {
     pub output_id: OutputId,
-    pub root: Component,
+    pub scene_root: Component,
 }
 
 pub struct PipelineInput {

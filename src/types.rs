@@ -68,7 +68,7 @@ pub struct InputId(Arc<str>);
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 pub struct OutputScene {
     pub output_id: OutputId,
-    pub root: Component,
+    pub scene: Component,
 }
 
 impl Display for InputId {

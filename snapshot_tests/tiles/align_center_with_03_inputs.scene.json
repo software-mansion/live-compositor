@@ -1,6 +1,6 @@
 {
     "output_id": "output_1",
-    "root": {
+    "scene": {
         "type": "tiles",
         "vertical_align": "center",
         "horizontal_align": "center",

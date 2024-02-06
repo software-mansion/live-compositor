@@ -92,7 +92,7 @@ impl TestCaseInstance {
                 .update_scene(
                     scene.output_id.into(),
                     resolution,
-                    scene.root.try_into().unwrap(),
+                    scene.scene.try_into().unwrap(),
                 )
                 .unwrap()
         }

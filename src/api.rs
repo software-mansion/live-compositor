@@ -115,7 +115,7 @@ impl Api {
             }
             Request::UpdateScene(scene_spec) => {
                 self.pipeline
-                    .update_scene(scene_spec.output_id.into(), scene_spec.root.try_into()?)?;
+                    .update_scene(scene_spec.output_id.into(), scene_spec.scene.try_into()?)?;
                 Ok(ResponseHandler::Ok)
             }
             Request::Query(query) => self.handle_query(query),
