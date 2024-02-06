@@ -36,13 +36,9 @@ pub(super) fn validate_scene_update(
     old_outputs: &HashMap<OutputId, OutputScene>,
     updated_output: &OutputScene,
 ) -> Result<(), SceneError> {
-    let updated_outputs: Vec<&OutputScene> = old_outputs
-        .iter()
-        .map(|(id, output)| match id {
-            id if id == &updated_output.output_id => updated_output,
-            _ => output,
-        })
-        .collect();
+    let mut updated_outputs: HashMap<&OutputId, &OutputScene> = old_outputs.iter().collect();
+    updated_outputs.insert(&updated_output.output_id, &updated_output);
+    let updated_outputs: Vec<&OutputScene> = updated_outputs.values().copied().collect();
 
     validate_component_ids_uniqueness(&updated_outputs)?;
     validate_web_renderer_ids_uniqueness(&updated_outputs)?;
