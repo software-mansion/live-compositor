@@ -37,7 +37,7 @@ pub(super) fn validate_scene_update(
     updated_output: &OutputScene,
 ) -> Result<(), SceneError> {
     let mut updated_outputs: HashMap<&OutputId, &OutputScene> = old_outputs.iter().collect();
-    updated_outputs.insert(&updated_output.output_id, &updated_output);
+    updated_outputs.insert(&updated_output.output_id, updated_output);
     let updated_outputs: Vec<&OutputScene> = updated_outputs.values().copied().collect();
 
     validate_component_ids_uniqueness(&updated_outputs)?;
