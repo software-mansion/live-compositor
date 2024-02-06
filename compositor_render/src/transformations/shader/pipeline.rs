@@ -4,7 +4,6 @@ use wgpu::ShaderStages;
 
 use crate::{
     scene::ShaderParam,
-    state::render_graph::NodeId,
     wgpu::{
         common_pipeline::{self, CreateShaderError, Sampler},
         texture::{NodeTexture, NodeTextureState, RGBATexture},
@@ -99,7 +98,7 @@ impl ShaderPipeline {
         &self,
         wgpu_ctx: &Arc<WgpuCtx>,
         params: &wgpu::BindGroup,
-        sources: &[(&NodeId, &NodeTexture)],
+        sources: &[&NodeTexture],
         target: &NodeTextureState,
         pts: Duration,
         clear_color: Option<wgpu::Color>,
@@ -176,11 +175,11 @@ impl ShaderPipeline {
     fn input_textures_bg(
         &self,
         wgpu_ctx: &Arc<WgpuCtx>,
-        sources: &[(&NodeId, &NodeTexture)],
+        sources: &[&NodeTexture],
     ) -> wgpu::BindGroup {
         let mut texture_views: Vec<&wgpu::TextureView> = sources
             .iter()
-            .map(|(_, texture)| {
+            .map(|texture| {
                 texture
                     .state()
                     .map(NodeTextureState::rgba_texture)

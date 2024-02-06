@@ -27,7 +27,8 @@ pub(super) struct BuildStateTreeCtx<'a> {
 }
 
 pub(crate) struct SceneState {
-    outputs: Vec<OutputSceneState>,
+    output_scenes: HashMap<OutputId, OutputScene>,
+    output_states: HashMap<OutputId, OutputSceneState>,
     last_pts: Duration,
     // Input resolutions from the last render
     input_resolutions: HashMap<InputId, Resolution>,
@@ -35,7 +36,6 @@ pub(crate) struct SceneState {
 
 #[derive(Debug, Clone)]
 struct OutputSceneState {
-    output_id: OutputId,
     root: StatefulComponent,
     resolution: Resolution,
 }
@@ -49,7 +49,8 @@ pub(crate) struct OutputNode {
 impl SceneState {
     pub fn new() -> Self {
         Self {
-            outputs: vec![],
+            output_scenes: HashMap::new(),
+            output_states: HashMap::new(),
             last_pts: Duration::ZERO,
             input_resolutions: HashMap::new(),
         }
@@ -65,15 +66,21 @@ impl SceneState {
         // TODO: pass input stream sizes and populate it in the ComponentState tree
     }
 
+    pub(crate) fn unregister_output(&mut self, output_id: &OutputId) {
+        self.output_scenes.remove(output_id);
+        self.output_states.remove(output_id);
+    }
+
     pub(crate) fn update_scene(
         &mut self,
-        outputs: Vec<OutputScene>,
+        output_scene: OutputScene,
         renderers: &Renderers,
         text_renderer_ctx: &TextRendererCtx,
-    ) -> Result<Vec<OutputNode>, SceneError> {
-        validate_scene_update(&outputs)?;
+    ) -> Result<OutputNode, SceneError> {
+        let output_id = output_scene.output_id.clone();
+        validate_scene_update(&self.output_scenes, &output_scene)?;
 
-        for output in self.outputs.iter_mut() {
+        for (_, output) in self.output_states.iter_mut() {
             recalculate_layout(
                 &mut output.root,
                 Some(output.resolution.into()),
@@ -84,44 +91,38 @@ impl SceneState {
 
         let ctx = BuildStateTreeCtx {
             prev_state: self
-                .outputs
-                .iter()
-                .flat_map(|o| {
+                .output_states
+                .get(&output_id)
+                .map(|o| {
                     let mut components = HashMap::new();
                     gather_components_with_id(&o.root, &mut components);
                     components
                 })
-                .collect(),
+                .unwrap_or_default(),
             last_render_pts: self.last_pts,
             input_resolutions: &self.input_resolutions,
             text_renderer_ctx,
             renderers,
         };
-        let output_states = outputs
-            .into_iter()
-            .map(|o| {
-                Ok(OutputSceneState {
-                    output_id: o.output_id,
-                    root: o.root.stateful_component(&ctx)?,
-                    resolution: o.resolution,
-                })
-            })
-            .collect::<Result<Vec<_>, _>>()?;
-        let nodes = output_states
-            .iter()
-            .map(|output| {
-                Ok(OutputNode {
-                    output_id: output.output_id.clone(),
-                    node: output
-                        .root
-                        .intermediate_node()
-                        .build_tree(Some(output.resolution), self.last_pts)?,
-                    resolution: output.resolution,
-                })
-            })
-            .collect::<Result<_, _>>()?;
-        self.outputs = output_states;
-        Ok(nodes)
+
+        let output_state_tree = OutputSceneState {
+            root: output_scene.root.clone().stateful_component(&ctx)?,
+            resolution: output_scene.resolution,
+        };
+
+        let output_node_tree = OutputNode {
+            output_id: output_id.clone(),
+            node: output_state_tree
+                .root
+                .intermediate_node()
+                .build_tree(Some(output_scene.resolution), self.last_pts)?,
+            resolution: output_scene.resolution,
+        };
+
+        self.output_scenes.insert(output_id.clone(), output_scene);
+        self.output_states.insert(output_id, output_state_tree);
+
+        Ok(output_node_tree)
     }
 }
 

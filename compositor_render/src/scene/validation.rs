@@ -1,6 +1,6 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
-use crate::RendererId;
+use crate::{OutputId, RendererId};
 
 use super::{Component, ComponentId, OutputScene, SceneError};
 
@@ -32,13 +32,24 @@ impl Component {
     }
 }
 
-pub(super) fn validate_scene_update(outputs: &[OutputScene]) -> Result<(), SceneError> {
-    validate_component_ids_uniqueness(outputs)?;
-    validate_web_renderer_ids_uniqueness(outputs)?;
+pub(super) fn validate_scene_update(
+    old_outputs: &HashMap<OutputId, OutputScene>,
+    updated_output: &OutputScene,
+) -> Result<(), SceneError> {
+    let updated_outputs: Vec<&OutputScene> = old_outputs
+        .iter()
+        .map(|(id, output)| match id {
+            id if id == &updated_output.output_id => updated_output,
+            _ => output,
+        })
+        .collect();
+
+    validate_component_ids_uniqueness(&updated_outputs)?;
+    validate_web_renderer_ids_uniqueness(&updated_outputs)?;
     Ok(())
 }
 
-fn validate_component_ids_uniqueness(outputs: &[OutputScene]) -> Result<(), SceneError> {
+fn validate_component_ids_uniqueness(outputs: &[&OutputScene]) -> Result<(), SceneError> {
     let mut ids: HashSet<&ComponentId> = HashSet::new();
 
     fn visit<'a>(
@@ -65,7 +76,7 @@ fn validate_component_ids_uniqueness(outputs: &[OutputScene]) -> Result<(), Scen
         .try_for_each(|output| visit(&output.root, &mut ids))
 }
 
-fn validate_web_renderer_ids_uniqueness(outputs: &[OutputScene]) -> Result<(), SceneError> {
+fn validate_web_renderer_ids_uniqueness(outputs: &[&OutputScene]) -> Result<(), SceneError> {
     let mut web_renderer_ids: HashSet<&RendererId> = HashSet::new();
 
     fn visit<'a>(

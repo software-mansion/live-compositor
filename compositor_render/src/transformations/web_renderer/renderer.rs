@@ -8,7 +8,7 @@ use bytes::Bytes;
 use log::info;
 
 use crate::{
-    state::{render_graph::NodeId, RegisterCtx, RenderCtx},
+    state::{RegisterCtx, RenderCtx},
     transformations::web_renderer::{
         browser_client::BrowserClient, chromium_sender::ChromiumSender,
     },
@@ -16,7 +16,7 @@ use crate::{
         common_pipeline::CreateShaderError,
         texture::{BGRATexture, NodeTexture, Texture},
     },
-    FallbackStrategy, Resolution,
+    Resolution,
 };
 
 use super::{
@@ -70,7 +70,7 @@ impl WebRenderer {
     pub fn render(
         &self,
         ctx: &RenderCtx,
-        sources: &[(&NodeId, &NodeTexture)],
+        sources: &[&NodeTexture],
         buffers: &[Arc<wgpu::Buffer>],
         target: &mut NodeTexture,
     ) -> Result<(), RenderWebsiteError> {
@@ -93,12 +93,12 @@ impl WebRenderer {
 
     fn prepare_textures<'a>(
         &'a self,
-        sources: &'a [(&NodeId, &NodeTexture)],
+        sources: &'a [&NodeTexture],
     ) -> Vec<(Option<&Texture>, RenderInfo)> {
         let mut source_info = sources
             .iter()
             .zip(self.source_transforms.lock().unwrap().iter())
-            .map(|((_node_id, node_texture), transform)| {
+            .map(|(node_texture, transform)| {
                 (
                     node_texture.texture(),
                     RenderInfo::source_transform(transform),
@@ -143,10 +143,6 @@ impl WebRenderer {
             .join("video_compositor")
             .join(format!("instance_{compositor_instance_id}"))
             .join(web_renderer_id)
-    }
-
-    pub fn fallback_strategy(&self) -> FallbackStrategy {
-        self.spec.fallback_strategy
     }
 }
 

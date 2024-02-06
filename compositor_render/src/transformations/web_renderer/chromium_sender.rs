@@ -1,9 +1,6 @@
 use std::sync::Arc;
 
-use crate::{
-    state::{render_graph::NodeId, RegisterCtx},
-    Resolution,
-};
+use crate::{state::RegisterCtx, Resolution};
 use crossbeam_channel::{Receiver, Sender};
 use log::error;
 
@@ -48,14 +45,8 @@ impl ChromiumSender {
         }
     }
 
-    pub fn embed_sources(
-        &self,
-        sources: &[(&NodeId, &NodeTexture)],
-    ) -> Result<(), ChromiumSenderError> {
-        let resolutions = sources
-            .iter()
-            .map(|(_, texture)| texture.resolution())
-            .collect();
+    pub fn embed_sources(&self, sources: &[&NodeTexture]) -> Result<(), ChromiumSenderError> {
+        let resolutions = sources.iter().map(|texture| texture.resolution()).collect();
         self.message_sender
             .send(ChromiumSenderMessage::EmbedSources { resolutions })
             .map_err(|_| ChromiumSenderError::MessageChannelDisconnected)
@@ -63,12 +54,9 @@ impl ChromiumSender {
 
     pub fn ensure_shared_memory(
         &self,
-        sources: &[(&NodeId, &NodeTexture)],
+        sources: &[&NodeTexture],
     ) -> Result<(), ChromiumSenderError> {
-        let resolutions = sources
-            .iter()
-            .map(|(_, texture)| texture.resolution())
-            .collect();
+        let resolutions = sources.iter().map(|texture| texture.resolution()).collect();
         self.message_sender
             .send(ChromiumSenderMessage::EnsureSharedMemory { resolutions })
             .map_err(|_| ChromiumSenderError::MessageChannelDisconnected)
@@ -98,7 +86,7 @@ impl ChromiumSender {
 
     pub fn request_frame_positions(
         &self,
-        sources: &[(&NodeId, &NodeTexture)],
+        sources: &[&NodeTexture],
     ) -> Result<(), ChromiumSenderError> {
         self.message_sender
             .send(ChromiumSenderMessage::GetFramePositions {

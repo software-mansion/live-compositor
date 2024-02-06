@@ -12,7 +12,6 @@ impl TryFrom<ShaderSpec> for compositor_render::RendererSpec {
         let spec = shader::ShaderSpec {
             shader_id: spec.shader_id.into(),
             source: spec.source.into(),
-            fallback_strategy: compositor_render::FallbackStrategy::FallbackIfAllInputsMissing,
         };
         Ok(Self::Shader(spec))
     }
@@ -39,7 +38,6 @@ impl TryFrom<WebRendererSpec> for compositor_render::RendererSpec {
             instance_id: spec.instance_id.into(),
             url: spec.url,
             resolution: spec.resolution.into(),
-            fallback_strategy: compositor_render::FallbackStrategy::FallbackIfAllInputsMissing,
             embedding_method,
         };
         Ok(Self::WebRenderer(spec))

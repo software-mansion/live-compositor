@@ -1,4 +1,4 @@
-use crate::{FallbackStrategy, RendererId, Resolution};
+use crate::{RendererId, Resolution};
 use bytes::Bytes;
 use nalgebra_glm::Mat4;
 use std::sync::{Arc, Mutex};
@@ -47,7 +47,6 @@ pub struct WebRendererSpec {
     pub url: String,
     pub resolution: Resolution,
     pub embedding_method: WebEmbeddingMethod,
-    pub fallback_strategy: FallbackStrategy,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]

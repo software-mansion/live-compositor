@@ -149,7 +149,8 @@ impl Pipeline {
 
         self.inputs.insert(input_id.clone(), pipeline_input.into());
 
-        self.queue.add_input(input_id);
+        self.queue.add_input(input_id.clone());
+        self.renderer.register_input(input_id);
         Ok(port)
     }
 
@@ -160,6 +161,7 @@ impl Pipeline {
 
         self.inputs.remove(input_id);
         self.queue.remove_input(input_id);
+        self.renderer.unregister_input(input_id);
         Ok(())
     }
 
