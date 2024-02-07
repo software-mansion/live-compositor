@@ -14,7 +14,7 @@ use compositor_render::web_renderer::WebRendererInitOptions;
 use compositor_render::RegistryType;
 use compositor_render::RendererOptions;
 use compositor_render::{error::UpdateSceneError, Renderer};
-use compositor_render::{scene, EventLoop, Framerate, InputId, OutputId, RendererId, RendererSpec};
+use compositor_render::{EventLoop, Framerate, InputId, OutputId, RendererId, RendererSpec};
 use crossbeam_channel::unbounded;
 use log::{error, warn};
 
@@ -54,7 +54,7 @@ pub struct RegisterInputOptions {
 #[derive(Debug, Clone)]
 pub struct OutputScene {
     pub output_id: OutputId,
-    pub root: Component,
+    pub scene_root: Component,
 }
 
 pub struct PipelineInput {
@@ -166,10 +166,11 @@ impl Pipeline {
     }
 
     pub fn register_output(
-        &self,
+        &mut self,
         output_id: OutputId,
         encoder_opts: EncoderOptions,
         output_opts: OutputOptions,
+        initial_scene: Component,
     ) -> Result<(), RegisterOutputError> {
         if self.outputs.contains_key(&output_id) {
             return Err(RegisterOutputError::AlreadyRegistered(output_id));
@@ -188,7 +189,10 @@ impl Pipeline {
 
         let output = PipelineOutput { encoder, output };
 
-        self.outputs.insert(output_id, output.into());
+        self.outputs.insert(output_id.clone(), output.into());
+        self.update_scene(output_id.clone(), initial_scene)
+            .map_err(|e| RegisterOutputError::SceneError(output_id.clone(), e))?;
+
         Ok(())
     }
 
@@ -218,25 +222,21 @@ impl Pipeline {
             .unregister_renderer(renderer_id, registry_type)
     }
 
-    pub fn update_scene(&mut self, outputs: Vec<OutputScene>) -> Result<(), UpdateSceneError> {
-        let outputs = outputs
-            .into_iter()
-            .map(|output| {
-                let resolution = self
-                    .outputs
-                    .lock()
-                    .get(&output.output_id)
-                    .ok_or_else(|| UpdateSceneError::OutputNotRegistered(output.output_id.clone()))?
-                    .encoder
-                    .resolution();
-                Ok(scene::OutputScene {
-                    output_id: output.output_id,
-                    root: output.root,
-                    resolution,
-                })
-            })
-            .collect::<Result<Vec<_>, UpdateSceneError>>()?;
-        self.renderer.update_scene(outputs)
+    pub fn update_scene(
+        &mut self,
+        output_id: OutputId,
+        scene_root: Component,
+    ) -> Result<(), UpdateSceneError> {
+        let resolution = self
+            .outputs
+            .lock()
+            .get(&output_id)
+            .ok_or_else(|| UpdateSceneError::OutputNotRegistered(output_id.clone()))?
+            .encoder
+            .resolution();
+
+        self.renderer
+            .update_scene(output_id, resolution, scene_root)
     }
 
     pub fn start(&mut self) {

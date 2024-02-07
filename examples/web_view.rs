@@ -73,20 +73,6 @@ fn start_example_client_code() -> Result<()> {
         .display()
         .to_string();
 
-    info!("[example] Send register output request.");
-    common::post(&json!({
-        "type": "register",
-        "entity_type": "output_stream",
-        "output_id": "output_1",
-        "port": 8002,
-        "ip": "127.0.0.1",
-        "resolution": {
-            "width": VIDEO_RESOLUTION.width,
-            "height": VIDEO_RESOLUTION.height,
-        },
-        "encoder_preset": "ultrafast"
-    }))?;
-
     info!("[example] Send register input request.");
     common::post(&json!({
         "type": "register",
@@ -107,25 +93,29 @@ fn start_example_client_code() -> Result<()> {
         "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
     }))?;
 
-    info!("[example] Update scene");
+    info!("[example] Send register output request.");
     common::post(&json!({
-        "type": "update_scene",
-        "outputs": [
-            {
-                "output_id": "output_1",
-                "root": {
-                    "id": "embed_input_on_website",
-                    "type": "web_view",
-                    "instance_id": "example_website",
-                    "children": [
-                        {
-                            "type": "input_stream",
-                            "input_id": "input_1",
-                        }
-                    ]
+        "type": "register",
+        "entity_type": "output_stream",
+        "output_id": "output_1",
+        "port": 8002,
+        "ip": "127.0.0.1",
+        "resolution": {
+            "width": VIDEO_RESOLUTION.width,
+            "height": VIDEO_RESOLUTION.height,
+        },
+        "encoder_preset": "ultrafast",
+        "initial_scene": {
+            "id": "embed_input_on_website",
+            "type": "web_view",
+            "instance_id": "example_website",
+            "children": [
+                {
+                    "type": "input_stream",
+                    "input_id": "input_1",
                 }
-            }
-        ],
+            ]
+        }
     }))?;
 
     info!("[example] Start pipeline");

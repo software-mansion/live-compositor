@@ -3,10 +3,9 @@ use std::{collections::HashSet, fmt::Display, path::PathBuf, sync::Arc, time::Du
 use super::utils::{create_renderer, frame_to_rgba, snaphot_save_path, snapshots_diff};
 
 use anyhow::Result;
-use compositor_pipeline::pipeline;
 use compositor_render::{
-    scene::{OutputScene, RGBColor},
-    Frame, FrameSet, InputId, OutputId, Renderer, RendererSpec, Resolution, YuvData,
+    scene::RGBColor, Frame, FrameSet, InputId, OutputId, Renderer, RendererSpec, Resolution,
+    YuvData,
 };
 use image::ImageBuffer;
 use video_compositor::types::{self, RegisterRequest};
@@ -16,14 +15,14 @@ pub struct TestCase {
     pub inputs: Vec<TestInput>,
     pub renderers: Vec<&'static str>,
     pub timestamps: Vec<Duration>,
-    pub outputs: Outputs,
+    pub scene_updates: Updates,
     pub only: bool,
     pub allowed_error: f32,
 }
 
-pub enum Outputs {
-    Scene(Vec<(&'static str, Resolution)>),
-    Scenes(Vec<Vec<(&'static str, Resolution)>>),
+pub enum Updates {
+    Scene(&'static str, Resolution),
+    Scenes(Vec<(&'static str, Resolution)>),
 }
 
 impl Default for TestCase {
@@ -33,7 +32,7 @@ impl Default for TestCase {
             inputs: Vec::new(),
             renderers: Vec::new(),
             timestamps: vec![Duration::from_secs(0)],
-            outputs: Outputs::Scene(vec![]),
+            scene_updates: Updates::Scenes(vec![]),
             only: false,
             allowed_error: 20.0,
         }
@@ -42,7 +41,7 @@ impl Default for TestCase {
 
 pub struct TestCaseInstance {
     pub case: TestCase,
-    pub last_scene: Vec<OutputScene>,
+    pub expected_outputs: HashSet<OutputId>,
     pub renderer: Renderer,
 }
 
@@ -64,40 +63,43 @@ impl TestCaseInstance {
         if test_case.name.is_empty() {
             panic!("Snapshot test name has to be provided");
         }
-        let renderers: Vec<RendererSpec> = test_case
-            .renderers
-            .iter()
-            .cloned()
-            .map(|json| serde_json::from_str(json).unwrap())
-            .map(register_requests_to_renderers)
-            .collect();
 
-        let outputs = match test_case.outputs {
-            Outputs::Scene(ref scene) => vec![scene.clone()],
-            Outputs::Scenes(ref scenes) => scenes.clone(),
+        let mut renderer = create_renderer();
+        for json in test_case.renderers.iter() {
+            let spec = register_requests_to_renderers(
+                serde_json::from_str::<RegisterRequest>(json).unwrap(),
+            );
+            if matches!(spec, RendererSpec::WebRenderer(_)) {
+                panic!("Tests with web renderer are not supported");
+            }
+            renderer.register_renderer(spec).unwrap();
+        }
+
+        for (index, _) in test_case.inputs.iter().enumerate() {
+            renderer.register_input(InputId(format!("input_{}", index + 1).into()))
+        }
+
+        let outputs = match test_case.scene_updates {
+            Updates::Scene(scene, resolution) => vec![(scene, resolution)],
+            Updates::Scenes(ref scenes) => scenes.clone(),
         };
-        let scenes: Vec<Vec<OutputScene>> = outputs
-            .iter()
-            .map(|scene| {
-                scene
-                    .iter()
-                    .map(|output| {
-                        let scene: types::OutputScene = serde_json::from_str(output.0).unwrap();
-                        let scene: pipeline::OutputScene = scene.try_into().unwrap();
-                        OutputScene {
-                            output_id: scene.output_id,
-                            root: scene.root,
-                            resolution: output.1,
-                        }
-                    })
-                    .collect::<Vec<_>>()
-            })
-            .collect();
 
-        let renderer = create_renderer(renderers, scenes.clone());
+        let mut expected_outputs = HashSet::new();
+        for (update_str, resolution) in outputs {
+            let scene: types::OutputScene = serde_json::from_str(update_str).unwrap();
+            expected_outputs.insert(scene.output_id.clone().into());
+            renderer
+                .update_scene(
+                    scene.output_id.into(),
+                    resolution,
+                    scene.scene.try_into().unwrap(),
+                )
+                .unwrap()
+        }
+
         TestCaseInstance {
             case: test_case,
-            last_scene: scenes.last().unwrap().clone(),
+            expected_outputs,
             renderer,
         }
     }
@@ -150,11 +152,7 @@ impl TestCaseInstance {
             .iter()
             .map(|snapshot| snapshot.output_id.clone())
             .collect();
-        let expected_outputs: HashSet<OutputId> = self
-            .last_scene
-            .iter()
-            .map(|output| output.output_id.clone())
-            .collect();
+        let expected_outputs: HashSet<OutputId> = self.expected_outputs.iter().cloned().collect();
         if produced_outputs != expected_outputs {
             return (
                 snapshots,
@@ -172,12 +170,8 @@ impl TestCaseInstance {
     pub fn snapshot_paths(&self) -> Vec<PathBuf> {
         let mut paths = Vec::new();
         for pts in self.case.timestamps.iter() {
-            for output in self.last_scene.iter() {
-                paths.push(snaphot_save_path(
-                    self.case.name,
-                    pts,
-                    output.output_id.clone(),
-                ));
+            for output_id in self.expected_outputs.iter() {
+                paths.push(snaphot_save_path(self.case.name, pts, output_id.clone()));
             }
         }
 
@@ -199,12 +193,12 @@ impl TestCaseInstance {
         let outputs = self.renderer.render(frame_set)?;
         let mut snapshots = Vec::new();
 
-        for scene in &self.last_scene {
-            let output_frame = outputs.frames.get(&scene.output_id).unwrap();
+        for output_id in &self.expected_outputs {
+            let output_frame = outputs.frames.get(output_id).unwrap();
             let new_snapshot = frame_to_rgba(output_frame);
             snapshots.push(Snapshot {
                 test_name: self.case.name.to_owned(),
-                output_id: scene.output_id.clone(),
+                output_id: output_id.clone(),
                 pts,
                 resolution: output_frame.resolution,
                 data: new_snapshot,
