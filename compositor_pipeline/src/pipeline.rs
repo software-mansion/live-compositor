@@ -139,10 +139,6 @@ impl Pipeline {
             return Err(RegisterInputError::AlreadyRegistered(input_id));
         }
 
-        if self.inputs.contains_key(&input_id) {
-            return Err(RegisterInputError::AlreadyRegistered(input_id));
-        }
-
         let (input, chunks_receiver, port) =
             input::Input::new(input_options, &self.download_dir)
                 .map_err(|e| RegisterInputError::InputError(input_id.clone(), e))?;
