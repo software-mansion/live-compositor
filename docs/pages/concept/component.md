@@ -37,10 +37,10 @@ Example scene:
 }
 ```
 
-In the example above, we define a scene where an input stream `example_input_1` is rendered inside a [`View` component](../api/components/View). You can configure that scene for a specific output in the [`RegisterOutputStream` request](../api/routes#register-output-stream) using `intial_scene` field or in the [`UpdateScene` request](../api/routes#update-scene).
+In the example above, we define a scene where an input stream `example_input_1` is rendered inside a [`View` component](../api/components/View). You can configure that scene for a specific output in the [`RegisterOutputStream` request](../api/routes#register-output-stream) using `initial_scene` field or in the [`UpdateScene` request](../api/routes#update-scene).
 
 :::note
-You need to register `"example_input_1"` before using them in the scene definition.
+You need to register `"example_input_1"` before using it in the scene definition.
 :::
 
 ### Renderers
