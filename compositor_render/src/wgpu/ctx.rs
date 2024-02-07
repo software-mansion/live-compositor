@@ -73,11 +73,11 @@ impl WgpuCtx {
         let (device, queue) = pollster::block_on(adapter.request_device(
             &wgpu::DeviceDescriptor {
                 label: None,
-                limits: wgpu::Limits {
+                required_limits: wgpu::Limits {
                     max_push_constant_size: 128,
                     ..Default::default()
                 },
-                features: wgpu::Features::TEXTURE_BINDING_ARRAY
+                required_features: wgpu::Features::TEXTURE_BINDING_ARRAY
                     | wgpu::Features::PUSH_CONSTANTS
                     | wgpu::Features::SAMPLED_TEXTURE_AND_STORAGE_BUFFER_ARRAY_NON_UNIFORM_INDEXING
                     | wgpu::Features::UNIFORM_BUFFER_AND_STORAGE_TEXTURE_ARRAY_NON_UNIFORM_INDEXING,
@@ -135,6 +135,7 @@ fn uniform_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
 fn log_available_adapters(instance: &wgpu::Instance) {
     let adapters: Vec<_> = instance
         .enumerate_adapters(wgpu::Backends::all())
+        .iter()
         .map(|adapter| {
             let info = adapter.get_info();
             format!("\n - {info:?}")

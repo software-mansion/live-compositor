@@ -1,4 +1,4 @@
-use naga::{ArraySize, ConstantInner, Handle, Module, ScalarKind, ShaderStage, Type, VectorSize};
+use naga::{ArraySize, Handle, Module, ScalarKind, ShaderStage, Type, VectorSize};
 
 use crate::scene::ShaderParam;
 
@@ -171,12 +171,7 @@ fn validate_type_equivalent(
                 });
             }
 
-            validate_array_size_equivalent(
-                expected_size,
-                expected_module,
-                provided_size,
-                provided_module,
-            )?;
+            validate_array_size_equivalent(expected_size, provided_size)?;
             return validate_type_equivalent(
                 expected_base,
                 expected_module,
@@ -200,12 +195,7 @@ fn validate_type_equivalent(
                 });
             };
 
-            validate_array_size_equivalent(
-                expected_size,
-                expected_module,
-                provided_size,
-                provided_module,
-            )?;
+            validate_array_size_equivalent(expected_size, provided_size)?;
             return validate_type_equivalent(
                 expected_base,
                 expected_module,
@@ -295,47 +285,19 @@ fn validate_type_equivalent(
     Ok(())
 }
 
-fn eval_array_size(size: ArraySize, module: &naga::Module) -> Result<u64, ConstArraySizeEvalError> {
+fn eval_array_size(size: ArraySize) -> Result<u64, ConstArraySizeEvalError> {
     match size {
-        ArraySize::Constant(c) => {
-            let c = &module.constants[c];
-
-            // TODO: what do we do with c1.specialization? It doesn't occur in WGSL, but it can occur in vulkan shaders, which we might want to support later.
-            // There are also plans of adding them to WGSL
-
-            match c.inner {
-                ConstantInner::Scalar { value, .. } => match value {
-                    naga::ScalarValue::Uint(v) => Ok(v),
-
-                    naga::ScalarValue::Sint(v) => {
-                        if v < 0 {
-                            Err(ConstArraySizeEvalError::NegativeLength(v))
-                        } else {
-                            Ok(v as u64)
-                        }
-                    }
-
-                    naga::ScalarValue::Float(_) | naga::ScalarValue::Bool(_) => {
-                        Err(ConstArraySizeEvalError::WrongType(value))
-                    }
-                },
-                ConstantInner::Composite { .. } => {
-                    Err(ConstArraySizeEvalError::CompositeType(c.inner.clone()))
-                }
-            }
-        }
+        ArraySize::Constant(c) => Ok(c.get().into()),
         ArraySize::Dynamic => Err(ConstArraySizeEvalError::DynamicSize),
     }
 }
 
 fn validate_array_size_equivalent(
     expected_size: ArraySize,
-    expected_module: &Module,
     provided_size: ArraySize,
-    provided_module: &Module,
 ) -> Result<(), TypeEquivalenceError> {
-    let expected_size = eval_array_size(expected_size, expected_module)?;
-    let provided_size = eval_array_size(provided_size, provided_module)?;
+    let expected_size = eval_array_size(expected_size)?;
+    let provided_size = eval_array_size(provided_size)?;
 
     if expected_size != provided_size {
         return Err(TypeEquivalenceError::ArraySizeMismatch(
@@ -355,17 +317,15 @@ pub(super) fn validate_params(
     let ty = &module.types[ty];
 
     match &ty.inner {
-        naga::TypeInner::Scalar { kind, width } => validate_scalar(params, *kind, *width, module),
+        naga::TypeInner::Scalar(scalar) => validate_scalar(params, *scalar),
 
-        naga::TypeInner::Vector { size, kind, width } => {
-            validate_vector(params, *size, *kind, *width, module)
-        }
+        naga::TypeInner::Vector { size, scalar } => validate_vector(params, *size, *scalar, module),
 
         naga::TypeInner::Matrix {
             columns,
             rows,
-            width,
-        } => validate_matrix(params, *columns, *rows, *width, module),
+            scalar,
+        } => validate_matrix(params, *columns, *rows, *scalar, module),
 
         naga::TypeInner::Array { base, size, stride } => {
             validate_array(params, *base, *size, *stride, module)
@@ -454,7 +414,7 @@ fn validate_array(
     module: &naga::Module,
 ) -> Result<(), ParametersValidationError> {
     // ignoring the `stride`, it probably doesn't matter if the types are correct
-    let evaluated_size = eval_array_size(size, module)?;
+    let evaluated_size = eval_array_size(size)?;
 
     match params {
         ShaderParam::List(list) => {
@@ -488,7 +448,7 @@ fn validate_matrix(
     params: &ShaderParam,
     columns: VectorSize,
     rows: VectorSize,
-    width: u8,
+    scalar: naga::Scalar,
     module: &naga::Module,
 ) -> Result<(), ParametersValidationError> {
     match params {
@@ -501,7 +461,7 @@ fn validate_matrix(
             }
 
             for (idx, row) in rows_list.iter().enumerate() {
-                validate_vector(row, columns, ScalarKind::Float, width, module).map_err(|err| {
+                validate_vector(row, columns, scalar, module).map_err(|err| {
                     ParametersValidationError::WrongMatrixRowType {
                         idx,
                         error: Box::new(err),
@@ -517,7 +477,7 @@ fn validate_matrix(
             expected: naga::TypeInner::Matrix {
                 columns,
                 rows,
-                width,
+                scalar,
             }
             .to_string(module),
         }),
@@ -527,8 +487,7 @@ fn validate_matrix(
 fn validate_vector(
     params: &ShaderParam,
     size: VectorSize,
-    kind: ScalarKind,
-    width: u8,
+    scalar: naga::Scalar,
     module: &naga::Module,
 ) -> Result<(), ParametersValidationError> {
     match params {
@@ -541,7 +500,7 @@ fn validate_vector(
             }
 
             for (idx, v) in list.iter().enumerate() {
-                validate_scalar(v, kind, width, module).map_err(|err| {
+                validate_scalar(v, scalar).map_err(|err| {
                     ParametersValidationError::WrongVectorElementType {
                         idx,
                         error: Box::new(err),
@@ -554,44 +513,52 @@ fn validate_vector(
 
         _ => Err(ParametersValidationError::WrongType {
             actual: params.to_string(),
-            expected: naga::TypeInner::Vector { size, kind, width }.to_string(module),
+            expected: naga::TypeInner::Vector { size, scalar }.to_string(module),
         }),
     }
 }
 
 fn validate_scalar(
     params: &ShaderParam,
-    kind: ScalarKind,
-    width: u8,
-    module: &naga::Module,
+    scalar: naga::Scalar,
 ) -> Result<(), ParametersValidationError> {
-    match (kind, width) {
-        (ScalarKind::Float, 4) => match params {
+    match scalar {
+        naga::Scalar {
+            kind: ScalarKind::Float,
+            width: 4,
+        } => match params {
             ShaderParam::F32(_) => Ok(()),
             _ => Err(ParametersValidationError::WrongType {
                 actual: params.to_string(),
-                expected: naga::TypeInner::Scalar { kind, width }.to_string(module),
+                expected: scalar.to_string(),
             }),
         },
 
-        (ScalarKind::Uint, 4) => match params {
+        naga::Scalar {
+            kind: ScalarKind::Uint,
+            width: 4,
+        } => match params {
             ShaderParam::U32(_) => Ok(()),
             _ => Err(ParametersValidationError::WrongType {
                 actual: params.to_string(),
-                expected: naga::TypeInner::Scalar { kind, width }.to_string(module),
+                expected: scalar.to_string(),
             }),
         },
 
-        (ScalarKind::Sint, 4) => match params {
+        naga::Scalar {
+            kind: ScalarKind::Sint,
+            width: 4,
+        } => match params {
             ShaderParam::I32(_) => Ok(()),
             _ => Err(ParametersValidationError::WrongType {
                 actual: params.to_string(),
-                expected: naga::TypeInner::Scalar { kind, width }.to_string(module),
+                expected: scalar.to_string(),
             }),
         },
 
         _ => Err(ParametersValidationError::UnsupportedScalarKind(
-            kind, width,
+            scalar.kind,
+            scalar.width,
         )),
     }
 }
@@ -621,9 +588,9 @@ impl TypeInnerExt for naga::TypeInner {
     }
     fn to_string(&self, module: &naga::Module) -> String {
         match self {
-            naga::TypeInner::Scalar { kind, width } => kind.to_string(*width),
-            naga::TypeInner::Vector { size, kind, width } => {
-                format!("vec{}<{}>", *size as u8, kind.to_string(*width))
+            naga::TypeInner::Scalar(scalar) => scalar.to_string(),
+            naga::TypeInner::Vector { size, scalar } => {
+                format!("vec{}<{}>", *size as u8, scalar.to_string())
             }
             naga::TypeInner::Matrix { .. } => "matrix".to_string(),
             naga::TypeInner::Atomic { .. } => "atomic".to_string(),
@@ -635,77 +602,62 @@ impl TypeInnerExt for naga::TypeInner {
                 dim,
                 arrayed,
                 class,
-            } => match (dim, arrayed, class) {
-                (naga::ImageDimension::D1, false, naga::ImageClass::Sampled { kind, .. }) => {
-                    format!("texture_1d<{}>", kind.to_string(4))
+            } => {
+                let fallback = format!("{:?}", self);
+                let naga::ImageClass::Sampled { kind, .. } = class else {
+                    return fallback;
+                };
+
+                let scalar = naga::Scalar {
+                    kind: *kind,
+                    width: 4,
                 }
-                (naga::ImageDimension::D2, false, naga::ImageClass::Sampled { kind, .. }) => {
-                    format!("texture_2d<{}>", kind.to_string(4))
-                }
-                (naga::ImageDimension::D2, true, naga::ImageClass::Sampled { kind, .. }) => {
-                    format!("texture_2d_array<{}>", kind.to_string(4))
-                }
-                (naga::ImageDimension::D3, false, naga::ImageClass::Sampled { kind, .. }) => {
-                    format!("texture_3d<{}>", kind.to_string(4))
-                }
-                (naga::ImageDimension::Cube, false, naga::ImageClass::Sampled { kind, .. }) => {
-                    format!("texture_cube<{}>", kind.to_string(4))
-                }
-                (naga::ImageDimension::Cube, true, naga::ImageClass::Sampled { kind, .. }) => {
-                    format!("texture_cube_array<{}>", kind.to_string(4))
-                }
-                _ => format!("{:?}", self),
-            },
+                .to_string();
+
+                let texture_kind = match (dim, arrayed) {
+                    (naga::ImageDimension::D1, false) => "texture_1d",
+                    (naga::ImageDimension::D2, false) => "texture_2d",
+                    (naga::ImageDimension::D2, true) => "texture_2d_array",
+                    (naga::ImageDimension::D3, false) => "texture_3d",
+                    (naga::ImageDimension::Cube, false) => "texture_cube",
+                    (naga::ImageDimension::Cube, true) => "texture_cube_array",
+                    _ => return fallback,
+                };
+
+                format!("{texture_kind}<{scalar}>")
+            }
             naga::TypeInner::Sampler { .. } => "sampler".to_string(),
             naga::TypeInner::AccelerationStructure => "acceleration structure".to_string(),
             naga::TypeInner::RayQuery => "ray query".to_string(),
             naga::TypeInner::BindingArray { base, size } => {
-                let size: Option<&naga::Constant> = match size {
-                    ArraySize::Constant(size) => Some(&module.constants[*size]),
+                let size: Option<u32> = match size {
+                    ArraySize::Constant(size) => Some(size.get()),
                     ArraySize::Dynamic => None, // TODO: not sure how to handle this
                 };
                 let base: &naga::Type = &module.types[*base];
                 format!(
                     "binding_array<{}, {}>",
                     base.inner.to_string(module),
-                    size.map(|t| t.inner.to_string(module))
-                        .unwrap_or("_".to_string())
+                    size.map(|s| s.to_string()).unwrap_or("_".to_string())
                 )
             }
         }
     }
 }
 
-trait ConstantInnerExt {
-    fn to_string(&self, module: &naga::Module) -> String;
+trait ScalarExt {
+    fn to_string(&self) -> String;
 }
 
-impl ConstantInnerExt for naga::ConstantInner {
-    fn to_string(&self, _module: &naga::Module) -> String {
-        match self {
-            ConstantInner::Scalar { value, .. } => match value {
-                naga::ScalarValue::Sint(v) => format!("{}", v),
-                naga::ScalarValue::Uint(v) => format!("{}", v),
-                naga::ScalarValue::Float(v) => format!("{}", v),
-                naga::ScalarValue::Bool(true) => "true".to_string(),
-                naga::ScalarValue::Bool(false) => "false".to_string(),
-            },
-            ConstantInner::Composite { .. } => format!("{:?}", self),
-        }
-    }
-}
-
-trait ScalarKindExt {
-    fn to_string(&self, width: u8) -> String;
-}
-
-impl ScalarKindExt for naga::ScalarKind {
-    fn to_string(&self, width: u8) -> String {
-        match self {
-            ScalarKind::Sint => format!("i{}", width * 8),
-            ScalarKind::Uint => format!("u{}", width * 8),
-            ScalarKind::Float => format!("f{}", width * 8),
+impl ScalarExt for naga::Scalar {
+    fn to_string(&self) -> String {
+        match self.kind {
+            ScalarKind::Sint => format!("i{}", self.width * 8),
+            ScalarKind::Uint => format!("u{}", self.width * 8),
+            ScalarKind::Float => format!("f{}", self.width * 8),
             ScalarKind::Bool => "bool".to_string(),
+            ScalarKind::AbstractInt => "abstract int".into(),
+            ScalarKind::AbstractFloat => "abstract float".into(),
         }
     }
 }

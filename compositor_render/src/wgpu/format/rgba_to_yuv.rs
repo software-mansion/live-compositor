@@ -91,12 +91,14 @@ impl RGBAToYUVConverter {
                                 a: 1.0,
                             }
                         }),
-                        store: true,
+                        store: wgpu::StoreOp::Store,
                     },
                     view: &dst.plane(plane).view,
                     resolve_target: None,
                 })],
                 depth_stencil_attachment: None,
+                timestamp_writes: None,
+                occlusion_query_set: None,
             });
 
             render_pass.set_pipeline(&self.pipeline);

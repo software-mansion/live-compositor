@@ -112,15 +112,6 @@ pub enum TypeEquivalenceError {
 pub enum ConstArraySizeEvalError {
     #[error("Dynamic array size is not allowed.")]
     DynamicSize,
-
-    #[error("A value below zero is not allowed as array size.")]
-    NegativeLength(i64),
-
-    #[error("Composite types are not allowed as array sizes (found {0:?}).")]
-    CompositeType(naga::ConstantInner),
-
-    #[error("Bools and floats are not allowed as array sizes (found {0:?}).")]
-    WrongType(naga::ScalarValue),
 }
 
 #[derive(Debug, thiserror::Error)]
