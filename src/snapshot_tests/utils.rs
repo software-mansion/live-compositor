@@ -1,8 +1,8 @@
 use std::{collections::HashSet, fs, path::PathBuf, time::Duration};
 
 use compositor_render::{
-    scene::OutputScene, web_renderer, Frame, Framerate, OutputId, Renderer, RendererOptions,
-    RendererSpec, YuvData,
+    scene::OutputScene, web_renderer, Frame, Framerate, InputId, OutputId, Renderer,
+    RendererOptions, RendererSpec, YuvData,
 };
 
 pub const SNAPSHOTS_DIR_NAME: &str = "snapshot_tests/snapshots/render_snapshots";
@@ -72,6 +72,9 @@ pub(super) fn create_renderer(
             panic!("Tests with web renderer are not supported");
         }
         renderer.register_renderer(spec).unwrap();
+    }
+    for id in 0..16 {
+        renderer.register_input(InputId(format!("input_{id}").into()))
     }
     for scene_update in scene_updates {
         renderer.update_scene(scene_update.clone()).unwrap();

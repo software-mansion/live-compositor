@@ -57,7 +57,7 @@ fn build_and_start_docker(skip_build: bool) -> Result<()> {
             .args([
                 "build",
                 "-f",
-                "build-tools/docker/slim.Dockerfile",
+                "build_tools/docker/slim.Dockerfile",
                 "-t",
                 "video-compositor",
                 ".",
@@ -126,7 +126,7 @@ fn start_example_client_code(host_ip: String) -> Result<()> {
     info!("[example] Send register input request.");
     common::post(&json!({
         "type": "register",
-        "entity_type": "input_stream",
+        "entity_type": "rtp_input_stream",
         "input_id": "input_1",
         "port": 8004,
         "video": {

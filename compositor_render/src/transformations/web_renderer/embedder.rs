@@ -1,4 +1,4 @@
-use crate::state::{render_graph::NodeId, RegisterCtx};
+use crate::state::RegisterCtx;
 use crate::transformations::web_renderer::chromium_sender::ChromiumSender;
 use crate::wgpu::texture::NodeTexture;
 use crate::wgpu::WgpuCtx;
@@ -33,14 +33,11 @@ impl EmbeddingHelper {
 
     pub fn prepare_embedding(
         &self,
-        node_id: &NodeId,
-        sources: &[(&NodeId, &NodeTexture)],
+        sources: &[&NodeTexture],
         buffers: &[Arc<wgpu::Buffer>],
     ) -> Result<(), EmbedError> {
         match self.embedding_method {
-            WebEmbeddingMethod::ChromiumEmbedding => {
-                self.chromium_embedding(node_id, sources, buffers)?
-            }
+            WebEmbeddingMethod::ChromiumEmbedding => self.chromium_embedding(sources, buffers)?,
             WebEmbeddingMethod::NativeEmbeddingOverContent
             | WebEmbeddingMethod::NativeEmbeddingUnderContent => {
                 self.chromium_sender.request_frame_positions(sources)?
@@ -53,26 +50,19 @@ impl EmbeddingHelper {
     /// Send sources to chromium and render them on canvases via JS API
     fn chromium_embedding(
         &self,
-        node_id: &NodeId,
-        sources: &[(&NodeId, &NodeTexture)],
+        sources: &[&NodeTexture],
         buffers: &[Arc<wgpu::Buffer>],
     ) -> Result<(), EmbedError> {
-        self.chromium_sender
-            .ensure_shared_memory(*node_id, sources)?;
+        self.chromium_sender.ensure_shared_memory(sources)?;
         self.copy_sources_to_buffers(sources, buffers)?;
 
         let mut pending_downloads = Vec::new();
-        for (source_idx, ((_, texture), buffer)) in sources.iter().zip(buffers).enumerate() {
+        for (source_idx, (texture, buffer)) in sources.iter().zip(buffers).enumerate() {
             let Some(texture_state) = texture.state() else {
                 continue;
             };
             let size = texture_state.rgba_texture().size();
-            pending_downloads.push(self.copy_buffer_to_shmem(
-                *node_id,
-                source_idx,
-                size,
-                buffer.clone(),
-            ));
+            pending_downloads.push(self.copy_buffer_to_shmem(source_idx, size, buffer.clone()));
         }
 
         self.wgpu_ctx.device.poll(wgpu::Maintain::Wait);
@@ -82,13 +72,13 @@ impl EmbeddingHelper {
         }
 
         self.chromium_sender
-            .embed_sources(*node_id, sources)
+            .embed_sources(sources)
             .map_err(EmbedError::ChromiumSenderError)
     }
 
     fn copy_sources_to_buffers(
         &self,
-        sources: &[(&NodeId, &NodeTexture)],
+        sources: &[&NodeTexture],
         buffers: &[Arc<wgpu::Buffer>],
     ) -> Result<(), EmbedError> {
         let mut encoder = self
@@ -96,7 +86,7 @@ impl EmbeddingHelper {
             .device
             .create_command_encoder(&Default::default());
 
-        for ((_, texture), buffer) in sources.iter().zip(buffers) {
+        for (texture, buffer) in sources.iter().zip(buffers) {
             let Some(texture_state) = texture.state() else {
                 continue;
             };
@@ -111,7 +101,6 @@ impl EmbeddingHelper {
 
     fn copy_buffer_to_shmem(
         &self,
-        node_id: NodeId,
         source_idx: usize,
         size: wgpu::Extent3d,
         source: Arc<wgpu::Buffer>,
@@ -129,7 +118,7 @@ impl EmbeddingHelper {
             r.recv().unwrap()?;
 
             self.chromium_sender
-                .update_shared_memory(node_id, source_idx, source.clone(), size)?;
+                .update_shared_memory(source_idx, source.clone(), size)?;
             source.unmap();
 
             Ok(())

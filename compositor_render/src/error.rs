@@ -14,6 +14,15 @@ pub use crate::registry::RegisterError;
 pub use crate::wgpu::WgpuError;
 
 #[derive(Debug, thiserror::Error)]
+pub enum InitPipelineError {
+    #[error(transparent)]
+    InitRendererEngine(#[from] InitRendererEngineError),
+
+    #[error("Failed to create a download directory.")]
+    CreateDownloadDir(#[source] std::io::Error),
+}
+
+#[derive(Debug, thiserror::Error)]
 pub enum InitRendererEngineError {
     #[error("Failed to initialize a wgpu context.")]
     FailedToInitWgpuCtx(#[from] CreateWgpuCtxError),

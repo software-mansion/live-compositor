@@ -75,32 +75,15 @@ fn start_example_client_code() -> Result<()> {
         }
     }))?;
 
-    let shader_source = include_str!("./silly.wgsl");
-    info!("[example] Register shader transform");
-    common::post(&json!({
-        "type": "register",
-        "entity_type": "shader",
-        "shader_id": "shader_example_1",
-        "source": shader_source,
-    }))?;
-
     info!("[example] Update scene");
     common::post(&json!({
         "type": "update_scene",
         "outputs": [{
             "output_id": "output_1",
             "root": {
-                "type": "shader",
-                "id": "shader_node_1",
-                "shader_id": "shader_example_1",
-                "children": [
-                    {
-                        "id": "input_1",
-                        "type": "input_stream",
-                        "input_id": "input_1",
-                    }
-                ],
-                "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+                "id": "input_1",
+                "type": "input_stream",
+                "input_id": "input_1",
             }
         }]
     }))?;

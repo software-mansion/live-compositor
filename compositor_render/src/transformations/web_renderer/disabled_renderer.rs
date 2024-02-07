@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
 use crate::{
-    state::{render_graph::NodeId, RegisterCtx, RenderCtx},
+    state::{RegisterCtx, RenderCtx},
     wgpu::texture::NodeTexture,
-    FallbackStrategy, Resolution,
+    Resolution,
 };
 
 use super::WebRendererSpec;
@@ -21,8 +21,7 @@ impl WebRenderer {
     pub fn render(
         &self,
         _ctx: &RenderCtx,
-        _node_id: &NodeId,
-        _sources: &[(&NodeId, &NodeTexture)],
+        _sources: &[&NodeTexture],
         _buffers: &[Arc<wgpu::Buffer>],
         _target: &mut NodeTexture,
     ) -> Result<(), RenderWebsiteError> {
@@ -31,10 +30,6 @@ impl WebRenderer {
 
     pub fn resolution(&self) -> Resolution {
         self.spec.resolution
-    }
-
-    pub fn fallback_strategy(&self) -> FallbackStrategy {
-        self.spec.fallback_strategy
     }
 }
 

@@ -27,6 +27,8 @@ jobs:
                   # required when job is running in docker container                
                   apt-get install -y build-essential curl pkg-config git libssl-dev libclang-dev libnss3 libatk1.0-0 libatk-bridge2.0-0 libgdk-pixbuf2.0-0 libgtk-3-0
 
+                  fc-cache -f
+
             - name: 🔧 Install the rust toolchain
               uses: dtolnay/rust-toolchain@stable
               with:
@@ -59,19 +61,26 @@ jobs:
             - name: 📎 Run clippy
               run: cargo clippy --workspace --all-targets --all-features -- -D warnings
 
+            - name: 🛠 Cargo build
+              run: |
+                cargo build
+                cargo build --no-default-features
+
             - name: 📄 Generate JSON schema
               run: |
                 cargo run --bin generate_json_schema
                 cargo run --bin generate_docs
+
+            - name: 🧪 Run tests
+              run: |
+                cargo clean
+                cargo nextest run --no-fail-fast --workspace
 
             - name: 🖋️ Run website lint + typecheck + build
               working-directory: ./docs
               run: |
                 npm ci
                 npm run typecheck && npm run lint --max-warnings=0 && npm run build
-
-            - name: 🧪 Run tests
-              run: cargo nextest run --no-fail-fast --workspace
 
             - name: 📦 Upload failed snapshot test artifacts
               if: failure()

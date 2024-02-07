@@ -4,9 +4,9 @@ use wgpu::util::DeviceExt;
 
 use crate::{
     scene::ShaderParam,
-    state::{render_graph::NodeId, RenderCtx},
+    state::RenderCtx,
     wgpu::{texture::NodeTexture, WgpuCtx},
-    FallbackStrategy, Resolution,
+    Resolution,
 };
 
 use super::Shader;
@@ -68,14 +68,10 @@ impl ShaderNode {
         })
     }
 
-    pub fn fallback_strategy(&self) -> FallbackStrategy {
-        self.shader.fallback_strategy
-    }
-
     pub fn render(
         &self,
         wgpu_ctx: &Arc<WgpuCtx>,
-        sources: &[(&NodeId, &NodeTexture)],
+        sources: &[&NodeTexture],
         target: &mut NodeTexture,
         pts: Duration,
     ) {

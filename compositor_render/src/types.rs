@@ -126,13 +126,6 @@ impl From<Arc<str>> for OutputId {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-pub enum FallbackStrategy {
-    NeverFallback,
-    FallbackIfAllInputsMissing,
-    FallbackIfAnyInputMissing,
-}
-
 pub const MAX_NODE_RESOLUTION: Resolution = Resolution {
     width: 7682,
     height: 4320,

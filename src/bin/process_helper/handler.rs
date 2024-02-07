@@ -136,7 +136,7 @@ impl RenderProcessHandler {
     fn unembed_source(&self, msg: &cef::ProcessMessage, surface: &cef::Frame) -> Result<()> {
         let mut state = self.state.lock().unwrap();
         let Some(shmem_path) = msg.read_string(0) else {
-            return Err(anyhow!("Failed to read node ID"));
+            return Err(anyhow!("Failed to read shared memory path"));
         };
         let shmem_path = PathBuf::from(shmem_path);
         let Some(source) = state.source(&shmem_path) else {

@@ -4,27 +4,24 @@ use log::error;
 
 use crate::{
     error::ErrorStack,
-    state::{render_graph::NodeId, RenderCtx},
+    state::RenderCtx,
     wgpu::{
         texture::{utils::pad_to_256, NodeTexture, RGBATexture},
         WgpuCtx,
     },
-    FallbackStrategy,
 };
 
 use super::WebRenderer;
 
 pub struct WebRendererNode {
     renderer: Arc<WebRenderer>,
-    node_id: NodeId,
     buffers: Vec<Arc<wgpu::Buffer>>,
 }
 
 impl WebRendererNode {
-    pub fn new(node_id: &NodeId, renderer: Arc<WebRenderer>) -> Self {
+    pub fn new(renderer: Arc<WebRenderer>) -> Self {
         Self {
             renderer,
-            node_id: *node_id,
             buffers: Vec::new(),
         }
     }
@@ -32,15 +29,12 @@ impl WebRendererNode {
     pub fn render(
         &mut self,
         ctx: &mut RenderCtx,
-        sources: &[(&NodeId, &NodeTexture)],
+        sources: &[&NodeTexture],
         target: &mut NodeTexture,
     ) {
         self.ensure_buffers(ctx.wgpu_ctx, sources);
 
-        if let Err(err) = self
-            .renderer
-            .render(ctx, &self.node_id, sources, &self.buffers, target)
-        {
+        if let Err(err) = self.renderer.render(ctx, sources, &self.buffers, target) {
             error!(
                 "Failed to run web render: {}",
                 ErrorStack::new(&err).into_string()
@@ -48,11 +42,7 @@ impl WebRendererNode {
         }
     }
 
-    pub fn fallback_strategy(&self) -> FallbackStrategy {
-        self.renderer.fallback_strategy()
-    }
-
-    fn ensure_buffers(&mut self, wgpu_ctx: &WgpuCtx, sources: &[(&NodeId, &NodeTexture)]) {
+    fn ensure_buffers(&mut self, wgpu_ctx: &WgpuCtx, sources: &[&NodeTexture]) {
         self.buffers.resize_with(sources.len(), || {
             let buffer = wgpu_ctx.device.create_buffer(&wgpu::BufferDescriptor {
                 label: Some("Temporary texture buffer"),
@@ -64,7 +54,7 @@ impl WebRendererNode {
             Arc::new(buffer)
         });
 
-        for ((_, texture), buffer) in sources.iter().zip(&mut self.buffers) {
+        for (texture, buffer) in sources.iter().zip(&mut self.buffers) {
             let Some(texture_state) = texture.state() else {
                 continue;
             };

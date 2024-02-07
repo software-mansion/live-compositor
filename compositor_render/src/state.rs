@@ -33,7 +33,6 @@ mod render_loop;
 pub mod renderers;
 
 use log::debug;
-pub(crate) use render_loop::NodeRenderPass;
 
 pub struct RendererOptions {
     pub web_renderer: web_renderer::WebRendererInitOptions,
@@ -91,6 +90,27 @@ impl Renderer {
         let event_loop = renderer.chromium_context.event_loop();
 
         Ok((Self(Arc::new(Mutex::new(renderer))), event_loop))
+    }
+
+    pub fn register_input(&self, input_id: InputId) {
+        self.0.lock().unwrap().render_graph.register_input(input_id);
+    }
+
+    pub fn unregister_input(&self, input_id: &InputId) {
+        self.0
+            .lock()
+            .unwrap()
+            .render_graph
+            .unregister_input(input_id);
+    }
+
+    pub fn unregister_output(&self, output_id: &OutputId) {
+        self.0
+            .lock()
+            .unwrap()
+            .render_graph
+            .unregister_output(output_id);
+        self.0.lock().unwrap().scene.unregister_output(output_id)
     }
 
     pub fn register_renderer(&self, spec: RendererSpec) -> Result<(), RegisterRendererError> {
@@ -155,7 +175,7 @@ impl Renderer {
 
 impl InnerRenderer {
     pub fn new(opts: RendererOptions) -> Result<Self, InitRendererEngineError> {
-        let wgpu_ctx = Arc::new(WgpuCtx::new(opts.force_gpu)?);
+        let wgpu_ctx = WgpuCtx::new(opts.force_gpu)?;
 
         Ok(Self {
             wgpu_ctx: wgpu_ctx.clone(),
@@ -177,7 +197,7 @@ impl InnerRenderer {
 
     pub fn render(
         &mut self,
-        mut inputs: FrameSet<InputId>,
+        inputs: FrameSet<InputId>,
     ) -> Result<FrameSet<OutputId>, RenderSceneError> {
         let ctx = &mut RenderCtx {
             wgpu_ctx: &self.wgpu_ctx,
@@ -196,34 +216,34 @@ impl InnerRenderer {
         self.scene
             .register_render_event(inputs.pts, input_resolutions);
 
-        populate_inputs(ctx, &mut self.render_graph, &mut inputs).unwrap();
-        run_transforms(ctx, &mut self.render_graph, inputs.pts).unwrap();
-        let frames = read_outputs(ctx, &mut self.render_graph, inputs.pts).unwrap();
+        let pts = inputs.pts;
+        populate_inputs(ctx, &mut self.render_graph, inputs);
+        run_transforms(ctx, &mut self.render_graph, pts);
+        let frames = read_outputs(ctx, &mut self.render_graph, pts);
 
         scope.pop(&ctx.wgpu_ctx.device)?;
 
-        Ok(FrameSet {
-            frames,
-            pts: inputs.pts,
-        })
+        Ok(FrameSet { frames, pts })
     }
 
     pub fn update_scene(
         &mut self,
-        scenes: Vec<scene::OutputScene>,
+        outputs: Vec<scene::OutputScene>,
     ) -> Result<(), UpdateSceneError> {
-        let output_nodes =
-            self.scene
-                .update_scene(scenes, &self.renderers, &self.text_renderer_ctx)?;
-        self.render_graph.update(
-            &RenderCtx {
-                wgpu_ctx: &self.wgpu_ctx,
-                text_renderer_ctx: &self.text_renderer_ctx,
-                renderers: &self.renderers,
-                stream_fallback_timeout: self.stream_fallback_timeout,
-            },
-            output_nodes,
-        )?;
+        for output_scene in outputs {
+            let output_node =
+                self.scene
+                    .update_scene(output_scene, &self.renderers, &self.text_renderer_ctx)?;
+            self.render_graph.update(
+                &RenderCtx {
+                    wgpu_ctx: &self.wgpu_ctx,
+                    text_renderer_ctx: &self.text_renderer_ctx,
+                    renderers: &self.renderers,
+                    stream_fallback_timeout: self.stream_fallback_timeout,
+                },
+                output_node,
+            )?;
+        }
         Ok(())
     }
 }

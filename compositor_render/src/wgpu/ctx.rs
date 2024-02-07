@@ -1,9 +1,24 @@
+use std::sync::{atomic::AtomicBool, Arc, OnceLock};
+
 use log::{error, info};
 
 use super::{
     common_pipeline::plane::Plane, format::TextureFormat, texture::Texture, utils::TextureUtils,
     CreateWgpuCtxError, WgpuErrorScope,
 };
+
+static USE_GLOBAL_WGPU_CTX: AtomicBool = AtomicBool::new(false);
+
+pub fn use_global_wgpu_ctx() {
+    USE_GLOBAL_WGPU_CTX.store(true, std::sync::atomic::Ordering::Relaxed);
+}
+
+fn global_wgpu_ctx(force_gpu: bool) -> Result<Arc<WgpuCtx>, CreateWgpuCtxError> {
+    static CTX: OnceLock<Result<Arc<WgpuCtx>, CreateWgpuCtxError>> = OnceLock::new();
+
+    CTX.get_or_init(|| Ok(Arc::new(WgpuCtx::create(force_gpu)?)))
+        .clone()
+}
 
 #[derive(Debug)]
 pub struct WgpuCtx {
@@ -21,7 +36,15 @@ pub struct WgpuCtx {
 }
 
 impl WgpuCtx {
-    pub fn new(force_gpu: bool) -> Result<Self, CreateWgpuCtxError> {
+    pub fn new(force_gpu: bool) -> Result<Arc<Self>, CreateWgpuCtxError> {
+        if USE_GLOBAL_WGPU_CTX.load(std::sync::atomic::Ordering::Relaxed) {
+            global_wgpu_ctx(force_gpu)
+        } else {
+            Ok(Arc::new(Self::create(force_gpu)?))
+        }
+    }
+
+    fn create(force_gpu: bool) -> Result<Self, CreateWgpuCtxError> {
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
             backends: wgpu::Backends::all(),
             ..Default::default()

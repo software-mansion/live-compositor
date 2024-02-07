@@ -61,7 +61,7 @@ fn start_example_client_code() -> Result<()> {
     info!("[example] Send register input request.");
     let response = common::post(&json!({
         "type": "register",
-        "entity_type": "input_stream",
+        "entity_type": "rtp_input_stream",
         "input_id": "input_1",
         "port": "8004:8008",
         "video": {
@@ -71,7 +71,7 @@ fn start_example_client_code() -> Result<()> {
     .json()?;
 
     let input_port = match response {
-        Response::RegisteredPort(port) => port,
+        Response::RegisteredPort { port } => port,
         _ => panic!(
             "Unexpected response for registering an input: {:?}",
             response

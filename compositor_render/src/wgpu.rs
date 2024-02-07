@@ -6,6 +6,7 @@ pub(crate) mod format;
 pub(crate) mod texture;
 pub(crate) mod utils;
 
+pub use ctx::use_global_wgpu_ctx;
 pub(crate) use ctx::WgpuCtx;
 
 #[must_use]
@@ -30,7 +31,7 @@ impl WgpuErrorScope {
     }
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, Clone)]
 pub enum CreateWgpuCtxError {
     #[error("Failed to get a wgpu adapter.")]
     NoAdapter,
@@ -42,7 +43,7 @@ pub enum CreateWgpuCtxError {
     WgpuError(#[from] WgpuError),
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, Clone)]
 pub enum WgpuError {
     #[error("Wgpu validation error:\n{0}")]
     Validation(String),

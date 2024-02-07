@@ -3,7 +3,7 @@
   "title": "RegisterRequest",
   "oneOf": [
     {
-      "description": "Parameters of registered RTP input stream. Before using input in video composition or output mixing, input has to be firstly registered using `register_input` request.\n\nAt least one of `video` and `audio` has to be defined.",
+      "description": "Parameters for an input stream from RTP source. At least one of `video` and `audio` has to be defined.",
       "type": "object",
       "required": [
         "entity_type",
@@ -14,7 +14,7 @@
         "entity_type": {
           "type": "string",
           "enum": [
-            "input_stream"
+            "rtp_input_stream"
           ]
         },
         "input_id": {
@@ -53,6 +53,44 @@
             {
               "type": "null"
             }
+          ]
+        }
+      }
+    },
+    {
+      "description": "Input stream from MP4 file. Exactly one of `url` and `path` has to be defined.",
+      "type": "object",
+      "required": [
+        "entity_type",
+        "input_id"
+      ],
+      "properties": {
+        "entity_type": {
+          "type": "string",
+          "enum": [
+            "mp4"
+          ]
+        },
+        "input_id": {
+          "description": "An identifier for the input stream.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/InputId"
+            }
+          ]
+        },
+        "url": {
+          "description": "URL of the MP4 file.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "path": {
+          "description": "Path to the MP4 file.",
+          "type": [
+            "string",
+            "null"
           ]
         }
       }

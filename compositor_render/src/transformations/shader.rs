@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::{
     scene::ShaderParam,
     wgpu::{common_pipeline::CreateShaderError, WgpuCtx},
-    FallbackStrategy, RendererId,
+    RendererId,
 };
 
 use self::{pipeline::ShaderPipeline, validation::error::ParametersValidationError};
@@ -18,7 +18,6 @@ const SHADER_INPUT_TEXTURES_AMOUNT: u32 = 16;
 #[derive(Debug)]
 pub struct Shader {
     pipeline: ShaderPipeline,
-    fallback_strategy: FallbackStrategy,
     clear_color: Option<wgpu::Color>,
 }
 
@@ -26,18 +25,15 @@ pub struct Shader {
 pub struct ShaderSpec {
     pub shader_id: RendererId,
     pub source: Arc<str>,
-    pub fallback_strategy: FallbackStrategy,
 }
 
 impl Shader {
     pub fn new(wgpu_ctx: &Arc<WgpuCtx>, spec: ShaderSpec) -> Result<Self, CreateShaderError> {
-        let fallback_strategy = spec.fallback_strategy;
         let clear_color = None;
         let pipeline = ShaderPipeline::new(wgpu_ctx, spec.source)?;
 
         Ok(Self {
             pipeline,
-            fallback_strategy,
             clear_color,
         })
     }

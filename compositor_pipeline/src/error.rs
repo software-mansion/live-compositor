@@ -87,6 +87,9 @@ pub enum DecoderInitError {
 pub enum InputInitError {
     #[error(transparent)]
     Rtp(#[from] crate::pipeline::input::rtp::RtpReceiverError),
+
+    #[error(transparent)]
+    Mp4(#[from] crate::pipeline::input::mp4::Mp4Error),
 }
 
 pub enum ErrorType {

@@ -36,9 +36,11 @@ pub use component::View;
 pub use component::WebView;
 
 #[allow(unused_imports)]
-pub use register_request::RegisterInputRequest;
+pub use register_request::Mp4;
 pub use register_request::RegisterOutputRequest;
 pub use register_request::RegisterRequest;
+#[allow(unused_imports)]
+pub use register_request::RtpInputStream;
 
 #[allow(unused_imports)]
 pub use renderer::ImageSpec;
