@@ -106,7 +106,7 @@ impl Queue {
     }
 
     pub fn add_input(&self, options: InputType) {
-        if options.video.is_some() {
+        if let Some(_video_options) = options.video {
             self.video_queue
                 .lock()
                 .unwrap()
