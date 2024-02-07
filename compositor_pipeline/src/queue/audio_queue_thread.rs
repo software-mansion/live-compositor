@@ -19,8 +19,8 @@ pub struct AudioQueueThread {
     queue: Arc<Queue>,
     sender: Sender<AudioSamplesSet>,
     buffer_duration: Duration,
-    chunk_length: Duration,
-    send_chunks: u32,
+    chunk_duration: Duration,
+    chunks_counter: u32,
 }
 
 impl AudioQueueThread {
@@ -29,8 +29,8 @@ impl AudioQueueThread {
             queue,
             sender,
             buffer_duration: opts.buffer_duration,
-            chunk_length: opts.pushed_chunk_length,
-            send_chunks: 0,
+            chunk_duration: opts.pushed_chunk_length,
+            chunks_counter: 0,
         }
     }
 
@@ -40,18 +40,18 @@ impl AudioQueueThread {
 
     fn run(&mut self) {
         thread::sleep(self.buffer_duration);
-        let ticker = tick(self.chunk_length);
+        let ticker = tick(self.chunk_duration);
         loop {
             ticker.recv().unwrap();
-            let pts = self.buffer_duration * self.send_chunks;
+            let pts = self.chunk_duration * self.chunks_counter;
             let samples = self
                 .queue
                 .audio_queue
                 .lock()
                 .unwrap()
-                .pop_samples_set(pts, self.chunk_length);
+                .pop_samples_set(pts, self.chunk_duration);
             self.sender.send(samples).unwrap();
-            self.send_chunks += 1;
+            self.chunks_counter += 1;
         }
     }
 }

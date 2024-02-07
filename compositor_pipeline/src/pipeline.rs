@@ -270,7 +270,7 @@ impl Pipeline {
             };
 
             for (id, frame) in output_frames.frames {
-                let output = outputs.lock().get(&id).map(Clone::clone);
+                let output = outputs.lock().get(&id).cloned();
                 let Some(output) = output else {
                     error!("no output with id {}", &id);
                     continue;

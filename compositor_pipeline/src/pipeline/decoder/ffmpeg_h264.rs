@@ -100,7 +100,7 @@ impl H264FfmpegDecoder {
                             }
                         };
 
-                        if let Err(err) = queue.enqueue_frame(input_id.clone(), frame) {
+                        if let Err(err) = queue.enqueue_video_frame(input_id.clone(), frame) {
                             error!(
                                 "Failed to push frame: {}",
                                 ErrorStack::new(&err).into_string()

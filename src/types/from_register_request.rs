@@ -16,7 +16,7 @@ impl TryFrom<register_request::RegisterInputRequest> for pipeline::RegisterInput
         }
         let input_type = pipeline::InputType {
             input_id: value.input_id.clone().into(),
-            has_video: value.video.is_some(),
+            video: value.video.as_ref().map(|_video| ()),
             audio: value.audio.as_ref().map(|audio| pipeline::AudioOptions {
                 sample_rate: audio.sample_rate,
                 channels: audio.channels.clone().into(),

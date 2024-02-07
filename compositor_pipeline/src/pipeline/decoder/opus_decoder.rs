@@ -69,12 +69,12 @@ impl OpusDecoder {
             let pts = Duration::from_secs_f64(f64::max(chunk.pts as f64 / 48000.0, 0.0));
 
             let samples = AudioSamplesBatch {
-                samples,
+                samples: Arc::new(samples),
                 pts,
                 sample_rate: opts.sample_rate,
             };
 
-            if let Err(err) = queue.enqueue_samples(input_id.clone(), samples) {
+            if let Err(err) = queue.enqueue_audio_samples(input_id.clone(), samples) {
                 error!(
                     "Error enqueueing audio samples for input {}: {}",
                     input_id, err

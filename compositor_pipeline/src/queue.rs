@@ -26,7 +26,7 @@ use self::{
 
 pub struct InputType {
     pub input_id: InputId,
-    pub has_video: bool,
+    pub video: Option<()>,
     pub audio: Option<AudioOptions>,
 }
 
@@ -48,6 +48,12 @@ pub enum QueueError {
         expected: AudioChannels,
         received: AudioSamples,
     },
+    #[error(
+        "expected samples with {} sample rate, but received samples of rate {}",
+        expected,
+        received
+    )]
+    MismatchedSampleRate { expected: u32, received: u32 },
 }
 
 const DEFAULT_BUFFER_DURATION: Duration = Duration::from_millis(16 * 5); // about 5 frames at 60 fps
@@ -100,18 +106,14 @@ impl Queue {
     }
 
     pub fn add_input(&self, options: InputType) {
-        if options.has_video {
+        if options.video.is_some() {
             self.video_queue
                 .lock()
                 .unwrap()
                 .add_input(options.input_id.clone());
         };
-        if let Some(audio_options) = options.audio {
-            self.audio_queue.lock().unwrap().add_input(
-                options.input_id,
-                audio_options.channels,
-                audio_options.sample_rate,
-            );
+        if let Some(_audio_options) = options.audio {
+            self.audio_queue.lock().unwrap().add_input(options.input_id);
         }
     }
 
@@ -152,18 +154,26 @@ impl Queue {
         .spawn();
     }
 
-    pub fn enqueue_samples(
+    pub fn enqueue_audio_samples(
         &self,
         input_id: InputId,
         samples: AudioSamplesBatch,
     ) -> Result<(), QueueError> {
+        let is_first_batch_for_input = !self
+            .audio_queue
+            .lock()
+            .unwrap()
+            .did_receive_samples(&input_id);
+        if is_first_batch_for_input {
+            thread::sleep(self.buffer_duration)
+        }
         self.audio_queue
             .lock()
             .unwrap()
-            .enqueue_samples(input_id, samples)
+            .enqueue_samples(input_id, samples, self.clock_start)
     }
 
-    pub fn enqueue_frame(&self, input_id: InputId, frame: Frame) -> Result<(), QueueError> {
+    pub fn enqueue_video_frame(&self, input_id: InputId, frame: Frame) -> Result<(), QueueError> {
         let is_first_frame_for_input = !self
             .video_queue
             .lock()
