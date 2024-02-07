@@ -8,7 +8,7 @@ use compositor_render::{AudioSamplesBatch, AudioSamplesSet, InputId};
 
 #[derive(Debug)]
 pub struct AudioQueue {
-    /// Enqueued sample batches per output 
+    /// Enqueued sample batches per output
     input_queues: HashMap<InputId, VecDeque<AudioSamplesBatch>>,
     /// Stream added timestamp offset in relation to clock start
     timestamp_offsets: HashMap<InputId, Duration>,
