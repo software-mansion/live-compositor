@@ -1,6 +1,4 @@
-use std::sync::Arc;
-
-use crate::{error::DecoderInitError, queue::Queue};
+use crate::error::DecoderInitError;
 
 use self::{ffmpeg_h264::H264FfmpegDecoder, opus_decoder::OpusDecoder};
 
@@ -8,8 +6,8 @@ use super::{
     input::ChunksReceiver,
     structs::{AudioChannels, EncodedChunk, VideoCodec},
 };
-use compositor_render::InputId;
-use crossbeam_channel::Receiver;
+use compositor_render::{AudioSamplesBatch, Frame, InputId};
+use crossbeam_channel::{bounded, Receiver, Sender};
 
 mod ffmpeg_h264;
 mod opus_decoder;
@@ -30,10 +28,9 @@ pub struct DecoderOptions {
 impl Decoder {
     pub fn new(
         input_id: InputId,
-        queue: Arc<Queue>,
         chunks: ChunksReceiver,
         decoder_options: DecoderOptions,
-    ) -> Result<Self, DecoderInitError> {
+    ) -> Result<(Self, DecodedDataReceiver), DecoderInitError> {
         let DecoderOptions {
             video: video_decoder_opt,
             audio: audio_decoder_opt,
@@ -43,28 +40,42 @@ impl Decoder {
             audio: audio_receiver,
         } = chunks;
 
-        let video_decoder =
+        let (video_decoder, video_receiver) =
             if let (Some(opt), Some(video_receiver)) = (video_decoder_opt, video_receiver) {
-                Some(VideoDecoder::new(
-                    &opt,
-                    video_receiver,
-                    queue.clone(),
-                    input_id.clone(),
-                )?)
+                let (sender, receiver) = bounded(10);
+                (
+                    Some(VideoDecoder::new(
+                        &opt,
+                        video_receiver,
+                        sender,
+                        input_id.clone(),
+                    )?),
+                    Some(receiver),
+                )
             } else {
-                None
+                (None, None)
             };
-        let audio_decoder =
+        let (audio_decoder, audio_receiver) =
             if let (Some(opt), Some(audio_receiver)) = (audio_decoder_opt, audio_receiver) {
-                Some(AudioDecoder::new(opt, audio_receiver, queue, input_id)?)
+                let (sender, receiver) = bounded(10);
+                (
+                    Some(AudioDecoder::new(opt, audio_receiver, sender, input_id)?),
+                    Some(receiver),
+                )
             } else {
-                None
+                (None, None)
             };
 
-        Ok(Self {
-            video: video_decoder,
-            audio: audio_decoder,
-        })
+        Ok((
+            Self {
+                video: video_decoder,
+                audio: audio_decoder,
+            },
+            DecodedDataReceiver {
+                video: video_receiver,
+                audio: audio_receiver,
+            },
+        ))
     }
 }
 
@@ -76,14 +87,14 @@ impl AudioDecoder {
     pub fn new(
         opts: AudioDecoderOptions,
         chunks_receiver: Receiver<EncodedChunk>,
-        queue: Arc<Queue>,
+        samples_sender: Sender<AudioSamplesBatch>,
         input_id: InputId,
     ) -> Result<Self, DecoderInitError> {
         match opts {
             AudioDecoderOptions::Opus(opus_opt) => Ok(AudioDecoder::Opus(OpusDecoder::new(
                 opus_opt,
                 chunks_receiver,
-                queue,
+                samples_sender,
                 input_id,
             )?)),
         }
@@ -98,13 +109,13 @@ impl VideoDecoder {
     pub fn new(
         options: &VideoDecoderOptions,
         chunks_receiver: Receiver<EncodedChunk>,
-        queue: Arc<Queue>,
+        frame_sender: Sender<Frame>,
         input_id: InputId,
     ) -> Result<Self, DecoderInitError> {
         match options.codec {
             VideoCodec::H264 => Ok(Self::H264(H264FfmpegDecoder::new(
                 chunks_receiver,
-                queue,
+                frame_sender,
                 input_id,
             )?)),
         }
@@ -126,4 +137,10 @@ pub struct OpusDecoderOptions {
     pub sample_rate: u32,
     pub channels: AudioChannels,
     pub forward_error_correction: bool,
+}
+
+#[derive(Debug)]
+pub struct DecodedDataReceiver {
+    pub video: Option<Receiver<Frame>>,
+    pub audio: Option<Receiver<AudioSamplesBatch>>,
 }

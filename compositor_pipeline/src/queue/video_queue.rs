@@ -1,82 +1,61 @@
 use compositor_render::Frame;
 use compositor_render::FrameSet;
 use compositor_render::InputId;
+use crossbeam_channel::Receiver;
+use crossbeam_channel::TryRecvError;
 
 use std::collections::HashMap;
+use std::collections::VecDeque;
+use std::mem;
 use std::time::Duration;
 use std::time::Instant;
 
-use super::QueueError;
+use super::utils::DurationExt;
 
 pub struct VideoQueue {
-    /// frames are PTS ordered. PTS include timestamps offsets
-    inputs_queues: HashMap<InputId, Vec<Frame>>,
-    inputs_listeners: HashMap<InputId, Vec<Box<dyn FnOnce() + Send>>>,
-    /// offsets that normalize input pts to zero relative to the
-    /// Queue:clock_start value.
-    timestamp_offsets: HashMap<InputId, Duration>,
+    inputs: HashMap<InputId, VideoQueueInput>,
 }
 
 impl VideoQueue {
     pub fn new() -> Self {
         VideoQueue {
-            inputs_queues: HashMap::new(),
-            inputs_listeners: HashMap::new(),
-            timestamp_offsets: HashMap::new(),
+            inputs: HashMap::new(),
         }
     }
 
-    pub fn add_input(&mut self, input_id: InputId) {
-        self.inputs_queues.insert(input_id, Vec::new());
+    pub fn add_input(&mut self, input_id: &InputId, receiver: Receiver<Frame>) {
+        self.inputs.insert(
+            input_id.clone(),
+            VideoQueueInput {
+                queue: VecDeque::new(),
+                receiver,
+                listeners: vec![],
+                timestamp_offset: None,
+            },
+        );
     }
 
     pub fn remove_input(&mut self, input_id: &InputId) {
-        self.inputs_queues.remove(input_id);
-        self.timestamp_offsets.remove(input_id);
+        self.inputs.remove(input_id);
     }
 
-    pub fn did_receive_frame(&self, input_id: &InputId) -> bool {
-        self.timestamp_offsets.get(input_id).is_some()
-    }
-
-    pub fn enqueue_frame(
-        &mut self,
-        input_id: InputId,
-        mut frame: Frame,
-        clock_start: Instant,
-    ) -> Result<(), QueueError> {
-        let Some(input_queue) = self.inputs_queues.get_mut(&input_id) else {
-            return Err(QueueError::UnknownInputId(input_id));
-        };
-
-        let offset = *self
-            .timestamp_offsets
-            .entry(input_id)
-            .or_insert_with(|| clock_start.elapsed().saturating_sub(frame.pts));
-
-        // Modify frame pts to be at the time frame where PTS=0 represent clock_start
-        frame.pts += offset;
-
-        input_queue.push(frame);
-        Ok(())
-    }
-
-    /// Gets frames closest to buffer pts.
+    /// Gets frames closest to buffer pts. It does not check whether input is ready
+    /// or not.
     pub fn get_frames_batch(&mut self, buffer_pts: Duration) -> FrameSet<InputId> {
-        for input_queue in self.inputs_queues.values_mut() {
-            Self::drop_old_input_frames(input_queue, buffer_pts);
-        }
+        let frames = self
+            .inputs
+            .iter_mut()
+            .filter_map(|(input_id, input)| {
+                input
+                    .get_frame(buffer_pts)
+                    .map(|frame| (input_id.clone(), frame))
+            })
+            .collect();
 
-        let mut frames_batch = FrameSet::new(buffer_pts);
-        for (input_id, input_queue) in &self.inputs_queues {
-            if let Some(nearest_frame) = input_queue.first() {
-                frames_batch
-                    .frames
-                    .insert(input_id.clone(), nearest_frame.clone());
-            }
+        FrameSet {
+            frames,
+            pts: buffer_pts,
         }
-
-        frames_batch
     }
 
     /// Checks if all inputs have frames closest to buffer_pts.
@@ -89,13 +68,84 @@ impl VideoQueue {
     /// input, queue might receive frame "closer" to buffer pts in the future on some input,
     /// therefore it should wait with buffer push until it receives those frames or until
     /// ticker enforces push from the queue.
-    pub fn check_all_inputs_ready(&self, next_buffer_pts: Duration) -> bool {
-        self.inputs_queues
-            .values()
-            .all(|input_queue| match input_queue.last() {
+    pub(super) fn check_all_inputs_ready(
+        &mut self,
+        next_buffer_pts: Duration,
+        clock_start: Instant,
+    ) -> bool {
+        self.inputs
+            .values_mut()
+            .all(|input| input.check_if_ready(next_buffer_pts, clock_start))
+    }
+
+    pub fn subscribe_input_listener(
+        &mut self,
+        input_id: &InputId,
+        callback: Box<dyn FnOnce() + Send>,
+    ) {
+        if let Some(input) = self.inputs.get_mut(input_id) {
+            input.listeners.push(callback)
+        }
+    }
+
+    pub fn call_input_listeners(&mut self, input_id: &InputId) {
+        if let Some(input) = self.inputs.get_mut(input_id) {
+            for cb in mem::take(&mut input.listeners).into_iter() {
+                cb()
+            }
+        }
+    }
+}
+
+pub struct VideoQueueInput {
+    /// Frames are PTS ordered. PTS include timestamps offsets
+    queue: VecDeque<Frame>,
+    /// Frames from the channel might have any PTS. When enqueuing
+    /// they need to be recalculated relative to `Queue:clock_start`.
+    receiver: Receiver<Frame>,
+    listeners: Vec<Box<dyn FnOnce() + Send>>,
+
+    /// Offsets normalizing input pts to zero relative to the
+    /// Queue:clock_start value.
+    timestamp_offset: Option<chrono::Duration>,
+}
+
+impl VideoQueueInput {
+    fn get_frame(&mut self, buffer_pts: Duration) -> Option<Frame> {
+        self.drop_old_frames(buffer_pts);
+        self.queue.front().cloned()
+    }
+
+    fn check_if_ready(&mut self, next_buffer_pts: Duration, clock_start: Instant) -> bool {
+        fn is_ready(queue: &VecDeque<Frame>, next_buffer_pts: Duration) -> bool {
+            match queue.back() {
                 Some(last_frame) => last_frame.pts >= next_buffer_pts,
                 None => false,
-            })
+            }
+        }
+
+        while !is_ready(&self.queue, next_buffer_pts) {
+            if self.try_enqueue_frame(clock_start).is_err() {
+                return false;
+            }
+        }
+        true
+    }
+
+    fn try_enqueue_frame(&mut self, clock_start: Instant) -> Result<(), TryRecvError> {
+        let mut frame = self.receiver.try_recv()?;
+
+        let offset = self
+            .timestamp_offset
+            .get_or_insert_with(|| clock_start.elapsed().chrono() - frame.pts.chrono());
+
+        // Modify frame pts to be at the time frame where PTS=0 represent clock_start
+        frame.pts = (frame.pts.chrono() + *offset)
+            .to_std()
+            .unwrap_or(Duration::ZERO);
+
+        self.queue.push_back(frame);
+        Ok(())
     }
 
     /// Drops frames that won't be used anymore by the VideoCompositor from a single input.
@@ -103,48 +153,17 @@ impl VideoQueue {
     /// Finds frame that is closest to the next_buffer_pts and removes everything older.
     /// Frames in queue have monotonically increasing pts, so we can just drop all the frames
     /// before the "closest" one.
-    fn drop_old_input_frames(input_queue: &mut Vec<Frame>, next_buffer_pts: Duration) {
+    fn drop_old_frames(&mut self, next_buffer_pts: Duration) {
         let next_output_buffer_nanos = next_buffer_pts.as_nanos();
-        let closest_diff_frame_index = input_queue
+        let closest_diff_frame_index = self
+            .queue
             .iter()
             .enumerate()
             .min_by_key(|(_index, frame)| frame.pts.as_nanos().abs_diff(next_output_buffer_nanos))
             .map(|(index, _frame)| index);
 
         if let Some(index) = closest_diff_frame_index {
-            input_queue.drain(0..index);
-        }
-    }
-
-    pub fn drop_old_frames_by_input_id(
-        &mut self,
-        input_id: &InputId,
-        next_buffer_pts: Duration,
-    ) -> Result<(), QueueError> {
-        let input_queue = self
-            .inputs_queues
-            .get_mut(input_id)
-            .ok_or_else(|| QueueError::UnknownInputId(input_id.clone()))?;
-
-        Self::drop_old_input_frames(input_queue, next_buffer_pts);
-        Ok(())
-    }
-
-    pub fn subscribe_input_listener(
-        &mut self,
-        input_id: InputId,
-        callback: Box<dyn FnOnce() + Send>,
-    ) {
-        self.inputs_listeners
-            .entry(input_id)
-            .or_default()
-            .push(callback)
-    }
-
-    pub fn call_input_listeners(&mut self, input_id: &InputId) {
-        let callbacks = self.inputs_listeners.remove(input_id).unwrap_or_default();
-        for cb in callbacks.into_iter() {
-            cb()
+            self.queue.drain(0..index);
         }
     }
 }
