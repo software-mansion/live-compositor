@@ -58,7 +58,7 @@ impl OpusDecoder {
                 }
                 AudioChannels::Stereo => {
                     let mut samples = Vec::with_capacity(decoded_samples_count / 2);
-                    for i in 0..(decoded_samples_count / 2) {
+                    for i in 0..decoded_samples_count {
                         samples.push((buffer[2 * i], buffer[2 * i + 1]));
                     }
                     AudioSamples::Stereo(samples)
@@ -66,12 +66,12 @@ impl OpusDecoder {
             };
 
             let samples = AudioSamplesBatch {
-                samples,
+                samples: Arc::new(samples),
                 pts: chunk.pts,
                 sample_rate: opts.sample_rate,
             };
 
-            if let Err(err) = queue.enqueue_samples(input_id.clone(), samples) {
+            if let Err(err) = queue.enqueue_audio_samples(input_id.clone(), samples) {
                 error!(
                     "Error enqueueing audio samples for input {}: {}",
                     input_id, err

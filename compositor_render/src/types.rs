@@ -1,16 +1,43 @@
 use std::{collections::HashMap, fmt::Display, sync::Arc, time::Duration};
 
+#[derive(Debug)]
+pub struct AudioSamplesSet {
+    pub samples: HashMap<InputId, Vec<AudioSamplesBatch>>,
+    pub pts: Duration,
+    pub length: Duration,
+}
+
 #[derive(Debug, Clone)]
 pub struct AudioSamplesBatch {
-    pub samples: AudioSamples,
+    pub samples: Arc<AudioSamples>,
     pub pts: Duration,
     pub sample_rate: u32,
+}
+
+impl AudioSamplesBatch {
+    pub fn end(&self) -> Duration {
+        self.pts + Duration::from_secs_f64(self.samples.len() as f64 / self.sample_rate as f64)
+    }
 }
 
 #[derive(Debug, Clone)]
 pub enum AudioSamples {
     Mono(Vec<i16>),
     Stereo(Vec<(i16, i16)>),
+}
+
+impl AudioSamples {
+    pub fn len(&self) -> usize {
+        match self {
+            AudioSamples::Mono(samples) => samples.len(),
+            AudioSamples::Stereo(samples) => samples.len(),
+        }
+    }
+
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
 }
 
 #[derive(Debug, Clone)]

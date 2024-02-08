@@ -21,6 +21,15 @@ impl TryFrom<register_request::RtpInputStream> for pipeline::RegisterInputOption
         if video.is_none() && audio.is_none() {
             return Err(TypeError::new(NO_VIDEO_AUDIO_SPEC));
         }
+        let input_type = pipeline::InputType {
+            input_id: input_id.clone().into(),
+            video: video.as_ref().map(|_video| ()),
+            audio: audio.as_ref().map(|audio| pipeline::AudioOptions {
+                sample_rate: audio.sample_rate,
+                channels: audio.channels.clone().into(),
+            }),
+        };
+
         let rtp_stream = pipeline::input::rtp::RtpStream {
             video: video
                 .as_ref()
@@ -62,6 +71,7 @@ impl TryFrom<register_request::RtpInputStream> for pipeline::RegisterInputOption
             input_id: input_id.into(),
             input_options,
             decoder_options,
+            input_type,
         })
     }
 }
@@ -88,6 +98,12 @@ impl TryFrom<register_request::Mp4> for pipeline::RegisterInputOptions {
             (None, Some(path)) => pipeline::input::mp4::Source::File(path.into()),
         };
 
+        let input_type = pipeline::InputType {
+            input_id: input_id.clone().into(),
+            video: Some(()),
+            audio: None,
+        };
+
         Ok(pipeline::RegisterInputOptions {
             input_id: input_id.clone().into(),
             input_options: pipeline::input::InputOptions::Mp4(pipeline::input::mp4::Mp4Options {
@@ -100,6 +116,7 @@ impl TryFrom<register_request::Mp4> for pipeline::RegisterInputOptions {
                 }),
                 audio: None,
             },
+            input_type,
         })
     }
 }

@@ -8,7 +8,7 @@ use std::time::Instant;
 
 use super::QueueError;
 
-pub struct InternalQueue {
+pub struct VideoQueue {
     /// frames are PTS ordered. PTS include timestamps offsets
     inputs_queues: HashMap<InputId, Vec<Frame>>,
     inputs_listeners: HashMap<InputId, Vec<Box<dyn FnOnce() + Send>>>,
@@ -17,9 +17,9 @@ pub struct InternalQueue {
     timestamp_offsets: HashMap<InputId, Duration>,
 }
 
-impl InternalQueue {
+impl VideoQueue {
     pub fn new() -> Self {
-        InternalQueue {
+        VideoQueue {
             inputs_queues: HashMap::new(),
             inputs_listeners: HashMap::new(),
             timestamp_offsets: HashMap::new(),
@@ -63,7 +63,7 @@ impl InternalQueue {
 
     /// Gets frames closest to buffer pts.
     pub fn get_frames_batch(&mut self, buffer_pts: Duration) -> FrameSet<InputId> {
-        for (_, input_queue) in self.inputs_queues.iter_mut() {
+        for input_queue in self.inputs_queues.values_mut() {
             Self::drop_old_input_frames(input_queue, buffer_pts);
         }
 
