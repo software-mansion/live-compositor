@@ -4,13 +4,13 @@
   "type": "object",
   "required": [
     "output_id",
-    "root"
+    "scene"
   ],
   "properties": {
     "output_id": {
       "$ref": "#/definitions/OutputId"
     },
-    "root": {
+    "scene": {
       "$ref": "#/definitions/Component"
     }
   },

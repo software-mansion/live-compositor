@@ -106,7 +106,7 @@ impl SceneState {
         };
 
         let output_state_tree = OutputSceneState {
-            root: output_scene.root.clone().stateful_component(&ctx)?,
+            root: output_scene.scene_root.clone().stateful_component(&ctx)?,
             resolution: output_scene.resolution,
         };
 

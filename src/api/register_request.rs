@@ -75,8 +75,12 @@ fn register_output(api: &mut Api, request: RegisterOutputRequest) -> Result<(), 
         Ok(())
     })?;
 
-    api.pipeline
-        .register_output(output_id.into(), request.clone().into(), request.into())?;
+    api.pipeline.register_output(
+        output_id.into(),
+        request.clone().into(),
+        request.clone().into(),
+        request.initial_scene.try_into()?,
+    )?;
 
     Ok(())
 }

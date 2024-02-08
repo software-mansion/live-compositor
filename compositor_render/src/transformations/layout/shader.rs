@@ -82,13 +82,15 @@ impl LayoutShader {
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
-                        store: true,
+                        store: wgpu::StoreOp::Store,
                     },
                     view: &target.rgba_texture().texture().view,
                     resolve_target: None,
                 })],
                 // TODO: depth stencil attachments
                 depth_stencil_attachment: None,
+                timestamp_writes: None,
+                occlusion_query_set: None,
             });
 
             for (layout_id, texture_bg) in input_texture_bgs.iter().enumerate() {

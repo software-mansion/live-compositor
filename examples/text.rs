@@ -55,29 +55,19 @@ fn start_example_client_code() -> Result<()> {
             "width": VIDEO_RESOLUTION.width,
             "height": VIDEO_RESOLUTION.height,
         },
-        "encoder_preset": "ultrafast"
-    }))?;
-
-    info!("[example] Update scene");
-    common::post(&json!({
-        "type": "update_scene",
-        "outputs": [
-            {
-                "output_id": "output_1",
-                "root": {
-                    "type": "text",
-                    "text": "VideoCompositor🚀\nSecond Line\nLorem ipsum dolor sit amet consectetur adipisicing elit. Soluta delectus optio fugit maiores eaque ab totam, veritatis aperiam provident, aliquam consectetur deserunt cumque est? Saepe tenetur impedit culpa asperiores id?",
-                    "font_size": 100.0,
-                    "font_family": "Comic Sans MS",
-                    "align": "center",
-                    "wrap": "word",
-                    "background_color_rgba": "#00800000",
-                    "weight": "bold",
-                    "width": 1920,
-                    "height": 1080,
-                }
-            }
-        ],
+        "encoder_preset": "ultrafast",
+        "initial_scene": {
+            "type": "text",
+            "text": "VideoCompositor🚀\nSecond Line\nLorem ipsum dolor sit amet consectetur adipisicing elit. Soluta delectus optio fugit maiores eaque ab totam, veritatis aperiam provident, aliquam consectetur deserunt cumque est? Saepe tenetur impedit culpa asperiores id?",
+            "font_size": 100.0,
+            "font_family": "Comic Sans MS",
+            "align": "center",
+            "wrap": "word",
+            "background_color_rgba": "#00800000",
+            "weight": "bold",
+            "width": 1920,
+            "height": 1080,
+        }
     }))?;
 
     info!("[example] Start pipeline");

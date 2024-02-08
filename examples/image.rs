@@ -45,20 +45,6 @@ fn start_example_client_code() -> Result<()> {
 
     thread::sleep(Duration::from_secs(2));
 
-    info!("[example] Send register output request.");
-    common::post(&json!({
-        "type": "register",
-        "entity_type": "output_stream",
-        "output_id": "output_1",
-        "port": 8002,
-        "ip": "127.0.0.1",
-        "resolution": {
-            "width": VIDEO_RESOLUTION.width,
-            "height": VIDEO_RESOLUTION.height,
-        },
-        "encoder_preset": "ultrafast"
-    }))?;
-
     info!("[example] Register static images");
     common::post(&json!({
         "type": "register",
@@ -133,15 +119,19 @@ fn start_example_client_code() -> Result<()> {
         ]
     });
 
-    info!("[example] Update scene");
+    info!("[example] Send register output request.");
     common::post(&json!({
-        "type": "update_scene",
-        "outputs": [
-            {
-                "output_id": "output_1",
-                "root": scene,
-            }
-        ]
+        "type": "register",
+        "entity_type": "output_stream",
+        "output_id": "output_1",
+        "port": 8002,
+        "ip": "127.0.0.1",
+        "resolution": {
+            "width": VIDEO_RESOLUTION.width,
+            "height": VIDEO_RESOLUTION.height,
+        },
+        "encoder_preset": "ultrafast",
+        "initial_scene": scene
     }))?;
 
     info!("[example] Start pipeline");

@@ -1,8 +1,7 @@
 use std::{collections::HashSet, fs, path::PathBuf, time::Duration};
 
 use compositor_render::{
-    scene::OutputScene, web_renderer, Frame, Framerate, InputId, OutputId, Renderer,
-    RendererOptions, RendererSpec, YuvData,
+    web_renderer, Frame, Framerate, OutputId, Renderer, RendererOptions, YuvData,
 };
 
 pub const SNAPSHOTS_DIR_NAME: &str = "snapshot_tests/snapshots/render_snapshots";
@@ -52,11 +51,8 @@ pub(super) fn snapshots_diff(old_snapshot: &[u8], new_snapshot: &[u8]) -> f32 {
     square_error / old_snapshot.len() as f32
 }
 
-pub(super) fn create_renderer(
-    renderers: Vec<RendererSpec>,
-    scene_updates: Vec<Vec<OutputScene>>,
-) -> Renderer {
-    let (mut renderer, _event_loop) = Renderer::new(RendererOptions {
+pub(super) fn create_renderer() -> Renderer {
+    let (renderer, _event_loop) = Renderer::new(RendererOptions {
         web_renderer: web_renderer::WebRendererInitOptions {
             enable: false,
             enable_gpu: false,
@@ -66,20 +62,6 @@ pub(super) fn create_renderer(
         stream_fallback_timeout: Duration::from_secs(3),
     })
     .unwrap();
-
-    for spec in renderers {
-        if matches!(spec, RendererSpec::WebRenderer(_)) {
-            panic!("Tests with web renderer are not supported");
-        }
-        renderer.register_renderer(spec).unwrap();
-    }
-    for id in 0..16 {
-        renderer.register_input(InputId(format!("input_{id}").into()))
-    }
-    for scene_update in scene_updates {
-        renderer.update_scene(scene_update.clone()).unwrap();
-    }
-
     renderer
 }
 

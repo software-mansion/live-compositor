@@ -50,20 +50,6 @@ fn start_example_client_code() -> Result<()> {
     fs::create_dir_all(sample_path.parent().unwrap())?;
     common::ensure_downloaded(SAMPLE_FILE_URL, &sample_path)?;
 
-    info!("[example] Send register output request.");
-    common::post(&json!({
-        "type": "register",
-        "entity_type": "output_stream",
-        "output_id": "output_1",
-        "port": 8002,
-        "ip": "127.0.0.1",
-        "resolution": {
-            "width": VIDEO_RESOLUTION.width,
-            "height": VIDEO_RESOLUTION.height,
-        },
-        "encoder_preset": "medium"
-    }))?;
-
     info!("[example] Send register input request.");
     common::post(&json!({
         "type": "register",
@@ -97,25 +83,31 @@ fn start_example_client_code() -> Result<()> {
         "source": shader_source,
     }))?;
 
-    info!("[example] Update scene");
+    info!("[example] Send register output request.");
     common::post(&json!({
-        "type": "update_scene",
-        "outputs": [{
-            "output_id": "output_1",
-            "root": {
-                "type": "shader",
-                "id": "shader_node_1",
-                "shader_id": "shader_example_1",
-                "children": [
-                    {
-                        "id": "input_1",
-                        "type": "input_stream",
-                        "input_id": "input_1",
-                    }
-                ],
-                "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
-            }
-        }]
+        "type": "register",
+        "entity_type": "output_stream",
+        "output_id": "output_1",
+        "port": 8002,
+        "ip": "127.0.0.1",
+        "resolution": {
+            "width": VIDEO_RESOLUTION.width,
+            "height": VIDEO_RESOLUTION.height,
+        },
+        "encoder_preset": "medium",
+        "initial_scene": {
+            "type": "shader",
+            "id": "shader_node_1",
+            "shader_id": "shader_example_1",
+            "children": [
+                {
+                    "id": "input_1",
+                    "type": "input_stream",
+                    "input_id": "input_1",
+                }
+            ],
+            "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+        }
     }))?;
 
     std::thread::sleep(Duration::from_millis(500));

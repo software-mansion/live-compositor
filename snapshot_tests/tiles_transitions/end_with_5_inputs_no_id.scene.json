@@ -1,6 +1,6 @@
 {
     "output_id": "output_1",
-    "root": {
+    "scene": {
         "type": "tiles",
         "id": "tiles",
         "transition": {

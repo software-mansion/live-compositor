@@ -2,7 +2,8 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use crate::error::{RegisterRendererError, UnregisterRendererError};
-use crate::scene::OutputScene;
+
+use crate::scene::{Component, OutputScene};
 use crate::transformations::image_renderer::Image;
 use crate::transformations::shader::Shader;
 use crate::transformations::web_renderer::{self, WebRenderer};
@@ -14,9 +15,9 @@ use crate::{
     types::Framerate,
     EventLoop, FrameSet, InputId, OutputId,
 };
-use crate::{image, AudioSamplesSet};
+use crate::{image, AudioSamplesSet, Resolution};
 use crate::{
-    scene::{self, SceneState},
+    scene::SceneState,
     wgpu::{WgpuCtx, WgpuErrorScope},
 };
 use crate::{shader, RegistryType, RendererId};
@@ -168,8 +169,16 @@ impl Renderer {
         self.0.lock().unwrap().render(input)
     }
 
-    pub fn update_scene(&mut self, scene_specs: Vec<OutputScene>) -> Result<(), UpdateSceneError> {
-        self.0.lock().unwrap().update_scene(scene_specs)
+    pub fn update_scene(
+        &mut self,
+        output_id: OutputId,
+        resolution: Resolution,
+        scene_root: Component,
+    ) -> Result<(), UpdateSceneError> {
+        self.0
+            .lock()
+            .unwrap()
+            .update_scene(output_id, resolution, scene_root)
     }
 }
 
@@ -228,22 +237,27 @@ impl InnerRenderer {
 
     pub fn update_scene(
         &mut self,
-        outputs: Vec<scene::OutputScene>,
+        output_id: OutputId,
+        resolution: Resolution,
+        scene_root: Component,
     ) -> Result<(), UpdateSceneError> {
-        for output_scene in outputs {
-            let output_node =
-                self.scene
-                    .update_scene(output_scene, &self.renderers, &self.text_renderer_ctx)?;
-            self.render_graph.update(
-                &RenderCtx {
-                    wgpu_ctx: &self.wgpu_ctx,
-                    text_renderer_ctx: &self.text_renderer_ctx,
-                    renderers: &self.renderers,
-                    stream_fallback_timeout: self.stream_fallback_timeout,
-                },
-                output_node,
-            )?;
-        }
+        let output = OutputScene {
+            output_id: output_id.clone(),
+            scene_root,
+            resolution,
+        };
+        let output_node =
+            self.scene
+                .update_scene(output, &self.renderers, &self.text_renderer_ctx)?;
+        self.render_graph.update(
+            &RenderCtx {
+                wgpu_ctx: &self.wgpu_ctx,
+                text_renderer_ctx: &self.text_renderer_ctx,
+                renderers: &self.renderers,
+                stream_fallback_timeout: self.stream_fallback_timeout,
+            },
+            output_node,
+        )?;
         Ok(())
     }
 }

@@ -121,6 +121,7 @@ pub struct RegisterOutputRequest {
     pub ip: Arc<str>,
     pub resolution: Resolution,
     pub encoder_preset: Option<EncoderPreset>,
+    pub initial_scene: Component,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]

@@ -1,6 +1,6 @@
 {
     "output_id": "output_1",
-    "root": {
+    "scene": {
         "type": "tiles",
         "tile_aspect_ratio": "1:2",
         "children": [
