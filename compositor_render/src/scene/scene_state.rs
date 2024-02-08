@@ -169,7 +169,7 @@ impl IntermediateNode {
                     .collect::<Result<_, _>>()?,
             }),
             IntermediateNode::WebView { web, children } => Ok(Node {
-                params: NodeParams::Web(web.instance), // TODO: enforce resolution
+                params: NodeParams::Web(web.children_ids, web.instance), // TODO: enforce resolution
                 children: children
                     .into_iter()
                     .map(|node| node.build_tree(None, pts))

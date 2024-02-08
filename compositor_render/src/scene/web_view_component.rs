@@ -11,6 +11,7 @@ use super::{
 pub(super) struct StatefulWebViewComponent {
     pub(super) id: Option<ComponentId>,
     pub(super) children: Vec<StatefulComponent>,
+    pub(super) children_ids: Vec<ComponentId>,
     pub(super) instance: Arc<WebRenderer>,
 }
 
@@ -52,11 +53,20 @@ impl WebViewComponent {
             .children
             .into_iter()
             .map(|c| Component::stateful_component(c, ctx))
+            .collect::<Result<Vec<_>, _>>()?;
+        let children_ids = children
+            .iter()
+            .map(|c| {
+                c.component_id()
+                    .cloned()
+                    .ok_or(SceneError::WebViewChildWithoutId(self.instance_id.clone()))
+            })
             .collect::<Result<_, _>>()?;
         Ok(StatefulComponent::WebView(StatefulWebViewComponent {
             id: self.id,
             instance,
             children,
+            children_ids,
         }))
     }
 }

@@ -1,50 +1,41 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Web Renderer Example</title>
+    </head>
 
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web Renderer Example</title>
-</head>
-
-<style>
-    html,
-    body {
-        color: white;
-        background-color: transparent;
-    }
-
-    canvas {
-        border: 2px solid red;
-        animation: anim infinite ease-in-out;
-        animation-duration: 3s;
-        width: 800px;
-        height: 600px;
-    }
-
-    @keyframes anim {
-
-        0%,
-        100% {
-            margin-left: 0;
+    <style>
+        html,
+        body {
+            color: white;
+            background-color: transparent;
         }
 
-        50% {
-            margin-left: 250px;
+        canvas {
+            border: 2px solid red;
+            animation: anim infinite ease-in-out;
+            animation-duration: 3s;
+            width: 800px;
+            height: 600px;
         }
-    }
-</style>
 
-<body>
-    <h2>Frame embedding:</h2>
-    <canvas id="input_1"></canvas>
-</body>
+        @keyframes anim {
+            0%,
+            100% {
+                margin-left: 0;
+            }
 
-<script>
-    register_inputs(
-        "input_1"
-    );
-</script>
+            50% {
+                margin-left: 250px;
+            }
+        }
+    </style>
 
+    <body>
+        <h2>Frame embedding:</h2>
+        <canvas id="big_bunny_video"></canvas>
+    </body>
 </html>

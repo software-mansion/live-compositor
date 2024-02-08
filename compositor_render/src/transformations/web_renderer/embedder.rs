@@ -9,6 +9,7 @@ use nalgebra_glm::Mat4;
 use std::sync::Arc;
 
 use super::chromium_sender::ChromiumSenderError;
+use super::node::EmbeddingData;
 use super::WebEmbeddingMethod;
 
 #[derive(Debug)]
@@ -34,14 +35,16 @@ impl EmbeddingHelper {
     pub fn prepare_embedding(
         &self,
         sources: &[&NodeTexture],
-        buffers: &[Arc<wgpu::Buffer>],
+        embedding_data: &EmbeddingData,
     ) -> Result<(), EmbedError> {
         match self.embedding_method {
-            WebEmbeddingMethod::ChromiumEmbedding => self.chromium_embedding(sources, buffers)?,
-            WebEmbeddingMethod::NativeEmbeddingOverContent
-            | WebEmbeddingMethod::NativeEmbeddingUnderContent => {
-                self.chromium_sender.request_frame_positions(sources)?
+            WebEmbeddingMethod::ChromiumEmbedding => {
+                self.chromium_embedding(sources, embedding_data)?
             }
+            WebEmbeddingMethod::NativeEmbeddingOverContent
+            | WebEmbeddingMethod::NativeEmbeddingUnderContent => self
+                .chromium_sender
+                .request_frame_positions(embedding_data.children_ids.clone())?,
         }
 
         Ok(())
@@ -51,13 +54,15 @@ impl EmbeddingHelper {
     fn chromium_embedding(
         &self,
         sources: &[&NodeTexture],
-        buffers: &[Arc<wgpu::Buffer>],
+        embedding_data: &EmbeddingData,
     ) -> Result<(), EmbedError> {
         self.chromium_sender.ensure_shared_memory(sources)?;
-        self.copy_sources_to_buffers(sources, buffers)?;
+        self.copy_sources_to_buffers(sources, &embedding_data.buffers)?;
 
         let mut pending_downloads = Vec::new();
-        for (source_idx, (texture, buffer)) in sources.iter().zip(buffers).enumerate() {
+        for (source_idx, (texture, buffer)) in
+            sources.iter().zip(&embedding_data.buffers).enumerate()
+        {
             let Some(texture_state) = texture.state() else {
                 continue;
             };
@@ -72,7 +77,7 @@ impl EmbeddingHelper {
         }
 
         self.chromium_sender
-            .embed_sources(sources)
+            .embed_sources(sources, embedding_data.children_ids.clone())
             .map_err(EmbedError::ChromiumSenderError)
     }
 
@@ -103,10 +108,10 @@ impl EmbeddingHelper {
         &self,
         source_idx: usize,
         size: wgpu::Extent3d,
-        source: Arc<wgpu::Buffer>,
+        buffer: Arc<wgpu::Buffer>,
     ) -> impl FnOnce() -> Result<(), EmbedError> + '_ {
         let (s, r) = bounded(1);
-        source
+        buffer
             .slice(..)
             .map_async(wgpu::MapMode::Read, move |result| {
                 if let Err(err) = s.send(result) {
@@ -118,8 +123,8 @@ impl EmbeddingHelper {
             r.recv().unwrap()?;
 
             self.chromium_sender
-                .update_shared_memory(source_idx, source.clone(), size)?;
-            source.unmap();
+                .update_shared_memory(source_idx, buffer.clone(), size)?;
+            buffer.unmap();
 
             Ok(())
         }
