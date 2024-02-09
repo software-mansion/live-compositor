@@ -9,46 +9,15 @@ use std::{
     time::{Duration, Instant},
 };
 
-use compositor_render::{
-    AudioSamples, AudioSamplesBatch, AudioSamplesSet, Frame, FrameSet, Framerate, InputId,
-};
+use compositor_render::{AudioSamplesSet, FrameSet, Framerate, InputId};
 use crossbeam_channel::{unbounded, Receiver, Sender};
-use log::error;
-use thiserror::Error;
 
-use crate::pipeline::{decoder::DecodedDataReceiver, AudioChannels};
+use crate::pipeline::decoder::DecodedDataReceiver;
 
 use self::{
     audio_queue::AudioQueue, audio_queue_thread::AudioQueueThread, video_queue::VideoQueue,
     video_queue_thread::VideoQueueThread,
 };
-
-#[derive(Debug, Clone)]
-pub struct InputOptions {
-    pub video: Option<Receiver<Frame>>,
-    pub audio: Option<Receiver<AudioSamplesBatch>>,
-}
-
-#[derive(Error, Debug)]
-pub enum QueueError {
-    #[error("the input id `{:#?}` is unknown", 0)]
-    UnknownInputId(InputId),
-    #[error(
-        "expected samples in {:#?} channel format, but received samples {:#?}",
-        expected,
-        received
-    )]
-    MismatchedSamplesChannels {
-        expected: AudioChannels,
-        received: AudioSamples,
-    },
-    #[error(
-        "expected samples with {} sample rate, but received samples of rate {}",
-        expected,
-        received
-    )]
-    MismatchedSampleRate { expected: u32, received: u32 },
-}
 
 const DEFAULT_BUFFER_DURATION: Duration = Duration::from_millis(16 * 5); // about 5 frames at 60 fps
 const DEFAULT_AUDIO_CHUNK_DURATION: Duration = Duration::from_millis(20); // typical audio packet size
