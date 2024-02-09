@@ -61,43 +61,16 @@ impl RenderProcessHandler {
 
         const MSG_SIZE: usize = 4;
         for i in (0..msg.size()).step_by(MSG_SIZE) {
-            let source_idx = i / MSG_SIZE;
-
-            let Some(shmem_path) = msg.read_string(i) else {
-                return Err(anyhow!("Failed to read shared memory path at {i}"));
-            };
-            let shmem_path = PathBuf::from(shmem_path);
-
-            let Some(id_attribute) = msg.read_string(i + 1) else {
-                return Err(anyhow!(
-                    "Failed to read HTML id attribute of input {} at {}",
-                    source_idx,
-                    i + 1
-                ));
-            };
-
-            let Some(width) = msg.read_int(i + 2) else {
-                return Err(anyhow!(
-                    "Failed to read width of input {} at {}",
-                    source_idx,
-                    i + 2
-                ));
-            };
-
-            let Some(height) = msg.read_int(i + 3) else {
-                return Err(anyhow!(
-                    "Failed to read height of input {} at {}",
-                    source_idx,
-                    i + 3
-                ));
-            };
+            let shmem_path = PathBuf::from(msg.read_string(i)?);
+            let id_attribute = msg.read_string(i + 1)?;
+            let width = msg.read_int(i + 2)?;
+            let height = msg.read_int(i + 3)?;
 
             if width == 0 && height == 0 {
                 continue;
             }
 
             let frame_info = FrameInfo {
-                source_idx,
                 width: width as u32,
                 height: height as u32,
                 shmem_path,
@@ -118,11 +91,12 @@ impl RenderProcessHandler {
     ) -> Result<()> {
         let mut state = self.state.lock().unwrap();
         let source = match state.source(&frame_info.shmem_path) {
-            Some(source) => source,
-            None => state.create_source(&frame_info, ctx_entered)?,
+            Some(source) => {
+                source.ensure(&frame_info, ctx_entered)?;
+                source
+            }
+            None => state.create_source(frame_info, ctx_entered)?,
         };
-
-        source.ensure(&frame_info);
 
         global.call_method(
             "live_compositor_renderFrame",
@@ -140,9 +114,7 @@ impl RenderProcessHandler {
 
     fn unembed_source(&self, msg: &cef::ProcessMessage, surface: &cef::Frame) -> Result<()> {
         let mut state = self.state.lock().unwrap();
-        let Some(shmem_path) = msg.read_string(0) else {
-            return Err(anyhow!("Failed to read shared memory path"));
-        };
+        let shmem_path = msg.read_string(0)?;
         let shmem_path = PathBuf::from(shmem_path);
         let Some(source) = state.source(&shmem_path) else {
             debug!("Source {shmem_path:?} not found");
@@ -153,7 +125,7 @@ impl RenderProcessHandler {
         let ctx_entered = ctx.enter()?;
 
         let mut global = ctx.global()?;
-        global.delete(&source.id_attribute, &ctx_entered)?;
+        global.delete(&source.frame_info.id_attribute, &ctx_entered)?;
         state.remove_source(&shmem_path);
 
         Ok(())
@@ -165,12 +137,9 @@ impl RenderProcessHandler {
         let global = ctx.global()?;
         let document = global.document()?;
 
-        let mut response = cef::ProcessMessage::new(GET_FRAME_POSITIONS_MESSAGE);
-        let mut write_idx = 0;
+        let mut response = cef::ProcessMessageBuilder::new(GET_FRAME_POSITIONS_MESSAGE);
         for read_idx in 0..msg.size() {
-            let Some(id_attribute) = msg.read_string(read_idx) else {
-                return Err(anyhow!("Failed to read id attribute at {read_idx}"));
-            };
+            let id_attribute = msg.read_string(read_idx)?;
             let element = match document.element_by_id(&id_attribute, &ctx_entered) {
                 Ok(element) => element,
                 Err(err) => {
@@ -181,15 +150,13 @@ impl RenderProcessHandler {
             };
 
             let rect = element.bounding_rect(&ctx_entered)?;
-            response.write_double(write_idx, rect.x);
-            response.write_double(write_idx + 1, rect.y);
-            response.write_double(write_idx + 2, rect.width);
-            response.write_double(write_idx + 3, rect.height);
-
-            write_idx += 4;
+            response.write_double(rect.x)?;
+            response.write_double(rect.y)?;
+            response.write_double(rect.width)?;
+            response.write_double(rect.height)?;
         }
 
-        surface.send_process_message(cef::ProcessId::Browser, response)?;
+        surface.send_process_message(cef::ProcessId::Browser, response.build())?;
 
         Ok(())
     }

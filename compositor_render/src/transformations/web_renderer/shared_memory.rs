@@ -43,7 +43,7 @@ impl SharedMemory {
     pub fn resize(&mut self, size: usize) -> Result<(), SharedMemoryError> {
         // Releasing the current `Shmem` instance to ensure it does not erase the shared memory descriptor from the file system
         // This is critical to ensure when a new `Shmem` is created at the same location, it doesn't conflict with the old descriptor
-        drop(self.inner.take());
+        self.inner.take();
         // After releasing the old `Shmem`, establish a new one from the existing path with the updated size
         *self = Self::from_path(self.path.clone(), size)?;
 

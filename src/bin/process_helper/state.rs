@@ -22,9 +22,32 @@ impl State {
 
     pub fn create_source(
         &mut self,
-        frame_info: &FrameInfo,
+        frame_info: FrameInfo,
         ctx_entered: &cef::V8ContextEntered,
     ) -> Result<&mut Source> {
+        let shmem_path = frame_info.shmem_path.clone();
+        let source = Source::new(frame_info, ctx_entered)?;
+
+        self.sources.insert(shmem_path.clone(), source);
+        Ok(self.sources.get_mut(&shmem_path).unwrap())
+    }
+
+    pub fn remove_source(&mut self, key: &Path) {
+        self.sources.remove(key);
+    }
+}
+
+pub struct Source {
+    pub _shmem: Shmem,
+    pub id_attribute_value: cef::V8Value,
+    pub array_buffer: cef::V8Value,
+    pub width: cef::V8Value,
+    pub height: cef::V8Value,
+    pub frame_info: FrameInfo,
+}
+
+impl Source {
+    pub fn new(frame_info: FrameInfo, ctx_entered: &cef::V8ContextEntered) -> Result<Self> {
         let shmem = ShmemConf::new().flink(&frame_info.shmem_path).open()?;
         let data_ptr = shmem.as_ptr();
 
@@ -42,42 +65,31 @@ impl State {
 
         let source = Source {
             _shmem: shmem,
-            id_attribute: frame_info.id_attribute.clone(),
             id_attribute_value,
             array_buffer,
             width,
             height,
+            frame_info,
         };
 
-        self.sources.insert(frame_info.shmem_path.clone(), source);
-        Ok(self.sources.get_mut(&frame_info.shmem_path).unwrap())
+        Ok(source)
     }
 
-    pub fn remove_source(&mut self, key: &Path) {
-        self.sources.remove(key);
-    }
-}
-
-pub struct Source {
-    pub _shmem: Shmem,
-    pub id_attribute: String,
-    pub id_attribute_value: cef::V8Value,
-    pub array_buffer: cef::V8Value,
-    pub width: cef::V8Value,
-    pub height: cef::V8Value,
-}
-
-impl Source {
-    pub fn ensure(&mut self, frame_info: &FrameInfo) {
-        if self.id_attribute != frame_info.id_attribute {
-            let id_attribute_value = cef::V8String::new(&frame_info.id_attribute).into();
-            self.id_attribute_value = id_attribute_value;
+    pub fn ensure(
+        &mut self,
+        frame_info: &FrameInfo,
+        ctx_entered: &cef::V8ContextEntered,
+    ) -> Result<()> {
+        if self.frame_info != *frame_info {
+            *self = Self::new(frame_info.clone(), ctx_entered)?;
         }
+
+        Ok(())
     }
 }
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct FrameInfo {
-    pub source_idx: usize,
     pub width: u32,
     pub height: u32,
     pub shmem_path: PathBuf,
