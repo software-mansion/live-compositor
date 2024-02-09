@@ -1,5 +1,7 @@
 use std::path::Path;
 
+use compositor_render::InputId;
+
 use crate::error::RegisterInputError;
 
 use super::{
@@ -8,14 +10,13 @@ use super::{
 };
 
 pub(super) fn new_pipeline_input(
+    input_id: &InputId,
     opts: RegisterInputOptions,
     download_dir: &Path,
 ) -> Result<(PipelineInput, DecodedDataReceiver, Option<Port>), RegisterInputError> {
     let RegisterInputOptions {
-        input_id,
         input_options,
         decoder_options,
-        ..
     } = opts;
 
     let (input, chunks_receiver, port) = input::Input::new(input_options, download_dir)

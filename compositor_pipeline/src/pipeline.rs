@@ -15,8 +15,8 @@ use compositor_render::{error::UpdateSceneError, Renderer};
 use compositor_render::{AudioMixer, RendererOptions};
 use compositor_render::{AudioSamplesSet, FrameSet, RegistryType};
 use compositor_render::{EventLoop, Framerate, InputId, OutputId, RendererId, RendererSpec};
-use crossbeam_channel::{unbounded, Receiver};
-use log::{error, warn};
+use crossbeam_channel::{bounded, Receiver};
+use log::error;
 
 use crate::error::{
     RegisterInputError, RegisterOutputError, UnregisterInputError, UnregisterOutputError,
@@ -24,18 +24,20 @@ use crate::error::{
 use crate::queue::Queue;
 
 use self::decoder::DecoderOptions;
-use self::encoder::{Encoder, EncoderOptions};
+use self::encoder::EncoderOptions;
 use self::input::InputOptions;
-use self::output::{Output, OutputOptions};
+use self::output::OutputOptions;
 
 pub mod decoder;
 pub mod encoder;
 pub mod input;
 pub mod output;
 mod pipeline_input;
+mod pipeline_output;
 mod structs;
 
 use self::pipeline_input::new_pipeline_input;
+use self::pipeline_output::new_pipeline_output;
 pub use self::structs::AudioChannels;
 pub use self::structs::AudioCodec;
 pub use self::structs::VideoCodec;
@@ -48,9 +50,13 @@ pub enum RequestedPort {
 }
 
 pub struct RegisterInputOptions {
-    pub input_id: InputId,
     pub input_options: InputOptions,
     pub decoder_options: DecoderOptions,
+}
+
+pub struct RegisterOutputOptions {
+    pub encoder_options: EncoderOptions,
+    pub output_options: OutputOptions,
 }
 
 #[derive(Debug, Clone)]
@@ -124,16 +130,15 @@ impl Pipeline {
 
     pub fn register_input(
         &mut self,
+        input_id: InputId,
         register_options: RegisterInputOptions,
     ) -> Result<Option<Port>, RegisterInputError> {
-        let input_id = register_options.input_id.clone();
-
         if self.inputs.contains_key(&input_id) {
             return Err(RegisterInputError::AlreadyRegistered(input_id));
         }
 
         let (pipeline_input, receiver, port) =
-            new_pipeline_input(register_options, &self.download_dir)?;
+            new_pipeline_input(&input_id, register_options, &self.download_dir)?;
 
         self.inputs.insert(input_id.clone(), pipeline_input.into());
         self.queue.add_input(&input_id, receiver);
@@ -155,28 +160,16 @@ impl Pipeline {
     pub fn register_output(
         &mut self,
         output_id: OutputId,
-        encoder_opts: EncoderOptions,
-        output_opts: OutputOptions,
+        register_options: RegisterOutputOptions,
         initial_scene: Component,
     ) -> Result<(), RegisterOutputError> {
         if self.outputs.contains_key(&output_id) {
             return Err(RegisterOutputError::AlreadyRegistered(output_id));
         }
 
-        let EncoderOptions::H264(ref opts) = encoder_opts;
-        if opts.resolution.width % 2 != 0 || opts.resolution.height % 2 != 0 {
-            return Err(RegisterOutputError::UnsupportedResolution(output_id));
-        }
+        let output = new_pipeline_output(&output_id, register_options)?;
 
-        let (encoder, packets) = Encoder::new(encoder_opts)
-            .map_err(|e| RegisterOutputError::EncoderError(output_id.clone(), e))?;
-
-        let output = Output::new(output_opts, packets)
-            .map_err(|e| RegisterOutputError::OutputError(output_id.clone(), e))?;
-
-        let output = PipelineOutput { encoder, output };
-
-        self.outputs.insert(output_id.clone(), output.into());
+        self.outputs.insert(output_id.clone(), Arc::new(output));
         self.update_scene(output_id.clone(), initial_scene)
             .map_err(|e| RegisterOutputError::SceneError(output_id.clone(), e))?;
 
@@ -231,8 +224,9 @@ impl Pipeline {
             error!("Pipeline already started.");
             return;
         }
-        let (frames_sender, frames_receiver) = unbounded();
-        let (audio_sender, audio_receiver) = unbounded();
+        let (frames_sender, frames_receiver) = bounded(5);
+        // for 20ms chunks this will be 60 seconds of audio
+        let (audio_sender, audio_receiver) = bounded(300);
         let renderer = self.renderer.clone();
         let audio_mixer = self.audio_mixer.clone();
         let outputs = self.outputs.clone();
@@ -249,11 +243,6 @@ impl Pipeline {
         outputs: OutputRegistry<PipelineOutput>,
     ) {
         for input_frames in frames_receiver.iter() {
-            if frames_receiver.len() > 20 {
-                warn!("Dropping frame: render queue is too long.",);
-                continue;
-            }
-
             let output = renderer.render(input_frames);
             let Ok(output_frames) = output else {
                 error!(

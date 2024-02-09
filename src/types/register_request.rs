@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use compositor_pipeline::pipeline::encoder;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -137,26 +136,4 @@ pub enum EncoderPreset {
     Slower,
     Veryslow,
     Placebo,
-}
-
-impl From<RegisterOutputRequest> for encoder::EncoderOptions {
-    fn from(request: RegisterOutputRequest) -> Self {
-        let preset = match request.encoder_preset.unwrap_or(EncoderPreset::Fast) {
-            EncoderPreset::Ultrafast => encoder::ffmpeg_h264::EncoderPreset::Ultrafast,
-            EncoderPreset::Superfast => encoder::ffmpeg_h264::EncoderPreset::Superfast,
-            EncoderPreset::Veryfast => encoder::ffmpeg_h264::EncoderPreset::Veryfast,
-            EncoderPreset::Faster => encoder::ffmpeg_h264::EncoderPreset::Faster,
-            EncoderPreset::Fast => encoder::ffmpeg_h264::EncoderPreset::Fast,
-            EncoderPreset::Medium => encoder::ffmpeg_h264::EncoderPreset::Medium,
-            EncoderPreset::Slow => encoder::ffmpeg_h264::EncoderPreset::Slow,
-            EncoderPreset::Slower => encoder::ffmpeg_h264::EncoderPreset::Slower,
-            EncoderPreset::Veryslow => encoder::ffmpeg_h264::EncoderPreset::Veryslow,
-            EncoderPreset::Placebo => encoder::ffmpeg_h264::EncoderPreset::Placebo,
-        };
-        Self::H264(encoder::ffmpeg_h264::Options {
-            preset,
-            resolution: request.resolution.into(),
-            output_id: request.output_id.into(),
-        })
-    }
 }
