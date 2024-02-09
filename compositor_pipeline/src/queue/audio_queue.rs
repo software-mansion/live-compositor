@@ -3,7 +3,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use super::utils::DurationExt;
+use super::utils::InputState;
 use compositor_render::{AudioSamplesBatch, AudioSamplesSet, InputId};
 use crossbeam_channel::{Receiver, TryRecvError};
 
@@ -25,7 +25,7 @@ impl AudioQueue {
             AudioQueueInput {
                 queue: VecDeque::new(),
                 receiver,
-                timestamp_offset: None,
+                input_state: InputState::WaitingForStart,
             },
         );
     }
@@ -62,9 +62,9 @@ struct AudioQueueInput {
     /// they need to be recalculated relative to `Queue:clock_start`.
     receiver: Receiver<AudioSamplesBatch>,
 
-    /// Offsets normalizing input pts to zero relative to the
-    /// Queue:clock_start value.
-    timestamp_offset: Option<chrono::Duration>,
+    /// Controls input initialization, buffering, and stores information
+    /// about input offset.
+    input_state: InputState<AudioSamplesBatch>,
 }
 
 impl AudioQueueInput {
@@ -103,18 +103,14 @@ impl AudioQueueInput {
     }
 
     fn try_enqueue_samples(&mut self, clock_start: Instant) -> Result<(), TryRecvError> {
-        let mut samples = self.receiver.try_recv()?;
+        let samples_batch = self.receiver.try_recv()?;
+        let original_pts = samples_batch.start_pts;
 
-        let offset = self
-            .timestamp_offset
-            .get_or_insert_with(|| clock_start.elapsed().chrono() - samples.start_pts.chrono());
+        let mut batches =
+            self.input_state
+                .process_new_chunk(samples_batch, original_pts, clock_start);
+        self.queue.append(&mut batches);
 
-        // Modify frame pts to be at the time frame where PTS=0 represent clock_start
-        samples.start_pts = (samples.start_pts.chrono() + *offset)
-            .to_std()
-            .unwrap_or(Duration::ZERO);
-
-        self.queue.push_back(samples);
         Ok(())
     }
 

@@ -10,7 +10,7 @@ use std::mem;
 use std::time::Duration;
 use std::time::Instant;
 
-use super::utils::DurationExt;
+use super::utils::InputState;
 
 pub struct VideoQueue {
     inputs: HashMap<InputId, VideoQueueInput>,
@@ -30,7 +30,7 @@ impl VideoQueue {
                 queue: VecDeque::new(),
                 receiver,
                 listeners: vec![],
-                timestamp_offset: None,
+                input_state: InputState::WaitingForStart,
             },
         );
     }
@@ -105,9 +105,9 @@ pub struct VideoQueueInput {
     receiver: Receiver<Frame>,
     listeners: Vec<Box<dyn FnOnce() + Send>>,
 
-    /// Offsets normalizing input pts to zero relative to the
-    /// Queue:clock_start value.
-    timestamp_offset: Option<chrono::Duration>,
+    /// Controls input initialization, buffering, and stores information
+    /// about input offset.
+    input_state: InputState<Frame>,
 }
 
 impl VideoQueueInput {
@@ -133,18 +133,14 @@ impl VideoQueueInput {
     }
 
     fn try_enqueue_frame(&mut self, clock_start: Instant) -> Result<(), TryRecvError> {
-        let mut frame = self.receiver.try_recv()?;
+        let frame = self.receiver.try_recv()?;
+        let original_pts = frame.pts;
 
-        let offset = self
-            .timestamp_offset
-            .get_or_insert_with(|| clock_start.elapsed().chrono() - frame.pts.chrono());
+        let mut frames = self
+            .input_state
+            .process_new_chunk(frame, original_pts, clock_start);
+        self.queue.append(&mut frames);
 
-        // Modify frame pts to be at the time frame where PTS=0 represent clock_start
-        frame.pts = (frame.pts.chrono() + *offset)
-            .to_std()
-            .unwrap_or(Duration::ZERO);
-
-        self.queue.push_back(frame);
         Ok(())
     }
 
