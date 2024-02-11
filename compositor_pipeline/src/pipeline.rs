@@ -16,7 +16,7 @@ use compositor_render::{AudioMixer, RendererOptions};
 use compositor_render::{AudioSamplesSet, FrameSet, RegistryType};
 use compositor_render::{EventLoop, Framerate, InputId, OutputId, RendererId, RendererSpec};
 use crossbeam_channel::{unbounded, Receiver};
-use log::{error, warn};
+use log::{debug, error, warn};
 
 use crate::error::{
     RegisterInputError, RegisterOutputError, UnregisterInputError, UnregisterOutputError,
@@ -34,7 +34,6 @@ pub mod input;
 pub mod output;
 mod structs;
 
-pub use self::structs::AudioChannels;
 pub use self::structs::AudioCodec;
 pub use self::structs::VideoCodec;
 pub use crate::queue::AudioOptions;
@@ -296,7 +295,8 @@ impl Pipeline {
 
     fn run_audio_mixer_thread(audio_mixer: AudioMixer, audio_receiver: Receiver<AudioSamplesSet>) {
         for samples in audio_receiver {
-            audio_mixer.mix_samples(samples);
+            let mixed_samples = audio_mixer.mix_samples(samples);
+            debug!("Mixed samples: {:#?}", mixed_samples);
         }
     }
 

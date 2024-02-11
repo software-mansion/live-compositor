@@ -62,7 +62,7 @@ impl AudioQueue {
     pub fn pop_samples_set(&mut self, pts: Duration, length: Duration) -> AudioSamplesSet {
         // Checks if any samples in batch are in [pts, pts + length] interval
         let batch_in_range =
-            |batch: &AudioSamplesBatch| batch.pts < pts + length && batch.end() >= pts;
+            |batch: &AudioSamplesBatch| batch.pts < pts + length && batch.end_pts() >= pts;
         let samples = self
             .input_queues
             .iter()
@@ -88,7 +88,7 @@ impl AudioQueue {
         for input_queue in self.input_queues.values_mut() {
             while input_queue
                 .front()
-                .map_or(false, |batch| batch.end() < up_to_pts)
+                .map_or(false, |batch| batch.end_pts() < up_to_pts)
             {
                 input_queue.pop_front();
             }

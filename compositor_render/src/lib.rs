@@ -1,4 +1,5 @@
 pub mod error;
+pub mod mixer;
 pub mod scene;
 
 pub(crate) mod registry;
@@ -13,12 +14,12 @@ mod types;
 pub use event_loop::EventLoop;
 pub use types::*;
 
+pub use mixer::AudioMixer;
 pub use registry::RegistryType;
 pub use state::Renderer;
 pub use state::RendererOptions;
 pub use state::RendererSpec;
 
-pub use state::AudioMixer;
 pub use wgpu::use_global_wgpu_ctx;
 
 pub mod image {

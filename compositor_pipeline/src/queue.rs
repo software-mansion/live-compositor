@@ -10,14 +10,12 @@ use std::{
 };
 
 use compositor_render::{
-    error::ErrorStack, AudioSamples, AudioSamplesBatch, AudioSamplesSet, Frame, FrameSet,
-    Framerate, InputId,
+    error::ErrorStack, AudioChannels, AudioSamples, AudioSamplesBatch, AudioSamplesSet, Frame,
+    FrameSet, Framerate, InputId,
 };
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use log::error;
 use thiserror::Error;
-
-use crate::pipeline::AudioChannels;
 
 use self::{
     audio_queue::AudioQueue, audio_queue_thread::AudioQueueThread, video_queue::VideoQueue,

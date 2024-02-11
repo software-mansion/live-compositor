@@ -7,6 +7,17 @@ pub struct AudioSamplesSet {
     pub length: Duration,
 }
 
+impl AudioSamplesSet {
+    pub fn end_pts(&self) -> Duration {
+        self.pts + self.length
+    }
+}
+
+#[derive(Debug)]
+pub struct OutputSamples {
+    pub samples: HashMap<OutputId, AudioSamplesBatch>,
+}
+
 #[derive(Debug, Clone)]
 pub struct AudioSamplesBatch {
     pub samples: Arc<AudioSamples>,
@@ -15,7 +26,7 @@ pub struct AudioSamplesBatch {
 }
 
 impl AudioSamplesBatch {
-    pub fn end(&self) -> Duration {
+    pub fn end_pts(&self) -> Duration {
         self.pts + Duration::from_secs_f64(self.samples.len() as f64 / self.sample_rate as f64)
     }
 }
@@ -141,4 +152,10 @@ impl Resolution {
     pub fn ratio(&self) -> f32 {
         self.width as f32 / self.height as f32
     }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum AudioChannels {
+    Mono,
+    Stereo,
 }

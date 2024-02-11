@@ -6,9 +6,9 @@ use self::{ffmpeg_h264::H264FfmpegDecoder, opus_decoder::OpusDecoder};
 
 use super::{
     input::ChunksReceiver,
-    structs::{AudioChannels, EncodedChunk, VideoCodec},
+    structs::{EncodedChunk, VideoCodec},
 };
-use compositor_render::InputId;
+use compositor_render::{AudioChannels, InputId};
 use crossbeam_channel::Receiver;
 
 mod ffmpeg_h264;

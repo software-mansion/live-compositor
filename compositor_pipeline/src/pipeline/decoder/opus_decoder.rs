@@ -1,14 +1,10 @@
 use std::sync::Arc;
 
-use compositor_render::{AudioSamples, AudioSamplesBatch, InputId};
+use compositor_render::{AudioChannels, AudioSamples, AudioSamplesBatch, InputId};
 use crossbeam_channel::Receiver;
 use log::error;
 
-use crate::{
-    error::DecoderInitError,
-    pipeline::structs::{AudioChannels, EncodedChunk},
-    queue::Queue,
-};
+use crate::{error::DecoderInitError, pipeline::structs::EncodedChunk, queue::Queue};
 
 use super::OpusDecoderOptions;
 
@@ -21,7 +17,7 @@ impl OpusDecoder {
         queue: Arc<Queue>,
         input_id: InputId,
     ) -> Result<Self, DecoderInitError> {
-        let decoder = opus::Decoder::new(opts.sample_rate, opts.channels.into())?;
+        let decoder = opus::Decoder::new(opts.sample_rate, Self::opus_channels(&opts.channels))?;
 
         std::thread::Builder::new()
             .name(format!("opus decoder {}", input_id.0))
@@ -79,11 +75,9 @@ impl OpusDecoder {
             };
         }
     }
-}
 
-impl From<AudioChannels> for opus::Channels {
-    fn from(value: AudioChannels) -> Self {
-        match value {
+    fn opus_channels(audio_channels: &AudioChannels) -> opus::Channels {
+        match audio_channels {
             AudioChannels::Mono => opus::Channels::Mono,
             AudioChannels::Stereo => opus::Channels::Stereo,
         }
