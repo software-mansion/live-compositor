@@ -12,6 +12,7 @@ pub enum Encoder {
     H264(LibavH264Encoder),
 }
 
+#[derive(Debug, Clone)]
 pub enum EncoderOptions {
     H264(ffmpeg_h264::Options),
 }

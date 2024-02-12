@@ -6,6 +6,7 @@ use std::{
 
 use compositor_render::AudioSamplesSet;
 use crossbeam_channel::{tick, Sender};
+use log::warn;
 
 use super::Queue;
 
@@ -21,6 +22,7 @@ pub struct AudioQueueThread {
     buffer_duration: Duration,
     chunk_duration: Duration,
     chunks_counter: u32,
+    clock_start: Instant,
 }
 
 impl AudioQueueThread {
@@ -30,6 +32,7 @@ impl AudioQueueThread {
             sender,
             buffer_duration: opts.buffer_duration,
             chunk_duration: opts.pushed_chunk_length,
+            clock_start: opts.clock_start,
             chunks_counter: 0,
         }
     }
@@ -52,8 +55,10 @@ impl AudioQueueThread {
                 .audio_queue
                 .lock()
                 .unwrap()
-                .pop_samples_set(pts, self.chunk_duration);
-            self.sender.send(samples).unwrap();
+                .pop_samples_set((pts, pts + self.chunk_duration), self.clock_start);
+            if self.sender.try_send(samples).is_err() {
+                warn!("Queue failed to push audio chunks. Channel is blocked.")
+            }
             self.chunks_counter += 1;
         }
     }

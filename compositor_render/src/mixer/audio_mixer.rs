@@ -73,14 +73,14 @@ impl InternalAudioMixer {
                 let samples = Self::mix_output_samples(
                     output_info,
                     &input_samples,
-                    samples_set.pts,
+                    samples_set.start_pts,
                     samples_set.end_pts(),
                 );
                 (
                     output_id.clone(),
                     AudioSamplesBatch {
                         samples: Arc::new(samples),
-                        pts: samples_set.pts,
+                        start_pts: samples_set.start_pts,
                         sample_rate: output_info.sample_rate,
                     },
                 )
@@ -170,7 +170,7 @@ impl InternalAudioMixer {
                         .iter()
                         .enumerate()
                         .for_each(|(index, sample)| {
-                            let sample_pts = input_batch.pts
+                            let sample_pts = input_batch.start_pts
                                 + Duration::from_secs_f64(
                                     index as f64 / input_batch.sample_rate as f64,
                                 );
@@ -253,7 +253,10 @@ impl InternalAudioMixer {
             batches
                 .iter()
                 .fold(Vec::with_capacity(batches.len()), |mut samples, batch| {
-                    let missing_samples = (batch.pts.saturating_sub(first_batch.pts).as_secs_f64()
+                    let missing_samples = (batch
+                        .start_pts
+                        .saturating_sub(first_batch.start_pts)
+                        .as_secs_f64()
                         * first_batch.sample_rate as f64)
                         .round() as usize
                         - samples.len();
@@ -288,7 +291,7 @@ impl InternalAudioMixer {
 
         Some(AudioSamplesBatch {
             samples: Arc::new(samples),
-            pts: first_batch.pts,
+            start_pts: first_batch.start_pts,
             sample_rate: first_batch.sample_rate,
         })
     }

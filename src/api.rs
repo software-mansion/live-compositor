@@ -137,7 +137,7 @@ impl Api {
             QueryRequest::WaitForNextFrame { input_id } => {
                 let (sender, receiver) = bounded(1);
                 self.pipeline.queue().subscribe_input_listener(
-                    input_id.into(),
+                    &input_id.into(),
                     Box::new(move || {
                         sender.send(Ok(Response::Ok {})).unwrap();
                     }),

@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
 use compositor_render::{AudioChannels, AudioSamples, AudioSamplesBatch, InputId};
-use crossbeam_channel::Receiver;
+use crossbeam_channel::{Receiver, Sender};
 use log::error;
 
-use crate::{error::DecoderInitError, pipeline::structs::EncodedChunk, queue::Queue};
+use crate::{error::DecoderInitError, pipeline::structs::EncodedChunk};
 
 use super::OpusDecoderOptions;
 
@@ -14,14 +14,14 @@ impl OpusDecoder {
     pub fn new(
         opts: OpusDecoderOptions,
         chunks_receiver: Receiver<EncodedChunk>,
-        queue: Arc<Queue>,
+        sample_sender: Sender<AudioSamplesBatch>,
         input_id: InputId,
     ) -> Result<Self, DecoderInitError> {
         let decoder = opus::Decoder::new(opts.sample_rate, Self::opus_channels(&opts.channels))?;
 
         std::thread::Builder::new()
             .name(format!("opus decoder {}", input_id.0))
-            .spawn(move || Self::start_decoding(decoder, opts, queue, chunks_receiver, input_id))
+            .spawn(move || Self::start_decoding(decoder, opts, chunks_receiver, sample_sender))
             .unwrap();
 
         Ok(Self)
@@ -30,9 +30,8 @@ impl OpusDecoder {
     fn start_decoding(
         mut decoder: opus::Decoder,
         opts: OpusDecoderOptions,
-        queue: Arc<Queue>,
         chunks_receiver: Receiver<EncodedChunk>,
-        input_id: InputId,
+        sample_sender: Sender<AudioSamplesBatch>,
     ) {
         // Max sample rate for opus is 48kHz.
         // Usually packets contain 20ms audio chunks, but for safety we use buffer
@@ -63,15 +62,12 @@ impl OpusDecoder {
 
             let samples = AudioSamplesBatch {
                 samples: Arc::new(samples),
-                pts: chunk.pts,
+                start_pts: chunk.pts,
                 sample_rate: opts.sample_rate,
             };
 
-            if let Err(err) = queue.enqueue_audio_samples(input_id.clone(), samples) {
-                error!(
-                    "Error enqueueing audio samples for input {}: {}",
-                    input_id, err
-                );
+            if sample_sender.send(samples).is_err() {
+                return;
             };
         }
     }

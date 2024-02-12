@@ -3,13 +3,13 @@ use std::{collections::HashMap, fmt::Display, sync::Arc, time::Duration};
 #[derive(Debug, Clone)]
 pub struct AudioSamplesSet {
     pub samples: HashMap<InputId, Vec<AudioSamplesBatch>>,
-    pub pts: Duration,
+    pub start_pts: Duration,
     pub length: Duration,
 }
 
 impl AudioSamplesSet {
     pub fn end_pts(&self) -> Duration {
-        self.pts + self.length
+        self.start_pts + self.length
     }
 }
 
@@ -21,13 +21,14 @@ pub struct OutputSamples {
 #[derive(Debug, Clone)]
 pub struct AudioSamplesBatch {
     pub samples: Arc<AudioSamples>,
-    pub pts: Duration,
+    pub start_pts: Duration,
     pub sample_rate: u32,
 }
 
 impl AudioSamplesBatch {
     pub fn end_pts(&self) -> Duration {
-        self.pts + Duration::from_secs_f64(self.samples.len() as f64 / self.sample_rate as f64)
+        self.start_pts
+            + Duration::from_secs_f64(self.samples.len() as f64 / self.sample_rate as f64)
     }
 }
 

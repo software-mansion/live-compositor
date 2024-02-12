@@ -5,7 +5,7 @@ use std::{
     path::{Path, PathBuf},
     sync::{atomic::AtomicBool, Arc},
     thread::JoinHandle,
-    time::{Duration, Instant},
+    time::Duration,
 };
 
 use bytes::{Buf, Bytes, BytesMut};
@@ -209,7 +209,6 @@ fn reader_thread(
         timescale,
     }: TrackInfo,
 ) {
-    let mut previous_sent_ts = None;
     for i in 1..sample_count {
         match reader.read_sample(track_id, i) {
             Ok(Some(sample)) => {
@@ -254,17 +253,8 @@ fn reader_thread(
                     kind: EncodedChunkKind::Video(VideoCodec::H264),
                 };
 
-                // TODO: this is a temporary soulution. the queue should decide when to take our buffers.
-                if let Some((send_time, previous_dts)) = previous_sent_ts {
-                    let frame_difference = chunk.dts.unwrap().saturating_sub(previous_dts);
-                    let should_be_sent: Instant = send_time + frame_difference;
-                    let time_to_wait = should_be_sent.saturating_duration_since(Instant::now());
-                    std::thread::sleep(time_to_wait);
-                }
-
                 let mut chunk = Some(chunk);
                 loop {
-                    previous_sent_ts = Some((Instant::now(), dts));
                     match sender.send_timeout(chunk.take().unwrap(), Duration::from_millis(50)) {
                         Ok(()) => {
                             break;

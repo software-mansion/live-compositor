@@ -1,6 +1,10 @@
 use compositor_render::OutputId;
 use log::{debug, error};
-use std::sync::Arc;
+use std::{
+    sync::Arc,
+    thread,
+    time::{Duration, Instant},
+};
 
 use rand::Rng;
 use rtp::packetizer::Payloader;
@@ -14,6 +18,9 @@ use crate::{
     },
 };
 
+/// Hot much into the future we can send data (assume sync on first frame)
+const RTP_MAX_BUFFER_DURATION: Duration = Duration::from_secs(5);
+
 #[derive(Debug)]
 pub struct RtpSender {
     pub port: u16,
@@ -26,6 +33,8 @@ pub struct RtpContext {
     next_sequence_number: u16,
     payloader: rtp::codecs::h264::H264Payloader,
     socket: std::net::UdpSocket,
+    first_packet_instant: Option<Instant>,
+    first_packet_pts: Option<Duration>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -65,6 +74,8 @@ impl RtpSender {
             next_sequence_number,
             payloader,
             socket,
+            first_packet_instant: None,
+            first_packet_pts: None,
         };
 
         let sender_thread = std::thread::Builder::new()
@@ -87,6 +98,20 @@ impl RtpSender {
     fn send_data(context: &mut RtpContext, packet: EncodedChunk) {
         // TODO: check if this is h264
         let EncodedChunk { data, pts, .. } = packet;
+
+        let first_packet_instant = context
+            .first_packet_instant
+            .get_or_insert_with(Instant::now);
+        let first_packet_pts = context.first_packet_pts.get_or_insert(pts);
+
+        let max_pts_to_send =
+            first_packet_instant.elapsed() + RTP_MAX_BUFFER_DURATION + *first_packet_pts;
+        if max_pts_to_send < pts {
+            // If current PTS is significantly higher than the value than PTS value that
+            // should represent now, then wait.
+            // This step is necessary on all outputs streams without control flow.
+            thread::sleep(pts.saturating_sub(max_pts_to_send))
+        }
 
         let payloads = match context.payloader.payload(1500, &data) {
             Ok(p) => p,

@@ -7,6 +7,7 @@ use std::{
 
 use compositor_render::{FrameSet, Framerate, InputId};
 use crossbeam_channel::{tick, Sender};
+use log::warn;
 
 use super::Queue;
 
@@ -63,7 +64,8 @@ impl VideoQueueThread {
         let mut internal_queue = self.queue.video_queue.lock().unwrap();
         let next_buffer_pts = self.get_next_output_buffer_pts();
 
-        let ready_to_push = internal_queue.check_all_inputs_ready(next_buffer_pts)
+        let ready_to_push = internal_queue
+            .check_all_inputs_ready(next_buffer_pts, self.opts.clock_start)
             || self.should_push_pts(next_buffer_pts);
         if !ready_to_push {
             return;
@@ -73,7 +75,14 @@ impl VideoQueueThread {
         for input_id in frames_batch.frames.keys() {
             internal_queue.call_input_listeners(input_id)
         }
-        self.sender.send(frames_batch).unwrap();
+        let send_deadline = self.opts.clock_start.add(frames_batch.pts);
+        if self
+            .sender
+            .send_deadline(frames_batch, send_deadline)
+            .is_err()
+        {
+            warn!("Dropping video frame on queue output.")
+        }
         self.sent_batches_counter += 1;
     }
 
