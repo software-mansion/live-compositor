@@ -144,7 +144,7 @@ const OUTPUT_STREAM_ALREADY_REGISTERED: &str = "OUTPUT_STREAM_ALREADY_REGISTERED
 const ENCODER_ERROR: &str = "OUTPUT_STREAM_ENCODER_ERROR";
 const OUTPUT_ERROR: &str = "OUTPUT_STREAM_OUTPUT_ERROR";
 const UNSUPPORTED_RESOLUTION: &str = "UNSUPPORTED_RESOLUTION";
-const NO_VIDEO_AUDIO_FOR_OUTPUT: &str = "NO_VIDEO_AUDIO_FOR_OUTPUT";
+const NO_VIDEO_OR_AUDIO_FOR_OUTPUT: &str = "NO_VIDEO_OR_AUDIO_FOR_OUTPUT";
 
 impl From<&RegisterOutputError> for PipelineErrorInfo {
     fn from(err: &RegisterOutputError) -> Self {
@@ -166,7 +166,7 @@ impl From<&RegisterOutputError> for PipelineErrorInfo {
             }
             RegisterOutputError::SceneError(_, err) => err.into(),
             RegisterOutputError::NoVideoOrAudio(_) => {
-                PipelineErrorInfo::new(NO_VIDEO_AUDIO_FOR_OUTPUT, ErrorType::UserError)
+                PipelineErrorInfo::new(NO_VIDEO_OR_AUDIO_FOR_OUTPUT, ErrorType::UserError)
             }
         }
     }

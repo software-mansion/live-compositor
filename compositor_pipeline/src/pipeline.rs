@@ -188,8 +188,7 @@ impl Pipeline {
         if !has_video && !has_audio {
             return Err(RegisterOutputError::NoVideoOrAudio(output_id));
         }
-
-        // TODO handle only audio
+        
         if self.outputs.contains_key(&output_id) {
             return Err(RegisterOutputError::AlreadyRegistered(output_id));
         }

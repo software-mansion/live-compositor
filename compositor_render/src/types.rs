@@ -14,9 +14,7 @@ impl AudioSamplesSet {
 }
 
 #[derive(Debug)]
-pub struct OutputSamples {
-    pub samples: HashMap<OutputId, AudioSamplesBatch>,
-}
+pub struct OutputSamples(pub HashMap<OutputId, AudioSamplesBatch>);
 
 #[derive(Debug, Clone)]
 pub struct AudioSamplesBatch {
