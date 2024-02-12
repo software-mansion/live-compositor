@@ -30,6 +30,7 @@
       ]
     }
   },
+  "additionalProperties": false,
   "definitions": {
     "OutputId": {
       "type": "string"
