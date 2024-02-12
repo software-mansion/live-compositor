@@ -41,13 +41,13 @@ pub struct RtpReceiverOptions {
     pub stream: RtpStream,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct VideoStream {
     pub codec: VideoCodec,
     pub payload_type: u8,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AudioStream {
     pub codec: AudioCodec,
     pub payload_type: u8,

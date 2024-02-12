@@ -55,17 +55,13 @@ pub fn handle_register_request(
 }
 
 fn register_output(api: &mut Api, request: RegisterOutputRequest) -> Result<(), ApiError> {
-    let RegisterOutputRequest {
-        output_id,
-        port,
-        ip,
-        ..
-    } = request.clone();
-
+    let ip = request.ip.clone();
+    let port = request.port;
     api.pipeline.with_outputs(|mut iter| {
         if let Some((node_id, _)) = iter.find(|(_, output)| match &output.output {
             pipeline::output::Output::Rtp(rtp) => rtp.port == port && rtp.ip == ip,
         }) {
+            let output_id = request.output_id.clone();
             return Err(ApiError::new(
                 "PORT_AND_IP_ALREADY_IN_USE",
                 format!("Failed to register output stream \"{output_id}\". Combination of port {port} and IP {ip} is already used by node \"{node_id}\""),
@@ -75,12 +71,7 @@ fn register_output(api: &mut Api, request: RegisterOutputRequest) -> Result<(), 
         Ok(())
     })?;
 
-    api.pipeline.register_output(
-        output_id.into(),
-        request.clone().into(),
-        request.clone().into(),
-        request.initial_scene.try_into()?,
-    )?;
+    api.pipeline.register_output(request.try_into()?)?;
 
     Ok(())
 }

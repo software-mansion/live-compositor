@@ -1,6 +1,11 @@
-use compositor_pipeline::pipeline;
+use compositor_pipeline::pipeline::{
+    self,
+    encoder::{ffmpeg_h264::Options, EncoderOptions},
+    input::rtp::{AudioStream, VideoStream},
+    output::rtp::RtpSenderOptions,
+};
 
-use self::register_request::{AudioChannels, AudioCodec, Port, VideoCodec};
+use self::register_request::{AudioChannels, AudioCodec, EncoderPreset, Port, VideoCodec};
 
 use super::*;
 
@@ -182,11 +187,76 @@ impl From<AudioChannels> for compositor_render::AudioChannels {
 
 impl From<RegisterOutputRequest> for pipeline::output::OutputOptions {
     fn from(value: RegisterOutputRequest) -> Self {
-        pipeline::output::OutputOptions::Rtp(pipeline::output::rtp::RtpSenderOptions {
-            codec: compositor_pipeline::pipeline::VideoCodec::H264,
-            ip: value.ip,
+        pipeline::output::OutputOptions::Rtp(RtpSenderOptions {
             port: value.port,
+            ip: value.ip,
             output_id: value.output_id.into(),
+            video: value.video.map(|_| VideoStream {
+                codec: pipeline::VideoCodec::H264,
+                payload_type: 96,
+            }),
+            audio: value.audio.map(|_| AudioStream {
+                codec: pipeline::AudioCodec::Opus,
+                payload_type: 97,
+            }),
         })
     }
 }
+
+impl TryFrom<RegisterOutputRequest> for pipeline::RegisterOutputOptions {
+    type Error = TypeError;
+
+    fn try_from(value: RegisterOutputRequest) -> Result<Self, Self::Error> {
+        let output_options = value.clone().into();
+        let encoder_opts = match value.video.clone() {
+            Some(video) => Some(EncoderOptions::H264(Options {
+                preset: video.encoder_preset.into(),
+                resolution: video.resolution.into(),
+                output_id: value.output_id.clone().into(),
+            })),
+            None => None,
+        };
+        let initial_video = match value.video {
+            Some(output_video_opts) => Some(output_video_opts.initial.try_into()?),
+            None => None,
+        };
+
+        Ok(Self {
+            output_id: value.output_id.into(),
+            output_options,
+            encoder_opts,
+            initial_video,
+            initial_audio: value.audio.map(|a| a.initial.into()),
+        })
+    }
+}
+
+impl From<EncoderPreset> for pipeline::encoder::ffmpeg_h264::EncoderPreset {
+    fn from(value: EncoderPreset) -> Self {
+        match value {
+            EncoderPreset::Ultrafast => pipeline::encoder::ffmpeg_h264::EncoderPreset::Ultrafast,
+            EncoderPreset::Superfast => pipeline::encoder::ffmpeg_h264::EncoderPreset::Superfast,
+            EncoderPreset::Veryfast => pipeline::encoder::ffmpeg_h264::EncoderPreset::Veryfast,
+            EncoderPreset::Faster => pipeline::encoder::ffmpeg_h264::EncoderPreset::Faster,
+            EncoderPreset::Fast => pipeline::encoder::ffmpeg_h264::EncoderPreset::Fast,
+            EncoderPreset::Medium => pipeline::encoder::ffmpeg_h264::EncoderPreset::Medium,
+            EncoderPreset::Slow => pipeline::encoder::ffmpeg_h264::EncoderPreset::Slow,
+            EncoderPreset::Slower => pipeline::encoder::ffmpeg_h264::EncoderPreset::Slower,
+            EncoderPreset::Veryslow => pipeline::encoder::ffmpeg_h264::EncoderPreset::Veryslow,
+            EncoderPreset::Placebo => pipeline::encoder::ffmpeg_h264::EncoderPreset::Placebo,
+        }
+    }
+}
+
+// impl From<RegisterOutputRequest> for pipeline::RegisterOutputOptions {
+//     fn from(value: RegisterOutputRequest) -> Self {
+
+//         Self {
+//             output_id: value.output_id.clone().into(),
+//             output_options: value.clone().into(),
+//             encoder_opts: value.video.map(|v| v),
+//             initial_video: value.video.map(|v| v.initial.try_into()),
+//             initial_audio: value.audio.map(|a| a.initial.into()),
+//         }
+//     }
+// }

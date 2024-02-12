@@ -36,6 +36,9 @@ pub enum RegisterOutputError {
 
     #[error("Failed to initialize the scene when registering output \"{0}\".")]
     SceneError(OutputId, #[source] UpdateSceneError),
+
+    #[error("Failed to register output stream \"{0}\". At least one of \"video\" and \"audio\" must be specified.")]
+    NoVideoOrAudio(OutputId),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -141,6 +144,7 @@ const OUTPUT_STREAM_ALREADY_REGISTERED: &str = "OUTPUT_STREAM_ALREADY_REGISTERED
 const ENCODER_ERROR: &str = "OUTPUT_STREAM_ENCODER_ERROR";
 const OUTPUT_ERROR: &str = "OUTPUT_STREAM_OUTPUT_ERROR";
 const UNSUPPORTED_RESOLUTION: &str = "UNSUPPORTED_RESOLUTION";
+const NO_VIDEO_AUDIO_FOR_OUTPUT: &str = "NO_VIDEO_AUDIO_FOR_OUTPUT";
 
 impl From<&RegisterOutputError> for PipelineErrorInfo {
     fn from(err: &RegisterOutputError) -> Self {
@@ -161,6 +165,9 @@ impl From<&RegisterOutputError> for PipelineErrorInfo {
                 PipelineErrorInfo::new(UNSUPPORTED_RESOLUTION, ErrorType::UserError)
             }
             RegisterOutputError::SceneError(_, err) => err.into(),
+            RegisterOutputError::NoVideoOrAudio(_) => {
+                PipelineErrorInfo::new(NO_VIDEO_AUDIO_FOR_OUTPUT, ErrorType::UserError)
+            }
         }
     }
 }

@@ -8,7 +8,10 @@ use webrtc_util::Marshal;
 
 use crate::{
     error::OutputInitError,
-    pipeline::structs::{EncodedChunk, VideoCodec},
+    pipeline::{
+        input::rtp::{AudioStream, VideoStream},
+        structs::{EncodedChunk, VideoCodec},
+    },
 };
 
 #[derive(Debug)]
@@ -29,8 +32,9 @@ pub struct RtpContext {
 pub struct RtpSenderOptions {
     pub port: u16,
     pub ip: Arc<str>,
-    pub codec: VideoCodec,
     pub output_id: OutputId,
+    pub video: Option<VideoStream>,
+    pub audio: Option<AudioStream>,
 }
 
 impl RtpSender {
@@ -38,8 +42,10 @@ impl RtpSender {
         options: RtpSenderOptions,
         packets: Box<dyn Iterator<Item = EncodedChunk> + Send>,
     ) -> Result<Self, OutputInitError> {
-        if options.codec != VideoCodec::H264 {
-            return Err(OutputInitError::UnsupportedVideoCodec(options.codec));
+        // TODO handle audio
+        let codec = options.video.unwrap().codec;
+        if codec != VideoCodec::H264 {
+            return Err(OutputInitError::UnsupportedVideoCodec(codec));
         }
 
         let mut rng = rand::thread_rng();

@@ -113,15 +113,18 @@ impl Api {
                 self.pipeline.start();
                 Ok(ResponseHandler::Ok)
             }
-            Request::UpdateOutput(scene_spec) => {
-                let root_component = match scene_spec.video {
+            Request::UpdateOutput(output_spec) => {
+                let root_component = match output_spec.video {
                     Some(root_component) => Some(root_component.try_into()?),
                     None => None,
                 };
-                let audio = scene_spec.audio.map(|audio| audio.into());
+                let audio_composition = output_spec.audio.map(|audio| audio.into());
 
-                self.pipeline
-                    .update_scene(scene_spec.output_id.into(), root_component, audio)?;
+                self.pipeline.update_scene(
+                    output_spec.output_id.into(),
+                    root_component,
+                    audio_composition,
+                )?;
 
                 Ok(ResponseHandler::Ok)
             }

@@ -53,6 +53,14 @@ pub struct RegisterInputOptions {
     pub decoder_options: DecoderOptions,
 }
 
+pub struct RegisterOutputOptions {
+    pub output_id: OutputId,
+    pub output_options: OutputOptions,
+    pub encoder_opts: Option<EncoderOptions>,
+    pub initial_video: Option<Component>,
+    pub initial_audio: Option<AudioComposition>,
+}
+
 #[derive(Debug, Clone)]
 pub struct OutputScene {
     pub output_id: OutputId,
@@ -172,11 +180,24 @@ impl Pipeline {
 
     pub fn register_output(
         &mut self,
-        output_id: OutputId,
-        encoder_opts: EncoderOptions,
-        output_opts: OutputOptions,
-        initial_scene: Component,
+        register_options: RegisterOutputOptions,
     ) -> Result<(), RegisterOutputError> {
+        let RegisterOutputOptions {
+            output_id,
+            output_options,
+            encoder_opts,
+            initial_video,
+            initial_audio,
+        } = register_options;
+        if initial_video.is_none() && initial_audio.is_none() {
+            return Err(RegisterOutputError::NoVideoOrAudio(output_id));
+        }
+
+        // TODO handle only audio
+        let (Some(encoder_opts), Some(scene_root)) = (encoder_opts, initial_video) else {
+            return Ok(());
+        };
+
         if self.outputs.contains_key(&output_id) {
             return Err(RegisterOutputError::AlreadyRegistered(output_id));
         }
@@ -189,14 +210,19 @@ impl Pipeline {
         let (encoder, packets) = Encoder::new(encoder_opts)
             .map_err(|e| RegisterOutputError::EncoderError(output_id.clone(), e))?;
 
-        let output = Output::new(output_opts, packets)
+        let output = Output::new(output_options, packets)
             .map_err(|e| RegisterOutputError::OutputError(output_id.clone(), e))?;
 
         let output = PipelineOutput { encoder, output };
 
         self.outputs.insert(output_id.clone(), output.into());
-        self.update_scene_root(output_id.clone(), initial_scene)
+        self.update_scene_root(output_id.clone(), scene_root)
             .map_err(|e| RegisterOutputError::SceneError(output_id.clone(), e))?;
+
+        if let Some(audio_composition) = initial_audio {
+            self.update_audio_composition(output_id.clone(), audio_composition)
+                .map_err(|e| RegisterOutputError::SceneError(output_id.clone(), e))?;
+        }
 
         Ok(())
     }
@@ -231,17 +257,17 @@ impl Pipeline {
         &mut self,
         output_id: OutputId,
         root_component: Option<Component>,
-        audio: Option<AudioComposition>,
+        audio_composition: Option<AudioComposition>,
     ) -> Result<(), UpdateSceneError> {
-        if root_component.is_none() && audio.is_none() {
+        if root_component.is_none() && audio_composition.is_none() {
             return Err(UpdateSceneError::NoAudioAndVideo(output_id));
         }
         if let Some(scene_root) = root_component {
             self.update_scene_root(output_id.clone(), scene_root)?;
         }
 
-        if let Some(audio) = audio {
-            self.update_audio_composition(output_id, audio)?;
+        if let Some(audio_composition) = audio_composition {
+            self.update_audio_composition(output_id, audio_composition)?;
         }
 
         Ok(())
@@ -267,9 +293,9 @@ impl Pipeline {
     fn update_audio_composition(
         &mut self,
         output_id: OutputId,
-        audio: AudioComposition,
+        audio_composition: AudioComposition,
     ) -> Result<(), UpdateSceneError> {
-        self.audio_mixer.update_scene(output_id, audio)
+        self.audio_mixer.update_scene(output_id, audio_composition)
     }
 
     pub fn start(&mut self) {
