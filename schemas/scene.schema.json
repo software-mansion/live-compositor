@@ -1,17 +1,33 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "OutputScene",
+  "title": "UpdateOutputRequest",
   "type": "object",
   "required": [
-    "output_id",
-    "scene"
+    "output_id"
   ],
   "properties": {
     "output_id": {
       "$ref": "#/definitions/OutputId"
     },
-    "scene": {
-      "$ref": "#/definitions/Component"
+    "video": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/Component"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "audio": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/AudioComposition"
+        },
+        {
+          "type": "null"
+        }
+      ]
     }
   },
   "definitions": {
@@ -1216,6 +1232,12 @@
           ]
         }
       ]
+    },
+    "AudioComposition": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/InputId"
+      }
     }
   }
 }

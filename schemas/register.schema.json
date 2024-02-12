@@ -99,11 +99,9 @@
       "type": "object",
       "required": [
         "entity_type",
-        "initial_scene",
         "ip",
         "output_id",
-        "port",
-        "resolution"
+        "port"
       ],
       "properties": {
         "entity_type": {
@@ -123,21 +121,25 @@
         "ip": {
           "type": "string"
         },
-        "resolution": {
-          "$ref": "#/definitions/Resolution"
-        },
-        "encoder_preset": {
+        "video": {
           "anyOf": [
             {
-              "$ref": "#/definitions/EncoderPreset"
+              "$ref": "#/definitions/OutputVideoOpts"
             },
             {
               "type": "null"
             }
           ]
         },
-        "initial_scene": {
-          "$ref": "#/definitions/Component"
+        "audio": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/OutputAudioOpts"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       }
     },
@@ -499,6 +501,26 @@
     },
     "OutputId": {
       "type": "string"
+    },
+    "OutputVideoOpts": {
+      "type": "object",
+      "required": [
+        "encoder_preset",
+        "initial",
+        "resolution"
+      ],
+      "properties": {
+        "resolution": {
+          "$ref": "#/definitions/Resolution"
+        },
+        "encoder_preset": {
+          "$ref": "#/definitions/EncoderPreset"
+        },
+        "initial": {
+          "$ref": "#/definitions/Component"
+        }
+      },
+      "additionalProperties": false
     },
     "Resolution": {
       "type": "object",
@@ -1710,6 +1732,34 @@
           ]
         }
       ]
+    },
+    "OutputAudioOpts": {
+      "type": "object",
+      "required": [
+        "channels",
+        "initial",
+        "sample_rate"
+      ],
+      "properties": {
+        "initial": {
+          "$ref": "#/definitions/AudioComposition"
+        },
+        "sample_rate": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        },
+        "channels": {
+          "$ref": "#/definitions/AudioChannels"
+        }
+      },
+      "additionalProperties": false
+    },
+    "AudioComposition": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/InputId"
+      }
     },
     "WebEmbeddingMethod": {
       "oneOf": [
