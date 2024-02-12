@@ -80,7 +80,7 @@ pub struct Api {
 impl Api {
     pub fn new() -> Result<(Api, Arc<dyn EventLoop>), InitPipelineError> {
         let Config {
-            framerate,
+            queue_options,
             stream_fallback_timeout,
             web_renderer,
             force_gpu,
@@ -88,7 +88,7 @@ impl Api {
             ..
         } = config();
         let (pipeline, event_loop) = Pipeline::new(pipeline::Options {
-            framerate: *framerate,
+            queue_options: *queue_options,
             stream_fallback_timeout: *stream_fallback_timeout,
             web_renderer: *web_renderer,
             force_gpu: *force_gpu,

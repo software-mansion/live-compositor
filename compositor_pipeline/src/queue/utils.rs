@@ -25,8 +25,17 @@ use super::DEFAULT_BUFFER_DURATION;
 #[derive(Debug)]
 pub(super) enum InputState<Payload: ApplyOffsetExt> {
     WaitingForStart,
-    Buffering { buffer: Vec<(Payload, Duration)> },
-    Ready { offset: chrono::Duration },
+    Buffering {
+        buffer: Vec<(Payload, Duration)>,
+    },
+    Ready {
+        /// Offset that needs to applied to convert PTS of input
+        /// frames into a time frame where PTS=0 represents first
+        /// frame
+        offset: Duration,
+        /// Moment where input transitioned to a ready state
+        start_time: Instant,
+    },
 }
 
 impl<Payload: ApplyOffsetExt> InputState<Payload> {
@@ -34,7 +43,6 @@ impl<Payload: ApplyOffsetExt> InputState<Payload> {
         &mut self,
         mut payload: Payload,
         pts: Duration,
-        clock_start: Instant,
     ) -> VecDeque<Payload> {
         match self {
             InputState::WaitingForStart => {
@@ -52,7 +60,7 @@ impl<Payload: ApplyOffsetExt> InputState<Payload> {
                 if buffer_duration < DEFAULT_BUFFER_DURATION {
                     VecDeque::new()
                 } else {
-                    let offset = clock_start.elapsed().chrono() - first_pts.chrono();
+                    let offset = first_pts;
 
                     let chunks = mem::take(buffer)
                         .into_iter()
@@ -61,11 +69,14 @@ impl<Payload: ApplyOffsetExt> InputState<Payload> {
                             buffer
                         })
                         .collect();
-                    *self = InputState::Ready { offset };
+                    *self = InputState::Ready {
+                        offset,
+                        start_time: Instant::now(),
+                    };
                     chunks
                 }
             }
-            InputState::Ready { offset } => {
+            InputState::Ready { offset, .. } => {
                 payload.apply_offset(*offset);
                 VecDeque::from([payload])
             }
@@ -74,31 +85,17 @@ impl<Payload: ApplyOffsetExt> InputState<Payload> {
 }
 
 pub(super) trait ApplyOffsetExt {
-    fn apply_offset(&mut self, offset: chrono::Duration);
+    fn apply_offset(&mut self, offset: Duration);
 }
 
 impl ApplyOffsetExt for Frame {
-    fn apply_offset(&mut self, offset: chrono::Duration) {
-        self.pts = (self.pts.chrono() + offset)
-            .to_std()
-            .unwrap_or(Duration::ZERO);
+    fn apply_offset(&mut self, offset: Duration) {
+        self.pts = self.pts.saturating_sub(offset)
     }
 }
 
 impl ApplyOffsetExt for AudioSamplesBatch {
-    fn apply_offset(&mut self, offset: chrono::Duration) {
-        self.start_pts = (self.start_pts.chrono() + offset)
-            .to_std()
-            .unwrap_or(Duration::ZERO);
-    }
-}
-
-trait DurationExt {
-    fn chrono(self) -> chrono::Duration;
-}
-
-impl DurationExt for Duration {
-    fn chrono(self) -> chrono::Duration {
-        chrono::Duration::from_std(self).unwrap_or(chrono::Duration::max_value())
+    fn apply_offset(&mut self, offset: Duration) {
+        self.start_pts = self.start_pts.saturating_sub(offset)
     }
 }

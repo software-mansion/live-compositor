@@ -14,14 +14,14 @@ use compositor_render::web_renderer::WebRendererInitOptions;
 use compositor_render::{error::UpdateSceneError, Renderer};
 use compositor_render::{AudioMixer, RendererOptions};
 use compositor_render::{AudioSamplesSet, FrameSet, RegistryType};
-use compositor_render::{EventLoop, Framerate, InputId, OutputId, RendererId, RendererSpec};
+use compositor_render::{EventLoop, InputId, OutputId, RendererId, RendererSpec};
 use crossbeam_channel::{bounded, Receiver};
 use log::error;
 
 use crate::error::{
     RegisterInputError, RegisterOutputError, UnregisterInputError, UnregisterOutputError,
 };
-use crate::queue::Queue;
+use crate::queue::{self, Queue, QueueOptions};
 
 use self::encoder::EncoderOptions;
 use self::input::InputOptions;
@@ -50,6 +50,7 @@ pub enum RequestedPort {
 
 pub struct RegisterInputOptions {
     pub input_options: InputOptions,
+    pub queue_options: queue::InputOptions,
 }
 
 pub struct RegisterOutputOptions {
@@ -85,7 +86,7 @@ pub struct Pipeline {
 
 #[derive(Debug, Clone)]
 pub struct Options {
-    pub framerate: Framerate,
+    pub queue_options: QueueOptions,
     pub stream_fallback_timeout: Duration,
     pub web_renderer: WebRendererInitOptions,
     pub force_gpu: bool,
@@ -96,7 +97,7 @@ impl Pipeline {
     pub fn new(opts: Options) -> Result<(Self, Arc<dyn EventLoop>), InitPipelineError> {
         let (renderer, event_loop) = Renderer::new(RendererOptions {
             web_renderer: opts.web_renderer,
-            framerate: opts.framerate,
+            framerate: opts.queue_options.output_framerate,
             stream_fallback_timeout: opts.stream_fallback_timeout,
             force_gpu: opts.force_gpu,
         })?;
@@ -108,7 +109,7 @@ impl Pipeline {
         let pipeline = Pipeline {
             outputs: OutputRegistry::new(),
             inputs: HashMap::new(),
-            queue: Arc::new(Queue::new(opts.framerate)),
+            queue: Queue::new(opts.queue_options),
             renderer,
             audio_mixer: AudioMixer::new(),
             is_started: false,
@@ -131,15 +132,19 @@ impl Pipeline {
         input_id: InputId,
         register_options: RegisterInputOptions,
     ) -> Result<Option<Port>, RegisterInputError> {
+        let RegisterInputOptions {
+            input_options,
+            queue_options,
+        } = register_options;
         if self.inputs.contains_key(&input_id) {
             return Err(RegisterInputError::AlreadyRegistered(input_id));
         }
 
         let (pipeline_input, receiver, port) =
-            new_pipeline_input(&input_id, register_options, &self.download_dir)?;
+            new_pipeline_input(&input_id, input_options, &self.download_dir)?;
 
         self.inputs.insert(input_id.clone(), pipeline_input.into());
-        self.queue.add_input(&input_id, receiver);
+        self.queue.add_input(&input_id, receiver, queue_options);
         self.renderer.register_input(input_id);
         Ok(port)
     }
@@ -222,7 +227,7 @@ impl Pipeline {
             error!("Pipeline already started.");
             return;
         }
-        let (frames_sender, frames_receiver) = bounded(5);
+        let (frames_sender, frames_receiver) = bounded(20);
         // for 20ms chunks this will be 60 seconds of audio
         let (audio_sender, audio_receiver) = bounded(300);
         let renderer = self.renderer.clone();

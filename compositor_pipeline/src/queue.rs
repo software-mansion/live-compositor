@@ -10,13 +10,15 @@ use std::{
 };
 
 use compositor_render::{AudioSamplesSet, FrameSet, Framerate, InputId};
-use crossbeam_channel::{unbounded, Receiver, Sender};
+use crossbeam_channel::{bounded, Sender};
 
 use crate::pipeline::decoder::DecodedDataReceiver;
 
 use self::{
-    audio_queue::AudioQueue, audio_queue_thread::AudioQueueThread, video_queue::VideoQueue,
-    video_queue_thread::VideoQueueThread,
+    audio_queue::AudioQueue,
+    audio_queue_thread::{AudioQueueStartEvent, AudioQueueThread},
+    video_queue::VideoQueue,
+    video_queue_thread::{VideoQueueStartEvent, VideoQueueThread},
 };
 
 const DEFAULT_BUFFER_DURATION: Duration = Duration::from_millis(16 * 5); // about 5 frames at 60 fps
@@ -34,52 +36,73 @@ const DEFAULT_AUDIO_CHUNK_DURATION: Duration = Duration::from_millis(20); // typ
 ///   does not matter we don't need to take that into account.
 pub struct Queue {
     video_queue: Mutex<VideoQueue>,
-    check_video_queue_channel: (Sender<()>, Receiver<()>),
+    audio_queue: Mutex<AudioQueue>,
+
     output_framerate: Framerate,
 
-    audio_queue: Mutex<AudioQueue>,
     /// Duration of queue output samples set.
     audio_chunk_duration: Duration,
+
     /// - When new input is connected and sends the first frame we want to wait
     /// buffer_duration before sending first frame of that input.
     /// - When pipeline is started we want to start with a frame that was receive
-    /// `buffer_duration` time ago
+    /// `buffer_duration` time ago.
     buffer_duration: Duration,
+    /// Defines how far ahead queue should process frames if all inputs are ready.
+    ahead_of_time_processing_buffer: UnlimitedDuration,
+}
 
-    /// Base time that is used to synchronize PTS value of received frame to
-    /// the same clock. When enqueueing the frame we are modifying it's PTS
-    /// using (per input) offset calculated based on this clock.
-    ///
-    /// The end goal is that resulting PTS should be in a time frame where PTS
-    /// is equivalent to clock_start time of real time.
-    clock_start: Instant,
+#[derive(Debug, Clone, Copy)]
+pub struct InputOptions {
+    pub required: bool,
+    /// Relative offset this input stream should have to the clock that
+    /// starts when pipeline is started.
+    pub offset: Option<Duration>,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum UnlimitedDuration {
+    Infinite,
+    Finite(Duration),
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct QueueOptions {
+    pub ahead_of_time_processing_buffer: UnlimitedDuration,
+    pub output_framerate: Framerate,
 }
 
 impl Queue {
-    pub fn new(output_framerate: Framerate) -> Self {
-        Queue {
-            video_queue: Mutex::new(VideoQueue::new()),
-            check_video_queue_channel: unbounded(),
-            output_framerate,
+    pub fn new(opts: QueueOptions) -> Arc<Self> {
+        let (video_queue_start_sender, video_queue_start_receiver) = bounded(0);
+        let (audio_queue_start_sender, audio_queue_start_receiver) = bounded(0);
+        let queue = Arc::new(Queue {
+            video_queue: Mutex::new(VideoQueue::new(video_queue_start_sender)),
+            output_framerate: opts.output_framerate,
+            ahead_of_time_processing_buffer: opts.ahead_of_time_processing_buffer,
             buffer_duration: DEFAULT_BUFFER_DURATION,
-            clock_start: Instant::now(),
-            audio_queue: Mutex::new(AudioQueue::new()),
+            audio_queue: Mutex::new(AudioQueue::new(audio_queue_start_sender)),
             audio_chunk_duration: DEFAULT_AUDIO_CHUNK_DURATION,
-        }
+        });
+
+        VideoQueueThread::new(queue.clone(), video_queue_start_receiver).spawn();
+        AudioQueueThread::new(queue.clone(), audio_queue_start_receiver).spawn();
+
+        queue
     }
 
-    pub fn add_input(&self, input_id: &InputId, receiver: DecodedDataReceiver) {
+    pub fn add_input(&self, input_id: &InputId, receiver: DecodedDataReceiver, opts: InputOptions) {
         if let Some(receiver) = receiver.video {
             self.video_queue
                 .lock()
                 .unwrap()
-                .add_input(input_id, receiver);
+                .add_input(input_id, receiver, opts);
         };
         if let Some(receiver) = receiver.audio {
             self.audio_queue
                 .lock()
                 .unwrap()
-                .add_input(input_id, receiver);
+                .add_input(input_id, receiver, opts);
         }
     }
 
@@ -93,31 +116,26 @@ impl Queue {
         video_sender: Sender<FrameSet<InputId>>,
         audio_sender: Sender<AudioSamplesSet>,
     ) {
-        let queue = self.clone();
-        let tick_duration = self.output_framerate.get_interval_duration();
+        let start_time = Instant::now();
+        let sender = self.video_queue.lock().unwrap().take_start_sender();
+        if let Some(sender) = sender {
+            sender
+                .send(VideoQueueStartEvent {
+                    sender: video_sender,
+                    start_time,
+                })
+                .unwrap()
+        }
 
-        VideoQueueThread::new(
-            queue.clone(),
-            video_sender,
-            video_queue_thread::Options {
-                tick_duration,
-                buffer_duration: self.buffer_duration,
-                output_framerate: self.output_framerate,
-                clock_start: self.clock_start,
-            },
-        )
-        .spawn();
-
-        AudioQueueThread::new(
-            queue,
-            audio_sender,
-            audio_queue_thread::Options {
-                buffer_duration: self.buffer_duration,
-                pushed_chunk_length: self.audio_chunk_duration,
-                clock_start: self.clock_start,
-            },
-        )
-        .spawn();
+        let sender = self.audio_queue.lock().unwrap().take_start_sender();
+        if let Some(sender) = sender {
+            sender
+                .send(AudioQueueStartEvent {
+                    sender: audio_sender,
+                    start_time,
+                })
+                .unwrap()
+        }
     }
 
     pub fn subscribe_input_listener(&self, input_id: &InputId, callback: Box<dyn FnOnce() + Send>) {

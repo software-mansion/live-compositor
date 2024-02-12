@@ -50,7 +50,7 @@ fn start_example_client_code() -> Result<()> {
         "type": "register",
         "entity_type": "mp4",
         "input_id": "input_1",
-        "url": MP4_URL
+        "url": MP4_URL,
     }))?;
 
     let shader_source = include_str!("./silly.wgsl");

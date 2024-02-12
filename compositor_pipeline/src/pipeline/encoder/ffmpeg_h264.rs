@@ -12,14 +12,13 @@ use crate::{
     pipeline::structs::{EncodedChunk, EncodedChunkKind, VideoCodec},
 };
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum EncoderPreset {
     Ultrafast,
     Superfast,
     Veryfast,
     Faster,
     Fast,
-    #[default]
     Medium,
     Slow,
     Slower,
