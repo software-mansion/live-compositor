@@ -1,4 +1,5 @@
 use compositor_pipeline::pipeline::{self, Port, RegisterInputOptions};
+use compositor_render::InputId;
 
 use crate::{
     error::ApiError,
@@ -9,9 +10,10 @@ use super::{Api, ResponseHandler};
 
 fn handle_register_input(
     api: &mut Api,
+    input_id: InputId,
     register_options: RegisterInputOptions,
 ) -> Result<Option<ResponseHandler>, ApiError> {
-    match api.pipeline.register_input(register_options)? {
+    match api.pipeline.register_input(input_id, register_options)? {
         Some(Port(port)) => Ok(Some(ResponseHandler::Response(
             super::Response::RegisteredPort { port },
         ))),
@@ -26,15 +28,16 @@ pub fn handle_register_request(
 ) -> Result<Option<ResponseHandler>, ApiError> {
     match request {
         RegisterRequest::RtpInputStream(rtp) => {
-            let register_options = rtp.try_into()?;
-            handle_register_input(api, register_options)
+            let (input_id, register_options) = rtp.try_into()?;
+            handle_register_input(api, input_id, register_options)
         }
         RegisterRequest::Mp4(mp4) => {
-            let register_options = mp4.try_into()?;
-            handle_register_input(api, register_options)
+            let (input_id, register_options) = mp4.try_into()?;
+            handle_register_input(api, input_id, register_options)
         }
         RegisterRequest::OutputStream(output_stream) => {
-            register_output(api, output_stream).map(|_| None)
+            register_output(api, output_stream)?;
+            Ok(None)
         }
         RegisterRequest::Shader(spec) => {
             let spec = spec.try_into()?;
@@ -75,12 +78,10 @@ fn register_output(api: &mut Api, request: RegisterOutputRequest) -> Result<(), 
         Ok(())
     })?;
 
-    api.pipeline.register_output(
-        output_id.into(),
-        request.clone().into(),
-        request.clone().into(),
-        request.initial_scene.try_into()?,
-    )?;
+    let (output_id, options, initial_scene) = request.try_into()?;
+
+    api.pipeline
+        .register_output(output_id, options, initial_scene)?;
 
     Ok(())
 }
