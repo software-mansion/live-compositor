@@ -85,6 +85,8 @@ pub struct PipelineInput {
 pub struct PipelineOutput {
     pub encoder: encoder::Encoder,
     pub output: output::Output,
+    pub has_video: bool,
+    pub has_audio: bool,
 }
 
 pub struct Pipeline {
@@ -198,12 +200,13 @@ impl Pipeline {
             video,
             audio,
         } = register_options;
-        if video.is_none() && audio.is_none() {
+        let (has_video, has_audio) = (video.is_some(), audio.is_some());
+        if !has_video && !has_audio {
             return Err(RegisterOutputError::NoVideoOrAudio(output_id));
         }
 
         // TODO handle only audio
-        let Some(video) = video else {
+        let Some(video_opts) = video else {
             return Ok(());
         };
 
@@ -211,21 +214,26 @@ impl Pipeline {
             return Err(RegisterOutputError::AlreadyRegistered(output_id));
         }
 
-        let EncoderOptions::H264(ref opts) = video.encoder_opts;
+        let EncoderOptions::H264(ref opts) = video_opts.encoder_opts;
         if opts.resolution.width % 2 != 0 || opts.resolution.height % 2 != 0 {
             return Err(RegisterOutputError::UnsupportedResolution(output_id));
         }
 
-        let (encoder, packets) = Encoder::new(video.encoder_opts)
+        let (encoder, packets) = Encoder::new(video_opts.encoder_opts)
             .map_err(|e| RegisterOutputError::EncoderError(output_id.clone(), e))?;
 
         let output = Output::new(output_options, packets)
             .map_err(|e| RegisterOutputError::OutputError(output_id.clone(), e))?;
 
-        let output = PipelineOutput { encoder, output };
+        let output = PipelineOutput {
+            encoder,
+            output,
+            has_video,
+            has_audio,
+        };
 
         self.outputs.insert(output_id.clone(), output.into());
-        self.update_scene_root(output_id.clone(), video.initial)
+        self.update_scene_root(output_id.clone(), video_opts.initial)
             .map_err(|e| RegisterOutputError::SceneError(output_id.clone(), e))?;
 
         if let Some(audio_opts) = audio {
@@ -272,9 +280,7 @@ impl Pipeline {
         root_component: Option<Component>,
         audio_composition: Option<AudioComposition>,
     ) -> Result<(), UpdateSceneError> {
-        if root_component.is_none() && audio_composition.is_none() {
-            return Err(UpdateSceneError::NoAudioAndVideo(output_id));
-        }
+        self.check_output_spec(&output_id, &root_component, &audio_composition)?;
         if let Some(scene_root) = root_component {
             self.update_scene_root(output_id.clone(), scene_root)?;
         }
@@ -283,6 +289,27 @@ impl Pipeline {
             self.update_audio_composition(output_id, audio_composition)?;
         }
 
+        Ok(())
+    }
+
+    fn check_output_spec(
+        &self,
+        output_id: &OutputId,
+        root_component: &Option<Component>,
+        audio_composition: &Option<AudioComposition>,
+    ) -> Result<(), UpdateSceneError> {
+        let outputs = self.outputs.0.lock().unwrap();
+        let Some(output) = outputs.get(output_id) else {
+            return Err(UpdateSceneError::OutputNotRegistered(output_id.clone()));
+        };
+        if output.has_audio != audio_composition.is_some()
+            || output.has_video != root_component.is_some()
+        {
+            return Err(UpdateSceneError::AudioVideoNotMatching(output_id.clone()));
+        }
+        if root_component.is_none() && audio_composition.is_none() {
+            return Err(UpdateSceneError::NoAudioAndVideo(output_id.clone()));
+        }
         Ok(())
     }
 

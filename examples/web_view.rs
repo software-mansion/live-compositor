@@ -49,7 +49,7 @@ fn main() {
             error!("{err}")
         }
     });
- 
+
     http::Server::new(config().api_port).run();
 }
 
