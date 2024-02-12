@@ -92,7 +92,7 @@ impl RenderProcessHandler {
         let mut state = self.state.lock().unwrap();
         let source = match state.source(&frame_info.shmem_path) {
             Some(source) => {
-                source.ensure(&frame_info, ctx_entered)?;
+                source.ensure_v8values(&frame_info, ctx_entered)?;
                 source
             }
             None => state.create_source(frame_info, ctx_entered)?,

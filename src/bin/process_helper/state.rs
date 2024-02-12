@@ -75,7 +75,7 @@ impl Source {
         Ok(source)
     }
 
-    pub fn ensure(
+    pub fn ensure_v8values(
         &mut self,
         frame_info: &FrameInfo,
         ctx_entered: &cef::V8ContextEntered,
