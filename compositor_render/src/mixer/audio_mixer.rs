@@ -72,18 +72,8 @@ impl InternalAudioMixer {
         start_pts: Duration,
         end_pts: Duration,
     ) -> AudioSamples {
-        // to avoid aggregating error
-        let first_pts = match output_info.first_pts {
-            Some(first_pts) => first_pts,
-            None => {
-                output_info.first_pts = Some(start_pts);
-                start_pts
-            }
-        };
-
-        let samples_count = (end_pts.saturating_sub(first_pts).as_secs_f64()
-            * output_info.sample_rate as f64) as usize;
-
+        // i32 is used for mixing, to avoid int overflows
+        // It's easier to just collect it in Vec then use Box<dyn Iterator> and deal with lifetimes
         fn mono_samples(batch: &AudioSamplesBatch) -> Vec<i32> {
             match batch.samples.as_ref() {
                 AudioSamples::Mono(samples) => samples.iter().map(|s| *s as i32).collect(),
@@ -106,12 +96,12 @@ impl InternalAudioMixer {
             }
         }
 
-        trait SampleOps {
+        trait ExtSampleOps {
             fn add(&self, other: &Self) -> Self;
             fn div(&self, counter: &i32) -> Self;
         }
 
-        impl SampleOps for i32 {
+        impl ExtSampleOps for i32 {
             fn add(&self, other: &Self) -> Self {
                 self + other
             }
@@ -121,7 +111,7 @@ impl InternalAudioMixer {
             }
         }
 
-        impl SampleOps for (i32, i32) {
+        impl ExtSampleOps for (i32, i32) {
             fn add(&self, other: &Self) -> Self {
                 (self.0 + other.0, self.1 + other.1)
             }
@@ -131,10 +121,10 @@ impl InternalAudioMixer {
             }
         }
 
-        /// Mixes samples from inputs
-        fn mix<'a, SumSample: Sized + Default + Clone + SampleOps, F>(
-            mixing_buffer: &'a mut Vec<SumSample>,
-            counter: &'a mut [i32],
+        /// Mix samples from inputs in mixing buffer
+        fn mix<SumSample: Sized + Default + Clone + ExtSampleOps, F>(
+            mixing_buffer: &mut [SumSample],
+            counter: &mut [i32],
             output_info: &OutputInfo,
             get_samples: F,
             start_pts: Duration,
@@ -176,7 +166,20 @@ impl InternalAudioMixer {
                 .for_each(|(index, count)| mixing_buffer[index] = mixing_buffer[index].div(count));
         }
 
-        output_info.mixed_samples = samples_count;
+        let first_pts = match output_info.first_pts {
+            Some(first_pts) => first_pts,
+            None => {
+                output_info.first_pts = Some(start_pts);
+                start_pts
+            }
+        };
+
+        // Calculated that way to avoid aggregating rounding errors
+        let samples_count = (end_pts.saturating_sub(first_pts).as_secs_f64()
+            * output_info.sample_rate as f64) as usize
+            - output_info.mixed_samples;
+
+        output_info.mixed_samples += samples_count;
         let mut counter = vec![0; samples_count];
         match output_info.audio_channels {
             AudioChannels::Mono => {
