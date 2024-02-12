@@ -185,7 +185,7 @@ impl InternalAudioMixer {
                             }
                         })
                 });
-            
+
             // Takes average of inputs
             counter
                 .iter()
