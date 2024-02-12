@@ -67,6 +67,7 @@ pub struct OutputId(Arc<str>);
 pub struct InputId(Arc<str>);
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+#[serde(deny_unknown_fields)]
 pub struct UpdateOutputRequest {
     pub output_id: OutputId,
     pub video: Option<Component>,

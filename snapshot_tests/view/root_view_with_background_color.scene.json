@@ -1,6 +1,6 @@
 {
     "output_id": "output_1",
-    "scene": {
+    "video": {
         "type": "view",
         "background_color_rgba": "#FF0000FF",
         "children": [

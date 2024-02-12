@@ -1,6 +1,6 @@
 {
     "output_id": "output_1",
-    "scene": {
+    "video": {
         "type": "tiles",
         "margin": 50,
         "children": [

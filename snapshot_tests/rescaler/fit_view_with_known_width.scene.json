@@ -1,6 +1,6 @@
 {
     "output_id": "output_1",
-    "scene": {
+    "video": {
         "type": "view",
         "children": [
             {
@@ -16,11 +16,11 @@
                 "left": 160,
                 "width": 320,
                 "height": 180,
-                "child":{
+                "child": {
                     "type": "view",
                     "background_color_rgba": "#0000FFFF",
                     "width": 200
-                } 
+                }
             }
         ]
     }
