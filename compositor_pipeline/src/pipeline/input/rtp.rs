@@ -5,7 +5,8 @@ use std::{
 };
 
 use crate::pipeline::{
-    structs::{AudioCodec, EncodedChunkKind, VideoCodec},
+    decoder::{self, DecoderOptions},
+    structs::EncodedChunkKind,
     Port, RequestedPort,
 };
 use bytes::BytesMut;
@@ -14,7 +15,7 @@ use crossbeam_channel::{unbounded, Receiver, Sender};
 use log::{error, warn};
 use webrtc_util::Unmarshal;
 
-use self::depayloader::Depayloader;
+use self::depayloader::{Depayloader, DepayloaderNewError};
 
 use super::ChunksReceiver;
 
@@ -33,6 +34,9 @@ pub enum RtpReceiverError {
 
     #[error("Failed to register input. All ports in range {lower_bound} to {upper_bound} are already used or not available.")]
     AllPortsAlreadyInUse { lower_bound: u16, upper_bound: u16 },
+
+    #[error(transparent)]
+    DepayloaderError(#[from] DepayloaderNewError),
 }
 
 pub struct RtpReceiverOptions {
@@ -43,13 +47,13 @@ pub struct RtpReceiverOptions {
 
 #[derive(Debug, Clone)]
 pub struct VideoStream {
-    pub codec: VideoCodec,
+    pub options: decoder::VideoDecoderOptions,
     pub payload_type: u8,
 }
 
 #[derive(Debug, Clone)]
 pub struct AudioStream {
-    pub codec: AudioCodec,
+    pub options: decoder::AudioDecoderOptions,
     pub payload_type: u8,
 }
 
@@ -68,7 +72,9 @@ pub struct RtpReceiver {
 }
 
 impl RtpReceiver {
-    pub fn new(opts: RtpReceiverOptions) -> Result<(Self, ChunksReceiver, Port), RtpReceiverError> {
+    pub fn new(
+        opts: RtpReceiverOptions,
+    ) -> Result<(Self, ChunksReceiver, DecoderOptions, Port), RtpReceiverError> {
         let should_close = Arc::new(AtomicBool::new(false));
         let (packets_tx, packets_rx) = unbounded();
 
@@ -143,7 +149,7 @@ impl RtpReceiver {
             .spawn(move || RtpReceiver::rtp_receiver(socket, packets_tx, should_close2))
             .unwrap();
 
-        let depayloader = Depayloader::new(&opts.stream);
+        let depayloader = Depayloader::new(&opts.stream)?;
 
         let (depayloader_thread, chunks_receiver) =
             DepayloaderThread::new(&opts.input_id, packets_rx, depayloader);
@@ -156,6 +162,10 @@ impl RtpReceiver {
                 _depayloader_thread: Some(depayloader_thread),
             },
             chunks_receiver,
+            DecoderOptions {
+                video: opts.stream.video.map(|v| v.options),
+                audio: opts.stream.audio.map(|a| a.options),
+            },
             Port(port),
         ))
     }

@@ -5,11 +5,20 @@ use rtp::{
     packetizer::Depacketizer,
 };
 
-use crate::pipeline::structs::{AudioCodec, EncodedChunk, EncodedChunkKind, VideoCodec};
+use crate::pipeline::{
+    decoder,
+    structs::{AudioCodec, EncodedChunk, EncodedChunkKind, VideoCodec},
+};
 
 use super::{DepayloadingError, RtpStream};
 
 pub struct PayloadType(u8);
+
+#[derive(Debug, thiserror::Error)]
+pub enum DepayloaderNewError {
+    #[error(transparent)]
+    Audio(#[from] AudioDepayloaderNewError),
+}
 
 pub struct Depayloader {
     /// (Depayloader, payload type)
@@ -18,21 +27,24 @@ pub struct Depayloader {
 }
 
 impl Depayloader {
-    pub fn new(stream: &RtpStream) -> Self {
+    pub fn new(stream: &RtpStream) -> Result<Self, DepayloaderNewError> {
         let video = stream.video.as_ref().map(|video| {
             (
-                VideoDepayloader::new(&video.codec),
+                VideoDepayloader::new(&video.options),
                 PayloadType(video.payload_type),
             )
         });
-        let audio = stream.audio.as_ref().map(|audio| {
-            (
-                AudioDepayloader::new(&audio.codec),
-                PayloadType(audio.payload_type),
-            )
-        });
 
-        Self { video, audio }
+        let audio = match stream.audio.as_ref() {
+            Some(audio) => Some((
+                AudioDepayloader::new(&audio.options)?,
+                PayloadType(audio.payload_type),
+            )),
+
+            None => None,
+        };
+
+        Ok(Self { video, audio })
     }
 
     pub fn depayload(
@@ -61,8 +73,8 @@ pub enum VideoDepayloader {
 }
 
 impl VideoDepayloader {
-    pub fn new(codec: &VideoCodec) -> Self {
-        match codec {
+    pub fn new(options: &decoder::VideoDecoderOptions) -> Self {
+        match options.codec {
             VideoCodec::H264 => VideoDepayloader::H264(H264Packet::default()),
         }
     }
@@ -91,14 +103,23 @@ impl VideoDepayloader {
     }
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum AudioDepayloaderNewError {
+    #[error("Unsupported depayloader for provided decoder settings: {0:?}")]
+    UnsupportedDepayloader(decoder::AudioDecoderOptions),
+}
+
 pub enum AudioDepayloader {
     Opus(OpusPacket),
 }
 
 impl AudioDepayloader {
-    pub fn new(codec: &AudioCodec) -> Self {
-        match codec {
-            AudioCodec::Opus => AudioDepayloader::Opus(OpusPacket),
+    pub fn new(options: &decoder::AudioDecoderOptions) -> Result<Self, AudioDepayloaderNewError> {
+        match options {
+            decoder::AudioDecoderOptions::Opus(_) => Ok(AudioDepayloader::Opus(OpusPacket)),
+            decoder::AudioDecoderOptions::Aac(_) => Err(
+                AudioDepayloaderNewError::UnsupportedDepayloader(options.clone()),
+            ),
         }
     }
 
