@@ -91,7 +91,7 @@ impl AudioQueueInput {
             }
         }
 
-        let poped_samples = self
+        let popped_samples = self
             .queue
             .iter()
             .filter(|batch| batch.start_pts < end_pts && batch.end_pts() > start_pts)
@@ -99,7 +99,7 @@ impl AudioQueueInput {
             .collect::<Vec<AudioSamplesBatch>>();
         self.drop_old_samples(end_pts);
 
-        poped_samples
+        popped_samples
     }
 
     fn try_enqueue_samples(&mut self, clock_start: Instant) -> Result<(), TryRecvError> {
