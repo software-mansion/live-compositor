@@ -20,4 +20,5 @@ opus = "0.3.0"
 rand = { workspace = true }
 mp4 = "0.14.0"
 reqwest = { workspace = true }
+chrono = { workspace = true }
 

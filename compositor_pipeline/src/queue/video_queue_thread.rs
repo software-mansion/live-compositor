@@ -60,7 +60,8 @@ impl VideoQueueThread {
         let mut internal_queue = self.queue.video_queue.lock().unwrap();
         let next_buffer_pts = self.get_next_output_buffer_pts();
 
-        let ready_to_push = internal_queue.check_all_inputs_ready(next_buffer_pts)
+        let ready_to_push = internal_queue
+            .check_all_inputs_ready(next_buffer_pts, self.opts.clock_start)
             || self.should_push_pts(next_buffer_pts);
         if !ready_to_push {
             return;

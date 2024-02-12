@@ -3,99 +3,125 @@ use std::{
     time::{Duration, Instant},
 };
 
-use super::QueueError;
+use super::utils::InputState;
 use compositor_render::{AudioSamplesBatch, AudioSamplesSet, InputId};
+use crossbeam_channel::{Receiver, TryRecvError};
 
 #[derive(Debug)]
 pub struct AudioQueue {
-    /// Enqueued sample batches per output
-    input_queues: HashMap<InputId, VecDeque<AudioSamplesBatch>>,
-    /// Stream added timestamp offset in relation to clock start
-    timestamp_offsets: HashMap<InputId, Duration>,
-    /// Stream starting pts offsets (starting pts doesn't have to be 0)
-    start_pts: HashMap<InputId, Duration>,
+    inputs: HashMap<InputId, AudioQueueInput>,
 }
 
 impl AudioQueue {
     pub fn new() -> Self {
         AudioQueue {
-            input_queues: HashMap::new(),
-            timestamp_offsets: HashMap::new(),
-            start_pts: HashMap::new(),
+            inputs: HashMap::new(),
         }
     }
 
-    pub fn add_input(&mut self, input_id: InputId) {
-        self.input_queues.insert(input_id, VecDeque::new());
+    pub fn add_input(&mut self, input_id: &InputId, receiver: Receiver<AudioSamplesBatch>) {
+        self.inputs.insert(
+            input_id.clone(),
+            AudioQueueInput {
+                queue: VecDeque::new(),
+                receiver,
+                input_state: InputState::WaitingForStart,
+            },
+        );
     }
 
     pub fn remove_input(&mut self, input_id: &InputId) {
-        self.input_queues.remove(input_id);
+        self.inputs.remove(input_id);
     }
 
-    pub fn enqueue_samples(
+    pub fn pop_samples_set(
         &mut self,
-        input_id: InputId,
-        mut samples_batch: AudioSamplesBatch,
+        range: (Duration, Duration),
         clock_start: Instant,
-    ) -> Result<(), QueueError> {
-        let Some(input_queue) = self.input_queues.get_mut(&input_id) else {
-            return Err(QueueError::UnknownInputId(input_id));
-        };
-        let offset = *self
-            .timestamp_offsets
-            .entry(input_id.clone())
-            .or_insert_with(|| clock_start.elapsed());
-        let start_pts = *self
-            .start_pts
-            .entry(input_id)
-            .or_insert_with(|| samples_batch.pts);
+    ) -> AudioSamplesSet {
+        let (start_pts, end_pts) = range;
+        let samples = self
+            .inputs
+            .iter_mut()
+            .map(|(input_id, input)| (input_id.clone(), input.pop_samples(range, clock_start)))
+            .collect();
 
-        samples_batch.pts += offset;
-        samples_batch.pts -= start_pts;
+        AudioSamplesSet {
+            samples,
+            start_pts,
+            length: end_pts.saturating_sub(start_pts),
+        }
+    }
+}
 
-        input_queue.push_back(samples_batch);
+#[derive(Debug)]
+struct AudioQueueInput {
+    /// Frames are PTS ordered. PTS include timestamps offsets
+    queue: VecDeque<AudioSamplesBatch>,
+    /// Frames from the channel might have any PTS. When enqueuing
+    /// they need to be recalculated relative to `Queue:clock_start`.
+    receiver: Receiver<AudioSamplesBatch>,
+
+    /// Controls input initialization, buffering, and stores information
+    /// about input offset.
+    input_state: InputState<AudioSamplesBatch>,
+}
+
+impl AudioQueueInput {
+    /// Get batches that have samples in range `range` and remove them from the queue.
+    /// Batches that are partially in range will still be returned, but they won't be
+    /// removed from the queue.
+    fn pop_samples(
+        &mut self,
+        range: (Duration, Duration),
+        clock_start: Instant,
+    ) -> Vec<AudioSamplesBatch> {
+        let (start_pts, end_pts) = range;
+
+        fn is_ready(queue: &VecDeque<AudioSamplesBatch>, range_end_pts: Duration) -> bool {
+            match queue.back() {
+                Some(batch) => batch.start_pts > range_end_pts,
+                None => false,
+            }
+        }
+
+        while !is_ready(&self.queue, end_pts) {
+            if self.try_enqueue_samples(clock_start).is_err() {
+                break;
+            }
+        }
+
+        let popped_samples = self
+            .queue
+            .iter()
+            .filter(|batch| batch.start_pts < end_pts && batch.end_pts() > start_pts)
+            .cloned()
+            .collect::<Vec<AudioSamplesBatch>>();
+        self.drop_old_samples(end_pts);
+
+        popped_samples
+    }
+
+    fn try_enqueue_samples(&mut self, clock_start: Instant) -> Result<(), TryRecvError> {
+        let samples_batch = self.receiver.try_recv()?;
+        let original_pts = samples_batch.start_pts;
+
+        let mut batches =
+            self.input_state
+                .process_new_chunk(samples_batch, original_pts, clock_start);
+        self.queue.append(&mut batches);
 
         Ok(())
     }
 
-    pub fn pop_samples_set(&mut self, pts: Duration, length: Duration) -> AudioSamplesSet {
-        // Checks if any samples in batch are in [pts, pts + length] interval
-        let batch_in_range =
-            |batch: &AudioSamplesBatch| batch.pts < pts + length && batch.end() >= pts;
-        let samples = self
-            .input_queues
-            .iter()
-            .map(|(input_id, input_queue)| {
-                let input_samples = input_queue
-                    .iter()
-                    .filter(|batch| batch_in_range(batch))
-                    .cloned()
-                    .collect::<Vec<AudioSamplesBatch>>();
-                (input_id.clone(), input_samples)
-            })
-            .collect();
-
-        self.drop_old_samples(pts + length);
-        AudioSamplesSet {
-            samples,
-            pts,
-            length,
+    /// Drop all batches older than `pts`. Entire batch (all samples inside) has to be older.
+    fn drop_old_samples(&mut self, pts: Duration) {
+        while self
+            .queue
+            .front()
+            .map_or(false, |batch| batch.end_pts() < pts)
+        {
+            self.queue.pop_front();
         }
-    }
-
-    pub fn drop_old_samples(&mut self, up_to_pts: Duration) {
-        for input_queue in self.input_queues.values_mut() {
-            while input_queue
-                .front()
-                .map_or(false, |batch| batch.end() < up_to_pts)
-            {
-                input_queue.pop_front();
-            }
-        }
-    }
-
-    pub fn did_receive_samples(&self, input_id: &InputId) -> bool {
-        self.timestamp_offsets.contains_key(input_id)
     }
 }

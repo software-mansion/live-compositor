@@ -32,13 +32,13 @@ pub mod decoder;
 pub mod encoder;
 pub mod input;
 pub mod output;
+mod pipeline_input;
 mod structs;
 
+use self::pipeline_input::new_pipeline_input;
 pub use self::structs::AudioChannels;
 pub use self::structs::AudioCodec;
 pub use self::structs::VideoCodec;
-pub use crate::queue::AudioOptions;
-pub use crate::queue::InputType;
 
 pub struct Port(pub u16);
 
@@ -50,7 +50,6 @@ pub enum RequestedPort {
 pub struct RegisterInputOptions {
     pub input_id: InputId,
     pub input_options: InputOptions,
-    pub input_type: InputType,
     pub decoder_options: DecoderOptions,
 }
 
@@ -127,35 +126,17 @@ impl Pipeline {
         &mut self,
         register_options: RegisterInputOptions,
     ) -> Result<Option<Port>, RegisterInputError> {
-        // TODO: the Option<Port> in the return type is a bit weird
-        let RegisterInputOptions {
-            input_id,
-            input_options,
-            input_type,
-            decoder_options,
-        } = register_options;
+        let input_id = register_options.input_id.clone();
 
         if self.inputs.contains_key(&input_id) {
             return Err(RegisterInputError::AlreadyRegistered(input_id));
         }
 
-        let (input, chunks_receiver, port) =
-            input::Input::new(input_options, &self.download_dir)
-                .map_err(|e| RegisterInputError::InputError(input_id.clone(), e))?;
-
-        let decoder = decoder::Decoder::new(
-            input_id.clone(),
-            self.queue.clone(),
-            chunks_receiver,
-            decoder_options,
-        )
-        .map_err(|e| RegisterInputError::DecoderError(input_id.clone(), e))?;
-
-        let pipeline_input = PipelineInput { input, decoder };
+        let (pipeline_input, receiver, port) =
+            new_pipeline_input(register_options, &self.download_dir)?;
 
         self.inputs.insert(input_id.clone(), pipeline_input.into());
-
-        self.queue.add_input(input_type);
+        self.queue.add_input(&input_id, receiver);
         self.renderer.register_input(input_id);
         Ok(port)
     }
