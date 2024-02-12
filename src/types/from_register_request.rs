@@ -208,6 +208,12 @@ impl TryFrom<RegisterOutputRequest> for pipeline::RegisterOutputOptions {
     type Error = TypeError;
 
     fn try_from(value: RegisterOutputRequest) -> Result<Self, Self::Error> {
+        const NO_VIDEO_OR_AUDIO: &str =
+            "At least one of \"video\" and \"audio\" fields have to be specified.";
+
+        if value.video.is_none() && value.audio.is_none() {
+            return Err(TypeError::new(NO_VIDEO_OR_AUDIO));
+        }
         let output_options = value.clone().into();
         let video = match value.video {
             Some(v) => Some(OutputVideoOpts {

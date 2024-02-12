@@ -114,7 +114,7 @@ pub enum Port {
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(deny_unknown_fields)]
-pub struct OutputVideoOptions {
+pub struct OutputVideoOpts {
     pub resolution: Resolution,
     pub encoder_preset: EncoderPreset,
     pub initial: Component,
@@ -122,7 +122,7 @@ pub struct OutputVideoOptions {
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(deny_unknown_fields)]
-pub struct OutputAudioOptions {
+pub struct OutputAudioOpts {
     pub initial: AudioComposition,
     pub sample_rate: u32,
     pub channels: AudioChannels,
@@ -134,8 +134,8 @@ pub struct RegisterOutputRequest {
     pub output_id: OutputId,
     pub port: u16,
     pub ip: Arc<str>,
-    pub video: Option<OutputVideoOptions>,
-    pub audio: Option<OutputAudioOptions>,
+    pub video: Option<OutputVideoOpts>,
+    pub audio: Option<OutputAudioOpts>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
