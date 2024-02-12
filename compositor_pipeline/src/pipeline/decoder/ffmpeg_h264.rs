@@ -105,7 +105,7 @@ impl H264FfmpegDecoder {
                             }
                         };
 
-                        if let Err(_err) = frame_sender.send(frame) {
+                        if frame_sender.send(frame).is_err() {
                             return;
                         }
                     }

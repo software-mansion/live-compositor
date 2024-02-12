@@ -8,6 +8,20 @@ use compositor_render::{AudioSamplesBatch, Frame};
 
 use super::DEFAULT_BUFFER_DURATION;
 
+/// InputState handles initial processing for frames/samples that are being
+/// queued. For each received frame/sample batch, the `process_new_chunk`
+/// method should be called and only elements returned should be used
+/// in a queue.
+///
+/// 1. New input start in `InputState::WaitingForStart`.
+/// 2. When `process_new_chunk` is called for the first time it transitions to
+///    the Buffering state.
+/// 3. Each new call to the `process_new_chunk` is adding frames to the buffer
+///    until it reaches a specific size/duration.
+/// 4. After buffer reaches a certain size, calculate the offset and switch
+///    to the `Ready` state.
+/// 5. In `Ready` state `process_new_chunk` is immediately returning frame or sample
+///    batch passed with arguments with modified pts.
 #[derive(Debug)]
 pub(super) enum InputState<Payload: ApplyOffsetExt> {
     WaitingForStart,
