@@ -1,22 +1,17 @@
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use crate::{
-    AudioChannels, AudioSamples, AudioSamplesBatch, AudioSamplesSet, InputId, OutputId,
-    OutputSamples,
+    error::UpdateSceneError, scene::AudioComposition, AudioChannels, AudioSamples,
+    AudioSamplesBatch, AudioSamplesSet, InputId, OutputId, OutputSamples,
 };
 
 #[derive(Debug)]
 struct OutputInfo {
-    composition: Composition,
+    composition: AudioComposition,
     sample_rate: u32,
     audio_channels: AudioChannels,
     first_pts: Option<Duration>,
     mixed_samples: usize,
-}
-
-#[derive(Debug)]
-pub struct Composition {
-    inputs: Vec<InputId>,
 }
 
 #[derive(Debug)]
@@ -32,6 +27,19 @@ impl InternalAudioMixer {
     }
 
     // TODO register outputs
+
+    pub fn update_scene(
+        &mut self,
+        output_id: OutputId,
+        audio: AudioComposition,
+    ) -> Result<(), UpdateSceneError> {
+        let Some(output_info) = self.outputs.get_mut(&output_id) else {
+            return Err(UpdateSceneError::OutputNotRegistered(output_id));
+        };
+
+        output_info.composition = audio;
+        Ok(())
+    }
 
     pub fn mix_samples(&mut self, samples_set: AudioSamplesSet) -> OutputSamples {
         let input_samples = samples_set
@@ -134,7 +142,7 @@ impl InternalAudioMixer {
         {
             output_info
                 .composition
-                .inputs
+                .0
                 .iter()
                 .filter_map(|input_id| match input_samples.get(input_id) {
                     Some(Some(input_batch)) => Some(input_batch),

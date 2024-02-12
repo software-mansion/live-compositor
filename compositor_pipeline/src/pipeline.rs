@@ -9,7 +9,7 @@ use std::time::Duration;
 use compositor_render::error::{
     ErrorStack, InitPipelineError, RegisterRendererError, UnregisterRendererError,
 };
-use compositor_render::scene::Component;
+use compositor_render::scene::{AudioComposition, Component};
 use compositor_render::web_renderer::WebRendererInitOptions;
 use compositor_render::{error::UpdateSceneError, Renderer};
 use compositor_render::{AudioMixer, RendererOptions};
@@ -195,7 +195,7 @@ impl Pipeline {
         let output = PipelineOutput { encoder, output };
 
         self.outputs.insert(output_id.clone(), output.into());
-        self.update_scene(output_id.clone(), initial_scene)
+        self.update_scene_root(output_id.clone(), initial_scene)
             .map_err(|e| RegisterOutputError::SceneError(output_id.clone(), e))?;
 
         Ok(())
@@ -230,6 +230,26 @@ impl Pipeline {
     pub fn update_scene(
         &mut self,
         output_id: OutputId,
+        root_component: Option<Component>,
+        audio: Option<AudioComposition>,
+    ) -> Result<(), UpdateSceneError> {
+        if root_component.is_none() && audio.is_none() {
+            return Err(UpdateSceneError::NoAudioAndVideo(output_id));
+        }
+        if let Some(scene_root) = root_component {
+            self.update_scene_root(output_id.clone(), scene_root)?;
+        }
+
+        if let Some(audio) = audio {
+            self.update_audio_composition(output_id, audio)?;
+        }
+
+        Ok(())
+    }
+
+    fn update_scene_root(
+        &mut self,
+        output_id: OutputId,
         scene_root: Component,
     ) -> Result<(), UpdateSceneError> {
         let resolution = self
@@ -242,6 +262,14 @@ impl Pipeline {
 
         self.renderer
             .update_scene(output_id, resolution, scene_root)
+    }
+
+    fn update_audio_composition(
+        &mut self,
+        output_id: OutputId,
+        audio: AudioComposition,
+    ) -> Result<(), UpdateSceneError> {
+        self.audio_mixer.update_scene(output_id, audio)
     }
 
     pub fn start(&mut self) {

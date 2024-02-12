@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 mod component;
 mod convert;
 mod convert_util;
+mod from_audio;
 mod from_component;
 mod from_register_request;
 mod from_renderer;
@@ -66,10 +67,14 @@ pub struct OutputId(Arc<str>);
 pub struct InputId(Arc<str>);
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-pub struct OutputScene {
+pub struct UpdateOutputRequest {
     pub output_id: OutputId,
-    pub scene: Component,
+    pub video: Option<Component>,
+    pub audio: Option<AudioComposition>,
 }
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+pub struct AudioComposition(Vec<InputId>);
 
 impl Display for InputId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

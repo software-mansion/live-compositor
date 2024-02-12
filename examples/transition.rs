@@ -210,7 +210,7 @@ fn start_example_client_code() -> Result<()> {
     common::post(&json!({
         "type": "update_scene",
         "output_id": "output_1",
-        "scene": scene2,
+        "video": scene2,
     }))?;
 
     thread::sleep(Duration::from_secs(2));
@@ -219,7 +219,7 @@ fn start_example_client_code() -> Result<()> {
     common::post(&json!({
         "type": "update_scene",
         "output_id": "output_1",
-        "scene": scene3,
+        "video": scene3,
     }))?;
 
     Ok(())

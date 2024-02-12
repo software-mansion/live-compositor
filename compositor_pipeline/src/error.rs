@@ -183,6 +183,7 @@ impl From<&UnregisterInputError> for PipelineErrorInfo {
 
 const OUTPUT_STREAM_STILL_IN_USE: &str = "OUTPUT_STREAM_STILL_IN_USE";
 const OUTPUT_STREAM_NOT_FOUND: &str = "OUTPUT_STREAM_NOT_FOUND";
+const NO_AUDIO_OR_VIDEO_SPECIFIED_IN_SCENE: &str = "NO_AUDIO_OR_VIDEO_SPECIFIED_IN_SCENE";
 
 impl From<&UnregisterOutputError> for PipelineErrorInfo {
     fn from(err: &UnregisterOutputError) -> Self {
@@ -208,6 +209,10 @@ impl From<&UpdateSceneError> for PipelineErrorInfo {
             }
             UpdateSceneError::SceneError(_) => PipelineErrorInfo {
                 error_code: BUILD_SCENE_ERROR,
+                error_type: ErrorType::UserError,
+            },
+            UpdateSceneError::NoAudioAndVideo(_) => PipelineErrorInfo {
+                error_code: NO_AUDIO_OR_VIDEO_SPECIFIED_IN_SCENE,
                 error_type: ErrorType::UserError,
             },
         }

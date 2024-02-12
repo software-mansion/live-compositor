@@ -86,15 +86,13 @@ impl TestCaseInstance {
 
         let mut expected_outputs = HashSet::new();
         for (update_str, resolution) in outputs {
-            let scene: types::OutputScene = serde_json::from_str(update_str).unwrap();
+            let scene: types::UpdateOutputRequest = serde_json::from_str(update_str).unwrap();
             expected_outputs.insert(scene.output_id.clone().into());
-            renderer
-                .update_scene(
-                    scene.output_id.into(),
-                    resolution,
-                    scene.scene.try_into().unwrap(),
-                )
-                .unwrap()
+            if let Some(root) = scene.video {
+                renderer
+                    .update_scene(scene.output_id.into(), resolution, root.try_into().unwrap())
+                    .unwrap();
+            }
         }
 
         TestCaseInstance {

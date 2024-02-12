@@ -73,6 +73,9 @@ pub enum UpdateSceneError {
 
     #[error(transparent)]
     SceneError(#[from] SceneError),
+
+    #[error("No video or audio specified for output \"{0}\"")]
+    NoAudioAndVideo(OutputId),
 }
 
 pub struct ErrorStack<'a>(Option<&'a (dyn std::error::Error + 'static)>);

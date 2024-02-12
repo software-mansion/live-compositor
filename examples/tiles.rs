@@ -123,7 +123,7 @@ fn start_example_client_code() -> Result<()> {
         common::post(&json!({
             "type": "update_scene",
             "output_id": "output_1",
-            "scene": scene_with_inputs(i),
+            "video": scene_with_inputs(i),
         }))?;
 
         thread::sleep(Duration::from_secs(1));
@@ -134,7 +134,7 @@ fn start_example_client_code() -> Result<()> {
         common::post(&json!({
             "type": "update_scene",
             "output_id": "output_1",
-            "scene": scene_with_inputs(i),
+            "video": scene_with_inputs(i),
         }))?;
 
         thread::sleep(Duration::from_secs(1));
@@ -144,7 +144,7 @@ fn start_example_client_code() -> Result<()> {
     common::post(&json!({
         "type": "update_scene",
         "output_id": "output_1",
-        "scene": scene_with_inputs(4),
+        "video": scene_with_inputs(4),
     }))?;
 
     Ok(())

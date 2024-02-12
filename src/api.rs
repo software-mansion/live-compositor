@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     config::{config, Config},
     error::ApiError,
-    types::{InputId, OutputId, OutputScene, RegisterRequest, RendererId},
+    types::{InputId, OutputId, RegisterRequest, RendererId, UpdateOutputRequest},
 };
 
 mod register_request;
@@ -21,7 +21,7 @@ pub type Pipeline = compositor_pipeline::Pipeline;
 pub enum Request {
     Register(RegisterRequest),
     Unregister(UnregisterRequest),
-    UpdateScene(OutputScene),
+    UpdateOutput(UpdateOutputRequest),
     Query(QueryRequest),
     Start,
 }
@@ -113,9 +113,16 @@ impl Api {
                 self.pipeline.start();
                 Ok(ResponseHandler::Ok)
             }
-            Request::UpdateScene(scene_spec) => {
+            Request::UpdateOutput(scene_spec) => {
+                let root_component = match scene_spec.video {
+                    Some(root_component) => Some(root_component.try_into()?),
+                    None => None,
+                };
+                let audio = scene_spec.audio.map(|audio| audio.into());
+
                 self.pipeline
-                    .update_scene(scene_spec.output_id.into(), scene_spec.scene.try_into()?)?;
+                    .update_scene(scene_spec.output_id.into(), root_component, audio)?;
+
                 Ok(ResponseHandler::Ok)
             }
             Request::Query(query) => self.handle_query(query),
