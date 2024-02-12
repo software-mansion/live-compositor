@@ -144,6 +144,8 @@ impl ChromiumSenderThread {
         // Ensure size for already existing shared memory
         for (resolution, shmem) in resolutions.iter().zip(shared_memory.iter_mut()) {
             let size = size_from_resolution(*resolution);
+            // We resize shared memory only when it's too small.
+            // This avoids some crashes caused by the lack of resize synchronization.
             if shmem.len() < size {
                 // TODO: This should be synchronised
                 let mut process_message = cef::ProcessMessage::new(UNEMBED_SOURCE_FRAMES_MESSAGE);
