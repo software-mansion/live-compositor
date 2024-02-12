@@ -3,6 +3,7 @@ use compositor_pipeline::pipeline::{
     encoder::{ffmpeg_h264::Options, EncoderOptions},
     input::rtp::{AudioStream, VideoStream},
     output::rtp::RtpSenderOptions,
+    OutputAudioOpts, OutputVideoOpts,
 };
 
 use self::register_request::{AudioChannels, AudioCodec, EncoderPreset, Port, VideoCodec};
@@ -208,25 +209,29 @@ impl TryFrom<RegisterOutputRequest> for pipeline::RegisterOutputOptions {
 
     fn try_from(value: RegisterOutputRequest) -> Result<Self, Self::Error> {
         let output_options = value.clone().into();
-        let encoder_opts = match value.video.clone() {
-            Some(video) => Some(EncoderOptions::H264(Options {
-                preset: video.encoder_preset.into(),
-                resolution: video.resolution.into(),
-                output_id: value.output_id.clone().into(),
-            })),
+        let video = match value.video {
+            Some(v) => Some(OutputVideoOpts {
+                encoder_opts: EncoderOptions::H264(Options {
+                    preset: v.encoder_preset.into(),
+                    resolution: v.resolution.into(),
+                    output_id: value.output_id.clone().into(),
+                }),
+                initial: v.initial.try_into()?,
+            }),
             None => None,
         };
-        let initial_video = match value.video {
-            Some(output_video_opts) => Some(output_video_opts.initial.try_into()?),
-            None => None,
-        };
+
+        let audio = value.audio.map(|a| OutputAudioOpts {
+            initial: a.initial.into(),
+            sample_rate: a.sample_rate,
+            channels: a.channels.into(),
+        });
 
         Ok(Self {
             output_id: value.output_id.into(),
             output_options,
-            encoder_opts,
-            initial_video,
-            initial_audio: value.audio.map(|a| a.initial.into()),
+            video,
+            audio,
         })
     }
 }
@@ -247,16 +252,3 @@ impl From<EncoderPreset> for pipeline::encoder::ffmpeg_h264::EncoderPreset {
         }
     }
 }
-
-// impl From<RegisterOutputRequest> for pipeline::RegisterOutputOptions {
-//     fn from(value: RegisterOutputRequest) -> Self {
-
-//         Self {
-//             output_id: value.output_id.clone().into(),
-//             output_options: value.clone().into(),
-//             encoder_opts: value.video.map(|v| v),
-//             initial_video: value.video.map(|v| v.initial.try_into()),
-//             initial_audio: value.audio.map(|a| a.initial.into()),
-//         }
-//     }
-// }

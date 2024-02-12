@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc, time::Duration};
+use std::{cmp::max, collections::HashMap, sync::Arc, time::Duration};
 
 use crate::{
     error::UpdateSceneError, scene::AudioComposition, AudioChannels, AudioSamples,
@@ -9,7 +9,7 @@ use crate::{
 struct OutputInfo {
     composition: AudioComposition,
     sample_rate: u32,
-    audio_channels: AudioChannels,
+    channels: AudioChannels,
     first_pts: Option<Duration>,
     mixed_samples: usize,
 }
@@ -27,17 +27,35 @@ impl InternalAudioMixer {
     }
 
     // TODO register outputs
+    pub fn register_output(
+        &mut self,
+        output_id: OutputId,
+        sample_rate: u32,
+        channels: AudioChannels,
+        initial_composition: AudioComposition,
+    ) {
+        self.outputs.insert(
+            output_id,
+            OutputInfo {
+                composition: initial_composition,
+                sample_rate,
+                channels,
+                first_pts: None,
+                mixed_samples: 0,
+            },
+        );
+    }
 
     pub fn update_scene(
         &mut self,
         output_id: OutputId,
-        audio: AudioComposition,
+        composition: AudioComposition,
     ) -> Result<(), UpdateSceneError> {
         let Some(output_info) = self.outputs.get_mut(&output_id) else {
             return Err(UpdateSceneError::OutputNotRegistered(output_id));
         };
 
-        output_info.composition = audio;
+        output_info.composition = composition;
         Ok(())
     }
 
@@ -68,7 +86,6 @@ impl InternalAudioMixer {
                 )
             })
             .collect();
-
         OutputSamples {
             samples: output_samples,
         }
@@ -115,7 +132,7 @@ impl InternalAudioMixer {
             }
 
             fn div(&self, counter: &i32) -> Self {
-                self / counter
+                self / max(*counter, 1)
             }
         }
 
@@ -125,7 +142,7 @@ impl InternalAudioMixer {
             }
 
             fn div(&self, counter: &i32) -> Self {
-                (self.0 / counter, self.1 / counter)
+                (self.0 / max(*counter, 1), self.1 / max(*counter, 1))
             }
         }
 
@@ -189,7 +206,7 @@ impl InternalAudioMixer {
 
         output_info.mixed_samples += samples_count;
         let mut counter = vec![0; samples_count];
-        match output_info.audio_channels {
+        match output_info.channels {
             AudioChannels::Mono => {
                 let mut mixing_buffer = vec![0i32; samples_count];
                 let get_samples = |batch: &AudioSamplesBatch| mono_samples(batch);

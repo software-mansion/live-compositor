@@ -100,12 +100,14 @@ fn start_example_client_code() -> Result<()> {
         "output_id": "output_1",
         "port": 8002,
         "ip": "127.0.0.1",
-        "resolution": {
-            "width": VIDEO_RESOLUTION.width,
-            "height": VIDEO_RESOLUTION.height,
-        },
-        "encoder_preset": "ultrafast",
-        "initial_scene": scene
+        "video": {
+            "resolution": {
+                "width": VIDEO_RESOLUTION.width,
+                "height": VIDEO_RESOLUTION.height,
+            },
+            "encoder_preset": "ultrafast",
+            "initial": scene
+        }
     }))?;
 
     info!("[example] Start pipeline");

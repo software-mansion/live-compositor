@@ -38,7 +38,10 @@ impl VideoQueueThread {
     }
 
     pub fn spawn(mut self) -> JoinHandle<()> {
-        thread::spawn(move || self.run())
+        thread::Builder::new()
+            .name("Video queue thread".to_string())
+            .spawn(move || self.run())
+            .unwrap()
     }
 
     fn should_push_pts(&self, pts: Duration) -> bool {

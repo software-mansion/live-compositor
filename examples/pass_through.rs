@@ -68,15 +68,17 @@ fn start_example_client_code() -> Result<()> {
         "output_id": "output_1",
         "port": 8002,
         "ip": "127.0.0.1",
-        "resolution": {
-            "width": VIDEO_RESOLUTION.width,
-            "height": VIDEO_RESOLUTION.height,
-        },
-        "encoder_preset": "medium",
-        "initial_scene": {
-            "id": "input_1",
-            "type": "input_stream",
-            "input_id": "input_1",
+        "video": {
+            "resolution": {
+                "width": VIDEO_RESOLUTION.width,
+                "height": VIDEO_RESOLUTION.height,
+            },
+            "encoder_preset": "medium",
+            "initial": {
+                "id": "input_1",
+                "type": "input_stream",
+                "input_id": "input_1",
+            }
         }
     }))?;
 

@@ -69,23 +69,25 @@ fn start_example_client_code() -> Result<()> {
         "output_id": "output_1",
         "port": 8002,
         "ip": "127.0.0.1",
-        "resolution": {
-            "width": VIDEO_RESOLUTION.width,
-            "height": VIDEO_RESOLUTION.height,
-        },
-        "encoder_preset": "medium",
-        "initial_scene": {
-            "type": "shader",
-            "id": "shader_node_1",
-            "shader_id": "shader_example_1",
-            "children": [
-                {
-                    "id": "input_1",
-                    "type": "input_stream",
-                    "input_id": "input_1",
-                }
-            ],
-            "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+        "video": {
+            "resolution": {
+                "width": VIDEO_RESOLUTION.width,
+                "height": VIDEO_RESOLUTION.height,
+            },
+            "encoder_preset": "medium",
+            "initial": {
+                "type": "shader",
+                "id": "shader_node_1",
+                "shader_id": "shader_example_1",
+                "children": [
+                    {
+                        "id": "input_1",
+                        "type": "input_stream",
+                        "input_id": "input_1",
+                    }
+                ],
+                "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+            }
         }
     }))?;
 

@@ -35,7 +35,10 @@ impl AudioQueueThread {
     }
 
     pub fn spawn(mut self) -> JoinHandle<()> {
-        thread::spawn(move || self.run())
+        thread::Builder::new()
+            .name("Audio queue thread".to_string())
+            .spawn(move || self.run())
+            .unwrap()
     }
 
     fn run(&mut self) {

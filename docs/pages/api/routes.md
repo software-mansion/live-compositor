@@ -6,7 +6,6 @@ description: API routes to configure the compositor.
 
 API is served by default on the port 8081. Different port can be configured using [`LIVE_COMPOSITOR_API_PORT`](../deployment/configuration#live_compositor_api_port) environment variable.
 
-
 ## Endpoint `POST /--/api`
 
 Main endpoint for configuring the compositor server.
@@ -26,15 +25,17 @@ Starts the processing pipeline. If outputs are registered and defined in the sce
 ### Update scene
 
 ```typescript
-type UpdateScene = {
-  type: "update_scene";
+type UpdateOutput = {
+  type: "update_output";
   output_id: string;
-  scene: Component;
+  video?: Component;
+  audio?: [InputId]
 }
 ```
 
 - `output_id` - Id of an already registered output stream. See [`RegisterOutputStream`](./routes#register-output-stream).
-- `scene` - Root of a component tree/scene that should be rendered for the output. [Learn more](../concept/component)
+- `video` - Root of a component tree/scene that should be rendered for the output. [Learn more](../concept/component)
+- `audio` - List of inputs to mix.
 
 ***
 
@@ -136,7 +137,7 @@ type EncoderPreset =
 
 Register a new RTP output stream.
 
-- `output_id` - An identifier for the output stream. It can be used in the `UpdateScene` request to define what to render for the output stream.
+- `output_id` - An identifier for the output stream. It can be used in the `UpdateOutput` request to define what to render for the output stream.
 - `port` / `ip` - UDP port and IP where compositor should send the stream.
 - `resolution` - Output resolution in pixels.
 - `encoder_preset` - (**default=`"fast"`**) Preset for an encoder. See `FFmpeg` [docs](https://trac.ffmpeg.org/wiki/Encode/H.264#Preset) to learn more.

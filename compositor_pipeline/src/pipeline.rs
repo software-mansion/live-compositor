@@ -12,7 +12,7 @@ use compositor_render::error::{
 use compositor_render::scene::{AudioComposition, Component};
 use compositor_render::web_renderer::WebRendererInitOptions;
 use compositor_render::{error::UpdateSceneError, Renderer};
-use compositor_render::{AudioMixer, RendererOptions};
+use compositor_render::{AudioChannels, AudioMixer, RendererOptions};
 use compositor_render::{AudioSamplesSet, FrameSet, RegistryType};
 use compositor_render::{EventLoop, Framerate, InputId, OutputId, RendererId, RendererSpec};
 use crossbeam_channel::{unbounded, Receiver};
@@ -53,12 +53,22 @@ pub struct RegisterInputOptions {
     pub decoder_options: DecoderOptions,
 }
 
+pub struct OutputVideoOpts {
+    pub encoder_opts: EncoderOptions,
+    pub initial: Component,
+}
+
+pub struct OutputAudioOpts {
+    pub initial: AudioComposition,
+    pub sample_rate: u32,
+    pub channels: AudioChannels,
+}
+
 pub struct RegisterOutputOptions {
     pub output_id: OutputId,
     pub output_options: OutputOptions,
-    pub encoder_opts: Option<EncoderOptions>,
-    pub initial_video: Option<Component>,
-    pub initial_audio: Option<AudioComposition>,
+    pub video: Option<OutputVideoOpts>,
+    pub audio: Option<OutputAudioOpts>,
 }
 
 #[derive(Debug, Clone)]
@@ -185,16 +195,15 @@ impl Pipeline {
         let RegisterOutputOptions {
             output_id,
             output_options,
-            encoder_opts,
-            initial_video,
-            initial_audio,
+            video,
+            audio,
         } = register_options;
-        if initial_video.is_none() && initial_audio.is_none() {
+        if video.is_none() && audio.is_none() {
             return Err(RegisterOutputError::NoVideoOrAudio(output_id));
         }
 
         // TODO handle only audio
-        let (Some(encoder_opts), Some(scene_root)) = (encoder_opts, initial_video) else {
+        let Some(video) = video else {
             return Ok(());
         };
 
@@ -202,12 +211,12 @@ impl Pipeline {
             return Err(RegisterOutputError::AlreadyRegistered(output_id));
         }
 
-        let EncoderOptions::H264(ref opts) = encoder_opts;
+        let EncoderOptions::H264(ref opts) = video.encoder_opts;
         if opts.resolution.width % 2 != 0 || opts.resolution.height % 2 != 0 {
             return Err(RegisterOutputError::UnsupportedResolution(output_id));
         }
 
-        let (encoder, packets) = Encoder::new(encoder_opts)
+        let (encoder, packets) = Encoder::new(video.encoder_opts)
             .map_err(|e| RegisterOutputError::EncoderError(output_id.clone(), e))?;
 
         let output = Output::new(output_options, packets)
@@ -216,12 +225,16 @@ impl Pipeline {
         let output = PipelineOutput { encoder, output };
 
         self.outputs.insert(output_id.clone(), output.into());
-        self.update_scene_root(output_id.clone(), scene_root)
+        self.update_scene_root(output_id.clone(), video.initial)
             .map_err(|e| RegisterOutputError::SceneError(output_id.clone(), e))?;
 
-        if let Some(audio_composition) = initial_audio {
-            self.update_audio_composition(output_id.clone(), audio_composition)
-                .map_err(|e| RegisterOutputError::SceneError(output_id.clone(), e))?;
+        if let Some(audio_opts) = audio {
+            self.audio_mixer.register_output(
+                output_id,
+                audio_opts.sample_rate,
+                audio_opts.channels,
+                audio_opts.initial,
+            );
         }
 
         Ok(())
@@ -349,8 +362,9 @@ impl Pipeline {
 
     fn run_audio_mixer_thread(audio_mixer: AudioMixer, audio_receiver: Receiver<AudioSamplesSet>) {
         for samples in audio_receiver {
-            let mixed_samples = audio_mixer.mix_samples(samples);
+            let mixed_samples = audio_mixer.mix_samples(samples.clone());
             debug!("Mixed samples: {:#?}", mixed_samples);
+            // TODO send to output
         }
     }
 
