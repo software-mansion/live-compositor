@@ -1,13 +1,12 @@
-use std::{sync::Arc, time::Duration};
+use std::time::Duration;
 
 use crate::{
     error::DecoderInitError,
     pipeline::structs::{EncodedChunk, EncodedChunkKind, VideoCodec},
-    queue::Queue,
 };
 
-use compositor_render::{error::ErrorStack, Frame, InputId, Resolution, YuvData};
-use crossbeam_channel::Receiver;
+use compositor_render::{Frame, InputId, Resolution, YuvData};
+use crossbeam_channel::{Receiver, Sender};
 use ffmpeg_next::{
     codec::{Context, Id},
     ffi::AV_CODEC_FLAG2_CHUNKS,
@@ -22,7 +21,7 @@ pub struct H264FfmpegDecoder;
 impl H264FfmpegDecoder {
     pub fn new(
         chunks_receiver: Receiver<EncodedChunk>,
-        queue: Arc<Queue>,
+        frame_sender: Sender<Frame>,
         input_id: InputId,
     ) -> Result<Self, DecoderInitError> {
         let (init_result_sender, init_result_receiver) = crossbeam_channel::bounded(0);
@@ -106,11 +105,8 @@ impl H264FfmpegDecoder {
                             }
                         };
 
-                        if let Err(err) = queue.enqueue_frame(input_id.clone(), frame) {
-                            error!(
-                                "Failed to push frame: {}",
-                                ErrorStack::new(&err).into_string()
-                            );
+                        if frame_sender.send(frame).is_err() {
+                            return;
                         }
                     }
                 }

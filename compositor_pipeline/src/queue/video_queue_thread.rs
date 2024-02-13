@@ -7,6 +7,7 @@ use std::{
 
 use compositor_render::{FrameSet, Framerate, InputId};
 use crossbeam_channel::{tick, Sender};
+use log::warn;
 
 use super::Queue;
 
@@ -17,7 +18,7 @@ pub struct Options {
     pub output_framerate: Framerate,
 }
 
-pub struct QueueThread {
+pub struct VideoQueueThread {
     queue: Arc<Queue>,
     sender: Sender<FrameSet<InputId>>,
     opts: Options,
@@ -25,7 +26,7 @@ pub struct QueueThread {
     output_frame_offset: Duration,
 }
 
-impl QueueThread {
+impl VideoQueueThread {
     pub fn new(queue: Arc<Queue>, sender: Sender<FrameSet<InputId>>, opts: Options) -> Self {
         let output_frame_offset = opts.clock_start.elapsed();
         Self {
@@ -51,16 +52,17 @@ impl QueueThread {
         self.start_ticker();
 
         loop {
-            self.queue.check_queue_channel.1.recv().unwrap();
+            self.queue.check_video_queue_channel.1.recv().unwrap();
             self.on_queue_event()
         }
     }
 
     fn on_queue_event(&mut self) {
-        let mut internal_queue = self.queue.internal_queue.lock().unwrap();
+        let mut internal_queue = self.queue.video_queue.lock().unwrap();
         let next_buffer_pts = self.get_next_output_buffer_pts();
 
-        let ready_to_push = internal_queue.check_all_inputs_ready(next_buffer_pts)
+        let ready_to_push = internal_queue
+            .check_all_inputs_ready(next_buffer_pts, self.opts.clock_start)
             || self.should_push_pts(next_buffer_pts);
         if !ready_to_push {
             return;
@@ -70,7 +72,14 @@ impl QueueThread {
         for input_id in frames_batch.frames.keys() {
             internal_queue.call_input_listeners(input_id)
         }
-        self.sender.send(frames_batch).unwrap();
+        let send_deadline = self.opts.clock_start.add(frames_batch.pts);
+        if self
+            .sender
+            .send_deadline(frames_batch, send_deadline)
+            .is_err()
+        {
+            warn!("Dropping video frame on queue output.")
+        }
         self.sent_batches_counter += 1;
     }
 
@@ -82,7 +91,7 @@ impl QueueThread {
     }
 
     fn start_ticker(&self) {
-        let check_queue_sender = self.queue.check_queue_channel.0.clone();
+        let check_queue_sender = self.queue.check_video_queue_channel.0.clone();
         let tick_duration = self.opts.tick_duration;
         thread::spawn(move || {
             let ticker = tick(tick_duration);

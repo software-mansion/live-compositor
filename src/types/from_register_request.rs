@@ -1,10 +1,13 @@
-use compositor_pipeline::pipeline;
+use compositor_pipeline::pipeline::{self, encoder};
+use compositor_render::scene;
 
 use self::register_request::{AudioChannels, AudioCodec, Port, VideoCodec};
 
-use super::*;
+use super::{register_request::EncoderPreset, *};
 
-impl TryFrom<register_request::RtpInputStream> for pipeline::RegisterInputOptions {
+impl TryFrom<register_request::RtpInputStream>
+    for (compositor_render::InputId, pipeline::RegisterInputOptions)
+{
     type Error = TypeError;
 
     fn try_from(value: register_request::RtpInputStream) -> Result<Self, Self::Error> {
@@ -21,6 +24,7 @@ impl TryFrom<register_request::RtpInputStream> for pipeline::RegisterInputOption
         if video.is_none() && audio.is_none() {
             return Err(TypeError::new(NO_VIDEO_AUDIO_SPEC));
         }
+
         let rtp_stream = pipeline::input::rtp::RtpStream {
             video: video
                 .as_ref()
@@ -58,15 +62,19 @@ impl TryFrom<register_request::RtpInputStream> for pipeline::RegisterInputOption
             }),
         };
 
-        Ok(pipeline::RegisterInputOptions {
-            input_id: input_id.into(),
-            input_options,
-            decoder_options,
-        })
+        Ok((
+            input_id.into(),
+            pipeline::RegisterInputOptions {
+                input_options,
+                decoder_options,
+            },
+        ))
     }
 }
 
-impl TryFrom<register_request::Mp4> for pipeline::RegisterInputOptions {
+impl TryFrom<register_request::Mp4>
+    for (compositor_render::InputId, pipeline::RegisterInputOptions)
+{
     type Error = TypeError;
 
     fn try_from(value: register_request::Mp4) -> Result<Self, Self::Error> {
@@ -88,19 +96,23 @@ impl TryFrom<register_request::Mp4> for pipeline::RegisterInputOptions {
             (None, Some(path)) => pipeline::input::mp4::Source::File(path.into()),
         };
 
-        Ok(pipeline::RegisterInputOptions {
-            input_id: input_id.clone().into(),
-            input_options: pipeline::input::InputOptions::Mp4(pipeline::input::mp4::Mp4Options {
-                input_id: input_id.into(),
-                source,
-            }),
-            decoder_options: pipeline::decoder::DecoderOptions {
-                video: Some(pipeline::decoder::VideoDecoderOptions {
-                    codec: pipeline::VideoCodec::H264,
-                }),
-                audio: None,
+        Ok((
+            input_id.clone().into(),
+            pipeline::RegisterInputOptions {
+                input_options: pipeline::input::InputOptions::Mp4(
+                    pipeline::input::mp4::Mp4Options {
+                        input_id: input_id.into(),
+                        source,
+                    },
+                ),
+                decoder_options: pipeline::decoder::DecoderOptions {
+                    video: Some(pipeline::decoder::VideoDecoderOptions {
+                        codec: pipeline::VideoCodec::H264,
+                    }),
+                    audio: None,
+                },
             },
-        })
+        ))
     }
 }
 
@@ -163,13 +175,49 @@ impl From<AudioChannels> for pipeline::AudioChannels {
     }
 }
 
-impl From<RegisterOutputRequest> for pipeline::output::OutputOptions {
-    fn from(value: RegisterOutputRequest) -> Self {
-        pipeline::output::OutputOptions::Rtp(pipeline::output::rtp::RtpSenderOptions {
-            codec: compositor_pipeline::pipeline::VideoCodec::H264,
-            ip: value.ip,
-            port: value.port,
-            output_id: value.output_id.into(),
-        })
+impl TryFrom<RegisterOutputRequest>
+    for (
+        compositor_render::OutputId,
+        pipeline::RegisterOutputOptions,
+        scene::Component,
+    )
+{
+    type Error = TypeError;
+
+    fn try_from(request: RegisterOutputRequest) -> Result<Self, Self::Error> {
+        let output_options =
+            pipeline::output::OutputOptions::Rtp(pipeline::output::rtp::RtpSenderOptions {
+                codec: compositor_pipeline::pipeline::VideoCodec::H264,
+                ip: request.ip,
+                port: request.port,
+                output_id: request.output_id.clone().into(),
+            });
+        let preset = match request.encoder_preset.unwrap_or(EncoderPreset::Fast) {
+            EncoderPreset::Ultrafast => encoder::ffmpeg_h264::EncoderPreset::Ultrafast,
+            EncoderPreset::Superfast => encoder::ffmpeg_h264::EncoderPreset::Superfast,
+            EncoderPreset::Veryfast => encoder::ffmpeg_h264::EncoderPreset::Veryfast,
+            EncoderPreset::Faster => encoder::ffmpeg_h264::EncoderPreset::Faster,
+            EncoderPreset::Fast => encoder::ffmpeg_h264::EncoderPreset::Fast,
+            EncoderPreset::Medium => encoder::ffmpeg_h264::EncoderPreset::Medium,
+            EncoderPreset::Slow => encoder::ffmpeg_h264::EncoderPreset::Slow,
+            EncoderPreset::Slower => encoder::ffmpeg_h264::EncoderPreset::Slower,
+            EncoderPreset::Veryslow => encoder::ffmpeg_h264::EncoderPreset::Veryslow,
+            EncoderPreset::Placebo => encoder::ffmpeg_h264::EncoderPreset::Placebo,
+        };
+
+        let encoder_options = encoder::EncoderOptions::H264(encoder::ffmpeg_h264::Options {
+            preset,
+            resolution: request.resolution.into(),
+            output_id: request.output_id.clone().into(),
+        });
+
+        Ok((
+            request.output_id.into(),
+            pipeline::RegisterOutputOptions {
+                encoder_options,
+                output_options,
+            },
+            request.initial_scene.try_into()?,
+        ))
     }
 }

@@ -1,13 +1,12 @@
 use std::sync::Arc;
 
 use compositor_render::{AudioSamples, AudioSamplesBatch, InputId};
-use crossbeam_channel::Receiver;
+use crossbeam_channel::{Receiver, Sender};
 use log::error;
 
 use crate::{
     error::DecoderInitError,
     pipeline::structs::{AudioChannels, EncodedChunk},
-    queue::Queue,
 };
 
 use super::OpusDecoderOptions;
@@ -18,14 +17,14 @@ impl OpusDecoder {
     pub fn new(
         opts: OpusDecoderOptions,
         chunks_receiver: Receiver<EncodedChunk>,
-        queue: Arc<Queue>,
+        sample_sender: Sender<AudioSamplesBatch>,
         input_id: InputId,
     ) -> Result<Self, DecoderInitError> {
         let decoder = opus::Decoder::new(opts.sample_rate, opts.channels.into())?;
 
         std::thread::Builder::new()
             .name(format!("opus decoder {}", input_id.0))
-            .spawn(move || Self::start_decoding(decoder, opts, queue, chunks_receiver, input_id))
+            .spawn(move || Self::start_decoding(decoder, opts, chunks_receiver, sample_sender))
             .unwrap();
 
         Ok(Self)
@@ -34,9 +33,8 @@ impl OpusDecoder {
     fn start_decoding(
         mut decoder: opus::Decoder,
         opts: OpusDecoderOptions,
-        queue: Arc<Queue>,
         chunks_receiver: Receiver<EncodedChunk>,
-        input_id: InputId,
+        sample_sender: Sender<AudioSamplesBatch>,
     ) {
         // Max sample rate for opus is 48kHz.
         // Usually packets contain 20ms audio chunks, but for safety we use buffer
@@ -58,7 +56,7 @@ impl OpusDecoder {
                 }
                 AudioChannels::Stereo => {
                     let mut samples = Vec::with_capacity(decoded_samples_count / 2);
-                    for i in 0..(decoded_samples_count / 2) {
+                    for i in 0..decoded_samples_count {
                         samples.push((buffer[2 * i], buffer[2 * i + 1]));
                     }
                     AudioSamples::Stereo(samples)
@@ -66,16 +64,13 @@ impl OpusDecoder {
             };
 
             let samples = AudioSamplesBatch {
-                samples,
-                pts: chunk.pts,
+                samples: Arc::new(samples),
+                start_pts: chunk.pts,
                 sample_rate: opts.sample_rate,
             };
 
-            if let Err(err) = queue.enqueue_samples(input_id.clone(), samples) {
-                error!(
-                    "Error enqueueing audio samples for input {}: {}",
-                    input_id, err
-                );
+            if sample_sender.send(samples).is_err() {
+                return;
             };
         }
     }

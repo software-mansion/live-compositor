@@ -97,8 +97,8 @@ impl LibavH264Encoder {
     pub fn new(
         options: Options,
     ) -> Result<(Self, Box<dyn Iterator<Item = EncodedChunk> + Send>), EncoderInitError> {
-        let (frame_sender, frame_receiver) = crossbeam_channel::unbounded();
-        let (packet_sender, packet_receiver) = crossbeam_channel::unbounded();
+        let (frame_sender, frame_receiver) = crossbeam_channel::bounded(5);
+        let (packet_sender, packet_receiver) = crossbeam_channel::bounded(5);
         let (result_sender, result_receiver) = crossbeam_channel::bounded(0);
 
         let options_clone = options.clone();
@@ -205,11 +205,6 @@ impl LibavH264Encoder {
                 Ok(Message::Stop) => break,
                 Err(_) => break,
             };
-
-            if frame_receiver.len() > 20 {
-                warn!("Dropping frame: render queue is too long.",);
-                continue;
-            }
 
             let mut av_frame = frame::Video::new(
                 Pixel::YUV420P,
