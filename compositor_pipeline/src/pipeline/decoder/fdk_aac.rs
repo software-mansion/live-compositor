@@ -4,7 +4,7 @@ use fdk_aac_sys as fdk;
 
 use crate::pipeline::structs::{EncodedChunk, EncodedChunkKind};
 
-use super::AacDecoderOptions;
+use super::{AacDecoderOptions, AacTransport};
 
 struct Decoder(*mut fdk::AAC_DECODER_INSTANCE);
 
@@ -20,11 +20,19 @@ pub enum AacDecoderError {
     UnsupportedChunkKind(EncodedChunkKind),
 }
 
+impl From<AacTransport> for fdk::TRANSPORT_TYPE {
+    fn from(value: AacTransport) -> Self {
+        match value {
+            AacTransport::RawAac => fdk::TRANSPORT_TYPE_TT_MP4_RAW,
+            AacTransport::ADTS => fdk::TRANSPORT_TYPE_TT_MP4_ADTS,
+            AacTransport::ADIF => fdk::TRANSPORT_TYPE_TT_MP4_ADIF,
+        }
+    }
+}
+
 impl Decoder {
     fn new(options: AacDecoderOptions) -> Result<Self, AacDecoderError> {
-        // MP4_RAW should cover a huge majority of MP4 AAC streams (95+%), and detecting which transport
-        // is used in the mp4 seems to be very hard
-        let dec = unsafe { fdk::aacDecoder_Open(fdk::TRANSPORT_TYPE_TT_MP4_RAW, 1) };
+        let dec = unsafe { fdk::aacDecoder_Open(options.transport.into(), 1) };
         let dec = Decoder(dec);
 
         if let Some(config) = options.asc {
@@ -149,7 +157,7 @@ impl FdkAacDecoder {
         std::thread::Builder::new()
             .name(format!("fdk aac decoder {}", input_id.0))
             .spawn(move || {
-                start_decoding(
+                run_decoder_thread(
                     options,
                     samples_sender,
                     chunks_receiver,
@@ -165,7 +173,7 @@ impl FdkAacDecoder {
     }
 }
 
-fn start_decoding(
+fn run_decoder_thread(
     options: AacDecoderOptions,
     samples_sender: Sender<AudioSamplesBatch>,
     chunks_receiver: Receiver<EncodedChunk>,
