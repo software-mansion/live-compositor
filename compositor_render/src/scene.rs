@@ -91,7 +91,7 @@ pub(crate) struct Node {
 pub(crate) enum NodeParams {
     InputStream(InputId),
     Shader(ShaderComponentParams, Arc<Shader>),
-    Web(Arc<WebRenderer>),
+    Web(Vec<ComponentId>, Arc<WebRenderer>),
     Image(Image),
     Text(TextRenderParams),
     Layout(LayoutNode),
@@ -174,7 +174,7 @@ impl Component {
         match self {
             Component::InputStream(input) => input.stateful_component(ctx),
             Component::Shader(shader) => shader.stateful_component(ctx),
-            Component::WebView(shader) => shader.stateful_component(ctx),
+            Component::WebView(web_view) => web_view.stateful_component(ctx),
             Component::Image(image) => image.stateful_component(ctx),
             Component::Text(text) => text.stateful_component(ctx),
             Component::View(view) => view.stateful_component(ctx),
@@ -205,6 +205,9 @@ pub enum SceneError {
         "Instance of web renderer \"{0}\" was used more than once. Only one component can use specific web renderer at the time."
     )]
     WebRendererUsageNotExclusive(RendererId),
+
+    #[error("WebView using \"{0}\" web renderer has children without \"id\" property")]
+    WebViewChildWithoutId(RendererId),
 
     #[error("Invalid parameter passed to \"{1}\" shader.")]
     ShaderNodeParametersValidationError(#[source] ParametersValidationError, RendererId),

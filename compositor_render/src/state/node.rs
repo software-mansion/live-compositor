@@ -3,7 +3,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use std::vec;
 
-use crate::scene::{self, ShaderComponentParams};
+use crate::scene::{self, ComponentId, ShaderComponentParams};
 use crate::transformations::image_renderer::Image;
 use crate::transformations::layout::LayoutNode;
 use crate::transformations::shader::node::ShaderNode;
@@ -75,8 +75,8 @@ impl RenderNode {
             scene::NodeParams::Shader(shader_params, shader) => {
                 Self::new_shader_node(ctx, children, shader_params, shader)
             }
-            scene::NodeParams::Web(web_renderer) => {
-                Self::new_web_renderer_node(ctx, children, web_renderer)
+            scene::NodeParams::Web(children_ids, web_renderer) => {
+                Self::new_web_renderer_node(ctx, children, children_ids, web_renderer)
             }
             scene::NodeParams::Image(image) => Self::new_image_node(image),
             scene::NodeParams::Text(text_params) => Self::new_text_node(text_params),
@@ -127,10 +127,11 @@ impl RenderNode {
     pub(super) fn new_web_renderer_node(
         ctx: &RenderCtx,
         children: Vec<RenderNode>,
+        children_ids: Vec<ComponentId>,
         web_renderer: Arc<WebRenderer>,
     ) -> Self {
         let resolution = web_renderer.resolution();
-        let node = InnerRenderNode::Web(WebRendererNode::new(web_renderer));
+        let node = InnerRenderNode::Web(WebRendererNode::new(children_ids, web_renderer));
         let mut output = NodeTexture::new();
         output.ensure_size(ctx.wgpu_ctx, resolution);
 

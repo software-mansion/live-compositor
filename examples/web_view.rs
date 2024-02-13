@@ -111,6 +111,7 @@ fn start_example_client_code() -> Result<()> {
             "instance_id": "example_website",
             "children": [
                 {
+                    "id": "big_bunny_video",
                     "type": "input_stream",
                     "input_id": "input_1",
                 }

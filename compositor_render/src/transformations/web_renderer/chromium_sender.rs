@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{state::RegisterCtx, Resolution};
+use crate::{scene::ComponentId, state::RegisterCtx, Resolution};
 use crossbeam_channel::{Receiver, Sender};
 use log::error;
 
@@ -45,10 +45,17 @@ impl ChromiumSender {
         }
     }
 
-    pub fn embed_sources(&self, sources: &[&NodeTexture]) -> Result<(), ChromiumSenderError> {
+    pub fn embed_sources(
+        &self,
+        sources: &[&NodeTexture],
+        children_ids: Vec<ComponentId>,
+    ) -> Result<(), ChromiumSenderError> {
         let resolutions = sources.iter().map(|texture| texture.resolution()).collect();
         self.message_sender
-            .send(ChromiumSenderMessage::EmbedSources { resolutions })
+            .send(ChromiumSenderMessage::EmbedSources {
+                resolutions,
+                children_ids,
+            })
             .map_err(|_| ChromiumSenderError::MessageChannelDisconnected)
     }
 
@@ -86,12 +93,10 @@ impl ChromiumSender {
 
     pub fn request_frame_positions(
         &self,
-        sources: &[&NodeTexture],
+        children_ids: Vec<ComponentId>,
     ) -> Result<(), ChromiumSenderError> {
         self.message_sender
-            .send(ChromiumSenderMessage::GetFramePositions {
-                source_count: sources.len(),
-            })
+            .send(ChromiumSenderMessage::GetFramePositions { children_ids })
             .map_err(|_| ChromiumSenderError::MessageChannelDisconnected)
     }
 }
@@ -99,13 +104,14 @@ impl ChromiumSender {
 pub(super) enum ChromiumSenderMessage {
     EmbedSources {
         resolutions: Vec<Option<Resolution>>,
+        children_ids: Vec<ComponentId>,
     },
     EnsureSharedMemory {
         resolutions: Vec<Option<Resolution>>,
     },
     UpdateSharedMemory(UpdateSharedMemoryInfo),
     GetFramePositions {
-        source_count: usize,
+        children_ids: Vec<ComponentId>,
     },
     Quit,
 }
