@@ -101,8 +101,7 @@ impl ChromiumSenderThread {
         resolutions: Vec<Option<Resolution>>,
         children_ids: Vec<ComponentId>,
     ) -> Result<(), ChromiumSenderThreadError> {
-        let mut process_message = cef::ProcessMessage::new(EMBED_SOURCE_FRAMES_MESSAGE);
-        let mut index = 0;
+        let mut process_message = cef::ProcessMessageBuilder::new(EMBED_SOURCE_FRAMES_MESSAGE);
 
         // IPC message to chromium renderer subprocess consists of:
         // - shared memory path
@@ -115,16 +114,14 @@ impl ChromiumSenderThread {
                 continue;
             };
 
-            process_message.write_string(index, state.shared_memory(source_idx)?.to_path_string());
-            process_message.write_string(index + 1, id.to_string());
-            process_message.write_int(index + 2, width as i32);
-            process_message.write_int(index + 3, height as i32);
-
-            index += 4;
+            process_message.write_string(state.shared_memory(source_idx)?.to_path_string())?;
+            process_message.write_string(id.to_string())?;
+            process_message.write_int(width as i32)?;
+            process_message.write_int(height as i32)?;
         }
 
         let frame = state.browser.main_frame()?;
-        frame.send_process_message(cef::ProcessId::Renderer, process_message)?;
+        frame.send_process_message(cef::ProcessId::Renderer, process_message.build())?;
 
         Ok(())
     }
@@ -147,10 +144,12 @@ impl ChromiumSenderThread {
         // Ensure size for already existing shared memory
         for (resolution, shmem) in resolutions.iter().zip(shared_memory.iter_mut()) {
             let size = size_from_resolution(*resolution);
-            if shmem.len() != size {
+            // We resize shared memory only when it's too small.
+            // This avoids some crashes caused by the lack of resize synchronization.
+            if shmem.len() < size {
                 // TODO: This should be synchronised
                 let mut process_message = cef::ProcessMessage::new(UNEMBED_SOURCE_FRAMES_MESSAGE);
-                process_message.write_string(0, shmem.to_path_string());
+                process_message.write_string(0, shmem.to_path_string())?;
                 frame.send_process_message(cef::ProcessId::Renderer, process_message)?;
                 // -----
 
@@ -204,7 +203,7 @@ impl ChromiumSenderThread {
     ) -> Result<(), ChromiumSenderThreadError> {
         let mut message = cef::ProcessMessage::new(GET_FRAME_POSITIONS_MESSAGE);
         for (index, id) in children_ids.into_iter().enumerate() {
-            message.write_string(index, id.to_string());
+            message.write_string(index, id.to_string())?;
         }
 
         let frame = state.browser.main_frame()?;
@@ -264,4 +263,7 @@ enum ChromiumSenderThreadError {
 
     #[error("Shared memory should already be allocated for \"{source_idx}\" input")]
     SharedMemoryNotAllocated { source_idx: usize },
+
+    #[error(transparent)]
+    ProcessMessageError(#[from] cef::ProcessMessageError),
 }

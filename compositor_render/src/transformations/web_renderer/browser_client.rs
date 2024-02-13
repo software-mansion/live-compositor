@@ -37,33 +37,18 @@ impl cef::Client for BrowserClient {
             GET_FRAME_POSITIONS_MESSAGE => {
                 let mut transforms_matrices = Vec::new();
                 for i in (0..message.size()).step_by(4) {
-                    let Some(x) = message.read_double(i) else {
-                        error!("Expected \"x\" value of DOMRect");
-                        continue;
-                    };
-                    let Some(y) = message.read_double(i + 1) else {
-                        error!("Expected \"y\" value of DOMRect");
-                        continue;
-                    };
-                    let Some(width) = message.read_double(i + 2) else {
-                        error!("Expected \"width\" value of DOMRect");
-                        continue;
-                    };
-                    let Some(height) = message.read_double(i + 3) else {
-                        error!("Expected \"height\" value of DOMRect");
-                        continue;
+                    let position = match Self::read_frame_position(message, i) {
+                        Ok(position) => position,
+                        Err(err) => {
+                            error!(
+                                "Error occurred while reading frame positions from IPC message: {err}"
+                            );
+                            return true;
+                        }
                     };
 
-                    let transformations_matrix = vertices_transformation_matrix(
-                        &Position {
-                            top: y as f32,
-                            left: x as f32,
-                            width: width as f32,
-                            height: height as f32,
-                            rotation_degrees: 0.0,
-                        },
-                        &self.resolution,
-                    );
+                    let transformations_matrix =
+                        vertices_transformation_matrix(&position, &self.resolution);
 
                     transforms_matrices.push(transformations_matrix);
                 }
@@ -88,6 +73,24 @@ impl BrowserClient {
             source_transforms,
             resolution,
         }
+    }
+
+    fn read_frame_position(
+        msg: &cef::ProcessMessage,
+        index: usize,
+    ) -> Result<Position, cef::ProcessMessageError> {
+        let x = msg.read_double(index)?;
+        let y = msg.read_double(index + 1)?;
+        let width = msg.read_double(index + 2)?;
+        let height = msg.read_double(index + 3)?;
+
+        Ok(Position {
+            top: y as f32,
+            left: x as f32,
+            width: width as f32,
+            height: height as f32,
+            rotation_degrees: 0.0,
+        })
     }
 }
 
