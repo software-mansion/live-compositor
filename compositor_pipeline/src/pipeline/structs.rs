@@ -59,6 +59,7 @@ pub enum VideoCodec {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AudioCodec {
+    Aac,
     Opus,
 }
 

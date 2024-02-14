@@ -23,7 +23,6 @@ use crate::error::{
 };
 use crate::queue::Queue;
 
-use self::decoder::DecoderOptions;
 use self::encoder::EncoderOptions;
 use self::input::InputOptions;
 use self::output::OutputOptions;
@@ -51,7 +50,6 @@ pub enum RequestedPort {
 
 pub struct RegisterInputOptions {
     pub input_options: InputOptions,
-    pub decoder_options: DecoderOptions,
 }
 
 pub struct RegisterOutputOptions {

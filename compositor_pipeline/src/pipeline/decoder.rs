@@ -1,14 +1,16 @@
 use crate::error::DecoderInitError;
 
-use self::{ffmpeg_h264::H264FfmpegDecoder, opus_decoder::OpusDecoder};
+use self::{fdk_aac::FdkAacDecoder, ffmpeg_h264::H264FfmpegDecoder, opus_decoder::OpusDecoder};
 
 use super::{
     input::ChunksReceiver,
     structs::{AudioChannels, EncodedChunk, VideoCodec},
 };
+use bytes::Bytes;
 use compositor_render::{AudioSamplesBatch, Frame, InputId};
 use crossbeam_channel::{bounded, Receiver, Sender};
 
+pub mod fdk_aac;
 mod ffmpeg_h264;
 mod opus_decoder;
 
@@ -81,6 +83,7 @@ impl Decoder {
 
 pub enum AudioDecoder {
     Opus(OpusDecoder),
+    FdkAac(FdkAacDecoder),
 }
 
 impl AudioDecoder {
@@ -93,6 +96,13 @@ impl AudioDecoder {
         match opts {
             AudioDecoderOptions::Opus(opus_opt) => Ok(AudioDecoder::Opus(OpusDecoder::new(
                 opus_opt,
+                chunks_receiver,
+                samples_sender,
+                input_id,
+            )?)),
+
+            AudioDecoderOptions::Aac(aac_opt) => Ok(AudioDecoder::FdkAac(FdkAacDecoder::new(
+                aac_opt,
                 chunks_receiver,
                 samples_sender,
                 input_id,
@@ -130,6 +140,7 @@ pub struct VideoDecoderOptions {
 #[derive(Debug, Clone)]
 pub enum AudioDecoderOptions {
     Opus(OpusDecoderOptions),
+    Aac(AacDecoderOptions),
 }
 
 #[derive(Debug, Clone)]
@@ -143,4 +154,9 @@ pub struct OpusDecoderOptions {
 pub struct DecodedDataReceiver {
     pub video: Option<Receiver<Frame>>,
     pub audio: Option<Receiver<AudioSamplesBatch>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct AacDecoderOptions {
+    pub asc: Option<Bytes>,
 }

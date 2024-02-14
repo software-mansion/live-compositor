@@ -1,10 +1,10 @@
 use std::{
     fs::File,
     io::Read,
+    ops::ControlFlow,
     os::unix::fs::MetadataExt,
     path::{Path, PathBuf},
     sync::{atomic::AtomicBool, Arc},
-    thread::JoinHandle,
     time::Duration,
 };
 
@@ -12,8 +12,10 @@ use bytes::{Buf, Bytes, BytesMut};
 use compositor_render::InputId;
 use crossbeam_channel::{Receiver, Sender};
 use mp4::Mp4Reader;
+use symphonia::core::formats::FormatReader;
 
 use crate::pipeline::{
+    decoder::{AacDecoderOptions, AudioDecoderOptions, DecoderOptions, VideoDecoderOptions},
     structs::{EncodedChunk, EncodedChunkKind},
     VideoCodec,
 };
@@ -43,21 +45,42 @@ pub enum Mp4Error {
 
     #[error("No suitable track in the mp4 file")]
     NoTrack,
+
+    #[error("Symphonia mp4 reader error.")]
+    SymphoniaError(#[from] symphonia::core::errors::Error),
+}
+
+struct JoinableThread {
+    join_handle: Option<std::thread::JoinHandle<()>>,
+    stop_signal: Arc<AtomicBool>,
+}
+
+impl Drop for JoinableThread {
+    fn drop(&mut self) {
+        self.stop_signal
+            .store(true, std::sync::atomic::Ordering::Relaxed);
+        let Some(handle) = self.join_handle.take() else {
+            log::error!("Cannot join MP4 reader thread: no handle");
+            return;
+        };
+
+        handle.join().unwrap();
+    }
 }
 
 pub struct Mp4 {
     pub input_id: InputId,
-    video_thread: Option<std::thread::JoinHandle<()>>,
+    video_thread: Option<JoinableThread>,
+    audio_thread: Option<JoinableThread>,
     source: Source,
     path_to_file: PathBuf,
-    stop_video_reader: Arc<AtomicBool>,
 }
 
 impl Mp4 {
     pub fn new(
         options: Mp4Options,
         download_dir: &Path,
-    ) -> Result<(Self, ChunksReceiver), Mp4Error> {
+    ) -> Result<(Self, ChunksReceiver, DecoderOptions), Mp4Error> {
         let input_path = match options.source {
             Source::Url(ref url) => {
                 let file_response = reqwest::blocking::get(url)?;
@@ -78,25 +101,25 @@ impl Mp4 {
             Source::File(ref path) => path.clone(),
         };
 
-        let input_file = std::fs::File::open(input_path.clone())?;
-        let size = input_file.metadata()?.size();
-        let reader = mp4::Mp4Reader::read_header(input_file, size)?;
-        let stop_video_reader = Arc::new(AtomicBool::new(false));
+        let video_reader_info = spawn_video_reader(&input_path, options.input_id.clone())?;
 
-        let (video_thread, video_receiver) =
-            spawn_video_reader(reader, options.input_id.clone(), stop_video_reader.clone())?;
+        let audio_reader_info = spawn_audio_reader(&input_path, options.input_id.clone())?;
 
         Ok((
             Self {
                 input_id: options.input_id,
-                video_thread: Some(video_thread),
+                video_thread: video_reader_info.thread,
+                audio_thread: audio_reader_info.thread,
                 source: options.source,
                 path_to_file: input_path,
-                stop_video_reader,
             },
             ChunksReceiver {
-                video: Some(video_receiver),
-                audio: None,
+                video: video_reader_info.receiver,
+                audio: audio_reader_info.receiver,
+            },
+            DecoderOptions {
+                video: video_reader_info.options,
+                audio: audio_reader_info.options,
             },
         ))
     }
@@ -104,49 +127,52 @@ impl Mp4 {
 
 impl Drop for Mp4 {
     fn drop(&mut self) {
-        if let Some(thread) = self.video_thread.take() {
-            self.stop_video_reader
-                .store(true, std::sync::atomic::Ordering::Relaxed);
-            thread.join().unwrap();
-        }
-
+        drop(self.video_thread.take());
+        drop(self.audio_thread.take());
         if let Source::Url(_) = self.source {
             std::fs::remove_file(&self.path_to_file).unwrap();
         }
     }
 }
 
-fn spawn_video_reader(
-    reader: Mp4Reader<File>,
-    input_id: InputId,
-    stop_thread: Arc<AtomicBool>,
-) -> Result<(JoinHandle<()>, Receiver<EncodedChunk>), Mp4Error> {
-    let (&track_id, track, avc1) = reader
-        .tracks()
-        .iter()
-        .find_map(|(id, track)| {
-            let track_type = track.track_type().ok()?;
+#[derive(Default)]
+struct VideoReaderInfo {
+    thread: Option<JoinableThread>,
+    receiver: Option<Receiver<EncodedChunk>>,
+    options: Option<VideoDecoderOptions>,
+}
 
-            let media_type = track.media_type().ok()?;
+fn spawn_video_reader(input_path: &Path, input_id: InputId) -> Result<VideoReaderInfo, Mp4Error> {
+    let stop_thread = Arc::new(AtomicBool::new(false));
+    let stop_thread_clone = stop_thread.clone();
+    let input_file = std::fs::File::open(input_path)?;
+    let size = input_file.metadata()?.size();
+    let reader = mp4::Mp4Reader::read_header(input_file, size)?;
 
-            if track_type != mp4::TrackType::Video
-                || media_type != mp4::MediaType::H264
-                || track.trak.mdia.minf.stbl.stsd.avc1.is_none()
-            {
-                return None;
-            }
+    let Some((&track_id, track, avc1)) = reader.tracks().iter().find_map(|(id, track)| {
+        let track_type = track.track_type().ok()?;
 
-            track
-                .trak
-                .mdia
-                .minf
-                .stbl
-                .stsd
-                .avc1
-                .as_ref()
-                .map(|avc1| (id, track, avc1))
-        })
-        .ok_or(Mp4Error::NoTrack)?;
+        let media_type = track.media_type().ok()?;
+
+        if track_type != mp4::TrackType::Video
+            || media_type != mp4::MediaType::H264
+            || track.trak.mdia.minf.stbl.stsd.avc1.is_none()
+        {
+            return None;
+        }
+
+        track
+            .trak
+            .mdia
+            .minf
+            .stbl
+            .stsd
+            .avc1
+            .as_ref()
+            .map(|avc1| (id, track, avc1))
+    }) else {
+        return Ok(Default::default());
+    };
 
     let (sender, receiver) = crossbeam_channel::bounded(10);
 
@@ -171,13 +197,13 @@ fn spawn_video_reader(
     let length_size = avc1.avcc.length_size_minus_one + 1;
 
     let thread = std::thread::Builder::new()
-        .name(format!("mp4 reader {input_id}"))
+        .name(format!("mp4 video reader {input_id}"))
         .spawn(move || {
-            reader_thread(
+            video_reader_thread(
                 sps_and_pps_payload,
                 reader,
                 sender,
-                stop_thread,
+                stop_thread_clone,
                 length_size,
                 TrackInfo {
                     sample_count,
@@ -188,7 +214,16 @@ fn spawn_video_reader(
         })
         .unwrap();
 
-    Ok((thread, receiver))
+    Ok(VideoReaderInfo {
+        thread: Some(JoinableThread {
+            join_handle: Some(thread),
+            stop_signal: stop_thread,
+        }),
+        receiver: Some(receiver),
+        options: Some(VideoDecoderOptions {
+            codec: VideoCodec::H264,
+        }),
+    })
 }
 
 struct TrackInfo {
@@ -197,7 +232,7 @@ struct TrackInfo {
     timescale: u32,
 }
 
-fn reader_thread(
+fn video_reader_thread(
     mut sps_and_pps: Option<Bytes>,
     mut reader: Mp4Reader<File>,
     sender: Sender<EncodedChunk>,
@@ -253,24 +288,8 @@ fn reader_thread(
                     kind: EncodedChunkKind::Video(VideoCodec::H264),
                 };
 
-                let mut chunk = Some(chunk);
-                loop {
-                    match sender.send_timeout(chunk.take().unwrap(), Duration::from_millis(50)) {
-                        Ok(()) => {
-                            break;
-                        }
-                        Err(crossbeam_channel::SendTimeoutError::Timeout(not_sent_chunk)) => {
-                            chunk = Some(not_sent_chunk);
-                        }
-                        Err(crossbeam_channel::SendTimeoutError::Disconnected(_)) => {
-                            log::error!("channel disconnected unexpectedly. Terminating.");
-                            return;
-                        }
-                    }
-
-                    if stop_thread.load(std::sync::atomic::Ordering::Relaxed) {
-                        return;
-                    }
+                if let ControlFlow::Break(_) = send_chunk(chunk, &sender, &stop_thread) {
+                    break;
                 }
             }
             Err(e) => {
@@ -280,4 +299,118 @@ fn reader_thread(
         }
     }
 }
-// TODO: extract the thread closure
+
+#[derive(Default)]
+struct AudioReaderInfo {
+    thread: Option<JoinableThread>,
+    receiver: Option<Receiver<EncodedChunk>>,
+    options: Option<AudioDecoderOptions>,
+}
+
+fn spawn_audio_reader(input_path: &Path, input_id: InputId) -> Result<AudioReaderInfo, Mp4Error> {
+    let stop_thread = Arc::new(AtomicBool::new(false));
+    let stop_thread_clone = stop_thread.clone();
+    let input_file = std::fs::File::open(input_path)?;
+    let source =
+        symphonia::core::io::MediaSourceStream::new(Box::new(input_file), Default::default());
+    let mut reader =
+        symphonia::default::formats::IsoMp4Reader::try_new(source, &Default::default())?;
+
+    let track = reader
+        .tracks()
+        .iter()
+        .find(|t| t.codec_params.codec == symphonia::core::codecs::CODEC_TYPE_AAC)
+        .cloned();
+
+    let Some(track) = track else {
+        return Ok(Default::default());
+    };
+
+    let seek_to = symphonia::core::formats::SeekTo::Time {
+        time: track.codec_params.start_ts.into(),
+        track_id: Some(track.id),
+    };
+
+    reader.seek(symphonia::core::formats::SeekMode::Coarse, seek_to)?;
+
+    let (sender, receiver) = crossbeam_channel::bounded(50);
+    let cloned_track = track.clone();
+
+    let handle = std::thread::Builder::new()
+        .name(format!("mp4 audio reader {input_id}"))
+        .spawn(move || audio_thread(cloned_track, reader, sender, stop_thread_clone))
+        .unwrap();
+
+    Ok(AudioReaderInfo {
+        thread: Some(JoinableThread {
+            join_handle: Some(handle),
+            stop_signal: stop_thread,
+        }),
+        receiver: Some(receiver),
+        options: Some(AudioDecoderOptions::Aac(AacDecoderOptions {
+            asc: track.codec_params.extra_data.map(|t| t.into()),
+        })),
+    })
+}
+
+fn audio_thread(
+    track: symphonia::core::formats::Track,
+    mut reader: symphonia::default::formats::IsoMp4Reader,
+    sender: Sender<EncodedChunk>,
+    stop_thread: Arc<AtomicBool>,
+) {
+    while let Ok(packet) = reader.next_packet() {
+        if packet.track_id() != track.id {
+            continue;
+        }
+
+        let timebase = track
+            .codec_params
+            .time_base
+            .unwrap_or(symphonia::core::units::TimeBase {
+                numer: 1,
+                denom: 48000,
+            });
+
+        let pts = std::time::Duration::from_secs_f64(
+            packet.ts() as f64 * timebase.numer as f64 / timebase.denom as f64,
+        );
+
+        let chunk = EncodedChunk {
+            data: packet.data.into(),
+            pts,
+            dts: None,
+            kind: EncodedChunkKind::Audio(crate::pipeline::AudioCodec::Aac),
+        };
+
+        if let ControlFlow::Break(_) = send_chunk(chunk, &sender, &stop_thread) {
+            break;
+        }
+    }
+}
+
+fn send_chunk(
+    chunk: EncodedChunk,
+    sender: &Sender<EncodedChunk>,
+    stop_thread: &AtomicBool,
+) -> ControlFlow<(), ()> {
+    let mut chunk = Some(chunk);
+    loop {
+        match sender.send_timeout(chunk.take().unwrap(), Duration::from_millis(50)) {
+            Ok(()) => {
+                return ControlFlow::Continue(());
+            }
+            Err(crossbeam_channel::SendTimeoutError::Timeout(not_sent_chunk)) => {
+                chunk = Some(not_sent_chunk);
+            }
+            Err(crossbeam_channel::SendTimeoutError::Disconnected(_)) => {
+                log::error!("channel disconnected unexpectedly. Terminating.");
+                return ControlFlow::Break(());
+            }
+        }
+
+        if stop_thread.load(std::sync::atomic::Ordering::Relaxed) {
+            return ControlFlow::Break(());
+        }
+    }
+}

@@ -7,7 +7,7 @@ use rtp::{RtpReceiver, RtpReceiverOptions};
 
 use self::mp4::{Mp4, Mp4Options};
 
-use super::{structs::EncodedChunk, Port};
+use super::{decoder::DecoderOptions, structs::EncodedChunk, Port};
 
 pub mod mp4;
 pub mod rtp;
@@ -21,16 +21,24 @@ impl Input {
     pub fn new(
         options: InputOptions,
         download_dir: &Path,
-    ) -> Result<(Self, ChunksReceiver, Option<Port>), InputInitError> {
+    ) -> Result<(Self, ChunksReceiver, DecoderOptions, Option<Port>), InputInitError> {
         match options {
             InputOptions::Rtp(opts) => Ok(RtpReceiver::new(opts).map(
-                |(receiver, chunks_receiver, port)| {
-                    (Self::Rtp(receiver), chunks_receiver, Some(port))
+                |(receiver, chunks_receiver, decoder_options, port)| {
+                    (
+                        Self::Rtp(receiver),
+                        chunks_receiver,
+                        decoder_options,
+                        Some(port),
+                    )
                 },
             )?),
 
-            InputOptions::Mp4(opts) => Ok(Mp4::new(opts, download_dir)
-                .map(|(mp4, chunks_receiver)| (Self::Mp4(mp4), chunks_receiver, None))?),
+            InputOptions::Mp4(opts) => Ok(Mp4::new(opts, download_dir).map(
+                |(mp4, chunks_receiver, decoder_options)| {
+                    (Self::Mp4(mp4), chunks_receiver, decoder_options, None)
+                },
+            )?),
         }
     }
 }

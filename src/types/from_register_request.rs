@@ -29,13 +29,25 @@ impl TryFrom<register_request::RtpInputStream>
             video: video
                 .as_ref()
                 .map(|video| pipeline::input::rtp::VideoStream {
-                    codec: video.codec.clone().unwrap_or(VideoCodec::H264).into(),
+                    options: pipeline::decoder::VideoDecoderOptions {
+                        codec: video.clone().codec.unwrap_or(VideoCodec::H264).into(),
+                    },
                     payload_type: video.rtp_payload_type.unwrap_or(96),
                 }),
             audio: audio
                 .as_ref()
                 .map(|audio| pipeline::input::rtp::AudioStream {
-                    codec: audio.codec.clone().unwrap_or(AudioCodec::Opus).into(),
+                    options: match audio.clone().codec.unwrap_or(AudioCodec::Opus) {
+                        AudioCodec::Opus => pipeline::decoder::AudioDecoderOptions::Opus(
+                            pipeline::decoder::OpusDecoderOptions {
+                                sample_rate: audio.sample_rate,
+                                channels: audio.clone().channels.into(),
+                                forward_error_correction: audio
+                                    .forward_error_correction
+                                    .unwrap_or(false),
+                            },
+                        ),
+                    },
                     payload_type: audio.rtp_payload_type.unwrap_or(97),
                 }),
         };
@@ -47,27 +59,9 @@ impl TryFrom<register_request::RtpInputStream>
                 stream: rtp_stream,
             });
 
-        let decoder_options = pipeline::decoder::DecoderOptions {
-            video: video.map(|video| pipeline::decoder::VideoDecoderOptions {
-                codec: video.codec.unwrap_or(VideoCodec::H264).into(),
-            }),
-            audio: audio.map(|audio| match audio.codec.unwrap_or(AudioCodec::Opus) {
-                AudioCodec::Opus => pipeline::decoder::AudioDecoderOptions::Opus(
-                    pipeline::decoder::OpusDecoderOptions {
-                        sample_rate: audio.sample_rate,
-                        channels: audio.channels.into(),
-                        forward_error_correction: audio.forward_error_correction.unwrap_or(false),
-                    },
-                ),
-            }),
-        };
-
         Ok((
             input_id.into(),
-            pipeline::RegisterInputOptions {
-                input_options,
-                decoder_options,
-            },
+            pipeline::RegisterInputOptions { input_options },
         ))
     }
 }
@@ -105,12 +99,6 @@ impl TryFrom<register_request::Mp4>
                         source,
                     },
                 ),
-                decoder_options: pipeline::decoder::DecoderOptions {
-                    video: Some(pipeline::decoder::VideoDecoderOptions {
-                        codec: pipeline::VideoCodec::H264,
-                    }),
-                    audio: None,
-                },
             },
         ))
     }
