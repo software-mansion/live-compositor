@@ -66,6 +66,13 @@ const sidebars: SidebarsConfig = {
           description: 'Resources that need to be registered first before they can be used.',
           items: ['api/renderers/shader', 'api/renderers/image', 'api/renderers/web'],
         },
+        {
+          type: 'category',
+          label: 'Inputs',
+          collapsible: false,
+          description: 'Inputs to the rendering pipeline',
+          items: ['api/inputs/rtp', 'api/inputs/mp4'],
+        },
       ],
     },
   ],
