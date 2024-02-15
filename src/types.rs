@@ -69,6 +69,9 @@ pub struct InputId(Arc<str>);
 pub struct OutputScene {
     pub output_id: OutputId,
     pub scene: Component,
+    /// Timestamp relative to start request when this request 
+    /// should be applied.
+    pub schedule_at_ms: Option<f64>
 }
 
 impl Display for InputId {
