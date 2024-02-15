@@ -1,6 +1,6 @@
 use std::{env, path::PathBuf, str::FromStr, sync::OnceLock, time::Duration};
 
-use compositor_pipeline::queue::{QueueOptions, UnlimitedDuration};
+use compositor_pipeline::queue::QueueOptions;
 use compositor_render::{web_renderer::WebRendererInitOptions, Framerate};
 use log::error;
 
@@ -118,29 +118,11 @@ fn read_config() -> Result<Config, String> {
         .map(PathBuf::from)
         .unwrap_or(env::temp_dir());
 
-    let ahead_of_time_enable: bool =
+    let ahead_of_time_processing: bool =
         match env::var("LIVE_COMPOSITOR_AHEAD_OF_TIME_PROCESSING_ENABLE") {
             Ok(enable) => bool_env_from_str(&enable).unwrap_or(false),
             Err(_) => false,
         };
-
-    let ahead_of_time_buffer = match env::var("LIVE_COMPOSITOR_AHEAD_OF_TIME_PROCESSING_BUFFER_MS")
-    {
-        Ok(timeout_ms) => match timeout_ms.parse::<f64>() {
-            Ok(timeout_ms) => {
-                UnlimitedDuration::Finite(Duration::from_secs_f64(timeout_ms / 1000.0))
-            }
-            Err(_) => {
-                error!("Invalid value provided for \"LIVE_COMPOSITOR_AHEAD_OF_TIME_PROCESSING_BUFFER_MS\". Falling back to a default value (unlimited buffer).");
-                UnlimitedDuration::Infinite
-            }
-        },
-        Err(_) => UnlimitedDuration::Infinite,
-    };
-    let ahead_of_time_buffer = match ahead_of_time_enable {
-        true => ahead_of_time_buffer,
-        false => UnlimitedDuration::Finite(Duration::ZERO),
-    };
 
     Ok(Config {
         api_port,
@@ -150,7 +132,7 @@ fn read_config() -> Result<Config, String> {
             level: logger_level,
         },
         queue_options: QueueOptions {
-            ahead_of_time_processing_buffer: ahead_of_time_buffer,
+            ahead_of_time_processing,
             output_framerate: framerate,
         },
         stream_fallback_timeout,

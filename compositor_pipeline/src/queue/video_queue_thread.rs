@@ -9,7 +9,7 @@ use compositor_render::{FrameSet, InputId};
 use crossbeam_channel::{select, tick, Receiver, Sender};
 use log::warn;
 
-use super::{video_queue::VideoQueue, Queue, UnlimitedDuration};
+use super::{video_queue::VideoQueue, Queue};
 
 pub(super) struct VideoQueueThread {
     queue: Arc<Queue>,
@@ -88,10 +88,8 @@ impl VideoQueueThreadAfterStart {
     }
 
     fn should_push_pts(&self, pts: Duration, queue: &mut MutexGuard<VideoQueue>) -> bool {
-        if let UnlimitedDuration::Finite(duration) = self.queue.ahead_of_time_processing_buffer {
-            if self.queue_start_time.add(pts) > Instant::now() + duration {
-                return false;
-            }
+        if !self.queue.ahead_of_time_processing && self.queue_start_time.add(pts) > Instant::now() {
+            return false;
         }
         if queue.check_all_inputs_ready_for_pts(pts, self.queue_start_time) {
             return true;
@@ -124,23 +122,12 @@ impl VideoQueueThreadAfterStart {
         let mut internal_queue = self.queue.video_queue.lock().unwrap();
         let next_buffer_pts = self.get_next_output_buffer_pts();
 
-        warn!("next pts {:?}", next_buffer_pts);
         let should_push_next_frame = self.should_push_pts(next_buffer_pts, &mut internal_queue);
         if !should_push_next_frame {
             return None;
         }
 
         let frames_batch = internal_queue.get_frames_batch(next_buffer_pts, self.queue_start_time);
-        warn!(
-            "pushing {:?} {:?} {:?}",
-            frames_batch.pts,
-            frames_batch.frames.keys().collect::<Vec<_>>(),
-            frames_batch
-                .frames
-                .values()
-                .map(|frame| frame.pts)
-                .collect::<Vec<_>>()
-        );
         for input_id in frames_batch.frames.keys() {
             internal_queue.call_input_listeners(input_id)
         }

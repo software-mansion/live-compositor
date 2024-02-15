@@ -48,8 +48,8 @@ pub struct Queue {
     /// - When pipeline is started we want to start with a frame that was receive
     /// `buffer_duration` time ago.
     buffer_duration: Duration,
-    /// Defines how far ahead queue should process frames if all inputs are ready.
-    ahead_of_time_processing_buffer: UnlimitedDuration,
+    /// Define if queue should process frames if all inputs are ready.
+    ahead_of_time_processing: bool,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -61,14 +61,8 @@ pub struct InputOptions {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub enum UnlimitedDuration {
-    Infinite,
-    Finite(Duration),
-}
-
-#[derive(Debug, Clone, Copy)]
 pub struct QueueOptions {
-    pub ahead_of_time_processing_buffer: UnlimitedDuration,
+    pub ahead_of_time_processing: bool,
     pub output_framerate: Framerate,
 }
 
@@ -79,7 +73,7 @@ impl Queue {
         let queue = Arc::new(Queue {
             video_queue: Mutex::new(VideoQueue::new(video_queue_start_sender)),
             output_framerate: opts.output_framerate,
-            ahead_of_time_processing_buffer: opts.ahead_of_time_processing_buffer,
+            ahead_of_time_processing: opts.ahead_of_time_processing,
             buffer_duration: DEFAULT_BUFFER_DURATION,
             audio_queue: Mutex::new(AudioQueue::new(audio_queue_start_sender)),
             audio_chunk_duration: DEFAULT_AUDIO_CHUNK_DURATION,

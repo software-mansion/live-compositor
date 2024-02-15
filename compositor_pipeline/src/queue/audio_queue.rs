@@ -7,7 +7,6 @@ use std::{
 use super::{audio_queue_thread::AudioQueueStartEvent, utils::InputState, InputOptions};
 use compositor_render::{AudioSamplesBatch, AudioSamplesSet, InputId};
 use crossbeam_channel::{Receiver, Sender, TryRecvError};
-use log::error;
 
 #[derive(Debug)]
 pub struct AudioQueue {
@@ -131,11 +130,9 @@ impl AudioQueueInput {
             self.input_pts_from_queue_pts(start_pts, queue_start),
             self.input_pts_from_queue_pts(end_pts, queue_start),
         ) else {
-            error!("This should not happen. Unable to calculate PTS in input time frame.");
             return vec![];
         };
         let Some(input_start_time) = self.input_start_time() else {
-            error!("This should not happen. Unable to resolve input start time.");
             return vec![];
         };
 

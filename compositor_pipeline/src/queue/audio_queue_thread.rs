@@ -9,7 +9,7 @@ use compositor_render::AudioSamplesSet;
 use crossbeam_channel::{select, tick, Receiver, Sender};
 use log::warn;
 
-use super::{audio_queue::AudioQueue, Queue, UnlimitedDuration};
+use super::{audio_queue::AudioQueue, Queue};
 
 pub(super) struct AudioQueueStartEvent {
     pub(super) sender: Sender<AudioSamplesSet>,
@@ -90,10 +90,10 @@ impl AudioQueueThreadAfterStart {
         pts_range: (Duration, Duration),
         queue: &mut MutexGuard<AudioQueue>,
     ) -> bool {
-        if let UnlimitedDuration::Finite(duration) = self.queue.ahead_of_time_processing_buffer {
-            if self.queue_start_time.add(pts_range.0) > Instant::now() + duration {
-                return false;
-            }
+        if !self.queue.ahead_of_time_processing
+            && self.queue_start_time.add(pts_range.0) > Instant::now()
+        {
+            return false;
         }
         if queue.check_all_inputs_ready_for_pts(pts_range, self.queue_start_time) {
             return true;
