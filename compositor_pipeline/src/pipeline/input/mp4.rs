@@ -15,7 +15,9 @@ use mp4::Mp4Reader;
 use symphonia::core::formats::FormatReader;
 
 use crate::pipeline::{
-    decoder::{AacDecoderOptions, AudioDecoderOptions, DecoderOptions, VideoDecoderOptions},
+    decoder::{
+        AacDecoderOptions, AacTransport, AudioDecoderOptions, DecoderOptions, VideoDecoderOptions,
+    },
     structs::{EncodedChunk, EncodedChunkKind},
     VideoCodec,
 };
@@ -199,7 +201,7 @@ fn spawn_video_reader(input_path: &Path, input_id: InputId) -> Result<VideoReade
     let thread = std::thread::Builder::new()
         .name(format!("mp4 video reader {input_id}"))
         .spawn(move || {
-            video_reader_thread(
+            run_video_thread(
                 sps_and_pps_payload,
                 reader,
                 sender,
@@ -232,7 +234,7 @@ struct TrackInfo {
     timescale: u32,
 }
 
-fn video_reader_thread(
+fn run_video_thread(
     mut sps_and_pps: Option<Bytes>,
     mut reader: Mp4Reader<File>,
     sender: Sender<EncodedChunk>,
@@ -326,19 +328,43 @@ fn spawn_audio_reader(input_path: &Path, input_id: InputId) -> Result<AudioReade
         return Ok(Default::default());
     };
 
-    let seek_to = symphonia::core::formats::SeekTo::Time {
-        time: track.codec_params.start_ts.into(),
-        track_id: Some(track.id),
+    reader.seek(
+        symphonia::core::formats::SeekMode::Coarse,
+        symphonia::core::formats::SeekTo::Time {
+            time: track.codec_params.start_ts.into(),
+            track_id: Some(track.id),
+        },
+    )?;
+
+    let first_packet = loop {
+        let packet = reader.next_packet()?;
+
+        if packet.track_id() == track.id {
+            reader.seek(
+                symphonia::core::formats::SeekMode::Coarse,
+                symphonia::core::formats::SeekTo::Time {
+                    time: track.codec_params.start_ts.into(),
+                    track_id: Some(track.id),
+                },
+            )?;
+            break packet;
+        }
     };
 
-    reader.seek(symphonia::core::formats::SeekMode::Coarse, seek_to)?;
+    let transport = if first_packet.data[..4] == [b'A', b'D', b'I', b'F'] {
+        AacTransport::ADIF
+    } else if first_packet.data[0] == 0xff && first_packet.data[1] & 0xf0 == 0xf0 {
+        AacTransport::ADTS
+    } else {
+        AacTransport::RawAac
+    };
 
     let (sender, receiver) = crossbeam_channel::bounded(50);
     let cloned_track = track.clone();
 
     let handle = std::thread::Builder::new()
         .name(format!("mp4 audio reader {input_id}"))
-        .spawn(move || audio_thread(cloned_track, reader, sender, stop_thread_clone))
+        .spawn(move || run_audio_thread(cloned_track, reader, sender, stop_thread_clone))
         .unwrap();
 
     Ok(AudioReaderInfo {
@@ -348,12 +374,13 @@ fn spawn_audio_reader(input_path: &Path, input_id: InputId) -> Result<AudioReade
         }),
         receiver: Some(receiver),
         options: Some(AudioDecoderOptions::Aac(AacDecoderOptions {
+            transport,
             asc: track.codec_params.extra_data.map(|t| t.into()),
         })),
     })
 }
 
-fn audio_thread(
+fn run_audio_thread(
     track: symphonia::core::formats::Track,
     mut reader: symphonia::default::formats::IsoMp4Reader,
     sender: Sender<EncodedChunk>,

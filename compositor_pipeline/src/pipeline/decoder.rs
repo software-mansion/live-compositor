@@ -156,7 +156,15 @@ pub struct DecodedDataReceiver {
     pub audio: Option<Receiver<AudioSamplesBatch>>,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum AacTransport {
+    RawAac,
+    ADTS,
+    ADIF,
+}
+
 #[derive(Debug, Clone)]
 pub struct AacDecoderOptions {
+    pub transport: AacTransport,
     pub asc: Option<Bytes>,
 }
