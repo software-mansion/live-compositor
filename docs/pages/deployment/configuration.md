@@ -58,7 +58,27 @@ In this directory, an instance of the compositor will create a subdirectory name
 
 Enable web rendering capabilities. With this option disabled, you can not use [`WebView` components](../api/components/WebView) or register [`WebRenderer` instances](../api/renderers/web).
 
+Defaults to `false`. Valid values: `true`, `false`, `1`, `0`.
+
 ### `LIVE_COMPOSITOR_WEB_RENDERER_GPU_ENABLE`
 
 Enable GPU support inside the embedded Chromium instance.
 
+### `LIVE_COMPOSITOR_AHEAD_OF_TIME_PROCESSING_ENABLE`
+
+If enabled, the LiveCompositor server will try to generate output frames ahead of time if all inputs are available.
+
+When to enable this option:
+- If you want to process input streams faster than in real time.
+
+When to keep this option disabled:
+- If you are only using inputs like MP4 or no inputs and don't want to process everything all at once.
+- If you are sending update scene requests without a timestamp. With an ahead of time processing, you can't always control how much ahead you are when sending the update, so the scene might be updated later than you intended.
+
+
+Defaults to `false`. Valid values: `true`, `false`, `1`, `0`.
+
+### `LIVE_COMPOSITOR_AHEAD_OF_TIME_PROCESSING_BUFFER_MS`
+
+Defines how far ahead of the real-time clock frames should be processed. By default, this buffer is unlimited.
+If `LIVE_COMPOSITOR_AHEAD_OF_TIME_PROCESSING_ENABLE` is disabled, then this option does not do anything.

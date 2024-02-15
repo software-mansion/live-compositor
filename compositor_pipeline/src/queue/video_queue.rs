@@ -89,7 +89,6 @@ impl VideoQueue {
         queue_start: Instant,
     ) -> bool {
         return self.inputs.values_mut().any(|input| {
-            // TODO: make sure its correct
             input.required
                 && input
                     .input_pts_from_queue_pts(next_buffer_pts, queue_start)
@@ -151,7 +150,6 @@ impl VideoQueueInput {
     fn get_frame(&mut self, buffer_pts: Duration, queue_start: Instant) -> Option<Frame> {
         self.drop_old_frames(buffer_pts, queue_start);
         let Some(input_start_time) = self.input_start_time() else {
-            // TODO
             return None;
         };
         match self.offset {

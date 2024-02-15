@@ -65,7 +65,6 @@ impl AudioQueue {
         queue_start: Instant,
     ) -> bool {
         return self.inputs.values_mut().any(|input| {
-            // TODO: make sure its correct
             input.required
                 && input
                     .input_pts_from_queue_pts(queue_pts, queue_start)
