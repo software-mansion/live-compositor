@@ -1,6 +1,6 @@
 use std::sync::{atomic::AtomicBool, Arc};
 
-use bytes::BytesMut;
+use bytes::{Bytes, BytesMut};
 use crossbeam_channel::Sender;
 
 pub(super) fn run_udp_receiver(
@@ -28,7 +28,7 @@ pub(super) fn run_udp_receiver(
         };
 
         packets_tx
-            .send(bytes::Bytes::copy_from_slice(&buffer[..received_bytes]))
+            .send(Bytes::copy_from_slice(&buffer[..received_bytes]))
             .unwrap();
     }
 }

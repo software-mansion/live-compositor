@@ -13,6 +13,7 @@ use video_compositor::config::config;
 use serde::Serialize;
 
 /// The SDP file will describe an RTP session on localhost with H264 encoding.
+#[allow(dead_code)]
 pub fn write_example_sdp_file(ip: &str, port: u16) -> Result<String> {
     let sdp_filepath = PathBuf::from(format!("/tmp/example_sdp_input_{}.sdp", port));
     let mut file = File::create(&sdp_filepath)?;

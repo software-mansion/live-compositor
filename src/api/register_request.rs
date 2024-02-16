@@ -1,10 +1,7 @@
-use compositor_pipeline::pipeline::{self, Port, RegisterInputOptions};
+use compositor_pipeline::pipeline::{Port, RegisterInputOptions};
 use compositor_render::InputId;
 
-use crate::{
-    error::ApiError,
-    types::{RegisterOutputRequest, RegisterRequest},
-};
+use crate::{error::ApiError, types::RegisterRequest};
 
 use super::{Api, ResponseHandler};
 
@@ -35,7 +32,10 @@ pub fn handle_register_request(
             let (input_id, register_options) = mp4.try_into()?;
             handle_register_input(api, input_id, register_options)
         }
-        RegisterRequest::OutputStream(output_stream) => handle_register_output(api, output_stream),
+        RegisterRequest::OutputStream(output_options) => {
+            api.pipeline().register_output(output_options.try_into()?)?;
+            Ok(ResponseHandler::Ok)
+        }
         RegisterRequest::Shader(spec) => {
             let spec = spec.try_into()?;
             api.pipeline().register_renderer(spec)?;
@@ -52,35 +52,4 @@ pub fn handle_register_request(
             Ok(ResponseHandler::Ok)
         }
     }
-}
-
-fn handle_register_output(
-    api: &mut Api,
-    request: RegisterOutputRequest,
-) -> Result<ResponseHandler, ApiError> {
-    let RegisterOutputRequest {
-        output_id,
-        port,
-        ip,
-        ..
-    } = request.clone();
-
-    api.pipeline().with_outputs(|mut iter| {
-        if let Some((node_id, _)) = iter.find(|(_, output)| match &output.output {
-            pipeline::output::Output::Rtp(rtp) => rtp.port == port && rtp.ip == ip,
-        }) {
-            return Err(ApiError::new(
-                "PORT_AND_IP_ALREADY_IN_USE",
-                format!("Failed to register output stream \"{output_id}\". Combination of port {port} and IP {ip} is already used by node \"{node_id}\""),
-                tiny_http::StatusCode(400)
-            ));
-        };
-        Ok(())
-    })?;
-
-    api.pipeline
-        .lock()
-        .unwrap()
-        .register_output(request.try_into()?)?;
-    Ok(ResponseHandler::Ok)
 }

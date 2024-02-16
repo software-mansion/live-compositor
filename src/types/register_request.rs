@@ -109,7 +109,7 @@ pub struct InputRtpAudioOptions {
 pub enum TransportProtocol {
     /// UDP protocol.
     Udp,
-    /// TCP protocol where LiveCompositor is a server side of the connection.
+    /// TCP protocol where LiveCompositor is the server side of the connection.
     TcpServer,
 }
 
@@ -160,8 +160,9 @@ pub struct OutputAudioOptions {
 #[serde(deny_unknown_fields)]
 pub struct RegisterOutputRequest {
     pub output_id: OutputId,
-    pub port: u16,
-    pub ip: Arc<str>,
+    pub port: Port,
+    pub ip: Option<Arc<str>>,
+    pub transport_protocol: Option<TransportProtocol>,
     pub video: Option<OutputVideoOptions>,
     pub audio: Option<OutputAudioOptions>,
 }

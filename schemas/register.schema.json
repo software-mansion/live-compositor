@@ -140,7 +140,6 @@
       "type": "object",
       "required": [
         "entity_type",
-        "ip",
         "output_id",
         "port"
       ],
@@ -155,12 +154,23 @@
           "$ref": "#/definitions/OutputId"
         },
         "port": {
-          "type": "integer",
-          "format": "uint16",
-          "minimum": 0.0
+          "$ref": "#/definitions/Port"
         },
         "ip": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "transport_protocol": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/TransportProtocol"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "video": {
           "anyOf": [
@@ -433,7 +443,7 @@
           ]
         },
         {
-          "description": "TCP protocol where LiveCompositor is a server side of the connection.",
+          "description": "TCP protocol where LiveCompositor is the server side of the connection.",
           "type": "string",
           "enum": [
             "tcp_server"

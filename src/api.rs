@@ -64,16 +64,12 @@ pub enum UnregisterRequest {
 #[serde(tag = "query", rename_all = "snake_case")]
 pub enum QueryRequest {
     WaitForNextFrame { input_id: InputId },
-    Inputs,
-    Outputs,
 }
 
 #[derive(Serialize, Debug)]
 #[serde(untagged)]
 pub enum Response {
     Ok {},
-    Inputs { inputs: Vec<InputInfo> },
-    Outputs { outputs: Vec<OutputInfo> },
     RegisteredPort { port: u16 },
 }
 
@@ -156,36 +152,6 @@ impl Api {
                     }),
                 );
                 Ok(ResponseHandler::DeferredResponse(receiver))
-            }
-            QueryRequest::Inputs => {
-                let inputs = self
-                    .pipeline()
-                    .inputs()
-                    .map(|(id, node)| match node.input {
-                        pipeline::input::Input::Rtp(ref rtp) => InputInfo::Rtp {
-                            id: id.clone().into(),
-                            port: rtp.port,
-                        },
-
-                        pipeline::input::Input::Mp4(ref mp4) => InputInfo::Mp4 {
-                            id: mp4.input_id.clone().into(),
-                        },
-                    })
-                    .collect();
-                Ok(ResponseHandler::Response(Response::Inputs { inputs }))
-            }
-            QueryRequest::Outputs => {
-                let outputs = self.pipeline().with_outputs(|iter| {
-                    iter.map(|(id, output)| match output.output {
-                        pipeline::output::Output::Rtp(ref rtp) => OutputInfo {
-                            id: id.clone().into(),
-                            port: rtp.port,
-                            ip: rtp.ip.clone(),
-                        },
-                    })
-                    .collect()
-                });
-                Ok(ResponseHandler::Response(Response::Outputs { outputs }))
             }
         }
     }
