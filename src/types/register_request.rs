@@ -28,6 +28,8 @@ pub struct RtpInputStream {
     pub input_id: InputId,
     /// UDP port or port range on which the compositor should listen for the stream.
     pub port: Port,
+    /// Transport protocol.
+    pub transport_protocol: Option<TransportProtocol>,
     /// Parameters of a video source included in the RTP stream.
     pub video: Option<Video>,
     /// Parameters of an audio source included in the RTP stream.
@@ -103,7 +105,16 @@ pub struct Audio {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-#[serde(deny_unknown_fields, rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum TransportProtocol {
+    /// UDP protocol.
+    Udp,
+    /// TCP protocol where LiveCompositor is a server side of the connection.
+    TcpServer,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+#[serde(rename_all = "snake_case")]
 pub enum AudioChannels {
     /// Mono audio (single channel).
     Mono,

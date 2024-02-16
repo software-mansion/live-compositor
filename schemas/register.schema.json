@@ -33,6 +33,17 @@
             }
           ]
         },
+        "transport_protocol": {
+          "description": "Transport protocol.",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/TransportProtocol"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "video": {
           "description": "Parameters of a video source included in the RTP stream.",
           "anyOf": [
@@ -407,6 +418,24 @@
           "type": "integer",
           "format": "uint16",
           "minimum": 0.0
+        }
+      ]
+    },
+    "TransportProtocol": {
+      "oneOf": [
+        {
+          "description": "UDP protocol.",
+          "type": "string",
+          "enum": [
+            "udp"
+          ]
+        },
+        {
+          "description": "TCP protocol where LiveCompositor is a server side of the connection.",
+          "type": "string",
+          "enum": [
+            "tcp_server"
+          ]
         }
       ]
     },
