@@ -1,8 +1,7 @@
 mod audio_queue;
-mod audio_queue_thread;
+mod queue_thread;
 mod utils;
 mod video_queue;
-mod video_queue_thread;
 
 use std::{
     sync::{Arc, Mutex},
@@ -16,9 +15,8 @@ use crate::pipeline::decoder::DecodedDataReceiver;
 
 use self::{
     audio_queue::AudioQueue,
-    audio_queue_thread::{AudioQueueStartEvent, AudioQueueThread},
+    queue_thread::{QueueStartEvent, QueueThread},
     video_queue::VideoQueue,
-    video_queue_thread::{VideoQueueStartEvent, VideoQueueThread},
 };
 
 const DEFAULT_BUFFER_DURATION: Duration = Duration::from_millis(16 * 5); // about 5 frames at 60 fps
@@ -43,13 +41,10 @@ pub struct Queue {
     /// Duration of queue output samples set.
     audio_chunk_duration: Duration,
 
-    /// - When new input is connected and sends the first frame we want to wait
-    /// buffer_duration before sending first frame of that input.
-    /// - When pipeline is started we want to start with a frame that was receive
-    /// `buffer_duration` time ago.
-    buffer_duration: Duration,
     /// Define if queue should process frames if all inputs are ready.
     ahead_of_time_processing: bool,
+
+    start_sender: Mutex<Option<Sender<QueueStartEvent>>>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -68,19 +63,18 @@ pub struct QueueOptions {
 
 impl Queue {
     pub fn new(opts: QueueOptions) -> Arc<Self> {
-        let (video_queue_start_sender, video_queue_start_receiver) = bounded(0);
-        let (audio_queue_start_sender, audio_queue_start_receiver) = bounded(0);
+        let (queue_start_sender, queue_start_receiver) = bounded(0);
+        let buffer_duration = DEFAULT_BUFFER_DURATION;
         let queue = Arc::new(Queue {
-            video_queue: Mutex::new(VideoQueue::new(video_queue_start_sender)),
+            video_queue: Mutex::new(VideoQueue::new(buffer_duration)),
             output_framerate: opts.output_framerate,
             ahead_of_time_processing: opts.ahead_of_time_processing,
-            buffer_duration: DEFAULT_BUFFER_DURATION,
-            audio_queue: Mutex::new(AudioQueue::new(audio_queue_start_sender)),
+            audio_queue: Mutex::new(AudioQueue::new(buffer_duration)),
             audio_chunk_duration: DEFAULT_AUDIO_CHUNK_DURATION,
+            start_sender: Mutex::new(Some(queue_start_sender)),
         });
 
-        VideoQueueThread::new(queue.clone(), video_queue_start_receiver).spawn();
-        AudioQueueThread::new(queue.clone(), audio_queue_start_receiver).spawn();
+        QueueThread::new(queue.clone(), queue_start_receiver).spawn();
 
         queue
     }
@@ -110,23 +104,12 @@ impl Queue {
         video_sender: Sender<FrameSet<InputId>>,
         audio_sender: Sender<AudioSamplesSet>,
     ) {
-        let start_time = Instant::now();
-        let sender = self.video_queue.lock().unwrap().take_start_sender();
-        if let Some(sender) = sender {
+        if let Some(sender) = self.start_sender.lock().unwrap().take() {
             sender
-                .send(VideoQueueStartEvent {
-                    sender: video_sender,
-                    start_time,
-                })
-                .unwrap()
-        }
-
-        let sender = self.audio_queue.lock().unwrap().take_start_sender();
-        if let Some(sender) = sender {
-            sender
-                .send(AudioQueueStartEvent {
-                    sender: audio_sender,
-                    start_time,
+                .send(QueueStartEvent {
+                    audio_sender,
+                    video_sender,
+                    start_time: Instant::now(),
                 })
                 .unwrap()
         }

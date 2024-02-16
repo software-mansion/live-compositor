@@ -4,21 +4,21 @@ use std::{
     vec,
 };
 
-use super::{audio_queue_thread::AudioQueueStartEvent, utils::InputState, InputOptions};
+use super::{utils::InputProcessor, InputOptions};
 use compositor_render::{AudioSamplesBatch, AudioSamplesSet, InputId};
-use crossbeam_channel::{Receiver, Sender, TryRecvError};
+use crossbeam_channel::{Receiver, TryRecvError};
 
 #[derive(Debug)]
 pub struct AudioQueue {
     inputs: HashMap<InputId, AudioQueueInput>,
-    start_sender: Option<Sender<AudioQueueStartEvent>>,
+    buffer_duration: Duration,
 }
 
 impl AudioQueue {
-    pub fn new(start_sender: Sender<AudioQueueStartEvent>) -> Self {
+    pub fn new(buffer_duration: Duration) -> Self {
         AudioQueue {
             inputs: HashMap::new(),
-            start_sender: Some(start_sender),
+            buffer_duration,
         }
     }
 
@@ -33,7 +33,7 @@ impl AudioQueue {
             AudioQueueInput {
                 queue: VecDeque::new(),
                 receiver,
-                input_state: InputState::WaitingForStart,
+                input_samples_processor: InputProcessor::new(self.buffer_duration),
                 required: opts.required,
                 offset: opts.offset,
             },
@@ -89,10 +89,6 @@ impl AudioQueue {
             length: end_pts.saturating_sub(start_pts),
         }
     }
-
-    pub fn take_start_sender(&mut self) -> Option<Sender<AudioQueueStartEvent>> {
-        std::mem::take(&mut self.start_sender)
-    }
 }
 
 #[derive(Debug)]
@@ -104,7 +100,7 @@ struct AudioQueueInput {
     receiver: Receiver<AudioSamplesBatch>,
     /// Initial buffering + resets PTS to values starting with 0. All
     /// frames from receiver should be processed by this element.
-    input_state: InputState<AudioSamplesBatch>,
+    input_samples_processor: InputProcessor<AudioSamplesBatch>,
     /// If stream is required the queue should wait for frames. For optional
     /// inputs a queue will wait only as long as a buffer allows.
     required: bool,
@@ -246,7 +242,7 @@ impl AudioQueueInput {
     /// when input switched from buffering state to ready.
     fn input_start_time(&mut self) -> Option<Instant> {
         loop {
-            if let InputState::Ready { start_time, .. } = self.input_state {
+            if let Some(start_time) = self.input_samples_processor.start_time() {
                 return Some(start_time);
             }
 
@@ -261,7 +257,7 @@ impl AudioQueueInput {
         let original_pts = samples_batch.start_pts;
 
         let mut batches = self
-            .input_state
+            .input_samples_processor
             .process_new_chunk(samples_batch, original_pts);
         self.queue.append(&mut batches);
 

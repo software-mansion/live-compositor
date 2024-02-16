@@ -6,8 +6,6 @@ use std::{
 
 use compositor_render::{AudioSamplesBatch, Frame};
 
-use super::DEFAULT_BUFFER_DURATION;
-
 /// InputState handles initial processing for frames/samples that are being
 /// queued. For each received frame/sample batch, the `process_new_chunk`
 /// method should be called and only elements returned should be used
@@ -22,6 +20,12 @@ use super::DEFAULT_BUFFER_DURATION;
 ///    to the `Ready` state.
 /// 5. In `Ready` state `process_new_chunk` is immediately returning frame or sample
 ///    batch passed with arguments with modified pts.
+#[derive(Debug)]
+pub(super) struct InputProcessor<Payload: ApplyOffsetExt> {
+    buffer_duration: Duration,
+    state: InputState<Payload>,
+}
+
 #[derive(Debug)]
 pub(super) enum InputState<Payload: ApplyOffsetExt> {
     WaitingForStart,
@@ -38,15 +42,29 @@ pub(super) enum InputState<Payload: ApplyOffsetExt> {
     },
 }
 
-impl<Payload: ApplyOffsetExt> InputState<Payload> {
+impl<Payload: ApplyOffsetExt> InputProcessor<Payload> {
+    pub(super) fn new(buffer_duration: Duration) -> Self {
+        Self {
+            buffer_duration,
+            state: InputState::WaitingForStart,
+        }
+    }
+
+    pub(super) fn start_time(&self) -> Option<Instant> {
+        match self.state {
+            InputState::Ready { start_time, .. } => Some(start_time),
+            _ => None,
+        }
+    }
+
     pub(super) fn process_new_chunk(
         &mut self,
         mut payload: Payload,
         pts: Duration,
     ) -> VecDeque<Payload> {
-        match self {
+        match self.state {
             InputState::WaitingForStart => {
-                *self = InputState::Buffering {
+                self.state = InputState::Buffering {
                     buffer: vec![(payload, pts)],
                 };
                 VecDeque::new()
@@ -57,7 +75,7 @@ impl<Payload: ApplyOffsetExt> InputState<Payload> {
                 let last_pts = buffer.last().map(|(_, p)| *p).unwrap_or(Duration::ZERO);
                 let buffer_duration = last_pts.saturating_sub(first_pts);
 
-                if buffer_duration < DEFAULT_BUFFER_DURATION {
+                if buffer_duration < self.buffer_duration {
                     VecDeque::new()
                 } else {
                     let offset = first_pts;
@@ -69,7 +87,7 @@ impl<Payload: ApplyOffsetExt> InputState<Payload> {
                             buffer
                         })
                         .collect();
-                    *self = InputState::Ready {
+                    self.state = InputState::Ready {
                         offset,
                         start_time: Instant::now(),
                     };
@@ -77,7 +95,7 @@ impl<Payload: ApplyOffsetExt> InputState<Payload> {
                 }
             }
             InputState::Ready { offset, .. } => {
-                payload.apply_offset(*offset);
+                payload.apply_offset(offset);
                 VecDeque::from([payload])
             }
         }

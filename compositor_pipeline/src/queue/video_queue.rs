@@ -2,7 +2,6 @@ use compositor_render::Frame;
 use compositor_render::FrameSet;
 use compositor_render::InputId;
 use crossbeam_channel::Receiver;
-use crossbeam_channel::Sender;
 use crossbeam_channel::TryRecvError;
 
 use std::collections::HashMap;
@@ -11,20 +10,19 @@ use std::mem;
 use std::time::Duration;
 use std::time::Instant;
 
-use super::utils::InputState;
-use super::video_queue_thread::VideoQueueStartEvent;
+use super::utils::InputProcessor;
 use super::InputOptions;
 
 pub struct VideoQueue {
     inputs: HashMap<InputId, VideoQueueInput>,
-    start_sender: Option<Sender<VideoQueueStartEvent>>,
+    buffer_duration: Duration,
 }
 
 impl VideoQueue {
-    pub fn new(start_sender: Sender<VideoQueueStartEvent>) -> Self {
+    pub fn new(buffer_duration: Duration) -> Self {
         VideoQueue {
             inputs: HashMap::new(),
-            start_sender: Some(start_sender),
+            buffer_duration,
         }
     }
 
@@ -35,7 +33,7 @@ impl VideoQueue {
                 queue: VecDeque::new(),
                 receiver,
                 listeners: vec![],
-                input_state: InputState::WaitingForStart,
+                input_frames_processor: InputProcessor::new(self.buffer_duration),
                 required: opts.required,
                 offset: opts.offset,
             },
@@ -119,10 +117,6 @@ impl VideoQueue {
             }
         }
     }
-
-    pub(super) fn take_start_sender(&mut self) -> Option<Sender<VideoQueueStartEvent>> {
-        std::mem::take(&mut self.start_sender)
-    }
 }
 
 pub struct VideoQueueInput {
@@ -133,7 +127,7 @@ pub struct VideoQueueInput {
     receiver: Receiver<Frame>,
     /// Initial buffering + resets PTS to values starting with 0. All
     /// frames from receiver should be processed by this element.
-    input_state: InputState<Frame>,
+    input_frames_processor: InputProcessor<Frame>,
     /// If stream is required the queue should wait for frames. For optional
     /// inputs a queue will wait only as long as a buffer allows.
     required: bool,
@@ -276,7 +270,7 @@ impl VideoQueueInput {
     /// when input switched from buffering state to ready.
     fn input_start_time(&mut self) -> Option<Instant> {
         loop {
-            if let InputState::Ready { start_time, .. } = self.input_state {
+            if let Some(start_time) = self.input_frames_processor.start_time() {
                 return Some(start_time);
             }
 
@@ -290,7 +284,9 @@ impl VideoQueueInput {
         let frame = self.receiver.try_recv()?;
         let original_pts = frame.pts;
 
-        let mut frames = self.input_state.process_new_chunk(frame, original_pts);
+        let mut frames = self
+            .input_frames_processor
+            .process_new_chunk(frame, original_pts);
         self.queue.append(&mut frames);
 
         Ok(())
