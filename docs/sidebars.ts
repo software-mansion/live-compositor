@@ -70,7 +70,7 @@ const sidebars: SidebarsConfig = {
           type: 'category',
           label: 'Inputs',
           collapsible: false,
-          description: 'Inputs to the rendering pipeline',
+          description: 'Elements that deliver media from external sources.',
           items: ['api/inputs/rtp', 'api/inputs/mp4'],
         },
       ],
