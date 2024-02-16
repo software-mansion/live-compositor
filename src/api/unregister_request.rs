@@ -7,29 +7,33 @@ use crate::error::ApiError;
 
 use super::{Api, ResponseHandler, UnregisterRequest};
 
-pub fn handle_register_request(
+pub fn handle_unregister_request(
     api: &mut Api,
     request: UnregisterRequest,
 ) -> Result<ResponseHandler, ApiError> {
     match request {
         UnregisterRequest::InputStream {
             input_id,
-            schedule_at_ms,
+            schedule_time_ms,
         } => {
-            match schedule_at_ms {
-                Some(schedule_at_ms) => {
+            match schedule_time_ms {
+                Some(schedule_time_ms) => {
                     let pipeline = api.pipeline.clone();
-                    let schedule_at = Duration::from_secs_f64(schedule_at_ms / 1000.0);
-                    api.pipeline().queue().schedule_event(schedule_at, move || {
-                        if let Err(err) =
-                            pipeline.lock().unwrap().unregister_input(&input_id.into())
-                        {
-                            error!(
-                                "Error while running scheduled input unregister: {}",
-                                ErrorStack::new(&err).into_string()
-                            )
-                        }
-                    });
+                    let schedule_time = Duration::from_secs_f64(schedule_time_ms / 1000.0);
+                    api.pipeline().queue().schedule_event(
+                        schedule_time,
+                        Box::new(move || {
+                            if let Err(err) =
+                                pipeline.lock().unwrap().unregister_input(&input_id.into())
+                            {
+                                error!(
+                                    "Error while running scheduled input unregister for pts {}ms: {}",
+                                    schedule_time.as_millis(),
+                                    ErrorStack::new(&err).into_string()
+                                )
+                            }
+                        }),
+                    );
                 }
                 None => {
                     api.pipeline().unregister_input(&input_id.into())?;
@@ -39,24 +43,28 @@ pub fn handle_register_request(
         }
         UnregisterRequest::OutputStream {
             output_id,
-            schedule_at_ms,
+            schedule_time_ms,
         } => {
-            match schedule_at_ms {
-                Some(schedule_at_ms) => {
+            match schedule_time_ms {
+                Some(schedule_time_ms) => {
                     let pipeline = api.pipeline.clone();
-                    let schedule_at = Duration::from_secs_f64(schedule_at_ms / 1000.0);
-                    api.pipeline().queue().schedule_event(schedule_at, move || {
-                        if let Err(err) = pipeline
-                            .lock()
-                            .unwrap()
-                            .unregister_output(&output_id.into())
-                        {
-                            error!(
-                                "Error while running scheduled output unregister: {}",
-                                ErrorStack::new(&err).into_string()
-                            )
-                        }
-                    });
+                    let schedule_time = Duration::from_secs_f64(schedule_time_ms / 1000.0);
+                    api.pipeline().queue().schedule_event(
+                        schedule_time,
+                        Box::new(move || {
+                            if let Err(err) = pipeline
+                                .lock()
+                                .unwrap()
+                                .unregister_output(&output_id.into())
+                            {
+                                error!(
+                                    "Error while running scheduled output unregister for pts {}ms: {}",
+                                    schedule_time.as_millis(),
+                                    ErrorStack::new(&err).into_string()
+                                )
+                            }
+                        }),
+                    );
                 }
                 None => {
                     api.pipeline().unregister_output(&output_id.into())?;

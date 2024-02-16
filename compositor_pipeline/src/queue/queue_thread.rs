@@ -1,4 +1,5 @@
 use std::{
+    collections::BinaryHeap,
     ops::Add,
     sync::{Arc, MutexGuard},
     thread::{self, JoinHandle},
@@ -9,11 +10,13 @@ use compositor_render::{AudioSamplesSet, FrameSet, InputId};
 use crossbeam_channel::{select, tick, Receiver, Sender};
 use log::warn;
 
-use super::{audio_queue::AudioQueue, video_queue::VideoQueue, Queue};
+use super::{audio_queue::AudioQueue, video_queue::VideoQueue, Queue, ScheduledEvent};
 
 pub(super) struct QueueThread {
     queue: Arc<Queue>,
     start_receiver: Receiver<QueueStartEvent>,
+    scheduled_event_receiver: Receiver<ScheduledEvent>,
+    scheduled_events: BinaryHeap<ScheduledEvent>,
 }
 
 pub(super) struct QueueStartEvent {
@@ -23,10 +26,16 @@ pub(super) struct QueueStartEvent {
 }
 
 impl QueueThread {
-    pub fn new(queue: Arc<Queue>, start_receiver: Receiver<QueueStartEvent>) -> Self {
+    pub fn new(
+        queue: Arc<Queue>,
+        start_receiver: Receiver<QueueStartEvent>,
+        scheduled_event_receiver: Receiver<ScheduledEvent>,
+    ) -> Self {
         Self {
             queue,
             start_receiver,
+            scheduled_event_receiver,
+            scheduled_events: BinaryHeap::new(),
         }
     }
 
@@ -44,6 +53,9 @@ impl QueueThread {
                 recv(ticker) -> _ => {
                     self.cleanup_old_frames()
                 },
+                recv(self.scheduled_event_receiver) -> event => {
+                    self.scheduled_events.push(event.unwrap())
+                }
                 recv(self.start_receiver) -> start_event => {
                     QueueThreadAfterStart::new(self, start_event.unwrap()).run();
                     return;
@@ -70,6 +82,8 @@ impl QueueThread {
 struct QueueThreadAfterStart {
     audio_processor: AudioQueueProcessor,
     video_processor: VideoQueueProcessor,
+    scheduled_event_receiver: Receiver<ScheduledEvent>,
+    scheduled_events: BinaryHeap<ScheduledEvent>,
 }
 
 impl QueueThreadAfterStart {
@@ -87,6 +101,8 @@ impl QueueThreadAfterStart {
                 sent_batches_counter: 0,
                 queue_start_time: start_event.start_time,
             },
+            scheduled_event_receiver: queue_thread.scheduled_event_receiver,
+            scheduled_events: queue_thread.scheduled_events,
         }
     }
 
@@ -94,11 +110,25 @@ impl QueueThreadAfterStart {
         let ticker = tick(Duration::from_millis(10));
 
         loop {
-            ticker.recv().unwrap();
+            select! {
+                recv(ticker) -> _ => (),
+                recv(self.scheduled_event_receiver) -> event => {
+                    self.scheduled_events.push(event.unwrap());
+                    continue;
+                }
+            };
             loop {
                 let audio_pts_range = self.audio_processor.next_buffer_pts_range();
                 let video_pts = self.video_processor.next_buffer_pts();
-                if video_pts > audio_pts_range.0 {
+                let event_pts = self.scheduled_events.peek().map(|e| e.pts);
+
+                if let Some(true) = event_pts.map(|event_pts: Duration| {
+                    event_pts < video_pts && event_pts < audio_pts_range.0
+                }) {
+                    if let Some(ScheduledEvent { callback, .. }) = self.scheduled_events.pop() {
+                        callback()
+                    }
+                } else if video_pts > audio_pts_range.0 {
                     if self
                         .audio_processor
                         .try_push_next_sample_batch(audio_pts_range)

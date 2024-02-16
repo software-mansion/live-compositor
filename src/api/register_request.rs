@@ -12,20 +12,20 @@ fn handle_register_input(
     api: &mut Api,
     input_id: InputId,
     register_options: RegisterInputOptions,
-) -> Result<Option<ResponseHandler>, ApiError> {
-    match api.pipeline.register_input(input_id, register_options)? {
-        Some(Port(port)) => Ok(Some(ResponseHandler::Response(
-            super::Response::RegisteredPort { port },
-        ))),
+) -> Result<ResponseHandler, ApiError> {
+    match api.pipeline().register_input(input_id, register_options)? {
+        Some(Port(port)) => Ok(ResponseHandler::Response(super::Response::RegisteredPort {
+            port,
+        })),
 
-        None => Ok(Some(ResponseHandler::Ok)),
+        None => Ok(ResponseHandler::Ok),
     }
 }
 
 pub fn handle_register_request(
     api: &mut Api,
     request: RegisterRequest,
-) -> Result<Option<ResponseHandler>, ApiError> {
+) -> Result<ResponseHandler, ApiError> {
     match request {
         RegisterRequest::RtpInputStream(rtp) => {
             let (input_id, register_options) = rtp.try_into()?;
@@ -37,22 +37,22 @@ pub fn handle_register_request(
         }
         RegisterRequest::OutputStream(output_stream) => {
             register_output(api, output_stream)?;
-            Ok(None)
+            Ok(ResponseHandler::Ok)
         }
         RegisterRequest::Shader(spec) => {
             let spec = spec.try_into()?;
-            api.pipeline.register_renderer(spec)?;
-            Ok(None)
+            api.pipeline().register_renderer(spec)?;
+            Ok(ResponseHandler::Ok)
         }
         RegisterRequest::WebRenderer(spec) => {
             let spec = spec.try_into()?;
-            api.pipeline.register_renderer(spec)?;
-            Ok(None)
+            api.pipeline().register_renderer(spec)?;
+            Ok(ResponseHandler::Ok)
         }
         RegisterRequest::Image(spec) => {
             let spec = spec.try_into()?;
-            api.pipeline.register_renderer(spec)?;
-            Ok(None)
+            api.pipeline().register_renderer(spec)?;
+            Ok(ResponseHandler::Ok)
         }
     }
 }
@@ -65,7 +65,7 @@ fn register_output(api: &mut Api, request: RegisterOutputRequest) -> Result<(), 
         ..
     } = request.clone();
 
-    api.pipeline.with_outputs(|mut iter| {
+    api.pipeline().with_outputs(|mut iter| {
         if let Some((node_id, _)) = iter.find(|(_, output)| match &output.output {
             pipeline::output::Output::Rtp(rtp) => rtp.port == port && rtp.ip == ip,
         }) {
@@ -80,7 +80,7 @@ fn register_output(api: &mut Api, request: RegisterOutputRequest) -> Result<(), 
 
     let (output_id, options, initial_scene) = request.try_into()?;
 
-    api.pipeline
+    api.pipeline()
         .register_output(output_id, options, initial_scene)?;
 
     Ok(())
