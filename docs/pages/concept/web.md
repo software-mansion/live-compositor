@@ -56,7 +56,8 @@ Firstly, the web renderer instance has to be registered:
     "resolution": {
         "width": 1920,
         "height": 1080
-    }
+    },
+    "embedding_method": "native_embedding_over_content"
 }
 ```
 
@@ -71,7 +72,7 @@ We can define a scene with a web view component that refers to the previously re
     "outputs": [
         {
             "output_id": "output_1",
-            "root": {
+            "scene": {
                 "id": "embed_input_on_website",
                 "type": "web_view",
                 "instance_id": "example_website",
@@ -98,7 +99,7 @@ Now, we can modify that request and embed an input stream into the website:
     "outputs": [
         {
             "output_id": "output_1",
-            "root": {
+            "scene": {
                 "id": "embed_input_on_website",
                 "type": "web_view",
                 "instance_id": "example_website",
