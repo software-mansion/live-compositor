@@ -43,64 +43,14 @@ type UpdateScene = {
 ```typescript
 type RegisterInputStream = {
   type: "register";
-  entity_type: "rtp_input_stream";
-  input_id: string;
-  port: Port;
-  video?: Video;
-  audio?: Audio;
+  entity_type: "rtp_input_stream" | "mp4";
+  ... // input specific options
 }
 ```
+See inputs documentation to learn more.
 
-Parameters of registered RTP input stream. Before using input in video composition or output mixing, input has to be firstly registered using `register_input` request.
-
-At least one of `video` and `audio` has to be defined.
-
-- `input_id` - An identifier for the input stream.
-- `port` - UDP port or port range on which the compositor should listen for the stream.
-- `video` - Parameters of a video source included in the RTP stream.
-- `audio` - Parameters of an audio source included in the RTP stream.
-
-#### Port
-
-```typescript
-type Port = string | u16
-```
-
-#### Video
-
-```typescript
-type Video = {
-  codec?: "h264";
-  rtp_payload_type?: u8;
-}
-```
-
-- `codec` - (**default=`"h264"`**) Video codec.
-  - `"h264"` - H264 video.
-- `rtp_payload_type` - (**default=`96`**) Value of payload type field in received RTP packets.
-  Packets with different payload type won't be treated as video and included in composing. Values should be in [0, 64] or [96, 255]. Values in range [65, 95] can't be used. For more information, see [RFC](https://datatracker.ietf.org/doc/html/rfc5761#section-4) Packets with different payload type won't be treated as video and included in composing.
-
-#### Audio
-
-```typescript
-type Audio = {
-  codec?: "opus";
-  sample_rate: u32;
-  channels: "mono" | "stereo";
-  rtp_payload_type?: u8;
-  forward_error_correction?: bool;
-}
-```
-
-- `codec` - (**default=`"opus"`**) Audio codec.
-  - `"opus"` - Opus audio.
-- `sample_rate` - Sample rate. If the specified sample rate doesn't match real sample rate, audio won't be mixed properly.
-- `channels` - Audio channels.
-  - `"mono"` - Mono audio (single channel).
-  - `"stereo"` - Stereo audio (two channels).
-- `rtp_payload_type` - (**default=`97`**) Value of payload type field in received RTP packets.
-  Packets with different payload type won't be treated as audio and included in mixing. Values should be in range [0, 64] or [96, 255]. Values in range [65, 95] can't be used. For more information, check out [RFC](https://datatracker.ietf.org/doc/html/rfc5761#section-4).
-- `forward_error_correction` - (**default=`false`**) Specifies whether the stream uses forward error correction. It's specific for Opus codec. For more information, check out [RFC](https://datatracker.ietf.org/doc/html/rfc6716#section-2.1.7).
+- [RTP](./inputs/rtp)
+- [MP4](./inputs/mp4)
 
 ***
 
@@ -117,7 +67,7 @@ type RegisterOutputStream = {
     width: number;
     height: number;
   };
-  encoder_preset?: EncoderPreset; 
+  encoder_preset?: EncoderPreset;
   initial_scene: Component
 }
 
