@@ -8,7 +8,7 @@ use crate::wgpu::{
     WgpuCtx, WgpuErrorScope,
 };
 
-use super::embedder::RenderInfo;
+use super::render_info::RenderInfo;
 
 #[derive(Debug)]
 pub(super) struct WebRendererShader {

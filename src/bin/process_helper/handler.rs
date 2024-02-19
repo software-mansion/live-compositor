@@ -4,9 +4,9 @@ use std::sync::{Arc, Mutex};
 use anyhow::{anyhow, Result};
 use compositor_chromium::cef;
 use compositor_render::web_renderer::{
-    EMBED_SOURCE_FRAMES_MESSAGE, GET_FRAME_POSITIONS_MESSAGE, UNEMBED_SOURCE_FRAMES_MESSAGE,
+    DROP_SHARED_MEMORY, EMBED_FRAMES_MESSAGE, GET_FRAME_POSITIONS_MESSAGE,
 };
-use log::{debug, error};
+use log::error;
 
 use crate::state::{FrameInfo, State};
 
@@ -32,8 +32,8 @@ impl cef::RenderProcessHandler for RenderProcessHandler {
         message: &cef::ProcessMessage,
     ) -> bool {
         let result = match message.name().as_str() {
-            EMBED_SOURCE_FRAMES_MESSAGE => self.embed_sources(message, frame),
-            UNEMBED_SOURCE_FRAMES_MESSAGE => self.unembed_source(message, frame),
+            EMBED_FRAMES_MESSAGE => self.embed_sources(message, frame),
+            DROP_SHARED_MEMORY => self.drop_shared_memory(message, frame),
             GET_FRAME_POSITIONS_MESSAGE => self.send_frame_positions(message, frame),
             name => Err(anyhow!("Unknown message type: {name}")),
         };
@@ -112,21 +112,15 @@ impl RenderProcessHandler {
         Ok(())
     }
 
-    fn unembed_source(&self, msg: &cef::ProcessMessage, surface: &cef::Frame) -> Result<()> {
+    fn drop_shared_memory(&self, msg: &cef::ProcessMessage, surface: &cef::Frame) -> Result<()> {
         let mut state = self.state.lock().unwrap();
+
         let shmem_path = msg.read_string(0)?;
         let shmem_path = PathBuf::from(shmem_path);
-        let Some(source) = state.source(&shmem_path) else {
-            debug!("Source {shmem_path:?} not found");
-            return Ok(());
-        };
-
-        let ctx = surface.v8_context()?;
-        let ctx_entered = ctx.enter()?;
-
-        let mut global = ctx.global()?;
-        global.delete(&source.frame_info.id_attribute, &ctx_entered)?;
         state.remove_source(&shmem_path);
+
+        let response = cef::ProcessMessage::new(DROP_SHARED_MEMORY);
+        surface.send_process_message(cef::ProcessId::Browser, response)?;
 
         Ok(())
     }

@@ -1,89 +1,116 @@
 use std::path::PathBuf;
+use std::sync::Mutex;
+use std::time::Duration;
 use std::{
     sync::Arc,
     thread::{self, JoinHandle},
 };
 
+use bytes::Bytes;
 use compositor_chromium::cef;
-use crossbeam_channel::{Receiver, Sender};
+use crossbeam_channel::Receiver;
 use log::error;
 
 use crate::error::ErrorStack;
 use crate::scene::ComponentId;
 use crate::state::RegisterCtx;
-use crate::transformations::web_renderer::chromium_sender::{
-    ChromiumSenderMessage, UpdateSharedMemoryInfo,
-};
-use crate::transformations::web_renderer::shared_memory::{SharedMemory, SharedMemoryError};
-use crate::transformations::web_renderer::{WebRenderer, UNEMBED_SOURCE_FRAMES_MESSAGE};
+use crate::transformations::layout::Position;
+use crate::transformations::web_renderer::chromium_context::ChromiumContext;
+use crate::transformations::web_renderer::web_renderer_thread::shared_memory::SharedMemory;
 use crate::wgpu::texture::utils::pad_to_256;
 use crate::{RendererId, Resolution};
 
-use super::{browser_client::BrowserClient, chromium_context::ChromiumContext};
-use super::{WebRendererSpec, EMBED_SOURCE_FRAMES_MESSAGE, GET_FRAME_POSITIONS_MESSAGE};
+use self::browser_client::BrowserClient;
+use self::communication::{
+    ResponseSender, UpdateSharedMemoryPayload, WebRendererThreadRequest, DROP_SHARED_MEMORY,
+    EMBED_FRAMES_MESSAGE, GET_FRAME_POSITIONS_MESSAGE,
+};
+use self::shared_memory::SharedMemoryError;
 
-pub(super) struct ChromiumSenderThread {
+use super::{WebRenderer, WebRendererSpec};
+
+mod browser_client;
+pub(super) mod communication;
+mod shared_memory;
+
+pub(super) struct WebRendererThread {
     chromium_ctx: Arc<ChromiumContext>,
-    url: String,
-    web_renderer_id: RendererId,
-    browser_client: BrowserClient,
+    spec: WebRendererSpec,
 
-    message_receiver: Receiver<ChromiumSenderMessage>,
-    unmap_signal_sender: Sender<()>,
+    request_receiver: Receiver<WebRendererThreadRequest>,
+    frame_data: Arc<Mutex<Bytes>>,
 }
 
-impl ChromiumSenderThread {
+impl WebRendererThread {
     pub fn new(
         ctx: &RegisterCtx,
-        spec: &WebRendererSpec,
-        browser_client: BrowserClient,
-        message_receiver: Receiver<ChromiumSenderMessage>,
-        unmap_signal_sender: Sender<()>,
+        spec: WebRendererSpec,
+        request_receiver: Receiver<WebRendererThreadRequest>,
     ) -> Self {
         Self {
             chromium_ctx: ctx.chromium.clone(),
-            url: spec.url.clone(),
-            web_renderer_id: spec.instance_id.clone(),
-            browser_client,
-            message_receiver,
-            unmap_signal_sender,
+            spec,
+            request_receiver,
+            frame_data: Arc::new(Mutex::new(Bytes::new())),
         }
     }
 
-    pub fn spawn(mut self) -> JoinHandle<()> {
-        thread::spawn(move || self.run())
+    pub fn spawn(self) -> JoinHandle<()> {
+        thread::Builder::new()
+            .name(format!("web renderer thread: {}", self.spec.url))
+            .spawn(move || self.run())
+            .unwrap()
     }
 
-    fn run(&mut self) {
+    fn run(self) {
+        let (frame_positions_sender, frame_positions_receiver) = crossbeam_channel::bounded(1);
+        let (shared_memory_dropped_sender, shared_memory_dropped_receiver) =
+            crossbeam_channel::bounded(1);
+
+        let browser_client = BrowserClient::new(
+            self.frame_data.clone(),
+            frame_positions_sender,
+            shared_memory_dropped_sender,
+            self.spec.resolution,
+        );
         let Ok(browser) = self
             .chromium_ctx
-            .start_browser(&self.url, self.browser_client.clone())
+            .start_browser(&self.spec.url, browser_client)
         else {
-            error!("Couldn't start browser for {}", self.url);
+            error!("Couldn't start browser for {}", self.spec.url);
             return;
         };
 
         let mut state = ThreadState::new(
             browser,
             self.chromium_ctx.instance_id(),
-            &self.web_renderer_id,
+            &self.spec.instance_id,
         );
         loop {
-            let result = match self.message_receiver.recv().unwrap() {
-                ChromiumSenderMessage::EmbedSources {
+            let result = match self.request_receiver.recv().unwrap() {
+                WebRendererThreadRequest::GetRenderedWebsite { response_sender } => {
+                    self.send_frame_data(response_sender)
+                }
+                WebRendererThreadRequest::EmbedSources {
                     resolutions,
                     children_ids,
-                } => self.embed_frames(&mut state, resolutions, children_ids),
-                ChromiumSenderMessage::EnsureSharedMemory { resolutions } => {
-                    self.ensure_shared_memory(&mut state, resolutions)
-                }
-                ChromiumSenderMessage::UpdateSharedMemory(info) => {
-                    self.update_shared_memory(&mut state, info)
-                }
-                ChromiumSenderMessage::GetFramePositions { children_ids } => {
-                    self.get_frame_positions(&state, children_ids)
-                }
-                ChromiumSenderMessage::Quit => return,
+                } => self.embed_sources(&mut state, resolutions, children_ids),
+                WebRendererThreadRequest::EnsureSharedMemory { resolutions } => self
+                    .ensure_shared_memory(&mut state, &shared_memory_dropped_receiver, resolutions),
+                WebRendererThreadRequest::UpdateSharedMemory {
+                    payload,
+                    response_sender,
+                } => self.update_shared_memory(&mut state, payload, response_sender),
+                WebRendererThreadRequest::GetFramePositions {
+                    children_ids,
+                    response_sender,
+                } => self.retrieve_frame_positions(
+                    &state,
+                    children_ids,
+                    &frame_positions_receiver,
+                    response_sender,
+                ),
+                WebRendererThreadRequest::Quit => return,
             };
 
             if let Err(err) = result {
@@ -95,13 +122,28 @@ impl ChromiumSenderThread {
         }
     }
 
-    fn embed_frames(
+    fn send_frame_data(
+        &self,
+        response_sender: ResponseSender<Option<Bytes>>,
+    ) -> Result<(), WebRendererThreadError> {
+        let frame_data = self.frame_data.lock().unwrap();
+        let frame_data = match frame_data.is_empty() {
+            false => Some(frame_data.clone()),
+            true => None,
+        };
+
+        response_sender
+            .send(frame_data)
+            .map_err(|_| WebRendererThreadError::ResponseSendFailed)
+    }
+
+    fn embed_sources(
         &self,
         state: &mut ThreadState,
         resolutions: Vec<Option<Resolution>>,
         children_ids: Vec<ComponentId>,
-    ) -> Result<(), ChromiumSenderThreadError> {
-        let mut process_message = cef::ProcessMessageBuilder::new(EMBED_SOURCE_FRAMES_MESSAGE);
+    ) -> Result<(), WebRendererThreadError> {
+        let mut process_message = cef::ProcessMessageBuilder::new(EMBED_FRAMES_MESSAGE);
 
         // IPC message to chromium renderer subprocess consists of:
         // - shared memory path
@@ -129,8 +171,9 @@ impl ChromiumSenderThread {
     fn ensure_shared_memory(
         &self,
         state: &mut ThreadState,
+        shared_memory_dropped_receiver: &Receiver<()>,
         resolutions: Vec<Option<Resolution>>,
-    ) -> Result<(), ChromiumSenderThreadError> {
+    ) -> Result<(), WebRendererThreadError> {
         fn size_from_resolution(resolution: Option<Resolution>) -> usize {
             match resolution {
                 Some(res) => 4 * res.width * res.height,
@@ -144,15 +187,15 @@ impl ChromiumSenderThread {
         // Ensure size for already existing shared memory
         for (resolution, shmem) in resolutions.iter().zip(shared_memory.iter_mut()) {
             let size = size_from_resolution(*resolution);
+
             // We resize shared memory only when it's too small.
             // This avoids some crashes caused by the lack of resize synchronization.
             if shmem.len() < size {
-                // TODO: This should be synchronised
-                let mut process_message = cef::ProcessMessage::new(UNEMBED_SOURCE_FRAMES_MESSAGE);
+                let mut process_message = cef::ProcessMessage::new(DROP_SHARED_MEMORY);
                 process_message.write_string(0, shmem.to_path_string())?;
                 frame.send_process_message(cef::ProcessId::Renderer, process_message)?;
-                // -----
 
+                shared_memory_dropped_receiver.recv_timeout(Duration::from_secs(2))?;
                 shmem.resize(size)?;
             }
         }
@@ -174,33 +217,41 @@ impl ChromiumSenderThread {
         Ok(())
     }
 
-    // TODO: Synchronize shared memory access
     fn update_shared_memory(
         &self,
         state: &mut ThreadState,
-        info: UpdateSharedMemoryInfo,
-    ) -> Result<(), ChromiumSenderThreadError> {
-        let shared_memory = state.shared_memory(info.source_idx)?;
+        payload: UpdateSharedMemoryPayload,
+        response_sender: ResponseSender<()>,
+    ) -> Result<(), WebRendererThreadError> {
+        let UpdateSharedMemoryPayload {
+            source_idx,
+            buffer,
+            size,
+        } = payload;
 
         // Writes buffer data to shared memory
+        let shared_memory = state.shared_memory(source_idx)?;
         {
-            let range = info.buffer.slice(..).get_mapped_range();
-            let chunks = range.chunks((4 * pad_to_256(info.size.width)) as usize);
+            let range = buffer.slice(..).get_mapped_range();
+            let chunks = range.chunks((4 * pad_to_256(size.width)) as usize);
             for (i, chunk) in chunks.enumerate() {
-                let bytes_len = (4 * info.size.width) as usize;
+                let bytes_len = (4 * size.width) as usize;
                 shared_memory.write(&chunk[..bytes_len], i * bytes_len)?;
             }
         }
 
-        self.unmap_signal_sender.send(()).unwrap();
-        Ok(())
+        response_sender
+            .send(())
+            .map_err(|_| WebRendererThreadError::ResponseSendFailed)
     }
 
-    fn get_frame_positions(
+    fn retrieve_frame_positions(
         &self,
         state: &ThreadState,
         children_ids: Vec<ComponentId>,
-    ) -> Result<(), ChromiumSenderThreadError> {
+        frame_positions_receiver: &Receiver<Vec<Position>>,
+        response_sender: ResponseSender<Vec<Position>>,
+    ) -> Result<(), WebRendererThreadError> {
         let mut message = cef::ProcessMessage::new(GET_FRAME_POSITIONS_MESSAGE);
         for (index, id) in children_ids.into_iter().enumerate() {
             message.write_string(index, id.to_string())?;
@@ -209,7 +260,11 @@ impl ChromiumSenderThread {
         let frame = state.browser.main_frame()?;
         frame.send_process_message(cef::ProcessId::Renderer, message)?;
 
-        Ok(())
+        let frame_positions = frame_positions_receiver.recv_timeout(Duration::from_secs(2))?;
+
+        response_sender
+            .send(frame_positions)
+            .map_err(|_| WebRendererThreadError::ResponseSendFailed)
     }
 }
 
@@ -243,15 +298,15 @@ impl ThreadState {
     fn shared_memory(
         &mut self,
         source_idx: usize,
-    ) -> Result<&mut SharedMemory, ChromiumSenderThreadError> {
+    ) -> Result<&mut SharedMemory, WebRendererThreadError> {
         self.shared_memory
             .get_mut(source_idx)
-            .ok_or(ChromiumSenderThreadError::SharedMemoryNotAllocated { source_idx })
+            .ok_or(WebRendererThreadError::SharedMemoryNotAllocated { source_idx })
     }
 }
 
 #[derive(Debug, thiserror::Error)]
-enum ChromiumSenderThreadError {
+enum WebRendererThreadError {
     #[error("Browser is no longer alive")]
     BrowserNotAlive(#[from] cef::BrowserError),
 
@@ -266,4 +321,10 @@ enum ChromiumSenderThreadError {
 
     #[error(transparent)]
     ProcessMessageError(#[from] cef::ProcessMessageError),
+
+    #[error("Failed to receive response from browser client")]
+    BrowserMessageTimeout(#[from] crossbeam_channel::RecvTimeoutError),
+
+    #[error("Failed to send response")]
+    ResponseSendFailed,
 }

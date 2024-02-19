@@ -72,10 +72,10 @@ impl ChromiumContext {
     }
 
     #[cfg(feature = "web_renderer")]
-    pub(super) fn start_browser(
+    pub(super) fn start_browser<C: cef::Client>(
         &self,
         url: &str,
-        state: super::browser_client::BrowserClient,
+        client: C,
     ) -> Result<cef::Browser, WebRendererContextError> {
         let context = self
             .context
@@ -92,7 +92,7 @@ impl ChromiumContext {
 
         let (tx, rx) = crossbeam_channel::bounded(1);
         let task = cef::Task::new(move || {
-            let result = context.start_browser(state, window_info, settings, url);
+            let result = context.start_browser(client, window_info, settings, url);
             tx.send(result).unwrap();
         });
 

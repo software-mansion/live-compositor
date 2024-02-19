@@ -31,7 +31,11 @@ pub mod shader {
 
 pub mod web_renderer {
     pub use crate::transformations::web_renderer::{
-        WebEmbeddingMethod, WebRendererInitOptions, WebRendererSpec, EMBED_SOURCE_FRAMES_MESSAGE,
-        GET_FRAME_POSITIONS_MESSAGE, UNEMBED_SOURCE_FRAMES_MESSAGE,
+        WebEmbeddingMethod, WebRendererInitOptions, WebRendererSpec,
+    };
+
+    #[cfg(feature = "web_renderer")]
+    pub use crate::transformations::web_renderer::{
+        DROP_SHARED_MEMORY, EMBED_FRAMES_MESSAGE, GET_FRAME_POSITIONS_MESSAGE,
     };
 }

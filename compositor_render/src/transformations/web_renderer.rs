@@ -1,7 +1,4 @@
 use crate::{RendererId, Resolution};
-use bytes::Bytes;
-use nalgebra_glm::Mat4;
-use std::sync::{Arc, Mutex};
 
 #[cfg(feature = "web_renderer")]
 mod renderer;
@@ -14,26 +11,13 @@ pub use renderer::*;
 
 pub mod chromium_context;
 pub(crate) mod node;
+#[cfg(feature = "web_renderer")]
+mod web_renderer_thread;
 
 #[cfg(feature = "web_renderer")]
-pub mod browser_client;
-#[cfg(feature = "web_renderer")]
-mod chromium_sender;
-#[cfg(feature = "web_renderer")]
-mod chromium_sender_thread;
-#[cfg(feature = "web_renderer")]
-mod embedder;
+mod render_info;
 #[cfg(feature = "web_renderer")]
 mod shader;
-#[cfg(feature = "web_renderer")]
-mod shared_memory;
-
-pub const EMBED_SOURCE_FRAMES_MESSAGE: &str = "EMBED_SOURCE_FRAMES";
-pub const UNEMBED_SOURCE_FRAMES_MESSAGE: &str = "UNEMBED_SOURCE_FRAMES";
-pub const GET_FRAME_POSITIONS_MESSAGE: &str = "GET_FRAME_POSITIONS";
-
-pub(super) type FrameData = Arc<Mutex<Bytes>>;
-pub(super) type SourceTransforms = Arc<Mutex<Vec<Mat4>>>;
 
 #[derive(Debug, Clone, Copy)]
 pub struct WebRendererInitOptions {
@@ -41,7 +25,7 @@ pub struct WebRendererInitOptions {
     pub enable_gpu: bool,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct WebRendererSpec {
     pub instance_id: RendererId,
     pub url: String,
