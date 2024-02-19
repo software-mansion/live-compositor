@@ -9,17 +9,22 @@ use crate::pipeline::{
     structs::EncodedChunkKind,
     Port, RequestedPort,
 };
-use bytes::BytesMut;
 use compositor_render::InputId;
-use crossbeam_channel::{unbounded, Receiver, Sender};
-use log::{error, warn};
+use crossbeam_channel::{unbounded, Receiver};
+use log::{error, info, warn};
 use webrtc_util::Unmarshal;
 
-use self::depayloader::{Depayloader, DepayloaderNewError};
+use self::{
+    depayloader::{Depayloader, DepayloaderNewError},
+    tcp_server::run_tcp_server_receiver,
+    udp::run_udp_receiver,
+};
 
 use super::ChunksReceiver;
 
 mod depayloader;
+mod tcp_server;
+mod udp;
 
 #[derive(Debug, thiserror::Error)]
 pub enum RtpReceiverError {
@@ -41,6 +46,7 @@ pub enum RtpReceiverError {
 
 pub struct RtpReceiverOptions {
     pub port: RequestedPort,
+    pub transport_protocol: TransportProtocol,
     pub input_id: compositor_render::InputId,
     pub stream: RtpStream,
 }
@@ -49,6 +55,12 @@ pub struct RtpReceiverOptions {
 pub struct VideoStream {
     pub options: decoder::VideoDecoderOptions,
     pub payload_type: u8,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum TransportProtocol {
+    Udp,
+    TcpServer,
 }
 
 #[derive(Debug, Clone)]
@@ -76,6 +88,67 @@ impl RtpReceiver {
         opts: RtpReceiverOptions,
     ) -> Result<(Self, ChunksReceiver, DecoderOptions, Port), RtpReceiverError> {
         let should_close = Arc::new(AtomicBool::new(false));
+
+        let (port, receiver_thread, packets_rx) = match opts.transport_protocol {
+            TransportProtocol::Udp => Self::start_udp_reader(&opts, should_close.clone())?,
+            TransportProtocol::TcpServer => {
+                Self::start_tcp_server_reader(&opts, should_close.clone())?
+            }
+        };
+
+        let depayloader = Depayloader::new(&opts.stream)?;
+
+        let (depayloader_thread, chunks_receiver) =
+            DepayloaderThread::new(&opts.input_id, packets_rx, depayloader);
+
+        Ok((
+            Self {
+                port: port.0,
+                receiver_thread: Some(receiver_thread),
+                should_close,
+                _depayloader_thread: Some(depayloader_thread),
+            },
+            chunks_receiver,
+            DecoderOptions {
+                video: opts.stream.video.map(|v| v.options),
+                audio: opts.stream.audio.map(|a| a.options),
+            },
+            port,
+        ))
+    }
+
+    fn start_tcp_server_reader(
+        opts: &RtpReceiverOptions,
+        should_close: Arc<AtomicBool>,
+    ) -> Result<(Port, thread::JoinHandle<()>, Receiver<bytes::Bytes>), RtpReceiverError> {
+        let (packets_tx, packets_rx) = unbounded();
+        info!("Starting tcp socket");
+
+        let socket = socket2::Socket::new(
+            socket2::Domain::IPV4,
+            socket2::Type::STREAM,
+            Some(socket2::Protocol::TCP),
+        )
+        .map_err(RtpReceiverError::SocketOptions)?;
+
+        let port = Self::bind_to_port(opts.port, &socket)?;
+
+        socket.listen(1).map_err(RtpReceiverError::SocketBind)?;
+
+        let socket = std::net::TcpListener::from(socket);
+
+        let receiver_thread = thread::Builder::new()
+            .name(format!("RTP TCP server receiver {}", opts.input_id))
+            .spawn(move || run_tcp_server_receiver(socket, packets_tx, should_close))
+            .unwrap();
+
+        Ok((port, receiver_thread, packets_rx))
+    }
+
+    fn start_udp_reader(
+        opts: &RtpReceiverOptions,
+        should_close: Arc<AtomicBool>,
+    ) -> Result<(Port, thread::JoinHandle<()>, Receiver<bytes::Bytes>), RtpReceiverError> {
         let (packets_tx, packets_rx) = unbounded();
 
         let socket = socket2::Socket::new(
@@ -95,7 +168,27 @@ impl RtpReceiver {
             }
         }
 
-        let port = match opts.port {
+        let port = Self::bind_to_port(opts.port, &socket)?;
+
+        socket
+            .set_read_timeout(Some(std::time::Duration::from_millis(50)))
+            .map_err(RtpReceiverError::SocketOptions)?;
+
+        let socket = std::net::UdpSocket::from(socket);
+
+        let receiver_thread = thread::Builder::new()
+            .name(format!("RTP UDP receiver {}", opts.input_id))
+            .spawn(move || run_udp_receiver(socket, packets_tx, should_close))
+            .unwrap();
+
+        Ok((port, receiver_thread, packets_rx))
+    }
+
+    fn bind_to_port(
+        requested_port: RequestedPort,
+        socket: &socket2::Socket,
+    ) -> Result<Port, RtpReceiverError> {
+        let port = match requested_port {
             RequestedPort::Exact(port) => {
                 socket
                     .bind(
@@ -135,68 +228,7 @@ impl RtpReceiver {
                 }
             }
         };
-
-        socket
-            .set_read_timeout(Some(std::time::Duration::from_millis(50)))
-            .map_err(RtpReceiverError::SocketOptions)?;
-
-        let socket = std::net::UdpSocket::from(socket);
-
-        let should_close2 = should_close.clone();
-
-        let receiver_thread = thread::Builder::new()
-            .name(format!("RTP receiver {}", opts.input_id))
-            .spawn(move || RtpReceiver::rtp_receiver(socket, packets_tx, should_close2))
-            .unwrap();
-
-        let depayloader = Depayloader::new(&opts.stream)?;
-
-        let (depayloader_thread, chunks_receiver) =
-            DepayloaderThread::new(&opts.input_id, packets_rx, depayloader);
-
-        Ok((
-            Self {
-                port,
-                receiver_thread: Some(receiver_thread),
-                should_close,
-                _depayloader_thread: Some(depayloader_thread),
-            },
-            chunks_receiver,
-            DecoderOptions {
-                video: opts.stream.video.map(|v| v.options),
-                audio: opts.stream.audio.map(|a| a.options),
-            },
-            Port(port),
-        ))
-    }
-
-    fn rtp_receiver(
-        socket: std::net::UdpSocket,
-        packets_tx: Sender<bytes::Bytes>,
-        should_close: Arc<AtomicBool>,
-    ) {
-        let mut buffer = BytesMut::zeroed(65536);
-
-        loop {
-            if should_close.load(std::sync::atomic::Ordering::Relaxed) {
-                return;
-            }
-
-            // This can be faster if we batched sending the packets through the channel
-            let (received_bytes, _) = match socket.recv_from(&mut buffer) {
-                Ok(n) => n,
-                Err(e) => match e.kind() {
-                    std::io::ErrorKind::WouldBlock => continue,
-                    _ => {
-                        error!("Error while receiving UDP packet: {}", e);
-                        continue;
-                    }
-                },
-            };
-
-            let packet: bytes::Bytes = buffer[..received_bytes].to_vec().into();
-            packets_tx.send(packet).unwrap();
-        }
+        Ok(Port(port))
     }
 }
 

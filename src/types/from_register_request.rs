@@ -1,28 +1,26 @@
 use std::time::Duration;
 
 use compositor_pipeline::{
-    pipeline::{self, encoder},
+    pipeline::{self, decoder, encoder, input},
     queue,
 };
 use compositor_render::scene;
 
-use self::register_request::{AudioChannels, AudioCodec, Port, VideoCodec};
+use super::register_request::*;
+use super::*;
 
-use super::{register_request::EncoderPreset, *};
-
-impl TryFrom<register_request::RtpInputStream>
-    for (compositor_render::InputId, pipeline::RegisterInputOptions)
-{
+impl TryFrom<RtpInputStream> for (compositor_render::InputId, pipeline::RegisterInputOptions) {
     type Error = TypeError;
 
-    fn try_from(value: register_request::RtpInputStream) -> Result<Self, Self::Error> {
-        let register_request::RtpInputStream {
+    fn try_from(value: RtpInputStream) -> Result<Self, Self::Error> {
+        let RtpInputStream {
             input_id,
             port,
             video,
             audio,
             required,
             offset_ms,
+            transport_protocol,
         } = value;
 
         const NO_VIDEO_AUDIO_SPEC: &str =
@@ -32,39 +30,38 @@ impl TryFrom<register_request::RtpInputStream>
             return Err(TypeError::new(NO_VIDEO_AUDIO_SPEC));
         }
 
-        let rtp_stream = pipeline::input::rtp::RtpStream {
-            video: video
-                .as_ref()
-                .map(|video| pipeline::input::rtp::VideoStream {
-                    options: pipeline::decoder::VideoDecoderOptions {
-                        codec: video.clone().codec.unwrap_or(VideoCodec::H264).into(),
-                    },
-                    payload_type: video.rtp_payload_type.unwrap_or(96),
-                }),
-            audio: audio
-                .as_ref()
-                .map(|audio| pipeline::input::rtp::AudioStream {
-                    options: match audio.clone().codec.unwrap_or(AudioCodec::Opus) {
-                        AudioCodec::Opus => pipeline::decoder::AudioDecoderOptions::Opus(
-                            pipeline::decoder::OpusDecoderOptions {
-                                sample_rate: audio.sample_rate,
-                                channels: audio.clone().channels.into(),
-                                forward_error_correction: audio
-                                    .forward_error_correction
-                                    .unwrap_or(false),
-                            },
-                        ),
-                    },
-                    payload_type: audio.rtp_payload_type.unwrap_or(97),
-                }),
+        let rtp_stream = input::rtp::RtpStream {
+            video: video.as_ref().map(|video| input::rtp::VideoStream {
+                options: decoder::VideoDecoderOptions {
+                    codec: video.clone().codec.unwrap_or(VideoCodec::H264).into(),
+                },
+                payload_type: video.rtp_payload_type.unwrap_or(96),
+            }),
+            audio: audio.as_ref().map(|audio| input::rtp::AudioStream {
+                options: match audio.clone().codec.unwrap_or(AudioCodec::Opus) {
+                    AudioCodec::Opus => {
+                        decoder::AudioDecoderOptions::Opus(decoder::OpusDecoderOptions {
+                            sample_rate: audio.sample_rate,
+                            channels: audio.clone().channels.into(),
+                            forward_error_correction: audio
+                                .forward_error_correction
+                                .unwrap_or(false),
+                        })
+                    }
+                },
+                payload_type: audio.rtp_payload_type.unwrap_or(97),
+            }),
         };
 
-        let input_options =
-            pipeline::input::InputOptions::Rtp(pipeline::input::rtp::RtpReceiverOptions {
-                port: port.try_into()?,
-                input_id: input_id.clone().into(),
-                stream: rtp_stream,
-            });
+        let input_options = input::InputOptions::Rtp(input::rtp::RtpReceiverOptions {
+            port: port.try_into()?,
+            input_id: input_id.clone().into(),
+            stream: rtp_stream,
+            transport_protocol: match transport_protocol.unwrap_or(TransportProtocol::Udp) {
+                TransportProtocol::Udp => input::rtp::TransportProtocol::Udp,
+                TransportProtocol::TcpServer => input::rtp::TransportProtocol::TcpServer,
+            },
+        });
 
         let queue_options = queue::InputOptions {
             required: required.unwrap_or(false),
@@ -81,13 +78,11 @@ impl TryFrom<register_request::RtpInputStream>
     }
 }
 
-impl TryFrom<register_request::Mp4>
-    for (compositor_render::InputId, pipeline::RegisterInputOptions)
-{
+impl TryFrom<Mp4> for (compositor_render::InputId, pipeline::RegisterInputOptions) {
     type Error = TypeError;
 
-    fn try_from(value: register_request::Mp4) -> Result<Self, Self::Error> {
-        let register_request::Mp4 {
+    fn try_from(value: Mp4) -> Result<Self, Self::Error> {
+        let Mp4 {
             input_id,
             url,
             path,
@@ -103,8 +98,8 @@ impl TryFrom<register_request::Mp4>
                 return Err(TypeError::new(BAD_URL_PATH_SPEC));
             }
 
-            (Some(url), None) => pipeline::input::mp4::Source::Url(url),
-            (None, Some(path)) => pipeline::input::mp4::Source::File(path.into()),
+            (Some(url), None) => input::mp4::Source::Url(url),
+            (None, Some(path)) => input::mp4::Source::File(path.into()),
         };
 
         let queue_options = queue::InputOptions {
@@ -115,12 +110,10 @@ impl TryFrom<register_request::Mp4>
         Ok((
             input_id.clone().into(),
             pipeline::RegisterInputOptions {
-                input_options: pipeline::input::InputOptions::Mp4(
-                    pipeline::input::mp4::Mp4Options {
-                        input_id: input_id.into(),
-                        source,
-                    },
-                ),
+                input_options: input::InputOptions::Mp4(input::mp4::Mp4Options {
+                    input_id: input_id.into(),
+                    source,
+                }),
                 queue_options,
             },
         ))

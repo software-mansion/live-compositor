@@ -41,8 +41,10 @@ pub use self::structs::AudioChannels;
 pub use self::structs::AudioCodec;
 pub use self::structs::VideoCodec;
 
+#[derive(Debug)]
 pub struct Port(pub u16);
 
+#[derive(Debug, Clone, Copy)]
 pub enum RequestedPort {
     Exact(u16),
     Range((u16, u16)),
