@@ -6,16 +6,15 @@ use crate::error::RegisterInputError;
 
 use super::{
     decoder::{self, DecodedDataReceiver},
-    input, PipelineInput, Port, RegisterInputOptions,
+    input::{self, InputOptions},
+    PipelineInput, Port,
 };
 
 pub(super) fn new_pipeline_input(
     input_id: &InputId,
-    opts: RegisterInputOptions,
+    input_options: InputOptions,
     download_dir: &Path,
 ) -> Result<(PipelineInput, DecodedDataReceiver, Option<Port>), RegisterInputError> {
-    let RegisterInputOptions { input_options } = opts;
-
     let (input, chunks_receiver, decoder_options, port) =
         input::Input::new(input_options, download_dir)
             .map_err(|e| RegisterInputError::InputError(input_id.clone(), e))?;

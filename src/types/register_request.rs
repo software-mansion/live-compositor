@@ -1,3 +1,4 @@
+use core::f64;
 use std::sync::Arc;
 
 use schemars::JsonSchema;
@@ -31,6 +32,12 @@ pub struct RtpInputStream {
     pub video: Option<Video>,
     /// Parameters of an audio source included in the RTP stream.
     pub audio: Option<Audio>,
+    /// (**default=`false`**) If input is required and the stream is not delivered
+    /// on time, then LiveCompositor will delay producing output frames.
+    pub required: Option<bool>,
+    /// Offset in milliseconds relative to the pipeline start (start request). If offset is
+    /// not defined then stream is synchronized based on the first frames delivery time.
+    pub offset_ms: Option<f64>,
 }
 
 /// Input stream from MP4 file.
@@ -44,6 +51,12 @@ pub struct Mp4 {
     pub url: Option<String>,
     /// Path to the MP4 file.
     pub path: Option<String>,
+    /// (**default=`false`**) If input is required and frames are not processed
+    /// on time, then LiveCompositor will delay producing output frames.
+    pub required: Option<bool>,
+    /// Offset in milliseconds relative to the pipeline start (start request). If offset is
+    /// not defined then stream is synchronized based on the first frames delivery time.
+    pub offset_ms: Option<f64>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]

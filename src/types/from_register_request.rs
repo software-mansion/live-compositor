@@ -1,4 +1,9 @@
-use compositor_pipeline::pipeline::{self, encoder};
+use std::time::Duration;
+
+use compositor_pipeline::{
+    pipeline::{self, encoder},
+    queue,
+};
 use compositor_render::scene;
 
 use self::register_request::{AudioChannels, AudioCodec, Port, VideoCodec};
@@ -16,6 +21,8 @@ impl TryFrom<register_request::RtpInputStream>
             port,
             video,
             audio,
+            required,
+            offset_ms,
         } = value;
 
         const NO_VIDEO_AUDIO_SPEC: &str =
@@ -59,9 +66,17 @@ impl TryFrom<register_request::RtpInputStream>
                 stream: rtp_stream,
             });
 
+        let queue_options = queue::InputOptions {
+            required: required.unwrap_or(false),
+            offset: offset_ms.map(|offset_ms| Duration::from_secs_f64(offset_ms / 1000.0)),
+        };
+
         Ok((
             input_id.into(),
-            pipeline::RegisterInputOptions { input_options },
+            pipeline::RegisterInputOptions {
+                input_options,
+                queue_options,
+            },
         ))
     }
 }
@@ -76,6 +91,8 @@ impl TryFrom<register_request::Mp4>
             input_id,
             url,
             path,
+            required,
+            offset_ms,
         } = value;
 
         const BAD_URL_PATH_SPEC: &str =
@@ -90,6 +107,11 @@ impl TryFrom<register_request::Mp4>
             (None, Some(path)) => pipeline::input::mp4::Source::File(path.into()),
         };
 
+        let queue_options = queue::InputOptions {
+            required: required.unwrap_or(false),
+            offset: offset_ms.map(|offset_ms| Duration::from_secs_f64(offset_ms / 1000.0)),
+        };
+
         Ok((
             input_id.clone().into(),
             pipeline::RegisterInputOptions {
@@ -99,6 +121,7 @@ impl TryFrom<register_request::Mp4>
                         source,
                     },
                 ),
+                queue_options,
             },
         ))
     }
