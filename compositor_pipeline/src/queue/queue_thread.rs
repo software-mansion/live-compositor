@@ -58,7 +58,12 @@ impl QueueThread {
             .video_queue
             .lock()
             .unwrap()
-            .drop_old_frames(Duration::ZERO, Instant::now())
+            .drop_old_frames(Duration::ZERO, Instant::now());
+        self.queue
+            .audio_queue
+            .lock()
+            .unwrap()
+            .drop_old_samples(Duration::ZERO, Instant::now())
     }
 }
 

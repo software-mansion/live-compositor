@@ -89,6 +89,12 @@ impl AudioQueue {
             length: end_pts.saturating_sub(start_pts),
         }
     }
+
+    pub(super) fn drop_old_samples(&mut self, pts: Duration, queue_start: Instant) {
+        for input in self.inputs.values_mut() {
+            input.drop_old_samples(pts, queue_start)
+        }
+    }
 }
 
 #[derive(Debug)]
