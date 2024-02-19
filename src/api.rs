@@ -1,9 +1,16 @@
-use std::sync::Arc;
+use std::{
+    sync::{Arc, Mutex, MutexGuard},
+    time::Duration,
+};
 
 use compositor_pipeline::pipeline::{self};
-use compositor_render::{error::InitPipelineError, EventLoop, RegistryType};
+use compositor_render::{
+    error::{ErrorStack, InitPipelineError},
+    EventLoop,
+};
 use crossbeam_channel::{bounded, Receiver};
 
+use log::error;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -13,6 +20,7 @@ use crate::{
 };
 
 mod register_request;
+mod unregister_request;
 
 pub type Pipeline = compositor_pipeline::Pipeline;
 
@@ -29,11 +37,27 @@ pub enum Request {
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "entity_type", rename_all = "snake_case")]
 pub enum UnregisterRequest {
-    InputStream { input_id: InputId },
-    OutputStream { output_id: OutputId },
-    Shader { shader_id: RendererId },
-    WebRenderer { instance_id: RendererId },
-    Image { image_id: RendererId },
+    InputStream {
+        input_id: InputId,
+        /// Timestamp relative to start request when this request
+        /// should be applied.
+        schedule_time_ms: Option<f64>,
+    },
+    OutputStream {
+        output_id: OutputId,
+        /// Timestamp relative to start request when this request
+        /// should be applied.
+        schedule_time_ms: Option<f64>,
+    },
+    Shader {
+        shader_id: RendererId,
+    },
+    WebRenderer {
+        instance_id: RendererId,
+    },
+    Image {
+        image_id: RendererId,
+    },
 }
 
 #[derive(Serialize, Deserialize)]
@@ -74,7 +98,7 @@ pub enum ResponseHandler {
 }
 
 pub struct Api {
-    pipeline: Pipeline,
+    pipeline: Arc<Mutex<Pipeline>>,
 }
 
 impl Api {
@@ -94,30 +118,27 @@ impl Api {
             force_gpu: *force_gpu,
             download_root: download_root.clone(),
         })?;
-        Ok((Api { pipeline }, event_loop))
+        Ok((
+            Api {
+                pipeline: Mutex::new(pipeline).into(),
+            },
+            event_loop,
+        ))
     }
 
     pub fn handle_request(&mut self, request: Request) -> Result<ResponseHandler, ApiError> {
         match request {
             Request::Register(register_request) => {
-                match register_request::handle_register_request(self, register_request)? {
-                    Some(response) => Ok(response),
-                    None => Ok(ResponseHandler::Ok),
-                }
+                register_request::handle_register_request(self, register_request)
             }
             Request::Unregister(unregister_request) => {
-                self.handle_unregister_request(unregister_request)?;
-                Ok(ResponseHandler::Ok)
+                unregister_request::handle_unregister_request(self, unregister_request)
             }
             Request::Start => {
-                self.pipeline.start();
+                self.pipeline.lock().unwrap().start();
                 Ok(ResponseHandler::Ok)
             }
-            Request::UpdateScene(scene_spec) => {
-                self.pipeline
-                    .update_scene(scene_spec.output_id.into(), scene_spec.scene.try_into()?)?;
-                Ok(ResponseHandler::Ok)
-            }
+            Request::UpdateScene(update) => self.handle_scene_update(update),
             Request::Query(query) => self.handle_query(query),
         }
     }
@@ -126,7 +147,7 @@ impl Api {
         match query {
             QueryRequest::WaitForNextFrame { input_id } => {
                 let (sender, receiver) = bounded(1);
-                self.pipeline.queue().subscribe_input_listener(
+                self.pipeline().queue().subscribe_input_listener(
                     &input_id.into(),
                     Box::new(move || {
                         sender.send(Ok(Response::Ok {})).unwrap();
@@ -136,7 +157,7 @@ impl Api {
             }
             QueryRequest::Inputs => {
                 let inputs = self
-                    .pipeline
+                    .pipeline()
                     .inputs()
                     .map(|(id, node)| match node.input {
                         pipeline::input::Input::Rtp(ref rtp) => InputInfo::Rtp {
@@ -152,7 +173,7 @@ impl Api {
                 Ok(ResponseHandler::Response(Response::Inputs { inputs }))
             }
             QueryRequest::Outputs => {
-                let outputs = self.pipeline.with_outputs(|iter| {
+                let outputs = self.pipeline().with_outputs(|iter| {
                     iter.map(|(id, output)| match output.output {
                         pipeline::output::Output::Rtp(ref rtp) => OutputInfo {
                             id: id.clone().into(),
@@ -167,23 +188,32 @@ impl Api {
         }
     }
 
-    fn handle_unregister_request(&mut self, request: UnregisterRequest) -> Result<(), ApiError> {
-        match request {
-            UnregisterRequest::InputStream { input_id } => {
-                Ok(self.pipeline.unregister_input(&input_id.into())?)
+    fn handle_scene_update(&self, update: OutputScene) -> Result<ResponseHandler, ApiError> {
+        let output_id = update.output_id.into();
+        let scene = update.scene.try_into()?;
+        match update.schedule_time_ms {
+            Some(schedule_time_ms) => {
+                let pipeline = self.pipeline.clone();
+                let schedule_time = Duration::from_secs_f64(schedule_time_ms / 1000.0);
+                self.pipeline().queue().schedule_event(
+                    schedule_time,
+                    Box::new(move || {
+                        if let Err(err) = pipeline.lock().unwrap().update_scene(output_id, scene) {
+                            error!(
+                                "Error while running scheduled output unregister for pts {}ms: {}",
+                                schedule_time.as_millis(),
+                                ErrorStack::new(&err).into_string()
+                            )
+                        }
+                    }),
+                );
             }
-            UnregisterRequest::OutputStream { output_id } => {
-                Ok(self.pipeline.unregister_output(&output_id.into())?)
-            }
-            UnregisterRequest::Shader { shader_id } => Ok(self
-                .pipeline
-                .unregister_renderer(&shader_id.into(), RegistryType::Shader)?),
-            UnregisterRequest::WebRenderer { instance_id } => Ok(self
-                .pipeline
-                .unregister_renderer(&instance_id.into(), RegistryType::WebRenderer)?),
-            UnregisterRequest::Image { image_id } => Ok(self
-                .pipeline
-                .unregister_renderer(&image_id.into(), RegistryType::Image)?),
-        }
+            None => self.pipeline().update_scene(output_id, scene)?,
+        };
+        Ok(ResponseHandler::Ok)
+    }
+
+    fn pipeline(&self) -> MutexGuard<'_, Pipeline> {
+        self.pipeline.lock().unwrap()
     }
 }

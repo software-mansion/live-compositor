@@ -66,9 +66,13 @@ pub struct OutputId(Arc<str>);
 pub struct InputId(Arc<str>);
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+#[serde(deny_unknown_fields)]
 pub struct OutputScene {
     pub output_id: OutputId,
     pub scene: Component,
+    /// Timestamp relative to start request when this request
+    /// should be applied.
+    pub schedule_time_ms: Option<f64>,
 }
 
 impl Display for InputId {
