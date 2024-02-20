@@ -14,9 +14,8 @@ use crate::common::write_example_sdp_file;
 #[path = "./common/common.rs"]
 mod common;
 
-const SAMPLE_FILE_URL: &str =
-    "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_10mb.mp4";
-const SAMPLE_FILE_PATH: &str = "examples/assets/big_buck_bunny_720p_10mb.mp4";
+const SAMPLE_FILE_URL: &str = "https://filesamples.com/samples/video/mp4/sample_1280x720.mp4";
+const SAMPLE_FILE_PATH: &str = "examples/assets/sample_1280_720.mp4";
 const HTML_FILE_PATH: &str = "examples/web_view.html";
 
 const VIDEO_RESOLUTION: Resolution = Resolution {
