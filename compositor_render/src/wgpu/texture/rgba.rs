@@ -53,10 +53,6 @@ impl RGBATexture {
         self.0.new_download_buffer(ctx)
     }
 
-    pub fn copy_to_buffer(&self, encoder: &mut wgpu::CommandEncoder, buffer: &wgpu::Buffer) {
-        self.0.copy_to_buffer(encoder, buffer);
-    }
-
     pub fn size(&self) -> wgpu::Extent3d {
         self.0.size()
     }

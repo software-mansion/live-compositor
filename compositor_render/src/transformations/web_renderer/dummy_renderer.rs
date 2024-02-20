@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::{
     state::{RegisterCtx, RenderCtx},
     wgpu::texture::NodeTexture,
@@ -14,8 +12,9 @@ pub struct WebRenderer {
 }
 
 impl WebRenderer {
-    pub fn new(_ctx: &RegisterCtx, _spec: WebRendererSpec) -> Result<Self, CreateWebRendererError> {
-        return Err(CreateWebRendererError::WebRenderingNotAvailable);
+    pub fn new(ctx: &RegisterCtx, _spec: WebRendererSpec) -> Result<Self, CreateWebRendererError> {
+        let _use_chromium = &ctx.chromium;
+        Err(CreateWebRendererError::WebRenderingNotAvailable)
     }
 
     pub fn render(

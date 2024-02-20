@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use crate::{
     transformations::{
-        layout::Position,
+        layout::transformation_matrices::Position,
         web_renderer::{DROP_SHARED_MEMORY, GET_FRAME_POSITIONS_MESSAGE},
     },
     Resolution,

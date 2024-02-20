@@ -1,6 +1,3 @@
-use rand::distributions::Alphanumeric;
-use rand::{thread_rng, Rng};
-
 use crate::scene::RGBAColor;
 
 pub(crate) fn rgba_to_wgpu_color(rgba_color: &RGBAColor) -> wgpu::Color {
@@ -10,12 +7,4 @@ pub(crate) fn rgba_to_wgpu_color(rgba_color: &RGBAColor) -> wgpu::Color {
         b: rgba_color.2 as f64 / 255.0,
         a: rgba_color.3 as f64 / 255.0,
     }
-}
-
-pub(crate) fn random_string(length: usize) -> String {
-    thread_rng()
-        .sample_iter(&Alphanumeric)
-        .take(length)
-        .map(char::from)
-        .collect::<String>()
 }

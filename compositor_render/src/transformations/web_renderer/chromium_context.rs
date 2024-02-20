@@ -3,18 +3,16 @@ use std::sync::Arc;
 use crate::{
     event_loop::{EventLoop, EventLoopRunError},
     types::Framerate,
-    utils::random_string,
 };
-#[cfg(feature = "web_renderer")]
 use compositor_chromium::cef;
 use crossbeam_channel::RecvError;
 use log::info;
+use rand::{distributions::Alphanumeric, thread_rng, Rng};
 
 use super::WebRendererInitOptions;
 
 pub struct ChromiumContext {
     instance_id: String,
-    #[cfg(feature = "web_renderer")]
     pub(super) context: Option<Arc<cef::Context>>,
     framerate: Framerate,
 }
@@ -25,53 +23,37 @@ impl ChromiumContext {
         framerate: Framerate,
     ) -> Result<Self, WebRendererContextError> {
         let instance_id = random_string(30);
-        #[cfg(not(feature = "web_renderer"))]
-        {
-            if opts.enable {
-                return Err(WebRendererContextError::WebRenderingNotAvailable);
-            }
+        if !opts.enable {
+            info!("Chromium context disabled");
             return Ok(Self {
                 instance_id,
                 framerate,
+                context: None,
             });
         }
 
-        #[cfg(feature = "web_renderer")]
-        {
-            if !opts.enable {
-                info!("Chromium context disabled");
-                return Ok(Self {
-                    instance_id,
-                    framerate,
-                    context: None,
-                });
-            }
+        info!("Init chromium context");
 
-            info!("Init chromium context");
+        let app = ChromiumApp {
+            show_fps: false,
+            enable_gpu: opts.enable_gpu,
+        };
+        let settings = cef::Settings {
+            windowless_rendering_enabled: true,
+            log_severity: cef::LogSeverity::Info,
+            ..Default::default()
+        };
 
-            let app = ChromiumApp {
-                show_fps: false,
-                enable_gpu: opts.enable_gpu,
-            };
-            let settings = cef::Settings {
-                windowless_rendering_enabled: true,
-                log_severity: cef::LogSeverity::Info,
-                ..Default::default()
-            };
-
-            let context = Arc::new(
-                cef::Context::new(app, settings)
-                    .map_err(WebRendererContextError::ContextFailure)?,
-            );
-            Ok(Self {
-                instance_id,
-                framerate,
-                context: Some(context),
-            })
-        }
+        let context = Arc::new(
+            cef::Context::new(app, settings).map_err(WebRendererContextError::ContextFailure)?,
+        );
+        Ok(Self {
+            instance_id,
+            framerate,
+            context: Some(context),
+        })
     }
 
-    #[cfg(feature = "web_renderer")]
     pub(super) fn start_browser<C: cef::Client>(
         &self,
         url: &str,
@@ -101,14 +83,10 @@ impl ChromiumContext {
     }
 
     pub fn event_loop(&self) -> Arc<dyn EventLoop> {
-        #[cfg(feature = "web_renderer")]
-        return self
-            .context
+        self.context
             .clone()
             .map(|ctx| ctx as Arc<dyn EventLoop>)
-            .unwrap_or_else(|| Arc::new(FallbackEventLoop));
-        #[cfg(not(feature = "web_renderer"))]
-        return Arc::new(FallbackEventLoop);
+            .unwrap_or_else(|| Arc::new(FallbackEventLoop))
     }
 
     pub fn instance_id(&self) -> &str {
@@ -175,6 +153,14 @@ impl EventLoop for FallbackEventLoop {
     }
 }
 
+fn random_string(length: usize) -> String {
+    thread_rng()
+        .sample_iter(&Alphanumeric)
+        .take(length)
+        .map(char::from)
+        .collect::<String>()
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum WebRendererContextError {
     #[cfg(feature = "web_renderer")]
@@ -189,7 +175,4 @@ pub enum WebRendererContextError {
 
     #[error("Chromium message loop can only run on the main thread.")]
     WrongThreadForMessageLoop,
-
-    #[error("Web rendering feature is not available")]
-    WebRenderingNotAvailable,
 }

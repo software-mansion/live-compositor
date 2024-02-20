@@ -1,6 +1,10 @@
-use crate::{wgpu::WgpuCtx, Resolution};
-
-use super::base::Texture;
+use crate::{
+    wgpu::{
+        texture::{RGBATexture, Texture},
+        WgpuCtx,
+    },
+    Resolution,
+};
 
 #[derive(Debug)]
 pub struct BGRATexture(Texture);
@@ -26,5 +30,15 @@ impl BGRATexture {
 
     pub fn texture(&self) -> &Texture {
         &self.0
+    }
+}
+
+pub(super) trait RGBATextureExt {
+    fn copy_to_buffer(&self, encoder: &mut wgpu::CommandEncoder, buffer: &wgpu::Buffer);
+}
+
+impl RGBATextureExt for RGBATexture {
+    fn copy_to_buffer(&self, encoder: &mut wgpu::CommandEncoder, buffer: &wgpu::Buffer) {
+        self.texture().copy_to_buffer(encoder, buffer);
     }
 }

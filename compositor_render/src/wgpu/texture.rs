@@ -15,12 +15,10 @@ use self::{
 use super::WgpuCtx;
 
 mod base;
-mod bgra;
 mod rgba;
 pub mod utils;
 mod yuv;
 
-pub type BGRATexture = bgra::BGRATexture;
 pub type RGBATexture = rgba::RGBATexture;
 pub type YUVTextures = yuv::YUVTextures;
 
@@ -169,6 +167,7 @@ impl NodeTexture {
         self.0.state().map(NodeTextureState::resolution)
     }
 
+    #[allow(dead_code)]
     pub fn texture(&self) -> Option<&Texture> {
         self.state().map(|state| state.rgba_texture().texture())
     }

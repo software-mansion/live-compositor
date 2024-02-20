@@ -11,7 +11,7 @@ mod flatten;
 mod layout_renderer;
 mod params;
 mod shader;
-mod transformation_matrices;
+pub mod transformation_matrices;
 
 use self::{
     params::{LayoutNodeParams, ParamsBuffer},
@@ -20,7 +20,6 @@ use self::{
 
 pub(crate) use layout_renderer::LayoutRenderer;
 use log::error;
-pub(crate) use transformation_matrices::{vertices_transformation_matrix, Position};
 
 pub(crate) trait LayoutProvider: Send {
     fn layouts(&mut self, pts: Duration, inputs: &[Option<Resolution>]) -> NestedLayout;

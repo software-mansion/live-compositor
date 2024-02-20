@@ -56,7 +56,7 @@ impl Texture {
         self.texture.size()
     }
 
-    pub(super) fn upload_data(&self, queue: &wgpu::Queue, data: &[u8], bytes_per_pixel: u32) {
+    pub fn upload_data(&self, queue: &wgpu::Queue, data: &[u8], bytes_per_pixel: u32) {
         queue.write_texture(
             wgpu::ImageCopyTexture {
                 aspect: wgpu::TextureAspect::All,
@@ -92,7 +92,7 @@ impl Texture {
     }
 
     /// [`wgpu::Queue::submit`] has to be called afterwards
-    pub(super) fn copy_to_buffer(&self, encoder: &mut wgpu::CommandEncoder, buffer: &wgpu::Buffer) {
+    pub fn copy_to_buffer(&self, encoder: &mut wgpu::CommandEncoder, buffer: &wgpu::Buffer) {
         let size = self.size();
         let block_size = self.block_size().unwrap();
 

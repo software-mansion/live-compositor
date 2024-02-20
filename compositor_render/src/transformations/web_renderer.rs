@@ -4,12 +4,17 @@ use crate::{RendererId, Resolution};
 mod renderer;
 
 #[cfg(not(feature = "web_renderer"))]
-#[path = "web_renderer/disabled_renderer.rs"]
+#[path = "web_renderer/dummy_renderer.rs"]
 mod renderer;
 
 pub use renderer::*;
 
+#[cfg(feature = "web_renderer")]
 pub mod chromium_context;
+#[cfg(not(feature = "web_renderer"))]
+#[path = "web_renderer/dummy_chromium_context.rs"]
+pub mod chromium_context;
+
 pub(crate) mod node;
 #[cfg(feature = "web_renderer")]
 mod web_renderer_thread;
@@ -18,6 +23,8 @@ mod web_renderer_thread;
 mod render_info;
 #[cfg(feature = "web_renderer")]
 mod shader;
+#[cfg(feature = "web_renderer")]
+mod textures;
 
 #[derive(Debug, Clone, Copy)]
 pub struct WebRendererInitOptions {

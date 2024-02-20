@@ -3,7 +3,9 @@ use std::sync::Arc;
 use bytes::Bytes;
 use crossbeam_channel::{Receiver, Sender};
 
-use crate::{scene::ComponentId, transformations::layout::Position, Resolution};
+use crate::{
+    scene::ComponentId, transformations::layout::transformation_matrices::Position, Resolution,
+};
 
 pub const EMBED_FRAMES_MESSAGE: &str = "EMBED_FRAMES";
 pub const DROP_SHARED_MEMORY: &str = "DROP_SHARED_MEMORY";

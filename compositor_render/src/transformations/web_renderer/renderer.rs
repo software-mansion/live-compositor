@@ -8,12 +8,12 @@ use crate::{
     scene::ComponentId,
     state::{RegisterCtx, RenderCtx},
     transformations::{
-        layout::{vertices_transformation_matrix, Position},
-        web_renderer::web_renderer_thread::WebRendererThread,
+        layout::transformation_matrices::{vertices_transformation_matrix, Position},
+        web_renderer::{textures::BGRATexture, web_renderer_thread::WebRendererThread},
     },
     wgpu::{
         common_pipeline::CreateShaderError,
-        texture::{BGRATexture, NodeTexture, Texture},
+        texture::{NodeTexture, Texture},
         WgpuCtx,
     },
     Resolution,
@@ -23,6 +23,7 @@ use super::{
     node::EmbeddingData,
     render_info::RenderInfo,
     shader::WebRendererShader,
+    textures::RGBATextureExt,
     web_renderer_thread::communication::{
         new_response_channel, ResponseReceiverError, UpdateSharedMemoryPayload,
         WebRendererThreadRequest,
