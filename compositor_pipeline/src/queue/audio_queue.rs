@@ -58,6 +58,18 @@ impl AudioQueue {
             .all(|input| input.check_ready_for_pts(pts_range, queue_start))
     }
 
+    /// Checks if all required inputs are ready to produce frames for specific PTS value (if
+    /// all required inputs have frames closest to buffer_pts).
+    pub(super) fn check_all_required_inputs_ready_for_pts(
+        &mut self,
+        pts_range: (Duration, Duration),
+        queue_start: Instant,
+    ) -> bool {
+        self.inputs
+            .values_mut()
+            .all(|input| (!input.required) || input.check_ready_for_pts(pts_range, queue_start))
+    }
+
     /// Checks if any of the required input stream have an offset that would
     /// require the stream to be used for PTS=`next_buffer_pts`
     pub(super) fn has_required_inputs_for_pts(
@@ -65,12 +77,14 @@ impl AudioQueue {
         queue_pts: Duration,
         queue_start: Instant,
     ) -> bool {
-        return self.inputs.values_mut().any(|input| {
-            input.required
-                && input
+        self.inputs.values_mut().any(|input| {
+            let should_already_start = |input: &mut AudioQueueInput| {
+                input
                     .input_pts_from_queue_pts(queue_pts, queue_start)
                     .is_some()
-        });
+            };
+            input.required && should_already_start(input)
+        })
     }
 
     pub fn pop_samples_set(
@@ -191,7 +205,7 @@ impl AudioQueueInput {
             };
         };
 
-        fn has_are_samples_for_pts_range(
+        fn has_all_samples_for_pts_range(
             queue: &VecDeque<AudioSamplesBatch>,
             range_end_pts: Duration,
         ) -> bool {
@@ -201,7 +215,7 @@ impl AudioQueueInput {
             }
         }
 
-        while !has_are_samples_for_pts_range(&self.queue, end_pts) {
+        while !has_all_samples_for_pts_range(&self.queue, end_pts) {
             if self.try_enqueue_samples().is_err() {
                 return false;
             }

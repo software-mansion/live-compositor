@@ -37,8 +37,9 @@ pub struct RtpInputStream {
     /// (**default=`false`**) If input is required and the stream is not delivered
     /// on time, then LiveCompositor will delay producing output frames.
     pub required: Option<bool>,
-    /// Offset in milliseconds relative to the pipeline start (start request). If offset is
-    /// not defined then stream is synchronized based on the first frames delivery time.
+    /// Offset in milliseconds relative to the pipeline start (start request). If the offset is
+    /// not defined then the stream will be synchronized based on the delivery time of the initial
+    /// frames.
     pub offset_ms: Option<f64>,
 }
 

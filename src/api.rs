@@ -39,14 +39,14 @@ pub enum Request {
 pub enum UnregisterRequest {
     InputStream {
         input_id: InputId,
-        /// Timestamp relative to start request when this request
-        /// should be applied.
+        /// Time in milliseconds when this request should be applied. Value `0` represents
+        /// time of the start request.
         schedule_time_ms: Option<f64>,
     },
     OutputStream {
         output_id: OutputId,
-        /// Timestamp relative to start request when this request
-        /// should be applied.
+        /// Time in milliseconds when this request should be applied. Value `0` represents
+        /// time of the start request.
         schedule_time_ms: Option<f64>,
     },
     Shader {

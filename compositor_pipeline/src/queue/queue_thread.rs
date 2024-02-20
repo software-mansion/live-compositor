@@ -53,7 +53,7 @@ impl QueueThread {
         loop {
             select! {
                 recv(ticker) -> _ => {
-                    self.cleanup_old_frames()
+                    self.cleanup_old_data()
                 },
                 recv(self.scheduled_event_receiver) -> event => {
                     self.scheduled_events.push(event.unwrap())
@@ -66,7 +66,7 @@ impl QueueThread {
         }
     }
 
-    fn cleanup_old_frames(&mut self) {
+    fn cleanup_old_data(&mut self) {
         // Drop old frames as if start was happening now.
         self.queue
             .video_queue
@@ -140,7 +140,7 @@ impl QueueThreadAfterStart {
                     }
                 } else if self
                     .video_processor
-                    .try_push_next_frame(video_pts)
+                    .try_push_next_frame_set(video_pts)
                     .is_none()
                 {
                     break;
@@ -165,14 +165,14 @@ impl VideoQueueProcessor {
         )
     }
 
-    fn should_push_pts(&self, pts: Duration, queue: &mut MutexGuard<VideoQueue>) -> bool {
+    fn should_push_for_pts(&self, pts: Duration, queue: &mut MutexGuard<VideoQueue>) -> bool {
         if !self.queue.ahead_of_time_processing && self.queue_start_time.add(pts) > Instant::now() {
             return false;
         }
         if queue.check_all_inputs_ready_for_pts(pts, self.queue_start_time) {
             return true;
         }
-        if queue.has_required_inputs_for_pts(pts, self.queue_start_time) {
+        if !queue.check_all_required_inputs_ready_for_pts(pts, self.queue_start_time) {
             return false;
         }
         self.queue_start_time.add(pts) < Instant::now()
@@ -196,10 +196,10 @@ impl VideoQueueProcessor {
 
     /// Some(()) - Successfully pushed new frame (or dropped it).
     /// None - Nothing to push.
-    fn try_push_next_frame(&mut self, next_buffer_pts: Duration) -> Option<()> {
+    fn try_push_next_frame_set(&mut self, next_buffer_pts: Duration) -> Option<()> {
         let mut internal_queue = self.queue.video_queue.lock().unwrap();
 
-        let should_push_next_frame = self.should_push_pts(next_buffer_pts, &mut internal_queue);
+        let should_push_next_frame = self.should_push_for_pts(next_buffer_pts, &mut internal_queue);
         if !should_push_next_frame {
             return None;
         }
@@ -236,7 +236,7 @@ impl AudioQueueProcessor {
         )
     }
 
-    fn should_push_pts(
+    fn should_push_for_pts_range(
         &self,
         pts_range: (Duration, Duration),
         queue: &mut MutexGuard<AudioQueue>,
@@ -249,7 +249,7 @@ impl AudioQueueProcessor {
         if queue.check_all_inputs_ready_for_pts(pts_range, self.queue_start_time) {
             return true;
         }
-        if queue.has_required_inputs_for_pts(pts_range.0, self.queue_start_time) {
+        if !queue.check_all_required_inputs_ready_for_pts(pts_range, self.queue_start_time) {
             return false;
         }
         self.queue_start_time.add(pts_range.0) < Instant::now()
@@ -264,7 +264,7 @@ impl AudioQueueProcessor {
         let mut internal_queue = self.queue.audio_queue.lock().unwrap();
 
         let should_push_next_batch =
-            self.should_push_pts(next_buffer_pts_range, &mut internal_queue);
+            self.should_push_for_pts_range(next_buffer_pts_range, &mut internal_queue);
         if !should_push_next_batch {
             return None;
         }
