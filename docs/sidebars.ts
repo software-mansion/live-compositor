@@ -17,7 +17,7 @@ const sidebars: SidebarsConfig = {
       type: 'category',
       label: 'Concepts',
       collapsible: false,
-      items: ['concept/component', 'concept/layouts', 'concept/shaders'],
+      items: ['concept/component', 'concept/layouts', 'concept/shaders', 'concept/web'],
     },
     {
       type: 'category',
