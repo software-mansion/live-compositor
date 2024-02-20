@@ -46,7 +46,7 @@ rustPlatform.buildRustPackage {
   pname = "video_compositor";
   version = "0.2.0-rc.1";
   src = ../..;
-  cargoSha256 = "sha256-DrAKb/URNMoQTJ/K8qiUCd5n12mN+QVNhxcAhIoroJ8=";
+  cargoSha256 = "sha256-G3K+BOFcodiHW/2JBWJaZBihhaY39CWWIyj9NVLmYJc=";
 
   buildNoDefaultFeatures = true;
   doCheck = false;
