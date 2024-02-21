@@ -58,7 +58,17 @@ In this directory, an instance of the compositor will create a subdirectory name
 
 Enable web rendering capabilities. With this option disabled, you can not use [`WebView` components](../api/components/WebView) or register [`WebRenderer` instances](../api/renderers/web).
 
+Defaults to `false`. Valid values: `true`, `false`, `1`, `0`.
+
 ### `LIVE_COMPOSITOR_WEB_RENDERER_GPU_ENABLE`
 
 Enable GPU support inside the embedded Chromium instance.
 
+### `LIVE_COMPOSITOR_AHEAD_OF_TIME_PROCESSING_ENABLE`
+
+If enabled, the LiveCompositor server will try to generate output frames ahead of time if all inputs are available.
+
+When to enable this option:
+- If you want to process input streams faster than in real time.
+
+Defaults to `false`. Valid values: `true`, `false`, `1`, `0`.

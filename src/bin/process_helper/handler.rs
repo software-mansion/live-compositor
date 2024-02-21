@@ -21,13 +21,7 @@ impl cef::RenderProcessHandler for RenderProcessHandler {
         _frame: &cef::Frame,
         context: &cef::V8Context,
     ) {
-        let mut global = context.global().unwrap();
-        let ctx_entered = context.enter().unwrap();
-
         context.eval(include_str!("render_frame.js")).unwrap();
-        if let Err(err) = self.register_native_funcs(&mut global, &ctx_entered) {
-            error!("Failed to register native functions for V8Context: {err}");
-        }
     }
 
     fn on_process_message_received(
@@ -65,40 +59,22 @@ impl RenderProcessHandler {
         let ctx_entered = ctx.enter()?;
         let mut global = ctx.global()?;
 
-        const MSG_SIZE: usize = 3;
-        for i in (0..msg.size()).step_by(3) {
-            let source_idx = i / MSG_SIZE;
-
-            let Some(shmem_path) = msg.read_string(i) else {
-                return Err(anyhow!("Failed to read shared memory path at {i}"));
-            };
-            let shmem_path = PathBuf::from(shmem_path);
-
-            let Some(width) = msg.read_int(i + 1) else {
-                return Err(anyhow!(
-                    "Failed to read width of input {} at {}",
-                    source_idx,
-                    i + 1
-                ));
-            };
-
-            let Some(height) = msg.read_int(i + 2) else {
-                return Err(anyhow!(
-                    "Failed to read height of input {} at {}",
-                    source_idx,
-                    i + 2
-                ));
-            };
+        const MSG_SIZE: usize = 4;
+        for i in (0..msg.size()).step_by(MSG_SIZE) {
+            let shmem_path = PathBuf::from(msg.read_string(i)?);
+            let id_attribute = msg.read_string(i + 1)?;
+            let width = msg.read_int(i + 2)?;
+            let height = msg.read_int(i + 3)?;
 
             if width == 0 && height == 0 {
                 continue;
             }
 
             let frame_info = FrameInfo {
-                source_idx,
                 width: width as u32,
                 height: height as u32,
                 shmem_path,
+                id_attribute,
             };
 
             self.render_frame(frame_info, &mut global, &ctx_entered)?;
@@ -115,14 +91,17 @@ impl RenderProcessHandler {
     ) -> Result<()> {
         let mut state = self.state.lock().unwrap();
         let source = match state.source(&frame_info.shmem_path) {
-            Some(source) => source,
+            Some(source) => {
+                source.ensure_v8values(&frame_info, ctx_entered)?;
+                source
+            }
             None => state.create_source(frame_info, ctx_entered)?,
         };
 
         global.call_method(
-            "renderFrame",
+            "live_compositor_renderFrame",
             &[
-                &source.source_id,
+                &source.id_attribute_value,
                 &source.array_buffer,
                 &source.width,
                 &source.height,
@@ -135,9 +114,7 @@ impl RenderProcessHandler {
 
     fn unembed_source(&self, msg: &cef::ProcessMessage, surface: &cef::Frame) -> Result<()> {
         let mut state = self.state.lock().unwrap();
-        let Some(shmem_path) = msg.read_string(0) else {
-            return Err(anyhow!("Failed to read shared memory path"));
-        };
+        let shmem_path = msg.read_string(0)?;
         let shmem_path = PathBuf::from(shmem_path);
         let Some(source) = state.source(&shmem_path) else {
             debug!("Source {shmem_path:?} not found");
@@ -147,9 +124,8 @@ impl RenderProcessHandler {
         let ctx = surface.v8_context()?;
         let ctx_entered = ctx.enter()?;
 
-        let source_id = state.input_name(source.source_index)?;
         let mut global = ctx.global()?;
-        global.delete(&source_id, &ctx_entered)?;
+        global.delete(&source.frame_info.id_attribute, &ctx_entered)?;
         state.remove_source(&shmem_path);
 
         Ok(())
@@ -161,70 +137,26 @@ impl RenderProcessHandler {
         let global = ctx.global()?;
         let document = global.document()?;
 
-        let Some(source_count) = msg.read_int(0) else {
-            return Err(anyhow!("Expected source count"));
-        };
-
-        let state = self.state.lock().unwrap();
-        let mut response = cef::ProcessMessage::new(GET_FRAME_POSITIONS_MESSAGE);
-        let mut index = 0;
-        for source_idx in 0..(source_count as usize) {
-            let source_id = state.input_name(source_idx)?;
-            let element = match document.element_by_id(&source_id, &ctx_entered) {
+        let mut response = cef::ProcessMessageBuilder::new(GET_FRAME_POSITIONS_MESSAGE);
+        for read_idx in 0..msg.size() {
+            let id_attribute = msg.read_string(read_idx)?;
+            let element = match document.element_by_id(&id_attribute, &ctx_entered) {
                 Ok(element) => element,
                 Err(err) => {
-                    return Err(anyhow!("Failed to retrieve element \"{source_id}\": {err}"));
+                    return Err(anyhow!(
+                        "Failed to retrieve element \"{id_attribute}\": {err}"
+                    ));
                 }
             };
+
             let rect = element.bounding_rect(&ctx_entered)?;
-
-            response.write_double(index, rect.x);
-            response.write_double(index + 1, rect.y);
-            response.write_double(index + 2, rect.width);
-            response.write_double(index + 3, rect.height);
-
-            index += 4;
+            response.write_double(rect.x)?;
+            response.write_double(rect.y)?;
+            response.write_double(rect.width)?;
+            response.write_double(rect.height)?;
         }
 
-        surface.send_process_message(cef::ProcessId::Browser, response)?;
-
-        Ok(())
-    }
-
-    pub fn register_native_funcs(
-        &self,
-        global: &mut cef::V8Global,
-        ctx_entered: &cef::V8ContextEntered,
-    ) -> Result<()> {
-        let state = self.state.clone();
-        let func = cef::V8Function::new("register_inputs", move |args| {
-            let mut input_mappings = Vec::new();
-            for arg in args {
-                let cef::V8Value::String(element_id) = arg else {
-                    return Err("Expected string value".into());
-                };
-                let element_id = element_id.get().unwrap().into();
-                if input_mappings.contains(&element_id) {
-                    return Err(format!(
-                        "\"{element_id}\" already exists in the provided input mappings"
-                    )
-                    .into());
-                }
-
-                input_mappings.push(element_id);
-            }
-
-            let mut state = state.lock().unwrap();
-            state.set_input_mappings(input_mappings);
-            Ok(cef::V8Undefined::new().into())
-        });
-
-        global.set(
-            "register_inputs",
-            &cef::V8Value::from(func),
-            cef::V8PropertyAttribute::None,
-            ctx_entered,
-        )?;
+        surface.send_process_message(cef::ProcessId::Browser, response.build())?;
 
         Ok(())
     }

@@ -58,18 +58,11 @@ fn start_example_client_code() -> Result<()> {
         "port": "8004:8008",
         "video": {
             "codec": "h264"
-        }
+        },
+        "offset_ms": 0,
+        "required": true,
     }))?
     .json::<RegisterResponse>()?;
-
-    info!("[example] Register static images");
-    common::post(&json!({
-        "type": "register",
-        "entity_type": "image",
-        "image_id": "example_gif",
-        "asset_type": "gif",
-        "url": "https://gifdb.com/images/high/rust-logo-on-fire-o41c0v9om8drr8dv.gif",
-    }))?;
 
     let shader_source = include_str!("./silly.wgsl");
     info!("[example] Register shader transform");
@@ -110,11 +103,6 @@ fn start_example_client_code() -> Result<()> {
         }
     }))?;
 
-    info!("[example] Start pipeline");
-    common::post(&json!({
-        "type": "start",
-    }))?;
-
     info!("[example] Start input stream");
     let ffmpeg_source = format!(
         "testsrc=s={}x{}:r=30,format=yuv420p",
@@ -134,6 +122,11 @@ fn start_example_client_code() -> Result<()> {
             &format!("rtp://127.0.0.1:{}?rtcpport={}", input_port, input_port),
         ])
         .spawn()?;
+
+    info!("[example] Start pipeline");
+    common::post(&json!({
+        "type": "start",
+    }))?;
 
     Ok(())
 }

@@ -27,17 +27,29 @@ impl ProcessMessage {
         }
     }
 
-    pub fn write_string(&mut self, index: usize, data: String) -> bool {
+    pub fn write_string(&mut self, index: usize, data: String) -> Result<(), ProcessMessageError> {
         unsafe {
             let args = self.arg_list();
             let set_string = (*args).set_string.unwrap();
             let data = CefString::new_raw(data);
 
-            set_string(args, index, &data) == 1
+            if set_string(args, index, &data) != 1 {
+                return Err(ProcessMessageError::WriteFailed {
+                    ty: "string",
+                    index,
+                });
+            }
+
+            Ok(())
         }
     }
 
-    pub fn read_string(&self, index: usize) -> Option<String> {
+    pub fn read_string(&self, index: usize) -> Result<String, ProcessMessageError> {
+        let length = self.size();
+        if length <= index {
+            return Err(ProcessMessageError::ReadOutOfBounds { index, length });
+        }
+
         unsafe {
             let args = self.arg_list();
             let get_string = (*args).get_string.unwrap();
@@ -45,24 +57,37 @@ impl ProcessMessage {
 
             let ty: ValueType = get_type(args, index).into();
             if ty != ValueType::String {
-                return None;
+                return Err(ProcessMessageError::ReadWrongType {
+                    expected_ty: "string",
+                    actual_ty: ty.to_string(),
+                    index,
+                });
             }
 
             let data = get_string(args, index);
-            Some(CefString::from_raw(data))
+            Ok(CefString::from_raw(data))
         }
     }
 
-    pub fn write_int(&mut self, index: usize, data: i32) -> bool {
+    pub fn write_int(&mut self, index: usize, data: i32) -> Result<(), ProcessMessageError> {
         unsafe {
             let args = self.arg_list();
             let set_int = (*args).set_int.unwrap();
 
-            set_int(args, index, data) == 1
+            if set_int(args, index, data) != 1 {
+                return Err(ProcessMessageError::WriteFailed { ty: "int", index });
+            }
+
+            Ok(())
         }
     }
 
-    pub fn read_int(&self, index: usize) -> Option<i32> {
+    pub fn read_int(&self, index: usize) -> Result<i32, ProcessMessageError> {
+        let length = self.size();
+        if length <= index {
+            return Err(ProcessMessageError::ReadOutOfBounds { index, length });
+        }
+
         unsafe {
             let args = self.arg_list();
             let get_int = (*args).get_int.unwrap();
@@ -70,23 +95,39 @@ impl ProcessMessage {
 
             let ty: ValueType = get_type(args, index).into();
             if ty != ValueType::Int {
-                return None;
+                return Err(ProcessMessageError::ReadWrongType {
+                    expected_ty: "int",
+                    actual_ty: ty.to_string(),
+                    index,
+                });
             }
 
-            Some(get_int(args, index))
+            Ok(get_int(args, index))
         }
     }
 
-    pub fn write_double(&mut self, index: usize, data: f64) -> bool {
+    pub fn write_double(&mut self, index: usize, data: f64) -> Result<(), ProcessMessageError> {
         unsafe {
             let args = self.arg_list();
             let set_double = (*args).set_double.unwrap();
 
-            set_double(args, index, data) == 1
+            if set_double(args, index, data) != 1 {
+                return Err(ProcessMessageError::WriteFailed {
+                    ty: "double",
+                    index,
+                });
+            }
+
+            Ok(())
         }
     }
 
-    pub fn read_double(&self, index: usize) -> Option<f64> {
+    pub fn read_double(&self, index: usize) -> Result<f64, ProcessMessageError> {
+        let length = self.size();
+        if length <= index {
+            return Err(ProcessMessageError::ReadOutOfBounds { index, length });
+        }
+
         unsafe {
             let args = self.arg_list();
             let get_double = (*args).get_double.unwrap();
@@ -94,10 +135,14 @@ impl ProcessMessage {
 
             let ty: ValueType = get_type(args, index).into();
             if ty != ValueType::Double {
-                return None;
+                return Err(ProcessMessageError::ReadWrongType {
+                    expected_ty: "double",
+                    actual_ty: ty.to_string(),
+                    index,
+                });
             }
 
-            Some(get_double(args, index))
+            Ok(get_double(args, index))
         }
     }
 
@@ -107,6 +152,58 @@ impl ProcessMessage {
             get_argument_list(self.inner)
         }
     }
+}
+
+pub struct ProcessMessageBuilder {
+    message: ProcessMessage,
+    current_index: usize,
+}
+
+impl ProcessMessageBuilder {
+    pub fn new(message_name: &str) -> Self {
+        Self {
+            message: ProcessMessage::new(message_name),
+            current_index: 0,
+        }
+    }
+
+    pub fn build(self) -> ProcessMessage {
+        self.message
+    }
+
+    pub fn write_string(&mut self, data: String) -> Result<(), ProcessMessageError> {
+        self.message.write_string(self.current_index, data)?;
+        self.current_index += 1;
+        Ok(())
+    }
+
+    pub fn write_int(&mut self, data: i32) -> Result<(), ProcessMessageError> {
+        self.message.write_int(self.current_index, data)?;
+        self.current_index += 1;
+        Ok(())
+    }
+
+    pub fn write_double(&mut self, data: f64) -> Result<(), ProcessMessageError> {
+        self.message.write_double(self.current_index, data)?;
+        self.current_index += 1;
+        Ok(())
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum ProcessMessageError {
+    #[error("Failed to write {ty} at index {index} to process message.")]
+    WriteFailed { ty: &'static str, index: usize },
+
+    #[error("The actual type at {index} is {actual_ty} but tried to read {expected_ty} from process message.")]
+    ReadWrongType {
+        expected_ty: &'static str,
+        actual_ty: String,
+        index: usize,
+    },
+
+    #[error("Tried to read data at {index} but the process message length is {length}.")]
+    ReadOutOfBounds { index: usize, length: usize },
 }
 
 #[repr(u32)]
@@ -154,5 +251,22 @@ impl From<chromium_sys::cef_value_type_t> for ValueType {
             chromium_sys::cef_value_type_t_VTYPE_LIST => Self::List,
             _ => unreachable!(),
         }
+    }
+}
+
+impl ToString for ValueType {
+    fn to_string(&self) -> String {
+        match self {
+            ValueType::Invalid => "invalid",
+            ValueType::Null => "null",
+            ValueType::Bool => "bool",
+            ValueType::Int => "int",
+            ValueType::Double => "double",
+            ValueType::String => "string",
+            ValueType::Binary => "binary",
+            ValueType::Dictionary => "dictionary",
+            ValueType::List => "list",
+        }
+        .to_string()
     }
 }

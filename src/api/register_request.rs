@@ -12,20 +12,20 @@ fn handle_register_input(
     api: &mut Api,
     input_id: InputId,
     register_options: RegisterInputOptions,
-) -> Result<Option<ResponseHandler>, ApiError> {
-    match api.pipeline.register_input(input_id, register_options)? {
-        Some(Port(port)) => Ok(Some(ResponseHandler::Response(
-            super::Response::RegisteredPort { port },
-        ))),
+) -> Result<ResponseHandler, ApiError> {
+    match api.pipeline().register_input(input_id, register_options)? {
+        Some(Port(port)) => Ok(ResponseHandler::Response(super::Response::RegisteredPort {
+            port,
+        })),
 
-        None => Ok(Some(ResponseHandler::Ok)),
+        None => Ok(ResponseHandler::Ok),
     }
 }
 
 pub fn handle_register_request(
     api: &mut Api,
     request: RegisterRequest,
-) -> Result<Option<ResponseHandler>, ApiError> {
+) -> Result<ResponseHandler, ApiError> {
     match request {
         RegisterRequest::RtpInputStream(rtp) => {
             let (input_id, register_options) = rtp.try_into()?;
@@ -37,34 +37,38 @@ pub fn handle_register_request(
         }
         RegisterRequest::OutputStream(output_stream) => {
             register_output(api, output_stream)?;
-            Ok(None)
+            Ok(ResponseHandler::Ok)
         }
         RegisterRequest::Shader(spec) => {
             let spec = spec.try_into()?;
-            api.pipeline.register_renderer(spec)?;
-            Ok(None)
+            api.pipeline().register_renderer(spec)?;
+            Ok(ResponseHandler::Ok)
         }
         RegisterRequest::WebRenderer(spec) => {
             let spec = spec.try_into()?;
-            api.pipeline.register_renderer(spec)?;
-            Ok(None)
+            api.pipeline().register_renderer(spec)?;
+            Ok(ResponseHandler::Ok)
         }
         RegisterRequest::Image(spec) => {
             let spec = spec.try_into()?;
-            api.pipeline.register_renderer(spec)?;
-            Ok(None)
+            api.pipeline().register_renderer(spec)?;
+            Ok(ResponseHandler::Ok)
         }
     }
 }
 
 fn register_output(api: &mut Api, request: RegisterOutputRequest) -> Result<(), ApiError> {
-    let ip = request.ip.clone();
-    let port = request.port;
-    api.pipeline.with_outputs(|mut iter| {
+    let RegisterOutputRequest {
+        output_id,
+        port,
+        ip,
+        ..
+    } = request.clone();
+
+    api.pipeline().with_outputs(|mut iter| {
         if let Some((node_id, _)) = iter.find(|(_, output)| match &output.output {
             pipeline::output::Output::Rtp(rtp) => rtp.port == port && rtp.ip == ip,
         }) {
-            let output_id = request.output_id.clone();
             return Err(ApiError::new(
                 "PORT_AND_IP_ALREADY_IN_USE",
                 format!("Failed to register output stream \"{output_id}\". Combination of port {port} and IP {ip} is already used by node \"{node_id}\""),
@@ -73,7 +77,10 @@ fn register_output(api: &mut Api, request: RegisterOutputRequest) -> Result<(), 
         };
         Ok(())
     })?;
-    api.pipeline.register_output(request.try_into()?)?;
 
+    api.pipeline
+        .lock()
+        .unwrap()
+        .register_output(request.try_into()?)?;
     Ok(())
 }

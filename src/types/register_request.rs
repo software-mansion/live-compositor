@@ -1,3 +1,4 @@
+use core::f64;
 use std::sync::Arc;
 
 use schemars::JsonSchema;
@@ -27,10 +28,18 @@ pub struct RtpInputStream {
     pub input_id: InputId,
     /// UDP port or port range on which the compositor should listen for the stream.
     pub port: Port,
+    /// Transport protocol.
+    pub transport_protocol: Option<TransportProtocol>,
     /// Parameters of a video source included in the RTP stream.
     pub video: Option<Video>,
     /// Parameters of an audio source included in the RTP stream.
     pub audio: Option<Audio>,
+    /// (**default=`false`**) If input is required and the stream is not delivered
+    /// on time, then LiveCompositor will delay producing output frames.
+    pub required: Option<bool>,
+    /// Offset in milliseconds relative to the pipeline start (start request). If offset is
+    /// not defined then stream is synchronized based on the first frames delivery time.
+    pub offset_ms: Option<f64>,
 }
 
 /// Input stream from MP4 file.
@@ -44,6 +53,12 @@ pub struct Mp4 {
     pub url: Option<String>,
     /// Path to the MP4 file.
     pub path: Option<String>,
+    /// (**default=`false`**) If input is required and frames are not processed
+    /// on time, then LiveCompositor will delay producing output frames.
+    pub required: Option<bool>,
+    /// Offset in milliseconds relative to the pipeline start (start request). If offset is
+    /// not defined then stream is synchronized based on the first frames delivery time.
+    pub offset_ms: Option<f64>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
@@ -90,7 +105,16 @@ pub struct Audio {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-#[serde(deny_unknown_fields, rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum TransportProtocol {
+    /// UDP protocol.
+    Udp,
+    /// TCP protocol where LiveCompositor is a server side of the connection.
+    TcpServer,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+#[serde(rename_all = "snake_case")]
 pub enum AudioChannels {
     /// Mono audio (single channel).
     Mono,
@@ -126,6 +150,7 @@ pub struct OutputAudioOpts {
     pub initial: AudioComposition,
     pub sample_rate: u32,
     pub channels: AudioChannels,
+    pub forward_error_correction: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]

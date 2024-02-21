@@ -93,6 +93,16 @@ fn start_example_client_code() -> Result<()> {
         }
     }))?;
 
+    for i in 1..=16 {
+        info!("[example] Update scene");
+        common::post(&json!({
+            "type": "update_scene",
+            "output_id": "output_1",
+            "scene": scene_with_inputs(i),
+            "schedule_time_ms": i * 1000,
+        }))?;
+    }
+
     info!("[example] Start pipeline");
     common::post(&json!({
         "type": "start",
@@ -118,35 +128,22 @@ fn start_example_client_code() -> Result<()> {
         ])
         .spawn()?;
 
-    thread::sleep(Duration::from_secs(1));
-
-    for i in 1..=16 {
-        info!("[example] Update output");
+    for i in 0..16 {
+        info!("[example] Update scene");
         common::post(&json!({
             "type": "update_output",
             "output_id": "output_1",
-            "video": scene_with_inputs(i),
+            "scene": scene_with_inputs(16 - i),
+            "schedule_time_ms": (20 + i) * 1000,
         }))?;
-
-        thread::sleep(Duration::from_secs(1));
-    }
-
-    for i in (1..=16).rev() {
-        info!("[example] Update output");
-        common::post(&json!({
-            "type": "update_output",
-            "output_id": "output_1",
-            "video": scene_with_inputs(i),
-        }))?;
-
-        thread::sleep(Duration::from_secs(1));
     }
 
     info!("[example] Update output");
     common::post(&json!({
         "type": "update_output",
         "output_id": "output_1",
-        "video": scene_with_inputs(4),
+        "scene": scene_with_inputs(4),
+        "schedule_time_ms": 40 * 1000,
     }))?;
 
     Ok(())

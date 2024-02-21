@@ -1,5 +1,6 @@
 use std::{env, path::PathBuf, str::FromStr, sync::OnceLock, time::Duration};
 
+use compositor_pipeline::queue::QueueOptions;
 use compositor_render::{web_renderer::WebRendererInitOptions, Framerate};
 use log::error;
 
@@ -8,11 +9,11 @@ use crate::logger::FfmpegLogLevel;
 pub struct Config {
     pub api_port: u16,
     pub logger: LoggerConfig,
-    pub framerate: Framerate,
     pub stream_fallback_timeout: Duration,
     pub web_renderer: WebRendererInitOptions,
     pub force_gpu: bool,
     pub download_root: PathBuf,
+    pub queue_options: QueueOptions,
 }
 
 pub struct LoggerConfig {
@@ -104,7 +105,7 @@ fn read_config() -> Result<Config, String> {
     const DEFAULT_STREAM_FALLBACK_TIMEOUT: Duration = Duration::from_millis(2000);
     let stream_fallback_timeout = match env::var("LIVE_COMPOSITOR_STREAM_FALLBACK_TIMEOUT_MS") {
         Ok(timeout_ms) => match timeout_ms.parse::<f64>() {
-            Ok(timeout_ms) => Duration::from_secs_f64(timeout_ms),
+            Ok(timeout_ms) => Duration::from_secs_f64(timeout_ms / 1000.0),
             Err(_) => {
                 error!("Invalid value provided for \"LIVE_COMPOSITOR_STREAM_FALLBACK_TIMEOUT_MS\". Falling back to default value 2000ms.");
                 DEFAULT_STREAM_FALLBACK_TIMEOUT
@@ -117,6 +118,12 @@ fn read_config() -> Result<Config, String> {
         .map(PathBuf::from)
         .unwrap_or(env::temp_dir());
 
+    let ahead_of_time_processing: bool =
+        match env::var("LIVE_COMPOSITOR_AHEAD_OF_TIME_PROCESSING_ENABLE") {
+            Ok(enable) => bool_env_from_str(&enable).unwrap_or(false),
+            Err(_) => false,
+        };
+
     Ok(Config {
         api_port,
         logger: LoggerConfig {
@@ -124,7 +131,10 @@ fn read_config() -> Result<Config, String> {
             format: logger_format,
             level: logger_level,
         },
-        framerate,
+        queue_options: QueueOptions {
+            ahead_of_time_processing,
+            output_framerate: framerate,
+        },
         stream_fallback_timeout,
         force_gpu,
         web_renderer: WebRendererInitOptions {

@@ -21,6 +21,7 @@ use crate::{
 
 use super::{
     embedder::{EmbedError, EmbeddingHelper, RenderInfo},
+    node::EmbeddingData,
     shader::WebRendererShader,
     FrameData, SourceTransforms, WebEmbeddingMethod, WebRendererSpec,
 };
@@ -71,11 +72,11 @@ impl WebRenderer {
         &self,
         ctx: &RenderCtx,
         sources: &[&NodeTexture],
-        buffers: &[Arc<wgpu::Buffer>],
+        embedding_data: &EmbeddingData,
         target: &mut NodeTexture,
     ) -> Result<(), RenderWebsiteError> {
         self.embedding_helper
-            .prepare_embedding(sources, buffers)
+            .prepare_embedding(sources, embedding_data)
             .map_err(|err| RenderWebsiteError::EmbeddingFailed(self.spec.url.clone(), err))?;
 
         if let Some(frame) = self.retrieve_frame() {

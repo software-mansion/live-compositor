@@ -6,7 +6,7 @@ use crate::{
     Resolution,
 };
 
-use super::WebRendererSpec;
+use super::{node::EmbeddingData, WebRendererSpec};
 
 #[derive(Debug)]
 pub struct WebRenderer {
@@ -22,7 +22,7 @@ impl WebRenderer {
         &self,
         _ctx: &RenderCtx,
         _sources: &[&NodeTexture],
-        _buffers: &[Arc<wgpu::Buffer>],
+        _embedding_data: &EmbeddingData,
         _target: &mut NodeTexture,
     ) -> Result<(), RenderWebsiteError> {
         Ok(())

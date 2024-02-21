@@ -1,4 +1,4 @@
-function renderFrame(sourceId, buffer, width, height) {
+function live_compositor_renderFrame(sourceId, buffer, width, height) {
     const canvas = document.getElementById(sourceId);
     const ctx = canvas.getContext("2d");
     const imageData = new ImageData(new Uint8ClampedArray(buffer), width, height);

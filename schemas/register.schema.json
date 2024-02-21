@@ -33,6 +33,17 @@
             }
           ]
         },
+        "transport_protocol": {
+          "description": "Transport protocol.",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/TransportProtocol"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "video": {
           "description": "Parameters of a video source included in the RTP stream.",
           "anyOf": [
@@ -54,6 +65,21 @@
               "type": "null"
             }
           ]
+        },
+        "required": {
+          "description": "(**default=`false`**) If input is required and the stream is not delivered on time, then LiveCompositor will delay producing output frames.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "offset_ms": {
+          "description": "Offset in milliseconds relative to the pipeline start (start request). If offset is not defined then stream is synchronized based on the first frames delivery time.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
         }
       }
     },
@@ -92,6 +118,21 @@
             "string",
             "null"
           ]
+        },
+        "required": {
+          "description": "(**default=`false`**) If input is required and frames are not processed on time, then LiveCompositor will delay producing output frames.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "offset_ms": {
+          "description": "Offset in milliseconds relative to the pipeline start (start request). If offset is not defined then stream is synchronized based on the first frames delivery time.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
         }
       }
     },
@@ -379,6 +420,24 @@
           "type": "integer",
           "format": "uint16",
           "minimum": 0.0
+        }
+      ]
+    },
+    "TransportProtocol": {
+      "oneOf": [
+        {
+          "description": "UDP protocol.",
+          "type": "string",
+          "enum": [
+            "udp"
+          ]
+        },
+        {
+          "description": "TCP protocol where LiveCompositor is a server side of the connection.",
+          "type": "string",
+          "enum": [
+            "tcp_server"
+          ]
         }
       ]
     },
@@ -1737,6 +1796,7 @@
       "type": "object",
       "required": [
         "channels",
+        "forward_error_correction",
         "initial",
         "sample_rate"
       ],
@@ -1751,6 +1811,9 @@
         },
         "channels": {
           "$ref": "#/definitions/AudioChannels"
+        },
+        "forward_error_correction": {
+          "type": "boolean"
         }
       },
       "additionalProperties": false

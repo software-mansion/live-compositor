@@ -14,9 +14,8 @@ use crate::common::write_example_sdp_file;
 #[path = "./common/common.rs"]
 mod common;
 
-const SAMPLE_FILE_URL: &str =
-    "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_10mb.mp4";
-const SAMPLE_FILE_PATH: &str = "examples/assets/big_buck_bunny_720p_10mb.mp4";
+const SAMPLE_FILE_URL: &str = "https://filesamples.com/samples/video/mp4/sample_1280x720.mp4";
+const SAMPLE_FILE_PATH: &str = "examples/assets/sample_1280_720.mp4";
 const HTML_FILE_PATH: &str = "examples/web_view.html";
 
 const VIDEO_RESOLUTION: Resolution = Resolution {
@@ -100,23 +99,22 @@ fn start_example_client_code() -> Result<()> {
         "output_id": "output_1",
         "port": 8002,
         "ip": "127.0.0.1",
-        "video": {
-            "resolution": {
-                "width": VIDEO_RESOLUTION.width,
-                "height": VIDEO_RESOLUTION.height,
-            },
-            "encoder_preset": "ultrafast",
-            "initial": {
-                "id": "embed_input_on_website",
-                "type": "web_view",
-                "instance_id": "example_website",
-                "children": [
-                    {
-                        "type": "input_stream",
-                        "input_id": "input_1",
-                    }
-                ]
-            }
+        "resolution": {
+            "width": VIDEO_RESOLUTION.width,
+            "height": VIDEO_RESOLUTION.height,
+        },
+        "encoder_preset": "ultrafast",
+        "initial_scene": {
+            "id": "embed_input_on_website",
+            "type": "web_view",
+            "instance_id": "example_website",
+            "children": [
+                {
+                    "id": "big_bunny_video",
+                    "type": "input_stream",
+                    "input_id": "input_1",
+                }
+            ]
         }
     }))?;
 

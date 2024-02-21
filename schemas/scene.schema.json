@@ -28,6 +28,13 @@
           "type": "null"
         }
       ]
+    },
+    "schedule_time_ms": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "format": "double"
     }
   },
   "additionalProperties": false,

@@ -72,6 +72,17 @@ pub struct UpdateOutputRequest {
     pub output_id: OutputId,
     pub video: Option<Component>,
     pub audio: Option<AudioComposition>,
+    pub schedule_time_ms: Option<f64>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct OutputScene {
+    pub output_id: OutputId,
+    pub scene: Component,
+    /// Timestamp relative to start request when this request
+    /// should be applied.
+    pub schedule_time_ms: Option<f64>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]

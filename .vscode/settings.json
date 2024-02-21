@@ -4,13 +4,15 @@
             "fileMatch": [
                 "*.scene.json"
             ],
-            "url": "./schemas/scene.schema.json"
+            "url": "./schemas/scene.schema.json",
+            "files.insertFinalNewline": true
         },
         {
             "fileMatch": [
                 "*.register.json"
             ],
-            "url": "./schemas/register.schema.json"
+            "url": "./schemas/register.schema.json",
+            "files.insertFinalNewline": true
         }
     ],
 }

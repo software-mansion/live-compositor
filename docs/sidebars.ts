@@ -17,7 +17,7 @@ const sidebars: SidebarsConfig = {
       type: 'category',
       label: 'Concepts',
       collapsible: false,
-      items: ['concept/component', 'concept/layouts', 'concept/shaders'],
+      items: ['concept/component', 'concept/layouts', 'concept/shaders', 'concept/web'],
     },
     {
       type: 'category',
@@ -65,6 +65,13 @@ const sidebars: SidebarsConfig = {
           collapsible: false,
           description: 'Resources that need to be registered first before they can be used.',
           items: ['api/renderers/shader', 'api/renderers/image', 'api/renderers/web'],
+        },
+        {
+          type: 'category',
+          label: 'Inputs',
+          collapsible: false,
+          description: 'Elements that deliver media from external sources.',
+          items: ['api/inputs/rtp', 'api/inputs/mp4'],
         },
       ],
     },

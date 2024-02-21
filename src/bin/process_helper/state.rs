@@ -1,38 +1,57 @@
-use anyhow::{Context, Result};
+use anyhow::Result;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 
 use compositor_chromium::cef;
 use shared_memory::{Shmem, ShmemConf};
 
 pub struct State {
-    input_mappings: Vec<Arc<str>>,
-    sources: HashMap<PathBuf, Arc<Source>>,
+    sources: HashMap<PathBuf, Source>,
 }
 
 impl State {
     pub fn new() -> Self {
         Self {
-            input_mappings: Vec::new(),
             sources: HashMap::new(),
         }
     }
 
-    pub fn source(&self, key: &Path) -> Option<Arc<Source>> {
-        self.sources.get(key).cloned()
+    pub fn source(&mut self, key: &Path) -> Option<&mut Source> {
+        self.sources.get_mut(key)
     }
 
     pub fn create_source(
         &mut self,
         frame_info: FrameInfo,
         ctx_entered: &cef::V8ContextEntered,
-    ) -> Result<Arc<Source>> {
-        let source_id = self.input_name(frame_info.source_idx)?;
+    ) -> Result<&mut Source> {
+        let shmem_path = frame_info.shmem_path.clone();
+        let source = Source::new(frame_info, ctx_entered)?;
+
+        self.sources.insert(shmem_path.clone(), source);
+        Ok(self.sources.get_mut(&shmem_path).unwrap())
+    }
+
+    pub fn remove_source(&mut self, key: &Path) {
+        self.sources.remove(key);
+    }
+}
+
+pub struct Source {
+    pub _shmem: Shmem,
+    pub id_attribute_value: cef::V8Value,
+    pub array_buffer: cef::V8Value,
+    pub width: cef::V8Value,
+    pub height: cef::V8Value,
+    pub frame_info: FrameInfo,
+}
+
+impl Source {
+    pub fn new(frame_info: FrameInfo, ctx_entered: &cef::V8ContextEntered) -> Result<Self> {
         let shmem = ShmemConf::new().flink(&frame_info.shmem_path).open()?;
         let data_ptr = shmem.as_ptr();
 
-        let source_id = cef::V8String::new(&source_id).into();
+        let id_attribute_value = cef::V8String::new(&frame_info.id_attribute).into();
         let array_buffer: cef::V8Value = unsafe {
             cef::V8ArrayBuffer::from_ptr(
                 data_ptr,
@@ -44,49 +63,35 @@ impl State {
         let width = cef::V8Uint::new(frame_info.width).into();
         let height = cef::V8Uint::new(frame_info.height).into();
 
-        // `Arc` is used instead of `Rc` because we can't make any guarantees that Chromium will run this code on a single thread.
-        #[allow(clippy::arc_with_non_send_sync)]
-        let source = Arc::new(Source {
+        let source = Source {
             _shmem: shmem,
-            source_index: frame_info.source_idx,
-            source_id,
+            id_attribute_value,
             array_buffer,
             width,
             height,
-        });
+            frame_info,
+        };
 
-        self.sources.insert(frame_info.shmem_path, source.clone());
         Ok(source)
     }
 
-    pub fn remove_source(&mut self, key: &Path) {
-        self.sources.remove(key);
-    }
+    pub fn ensure_v8values(
+        &mut self,
+        frame_info: &FrameInfo,
+        ctx_entered: &cef::V8ContextEntered,
+    ) -> Result<()> {
+        if self.frame_info != *frame_info {
+            *self = Self::new(frame_info.clone(), ctx_entered)?;
+        }
 
-    pub fn set_input_mappings(&mut self, new_input_mappings: Vec<Arc<str>>) {
-        self.sources.clear();
-        self.input_mappings = new_input_mappings;
-    }
-
-    pub fn input_name(&self, source_idx: usize) -> Result<Arc<str>> {
-        self.input_mappings.get(source_idx).cloned().with_context(|| {
-            format!("Could not retrieve input name. Expected registered input for index {source_idx}. Use register_inputs(\"input_name1\", ...)")
-        })
+        Ok(())
     }
 }
 
-pub struct Source {
-    pub _shmem: Shmem,
-    pub source_index: usize,
-    pub source_id: cef::V8Value,
-    pub array_buffer: cef::V8Value,
-    pub width: cef::V8Value,
-    pub height: cef::V8Value,
-}
-
+#[derive(Debug, Clone, PartialEq)]
 pub struct FrameInfo {
-    pub source_idx: usize,
     pub width: u32,
     pub height: u32,
     pub shmem_path: PathBuf,
+    pub id_attribute: String,
 }
