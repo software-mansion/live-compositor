@@ -1,13 +1,13 @@
 use std::sync::{Arc, Mutex};
 
-use crate::{
+use compositor_render::{
     error::UpdateSceneError, scene::AudioComposition, AudioChannels, AudioSamplesSet, OutputId,
     OutputSamples,
 };
 
-use self::audio_mixer::InternalAudioMixer;
+use self::internal_audio_mixer::InternalAudioMixer;
 
-mod audio_mixer;
+mod internal_audio_mixer;
 
 #[derive(Debug, Clone)]
 pub struct AudioMixer(Arc<Mutex<InternalAudioMixer>>);
@@ -30,7 +30,7 @@ impl AudioMixer {
     }
 
     pub fn register_output(
-        &mut self,
+        &self,
         output_id: OutputId,
         sample_rate: u32,
         channels: AudioChannels,
@@ -42,6 +42,10 @@ impl AudioMixer {
             channels,
             initial_composition,
         );
+    }
+
+    pub fn unregister_output(&self, output_id: &OutputId) {
+        self.0.lock().unwrap().unregister_output(output_id);
     }
 }
 

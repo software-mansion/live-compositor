@@ -1,6 +1,6 @@
 use std::{cmp::max, collections::HashMap, sync::Arc, time::Duration};
 
-use crate::{
+use compositor_render::{
     error::UpdateSceneError, scene::AudioComposition, AudioChannels, AudioSamples,
     AudioSamplesBatch, AudioSamplesSet, InputId, OutputId, OutputSamples,
 };
@@ -44,6 +44,10 @@ impl InternalAudioMixer {
                 mixed_samples: 0,
             },
         );
+    }
+
+    pub fn unregister_output(&mut self, output_id: &OutputId) {
+        self.outputs.remove(output_id);
     }
 
     pub fn update_scene(

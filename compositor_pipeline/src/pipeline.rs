@@ -12,12 +12,13 @@ use compositor_render::error::{
 use compositor_render::scene::{AudioComposition, Component};
 use compositor_render::web_renderer::WebRendererInitOptions;
 use compositor_render::{error::UpdateSceneError, Renderer};
-use compositor_render::{AudioChannels, AudioMixer, RendererOptions};
+use compositor_render::{AudioChannels, RendererOptions};
 use compositor_render::{AudioSamplesSet, FrameSet, RegistryType};
 use compositor_render::{EventLoop, InputId, OutputId, RendererId, RendererSpec};
 use crossbeam_channel::{bounded, Receiver};
 use log::{debug, error};
 
+use crate::audio_mixer::AudioMixer;
 use crate::error::{
     RegisterInputError, RegisterOutputError, UnregisterInputError, UnregisterOutputError,
 };
@@ -55,13 +56,13 @@ pub struct RegisterInputOptions {
 }
 
 #[derive(Debug, Clone)]
-pub struct OutputVideoOpts {
+pub struct OutputVideoOptions {
     pub encoder_opts: EncoderOptions,
     pub initial: Component,
 }
 
 #[derive(Debug, Clone)]
-pub struct OutputAudioOpts {
+pub struct OutputAudioOptions {
     pub initial: AudioComposition,
     pub sample_rate: u32,
     pub channels: AudioChannels,
@@ -72,8 +73,8 @@ pub struct OutputAudioOpts {
 pub struct RegisterOutputOptions {
     pub output_id: OutputId,
     pub output_options: OutputOptions,
-    pub video: Option<OutputVideoOpts>,
-    pub audio: Option<OutputAudioOpts>,
+    pub video: Option<OutputVideoOptions>,
+    pub audio: Option<OutputAudioOptions>,
 }
 
 #[derive(Debug, Clone)]
@@ -226,6 +227,7 @@ impl Pipeline {
             return Err(UnregisterOutputError::NotFound(output_id.clone()));
         }
 
+        self.audio_mixer.unregister_output(output_id);
         self.outputs.remove(output_id);
         Ok(())
     }

@@ -223,7 +223,7 @@ impl TryFrom<RegisterOutputRequest> for pipeline::RegisterOutputOptions {
         }
         let output_options = value.clone().into();
         let video = match value.video {
-            Some(v) => Some(pipeline::OutputVideoOpts {
+            Some(v) => Some(pipeline::OutputVideoOptions {
                 initial: v.initial.try_into()?,
                 encoder_opts: pipeline::encoder::EncoderOptions::H264(Options {
                     preset: v.encoder_preset.into(),
@@ -234,7 +234,7 @@ impl TryFrom<RegisterOutputRequest> for pipeline::RegisterOutputOptions {
             None => None,
         };
 
-        let audio = value.audio.map(|a| pipeline::OutputAudioOpts {
+        let audio = value.audio.map(|a| pipeline::OutputAudioOptions {
             initial: a.initial.into(),
             sample_rate: a.sample_rate,
             channels: a.channels.into(),

@@ -1,5 +1,4 @@
 pub mod error;
-pub mod mixer;
 pub mod scene;
 
 pub(crate) mod registry;
@@ -14,7 +13,6 @@ mod types;
 pub use event_loop::EventLoop;
 pub use types::*;
 
-pub use mixer::AudioMixer;
 pub use registry::RegistryType;
 pub use state::Renderer;
 pub use state::RendererOptions;
