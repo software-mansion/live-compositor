@@ -193,7 +193,7 @@ impl Pipeline {
         } = register_options.clone();
         let (has_video, has_audio) = (video.is_some(), audio.is_some());
         if !has_video && !has_audio {
-            return Err(RegisterOutputError::NoVideoOrAudio(output_id));
+            return Err(RegisterOutputError::NoVideoAndAudio(output_id));
         }
 
         if self.outputs.contains_key(&output_id) {

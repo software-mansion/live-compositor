@@ -148,8 +148,8 @@ impl InternalAudioMixer {
                 (self.0 + other.0, self.1 + other.1)
             }
 
-            fn div(&self, counter: i32) -> Self {
-                (self.0 / max(counter, 1), self.1 / max(counter, 1))
+            fn div(&self, denominator: i32) -> Self {
+                (self.0 / max(denominator, 1), self.1 / max(denominator, 1))
             }
         }
 

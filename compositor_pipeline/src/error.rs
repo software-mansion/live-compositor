@@ -38,7 +38,7 @@ pub enum RegisterOutputError {
     SceneError(OutputId, #[source] UpdateSceneError),
 
     #[error("Failed to register output stream \"{0}\". At least one of \"video\" and \"audio\" must be specified.")]
-    NoVideoOrAudio(OutputId),
+    NoVideoAndAudio(OutputId),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -167,7 +167,7 @@ impl From<&RegisterOutputError> for PipelineErrorInfo {
                 PipelineErrorInfo::new(UNSUPPORTED_RESOLUTION, ErrorType::UserError)
             }
             RegisterOutputError::SceneError(_, err) => err.into(),
-            RegisterOutputError::NoVideoOrAudio(_) => {
+            RegisterOutputError::NoVideoAndAudio(_) => {
                 PipelineErrorInfo::new(NO_VIDEO_OR_AUDIO_FOR_OUTPUT, ErrorType::UserError)
             }
         }
@@ -193,6 +193,7 @@ impl From<&UnregisterInputError> for PipelineErrorInfo {
 const OUTPUT_STREAM_STILL_IN_USE: &str = "OUTPUT_STREAM_STILL_IN_USE";
 const OUTPUT_STREAM_NOT_FOUND: &str = "OUTPUT_STREAM_NOT_FOUND";
 const NO_AUDIO_AND_VIDEO_SPECIFIED: &str = "NO_AUDIO_AND_VIDEO_SPECIFIED";
+const AUDIO_VIDEO_SPECIFICATION_NOT_MATCHING: &str = "AUDIO_VIDEO_SPECIFICATION_NOT_MATCHING";
 
 impl From<&UnregisterOutputError> for PipelineErrorInfo {
     fn from(err: &UnregisterOutputError) -> Self {
@@ -225,7 +226,7 @@ impl From<&UpdateSceneError> for PipelineErrorInfo {
                 error_type: ErrorType::UserError,
             },
             UpdateSceneError::AudioVideoNotMatching(_) => PipelineErrorInfo {
-                error_code: NO_AUDIO_AND_VIDEO_SPECIFIED,
+                error_code: AUDIO_VIDEO_SPECIFICATION_NOT_MATCHING,
                 error_type: ErrorType::UserError,
             },
         }

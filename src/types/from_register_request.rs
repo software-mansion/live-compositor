@@ -203,7 +203,7 @@ impl From<RegisterOutputRequest> for pipeline::output::OutputOptions {
                 options: decoder::AudioDecoderOptions::Opus(OpusDecoderOptions {
                     sample_rate: a.sample_rate,
                     channels: a.channels.into(),
-                    forward_error_correction: a.forward_error_correction,
+                    forward_error_correction: a.forward_error_correction.unwrap_or(false),
                 }),
                 payload_type: 97,
             }),
@@ -238,7 +238,7 @@ impl TryFrom<RegisterOutputRequest> for pipeline::RegisterOutputOptions {
             initial: a.initial.into(),
             sample_rate: a.sample_rate,
             channels: a.channels.into(),
-            forward_error_correction: a.forward_error_correction,
+            forward_error_correction: a.forward_error_correction.unwrap_or(false),
         });
 
         Ok(Self {

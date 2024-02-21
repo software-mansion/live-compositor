@@ -147,10 +147,14 @@ pub struct OutputVideoOpts {
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct OutputAudioOpts {
+    /// Initial audio composition for output.
     pub initial: AudioComposition,
     pub sample_rate: u32,
     pub channels: AudioChannels,
-    pub forward_error_correction: bool,
+    /// (**default=`false`**) Specifies whether the stream use forward error correction.
+    /// It's specific for Opus codec.
+    /// For more information, check out [RFC](https://datatracker.ietf.org/doc/html/rfc6716#section-2.1.7).
+    pub forward_error_correction: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
