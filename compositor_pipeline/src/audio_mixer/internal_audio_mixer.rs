@@ -16,7 +16,7 @@ struct OutputInfo {
 }
 
 #[derive(Debug)]
-pub struct InternalAudioMixer {
+pub(super) struct InternalAudioMixer {
     outputs: HashMap<OutputId, OutputInfo>,
 }
 
@@ -67,7 +67,12 @@ impl InternalAudioMixer {
         let input_samples = samples_set
             .samples
             .iter()
-            .map(|(input_id, batches)| (input_id.clone(), Self::merge_batches(batches)))
+            .map(|(input_id, batches)| {
+                (
+                    input_id.clone(),
+                    Self::join_consecutive_batches_for_one_input(batches),
+                )
+            })
             .collect::<HashMap<InputId, Option<AudioSamplesBatch>>>();
 
         OutputSamples(
@@ -124,33 +129,33 @@ impl InternalAudioMixer {
         }
 
         trait ExtSampleOps {
-            fn add(&self, other: &Self) -> Self;
-            fn div(&self, counter: &i32) -> Self;
+            fn add(&self, other: Self) -> Self;
+            fn div(&self, counter: i32) -> Self;
         }
 
         impl ExtSampleOps for i32 {
-            fn add(&self, other: &Self) -> Self {
+            fn add(&self, other: Self) -> Self {
                 self + other
             }
 
-            fn div(&self, counter: &i32) -> Self {
-                self / max(*counter, 1)
+            fn div(&self, counter: i32) -> Self {
+                self / max(counter, 1)
             }
         }
 
         impl ExtSampleOps for (i32, i32) {
-            fn add(&self, other: &Self) -> Self {
+            fn add(&self, other: Self) -> Self {
                 (self.0 + other.0, self.1 + other.1)
             }
 
-            fn div(&self, counter: &i32) -> Self {
-                (self.0 / max(*counter, 1), self.1 / max(*counter, 1))
+            fn div(&self, counter: i32) -> Self {
+                (self.0 / max(counter, 1), self.1 / max(counter, 1))
             }
         }
 
         /// Mix samples from inputs in mixing buffer
         /// This function avoids code duplication for different sample types
-        fn mix<SumSample: Sized + Default + Clone + ExtSampleOps, F>(
+        fn mix<SumSample: Sized + Default + Clone + Copy + ExtSampleOps, F>(
             mixing_buffer: &mut [SumSample],
             // Counts hwo many samples have been summed in mixing_buffer[i]
             counter: &mut [i32],
@@ -184,7 +189,7 @@ impl InternalAudioMixer {
                                 as usize;
                             if sample_index < mixing_buffer.len() && sample_pts > start_pts {
                                 mixing_buffer[sample_index] =
-                                    mixing_buffer[sample_index].add(sample);
+                                    mixing_buffer[sample_index].add(*sample);
                                 counter[sample_index] += 1;
                             }
                         })
@@ -194,7 +199,7 @@ impl InternalAudioMixer {
             counter
                 .iter()
                 .enumerate()
-                .for_each(|(index, count)| mixing_buffer[index] = mixing_buffer[index].div(count));
+                .for_each(|(index, count)| mixing_buffer[index] = mixing_buffer[index].div(*count));
         }
 
         let first_pts = match output_info.first_pts {
@@ -229,7 +234,7 @@ impl InternalAudioMixer {
                 AudioSamples::Mono(mixed_samples)
             }
             AudioChannels::Stereo => {
-                let mut mixing_buffer = vec![(0i32, 0); samples_count];
+                let mut mixing_buffer = vec![(0i32, 0i32); samples_count];
                 let get_samples = |batch: &AudioSamplesBatch| stereo_samples(batch);
                 mix(
                     &mut mixing_buffer,
@@ -249,63 +254,58 @@ impl InternalAudioMixer {
         }
     }
 
-    /// Merges batches for input, fills empty spaces
-    fn merge_batches(batches: &[AudioSamplesBatch]) -> Option<AudioSamplesBatch> {
+    /// Joins consecutive batches for a single input, and fills empty spaces with zeroes, if there are any
+    fn join_consecutive_batches_for_one_input(
+        batches: &[AudioSamplesBatch],
+    ) -> Option<AudioSamplesBatch> {
         /// batches shouldn't be empty
-        fn process_batches<T: Copy + Default>(
+        fn join_batches<T: Copy + Default>(
             batches: &[AudioSamplesBatch],
             get_samples: impl Fn(&AudioSamplesBatch) -> Option<&[T]>,
         ) -> Vec<T> {
             let first_batch = batches.first().unwrap();
-            batches
-                .iter()
-                .fold(Vec::with_capacity(batches.len()), |mut samples, batch| {
-                    let missing_samples = (batch
-                        .start_pts
-                        .saturating_sub(first_batch.start_pts)
-                        .as_secs_f64()
-                        * first_batch.sample_rate as f64)
-                        .round() as usize
-                        - samples.len();
-                    // To account for numerical errors
-                    if missing_samples > 3 {
-                        samples.extend(std::iter::repeat(T::default()).take(missing_samples));
-                    }
+            batches.iter().fold(Vec::new(), |mut samples, batch| {
+                let missing_samples = (batch
+                    .start_pts
+                    .saturating_sub(first_batch.start_pts)
+                    .as_secs_f64()
+                    * first_batch.sample_rate as f64)
+                    .round() as usize
+                    - samples.len();
+                // To account for numerical errors
+                if missing_samples > 3 {
+                    samples.extend(std::iter::repeat(T::default()).take(missing_samples));
+                }
 
-                    if let Some(batch_samples) = get_samples(batch) {
-                        samples.extend(batch_samples.iter().cloned());
-                    }
+                if let Some(batch_samples) = get_samples(batch) {
+                    samples.extend(batch_samples.iter().cloned());
+                }
 
-                    samples
-                })
+                samples
+            })
         }
 
         let first_batch = batches.first()?;
-        let samples = match first_batch.samples.as_ref() {
-            AudioSamples::Mono(_) => AudioSamples::Mono(process_batches(batches, |batch| {
-                match &batch.samples.as_ref() {
-                    AudioSamples::Mono(samples) => Some(samples),
-                    AudioSamples::Stereo(_) => None,
-                }
-            })),
-            AudioSamples::Stereo(_) => AudioSamples::Stereo(process_batches(batches, |batch| {
-                match &batch.samples.as_ref() {
-                    AudioSamples::Mono(_) => None,
-                    AudioSamples::Stereo(samples) => Some(samples),
-                }
-            })),
-        };
+        let samples =
+            match first_batch.samples.as_ref() {
+                AudioSamples::Mono(_) => AudioSamples::Mono(join_batches(batches, |batch| {
+                    match &batch.samples.as_ref() {
+                        AudioSamples::Mono(samples) => Some(samples),
+                        AudioSamples::Stereo(_) => None,
+                    }
+                })),
+                AudioSamples::Stereo(_) => AudioSamples::Stereo(join_batches(batches, |batch| {
+                    match &batch.samples.as_ref() {
+                        AudioSamples::Mono(_) => None,
+                        AudioSamples::Stereo(samples) => Some(samples),
+                    }
+                })),
+            };
 
         Some(AudioSamplesBatch {
             samples: Arc::new(samples),
             start_pts: first_batch.start_pts,
             sample_rate: first_batch.sample_rate,
         })
-    }
-}
-
-impl Default for InternalAudioMixer {
-    fn default() -> Self {
-        Self::new()
     }
 }

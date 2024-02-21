@@ -32,7 +32,7 @@ impl TryFrom<RtpInputStream> for (compositor_render::InputId, pipeline::Register
         } = value;
 
         const NO_VIDEO_AUDIO_SPEC: &str =
-            "At least one of `video` or `audio` has to be specified in `register_input` request.";
+            "At least one of `video` and `audio` has to be specified in `register_input` request.";
 
         if video.is_none() && audio.is_none() {
             return Err(TypeError::new(NO_VIDEO_AUDIO_SPEC));

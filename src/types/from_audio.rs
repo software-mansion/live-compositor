@@ -3,12 +3,12 @@ use compositor_render::scene;
 
 impl From<AudioComposition> for scene::AudioComposition {
     fn from(value: AudioComposition) -> Self {
-        Self(
-            value
-                .mixed_inputs
-                .iter()
-                .map(|input_id| input_id.clone().into())
-                .collect(),
-        )
+        let mixed_inputs = value
+            .mixed_inputs
+            .iter()
+            .map(|input_id| input_id.clone().into())
+            .collect();
+
+        Self { mixed_inputs }
     }
 }
