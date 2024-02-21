@@ -74,7 +74,7 @@ pub enum UpdateSceneError {
     #[error(transparent)]
     SceneError(#[from] SceneError),
 
-    #[error("No video or audio specified for output \"{0}\"")]
+    #[error("No video and audio specified for output \"{0}\"")]
     NoAudioAndVideo(OutputId),
 
     #[error("Audio and video specification for output \"{0}\" doesn't match one provided in register output request.
