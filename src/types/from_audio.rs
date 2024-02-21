@@ -5,7 +5,7 @@ impl From<AudioComposition> for scene::AudioComposition {
     fn from(value: AudioComposition) -> Self {
         Self(
             value
-                .0
+                .mixed_inputs
                 .iter()
                 .map(|input_id| input_id.clone().into())
                 .collect(),

@@ -86,7 +86,9 @@ pub struct OutputScene {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-pub struct AudioComposition(Vec<InputId>);
+pub struct AudioComposition {
+    mixed_inputs: Vec<InputId>,
+}
 
 impl Display for InputId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

@@ -164,7 +164,7 @@ impl InternalAudioMixer {
             // Sums inputs in mixing buffer
             output_info
                 .composition
-                .0
+                .mixed_inputs
                 .iter()
                 .filter_map(|input_id| match input_samples.get(input_id) {
                     Some(Some(input_batch)) => Some(input_batch),
