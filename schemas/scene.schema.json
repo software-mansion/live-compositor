@@ -1242,9 +1242,17 @@
       ]
     },
     "AudioComposition": {
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/InputId"
+      "type": "object",
+      "required": [
+        "mixed_inputs"
+      ],
+      "properties": {
+        "mixed_inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/InputId"
+          }
+        }
       }
     }
   }

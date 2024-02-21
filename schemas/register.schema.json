@@ -1796,13 +1796,17 @@
       "type": "object",
       "required": [
         "channels",
-        "forward_error_correction",
         "initial",
         "sample_rate"
       ],
       "properties": {
         "initial": {
-          "$ref": "#/definitions/AudioComposition"
+          "description": "Initial audio composition for output.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/AudioComposition"
+            }
+          ]
         },
         "sample_rate": {
           "type": "integer",
@@ -1813,15 +1817,27 @@
           "$ref": "#/definitions/AudioChannels"
         },
         "forward_error_correction": {
-          "type": "boolean"
+          "description": "(**default=`false`**) Specifies whether the stream use forward error correction. It's specific for Opus codec. For more information, check out [RFC](https://datatracker.ietf.org/doc/html/rfc6716#section-2.1.7).",
+          "type": [
+            "boolean",
+            "null"
+          ]
         }
       },
       "additionalProperties": false
     },
     "AudioComposition": {
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/InputId"
+      "type": "object",
+      "required": [
+        "mixed_inputs"
+      ],
+      "properties": {
+        "mixed_inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/InputId"
+          }
+        }
       }
     },
     "WebEmbeddingMethod": {
