@@ -1,4 +1,7 @@
-use crate::{audio_mixer::types::{AudioChannels, AudioSamplesBatch}, error::DecoderInitError};
+use crate::{
+    audio_mixer::types::{AudioChannels, AudioSamplesBatch},
+    error::DecoderInitError,
+};
 
 use self::{fdk_aac::FdkAacDecoder, ffmpeg_h264::H264FfmpegDecoder, opus_decoder::OpusDecoder};
 

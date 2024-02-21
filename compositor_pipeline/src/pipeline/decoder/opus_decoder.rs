@@ -4,7 +4,11 @@ use compositor_render::InputId;
 use crossbeam_channel::{Receiver, Sender};
 use log::error;
 
-use crate::{audio_mixer::types::{AudioChannels, AudioSamples, AudioSamplesBatch}, error::DecoderInitError, pipeline::structs::EncodedChunk};
+use crate::{
+    audio_mixer::types::{AudioChannels, AudioSamples, AudioSamplesBatch},
+    error::DecoderInitError,
+    pipeline::structs::EncodedChunk,
+};
 
 use super::OpusDecoderOptions;
 
@@ -72,4 +76,3 @@ impl OpusDecoder {
         }
     }
 }
-
