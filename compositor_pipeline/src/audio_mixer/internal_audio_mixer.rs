@@ -1,9 +1,10 @@
 use std::{cmp::max, collections::HashMap, sync::Arc, time::Duration};
 
-use compositor_render::{
-    error::UpdateSceneError, scene::AudioComposition, AudioChannels, AudioSamples,
-    AudioSamplesBatch, AudioSamplesSet, InputId, OutputId, OutputSamples,
-};
+use compositor_render::{error::UpdateSceneError, scene::AudioComposition, InputId, OutputId};
+
+use crate::audio_mixer::types::{AudioSamples, AudioSamplesBatch};
+
+use super::types::{AudioChannels, AudioSamplesSet, OutputSamples};
 
 #[derive(Debug)]
 struct OutputInfo {

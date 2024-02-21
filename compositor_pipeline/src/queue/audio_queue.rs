@@ -4,8 +4,10 @@ use std::{
     vec,
 };
 
+use crate::audio_mixer::types::{AudioSamplesBatch, AudioSamplesSet};
+
 use super::{utils::InputProcessor, InputOptions};
-use compositor_render::{AudioSamplesBatch, AudioSamplesSet, InputId};
+use compositor_render::InputId;
 use crossbeam_channel::{Receiver, TryRecvError};
 
 #[derive(Debug)]

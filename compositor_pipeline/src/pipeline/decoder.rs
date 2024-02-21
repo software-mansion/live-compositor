@@ -1,4 +1,4 @@
-use crate::error::DecoderInitError;
+use crate::{audio_mixer::types::{AudioChannels, AudioSamplesBatch}, error::DecoderInitError};
 
 use self::{fdk_aac::FdkAacDecoder, ffmpeg_h264::H264FfmpegDecoder, opus_decoder::OpusDecoder};
 
@@ -8,7 +8,7 @@ use super::{
 };
 
 use bytes::Bytes;
-use compositor_render::{AudioChannels, AudioSamplesBatch, Frame, InputId};
+use compositor_render::{Frame, InputId};
 use crossbeam_channel::{bounded, Receiver, Sender};
 
 pub mod fdk_aac;

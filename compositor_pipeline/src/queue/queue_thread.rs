@@ -6,9 +6,11 @@ use std::{
     time::{Duration, Instant},
 };
 
-use compositor_render::{AudioSamplesSet, FrameSet, InputId};
+use compositor_render::{FrameSet, InputId};
 use crossbeam_channel::{select, tick, Receiver, Sender};
 use log::warn;
+
+use crate::audio_mixer::types::AudioSamplesSet;
 
 use super::{audio_queue::AudioQueue, video_queue::VideoQueue, Queue, ScheduledEvent};
 

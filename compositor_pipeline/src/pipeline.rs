@@ -11,13 +11,14 @@ use compositor_render::error::{
 };
 use compositor_render::scene::{AudioComposition, Component};
 use compositor_render::web_renderer::WebRendererInitOptions;
+use compositor_render::RendererOptions;
 use compositor_render::{error::UpdateSceneError, Renderer};
-use compositor_render::{AudioChannels, RendererOptions};
-use compositor_render::{AudioSamplesSet, FrameSet, RegistryType};
 use compositor_render::{EventLoop, InputId, OutputId, RendererId, RendererSpec};
+use compositor_render::{FrameSet, RegistryType};
 use crossbeam_channel::{bounded, Receiver};
 use log::{debug, error};
 
+use crate::audio_mixer::types::{AudioChannels, AudioSamplesSet};
 use crate::audio_mixer::AudioMixer;
 use crate::error::{
     RegisterInputError, RegisterOutputError, UnregisterInputError, UnregisterOutputError,

@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use compositor_pipeline::{
+    audio_mixer,
     pipeline::{
         self,
         decoder::{self, OpusDecoderOptions, VideoDecoderOptions},
@@ -178,11 +179,11 @@ impl From<AudioCodec> for pipeline::AudioCodec {
     }
 }
 
-impl From<AudioChannels> for compositor_render::AudioChannels {
+impl From<AudioChannels> for audio_mixer::types::AudioChannels {
     fn from(value: AudioChannels) -> Self {
         match value {
-            AudioChannels::Mono => compositor_render::AudioChannels::Mono,
-            AudioChannels::Stereo => compositor_render::AudioChannels::Stereo,
+            AudioChannels::Mono => audio_mixer::types::AudioChannels::Mono,
+            AudioChannels::Stereo => audio_mixer::types::AudioChannels::Stereo,
         }
     }
 }

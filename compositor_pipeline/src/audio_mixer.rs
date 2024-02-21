@@ -1,13 +1,14 @@
 use std::sync::{Arc, Mutex};
 
-use compositor_render::{
-    error::UpdateSceneError, scene::AudioComposition, AudioChannels, AudioSamplesSet, OutputId,
-    OutputSamples,
+use compositor_render::{error::UpdateSceneError, scene::AudioComposition, OutputId};
+
+use self::{
+    internal_audio_mixer::InternalAudioMixer,
+    types::{AudioChannels, AudioSamplesSet, OutputSamples},
 };
 
-use self::internal_audio_mixer::InternalAudioMixer;
-
 mod internal_audio_mixer;
+pub mod types;
 
 #[derive(Debug, Clone)]
 pub struct AudioMixer(Arc<Mutex<InternalAudioMixer>>);
