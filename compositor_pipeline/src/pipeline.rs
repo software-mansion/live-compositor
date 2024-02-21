@@ -256,8 +256,8 @@ impl Pipeline {
         audio_composition: Option<AudioComposition>,
     ) -> Result<(), UpdateSceneError> {
         self.check_output_spec(&output_id, &root_component, &audio_composition)?;
-        if let Some(scene_root) = root_component {
-            self.update_scene_root(output_id.clone(), scene_root)?;
+        if let Some(root_component) = root_component {
+            self.update_output_root(output_id.clone(), root_component)?;
         }
 
         if let Some(audio_composition) = audio_composition {
@@ -288,10 +288,10 @@ impl Pipeline {
         Ok(())
     }
 
-    fn update_scene_root(
+    fn update_output_root(
         &mut self,
         output_id: OutputId,
-        scene_root: Component,
+        root_component: Component,
     ) -> Result<(), UpdateSceneError> {
         let resolution = self
             .outputs
@@ -302,7 +302,7 @@ impl Pipeline {
             .resolution();
 
         self.renderer
-            .update_scene(output_id, resolution, scene_root)
+            .update_scene(output_id, resolution, root_component)
     }
 
     fn update_audio_composition(
@@ -310,7 +310,7 @@ impl Pipeline {
         output_id: OutputId,
         audio_composition: AudioComposition,
     ) -> Result<(), UpdateSceneError> {
-        self.audio_mixer.update_scene(output_id, audio_composition)
+        self.audio_mixer.update_output(output_id, audio_composition)
     }
 
     pub fn start(&mut self) {

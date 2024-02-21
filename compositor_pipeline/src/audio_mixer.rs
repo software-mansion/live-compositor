@@ -21,12 +21,12 @@ impl AudioMixer {
         self.0.lock().unwrap().mix_samples(samples_set)
     }
 
-    pub fn update_scene(
+    pub fn update_output(
         &self,
         output_id: OutputId,
         audio: AudioComposition,
     ) -> Result<(), UpdateSceneError> {
-        self.0.lock().unwrap().update_scene(output_id, audio)
+        self.0.lock().unwrap().update_output(output_id, audio)
     }
 
     pub fn register_output(

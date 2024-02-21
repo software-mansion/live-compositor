@@ -22,7 +22,7 @@ Starts the processing pipeline. If outputs are registered and defined in the sce
 
 ***
 
-### Update scene
+### Update output
 
 ```typescript
 type UpdateOutput = {
@@ -48,6 +48,7 @@ type RegisterInputStream = {
   ... // input specific options
 }
 ```
+
 See inputs documentation to learn more.
 
 - [RTP](./inputs/rtp)
@@ -64,12 +65,16 @@ type RegisterOutputStream = {
   output_id: string;
   port: u16;
   ip: string;
+  video: Video
+}
+
+type Video = {
   resolution: {
-    width: number;
-    height: number;
-  };
-  encoder_preset?: EncoderPreset;
-  initial_scene: Component
+    width: number,
+    height: number
+  },
+  initial: Component
+  encoder_preset?: EncoderPreset,
 }
 
 type EncoderPreset =
@@ -89,9 +94,9 @@ Register a new RTP output stream.
 
 - `output_id` - An identifier for the output stream. It can be used in the `UpdateOutput` request to define what to render for the output stream.
 - `port` / `ip` - UDP port and IP where compositor should send the stream.
-- `resolution` - Output resolution in pixels.
-- `encoder_preset` - (**default=`"fast"`**) Preset for an encoder. See `FFmpeg` [docs](https://trac.ffmpeg.org/wiki/Encode/H.264#Preset) to learn more.
-- `initial_scene` - Root of a component tree/scene that should be rendered for the output. Use [`update_scene` request](#update-scene) to update this value after registration. [Learn more](../concept/component).
+- `video.resolution` - Output resolution in pixels.
+- `video.initial` - Root of a component tree/scene that should be rendered for the output. Use [`update_output` request](#update-output) to update this value after registration. [Learn more](../concept/component).
+- `video.encoder_preset` - (**default=`"fast"`**) Preset for an encoder. See `FFmpeg` [docs](https://trac.ffmpeg.org/wiki/Encode/H.264#Preset) to learn more.
 
 ***
 

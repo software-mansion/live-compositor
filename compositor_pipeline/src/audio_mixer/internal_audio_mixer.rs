@@ -50,7 +50,7 @@ impl InternalAudioMixer {
         self.outputs.remove(output_id);
     }
 
-    pub fn update_scene(
+    pub fn update_output(
         &mut self,
         output_id: OutputId,
         composition: AudioComposition,
