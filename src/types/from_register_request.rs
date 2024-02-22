@@ -3,14 +3,14 @@ use std::time::Duration;
 use compositor_pipeline::{
     audio_mixer,
     pipeline::{
-        self,
-        decoder::{self},
+        self, decoder,
         encoder::{
+            self,
             ffmpeg_h264::{self, Options},
             VideoEncoderOptions,
         },
-        input::{self},
-        output::rtp::RtpSenderOptions,
+        input,
+        output::{self, rtp::RtpSenderOptions},
         OutputVideoOptions,
     },
     queue,
@@ -189,7 +189,7 @@ impl From<AudioChannels> for audio_mixer::types::AudioChannels {
     }
 }
 
-impl TryFrom<RegisterOutputRequest> for pipeline::output::OutputOptions {
+impl TryFrom<RegisterOutputRequest> for output::OutputOptions {
     type Error = TypeError;
 
     fn try_from(value: RegisterOutputRequest) -> Result<Self, Self::Error> {
@@ -211,7 +211,7 @@ impl TryFrom<RegisterOutputRequest> for pipeline::output::OutputOptions {
             forward_error_correction: a.forward_error_correction.unwrap_or(false),
         });
 
-        Ok(pipeline::output::OutputOptions::Rtp(RtpSenderOptions {
+        Ok(output::OutputOptions::Rtp(RtpSenderOptions {
             port: value.port,
             ip: value.ip,
             output_id: value.output_id.clone().into(),
@@ -259,7 +259,7 @@ impl TryFrom<RegisterOutputRequest> for pipeline::RegisterOutputOptions {
     }
 }
 
-impl From<EncoderPreset> for pipeline::encoder::ffmpeg_h264::EncoderPreset {
+impl From<EncoderPreset> for encoder::ffmpeg_h264::EncoderPreset {
     fn from(value: EncoderPreset) -> Self {
         match value {
             EncoderPreset::Ultrafast => pipeline::encoder::ffmpeg_h264::EncoderPreset::Ultrafast,

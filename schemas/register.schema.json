@@ -1796,8 +1796,7 @@
       "type": "object",
       "required": [
         "channels",
-        "initial",
-        "sample_rate"
+        "initial"
       ],
       "properties": {
         "initial": {
@@ -1807,11 +1806,6 @@
               "$ref": "#/definitions/Audio"
             }
           ]
-        },
-        "sample_rate": {
-          "type": "integer",
-          "format": "uint32",
-          "minimum": 0.0
         },
         "channels": {
           "$ref": "#/definitions/AudioChannels"

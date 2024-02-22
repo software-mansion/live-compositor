@@ -10,6 +10,12 @@ API port. Defaults to 8001.
 
 Output framerate for all output streams. This value can be a number or string in the `NUM/DEN` format , where both `NUM` and `DEN` are unsigned integers.
 
+### `LIVE_COMPOSITOR_OUTPUT_SAMPLE_RATE`
+
+Output sample rate for all output streams. This value has to be a number or string representing supported sample rate.
+
+Supported sample rates are: 8000, 12000, 16000, 24000, 48000
+
 ### `LIVE_COMPOSITOR_FORCE_GPU`
 
 If enabled, GPU will be required for rendering. If only CPU based adapters will be found then process will exit with an error. Defaults to `false`.
