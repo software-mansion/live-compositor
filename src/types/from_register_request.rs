@@ -1,10 +1,20 @@
 use std::time::Duration;
 
 use compositor_pipeline::{
-    pipeline::{self, decoder, encoder, input},
+    audio_mixer,
+    pipeline::{
+        self, decoder,
+        encoder::{
+            self,
+            ffmpeg_h264::{self, Options},
+            VideoEncoderOptions,
+        },
+        input,
+        output::{self, rtp::RtpSenderOptions},
+        OutputVideoOptions,
+    },
     queue,
 };
-use compositor_render::scene;
 
 use super::register_request::*;
 use super::*;
@@ -24,20 +34,20 @@ impl TryFrom<RtpInputStream> for (compositor_render::InputId, pipeline::Register
         } = value;
 
         const NO_VIDEO_AUDIO_SPEC: &str =
-            "At least one of `video` or `audio` has to be specified in `register_input` request.";
+            "At least one of `video` and `audio` has to be specified in `register_input` request.";
 
         if video.is_none() && audio.is_none() {
             return Err(TypeError::new(NO_VIDEO_AUDIO_SPEC));
         }
 
         let rtp_stream = input::rtp::RtpStream {
-            video: video.as_ref().map(|video| input::rtp::VideoStream {
+            video: video.as_ref().map(|video| input::rtp::InputVideoStream {
                 options: decoder::VideoDecoderOptions {
                     codec: video.clone().codec.unwrap_or(VideoCodec::H264).into(),
                 },
                 payload_type: video.rtp_payload_type.unwrap_or(96),
             }),
-            audio: audio.as_ref().map(|audio| input::rtp::AudioStream {
+            audio: audio.as_ref().map(|audio| input::rtp::InputAudioStream {
                 options: match audio.clone().codec.unwrap_or(AudioCodec::Opus) {
                     AudioCodec::Opus => {
                         decoder::AudioDecoderOptions::Opus(decoder::OpusDecoderOptions {
@@ -170,58 +180,98 @@ impl From<AudioCodec> for pipeline::AudioCodec {
     }
 }
 
-impl From<AudioChannels> for pipeline::AudioChannels {
+impl From<AudioChannels> for audio_mixer::types::AudioChannels {
     fn from(value: AudioChannels) -> Self {
         match value {
-            AudioChannels::Mono => pipeline::AudioChannels::Mono,
-            AudioChannels::Stereo => pipeline::AudioChannels::Stereo,
+            AudioChannels::Mono => audio_mixer::types::AudioChannels::Mono,
+            AudioChannels::Stereo => audio_mixer::types::AudioChannels::Stereo,
         }
     }
 }
 
-impl TryFrom<RegisterOutputRequest>
-    for (
-        compositor_render::OutputId,
-        pipeline::RegisterOutputOptions,
-        scene::Component,
-    )
-{
+impl TryFrom<RegisterOutputRequest> for output::OutputOptions {
     type Error = TypeError;
 
-    fn try_from(request: RegisterOutputRequest) -> Result<Self, Self::Error> {
-        let output_options =
-            pipeline::output::OutputOptions::Rtp(pipeline::output::rtp::RtpSenderOptions {
-                codec: compositor_pipeline::pipeline::VideoCodec::H264,
-                ip: request.ip,
-                port: request.port,
-                output_id: request.output_id.clone().into(),
-            });
-        let preset = match request.encoder_preset.unwrap_or(EncoderPreset::Fast) {
-            EncoderPreset::Ultrafast => encoder::ffmpeg_h264::EncoderPreset::Ultrafast,
-            EncoderPreset::Superfast => encoder::ffmpeg_h264::EncoderPreset::Superfast,
-            EncoderPreset::Veryfast => encoder::ffmpeg_h264::EncoderPreset::Veryfast,
-            EncoderPreset::Faster => encoder::ffmpeg_h264::EncoderPreset::Faster,
-            EncoderPreset::Fast => encoder::ffmpeg_h264::EncoderPreset::Fast,
-            EncoderPreset::Medium => encoder::ffmpeg_h264::EncoderPreset::Medium,
-            EncoderPreset::Slow => encoder::ffmpeg_h264::EncoderPreset::Slow,
-            EncoderPreset::Slower => encoder::ffmpeg_h264::EncoderPreset::Slower,
-            EncoderPreset::Veryslow => encoder::ffmpeg_h264::EncoderPreset::Veryslow,
-            EncoderPreset::Placebo => encoder::ffmpeg_h264::EncoderPreset::Placebo,
+    fn try_from(value: RegisterOutputRequest) -> Result<Self, Self::Error> {
+        let video = match value.video {
+            Some(v) => Some(OutputVideoOptions {
+                encoder_opts: VideoEncoderOptions::H264(ffmpeg_h264::Options {
+                    preset: v.encoder_preset.into(),
+                    resolution: v.resolution.into(),
+                    output_id: value.output_id.clone().into(),
+                }),
+                initial: v.initial.try_into()?,
+            }),
+            None => None,
         };
 
-        let encoder_options = encoder::EncoderOptions::H264(encoder::ffmpeg_h264::Options {
-            preset,
-            resolution: request.resolution.into(),
-            output_id: request.output_id.clone().into(),
+        let audio = value.audio.map(|a| pipeline::OutputAudioOptions {
+            initial: a.initial.into(),
+            channels: a.channels.into(),
+            forward_error_correction: a.forward_error_correction.unwrap_or(false),
         });
 
-        Ok((
-            request.output_id.into(),
-            pipeline::RegisterOutputOptions {
-                encoder_options,
-                output_options,
-            },
-            request.initial_scene.try_into()?,
-        ))
+        Ok(output::OutputOptions::Rtp(RtpSenderOptions {
+            port: value.port,
+            ip: value.ip,
+            output_id: value.output_id.clone().into(),
+            video,
+            audio,
+        }))
+    }
+}
+
+impl TryFrom<RegisterOutputRequest> for pipeline::RegisterOutputOptions {
+    type Error = TypeError;
+
+    fn try_from(value: RegisterOutputRequest) -> Result<Self, Self::Error> {
+        const NO_VIDEO_OR_AUDIO: &str =
+            "At least one of \"video\" and \"audio\" fields have to be specified.";
+
+        if value.video.is_none() && value.audio.is_none() {
+            return Err(TypeError::new(NO_VIDEO_OR_AUDIO));
+        }
+        let output_options = value.clone().try_into()?;
+        let video = match value.video {
+            Some(v) => Some(pipeline::OutputVideoOptions {
+                initial: v.initial.try_into()?,
+                encoder_opts: pipeline::encoder::VideoEncoderOptions::H264(Options {
+                    preset: v.encoder_preset.into(),
+                    resolution: v.resolution.into(),
+                    output_id: value.output_id.clone().into(),
+                }),
+            }),
+            None => None,
+        };
+
+        let audio = value.audio.map(|a| pipeline::OutputAudioOptions {
+            initial: a.initial.into(),
+            channels: a.channels.into(),
+            forward_error_correction: a.forward_error_correction.unwrap_or(false),
+        });
+
+        Ok(Self {
+            output_id: value.output_id.into(),
+            output_options,
+            video,
+            audio,
+        })
+    }
+}
+
+impl From<EncoderPreset> for encoder::ffmpeg_h264::EncoderPreset {
+    fn from(value: EncoderPreset) -> Self {
+        match value {
+            EncoderPreset::Ultrafast => pipeline::encoder::ffmpeg_h264::EncoderPreset::Ultrafast,
+            EncoderPreset::Superfast => pipeline::encoder::ffmpeg_h264::EncoderPreset::Superfast,
+            EncoderPreset::Veryfast => pipeline::encoder::ffmpeg_h264::EncoderPreset::Veryfast,
+            EncoderPreset::Faster => pipeline::encoder::ffmpeg_h264::EncoderPreset::Faster,
+            EncoderPreset::Fast => pipeline::encoder::ffmpeg_h264::EncoderPreset::Fast,
+            EncoderPreset::Medium => pipeline::encoder::ffmpeg_h264::EncoderPreset::Medium,
+            EncoderPreset::Slow => pipeline::encoder::ffmpeg_h264::EncoderPreset::Slow,
+            EncoderPreset::Slower => pipeline::encoder::ffmpeg_h264::EncoderPreset::Slower,
+            EncoderPreset::Veryslow => pipeline::encoder::ffmpeg_h264::EncoderPreset::Veryslow,
+            EncoderPreset::Placebo => pipeline::encoder::ffmpeg_h264::EncoderPreset::Placebo,
+        }
     }
 }

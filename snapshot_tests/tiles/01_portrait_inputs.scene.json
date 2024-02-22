@@ -1,6 +1,6 @@
 {
     "output_id": "output_1",
-    "scene": {
+    "video": {
         "type": "tiles",
         "tile_aspect_ratio": "1:2",
         "children": [

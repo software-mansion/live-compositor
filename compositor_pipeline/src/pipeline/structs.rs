@@ -79,9 +79,3 @@ impl TryFrom<ffmpeg_next::Codec> for VideoCodec {
         }
     }
 }
-
-#[derive(Debug, Clone, Copy)]
-pub enum AudioChannels {
-    Mono,
-    Stereo,
-}

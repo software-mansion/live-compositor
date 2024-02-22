@@ -16,7 +16,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     config::{config, Config},
     error::ApiError,
-    types::{InputId, OutputId, OutputScene, RegisterRequest, RendererId},
+    types::{InputId, OutputId, RegisterRequest, RendererId, UpdateOutputRequest},
 };
 
 mod register_request;
@@ -29,7 +29,7 @@ pub type Pipeline = compositor_pipeline::Pipeline;
 pub enum Request {
     Register(RegisterRequest),
     Unregister(UnregisterRequest),
-    UpdateScene(OutputScene),
+    UpdateOutput(UpdateOutputRequest),
     Query(QueryRequest),
     Start,
 }
@@ -109,6 +109,7 @@ impl Api {
             web_renderer,
             force_gpu,
             download_root,
+            output_sample_rate,
             ..
         } = config();
         let (pipeline, event_loop) = Pipeline::new(pipeline::Options {
@@ -117,6 +118,7 @@ impl Api {
             web_renderer: *web_renderer,
             force_gpu: *force_gpu,
             download_root: download_root.clone(),
+            output_sample_rate: *output_sample_rate,
         })?;
         Ok((
             Api {
@@ -138,7 +140,7 @@ impl Api {
                 self.pipeline.lock().unwrap().start();
                 Ok(ResponseHandler::Ok)
             }
-            Request::UpdateScene(update) => self.handle_scene_update(update),
+            Request::UpdateOutput(update) => self.handle_scene_update(update),
             Request::Query(query) => self.handle_query(query),
         }
     }
@@ -188,9 +190,17 @@ impl Api {
         }
     }
 
-    fn handle_scene_update(&self, update: OutputScene) -> Result<ResponseHandler, ApiError> {
+    fn handle_scene_update(
+        &self,
+        update: UpdateOutputRequest,
+    ) -> Result<ResponseHandler, ApiError> {
         let output_id = update.output_id.into();
-        let scene = update.scene.try_into()?;
+        let scene = match update.video {
+            Some(component) => Some(component.try_into()?),
+            None => None,
+        };
+        let audio = update.audio.map(|a| a.into());
+
         match update.schedule_time_ms {
             Some(schedule_time_ms) => {
                 let pipeline = self.pipeline.clone();
@@ -198,7 +208,11 @@ impl Api {
                 self.pipeline().queue().schedule_event(
                     schedule_time,
                     Box::new(move || {
-                        if let Err(err) = pipeline.lock().unwrap().update_scene(output_id, scene) {
+                        if let Err(err) = pipeline
+                            .lock()
+                            .unwrap()
+                            .update_output(output_id, scene, audio)
+                        {
                             error!(
                                 "Error while running scheduled output unregister for pts {}ms: {}",
                                 schedule_time.as_millis(),
@@ -208,7 +222,7 @@ impl Api {
                     }),
                 );
             }
-            None => self.pipeline().update_scene(output_id, scene)?,
+            None => self.pipeline().update_output(output_id, scene, audio)?,
         };
         Ok(ResponseHandler::Ok)
     }

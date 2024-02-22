@@ -171,12 +171,14 @@ fn start_example_client_code() -> Result<()> {
         "output_id": "output_1",
         "port": 8002,
         "ip": "127.0.0.1",
-        "resolution": {
-            "width": VIDEO_RESOLUTION.width,
-            "height": VIDEO_RESOLUTION.height,
-        },
-        "encoder_preset": "ultrafast",
-        "initial_scene": scene1
+        "video": {
+            "resolution": {
+                "width": VIDEO_RESOLUTION.width,
+                "height": VIDEO_RESOLUTION.height,
+            },
+            "encoder_preset": "ultrafast",
+            "initial": scene1
+        }
     }))?;
 
     info!("[example] Start pipeline");
@@ -206,20 +208,20 @@ fn start_example_client_code() -> Result<()> {
 
     thread::sleep(Duration::from_secs(5));
 
-    info!("[example] Update scene");
+    info!("[example] Update output");
     common::post(&json!({
-        "type": "update_scene",
+        "type": "update_output",
         "output_id": "output_1",
-        "scene": scene2,
+        "video": scene2,
     }))?;
 
     thread::sleep(Duration::from_secs(2));
 
-    info!("[example] Update scene");
+    info!("[example] Update output");
     common::post(&json!({
-        "type": "update_scene",
+        "type": "update_output",
         "output_id": "output_1",
-        "scene": scene3,
+        "video": scene3,
     }))?;
 
     Ok(())

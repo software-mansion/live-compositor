@@ -1,6 +1,6 @@
 {
     "output_id": "output_1",
-    "scene": {
+    "video": {
         "type": "shader",
         "shader_id": "base_params_output_resolution",
         "resolution": {

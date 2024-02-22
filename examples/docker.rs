@@ -136,21 +136,23 @@ fn start_example_client_code(host_ip: String) -> Result<()> {
         "output_id": "output_1",
         "port": 8002,
         "ip": host_ip,
-        "resolution": {
-            "width": VIDEO_RESOLUTION.width,
-            "height": VIDEO_RESOLUTION.height,
-        },
-        "encoder_preset": "ultrafast",
-        "initial_scene": {
-            "type": "shader",
-            "shader_id": "example_shader",
-            "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
-            "children": [
-                {
-                   "type": "input_stream",
-                   "input_id": "input_1",
-                }
-            ]
+        "video": {
+            "resolution": {
+                "width": VIDEO_RESOLUTION.width,
+                "height": VIDEO_RESOLUTION.height,
+            },
+            "encoder_preset": "ultrafast",
+            "initial": {
+                "type": "shader",
+                "shader_id": "example_shader",
+                "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+                "children": [
+                    {
+                       "type": "input_stream",
+                       "input_id": "input_1",
+                    }
+                ]
+            }
         }
     }))?;
 

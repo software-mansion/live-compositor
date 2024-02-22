@@ -4,7 +4,9 @@ use std::{
     time::{Duration, Instant},
 };
 
-use compositor_render::{AudioSamplesBatch, Frame};
+use compositor_render::Frame;
+
+use crate::audio_mixer::types::AudioSamplesBatch;
 
 /// InputState handles initial processing for frames/samples that are being
 /// queued. For each received frame/sample batch, the `process_new_chunk`

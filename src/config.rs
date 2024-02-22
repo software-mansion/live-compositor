@@ -14,6 +14,7 @@ pub struct Config {
     pub force_gpu: bool,
     pub download_root: PathBuf,
     pub queue_options: QueueOptions,
+    pub output_sample_rate: u32,
 }
 
 pub struct LoggerConfig {
@@ -124,7 +125,25 @@ fn read_config() -> Result<Config, String> {
             Err(_) => false,
         };
 
-    Ok(Config {
+    const DEFAULT_OUTPUT_SAMPLE_RATE: u32 = 48_000;
+    /// Valid Opus sample rates
+    const SUPPORTED_SAMPLE_RATES: [u32; 5] = [8_000, 12_000, 16_000, 24_000, 48_000];
+    let output_sample_rate: u32 = match env::var("LIVE_COMPOSITOR_OUTPUT_SAMPLE_RATE") {
+        Ok(sample_rate) => {
+            let sample_rate = sample_rate
+                .parse()
+                .map_err(|_| "LIVE_COMPOSITOR_OUTPUT_SAMPLE_RATE has to be a valid number")?;
+
+            if SUPPORTED_SAMPLE_RATES.contains(&sample_rate) {
+                sample_rate
+            } else {
+                return Err("LIVE_COMPOSITOR_OUTPUT_SAMPLE_RATE has to be a supported sample rate. Supported sample rates are: 8000, 12000, 16000, 24000, 48000".to_string());
+            }
+        }
+        Err(_) => DEFAULT_OUTPUT_SAMPLE_RATE,
+    };
+
+    let config = Config {
         api_port,
         logger: LoggerConfig {
             ffmpeg_logger_level,
@@ -142,7 +161,9 @@ fn read_config() -> Result<Config, String> {
             enable_gpu: web_renderer_gpu_enable,
         },
         download_root,
-    })
+        output_sample_rate,
+    };
+    Ok(config)
 }
 
 fn framerate_from_str(s: &str) -> Result<Framerate, &'static str> {

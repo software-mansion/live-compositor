@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 mod component;
 mod convert;
 mod convert_util;
+mod from_audio;
 mod from_component;
 mod from_register_request;
 mod from_renderer;
@@ -67,12 +68,21 @@ pub struct InputId(Arc<str>);
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(deny_unknown_fields)]
-pub struct OutputScene {
+pub struct UpdateOutputRequest {
     pub output_id: OutputId,
-    pub scene: Component,
-    /// Timestamp relative to start request when this request
-    /// should be applied.
+    pub video: Option<Component>,
+    pub audio: Option<Audio>,
     pub schedule_time_ms: Option<f64>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+pub struct Audio {
+    inputs: Vec<InputAudio>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+pub struct InputAudio {
+    input_id: InputId,
 }
 
 impl Display for InputId {

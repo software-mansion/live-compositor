@@ -31,9 +31,9 @@ pub struct RtpInputStream {
     /// Transport protocol.
     pub transport_protocol: Option<TransportProtocol>,
     /// Parameters of a video source included in the RTP stream.
-    pub video: Option<Video>,
+    pub video: Option<InputRtpVideoOptions>,
     /// Parameters of an audio source included in the RTP stream.
-    pub audio: Option<Audio>,
+    pub audio: Option<InputRtpAudioOptions>,
     /// (**default=`false`**) If input is required and the stream is not delivered
     /// on time, then LiveCompositor will delay producing output frames.
     pub required: Option<bool>,
@@ -63,7 +63,7 @@ pub struct Mp4 {
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(deny_unknown_fields)]
-pub struct Video {
+pub struct InputRtpVideoOptions {
     /// (**default=`"h264"`**) Video codec.
     pub codec: Option<VideoCodec>,
     /// (**default=`96`**) Value of payload type field in received RTP packets.
@@ -84,7 +84,7 @@ pub enum VideoCodec {
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(deny_unknown_fields)]
-pub struct Audio {
+pub struct InputRtpAudioOptions {
     /// (**default=`"opus"`**) Audio codec.
     pub codec: Option<AudioCodec>,
     /// Sample rate. If the specified sample rate doesn't match
@@ -138,13 +138,32 @@ pub enum Port {
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(deny_unknown_fields)]
+pub struct OutputVideoOptions {
+    pub resolution: Resolution,
+    pub encoder_preset: EncoderPreset,
+    pub initial: Component,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct OutputAudioOptions {
+    /// Initial audio for output.
+    pub initial: Audio,
+    pub channels: AudioChannels,
+    /// (**default=`false`**) Specifies whether the stream use forward error correction.
+    /// It's specific for Opus codec.
+    /// For more information, check out [RFC](https://datatracker.ietf.org/doc/html/rfc6716#section-2.1.7).
+    pub forward_error_correction: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+#[serde(deny_unknown_fields)]
 pub struct RegisterOutputRequest {
     pub output_id: OutputId,
     pub port: u16,
     pub ip: Arc<str>,
-    pub resolution: Resolution,
-    pub encoder_preset: Option<EncoderPreset>,
-    pub initial_scene: Component,
+    pub video: Option<OutputVideoOptions>,
+    pub audio: Option<OutputAudioOptions>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]

@@ -68,7 +68,7 @@ We can define a scene with a web view component that refers to the previously re
 
 ```typescript
 {
-    "type": "update_scene",
+    "type": "update_output",
     "outputs": [
         {
             "output_id": "output_1",
@@ -95,7 +95,7 @@ Now, we can modify that request and embed an input stream into the website:
 
 ```typescript
 {
-    "type": "update_scene",
+    "type": "update_output",
     "outputs": [
         {
             "output_id": "output_1",

@@ -1,20 +1,35 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "OutputScene",
+  "title": "UpdateOutputRequest",
   "type": "object",
   "required": [
-    "output_id",
-    "scene"
+    "output_id"
   ],
   "properties": {
     "output_id": {
       "$ref": "#/definitions/OutputId"
     },
-    "scene": {
-      "$ref": "#/definitions/Component"
+    "video": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/Component"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "audio": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/Audio"
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "schedule_time_ms": {
-      "description": "Timestamp relative to start request when this request should be applied.",
       "type": [
         "number",
         "null"
@@ -1225,6 +1240,31 @@
           ]
         }
       ]
+    },
+    "Audio": {
+      "type": "object",
+      "required": [
+        "inputs"
+      ],
+      "properties": {
+        "inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/InputAudio"
+          }
+        }
+      }
+    },
+    "InputAudio": {
+      "type": "object",
+      "required": [
+        "input_id"
+      ],
+      "properties": {
+        "input_id": {
+          "$ref": "#/definitions/InputId"
+        }
+      }
     }
   }
 }

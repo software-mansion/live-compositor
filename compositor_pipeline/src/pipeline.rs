@@ -11,19 +11,21 @@ use compositor_render::error::{
 };
 use compositor_render::scene::Component;
 use compositor_render::web_renderer::WebRendererInitOptions;
+use compositor_render::RendererOptions;
 use compositor_render::{error::UpdateSceneError, Renderer};
-use compositor_render::{AudioMixer, RendererOptions};
-use compositor_render::{AudioSamplesSet, FrameSet, RegistryType};
 use compositor_render::{EventLoop, InputId, OutputId, RendererId, RendererSpec};
+use compositor_render::{FrameSet, RegistryType};
 use crossbeam_channel::{bounded, Receiver};
-use log::error;
+use log::{debug, error};
 
+use crate::audio_mixer::types::{AudioChannels, AudioMixingParams, AudioSamplesSet};
+use crate::audio_mixer::AudioMixer;
 use crate::error::{
     RegisterInputError, RegisterOutputError, UnregisterInputError, UnregisterOutputError,
 };
 use crate::queue::{self, Queue, QueueOptions};
 
-use self::encoder::EncoderOptions;
+use self::encoder::VideoEncoderOptions;
 use self::input::InputOptions;
 use self::output::OutputOptions;
 
@@ -37,7 +39,6 @@ mod structs;
 
 use self::pipeline_input::new_pipeline_input;
 use self::pipeline_output::new_pipeline_output;
-pub use self::structs::AudioChannels;
 pub use self::structs::AudioCodec;
 pub use self::structs::VideoCodec;
 
@@ -55,9 +56,25 @@ pub struct RegisterInputOptions {
     pub queue_options: queue::InputOptions,
 }
 
+#[derive(Debug, Clone)]
+pub struct OutputVideoOptions {
+    pub encoder_opts: VideoEncoderOptions,
+    pub initial: Component,
+}
+
+#[derive(Debug, Clone)]
+pub struct OutputAudioOptions {
+    pub initial: AudioMixingParams,
+    pub channels: AudioChannels,
+    pub forward_error_correction: bool,
+}
+
+#[derive(Debug, Clone)]
 pub struct RegisterOutputOptions {
-    pub encoder_options: EncoderOptions,
+    pub output_id: OutputId,
     pub output_options: OutputOptions,
+    pub video: Option<OutputVideoOptions>,
+    pub audio: Option<OutputAudioOptions>,
 }
 
 #[derive(Debug, Clone)]
@@ -72,8 +89,10 @@ pub struct PipelineInput {
 }
 
 pub struct PipelineOutput {
-    pub encoder: encoder::Encoder,
+    pub encoder: encoder::VideoEncoder,
     pub output: output::Output,
+    pub has_video: bool,
+    pub has_audio: bool,
 }
 
 pub struct Pipeline {
@@ -84,6 +103,7 @@ pub struct Pipeline {
     audio_mixer: AudioMixer,
     is_started: bool,
     download_dir: PathBuf,
+    pub output_sample_rate: u32,
 }
 
 #[derive(Debug, Clone)]
@@ -93,6 +113,7 @@ pub struct Options {
     pub web_renderer: WebRendererInitOptions,
     pub force_gpu: bool,
     pub download_root: PathBuf,
+    pub output_sample_rate: u32,
 }
 
 impl Pipeline {
@@ -116,6 +137,7 @@ impl Pipeline {
             audio_mixer: AudioMixer::new(),
             is_started: false,
             download_dir,
+            output_sample_rate: opts.output_sample_rate,
         };
 
         Ok((pipeline, event_loop))
@@ -164,19 +186,37 @@ impl Pipeline {
 
     pub fn register_output(
         &mut self,
-        output_id: OutputId,
         register_options: RegisterOutputOptions,
-        initial_scene: Component,
     ) -> Result<(), RegisterOutputError> {
+        let RegisterOutputOptions {
+            output_id,
+            video,
+            audio,
+            ..
+        } = register_options.clone();
+        let (has_video, has_audio) = (video.is_some(), audio.is_some());
+        if !has_video && !has_audio {
+            return Err(RegisterOutputError::NoVideoAndAudio(output_id));
+        }
+
         if self.outputs.contains_key(&output_id) {
             return Err(RegisterOutputError::AlreadyRegistered(output_id));
         }
 
-        let output = new_pipeline_output(&output_id, register_options)?;
-
+        let output = new_pipeline_output(register_options)?;
         self.outputs.insert(output_id.clone(), Arc::new(output));
-        self.update_scene(output_id.clone(), initial_scene)
-            .map_err(|e| RegisterOutputError::SceneError(output_id.clone(), e))?;
+
+        if let Some(audio_opts) = audio.clone() {
+            self.audio_mixer
+                .register_output(output_id.clone(), audio_opts.initial);
+        }
+
+        self.update_output(
+            output_id.clone(),
+            video.map(|v| v.initial),
+            audio.map(|a| a.initial),
+        )
+        .map_err(|e| RegisterOutputError::SceneError(output_id, e))?;
 
         Ok(())
     }
@@ -186,6 +226,7 @@ impl Pipeline {
             return Err(UnregisterOutputError::NotFound(output_id.clone()));
         }
 
+        self.audio_mixer.unregister_output(output_id);
         self.outputs.remove(output_id);
         Ok(())
     }
@@ -207,7 +248,44 @@ impl Pipeline {
             .unregister_renderer(renderer_id, registry_type)
     }
 
-    pub fn update_scene(
+    pub fn update_output(
+        &mut self,
+        output_id: OutputId,
+        root_component: Option<Component>,
+        audio: Option<AudioMixingParams>,
+    ) -> Result<(), UpdateSceneError> {
+        self.check_output_spec(&output_id, &root_component, &audio)?;
+        if let Some(root_component) = root_component {
+            self.update_scene_root(output_id.clone(), root_component)?;
+        }
+
+        if let Some(audio) = audio {
+            self.update_audio(&output_id, audio)?;
+        }
+
+        Ok(())
+    }
+
+    fn check_output_spec(
+        &self,
+        output_id: &OutputId,
+        root_component: &Option<Component>,
+        audio: &Option<AudioMixingParams>,
+    ) -> Result<(), UpdateSceneError> {
+        let outputs = self.outputs.0.lock().unwrap();
+        let Some(output) = outputs.get(output_id) else {
+            return Err(UpdateSceneError::OutputNotRegistered(output_id.clone()));
+        };
+        if output.has_audio != audio.is_some() || output.has_video != root_component.is_some() {
+            return Err(UpdateSceneError::AudioVideoNotMatching(output_id.clone()));
+        }
+        if root_component.is_none() && audio.is_none() {
+            return Err(UpdateSceneError::NoAudioAndVideo(output_id.clone()));
+        }
+        Ok(())
+    }
+
+    fn update_scene_root(
         &mut self,
         output_id: OutputId,
         scene_root: Component,
@@ -222,6 +300,14 @@ impl Pipeline {
 
         self.renderer
             .update_scene(output_id, resolution, scene_root)
+    }
+
+    fn update_audio(
+        &mut self,
+        output_id: &OutputId,
+        audio: AudioMixingParams,
+    ) -> Result<(), UpdateSceneError> {
+        self.audio_mixer.update_output(output_id, audio)
     }
 
     pub fn start(&mut self) {
@@ -271,7 +357,9 @@ impl Pipeline {
 
     fn run_audio_mixer_thread(audio_mixer: AudioMixer, audio_receiver: Receiver<AudioSamplesSet>) {
         for samples in audio_receiver {
-            audio_mixer.mix_samples(samples);
+            let mixed_samples = audio_mixer.mix_samples(samples.clone());
+            debug!("Mixed samples: {:#?}", mixed_samples);
+            // TODO send to output
         }
     }
 

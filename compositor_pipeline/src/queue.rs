@@ -10,10 +10,10 @@ use std::{
     time::{Duration, Instant},
 };
 
-use compositor_render::{AudioSamplesSet, FrameSet, Framerate, InputId};
+use compositor_render::{FrameSet, Framerate, InputId};
 use crossbeam_channel::{bounded, Sender};
 
-use crate::pipeline::decoder::DecodedDataReceiver;
+use crate::{audio_mixer::types::AudioSamplesSet, pipeline::decoder::DecodedDataReceiver};
 
 use self::{
     audio_queue::AudioQueue,

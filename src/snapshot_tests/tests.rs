@@ -166,7 +166,7 @@ fn shader_user_params_snapshot_tests() -> Vec<TestCase> {
     let circle_layout_scene = Box::new(
         json!({
             "output_id": "output_1",
-            "scene": {
+            "video": {
                 "type": "shader",
                 "shader_id": "user_params_circle_layout",
                 "resolution": {

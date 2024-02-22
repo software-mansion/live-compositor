@@ -48,7 +48,7 @@
           "description": "Parameters of a video source included in the RTP stream.",
           "anyOf": [
             {
-              "$ref": "#/definitions/Video"
+              "$ref": "#/definitions/InputRtpVideoOptions"
             },
             {
               "type": "null"
@@ -59,7 +59,7 @@
           "description": "Parameters of an audio source included in the RTP stream.",
           "anyOf": [
             {
-              "$ref": "#/definitions/Audio"
+              "$ref": "#/definitions/InputRtpAudioOptions"
             },
             {
               "type": "null"
@@ -140,11 +140,9 @@
       "type": "object",
       "required": [
         "entity_type",
-        "initial_scene",
         "ip",
         "output_id",
-        "port",
-        "resolution"
+        "port"
       ],
       "properties": {
         "entity_type": {
@@ -164,21 +162,25 @@
         "ip": {
           "type": "string"
         },
-        "resolution": {
-          "$ref": "#/definitions/Resolution"
-        },
-        "encoder_preset": {
+        "video": {
           "anyOf": [
             {
-              "$ref": "#/definitions/EncoderPreset"
+              "$ref": "#/definitions/OutputVideoOptions"
             },
             {
               "type": "null"
             }
           ]
         },
-        "initial_scene": {
-          "$ref": "#/definitions/Component"
+        "audio": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/OutputAudioOptions"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       }
     },
@@ -439,7 +441,7 @@
         }
       ]
     },
-    "Video": {
+    "InputRtpVideoOptions": {
       "type": "object",
       "properties": {
         "codec": {
@@ -476,7 +478,7 @@
         }
       ]
     },
-    "Audio": {
+    "InputRtpAudioOptions": {
       "type": "object",
       "required": [
         "channels",
@@ -558,6 +560,26 @@
     },
     "OutputId": {
       "type": "string"
+    },
+    "OutputVideoOptions": {
+      "type": "object",
+      "required": [
+        "encoder_preset",
+        "initial",
+        "resolution"
+      ],
+      "properties": {
+        "resolution": {
+          "$ref": "#/definitions/Resolution"
+        },
+        "encoder_preset": {
+          "$ref": "#/definitions/EncoderPreset"
+        },
+        "initial": {
+          "$ref": "#/definitions/Component"
+        }
+      },
+      "additionalProperties": false
     },
     "Resolution": {
       "type": "object",
@@ -1769,6 +1791,59 @@
           ]
         }
       ]
+    },
+    "OutputAudioOptions": {
+      "type": "object",
+      "required": [
+        "channels",
+        "initial"
+      ],
+      "properties": {
+        "initial": {
+          "description": "Initial audio for output.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Audio"
+            }
+          ]
+        },
+        "channels": {
+          "$ref": "#/definitions/AudioChannels"
+        },
+        "forward_error_correction": {
+          "description": "(**default=`false`**) Specifies whether the stream use forward error correction. It's specific for Opus codec. For more information, check out [RFC](https://datatracker.ietf.org/doc/html/rfc6716#section-2.1.7).",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "Audio": {
+      "type": "object",
+      "required": [
+        "inputs"
+      ],
+      "properties": {
+        "inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/InputAudio"
+          }
+        }
+      }
+    },
+    "InputAudio": {
+      "type": "object",
+      "required": [
+        "input_id"
+      ],
+      "properties": {
+        "input_id": {
+          "$ref": "#/definitions/InputId"
+        }
+      }
     },
     "WebEmbeddingMethod": {
       "oneOf": [

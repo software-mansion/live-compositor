@@ -15,7 +15,7 @@ use crate::{
     types::Framerate,
     EventLoop, FrameSet, InputId, OutputId,
 };
-use crate::{image, AudioSamplesSet, Resolution};
+use crate::{image, Resolution};
 use crate::{
     scene::SceneState,
     wgpu::{WgpuCtx, WgpuErrorScope},
@@ -33,8 +33,6 @@ pub mod render_graph;
 mod render_loop;
 pub mod renderers;
 
-use log::debug;
-
 pub struct RendererOptions {
     pub web_renderer: web_renderer::WebRendererInitOptions,
     pub framerate: Framerate,
@@ -44,9 +42,6 @@ pub struct RendererOptions {
 
 #[derive(Clone)]
 pub struct Renderer(Arc<Mutex<InnerRenderer>>);
-
-#[derive(Clone)]
-pub struct AudioMixer();
 
 struct InnerRenderer {
     wgpu_ctx: Arc<WgpuCtx>,
@@ -259,23 +254,5 @@ impl InnerRenderer {
             output_node,
         )?;
         Ok(())
-    }
-}
-
-impl AudioMixer {
-    pub fn new() -> Self {
-        // TODO
-        AudioMixer()
-    }
-
-    pub fn mix_samples(&self, samples_set: AudioSamplesSet) {
-        // TODO
-        debug!("Mixer received samples: {:?}", samples_set);
-    }
-}
-
-impl Default for AudioMixer {
-    fn default() -> Self {
-        Self::new()
     }
 }

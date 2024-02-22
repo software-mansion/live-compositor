@@ -73,6 +73,14 @@ pub enum UpdateSceneError {
 
     #[error(transparent)]
     SceneError(#[from] SceneError),
+
+    #[error("No video and audio specified for output \"{0}\"")]
+    NoAudioAndVideo(OutputId),
+
+    #[error("Audio and video specification for output \"{0}\" doesn't match one provided in register output request.
+    If audio or video was specified on register, it has to be specified in update.
+    If audio or video wasn't specified on register, it can't be specified in update.")]
+    AudioVideoNotMatching(OutputId),
 }
 
 pub struct ErrorStack<'a>(Option<&'a (dyn std::error::Error + 'static)>);

@@ -83,20 +83,22 @@ fn start_example_client_code() -> Result<()> {
         "output_id": "output_1",
         "port": 8002,
         "ip": "127.0.0.1",
-        "resolution": {
-            "width": VIDEO_RESOLUTION.width,
-            "height": VIDEO_RESOLUTION.height,
-        },
-        "encoder_preset": "ultrafast",
-        "initial_scene": scene_with_inputs(0)
+        "video": {
+            "resolution": {
+                "width": VIDEO_RESOLUTION.width,
+                "height": VIDEO_RESOLUTION.height,
+            },
+            "encoder_preset": "ultrafast",
+            "initial": scene_with_inputs(0)
+        }
     }))?;
 
     for i in 1..=16 {
-        info!("[example] Update scene");
+        info!("[example] Update output");
         common::post(&json!({
-            "type": "update_scene",
+            "type": "update_output",
             "output_id": "output_1",
-            "scene": scene_with_inputs(i),
+            "video": scene_with_inputs(i),
             "schedule_time_ms": i * 1000,
         }))?;
     }
@@ -127,20 +129,20 @@ fn start_example_client_code() -> Result<()> {
         .spawn()?;
 
     for i in 0..16 {
-        info!("[example] Update scene");
+        info!("[example] Update output");
         common::post(&json!({
-            "type": "update_scene",
+            "type": "update_output",
             "output_id": "output_1",
-            "scene": scene_with_inputs(16 - i),
+            "video": scene_with_inputs(16 - i),
             "schedule_time_ms": (20 + i) * 1000,
         }))?;
     }
 
-    info!("[example] Update scene");
+    info!("[example] Update output");
     common::post(&json!({
-        "type": "update_scene",
+        "type": "update_output",
         "output_id": "output_1",
-        "scene": scene_with_inputs(4),
+        "video": scene_with_inputs(4),
         "schedule_time_ms": 40 * 1000,
     }))?;
 

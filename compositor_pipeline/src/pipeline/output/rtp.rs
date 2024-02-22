@@ -8,7 +8,7 @@ use webrtc_util::Marshal;
 
 use crate::{
     error::OutputInitError,
-    pipeline::structs::{EncodedChunk, VideoCodec},
+    pipeline::{structs::EncodedChunk, OutputAudioOptions, OutputVideoOptions},
 };
 
 #[derive(Debug)]
@@ -25,12 +25,13 @@ pub struct RtpContext {
     socket: std::net::UdpSocket,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub struct RtpSenderOptions {
     pub port: u16,
     pub ip: Arc<str>,
-    pub codec: VideoCodec,
     pub output_id: OutputId,
+    pub video: Option<OutputVideoOptions>,
+    pub audio: Option<OutputAudioOptions>,
 }
 
 impl RtpSender {
@@ -38,10 +39,6 @@ impl RtpSender {
         options: RtpSenderOptions,
         packets: Box<dyn Iterator<Item = EncodedChunk> + Send>,
     ) -> Result<Self, OutputInitError> {
-        if options.codec != VideoCodec::H264 {
-            return Err(OutputInitError::UnsupportedVideoCodec(options.codec));
-        }
-
         let mut rng = rand::thread_rng();
         let ssrc = rng.gen::<u32>();
         let next_sequence_number = rng.gen::<u16>();

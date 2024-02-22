@@ -6,10 +6,12 @@ use super::structs::EncodedChunk;
 
 pub mod rtp;
 
+#[derive(Debug)]
 pub enum Output {
     Rtp(RtpSender),
 }
 
+#[derive(Debug, Clone)]
 pub enum OutputOptions {
     Rtp(RtpSenderOptions),
 }

@@ -1,8 +1,11 @@
-use compositor_render::{AudioSamples, AudioSamplesBatch, InputId};
+use compositor_render::InputId;
 use crossbeam_channel::{Receiver, Sender};
 use fdk_aac_sys as fdk;
 
-use crate::pipeline::structs::{EncodedChunk, EncodedChunkKind};
+use crate::{
+    audio_mixer::types::{AudioSamples, AudioSamplesBatch},
+    pipeline::structs::{EncodedChunk, EncodedChunkKind},
+};
 
 use super::{AacDecoderOptions, AacTransport};
 

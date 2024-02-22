@@ -1,13 +1,17 @@
-use crate::error::DecoderInitError;
+use crate::{
+    audio_mixer::types::{AudioChannels, AudioSamplesBatch},
+    error::DecoderInitError,
+};
 
 use self::{fdk_aac::FdkAacDecoder, ffmpeg_h264::H264FfmpegDecoder, opus_decoder::OpusDecoder};
 
 use super::{
     input::ChunksReceiver,
-    structs::{AudioChannels, EncodedChunk, VideoCodec},
+    structs::{EncodedChunk, VideoCodec},
 };
+
 use bytes::Bytes;
-use compositor_render::{AudioSamplesBatch, Frame, InputId};
+use compositor_render::{Frame, InputId};
 use crossbeam_channel::{bounded, Receiver, Sender};
 
 pub mod fdk_aac;
@@ -132,18 +136,18 @@ impl VideoDecoder {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct VideoDecoderOptions {
     pub codec: VideoCodec,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AudioDecoderOptions {
     Opus(OpusDecoderOptions),
     Aac(AacDecoderOptions),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OpusDecoderOptions {
     pub sample_rate: u32,
     pub channels: AudioChannels,
@@ -156,14 +160,14 @@ pub struct DecodedDataReceiver {
     pub audio: Option<Receiver<AudioSamplesBatch>>,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AacTransport {
     RawAac,
     ADTS,
     ADIF,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AacDecoderOptions {
     pub transport: AacTransport,
     pub asc: Option<Bytes>,
