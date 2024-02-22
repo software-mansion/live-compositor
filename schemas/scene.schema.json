@@ -1250,12 +1250,12 @@
         "inputs": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/InputParams"
+            "$ref": "#/definitions/InputAudio"
           }
         }
       }
     },
-    "InputParams": {
+    "InputAudio": {
       "type": "object",
       "required": [
         "input_id"
