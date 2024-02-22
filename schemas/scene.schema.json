@@ -22,7 +22,7 @@
     "audio": {
       "anyOf": [
         {
-          "$ref": "#/definitions/AudioComposition"
+          "$ref": "#/definitions/Audio"
         },
         {
           "type": "null"
@@ -1241,17 +1241,28 @@
         }
       ]
     },
-    "AudioComposition": {
+    "Audio": {
       "type": "object",
       "required": [
-        "mixed_inputs"
+        "inputs"
       ],
       "properties": {
-        "mixed_inputs": {
+        "inputs": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/InputId"
+            "$ref": "#/definitions/InputParams"
           }
+        }
+      }
+    },
+    "InputParams": {
+      "type": "object",
+      "required": [
+        "input_id"
+      ],
+      "properties": {
+        "input_id": {
+          "$ref": "#/definitions/InputId"
         }
       }
     }

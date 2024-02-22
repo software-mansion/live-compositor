@@ -9,7 +9,7 @@ use std::time::Duration;
 use compositor_render::error::{
     ErrorStack, InitPipelineError, RegisterRendererError, UnregisterRendererError,
 };
-use compositor_render::scene::{AudioComposition, Component};
+use compositor_render::scene::Component;
 use compositor_render::web_renderer::WebRendererInitOptions;
 use compositor_render::RendererOptions;
 use compositor_render::{error::UpdateSceneError, Renderer};
@@ -18,7 +18,7 @@ use compositor_render::{FrameSet, RegistryType};
 use crossbeam_channel::{bounded, Receiver};
 use log::{debug, error};
 
-use crate::audio_mixer::types::{AudioChannels, AudioSamplesSet};
+use crate::audio_mixer::types::{Audio, AudioChannels, AudioSamplesSet};
 use crate::audio_mixer::AudioMixer;
 use crate::error::{
     RegisterInputError, RegisterOutputError, UnregisterInputError, UnregisterOutputError,
@@ -64,7 +64,7 @@ pub struct OutputVideoOptions {
 
 #[derive(Debug, Clone)]
 pub struct OutputAudioOptions {
-    pub initial: AudioComposition,
+    pub initial: Audio,
     pub sample_rate: u32,
     pub channels: AudioChannels,
     pub forward_error_correction: bool,
@@ -254,15 +254,15 @@ impl Pipeline {
         &mut self,
         output_id: OutputId,
         root_component: Option<Component>,
-        audio_composition: Option<AudioComposition>,
+        audio: Option<Audio>,
     ) -> Result<(), UpdateSceneError> {
-        self.check_output_spec(&output_id, &root_component, &audio_composition)?;
+        self.check_output_spec(&output_id, &root_component, &audio)?;
         if let Some(root_component) = root_component {
-            self.update_output_root(output_id.clone(), root_component)?;
+            self.update_scene_root(output_id.clone(), root_component)?;
         }
 
-        if let Some(audio_composition) = audio_composition {
-            self.update_audio_composition(output_id, audio_composition)?;
+        if let Some(audio) = audio {
+            self.update_audio(output_id, audio)?;
         }
 
         Ok(())
@@ -272,27 +272,25 @@ impl Pipeline {
         &self,
         output_id: &OutputId,
         root_component: &Option<Component>,
-        audio_composition: &Option<AudioComposition>,
+        audio: &Option<Audio>,
     ) -> Result<(), UpdateSceneError> {
         let outputs = self.outputs.0.lock().unwrap();
         let Some(output) = outputs.get(output_id) else {
             return Err(UpdateSceneError::OutputNotRegistered(output_id.clone()));
         };
-        if output.has_audio != audio_composition.is_some()
-            || output.has_video != root_component.is_some()
-        {
+        if output.has_audio != audio.is_some() || output.has_video != root_component.is_some() {
             return Err(UpdateSceneError::AudioVideoNotMatching(output_id.clone()));
         }
-        if root_component.is_none() && audio_composition.is_none() {
+        if root_component.is_none() && audio.is_none() {
             return Err(UpdateSceneError::NoAudioAndVideo(output_id.clone()));
         }
         Ok(())
     }
 
-    fn update_output_root(
+    fn update_scene_root(
         &mut self,
         output_id: OutputId,
-        root_component: Component,
+        scene_root: Component,
     ) -> Result<(), UpdateSceneError> {
         let resolution = self
             .outputs
@@ -303,15 +301,11 @@ impl Pipeline {
             .resolution();
 
         self.renderer
-            .update_scene(output_id, resolution, root_component)
+            .update_scene(output_id, resolution, scene_root)
     }
 
-    fn update_audio_composition(
-        &mut self,
-        output_id: OutputId,
-        audio_composition: AudioComposition,
-    ) -> Result<(), UpdateSceneError> {
-        self.audio_mixer.update_output(output_id, audio_composition)
+    fn update_audio(&mut self, output_id: OutputId, audio: Audio) -> Result<(), UpdateSceneError> {
+        self.audio_mixer.update_output(output_id, audio)
     }
 
     pub fn start(&mut self) {

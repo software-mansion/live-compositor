@@ -88,7 +88,7 @@ impl AudioQueue {
         AudioSamplesSet {
             samples,
             start_pts,
-            length: end_pts.saturating_sub(start_pts),
+            end_pts,
         }
     }
 

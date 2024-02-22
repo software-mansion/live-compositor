@@ -31,9 +31,9 @@ pub struct RtpInputStream {
     /// Transport protocol.
     pub transport_protocol: Option<TransportProtocol>,
     /// Parameters of a video source included in the RTP stream.
-    pub video: Option<Video>,
+    pub video: Option<InputRtpVideoOptions>,
     /// Parameters of an audio source included in the RTP stream.
-    pub audio: Option<Audio>,
+    pub audio: Option<InputRtpAudioOptions>,
     /// (**default=`false`**) If input is required and the stream is not delivered
     /// on time, then LiveCompositor will delay producing output frames.
     pub required: Option<bool>,
@@ -63,7 +63,7 @@ pub struct Mp4 {
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(deny_unknown_fields)]
-pub struct Video {
+pub struct InputRtpVideoOptions {
     /// (**default=`"h264"`**) Video codec.
     pub codec: Option<VideoCodec>,
     /// (**default=`96`**) Value of payload type field in received RTP packets.
@@ -84,7 +84,7 @@ pub enum VideoCodec {
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(deny_unknown_fields)]
-pub struct Audio {
+pub struct InputRtpAudioOptions {
     /// (**default=`"opus"`**) Audio codec.
     pub codec: Option<AudioCodec>,
     /// Sample rate. If the specified sample rate doesn't match
@@ -138,7 +138,7 @@ pub enum Port {
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(deny_unknown_fields)]
-pub struct OutputVideoOpts {
+pub struct OutputVideoOptions {
     pub resolution: Resolution,
     pub encoder_preset: EncoderPreset,
     pub initial: Component,
@@ -146,9 +146,9 @@ pub struct OutputVideoOpts {
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(deny_unknown_fields)]
-pub struct OutputAudioOpts {
-    /// Initial audio composition for output.
-    pub initial: AudioComposition,
+pub struct OutputAudioOptions {
+    /// Initial audio for output.
+    pub initial: Audio,
     pub sample_rate: u32,
     pub channels: AudioChannels,
     /// (**default=`false`**) Specifies whether the stream use forward error correction.
@@ -163,8 +163,8 @@ pub struct RegisterOutputRequest {
     pub output_id: OutputId,
     pub port: u16,
     pub ip: Arc<str>,
-    pub video: Option<OutputVideoOpts>,
-    pub audio: Option<OutputAudioOpts>,
+    pub video: Option<OutputVideoOptions>,
+    pub audio: Option<OutputAudioOptions>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]

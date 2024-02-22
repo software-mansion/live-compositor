@@ -1,14 +1,14 @@
 use std::{cmp::max, collections::HashMap, sync::Arc, time::Duration};
 
-use compositor_render::{error::UpdateSceneError, scene::AudioComposition, InputId, OutputId};
+use compositor_render::{error::UpdateSceneError, InputId, OutputId};
 
 use crate::audio_mixer::types::{AudioSamples, AudioSamplesBatch};
 
-use super::types::{AudioChannels, AudioSamplesSet, OutputSamples};
+use super::types::{Audio, AudioChannels, AudioSamplesSet, OutputSamples};
 
 #[derive(Debug)]
 struct OutputInfo {
-    composition: AudioComposition,
+    audio: Audio,
     sample_rate: u32,
     channels: AudioChannels,
     // To avoid aggregating rounding error while calculating next lengths of mixed batches
@@ -33,12 +33,12 @@ impl InternalAudioMixer {
         output_id: OutputId,
         sample_rate: u32,
         channels: AudioChannels,
-        initial_composition: AudioComposition,
+        initial_audio: Audio,
     ) {
         self.outputs.insert(
             output_id,
             OutputInfo {
-                composition: initial_composition,
+                audio: initial_audio,
                 sample_rate,
                 channels,
                 first_pts: None,
@@ -54,13 +54,13 @@ impl InternalAudioMixer {
     pub fn update_output(
         &mut self,
         output_id: OutputId,
-        composition: AudioComposition,
+        audio: Audio,
     ) -> Result<(), UpdateSceneError> {
         let Some(output_info) = self.outputs.get_mut(&output_id) else {
             return Err(UpdateSceneError::OutputNotRegistered(output_id));
         };
 
-        output_info.composition = composition;
+        output_info.audio = audio;
         Ok(())
     }
 
@@ -84,7 +84,7 @@ impl InternalAudioMixer {
                         output_info,
                         &input_samples,
                         samples_set.start_pts,
-                        samples_set.end_pts(),
+                        samples_set.end_pts,
                     );
                     (
                         output_id.clone(),
@@ -169,9 +169,10 @@ impl InternalAudioMixer {
         {
             // Sums inputs in mixing buffer
             output_info
-                .composition
-                .mixed_inputs
+                .audio
+                .inputs
                 .iter()
+                .map(|input_params| &input_params.input_id)
                 .filter_map(|input_id| match input_samples.get(input_id) {
                     Some(Some(input_batch)) => Some(input_batch),
                     _ => None,

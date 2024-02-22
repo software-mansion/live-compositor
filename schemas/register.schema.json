@@ -48,7 +48,7 @@
           "description": "Parameters of a video source included in the RTP stream.",
           "anyOf": [
             {
-              "$ref": "#/definitions/Video"
+              "$ref": "#/definitions/InputRtpVideoOptions"
             },
             {
               "type": "null"
@@ -59,7 +59,7 @@
           "description": "Parameters of an audio source included in the RTP stream.",
           "anyOf": [
             {
-              "$ref": "#/definitions/Audio"
+              "$ref": "#/definitions/InputRtpAudioOptions"
             },
             {
               "type": "null"
@@ -165,7 +165,7 @@
         "video": {
           "anyOf": [
             {
-              "$ref": "#/definitions/OutputVideoOpts"
+              "$ref": "#/definitions/OutputVideoOptions"
             },
             {
               "type": "null"
@@ -175,7 +175,7 @@
         "audio": {
           "anyOf": [
             {
-              "$ref": "#/definitions/OutputAudioOpts"
+              "$ref": "#/definitions/OutputAudioOptions"
             },
             {
               "type": "null"
@@ -441,7 +441,7 @@
         }
       ]
     },
-    "Video": {
+    "InputRtpVideoOptions": {
       "type": "object",
       "properties": {
         "codec": {
@@ -478,7 +478,7 @@
         }
       ]
     },
-    "Audio": {
+    "InputRtpAudioOptions": {
       "type": "object",
       "required": [
         "channels",
@@ -561,7 +561,7 @@
     "OutputId": {
       "type": "string"
     },
-    "OutputVideoOpts": {
+    "OutputVideoOptions": {
       "type": "object",
       "required": [
         "encoder_preset",
@@ -1792,7 +1792,7 @@
         }
       ]
     },
-    "OutputAudioOpts": {
+    "OutputAudioOptions": {
       "type": "object",
       "required": [
         "channels",
@@ -1801,10 +1801,10 @@
       ],
       "properties": {
         "initial": {
-          "description": "Initial audio composition for output.",
+          "description": "Initial audio for output.",
           "allOf": [
             {
-              "$ref": "#/definitions/AudioComposition"
+              "$ref": "#/definitions/Audio"
             }
           ]
         },
@@ -1826,17 +1826,28 @@
       },
       "additionalProperties": false
     },
-    "AudioComposition": {
+    "Audio": {
       "type": "object",
       "required": [
-        "mixed_inputs"
+        "inputs"
       ],
       "properties": {
-        "mixed_inputs": {
+        "inputs": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/InputId"
+            "$ref": "#/definitions/InputParams"
           }
+        }
+      }
+    },
+    "InputParams": {
+      "type": "object",
+      "required": [
+        "input_id"
+      ],
+      "properties": {
+        "input_id": {
+          "$ref": "#/definitions/InputId"
         }
       }
     },

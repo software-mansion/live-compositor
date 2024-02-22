@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use compositor_pipeline::{
-    audio_mixer,
+    audio_mixer::{self},
     pipeline::{
         self,
         decoder::{self, OpusDecoderOptions, VideoDecoderOptions},

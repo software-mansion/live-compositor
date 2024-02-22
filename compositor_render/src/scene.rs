@@ -46,11 +46,6 @@ pub struct OutputScene {
 }
 
 #[derive(Debug, Clone)]
-pub struct AudioComposition {
-    pub mixed_inputs: Vec<InputId>,
-}
-
-#[derive(Debug, Clone)]
 pub enum Component {
     InputStream(InputStreamComponent),
     Shader(ShaderComponent),

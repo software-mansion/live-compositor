@@ -71,23 +71,18 @@ pub struct InputId(Arc<str>);
 pub struct UpdateOutputRequest {
     pub output_id: OutputId,
     pub video: Option<Component>,
-    pub audio: Option<AudioComposition>,
+    pub audio: Option<Audio>,
     pub schedule_time_ms: Option<f64>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-#[serde(deny_unknown_fields)]
-pub struct OutputScene {
-    pub output_id: OutputId,
-    pub scene: Component,
-    /// Timestamp relative to start request when this request
-    /// should be applied.
-    pub schedule_time_ms: Option<f64>,
+pub struct Audio {
+    inputs: Vec<InputParams>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-pub struct AudioComposition {
-    mixed_inputs: Vec<InputId>,
+pub struct InputParams {
+    input_id: InputId,
 }
 
 impl Display for InputId {

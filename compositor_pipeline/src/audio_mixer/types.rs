@@ -2,6 +2,16 @@ use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use compositor_render::{InputId, OutputId};
 
+#[derive(Debug, Clone)]
+pub struct Audio {
+    pub inputs: Vec<InputParams>,
+}
+
+#[derive(Debug, Clone)]
+pub struct InputParams {
+    pub input_id: InputId,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AudioChannels {
     Mono,
@@ -12,13 +22,7 @@ pub enum AudioChannels {
 pub struct AudioSamplesSet {
     pub samples: HashMap<InputId, Vec<AudioSamplesBatch>>,
     pub start_pts: Duration,
-    pub length: Duration,
-}
-
-impl AudioSamplesSet {
-    pub fn end_pts(&self) -> Duration {
-        self.start_pts + self.length
-    }
+    pub end_pts: Duration,
 }
 
 #[derive(Debug)]

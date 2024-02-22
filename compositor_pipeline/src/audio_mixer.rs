@@ -1,17 +1,17 @@
 use std::sync::{Arc, Mutex};
 
-use compositor_render::{error::UpdateSceneError, scene::AudioComposition, OutputId};
+use compositor_render::{error::UpdateSceneError, OutputId};
 
 use self::{
     internal_audio_mixer::InternalAudioMixer,
-    types::{AudioChannels, AudioSamplesSet, OutputSamples},
+    types::{Audio, AudioChannels, AudioSamplesSet, OutputSamples},
 };
 
 mod internal_audio_mixer;
 pub mod types;
 
 #[derive(Debug, Clone)]
-pub struct AudioMixer(Arc<Mutex<InternalAudioMixer>>);
+pub(super) struct AudioMixer(Arc<Mutex<InternalAudioMixer>>);
 
 impl AudioMixer {
     pub fn new() -> Self {
@@ -22,11 +22,7 @@ impl AudioMixer {
         self.0.lock().unwrap().mix_samples(samples_set)
     }
 
-    pub fn update_output(
-        &self,
-        output_id: OutputId,
-        audio: AudioComposition,
-    ) -> Result<(), UpdateSceneError> {
+    pub fn update_output(&self, output_id: OutputId, audio: Audio) -> Result<(), UpdateSceneError> {
         self.0.lock().unwrap().update_output(output_id, audio)
     }
 
@@ -35,23 +31,15 @@ impl AudioMixer {
         output_id: OutputId,
         sample_rate: u32,
         channels: AudioChannels,
-        initial_composition: AudioComposition,
+        initial_audio: Audio,
     ) {
-        self.0.lock().unwrap().register_output(
-            output_id,
-            sample_rate,
-            channels,
-            initial_composition,
-        );
+        self.0
+            .lock()
+            .unwrap()
+            .register_output(output_id, sample_rate, channels, initial_audio);
     }
 
     pub fn unregister_output(&self, output_id: &OutputId) {
         self.0.lock().unwrap().unregister_output(output_id);
-    }
-}
-
-impl Default for AudioMixer {
-    fn default() -> Self {
-        Self::new()
     }
 }
