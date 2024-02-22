@@ -2,11 +2,11 @@ use std::{collections::HashMap, time::Duration};
 
 use compositor_render::{error::UpdateSceneError, OutputId};
 
-use super::types::{Audio, AudioSamplesSet, OutputSamples};
+use super::types::{AudioMixingParams, AudioSamplesSet, OutputSamples};
 
 #[derive(Debug)]
 struct OutputInfo {
-    audio: Audio,
+    audio: AudioMixingParams,
     last_batch_pts: Option<Duration>,
 }
 
@@ -48,7 +48,7 @@ impl InternalAudioMixer {
         OutputSamples(samples)
     }
 
-    pub fn register_output(&mut self, output_id: OutputId, audio: Audio) {
+    pub fn register_output(&mut self, output_id: OutputId, audio: AudioMixingParams) {
         self.outputs.insert(
             output_id,
             OutputInfo {
@@ -65,7 +65,7 @@ impl InternalAudioMixer {
     pub fn update_output(
         &mut self,
         output_id: &OutputId,
-        audio: Audio,
+        audio: AudioMixingParams,
     ) -> Result<(), UpdateSceneError> {
         match self.outputs.get_mut(output_id) {
             Some(output_info) => {

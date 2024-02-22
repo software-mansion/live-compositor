@@ -6,10 +6,6 @@ use log::error;
 
 use crate::logger::FfmpegLogLevel;
 
-const DEFAULT_OUTPUT_SAMPLE_RATE: u32 = 48_000;
-/// Valid Opus sample rates
-const SUPPORTED_SAMPLE_RATES: [u32; 5] = [8_000, 12_000, 16_000, 24_000, 48_000];
-
 pub struct Config {
     pub api_port: u16,
     pub logger: LoggerConfig,
@@ -129,6 +125,9 @@ fn read_config() -> Result<Config, String> {
             Err(_) => false,
         };
 
+    const DEFAULT_OUTPUT_SAMPLE_RATE: u32 = 48_000;
+    /// Valid Opus sample rates
+    const SUPPORTED_SAMPLE_RATES: [u32; 5] = [8_000, 12_000, 16_000, 24_000, 48_000];
     let output_sample_rate: u32 = match env::var("LIVE_COMPOSITOR_OUTPUT_SAMPLE_RATE") {
         Ok(sample_rate) => {
             let sample_rate = sample_rate

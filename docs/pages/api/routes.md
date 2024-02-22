@@ -29,13 +29,21 @@ type UpdateOutput = {
   type: "update_output";
   output_id: string;
   video?: Component;
-  audio?: [InputId]
+  audio?: AudioMixParams
+}
+
+type AudioMixParams = {
+  inputs: [InputAudioParams]
+}
+
+type InputAudioParams = {
+  input_id: InputId
 }
 ```
 
 - `output_id` - Id of an already registered output stream. See [`RegisterOutputStream`](./routes#register-output-stream).
 - `video` - Root of a component tree/scene that should be rendered for the output. [Learn more](../concept/component)
-- `audio` - List of inputs to mix.
+- `audio` - Parameters for mixing input audio streams.
 
 ***
 

@@ -3,7 +3,7 @@ use std::{collections::HashMap, sync::Arc, time::Duration};
 use compositor_render::{InputId, OutputId};
 
 #[derive(Debug, Clone)]
-pub struct Audio {
+pub struct AudioMixingParams {
     pub inputs: Vec<InputParams>,
 }
 

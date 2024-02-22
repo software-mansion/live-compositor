@@ -4,7 +4,7 @@ use compositor_render::{error::UpdateSceneError, OutputId};
 
 use self::{
     internal_audio_mixer::InternalAudioMixer,
-    types::{Audio, AudioSamplesSet, OutputSamples},
+    types::{AudioMixingParams, AudioSamplesSet, OutputSamples},
 };
 
 mod internal_audio_mixer;
@@ -22,7 +22,7 @@ impl AudioMixer {
         self.0.lock().unwrap().mix_samples(samples_set)
     }
 
-    pub fn register_output(&self, output_id: OutputId, audio: Audio) {
+    pub fn register_output(&self, output_id: OutputId, audio: AudioMixingParams) {
         self.0.lock().unwrap().register_output(output_id, audio)
     }
 
@@ -33,7 +33,7 @@ impl AudioMixer {
     pub fn update_output(
         &self,
         output_id: &OutputId,
-        audio: Audio,
+        audio: AudioMixingParams,
     ) -> Result<(), UpdateSceneError> {
         self.0.lock().unwrap().update_output(output_id, audio)
     }

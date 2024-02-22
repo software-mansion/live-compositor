@@ -18,7 +18,7 @@ use compositor_render::{FrameSet, RegistryType};
 use crossbeam_channel::{bounded, Receiver};
 use log::{debug, error};
 
-use crate::audio_mixer::types::{Audio, AudioChannels, AudioSamplesSet};
+use crate::audio_mixer::types::{AudioChannels, AudioMixingParams, AudioSamplesSet};
 use crate::audio_mixer::AudioMixer;
 use crate::error::{
     RegisterInputError, RegisterOutputError, UnregisterInputError, UnregisterOutputError,
@@ -64,7 +64,7 @@ pub struct OutputVideoOptions {
 
 #[derive(Debug, Clone)]
 pub struct OutputAudioOptions {
-    pub initial: Audio,
+    pub initial: AudioMixingParams,
     pub channels: AudioChannels,
     pub forward_error_correction: bool,
 }
@@ -252,7 +252,7 @@ impl Pipeline {
         &mut self,
         output_id: OutputId,
         root_component: Option<Component>,
-        audio: Option<Audio>,
+        audio: Option<AudioMixingParams>,
     ) -> Result<(), UpdateSceneError> {
         self.check_output_spec(&output_id, &root_component, &audio)?;
         if let Some(root_component) = root_component {
@@ -270,7 +270,7 @@ impl Pipeline {
         &self,
         output_id: &OutputId,
         root_component: &Option<Component>,
-        audio: &Option<Audio>,
+        audio: &Option<AudioMixingParams>,
     ) -> Result<(), UpdateSceneError> {
         let outputs = self.outputs.0.lock().unwrap();
         let Some(output) = outputs.get(output_id) else {
@@ -302,7 +302,11 @@ impl Pipeline {
             .update_scene(output_id, resolution, scene_root)
     }
 
-    fn update_audio(&mut self, output_id: &OutputId, audio: Audio) -> Result<(), UpdateSceneError> {
+    fn update_audio(
+        &mut self,
+        output_id: &OutputId,
+        audio: AudioMixingParams,
+    ) -> Result<(), UpdateSceneError> {
         self.audio_mixer.update_output(output_id, audio)
     }
 

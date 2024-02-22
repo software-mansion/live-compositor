@@ -77,11 +77,11 @@ pub struct UpdateOutputRequest {
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 pub struct Audio {
-    inputs: Vec<InputParams>,
+    inputs: Vec<InputAudio>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-pub struct InputParams {
+pub struct InputAudio {
     input_id: InputId,
 }
 

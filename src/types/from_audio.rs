@@ -1,6 +1,6 @@
-use super::{Audio, InputParams};
+use super::{Audio, InputAudio};
 
-impl From<Audio> for compositor_pipeline::audio_mixer::types::Audio {
+impl From<Audio> for compositor_pipeline::audio_mixer::types::AudioMixingParams {
     fn from(value: Audio) -> Self {
         let mixed_inputs = value
             .inputs
@@ -14,8 +14,8 @@ impl From<Audio> for compositor_pipeline::audio_mixer::types::Audio {
     }
 }
 
-impl From<InputParams> for compositor_pipeline::audio_mixer::types::InputParams {
-    fn from(value: InputParams) -> Self {
+impl From<InputAudio> for compositor_pipeline::audio_mixer::types::InputParams {
+    fn from(value: InputAudio) -> Self {
         Self {
             input_id: value.input_id.into(),
         }
