@@ -112,9 +112,8 @@ fn start_example_client_code() -> Result<()> {
         },
         "audio": {
             "initial": {
-                "mixed_inputs": ["input_2"]
+                "inputs": [{"input_id": "input_2"}]
             },
-            "sample_rate": 48_000,
             "channels": "stereo"
         }
     }))?;

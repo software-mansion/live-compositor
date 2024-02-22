@@ -109,6 +109,7 @@ impl Api {
             web_renderer,
             force_gpu,
             download_root,
+            output_sample_rate,
             ..
         } = config();
         let (pipeline, event_loop) = Pipeline::new(pipeline::Options {
@@ -117,6 +118,7 @@ impl Api {
             web_renderer: *web_renderer,
             force_gpu: *force_gpu,
             download_root: download_root.clone(),
+            output_sample_rate: *output_sample_rate,
         })?;
         Ok((
             Api {

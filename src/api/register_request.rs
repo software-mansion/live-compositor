@@ -35,10 +35,7 @@ pub fn handle_register_request(
             let (input_id, register_options) = mp4.try_into()?;
             handle_register_input(api, input_id, register_options)
         }
-        RegisterRequest::OutputStream(output_stream) => {
-            register_output(api, output_stream)?;
-            Ok(ResponseHandler::Ok)
-        }
+        RegisterRequest::OutputStream(output_stream) => handle_register_output(api, output_stream),
         RegisterRequest::Shader(spec) => {
             let spec = spec.try_into()?;
             api.pipeline().register_renderer(spec)?;
@@ -57,7 +54,10 @@ pub fn handle_register_request(
     }
 }
 
-fn register_output(api: &mut Api, request: RegisterOutputRequest) -> Result<(), ApiError> {
+fn handle_register_output(
+    api: &mut Api,
+    request: RegisterOutputRequest,
+) -> Result<ResponseHandler, ApiError> {
     let RegisterOutputRequest {
         output_id,
         port,
@@ -82,5 +82,5 @@ fn register_output(api: &mut Api, request: RegisterOutputRequest) -> Result<(), 
         .lock()
         .unwrap()
         .register_output(request.try_into()?)?;
-    Ok(())
+    Ok(ResponseHandler::Ok)
 }

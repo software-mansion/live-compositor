@@ -1,16 +1,17 @@
 use std::time::Duration;
 
 use compositor_pipeline::{
-    audio_mixer::{self},
+    audio_mixer,
     pipeline::{
         self,
-        decoder::{self, OpusDecoderOptions, VideoDecoderOptions},
-        encoder::ffmpeg_h264::Options,
-        input::{
-            self,
-            rtp::{AudioStream, VideoStream},
+        decoder::{self},
+        encoder::{
+            ffmpeg_h264::{self, Options},
+            VideoEncoderOptions,
         },
+        input::{self},
         output::rtp::RtpSenderOptions,
+        OutputVideoOptions,
     },
     queue,
 };
@@ -40,13 +41,13 @@ impl TryFrom<RtpInputStream> for (compositor_render::InputId, pipeline::Register
         }
 
         let rtp_stream = input::rtp::RtpStream {
-            video: video.as_ref().map(|video| input::rtp::VideoStream {
+            video: video.as_ref().map(|video| input::rtp::InputVideoStream {
                 options: decoder::VideoDecoderOptions {
                     codec: video.clone().codec.unwrap_or(VideoCodec::H264).into(),
                 },
                 payload_type: video.rtp_payload_type.unwrap_or(96),
             }),
-            audio: audio.as_ref().map(|audio| input::rtp::AudioStream {
+            audio: audio.as_ref().map(|audio| input::rtp::InputAudioStream {
                 options: match audio.clone().codec.unwrap_or(AudioCodec::Opus) {
                     AudioCodec::Opus => {
                         decoder::AudioDecoderOptions::Opus(decoder::OpusDecoderOptions {
@@ -188,27 +189,35 @@ impl From<AudioChannels> for audio_mixer::types::AudioChannels {
     }
 }
 
-impl From<RegisterOutputRequest> for pipeline::output::OutputOptions {
-    fn from(value: RegisterOutputRequest) -> Self {
-        pipeline::output::OutputOptions::Rtp(RtpSenderOptions {
+impl TryFrom<RegisterOutputRequest> for pipeline::output::OutputOptions {
+    type Error = TypeError;
+
+    fn try_from(value: RegisterOutputRequest) -> Result<Self, Self::Error> {
+        let video = match value.video {
+            Some(v) => Some(OutputVideoOptions {
+                encoder_opts: VideoEncoderOptions::H264(ffmpeg_h264::Options {
+                    preset: v.encoder_preset.into(),
+                    resolution: v.resolution.into(),
+                    output_id: value.output_id.clone().into(),
+                }),
+                initial: v.initial.try_into()?,
+            }),
+            None => None,
+        };
+
+        let audio = value.audio.map(|a| pipeline::OutputAudioOptions {
+            initial: a.initial.into(),
+            channels: a.channels.into(),
+            forward_error_correction: a.forward_error_correction.unwrap_or(false),
+        });
+
+        Ok(pipeline::output::OutputOptions::Rtp(RtpSenderOptions {
             port: value.port,
             ip: value.ip,
-            output_id: value.output_id.into(),
-            video: value.video.map(|_| VideoStream {
-                options: VideoDecoderOptions {
-                    codec: pipeline::VideoCodec::H264,
-                },
-                payload_type: 96,
-            }),
-            audio: value.audio.map(|a| AudioStream {
-                options: decoder::AudioDecoderOptions::Opus(OpusDecoderOptions {
-                    sample_rate: a.sample_rate,
-                    channels: a.channels.into(),
-                    forward_error_correction: a.forward_error_correction.unwrap_or(false),
-                }),
-                payload_type: 97,
-            }),
-        })
+            output_id: value.output_id.clone().into(),
+            video,
+            audio,
+        }))
     }
 }
 
@@ -222,11 +231,11 @@ impl TryFrom<RegisterOutputRequest> for pipeline::RegisterOutputOptions {
         if value.video.is_none() && value.audio.is_none() {
             return Err(TypeError::new(NO_VIDEO_OR_AUDIO));
         }
-        let output_options = value.clone().into();
+        let output_options = value.clone().try_into()?;
         let video = match value.video {
             Some(v) => Some(pipeline::OutputVideoOptions {
                 initial: v.initial.try_into()?,
-                encoder_opts: pipeline::encoder::EncoderOptions::H264(Options {
+                encoder_opts: pipeline::encoder::VideoEncoderOptions::H264(Options {
                     preset: v.encoder_preset.into(),
                     resolution: v.resolution.into(),
                     output_id: value.output_id.clone().into(),
@@ -237,7 +246,6 @@ impl TryFrom<RegisterOutputRequest> for pipeline::RegisterOutputOptions {
 
         let audio = value.audio.map(|a| pipeline::OutputAudioOptions {
             initial: a.initial.into(),
-            sample_rate: a.sample_rate,
             channels: a.channels.into(),
             forward_error_correction: a.forward_error_correction.unwrap_or(false),
         });

@@ -149,7 +149,6 @@ pub struct OutputVideoOptions {
 pub struct OutputAudioOptions {
     /// Initial audio for output.
     pub initial: Audio,
-    pub sample_rate: u32,
     pub channels: AudioChannels,
     /// (**default=`false`**) Specifies whether the stream use forward error correction.
     /// It's specific for Opus codec.

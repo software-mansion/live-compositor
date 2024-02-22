@@ -7,22 +7,33 @@ use self::ffmpeg_h264::LibavH264Encoder;
 use super::structs::EncodedChunk;
 
 pub mod ffmpeg_h264;
+pub mod opus_encoder;
 
-pub enum Encoder {
+pub enum VideoEncoder {
     H264(LibavH264Encoder),
 }
 
 #[derive(Debug, Clone)]
-pub enum EncoderOptions {
+pub enum VideoEncoderOptions {
     H264(ffmpeg_h264::Options),
 }
 
-impl Encoder {
+#[derive(Debug, Clone)]
+pub enum AudioEncoderOptions {
+    Opus(opus_encoder::Options),
+}
+
+pub struct EncoderOptions {
+    pub video: Option<VideoEncoderOptions>,
+    pub audio: Option<AudioEncoderOptions>,
+}
+
+impl VideoEncoder {
     pub fn new(
-        options: EncoderOptions,
+        options: VideoEncoderOptions,
     ) -> Result<(Self, Box<dyn Iterator<Item = EncodedChunk> + Send>), EncoderInitError> {
         match options {
-            EncoderOptions::H264(options) => {
+            VideoEncoderOptions::H264(options) => {
                 let (encoder, iter) = LibavH264Encoder::new(options)?;
                 Ok((Self::H264(encoder), iter))
             }

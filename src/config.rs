@@ -6,6 +6,8 @@ use log::error;
 
 use crate::logger::FfmpegLogLevel;
 
+const DEFAULT_OUTPUT_SAMPLE_RATE: u32 = 48_000;
+
 pub struct Config {
     pub api_port: u16,
     pub logger: LoggerConfig,
@@ -14,6 +16,7 @@ pub struct Config {
     pub force_gpu: bool,
     pub download_root: PathBuf,
     pub queue_options: QueueOptions,
+    pub output_sample_rate: u32,
 }
 
 pub struct LoggerConfig {
@@ -124,7 +127,14 @@ fn read_config() -> Result<Config, String> {
             Err(_) => false,
         };
 
-    Ok(Config {
+    let output_sample_rate: u32 = match env::var("LIVE_COMPOSITOR_OUTPUT_SAMPLE_RATE") {
+        Ok(sample_rate) => sample_rate
+            .parse()
+            .map_err(|_| "LIVE_COMPOSITOR_OUTPUT_SAMPLE_RATE has to be a valid number")?,
+        Err(_) => DEFAULT_OUTPUT_SAMPLE_RATE,
+    };
+
+    let config = Config {
         api_port,
         logger: LoggerConfig {
             ffmpeg_logger_level,
@@ -142,7 +152,9 @@ fn read_config() -> Result<Config, String> {
             enable_gpu: web_renderer_gpu_enable,
         },
         download_root,
-    })
+        output_sample_rate,
+    };
+    Ok(config)
 }
 
 fn framerate_from_str(s: &str) -> Result<Framerate, &'static str> {

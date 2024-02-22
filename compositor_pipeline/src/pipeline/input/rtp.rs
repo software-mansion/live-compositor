@@ -6,6 +6,7 @@ use std::{
 
 use crate::pipeline::{
     decoder::{self, DecoderOptions},
+    encoder,
     structs::EncodedChunkKind,
     Port, RequestedPort,
 };
@@ -52,27 +53,32 @@ pub struct RtpReceiverOptions {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct VideoStream {
-    pub options: decoder::VideoDecoderOptions,
-    pub payload_type: u8,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TransportProtocol {
     Udp,
     TcpServer,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct AudioStream {
+pub struct InputVideoStream {
+    pub options: decoder::VideoDecoderOptions,
+    pub payload_type: u8,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InputAudioStream {
     pub options: decoder::AudioDecoderOptions,
+    pub payload_type: u8,
+}
+
+pub struct OutputAudioStream {
+    pub options: encoder::EncoderOptions,
     pub payload_type: u8,
 }
 
 #[derive(Debug, Clone)]
 pub struct RtpStream {
-    pub video: Option<VideoStream>,
-    pub audio: Option<AudioStream>,
+    pub video: Option<InputVideoStream>,
+    pub audio: Option<InputAudioStream>,
 }
 
 pub struct RtpReceiver {

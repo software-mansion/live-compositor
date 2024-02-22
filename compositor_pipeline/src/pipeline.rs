@@ -25,7 +25,7 @@ use crate::error::{
 };
 use crate::queue::{self, Queue, QueueOptions};
 
-use self::encoder::EncoderOptions;
+use self::encoder::VideoEncoderOptions;
 use self::input::InputOptions;
 use self::output::OutputOptions;
 
@@ -58,14 +58,13 @@ pub struct RegisterInputOptions {
 
 #[derive(Debug, Clone)]
 pub struct OutputVideoOptions {
-    pub encoder_opts: EncoderOptions,
+    pub encoder_opts: VideoEncoderOptions,
     pub initial: Component,
 }
 
 #[derive(Debug, Clone)]
 pub struct OutputAudioOptions {
     pub initial: Audio,
-    pub sample_rate: u32,
     pub channels: AudioChannels,
     pub forward_error_correction: bool,
 }
@@ -90,7 +89,7 @@ pub struct PipelineInput {
 }
 
 pub struct PipelineOutput {
-    pub encoder: encoder::Encoder,
+    pub encoder: encoder::VideoEncoder,
     pub output: output::Output,
     pub has_video: bool,
     pub has_audio: bool,
@@ -104,6 +103,7 @@ pub struct Pipeline {
     audio_mixer: AudioMixer,
     is_started: bool,
     download_dir: PathBuf,
+    pub output_sample_rate: u32,
 }
 
 #[derive(Debug, Clone)]
@@ -113,6 +113,7 @@ pub struct Options {
     pub web_renderer: WebRendererInitOptions,
     pub force_gpu: bool,
     pub download_root: PathBuf,
+    pub output_sample_rate: u32,
 }
 
 impl Pipeline {
@@ -136,6 +137,7 @@ impl Pipeline {
             audio_mixer: AudioMixer::new(),
             is_started: false,
             download_dir,
+            output_sample_rate: opts.output_sample_rate,
         };
 
         Ok((pipeline, event_loop))
@@ -205,12 +207,8 @@ impl Pipeline {
         self.outputs.insert(output_id.clone(), Arc::new(output));
 
         if let Some(audio_opts) = audio.clone() {
-            self.audio_mixer.register_output(
-                output_id.clone(),
-                audio_opts.sample_rate,
-                audio_opts.channels,
-                audio_opts.initial,
-            );
+            self.audio_mixer
+                .register_output(output_id.clone(), audio_opts.initial);
         }
 
         self.update_output(
@@ -262,7 +260,7 @@ impl Pipeline {
         }
 
         if let Some(audio) = audio {
-            self.update_audio(output_id, audio)?;
+            self.update_audio(&output_id, audio)?;
         }
 
         Ok(())
@@ -304,7 +302,7 @@ impl Pipeline {
             .update_scene(output_id, resolution, scene_root)
     }
 
-    fn update_audio(&mut self, output_id: OutputId, audio: Audio) -> Result<(), UpdateSceneError> {
+    fn update_audio(&mut self, output_id: &OutputId, audio: Audio) -> Result<(), UpdateSceneError> {
         self.audio_mixer.update_output(output_id, audio)
     }
 
