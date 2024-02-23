@@ -71,4 +71,15 @@ pub enum HorizontalPosition {
 #[derive(Debug, Clone, Copy)]
 pub enum InterpolationKind {
     Linear,
+    Ease,
+    EaseIn,
+    EaseOut,
+    EaseInOut,
+    EaseInQuint,
+    EaseOutQuint,
+    EaseInOutQuint,
+    EaseInExpo,
+    EaseOutExpo,
+    EaseInOutExpo,
+    Bounce,
 }

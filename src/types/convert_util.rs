@@ -33,8 +33,27 @@ impl From<compositor_render::Resolution> for Resolution {
 
 impl From<Transition> for scene::Transition {
     fn from(transition: Transition) -> Self {
+        let interpolation_kind = match transition
+            .interpolation_kind
+            .unwrap_or(InterpolationKind::Linear)
+        {
+            InterpolationKind::Linear => scene::InterpolationKind::Linear,
+            InterpolationKind::Ease => scene::InterpolationKind::Ease,
+            InterpolationKind::EaseIn => scene::InterpolationKind::EaseIn,
+            InterpolationKind::EaseOut => scene::InterpolationKind::EaseOut,
+            InterpolationKind::EaseInOut => scene::InterpolationKind::EaseInOut,
+            InterpolationKind::EaseInQuint => scene::InterpolationKind::EaseInQuint,
+            InterpolationKind::EaseOutQuint => scene::InterpolationKind::EaseOutQuint,
+            InterpolationKind::EaseInOutQuint => scene::InterpolationKind::EaseInOutQuint,
+            InterpolationKind::EaseInExpo => scene::InterpolationKind::EaseInExpo,
+            InterpolationKind::EaseOutExpo => scene::InterpolationKind::EaseOutExpo,
+            InterpolationKind::EaseInOutExpo => scene::InterpolationKind::EaseInOutExpo,
+            InterpolationKind::Bounce => scene::InterpolationKind::Bounce,
+        };
+
         Self {
             duration: Duration::from_secs_f64(transition.duration_ms / 1000.0),
+            interpolation_kind,
         }
     }
 }

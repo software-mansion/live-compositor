@@ -15,6 +15,25 @@ pub struct Resolution {
 pub struct Transition {
     /// Duration of a transition in milliseconds.
     pub duration_ms: f64,
+    /// (**default=`"linear"`**) Interpolation function used for transition.
+    pub interpolation_kind: Option<InterpolationKind>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum InterpolationKind {
+    Linear,
+    Ease,
+    EaseIn,
+    EaseOut,
+    EaseInOut,
+    EaseInQuint,
+    EaseOutQuint,
+    EaseInOutQuint,
+    EaseInExpo,
+    EaseOutExpo,
+    EaseInOutExpo,
+    Bounce,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]

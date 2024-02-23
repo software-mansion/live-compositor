@@ -789,8 +789,36 @@
           "description": "Duration of a transition in milliseconds.",
           "type": "number",
           "format": "double"
+        },
+        "interpolation_kind": {
+          "description": "(**default=`\"linear\"`**) Interpolation function used for transition.",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/InterpolationKind"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       }
+    },
+    "InterpolationKind": {
+      "type": "string",
+      "enum": [
+        "linear",
+        "ease",
+        "ease_in",
+        "ease_out",
+        "ease_in_out",
+        "ease_in_quint",
+        "ease_out_quint",
+        "ease_in_out_quint",
+        "ease_in_expo",
+        "ease_out_expo",
+        "ease_in_out_expo",
+        "bounce"
+      ]
     },
     "Overflow": {
       "oneOf": [

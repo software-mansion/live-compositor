@@ -1,6 +1,10 @@
 use std::time::Duration;
 
+use self::cubic_bezier::cubic_bezier_easing;
+
 use super::{types::interpolation::InterpolationState, InterpolationKind};
+
+mod cubic_bezier;
 
 /// Similar concept to InterpolationState, but it represents a time instead.
 /// Values between 0 and 1 represent transition and larger than 1 post transition.
@@ -91,6 +95,52 @@ impl InterpolationKind {
     fn state(&self, t: f64) -> InterpolationState {
         match self {
             InterpolationKind::Linear => InterpolationState(t),
+            InterpolationKind::Ease => {
+                InterpolationState(cubic_bezier_easing(t, 0.25, 0.1, 0.25, 1.0))
+            }
+            InterpolationKind::EaseIn => {
+                InterpolationState(cubic_bezier_easing(t, 0.42, 0.0, 1.0, 1.0))
+            }
+            InterpolationKind::EaseOut => {
+                InterpolationState(cubic_bezier_easing(t, 0.0, 0.0, 0.58, 1.0))
+            }
+            InterpolationKind::EaseInOut => {
+                InterpolationState(cubic_bezier_easing(t, 0.42, 0.0, 0.58, 1.0))
+            }
+            InterpolationKind::EaseInQuint => {
+                InterpolationState(cubic_bezier_easing(t, 0.64, 0.0, 0.78, 0.0))
+            }
+            InterpolationKind::EaseOutQuint => {
+                InterpolationState(cubic_bezier_easing(t, 0.22, 1.0, 0.36, 1.0))
+            }
+            InterpolationKind::EaseInOutQuint => {
+                InterpolationState(cubic_bezier_easing(t, 0.83, 0.0, 0.17, 1.0))
+            }
+            InterpolationKind::EaseInExpo => {
+                InterpolationState(cubic_bezier_easing(t, 0.7, 0.0, 0.84, 0.0))
+            }
+            InterpolationKind::EaseOutExpo => {
+                InterpolationState(cubic_bezier_easing(t, 0.16, 1.0, 0.3, 1.0))
+            }
+            InterpolationKind::EaseInOutExpo => {
+                InterpolationState(cubic_bezier_easing(t, 0.87, 0.0, 0.13, 1.0))
+            }
+            InterpolationKind::Bounce => {
+                let n1 = 7.5625;
+                let d1 = 2.75;
+
+                let state = if t < (1.0 / d1) {
+                    n1 * t * t
+                } else if t < (2.0 / d1) {
+                    n1 * (t - 1.5 / d1) * (t - 1.5 / d1) + 0.75
+                } else if t < (2.5 / d1) {
+                    n1 * (t - 2.25 / d1) * (t - 2.25 / d1) + 0.9375
+                } else {
+                    n1 * (t - 2.625 / d1) * (t - 2.625 / d1) + 0.984375
+                };
+
+                InterpolationState(state)
+            }
         }
     }
 }

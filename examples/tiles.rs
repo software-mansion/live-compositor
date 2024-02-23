@@ -71,7 +71,8 @@ fn start_example_client_code() -> Result<()> {
             "background_color_rgba": "#444444FF",
             "children": children,
             "transition": {
-                "duration_ms": 500,
+                "duration_ms": 700,
+                "interpolation_kind": "ease_in_out_quint",
             },
         })
     };
