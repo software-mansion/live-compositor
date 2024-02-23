@@ -291,9 +291,10 @@ impl Pipeline {
                     .get(&output_id)
                     .ok_or_else(|| UpdateSceneError::OutputNotRegistered(output_id.clone()))?
                     .encoder
-            .video
-            .as_ref()
-            .map(|v| v.resolution()) else {
+                    .video
+                    .as_ref()
+                    .map(|v| v.resolution())
+            else {
                 return Err(UpdateSceneError::AudioVideoNotMatching(output_id));
             };
 
