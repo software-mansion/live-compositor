@@ -142,6 +142,8 @@ pub struct OutputVideoOptions {
     pub resolution: Resolution,
     pub encoder_preset: EncoderPreset,
     pub initial: Component,
+    /// (**default=`96`**)
+    pub rtp_payload_type: Option<u8>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
@@ -154,6 +156,8 @@ pub struct OutputAudioOptions {
     /// It's specific for Opus codec.
     /// For more information, check out [RFC](https://datatracker.ietf.org/doc/html/rfc6716#section-2.1.7).
     pub forward_error_correction: Option<bool>,
+    /// (**default=`97`**)
+    pub rtp_payload_type: Option<u8>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]

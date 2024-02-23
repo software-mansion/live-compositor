@@ -85,6 +85,9 @@ pub enum EncoderInitError {
 
     #[error(transparent)]
     FfmpegError(#[from] ffmpeg_next::Error),
+
+    #[error(transparent)]
+    OpusError(#[from] opus::Error),
 }
 
 #[derive(Debug, thiserror::Error)]

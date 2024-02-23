@@ -95,9 +95,9 @@ pub struct LibavH264Encoder {
 impl LibavH264Encoder {
     pub fn new(
         options: Options,
-    ) -> Result<(Self, Box<dyn Iterator<Item = EncodedChunk> + Send>), EncoderInitError> {
+        chunks_sender: Sender<EncodedChunk>,
+    ) -> Result<Self, EncoderInitError> {
         let (frame_sender, frame_receiver) = crossbeam_channel::bounded(5);
-        let (packet_sender, packet_receiver) = crossbeam_channel::bounded(5);
         let (result_sender, result_receiver) = crossbeam_channel::bounded(0);
 
         let options_clone = options.clone();
@@ -108,7 +108,7 @@ impl LibavH264Encoder {
                 match Self::encoder_thread(
                     options_clone,
                     frame_receiver,
-                    packet_sender,
+                    chunks_sender,
                     &result_sender,
                 ) {
                     Ok(_) => log::debug!("Encoder thread exited normally."),
@@ -119,15 +119,12 @@ impl LibavH264Encoder {
 
         result_receiver.recv().unwrap()?;
 
-        Ok((
-            Self {
-                encoder_thread: Some(encoder_thread),
-                frame_sender,
-                output_id: options.output_id,
-                resolution: options.resolution,
-            },
-            Box::new(packet_receiver.into_iter()),
-        ))
+        Ok(Self {
+            encoder_thread: Some(encoder_thread),
+            frame_sender,
+            output_id: options.output_id,
+            resolution: options.resolution,
+        })
     }
 
     pub fn send_frame(&self, frame: Frame) {

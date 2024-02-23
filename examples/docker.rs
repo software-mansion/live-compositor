@@ -10,7 +10,7 @@ use std::{
 };
 use video_compositor::{config::config, logger, types::Resolution};
 
-use crate::common::write_example_sdp_file;
+use crate::common::write_video_example_sdp_file;
 
 #[path = "./common/common.rs"]
 mod common;
@@ -102,7 +102,7 @@ fn start_example_client_code(host_ip: String) -> Result<()> {
     thread::sleep(Duration::from_secs(5));
 
     info!("[example] Start listening on output port.");
-    let output_sdp = write_example_sdp_file(&host_ip, 8002)?;
+    let output_sdp = write_video_example_sdp_file(&host_ip, 8002)?;
     Command::new("ffplay")
         .args(["-protocol_whitelist", "file,rtp,udp", &output_sdp])
         .stderr(Stdio::null())

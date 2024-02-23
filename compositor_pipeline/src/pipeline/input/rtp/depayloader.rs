@@ -7,12 +7,11 @@ use rtp::{
 
 use crate::pipeline::{
     decoder,
+    rtp::PayloadType,
     structs::{AudioCodec, EncodedChunk, EncodedChunkKind, VideoCodec},
 };
 
 use super::{DepayloadingError, RtpStream};
-
-pub struct PayloadType(u8);
 
 #[derive(Debug, thiserror::Error)]
 pub enum DepayloaderNewError {
@@ -20,7 +19,7 @@ pub enum DepayloaderNewError {
     Audio(#[from] AudioDepayloaderNewError),
 }
 
-pub struct Depayloader {
+pub(crate) struct Depayloader {
     /// (Depayloader, payload type)
     pub video: Option<(VideoDepayloader, PayloadType)>,
     pub audio: Option<(AudioDepayloader, PayloadType)>,

@@ -9,7 +9,7 @@ use std::{
 };
 use video_compositor::{config::config, http, logger, types::Resolution};
 
-use crate::common::write_example_sdp_file;
+use crate::common::write_video_audio_example_sdp_file;
 
 #[path = "./common/common.rs"]
 mod common;
@@ -37,7 +37,7 @@ fn main() {
 
 fn start_example_client_code() -> Result<()> {
     info!("[example] Start listening on output port.");
-    let output_sdp = write_example_sdp_file("127.0.0.1", 8002)?;
+    let output_sdp = write_video_audio_example_sdp_file("127.0.0.1", 8002, 8010)?;
     Command::new("ffplay")
         .args(["-protocol_whitelist", "file,rtp,udp", &output_sdp])
         .stdout(Stdio::null())
@@ -109,7 +109,16 @@ fn start_example_client_code() -> Result<()> {
                 ],
                 "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
             }
-        },
+        }
+    }))?;
+
+    info!("[example] Send register output request.");
+    common::post(&json!({
+        "type": "register",
+        "entity_type": "output_stream",
+        "output_id": "output_2",
+        "port": 8010,
+        "ip": "127.0.0.1",
         "audio": {
             "initial": {
                 "inputs": [{"input_id": "input_2"}]

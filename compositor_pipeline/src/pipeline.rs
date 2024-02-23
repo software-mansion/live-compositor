@@ -16,7 +16,7 @@ use compositor_render::{error::UpdateSceneError, Renderer};
 use compositor_render::{EventLoop, InputId, OutputId, RendererId, RendererSpec};
 use compositor_render::{FrameSet, RegistryType};
 use crossbeam_channel::{bounded, Receiver};
-use log::{debug, error};
+use log::error;
 
 use crate::audio_mixer::types::{AudioChannels, AudioMixingParams, AudioSamplesSet};
 use crate::audio_mixer::AudioMixer;
@@ -84,7 +84,7 @@ pub struct PipelineInput {
 }
 
 pub struct PipelineOutput {
-    pub encoder: encoder::VideoEncoder,
+    pub encoder: encoder::Encoder,
     pub output: output::Output,
     pub has_video: bool,
     pub has_audio: bool,
@@ -198,7 +198,7 @@ impl Pipeline {
             return Err(RegisterOutputError::AlreadyRegistered(output_id));
         }
 
-        let output = new_pipeline_output(register_options)?;
+        let output = new_pipeline_output(register_options, self.output_sample_rate)?;
         self.outputs.insert(output_id.clone(), Arc::new(output));
 
         if let Some(audio_opts) = audio.clone() {
@@ -285,13 +285,17 @@ impl Pipeline {
         output_id: OutputId,
         scene_root: Component,
     ) -> Result<(), UpdateSceneError> {
-        let resolution = self
-            .outputs
-            .lock()
-            .get(&output_id)
-            .ok_or_else(|| UpdateSceneError::OutputNotRegistered(output_id.clone()))?
-            .encoder
-            .resolution();
+        let Some(resolution) = self
+                    .outputs
+                    .lock()
+                    .get(&output_id)
+                    .ok_or_else(|| UpdateSceneError::OutputNotRegistered(output_id.clone()))?
+                    .encoder
+            .video
+            .as_ref()
+            .map(|v| v.resolution()) else {
+                return Err(UpdateSceneError::AudioVideoNotMatching(output_id));
+            };
 
         self.renderer
             .update_scene(output_id, resolution, scene_root)
@@ -316,11 +320,12 @@ impl Pipeline {
         let renderer = self.renderer.clone();
         let audio_mixer = self.audio_mixer.clone();
         let outputs = self.outputs.clone();
+        let outputs2 = self.outputs.clone();
 
         self.queue.start(frames_sender, audio_sender);
 
         thread::spawn(move || Self::run_renderer_thread(frames_receiver, renderer, outputs));
-        thread::spawn(move || Self::run_audio_mixer_thread(audio_mixer, audio_receiver));
+        thread::spawn(move || Self::run_audio_mixer_thread(audio_mixer, audio_receiver, outputs2));
     }
 
     fn run_renderer_thread(
@@ -350,11 +355,22 @@ impl Pipeline {
         }
     }
 
-    fn run_audio_mixer_thread(audio_mixer: AudioMixer, audio_receiver: Receiver<AudioSamplesSet>) {
+    fn run_audio_mixer_thread(
+        audio_mixer: AudioMixer,
+        audio_receiver: Receiver<AudioSamplesSet>,
+        outputs: OutputRegistry<PipelineOutput>,
+    ) {
         for samples in audio_receiver {
             let mixed_samples = audio_mixer.mix_samples(samples.clone());
-            debug!("Mixed samples: {:#?}", mixed_samples);
-            // TODO send to output
+            for (id, batch) in mixed_samples.0 {
+                let output = outputs.lock().get(&id).cloned();
+                let Some(output) = output else {
+                    error!("no output with id {}", &id);
+                    continue;
+                };
+
+                output.encoder.send_samples_batch(batch);
+            }
         }
     }
 

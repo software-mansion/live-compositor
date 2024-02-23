@@ -198,7 +198,7 @@ impl Drop for RtpReceiver {
 }
 
 #[derive(Debug)]
-pub struct DepayloaderThread {
+pub(crate) struct DepayloaderThread {
     should_close: Arc<AtomicBool>,
     depayloader_thread: Option<thread::JoinHandle<()>>,
 }

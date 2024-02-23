@@ -8,30 +8,29 @@ use std::{
     u16,
 };
 
-use rand::Rng;
-use rtp::packetizer::Payloader;
 use webrtc_util::Marshal;
 
 use crate::{
     error::OutputInitError,
     pipeline::{
-        rtp::{bind_to_requested_port, BindToPortError, RequestedPort},
+        rtp::{bind_to_requested_port, BindToPortError, PayloadType, RequestedPort},
         structs::EncodedChunk,
-        Port,
+        AudioCodec, Port, VideoCodec,
     },
 };
 
+use self::payloader::Payloader;
+
+mod payloader;
+
 #[derive(Debug)]
 pub struct RtpSender {
-    pub connection_options: RtpConnectionOptions,
     sender_thread: Option<std::thread::JoinHandle<()>>,
     should_close: Arc<AtomicBool>,
 }
 
 struct RtpContext {
-    ssrc: u32,
-    next_sequence_number: u16,
-    payloader: rtp::codecs::h264::H264Payloader,
+    payloader: Payloader,
     socket: socket2::Socket,
     should_close: Arc<AtomicBool>,
 }
@@ -40,6 +39,8 @@ struct RtpContext {
 pub struct RtpSenderOptions {
     pub output_id: OutputId,
     pub connection_options: RtpConnectionOptions,
+    pub video: Option<(VideoCodec, PayloadType)>,
+    pub audio: Option<(AudioCodec, PayloadType)>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -53,10 +54,7 @@ impl RtpSender {
         options: RtpSenderOptions,
         packets: Box<dyn Iterator<Item = EncodedChunk> + Send>,
     ) -> Result<Self, OutputInitError> {
-        let mut rng = rand::thread_rng();
-        let ssrc = rng.gen::<u32>();
-        let next_sequence_number = rng.gen::<u16>();
-        let payloader = rtp::codecs::h264::H264Payloader::default();
+        let payloader = Payloader::new(options.video, options.audio);
 
         let (socket, _port) = match &options.connection_options {
             RtpConnectionOptions::Udp { port, ip } => Self::udp_socket(ip, *port)?,
@@ -65,8 +63,6 @@ impl RtpSender {
 
         let should_close = Arc::new(AtomicBool::new(false));
         let mut ctx = RtpContext {
-            ssrc,
-            next_sequence_number,
             payloader,
             socket: socket.try_clone()?,
             should_close: should_close.clone(),
@@ -82,7 +78,6 @@ impl RtpSender {
             .unwrap();
 
         Ok(Self {
-            connection_options: options.connection_options,
             sender_thread: Some(sender_thread),
             should_close,
         })
@@ -138,34 +133,19 @@ fn run_tcp_sender_thread(
 
         let mut socket = TcpWritePacketStream::new(socket, context.should_close.clone());
         loop {
-            let Some(EncodedChunk { data, pts, .. }) = packets.next() else {
+            let Some(chunk) = packets.next() else {
                 return;
             };
 
-            let payloads = match context.payloader.payload(64000, &data) {
+            let packets = match context.payloader.payload(64000, chunk) {
                 Ok(p) => p,
                 Err(e) => {
                     error!("Failed to payload a packet: {}", e);
                     return;
                 }
             };
-            let packets_amount = payloads.len();
 
-            for (i, payload) in payloads.into_iter().enumerate() {
-                let header = rtp::header::Header {
-                    version: 2,
-                    padding: false,
-                    extension: false,
-                    marker: i == packets_amount - 1, // marker needs to be set on the last packet of each frame
-                    payload_type: 96,
-                    sequence_number: context.next_sequence_number,
-                    timestamp: (pts.as_secs_f64() * 90000.0) as u32,
-                    ssrc: context.ssrc,
-                    ..Default::default()
-                };
-
-                let packet = rtp::packet::Packet { header, payload };
-
+            packets.iter().for_each(|packet| {
                 let packet = match packet.marshal() {
                     Ok(p) => p,
                     Err(e) => {
@@ -177,9 +157,7 @@ fn run_tcp_sender_thread(
                 if let Err(err) = socket.write_packet(packet) {
                     debug!("Failed to send packet: {err}");
                 }
-
-                context.next_sequence_number = context.next_sequence_number.wrapping_add(1);
-            }
+            });
         }
     }
 }
@@ -189,34 +167,17 @@ fn run_udp_sender_thread(
     context: &mut RtpContext,
     packets: Box<dyn Iterator<Item = EncodedChunk> + Send>,
 ) {
-    for packet in packets {
+    for chunk in packets {
         // TODO: check if this is h264
-        let EncodedChunk { data, pts, .. } = packet;
-
-        let payloads = match context.payloader.payload(1400, &data) {
+        let packets = match context.payloader.payload(1400, chunk) {
             Ok(p) => p,
             Err(e) => {
                 error!("Failed to payload a packet: {}", e);
                 return;
             }
         };
-        let packets_amount = payloads.len();
 
-        for (i, payload) in payloads.into_iter().enumerate() {
-            let header = rtp::header::Header {
-                version: 2,
-                padding: false,
-                extension: false,
-                marker: i == packets_amount - 1, // marker needs to be set on the last packet of each frame
-                payload_type: 96,
-                sequence_number: context.next_sequence_number,
-                timestamp: (pts.as_secs_f64() * 90000.0) as u32,
-                ssrc: context.ssrc,
-                ..Default::default()
-            };
-
-            let packet = rtp::packet::Packet { header, payload };
-
+        packets.into_iter().for_each(|packet| {
             let packet = match packet.marshal() {
                 Ok(p) => p,
                 Err(e) => {
@@ -227,10 +188,8 @@ fn run_udp_sender_thread(
 
             if let Err(err) = context.socket.send(&packet) {
                 debug!("Failed to send packet: {err}");
-            }
-
-            context.next_sequence_number = context.next_sequence_number.wrapping_add(1);
-        }
+            };
+        });
     }
 }
 

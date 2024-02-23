@@ -207,7 +207,7 @@ impl TryFrom<RegisterOutputRequest> for pipeline::RegisterOutputOptions {
             ));
         }
 
-        let video = match video {
+        let output_video_options = match video.clone() {
             Some(v) => Some(pipeline::OutputVideoOptions {
                 initial: v.initial.try_into()?,
                 encoder_opts: pipeline::encoder::VideoEncoderOptions::H264(Options {
@@ -219,7 +219,7 @@ impl TryFrom<RegisterOutputRequest> for pipeline::RegisterOutputOptions {
             None => None,
         };
 
-        let audio = audio.map(|a| pipeline::OutputAudioOptions {
+        let output_audio_options = audio.clone().map(|a| pipeline::OutputAudioOptions {
             initial: a.initial.into(),
             channels: a.channels.into(),
             forward_error_correction: a.forward_error_correction.unwrap_or(false),
@@ -258,13 +258,25 @@ impl TryFrom<RegisterOutputRequest> for pipeline::RegisterOutputOptions {
         let output_options = output::OutputOptions::Rtp(RtpSenderOptions {
             output_id: output_id.clone().into(),
             connection_options,
+            video: video.map(|v| {
+                (
+                    pipeline::VideoCodec::H264,
+                    pipeline::rtp::PayloadType(v.rtp_payload_type.unwrap_or(96)),
+                )
+            }),
+            audio: audio.map(|a| {
+                (
+                    pipeline::AudioCodec::Opus,
+                    pipeline::rtp::PayloadType(a.rtp_payload_type.unwrap_or(97)),
+                )
+            }),
         });
 
         Ok(Self {
             output_id: output_id.into(),
             output_options,
-            video,
-            audio,
+            video: output_video_options,
+            audio: output_audio_options,
         })
     }
 }
