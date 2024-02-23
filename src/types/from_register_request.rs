@@ -7,11 +7,10 @@ use compositor_pipeline::{
         encoder::{
             self,
             ffmpeg_h264::{self, Options},
-            VideoEncoderOptions,
         },
         input,
         output::{self, rtp::RtpSenderOptions},
-        OutputVideoOptions,
+        rtp,
     },
     queue,
 };
@@ -68,8 +67,8 @@ impl TryFrom<RtpInputStream> for (compositor_render::InputId, pipeline::Register
             input_id: input_id.clone().into(),
             stream: rtp_stream,
             transport_protocol: match transport_protocol.unwrap_or(TransportProtocol::Udp) {
-                TransportProtocol::Udp => input::rtp::TransportProtocol::Udp,
-                TransportProtocol::TcpServer => input::rtp::TransportProtocol::TcpServer,
+                TransportProtocol::Udp => rtp::TransportProtocol::Udp,
+                TransportProtocol::TcpServer => rtp::TransportProtocol::TcpServer,
             },
         });
 
@@ -130,14 +129,14 @@ impl TryFrom<Mp4> for (compositor_render::InputId, pipeline::RegisterInputOption
     }
 }
 
-impl TryFrom<Port> for pipeline::RequestedPort {
+impl TryFrom<Port> for rtp::RequestedPort {
     type Error = TypeError;
 
     fn try_from(value: Port) -> Result<Self, Self::Error> {
         const PORT_CONVERSION_ERROR_MESSAGE: &str = "Port needs to be a number between 1 and 65535 or a string in the \"START:END\" format, where START and END represent a range of ports.";
         match value {
             Port::U16(0) => Err(TypeError::new(PORT_CONVERSION_ERROR_MESSAGE)),
-            Port::U16(v) => Ok(pipeline::RequestedPort::Exact(v)),
+            Port::U16(v) => Ok(rtp::RequestedPort::Exact(v)),
             Port::String(s) => {
                 let (start, end) = s
                     .split_once(':')
@@ -158,7 +157,7 @@ impl TryFrom<Port> for pipeline::RequestedPort {
                     return Err(TypeError::new(PORT_CONVERSION_ERROR_MESSAGE));
                 }
 
-                Ok(pipeline::RequestedPort::Range((start, end)))
+                Ok(rtp::RequestedPort::Range((start, end)))
             }
         }
     }
@@ -189,69 +188,80 @@ impl From<AudioChannels> for audio_mixer::types::AudioChannels {
     }
 }
 
-impl TryFrom<RegisterOutputRequest> for output::OutputOptions {
-    type Error = TypeError;
-
-    fn try_from(value: RegisterOutputRequest) -> Result<Self, Self::Error> {
-        let video = match value.video {
-            Some(v) => Some(OutputVideoOptions {
-                encoder_opts: VideoEncoderOptions::H264(ffmpeg_h264::Options {
-                    preset: v.encoder_preset.into(),
-                    resolution: v.resolution.into(),
-                    output_id: value.output_id.clone().into(),
-                }),
-                initial: v.initial.try_into()?,
-            }),
-            None => None,
-        };
-
-        let audio = value.audio.map(|a| pipeline::OutputAudioOptions {
-            initial: a.initial.into(),
-            channels: a.channels.into(),
-            forward_error_correction: a.forward_error_correction.unwrap_or(false),
-        });
-
-        Ok(output::OutputOptions::Rtp(RtpSenderOptions {
-            port: value.port,
-            ip: value.ip,
-            output_id: value.output_id.clone().into(),
-            video,
-            audio,
-        }))
-    }
-}
-
 impl TryFrom<RegisterOutputRequest> for pipeline::RegisterOutputOptions {
     type Error = TypeError;
 
-    fn try_from(value: RegisterOutputRequest) -> Result<Self, Self::Error> {
-        const NO_VIDEO_OR_AUDIO: &str =
-            "At least one of \"video\" and \"audio\" fields have to be specified.";
+    fn try_from(request: RegisterOutputRequest) -> Result<Self, Self::Error> {
+        let RegisterOutputRequest {
+            output_id,
+            port,
+            ip,
+            transport_protocol,
+            video,
+            audio,
+        } = request;
 
-        if value.video.is_none() && value.audio.is_none() {
-            return Err(TypeError::new(NO_VIDEO_OR_AUDIO));
+        if video.is_none() && audio.is_none() {
+            return Err(TypeError::new(
+                "At least one of \"video\" and \"audio\" fields have to be specified.",
+            ));
         }
-        let output_options = value.clone().try_into()?;
-        let video = match value.video {
+
+        let video = match video {
             Some(v) => Some(pipeline::OutputVideoOptions {
                 initial: v.initial.try_into()?,
                 encoder_opts: pipeline::encoder::VideoEncoderOptions::H264(Options {
                     preset: v.encoder_preset.into(),
                     resolution: v.resolution.into(),
-                    output_id: value.output_id.clone().into(),
+                    output_id: output_id.clone().into(),
                 }),
             }),
             None => None,
         };
 
-        let audio = value.audio.map(|a| pipeline::OutputAudioOptions {
+        let audio = audio.map(|a| pipeline::OutputAudioOptions {
             initial: a.initial.into(),
             channels: a.channels.into(),
             forward_error_correction: a.forward_error_correction.unwrap_or(false),
         });
 
+        let connection_options = match transport_protocol.unwrap_or(TransportProtocol::Udp) {
+            TransportProtocol::Udp => {
+                let rtp::RequestedPort::Exact(port) = port.try_into()? else {
+                    return Err(TypeError::new(
+                        "Port range can not be used with UDP output stream (transport_protocol=\"udp\").",
+                    ));
+                };
+                let Some(ip) = ip else {
+                    return Err(TypeError::new(
+                        "\"ip\" field is required when registering output UDP stream (transport_protocol=\"udp\").",
+                    ));
+                };
+                output::rtp::RtpConnectionOptions::Udp {
+                    port: pipeline::Port(port),
+                    ip,
+                }
+            }
+            TransportProtocol::TcpServer => {
+                if ip.is_some() {
+                    return Err(TypeError::new(
+                        "\"ip\" field is not allowed when registering TCP server connection (transport_protocol=\"tcp_server\").",
+                    ));
+                }
+
+                output::rtp::RtpConnectionOptions::TcpServer {
+                    port: port.try_into()?,
+                }
+            }
+        };
+
+        let output_options = output::OutputOptions::Rtp(RtpSenderOptions {
+            output_id: output_id.clone().into(),
+            connection_options,
+        });
+
         Ok(Self {
-            output_id: value.output_id.into(),
+            output_id: output_id.into(),
             output_options,
             video,
             audio,
@@ -262,16 +272,16 @@ impl TryFrom<RegisterOutputRequest> for pipeline::RegisterOutputOptions {
 impl From<EncoderPreset> for encoder::ffmpeg_h264::EncoderPreset {
     fn from(value: EncoderPreset) -> Self {
         match value {
-            EncoderPreset::Ultrafast => pipeline::encoder::ffmpeg_h264::EncoderPreset::Ultrafast,
-            EncoderPreset::Superfast => pipeline::encoder::ffmpeg_h264::EncoderPreset::Superfast,
-            EncoderPreset::Veryfast => pipeline::encoder::ffmpeg_h264::EncoderPreset::Veryfast,
-            EncoderPreset::Faster => pipeline::encoder::ffmpeg_h264::EncoderPreset::Faster,
-            EncoderPreset::Fast => pipeline::encoder::ffmpeg_h264::EncoderPreset::Fast,
-            EncoderPreset::Medium => pipeline::encoder::ffmpeg_h264::EncoderPreset::Medium,
-            EncoderPreset::Slow => pipeline::encoder::ffmpeg_h264::EncoderPreset::Slow,
-            EncoderPreset::Slower => pipeline::encoder::ffmpeg_h264::EncoderPreset::Slower,
-            EncoderPreset::Veryslow => pipeline::encoder::ffmpeg_h264::EncoderPreset::Veryslow,
-            EncoderPreset::Placebo => pipeline::encoder::ffmpeg_h264::EncoderPreset::Placebo,
+            EncoderPreset::Ultrafast => ffmpeg_h264::EncoderPreset::Ultrafast,
+            EncoderPreset::Superfast => ffmpeg_h264::EncoderPreset::Superfast,
+            EncoderPreset::Veryfast => ffmpeg_h264::EncoderPreset::Veryfast,
+            EncoderPreset::Faster => ffmpeg_h264::EncoderPreset::Faster,
+            EncoderPreset::Fast => ffmpeg_h264::EncoderPreset::Fast,
+            EncoderPreset::Medium => ffmpeg_h264::EncoderPreset::Medium,
+            EncoderPreset::Slow => ffmpeg_h264::EncoderPreset::Slow,
+            EncoderPreset::Slower => ffmpeg_h264::EncoderPreset::Slower,
+            EncoderPreset::Veryslow => ffmpeg_h264::EncoderPreset::Veryslow,
+            EncoderPreset::Placebo => ffmpeg_h264::EncoderPreset::Placebo,
         }
     }
 }

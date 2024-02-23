@@ -9,8 +9,6 @@ use std::{
 };
 use video_compositor::{config::config, http, logger, types::Resolution};
 
-use crate::common::write_example_sdp_file;
-
 #[path = "./common/common.rs"]
 mod common;
 
@@ -36,15 +34,6 @@ fn main() {
 }
 
 fn start_example_client_code() -> Result<()> {
-    info!("[example] Start listening on output port.");
-    let output_sdp = write_example_sdp_file("127.0.0.1", 8002)?;
-    Command::new("ffplay")
-        .args(["-protocol_whitelist", "file,rtp,udp", &output_sdp])
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn()?;
-    thread::sleep(Duration::from_secs(2));
-
     info!("[example] Download sample.");
     let sample_path = env::current_dir()?.join(SAMPLE_FILE_PATH);
     fs::create_dir_all(sample_path.parent().unwrap())?;
@@ -76,28 +65,34 @@ fn start_example_client_code() -> Result<()> {
         "type": "register",
         "entity_type": "output_stream",
         "output_id": "output_1",
+        "transport_protocol": "tcp_server",
         "port": 8002,
-        "ip": "127.0.0.1",
-        "resolution": {
-            "width": VIDEO_RESOLUTION.width,
-            "height": VIDEO_RESOLUTION.height,
-        },
-        "encoder_preset": "medium",
-        "initial_scene": {
-            "type": "shader",
-            "id": "shader_node_1",
-            "shader_id": "shader_example_1",
-            "children": [
-                {
-                    "id": "input_1",
-                    "type": "input_stream",
-                    "input_id": "input_1",
-                }
-            ],
-            "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+        "video": {
+            "resolution": {
+                "width": VIDEO_RESOLUTION.width,
+                "height": VIDEO_RESOLUTION.height,
+            },
+            "encoder_preset": "medium",
+            "initial": {
+                "type": "shader",
+                "id": "shader_node_1",
+                "shader_id": "shader_example_1",
+                "children": [
+                    {
+                        "id": "input_1",
+                        "type": "input_stream",
+                        "input_id": "input_1",
+                    }
+                ],
+                "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+            }
         }
     }))?;
-
+    let gst_output_command = "gst-launch-1.0 -v tcpclientsrc host=127.0.0.1 port=8002 ! \"application/x-rtp-stream\" ! rtpstreamdepay ! rtph264depay ! decodebin ! videoconvert ! autovideosink".to_string();
+    Command::new("bash")
+        .arg("-c")
+        .arg(gst_output_command)
+        .spawn()?;
     std::thread::sleep(Duration::from_millis(500));
 
     info!("[example] Start pipeline");
@@ -106,8 +101,13 @@ fn start_example_client_code() -> Result<()> {
     }))?;
 
     let sample_path_str = sample_path.to_string_lossy().to_string();
-    let gst_command = format!("gst-launch-1.0 -v funnel name=fn filesrc location={sample_path_str} ! qtdemux ! h264parse ! rtph264pay config-interval=1 pt=96  ! .send_rtp_sink rtpsession name=session .send_rtp_src ! fn. session.send_rtcp_src ! fn. fn. ! rtpstreampay ! tcpclientsink host=127.0.0.1 port=8004");
-    Command::new("bash").arg("-c").arg(gst_command).spawn()?;
+    let gst_input_command = format!("gst-launch-1.0 -v funnel name=fn filesrc location={sample_path_str} ! qtdemux ! h264parse ! rtph264pay config-interval=1 pt=96  ! .send_rtp_sink rtpsession name=session .send_rtp_src ! fn. session.send_rtcp_src ! fn. fn. ! rtpstreampay ! tcpclientsink host=127.0.0.1 port=8004");
+    Command::new("bash")
+        .arg("-c")
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .arg(gst_input_command)
+        .spawn()?;
 
     Ok(())
 }

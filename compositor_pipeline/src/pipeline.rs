@@ -35,6 +35,7 @@ pub mod input;
 pub mod output;
 mod pipeline_input;
 mod pipeline_output;
+pub mod rtp;
 mod structs;
 
 use self::pipeline_input::new_pipeline_input;
@@ -42,14 +43,8 @@ use self::pipeline_output::new_pipeline_output;
 pub use self::structs::AudioCodec;
 pub use self::structs::VideoCodec;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Port(pub u16);
-
-#[derive(Debug, Clone, Copy)]
-pub enum RequestedPort {
-    Exact(u16),
-    Range((u16, u16)),
-}
 
 pub struct RegisterInputOptions {
     pub input_options: InputOptions,

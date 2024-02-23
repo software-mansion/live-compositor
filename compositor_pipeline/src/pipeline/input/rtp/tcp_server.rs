@@ -1,4 +1,5 @@
 use std::{
+    collections::VecDeque,
     io::{self, Read},
     net::TcpStream,
     sync::{atomic::AtomicBool, Arc},
@@ -9,14 +10,13 @@ use std::{
 use bytes::BytesMut;
 use compositor_render::error::ErrorStack;
 use crossbeam_channel::Sender;
-use log::info;
+use log::error;
 
 pub(super) fn run_tcp_server_receiver(
     socket: std::net::TcpListener,
     packets_tx: Sender<bytes::Bytes>,
     should_close: Arc<AtomicBool>,
 ) {
-    let mut buffer = BytesMut::zeroed(65536);
     // make accept non blocking so we have a chance to handle should_close value
     socket
         .set_nonblocking(true)
@@ -28,73 +28,79 @@ pub(super) fn run_tcp_server_receiver(
         }
 
         // accept only one connection at the time
-        let accept_result = socket.accept();
-        let Ok((socket, _)) = accept_result else {
+        let Ok((socket, _)) = socket.accept() else {
             thread::sleep(Duration::from_millis(50));
             continue;
         };
-        info!("Connection accepted");
 
-        socket
-            .set_read_timeout(Some(Duration::from_millis(50)))
-            .expect("Cannot set read timeout");
-
+        let mut socket = TcpReadPacketStream::new(socket, should_close.clone());
         loop {
-            let mut len_bytes = [0u8; 2];
-            if let Err(err) = (&socket).read_exact_with_should_close(&mut len_bytes, &should_close)
-            {
-                maybe_log_err(err);
-                break;
-            };
-            let len = u16::from_be_bytes(len_bytes) as usize;
-
-            if let Err(err) =
-                (&socket).read_exact_with_should_close(&mut buffer[..len], &should_close)
-            {
-                maybe_log_err(err);
-                break;
-            };
-            packets_tx
-                .send(bytes::Bytes::copy_from_slice(&buffer[..len]))
-                .unwrap();
+            match socket.read_packet() {
+                Ok(packet) => {
+                    packets_tx.send(packet).unwrap();
+                }
+                Err(err) => {
+                    error!(
+                        "Error while reading from TCP socket: {}",
+                        ErrorStack::new(&err).into_string()
+                    );
+                    break;
+                }
+            }
         }
     }
 }
 
-fn maybe_log_err(err: io::Error) {
-    if err.kind() != io::ErrorKind::WouldBlock {
-        log::error!(
-            "Unknown error when reading from TCP socket. {}",
-            ErrorStack::new(&err).into_string()
-        );
+struct TcpReadPacketStream {
+    socket: TcpStream,
+    buf: VecDeque<u8>,
+    read_buf: Vec<u8>,
+    should_close: Arc<AtomicBool>,
+}
+
+impl TcpReadPacketStream {
+    fn new(socket: TcpStream, should_close: Arc<AtomicBool>) -> Self {
+        socket
+            .set_read_timeout(Some(Duration::from_millis(50)))
+            .expect("Cannot set read timeout");
+        Self {
+            socket,
+            buf: VecDeque::new(),
+            read_buf: vec![0; 65536],
+            should_close,
+        }
     }
-}
+    fn read_packet(&mut self) -> io::Result<bytes::Bytes> {
+        self.read_until_buffer_size(2)?;
 
-trait TcpStreamExt {
-    fn read_exact_with_should_close(
-        &mut self,
-        buf: &mut [u8],
-        should_close: &Arc<AtomicBool>,
-    ) -> io::Result<()>;
-}
+        let mut len_bytes = [0u8; 2];
+        self.buf.read_exact(&mut len_bytes)?;
+        let len = u16::from_be_bytes(len_bytes) as usize;
 
-impl TcpStreamExt for &TcpStream {
-    fn read_exact_with_should_close(
-        &mut self,
-        buf: &mut [u8],
-        should_close: &Arc<AtomicBool>,
-    ) -> io::Result<()> {
+        self.read_until_buffer_size(len)?;
+        let mut packet = BytesMut::zeroed(len);
+        self.buf.read_exact(&mut packet[..])?;
+        Ok(packet.freeze())
+    }
+
+    fn read_until_buffer_size(&mut self, buf_size: usize) -> io::Result<()> {
         loop {
-            match self.read_exact(buf) {
-                Ok(val) => return Ok(val),
-                Err(err) => match err.kind() {
-                    std::io::ErrorKind::WouldBlock
-                        if should_close.load(std::sync::atomic::Ordering::Relaxed) =>
-                    {
-                        continue;
+            if self.buf.len() >= buf_size {
+                return Ok(());
+            }
+            match self.socket.read(&mut self.read_buf) {
+                Ok(read_bytes) => {
+                    self.buf.extend(self.read_buf[0..read_bytes].iter());
+                }
+                Err(err) => {
+                    let should_close = self.should_close.load(std::sync::atomic::Ordering::Relaxed);
+                    match err.kind() {
+                        std::io::ErrorKind::WouldBlock if !should_close => {
+                            continue;
+                        }
+                        _ => return io::Result::Err(err),
                     }
-                    _ => return io::Result::Err(err),
-                },
+                }
             };
         }
     }

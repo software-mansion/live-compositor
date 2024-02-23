@@ -70,6 +70,12 @@ pub enum OutputInitError {
 
     #[error(transparent)]
     SocketError(#[from] std::io::Error),
+
+    #[error("Failed to register output. Port: {0} is already used or not available.")]
+    PortAlreadyInUse(u16),
+
+    #[error("Failed to register output. All ports in range {lower_bound} to {upper_bound} are already used or not available.")]
+    AllPortsAlreadyInUse { lower_bound: u16, upper_bound: u16 },
 }
 
 #[derive(Debug, thiserror::Error)]

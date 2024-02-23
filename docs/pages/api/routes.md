@@ -71,8 +71,9 @@ type RegisterOutputStream = {
   type: "register";
   entity_type: "output_stream";
   output_id: string;
+  transport_protocol?: "udp" | "tcp_server";
   port: u16;
-  ip: string;
+  ip?: string;
   video: Video
 }
 
@@ -82,10 +83,10 @@ type Video = {
     height: number
   },
   initial: Component
-  encoder_preset?: EncoderPreset,
+  encoder_preset?: VideoEncoderPreset,
 }
 
-type EncoderPreset =
+type VideoEncoderPreset =
   | "ultrafast"
   | "superfast"
   | "veryfast"
@@ -101,7 +102,13 @@ type EncoderPreset =
 Register a new RTP output stream.
 
 - `output_id` - An identifier for the output stream. It can be used in the `UpdateOutput` request to define what to render for the output stream.
-- `port` / `ip` - UDP port and IP where compositor should send the stream.
+- `transport_protocol` -  (**default=`"udp"`**) Transport layer protocol that will be used to send RTP packets.
+  - `udp` - UDP protocol.
+  - `tcp_server` - TCP protocol where LiveCompositor is the server side of the connection.
+- `port` - Depends on the value of the `transport_protocol` field:
+  - `udp` - An UDP port number that RTP packets will be sent to.
+  - `tcp_server` - A local TCP port number or a port range that LiveCompositor will listen for incoming connections.
+- `ip` - Only valid if `transport_protocol="udp"`. IP address where RTP packets should be sent to.
 - `video.resolution` - Output resolution in pixels.
 - `video.initial` - Root of a component tree/scene that should be rendered for the output. Use [`update_output` request](#update-output) to update this value after registration. [Learn more](../concept/component).
 - `video.encoder_preset` - (**default=`"fast"`**) Preset for an encoder. See `FFmpeg` [docs](https://trac.ffmpeg.org/wiki/Encode/H.264#Preset) to learn more.

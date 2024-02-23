@@ -1,5 +1,4 @@
 use std::{
-    net,
     sync::{atomic::AtomicBool, Arc},
     thread,
 };
@@ -7,8 +6,9 @@ use std::{
 use crate::pipeline::{
     decoder::{self, DecoderOptions},
     encoder,
+    rtp::{bind_to_requested_port, BindToPortError, RequestedPort, TransportProtocol},
     structs::EncodedChunkKind,
-    Port, RequestedPort,
+    Port,
 };
 use compositor_render::InputId;
 use crossbeam_channel::{unbounded, Receiver};
@@ -50,12 +50,6 @@ pub struct RtpReceiverOptions {
     pub transport_protocol: TransportProtocol,
     pub input_id: compositor_render::InputId,
     pub stream: RtpStream,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum TransportProtocol {
-    Udp,
-    TcpServer,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -137,7 +131,7 @@ impl RtpReceiver {
         )
         .map_err(RtpReceiverError::SocketOptions)?;
 
-        let port = Self::bind_to_port(opts.port, &socket)?;
+        let port = bind_to_requested_port(opts.port, &socket)?;
 
         socket.listen(1).map_err(RtpReceiverError::SocketBind)?;
 
@@ -174,7 +168,7 @@ impl RtpReceiver {
             }
         }
 
-        let port = Self::bind_to_port(opts.port, &socket)?;
+        let port = bind_to_requested_port(opts.port, &socket)?;
 
         socket
             .set_read_timeout(Some(std::time::Duration::from_millis(50)))
@@ -188,53 +182,6 @@ impl RtpReceiver {
             .unwrap();
 
         Ok((port, receiver_thread, packets_rx))
-    }
-
-    fn bind_to_port(
-        requested_port: RequestedPort,
-        socket: &socket2::Socket,
-    ) -> Result<Port, RtpReceiverError> {
-        let port = match requested_port {
-            RequestedPort::Exact(port) => {
-                socket
-                    .bind(
-                        &net::SocketAddr::V4(net::SocketAddrV4::new(
-                            net::Ipv4Addr::UNSPECIFIED,
-                            port,
-                        ))
-                        .into(),
-                    )
-                    .map_err(|err| match err.kind() {
-                        std::io::ErrorKind::AddrInUse => RtpReceiverError::PortAlreadyInUse(port),
-                        _ => RtpReceiverError::SocketBind(err),
-                    })?;
-                port
-            }
-            RequestedPort::Range((lower_bound, upper_bound)) => {
-                let port = (lower_bound..upper_bound).find(|port| {
-                    let bind_res = socket.bind(
-                        &net::SocketAddr::V4(net::SocketAddrV4::new(
-                            net::Ipv4Addr::UNSPECIFIED,
-                            *port,
-                        ))
-                        .into(),
-                    );
-
-                    bind_res.is_ok()
-                });
-
-                match port {
-                    Some(port) => port,
-                    None => {
-                        return Err(RtpReceiverError::AllPortsAlreadyInUse {
-                            lower_bound,
-                            upper_bound,
-                        })
-                    }
-                }
-            }
-        };
-        Ok(Port(port))
     }
 }
 
@@ -356,4 +303,20 @@ pub enum DepayloadingError {
     BadPayloadType(u8),
     #[error(transparent)]
     Rtp(#[from] rtp::Error),
+}
+
+impl From<BindToPortError> for RtpReceiverError {
+    fn from(value: BindToPortError) -> Self {
+        match value {
+            BindToPortError::SocketBind(err) => RtpReceiverError::SocketBind(err),
+            BindToPortError::PortAlreadyInUse(port) => RtpReceiverError::PortAlreadyInUse(port),
+            BindToPortError::AllPortsAlreadyInUse {
+                lower_bound,
+                upper_bound,
+            } => RtpReceiverError::AllPortsAlreadyInUse {
+                lower_bound,
+                upper_bound,
+            },
+        }
+    }
 }
