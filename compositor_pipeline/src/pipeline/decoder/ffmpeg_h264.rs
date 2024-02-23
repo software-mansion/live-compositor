@@ -14,7 +14,7 @@ use ffmpeg_next::{
     media::Type,
     Rational,
 };
-use log::{error, warn};
+use tracing::{error, trace, warn};
 
 pub struct H264FfmpegDecoder;
 
@@ -105,6 +105,7 @@ impl H264FfmpegDecoder {
                             }
                         };
 
+                        trace!(input_id=?input_id.0, pts=?frame.pts, "H264 decoder produced a frame.");
                         if frame_sender.send(frame).is_err() {
                             return;
                         }

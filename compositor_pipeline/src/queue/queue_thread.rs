@@ -8,7 +8,7 @@ use std::{
 
 use compositor_render::{FrameSet, InputId};
 use crossbeam_channel::{select, tick, Receiver, Sender};
-use log::warn;
+use tracing::{debug, info, trace, warn};
 
 use crate::audio_mixer::types::AudioSamplesSet;
 
@@ -127,10 +127,12 @@ impl QueueThreadAfterStart {
                 if let Some(true) = event_pts.map(|event_pts: Duration| {
                     event_pts < video_pts && event_pts < audio_pts_range.0
                 }) {
+                    info!("Handle scheduled event for PTS={:?}", event_pts);
                     if let Some(ScheduledEvent { callback, .. }) = self.scheduled_events.pop() {
                         callback()
                     }
                 } else if video_pts > audio_pts_range.0 {
+                    trace!(pts_range=?audio_pts_range, "Try to push audio samples for.");
                     if self
                         .audio_processor
                         .try_push_next_sample_batch(audio_pts_range)
@@ -138,12 +140,15 @@ impl QueueThreadAfterStart {
                     {
                         break;
                     }
-                } else if self
-                    .video_processor
-                    .try_push_next_frame_set(video_pts)
-                    .is_none()
-                {
-                    break;
+                } else {
+                    trace!(pts=?video_pts, "Try to push video frames.");
+                    if self
+                        .video_processor
+                        .try_push_next_frame_set(video_pts)
+                        .is_none()
+                    {
+                        break;
+                    }
                 }
             }
         }
@@ -179,6 +184,8 @@ impl VideoQueueProcessor {
     }
 
     fn send_output_frames(&mut self, frames_batch: FrameSet<InputId>, is_required: bool) {
+        let pts = frames_batch.pts;
+        debug!(?pts, "Pushing video frames.");
         if is_required {
             self.sender.send(frames_batch).unwrap()
         } else {
@@ -188,7 +195,7 @@ impl VideoQueueProcessor {
                 .send_deadline(frames_batch, send_deadline)
                 .is_err()
             {
-                warn!("Dropping video frame on queue output.");
+                warn!(?pts, "Dropping video frame on queue output.");
             }
         }
         self.sent_batches_counter += 1
@@ -280,10 +287,12 @@ impl AudioQueueProcessor {
     }
 
     fn send_output_batch(&mut self, samples: AudioSamplesSet, is_required: bool) {
+        let pts_range = (samples.start_pts, samples.end_pts);
+        debug!(?pts_range, "Pushing audio samples.");
         if is_required {
             self.sender.send(samples).unwrap()
         } else if self.sender.try_send(samples).is_err() {
-            warn!("Dropping audio batch on queue output.")
+            warn!(?pts_range, "Dropping audio batch on queue output.")
         }
         self.chunks_counter += 1;
     }

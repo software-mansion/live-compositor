@@ -411,6 +411,7 @@ dependencies = [
  "socket2",
  "symphonia",
  "thiserror",
+ "tracing",
  "webrtc-util",
 ]
 

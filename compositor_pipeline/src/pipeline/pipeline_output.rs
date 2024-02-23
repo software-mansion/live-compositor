@@ -3,12 +3,12 @@ use crate::error::RegisterOutputError;
 use super::{
     encoder::{VideoEncoder, VideoEncoderOptions},
     output::Output,
-    PipelineOutput, RegisterOutputOptions,
+    PipelineOutput, Port, RegisterOutputOptions,
 };
 
 pub(super) fn new_pipeline_output(
     opts: RegisterOutputOptions,
-) -> Result<PipelineOutput, RegisterOutputError> {
+) -> Result<(PipelineOutput, Option<Port>), RegisterOutputError> {
     let RegisterOutputOptions {
         output_id,
         output_options,
@@ -26,7 +26,7 @@ pub(super) fn new_pipeline_output(
     let (encoder, packets) = VideoEncoder::new(encoder_opts)
         .map_err(|e| RegisterOutputError::EncoderError(output_id.clone(), e))?;
 
-    let output = Output::new(output_options, packets)
+    let (output, port) = Output::new(output_options, packets)
         .map_err(|e| RegisterOutputError::OutputError(output_id.clone(), e))?;
 
     let output = PipelineOutput {
@@ -36,5 +36,5 @@ pub(super) fn new_pipeline_output(
         has_audio: audio.is_some(),
     };
 
-    Ok(output)
+    Ok((output, port))
 }

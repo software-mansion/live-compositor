@@ -1,7 +1,8 @@
 use tiny_http::Method;
+use tracing::{debug, trace};
 
 use crate::{
-    api::{Api, Request, ResponseHandler},
+    api::{Api, ResponseHandler},
     error::ApiError,
 };
 
@@ -24,7 +25,15 @@ fn handle_api_request(
     api: &mut Api,
     request: &mut tiny_http::Request,
 ) -> Result<ResponseHandler, ApiError> {
-    let request = serde_json::from_reader::<_, Request>(request.as_reader())
+    let mut body: String = "".to_string();
+    request
+        .as_reader()
+        .read_to_string(&mut body)
         .map_err(|err| ApiError::malformed_request(&err))?;
+    trace!(?body, "Raw request: POST /--/api");
+
+    let request = serde_json::from_str(&body).map_err(|err| ApiError::malformed_request(&err))?;
+    debug!(?request, "Request: POST /--/api");
+
     api.handle_request(request)
 }

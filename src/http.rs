@@ -15,6 +15,7 @@ use tiny_http::{Header, Response, StatusCode};
 
 use crate::{
     api::{self, Api, ResponseHandler},
+    config::config,
     error::ApiError,
     routes,
 };
@@ -26,6 +27,7 @@ pub struct Server {
 
 impl Server {
     pub fn new(port: u16) -> Arc<Self> {
+        info!("Starting LiveCompositor with config:\n{:#?}", config());
         match tiny_http::Server::http(SocketAddr::from(([0, 0, 0, 0], port))) {
             Ok(server) => Self {
                 server,
