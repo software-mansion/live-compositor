@@ -14,8 +14,9 @@ use crate::common::write_video_audio_example_sdp_file;
 #[path = "./common/common.rs"]
 mod common;
 
-const SAMPLE_FILE_URL: &str = "https://filesamples.com/samples/video/mp4/sample_1280x720.mp4";
-const SAMPLE_FILE_PATH: &str = "examples/assets/sample_1280_720.mp4";
+const SAMPLE_FILE_URL: &str =
+    "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+const SAMPLE_FILE_PATH: &str = "examples/assets/BigBuckBunny.mp4";
 const VIDEO_RESOLUTION: Resolution = Resolution {
     width: 1280,
     height: 720,
@@ -58,6 +59,11 @@ fn start_example_client_code() -> Result<()> {
         "port": 8004,
         "video": {
             "codec": "h264"
+        },
+        "audio": {
+            "codec": "opus",
+            "sample_rate": 48_000,
+            "channels": "stereo",
         }
     }))?;
 
@@ -136,7 +142,7 @@ fn start_example_client_code() -> Result<()> {
 
     Command::new("ffmpeg")
         .args(["-stream_loop", "-1", "-re", "-i"])
-        .arg(sample_path)
+        .arg(sample_path.clone())
         .args([
             "-an",
             "-c:v",
@@ -150,18 +156,15 @@ fn start_example_client_code() -> Result<()> {
         .spawn()?;
 
     Command::new("ffmpeg")
+        .args(["-re", "-i"])
+        .arg(sample_path)
         .args([
-            "-re",
-            "-f",
-            "lavfi",
-            "-i",
-            "sine=frequency=1000:duration=60", // Generates a sine wave tone
-            "-vn",                             // No Video
+            "-vn",
             "-c:a",
-            "libopus", // Specify audio codec
+            "libopus",
             "-f",
             "rtp",
-            "rtp://127.0.0.1:8006?rtcpport=8006", // Streaming endpoint
+            "rtp://127.0.0.1:8006?rtcpport=8006",
         ])
         .spawn()?;
 
