@@ -8,7 +8,7 @@ use std::{
 
 use compositor_render::{FrameSet, InputId};
 use crossbeam_channel::{select, tick, Receiver, Sender};
-use log::warn;
+use tracing::{debug, info, trace, warn};
 
 use crate::audio_mixer::types::AudioSamplesSet;
 
@@ -53,7 +53,7 @@ impl QueueThread {
         loop {
             select! {
                 recv(ticker) -> _ => {
-                    self.cleanup_old_frames()
+                    self.cleanup_old_data()
                 },
                 recv(self.scheduled_event_receiver) -> event => {
                     self.scheduled_events.push(event.unwrap())
@@ -66,7 +66,7 @@ impl QueueThread {
         }
     }
 
-    fn cleanup_old_frames(&mut self) {
+    fn cleanup_old_data(&mut self) {
         // Drop old frames as if start was happening now.
         self.queue
             .video_queue
@@ -127,10 +127,12 @@ impl QueueThreadAfterStart {
                 if let Some(true) = event_pts.map(|event_pts: Duration| {
                     event_pts < video_pts && event_pts < audio_pts_range.0
                 }) {
+                    info!("Handle scheduled event for PTS={:?}", event_pts);
                     if let Some(ScheduledEvent { callback, .. }) = self.scheduled_events.pop() {
                         callback()
                     }
                 } else if video_pts > audio_pts_range.0 {
+                    trace!(pts_range=?audio_pts_range, "Try to push audio samples for.");
                     if self
                         .audio_processor
                         .try_push_next_sample_batch(audio_pts_range)
@@ -138,12 +140,15 @@ impl QueueThreadAfterStart {
                     {
                         break;
                     }
-                } else if self
-                    .video_processor
-                    .try_push_next_frame(video_pts)
-                    .is_none()
-                {
-                    break;
+                } else {
+                    trace!(pts=?video_pts, "Try to push video frames.");
+                    if self
+                        .video_processor
+                        .try_push_next_frame_set(video_pts)
+                        .is_none()
+                    {
+                        break;
+                    }
                 }
             }
         }
@@ -165,20 +170,22 @@ impl VideoQueueProcessor {
         )
     }
 
-    fn should_push_pts(&self, pts: Duration, queue: &mut MutexGuard<VideoQueue>) -> bool {
+    fn should_push_for_pts(&self, pts: Duration, queue: &mut MutexGuard<VideoQueue>) -> bool {
         if !self.queue.ahead_of_time_processing && self.queue_start_time.add(pts) > Instant::now() {
             return false;
         }
         if queue.check_all_inputs_ready_for_pts(pts, self.queue_start_time) {
             return true;
         }
-        if queue.has_required_inputs_for_pts(pts, self.queue_start_time) {
+        if !queue.check_all_required_inputs_ready_for_pts(pts, self.queue_start_time) {
             return false;
         }
         self.queue_start_time.add(pts) < Instant::now()
     }
 
     fn send_output_frames(&mut self, frames_batch: FrameSet<InputId>, is_required: bool) {
+        let pts = frames_batch.pts;
+        debug!(?pts, "Pushing video frames.");
         if is_required {
             self.sender.send(frames_batch).unwrap()
         } else {
@@ -188,7 +195,7 @@ impl VideoQueueProcessor {
                 .send_deadline(frames_batch, send_deadline)
                 .is_err()
             {
-                warn!("Dropping video frame on queue output.");
+                warn!(?pts, "Dropping video frame on queue output.");
             }
         }
         self.sent_batches_counter += 1
@@ -196,10 +203,10 @@ impl VideoQueueProcessor {
 
     /// Some(()) - Successfully pushed new frame (or dropped it).
     /// None - Nothing to push.
-    fn try_push_next_frame(&mut self, next_buffer_pts: Duration) -> Option<()> {
+    fn try_push_next_frame_set(&mut self, next_buffer_pts: Duration) -> Option<()> {
         let mut internal_queue = self.queue.video_queue.lock().unwrap();
 
-        let should_push_next_frame = self.should_push_pts(next_buffer_pts, &mut internal_queue);
+        let should_push_next_frame = self.should_push_for_pts(next_buffer_pts, &mut internal_queue);
         if !should_push_next_frame {
             return None;
         }
@@ -236,7 +243,7 @@ impl AudioQueueProcessor {
         )
     }
 
-    fn should_push_pts(
+    fn should_push_for_pts_range(
         &self,
         pts_range: (Duration, Duration),
         queue: &mut MutexGuard<AudioQueue>,
@@ -249,7 +256,7 @@ impl AudioQueueProcessor {
         if queue.check_all_inputs_ready_for_pts(pts_range, self.queue_start_time) {
             return true;
         }
-        if queue.has_required_inputs_for_pts(pts_range.0, self.queue_start_time) {
+        if !queue.check_all_required_inputs_ready_for_pts(pts_range, self.queue_start_time) {
             return false;
         }
         self.queue_start_time.add(pts_range.0) < Instant::now()
@@ -264,7 +271,7 @@ impl AudioQueueProcessor {
         let mut internal_queue = self.queue.audio_queue.lock().unwrap();
 
         let should_push_next_batch =
-            self.should_push_pts(next_buffer_pts_range, &mut internal_queue);
+            self.should_push_for_pts_range(next_buffer_pts_range, &mut internal_queue);
         if !should_push_next_batch {
             return None;
         }
@@ -280,10 +287,12 @@ impl AudioQueueProcessor {
     }
 
     fn send_output_batch(&mut self, samples: AudioSamplesSet, is_required: bool) {
+        let pts_range = (samples.start_pts, samples.end_pts);
+        debug!(?pts_range, "Pushing audio samples.");
         if is_required {
             self.sender.send(samples).unwrap()
         } else if self.sender.try_send(samples).is_err() {
-            warn!("Dropping audio batch on queue output.")
+            warn!(?pts_range, "Dropping audio batch on queue output.")
         }
         self.chunks_counter += 1;
     }

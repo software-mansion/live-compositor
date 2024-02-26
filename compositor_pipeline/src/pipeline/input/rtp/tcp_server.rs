@@ -11,6 +11,7 @@ use bytes::BytesMut;
 use compositor_render::error::ErrorStack;
 use crossbeam_channel::Sender;
 use log::error;
+use tracing::trace;
 
 pub(super) fn run_tcp_server_receiver(
     socket: std::net::TcpListener,
@@ -37,6 +38,7 @@ pub(super) fn run_tcp_server_receiver(
         loop {
             match socket.read_packet() {
                 Ok(packet) => {
+                    trace!(size_bytes = packet.len(), "Received RTP packet");
                     packets_tx.send(packet).unwrap();
                 }
                 Err(err) => {

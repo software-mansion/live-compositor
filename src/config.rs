@@ -6,6 +6,7 @@ use log::error;
 
 use crate::logger::FfmpegLogLevel;
 
+#[derive(Debug)]
 pub struct Config {
     pub api_port: u16,
     pub logger: LoggerConfig,
@@ -17,6 +18,7 @@ pub struct Config {
     pub output_sample_rate: u32,
 }
 
+#[derive(Debug)]
 pub struct LoggerConfig {
     pub ffmpeg_logger_level: FfmpegLogLevel,
     pub format: LoggerFormat,

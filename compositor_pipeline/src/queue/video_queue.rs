@@ -79,6 +79,18 @@ impl VideoQueue {
             .all(|input| input.check_ready_for_pts(next_buffer_pts, queue_start))
     }
 
+    /// Checks if all required inputs are ready to produce frames for specific PTS value (if
+    /// all required inputs have frames closest to buffer_pts).
+    pub(super) fn check_all_required_inputs_ready_for_pts(
+        &mut self,
+        next_buffer_pts: Duration,
+        queue_start: Instant,
+    ) -> bool {
+        self.inputs.values_mut().all(|input| {
+            (!input.required) || input.check_ready_for_pts(next_buffer_pts, queue_start)
+        })
+    }
+
     /// Checks if any of the required input stream have an offset that would
     /// require the stream to be used for PTS=`next_buffer_pts`
     pub(super) fn has_required_inputs_for_pts(
@@ -86,12 +98,14 @@ impl VideoQueue {
         next_buffer_pts: Duration,
         queue_start: Instant,
     ) -> bool {
-        return self.inputs.values_mut().any(|input| {
-            input.required
-                && input
+        self.inputs.values_mut().any(|input| {
+            let should_already_start = |input: &mut VideoQueueInput| {
+                input
                     .input_pts_from_queue_pts(next_buffer_pts, queue_start)
                     .is_some()
-        });
+            };
+            input.required && should_already_start(input)
+        })
     }
 
     pub(super) fn drop_old_frames(&mut self, next_buffer_pts: Duration, queue_start: Instant) {
@@ -161,7 +175,7 @@ impl VideoQueueInput {
         }
     }
 
-    /// Check if input have enough data in the queue to produce frames for `next_buffer_pts`.
+    /// Check if the input has enough data in the queue to produce frames for `next_buffer_pts`.
     /// In particular if `self.offset` is in the future, then it will still return true even
     /// if it shouldn't produce any frames.
     ///
@@ -173,13 +187,13 @@ impl VideoQueueInput {
         else {
             return match self.offset {
                 Some(offset) => {
-                    // if stream should start latter than `next_buffer_pts`, then it's fine
+                    // if stream should start later than `next_buffer_pts`, then it's fine
                     // to consider it ready, because we will not use frames for that PTS
                     // regardless if they are there or not.
                     offset > next_buffer_pts
                 }
                 None => {
-                    // It represent stream that still buffering. We now that frames
+                    // It represents a stream that is still buffering. We know that frames
                     // from this input will not be used for this batch, so it is fine
                     // to consider this "ready".
                     true
@@ -202,7 +216,7 @@ impl VideoQueueInput {
         true
     }
 
-    /// Drops frames that won't be used.if oldest pts that we will need in the future is
+    /// Drops frames that won't be used if the oldest pts that we will need in the future is
     /// `next_buffer_pts`.
     ///
     /// Finds frame that is closest to the next_buffer_pts and removes everything older.

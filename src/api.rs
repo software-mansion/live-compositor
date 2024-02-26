@@ -24,7 +24,7 @@ mod unregister_request;
 
 pub type Pipeline = compositor_pipeline::Pipeline;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum Request {
     Register(RegisterRequest),
@@ -34,19 +34,19 @@ pub enum Request {
     Start,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "entity_type", rename_all = "snake_case")]
 pub enum UnregisterRequest {
     InputStream {
         input_id: InputId,
-        /// Timestamp relative to start request when this request
-        /// should be applied.
+        /// Time in milliseconds when this request should be applied. Value `0` represents
+        /// time of the start request.
         schedule_time_ms: Option<f64>,
     },
     OutputStream {
         output_id: OutputId,
-        /// Timestamp relative to start request when this request
-        /// should be applied.
+        /// Time in milliseconds when this request should be applied. Value `0` represents
+        /// time of the start request.
         schedule_time_ms: Option<f64>,
     },
     Shader {
@@ -60,7 +60,7 @@ pub enum UnregisterRequest {
     },
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "query", rename_all = "snake_case")]
 pub enum QueryRequest {
     WaitForNextFrame { input_id: InputId },

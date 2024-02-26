@@ -8,12 +8,12 @@ use compositor_render::Frame;
 
 use crate::audio_mixer::types::AudioSamplesBatch;
 
-/// InputState handles initial processing for frames/samples that are being
+/// InputProcessor handles initial processing for frames/samples that are being
 /// queued. For each received frame/sample batch, the `process_new_chunk`
 /// method should be called and only elements returned should be used
 /// in a queue.
 ///
-/// 1. New input start in `InputState::WaitingForStart`.
+/// 1. New input starts in `InputState::WaitingForStart`.
 /// 2. When `process_new_chunk` is called for the first time it transitions to
 ///    the Buffering state.
 /// 3. Each new call to the `process_new_chunk` is adding frames to the buffer
@@ -35,9 +35,8 @@ pub(super) enum InputState<Payload: ApplyOffsetExt> {
         buffer: Vec<(Payload, Duration)>,
     },
     Ready {
-        /// Offset that needs to applied to convert PTS of input
-        /// frames into a time frame where PTS=0 represents first
-        /// frame
+        /// Offset that needs to be applied(subtracted) to convert PTS of input
+        /// frames into a time frame where PTS=0 represents first frame.
         offset: Duration,
         /// Moment where input transitioned to a ready state
         start_time: Instant,

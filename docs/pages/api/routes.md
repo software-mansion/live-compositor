@@ -30,6 +30,7 @@ type UpdateOutput = {
   output_id: string;
   video?: Component;
   audio?: AudioMixParams
+  schedule_time_ms?: number
 }
 
 type AudioMixParams = {
@@ -44,6 +45,7 @@ type InputAudioParams = {
 - `output_id` - Id of an already registered output stream. See [`RegisterOutputStream`](./routes#register-output-stream).
 - `video` - Root of a component tree/scene that should be rendered for the output. [Learn more](../concept/component)
 - `audio` - Parameters for mixing input audio streams.
+- `schedule_time_ms` - Time in milliseconds when this request should be applied. Value `0` represents time of [the start request](#start).
 
 ***
 
@@ -137,12 +139,26 @@ See renderers documentation to learn more.
 
 ```typescript
 type Unregister =
-  | { type: "unregister", entity_type: "input_stream", input_id: string }
-  | { type: "unregister", entity_type: "output_stream", output_id: string }
+  | {
+    type: "unregister",
+    entity_type: "input_stream",
+    input_id: string,
+    schedule_time_ms: number
+  }
+  | {
+    type: "unregister",
+    entity_type: "output_stream",
+    output_id: string,
+    schedule_time_ms: number
+  }
   | { type: "unregister", entity_type: "shader", shader_id: string }
   | { type: "unregister", entity_type: "image", image_id: string }
   | { type: "unregister", entity_type: "web_renderer", instance_id: string }
 ```
+
+Removes entities previously registered with [register input](#register-input-stream), [register output](#register-output-stream) or [register renderer](#register-renderer) requests.
+
+- `schedule_time_ms` - Time in milliseconds when this request should be applied. Value `0` represents time of [the start request](#start).
 
 ## Endpoint `GET /status`
 
