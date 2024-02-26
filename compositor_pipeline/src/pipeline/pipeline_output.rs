@@ -18,7 +18,6 @@ pub(super) fn new_pipeline_output(
     } = opts;
     let (has_video, has_audio) = (video.is_some(), audio.is_some());
 
-    // TODO check resolution div 2
     let encoder_opts = EncoderOptions {
         video: video.map(|video_opts| video_opts.encoder_opts),
         audio: audio.map(|audio_opts| {

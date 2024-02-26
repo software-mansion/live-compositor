@@ -208,14 +208,22 @@ impl TryFrom<RegisterOutputRequest> for pipeline::RegisterOutputOptions {
         }
 
         let output_video_options = match video.clone() {
-            Some(v) => Some(pipeline::OutputVideoOptions {
-                initial: v.initial.try_into()?,
-                encoder_opts: pipeline::encoder::VideoEncoderOptions::H264(Options {
-                    preset: v.encoder_preset.into(),
-                    resolution: v.resolution.into(),
-                    output_id: output_id.clone().into(),
-                }),
-            }),
+            Some(v) => {
+                if v.resolution.width % 2 != 0 || v.resolution.height % 2 != 0 {
+                    return Err(TypeError::new(
+                        "Output video width and height has to be divisible by 2",
+                    ));
+                };
+
+                Some(pipeline::OutputVideoOptions {
+                    initial: v.initial.try_into()?,
+                    encoder_opts: pipeline::encoder::VideoEncoderOptions::H264(Options {
+                        preset: v.encoder_preset.into(),
+                        resolution: v.resolution.into(),
+                        output_id: output_id.clone().into(),
+                    }),
+                })
+            }
             None => None,
         };
 
