@@ -3,12 +3,15 @@ use std::{
     thread,
 };
 
-use crate::pipeline::{
-    decoder::{self, DecoderOptions},
-    encoder,
-    rtp::{bind_to_requested_port, BindToPortError, RequestedPort, TransportProtocol},
-    structs::EncodedChunkKind,
-    Port,
+use crate::{
+    pipeline::{
+        decoder::{self, DecoderOptions},
+        encoder,
+        rtp::{bind_to_requested_port, BindToPortError, RequestedPort, TransportProtocol},
+        structs::EncodedChunkKind,
+        Port,
+    },
+    queue::PipelineEvent,
 };
 use compositor_render::InputId;
 use crossbeam_channel::{unbounded, Receiver};
@@ -234,10 +237,10 @@ fn start_depayloader_thread(
                                 Ok(Some(chunk)) => match &chunk.kind {
                                     EncodedChunkKind::Video(_) => video_sender
                                         .as_ref()
-                                        .map(|video_sender| video_sender.send(chunk)),
+                                        .map(|video_sender| video_sender.send(PipelineEvent::Data(chunk))),
                                     EncodedChunkKind::Audio(_) => audio_sender
                                         .as_ref()
-                                        .map(|audio_sender| audio_sender.send(chunk)),
+                                        .map(|audio_sender| audio_sender.send(PipelineEvent::Data(chunk))),
                                 },
                                 Ok(None) => continue,
                                 Err(err) => {

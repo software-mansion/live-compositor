@@ -5,6 +5,7 @@ use fdk_aac_sys as fdk;
 use crate::{
     audio_mixer::types::{AudioSamples, AudioSamplesBatch},
     pipeline::structs::{EncodedChunk, EncodedChunkKind},
+    queue::PipelineEvent,
 };
 
 use super::{AacDecoderOptions, AacTransport};
@@ -151,8 +152,8 @@ pub struct FdkAacDecoder;
 impl FdkAacDecoder {
     pub(super) fn new(
         options: AacDecoderOptions,
-        chunks_receiver: Receiver<EncodedChunk>,
-        samples_sender: Sender<AudioSamplesBatch>,
+        chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
+        samples_sender: Sender<PipelineEvent<AudioSamplesBatch>>,
         input_id: InputId,
     ) -> Result<Self, AacDecoderError> {
         let (result_sender, result_receiver) = crossbeam_channel::bounded(1);
@@ -178,8 +179,8 @@ impl FdkAacDecoder {
 
 fn run_decoder_thread(
     options: AacDecoderOptions,
-    samples_sender: Sender<AudioSamplesBatch>,
-    chunks_receiver: Receiver<EncodedChunk>,
+    samples_sender: Sender<PipelineEvent<AudioSamplesBatch>>,
+    chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
     input_id: InputId,
     result_sender: Sender<Result<(), AacDecoderError>>,
 ) {
@@ -196,6 +197,12 @@ fn run_decoder_thread(
     };
 
     for chunk in chunks_receiver {
+        let chunk = match chunk {
+            PipelineEvent::Data(chunk) => chunk,
+            PipelineEvent::EOS => {
+                break;
+            }
+        };
         let decoded_samples = match decoder.decode_chunk(chunk) {
             Ok(samples) => samples,
             Err(e) => {
@@ -205,9 +212,11 @@ fn run_decoder_thread(
         };
 
         for batch in decoded_samples {
-            if let Err(err) = samples_sender.send(batch) {
+            if let Err(err) = samples_sender.send(PipelineEvent::Data(batch)) {
                 log::error!("Error enqueueing audio samples for input {input_id}: {err}",);
+                return
             }
         }
     }
+    let _ = samples_sender.send(PipelineEvent::EOS);
 }

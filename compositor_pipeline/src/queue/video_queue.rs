@@ -12,6 +12,7 @@ use std::time::Instant;
 
 use super::utils::InputProcessor;
 use super::InputOptions;
+use super::PipelineEvent;
 
 pub struct VideoQueue {
     inputs: HashMap<InputId, VideoQueueInput>,
@@ -26,7 +27,12 @@ impl VideoQueue {
         }
     }
 
-    pub fn add_input(&mut self, input_id: &InputId, receiver: Receiver<Frame>, opts: InputOptions) {
+    pub fn add_input(
+        &mut self,
+        input_id: &InputId,
+        receiver: Receiver<PipelineEvent<Frame>>,
+        opts: InputOptions,
+    ) {
         self.inputs.insert(
             input_id.clone(),
             VideoQueueInput {
@@ -138,7 +144,7 @@ pub struct VideoQueueInput {
     queue: VecDeque<Frame>,
     /// Frames from the channel might have any PTS, they need to be processed
     /// before adding them to the `queue`.
-    receiver: Receiver<Frame>,
+    receiver: Receiver<PipelineEvent<Frame>>,
     /// Initial buffering + resets PTS to values starting with 0. All
     /// frames from receiver should be processed by this element.
     input_frames_processor: InputProcessor<Frame>,
@@ -296,11 +302,7 @@ impl VideoQueueInput {
 
     fn try_enqueue_frame(&mut self) -> Result<(), TryRecvError> {
         let frame = self.receiver.try_recv()?;
-        let original_pts = frame.pts;
-
-        let mut frames = self
-            .input_frames_processor
-            .process_new_chunk(frame, original_pts);
+        let mut frames = self.input_frames_processor.process_new_chunk(frame);
         self.queue.append(&mut frames);
 
         Ok(())

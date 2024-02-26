@@ -5,8 +5,11 @@ use std::{
 };
 
 use compositor_render::Frame;
+use log::warn;
 
 use crate::audio_mixer::types::AudioSamplesBatch;
+
+use super::PipelineEvent;
 
 /// InputProcessor handles initial processing for frames/samples that are being
 /// queued. For each received frame/sample batch, the `process_new_chunk`
@@ -25,6 +28,10 @@ use crate::audio_mixer::types::AudioSamplesBatch;
 #[derive(Debug)]
 pub(super) struct InputProcessor<Payload: ApplyOffsetExt> {
     buffer_duration: Duration,
+
+    /// Moment where input transitioned to a ready state
+    start_time: Option<Instant>,
+
     state: InputState<Payload>,
 }
 
@@ -38,31 +45,62 @@ pub(super) enum InputState<Payload: ApplyOffsetExt> {
         /// Offset that needs to be applied(subtracted) to convert PTS of input
         /// frames into a time frame where PTS=0 represents first frame.
         offset: Duration,
-        /// Moment where input transitioned to a ready state
-        start_time: Instant,
     },
+    Done,
 }
 
 impl<Payload: ApplyOffsetExt> InputProcessor<Payload> {
     pub(super) fn new(buffer_duration: Duration) -> Self {
         Self {
             buffer_duration,
+            start_time: None,
             state: InputState::WaitingForStart,
         }
     }
 
     pub(super) fn start_time(&self) -> Option<Instant> {
-        match self.state {
-            InputState::Ready { start_time, .. } => Some(start_time),
-            _ => None,
-        }
+        self.start_time
     }
 
     pub(super) fn process_new_chunk(
         &mut self,
-        mut payload: Payload,
-        pts: Duration,
+        payload: PipelineEvent<Payload>,
     ) -> VecDeque<Payload> {
+        match payload {
+            PipelineEvent::Data(chunk) => self.handle_data(chunk),
+            PipelineEvent::EOS => self.handle_eos(),
+        }
+    }
+
+    fn handle_eos(&mut self) -> VecDeque<Payload> {
+        match self.state {
+            InputState::WaitingForStart => VecDeque::new(),
+            InputState::Buffering { ref mut buffer } => {
+                let first_pts = buffer.first().map(|(_, p)| *p).unwrap_or(Duration::ZERO);
+                let chunks = mem::take(buffer)
+                    .into_iter()
+                    .map(|(mut buffer, _)| {
+                        buffer.apply_offset(first_pts);
+                        buffer
+                    })
+                    .collect();
+                self.state = InputState::Done;
+                self.start_time = Some(Instant::now());
+                chunks
+            }
+            InputState::Ready { .. } => {
+                self.state = InputState::Done;
+                VecDeque::new()
+            }
+            InputState::Done => {
+                warn!("Received more than one EOS.");
+                VecDeque::new()
+            }
+        }
+    }
+
+    fn handle_data(&mut self, mut payload: Payload) -> VecDeque<Payload> {
+        let pts = payload.pts();
         match self.state {
             InputState::WaitingForStart => {
                 self.state = InputState::Buffering {
@@ -88,10 +126,8 @@ impl<Payload: ApplyOffsetExt> InputProcessor<Payload> {
                             buffer
                         })
                         .collect();
-                    self.state = InputState::Ready {
-                        offset,
-                        start_time: Instant::now(),
-                    };
+                    self.state = InputState::Ready { offset };
+                    self.start_time = Some(Instant::now());
                     chunks
                 }
             }
@@ -99,22 +135,35 @@ impl<Payload: ApplyOffsetExt> InputProcessor<Payload> {
                 payload.apply_offset(offset);
                 VecDeque::from([payload])
             }
+            InputState::Done => {
+                warn!("Received chunk after EOS.");
+                VecDeque::new()
+            }
         }
     }
 }
 
 pub(super) trait ApplyOffsetExt {
     fn apply_offset(&mut self, offset: Duration);
+    fn pts(&self) -> Duration;
 }
 
 impl ApplyOffsetExt for Frame {
     fn apply_offset(&mut self, offset: Duration) {
         self.pts = self.pts.saturating_sub(offset)
     }
+
+    fn pts(&self) -> Duration {
+        self.pts
+    }
 }
 
 impl ApplyOffsetExt for AudioSamplesBatch {
     fn apply_offset(&mut self, offset: Duration) {
         self.start_pts = self.start_pts.saturating_sub(offset)
+    }
+
+    fn pts(&self) -> Duration {
+        self.start_pts
     }
 }

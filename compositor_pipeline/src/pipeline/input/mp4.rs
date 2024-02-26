@@ -10,16 +10,20 @@ use std::{
 
 use bytes::{Buf, Bytes, BytesMut};
 use compositor_render::InputId;
-use crossbeam_channel::{Receiver, Sender};
+use crossbeam_channel::{Receiver, SendTimeoutError, Sender};
 use mp4::Mp4Reader;
 use symphonia::core::formats::FormatReader;
 
-use crate::pipeline::{
-    decoder::{
-        AacDecoderOptions, AacTransport, AudioDecoderOptions, DecoderOptions, VideoDecoderOptions,
+use crate::{
+    pipeline::{
+        decoder::{
+            AacDecoderOptions, AacTransport, AudioDecoderOptions, DecoderOptions,
+            VideoDecoderOptions,
+        },
+        structs::{EncodedChunk, EncodedChunkKind},
+        VideoCodec,
     },
-    structs::{EncodedChunk, EncodedChunkKind},
-    VideoCodec,
+    queue::PipelineEvent,
 };
 
 use super::ChunksReceiver;
@@ -140,7 +144,7 @@ impl Drop for Mp4 {
 #[derive(Default)]
 struct VideoReaderInfo {
     thread: Option<JoinableThread>,
-    receiver: Option<Receiver<EncodedChunk>>,
+    receiver: Option<Receiver<PipelineEvent<EncodedChunk>>>,
     options: Option<VideoDecoderOptions>,
 }
 
@@ -237,7 +241,7 @@ struct TrackInfo {
 fn run_video_thread(
     mut sps_and_pps: Option<Bytes>,
     mut reader: Mp4Reader<File>,
-    sender: Sender<EncodedChunk>,
+    sender: Sender<PipelineEvent<EncodedChunk>>,
     stop_thread: Arc<AtomicBool>,
     length_size: u8,
     TrackInfo {
@@ -290,7 +294,9 @@ fn run_video_thread(
                     kind: EncodedChunkKind::Video(VideoCodec::H264),
                 };
 
-                if let ControlFlow::Break(_) = send_chunk(chunk, &sender, &stop_thread) {
+                if let ControlFlow::Break(_) =
+                    send_chunk(PipelineEvent::Data(chunk), &sender, &stop_thread)
+                {
                     break;
                 }
             }
@@ -300,12 +306,13 @@ fn run_video_thread(
             _ => {}
         }
     }
+    let _ = sender.send(PipelineEvent::EOS);
 }
 
 #[derive(Default)]
 struct AudioReaderInfo {
     thread: Option<JoinableThread>,
-    receiver: Option<Receiver<EncodedChunk>>,
+    receiver: Option<Receiver<PipelineEvent<EncodedChunk>>>,
     options: Option<AudioDecoderOptions>,
 }
 
@@ -383,7 +390,7 @@ fn spawn_audio_reader(input_path: &Path, input_id: InputId) -> Result<AudioReade
 fn run_audio_thread(
     track: symphonia::core::formats::Track,
     mut reader: symphonia::default::formats::IsoMp4Reader,
-    sender: Sender<EncodedChunk>,
+    sender: Sender<PipelineEvent<EncodedChunk>>,
     stop_thread: Arc<AtomicBool>,
 ) {
     while let Ok(packet) = reader.next_packet() {
@@ -410,15 +417,17 @@ fn run_audio_thread(
             kind: EncodedChunkKind::Audio(crate::pipeline::AudioCodec::Aac),
         };
 
-        if let ControlFlow::Break(_) = send_chunk(chunk, &sender, &stop_thread) {
+        if let ControlFlow::Break(_) = send_chunk(PipelineEvent::Data(chunk), &sender, &stop_thread)
+        {
             break;
         }
     }
+    let _ = sender.send(PipelineEvent::EOS);
 }
 
 fn send_chunk(
-    chunk: EncodedChunk,
-    sender: &Sender<EncodedChunk>,
+    chunk: PipelineEvent<EncodedChunk>,
+    sender: &Sender<PipelineEvent<EncodedChunk>>,
     stop_thread: &AtomicBool,
 ) -> ControlFlow<(), ()> {
     let mut chunk = Some(chunk);
@@ -427,10 +436,10 @@ fn send_chunk(
             Ok(()) => {
                 return ControlFlow::Continue(());
             }
-            Err(crossbeam_channel::SendTimeoutError::Timeout(not_sent_chunk)) => {
+            Err(SendTimeoutError::Timeout(not_sent_chunk)) => {
                 chunk = Some(not_sent_chunk);
             }
-            Err(crossbeam_channel::SendTimeoutError::Disconnected(_)) => {
+            Err(SendTimeoutError::Disconnected(_)) => {
                 log::error!("channel disconnected unexpectedly. Terminating.");
                 return ControlFlow::Break(());
             }

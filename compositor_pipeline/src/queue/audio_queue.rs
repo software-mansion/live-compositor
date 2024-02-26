@@ -6,7 +6,7 @@ use std::{
 
 use crate::audio_mixer::types::{AudioSamplesBatch, AudioSamplesSet};
 
-use super::{utils::InputProcessor, InputOptions};
+use super::{utils::InputProcessor, InputOptions, PipelineEvent};
 use compositor_render::InputId;
 use crossbeam_channel::{Receiver, TryRecvError};
 
@@ -27,7 +27,7 @@ impl AudioQueue {
     pub fn add_input(
         &mut self,
         input_id: &InputId,
-        receiver: Receiver<AudioSamplesBatch>,
+        receiver: Receiver<PipelineEvent<AudioSamplesBatch>>,
         opts: InputOptions,
     ) {
         self.inputs.insert(
@@ -119,7 +119,7 @@ struct AudioQueueInput {
     queue: VecDeque<AudioSamplesBatch>,
     /// Samples from the channel might have any PTS, they need to be processed before
     /// adding them to the `queue`.
-    receiver: Receiver<AudioSamplesBatch>,
+    receiver: Receiver<PipelineEvent<AudioSamplesBatch>>,
     /// Initial buffering + resets PTS to values starting with 0. All
     /// frames from receiver should be processed by this element.
     input_samples_processor: InputProcessor<AudioSamplesBatch>,
@@ -276,11 +276,10 @@ impl AudioQueueInput {
 
     fn try_enqueue_samples(&mut self) -> Result<(), TryRecvError> {
         let samples_batch = self.receiver.try_recv()?;
-        let original_pts = samples_batch.start_pts;
 
         let mut batches = self
             .input_samples_processor
-            .process_new_chunk(samples_batch, original_pts);
+            .process_new_chunk(samples_batch);
         self.queue.append(&mut batches);
 
         Ok(())
