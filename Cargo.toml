@@ -28,10 +28,7 @@ anyhow = "1.0.71"
 image = { version = "0.24.7", features = ["jpeg", "png"] }
 rtp = "0.9.0"
 rand = "0.8.5"
-chrono = { version = "0.4.33", default-features = false, features = [
-    "std",
-    "alloc",
-] }
+tracing = "0.1.40"
 
 [dependencies]
 compositor_render = { path = "compositor_render" }
@@ -53,7 +50,7 @@ image = { workspace = true }
 thiserror = { workspace = true }
 rtp = { workspace = true }
 webrtc-util = "0.8.0"
-tracing = "0.1.40"
+tracing = { workspace = true }
 tracing-subscriber = { version = "0.3.18", features = ["json", "env-filter"] }
 libc = "0.2.151"
 rand = { workspace = true }

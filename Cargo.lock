@@ -307,15 +307,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "chrono"
-version = "0.4.33"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9f13690e35a5e4ace198e7beea2895d29f3a9cc55015fcebe6336bd2010af9eb"
-dependencies = [
- "num-traits",
-]
-
-[[package]]
 name = "chunked_transfer"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -406,7 +397,6 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "bytes",
- "chrono",
  "compositor_render",
  "crossbeam-channel",
  "fdk-aac-sys",
@@ -421,6 +411,7 @@ dependencies = [
  "socket2",
  "symphonia",
  "thiserror",
+ "tracing",
  "webrtc-util",
 ]
 

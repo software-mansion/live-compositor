@@ -3,7 +3,7 @@ use compositor_render::InputId;
 
 use crate::{error::ApiError, types::RegisterRequest};
 
-use super::{Api, ResponseHandler};
+use super::{Api, Response, ResponseHandler};
 
 fn handle_register_input(
     api: &mut Api,
@@ -11,10 +11,7 @@ fn handle_register_input(
     register_options: RegisterInputOptions,
 ) -> Result<ResponseHandler, ApiError> {
     match api.pipeline().register_input(input_id, register_options)? {
-        Some(Port(port)) => Ok(ResponseHandler::Response(super::Response::RegisteredPort {
-            port,
-        })),
-
+        Some(Port(port)) => Ok(ResponseHandler::Response(Response::RegisteredPort { port })),
         None => Ok(ResponseHandler::Ok),
     }
 }
@@ -32,9 +29,13 @@ pub fn handle_register_request(
             let (input_id, register_options) = mp4.try_into()?;
             handle_register_input(api, input_id, register_options)
         }
-        RegisterRequest::OutputStream(output_options) => {
-            api.pipeline().register_output(output_options.try_into()?)?;
-            Ok(ResponseHandler::Ok)
+        RegisterRequest::OutputStream(output_stream) => {
+            match api.pipeline().register_output(output_stream.try_into()?)? {
+                Some(Port(port)) => {
+                    Ok(ResponseHandler::Response(Response::RegisteredPort { port }))
+                }
+                None => Ok(ResponseHandler::Ok),
+            }
         }
         RegisterRequest::Shader(spec) => {
             let spec = spec.try_into()?;

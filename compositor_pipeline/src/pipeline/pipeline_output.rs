@@ -3,13 +3,13 @@ use crate::error::RegisterOutputError;
 use super::{
     encoder::{opus_encoder, AudioEncoderOptions, AudioEncoderPreset, Encoder, EncoderOptions},
     output::Output,
-    PipelineOutput, RegisterOutputOptions,
+    PipelineOutput, Port, RegisterOutputOptions,
 };
 
 pub(super) fn new_pipeline_output(
     opts: RegisterOutputOptions,
     output_sample_rate: u32,
-) -> Result<PipelineOutput, RegisterOutputError> {
+) -> Result<(PipelineOutput, Option<Port>), RegisterOutputError> {
     let RegisterOutputOptions {
         output_id,
         output_options,
@@ -33,7 +33,7 @@ pub(super) fn new_pipeline_output(
     let (encoder, packets) = Encoder::new(encoder_opts)
         .map_err(|e| RegisterOutputError::EncoderError(output_id.clone(), e))?;
 
-    let output = Output::new(output_options, packets)
+    let (output, port) = Output::new(output_options, packets)
         .map_err(|e| RegisterOutputError::OutputError(output_id.clone(), e))?;
 
     let output = PipelineOutput {
@@ -43,5 +43,5 @@ pub(super) fn new_pipeline_output(
         has_audio,
     };
 
-    Ok(output)
+    Ok((output, port))
 }

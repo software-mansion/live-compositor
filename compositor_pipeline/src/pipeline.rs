@@ -16,7 +16,7 @@ use compositor_render::{error::UpdateSceneError, Renderer};
 use compositor_render::{EventLoop, InputId, OutputId, RendererId, RendererSpec};
 use compositor_render::{FrameSet, RegistryType};
 use crossbeam_channel::{bounded, Receiver};
-use log::error;
+use log::{error, info};
 
 use crate::audio_mixer::types::{AudioChannels, AudioMixingParams, AudioSamplesSet};
 use crate::audio_mixer::AudioMixer;
@@ -182,7 +182,7 @@ impl Pipeline {
     pub fn register_output(
         &mut self,
         register_options: RegisterOutputOptions,
-    ) -> Result<(), RegisterOutputError> {
+    ) -> Result<Option<Port>, RegisterOutputError> {
         let RegisterOutputOptions {
             output_id,
             video,
@@ -198,7 +198,7 @@ impl Pipeline {
             return Err(RegisterOutputError::AlreadyRegistered(output_id));
         }
 
-        let output = new_pipeline_output(register_options, self.output_sample_rate)?;
+        let (output, port) = new_pipeline_output(register_options, self.output_sample_rate)?;
         self.outputs.insert(output_id.clone(), Arc::new(output));
 
         if let Some(audio_opts) = audio.clone() {
@@ -213,7 +213,7 @@ impl Pipeline {
         )
         .map_err(|e| RegisterOutputError::SceneError(output_id, e))?;
 
-        Ok(())
+        Ok(port)
     }
 
     pub fn unregister_output(&self, output_id: &OutputId) -> Result<(), UnregisterOutputError> {
@@ -298,6 +298,8 @@ impl Pipeline {
                 return Err(UpdateSceneError::AudioVideoNotMatching(output_id));
             };
 
+        info!("Update scene {:#?}", scene_root);
+
         self.renderer
             .update_scene(output_id, resolution, scene_root)
     }
@@ -315,6 +317,7 @@ impl Pipeline {
             error!("Pipeline already started.");
             return;
         }
+        info!("Starting pipeline.");
         let (frames_sender, frames_receiver) = bounded(20);
         // for 20ms chunks this will be 60 seconds of audio
         let (audio_sender, audio_receiver) = bounded(300);

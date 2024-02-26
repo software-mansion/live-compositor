@@ -20,6 +20,6 @@ opus = "0.3.0"
 rand = { workspace = true }
 mp4 = "0.14.0"
 reqwest = { workspace = true }
-chrono = { workspace = true }
 symphonia = { version = "0.5.3", default-features = false, features = ["isomp4", "aac"] }
+tracing = { workspace = true }
 fdk-aac-sys = "0.5.0"

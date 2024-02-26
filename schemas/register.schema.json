@@ -74,7 +74,7 @@
           ]
         },
         "offset_ms": {
-          "description": "Offset in milliseconds relative to the pipeline start (start request). If offset is not defined then stream is synchronized based on the first frames delivery time.",
+          "description": "Offset in milliseconds relative to the pipeline start (start request). If the offset is not defined then the stream will be synchronized based on the delivery time of the initial frames.",
           "type": [
             "number",
             "null"

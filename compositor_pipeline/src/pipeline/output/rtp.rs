@@ -53,10 +53,10 @@ impl RtpSender {
     pub fn new(
         options: RtpSenderOptions,
         packets: Box<dyn Iterator<Item = EncodedChunk> + Send>,
-    ) -> Result<Self, OutputInitError> {
+    ) -> Result<(Self, Option<Port>), OutputInitError> {
         let payloader = Payloader::new(options.video, options.audio);
 
-        let (socket, _port) = match &options.connection_options {
+        let (socket, port) = match &options.connection_options {
             RtpConnectionOptions::Udp { port, ip } => Self::udp_socket(ip, *port)?,
             RtpConnectionOptions::TcpServer { port } => Self::tcp_socket(*port)?,
         };
@@ -77,10 +77,13 @@ impl RtpSender {
             })
             .unwrap();
 
-        Ok(Self {
-            sender_thread: Some(sender_thread),
-            should_close,
-        })
+        Ok((
+            Self {
+                sender_thread: Some(sender_thread),
+                should_close,
+            },
+            Some(port),
+        ))
     }
 
     fn udp_socket(ip: &str, port: Port) -> Result<(socket2::Socket, Port), OutputInitError> {
