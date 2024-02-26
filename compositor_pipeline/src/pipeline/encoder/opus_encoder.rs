@@ -16,7 +16,6 @@ use super::AudioEncoderPreset;
 
 #[derive(Debug, Clone)]
 pub struct Options {
-    pub sample_rate: u32,
     pub channels: AudioChannels,
     pub preset: AudioEncoderPreset,
 }
@@ -29,6 +28,7 @@ pub struct OpusEncoder {
 impl OpusEncoder {
     pub fn new(
         options: Options,
+        sample_rate: u32,
         packets_sender: Sender<EncodedChunk>,
     ) -> Result<Self, EncoderInitError> {
         let (init_result_sender, init_result_receiver) = bounded(0);
@@ -40,6 +40,7 @@ impl OpusEncoder {
                 .spawn(move || {
                     Self::encoder_thread(
                         options,
+                        sample_rate,
                         samples_batch_receiver,
                         packets_sender,
                         init_result_sender,
@@ -64,26 +65,24 @@ impl OpusEncoder {
 
     fn encoder_thread(
         options: Options,
+        sample_rate: u32,
         samples_batch_receiver: Receiver<Message>,
         packets_sender: Sender<EncodedChunk>,
         init_result_sender: Sender<Result<(), EncoderInitError>>,
     ) {
-        let mut encoder = match opus::Encoder::new(
-            options.sample_rate,
-            options.channels.into(),
-            options.preset.into(),
-        ) {
-            Ok(encoder) => {
-                init_result_sender.send(Ok(())).unwrap();
-                encoder
-            }
-            Err(err) => {
-                init_result_sender
-                    .send(Err(EncoderInitError::OpusError(err)))
-                    .unwrap();
-                return;
-            }
-        };
+        let mut encoder =
+            match opus::Encoder::new(sample_rate, options.channels.into(), options.preset.into()) {
+                Ok(encoder) => {
+                    init_result_sender.send(Ok(())).unwrap();
+                    encoder
+                }
+                Err(err) => {
+                    init_result_sender
+                        .send(Err(EncoderInitError::OpusError(err)))
+                        .unwrap();
+                    return;
+                }
+            };
 
         let mut output_buffer = [0u8; 1024 * 1024];
 

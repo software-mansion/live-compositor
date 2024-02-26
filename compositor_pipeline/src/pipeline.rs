@@ -323,15 +323,15 @@ impl Pipeline {
         let (frames_sender, frames_receiver) = bounded(1);
         // for 20ms chunks this will be 60 seconds of audio
         let (audio_sender, audio_receiver) = bounded(300);
-        let renderer = self.renderer.clone();
-        let audio_mixer = self.audio_mixer.clone();
-        let outputs = self.outputs.clone();
-        let outputs2 = self.outputs.clone();
-
         self.queue.start(frames_sender, audio_sender);
 
+        let renderer = self.renderer.clone();
+        let outputs = self.outputs.clone();
         thread::spawn(move || Self::run_renderer_thread(frames_receiver, renderer, outputs));
-        thread::spawn(move || Self::run_audio_mixer_thread(audio_mixer, audio_receiver, outputs2));
+
+        let audio_mixer = self.audio_mixer.clone();
+        let outputs = self.outputs.clone();
+        thread::spawn(move || Self::run_audio_mixer_thread(audio_mixer, audio_receiver, outputs));
     }
 
     fn run_renderer_thread(

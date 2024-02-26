@@ -49,6 +49,7 @@ pub enum AudioEncoder {
 impl Encoder {
     pub fn new(
         options: EncoderOptions,
+        sample_rate: u32,
     ) -> Result<(Self, Box<dyn Iterator<Item = EncodedChunk> + Send>), EncoderInitError> {
         let (encoded_chunks_sender, encoded_chunks_receiver) = unbounded();
 
@@ -63,6 +64,7 @@ impl Encoder {
         let audio_encoder = match options.audio {
             Some(audio_encoder_options) => Some(AudioEncoder::new(
                 audio_encoder_options,
+                sample_rate,
                 encoded_chunks_sender,
             )?),
             None => None,
@@ -120,11 +122,12 @@ impl VideoEncoder {
 impl AudioEncoder {
     fn new(
         options: AudioEncoderOptions,
+        sample_rate: u32,
         sender: Sender<EncodedChunk>,
     ) -> Result<Self, EncoderInitError> {
         match options {
             AudioEncoderOptions::Opus(opus_encoder_options) => {
-                OpusEncoder::new(opus_encoder_options, sender).map(AudioEncoder::Opus)
+                OpusEncoder::new(opus_encoder_options, sample_rate, sender).map(AudioEncoder::Opus)
             }
         }
     }

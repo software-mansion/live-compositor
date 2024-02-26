@@ -1,7 +1,7 @@
 use crate::error::RegisterOutputError;
 
 use super::{
-    encoder::{opus_encoder, AudioEncoderOptions, AudioEncoderPreset, Encoder, EncoderOptions},
+    encoder::{opus_encoder, AudioEncoderOptions, Encoder, EncoderOptions},
     output::Output,
     PipelineOutput, Port, RegisterOutputOptions,
 };
@@ -22,14 +22,13 @@ pub(super) fn new_pipeline_output(
         video: video.map(|video_opts| video_opts.encoder_opts),
         audio: audio.map(|audio_opts| {
             AudioEncoderOptions::Opus(opus_encoder::Options {
-                sample_rate: output_sample_rate,
                 channels: audio_opts.channels,
-                preset: AudioEncoderPreset::Quality,
+                preset: audio_opts.encoder_preset,
             })
         }),
     };
 
-    let (encoder, packets) = Encoder::new(encoder_opts)
+    let (encoder, packets) = Encoder::new(encoder_opts, output_sample_rate)
         .map_err(|e| RegisterOutputError::EncoderError(output_id.clone(), e))?;
 
     let (output, port) = Output::new(output_options, packets)
