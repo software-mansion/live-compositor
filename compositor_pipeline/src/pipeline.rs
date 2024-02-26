@@ -314,7 +314,7 @@ impl Pipeline {
             return;
         }
         info!("Starting pipeline.");
-        let (frames_sender, frames_receiver) = bounded(20);
+        let (frames_sender, frames_receiver) = bounded(1);
         // for 20ms chunks this will be 60 seconds of audio
         let (audio_sender, audio_receiver) = bounded(300);
         let renderer = self.renderer.clone();

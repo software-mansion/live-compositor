@@ -5,7 +5,7 @@ use ffmpeg_next::{
     format::Pixel,
     frame, Dictionary, Packet, Rational,
 };
-use log::{error, warn};
+use tracing::{debug, error, warn};
 
 use crate::{
     error::EncoderInitError,
@@ -89,31 +89,37 @@ pub struct LibavH264Encoder {
     resolution: Resolution,
     output_id: OutputId,
     frame_sender: Sender<Message>,
-    encoder_thread: Option<std::thread::JoinHandle<()>>,
 }
 
 impl LibavH264Encoder {
     pub fn new(
         options: Options,
     ) -> Result<(Self, Box<dyn Iterator<Item = EncodedChunk> + Send>), EncoderInitError> {
-        let (frame_sender, frame_receiver) = crossbeam_channel::bounded(5);
-        let (packet_sender, packet_receiver) = crossbeam_channel::bounded(5);
+        let (frame_sender, frame_receiver) = crossbeam_channel::bounded(2);
+        let (packet_sender, packet_receiver) = crossbeam_channel::bounded(2);
         let (result_sender, result_receiver) = crossbeam_channel::bounded(0);
 
         let options_clone = options.clone();
 
-        let encoder_thread = std::thread::Builder::new()
+        std::thread::Builder::new()
             .name(format!("Encoder thread for output {}", options.output_id))
             .spawn(move || {
-                match Self::encoder_thread(
+                let output_id = options_clone.output_id.clone();
+                let encoder_result =  Self::encoder_thread(
                     options_clone,
                     frame_receiver,
                     packet_sender,
                     &result_sender,
-                ) {
-                    Ok(_) => log::debug!("Encoder thread exited normally."),
-                    Err(e) => result_sender.send(Err(e)).unwrap(),
+                );
+
+                if let Err(e) = encoder_result {
+                    warn!(output_id=?output_id.0, err=%e, "Encoder thread finished with an error.");
+                    if let Err(err) = result_sender.send(Err(e)) {
+                        warn!(output_id=?output_id.0, err=%err, "Failed to send error info. Result channel already closed.");
+                    }
                 }
+                debug!(output_id=?output_id.0, "Encoder thread finished.");
+
             })
             .unwrap();
 
@@ -121,7 +127,6 @@ impl LibavH264Encoder {
 
         Ok((
             Self {
-                encoder_thread: Some(encoder_thread),
                 frame_sender,
                 output_id: options.output_id,
                 resolution: options.resolution,
@@ -259,13 +264,6 @@ impl LibavH264Encoder {
 impl Drop for LibavH264Encoder {
     fn drop(&mut self) {
         self.frame_sender.send(Message::Stop).unwrap();
-        match self.encoder_thread.take() {
-            Some(handle) => handle.join().unwrap(),
-            None => error!(
-                "[output {}] Encoder thread was already joined. This should not happen.",
-                self.output_id
-            ),
-        }
     }
 }
 
