@@ -224,6 +224,7 @@ impl Pipeline {
 
         self.audio_mixer.unregister_output(output_id);
         self.outputs.remove(output_id);
+        self.renderer.unregister_output(output_id);
         Ok(())
     }
 
