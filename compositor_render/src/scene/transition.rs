@@ -1,9 +1,10 @@
 use std::time::Duration;
 
-use self::cubic_bezier::cubic_bezier_easing;
+use self::{bounce::bounce_easing, cubic_bezier::cubic_bezier_easing};
 
 use super::{types::interpolation::InterpolationState, InterpolationKind};
 
+mod bounce;
 mod cubic_bezier;
 
 /// Similar concept to InterpolationState, but it represents a time instead.
@@ -125,21 +126,9 @@ impl InterpolationKind {
             InterpolationKind::EaseInOutExpo => {
                 InterpolationState(cubic_bezier_easing(t, 0.87, 0.0, 0.13, 1.0))
             }
-            InterpolationKind::Bounce => {
-                let n1 = 7.5625;
-                let d1 = 2.75;
-
-                let state = if t < (1.0 / d1) {
-                    n1 * t * t
-                } else if t < (2.0 / d1) {
-                    n1 * (t - 1.5 / d1) * (t - 1.5 / d1) + 0.75
-                } else if t < (2.5 / d1) {
-                    n1 * (t - 2.25 / d1) * (t - 2.25 / d1) + 0.9375
-                } else {
-                    n1 * (t - 2.625 / d1) * (t - 2.625 / d1) + 0.984375
-                };
-
-                InterpolationState(state)
+            InterpolationKind::Bounce => InterpolationState(bounce_easing(t)),
+            InterpolationKind::CubicBezier { x1, y1, x2, y2 } => {
+                InterpolationState(cubic_bezier_easing(t, *x1, *y1, *x2, *y2))
             }
         }
     }

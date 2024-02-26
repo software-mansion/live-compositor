@@ -8,7 +8,7 @@ use schemars::{
 
 use crate::type_definition::{Kind, ObjectProperty, TypeDefinition};
 
-const SKIPPED_DEFINITIONS: [&str; 1] = ["Component"];
+const SKIPPED_DEFINITIONS: [&str; 2] = ["Component", "Transition"];
 
 #[derive(Debug)]
 pub struct DocPage {

@@ -72,7 +72,10 @@ fn start_example_client_code() -> Result<()> {
             "children": children,
             "transition": {
                 "duration_ms": 700,
-                "interpolation_kind": "ease_in_out_quint",
+                "easing_function": {
+                    "function_name": "cubic_bezier",
+                    "points": [0.35, 0.22, 0.1, 0.8]
+                }
             },
         })
     };

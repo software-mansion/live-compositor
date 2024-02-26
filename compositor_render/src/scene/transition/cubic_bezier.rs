@@ -1,5 +1,7 @@
 use std::f64::consts::PI;
 
+const ALLOWED_FLOATING_ERROR: f64 = 1e-7;
+
 pub fn cubic_bezier_easing(progress: f64, x1: f64, y1: f64, x2: f64, y2: f64) -> f64 {
     if progress.is_close_to(0.0) {
         return 0.0;
@@ -109,18 +111,18 @@ trait F64Ext {
 
 impl F64Ext for f64 {
     fn is_close_to(&self, value: Self) -> bool {
-        (*self - value).abs() < 2.0 * f64::EPSILON
+        (*self - value).abs() < ALLOWED_FLOATING_ERROR
     }
 
     fn clamp_valid_root_in_unit_range(self) -> Self {
         if self < 0.0 {
-            if self >= -f64::EPSILON {
+            if self >= -ALLOWED_FLOATING_ERROR {
                 0.0
             } else {
                 f64::NAN
             }
         } else if self > 1.0 {
-            if self <= 1.0 + f64::EPSILON {
+            if self <= 1.0 + ALLOWED_FLOATING_ERROR {
                 1.0
             } else {
                 f64::NAN

@@ -3,6 +3,7 @@ sidebar_position: 4
 hide_table_of_contents: true
 ---
 import Docs from "@site/pages/api/generated/component-Tiles.md"
+import TransitionDefinition from "@site/pages/common/transition.md"
 import AbsolutePositionDefinition from "@site/pages/common/absolute-position.md"
 
 # Tiles
@@ -46,3 +47,5 @@ Adding/removing/changing the order of components can only be properly defined if
   - There are two components without any `"id"` in the old scene. After an update, they switched places (still without any `"id"`). In that case, there would be no transition. Identification is based on the child components order, so from the `Tiles` component perspective only the content of those children has changed.
 
 <Docs />
+
+<TransitionDefinition />

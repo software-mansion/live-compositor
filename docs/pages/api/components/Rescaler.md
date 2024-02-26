@@ -3,6 +3,7 @@ sidebar_position: 3
 hide_table_of_contents: true
 ---
 import Docs from "@site/pages/api/generated/component-Rescaler.md"
+import TransitionDefinition from "@site/pages/common/transition.md"
 import AbsolutePositionDefinition from "@site/pages/common/absolute-position.md"
 
 # Rescaler
@@ -28,3 +29,5 @@ On the scene update, a `Rescaler` component will animate between the original st
 - `bottom` / `top` / `left` / `right` / `rotation` - Only supports transition when changing a value of the same field. If the old scene defines a `left` field and the new one does not, the transition will not work.
 
 <Docs />
+
+<TransitionDefinition />
