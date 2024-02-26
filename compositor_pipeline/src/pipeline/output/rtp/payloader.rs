@@ -2,10 +2,7 @@ use std::fmt::Debug;
 
 use log::error;
 use rand::Rng;
-use rtp::{
-    codecs::{h264::H264Payloader, opus::OpusPayloader},
-    packetizer::{self},
-};
+use rtp::codecs::{h264::H264Payloader, opus::OpusPayloader};
 
 use crate::pipeline::{
     rtp::PayloadType,
@@ -198,7 +195,7 @@ impl AudioPayloader {
     }
 }
 
-fn payload<T: packetizer::Payloader>(
+fn payload<T: rtp::packetizer::Payloader>(
     payloader: &mut T,
     context: &mut RtpStreamContext,
     chunk: EncodedChunk,

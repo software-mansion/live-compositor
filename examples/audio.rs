@@ -59,11 +59,6 @@ fn start_example_client_code() -> Result<()> {
         "port": 8004,
         "video": {
             "codec": "h264"
-        },
-        "audio": {
-            "codec": "opus",
-            "sample_rate": 48_000,
-            "channels": "stereo",
         }
     }))?;
 
@@ -80,15 +75,6 @@ fn start_example_client_code() -> Result<()> {
         }
     }))?;
 
-    let shader_source = include_str!("./silly.wgsl");
-    info!("[example] Register shader transform");
-    common::post(&json!({
-        "type": "register",
-        "entity_type": "shader",
-        "shader_id": "shader_example_1",
-        "source": shader_source,
-    }))?;
-
     info!("[example] Send register output request.");
     common::post(&json!({
         "type": "register",
@@ -103,18 +89,11 @@ fn start_example_client_code() -> Result<()> {
             },
             "encoder_preset": "medium",
             "initial": {
-                "type": "shader",
-                "id": "shader_node_1",
-                "shader_id": "shader_example_1",
-                "children": [
-                    {
-                        "id": "input_1",
-                        "type": "input_stream",
-                        "input_id": "input_1",
-                    }
-                ],
-                "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
-            }
+                "id": "input_1",
+                "type": "input_stream",
+                "input_id": "input_1",
+            },
+            "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
         }
     }))?;
 

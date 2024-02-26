@@ -25,7 +25,7 @@ use crate::error::{
 };
 use crate::queue::{self, Queue, QueueOptions};
 
-use self::encoder::VideoEncoderOptions;
+use self::encoder::{AudioEncoderPreset, VideoEncoderOptions};
 use self::input::InputOptions;
 use self::output::OutputOptions;
 
@@ -62,6 +62,7 @@ pub struct OutputAudioOptions {
     pub initial: AudioMixingParams,
     pub channels: AudioChannels,
     pub forward_error_correction: bool,
+    pub encoder_preset: AudioEncoderPreset,
 }
 
 #[derive(Debug, Clone)]

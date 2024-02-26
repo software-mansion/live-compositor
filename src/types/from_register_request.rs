@@ -223,6 +223,7 @@ impl TryFrom<RegisterOutputRequest> for pipeline::RegisterOutputOptions {
             initial: a.initial.into(),
             channels: a.channels.into(),
             forward_error_correction: a.forward_error_correction.unwrap_or(false),
+            encoder_preset: a.encoder_preset.unwrap_or(AudioEncoderPreset::Voip).into(),
         });
 
         let connection_options = match transport_protocol.unwrap_or(TransportProtocol::Udp) {
@@ -281,19 +282,29 @@ impl TryFrom<RegisterOutputRequest> for pipeline::RegisterOutputOptions {
     }
 }
 
-impl From<EncoderPreset> for encoder::ffmpeg_h264::EncoderPreset {
-    fn from(value: EncoderPreset) -> Self {
+impl From<VideoEncoderPreset> for encoder::ffmpeg_h264::EncoderPreset {
+    fn from(value: VideoEncoderPreset) -> Self {
         match value {
-            EncoderPreset::Ultrafast => ffmpeg_h264::EncoderPreset::Ultrafast,
-            EncoderPreset::Superfast => ffmpeg_h264::EncoderPreset::Superfast,
-            EncoderPreset::Veryfast => ffmpeg_h264::EncoderPreset::Veryfast,
-            EncoderPreset::Faster => ffmpeg_h264::EncoderPreset::Faster,
-            EncoderPreset::Fast => ffmpeg_h264::EncoderPreset::Fast,
-            EncoderPreset::Medium => ffmpeg_h264::EncoderPreset::Medium,
-            EncoderPreset::Slow => ffmpeg_h264::EncoderPreset::Slow,
-            EncoderPreset::Slower => ffmpeg_h264::EncoderPreset::Slower,
-            EncoderPreset::Veryslow => ffmpeg_h264::EncoderPreset::Veryslow,
-            EncoderPreset::Placebo => ffmpeg_h264::EncoderPreset::Placebo,
+            VideoEncoderPreset::Ultrafast => ffmpeg_h264::EncoderPreset::Ultrafast,
+            VideoEncoderPreset::Superfast => ffmpeg_h264::EncoderPreset::Superfast,
+            VideoEncoderPreset::Veryfast => ffmpeg_h264::EncoderPreset::Veryfast,
+            VideoEncoderPreset::Faster => ffmpeg_h264::EncoderPreset::Faster,
+            VideoEncoderPreset::Fast => ffmpeg_h264::EncoderPreset::Fast,
+            VideoEncoderPreset::Medium => ffmpeg_h264::EncoderPreset::Medium,
+            VideoEncoderPreset::Slow => ffmpeg_h264::EncoderPreset::Slow,
+            VideoEncoderPreset::Slower => ffmpeg_h264::EncoderPreset::Slower,
+            VideoEncoderPreset::Veryslow => ffmpeg_h264::EncoderPreset::Veryslow,
+            VideoEncoderPreset::Placebo => ffmpeg_h264::EncoderPreset::Placebo,
+        }
+    }
+}
+
+impl From<AudioEncoderPreset> for encoder::AudioEncoderPreset {
+    fn from(value: AudioEncoderPreset) -> Self {
+        match value {
+            AudioEncoderPreset::Quality => encoder::AudioEncoderPreset::Quality,
+            AudioEncoderPreset::Voip => encoder::AudioEncoderPreset::Voip,
+            AudioEncoderPreset::LowestLatency => encoder::AudioEncoderPreset::LowestLatency,
         }
     }
 }

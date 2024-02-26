@@ -141,7 +141,7 @@ pub enum Port {
 #[serde(deny_unknown_fields)]
 pub struct OutputVideoOptions {
     pub resolution: Resolution,
-    pub encoder_preset: EncoderPreset,
+    pub encoder_preset: VideoEncoderPreset,
     pub initial: Component,
     /// (**default=`96`**)
     pub rtp_payload_type: Option<u8>,
@@ -159,6 +159,21 @@ pub struct OutputAudioOptions {
     pub forward_error_correction: Option<bool>,
     /// (**default=`97`**)
     pub rtp_payload_type: Option<u8>,
+    /// (**default="voip"**) Specifies preset for audio output encoder.
+    pub encoder_preset: Option<AudioEncoderPreset>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum AudioEncoderPreset {
+    /// Best for broadcast/high-fidelity application where the decoded audio
+    /// should be as close as possible to the input.
+    Quality,
+    /// Best for most VoIP/videoconference applications where listening quality
+    /// and intelligibility matter most.
+    Voip,
+    /// Only use when lowest-achievable latency is what matters most.
+    LowestLatency,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
@@ -174,7 +189,7 @@ pub struct RegisterOutputRequest {
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(rename_all = "snake_case")]
-pub enum EncoderPreset {
+pub enum VideoEncoderPreset {
     Ultrafast,
     Superfast,
     Veryfast,
