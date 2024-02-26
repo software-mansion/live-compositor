@@ -287,17 +287,17 @@ impl Pipeline {
         scene_root: Component,
     ) -> Result<(), UpdateSceneError> {
         let Some(resolution) = self
-                    .outputs
-                    .lock()
-                    .get(&output_id)
-                    .ok_or_else(|| UpdateSceneError::OutputNotRegistered(output_id.clone()))?
-                    .encoder
-                    .video
-                    .as_ref()
-                    .map(|v| v.resolution())
-            else {
-                return Err(UpdateSceneError::AudioVideoNotMatching(output_id));
-            };
+            .outputs
+            .lock()
+            .get(&output_id)
+            .ok_or_else(|| UpdateSceneError::OutputNotRegistered(output_id.clone()))?
+            .encoder
+            .video
+            .as_ref()
+            .map(|v| v.resolution())
+        else {
+            return Err(UpdateSceneError::AudioVideoNotMatching(output_id));
+        };
 
         info!("Update scene {:#?}", scene_root);
 
