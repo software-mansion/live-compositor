@@ -14,6 +14,9 @@ pub(super) enum BindToPortError {
     AllPortsAlreadyInUse { lower_bound: u16, upper_bound: u16 },
 }
 
+#[derive(Debug, Clone)]
+pub struct PayloadType(pub u8);
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RequestedPort {
     Exact(u16),

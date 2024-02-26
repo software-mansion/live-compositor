@@ -207,22 +207,31 @@ impl TryFrom<RegisterOutputRequest> for pipeline::RegisterOutputOptions {
             ));
         }
 
-        let video = match video {
-            Some(v) => Some(pipeline::OutputVideoOptions {
-                initial: v.initial.try_into()?,
-                encoder_opts: pipeline::encoder::VideoEncoderOptions::H264(Options {
-                    preset: v.encoder_preset.into(),
-                    resolution: v.resolution.into(),
-                    output_id: output_id.clone().into(),
-                }),
-            }),
+        let output_video_options = match video.clone() {
+            Some(v) => {
+                if v.resolution.width % 2 != 0 || v.resolution.height % 2 != 0 {
+                    return Err(TypeError::new(
+                        "Output video width and height has to be divisible by 2",
+                    ));
+                };
+
+                Some(pipeline::OutputVideoOptions {
+                    initial: v.initial.try_into()?,
+                    encoder_opts: pipeline::encoder::VideoEncoderOptions::H264(Options {
+                        preset: v.encoder_preset.into(),
+                        resolution: v.resolution.into(),
+                        output_id: output_id.clone().into(),
+                    }),
+                })
+            }
             None => None,
         };
 
-        let audio = audio.map(|a| pipeline::OutputAudioOptions {
+        let output_audio_options = audio.clone().map(|a| pipeline::OutputAudioOptions {
             initial: a.initial.into(),
             channels: a.channels.into(),
             forward_error_correction: a.forward_error_correction.unwrap_or(false),
+            encoder_preset: a.encoder_preset.unwrap_or(AudioEncoderPreset::Voip).into(),
         });
 
         let connection_options = match transport_protocol.unwrap_or(TransportProtocol::Udp) {
@@ -258,30 +267,52 @@ impl TryFrom<RegisterOutputRequest> for pipeline::RegisterOutputOptions {
         let output_options = output::OutputOptions::Rtp(RtpSenderOptions {
             output_id: output_id.clone().into(),
             connection_options,
+            video: video.map(|v| {
+                (
+                    pipeline::VideoCodec::H264,
+                    pipeline::rtp::PayloadType(v.rtp_payload_type.unwrap_or(96)),
+                )
+            }),
+            audio: audio.map(|a| {
+                (
+                    pipeline::AudioCodec::Opus,
+                    pipeline::rtp::PayloadType(a.rtp_payload_type.unwrap_or(97)),
+                )
+            }),
         });
 
         Ok(Self {
             output_id: output_id.into(),
             output_options,
-            video,
-            audio,
+            video: output_video_options,
+            audio: output_audio_options,
         })
     }
 }
 
-impl From<EncoderPreset> for encoder::ffmpeg_h264::EncoderPreset {
-    fn from(value: EncoderPreset) -> Self {
+impl From<VideoEncoderPreset> for encoder::ffmpeg_h264::EncoderPreset {
+    fn from(value: VideoEncoderPreset) -> Self {
         match value {
-            EncoderPreset::Ultrafast => ffmpeg_h264::EncoderPreset::Ultrafast,
-            EncoderPreset::Superfast => ffmpeg_h264::EncoderPreset::Superfast,
-            EncoderPreset::Veryfast => ffmpeg_h264::EncoderPreset::Veryfast,
-            EncoderPreset::Faster => ffmpeg_h264::EncoderPreset::Faster,
-            EncoderPreset::Fast => ffmpeg_h264::EncoderPreset::Fast,
-            EncoderPreset::Medium => ffmpeg_h264::EncoderPreset::Medium,
-            EncoderPreset::Slow => ffmpeg_h264::EncoderPreset::Slow,
-            EncoderPreset::Slower => ffmpeg_h264::EncoderPreset::Slower,
-            EncoderPreset::Veryslow => ffmpeg_h264::EncoderPreset::Veryslow,
-            EncoderPreset::Placebo => ffmpeg_h264::EncoderPreset::Placebo,
+            VideoEncoderPreset::Ultrafast => ffmpeg_h264::EncoderPreset::Ultrafast,
+            VideoEncoderPreset::Superfast => ffmpeg_h264::EncoderPreset::Superfast,
+            VideoEncoderPreset::Veryfast => ffmpeg_h264::EncoderPreset::Veryfast,
+            VideoEncoderPreset::Faster => ffmpeg_h264::EncoderPreset::Faster,
+            VideoEncoderPreset::Fast => ffmpeg_h264::EncoderPreset::Fast,
+            VideoEncoderPreset::Medium => ffmpeg_h264::EncoderPreset::Medium,
+            VideoEncoderPreset::Slow => ffmpeg_h264::EncoderPreset::Slow,
+            VideoEncoderPreset::Slower => ffmpeg_h264::EncoderPreset::Slower,
+            VideoEncoderPreset::Veryslow => ffmpeg_h264::EncoderPreset::Veryslow,
+            VideoEncoderPreset::Placebo => ffmpeg_h264::EncoderPreset::Placebo,
+        }
+    }
+}
+
+impl From<AudioEncoderPreset> for encoder::AudioEncoderPreset {
+    fn from(value: AudioEncoderPreset) -> Self {
+        match value {
+            AudioEncoderPreset::Quality => encoder::AudioEncoderPreset::Quality,
+            AudioEncoderPreset::Voip => encoder::AudioEncoderPreset::Voip,
+            AudioEncoderPreset::LowestLatency => encoder::AudioEncoderPreset::LowestLatency,
         }
     }
 }

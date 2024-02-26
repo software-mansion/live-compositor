@@ -1,13 +1,14 @@
 use crate::error::RegisterOutputError;
 
 use super::{
-    encoder::{VideoEncoder, VideoEncoderOptions},
+    encoder::{opus_encoder, AudioEncoderOptions, Encoder, EncoderOptions},
     output::Output,
     PipelineOutput, Port, RegisterOutputOptions,
 };
 
 pub(super) fn new_pipeline_output(
     opts: RegisterOutputOptions,
+    output_sample_rate: u32,
 ) -> Result<(PipelineOutput, Option<Port>), RegisterOutputError> {
     let RegisterOutputOptions {
         output_id,
@@ -15,15 +16,19 @@ pub(super) fn new_pipeline_output(
         video,
         audio,
     } = opts;
-    let encoder_opts = video.clone().unwrap().encoder_opts;
-    let VideoEncoderOptions::H264(ref h264_opts) = encoder_opts;
-    if h264_opts.resolution.width % 2 != 0 || h264_opts.resolution.height % 2 != 0 {
-        return Err(RegisterOutputError::UnsupportedResolution(
-            output_id.clone(),
-        ));
-    }
+    let (has_video, has_audio) = (video.is_some(), audio.is_some());
 
-    let (encoder, packets) = VideoEncoder::new(encoder_opts)
+    let encoder_opts = EncoderOptions {
+        video: video.map(|video_opts| video_opts.encoder_opts),
+        audio: audio.map(|audio_opts| {
+            AudioEncoderOptions::Opus(opus_encoder::Options {
+                channels: audio_opts.channels,
+                preset: audio_opts.encoder_preset,
+            })
+        }),
+    };
+
+    let (encoder, packets) = Encoder::new(encoder_opts, output_sample_rate)
         .map_err(|e| RegisterOutputError::EncoderError(output_id.clone(), e))?;
 
     let (output, port) = Output::new(output_options, packets)
@@ -32,8 +37,8 @@ pub(super) fn new_pipeline_output(
     let output = PipelineOutput {
         encoder,
         output,
-        has_video: video.is_some(),
-        has_audio: audio.is_some(),
+        has_video,
+        has_audio,
     };
 
     Ok((output, port))

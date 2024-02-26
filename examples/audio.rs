@@ -9,13 +9,14 @@ use std::{
 };
 use video_compositor::{config::config, http, logger, types::Resolution};
 
-use crate::common::write_example_sdp_file;
+use crate::common::write_video_audio_example_sdp_file;
 
 #[path = "./common/common.rs"]
 mod common;
 
-const SAMPLE_FILE_URL: &str = "https://filesamples.com/samples/video/mp4/sample_1280x720.mp4";
-const SAMPLE_FILE_PATH: &str = "examples/assets/sample_1280_720.mp4";
+const SAMPLE_FILE_URL: &str =
+    "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+const SAMPLE_FILE_PATH: &str = "examples/assets/BigBuckBunny.mp4";
 const VIDEO_RESOLUTION: Resolution = Resolution {
     width: 1280,
     height: 720,
@@ -37,7 +38,7 @@ fn main() {
 
 fn start_example_client_code() -> Result<()> {
     info!("[example] Start listening on output port.");
-    let output_sdp = write_example_sdp_file("127.0.0.1", 8002)?;
+    let output_sdp = write_video_audio_example_sdp_file("127.0.0.1", 8002, 8010)?;
     Command::new("ffplay")
         .args(["-protocol_whitelist", "file,rtp,udp", &output_sdp])
         .stdout(Stdio::null())
@@ -74,15 +75,6 @@ fn start_example_client_code() -> Result<()> {
         }
     }))?;
 
-    let shader_source = include_str!("./silly.wgsl");
-    info!("[example] Register shader transform");
-    common::post(&json!({
-        "type": "register",
-        "entity_type": "shader",
-        "shader_id": "shader_example_1",
-        "source": shader_source,
-    }))?;
-
     info!("[example] Send register output request.");
     common::post(&json!({
         "type": "register",
@@ -97,19 +89,21 @@ fn start_example_client_code() -> Result<()> {
             },
             "encoder_preset": "medium",
             "initial": {
-                "type": "shader",
-                "id": "shader_node_1",
-                "shader_id": "shader_example_1",
-                "children": [
-                    {
-                        "id": "input_1",
-                        "type": "input_stream",
-                        "input_id": "input_1",
-                    }
-                ],
-                "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
-            }
-        },
+                "id": "input_1",
+                "type": "input_stream",
+                "input_id": "input_1",
+            },
+            "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+        }
+    }))?;
+
+    info!("[example] Send register output request.");
+    common::post(&json!({
+        "type": "register",
+        "entity_type": "output_stream",
+        "output_id": "output_2",
+        "port": 8010,
+        "ip": "127.0.0.1",
         "audio": {
             "initial": {
                 "inputs": [{"input_id": "input_2"}]
@@ -127,7 +121,7 @@ fn start_example_client_code() -> Result<()> {
 
     Command::new("ffmpeg")
         .args(["-stream_loop", "-1", "-re", "-i"])
-        .arg(sample_path)
+        .arg(sample_path.clone())
         .args([
             "-an",
             "-c:v",
@@ -141,18 +135,15 @@ fn start_example_client_code() -> Result<()> {
         .spawn()?;
 
     Command::new("ffmpeg")
+        .args(["-re", "-i"])
+        .arg(sample_path)
         .args([
-            "-re",
-            "-f",
-            "lavfi",
-            "-i",
-            "sine=frequency=1000:duration=60", // Generates a sine wave tone
-            "-vn",                             // No Video
+            "-vn",
             "-c:a",
-            "libopus", // Specify audio codec
+            "libopus",
             "-f",
             "rtp",
-            "rtp://127.0.0.1:8006?rtcpport=8006", // Streaming endpoint
+            "rtp://127.0.0.1:8006?rtcpport=8006",
         ])
         .spawn()?;
 

@@ -14,8 +14,8 @@ use serde::Serialize;
 
 /// The SDP file will describe an RTP session on localhost with H264 encoding.
 #[allow(dead_code)]
-pub fn write_example_sdp_file(ip: &str, port: u16) -> Result<String> {
-    let sdp_filepath = PathBuf::from(format!("/tmp/example_sdp_input_{}.sdp", port));
+pub fn write_video_example_sdp_file(ip: &str, port: u16) -> Result<String> {
+    let sdp_filepath = PathBuf::from(format!("/tmp/example_sdp_video_input_{}.sdp", port));
     let mut file = File::create(&sdp_filepath)?;
     file.write_all(
         format!(
@@ -30,6 +30,43 @@ pub fn write_example_sdp_file(ip: &str, port: u16) -> Result<String> {
                     a=rtcp-mux\n\
                 ",
             ip, ip, port
+        )
+        .as_bytes(),
+    )?;
+    Ok(String::from(
+        sdp_filepath
+            .to_str()
+            .ok_or_else(|| anyhow!("invalid utf string"))?,
+    ))
+}
+
+/// The SDP file will describe an RTP session on localhost with H264 video encoding and Opus audio encoding.
+#[allow(dead_code)]
+pub fn write_video_audio_example_sdp_file(
+    ip: &str,
+    video_port: u16,
+    audio_port: u16,
+) -> Result<String> {
+    let sdp_filepath = PathBuf::from(format!(
+        "/tmp/example_sdp_video_audio_input_{}.sdp",
+        video_port
+    ));
+    let mut file = File::create(&sdp_filepath)?;
+    file.write_all(
+        format!(
+            "\
+                    v=0\n\
+                    o=- 0 0 IN IP4 {}\n\
+                    s=No Name\n\
+                    c=IN IP4 {}\n\
+                    m=video {} RTP/AVP 96\n\
+                    a=rtpmap:96 H264/90000\n\
+                    a=fmtp:96 packetization-mode=1\n\
+                    a=rtcp-mux\n\
+                    m=audio {} RTP/AVP 97\n\
+                    a=rtpmap:97 opus/48000/2\n\
+                ",
+            ip, ip, video_port, audio_port
         )
         .as_bytes(),
     )?;
