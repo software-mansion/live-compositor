@@ -62,6 +62,10 @@ impl<Payload: ApplyOffsetExt> InputProcessor<Payload> {
         self.start_time
     }
 
+    pub(super) fn did_receive_eos(&self) -> bool {
+        matches!(self.state, InputState::Done)
+    }
+
     pub(super) fn process_new_chunk(
         &mut self,
         payload: PipelineEvent<Payload>,

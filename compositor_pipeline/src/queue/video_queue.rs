@@ -166,7 +166,7 @@ impl VideoQueueInput {
         let Some(input_start_time) = self.input_start_time() else {
             return None;
         };
-        match self.offset {
+        let frame = match self.offset {
             // if stream should not start yet, do not send any frames
             Some(offset) if offset > buffer_pts => None,
             // if stream is started then take the frames
@@ -178,7 +178,14 @@ impl VideoQueueInput {
                 frame.pts = (input_start_time + frame.pts).duration_since(queue_start);
                 frame
             }),
+        };
+        // Handle a case where we have last frame and received EOS.
+        // "drop_old_frames" is ensuring that there will only be one frame at
+        // the end.
+        if self.input_frames_processor.did_receive_eos() && self.queue.len() == 1 {
+            self.queue.pop_front();
         }
+        frame
     }
 
     /// Check if the input has enough data in the queue to produce frames for `next_buffer_pts`.
@@ -189,6 +196,10 @@ impl VideoQueueInput {
     /// so when all inputs queues have frames with pts larger or equal than buffer timestamp,
     /// the queue won't receive frames with pts "closer" to buffer pts.
     fn check_ready_for_pts(&mut self, next_buffer_pts: Duration, queue_start: Instant) -> bool {
+        if self.input_frames_processor.did_receive_eos() {
+            return true;
+        }
+
         let Some(next_buffer_pts) = self.input_pts_from_queue_pts(next_buffer_pts, queue_start)
         else {
             return match self.offset {

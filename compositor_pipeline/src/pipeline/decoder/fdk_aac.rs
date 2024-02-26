@@ -214,7 +214,7 @@ fn run_decoder_thread(
         for batch in decoded_samples {
             if let Err(err) = samples_sender.send(PipelineEvent::Data(batch)) {
                 log::error!("Error enqueueing audio samples for input {input_id}: {err}",);
-                return
+                return;
             }
         }
     }

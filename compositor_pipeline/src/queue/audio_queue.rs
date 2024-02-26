@@ -184,6 +184,10 @@ impl AudioQueueInput {
         pts_range: (Duration, Duration),
         queue_start: Instant,
     ) -> bool {
+        if self.input_samples_processor.did_receive_eos() {
+            return true;
+        }
+
         // range in queue pts time frame
         let end_pts = pts_range.0;
 
