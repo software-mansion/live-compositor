@@ -793,7 +793,7 @@
         "easing_function": {
           "anyOf": [
             {
-              "$ref": "#/definitions/EasingFunction"
+              "$ref": "#/definitions/EasingFunctionDefinition"
             },
             {
               "type": "null"
@@ -802,176 +802,46 @@
         }
       }
     },
+    "EasingFunctionDefinition": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/EasingFunction"
+        },
+        {
+          "type": "object",
+          "required": [
+            "function_name"
+          ],
+          "properties": {
+            "function_name": {
+              "$ref": "#/definitions/EasingFunction"
+            }
+          }
+        },
+        {
+          "$ref": "#/definitions/EasingFunctionWithParams"
+        }
+      ]
+    },
     "EasingFunction": {
+      "type": "string",
+      "enum": [
+        "linear",
+        "ease",
+        "ease_in",
+        "ease_out",
+        "ease_in_out",
+        "ease_in_quint",
+        "ease_out_quint",
+        "ease_in_out_quint",
+        "ease_in_expo",
+        "ease_out_expo",
+        "ease_in_out_expo",
+        "bounce"
+      ]
+    },
+    "EasingFunctionWithParams": {
       "oneOf": [
-        {
-          "type": "object",
-          "required": [
-            "function_name"
-          ],
-          "properties": {
-            "function_name": {
-              "type": "string",
-              "enum": [
-                "linear"
-              ]
-            }
-          }
-        },
-        {
-          "type": "object",
-          "required": [
-            "function_name"
-          ],
-          "properties": {
-            "function_name": {
-              "type": "string",
-              "enum": [
-                "ease"
-              ]
-            }
-          }
-        },
-        {
-          "type": "object",
-          "required": [
-            "function_name"
-          ],
-          "properties": {
-            "function_name": {
-              "type": "string",
-              "enum": [
-                "ease_in"
-              ]
-            }
-          }
-        },
-        {
-          "type": "object",
-          "required": [
-            "function_name"
-          ],
-          "properties": {
-            "function_name": {
-              "type": "string",
-              "enum": [
-                "ease_out"
-              ]
-            }
-          }
-        },
-        {
-          "type": "object",
-          "required": [
-            "function_name"
-          ],
-          "properties": {
-            "function_name": {
-              "type": "string",
-              "enum": [
-                "ease_in_out"
-              ]
-            }
-          }
-        },
-        {
-          "type": "object",
-          "required": [
-            "function_name"
-          ],
-          "properties": {
-            "function_name": {
-              "type": "string",
-              "enum": [
-                "ease_in_quint"
-              ]
-            }
-          }
-        },
-        {
-          "type": "object",
-          "required": [
-            "function_name"
-          ],
-          "properties": {
-            "function_name": {
-              "type": "string",
-              "enum": [
-                "ease_out_quint"
-              ]
-            }
-          }
-        },
-        {
-          "type": "object",
-          "required": [
-            "function_name"
-          ],
-          "properties": {
-            "function_name": {
-              "type": "string",
-              "enum": [
-                "ease_in_out_quint"
-              ]
-            }
-          }
-        },
-        {
-          "type": "object",
-          "required": [
-            "function_name"
-          ],
-          "properties": {
-            "function_name": {
-              "type": "string",
-              "enum": [
-                "ease_in_expo"
-              ]
-            }
-          }
-        },
-        {
-          "type": "object",
-          "required": [
-            "function_name"
-          ],
-          "properties": {
-            "function_name": {
-              "type": "string",
-              "enum": [
-                "ease_out_expo"
-              ]
-            }
-          }
-        },
-        {
-          "type": "object",
-          "required": [
-            "function_name"
-          ],
-          "properties": {
-            "function_name": {
-              "type": "string",
-              "enum": [
-                "ease_in_out_expo"
-              ]
-            }
-          }
-        },
-        {
-          "type": "object",
-          "required": [
-            "function_name"
-          ],
-          "properties": {
-            "function_name": {
-              "type": "string",
-              "enum": [
-                "bounce"
-              ]
-            }
-          }
-        },
         {
           "type": "object",
           "required": [

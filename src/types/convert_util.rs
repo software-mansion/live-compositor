@@ -1,6 +1,6 @@
-use std::{str::FromStr, time::Duration};
+use std::time::Duration;
 
-use compositor_render::scene::{self};
+use compositor_render::scene;
 
 use super::util::*;
 
@@ -31,16 +31,9 @@ impl From<compositor_render::Resolution> for Resolution {
     }
 }
 
-impl TryFrom<Transition> for scene::Transition {
-    type Error = TypeError;
-
-    fn try_from(transition: Transition) -> Result<Self, Self::Error> {
-        let easing_function = transition
-            .easing_function
-            .map(|wrapper| wrapper.0)
-            .unwrap_or(EasingFunction::Linear);
-
-        let interpolation_kind = match easing_function {
+impl From<EasingFunction> for scene::InterpolationKind {
+    fn from(easing_function: EasingFunction) -> Self {
+        match easing_function {
             EasingFunction::Linear => scene::InterpolationKind::Linear,
             EasingFunction::Ease => scene::InterpolationKind::Ease,
             EasingFunction::EaseIn => scene::InterpolationKind::EaseIn,
@@ -53,56 +46,47 @@ impl TryFrom<Transition> for scene::Transition {
             EasingFunction::EaseOutExpo => scene::InterpolationKind::EaseOutExpo,
             EasingFunction::EaseInOutExpo => scene::InterpolationKind::EaseInOutExpo,
             EasingFunction::Bounce => scene::InterpolationKind::Bounce,
-            EasingFunction::CubicBezier { points } => {
-                if points[0] < 0.0 || points[0] > 1.0 {
-                    return Err(TypeError::new(
-                        "Control point x1 has to be in the range [0, 1].",
-                    ));
-                }
-                if points[2] < 0.0 || points[2] > 1.0 {
-                    return Err(TypeError::new(
-                        "Control point x2 has to be in the range [0, 1].",
-                    ));
-                }
+        }
+    }
+}
 
-                scene::InterpolationKind::CubicBezier {
-                    x1: points[0],
-                    y1: points[1],
-                    x2: points[2],
-                    y2: points[3],
+impl TryFrom<Transition> for scene::Transition {
+    type Error = TypeError;
+
+    fn try_from(transition: Transition) -> Result<Self, Self::Error> {
+        let interpolation_kind = match transition
+            .easing_function
+            .unwrap_or(EasingFunctionDefinition::String(EasingFunction::Linear))
+        {
+            EasingFunctionDefinition::String(function_name) => function_name.into(),
+            EasingFunctionDefinition::Object { function_name } => function_name.into(),
+            EasingFunctionDefinition::ObjectWithParams(object) => match object {
+                EasingFunctionWithParams::CubicBezier { points } => {
+                    if points[0] < 0.0 || points[0] > 1.0 {
+                        return Err(TypeError::new(
+                            "Control point x1 has to be in the range [0, 1].",
+                        ));
+                    }
+                    if points[2] < 0.0 || points[2] > 1.0 {
+                        return Err(TypeError::new(
+                            "Control point x2 has to be in the range [0, 1].",
+                        ));
+                    }
+
+                    scene::InterpolationKind::CubicBezier {
+                        x1: points[0],
+                        y1: points[1],
+                        x2: points[2],
+                        y2: points[3],
+                    }
                 }
-            }
+            },
         };
 
         Ok(Self {
             duration: Duration::from_secs_f64(transition.duration_ms / 1000.0),
             interpolation_kind,
         })
-    }
-}
-
-impl FromStr for EasingFunction {
-    type Err = TypeError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "linear" => Ok(Self::Linear),
-            "ease" => Ok(Self::Ease),
-            "ease_in" => Ok(Self::EaseIn),
-            "ease_out" => Ok(Self::EaseOut),
-            "ease_in_out" => Ok(Self::EaseInOut),
-            "ease_in_quint" => Ok(Self::EaseInQuint),
-            "ease_out_quint" => Ok(Self::EaseOutQuint),
-            "ease_in_out_quint" => Ok(Self::EaseInOutQuint),
-            "ease_in_expo" => Ok(Self::EaseInExpo),
-            "ease_out_expo" => Ok(Self::EaseOutExpo),
-            "ease_in_out_expo" => Ok(Self::EaseInOutExpo),
-            "bounce" => Ok(Self::Bounce),
-            "cubic_bezier" => Err(TypeError::new(
-                "Cubic bezier easing function needs control points specified. Please define it as an object with the control points provided."
-            )),
-            _ => Err(TypeError::new("Unknown easing function.")),
-        }
     }
 }
 
