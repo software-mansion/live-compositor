@@ -583,7 +583,7 @@
           "$ref": "#/definitions/Resolution"
         },
         "encoder_preset": {
-          "$ref": "#/definitions/EncoderPreset"
+          "$ref": "#/definitions/VideoEncoderPreset"
         },
         "initial": {
           "$ref": "#/definitions/Component"
@@ -621,7 +621,7 @@
         }
       }
     },
-    "EncoderPreset": {
+    "VideoEncoderPreset": {
       "type": "string",
       "enum": [
         "ultrafast",
@@ -1844,6 +1844,17 @@
           ],
           "format": "uint8",
           "minimum": 0.0
+        },
+        "encoder_preset": {
+          "description": "(**default=\"voip\"**) Specifies preset for audio output encoder.",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/AudioEncoderPreset"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "additionalProperties": false
@@ -1872,6 +1883,31 @@
           "$ref": "#/definitions/InputId"
         }
       }
+    },
+    "AudioEncoderPreset": {
+      "oneOf": [
+        {
+          "description": "Best for broadcast/high-fidelity application where the decoded audio should be as close as possible to the input.",
+          "type": "string",
+          "enum": [
+            "quality"
+          ]
+        },
+        {
+          "description": "Best for most VoIP/videoconference applications where listening quality and intelligibility matter most.",
+          "type": "string",
+          "enum": [
+            "voip"
+          ]
+        },
+        {
+          "description": "Only use when lowest-achievable latency is what matters most.",
+          "type": "string",
+          "enum": [
+            "lowest_latency"
+          ]
+        }
+      ]
     },
     "WebEmbeddingMethod": {
       "oneOf": [

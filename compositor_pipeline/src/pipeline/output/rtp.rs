@@ -1,5 +1,4 @@
 use compositor_render::OutputId;
-use log::{debug, error};
 use std::{
     io::{self, Write},
     sync::{atomic::AtomicBool, Arc},
@@ -7,6 +6,7 @@ use std::{
     time::Duration,
     u16,
 };
+use tracing::{debug, error};
 
 use webrtc_util::Marshal;
 
@@ -25,7 +25,15 @@ mod payloader;
 
 #[derive(Debug)]
 pub struct RtpSender {
-    sender_thread: Option<std::thread::JoinHandle<()>>,
+    pub connection_options: RtpConnectionOptions,
+
+    /// should_close will be set after output is unregistered,
+    /// but the primary way of controlling the shutdown is a channel
+    /// receiver.
+    ///
+    /// RtpSender should be explicitly closed based on this value
+    /// only if TCP connection is disconnected or writes hang for a
+    /// long time.
     should_close: Arc<AtomicBool>,
 }
 
@@ -69,17 +77,23 @@ impl RtpSender {
         };
 
         let connection_options = options.connection_options.clone();
-        let sender_thread = std::thread::Builder::new()
+        let output_id = options.output_id.clone();
+        std::thread::Builder::new()
             .name(format!("RTP sender for output {}", options.output_id))
-            .spawn(move || match connection_options {
-                RtpConnectionOptions::Udp { .. } => run_udp_sender_thread(&mut ctx, packets),
-                RtpConnectionOptions::TcpServer { .. } => run_tcp_sender_thread(&mut ctx, packets),
+            .spawn(move || {
+                match connection_options {
+                    RtpConnectionOptions::Udp { .. } => run_udp_sender_thread(&mut ctx, packets),
+                    RtpConnectionOptions::TcpServer { .. } => {
+                        run_tcp_sender_thread(&mut ctx, packets)
+                    }
+                }
+                debug!(output_id=?output_id.0, "Closing RTP sender thread.")
             })
             .unwrap();
 
         Ok((
             Self {
-                sender_thread: Some(sender_thread),
+                connection_options: options.connection_options,
                 should_close,
             },
             Some(port),
@@ -148,7 +162,7 @@ fn run_tcp_sender_thread(
                 }
             };
 
-            packets.iter().for_each(|packet| {
+            for packet in packets.iter() {
                 let packet = match packet.marshal() {
                     Ok(p) => p,
                     Err(e) => {
@@ -159,8 +173,11 @@ fn run_tcp_sender_thread(
 
                 if let Err(err) = socket.write_packet(packet) {
                     debug!("Failed to send packet: {err}");
+                    // if should_close is true it will exit at the beginning of the next loop
+                    // if should close is false we will wait for the next connection attempt
+                    break;
                 }
-            });
+            }
         }
     }
 }
@@ -200,10 +217,6 @@ impl Drop for RtpSender {
     fn drop(&mut self) {
         self.should_close
             .store(true, std::sync::atomic::Ordering::Relaxed);
-        match self.sender_thread.take() {
-            Some(handle) => handle.join().unwrap(),
-            None => error!("RTP sender thread was already joined."),
-        }
     }
 }
 
@@ -230,8 +243,10 @@ struct TcpWritePacketStream {
 
 impl TcpWritePacketStream {
     fn new(socket: socket2::Socket, should_close: Arc<AtomicBool>) -> Self {
+        // Timeout to make sure we are not left with unregistered
+        // connections that are still maintained by a client side.
         socket
-            .set_write_timeout(Some(Duration::from_millis(50)))
+            .set_write_timeout(Some(Duration::from_secs(30)))
             .expect("Cannot set write timeout");
         Self {
             socket,

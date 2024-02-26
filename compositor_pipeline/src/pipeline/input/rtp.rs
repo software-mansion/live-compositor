@@ -12,7 +12,7 @@ use crate::pipeline::{
 };
 use compositor_render::InputId;
 use crossbeam_channel::{unbounded, Receiver};
-use log::{error, info, warn};
+use tracing::{debug, error, info, warn};
 use webrtc_util::Unmarshal;
 
 use self::{
@@ -76,11 +76,8 @@ pub struct RtpStream {
 }
 
 pub struct RtpReceiver {
-    receiver_thread: Option<thread::JoinHandle<()>>,
     should_close: Arc<AtomicBool>,
     pub port: u16,
-
-    _depayloader_thread: Option<DepayloaderThread>,
 }
 
 impl RtpReceiver {
@@ -89,7 +86,7 @@ impl RtpReceiver {
     ) -> Result<(Self, ChunksReceiver, DecoderOptions, Port), RtpReceiverError> {
         let should_close = Arc::new(AtomicBool::new(false));
 
-        let (port, receiver_thread, packets_rx) = match opts.transport_protocol {
+        let (port, packets_rx) = match opts.transport_protocol {
             TransportProtocol::Udp => Self::start_udp_reader(&opts, should_close.clone())?,
             TransportProtocol::TcpServer => {
                 Self::start_tcp_server_reader(&opts, should_close.clone())?
@@ -98,15 +95,12 @@ impl RtpReceiver {
 
         let depayloader = Depayloader::new(&opts.stream)?;
 
-        let (depayloader_thread, chunks_receiver) =
-            DepayloaderThread::new(&opts.input_id, packets_rx, depayloader);
+        let chunks_receiver = start_depayloader_thread(&opts.input_id, packets_rx, depayloader);
 
         Ok((
             Self {
                 port: port.0,
-                receiver_thread: Some(receiver_thread),
                 should_close,
-                _depayloader_thread: Some(depayloader_thread),
             },
             chunks_receiver,
             DecoderOptions {
@@ -120,9 +114,10 @@ impl RtpReceiver {
     fn start_tcp_server_reader(
         opts: &RtpReceiverOptions,
         should_close: Arc<AtomicBool>,
-    ) -> Result<(Port, thread::JoinHandle<()>, Receiver<bytes::Bytes>), RtpReceiverError> {
+    ) -> Result<(Port, Receiver<bytes::Bytes>), RtpReceiverError> {
         let (packets_tx, packets_rx) = unbounded();
-        info!("Starting tcp socket");
+        let input_id = opts.input_id.clone();
+        info!(input_id=?input_id.0, "Starting tcp socket");
 
         let socket = socket2::Socket::new(
             socket2::Domain::IPV4,
@@ -137,18 +132,21 @@ impl RtpReceiver {
 
         let socket = std::net::TcpListener::from(socket);
 
-        let receiver_thread = thread::Builder::new()
+        thread::Builder::new()
             .name(format!("RTP TCP server receiver {}", opts.input_id))
-            .spawn(move || run_tcp_server_receiver(socket, packets_tx, should_close))
+            .spawn(move || {
+                run_tcp_server_receiver(socket, packets_tx, should_close);
+                debug!(input_id=?input_id.0, "Closing RTP receiver thread (TCP server).");
+            })
             .unwrap();
 
-        Ok((port, receiver_thread, packets_rx))
+        Ok((port, packets_rx))
     }
 
     fn start_udp_reader(
         opts: &RtpReceiverOptions,
         should_close: Arc<AtomicBool>,
-    ) -> Result<(Port, thread::JoinHandle<()>, Receiver<bytes::Bytes>), RtpReceiverError> {
+    ) -> Result<(Port, Receiver<bytes::Bytes>), RtpReceiverError> {
         let (packets_tx, packets_rx) = unbounded();
 
         let socket = socket2::Socket::new(
@@ -176,12 +174,16 @@ impl RtpReceiver {
 
         let socket = std::net::UdpSocket::from(socket);
 
-        let receiver_thread = thread::Builder::new()
+        let input_id = opts.input_id.clone();
+        thread::Builder::new()
             .name(format!("RTP UDP receiver {}", opts.input_id))
-            .spawn(move || run_udp_receiver(socket, packets_tx, should_close))
+            .spawn(move || {
+                run_udp_receiver(socket, packets_tx, should_close);
+                debug!(input_id=?input_id.0, "Closing RTP receiver thread (UDP).");
+            })
             .unwrap();
 
-        Ok((port, receiver_thread, packets_rx))
+        Ok((port, packets_rx))
     }
 }
 
@@ -189,48 +191,34 @@ impl Drop for RtpReceiver {
     fn drop(&mut self) {
         self.should_close
             .store(true, std::sync::atomic::Ordering::Relaxed);
-        if let Some(thread) = self.receiver_thread.take() {
-            thread.join().unwrap();
-        } else {
-            error!("RTP receiver does not hold a thread handle to the receiving thread.")
-        }
     }
 }
 
-#[derive(Debug)]
-pub(crate) struct DepayloaderThread {
-    should_close: Arc<AtomicBool>,
-    depayloader_thread: Option<thread::JoinHandle<()>>,
-}
+fn start_depayloader_thread(
+    input_id: &InputId,
+    receiver: Receiver<bytes::Bytes>,
+    mut depayloader: Depayloader,
+) -> ChunksReceiver {
+    let (video_sender, video_receiver) = depayloader
+        .video
+        .as_ref()
+        .map(|_| unbounded())
+        .map_or((None, None), |(tx, rx)| (Some(tx), Some(rx)));
+    let (audio_sender, audio_receiver) = depayloader
+        .audio
+        .as_ref()
+        .map(|_| unbounded())
+        .map_or((None, None), |(tx, rx)| (Some(tx), Some(rx)));
 
-impl DepayloaderThread {
-    pub fn new(
-        input_id: &InputId,
-        receiver: Receiver<bytes::Bytes>,
-        mut depayloader: Depayloader,
-    ) -> (Self, ChunksReceiver) {
-        let should_close = Arc::new(AtomicBool::new(false));
-        let (video_sender, video_receiver) = depayloader
-            .video
-            .as_ref()
-            .map(|_| unbounded())
-            .map_or((None, None), |(tx, rx)| (Some(tx), Some(rx)));
-        let (audio_sender, audio_receiver) = depayloader
-            .audio
-            .as_ref()
-            .map(|_| unbounded())
-            .map_or((None, None), |(tx, rx)| (Some(tx), Some(rx)));
-
-        let should_close2 = should_close.clone();
-        let depayloader_thread = std::thread::Builder::new()
+    let input_id = input_id.clone();
+    std::thread::Builder::new()
             .name(format!("Depayloading thread for input: {}", input_id.0))
             .spawn(move || {
                 loop {
-                    if should_close2.load(std::sync::atomic::Ordering::Relaxed) {
+                    let Ok(mut buffer) = receiver.recv() else {
+                        debug!(input_id=?input_id.0, "Closing RTP depayloader thread.");
                         return;
-                    }
-
-                    let mut buffer = receiver.recv().unwrap();
+                    };
 
                     match rtp::packet::Packet::unmarshal(&mut buffer.clone()) {
                         // https://datatracker.ietf.org/doc/html/rfc5761#section-4
@@ -270,30 +258,9 @@ impl DepayloaderThread {
             })
             .unwrap();
 
-        let sender_thread = DepayloaderThread {
-            should_close,
-            depayloader_thread: Some(depayloader_thread),
-        };
-
-        (
-            sender_thread,
-            ChunksReceiver {
-                video: video_receiver,
-                audio: audio_receiver,
-            },
-        )
-    }
-}
-
-impl Drop for DepayloaderThread {
-    fn drop(&mut self) {
-        self.should_close
-            .store(true, std::sync::atomic::Ordering::Relaxed);
-        if let Some(thread) = self.depayloader_thread.take() {
-            thread.join().unwrap();
-        } else {
-            error!("RTP depayloader does not hold a thread handle to the receiving thread.")
-        }
+    ChunksReceiver {
+        video: video_receiver,
+        audio: audio_receiver,
     }
 }
 
