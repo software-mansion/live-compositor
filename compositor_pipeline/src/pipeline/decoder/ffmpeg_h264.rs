@@ -3,6 +3,7 @@ use std::time::Duration;
 use crate::{
     error::DecoderInitError,
     pipeline::structs::{EncodedChunk, EncodedChunkKind, VideoCodec},
+    queue::PipelineEvent,
 };
 
 use compositor_render::{Frame, InputId, Resolution, YuvData};
@@ -20,8 +21,8 @@ pub struct H264FfmpegDecoder;
 
 impl H264FfmpegDecoder {
     pub fn new(
-        chunks_receiver: Receiver<EncodedChunk>,
-        frame_sender: Sender<Frame>,
+        chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
+        frame_sender: Sender<PipelineEvent<Frame>>,
         input_id: InputId,
     ) -> Result<Self, DecoderInitError> {
         let (init_result_sender, init_result_receiver) = crossbeam_channel::bounded(0);
@@ -72,6 +73,12 @@ impl H264FfmpegDecoder {
                 let mut decoded_frame = ffmpeg_next::frame::Video::empty();
                 let mut pts_offset = None;
                 for chunk in chunks_receiver {
+                    let chunk = match chunk {
+                        PipelineEvent::Data(chunk) => chunk,
+                        PipelineEvent::EOS => {
+                            break;
+                        },
+                    };
                     if chunk.kind != EncodedChunkKind::Video(VideoCodec::H264) {
                         error!(
                             "H264 decoder received chunk of wrong kind: {:?}",
@@ -106,11 +113,12 @@ impl H264FfmpegDecoder {
                         };
 
                         trace!(input_id=?input_id.0, pts=?frame.pts, "H264 decoder produced a frame.");
-                        if frame_sender.send(frame).is_err() {
+                        if frame_sender.send(PipelineEvent::Data(frame)).is_err() {
                             return;
                         }
                     }
                 }
+                let _ = frame_sender.send(PipelineEvent::EOS);
             })
             .unwrap();
 

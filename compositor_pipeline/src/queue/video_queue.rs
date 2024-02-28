@@ -12,6 +12,7 @@ use std::time::Instant;
 
 use super::utils::InputProcessor;
 use super::InputOptions;
+use super::PipelineEvent;
 
 pub struct VideoQueue {
     inputs: HashMap<InputId, VideoQueueInput>,
@@ -26,7 +27,12 @@ impl VideoQueue {
         }
     }
 
-    pub fn add_input(&mut self, input_id: &InputId, receiver: Receiver<Frame>, opts: InputOptions) {
+    pub fn add_input(
+        &mut self,
+        input_id: &InputId,
+        receiver: Receiver<PipelineEvent<Frame>>,
+        opts: InputOptions,
+    ) {
         self.inputs.insert(
             input_id.clone(),
             VideoQueueInput {
@@ -138,7 +144,7 @@ pub struct VideoQueueInput {
     queue: VecDeque<Frame>,
     /// Frames from the channel might have any PTS, they need to be processed
     /// before adding them to the `queue`.
-    receiver: Receiver<Frame>,
+    receiver: Receiver<PipelineEvent<Frame>>,
     /// Initial buffering + resets PTS to values starting with 0. All
     /// frames from receiver should be processed by this element.
     input_frames_processor: InputProcessor<Frame>,
@@ -160,7 +166,7 @@ impl VideoQueueInput {
         let Some(input_start_time) = self.input_start_time() else {
             return None;
         };
-        match self.offset {
+        let frame = match self.offset {
             // if stream should not start yet, do not send any frames
             Some(offset) if offset > buffer_pts => None,
             // if stream is started then take the frames
@@ -172,7 +178,14 @@ impl VideoQueueInput {
                 frame.pts = (input_start_time + frame.pts).duration_since(queue_start);
                 frame
             }),
+        };
+        // Handle a case where we have last frame and received EOS.
+        // "drop_old_frames" is ensuring that there will only be one frame at
+        // the end.
+        if self.input_frames_processor.did_receive_eos() && self.queue.len() == 1 {
+            self.queue.pop_front();
         }
+        frame
     }
 
     /// Check if the input has enough data in the queue to produce frames for `next_buffer_pts`.
@@ -183,6 +196,10 @@ impl VideoQueueInput {
     /// so when all inputs queues have frames with pts larger or equal than buffer timestamp,
     /// the queue won't receive frames with pts "closer" to buffer pts.
     fn check_ready_for_pts(&mut self, next_buffer_pts: Duration, queue_start: Instant) -> bool {
+        if self.input_frames_processor.did_receive_eos() {
+            return true;
+        }
+
         let Some(next_buffer_pts) = self.input_pts_from_queue_pts(next_buffer_pts, queue_start)
         else {
             return match self.offset {
@@ -296,11 +313,7 @@ impl VideoQueueInput {
 
     fn try_enqueue_frame(&mut self) -> Result<(), TryRecvError> {
         let frame = self.receiver.try_recv()?;
-        let original_pts = frame.pts;
-
-        let mut frames = self
-            .input_frames_processor
-            .process_new_chunk(frame, original_pts);
+        let mut frames = self.input_frames_processor.process_new_chunk(frame);
         self.queue.append(&mut frames);
 
         Ok(())

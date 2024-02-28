@@ -27,13 +27,11 @@ const DEFAULT_AUDIO_CHUNK_DURATION: Duration = Duration::from_millis(20); // typ
 /// Queue is responsible for consuming frames from different inputs and producing
 /// sets of frames from all inputs in a single batch.
 ///
-/// PTS after frame is enqueued:
-/// - PTS=0 should represent clock_start instant for each input.
-/// - Queue is force pushing frames when time that represents the next PTS
-///   is earlier than Instant.now(). We don't need any buffering because we
-///   are blocking on the first frame of each input.
-/// - Technically real_pts = frame.pts - buffer_duration, but because relative value
-///   does not matter we don't need to take that into account.
+/// - PTS of inputs streams can be in any frame of reference.
+/// - PTS of frames stored in queue are in a frame of reference where PTS=0 represents.
+///   first frame/packet.
+/// - PTS of output frames is in a frame of reference where PTS=0 represents
+///   start request.
 pub struct Queue {
     video_queue: Mutex<VideoQueue>,
     audio_queue: Mutex<AudioQueue>,
@@ -67,6 +65,20 @@ pub struct QueueOptions {
 pub struct ScheduledEvent {
     pts: Duration,
     callback: Box<dyn FnOnce() + Send>,
+}
+
+pub enum PipelineEvent<T> {
+    Data(T),
+    EOS,
+}
+
+impl<T: Clone> Clone for PipelineEvent<T> {
+    fn clone(&self) -> Self {
+        match self {
+            PipelineEvent::Data(data) => PipelineEvent::Data(data.clone()),
+            PipelineEvent::EOS => PipelineEvent::EOS,
+        }
+    }
 }
 
 impl Queue {

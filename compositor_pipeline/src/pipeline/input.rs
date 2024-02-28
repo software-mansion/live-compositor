@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use crate::error::InputInitError;
+use crate::{error::InputInitError, queue::PipelineEvent};
 
 use crossbeam_channel::Receiver;
 use rtp::{RtpReceiver, RtpReceiverOptions};
@@ -50,6 +50,6 @@ pub enum InputOptions {
 
 #[derive(Debug)]
 pub struct ChunksReceiver {
-    pub video: Option<Receiver<EncodedChunk>>,
-    pub audio: Option<Receiver<EncodedChunk>>,
+    pub video: Option<Receiver<PipelineEvent<EncodedChunk>>>,
+    pub audio: Option<Receiver<PipelineEvent<EncodedChunk>>>,
 }
