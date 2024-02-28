@@ -1447,8 +1447,7 @@ dependencies = [
 [[package]]
 name = "mp4"
 version = "0.14.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c9ef834d5ed55e494a2ae350220314dc4aacd1c43a9498b00e320e0ea352a5c3"
+source = "git+https://github.com/membraneframework-labs/mp4-rust.git?branch=avc3-box#a1cd3dd4e5505850b970ac55fc6bab36fe0a79b0"
 dependencies = [
  "byteorder",
  "bytes",
