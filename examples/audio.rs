@@ -4,7 +4,7 @@ use serde_json::json;
 use std::{
     env, fs,
     process::{Command, Stdio},
-    thread::{self, spawn},
+    thread::{self},
     time::Duration,
 };
 use video_compositor::{config::config, http, logger, types::Resolution};
@@ -67,7 +67,8 @@ fn start_example_client_code() -> Result<()> {
         "port": 8006,
         "video": {
             "codec": "h264"
-        }
+        },
+        // "offset_ms": 1000,
     }))?;
 
     info!("[example] Send register input request.");
@@ -80,7 +81,8 @@ fn start_example_client_code() -> Result<()> {
             "codec": "opus",
             "sample_rate": 48_000,
             "channels": "stereo",
-        }
+        },
+        // "offset_ms": 1000,
     }))?;
 
     info!("[example] Send register input request.");
@@ -91,7 +93,8 @@ fn start_example_client_code() -> Result<()> {
         "port": 8010,
         "video": {
             "codec": "h264"
-        }
+        },
+        // "offset_ms": 1000,
     }))?;
 
     info!("[example] Send register input request.");
@@ -104,7 +107,8 @@ fn start_example_client_code() -> Result<()> {
             "codec": "opus",
             "sample_rate": 48_000,
             "channels": "stereo",
-        }
+        },
+        // "offset_ms": 1000,
     }))?;
 
     info!("[example] Send register output request.");
@@ -163,76 +167,64 @@ fn start_example_client_code() -> Result<()> {
     }))?;
 
     let path = sintel_path.clone();
-    spawn(move || {
-        Command::new("ffmpeg")
-            .args(["-stream_loop", "-1", "-re", "-i"])
-            .arg(path.clone())
-            .args([
-                "-an",
-                "-c:v",
-                "copy",
-                "-f",
-                "rtp",
-                "-bsf:v",
-                "h264_mp4toannexb",
-                "rtp://127.0.0.1:8006?rtcpport=8006",
-            ])
-            .spawn()
-            .map_err(|err| error!("FFmpeg error: {}", err))
-    });
+    Command::new("ffmpeg")
+        .args(["-stream_loop", "-1", "-re", "-i"])
+        .arg(path.clone())
+        .args([
+            "-an",
+            "-c:v",
+            "copy",
+            "-f",
+            "rtp",
+            "-bsf:v",
+            "h264_mp4toannexb",
+            "rtp://127.0.0.1:8006?rtcpport=8006",
+        ])
+        .spawn()?;
 
     let path = sintel_path.clone();
-    spawn(move || {
-        Command::new("ffmpeg")
-            .args(["-re", "-i"])
-            .arg(path)
-            .args([
-                "-vn",
-                "-c:a",
-                "libopus",
-                "-f",
-                "rtp",
-                "rtp://127.0.0.1:8008?rtcpport=8008",
-            ])
-            .spawn()
-            .map_err(|err| error!("FFmpeg error: {}", err))
-    });
+    Command::new("ffmpeg")
+        .args(["-re", "-i"])
+        .arg(path)
+        .args([
+            "-vn",
+            "-c:a",
+            "libopus",
+            "-f",
+            "rtp",
+            "rtp://127.0.0.1:8008?rtcpport=8008",
+        ])
+        .spawn()?;
 
     let path = bunny_path.clone();
-    spawn(move || {
-        Command::new("ffmpeg")
-            .args(["-stream_loop", "-1", "-re", "-i"])
-            .arg(path.clone())
-            .args([
-                "-an",
-                "-c:v",
-                "copy",
-                "-f",
-                "rtp",
-                "-bsf:v",
-                "h264_mp4toannexb",
-                "rtp://127.0.0.1:8010?rtcpport=8010",
-            ])
-            .spawn()
-            .map_err(|err| error!("FFmpeg error: {}", err))
-    });
+    Command::new("ffmpeg")
+        .args(["-stream_loop", "-1", "-re", "-i"])
+        .arg(path.clone())
+        .args([
+            "-an",
+            "-c:v",
+            "copy",
+            "-f",
+            "rtp",
+            "-bsf:v",
+            "h264_mp4toannexb",
+            "rtp://127.0.0.1:8010?rtcpport=8010",
+        ])
+        .spawn()?;
 
     let path = bunny_path.clone();
-    spawn(move || {
-        Command::new("ffmpeg")
-            .args(["-re", "-i"])
-            .arg(path)
-            .args([
-                "-vn",
-                "-c:a",
-                "libopus",
-                "-f",
-                "rtp",
-                "rtp://127.0.0.1:8012?rtcpport=8012",
-            ])
-            .spawn()
-            .map_err(|err| error!("FFmpeg error: {}", err))
-    });
+    Command::new("ffmpeg")
+        .args(["-re", "-i"])
+        .arg(path)
+        .args([
+            "-vn",
+            "-c:a",
+            "libopus",
+            "-f",
+            "rtp",
+            "rtp://127.0.0.1:8012?rtcpport=8012",
+        ])
+        .spawn()?;
 
     Ok(())
 }
