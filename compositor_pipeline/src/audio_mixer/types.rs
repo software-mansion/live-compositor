@@ -10,6 +10,8 @@ pub struct AudioMixingParams {
 #[derive(Debug, Clone)]
 pub struct InputParams {
     pub input_id: InputId,
+    // [0, 1] range of input volume
+    pub volume: f32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

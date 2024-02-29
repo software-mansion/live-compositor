@@ -50,7 +50,6 @@ impl TryFrom<RtpInputStream> for (compositor_render::InputId, pipeline::Register
                 options: match audio.clone().codec.unwrap_or(AudioCodec::Opus) {
                     AudioCodec::Opus => {
                         decoder::AudioDecoderOptions::Opus(decoder::OpusDecoderOptions {
-                            sample_rate: audio.sample_rate,
                             channels: audio.clone().channels.into(),
                             forward_error_correction: audio
                                 .forward_error_correction
@@ -227,12 +226,15 @@ impl TryFrom<RegisterOutputRequest> for pipeline::RegisterOutputOptions {
             None => None,
         };
 
-        let output_audio_options = audio.clone().map(|a| pipeline::OutputAudioOptions {
-            initial: a.initial.into(),
-            channels: a.channels.into(),
-            forward_error_correction: a.forward_error_correction.unwrap_or(false),
-            encoder_preset: a.encoder_preset.unwrap_or(AudioEncoderPreset::Voip).into(),
-        });
+        let output_audio_options = match audio.clone() {
+            Some(a) => Some(pipeline::OutputAudioOptions {
+                initial: a.initial.try_into()?,
+                channels: a.channels.into(),
+                forward_error_correction: a.forward_error_correction.unwrap_or(false),
+                encoder_preset: a.encoder_preset.unwrap_or(AudioEncoderPreset::Voip).into(),
+            }),
+            None => None,
+        };
 
         let connection_options = match transport_protocol.unwrap_or(TransportProtocol::Udp) {
             TransportProtocol::Udp => {

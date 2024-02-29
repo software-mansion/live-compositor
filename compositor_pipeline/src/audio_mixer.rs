@@ -4,7 +4,7 @@ use compositor_render::{error::UpdateSceneError, OutputId};
 
 use self::{
     internal_audio_mixer::InternalAudioMixer,
-    types::{AudioMixingParams, AudioSamplesSet, OutputSamples},
+    types::{AudioChannels, AudioMixingParams, AudioSamplesSet, OutputSamples},
 };
 
 mod internal_audio_mixer;
@@ -14,16 +14,26 @@ pub mod types;
 pub(super) struct AudioMixer(Arc<Mutex<InternalAudioMixer>>);
 
 impl AudioMixer {
-    pub fn new() -> Self {
-        Self(Arc::new(Mutex::new(InternalAudioMixer::new())))
+    pub fn new(output_sample_rate: u32) -> Self {
+        Self(Arc::new(Mutex::new(InternalAudioMixer::new(
+            output_sample_rate,
+        ))))
     }
 
     pub fn mix_samples(&self, samples_set: AudioSamplesSet) -> OutputSamples {
         self.0.lock().unwrap().mix_samples(samples_set)
     }
 
-    pub fn register_output(&self, output_id: OutputId, audio: AudioMixingParams) {
-        self.0.lock().unwrap().register_output(output_id, audio)
+    pub fn register_output(
+        &self,
+        output_id: OutputId,
+        audio: AudioMixingParams,
+        channels: AudioChannels,
+    ) {
+        self.0
+            .lock()
+            .unwrap()
+            .register_output(output_id, audio, channels)
     }
 
     pub fn unregister_output(&self, output_id: &OutputId) {

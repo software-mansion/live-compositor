@@ -1881,6 +1881,13 @@
       "properties": {
         "input_id": {
           "$ref": "#/definitions/InputId"
+        },
+        "volume": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "float"
         }
       }
     },

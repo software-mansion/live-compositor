@@ -130,7 +130,7 @@ impl Pipeline {
             inputs: HashMap::new(),
             queue: Queue::new(opts.queue_options),
             renderer,
-            audio_mixer: AudioMixer::new(),
+            audio_mixer: AudioMixer::new(opts.output_sample_rate),
             is_started: false,
             download_dir,
             output_sample_rate: opts.output_sample_rate,
@@ -160,8 +160,12 @@ impl Pipeline {
             return Err(RegisterInputError::AlreadyRegistered(input_id));
         }
 
-        let (pipeline_input, receiver, port) =
-            new_pipeline_input(&input_id, input_options, &self.download_dir)?;
+        let (pipeline_input, receiver, port) = new_pipeline_input(
+            &input_id,
+            input_options,
+            &self.download_dir,
+            self.output_sample_rate,
+        )?;
 
         self.inputs.insert(input_id.clone(), pipeline_input.into());
         self.queue.add_input(&input_id, receiver, queue_options);
@@ -203,8 +207,11 @@ impl Pipeline {
         self.outputs.insert(output_id.clone(), Arc::new(output));
 
         if let Some(audio_opts) = audio.clone() {
-            self.audio_mixer
-                .register_output(output_id.clone(), audio_opts.initial);
+            self.audio_mixer.register_output(
+                output_id.clone(),
+                audio_opts.initial,
+                audio_opts.channels,
+            );
         }
 
         self.update_output(

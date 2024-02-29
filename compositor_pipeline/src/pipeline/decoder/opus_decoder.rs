@@ -18,15 +18,24 @@ pub struct OpusDecoder;
 impl OpusDecoder {
     pub fn new(
         opts: OpusDecoderOptions,
+        output_sample_rate: u32,
         chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
         sample_sender: Sender<PipelineEvent<AudioSamplesBatch>>,
         input_id: InputId,
     ) -> Result<Self, DecoderInitError> {
-        let decoder = opus::Decoder::new(opts.sample_rate, opts.channels.into())?;
+        let decoder = opus::Decoder::new(output_sample_rate, opts.channels.into())?;
 
         std::thread::Builder::new()
             .name(format!("opus decoder {}", input_id.0))
-            .spawn(move || Self::run_decoding_thread(decoder, opts, chunks_receiver, sample_sender))
+            .spawn(move || {
+                Self::run_decoding_thread(
+                    decoder,
+                    opts,
+                    output_sample_rate,
+                    chunks_receiver,
+                    sample_sender,
+                )
+            })
             .unwrap();
 
         Ok(Self)
@@ -35,6 +44,7 @@ impl OpusDecoder {
     fn run_decoding_thread(
         mut decoder: opus::Decoder,
         opts: OpusDecoderOptions,
+        output_sample_rate: u32,
         chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
         sample_sender: Sender<PipelineEvent<AudioSamplesBatch>>,
     ) {
@@ -74,7 +84,7 @@ impl OpusDecoder {
             let samples = AudioSamplesBatch {
                 samples: Arc::new(samples),
                 start_pts: chunk.pts,
-                sample_rate: opts.sample_rate,
+                sample_rate: output_sample_rate,
             };
 
             if sample_sender.send(PipelineEvent::Data(samples)).is_err() {

@@ -4,7 +4,7 @@ use serde_json::json;
 use std::{
     env, fs,
     process::{Command, Stdio},
-    thread,
+    thread::{self, spawn},
     time::Duration,
 };
 use video_compositor::{config::config, http, logger, types::Resolution};
@@ -14,9 +14,12 @@ use crate::common::write_video_audio_example_sdp_file;
 #[path = "./common/common.rs"]
 mod common;
 
-const SAMPLE_FILE_URL: &str =
+const BUNNY_FILE_URL: &str =
     "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
-const SAMPLE_FILE_PATH: &str = "examples/assets/BigBuckBunny.mp4";
+const SINTEL_FILE_URL: &str =
+    "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4";
+const BUNNY_FILE_PATH: &str = "examples/assets/BigBuckBunny.mp4";
+const SINTEL_FILE_PATH: &str = "examples/assets/Sintel.mp4";
 const VIDEO_RESOLUTION: Resolution = Resolution {
     width: 1280,
     height: 720,
@@ -38,7 +41,7 @@ fn main() {
 
 fn start_example_client_code() -> Result<()> {
     info!("[example] Start listening on output port.");
-    let output_sdp = write_video_audio_example_sdp_file("127.0.0.1", 8002, 8010)?;
+    let output_sdp = write_video_audio_example_sdp_file("127.0.0.1", 8002, 8004)?;
     Command::new("ffplay")
         .args(["-protocol_whitelist", "file,rtp,udp", &output_sdp])
         .stdout(Stdio::null())
@@ -47,16 +50,21 @@ fn start_example_client_code() -> Result<()> {
     thread::sleep(Duration::from_secs(2));
 
     info!("[example] Download sample.");
-    let sample_path = env::current_dir()?.join(SAMPLE_FILE_PATH);
-    fs::create_dir_all(sample_path.parent().unwrap())?;
-    common::ensure_downloaded(SAMPLE_FILE_URL, &sample_path)?;
+    let bunny_path = env::current_dir()?.join(BUNNY_FILE_PATH);
+    fs::create_dir_all(bunny_path.parent().unwrap())?;
+    common::ensure_downloaded(BUNNY_FILE_URL, &bunny_path)?;
+
+    info!("[example] Download sample.");
+    let sintel_path = env::current_dir()?.join(SINTEL_FILE_PATH);
+    fs::create_dir_all(sintel_path.parent().unwrap())?;
+    common::ensure_downloaded(SINTEL_FILE_URL, &sintel_path)?;
 
     info!("[example] Send register input request.");
     common::post(&json!({
         "type": "register",
         "entity_type": "rtp_input_stream",
         "input_id": "input_1",
-        "port": 8004,
+        "port": 8006,
         "video": {
             "codec": "h264"
         }
@@ -67,7 +75,31 @@ fn start_example_client_code() -> Result<()> {
         "type": "register",
         "entity_type": "rtp_input_stream",
         "input_id": "input_2",
-        "port": 8006,
+        "port": 8008,
+        "audio": {
+            "codec": "opus",
+            "sample_rate": 48_000,
+            "channels": "stereo",
+        }
+    }))?;
+
+    info!("[example] Send register input request.");
+    common::post(&json!({
+        "type": "register",
+        "entity_type": "rtp_input_stream",
+        "input_id": "input_3",
+        "port": 8010,
+        "video": {
+            "codec": "h264"
+        }
+    }))?;
+
+    info!("[example] Send register input request.");
+    common::post(&json!({
+        "type": "register",
+        "entity_type": "rtp_input_stream",
+        "input_id": "input_4",
+        "port": 8012,
         "audio": {
             "codec": "opus",
             "sample_rate": 48_000,
@@ -89,9 +121,17 @@ fn start_example_client_code() -> Result<()> {
             },
             "encoder_preset": "medium",
             "initial": {
-                "id": "input_1",
-                "type": "input_stream",
-                "input_id": "input_1",
+                "type": "tiles",
+                "children": [
+                    {
+                        "type": "input_stream",
+                        "input_id": "input_1"
+                    },
+                    {
+                        "type": "input_stream",
+                        "input_id": "input_3"
+                    }
+                ]
             },
             "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
         }
@@ -102,11 +142,14 @@ fn start_example_client_code() -> Result<()> {
         "type": "register",
         "entity_type": "output_stream",
         "output_id": "output_2",
-        "port": 8010,
+        "port": 8004,
         "ip": "127.0.0.1",
         "audio": {
             "initial": {
-                "inputs": [{"input_id": "input_2"}]
+                "inputs": [
+                    {"input_id": "input_2",  "volume": 0.3},
+                    {"input_id": "input_4"}
+                ]
             },
             "channels": "stereo"
         }
@@ -119,33 +162,77 @@ fn start_example_client_code() -> Result<()> {
         "type": "start",
     }))?;
 
-    Command::new("ffmpeg")
-        .args(["-stream_loop", "-1", "-re", "-i"])
-        .arg(sample_path.clone())
-        .args([
-            "-an",
-            "-c:v",
-            "copy",
-            "-f",
-            "rtp",
-            "-bsf:v",
-            "h264_mp4toannexb",
-            "rtp://127.0.0.1:8004?rtcpport=8004",
-        ])
-        .spawn()?;
+    let path = sintel_path.clone();
+    spawn(move || {
+        Command::new("ffmpeg")
+            .args(["-stream_loop", "-1", "-re", "-i"])
+            .arg(path.clone())
+            .args([
+                "-an",
+                "-c:v",
+                "copy",
+                "-f",
+                "rtp",
+                "-bsf:v",
+                "h264_mp4toannexb",
+                "rtp://127.0.0.1:8006?rtcpport=8006",
+            ])
+            .spawn()
+            .map_err(|err| error!("FFmpeg error: {}", err))
+    });
 
-    Command::new("ffmpeg")
-        .args(["-re", "-i"])
-        .arg(sample_path)
-        .args([
-            "-vn",
-            "-c:a",
-            "libopus",
-            "-f",
-            "rtp",
-            "rtp://127.0.0.1:8006?rtcpport=8006",
-        ])
-        .spawn()?;
+    let path = sintel_path.clone();
+    spawn(move || {
+        Command::new("ffmpeg")
+            .args(["-re", "-i"])
+            .arg(path)
+            .args([
+                "-vn",
+                "-c:a",
+                "libopus",
+                "-f",
+                "rtp",
+                "rtp://127.0.0.1:8008?rtcpport=8008",
+            ])
+            .spawn()
+            .map_err(|err| error!("FFmpeg error: {}", err))
+    });
+
+    let path = bunny_path.clone();
+    spawn(move || {
+        Command::new("ffmpeg")
+            .args(["-stream_loop", "-1", "-re", "-i"])
+            .arg(path.clone())
+            .args([
+                "-an",
+                "-c:v",
+                "copy",
+                "-f",
+                "rtp",
+                "-bsf:v",
+                "h264_mp4toannexb",
+                "rtp://127.0.0.1:8010?rtcpport=8010",
+            ])
+            .spawn()
+            .map_err(|err| error!("FFmpeg error: {}", err))
+    });
+
+    let path = bunny_path.clone();
+    spawn(move || {
+        Command::new("ffmpeg")
+            .args(["-re", "-i"])
+            .arg(path)
+            .args([
+                "-vn",
+                "-c:a",
+                "libopus",
+                "-f",
+                "rtp",
+                "rtp://127.0.0.1:8012?rtcpport=8012",
+            ])
+            .spawn()
+            .map_err(|err| error!("FFmpeg error: {}", err))
+    });
 
     Ok(())
 }
