@@ -125,7 +125,9 @@ impl Drop for Mp4 {
         }
 
         if let Source::Url(_) = self.source {
-            std::fs::remove_file(&self.path_to_file).unwrap();
+            if let Err(e) = std::fs::remove_file(&self.path_to_file) {
+                error!(input_id=?self.input_id.0, "Error while removing the downloaded mp4 file: {e}");
+            }
         }
     }
 }
