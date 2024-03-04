@@ -58,13 +58,11 @@ pub struct RtpReceiverOptions {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InputVideoStream {
     pub options: decoder::VideoDecoderOptions,
-    pub payload_type: u8,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InputAudioStream {
     pub options: decoder::AudioDecoderOptions,
-    pub payload_type: u8,
 }
 
 pub struct OutputAudioStream {

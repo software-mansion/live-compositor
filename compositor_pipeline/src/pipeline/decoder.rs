@@ -1,8 +1,4 @@
-use crate::{
-    audio_mixer::types::{AudioChannels, AudioSamplesBatch},
-    error::DecoderInitError,
-    queue::PipelineEvent,
-};
+use crate::{audio_mixer::types::AudioSamplesBatch, error::DecoderInitError, queue::PipelineEvent};
 
 use self::{fdk_aac::FdkAacDecoder, ffmpeg_h264::H264FfmpegDecoder, opus_decoder::OpusDecoder};
 
@@ -37,6 +33,7 @@ impl Decoder {
         input_id: InputId,
         chunks: ChunksReceiver,
         decoder_options: DecoderOptions,
+        output_sample_rate: u32,
     ) -> Result<(Self, DecodedDataReceiver), DecoderInitError> {
         let DecoderOptions {
             video: video_decoder_opt,
@@ -66,7 +63,13 @@ impl Decoder {
             if let (Some(opt), Some(audio_receiver)) = (audio_decoder_opt, audio_receiver) {
                 let (sender, receiver) = bounded(10);
                 (
-                    Some(AudioDecoder::new(opt, audio_receiver, sender, input_id)?),
+                    Some(AudioDecoder::new(
+                        opt,
+                        output_sample_rate,
+                        audio_receiver,
+                        sender,
+                        input_id,
+                    )?),
                     Some(receiver),
                 )
             } else {
@@ -94,6 +97,7 @@ pub enum AudioDecoder {
 impl AudioDecoder {
     pub fn new(
         opts: AudioDecoderOptions,
+        output_sample_rate: u32,
         chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
         samples_sender: Sender<PipelineEvent<AudioSamplesBatch>>,
         input_id: InputId,
@@ -101,6 +105,7 @@ impl AudioDecoder {
         match opts {
             AudioDecoderOptions::Opus(opus_opt) => Ok(AudioDecoder::Opus(OpusDecoder::new(
                 opus_opt,
+                output_sample_rate,
                 chunks_receiver,
                 samples_sender,
                 input_id,
@@ -150,8 +155,6 @@ pub enum AudioDecoderOptions {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OpusDecoderOptions {
-    pub sample_rate: u32,
-    pub channels: AudioChannels,
     pub forward_error_correction: bool,
 }
 

@@ -165,7 +165,7 @@ impl Api {
             Some(component) => Some(component.try_into()?),
             None => None,
         };
-        let audio = update.audio.map(|a| a.into());
+        let audio = update.audio.map(|a| a.try_into()).transpose()?;
 
         match update.schedule_time_ms {
             Some(schedule_time_ms) => {

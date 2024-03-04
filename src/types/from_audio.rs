@@ -1,23 +1,30 @@
-use super::{Audio, InputAudio};
+use super::{Audio, InputAudio, TypeError};
 
-impl From<Audio> for compositor_pipeline::audio_mixer::types::AudioMixingParams {
-    fn from(value: Audio) -> Self {
-        let mixed_inputs = value
-            .inputs
-            .iter()
-            .map(|input_params| input_params.clone().into())
-            .collect();
+impl TryFrom<Audio> for compositor_pipeline::audio_mixer::types::AudioMixingParams {
+    type Error = TypeError;
 
-        Self {
-            inputs: mixed_inputs,
+    fn try_from(value: Audio) -> Result<Self, Self::Error> {
+        let mut inputs = Vec::with_capacity(value.inputs.len());
+        for input in value.inputs {
+            inputs.push(input.try_into()?);
         }
+
+        Ok(Self { inputs })
     }
 }
 
-impl From<InputAudio> for compositor_pipeline::audio_mixer::types::InputParams {
-    fn from(value: InputAudio) -> Self {
-        Self {
-            input_id: value.input_id.into(),
+impl TryFrom<InputAudio> for compositor_pipeline::audio_mixer::types::InputParams {
+    type Error = TypeError;
+
+    fn try_from(value: InputAudio) -> Result<Self, Self::Error> {
+        if let Some(volume) = value.volume {
+            if !(0.0..=1.0).contains(&volume) {
+                return Err(TypeError::new("Input volume has to be in [0, 1] range."));
+            }
         }
+        Ok(Self {
+            input_id: value.input_id.into(),
+            volume: value.volume.unwrap_or(1.0),
+        })
     }
 }

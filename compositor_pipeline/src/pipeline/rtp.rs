@@ -2,6 +2,9 @@ use std::net;
 
 use super::Port;
 
+pub(crate) const VIDEO_PAYLOAD_TYPE: u8 = 96;
+pub(crate) const AUDIO_PAYLOAD_TYPE: u8 = 97;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TransportProtocol {
     Udp,
@@ -13,9 +16,6 @@ pub(super) enum BindToPortError {
     PortAlreadyInUse(u16),
     AllPortsAlreadyInUse { lower_bound: u16, upper_bound: u16 },
 }
-
-#[derive(Debug, Clone)]
-pub struct PayloadType(pub u8);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RequestedPort {

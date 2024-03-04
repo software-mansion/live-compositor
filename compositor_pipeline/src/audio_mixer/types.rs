@@ -10,6 +10,8 @@ pub struct AudioMixingParams {
 #[derive(Debug, Clone)]
 pub struct InputParams {
     pub input_id: InputId,
+    // [0, 1] range of input volume
+    pub volume: f32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -35,17 +37,23 @@ pub struct AudioSamplesBatch {
     pub sample_rate: u32,
 }
 
+#[derive(Clone)]
+pub enum AudioSamples {
+    Mono(Vec<i16>),
+    Stereo(Vec<(i16, i16)>),
+}
+
+impl AudioSamplesSet {
+    pub fn duration(&self) -> Duration {
+        self.end_pts.saturating_sub(self.start_pts)
+    }
+}
+
 impl AudioSamplesBatch {
     pub fn end_pts(&self) -> Duration {
         self.start_pts
             + Duration::from_secs_f64(self.samples.len() as f64 / self.sample_rate as f64)
     }
-}
-
-#[derive(Clone)]
-pub enum AudioSamples {
-    Mono(Vec<i16>),
-    Stereo(Vec<(i16, i16)>),
 }
 
 impl AudioSamples {

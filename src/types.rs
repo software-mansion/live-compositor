@@ -82,6 +82,8 @@ pub struct Audio {
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 pub struct InputAudio {
     input_id: InputId,
+    // (**default=`1.0`**) float in [0, 1] range representing input volume
+    volume: Option<f32>,
 }
 
 impl Display for InputId {
