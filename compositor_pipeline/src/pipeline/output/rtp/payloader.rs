@@ -5,9 +5,13 @@ use rand::Rng;
 use rtp::codecs::{h264::H264Payloader, opus::OpusPayloader};
 
 use crate::pipeline::{
+    rtp::{AUDIO_PAYLOAD_TYPE, VIDEO_PAYLOAD_TYPE},
     structs::{EncodedChunk, EncodedChunkKind},
     AudioCodec, VideoCodec,
 };
+
+const H264_CLOCK_RATE: u32 = 90000;
+const OPUS_CLOCK_RATE: u32 = 48000;
 
 struct RtpStreamContext {
     ssrc: u32,
@@ -149,7 +153,14 @@ impl VideoPayloader {
             VideoPayloader::H264 {
                 ref mut payloader,
                 ref mut context,
-            } => payload(payloader, context, chunk, mtu, 96),
+            } => payload(
+                payloader,
+                context,
+                chunk,
+                mtu,
+                VIDEO_PAYLOAD_TYPE,
+                H264_CLOCK_RATE,
+            ),
         }
     }
 }
@@ -180,7 +191,14 @@ impl AudioPayloader {
             AudioPayloader::Opus {
                 ref mut payloader,
                 ref mut context,
-            } => payload(payloader, context, chunk, mtu, 97),
+            } => payload(
+                payloader,
+                context,
+                chunk,
+                mtu,
+                AUDIO_PAYLOAD_TYPE,
+                OPUS_CLOCK_RATE,
+            ),
         }
     }
 }
@@ -191,6 +209,7 @@ fn payload<T: rtp::packetizer::Payloader>(
     chunk: EncodedChunk,
     mtu: usize,
     payload_type: u8,
+    clock_rate: u32,
 ) -> Result<Vec<rtp::packet::Packet>, PayloadingError> {
     let payloads = payloader.payload(mtu, &chunk.data)?;
     let packets_amount = payloads.len();
@@ -206,7 +225,7 @@ fn payload<T: rtp::packetizer::Payloader>(
                 marker: i == packets_amount - 1, // marker needs to be set on the last packet of each frame
                 payload_type,
                 sequence_number: context.next_sequence_number,
-                timestamp: (chunk.pts.as_secs_f64() * 90000.0) as u32,
+                timestamp: (chunk.pts.as_secs_f64() * clock_rate as f64) as u32,
                 ssrc: context.ssrc,
                 ..Default::default()
             };

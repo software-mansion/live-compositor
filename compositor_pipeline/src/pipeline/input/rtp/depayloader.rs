@@ -8,6 +8,7 @@ use rtp::{
 
 use crate::pipeline::{
     decoder,
+    rtp::{AUDIO_PAYLOAD_TYPE, VIDEO_PAYLOAD_TYPE},
     structs::{AudioCodec, EncodedChunk, EncodedChunkKind, VideoCodec},
 };
 
@@ -46,13 +47,13 @@ impl Depayloader {
         packet: rtp::packet::Packet,
     ) -> Result<Option<EncodedChunk>, DepayloadingError> {
         match packet.header.payload_type {
-            96 => match self.video.as_mut() {
+            VIDEO_PAYLOAD_TYPE => match self.video.as_mut() {
                 Some(video_depayloader) => video_depayloader.depayload(packet),
                 None => Err(DepayloadingError::BadPayloadType(
                     packet.header.payload_type,
                 )),
             },
-            97 => match self.audio.as_mut() {
+            AUDIO_PAYLOAD_TYPE => match self.audio.as_mut() {
                 Some(audio_depayloader) => audio_depayloader.depayload(packet),
                 None => Err(DepayloadingError::BadPayloadType(
                     packet.header.payload_type,

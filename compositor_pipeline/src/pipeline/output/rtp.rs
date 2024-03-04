@@ -6,7 +6,7 @@ use std::{
     time::Duration,
     u16,
 };
-use tracing::{debug, error};
+use tracing::{debug, error, trace};
 
 use webrtc_util::Marshal;
 
@@ -153,6 +153,7 @@ fn run_tcp_sender_thread(
             let Some(chunk) = packets.next() else {
                 return;
             };
+            let pts = chunk.pts;
 
             let packets = match context.payloader.payload(64000, chunk) {
                 Ok(p) => p,
@@ -171,6 +172,7 @@ fn run_tcp_sender_thread(
                     }
                 };
 
+                trace!(size_bytes = packet.len(), pts=?pts, "Send RTP TCP packet.");
                 if let Err(err) = socket.write_packet(packet) {
                     debug!("Failed to send packet: {err}");
                     // if should_close is true it will exit at the beginning of the next loop
@@ -188,6 +190,7 @@ fn run_udp_sender_thread(
     packets: Box<dyn Iterator<Item = EncodedChunk> + Send>,
 ) {
     for chunk in packets {
+        let pts = chunk.pts;
         // TODO: check if this is h264
         let packets = match context.payloader.payload(1400, chunk) {
             Ok(p) => p,
@@ -206,6 +209,7 @@ fn run_udp_sender_thread(
                 }
             };
 
+            trace!(size_bytes = packet.len(), pts=?pts, "Send RTP UDP packet.");
             if let Err(err) = context.socket.send(&packet) {
                 debug!("Failed to send packet: {err}");
             };

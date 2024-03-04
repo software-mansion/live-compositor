@@ -13,6 +13,7 @@ use compositor_render::InputId;
 use crossbeam_channel::{Receiver, SendTimeoutError, Sender};
 use mp4::Mp4Reader;
 use symphonia::core::formats::FormatReader;
+use tracing::{debug, error, warn};
 
 use crate::{
     pipeline::{
@@ -56,28 +57,10 @@ pub enum Mp4Error {
     SymphoniaError(#[from] symphonia::core::errors::Error),
 }
 
-struct JoinableThread {
-    join_handle: Option<std::thread::JoinHandle<()>>,
-    stop_signal: Arc<AtomicBool>,
-}
-
-impl Drop for JoinableThread {
-    fn drop(&mut self) {
-        self.stop_signal
-            .store(true, std::sync::atomic::Ordering::Relaxed);
-        let Some(handle) = self.join_handle.take() else {
-            log::error!("Cannot join MP4 reader thread: no handle");
-            return;
-        };
-
-        handle.join().unwrap();
-    }
-}
-
 pub struct Mp4 {
     pub input_id: InputId,
-    video_thread: Option<JoinableThread>,
-    audio_thread: Option<JoinableThread>,
+    stop_video_thread: Option<Arc<AtomicBool>>,
+    stop_audio_thread: Option<Arc<AtomicBool>>,
     source: Source,
     path_to_file: PathBuf,
 }
@@ -114,8 +97,8 @@ impl Mp4 {
         Ok((
             Self {
                 input_id: options.input_id,
-                video_thread: video_reader_info.thread,
-                audio_thread: audio_reader_info.thread,
+                stop_video_thread: video_reader_info.stop_thread,
+                stop_audio_thread: audio_reader_info.stop_thread,
                 source: options.source,
                 path_to_file: input_path,
             },
@@ -133,17 +116,25 @@ impl Mp4 {
 
 impl Drop for Mp4 {
     fn drop(&mut self) {
-        drop(self.video_thread.take());
-        drop(self.audio_thread.take());
+        if let Some(stop_video) = &self.stop_video_thread {
+            stop_video.store(true, std::sync::atomic::Ordering::Relaxed);
+        }
+
+        if let Some(stop_audio) = &self.stop_audio_thread {
+            stop_audio.store(true, std::sync::atomic::Ordering::Relaxed);
+        }
+
         if let Source::Url(_) = self.source {
-            std::fs::remove_file(&self.path_to_file).unwrap();
+            if let Err(e) = std::fs::remove_file(&self.path_to_file) {
+                error!(input_id=?self.input_id.0, "Error while removing the downloaded mp4 file: {e}");
+            }
         }
     }
 }
 
 #[derive(Default)]
 struct VideoReaderInfo {
-    thread: Option<JoinableThread>,
+    stop_thread: Option<Arc<AtomicBool>>,
     receiver: Option<Receiver<PipelineEvent<EncodedChunk>>>,
     options: Option<VideoDecoderOptions>,
 }
@@ -202,7 +193,7 @@ fn spawn_video_reader(input_path: &Path, input_id: InputId) -> Result<VideoReade
     let timescale = track.timescale();
     let length_size = avc1.avcc.length_size_minus_one + 1;
 
-    let thread = std::thread::Builder::new()
+    std::thread::Builder::new()
         .name(format!("mp4 video reader {input_id}"))
         .spawn(move || {
             run_video_thread(
@@ -216,15 +207,14 @@ fn spawn_video_reader(input_path: &Path, input_id: InputId) -> Result<VideoReade
                     timescale,
                     track_id,
                 },
-            )
+                input_id.clone(),
+            );
+            debug!(input_id=?input_id.0, "Closing MP4 video reader thread");
         })
         .unwrap();
 
     Ok(VideoReaderInfo {
-        thread: Some(JoinableThread {
-            join_handle: Some(thread),
-            stop_signal: stop_thread,
-        }),
+        stop_thread: Some(stop_thread),
         receiver: Some(receiver),
         options: Some(VideoDecoderOptions {
             codec: VideoCodec::H264,
@@ -249,6 +239,7 @@ fn run_video_thread(
         track_id,
         timescale,
     }: TrackInfo,
+    input_id: InputId,
 ) {
     for i in 1..sample_count {
         match reader.read_sample(track_id, i) {
@@ -295,13 +286,13 @@ fn run_video_thread(
                 };
 
                 if let ControlFlow::Break(_) =
-                    send_chunk(PipelineEvent::Data(chunk), &sender, &stop_thread)
+                    send_chunk(PipelineEvent::Data(chunk), &sender, &stop_thread, &input_id)
                 {
                     break;
                 }
             }
             Err(e) => {
-                log::warn!("Error while reading MP4 video sample: {:?}", e)
+                warn!(input_id=?input_id.0, "Error while reading MP4 video sample: {:?}", e);
             }
             _ => {}
         }
@@ -311,7 +302,7 @@ fn run_video_thread(
 
 #[derive(Default)]
 struct AudioReaderInfo {
-    thread: Option<JoinableThread>,
+    stop_thread: Option<Arc<AtomicBool>>,
     receiver: Option<Receiver<PipelineEvent<EncodedChunk>>>,
     options: Option<AudioDecoderOptions>,
 }
@@ -369,16 +360,22 @@ fn spawn_audio_reader(input_path: &Path, input_id: InputId) -> Result<AudioReade
     let (sender, receiver) = crossbeam_channel::bounded(50);
     let cloned_track = track.clone();
 
-    let handle = std::thread::Builder::new()
+    std::thread::Builder::new()
         .name(format!("mp4 audio reader {input_id}"))
-        .spawn(move || run_audio_thread(cloned_track, reader, sender, stop_thread_clone))
+        .spawn(move || {
+            run_audio_thread(
+                cloned_track,
+                reader,
+                sender,
+                stop_thread_clone,
+                input_id.clone(),
+            );
+            debug!(input_id=?input_id.0, "Closing MP4 audio reader thread");
+        })
         .unwrap();
 
     Ok(AudioReaderInfo {
-        thread: Some(JoinableThread {
-            join_handle: Some(handle),
-            stop_signal: stop_thread,
-        }),
+        stop_thread: Some(stop_thread),
         receiver: Some(receiver),
         options: Some(AudioDecoderOptions::Aac(AacDecoderOptions {
             transport,
@@ -392,6 +389,7 @@ fn run_audio_thread(
     mut reader: symphonia::default::formats::IsoMp4Reader,
     sender: Sender<PipelineEvent<EncodedChunk>>,
     stop_thread: Arc<AtomicBool>,
+    input_id: InputId,
 ) {
     while let Ok(packet) = reader.next_packet() {
         if packet.track_id() != track.id {
@@ -417,7 +415,8 @@ fn run_audio_thread(
             kind: EncodedChunkKind::Audio(crate::pipeline::AudioCodec::Aac),
         };
 
-        if let ControlFlow::Break(_) = send_chunk(PipelineEvent::Data(chunk), &sender, &stop_thread)
+        if let ControlFlow::Break(_) =
+            send_chunk(PipelineEvent::Data(chunk), &sender, &stop_thread, &input_id)
         {
             break;
         }
@@ -429,6 +428,7 @@ fn send_chunk(
     chunk: PipelineEvent<EncodedChunk>,
     sender: &Sender<PipelineEvent<EncodedChunk>>,
     stop_thread: &AtomicBool,
+    input_id: &InputId,
 ) -> ControlFlow<(), ()> {
     let mut chunk = Some(chunk);
     loop {
@@ -440,7 +440,7 @@ fn send_chunk(
                 chunk = Some(not_sent_chunk);
             }
             Err(SendTimeoutError::Disconnected(_)) => {
-                log::error!("channel disconnected unexpectedly. Terminating.");
+                error!(input_id=?input_id.0, "Channel disconnected unexpectedly while sending a chunk. Terminating the reader.");
                 return ControlFlow::Break(());
             }
         }
