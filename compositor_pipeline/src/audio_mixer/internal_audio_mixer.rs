@@ -43,11 +43,7 @@ impl InternalAudioMixer {
             samples_set: &AudioSamplesSet,
             get_samples: F,
         ) -> Vec<T> {
-            let samples_count = samples_set
-                .end_pts
-                .saturating_sub(samples_set.start_pts)
-                .as_secs_f64()
-                * output_sample_rate as f64;
+            let samples_count = samples_set.duration().as_secs_f64() * output_sample_rate as f64;
             let mut mixed = vec![T::default(); samples_count as usize];
             for input in &output_info.audio.inputs {
                 let Some(input_batches) = samples_set.samples.get(&input.input_id) else {
@@ -55,14 +51,17 @@ impl InternalAudioMixer {
                 };
                 input_batches.iter().for_each(|batch| {
                     let batch_samples = get_samples(batch);
-                    let start_sample = (batch
+                    let batch_duration_before_output_start = batch
                         .start_pts
                         .saturating_sub(samples_set.start_pts)
-                        .as_secs_f64()
-                        * output_sample_rate as f64)
-                        as usize;
-                    let end_sample = min(start_sample + batch_samples.len(), mixed.len());
-                    for i in start_sample..end_sample {
+                        .as_secs_f64();
+
+                    let start_sample_index =
+                        (batch_duration_before_output_start * output_sample_rate as f64) as usize;
+                    let end_sample_index =
+                        min(start_sample_index + batch_samples.len(), mixed.len());
+
+                    for i in start_sample_index..end_sample_index {
                         mixed[i].add_assign(batch_samples[i].mul(input.volume));
                     }
                 })
@@ -150,7 +149,6 @@ impl InternalAudioMixer {
                     AudioSamples::Stereo(samples)
                 }
             };
-
             output_samples.insert(
                 output_id.clone(),
                 AudioSamplesBatch {

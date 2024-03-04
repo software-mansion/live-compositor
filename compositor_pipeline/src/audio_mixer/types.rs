@@ -37,17 +37,23 @@ pub struct AudioSamplesBatch {
     pub sample_rate: u32,
 }
 
+#[derive(Debug, Clone)]
+pub enum AudioSamples {
+    Mono(Vec<i16>),
+    Stereo(Vec<(i16, i16)>),
+}
+
+impl AudioSamplesSet {
+    pub fn duration(&self) -> Duration {
+        self.end_pts.saturating_sub(self.start_pts)
+    }
+}
+
 impl AudioSamplesBatch {
     pub fn end_pts(&self) -> Duration {
         self.start_pts
             + Duration::from_secs_f64(self.samples.len() as f64 / self.sample_rate as f64)
     }
-}
-
-#[derive(Debug, Clone)]
-pub enum AudioSamples {
-    Mono(Vec<i16>),
-    Stereo(Vec<(i16, i16)>),
 }
 
 impl AudioSamples {

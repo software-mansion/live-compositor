@@ -5,7 +5,6 @@ use rand::Rng;
 use rtp::codecs::{h264::H264Payloader, opus::OpusPayloader};
 
 use crate::pipeline::{
-    rtp::PayloadType,
     structs::{EncodedChunk, EncodedChunkKind},
     AudioCodec, VideoCodec,
 };
@@ -68,7 +67,6 @@ pub struct Payloader {
 enum VideoPayloader {
     H264 {
         payloader: H264Payloader,
-        payload_type: PayloadType,
         context: RtpStreamContext,
     },
 }
@@ -76,19 +74,15 @@ enum VideoPayloader {
 enum AudioPayloader {
     Opus {
         payloader: OpusPayloader,
-        payload_type: PayloadType,
         context: RtpStreamContext,
     },
 }
 
 impl Payloader {
-    pub fn new(
-        video: Option<(VideoCodec, PayloadType)>,
-        audio: Option<(AudioCodec, PayloadType)>,
-    ) -> Self {
+    pub fn new(video: Option<VideoCodec>, audio: Option<AudioCodec>) -> Self {
         Self {
-            video: video.map(|(codec, payload_type)| VideoPayloader::new(codec, payload_type)),
-            audio: audio.map(|(codec, payload_type)| AudioPayloader::new(codec, payload_type)),
+            video: video.map(VideoPayloader::new),
+            audio: audio.map(AudioPayloader::new),
         }
     }
 
@@ -131,11 +125,10 @@ impl Payloader {
 }
 
 impl VideoPayloader {
-    pub fn new(codec: VideoCodec, payload_type: PayloadType) -> Self {
+    pub fn new(codec: VideoCodec) -> Self {
         match codec {
             VideoCodec::H264 => Self::H264 {
                 payloader: H264Payloader::default(),
-                payload_type,
                 context: RtpStreamContext::new(),
             },
         }
@@ -155,19 +148,17 @@ impl VideoPayloader {
         match self {
             VideoPayloader::H264 {
                 ref mut payloader,
-                ref payload_type,
                 ref mut context,
-            } => payload(payloader, context, chunk, mtu, payload_type),
+            } => payload(payloader, context, chunk, mtu, 96),
         }
     }
 }
 
 impl AudioPayloader {
-    pub fn new(codec: AudioCodec, payload_type: PayloadType) -> Self {
+    pub fn new(codec: AudioCodec) -> Self {
         match codec {
             AudioCodec::Opus => Self::Opus {
                 payloader: OpusPayloader,
-                payload_type,
                 context: RtpStreamContext::new(),
             },
             AudioCodec::Aac => panic!("Aac audio output is not supported yet"),
@@ -188,9 +179,8 @@ impl AudioPayloader {
         match self {
             AudioPayloader::Opus {
                 ref mut payloader,
-                ref payload_type,
                 ref mut context,
-            } => payload(payloader, context, chunk, mtu, payload_type),
+            } => payload(payloader, context, chunk, mtu, 97),
         }
     }
 }
@@ -200,7 +190,7 @@ fn payload<T: rtp::packetizer::Payloader>(
     context: &mut RtpStreamContext,
     chunk: EncodedChunk,
     mtu: usize,
-    payload_type: &PayloadType,
+    payload_type: u8,
 ) -> Result<Vec<rtp::packet::Packet>, PayloadingError> {
     let payloads = payloader.payload(mtu, &chunk.data)?;
     let packets_amount = payloads.len();
@@ -214,7 +204,7 @@ fn payload<T: rtp::packetizer::Payloader>(
                 padding: false,
                 extension: false,
                 marker: i == packets_amount - 1, // marker needs to be set on the last packet of each frame
-                payload_type: payload_type.0,
+                payload_type,
                 sequence_number: context.next_sequence_number,
                 timestamp: (chunk.pts.as_secs_f64() * 90000.0) as u32,
                 ssrc: context.ssrc,

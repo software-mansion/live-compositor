@@ -1,8 +1,4 @@
-use crate::{
-    audio_mixer::types::{AudioChannels, AudioSamplesBatch},
-    error::DecoderInitError,
-    queue::PipelineEvent,
-};
+use crate::{audio_mixer::types::AudioSamplesBatch, error::DecoderInitError, queue::PipelineEvent};
 
 use self::{fdk_aac::FdkAacDecoder, ffmpeg_h264::H264FfmpegDecoder, opus_decoder::OpusDecoder};
 
@@ -159,7 +155,6 @@ pub enum AudioDecoderOptions {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OpusDecoderOptions {
-    pub channels: AudioChannels,
     pub forward_error_correction: bool,
 }
 

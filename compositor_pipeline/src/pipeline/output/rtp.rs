@@ -13,7 +13,7 @@ use webrtc_util::Marshal;
 use crate::{
     error::OutputInitError,
     pipeline::{
-        rtp::{bind_to_requested_port, BindToPortError, PayloadType, RequestedPort},
+        rtp::{bind_to_requested_port, BindToPortError, RequestedPort},
         structs::EncodedChunk,
         AudioCodec, Port, VideoCodec,
     },
@@ -47,8 +47,8 @@ struct RtpContext {
 pub struct RtpSenderOptions {
     pub output_id: OutputId,
     pub connection_options: RtpConnectionOptions,
-    pub video: Option<(VideoCodec, PayloadType)>,
-    pub audio: Option<(AudioCodec, PayloadType)>,
+    pub video: Option<VideoCodec>,
+    pub audio: Option<AudioCodec>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -68,7 +68,6 @@ fn start_example_client_code() -> Result<()> {
         "video": {
             "codec": "h264"
         },
-        // "offset_ms": 1000,
     }))?;
 
     info!("[example] Send register input request.");
@@ -80,9 +79,7 @@ fn start_example_client_code() -> Result<()> {
         "audio": {
             "codec": "opus",
             "sample_rate": 48_000,
-            "channels": "stereo",
         },
-        // "offset_ms": 1000,
     }))?;
 
     info!("[example] Send register input request.");
@@ -94,7 +91,6 @@ fn start_example_client_code() -> Result<()> {
         "video": {
             "codec": "h264"
         },
-        // "offset_ms": 1000,
     }))?;
 
     info!("[example] Send register input request.");
@@ -106,9 +102,7 @@ fn start_example_client_code() -> Result<()> {
         "audio": {
             "codec": "opus",
             "sample_rate": 48_000,
-            "channels": "stereo",
         },
-        // "offset_ms": 1000,
     }))?;
 
     info!("[example] Send register output request.");

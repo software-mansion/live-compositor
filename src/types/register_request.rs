@@ -67,13 +67,6 @@ pub struct Mp4 {
 pub struct InputRtpVideoOptions {
     /// (**default=`"h264"`**) Video codec.
     pub codec: Option<VideoCodec>,
-    /// (**default=`96`**) Value of payload type field in received RTP packets.
-    ///
-    /// Packets with different payload type won't be treated as video and included in composing.
-    /// Values should be in [0, 64] or [96, 255]. Values in range [65, 95] can't be used.
-    /// For more information, see [RFC](https://datatracker.ietf.org/doc/html/rfc5761#section-4)
-    /// Packets with different payload type won't be treated as video and included in composing.
-    pub rtp_payload_type: Option<u8>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
@@ -91,14 +84,6 @@ pub struct InputRtpAudioOptions {
     /// Sample rate. If the specified sample rate doesn't match
     /// real sample rate, audio won't be mixed properly.
     pub sample_rate: u32,
-    /// Audio channels.
-    pub channels: AudioChannels,
-    /// (**default=`97`**) Value of payload type field in received RTP packets.
-    ///
-    /// Packets with different payload type won't be treated as audio and included in mixing.
-    /// Values should be in range [0, 64] or [96, 255]. Values in range [65, 95] can't be used.
-    /// For more information, check out [RFC](https://datatracker.ietf.org/doc/html/rfc5761#section-4).
-    pub rtp_payload_type: Option<u8>,
     /// (**default=`false`**) Specifies whether the stream uses forward error correction.
     /// It's specific for Opus codec.
     /// For more information, check out [RFC](https://datatracker.ietf.org/doc/html/rfc6716#section-2.1.7).
@@ -143,8 +128,6 @@ pub struct OutputVideoOptions {
     pub resolution: Resolution,
     pub encoder_preset: VideoEncoderPreset,
     pub initial: Component,
-    /// (**default=`96`**)
-    pub rtp_payload_type: Option<u8>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
@@ -157,8 +140,6 @@ pub struct OutputAudioOptions {
     /// It's specific for Opus codec.
     /// For more information, check out [RFC](https://datatracker.ietf.org/doc/html/rfc6716#section-2.1.7).
     pub forward_error_correction: Option<bool>,
-    /// (**default=`97`**)
-    pub rtp_payload_type: Option<u8>,
     /// (**default="voip"**) Specifies preset for audio output encoder.
     pub encoder_preset: Option<AudioEncoderPreset>,
 }

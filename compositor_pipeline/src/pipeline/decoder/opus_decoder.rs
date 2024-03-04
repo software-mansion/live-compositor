@@ -5,7 +5,7 @@ use crossbeam_channel::{Receiver, Sender};
 use log::error;
 
 use crate::{
-    audio_mixer::types::{AudioChannels, AudioSamples, AudioSamplesBatch},
+    audio_mixer::types::{AudioSamples, AudioSamplesBatch},
     error::DecoderInitError,
     pipeline::structs::EncodedChunk,
     queue::PipelineEvent,
@@ -23,7 +23,7 @@ impl OpusDecoder {
         sample_sender: Sender<PipelineEvent<AudioSamplesBatch>>,
         input_id: InputId,
     ) -> Result<Self, DecoderInitError> {
-        let decoder = opus::Decoder::new(output_sample_rate, opts.channels.into())?;
+        let decoder = opus::Decoder::new(output_sample_rate, opus::Channels::Stereo)?;
 
         std::thread::Builder::new()
             .name(format!("opus decoder {}", input_id.0))
@@ -59,35 +59,32 @@ impl OpusDecoder {
                     break;
                 }
             };
-            let decoded_samples_count = match decoder.decode(&chunk.data, &mut buffer, false) {
-                Ok(samples_count) => samples_count,
-                Err(err) => {
-                    error!("Failed to decode opus packet: {}", err);
-                    continue;
-                }
-            };
-
-            let samples = match opts.channels {
-                AudioChannels::Mono => {
-                    let samples = buffer.iter().take(decoded_samples_count).cloned().collect();
-                    AudioSamples::Mono(samples)
-                }
-                AudioChannels::Stereo => {
-                    let mut samples = Vec::with_capacity(decoded_samples_count / 2);
-                    for i in 0..decoded_samples_count {
-                        samples.push((buffer[2 * i], buffer[2 * i + 1]));
+            let decoded_samples_count =
+                match decoder.decode(&chunk.data, &mut buffer, opts.forward_error_correction) {
+                    Ok(samples_count) => samples_count,
+                    Err(err) => {
+                        error!("Failed to decode opus packet: {}", err);
+                        continue;
                     }
-                    AudioSamples::Stereo(samples)
-                }
-            };
+                };
 
-            let samples = AudioSamplesBatch {
+            let mut decoded_samples = Vec::with_capacity(decoded_samples_count / 2);
+            for i in 0..decoded_samples_count {
+                decoded_samples.push((buffer[2 * i], buffer[2 * i + 1]));
+            }
+
+            let samples = AudioSamples::Stereo(decoded_samples);
+
+            let samples_batch = AudioSamplesBatch {
                 samples: Arc::new(samples),
                 start_pts: chunk.pts,
                 sample_rate: output_sample_rate,
             };
 
-            if sample_sender.send(PipelineEvent::Data(samples)).is_err() {
+            if sample_sender
+                .send(PipelineEvent::Data(samples_batch))
+                .is_err()
+            {
                 return;
             };
         }
