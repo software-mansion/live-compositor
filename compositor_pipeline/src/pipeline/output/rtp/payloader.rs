@@ -10,6 +10,9 @@ use crate::pipeline::{
     AudioCodec, VideoCodec,
 };
 
+const H264_CLOCK_RATE: u32 = 90000;
+const OPUS_CLOCK_RATE: u32 = 48000;
+
 struct RtpStreamContext {
     ssrc: u32,
     next_sequence_number: u16,
@@ -157,7 +160,14 @@ impl VideoPayloader {
                 ref mut payloader,
                 ref payload_type,
                 ref mut context,
-            } => payload(payloader, context, chunk, mtu, payload_type),
+            } => payload(
+                payloader,
+                context,
+                chunk,
+                mtu,
+                payload_type,
+                H264_CLOCK_RATE,
+            ),
         }
     }
 }
@@ -190,7 +200,14 @@ impl AudioPayloader {
                 ref mut payloader,
                 ref payload_type,
                 ref mut context,
-            } => payload(payloader, context, chunk, mtu, payload_type),
+            } => payload(
+                payloader,
+                context,
+                chunk,
+                mtu,
+                payload_type,
+                OPUS_CLOCK_RATE,
+            ),
         }
     }
 }
@@ -201,6 +218,7 @@ fn payload<T: rtp::packetizer::Payloader>(
     chunk: EncodedChunk,
     mtu: usize,
     payload_type: &PayloadType,
+    clock_rate: u32,
 ) -> Result<Vec<rtp::packet::Packet>, PayloadingError> {
     let payloads = payloader.payload(mtu, &chunk.data)?;
     let packets_amount = payloads.len();
@@ -216,7 +234,7 @@ fn payload<T: rtp::packetizer::Payloader>(
                 marker: i == packets_amount - 1, // marker needs to be set on the last packet of each frame
                 payload_type: payload_type.0,
                 sequence_number: context.next_sequence_number,
-                timestamp: (chunk.pts.as_secs_f64() * 90000.0) as u32,
+                timestamp: (chunk.pts.as_secs_f64() * clock_rate as f64) as u32,
                 ssrc: context.ssrc,
                 ..Default::default()
             };

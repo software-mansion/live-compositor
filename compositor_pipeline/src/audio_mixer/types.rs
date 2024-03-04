@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc, time::Duration};
+use std::{collections::HashMap, fmt::Debug, sync::Arc, time::Duration};
 
 use compositor_render::{InputId, OutputId};
 
@@ -42,7 +42,7 @@ impl AudioSamplesBatch {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum AudioSamples {
     Mono(Vec<i16>),
     Stereo(Vec<(i16, i16)>),
@@ -59,6 +59,17 @@ impl AudioSamples {
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
+    }
+}
+
+impl Debug for AudioSamples {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            AudioSamples::Mono(samples) => write!(f, "AudioSamples::Mono(len={})", samples.len()),
+            AudioSamples::Stereo(samples) => {
+                write!(f, "AudioSamples::Stereo(len={})", samples.len())
+            }
+        }
     }
 }
 

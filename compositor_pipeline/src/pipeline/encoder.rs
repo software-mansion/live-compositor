@@ -1,5 +1,5 @@
 use compositor_render::{Frame, Resolution};
-use crossbeam_channel::{unbounded, Sender};
+use crossbeam_channel::{bounded, Sender};
 use log::error;
 
 use crate::{audio_mixer::types::AudioSamplesBatch, error::EncoderInitError};
@@ -51,7 +51,7 @@ impl Encoder {
         options: EncoderOptions,
         sample_rate: u32,
     ) -> Result<(Self, Box<dyn Iterator<Item = EncodedChunk> + Send>), EncoderInitError> {
-        let (encoded_chunks_sender, encoded_chunks_receiver) = unbounded();
+        let (encoded_chunks_sender, encoded_chunks_receiver) = bounded(1);
 
         let video_encoder = match options.video {
             Some(video_encoder_options) => Some(VideoEncoder::new(
