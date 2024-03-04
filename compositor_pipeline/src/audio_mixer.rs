@@ -1,6 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use compositor_render::{error::UpdateSceneError, OutputId};
+use tracing::trace;
 
 use self::{
     internal_audio_mixer::InternalAudioMixer,
@@ -19,6 +20,7 @@ impl AudioMixer {
     }
 
     pub fn mix_samples(&self, samples_set: AudioSamplesSet) -> OutputSamples {
+        trace!(set=?samples_set, "Mixing samples");
         self.0.lock().unwrap().mix_samples(samples_set)
     }
 

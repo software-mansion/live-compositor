@@ -5,7 +5,7 @@ use ffmpeg_next::{
     format::Pixel,
     frame, Dictionary, Packet, Rational,
 };
-use tracing::{debug, error, warn};
+use tracing::{debug, error, trace, warn};
 
 use crate::{
     error::EncoderInitError,
@@ -234,6 +234,7 @@ impl LibavH264Encoder {
                         1_000_000,
                     ) {
                         Ok(chunk) => {
+                            trace!(output_id=?options.output_id.0, pts=?packet.pts(), "H264 encoder produced an encoded packet.");
                             packet_sender.send(chunk).unwrap();
                         }
                         Err(e) => {

@@ -2,6 +2,7 @@ use std::thread::JoinHandle;
 
 use crossbeam_channel::{bounded, Receiver, Sender};
 use log::error;
+use tracing::trace;
 
 use crate::{
     audio_mixer::types::{AudioChannels, AudioSamples, AudioSamplesBatch},
@@ -117,6 +118,8 @@ impl OpusEncoder {
                 dts: None,
                 kind: EncodedChunkKind::Audio(AudioCodec::Opus),
             };
+
+            trace!(pts=?chunk.pts, "OPUS encoder produced an encoded chunk.");
             packets_sender.send(chunk).unwrap();
         };
 
