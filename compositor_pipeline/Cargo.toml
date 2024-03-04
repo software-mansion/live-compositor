@@ -18,7 +18,7 @@ socket2 = "0.5.5"
 rtcp = "0.10.0"
 opus = "0.3.0"
 rand = { workspace = true }
-mp4 = "0.14.0"
+mp4 = { git = "https://github.com/membraneframework-labs/mp4-rust.git", branch = "avc3-box" }
 reqwest = { workspace = true }
 symphonia = { version = "0.5.3", default-features = false, features = ["isomp4", "aac"] }
 tracing = { workspace = true }

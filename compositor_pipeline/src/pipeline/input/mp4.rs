@@ -146,27 +146,21 @@ fn spawn_video_reader(input_path: &Path, input_id: InputId) -> Result<VideoReade
     let size = input_file.metadata()?.size();
     let reader = mp4::Mp4Reader::read_header(input_file, size)?;
 
-    let Some((&track_id, track, avc1)) = reader.tracks().iter().find_map(|(id, track)| {
+    let Some((&track_id, track, avc)) = reader.tracks().iter().find_map(|(id, track)| {
         let track_type = track.track_type().ok()?;
 
         let media_type = track.media_type().ok()?;
 
+        let avc = track.avc1_or_3_inner();
+
         if track_type != mp4::TrackType::Video
             || media_type != mp4::MediaType::H264
-            || track.trak.mdia.minf.stbl.stsd.avc1.is_none()
+            || avc.is_none()
         {
             return None;
         }
 
-        track
-            .trak
-            .mdia
-            .minf
-            .stbl
-            .stsd
-            .avc1
-            .as_ref()
-            .map(|avc1| (id, track, avc1))
+        avc.map(|avc| (id, track, avc))
     }) else {
         return Ok(Default::default());
     };
@@ -175,13 +169,13 @@ fn spawn_video_reader(input_path: &Path, input_id: InputId) -> Result<VideoReade
 
     // sps and pps have to be extracted from the container, interleaved with [0, 0, 0, 1],
     // concatenated and prepended to the first frame.
-    let sps = avc1
+    let sps = avc
         .avcc
         .sequence_parameter_sets
         .iter()
         .flat_map(|s| [0, 0, 0, 1].iter().chain(s.bytes.iter()));
 
-    let pps = avc1
+    let pps = avc
         .avcc
         .picture_parameter_sets
         .iter()
@@ -191,7 +185,7 @@ fn spawn_video_reader(input_path: &Path, input_id: InputId) -> Result<VideoReade
 
     let sample_count = track.sample_count();
     let timescale = track.timescale();
-    let length_size = avc1.avcc.length_size_minus_one + 1;
+    let length_size = avc.avcc.length_size_minus_one + 1;
 
     std::thread::Builder::new()
         .name(format!("mp4 video reader {input_id}"))
