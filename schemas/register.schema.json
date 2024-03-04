@@ -481,9 +481,6 @@
     },
     "InputRtpAudioOptions": {
       "type": "object",
-      "required": [
-        "sample_rate"
-      ],
       "properties": {
         "codec": {
           "description": "(**default=`\"opus\"`**) Audio codec.",
@@ -495,12 +492,6 @@
               "type": "null"
             }
           ]
-        },
-        "sample_rate": {
-          "description": "Sample rate. If the specified sample rate doesn't match real sample rate, audio won't be mixed properly.",
-          "type": "integer",
-          "format": "uint32",
-          "minimum": 0.0
         },
         "forward_error_correction": {
           "description": "(**default=`false`**) Specifies whether the stream uses forward error correction. It's specific for Opus codec. For more information, check out [RFC](https://datatracker.ietf.org/doc/html/rfc6716#section-2.1.7).",

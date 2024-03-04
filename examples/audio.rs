@@ -77,8 +77,7 @@ fn start_example_client_code() -> Result<()> {
         "input_id": "input_2",
         "port": 8008,
         "audio": {
-            "codec": "opus",
-            "sample_rate": 48_000,
+            "codec": "opus"
         },
     }))?;
 
@@ -100,8 +99,7 @@ fn start_example_client_code() -> Result<()> {
         "input_id": "input_4",
         "port": 8012,
         "audio": {
-            "codec": "opus",
-            "sample_rate": 48_000,
+            "codec": "opus"
         },
     }))?;
 

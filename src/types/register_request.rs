@@ -81,9 +81,6 @@ pub enum VideoCodec {
 pub struct InputRtpAudioOptions {
     /// (**default=`"opus"`**) Audio codec.
     pub codec: Option<AudioCodec>,
-    /// Sample rate. If the specified sample rate doesn't match
-    /// real sample rate, audio won't be mixed properly.
-    pub sample_rate: u32,
     /// (**default=`false`**) Specifies whether the stream uses forward error correction.
     /// It's specific for Opus codec.
     /// For more information, check out [RFC](https://datatracker.ietf.org/doc/html/rfc6716#section-2.1.7).
