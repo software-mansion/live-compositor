@@ -59,9 +59,9 @@ impl TryFrom<Transition> for scene::Transition {
             .unwrap_or(EasingFunctionDefinition::String(EasingFunction::Linear))
         {
             EasingFunctionDefinition::String(function_name) => function_name.into(),
-            EasingFunctionDefinition::Object { function_name } => function_name.into(),
-            EasingFunctionDefinition::ObjectWithParams(object) => match object {
-                EasingFunctionWithParams::CubicBezier { points } => {
+            EasingFunctionDefinition::ObjectNoParams { function_name } => function_name.into(),
+            EasingFunctionDefinition::Object(object) => match object {
+                EasingFunctionObject::CubicBezier { points } => {
                     if points[0] < 0.0 || points[0] > 1.0 {
                         return Err(TypeError::new(
                             "Control point x1 has to be in the range [0, 1].",

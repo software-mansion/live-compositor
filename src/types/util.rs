@@ -22,13 +22,13 @@ pub struct Transition {
 #[serde(untagged)]
 pub enum EasingFunctionDefinition {
     String(EasingFunction),
-    Object { function_name: EasingFunction },
-    ObjectWithParams(EasingFunctionWithParams),
+    ObjectNoParams { function_name: EasingFunction },
+    Object(EasingFunctionObject),
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(tag = "function_name", rename_all = "snake_case")]
-pub enum EasingFunctionWithParams {
+pub enum EasingFunctionObject {
     CubicBezier { points: [f64; 4] },
 }
 

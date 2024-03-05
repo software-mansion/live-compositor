@@ -819,7 +819,7 @@
           }
         },
         {
-          "$ref": "#/definitions/EasingFunctionWithParams"
+          "$ref": "#/definitions/EasingFunctionObject"
         }
       ]
     },
@@ -840,7 +840,7 @@
         "bounce"
       ]
     },
-    "EasingFunctionWithParams": {
+    "EasingFunctionObject": {
       "oneOf": [
         {
           "type": "object",
