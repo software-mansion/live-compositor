@@ -31,56 +31,33 @@ impl From<compositor_render::Resolution> for Resolution {
     }
 }
 
-impl From<EasingFunction> for scene::InterpolationKind {
-    fn from(easing_function: EasingFunction) -> Self {
-        match easing_function {
-            EasingFunction::Linear => scene::InterpolationKind::Linear,
-            EasingFunction::Ease => scene::InterpolationKind::Ease,
-            EasingFunction::EaseIn => scene::InterpolationKind::EaseIn,
-            EasingFunction::EaseOut => scene::InterpolationKind::EaseOut,
-            EasingFunction::EaseInOut => scene::InterpolationKind::EaseInOut,
-            EasingFunction::EaseInQuint => scene::InterpolationKind::EaseInQuint,
-            EasingFunction::EaseOutQuint => scene::InterpolationKind::EaseOutQuint,
-            EasingFunction::EaseInOutQuint => scene::InterpolationKind::EaseInOutQuint,
-            EasingFunction::EaseInExpo => scene::InterpolationKind::EaseInExpo,
-            EasingFunction::EaseOutExpo => scene::InterpolationKind::EaseOutExpo,
-            EasingFunction::EaseInOutExpo => scene::InterpolationKind::EaseInOutExpo,
-            EasingFunction::Bounce => scene::InterpolationKind::Bounce,
-        }
-    }
-}
-
 impl TryFrom<Transition> for scene::Transition {
     type Error = TypeError;
 
     fn try_from(transition: Transition) -> Result<Self, Self::Error> {
-        let interpolation_kind = match transition
-            .easing_function
-            .unwrap_or(EasingFunctionDefinition::String(EasingFunction::Linear))
+        let interpolation_kind = match transition.easing_function.unwrap_or(EasingFunction::Linear)
         {
-            EasingFunctionDefinition::String(function_name) => function_name.into(),
-            EasingFunctionDefinition::ObjectNoParams { function_name } => function_name.into(),
-            EasingFunctionDefinition::Object(object) => match object {
-                EasingFunctionObject::CubicBezier { points } => {
-                    if points[0] < 0.0 || points[0] > 1.0 {
-                        return Err(TypeError::new(
-                            "Control point x1 has to be in the range [0, 1].",
-                        ));
-                    }
-                    if points[2] < 0.0 || points[2] > 1.0 {
-                        return Err(TypeError::new(
-                            "Control point x2 has to be in the range [0, 1].",
-                        ));
-                    }
-
-                    scene::InterpolationKind::CubicBezier {
-                        x1: points[0],
-                        y1: points[1],
-                        x2: points[2],
-                        y2: points[3],
-                    }
+            EasingFunction::Linear => scene::InterpolationKind::Linear,
+            EasingFunction::Bounce => scene::InterpolationKind::Bounce,
+            EasingFunction::CubicBezier { points } => {
+                if points[0] < 0.0 || points[0] > 1.0 {
+                    return Err(TypeError::new(
+                        "Control point x1 has to be in the range [0, 1].",
+                    ));
                 }
-            },
+                if points[2] < 0.0 || points[2] > 1.0 {
+                    return Err(TypeError::new(
+                        "Control point x2 has to be in the range [0, 1].",
+                    ));
+                }
+
+                scene::InterpolationKind::CubicBezier {
+                    x1: points[0],
+                    y1: points[1],
+                    x2: points[2],
+                    y2: points[3],
+                }
+            }
         };
 
         Ok(Self {

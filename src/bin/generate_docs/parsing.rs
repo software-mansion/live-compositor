@@ -9,8 +9,8 @@ use schemars::{
 use crate::type_definition::{Kind, ObjectProperty, TypeDefinition};
 
 const IGNORED_DEFINITIONS: [&str; 1] = ["Component"];
-const ALWAYS_INLINED_DEFINITIONS: [&str; 1] = ["EasingFunctionObject"];
-const NEVER_INLINED_DEFINITIONS: [&str; 1] = ["EasingFunction"];
+const ALWAYS_INLINED_DEFINITIONS: [&str; 1] = ["Port"];
+const NEVER_INLINED_DEFINITIONS: [&str; 0] = [];
 
 #[derive(Debug)]
 pub struct DocPage {

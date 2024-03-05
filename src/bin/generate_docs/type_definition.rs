@@ -89,7 +89,29 @@ impl TypeDefinition {
         format!("{}{}}}", out, INDENT.repeat(base_indent))
     }
 
+    fn object_to_single_line(properties: &[ObjectProperty]) -> String {
+        let properties = properties
+            .iter()
+            .map(|prop| {
+                let mut name = prop.name.clone();
+                if prop.type_def.is_optional {
+                    name = format!("{name}?").into();
+                }
+                format!("{}: {}", name, prop.type_def.to_pretty_string(0))
+            })
+            .collect::<Vec<_>>()
+            .join("; ");
+        format!("{{ {} }}", properties)
+    }
+
     fn union_to_string(variants: &[TypeDefinition], base_indent: usize) -> String {
+        fn variant_to_string(variant: &TypeDefinition, indent: usize) -> String {
+            match &variant.kind {
+                Kind::Object(properties) => TypeDefinition::object_to_single_line(properties),
+                _ => variant.to_pretty_string(indent),
+            }
+        }
+
         let variant_indent = match variants.iter().any(|v| matches!(v.kind, Kind::Object(_))) {
             true => base_indent + 4,
             false => base_indent + 2,
@@ -97,8 +119,8 @@ impl TypeDefinition {
 
         let variants = variants
             .iter()
-            .map(|ty: &TypeDefinition| ty.to_pretty_string(variant_indent));
-        let variants_to_string = |use_new_lines: bool| {
+            .map(|ty: &TypeDefinition| variant_to_string(ty, variant_indent));
+        let format_variants = |use_new_lines: bool| {
             let variants = variants.clone();
             if use_new_lines {
                 variants.into_iter().fold(String::new(), |acc, ty| {
@@ -109,9 +131,9 @@ impl TypeDefinition {
             }
         };
 
-        let union_string = variants_to_string(variants.len() > 4);
+        let union_string = format_variants(variants.len() > 4);
         if union_string.len() > 80 {
-            variants_to_string(true)
+            format_variants(true)
         } else {
             union_string
         }

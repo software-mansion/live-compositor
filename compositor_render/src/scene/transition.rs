@@ -96,36 +96,6 @@ impl InterpolationKind {
     fn state(&self, t: f64) -> InterpolationState {
         match self {
             InterpolationKind::Linear => InterpolationState(t),
-            InterpolationKind::Ease => {
-                InterpolationState(cubic_bezier_easing(t, 0.25, 0.1, 0.25, 1.0))
-            }
-            InterpolationKind::EaseIn => {
-                InterpolationState(cubic_bezier_easing(t, 0.42, 0.0, 1.0, 1.0))
-            }
-            InterpolationKind::EaseOut => {
-                InterpolationState(cubic_bezier_easing(t, 0.0, 0.0, 0.58, 1.0))
-            }
-            InterpolationKind::EaseInOut => {
-                InterpolationState(cubic_bezier_easing(t, 0.42, 0.0, 0.58, 1.0))
-            }
-            InterpolationKind::EaseInQuint => {
-                InterpolationState(cubic_bezier_easing(t, 0.64, 0.0, 0.78, 0.0))
-            }
-            InterpolationKind::EaseOutQuint => {
-                InterpolationState(cubic_bezier_easing(t, 0.22, 1.0, 0.36, 1.0))
-            }
-            InterpolationKind::EaseInOutQuint => {
-                InterpolationState(cubic_bezier_easing(t, 0.83, 0.0, 0.17, 1.0))
-            }
-            InterpolationKind::EaseInExpo => {
-                InterpolationState(cubic_bezier_easing(t, 0.7, 0.0, 0.84, 0.0))
-            }
-            InterpolationKind::EaseOutExpo => {
-                InterpolationState(cubic_bezier_easing(t, 0.16, 1.0, 0.3, 1.0))
-            }
-            InterpolationKind::EaseInOutExpo => {
-                InterpolationState(cubic_bezier_easing(t, 0.87, 0.0, 0.13, 1.0))
-            }
             InterpolationKind::Bounce => InterpolationState(bounce_easing(t)),
             InterpolationKind::CubicBezier { x1, y1, x2, y2 } => {
                 InterpolationState(cubic_bezier_easing(t, *x1, *y1, *x2, *y2))

@@ -1358,7 +1358,7 @@
         "easing_function": {
           "anyOf": [
             {
-              "$ref": "#/definitions/EasingFunctionDefinition"
+              "$ref": "#/definitions/EasingFunction"
             },
             {
               "type": "null"
@@ -1367,10 +1367,22 @@
         }
       }
     },
-    "EasingFunctionDefinition": {
-      "anyOf": [
+    "EasingFunction": {
+      "description": "Easing functions are used to interpolate between two values over time.\n\nCustom easing functions can be implemented with cubic Bézier. The control points are defined with `points` field by providing four numerical values: `x1`, `y1`, `x2` and `y2`. The `x1` and `x2` values have to be in the range `[0; 1]`. The cubic Bézier result is clamped to the range `[0; 1]`. You can find example control point configurations [here](https://easings.net/).",
+      "oneOf": [
         {
-          "$ref": "#/definitions/EasingFunction"
+          "type": "object",
+          "required": [
+            "function_name"
+          ],
+          "properties": {
+            "function_name": {
+              "type": "string",
+              "enum": [
+                "linear"
+              ]
+            }
+          }
         },
         {
           "type": "object",
@@ -1379,34 +1391,13 @@
           ],
           "properties": {
             "function_name": {
-              "$ref": "#/definitions/EasingFunction"
+              "type": "string",
+              "enum": [
+                "bounce"
+              ]
             }
           }
         },
-        {
-          "$ref": "#/definitions/EasingFunctionObject"
-        }
-      ]
-    },
-    "EasingFunction": {
-      "type": "string",
-      "enum": [
-        "linear",
-        "ease",
-        "ease_in",
-        "ease_out",
-        "ease_in_out",
-        "ease_in_quint",
-        "ease_out_quint",
-        "ease_in_out_quint",
-        "ease_in_expo",
-        "ease_out_expo",
-        "ease_in_out_expo",
-        "bounce"
-      ]
-    },
-    "EasingFunctionObject": {
-      "oneOf": [
         {
           "type": "object",
           "required": [

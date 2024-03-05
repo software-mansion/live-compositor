@@ -15,38 +15,20 @@ pub struct Resolution {
 pub struct Transition {
     /// Duration of a transition in milliseconds.
     pub duration_ms: f64,
-    pub easing_function: Option<EasingFunctionDefinition>,
+    pub easing_function: Option<EasingFunction>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-#[serde(untagged)]
-pub enum EasingFunctionDefinition {
-    String(EasingFunction),
-    ObjectNoParams { function_name: EasingFunction },
-    Object(EasingFunctionObject),
-}
-
+/// Easing functions are used to interpolate between two values over time.
+///
+/// Custom easing functions can be implemented with cubic Bézier.
+/// The control points are defined with `points` field by providing four numerical values: `x1`, `y1`, `x2` and `y2`. The `x1` and `x2` values have to be in the range `[0; 1]`. The cubic Bézier result is clamped to the range `[0; 1]`.
+/// You can find example control point configurations [here](https://easings.net/).
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(tag = "function_name", rename_all = "snake_case")]
-pub enum EasingFunctionObject {
-    CubicBezier { points: [f64; 4] },
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-#[serde(rename_all = "snake_case")]
 pub enum EasingFunction {
     Linear,
-    Ease,
-    EaseIn,
-    EaseOut,
-    EaseInOut,
-    EaseInQuint,
-    EaseOutQuint,
-    EaseInOutQuint,
-    EaseInExpo,
-    EaseOutExpo,
-    EaseInOutExpo,
     Bounce,
+    CubicBezier { points: [f64; 4] },
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
