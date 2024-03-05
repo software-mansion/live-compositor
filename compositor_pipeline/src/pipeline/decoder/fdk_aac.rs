@@ -1,6 +1,7 @@
 use compositor_render::InputId;
 use crossbeam_channel::{Receiver, Sender};
 use fdk_aac_sys as fdk;
+use tracing::{debug, error, span, Level};
 
 use crate::{
     audio_mixer::types::{AudioSamples, AudioSamplesBatch},
@@ -9,8 +10,6 @@ use crate::{
 };
 
 use super::{AacDecoderOptions, AacTransport};
-
-struct Decoder(*mut fdk::AAC_DECODER_INSTANCE);
 
 #[derive(Debug, thiserror::Error)]
 pub enum AacDecoderError {
@@ -33,6 +32,83 @@ impl From<AacTransport> for fdk::TRANSPORT_TYPE {
         }
     }
 }
+
+pub struct FdkAacDecoder;
+
+impl FdkAacDecoder {
+    pub(super) fn new(
+        options: AacDecoderOptions,
+        chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
+        samples_sender: Sender<PipelineEvent<AudioSamplesBatch>>,
+        input_id: InputId,
+    ) -> Result<Self, AacDecoderError> {
+        let (result_sender, result_receiver) = crossbeam_channel::bounded(1);
+
+        std::thread::Builder::new()
+            .name(format!("fdk aac decoder {}", input_id.0))
+            .spawn(move || {
+                let _span = span!(
+                    Level::INFO,
+                    "fdk aac decoder",
+                    input_id = input_id.to_string()
+                )
+                .entered();
+                run_decoder_thread(options, samples_sender, chunks_receiver, result_sender)
+            })
+            .unwrap();
+
+        result_receiver.recv().unwrap()?;
+
+        Ok(Self)
+    }
+}
+
+fn run_decoder_thread(
+    options: AacDecoderOptions,
+    samples_sender: Sender<PipelineEvent<AudioSamplesBatch>>,
+    chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
+    result_sender: Sender<Result<(), AacDecoderError>>,
+) {
+    let decoder = match Decoder::new(options) {
+        Ok(decoder) => {
+            result_sender.send(Ok(())).unwrap();
+            decoder
+        }
+
+        Err(e) => {
+            result_sender.send(Err(e)).unwrap();
+            return;
+        }
+    };
+
+    for chunk in chunks_receiver {
+        let chunk = match chunk {
+            PipelineEvent::Data(chunk) => chunk,
+            PipelineEvent::EOS => {
+                break;
+            }
+        };
+        let decoded_samples = match decoder.decode_chunk(chunk) {
+            Ok(samples) => samples,
+            Err(e) => {
+                log::error!("Failed to decode AAC packet: {e}");
+                continue;
+            }
+        };
+
+        for batch in decoded_samples {
+            if let Err(err) = samples_sender.send(PipelineEvent::Data(batch)) {
+                error!(%err, "Error enqueueing audio samples");
+                return;
+            }
+        }
+    }
+    if samples_sender.send(PipelineEvent::EOS).is_err() {
+        debug!("Failed to send EOS from AAC decoder. Channel closed.")
+    }
+}
+
+struct Decoder(*mut fdk::AAC_DECODER_INSTANCE);
 
 impl Decoder {
     fn new(options: AacDecoderOptions) -> Result<Self, AacDecoderError> {
@@ -145,78 +221,4 @@ impl Drop for Decoder {
             fdk::aacDecoder_Close(self.0);
         }
     }
-}
-
-pub struct FdkAacDecoder;
-
-impl FdkAacDecoder {
-    pub(super) fn new(
-        options: AacDecoderOptions,
-        chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
-        samples_sender: Sender<PipelineEvent<AudioSamplesBatch>>,
-        input_id: InputId,
-    ) -> Result<Self, AacDecoderError> {
-        let (result_sender, result_receiver) = crossbeam_channel::bounded(1);
-
-        std::thread::Builder::new()
-            .name(format!("fdk aac decoder {}", input_id.0))
-            .spawn(move || {
-                run_decoder_thread(
-                    options,
-                    samples_sender,
-                    chunks_receiver,
-                    input_id,
-                    result_sender,
-                )
-            })
-            .unwrap();
-
-        result_receiver.recv().unwrap()?;
-
-        Ok(Self)
-    }
-}
-
-fn run_decoder_thread(
-    options: AacDecoderOptions,
-    samples_sender: Sender<PipelineEvent<AudioSamplesBatch>>,
-    chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
-    input_id: InputId,
-    result_sender: Sender<Result<(), AacDecoderError>>,
-) {
-    let decoder = match Decoder::new(options) {
-        Ok(decoder) => {
-            result_sender.send(Ok(())).unwrap();
-            decoder
-        }
-
-        Err(e) => {
-            result_sender.send(Err(e)).unwrap();
-            return;
-        }
-    };
-
-    for chunk in chunks_receiver {
-        let chunk = match chunk {
-            PipelineEvent::Data(chunk) => chunk,
-            PipelineEvent::EOS => {
-                break;
-            }
-        };
-        let decoded_samples = match decoder.decode_chunk(chunk) {
-            Ok(samples) => samples,
-            Err(e) => {
-                log::error!("Failed to decode AAC packet: {e}");
-                continue;
-            }
-        };
-
-        for batch in decoded_samples {
-            if let Err(err) = samples_sender.send(PipelineEvent::Data(batch)) {
-                log::error!("Error enqueueing audio samples for input {input_id}: {err}",);
-                return;
-            }
-        }
-    }
-    let _ = samples_sender.send(PipelineEvent::EOS);
 }

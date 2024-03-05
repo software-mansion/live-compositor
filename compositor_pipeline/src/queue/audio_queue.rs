@@ -4,9 +4,9 @@ use std::{
     vec,
 };
 
-use crate::audio_mixer::types::{AudioSamplesBatch, AudioSamplesSet};
+use crate::audio_mixer::types::AudioSamplesBatch;
 
-use super::{utils::InputProcessor, InputOptions, PipelineEvent};
+use super::{utils::InputProcessor, InputOptions, PipelineEvent, QueueAudioOutput};
 use compositor_render::InputId;
 use crossbeam_channel::{Receiver, TryRecvError};
 
@@ -38,6 +38,7 @@ impl AudioQueue {
                 input_samples_processor: InputProcessor::new(self.buffer_duration),
                 required: opts.required,
                 offset: opts.offset,
+                eos_sent: false,
             },
         );
     }
@@ -87,11 +88,11 @@ impl AudioQueue {
         })
     }
 
-    pub fn pop_samples_set(
+    pub(super) fn pop_samples_set(
         &mut self,
         range: (Duration, Duration),
         clock_start: Instant,
-    ) -> AudioSamplesSet {
+    ) -> QueueAudioOutput {
         let (start_pts, end_pts) = range;
         let samples = self
             .inputs
@@ -99,7 +100,7 @@ impl AudioQueue {
             .map(|(input_id, input)| (input_id.clone(), input.pop_samples(range, clock_start)))
             .collect();
 
-        AudioSamplesSet {
+        QueueAudioOutput {
             samples,
             start_pts,
             end_pts,
@@ -129,6 +130,8 @@ struct AudioQueueInput {
     /// Offset of the stream relative to the start. If set to `None`
     /// offset will be resolved automatically on the stream start.
     offset: Option<Duration>,
+
+    eos_sent: bool,
 }
 
 impl AudioQueueInput {
@@ -139,7 +142,7 @@ impl AudioQueueInput {
         &mut self,
         pts_range: (Duration, Duration),
         queue_start: Instant,
-    ) -> Vec<AudioSamplesBatch> {
+    ) -> PipelineEvent<Vec<AudioSamplesBatch>> {
         // range in queue pts time frame
         let (start_pts, end_pts) = pts_range;
 
@@ -148,10 +151,10 @@ impl AudioQueueInput {
             self.input_pts_from_queue_pts(start_pts, queue_start),
             self.input_pts_from_queue_pts(end_pts, queue_start),
         ) else {
-            return vec![];
+            return PipelineEvent::Data(vec![]);
         };
         let Some(input_start_time) = self.input_start_time() else {
-            return vec![];
+            return PipelineEvent::Data(vec![]);
         };
 
         let popped_samples = self
@@ -176,7 +179,15 @@ impl AudioQueueInput {
 
         self.drop_old_samples(pts_range.1, queue_start);
 
-        popped_samples
+        if self.input_samples_processor.did_receive_eos()
+            && popped_samples.is_empty()
+            && !self.eos_sent
+        {
+            self.eos_sent = true;
+            PipelineEvent::EOS
+        } else {
+            PipelineEvent::Data(popped_samples)
+        }
     }
 
     fn check_ready_for_pts(

@@ -1,27 +1,24 @@
-use std::{
-    sync::{atomic::AtomicBool, Arc},
-    thread,
-};
+use std::sync::{atomic::AtomicBool, Arc};
 
 use crate::{
     pipeline::{
         decoder::{self, DecoderOptions},
         encoder,
-        rtp::{bind_to_requested_port, BindToPortError, RequestedPort, TransportProtocol},
-        structs::EncodedChunkKind,
+        rtp::{BindToPortError, RequestedPort, TransportProtocol},
+        structs::{EncodedChunk, EncodedChunkKind},
         Port,
     },
     queue::PipelineEvent,
 };
 use compositor_render::InputId;
-use crossbeam_channel::{unbounded, Receiver};
-use tracing::{debug, error, info, warn};
+use crossbeam_channel::{bounded, Receiver, Sender};
+use tracing::{debug, error, span, warn, Level};
 use webrtc_util::Unmarshal;
 
 use self::{
     depayloader::{Depayloader, DepayloaderNewError},
-    tcp_server::run_tcp_server_receiver,
-    udp::run_udp_receiver,
+    tcp_server::start_tcp_server_thread,
+    udp::start_udp_reader_thread,
 };
 
 use super::ChunksReceiver;
@@ -88,15 +85,14 @@ impl RtpReceiver {
         let should_close = Arc::new(AtomicBool::new(false));
 
         let (port, packets_rx) = match opts.transport_protocol {
-            TransportProtocol::Udp => Self::start_udp_reader(&opts, should_close.clone())?,
-            TransportProtocol::TcpServer => {
-                Self::start_tcp_server_reader(&opts, should_close.clone())?
-            }
+            TransportProtocol::Udp => start_udp_reader_thread(&opts, should_close.clone())?,
+            TransportProtocol::TcpServer => start_tcp_server_thread(&opts, should_close.clone())?,
         };
 
         let depayloader = Depayloader::new(&opts.stream)?;
 
-        let chunks_receiver = start_depayloader_thread(&opts.input_id, packets_rx, depayloader);
+        let chunks_receiver =
+            Self::start_depayloader_thread(&opts.input_id, packets_rx, depayloader);
 
         Ok((
             Self {
@@ -112,79 +108,40 @@ impl RtpReceiver {
         ))
     }
 
-    fn start_tcp_server_reader(
-        opts: &RtpReceiverOptions,
-        should_close: Arc<AtomicBool>,
-    ) -> Result<(Port, Receiver<bytes::Bytes>), RtpReceiverError> {
-        let (packets_tx, packets_rx) = unbounded();
-        let input_id = opts.input_id.clone();
-        info!(input_id=?input_id.0, "Starting tcp socket");
+    fn start_depayloader_thread(
+        input_id: &InputId,
+        receiver: Receiver<bytes::Bytes>,
+        depayloader: Depayloader,
+    ) -> ChunksReceiver {
+        let (video_sender, video_receiver) = depayloader
+            .video
+            .as_ref()
+            .map(|_| bounded(5))
+            .map_or((None, None), |(tx, rx)| (Some(tx), Some(rx)));
+        let (audio_sender, audio_receiver) = depayloader
+            .audio
+            .as_ref()
+            .map(|_| bounded(5))
+            .map_or((None, None), |(tx, rx)| (Some(tx), Some(rx)));
 
-        let socket = socket2::Socket::new(
-            socket2::Domain::IPV4,
-            socket2::Type::STREAM,
-            Some(socket2::Protocol::TCP),
-        )
-        .map_err(RtpReceiverError::SocketOptions)?;
-
-        let port = bind_to_requested_port(opts.port, &socket)?;
-
-        socket.listen(1).map_err(RtpReceiverError::SocketBind)?;
-
-        let socket = std::net::TcpListener::from(socket);
-
-        thread::Builder::new()
-            .name(format!("RTP TCP server receiver {}", opts.input_id))
+        let input_id = input_id.clone();
+        std::thread::Builder::new()
+            .name(format!("Depayloading thread for input: {}", input_id.0))
             .spawn(move || {
-                run_tcp_server_receiver(socket, packets_tx, should_close);
-                debug!(input_id=?input_id.0, "Closing RTP receiver thread (TCP server).");
+                let _span = span!(
+                    Level::INFO,
+                    "RTP depayloader",
+                    input_id = input_id.to_string()
+                )
+                .entered();
+                run_depayloader_thread(receiver, depayloader, video_sender, audio_sender)
             })
             .unwrap();
 
-        Ok((port, packets_rx))
-    }
-
-    fn start_udp_reader(
-        opts: &RtpReceiverOptions,
-        should_close: Arc<AtomicBool>,
-    ) -> Result<(Port, Receiver<bytes::Bytes>), RtpReceiverError> {
-        let (packets_tx, packets_rx) = unbounded();
-
-        let socket = socket2::Socket::new(
-            socket2::Domain::IPV4,
-            socket2::Type::DGRAM,
-            Some(socket2::Protocol::UDP),
-        )
-        .map_err(RtpReceiverError::SocketOptions)?;
-
-        match socket
-            .set_recv_buffer_size(16 * 1024 * 1024)
-            .map_err(RtpReceiverError::SocketOptions)
-        {
-            Ok(_) => {}
-            Err(e) => {
-                warn!("Failed to set socket receive buffer size: {e} This may cause packet loss, especially on high-bitrate streams.");
-            }
+        ChunksReceiver {
+            video: video_receiver,
+            audio: audio_receiver,
         }
-
-        let port = bind_to_requested_port(opts.port, &socket)?;
-
-        socket
-            .set_read_timeout(Some(std::time::Duration::from_millis(50)))
-            .map_err(RtpReceiverError::SocketOptions)?;
-
-        let socket = std::net::UdpSocket::from(socket);
-
-        let input_id = opts.input_id.clone();
-        thread::Builder::new()
-            .name(format!("RTP UDP receiver {}", opts.input_id))
-            .spawn(move || {
-                run_udp_receiver(socket, packets_tx, should_close);
-                debug!(input_id=?input_id.0, "Closing RTP receiver thread (UDP).");
-            })
-            .unwrap();
-
-        Ok((port, packets_rx))
     }
 }
 
@@ -195,74 +152,62 @@ impl Drop for RtpReceiver {
     }
 }
 
-fn start_depayloader_thread(
-    input_id: &InputId,
+fn run_depayloader_thread(
     receiver: Receiver<bytes::Bytes>,
     mut depayloader: Depayloader,
-) -> ChunksReceiver {
-    let (video_sender, video_receiver) = depayloader
-        .video
-        .as_ref()
-        .map(|_| unbounded())
-        .map_or((None, None), |(tx, rx)| (Some(tx), Some(rx)));
-    let (audio_sender, audio_receiver) = depayloader
-        .audio
-        .as_ref()
-        .map(|_| unbounded())
-        .map_or((None, None), |(tx, rx)| (Some(tx), Some(rx)));
+    video_sender: Option<Sender<PipelineEvent<EncodedChunk>>>,
+    audio_sender: Option<Sender<PipelineEvent<EncodedChunk>>>,
+) {
+    loop {
+        let Ok(mut buffer) = receiver.recv() else {
+            debug!("Closing RTP depayloader thread.");
+            break;
+        };
 
-    let input_id = input_id.clone();
-    std::thread::Builder::new()
-            .name(format!("Depayloading thread for input: {}", input_id.0))
-            .spawn(move || {
-                loop {
-                    let Ok(mut buffer) = receiver.recv() else {
-                        debug!(input_id=?input_id.0, "Closing RTP depayloader thread.");
-                        return;
-                    };
-
-                    match rtp::packet::Packet::unmarshal(&mut buffer.clone()) {
-                        // https://datatracker.ietf.org/doc/html/rfc5761#section-4
-                        //
-                        // Given these constraints, it is RECOMMENDED to follow the guidelines
-                        // in the RTP/AVP profile [7] for the choice of RTP payload type values,
-                        // with the additional restriction that payload type values in the range
-                        // 64-95 MUST NOT be used.
-                        Ok(packet)
-                            if packet.header.payload_type < 64 || packet.header.payload_type > 95 =>
-                        {
-                            match depayloader.depayload(packet) {
-                                Ok(Some(chunk)) => match &chunk.kind {
-                                    EncodedChunkKind::Video(_) => video_sender
-                                        .as_ref()
-                                        .map(|video_sender| video_sender.send(PipelineEvent::Data(chunk))),
-                                    EncodedChunkKind::Audio(_) => audio_sender
-                                        .as_ref()
-                                        .map(|audio_sender| audio_sender.send(PipelineEvent::Data(chunk))),
-                                },
-                                Ok(None) => continue,
-                                Err(err) => {
-                                    warn!("RTP depayloading error: {}", err);
-                                    continue;
-                                }
-                            }
-                        }
-                        Ok(_) | Err(_) => {
-                            if rtcp::packet::unmarshal(&mut buffer).is_err() {
-                                warn!("Received an unexpected packet, which is not recognized either as RTP or RTCP. Dropping.");
-                            }
-
-                            continue;
-                        }
-                    };
+        match rtp::packet::Packet::unmarshal(&mut buffer.clone()) {
+            // https://datatracker.ietf.org/doc/html/rfc5761#section-4
+            //
+            // Given these constraints, it is RECOMMENDED to follow the guidelines
+            // in the RTP/AVP profile [7] for the choice of RTP payload type values,
+            // with the additional restriction that payload type values in the range
+            // 64-95 MUST NOT be used.
+            Ok(packet) if packet.header.payload_type < 64 || packet.header.payload_type > 95 => {
+                match depayloader.depayload(packet) {
+                    Ok(Some(chunk)) => match &chunk.kind {
+                        EncodedChunkKind::Video(_) => video_sender
+                            .as_ref()
+                            .map(|video_sender| video_sender.send(PipelineEvent::Data(chunk))),
+                        EncodedChunkKind::Audio(_) => audio_sender
+                            .as_ref()
+                            .map(|audio_sender| audio_sender.send(PipelineEvent::Data(chunk))),
+                    },
+                    Ok(None) => continue,
+                    Err(err) => {
+                        warn!("RTP depayloading error: {}", err);
+                        continue;
+                    }
                 }
-            })
-            .unwrap();
+            }
+            Ok(_) | Err(_) => {
+                // TODO: Handle RTCP Goodbye packet
+                if rtcp::packet::unmarshal(&mut buffer).is_err() {
+                    warn!("Received an unexpected packet, which is not recognized either as RTP or RTCP. Dropping.");
+                }
 
-    ChunksReceiver {
-        video: video_receiver,
-        audio: audio_receiver,
+                continue;
+            }
+        };
     }
+    if let Some(sender) = video_sender {
+        if let Err(_err) = sender.send(PipelineEvent::EOS) {
+            debug!("Failed to send EOS from RTP video depayloader. Channel closed.");
+        }
+    }
+    if let Some(sender) = audio_sender {
+        if let Err(_err) = sender.send(PipelineEvent::EOS) {
+            debug!("Failed to send EOS from RTP audio depayloader. Channel closed.");
+        }
+    };
 }
 
 #[derive(Debug, thiserror::Error)]

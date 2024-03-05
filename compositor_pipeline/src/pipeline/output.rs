@@ -1,4 +1,6 @@
-use crate::error::OutputInitError;
+use crossbeam_channel::Receiver;
+
+use crate::{error::OutputInitError, queue::PipelineEvent};
 
 use self::rtp::{RtpSender, RtpSenderOptions};
 
@@ -19,7 +21,7 @@ pub enum OutputOptions {
 impl Output {
     pub fn new(
         options: OutputOptions,
-        packets: Box<dyn Iterator<Item = EncodedChunk> + Send>,
+        packets: Receiver<PipelineEvent<EncodedChunk>>,
     ) -> Result<(Self, Option<Port>), OutputInitError> {
         match options {
             OutputOptions::Rtp(options) => {

@@ -5,15 +5,19 @@ mod video_queue;
 
 use std::{
     cmp::{self, Ordering},
+    collections::HashMap,
     fmt::Debug,
     sync::{Arc, Mutex},
     time::{Duration, Instant},
 };
 
-use compositor_render::{FrameSet, Framerate, InputId};
+use compositor_render::{Frame, FrameSet, Framerate, InputId};
 use crossbeam_channel::{bounded, Sender};
 
-use crate::{audio_mixer::types::AudioSamplesSet, pipeline::decoder::DecodedDataReceiver};
+use crate::{
+    audio_mixer::types::{AudioSamplesBatch, AudioSamplesSet},
+    pipeline::decoder::DecodedDataReceiver,
+};
 
 use self::{
     audio_queue::AudioQueue,
@@ -46,6 +50,50 @@ pub struct Queue {
 
     start_sender: Mutex<Option<Sender<QueueStartEvent>>>,
     scheduled_event_sender: Sender<ScheduledEvent>,
+}
+
+pub(super) struct QueueVideoOutput {
+    pub(super) pts: Duration,
+    pub(super) frames: HashMap<InputId, PipelineEvent<Frame>>,
+}
+
+impl From<QueueVideoOutput> for FrameSet<InputId> {
+    fn from(value: QueueVideoOutput) -> Self {
+        Self {
+            frames: value
+                .frames
+                .into_iter()
+                .filter_map(|(key, value)| match value {
+                    PipelineEvent::Data(data) => Some((key, data)),
+                    PipelineEvent::EOS => None,
+                })
+                .collect(),
+            pts: value.pts,
+        }
+    }
+}
+
+pub(super) struct QueueAudioOutput {
+    pub samples: HashMap<InputId, PipelineEvent<Vec<AudioSamplesBatch>>>,
+    pub start_pts: Duration,
+    pub end_pts: Duration,
+}
+
+impl From<QueueAudioOutput> for AudioSamplesSet {
+    fn from(value: QueueAudioOutput) -> Self {
+        Self {
+            samples: value
+                .samples
+                .into_iter()
+                .filter_map(|(key, value)| match value {
+                    PipelineEvent::Data(data) => Some((key, data)),
+                    PipelineEvent::EOS => None,
+                })
+                .collect(),
+            start_pts: value.start_pts,
+            end_pts: value.end_pts,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -128,10 +176,10 @@ impl Queue {
         self.audio_queue.lock().unwrap().remove_input(input_id);
     }
 
-    pub fn start(
+    pub(super) fn start(
         self: &Arc<Self>,
-        video_sender: Sender<FrameSet<InputId>>,
-        audio_sender: Sender<AudioSamplesSet>,
+        video_sender: Sender<QueueVideoOutput>,
+        audio_sender: Sender<QueueAudioOutput>,
     ) {
         if let Some(sender) = self.start_sender.lock().unwrap().take() {
             sender

@@ -1,5 +1,4 @@
 use compositor_render::Frame;
-use compositor_render::FrameSet;
 use compositor_render::InputId;
 use crossbeam_channel::Receiver;
 use crossbeam_channel::TryRecvError;
@@ -13,6 +12,7 @@ use std::time::Instant;
 use super::utils::InputProcessor;
 use super::InputOptions;
 use super::PipelineEvent;
+use super::QueueVideoOutput;
 
 pub struct VideoQueue {
     inputs: HashMap<InputId, VideoQueueInput>,
@@ -42,6 +42,7 @@ impl VideoQueue {
                 input_frames_processor: InputProcessor::new(self.buffer_duration),
                 required: opts.required,
                 offset: opts.offset,
+                eos_sent: false,
             },
         );
     }
@@ -52,11 +53,11 @@ impl VideoQueue {
 
     /// Gets frames closest to buffer pts. It does not check whether input is ready
     /// or not. It should not be called before pipeline start.
-    pub fn get_frames_batch(
+    pub(super) fn get_frames_batch(
         &mut self,
         buffer_pts: Duration,
         queue_start: Instant,
-    ) -> FrameSet<InputId> {
+    ) -> QueueVideoOutput {
         let frames = self
             .inputs
             .iter_mut()
@@ -67,7 +68,7 @@ impl VideoQueue {
             })
             .collect();
 
-        FrameSet {
+        QueueVideoOutput {
             frames,
             pts: buffer_pts,
         }
@@ -155,13 +156,19 @@ pub struct VideoQueueInput {
     /// offset will be resolved automatically on the stream start.
     offset: Option<Duration>,
 
+    eos_sent: bool,
+
     listeners: Vec<Box<dyn FnOnce() + Send>>,
 }
 
 impl VideoQueueInput {
     /// Return frame for PTS and drop all the older frames. This function does not check
     /// whether stream is required or not.
-    fn get_frame(&mut self, buffer_pts: Duration, queue_start: Instant) -> Option<Frame> {
+    fn get_frame(
+        &mut self,
+        buffer_pts: Duration,
+        queue_start: Instant,
+    ) -> Option<PipelineEvent<Frame>> {
         self.drop_old_frames(buffer_pts, queue_start);
         let Some(input_start_time) = self.input_start_time() else {
             return None;
@@ -185,7 +192,13 @@ impl VideoQueueInput {
         if self.input_frames_processor.did_receive_eos() && self.queue.len() == 1 {
             self.queue.pop_front();
         }
-        frame
+
+        if self.input_frames_processor.did_receive_eos() && frame.is_none() && !self.eos_sent {
+            self.eos_sent = true;
+            Some(PipelineEvent::EOS)
+        } else {
+            frame.map(PipelineEvent::Data)
+        }
     }
 
     /// Check if the input has enough data in the queue to produce frames for `next_buffer_pts`.

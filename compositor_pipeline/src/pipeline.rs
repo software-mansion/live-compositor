@@ -1,8 +1,7 @@
-use std::collections::{hash_map, HashMap};
-use std::ops::Deref;
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
-use std::sync::{Mutex, MutexGuard};
+use std::sync::Mutex;
 use std::thread;
 use std::time::Duration;
 
@@ -11,19 +10,21 @@ use compositor_render::error::{
 };
 use compositor_render::scene::Component;
 use compositor_render::web_renderer::WebRendererInitOptions;
+use compositor_render::RegistryType;
 use compositor_render::RendererOptions;
 use compositor_render::{error::UpdateSceneError, Renderer};
 use compositor_render::{EventLoop, InputId, OutputId, RendererId, RendererSpec};
-use compositor_render::{FrameSet, RegistryType};
 use crossbeam_channel::{bounded, Receiver};
-use log::{error, info};
+use tracing::{error, info, warn};
 
-use crate::audio_mixer::types::{AudioChannels, AudioMixingParams, AudioSamplesSet};
+use crate::audio_mixer::types::{AudioChannels, AudioMixingParams};
 use crate::audio_mixer::AudioMixer;
 use crate::error::{
     RegisterInputError, RegisterOutputError, UnregisterInputError, UnregisterOutputError,
 };
-use crate::queue::{self, Queue, QueueOptions};
+use crate::queue::PipelineEvent;
+use crate::queue::QueueAudioOutput;
+use crate::queue::{self, Queue, QueueOptions, QueueVideoOutput};
 
 use self::encoder::{AudioEncoderPreset, VideoEncoderOptions};
 use self::input::InputOptions;
@@ -82,6 +83,13 @@ pub struct OutputScene {
 pub struct PipelineInput {
     pub input: input::Input,
     pub decoder: decoder::Decoder,
+
+    /// Some(received) - Whether EOS was received from queue on audio stream for that input.
+    /// None - No audio configured for that input.
+    audio_eos_received: Option<bool>,
+    /// Some(received) - Whether EOS was received from queue on video stream for that input.
+    /// None - No video configured for that input.
+    video_eos_received: Option<bool>,
 }
 
 pub struct PipelineOutput {
@@ -92,14 +100,14 @@ pub struct PipelineOutput {
 }
 
 pub struct Pipeline {
-    inputs: HashMap<InputId, Arc<PipelineInput>>,
-    outputs: OutputRegistry<PipelineOutput>,
+    inputs: HashMap<InputId, PipelineInput>,
+    outputs: HashMap<OutputId, PipelineOutput>,
     queue: Arc<Queue>,
     renderer: Renderer,
     audio_mixer: AudioMixer,
     is_started: bool,
     download_dir: PathBuf,
-    pub output_sample_rate: u32,
+    output_sample_rate: u32,
 }
 
 #[derive(Debug, Clone)]
@@ -126,7 +134,7 @@ impl Pipeline {
         std::fs::create_dir_all(&download_dir).map_err(InitPipelineError::CreateDownloadDir)?;
 
         let pipeline = Pipeline {
-            outputs: OutputRegistry::new(),
+            outputs: HashMap::new(),
             inputs: HashMap::new(),
             queue: Queue::new(opts.queue_options),
             renderer,
@@ -137,10 +145,6 @@ impl Pipeline {
         };
 
         Ok((pipeline, event_loop))
-    }
-
-    pub fn renderer(&self) -> &Renderer {
-        &self.renderer
     }
 
     pub fn queue(&self) -> &Queue {
@@ -167,7 +171,7 @@ impl Pipeline {
             self.output_sample_rate,
         )?;
 
-        self.inputs.insert(input_id.clone(), pipeline_input.into());
+        self.inputs.insert(input_id.clone(), pipeline_input);
         self.queue.add_input(&input_id, receiver, queue_options);
         self.renderer.register_input(input_id);
         Ok(port)
@@ -204,7 +208,7 @@ impl Pipeline {
         }
 
         let (output, port) = new_pipeline_output(register_options, self.output_sample_rate)?;
-        self.outputs.insert(output_id.clone(), Arc::new(output));
+        self.outputs.insert(output_id.clone(), output);
 
         if let Some(audio_opts) = audio.clone() {
             self.audio_mixer.register_output(
@@ -224,7 +228,7 @@ impl Pipeline {
         Ok(port)
     }
 
-    pub fn unregister_output(&self, output_id: &OutputId) -> Result<(), UnregisterOutputError> {
+    pub fn unregister_output(&mut self, output_id: &OutputId) -> Result<(), UnregisterOutputError> {
         if !self.outputs.contains_key(output_id) {
             return Err(UnregisterOutputError::NotFound(output_id.clone()));
         }
@@ -236,10 +240,11 @@ impl Pipeline {
     }
 
     pub fn register_renderer(
-        &self,
+        pipeline: &Arc<Mutex<Self>>,
         transformation_spec: RendererSpec,
     ) -> Result<(), RegisterRendererError> {
-        self.renderer.register_renderer(transformation_spec)?;
+        let renderer = pipeline.lock().unwrap().renderer.clone();
+        renderer.register_renderer(transformation_spec)?;
         Ok(())
     }
 
@@ -276,8 +281,7 @@ impl Pipeline {
         root_component: &Option<Component>,
         audio: &Option<AudioMixingParams>,
     ) -> Result<(), UpdateSceneError> {
-        let outputs = self.outputs.0.lock().unwrap();
-        let Some(output) = outputs.get(output_id) else {
+        let Some(output) = self.outputs.get(output_id) else {
             return Err(UpdateSceneError::OutputNotRegistered(output_id.clone()));
         };
         if output.has_audio != audio.is_some() || output.has_video != root_component.is_some() {
@@ -296,7 +300,6 @@ impl Pipeline {
     ) -> Result<(), UpdateSceneError> {
         let Some(resolution) = self
             .outputs
-            .lock()
             .get(&output_id)
             .ok_or_else(|| UpdateSceneError::OutputNotRegistered(output_id.clone()))?
             .encoder
@@ -321,129 +324,115 @@ impl Pipeline {
         self.audio_mixer.update_output(output_id, audio)
     }
 
-    pub fn start(&mut self) {
-        if self.is_started {
+    pub fn start(pipeline: &Arc<Mutex<Self>>) {
+        let guard = pipeline.lock().unwrap();
+        if guard.is_started {
             error!("Pipeline already started.");
             return;
         }
         info!("Starting pipeline.");
-        let (frames_sender, frames_receiver) = bounded(1);
-        // for 20ms chunks this will be 60 seconds of audio
-        let (audio_sender, audio_receiver) = bounded(300);
-        self.queue.start(frames_sender, audio_sender);
+        let (video_sender, video_receiver) = bounded(1);
+        let (audio_sender, audio_receiver) = bounded(1);
+        guard.queue.start(video_sender, audio_sender);
 
-        let renderer = self.renderer.clone();
-        let outputs = self.outputs.clone();
-        thread::spawn(move || Self::run_renderer_thread(frames_receiver, renderer, outputs));
+        let pipeline_clone = pipeline.clone();
+        thread::spawn(move || run_renderer_thread(pipeline_clone, video_receiver));
 
-        let audio_mixer = self.audio_mixer.clone();
-        let outputs = self.outputs.clone();
-        thread::spawn(move || Self::run_audio_mixer_thread(audio_mixer, audio_receiver, outputs));
-    }
-
-    fn run_renderer_thread(
-        frames_receiver: Receiver<FrameSet<InputId>>,
-        renderer: Renderer,
-        outputs: OutputRegistry<PipelineOutput>,
-    ) {
-        for input_frames in frames_receiver.iter() {
-            let output = renderer.render(input_frames);
-            let Ok(output_frames) = output else {
-                error!(
-                    "Error while rendering: {}",
-                    ErrorStack::new(&output.unwrap_err()).into_string()
-                );
-                continue;
-            };
-
-            for (id, frame) in output_frames.frames {
-                let output = outputs.lock().get(&id).cloned();
-                let Some(output) = output else {
-                    error!("no output with id {}", &id);
-                    continue;
-                };
-
-                output.encoder.send_frame(frame);
-            }
-        }
-    }
-
-    fn run_audio_mixer_thread(
-        audio_mixer: AudioMixer,
-        audio_receiver: Receiver<AudioSamplesSet>,
-        outputs: OutputRegistry<PipelineOutput>,
-    ) {
-        for samples in audio_receiver {
-            let mixed_samples = audio_mixer.mix_samples(samples.clone());
-            for (id, batch) in mixed_samples.0 {
-                let output = outputs.lock().get(&id).cloned();
-                let Some(output) = output else {
-                    error!("no output with id {}", &id);
-                    continue;
-                };
-
-                output.encoder.send_samples_batch(batch);
-            }
-        }
+        let pipeline_clone = pipeline.clone();
+        thread::spawn(move || run_audio_mixer_thread(pipeline_clone, audio_receiver));
     }
 
     pub fn inputs(&self) -> impl Iterator<Item = (&InputId, &PipelineInput)> {
-        self.inputs.iter().map(|(id, node)| (id, node.deref()))
+        self.inputs.iter()
     }
 
-    pub fn with_outputs<F, R>(&self, f: F) -> R
-    where
-        F: Fn(OutputIterator<'_>) -> R,
-    {
-        let guard = self.outputs.lock();
-        f(OutputIterator::new(guard.iter()))
+    pub fn outputs(&self) -> impl Iterator<Item = (&OutputId, &PipelineOutput)> {
+        self.outputs.iter()
     }
 }
 
-struct OutputRegistry<T>(Arc<Mutex<HashMap<OutputId, Arc<T>>>>);
+fn run_renderer_thread(
+    pipeline: Arc<Mutex<Pipeline>>,
+    frames_receiver: Receiver<QueueVideoOutput>,
+) {
+    let renderer = pipeline.lock().unwrap().renderer.clone();
+    for mut input_frames in frames_receiver.iter() {
+        for (input_id, event) in input_frames.frames.iter_mut() {
+            if let PipelineEvent::EOS = event {
+                let mut guard = pipeline.lock().unwrap();
+                let eos_received = guard
+                    .inputs
+                    .get_mut(input_id)
+                    .and_then(|input| input.video_eos_received.as_mut());
+                if let Some(eos_received) = eos_received {
+                    *eos_received = true;
+                }
+            }
+        }
+        let output = renderer.render(input_frames.into());
+        let Ok(output_frames) = output else {
+            error!(
+                "Error while rendering: {}",
+                ErrorStack::new(&output.unwrap_err()).into_string()
+            );
+            continue;
+        };
 
-impl<T> Clone for OutputRegistry<T> {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
+        for (id, frame) in output_frames.frames {
+            let frame_sender = pipeline
+                .lock()
+                .unwrap()
+                .outputs
+                .get(&id)
+                .and_then(|output| output.encoder.frame_sender())
+                .cloned();
+            let Some(frame_sender) = frame_sender else {
+                error!("no output with id {}", &id);
+                continue;
+            };
+
+            if frame_sender.send(PipelineEvent::Data(frame)).is_err() {
+                warn!("Failed to send output frames. Channel closed.")
+            }
+        }
     }
 }
 
-impl<T> OutputRegistry<T> {
-    fn new() -> Self {
-        Self(Arc::new(Mutex::new(HashMap::new())))
-    }
+fn run_audio_mixer_thread(
+    pipeline: Arc<Mutex<Pipeline>>,
+    audio_receiver: Receiver<QueueAudioOutput>,
+) {
+    let audio_mixer = pipeline.lock().unwrap().audio_mixer.clone();
+    for mut samples in audio_receiver.iter() {
+        for (input_id, event) in samples.samples.iter_mut() {
+            if let PipelineEvent::EOS = event {
+                let mut guard = pipeline.lock().unwrap();
+                let eos_received = guard
+                    .inputs
+                    .get_mut(input_id)
+                    .and_then(|input| input.audio_eos_received.as_mut());
+                if let Some(eos_received) = eos_received {
+                    *eos_received = true;
+                }
+            }
+        }
+        let mixed_samples = audio_mixer.mix_samples(samples.into());
+        for (id, batch) in mixed_samples.0 {
+            let samples_sender = pipeline
+                .lock()
+                .unwrap()
+                .outputs
+                .get(&id)
+                .and_then(|output| output.encoder.samples_batch_sender())
+                .cloned();
+            let Some(samples_sender) = samples_sender else {
+                error!("no output with id {}", &id);
+                continue;
+            };
 
-    fn contains_key(&self, key: &OutputId) -> bool {
-        self.0.lock().unwrap().contains_key(key)
-    }
-
-    fn insert(&self, key: OutputId, value: Arc<T>) -> Option<Arc<T>> {
-        self.0.lock().unwrap().insert(key, value)
-    }
-
-    fn remove(&self, key: &OutputId) -> Option<Arc<T>> {
-        self.0.lock().unwrap().remove(key)
-    }
-
-    fn lock(&self) -> MutexGuard<HashMap<OutputId, Arc<T>>> {
-        self.0.lock().unwrap()
-    }
-}
-
-pub struct OutputIterator<'a> {
-    inner_iter: hash_map::Iter<'a, OutputId, Arc<PipelineOutput>>,
-}
-
-impl<'a> OutputIterator<'a> {
-    fn new(iter: hash_map::Iter<'a, OutputId, Arc<PipelineOutput>>) -> Self {
-        Self { inner_iter: iter }
-    }
-}
-
-impl<'a> Iterator for OutputIterator<'a> {
-    type Item = (&'a OutputId, &'a PipelineOutput);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.inner_iter.next().map(|(id, node)| (id, node.deref()))
+            if samples_sender.send(PipelineEvent::Data(batch)).is_err() {
+                warn!("Failed to send mixed oudio. Channel closed.")
+            }
+        }
     }
 }

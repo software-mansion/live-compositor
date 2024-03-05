@@ -20,6 +20,10 @@ pub(super) fn new_pipeline_input(
         input::Input::new(input_options, download_dir)
             .map_err(|e| RegisterInputError::InputError(input_id.clone(), e))?;
 
+    let (audio_eos_received, video_eos_received) = (
+        decoder_options.audio.as_ref().map(|_| false),
+        decoder_options.video.as_ref().map(|_| false),
+    );
     let (decoder, decoded_data_receiver) = decoder::Decoder::new(
         input_id.clone(),
         chunks_receiver,
@@ -28,6 +32,11 @@ pub(super) fn new_pipeline_input(
     )
     .map_err(|e| RegisterInputError::DecoderError(input_id.clone(), e))?;
 
-    let pipeline_input = PipelineInput { input, decoder };
+    let pipeline_input = PipelineInput {
+        input,
+        decoder,
+        audio_eos_received,
+        video_eos_received,
+    };
     Ok((pipeline_input, decoded_data_receiver, port))
 }
