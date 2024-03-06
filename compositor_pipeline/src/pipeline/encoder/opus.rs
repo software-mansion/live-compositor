@@ -99,6 +99,7 @@ fn run_encoder_thread(
 
         trace!(pts=?chunk.pts, "OPUS encoder produced an encoded chunk.");
         if let Err(_err) = packets_sender.send(PipelineEvent::Data(chunk)) {
+            warn!("Failed to send encoded audio from OPUS encoder. Channel closed.");
             return;
         }
     }

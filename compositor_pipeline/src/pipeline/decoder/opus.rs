@@ -88,6 +88,7 @@ fn run_decoder_thread(
             .send(PipelineEvent::Data(samples_batch))
             .is_err()
         {
+            debug!("Failed to send audio samples from OPUS decoder. Channel closed.");
             return;
         };
     }

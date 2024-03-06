@@ -387,7 +387,7 @@ fn run_renderer_thread(
                 .and_then(|output| output.encoder.frame_sender())
                 .cloned();
             let Some(frame_sender) = frame_sender else {
-                error!("no output with id {}", &id);
+                warn!("Failed to send output frame. No output with id {}.", &id);
                 continue;
             };
 
@@ -426,12 +426,12 @@ fn run_audio_mixer_thread(
                 .and_then(|output| output.encoder.samples_batch_sender())
                 .cloned();
             let Some(samples_sender) = samples_sender else {
-                error!("no output with id {}", &id);
+                warn!("Filed to send mixed audio. No output with id {}.", &id);
                 continue;
             };
 
             if samples_sender.send(PipelineEvent::Data(batch)).is_err() {
-                warn!("Failed to send mixed oudio. Channel closed.")
+                warn!("Failed to send mixed audio. Channel closed.")
             }
         }
     }

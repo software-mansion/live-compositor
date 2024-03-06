@@ -97,8 +97,8 @@ fn run_decoder_thread(
         };
 
         for batch in decoded_samples {
-            if let Err(err) = samples_sender.send(PipelineEvent::Data(batch)) {
-                error!(%err, "Error enqueueing audio samples");
+            if samples_sender.send(PipelineEvent::Data(batch)).is_err() {
+                debug!("Failed to send audio samples from AAC decoder. Channel closed.");
                 return;
             }
         }

@@ -224,22 +224,25 @@ fn run_encoder_thread(
 
         loop {
             match encoder.receive_packet(&mut packet) {
-                Ok(_) => match EncodedChunk::from_av_packet(
-                    &packet,
-                    EncodedChunkKind::Video(VideoCodec::H264),
-                    1_000_000,
-                ) {
-                    Ok(chunk) => {
-                        trace!(output_id=?options.output_id.0, pts=?packet.pts(), "H264 encoder produced an encoded packet.");
-                        if packet_sender.send(PipelineEvent::Data(chunk)).is_err() {
-                            return Ok(());
+                Ok(_) => {
+                    match EncodedChunk::from_av_packet(
+                        &packet,
+                        EncodedChunkKind::Video(VideoCodec::H264),
+                        1_000_000,
+                    ) {
+                        Ok(chunk) => {
+                            trace!(output_id=?options.output_id.0, pts=?packet.pts(), "H264 encoder produced an encoded packet.");
+                            if packet_sender.send(PipelineEvent::Data(chunk)).is_err() {
+                                warn!("Failed to send encoded video from H264 encoder. Channel closed.");
+                                return Ok(());
+                            }
+                        }
+                        Err(e) => {
+                            warn!("failed to parse an ffmpeg packet received from encoder: {e}",);
+                            break;
                         }
                     }
-                    Err(e) => {
-                        warn!("failed to parse an ffmpeg packet received from encoder: {e}",);
-                        break;
-                    }
-                },
+                }
 
                 Err(ffmpeg_next::Error::Other {
                     errno: ffmpeg_next::error::EAGAIN,
