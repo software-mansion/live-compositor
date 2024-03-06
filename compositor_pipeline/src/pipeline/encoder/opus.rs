@@ -6,7 +6,7 @@ use crate::{
     audio_mixer::types::{AudioChannels, AudioSamples, AudioSamplesBatch},
     error::EncoderInitError,
     pipeline::{
-        structs::{EncodedChunk, EncodedChunkKind},
+        structs::{EncodedChunk, EncodedChunkKind, EncoderOutputEvent},
         AudioCodec,
     },
     queue::PipelineEvent,
@@ -28,7 +28,7 @@ impl OpusEncoder {
     pub fn new(
         options: Options,
         sample_rate: u32,
-        packets_sender: Sender<PipelineEvent<EncodedChunk>>,
+        packets_sender: Sender<EncoderOutputEvent>,
     ) -> Result<Self, EncoderInitError> {
         let (samples_batch_sender, samples_batch_receiver) = bounded(2);
 
@@ -56,7 +56,7 @@ impl OpusEncoder {
 fn run_encoder_thread(
     mut encoder: opus::Encoder,
     samples_batch_receiver: Receiver<PipelineEvent<AudioSamplesBatch>>,
-    packets_sender: Sender<PipelineEvent<EncodedChunk>>,
+    packets_sender: Sender<EncoderOutputEvent>,
 ) {
     let mut output_buffer = [0u8; 1024 * 1024];
 
@@ -98,12 +98,12 @@ fn run_encoder_thread(
         };
 
         trace!(pts=?chunk.pts, "OPUS encoder produced an encoded chunk.");
-        if let Err(_err) = packets_sender.send(PipelineEvent::Data(chunk)) {
+        if let Err(_err) = packets_sender.send(EncoderOutputEvent::Data(chunk)) {
             warn!("Failed to send encoded audio from OPUS encoder. Channel closed.");
             return;
         }
     }
-    if let Err(_err) = packets_sender.send(PipelineEvent::EOS) {
+    if let Err(_err) = packets_sender.send(EncoderOutputEvent::AudioEOS) {
         warn!("Failed to send EOS from OPUS encoder. Channel closed.")
     }
 }

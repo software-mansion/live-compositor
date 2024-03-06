@@ -9,7 +9,7 @@ use tracing::{debug, error, span, trace, warn, Level};
 
 use crate::{
     error::EncoderInitError,
-    pipeline::structs::{EncodedChunk, EncodedChunkKind, VideoCodec},
+    pipeline::structs::{EncodedChunk, EncodedChunkKind, EncoderOutputEvent, VideoCodec},
     queue::PipelineEvent,
 };
 
@@ -89,7 +89,7 @@ pub struct LibavH264Encoder {
 impl LibavH264Encoder {
     pub fn new(
         options: Options,
-        chunks_sender: Sender<PipelineEvent<EncodedChunk>>,
+        chunks_sender: Sender<EncoderOutputEvent>,
     ) -> Result<Self, EncoderInitError> {
         let (frame_sender, frame_receiver) = crossbeam_channel::bounded(5);
         let (result_sender, result_receiver) = crossbeam_channel::bounded(0);
@@ -144,7 +144,7 @@ impl LibavH264Encoder {
 fn run_encoder_thread(
     options: Options,
     frame_receiver: Receiver<PipelineEvent<Frame>>,
-    packet_sender: Sender<PipelineEvent<EncodedChunk>>,
+    packet_sender: Sender<EncoderOutputEvent>,
     result_sender: &Sender<Result<(), EncoderInitError>>,
 ) -> Result<(), EncoderInitError> {
     let codec = ffmpeg_next::codec::encoder::find(Id::H264).ok_or(EncoderInitError::NoCodec)?;
@@ -232,7 +232,7 @@ fn run_encoder_thread(
                     ) {
                         Ok(chunk) => {
                             trace!(output_id=?options.output_id.0, pts=?packet.pts(), "H264 encoder produced an encoded packet.");
-                            if packet_sender.send(PipelineEvent::Data(chunk)).is_err() {
+                            if packet_sender.send(EncoderOutputEvent::Data(chunk)).is_err() {
                                 warn!("Failed to send encoded video from H264 encoder. Channel closed.");
                                 return Ok(());
                             }
@@ -256,7 +256,7 @@ fn run_encoder_thread(
         }
     }
 
-    if let Err(_err) = packet_sender.send(PipelineEvent::EOS) {
+    if let Err(_err) = packet_sender.send(EncoderOutputEvent::VideoEOS) {
         warn!("Failed to send EOS from H264 encoder. Channel closed.")
     }
     Ok(())

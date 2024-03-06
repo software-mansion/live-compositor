@@ -12,6 +12,7 @@ use crate::{
 };
 use compositor_render::InputId;
 use crossbeam_channel::{bounded, Receiver, Sender};
+use rtcp::header::PacketType;
 use tracing::{debug, error, span, warn, Level};
 use webrtc_util::Unmarshal;
 
@@ -158,6 +159,27 @@ fn run_depayloader_thread(
     video_sender: Option<Sender<PipelineEvent<EncodedChunk>>>,
     audio_sender: Option<Sender<PipelineEvent<EncodedChunk>>>,
 ) {
+    let mut audio_eos_received = audio_sender.as_ref().map(|_| false);
+    let mut video_eos_received = video_sender.as_ref().map(|_| false);
+    let mut audio_ssrc = None;
+    let mut video_ssrc = None;
+
+    let mut maybe_send_video_eos = || {
+        if let (Some(sender), Some(false)) = (&video_sender, video_eos_received) {
+            video_eos_received = Some(true);
+            if sender.send(PipelineEvent::EOS).is_err() {
+                debug!("Failed to send EOS from RTP video depayloader. Channel closed.");
+            }
+        }
+    };
+    let mut maybe_send_audio_eos = || {
+        if let (Some(sender), Some(false)) = (&audio_sender, audio_eos_received) {
+            audio_eos_received = Some(true);
+            if sender.send(PipelineEvent::EOS).is_err() {
+                debug!("Failed to send EOS from RTP audio depayloader. Channel closed.");
+            }
+        }
+    };
     loop {
         let Ok(mut buffer) = receiver.recv() else {
             debug!("Closing RTP depayloader thread.");
@@ -172,6 +194,12 @@ fn run_depayloader_thread(
             // with the additional restriction that payload type values in the range
             // 64-95 MUST NOT be used.
             Ok(packet) if packet.header.payload_type < 64 || packet.header.payload_type > 95 => {
+                if packet.header.payload_type == 96 && video_ssrc.is_none() {
+                    video_ssrc = Some(packet.header.ssrc);
+                }
+                if packet.header.payload_type == 97 && audio_ssrc.is_none() {
+                    audio_ssrc = Some(packet.header.ssrc);
+                }
                 match depayloader.depayload(packet) {
                     Ok(Some(chunk)) => match &chunk.kind {
                         EncodedChunkKind::Video(_) => video_sender
@@ -189,25 +217,36 @@ fn run_depayloader_thread(
                 }
             }
             Ok(_) | Err(_) => {
-                // TODO: Handle RTCP Goodbye packet
-                if rtcp::packet::unmarshal(&mut buffer).is_err() {
-                    warn!("Received an unexpected packet, which is not recognized either as RTP or RTCP. Dropping.");
+                match rtcp::packet::unmarshal(&mut buffer) {
+                    Ok(rtcp_packets) => {
+                        for rtcp_packet in rtcp_packets {
+                            if let PacketType::Goodbye = rtcp_packet.header().packet_type {
+                                for ssrc in rtcp_packet.destination_ssrc() {
+                                    if Some(ssrc) == audio_ssrc {
+                                        maybe_send_audio_eos()
+                                    }
+                                    if Some(ssrc) == video_ssrc {
+                                        maybe_send_video_eos()
+                                    }
+                                }
+                            } else {
+                                debug!(
+                                    packet_type=?rtcp_packet.header().packet_type,
+                                    "Received RTCP packet"
+                                )
+                            }
+                        }
+                    }
+                    Err(err) => {
+                        warn!(%err, "Received an unexpected packet, which is not recognized either as RTP or RTCP. Dropping.");
+                    }
                 }
-
                 continue;
             }
         };
     }
-    if let Some(sender) = video_sender {
-        if let Err(_err) = sender.send(PipelineEvent::EOS) {
-            debug!("Failed to send EOS from RTP video depayloader. Channel closed.");
-        }
-    }
-    if let Some(sender) = audio_sender {
-        if let Err(_err) = sender.send(PipelineEvent::EOS) {
-            debug!("Failed to send EOS from RTP audio depayloader. Channel closed.");
-        }
-    };
+    maybe_send_audio_eos();
+    maybe_send_video_eos();
 }
 
 #[derive(Debug, thiserror::Error)]

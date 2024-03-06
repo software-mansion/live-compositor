@@ -13,6 +13,12 @@ pub struct EncodedChunk {
     pub kind: EncodedChunkKind,
 }
 
+pub enum EncoderOutputEvent {
+    Data(EncodedChunk),
+    AudioEOS,
+    VideoEOS,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EncodedChunkKind {
     Video(VideoCodec),
