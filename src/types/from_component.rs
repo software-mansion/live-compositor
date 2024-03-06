@@ -108,7 +108,7 @@ impl TryFrom<View> for scene::ViewComponent {
                 .background_color_rgba
                 .map(TryInto::try_into)
                 .unwrap_or(Ok(scene::RGBAColor(0, 0, 0, 0)))?,
-            transition: view.transition.map(Into::into),
+            transition: view.transition.map(TryInto::try_into).transpose()?,
         })
     }
 }
@@ -180,7 +180,7 @@ impl TryFrom<Rescaler> for scene::RescalerComponent {
                 .vertical_align
                 .unwrap_or(VerticalAlign::Center)
                 .into(),
-            transition: rescaler.transition.map(Into::into),
+            transition: rescaler.transition.map(TryInto::try_into).transpose()?,
         })
     }
 }
@@ -350,7 +350,7 @@ impl TryFrom<Tiles> for scene::TilesComponent {
                 .unwrap_or(HorizontalAlign::Center)
                 .into(),
             vertical_align: tiles.vertical_align.unwrap_or(VerticalAlign::Center).into(),
-            transition: tiles.transition.map(Into::into),
+            transition: tiles.transition.map(TryInto::try_into).transpose()?,
         };
         Ok(result)
     }

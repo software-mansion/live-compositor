@@ -71,7 +71,11 @@ fn start_example_client_code() -> Result<()> {
             "background_color_rgba": "#444444FF",
             "children": children,
             "transition": {
-                "duration_ms": 500,
+                "duration_ms": 700,
+                "easing_function": {
+                    "function_name": "cubic_bezier",
+                    "points": [0.35, 0.22, 0.1, 0.8]
+                }
             },
         })
     };

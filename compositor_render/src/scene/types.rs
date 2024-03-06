@@ -71,4 +71,6 @@ pub enum HorizontalPosition {
 #[derive(Debug, Clone, Copy)]
 pub enum InterpolationKind {
     Linear,
+    Bounce,
+    CubicBezier { x1: f64, y1: f64, x2: f64, y2: f64 },
 }

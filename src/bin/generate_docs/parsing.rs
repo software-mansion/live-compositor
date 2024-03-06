@@ -8,7 +8,9 @@ use schemars::{
 
 use crate::type_definition::{Kind, ObjectProperty, TypeDefinition};
 
-const SKIPPED_DEFINITIONS: [&str; 1] = ["Component"];
+const IGNORED_DEFINITIONS: [&str; 1] = ["Component"];
+const ALWAYS_INLINED_DEFINITIONS: [&str; 1] = ["Port"];
+const NEVER_INLINED_DEFINITIONS: [&str; 0] = [];
 
 #[derive(Debug)]
 pub struct DocPage {
@@ -114,6 +116,12 @@ impl DocPage {
         for def in self.definitions.iter_mut() {
             flatten_union_definition(def);
 
+            if let Some(name) = &def.name {
+                if NEVER_INLINED_DEFINITIONS.contains(&name.as_ref()) {
+                    continue;
+                }
+            }
+
             let should_inline = match &def.kind {
                 Kind::Null
                 | Kind::I32
@@ -123,11 +131,18 @@ impl DocPage {
                 | Kind::U16
                 | Kind::Bool
                 | Kind::String(_) => true,
-                Kind::Union(types) => types
+                Kind::Union(variants) => variants
                     .iter()
                     .all(|def: &TypeDefinition| matches!(def.kind, Kind::String(_))),
                 _ => false,
             };
+
+            let should_inline = should_inline
+                || def
+                    .name
+                    .as_deref()
+                    .map(|name| ALWAYS_INLINED_DEFINITIONS.contains(&name))
+                    .unwrap_or(false);
 
             if should_inline {
                 inline_definitions.insert(def.name.clone().unwrap(), def.clone());
@@ -154,10 +169,7 @@ impl DocPage {
 
 pub fn generate_docs<T: JsonSchema>(title: &str) -> DocPage {
     let title: Rc<str> = title.into();
-    let mut settings = SchemaSettings::default();
-    // Remove not needed prefix from references
-    settings.definitions_path.clear();
-    let schema_generator = SchemaGenerator::new(settings);
+    let schema_generator = new_schema_generator();
     let root_schema = schema_generator.into_root_schema_for::<T>();
 
     let mut page = DocPage::new(title.clone());
@@ -180,15 +192,17 @@ fn populate_page(
 
     // Parse every definition mentioned in `schema`
     for refer in references {
-        if SKIPPED_DEFINITIONS.contains(&refer.as_ref()) {
+        if IGNORED_DEFINITIONS.contains(&refer.as_ref()) {
             continue;
         }
+
         if page.contains_definition(&refer) {
             continue;
         }
         let Some(schema) = root_schema.definitions.get(refer.deref()) else {
             continue;
         };
+
         populate_page(page, refer, &schema.clone().into_object(), root_schema);
     }
 }
@@ -306,8 +320,10 @@ fn parse_array_or_tuple(schema: &SchemaObject) -> Kind {
     let array = schema.array.as_ref().unwrap();
     match (array.min_items, array.max_items) {
         (Some(min), Some(max)) if min == max => {
-            let Some(SingleOrVec::Vec(items)) = &array.items else {
-                panic!("Expected typle types");
+            let items = match &array.items {
+                Some(SingleOrVec::Single(items)) => vec![items.deref().clone(); min as usize],
+                Some(SingleOrVec::Vec(items)) => items.clone(),
+                None => panic!("Expected typle types"),
             };
             let tuple_ty = items
                 .iter()
@@ -341,4 +357,10 @@ fn flatten_subschemas(subschemas: &SubschemaValidation) -> Vec<SchemaObject> {
     }
 
     schemas.into_iter().map(Schema::into_object).collect()
+}
+
+fn new_schema_generator() -> SchemaGenerator {
+    let mut settings = SchemaSettings::default();
+    settings.definitions_path.clear();
+    SchemaGenerator::new(settings)
 }

@@ -134,7 +134,7 @@ impl TilesComponent {
         let transition = TransitionState::new(
             self.transition.map(|transition| TransitionOptions {
                 duration: transition.duration,
-                interpolation_kind: super::InterpolationKind::Linear,
+                interpolation_kind: transition.interpolation_kind,
             }),
             previous_state.and_then(|s| s.transition.clone()),
             ctx.last_render_pts,

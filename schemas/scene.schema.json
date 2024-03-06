@@ -804,8 +804,75 @@
           "description": "Duration of a transition in milliseconds.",
           "type": "number",
           "format": "double"
+        },
+        "easing_function": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/EasingFunction"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       }
+    },
+    "EasingFunction": {
+      "description": "Easing functions are used to interpolate between two values over time.\n\nCustom easing functions can be implemented with cubic Bézier. The control points are defined with `points` field by providing four numerical values: `x1`, `y1`, `x2` and `y2`. The `x1` and `x2` values have to be in the range `[0; 1]`. The cubic Bézier result is clamped to the range `[0; 1]`. You can find example control point configurations [here](https://easings.net/).",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "function_name"
+          ],
+          "properties": {
+            "function_name": {
+              "type": "string",
+              "enum": [
+                "linear"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "function_name"
+          ],
+          "properties": {
+            "function_name": {
+              "type": "string",
+              "enum": [
+                "bounce"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "function_name",
+            "points"
+          ],
+          "properties": {
+            "function_name": {
+              "type": "string",
+              "enum": [
+                "cubic_bezier"
+              ]
+            },
+            "points": {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "format": "double"
+              },
+              "maxItems": 4,
+              "minItems": 4
+            }
+          }
+        }
+      ]
     },
     "Overflow": {
       "oneOf": [

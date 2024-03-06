@@ -1,6 +1,11 @@
 use std::time::Duration;
 
+use self::{bounce::bounce_easing, cubic_bezier::cubic_bezier_easing};
+
 use super::{types::interpolation::InterpolationState, InterpolationKind};
+
+mod bounce;
+mod cubic_bezier;
 
 /// Similar concept to InterpolationState, but it represents a time instead.
 /// Values between 0 and 1 represent transition and larger than 1 post transition.
@@ -91,6 +96,10 @@ impl InterpolationKind {
     fn state(&self, t: f64) -> InterpolationState {
         match self {
             InterpolationKind::Linear => InterpolationState(t),
+            InterpolationKind::Bounce => InterpolationState(bounce_easing(t)),
+            InterpolationKind::CubicBezier { x1, y1, x2, y2 } => {
+                InterpolationState(cubic_bezier_easing(t, *x1, *y1, *x2, *y2))
+            }
         }
     }
 }

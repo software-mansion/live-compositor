@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use compositor_render::scene::{self};
+use compositor_render::scene;
 
 use super::util::*;
 
@@ -31,11 +31,39 @@ impl From<compositor_render::Resolution> for Resolution {
     }
 }
 
-impl From<Transition> for scene::Transition {
-    fn from(transition: Transition) -> Self {
-        Self {
+impl TryFrom<Transition> for scene::Transition {
+    type Error = TypeError;
+
+    fn try_from(transition: Transition) -> Result<Self, Self::Error> {
+        let interpolation_kind = match transition.easing_function.unwrap_or(EasingFunction::Linear)
+        {
+            EasingFunction::Linear => scene::InterpolationKind::Linear,
+            EasingFunction::Bounce => scene::InterpolationKind::Bounce,
+            EasingFunction::CubicBezier { points } => {
+                if points[0] < 0.0 || points[0] > 1.0 {
+                    return Err(TypeError::new(
+                        "Control point x1 has to be in the range [0, 1].",
+                    ));
+                }
+                if points[2] < 0.0 || points[2] > 1.0 {
+                    return Err(TypeError::new(
+                        "Control point x2 has to be in the range [0, 1].",
+                    ));
+                }
+
+                scene::InterpolationKind::CubicBezier {
+                    x1: points[0],
+                    y1: points[1],
+                    x2: points[2],
+                    y2: points[3],
+                }
+            }
+        };
+
+        Ok(Self {
             duration: Duration::from_secs_f64(transition.duration_ms / 1000.0),
-        }
+            interpolation_kind,
+        })
     }
 }
 

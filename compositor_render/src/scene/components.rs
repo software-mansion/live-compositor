@@ -2,7 +2,9 @@ use std::{fmt::Display, sync::Arc, time::Duration};
 
 use crate::{InputId, RendererId};
 
-use super::{AbsolutePosition, Component, HorizontalAlign, RGBAColor, Size, VerticalAlign};
+use super::{
+    AbsolutePosition, Component, HorizontalAlign, InterpolationKind, RGBAColor, Size, VerticalAlign,
+};
 
 mod interpolation;
 
@@ -150,6 +152,7 @@ pub enum Overflow {
 #[derive(Debug, Clone, Copy)]
 pub struct Transition {
     pub duration: Duration,
+    pub interpolation_kind: InterpolationKind,
 }
 
 #[derive(Debug, Clone, Copy)]
