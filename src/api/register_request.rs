@@ -3,7 +3,7 @@ use compositor_render::InputId;
 
 use crate::{error::ApiError, types::RegisterRequest};
 
-use super::{Api, Response, ResponseHandler};
+use super::{Api, Pipeline, Response, ResponseHandler};
 
 fn handle_register_input(
     api: &mut Api,
@@ -39,17 +39,17 @@ pub fn handle_register_request(
         }
         RegisterRequest::Shader(spec) => {
             let spec = spec.try_into()?;
-            api.pipeline().register_renderer(spec)?;
+            Pipeline::register_renderer(&api.pipeline, spec)?;
             Ok(ResponseHandler::Ok)
         }
         RegisterRequest::WebRenderer(spec) => {
             let spec = spec.try_into()?;
-            api.pipeline().register_renderer(spec)?;
+            Pipeline::register_renderer(&api.pipeline, spec)?;
             Ok(ResponseHandler::Ok)
         }
         RegisterRequest::Image(spec) => {
             let spec = spec.try_into()?;
-            api.pipeline().register_renderer(spec)?;
+            Pipeline::register_renderer(&api.pipeline, spec)?;
             Ok(ResponseHandler::Ok)
         }
     }

@@ -1,6 +1,6 @@
 use crate::{audio_mixer::types::AudioSamplesBatch, error::DecoderInitError, queue::PipelineEvent};
 
-use self::{fdk_aac::FdkAacDecoder, ffmpeg_h264::H264FfmpegDecoder, opus_decoder::OpusDecoder};
+use self::{fdk_aac::FdkAacDecoder, ffmpeg_h264::H264FfmpegDecoder, opus::OpusDecoder};
 
 use super::{
     input::ChunksReceiver,
@@ -13,7 +13,7 @@ use crossbeam_channel::{bounded, Receiver, Sender};
 
 pub mod fdk_aac;
 mod ffmpeg_h264;
-mod opus_decoder;
+mod opus;
 
 pub struct Decoder {
     #[allow(dead_code)]

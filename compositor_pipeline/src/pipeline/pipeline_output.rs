@@ -1,7 +1,7 @@
 use crate::error::RegisterOutputError;
 
 use super::{
-    encoder::{opus_encoder, AudioEncoderOptions, Encoder, EncoderOptions},
+    encoder::{opus, AudioEncoderOptions, Encoder, EncoderOptions},
     output::Output,
     PipelineOutput, Port, RegisterOutputOptions,
 };
@@ -21,7 +21,7 @@ pub(super) fn new_pipeline_output(
     let encoder_opts = EncoderOptions {
         video: video.map(|video_opts| video_opts.encoder_opts),
         audio: audio.map(|audio_opts| {
-            AudioEncoderOptions::Opus(opus_encoder::Options {
+            AudioEncoderOptions::Opus(opus::Options {
                 channels: audio_opts.channels,
                 preset: audio_opts.encoder_preset,
             })

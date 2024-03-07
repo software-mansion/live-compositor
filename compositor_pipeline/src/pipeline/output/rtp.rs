@@ -1,4 +1,5 @@
 use compositor_render::OutputId;
+use crossbeam_channel::Receiver;
 use std::{
     io::{self, Write},
     sync::{atomic::AtomicBool, Arc},
@@ -6,7 +7,7 @@ use std::{
     time::Duration,
     u16,
 };
-use tracing::{debug, error, trace};
+use tracing::{debug, error, span, trace, Level};
 
 use webrtc_util::Marshal;
 
@@ -17,6 +18,7 @@ use crate::{
         structs::EncodedChunk,
         AudioCodec, Port, VideoCodec,
     },
+    queue::PipelineEvent,
 };
 
 use self::payloader::Payloader;
@@ -60,7 +62,7 @@ pub enum RtpConnectionOptions {
 impl RtpSender {
     pub fn new(
         options: RtpSenderOptions,
-        packets: Box<dyn Iterator<Item = EncodedChunk> + Send>,
+        packets_receiver: Receiver<PipelineEvent<EncodedChunk>>,
     ) -> Result<(Self, Option<Port>), OutputInitError> {
         let payloader = Payloader::new(options.video, options.audio);
 
@@ -81,13 +83,17 @@ impl RtpSender {
         std::thread::Builder::new()
             .name(format!("RTP sender for output {}", options.output_id))
             .spawn(move || {
+                let _span =
+                    span!(Level::INFO, "RTP sender", output_id = output_id.to_string()).entered();
                 match connection_options {
-                    RtpConnectionOptions::Udp { .. } => run_udp_sender_thread(&mut ctx, packets),
+                    RtpConnectionOptions::Udp { .. } => {
+                        run_udp_sender_thread(&mut ctx, packets_receiver)
+                    }
                     RtpConnectionOptions::TcpServer { .. } => {
-                        run_tcp_sender_thread(&mut ctx, packets)
+                        run_tcp_sender_thread(&mut ctx, packets_receiver)
                     }
                 }
-                debug!(output_id=?output_id.0, "Closing RTP sender thread.")
+                debug!("Closing RTP sender thread.")
             })
             .unwrap();
 
@@ -125,78 +131,85 @@ impl RtpSender {
     }
 }
 
-fn run_tcp_sender_thread(
-    context: &mut RtpContext,
-    mut packets: Box<dyn Iterator<Item = EncodedChunk> + Send>,
-) {
+fn run_tcp_sender_thread(context: &mut RtpContext, packets: Receiver<PipelineEvent<EncodedChunk>>) {
     // make accept non blocking so we have a chance to handle should_close value
     context
         .socket
         .set_nonblocking(true)
         .expect("Cannot set non-blocking");
-    loop {
-        if context
-            .should_close
-            .load(std::sync::atomic::Ordering::Relaxed)
-        {
-            return;
-        }
 
+    let mut connected_socket = None;
+    while !context
+        .should_close
+        .load(std::sync::atomic::Ordering::Relaxed)
+        && connected_socket.is_none()
+    {
         // accept only one connection at the time
         let Ok((socket, _)) = context.socket.accept() else {
             thread::sleep(Duration::from_millis(50));
             continue;
         };
+        connected_socket = Some(socket);
+    }
 
-        let mut socket = TcpWritePacketStream::new(socket, context.should_close.clone());
-        loop {
-            let Some(chunk) = packets.next() else {
-                return;
-            };
-            let pts = chunk.pts;
+    let mut socket = match connected_socket {
+        Some(socket) => TcpWritePacketStream::new(socket, context.should_close.clone()),
+        None => return,
+    };
 
-            let packets = match context.payloader.payload(64000, chunk) {
+    loop {
+        let chunk = match packets.recv() {
+            Ok(PipelineEvent::Data(chunk)) => chunk,
+            Ok(PipelineEvent::EOS) => break,
+            Err(_) => break,
+        };
+        let pts = chunk.pts;
+
+        let packets = match context.payloader.payload(64000, chunk) {
+            Ok(p) => p,
+            Err(e) => {
+                error!("Failed to payload a packet: {}", e);
+                continue;
+            }
+        };
+
+        for packet in packets.iter() {
+            let packet = match packet.marshal() {
                 Ok(p) => p,
                 Err(e) => {
-                    error!("Failed to payload a packet: {}", e);
-                    return;
+                    error!("Failed to marshal a packet: {}", e);
+                    break;
                 }
             };
 
-            for packet in packets.iter() {
-                let packet = match packet.marshal() {
-                    Ok(p) => p,
-                    Err(e) => {
-                        error!("Failed to marshal a packet: {}", e);
-                        return;
-                    }
-                };
-
-                trace!(size_bytes = packet.len(), pts=?pts, "Send RTP TCP packet.");
-                if let Err(err) = socket.write_packet(packet) {
-                    debug!("Failed to send packet: {err}");
-                    // if should_close is true it will exit at the beginning of the next loop
-                    // if should close is false we will wait for the next connection attempt
-                    break;
+            trace!(size_bytes = packet.len(), pts=?pts, "Send RTP TCP packet.");
+            if let Err(err) = socket.write_packet(packet) {
+                if err.kind() == io::ErrorKind::WouldBlock {
+                    // this means that should_close is true
+                    return;
                 }
+                debug!("Failed to send RTP packet: {err}");
+                continue;
             }
         }
     }
+    // TODO: send goodbye packet and exit
 }
 
 /// this assumes, that a "packet" contains data about a single frame (access unit)
-fn run_udp_sender_thread(
-    context: &mut RtpContext,
-    packets: Box<dyn Iterator<Item = EncodedChunk> + Send>,
-) {
+fn run_udp_sender_thread(context: &mut RtpContext, packets: Receiver<PipelineEvent<EncodedChunk>>) {
     for chunk in packets {
+        let chunk = match chunk {
+            PipelineEvent::Data(chunk) => chunk,
+            PipelineEvent::EOS => break,
+        };
         let pts = chunk.pts;
         // TODO: check if this is h264
         let packets = match context.payloader.payload(1400, chunk) {
             Ok(p) => p,
             Err(e) => {
                 error!("Failed to payload a packet: {}", e);
-                return;
+                break;
             }
         };
 
@@ -215,6 +228,7 @@ fn run_udp_sender_thread(
             };
         });
     }
+    // TODO: send goodbye packet and exit
 }
 
 impl Drop for RtpSender {

@@ -11,7 +11,7 @@ use bytes::{Buf, Bytes, BytesMut};
 use compositor_render::InputId;
 use crossbeam_channel::{Receiver, Sender};
 use mp4::Mp4Reader;
-use tracing::{debug, warn};
+use tracing::{debug, span, warn, Level};
 
 use crate::{
     pipeline::{
@@ -122,6 +122,8 @@ impl VideoReader {
         std::thread::Builder::new()
             .name(format!("mp4 video reader {input_id}"))
             .spawn(move || {
+                let _span =
+                    span!(Level::INFO, "MP4 video", input_id = input_id.to_string()).entered();
                 run_video_thread(
                     sps_and_pps_payload,
                     reader,
@@ -134,9 +136,8 @@ impl VideoReader {
                         timescale,
                         track_id,
                     },
-                    input_id.clone(),
                 );
-                debug!(input_id=?input_id.0, "Closing MP4 video reader thread");
+                debug!("Closing MP4 video reader thread");
             })
             .unwrap();
 
@@ -187,7 +188,6 @@ fn run_video_thread<R: Read + Seek>(
         track_id,
         timescale,
     }: TrackInfo,
-    input_id: InputId,
 ) {
     for i in 1..sample_count {
         match reader.read_sample(track_id, i) {
@@ -234,16 +234,18 @@ fn run_video_thread<R: Read + Seek>(
                 };
 
                 if let ControlFlow::Break(_) =
-                    super::send_chunk(PipelineEvent::Data(chunk), &sender, &stop_thread, &input_id)
+                    super::send_chunk(PipelineEvent::Data(chunk), &sender, &stop_thread)
                 {
                     break;
                 }
             }
             Err(e) => {
-                warn!(input_id=?input_id.0, "Error while reading MP4 video sample: {:?}", e);
+                warn!("Error while reading MP4 video sample: {:?}", e);
             }
             _ => {}
         }
     }
-    let _ = sender.send(PipelineEvent::EOS);
+    if let Err(_err) = sender.send(PipelineEvent::EOS) {
+        debug!("Failed to send EOS from MP4 video reader. Channel closed.");
+    }
 }

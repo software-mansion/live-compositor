@@ -1,15 +1,15 @@
 use compositor_render::{Frame, Resolution};
-use crossbeam_channel::{bounded, Sender};
+use crossbeam_channel::{bounded, Receiver, Sender};
 use log::error;
 
-use crate::{audio_mixer::types::AudioSamplesBatch, error::EncoderInitError};
+use crate::{audio_mixer::types::AudioSamplesBatch, error::EncoderInitError, queue::PipelineEvent};
 
-use self::{ffmpeg_h264::LibavH264Encoder, opus_encoder::OpusEncoder};
+use self::{ffmpeg_h264::LibavH264Encoder, opus::OpusEncoder};
 
 use super::structs::EncodedChunk;
 
 pub mod ffmpeg_h264;
-pub mod opus_encoder;
+pub mod opus;
 
 pub struct EncoderOptions {
     pub video: Option<VideoEncoderOptions>,
@@ -23,7 +23,7 @@ pub enum VideoEncoderOptions {
 
 #[derive(Debug, Clone)]
 pub enum AudioEncoderOptions {
-    Opus(opus_encoder::Options),
+    Opus(opus::Options),
 }
 
 #[derive(Debug, Clone)]
@@ -50,7 +50,7 @@ impl Encoder {
     pub fn new(
         options: EncoderOptions,
         sample_rate: u32,
-    ) -> Result<(Self, Box<dyn Iterator<Item = EncodedChunk> + Send>), EncoderInitError> {
+    ) -> Result<(Self, Receiver<PipelineEvent<EncodedChunk>>), EncoderInitError> {
         let (encoded_chunks_sender, encoded_chunks_receiver) = bounded(1);
 
         let video_encoder = match options.video {
@@ -75,21 +75,27 @@ impl Encoder {
                 video: video_encoder,
                 audio: audio_encoder,
             },
-            Box::new(encoded_chunks_receiver.into_iter()),
+            encoded_chunks_receiver,
         ))
     }
 
-    pub fn send_frame(&self, frame: Frame) {
+    pub fn frame_sender(&self) -> Option<&Sender<PipelineEvent<Frame>>> {
         match &self.video {
-            Some(video_encoder) => video_encoder.send_frame(frame),
-            None => error!("Non video encoder received frame to send."),
+            Some(VideoEncoder::H264(encoder)) => Some(encoder.frame_sender()),
+            None => {
+                error!("Non video encoder received frame to send.");
+                None
+            }
         }
     }
 
-    pub fn send_samples_batch(&self, batch: AudioSamplesBatch) {
+    pub fn samples_batch_sender(&self) -> Option<&Sender<PipelineEvent<AudioSamplesBatch>>> {
         match &self.audio {
-            Some(audio_encoder) => audio_encoder.send_samples_batch(batch),
-            None => error!("Non audio encoder received samples to send."),
+            Some(AudioEncoder::Opus(encoder)) => Some(encoder.samples_batch_sender()),
+            None => {
+                error!("Non audio encoder received samples to send.");
+                None
+            }
         }
     }
 }
@@ -97,7 +103,7 @@ impl Encoder {
 impl VideoEncoder {
     pub fn new(
         options: VideoEncoderOptions,
-        sender: Sender<EncodedChunk>,
+        sender: Sender<PipelineEvent<EncodedChunk>>,
     ) -> Result<Self, EncoderInitError> {
         match options {
             VideoEncoderOptions::H264(options) => {
@@ -111,30 +117,18 @@ impl VideoEncoder {
             Self::H264(encoder) => encoder.resolution(),
         }
     }
-
-    pub fn send_frame(&self, frame: Frame) {
-        match self {
-            Self::H264(encoder) => encoder.send_frame(frame),
-        }
-    }
 }
 
 impl AudioEncoder {
     fn new(
         options: AudioEncoderOptions,
         sample_rate: u32,
-        sender: Sender<EncodedChunk>,
+        sender: Sender<PipelineEvent<EncodedChunk>>,
     ) -> Result<Self, EncoderInitError> {
         match options {
             AudioEncoderOptions::Opus(opus_encoder_options) => {
                 OpusEncoder::new(opus_encoder_options, sample_rate, sender).map(AudioEncoder::Opus)
             }
-        }
-    }
-
-    pub fn send_samples_batch(&self, batch: AudioSamplesBatch) {
-        match self {
-            AudioEncoder::Opus(opus_encoder) => opus_encoder.send_samples_batch(batch),
         }
     }
 }

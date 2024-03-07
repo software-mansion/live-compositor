@@ -6,13 +6,13 @@ use std::{
     time::{Duration, Instant},
 };
 
-use compositor_render::{FrameSet, InputId};
 use crossbeam_channel::{select, tick, Receiver, Sender};
 use tracing::{debug, info, trace, warn};
 
-use crate::audio_mixer::types::AudioSamplesSet;
-
-use super::{audio_queue::AudioQueue, video_queue::VideoQueue, Queue, ScheduledEvent};
+use super::{
+    audio_queue::AudioQueue, video_queue::VideoQueue, Queue, QueueAudioOutput, QueueVideoOutput,
+    ScheduledEvent,
+};
 
 pub(super) struct QueueThread {
     queue: Arc<Queue>,
@@ -22,8 +22,8 @@ pub(super) struct QueueThread {
 }
 
 pub(super) struct QueueStartEvent {
-    pub(super) video_sender: Sender<FrameSet<InputId>>,
-    pub(super) audio_sender: Sender<AudioSamplesSet>,
+    pub(super) video_sender: Sender<QueueVideoOutput>,
+    pub(super) audio_sender: Sender<QueueAudioOutput>,
     pub(super) start_time: Instant,
 }
 
@@ -159,7 +159,7 @@ struct VideoQueueProcessor {
     queue: Arc<Queue>,
     sent_batches_counter: u32,
     queue_start_time: Instant,
-    sender: Sender<FrameSet<InputId>>,
+    sender: Sender<QueueVideoOutput>,
 }
 
 impl VideoQueueProcessor {
@@ -183,7 +183,7 @@ impl VideoQueueProcessor {
         self.queue_start_time.add(pts) < Instant::now()
     }
 
-    fn send_output_frames(&mut self, frames_batch: FrameSet<InputId>, is_required: bool) {
+    fn send_output_frames(&mut self, frames_batch: QueueVideoOutput, is_required: bool) {
         let pts = frames_batch.pts;
         debug!(?pts, "Pushing video frames.");
         if is_required {
@@ -232,7 +232,7 @@ struct AudioQueueProcessor {
     queue: Arc<Queue>,
     chunks_counter: u32,
     queue_start_time: Instant,
-    sender: Sender<AudioSamplesSet>,
+    sender: Sender<QueueAudioOutput>,
 }
 
 impl AudioQueueProcessor {
@@ -286,7 +286,7 @@ impl AudioQueueProcessor {
         Some(())
     }
 
-    fn send_output_batch(&mut self, samples: AudioSamplesSet, is_required: bool) {
+    fn send_output_batch(&mut self, samples: QueueAudioOutput, is_required: bool) {
         let pts_range = (samples.start_pts, samples.end_pts);
         debug!(?pts_range, "Pushing audio samples.");
         if is_required {

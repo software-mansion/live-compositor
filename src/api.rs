@@ -133,7 +133,7 @@ impl Api {
                 unregister_request::handle_unregister_request(self, unregister_request)
             }
             Request::Start => {
-                self.pipeline.lock().unwrap().start();
+                Pipeline::start(&self.pipeline);
                 Ok(ResponseHandler::Ok)
             }
             Request::UpdateOutput(update) => self.handle_scene_update(update),
