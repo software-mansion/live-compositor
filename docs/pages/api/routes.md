@@ -29,22 +29,23 @@ type UpdateOutput = {
   type: "update_output";
   output_id: string;
   video?: Component;
-  audio?: AudioMixParams
-  schedule_time_ms?: number
+  audio?: {
+    inputs: AudioInput[];
+  };
+  schedule_time_ms?: number;
 }
 
-type AudioMixParams = {
-  inputs: [InputAudioParams]
-}
-
-type InputAudioParams = {
-  input_id: InputId
+type AudioInput = {
+  input_id: InputId;
+  volume?: number;
 }
 ```
 
 - `output_id` - Id of an already registered output stream. See [`RegisterOutputStream`](./routes#register-output-stream).
 - `video` - Root of a component tree/scene that should be rendered for the output. [Learn more](../concept/component)
 - `audio` - Parameters for mixing input audio streams.
+- `audio.inputs[].input_id` - Input id.
+- `audio.inputs[].volume` - (**default=`1.0`**) Float in `[0, 1]` range representing volume.
 - `schedule_time_ms` - Time in milliseconds when this request should be applied. Value `0` represents time of [the start request](#start).
 
 ***
@@ -76,16 +77,28 @@ type RegisterOutputStream = {
   transport_protocol?: "udp" | "tcp_server";
   port: u16;
   ip?: string;
-  video: Video
+  video?: Video;
+  audio?: Audio;
 }
 
 type Video = {
-  resolution: {
-    width: number,
-    height: number
-  },
-  initial: Component
+  resolution: { width: number, height: number },
   encoder_preset?: VideoEncoderPreset,
+  initial: Component,
+}
+
+type Audio = {
+  channels: "stereo" | "mono";
+  forward_error_correction?: boolean;
+  encoder_preset?: AudioEncoderPreset;
+  initial: {
+    inputs: AudioInput[];
+  };
+}
+
+type AudioInput = {
+  input_id: string;
+  volume?: number;
 }
 
 type VideoEncoderPreset =
@@ -99,6 +112,11 @@ type VideoEncoderPreset =
   | "slower"
   | "veryslow"
   | "placebo"
+
+type AudioEncoderPreset =
+  | "quality"
+  | "voip"
+  | "lowest_latency"
 ```
 
 Register a new RTP output stream.
@@ -111,9 +129,20 @@ Register a new RTP output stream.
   - `udp` - An UDP port number that RTP packets will be sent to.
   - `tcp_server` - A local TCP port number or a port range that LiveCompositor will listen for incoming connections.
 - `ip` - Only valid if `transport_protocol="udp"`. IP address where RTP packets should be sent to.
+
 - `video.resolution` - Output resolution in pixels.
-- `video.initial` - Root of a component tree/scene that should be rendered for the output. Use [`update_output` request](#update-output) to update this value after registration. [Learn more](../concept/component).
 - `video.encoder_preset` - (**default=`"fast"`**) Preset for an encoder. See `FFmpeg` [docs](https://trac.ffmpeg.org/wiki/Encode/H.264#Preset) to learn more.
+- `video.initial` - Root of a component tree/scene that should be rendered for the output. Use [`update_output` request](#update-output) to update this value after registration. [Learn more](../concept/component).
+
+- `audio.channels` - Channel configuration for output audio.
+- `audio.forward_error_correction` - (**default=`false`**) Specifies whether the stream use forward error correction. It's specific for Opus codec. For more information, check out [RFC](https://datatracker.ietf.org/doc/html/rfc6716#section-2.1.7).
+- `audio.encoder_preset` - (**default=`"voip"`**) Preset for an encoder.
+  - `quality` - Best for broadcast/high-fidelity application where the decoded audio should be as close as possible to the input.
+  - `voip` -  Best for most VoIP/videoconference applications where listening quality and intelligibility matter most.
+  - `lowest_latency` - Only use when lowest-achievable latency is what matters most.
+- `audio.initial` - Initial configuration for audio mixer for this output. Use [`update_output` request](#update-output) to update this value after registration.
+- `audio.initial.inputs[].input_id` - Input id.
+- `audio.initial.inputs[].volume` - (**default=`1.0`**) Float in `[0, 1]` range representing volume.
 
 ***
 
@@ -140,20 +169,20 @@ See renderers documentation to learn more.
 ```typescript
 type Unregister =
   | {
-    type: "unregister",
-    entity_type: "input_stream",
-    input_id: string,
-    schedule_time_ms: number
+    type: "unregister";
+    entity_type: "input_stream";
+    input_id: string;
+    schedule_time_ms: number;
   }
   | {
-    type: "unregister",
-    entity_type: "output_stream",
-    output_id: string,
-    schedule_time_ms: number
+    type: "unregister";
+    entity_type: "output_stream";
+    output_id: string;
+    schedule_time_ms: number;
   }
-  | { type: "unregister", entity_type: "shader", shader_id: string }
-  | { type: "unregister", entity_type: "image", image_id: string }
-  | { type: "unregister", entity_type: "web_renderer", instance_id: string }
+  | { type: "unregister"; entity_type: "shader"; shader_id: string }
+  | { type: "unregister"; entity_type: "image"; image_id: string }
+  | { type: "unregister"; entity_type: "web_renderer"; instance_id: string }
 ```
 
 Removes entities previously registered with [register input](#register-input-stream), [register output](#register-output-stream) or [register renderer](#register-renderer) requests.
