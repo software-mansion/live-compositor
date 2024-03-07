@@ -37,7 +37,7 @@ Example scene:
 }
 ```
 
-In the example above, we define a scene where an input stream `example_input_1` is rendered inside a [`View` component](../api/components/View). You can configure that scene for a specific output in the [`RegisterOutputStream` request](../api/routes#register-output-stream) using `initial_scene` field or in the [`UpdateScene` request](../api/routes#update-scene).
+In the example above, we define a scene where an input stream `example_input_1` is rendered inside a [`View` component](../api/components/View). You can configure that scene for a specific output in the [`RegisterOutputStream` request](../api/routes#register-output-stream) using `initial_scene` field or in the [`UpdateScene` request](../api/routes#update-output).
 
 :::note
 You need to register `"example_input_1"` before using it in the scene definition.
@@ -48,8 +48,8 @@ You need to register `"example_input_1"` before using it in the scene definition
 Renderers are entities capable of producing frames (in some cases based on some provided input). The renderer could be a WGSL shader, web renderer instance, or an image. They are not directly part of the scene definition. Instead, components are using them as part of their internal implementation.
 
 For example:
-- [The `Shader` component](../api/components/Shader) has a field `shader_id` that identifies a [`Shader` renderer](../api/renderers/Shader).
-- [The `Image` component](../api/components/Image) has a field `image_id` that identifies an [`Image` renderer](../api/renderers/Image).
+- [The `Shader` component](../api/components/Shader) has a field `shader_id` that identifies a [`Shader` renderer](../api/renderers/shader).
+- [The `Image` component](../api/components/Image) has a field `image_id` that identifies an [`Image` renderer](../api/renderers/image).
 
 Every renderer, except [`WebRenderer`](../api/renderers/web), can be used in multiple components. For example, you can create a single `Shader` renderer that applies some effect and use that `shader_id` in multiple `Shader` components.
 
