@@ -1,33 +1,28 @@
 use std::{
-    fs::File,
-    io::Read,
     ops::ControlFlow,
-    os::unix::fs::MetadataExt,
     path::{Path, PathBuf},
     sync::{atomic::AtomicBool, Arc},
     time::Duration,
 };
 
-use bytes::{Buf, Bytes, BytesMut};
 use compositor_render::InputId;
 use crossbeam_channel::{Receiver, SendTimeoutError, Sender};
-use mp4::Mp4Reader;
 use symphonia::core::formats::FormatReader;
-use tracing::{debug, error, warn};
+use tracing::{debug, error};
 
 use crate::{
     pipeline::{
-        decoder::{
-            AacDecoderOptions, AacTransport, AudioDecoderOptions, DecoderOptions,
-            VideoDecoderOptions,
-        },
+        decoder::{AacDecoderOptions, AacTransport, AudioDecoderOptions, DecoderOptions},
         structs::{EncodedChunk, EncodedChunkKind},
-        VideoCodec,
     },
     queue::PipelineEvent,
 };
 
+use self::video_reader::{Mp4ReaderOptions, VideoReader};
+
 use super::ChunksReceiver;
+
+pub mod video_reader;
 
 pub struct Mp4Options {
     pub source: Source,
@@ -59,7 +54,7 @@ pub enum Mp4Error {
 
 pub struct Mp4 {
     pub input_id: InputId,
-    stop_video_thread: Option<Arc<AtomicBool>>,
+    _video_thread: Option<VideoReader>,
     stop_audio_thread: Option<Arc<AtomicBool>>,
     source: Source,
     path_to_file: PathBuf,
@@ -90,24 +85,35 @@ impl Mp4 {
             Source::File(ref path) => path.clone(),
         };
 
-        let video_reader_info = spawn_video_reader(&input_path, options.input_id.clone())?;
+        let (video_reader, video_receiver, video_decoder_options) = match VideoReader::new(
+            Mp4ReaderOptions::NonFragmented {
+                file: input_path.clone(),
+            },
+            options.input_id.clone(),
+        )? {
+            Some((reader, receiver)) => {
+                let decoder_options = reader.decoder_options();
+                (Some(reader), Some(receiver), Some(decoder_options))
+            }
+            None => (None, None, None),
+        };
 
         let audio_reader_info = spawn_audio_reader(&input_path, options.input_id.clone())?;
 
         Ok((
             Self {
                 input_id: options.input_id,
-                stop_video_thread: video_reader_info.stop_thread,
+                _video_thread: video_reader,
                 stop_audio_thread: audio_reader_info.stop_thread,
                 source: options.source,
                 path_to_file: input_path,
             },
             ChunksReceiver {
-                video: video_reader_info.receiver,
+                video: video_receiver,
                 audio: audio_reader_info.receiver,
             },
             DecoderOptions {
-                video: video_reader_info.options,
+                video: video_decoder_options,
                 audio: audio_reader_info.options,
             },
         ))
@@ -116,10 +122,6 @@ impl Mp4 {
 
 impl Drop for Mp4 {
     fn drop(&mut self) {
-        if let Some(stop_video) = &self.stop_video_thread {
-            stop_video.store(true, std::sync::atomic::Ordering::Relaxed);
-        }
-
         if let Some(stop_audio) = &self.stop_audio_thread {
             stop_audio.store(true, std::sync::atomic::Ordering::Relaxed);
         }
@@ -130,168 +132,6 @@ impl Drop for Mp4 {
             }
         }
     }
-}
-
-#[derive(Default)]
-struct VideoReaderInfo {
-    stop_thread: Option<Arc<AtomicBool>>,
-    receiver: Option<Receiver<PipelineEvent<EncodedChunk>>>,
-    options: Option<VideoDecoderOptions>,
-}
-
-fn spawn_video_reader(input_path: &Path, input_id: InputId) -> Result<VideoReaderInfo, Mp4Error> {
-    let stop_thread = Arc::new(AtomicBool::new(false));
-    let stop_thread_clone = stop_thread.clone();
-    let input_file = std::fs::File::open(input_path)?;
-    let size = input_file.metadata()?.size();
-    let reader = mp4::Mp4Reader::read_header(input_file, size)?;
-
-    let Some((&track_id, track, avc)) = reader.tracks().iter().find_map(|(id, track)| {
-        let track_type = track.track_type().ok()?;
-
-        let media_type = track.media_type().ok()?;
-
-        let avc = track.avc1_or_3_inner();
-
-        if track_type != mp4::TrackType::Video
-            || media_type != mp4::MediaType::H264
-            || avc.is_none()
-        {
-            return None;
-        }
-
-        avc.map(|avc| (id, track, avc))
-    }) else {
-        return Ok(Default::default());
-    };
-
-    let (sender, receiver) = crossbeam_channel::bounded(10);
-
-    // sps and pps have to be extracted from the container, interleaved with [0, 0, 0, 1],
-    // concatenated and prepended to the first frame.
-    let sps = avc
-        .avcc
-        .sequence_parameter_sets
-        .iter()
-        .flat_map(|s| [0, 0, 0, 1].iter().chain(s.bytes.iter()));
-
-    let pps = avc
-        .avcc
-        .picture_parameter_sets
-        .iter()
-        .flat_map(|s| [0, 0, 0, 1].iter().chain(s.bytes.iter()));
-
-    let sps_and_pps_payload = Some(sps.chain(pps).copied().collect::<Bytes>());
-
-    let sample_count = track.sample_count();
-    let timescale = track.timescale();
-    let length_size = avc.avcc.length_size_minus_one + 1;
-
-    std::thread::Builder::new()
-        .name(format!("mp4 video reader {input_id}"))
-        .spawn(move || {
-            run_video_thread(
-                sps_and_pps_payload,
-                reader,
-                sender,
-                stop_thread_clone,
-                length_size,
-                TrackInfo {
-                    sample_count,
-                    timescale,
-                    track_id,
-                },
-                input_id.clone(),
-            );
-            debug!(input_id=?input_id.0, "Closing MP4 video reader thread");
-        })
-        .unwrap();
-
-    Ok(VideoReaderInfo {
-        stop_thread: Some(stop_thread),
-        receiver: Some(receiver),
-        options: Some(VideoDecoderOptions {
-            codec: VideoCodec::H264,
-        }),
-    })
-}
-
-struct TrackInfo {
-    sample_count: u32,
-    track_id: u32,
-    timescale: u32,
-}
-
-fn run_video_thread(
-    mut sps_and_pps: Option<Bytes>,
-    mut reader: Mp4Reader<File>,
-    sender: Sender<PipelineEvent<EncodedChunk>>,
-    stop_thread: Arc<AtomicBool>,
-    length_size: u8,
-    TrackInfo {
-        sample_count,
-        track_id,
-        timescale,
-    }: TrackInfo,
-    input_id: InputId,
-) {
-    for i in 1..sample_count {
-        match reader.read_sample(track_id, i) {
-            Ok(Some(sample)) => {
-                let mut sample_data = sample.bytes.reader();
-                let mut data: BytesMut = Default::default();
-
-                if let Some(first_nal) = sps_and_pps.take() {
-                    data.extend_from_slice(&first_nal);
-                }
-
-                // the mp4 sample contains one h264 access unit (possibly more than one NAL).
-                // the NALs are stored as: <length_size bytes long big endian encoded length><the NAL>.
-                // we need to convert this into Annex B, in which NALs are separated by
-                // [0, 0, 0, 1]. `lenght_size` is at most 4 bytes long.
-                loop {
-                    let mut len = [0u8; 4];
-
-                    if sample_data
-                        .read_exact(&mut len[4 - length_size as usize..])
-                        .is_err()
-                    {
-                        break;
-                    }
-
-                    let len = u32::from_be_bytes(len);
-
-                    let mut nalu = bytes::BytesMut::zeroed(len as usize);
-                    sample_data.read_exact(&mut nalu).unwrap();
-
-                    data.extend_from_slice(&[0, 0, 0, 1]);
-                    data.extend_from_slice(&nalu);
-                }
-
-                let dts = Duration::from_secs_f64(sample.start_time as f64 / timescale as f64);
-                let chunk = EncodedChunk {
-                    data: data.freeze(),
-                    pts: Duration::from_secs_f64(
-                        (sample.start_time as f64 + sample.rendering_offset as f64)
-                            / timescale as f64,
-                    ),
-                    dts: Some(dts),
-                    kind: EncodedChunkKind::Video(VideoCodec::H264),
-                };
-
-                if let ControlFlow::Break(_) =
-                    send_chunk(PipelineEvent::Data(chunk), &sender, &stop_thread, &input_id)
-                {
-                    break;
-                }
-            }
-            Err(e) => {
-                warn!(input_id=?input_id.0, "Error while reading MP4 video sample: {:?}", e);
-            }
-            _ => {}
-        }
-    }
-    let _ = sender.send(PipelineEvent::EOS);
 }
 
 #[derive(Default)]
