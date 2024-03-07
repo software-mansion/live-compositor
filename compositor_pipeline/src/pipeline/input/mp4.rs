@@ -8,7 +8,7 @@ use std::{
 use compositor_render::InputId;
 use crossbeam_channel::{Receiver, SendTimeoutError, Sender};
 use symphonia::core::formats::FormatReader;
-use tracing::{debug, error};
+use tracing::{debug, error, span, Level};
 
 use crate::{
     pipeline::{
@@ -197,14 +197,9 @@ fn spawn_audio_reader(input_path: &Path, input_id: InputId) -> Result<AudioReade
     std::thread::Builder::new()
         .name(format!("mp4 audio reader {input_id}"))
         .spawn(move || {
-            run_audio_thread(
-                cloned_track,
-                reader,
-                sender,
-                stop_thread_clone,
-                input_id.clone(),
-            );
-            debug!(input_id=?input_id.0, "Closing MP4 audio reader thread");
+            let _span = span!(Level::INFO, "MP4 audio", input_id = input_id.to_string()).entered();
+            run_audio_thread(cloned_track, reader, sender, stop_thread_clone);
+            debug!("Closing MP4 audio reader thread");
         })
         .unwrap();
 
@@ -223,7 +218,6 @@ fn run_audio_thread(
     mut reader: symphonia::default::formats::IsoMp4Reader,
     sender: Sender<PipelineEvent<EncodedChunk>>,
     stop_thread: Arc<AtomicBool>,
-    input_id: InputId,
 ) {
     while let Ok(packet) = reader.next_packet() {
         if packet.track_id() != track.id {
@@ -249,20 +243,20 @@ fn run_audio_thread(
             kind: EncodedChunkKind::Audio(crate::pipeline::AudioCodec::Aac),
         };
 
-        if let ControlFlow::Break(_) =
-            send_chunk(PipelineEvent::Data(chunk), &sender, &stop_thread, &input_id)
+        if let ControlFlow::Break(_) = send_chunk(PipelineEvent::Data(chunk), &sender, &stop_thread)
         {
             break;
         }
     }
-    let _ = sender.send(PipelineEvent::EOS);
+    if let Err(_err) = sender.send(PipelineEvent::EOS) {
+        debug!("Failed to send EOS from MP4 audio reader. Channel closed.");
+    }
 }
 
 fn send_chunk(
     chunk: PipelineEvent<EncodedChunk>,
     sender: &Sender<PipelineEvent<EncodedChunk>>,
     stop_thread: &AtomicBool,
-    input_id: &InputId,
 ) -> ControlFlow<(), ()> {
     let mut chunk = Some(chunk);
     loop {
@@ -274,7 +268,7 @@ fn send_chunk(
                 chunk = Some(not_sent_chunk);
             }
             Err(SendTimeoutError::Disconnected(_)) => {
-                error!(input_id=?input_id.0, "Channel disconnected unexpectedly while sending a chunk. Terminating the reader.");
+                debug!("Channel disconnected.");
                 return ControlFlow::Break(());
             }
         }
