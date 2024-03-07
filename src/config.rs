@@ -105,12 +105,12 @@ fn read_config() -> Result<Config, String> {
         Err(_) => false,
     };
 
-    const DEFAULT_STREAM_FALLBACK_TIMEOUT: Duration = Duration::from_millis(2000);
+    const DEFAULT_STREAM_FALLBACK_TIMEOUT: Duration = Duration::from_millis(500);
     let stream_fallback_timeout = match env::var("LIVE_COMPOSITOR_STREAM_FALLBACK_TIMEOUT_MS") {
         Ok(timeout_ms) => match timeout_ms.parse::<f64>() {
             Ok(timeout_ms) => Duration::from_secs_f64(timeout_ms / 1000.0),
             Err(_) => {
-                error!("Invalid value provided for \"LIVE_COMPOSITOR_STREAM_FALLBACK_TIMEOUT_MS\". Falling back to default value 2000ms.");
+                error!("Invalid value provided for \"LIVE_COMPOSITOR_STREAM_FALLBACK_TIMEOUT_MS\". Falling back to default value 500ms.");
                 DEFAULT_STREAM_FALLBACK_TIMEOUT
             }
         },

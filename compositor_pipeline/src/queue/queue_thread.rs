@@ -7,7 +7,7 @@ use std::{
 };
 
 use crossbeam_channel::{select, tick, Receiver, Sender};
-use tracing::{debug, info, trace, warn};
+use tracing::{debug, info, info_span, trace, warn};
 
 use super::{
     audio_queue::AudioQueue, video_queue::VideoQueue, Queue, QueueAudioOutput, QueueVideoOutput,
@@ -49,6 +49,7 @@ impl QueueThread {
     }
 
     fn run(mut self) {
+        let _span = info_span!("Queue").entered();
         let ticker = tick(self.queue.output_framerate.get_interval_duration());
         loop {
             select! {
@@ -180,7 +181,11 @@ impl VideoQueueProcessor {
         if !queue.check_all_required_inputs_ready_for_pts(pts, self.queue_start_time) {
             return false;
         }
-        self.queue_start_time.add(pts) < Instant::now()
+        if self.queue_start_time.add(pts) < Instant::now() {
+            debug!("Pushing video frames while some inputs are not ready.");
+            return true;
+        }
+        false
     }
 
     fn send_output_frames(&mut self, frames_batch: QueueVideoOutput, is_required: bool) {
@@ -259,7 +264,11 @@ impl AudioQueueProcessor {
         if !queue.check_all_required_inputs_ready_for_pts(pts_range, self.queue_start_time) {
             return false;
         }
-        self.queue_start_time.add(pts_range.0) < Instant::now()
+        if self.queue_start_time.add(pts_range.0) < Instant::now() {
+            debug!("Pushing audio samples while some inputs are not ready.");
+            return true;
+        }
+        false
     }
 
     /// Some(()) - Successfully pushed new batch (or dropped it).
