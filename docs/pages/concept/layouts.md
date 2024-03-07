@@ -26,7 +26,7 @@ Common properties that imply the component will be absolutely positioned:
 - `right` - Distance in pixels between this component's right edge and its parent's right edge.
 - `rotation` - Rotation in degrees.
 
-:::warn
+:::warning
 Not all components support everything listed above. Consult the API reference for each component to verify it.
 :::
 
