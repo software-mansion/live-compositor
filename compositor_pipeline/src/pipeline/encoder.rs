@@ -6,7 +6,7 @@ use crate::{audio_mixer::types::AudioSamplesBatch, error::EncoderInitError, queu
 
 use self::{ffmpeg_h264::LibavH264Encoder, opus::OpusEncoder};
 
-use super::structs::EncodedChunk;
+use super::structs::EncoderOutputEvent;
 
 pub mod ffmpeg_h264;
 pub mod opus;
@@ -50,7 +50,7 @@ impl Encoder {
     pub fn new(
         options: EncoderOptions,
         sample_rate: u32,
-    ) -> Result<(Self, Receiver<PipelineEvent<EncodedChunk>>), EncoderInitError> {
+    ) -> Result<(Self, Receiver<EncoderOutputEvent>), EncoderInitError> {
         let (encoded_chunks_sender, encoded_chunks_receiver) = bounded(1);
 
         let video_encoder = match options.video {
@@ -103,7 +103,7 @@ impl Encoder {
 impl VideoEncoder {
     pub fn new(
         options: VideoEncoderOptions,
-        sender: Sender<PipelineEvent<EncodedChunk>>,
+        sender: Sender<EncoderOutputEvent>,
     ) -> Result<Self, EncoderInitError> {
         match options {
             VideoEncoderOptions::H264(options) => {
@@ -123,7 +123,7 @@ impl AudioEncoder {
     fn new(
         options: AudioEncoderOptions,
         sample_rate: u32,
-        sender: Sender<PipelineEvent<EncodedChunk>>,
+        sender: Sender<EncoderOutputEvent>,
     ) -> Result<Self, EncoderInitError> {
         match options {
             AudioEncoderOptions::Opus(opus_encoder_options) => {

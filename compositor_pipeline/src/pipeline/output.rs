@@ -1,10 +1,10 @@
 use crossbeam_channel::Receiver;
 
-use crate::{error::OutputInitError, queue::PipelineEvent};
+use crate::error::OutputInitError;
 
 use self::rtp::{RtpSender, RtpSenderOptions};
 
-use super::{structs::EncodedChunk, Port};
+use super::{structs::EncoderOutputEvent, Port};
 
 pub mod rtp;
 
@@ -21,7 +21,7 @@ pub enum OutputOptions {
 impl Output {
     pub fn new(
         options: OutputOptions,
-        packets: Receiver<PipelineEvent<EncodedChunk>>,
+        packets: Receiver<EncoderOutputEvent>,
     ) -> Result<(Self, Option<Port>), OutputInitError> {
         match options {
             OutputOptions::Rtp(options) => {

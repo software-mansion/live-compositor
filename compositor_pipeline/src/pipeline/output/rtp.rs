@@ -1,29 +1,19 @@
 use compositor_render::OutputId;
 use crossbeam_channel::Receiver;
-use std::{
-    io::{self, Write},
-    sync::{atomic::AtomicBool, Arc},
-    thread,
-    time::Duration,
-    u16,
-};
-use tracing::{debug, error, span, trace, Level};
-
-use webrtc_util::Marshal;
+use std::sync::{atomic::AtomicBool, Arc};
+use tracing::{debug, span, Level};
 
 use crate::{
     error::OutputInitError,
-    pipeline::{
-        rtp::{bind_to_requested_port, BindToPortError, RequestedPort},
-        structs::EncodedChunk,
-        AudioCodec, Port, VideoCodec,
-    },
-    queue::PipelineEvent,
+    pipeline::{rtp::RequestedPort, structs::EncoderOutputEvent, AudioCodec, Port, VideoCodec},
 };
 
-use self::payloader::Payloader;
+use self::{packet_stream::PacketStream, payloader::Payloader};
 
+mod packet_stream;
 mod payloader;
+mod tcp_server;
+mod udp;
 
 #[derive(Debug)]
 pub struct RtpSender {
@@ -36,12 +26,6 @@ pub struct RtpSender {
     /// RtpSender should be explicitly closed based on this value
     /// only if TCP connection is disconnected or writes hang for a
     /// long time.
-    should_close: Arc<AtomicBool>,
-}
-
-struct RtpContext {
-    payloader: Payloader,
-    socket: socket2::Socket,
     should_close: Arc<AtomicBool>,
 }
 
@@ -62,24 +46,24 @@ pub enum RtpConnectionOptions {
 impl RtpSender {
     pub fn new(
         options: RtpSenderOptions,
-        packets_receiver: Receiver<PipelineEvent<EncodedChunk>>,
+        packets_receiver: Receiver<EncoderOutputEvent>,
     ) -> Result<(Self, Option<Port>), OutputInitError> {
         let payloader = Payloader::new(options.video, options.audio);
+        let mtu = match options.connection_options {
+            RtpConnectionOptions::Udp { .. } => 1400,
+            RtpConnectionOptions::TcpServer { .. } => 64000,
+        };
+        let packet_stream = PacketStream::new(packets_receiver, payloader, mtu);
 
         let (socket, port) = match &options.connection_options {
-            RtpConnectionOptions::Udp { port, ip } => Self::udp_socket(ip, *port)?,
-            RtpConnectionOptions::TcpServer { port } => Self::tcp_socket(*port)?,
+            RtpConnectionOptions::Udp { port, ip } => udp::udp_socket(ip, *port)?,
+            RtpConnectionOptions::TcpServer { port } => tcp_server::tcp_socket(*port)?,
         };
 
         let should_close = Arc::new(AtomicBool::new(false));
-        let mut ctx = RtpContext {
-            payloader,
-            socket: socket.try_clone()?,
-            should_close: should_close.clone(),
-        };
-
         let connection_options = options.connection_options.clone();
         let output_id = options.output_id.clone();
+        let should_close2 = should_close.clone();
         std::thread::Builder::new()
             .name(format!("RTP sender for output {}", options.output_id))
             .spawn(move || {
@@ -87,10 +71,10 @@ impl RtpSender {
                     span!(Level::INFO, "RTP sender", output_id = output_id.to_string()).entered();
                 match connection_options {
                     RtpConnectionOptions::Udp { .. } => {
-                        run_udp_sender_thread(&mut ctx, packets_receiver)
+                        udp::run_udp_sender_thread(socket, packet_stream)
                     }
                     RtpConnectionOptions::TcpServer { .. } => {
-                        run_tcp_sender_thread(&mut ctx, packets_receiver)
+                        tcp_server::run_tcp_sender_thread(socket, should_close2, packet_stream)
                     }
                 }
                 debug!("Closing RTP sender thread.")
@@ -105,199 +89,11 @@ impl RtpSender {
             Some(port),
         ))
     }
-
-    fn udp_socket(ip: &str, port: Port) -> Result<(socket2::Socket, Port), OutputInitError> {
-        let socket = std::net::UdpSocket::bind(std::net::SocketAddrV4::new(
-            std::net::Ipv4Addr::UNSPECIFIED,
-            0,
-        ))?;
-
-        socket.connect((ip, port.0))?;
-        Ok((socket.into(), port))
-    }
-
-    fn tcp_socket(port: RequestedPort) -> Result<(socket2::Socket, Port), OutputInitError> {
-        let socket = socket2::Socket::new(
-            socket2::Domain::IPV4,
-            socket2::Type::STREAM,
-            Some(socket2::Protocol::TCP),
-        )
-        .map_err(OutputInitError::SocketError)?;
-
-        let port = bind_to_requested_port(port, &socket)?;
-
-        socket.listen(1).map_err(OutputInitError::SocketError)?;
-        Ok((socket, port))
-    }
-}
-
-fn run_tcp_sender_thread(context: &mut RtpContext, packets: Receiver<PipelineEvent<EncodedChunk>>) {
-    // make accept non blocking so we have a chance to handle should_close value
-    context
-        .socket
-        .set_nonblocking(true)
-        .expect("Cannot set non-blocking");
-
-    let mut connected_socket = None;
-    while !context
-        .should_close
-        .load(std::sync::atomic::Ordering::Relaxed)
-        && connected_socket.is_none()
-    {
-        // accept only one connection at the time
-        let Ok((socket, _)) = context.socket.accept() else {
-            thread::sleep(Duration::from_millis(50));
-            continue;
-        };
-        connected_socket = Some(socket);
-    }
-
-    let mut socket = match connected_socket {
-        Some(socket) => TcpWritePacketStream::new(socket, context.should_close.clone()),
-        None => return,
-    };
-
-    loop {
-        let chunk = match packets.recv() {
-            Ok(PipelineEvent::Data(chunk)) => chunk,
-            Ok(PipelineEvent::EOS) => break,
-            Err(_) => break,
-        };
-        let pts = chunk.pts;
-
-        let packets = match context.payloader.payload(64000, chunk) {
-            Ok(p) => p,
-            Err(e) => {
-                error!("Failed to payload a packet: {}", e);
-                continue;
-            }
-        };
-
-        for packet in packets.iter() {
-            let packet = match packet.marshal() {
-                Ok(p) => p,
-                Err(e) => {
-                    error!("Failed to marshal a packet: {}", e);
-                    break;
-                }
-            };
-
-            trace!(size_bytes = packet.len(), pts=?pts, "Send RTP TCP packet.");
-            if let Err(err) = socket.write_packet(packet) {
-                if err.kind() == io::ErrorKind::WouldBlock {
-                    // this means that should_close is true
-                    return;
-                }
-                debug!("Failed to send RTP packet: {err}");
-                continue;
-            }
-        }
-    }
-    // TODO: send goodbye packet and exit
-}
-
-/// this assumes, that a "packet" contains data about a single frame (access unit)
-fn run_udp_sender_thread(context: &mut RtpContext, packets: Receiver<PipelineEvent<EncodedChunk>>) {
-    for chunk in packets {
-        let chunk = match chunk {
-            PipelineEvent::Data(chunk) => chunk,
-            PipelineEvent::EOS => break,
-        };
-        let pts = chunk.pts;
-        // TODO: check if this is h264
-        let packets = match context.payloader.payload(1400, chunk) {
-            Ok(p) => p,
-            Err(e) => {
-                error!("Failed to payload a packet: {}", e);
-                break;
-            }
-        };
-
-        packets.into_iter().for_each(|packet| {
-            let packet = match packet.marshal() {
-                Ok(p) => p,
-                Err(e) => {
-                    error!("Failed to marshal a packet: {}", e);
-                    return;
-                }
-            };
-
-            trace!(size_bytes = packet.len(), pts=?pts, "Send RTP UDP packet.");
-            if let Err(err) = context.socket.send(&packet) {
-                debug!("Failed to send packet: {err}");
-            };
-        });
-    }
-    // TODO: send goodbye packet and exit
 }
 
 impl Drop for RtpSender {
     fn drop(&mut self) {
         self.should_close
             .store(true, std::sync::atomic::Ordering::Relaxed);
-    }
-}
-
-impl From<BindToPortError> for OutputInitError {
-    fn from(value: BindToPortError) -> Self {
-        match value {
-            BindToPortError::SocketBind(err) => OutputInitError::SocketError(err),
-            BindToPortError::PortAlreadyInUse(port) => OutputInitError::PortAlreadyInUse(port),
-            BindToPortError::AllPortsAlreadyInUse {
-                lower_bound,
-                upper_bound,
-            } => OutputInitError::AllPortsAlreadyInUse {
-                lower_bound,
-                upper_bound,
-            },
-        }
-    }
-}
-
-struct TcpWritePacketStream {
-    socket: socket2::Socket,
-    should_close: Arc<AtomicBool>,
-}
-
-impl TcpWritePacketStream {
-    fn new(socket: socket2::Socket, should_close: Arc<AtomicBool>) -> Self {
-        // Timeout to make sure we are not left with unregistered
-        // connections that are still maintained by a client side.
-        socket
-            .set_write_timeout(Some(Duration::from_secs(30)))
-            .expect("Cannot set write timeout");
-        Self {
-            socket,
-            should_close,
-        }
-    }
-
-    fn write_packet(&mut self, data: bytes::Bytes) -> io::Result<()> {
-        self.write_bytes(&u16::to_be_bytes(data.len() as u16))?;
-        self.write_bytes(&data[..])?;
-        io::Result::Ok(())
-    }
-
-    fn write_bytes(&mut self, data: &[u8]) -> io::Result<()> {
-        let mut written_bytes = 0;
-        loop {
-            if written_bytes >= data.len() {
-                return Ok(());
-            }
-            match self.socket.write(&data[written_bytes..]) {
-                Ok(bytes) => {
-                    written_bytes += bytes;
-                }
-                Err(err) => {
-                    let should_close = self.should_close.load(std::sync::atomic::Ordering::Relaxed);
-                    match err.kind() {
-                        std::io::ErrorKind::WouldBlock if !should_close => {
-                            continue;
-                        }
-                        _ => return io::Result::Err(err),
-                    }
-                }
-            };
-        }
     }
 }

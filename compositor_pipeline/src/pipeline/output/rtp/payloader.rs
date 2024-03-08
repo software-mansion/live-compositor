@@ -1,6 +1,8 @@
-use std::fmt::Debug;
+use bytes::Bytes;
+use std::{collections::VecDeque, fmt::Debug};
+use tracing::error;
+use webrtc_util::Marshal;
 
-use log::error;
 use rand::Rng;
 use rtp::codecs::{h264::H264Payloader, opus::OpusPayloader};
 
@@ -16,6 +18,7 @@ const OPUS_CLOCK_RATE: u32 = 48000;
 struct RtpStreamContext {
     ssrc: u32,
     next_sequence_number: u16,
+    received_eos: bool,
 }
 
 impl RtpStreamContext {
@@ -27,6 +30,7 @@ impl RtpStreamContext {
         RtpStreamContext {
             ssrc,
             next_sequence_number,
+            received_eos: false,
         }
     }
 }
@@ -61,6 +65,15 @@ pub enum PayloadingError {
 
     #[error(transparent)]
     RtpLibError(#[from] rtp::Error),
+
+    #[error(transparent)]
+    MarshalError(#[from] webrtc_util::Error),
+
+    #[error("Audio EOS already sent.")]
+    AudioEOSAlreadySent,
+
+    #[error("Video EOS already sent.")]
+    VideoEOSAlreadySent,
 }
 
 pub struct Payloader {
@@ -90,11 +103,11 @@ impl Payloader {
         }
     }
 
-    pub fn payload(
+    pub(super) fn payload(
         &mut self,
         mtu: usize,
         data: EncodedChunk,
-    ) -> Result<Vec<rtp::packet::Packet>, PayloadingError> {
+    ) -> Result<VecDeque<Bytes>, PayloadingError> {
         match data.kind {
             EncodedChunkKind::Video(chunk_codec) => {
                 let Some(ref mut video_payloader) = self.video else {
@@ -126,10 +139,48 @@ impl Payloader {
             }
         }
     }
+
+    pub(super) fn audio_eos(&mut self) -> Option<Result<Bytes, PayloadingError>> {
+        self.audio
+            .as_mut()
+            .map(|audio| {
+                let ctx = audio.context_mut();
+                if ctx.received_eos {
+                    return None;
+                }
+                ctx.received_eos = true;
+
+                let packet = rtcp::goodbye::Goodbye {
+                    sources: vec![ctx.ssrc],
+                    reason: Bytes::from("Unregister output stream"),
+                };
+                Some(packet.marshal().map_err(PayloadingError::MarshalError))
+            })
+            .unwrap_or(Some(Err(PayloadingError::NoAudioPayloader)))
+    }
+
+    pub(super) fn video_eos(&mut self) -> Option<Result<Bytes, PayloadingError>> {
+        self.video
+            .as_mut()
+            .map(|video| {
+                let ctx = video.context_mut();
+                if ctx.received_eos {
+                    return None;
+                }
+                ctx.received_eos = true;
+
+                let packet = rtcp::goodbye::Goodbye {
+                    sources: vec![ctx.ssrc],
+                    reason: Bytes::from("Unregister output stream"),
+                };
+                Some(packet.marshal().map_err(PayloadingError::MarshalError))
+            })
+            .unwrap_or(Some(Err(PayloadingError::NoVideoPayloader)))
+    }
 }
 
 impl VideoPayloader {
-    pub fn new(codec: VideoCodec) -> Self {
+    fn new(codec: VideoCodec) -> Self {
         match codec {
             VideoCodec::H264 => Self::H264 {
                 payloader: H264Payloader::default(),
@@ -138,17 +189,17 @@ impl VideoPayloader {
         }
     }
 
-    pub fn codec(&self) -> VideoCodec {
+    fn codec(&self) -> VideoCodec {
         match self {
             VideoPayloader::H264 { .. } => VideoCodec::H264,
         }
     }
 
-    pub fn payload(
+    fn payload(
         &mut self,
         mtu: usize,
         chunk: EncodedChunk,
-    ) -> Result<Vec<rtp::packet::Packet>, PayloadingError> {
+    ) -> Result<VecDeque<Bytes>, PayloadingError> {
         match self {
             VideoPayloader::H264 {
                 ref mut payloader,
@@ -163,10 +214,16 @@ impl VideoPayloader {
             ),
         }
     }
+
+    fn context_mut(&mut self) -> &mut RtpStreamContext {
+        match self {
+            VideoPayloader::H264 { context, .. } => context,
+        }
+    }
 }
 
 impl AudioPayloader {
-    pub fn new(codec: AudioCodec) -> Self {
+    fn new(codec: AudioCodec) -> Self {
         match codec {
             AudioCodec::Opus => Self::Opus {
                 payloader: OpusPayloader,
@@ -176,17 +233,17 @@ impl AudioPayloader {
         }
     }
 
-    pub fn codec(&self) -> AudioCodec {
+    fn codec(&self) -> AudioCodec {
         match self {
             AudioPayloader::Opus { .. } => AudioCodec::Opus,
         }
     }
 
-    pub fn payload(
+    fn payload(
         &mut self,
         mtu: usize,
         chunk: EncodedChunk,
-    ) -> Result<Vec<rtp::packet::Packet>, PayloadingError> {
+    ) -> Result<VecDeque<Bytes>, PayloadingError> {
         match self {
             AudioPayloader::Opus {
                 ref mut payloader,
@@ -201,6 +258,12 @@ impl AudioPayloader {
             ),
         }
     }
+
+    fn context_mut(&mut self) -> &mut RtpStreamContext {
+        match self {
+            AudioPayloader::Opus { context, .. } => context,
+        }
+    }
 }
 
 fn payload<T: rtp::packetizer::Payloader>(
@@ -210,11 +273,11 @@ fn payload<T: rtp::packetizer::Payloader>(
     mtu: usize,
     payload_type: u8,
     clock_rate: u32,
-) -> Result<Vec<rtp::packet::Packet>, PayloadingError> {
+) -> Result<VecDeque<Bytes>, PayloadingError> {
     let payloads = payloader.payload(mtu, &chunk.data)?;
     let packets_amount = payloads.len();
 
-    Ok(payloads
+    payloads
         .into_iter()
         .enumerate()
         .map(|(i, payload)| {
@@ -231,7 +294,7 @@ fn payload<T: rtp::packetizer::Payloader>(
             };
             context.next_sequence_number = context.next_sequence_number.wrapping_add(1);
 
-            rtp::packet::Packet { header, payload }
+            Ok(rtp::packet::Packet { header, payload }.marshal()?)
         })
-        .collect())
+        .collect()
 }
