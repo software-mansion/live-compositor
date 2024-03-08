@@ -5,7 +5,7 @@ use std::{
     time::Duration,
 };
 
-use tracing::{debug, error, trace};
+use tracing::{debug, error, trace, warn};
 
 use crate::{
     error::OutputInitError,
@@ -63,6 +63,9 @@ pub(super) fn run_tcp_sender_thread(
                 continue;
             }
             None => {
+                if let Err(err) = socket.socket.flush() {
+                    warn!(%err, "Failed to flush rest of the TCP buffer.");
+                }
                 return;
             }
         };

@@ -125,6 +125,8 @@ pub struct OutputVideoOptions {
     pub resolution: Resolution,
     pub encoder_preset: VideoEncoderPreset,
     pub initial: Component,
+    /// Condition for termination of output stream based on the input streams states.
+    pub send_eos_when: Option<OutputEndCondition>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
@@ -139,6 +141,8 @@ pub struct OutputAudioOptions {
     pub forward_error_correction: Option<bool>,
     /// (**default="voip"**) Specifies preset for audio output encoder.
     pub encoder_preset: Option<AudioEncoderPreset>,
+    /// Condition for termination of output stream based on the input streams states.
+    pub send_eos_when: Option<OutputEndCondition>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
@@ -163,6 +167,31 @@ pub struct RegisterOutputRequest {
     pub transport_protocol: Option<TransportProtocol>,
     pub video: Option<OutputVideoOptions>,
     pub audio: Option<OutputAudioOptions>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema, Default)]
+#[serde(deny_unknown_fields)]
+pub struct OutputEndCondition {
+    /// Output will be terminated if any of the listed input streams are finished.
+    ///
+    /// Input stream is considered finished if:
+    /// - Input never existed
+    /// - RTCP Goodbye packet was received
+    /// - MP4 track has ended
+    /// - Input was unregistered (before or after output registration)
+    ///
+    /// In particular, output stream will **be** terminated if no inputs were ever connected.
+    pub any_of: Option<Vec<InputId>>,
+    /// Output will be terminated if all of the listed input streams are finished.
+    /// In particular, output stream will **be** terminated if no inputs were ever connected.
+    pub all_of: Option<Vec<InputId>>,
+    /// Output will be terminated in any of the input streams did terminate. This includes streams added
+    /// after the output was registered. In particular, output stream will **not be** terminated if
+    /// no inputs were ever connected.
+    pub any_input: Option<bool>,
+    /// Output will be terminated if all of the input streams are finished.
+    /// In particular, output stream will **be** terminated if no inputs were ever connected.
+    pub all_inputs: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]

@@ -184,6 +184,52 @@ impl From<AudioChannels> for audio_mixer::types::AudioChannels {
     }
 }
 
+impl TryFrom<OutputEndCondition> for pipeline::PipelineOutputEndCondition {
+    type Error = TypeError;
+
+    fn try_from(value: OutputEndCondition) -> Result<Self, Self::Error> {
+        match value {
+            OutputEndCondition {
+                any_of: Some(any_of),
+                all_of: None,
+                any_input: None,
+                all_inputs: None,
+            } => Ok(pipeline::PipelineOutputEndCondition::AnyOf(
+                any_of.into_iter().map(Into::into).collect(),
+            )),
+            OutputEndCondition {
+                any_of: None,
+                all_of: Some(all_of),
+                any_input: None,
+                all_inputs: None,
+            } => Ok(pipeline::PipelineOutputEndCondition::AllOf(
+                all_of.into_iter().map(Into::into).collect(),
+            )),
+            OutputEndCondition {
+                any_of: None,
+                all_of: None,
+                any_input: Some(true),
+                all_inputs: None,
+            } => Ok(pipeline::PipelineOutputEndCondition::AnyInput),
+            OutputEndCondition {
+                any_of: None,
+                all_of: None,
+                any_input: None,
+                all_inputs: Some(true),
+            } => Ok(pipeline::PipelineOutputEndCondition::AllInputs),
+            OutputEndCondition {
+                any_of: None,
+                all_of: None,
+                any_input: None | Some(false),
+                all_inputs: None | Some(false),
+            } => Ok(pipeline::PipelineOutputEndCondition::Never),
+            _ => Err(TypeError::new(
+                "Only one of \"any_of, all_of, any_input or all_inputs\" is allowed.",
+            )),
+        }
+    }
+}
+
 impl TryFrom<RegisterOutputRequest> for pipeline::RegisterOutputOptions {
     type Error = TypeError;
 
@@ -218,6 +264,7 @@ impl TryFrom<RegisterOutputRequest> for pipeline::RegisterOutputOptions {
                         resolution: v.resolution.into(),
                         output_id: output_id.clone().into(),
                     }),
+                    end_condition: v.send_eos_when.unwrap_or_default().try_into()?,
                 })
             }
             None => None,
@@ -229,6 +276,7 @@ impl TryFrom<RegisterOutputRequest> for pipeline::RegisterOutputOptions {
                 channels: a.channels.into(),
                 forward_error_correction: a.forward_error_correction.unwrap_or(false),
                 encoder_preset: a.encoder_preset.unwrap_or(AudioEncoderPreset::Voip).into(),
+                end_condition: a.send_eos_when.unwrap_or_default().try_into()?,
             }),
             None => None,
         };
