@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use bytes::Bytes;
 use log::error;
 use rtp::{
     codecs::{h264::H264Packet, opus::OpusPacket},
@@ -65,13 +66,21 @@ impl Depayloader {
 }
 
 pub enum VideoDepayloader {
-    H264(H264Packet),
+    H264 {
+        depayloader: H264Packet,
+        buffer: Vec<Bytes>,
+        last_timestamp: u32,
+    },
 }
 
 impl VideoDepayloader {
     pub fn new(options: &decoder::VideoDecoderOptions) -> Self {
         match options.codec {
-            VideoCodec::H264 => VideoDepayloader::H264(H264Packet::default()),
+            VideoCodec::H264 => VideoDepayloader::H264 {
+                depayloader: H264Packet::default(),
+                buffer: vec![],
+                last_timestamp: 0,
+            },
         }
     }
 
@@ -80,7 +89,11 @@ impl VideoDepayloader {
         packet: rtp::packet::Packet,
     ) -> Result<Option<EncodedChunk>, DepayloadingError> {
         match self {
-            VideoDepayloader::H264(depayloader) => {
+            VideoDepayloader::H264 {
+                depayloader,
+                buffer,
+                last_timestamp,
+            } => {
                 let kind = EncodedChunkKind::Video(VideoCodec::H264);
                 let h264_chunk = depayloader.depacketize(&packet.payload)?;
 
@@ -88,12 +101,26 @@ impl VideoDepayloader {
                     return Ok(None);
                 }
 
-                Ok(Some(EncodedChunk {
-                    data: h264_chunk,
-                    pts: Duration::from_secs_f64(packet.header.timestamp as f64 / 90000.0),
+                if *last_timestamp == 0 {
+                    *last_timestamp = packet.header.timestamp;
+                }
+
+                if packet.header.timestamp == *last_timestamp {
+                    buffer.push(h264_chunk);
+                    return Ok(None);
+                }
+
+                let new_chunk = EncodedChunk {
+                    data: buffer.concat().into(),
+                    pts: Duration::from_secs_f64(*last_timestamp as f64 / 90000.0),
                     dts: None,
                     kind,
-                }))
+                };
+
+                *buffer = vec![h264_chunk];
+                *last_timestamp = packet.header.timestamp;
+
+                Ok(Some(new_chunk))
             }
         }
     }
