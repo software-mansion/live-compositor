@@ -9,7 +9,7 @@ use crate::{
     queue::PipelineEvent,
 };
 
-use super::{AacDecoderOptions, AacTransport};
+use super::AacDecoderOptions;
 
 #[derive(Debug, thiserror::Error)]
 pub enum AacDecoderError {
@@ -23,16 +23,6 @@ pub enum AacDecoderError {
     UnsupportedChunkKind(EncodedChunkKind),
 }
 
-impl From<AacTransport> for fdk::TRANSPORT_TYPE {
-    fn from(value: AacTransport) -> Self {
-        match value {
-            AacTransport::RawAac => fdk::TRANSPORT_TYPE_TT_MP4_RAW,
-            AacTransport::ADTS => fdk::TRANSPORT_TYPE_TT_MP4_ADTS,
-            AacTransport::ADIF => fdk::TRANSPORT_TYPE_TT_MP4_ADIF,
-        }
-    }
-}
-
 pub struct FdkAacDecoder;
 
 impl FdkAacDecoder {
@@ -42,8 +32,6 @@ impl FdkAacDecoder {
         samples_sender: Sender<PipelineEvent<AudioSamplesBatch>>,
         input_id: InputId,
     ) -> Result<Self, AacDecoderError> {
-        let (result_sender, result_receiver) = crossbeam_channel::bounded(1);
-
         std::thread::Builder::new()
             .name(format!("fdk aac decoder {}", input_id.0))
             .spawn(move || {
@@ -53,11 +41,9 @@ impl FdkAacDecoder {
                     input_id = input_id.to_string()
                 )
                 .entered();
-                run_decoder_thread(options, samples_sender, chunks_receiver, result_sender)
+                run_decoder_thread(options, samples_sender, chunks_receiver)
             })
             .unwrap();
-
-        result_receiver.recv().unwrap()?;
 
         Ok(Self)
     }
@@ -67,19 +53,9 @@ fn run_decoder_thread(
     options: AacDecoderOptions,
     samples_sender: Sender<PipelineEvent<AudioSamplesBatch>>,
     chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
-    result_sender: Sender<Result<(), AacDecoderError>>,
 ) {
-    let decoder = match Decoder::new(options) {
-        Ok(decoder) => {
-            result_sender.send(Ok(())).unwrap();
-            decoder
-        }
-
-        Err(e) => {
-            result_sender.send(Err(e)).unwrap();
-            return;
-        }
-    };
+    let mut decoder = None;
+    let mut options = Some(options);
 
     for chunk in chunks_receiver {
         let chunk = match chunk {
@@ -88,6 +64,30 @@ fn run_decoder_thread(
                 break;
             }
         };
+
+        let decoder = match &decoder {
+            Some(d) => d,
+            None => {
+                decoder = match Decoder::new(
+                    std::mem::take(&mut options)
+                        .expect("AAC decoder initialization options should be present"),
+                    &chunk,
+                ) {
+                    Ok(decoder) => Some(decoder),
+
+                    Err(e) => {
+                        // unfortunately, since this decoder needs to inspect the first data chunk
+                        // to initialize, we cannot block in the main thread and wait for it to
+                        // report a success or failure.
+                        log::error!("Fatal AAC decoder error at initialization: {e}");
+                        return;
+                    }
+                };
+
+                decoder.as_ref().unwrap()
+            }
+        };
+
         let decoded_samples = match decoder.decode_chunk(chunk) {
             Ok(samples) => samples,
             Err(e) => {
@@ -111,8 +111,20 @@ fn run_decoder_thread(
 struct Decoder(*mut fdk::AAC_DECODER_INSTANCE);
 
 impl Decoder {
-    fn new(options: AacDecoderOptions) -> Result<Self, AacDecoderError> {
-        let dec = unsafe { fdk::aacDecoder_Open(options.transport.into(), 1) };
+    /// The encoded chunk used for initialization here still needs to be fed into `Decoder::decode_chunk` later
+    fn new(
+        options: AacDecoderOptions,
+        first_chunk: &EncodedChunk,
+    ) -> Result<Self, AacDecoderError> {
+        let transport = if first_chunk.data[..4] == [b'A', b'D', b'I', b'F'] {
+            fdk::TRANSPORT_TYPE_TT_MP4_ADIF
+        } else if first_chunk.data[0] == 0xff && first_chunk.data[1] & 0xf0 == 0xf0 {
+            fdk::TRANSPORT_TYPE_TT_MP4_ADTS
+        } else {
+            fdk::TRANSPORT_TYPE_TT_MP4_RAW
+        };
+
+        let dec = unsafe { fdk::aacDecoder_Open(transport, 1) };
         let dec = Decoder(dec);
 
         if let Some(config) = options.asc {
