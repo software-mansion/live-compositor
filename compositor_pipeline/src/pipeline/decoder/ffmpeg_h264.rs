@@ -194,7 +194,10 @@ fn frame_from_av(
         .ok_or_else(|| {
             DecoderFrameConversionError::FrameConversionError("missing pts".to_owned())
         })?;
-    let pts = Duration::from_micros(u64::max(pts as u64, 0));
+    if pts < 0 {
+        error!(pts, pts_offset, "Received negative PTS. PTS values of the decoder output are not monotonically increasing.")
+    }
+    let pts = Duration::from_micros(i64::max(pts, 0) as u64);
     Ok(Frame {
         data: YuvData {
             y_plane: copy_plane_from_av(decoded, 0),
