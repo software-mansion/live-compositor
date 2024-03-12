@@ -143,7 +143,6 @@ fn start_example_client_code() -> Result<()> {
         "entity_type": "output_stream",
         "output_id": "output_2",
         "port": 8004,
-
         "ip": "127.0.0.1",
         "audio": {
             "initial": {
