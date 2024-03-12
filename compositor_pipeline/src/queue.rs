@@ -15,7 +15,7 @@ use compositor_render::{Frame, FrameSet, Framerate, InputId};
 use crossbeam_channel::{bounded, Sender};
 
 use crate::{
-    audio_mixer::types::{AudioSamplesBatch, AudioSamplesSet},
+    audio_mixer::types::{InputSamples, InputSamplesSet},
     pipeline::decoder::DecodedDataReceiver,
 };
 
@@ -74,12 +74,12 @@ impl From<QueueVideoOutput> for FrameSet<InputId> {
 }
 
 pub(super) struct QueueAudioOutput {
-    pub samples: HashMap<InputId, PipelineEvent<Vec<AudioSamplesBatch>>>,
+    pub samples: HashMap<InputId, PipelineEvent<Vec<InputSamples>>>,
     pub start_pts: Duration,
     pub end_pts: Duration,
 }
 
-impl From<QueueAudioOutput> for AudioSamplesSet {
+impl From<QueueAudioOutput> for InputSamplesSet {
     fn from(value: QueueAudioOutput) -> Self {
         Self {
             samples: value
@@ -108,6 +108,7 @@ pub struct InputOptions {
 pub struct QueueOptions {
     pub ahead_of_time_processing: bool,
     pub output_framerate: Framerate,
+    pub output_sample_rate: u32,
 }
 
 pub struct ScheduledEvent {
@@ -138,7 +139,7 @@ impl Queue {
             video_queue: Mutex::new(VideoQueue::new(buffer_duration)),
             output_framerate: opts.output_framerate,
 
-            audio_queue: Mutex::new(AudioQueue::new(buffer_duration)),
+            audio_queue: Mutex::new(AudioQueue::new(buffer_duration, opts.output_sample_rate)),
             audio_chunk_duration: DEFAULT_AUDIO_CHUNK_DURATION,
 
             scheduled_event_sender,

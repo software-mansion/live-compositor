@@ -5,6 +5,13 @@ use compositor_render::{InputId, OutputId};
 #[derive(Debug, Clone)]
 pub struct AudioMixingParams {
     pub inputs: Vec<InputParams>,
+    pub mixing_strategy: MixingStrategy,
+}
+
+#[derive(Debug, Clone)]
+pub enum MixingStrategy {
+    SumClip,
+    SumScale,
 }
 
 #[derive(Debug, Clone)]
@@ -21,20 +28,26 @@ pub enum AudioChannels {
 }
 
 #[derive(Debug, Clone)]
-pub struct AudioSamplesSet {
-    pub samples: HashMap<InputId, Vec<AudioSamplesBatch>>,
+pub struct InputSamplesSet {
+    pub samples: HashMap<InputId, Vec<InputSamples>>,
     pub start_pts: Duration,
     pub end_pts: Duration,
 }
 
 #[derive(Debug)]
-pub struct OutputSamples(pub HashMap<OutputId, AudioSamplesBatch>);
+pub struct OutputSamplesSet(pub HashMap<OutputId, OutputSamples>);
 
 #[derive(Debug, Clone)]
-pub struct AudioSamplesBatch {
-    pub samples: Arc<AudioSamples>,
+pub struct InputSamples {
+    pub left: Arc<Vec<i16>>,
+    pub right: Arc<Vec<i16>>,
     pub start_pts: Duration,
-    pub sample_rate: u32,
+}
+
+#[derive(Debug)]
+pub struct OutputSamples {
+    pub samples: AudioSamples,
+    pub start_pts: Duration,
 }
 
 #[derive(Clone)]
@@ -43,16 +56,15 @@ pub enum AudioSamples {
     Stereo(Vec<(i16, i16)>),
 }
 
-impl AudioSamplesSet {
+impl InputSamplesSet {
     pub fn duration(&self) -> Duration {
         self.end_pts.saturating_sub(self.start_pts)
     }
 }
 
-impl AudioSamplesBatch {
-    pub fn end_pts(&self) -> Duration {
-        self.start_pts
-            + Duration::from_secs_f64(self.samples.len() as f64 / self.sample_rate as f64)
+impl InputSamples {
+    pub fn end_pts(&self, output_sample_rate: u32) -> Duration {
+        self.start_pts + Duration::from_secs_f64(self.left.len() as f64 / output_sample_rate as f64)
     }
 }
 

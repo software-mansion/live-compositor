@@ -1,4 +1,4 @@
-use crate::{audio_mixer::types::AudioSamplesBatch, error::DecoderInitError, queue::PipelineEvent};
+use crate::{audio_mixer::types::InputSamples, error::DecoderInitError, queue::PipelineEvent};
 
 use self::{fdk_aac::FdkAacDecoder, ffmpeg_h264::H264FfmpegDecoder, opus::OpusDecoder};
 
@@ -99,7 +99,7 @@ impl AudioDecoder {
         opts: AudioDecoderOptions,
         output_sample_rate: u32,
         chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
-        samples_sender: Sender<PipelineEvent<AudioSamplesBatch>>,
+        samples_sender: Sender<PipelineEvent<InputSamples>>,
         input_id: InputId,
     ) -> Result<Self, DecoderInitError> {
         match opts {
@@ -161,7 +161,7 @@ pub struct OpusDecoderOptions {
 #[derive(Debug)]
 pub struct DecodedDataReceiver {
     pub video: Option<Receiver<PipelineEvent<Frame>>>,
-    pub audio: Option<Receiver<PipelineEvent<AudioSamplesBatch>>>,
+    pub audio: Option<Receiver<PipelineEvent<InputSamples>>>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

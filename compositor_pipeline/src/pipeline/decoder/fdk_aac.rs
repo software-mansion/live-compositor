@@ -1,10 +1,12 @@
+use std::sync::Arc;
+
 use compositor_render::InputId;
 use crossbeam_channel::{Receiver, Sender};
 use fdk_aac_sys as fdk;
 use tracing::{debug, error, span, Level};
 
 use crate::{
-    audio_mixer::types::{AudioSamples, AudioSamplesBatch},
+    audio_mixer::types::InputSamples,
     pipeline::structs::{EncodedChunk, EncodedChunkKind},
     queue::PipelineEvent,
 };
@@ -39,7 +41,7 @@ impl FdkAacDecoder {
     pub(super) fn new(
         options: AacDecoderOptions,
         chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
-        samples_sender: Sender<PipelineEvent<AudioSamplesBatch>>,
+        samples_sender: Sender<PipelineEvent<InputSamples>>,
         input_id: InputId,
     ) -> Result<Self, AacDecoderError> {
         let (result_sender, result_receiver) = crossbeam_channel::bounded(1);
@@ -65,7 +67,7 @@ impl FdkAacDecoder {
 
 fn run_decoder_thread(
     options: AacDecoderOptions,
-    samples_sender: Sender<PipelineEvent<AudioSamplesBatch>>,
+    samples_sender: Sender<PipelineEvent<InputSamples>>,
     chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
     result_sender: Sender<Result<(), AacDecoderError>>,
 ) {
@@ -137,7 +139,7 @@ impl Decoder {
         Ok(dec)
     }
 
-    fn decode_chunk(&self, chunk: EncodedChunk) -> Result<Vec<AudioSamplesBatch>, AacDecoderError> {
+    fn decode_chunk(&self, chunk: EncodedChunk) -> Result<Vec<InputSamples>, AacDecoderError> {
         if chunk.kind != EncodedChunkKind::Audio(crate::pipeline::AudioCodec::Aac) {
             return Err(AacDecoderError::UnsupportedChunkKind(chunk.kind));
         }
@@ -188,26 +190,26 @@ impl Decoder {
                 return Err(AacDecoderError::FdkDecoderError(result));
             }
 
-            let samples = match info.channelConfig {
-                1 => AudioSamples::Mono(decoded_samples),
-                2 => AudioSamples::Stereo(
-                    decoded_samples
-                        .chunks_exact(2)
-                        .map(|c| (c[0], c[1]))
-                        .collect(),
-                ),
+            let (left, right) = match info.channelConfig {
+                1 => (Arc::new(decoded_samples.clone()), Arc::new(decoded_samples)),
+                2 => {
+                    let mut left = Vec::with_capacity(decoded_samples.len() / 2);
+                    let mut right = Vec::with_capacity(decoded_samples.len() / 2);
 
+                    decoded_samples.chunks_exact(2).for_each(|c| {
+                        left.push(c[0]);
+                        right.push(c[0]);
+                    });
+                    (Arc::new(left), Arc::new(right))
+                }
                 _ => return Err(AacDecoderError::UnsupportedChannelConfig),
             };
 
-            // We need the info before the decode call to get the channel info, but the sample rate
-            // can change during `aacDecoder_DecodeFrame`
-            let info = unsafe { *fdk::aacDecoder_GetStreamInfo(self.0) };
-
-            output_buffer.push(AudioSamplesBatch {
-                samples: samples.into(),
+            // TODO handle resampling to output sample rate
+            output_buffer.push(InputSamples {
+                left,
+                right,
                 start_pts: chunk.pts,
-                sample_rate: info.sampleRate as u32,
             });
         }
 

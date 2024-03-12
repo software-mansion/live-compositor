@@ -5,9 +5,7 @@ use crossbeam_channel::{Receiver, Sender};
 use tracing::{debug, error, span, Level};
 
 use crate::{
-    audio_mixer::types::{AudioSamples, AudioSamplesBatch},
-    error::DecoderInitError,
-    pipeline::structs::EncodedChunk,
+    audio_mixer::types::InputSamples, error::DecoderInitError, pipeline::structs::EncodedChunk,
     queue::PipelineEvent,
 };
 
@@ -20,7 +18,7 @@ impl OpusDecoder {
         opts: OpusDecoderOptions,
         output_sample_rate: u32,
         chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
-        sample_sender: Sender<PipelineEvent<AudioSamplesBatch>>,
+        sample_sender: Sender<PipelineEvent<InputSamples>>,
         input_id: InputId,
     ) -> Result<Self, DecoderInitError> {
         let decoder = opus::Decoder::new(output_sample_rate, opus::Channels::Stereo)?;
@@ -33,7 +31,6 @@ impl OpusDecoder {
                 run_decoder_thread(
                     decoder,
                     opts,
-                    output_sample_rate,
                     chunks_receiver,
                     sample_sender,
                 )
@@ -47,9 +44,8 @@ impl OpusDecoder {
 fn run_decoder_thread(
     mut decoder: opus::Decoder,
     opts: OpusDecoderOptions,
-    output_sample_rate: u32,
     chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
-    sample_sender: Sender<PipelineEvent<AudioSamplesBatch>>,
+    sample_sender: Sender<PipelineEvent<InputSamples>>,
 ) {
     // Max sample rate for opus is 48kHz.
     // Usually packets contain 20ms audio chunks, but for safety we use buffer
@@ -71,21 +67,21 @@ fn run_decoder_thread(
                 }
             };
 
-        let mut decoded_samples = Vec::with_capacity(decoded_samples_count / 2);
+        let mut left = Vec::with_capacity(decoded_samples_count / 2);
+        let mut right = Vec::with_capacity(decoded_samples_count / 2);
         for i in 0..decoded_samples_count {
-            decoded_samples.push((buffer[2 * i], buffer[2 * i + 1]));
+            left.push(buffer[2 * i]);
+            right.push(buffer[2 * i + 1]);
         }
 
-        let samples = AudioSamples::Stereo(decoded_samples);
-
-        let samples_batch = AudioSamplesBatch {
-            samples: Arc::new(samples),
+        let input_samples = InputSamples {
+            left: Arc::new(left),
+            right: Arc::new(right),
             start_pts: chunk.pts,
-            sample_rate: output_sample_rate,
         };
 
         if sample_sender
-            .send(PipelineEvent::Data(samples_batch))
+            .send(PipelineEvent::Data(input_samples))
             .is_err()
         {
             debug!("Failed to send audio samples from OPUS decoder. Channel closed.");

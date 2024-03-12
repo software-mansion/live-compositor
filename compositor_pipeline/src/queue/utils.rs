@@ -7,7 +7,7 @@ use std::{
 use compositor_render::Frame;
 use log::warn;
 
-use crate::audio_mixer::types::AudioSamplesBatch;
+use crate::audio_mixer::types::InputSamples;
 
 use super::PipelineEvent;
 
@@ -162,7 +162,7 @@ impl ApplyOffsetExt for Frame {
     }
 }
 
-impl ApplyOffsetExt for AudioSamplesBatch {
+impl ApplyOffsetExt for InputSamples {
     fn apply_offset(&mut self, offset: Duration) {
         self.start_pts = self.start_pts.saturating_sub(offset)
     }

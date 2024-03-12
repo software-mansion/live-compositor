@@ -5,7 +5,7 @@ use tracing::trace;
 
 use self::{
     internal_audio_mixer::InternalAudioMixer,
-    types::{AudioChannels, AudioMixingParams, AudioSamplesSet, OutputSamples},
+    types::{AudioChannels, AudioMixingParams, InputSamplesSet, OutputSamplesSet},
 };
 
 mod internal_audio_mixer;
@@ -21,7 +21,7 @@ impl AudioMixer {
         ))))
     }
 
-    pub fn mix_samples(&self, samples_set: AudioSamplesSet) -> OutputSamples {
+    pub fn mix_samples(&self, samples_set: InputSamplesSet) -> OutputSamplesSet {
         trace!(set=?samples_set, "Mixing samples");
         self.0.lock().unwrap().mix_samples(samples_set)
     }

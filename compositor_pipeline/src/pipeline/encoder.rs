@@ -2,7 +2,7 @@ use compositor_render::{Frame, Resolution};
 use crossbeam_channel::{bounded, Receiver, Sender};
 use log::error;
 
-use crate::{audio_mixer::types::AudioSamplesBatch, error::EncoderInitError, queue::PipelineEvent};
+use crate::{audio_mixer::types::OutputSamples, error::EncoderInitError, queue::PipelineEvent};
 
 use self::{ffmpeg_h264::LibavH264Encoder, opus::OpusEncoder};
 
@@ -89,7 +89,7 @@ impl Encoder {
         }
     }
 
-    pub fn samples_batch_sender(&self) -> Option<&Sender<PipelineEvent<AudioSamplesBatch>>> {
+    pub fn samples_batch_sender(&self) -> Option<&Sender<PipelineEvent<OutputSamples>>> {
         match &self.audio {
             Some(AudioEncoder::Opus(encoder)) => Some(encoder.samples_batch_sender()),
             None => {

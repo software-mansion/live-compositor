@@ -77,6 +77,13 @@ pub struct UpdateOutputRequest {
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 pub struct Audio {
     inputs: Vec<InputAudio>,
+    mixing_strategy: Option<MixingStrategy>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+pub enum MixingStrategy {
+    SumClip,
+    SumScale,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]

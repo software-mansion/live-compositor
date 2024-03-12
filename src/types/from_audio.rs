@@ -1,4 +1,4 @@
-use super::{Audio, InputAudio, TypeError};
+use super::{Audio, InputAudio, MixingStrategy, TypeError};
 
 impl TryFrom<Audio> for compositor_pipeline::audio_mixer::types::AudioMixingParams {
     type Error = TypeError;
@@ -9,7 +9,19 @@ impl TryFrom<Audio> for compositor_pipeline::audio_mixer::types::AudioMixingPara
             inputs.push(input.try_into()?);
         }
 
-        Ok(Self { inputs })
+        let mixing_strategy = match value.mixing_strategy.unwrap_or(MixingStrategy::SumClip) {
+            MixingStrategy::SumClip => {
+                compositor_pipeline::audio_mixer::types::MixingStrategy::SumClip
+            }
+            MixingStrategy::SumScale => {
+                compositor_pipeline::audio_mixer::types::MixingStrategy::SumScale
+            }
+        };
+
+        Ok(Self {
+            inputs,
+            mixing_strategy,
+        })
     }
 }
 
