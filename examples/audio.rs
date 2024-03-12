@@ -65,6 +65,7 @@ fn start_example_client_code() -> Result<()> {
         "entity_type": "rtp_input_stream",
         "input_id": "input_1",
         "port": 8006,
+        "required": true,
         "video": {
             "codec": "h264"
         },
@@ -76,6 +77,7 @@ fn start_example_client_code() -> Result<()> {
         "entity_type": "rtp_input_stream",
         "input_id": "input_2",
         "port": 8008,
+        "required": true,
         "audio": {
             "codec": "opus"
         },
@@ -87,6 +89,7 @@ fn start_example_client_code() -> Result<()> {
         "entity_type": "rtp_input_stream",
         "input_id": "input_3",
         "port": 8010,
+        "required": true,
         "video": {
             "codec": "h264"
         },
@@ -98,6 +101,7 @@ fn start_example_client_code() -> Result<()> {
         "entity_type": "rtp_input_stream",
         "input_id": "input_4",
         "port": 8012,
+        "required": true,
         "audio": {
             "codec": "opus"
         },
@@ -139,6 +143,7 @@ fn start_example_client_code() -> Result<()> {
         "entity_type": "output_stream",
         "output_id": "output_2",
         "port": 8004,
+
         "ip": "127.0.0.1",
         "audio": {
             "initial": {

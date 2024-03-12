@@ -71,7 +71,7 @@ impl AudioQueue {
             .all(|input| (!input.required) || input.check_ready_for_pts(pts_range, queue_start))
     }
 
-    /// Checks if any of the required input stream have an offset that would
+    /// Checks if any of the required input streams have an offset that would
     /// require the stream to be used for PTS=`next_buffer_pts`
     pub(super) fn has_required_inputs_for_pts(
         &mut self,
@@ -161,7 +161,7 @@ impl AudioQueueInput {
             .queue
             .iter()
             // start_pts and end_pts are already in units of this input
-            .filter(|batch| batch.start_pts < end_pts || batch.end_pts() > start_pts)
+            .filter(|batch| batch.start_pts <= end_pts && batch.end_pts() >= start_pts)
             .cloned()
             .map(|mut batch| {
                 match self.offset {
@@ -200,7 +200,7 @@ impl AudioQueueInput {
         }
 
         // range in queue pts time frame
-        let end_pts = pts_range.0;
+        let end_pts = pts_range.1;
 
         // range in input pts time frame
         let Some(end_pts) = self.input_pts_from_queue_pts(end_pts, queue_start) else {
@@ -225,7 +225,7 @@ impl AudioQueueInput {
             range_end_pts: Duration,
         ) -> bool {
             match queue.back() {
-                Some(batch) => batch.end_pts() > range_end_pts,
+                Some(batch) => batch.end_pts() >= range_end_pts,
                 None => false,
             }
         }
