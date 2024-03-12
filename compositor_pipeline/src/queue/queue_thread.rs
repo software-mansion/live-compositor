@@ -114,44 +114,62 @@ impl QueueThreadAfterStart {
 
         loop {
             select! {
-                recv(ticker) -> _ => (),
+                recv(ticker) -> _ => {
+                    self.on_handle_tick()
+                },
                 recv(self.scheduled_event_receiver) -> event => {
-                    self.scheduled_events.push(event.unwrap());
-                    continue;
+                    self.on_enqueue_event(event.unwrap())
                 }
             };
-            loop {
-                let audio_pts_range = self.audio_processor.next_buffer_pts_range();
-                let video_pts = self.video_processor.next_buffer_pts();
-                let event_pts = self.scheduled_events.peek().map(|e| e.pts);
+        }
+    }
 
-                if let Some(true) = event_pts.map(|event_pts: Duration| {
-                    event_pts < video_pts && event_pts < audio_pts_range.0
-                }) {
-                    info!("Handle scheduled event for PTS={:?}", event_pts);
-                    if let Some(ScheduledEvent { callback, .. }) = self.scheduled_events.pop() {
-                        callback()
-                    }
-                } else if video_pts > audio_pts_range.0 {
-                    trace!(pts_range=?audio_pts_range, "Try to push audio samples for.");
-                    if self
-                        .audio_processor
-                        .try_push_next_sample_batch(audio_pts_range)
-                        .is_none()
-                    {
-                        break;
-                    }
-                } else {
-                    trace!(pts=?video_pts, "Try to push video frames.");
-                    if self
-                        .video_processor
-                        .try_push_next_frame_set(video_pts)
-                        .is_none()
-                    {
-                        break;
-                    }
+    fn on_handle_tick(&mut self) {
+        loop {
+            let audio_pts_range = self.audio_processor.next_buffer_pts_range();
+            let video_pts = self.video_processor.next_buffer_pts();
+            let event_pts = self.scheduled_events.peek().map(|e| e.pts);
+
+            if let Some(true) = event_pts
+                .map(|event_pts: Duration| event_pts < video_pts && event_pts < audio_pts_range.0)
+            {
+                info!("Handle scheduled event for PTS={:?}", event_pts);
+                if let Some(ScheduledEvent { callback, .. }) = self.scheduled_events.pop() {
+                    callback()
+                }
+            } else if video_pts > audio_pts_range.0 {
+                trace!(pts_range=?audio_pts_range, "Try to push audio samples for.");
+                if self
+                    .audio_processor
+                    .try_push_next_sample_batch(audio_pts_range)
+                    .is_none()
+                {
+                    break;
+                }
+            } else {
+                trace!(pts=?video_pts, "Try to push video frames.");
+                if self
+                    .video_processor
+                    .try_push_next_frame_set(video_pts)
+                    .is_none()
+                {
+                    break;
                 }
             }
+        }
+    }
+
+    fn on_enqueue_event(&mut self, scheduled_event: ScheduledEvent) {
+        let audio_pts_range = self.audio_processor.next_buffer_pts_range();
+        let video_pts = self.video_processor.next_buffer_pts();
+        let event_pts = self.scheduled_events.peek().map(|e| e.pts);
+
+        let is_future_event = scheduled_event.pts >= video_pts
+            && scheduled_event.pts >= audio_pts_range.0
+            && scheduled_event.pts >= event_pts.unwrap_or(Duration::ZERO);
+
+        if self.video_processor.queue.run_late_scheduled_events || is_future_event {
+            self.scheduled_events.push(scheduled_event);
         }
     }
 }
