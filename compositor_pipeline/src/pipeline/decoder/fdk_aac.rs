@@ -190,25 +190,20 @@ impl Decoder {
                 return Err(AacDecoderError::FdkDecoderError(result));
             }
 
-            let (left, right) = match info.channelConfig {
-                1 => (Arc::new(decoded_samples.clone()), Arc::new(decoded_samples)),
-                2 => {
-                    let mut left = Vec::with_capacity(decoded_samples.len() / 2);
-                    let mut right = Vec::with_capacity(decoded_samples.len() / 2);
-
-                    decoded_samples.chunks_exact(2).for_each(|c| {
-                        left.push(c[0]);
-                        right.push(c[0]);
-                    });
-                    (Arc::new(left), Arc::new(right))
-                }
+            let samples = match info.channelConfig {
+                1 => Arc::new(decoded_samples.iter().map(|s| (*s, *s)).collect()),
+                2 => Arc::new(
+                    decoded_samples
+                        .chunks_exact(2)
+                        .map(|c| (c[0], c[1]))
+                        .collect(),
+                ),
                 _ => return Err(AacDecoderError::UnsupportedChannelConfig),
             };
 
             // TODO handle resampling to output sample rate
             output_buffer.push(InputSamples {
-                left,
-                right,
+                samples,
                 start_pts: chunk.pts,
             });
         }

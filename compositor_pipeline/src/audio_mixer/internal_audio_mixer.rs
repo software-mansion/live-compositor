@@ -22,51 +22,56 @@ struct OutputInfo {
 
 #[derive(Debug)]
 struct InputInfo {
-    samples_left: VecDeque<i16>,
-    samples_right: VecDeque<i16>,
+    samples: VecDeque<(i16, i16)>,
     popped_samples: u64,
     start_pts: Option<Duration>,
+    last_enqueued_pts: Option<Duration>,
 }
 
 impl InputInfo {
     pub fn enqueue(&mut self, input_samples: &InputSamples, output_sample_rate: u32) {
         let start_pts = *self.start_pts.get_or_insert(input_samples.start_pts);
+        match self.last_enqueued_pts {
+            Some(last_pts) => {
+                if last_pts < input_samples.start_pts {
+                    self.last_enqueued_pts = Some(input_samples.start_pts);
+                } else {
+                    return;
+                }
+            }
+            None => self.last_enqueued_pts = Some(input_samples.start_pts),
+        }
+
         let expected_samples_before = input_samples
             .start_pts
             .saturating_sub(start_pts)
             .as_secs_f64()
             * output_sample_rate as f64;
-        let missing_samples =
-            expected_samples_before as u64 - self.popped_samples - self.samples_left.len() as u64;
+        let missing_samples = (expected_samples_before as u64)
+            .saturating_sub(self.popped_samples)
+            .saturating_sub(self.samples.len() as u64);
         if missing_samples > 10 {
             for _ in 0..missing_samples {
-                self.samples_left.push_back(0);
-                self.samples_right.push_back(0);
+                self.samples.push_back((0, 0));
             }
         }
 
-        self.samples_left.extend(input_samples.left.iter());
-        self.samples_right.extend(input_samples.right.iter());
+        self.samples.extend(input_samples.samples.iter());
     }
 
-    pub fn pop(&mut self, samples_count: usize) -> (Vec<i16>, Vec<i16>) {
-        let missing_samples = if samples_count > self.samples_left.len() {
-            samples_count - self.samples_left.len()
+    pub fn pop(&mut self, samples_count: usize) -> Vec<(i16, i16)> {
+        let missing_samples = if samples_count > self.samples.len() {
+            samples_count - self.samples.len()
         } else {
             0
         };
 
         for _ in 0..missing_samples {
-            self.samples_left.push_back(0);
-            self.samples_right.push_back(0);
+            self.samples.push_back((0, 0));
         }
 
         self.popped_samples += samples_count as u64;
-
-        (
-            self.samples_left.drain(0..samples_count).collect(),
-            self.samples_right.drain(0..samples_count).collect(),
-        )
+        self.samples.drain(0..samples_count).collect()
     }
 }
 
@@ -112,11 +117,20 @@ impl InternalAudioMixer {
         )
     }
 
-    fn pop_samples(&mut self, samples_count: usize) -> HashMap<InputId, (Vec<i16>, Vec<i16>)> {
-        self.inputs
-            .iter_mut()
-            .map(|(input_id, input_info)| (input_id.clone(), input_info.pop(samples_count)))
-            .collect()
+    pub fn register_input(&mut self, input_id: InputId) {
+        self.inputs.insert(
+            input_id,
+            InputInfo {
+                samples: VecDeque::new(),
+                popped_samples: 0,
+                start_pts: None,
+                last_enqueued_pts: None,
+            },
+        );
+    }
+
+    pub fn unregister_input(&mut self, input_id: &InputId) {
+        self.inputs.remove(input_id);
     }
 
     pub fn register_output(
@@ -158,56 +172,58 @@ impl InternalAudioMixer {
             }
         }
     }
+
+    fn pop_samples(&mut self, samples_count: usize) -> HashMap<InputId, Vec<(i16, i16)>> {
+        self.inputs
+            .iter_mut()
+            .map(|(input_id, input_info)| (input_id.clone(), input_info.pop(samples_count)))
+            .collect()
+    }
 }
 
 fn sum_samples<'a, I: Iterator<Item = &'a InputParams>>(
-    input_samples: &HashMap<InputId, (Vec<i16>, Vec<i16>)>,
+    input_samples: &HashMap<InputId, Vec<(i16, i16)>>,
     samples_count: usize,
     inputs: I,
-) -> (Vec<i64>, Vec<i64>) {
-    let mut summed_samples_left = vec![0i64; samples_count];
-    let mut summed_samples_right = vec![0i64; samples_count];
+) -> Vec<(i64, i64)> {
+    let mut summed_samples = vec![(0i64, 0i64); samples_count];
 
     for input_params in inputs {
-        let Some((input_left, input_right)) = input_samples.get(&input_params.input_id) else {
+        let Some(input_samples) = input_samples.get(&input_params.input_id) else {
             continue;
         };
-        summed_samples_left
+        summed_samples
             .iter_mut()
-            .zip(input_left.iter())
-            .for_each(|(sum, s)| *sum += *s as i64);
-
-        summed_samples_right
-            .iter_mut()
-            .zip(input_right.iter())
-            .for_each(|(sum, s)| *sum += *s as i64);
+            .zip(input_samples.iter())
+            .for_each(|(sum, s)| {
+                sum.0 += (s.0 as f64 * input_params.volume as f64) as i64;
+                sum.1 += (s.1 as f64 * input_params.volume as f64) as i64;
+            })
     }
 
-    (summed_samples_left, summed_samples_right)
+    summed_samples
 }
 
 fn mix(
-    input_samples: &HashMap<InputId, (Vec<i16>, Vec<i16>)>,
+    input_samples: &HashMap<InputId, Vec<(i16, i16)>>,
     output_info: &OutputInfo,
     samples_count: usize,
 ) -> AudioSamples {
-    let (summed_left, summed_right) = sum_samples(
+    let summed_samples = sum_samples(
         input_samples,
         samples_count,
         output_info.audio.inputs.iter(),
     );
+    let clip = |s: i64| min(max(s, i16::MIN as i64), i16::MAX as i64) as i16;
 
-    let (left, right): (Vec<i16>, Vec<i16>) = match output_info.audio.mixing_strategy {
-        MixingStrategy::SumClip => {
-            let clip = |s: i64| min(max(s, i16::MIN as i64), i16::MAX as i64) as i16;
-
-            let left = summed_left.into_iter().map(clip).collect();
-            let right = summed_right.into_iter().map(clip).collect();
-
-            (left, right)
-        }
+    let mixed: Vec<(i16, i16)> = match output_info.audio.mixing_strategy {
+        MixingStrategy::SumClip => summed_samples
+            .into_iter()
+            .map(|(l, r)| (clip(l), clip(r)))
+            .collect(),
         MixingStrategy::SumScale => {
-            let max_abs = |v: &Vec<i64>| v.iter().map(|s| s.abs()).max().unwrap();
+            let max_abs =
+                |v: &Vec<(i64, i64)>| v.iter().map(|(l, r)| (l.abs().max(r.abs()))).max().unwrap();
             let scaling_factor = |max_abs: i64| {
                 if max_abs > i16::MAX as i64 {
                     max_abs as f64 / i16::MAX as f64
@@ -216,35 +232,29 @@ fn mix(
                 }
             };
 
-            let clip = |s: f64| {
-                if s >= i16::MAX as f64 {
-                    i16::MAX
-                } else if s <= i16::MIN as f64 {
-                    i16::MIN
-                } else {
-                    s as i16
-                }
-            };
-
-            let scale = |v: Vec<i64>| {
+            let scale = |v: Vec<(i64, i64)>| {
                 let scaling_factor = scaling_factor(max_abs(&v));
                 v.into_iter()
-                    .map(|s| s as f64 * scaling_factor)
-                    .map(clip)
+                    .map(|(l, r)| {
+                        (
+                            clip((l as f64 * scaling_factor) as i64),
+                            clip((r as f64 * scaling_factor) as i64),
+                        )
+                    })
                     .collect()
             };
 
-            (scale(summed_left), scale(summed_right))
+            scale(summed_samples)
         }
     };
 
     match output_info.channels {
         AudioChannels::Mono => AudioSamples::Mono(
-            left.into_iter()
-                .zip(right)
+            mixed
+                .into_iter()
                 .map(|(l, r)| ((l as i32 + r as i32) / 2) as i16)
                 .collect(),
         ),
-        AudioChannels::Stereo => AudioSamples::Stereo(left.into_iter().zip(right).collect()),
+        AudioChannels::Stereo => AudioSamples::Stereo(mixed),
     }
 }

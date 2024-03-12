@@ -37,10 +37,9 @@ pub struct InputSamplesSet {
 #[derive(Debug)]
 pub struct OutputSamplesSet(pub HashMap<OutputId, OutputSamples>);
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct InputSamples {
-    pub left: Arc<Vec<i16>>,
-    pub right: Arc<Vec<i16>>,
+    pub samples: Arc<Vec<(i16, i16)>>,
     pub start_pts: Duration,
 }
 
@@ -64,7 +63,8 @@ impl InputSamplesSet {
 
 impl InputSamples {
     pub fn end_pts(&self, output_sample_rate: u32) -> Duration {
-        self.start_pts + Duration::from_secs_f64(self.left.len() as f64 / output_sample_rate as f64)
+        self.start_pts
+            + Duration::from_secs_f64(self.samples.len() as f64 / output_sample_rate as f64)
     }
 }
 
@@ -79,6 +79,17 @@ impl AudioSamples {
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
+    }
+}
+
+impl Debug for InputSamples {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "InputSamples(len={}, pts={:?})",
+            self.samples.len(),
+            self.start_pts
+        )
     }
 }
 

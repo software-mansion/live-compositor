@@ -171,6 +171,7 @@ impl Pipeline {
             self.output_sample_rate,
         )?;
 
+        self.audio_mixer.register_input(input_id.clone());
         self.inputs.insert(input_id.clone(), pipeline_input);
         self.queue.add_input(&input_id, receiver, queue_options);
         self.renderer.register_input(input_id);
@@ -182,6 +183,7 @@ impl Pipeline {
             return Err(UnregisterInputError::NotFound(input_id.clone()));
         }
 
+        self.audio_mixer.unregister_input(input_id);
         self.inputs.remove(input_id);
         self.queue.remove_input(input_id);
         self.renderer.unregister_input(input_id);
@@ -332,7 +334,7 @@ impl Pipeline {
         }
         info!("Starting pipeline.");
         let (video_sender, video_receiver) = bounded(1);
-        let (audio_sender, audio_receiver) = bounded(1);
+        let (audio_sender, audio_receiver) = bounded(100);
         guard.queue.start(video_sender, audio_sender);
 
         let pipeline_clone = pipeline.clone();

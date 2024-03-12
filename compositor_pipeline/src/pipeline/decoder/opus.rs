@@ -28,12 +28,7 @@ impl OpusDecoder {
             .spawn(move || {
                 let _span =
                     span!(Level::INFO, "opus decoder", input_id = input_id.to_string()).entered();
-                run_decoder_thread(
-                    decoder,
-                    opts,
-                    chunks_receiver,
-                    sample_sender,
-                )
+                run_decoder_thread(decoder, opts, chunks_receiver, sample_sender)
             })
             .unwrap();
 
@@ -74,9 +69,15 @@ fn run_decoder_thread(
             right.push(buffer[2 * i + 1]);
         }
 
+        let samples = Arc::new(
+            buffer[0..(2 * decoded_samples_count)]
+                .chunks_exact(2)
+                .map(|c| (c[0], c[1]))
+                .collect(),
+        );
+
         let input_samples = InputSamples {
-            left: Arc::new(left),
-            right: Arc::new(right),
+            samples,
             start_pts: chunk.pts,
         };
 
