@@ -1319,6 +1319,16 @@
           "items": {
             "$ref": "#/definitions/InputAudio"
           }
+        },
+        "mixing_strategy": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/MixingStrategy"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       }
     },
@@ -1339,6 +1349,13 @@
           "format": "float"
         }
       }
+    },
+    "MixingStrategy": {
+      "type": "string",
+      "enum": [
+        "SumClip",
+        "SumScale"
+      ]
     }
   }
 }

@@ -31,6 +31,7 @@ type UpdateOutput = {
   video?: Component;
   audio?: {
     inputs: AudioInput[];
+    mixing_strategy: "sum_clip" | "sum_scale"
   };
   schedule_time_ms?: number;
 }
@@ -46,6 +47,9 @@ type AudioInput = {
 - `audio` - Parameters for mixing input audio streams.
 - `audio.inputs[].input_id` - Input id.
 - `audio.inputs[].volume` - (**default=`1.0`**) Float in `[0, 1]` range representing volume.
+- `audio.mixing_strategy` - (**default=`sum_clip`**) Strategy for mixing audio:
+- - `"sum_clip"` - Clip summed input waves if it's outside the PCM range.
+- - `"sum_scale"` - Scales down summed input waves if it's outside the PCM range.
 - `schedule_time_ms` - Time in milliseconds when this request should be applied. Value `0` represents time of [the start request](#start).
 
 ***
