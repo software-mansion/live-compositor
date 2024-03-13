@@ -145,6 +145,11 @@ fn read_config() -> Result<Config, String> {
         Err(_) => DEFAULT_OUTPUT_SAMPLE_RATE,
     };
 
+    let run_late_scheduled_events = match env::var("LIVE_COMPOSITOR_RUN_LATE_SCHEDULED_EVENTS") {
+        Ok(enable) => bool_env_from_str(&enable).unwrap_or(false),
+        Err(_) => false,
+    };
+
     let config = Config {
         api_port,
         logger: LoggerConfig {
@@ -156,6 +161,7 @@ fn read_config() -> Result<Config, String> {
             ahead_of_time_processing,
             output_framerate: framerate,
             output_sample_rate,
+            run_late_scheduled_events,
         },
         stream_fallback_timeout,
         force_gpu,
