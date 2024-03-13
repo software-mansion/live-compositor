@@ -8,7 +8,7 @@ API port. Defaults to 8001.
 
 ### `LIVE_COMPOSITOR_OUTPUT_FRAMERATE`
 
-Output framerate for all output streams. This value can be a number or string in the `NUM/DEN` format , where both `NUM` and `DEN` are unsigned integers.
+Output framerate for all output streams. This value can be a number or string in the `NUM/DEN` format, where both `NUM` and `DEN` are unsigned integers.
 
 ### `LIVE_COMPOSITOR_OUTPUT_SAMPLE_RATE`
 
@@ -76,5 +76,11 @@ If enabled, the LiveCompositor server will try to generate output frames ahead o
 
 When to enable this option:
 - If you want to process input streams faster than in real time.
+
+Defaults to `false`. Valid values: `true`, `false`, `1`, `0`.
+
+### `LIVE_COMPOSITOR_RUN_LATE_SCHEDULED_EVENTS`
+
+Parts of the compositor API support a `schedule_time_ms` field to apply certain actions at a specific time. If enabled, the event will still be executed, even if it was scheduled too late. Otherwise, it will be discarded.
 
 Defaults to `false`. Valid values: `true`, `false`, `1`, `0`.

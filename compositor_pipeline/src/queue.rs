@@ -48,6 +48,11 @@ pub struct Queue {
     /// Define if queue should process frames if all inputs are ready.
     ahead_of_time_processing: bool,
 
+    /// Defines behavior when event is scheduled too late:
+    /// true - Event will be executed immediately.
+    /// false - Event will be discarded.
+    run_late_scheduled_events: bool,
+
     start_sender: Mutex<Option<Sender<QueueStartEvent>>>,
     scheduled_event_sender: Sender<ScheduledEvent>,
 }
@@ -108,6 +113,7 @@ pub struct InputOptions {
 pub struct QueueOptions {
     pub ahead_of_time_processing: bool,
     pub output_framerate: Framerate,
+    pub run_late_scheduled_events: bool,
 }
 
 pub struct ScheduledEvent {
@@ -144,6 +150,7 @@ impl Queue {
             scheduled_event_sender,
             start_sender: Mutex::new(Some(queue_start_sender)),
             ahead_of_time_processing: opts.ahead_of_time_processing,
+            run_late_scheduled_events: opts.run_late_scheduled_events,
         });
 
         QueueThread::new(
