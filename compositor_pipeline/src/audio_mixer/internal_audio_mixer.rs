@@ -15,20 +15,130 @@ use super::types::{
 };
 
 #[derive(Debug)]
+pub(super) struct InternalAudioMixer {
+    inputs: HashMap<InputId, InputState>,
+    outputs: HashMap<OutputId, OutputInfo>,
+    output_sample_rate: u32,
+}
+
+impl InternalAudioMixer {
+    pub fn new(output_sample_rate: u32) -> Self {
+        Self {
+            inputs: HashMap::new(),
+            outputs: HashMap::new(),
+            output_sample_rate,
+        }
+    }
+
+    pub fn register_input(&mut self, input_id: InputId) {
+        self.inputs.insert(
+            input_id,
+            InputState {
+                samples: VecDeque::new(),
+                popped_samples: 0,
+                start_pts: None,
+                last_enqueued_pts: None,
+            },
+        );
+    }
+
+    pub fn unregister_input(&mut self, input_id: &InputId) {
+        self.inputs.remove(input_id);
+    }
+
+    pub fn register_output(
+        &mut self,
+        output_id: OutputId,
+        audio: AudioMixingParams,
+        channels: AudioChannels,
+    ) {
+        self.outputs
+            .insert(output_id, OutputInfo { audio, channels });
+    }
+
+    pub fn unregister_output(&mut self, output_id: &OutputId) {
+        self.outputs.remove(output_id);
+    }
+
+    pub fn update_output(
+        &mut self,
+        output_id: &OutputId,
+        audio: AudioMixingParams,
+    ) -> Result<(), UpdateSceneError> {
+        match self.outputs.get_mut(output_id) {
+            Some(output_info) => {
+                output_info.audio = audio;
+                Ok(())
+            }
+            None => Err(UpdateSceneError::OutputNotRegistered(output_id.clone())),
+        }
+    }
+
+    pub fn mix_samples(&mut self, samples_set: InputSamplesSet) -> OutputSamplesSet {
+        let InputSamplesSet {
+            samples,
+            start_pts,
+            end_pts,
+        } = samples_set;
+
+        // Input samples are saved into input state and popped from it.
+        // I tried more functional approach before,
+        // that merged batches from inputs in the frame, but floating point
+        // arithmetics errors in indexes produced noticeable sound distortions.
+        // Moreover, this simplifies logic for filling missing samples.
+        self.save_samples(&samples);
+        let samples_count = (end_pts.saturating_sub(start_pts).as_secs_f64()
+            * self.output_sample_rate as f64)
+            .round() as usize;
+
+        let input_samples = self.pop_samples(samples_count);
+
+        OutputSamplesSet(
+            self.outputs
+                .iter()
+                .map(|(output_id, output_info)| {
+                    let samples = mix(&input_samples, output_info, samples_count);
+                    (output_id.clone(), OutputSamples { samples, start_pts })
+                })
+                .collect(),
+        )
+    }
+
+    fn save_samples(&mut self, samples: &HashMap<InputId, Vec<InputSamples>>) {
+        for (input_id, input_samples_vec) in samples {
+            let Some(input_state) = self.inputs.get_mut(input_id) else {
+                error!("Audio mixer received samples for unregistered input");
+                return;
+            };
+            for input_samples in input_samples_vec {
+                input_state.enqueue(input_samples, self.output_sample_rate);
+            }
+        }
+    }
+
+    fn pop_samples(&mut self, samples_count: usize) -> HashMap<InputId, Vec<(i16, i16)>> {
+        self.inputs
+            .iter_mut()
+            .map(|(input_id, input_state)| (input_id.clone(), input_state.pop(samples_count)))
+            .collect()
+    }
+}
+
+#[derive(Debug)]
 struct OutputInfo {
     audio: AudioMixingParams,
     channels: AudioChannels,
 }
 
 #[derive(Debug)]
-struct InputInfo {
+struct InputState {
     samples: VecDeque<(i16, i16)>,
     popped_samples: u64,
     start_pts: Option<Duration>,
     last_enqueued_pts: Option<Duration>,
 }
 
-impl InputInfo {
+impl InputState {
     pub fn enqueue(&mut self, input_samples: &InputSamples, output_sample_rate: u32) {
         let start_pts = *self.start_pts.get_or_insert(input_samples.start_pts);
         match self.last_enqueued_pts {
@@ -75,112 +185,7 @@ impl InputInfo {
     }
 }
 
-#[derive(Debug)]
-pub(super) struct InternalAudioMixer {
-    inputs: HashMap<InputId, InputInfo>,
-    outputs: HashMap<OutputId, OutputInfo>,
-    output_sample_rate: u32,
-}
-
-impl InternalAudioMixer {
-    pub fn new(output_sample_rate: u32) -> Self {
-        Self {
-            inputs: HashMap::new(),
-            outputs: HashMap::new(),
-            output_sample_rate,
-        }
-    }
-
-    pub fn mix_samples(&mut self, samples_set: InputSamplesSet) -> OutputSamplesSet {
-        let InputSamplesSet {
-            samples,
-            start_pts,
-            end_pts,
-        } = samples_set;
-
-        self.save_samples(&samples);
-        let samples_count = (end_pts.saturating_sub(start_pts).as_secs_f64()
-            * self.output_sample_rate as f64)
-            .round() as usize;
-
-        let input_samples = self.pop_samples(samples_count);
-
-        OutputSamplesSet(
-            self.outputs
-                .iter()
-                .map(|(output_id, output_info)| {
-                    let samples = mix(&input_samples, output_info, samples_count);
-                    let output_samples = OutputSamples { samples, start_pts };
-                    (output_id.clone(), output_samples)
-                })
-                .collect(),
-        )
-    }
-
-    pub fn register_input(&mut self, input_id: InputId) {
-        self.inputs.insert(
-            input_id,
-            InputInfo {
-                samples: VecDeque::new(),
-                popped_samples: 0,
-                start_pts: None,
-                last_enqueued_pts: None,
-            },
-        );
-    }
-
-    pub fn unregister_input(&mut self, input_id: &InputId) {
-        self.inputs.remove(input_id);
-    }
-
-    pub fn register_output(
-        &mut self,
-        output_id: OutputId,
-        audio: AudioMixingParams,
-        channels: AudioChannels,
-    ) {
-        self.outputs
-            .insert(output_id, OutputInfo { audio, channels });
-    }
-
-    pub fn unregister_output(&mut self, output_id: &OutputId) {
-        self.outputs.remove(output_id);
-    }
-
-    pub fn update_output(
-        &mut self,
-        output_id: &OutputId,
-        audio: AudioMixingParams,
-    ) -> Result<(), UpdateSceneError> {
-        match self.outputs.get_mut(output_id) {
-            Some(output_info) => {
-                output_info.audio = audio;
-                Ok(())
-            }
-            None => Err(UpdateSceneError::OutputNotRegistered(output_id.clone())),
-        }
-    }
-
-    fn save_samples(&mut self, samples: &HashMap<InputId, Vec<InputSamples>>) {
-        for (input_id, input_samples_vec) in samples {
-            let Some(input_info) = self.inputs.get_mut(input_id) else {
-                error!("Audio mixer received samples for unregistered input");
-                return;
-            };
-            for input_samples in input_samples_vec {
-                input_info.enqueue(input_samples, self.output_sample_rate);
-            }
-        }
-    }
-
-    fn pop_samples(&mut self, samples_count: usize) -> HashMap<InputId, Vec<(i16, i16)>> {
-        self.inputs
-            .iter_mut()
-            .map(|(input_id, input_info)| (input_id.clone(), input_info.pop(samples_count)))
-            .collect()
-    }
-}
-
+/// Sums samples from inputs
 fn sum_samples<'a, I: Iterator<Item = &'a InputParams>>(
     input_samples: &HashMap<InputId, Vec<(i16, i16)>>,
     samples_count: usize,
@@ -204,6 +209,7 @@ fn sum_samples<'a, I: Iterator<Item = &'a InputParams>>(
     summed_samples
 }
 
+/// Mix input samples accordingly to provided specification.
 fn mix(
     input_samples: &HashMap<InputId, Vec<(i16, i16)>>,
     output_info: &OutputInfo,
@@ -214,6 +220,7 @@ fn mix(
         samples_count,
         output_info.audio.inputs.iter(),
     );
+    // Clips sample to i16 PCM range
     let clip = |s: i64| min(max(s, i16::MIN as i64), i16::MAX as i64) as i16;
 
     let mixed: Vec<(i16, i16)> = match output_info.audio.mixing_strategy {
@@ -222,8 +229,11 @@ fn mix(
             .map(|(l, r)| (clip(l), clip(r)))
             .collect(),
         MixingStrategy::SumScale => {
+            // abs panics in debug if val = i64::MIN, but it would so many i16 samples to sum, that it'll never happen.
+            // Assumes that v is not empty (therefore unwrap is safe)
             let max_abs =
                 |v: &Vec<(i64, i64)>| v.iter().map(|(l, r)| (l.abs().max(r.abs()))).max().unwrap();
+
             let scaling_factor = |max_abs: i64| {
                 if max_abs > i16::MAX as i64 {
                     max_abs as f64 / i16::MAX as f64
@@ -248,10 +258,12 @@ fn mix(
         }
     };
 
+    // Converts summed waves to desired channels format
     match output_info.channels {
         AudioChannels::Mono => AudioSamples::Mono(
             mixed
                 .into_iter()
+                // Convert to i32 to avoid additions overflows
                 .map(|(l, r)| ((l as i32 + r as i32) / 2) as i16)
                 .collect(),
         ),
