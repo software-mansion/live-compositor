@@ -1,3 +1,5 @@
+use std::ops::ControlFlow;
+
 use compositor_render::InputId;
 use crossbeam_channel::{Receiver, Sender};
 use fdk_aac_sys as fdk;
@@ -54,8 +56,28 @@ fn run_decoder_thread(
     samples_sender: Sender<PipelineEvent<AudioSamplesBatch>>,
     chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
 ) {
-    let mut decoder = None;
-    let mut options = Some(options);
+    let chunk = match chunks_receiver.recv() {
+        Ok(PipelineEvent::Data(chunk)) => chunk,
+        Ok(PipelineEvent::EOS) | Err(_) => {
+            log::warn!("AAC decoder received no data and its input stream has ended");
+            return;
+        }
+    };
+
+    let decoder = match Decoder::new(options.clone(), &chunk) {
+        Ok(decoder) => decoder,
+        Err(e) => {
+            // unfortunately, since this decoder needs to inspect the first data chunk
+            // to initialize, we cannot block in the main thread and wait for it to
+            // report a success or failure.
+            log::error!("Fatal AAC decoder error at initialization: {e}");
+            return;
+        }
+    };
+
+    if process_chunk(chunk, &decoder, &samples_sender).is_break() {
+        return;
+    }
 
     for chunk in chunks_receiver {
         let chunk = match chunk {
@@ -65,47 +87,38 @@ fn run_decoder_thread(
             }
         };
 
-        let decoder = match &decoder {
-            Some(d) => d,
-            None => {
-                decoder = match Decoder::new(
-                    std::mem::take(&mut options)
-                        .expect("AAC decoder initialization options should be present"),
-                    &chunk,
-                ) {
-                    Ok(decoder) => Some(decoder),
-
-                    Err(e) => {
-                        // unfortunately, since this decoder needs to inspect the first data chunk
-                        // to initialize, we cannot block in the main thread and wait for it to
-                        // report a success or failure.
-                        log::error!("Fatal AAC decoder error at initialization: {e}");
-                        return;
-                    }
-                };
-
-                decoder.as_ref().unwrap()
-            }
-        };
-
-        let decoded_samples = match decoder.decode_chunk(chunk) {
-            Ok(samples) => samples,
-            Err(e) => {
-                log::error!("Failed to decode AAC packet: {e}");
-                continue;
-            }
-        };
-
-        for batch in decoded_samples {
-            if samples_sender.send(PipelineEvent::Data(batch)).is_err() {
-                debug!("Failed to send audio samples from AAC decoder. Channel closed.");
-                return;
-            }
+        if process_chunk(chunk, &decoder, &samples_sender).is_break() {
+            break;
         }
     }
-    if samples_sender.send(PipelineEvent::EOS).is_err() {
-        debug!("Failed to send EOS from AAC decoder. Channel closed.")
+}
+
+fn process_chunk(
+    chunk: EncodedChunk,
+    decoder: &Decoder,
+    sender: &Sender<PipelineEvent<AudioSamplesBatch>>,
+) -> ControlFlow<()> {
+    let decoded_samples = match decoder.decode_chunk(chunk) {
+        Ok(samples) => samples,
+        Err(e) => {
+            log::error!("Failed to decode AAC packet: {e}");
+            return ControlFlow::Continue(());
+        }
+    };
+
+    for batch in decoded_samples {
+        if sender.send(PipelineEvent::Data(batch)).is_err() {
+            debug!("Failed to send audio samples from AAC decoder. Channel closed.");
+
+            if sender.send(PipelineEvent::EOS).is_err() {
+                debug!("Failed to send EOS from AAC decoder. Channel closed.")
+            }
+
+            return ControlFlow::Break(());
+        }
     }
+
+    ControlFlow::Continue(())
 }
 
 struct Decoder(*mut fdk::AAC_DECODER_INSTANCE);

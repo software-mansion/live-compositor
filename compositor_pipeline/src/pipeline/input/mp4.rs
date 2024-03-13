@@ -21,10 +21,11 @@ pub struct Mp4Options {
     pub input_id: InputId,
 }
 
-pub enum Mp4ReaderOptions {
+pub(crate) enum Mp4ReaderOptions {
     NonFragmented {
         file: PathBuf,
     },
+    #[allow(dead_code)]
     Fragmented {
         header: Bytes,
         fragment_receiver: Receiver<PipelineEvent<Bytes>>,
@@ -60,7 +61,7 @@ pub struct Mp4 {
 }
 
 impl Mp4 {
-    pub fn new(
+    pub(crate) fn new(
         options: Mp4Options,
         download_dir: &Path,
     ) -> Result<(Self, ChunksReceiver, DecoderOptions), Mp4Error> {
@@ -84,12 +85,14 @@ impl Mp4 {
             Source::File(ref path) => path.clone(),
         };
 
-        let (video_reader, video_receiver, video_decoder_options) = match Mp4FileReader::new_video(
+        let video = Mp4FileReader::new_video(
             Mp4ReaderOptions::NonFragmented {
                 file: input_path.clone(),
             },
             options.input_id.clone(),
-        )? {
+        )?;
+
+        let (video_reader, video_receiver, video_decoder_options) = match video {
             Some((reader, receiver)) => {
                 let decoder_options = reader.decoder_options();
                 (Some(reader), Some(receiver), Some(decoder_options))
@@ -97,12 +100,14 @@ impl Mp4 {
             None => (None, None, None),
         };
 
-        let (audio_reader, audio_receiver, audio_deocder_options) = match Mp4FileReader::new_audio(
+        let audio = Mp4FileReader::new_audio(
             Mp4ReaderOptions::NonFragmented {
                 file: input_path.clone(),
             },
             options.input_id.clone(),
-        )? {
+        )?;
+
+        let (audio_reader, audio_receiver, audio_deocder_options) = match audio {
             Some((reader, receiver)) => {
                 let decoder_options = reader.decoder_options();
                 (Some(reader), Some(receiver), Some(decoder_options))

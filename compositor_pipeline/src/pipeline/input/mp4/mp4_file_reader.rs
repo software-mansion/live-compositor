@@ -7,7 +7,7 @@ use std::{
 
 use bytes::{Buf, Bytes, BytesMut};
 use compositor_render::InputId;
-use crossbeam_channel::{Receiver, SendTimeoutError, Sender};
+use crossbeam_channel::{Receiver, Sender};
 use mp4::Mp4Reader;
 use tracing::{debug, span, warn, Level};
 
@@ -24,7 +24,7 @@ use super::{Mp4Error, Mp4ReaderOptions};
 
 type ChunkReceiver = Receiver<PipelineEvent<EncodedChunk>>;
 
-pub struct Mp4FileReader<DecoderOptions> {
+pub(crate) struct Mp4FileReader<DecoderOptions> {
     stop_thread: Arc<AtomicBool>,
     fragment_sender: Option<Sender<PipelineEvent<Bytes>>>,
     decoder_options: DecoderOptions,
@@ -40,7 +40,7 @@ struct TrackInfo<DecoderOptions, SampleUnpacker: FnMut(mp4::Mp4Sample) -> Bytes>
 }
 
 impl Mp4FileReader<AudioDecoderOptions> {
-    pub fn new_audio(
+    pub(crate) fn new_audio(
         options: Mp4ReaderOptions,
         input_id: InputId,
     ) -> Result<Option<(Self, ChunkReceiver)>, Mp4Error> {
@@ -119,7 +119,7 @@ impl Mp4FileReader<AudioDecoderOptions> {
 }
 
 impl Mp4FileReader<VideoDecoderOptions> {
-    pub fn new_video(
+    pub(crate) fn new_video(
         options: Mp4ReaderOptions,
         input_id: InputId,
     ) -> Result<Option<(Mp4FileReader<VideoDecoderOptions>, ChunkReceiver)>, Mp4Error> {
@@ -244,7 +244,8 @@ impl Mp4FileReader<VideoDecoderOptions> {
         })
     }
 
-    pub fn fragment_sender(&self) -> Option<Sender<PipelineEvent<Bytes>>> {
+    #[allow(dead_code)]
+    pub(crate) fn fragment_sender(&self) -> Option<Sender<PipelineEvent<Bytes>>> {
         self.fragment_sender.clone()
     }
 }
@@ -299,7 +300,7 @@ impl<DecoderOptions: Clone + Send + 'static> Mp4FileReader<DecoderOptions> {
         )))
     }
 
-    pub fn decoder_options(&self) -> DecoderOptions {
+    pub(crate) fn decoder_options(&self) -> DecoderOptions {
         self.decoder_options.clone()
     }
 }
@@ -320,7 +321,11 @@ fn run_reader_thread<Reader: Read + Seek, DecoderOptions>(
 ) {
     let mut sample_unpacker = track_info.sample_unpacker;
 
-    'samples: for i in 1..track_info.sample_count {
+    for i in 1..track_info.sample_count {
+        if stop_thread.load(std::sync::atomic::Ordering::Relaxed) {
+            return;
+        }
+
         match reader.read_sample(track_info.track_id, i) {
             Ok(Some(sample)) => {
                 let rendering_offset = sample.rendering_offset;
@@ -337,23 +342,11 @@ fn run_reader_thread<Reader: Read + Seek, DecoderOptions>(
                     kind: track_info.chunk_kind,
                 };
 
-                let mut chunk = Some(PipelineEvent::Data(chunk));
-                loop {
-                    match sender.send_timeout(chunk.take().unwrap(), Duration::from_millis(50)) {
-                        Ok(()) => {
-                            continue 'samples;
-                        }
-                        Err(SendTimeoutError::Timeout(not_sent_chunk)) => {
-                            chunk = Some(not_sent_chunk);
-                        }
-                        Err(SendTimeoutError::Disconnected(_)) => {
-                            debug!("Channel disconnected.");
-                            break;
-                        }
-                    }
-
-                    if stop_thread.load(std::sync::atomic::Ordering::Relaxed) {
-                        break;
+                match sender.send(PipelineEvent::Data(chunk)) {
+                    Ok(_) => {}
+                    Err(_) => {
+                        debug!("Channel disconnected.");
+                        return;
                     }
                 }
             }
