@@ -9,6 +9,7 @@ use std::mem;
 use std::time::Duration;
 use std::time::Instant;
 
+use super::utils::Clock;
 use super::utils::InputProcessor;
 use super::InputOptions;
 use super::PipelineEvent;
@@ -32,6 +33,7 @@ impl VideoQueue {
         input_id: &InputId,
         receiver: Receiver<PipelineEvent<Frame>>,
         opts: InputOptions,
+        clock: Clock,
     ) {
         self.inputs.insert(
             input_id.clone(),
@@ -39,7 +41,7 @@ impl VideoQueue {
                 queue: VecDeque::new(),
                 receiver,
                 listeners: vec![],
-                input_frames_processor: InputProcessor::new(self.buffer_duration),
+                input_frames_processor: InputProcessor::new(self.buffer_duration, clock),
                 required: opts.required,
                 offset: opts.offset,
                 eos_sent: false,
