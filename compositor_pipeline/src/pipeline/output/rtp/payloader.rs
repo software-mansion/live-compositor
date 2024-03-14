@@ -140,13 +140,13 @@ impl Payloader {
         }
     }
 
-    pub(super) fn audio_eos(&mut self) -> Option<Result<Bytes, PayloadingError>> {
+    pub(super) fn audio_eos(&mut self) -> Result<Bytes, PayloadingError> {
         self.audio
             .as_mut()
             .map(|audio| {
                 let ctx = audio.context_mut();
                 if ctx.received_eos {
-                    return None;
+                    return Err(PayloadingError::AudioEOSAlreadySent);
                 }
                 ctx.received_eos = true;
 
@@ -154,18 +154,18 @@ impl Payloader {
                     sources: vec![ctx.ssrc],
                     reason: Bytes::from("Unregister output stream"),
                 };
-                Some(packet.marshal().map_err(PayloadingError::MarshalError))
+                packet.marshal().map_err(PayloadingError::MarshalError)
             })
-            .unwrap_or(Some(Err(PayloadingError::NoAudioPayloader)))
+            .unwrap_or(Err(PayloadingError::NoAudioPayloader))
     }
 
-    pub(super) fn video_eos(&mut self) -> Option<Result<Bytes, PayloadingError>> {
+    pub(super) fn video_eos(&mut self) -> Result<Bytes, PayloadingError> {
         self.video
             .as_mut()
             .map(|video| {
                 let ctx = video.context_mut();
                 if ctx.received_eos {
-                    return None;
+                    return Err(PayloadingError::VideoEOSAlreadySent);
                 }
                 ctx.received_eos = true;
 
@@ -173,9 +173,9 @@ impl Payloader {
                     sources: vec![ctx.ssrc],
                     reason: Bytes::from("Unregister output stream"),
                 };
-                Some(packet.marshal().map_err(PayloadingError::MarshalError))
+                packet.marshal().map_err(PayloadingError::MarshalError)
             })
-            .unwrap_or(Some(Err(PayloadingError::NoVideoPayloader)))
+            .unwrap_or(Err(PayloadingError::NoVideoPayloader))
     }
 }
 
