@@ -10,11 +10,13 @@ use compositor_render::error::{
 };
 use compositor_render::scene::Component;
 use compositor_render::web_renderer::WebRendererInitOptions;
+use compositor_render::FrameSet;
 use compositor_render::RegistryType;
 use compositor_render::RendererOptions;
 use compositor_render::{error::UpdateSceneError, Renderer};
 use compositor_render::{EventLoop, InputId, OutputId, RendererId, RendererSpec};
 use crossbeam_channel::{bounded, Receiver};
+use tracing::trace;
 use tracing::{error, info, warn};
 
 use crate::audio_mixer::types::{AudioChannels, AudioMixingParams};
@@ -369,7 +371,10 @@ fn run_renderer_thread(
                 }
             }
         }
-        let output = renderer.render(input_frames.into());
+
+        let input_frames: FrameSet<InputId> = input_frames.into();
+        trace!(?input_frames, "Rendering frames");
+        let output = renderer.render(input_frames);
         let Ok(output_frames) = output else {
             error!(
                 "Error while rendering: {}",
