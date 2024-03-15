@@ -353,6 +353,7 @@ fn run_renderer_thread(
 
             if send_eos {
                 info!(?output_id, "Sending video EOS on output.");
+                renderer.unregister_output(&output_id);
                 if frame_sender.send(PipelineEvent::EOS).is_err() {
                     warn!(
                         ?output_id,
@@ -411,6 +412,7 @@ fn run_audio_mixer_thread(
 
             if send_eos {
                 info!(?output_id, "Sending audio EOS on output.");
+                audio_mixer.unregister_output(&output_id);
                 if samples_sender.send(PipelineEvent::EOS).is_err() {
                     warn!(
                         ?output_id,
