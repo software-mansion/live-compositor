@@ -16,8 +16,7 @@ use compositor_render::RendererOptions;
 use compositor_render::{error::UpdateSceneError, Renderer};
 use compositor_render::{EventLoop, InputId, OutputId, RendererId, RendererSpec};
 use crossbeam_channel::{bounded, Receiver};
-use tracing::trace;
-use tracing::{error, info, warn};
+use tracing::{error, info, trace, warn};
 
 use crate::audio_mixer::types::{AudioChannels, AudioMixingParams};
 use crate::audio_mixer::AudioMixer;
@@ -306,6 +305,7 @@ fn run_renderer_thread(
             if let PipelineEvent::EOS = event {
                 let mut guard = pipeline.lock().unwrap();
                 if let Some(input) = guard.inputs.get_mut(input_id) {
+                    info!(?input_id, "Received video EOS on input.");
                     input.on_video_eos();
                 }
                 for output in guard.outputs.values_mut() {
@@ -351,11 +351,14 @@ fn run_renderer_thread(
                 warn!(?output_id, "Failed to send output frames. Channel closed.");
             }
 
-            if send_eos && frame_sender.send(PipelineEvent::EOS).is_err() {
-                warn!(
-                    ?output_id,
-                    "Failed to send EOS from renderer. Channel closed."
-                );
+            if send_eos {
+                info!(?output_id, "Sending video EOS on output.");
+                if frame_sender.send(PipelineEvent::EOS).is_err() {
+                    warn!(
+                        ?output_id,
+                        "Failed to send EOS from renderer. Channel closed."
+                    );
+                }
             }
         }
     }
@@ -371,6 +374,7 @@ fn run_audio_mixer_thread(
             if let PipelineEvent::EOS = event {
                 let mut guard = pipeline.lock().unwrap();
                 if let Some(input) = guard.inputs.get_mut(input_id) {
+                    info!(?input_id, "Received audio EOS on input.");
                     input.on_audio_eos();
                 }
                 for output in guard.outputs.values_mut() {
@@ -405,11 +409,14 @@ fn run_audio_mixer_thread(
                 warn!(?output_id, "Failed to send mixed audio. Channel closed.");
             }
 
-            if send_eos && samples_sender.send(PipelineEvent::EOS).is_err() {
-                warn!(
-                    ?output_id,
-                    "Failed to send EOS from audio mixer. Channel closed."
-                );
+            if send_eos {
+                info!(?output_id, "Sending audio EOS on output.");
+                if samples_sender.send(PipelineEvent::EOS).is_err() {
+                    warn!(
+                        ?output_id,
+                        "Failed to send EOS from audio mixer. Channel closed."
+                    );
+                }
             }
         }
     }
