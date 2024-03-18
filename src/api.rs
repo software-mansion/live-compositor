@@ -70,6 +70,7 @@ pub enum QueryRequest {
 #[serde(untagged)]
 pub enum Response {
     Ok {},
+    Status { instance_id: String },
     RegisteredPort { port: u16 },
 }
 

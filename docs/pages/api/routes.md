@@ -128,4 +128,12 @@ Removes entities previously registered with [register input](#register-input-str
 
 ## Endpoint `GET /status`
 
+```typescript
+type Response = {
+  instance_id: string
+}
+```
+
 Status/health check endpoint. Returns `200 OK`.
+
+- `instance_id` - ID that can be provided using `LIVE_COMPOSITOR_INSTANCE_ID` environment variable. Defaults to random value in the format `live_compositor_{RANDOM_VALUE}`.

@@ -3,11 +3,13 @@ use std::{env, path::PathBuf, str::FromStr, sync::OnceLock, time::Duration};
 use compositor_pipeline::queue::QueueOptions;
 use compositor_render::{web_renderer::WebRendererInitOptions, Framerate};
 use log::error;
+use rand::Rng;
 
 use crate::logger::FfmpegLogLevel;
 
 #[derive(Debug)]
 pub struct Config {
+    pub instance_id: String,
     pub api_port: u16,
     pub logger: LoggerConfig,
     pub stream_fallback_timeout: Duration,
@@ -59,6 +61,11 @@ fn read_config() -> Result<Config, String> {
             .parse::<u16>()
             .map_err(|_| "LIVE_COMPOSITOR_API_PORT has to be valid port number")?,
         Err(_) => 8081,
+    };
+
+    let instance_id = match env::var("LIVE_COMPOSITOR_INSTANCE_ID") {
+        Ok(instance_id) => instance_id,
+        Err(_) => format!("live_compositor_{}", rand::thread_rng().gen::<u32>()),
     };
 
     let ffmpeg_logger_level = match env::var("LIVE_COMPOSITOR_FFMPEG_LOGGER_LEVEL") {
@@ -151,6 +158,7 @@ fn read_config() -> Result<Config, String> {
     };
 
     let config = Config {
+        instance_id,
         api_port,
         logger: LoggerConfig {
             ffmpeg_logger_level,
