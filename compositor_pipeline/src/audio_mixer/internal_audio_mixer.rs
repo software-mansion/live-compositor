@@ -131,10 +131,8 @@ impl InternalAudioMixer {
 
                 let sample_time_after_frame =
                     input_samples.end_pts.saturating_sub(end_pts).as_secs_f64();
-                let samples_after_frame = usize::max(
-                    (sample_time_after_frame * sample_rate as f64).round() as usize,
-                    0,
-                );
+                let samples_after_frame =
+                    (sample_time_after_frame * sample_rate as f64).round() as usize;
                 let end_index = input_samples.len() - samples_after_frame;
 
                 samples_in_frame.extend(input_samples.samples[start_index..end_index].iter());
@@ -173,7 +171,7 @@ fn mix(
 ) -> AudioSamples {
     /// Clips sample to i16 PCM range
     fn clip_to_i16(sample: i64) -> i16 {
-        i64::min(i64::max(sample, i16::MIN as i64), i16::MAX as i64) as i16
+        sample.min(i16::MAX as i64).max(i16::MIN as i64) as i16
     }
 
     let summed_samples = sum_samples(
