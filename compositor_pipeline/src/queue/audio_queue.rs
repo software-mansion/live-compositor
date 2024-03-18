@@ -6,7 +6,10 @@ use std::{
 
 use crate::audio_mixer::InputSamples;
 
-use super::{utils::InputProcessor, InputOptions, PipelineEvent, QueueAudioOutput};
+use super::{
+    utils::{Clock, InputProcessor},
+    InputOptions, PipelineEvent, QueueAudioOutput,
+};
 use compositor_render::InputId;
 use crossbeam_channel::{Receiver, TryRecvError};
 
@@ -29,13 +32,14 @@ impl AudioQueue {
         input_id: &InputId,
         receiver: Receiver<PipelineEvent<InputSamples>>,
         opts: InputOptions,
+        clock: Clock,
     ) {
         self.inputs.insert(
             input_id.clone(),
             AudioQueueInput {
                 queue: VecDeque::new(),
                 receiver,
-                input_samples_processor: InputProcessor::new(self.buffer_duration),
+                input_samples_processor: InputProcessor::new(self.buffer_duration, clock),
                 required: opts.required,
                 offset: opts.offset,
                 eos_sent: false,

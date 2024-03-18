@@ -29,31 +29,24 @@ impl PacketStream {
 
     fn next_new_packet(&mut self) -> Option<Result<bytes::Bytes, PayloadingError>> {
         let Ok(packet) = self.packets_receiver.recv() else {
-            if let Some(packet) = self.payloader.audio_eos() {
-                return Some(packet);
+            // Send audio and video EOS if payloaders are supported and EOS was not sent before.
+            match self.payloader.audio_eos() {
+                Err(PayloadingError::NoAudioPayloader) => (),
+                Err(PayloadingError::AudioEOSAlreadySent) => (),
+                packet => return Some(packet),
             }
-            if let Some(packet) = self.payloader.video_eos() {
-                return Some(packet);
+            match self.payloader.video_eos() {
+                Err(PayloadingError::NoVideoPayloader) => (),
+                Err(PayloadingError::VideoEOSAlreadySent) => (),
+                packet => return Some(packet),
             }
             return None;
         };
 
         let encoded_chunk = match packet {
             EncoderOutputEvent::Data(packet) => packet,
-            EncoderOutputEvent::AudioEOS => {
-                return Some(
-                    self.payloader
-                        .audio_eos()
-                        .unwrap_or(Err(PayloadingError::AudioEOSAlreadySent)),
-                )
-            }
-            EncoderOutputEvent::VideoEOS => {
-                return Some(
-                    self.payloader
-                        .video_eos()
-                        .unwrap_or(Err(PayloadingError::VideoEOSAlreadySent)),
-                )
-            }
+            EncoderOutputEvent::AudioEOS => return Some(self.payloader.audio_eos()),
+            EncoderOutputEvent::VideoEOS => return Some(self.payloader.video_eos()),
         };
 
         let rtp_packets = match self.payloader.payload(self.mtu, encoded_chunk) {

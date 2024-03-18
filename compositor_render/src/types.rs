@@ -1,4 +1,9 @@
-use std::{collections::HashMap, fmt::Display, sync::Arc, time::Duration};
+use std::{
+    collections::HashMap,
+    fmt::{self, Display},
+    sync::Arc,
+    time::Duration,
+};
 
 #[derive(Debug, Clone)]
 pub struct Frame {
@@ -7,11 +12,21 @@ pub struct Frame {
     pub pts: Duration,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct YuvData {
     pub y_plane: bytes::Bytes,
     pub u_plane: bytes::Bytes,
     pub v_plane: bytes::Bytes,
+}
+
+impl fmt::Debug for YuvData {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("YUV data")
+            .field("y_plane", &format!("len={}", self.y_plane.len()))
+            .field("u_plane", &format!("len={}", self.u_plane.len()))
+            .field("v_plane", &format!("len={}", self.v_plane.len()))
+            .finish()
+    }
 }
 
 #[derive(Debug)]

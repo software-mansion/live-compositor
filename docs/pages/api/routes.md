@@ -64,10 +64,10 @@ type RegisterInputStream = {
 }
 ```
 
-See inputs documentation to learn more.
+Register external source that can be used as a compositor input. See inputs documentation to learn more.
 
-- [RTP](./inputs/rtp)
-- [MP4](./inputs/mp4)
+- [RTP](./inputs/rtp.md)
+- [MP4](./inputs/mp4.md)
 
 ***
 
@@ -77,76 +77,13 @@ See inputs documentation to learn more.
 type RegisterOutputStream = {
   type: "register";
   entity_type: "output_stream";
-  output_id: string;
-  transport_protocol?: "udp" | "tcp_server";
-  port: u16;
-  ip?: string;
-  video?: Video;
-  audio?: Audio;
+  ...
 }
-
-type Video = {
-  resolution: { width: number, height: number },
-  encoder_preset?: VideoEncoderPreset,
-  initial: Component,
-}
-
-type Audio = {
-  channels: "stereo" | "mono";
-  forward_error_correction?: boolean;
-  encoder_preset?: AudioEncoderPreset;
-  initial: {
-    inputs: AudioInput[];
-  };
-}
-
-type AudioInput = {
-  input_id: string;
-  volume?: number;
-}
-
-type VideoEncoderPreset =
-  | "ultrafast"
-  | "superfast"
-  | "veryfast"
-  | "faster"
-  | "fast"
-  | "medium"
-  | "slow"
-  | "slower"
-  | "veryslow"
-  | "placebo"
-
-type AudioEncoderPreset =
-  | "quality"
-  | "voip"
-  | "lowest_latency"
 ```
 
-Register a new RTP output stream.
+Register external destination that can be used as a compositor output. See outputs documentation to learn more.
 
-- `output_id` - An identifier for the output stream. It can be used in the `UpdateOutput` request to define what to render for the output stream.
-- `transport_protocol` -  (**default=`"udp"`**) Transport layer protocol that will be used to send RTP packets.
-  - `udp` - UDP protocol.
-  - `tcp_server` - TCP protocol where LiveCompositor is the server side of the connection.
-- `port` - Depends on the value of the `transport_protocol` field:
-  - `udp` - An UDP port number that RTP packets will be sent to.
-  - `tcp_server` - A local TCP port number or a port range that LiveCompositor will listen for incoming connections.
-- `ip` - Only valid if `transport_protocol="udp"`. IP address where RTP packets should be sent to.
-
-- `video.resolution` - Output resolution in pixels.
-- `video.encoder_preset` - (**default=`"fast"`**) Preset for an encoder. See `FFmpeg` [docs](https://trac.ffmpeg.org/wiki/Encode/H.264#Preset) to learn more.
-- `video.initial` - Root of a component tree/scene that should be rendered for the output. Use [`update_output` request](#update-output) to update this value after registration. [Learn more](../concept/component).
-
-- `audio.channels` - Channel configuration for output audio.
-- `audio.forward_error_correction` - (**default=`false`**) Specifies whether the stream use forward error correction. It's specific for Opus codec. For more information, check out [RFC](https://datatracker.ietf.org/doc/html/rfc6716#section-2.1.7).
-- `audio.encoder_preset` - (**default=`"voip"`**) Preset for an encoder.
-  - `quality` - Best for broadcast/high-fidelity application where the decoded audio should be as close as possible to the input.
-  - `voip` -  Best for most VoIP/videoconference applications where listening quality and intelligibility matter most.
-  - `lowest_latency` - Only use when lowest-achievable latency is what matters most.
-- `audio.initial` - Initial configuration for audio mixer for this output. Use [`update_output` request](#update-output) to update this value after registration.
-- `audio.initial.inputs[].input_id` - Input id.
-- `audio.initial.inputs[].volume` - (**default=`1.0`**) Float in `[0, 1]` range representing volume.
+- [RTP](./outputs/rtp.md)
 
 ***
 

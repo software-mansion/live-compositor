@@ -26,7 +26,7 @@ pub enum AudioEncoderOptions {
     Opus(opus::Options),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum AudioEncoderPreset {
     Quality,
     Voip,
