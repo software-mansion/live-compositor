@@ -37,12 +37,13 @@ impl AudioMixer {
         &self,
         output_id: OutputId,
         audio: AudioMixingParams,
+        mixing_strategy: MixingStrategy,
         channels: AudioChannels,
     ) {
         self.0
             .lock()
             .unwrap()
-            .register_output(output_id, audio, channels)
+            .register_output(output_id, audio, mixing_strategy, channels)
     }
 
     pub fn unregister_output(&self, output_id: &OutputId) {

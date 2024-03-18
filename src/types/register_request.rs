@@ -141,6 +141,8 @@ pub struct OutputAudioOptions {
     pub forward_error_correction: Option<bool>,
     /// (**default="voip"**) Specifies preset for audio output encoder.
     pub encoder_preset: Option<AudioEncoderPreset>,
+    /// (**default="sum_clip") Specifies how audio should be mixed.
+    pub mixing_strategy: Option<MixingStrategy>,
     /// Condition for termination of output stream based on the input streams states.
     pub send_eos_when: Option<OutputEndCondition>,
 }

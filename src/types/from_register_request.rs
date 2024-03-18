@@ -277,6 +277,7 @@ impl TryFrom<RegisterOutputRequest> for pipeline::RegisterOutputOptions {
                 forward_error_correction: a.forward_error_correction.unwrap_or(false),
                 encoder_preset: a.encoder_preset.unwrap_or(AudioEncoderPreset::Voip).into(),
                 end_condition: a.send_eos_when.unwrap_or_default().try_into()?,
+                mixing_strategy: a.mixing_strategy.unwrap_or(MixingStrategy::SumClip).into(),
             }),
             None => None,
         };

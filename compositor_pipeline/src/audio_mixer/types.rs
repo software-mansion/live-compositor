@@ -5,7 +5,6 @@ use compositor_render::{InputId, OutputId};
 #[derive(Debug, Clone)]
 pub struct AudioMixingParams {
     pub inputs: Vec<InputParams>,
-    pub mixing_strategy: MixingStrategy,
 }
 
 #[derive(Debug, Clone)]
@@ -95,13 +94,11 @@ impl AudioSamples {
 
 impl Debug for InputSamples {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "InputSamples(len={}, start_pts={:?}, end_pts={:?})",
-            self.samples.len(),
-            self.start_pts,
-            self.end_pts
-        )
+        f.debug_struct("InputSamples")
+            .field("samples", &format!("len={}", self.samples.len()))
+            .field("start_pts", &self.start_pts)
+            .field("end_pts", &self.end_pts)
+            .finish()
     }
 }
 

@@ -1,5 +1,4 @@
 use std::{
-    cmp::{max, min},
     collections::{HashMap, VecDeque},
     time::Duration,
 };
@@ -50,10 +49,17 @@ impl InternalAudioMixer {
         &mut self,
         output_id: OutputId,
         audio: AudioMixingParams,
+        mixing_strategy: MixingStrategy,
         channels: AudioChannels,
     ) {
-        self.outputs
-            .insert(output_id, OutputInfo { audio, channels });
+        self.outputs.insert(
+            output_id,
+            OutputInfo {
+                audio,
+                channels,
+                mixing_strategy,
+            },
+        );
     }
 
     pub fn unregister_output(&mut self, output_id: &OutputId) {
@@ -127,6 +133,7 @@ impl InternalAudioMixer {
 #[derive(Debug)]
 struct OutputInfo {
     audio: AudioMixingParams,
+    mixing_strategy: MixingStrategy,
     channels: AudioChannels,
 }
 
@@ -193,7 +200,7 @@ fn mix(
 ) -> AudioSamples {
     /// Clips sample to i16 PCM range
     fn clip_to_i16(sample: i64) -> i16 {
-        min(max(sample, i16::MIN as i64), i16::MAX as i64) as i16
+        i64::min(i64::max(sample, i16::MIN as i64), i16::MAX as i64) as i16
     }
 
     let summed_samples = sum_samples(
@@ -202,7 +209,7 @@ fn mix(
         output_info.audio.inputs.iter(),
     );
 
-    let mixed: Vec<(i16, i16)> = match output_info.audio.mixing_strategy {
+    let mixed: Vec<(i16, i16)> = match output_info.mixing_strategy {
         MixingStrategy::SumClip => summed_samples
             .into_iter()
             .map(|(l, r)| (clip_to_i16(l), clip_to_i16(r)))
@@ -213,14 +220,10 @@ fn mix(
                 // Assumes that summed samples is not empty (therefore unwrap is safe)
                 let max_abs = summed_samples
                     .iter()
-                    .map(|(l, r)| (l.abs().max(r.abs())))
+                    .map(|(l, r)| i64::max(l.abs(), r.abs()))
                     .max()
                     .unwrap();
-                if max_abs > i16::MAX as i64 {
-                    max_abs as f64 / i16::MAX as f64
-                } else {
-                    1.0
-                }
+                f64::max(max_abs as f64 / i16::MAX as f64, 1.0)
             };
 
             summed_samples
@@ -235,7 +238,16 @@ fn mix(
         }
     };
 
-    convert_channels(mixed, output_info.channels)
+    match output_info.channels {
+        AudioChannels::Mono => AudioSamples::Mono(
+            mixed
+                .into_iter()
+                // Convert to i32 to avoid additions overflows
+                .map(|(l, r)| ((l as i32 + r as i32) / 2) as i16)
+                .collect(),
+        ),
+        AudioChannels::Stereo => AudioSamples::Stereo(mixed),
+    }
 }
 
 /// Sums samples from inputs
@@ -250,27 +262,11 @@ fn sum_samples<'a, I: Iterator<Item = &'a InputParams>>(
         let Some(input_samples) = input_samples.get(&input_params.input_id) else {
             continue;
         };
-        summed_samples
-            .iter_mut()
-            .zip(input_samples.iter())
-            .for_each(|(sum, s)| {
-                sum.0 += (s.0 as f64 * input_params.volume as f64) as i64;
-                sum.1 += (s.1 as f64 * input_params.volume as f64) as i64;
-            })
+        for (sum, sample) in summed_samples.iter_mut().zip(input_samples.iter()) {
+            sum.0 += (sample.0 as f64 * input_params.volume as f64) as i64;
+            sum.1 += (sample.1 as f64 * input_params.volume as f64) as i64;
+        }
     }
 
     summed_samples
-}
-
-fn convert_channels(samples: Vec<(i16, i16)>, channels: AudioChannels) -> AudioSamples {
-    match channels {
-        AudioChannels::Mono => AudioSamples::Mono(
-            samples
-                .into_iter()
-                // Convert to i32 to avoid additions overflows
-                .map(|(l, r)| ((l as i32 + r as i32) / 2) as i16)
-                .collect(),
-        ),
-        AudioChannels::Stereo => AudioSamples::Stereo(samples),
-    }
 }

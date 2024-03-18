@@ -1902,6 +1902,17 @@
             }
           ]
         },
+        "mixing_strategy": {
+          "description": "(**default=\"sum_clip\") Specifies how audio should be mixed.",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/MixingStrategy"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "send_eos_when": {
           "description": "Condition for termination of output stream based on the input streams states.",
           "anyOf": [
@@ -1927,16 +1938,6 @@
           "items": {
             "$ref": "#/definitions/InputAudio"
           }
-        },
-        "mixing_strategy": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/MixingStrategy"
-            },
-            {
-              "type": "null"
-            }
-          ]
         }
       }
     },
@@ -1957,13 +1958,6 @@
           "format": "float"
         }
       }
-    },
-    "MixingStrategy": {
-      "type": "string",
-      "enum": [
-        "SumClip",
-        "SumScale"
-      ]
     },
     "AudioChannels": {
       "oneOf": [
@@ -2004,6 +1998,24 @@
           "type": "string",
           "enum": [
             "lowest_latency"
+          ]
+        }
+      ]
+    },
+    "MixingStrategy": {
+      "oneOf": [
+        {
+          "description": "Sums samples from inputs and scales down wave parts result near picks exceeding the i16 PCM range.",
+          "type": "string",
+          "enum": [
+            "SumClip"
+          ]
+        },
+        {
+          "description": "Sums samples from inputs and scales down wave parts result near picks exceeding the i16 PCM range. If the summed wave is in the i16 PCM range, input waves are summed without scaling and the result is the same as with `sum_clip`",
+          "type": "string",
+          "enum": [
+            "SumScale"
           ]
         }
       ]

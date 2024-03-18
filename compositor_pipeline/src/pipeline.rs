@@ -19,6 +19,7 @@ use crossbeam_channel::{bounded, Receiver};
 use tracing::{error, info, trace, warn};
 
 use crate::audio_mixer::AudioMixer;
+use crate::audio_mixer::MixingStrategy;
 use crate::audio_mixer::{AudioChannels, AudioMixingParams};
 use crate::error::{
     RegisterInputError, RegisterOutputError, UnregisterInputError, UnregisterOutputError,
@@ -64,6 +65,7 @@ pub struct OutputVideoOptions {
 #[derive(Debug, Clone)]
 pub struct OutputAudioOptions {
     pub initial: AudioMixingParams,
+    pub mixing_strategy: MixingStrategy,
     pub channels: AudioChannels,
     pub forward_error_correction: bool,
     pub encoder_preset: AudioEncoderPreset,

@@ -6,7 +6,6 @@ use super::InputId;
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 pub struct Audio {
     pub inputs: Vec<InputAudio>,
-    pub mixing_strategy: Option<MixingStrategy>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
@@ -18,6 +17,9 @@ pub struct InputAudio {
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 pub enum MixingStrategy {
+    /// Sums samples from inputs and scales down wave parts result near picks exceeding the i16 PCM range.
     SumClip,
+    /// Sums samples from inputs and scales down wave parts result near picks exceeding the i16 PCM range.
+    /// If the summed wave is in the i16 PCM range, input waves are summed without scaling and the result is the same as with `sum_clip`
     SumScale,
 }

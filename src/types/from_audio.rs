@@ -9,15 +9,7 @@ impl TryFrom<Audio> for compositor_pipeline::audio_mixer::AudioMixingParams {
             inputs.push(input.try_into()?);
         }
 
-        let mixing_strategy = match value.mixing_strategy.unwrap_or(MixingStrategy::SumClip) {
-            MixingStrategy::SumClip => compositor_pipeline::audio_mixer::MixingStrategy::SumClip,
-            MixingStrategy::SumScale => compositor_pipeline::audio_mixer::MixingStrategy::SumScale,
-        };
-
-        Ok(Self {
-            inputs,
-            mixing_strategy,
-        })
+        Ok(Self { inputs })
     }
 }
 
@@ -34,5 +26,14 @@ impl TryFrom<InputAudio> for compositor_pipeline::audio_mixer::InputParams {
             input_id: value.input_id.into(),
             volume: value.volume.unwrap_or(1.0),
         })
+    }
+}
+
+impl From<MixingStrategy> for compositor_pipeline::audio_mixer::MixingStrategy {
+    fn from(value: MixingStrategy) -> Self {
+        match value {
+            MixingStrategy::SumClip => compositor_pipeline::audio_mixer::MixingStrategy::SumClip,
+            MixingStrategy::SumScale => compositor_pipeline::audio_mixer::MixingStrategy::SumScale,
+        }
     }
 }
