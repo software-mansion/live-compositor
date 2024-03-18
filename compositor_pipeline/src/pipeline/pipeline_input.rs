@@ -73,7 +73,6 @@ impl Pipeline {
         self.queue
             .add_input(&input_id, decoded_data_receiver, queue_options);
         self.renderer.register_input(input_id.clone());
-        self.audio_mixer.register_input(input_id);
 
         Ok(port)
     }

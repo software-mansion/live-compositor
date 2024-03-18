@@ -1,21 +1,16 @@
-use std::{
-    collections::{HashMap, VecDeque},
-    time::Duration,
-};
+use std::collections::HashMap;
 
 use compositor_render::{error::UpdateSceneError, InputId, OutputId};
-use log::error;
 
 use crate::audio_mixer::{InputParams, MixingStrategy};
 
 use super::types::{
-    AudioChannels, AudioMixingParams, AudioSamples, InputSamples, InputSamplesSet, OutputSamples,
+    AudioChannels, AudioMixingParams, AudioSamples, InputSamplesSet, OutputSamples,
     OutputSamplesSet,
 };
 
 #[derive(Debug)]
 pub(super) struct InternalAudioMixer {
-    inputs: HashMap<InputId, InputState>,
     outputs: HashMap<OutputId, OutputInfo>,
     output_sample_rate: u32,
 }
@@ -23,26 +18,9 @@ pub(super) struct InternalAudioMixer {
 impl InternalAudioMixer {
     pub fn new(output_sample_rate: u32) -> Self {
         Self {
-            inputs: HashMap::new(),
             outputs: HashMap::new(),
             output_sample_rate,
         }
-    }
-
-    pub fn register_input(&mut self, input_id: InputId) {
-        self.inputs.insert(
-            input_id,
-            InputState {
-                samples: VecDeque::new(),
-                popped_samples: 0,
-                start_pts: None,
-                last_enqueued_pts: None,
-            },
-        );
-    }
-
-    pub fn unregister_input(&mut self, input_id: &InputId) {
-        self.inputs.remove(input_id);
     }
 
     pub fn register_output(
@@ -81,23 +59,8 @@ impl InternalAudioMixer {
     }
 
     pub fn mix_samples(&mut self, samples_set: InputSamplesSet) -> OutputSamplesSet {
-        let InputSamplesSet {
-            samples,
-            start_pts,
-            end_pts,
-        } = samples_set;
-
-        // Input samples are saved into input state and popped from it.
-        // I tried more functional approach before,
-        // that merged batches from inputs in the frame, but floating point
-        // arithmetics errors in indexes produced noticeable sound distortions.
-        // Moreover, this simplifies logic for filling missing samples.
-        self.save_samples(&samples);
-        let samples_count = (end_pts.saturating_sub(start_pts).as_secs_f64()
-            * self.output_sample_rate as f64)
-            .round() as usize;
-
-        let input_samples = self.pop_samples(samples_count);
+        let start_pts = samples_set.start_pts;
+        let (input_samples, samples_count) = self.input_samples(samples_set);
 
         OutputSamplesSet(
             self.outputs
@@ -110,23 +73,69 @@ impl InternalAudioMixer {
         )
     }
 
-    fn save_samples(&mut self, samples: &HashMap<InputId, Vec<InputSamples>>) {
-        for (input_id, input_samples_vec) in samples {
-            let Some(input_state) = self.inputs.get_mut(input_id) else {
-                error!("Audio mixer received samples for unregistered input");
-                return;
-            };
-            for input_samples in input_samples_vec {
-                input_state.enqueue(input_samples, self.output_sample_rate);
-            }
-        }
-    }
+    fn input_samples(
+        &self,
+        input_samples_set: InputSamplesSet,
+    ) -> (HashMap<InputId, Vec<(i16, i16)>>, usize) {
+        let samples_count = (input_samples_set
+            .end_pts
+            .saturating_sub(input_samples_set.start_pts)
+            .as_secs_f64()
+            * self.output_sample_rate as f64)
+            .round() as usize;
+        let input_samples = input_samples_set
+            .samples
+            .into_iter()
+            .map(|(input_id, input_batch)| {
+                let mut samples = Vec::new();
 
-    fn pop_samples(&mut self, samples_count: usize) -> HashMap<InputId, Vec<(i16, i16)>> {
-        self.inputs
-            .iter_mut()
-            .map(|(input_id, input_state)| (input_id.clone(), input_state.pop(samples_count)))
-            .collect()
+                input_batch.into_iter().fold(
+                    input_samples_set.start_pts,
+                    |last_end_pts, input_samples| {
+                        let missing_samples = (input_samples
+                            .start_pts
+                            .saturating_sub(last_end_pts)
+                            .as_secs_f64()
+                            * self.output_sample_rate as f64)
+                            .round() as u32;
+                        if missing_samples > 1 {
+                            for _ in 0..missing_samples {
+                                samples.push((0, 0));
+                            }
+                        }
+                        // Indexes samples of InputSamples in frame
+                        let time_since_last_input_samples = last_end_pts
+                            .saturating_sub(input_samples.start_pts)
+                            .as_secs_f64();
+                        let start_index = usize::min(
+                            (time_since_last_input_samples * self.output_sample_rate as f64).round()
+                                as usize,
+                            input_samples.samples.len() - 1,
+                        );
+
+                        let samples_in_frame = (input_samples_set
+                            .end_pts
+                            .saturating_sub(input_samples.start_pts)
+                            .as_secs_f64()
+                            * self.output_sample_rate as f64)
+                            .round() as usize;
+                        let end_index =
+                            usize::min(input_samples.samples.len(), start_index + samples_in_frame);
+
+                        samples.extend(input_samples.samples[start_index..end_index].iter());
+                        input_samples.end_pts
+                    },
+                );
+
+                let missing_samples = samples_count.saturating_sub(samples.len());
+                for _ in 0..missing_samples {
+                    samples.push((0, 0))
+                }
+
+                (input_id, samples)
+            })
+            .collect();
+        (input_samples, samples_count)
     }
 }
 
@@ -135,61 +144,6 @@ struct OutputInfo {
     audio: AudioMixingParams,
     mixing_strategy: MixingStrategy,
     channels: AudioChannels,
-}
-
-#[derive(Debug)]
-struct InputState {
-    samples: VecDeque<(i16, i16)>,
-    popped_samples: u64,
-    start_pts: Option<Duration>,
-    last_enqueued_pts: Option<Duration>,
-}
-
-impl InputState {
-    pub fn enqueue(&mut self, input_samples: &InputSamples, output_sample_rate: u32) {
-        let start_pts = *self.start_pts.get_or_insert(input_samples.start_pts);
-        match self.last_enqueued_pts {
-            Some(last_pts) => {
-                if last_pts < input_samples.start_pts {
-                    self.last_enqueued_pts = Some(input_samples.start_pts);
-                } else {
-                    return;
-                }
-            }
-            None => self.last_enqueued_pts = Some(input_samples.start_pts),
-        }
-
-        let expected_samples_before = input_samples
-            .start_pts
-            .saturating_sub(start_pts)
-            .as_secs_f64()
-            * output_sample_rate as f64;
-        let missing_samples = (expected_samples_before as u64)
-            .saturating_sub(self.popped_samples)
-            .saturating_sub(self.samples.len() as u64);
-        if missing_samples > 10 {
-            for _ in 0..missing_samples {
-                self.samples.push_back((0, 0));
-            }
-        }
-
-        self.samples.extend(input_samples.samples.iter());
-    }
-
-    pub fn pop(&mut self, samples_count: usize) -> Vec<(i16, i16)> {
-        let missing_samples = if samples_count > self.samples.len() {
-            samples_count - self.samples.len()
-        } else {
-            0
-        };
-
-        for _ in 0..missing_samples {
-            self.samples.push_back((0, 0));
-        }
-
-        self.popped_samples += samples_count as u64;
-        self.samples.drain(0..samples_count).collect()
-    }
 }
 
 /// Mix input samples accordingly to provided specification.

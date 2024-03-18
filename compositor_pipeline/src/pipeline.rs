@@ -151,7 +151,6 @@ impl Pipeline {
             return Err(UnregisterInputError::NotFound(input_id.clone()));
         }
 
-        self.audio_mixer.unregister_input(input_id);
         self.inputs.remove(input_id);
         self.queue.remove_input(input_id);
         self.renderer.unregister_input(input_id);

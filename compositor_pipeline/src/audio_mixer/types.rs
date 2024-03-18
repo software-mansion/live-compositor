@@ -76,6 +76,10 @@ impl InputSamples {
             end_pts,
         }
     }
+
+    pub fn duration(&self) -> Duration {
+        self.end_pts.saturating_sub(self.start_pts)
+    }
 }
 
 impl AudioSamples {

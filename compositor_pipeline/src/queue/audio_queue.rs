@@ -171,10 +171,13 @@ impl AudioQueueInput {
                 match self.offset {
                     Some(offset) => {
                         batch.start_pts += offset;
+                        batch.end_pts += offset;
                     }
                     None => {
                         batch.start_pts =
                             (input_start_time + batch.start_pts).duration_since(queue_start);
+                        batch.end_pts =
+                            (input_start_time + batch.end_pts).duration_since(queue_start);
                     }
                 }
                 batch
