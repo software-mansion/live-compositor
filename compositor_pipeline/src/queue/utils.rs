@@ -1,6 +1,10 @@
 use std::{
     collections::VecDeque,
     mem,
+    sync::{
+        atomic::{AtomicI64, Ordering},
+        Arc,
+    },
     time::{Duration, Instant},
 };
 
@@ -33,6 +37,8 @@ pub(super) struct InputProcessor<Payload: ApplyOffsetExt> {
     start_time: Option<Instant>,
 
     state: InputState<Payload>,
+
+    clock: Clock,
 }
 
 #[derive(Debug)]
@@ -50,11 +56,12 @@ pub(super) enum InputState<Payload: ApplyOffsetExt> {
 }
 
 impl<Payload: ApplyOffsetExt> InputProcessor<Payload> {
-    pub(super) fn new(buffer_duration: Duration) -> Self {
+    pub(super) fn new(buffer_duration: Duration, clock: Clock) -> Self {
         Self {
             buffer_duration,
             start_time: None,
             state: InputState::WaitingForStart,
+            clock,
         }
     }
 
@@ -131,7 +138,7 @@ impl<Payload: ApplyOffsetExt> InputProcessor<Payload> {
                         })
                         .collect();
                     self.state = InputState::Ready { offset };
-                    self.start_time = Some(Instant::now());
+                    self.start_time = Some(self.clock.now());
                     chunks
                 }
             }
@@ -169,5 +176,34 @@ impl ApplyOffsetExt for AudioSamplesBatch {
 
     fn pts(&self) -> Duration {
         self.start_pts
+    }
+}
+
+#[derive(Debug, Clone)]
+pub(super) struct Clock(Arc<AtomicI64>);
+
+impl Clock {
+    pub(super) fn new() -> Self {
+        Self(Arc::new(AtomicI64::new(0)))
+    }
+
+    pub(super) fn update_delay(&self, start_time: Instant, current_pts: Duration) {
+        let real_now = Instant::now();
+        let queue_now = start_time + current_pts;
+        let delay_ns = if queue_now > real_now {
+            -(queue_now.duration_since(real_now).as_nanos() as i64)
+        } else {
+            real_now.duration_since(queue_now).as_nanos() as i64
+        };
+        self.0.store(delay_ns, Ordering::Relaxed)
+    }
+
+    fn now(&self) -> Instant {
+        let delay_nanos = self.0.load(Ordering::Relaxed);
+        if delay_nanos >= 0 {
+            Instant::now() - Duration::from_nanos(delay_nanos as u64)
+        } else {
+            Instant::now() + Duration::from_nanos(-delay_nanos as u64)
+        }
     }
 }

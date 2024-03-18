@@ -83,6 +83,8 @@ impl QueueThread {
 }
 
 struct QueueThreadAfterStart {
+    queue: Arc<Queue>,
+    start_time: Instant,
     audio_processor: AudioQueueProcessor,
     video_processor: VideoQueueProcessor,
     scheduled_event_receiver: Receiver<ScheduledEvent>,
@@ -92,6 +94,8 @@ struct QueueThreadAfterStart {
 impl QueueThreadAfterStart {
     fn new(queue_thread: QueueThread, start_event: QueueStartEvent) -> Self {
         Self {
+            queue: queue_thread.queue.clone(),
+            start_time: start_event.start_time,
             audio_processor: AudioQueueProcessor {
                 queue: queue_thread.queue.clone(),
                 sender: start_event.audio_sender,
@@ -139,6 +143,9 @@ impl QueueThreadAfterStart {
                 }
             } else if video_pts > audio_pts_range.0 {
                 trace!(pts_range=?audio_pts_range, "Try to push audio samples for.");
+                self.queue
+                    .clock
+                    .update_delay(self.start_time, audio_pts_range.0);
                 if self
                     .audio_processor
                     .try_push_next_sample_batch(audio_pts_range)
@@ -148,6 +155,7 @@ impl QueueThreadAfterStart {
                 }
             } else {
                 trace!(pts=?video_pts, "Try to push video frames.");
+                self.queue.clock.update_delay(self.start_time, video_pts);
                 if self
                     .video_processor
                     .try_push_next_frame_set(video_pts)
@@ -168,7 +176,7 @@ impl QueueThreadAfterStart {
             && scheduled_event.pts >= audio_pts_range.0
             && scheduled_event.pts >= event_pts.unwrap_or(Duration::ZERO);
 
-        if self.video_processor.queue.run_late_scheduled_events || is_future_event {
+        if self.queue.run_late_scheduled_events || is_future_event {
             self.scheduled_events.push(scheduled_event);
         }
     }

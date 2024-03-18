@@ -22,6 +22,7 @@ use crate::{
 use self::{
     audio_queue::AudioQueue,
     queue_thread::{QueueStartEvent, QueueThread},
+    utils::Clock,
     video_queue::VideoQueue,
 };
 
@@ -55,6 +56,8 @@ pub struct Queue {
 
     start_sender: Mutex<Option<Sender<QueueStartEvent>>>,
     scheduled_event_sender: Sender<ScheduledEvent>,
+
+    clock: Clock,
 }
 
 pub(super) struct QueueVideoOutput {
@@ -151,6 +154,8 @@ impl Queue {
             start_sender: Mutex::new(Some(queue_start_sender)),
             ahead_of_time_processing: opts.ahead_of_time_processing,
             run_late_scheduled_events: opts.run_late_scheduled_events,
+
+            clock: Clock::new(),
         });
 
         QueueThread::new(
@@ -165,16 +170,20 @@ impl Queue {
 
     pub fn add_input(&self, input_id: &InputId, receiver: DecodedDataReceiver, opts: InputOptions) {
         if let Some(receiver) = receiver.video {
-            self.video_queue
-                .lock()
-                .unwrap()
-                .add_input(input_id, receiver, opts);
+            self.video_queue.lock().unwrap().add_input(
+                input_id,
+                receiver,
+                opts,
+                self.clock.clone(),
+            );
         };
         if let Some(receiver) = receiver.audio {
-            self.audio_queue
-                .lock()
-                .unwrap()
-                .add_input(input_id, receiver, opts);
+            self.audio_queue.lock().unwrap().add_input(
+                input_id,
+                receiver,
+                opts,
+                self.clock.clone(),
+            );
         }
     }
 
