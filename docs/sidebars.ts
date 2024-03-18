@@ -68,6 +68,13 @@ const sidebars: SidebarsConfig = {
         },
         {
           type: 'category',
+          label: 'Outputs',
+          collapsible: false,
+          description: 'Elements that deliver generated media.',
+          items: ['api/outputs/rtp'],
+        },
+        {
+          type: 'category',
           label: 'Inputs',
           collapsible: false,
           description: 'Elements that deliver media from external sources.',
