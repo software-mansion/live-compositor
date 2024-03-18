@@ -62,6 +62,7 @@ type Audio = {
   initial: {
     inputs: AudioInput[];
   };
+  mixing_strategy?: "sum_clip" | "sum_scale" 
 }
 
 type AudioInput = {
@@ -85,6 +86,9 @@ type AudioEncoderPreset =
 - `initial` - Initial configuration for audio mixer for this output. Use [`update_output` request](../routes.md#update-output) to update this value after registration.
 - `initial.inputs[].input_id` - Input ID.
 - `initial.inputs[].volume` - (**default=`1.0`**) Float in `[0, 1]` range representing volume.
+- `mixing_strategy` - (**default=`sum_clip`**) Specifies how input samples should be mixed:
+  - `sum_clip` - Firstly, input samples are summed. If the result sample is outside the i16 PCM range, it gets clipped.
+  - `sum_scale` - Firstly, input samples are summed. If the result wave is outside the i16 PCM range, nearby samples are scaled down by factor, such that the summed wave is in the i16 PCM range.
 
 ```typescript
 type EosCondition = {
