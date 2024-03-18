@@ -6,7 +6,15 @@ use anyhow::Result;
 use serde_json::json;
 use std::time::Duration;
 
-pub fn run_simple_test(mut instance: CompositorInstance, update_dumps: bool) -> Result<()> {
+#[test]
+fn simple() {
+    crate::integration_test_prerequisites();
+    run_simple_test(false).unwrap();
+}
+
+pub fn run_simple_test(update_dumps: bool) -> Result<()> {
+    let mut instance = CompositorInstance::start(8000);
+
     instance.send_request(json!({
         "type": "register",
         "entity_type": "rtp_input_stream",

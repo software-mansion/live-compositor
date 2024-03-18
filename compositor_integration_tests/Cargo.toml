@@ -17,9 +17,3 @@ bytes = { workspace = true }
 rtp = { workspace = true }
 webrtc-util = { workspace = true }
 crossbeam-channel = { workspace = true }
-libtest-mimic = "0.7.0"
-
-[[test]]
-name = "integration_test"
-path = "src/test_runner.rs"
-harness = false

@@ -1,20 +1,12 @@
 use std::env;
 
-use compositor_integration_tests::integration_tests;
-use compositor_render::use_global_wgpu_ctx;
-use video_compositor::logger;
+use compositor_integration_tests::{integration_test_prerequisites, integration_tests};
 
 fn main() {
-    env::set_var("LIVE_COMPOSITOR_WEB_RENDERER_ENABLE", "0");
     env::set_var("LIVE_COMPOSITOR_LOGGER_LEVEL", "warn");
+    integration_test_prerequisites();
 
-    ffmpeg_next::format::network::init();
-    logger::init_logger();
-
-    use_global_wgpu_ctx();
-
-    for test in integration_tests() {
-        println!("Updating snapshots for test: {}", test.name);
-        test.run_update().unwrap();
+    for run_test in integration_tests() {
+        run_test(true).unwrap();
     }
 }
