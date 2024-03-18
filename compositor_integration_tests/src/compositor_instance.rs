@@ -1,13 +1,15 @@
 use crate::CommunicationProtocol;
 use anyhow::Result;
+use compositor_render::use_global_wgpu_ctx;
 use reqwest::StatusCode;
 use std::{
+    env,
     io::Write,
     net::{Ipv4Addr, SocketAddr},
     thread,
     time::Duration,
 };
-use video_compositor::http;
+use video_compositor::{http, logger};
 
 pub struct CompositorInstance {
     pub api_port: u16,
@@ -16,6 +18,12 @@ pub struct CompositorInstance {
 
 impl CompositorInstance {
     pub fn start(api_port: u16) -> Self {
+        env::set_var("LIVE_COMPOSITOR_WEB_RENDERER_ENABLE", "0");
+        ffmpeg_next::format::network::init();
+        logger::init_logger();
+
+        use_global_wgpu_ctx();
+
         thread::Builder::new()
             .name("compositor instance on port".to_owned())
             .spawn(move || {

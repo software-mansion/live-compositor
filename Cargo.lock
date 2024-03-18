@@ -404,6 +404,7 @@ dependencies = [
  "rtp",
  "serde_json",
  "socket2",
+ "tracing",
  "video_compositor",
  "webrtc-util",
 ]

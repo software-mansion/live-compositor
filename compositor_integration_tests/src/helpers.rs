@@ -10,6 +10,7 @@ use std::{
     thread,
     time::{Duration, Instant},
 };
+use tracing::info;
 use webrtc_util::Unmarshal;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -28,7 +29,6 @@ impl OutputReceiver {
         protocol: CommunicationProtocol,
         dump_length: Duration,
         dump_path: P,
-        is_update: bool,
     ) -> Result<Self> {
         let mut socket = Self::setup_socket(port, &protocol)?;
         let mut output_dump = BytesMut::new();
@@ -53,8 +53,8 @@ impl OutputReceiver {
                 }
             }
 
-            if is_update {
-                println!("Updating output dump: {dump_path:?}");
+            if cfg!(feature = "update_snapshots") {
+                info!("Updating output dump: {dump_path:?}");
                 let save_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
                     .parent()
                     .unwrap()

@@ -7,12 +7,7 @@ use serde_json::json;
 use std::time::Duration;
 
 #[test]
-fn simple() {
-    crate::integration_test_prerequisites();
-    run_simple_test(false).unwrap();
-}
-
-pub fn run_simple_test(update_dumps: bool) -> Result<()> {
+pub fn simple_test() -> Result<()> {
     let mut instance = CompositorInstance::start(8000);
 
     instance.send_request(json!({
@@ -31,7 +26,6 @@ pub fn run_simple_test(update_dumps: bool) -> Result<()> {
         CommunicationProtocol::Udp,
         Duration::from_secs(4),
         "simple_scene_output.rtp",
-        update_dumps,
     )?;
 
     instance.send_request(json!({
