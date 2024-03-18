@@ -1,3 +1,5 @@
+use std::sync::{Arc, Mutex};
+
 use compositor_render::InputId;
 
 use crate::{error::RegisterInputError, Pipeline};
@@ -16,66 +18,71 @@ pub struct PipelineInput {
     pub(super) video_eos_received: Option<bool>,
 }
 
-impl Pipeline {
-    pub(super) fn register_pipeline_input(
-        &mut self,
-        input_id: InputId,
-        register_options: RegisterInputOptions,
-    ) -> Result<Option<Port>, RegisterInputError> {
-        let RegisterInputOptions {
-            input_options,
-            queue_options,
-        } = register_options;
-        if self.inputs.contains_key(&input_id) {
+pub(super) fn register_pipeline_input(
+    pipeline: &Arc<Mutex<Pipeline>>,
+    input_id: InputId,
+    register_options: RegisterInputOptions,
+) -> Result<Option<Port>, RegisterInputError> {
+    let RegisterInputOptions {
+        input_options,
+        queue_options,
+    } = register_options;
+    let (download_dir, output_sample_rate) = {
+        let guard = pipeline.lock().unwrap();
+        if guard.inputs.contains_key(&input_id) {
             return Err(RegisterInputError::AlreadyRegistered(input_id));
         }
+        (guard.download_dir.clone(), guard.output_sample_rate)
+    };
 
-        let (input, chunks_receiver, decoder_options, port) =
-            input::Input::new(input_options, &self.download_dir)
-                .map_err(|e| RegisterInputError::InputError(input_id.clone(), e))?;
+    let (input, chunks_receiver, decoder_options, port) =
+        input::Input::new(input_options, &download_dir)
+            .map_err(|e| RegisterInputError::InputError(input_id.clone(), e))?;
 
-        let (audio_eos_received, video_eos_received) = (
-            decoder_options.audio.as_ref().map(|_| false),
-            decoder_options.video.as_ref().map(|_| false),
-        );
-        let (decoder, decoded_data_receiver) = decoder::Decoder::new(
-            input_id.clone(),
-            chunks_receiver,
-            decoder_options,
-            self.output_sample_rate,
-        )
-        .map_err(|e| RegisterInputError::DecoderError(input_id.clone(), e))?;
+    let (audio_eos_received, video_eos_received) = (
+        decoder_options.audio.as_ref().map(|_| false),
+        decoder_options.video.as_ref().map(|_| false),
+    );
+    let (decoder, decoded_data_receiver) = decoder::Decoder::new(
+        input_id.clone(),
+        chunks_receiver,
+        decoder_options,
+        output_sample_rate,
+    )
+    .map_err(|e| RegisterInputError::DecoderError(input_id.clone(), e))?;
 
-        let pipeline_input = PipelineInput {
-            input,
-            decoder,
-            audio_eos_received,
-            video_eos_received,
-        };
+    let pipeline_input = PipelineInput {
+        input,
+        decoder,
+        audio_eos_received,
+        video_eos_received,
+    };
 
-        if pipeline_input.audio_eos_received.is_some() {
-            for (_, output) in self.outputs.iter_mut() {
-                if let Some(ref mut cond) = output.audio_end_condition {
-                    cond.on_input_registered(&input_id);
-                }
+    let mut guard = pipeline.lock().unwrap();
+
+    if pipeline_input.audio_eos_received.is_some() {
+        for (_, output) in guard.outputs.iter_mut() {
+            if let Some(ref mut cond) = output.audio_end_condition {
+                cond.on_input_registered(&input_id);
             }
         }
-
-        if pipeline_input.video_eos_received.is_some() {
-            for (_, output) in self.outputs.iter_mut() {
-                if let Some(ref mut cond) = output.video_end_condition {
-                    cond.on_input_registered(&input_id);
-                }
-            }
-        }
-
-        self.inputs.insert(input_id.clone(), pipeline_input);
-        self.queue
-            .add_input(&input_id, decoded_data_receiver, queue_options);
-        self.renderer.register_input(input_id.clone());
-
-        Ok(port)
     }
+
+    if pipeline_input.video_eos_received.is_some() {
+        for (_, output) in guard.outputs.iter_mut() {
+            if let Some(ref mut cond) = output.video_end_condition {
+                cond.on_input_registered(&input_id);
+            }
+        }
+    }
+
+    guard.inputs.insert(input_id.clone(), pipeline_input);
+    guard
+        .queue
+        .add_input(&input_id, decoded_data_receiver, queue_options);
+    guard.renderer.register_input(input_id);
+
+    Ok(port)
 }
 
 impl PipelineInput {

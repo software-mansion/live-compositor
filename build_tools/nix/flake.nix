@@ -65,6 +65,7 @@
             nodejs_18
             rustfmt
             clippy
+            cargo-watch
             rust-analyzer
             pkgs.mesa.drivers
           ];

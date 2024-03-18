@@ -1,10 +1,11 @@
+use anyhow::Result;
+use serde_json::json;
+use std::time::Duration;
+
 use crate::{
     compare_dumps, input_dump_from_disk, output_dump_from_disk, CommunicationProtocol,
     CompositorInstance, OutputReceiver, PacketSender,
 };
-use anyhow::Result;
-use serde_json::json;
-use std::time::Duration;
 
 #[test]
 pub fn simple_test() -> Result<()> {
@@ -63,7 +64,8 @@ pub fn simple_test() -> Result<()> {
     compare_dumps(
         &output_dump_from_disk,
         &new_output_dump,
-        (Duration::from_secs(0), Duration::from_secs(2)),
+        &[Duration::from_secs(1), Duration::from_secs(2)],
+        20.0,
     )?;
 
     Ok(())
