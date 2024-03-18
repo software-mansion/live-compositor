@@ -60,7 +60,10 @@ fn compare_video_dumps(
         let diff_v = calculate_diff(&expected.data.v_plane, &actual.data.v_plane);
 
         if diff_y > allowed_error || diff_u > allowed_error || diff_v > allowed_error {
-            return Err(anyhow::anyhow!("Frame mismatch"));
+            let pts = pts.as_micros();
+            return Err(anyhow::anyhow!(
+                "Frame mismatch. PTS: {pts}, Diff Y: {diff_y}, Diff U: {diff_u}, Diff V: {diff_v}"
+            ));
         }
     }
 

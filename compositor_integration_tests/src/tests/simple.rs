@@ -64,7 +64,7 @@ pub fn simple_test() -> Result<()> {
     compare_dumps(
         &output_dump_from_disk,
         &new_output_dump,
-        &[Duration::from_secs(1), Duration::from_secs(2)],
+        &[Duration::from_millis(500), Duration::from_millis(1500)],
         20.0,
     )?;
 
