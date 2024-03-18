@@ -6,6 +6,10 @@
 
 API port. Defaults to 8001.
 
+### `LIVE_COMPOSITOR_INSTANCE_ID`
+
+ID that will be returned in `GET /status` request. Can be used to identify if we are connecting to the correct compositor instance.
+
 ### `LIVE_COMPOSITOR_OUTPUT_FRAMERATE`
 
 Output framerate for all output streams. This value can be a number or string in the `NUM/DEN` format, where both `NUM` and `DEN` are unsigned integers.

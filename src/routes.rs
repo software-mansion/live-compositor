@@ -2,7 +2,8 @@ use tiny_http::Method;
 use tracing::{debug, trace};
 
 use crate::{
-    api::{Api, ResponseHandler},
+    api::{Api, Response, ResponseHandler},
+    config::config,
     error::ApiError,
 };
 
@@ -12,7 +13,9 @@ pub fn handle_request(
 ) -> Result<ResponseHandler, ApiError> {
     match (request.method(), request.url()) {
         (Method::Post, "/--/api") => handle_api_request(api, request),
-        (Method::Get, "/status") => Ok(ResponseHandler::Ok),
+        (Method::Get, "/status") => Ok(ResponseHandler::Response(Response::Status {
+            instance_id: config().instance_id.clone(),
+        })),
         _ => Err(ApiError::new(
             "NOT FOUND",
             "Unknown endpoint".to_string(),
