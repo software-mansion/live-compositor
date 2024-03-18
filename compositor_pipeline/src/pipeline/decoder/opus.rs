@@ -69,13 +69,7 @@ fn run_decoder_thread(
                 }
             };
 
-        let samples = Arc::new(
-            buffer[0..(2 * decoded_samples_count)]
-                .chunks_exact(2)
-                .map(|c| (c[0], c[1]))
-                .collect(),
-        );
-
+        let samples = read_buffer(&buffer, decoded_samples_count);
         let input_samples = InputSamples::new(samples, chunk.pts, output_sample_rate);
 
         if sample_sender
@@ -89,4 +83,13 @@ fn run_decoder_thread(
     if sample_sender.send(PipelineEvent::EOS).is_err() {
         debug!("Failed to send EOS from OPUS decoder. Channel closed.")
     }
+}
+
+fn read_buffer(buffer: &[i16], decoded_samples_count: usize) -> Arc<Vec<(i16, i16)>> {
+    Arc::new(
+        buffer[0..(2 * decoded_samples_count)]
+            .chunks_exact(2)
+            .map(|c| (c[0], c[1]))
+            .collect(),
+    )
 }
