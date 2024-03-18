@@ -81,7 +81,18 @@ impl Pipeline {
             }),
         };
 
-        self.outputs.insert(output_id.clone(), output);
+        if let Some(video_opts) = video.clone() {
+            let result = self.renderer.update_scene(
+                output_id.clone(),
+                video_opts.encoder_opts.resolution(),
+                video_opts.initial,
+            );
+
+            if let Err(err) = result {
+                self.renderer.unregister_output(&output_id);
+                return Err(RegisterOutputError::SceneError(output_id.clone(), err));
+            }
+        };
 
         if let Some(audio_opts) = audio.clone() {
             self.audio_mixer.register_output(
@@ -91,12 +102,7 @@ impl Pipeline {
             );
         }
 
-        self.update_output(
-            output_id.clone(),
-            video.map(|v| v.initial),
-            audio.map(|a| a.initial),
-        )
-        .map_err(|e| RegisterOutputError::SceneError(output_id, e))?;
+        self.outputs.insert(output_id.clone(), output);
 
         Ok(port)
     }
