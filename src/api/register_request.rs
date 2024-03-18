@@ -10,7 +10,7 @@ fn handle_register_input(
     input_id: InputId,
     register_options: RegisterInputOptions,
 ) -> Result<ResponseHandler, ApiError> {
-    match api.pipeline().register_input(input_id, register_options)? {
+    match Pipeline::register_input(&api.pipeline, input_id, register_options)? {
         Some(Port(port)) => Ok(ResponseHandler::Response(Response::RegisteredPort { port })),
         None => Ok(ResponseHandler::Ok),
     }

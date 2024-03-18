@@ -40,6 +40,7 @@ mod pipeline_output;
 pub mod rtp;
 mod structs;
 
+use self::pipeline_input::register_pipeline_input;
 use self::pipeline_input::PipelineInput;
 use self::pipeline_output::PipelineOutput;
 pub use self::structs::AudioCodec;
@@ -137,11 +138,11 @@ impl Pipeline {
     }
 
     pub fn register_input(
-        &mut self,
+        pipeline: &Arc<Mutex<Self>>,
         input_id: InputId,
         register_options: RegisterInputOptions,
     ) -> Result<Option<Port>, RegisterInputError> {
-        self.register_pipeline_input(input_id, register_options)
+        register_pipeline_input(pipeline, input_id, register_options)
     }
 
     pub fn unregister_input(&mut self, input_id: &InputId) -> Result<(), UnregisterInputError> {
