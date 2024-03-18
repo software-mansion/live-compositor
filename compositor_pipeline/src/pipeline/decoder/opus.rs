@@ -5,7 +5,7 @@ use crossbeam_channel::{Receiver, Sender};
 use tracing::{debug, error, span, Level};
 
 use crate::{
-    audio_mixer::types::InputSamples, error::DecoderInitError, pipeline::structs::EncodedChunk,
+    audio_mixer::InputSamples, error::DecoderInitError, pipeline::structs::EncodedChunk,
     queue::PipelineEvent,
 };
 
@@ -28,7 +28,13 @@ impl OpusDecoder {
             .spawn(move || {
                 let _span =
                     span!(Level::INFO, "opus decoder", input_id = input_id.to_string()).entered();
-                run_decoder_thread(decoder, opts, chunks_receiver, sample_sender)
+                run_decoder_thread(
+                    decoder,
+                    opts,
+                    output_sample_rate,
+                    chunks_receiver,
+                    sample_sender,
+                )
             })
             .unwrap();
 
@@ -39,6 +45,7 @@ impl OpusDecoder {
 fn run_decoder_thread(
     mut decoder: opus::Decoder,
     opts: OpusDecoderOptions,
+    output_sample_rate: u32,
     chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
     sample_sender: Sender<PipelineEvent<InputSamples>>,
 ) {
@@ -62,13 +69,6 @@ fn run_decoder_thread(
                 }
             };
 
-        let mut left = Vec::with_capacity(decoded_samples_count / 2);
-        let mut right = Vec::with_capacity(decoded_samples_count / 2);
-        for i in 0..decoded_samples_count {
-            left.push(buffer[2 * i]);
-            right.push(buffer[2 * i + 1]);
-        }
-
         let samples = Arc::new(
             buffer[0..(2 * decoded_samples_count)]
                 .chunks_exact(2)
@@ -76,10 +76,7 @@ fn run_decoder_thread(
                 .collect(),
         );
 
-        let input_samples = InputSamples {
-            samples,
-            start_pts: chunk.pts,
-        };
+        let input_samples = InputSamples::new(samples, chunk.pts, output_sample_rate);
 
         if sample_sender
             .send(PipelineEvent::Data(input_samples))

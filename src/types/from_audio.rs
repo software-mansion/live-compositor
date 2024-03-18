@@ -1,6 +1,6 @@
-use super::{Audio, InputAudio, MixingStrategy, TypeError};
+use super::*;
 
-impl TryFrom<Audio> for compositor_pipeline::audio_mixer::types::AudioMixingParams {
+impl TryFrom<Audio> for compositor_pipeline::audio_mixer::AudioMixingParams {
     type Error = TypeError;
 
     fn try_from(value: Audio) -> Result<Self, Self::Error> {
@@ -10,12 +10,8 @@ impl TryFrom<Audio> for compositor_pipeline::audio_mixer::types::AudioMixingPara
         }
 
         let mixing_strategy = match value.mixing_strategy.unwrap_or(MixingStrategy::SumClip) {
-            MixingStrategy::SumClip => {
-                compositor_pipeline::audio_mixer::types::MixingStrategy::SumClip
-            }
-            MixingStrategy::SumScale => {
-                compositor_pipeline::audio_mixer::types::MixingStrategy::SumScale
-            }
+            MixingStrategy::SumClip => compositor_pipeline::audio_mixer::MixingStrategy::SumClip,
+            MixingStrategy::SumScale => compositor_pipeline::audio_mixer::MixingStrategy::SumScale,
         };
 
         Ok(Self {
@@ -25,7 +21,7 @@ impl TryFrom<Audio> for compositor_pipeline::audio_mixer::types::AudioMixingPara
     }
 }
 
-impl TryFrom<InputAudio> for compositor_pipeline::audio_mixer::types::InputParams {
+impl TryFrom<InputAudio> for compositor_pipeline::audio_mixer::InputParams {
     type Error = TypeError;
 
     fn try_from(value: InputAudio) -> Result<Self, Self::Error> {

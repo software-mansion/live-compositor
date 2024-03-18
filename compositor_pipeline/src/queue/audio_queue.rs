@@ -4,7 +4,7 @@ use std::{
     vec,
 };
 
-use crate::audio_mixer::types::InputSamples;
+use crate::audio_mixer::InputSamples;
 
 use super::{utils::InputProcessor, InputOptions, PipelineEvent, QueueAudioOutput};
 use compositor_render::InputId;
@@ -14,15 +14,13 @@ use crossbeam_channel::{Receiver, TryRecvError};
 pub struct AudioQueue {
     inputs: HashMap<InputId, AudioQueueInput>,
     buffer_duration: Duration,
-    output_sample_rate: u32,
 }
 
 impl AudioQueue {
-    pub fn new(buffer_duration: Duration, output_sample_rate: u32) -> Self {
+    pub fn new(buffer_duration: Duration) -> Self {
         AudioQueue {
             inputs: HashMap::new(),
             buffer_duration,
-            output_sample_rate,
         }
     }
 
@@ -58,7 +56,7 @@ impl AudioQueue {
     ) -> bool {
         self.inputs
             .values_mut()
-            .all(|input| input.check_ready_for_pts(pts_range, queue_start, self.output_sample_rate))
+            .all(|input| input.check_ready_for_pts(pts_range, queue_start))
     }
 
     /// Checks if all required inputs are ready to produce frames for specific PTS value (if
@@ -68,10 +66,9 @@ impl AudioQueue {
         pts_range: (Duration, Duration),
         queue_start: Instant,
     ) -> bool {
-        self.inputs.values_mut().all(|input| {
-            (!input.required)
-                || input.check_ready_for_pts(pts_range, queue_start, self.output_sample_rate)
-        })
+        self.inputs
+            .values_mut()
+            .all(|input| (!input.required) || input.check_ready_for_pts(pts_range, queue_start))
     }
 
     /// Checks if any of the required input streams have an offset that would
@@ -100,12 +97,7 @@ impl AudioQueue {
         let samples = self
             .inputs
             .iter_mut()
-            .map(|(input_id, input)| {
-                (
-                    input_id.clone(),
-                    input.pop_samples(range, clock_start, self.output_sample_rate),
-                )
-            })
+            .map(|(input_id, input)| (input_id.clone(), input.pop_samples(range, clock_start)))
             .collect();
 
         QueueAudioOutput {
@@ -117,7 +109,7 @@ impl AudioQueue {
 
     pub(super) fn drop_old_samples(&mut self, pts: Duration, queue_start: Instant) {
         for input in self.inputs.values_mut() {
-            input.drop_old_samples(pts, queue_start, self.output_sample_rate)
+            input.drop_old_samples(pts, queue_start)
         }
     }
 }
@@ -150,7 +142,6 @@ impl AudioQueueInput {
         &mut self,
         pts_range: (Duration, Duration),
         queue_start: Instant,
-        output_sample_rate: u32,
     ) -> PipelineEvent<Vec<InputSamples>> {
         // range in queue pts time frame
         let (start_pts, end_pts) = pts_range;
@@ -170,9 +161,7 @@ impl AudioQueueInput {
             .queue
             .iter()
             // start_pts and end_pts are already in units of this input
-            .filter(|batch| {
-                batch.start_pts <= end_pts && batch.end_pts(output_sample_rate) >= start_pts
-            })
+            .filter(|batch| batch.start_pts <= end_pts && batch.end_pts >= start_pts)
             .cloned()
             .map(|mut batch| {
                 match self.offset {
@@ -188,7 +177,7 @@ impl AudioQueueInput {
             })
             .collect::<Vec<InputSamples>>();
 
-        self.drop_old_samples(pts_range.1, queue_start, output_sample_rate);
+        self.drop_old_samples(pts_range.1, queue_start);
 
         if self.input_samples_processor.did_receive_eos()
             && popped_samples.is_empty()
@@ -205,7 +194,6 @@ impl AudioQueueInput {
         &mut self,
         pts_range: (Duration, Duration),
         queue_start: Instant,
-        output_sample_rate: u32,
     ) -> bool {
         if self.input_samples_processor.did_receive_eos() {
             return true;
@@ -235,15 +223,14 @@ impl AudioQueueInput {
         fn has_all_samples_for_pts_range(
             queue: &VecDeque<InputSamples>,
             range_end_pts: Duration,
-            output_sample_rate: u32,
         ) -> bool {
             match queue.back() {
-                Some(batch) => batch.end_pts(output_sample_rate) >= range_end_pts,
+                Some(batch) => batch.end_pts >= range_end_pts,
                 None => false,
             }
         }
 
-        while !has_all_samples_for_pts_range(&self.queue, end_pts, output_sample_rate) {
+        while !has_all_samples_for_pts_range(&self.queue, end_pts) {
             if self.try_enqueue_samples().is_err() {
                 return false;
             }
@@ -252,12 +239,7 @@ impl AudioQueueInput {
     }
 
     /// Drop all batches older than `pts`. Entire batch (all samples inside) has to be older.
-    fn drop_old_samples(
-        &mut self,
-        queue_pts: Duration,
-        queue_start: Instant,
-        output_sample_rate: u32,
-    ) {
+    fn drop_old_samples(&mut self, queue_pts: Duration, queue_start: Instant) {
         let Some(pts) = self.input_pts_from_queue_pts(queue_pts, queue_start) else {
             // before first sample so nothing to drop
             return;
@@ -265,7 +247,7 @@ impl AudioQueueInput {
         while self
             .queue
             .front()
-            .map_or(false, |batch| batch.end_pts(output_sample_rate) < pts)
+            .map_or(false, |batch| batch.end_pts < pts)
         {
             self.queue.pop_front();
         }

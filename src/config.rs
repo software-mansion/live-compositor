@@ -160,7 +160,6 @@ fn read_config() -> Result<Config, String> {
         queue_options: QueueOptions {
             ahead_of_time_processing,
             output_framerate: framerate,
-            output_sample_rate,
             run_late_scheduled_events,
         },
         stream_fallback_timeout,

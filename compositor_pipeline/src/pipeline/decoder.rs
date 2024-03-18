@@ -1,4 +1,4 @@
-use crate::{audio_mixer::types::InputSamples, error::DecoderInitError, queue::PipelineEvent};
+use crate::{audio_mixer::InputSamples, error::DecoderInitError, queue::PipelineEvent};
 
 use self::{fdk_aac::FdkAacDecoder, ffmpeg_h264::H264FfmpegDecoder, opus::OpusDecoder};
 
@@ -113,6 +113,7 @@ impl AudioDecoder {
 
             AudioDecoderOptions::Aac(aac_opt) => Ok(AudioDecoder::FdkAac(FdkAacDecoder::new(
                 aac_opt,
+                output_sample_rate,
                 chunks_receiver,
                 samples_sender,
                 input_id,

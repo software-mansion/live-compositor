@@ -15,7 +15,7 @@ use compositor_render::{Frame, FrameSet, Framerate, InputId};
 use crossbeam_channel::{bounded, Sender};
 
 use crate::{
-    audio_mixer::types::{InputSamples, InputSamplesSet},
+    audio_mixer::{InputSamples, InputSamplesSet},
     pipeline::decoder::DecodedDataReceiver,
 };
 
@@ -113,7 +113,6 @@ pub struct InputOptions {
 pub struct QueueOptions {
     pub ahead_of_time_processing: bool,
     pub output_framerate: Framerate,
-    pub output_sample_rate: u32,
     pub run_late_scheduled_events: bool,
 }
 
@@ -145,7 +144,7 @@ impl Queue {
             video_queue: Mutex::new(VideoQueue::new(buffer_duration)),
             output_framerate: opts.output_framerate,
 
-            audio_queue: Mutex::new(AudioQueue::new(buffer_duration, opts.output_sample_rate)),
+            audio_queue: Mutex::new(AudioQueue::new(buffer_duration)),
             audio_chunk_duration: DEFAULT_AUDIO_CHUNK_DURATION,
 
             scheduled_event_sender,

@@ -41,6 +41,7 @@ pub struct OutputSamplesSet(pub HashMap<OutputId, OutputSamples>);
 pub struct InputSamples {
     pub samples: Arc<Vec<(i16, i16)>>,
     pub start_pts: Duration,
+    pub end_pts: Duration,
 }
 
 #[derive(Debug)]
@@ -62,9 +63,19 @@ impl InputSamplesSet {
 }
 
 impl InputSamples {
-    pub fn end_pts(&self, output_sample_rate: u32) -> Duration {
-        self.start_pts
-            + Duration::from_secs_f64(self.samples.len() as f64 / output_sample_rate as f64)
+    pub fn new(
+        samples: Arc<Vec<(i16, i16)>>,
+        start_pts: Duration,
+        output_sample_rate: u32,
+    ) -> Self {
+        let end_pts =
+            start_pts + Duration::from_secs_f64(samples.len() as f64 / output_sample_rate as f64);
+
+        Self {
+            samples,
+            start_pts,
+            end_pts,
+        }
     }
 }
 
@@ -86,9 +97,10 @@ impl Debug for InputSamples {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "InputSamples(len={}, pts={:?})",
+            "InputSamples(len={}, start_pts={:?}, end_pts={:?})",
             self.samples.len(),
-            self.start_pts
+            self.start_pts,
+            self.end_pts
         )
     }
 }

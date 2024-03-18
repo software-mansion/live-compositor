@@ -4,6 +4,8 @@ use std::sync::Arc;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+mod audio;
+
 mod component;
 mod convert;
 mod convert_util;
@@ -53,6 +55,10 @@ pub use renderer::WebRendererSpec;
 pub use util::Resolution;
 pub use util::TypeError;
 
+pub use audio::Audio;
+pub use audio::InputAudio;
+pub use audio::MixingStrategy;
+
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 pub struct ComponentId(Arc<str>);
 
@@ -72,25 +78,6 @@ pub struct UpdateOutputRequest {
     pub video: Option<Component>,
     pub audio: Option<Audio>,
     pub schedule_time_ms: Option<f64>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-pub struct Audio {
-    inputs: Vec<InputAudio>,
-    mixing_strategy: Option<MixingStrategy>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-pub enum MixingStrategy {
-    SumClip,
-    SumScale,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-pub struct InputAudio {
-    input_id: InputId,
-    // (**default=`1.0`**) float in [0, 1] range representing input volume
-    volume: Option<f32>,
 }
 
 impl Display for InputId {

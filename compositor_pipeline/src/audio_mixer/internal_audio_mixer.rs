@@ -7,7 +7,7 @@ use std::{
 use compositor_render::{error::UpdateSceneError, InputId, OutputId};
 use log::error;
 
-use crate::audio_mixer::types::{InputParams, MixingStrategy};
+use crate::audio_mixer::{InputParams, MixingStrategy};
 
 use super::types::{
     AudioChannels, AudioMixingParams, AudioSamples, InputSamples, InputSamplesSet, OutputSamples,
@@ -185,6 +185,59 @@ impl InputState {
     }
 }
 
+/// Mix input samples accordingly to provided specification.
+fn mix(
+    input_samples: &HashMap<InputId, Vec<(i16, i16)>>,
+    output_info: &OutputInfo,
+    samples_count: usize,
+) -> AudioSamples {
+    /// Clips sample to i16 PCM range
+    fn clip_to_i16(sample: i64) -> i16 {
+        min(max(sample, i16::MIN as i64), i16::MAX as i64) as i16
+    }
+
+    let summed_samples = sum_samples(
+        input_samples,
+        samples_count,
+        output_info.audio.inputs.iter(),
+    );
+
+    let mixed: Vec<(i16, i16)> = match output_info.audio.mixing_strategy {
+        MixingStrategy::SumClip => summed_samples
+            .into_iter()
+            .map(|(l, r)| (clip_to_i16(l), clip_to_i16(r)))
+            .collect(),
+        MixingStrategy::SumScale => {
+            let scaling_factor = {
+                // abs panics in debug if val = i64::MIN, but it would require summing so many i16 samples, that it'll never happen.
+                // Assumes that summed samples is not empty (therefore unwrap is safe)
+                let max_abs = summed_samples
+                    .iter()
+                    .map(|(l, r)| (l.abs().max(r.abs())))
+                    .max()
+                    .unwrap();
+                if max_abs > i16::MAX as i64 {
+                    max_abs as f64 / i16::MAX as f64
+                } else {
+                    1.0
+                }
+            };
+
+            summed_samples
+                .into_iter()
+                .map(|(l, r)| {
+                    (
+                        clip_to_i16((l as f64 * scaling_factor) as i64),
+                        clip_to_i16((r as f64 * scaling_factor) as i64),
+                    )
+                })
+                .collect()
+        }
+    };
+
+    convert_channels(mixed, output_info.channels)
+}
+
 /// Sums samples from inputs
 fn sum_samples<'a, I: Iterator<Item = &'a InputParams>>(
     input_samples: &HashMap<InputId, Vec<(i16, i16)>>,
@@ -209,64 +262,15 @@ fn sum_samples<'a, I: Iterator<Item = &'a InputParams>>(
     summed_samples
 }
 
-/// Mix input samples accordingly to provided specification.
-fn mix(
-    input_samples: &HashMap<InputId, Vec<(i16, i16)>>,
-    output_info: &OutputInfo,
-    samples_count: usize,
-) -> AudioSamples {
-    let summed_samples = sum_samples(
-        input_samples,
-        samples_count,
-        output_info.audio.inputs.iter(),
-    );
-    // Clips sample to i16 PCM range
-    let clip = |s: i64| min(max(s, i16::MIN as i64), i16::MAX as i64) as i16;
-
-    let mixed: Vec<(i16, i16)> = match output_info.audio.mixing_strategy {
-        MixingStrategy::SumClip => summed_samples
-            .into_iter()
-            .map(|(l, r)| (clip(l), clip(r)))
-            .collect(),
-        MixingStrategy::SumScale => {
-            // abs panics in debug if val = i64::MIN, but it would so many i16 samples to sum, that it'll never happen.
-            // Assumes that v is not empty (therefore unwrap is safe)
-            let max_abs =
-                |v: &Vec<(i64, i64)>| v.iter().map(|(l, r)| (l.abs().max(r.abs()))).max().unwrap();
-
-            let scaling_factor = |max_abs: i64| {
-                if max_abs > i16::MAX as i64 {
-                    max_abs as f64 / i16::MAX as f64
-                } else {
-                    1.0
-                }
-            };
-
-            let scale = |v: Vec<(i64, i64)>| {
-                let scaling_factor = scaling_factor(max_abs(&v));
-                v.into_iter()
-                    .map(|(l, r)| {
-                        (
-                            clip((l as f64 * scaling_factor) as i64),
-                            clip((r as f64 * scaling_factor) as i64),
-                        )
-                    })
-                    .collect()
-            };
-
-            scale(summed_samples)
-        }
-    };
-
-    // Converts summed waves to desired channels format
-    match output_info.channels {
+fn convert_channels(samples: Vec<(i16, i16)>, channels: AudioChannels) -> AudioSamples {
+    match channels {
         AudioChannels::Mono => AudioSamples::Mono(
-            mixed
+            samples
                 .into_iter()
                 // Convert to i32 to avoid additions overflows
                 .map(|(l, r)| ((l as i32 + r as i32) / 2) as i16)
                 .collect(),
         ),
-        AudioChannels::Stereo => AudioSamples::Stereo(mixed),
+        AudioChannels::Stereo => AudioSamples::Stereo(samples),
     }
 }

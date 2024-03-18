@@ -17,8 +17,8 @@ use compositor_render::{EventLoop, InputId, OutputId, RendererId, RendererSpec};
 use crossbeam_channel::{bounded, Receiver};
 use tracing::{error, info, warn};
 
-use crate::audio_mixer::types::{AudioChannels, AudioMixingParams};
 use crate::audio_mixer::AudioMixer;
+use crate::audio_mixer::{AudioChannels, AudioMixingParams};
 use crate::error::{
     RegisterInputError, RegisterOutputError, UnregisterInputError, UnregisterOutputError,
 };

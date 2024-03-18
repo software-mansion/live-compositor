@@ -6,7 +6,7 @@ use fdk_aac_sys as fdk;
 use tracing::{debug, error, span, Level};
 
 use crate::{
-    audio_mixer::types::InputSamples,
+    audio_mixer::InputSamples,
     pipeline::structs::{EncodedChunk, EncodedChunkKind},
     queue::PipelineEvent,
 };
@@ -40,6 +40,7 @@ pub struct FdkAacDecoder;
 impl FdkAacDecoder {
     pub(super) fn new(
         options: AacDecoderOptions,
+        output_sample_rate: u32,
         chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
         samples_sender: Sender<PipelineEvent<InputSamples>>,
         input_id: InputId,
@@ -55,7 +56,13 @@ impl FdkAacDecoder {
                     input_id = input_id.to_string()
                 )
                 .entered();
-                run_decoder_thread(options, samples_sender, chunks_receiver, result_sender)
+                run_decoder_thread(
+                    options,
+                    samples_sender,
+                    chunks_receiver,
+                    result_sender,
+                    output_sample_rate,
+                )
             })
             .unwrap();
 
@@ -70,6 +77,7 @@ fn run_decoder_thread(
     samples_sender: Sender<PipelineEvent<InputSamples>>,
     chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
     result_sender: Sender<Result<(), AacDecoderError>>,
+    output_sample_rate: u32,
 ) {
     let decoder = match Decoder::new(options) {
         Ok(decoder) => {
@@ -90,7 +98,7 @@ fn run_decoder_thread(
                 break;
             }
         };
-        let decoded_samples = match decoder.decode_chunk(chunk) {
+        let decoded_samples = match decoder.decode_chunk(chunk, output_sample_rate) {
             Ok(samples) => samples,
             Err(e) => {
                 log::error!("Failed to decode AAC packet: {e}");
@@ -139,7 +147,11 @@ impl Decoder {
         Ok(dec)
     }
 
-    fn decode_chunk(&self, chunk: EncodedChunk) -> Result<Vec<InputSamples>, AacDecoderError> {
+    fn decode_chunk(
+        &self,
+        chunk: EncodedChunk,
+        output_sample_rate: u32,
+    ) -> Result<Vec<InputSamples>, AacDecoderError> {
         if chunk.kind != EncodedChunkKind::Audio(crate::pipeline::AudioCodec::Aac) {
             return Err(AacDecoderError::UnsupportedChunkKind(chunk.kind));
         }
@@ -202,10 +214,7 @@ impl Decoder {
             };
 
             // TODO handle resampling to output sample rate
-            output_buffer.push(InputSamples {
-                samples,
-                start_pts: chunk.pts,
-            });
+            output_buffer.push(InputSamples::new(samples, chunk.pts, output_sample_rate))
         }
 
         Ok(output_buffer)

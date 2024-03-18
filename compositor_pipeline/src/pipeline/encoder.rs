@@ -2,7 +2,7 @@ use compositor_render::{Frame, Resolution};
 use crossbeam_channel::{bounded, Receiver, Sender};
 use log::error;
 
-use crate::{audio_mixer::types::OutputSamples, error::EncoderInitError, queue::PipelineEvent};
+use crate::{audio_mixer::OutputSamples, error::EncoderInitError, queue::PipelineEvent};
 
 use self::{ffmpeg_h264::LibavH264Encoder, opus::OpusEncoder};
 

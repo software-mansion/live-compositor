@@ -3,13 +3,12 @@ use std::sync::{Arc, Mutex};
 use compositor_render::{error::UpdateSceneError, InputId, OutputId};
 use tracing::trace;
 
-use self::{
-    internal_audio_mixer::InternalAudioMixer,
-    types::{AudioChannels, AudioMixingParams, InputSamplesSet, OutputSamplesSet},
-};
+use self::internal_audio_mixer::InternalAudioMixer;
 
 mod internal_audio_mixer;
-pub mod types;
+mod types;
+
+pub use types::*;
 
 #[derive(Debug, Clone)]
 pub(super) struct AudioMixer(Arc<Mutex<InternalAudioMixer>>);

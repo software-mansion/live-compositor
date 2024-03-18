@@ -3,7 +3,7 @@ use log::error;
 use tracing::{span, trace, warn, Level};
 
 use crate::{
-    audio_mixer::types::{AudioChannels, AudioSamples, OutputSamples},
+    audio_mixer::{AudioChannels, AudioSamples, OutputSamples},
     error::EncoderInitError,
     pipeline::{
         structs::{EncodedChunk, EncodedChunkKind, EncoderOutputEvent},

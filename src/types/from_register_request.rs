@@ -175,11 +175,11 @@ impl From<AudioCodec> for pipeline::AudioCodec {
     }
 }
 
-impl From<AudioChannels> for audio_mixer::types::AudioChannels {
+impl From<AudioChannels> for audio_mixer::AudioChannels {
     fn from(value: AudioChannels) -> Self {
         match value {
-            AudioChannels::Mono => audio_mixer::types::AudioChannels::Mono,
-            AudioChannels::Stereo => audio_mixer::types::AudioChannels::Stereo,
+            AudioChannels::Mono => audio_mixer::AudioChannels::Mono,
+            AudioChannels::Stereo => audio_mixer::AudioChannels::Stereo,
         }
     }
 }
