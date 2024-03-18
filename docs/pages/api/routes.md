@@ -48,8 +48,9 @@ type AudioInput = {
 - `audio.inputs[].input_id` - Input id.
 - `audio.inputs[].volume` - (**default=`1.0`**) Float in `[0, 1]` range representing volume.
 - `audio.mixing_strategy` - (**default=`sum_clip`**) Strategy for mixing audio:
-- - `"sum_clip"` - Clip summed input waves if it's outside the PCM range.
-- - `"sum_scale"` - Scales down summed input waves if it's outside the PCM range.
+- - `"sum_clip"` - Sums samples from inputs and scales down wave parts result near picks exceeding the i16 PCM range.
+- - `"sum_scale"` - Sums samples from inputs and scales down wave parts result near picks exceeding the i16 PCM range.
+If the summed wave is in the i16 PCM range, input waves are summed without scaling and the result is the same as with `sum_clip`.
 - `schedule_time_ms` - Time in milliseconds when this request should be applied. Value `0` represents time of [the start request](#start).
 
 ***
