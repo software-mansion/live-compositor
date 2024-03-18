@@ -1,6 +1,6 @@
 use std::{
     collections::VecDeque,
-    io::{self, Read},
+    io::Read,
     net::TcpStream,
     sync::{atomic::AtomicBool, Arc},
     thread,
@@ -75,33 +75,18 @@ fn run_tcp_server_thread(
         connected_socket = Some(socket);
     }
 
-    let mut socket = match connected_socket {
+    let socket = match connected_socket {
         Some(socket) => TcpReadPacketStream::new(socket, should_close.clone()),
         None => {
             return;
         }
     };
-    loop {
-        match socket.read_packet() {
-            Ok(packet) => {
-                trace!(size_bytes = packet.len(), "Received RTP packet");
-                if packets_tx.send(packet).is_err() {
-                    debug!(
-                        "Failed to send raw RTP packet from TCP server element. Channel closed."
-                    );
-                    return;
-                }
-            }
-            Err(err) if err.kind() == std::io::ErrorKind::WouldBlock => {
-                return;
-            }
-            Err(err) => {
-                error!(
-                    "Error while reading from TCP socket: {}",
-                    ErrorStack::new(&err).into_string()
-                );
-                return;
-            }
+
+    for packet in socket {
+        trace!(size_bytes = packet.len(), "Received RTP packet");
+        if packets_tx.send(packet).is_err() {
+            debug!("Failed to send raw RTP packet from TCP server element. Channel closed.");
+            return;
         }
     }
 }
@@ -125,25 +110,14 @@ impl TcpReadPacketStream {
             should_close,
         }
     }
-    fn read_packet(&mut self) -> io::Result<bytes::Bytes> {
-        self.read_until_buffer_size(2)?;
 
-        let mut len_bytes = [0u8; 2];
-        self.buf.read_exact(&mut len_bytes)?;
-        let len = u16::from_be_bytes(len_bytes) as usize;
-
-        self.read_until_buffer_size(len)?;
-        let mut packet = BytesMut::zeroed(len);
-        self.buf.read_exact(&mut packet[..])?;
-        Ok(packet.freeze())
-    }
-
-    fn read_until_buffer_size(&mut self, buf_size: usize) -> io::Result<()> {
+    fn read_until_buffer_size(&mut self, buf_size: usize) -> Option<()> {
         loop {
             if self.buf.len() >= buf_size {
-                return Ok(());
+                return Some(());
             }
             match self.socket.read(&mut self.read_buf) {
+                Ok(0) => return None,
                 Ok(read_bytes) => {
                     self.buf.extend(self.read_buf[0..read_bytes].iter());
                 }
@@ -153,10 +127,34 @@ impl TcpReadPacketStream {
                         std::io::ErrorKind::WouldBlock if !should_close => {
                             continue;
                         }
-                        _ => return io::Result::Err(err),
+                        std::io::ErrorKind::WouldBlock => return None,
+                        _ => {
+                            error!(
+                                "Error while reading from TCP socket: {}",
+                                ErrorStack::new(&err).into_string()
+                            );
+                            return Some(());
+                        }
                     }
                 }
             };
         }
+    }
+}
+
+impl Iterator for TcpReadPacketStream {
+    type Item = bytes::Bytes;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.read_until_buffer_size(2)?;
+
+        let mut len_bytes = [0u8; 2];
+        self.buf.read_exact(&mut len_bytes).unwrap();
+        let len = u16::from_be_bytes(len_bytes) as usize;
+
+        self.read_until_buffer_size(len)?;
+        let mut packet = BytesMut::zeroed(len);
+        self.buf.read_exact(&mut packet[..]).unwrap();
+        Some(packet.freeze())
     }
 }
