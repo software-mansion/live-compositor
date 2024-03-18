@@ -1320,7 +1320,8 @@
             "$ref": "#/definitions/InputAudio"
           }
         }
-      }
+      },
+      "additionalProperties": false
     },
     "InputAudio": {
       "type": "object",
@@ -1338,7 +1339,8 @@
           ],
           "format": "float"
         }
-      }
+      },
+      "additionalProperties": false
     }
   }
 }

@@ -1939,7 +1939,8 @@
             "$ref": "#/definitions/InputAudio"
           }
         }
-      }
+      },
+      "additionalProperties": false
     },
     "InputAudio": {
       "type": "object",
@@ -1957,7 +1958,8 @@
           ],
           "format": "float"
         }
-      }
+      },
+      "additionalProperties": false
     },
     "AudioChannels": {
       "oneOf": [
@@ -2005,14 +2007,14 @@
     "MixingStrategy": {
       "oneOf": [
         {
-          "description": "Sums samples from inputs and scales down wave parts result near picks exceeding the i16 PCM range.",
+          "description": "Firstly, input samples are summed. If the result is outside the i16 PCM range, it gets clipped.",
           "type": "string",
           "enum": [
             "SumClip"
           ]
         },
         {
-          "description": "Sums samples from inputs and scales down wave parts result near picks exceeding the i16 PCM range. If the summed wave is in the i16 PCM range, input waves are summed without scaling and the result is the same as with `sum_clip`",
+          "description": "Firstly, input samples are summed. If the result is outside the i16 PCM range, nearby summed samples are scaled down by factor, such that the summed wave is in the i16 PCM range.",
           "type": "string",
           "enum": [
             "SumScale"
