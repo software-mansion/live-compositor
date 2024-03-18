@@ -143,7 +143,7 @@ fn start_example_client_code() -> Result<()> {
         "audio": {
             "initial": {
                 "inputs": [
-                    {"input_id": "input_2",  "volume": 0.3},
+                    {"input_id": "input_2"},
                     {"input_id": "input_4"}
                 ]
             },

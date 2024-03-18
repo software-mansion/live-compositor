@@ -1,12 +1,15 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, time::Duration};
 
 use compositor_render::{error::UpdateSceneError, InputId, OutputId};
 
 use crate::audio_mixer::{InputParams, MixingStrategy};
 
-use super::types::{
-    AudioChannels, AudioMixingParams, AudioSamples, InputSamplesSet, OutputSamples,
-    OutputSamplesSet,
+use super::{
+    types::{
+        AudioChannels, AudioMixingParams, AudioSamples, InputSamplesSet, OutputSamples,
+        OutputSamplesSet,
+    },
+    InputSamples,
 };
 
 #[derive(Debug)]
@@ -60,7 +63,7 @@ impl InternalAudioMixer {
 
     pub fn mix_samples(&mut self, samples_set: InputSamplesSet) -> OutputSamplesSet {
         let start_pts = samples_set.start_pts;
-        let (input_samples, samples_count) = self.input_samples(samples_set);
+        let (input_samples, samples_count) = self.merge_fill_input_samples(samples_set);
 
         OutputSamplesSet(
             self.outputs
@@ -73,7 +76,7 @@ impl InternalAudioMixer {
         )
     }
 
-    fn input_samples(
+    fn merge_fill_input_samples(
         &self,
         input_samples_set: InputSamplesSet,
     ) -> (HashMap<InputId, Vec<(i16, i16)>>, usize) {
@@ -83,59 +86,75 @@ impl InternalAudioMixer {
             .as_secs_f64()
             * self.output_sample_rate as f64)
             .round() as usize;
+
         let input_samples = input_samples_set
             .samples
             .into_iter()
             .map(|(input_id, input_batch)| {
-                let mut samples = Vec::new();
-
-                input_batch.into_iter().fold(
+                let samples = Self::frame_input_samples(
                     input_samples_set.start_pts,
-                    |last_end_pts, input_samples| {
-                        let missing_samples = (input_samples
-                            .start_pts
-                            .saturating_sub(last_end_pts)
-                            .as_secs_f64()
-                            * self.output_sample_rate as f64)
-                            .round() as u32;
-                        if missing_samples > 1 {
-                            for _ in 0..missing_samples {
-                                samples.push((0, 0));
-                            }
-                        }
-                        // Indexes samples of InputSamples in frame
-                        let time_since_last_input_samples = last_end_pts
-                            .saturating_sub(input_samples.start_pts)
-                            .as_secs_f64();
-                        let start_index = usize::min(
-                            (time_since_last_input_samples * self.output_sample_rate as f64).round()
-                                as usize,
-                            input_samples.samples.len() - 1,
-                        );
-
-                        let samples_in_frame = (input_samples_set
-                            .end_pts
-                            .saturating_sub(input_samples.start_pts)
-                            .as_secs_f64()
-                            * self.output_sample_rate as f64)
-                            .round() as usize;
-                        let end_index =
-                            usize::min(input_samples.samples.len(), start_index + samples_in_frame);
-
-                        samples.extend(input_samples.samples[start_index..end_index].iter());
-                        input_samples.end_pts
-                    },
+                    input_samples_set.end_pts,
+                    input_batch,
+                    self.output_sample_rate,
                 );
-
-                let missing_samples = samples_count.saturating_sub(samples.len());
-                for _ in 0..missing_samples {
-                    samples.push((0, 0))
-                }
 
                 (input_id, samples)
             })
             .collect();
         (input_samples, samples_count)
+    }
+
+    fn frame_input_samples(
+        start_pts: Duration,
+        end_pts: Duration,
+        samples: Vec<InputSamples>,
+        sample_rate: u32,
+    ) -> Vec<(i16, i16)> {
+        let mut samples_in_frame = Vec::new();
+
+        samples
+            .into_iter()
+            .fold(start_pts, |last_end_pts, input_samples| {
+                let time_since_last_end = input_samples
+                    .start_pts
+                    .saturating_sub(last_end_pts)
+                    .as_secs_f64();
+                let missing_samples = (time_since_last_end * sample_rate as f64).round() as usize;
+                if missing_samples > 1 {
+                    Self::push_missing_samples(&mut samples_in_frame, missing_samples);
+                };
+                // Pushing InputSamples in frame
+                let sample_time_before_frame = start_pts
+                    .saturating_sub(input_samples.start_pts)
+                    .as_secs_f64();
+                let start_index = (sample_time_before_frame * sample_rate as f64).round() as usize;
+
+                let sample_time_after_frame =
+                    input_samples.end_pts.saturating_sub(end_pts).as_secs_f64();
+                let samples_after_frame = usize::max(
+                    (sample_time_after_frame * sample_rate as f64).round() as usize,
+                    0,
+                );
+                let end_index = input_samples.len() - samples_after_frame;
+
+                samples_in_frame.extend(input_samples.samples[start_index..end_index].iter());
+
+                input_samples.end_pts
+            });
+
+        let missing_samples = Self::samples_in_frame(start_pts, end_pts, sample_rate);
+        Self::push_missing_samples(&mut samples_in_frame, missing_samples);
+
+        samples_in_frame
+    }
+
+    fn samples_in_frame(start: Duration, end: Duration, sample_rate: u32) -> usize {
+        (end.saturating_sub(start).as_secs_f64() * sample_rate as f64).round() as usize
+    }
+
+    fn push_missing_samples(samples_buffer: &mut Vec<(i16, i16)>, samples_count: usize) {
+        let filling_samples = (0..samples_count).map(|_| (0i16, 0i16));
+        samples_buffer.extend(filling_samples);
     }
 }
 

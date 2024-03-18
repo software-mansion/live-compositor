@@ -80,6 +80,10 @@ impl InputSamples {
     pub fn duration(&self) -> Duration {
         self.end_pts.saturating_sub(self.start_pts)
     }
+
+    pub(crate) fn len(&self) -> usize {
+        self.samples.len()
+    }
 }
 
 impl AudioSamples {
