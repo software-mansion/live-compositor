@@ -203,12 +203,12 @@ impl Pipeline {
     pub fn update_output(
         &mut self,
         output_id: OutputId,
-        root_component: Option<Component>,
+        video: Option<Component>,
         audio: Option<AudioMixingParams>,
     ) -> Result<(), UpdateSceneError> {
-        self.check_output_spec(&output_id, &root_component, &audio)?;
-        if let Some(root_component) = root_component {
-            self.update_scene_root(output_id.clone(), root_component)?;
+        self.check_output_spec(&output_id, &video, &audio)?;
+        if let Some(video) = video {
+            self.update_scene_root(output_id.clone(), video)?;
         }
 
         if let Some(audio) = audio {
@@ -221,18 +221,18 @@ impl Pipeline {
     fn check_output_spec(
         &self,
         output_id: &OutputId,
-        root_component: &Option<Component>,
+        video: &Option<Component>,
         audio: &Option<AudioMixingParams>,
     ) -> Result<(), UpdateSceneError> {
         let Some(output) = self.outputs.get(output_id) else {
             return Err(UpdateSceneError::OutputNotRegistered(output_id.clone()));
         };
         if output.audio_end_condition.is_some() != audio.is_some()
-            || output.video_end_condition.is_some() != root_component.is_some()
+            || output.video_end_condition.is_some() != video.is_some()
         {
             return Err(UpdateSceneError::AudioVideoNotMatching(output_id.clone()));
         }
-        if root_component.is_none() && audio.is_none() {
+        if video.is_none() && audio.is_none() {
             return Err(UpdateSceneError::NoAudioAndVideo(output_id.clone()));
         }
         Ok(())
@@ -243,15 +243,11 @@ impl Pipeline {
         output_id: OutputId,
         scene_root: Component,
     ) -> Result<(), UpdateSceneError> {
-        let Some(resolution) = self
+        let output = self
             .outputs
             .get(&output_id)
-            .ok_or_else(|| UpdateSceneError::OutputNotRegistered(output_id.clone()))?
-            .encoder
-            .video
-            .as_ref()
-            .map(|v| v.resolution())
-        else {
+            .ok_or_else(|| UpdateSceneError::OutputNotRegistered(output_id.clone()))?;
+        let Some(resolution) = output.encoder.video.as_ref().map(|v| v.resolution()) else {
             return Err(UpdateSceneError::AudioVideoNotMatching(output_id));
         };
 

@@ -100,6 +100,14 @@ impl Encoder {
     }
 }
 
+impl VideoEncoderOptions {
+    pub fn resolution(&self) -> Resolution {
+        match self {
+            VideoEncoderOptions::H264(opt) => opt.resolution,
+        }
+    }
+}
+
 impl VideoEncoder {
     pub fn new(
         options: VideoEncoderOptions,
