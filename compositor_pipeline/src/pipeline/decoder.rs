@@ -1,6 +1,10 @@
+use std::{sync::Arc, time::Duration};
+
 use crate::{audio_mixer::InputSamples, error::DecoderInitError, queue::PipelineEvent};
 
-use self::{fdk_aac::FdkAacDecoder, ffmpeg_h264::H264FfmpegDecoder, opus::OpusDecoder};
+use self::{
+    fdk_aac::FdkAacDecoder, ffmpeg_h264::H264FfmpegDecoder, opus::OpusDecoder, resampler::Resampler,
+};
 
 use super::{
     input::ChunksReceiver,
@@ -9,18 +13,20 @@ use super::{
 
 use bytes::Bytes;
 use compositor_render::{Frame, InputId};
-use crossbeam_channel::{bounded, Receiver, Sender};
+use crossbeam_channel::{bounded, unbounded, Receiver, Sender};
 
 pub mod fdk_aac;
 mod ffmpeg_h264;
 mod opus;
+mod resampler;
 
-pub struct Decoder {
-    #[allow(dead_code)]
-    video: Option<VideoDecoder>,
-    #[allow(dead_code)]
-    audio: Option<AudioDecoder>,
+#[derive(Debug, thiserror::Error)]
+pub enum ResamplerInitError {
+    #[error(transparent)]
+    ResamplerInitError(#[from] rubato::ResamplerConstructionError),
 }
+
+pub struct Decoder;
 
 #[derive(Debug, Clone)]
 pub struct DecoderOptions {
@@ -29,12 +35,12 @@ pub struct DecoderOptions {
 }
 
 impl Decoder {
-    pub fn new(
+    pub fn spawn(
         input_id: InputId,
         chunks: ChunksReceiver,
         decoder_options: DecoderOptions,
         output_sample_rate: u32,
-    ) -> Result<(Self, DecodedDataReceiver), DecoderInitError> {
+    ) -> Result<DecodedDataReceiver, DecoderInitError> {
         let DecoderOptions {
             video: video_decoder_opt,
             audio: audio_decoder_opt,
@@ -44,85 +50,69 @@ impl Decoder {
             audio: audio_receiver,
         } = chunks;
 
-        let (video_decoder, video_receiver) =
+        let video_receiver =
             if let (Some(opt), Some(video_receiver)) = (video_decoder_opt, video_receiver) {
                 let (sender, receiver) = bounded(10);
-                (
-                    Some(VideoDecoder::new(
-                        &opt,
-                        video_receiver,
-                        sender,
-                        input_id.clone(),
-                    )?),
-                    Some(receiver),
-                )
+                VideoDecoder::new(&opt, video_receiver, sender, input_id.clone())?;
+                Some(receiver)
             } else {
-                (None, None)
+                None
             };
-        let (audio_decoder, audio_receiver) =
+        let audio_receiver =
             if let (Some(opt), Some(audio_receiver)) = (audio_decoder_opt, audio_receiver) {
                 let (sender, receiver) = bounded(10);
-                (
-                    Some(AudioDecoder::new(
-                        opt,
-                        output_sample_rate,
-                        audio_receiver,
-                        sender,
-                        input_id,
-                    )?),
-                    Some(receiver),
-                )
+                AudioDecoder::spawn(opt, output_sample_rate, audio_receiver, sender, input_id)?;
+
+                Some(receiver)
             } else {
-                (None, None)
+                None
             };
 
-        Ok((
-            Self {
-                video: video_decoder,
-                audio: audio_decoder,
-            },
-            DecodedDataReceiver {
-                video: video_receiver,
-                audio: audio_receiver,
-            },
-        ))
+        Ok(DecodedDataReceiver {
+            video: video_receiver,
+            audio: audio_receiver,
+        })
     }
 }
 
-pub enum AudioDecoder {
-    Opus(OpusDecoder),
-    FdkAac(FdkAacDecoder),
-}
+struct AudioDecoder;
 
 impl AudioDecoder {
-    pub fn new(
+    pub fn spawn(
         opts: AudioDecoderOptions,
         output_sample_rate: u32,
         chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
         samples_sender: Sender<PipelineEvent<InputSamples>>,
         input_id: InputId,
-    ) -> Result<Self, DecoderInitError> {
-        match opts {
-            AudioDecoderOptions::Opus(opus_opt) => Ok(AudioDecoder::Opus(OpusDecoder::new(
+    ) -> Result<(), DecoderInitError> {
+        let (resampler_sender, resampler_receiver) = unbounded();
+        let info = match opts {
+            AudioDecoderOptions::Opus(opus_opt) => OpusDecoder::spawn(
                 opus_opt,
                 output_sample_rate,
                 chunks_receiver,
-                samples_sender,
-                input_id,
-            )?)),
+                resampler_sender,
+                input_id.clone(),
+            )?,
 
-            AudioDecoderOptions::Aac(aac_opt) => Ok(AudioDecoder::FdkAac(FdkAacDecoder::new(
-                aac_opt,
-                output_sample_rate,
-                chunks_receiver,
-                samples_sender,
-                input_id,
-            )?)),
-        }
+            AudioDecoderOptions::Aac(aac_opt) => {
+                FdkAacDecoder::spawn(aac_opt, chunks_receiver, resampler_sender, input_id.clone())?
+            }
+        };
+
+        Resampler::spawn(
+            input_id,
+            info.decoded_sample_rate,
+            output_sample_rate,
+            resampler_receiver,
+            samples_sender,
+        )?;
+
+        Ok(())
     }
 }
 
-pub enum VideoDecoder {
+enum VideoDecoder {
     H264(H264FfmpegDecoder),
 }
 
@@ -176,4 +166,14 @@ pub enum AacTransport {
 pub struct AacDecoderOptions {
     pub transport: AacTransport,
     pub asc: Option<Bytes>,
+}
+
+struct DecodedAudioInputInfo {
+    decoded_sample_rate: u32,
+}
+
+struct DecodedSamples {
+    samples: Arc<Vec<(i16, i16)>>,
+    start_pts: Duration,
+    sample_rate: u32,
 }

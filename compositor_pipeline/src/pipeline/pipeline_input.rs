@@ -8,7 +8,6 @@ use super::{decoder, input, Port, RegisterInputOptions};
 
 pub struct PipelineInput {
     pub input: input::Input,
-    pub decoder: decoder::Decoder,
 
     /// Some(received) - Whether EOS was received from queue on audio stream for that input.
     /// None - No audio configured for that input.
@@ -43,7 +42,7 @@ pub(super) fn register_pipeline_input(
         decoder_options.audio.as_ref().map(|_| false),
         decoder_options.video.as_ref().map(|_| false),
     );
-    let (decoder, decoded_data_receiver) = decoder::Decoder::new(
+    let decoded_data_receiver = decoder::Decoder::spawn(
         input_id.clone(),
         chunks_receiver,
         decoder_options,
@@ -53,7 +52,6 @@ pub(super) fn register_pipeline_input(
 
     let pipeline_input = PipelineInput {
         input,
-        decoder,
         audio_eos_received,
         video_eos_received,
     };

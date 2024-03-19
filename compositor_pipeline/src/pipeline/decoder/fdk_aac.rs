@@ -6,12 +6,12 @@ use fdk_aac_sys as fdk;
 use tracing::{debug, error, span, Level};
 
 use crate::{
-    audio_mixer::InputSamples,
+    error::DecoderInitError,
     pipeline::structs::{EncodedChunk, EncodedChunkKind},
     queue::PipelineEvent,
 };
 
-use super::{AacDecoderOptions, AacTransport};
+use super::{AacDecoderOptions, AacTransport, DecodedAudioInputInfo, DecodedSamples};
 
 #[derive(Debug, thiserror::Error)]
 pub enum AacDecoderError {
@@ -23,6 +23,9 @@ pub enum AacDecoderError {
 
     #[error("The aac decoder cannot decode chunks with kind {0:?}.")]
     UnsupportedChunkKind(EncodedChunkKind),
+
+    #[error("The aac decoder cannot decode chunks with sample rate {0}.")]
+    UnsupportedSampleRate(i32),
 }
 
 impl From<AacTransport> for fdk::TRANSPORT_TYPE {
@@ -38,13 +41,12 @@ impl From<AacTransport> for fdk::TRANSPORT_TYPE {
 pub struct FdkAacDecoder;
 
 impl FdkAacDecoder {
-    pub(super) fn new(
+    pub(super) fn spawn(
         options: AacDecoderOptions,
-        output_sample_rate: u32,
         chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
-        samples_sender: Sender<PipelineEvent<InputSamples>>,
+        samples_sender: Sender<PipelineEvent<DecodedSamples>>,
         input_id: InputId,
-    ) -> Result<Self, AacDecoderError> {
+    ) -> Result<DecodedAudioInputInfo, DecoderInitError> {
         let (result_sender, result_receiver) = crossbeam_channel::bounded(1);
 
         std::thread::Builder::new()
@@ -56,32 +58,28 @@ impl FdkAacDecoder {
                     input_id = input_id.to_string()
                 )
                 .entered();
-                run_decoder_thread(
-                    options,
-                    samples_sender,
-                    chunks_receiver,
-                    result_sender,
-                    output_sample_rate,
-                )
+                run_decoder_thread(options, samples_sender, chunks_receiver, result_sender)
             })
             .unwrap();
 
-        result_receiver.recv().unwrap()?;
+        let decoded_sample_rate = result_receiver.recv().unwrap()?;
+        let info = DecodedAudioInputInfo {
+            decoded_sample_rate,
+        };
 
-        Ok(Self)
+        Ok(info)
     }
 }
 
 fn run_decoder_thread(
     options: AacDecoderOptions,
-    samples_sender: Sender<PipelineEvent<InputSamples>>,
+    samples_sender: Sender<PipelineEvent<DecodedSamples>>,
     chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
-    result_sender: Sender<Result<(), AacDecoderError>>,
-    output_sample_rate: u32,
+    result_sender: Sender<Result<u32, AacDecoderError>>,
 ) {
     let decoder = match Decoder::new(options) {
         Ok(decoder) => {
-            result_sender.send(Ok(())).unwrap();
+            result_sender.send(Ok(decoder.sample_rate)).unwrap();
             decoder
         }
 
@@ -98,7 +96,7 @@ fn run_decoder_thread(
                 break;
             }
         };
-        let decoded_samples = match decoder.decode_chunk(chunk, output_sample_rate) {
+        let decoded_samples = match decoder.decode_chunk(chunk) {
             Ok(samples) => samples,
             Err(e) => {
                 log::error!("Failed to decode AAC packet: {e}");
@@ -118,17 +116,19 @@ fn run_decoder_thread(
     }
 }
 
-struct Decoder(*mut fdk::AAC_DECODER_INSTANCE);
+struct Decoder {
+    instance: *mut fdk::AAC_DECODER_INSTANCE,
+    sample_rate: u32,
+}
 
 impl Decoder {
     fn new(options: AacDecoderOptions) -> Result<Self, AacDecoderError> {
-        let dec = unsafe { fdk::aacDecoder_Open(options.transport.into(), 1) };
-        let dec = Decoder(dec);
+        let instance = unsafe { fdk::aacDecoder_Open(options.transport.into(), 1) };
 
         if let Some(config) = options.asc {
             let result = unsafe {
                 fdk::aacDecoder_ConfigRaw(
-                    dec.0,
+                    instance,
                     &mut config.to_vec().as_mut_ptr(),
                     &(config.len() as u32),
                 )
@@ -139,19 +139,23 @@ impl Decoder {
             }
         }
 
-        let info = unsafe { *fdk::aacDecoder_GetStreamInfo(dec.0) };
+        let info = unsafe { *fdk::aacDecoder_GetStreamInfo(instance) };
+        let sample_rate = if info.sampleRate > 0 {
+            info.sampleRate as u32
+        } else {
+            return Err(AacDecoderError::UnsupportedSampleRate(info.sampleRate));
+        };
         if info.channelConfig != 1 && info.channelConfig != 2 {
             return Err(AacDecoderError::UnsupportedChannelConfig);
         }
 
-        Ok(dec)
+        Ok(Decoder {
+            instance,
+            sample_rate,
+        })
     }
 
-    fn decode_chunk(
-        &self,
-        chunk: EncodedChunk,
-        output_sample_rate: u32,
-    ) -> Result<Vec<InputSamples>, AacDecoderError> {
+    fn decode_chunk(&self, chunk: EncodedChunk) -> Result<Vec<DecodedSamples>, AacDecoderError> {
         if chunk.kind != EncodedChunkKind::Audio(crate::pipeline::AudioCodec::Aac) {
             return Err(AacDecoderError::UnsupportedChunkKind(chunk.kind));
         }
@@ -167,7 +171,7 @@ impl Decoder {
             // buffer.
             let result = unsafe {
                 fdk::aacDecoder_Fill(
-                    self.0,
+                    self.instance,
                     &mut buffer.as_mut_ptr(),
                     &buffer_size,
                     &mut bytes_valid,
@@ -178,7 +182,7 @@ impl Decoder {
                 return Err(AacDecoderError::FdkDecoderError(result));
             }
 
-            let info = unsafe { *fdk::aacDecoder_GetStreamInfo(self.0) };
+            let info = unsafe { *fdk::aacDecoder_GetStreamInfo(self.instance) };
 
             // The decoder should output `info.aacSamplesPerFrame` for each channel
             let mut decoded_samples: Vec<fdk::INT_PCM> =
@@ -186,7 +190,7 @@ impl Decoder {
 
             let result = unsafe {
                 fdk::aacDecoder_DecodeFrame(
-                    self.0,
+                    self.instance,
                     decoded_samples.as_mut_ptr(),
                     decoded_samples.len() as i32,
                     0,
@@ -213,8 +217,11 @@ impl Decoder {
                 _ => return Err(AacDecoderError::UnsupportedChannelConfig),
             };
 
-            // TODO handle resampling to output sample rate
-            output_buffer.push(InputSamples::new(samples, chunk.pts, output_sample_rate))
+            output_buffer.push(DecodedSamples {
+                samples,
+                start_pts: chunk.pts,
+                sample_rate: self.sample_rate,
+            })
         }
 
         Ok(output_buffer)
@@ -224,7 +231,7 @@ impl Decoder {
 impl Drop for Decoder {
     fn drop(&mut self) {
         unsafe {
-            fdk::aacDecoder_Close(self.0);
+            fdk::aacDecoder_Close(self.instance);
         }
     }
 }

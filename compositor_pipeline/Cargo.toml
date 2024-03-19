@@ -26,3 +26,4 @@ symphonia = { version = "0.5.3", default-features = false, features = [
 ] }
 tracing = { workspace = true }
 fdk-aac-sys = "0.5.0"
+rubato = "0.15.0"

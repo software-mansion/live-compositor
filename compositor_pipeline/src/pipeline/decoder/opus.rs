@@ -4,23 +4,20 @@ use compositor_render::InputId;
 use crossbeam_channel::{Receiver, Sender};
 use tracing::{debug, error, span, Level};
 
-use crate::{
-    audio_mixer::InputSamples, error::DecoderInitError, pipeline::structs::EncodedChunk,
-    queue::PipelineEvent,
-};
+use crate::{error::DecoderInitError, pipeline::structs::EncodedChunk, queue::PipelineEvent};
 
-use super::OpusDecoderOptions;
+use super::{DecodedAudioInputInfo, DecodedSamples, OpusDecoderOptions};
 
-pub struct OpusDecoder;
+pub(super) struct OpusDecoder;
 
 impl OpusDecoder {
-    pub fn new(
+    pub fn spawn(
         opts: OpusDecoderOptions,
         output_sample_rate: u32,
         chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
-        sample_sender: Sender<PipelineEvent<InputSamples>>,
+        samples_sender: Sender<PipelineEvent<DecodedSamples>>,
         input_id: InputId,
-    ) -> Result<Self, DecoderInitError> {
+    ) -> Result<DecodedAudioInputInfo, DecoderInitError> {
         let decoder = opus::Decoder::new(output_sample_rate, opus::Channels::Stereo)?;
 
         std::thread::Builder::new()
@@ -33,12 +30,16 @@ impl OpusDecoder {
                     opts,
                     output_sample_rate,
                     chunks_receiver,
-                    sample_sender,
+                    samples_sender,
                 )
             })
             .unwrap();
 
-        Ok(Self)
+        let info = DecodedAudioInputInfo {
+            decoded_sample_rate: output_sample_rate,
+        };
+
+        Ok(info)
     }
 }
 
@@ -47,7 +48,7 @@ fn run_decoder_thread(
     opts: OpusDecoderOptions,
     output_sample_rate: u32,
     chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
-    sample_sender: Sender<PipelineEvent<InputSamples>>,
+    samples_sender: Sender<PipelineEvent<DecodedSamples>>,
 ) {
     // Max sample rate for opus is 48kHz.
     // Usually packets contain 20ms audio chunks, but for safety we use buffer
@@ -70,17 +71,21 @@ fn run_decoder_thread(
             };
 
         let samples = read_buffer(&buffer, decoded_samples_count);
-        let input_samples = InputSamples::new(samples, chunk.pts, output_sample_rate);
+        let decoded_samples = DecodedSamples {
+            samples,
+            start_pts: chunk.pts,
+            sample_rate: output_sample_rate,
+        };
 
-        if sample_sender
-            .send(PipelineEvent::Data(input_samples))
+        if samples_sender
+            .send(PipelineEvent::Data(decoded_samples))
             .is_err()
         {
             debug!("Failed to send audio samples from OPUS decoder. Channel closed.");
             return;
         };
     }
-    if sample_sender.send(PipelineEvent::EOS).is_err() {
+    if samples_sender.send(PipelineEvent::EOS).is_err() {
         debug!("Failed to send EOS from OPUS decoder. Channel closed.")
     }
 }

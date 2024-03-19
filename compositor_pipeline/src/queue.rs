@@ -129,6 +129,18 @@ pub enum PipelineEvent<T> {
     EOS,
 }
 
+impl<T> PipelineEvent<T> {
+    pub fn map_data<B, F>(self, f: F) -> PipelineEvent<B>
+    where
+        F: FnOnce(T) -> B,
+    {
+        match self {
+            PipelineEvent::Data(data) => PipelineEvent::Data(f(data)),
+            PipelineEvent::EOS => PipelineEvent::EOS,
+        }
+    }
+}
+
 impl<T: Clone> Clone for PipelineEvent<T> {
     fn clone(&self) -> Self {
         match self {
