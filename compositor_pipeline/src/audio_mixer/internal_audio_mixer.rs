@@ -142,7 +142,7 @@ impl InternalAudioMixer {
     }
 
     fn samples_in_frame(start: Duration, end: Duration, sample_rate: u32) -> usize {
-        (end.saturating_sub(start).as_secs_f64() * sample_rate as f64).round() as usize
+        (end.saturating_sub(start).as_nanos() * sample_rate as u128 / 1_000_000_000) as usize
     }
 
     fn push_missing_samples(samples_buffer: &mut Vec<(i16, i16)>, samples_count: usize) {
