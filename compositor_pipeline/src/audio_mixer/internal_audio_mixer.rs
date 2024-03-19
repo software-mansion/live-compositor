@@ -63,7 +63,12 @@ impl InternalAudioMixer {
 
     pub fn mix_samples(&mut self, samples_set: InputSamplesSet) -> OutputSamplesSet {
         let start_pts = samples_set.start_pts;
-        let (input_samples, samples_count) = self.merge_fill_input_samples(samples_set);
+        let samples_count = Self::samples_in_frame(
+            samples_set.start_pts,
+            samples_set.end_pts,
+            self.output_sample_rate,
+        );
+        let input_samples = self.merge_fill_input_samples(samples_set);
 
         OutputSamplesSet(
             self.outputs
@@ -79,15 +84,8 @@ impl InternalAudioMixer {
     fn merge_fill_input_samples(
         &self,
         input_samples_set: InputSamplesSet,
-    ) -> (HashMap<InputId, Vec<(i16, i16)>>, usize) {
-        let samples_count = (input_samples_set
-            .end_pts
-            .saturating_sub(input_samples_set.start_pts)
-            .as_secs_f64()
-            * self.output_sample_rate as f64)
-            .round() as usize;
-
-        let input_samples = input_samples_set
+    ) -> HashMap<InputId, Vec<(i16, i16)>> {
+        input_samples_set
             .samples
             .into_iter()
             .map(|(input_id, input_batch)| {
@@ -100,8 +98,7 @@ impl InternalAudioMixer {
 
                 (input_id, samples)
             })
-            .collect();
-        (input_samples, samples_count)
+            .collect()
     }
 
     fn frame_input_samples(
@@ -115,31 +112,29 @@ impl InternalAudioMixer {
         samples
             .into_iter()
             .fold(start_pts, |last_end_pts, input_samples| {
-                let time_since_last_end = input_samples
-                    .start_pts
-                    .saturating_sub(last_end_pts)
-                    .as_secs_f64();
-                let missing_samples = (time_since_last_end * sample_rate as f64).round() as usize;
+                // Filling missing samples before this batch
+                let time_since_last_end = input_samples.start_pts.saturating_sub(last_end_pts);
+                let missing_samples =
+                    (time_since_last_end.as_secs_f64() * sample_rate as f64).floor() as usize;
                 if missing_samples > 1 {
                     Self::push_missing_samples(&mut samples_in_frame, missing_samples);
                 };
-                // Pushing InputSamples in frame
-                let sample_time_before_frame = start_pts
-                    .saturating_sub(input_samples.start_pts)
-                    .as_secs_f64();
-                let start_index = (sample_time_before_frame * sample_rate as f64).round() as usize;
+                // The amount of time that should be removed from the beginning of the batch
+                let time_to_remove_from_start = start_pts.saturating_sub(input_samples.start_pts);
+                let start_index =
+                    (time_to_remove_from_start.as_secs_f64() * sample_rate as f64).floor() as usize;
 
-                let sample_time_after_frame =
-                    input_samples.end_pts.saturating_sub(end_pts).as_secs_f64();
+                // Appending batch samples in frame
+                let time_to_remove_from_end = input_samples.end_pts.saturating_sub(end_pts);
                 let samples_after_frame =
-                    (sample_time_after_frame * sample_rate as f64).round() as usize;
+                    (time_to_remove_from_end.as_secs_f64() * sample_rate as f64).ceil() as usize;
                 let end_index = input_samples.len() - samples_after_frame;
 
                 samples_in_frame.extend(input_samples.samples[start_index..end_index].iter());
 
                 input_samples.end_pts
             });
-
+        // Appending samples missing in [last_end_pts, ]
         let missing_samples = Self::samples_in_frame(start_pts, end_pts, sample_rate);
         Self::push_missing_samples(&mut samples_in_frame, missing_samples);
 
