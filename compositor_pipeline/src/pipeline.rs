@@ -18,8 +18,9 @@ use compositor_render::{EventLoop, InputId, OutputId, RendererId, RendererSpec};
 use crossbeam_channel::{bounded, Receiver};
 use tracing::{error, info, trace, warn};
 
-use crate::audio_mixer::types::{AudioChannels, AudioMixingParams};
 use crate::audio_mixer::AudioMixer;
+use crate::audio_mixer::MixingStrategy;
+use crate::audio_mixer::{AudioChannels, AudioMixingParams};
 use crate::error::{
     RegisterInputError, RegisterOutputError, UnregisterInputError, UnregisterOutputError,
 };
@@ -65,6 +66,7 @@ pub struct OutputVideoOptions {
 #[derive(Debug, Clone)]
 pub struct OutputAudioOptions {
     pub initial: AudioMixingParams,
+    pub mixing_strategy: MixingStrategy,
     pub channels: AudioChannels,
     pub forward_error_correction: bool,
     pub encoder_preset: AudioEncoderPreset,
@@ -273,7 +275,7 @@ impl Pipeline {
         }
         info!("Starting pipeline.");
         let (video_sender, video_receiver) = bounded(1);
-        let (audio_sender, audio_receiver) = bounded(1);
+        let (audio_sender, audio_receiver) = bounded(100);
         guard.queue.start(video_sender, audio_sender);
 
         let pipeline_clone = pipeline.clone();

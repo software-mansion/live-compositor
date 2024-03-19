@@ -8,6 +8,12 @@ pub struct AudioMixingParams {
 }
 
 #[derive(Debug, Clone)]
+pub enum MixingStrategy {
+    SumClip,
+    SumScale,
+}
+
+#[derive(Debug, Clone)]
 pub struct InputParams {
     pub input_id: InputId,
     // [0, 1] range of input volume
@@ -21,20 +27,26 @@ pub enum AudioChannels {
 }
 
 #[derive(Debug, Clone)]
-pub struct AudioSamplesSet {
-    pub samples: HashMap<InputId, Vec<AudioSamplesBatch>>,
+pub struct InputSamplesSet {
+    pub samples: HashMap<InputId, Vec<InputSamples>>,
     pub start_pts: Duration,
     pub end_pts: Duration,
 }
 
 #[derive(Debug)]
-pub struct OutputSamples(pub HashMap<OutputId, AudioSamplesBatch>);
+pub struct OutputSamplesSet(pub HashMap<OutputId, OutputSamples>);
 
-#[derive(Debug, Clone)]
-pub struct AudioSamplesBatch {
-    pub samples: Arc<AudioSamples>,
+#[derive(Clone)]
+pub struct InputSamples {
+    pub samples: Arc<Vec<(i16, i16)>>,
     pub start_pts: Duration,
-    pub sample_rate: u32,
+    pub end_pts: Duration,
+}
+
+#[derive(Debug)]
+pub struct OutputSamples {
+    pub samples: AudioSamples,
+    pub start_pts: Duration,
 }
 
 #[derive(Clone)]
@@ -43,16 +55,34 @@ pub enum AudioSamples {
     Stereo(Vec<(i16, i16)>),
 }
 
-impl AudioSamplesSet {
+impl InputSamplesSet {
     pub fn duration(&self) -> Duration {
         self.end_pts.saturating_sub(self.start_pts)
     }
 }
 
-impl AudioSamplesBatch {
-    pub fn end_pts(&self) -> Duration {
-        self.start_pts
-            + Duration::from_secs_f64(self.samples.len() as f64 / self.sample_rate as f64)
+impl InputSamples {
+    pub fn new(
+        samples: Arc<Vec<(i16, i16)>>,
+        start_pts: Duration,
+        output_sample_rate: u32,
+    ) -> Self {
+        let end_pts =
+            start_pts + Duration::from_secs_f64(samples.len() as f64 / output_sample_rate as f64);
+
+        Self {
+            samples,
+            start_pts,
+            end_pts,
+        }
+    }
+
+    pub fn duration(&self) -> Duration {
+        self.end_pts.saturating_sub(self.start_pts)
+    }
+
+    pub(crate) fn len(&self) -> usize {
+        self.samples.len()
     }
 }
 
@@ -67,6 +97,16 @@ impl AudioSamples {
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
+    }
+}
+
+impl Debug for InputSamples {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("InputSamples")
+            .field("samples", &format!("len={}", self.samples.len()))
+            .field("start_pts", &self.start_pts)
+            .field("end_pts", &self.end_pts)
+            .finish()
     }
 }
 

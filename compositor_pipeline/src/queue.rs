@@ -15,7 +15,7 @@ use compositor_render::{Frame, FrameSet, Framerate, InputId};
 use crossbeam_channel::{bounded, Sender};
 
 use crate::{
-    audio_mixer::types::{AudioSamplesBatch, AudioSamplesSet},
+    audio_mixer::{InputSamples, InputSamplesSet},
     pipeline::decoder::DecodedDataReceiver,
 };
 
@@ -82,12 +82,12 @@ impl From<QueueVideoOutput> for FrameSet<InputId> {
 }
 
 pub(super) struct QueueAudioOutput {
-    pub samples: HashMap<InputId, PipelineEvent<Vec<AudioSamplesBatch>>>,
+    pub samples: HashMap<InputId, PipelineEvent<Vec<InputSamples>>>,
     pub start_pts: Duration,
     pub end_pts: Duration,
 }
 
-impl From<QueueAudioOutput> for AudioSamplesSet {
+impl From<QueueAudioOutput> for InputSamplesSet {
     fn from(value: QueueAudioOutput) -> Self {
         Self {
             samples: value

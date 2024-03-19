@@ -16,10 +16,10 @@ mod common;
 
 const BUNNY_FILE_URL: &str =
     "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
-const SINTEL_FILE_URL: &str =
-    "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4";
+const ELEPHANT_DREAM_FILE_URL: &str =
+    "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4";
 const BUNNY_FILE_PATH: &str = "examples/assets/BigBuckBunny.mp4";
-const SINTEL_FILE_PATH: &str = "examples/assets/Sintel.mp4";
+const ELETHANT_DREAM_FILE_PATH: &str = "examples/assets/ElephantsDream.mp4";
 const VIDEO_RESOLUTION: Resolution = Resolution {
     width: 1280,
     height: 720,
@@ -55,9 +55,9 @@ fn start_example_client_code() -> Result<()> {
     common::ensure_downloaded(BUNNY_FILE_URL, &bunny_path)?;
 
     info!("[example] Download sample.");
-    let sintel_path = env::current_dir()?.join(SINTEL_FILE_PATH);
+    let sintel_path = env::current_dir()?.join(ELETHANT_DREAM_FILE_PATH);
     fs::create_dir_all(sintel_path.parent().unwrap())?;
-    common::ensure_downloaded(SINTEL_FILE_URL, &sintel_path)?;
+    common::ensure_downloaded(ELEPHANT_DREAM_FILE_URL, &sintel_path)?;
 
     info!("[example] Send register input request.");
     common::post(&json!({
@@ -143,7 +143,7 @@ fn start_example_client_code() -> Result<()> {
         "audio": {
             "initial": {
                 "inputs": [
-                    {"input_id": "input_2",  "volume": 0.3},
+                    {"input_id": "input_2"},
                     {"input_id": "input_4"}
                 ]
             },

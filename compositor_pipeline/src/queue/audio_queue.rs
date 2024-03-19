@@ -4,7 +4,7 @@ use std::{
     vec,
 };
 
-use crate::audio_mixer::types::AudioSamplesBatch;
+use crate::audio_mixer::InputSamples;
 
 use super::{
     utils::{Clock, InputProcessor},
@@ -30,7 +30,7 @@ impl AudioQueue {
     pub fn add_input(
         &mut self,
         input_id: &InputId,
-        receiver: Receiver<PipelineEvent<AudioSamplesBatch>>,
+        receiver: Receiver<PipelineEvent<InputSamples>>,
         opts: InputOptions,
         clock: Clock,
     ) {
@@ -121,13 +121,13 @@ impl AudioQueue {
 #[derive(Debug)]
 struct AudioQueueInput {
     /// Samples/batches are PTS ordered where PTS=0 represents beginning of the stream.
-    queue: VecDeque<AudioSamplesBatch>,
+    queue: VecDeque<InputSamples>,
     /// Samples from the channel might have any PTS, they need to be processed before
     /// adding them to the `queue`.
-    receiver: Receiver<PipelineEvent<AudioSamplesBatch>>,
+    receiver: Receiver<PipelineEvent<InputSamples>>,
     /// Initial buffering + resets PTS to values starting with 0. All
     /// frames from receiver should be processed by this element.
-    input_samples_processor: InputProcessor<AudioSamplesBatch>,
+    input_samples_processor: InputProcessor<InputSamples>,
     /// If stream is required the queue should wait for frames. For optional
     /// inputs a queue will wait only as long as a buffer allows.
     required: bool,
@@ -146,7 +146,7 @@ impl AudioQueueInput {
         &mut self,
         pts_range: (Duration, Duration),
         queue_start: Instant,
-    ) -> PipelineEvent<Vec<AudioSamplesBatch>> {
+    ) -> PipelineEvent<Vec<InputSamples>> {
         // range in queue pts time frame
         let (start_pts, end_pts) = pts_range;
 
@@ -165,21 +165,24 @@ impl AudioQueueInput {
             .queue
             .iter()
             // start_pts and end_pts are already in units of this input
-            .filter(|batch| batch.start_pts <= end_pts && batch.end_pts() >= start_pts)
+            .filter(|batch| batch.start_pts <= end_pts && batch.end_pts >= start_pts)
             .cloned()
             .map(|mut batch| {
                 match self.offset {
                     Some(offset) => {
                         batch.start_pts += offset;
+                        batch.end_pts += offset;
                     }
                     None => {
                         batch.start_pts =
                             (input_start_time + batch.start_pts).duration_since(queue_start);
+                        batch.end_pts =
+                            (input_start_time + batch.end_pts).duration_since(queue_start);
                     }
                 }
                 batch
             })
-            .collect::<Vec<AudioSamplesBatch>>();
+            .collect::<Vec<InputSamples>>();
 
         self.drop_old_samples(pts_range.1, queue_start);
 
@@ -225,11 +228,11 @@ impl AudioQueueInput {
         };
 
         fn has_all_samples_for_pts_range(
-            queue: &VecDeque<AudioSamplesBatch>,
+            queue: &VecDeque<InputSamples>,
             range_end_pts: Duration,
         ) -> bool {
             match queue.back() {
-                Some(batch) => batch.end_pts() >= range_end_pts,
+                Some(batch) => batch.end_pts >= range_end_pts,
                 None => false,
             }
         }
@@ -251,7 +254,7 @@ impl AudioQueueInput {
         while self
             .queue
             .front()
-            .map_or(false, |batch| batch.end_pts() < pts)
+            .map_or(false, |batch| batch.end_pts < pts)
         {
             self.queue.pop_front();
         }

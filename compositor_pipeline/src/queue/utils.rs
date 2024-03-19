@@ -11,7 +11,7 @@ use std::{
 use compositor_render::Frame;
 use log::warn;
 
-use crate::audio_mixer::types::AudioSamplesBatch;
+use crate::audio_mixer::InputSamples;
 
 use super::PipelineEvent;
 
@@ -169,9 +169,10 @@ impl ApplyOffsetExt for Frame {
     }
 }
 
-impl ApplyOffsetExt for AudioSamplesBatch {
+impl ApplyOffsetExt for InputSamples {
     fn apply_offset(&mut self, offset: Duration) {
-        self.start_pts = self.start_pts.saturating_sub(offset)
+        self.start_pts = self.start_pts.saturating_sub(offset);
+        self.end_pts = self.end_pts.saturating_sub(offset);
     }
 
     fn pts(&self) -> Duration {

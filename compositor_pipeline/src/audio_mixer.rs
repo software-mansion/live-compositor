@@ -3,13 +3,12 @@ use std::sync::{Arc, Mutex};
 use compositor_render::{error::UpdateSceneError, OutputId};
 use tracing::trace;
 
-use self::{
-    internal_audio_mixer::InternalAudioMixer,
-    types::{AudioChannels, AudioMixingParams, AudioSamplesSet, OutputSamples},
-};
+use self::internal_audio_mixer::InternalAudioMixer;
 
 mod internal_audio_mixer;
-pub mod types;
+mod types;
+
+pub use types::*;
 
 #[derive(Debug, Clone)]
 pub(super) struct AudioMixer(Arc<Mutex<InternalAudioMixer>>);
@@ -21,7 +20,7 @@ impl AudioMixer {
         ))))
     }
 
-    pub fn mix_samples(&self, samples_set: AudioSamplesSet) -> OutputSamples {
+    pub fn mix_samples(&self, samples_set: InputSamplesSet) -> OutputSamplesSet {
         trace!(set=?samples_set, "Mixing samples");
         self.0.lock().unwrap().mix_samples(samples_set)
     }
@@ -30,12 +29,13 @@ impl AudioMixer {
         &self,
         output_id: OutputId,
         audio: AudioMixingParams,
+        mixing_strategy: MixingStrategy,
         channels: AudioChannels,
     ) {
         self.0
             .lock()
             .unwrap()
-            .register_output(output_id, audio, channels)
+            .register_output(output_id, audio, mixing_strategy, channels)
     }
 
     pub fn unregister_output(&self, output_id: &OutputId) {

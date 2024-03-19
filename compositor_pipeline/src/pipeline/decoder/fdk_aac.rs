@@ -1,10 +1,12 @@
+use std::sync::Arc;
+
 use compositor_render::InputId;
 use crossbeam_channel::{Receiver, Sender};
 use fdk_aac_sys as fdk;
 use tracing::{debug, error, span, Level};
 
 use crate::{
-    audio_mixer::types::{AudioSamples, AudioSamplesBatch},
+    audio_mixer::InputSamples,
     pipeline::structs::{EncodedChunk, EncodedChunkKind},
     queue::PipelineEvent,
 };
@@ -38,8 +40,9 @@ pub struct FdkAacDecoder;
 impl FdkAacDecoder {
     pub(super) fn new(
         options: AacDecoderOptions,
+        output_sample_rate: u32,
         chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
-        samples_sender: Sender<PipelineEvent<AudioSamplesBatch>>,
+        samples_sender: Sender<PipelineEvent<InputSamples>>,
         input_id: InputId,
     ) -> Result<Self, AacDecoderError> {
         let (result_sender, result_receiver) = crossbeam_channel::bounded(1);
@@ -53,7 +56,13 @@ impl FdkAacDecoder {
                     input_id = input_id.to_string()
                 )
                 .entered();
-                run_decoder_thread(options, samples_sender, chunks_receiver, result_sender)
+                run_decoder_thread(
+                    options,
+                    samples_sender,
+                    chunks_receiver,
+                    result_sender,
+                    output_sample_rate,
+                )
             })
             .unwrap();
 
@@ -65,9 +74,10 @@ impl FdkAacDecoder {
 
 fn run_decoder_thread(
     options: AacDecoderOptions,
-    samples_sender: Sender<PipelineEvent<AudioSamplesBatch>>,
+    samples_sender: Sender<PipelineEvent<InputSamples>>,
     chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
     result_sender: Sender<Result<(), AacDecoderError>>,
+    output_sample_rate: u32,
 ) {
     let decoder = match Decoder::new(options) {
         Ok(decoder) => {
@@ -88,7 +98,7 @@ fn run_decoder_thread(
                 break;
             }
         };
-        let decoded_samples = match decoder.decode_chunk(chunk) {
+        let decoded_samples = match decoder.decode_chunk(chunk, output_sample_rate) {
             Ok(samples) => samples,
             Err(e) => {
                 log::error!("Failed to decode AAC packet: {e}");
@@ -137,7 +147,11 @@ impl Decoder {
         Ok(dec)
     }
 
-    fn decode_chunk(&self, chunk: EncodedChunk) -> Result<Vec<AudioSamplesBatch>, AacDecoderError> {
+    fn decode_chunk(
+        &self,
+        chunk: EncodedChunk,
+        output_sample_rate: u32,
+    ) -> Result<Vec<InputSamples>, AacDecoderError> {
         if chunk.kind != EncodedChunkKind::Audio(crate::pipeline::AudioCodec::Aac) {
             return Err(AacDecoderError::UnsupportedChunkKind(chunk.kind));
         }
@@ -189,26 +203,18 @@ impl Decoder {
             }
 
             let samples = match info.channelConfig {
-                1 => AudioSamples::Mono(decoded_samples),
-                2 => AudioSamples::Stereo(
+                1 => Arc::new(decoded_samples.iter().map(|s| (*s, *s)).collect()),
+                2 => Arc::new(
                     decoded_samples
                         .chunks_exact(2)
                         .map(|c| (c[0], c[1]))
                         .collect(),
                 ),
-
                 _ => return Err(AacDecoderError::UnsupportedChannelConfig),
             };
 
-            // We need the info before the decode call to get the channel info, but the sample rate
-            // can change during `aacDecoder_DecodeFrame`
-            let info = unsafe { *fdk::aacDecoder_GetStreamInfo(self.0) };
-
-            output_buffer.push(AudioSamplesBatch {
-                samples: samples.into(),
-                start_pts: chunk.pts,
-                sample_rate: info.sampleRate as u32,
-            });
+            // TODO handle resampling to output sample rate
+            output_buffer.push(InputSamples::new(samples, chunk.pts, output_sample_rate))
         }
 
         Ok(output_buffer)

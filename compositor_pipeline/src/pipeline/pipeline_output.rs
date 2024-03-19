@@ -98,6 +98,7 @@ impl Pipeline {
             self.audio_mixer.register_output(
                 output_id.clone(),
                 audio_opts.initial,
+                audio_opts.mixing_strategy,
                 audio_opts.channels,
             );
         }

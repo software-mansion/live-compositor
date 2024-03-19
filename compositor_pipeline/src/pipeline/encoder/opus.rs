@@ -3,7 +3,7 @@ use log::error;
 use tracing::{span, trace, warn, Level};
 
 use crate::{
-    audio_mixer::types::{AudioChannels, AudioSamples, AudioSamplesBatch},
+    audio_mixer::{AudioChannels, AudioSamples, OutputSamples},
     error::EncoderInitError,
     pipeline::{
         structs::{EncodedChunk, EncodedChunkKind, EncoderOutputEvent},
@@ -21,7 +21,7 @@ pub struct Options {
 }
 
 pub struct OpusEncoder {
-    samples_batch_sender: Sender<PipelineEvent<AudioSamplesBatch>>,
+    samples_batch_sender: Sender<PipelineEvent<OutputSamples>>,
 }
 
 impl OpusEncoder {
@@ -48,14 +48,14 @@ impl OpusEncoder {
         })
     }
 
-    pub fn samples_batch_sender(&self) -> &Sender<PipelineEvent<AudioSamplesBatch>> {
+    pub fn samples_batch_sender(&self) -> &Sender<PipelineEvent<OutputSamples>> {
         &self.samples_batch_sender
     }
 }
 
 fn run_encoder_thread(
     mut encoder: opus::Encoder,
-    samples_batch_receiver: Receiver<PipelineEvent<AudioSamplesBatch>>,
+    samples_batch_receiver: Receiver<PipelineEvent<OutputSamples>>,
     packets_sender: Sender<EncoderOutputEvent>,
 ) {
     let mut output_buffer = [0u8; 1024 * 1024];
@@ -74,9 +74,9 @@ fn run_encoder_thread(
             PipelineEvent::EOS => break,
         };
 
-        let data = match batch.samples.as_ref() {
+        let data = match batch.samples {
             AudioSamples::Mono(mono_samples) => {
-                let Some(data) = encode(mono_samples) else {
+                let Some(data) = encode(&mono_samples) else {
                     continue;
                 };
                 data
