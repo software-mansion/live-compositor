@@ -1,5 +1,4 @@
 use compositor_render::error::ErrorStack;
-use crossbeam_channel::RecvTimeoutError;
 use log::{error, info};
 
 use serde_json::json;
@@ -9,7 +8,6 @@ use std::{
     net::SocketAddr,
     sync::Arc,
     thread,
-    time::Duration,
 };
 use tiny_http::{Header, Response, StatusCode};
 
@@ -84,40 +82,6 @@ impl Server {
             }
             Ok(ResponseHandler::Response(response)) => {
                 self.send_response(raw_request, response);
-            }
-            Ok(ResponseHandler::DeferredResponse(response)) => {
-                let server = self.clone();
-                thread::spawn(move || {
-                    let response = response.recv_timeout(Duration::from_secs(60));
-                    match response {
-                        Ok(Ok(response)) => {
-                            server.send_response(raw_request, response);
-                        }
-                        Ok(Err(err)) => {
-                            server.send_err_response(raw_request, err);
-                        }
-                        Err(RecvTimeoutError::Timeout) => {
-                            server.send_err_response(
-                                raw_request,
-                                ApiError::new(
-                                    "QUERY_TIMEOUT",
-                                    "query timed out".to_string(),
-                                    StatusCode(408),
-                                ),
-                            );
-                        }
-                        Err(RecvTimeoutError::Disconnected) => {
-                            server.send_err_response(
-                                raw_request,
-                                ApiError::new(
-                                    "INTERNAL_SERVER_ERROR",
-                                    "Internal Server Error".to_string(),
-                                    StatusCode(500),
-                                ),
-                            );
-                        }
-                    };
-                });
             }
             Err(err) => {
                 self.send_err_response(raw_request, err);

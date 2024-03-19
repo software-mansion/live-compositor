@@ -1,3 +1,4 @@
+use compositor_render::event_handler::emit_event;
 use compositor_render::Frame;
 use compositor_render::InputId;
 use crossbeam_channel::Receiver;
@@ -5,9 +6,10 @@ use crossbeam_channel::TryRecvError;
 
 use std::collections::HashMap;
 use std::collections::VecDeque;
-use std::mem;
 use std::time::Duration;
 use std::time::Instant;
+
+use crate::event::Event;
 
 use super::utils::Clock;
 use super::utils::InputProcessor;
@@ -38,13 +40,18 @@ impl VideoQueue {
         self.inputs.insert(
             input_id.clone(),
             VideoQueueInput {
+                input_id: input_id.clone(),
                 queue: VecDeque::new(),
                 receiver,
-                listeners: vec![],
-                input_frames_processor: InputProcessor::new(self.buffer_duration, clock),
+                input_frames_processor: InputProcessor::new(
+                    self.buffer_duration,
+                    clock,
+                    input_id.clone(),
+                ),
                 required: opts.required,
                 offset: opts.offset,
                 eos_sent: false,
+                first_frame_sent: false,
             },
         );
     }
@@ -122,27 +129,10 @@ impl VideoQueue {
             input.drop_old_frames(next_buffer_pts, queue_start)
         }
     }
-
-    pub fn subscribe_input_listener(
-        &mut self,
-        input_id: &InputId,
-        callback: Box<dyn FnOnce() + Send>,
-    ) {
-        if let Some(input) = self.inputs.get_mut(input_id) {
-            input.listeners.push(callback)
-        }
-    }
-
-    pub fn call_input_listeners(&mut self, input_id: &InputId) {
-        if let Some(input) = self.inputs.get_mut(input_id) {
-            for cb in mem::take(&mut input.listeners).into_iter() {
-                cb()
-            }
-        }
-    }
 }
 
 pub struct VideoQueueInput {
+    input_id: InputId,
     /// Frames are PTS ordered where PTS=0 represents beginning of the stream.
     queue: VecDeque<Frame>,
     /// Frames from the channel might have any PTS, they need to be processed
@@ -159,8 +149,7 @@ pub struct VideoQueueInput {
     offset: Option<Duration>,
 
     eos_sent: bool,
-
-    listeners: Vec<Box<dyn FnOnce() + Send>>,
+    first_frame_sent: bool,
 }
 
 impl VideoQueueInput {
@@ -195,8 +184,13 @@ impl VideoQueueInput {
 
         if self.input_frames_processor.did_receive_eos() && frame.is_none() && !self.eos_sent {
             self.eos_sent = true;
+            emit_event(Event::VideoInputStreamEos(self.input_id.clone()));
             Some(PipelineEvent::EOS)
         } else {
+            if !self.first_frame_sent && frame.is_some() {
+                emit_event(Event::VideoInputStreamPlaying(self.input_id.clone()));
+                self.first_frame_sent = true
+            }
             frame.map(PipelineEvent::Data)
         }
     }

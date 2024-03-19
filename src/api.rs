@@ -8,7 +8,6 @@ use compositor_render::{
     error::{ErrorStack, InitPipelineError},
     EventLoop,
 };
-use crossbeam_channel::{bounded, Receiver};
 
 use log::error;
 use serde::{Deserialize, Serialize};
@@ -30,7 +29,6 @@ pub enum Request {
     Register(RegisterRequest),
     Unregister(UnregisterRequest),
     UpdateOutput(UpdateOutputRequest),
-    Query(QueryRequest),
     Start,
 }
 
@@ -60,12 +58,6 @@ pub enum UnregisterRequest {
     },
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(tag = "query", rename_all = "snake_case")]
-pub enum QueryRequest {
-    WaitForNextFrame { input_id: InputId },
-}
-
 #[derive(Serialize, Debug)]
 #[serde(untagged)]
 pub enum Response {
@@ -91,7 +83,6 @@ pub struct OutputInfo {
 pub enum ResponseHandler {
     Response(Response),
     Ok,
-    DeferredResponse(Receiver<Result<Response, ApiError>>),
 }
 
 pub struct Api {
@@ -138,22 +129,6 @@ impl Api {
                 Ok(ResponseHandler::Ok)
             }
             Request::UpdateOutput(update) => self.handle_scene_update(update),
-            Request::Query(query) => self.handle_query(query),
-        }
-    }
-
-    fn handle_query(&self, query: QueryRequest) -> Result<ResponseHandler, ApiError> {
-        match query {
-            QueryRequest::WaitForNextFrame { input_id } => {
-                let (sender, receiver) = bounded(1);
-                self.pipeline().queue().subscribe_input_listener(
-                    &input_id.into(),
-                    Box::new(move || {
-                        sender.send(Ok(Response::Ok {})).unwrap();
-                    }),
-                );
-                Ok(ResponseHandler::DeferredResponse(receiver))
-            }
         }
     }
 

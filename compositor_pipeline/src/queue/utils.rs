@@ -8,10 +8,11 @@ use std::{
     time::{Duration, Instant},
 };
 
-use compositor_render::Frame;
+use compositor_render::{event_handler::emit_event, Frame, InputId};
 use log::warn;
 
 use crate::audio_mixer::InputSamples;
+use crate::event::Event;
 
 use super::PipelineEvent;
 
@@ -30,7 +31,9 @@ use super::PipelineEvent;
 /// 5. In `Ready` state `process_new_chunk` is immediately returning frame or sample
 ///    batch passed with arguments with modified pts.
 #[derive(Debug)]
-pub(super) struct InputProcessor<Payload: ApplyOffsetExt> {
+pub(super) struct InputProcessor<Payload: InputProcessorMediaExt> {
+    input_id: InputId,
+
     buffer_duration: Duration,
 
     /// Moment where input transitioned to a ready state
@@ -42,7 +45,7 @@ pub(super) struct InputProcessor<Payload: ApplyOffsetExt> {
 }
 
 #[derive(Debug)]
-pub(super) enum InputState<Payload: ApplyOffsetExt> {
+pub(super) enum InputState<Payload: InputProcessorMediaExt> {
     WaitingForStart,
     Buffering {
         buffer: Vec<(Payload, Duration)>,
@@ -55,13 +58,14 @@ pub(super) enum InputState<Payload: ApplyOffsetExt> {
     Done,
 }
 
-impl<Payload: ApplyOffsetExt> InputProcessor<Payload> {
-    pub(super) fn new(buffer_duration: Duration, clock: Clock) -> Self {
+impl<Payload: InputProcessorMediaExt> InputProcessor<Payload> {
+    pub(super) fn new(buffer_duration: Duration, clock: Clock, input_id: InputId) -> Self {
         Self {
             buffer_duration,
             start_time: None,
             state: InputState::WaitingForStart,
             clock,
+            input_id,
         }
     }
 
@@ -139,6 +143,7 @@ impl<Payload: ApplyOffsetExt> InputProcessor<Payload> {
                         .collect();
                     self.state = InputState::Ready { offset };
                     self.start_time = Some(self.clock.now());
+                    self.on_ready();
                     chunks
                 }
             }
@@ -152,14 +157,27 @@ impl<Payload: ApplyOffsetExt> InputProcessor<Payload> {
             }
         }
     }
+
+    fn on_ready(&self) {
+        match Payload::media_type() {
+            MediaType::Audio => emit_event(Event::AudioInputStreamDelivered(self.input_id.clone())),
+            MediaType::Video => emit_event(Event::VideoInputStreamDelivered(self.input_id.clone())),
+        }
+    }
 }
 
-pub(super) trait ApplyOffsetExt {
+pub(super) enum MediaType {
+    Audio,
+    Video,
+}
+
+pub(super) trait InputProcessorMediaExt {
     fn apply_offset(&mut self, offset: Duration);
     fn pts(&self) -> Duration;
+    fn media_type() -> MediaType;
 }
 
-impl ApplyOffsetExt for Frame {
+impl InputProcessorMediaExt for Frame {
     fn apply_offset(&mut self, offset: Duration) {
         self.pts = self.pts.saturating_sub(offset)
     }
@@ -167,9 +185,13 @@ impl ApplyOffsetExt for Frame {
     fn pts(&self) -> Duration {
         self.pts
     }
+
+    fn media_type() -> MediaType {
+        MediaType::Video
+    }
 }
 
-impl ApplyOffsetExt for InputSamples {
+impl InputProcessorMediaExt for InputSamples {
     fn apply_offset(&mut self, offset: Duration) {
         self.start_pts = self.start_pts.saturating_sub(offset);
         self.end_pts = self.end_pts.saturating_sub(offset);
@@ -177,6 +199,10 @@ impl ApplyOffsetExt for InputSamples {
 
     fn pts(&self) -> Duration {
         self.start_pts
+    }
+
+    fn media_type() -> MediaType {
+        MediaType::Audio
     }
 }
 
