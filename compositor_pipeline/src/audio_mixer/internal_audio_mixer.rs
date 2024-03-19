@@ -134,7 +134,7 @@ impl InternalAudioMixer {
 
                 input_samples.end_pts
             });
-        // Appending samples missing in [last_end_pts, ]
+        // Appending samples missing
         let missing_samples = Self::samples_in_frame(start_pts, end_pts, sample_rate);
         Self::push_missing_samples(&mut samples_in_frame, missing_samples);
 
