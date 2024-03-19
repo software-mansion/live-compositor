@@ -47,7 +47,7 @@ impl VideoDecoder {
     }
 
     pub fn decode(&mut self, packet: rtp::packet::Packet) -> Result<()> {
-        let pts = packet.header.timestamp as f64 / 90000.0;
+        let pts = packet.header.timestamp as f64 / 90000.0 * 1_000_000.0;
         let chunk_data = self.depayloader.depacketize(&packet.payload)?;
         if chunk_data.is_empty() {
             return Ok(());
