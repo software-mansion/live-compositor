@@ -7,7 +7,7 @@ use std::{
     thread::{self},
     time::Duration,
 };
-use video_compositor::{config::config, http, logger, types::Resolution};
+use video_compositor::{logger, server, types::Resolution};
 
 use crate::common::write_video_example_sdp_file;
 
@@ -49,7 +49,7 @@ fn main() {
         }
     });
 
-    http::Server::new(config().api_port).run();
+    server::run();
 }
 
 fn start_example_client_code() -> Result<()> {
@@ -99,22 +99,24 @@ fn start_example_client_code() -> Result<()> {
         "output_id": "output_1",
         "port": 8002,
         "ip": "127.0.0.1",
-        "resolution": {
-            "width": VIDEO_RESOLUTION.width,
-            "height": VIDEO_RESOLUTION.height,
-        },
-        "encoder_preset": "ultrafast",
-        "initial_scene": {
-            "id": "embed_input_on_website",
-            "type": "web_view",
-            "instance_id": "example_website",
-            "children": [
-                {
-                    "id": "big_bunny_video",
-                    "type": "input_stream",
-                    "input_id": "input_1",
-                }
-            ]
+        "video": {
+            "resolution": {
+                "width": VIDEO_RESOLUTION.width,
+                "height": VIDEO_RESOLUTION.height,
+            },
+            "encoder_preset": "ultrafast",
+            "initial": {
+                "id": "embed_input_on_website",
+                "type": "web_view",
+                "instance_id": "example_website",
+                "children": [
+                    {
+                        "id": "big_bunny_video",
+                        "type": "input_stream",
+                        "input_id": "input_1",
+                    }
+                ]
+            }
         }
     }))?;
 

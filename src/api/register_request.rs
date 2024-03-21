@@ -3,23 +3,20 @@ use compositor_render::InputId;
 
 use crate::{error::ApiError, types::RegisterRequest};
 
-use super::{Api, Pipeline, Response, ResponseHandler};
+use super::{Api, Pipeline, Response};
 
 fn handle_register_input(
-    api: &mut Api,
+    api: &Api,
     input_id: InputId,
     register_options: RegisterInputOptions,
-) -> Result<ResponseHandler, ApiError> {
+) -> Result<Response, ApiError> {
     match Pipeline::register_input(&api.pipeline, input_id, register_options)? {
-        Some(Port(port)) => Ok(ResponseHandler::Response(Response::RegisteredPort { port })),
-        None => Ok(ResponseHandler::Ok),
+        Some(Port(port)) => Ok(Response::RegisteredPort { port }),
+        None => Ok(Response::Ok {}),
     }
 }
 
-pub fn handle_register_request(
-    api: &mut Api,
-    request: RegisterRequest,
-) -> Result<ResponseHandler, ApiError> {
+pub fn handle_register_request(api: &Api, request: RegisterRequest) -> Result<Response, ApiError> {
     match request {
         RegisterRequest::RtpInputStream(rtp) => {
             let (input_id, register_options) = rtp.try_into()?;
@@ -31,26 +28,24 @@ pub fn handle_register_request(
         }
         RegisterRequest::OutputStream(output_stream) => {
             match api.pipeline().register_output(output_stream.try_into()?)? {
-                Some(Port(port)) => {
-                    Ok(ResponseHandler::Response(Response::RegisteredPort { port }))
-                }
-                None => Ok(ResponseHandler::Ok),
+                Some(Port(port)) => Ok(Response::RegisteredPort { port }),
+                None => Ok(Response::Ok {}),
             }
         }
         RegisterRequest::Shader(spec) => {
             let spec = spec.try_into()?;
             Pipeline::register_renderer(&api.pipeline, spec)?;
-            Ok(ResponseHandler::Ok)
+            Ok(Response::Ok {})
         }
         RegisterRequest::WebRenderer(spec) => {
             let spec = spec.try_into()?;
             Pipeline::register_renderer(&api.pipeline, spec)?;
-            Ok(ResponseHandler::Ok)
+            Ok(Response::Ok {})
         }
         RegisterRequest::Image(spec) => {
             let spec = spec.try_into()?;
             Pipeline::register_renderer(&api.pipeline, spec)?;
-            Ok(ResponseHandler::Ok)
+            Ok(Response::Ok {})
         }
     }
 }

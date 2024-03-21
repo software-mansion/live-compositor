@@ -202,7 +202,7 @@ impl AudioQueueInput {
             emit_event(Event::AudioInputStreamEos(self.input_id.clone()));
             PipelineEvent::EOS
         } else {
-            if !self.first_samples_sent && popped_samples.len() > 0 {
+            if !self.first_samples_sent && !popped_samples.is_empty() {
                 emit_event(Event::AudioInputStreamPlaying(self.input_id.clone()));
                 self.first_samples_sent = true
             }

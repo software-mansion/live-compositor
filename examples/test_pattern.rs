@@ -8,9 +8,9 @@ use std::{
     thread,
     time::Duration,
 };
-use video_compositor::{config::config, http, logger, types::Resolution};
+use video_compositor::{logger, server, types::Resolution};
 
-use crate::common::write_video_example_sdp_file;
+use crate::common::{start_websocket_thread, write_video_example_sdp_file};
 
 #[path = "./common/common.rs"]
 mod common;
@@ -31,7 +31,7 @@ fn main() {
         }
     });
 
-    http::Server::new(config().api_port).run();
+    server::run()
 }
 
 #[derive(Deserialize)]
@@ -49,6 +49,7 @@ fn start_example_client_code() -> Result<()> {
         .spawn()?;
 
     thread::sleep(Duration::from_secs(2));
+    start_websocket_thread();
 
     info!("[example] Send register input request.");
     let RegisterResponse { port: input_port } = common::post(&json!({

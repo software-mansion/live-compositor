@@ -2,7 +2,7 @@ use anyhow::Result;
 use compositor_render::use_global_wgpu_ctx;
 use reqwest::StatusCode;
 use std::{env, thread, time::Duration};
-use video_compositor::{http, logger};
+use video_compositor::{logger, server};
 
 pub struct CompositorInstance {
     pub api_port: u16,
@@ -12,6 +12,7 @@ pub struct CompositorInstance {
 impl CompositorInstance {
     pub fn start(api_port: u16) -> Self {
         env::set_var("LIVE_COMPOSITOR_WEB_RENDERER_ENABLE", "0");
+        env::set_var("LIVE_COMPOSITOR_API_PORT", api_port.to_string());
         ffmpeg_next::format::network::init();
         logger::init_logger();
 
@@ -19,9 +20,7 @@ impl CompositorInstance {
 
         thread::Builder::new()
             .name(format!("compositor instance on port {api_port}"))
-            .spawn(move || {
-                http::Server::new(api_port).run();
-            })
+            .spawn(server::run)
             .unwrap();
 
         CompositorInstance {

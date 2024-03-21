@@ -10,7 +10,7 @@ use std::{
 };
 use video_compositor::{config::config, logger, types::Resolution};
 
-use crate::common::write_video_example_sdp_file;
+use crate::common::{start_websocket_thread, write_video_example_sdp_file};
 
 #[path = "./common/common.rs"]
 mod common;
@@ -108,6 +108,7 @@ fn start_example_client_code(host_ip: String) -> Result<()> {
         .stderr(Stdio::null())
         .stdout(Stdio::null())
         .spawn()?;
+    start_websocket_thread();
 
     info!("[example] Send register input request.");
     common::post(&json!({

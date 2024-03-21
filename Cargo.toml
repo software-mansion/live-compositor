@@ -66,6 +66,12 @@ webrtc-util = { workspace = true }
 rand = { workspace = true }
 reqwest = { workspace = true }
 rubato = { workspace = true }
+tokio = { version = "1", features = ["full"] }
+futures-util = "0.3.30"
+axum = { version = "0.7.4", features = ["ws"] }
+
+[dev-dependencies]
+websocket = "0.27.0"
 
 [[bin]]
 name = "process_helper"
