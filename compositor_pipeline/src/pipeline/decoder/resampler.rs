@@ -11,7 +11,6 @@ use crate::audio_mixer::InputSamples;
 use crate::queue::PipelineEvent;
 
 use super::DecodedSamples;
-use super::ResamplerInitError;
 
 const SAMPLE_BATCH_DURATION: Duration = Duration::from_millis(20);
 
@@ -24,7 +23,7 @@ impl Resampler {
         output_sample_rate: u32,
         decoder_receiver: Receiver<PipelineEvent<DecodedSamples>>,
         sender: Sender<PipelineEvent<InputSamples>>,
-    ) -> Result<(), ResamplerInitError> {
+    ) -> Result<(), rubato::ResamplerConstructionError> {
         if input_sample_rate == output_sample_rate {
             Self::spawn_passthrough_resampler_thread(input_id, decoder_receiver, sender);
             Ok(())
@@ -87,21 +86,20 @@ impl Resampler {
         output_sample_rate: u32,
         decoder_receiver: Receiver<PipelineEvent<DecodedSamples>>,
         sender: Sender<PipelineEvent<InputSamples>>,
-    ) -> Result<(), ResamplerInitError> {
+    ) -> Result<(), rubato::ResamplerConstructionError> {
         /// This part of pipeline use stereo
         const CHANNELS: usize = 2;
-        /// Not sure what should be here, but rubato example used 2 https://github.com/HEnquist/rubato/blob/master/examples/process_f64.rs#L174
+        /// Not sure what should be here, but rubato example used 2
+        /// https://github.com/HEnquist/rubato/blob/master/examples/process_f64.rs#L174
         const SUB_CHUNKS: usize = 2;
         let output_batch_size =
             (output_sample_rate as f64 * SAMPLE_BATCH_DURATION.as_secs_f64()).round() as usize;
 
         let resampler = rubato::FftFixedOut::<f64>::new(
-            // input_sample_rate as usize,
             input_sample_rate as usize,
             output_sample_rate as usize,
             output_batch_size,
             SUB_CHUNKS,
-            // Since this part of pipeline always use stereo
             CHANNELS,
         )?;
 
@@ -114,7 +112,13 @@ impl Resampler {
                     input_id = input_id.to_string()
                 )
                 .entered();
-                Self::fft_resampler_thread(decoder_receiver, sender, resampler, output_sample_rate);
+                Self::fft_resampler_thread(
+                    decoder_receiver,
+                    sender,
+                    resampler,
+                    input_sample_rate,
+                    output_sample_rate,
+                );
             })
             .unwrap();
 
@@ -125,22 +129,37 @@ impl Resampler {
         receiver: Receiver<PipelineEvent<DecodedSamples>>,
         sender: Sender<PipelineEvent<InputSamples>>,
         mut resampler: rubato::FftFixedOut<f64>,
+        input_sample_rate: u32,
         output_sample_rate: u32,
     ) {
         // input and output buffers are used to reduce allocations
-        let mut input_buffer = vec![Vec::new(); 2];
-        let mut output_buffer = vec![vec![0.0; resampler.output_frames_max()]; 2];
+
+        // resampler.input_buffer_allocate() use only resampler.input_frames_max() as capacity,
+        // but since this code push whole input batch into this buffer and fill missing samples it
+        // will perform re-allocation anyway. With resampler.input_frames_max() * 10 re-allocation
+        // probably won't happen (only in case of missing many consecutive batches).
+        let alloc_input_buffer = || Vec::<f64>::with_capacity(resampler.input_frames_max() * 10);
+        let mut input_buffer = vec![alloc_input_buffer(); 2];
+        let mut output_buffer = resampler.output_buffer_allocate(true);
 
         // Used to fill missing samples and determine batch pts
-        let mut first_batch_pts = None;
         let mut send_samples = 0;
-        let mut last_end_pts = None;
+        let mut first_batch_pts = None;
+        let mut previous_end_pts = None;
 
         for event in receiver {
             let PipelineEvent::Data(decoded_samples) = event else {
                 break
             };
-            append_to_input_buffer(&mut input_buffer, &decoded_samples, &mut last_end_pts);
+            if decoded_samples.sample_rate != input_sample_rate {
+                error!(
+                    "Resampler received samples with wrong sample rate. Expected sample rate: {}, received: {}",
+                    input_sample_rate,
+                    decoded_samples.sample_rate
+                );
+            }
+
+            append_to_input_buffer(&mut input_buffer, &decoded_samples, &mut previous_end_pts);
             let first_batch_pts = *first_batch_pts.get_or_insert(decoded_samples.start_pts);
 
             while resampler.input_frames_next() <= input_buffer[0].len() {
@@ -173,11 +192,12 @@ impl Resampler {
 fn append_to_input_buffer(
     input_buffer: &mut [Vec<f64>],
     decoded_samples: &DecodedSamples,
-    last_end_pts: &mut Option<Duration>,
+    previous_end_pts: &mut Option<Duration>,
 ) {
     const PTS_COMPARE_ERROR_MARGIN: Duration = Duration::from_nanos(100);
-    if let Some(end_pts) = last_end_pts {
+    if let Some(end_pts) = previous_end_pts {
         if decoded_samples.start_pts > *end_pts + PTS_COMPARE_ERROR_MARGIN {
+            debug!("Filling missing samples in resampler.");
             fill_missing_samples(
                 input_buffer,
                 decoded_samples.start_pts - *end_pts,
@@ -190,7 +210,7 @@ fn append_to_input_buffer(
         input_buffer[1].push(*r as f64 / i16::MAX as f64);
     }
 
-    *last_end_pts = Some(decoded_samples.end_pts());
+    *previous_end_pts = Some(decoded_samples.end_pts());
 }
 
 fn fill_missing_samples(

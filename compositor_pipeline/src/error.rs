@@ -6,10 +6,7 @@ use compositor_render::{
     InputId, OutputId,
 };
 
-use crate::pipeline::{
-    decoder::{self, fdk_aac::AacDecoderError},
-    VideoCodec,
-};
+use crate::pipeline::{decoder::fdk_aac::AacDecoderError, VideoCodec};
 
 #[derive(Debug, thiserror::Error)]
 pub enum RegisterInputError {
@@ -102,7 +99,7 @@ pub enum DecoderInitError {
     #[error(transparent)]
     AacError(#[from] AacDecoderError),
     #[error(transparent)]
-    ResamplerError(#[from] decoder::ResamplerInitError),
+    ResamplerError(#[from] rubato::ResamplerConstructionError),
 }
 
 #[derive(Debug, thiserror::Error)]

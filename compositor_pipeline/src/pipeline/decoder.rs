@@ -53,7 +53,7 @@ impl Decoder {
         let video_receiver =
             if let (Some(opt), Some(video_receiver)) = (video_decoder_opt, video_receiver) {
                 let (sender, receiver) = bounded(10);
-                VideoDecoder::new(&opt, video_receiver, sender, input_id.clone())?;
+                VideoDecoder::spawn(&opt, video_receiver, sender, input_id.clone())?;
                 Some(receiver)
             } else {
                 None
@@ -62,7 +62,6 @@ impl Decoder {
             if let (Some(opt), Some(audio_receiver)) = (audio_decoder_opt, audio_receiver) {
                 let (sender, receiver) = bounded(10);
                 AudioDecoder::spawn(opt, output_sample_rate, audio_receiver, sender, input_id)?;
-
                 Some(receiver)
             } else {
                 None
@@ -112,23 +111,17 @@ impl AudioDecoder {
     }
 }
 
-enum VideoDecoder {
-    H264(H264FfmpegDecoder),
-}
+struct VideoDecoder;
 
 impl VideoDecoder {
-    pub fn new(
+    pub fn spawn(
         options: &VideoDecoderOptions,
         chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
         frame_sender: Sender<PipelineEvent<Frame>>,
         input_id: InputId,
-    ) -> Result<Self, DecoderInitError> {
+    ) -> Result<(), DecoderInitError> {
         match options.codec {
-            VideoCodec::H264 => Ok(Self::H264(H264FfmpegDecoder::new(
-                chunks_receiver,
-                frame_sender,
-                input_id,
-            )?)),
+            VideoCodec::H264 => H264FfmpegDecoder::spawn(chunks_receiver, frame_sender, input_id),
         }
     }
 }

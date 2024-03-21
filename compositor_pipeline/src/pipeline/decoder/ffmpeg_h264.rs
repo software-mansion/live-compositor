@@ -20,11 +20,11 @@ use tracing::{debug, error, span, trace, warn, Level};
 pub struct H264FfmpegDecoder;
 
 impl H264FfmpegDecoder {
-    pub fn new(
+    pub fn spawn(
         chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
         frame_sender: Sender<PipelineEvent<Frame>>,
         input_id: InputId,
-    ) -> Result<Self, DecoderInitError> {
+    ) -> Result<(), DecoderInitError> {
         let (init_result_sender, init_result_receiver) = crossbeam_channel::bounded(0);
 
         let mut parameters = ffmpeg_next::codec::Parameters::new();
@@ -55,7 +55,7 @@ impl H264FfmpegDecoder {
 
         init_result_receiver.recv().unwrap()?;
 
-        Ok(Self)
+        Ok(())
     }
 }
 
