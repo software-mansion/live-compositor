@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use std::{time::Duration, vec};
+use std::time::Duration;
 
 use compositor_render::InputId;
 use crossbeam_channel::{Receiver, Sender};
@@ -132,14 +132,13 @@ impl Resampler {
         input_sample_rate: u32,
         output_sample_rate: u32,
     ) {
-        // input and output buffers are used to reduce allocations
+        // Input buffer is preallocated, to push input samples and fill missing samples between them.
+        // Reallocation happens anyway per every output batch, due to drain from the begging,
+        // but this should have a noticeable performance impact and reduces code complexity.
+        // This could be done without allocations, but it would complicate this code substantially.
+        let mut input_buffer = resampler.input_buffer_allocate(false);
 
-        // resampler.input_buffer_allocate() use only resampler.input_frames_max() as capacity,
-        // but since this code push whole input batch into this buffer and fill missing samples it
-        // will perform re-allocation anyway. With resampler.input_frames_max() * 10 re-allocation
-        // probably won't happen (only in case of missing many consecutive batches).
-        let alloc_input_buffer = || Vec::<f64>::with_capacity(resampler.input_frames_max() * 10);
-        let mut input_buffer = vec![alloc_input_buffer(); 2];
+        // Output buffer is preallocated to avoid allocating it on every output batch
         let mut output_buffer = resampler.output_buffer_allocate(true);
 
         // Used to fill missing samples and determine batch pts
