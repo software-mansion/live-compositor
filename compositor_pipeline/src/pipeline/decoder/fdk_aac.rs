@@ -1,17 +1,16 @@
+use std::ops::ControlFlow;
 use std::sync::Arc;
 
 use compositor_render::InputId;
 use crossbeam_channel::{Receiver, Sender};
 use fdk_aac_sys as fdk;
+use log::warn;
 use tracing::{debug, error, span, Level};
 
-use crate::{
-    error::DecoderInitError,
-    pipeline::structs::{EncodedChunk, EncodedChunkKind},
-    queue::PipelineEvent,
-};
+use crate::{pipeline::structs::{EncodedChunk, EncodedChunkKind}, queue::PipelineEvent};
 
-use super::{AacDecoderOptions, AacTransport, DecodedAudioInputInfo, DecodedSamples};
+
+use super::{AacDecoderOptions, DecodedAudioInputInfo, DecodedSamples};
 
 #[derive(Debug, thiserror::Error)]
 pub enum AacDecoderError {
@@ -26,16 +25,9 @@ pub enum AacDecoderError {
 
     #[error("The aac decoder cannot decode chunks with sample rate {0}.")]
     UnsupportedSampleRate(i32),
-}
-
-impl From<AacTransport> for fdk::TRANSPORT_TYPE {
-    fn from(value: AacTransport) -> Self {
-        match value {
-            AacTransport::RawAac => fdk::TRANSPORT_TYPE_TT_MP4_RAW,
-            AacTransport::ADTS => fdk::TRANSPORT_TYPE_TT_MP4_ADTS,
-            AacTransport::ADIF => fdk::TRANSPORT_TYPE_TT_MP4_ADIF,
-        }
-    }
+    
+    #[error("The aac decoder thread start failed.")]
+    DecoderStartFailure
 }
 
 pub struct FdkAacDecoder;
@@ -46,9 +38,8 @@ impl FdkAacDecoder {
         chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
         samples_sender: Sender<PipelineEvent<DecodedSamples>>,
         input_id: InputId,
-    ) -> Result<DecodedAudioInputInfo, DecoderInitError> {
+    ) -> Result<DecodedAudioInputInfo, AacDecoderError> {
         let (result_sender, result_receiver) = crossbeam_channel::bounded(1);
-
         std::thread::Builder::new()
             .name(format!("fdk aac decoder {}", input_id.0))
             .spawn(move || {
@@ -58,11 +49,13 @@ impl FdkAacDecoder {
                     input_id = input_id.to_string()
                 )
                 .entered();
-                run_decoder_thread(options, samples_sender, chunks_receiver, result_sender)
+                run_decoder_thread(options,chunks_receiver, samples_sender, result_sender)
             })
             .unwrap();
 
-        let decoded_sample_rate = result_receiver.recv().unwrap()?;
+        let Ok(decoded_sample_rate) = result_receiver.recv() else {
+            return Err(AacDecoderError::DecoderStartFailure);
+        };
         let info = DecodedAudioInputInfo {
             decoded_sample_rate,
         };
@@ -73,21 +66,36 @@ impl FdkAacDecoder {
 
 fn run_decoder_thread(
     options: AacDecoderOptions,
-    samples_sender: Sender<PipelineEvent<DecodedSamples>>,
     chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
-    result_sender: Sender<Result<u32, AacDecoderError>>,
+    samples_sender: Sender<PipelineEvent<DecodedSamples>>,
+    result_sender: Sender<u32>
 ) {
-    let decoder = match Decoder::new(options) {
-        Ok(decoder) => {
-            result_sender.send(Ok(decoder.sample_rate)).unwrap();
-            decoder
-        }
-
-        Err(e) => {
-            result_sender.send(Err(e)).unwrap();
+    let chunk = match chunks_receiver.recv() {
+        Ok(PipelineEvent::Data(chunk)) => chunk,
+        Ok(PipelineEvent::EOS) | Err(_) => {
+            log::warn!("AAC decoder received no data and its input stream has ended");
             return;
         }
     };
+
+    let decoder = match Decoder::new(options.clone(), &chunk) {
+        Ok(decoder) => decoder,
+        Err(e) => {
+            // unfortunately, since this decoder needs to inspect the first data chunk
+            // to initialize, we cannot block in the main thread and wait for it to
+            // report a success or failure.
+            log::error!("Fatal AAC decoder error at initialization: {e}");
+            return;
+        }
+    };
+
+    if let Err(err) = result_sender.send(decoder.sample_rate) {
+        warn!("Failed to send decoder init result: {}", err);
+    };
+
+    if process_chunk(chunk, &decoder, &samples_sender).is_break() {
+        return;
+    }
 
     for chunk in chunks_receiver {
         let chunk = match chunk {
@@ -96,24 +104,39 @@ fn run_decoder_thread(
                 break;
             }
         };
-        let decoded_samples = match decoder.decode_chunk(chunk) {
-            Ok(samples) => samples,
-            Err(e) => {
-                log::error!("Failed to decode AAC packet: {e}");
-                continue;
-            }
-        };
 
-        for batch in decoded_samples {
-            if samples_sender.send(PipelineEvent::Data(batch)).is_err() {
-                debug!("Failed to send audio samples from AAC decoder. Channel closed.");
-                return;
-            }
+        if process_chunk(chunk, &decoder, &samples_sender).is_break() {
+            break;
         }
     }
-    if samples_sender.send(PipelineEvent::EOS).is_err() {
-        debug!("Failed to send EOS from AAC decoder. Channel closed.")
+}
+
+fn process_chunk(
+    chunk: EncodedChunk,
+    decoder: &Decoder,
+    sender: &Sender<PipelineEvent<DecodedSamples>>,
+) -> ControlFlow<()> {
+    let decoded_samples = match decoder.decode_chunk(chunk) {
+        Ok(samples) => samples,
+        Err(e) => {
+            log::error!("Failed to decode AAC packet: {e}");
+            return ControlFlow::Continue(());
+        }
+    };
+
+    for batch in decoded_samples {
+        if sender.send(PipelineEvent::Data(batch)).is_err() {
+            debug!("Failed to send audio samples from AAC decoder. Channel closed.");
+
+            if sender.send(PipelineEvent::EOS).is_err() {
+                debug!("Failed to send EOS from AAC decoder. Channel closed.")
+            }
+
+            return ControlFlow::Break(());
+        }
     }
+
+    ControlFlow::Continue(())
 }
 
 struct Decoder {
@@ -122,8 +145,20 @@ struct Decoder {
 }
 
 impl Decoder {
-    fn new(options: AacDecoderOptions) -> Result<Self, AacDecoderError> {
-        let instance = unsafe { fdk::aacDecoder_Open(options.transport.into(), 1) };
+    /// The encoded chunk used for initialization here still needs to be fed into `Decoder::decode_chunk` later
+    fn new(
+        options: AacDecoderOptions,
+        first_chunk: &EncodedChunk,
+    ) -> Result<Self, AacDecoderError> {
+        let transport = if first_chunk.data[..4] == [b'A', b'D', b'I', b'F'] {
+            fdk::TRANSPORT_TYPE_TT_MP4_ADIF
+        } else if first_chunk.data[0] == 0xff && first_chunk.data[1] & 0xf0 == 0xf0 {
+            fdk::TRANSPORT_TYPE_TT_MP4_ADTS
+        } else {
+            fdk::TRANSPORT_TYPE_TT_MP4_RAW
+        };
+
+        let instance = unsafe { fdk::aacDecoder_Open(transport, 1) };
 
         if let Some(config) = options.asc {
             let result = unsafe {

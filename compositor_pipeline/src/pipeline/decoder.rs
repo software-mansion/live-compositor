@@ -155,16 +155,8 @@ pub struct DecodedDataReceiver {
     pub audio: Option<Receiver<PipelineEvent<InputSamples>>>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum AacTransport {
-    RawAac,
-    ADTS,
-    ADIF,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AacDecoderOptions {
-    pub transport: AacTransport,
     pub asc: Option<Bytes>,
 }
 
