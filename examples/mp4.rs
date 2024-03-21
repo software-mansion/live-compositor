@@ -14,8 +14,11 @@ use crate::common::write_video_audio_example_sdp_file;
 #[path = "./common/common.rs"]
 mod common;
 
-const MP4_URL: &str =
-    "https://filesamples.com/samples/video/mp4/sample_960x400_ocean_with_audio.mp4";
+const BUNNY_URL: &str =
+    "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+
+// const MP4_URL: &str =
+//     "https://filesamples.com/samples/video/mp4/sample_960x400_ocean_with_audio.mp4";
 const VIDEO_RESOLUTION: Resolution = Resolution {
     width: 1280,
     height: 720,
@@ -50,7 +53,7 @@ fn start_example_client_code() -> Result<()> {
         "type": "register",
         "entity_type": "mp4",
         "input_id": "input_1",
-        "url": MP4_URL,
+        "url": BUNNY_URL
     }))?;
 
     let shader_source = include_str!("./silly.wgsl");

@@ -3071,6 +3071,7 @@ dependencies = [
  "rand",
  "reqwest",
  "rtp",
+ "rubato",
  "schemars",
  "serde",
  "serde_json",

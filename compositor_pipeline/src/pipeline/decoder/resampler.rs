@@ -3,7 +3,7 @@ use std::{time::Duration, vec};
 
 use compositor_render::InputId;
 use crossbeam_channel::{Receiver, Sender};
-use log::error;
+use log::{debug, error};
 use rubato::Resampler as _;
 use tracing::{span, Level};
 
@@ -29,7 +29,7 @@ impl Resampler {
             Self::spawn_passthrough_resampler_thread(input_id, decoder_receiver, sender);
             Ok(())
         } else {
-            Self::spawn_ffr_resampler_thread(
+            Self::spawn_fft_resampler_thread(
                 input_id,
                 input_sample_rate,
                 output_sample_rate,
@@ -81,22 +81,28 @@ impl Resampler {
         sender.send(PipelineEvent::EOS).unwrap();
     }
 
-    fn spawn_ffr_resampler_thread(
+    fn spawn_fft_resampler_thread(
         input_id: InputId,
         input_sample_rate: u32,
         output_sample_rate: u32,
         decoder_receiver: Receiver<PipelineEvent<DecodedSamples>>,
         sender: Sender<PipelineEvent<InputSamples>>,
     ) -> Result<(), ResamplerInitError> {
-        let output_batch_count =
+        /// This part of pipeline use stereo
+        const CHANNELS: usize = 2;
+        /// Not sure what should be here, but rubato example used 2 https://github.com/HEnquist/rubato/blob/master/examples/process_f64.rs#L174
+        const SUB_CHUNKS: usize = 2;
+        let output_batch_size =
             (output_sample_rate as f64 * SAMPLE_BATCH_DURATION.as_secs_f64()).round() as usize;
 
-        let resampler = rubato::FftFixedOut::<f32>::new(
+        let resampler = rubato::FftFixedOut::<f64>::new(
+            // input_sample_rate as usize,
             input_sample_rate as usize,
             output_sample_rate as usize,
-            output_batch_count,
-            1024,
-            2,
+            output_batch_size,
+            SUB_CHUNKS,
+            // Since this part of pipeline always use stereo
+            CHANNELS,
         )?;
 
         std::thread::Builder::new()
@@ -118,50 +124,107 @@ impl Resampler {
     fn fft_resampler_thread(
         receiver: Receiver<PipelineEvent<DecodedSamples>>,
         sender: Sender<PipelineEvent<InputSamples>>,
-        mut resampler: rubato::FftFixedOut<f32>,
+        mut resampler: rubato::FftFixedOut<f64>,
         output_sample_rate: u32,
     ) {
+        // input and output buffers are used to reduce allocations
         let mut input_buffer = vec![Vec::new(); 2];
-        // let mut input_buffer = vec![VecDeque::new(); 2];
         let mut output_buffer = vec![vec![0.0; resampler.output_frames_max()]; 2];
+
+        // Used to fill missing samples and determine batch pts
+        let mut first_batch_pts = None;
+        let mut send_samples = 0;
+        let mut last_end_pts = None;
+
         for event in receiver {
             let PipelineEvent::Data(decoded_samples) = event else {
                 break
             };
-            for (l, r) in decoded_samples.samples.iter().cloned() {
-                input_buffer[0].push(l as f32);
-                input_buffer[1].push(r as f32);
-            }
+            append_to_input_buffer(&mut input_buffer, &decoded_samples, &mut last_end_pts);
+            let first_batch_pts = *first_batch_pts.get_or_insert(decoded_samples.start_pts);
 
-            let mut resampled_samples = Vec::new();
-            while resampler.input_frames_next() <= input_buffer.len() {
+            while resampler.input_frames_next() <= input_buffer[0].len() {
                 match resampler.process_into_buffer(&input_buffer, &mut output_buffer, None) {
-                    Ok((input_samples, output_samples)) => {
-                        for i in 0..output_samples {
-                            let l = clip_to_i16(output_buffer[0][i]);
-                            let r = clip_to_i16(output_buffer[1][i]);
-                            resampled_samples.push((l, r));
+                    Ok((used_input_samples, produced_samples)) => {
+                        let samples =
+                            Arc::new(read_output_buffer(&output_buffer, produced_samples));
+                        let start_pts =
+                            batch_pts(first_batch_pts, output_sample_rate, send_samples);
+                        let input_samples =
+                            InputSamples::new(samples, start_pts, output_sample_rate);
+
+                        drop_input_samples(&mut input_buffer, used_input_samples);
+                        send_samples += input_samples.len();
+                        if sender.send(PipelineEvent::Data(input_samples)).is_err() {
+                            debug!("Failed to send resampled samples.")
                         }
-                        input_buffer[0].drain(0..input_samples);
-                        input_buffer[1].drain(0..input_samples);
                     }
                     Err(err) => {
                         error!("Resampling error: {}", err)
                     }
                 }
             }
-            let samples = InputSamples::new(
-                Arc::new(resampled_samples),
-                decoded_samples.start_pts,
-                output_sample_rate,
-            );
-            sender.send(PipelineEvent::Data(samples)).unwrap();
         }
 
         sender.send(PipelineEvent::EOS).unwrap();
     }
 }
 
-fn clip_to_i16(val: f32) -> i16 {
-    val.max(i16::MAX as f32).min(i16::MIN as f32) as i16
+fn append_to_input_buffer(
+    input_buffer: &mut [Vec<f64>],
+    decoded_samples: &DecodedSamples,
+    last_end_pts: &mut Option<Duration>,
+) {
+    const PTS_COMPARE_ERROR_MARGIN: Duration = Duration::from_nanos(100);
+    if let Some(end_pts) = last_end_pts {
+        if decoded_samples.start_pts > *end_pts + PTS_COMPARE_ERROR_MARGIN {
+            fill_missing_samples(
+                input_buffer,
+                decoded_samples.start_pts - *end_pts,
+                decoded_samples.sample_rate,
+            );
+        }
+    }
+    for (l, r) in decoded_samples.samples.iter() {
+        input_buffer[0].push(*l as f64 / i16::MAX as f64);
+        input_buffer[1].push(*r as f64 / i16::MAX as f64);
+    }
+
+    *last_end_pts = Some(decoded_samples.end_pts());
+}
+
+fn fill_missing_samples(
+    input_buffer: &mut [Vec<f64>],
+    missing_duration: Duration,
+    sample_rate: u32,
+) {
+    let missing_samples_count = (missing_duration.as_secs_f64() * sample_rate as f64) as usize;
+    let missing_samples = (0..missing_samples_count).map(|_| 0.0);
+    input_buffer[0].extend(missing_samples.clone());
+    input_buffer[1].extend(missing_samples);
+}
+
+fn read_output_buffer(output_buffer: &[Vec<f64>], output_samples: usize) -> Vec<(i16, i16)> {
+    output_buffer[0][0..output_samples]
+        .iter()
+        .zip(output_buffer[1][0..output_samples].iter())
+        .map(|(l, r)| (pcm_f64_to_i16(*l), pcm_f64_to_i16(*r)))
+        .collect()
+}
+
+fn batch_pts(first_batch_pts: Duration, sample_rate: u32, send_samples: usize) -> Duration {
+    let time_before_batch = Duration::from_secs_f64(send_samples as f64 / sample_rate as f64);
+    first_batch_pts + time_before_batch
+}
+
+fn drop_input_samples(input_buffer: &mut [Vec<f64>], used_samples: usize) {
+    input_buffer[0].drain(0..used_samples);
+    input_buffer[1].drain(0..used_samples);
+}
+
+fn pcm_f64_to_i16(val: f64) -> i16 {
+    let mapped_to_i16_range = val * i16::MAX as f64;
+    mapped_to_i16_range
+        .min(i16::MAX as f64)
+        .max(i16::MIN as f64) as i16
 }

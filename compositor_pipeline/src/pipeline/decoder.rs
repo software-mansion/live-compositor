@@ -13,7 +13,7 @@ use super::{
 
 use bytes::Bytes;
 use compositor_render::{Frame, InputId};
-use crossbeam_channel::{bounded, unbounded, Receiver, Sender};
+use crossbeam_channel::{bounded, Receiver, Sender};
 
 pub mod fdk_aac;
 mod ffmpeg_h264;
@@ -85,7 +85,7 @@ impl AudioDecoder {
         samples_sender: Sender<PipelineEvent<InputSamples>>,
         input_id: InputId,
     ) -> Result<(), DecoderInitError> {
-        let (resampler_sender, resampler_receiver) = unbounded();
+        let (resampler_sender, resampler_receiver) = bounded(0);
         let info = match opts {
             AudioDecoderOptions::Opus(opus_opt) => OpusDecoder::spawn(
                 opus_opt,
@@ -169,4 +169,13 @@ struct DecodedSamples {
     samples: Arc<Vec<(i16, i16)>>,
     start_pts: Duration,
     sample_rate: u32,
+}
+
+impl DecodedSamples {
+    pub fn end_pts(&self) -> Duration {
+        let batch_duration =
+            Duration::from_secs_f64(self.samples.len() as f64 * self.sample_rate as f64);
+
+        self.start_pts + batch_duration
+    }
 }
