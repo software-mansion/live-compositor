@@ -28,22 +28,21 @@ pub(super) fn prepare_input_samples(
         .collect()
 }
 
-// Produce continuous batch of samples for range (start_pts, end_pts).
-//
-// This code assumes that start_pts and end_pts are always numerically correct. Code that
-// generates those timestamps needs to ensure that.
-//
-// To calculate pts of a single sample:
-// - First item in a sample batch starts at the same time as batch PTS.
-// - First item in a sample batch ends `1/sample_rate` seconds latter.
-// - We assume that samples pts values might not be numerically precise
-// - Input and output samples are out of sync, so input pts need to be
-// shifted by an offset.
-//
-// For sample to be included in the output range:
-// - start_pts of a sample >= start_pts of an output batch
-// - end_pts of a sample <= end_pts of an output batch
-// - `=` in above cases means close enough to be a precision related error.
+/// Produce continuous batch of samples for range (start_pts, end_pts).
+///
+/// This code assumes that start_pts and end_pts are always numerically correct. Code that
+/// generates those timestamps needs to ensure that.
+///
+/// How to define pts of a single sample in batch:
+/// - Sample has a start time, the first item in a sample batch starts at the same time as batch PTS.
+/// - Sample has an end time, the first item in a sample batch ends `1/sample_rate` seconds latter.
+/// - Each consecutive sample in the batch is starting when the previous one has ended.
+/// - Input and output samples are out of sync, so all samples need to be shifted to match.
+///
+/// For the sample to be included in the output range:
+/// - start_pts of a sample >= start_pts of an output batch
+/// - end_pts of a sample <= end_pts of an output batch
+/// - `=` in above cases means close enough to be a precision related error.
 fn frame_input_samples(
     start_pts: Duration,
     end_pts: Duration,
@@ -58,8 +57,8 @@ fn frame_input_samples(
 
     // Output and input samples have the same sample rate, but they are not synced with each
     // other. We need to calculate an offset between input and output samples. This value
-    // should be constant for a specific input, but there is no harm with calculating it every
-    // time.
+    // should be constant for a specific input, but there is no harm with calculating for every
+    // frame.
     let sample_offset = samples
         .first()
         .map(|batch| {
@@ -71,6 +70,8 @@ fn frame_input_samples(
 
     let time_to_sample_count = |duration: Duration| {
         let sample_count = duration.as_secs_f64() * sample_rate as f64;
+        // If value is close to the integer then round it, otherwise fallback to standard
+        // integer division behavior.
         if (sample_count - sample_count.round()).abs() < max_error.as_secs_f64() {
             sample_count.round() as usize
         } else {
@@ -118,7 +119,7 @@ fn frame_input_samples(
             if batch_index != 0 {
                 // We should only drop samples in the first batch.
                 warn!(
-                    "Decoder produced overlapping samples. Dropping {} samples.",
+                    "Received overlapping batches on input. Dropping {} samples.",
                     samples_to_remove_from_start
                 );
             }
@@ -148,7 +149,7 @@ fn frame_input_samples(
         }
     }
 
-    check_input_batch(start_pts, end_pts, sample_rate, &samples_in_frame);
+    check_frame_samples(start_pts, end_pts, sample_rate, &samples_in_frame);
 
     // This call ensures that input buffer has correct amount of samples,
     // but if it needs to do anything it is considered a bug.
@@ -157,7 +158,7 @@ fn frame_input_samples(
     samples_in_frame
 }
 
-fn check_input_batch(
+fn check_frame_samples(
     start_pts: Duration,
     end_pts: Duration,
     sample_rate: u32,
