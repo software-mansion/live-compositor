@@ -138,15 +138,8 @@ fn frame_input_samples(
     }
 
     // Fill at the end only if last batch is ending to quickly
-    if let Some(pts) = last_batch_end_pts {
-        if pts < end_pts + max_error {
-            ensure_correct_amount_of_samples(
-                start_pts,
-                end_pts,
-                sample_rate,
-                &mut samples_in_frame,
-            );
-        }
+    if last_batch_end_pts.unwrap_or(start_pts) < end_pts + max_error {
+        ensure_correct_amount_of_samples(start_pts, end_pts, sample_rate, &mut samples_in_frame);
     }
 
     check_frame_samples(start_pts, end_pts, sample_rate, &samples_in_frame);
