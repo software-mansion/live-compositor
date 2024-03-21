@@ -7,8 +7,10 @@ use fdk_aac_sys as fdk;
 use log::warn;
 use tracing::{debug, error, span, Level};
 
-use crate::{pipeline::structs::{EncodedChunk, EncodedChunkKind}, queue::PipelineEvent};
-
+use crate::{
+    pipeline::structs::{EncodedChunk, EncodedChunkKind},
+    queue::PipelineEvent,
+};
 
 use super::{AacDecoderOptions, DecodedAudioInputInfo, DecodedSamples};
 
@@ -25,9 +27,9 @@ pub enum AacDecoderError {
 
     #[error("The aac decoder cannot decode chunks with sample rate {0}.")]
     UnsupportedSampleRate(i32),
-    
+
     #[error("The aac decoder thread start failed.")]
-    DecoderStartFailure
+    DecoderStartFailure,
 }
 
 pub struct FdkAacDecoder;
@@ -49,7 +51,7 @@ impl FdkAacDecoder {
                     input_id = input_id.to_string()
                 )
                 .entered();
-                run_decoder_thread(options,chunks_receiver, samples_sender, result_sender)
+                run_decoder_thread(options, chunks_receiver, samples_sender, result_sender)
             })
             .unwrap();
 
@@ -68,7 +70,7 @@ fn run_decoder_thread(
     options: AacDecoderOptions,
     chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
     samples_sender: Sender<PipelineEvent<DecodedSamples>>,
-    result_sender: Sender<u32>
+    result_sender: Sender<u32>,
 ) {
     let chunk = match chunks_receiver.recv() {
         Ok(PipelineEvent::Data(chunk)) => chunk,
