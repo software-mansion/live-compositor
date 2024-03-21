@@ -200,14 +200,14 @@ fn append_to_input_buffer(
             debug!("Filling missing samples in resampler.");
             fill_missing_samples(
                 input_buffer,
-                decoded_samples.start_pts - *end_pts,
+                decoded_samples.start_pts.saturating_sub(*end_pts),
                 decoded_samples.sample_rate,
             );
         }
     }
-    for (l, r) in decoded_samples.samples.iter() {
-        input_buffer[0].push(*l as f64 / i16::MAX as f64);
-        input_buffer[1].push(*r as f64 / i16::MAX as f64);
+    for (l, r) in decoded_samples.samples.iter().cloned() {
+        input_buffer[0].push(pcm_i16_to_f64(l));
+        input_buffer[1].push(pcm_i16_to_f64(r));
     }
 
     *previous_end_pts = Some(decoded_samples.end_pts());
@@ -225,10 +225,12 @@ fn fill_missing_samples(
 }
 
 fn read_output_buffer(output_buffer: &[Vec<f64>], output_samples: usize) -> Vec<(i16, i16)> {
-    output_buffer[0][0..output_samples]
-        .iter()
-        .zip(output_buffer[1][0..output_samples].iter())
-        .map(|(l, r)| (pcm_f64_to_i16(*l), pcm_f64_to_i16(*r)))
+    let left_channel_iter = output_buffer[0][0..output_samples].iter().cloned();
+    let right_channel_iter = output_buffer[1][0..output_samples].iter().cloned();
+
+    left_channel_iter
+        .zip(right_channel_iter)
+        .map(|(l, r)| (pcm_f64_to_i16(l), pcm_f64_to_i16(r)))
         .collect()
 }
 
@@ -240,6 +242,10 @@ fn batch_pts(first_batch_pts: Duration, sample_rate: u32, send_samples: usize) -
 fn drop_input_samples(input_buffer: &mut [Vec<f64>], used_samples: usize) {
     input_buffer[0].drain(0..used_samples);
     input_buffer[1].drain(0..used_samples);
+}
+
+fn pcm_i16_to_f64(val: i16) -> f64 {
+    val as f64 / i16::MAX as f64
 }
 
 fn pcm_f64_to_i16(val: f64) -> i16 {
