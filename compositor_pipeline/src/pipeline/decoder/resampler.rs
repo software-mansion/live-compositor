@@ -133,12 +133,12 @@ impl Resampler {
         output_sample_rate: u32,
     ) {
         // Input buffer is preallocated, to push input samples and fill missing samples between them.
-        // Reallocation happens anyway per every output batch, due to drain from the begging,
-        // but this should have a noticeable performance impact and reduces code complexity.
+        // Reallocation happens per every output batch, due to drain from the begging,
+        // but this shouldn't have a noticeable performance impact and reduce code complexity.
         // This could be done without allocations, but it would complicate this code substantially.
         let mut input_buffer = resampler.input_buffer_allocate(false);
 
-        // Output buffer is preallocated to avoid allocating it on every output batch
+        // Output buffer is preallocated to avoid allocating it on every output batch.
         let mut output_buffer = resampler.output_buffer_allocate(true);
 
         // Used to fill missing samples and determine batch pts
