@@ -255,10 +255,22 @@ impl Decoder {
                 _ => return Err(AacDecoderError::UnsupportedChannelConfig),
             };
 
+            // Sample rate can change after decoding
+            let info = unsafe { *fdk::aacDecoder_GetStreamInfo(self.instance) };
+            let sample_rate = if info.sampleRate > 0 {
+                info.sampleRate as u32
+            } else {
+                error!(
+                    "Unexpected sample rate of decoded AAC audio: {}",
+                    info.sampleRate
+                );
+                0
+            };
+
             output_buffer.push(DecodedSamples {
                 samples,
                 start_pts: chunk.pts,
-                sample_rate: self.sample_rate,
+                sample_rate,
             })
         }
 
