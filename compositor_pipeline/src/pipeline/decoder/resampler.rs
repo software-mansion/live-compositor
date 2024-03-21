@@ -149,7 +149,7 @@ impl Resampler {
 
         for event in receiver {
             let PipelineEvent::Data(decoded_samples) = event else {
-                break
+                break;
             };
             if decoded_samples.sample_rate != input_sample_rate {
                 error!(
