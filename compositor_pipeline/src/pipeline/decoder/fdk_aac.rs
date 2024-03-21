@@ -140,10 +140,11 @@ impl Decoder {
         }
 
         let info = unsafe { *fdk::aacDecoder_GetStreamInfo(instance) };
-        let sample_rate = if info.sampleRate > 0 {
-            info.sampleRate as u32
+        let aac_sample_rate = info.aacSampleRate;
+        let sample_rate = if aac_sample_rate > 0 {
+            aac_sample_rate as u32
         } else {
-            return Err(AacDecoderError::UnsupportedSampleRate(info.sampleRate));
+            return Err(AacDecoderError::UnsupportedSampleRate(aac_sample_rate));
         };
         if info.channelConfig != 1 && info.channelConfig != 2 {
             return Err(AacDecoderError::UnsupportedChannelConfig);

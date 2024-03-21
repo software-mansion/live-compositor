@@ -172,6 +172,7 @@ struct DecodedAudioInputInfo {
     decoded_sample_rate: u32,
 }
 
+#[derive(Debug)]
 struct DecodedSamples {
     samples: Arc<Vec<(i16, i16)>>,
     start_pts: Duration,

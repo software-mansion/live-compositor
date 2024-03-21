@@ -124,6 +124,7 @@ pub struct ScheduledEvent {
     callback: Box<dyn FnOnce() + Send>,
 }
 
+#[derive(Debug)]
 pub enum PipelineEvent<T> {
     Data(T),
     EOS,

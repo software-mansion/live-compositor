@@ -150,14 +150,12 @@ impl Resampler {
                     }
                 }
             }
-
-            sender
-                .send(PipelineEvent::Data(InputSamples::new(
-                    Arc::new(resampled_samples),
-                    decoded_samples.start_pts,
-                    output_sample_rate,
-                )))
-                .unwrap();
+            let samples = InputSamples::new(
+                Arc::new(resampled_samples),
+                decoded_samples.start_pts,
+                output_sample_rate,
+            );
+            sender.send(PipelineEvent::Data(samples)).unwrap();
         }
 
         sender.send(PipelineEvent::EOS).unwrap();
