@@ -9,7 +9,7 @@ use std::{
 };
 use video_compositor::{config::config, http, logger, types::Resolution};
 
-use crate::common::write_video_example_sdp_file;
+use crate::common::write_video_audio_example_sdp_file;
 
 #[path = "./common/common.rs"]
 mod common;
@@ -37,7 +37,7 @@ fn main() {
 
 fn start_example_client_code() -> Result<()> {
     info!("[example] Start listening on output port.");
-    let output_sdp = write_video_example_sdp_file("127.0.0.1", 8002)?;
+    let output_sdp = write_video_audio_example_sdp_file("127.0.0.1", 8002, 8004)?;
     Command::new("ffplay")
         .args(["-protocol_whitelist", "file,rtp,udp", &output_sdp])
         .stdout(Stdio::null())
@@ -62,7 +62,7 @@ fn start_example_client_code() -> Result<()> {
         "source": shader_source,
     }))?;
 
-    info!("[example] Send register output request.");
+    info!("[example] Send register output video request.");
     common::post(&json!({
         "type": "register",
         "entity_type": "output_stream",
@@ -76,18 +76,27 @@ fn start_example_client_code() -> Result<()> {
             },
             "encoder_preset": "medium",
             "initial": {
-                "type": "shader",
-                "id": "shader_node_1",
-                "shader_id": "shader_example_1",
-                "children": [
-                    {
-                        "id": "input_1",
-                        "type": "input_stream",
-                        "input_id": "input_1",
-                    }
-                ],
-                "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+                "id": "input_1",
+                "type": "input_stream",
+                "input_id": "input_1",
             }
+        }
+    }))?;
+
+    info!("[example] Send register output audio request.");
+    common::post(&json!({
+        "type": "register",
+        "entity_type": "output_stream",
+        "output_id": "output_2",
+        "port": 8004,
+        "ip": "127.0.0.1",
+        "audio": {
+            "initial": {
+                "inputs": [
+                    {"input_id": "input_1"}
+                ]
+            },
+            "channels": "stereo"
         }
     }))?;
 
