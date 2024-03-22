@@ -2,9 +2,7 @@ use std::{sync::Arc, time::Duration};
 
 use crate::{audio_mixer::InputSamples, error::DecoderInitError, queue::PipelineEvent};
 
-use self::{
-    fdk_aac::FdkAacDecoder, ffmpeg_h264::H264FfmpegDecoder, opus::OpusDecoder, resampler::Resampler,
-};
+use self::ffmpeg_h264::H264FfmpegDecoder;
 
 use super::{
     input::ChunksReceiver,
@@ -15,9 +13,8 @@ use bytes::Bytes;
 use compositor_render::{Frame, InputId};
 use crossbeam_channel::{bounded, Receiver, Sender};
 
-pub mod fdk_aac;
+pub mod audio;
 mod ffmpeg_h264;
-mod opus;
 mod resampler;
 
 pub struct Decoder;
@@ -52,56 +49,20 @@ impl Decoder {
             } else {
                 None
             };
-        let audio_receiver =
-            if let (Some(opt), Some(audio_receiver)) = (audio_decoder_opt, audio_receiver) {
-                let (sender, receiver) = bounded(10);
-                AudioDecoder::spawn(opt, output_sample_rate, audio_receiver, sender, input_id)?;
-                Some(receiver)
-            } else {
-                None
-            };
+        let audio_receiver = if let (Some(opt), Some(audio_receiver)) =
+            (audio_decoder_opt, audio_receiver)
+        {
+            let (sender, receiver) = bounded(10);
+            audio::spawn_audio_decoder(opt, output_sample_rate, audio_receiver, sender, input_id)?;
+            Some(receiver)
+        } else {
+            None
+        };
 
         Ok(DecodedDataReceiver {
             video: video_receiver,
             audio: audio_receiver,
         })
-    }
-}
-
-struct AudioDecoder;
-
-impl AudioDecoder {
-    pub fn spawn(
-        opts: AudioDecoderOptions,
-        output_sample_rate: u32,
-        chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
-        samples_sender: Sender<PipelineEvent<InputSamples>>,
-        input_id: InputId,
-    ) -> Result<(), DecoderInitError> {
-        let (resampler_sender, resampler_receiver) = bounded(0);
-        let info = match opts {
-            AudioDecoderOptions::Opus(opus_opt) => OpusDecoder::spawn(
-                opus_opt,
-                output_sample_rate,
-                chunks_receiver,
-                resampler_sender,
-                input_id.clone(),
-            )?,
-
-            AudioDecoderOptions::Aac(aac_opt) => {
-                FdkAacDecoder::spawn(aac_opt, chunks_receiver, resampler_sender, input_id.clone())?
-            }
-        };
-
-        Resampler::spawn(
-            input_id,
-            info.decoded_sample_rate,
-            output_sample_rate,
-            resampler_receiver,
-            samples_sender,
-        )?;
-
-        Ok(())
     }
 }
 
@@ -147,8 +108,8 @@ pub struct AacDecoderOptions {
     pub asc: Option<Bytes>,
 }
 
-struct DecodedAudioInputInfo {
-    decoded_sample_rate: u32,
+struct DecodedAudioFormat {
+    sample_rate: u32,
 }
 
 #[derive(Debug)]

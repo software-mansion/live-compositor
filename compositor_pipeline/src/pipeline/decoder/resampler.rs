@@ -1,92 +1,73 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use compositor_render::InputId;
-use crossbeam_channel::{Receiver, Sender};
 use log::{debug, error};
-use rubato::Resampler as _;
-use tracing::{span, Level};
+use rubato::{FftFixedOut, Resampler as _};
 
-use crate::audio_mixer::InputSamples;
-use crate::queue::PipelineEvent;
+use crate::{audio_mixer::InputSamples, error::DecoderInitError};
 
-use super::DecodedSamples;
+use super::{DecodedAudioFormat, DecodedSamples};
 
 const SAMPLE_BATCH_DURATION: Duration = Duration::from_millis(20);
 
-pub struct Resampler;
-
-impl Resampler {
-    pub fn spawn(
-        input_id: InputId,
-        input_sample_rate: u32,
+pub trait ResamplerT {
+    fn new(
+        decoded_format: DecodedAudioFormat,
         output_sample_rate: u32,
-        decoder_receiver: Receiver<PipelineEvent<DecodedSamples>>,
-        sender: Sender<PipelineEvent<InputSamples>>,
-    ) -> Result<(), rubato::ResamplerConstructionError> {
-        if input_sample_rate == output_sample_rate {
-            Self::spawn_passthrough_resampler_thread(input_id, decoder_receiver, sender);
-            Ok(())
-        } else {
-            Self::spawn_fft_resampler_thread(
-                input_id,
-                input_sample_rate,
-                output_sample_rate,
-                decoder_receiver,
-                sender,
-            )
-        }
-    }
+    ) -> Result<Self, DecoderInitError>
+    where
+        Self: std::marker::Sized;
+    fn resample(&mut self, decoded_samples: DecodedSamples) -> Vec<InputSamples>;
+}
 
-    fn spawn_passthrough_resampler_thread(
-        input_id: InputId,
-        decoder_receiver: Receiver<PipelineEvent<DecodedSamples>>,
-        sender: Sender<PipelineEvent<InputSamples>>,
-    ) {
-        std::thread::Builder::new()
-            .name(format!(
-                "Passthrough resampler thread for input: {}",
-                input_id
-            ))
-            .spawn(move || {
-                let _span = span!(
-                    Level::INFO,
-                    "passthrough resampler",
-                    input_id = input_id.to_string()
-                )
-                .entered();
-                Self::passthrough_thread(decoder_receiver, sender);
-            })
-            .unwrap();
-    }
+pub(in super::super) struct PassthroughResampler {
+    input_sample_rate: u32,
+    output_sample_rate: u32,
+}
 
-    fn passthrough_thread(
-        receiver: Receiver<PipelineEvent<DecodedSamples>>,
-        sender: Sender<PipelineEvent<InputSamples>>,
-    ) {
-        for event in receiver {
-            let PipelineEvent::Data(decoded_samples) = event else {
-                break;
-            };
-
-            let input_samples = PipelineEvent::Data(InputSamples::new(
-                decoded_samples.samples,
-                decoded_samples.start_pts,
-                decoded_samples.sample_rate,
-            ));
-            sender.send(input_samples).unwrap();
-        }
-
-        sender.send(PipelineEvent::EOS).unwrap();
-    }
-
-    fn spawn_fft_resampler_thread(
-        input_id: InputId,
-        input_sample_rate: u32,
+impl ResamplerT for PassthroughResampler {
+    fn new(
+        decoded_format: DecodedAudioFormat,
         output_sample_rate: u32,
-        decoder_receiver: Receiver<PipelineEvent<DecodedSamples>>,
-        sender: Sender<PipelineEvent<InputSamples>>,
-    ) -> Result<(), rubato::ResamplerConstructionError> {
+    ) -> Result<Self, DecoderInitError> {
+        if decoded_format.sample_rate != output_sample_rate {
+            error!("Passthrough resampler was used for resampling to different sample rate.")
+        }
+        Ok(Self {
+            input_sample_rate: decoded_format.sample_rate,
+            output_sample_rate,
+        })
+    }
+
+    fn resample(&mut self, decoded_samples: DecodedSamples) -> Vec<InputSamples> {
+        if decoded_samples.sample_rate != self.input_sample_rate {
+            error!("Passthrough resampler received decoded samples in wrong sample rate. Expected {}, actual: {}", self.input_sample_rate, decoded_samples.sample_rate);
+            return Vec::new();
+        }
+        Vec::from([InputSamples::new(
+            decoded_samples.samples,
+            decoded_samples.start_pts,
+            self.output_sample_rate,
+        )])
+    }
+}
+
+pub(in super::super) struct FftResampler {
+    input_sample_rate: u32,
+    output_sample_rate: u32,
+    input_buffer: [Vec<f64>; 2],
+    output_buffer: [Vec<f64>; 2],
+    resampler: FftFixedOut<f64>,
+    send_samples: u64,
+    first_batch_pts: Option<Duration>,
+    previous_end_pts: Option<Duration>,
+}
+
+impl ResamplerT for FftResampler {
+    fn new(
+        decoded_format: DecodedAudioFormat,
+        output_sample_rate: u32,
+    ) -> Result<FftResampler, DecoderInitError> {
         /// This part of pipeline use stereo
         const CHANNELS: usize = 2;
         /// Not sure what should be here, but rubato example used 2
@@ -94,6 +75,7 @@ impl Resampler {
         const SUB_CHUNKS: usize = 2;
         let output_batch_size =
             (output_sample_rate as f64 * SAMPLE_BATCH_DURATION.as_secs_f64()).round() as usize;
+        let input_sample_rate = decoded_format.sample_rate;
 
         let resampler = rubato::FftFixedOut::<f64>::new(
             input_sample_rate as usize,
@@ -103,88 +85,76 @@ impl Resampler {
             CHANNELS,
         )?;
 
-        std::thread::Builder::new()
-            .name(format!("FFT resampler thread for input: {}", input_id))
-            .spawn(move || {
-                let _span = span!(
-                    Level::INFO,
-                    "fft resampler",
-                    input_id = input_id.to_string()
-                )
-                .entered();
-                Self::fft_resampler_thread(
-                    decoder_receiver,
-                    sender,
-                    resampler,
-                    input_sample_rate,
-                    output_sample_rate,
-                );
-            })
-            .unwrap();
-
-        Ok(())
-    }
-
-    fn fft_resampler_thread(
-        receiver: Receiver<PipelineEvent<DecodedSamples>>,
-        sender: Sender<PipelineEvent<InputSamples>>,
-        mut resampler: rubato::FftFixedOut<f64>,
-        input_sample_rate: u32,
-        output_sample_rate: u32,
-    ) {
         // Input buffer is preallocated, to push input samples and fill missing samples between them.
         // Reallocation happens per every output batch, due to drain from the begging,
         // but this shouldn't have a noticeable performance impact and reduce code complexity.
         // This could be done without allocations, but it would complicate this code substantially.
-        let mut input_buffer = resampler.input_buffer_allocate(false);
+        let input_buffer = [Vec::new(), Vec::new()];
 
         // Output buffer is preallocated to avoid allocating it on every output batch.
-        let mut output_buffer = resampler.output_buffer_allocate(true);
+        let output_buffer = [vec![0.0; output_batch_size], vec![0.0; output_batch_size]];
 
         // Used to fill missing samples and determine batch pts
-        let mut send_samples = 0;
-        let mut first_batch_pts = None;
-        let mut previous_end_pts = None;
+        let send_samples = 0;
+        let first_batch_pts = None;
+        let previous_end_pts = None;
 
-        for event in receiver {
-            let PipelineEvent::Data(decoded_samples) = event else {
-                break;
-            };
-            if decoded_samples.sample_rate != input_sample_rate {
-                error!(
-                    "Resampler received samples with wrong sample rate. Expected sample rate: {}, received: {}",
-                    input_sample_rate,
-                    decoded_samples.sample_rate
-                );
-            }
+        Ok(Self {
+            input_sample_rate,
+            output_sample_rate,
+            input_buffer,
+            output_buffer,
+            resampler,
+            send_samples,
+            first_batch_pts,
+            previous_end_pts,
+        })
+    }
 
-            append_to_input_buffer(&mut input_buffer, &decoded_samples, &mut previous_end_pts);
-            let first_batch_pts = *first_batch_pts.get_or_insert(decoded_samples.start_pts);
+    fn resample(&mut self, decoded_samples: DecodedSamples) -> Vec<InputSamples> {
+        if decoded_samples.sample_rate != self.input_sample_rate {
+            error!(
+                "Resampler received samples with wrong sample rate. Expected sample rate: {}, received: {}",
+                self.input_sample_rate,
+                decoded_samples.sample_rate
+            );
+        }
 
-            while resampler.input_frames_next() <= input_buffer[0].len() {
-                match resampler.process_into_buffer(&input_buffer, &mut output_buffer, None) {
-                    Ok((used_input_samples, produced_samples)) => {
-                        let samples =
-                            Arc::new(read_output_buffer(&output_buffer, produced_samples));
-                        let start_pts =
-                            batch_pts(first_batch_pts, output_sample_rate, send_samples);
-                        let input_samples =
-                            InputSamples::new(samples, start_pts, output_sample_rate);
+        append_to_input_buffer(
+            &mut self.input_buffer,
+            &decoded_samples,
+            &mut self.previous_end_pts,
+        );
+        let first_batch_pts = *self
+            .first_batch_pts
+            .get_or_insert(decoded_samples.start_pts);
 
-                        drop_input_samples(&mut input_buffer, used_input_samples);
-                        send_samples += input_samples.len();
-                        if sender.send(PipelineEvent::Data(input_samples)).is_err() {
-                            debug!("Failed to send resampled samples.")
-                        }
-                    }
-                    Err(err) => {
-                        error!("Resampling error: {}", err)
-                    }
+        let mut resampled = Vec::new();
+        while self.resampler.input_frames_next() <= self.input_buffer[0].len() {
+            match self.resampler.process_into_buffer(
+                &self.input_buffer,
+                &mut self.output_buffer,
+                None,
+            ) {
+                Ok((used_input_samples, produced_samples)) => {
+                    let samples =
+                        Arc::new(read_output_buffer(&self.output_buffer, produced_samples));
+                    let start_pts =
+                        batch_pts(first_batch_pts, self.output_sample_rate, self.send_samples);
+                    let input_samples =
+                        InputSamples::new(samples, start_pts, self.output_sample_rate);
+
+                    drop_input_samples(&mut self.input_buffer, used_input_samples);
+                    self.send_samples += input_samples.len() as u64;
+                    resampled.push(input_samples);
+                }
+                Err(err) => {
+                    error!("Resampling error: {}", err)
                 }
             }
         }
 
-        sender.send(PipelineEvent::EOS).unwrap();
+        resampled
     }
 }
 
@@ -233,7 +203,7 @@ fn read_output_buffer(output_buffer: &[Vec<f64>], output_samples: usize) -> Vec<
         .collect()
 }
 
-fn batch_pts(first_batch_pts: Duration, sample_rate: u32, send_samples: usize) -> Duration {
+fn batch_pts(first_batch_pts: Duration, sample_rate: u32, send_samples: u64) -> Duration {
     let time_before_batch = Duration::from_secs_f64(send_samples as f64 / sample_rate as f64);
     first_batch_pts + time_before_batch
 }

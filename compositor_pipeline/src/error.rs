@@ -6,7 +6,7 @@ use compositor_render::{
     InputId, OutputId,
 };
 
-use crate::pipeline::{decoder::fdk_aac::AacDecoderError, VideoCodec};
+use crate::pipeline::{decoder::audio::fdk_aac_decoder::AacDecoderError, VideoCodec};
 
 #[derive(Debug, thiserror::Error)]
 pub enum RegisterInputError {
@@ -100,6 +100,10 @@ pub enum DecoderInitError {
     AacError(#[from] AacDecoderError),
     #[error(transparent)]
     ResamplerError(#[from] rubato::ResamplerConstructionError),
+    #[error("Received EOS before first chunk")]
+    NoFirstChunk,
+    #[error("Couldn't read decoder init result.")]
+    CannotReadInitResult,
 }
 
 #[derive(Debug, thiserror::Error)]
