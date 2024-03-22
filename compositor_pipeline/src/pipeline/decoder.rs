@@ -20,12 +20,6 @@ mod ffmpeg_h264;
 mod opus;
 mod resampler;
 
-#[derive(Debug, thiserror::Error)]
-pub enum ResamplerInitError {
-    #[error(transparent)]
-    ResamplerInitError(#[from] rubato::ResamplerConstructionError),
-}
-
 pub struct Decoder;
 
 #[derive(Debug, Clone)]
