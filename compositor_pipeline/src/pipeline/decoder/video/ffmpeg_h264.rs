@@ -10,7 +10,6 @@ use compositor_render::{Frame, InputId, Resolution, YuvData};
 use crossbeam_channel::{Receiver, Sender};
 use ffmpeg_next::{
     codec::{Context, Id},
-    ffi::AV_CODEC_FLAG2_CHUNKS,
     frame::Video,
     media::Type,
     Rational,
@@ -72,12 +71,7 @@ fn run_decoder_thread(
     let decoder = Context::from_parameters(parameters.clone())
         .map_err(DecoderInitError::FfmpegError)
         .and_then(|mut decoder| {
-            // this flag allows us to send the packets in the form they come out of the depayloader
-            // wasted 6 hrs looking into this. I hate ffmpeg.
-            // and the bindings don't even expose `flags2` so we have to do the unsafe manually
             unsafe {
-                (*decoder.as_mut_ptr()).flags2 |= AV_CODEC_FLAG2_CHUNKS;
-
                 // This is because we use microseconds as pts and dts in the packets.
                 // See `chunk_to_av` and `frame_from_av`.
                 (*decoder.as_mut_ptr()).pkt_timebase = Rational::new(1, 1_000_000).into();
