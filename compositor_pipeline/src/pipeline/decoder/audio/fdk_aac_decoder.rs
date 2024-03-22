@@ -25,9 +25,6 @@ pub enum AacDecoderError {
 
     #[error("The aac decoder cannot decode chunks with sample rate {0}.")]
     UnsupportedSampleRate(i32),
-
-    #[error("The aac decoder thread start failed.")]
-    DecoderStartFailure,
 }
 
 pub(in super::super) struct AacDecoder {
