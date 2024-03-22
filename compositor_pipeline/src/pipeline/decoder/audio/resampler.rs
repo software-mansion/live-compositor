@@ -6,35 +6,22 @@ use rubato::{FftFixedOut, Resampler as _};
 
 use crate::{audio_mixer::InputSamples, error::DecoderInitError};
 
-use super::{DecodedAudioFormat, DecodedSamples};
+use super::{DecodedSamples, ResamplerExt};
 
 const SAMPLE_BATCH_DURATION: Duration = Duration::from_millis(20);
 
-pub trait ResamplerT {
-    fn new(
-        decoded_format: DecodedAudioFormat,
-        output_sample_rate: u32,
-    ) -> Result<Self, DecoderInitError>
-    where
-        Self: std::marker::Sized;
-    fn resample(&mut self, decoded_samples: DecodedSamples) -> Vec<InputSamples>;
-}
-
-pub(in super::super) struct PassthroughResampler {
+pub(super) struct PassthroughResampler {
     input_sample_rate: u32,
     output_sample_rate: u32,
 }
 
-impl ResamplerT for PassthroughResampler {
-    fn new(
-        decoded_format: DecodedAudioFormat,
-        output_sample_rate: u32,
-    ) -> Result<Self, DecoderInitError> {
-        if decoded_format.sample_rate != output_sample_rate {
+impl ResamplerExt for PassthroughResampler {
+    fn new(input_sample_rate: u32, output_sample_rate: u32) -> Result<Self, DecoderInitError> {
+        if input_sample_rate != output_sample_rate {
             error!("Passthrough resampler was used for resampling to different sample rate.")
         }
         Ok(Self {
-            input_sample_rate: decoded_format.sample_rate,
+            input_sample_rate,
             output_sample_rate,
         })
     }
@@ -63,9 +50,9 @@ pub(in super::super) struct FftResampler {
     previous_end_pts: Option<Duration>,
 }
 
-impl ResamplerT for FftResampler {
+impl ResamplerExt for FftResampler {
     fn new(
-        decoded_format: DecodedAudioFormat,
+        input_sample_rate: u32,
         output_sample_rate: u32,
     ) -> Result<FftResampler, DecoderInitError> {
         /// This part of pipeline use stereo
@@ -75,7 +62,6 @@ impl ResamplerT for FftResampler {
         const SUB_CHUNKS: usize = 2;
         let output_batch_size =
             (output_sample_rate as f64 * SAMPLE_BATCH_DURATION.as_secs_f64()).round() as usize;
-        let input_sample_rate = decoded_format.sample_rate;
 
         let resampler = rubato::FftFixedOut::<f64>::new(
             input_sample_rate as usize,

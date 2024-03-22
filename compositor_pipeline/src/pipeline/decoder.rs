@@ -1,57 +1,41 @@
-use std::{sync::Arc, time::Duration};
-
 use crate::{audio_mixer::InputSamples, error::DecoderInitError, queue::PipelineEvent};
 
-use self::ffmpeg_h264::H264FfmpegDecoder;
-
-use super::{
-    input::ChunksReceiver,
-    structs::{EncodedChunk, VideoCodec},
-};
+use super::{input::ChunksReceiver, structs::VideoCodec};
 
 use bytes::Bytes;
 use compositor_render::{Frame, InputId};
-use crossbeam_channel::{bounded, Receiver, Sender};
+use crossbeam_channel::{bounded, Receiver};
 
-pub mod audio;
-mod ffmpeg_h264;
-mod resampler;
+pub use audio::fdk_aac_decoder::AacDecoderError;
 
-pub struct Decoder;
+mod audio;
+mod video;
 
-#[derive(Debug, Clone)]
-pub struct DecoderOptions {
-    pub video: Option<VideoDecoderOptions>,
-    pub audio: Option<AudioDecoderOptions>,
-}
+pub fn spawn_decoder(
+    input_id: InputId,
+    chunks: ChunksReceiver,
+    decoder_options: DecoderOptions,
+    output_sample_rate: u32,
+) -> Result<DecodedDataReceiver, DecoderInitError> {
+    let DecoderOptions {
+        video: video_decoder_opt,
+        audio: audio_decoder_opt,
+    } = decoder_options;
+    let ChunksReceiver {
+        video: video_receiver,
+        audio: audio_receiver,
+    } = chunks;
 
-impl Decoder {
-    pub fn spawn(
-        input_id: InputId,
-        chunks: ChunksReceiver,
-        decoder_options: DecoderOptions,
-        output_sample_rate: u32,
-    ) -> Result<DecodedDataReceiver, DecoderInitError> {
-        let DecoderOptions {
-            video: video_decoder_opt,
-            audio: audio_decoder_opt,
-        } = decoder_options;
-        let ChunksReceiver {
-            video: video_receiver,
-            audio: audio_receiver,
-        } = chunks;
-
-        let video_receiver =
-            if let (Some(opt), Some(video_receiver)) = (video_decoder_opt, video_receiver) {
-                let (sender, receiver) = bounded(10);
-                VideoDecoder::spawn(&opt, video_receiver, sender, input_id.clone())?;
-                Some(receiver)
-            } else {
-                None
-            };
-        let audio_receiver = if let (Some(opt), Some(audio_receiver)) =
-            (audio_decoder_opt, audio_receiver)
-        {
+    let video_receiver =
+        if let (Some(opt), Some(video_receiver)) = (video_decoder_opt, video_receiver) {
+            let (sender, receiver) = bounded(10);
+            video::spawn_video_decoder(&opt, video_receiver, sender, input_id.clone())?;
+            Some(receiver)
+        } else {
+            None
+        };
+    let audio_receiver =
+        if let (Some(opt), Some(audio_receiver)) = (audio_decoder_opt, audio_receiver) {
             let (sender, receiver) = bounded(10);
             audio::spawn_audio_decoder(opt, output_sample_rate, audio_receiver, sender, input_id)?;
             Some(receiver)
@@ -59,26 +43,16 @@ impl Decoder {
             None
         };
 
-        Ok(DecodedDataReceiver {
-            video: video_receiver,
-            audio: audio_receiver,
-        })
-    }
+    Ok(DecodedDataReceiver {
+        video: video_receiver,
+        audio: audio_receiver,
+    })
 }
 
-struct VideoDecoder;
-
-impl VideoDecoder {
-    pub fn spawn(
-        options: &VideoDecoderOptions,
-        chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
-        frame_sender: Sender<PipelineEvent<Frame>>,
-        input_id: InputId,
-    ) -> Result<(), DecoderInitError> {
-        match options.codec {
-            VideoCodec::H264 => H264FfmpegDecoder::spawn(chunks_receiver, frame_sender, input_id),
-        }
-    }
+#[derive(Debug, Clone)]
+pub struct DecoderOptions {
+    pub video: Option<VideoDecoderOptions>,
+    pub audio: Option<AudioDecoderOptions>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -106,24 +80,4 @@ pub struct DecodedDataReceiver {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AacDecoderOptions {
     pub asc: Option<Bytes>,
-}
-
-struct DecodedAudioFormat {
-    sample_rate: u32,
-}
-
-#[derive(Debug)]
-struct DecodedSamples {
-    samples: Arc<Vec<(i16, i16)>>,
-    start_pts: Duration,
-    sample_rate: u32,
-}
-
-impl DecodedSamples {
-    pub fn end_pts(&self) -> Duration {
-        let batch_duration =
-            Duration::from_secs_f64(self.samples.len() as f64 * self.sample_rate as f64);
-
-        self.start_pts + batch_duration
-    }
 }

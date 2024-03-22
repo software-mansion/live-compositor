@@ -2,12 +2,15 @@ use fdk_aac_sys as fdk;
 use std::sync::Arc;
 use tracing::error;
 
-use crate::{error::DecoderInitError, pipeline::{
-    decoder::{AacDecoderOptions, DecodedAudioFormat, DecodedSamples},
-    structs::{EncodedChunk, EncodedChunkKind},
-}};
+use crate::{
+    error::DecoderInitError,
+    pipeline::{
+        decoder::AacDecoderOptions,
+        structs::{EncodedChunk, EncodedChunkKind},
+    },
+};
 
-use super::{AudioDecoderT, DecodingError};
+use super::{AudioDecoderExt, DecodedSamples, DecodingError};
 
 #[derive(Debug, thiserror::Error)]
 pub enum AacDecoderError {
@@ -88,7 +91,7 @@ impl Drop for AacDecoder {
     }
 }
 
-impl AudioDecoderT for AacDecoder {
+impl AudioDecoderExt for AacDecoder {
     fn decode(&mut self, chunk: EncodedChunk) -> Result<Vec<DecodedSamples>, DecodingError> {
         if chunk.kind != EncodedChunkKind::Audio(crate::pipeline::AudioCodec::Aac) {
             return Err(AacDecoderError::UnsupportedChunkKind(chunk.kind).into());
@@ -173,9 +176,7 @@ impl AudioDecoderT for AacDecoder {
         Ok(output_buffer)
     }
 
-    fn decoded_format(&self) -> DecodedAudioFormat {
-        DecodedAudioFormat {
-            sample_rate: self.sample_rate,
-        }
+    fn decoded_sample_rate(&self) -> u32 {
+        self.sample_rate
     }
 }

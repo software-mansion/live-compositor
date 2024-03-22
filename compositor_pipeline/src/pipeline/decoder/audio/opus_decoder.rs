@@ -2,19 +2,16 @@ use std::sync::Arc;
 
 use crate::{
     error::DecoderInitError,
-    pipeline::{
-        decoder::{DecodedAudioFormat, OpusDecoderOptions},
-        structs::EncodedChunk,
-    },
+    pipeline::{decoder::OpusDecoderOptions, structs::EncodedChunk},
 };
 
-use super::{AudioDecoderT, DecodedSamples, DecodingError};
+use super::{AudioDecoderExt, DecodedSamples, DecodingError};
 
-pub(in super::super) struct OpusDecoder {
+pub(super) struct OpusDecoder {
     decoder: opus::Decoder,
     decoded_samples_buffer: [i16; 100_000],
     forward_error_correction: bool,
-    output_sample_rate: u32,
+    decoded_sample_rate: u32,
 }
 
 impl OpusDecoder {
@@ -22,7 +19,13 @@ impl OpusDecoder {
         opts: OpusDecoderOptions,
         output_sample_rate: u32,
     ) -> Result<Self, DecoderInitError> {
-        let decoder = opus::Decoder::new(output_sample_rate, opus::Channels::Stereo)?;
+        const OPUS_SAMPLE_RATES: [u32; 5] = [8_000, 12_000, 16_000, 24_000, 48_000];
+        let decoded_sample_rate = if OPUS_SAMPLE_RATES.contains(&output_sample_rate) {
+            output_sample_rate
+        } else {
+            48_000
+        };
+        let decoder = opus::Decoder::new(decoded_sample_rate, opus::Channels::Stereo)?;
         // Max sample rate for opus is 48kHz.
         // Usually packets contain 20ms audio chunks, but for safety we use buffer
         // that can hold >1s of 48kHz stereo audio (96k samples)
@@ -32,7 +35,7 @@ impl OpusDecoder {
             decoder,
             decoded_samples_buffer,
             forward_error_correction: opts.forward_error_correction,
-            output_sample_rate,
+            decoded_sample_rate,
         })
     }
 
@@ -47,7 +50,7 @@ impl OpusDecoder {
     }
 }
 
-impl AudioDecoderT for OpusDecoder {
+impl AudioDecoderExt for OpusDecoder {
     fn decode(
         &mut self,
         encoded_chunk: EncodedChunk,
@@ -62,14 +65,12 @@ impl AudioDecoderT for OpusDecoder {
         let decoded_samples = DecodedSamples {
             samples,
             start_pts: encoded_chunk.pts,
-            sample_rate: self.output_sample_rate,
+            sample_rate: self.decoded_sample_rate,
         };
         Ok(Vec::from([decoded_samples]))
     }
 
-    fn decoded_format(&self) -> DecodedAudioFormat {
-        DecodedAudioFormat {
-            sample_rate: self.output_sample_rate,
-        }
+    fn decoded_sample_rate(&self) -> u32 {
+        self.decoded_sample_rate
     }
 }

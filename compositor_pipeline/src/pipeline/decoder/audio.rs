@@ -1,15 +1,48 @@
+use std::{sync::Arc, time::Duration};
+
 use compositor_render::InputId;
 use crossbeam_channel::{bounded, Receiver, Sender};
 use log::error;
 
-use crate::{audio_mixer::InputSamples, error::DecoderInitError, pipeline::structs::EncodedChunk, queue::PipelineEvent};
+use crate::{
+    audio_mixer::InputSamples, error::DecoderInitError, pipeline::structs::EncodedChunk,
+    queue::PipelineEvent,
+};
 
-use self::{fdk_aac_decoder::{AacDecoder, AacDecoderError}, opus_decoder::OpusDecoder};
+use self::{
+    fdk_aac_decoder::AacDecoder,
+    opus_decoder::OpusDecoder,
+    resampler::{FftResampler, PassthroughResampler},
+};
 
-use super::{resampler::{FftResampler, PassthroughResampler, ResamplerT}, AudioDecoderOptions, DecodedAudioFormat, DecodedSamples};
+use super::{AacDecoderError, AudioDecoderOptions};
 
 pub mod fdk_aac_decoder;
 pub mod opus_decoder;
+mod resampler;
+
+trait ResamplerExt {
+    fn new(input_sample_rate: u32, output_sample_rate: u32) -> Result<Self, DecoderInitError>
+    where
+        Self: std::marker::Sized;
+    fn resample(&mut self, decoded_samples: DecodedSamples) -> Vec<InputSamples>;
+}
+
+#[derive(Debug)]
+struct DecodedSamples {
+    samples: Arc<Vec<(i16, i16)>>,
+    start_pts: Duration,
+    sample_rate: u32,
+}
+
+impl DecodedSamples {
+    pub fn end_pts(&self) -> Duration {
+        let batch_duration =
+            Duration::from_secs_f64(self.samples.len() as f64 * self.sample_rate as f64);
+
+        self.start_pts + batch_duration
+    }
+}
 
 #[derive(Debug, thiserror::Error)]
 pub enum DecodingError {
@@ -19,11 +52,11 @@ pub enum DecodingError {
     AacDecoder(#[from] AacDecoderError),
 }
 
-pub(super) trait AudioDecoderT {
+trait AudioDecoderExt {
     fn decode(&mut self, encoded_chunk: EncodedChunk)
         -> Result<Vec<DecodedSamples>, DecodingError>;
 
-    fn decoded_format(&self) -> DecodedAudioFormat;
+    fn decoded_sample_rate(&self) -> u32;
 }
 
 pub fn spawn_audio_decoder(
@@ -130,15 +163,18 @@ fn run_decoder_thread(
     }
 }
 
-fn create_resampler_run_decoding<Decoder: AudioDecoderT>(
+fn create_resampler_run_decoding<Decoder>(
     chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
-    decoder: &mut dyn AudioDecoderT,
+    decoder: &mut Decoder,
     samples_sender: Sender<PipelineEvent<InputSamples>>,
     output_sample_rate: u32,
-) -> Result<(), DecoderInitError> {
-    let decoded_format = decoder.decoded_format();
-    if decoded_format.sample_rate == output_sample_rate {
-        let mut resampler = PassthroughResampler::new(decoded_format, output_sample_rate)?;
+) -> Result<(), DecoderInitError>
+where
+    Decoder: AudioDecoderExt,
+{
+    let input_sample_rate = decoder.decoded_sample_rate();
+    if input_sample_rate == output_sample_rate {
+        let mut resampler = PassthroughResampler::new(input_sample_rate, output_sample_rate)?;
         run_decoding::<Decoder, PassthroughResampler>(
             chunks_receiver,
             decoder,
@@ -146,7 +182,7 @@ fn create_resampler_run_decoding<Decoder: AudioDecoderT>(
             samples_sender,
         );
     } else {
-        let mut resampler = FftResampler::new(decoded_format, output_sample_rate)?;
+        let mut resampler = FftResampler::new(input_sample_rate, output_sample_rate)?;
         run_decoding::<Decoder, FftResampler>(
             chunks_receiver,
             decoder,
@@ -158,12 +194,15 @@ fn create_resampler_run_decoding<Decoder: AudioDecoderT>(
     Ok(())
 }
 
-fn run_decoding<Decoder: AudioDecoderT, Resampler: ResamplerT>(
+fn run_decoding<Decoder, Resampler>(
     chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
-    decoder: &mut dyn AudioDecoderT,
-    resampler: &mut dyn ResamplerT,
+    decoder: &mut Decoder,
+    resampler: &mut Resampler,
     samples_sender: Sender<PipelineEvent<InputSamples>>,
-) {
+) where
+    Decoder: AudioDecoderExt,
+    Resampler: ResamplerExt,
+{
     for event in chunks_receiver {
         let PipelineEvent::Data(encoded_chunk) = event else {
                 return;

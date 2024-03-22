@@ -6,7 +6,7 @@ use compositor_render::{
     InputId, OutputId,
 };
 
-use crate::pipeline::{decoder::audio::fdk_aac_decoder::AacDecoderError, VideoCodec};
+use crate::pipeline::{decoder::AacDecoderError, VideoCodec};
 
 #[derive(Debug, thiserror::Error)]
 pub enum RegisterInputError {
