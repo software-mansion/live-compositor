@@ -27,7 +27,7 @@ pub enum AacDecoderError {
     UnsupportedSampleRate(i32),
 }
 
-pub(in super::super) struct AacDecoder {
+pub(super) struct AacDecoder {
     instance: *mut fdk::AAC_DECODER_INSTANCE,
     sample_rate: u32,
 }

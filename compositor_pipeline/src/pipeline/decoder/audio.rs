@@ -11,10 +11,11 @@ use crate::{
 
 use self::{fdk_aac_decoder::AacDecoder, opus_decoder::OpusDecoder, resampler::Resampler};
 
-use super::{AacDecoderError, AudioDecoderOptions, OpusDecoderOptions};
+use super::{AudioDecoderOptions, OpusDecoderOptions};
+pub use fdk_aac_decoder::AacDecoderError;
 
-pub mod fdk_aac_decoder;
-pub mod opus_decoder;
+mod fdk_aac_decoder;
+mod opus_decoder;
 mod resampler;
 
 #[derive(Debug)]

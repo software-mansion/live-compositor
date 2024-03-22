@@ -6,7 +6,7 @@ use bytes::Bytes;
 use compositor_render::{Frame, InputId};
 use crossbeam_channel::{bounded, Receiver};
 
-pub use audio::fdk_aac_decoder::AacDecoderError;
+pub use audio::AacDecoderError;
 
 mod audio;
 mod video;
