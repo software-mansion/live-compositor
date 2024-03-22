@@ -6,24 +6,51 @@ use rubato::{FftFixedOut, Resampler as _};
 
 use crate::{audio_mixer::InputSamples, error::DecoderInitError};
 
-use super::{DecodedSamples, ResamplerExt};
+use super::DecodedSamples;
 
 const SAMPLE_BATCH_DURATION: Duration = Duration::from_millis(20);
+
+pub(super) enum Resampler {
+    Passthrough(PassthroughResampler),
+    Fft(Box<FftResampler>),
+}
+
+impl Resampler {
+    pub fn new(input_sample_rate: u32, output_sample_rate: u32) -> Result<Self, DecoderInitError> {
+        if input_sample_rate == output_sample_rate {
+            Ok(Self::Passthrough(PassthroughResampler::new(
+                input_sample_rate,
+                output_sample_rate,
+            )))
+        } else {
+            FftResampler::new(input_sample_rate, output_sample_rate)
+                .map(Box::new)
+                .map(Self::Fft)
+        }
+    }
+
+    pub fn resample(&mut self, decoded_samples: DecodedSamples) -> Vec<InputSamples> {
+        match self {
+            Resampler::Passthrough(resampler) => resampler.resample(decoded_samples),
+            Resampler::Fft(resampler) => resampler.resample(decoded_samples),
+        }
+    }
+}
 
 pub(super) struct PassthroughResampler {
     input_sample_rate: u32,
     output_sample_rate: u32,
 }
 
-impl ResamplerExt for PassthroughResampler {
-    fn new(input_sample_rate: u32, output_sample_rate: u32) -> Result<Self, DecoderInitError> {
+impl PassthroughResampler {
+    fn new(input_sample_rate: u32, output_sample_rate: u32) -> Self {
         if input_sample_rate != output_sample_rate {
             error!("Passthrough resampler was used for resampling to different sample rate.")
         }
-        Ok(Self {
+        Self {
             input_sample_rate,
             output_sample_rate,
-        })
+        }
     }
 
     fn resample(&mut self, decoded_samples: DecodedSamples) -> Vec<InputSamples> {
@@ -39,7 +66,7 @@ impl ResamplerExt for PassthroughResampler {
     }
 }
 
-pub(in super::super) struct FftResampler {
+pub(super) struct FftResampler {
     input_sample_rate: u32,
     output_sample_rate: u32,
     input_buffer: [Vec<f64>; 2],
@@ -50,7 +77,7 @@ pub(in super::super) struct FftResampler {
     previous_end_pts: Option<Duration>,
 }
 
-impl ResamplerExt for FftResampler {
+impl FftResampler {
     fn new(
         input_sample_rate: u32,
         output_sample_rate: u32,

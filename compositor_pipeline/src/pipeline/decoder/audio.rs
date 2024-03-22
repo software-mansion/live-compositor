@@ -9,24 +9,13 @@ use crate::{
     queue::PipelineEvent,
 };
 
-use self::{
-    fdk_aac_decoder::AacDecoder,
-    opus_decoder::OpusDecoder,
-    resampler::{FftResampler, PassthroughResampler},
-};
+use self::{fdk_aac_decoder::AacDecoder, opus_decoder::OpusDecoder, resampler::Resampler};
 
-use super::{AacDecoderError, AudioDecoderOptions};
+use super::{AacDecoderError, AudioDecoderOptions, OpusDecoderOptions};
 
 pub mod fdk_aac_decoder;
 pub mod opus_decoder;
 mod resampler;
-
-trait ResamplerExt {
-    fn new(input_sample_rate: u32, output_sample_rate: u32) -> Result<Self, DecoderInitError>
-    where
-        Self: std::marker::Sized;
-    fn resample(&mut self, decoded_samples: DecodedSamples) -> Vec<InputSamples>;
-}
 
 #[derive(Debug)]
 struct DecodedSamples {
@@ -118,17 +107,20 @@ fn run_decoder_thread(
         AudioDecoderOptions::Opus(opus_decoder_opts) => {
             // Opus decoder initialization doesn't require input stream data,
             // so this can wait and send init result
-            let init_res = OpusDecoder::new(opus_decoder_opts, output_sample_rate)
-                .map(|mut decoder| {
-                    create_resampler_run_decoding::<OpusDecoder>(
+            match init_opus_decoder(opus_decoder_opts, output_sample_rate) {
+                Ok((mut decoder, mut resampler)) => {
+                    send_result(Ok(()));
+                    run_decoding(
                         chunks_receiver,
                         &mut decoder,
+                        &mut resampler,
                         samples_sender,
-                        output_sample_rate,
-                    )
-                })
-                .and_then(|res| res);
-            send_result(init_res)
+                    );
+                }
+                Err(err) => {
+                    send_result(Err(err));
+                }
+            }
         }
         AudioDecoderOptions::Aac(aac_decoder_opts) => {
             // unfortunately, since this decoder needs to inspect the first data chunk
@@ -146,67 +138,51 @@ fn run_decoder_thread(
                 }
             };
             let init_res = AacDecoder::new(aac_decoder_opts, &first_chunk)
-                .map(|mut decoder| {
-                    create_resampler_run_decoding::<AacDecoder>(
-                        chunks_receiver,
-                        &mut decoder,
-                        samples_sender,
-                        output_sample_rate,
-                    )
+                .map(|decoder| {
+                    let resampler =
+                        Resampler::new(decoder.decoded_sample_rate(), output_sample_rate)?;
+                    Ok((decoder, resampler))
                 })
                 .and_then(|res| res);
 
-            if let Err(err) = init_res {
-                error!("Fatal AAC decoder initialization error. {}", err)
+            match init_res {
+                Ok((mut decoder, mut resampler)) => {
+                    run_decoding(
+                        chunks_receiver,
+                        &mut decoder,
+                        &mut resampler,
+                        samples_sender,
+                    );
+                }
+                Err(err) => {
+                    error!("Fatal AAC decoder initialization error. {}", err)
+                }
             }
         }
     }
 }
 
-fn create_resampler_run_decoding<Decoder>(
-    chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
-    decoder: &mut Decoder,
-    samples_sender: Sender<PipelineEvent<InputSamples>>,
+fn init_opus_decoder(
+    opus_decoder_opts: OpusDecoderOptions,
     output_sample_rate: u32,
-) -> Result<(), DecoderInitError>
-where
-    Decoder: AudioDecoderExt,
-{
-    let input_sample_rate = decoder.decoded_sample_rate();
-    if input_sample_rate == output_sample_rate {
-        let mut resampler = PassthroughResampler::new(input_sample_rate, output_sample_rate)?;
-        run_decoding::<Decoder, PassthroughResampler>(
-            chunks_receiver,
-            decoder,
-            &mut resampler,
-            samples_sender,
-        );
-    } else {
-        let mut resampler = FftResampler::new(input_sample_rate, output_sample_rate)?;
-        run_decoding::<Decoder, FftResampler>(
-            chunks_receiver,
-            decoder,
-            &mut resampler,
-            samples_sender,
-        );
-    }
-
-    Ok(())
+) -> Result<(OpusDecoder, Resampler), DecoderInitError> {
+    let decoder = OpusDecoder::new(opus_decoder_opts, output_sample_rate)?;
+    let resampler = Resampler::new(decoder.decoded_sample_rate(), output_sample_rate)?;
+    Ok((decoder, resampler))
 }
 
-fn run_decoding<Decoder, Resampler>(
+fn run_decoding<Decoder>(
     chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
     decoder: &mut Decoder,
     resampler: &mut Resampler,
     samples_sender: Sender<PipelineEvent<InputSamples>>,
 ) where
     Decoder: AudioDecoderExt,
-    Resampler: ResamplerExt,
 {
     for event in chunks_receiver {
         let PipelineEvent::Data(encoded_chunk) = event else {
-                return;
-            };
+            return;
+        };
 
         let decoded_samples_vec = match decoder.decode(encoded_chunk) {
             Ok(decoded_samples) => decoded_samples,
