@@ -100,8 +100,6 @@ pub enum DecoderInitError {
     AacError(#[from] AacDecoderError),
     #[error(transparent)]
     ResamplerError(#[from] rubato::ResamplerConstructionError),
-    #[error("Received EOS before first chunk")]
-    NoFirstChunk,
     #[error("Couldn't read decoder init result.")]
     CannotReadInitResult,
 }

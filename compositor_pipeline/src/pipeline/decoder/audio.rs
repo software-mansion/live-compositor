@@ -4,18 +4,19 @@ use compositor_render::InputId;
 use crossbeam_channel::{bounded, Receiver, Sender};
 use log::error;
 
+extern crate opus as lib_opus;
 use crate::{
     audio_mixer::InputSamples, error::DecoderInitError, pipeline::structs::EncodedChunk,
     queue::PipelineEvent,
 };
 
-use self::{fdk_aac_decoder::AacDecoder, opus_decoder::OpusDecoder, resampler::Resampler};
+use self::{fdk_aac::AacDecoder, opus::OpusDecoder, resampler::Resampler};
 
 use super::{AudioDecoderOptions, OpusDecoderOptions};
-pub use fdk_aac_decoder::AacDecoderError;
+pub use fdk_aac::AacDecoderError;
 
-mod fdk_aac_decoder;
-mod opus_decoder;
+mod fdk_aac;
+mod opus;
 mod resampler;
 
 #[derive(Debug)]
@@ -37,7 +38,7 @@ impl DecodedSamples {
 #[derive(Debug, thiserror::Error)]
 pub enum DecodingError {
     #[error(transparent)]
-    OpusError(#[from] opus::Error),
+    OpusError(#[from] lib_opus::Error),
     #[error(transparent)]
     AacDecoder(#[from] AacDecoderError),
 }
