@@ -27,9 +27,7 @@ impl ContinuousValue for Vec<Option<Tile>> {
 
         end.iter()
             .map(|tile| {
-                let Some(tile) = tile else {
-                    return None;
-                };
+                let tile = tile.as_ref()?;
                 start_id_map
                     .get(&tile.id)
                     .and_then(|index| start.get(*index))

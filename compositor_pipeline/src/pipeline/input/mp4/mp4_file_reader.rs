@@ -80,11 +80,9 @@ impl Mp4FileReader<AudioDecoderOptions> {
     fn find_aac_info<Reader: Read + Seek + Send + 'static>(
         reader: &mp4::Mp4Reader<Reader>,
     ) -> Option<TrackInfo<AudioDecoderOptions, impl FnMut(mp4::Mp4Sample) -> Bytes>> {
-        let Some((&track_id, track, aac)) = reader.tracks().iter().find_map(|(id, track)| {
+        let (&track_id, track, aac) = reader.tracks().iter().find_map(|(id, track)| {
             let track_type = track.track_type().ok()?;
-
             let media_type = track.media_type().ok()?;
-
             let aac = track.trak.mdia.minf.stbl.stsd.mp4a.as_ref();
 
             if track_type != mp4::TrackType::Audio
@@ -95,9 +93,7 @@ impl Mp4FileReader<AudioDecoderOptions> {
             }
 
             aac.map(|aac| (id, track, aac))
-        }) else {
-            return None;
-        };
+        })?;
 
         let asc = aac
             .esds
@@ -159,11 +155,9 @@ impl Mp4FileReader<VideoDecoderOptions> {
     fn find_h264_info<Reader: Read + Seek + Send + 'static>(
         reader: &mp4::Mp4Reader<Reader>,
     ) -> Option<TrackInfo<VideoDecoderOptions, impl FnMut(mp4::Mp4Sample) -> Bytes>> {
-        let Some((&track_id, track, avc)) = reader.tracks().iter().find_map(|(id, track)| {
+        let (&track_id, track, avc) = reader.tracks().iter().find_map(|(id, track)| {
             let track_type = track.track_type().ok()?;
-
             let media_type = track.media_type().ok()?;
-
             let avc = track.avc1_or_3_inner();
 
             if track_type != mp4::TrackType::Video
@@ -174,9 +168,7 @@ impl Mp4FileReader<VideoDecoderOptions> {
             }
 
             avc.map(|avc| (id, track, avc))
-        }) else {
-            return None;
-        };
+        })?;
 
         // sps and pps have to be extracted from the container, interleaved with [0, 0, 0, 1],
         // concatenated and prepended to the first frame.

@@ -172,9 +172,7 @@ impl VideoQueueInput {
         queue_start: Instant,
     ) -> Option<PipelineEvent<Frame>> {
         self.drop_old_frames(buffer_pts, queue_start);
-        let Some(input_start_time) = self.input_start_time() else {
-            return None;
-        };
+        let input_start_time = self.input_start_time()?;
         let frame = match self.offset {
             // if stream should not start yet, do not send any frames
             Some(offset) if offset > buffer_pts => None,
