@@ -68,43 +68,28 @@ fn read_config() -> Result<Config, String> {
         Err(_) => format!("live_compositor_{}", rand::thread_rng().gen::<u32>()),
     };
 
-    let ffmpeg_logger_level = match env::var("LIVE_COMPOSITOR_FFMPEG_LOGGER_LEVEL") {
-        Ok(ffmpeg_log_level) => {
-            FfmpegLogLevel::from_str(&ffmpeg_log_level).unwrap_or(FfmpegLogLevel::Warn)
-        }
-        Err(_) => FfmpegLogLevel::Warn,
-    };
-
-    let logger_level = match env::var("LIVE_COMPOSITOR_LOGGER_LEVEL") {
-        Ok(level) => level,
-        Err(_) => "info,wgpu_hal=warn,wgpu_core=warn".to_string(),
-    };
-
-    // When building in repo use compact logger
-    let default_logger_format = match env::var("CARGO_MANIFEST_DIR") {
-        Ok(_) => LoggerFormat::Compact,
-        Err(_) => LoggerFormat::Json,
-    };
-    let logger_format = match env::var("LIVE_COMPOSITOR_LOGGER_FORMAT") {
-        Ok(format) => LoggerFormat::from_str(&format).unwrap_or(default_logger_format),
-        Err(_) => default_logger_format,
-    };
-
     const DEFAULT_FRAMERATE: Framerate = Framerate { num: 30, den: 1 };
     let framerate = match env::var("LIVE_COMPOSITOR_OUTPUT_FRAMERATE") {
         Ok(framerate) => framerate_from_str(&framerate).unwrap_or(DEFAULT_FRAMERATE),
         Err(_) => DEFAULT_FRAMERATE,
     };
 
-    const DEFAULT_WEB_RENDERER_ENABLED: bool = cfg!(feature = "web_renderer");
-    let web_renderer_enable = match env::var("LIVE_COMPOSITOR_WEB_RENDERER_ENABLE") {
-        Ok(enable) => bool_env_from_str(&enable).unwrap_or(DEFAULT_WEB_RENDERER_ENABLED),
-        Err(_) => DEFAULT_WEB_RENDERER_ENABLED,
-    };
+    /// Valid Opus sample rates
+    const SUPPORTED_SAMPLE_RATES: [u32; 5] = [8_000, 12_000, 16_000, 24_000, 48_000];
+    const DEFAULT_OUTPUT_SAMPLE_RATE: u32 = 48_000;
+    let output_sample_rate: u32 = match env::var("LIVE_COMPOSITOR_OUTPUT_SAMPLE_RATE") {
+        Ok(sample_rate) => {
+            let sample_rate = sample_rate
+                .parse()
+                .map_err(|_| "LIVE_COMPOSITOR_OUTPUT_SAMPLE_RATE has to be a valid number")?;
 
-    let web_renderer_gpu_enable = match env::var("LIVE_COMPOSITOR_WEB_RENDERER_GPU_ENABLE") {
-        Ok(enable) => bool_env_from_str(&enable).unwrap_or(true),
-        Err(_) => true,
+            if SUPPORTED_SAMPLE_RATES.contains(&sample_rate) {
+                sample_rate
+            } else {
+                return Err("LIVE_COMPOSITOR_OUTPUT_SAMPLE_RATE has to be a supported sample rate. Supported sample rates are: 8000, 12000, 16000, 24000, 48000".to_string());
+            }
+        }
+        Err(_) => DEFAULT_OUTPUT_SAMPLE_RATE,
     };
 
     let force_gpu = match env::var("LIVE_COMPOSITOR_FORCE_GPU") {
@@ -124,33 +109,48 @@ fn read_config() -> Result<Config, String> {
         Err(_) => DEFAULT_STREAM_FALLBACK_TIMEOUT,
     };
 
+    let logger_level = match env::var("LIVE_COMPOSITOR_LOGGER_LEVEL") {
+        Ok(level) => level,
+        Err(_) => "info,wgpu_hal=warn,wgpu_core=warn".to_string(),
+    };
+
+    // When building in repo use compact logger
+    let default_logger_format = match env::var("CARGO_MANIFEST_DIR") {
+        Ok(_) => LoggerFormat::Compact,
+        Err(_) => LoggerFormat::Json,
+    };
+    let logger_format = match env::var("LIVE_COMPOSITOR_LOGGER_FORMAT") {
+        Ok(format) => LoggerFormat::from_str(&format).unwrap_or(default_logger_format),
+        Err(_) => default_logger_format,
+    };
+
+    let ffmpeg_logger_level = match env::var("LIVE_COMPOSITOR_FFMPEG_LOGGER_LEVEL") {
+        Ok(ffmpeg_log_level) => {
+            FfmpegLogLevel::from_str(&ffmpeg_log_level).unwrap_or(FfmpegLogLevel::Warn)
+        }
+        Err(_) => FfmpegLogLevel::Warn,
+    };
+
     let download_root = env::var("LIVE_COMPOSITOR_DOWNLOAD_DIR")
         .map(PathBuf::from)
         .unwrap_or(env::temp_dir());
+
+    const DEFAULT_WEB_RENDERER_ENABLED: bool = cfg!(feature = "web_renderer");
+    let web_renderer_enable = match env::var("LIVE_COMPOSITOR_WEB_RENDERER_ENABLE") {
+        Ok(enable) => bool_env_from_str(&enable).unwrap_or(DEFAULT_WEB_RENDERER_ENABLED),
+        Err(_) => DEFAULT_WEB_RENDERER_ENABLED,
+    };
+
+    let web_renderer_gpu_enable = match env::var("LIVE_COMPOSITOR_WEB_RENDERER_GPU_ENABLE") {
+        Ok(enable) => bool_env_from_str(&enable).unwrap_or(true),
+        Err(_) => true,
+    };
 
     let ahead_of_time_processing: bool =
         match env::var("LIVE_COMPOSITOR_AHEAD_OF_TIME_PROCESSING_ENABLE") {
             Ok(enable) => bool_env_from_str(&enable).unwrap_or(false),
             Err(_) => false,
         };
-
-    const DEFAULT_OUTPUT_SAMPLE_RATE: u32 = 48_000;
-    /// Valid Opus sample rates
-    const SUPPORTED_SAMPLE_RATES: [u32; 5] = [8_000, 12_000, 16_000, 24_000, 48_000];
-    let output_sample_rate: u32 = match env::var("LIVE_COMPOSITOR_OUTPUT_SAMPLE_RATE") {
-        Ok(sample_rate) => {
-            let sample_rate = sample_rate
-                .parse()
-                .map_err(|_| "LIVE_COMPOSITOR_OUTPUT_SAMPLE_RATE has to be a valid number")?;
-
-            if SUPPORTED_SAMPLE_RATES.contains(&sample_rate) {
-                sample_rate
-            } else {
-                return Err("LIVE_COMPOSITOR_OUTPUT_SAMPLE_RATE has to be a supported sample rate. Supported sample rates are: 8000, 12000, 16000, 24000, 48000".to_string());
-            }
-        }
-        Err(_) => DEFAULT_OUTPUT_SAMPLE_RATE,
-    };
 
     let run_late_scheduled_events = match env::var("LIVE_COMPOSITOR_RUN_LATE_SCHEDULED_EVENTS") {
         Ok(enable) => bool_env_from_str(&enable).unwrap_or(false),
