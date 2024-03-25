@@ -15,6 +15,7 @@ pub struct Resolution {
 pub struct Transition {
     /// Duration of a transition in milliseconds.
     pub duration_ms: f64,
+    /// (**default=`"linear"`**) Easing function to be used for the transition.
     pub easing_function: Option<EasingFunction>,
 }
 
