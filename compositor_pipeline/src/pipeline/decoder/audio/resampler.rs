@@ -72,9 +72,9 @@ pub(super) struct FftResampler {
     input_buffer: [Vec<f64>; 2],
     output_buffer: [Vec<f64>; 2],
     resampler: FftFixedOut<f64>,
-    send_samples: u64,
     first_batch_pts: Option<Duration>,
-    previous_end_pts: Option<Duration>,
+    resampler_input_samples: u64,
+    resampler_output_samples: u64,
 }
 
 impl FftResampler {
@@ -107,20 +107,15 @@ impl FftResampler {
         // Output buffer is preallocated to avoid allocating it on every output batch.
         let output_buffer = [vec![0.0; output_batch_size], vec![0.0; output_batch_size]];
 
-        // Used to fill missing samples and determine batch pts
-        let send_samples = 0;
-        let first_batch_pts = None;
-        let previous_end_pts = None;
-
         Ok(Self {
             input_sample_rate,
             output_sample_rate,
             input_buffer,
             output_buffer,
             resampler,
-            send_samples,
-            first_batch_pts,
-            previous_end_pts,
+            first_batch_pts: None,
+            resampler_input_samples: 0,
+            resampler_output_samples: 0,
         })
     }
 
@@ -132,33 +127,25 @@ impl FftResampler {
                 decoded_samples.sample_rate
             );
         }
-
-        append_to_input_buffer(
-            &mut self.input_buffer,
-            &decoded_samples,
-            &mut self.previous_end_pts,
-        );
-        let first_batch_pts = *self
-            .first_batch_pts
-            .get_or_insert(decoded_samples.start_pts);
+        self.append_to_input_buffer(decoded_samples);
 
         let mut resampled = Vec::new();
         while self.resampler.input_frames_next() <= self.input_buffer[0].len() {
+            let start_pts = self.output_batch_pts();
+
             match self.resampler.process_into_buffer(
                 &self.input_buffer,
                 &mut self.output_buffer,
                 None,
             ) {
                 Ok((used_input_samples, produced_samples)) => {
-                    let samples =
-                        Arc::new(read_output_buffer(&self.output_buffer, produced_samples));
-                    let start_pts =
-                        batch_pts(first_batch_pts, self.output_sample_rate, self.send_samples);
+                    let samples = Arc::new(self.read_output_buffer(produced_samples));
                     let input_samples =
                         InputSamples::new(samples, start_pts, self.output_sample_rate);
 
-                    drop_input_samples(&mut self.input_buffer, used_input_samples);
-                    self.send_samples += input_samples.len() as u64;
+                    self.drop_input_samples(used_input_samples);
+                    self.resampler_input_samples += used_input_samples as u64;
+                    self.resampler_output_samples += produced_samples as u64;
                     resampled.push(input_samples);
                 }
                 Err(err) => {
@@ -169,61 +156,54 @@ impl FftResampler {
 
         resampled
     }
-}
 
-fn append_to_input_buffer(
-    input_buffer: &mut [Vec<f64>; 2],
-    decoded_samples: &DecodedSamples,
-    previous_end_pts: &mut Option<Duration>,
-) {
-    const PTS_COMPARE_ERROR_MARGIN: Duration = Duration::from_nanos(100);
-    if let Some(end_pts) = previous_end_pts {
-        if decoded_samples.start_pts > *end_pts + PTS_COMPARE_ERROR_MARGIN {
-            debug!("Filling missing samples in resampler.");
-            fill_missing_samples(
-                input_buffer,
-                decoded_samples.start_pts.saturating_sub(*end_pts),
-                decoded_samples.sample_rate,
-            );
+    fn append_to_input_buffer(&mut self, decoded_samples: DecodedSamples) {
+        let first_batch_pts = *self
+            .first_batch_pts
+            .get_or_insert(decoded_samples.start_pts);
+
+        let input_duration = decoded_samples.end_pts().saturating_sub(first_batch_pts);
+        let expected_samples =
+            (input_duration.as_secs_f64() * self.input_sample_rate as f64) as u64;
+        let actual_samples = self.resampler_input_samples + self.input_buffer[0].len() as u64;
+
+        const SAMPLES_COMPARE_ERROR_MARGIN: u64 = 1;
+        if expected_samples > actual_samples + SAMPLES_COMPARE_ERROR_MARGIN {
+            let filling_samples = expected_samples - actual_samples;
+            debug!("Filling {} missing samples in resampler", filling_samples);
+            for _ in 0..filling_samples {
+                self.input_buffer[0].push(0.0);
+                self.input_buffer[1].push(0.0);
+            }
+        }
+
+        for (l, r) in decoded_samples.samples.iter().cloned() {
+            self.input_buffer[0].push(pcm_i16_to_f64(l));
+            self.input_buffer[1].push(pcm_i16_to_f64(r));
         }
     }
-    for (l, r) in decoded_samples.samples.iter().cloned() {
-        input_buffer[0].push(pcm_i16_to_f64(l));
-        input_buffer[1].push(pcm_i16_to_f64(r));
+
+    fn read_output_buffer(&mut self, output_samples: usize) -> Vec<(i16, i16)> {
+        let left_channel_iter = self.output_buffer[0][0..output_samples].iter().cloned();
+        let right_channel_iter = self.output_buffer[1][0..output_samples].iter().cloned();
+
+        left_channel_iter
+            .zip(right_channel_iter)
+            .map(|(l, r)| (pcm_f64_to_i16(l), pcm_f64_to_i16(r)))
+            .collect()
     }
 
-    *previous_end_pts = Some(decoded_samples.end_pts());
-}
+    fn drop_input_samples(&mut self, used_samples: usize) {
+        self.input_buffer[0].drain(0..used_samples);
+        self.input_buffer[1].drain(0..used_samples);
+    }
 
-fn fill_missing_samples(
-    input_buffer: &mut [Vec<f64>; 2],
-    missing_duration: Duration,
-    sample_rate: u32,
-) {
-    let missing_samples_count = (missing_duration.as_secs_f64() * sample_rate as f64) as usize;
-    let missing_samples = (0..missing_samples_count).map(|_| 0.0);
-    input_buffer[0].extend(missing_samples.clone());
-    input_buffer[1].extend(missing_samples);
-}
-
-fn read_output_buffer(output_buffer: &[Vec<f64>; 2], output_samples: usize) -> Vec<(i16, i16)> {
-    let left_channel_iter = output_buffer[0][0..output_samples].iter().cloned();
-    let right_channel_iter = output_buffer[1][0..output_samples].iter().cloned();
-
-    left_channel_iter
-        .zip(right_channel_iter)
-        .map(|(l, r)| (pcm_f64_to_i16(l), pcm_f64_to_i16(r)))
-        .collect()
-}
-
-fn batch_pts(first_batch_pts: Duration, sample_rate: u32, send_samples: u64) -> Duration {
-    let time_before_batch = Duration::from_secs_f64(send_samples as f64 / sample_rate as f64);
-    first_batch_pts + time_before_batch
-}
-
-fn drop_input_samples(input_buffer: &mut [Vec<f64>; 2], used_samples: usize) {
-    input_buffer[0].drain(0..used_samples);
-    input_buffer[1].drain(0..used_samples);
+    fn output_batch_pts(&mut self) -> Duration {
+        let send_audio_duration = Duration::from_secs_f64(
+            self.resampler_output_samples as f64 / self.output_sample_rate as f64,
+        );
+        self.first_batch_pts.unwrap() + send_audio_duration
+    }
 }
 
 fn pcm_i16_to_f64(val: i16) -> f64 {
