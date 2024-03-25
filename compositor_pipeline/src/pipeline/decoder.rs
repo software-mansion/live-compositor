@@ -11,7 +11,7 @@ pub use audio::AacDecoderError;
 mod audio;
 mod video;
 
-pub fn spawn_decoder(
+pub fn start_decoder(
     input_id: InputId,
     chunks: ChunksReceiver,
     decoder_options: DecoderOptions,

@@ -42,7 +42,7 @@ pub(super) fn register_pipeline_input(
         decoder_options.audio.as_ref().map(|_| false),
         decoder_options.video.as_ref().map(|_| false),
     );
-    let decoded_data_receiver = decoder::spawn_decoder(
+    let decoded_data_receiver = decoder::start_decoder(
         input_id.clone(),
         chunks_receiver,
         decoder_options,
