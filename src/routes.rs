@@ -45,6 +45,7 @@ async fn handle_api_request(
     State(api): State<Api>,
     Json(request): Json<api::Request>,
 ) -> impl IntoResponse {
+    debug!(?request, "Received API request");
     api.handle_request(request)
 }
 

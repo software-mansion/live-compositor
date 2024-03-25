@@ -12,7 +12,6 @@ pub struct CompositorInstance {
 impl CompositorInstance {
     pub fn start(api_port: u16) -> Self {
         env::set_var("LIVE_COMPOSITOR_WEB_RENDERER_ENABLE", "0");
-        env::set_var("LIVE_COMPOSITOR_API_PORT", api_port.to_string());
         ffmpeg_next::format::network::init();
         logger::init_logger();
 
@@ -20,8 +19,9 @@ impl CompositorInstance {
 
         thread::Builder::new()
             .name(format!("compositor instance on port {api_port}"))
-            .spawn(server::run)
+            .spawn(move || server::run_on_port(api_port))
             .unwrap();
+        thread::sleep(Duration::from_millis(1000));
 
         CompositorInstance {
             api_port,
