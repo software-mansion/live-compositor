@@ -4,7 +4,7 @@
 
 ### `LIVE_COMPOSITOR_API_PORT`
 
-API port. Defaults to 8001.
+API port. Defaults to 8081.
 
 ### `LIVE_COMPOSITOR_INSTANCE_ID`
 
@@ -12,11 +12,11 @@ ID that will be returned in `GET /status` request. Can be used to identify if we
 
 ### `LIVE_COMPOSITOR_OUTPUT_FRAMERATE`
 
-Output framerate for all output streams. This value can be a number or string in the `NUM/DEN` format, where both `NUM` and `DEN` are unsigned integers.
+Output framerate for all output streams. This value can be a number or string in the `NUM/DEN` format, where both `NUM` and `DEN` are unsigned integers. Defaults to `30`
 
 ### `LIVE_COMPOSITOR_OUTPUT_SAMPLE_RATE`
 
-Output sample rate for all output streams. This value has to be a number or string representing supported sample rate.
+Output sample rate for all output streams. This value has to be a number or string representing supported sample rate. Defaults to 48000.
 
 Supported sample rates are: 8000, 12000, 16000, 24000, 48000
 
@@ -26,7 +26,7 @@ If enabled, GPU will be required for rendering. If only CPU based adapters will 
 
 ### `LIVE_COMPOSITOR_STREAM_FALLBACK_TIMEOUT_MS`
 
-A timeout that defines when the compositor should switch to fallback on the input stream that stopped sending frames.
+A timeout that defines when the compositor should switch to fallback on the input stream that stopped sending frames. Defaults to 500.
 
 ### `LIVE_COMPOSITOR_LOGGER_LEVEL`
 
@@ -39,24 +39,25 @@ Defaults to `info,wgpu_hal=warn,wgpu_core=warn`.
 ### `LIVE_COMPOSITOR_LOGGER_FORMAT`
 
 Logger format. Supported options:
+
 - `json`
 - `compact`
 - `pretty`
 
 :::warning
-This option does not apply to logs produced by `FFmpeg` or the embedded Chromium instance used for web rendering.
+This option does not apply to logs produced by `FFmpeg` or the embedded Chromium instance used for web rendering. Defaults to `json`.
 :::
 
 ### `LIVE_COMPOSITOR_FFMPEG_LOGGER_LEVEL`
 
 Minimal log level that should be logged. Supported options:
+
 - `error` - equivalent to FFmpeg's `error, 16`
 - `warn` - equivalent to FFmpeg's `warning, 24`
 - `info` - equivalent to FFmpeg's `info, 32`
 - `debug` - equivalent to FFmpeg's `debug, 48`
- 
 
-See `-loglevel` option in [FFmpeg documentation](https://ffmpeg.org/ffmpeg.html).
+See `-loglevel` option in [FFmpeg documentation](https://ffmpeg.org/ffmpeg.html). Defaults to `warn`.
 
 ### `LIVE_COMPOSITOR_DOWNLOAD_DIR`
 
@@ -74,11 +75,14 @@ Defaults to `false`. Valid values: `true`, `false`, `1`, `0`.
 
 Enable GPU support inside the embedded Chromium instance.
 
+Defaults to `true`. Valid values: `true`, `false`, `1`, `0`.
+
 ### `LIVE_COMPOSITOR_AHEAD_OF_TIME_PROCESSING_ENABLE`
 
 If enabled, the LiveCompositor server will try to generate output frames ahead of time if all inputs are available.
 
 When to enable this option:
+
 - If you want to process input streams faster than in real time.
 
 Defaults to `false`. Valid values: `true`, `false`, `1`, `0`.
