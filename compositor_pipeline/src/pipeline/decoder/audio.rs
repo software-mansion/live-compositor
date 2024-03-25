@@ -3,6 +3,7 @@ use std::{sync::Arc, time::Duration};
 use compositor_render::InputId;
 use crossbeam_channel::{bounded, Receiver, Sender};
 use log::error;
+use tracing::{span, Level};
 
 extern crate opus as lib_opus;
 use crate::{
@@ -50,7 +51,7 @@ trait AudioDecoderExt {
     fn decoded_sample_rate(&self) -> u32;
 }
 
-pub fn spawn_audio_decoder(
+pub fn start_audio_decoder_thread(
     opts: AudioDecoderOptions,
     output_sample_rate: u32,
     chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
@@ -61,6 +62,12 @@ pub fn spawn_audio_decoder(
     std::thread::Builder::new()
         .name(format!("Decoder thread for input {}", input_id.clone()))
         .spawn(move || {
+            let _span = span!(
+                Level::INFO,
+                "Audio decoder {}",
+                input_id = input_id.to_string()
+            );
+
             run_decoder_thread(
                 opts,
                 output_sample_rate,
@@ -88,6 +95,44 @@ fn run_decoder_thread(
     samples_sender: Sender<PipelineEvent<InputSamples>>,
     init_result_sender: Sender<Result<(), DecoderInitError>>,
 ) {
+    // This ensures that EOS is send only once
+    let sender = |samples: InputSamples| {
+        if samples_sender.send(PipelineEvent::Data(samples)).is_err() {
+            error!("Failed to send decoded input samples.");
+        };
+    };
+
+    run_decoding(
+        opts,
+        output_sample_rate,
+        chunks_receiver,
+        sender,
+        init_result_sender,
+    );
+
+    if samples_sender.send(PipelineEvent::EOS).is_err() {
+        error!("Failed to send EOS message.")
+    }
+}
+
+fn init_opus_decoder(
+    opus_decoder_opts: OpusDecoderOptions,
+    output_sample_rate: u32,
+) -> Result<(OpusDecoder, Resampler), DecoderInitError> {
+    let decoder = OpusDecoder::new(opus_decoder_opts, output_sample_rate)?;
+    let resampler = Resampler::new(decoder.decoded_sample_rate(), output_sample_rate)?;
+    Ok((decoder, resampler))
+}
+
+fn run_decoding<F>(
+    opts: AudioDecoderOptions,
+    output_sample_rate: u32,
+    chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
+    samples_sender: F,
+    init_result_sender: Sender<Result<(), DecoderInitError>>,
+) where
+    F: Fn(InputSamples),
+{
     // AAC decoder output can have any sample rate, therefore resampling it to output sample rate is needed.
     // In Opus decoder we can configure output sampler rate and decoder performs resampling, however if output sample
     // rate is not supported by Opus (e.g. 44100Hz), then resampling is also needed.
@@ -112,12 +157,12 @@ fn run_decoder_thread(
             match init_opus_decoder(opus_decoder_opts, output_sample_rate) {
                 Ok((mut decoder, mut resampler)) => {
                     send_result(Ok(()));
-                    run_decoding(
+                    run_decoding_loop(
                         chunks_receiver,
                         &mut decoder,
                         &mut resampler,
                         samples_sender,
-                    );
+                    )
                 }
                 Err(err) => {
                     send_result(Err(err));
@@ -148,42 +193,32 @@ fn run_decoder_thread(
                 .and_then(|res| res);
 
             match init_res {
-                Ok((mut decoder, mut resampler)) => {
-                    run_decoding(
-                        chunks_receiver,
-                        &mut decoder,
-                        &mut resampler,
-                        samples_sender,
-                    );
-                }
+                Ok((mut decoder, mut resampler)) => run_decoding_loop(
+                    chunks_receiver,
+                    &mut decoder,
+                    &mut resampler,
+                    samples_sender,
+                ),
                 Err(err) => {
-                    error!("Fatal AAC decoder initialization error. {}", err)
+                    error!("Fatal AAC decoder initialization error. {}", err);
                 }
             }
         }
     }
 }
 
-fn init_opus_decoder(
-    opus_decoder_opts: OpusDecoderOptions,
-    output_sample_rate: u32,
-) -> Result<(OpusDecoder, Resampler), DecoderInitError> {
-    let decoder = OpusDecoder::new(opus_decoder_opts, output_sample_rate)?;
-    let resampler = Resampler::new(decoder.decoded_sample_rate(), output_sample_rate)?;
-    Ok((decoder, resampler))
-}
-
-fn run_decoding<Decoder>(
+fn run_decoding_loop<Decoder, F>(
     chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
     decoder: &mut Decoder,
     resampler: &mut Resampler,
-    samples_sender: Sender<PipelineEvent<InputSamples>>,
+    samples_sender: F,
 ) where
     Decoder: AudioDecoderExt,
+    F: Fn(InputSamples),
 {
     for event in chunks_receiver {
         let PipelineEvent::Data(encoded_chunk) = event else {
-            return;
+            break;
         };
 
         let decoded_samples_vec = match decoder.decode(encoded_chunk) {
@@ -196,12 +231,7 @@ fn run_decoding<Decoder>(
 
         for decoded_samples in decoded_samples_vec {
             for input_samples in resampler.resample(decoded_samples) {
-                if samples_sender
-                    .send(PipelineEvent::Data(input_samples))
-                    .is_err()
-                {
-                    error!("Failed to send decoded input samples.")
-                }
+                samples_sender(input_samples)
             }
         }
     }

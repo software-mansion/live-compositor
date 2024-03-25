@@ -17,46 +17,42 @@ use ffmpeg_next::{
 };
 use tracing::{debug, error, span, trace, warn, Level};
 
-pub struct H264FfmpegDecoder;
+pub fn start_ffmpeg_decoder_thread(
+    chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
+    frame_sender: Sender<PipelineEvent<Frame>>,
+    input_id: InputId,
+) -> Result<(), DecoderInitError> {
+    let (init_result_sender, init_result_receiver) = crossbeam_channel::bounded(0);
 
-impl H264FfmpegDecoder {
-    pub fn spawn(
-        chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
-        frame_sender: Sender<PipelineEvent<Frame>>,
-        input_id: InputId,
-    ) -> Result<(), DecoderInitError> {
-        let (init_result_sender, init_result_receiver) = crossbeam_channel::bounded(0);
+    let mut parameters = ffmpeg_next::codec::Parameters::new();
+    unsafe {
+        let parameters = &mut *parameters.as_mut_ptr();
 
-        let mut parameters = ffmpeg_next::codec::Parameters::new();
-        unsafe {
-            let parameters = &mut *parameters.as_mut_ptr();
+        parameters.codec_type = Type::Video.into();
+        parameters.codec_id = Id::H264.into();
+    };
 
-            parameters.codec_type = Type::Video.into();
-            parameters.codec_id = Id::H264.into();
-        };
+    std::thread::Builder::new()
+        .name(format!("h264 ffmpeg decoder {}", input_id.0))
+        .spawn(move || {
+            let _span = span!(
+                Level::INFO,
+                "h264 ffmpeg decoder",
+                input_id = input_id.to_string()
+            )
+            .entered();
+            run_decoder_thread(
+                parameters,
+                init_result_sender,
+                chunks_receiver,
+                frame_sender,
+            )
+        })
+        .unwrap();
 
-        std::thread::Builder::new()
-            .name(format!("h264 ffmpeg decoder {}", input_id.0))
-            .spawn(move || {
-                let _span = span!(
-                    Level::INFO,
-                    "h264 ffmpeg decoder",
-                    input_id = input_id.to_string()
-                )
-                .entered();
-                run_decoder_thread(
-                    parameters,
-                    init_result_sender,
-                    chunks_receiver,
-                    frame_sender,
-                )
-            })
-            .unwrap();
+    init_result_receiver.recv().unwrap()?;
 
-        init_result_receiver.recv().unwrap()?;
-
-        Ok(())
-    }
+    Ok(())
 }
 
 #[derive(Debug, thiserror::Error)]

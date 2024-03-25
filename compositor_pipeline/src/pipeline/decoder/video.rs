@@ -7,19 +7,19 @@ use crate::{
     queue::PipelineEvent,
 };
 
-use self::ffmpeg_h264::H264FfmpegDecoder;
-
 use super::VideoDecoderOptions;
 
 mod ffmpeg_h264;
 
-pub fn spawn_video_decoder(
+pub fn start_video_decoder_thread(
     options: &VideoDecoderOptions,
     chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
     frame_sender: Sender<PipelineEvent<Frame>>,
     input_id: InputId,
 ) -> Result<(), DecoderInitError> {
     match options.codec {
-        VideoCodec::H264 => H264FfmpegDecoder::spawn(chunks_receiver, frame_sender, input_id),
+        VideoCodec::H264 => {
+            ffmpeg_h264::start_ffmpeg_decoder_thread(chunks_receiver, frame_sender, input_id)
+        }
     }
 }

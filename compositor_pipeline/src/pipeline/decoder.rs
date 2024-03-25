@@ -29,7 +29,7 @@ pub fn spawn_decoder(
     let video_receiver =
         if let (Some(opt), Some(video_receiver)) = (video_decoder_opt, video_receiver) {
             let (sender, receiver) = bounded(10);
-            video::spawn_video_decoder(&opt, video_receiver, sender, input_id.clone())?;
+            video::start_video_decoder_thread(&opt, video_receiver, sender, input_id.clone())?;
             Some(receiver)
         } else {
             None
@@ -37,7 +37,13 @@ pub fn spawn_decoder(
     let audio_receiver =
         if let (Some(opt), Some(audio_receiver)) = (audio_decoder_opt, audio_receiver) {
             let (sender, receiver) = bounded(10);
-            audio::spawn_audio_decoder(opt, output_sample_rate, audio_receiver, sender, input_id)?;
+            audio::start_audio_decoder_thread(
+                opt,
+                output_sample_rate,
+                audio_receiver,
+                sender,
+                input_id,
+            )?;
             Some(receiver)
         } else {
             None
