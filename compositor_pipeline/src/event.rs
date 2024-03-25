@@ -19,12 +19,12 @@ fn input_event(kind: &str, input_id: InputId) -> event_handler::Event {
 impl From<Event> for event_handler::Event {
     fn from(val: Event) -> Self {
         match val {
-            Event::AudioInputStreamDelivered(id) => input_event("AUDIO_INPUT_STREAM_DELIVERED", id),
-            Event::VideoInputStreamDelivered(id) => input_event("VIDEO_INPUT_STREAM_DELIVERED", id),
-            Event::AudioInputStreamPlaying(id) => input_event("AUDIO_INPUT_STREAM_PLAYING", id),
-            Event::VideoInputStreamPlaying(id) => input_event("VIDEO_INPUT_STREAM_PLAYING", id),
-            Event::AudioInputStreamEos(id) => input_event("AUDIO_INPUT_STREAM_EOS", id),
-            Event::VideoInputStreamEos(id) => input_event("VIDEO_INPUT_STREAM_EOS", id),
+            Event::AudioInputStreamDelivered(id) => input_event("AUDIO_INPUT_DELIVERED", id),
+            Event::VideoInputStreamDelivered(id) => input_event("VIDEO_INPUT_DELIVERED", id),
+            Event::AudioInputStreamPlaying(id) => input_event("AUDIO_INPUT_PLAYING", id),
+            Event::VideoInputStreamPlaying(id) => input_event("VIDEO_INPUT_PLAYING", id),
+            Event::AudioInputStreamEos(id) => input_event("AUDIO_INPUT_EOS", id),
+            Event::VideoInputStreamEos(id) => input_event("VIDEO_INPUT_EOS", id),
         }
     }
 }

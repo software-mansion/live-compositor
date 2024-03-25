@@ -293,9 +293,10 @@ impl VideoQueueInput {
         queue_pts: Duration,
         queue_start_time: Instant,
     ) -> Option<Duration> {
+        let input_start_time = self.input_start_time();
         match self.offset {
             Some(offset) => queue_pts.checked_sub(offset),
-            None => match self.input_start_time() {
+            None => match input_start_time {
                 Some(input_start_time) => {
                     (queue_start_time + queue_pts).checked_duration_since(input_start_time)
                 }
