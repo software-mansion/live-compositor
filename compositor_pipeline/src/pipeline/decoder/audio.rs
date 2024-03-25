@@ -115,15 +115,6 @@ fn run_decoder_thread(
     }
 }
 
-fn init_opus_decoder(
-    opus_decoder_opts: OpusDecoderOptions,
-    output_sample_rate: u32,
-) -> Result<(OpusDecoder, Resampler), DecoderInitError> {
-    let decoder = OpusDecoder::new(opus_decoder_opts, output_sample_rate)?;
-    let resampler = Resampler::new(decoder.decoded_sample_rate(), output_sample_rate)?;
-    Ok((decoder, resampler))
-}
-
 fn run_decoding<F>(
     opts: AudioDecoderOptions,
     output_sample_rate: u32,
@@ -235,4 +226,13 @@ fn run_decoding_loop<Decoder, F>(
             }
         }
     }
+}
+
+fn init_opus_decoder(
+    opus_decoder_opts: OpusDecoderOptions,
+    output_sample_rate: u32,
+) -> Result<(OpusDecoder, Resampler), DecoderInitError> {
+    let decoder = OpusDecoder::new(opus_decoder_opts, output_sample_rate)?;
+    let resampler = Resampler::new(decoder.decoded_sample_rate(), output_sample_rate)?;
+    Ok((decoder, resampler))
 }

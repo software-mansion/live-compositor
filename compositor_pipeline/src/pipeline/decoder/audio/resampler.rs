@@ -172,7 +172,7 @@ impl FftResampler {
 }
 
 fn append_to_input_buffer(
-    input_buffer: &mut [Vec<f64>],
+    input_buffer: &mut [Vec<f64>; 2],
     decoded_samples: &DecodedSamples,
     previous_end_pts: &mut Option<Duration>,
 ) {
@@ -196,7 +196,7 @@ fn append_to_input_buffer(
 }
 
 fn fill_missing_samples(
-    input_buffer: &mut [Vec<f64>],
+    input_buffer: &mut [Vec<f64>; 2],
     missing_duration: Duration,
     sample_rate: u32,
 ) {
@@ -206,7 +206,7 @@ fn fill_missing_samples(
     input_buffer[1].extend(missing_samples);
 }
 
-fn read_output_buffer(output_buffer: &[Vec<f64>], output_samples: usize) -> Vec<(i16, i16)> {
+fn read_output_buffer(output_buffer: &[Vec<f64>; 2], output_samples: usize) -> Vec<(i16, i16)> {
     let left_channel_iter = output_buffer[0][0..output_samples].iter().cloned();
     let right_channel_iter = output_buffer[1][0..output_samples].iter().cloned();
 
@@ -221,7 +221,7 @@ fn batch_pts(first_batch_pts: Duration, sample_rate: u32, send_samples: u64) -> 
     first_batch_pts + time_before_batch
 }
 
-fn drop_input_samples(input_buffer: &mut [Vec<f64>], used_samples: usize) {
+fn drop_input_samples(input_buffer: &mut [Vec<f64>; 2], used_samples: usize) {
     input_buffer[0].drain(0..used_samples);
     input_buffer[1].drain(0..used_samples);
 }
