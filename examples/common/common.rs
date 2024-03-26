@@ -7,7 +7,7 @@ use std::{
     env,
     fs::{self, File},
     io::{self, Write},
-    path::{Path, PathBuf},
+    path::PathBuf,
     process::{Command, Stdio},
     thread,
     time::Duration,
