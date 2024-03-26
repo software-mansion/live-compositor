@@ -7,9 +7,9 @@ use std::{
     thread::{self},
     time::Duration,
 };
-use video_compositor::{config::config, http, logger, types::Resolution};
+use video_compositor::{logger, server, types::Resolution};
 
-use crate::common::write_video_audio_example_sdp_file;
+use crate::common::{start_websocket_thread, write_video_audio_example_sdp_file};
 
 #[path = "./common/common.rs"]
 mod common;
@@ -36,7 +36,7 @@ fn main() {
         }
     });
 
-    http::Server::new(config().api_port).run();
+    server::run();
 }
 
 fn start_example_client_code() -> Result<()> {
@@ -48,6 +48,7 @@ fn start_example_client_code() -> Result<()> {
         .stderr(Stdio::null())
         .spawn()?;
     thread::sleep(Duration::from_secs(2));
+    start_websocket_thread();
 
     info!("[example] Download sample.");
     let bunny_path = env::current_dir()?.join(BUNNY_FILE_PATH);

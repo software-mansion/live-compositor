@@ -1,13 +1,11 @@
 use log::info;
 
-use crate::config::config;
-
 mod api;
 mod config;
 mod error;
-mod http;
 mod logger;
 mod routes;
+mod server;
 mod types;
 
 #[cfg(test)]
@@ -32,7 +30,7 @@ fn main() {
 
     ffmpeg_next::format::network::init();
 
-    http::Server::new(config().api_port).run();
+    server::run();
 
     info!("Received exit signal. Terminating...")
     // TODO: add graceful shutdown

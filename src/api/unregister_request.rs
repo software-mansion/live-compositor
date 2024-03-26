@@ -5,12 +5,12 @@ use log::error;
 
 use crate::error::ApiError;
 
-use super::{Api, ResponseHandler, UnregisterRequest};
+use super::{Api, Response, UnregisterRequest};
 
 pub fn handle_unregister_request(
-    api: &mut Api,
+    api: &Api,
     request: UnregisterRequest,
-) -> Result<ResponseHandler, ApiError> {
+) -> Result<Response, ApiError> {
     match request {
         UnregisterRequest::InputStream {
             input_id,
@@ -39,7 +39,7 @@ pub fn handle_unregister_request(
                     api.pipeline().unregister_input(&input_id.into())?;
                 }
             }
-            Ok(ResponseHandler::Ok)
+            Ok(Response::Ok {})
         }
         UnregisterRequest::OutputStream {
             output_id,
@@ -70,23 +70,23 @@ pub fn handle_unregister_request(
                     api.pipeline().unregister_output(&output_id.into())?;
                 }
             }
-            Ok(ResponseHandler::Ok)
+            Ok(Response::Ok {})
         }
         UnregisterRequest::Shader { shader_id } => {
             api.pipeline()
                 .unregister_renderer(&shader_id.into(), RegistryType::Shader)?;
-            Ok(ResponseHandler::Ok)
+            Ok(Response::Ok {})
         }
         UnregisterRequest::WebRenderer { instance_id } => {
             api.pipeline()
                 .unregister_renderer(&instance_id.into(), RegistryType::WebRenderer)?;
 
-            Ok(ResponseHandler::Ok)
+            Ok(Response::Ok {})
         }
         UnregisterRequest::Image { image_id } => {
             api.pipeline()
                 .unregister_renderer(&image_id.into(), RegistryType::Image)?;
-            Ok(ResponseHandler::Ok)
+            Ok(Response::Ok {})
         }
     }
 }
