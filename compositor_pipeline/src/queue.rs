@@ -124,6 +124,7 @@ pub struct ScheduledEvent {
     callback: Box<dyn FnOnce() + Send>,
 }
 
+#[derive(Debug)]
 pub enum PipelineEvent<T> {
     Data(T),
     EOS,
@@ -206,13 +207,6 @@ impl Queue {
                 })
                 .unwrap()
         }
-    }
-
-    pub fn subscribe_input_listener(&self, input_id: &InputId, callback: Box<dyn FnOnce() + Send>) {
-        self.video_queue
-            .lock()
-            .unwrap()
-            .subscribe_input_listener(input_id, callback)
     }
 
     pub fn schedule_event(&self, pts: Duration, callback: Box<dyn FnOnce() + Send>) {

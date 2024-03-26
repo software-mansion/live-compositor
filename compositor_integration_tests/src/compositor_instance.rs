@@ -2,7 +2,7 @@ use anyhow::Result;
 use compositor_render::use_global_wgpu_ctx;
 use reqwest::StatusCode;
 use std::{env, thread, time::Duration};
-use video_compositor::{http, logger};
+use video_compositor::{logger, server};
 
 pub struct CompositorInstance {
     pub api_port: u16,
@@ -19,10 +19,9 @@ impl CompositorInstance {
 
         thread::Builder::new()
             .name(format!("compositor instance on port {api_port}"))
-            .spawn(move || {
-                http::Server::new(api_port).run();
-            })
+            .spawn(move || server::run_on_port(api_port))
             .unwrap();
+        thread::sleep(Duration::from_millis(1000));
 
         CompositorInstance {
             api_port,

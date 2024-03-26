@@ -199,7 +199,7 @@ impl Mp4FileReader<VideoDecoderOptions> {
             // the mp4 sample contains one h264 access unit (possibly more than one NAL).
             // the NALs are stored as: <length_size bytes long big endian encoded length><the NAL>.
             // we need to convert this into Annex B, in which NALs are separated by
-            // [0, 0, 0, 1]. `lenght_size` is at most 4 bytes long.
+            // [0, 0, 0, 1]. `length_size` is at most 4 bytes long.
             loop {
                 let mut len = [0u8; 4];
 

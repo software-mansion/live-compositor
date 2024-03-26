@@ -39,6 +39,7 @@ socket2 = "0.5.5"
 compositor_render = { path = "compositor_render" }
 webrtc-util = "0.8.0"
 opus = "0.3.0"
+rubato = "0.15.0"
 
 [dependencies]
 compositor_render = { workspace = true }
@@ -65,6 +66,13 @@ libc = "0.2.151"
 webrtc-util = { workspace = true }
 rand = { workspace = true }
 reqwest = { workspace = true }
+rubato = { workspace = true }
+tokio = { version = "1", features = ["full"] }
+futures-util = "0.3.30"
+axum = { version = "0.7.4", features = ["ws"] }
+
+[dev-dependencies]
+websocket = "0.27.0"
 
 [[bin]]
 name = "process_helper"

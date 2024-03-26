@@ -1,24 +1,21 @@
 use std::fmt::Display;
 
+use axum::{http::StatusCode, response::IntoResponse, Json};
 use compositor_pipeline::error::{ErrorType, PipelineErrorInfo};
 use compositor_render::error::ErrorStack;
-use tiny_http::StatusCode;
+use serde::Serialize;
 
-use crate::types::TypeError;
+use crate::{api::Response, types::TypeError};
 
 pub struct ApiError {
     pub error_code: &'static str,
     pub message: String,
     pub stack: Vec<String>,
-    pub http_status_code: tiny_http::StatusCode,
+    pub http_status_code: StatusCode,
 }
 
 impl ApiError {
-    pub fn new(
-        error_code: &'static str,
-        message: String,
-        http_status_code: tiny_http::StatusCode,
-    ) -> Self {
+    pub fn new(error_code: &'static str, message: String, http_status_code: StatusCode) -> Self {
         ApiError {
             error_code,
             message: message.clone(),
@@ -31,7 +28,7 @@ impl ApiError {
         ApiError::new(
             "MALFORMED_REQUEST",
             format!("Received malformed request:\n{err}"),
-            StatusCode(400),
+            StatusCode::BAD_REQUEST,
         )
     }
 }
@@ -49,9 +46,9 @@ where
             message: stack.first().unwrap().clone(),
             stack,
             http_status_code: match err_info.error_type {
-                ErrorType::UserError => StatusCode(400),
-                ErrorType::ServerError => StatusCode(500),
-                ErrorType::EntityNotFound => StatusCode(404),
+                ErrorType::UserError => StatusCode::BAD_REQUEST,
+                ErrorType::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
+                ErrorType::EntityNotFound => StatusCode::NOT_FOUND,
             },
         }
     }
@@ -66,5 +63,29 @@ impl From<TypeError> for ApiError {
 impl std::fmt::Display for ApiError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(&self.message)
+    }
+}
+
+impl IntoResponse for ApiError {
+    fn into_response(self) -> axum::response::Response {
+        #[derive(Serialize)]
+        struct ErrorResponse {
+            error_code: &'static str,
+            message: String,
+            stack: Vec<String>,
+        }
+
+        let body = Json(ErrorResponse {
+            error_code: self.error_code,
+            message: self.message,
+            stack: self.stack,
+        });
+        (self.http_status_code, body).into_response()
+    }
+}
+
+impl IntoResponse for Response {
+    fn into_response(self) -> axum::response::Response {
+        Json(self).into_response()
     }
 }

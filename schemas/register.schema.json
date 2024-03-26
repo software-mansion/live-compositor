@@ -1345,6 +1345,7 @@
           "format": "double"
         },
         "easing_function": {
+          "description": "(**default=`\"linear\"`**) Easing function to be used for the transition.",
           "anyOf": [
             {
               "$ref": "#/definitions/EasingFunction"

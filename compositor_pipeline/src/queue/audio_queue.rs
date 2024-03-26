@@ -4,13 +4,13 @@ use std::{
     vec,
 };
 
-use crate::audio_mixer::InputSamples;
+use crate::{audio_mixer::InputSamples, event::Event};
 
 use super::{
     utils::{Clock, InputProcessor},
     InputOptions, PipelineEvent, QueueAudioOutput,
 };
-use compositor_render::InputId;
+use compositor_render::{event_handler::emit_event, InputId};
 use crossbeam_channel::{Receiver, TryRecvError};
 
 #[derive(Debug)]
@@ -37,12 +37,18 @@ impl AudioQueue {
         self.inputs.insert(
             input_id.clone(),
             AudioQueueInput {
+                input_id: input_id.clone(),
                 queue: VecDeque::new(),
                 receiver,
-                input_samples_processor: InputProcessor::new(self.buffer_duration, clock),
+                input_samples_processor: InputProcessor::new(
+                    self.buffer_duration,
+                    clock,
+                    input_id.clone(),
+                ),
                 required: opts.required,
                 offset: opts.offset,
                 eos_sent: false,
+                first_samples_sent: false,
             },
         );
     }
@@ -120,6 +126,7 @@ impl AudioQueue {
 
 #[derive(Debug)]
 struct AudioQueueInput {
+    input_id: InputId,
     /// Samples/batches are PTS ordered where PTS=0 represents beginning of the stream.
     queue: VecDeque<InputSamples>,
     /// Samples from the channel might have any PTS, they need to be processed before
@@ -136,6 +143,7 @@ struct AudioQueueInput {
     offset: Option<Duration>,
 
     eos_sent: bool,
+    first_samples_sent: bool,
 }
 
 impl AudioQueueInput {
@@ -188,11 +196,17 @@ impl AudioQueueInput {
 
         if self.input_samples_processor.did_receive_eos()
             && popped_samples.is_empty()
+            && self.queue.is_empty()
             && !self.eos_sent
         {
             self.eos_sent = true;
+            emit_event(Event::AudioInputStreamEos(self.input_id.clone()));
             PipelineEvent::EOS
         } else {
+            if !self.first_samples_sent && !popped_samples.is_empty() {
+                emit_event(Event::AudioInputStreamPlaying(self.input_id.clone()));
+                self.first_samples_sent = true
+            }
             PipelineEvent::Data(popped_samples)
         }
     }
@@ -271,9 +285,10 @@ impl AudioQueueInput {
         queue_pts: Duration,
         queue_start_time: Instant,
     ) -> Option<Duration> {
+        let input_start_time = self.input_start_time();
         match self.offset {
             Some(offset) => queue_pts.checked_sub(offset),
-            None => match self.input_start_time() {
+            None => match input_start_time {
                 Some(input_start_time) => {
                     (queue_start_time + queue_pts).checked_duration_since(input_start_time)
                 }

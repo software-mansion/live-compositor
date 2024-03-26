@@ -243,9 +243,6 @@ impl VideoQueueProcessor {
         }
 
         let frames_batch = internal_queue.get_frames_batch(next_buffer_pts, self.queue_start_time);
-        for input_id in frames_batch.frames.keys() {
-            internal_queue.call_input_listeners(input_id)
-        }
 
         let is_required =
             internal_queue.has_required_inputs_for_pts(next_buffer_pts, self.queue_start_time);

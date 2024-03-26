@@ -1,7 +1,7 @@
 use anyhow::Result;
 use log::{error, info};
 use serde_json::json;
-use std::{env, fs, process::Command, thread, time::Duration};
+use std::{env, process::Command, thread, time::Duration};
 use video_compositor::{logger, server, types::Resolution};
 
 use crate::common::start_websocket_thread;
@@ -9,8 +9,7 @@ use crate::common::start_websocket_thread;
 #[path = "./common/common.rs"]
 mod common;
 
-const SAMPLE_FILE_URL: &str = "https://filesamples.com/samples/video/mp4/sample_1280x720.mp4";
-const SAMPLE_FILE_PATH: &str = "examples/assets/sample_1280_720.mp4";
+const HLS_URL: &str = "https://raw.githubusercontent.com/membraneframework/membrane_http_adaptive_stream_plugin/master/test/membrane_http_adaptive_stream/integration_test/fixtures/audio_multiple_video_tracks/index.m3u8";
 const VIDEO_RESOLUTION: Resolution = Resolution {
     width: 1280,
     height: 720,
@@ -27,14 +26,10 @@ fn main() {
         }
     });
 
-    server::run()
+    server::run();
 }
 
 fn start_example_client_code() -> Result<()> {
-    info!("[example] Download sample.");
-    let sample_path = env::current_dir()?.join(SAMPLE_FILE_PATH);
-    fs::create_dir_all(sample_path.parent().unwrap())?;
-    common::ensure_downloaded(SAMPLE_FILE_URL, &sample_path)?;
     thread::sleep(Duration::from_secs(2));
     start_websocket_thread();
 
@@ -99,8 +94,7 @@ fn start_example_client_code() -> Result<()> {
         "type": "start",
     }))?;
 
-    let sample_path_str = sample_path.to_string_lossy().to_string();
-    let gst_input_command = format!("gst-launch-1.0 -v funnel name=fn filesrc location={sample_path_str} ! qtdemux ! h264parse ! rtph264pay config-interval=1 pt=96  ! .send_rtp_sink rtpsession name=session .send_rtp_src ! fn. session.send_rtcp_src ! fn. fn. ! rtpstreampay ! tcpclientsink host=127.0.0.1 port=8004");
+    let gst_input_command = format!("gst-launch-1.0 -v souphttpsrc location={HLS_URL} ! hlsdemux ! qtdemux ! h264parse ! rtph264pay config-interval=1 pt=96 ! .send_rtp_sink rtpsession .send_rtp_src ! rtpstreampay ! tcpclientsink host=127.0.0.1 port=8004");
     Command::new("bash")
         .arg("-c")
         .arg(gst_input_command)

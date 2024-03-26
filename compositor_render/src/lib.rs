@@ -1,4 +1,5 @@
 pub mod error;
+pub mod event_handler;
 pub mod scene;
 
 pub(crate) mod registry;

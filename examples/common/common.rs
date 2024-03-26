@@ -1,14 +1,18 @@
 use anyhow::{anyhow, Result};
 
+use crossbeam_channel::unbounded;
 use log::error;
 use reqwest::{blocking::Response, StatusCode};
 use std::{
     fs::File,
     io::{self, Write},
     path::{Path, PathBuf},
+    thread,
     time::Duration,
 };
+use tracing::info;
 use video_compositor::config::config;
+use websocket::{Message, OwnedMessage};
 
 use serde::Serialize;
 
@@ -143,4 +147,57 @@ pub fn ensure_downloaded(url: &str, destination: &Path) -> Result<()> {
         return Ok(());
     }
     download(url, destination)
+}
+
+#[allow(dead_code)]
+pub fn start_websocket_thread() {
+    let client = websocket::sync::client::ClientBuilder::new(&format!(
+        "ws://127.0.0.1:{}/--/ws",
+        config().api_port
+    ))
+    .unwrap()
+    .connect_insecure()
+    .unwrap();
+
+    let (mut receiver, mut sender) = client.split().unwrap();
+
+    let (tx, rx) = unbounded();
+
+    thread::spawn(move || {
+        for message in rx {
+            if let OwnedMessage::Close(_) = message {
+                let _ = sender.send_message(&message);
+                return;
+            }
+            match sender.send_message(&message) {
+                Ok(()) => (),
+                Err(e) => {
+                    println!("Send Loop: {:?}", e);
+                    let _ = sender.send_message(&Message::close());
+                    return;
+                }
+            }
+        }
+    });
+
+    thread::spawn(move || {
+        for message in receiver.incoming_messages() {
+            match message {
+                Ok(OwnedMessage::Close(_)) => {
+                    let _ = tx.send(OwnedMessage::Close(None));
+                    return;
+                }
+                Ok(OwnedMessage::Ping(data)) => {
+                    if tx.send(OwnedMessage::Pong(data)).is_err() {
+                        return;
+                    }
+                }
+                Err(_) => {
+                    let _ = tx.send(OwnedMessage::Close(None));
+                    return;
+                }
+                _ => info!("Received compositor event: {:?}", message),
+            }
+        }
+    });
 }

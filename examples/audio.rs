@@ -7,9 +7,9 @@ use std::{
     thread::{self},
     time::Duration,
 };
-use video_compositor::{config::config, http, logger, types::Resolution};
+use video_compositor::{logger, server, types::Resolution};
 
-use crate::common::write_video_audio_example_sdp_file;
+use crate::common::{start_websocket_thread, write_video_audio_example_sdp_file};
 
 #[path = "./common/common.rs"]
 mod common;
@@ -19,7 +19,7 @@ const BUNNY_FILE_URL: &str =
 const ELEPHANT_DREAM_FILE_URL: &str =
     "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4";
 const BUNNY_FILE_PATH: &str = "examples/assets/BigBuckBunny.mp4";
-const ELETHANT_DREAM_FILE_PATH: &str = "examples/assets/ElephantsDream.mp4";
+const ELEPHANT_DREAM_FILE_PATH: &str = "examples/assets/ElephantsDream.mp4";
 const VIDEO_RESOLUTION: Resolution = Resolution {
     width: 1280,
     height: 720,
@@ -36,7 +36,7 @@ fn main() {
         }
     });
 
-    http::Server::new(config().api_port).run();
+    server::run();
 }
 
 fn start_example_client_code() -> Result<()> {
@@ -48,6 +48,7 @@ fn start_example_client_code() -> Result<()> {
         .stderr(Stdio::null())
         .spawn()?;
     thread::sleep(Duration::from_secs(2));
+    start_websocket_thread();
 
     info!("[example] Download sample.");
     let bunny_path = env::current_dir()?.join(BUNNY_FILE_PATH);
@@ -55,7 +56,7 @@ fn start_example_client_code() -> Result<()> {
     common::ensure_downloaded(BUNNY_FILE_URL, &bunny_path)?;
 
     info!("[example] Download sample.");
-    let sintel_path = env::current_dir()?.join(ELETHANT_DREAM_FILE_PATH);
+    let sintel_path = env::current_dir()?.join(ELEPHANT_DREAM_FILE_PATH);
     fs::create_dir_all(sintel_path.parent().unwrap())?;
     common::ensure_downloaded(ELEPHANT_DREAM_FILE_URL, &sintel_path)?;
 

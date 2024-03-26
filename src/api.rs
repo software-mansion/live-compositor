@@ -8,7 +8,6 @@ use compositor_render::{
     error::{ErrorStack, InitPipelineError},
     EventLoop,
 };
-use crossbeam_channel::{bounded, Receiver};
 
 use log::error;
 use serde::{Deserialize, Serialize};
@@ -30,7 +29,6 @@ pub enum Request {
     Register(RegisterRequest),
     Unregister(UnregisterRequest),
     UpdateOutput(UpdateOutputRequest),
-    Query(QueryRequest),
     Start,
 }
 
@@ -60,17 +58,10 @@ pub enum UnregisterRequest {
     },
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(tag = "query", rename_all = "snake_case")]
-pub enum QueryRequest {
-    WaitForNextFrame { input_id: InputId },
-}
-
 #[derive(Serialize, Debug)]
 #[serde(untagged)]
 pub enum Response {
     Ok {},
-    Status { instance_id: String },
     RegisteredPort { port: u16 },
 }
 
@@ -88,12 +79,7 @@ pub struct OutputInfo {
     pub ip: Arc<str>,
 }
 
-pub enum ResponseHandler {
-    Response(Response),
-    Ok,
-    DeferredResponse(Receiver<Result<Response, ApiError>>),
-}
-
+#[derive(Clone)]
 pub struct Api {
     pipeline: Arc<Mutex<Pipeline>>,
 }
@@ -125,7 +111,7 @@ impl Api {
         ))
     }
 
-    pub fn handle_request(&mut self, request: Request) -> Result<ResponseHandler, ApiError> {
+    pub fn handle_request(&self, request: Request) -> Result<Response, ApiError> {
         match request {
             Request::Register(register_request) => {
                 register_request::handle_register_request(self, register_request)
@@ -135,32 +121,13 @@ impl Api {
             }
             Request::Start => {
                 Pipeline::start(&self.pipeline);
-                Ok(ResponseHandler::Ok)
+                Ok(Response::Ok {})
             }
             Request::UpdateOutput(update) => self.handle_scene_update(update),
-            Request::Query(query) => self.handle_query(query),
         }
     }
 
-    fn handle_query(&self, query: QueryRequest) -> Result<ResponseHandler, ApiError> {
-        match query {
-            QueryRequest::WaitForNextFrame { input_id } => {
-                let (sender, receiver) = bounded(1);
-                self.pipeline().queue().subscribe_input_listener(
-                    &input_id.into(),
-                    Box::new(move || {
-                        sender.send(Ok(Response::Ok {})).unwrap();
-                    }),
-                );
-                Ok(ResponseHandler::DeferredResponse(receiver))
-            }
-        }
-    }
-
-    fn handle_scene_update(
-        &self,
-        update: UpdateOutputRequest,
-    ) -> Result<ResponseHandler, ApiError> {
+    fn handle_scene_update(&self, update: UpdateOutputRequest) -> Result<Response, ApiError> {
         let output_id = update.output_id.into();
         let scene = match update.video {
             Some(component) => Some(component.try_into()?),
@@ -191,7 +158,7 @@ impl Api {
             }
             None => self.pipeline().update_output(output_id, scene, audio)?,
         };
-        Ok(ResponseHandler::Ok)
+        Ok(Response::Ok {})
     }
 
     fn pipeline(&self) -> MutexGuard<'_, Pipeline> {
