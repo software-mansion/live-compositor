@@ -2,14 +2,12 @@ use anyhow::Result;
 use log::{error, info};
 use serde_json::json;
 use std::{
-    env, fs,
-    process::{Command, Stdio},
+    env,
     thread::{self},
-    time::Duration,
 };
 use video_compositor::{logger, server, types::Resolution};
 
-use crate::common::write_video_example_sdp_file;
+use crate::common::{download_file, start_ffplay, stream_video};
 
 #[path = "./common/common.rs"]
 mod common;
@@ -23,25 +21,27 @@ const VIDEO_RESOLUTION: Resolution = Resolution {
     height: 1080,
 };
 
+const IP: &str = "127.0.0.1";
+const INPUT_PORT: u16 = 8002;
+const OUTPUT_PORT: u16 = 8004;
+
 fn main() {
+    env::set_var("LIVE_COMPOSITOR_WEB_RENDERER_ENABLE", "1");
     ffmpeg_next::format::network::init();
     logger::init_logger();
 
-    #[cfg(feature = "web_renderer")]
-    {
-        use compositor_chromium::cef::bundle_for_development;
+    use compositor_chromium::cef::bundle_for_development;
 
-        let target_path = &std::env::current_exe()
-            .unwrap()
-            .parent()
-            .unwrap()
-            .join("..");
-        if let Err(err) = bundle_for_development(target_path) {
-            panic!(
-                "Build process helper first. For release profile use: cargo build -r --bin process_helper. {:?}",
-                err
-            );
-        }
+    let target_path = &std::env::current_exe()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .join("..");
+    if let Err(err) = bundle_for_development(target_path) {
+        panic!(
+            "Build process helper first. For release profile use: cargo build -r --bin process_helper. {:?}",
+            err
+        );
     }
     thread::spawn(|| {
         if let Err(err) = start_example_client_code() {
@@ -54,20 +54,12 @@ fn main() {
 
 fn start_example_client_code() -> Result<()> {
     info!("[example] Start listening on output port.");
-    let output_sdp = write_video_example_sdp_file("127.0.0.1", 8002)?;
-    Command::new("ffplay")
-        .args(["-protocol_whitelist", "file,rtp,udp", &output_sdp])
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn()?;
-
-    thread::sleep(Duration::from_secs(2));
+    start_ffplay(IP, OUTPUT_PORT, None)?;
 
     info!("[example] Download sample.");
-    let sample_path = env::current_dir()?.join(SAMPLE_FILE_PATH);
-    fs::create_dir_all(sample_path.parent().unwrap())?;
-    common::ensure_downloaded(SAMPLE_FILE_URL, &sample_path)?;
-    let file_path = env::current_dir()?
+    let sample_path = download_file(SAMPLE_FILE_URL, SAMPLE_FILE_PATH)?;
+
+    let html_file_path = env::current_dir()?
         .join(HTML_FILE_PATH)
         .display()
         .to_string();
@@ -77,7 +69,7 @@ fn start_example_client_code() -> Result<()> {
         "type": "register",
         "entity_type": "rtp_input_stream",
         "input_id": "input_1",
-        "port": 8004,
+        "port": INPUT_PORT,
         "video": {
             "codec": "h264"
         }
@@ -88,7 +80,7 @@ fn start_example_client_code() -> Result<()> {
         "type": "register",
         "entity_type": "web_renderer",
         "instance_id": "example_website",
-        "url": format!("file://{file_path}"), // or other way of providing source
+        "url": format!("file://{html_file_path}"), // or other way of providing source
         "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
     }))?;
 
@@ -97,8 +89,8 @@ fn start_example_client_code() -> Result<()> {
         "type": "register",
         "entity_type": "output_stream",
         "output_id": "output_1",
-        "port": 8002,
-        "ip": "127.0.0.1",
+        "ip": IP,
+        "port": OUTPUT_PORT,
         "video": {
             "resolution": {
                 "width": VIDEO_RESOLUTION.width,
@@ -125,18 +117,6 @@ fn start_example_client_code() -> Result<()> {
         "type": "start",
     }))?;
 
-    info!("[example] Start input stream");
-    Command::new("ffmpeg")
-        .args(["-re", "-i"])
-        .arg(sample_path)
-        .args([
-            "-an",
-            "-c:v",
-            "libx264",
-            "-f",
-            "rtp",
-            "rtp://127.0.0.1:8004?rtcpport=8004",
-        ])
-        .spawn()?;
+    stream_video(IP, INPUT_PORT, sample_path)?;
     Ok(())
 }

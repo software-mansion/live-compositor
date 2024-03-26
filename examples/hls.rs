@@ -15,6 +15,10 @@ const VIDEO_RESOLUTION: Resolution = Resolution {
     height: 720,
 };
 
+const IP: &str = "127.0.0.1";
+const INPUT_PORT: u16 = 8002;
+const OUTPUT_PORT: u16 = 8004;
+
 fn main() {
     env::set_var("LIVE_COMPOSITOR_WEB_RENDERER_ENABLE", "0");
     ffmpeg_next::format::network::init();
@@ -39,7 +43,7 @@ fn start_example_client_code() -> Result<()> {
         "entity_type": "rtp_input_stream",
         "transport_protocol": "tcp_server",
         "input_id": "input_1",
-        "port": 8004,
+        "port": INPUT_PORT,
         "video": {
             "codec": "h264"
         }
@@ -60,7 +64,7 @@ fn start_example_client_code() -> Result<()> {
         "entity_type": "output_stream",
         "output_id": "output_1",
         "transport_protocol": "tcp_server",
-        "port": 8002,
+        "port": OUTPUT_PORT,
         "video": {
             "resolution": {
                 "width": VIDEO_RESOLUTION.width,
@@ -82,7 +86,8 @@ fn start_example_client_code() -> Result<()> {
             }
         }
     }))?;
-    let gst_output_command = "gst-launch-1.0 -v tcpclientsrc host=127.0.0.1 port=8002 ! \"application/x-rtp-stream\" ! rtpstreamdepay ! rtph264depay ! decodebin ! videoconvert ! autovideosink".to_string();
+
+    let gst_output_command = format!("gst-launch-1.0 -v tcpclientsrc host={IP} port={OUTPUT_PORT} ! \"application/x-rtp-stream\" ! rtpstreamdepay ! rtph264depay ! decodebin ! videoconvert ! autovideosink");
     Command::new("bash")
         .arg("-c")
         .arg(gst_output_command)
@@ -94,7 +99,7 @@ fn start_example_client_code() -> Result<()> {
         "type": "start",
     }))?;
 
-    let gst_input_command = format!("gst-launch-1.0 -v souphttpsrc location={HLS_URL} ! hlsdemux ! qtdemux ! h264parse ! rtph264pay config-interval=1 pt=96 ! .send_rtp_sink rtpsession .send_rtp_src ! rtpstreampay ! tcpclientsink host=127.0.0.1 port=8004");
+    let gst_input_command = format!("gst-launch-1.0 -v souphttpsrc location={HLS_URL} ! hlsdemux ! qtdemux ! h264parse ! rtph264pay config-interval=1 pt=96 ! .send_rtp_sink rtpsession .send_rtp_src ! rtpstreampay ! tcpclientsink host=127.0.0.1 port={INPUT_PORT}");
     Command::new("bash")
         .arg("-c")
         .arg(gst_input_command)

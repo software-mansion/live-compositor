@@ -1,10 +1,10 @@
 use anyhow::Result;
 use log::{error, info};
 use serde_json::json;
-use std::{env, fs, process::Command, thread, time::Duration};
+use std::{process::Command, thread, time::Duration};
 use video_compositor::{logger, server, types::Resolution};
 
-use crate::common::start_websocket_thread;
+use crate::common::{download_file, start_websocket_thread};
 
 #[path = "./common/common.rs"]
 mod common;
@@ -16,8 +16,11 @@ const VIDEO_RESOLUTION: Resolution = Resolution {
     height: 720,
 };
 
+const IP: &str = "127.0.0.1";
+const INPUT_PORT: u16 = 8002;
+const OUTPUT_PORT: u16 = 8002;
+
 fn main() {
-    env::set_var("LIVE_COMPOSITOR_WEB_RENDERER_ENABLE", "0");
     ffmpeg_next::format::network::init();
     logger::init_logger();
 
@@ -32,9 +35,7 @@ fn main() {
 
 fn start_example_client_code() -> Result<()> {
     info!("[example] Download sample.");
-    let sample_path = env::current_dir()?.join(SAMPLE_FILE_PATH);
-    fs::create_dir_all(sample_path.parent().unwrap())?;
-    common::ensure_downloaded(SAMPLE_FILE_URL, &sample_path)?;
+    let sample_path = download_file(SAMPLE_FILE_URL, SAMPLE_FILE_PATH)?;
     thread::sleep(Duration::from_secs(2));
     start_websocket_thread();
 
@@ -44,7 +45,7 @@ fn start_example_client_code() -> Result<()> {
         "entity_type": "rtp_input_stream",
         "transport_protocol": "tcp_server",
         "input_id": "input_1",
-        "port": 8004,
+        "port": INPUT_PORT,
         "video": {
             "codec": "h264"
         }
@@ -65,7 +66,7 @@ fn start_example_client_code() -> Result<()> {
         "entity_type": "output_stream",
         "output_id": "output_1",
         "transport_protocol": "tcp_server",
-        "port": 8002,
+        "port": OUTPUT_PORT,
         "video": {
             "resolution": {
                 "width": VIDEO_RESOLUTION.width,
@@ -87,7 +88,7 @@ fn start_example_client_code() -> Result<()> {
             }
         }
     }))?;
-    let gst_output_command = "gst-launch-1.0 -v tcpclientsrc host=127.0.0.1 port=8002 ! \"application/x-rtp-stream\" ! rtpstreamdepay ! rtph264depay ! decodebin ! videoconvert ! autovideosink".to_string();
+    let gst_output_command = format!("gst-launch-1.0 -v tcpclientsrc host={IP} port={OUTPUT_PORT} ! \"application/x-rtp-stream\" ! rtpstreamdepay ! rtph264depay ! decodebin ! videoconvert ! autovideosink");
     Command::new("bash")
         .arg("-c")
         .arg(gst_output_command)
@@ -100,7 +101,7 @@ fn start_example_client_code() -> Result<()> {
     }))?;
 
     let sample_path_str = sample_path.to_string_lossy().to_string();
-    let gst_input_command = format!("gst-launch-1.0 -v funnel name=fn filesrc location={sample_path_str} ! qtdemux ! h264parse ! rtph264pay config-interval=1 pt=96  ! .send_rtp_sink rtpsession name=session .send_rtp_src ! fn. session.send_rtcp_src ! fn. fn. ! rtpstreampay ! tcpclientsink host=127.0.0.1 port=8004");
+    let gst_input_command = format!("gst-launch-1.0 -v funnel name=fn filesrc location={sample_path_str} ! qtdemux ! h264parse ! rtph264pay config-interval=1 pt=96  ! .send_rtp_sink rtpsession name=session .send_rtp_src ! fn. session.send_rtcp_src ! fn. fn. ! rtpstreampay ! tcpclientsink host={IP} port={INPUT_PORT}");
     Command::new("bash")
         .arg("-c")
         .arg(gst_input_command)

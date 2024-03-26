@@ -4,14 +4,16 @@ use crossbeam_channel::unbounded;
 use log::error;
 use reqwest::{blocking::Response, StatusCode};
 use std::{
-    fs::File,
+    env,
+    fs::{self, File},
     io::{self, Write},
     path::{Path, PathBuf},
+    process::{Command, Stdio},
     thread,
     time::Duration,
 };
 use tracing::info;
-use video_compositor::config::config;
+use video_compositor::{config::config, types::Resolution};
 use websocket::{Message, OwnedMessage};
 
 use serde::Serialize;
@@ -200,4 +202,94 @@ pub fn start_websocket_thread() {
             }
         }
     });
+}
+
+#[allow(dead_code)]
+pub fn download_file(url: &str, path: &str) -> Result<PathBuf> {
+    let sample_path = env::current_dir()?.join(path);
+    fs::create_dir_all(sample_path.parent().unwrap())?;
+    ensure_downloaded(url, &sample_path)?;
+    Ok(sample_path)
+}
+
+#[allow(dead_code)]
+pub fn start_ffplay(ip: &str, video_port: u16, audio_port: Option<u16>) -> Result<()> {
+    let output_sdp_path = match audio_port {
+        Some(audio_port) => write_video_audio_example_sdp_file(ip, video_port, audio_port),
+        None => write_video_example_sdp_file(ip, video_port),
+    }?;
+
+    Command::new("ffplay")
+        .args(["-protocol_whitelist", "file,rtp,udp", &output_sdp_path])
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()?;
+    thread::sleep(Duration::from_secs(2));
+
+    Ok(())
+}
+
+#[allow(dead_code)]
+pub fn stream_video(ip: &str, port: u16, path: PathBuf) -> Result<()> {
+    Command::new("ffmpeg")
+        .args(["-stream_loop", "-1", "-re", "-i"])
+        .arg(path)
+        .args([
+            "-an",
+            "-c:v",
+            "copy",
+            "-f",
+            "rtp",
+            "-bsf:v",
+            "h264_mp4toannexb",
+            &format!("rtp://{ip}:{port}?rtcpport={port}"),
+        ])
+        .spawn()?;
+
+    Ok(())
+}
+
+#[allow(dead_code)]
+pub fn stream_audio(ip: &str, port: u16, path: PathBuf) -> Result<()> {
+    Command::new("ffmpeg")
+        .args(["-stream_loop", "-1", "-re", "-i"])
+        .arg(path.clone())
+        .args([
+            "-vn",
+            "-c:a",
+            "libopus",
+            "-f",
+            "rtp",
+            &format!("rtp://{ip}:{port}?rtcpport={port}"),
+        ])
+        .spawn()?;
+
+    Ok(())
+}
+
+#[allow(dead_code)]
+pub fn stream_ffmpeg_testsrc(ip: &str, port: u16, resolution: Resolution) -> Result<()> {
+    let ffmpeg_source = format!(
+        "testsrc=s={}x{}:r=30,format=yuv420p",
+        resolution.width, resolution.height
+    );
+
+    Command::new("ffmpeg")
+        .args([
+            "-re",
+            "-f",
+            "lavfi",
+            "-i",
+            &ffmpeg_source,
+            "-c:v",
+            "libx264",
+            "-f",
+            "rtp",
+            &format!("rtp://{ip}:{port}?rtcpport={port}"),
+        ])
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()?;
+
+    Ok(())
 }
