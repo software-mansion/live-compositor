@@ -14,6 +14,7 @@ use tracing::info;
 
 pub struct OutputReceiver {
     receiver: Receiver<Bytes>,
+    dump_length: Duration,
 }
 
 impl OutputReceiver {
@@ -66,12 +67,13 @@ impl OutputReceiver {
 
         Ok(Self {
             receiver: dump_receiver,
+            dump_length,
         })
     }
 
     pub fn recv(self) -> Result<Bytes> {
         self.receiver
-            .recv()
+            .recv_timeout(self.dump_length + Duration::from_secs(2))
             .context("Failed to receive output dump")
     }
 
