@@ -27,15 +27,6 @@ struct DecodedSamples {
     sample_rate: u32,
 }
 
-impl DecodedSamples {
-    pub fn end_pts(&self) -> Duration {
-        let batch_duration =
-            Duration::from_secs_f64(self.samples.len() as f64 * self.sample_rate as f64);
-
-        self.start_pts + batch_duration
-    }
-}
-
 #[derive(Debug, thiserror::Error)]
 pub enum DecodingError {
     #[error(transparent)]

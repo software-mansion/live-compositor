@@ -162,7 +162,7 @@ impl FftResampler {
             .first_batch_pts
             .get_or_insert(decoded_samples.start_pts);
 
-        let input_duration = decoded_samples.end_pts().saturating_sub(first_batch_pts);
+        let input_duration = decoded_samples.start_pts.saturating_sub(first_batch_pts);
         let expected_samples =
             (input_duration.as_secs_f64() * self.input_sample_rate as f64) as u64;
         let actual_samples = self.resampler_input_samples + self.input_buffer[0].len() as u64;
