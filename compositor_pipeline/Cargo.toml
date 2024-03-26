@@ -16,7 +16,7 @@ rtp = { workspace = true }
 webrtc-util = { workspace = true }
 socket2 = { workspace = true }
 rtcp = { workspace = true }
-opus = "0.3.0"
+opus = { workspace = true }
 rand = { workspace = true }
 mp4 = { git = "https://github.com/membraneframework-labs/mp4-rust.git", branch = "preserve-asc" }
 reqwest = { workspace = true }

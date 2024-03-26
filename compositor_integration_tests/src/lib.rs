@@ -1,9 +1,10 @@
+mod audio_decoder;
 mod common;
 mod compositor_instance;
 mod output_receiver;
 mod packet_sender;
 mod validation;
-mod video;
+mod video_decoder;
 
 #[cfg(test)]
 mod tests;
