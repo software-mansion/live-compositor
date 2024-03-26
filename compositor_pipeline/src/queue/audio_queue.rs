@@ -196,6 +196,7 @@ impl AudioQueueInput {
 
         if self.input_samples_processor.did_receive_eos()
             && popped_samples.is_empty()
+            && self.queue.is_empty()
             && !self.eos_sent
         {
             self.eos_sent = true;
