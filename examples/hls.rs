@@ -77,7 +77,7 @@ fn start_example_client_code() -> Result<()> {
             }
         }
     }))?;
-    let gst_output_command = "gst-launch-1.0 -v tcpclientsrc host=127.0.0.1 port=8002 ! \"application/x-rtp-stream\" ! rtpstreamdepay ! rtph264depay ! avdec_h264 ! videoconvert ! autovideosink".to_string();
+    let gst_output_command = "gst-launch-1.0 -v tcpclientsrc host=127.0.0.1 port=8002 ! \"application/x-rtp-stream\" ! rtpstreamdepay ! rtph264depay ! decodebin ! videoconvert ! autovideosink".to_string();
     Command::new("bash")
         .arg("-c")
         .arg(gst_output_command)
