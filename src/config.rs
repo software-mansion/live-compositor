@@ -135,10 +135,9 @@ fn read_config() -> Result<Config, String> {
         .map(PathBuf::from)
         .unwrap_or(env::temp_dir());
 
-    const DEFAULT_WEB_RENDERER_ENABLED: bool = cfg!(feature = "web_renderer");
     let web_renderer_enable = match env::var("LIVE_COMPOSITOR_WEB_RENDERER_ENABLE") {
-        Ok(enable) => bool_env_from_str(&enable).unwrap_or(DEFAULT_WEB_RENDERER_ENABLED),
-        Err(_) => DEFAULT_WEB_RENDERER_ENABLED,
+        Ok(enable) => bool_env_from_str(&enable).unwrap_or(false),
+        Err(_) => false,
     };
 
     let web_renderer_gpu_enable = match env::var("LIVE_COMPOSITOR_WEB_RENDERER_GPU_ENABLE") {

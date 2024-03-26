@@ -2,7 +2,9 @@ use anyhow::Result;
 use log::{error, info};
 use serde_json::json;
 use std::{env, process::Command, thread, time::Duration};
-use video_compositor::{config::config, http, logger, types::Resolution};
+use video_compositor::{logger, server, types::Resolution};
+
+use crate::common::start_websocket_thread;
 
 #[path = "./common/common.rs"]
 mod common;
@@ -24,10 +26,13 @@ fn main() {
         }
     });
 
-    http::Server::new(config().api_port).run();
+    server::run();
 }
 
 fn start_example_client_code() -> Result<()> {
+    thread::sleep(Duration::from_secs(2));
+    start_websocket_thread();
+
     info!("[example] Send register input request.");
     common::post(&json!({
         "type": "register",
