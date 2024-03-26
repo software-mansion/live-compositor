@@ -9,13 +9,17 @@ use std::{
 };
 use video_compositor::{config::config, http, logger, types::Resolution};
 
-use crate::common::write_video_example_sdp_file;
+use crate::common::write_video_audio_example_sdp_file;
 
 #[path = "./common/common.rs"]
 mod common;
 
-const MP4_URL: &str =
-    "https://filesamples.com/samples/video/mp4/sample_960x400_ocean_with_audio.mp4";
+// const BUNNY_URL: &str =
+// "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+
+const BUNNY_FILE_PATH: &str = "examples/assets/BigBuckBunny.mp4";
+// const MP4_URL: &str =
+//     "https://filesamples.com/samples/video/mp4/sample_960x400_ocean_with_audio.mp4";
 const VIDEO_RESOLUTION: Resolution = Resolution {
     width: 1280,
     height: 720,
@@ -37,7 +41,7 @@ fn main() {
 
 fn start_example_client_code() -> Result<()> {
     info!("[example] Start listening on output port.");
-    let output_sdp = write_video_example_sdp_file("127.0.0.1", 8002)?;
+    let output_sdp = write_video_audio_example_sdp_file("127.0.0.1", 8002, 8004)?;
     Command::new("ffplay")
         .args(["-protocol_whitelist", "file,rtp,udp", &output_sdp])
         .stdout(Stdio::null())
@@ -50,7 +54,7 @@ fn start_example_client_code() -> Result<()> {
         "type": "register",
         "entity_type": "mp4",
         "input_id": "input_1",
-        "url": MP4_URL,
+        "path": BUNNY_FILE_PATH
     }))?;
 
     let shader_source = include_str!("./silly.wgsl");
@@ -62,7 +66,7 @@ fn start_example_client_code() -> Result<()> {
         "source": shader_source,
     }))?;
 
-    info!("[example] Send register output request.");
+    info!("[example] Send register output video request.");
     common::post(&json!({
         "type": "register",
         "entity_type": "output_stream",
@@ -76,18 +80,27 @@ fn start_example_client_code() -> Result<()> {
             },
             "encoder_preset": "medium",
             "initial": {
-                "type": "shader",
-                "id": "shader_node_1",
-                "shader_id": "shader_example_1",
-                "children": [
-                    {
-                        "id": "input_1",
-                        "type": "input_stream",
-                        "input_id": "input_1",
-                    }
-                ],
-                "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+                "id": "input_1",
+                "type": "input_stream",
+                "input_id": "input_1",
             }
+        }
+    }))?;
+
+    info!("[example] Send register output audio request.");
+    common::post(&json!({
+        "type": "register",
+        "entity_type": "output_stream",
+        "output_id": "output_2",
+        "port": 8004,
+        "ip": "127.0.0.1",
+        "audio": {
+            "initial": {
+                "inputs": [
+                    {"input_id": "input_1"}
+                ]
+            },
+            "channels": "stereo"
         }
     }))?;
 

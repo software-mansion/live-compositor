@@ -1,146 +1,64 @@
 use crate::{audio_mixer::InputSamples, error::DecoderInitError, queue::PipelineEvent};
 
-use self::{fdk_aac::FdkAacDecoder, ffmpeg_h264::H264FfmpegDecoder, opus::OpusDecoder};
-
-use super::{
-    input::ChunksReceiver,
-    structs::{EncodedChunk, VideoCodec},
-};
+use super::{input::ChunksReceiver, structs::VideoCodec};
 
 use bytes::Bytes;
 use compositor_render::{Frame, InputId};
-use crossbeam_channel::{bounded, Receiver, Sender};
+use crossbeam_channel::{bounded, Receiver};
 
-pub mod fdk_aac;
-mod ffmpeg_h264;
-mod opus;
+pub use audio::AacDecoderError;
 
-pub struct Decoder {
-    #[allow(dead_code)]
-    video: Option<VideoDecoder>,
-    #[allow(dead_code)]
-    audio: Option<AudioDecoder>,
+mod audio;
+mod video;
+
+pub fn start_decoder(
+    input_id: InputId,
+    chunks: ChunksReceiver,
+    decoder_options: DecoderOptions,
+    output_sample_rate: u32,
+) -> Result<DecodedDataReceiver, DecoderInitError> {
+    let DecoderOptions {
+        video: video_decoder_opt,
+        audio: audio_decoder_opt,
+    } = decoder_options;
+    let ChunksReceiver {
+        video: video_receiver,
+        audio: audio_receiver,
+    } = chunks;
+
+    let video_receiver =
+        if let (Some(opt), Some(video_receiver)) = (video_decoder_opt, video_receiver) {
+            let (sender, receiver) = bounded(10);
+            video::start_video_decoder_thread(&opt, video_receiver, sender, input_id.clone())?;
+            Some(receiver)
+        } else {
+            None
+        };
+    let audio_receiver =
+        if let (Some(opt), Some(audio_receiver)) = (audio_decoder_opt, audio_receiver) {
+            let (sender, receiver) = bounded(10);
+            audio::start_audio_decoder_thread(
+                opt,
+                output_sample_rate,
+                audio_receiver,
+                sender,
+                input_id,
+            )?;
+            Some(receiver)
+        } else {
+            None
+        };
+
+    Ok(DecodedDataReceiver {
+        video: video_receiver,
+        audio: audio_receiver,
+    })
 }
 
 #[derive(Debug, Clone)]
 pub struct DecoderOptions {
     pub video: Option<VideoDecoderOptions>,
     pub audio: Option<AudioDecoderOptions>,
-}
-
-impl Decoder {
-    pub fn new(
-        input_id: InputId,
-        chunks: ChunksReceiver,
-        decoder_options: DecoderOptions,
-        output_sample_rate: u32,
-    ) -> Result<(Self, DecodedDataReceiver), DecoderInitError> {
-        let DecoderOptions {
-            video: video_decoder_opt,
-            audio: audio_decoder_opt,
-        } = decoder_options;
-        let ChunksReceiver {
-            video: video_receiver,
-            audio: audio_receiver,
-        } = chunks;
-
-        let (video_decoder, video_receiver) =
-            if let (Some(opt), Some(video_receiver)) = (video_decoder_opt, video_receiver) {
-                let (sender, receiver) = bounded(10);
-                (
-                    Some(VideoDecoder::new(
-                        &opt,
-                        video_receiver,
-                        sender,
-                        input_id.clone(),
-                    )?),
-                    Some(receiver),
-                )
-            } else {
-                (None, None)
-            };
-        let (audio_decoder, audio_receiver) =
-            if let (Some(opt), Some(audio_receiver)) = (audio_decoder_opt, audio_receiver) {
-                let (sender, receiver) = bounded(10);
-                (
-                    Some(AudioDecoder::new(
-                        opt,
-                        output_sample_rate,
-                        audio_receiver,
-                        sender,
-                        input_id,
-                    )?),
-                    Some(receiver),
-                )
-            } else {
-                (None, None)
-            };
-
-        Ok((
-            Self {
-                video: video_decoder,
-                audio: audio_decoder,
-            },
-            DecodedDataReceiver {
-                video: video_receiver,
-                audio: audio_receiver,
-            },
-        ))
-    }
-}
-
-pub enum AudioDecoder {
-    Opus(OpusDecoder),
-    FdkAac(FdkAacDecoder),
-}
-
-impl AudioDecoder {
-    pub fn new(
-        opts: AudioDecoderOptions,
-        output_sample_rate: u32,
-        chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
-        samples_sender: Sender<PipelineEvent<InputSamples>>,
-        input_id: InputId,
-    ) -> Result<Self, DecoderInitError> {
-        match opts {
-            AudioDecoderOptions::Opus(opus_opt) => Ok(AudioDecoder::Opus(OpusDecoder::new(
-                opus_opt,
-                output_sample_rate,
-                chunks_receiver,
-                samples_sender,
-                input_id,
-            )?)),
-
-            AudioDecoderOptions::Aac(aac_opt) => Ok(AudioDecoder::FdkAac(FdkAacDecoder::new(
-                aac_opt,
-                output_sample_rate,
-                chunks_receiver,
-                samples_sender,
-                input_id,
-            )?)),
-        }
-    }
-}
-
-pub enum VideoDecoder {
-    H264(H264FfmpegDecoder),
-}
-
-impl VideoDecoder {
-    pub fn new(
-        options: &VideoDecoderOptions,
-        chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
-        frame_sender: Sender<PipelineEvent<Frame>>,
-        input_id: InputId,
-    ) -> Result<Self, DecoderInitError> {
-        match options.codec {
-            VideoCodec::H264 => Ok(Self::H264(H264FfmpegDecoder::new(
-                chunks_receiver,
-                frame_sender,
-                input_id,
-            )?)),
-        }
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

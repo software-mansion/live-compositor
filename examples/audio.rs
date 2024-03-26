@@ -19,7 +19,7 @@ const BUNNY_FILE_URL: &str =
 const ELEPHANT_DREAM_FILE_URL: &str =
     "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4";
 const BUNNY_FILE_PATH: &str = "examples/assets/BigBuckBunny.mp4";
-const ELETHANT_DREAM_FILE_PATH: &str = "examples/assets/ElephantsDream.mp4";
+const ELEPHANT_DREAM_FILE_PATH: &str = "examples/assets/ElephantsDream.mp4";
 const VIDEO_RESOLUTION: Resolution = Resolution {
     width: 1280,
     height: 720,
@@ -55,7 +55,7 @@ fn start_example_client_code() -> Result<()> {
     common::ensure_downloaded(BUNNY_FILE_URL, &bunny_path)?;
 
     info!("[example] Download sample.");
-    let sintel_path = env::current_dir()?.join(ELETHANT_DREAM_FILE_PATH);
+    let sintel_path = env::current_dir()?.join(ELEPHANT_DREAM_FILE_PATH);
     fs::create_dir_all(sintel_path.parent().unwrap())?;
     common::ensure_downloaded(ELEPHANT_DREAM_FILE_URL, &sintel_path)?;
 
