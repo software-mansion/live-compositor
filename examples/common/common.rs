@@ -18,71 +18,6 @@ use websocket::{Message, OwnedMessage};
 
 use serde::Serialize;
 
-/// The SDP file will describe an RTP session on localhost with H264 encoding.
-#[allow(dead_code)]
-pub fn write_video_example_sdp_file(ip: &str, port: u16) -> Result<String> {
-    let sdp_filepath = PathBuf::from(format!("/tmp/example_sdp_video_input_{}.sdp", port));
-    let mut file = File::create(&sdp_filepath)?;
-    file.write_all(
-        format!(
-            "\
-                    v=0\n\
-                    o=- 0 0 IN IP4 {}\n\
-                    s=No Name\n\
-                    c=IN IP4 {}\n\
-                    m=video {} RTP/AVP 96\n\
-                    a=rtpmap:96 H264/90000\n\
-                    a=fmtp:96 packetization-mode=1\n\
-                    a=rtcp-mux\n\
-                ",
-            ip, ip, port
-        )
-        .as_bytes(),
-    )?;
-    Ok(String::from(
-        sdp_filepath
-            .to_str()
-            .ok_or_else(|| anyhow!("invalid utf string"))?,
-    ))
-}
-
-/// The SDP file will describe an RTP session on localhost with H264 video encoding and Opus audio encoding.
-#[allow(dead_code)]
-pub fn write_video_audio_example_sdp_file(
-    ip: &str,
-    video_port: u16,
-    audio_port: u16,
-) -> Result<String> {
-    let sdp_filepath = PathBuf::from(format!(
-        "/tmp/example_sdp_video_audio_input_{}.sdp",
-        video_port
-    ));
-    let mut file = File::create(&sdp_filepath)?;
-    file.write_all(
-        format!(
-            "\
-                    v=0\n\
-                    o=- 0 0 IN IP4 {}\n\
-                    s=No Name\n\
-                    c=IN IP4 {}\n\
-                    m=video {} RTP/AVP 96\n\
-                    a=rtpmap:96 H264/90000\n\
-                    a=fmtp:96 packetization-mode=1\n\
-                    a=rtcp-mux\n\
-                    m=audio {} RTP/AVP 97\n\
-                    a=rtpmap:97 opus/48000/2\n\
-                ",
-            ip, ip, video_port, audio_port
-        )
-        .as_bytes(),
-    )?;
-    Ok(String::from(
-        sdp_filepath
-            .to_str()
-            .ok_or_else(|| anyhow!("invalid utf string"))?,
-    ))
-}
-
 pub fn post<T: Serialize + ?Sized>(json: &T) -> Result<Response> {
     let client = reqwest::blocking::Client::new();
     let response = client
@@ -96,59 +31,6 @@ pub fn post<T: Serialize + ?Sized>(json: &T) -> Result<Response> {
         return Err(anyhow!("request failed"));
     }
     Ok(response)
-}
-
-fn log_request_error<T: Serialize + ?Sized>(request_body: &T, response: Response) {
-    let status = response.status();
-    let request_str = serde_json::to_string_pretty(request_body).unwrap();
-    let body_str = response.text().unwrap();
-
-    let formated_body = get_formated_body(&body_str);
-    error!(
-        "Request failed:\n\nRequest: {}\n\nResponse code: {}\n\nResponse body:\n{}",
-        request_str, status, formated_body
-    )
-}
-
-fn get_formated_body(body_str: &str) -> String {
-    let Ok(mut body_json) = serde_json::from_str::<serde_json::Value>(body_str) else {
-        return body_str.to_string();
-    };
-
-    let Some(stack_value) = body_json.get("stack") else {
-        return serde_json::to_string_pretty(&body_json).unwrap();
-    };
-
-    let errors: Vec<&str> = stack_value
-        .as_array()
-        .unwrap()
-        .iter()
-        .map(|value| value.as_str().unwrap())
-        .collect();
-    let msg_string = " - ".to_string() + &errors.join("\n - ");
-    let body_map = body_json.as_object_mut().unwrap();
-    body_map.remove("stack");
-    format!(
-        "{}\n\nError stack:\n{}",
-        serde_json::to_string_pretty(&body_map).unwrap(),
-        msg_string,
-    )
-}
-
-#[allow(dead_code)]
-pub fn download(url: &str, destination: &Path) -> Result<()> {
-    let mut resp = reqwest::blocking::get(url)?;
-    let mut out = File::create(destination)?;
-    io::copy(&mut resp, &mut out)?;
-    Ok(())
-}
-
-#[allow(dead_code)]
-pub fn ensure_downloaded(url: &str, destination: &Path) -> Result<()> {
-    if destination.exists() {
-        return Ok(());
-    }
-    download(url, destination)
 }
 
 #[allow(dead_code)]
@@ -208,7 +90,14 @@ pub fn start_websocket_thread() {
 pub fn download_file(url: &str, path: &str) -> Result<PathBuf> {
     let sample_path = env::current_dir()?.join(path);
     fs::create_dir_all(sample_path.parent().unwrap())?;
-    ensure_downloaded(url, &sample_path)?;
+
+    if sample_path.exists() {
+        return Ok(sample_path);
+    }
+
+    let mut resp = reqwest::blocking::get(url)?;
+    let mut out = File::create(sample_path.clone())?;
+    io::copy(&mut resp, &mut out)?;
     Ok(sample_path)
 }
 
@@ -292,4 +181,104 @@ pub fn stream_ffmpeg_testsrc(ip: &str, port: u16, resolution: Resolution) -> Res
         .spawn()?;
 
     Ok(())
+}
+
+/// The SDP file will describe an RTP session on localhost with H264 encoding.
+fn write_video_example_sdp_file(ip: &str, port: u16) -> Result<String> {
+    let sdp_filepath = PathBuf::from(format!("/tmp/example_sdp_video_input_{}.sdp", port));
+    let mut file = File::create(&sdp_filepath)?;
+    file.write_all(
+        format!(
+            "\
+                    v=0\n\
+                    o=- 0 0 IN IP4 {}\n\
+                    s=No Name\n\
+                    c=IN IP4 {}\n\
+                    m=video {} RTP/AVP 96\n\
+                    a=rtpmap:96 H264/90000\n\
+                    a=fmtp:96 packetization-mode=1\n\
+                    a=rtcp-mux\n\
+                ",
+            ip, ip, port
+        )
+        .as_bytes(),
+    )?;
+    Ok(String::from(
+        sdp_filepath
+            .to_str()
+            .ok_or_else(|| anyhow!("invalid utf string"))?,
+    ))
+}
+
+/// The SDP file will describe an RTP session on localhost with H264 video encoding and Opus audio encoding.
+fn write_video_audio_example_sdp_file(
+    ip: &str,
+    video_port: u16,
+    audio_port: u16,
+) -> Result<String> {
+    let sdp_filepath = PathBuf::from(format!(
+        "/tmp/example_sdp_video_audio_input_{}.sdp",
+        video_port
+    ));
+    let mut file = File::create(&sdp_filepath)?;
+    file.write_all(
+        format!(
+            "\
+                    v=0\n\
+                    o=- 0 0 IN IP4 {}\n\
+                    s=No Name\n\
+                    c=IN IP4 {}\n\
+                    m=video {} RTP/AVP 96\n\
+                    a=rtpmap:96 H264/90000\n\
+                    a=fmtp:96 packetization-mode=1\n\
+                    a=rtcp-mux\n\
+                    m=audio {} RTP/AVP 97\n\
+                    a=rtpmap:97 opus/48000/2\n\
+                ",
+            ip, ip, video_port, audio_port
+        )
+        .as_bytes(),
+    )?;
+    Ok(String::from(
+        sdp_filepath
+            .to_str()
+            .ok_or_else(|| anyhow!("invalid utf string"))?,
+    ))
+}
+
+fn log_request_error<T: Serialize + ?Sized>(request_body: &T, response: Response) {
+    let status = response.status();
+    let request_str = serde_json::to_string_pretty(request_body).unwrap();
+    let body_str = response.text().unwrap();
+
+    let formated_body = get_formated_body(&body_str);
+    error!(
+        "Request failed:\n\nRequest: {}\n\nResponse code: {}\n\nResponse body:\n{}",
+        request_str, status, formated_body
+    )
+}
+
+fn get_formated_body(body_str: &str) -> String {
+    let Ok(mut body_json) = serde_json::from_str::<serde_json::Value>(body_str) else {
+        return body_str.to_string();
+    };
+
+    let Some(stack_value) = body_json.get("stack") else {
+        return serde_json::to_string_pretty(&body_json).unwrap();
+    };
+
+    let errors: Vec<&str> = stack_value
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|value| value.as_str().unwrap())
+        .collect();
+    let msg_string = " - ".to_string() + &errors.join("\n - ");
+    let body_map = body_json.as_object_mut().unwrap();
+    body_map.remove("stack");
+    format!(
+        "{}\n\nError stack:\n{}",
+        serde_json::to_string_pretty(&body_map).unwrap(),
+        msg_string,
+    )
 }

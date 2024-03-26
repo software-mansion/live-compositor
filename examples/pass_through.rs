@@ -65,7 +65,7 @@ fn start_example_client_code() -> Result<()> {
                 "width": VIDEO_RESOLUTION.width,
                 "height": VIDEO_RESOLUTION.height,
             },
-            "encoder_preset": "medium",
+            "encoder_preset": "veryfast",
             "initial": {
                 "id": "input_1",
                 "type": "input_stream",

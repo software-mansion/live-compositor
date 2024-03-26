@@ -18,7 +18,7 @@ const VIDEO_RESOLUTION: Resolution = Resolution {
 
 const IP: &str = "127.0.0.1";
 const INPUT_PORT: u16 = 8002;
-const OUTPUT_PORT: u16 = 8002;
+const OUTPUT_PORT: u16 = 8004;
 
 fn main() {
     ffmpeg_next::format::network::init();

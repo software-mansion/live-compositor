@@ -105,7 +105,7 @@ fn start_example_client_code() -> Result<()> {
     }))?;
 
     info!("[example] Start input stream");
-    stream_ffmpeg_testsrc(IP, OUTPUT_PORT, VIDEO_RESOLUTION)?;
+    stream_ffmpeg_testsrc(IP, INPUT_PORT, VIDEO_RESOLUTION)?;
 
     for i in 0..16 {
         info!("[example] Update output");
