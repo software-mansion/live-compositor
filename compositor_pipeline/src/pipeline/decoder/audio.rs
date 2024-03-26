@@ -2,7 +2,7 @@ use std::{sync::Arc, time::Duration};
 
 use compositor_render::InputId;
 use crossbeam_channel::{bounded, Receiver, Sender};
-use log::error;
+use log::{debug, error};
 use tracing::{span, Level};
 
 extern crate opus as lib_opus;
@@ -64,7 +64,7 @@ pub fn start_audio_decoder_thread(
         .spawn(move || {
             let _span = span!(
                 Level::INFO,
-                "Audio decoder {}",
+                "Audio decoder",
                 input_id = input_id.to_string()
             );
 
@@ -98,7 +98,7 @@ fn run_decoder_thread(
     // This ensures that EOS is send only once
     let sender = |samples: InputSamples| {
         if samples_sender.send(PipelineEvent::Data(samples)).is_err() {
-            error!("Failed to send decoded input samples.");
+            debug!("Failed to send decoded input samples.");
         };
     };
 
@@ -111,7 +111,7 @@ fn run_decoder_thread(
     );
 
     if samples_sender.send(PipelineEvent::EOS).is_err() {
-        error!("Failed to send EOS message.")
+        debug!("Failed to send EOS message.")
     }
 }
 
