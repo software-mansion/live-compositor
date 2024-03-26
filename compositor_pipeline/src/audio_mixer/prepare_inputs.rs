@@ -5,6 +5,11 @@ use tracing::warn;
 
 use super::{InputSamples, InputSamplesSet};
 
+#[cfg(test)]
+mod consecutive_frames_tests;
+#[cfg(test)]
+mod single_frame_tests;
+
 pub(super) fn expected_samples_count(start: Duration, end: Duration, sample_rate: u32) -> usize {
     (end.saturating_sub(start).as_nanos() * sample_rate as u128 / 1_000_000_000) as usize
 }
@@ -40,8 +45,8 @@ pub(super) fn prepare_input_samples(
 /// - Input and output samples are out of sync, so all samples need to be shifted to match.
 ///
 /// For the sample to be included in the output range:
-/// - start_pts of a sample >= start_pts of an output batch
-/// - end_pts of a sample <= end_pts of an output batch
+/// - start_pts of a sample >= start_pts of an output batch (after applying `sample_offset`).
+/// - end_pts of a sample <= end_pts of an output batch (after applying `sample_offset`).
 /// - `=` in above cases means close enough to be a precision related error.
 fn frame_input_samples(
     start_pts: Duration,
@@ -71,8 +76,8 @@ fn frame_input_samples(
     let time_to_sample_count = |duration: Duration| {
         let sample_count = duration.as_secs_f64() * sample_rate as f64;
         // If value is close to the integer then round it, otherwise fallback to standard
-        // integer division behavior.
-        if (sample_count - sample_count.round()).abs() < max_error.as_secs_f64() {
+        // integer division behavior. Close is defined as 1% of a sample (the same as max_error).
+        if (sample_count - sample_count.round()).abs() < 0.01 {
             sample_count.round() as usize
         } else {
             sample_count.floor() as usize
