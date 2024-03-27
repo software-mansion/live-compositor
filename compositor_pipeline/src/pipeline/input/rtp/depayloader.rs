@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{mem, time::Duration};
 
 use bytes::Bytes;
 use log::error;
@@ -69,7 +69,6 @@ pub enum VideoDepayloader {
     H264 {
         depayloader: H264Packet,
         buffer: Vec<Bytes>,
-        last_timestamp: u32,
     },
 }
 
@@ -79,7 +78,6 @@ impl VideoDepayloader {
             VideoCodec::H264 => VideoDepayloader::H264 {
                 depayloader: H264Packet::default(),
                 buffer: vec![],
-                last_timestamp: 0,
             },
         }
     }
@@ -92,7 +90,6 @@ impl VideoDepayloader {
             VideoDepayloader::H264 {
                 depayloader,
                 buffer,
-                last_timestamp,
             } => {
                 let kind = EncodedChunkKind::Video(VideoCodec::H264);
                 let h264_chunk = depayloader.depacketize(&packet.payload)?;
@@ -101,24 +98,18 @@ impl VideoDepayloader {
                     return Ok(None);
                 }
 
-                if *last_timestamp == 0 {
-                    *last_timestamp = packet.header.timestamp;
-                }
-
-                if packet.header.timestamp == *last_timestamp {
-                    buffer.push(h264_chunk);
+                buffer.push(h264_chunk);
+                if !packet.header.marker {
+                    // the marker bit is set on the last packet of an access unit
                     return Ok(None);
                 }
 
                 let new_chunk = EncodedChunk {
-                    data: buffer.concat().into(),
-                    pts: Duration::from_secs_f64(*last_timestamp as f64 / 90000.0),
+                    data: mem::take(buffer).concat().into(),
+                    pts: Duration::from_secs_f64(packet.header.timestamp as f64 / 90000.0),
                     dts: None,
                     kind,
                 };
-
-                *buffer = vec![h264_chunk];
-                *last_timestamp = packet.header.timestamp;
 
                 Ok(Some(new_chunk))
             }
