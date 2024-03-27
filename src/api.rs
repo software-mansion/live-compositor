@@ -111,10 +111,10 @@ impl Api {
         ))
     }
 
-    pub fn handle_request(&self, request: Request) -> Result<Response, ApiError> {
+    pub async fn handle_request(&self, request: Request) -> Result<Response, ApiError> {
         match request {
             Request::Register(register_request) => {
-                register_request::handle_register_request(self, register_request)
+                register_request::handle_register_request(self, register_request).await
             }
             Request::Unregister(unregister_request) => {
                 unregister_request::handle_unregister_request(self, unregister_request)

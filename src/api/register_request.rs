@@ -16,15 +16,19 @@ fn handle_register_input(
     }
 }
 
-pub fn handle_register_request(api: &Api, request: RegisterRequest) -> Result<Response, ApiError> {
-    match request {
+pub async fn handle_register_request(
+    api: &Api,
+    request: RegisterRequest,
+) -> Result<Response, ApiError> {
+    let api = api.clone();
+    let response = tokio::task::spawn_blocking(move || match request {
         RegisterRequest::RtpInputStream(rtp) => {
             let (input_id, register_options) = rtp.try_into()?;
-            handle_register_input(api, input_id, register_options)
+            handle_register_input(&api, input_id, register_options)
         }
         RegisterRequest::Mp4(mp4) => {
             let (input_id, register_options) = mp4.try_into()?;
-            handle_register_input(api, input_id, register_options)
+            handle_register_input(&api, input_id, register_options)
         }
         RegisterRequest::OutputStream(output_stream) => {
             match api.pipeline().register_output(output_stream.try_into()?)? {
@@ -47,5 +51,8 @@ pub fn handle_register_request(api: &Api, request: RegisterRequest) -> Result<Re
             Pipeline::register_renderer(&api.pipeline, spec)?;
             Ok(Response::Ok {})
         }
-    }
+    });
+
+    // `unwrap()` panics only when the task panicked or `response.abort()` was called
+    response.await.unwrap()
 }
