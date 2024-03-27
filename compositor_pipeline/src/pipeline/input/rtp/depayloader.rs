@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{mem, time::Duration};
 
 use bytes::Bytes;
 use log::error;
@@ -98,23 +98,18 @@ impl VideoDepayloader {
                     return Ok(None);
                 }
 
+                buffer.push(h264_chunk);
                 if !packet.header.marker {
-                    // not at access unit border, buffer the packet
-                    buffer.push(h264_chunk);
+                    // the marker bit is set on the last packet of an access unit
                     return Ok(None);
                 }
 
-                let mut data = buffer.concat();
-                data.extend(h264_chunk);
-
                 let new_chunk = EncodedChunk {
-                    data: data.into(),
+                    data: mem::take(buffer).concat().into(),
                     pts: Duration::from_secs_f64(packet.header.timestamp as f64 / 90000.0),
                     dts: None,
                     kind,
                 };
-
-                *buffer = Vec::new();
 
                 Ok(Some(new_chunk))
             }
