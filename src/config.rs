@@ -145,11 +145,22 @@ fn read_config() -> Result<Config, String> {
         Err(_) => true,
     };
 
+    let offline_processing: bool = match env::var("LIVE_COMPOSITOR_OFFLINE_PROCESSING_ENABLE") {
+        Ok(enable) => bool_env_from_str(&enable).unwrap_or(false),
+        Err(_) => false,
+    };
+
     let ahead_of_time_processing: bool =
         match env::var("LIVE_COMPOSITOR_AHEAD_OF_TIME_PROCESSING_ENABLE") {
-            Ok(enable) => bool_env_from_str(&enable).unwrap_or(false),
+            Ok(enable) => bool_env_from_str(&enable).unwrap_or(offline_processing),
             Err(_) => false,
         };
+
+    let never_drop_output_frames: bool = match env::var("LIVE_COMPOSITOR_NEVER_DROP_OUTPUT_FRAMES")
+    {
+        Ok(enable) => bool_env_from_str(&enable).unwrap_or(offline_processing),
+        Err(_) => false,
+    };
 
     let run_late_scheduled_events = match env::var("LIVE_COMPOSITOR_RUN_LATE_SCHEDULED_EVENTS") {
         Ok(enable) => bool_env_from_str(&enable).unwrap_or(false),
@@ -168,6 +179,7 @@ fn read_config() -> Result<Config, String> {
             ahead_of_time_processing,
             output_framerate: framerate,
             run_late_scheduled_events,
+            never_drop_output_frames,
         },
         stream_fallback_timeout,
         force_gpu,
