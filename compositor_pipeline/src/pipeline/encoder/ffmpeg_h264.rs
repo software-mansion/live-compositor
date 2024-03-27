@@ -159,7 +159,7 @@ fn run_encoder_thread(
     encoder.set_width(options.resolution.width as u32);
     encoder.set_height(options.resolution.height as u32);
 
-    // TODO: audit settings bellow
+    // TODO: audit settings below
     // Those values are copied from somewhere, they have to be set because libx264
     // is throwing an error if it detects default ffmpeg settings.
     let defaults = [
@@ -191,7 +191,6 @@ fn run_encoder_thread(
     ];
 
     let encoder_opts_iter = merge_options_with_defaults(&defaults, &options.raw_options);
-
     let mut encoder = encoder.open_as_with(codec, Dictionary::from_iter(encoder_opts_iter))?;
 
     result_sender.send(Ok(())).unwrap();
