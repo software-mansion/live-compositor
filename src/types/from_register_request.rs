@@ -263,6 +263,7 @@ impl TryFrom<RegisterOutputRequest> for pipeline::RegisterOutputOptions {
                         preset: v.encoder_preset.into(),
                         resolution: v.resolution.into(),
                         output_id: output_id.clone().into(),
+                        raw_options: v.ffmpeg_options.unwrap_or_default().into_iter().collect(),
                     }),
                     end_condition: v.send_eos_when.unwrap_or_default().try_into()?,
                 })

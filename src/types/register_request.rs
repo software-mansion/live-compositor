@@ -1,4 +1,5 @@
 use core::f64;
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use schemars::JsonSchema;
@@ -124,6 +125,8 @@ pub enum Port {
 pub struct OutputVideoOptions {
     pub resolution: Resolution,
     pub encoder_preset: VideoEncoderPreset,
+    /// Raw FFmpeg encoder options. See [docs](https://ffmpeg.org/ffmpeg-codecs.html) for more.
+    pub ffmpeg_options: Option<HashMap<String, String>>,
     pub initial: Component,
     /// Condition for termination of output stream based on the input streams states.
     pub send_eos_when: Option<OutputEndCondition>,

@@ -79,6 +79,7 @@ pub struct Options {
     pub preset: EncoderPreset,
     pub resolution: Resolution,
     pub output_id: OutputId,
+    pub raw_options: Vec<(String, String)>,
 }
 
 pub struct LibavH264Encoder {
@@ -158,39 +159,40 @@ fn run_encoder_thread(
     encoder.set_width(options.resolution.width as u32);
     encoder.set_height(options.resolution.height as u32);
 
-    let mut encoder = encoder.open_as_with(
-        codec,
-        // TODO: audit settings bellow
-        // Those values are copied from somewhere, they have to be set because libx264
-        // is throwing an error if it detects default ffmpeg settings.
-        Dictionary::from_iter([
-            ("preset", options.preset.to_str()),
-            // Quality-based VBR (0-51)
-            ("crf", "23"),
-            // Override ffmpeg defaults from https://github.com/mirror/x264/blob/eaa68fad9e5d201d42fde51665f2d137ae96baf0/encoder/encoder.c#L674
-            // QP curve compression - libx264 defaults to 0.6 (in case of tune=grain to 0.8)
-            ("qcomp", "0.6"),
-            //  Maximum motion vector search range - libx264 defaults to 16 (in case of placebo
-            //  or veryslow preset to 24)
-            ("me_range", "16"),
-            // Max QP step - libx264 defaults to 4
-            ("qdiff", "4"),
-            // Min QP - libx264 defaults to 0
-            ("qmin", "0"),
-            // Max QP - libx264 defaults to QP_MAX = 69
-            ("qmax", "69"),
-            //  Maximum GOP (Group of Pictures) size - libx264 defaults to 250
-            ("g", "250"),
-            // QP factor between I and P frames - libx264 defaults to 1.4 (in case of tune=grain to 1.1)
-            ("i_qfactor", "1.4"),
-            // QP factor between P and B frames - libx264 defaults to 1.4 (in case of tune=grain to 1.1)
-            ("f_pb_factor", "1.3"),
-            // A comma-separated list of partitions to consider. Possible values: p8x8, p4x4, b8x8, i8x8, i4x4, none, all
-            ("partitions", options.preset.default_partitions()),
-            // Subpixel motion estimation and mode decision (decision quality: 1=fast, 11=best)
-            ("subq", options.preset.default_subq_mode()),
-        ]),
-    )?;
+    // TODO: audit settings bellow
+    // Those values are copied from somewhere, they have to be set because libx264
+    // is throwing an error if it detects default ffmpeg settings.
+    let defaults = [
+        ("preset", options.preset.to_str()),
+        // Quality-based VBR (0-51)
+        ("crf", "23"),
+        // Override ffmpeg defaults from https://github.com/mirror/x264/blob/eaa68fad9e5d201d42fde51665f2d137ae96baf0/encoder/encoder.c#L674
+        // QP curve compression - libx264 defaults to 0.6 (in case of tune=grain to 0.8)
+        ("qcomp", "0.6"),
+        //  Maximum motion vector search range - libx264 defaults to 16 (in case of placebo
+        //  or veryslow preset to 24)
+        ("me_range", "16"),
+        // Max QP step - libx264 defaults to 4
+        ("qdiff", "4"),
+        // Min QP - libx264 defaults to 0
+        ("qmin", "0"),
+        // Max QP - libx264 defaults to QP_MAX = 69
+        ("qmax", "69"),
+        //  Maximum GOP (Group of Pictures) size - libx264 defaults to 250
+        ("g", "250"),
+        // QP factor between I and P frames - libx264 defaults to 1.4 (in case of tune=grain to 1.1)
+        ("i_qfactor", "1.4"),
+        // QP factor between P and B frames - libx264 defaults to 1.4 (in case of tune=grain to 1.1)
+        ("f_pb_factor", "1.3"),
+        // A comma-separated list of partitions to consider. Possible values: p8x8, p4x4, b8x8, i8x8, i4x4, none, all
+        ("partitions", options.preset.default_partitions()),
+        // Subpixel motion estimation and mode decision (decision quality: 1=fast, 11=best)
+        ("subq", options.preset.default_subq_mode()),
+    ];
+
+    let encoder_opts_iter = merge_options_with_defaults(&defaults, &options.raw_options);
+
+    let mut encoder = encoder.open_as_with(codec, Dictionary::from_iter(encoder_opts_iter))?;
 
     result_sender.send(Ok(())).unwrap();
 
@@ -307,4 +309,24 @@ fn write_plane_to_av(frame: &mut frame::Video, plane: usize, data: &[u8]) {
     data.chunks(width)
         .zip(frame.data_mut(plane).chunks_mut(stride))
         .for_each(|(data, target)| target[..width].copy_from_slice(data));
+}
+
+fn merge_options_with_defaults<'a>(
+    defaults: &'a [(&str, &str)],
+    overrides: &'a [(String, String)],
+) -> impl Iterator<Item = (&'a str, &'a str)> {
+    defaults
+        .iter()
+        .copied()
+        .filter(|(key, _value)| {
+            // filter out any defaults that are in overrides
+            !overrides
+                .iter()
+                .any(|(override_key, _)| key == override_key)
+        })
+        .chain(
+            overrides
+                .iter()
+                .map(|(key, value)| (key.as_str(), value.as_str())),
+        )
 }
