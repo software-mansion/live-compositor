@@ -1,32 +1,27 @@
 use anyhow::Result;
 use log::{error, info};
 use serde_json::json;
-use std::{
-    env,
-    process::{Command, Stdio},
-    thread,
-    time::Duration,
-};
+use std::{thread, time::Duration};
 use video_compositor::{logger, server, types::Resolution};
 
-use crate::common::{start_websocket_thread, write_video_audio_example_sdp_file};
+use crate::common::{start_ffplay, start_websocket_thread};
 
 #[path = "./common/common.rs"]
 mod common;
 
-// const BUNNY_URL: &str =
-// "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+const BUNNY_URL: &str =
+    "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
 
-const BUNNY_FILE_PATH: &str = "examples/assets/BigBuckBunny.mp4";
-// const MP4_URL: &str =
-//     "https://filesamples.com/samples/video/mp4/sample_960x400_ocean_with_audio.mp4";
 const VIDEO_RESOLUTION: Resolution = Resolution {
     width: 1280,
     height: 720,
 };
 
+const IP: &str = "127.0.0.1";
+const OUTPUT_VIDEO_PORT: u16 = 8002;
+const OUTPUT_AUDIO_PORT: u16 = 8004;
+
 fn main() {
-    env::set_var("LIVE_COMPOSITOR_WEB_RENDERER_ENABLE", "0");
     ffmpeg_next::format::network::init();
     logger::init_logger();
 
@@ -41,13 +36,7 @@ fn main() {
 
 fn start_example_client_code() -> Result<()> {
     info!("[example] Start listening on output port.");
-    let output_sdp = write_video_audio_example_sdp_file("127.0.0.1", 8002, 8004)?;
-    Command::new("ffplay")
-        .args(["-protocol_whitelist", "file,rtp,udp", &output_sdp])
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn()?;
-    thread::sleep(Duration::from_secs(2));
+    start_ffplay(IP, OUTPUT_VIDEO_PORT, Some(OUTPUT_AUDIO_PORT))?;
     start_websocket_thread();
 
     info!("[example] Send register input request.");
@@ -55,7 +44,7 @@ fn start_example_client_code() -> Result<()> {
         "type": "register",
         "entity_type": "mp4",
         "input_id": "input_1",
-        "path": BUNNY_FILE_PATH
+        "url": BUNNY_URL
     }))?;
 
     let shader_source = include_str!("./silly.wgsl");
@@ -72,8 +61,8 @@ fn start_example_client_code() -> Result<()> {
         "type": "register",
         "entity_type": "output_stream",
         "output_id": "output_1",
-        "port": 8002,
-        "ip": "127.0.0.1",
+        "port": OUTPUT_VIDEO_PORT,
+        "ip": IP,
         "video": {
             "resolution": {
                 "width": VIDEO_RESOLUTION.width,
@@ -93,8 +82,8 @@ fn start_example_client_code() -> Result<()> {
         "type": "register",
         "entity_type": "output_stream",
         "output_id": "output_2",
-        "port": 8004,
-        "ip": "127.0.0.1",
+        "port": OUTPUT_AUDIO_PORT,
+        "ip": IP,
         "audio": {
             "initial": {
                 "inputs": [

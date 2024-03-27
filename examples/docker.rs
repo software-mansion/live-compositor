@@ -2,15 +2,10 @@ use anyhow::{anyhow, Result};
 use log::{error, info, warn};
 use serde_json::json;
 use signal_hook::{consts, iterator::Signals};
-use std::{
-    env,
-    process::{Command, Stdio},
-    thread,
-    time::Duration,
-};
+use std::{env, process::Command, thread, time::Duration};
 use video_compositor::{config::config, logger, types::Resolution};
 
-use crate::common::{start_websocket_thread, write_video_example_sdp_file};
+use crate::common::{start_ffplay, start_websocket_thread, stream_ffmpeg_testsrc};
 
 #[path = "./common/common.rs"]
 mod common;
@@ -19,6 +14,10 @@ const VIDEO_RESOLUTION: Resolution = Resolution {
     width: 1920,
     height: 1080,
 };
+
+const IP: &str = "127.0.0.1";
+const INPUT_PORT: u16 = 8002;
+const OUTPUT_PORT: u16 = 8004;
 
 fn main() {
     logger::init_logger();
@@ -75,7 +74,7 @@ fn build_and_start_docker(skip_build: bool) -> Result<()> {
         "run",
         "-it",
         "-p",
-        "8004:8004/udp",
+        format!("{INPUT_PORT}:{INPUT_PORT}/udp").leak(),
         "-p",
         format!("{}:{}", config().api_port, config().api_port).leak(),
         "--rm",
@@ -102,12 +101,7 @@ fn start_example_client_code(host_ip: String) -> Result<()> {
     thread::sleep(Duration::from_secs(5));
 
     info!("[example] Start listening on output port.");
-    let output_sdp = write_video_example_sdp_file(&host_ip, 8002)?;
-    Command::new("ffplay")
-        .args(["-protocol_whitelist", "file,rtp,udp", &output_sdp])
-        .stderr(Stdio::null())
-        .stdout(Stdio::null())
-        .spawn()?;
+    start_ffplay(&host_ip, OUTPUT_PORT, None)?;
     start_websocket_thread();
 
     info!("[example] Send register input request.");
@@ -115,7 +109,7 @@ fn start_example_client_code(host_ip: String) -> Result<()> {
         "type": "register",
         "entity_type": "rtp_input_stream",
         "input_id": "input_1",
-        "port": 8004,
+        "port": INPUT_PORT,
         "video": {
             "codec": "h264"
         }
@@ -135,7 +129,7 @@ fn start_example_client_code(host_ip: String) -> Result<()> {
         "type": "register",
         "entity_type": "output_stream",
         "output_id": "output_1",
-        "port": 8002,
+        "port": OUTPUT_PORT,
         "ip": host_ip,
         "video": {
             "resolution": {
@@ -163,26 +157,7 @@ fn start_example_client_code(host_ip: String) -> Result<()> {
     }))?;
 
     info!("[example] Start input stream");
-    let ffmpeg_source = format!(
-        "testsrc=s={}x{}:r=30,format=yuv420p",
-        VIDEO_RESOLUTION.width, VIDEO_RESOLUTION.height
-    );
+    stream_ffmpeg_testsrc(IP, INPUT_PORT, VIDEO_RESOLUTION)?;
 
-    Command::new("ffmpeg")
-        .args([
-            "-re",
-            "-f",
-            "lavfi",
-            "-i",
-            &ffmpeg_source,
-            "-c:v",
-            "libx264",
-            "-f",
-            "rtp",
-            "rtp://127.0.0.1:8004?rtcpport=8004",
-        ])
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn()?;
     Ok(())
 }

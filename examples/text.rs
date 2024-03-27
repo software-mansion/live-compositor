@@ -1,15 +1,10 @@
 use anyhow::Result;
 use log::{error, info};
 use serde_json::json;
-use std::{
-    env,
-    process::{Command, Stdio},
-    thread,
-    time::Duration,
-};
+use std::thread;
 use video_compositor::{logger, server, types::Resolution};
 
-use crate::common::{start_websocket_thread, write_video_example_sdp_file};
+use crate::common::{start_ffplay, start_websocket_thread};
 
 #[path = "./common/common.rs"]
 mod common;
@@ -19,8 +14,10 @@ const VIDEO_RESOLUTION: Resolution = Resolution {
     height: 1080,
 };
 
+const IP: &str = "127.0.0.1";
+const OUTPUT_PORT: u16 = 8002;
+
 fn main() {
-    env::set_var("LIVE_COMPOSITOR_WEB_RENDERER_ENABLE", "0");
     ffmpeg_next::format::network::init();
     logger::init_logger();
 
@@ -35,14 +32,7 @@ fn main() {
 
 fn start_example_client_code() -> Result<()> {
     info!("[example] Start listening on output port.");
-    let output_sdp = write_video_example_sdp_file("127.0.0.1", 8002)?;
-    Command::new("ffplay")
-        .args(["-protocol_whitelist", "file,rtp,udp", &output_sdp])
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn()?;
-
-    thread::sleep(Duration::from_secs(2));
+    start_ffplay(IP, OUTPUT_PORT, None)?;
     start_websocket_thread();
 
     info!("[example] Send register output request.");
@@ -50,8 +40,8 @@ fn start_example_client_code() -> Result<()> {
         "type": "register",
         "entity_type": "output_stream",
         "output_id": "output_1",
-        "port": 8002,
-        "ip": "127.0.0.1",
+        "ip": IP,
+        "port": OUTPUT_PORT,
         "video": {
             "resolution": {
                 "width": VIDEO_RESOLUTION.width,
@@ -67,8 +57,8 @@ fn start_example_client_code() -> Result<()> {
                 "wrap": "word",
                 "background_color_rgba": "#00800000",
                 "weight": "bold",
-                "width": 1920,
-                "height": 1080,
+                "width": VIDEO_RESOLUTION.width,
+                "height": VIDEO_RESOLUTION.height,
             }
         }
     }))?;
