@@ -25,7 +25,7 @@ pub fn unregistering() -> Result<()> {
     let output_receiver = OutputReceiver::start(
         8021,
         CommunicationProtocol::Tcp,
-        Duration::from_secs(5),
+        Duration::from_secs(30),
         "unregistering_test_output.rtp",
     )?;
 

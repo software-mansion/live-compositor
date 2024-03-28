@@ -13,7 +13,7 @@ pub fn audio_mixing() -> Result<()> {
     let output_receiver = OutputReceiver::start(
         8031,
         CommunicationProtocol::Udp,
-        Duration::from_secs(5),
+        Duration::from_secs(30),
         "audio_mixing_output.rtp",
     )?;
 

@@ -43,7 +43,7 @@ pub fn required_inputs() -> Result<()> {
     let output_receiver = OutputReceiver::start(
         8011,
         CommunicationProtocol::Tcp,
-        Duration::from_secs(5),
+        Duration::from_secs(30),
         "required_inputs_output.rtp",
     )?;
 

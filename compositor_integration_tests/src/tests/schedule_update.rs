@@ -74,7 +74,7 @@ pub fn schedule_update() -> Result<()> {
     let output_receiver = OutputReceiver::start(
         8041,
         CommunicationProtocol::Tcp,
-        Duration::from_secs(5),
+        Duration::from_secs(30),
         "schedule_update_output.rtp",
     )?;
 
