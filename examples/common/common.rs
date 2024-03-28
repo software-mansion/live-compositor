@@ -204,8 +204,7 @@ pub fn stream_webcam_gstreamer(ip: &str, port: u16) -> io::Result<()> {
     ];
 
     for plugin in plugins {
-        let result = Command::new("gst-inspect-1.0").arg(plugin).output()?;
-        if !result.status.success() {
+        if !gstreamer_plugin_available(plugin)? {
             return Err(io::Error::new(
                 io::ErrorKind::NotFound,
                 format!(
@@ -324,4 +323,12 @@ fn get_formated_body(body_str: &str) -> String {
         serde_json::to_string_pretty(&body_map).unwrap(),
         msg_string,
     )
+}
+
+fn gstreamer_plugin_available(plugin_name: &str) -> Result<bool, io::Error> {
+    Ok(Command::new("gst-inspect-1.0")
+        .arg(plugin_name)
+        .output()?
+        .status
+        .success())
 }
