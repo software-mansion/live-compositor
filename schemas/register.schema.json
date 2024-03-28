@@ -531,6 +531,16 @@
         "encoder_preset": {
           "$ref": "#/definitions/VideoEncoderPreset"
         },
+        "ffmpeg_options": {
+          "description": "Raw FFmpeg encoder options. See [docs](https://ffmpeg.org/ffmpeg-codecs.html) for more.",
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
         "initial": {
           "$ref": "#/definitions/Component"
         },

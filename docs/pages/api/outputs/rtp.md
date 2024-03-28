@@ -28,6 +28,7 @@ Register a new RTP output stream.
 type Video = {
   resolution: { width: number; height: number };
   encoder_preset?: VideoEncoderPreset;
+  ffmpeg_options?: Map<String, String>;
   send_eos_when?: EosCondition;
   initial: Component;
 }
@@ -48,6 +49,7 @@ type VideoEncoderPreset =
 
 - `resolution` - Output resolution in pixels.
 - `encoder_preset` - (**default=`"fast"`**) Preset for an encoder. See `FFmpeg` [docs](https://trac.ffmpeg.org/wiki/Encode/H.264#Preset) to learn more.
+- `ffmepg_options` - Raw FFmpeg encoder options. See [docs](https://ffmpeg.org/ffmpeg-codecs.html) for more.
 - `send_eos_when` - Defines when output stream should end if some of the input streams are finished. If output includes both audio and video streams, then EOS needs to be sent on both.
 - `initial` - Root of a component tree/scene that should be rendered for the output. Use [`update_output` request](../routes.md#update-output) to update this value after registration. [Learn more](../../concept/component.md).
 
