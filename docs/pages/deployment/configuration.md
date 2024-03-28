@@ -77,13 +77,25 @@ Enable GPU support inside the embedded Chromium instance.
 
 Defaults to `true`. Valid values: `true`, `false`, `1`, `0`.
 
+### `LIVE_COMPOSITOR_OFFLINE_PROCESSING_ENABLE`
+
+If enabled, sets `LIVE_COMPOSITOR_AHEAD_OF_TIME_PROCESSING_ENABLE` and `LIVE_COMPOSITOR_NEVER_DROP_OUTPUT_FRAMES` options to `true`. If those values are also defined then they take priority over this value.
+
+Defaults to `false`. Valid values: `true`, `false`, `1`, `0`.
+
 ### `LIVE_COMPOSITOR_AHEAD_OF_TIME_PROCESSING_ENABLE`
 
-If enabled, the LiveCompositor server will try to generate output frames ahead of time if all inputs are available.
+If enabled, the LiveCompositor server will try to generate output frames/samples ahead of time if all inputs are available.
 
 When to enable this option:
 
 - If you want to process input streams faster than in real time.
+
+Defaults to `false`. Valid values: `true`, `false`, `1`, `0`.
+
+### `LIVE_COMPOSITOR_NEVER_DROP_OUTPUT_FRAMES`
+
+If enabled, the LiveCompositor server will not drop frames/samples from output stream even if rendering or encoding is not fast enough to process it in real time.
 
 Defaults to `false`. Valid values: `true`, `false`, `1`, `0`.
 

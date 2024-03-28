@@ -244,8 +244,8 @@ impl VideoQueueProcessor {
 
         let frames_batch = internal_queue.get_frames_batch(next_buffer_pts, self.queue_start_time);
 
-        let is_required =
-            internal_queue.has_required_inputs_for_pts(next_buffer_pts, self.queue_start_time);
+        let is_required = self.queue.never_drop_output_frames
+            || internal_queue.has_required_inputs_for_pts(next_buffer_pts, self.queue_start_time);
         drop(internal_queue);
 
         // potentially infinitely blocking if output is not consumed
@@ -309,8 +309,9 @@ impl AudioQueueProcessor {
         }
 
         let samples = internal_queue.pop_samples_set(next_buffer_pts_range, self.queue_start_time);
-        let is_required = internal_queue
-            .has_required_inputs_for_pts(next_buffer_pts_range.0, self.queue_start_time);
+        let is_required = self.queue.never_drop_output_frames
+            || internal_queue
+                .has_required_inputs_for_pts(next_buffer_pts_range.0, self.queue_start_time);
         drop(internal_queue);
 
         self.send_output_batch(samples, is_required);
