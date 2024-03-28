@@ -3,7 +3,7 @@ use bytes::Bytes;
 use compositor_render::Frame;
 use pitch_detection::detector::{mcleod::McLeodDetector, PitchDetector};
 use rtp::packet::Packet;
-use std::{ops::Range, time::Duration};
+use std::{fs, ops::Range, path::PathBuf, time::Duration};
 use video_compositor::config::config;
 use webrtc_util::Unmarshal;
 
@@ -38,15 +38,40 @@ pub fn compare_video_dumps(
     let actual_frames = actual_video_decoder.take_frames()?;
 
     for pts in timestamps {
-        let expected = find_frame_for_pts(&expected_frames, pts)?;
-        let actual = find_frame_for_pts(&actual_frames, pts)?;
+        let expected_frame = find_frame_for_pts(&expected_frames, pts)?;
+        let actual_frame = find_frame_for_pts(&actual_frames, pts)?;
 
-        let diff_y = calculate_mse(&expected.data.y_plane, &actual.data.y_plane);
-        let diff_u = calculate_mse(&expected.data.u_plane, &actual.data.u_plane);
-        let diff_v = calculate_mse(&expected.data.v_plane, &actual.data.v_plane);
+        let diff_y = calculate_mse(&expected_frame.data.y_plane, &actual_frame.data.y_plane);
+        let diff_u = calculate_mse(&expected_frame.data.u_plane, &actual_frame.data.u_plane);
+        let diff_v = calculate_mse(&expected_frame.data.v_plane, &actual_frame.data.v_plane);
 
         if diff_y > allowed_error || diff_u > allowed_error || diff_v > allowed_error {
             let pts = pts.as_micros();
+
+            let mut expected_data = vec![];
+            expected_data.extend_from_slice(&expected_frame.data.y_plane);
+            expected_data.extend_from_slice(&expected_frame.data.u_plane);
+            expected_data.extend_from_slice(&expected_frame.data.v_plane);
+
+            let mut actual_data = vec![];
+            actual_data.extend_from_slice(&actual_frame.data.y_plane);
+            actual_data.extend_from_slice(&actual_frame.data.u_plane);
+            actual_data.extend_from_slice(&actual_frame.data.v_plane);
+
+            let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .parent()
+                .unwrap()
+                .join("failed_snapshot_tests");
+
+            let _ = fs::create_dir_all(&path);
+            fs::write(
+                path.join(format!("expected_frame_{pts}.yuv")),
+                expected_data,
+            )
+            .unwrap();
+            fs::write(path.join(format!("actual_frame_{pts}.yuv")), actual_data).unwrap();
+            fs::write(path.join(format!("expected_frame_{pts}.rtp")), expected).unwrap();
+            fs::write(path.join(format!("actual_frame_{pts}.rtp")), actual).unwrap();
 
             return Err(anyhow::anyhow!(
                 "Frame mismatch. PTS: {pts}, Diff Y: {diff_y}, Diff U: {diff_u}, Diff V: {diff_v}"
