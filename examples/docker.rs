@@ -3,7 +3,7 @@ use log::{error, info, warn};
 use serde_json::json;
 use signal_hook::{consts, iterator::Signals};
 use std::{env, process::Command, thread, time::Duration};
-use video_compositor::{config::config, logger, types::Resolution};
+use video_compositor::{config::read_config, types::Resolution};
 
 use crate::common::{start_ffplay, start_websocket_thread, stream_ffmpeg_testsrc};
 
@@ -20,8 +20,6 @@ const INPUT_PORT: u16 = 8002;
 const OUTPUT_PORT: u16 = 8004;
 
 fn main() {
-    logger::init_logger();
-
     let Ok(host_ip) = env::var("DOCKER_HOST_IP") else {
         if cfg!(target_os = "macos") {
             error!(
@@ -76,7 +74,7 @@ fn build_and_start_docker(skip_build: bool) -> Result<()> {
         "-p",
         format!("{INPUT_PORT}:{INPUT_PORT}/udp").leak(),
         "-p",
-        format!("{}:{}", config().api_port, config().api_port).leak(),
+        format!("{}:{}", read_config().api_port, read_config().api_port).leak(),
         "--rm",
     ];
 
