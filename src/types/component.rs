@@ -215,7 +215,8 @@ pub struct Shader {
     ///
     /// :::note
     ///
-    /// This object's structure must match the structure defined in a shader source code.
+    ///   This object's structure must match the structure defined in a shader source code. Currently, we do not handle memory layout automatically.
+    ///   To achieve the correct memory alignment, you might need to pad your data with additional fields. See [WGSL documentation](https://www.w3.org/TR/WGSL/#alignment-and-size) for more details.
     ///
     /// :::
     pub shader_param: Option<ShaderParam>,
@@ -250,6 +251,8 @@ pub struct ShaderParamStructField {
 pub struct Text {
     /// Id of a component.
     pub id: Option<ComponentId>,
+
+    /// Text that will be rendered.
     pub text: Arc<str>,
 
     /// Width of a texture that text will be rendered on. If not provided, the resulting texture

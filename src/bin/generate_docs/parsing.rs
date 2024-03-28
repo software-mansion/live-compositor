@@ -1,4 +1,8 @@
-use std::{collections::HashMap, ops::Deref, rc::Rc};
+use std::{
+    collections::{HashMap, VecDeque},
+    ops::Deref,
+    rc::Rc,
+};
 
 use schemars::{
     gen::{SchemaGenerator, SchemaSettings},
@@ -9,7 +13,7 @@ use schemars::{
 use crate::type_definition::{Kind, ObjectProperty, TypeDefinition};
 
 const IGNORED_DEFINITIONS: [&str; 1] = ["Component"];
-const ALWAYS_INLINED_DEFINITIONS: [&str; 1] = ["Port"];
+const ALWAYS_INLINED_DEFINITIONS: [&str; 2] = ["Port", "Resolution"];
 const NEVER_INLINED_DEFINITIONS: [&str; 0] = [];
 
 #[derive(Debug)]
@@ -185,25 +189,36 @@ fn populate_page(
     root_schema: &RootSchema,
 ) {
     let mut definition = parse_schema(schema);
-    definition.name = Some(name.clone());
+    let mut references = VecDeque::from(definition.references.clone());
 
-    let references = definition.references.clone();
+    definition.name = Some(name.clone());
     page.add_definition(definition);
 
-    // Parse every definition mentioned in `schema`
-    for refer in references {
+    while let Some(refer) = references.front() {
         if IGNORED_DEFINITIONS.contains(&refer.as_ref()) {
+            references.pop_front();
+            continue;
+        }
+        if page.contains_definition(refer) {
+            references.pop_front();
             continue;
         }
 
-        if page.contains_definition(&refer) {
-            continue;
-        }
         let Some(schema) = root_schema.definitions.get(refer.deref()) else {
             continue;
         };
+        let schema = schema.clone().into_object();
 
-        populate_page(page, refer, &schema.clone().into_object(), root_schema);
+        let mut definition = parse_schema(&schema);
+        definition.name = Some(refer.clone());
+
+        for refer in definition.references.clone() {
+            references.push_back(refer);
+        }
+
+        page.add_definition(definition);
+
+        references.pop_front();
     }
 }
 
@@ -286,6 +301,15 @@ fn parse_schema(schema: &SchemaObject) -> TypeDefinition {
 fn parse_object(schema: &SchemaObject) -> Kind {
     let mut properties = Vec::new();
     let object = schema.object.as_ref().unwrap();
+    if let Some(additional_props) = &object.additional_properties {
+        if let Schema::Object(value_type) = additional_props.as_ref() {
+            let value_type = parse_schema(value_type);
+            return Kind::Map {
+                value_type: Box::new(value_type),
+            };
+        }
+    }
+
     for (name, prop) in object.properties.clone() {
         let prop = prop.into_object();
         properties.push(ObjectProperty {
@@ -301,7 +325,7 @@ fn parse_object(schema: &SchemaObject) -> Kind {
             .map(|mut def| {
                 let ty = match def.kind {
                     Kind::Object(sub_properties) => {
-                        Kind::Object([sub_properties, properties.clone()].concat())
+                        Kind::Object([properties.clone(), sub_properties].concat())
                     }
                     _ => unreachable!("Expected object"),
                 };

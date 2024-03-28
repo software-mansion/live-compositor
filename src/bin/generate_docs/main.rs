@@ -1,8 +1,8 @@
 use parsing::generate_docs;
 use std::{fs, path::PathBuf};
 use video_compositor::types::{
-    Image, InputStream, Mp4, RegisterOutputRequest, Rescaler, RtpInputStream, ShaderSpec, Text,
-    Tiles, View, WebRendererSpec, WebView,
+    Image, InputStream, Mp4, RegisterOutputRequest, Rescaler, RtpInputStream, Shader, ShaderSpec,
+    Text, Tiles, View, WebRendererSpec, WebView,
 };
 
 mod parsing;
@@ -19,11 +19,11 @@ fn main() {
         generate_docs::<ShaderSpec>("Shader"),
         generate_docs::<WebRendererSpec>("WebRenderer"),
         generate_docs::<RtpInputStream>("RtpInputStream"),
-        generate_docs::<RegisterOutputRequest>("OutputStream"),
         generate_docs::<Mp4>("Mp4"),
     ];
 
     let component_pages = [
+        generate_docs::<Shader>("Shader"),
         generate_docs::<InputStream>("InputStream"),
         generate_docs::<View>("View"),
         generate_docs::<WebView>("WebView"),
@@ -32,6 +32,8 @@ fn main() {
         generate_docs::<Tiles>("Tiles"),
         generate_docs::<Rescaler>("Rescaler"),
     ];
+
+    let output_pages = [generate_docs::<RegisterOutputRequest>("OutputStream")];
 
     for page in renderer_pages {
         fs::write(
@@ -43,6 +45,13 @@ fn main() {
     for page in component_pages {
         fs::write(
             docs_path.join(format!("component-{}.md", page.title)),
+            page.to_markdown(),
+        )
+        .unwrap();
+    }
+    for page in output_pages {
+        fs::write(
+            docs_path.join(format!("output-{}.md", page.title)),
             page.to_markdown(),
         )
         .unwrap();

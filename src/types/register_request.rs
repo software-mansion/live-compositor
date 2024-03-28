@@ -123,12 +123,15 @@ pub enum Port {
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct OutputVideoOptions {
+    /// Output resolution in pixels.
     pub resolution: Resolution,
+    /// (**default=`"fast"`**) Preset for an encoder. See `FFmpeg` [docs](https://trac.ffmpeg.org/wiki/Encode/H.264#Preset) to learn more.
     pub encoder_preset: VideoEncoderPreset,
     /// Raw FFmpeg encoder options. See [docs](https://ffmpeg.org/ffmpeg-codecs.html) for more.
     pub ffmpeg_options: Option<HashMap<String, String>>,
+    /// Root of a component tree/scene that should be rendered for the output. Use [`update_output` request](../routes.md#update-output) to update this value after registration. [Learn more](../../concept/component.md).
     pub initial: Component,
-    /// Condition for termination of output stream based on the input streams states.
+    /// Defines when output stream should end if some of the input streams are finished. If output includes both audio and video streams, then EOS needs to be sent on both.
     pub send_eos_when: Option<OutputEndCondition>,
 }
 
@@ -166,9 +169,17 @@ pub enum AudioEncoderPreset {
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct RegisterOutputRequest {
+    /// An identifier for the output stream. It can be used in the `UpdateOutput` request to define what to render for the output stream.
     pub output_id: OutputId,
+    /// Depends on the value of the `transport_protocol` field:
+    ///
+    ///   - `udp` - An UDP port number that RTP packets will be sent to.
+    ///
+    ///   - `tcp_server` - A local TCP port number or a port range that LiveCompositor will listen for incoming connections.
     pub port: Port,
+    /// Only valid if `transport_protocol="udp"`. IP address where RTP packets should be sent to.
     pub ip: Option<Arc<str>>,
+    /// (**default=`"udp"`**) Transport layer protocol that will be used to send RTP packets.
     pub transport_protocol: Option<TransportProtocol>,
     pub video: Option<OutputVideoOptions>,
     pub audio: Option<OutputAudioOptions>,
@@ -176,26 +187,25 @@ pub struct RegisterOutputRequest {
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema, Default)]
 #[serde(deny_unknown_fields)]
+/// This type defines when end of an input stream should trigger end of the output stream. Only one of those fields can be set at the time.
+///
+/// Unless specified otherwise the input stream is considered finished/ended when:
+///
+/// - TCP connection was dropped/closed.
+///
+/// - RTCP Goodbye packet (`BYE`) was received.
+///
+/// - Mp4 track has ended.
+///
+/// - Input was unregistered already (or never registered).
 pub struct OutputEndCondition {
-    /// Output will be terminated if any of the listed input streams are finished.
-    ///
-    /// Input stream is considered finished if:
-    /// - Input never existed
-    /// - RTCP Goodbye packet was received
-    /// - MP4 track has ended
-    /// - Input was unregistered (before or after output registration)
-    ///
-    /// In particular, output stream will **be** terminated if no inputs were ever connected.
+    /// Terminate output stream if any of the input streams from the list are finished.
     pub any_of: Option<Vec<InputId>>,
-    /// Output will be terminated if all of the listed input streams are finished.
-    /// In particular, output stream will **be** terminated if no inputs were ever connected.
+    /// Terminate output stream if all the input streams from the list are finished.
     pub all_of: Option<Vec<InputId>>,
-    /// Output will be terminated in any of the input streams did terminate. This includes streams added
-    /// after the output was registered. In particular, output stream will **not be** terminated if
-    /// no inputs were ever connected.
+    /// Terminate output stream if any of the input streams ends. This includes streams added after the output was registered. In particular, output stream will **not be** terminated if no inputs were ever connected.
     pub any_input: Option<bool>,
-    /// Output will be terminated if all of the input streams are finished.
-    /// In particular, output stream will **be** terminated if no inputs were ever connected.
+    /// Terminate output stream if all the input streams finish. In particular, output stream will **be** terminated if no inputs were ever connected.
     pub all_inputs: Option<bool>,
 }
 
