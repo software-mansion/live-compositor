@@ -185,24 +185,27 @@ pub fn stream_ffmpeg_testsrc(ip: &str, port: u16, resolution: Resolution) -> Res
 
 #[allow(dead_code)]
 pub fn stream_webcam_gstreamer(ip: &str, port: u16) -> io::Result<()> {
-    let gst_webcam_source = if cfg!(target_os = "macos") {
-        "avfvideosrc"
+    let (gst_webcam_source, gst_encoder, gst_encoder_options) = if cfg!(target_os = "macos") {
+        ("avfvideosrc", "vtenc_h264", "bitrate=2000")
     } else {
-        "v4l2src"
+        (
+            "v4l2src",
+            "x264enc",
+            "tune=zerolatency bitrate=2000 speed-preset=superfast",
+        )
     };
 
     let plugins = vec![
         gst_webcam_source,
         "videoconvert",
-        "x264enc",
+        gst_encoder,
         "rtph264pay",
         "udpsink",
     ];
 
     for plugin in plugins {
-        let cmd_output = Command::new("gst-inspect-1.0").arg(plugin).output()?;
-        let output = std::str::from_utf8(&cmd_output.stdout).unwrap();
-        if output.contains("No such element or plugin") {
+        let result = Command::new("gst-inspect-1.0").arg(plugin).output()?;
+        if !result.status.success() {
             return Err(io::Error::new(
                 io::ErrorKind::NotFound,
                 format!(
@@ -214,8 +217,8 @@ pub fn stream_webcam_gstreamer(ip: &str, port: u16) -> io::Result<()> {
     }
 
     let gst_command = format!(
-        "gst-launch-1.0 {} ! videoconvert ! x264enc tune=zerolatency bitrate=2000 speed-preset=superfast ! rtph264pay config-interval=1 pt=96 ! rtpstreampay ! tcpclientsink host={} port={}",
-        gst_webcam_source, ip, port
+        "gst-launch-1.0 {} ! videoconvert ! {} {} ! rtph264pay config-interval=1 pt=96 ! rtpstreampay ! tcpclientsink host={} port={}",
+        gst_webcam_source, gst_encoder, gst_encoder_options, ip, port
     );
 
     Command::new("bash").arg("-c").arg(gst_command).spawn()?;
