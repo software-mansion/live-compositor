@@ -13,7 +13,7 @@ use log::error;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    config::{config, Config},
+    config::Config,
     error::ApiError,
     types::{InputId, OutputId, RegisterRequest, RendererId, UpdateOutputRequest},
 };
@@ -81,11 +81,12 @@ pub struct OutputInfo {
 
 #[derive(Clone)]
 pub struct Api {
-    pipeline: Arc<Mutex<Pipeline>>,
+    pub pipeline: Arc<Mutex<Pipeline>>,
+    pub config: Config,
 }
 
 impl Api {
-    pub fn new() -> Result<(Api, Arc<dyn EventLoop>), InitPipelineError> {
+    pub fn new(config: Config) -> Result<(Api, Arc<dyn EventLoop>), InitPipelineError> {
         let Config {
             queue_options,
             stream_fallback_timeout,
@@ -94,18 +95,19 @@ impl Api {
             download_root,
             output_sample_rate,
             ..
-        } = config();
+        } = config.clone();
         let (pipeline, event_loop) = Pipeline::new(pipeline::Options {
-            queue_options: *queue_options,
-            stream_fallback_timeout: *stream_fallback_timeout,
-            web_renderer: *web_renderer,
-            force_gpu: *force_gpu,
-            download_root: download_root.clone(),
-            output_sample_rate: *output_sample_rate,
+            queue_options,
+            stream_fallback_timeout,
+            web_renderer,
+            force_gpu,
+            download_root,
+            output_sample_rate,
         })?;
         Ok((
             Api {
                 pipeline: Mutex::new(pipeline).into(),
+                config,
             },
             event_loop,
         ))

@@ -13,7 +13,7 @@ use std::{
     time::Duration,
 };
 use tracing::info;
-use video_compositor::{config::config, types::Resolution};
+use video_compositor::{config::read_config, types::Resolution};
 use websocket::{Message, OwnedMessage};
 
 use serde::Serialize;
@@ -21,7 +21,10 @@ use serde::Serialize;
 pub fn post<T: Serialize + ?Sized>(json: &T) -> Result<Response> {
     let client = reqwest::blocking::Client::new();
     let response = client
-        .post(format!("http://127.0.0.1:{}/--/api", config().api_port))
+        .post(format!(
+            "http://127.0.0.1:{}/--/api",
+            read_config().api_port
+        ))
         .timeout(Duration::from_secs(100))
         .json(json)
         .send()
@@ -37,7 +40,7 @@ pub fn post<T: Serialize + ?Sized>(json: &T) -> Result<Response> {
 pub fn start_websocket_thread() {
     let client = websocket::sync::client::ClientBuilder::new(&format!(
         "ws://127.0.0.1:{}/--/ws",
-        config().api_port
+        read_config().api_port
     ))
     .unwrap()
     .connect_insecure()

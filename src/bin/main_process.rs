@@ -1,9 +1,8 @@
 use log::info;
-use video_compositor::{logger, server};
+use video_compositor::server;
 
 fn main() {
     ffmpeg_next::format::network::init();
-    logger::init_logger();
 
     server::run();
 

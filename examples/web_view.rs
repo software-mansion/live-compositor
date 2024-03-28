@@ -5,7 +5,7 @@ use std::{
     env,
     thread::{self},
 };
-use video_compositor::{logger, server, types::Resolution};
+use video_compositor::{server, types::Resolution};
 
 use crate::common::{download_file, start_ffplay, stream_video};
 
@@ -28,7 +28,6 @@ const OUTPUT_PORT: u16 = 8004;
 fn main() {
     env::set_var("LIVE_COMPOSITOR_WEB_RENDERER_ENABLE", "1");
     ffmpeg_next::format::network::init();
-    logger::init_logger();
 
     use compositor_chromium::cef::bundle_for_development;
 

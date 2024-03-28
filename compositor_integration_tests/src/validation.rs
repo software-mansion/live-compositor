@@ -4,7 +4,7 @@ use compositor_render::Frame;
 use pitch_detection::detector::{mcleod::McLeodDetector, PitchDetector};
 use rtp::packet::Packet;
 use std::{fs, ops::Range, path::PathBuf, time::Duration};
-use video_compositor::config::config;
+use video_compositor::config::read_config;
 use webrtc_util::Unmarshal;
 
 use crate::{
@@ -94,7 +94,7 @@ pub fn compare_audio_dumps(
     let expected_audio_packets = find_packets_for_payload_type(&expected_packets, 97);
     let actual_audio_packets = find_packets_for_payload_type(&actual_packets, 97);
 
-    let sample_rate = config().output_sample_rate;
+    let sample_rate = read_config().output_sample_rate;
 
     let mut expected_audio_decoder = AudioDecoder::new(sample_rate, channels)?;
     let mut actual_audio_decoder = AudioDecoder::new(sample_rate, channels)?;

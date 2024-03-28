@@ -1,4 +1,4 @@
-use std::{env, path::PathBuf, str::FromStr, sync::OnceLock, time::Duration};
+use std::{env, path::PathBuf, str::FromStr, time::Duration};
 
 use compositor_pipeline::queue::QueueOptions;
 use compositor_render::{web_renderer::WebRendererInitOptions, Framerate};
@@ -7,7 +7,7 @@ use rand::Rng;
 
 use crate::logger::FfmpegLogLevel;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Config {
     pub instance_id: String,
     pub api_port: u16,
@@ -20,7 +20,7 @@ pub struct Config {
     pub output_sample_rate: u32,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct LoggerConfig {
     pub ffmpeg_logger_level: FfmpegLogLevel,
     pub format: LoggerFormat,
@@ -47,15 +47,11 @@ impl FromStr for LoggerFormat {
     }
 }
 
-pub fn config() -> &'static Config {
-    static CONFIG: OnceLock<Config> = OnceLock::new();
-
-    CONFIG.get_or_init(|| {
-        read_config().expect("Failed to read the config from environment variables.")
-    })
+pub fn read_config() -> Config {
+    try_read_config().expect("Failed to read the config from environment variables.")
 }
 
-fn read_config() -> Result<Config, String> {
+fn try_read_config() -> Result<Config, String> {
     let api_port = match env::var("LIVE_COMPOSITOR_API_PORT") {
         Ok(api_port) => api_port
             .parse::<u16>()

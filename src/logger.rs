@@ -1,6 +1,6 @@
 use std::{str::FromStr, sync::OnceLock};
 
-use crate::config::{config, LoggerFormat};
+use crate::config::{read_config, LoggerConfig, LoggerFormat};
 
 #[derive(Debug, Clone, Copy)]
 pub enum FfmpegLogLevel {
@@ -13,7 +13,8 @@ pub enum FfmpegLogLevel {
 fn ffmpeg_logger_level() -> FfmpegLogLevel {
     static LOG_LEVEL: OnceLock<FfmpegLogLevel> = OnceLock::new();
 
-    *LOG_LEVEL.get_or_init(|| config().logger.ffmpeg_logger_level)
+    // This will read config second time
+    *LOG_LEVEL.get_or_init(|| read_config().logger.ffmpeg_logger_level)
 }
 
 impl FromStr for FfmpegLogLevel {
@@ -56,9 +57,9 @@ extern "C" fn ffmpeg_log_callback(
     }
 }
 
-pub fn init_logger() {
-    let env_filter = tracing_subscriber::EnvFilter::new(&config().logger.level);
-    match config().logger.format {
+pub fn init_logger(opts: LoggerConfig) {
+    let env_filter = tracing_subscriber::EnvFilter::new(opts.level);
+    match opts.format {
         LoggerFormat::Pretty => {
             tracing_subscriber::fmt()
                 .pretty()

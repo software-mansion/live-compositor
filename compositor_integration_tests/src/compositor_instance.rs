@@ -2,7 +2,11 @@ use anyhow::Result;
 use compositor_render::use_global_wgpu_ctx;
 use reqwest::StatusCode;
 use std::{env, sync::Mutex, thread, time::Duration};
-use video_compositor::{logger, server};
+use video_compositor::{
+    config::{read_config, LoggerConfig, LoggerFormat},
+    logger::{self, FfmpegLogLevel},
+    server,
+};
 
 pub struct CompositorInstance {
     pub api_port: u16,
@@ -12,10 +16,12 @@ pub struct CompositorInstance {
 impl CompositorInstance {
     pub fn start(api_port: u16) -> Self {
         init_compositor_prerequisites();
+        let mut config = read_config();
+        config.api_port = api_port;
 
         thread::Builder::new()
             .name(format!("compositor instance on port {api_port}"))
-            .spawn(move || server::run_on_port(api_port))
+            .spawn(move || server::run_with_config(config))
             .unwrap();
         thread::sleep(Duration::from_millis(1500));
 
@@ -57,7 +63,11 @@ fn init_compositor_prerequisites() {
     env::set_var("LIVE_COMPOSITOR_NEVER_DROP_OUTPUT_FRAMES", "1");
     env::set_var("LIVE_COMPOSITOR_WEB_RENDERER_ENABLE", "0");
     ffmpeg_next::format::network::init();
-    logger::init_logger();
+    logger::init_logger(LoggerConfig {
+        ffmpeg_logger_level: FfmpegLogLevel::Info,
+        format: LoggerFormat::Compact,
+        level: "info".to_string(),
+    });
 
     use_global_wgpu_ctx();
 
