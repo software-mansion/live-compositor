@@ -3,22 +3,40 @@ use bytes::Bytes;
 use compositor_render::Frame;
 use pitch_detection::detector::{mcleod::McLeodDetector, PitchDetector};
 use rtp::packet::Packet;
-use std::{fs, ops::Range, path::PathBuf, time::Duration};
+use std::{
+    fmt, fs,
+    ops::Range,
+    path::{Path, PathBuf},
+    time::Duration,
+};
+use tracing::info;
 use video_compositor::config::read_config;
 use webrtc_util::Unmarshal;
 
 use crate::{
     audio_decoder::{AudioChannels, AudioDecoder, AudioSampleBatch},
+    output_dump_from_disk, update_dump_on_disk,
     video_decoder::VideoDecoder,
 };
 
-pub fn compare_video_dumps(
-    expected: &Bytes,
+pub fn compare_video_dumps<P: AsRef<Path> + fmt::Debug>(
+    snapshot_filename: P,
     actual: &Bytes,
     timestamps: &[Duration],
     allowed_error: f32,
 ) -> Result<()> {
-    let expected_packets = unmarshal_packets(expected)?;
+    let expected = match output_dump_from_disk(&snapshot_filename) {
+        Ok(expected) => expected,
+        Err(err) => {
+            if cfg!(feature = "update_snapshots") {
+                info!("Updating output dump: {snapshot_filename:?}");
+                update_dump_on_disk(&snapshot_filename, actual).unwrap();
+                return Ok(());
+            };
+            return Err(err);
+        }
+    };
+    let expected_packets = unmarshal_packets(&expected)?;
     let actual_packets = unmarshal_packets(actual)?;
 
     let expected_video_packets = find_packets_for_payload_type(&expected_packets, 96);
@@ -46,7 +64,12 @@ pub fn compare_video_dumps(
         let diff_v = calculate_mse(&expected_frame.data.v_plane, &actual_frame.data.v_plane);
 
         if diff_y > allowed_error || diff_u > allowed_error || diff_v > allowed_error {
-            save_failed_test_dumps(expected, actual, pts);
+            save_failed_test_dumps(&expected, actual, pts);
+            if cfg!(feature = "update_snapshots") {
+                info!("Updating output dump: {:?}", &snapshot_filename);
+                update_dump_on_disk(snapshot_filename, actual)?;
+                return Ok(());
+            };
 
             let pts = pts.as_micros();
             return Err(anyhow::anyhow!(
@@ -58,14 +81,25 @@ pub fn compare_video_dumps(
     Ok(())
 }
 
-pub fn compare_audio_dumps(
-    expected: &Bytes,
+pub fn compare_audio_dumps<P: AsRef<Path> + fmt::Debug>(
+    snapshot_filename: P,
     actual: &Bytes,
     sampling_intervals: &[Range<Duration>],
     allowed_error: f32,
     channels: AudioChannels,
 ) -> Result<()> {
-    let expected_packets = unmarshal_packets(expected)?;
+    let expected = match output_dump_from_disk(&snapshot_filename) {
+        Ok(expected) => expected,
+        Err(err) => {
+            if cfg!(feature = "update_snapshots") {
+                info!("Updating output dump: {snapshot_filename:?}");
+                update_dump_on_disk(&snapshot_filename, actual).unwrap();
+                return Ok(());
+            };
+            return Err(err);
+        }
+    };
+    let expected_packets = unmarshal_packets(&expected)?;
     let actual_packets = unmarshal_packets(actual)?;
     let expected_audio_packets = find_packets_for_payload_type(&expected_packets, 97);
     let actual_audio_packets = find_packets_for_payload_type(&actual_packets, 97);
@@ -86,12 +120,13 @@ pub fn compare_audio_dumps(
     let actual_samples = actual_audio_decoder.take_samples();
 
     for time_range in sampling_intervals {
-        let expected = find_sample_batches(&expected_samples, time_range.clone());
-        let actual = find_sample_batches(&actual_samples, time_range.clone());
+        let expected_batches = find_sample_batches(&expected_samples, time_range.clone());
+        let actual_batches = find_sample_batches(&actual_samples, time_range.clone());
 
         let (expected_pitch_left, expected_pitch_right) =
-            pitch_from_sample_batch(expected, sample_rate)?;
-        let (actual_pitch_left, actual_pitch_right) = pitch_from_sample_batch(actual, sample_rate)?;
+            pitch_from_sample_batch(expected_batches, sample_rate)?;
+        let (actual_pitch_left, actual_pitch_right) =
+            pitch_from_sample_batch(actual_batches, sample_rate)?;
 
         let diff_pitch_left = f64::abs(expected_pitch_left - actual_pitch_left);
         let diff_pitch_right = f64::abs(expected_pitch_right - actual_pitch_right);
@@ -99,6 +134,11 @@ pub fn compare_audio_dumps(
         if diff_pitch_left > allowed_error as f64 || diff_pitch_right > allowed_error as f64 {
             let pts_start = time_range.start.as_micros();
             let pts_end = time_range.end.as_micros();
+            if cfg!(feature = "update_snapshots") {
+                info!("Updating output dump: {snapshot_filename:?}");
+                update_dump_on_disk(snapshot_filename, actual)?;
+                return Ok(());
+            };
 
             return Err(anyhow::anyhow!(
                 "Audio mismatch. Time range: ({pts_start}, {pts_end}), Diff Pitch Left: {diff_pitch_left}, Diff Pitch Right: {diff_pitch_right}"

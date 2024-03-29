@@ -3,11 +3,12 @@ use serde_json::json;
 use std::time::Duration;
 
 use crate::{
-    audio_decoder::AudioChannels, compare_audio_dumps, input_dump_from_disk, output_dump_from_disk,
-    CommunicationProtocol, CompositorInstance, OutputReceiver, PacketSender,
+    audio_decoder::AudioChannels, compare_audio_dumps, input_dump_from_disk, CommunicationProtocol,
+    CompositorInstance, OutputReceiver, PacketSender,
 };
 
 pub fn audio_mixing() -> Result<()> {
+    const OUTPUT_DUMP_FILE: &str = "audio_mixing_output.rtp";
     let instance = CompositorInstance::start();
     let input_1_port = instance.get_port();
     let input_2_port = instance.get_port();
@@ -17,7 +18,6 @@ pub fn audio_mixing() -> Result<()> {
         output_port,
         CommunicationProtocol::Udp,
         Duration::from_secs(20),
-        "audio_mixing_output.rtp",
     )?;
 
     instance.send_request(json!({
@@ -79,10 +79,9 @@ pub fn audio_mixing() -> Result<()> {
     }))?;
 
     let new_output_dump = output_receiver.wait_for_output()?;
-    let output_dump_from_disk = output_dump_from_disk("audio_mixing_output.rtp")?;
 
     compare_audio_dumps(
-        &output_dump_from_disk,
+        OUTPUT_DUMP_FILE,
         &new_output_dump,
         &[
             Duration::from_millis(500)..Duration::from_millis(1500),
