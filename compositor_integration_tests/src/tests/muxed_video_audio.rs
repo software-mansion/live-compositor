@@ -9,7 +9,7 @@ use crate::{
 
 /// Input and output streams with muxed video and audio.
 ///
-/// Show `input_1` with audio for 10 seconds.
+/// Show `input_1` with audio for 20 seconds.
 pub fn muxed_video_audio() -> Result<()> {
     let instance = CompositorInstance::start();
     let input_port = instance.get_port();
@@ -18,7 +18,7 @@ pub fn muxed_video_audio() -> Result<()> {
     let output_receiver = OutputReceiver::start(
         output_port,
         CommunicationProtocol::Udp,
-        Duration::from_secs(10),
+        Duration::from_secs(20),
         "muxed_video_audio_output.rtp",
     )?;
 
@@ -31,10 +31,10 @@ pub fn muxed_video_audio() -> Result<()> {
         "port": output_port,
         "video": {
             "resolution": {
-                "width": 1280,
-                "height": 720,
+                "width": 640,
+                "height": 360,
             },
-            "encoder_preset": "medium",
+            "encoder_preset": "ultrafast",
             "initial": {
                 "id": "input_1",
                 "type": "input_stream",

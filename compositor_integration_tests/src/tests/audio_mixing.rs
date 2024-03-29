@@ -9,7 +9,7 @@ use crate::{
 
 /// Two audio input streams mixed together with different volumes.
 ///
-/// Play mixed audio for 10 seconds.
+/// Play mixed audio for 20 seconds.
 pub fn audio_mixing() -> Result<()> {
     let instance = CompositorInstance::start();
     let input_1_port = instance.get_port();
@@ -19,7 +19,7 @@ pub fn audio_mixing() -> Result<()> {
     let output_receiver = OutputReceiver::start(
         output_port,
         CommunicationProtocol::Udp,
-        Duration::from_secs(10),
+        Duration::from_secs(20),
         "audio_mixing_output.rtp",
     )?;
 

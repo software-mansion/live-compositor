@@ -9,7 +9,7 @@ use serde_json::json;
 
 /// Required inputs with some packets delayed
 ///
-/// Show `input_1` and `input_2` side by side for 10 seconds.
+/// Show `input_1` and `input_2` side by side for 20 seconds.
 pub fn required_inputs() -> Result<()> {
     let instance = CompositorInstance::start();
     let input_1_port = instance.get_port();
@@ -24,10 +24,10 @@ pub fn required_inputs() -> Result<()> {
         "port": output_port,
         "video": {
             "resolution": {
-                "width": 1280,
-                "height": 720,
+                "width": 640,
+                "height": 360,
             },
-            "encoder_preset": "medium",
+            "encoder_preset": "ultrafast",
             "initial": {
                 "type": "tiles",
                 "padding": 3,
@@ -49,7 +49,7 @@ pub fn required_inputs() -> Result<()> {
     let output_receiver = OutputReceiver::start(
         output_port,
         CommunicationProtocol::Tcp,
-        Duration::from_secs(10),
+        Duration::from_secs(20),
         "required_inputs_output.rtp",
     )?;
 
