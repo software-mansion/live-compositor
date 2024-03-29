@@ -91,7 +91,6 @@ fn get_free_port() -> u16 {
 fn init_compositor_prerequisites() {
     static GLOBAL_PREREQUISITES_INITIALIZED: OnceLock<()> = OnceLock::new();
     GLOBAL_PREREQUISITES_INITIALIZED.get_or_init(|| {
-        env::set_var("LIVE_COMPOSITOR_NEVER_DROP_OUTPUT_FRAMES", "1");
         env::set_var("LIVE_COMPOSITOR_WEB_RENDERER_ENABLE", "0");
         ffmpeg_next::format::network::init();
         logger::init_logger(LoggerConfig {
