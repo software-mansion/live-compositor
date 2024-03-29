@@ -7,6 +7,7 @@ use crate::{
 use anyhow::Result;
 use serde_json::json;
 
+#[test]
 pub fn unregistering() -> Result<()> {
     let instance = CompositorInstance::start(8020);
 

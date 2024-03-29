@@ -7,6 +7,7 @@ use crate::{
 use anyhow::Result;
 use serde_json::json;
 
+#[test]
 pub fn required_inputs() -> Result<()> {
     let instance = CompositorInstance::start(8010);
 

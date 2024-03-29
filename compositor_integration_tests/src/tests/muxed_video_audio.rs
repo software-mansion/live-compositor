@@ -7,6 +7,7 @@ use crate::{
     output_dump_from_disk, CommunicationProtocol, CompositorInstance, OutputReceiver, PacketSender,
 };
 
+#[test]
 pub fn muxed_video_audio() -> Result<()> {
     let instance = CompositorInstance::start(8000);
 

@@ -46,33 +46,9 @@ pub fn compare_video_dumps(
         let diff_v = calculate_mse(&expected_frame.data.v_plane, &actual_frame.data.v_plane);
 
         if diff_y > allowed_error || diff_u > allowed_error || diff_v > allowed_error {
+            save_failed_test_dumps(expected, actual, pts);
+
             let pts = pts.as_micros();
-
-            let mut expected_data = vec![];
-            expected_data.extend_from_slice(&expected_frame.data.y_plane);
-            expected_data.extend_from_slice(&expected_frame.data.u_plane);
-            expected_data.extend_from_slice(&expected_frame.data.v_plane);
-
-            let mut actual_data = vec![];
-            actual_data.extend_from_slice(&actual_frame.data.y_plane);
-            actual_data.extend_from_slice(&actual_frame.data.u_plane);
-            actual_data.extend_from_slice(&actual_frame.data.v_plane);
-
-            let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                .parent()
-                .unwrap()
-                .join("failed_snapshot_tests");
-
-            let _ = fs::create_dir_all(&path);
-            fs::write(
-                path.join(format!("expected_frame_{pts}.yuv")),
-                expected_data,
-            )
-            .unwrap();
-            fs::write(path.join(format!("actual_frame_{pts}.yuv")), actual_data).unwrap();
-            fs::write(path.join(format!("expected_frame_{pts}.rtp")), expected).unwrap();
-            fs::write(path.join(format!("actual_frame_{pts}.rtp")), actual).unwrap();
-
             return Err(anyhow::anyhow!(
                 "Frame mismatch. PTS: {pts}, Diff Y: {diff_y}, Diff U: {diff_u}, Diff V: {diff_v}"
             ));
@@ -225,4 +201,17 @@ fn find_packets_for_payload_type(packets: &[Packet], payload_type: u8) -> Vec<Pa
         .filter(|p| p.header.payload_type == payload_type)
         .cloned()
         .collect()
+}
+
+fn save_failed_test_dumps(expected_dump: &Bytes, actual_dump: &Bytes, pts: &Duration) {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap()
+        .join("failed_snapshot_tests");
+
+    let _ = fs::create_dir_all(&path);
+    let pts = pts.as_micros();
+
+    fs::write(path.join(format!("expected_dump_{pts}.rtp")), expected_dump).unwrap();
+    fs::write(path.join(format!("actual_dump_{pts}.rtp")), actual_dump).unwrap();
 }
