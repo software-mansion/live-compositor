@@ -151,18 +151,30 @@
           ]
         },
         "output_id": {
-          "$ref": "#/definitions/OutputId"
+          "description": "An identifier for the output stream. It can be used in the `UpdateOutput` request to define what to render for the output stream.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/OutputId"
+            }
+          ]
         },
         "port": {
-          "$ref": "#/definitions/Port"
+          "description": "Depends on the value of the `transport_protocol` field:\n\n- `udp` - An UDP port number that RTP packets will be sent to.\n\n- `tcp_server` - A local TCP port number or a port range that LiveCompositor will listen for incoming connections.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Port"
+            }
+          ]
         },
         "ip": {
+          "description": "Only valid if `transport_protocol=\"udp\"`. IP address where RTP packets should be sent to.",
           "type": [
             "string",
             "null"
           ]
         },
         "transport_protocol": {
+          "description": "(**default=`\"udp\"`**) Transport layer protocol that will be used to send RTP packets.",
           "anyOf": [
             {
               "$ref": "#/definitions/TransportProtocol"
@@ -526,10 +538,20 @@
       ],
       "properties": {
         "resolution": {
-          "$ref": "#/definitions/Resolution"
+          "description": "Output resolution in pixels.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Resolution"
+            }
+          ]
         },
         "encoder_preset": {
-          "$ref": "#/definitions/VideoEncoderPreset"
+          "description": "(**default=`\"fast\"`**) Preset for an encoder. See `FFmpeg` [docs](https://trac.ffmpeg.org/wiki/Encode/H.264#Preset) to learn more.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/VideoEncoderPreset"
+            }
+          ]
         },
         "ffmpeg_options": {
           "description": "Raw FFmpeg encoder options. See [docs](https://ffmpeg.org/ffmpeg-codecs.html) for more.",
@@ -542,10 +564,15 @@
           }
         },
         "initial": {
-          "$ref": "#/definitions/Component"
+          "description": "Root of a component tree/scene that should be rendered for the output. Use [`update_output` request](../routes.md#update-output) to update this value after registration. [Learn more](../../concept/component.md).",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Component"
+            }
+          ]
         },
         "send_eos_when": {
-          "description": "Condition for termination of output stream based on the input streams states.",
+          "description": "Defines when output stream should end if some of the input streams are finished. If output includes both audio and video streams, then EOS needs to be sent on both.",
           "anyOf": [
             {
               "$ref": "#/definitions/OutputEndCondition"
@@ -857,7 +884,7 @@
               ]
             },
             "shader_param": {
-              "description": "Object that will be serialized into a `struct` and passed inside the shader as:\n\n<br/><br/>\n\n```wgsl\n\n@group(1) @binding(0) var<uniform>\n\n```\n\n:::note\n\nThis object's structure must match the structure defined in a shader source code.\n\n:::",
+              "description": "Object that will be serialized into a `struct` and passed inside the shader as:\n\n<br/><br/>\n\n```wgsl\n\n@group(1) @binding(0) var<uniform>\n\n```\n\n:::note\n\nThis object's structure must match the structure defined in a shader source code. Currently, we do not handle memory layout automatically. To achieve the correct memory alignment, you might need to pad your data with additional fields. See [WGSL documentation](https://www.w3.org/TR/WGSL/#alignment-and-size) for more details.\n\n:::",
               "anyOf": [
                 {
                   "$ref": "#/definitions/ShaderParam"
@@ -939,6 +966,7 @@
               ]
             },
             "text": {
+              "description": "Text that will be rendered.",
               "type": "string"
             },
             "width": {
@@ -1838,10 +1866,11 @@
       ]
     },
     "OutputEndCondition": {
+      "description": "This type defines when end of an input stream should trigger end of the output stream. Only one of those fields can be set at the time.\n\nUnless specified otherwise the input stream is considered finished/ended when:\n\n- TCP connection was dropped/closed.\n\n- RTCP Goodbye packet (`BYE`) was received.\n\n- Mp4 track has ended.\n\n- Input was unregistered already (or never registered).",
       "type": "object",
       "properties": {
         "any_of": {
-          "description": "Output will be terminated if any of the listed input streams are finished.\n\nInput stream is considered finished if: - Input never existed - RTCP Goodbye packet was received - MP4 track has ended - Input was unregistered (before or after output registration)\n\nIn particular, output stream will **be** terminated if no inputs were ever connected.",
+          "description": "Terminate output stream if any of the input streams from the list are finished.",
           "type": [
             "array",
             "null"
@@ -1851,7 +1880,7 @@
           }
         },
         "all_of": {
-          "description": "Output will be terminated if all of the listed input streams are finished. In particular, output stream will **be** terminated if no inputs were ever connected.",
+          "description": "Terminate output stream if all the input streams from the list are finished.",
           "type": [
             "array",
             "null"
@@ -1861,14 +1890,14 @@
           }
         },
         "any_input": {
-          "description": "Output will be terminated in any of the input streams did terminate. This includes streams added after the output was registered. In particular, output stream will **not be** terminated if no inputs were ever connected.",
+          "description": "Terminate output stream if any of the input streams ends. This includes streams added after the output was registered. In particular, output stream will **not be** terminated if no inputs were ever connected.",
           "type": [
             "boolean",
             "null"
           ]
         },
         "all_inputs": {
-          "description": "Output will be terminated if all of the input streams are finished. In particular, output stream will **be** terminated if no inputs were ever connected.",
+          "description": "Terminate output stream if all the input streams finish. In particular, output stream will **be** terminated if no inputs were ever connected.",
           "type": [
             "boolean",
             "null"
@@ -1963,6 +1992,7 @@
           "$ref": "#/definitions/InputId"
         },
         "volume": {
+          "description": "(**default=`1.0`**) float in `[0, 1]` range representing input volume",
           "type": [
             "number",
             "null"

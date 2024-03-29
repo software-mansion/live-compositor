@@ -13,7 +13,7 @@ pub struct Audio {
 #[serde(deny_unknown_fields)]
 pub struct InputAudio {
     pub input_id: InputId,
-    // (**default=`1.0`**) float in [0, 1] range representing input volume
+    /// (**default=`1.0`**) float in `[0, 1]` range representing input volume
     pub volume: Option<f32>,
 }
 

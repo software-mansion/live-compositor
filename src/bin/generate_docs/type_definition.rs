@@ -165,6 +165,7 @@ impl TypeDefinition {
             Kind::Array(ty) => format!("{}[]", ty.to_pretty_string(base_indent)),
             Kind::Union(variants) => Self::union_to_string(variants, base_indent),
             Kind::Object(properties) => Self::object_to_string(properties, base_indent),
+            Kind::Map { value_type } => format!("Map<string, {}>", value_type.to_pretty_string(0)),
         }
     }
 }
@@ -201,21 +202,27 @@ impl ObjectProperty {
             .as_ref()
             .map(|desc| desc.to_string())
             .unwrap_or_default();
-        let mut output_markdown = format_description(&self.name, &description, 0);
 
+        let output_markdown = format_description(&self.name, &description, 0);
         let variants = match &self.type_def.kind {
             Kind::Union(variants) => variants.clone(),
             _ => Vec::new(),
         };
+
+        let mut variants_markdown = String::new();
         for variant in variants {
             let name = variant.to_pretty_string(0);
             let Some(description) = &variant.description else {
                 continue;
             };
-            output_markdown += &format_description(&name, description, 2)
+            variants_markdown += &format_description(&name, description, 2)
         }
 
-        output_markdown
+        if description.trim().is_empty() && variants_markdown.is_empty() {
+            return String::new();
+        }
+
+        output_markdown + &variants_markdown
     }
 }
 
@@ -235,6 +242,7 @@ pub enum Kind {
     Array(Box<TypeDefinition>),
     Union(Vec<TypeDefinition>),
     Object(Vec<ObjectProperty>),
+    Map { value_type: Box<TypeDefinition> },
 }
 
 fn find_references(ty: &Kind, references: &mut Vec<Rc<str>>) {
@@ -251,6 +259,7 @@ fn find_references(ty: &Kind, references: &mut Vec<Rc<str>>) {
         Kind::Object(properties) => properties
             .iter()
             .for_each(|prop| find_references(&prop.type_def.kind, references)),
+        Kind::Map { value_type } => find_references(&value_type.kind, references),
         _ => {}
     }
 }
