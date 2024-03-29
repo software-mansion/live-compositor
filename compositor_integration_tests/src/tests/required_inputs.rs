@@ -8,14 +8,17 @@ use anyhow::Result;
 use serde_json::json;
 
 pub fn required_inputs() -> Result<()> {
-    let instance = CompositorInstance::start(8010);
+    let instance = CompositorInstance::start();
+    let input_1_port = instance.get_port();
+    let input_2_port = instance.get_port();
+    let output_port = instance.get_port();
 
     instance.send_request(json!({
         "type": "register",
         "entity_type": "output_stream",
         "output_id": "output_1",
         "transport_protocol": "tcp_server",
-        "port": 8011,
+        "port": output_port,
         "video": {
             "resolution": {
                 "width": 1280,
@@ -41,7 +44,7 @@ pub fn required_inputs() -> Result<()> {
     }))?;
 
     let output_receiver = OutputReceiver::start(
-        8011,
+        output_port,
         CommunicationProtocol::Tcp,
         Duration::from_secs(10),
         "required_inputs_output.rtp",
@@ -52,7 +55,7 @@ pub fn required_inputs() -> Result<()> {
         "entity_type": "rtp_input_stream",
         "transport_protocol": "tcp_server",
         "input_id": "input_1",
-        "port": 8012,
+        "port": input_1_port,
         "video": {
             "codec": "h264"
         },
@@ -64,7 +67,7 @@ pub fn required_inputs() -> Result<()> {
         "entity_type": "rtp_input_stream",
         "transport_protocol": "tcp_server",
         "input_id": "input_2",
-        "port": 8013,
+        "port": input_2_port,
         "video": {
             "codec": "h264"
         },
@@ -75,8 +78,8 @@ pub fn required_inputs() -> Result<()> {
         "type": "start",
     }))?;
 
-    let mut input_1_sender = PacketSender::new(CommunicationProtocol::Tcp, 8012)?;
-    let mut input_2_sender = PacketSender::new(CommunicationProtocol::Tcp, 8013)?;
+    let mut input_1_sender = PacketSender::new(CommunicationProtocol::Tcp, input_1_port)?;
+    let mut input_2_sender = PacketSender::new(CommunicationProtocol::Tcp, input_2_port)?;
     let input_1_dump = input_dump_from_disk("8_colors_input_video.rtp")?;
     let input_2_dump = input_dump_from_disk("8_colors_input_reversed_video.rtp")?;
     let (input_2_first_part, input_2_second_part) =

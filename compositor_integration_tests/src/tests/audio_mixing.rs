@@ -8,10 +8,13 @@ use crate::{
 };
 
 pub fn audio_mixing() -> Result<()> {
-    let instance = CompositorInstance::start(8030);
+    let instance = CompositorInstance::start();
+    let input_1_port = instance.get_port();
+    let input_2_port = instance.get_port();
+    let output_port = instance.get_port();
 
     let output_receiver = OutputReceiver::start(
-        8031,
+        output_port,
         CommunicationProtocol::Udp,
         Duration::from_secs(10),
         "audio_mixing_output.rtp",
@@ -23,7 +26,7 @@ pub fn audio_mixing() -> Result<()> {
         "output_id": "output_1",
         "transport_protocol": "udp",
         "ip": "127.0.0.1",
-        "port": 8031,
+        "port": output_port,
         "audio": {
             "initial": {
                 "inputs": [
@@ -46,7 +49,7 @@ pub fn audio_mixing() -> Result<()> {
         "entity_type": "rtp_input_stream",
         "transport_protocol": "tcp_server",
         "input_id": "input_1",
-        "port": 8032,
+        "port": input_1_port,
         "audio": {
             "codec": "opus"
         }
@@ -57,7 +60,7 @@ pub fn audio_mixing() -> Result<()> {
         "entity_type": "rtp_input_stream",
         "transport_protocol": "udp",
         "input_id": "input_2",
-        "port": 8033,
+        "port": input_2_port,
         "audio": {
             "codec": "opus"
         }
@@ -65,8 +68,8 @@ pub fn audio_mixing() -> Result<()> {
 
     let audio_input_1 = input_dump_from_disk("8_colors_input_audio.rtp")?;
     let audio_input_2 = input_dump_from_disk("8_colors_input_reversed_audio.rtp")?;
-    let mut audio_1_sender = PacketSender::new(CommunicationProtocol::Tcp, 8032)?;
-    let mut audio_2_sender = PacketSender::new(CommunicationProtocol::Udp, 8033)?;
+    let mut audio_1_sender = PacketSender::new(CommunicationProtocol::Tcp, input_1_port)?;
+    let mut audio_2_sender = PacketSender::new(CommunicationProtocol::Udp, input_2_port)?;
 
     audio_1_sender.send(&audio_input_1)?;
     audio_2_sender.send(&audio_input_2)?;

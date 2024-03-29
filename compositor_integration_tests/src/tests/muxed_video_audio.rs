@@ -8,10 +8,12 @@ use crate::{
 };
 
 pub fn muxed_video_audio() -> Result<()> {
-    let instance = CompositorInstance::start(8000);
+    let instance = CompositorInstance::start();
+    let input_port = instance.get_port();
+    let output_port = instance.get_port();
 
     let output_receiver = OutputReceiver::start(
-        8001,
+        output_port,
         CommunicationProtocol::Udp,
         Duration::from_secs(10),
         "muxed_video_audio_output.rtp",
@@ -23,7 +25,7 @@ pub fn muxed_video_audio() -> Result<()> {
         "output_id": "output_1",
         "transport_protocol": "udp",
         "ip": "127.0.0.1",
-        "port": 8001,
+        "port": output_port,
         "video": {
             "resolution": {
                 "width": 1280,
@@ -53,7 +55,7 @@ pub fn muxed_video_audio() -> Result<()> {
         "entity_type": "rtp_input_stream",
         "transport_protocol": "tcp_server",
         "input_id": "input_1",
-        "port": 8002,
+        "port": input_port,
         "video": {
             "codec": "h264"
         },
@@ -63,7 +65,7 @@ pub fn muxed_video_audio() -> Result<()> {
     }))?;
 
     let packets_dump = input_dump_from_disk("8_colors_input_video_audio.rtp")?;
-    let mut packet_sender = PacketSender::new(CommunicationProtocol::Tcp, 8002)?;
+    let mut packet_sender = PacketSender::new(CommunicationProtocol::Tcp, input_port)?;
     packet_sender.send(&packets_dump)?;
 
     instance.send_request(json!({
