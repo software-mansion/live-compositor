@@ -18,6 +18,7 @@ pub struct InputAudio {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+#[serde(rename_all = "snake_case")]
 pub enum MixingStrategy {
     /// Firstly, input samples are summed. If the result is outside the i16 PCM range, it gets clipped.
     SumClip,

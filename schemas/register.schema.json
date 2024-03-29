@@ -2021,14 +2021,14 @@
           "description": "Firstly, input samples are summed. If the result is outside the i16 PCM range, it gets clipped.",
           "type": "string",
           "enum": [
-            "SumClip"
+            "sum_clip"
           ]
         },
         {
           "description": "Firstly, input samples are summed. If the result is outside the i16 PCM range, nearby summed samples are scaled down by factor, such that the summed wave is in the i16 PCM range.",
           "type": "string",
           "enum": [
-            "SumScale"
+            "sum_scale"
           ]
         }
       ]
