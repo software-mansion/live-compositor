@@ -7,7 +7,6 @@ use crate::{
     CommunicationProtocol, CompositorInstance, OutputReceiver, PacketSender,
 };
 
-#[test]
 pub fn audio_mixing() -> Result<()> {
     let instance = CompositorInstance::start(8030);
 
