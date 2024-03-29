@@ -25,7 +25,7 @@ pub fn unregistering() -> Result<()> {
     let output_receiver = OutputReceiver::start(
         8021,
         CommunicationProtocol::Tcp,
-        Duration::from_secs(30),
+        Duration::from_secs(10),
         "unregistering_test_output.rtp",
     )?;
 
@@ -84,8 +84,8 @@ fn register_output_with_initial_scene(instance: &CompositorInstance) -> Result<(
         "port": 8021,
         "video": {
             "resolution": {
-                "width": 1920,
-                "height": 1080,
+                "width": 1280,
+                "height": 720,
             },
             "encoder_preset": "medium",
             "initial": {

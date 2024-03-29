@@ -18,8 +18,8 @@ pub fn schedule_update() -> Result<()> {
         "port": 8041,
         "video": {
             "resolution": {
-                "width": 1920,
-                "height": 1080,
+                "width": 1280,
+                "height": 720,
             },
             "encoder_preset": "medium",
             "initial": {
@@ -74,7 +74,7 @@ pub fn schedule_update() -> Result<()> {
     let output_receiver = OutputReceiver::start(
         8041,
         CommunicationProtocol::Tcp,
-        Duration::from_secs(30),
+        Duration::from_secs(10),
         "schedule_update_output.rtp",
     )?;
 

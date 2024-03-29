@@ -54,7 +54,6 @@ fn init_compositor_prerequisites() {
         return;
     }
 
-    env::set_var("LIVE_COMPOSITOR_NEVER_DROP_OUTPUT_FRAMES", "1");
     env::set_var("LIVE_COMPOSITOR_WEB_RENDERER_ENABLE", "0");
     ffmpeg_next::format::network::init();
     logger::init_logger();

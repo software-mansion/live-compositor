@@ -4,6 +4,7 @@ mod required_inputs;
 mod schedule_update;
 mod unregistering;
 
+// TODO(noituri): This is a temporary solution. In the future, we should make the tests run in parallel.
 #[test]
 fn integretion_tests() {
     required_inputs::required_inputs().unwrap();
