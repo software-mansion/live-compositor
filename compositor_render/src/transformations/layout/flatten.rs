@@ -79,7 +79,7 @@ impl NestedLayout {
                 content: layout.content,
             },
             Some(crop) => {
-                // Bellow values are only correct if `crop` is in the same coordinate
+                // Below values are only correct if `crop` is in the same coordinate
                 // system as self.top/self.left/self.width/self.height. This condition
                 // will always be fulfilled as long NestedLayout with LayoutContent::ChildNode
                 // does not have any child layouts.
