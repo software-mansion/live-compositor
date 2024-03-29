@@ -13,7 +13,7 @@ pub fn muxed_video_audio() -> Result<()> {
     let output_receiver = OutputReceiver::start(
         8001,
         CommunicationProtocol::Udp,
-        Duration::from_secs(10),
+        Duration::from_secs(20),
         "muxed_video_audio_output.rtp",
     )?;
 
@@ -26,10 +26,10 @@ pub fn muxed_video_audio() -> Result<()> {
         "port": 8001,
         "video": {
             "resolution": {
-                "width": 1280,
-                "height": 720,
+                "width": 640,
+                "height": 360,
             },
-            "encoder_preset": "medium",
+            "encoder_preset": "ultrafast",
             "initial": {
                 "id": "input_1",
                 "type": "input_stream",

@@ -18,10 +18,10 @@ pub fn required_inputs() -> Result<()> {
         "port": 8011,
         "video": {
             "resolution": {
-                "width": 1280,
-                "height": 720,
+                "width": 640,
+                "height": 360,
             },
-            "encoder_preset": "medium",
+            "encoder_preset": "ultrafast",
             "initial": {
                 "type": "tiles",
                 "padding": 3,
@@ -43,7 +43,7 @@ pub fn required_inputs() -> Result<()> {
     let output_receiver = OutputReceiver::start(
         8011,
         CommunicationProtocol::Tcp,
-        Duration::from_secs(10),
+        Duration::from_secs(20),
         "required_inputs_output.rtp",
     )?;
 
