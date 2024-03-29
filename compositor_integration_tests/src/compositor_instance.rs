@@ -21,7 +21,7 @@ impl CompositorInstance {
             .name(format!("compositor instance on port {api_port}"))
             .spawn(move || server::run_on_port(api_port))
             .unwrap();
-        thread::sleep(Duration::from_millis(1000));
+        thread::sleep(Duration::from_millis(5000));
 
         CompositorInstance {
             api_port,
