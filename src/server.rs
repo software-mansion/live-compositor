@@ -6,15 +6,22 @@ use tracing::error;
 use std::{net::SocketAddr, process, thread};
 use tokio::runtime::Runtime;
 
-use crate::{api::Api, config::config, routes::routes};
+use crate::{
+    api::Api,
+    config::{read_config, Config},
+    logger::init_logger,
+    routes::routes,
+};
 
 pub fn run() {
-    run_on_port(config().api_port)
+    let config = read_config();
+    init_logger(config.logger.clone());
+    run_with_config(config)
 }
 
-pub fn run_on_port(port: u16) {
-    info!("Starting LiveCompositor with config:\n{:#?}", config());
-    let (api, event_loop) = Api::new().unwrap_or_else(|err| {
+pub fn run_with_config(config: Config) {
+    info!("Starting LiveCompositor with config:\n{:#?}", config);
+    let (api, event_loop) = Api::new(config).unwrap_or_else(|err| {
         panic!(
             "Failed to start event loop.\n{}",
             ErrorStack::new(&err).into_string()
@@ -25,7 +32,7 @@ pub fn run_on_port(port: u16) {
         .name("HTTP server startup thread".to_string())
         .spawn(move || {
             let rt = Runtime::new().unwrap();
-            rt.block_on(async { run_tokio_runtime(api, port).await });
+            rt.block_on(async { run_tokio_runtime(api).await });
         })
         .unwrap();
 
@@ -41,7 +48,8 @@ pub fn run_on_port(port: u16) {
     }
 }
 
-async fn run_tokio_runtime(api: Api, port: u16) {
+async fn run_tokio_runtime(api: Api) {
+    let port = api.config.api_port;
     let app = routes(api);
     let listener = tokio::net::TcpListener::bind(SocketAddr::from(([0, 0, 0, 0], port)))
         .await

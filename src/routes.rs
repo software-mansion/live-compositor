@@ -9,10 +9,7 @@ use axum::{
 use serde_json::{json, Value};
 use tracing::debug;
 
-use crate::{
-    api::{self, Api},
-    config::config,
-};
+use crate::api::{self, Api};
 
 use self::ws::handle_ws_upgrade;
 
@@ -25,7 +22,7 @@ pub fn routes(api: Api) -> Router {
         .route(
             "/status",
             get(axum::Json(json!({
-                "instance_id": config().instance_id
+                "instance_id": api.config.instance_id
             }))),
         )
         .with_state(api)

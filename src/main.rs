@@ -12,8 +12,6 @@ mod types;
 mod snapshot_tests;
 
 fn main() {
-    logger::init_logger();
-
     #[cfg(feature = "web_renderer")]
     {
         use compositor_chromium::cef::bundle_for_development;

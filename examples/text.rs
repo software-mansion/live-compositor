@@ -2,7 +2,7 @@ use anyhow::Result;
 use log::{error, info};
 use serde_json::json;
 use std::thread;
-use video_compositor::{logger, server, types::Resolution};
+use video_compositor::{server, types::Resolution};
 
 use crate::common::{start_ffplay, start_websocket_thread};
 
@@ -19,7 +19,6 @@ const OUTPUT_PORT: u16 = 8002;
 
 fn main() {
     ffmpeg_next::format::network::init();
-    logger::init_logger();
 
     thread::spawn(|| {
         if let Err(err) = start_example_client_code() {
