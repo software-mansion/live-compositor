@@ -7,6 +7,9 @@ use crate::{
     output_dump_from_disk, CommunicationProtocol, CompositorInstance, OutputReceiver, PacketSender,
 };
 
+// Muxed video and audio input sent as a single input stream. Output stream contains both video and audio muxed together.
+//
+// The output dump should contain 10s of previously sent muxed video and audio.
 pub fn muxed_video_audio() -> Result<()> {
     let instance = CompositorInstance::start();
     let input_port = instance.get_port();

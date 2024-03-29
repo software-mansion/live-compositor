@@ -7,6 +7,10 @@ use crate::{
 use anyhow::Result;
 use serde_json::json;
 
+// Two required input streams. `input_2` is sent in two parts where the second part is sent after 2 seconds.
+//
+// The output dump should contain 10s of video which shows the `input_1` on the left and `input_2` on the right.
+// There should be no artifacts (input stream disappearing) when `input_2` did not send the second part yet.
 pub fn required_inputs() -> Result<()> {
     let instance = CompositorInstance::start();
     let input_1_port = instance.get_port();

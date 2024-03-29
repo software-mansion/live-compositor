@@ -7,6 +7,12 @@ use crate::{
 use anyhow::Result;
 use serde_json::json;
 
+// We try to register an output with an initial scene that includes an image and an input stream.
+// Registering the output should fail because the image is not registered yet.
+// After registering the image, output registration should succeed even though input stream is not registered yet.
+// We send whole rtp dump to the input stream and then immediately unregister it. Compositor should drop all the input stream's frames.
+//
+// The output dump should contain 10s video of the image on the right side without `input_1` on the left.
 pub fn unregistering() -> Result<()> {
     let instance = CompositorInstance::start();
     let input_port = instance.get_port();

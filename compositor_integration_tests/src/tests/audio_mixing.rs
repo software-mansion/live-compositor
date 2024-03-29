@@ -7,6 +7,9 @@ use crate::{
     CommunicationProtocol, CompositorInstance, OutputReceiver, PacketSender,
 };
 
+// Two audio input streams mixed together with different volumes.
+//
+// The output dump should contain 10s of mixed audio, without any video.
 pub fn audio_mixing() -> Result<()> {
     let instance = CompositorInstance::start();
     let input_1_port = instance.get_port();

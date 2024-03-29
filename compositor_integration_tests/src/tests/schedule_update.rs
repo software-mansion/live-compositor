@@ -7,6 +7,11 @@ use crate::{
 use anyhow::Result;
 use serde_json::json;
 
+// We register an output stream with an initial scene containing a single input stream.
+// Immediately after, we update the output stream to display two input streams. The update is scheduled to happen after 2 seconds.
+//
+// Output dump should display `input_1` for 2 seconds and then transition to display both `input_1` and `input_2` alongside each other.
+// `input_1` and `input_2` should appear for 8 seconds.
 pub fn schedule_update() -> Result<()> {
     let instance = CompositorInstance::start();
     let input_1_port = instance.get_port();
