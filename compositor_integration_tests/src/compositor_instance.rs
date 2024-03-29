@@ -1,7 +1,7 @@
 use anyhow::Result;
 use compositor_render::use_global_wgpu_ctx;
 use reqwest::StatusCode;
-use std::{env, thread, time::Duration};
+use std::{env, sync::Mutex, thread, time::Duration};
 use video_compositor::{logger, server};
 
 pub struct CompositorInstance {
@@ -11,16 +11,13 @@ pub struct CompositorInstance {
 
 impl CompositorInstance {
     pub fn start(api_port: u16) -> Self {
-        env::set_var("LIVE_COMPOSITOR_WEB_RENDERER_ENABLE", "0");
-        ffmpeg_next::format::network::init();
-        logger::init_logger();
-
-        use_global_wgpu_ctx();
+        init_compositor_prerequisites();
 
         thread::Builder::new()
             .name(format!("compositor instance on port {api_port}"))
             .spawn(move || server::run_on_port(api_port))
             .unwrap();
+
         thread::sleep(Duration::from_millis(5000));
 
         CompositorInstance {
@@ -29,7 +26,7 @@ impl CompositorInstance {
         }
     }
 
-    pub fn send_request(&mut self, request_body: serde_json::Value) -> Result<()> {
+    pub fn send_request(&self, request_body: serde_json::Value) -> Result<()> {
         let resp = self
             .http_client
             .post(format!("http://127.0.0.1:{}/--/api", self.api_port))
@@ -48,4 +45,21 @@ impl CompositorInstance {
 
         Ok(())
     }
+}
+
+static GLOBAL_PREREQUISITES_INITIALIZED: Mutex<bool> = Mutex::new(false);
+
+fn init_compositor_prerequisites() {
+    let mut initialized = GLOBAL_PREREQUISITES_INITIALIZED.lock().unwrap();
+    if *initialized {
+        return;
+    }
+
+    env::set_var("LIVE_COMPOSITOR_WEB_RENDERER_ENABLE", "0");
+    ffmpeg_next::format::network::init();
+    logger::init_logger();
+
+    use_global_wgpu_ctx();
+
+    *initialized = true;
 }

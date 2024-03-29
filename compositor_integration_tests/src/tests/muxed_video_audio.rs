@@ -7,30 +7,15 @@ use crate::{
     output_dump_from_disk, CommunicationProtocol, CompositorInstance, OutputReceiver, PacketSender,
 };
 
-#[test]
-pub fn simple_test() -> Result<()> {
-    let mut instance = CompositorInstance::start(8000);
+pub fn muxed_video_audio() -> Result<()> {
+    let instance = CompositorInstance::start(8000);
 
     let output_receiver = OutputReceiver::start(
-        8002,
+        8001,
         CommunicationProtocol::Udp,
-        Duration::from_secs(4),
-        "simple_scene_output.rtp",
+        Duration::from_secs(10),
+        "muxed_video_audio_output.rtp",
     )?;
-
-    instance.send_request(json!({
-        "type": "register",
-        "entity_type": "rtp_input_stream",
-        "transport_protocol": "tcp_server",
-        "input_id": "input_1",
-        "port": 8004,
-        "video": {
-            "codec": "h264"
-        },
-        "audio": {
-            "codec": "opus"
-        }
-    }))?;
 
     instance.send_request(json!({
         "type": "register",
@@ -38,11 +23,11 @@ pub fn simple_test() -> Result<()> {
         "output_id": "output_1",
         "transport_protocol": "udp",
         "ip": "127.0.0.1",
-        "port": 8002,
+        "port": 8001,
         "video": {
             "resolution": {
-                "width": 1920,
-                "height": 1080,
+                "width": 1280,
+                "height": 720,
             },
             "encoder_preset": "medium",
             "initial": {
@@ -63,16 +48,30 @@ pub fn simple_test() -> Result<()> {
         }
     }))?;
 
+    instance.send_request(json!({
+        "type": "register",
+        "entity_type": "rtp_input_stream",
+        "transport_protocol": "tcp_server",
+        "input_id": "input_1",
+        "port": 8002,
+        "video": {
+            "codec": "h264"
+        },
+        "audio": {
+            "codec": "opus"
+        }
+    }))?;
+
     let packets_dump = input_dump_from_disk("8_colors_input_video_audio.rtp")?;
-    let mut packet_sender = PacketSender::new(CommunicationProtocol::Tcp, 8004)?;
+    let mut packet_sender = PacketSender::new(CommunicationProtocol::Tcp, 8002)?;
     packet_sender.send(&packets_dump)?;
 
     instance.send_request(json!({
         "type": "start",
     }))?;
 
-    let new_output_dump = output_receiver.recv()?;
-    let output_dump_from_disk = output_dump_from_disk("simple_scene_output.rtp")?;
+    let new_output_dump = output_receiver.wait_for_output()?;
+    let output_dump_from_disk = output_dump_from_disk("muxed_video_audio_output.rtp")?;
 
     compare_video_dumps(
         &output_dump_from_disk,

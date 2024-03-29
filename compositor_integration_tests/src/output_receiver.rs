@@ -42,6 +42,8 @@ impl OutputReceiver {
                 }
 
                 output_dump.extend_from_slice(&buffer[..received_bytes]);
+                // TODO(noituri): This does not work on slower machines which take longer time to process video and audio
+                // It results in shorter output dumps than expected
                 if start.elapsed() > dump_length {
                     break;
                 }
@@ -71,9 +73,9 @@ impl OutputReceiver {
         })
     }
 
-    pub fn recv(self) -> Result<Bytes> {
+    pub fn wait_for_output(self) -> Result<Bytes> {
         self.receiver
-            .recv_timeout(self.dump_length + Duration::from_secs(2))
+            .recv_timeout(self.dump_length + Duration::from_secs(60))
             .context("Failed to receive output dump")
     }
 

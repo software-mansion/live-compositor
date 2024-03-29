@@ -7,7 +7,7 @@ fn main() {
         return;
     }
 
-    let input_file = &args[1];
+    let input_file = &args[2];
     let command = match args[1].as_str() {
         "video" => {
             format!(
