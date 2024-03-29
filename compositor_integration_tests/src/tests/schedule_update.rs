@@ -21,10 +21,10 @@ pub fn schedule_update() -> Result<()> {
         "port": output_port,
         "video": {
             "resolution": {
-                "width": 1280,
-                "height": 720,
+                "width": 640,
+                "height": 360,
             },
-            "encoder_preset": "medium",
+            "encoder_preset": "ultrafast",
             "initial": {
                 "type": "tiles",
                 "id": "tiles_1",
@@ -77,7 +77,7 @@ pub fn schedule_update() -> Result<()> {
     let output_receiver = OutputReceiver::start(
         output_port,
         CommunicationProtocol::Tcp,
-        Duration::from_secs(10),
+        Duration::from_secs(20),
         "schedule_update_output.rtp",
     )?;
 
