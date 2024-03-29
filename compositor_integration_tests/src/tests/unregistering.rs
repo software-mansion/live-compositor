@@ -8,9 +8,12 @@ use anyhow::Result;
 use serde_json::json;
 
 pub fn unregistering() -> Result<()> {
-    let instance = CompositorInstance::start(8020);
+    let instance = CompositorInstance::start();
+    let input_port = instance.get_port();
+    let output_port = instance.get_port();
 
-    register_output_with_initial_scene(&instance).expect_err("Image has to be registered first");
+    register_output_with_initial_scene(&instance, output_port)
+        .expect_err("Image has to be registered first");
 
     instance.send_request(json!({
         "type": "register",
@@ -20,10 +23,10 @@ pub fn unregistering() -> Result<()> {
         "url": "https://compositor.live/img/logo.svg"
     }))?;
 
-    register_output_with_initial_scene(&instance)?;
+    register_output_with_initial_scene(&instance, output_port)?;
 
     let output_receiver = OutputReceiver::start(
-        8021,
+        output_port,
         CommunicationProtocol::Tcp,
         Duration::from_secs(20),
         "unregistering_test_output.rtp",
@@ -34,14 +37,14 @@ pub fn unregistering() -> Result<()> {
         "entity_type": "rtp_input_stream",
         "transport_protocol": "udp",
         "input_id": "input_1",
-        "port": 8022,
+        "port": input_port,
         "video": {
             "codec": "h264"
         },
     }))?;
 
     let input_1_dump = input_dump_from_disk("8_colors_input_video.rtp")?;
-    let mut input_1_sender = PacketSender::new(CommunicationProtocol::Udp, 8022)?;
+    let mut input_1_sender = PacketSender::new(CommunicationProtocol::Udp, input_port)?;
 
     instance.send_request(json!({
         "type": "start",
@@ -75,13 +78,13 @@ pub fn unregistering() -> Result<()> {
     Ok(())
 }
 
-fn register_output_with_initial_scene(instance: &CompositorInstance) -> Result<()> {
+fn register_output_with_initial_scene(instance: &CompositorInstance, port: u16) -> Result<()> {
     instance.send_request(json!({
         "type": "register",
         "entity_type": "output_stream",
         "output_id": "output_1",
         "transport_protocol": "tcp_server",
-        "port": 8021,
+        "port": port,
         "video": {
             "resolution": {
                 "width": 640,
