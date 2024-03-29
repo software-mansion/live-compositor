@@ -137,3 +137,9 @@ type Response = {
 Status/health check endpoint. Returns `200 OK`.
 
 - `instance_id` - ID that can be provided using `LIVE_COMPOSITOR_INSTANCE_ID` environment variable. Defaults to random value in the format `live_compositor_{RANDOM_VALUE}`.
+
+## WebSocket endpoint `/--/ws`
+
+Establish WebSocket connection to listen for LiveCompositor events. List of supported events and their descriptions can be found [here](./events.md).
+
+

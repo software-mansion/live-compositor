@@ -101,7 +101,15 @@ fn start_example_client_code() -> Result<()> {
     }))?;
 
     let sample_path_str = sample_path.to_string_lossy().to_string();
-    let gst_input_command = format!("gst-launch-1.0 -v funnel name=fn filesrc location={sample_path_str} ! qtdemux ! h264parse ! rtph264pay config-interval=1 pt=96  ! .send_rtp_sink rtpsession name=session .send_rtp_src ! fn. session.send_rtcp_src ! fn. fn. ! rtpstreampay ! tcpclientsink host={IP} port={INPUT_PORT}");
+
+    let gst_input_command = [
+        "gst-launch-1.0 -v ",
+        "funnel name=fn ",
+        &format!("filesrc location={sample_path_str} ! qtdemux ! h264parse ! rtph264pay config-interval=1 pt=96 ! .send_rtp_sink rtpsession name=session .send_rtp_src ! fn. "),
+        "session.send_rtcp_src ! fn. ",
+        &format!("fn. ! rtpstreampay ! tcpclientsink host={IP} port={INPUT_PORT} "),
+    ].concat();
+
     Command::new("bash")
         .arg("-c")
         .arg(gst_input_command)
