@@ -4,10 +4,11 @@ use std::time::Duration;
 
 use crate::{
     audio_decoder::AudioChannels, compare_audio_dumps, compare_video_dumps, input_dump_from_disk,
-    output_dump_from_disk, CommunicationProtocol, CompositorInstance, OutputReceiver, PacketSender,
+    CommunicationProtocol, CompositorInstance, OutputReceiver, PacketSender,
 };
 
 pub fn muxed_video_audio() -> Result<()> {
+    const OUTPUT_DUMP_FILE: &str = "muxed_video_audio_output.rtp";
     let instance = CompositorInstance::start();
     let input_port = instance.get_port();
     let output_port = instance.get_port();
@@ -16,7 +17,6 @@ pub fn muxed_video_audio() -> Result<()> {
         output_port,
         CommunicationProtocol::Udp,
         Duration::from_secs(20),
-        "muxed_video_audio_output.rtp",
     )?;
 
     instance.send_request(json!({
@@ -73,17 +73,16 @@ pub fn muxed_video_audio() -> Result<()> {
     }))?;
 
     let new_output_dump = output_receiver.wait_for_output()?;
-    let output_dump_from_disk = output_dump_from_disk("muxed_video_audio_output.rtp")?;
 
     compare_video_dumps(
-        &output_dump_from_disk,
+        OUTPUT_DUMP_FILE,
         &new_output_dump,
         &[Duration::from_millis(500), Duration::from_millis(2500)],
         20.0,
     )?;
 
     compare_audio_dumps(
-        &output_dump_from_disk,
+        OUTPUT_DUMP_FILE,
         &new_output_dump,
         &[
             Duration::from_millis(500)..Duration::from_millis(1500),

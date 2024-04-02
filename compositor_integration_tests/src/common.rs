@@ -41,6 +41,20 @@ pub fn output_dump_from_disk<P: AsRef<Path>>(path: P) -> Result<Bytes> {
     Ok(Bytes::from(bytes))
 }
 
+pub fn update_dump_on_disk<P: AsRef<Path>>(path: P, content: &Bytes) -> Result<()> {
+    let output_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap()
+        .join("snapshot_tests")
+        .join("snapshots")
+        .join("rtp_packet_dumps")
+        .join("outputs")
+        .join(path);
+
+    fs::write(output_path, content).context("Failed to read output dump")?;
+    Ok(())
+}
+
 pub fn split_rtp_packet_dump(dump: Bytes, split_at_pts: Duration) -> Result<(Bytes, Bytes)> {
     let mut read_bytes = 0;
     let mut start_pts = None;

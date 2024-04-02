@@ -1,7 +1,6 @@
 use std::{
     io::Read,
     net::{Ipv4Addr, SocketAddr},
-    path::{Path, PathBuf},
     thread,
     time::{Duration, Instant},
 };
@@ -10,7 +9,6 @@ use crate::common::CommunicationProtocol;
 use anyhow::{Context, Result};
 use bytes::{Bytes, BytesMut};
 use crossbeam_channel::Receiver;
-use tracing::info;
 
 pub struct OutputReceiver {
     receiver: Receiver<Bytes>,
@@ -18,17 +16,15 @@ pub struct OutputReceiver {
 }
 
 impl OutputReceiver {
-    pub fn start<P: AsRef<Path>>(
+    pub fn start(
         port: u16,
         protocol: CommunicationProtocol,
         dump_length: Duration,
-        dump_path: P,
     ) -> Result<Self> {
         let mut socket = Self::setup_socket(port, &protocol)?;
         let mut output_dump = BytesMut::new();
         let mut buffer = BytesMut::zeroed(u16::MAX as usize);
         let mut start = None;
-        let dump_path = dump_path.as_ref().to_path_buf();
         let (dump_sender, dump_receiver) = crossbeam_channel::bounded(1);
 
         thread::spawn(move || {
@@ -47,21 +43,6 @@ impl OutputReceiver {
                 if start.elapsed() > dump_length {
                     break;
                 }
-            }
-
-            if cfg!(feature = "update_snapshots") {
-                info!("Updating output dump: {dump_path:?}");
-                let save_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                    .parent()
-                    .unwrap()
-                    .join("snapshot_tests")
-                    .join("snapshots")
-                    .join("rtp_packet_dumps")
-                    .join("outputs")
-                    .join(dump_path);
-                std::fs::write(save_path, &output_dump)
-                    .context("Failed to write output dump")
-                    .unwrap();
             }
 
             dump_sender.send(output_dump.freeze()).unwrap();

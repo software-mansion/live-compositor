@@ -1,13 +1,14 @@
 use std::time::Duration;
 
 use crate::{
-    compare_video_dumps, input_dump_from_disk, output_dump_from_disk, CommunicationProtocol,
-    CompositorInstance, OutputReceiver, PacketSender,
+    compare_video_dumps, input_dump_from_disk, CommunicationProtocol, CompositorInstance,
+    OutputReceiver, PacketSender,
 };
 use anyhow::Result;
 use serde_json::json;
 
 pub fn schedule_update() -> Result<()> {
+    const OUTPUT_DUMP_FILE: &str = "schedule_update_output.rtp";
     let instance = CompositorInstance::start();
     let input_1_port = instance.get_port();
     let input_2_port = instance.get_port();
@@ -78,7 +79,6 @@ pub fn schedule_update() -> Result<()> {
         output_port,
         CommunicationProtocol::Tcp,
         Duration::from_secs(20),
-        "schedule_update_output.rtp",
     )?;
 
     instance.send_request(json!({
@@ -116,10 +116,9 @@ pub fn schedule_update() -> Result<()> {
     input_2_sender.send(&input_2_dump)?;
 
     let new_output_dump = output_receiver.wait_for_output()?;
-    let output_dump_from_disk = output_dump_from_disk("schedule_update_output.rtp")?;
 
     compare_video_dumps(
-        &output_dump_from_disk,
+        OUTPUT_DUMP_FILE,
         &new_output_dump,
         &[Duration::from_millis(500), Duration::from_micros(3500)],
         20.0,

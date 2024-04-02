@@ -1,13 +1,14 @@
 use std::{thread, time::Duration};
 
 use crate::{
-    compare_video_dumps, input_dump_from_disk, output_dump_from_disk, split_rtp_packet_dump,
-    CommunicationProtocol, CompositorInstance, OutputReceiver, PacketSender,
+    compare_video_dumps, input_dump_from_disk, split_rtp_packet_dump, CommunicationProtocol,
+    CompositorInstance, OutputReceiver, PacketSender,
 };
 use anyhow::Result;
 use serde_json::json;
 
 pub fn required_inputs() -> Result<()> {
+    const OUTPUT_DUMP_FILE: &str = "required_inputs_output.rtp";
     let instance = CompositorInstance::start();
     let input_1_port = instance.get_port();
     let input_2_port = instance.get_port();
@@ -47,7 +48,6 @@ pub fn required_inputs() -> Result<()> {
         output_port,
         CommunicationProtocol::Tcp,
         Duration::from_secs(20),
-        "required_inputs_output.rtp",
     )?;
 
     instance.send_request(json!({
@@ -93,10 +93,9 @@ pub fn required_inputs() -> Result<()> {
 
     // NOTE(noituri): Consider merging output_receiver.wait_for_output() and output_dump_from_disk() into a single function.
     let new_output_dump = output_receiver.wait_for_output()?;
-    let output_dump_from_disk = output_dump_from_disk("required_inputs_output.rtp")?;
 
     compare_video_dumps(
-        &output_dump_from_disk,
+        OUTPUT_DUMP_FILE,
         &new_output_dump,
         &[Duration::from_millis(1200)],
         20.0,
