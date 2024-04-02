@@ -30,11 +30,6 @@ jobs:
               with:
                   components: rustfmt, clippy
 
-            - name: 🔬 Install nextest
-              uses: taiki-e/install-action@v2
-              with:
-                  tool: cargo-nextest
-
             - name: 🛠 Setup Node.JS
               uses: actions/setup-node@v4
               with:
@@ -70,7 +65,7 @@ jobs:
             - name: 🧪 Run tests
               run: |
                 cargo clean
-                cargo nextest run --no-fail-fast --workspace
+                cargo test --no-fail-fast --workspace
 
             - name: 🖋️ Run website lint + typecheck + build
               working-directory: ./docs

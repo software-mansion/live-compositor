@@ -10,6 +10,7 @@ use crate::{
 /// Input and output streams with muxed video and audio.
 ///
 /// Show `input_1` with audio for 20 seconds.
+#[test]
 pub fn muxed_video_audio() -> Result<()> {
     const OUTPUT_DUMP_FILE: &str = "muxed_video_audio_output.rtp";
     let instance = CompositorInstance::start();

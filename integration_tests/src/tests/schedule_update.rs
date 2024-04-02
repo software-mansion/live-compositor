@@ -11,6 +11,7 @@ use serde_json::json;
 ///
 /// Show `input_1` for 2 seconds.
 /// Show `input_1` and `input_2` side by side (transition with animation) for 18 seconds.
+#[test]
 pub fn schedule_update() -> Result<()> {
     const OUTPUT_DUMP_FILE: &str = "schedule_update_output.rtp";
     let instance = CompositorInstance::start();
@@ -124,7 +125,7 @@ pub fn schedule_update() -> Result<()> {
     compare_video_dumps(
         OUTPUT_DUMP_FILE,
         &new_output_dump,
-        &[Duration::from_millis(500), Duration::from_micros(3500)],
+        &[Duration::from_millis(500), Duration::from_millis(3500)],
         20.0,
     )?;
 
