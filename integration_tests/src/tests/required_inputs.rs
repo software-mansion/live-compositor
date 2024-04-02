@@ -10,6 +10,7 @@ use serde_json::json;
 /// Required inputs with some packets delayed
 ///
 /// Show `input_1` and `input_2` side by side for 20 seconds.
+#[test]
 pub fn required_inputs() -> Result<()> {
     const OUTPUT_DUMP_FILE: &str = "required_inputs_output.rtp";
     let instance = CompositorInstance::start();

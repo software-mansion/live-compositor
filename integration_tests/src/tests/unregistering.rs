@@ -10,6 +10,7 @@ use serde_json::json;
 /// Checks if input stream frames are not shown after unregistering.
 ///
 /// Show image on the right side for 20 seconds.
+#[test]
 pub fn unregistering() -> Result<()> {
     const OUTPUT_DUMP_FILE: &str = "unregistering_test_output.rtp";
     let instance = CompositorInstance::start();
