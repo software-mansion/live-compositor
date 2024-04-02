@@ -7,6 +7,9 @@ use crate::{
     CompositorInstance, OutputReceiver, PacketSender,
 };
 
+/// Two audio input streams mixed together with different volumes.
+///
+/// Play mixed audio for 20 seconds.
 pub fn audio_mixing() -> Result<()> {
     const OUTPUT_DUMP_FILE: &str = "audio_mixing_output.rtp";
     let instance = CompositorInstance::start();

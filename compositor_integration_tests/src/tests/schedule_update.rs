@@ -7,6 +7,10 @@ use crate::{
 use anyhow::Result;
 use serde_json::json;
 
+/// Schedules an output update.
+///
+/// Show `input_1` for 2 seconds.
+/// Show `input_1` and `input_2` side by side (transition with animation) for 18 seconds.
 pub fn schedule_update() -> Result<()> {
     const OUTPUT_DUMP_FILE: &str = "schedule_update_output.rtp";
     let instance = CompositorInstance::start();

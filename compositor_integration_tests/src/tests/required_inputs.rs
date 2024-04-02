@@ -7,6 +7,9 @@ use crate::{
 use anyhow::Result;
 use serde_json::json;
 
+/// Required inputs with some packets delayed
+///
+/// Show `input_1` and `input_2` side by side for 20 seconds.
 pub fn required_inputs() -> Result<()> {
     const OUTPUT_DUMP_FILE: &str = "required_inputs_output.rtp";
     let instance = CompositorInstance::start();
@@ -88,6 +91,7 @@ pub fn required_inputs() -> Result<()> {
     input_1_sender.send(&input_1_dump)?;
 
     input_2_sender.send(&input_2_first_part)?;
+    // Simulate delay in sending input_2 packets.
     thread::sleep(Duration::from_secs(2));
     input_2_sender.send(&input_2_second_part)?;
 

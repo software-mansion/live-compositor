@@ -7,12 +7,16 @@ use crate::{
 use anyhow::Result;
 use serde_json::json;
 
+/// Checks if input stream frames are not shown after unregistering.
+///
+/// Show image on the right side for 20 seconds.
 pub fn unregistering() -> Result<()> {
     const OUTPUT_DUMP_FILE: &str = "unregistering_test_output.rtp";
     let instance = CompositorInstance::start();
     let input_port = instance.get_port();
     let output_port = instance.get_port();
 
+    // This should fail because image is not registered yet.
     register_output_with_initial_scene(&instance, output_port)
         .expect_err("Image has to be registered first");
 
@@ -52,6 +56,7 @@ pub fn unregistering() -> Result<()> {
 
     thread::sleep(Duration::from_secs(2));
 
+    // After whole input dump is sent, unregister input stream immediately.
     input_1_sender.send(&input_1_dump)?;
     instance.send_request(json!({
         "type": "unregister",
