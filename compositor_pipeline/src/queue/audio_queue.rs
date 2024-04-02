@@ -117,9 +117,9 @@ impl AudioQueue {
         }
     }
 
-    pub(super) fn drop_old_samples(&mut self, pts: Duration, queue_start: Instant) {
+    pub(super) fn drop_old_samples_before_start(&mut self) {
         for input in self.inputs.values_mut() {
-            input.drop_old_samples(pts, queue_start)
+            input.drop_old_samples_before_start()
         }
     }
 }
@@ -192,7 +192,14 @@ impl AudioQueueInput {
             })
             .collect::<Vec<InputSamples>>();
 
-        self.drop_old_samples(pts_range.1, queue_start);
+        // Drop all batches older than `end_pts`. Entire batch (all samples inside) has to be older.
+        while self
+            .queue
+            .front()
+            .map_or(false, |batch| batch.end_pts < end_pts)
+        {
+            self.queue.pop_front();
+        }
 
         if self.input_samples_processor.did_receive_eos()
             && popped_samples.is_empty()
@@ -259,17 +266,30 @@ impl AudioQueueInput {
         true
     }
 
-    /// Drop all batches older than `pts`. Entire batch (all samples inside) has to be older.
-    fn drop_old_samples(&mut self, queue_pts: Duration, queue_start: Instant) {
-        let Some(pts) = self.input_pts_from_queue_pts(queue_pts, queue_start) else {
-            // before first sample so nothing to drop
+    /// Drops samples that won't be used for processing. This function should only be called before
+    /// queue start.
+    fn drop_old_samples_before_start(&mut self) {
+        if self.offset.is_some() {
+            // if offset is defined never drop frames before start.
             return;
         };
-        while self
-            .queue
-            .front()
-            .map_or(false, |batch| batch.end_pts < pts)
-        {
+
+        let Some(start_input_stream) = self.input_start_time() else {
+            // before first frame, so nothing to do
+            return;
+        };
+
+        loop {
+            if self.queue.is_empty() && self.try_enqueue_samples().is_err() {
+                return;
+            }
+            let Some(first_batch) = self.queue.front() else {
+                return;
+            };
+            // If batch end is still in the future then do not drop.
+            if start_input_stream + first_batch.end_pts >= Instant::now() {
+                return;
+            }
             self.queue.pop_front();
         }
     }
