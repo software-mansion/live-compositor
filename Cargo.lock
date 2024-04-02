@@ -539,26 +539,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "compositor_integration_tests"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "bytes 1.5.0",
- "compositor_render",
- "crossbeam-channel",
- "ffmpeg-next",
- "opus",
- "pitch-detection",
- "reqwest",
- "rtp",
- "serde_json",
- "socket2",
- "tracing",
- "video_compositor",
- "webrtc-util",
-]
-
-[[package]]
 name = "compositor_pipeline"
 version = "0.1.0"
 dependencies = [
@@ -1565,6 +1545,26 @@ checksum = "d530e1a18b1cb4c484e6e34556a0d948706958449fca0cab753d649f2bce3d1f"
 dependencies = [
  "equivalent",
  "hashbrown 0.14.3",
+]
+
+[[package]]
+name = "integration_tests"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bytes 1.5.0",
+ "compositor_render",
+ "crossbeam-channel",
+ "ffmpeg-next",
+ "opus",
+ "pitch-detection",
+ "reqwest",
+ "rtp",
+ "serde_json",
+ "socket2",
+ "tracing",
+ "video_compositor",
+ "webrtc-util",
 ]
 
 [[package]]
