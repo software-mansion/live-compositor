@@ -2,7 +2,7 @@ use anyhow::{anyhow, Result};
 
 use crossbeam_channel::unbounded;
 use log::error;
-use reqwest::{blocking::Response, StatusCode};
+use reqwest::{blocking::Response, Method, StatusCode};
 use std::{
     env,
     fs::{self, File},
@@ -18,13 +18,25 @@ use websocket::{Message, OwnedMessage};
 
 use serde::Serialize;
 
-pub fn post<T: Serialize + ?Sized>(json: &T) -> Result<Response> {
+pub fn put<T: Serialize + ?Sized>(route: &str, json: &T) -> Result<Response> {
+    request(Method::PUT, route, json)
+}
+
+pub fn post<T: Serialize + ?Sized>(route: &str, json: &T) -> Result<Response> {
+    request(Method::POST, route, json)
+}
+
+pub fn request<T: Serialize + ?Sized>(method: Method, route: &str, json: &T) -> Result<Response> {
     let client = reqwest::blocking::Client::new();
     let response = client
-        .post(format!(
-            "http://127.0.0.1:{}/--/api",
-            read_config().api_port
-        ))
+        .request(
+            method,
+            format!(
+                "http://127.0.0.1:{}/--/api/{}",
+                read_config().api_port,
+                route
+            ),
+        )
         .timeout(Duration::from_secs(100))
         .json(json)
         .send()

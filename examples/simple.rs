@@ -41,60 +41,61 @@ fn start_example_client_code() -> Result<()> {
     let sample_path = download_file(SAMPLE_FILE_URL, SAMPLE_FILE_PATH)?;
 
     info!("[example] Send register input request.");
-    common::post(&json!({
-        "type": "register",
-        "entity_type": "rtp_input_stream",
-        "input_id": "input_1",
-        "port": INPUT_PORT,
-        "video": {
-            "codec": "h264"
-        }
-    }))?;
+    common::put(
+        "input/rtp-stream",
+        &json!({
+            "input_id": "input_1",
+            "port": INPUT_PORT,
+            "video": {
+                "codec": "h264"
+            }
+        }),
+    )?;
 
     let shader_source = include_str!("./silly.wgsl");
     info!("[example] Register shader transform");
-    common::post(&json!({
-        "type": "register",
-        "entity_type": "shader",
-        "shader_id": "shader_example_1",
-        "source": shader_source,
-    }))?;
+    common::put(
+        "shader",
+        &json!({
+            "shader_id": "shader_example_1",
+            "source": shader_source,
+        }),
+    )?;
 
     info!("[example] Send register output request.");
-    common::post(&json!({
-        "type": "register",
-        "entity_type": "output_stream",
-        "output_id": "output_1",
-        "port": OUTPUT_PORT,
-        "ip": IP,
-        "video": {
-            "resolution": {
-                "width": VIDEO_RESOLUTION.width,
-                "height": VIDEO_RESOLUTION.height,
-            },
-            "encoder_preset": "medium",
-            "initial": {
-                "type": "shader",
-                "id": "shader_node_1",
-                "shader_id": "shader_example_1",
-                "children": [
-                    {
-                        "id": "input_1",
-                        "type": "input_stream",
-                        "input_id": "input_1",
-                    }
-                ],
-                "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+    common::put(
+        "output/rtp-stream",
+        &json!({
+            "output_id": "output_1",
+            "port": OUTPUT_PORT,
+            "ip": IP,
+            "video": {
+                "resolution": {
+                    "width": VIDEO_RESOLUTION.width,
+                    "height": VIDEO_RESOLUTION.height,
+                },
+                "encoder_preset": "medium",
+                "initial": {
+                    "type": "shader",
+                    "id": "shader_node_1",
+                    "shader_id": "shader_example_1",
+                    "children": [
+                        {
+                            "id": "input_1",
+                            "type": "input_stream",
+                            "input_id": "input_1",
+                        }
+                    ],
+                    "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+                }
             }
-        }
-    }))?;
+        }),
+    )?;
 
     std::thread::sleep(Duration::from_millis(500));
 
     info!("[example] Start pipeline");
-    common::post(&json!({
-        "type": "start",
-    }))?;
+    common::post("start", &json!({}))?;
 
     stream_video(IP, INPUT_PORT, sample_path)?;
     Ok(())

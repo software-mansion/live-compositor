@@ -76,7 +76,6 @@ pub struct InputId(Arc<str>);
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct UpdateOutputRequest {
-    pub output_id: OutputId,
     pub video: Option<Component>,
     pub audio: Option<Audio>,
     pub schedule_time_ms: Option<f64>,
