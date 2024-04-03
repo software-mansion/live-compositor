@@ -9,7 +9,7 @@ use std::{
 };
 
 use compositor_render::{event_handler::emit_event, Frame, InputId};
-use log::warn;
+use tracing::warn;
 
 use crate::audio_mixer::InputSamples;
 use crate::event::Event;

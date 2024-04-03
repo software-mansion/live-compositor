@@ -173,7 +173,16 @@ impl AudioQueueInput {
             .queue
             .iter()
             // start_pts and end_pts are already in units of this input
-            .filter(|batch| batch.start_pts <= end_pts && batch.end_pts >= start_pts)
+            .filter(|batch| {
+                let is_batch_in_range = batch.start_pts <= end_pts && batch.end_pts >= start_pts;
+                match self.offset {
+                    Some(_offset) => is_batch_in_range,
+                    // We need to check if batch.start_pts does not represent time before queue
+                    // start. PTS can only be positive, so without this check we could produce
+                    // incorrect start_pts value on output frame.
+                    None => is_batch_in_range && input_start_time + batch.start_pts > queue_start,
+                }
+            })
             .cloned()
             .map(|mut batch| {
                 match self.offset {

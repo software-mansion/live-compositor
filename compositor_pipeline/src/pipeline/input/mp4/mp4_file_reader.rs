@@ -9,7 +9,7 @@ use bytes::{Buf, Bytes, BytesMut};
 use compositor_render::InputId;
 use crossbeam_channel::{Receiver, Sender};
 use mp4::Mp4Reader;
-use tracing::{debug, span, warn, Level};
+use tracing::{debug, span, trace, warn, Level, Span};
 
 use crate::{
     pipeline::{
@@ -45,6 +45,7 @@ impl Mp4FileReader<AudioDecoderOptions> {
         input_id: InputId,
     ) -> Result<Option<(Self, ChunkReceiver)>, Mp4Error> {
         let stop_thread = Arc::new(AtomicBool::new(false));
+        let span = span!(Level::INFO, "MP4 audio", input_id = input_id.to_string());
 
         match options {
             Mp4ReaderOptions::NonFragmented { file } => {
@@ -56,7 +57,7 @@ impl Mp4FileReader<AudioDecoderOptions> {
                     Self::find_aac_info,
                     None,
                     stop_thread,
-                    input_id,
+                    span,
                 )
             }
             Mp4ReaderOptions::Fragmented {
@@ -71,7 +72,7 @@ impl Mp4FileReader<AudioDecoderOptions> {
                     Self::find_aac_info,
                     Some(fragment_receiver),
                     stop_thread,
-                    input_id,
+                    span,
                 )
             }
         }
@@ -120,6 +121,7 @@ impl Mp4FileReader<VideoDecoderOptions> {
         input_id: InputId,
     ) -> Result<Option<(Mp4FileReader<VideoDecoderOptions>, ChunkReceiver)>, Mp4Error> {
         let stop_thread = Arc::new(AtomicBool::new(false));
+        let span = span!(Level::INFO, "MP4 video", input_id = input_id.to_string());
 
         match options {
             Mp4ReaderOptions::NonFragmented { file } => {
@@ -131,7 +133,7 @@ impl Mp4FileReader<VideoDecoderOptions> {
                     Self::find_h264_info,
                     None,
                     stop_thread,
-                    input_id,
+                    span,
                 )
             }
             Mp4ReaderOptions::Fragmented {
@@ -146,7 +148,7 @@ impl Mp4FileReader<VideoDecoderOptions> {
                     Self::find_h264_info,
                     Some(fragment_receiver),
                     stop_thread,
-                    input_id,
+                    span,
                 )
             }
         }
@@ -254,7 +256,7 @@ impl<DecoderOptions: Clone + Send + 'static> Mp4FileReader<DecoderOptions> {
         ) -> Option<TrackInfo<DecoderOptions, SampleUnpacker>>,
         fragment_receiver: Option<Receiver<PipelineEvent<Bytes>>>,
         stop_thread: Arc<AtomicBool>,
-        input_id: InputId,
+        span: Span,
     ) -> Result<Option<(Self, ChunkReceiver)>, Mp4Error> {
         let reader = mp4::Mp4Reader::read_header(reader, size)?;
 
@@ -266,11 +268,10 @@ impl<DecoderOptions: Clone + Send + 'static> Mp4FileReader<DecoderOptions> {
 
         let stop_thread_clone = stop_thread.clone();
         let decoder_options = track_info.decoder_options.clone();
-
         std::thread::Builder::new()
-            .name(format!("mp4 reader {input_id}"))
+            .name("mp4 reader".to_string())
             .spawn(move || {
-                let _span = span!(Level::INFO, "MP4", input_id = input_id.to_string()).entered();
+                let _guard = span.enter();
                 run_reader_thread(
                     reader,
                     sender,
@@ -334,10 +335,11 @@ fn run_reader_thread<Reader: Read + Seek, DecoderOptions>(
                     kind: track_info.chunk_kind,
                 };
 
+                trace!(pts=?chunk.pts, "MP4 reader produced a chunk.");
                 match sender.send(PipelineEvent::Data(chunk)) {
                     Ok(_) => {}
                     Err(_) => {
-                        debug!("Channel disconnected.");
+                        debug!("Failed to send MP4 chunk. Channel closed.");
                         return;
                     }
                 }
