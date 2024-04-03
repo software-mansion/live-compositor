@@ -48,7 +48,7 @@ pub fn unregistering() -> Result<()> {
         },
     }))?;
 
-    let input_1_dump = input_dump_from_disk("8_colors_input_video.rtp")?;
+    let input_1_dump = input_dump_from_disk("8_colors_long_input_video.rtp")?;
     let mut input_1_sender = PacketSender::new(CommunicationProtocol::Udp, input_port)?;
 
     instance.send_request(json!({

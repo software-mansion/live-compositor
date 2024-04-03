@@ -70,7 +70,7 @@ pub fn audio_mixing() -> Result<()> {
         }
     }))?;
 
-    let audio_input_1 = input_dump_from_disk("8_colors_input_audio.rtp")?;
+    let audio_input_1 = input_dump_from_disk("countdown_audio.rtp")?;
     let audio_input_2 = input_dump_from_disk("8_colors_input_reversed_audio.rtp")?;
     let mut audio_1_sender = PacketSender::new(CommunicationProtocol::Tcp, input_1_port)?;
     let mut audio_2_sender = PacketSender::new(CommunicationProtocol::Udp, input_2_port)?;
