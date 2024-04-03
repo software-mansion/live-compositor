@@ -18,11 +18,7 @@ pub fn audio_mixing() -> Result<()> {
     let input_2_port = instance.get_port();
     let output_port = instance.get_port();
 
-    let output_receiver = OutputReceiver::start(
-        output_port,
-        CommunicationProtocol::Udp,
-        Duration::from_secs(20),
-    )?;
+    let output_receiver = OutputReceiver::start(output_port, CommunicationProtocol::Udp)?;
 
     instance.send_request(json!({
         "type": "register",
@@ -44,8 +40,15 @@ pub fn audio_mixing() -> Result<()> {
                     }
                 ]
             },
-            "channels": "stereo"
-        }
+            "channels": "stereo",
+        },
+    }))?;
+
+    instance.send_request(json!({
+        "type": "unregister",
+        "entity_type": "output_stream",
+        "output_id": "output_1",
+        "schedule_time_ms": 20000,
     }))?;
 
     instance.send_request(json!({

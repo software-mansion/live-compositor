@@ -2,61 +2,56 @@ use std::{
     io::Read,
     net::{Ipv4Addr, SocketAddr},
     thread,
-    time::{Duration, Instant},
+    time::Duration,
 };
 
 use crate::common::CommunicationProtocol;
 use anyhow::{Context, Result};
 use bytes::{Bytes, BytesMut};
 use crossbeam_channel::Receiver;
+use tracing::error;
+use webrtc_util::Unmarshal;
 
 pub struct OutputReceiver {
     receiver: Receiver<Bytes>,
-    dump_length: Duration,
 }
 
 impl OutputReceiver {
-    pub fn start(
-        port: u16,
-        protocol: CommunicationProtocol,
-        dump_length: Duration,
-    ) -> Result<Self> {
+    pub fn start(port: u16, protocol: CommunicationProtocol) -> Result<Self> {
         let mut socket = Self::setup_socket(port, &protocol)?;
         let mut output_dump = BytesMut::new();
-        let mut buffer = BytesMut::zeroed(u16::MAX as usize);
-        let mut start = None;
         let (dump_sender, dump_receiver) = crossbeam_channel::bounded(1);
 
-        thread::spawn(move || {
-            loop {
-                let received_bytes = socket.read(&mut buffer).unwrap();
-                let start = start.get_or_insert_with(Instant::now);
-
-                if protocol == CommunicationProtocol::Udp {
-                    let packet_len_bytes = (received_bytes as u16).to_be_bytes();
-                    output_dump.extend_from_slice(&packet_len_bytes);
-                }
-
-                output_dump.extend_from_slice(&buffer[..received_bytes]);
-                // TODO(noituri): This does not work on slower machines which take longer time to process video and audio
-                // It results in shorter output dumps than expected
-                if start.elapsed() > dump_length {
+        thread::spawn(move || loop {
+            let packet = match Self::read_packet(&mut socket, &protocol) {
+                Ok(packet) => packet,
+                Err(err) => {
+                    error!("Failed to read packet: {err:?}");
                     break;
                 }
-            }
+            };
 
-            dump_sender.send(output_dump.freeze()).unwrap();
+            match packet {
+                Packet::RtcpGoodbye => {
+                    dump_sender.send(output_dump.freeze()).unwrap();
+                    break;
+                }
+                Packet::Rtp(packet_bytes) => {
+                    let packet_len = packet_bytes.len() as u16;
+                    output_dump.extend(packet_len.to_be_bytes());
+                    output_dump.extend(&packet_bytes);
+                }
+            }
         });
 
         Ok(Self {
             receiver: dump_receiver,
-            dump_length,
         })
     }
 
     pub fn wait_for_output(self) -> Result<Bytes> {
         self.receiver
-            .recv_timeout(self.dump_length + Duration::from_secs(60))
+            .recv_timeout(Duration::from_secs(60))
             .context("Failed to receive output dump")
     }
 
@@ -86,4 +81,45 @@ impl OutputReceiver {
 
         Ok(socket)
     }
+
+    fn read_packet(
+        socket: &mut socket2::Socket,
+        protocol: &CommunicationProtocol,
+    ) -> Result<Packet> {
+        match protocol {
+            CommunicationProtocol::Udp => {
+                let mut buffer = vec![0u8; u16::MAX as usize];
+                let packet_len = socket.read(&mut buffer)?;
+
+                unmarshal_packet(Bytes::from(buffer[..packet_len].to_vec()))
+            }
+            CommunicationProtocol::Tcp => {
+                let mut packet_len_bytes = [0u8; 2];
+                socket.read_exact(&mut packet_len_bytes)?;
+                let packet_len = u16::from_be_bytes(packet_len_bytes) as usize;
+
+                let mut buffer = BytesMut::zeroed(packet_len);
+                socket.read_exact(&mut buffer[..])?;
+
+                unmarshal_packet(buffer.freeze())
+            }
+        }
+    }
+}
+
+fn unmarshal_packet(mut buffer: Bytes) -> Result<Packet> {
+    let rtp_packet = rtp::packet::Packet::unmarshal(&mut buffer.clone())?;
+    let packet = if rtp_packet.header.payload_type < 64 || rtp_packet.header.payload_type > 95 {
+        Packet::Rtp(buffer)
+    } else {
+        rtcp::goodbye::Goodbye::unmarshal(&mut buffer).map(|_| Packet::RtcpGoodbye)?
+    };
+
+    Ok(packet)
+}
+
+#[derive(Debug, PartialEq, Eq)]
+enum Packet {
+    RtcpGoodbye,
+    Rtp(Bytes),
 }

@@ -80,11 +80,14 @@ pub fn schedule_update() -> Result<()> {
         "schedule_time_ms": 2000
     }))?;
 
-    let output_receiver = OutputReceiver::start(
-        output_port,
-        CommunicationProtocol::Tcp,
-        Duration::from_secs(20),
-    )?;
+    instance.send_request(json!({
+        "type": "unregister",
+        "entity_type": "output_stream",
+        "output_id": "output_1",
+        "schedule_time_ms": 20000,
+    }))?;
+
+    let output_receiver = OutputReceiver::start(output_port, CommunicationProtocol::Tcp)?;
 
     instance.send_request(json!({
         "type": "register",

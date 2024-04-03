@@ -48,11 +48,14 @@ pub fn required_inputs() -> Result<()> {
         },
     }))?;
 
-    let output_receiver = OutputReceiver::start(
-        output_port,
-        CommunicationProtocol::Tcp,
-        Duration::from_secs(20),
-    )?;
+    instance.send_request(json!({
+        "type": "unregister",
+        "entity_type": "output_stream",
+        "output_id": "output_1",
+        "schedule_time_ms": 20000,
+    }))?;
+
+    let output_receiver = OutputReceiver::start(output_port, CommunicationProtocol::Tcp)?;
 
     instance.send_request(json!({
         "type": "register",
@@ -96,7 +99,6 @@ pub fn required_inputs() -> Result<()> {
     thread::sleep(Duration::from_secs(2));
     input_2_sender.send(&input_2_second_part)?;
 
-    // NOTE(noituri): Consider merging output_receiver.wait_for_output() and output_dump_from_disk() into a single function.
     let new_output_dump = output_receiver.wait_for_output()?;
 
     compare_video_dumps(

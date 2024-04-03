@@ -400,7 +400,7 @@ fn run_audio_mixer_thread(
             let Some((samples_sender, send_eos)) = output_data else {
                 warn!(
                     ?output_id,
-                    "Filed to send mixed audio. Output does not exists."
+                    "Failed to send mixed audio. Output does not exists."
                 );
                 continue;
             };
