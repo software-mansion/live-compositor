@@ -41,11 +41,14 @@ pub fn push_entire_input_before_start_tcp() -> Result<()> {
         },
     }))?;
 
-    let output_receiver = OutputReceiver::start(
-        output_port,
-        CommunicationProtocol::Tcp,
-        Duration::from_secs(30),
-    )?;
+    let output_receiver = OutputReceiver::start(output_port, CommunicationProtocol::Tcp)?;
+
+    instance.send_request(json!({
+        "type": "unregister",
+        "entity_type": "output_stream",
+        "output_id": "output_1",
+        "schedule_time_ms": 30_000,
+    }))?;
 
     instance.send_request(json!({
         "type": "register",
@@ -115,11 +118,14 @@ pub fn push_entire_input_before_start_udp() -> Result<()> {
         },
     }))?;
 
-    let output_receiver = OutputReceiver::start(
-        output_port,
-        CommunicationProtocol::Tcp,
-        Duration::from_secs(30),
-    )?;
+    let output_receiver = OutputReceiver::start(output_port, CommunicationProtocol::Tcp)?;
+
+    instance.send_request(json!({
+        "type": "unregister",
+        "entity_type": "output_stream",
+        "output_id": "output_1",
+        "schedule_time_ms": 30_000,
+    }))?;
 
     instance.send_request(json!({
         "type": "register",
@@ -189,11 +195,14 @@ pub fn push_entire_input_before_start_tcp_without_offset() -> Result<()> {
         },
     }))?;
 
-    let output_receiver = OutputReceiver::start(
-        output_port,
-        CommunicationProtocol::Tcp,
-        Duration::from_secs(30),
-    )?;
+    let output_receiver = OutputReceiver::start(output_port, CommunicationProtocol::Tcp)?;
+
+    instance.send_request(json!({
+        "type": "unregister",
+        "entity_type": "output_stream",
+        "output_id": "output_1",
+        "schedule_time_ms": 30_000,
+    }))?;
 
     instance.send_request(json!({
         "type": "register",
@@ -262,11 +271,14 @@ pub fn push_entire_input_before_start_udp_without_offset() -> Result<()> {
         },
     }))?;
 
-    let output_receiver = OutputReceiver::start(
-        output_port,
-        CommunicationProtocol::Tcp,
-        Duration::from_secs(30),
-    )?;
+    let output_receiver = OutputReceiver::start(output_port, CommunicationProtocol::Tcp)?;
+
+    instance.send_request(json!({
+        "type": "unregister",
+        "entity_type": "output_stream",
+        "output_id": "output_1",
+        "schedule_time_ms": 30_000,
+    }))?;
 
     instance.send_request(json!({
         "type": "register",
