@@ -96,7 +96,7 @@ fn init_compositor_prerequisites() {
         logger::init_logger(LoggerConfig {
             ffmpeg_logger_level: FfmpegLogLevel::Info,
             format: LoggerFormat::Compact,
-            level: "info".to_string(),
+            level: "info,wgpu_hal=warn,wgpu_core=warn".to_string(),
         });
         use_global_wgpu_ctx();
     });

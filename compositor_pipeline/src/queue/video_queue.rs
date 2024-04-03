@@ -124,9 +124,9 @@ impl VideoQueue {
         })
     }
 
-    pub(super) fn drop_old_frames(&mut self, next_buffer_pts: Duration, queue_start: Instant) {
+    pub(super) fn drop_old_frames_before_start(&mut self) {
         for input in self.inputs.values_mut() {
-            input.drop_old_frames(next_buffer_pts, queue_start)
+            input.drop_old_frames_before_start()
         }
     }
 }
@@ -279,6 +279,34 @@ impl VideoQueueInput {
             if self.try_enqueue_frame().is_err() {
                 return;
             }
+        }
+    }
+
+    /// Drops frames that won't be used for processing. This function should only be called before
+    /// queue start.
+    fn drop_old_frames_before_start(&mut self) {
+        if self.offset.is_some() {
+            // if offset is defined never drop frames before start.
+            return;
+        };
+
+        let Some(start_input_stream) = self.input_start_time() else {
+            // before first frame, so nothing to do
+            return;
+        };
+
+        loop {
+            if self.queue.is_empty() && self.try_enqueue_frame().is_err() {
+                return;
+            }
+            let Some(first_frame) = self.queue.front() else {
+                return;
+            };
+            // If frame is still in the future then do not drop.
+            if start_input_stream + first_frame.pts >= Instant::now() {
+                return;
+            }
+            self.queue.pop_front();
         }
     }
 
