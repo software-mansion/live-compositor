@@ -18,7 +18,6 @@ pub mod mp4_file_reader;
 
 pub struct Mp4Options {
     pub source: Source,
-    pub input_id: InputId,
 }
 
 pub(crate) enum Mp4ReaderOptions {
@@ -62,6 +61,7 @@ pub struct Mp4 {
 
 impl Mp4 {
     pub(crate) fn new(
+        input_id: &InputId,
         options: Mp4Options,
         download_dir: &Path,
     ) -> Result<(Self, ChunksReceiver, DecoderOptions), Mp4Error> {
@@ -89,7 +89,7 @@ impl Mp4 {
             Mp4ReaderOptions::NonFragmented {
                 file: input_path.clone(),
             },
-            options.input_id.clone(),
+            input_id.clone(),
         )?;
 
         let (video_reader, video_receiver, video_decoder_options) = match video {
@@ -104,7 +104,7 @@ impl Mp4 {
             Mp4ReaderOptions::NonFragmented {
                 file: input_path.clone(),
             },
-            options.input_id.clone(),
+            input_id.clone(),
         )?;
 
         let (audio_reader, audio_receiver, audio_deocder_options) = match audio {
@@ -117,7 +117,7 @@ impl Mp4 {
 
         Ok((
             Self {
-                input_id: options.input_id,
+                input_id: input_id.clone(),
                 _video_thread: video_reader,
                 _audio_thread: audio_reader,
                 source: options.source,

@@ -49,7 +49,6 @@ pub enum RtpReceiverError {
 pub struct RtpReceiverOptions {
     pub port: RequestedPort,
     pub transport_protocol: TransportProtocol,
-    pub input_id: compositor_render::InputId,
     pub stream: RtpStream,
 }
 
@@ -81,19 +80,23 @@ pub struct RtpReceiver {
 
 impl RtpReceiver {
     pub fn new(
+        input_id: &InputId,
         opts: RtpReceiverOptions,
     ) -> Result<(Self, ChunksReceiver, DecoderOptions, Port), RtpReceiverError> {
         let should_close = Arc::new(AtomicBool::new(false));
 
         let (port, packets_rx) = match opts.transport_protocol {
-            TransportProtocol::Udp => start_udp_reader_thread(&opts, should_close.clone())?,
-            TransportProtocol::TcpServer => start_tcp_server_thread(&opts, should_close.clone())?,
+            TransportProtocol::Udp => {
+                start_udp_reader_thread(input_id, &opts, should_close.clone())?
+            }
+            TransportProtocol::TcpServer => {
+                start_tcp_server_thread(input_id, &opts, should_close.clone())?
+            }
         };
 
         let depayloader = Depayloader::new(&opts.stream)?;
 
-        let chunks_receiver =
-            Self::start_depayloader_thread(&opts.input_id, packets_rx, depayloader);
+        let chunks_receiver = Self::start_depayloader_thread(input_id, packets_rx, depayloader);
 
         Ok((
             Self {

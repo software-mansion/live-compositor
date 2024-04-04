@@ -1,11 +1,11 @@
 use std::fmt::Display;
 
-use axum::{http::StatusCode, response::IntoResponse, Json};
+use axum::{http::StatusCode, response::IntoResponse};
 use compositor_pipeline::error::{ErrorType, PipelineErrorInfo};
 use compositor_render::error::ErrorStack;
 use serde::Serialize;
 
-use crate::{api::Response, types::TypeError};
+use crate::types::TypeError;
 
 pub struct ApiError {
     pub error_code: &'static str,
@@ -75,17 +75,11 @@ impl IntoResponse for ApiError {
             stack: Vec<String>,
         }
 
-        let body = Json(ErrorResponse {
+        let body = axum::Json(ErrorResponse {
             error_code: self.error_code,
             message: self.message,
             stack: self.stack,
         });
         (self.http_status_code, body).into_response()
-    }
-}
-
-impl IntoResponse for Response {
-    fn into_response(self) -> axum::response::Response {
-        Json(self).into_response()
     }
 }

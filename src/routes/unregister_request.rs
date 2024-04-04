@@ -6,25 +6,39 @@ use log::error;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    api::{Api, Response},
     error::ApiError,
+    state::{ApiState, Response},
     types::{InputId, OutputId, RendererId},
 };
 
 use super::Json;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(tag = "entity_type", rename_all = "snake_case")]
-pub struct ScheduledRequest {
+pub struct UnregisterInput {
     /// Time in milliseconds when this request should be applied. Value `0` represents
     /// time of the start request.
     schedule_time_ms: Option<f64>,
 }
 
-pub(super) async fn handle_rtp_input_stream(
-    State(api): State<Api>,
-    Path((input_id,)): Path<(InputId,)>,
-    Json(request): Json<ScheduledRequest>,
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct UnregisterOutput {
+    /// Time in milliseconds when this request should be applied. Value `0` represents
+    /// time of the start request.
+    schedule_time_ms: Option<f64>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum UnregisterRenderer {
+    Shader { shader_id: RendererId },
+    WebRenderer { instance_id: RendererId },
+    Image { image_id: RendererId },
+}
+
+pub(super) async fn handle_input(
+    State(api): State<ApiState>,
+    Path(input_id): Path<InputId>,
+    Json(request): Json<UnregisterInput>,
 ) -> Result<Response, ApiError> {
     match request.schedule_time_ms {
         Some(schedule_time_ms) => {
@@ -50,10 +64,10 @@ pub(super) async fn handle_rtp_input_stream(
     Ok(Response::Ok {})
 }
 
-pub(super) async fn handle_rtp_output_stream(
-    State(api): State<Api>,
-    Path((output_id,)): Path<(OutputId,)>,
-    Json(request): Json<ScheduledRequest>,
+pub(super) async fn handle_output(
+    State(api): State<ApiState>,
+    Path(output_id): Path<OutputId>,
+    Json(request): Json<UnregisterOutput>,
 ) -> Result<Response, ApiError> {
     match request.schedule_time_ms {
         Some(schedule_time_ms) => {
@@ -83,29 +97,24 @@ pub(super) async fn handle_rtp_output_stream(
     Ok(Response::Ok {})
 }
 
-pub(super) async fn handle_shader(
-    State(api): State<Api>,
-    Path((shader_id,)): Path<(RendererId,)>,
+pub(super) async fn handle_renderer(
+    State(api): State<ApiState>,
+    Json(request): Json<UnregisterRenderer>,
 ) -> Result<Response, ApiError> {
-    api.pipeline()
-        .unregister_renderer(&shader_id.into(), RegistryType::Shader)?;
-    Ok(Response::Ok {})
-}
+    match request {
+        UnregisterRenderer::Shader { shader_id } => {
+            api.pipeline()
+                .unregister_renderer(&shader_id.into(), RegistryType::Shader)?;
+        }
+        UnregisterRenderer::WebRenderer { instance_id } => {
+            api.pipeline()
+                .unregister_renderer(&instance_id.into(), RegistryType::WebRenderer)?;
+        }
+        UnregisterRenderer::Image { image_id } => {
+            api.pipeline()
+                .unregister_renderer(&image_id.into(), RegistryType::Image)?;
+        }
+    }
 
-pub(super) async fn handle_web_renderer(
-    State(api): State<Api>,
-    Path((instance_id,)): Path<(RendererId,)>,
-) -> Result<Response, ApiError> {
-    api.pipeline()
-        .unregister_renderer(&instance_id.into(), RegistryType::WebRenderer)?;
-    Ok(Response::Ok {})
-}
-
-pub(super) async fn handle_image(
-    State(api): State<Api>,
-    Path((image_id,)): Path<(RendererId,)>,
-) -> Result<Response, ApiError> {
-    api.pipeline()
-        .unregister_renderer(&image_id.into(), RegistryType::Image)?;
     Ok(Response::Ok {})
 }

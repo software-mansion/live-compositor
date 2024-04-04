@@ -5,7 +5,7 @@ use compositor_render::error::ErrorStack;
 use tracing::error;
 
 use crate::{
-    api::{Api, Response},
+    state::{ApiState, Response},
     error::ApiError,
     types::{OutputId, UpdateOutputRequest},
 };
@@ -13,8 +13,8 @@ use crate::{
 use super::Json;
 
 pub(super) async fn handle_output_update(
-    State(api): State<Api>,
-    Path((output_id,)): Path<(OutputId,)>,
+    State(api): State<ApiState>,
+    Path(output_id): Path<OutputId>,
     Json(request): Json<UpdateOutputRequest>,
 ) -> Result<Response, ApiError> {
     let output_id = output_id.into();

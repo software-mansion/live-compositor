@@ -2,7 +2,7 @@ use anyhow::{anyhow, Result};
 
 use crossbeam_channel::unbounded;
 use log::error;
-use reqwest::{blocking::Response, Method, StatusCode};
+use reqwest::{blocking::Response, StatusCode};
 use std::{
     env,
     fs::{self, File},
@@ -18,25 +18,14 @@ use websocket::{Message, OwnedMessage};
 
 use serde::Serialize;
 
-pub fn put<T: Serialize + ?Sized>(route: &str, json: &T) -> Result<Response> {
-    request(Method::PUT, route, json)
-}
-
 pub fn post<T: Serialize + ?Sized>(route: &str, json: &T) -> Result<Response> {
-    request(Method::POST, route, json)
-}
-
-pub fn request<T: Serialize + ?Sized>(method: Method, route: &str, json: &T) -> Result<Response> {
     let client = reqwest::blocking::Client::new();
     let response = client
-        .request(
-            method,
-            format!(
-                "http://127.0.0.1:{}/--/api/{}",
-                read_config().api_port,
-                route
-            ),
-        )
+        .post(format!(
+            "http://127.0.0.1:{}/api/{}",
+            read_config().api_port,
+            route
+        ))
         .timeout(Duration::from_secs(100))
         .json(json)
         .send()
@@ -51,7 +40,7 @@ pub fn request<T: Serialize + ?Sized>(method: Method, route: &str, json: &T) -> 
 #[allow(dead_code)]
 pub fn start_websocket_thread() {
     let client = websocket::sync::client::ClientBuilder::new(&format!(
-        "ws://127.0.0.1:{}/--/ws",
+        "ws://127.0.0.1:{}/ws",
         read_config().api_port
     ))
     .unwrap()

@@ -1,61 +1,78 @@
-use axum::extract::State;
-use compositor_pipeline::pipeline::{Port, RegisterInputOptions};
-use compositor_render::InputId;
+use axum::extract::{Path, State};
+use compositor_pipeline::pipeline::Port;
+use serde::{Deserialize, Serialize};
 
 use crate::{
-    api::{Pipeline, Response},
     error::ApiError,
     routes::Json,
-    types::{ImageSpec, Mp4, RegisterOutputRequest, RtpInputStream, ShaderSpec, WebRendererSpec},
+    state::{Pipeline, Response},
+    types::{
+        ImageSpec, InputId, Mp4, OutputId, RegisterOutputRequest, RtpInputStream, ShaderSpec,
+        WebRendererSpec,
+    },
 };
 
-use super::Api;
+use super::ApiState;
 
-fn handle_register_input(
-    api: &Api,
-    input_id: InputId,
-    register_options: RegisterInputOptions,
-) -> Result<Response, ApiError> {
-    match Pipeline::register_input(&api.pipeline, input_id, register_options)? {
-        Some(Port(port)) => Ok(Response::RegisteredPort { port }),
-        None => Ok(Response::Ok {}),
-    }
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum RegisterInput {
+    RtpStream(RtpInputStream),
+    Mp4(Mp4),
 }
 
-pub(super) async fn handle_rtp_input_stream(
-    State(api): State<Api>,
-    Json(request): Json<RtpInputStream>,
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum RegisterOutput {
+    RtpStream(RegisterOutputRequest),
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum RegisterRenderer {
+    Shader(ShaderSpec),
+    WebRenderer(WebRendererSpec),
+    Image(ImageSpec),
+}
+
+pub(super) async fn handle_input(
+    State(api): State<ApiState>,
+    Path(input_id): Path<InputId>,
+    Json(request): Json<RegisterInput>,
 ) -> Result<Response, ApiError> {
     let api = api.clone();
     tokio::task::spawn_blocking(move || {
-        let (input_id, register_options) = request.try_into()?;
-        handle_register_input(&api, input_id, register_options)
+        let response = match request {
+            RegisterInput::RtpStream(rtp) => {
+                Pipeline::register_input(&api.pipeline, input_id.into(), rtp.try_into()?)?
+            }
+            RegisterInput::Mp4(mp4) => {
+                Pipeline::register_input(&api.pipeline, input_id.into(), mp4.try_into()?)?
+            }
+        };
+        match response {
+            Some(Port(port)) => Ok(Response::RegisteredPort { port }),
+            None => Ok(Response::Ok {}),
+        }
     })
     .await
     // `unwrap()` panics only when the task panicked or `response.abort()` was called
     .unwrap()
 }
 
-pub(super) async fn handle_mp4(
-    State(api): State<Api>,
-    Json(request): Json<Mp4>,
+pub(super) async fn handle_output(
+    State(api): State<ApiState>,
+    Path(output_id): Path<OutputId>,
+    Json(request): Json<RegisterOutput>,
 ) -> Result<Response, ApiError> {
     let api = api.clone();
     tokio::task::spawn_blocking(move || {
-        let (input_id, register_options) = request.try_into()?;
-        handle_register_input(&api, input_id, register_options)
-    })
-    .await
-    .unwrap()
-}
-
-pub(super) async fn handle_rtp_output_stream(
-    State(api): State<Api>,
-    Json(request): Json<RegisterOutputRequest>,
-) -> Result<Response, ApiError> {
-    let api = api.clone();
-    tokio::task::spawn_blocking(move || {
-        match api.pipeline().register_output(request.try_into()?)? {
+        let response = match request {
+            RegisterOutput::RtpStream(rtp) => {
+                Pipeline::register_output(&mut api.pipeline(), output_id.into(), rtp.try_into()?)?
+            }
+        };
+        match response {
             Some(Port(port)) => Ok(Response::RegisteredPort { port }),
             None => Ok(Response::Ok {}),
         }
@@ -64,39 +81,18 @@ pub(super) async fn handle_rtp_output_stream(
     .unwrap()
 }
 
-pub(super) async fn handle_shader(
-    State(api): State<Api>,
-    Json(request): Json<ShaderSpec>,
+pub(super) async fn handle_renderer(
+    State(api): State<ApiState>,
+    Json(request): Json<RegisterRenderer>,
 ) -> Result<Response, ApiError> {
     let api = api.clone();
     tokio::task::spawn_blocking(move || {
-        Pipeline::register_renderer(&api.pipeline, request.try_into()?)?;
-        Ok(Response::Ok {})
-    })
-    .await
-    .unwrap()
-}
-
-pub(super) async fn handle_web_renderer(
-    State(api): State<Api>,
-    Json(request): Json<WebRendererSpec>,
-) -> Result<Response, ApiError> {
-    let api = api.clone();
-    tokio::task::spawn_blocking(move || {
-        Pipeline::register_renderer(&api.pipeline, request.try_into()?)?;
-        Ok(Response::Ok {})
-    })
-    .await
-    .unwrap()
-}
-
-pub(super) async fn handle_image(
-    State(api): State<Api>,
-    Json(request): Json<ImageSpec>,
-) -> Result<Response, ApiError> {
-    let api = api.clone();
-    tokio::task::spawn_blocking(move || {
-        Pipeline::register_renderer(&api.pipeline, request.try_into()?)?;
+        let request = match request {
+            RegisterRenderer::Shader(shader) => shader.try_into()?,
+            RegisterRenderer::WebRenderer(web) => web.try_into()?,
+            RegisterRenderer::Image(image) => image.try_into()?,
+        };
+        Pipeline::register_renderer(&api.pipeline, request)?;
         Ok(Response::Ok {})
     })
     .await

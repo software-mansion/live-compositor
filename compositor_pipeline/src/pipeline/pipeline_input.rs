@@ -35,7 +35,7 @@ pub(super) fn register_pipeline_input(
     };
 
     let (input, chunks_receiver, decoder_options, port) =
-        input::Input::new(input_options, &download_dir)
+        input::Input::new(&input_id, input_options, &download_dir)
             .map_err(|e| RegisterInputError::InputError(input_id.clone(), e))?;
 
     let (audio_eos_received, video_eos_received) = (
