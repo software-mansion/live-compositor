@@ -9,7 +9,7 @@ import Docs from "@site/pages/api/generated/component-WebView.md"
 `WebView` renders a website using Chromium engine embedded inside the compositor.
 
 :::note
-To use this component, you need to first register the web renderer instance with matching `instance_id` using [`RegisterRenderer`](../routes#register-renderer) request.
+To use this component, you need to first register the web renderer instance with matching `instance_id` using [`register web renderer instance`](../routes#register-web-renderer-instance) request.
 :::
 
 :::warning

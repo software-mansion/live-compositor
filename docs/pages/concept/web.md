@@ -26,7 +26,7 @@ There are 3 embedding methods available:
 - `native_embedding_under_content` - Renders frames produced by child components below the website's content. The website needs to have a transparent background. Otherwise, it will cover the frames underneath it.
 
 `native_embedding_over_content` is the default embedding method.
-You can change it in the [register renderer request](../api/routes#register-renderer). For example:
+You can change it in the [register renderer request](../api/routes.md#register-web-renderer-instance). For example:
 
 ```typescript
 {

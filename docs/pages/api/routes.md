@@ -6,28 +6,64 @@ description: API routes to configure the compositor.
 
 API is served by default on the port 8081. Different port can be configured using [`LIVE_COMPOSITOR_API_PORT`](../deployment/configuration#live_compositor_api_port) environment variable.
 
-## Endpoint `POST /--/api`
+## Start request
 
-Main endpoint for configuring the compositor server.
-
-### Start
-
-```typescript
-type Start = {
-  type: "start";
-}
+```
+POST: /api/start
 ```
 
-Starts the processing pipeline. If outputs are registered and defined in the scene then the compositor will start to send the RTP stream.
+```typescript
+type RequestBody = {}
+```
+
+Starts the processing pipeline. If outputs are registered and defined in the scene then the compositor will start to send the RTP streams.
 
 ***
 
-### Update output
+## Outputs configuration
+
+### Register output
+
+```
+POST: /api/output/:output_id/register
+```
 
 ```typescript
-type UpdateOutput = {
-  type: "update_output";
-  output_id: string;
+type RequestBody = {
+  type: "rtp_stream"
+  ... // output specific options
+}
+```
+
+Register external destination that can be used as a compositor output.
+
+- `type` - Output type. Currently, only RTP streams are supported.
+- See [documentation](./outputs/rtp.md) for the rest of the options.
+
+### Unregister output
+
+```
+POST /api/output/:output_id/unregister
+```
+
+```typescript
+type RequestBody = {
+  schedule_time_ms?: number;
+}
+```
+
+Unregister a previously registered output with an id `:output_id`. 
+
+- `schedule_time_ms` - Time in milliseconds when this request should be applied. Value `0` represents time of [the start request](#start-request).
+
+### Update output
+
+```
+POST: /api/output/:output_id/update
+```
+
+```typescript
+type RequestBody = {
   video?: Component;
   audio?: {
     inputs: AudioInput[];
@@ -41,21 +77,27 @@ type AudioInput = {
 }
 ```
 
-- `output_id` - Id of an already registered output stream. See [`RegisterOutputStream`](./routes#register-output-stream).
+Update scene definition and audio mixer configuration for output with ID `:output_id`. The output stream has to be registered first. See [`register output`](./routes.md#register-output) request.
+
 - `video` - Root of a component tree/scene that should be rendered for the output. [Learn more](../concept/component)
 - `audio` - Parameters for mixing input audio streams.
-- `audio.inputs[].input_id` - Input id.
+- `audio.inputs[].input_id` - Input ID.
 - `audio.inputs[].volume` - (**default=`1.0`**) Float in `[0, 1]` range representing volume.
-- `schedule_time_ms` - Time in milliseconds when this request should be applied. Value `0` represents time of [the start request](#start).
+- `schedule_time_ms` - Time in milliseconds when this request should be applied. Value `0` represents time of [the start request](#start-request).
 
 ***
 
-### Register input stream
+## Inputs configuration
+
+### Register input
+
+```
+POST: /api/input/:input_id/register
+```
 
 ```typescript
-type RegisterInputStream = {
-  type: "register";
-  entity_type: "rtp_input_stream" | "mp4";
+type RequestBody = {
+  type: "rtp_stream" | "mp4";
   ... // input specific options
 }
 ```
@@ -65,68 +107,91 @@ Register external source that can be used as a compositor input. See inputs docu
 - [RTP](./inputs/rtp.md)
 - [MP4](./inputs/mp4.md)
 
-***
+### Unregister input
 
-### Register output stream
+```
+POST: /api/input/:input_id/unregister
+```
 
 ```typescript
-type RegisterOutputStream = {
-  type: "register";
-  entity_type: "output_stream";
-  ...
+type RequestBody = {
+  schedule_time_ms?: number;
 }
 ```
 
-Register external destination that can be used as a compositor output. See outputs documentation to learn more.
+Unregister a previously registered input with an id `:input_id`. 
 
-- [RTP](./outputs/rtp.md)
-
-***
-
-### Register renderer
-
-```typescript
-type RegisterRenderer = {
-  type: "register";
-  entity_type: "shader" | "web_renderer" | "image";
-  ... // renderer specific options
-}
-```
-
-See renderers documentation to learn more.
-
-- [Image](./renderers/image)
-- [Shader](./renderers/shader)
-- [WebRenderer](./renderers/web)
+- `schedule_time_ms` - Time in milliseconds when this request should be applied. Value `0` represents time of [the start request](#start-request).
 
 ***
 
-### Unregister request
+## Renderers configuration
 
-```typescript
-type Unregister =
-  | {
-    type: "unregister";
-    entity_type: "input_stream";
-    input_id: string;
-    schedule_time_ms: number;
-  }
-  | {
-    type: "unregister";
-    entity_type: "output_stream";
-    output_id: string;
-    schedule_time_ms: number;
-  }
-  | { type: "unregister"; entity_type: "shader"; shader_id: string }
-  | { type: "unregister"; entity_type: "image"; image_id: string }
-  | { type: "unregister"; entity_type: "web_renderer"; instance_id: string }
+### Register image
+
+```
+POST: /api/image/:image_id/register
 ```
 
-Removes entities previously registered with [register input](#register-input-stream), [register output](#register-output-stream) or [register renderer](#register-renderer) requests.
+Register an image asset. Request body is defined in the [image](./renderers/image.md) docs.
 
-- `schedule_time_ms` - Time in milliseconds when this request should be applied. Value `0` represents time of [the start request](#start).
+### Unregister image
 
-## Endpoint `GET /status`
+```
+POST: /api/image/:image_id/unregister
+```
+
+```typescript
+type RequestBody = {}
+```
+
+Unregister a previously registered image asset with an id `:image_id`. 
+
+### Register shader
+
+```
+POST: /api/shader/:shader_id/register
+```
+
+Register a shader. Request body is defined in the [shader](./renderers/shader.md) docs.
+
+### Unregister shader
+
+```
+POST: /api/shader/:shader_id/unregister
+```
+
+```typescript
+type RequestBody = {}
+```
+
+Unregister a previously registered shader with an id `:shader_id`. 
+
+### Register web renderer instance
+
+```
+POST: /api/web-renderer/:instance_id/register
+```
+
+Register a web renderer instance. Request body is defined in the [web renderer](./renderers/web.md) docs.
+
+### Unregister web renderer instance
+
+```
+POST: /api/web-renderer/:instance_id/unregister
+```
+
+```typescript
+type RequestBody = {}
+```
+
+Unregister a previously registered web renderer instance with an id `:instance_id`. 
+
+## Status endpoint 
+
+```
+GET: /status
+```
 
 ```typescript
 type Response = {
@@ -138,7 +203,11 @@ Status/health check endpoint. Returns `200 OK`.
 
 - `instance_id` - ID that can be provided using `LIVE_COMPOSITOR_INSTANCE_ID` environment variable. Defaults to random value in the format `live_compositor_{RANDOM_VALUE}`.
 
-## WebSocket endpoint `/--/ws`
+## WebSocket endpoint 
+
+```
+/ws
+```
 
 Establish WebSocket connection to listen for LiveCompositor events. List of supported events and their descriptions can be found [here](./events.md).
 
