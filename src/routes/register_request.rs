@@ -7,8 +7,8 @@ use crate::{
     routes::Json,
     state::{Pipeline, Response},
     types::{
-        ImageSpec, InputId, Mp4, OutputId, RegisterOutputRequest, RtpInputStream, ShaderSpec,
-        WebRendererSpec,
+        ImageSpec, InputId, Mp4, OutputId, RegisterOutputRequest, RendererId, RtpInputStream,
+        ShaderSpec, WebRendererSpec,
     },
 };
 
@@ -25,14 +25,6 @@ pub enum RegisterInput {
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum RegisterOutput {
     RtpStream(RegisterOutputRequest),
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(tag = "type", rename_all = "snake_case")]
-pub enum RegisterRenderer {
-    Shader(ShaderSpec),
-    WebRenderer(WebRendererSpec),
-    Image(ImageSpec),
 }
 
 pub(super) async fn handle_input(
@@ -81,18 +73,42 @@ pub(super) async fn handle_output(
     .unwrap()
 }
 
-pub(super) async fn handle_renderer(
+pub(super) async fn handle_shader(
     State(api): State<ApiState>,
-    Json(request): Json<RegisterRenderer>,
+    Path(shader_id): Path<RendererId>,
+    Json(request): Json<ShaderSpec>,
 ) -> Result<Response, ApiError> {
     let api = api.clone();
     tokio::task::spawn_blocking(move || {
-        let request = match request {
-            RegisterRenderer::Shader(shader) => shader.try_into()?,
-            RegisterRenderer::WebRenderer(web) => web.try_into()?,
-            RegisterRenderer::Image(image) => image.try_into()?,
-        };
-        Pipeline::register_renderer(&api.pipeline, request)?;
+        Pipeline::register_renderer(&api.pipeline, shader_id.into(), request.try_into()?)?;
+        Ok(Response::Ok {})
+    })
+    .await
+    .unwrap()
+}
+
+pub(super) async fn handle_web_renderer(
+    State(api): State<ApiState>,
+    Path(instance_id): Path<RendererId>,
+    Json(request): Json<WebRendererSpec>,
+) -> Result<Response, ApiError> {
+    let api = api.clone();
+    tokio::task::spawn_blocking(move || {
+        Pipeline::register_renderer(&api.pipeline, instance_id.into(), request.try_into()?)?;
+        Ok(Response::Ok {})
+    })
+    .await
+    .unwrap()
+}
+
+pub(super) async fn handle_image(
+    State(api): State<ApiState>,
+    Path(image_id): Path<RendererId>,
+    Json(request): Json<ImageSpec>,
+) -> Result<Response, ApiError> {
+    let api = api.clone();
+    tokio::task::spawn_blocking(move || {
+        Pipeline::register_renderer(&api.pipeline, image_id.into(), request.try_into()?)?;
         Ok(Response::Ok {})
     })
     .await

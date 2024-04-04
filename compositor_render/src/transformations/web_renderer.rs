@@ -41,9 +41,8 @@ pub struct WebRendererInitOptions {
     pub enable_gpu: bool,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct WebRendererSpec {
-    pub instance_id: RendererId,
     pub url: String,
     pub resolution: Resolution,
     pub embedding_method: WebEmbeddingMethod,

@@ -21,9 +21,8 @@ pub struct Shader {
     clear_color: Option<wgpu::Color>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ShaderSpec {
-    pub shader_id: RendererId,
     pub source: Arc<str>,
 }
 

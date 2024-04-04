@@ -55,10 +55,8 @@ fn start_example_client_code() -> Result<()> {
     let shader_source = include_str!("./silly.wgsl");
     info!("[example] Register shader transform");
     common::post(
-        "renderer/register",
+        "shader/shader_example_1/register",
         &json!({
-            "type": "shader",
-            "shader_id": "shader_example_1",
             "source": shader_source,
         }),
     )?;

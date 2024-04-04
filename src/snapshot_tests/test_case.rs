@@ -4,18 +4,18 @@ use super::utils::{create_renderer, frame_to_rgba, snaphot_save_path, snapshots_
 
 use anyhow::Result;
 use compositor_render::{
-    scene::RGBColor, Frame, FrameSet, InputId, OutputId, Renderer, RendererSpec, Resolution,
-    YuvData,
+    scene::RGBColor, Frame, FrameSet, InputId, OutputId, Renderer, RendererId, RendererSpec,
+    Resolution, YuvData,
 };
 use image::ImageBuffer;
-use video_compositor::types::{self, RegisterRequest};
+use video_compositor::types::{self};
 
 pub(super) const OUTPUT_ID: &str = "output_id";
 
 pub struct TestCase {
     pub name: &'static str,
     pub inputs: Vec<TestInput>,
-    pub renderers: Vec<&'static str>,
+    pub renderers: Vec<(RendererId, RendererSpec)>,
     pub timestamps: Vec<Duration>,
     pub scene_updates: Updates,
     pub only: bool,
@@ -48,32 +48,13 @@ pub struct TestCaseInstance {
 
 impl TestCaseInstance {
     pub fn new(test_case: TestCase) -> TestCaseInstance {
-        fn register_requests_to_renderers(register_request: RegisterRequest) -> RendererSpec {
-            match register_request {
-                RegisterRequest::Mp4(_)
-                | RegisterRequest::RtpInputStream(_)
-                | RegisterRequest::OutputStream(_) => {
-                    panic!("Input and output streams are not supported in snapshot tests")
-                }
-                RegisterRequest::Shader(shader) => shader.try_into().unwrap(),
-                RegisterRequest::WebRenderer(web_renderer) => web_renderer.try_into().unwrap(),
-                RegisterRequest::Image(img) => img.try_into().unwrap(),
-            }
-        }
-
         if test_case.name.is_empty() {
             panic!("Snapshot test name has to be provided");
         }
 
         let mut renderer = create_renderer();
-        for json in test_case.renderers.iter() {
-            let spec = register_requests_to_renderers(
-                serde_json::from_str::<RegisterRequest>(json).unwrap(),
-            );
-            if matches!(spec, RendererSpec::WebRenderer(_)) {
-                panic!("Tests with web renderer are not supported");
-            }
-            renderer.register_renderer(spec).unwrap();
+        for (id, spec) in test_case.renderers.iter() {
+            renderer.register_renderer(id.clone(), spec.clone()).unwrap();
         }
 
         for (index, _) in test_case.inputs.iter().enumerate() {

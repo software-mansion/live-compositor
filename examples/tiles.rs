@@ -74,9 +74,9 @@ fn start_example_client_code() -> Result<()> {
 
     info!("[example] Send register output request.");
     common::post(
-        "output/output_1/rtp-stream",
+        "output/output_1/register",
         &json!({
-            "output_id": "output_1",
+            "type": "rtp_stream",
             "ip": IP,
             "port": OUTPUT_PORT,
             "video": {
@@ -93,7 +93,7 @@ fn start_example_client_code() -> Result<()> {
     for i in 1..=16 {
         info!("[example] Update output");
         common::post(
-            "output/rtp-stream/output_1",
+            "output/output_1/update",
             &json!({
                 "video": scene_with_inputs(i),
                 "schedule_time_ms": i * 1000,
@@ -110,7 +110,7 @@ fn start_example_client_code() -> Result<()> {
     for i in 0..16 {
         info!("[example] Update output");
         common::post(
-            "output/rtp-stream/output_1",
+            "output/output_1/update",
             &json!({
                 "video": scene_with_inputs(16 - i),
                 "schedule_time_ms": (20 + i) * 1000,
@@ -120,7 +120,7 @@ fn start_example_client_code() -> Result<()> {
 
     info!("[example] Update output");
     common::post(
-        "output/rtp-stream/output_1",
+        "output/output_1/update",
         &json!({
             "video": scene_with_inputs(4),
             "schedule_time_ms": 40 * 1000,

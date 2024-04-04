@@ -186,10 +186,11 @@ impl Pipeline {
 
     pub fn register_renderer(
         pipeline: &Arc<Mutex<Self>>,
+        renderer_id: RendererId,
         transformation_spec: RendererSpec,
     ) -> Result<(), RegisterRendererError> {
         let renderer = pipeline.lock().unwrap().renderer.clone();
-        renderer.register_renderer(transformation_spec)?;
+        renderer.register_renderer(renderer_id, transformation_spec)?;
         Ok(())
     }
 

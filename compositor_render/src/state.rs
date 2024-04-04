@@ -71,7 +71,7 @@ pub(crate) struct RegisterCtx {
 /// RendererSpec provides configuration necessary to construct Renderer. Renderers
 /// are entities like shader, image or chromium_instance and can be used by nodes
 /// to transform or generate frames.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum RendererSpec {
     Shader(shader::ShaderSpec),
     WebRenderer(web_renderer::WebRendererSpec),
@@ -109,39 +109,33 @@ impl Renderer {
         self.0.lock().unwrap().scene.unregister_output(output_id)
     }
 
-    pub fn register_renderer(&self, spec: RendererSpec) -> Result<(), RegisterRendererError> {
+    pub fn register_renderer(
+        &self,
+        id: RendererId,
+        spec: RendererSpec,
+    ) -> Result<(), RegisterRendererError> {
         let ctx = self.0.lock().unwrap().register_ctx();
         match spec {
             RendererSpec::Shader(spec) => {
-                let shader_id = spec.shader_id.clone();
-
                 let shader = Shader::new(&ctx.wgpu_ctx, spec)
-                    .map_err(|err| RegisterRendererError::Shader(err, shader_id.clone()))?;
+                    .map_err(|err| RegisterRendererError::Shader(err, id.clone()))?;
 
                 let mut guard = self.0.lock().unwrap();
-                Ok(guard
-                    .renderers
-                    .shaders
-                    .register(shader_id, Arc::new(shader))?)
+                Ok(guard.renderers.shaders.register(id, Arc::new(shader))?)
             }
             RendererSpec::WebRenderer(params) => {
-                let instance_id = params.instance_id.clone();
-                let web = WebRenderer::new(&ctx, params)
-                    .map_err(|err| RegisterRendererError::Web(err, instance_id.clone()))?;
+                let web = WebRenderer::new(&ctx, &id, params)
+                    .map_err(|err| RegisterRendererError::Web(err, id.clone()))?;
 
                 let mut guard = self.0.lock().unwrap();
-                Ok(guard
-                    .renderers
-                    .web_renderers
-                    .register(instance_id, Arc::new(web))?)
+                Ok(guard.renderers.web_renderers.register(id, Arc::new(web))?)
             }
             RendererSpec::Image(spec) => {
-                let image_id = spec.image_id.clone();
                 let asset = Image::new(&ctx, spec)
-                    .map_err(|err| RegisterRendererError::Image(err, image_id.clone()))?;
+                    .map_err(|err| RegisterRendererError::Image(err, id.clone()))?;
 
                 let mut guard = self.0.lock().unwrap();
-                Ok(guard.renderers.images.register(image_id, asset)?)
+                Ok(guard.renderers.images.register(id, asset)?)
             }
         }
     }

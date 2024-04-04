@@ -97,24 +97,29 @@ pub(super) async fn handle_output(
     Ok(Response::Ok {})
 }
 
-pub(super) async fn handle_renderer(
+pub(super) async fn handle_shader(
     State(api): State<ApiState>,
-    Json(request): Json<UnregisterRenderer>,
+    Path(shader_id): Path<RendererId>,
 ) -> Result<Response, ApiError> {
-    match request {
-        UnregisterRenderer::Shader { shader_id } => {
-            api.pipeline()
-                .unregister_renderer(&shader_id.into(), RegistryType::Shader)?;
-        }
-        UnregisterRenderer::WebRenderer { instance_id } => {
-            api.pipeline()
-                .unregister_renderer(&instance_id.into(), RegistryType::WebRenderer)?;
-        }
-        UnregisterRenderer::Image { image_id } => {
-            api.pipeline()
-                .unregister_renderer(&image_id.into(), RegistryType::Image)?;
-        }
-    }
+    api.pipeline()
+        .unregister_renderer(&shader_id.into(), RegistryType::Shader)?;
+    Ok(Response::Ok {})
+}
 
+pub(super) async fn handle_web_renderer(
+    State(api): State<ApiState>,
+    Path(instance_id): Path<RendererId>,
+) -> Result<Response, ApiError> {
+    api.pipeline()
+        .unregister_renderer(&instance_id.into(), RegistryType::WebRenderer)?;
+    Ok(Response::Ok {})
+}
+
+pub(super) async fn handle_image(
+    State(api): State<ApiState>,
+    Path(image_id): Path<RendererId>,
+) -> Result<Response, ApiError> {
+    api.pipeline()
+        .unregister_renderer(&image_id.into(), RegistryType::Image)?;
     Ok(Response::Ok {})
 }

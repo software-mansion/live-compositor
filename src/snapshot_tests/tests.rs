@@ -1,6 +1,10 @@
 use std::time::Duration;
 
-use compositor_render::Resolution;
+use compositor_render::{
+    image::{ImageSource, ImageSpec, ImageType},
+    shader::ShaderSpec,
+    RendererId, RendererSpec, Resolution,
+};
 use serde_json::{json, Value};
 
 use super::test_case::{TestCase, TestInput, Updates};
@@ -99,14 +103,11 @@ fn shader_user_params_snapshot_tests() -> Vec<TestCase> {
     const BLUE: [f32; 4] = [0.0, 0.0, 1.0, 1.0];
     const WHITE: [f32; 4] = [1.0, 1.0, 1.0, 1.0];
 
-    let circle_layout_shader = Box::new(
-        json!({
-            "type": "register",
-            "entity_type": "shader",
-            "shader_id": "user_params_circle_layout",
-            "source": include_str!("../../snapshot_tests/shader/circle_layout.wgsl")
-        })
-        .to_string(),
+    let circle_layout_shader = (
+        RendererId("user_params_circle_layout".into()),
+        RendererSpec::Shader(ShaderSpec {
+            source: include_str!("../../snapshot_tests/shader/circle_layout.wgsl").into(),
+        }),
     );
 
     let layout1 = CircleLayout {
@@ -183,7 +184,7 @@ fn shader_user_params_snapshot_tests() -> Vec<TestCase> {
     Vec::from([TestCase {
         name: "shader/user_params_circle_layout",
         scene_updates: Updates::Scene(circle_layout_scene.leak(), DEFAULT_RESOLUTION),
-        renderers: vec![circle_layout_shader.leak()],
+        renderers: vec![circle_layout_shader],
         inputs,
         ..Default::default()
     }])
@@ -196,42 +197,35 @@ fn shader_base_params_snapshot_tests() -> Vec<TestCase> {
     let input4 = TestInput::new(4);
     let input5 = TestInput::new(5);
 
-    let plane_id_shader = Box::new(
-        json!({
-            "type": "register",
-            "entity_type": "shader",
-            "shader_id": "base_params_plane_id",
-            "source": include_str!("../../snapshot_tests/shader/layout_planes.wgsl")
-        })
-        .to_string(),
+    let plane_id_shader = (
+        RendererId("base_params_plane_id".into()),
+        RendererSpec::Shader(ShaderSpec {
+            source: include_str!("../../snapshot_tests/shader/layout_planes.wgsl").into(),
+        }),
     );
 
-    let time_shader = Box::new(
-        json!({
-            "type": "register",
-            "entity_type": "shader",
-            "shader_id": "base_params_time",
-            "source": include_str!("../../snapshot_tests/shader/fade_to_ball.wgsl")
-        })
-        .to_string(),
+    let time_shader = (
+        RendererId("base_params_time".into()),
+        RendererSpec::Shader(ShaderSpec {
+            source: include_str!("../../snapshot_tests/shader/fade_to_ball.wgsl").into(),
+        }),
     );
 
-    let texture_count_shader = Box::new(json!({
-            "type": "register",
-            "entity_type": "shader",
-            "shader_id": "base_params_texture_count",
-            "source": include_str!("../../snapshot_tests/shader/color_output_with_texture_count.wgsl")
-        })
-        .to_string());
+    let texture_count_shader = (
+        RendererId("base_params_texture_count".into()),
+        RendererSpec::Shader(ShaderSpec {
+            source: include_str!(
+                "../../snapshot_tests/shader/color_output_with_texture_count.wgsl"
+            )
+            .into(),
+        }),
+    );
 
-    let output_resolution_shader = Box::new(
-        json!({
-            "type": "register",
-            "entity_type": "shader",
-            "shader_id": "base_params_output_resolution",
-            "source": include_str!("../../snapshot_tests/shader/red_border.wgsl")
-        })
-        .to_string(),
+    let output_resolution_shader = (
+        RendererId("base_params_output_resolution".into()),
+        RendererSpec::Shader(ShaderSpec {
+            source: include_str!("../../snapshot_tests/shader/red_border.wgsl").into(),
+        }),
     );
 
     Vec::from([
@@ -243,7 +237,7 @@ fn shader_base_params_snapshot_tests() -> Vec<TestCase> {
                 ),
                 DEFAULT_RESOLUTION,
             ),
-            renderers: vec![plane_id_shader.clone().leak()],
+            renderers: vec![plane_id_shader.clone()],
             ..Default::default()
         },
         TestCase {
@@ -254,7 +248,7 @@ fn shader_base_params_snapshot_tests() -> Vec<TestCase> {
                 ),
                 DEFAULT_RESOLUTION,
             ),
-            renderers: vec![plane_id_shader.clone().leak()],
+            renderers: vec![plane_id_shader.clone()],
             inputs: vec![
                 input1.clone(),
                 input2.clone(),
@@ -270,7 +264,7 @@ fn shader_base_params_snapshot_tests() -> Vec<TestCase> {
                 include_str!("../../snapshot_tests/shader/base_params_time.scene.json"),
                 DEFAULT_RESOLUTION,
             ),
-            renderers: vec![time_shader.clone().leak()],
+            renderers: vec![time_shader.clone()],
             inputs: vec![input1.clone()],
             timestamps: vec![
                 Duration::from_secs(0),
@@ -287,7 +281,7 @@ fn shader_base_params_snapshot_tests() -> Vec<TestCase> {
                 ),
                 DEFAULT_RESOLUTION,
             ),
-            renderers: vec![output_resolution_shader.clone().leak()],
+            renderers: vec![output_resolution_shader.clone()],
             inputs: vec![input1.clone()],
             ..Default::default()
         },
@@ -299,7 +293,7 @@ fn shader_base_params_snapshot_tests() -> Vec<TestCase> {
                 ),
                 DEFAULT_RESOLUTION,
             ),
-            renderers: vec![texture_count_shader.clone().leak()],
+            renderers: vec![texture_count_shader.clone()],
             ..Default::default()
         },
         TestCase {
@@ -310,7 +304,7 @@ fn shader_base_params_snapshot_tests() -> Vec<TestCase> {
                 ),
                 DEFAULT_RESOLUTION,
             ),
-            renderers: vec![texture_count_shader.clone().leak()],
+            renderers: vec![texture_count_shader.clone()],
             inputs: vec![input1.clone()],
             ..Default::default()
         },
@@ -322,7 +316,7 @@ fn shader_base_params_snapshot_tests() -> Vec<TestCase> {
                 ),
                 DEFAULT_RESOLUTION,
             ),
-            renderers: vec![texture_count_shader.clone().leak()],
+            renderers: vec![texture_count_shader.clone()],
             inputs: vec![input1.clone(), input2.clone()],
             ..Default::default()
         },
@@ -1120,7 +1114,15 @@ fn text_snapshot_tests() -> Vec<TestCase> {
 }
 
 fn image_snapshot_tests() -> Vec<TestCase> {
-    let image_renderer = include_str!("../../snapshot_tests/register/image_jpeg.register.json");
+    let image_renderer = (
+        RendererId("image_jpeg".into()),
+        RendererSpec::Image(ImageSpec {
+            src: ImageSource::Url {
+                url: "https://www.rust-lang.org/static/images/rust-social.jpg".to_string(),
+            },
+            image_type: ImageType::Jpeg,
+        }),
+    );
 
     Vec::from([
         TestCase {
@@ -1129,7 +1131,7 @@ fn image_snapshot_tests() -> Vec<TestCase> {
                 include_str!("../../snapshot_tests/image/jpeg_as_root.scene.json"),
                 DEFAULT_RESOLUTION,
             ),
-            renderers: vec![image_renderer],
+            renderers: vec![image_renderer.clone()],
             inputs: vec![TestInput::new(1)],
             ..Default::default()
         },
@@ -1139,7 +1141,7 @@ fn image_snapshot_tests() -> Vec<TestCase> {
                 include_str!("../../snapshot_tests/image/jpeg_in_view.scene.json"),
                 DEFAULT_RESOLUTION,
             ),
-            renderers: vec![image_renderer],
+            renderers: vec![image_renderer.clone()],
             inputs: vec![TestInput::new(1)],
             ..Default::default()
         },
@@ -1149,7 +1151,7 @@ fn image_snapshot_tests() -> Vec<TestCase> {
                 include_str!("../../snapshot_tests/image/jpeg_in_view_overflow_fit.scene.json"),
                 DEFAULT_RESOLUTION,
             ),
-            renderers: vec![image_renderer],
+            renderers: vec![image_renderer.clone()],
             inputs: vec![TestInput::new(1)],
             ..Default::default()
         },

@@ -9,16 +9,6 @@ use super::renderer::*;
 use super::util::*;
 use super::*;
 
-#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-#[serde(tag = "entity_type", rename_all = "snake_case")]
-pub enum RegisterRequest {
-    RtpInputStream(RtpInputStream),
-    Mp4(Mp4),
-    OutputStream(RegisterOutputRequest),
-    Shader(ShaderSpec),
-    WebRenderer(WebRendererSpec),
-    Image(ImageSpec),
-}
 
 /// Parameters for an input stream from RTP source.
 /// At least one of `video` and `audio` has to be defined.

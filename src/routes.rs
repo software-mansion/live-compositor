@@ -22,37 +22,41 @@ mod update_output;
 mod ws;
 
 pub fn routes(state: ApiState) -> Router {
+    let inputs = Router::new()
+        .route("/:id/register", post(register_request::handle_input))
+        .route("/:id/unregister", post(unregister_request::handle_input));
+
+    let outputs = Router::new()
+        .route("/:id/register", post(register_request::handle_output))
+        .route("/:id/unregister", post(unregister_request::handle_output))
+        .route("/:id/update", post(handle_output_update));
+
+    let image = Router::new()
+        .route("/:id/register", post(register_request::handle_image))
+        .route("/:id/unregister", post(unregister_request::handle_image));
+
+    let web = Router::new()
+        .route("/:id/register", post(register_request::handle_web_renderer))
+        .route(
+            "/:id/unregister",
+            post(unregister_request::handle_web_renderer),
+        );
+
+    let shader = Router::new()
+        .route("/:id/register", post(register_request::handle_shader))
+        .route("/:id/unregister", post(unregister_request::handle_shader));
+
     async fn handle_start(State(state): State<ApiState>) -> Result<Response, ApiError> {
         Pipeline::start(&state.pipeline);
         Ok(Response::Ok {})
     }
 
     Router::new()
-        .route(
-            "/api/input/:id/register",
-            post(register_request::handle_input),
-        )
-        .route(
-            "/api/output/:id/register",
-            post(register_request::handle_output),
-        )
-        .route(
-            "/api/renderer/register",
-            post(register_request::handle_renderer),
-        )
-        .route(
-            "/api/input/:id/unregister",
-            post(unregister_request::handle_input),
-        )
-        .route(
-            "/api/output/:id/unregister",
-            post(unregister_request::handle_output),
-        )
-        .route(
-            "/api/renderer/unregister",
-            post(unregister_request::handle_renderer),
-        )
-        .route("/api/output/:id/update", post(handle_output_update))
+        .nest("/api/input", inputs)
+        .nest("/api/output", outputs)
+        .nest("/api/image", image)
+        .nest("/api/web-renderer", web)
+        .nest("/api/shader", shader)
         // Start request
         .route("/api/start", post(handle_start))
         // WebSocket - events
