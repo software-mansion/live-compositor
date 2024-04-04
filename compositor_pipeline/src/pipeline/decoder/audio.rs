@@ -1,9 +1,9 @@
-use std::{sync::Arc, time::Duration};
+use std::{fmt, sync::Arc, time::Duration};
 
 use compositor_render::InputId;
 use crossbeam_channel::{bounded, Receiver, Sender};
 use log::{debug, error};
-use tracing::{span, Level};
+use tracing::{span, trace, Level};
 
 extern crate opus as lib_opus;
 use crate::{
@@ -20,11 +20,20 @@ mod fdk_aac;
 mod opus;
 mod resampler;
 
-#[derive(Debug)]
 struct DecodedSamples {
     samples: Arc<Vec<(i16, i16)>>,
     start_pts: Duration,
     sample_rate: u32,
+}
+
+impl fmt::Debug for DecodedSamples {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("audio::DecodedSamples")
+            .field("samples", &format!("len={}", self.samples.len()))
+            .field("start_pts", &self.start_pts)
+            .field("sample_rate", &self.sample_rate)
+            .finish()
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -57,7 +66,8 @@ pub fn start_audio_decoder_thread(
                 Level::INFO,
                 "Audio decoder",
                 input_id = input_id.to_string()
-            );
+            )
+            .entered();
 
             run_decoder_thread(
                 opts,
@@ -211,6 +221,7 @@ fn run_decoding_loop<Decoder, F>(
             }
         };
 
+        trace!(?decoded_samples_vec, "Audio decoder produced samples");
         for decoded_samples in decoded_samples_vec {
             for input_samples in resampler.resample(decoded_samples) {
                 samples_sender(input_samples)

@@ -3,6 +3,7 @@ use std::time::Duration;
 
 use log::{debug, error};
 use rubato::{FftFixedOut, Resampler as _};
+use tracing::trace;
 
 use crate::{audio_mixer::InputSamples, error::DecoderInitError};
 
@@ -154,6 +155,7 @@ impl FftResampler {
             }
         }
 
+        trace!(?resampled, "FFT resampler produced samples.");
         resampled
     }
 
