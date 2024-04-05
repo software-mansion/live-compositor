@@ -3,7 +3,7 @@ use serde_json::json;
 use std::time::Duration;
 
 use crate::{
-    audio_decoder::AudioChannels, compare_audio_dumps, input_dump_from_disk, CommunicationProtocol,
+    compare_audio_dumps, input_dump_from_disk, AudioValidationConfig, CommunicationProtocol,
     CompositorInstance, OutputReceiver, PacketSender,
 };
 
@@ -90,12 +90,13 @@ pub fn audio_mixing() -> Result<()> {
     compare_audio_dumps(
         OUTPUT_DUMP_FILE,
         &new_output_dump,
-        &[
-            Duration::from_millis(500)..Duration::from_millis(1500),
-            Duration::from_millis(2500)..Duration::from_millis(3500),
-        ],
-        4.0,
-        AudioChannels::Stereo,
+        AudioValidationConfig {
+            sampling_intervals: vec![
+                Duration::from_millis(500)..Duration::from_millis(1500),
+                Duration::from_millis(2500)..Duration::from_millis(3500),
+            ],
+            ..Default::default()
+        },
     )?;
 
     Ok(())

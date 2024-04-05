@@ -1,5 +1,6 @@
 use anyhow::{anyhow, Result};
 use compositor_render::use_global_wgpu_ctx;
+use crossbeam_channel::Sender;
 use reqwest::StatusCode;
 use std::{
     env,
@@ -7,18 +8,25 @@ use std::{
         atomic::{AtomicU16, Ordering},
         OnceLock,
     },
-    thread,
     time::{Duration, Instant},
 };
+use tracing::info;
 use video_compositor::{
     config::{read_config, LoggerConfig, LoggerFormat},
     logger::{self, FfmpegLogLevel},
-    server,
+    server::start_api,
 };
 
 pub struct CompositorInstance {
     pub api_port: u16,
     pub http_client: reqwest::blocking::Client,
+    pub should_close_sender: Sender<()>,
+}
+
+impl Drop for CompositorInstance {
+    fn drop(&mut self) {
+        self.should_close_sender.send(()).unwrap();
+    }
 }
 
 impl CompositorInstance {
@@ -28,14 +36,13 @@ impl CompositorInstance {
         let mut config = read_config();
         config.api_port = api_port;
 
-        thread::Builder::new()
-            .name(format!("compositor instance on port {api_port}"))
-            .spawn(move || server::run_with_config(config))
-            .unwrap();
+        info!("Starting LiveCompositor Integration Test with config:\n{config:#?}",);
 
+        let (_event_loop, should_close_sender) = start_api(config);
         let instance = CompositorInstance {
             api_port,
             http_client: reqwest::blocking::Client::new(),
+            should_close_sender,
         };
         instance.wait_for_start(Duration::from_secs(30)).unwrap();
         instance

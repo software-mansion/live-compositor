@@ -2,7 +2,7 @@ use std::{thread, time::Duration};
 
 use crate::{
     compare_video_dumps, input_dump_from_disk, CommunicationProtocol, CompositorInstance,
-    OutputReceiver, PacketSender,
+    OutputReceiver, PacketSender, VideoValidationConfig,
 };
 use anyhow::Result;
 use serde_json::json;
@@ -79,8 +79,10 @@ pub fn unregistering() -> Result<()> {
     compare_video_dumps(
         OUTPUT_DUMP_FILE,
         &new_output_dump,
-        &[Duration::from_secs(1), Duration::from_secs(3)],
-        20.0,
+        VideoValidationConfig {
+            allowed_invalid_frames: 1,
+            ..Default::default()
+        },
     )?;
 
     Ok(())

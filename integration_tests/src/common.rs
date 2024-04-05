@@ -83,3 +83,62 @@ pub fn split_rtp_packet_dump(dump: Bytes, split_at_pts: Duration) -> Result<(Byt
 
     Ok((dump, Bytes::new()))
 }
+
+pub fn save_failed_test_dumps<P: AsRef<Path>>(
+    expected_dump: &Bytes,
+    actual_dump: &Bytes,
+    snapshot_filename: P,
+) {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap()
+        .join("failed_snapshot_tests");
+
+    let _ = fs::create_dir_all(&path);
+
+    let file_name = snapshot_filename
+        .as_ref()
+        .file_name()
+        .unwrap()
+        .to_string_lossy();
+
+    fs::write(
+        path.join(format!("expected_dump_{file_name}")),
+        expected_dump,
+    )
+    .unwrap();
+    fs::write(path.join(format!("actual_dump_{file_name}")), actual_dump).unwrap();
+}
+
+pub fn find_packets_for_payload_type(
+    packets: &[rtp::packet::Packet],
+    payload_type: u8,
+) -> Vec<rtp::packet::Packet> {
+    packets
+        .iter()
+        .filter(|p| p.header.payload_type == payload_type)
+        .cloned()
+        .collect()
+}
+
+pub fn unmarshal_packets(data: &Bytes) -> Result<Vec<rtp::packet::Packet>> {
+    let mut packets = Vec::new();
+    let mut read_bytes = 0;
+    while read_bytes < data.len() {
+        let packet_size = u16::from_be_bytes([data[read_bytes], data[read_bytes + 1]]) as usize;
+        read_bytes += 2;
+
+        if data.len() < read_bytes + packet_size {
+            break;
+        }
+
+        // TODO(noituri): Goodbye packet
+        let packet =
+            rtp::packet::Packet::unmarshal(&mut &data[read_bytes..(read_bytes + packet_size)])?;
+        read_bytes += packet_size;
+
+        packets.push(packet);
+    }
+
+    Ok(packets)
+}

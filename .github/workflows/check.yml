@@ -65,7 +65,7 @@ jobs:
             - name: 🧪 Run tests
               run: |
                 cargo clean
-                cargo test --no-fail-fast --workspace
+                cargo test -r --no-fail-fast --workspace -- --test-threads=$(($(nproc --all) / 2))
 
             - name: 🖋️ Run website lint + typecheck + build
               working-directory: ./docs

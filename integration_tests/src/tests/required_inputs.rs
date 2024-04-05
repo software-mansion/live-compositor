@@ -2,7 +2,7 @@ use std::{thread, time::Duration};
 
 use crate::{
     compare_video_dumps, input_dump_from_disk, split_rtp_packet_dump, CommunicationProtocol,
-    CompositorInstance, OutputReceiver, PacketSender,
+    CompositorInstance, OutputReceiver, PacketSender, VideoValidationConfig,
 };
 use anyhow::Result;
 use serde_json::json;
@@ -104,8 +104,10 @@ pub fn required_inputs() -> Result<()> {
     compare_video_dumps(
         OUTPUT_DUMP_FILE,
         &new_output_dump,
-        &[Duration::from_millis(1200)],
-        20.0,
+        VideoValidationConfig {
+            validation_intervals: vec![Duration::from_millis(0)..Duration::from_millis(1200)],
+            ..Default::default()
+        },
     )?;
 
     Ok(())
