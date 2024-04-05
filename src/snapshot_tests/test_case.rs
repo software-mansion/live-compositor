@@ -10,7 +10,7 @@ use compositor_render::{
 use image::ImageBuffer;
 use video_compositor::types::{self};
 
-pub(super) const OUTPUT_ID: &str = "output_id";
+pub(super) const OUTPUT_ID: &str = "output_1";
 
 pub struct TestCase {
     pub name: &'static str,
