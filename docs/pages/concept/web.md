@@ -28,11 +28,11 @@ There are 3 embedding methods available:
 `native_embedding_over_content` is the default embedding method.
 You can change it in the [register renderer request](../api/routes.md#register-web-renderer-instance). For example:
 
-```typescript
+```http
+POST: /api/web-renderer/example_website/register
+Content-Type: application/json
+
 {
-    "type": "register",
-    "entity_type": "web_renderer",
-    "instance_id": "example_website",
     "url": "https://example.com",
     "resolution": {
         "width": 1920,
@@ -47,11 +47,11 @@ You can change it in the [register renderer request](../api/routes.md#register-w
 
 Firstly, the web renderer instance has to be registered:
 
-```typescript
+```http
+POST: /api/web-renderer/example_website/register
+Content-Type: application/json
+
 {
-    "type": "register",
-    "entity_type": "web_renderer",
-    "instance_id": "example_website",
     "url": "https://example.com",
     "resolution": {
         "width": 1920,
@@ -66,18 +66,15 @@ Firstly, the web renderer instance has to be registered:
 
 We can define a scene with a web view component that refers to the previously registered renderer instance using `instance_id` field:
 
-```typescript
+```http
+POST: /api/output/output_1/update
+Content-Type: application/json
+
 {
-    "type": "update_output",
-    "outputs": [
-        {
-            "output_id": "output_1",
-            "scene": {
-                "id": "embed_input_on_website",
-                "type": "web_view",
-                "instance_id": "example_website",
-            }
-        }
+    "video": [
+        "id": "embed_input_on_website",
+        "type": "web_view",
+        "instance_id": "example_website",
     ]
 }
 ```
@@ -93,28 +90,25 @@ Only one web view component can use a specific web renderer instance at the same
 The above request defines a simple scene which displays a website.
 Now, we can modify that request and embed an input stream into the website:
 
-```typescript
+```http
+POST: /api/output/output_1/update
+Content-Type: application/json
+
 {
-    "type": "update_output",
-    "outputs": [
-        {
-            "output_id": "output_1",
-            "scene": {
-                "id": "embed_input_on_website",
-                "type": "web_view",
-                "instance_id": "example_website",
-                // highlight-start
-                "children": [
-                    {
-                        "id": "my_video",
-                        "type": "input_stream",
-                        "input_id": "input_1",
-                    }
-                ]
-                // highlight-end
+    "video": {
+        "id": "embed_input_on_website",
+        "type": "web_view",
+        "instance_id": "example_website",
+        // highlight-start
+        "children": [
+            {
+                "id": "my_video",
+                "type": "input_stream",
+                "input_id": "input_1",
             }
-        }
-    ],
+        ]
+        // highlight-end
+    }
 }
 ```
 

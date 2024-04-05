@@ -8,7 +8,7 @@ API is served by default on the port 8081. Different port can be configured usin
 
 ## Start request
 
-```
+```http
 POST: /api/start
 ```
 
@@ -24,7 +24,7 @@ Starts the processing pipeline. If outputs are registered and defined in the sce
 
 ### Register output
 
-```
+```http
 POST: /api/output/:output_id/register
 ```
 
@@ -42,7 +42,7 @@ Register external destination that can be used as a compositor output.
 
 ### Unregister output
 
-```
+```http
 POST /api/output/:output_id/unregister
 ```
 
@@ -58,7 +58,7 @@ Unregister a previously registered output with an id `:output_id`.
 
 ### Update output
 
-```
+```http
 POST: /api/output/:output_id/update
 ```
 
@@ -91,7 +91,7 @@ Update scene definition and audio mixer configuration for output with ID `:outpu
 
 ### Register input
 
-```
+```http
 POST: /api/input/:input_id/register
 ```
 
@@ -109,7 +109,7 @@ Register external source that can be used as a compositor input. See inputs docu
 
 ### Unregister input
 
-```
+```http
 POST: /api/input/:input_id/unregister
 ```
 
@@ -129,7 +129,7 @@ Unregister a previously registered input with an id `:input_id`.
 
 ### Register image
 
-```
+```http
 POST: /api/image/:image_id/register
 ```
 
@@ -137,7 +137,7 @@ Register an image asset. Request body is defined in the [image](./renderers/imag
 
 ### Unregister image
 
-```
+```http
 POST: /api/image/:image_id/unregister
 ```
 
@@ -149,7 +149,7 @@ Unregister a previously registered image asset with an id `:image_id`.
 
 ### Register shader
 
-```
+```http
 POST: /api/shader/:shader_id/register
 ```
 
@@ -157,7 +157,7 @@ Register a shader. Request body is defined in the [shader](./renderers/shader.md
 
 ### Unregister shader
 
-```
+```http
 POST: /api/shader/:shader_id/unregister
 ```
 
@@ -169,7 +169,7 @@ Unregister a previously registered shader with an id `:shader_id`.
 
 ### Register web renderer instance
 
-```
+```http
 POST: /api/web-renderer/:instance_id/register
 ```
 
@@ -177,7 +177,7 @@ Register a web renderer instance. Request body is defined in the [web renderer](
 
 ### Unregister web renderer instance
 
-```
+```http
 POST: /api/web-renderer/:instance_id/unregister
 ```
 
@@ -189,7 +189,7 @@ Unregister a previously registered web renderer instance with an id `:instance_i
 
 ## Status endpoint 
 
-```
+```http
 GET: /status
 ```
 
@@ -205,7 +205,7 @@ Status/health check endpoint. Returns `200 OK`.
 
 ## WebSocket endpoint 
 
-```
+```http
 /ws
 ```
 
