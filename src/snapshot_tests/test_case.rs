@@ -54,7 +54,9 @@ impl TestCaseInstance {
 
         let mut renderer = create_renderer();
         for (id, spec) in test_case.renderers.iter() {
-            renderer.register_renderer(id.clone(), spec.clone()).unwrap();
+            renderer
+                .register_renderer(id.clone(), spec.clone())
+                .unwrap();
         }
 
         for (index, _) in test_case.inputs.iter().enumerate() {

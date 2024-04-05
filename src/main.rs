@@ -1,11 +1,11 @@
 use log::info;
 
-mod state;
 mod config;
 mod error;
 mod logger;
 mod routes;
 mod server;
+mod state;
 mod types;
 
 #[cfg(test)]

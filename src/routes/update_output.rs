@@ -5,8 +5,8 @@ use compositor_render::error::ErrorStack;
 use tracing::error;
 
 use crate::{
-    state::{ApiState, Response},
     error::ApiError,
+    state::{ApiState, Response},
     types::{OutputId, UpdateOutputRequest},
 };
 

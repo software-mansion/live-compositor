@@ -8,12 +8,15 @@ use bytes::Bytes;
 use log::info;
 
 use crate::{
-    state::{RegisterCtx, RenderCtx}, transformations::web_renderer::{
+    state::{RegisterCtx, RenderCtx},
+    transformations::web_renderer::{
         browser_client::BrowserClient, chromium_sender::ChromiumSender,
-    }, wgpu::{
+    },
+    wgpu::{
         common_pipeline::CreateShaderError,
         texture::{BGRATexture, NodeTexture, Texture},
-    }, RendererId, Resolution
+    },
+    RendererId, Resolution,
 };
 
 use super::{

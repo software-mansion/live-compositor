@@ -36,35 +36,35 @@ fn start_example_client_code() -> Result<()> {
     start_websocket_thread();
 
     info!("[example] Register static images");
-    common::post(&json!({
-        "type": "register",
-        "entity_type": "image",
-        "image_id": "example_gif",
-        "asset_type": "gif",
-        "url": "https://gifdb.com/images/high/rust-logo-on-fire-o41c0v9om8drr8dv.gif",
-    }))?;
-    common::post(&json!({
-        "type": "register",
-        "entity_type": "image",
-        "image_id": "example_jpeg",
-        "asset_type": "jpeg",
-        "url": "https://www.rust-lang.org/static/images/rust-social.jpg",
-    }))?;
-    common::post(&json!({
-        "type": "register",
-        "entity_type": "image",
-        "asset_type": "svg",
-        "image_id": "example_svg",
-        "path": PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("examples/assets/rust.svg"),
-        "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.width},
-    }))?;
-    common::post(&json!({
-        "type": "register",
-        "entity_type": "image",
-        "asset_type": "png",
-        "image_id": "example_png",
-        "url": "https://rust-lang.org/logos/rust-logo-512x512.png",
-    }))?;
+    common::post(
+        "image/example_gif/register",
+        &json!({
+            "asset_type": "gif",
+            "url": "https://gifdb.com/images/high/rust-logo-on-fire-o41c0v9om8drr8dv.gif",
+        }),
+    )?;
+    common::post(
+        "image/example_jpeg/register",
+        &json!({
+            "asset_type": "jpeg",
+            "url": "https://www.rust-lang.org/static/images/rust-social.jpg",
+        }),
+    )?;
+    common::post(
+        "image/example_svg/register",
+        &json!({
+            "asset_type": "svg",
+            "path": PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("examples/assets/rust.svg"),
+            "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.width},
+        }),
+    )?;
+    common::post(
+        "image/example_png/register",
+        &json!({
+            "asset_type": "png",
+            "url": "https://rust-lang.org/logos/rust-logo-512x512.png",
+        }),
+    )?;
 
     let new_image = |image_id, label| {
         json!({
@@ -110,26 +110,25 @@ fn start_example_client_code() -> Result<()> {
     });
 
     info!("[example] Send register output request.");
-    common::post(&json!({
-        "type": "register",
-        "entity_type": "output_stream",
-        "output_id": "output_1",
-        "port": 8002,
-        "ip": "127.0.0.1",
-        "video": {
-            "resolution": {
-                "width": VIDEO_RESOLUTION.width,
-                "height": VIDEO_RESOLUTION.height,
-            },
-            "encoder_preset": "ultrafast",
-            "initial": scene
-        }
-    }))?;
+    common::post(
+        "output/output_1/register",
+        &json!({
+            "type": "rtp_stream",
+            "port": 8002,
+            "ip": "127.0.0.1",
+            "video": {
+                "resolution": {
+                    "width": VIDEO_RESOLUTION.width,
+                    "height": VIDEO_RESOLUTION.height,
+                },
+                "encoder_preset": "ultrafast",
+                "initial": scene
+            }
+        }),
+    )?;
 
     info!("[example] Start pipeline");
-    common::post(&json!({
-        "type": "start",
-    }))?;
+    common::post("start", &json!({}))?;
 
     Ok(())
 }

@@ -3,7 +3,6 @@ use std::sync::Arc;
 use crate::{
     scene::ShaderParam,
     wgpu::{common_pipeline::CreateShaderError, WgpuCtx},
-    RendererId,
 };
 
 use self::{pipeline::ShaderPipeline, validation::error::ParametersValidationError};

@@ -42,27 +42,28 @@ fn start_example_client_code() -> Result<()> {
     start_websocket_thread();
 
     info!("[example] Send register input request.");
-    let RegisterResponse { port: input_port } = common::post(&json!({
-        "type": "register",
-        "entity_type": "rtp_input_stream",
-        "input_id": "input_1",
-        "port": "8004:8008",
-        "video": {
-            "codec": "h264"
-        },
-        "offset_ms": 0,
-        "required": true,
-    }))?
+    let RegisterResponse { port: input_port } = common::post(
+        "input/input_1/register",
+        &json!({
+            "type": "rtp_stream",
+            "port": "8004:8008",
+            "video": {
+                "codec": "h264"
+            },
+            "offset_ms": 0,
+            "required": true,
+        }),
+    )?
     .json::<RegisterResponse>()?;
 
     let shader_source = include_str!("./silly.wgsl");
     info!("[example] Register shader transform");
-    common::post(&json!({
-        "type": "register",
-        "entity_type": "shader",
-        "shader_id": "example_shader",
-        "source": shader_source,
-    }))?;
+    common::post(
+        "shader/example_shader/register",
+        &json!({
+            "source": shader_source,
+        }),
+    )?;
 
     let scene = json!( {
         "type": "shader",
@@ -78,29 +79,28 @@ fn start_example_client_code() -> Result<()> {
     });
 
     info!("[example] Send register output request.");
-    common::post(&json!({
-        "type": "register",
-        "entity_type": "output_stream",
-        "output_id": "output_1",
-        "port": OUTPUT_PORT,
-        "ip": "127.0.0.1",
-        "video": {
-            "resolution": {
-                "width": VIDEO_RESOLUTION.width,
-                "height": VIDEO_RESOLUTION.height,
-            },
-            "encoder_preset": "ultrafast",
-            "initial": scene
-        }
-    }))?;
+    common::post(
+        "output/output_1/register",
+        &json!({
+            "type": "rtp_stream",
+            "port": OUTPUT_PORT,
+            "ip": "127.0.0.1",
+            "video": {
+                "resolution": {
+                    "width": VIDEO_RESOLUTION.width,
+                    "height": VIDEO_RESOLUTION.height,
+                },
+                "encoder_preset": "ultrafast",
+                "initial": scene
+            }
+        }),
+    )?;
 
     info!("[example] Start input stream");
     stream_ffmpeg_testsrc(IP, input_port, VIDEO_RESOLUTION)?;
 
     info!("[example] Start pipeline");
-    common::post(&json!({
-        "type": "start",
-    }))?;
+    common::post("start", &json!({}))?;
 
     Ok(())
 }

@@ -5,10 +5,8 @@ use std::sync::Arc;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use super::renderer::*;
 use super::util::*;
 use super::*;
-
 
 /// Parameters for an input stream from RTP source.
 /// At least one of `video` and `audio` has to be defined.

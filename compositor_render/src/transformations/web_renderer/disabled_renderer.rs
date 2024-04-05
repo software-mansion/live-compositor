@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::{
     state::{RegisterCtx, RenderCtx},
     wgpu::texture::NodeTexture,
-    Resolution,
+    RendererId, Resolution,
 };
 
 use super::{node::EmbeddingData, WebRendererSpec};
@@ -14,7 +14,11 @@ pub struct WebRenderer {
 }
 
 impl WebRenderer {
-    pub fn new(_ctx: &RegisterCtx, _spec: WebRendererSpec) -> Result<Self, CreateWebRendererError> {
+    pub fn new(
+        _ctx: &RegisterCtx,
+        _instance_id: &RendererId,
+        _spec: WebRendererSpec,
+    ) -> Result<Self, CreateWebRendererError> {
         return Err(CreateWebRendererError::WebRenderingNotAvailable);
     }
 

@@ -103,56 +103,56 @@ fn start_example_client_code(host_ip: String) -> Result<()> {
     start_websocket_thread();
 
     info!("[example] Send register input request.");
-    common::post(&json!({
-        "type": "register",
-        "entity_type": "rtp_input_stream",
-        "input_id": "input_1",
-        "port": INPUT_PORT,
-        "video": {
-            "codec": "h264"
-        }
-    }))?;
+    common::post(
+        "input/input_1/register",
+        &json!({
+            "type": "rtp_stream",
+            "port": INPUT_PORT,
+            "video": {
+                "codec": "h264"
+            }
+        }),
+    )?;
 
     let shader_source = include_str!("./silly.wgsl");
     info!("[example] Register shader transform");
-    common::post(&json!({
-        "type": "register",
-        "shader_id": "example_shader",
-        "entity_type": "shader",
-        "source": shader_source,
-    }))?;
+    common::post(
+        "shader/example_shader/register",
+        &json!({
+            "source": shader_source,
+        }),
+    )?;
 
     info!("[example] Send register output request.");
-    common::post(&json!({
-        "type": "register",
-        "entity_type": "output_stream",
-        "output_id": "output_1",
-        "port": OUTPUT_PORT,
-        "ip": host_ip,
-        "video": {
-            "resolution": {
-                "width": VIDEO_RESOLUTION.width,
-                "height": VIDEO_RESOLUTION.height,
-            },
-            "encoder_preset": "ultrafast",
-            "initial": {
-                "type": "shader",
-                "shader_id": "example_shader",
-                "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
-                "children": [
-                    {
-                       "type": "input_stream",
-                       "input_id": "input_1",
-                    }
-                ]
+    common::post(
+        "output/output_1/register",
+        &json!({
+            "type": "rtp_stream",
+            "port": OUTPUT_PORT,
+            "ip": host_ip,
+            "video": {
+                "resolution": {
+                    "width": VIDEO_RESOLUTION.width,
+                    "height": VIDEO_RESOLUTION.height,
+                },
+                "encoder_preset": "ultrafast",
+                "initial": {
+                    "type": "shader",
+                    "shader_id": "example_shader",
+                    "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+                    "children": [
+                        {
+                           "type": "input_stream",
+                           "input_id": "input_1",
+                        }
+                    ]
+                }
             }
-        }
-    }))?;
+        }),
+    )?;
 
     info!("[example] Start pipeline");
-    common::post(&json!({
-        "type": "start",
-    }))?;
+    common::post("start", &json!({}))?;
 
     info!("[example] Start input stream");
     stream_ffmpeg_testsrc(IP, INPUT_PORT, VIDEO_RESOLUTION)?;

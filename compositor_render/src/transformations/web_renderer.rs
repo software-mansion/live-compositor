@@ -1,4 +1,4 @@
-use crate::{RendererId, Resolution};
+use crate::Resolution;
 use bytes::Bytes;
 use nalgebra_glm::Mat4;
 use std::sync::{Arc, Mutex};
