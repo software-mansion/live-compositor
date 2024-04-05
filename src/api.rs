@@ -10,6 +10,7 @@ use compositor_render::{
 };
 
 use log::error;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -23,7 +24,7 @@ mod unregister_request;
 
 pub type Pipeline = compositor_pipeline::Pipeline;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum Request {
     Register(RegisterRequest),
@@ -32,7 +33,7 @@ pub enum Request {
     Start,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "entity_type", rename_all = "snake_case")]
 pub enum UnregisterRequest {
     InputStream {

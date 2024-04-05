@@ -98,11 +98,11 @@ fn start_example_client_code() -> Result<()> {
         "type": "start",
     }))?;
 
-    let gst_input_command = format!("gst-launch-1.0 -v souphttpsrc location={HLS_URL} ! hlsdemux ! qtdemux ! h264parse ! rtph264pay config-interval=1 pt=96 ! .send_rtp_sink rtpsession .send_rtp_src ! rtpstreampay ! tcpclientsink host=127.0.0.1 port={INPUT_PORT}");
-    Command::new("bash")
-        .arg("-c")
-        .arg(gst_input_command)
-        .spawn()?;
+    // let gst_input_command = format!("gst-launch-1.0 -v souphttpsrc location={HLS_URL} ! hlsdemux ! qtdemux ! h264parse ! rtph264pay config-interval=1 pt=96 ! .send_rtp_sink rtpsession .send_rtp_src ! rtpstreampay ! tcpclientsink host=127.0.0.1 port={INPUT_PORT}");
+    // Command::new("bash")
+    //     .arg("-c")
+    //     .arg(gst_input_command)
+    //     .spawn()?;
 
     Ok(())
 }
