@@ -30,11 +30,8 @@ export async function runCompositorExample(
 }
 
 async function logError(err: any): Promise<void> {
-  if (err.response) {
-    const response: Response = err.response;
-    delete err.response;
-
-    const body = await response.json();
+  if (err.response instanceof Response) {
+    const body = await err.response.json();
     if (body.error_code && body.stack) {
       console.error();
       console.error(
@@ -46,7 +43,7 @@ async function logError(err: any): Promise<void> {
     } else {
       console.error();
       console.error(
-        chalk.red(`Request failed with status code ${response.status}`),
+        chalk.red(`Request failed with status code ${err.response.status}`),
       );
       console.error(chalk.red(JSON.stringify(body, null, 2)));
     }
@@ -66,18 +63,17 @@ function getCompositorRunCmd(): {
       args: ["run", "--release", "--bin", "video_compositor"],
       cwd: process.env.VIDEO_COMPOSITOR_SOURCE_DIR,
     };
-  } 
-  // else if (process.platform === "linux") {
-  //   return {
-  //     command: path.join(COMPOSITOR_DIR, "video_compositor/video_compositor"),
-  //     args: [],
-  //   };
-  // } else if (process.platform === "darwin") {
-    
-  //   return {
-  //     command: path.join(COMPOSITOR_DIR, "video_compositor/video_compositor"),
-  //     args: [],
-  //   };
-  // }
+  } else if (process.platform === "linux") {
+    return {
+      command: path.join(COMPOSITOR_DIR, "video_compositor/video_compositor"),
+      args: [],
+    };
+  } else if (process.platform === "darwin") {
+
+    return {
+      command: path.join(COMPOSITOR_DIR, "video_compositor/video_compositor"),
+      args: [],
+    };
+  }
   throw new Error("Unsupported platform.");
 }

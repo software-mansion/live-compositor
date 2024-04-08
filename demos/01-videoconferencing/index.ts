@@ -42,7 +42,7 @@ async function example() {
     }
   });
 
-  
+
   const inputs = [1, 2, 3, 4, 5, 6, 7, 8, 9, 8, 7, 6, 5, 4, 3, 2, 1];
   inputs.forEach(async (input, index) =>
     await sendAsync({
@@ -54,25 +54,34 @@ async function example() {
   );
 
   await sendAsync({ type: "start" });
-  
+
   await sleepAsync(2000);
   gstStreamWebcam(IP, INPUT_PORT);
 }
 
 
 function sceneWithInputs(n: number): Component {
-  const input_stream: Component = { type: "input_stream", input_id: "input_1" }
+  const input_stream: Component = {
+    type: "rescaler",
+    child: {
+      type: "input_stream",
+      input_id: "input_1",
+
+    }
+  }
   const children: Array<Component> = Array.from({ length: n }, (_, i) => {
     const text: Component = {
       type: "text",
-      text: `InputStream ${i}`,
-      font_size: 20,
-      color_rgba: "#00800000",
-      background_color_rgba: "#1E90FF00",
+      text: `InputStream ${i} 🚀`,
+      font_size: 25,
+      align: "center",
+      color_rgba: "#FFFFFFFF",
+      background_color_rgba: "#007BFFFF",
     };
 
-    return { 
-      type: "view", 
+    return {
+      type: "view",
+      background_color_rgba: "#007BFFFF",
       children: [
         input_stream,
         {
