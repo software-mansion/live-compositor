@@ -4,12 +4,14 @@ use serde::{Deserialize, Serialize};
 use super::util::*;
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+#[serde(deny_unknown_fields)]
 pub struct ShaderSpec {
     /// Shader source code. [Learn more.](../../concept/shaders)
     pub source: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+#[serde(deny_unknown_fields)]
 pub struct WebRendererSpec {
     /// Url of a website that you want to render.
     pub url: String,
@@ -41,7 +43,7 @@ pub enum WebEmbeddingMethod {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-#[serde(tag = "asset_type", rename_all = "snake_case")]
+#[serde(tag = "asset_type", rename_all = "snake_case", deny_unknown_fields)]
 pub enum ImageSpec {
     Png {
         url: Option<String>,
