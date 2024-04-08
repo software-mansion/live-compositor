@@ -6,7 +6,7 @@
     "video": {
       "anyOf": [
         {
-          "$ref": "#/definitions/Component"
+          "$ref": "#/definitions/Video"
         },
         {
           "type": "null"
@@ -33,6 +33,18 @@
   },
   "additionalProperties": false,
   "definitions": {
+    "Video": {
+      "type": "object",
+      "required": [
+        "root"
+      ],
+      "properties": {
+        "root": {
+          "$ref": "#/definitions/Component"
+        }
+      },
+      "additionalProperties": false
+    },
     "Component": {
       "oneOf": [
         {
