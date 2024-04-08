@@ -1,3 +1,6 @@
+use compositor_pipeline::{audio_mixer, pipeline};
+
+use super::audio::*;
 use super::*;
 
 impl TryFrom<Audio> for compositor_pipeline::audio_mixer::AudioMixingParams {
@@ -34,6 +37,23 @@ impl From<MixingStrategy> for compositor_pipeline::audio_mixer::MixingStrategy {
         match value {
             MixingStrategy::SumClip => compositor_pipeline::audio_mixer::MixingStrategy::SumClip,
             MixingStrategy::SumScale => compositor_pipeline::audio_mixer::MixingStrategy::SumScale,
+        }
+    }
+}
+
+impl From<AudioCodec> for pipeline::AudioCodec {
+    fn from(value: AudioCodec) -> Self {
+        match value {
+            AudioCodec::Opus => pipeline::AudioCodec::Opus,
+        }
+    }
+}
+
+impl From<AudioChannels> for audio_mixer::AudioChannels {
+    fn from(value: AudioChannels) -> Self {
+        match value {
+            AudioChannels::Mono => audio_mixer::AudioChannels::Mono,
+            AudioChannels::Stereo => audio_mixer::AudioChannels::Stereo,
         }
     }
 }

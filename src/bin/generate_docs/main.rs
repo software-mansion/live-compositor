@@ -1,7 +1,7 @@
 use parsing::generate_docs;
 use std::{fs, path::PathBuf};
 use video_compositor::types::{
-    Image, ImageSpec, InputStream, Mp4, RegisterOutputRequest, Rescaler, RtpInputStream, Shader,
+    Image, ImageSpec, InputStream, Mp4, Rescaler, RtpInputStream, RtpOutputStream, Shader,
     ShaderSpec, Text, Tiles, View, WebRendererSpec, WebView,
 };
 
@@ -34,7 +34,7 @@ fn main() {
         generate_docs::<Rescaler>("Rescaler"),
     ];
 
-    let output_pages = [generate_docs::<RegisterOutputRequest>("OutputStream")];
+    let output_pages = [generate_docs::<RtpOutputStream>("OutputStream")];
 
     for page in renderer_pages {
         fs::write(

@@ -26,3 +26,19 @@ pub enum MixingStrategy {
     /// nearby summed samples are scaled down by factor, such that the summed wave is in the i16 PCM range.
     SumScale,
 }
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum AudioChannels {
+    /// Mono audio (single channel).
+    Mono,
+    /// Stereo audio (two channels).
+    Stereo,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum AudioCodec {
+    /// Opus audio.
+    Opus,
+}

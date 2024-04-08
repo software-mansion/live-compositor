@@ -121,8 +121,13 @@ fn start_example_client_code() -> Result<()> {
                     "width": VIDEO_RESOLUTION.width,
                     "height": VIDEO_RESOLUTION.height,
                 },
-                "encoder_preset": "ultrafast",
-                "initial": scene
+                "encoder": {
+                    "type": "ffmpeg_h264",
+                    "preset": "ultrafast"
+                },
+                "initial": {
+                    "root": scene
+                }
             }
         }),
     )?;

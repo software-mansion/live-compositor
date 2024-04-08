@@ -5,20 +5,23 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 mod audio;
-
 mod component;
-mod convert;
-mod convert_util;
 mod from_audio;
 mod from_component;
-mod from_register_request;
+mod from_register_input;
+mod from_register_output;
 mod from_renderer;
-mod register_request;
+mod from_types;
+mod from_util;
+mod from_video;
+mod register_input;
+mod register_output;
 mod renderer;
 mod util;
+mod video;
 
 #[cfg(test)]
-mod convert_util_test;
+mod from_util_test;
 
 pub use component::Component;
 #[allow(unused_imports)]
@@ -39,12 +42,12 @@ pub use component::View;
 pub use component::WebView;
 
 #[allow(unused_imports)]
-pub use register_request::Mp4;
+pub use register_input::Mp4;
 #[allow(unused_imports)]
-pub use register_request::RegisterOutputRequest;
+pub use register_output::RtpOutputStream;
 
 #[allow(unused_imports)]
-pub use register_request::RtpInputStream;
+pub use register_input::RtpInputStream;
 
 #[allow(unused_imports)]
 pub use renderer::ImageSpec;
@@ -58,8 +61,9 @@ pub use util::Resolution;
 pub use util::TypeError;
 
 pub use audio::Audio;
-pub use audio::InputAudio;
 pub use audio::MixingStrategy;
+
+pub use video::Video;
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 pub struct ComponentId(Arc<str>);
@@ -76,7 +80,7 @@ pub struct InputId(Arc<str>);
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct UpdateOutputRequest {
-    pub video: Option<Component>,
+    pub video: Option<Video>,
     pub audio: Option<Audio>,
     pub schedule_time_ms: Option<f64>,
 }

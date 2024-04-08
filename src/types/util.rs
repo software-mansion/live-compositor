@@ -72,6 +72,22 @@ pub struct RGBAColor(pub String);
 #[derive(Debug, PartialEq)]
 pub struct TypeError(String);
 
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema, PartialEq, Eq)]
+#[serde(untagged)]
+pub enum Port {
+    String(String),
+    U16(u16),
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum TransportProtocol {
+    /// UDP protocol.
+    Udp,
+    /// TCP protocol where LiveCompositor is the server side of the connection.
+    TcpServer,
+}
+
 impl<E> From<E> for TypeError
 where
     E: std::error::Error + Send + Sync + 'static,
