@@ -4,7 +4,7 @@ use schemars::{
     schema::{RootSchema, Schema, SchemaObject},
     schema_for,
 };
-use video_compositor::{api, types};
+use video_compositor::types;
 
 const ROOT_DIR: &str = env!("CARGO_MANIFEST_DIR");
 
@@ -16,8 +16,6 @@ fn main() {
         "scene",
         update_flag,
     );
-    generate_schema(schema_for!(types::RegisterRequest), "register", update_flag);
-    generate_schema(schema_for!(api::Request), "request", update_flag);
 }
 
 /// When variant inside oneOf has a schema additionalProperties set to false then

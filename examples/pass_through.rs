@@ -42,43 +42,43 @@ fn start_example_client_code() -> Result<()> {
     let sample_path = download_file(SAMPLE_FILE_URL, SAMPLE_FILE_PATH)?;
 
     info!("[example] Send register input request.");
-    common::post(&json!({
-        "type": "register",
-        "entity_type": "rtp_input_stream",
-        "input_id": "input_1",
-        "port": INPUT_PORT,
-        "video": {
-            "codec": "h264"
-        }
-    }))?;
+    common::post(
+        "input/input_1/register",
+        &json!({
+            "type": "rtp_stream",
+            "port": INPUT_PORT,
+            "video": {
+                "codec": "h264"
+            }
+        }),
+    )?;
 
     info!("[example] Send register output request.");
-    common::post(&json!({
-        "type": "register",
-        "entity_type": "output_stream",
-        "output_id": "output_1",
-        "ip": IP,
-        "port": OUTPUT_PORT,
-        "video": {
-            "resolution": {
-                "width": VIDEO_RESOLUTION.width,
-                "height": VIDEO_RESOLUTION.height,
-            },
-            "encoder_preset": "veryfast",
-            "initial": {
-                "id": "input_1",
-                "type": "input_stream",
-                "input_id": "input_1",
+    common::post(
+        "output/output_1/register",
+        &json!({
+            "type": "rtp_stream",
+            "ip": IP,
+            "port": OUTPUT_PORT,
+            "video": {
+                "resolution": {
+                    "width": VIDEO_RESOLUTION.width,
+                    "height": VIDEO_RESOLUTION.height,
+                },
+                "encoder_preset": "veryfast",
+                "initial": {
+                    "id": "input_1",
+                    "type": "input_stream",
+                    "input_id": "input_1",
+                }
             }
-        }
-    }))?;
+        }),
+    )?;
 
     std::thread::sleep(Duration::from_millis(500));
 
     info!("[example] Start pipeline");
-    common::post(&json!({
-        "type": "start",
-    }))?;
+    common::post("start", &json!({}))?;
 
     stream_video(IP, OUTPUT_PORT, sample_path)?;
     Ok(())

@@ -15,7 +15,7 @@ type Event = {
 }
 ```
 
-The compositor received the input, and the first frames of that input are ready to be used. If you want to ensure that some inputs are ready before you send the [`start`](./routes.md#start) request, you can wait for those events for specific inputs.
+The compositor received the input, and the first frames of that input are ready to be used. If you want to ensure that some inputs are ready before you send the [`start`](./routes.md#start-request) request, you can wait for those events for specific inputs.
 
 ### `VIDEO_INPUT_PLAYING`
 
@@ -26,10 +26,10 @@ type Event = {
 }
 ```
 
-The compositor received the input and is using the first frame for rendering. This event will not be sent before the [`start`](./routes.md#start) request.
+The compositor received the input and is using the first frame for rendering. This event will not be sent before the [`start`](./routes.md#start-request) request.
 
 This event is usually sent at the same time as `VIDEO_INPUT_DELIVERED` except for 2 cases:
-- Before [`start`](./routes.md#start) request.
+- Before [`start`](./routes.md#start-request) request.
 - If input has the `offset_ms` field defined.
 
 ### `VIDEO_INPUT_EOS`
@@ -52,7 +52,7 @@ type Event = {
 }
 ```
 
-The compositor received the input, and the first samples on that input are ready to be used. If you want to ensure that some inputs are ready before you send the [`start`](./routes.md#start) request, you can wait for those events for specific inputs.
+The compositor received the input, and the first samples on that input are ready to be used. If you want to ensure that some inputs are ready before you send the [`start`](./routes.md#start-request) request, you can wait for those events for specific inputs.
 
 ### `AUDIO_INPUT_PLAYING`
 
@@ -63,10 +63,10 @@ type Event = {
 }
 ```
 
-The compositor received the input and is using the first samples for rendering. This event will not be sent before the [`start`](./routes.md#start) request.
+The compositor received the input and is using the first samples for rendering. This event will not be sent before the [`start`](./routes.md#start-request) request.
 
 This event is usually sent at the same time as `AUDIO_INPUT_DELIVERED` except for 2 cases:
-- Before [`start`](./routes.md#start) request.
+- Before [`start`](./routes.md#start-request) request.
 - If input has the `offset_ms` field defined.
 
 ### `AUDIO_INPUT_EOS`

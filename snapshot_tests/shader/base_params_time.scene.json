@@ -1,5 +1,4 @@
 {
-    "output_id": "output_1",
     "video": {
         "type": "shader",
         "shader_id": "base_params_time",

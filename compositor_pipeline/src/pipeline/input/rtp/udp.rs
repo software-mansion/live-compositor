@@ -4,6 +4,7 @@ use std::{
 };
 
 use bytes::{Bytes, BytesMut};
+use compositor_render::InputId;
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use tracing::{debug, span, warn, Level};
 
@@ -12,6 +13,7 @@ use crate::pipeline::{rtp::bind_to_requested_port, Port};
 use super::{RtpReceiverError, RtpReceiverOptions};
 
 pub(super) fn start_udp_reader_thread(
+    input_id: &InputId,
     opts: &RtpReceiverOptions,
     should_close: Arc<AtomicBool>,
 ) -> Result<(Port, Receiver<bytes::Bytes>), RtpReceiverError> {
@@ -42,9 +44,9 @@ pub(super) fn start_udp_reader_thread(
 
     let socket = std::net::UdpSocket::from(socket);
 
-    let input_id = opts.input_id.clone();
+    let input_id = input_id.clone();
     thread::Builder::new()
-        .name(format!("RTP UDP receiver {}", opts.input_id))
+        .name(format!("RTP UDP receiver {}", input_id))
         .spawn(move || {
             let _span = span!(
                 Level::INFO,

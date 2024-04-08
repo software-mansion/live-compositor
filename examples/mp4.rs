@@ -39,66 +39,67 @@ fn start_example_client_code() -> Result<()> {
     start_websocket_thread();
 
     info!("[example] Send register input request.");
-    common::post(&json!({
-        "type": "register",
-        "entity_type": "mp4",
-        "input_id": "input_1",
-        "url": BUNNY_URL
-    }))?;
+    common::post(
+        "input/input_1/register",
+        &json!({
+            "type": "mp4",
+            "url": BUNNY_URL
+        }),
+    )?;
 
     let shader_source = include_str!("./silly.wgsl");
     info!("[example] Register shader transform");
-    common::post(&json!({
-        "type": "register",
-        "entity_type": "shader",
-        "shader_id": "shader_example_1",
-        "source": shader_source,
-    }))?;
+    common::post(
+        "shader/shader_example_1/register",
+        &json!({
+            "source": shader_source,
+        }),
+    )?;
 
     info!("[example] Send register output video request.");
-    common::post(&json!({
-        "type": "register",
-        "entity_type": "output_stream",
-        "output_id": "output_1",
-        "port": OUTPUT_VIDEO_PORT,
-        "ip": IP,
-        "video": {
-            "resolution": {
-                "width": VIDEO_RESOLUTION.width,
-                "height": VIDEO_RESOLUTION.height,
-            },
-            "encoder_preset": "medium",
-            "initial": {
-                "id": "input_1",
-                "type": "input_stream",
-                "input_id": "input_1",
+    common::post(
+        "output/output_1/register",
+        &json!({
+            "type": "rtp_stream",
+            "port": OUTPUT_VIDEO_PORT,
+            "ip": IP,
+            "video": {
+                "resolution": {
+                    "width": VIDEO_RESOLUTION.width,
+                    "height": VIDEO_RESOLUTION.height,
+                },
+                "encoder_preset": "medium",
+                "initial": {
+                    "id": "input_1",
+                    "type": "input_stream",
+                    "input_id": "input_1",
+                }
             }
-        }
-    }))?;
+        }),
+    )?;
 
     info!("[example] Send register output audio request.");
-    common::post(&json!({
-        "type": "register",
-        "entity_type": "output_stream",
-        "output_id": "output_2",
-        "port": OUTPUT_AUDIO_PORT,
-        "ip": IP,
-        "audio": {
-            "initial": {
-                "inputs": [
-                    {"input_id": "input_1"}
-                ]
-            },
-            "channels": "stereo"
-        }
-    }))?;
+    common::post(
+        "output/output_2/register",
+        &json!({
+            "type": "rtp_stream",
+            "port": OUTPUT_AUDIO_PORT,
+            "ip": IP,
+            "audio": {
+                "initial": {
+                    "inputs": [
+                        {"input_id": "input_1"}
+                    ]
+                },
+                "channels": "stereo"
+            }
+        }),
+    )?;
 
     std::thread::sleep(Duration::from_millis(500));
 
     info!("[example] Start pipeline");
-    common::post(&json!({
-        "type": "start",
-    }))?;
+    common::post("start", &json!({}))?;
 
     Ok(())
 }
