@@ -146,8 +146,8 @@ impl StatefulComponent {
             StatefulComponent::InputStream(_) => vec![],
             StatefulComponent::Shader(shader) => shader.children.iter_mut().collect(),
             StatefulComponent::WebView(web) => web.children.iter_mut().collect(),
-            StatefulComponent::Image(_) => todo!(),
-            StatefulComponent::Text(_) => todo!(),
+            StatefulComponent::Image(_) => vec![],
+            StatefulComponent::Text(_) => vec![],
             StatefulComponent::Layout(layout) => layout.children_mut(),
         }
     }

@@ -295,7 +295,7 @@ impl AnimatedAsset {
     fn new(ctx: &WgpuCtx, data: Bytes, format: ImageFormat) -> Result<Self, AnimatedError> {
         let decoded_frames = match format {
             ImageFormat::Gif => GifDecoder::new(&data[..])?.into_frames(),
-            _ => todo!(),
+            other => return Err(AnimatedError::UnsupportedImageFormat(other)),
         };
 
         let mut animation_duration: Duration = Duration::ZERO;
@@ -470,4 +470,7 @@ pub enum AnimatedError {
 
     #[error("Failed to parse image: {0}")]
     FailedToParse(#[from] image::ImageError),
+
+    #[error("Unsupported animated image format: {0:?}")]
+    UnsupportedImageFormat(ImageFormat),
 }
