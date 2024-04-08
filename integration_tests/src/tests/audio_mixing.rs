@@ -20,58 +20,61 @@ pub fn audio_mixing() -> Result<()> {
 
     let output_receiver = OutputReceiver::start(output_port, CommunicationProtocol::Udp)?;
 
-    instance.send_request(json!({
-        "type": "register",
-        "entity_type": "output_stream",
-        "output_id": "output_1",
-        "transport_protocol": "udp",
-        "ip": "127.0.0.1",
-        "port": output_port,
-        "audio": {
-            "initial": {
-                "inputs": [
-                    {
-                        "input_id": "input_1",
-                        "volume": 0.3,
-                    },
-                    {
-                        "input_id": "input_2",
-                        "volume": 0.7,
-                    }
-                ]
+    instance.send_request(
+        "output/output_1/register",
+        json!({
+            "type": "rtp_stream",
+            "transport_protocol": "udp",
+            "ip": "127.0.0.1",
+            "port": output_port,
+            "audio": {
+                "initial": {
+                    "inputs": [
+                        {
+                            "input_id": "input_1",
+                            "volume": 0.3,
+                        },
+                        {
+                            "input_id": "input_2",
+                            "volume": 0.7,
+                        }
+                    ]
+                },
+                "channels": "stereo",
             },
-            "channels": "stereo",
-        },
-    }))?;
+        }),
+    )?;
 
-    instance.send_request(json!({
-        "type": "unregister",
-        "entity_type": "output_stream",
-        "output_id": "output_1",
-        "schedule_time_ms": 20000,
-    }))?;
+    instance.send_request(
+        "output/output_1/unregister",
+        json!({
+            "schedule_time_ms": 20000,
+        }),
+    )?;
 
-    instance.send_request(json!({
-        "type": "register",
-        "entity_type": "rtp_input_stream",
-        "transport_protocol": "tcp_server",
-        "input_id": "input_1",
-        "port": input_1_port,
-        "audio": {
-            "codec": "opus"
-        }
-    }))?;
+    instance.send_request(
+        "input/input_1/register",
+        json!({
+            "type": "rtp_stream",
+            "transport_protocol": "tcp_server",
+            "port": input_1_port,
+            "audio": {
+                "codec": "opus"
+            }
+        }),
+    )?;
 
-    instance.send_request(json!({
-        "type": "register",
-        "entity_type": "rtp_input_stream",
-        "transport_protocol": "udp",
-        "input_id": "input_2",
-        "port": input_2_port,
-        "audio": {
-            "codec": "opus"
-        }
-    }))?;
+    instance.send_request(
+        "input/input_2/register",
+        json!({
+            "type": "rtp_stream",
+            "transport_protocol": "udp",
+            "port": input_2_port,
+            "audio": {
+                "codec": "opus"
+            }
+        }),
+    )?;
 
     let audio_input_1 = input_dump_from_disk("countdown_audio.rtp")?;
     let audio_input_2 = input_dump_from_disk("8_colors_input_reversed_audio.rtp")?;
@@ -81,9 +84,7 @@ pub fn audio_mixing() -> Result<()> {
     audio_1_sender.send(&audio_input_1)?;
     audio_2_sender.send(&audio_input_2)?;
 
-    instance.send_request(json!({
-        "type": "start",
-    }))?;
+    instance.send_request("start", json!({}))?;
 
     let new_output_dump = output_receiver.wait_for_output()?;
 

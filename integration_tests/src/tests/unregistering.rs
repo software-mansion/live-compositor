@@ -21,58 +21,49 @@ pub fn unregistering() -> Result<()> {
     register_output_with_initial_scene(&instance, output_port)
         .expect_err("Image has to be registered first");
 
-    instance.send_request(json!({
-        "type": "register",
-        "entity_type": "image",
-        "asset_type": "svg",
-        "image_id": "image_1",
-        "url": "https://compositor.live/img/logo.svg"
-    }))?;
+    instance.send_request(
+        "image/image_1/register",
+        json!({
+            "asset_type": "svg",
+            "url": "https://compositor.live/img/logo.svg"
+        }),
+    )?;
 
     register_output_with_initial_scene(&instance, output_port)?;
 
-    instance.send_request(json!({
-        "type": "unregister",
-        "entity_type": "output_stream",
-        "output_id": "output_1",
-        "schedule_time_ms": 20000,
-    }))?;
+    instance.send_request(
+        "output/output_1/unregister",
+        json!({
+            "schedule_time_ms": 20000,
+        }),
+    )?;
 
     let output_receiver = OutputReceiver::start(output_port, CommunicationProtocol::Tcp)?;
 
-    instance.send_request(json!({
-        "type": "register",
-        "entity_type": "rtp_input_stream",
-        "transport_protocol": "udp",
-        "input_id": "input_1",
-        "port": input_port,
-        "video": {
-            "codec": "h264"
-        },
-    }))?;
+    instance.send_request(
+        "input/input_1/register",
+        json!({
+            "type": "rtp_stream",
+            "transport_protocol": "udp",
+            "port": input_port,
+            "video": {
+                "codec": "h264"
+            },
+        }),
+    )?;
 
     let input_1_dump = input_dump_from_disk("8_colors_long_input_video.rtp")?;
     let mut input_1_sender = PacketSender::new(CommunicationProtocol::Udp, input_port)?;
 
-    instance.send_request(json!({
-        "type": "start",
-    }))?;
+    instance.send_request("start", json!({}))?;
 
     thread::sleep(Duration::from_secs(2));
 
     // After whole input dump is sent, unregister input stream immediately.
     input_1_sender.send(&input_1_dump)?;
-    instance.send_request(json!({
-        "type": "unregister",
-        "entity_type": "input_stream",
-        "input_id": "input_1",
-    }))?;
+    instance.send_request("input/input_1/unregister", json!({}))?;
 
-    instance.send_request(json!({
-        "type": "unregister",
-        "entity_type": "image",
-        "image_id": "image_1",
-    }))?;
+    instance.send_request("image/image_1/unregister", json!({}))?;
 
     let new_output_dump = output_receiver.wait_for_output()?;
 
@@ -89,33 +80,34 @@ pub fn unregistering() -> Result<()> {
 }
 
 fn register_output_with_initial_scene(instance: &CompositorInstance, port: u16) -> Result<()> {
-    instance.send_request(json!({
-        "type": "register",
-        "entity_type": "output_stream",
-        "output_id": "output_1",
-        "transport_protocol": "tcp_server",
-        "port": port,
-        "video": {
-            "resolution": {
-                "width": 640,
-                "height": 360,
+    instance.send_request(
+        "output/output_1/register",
+        json!({
+            "type": "rtp_stream",
+            "transport_protocol": "tcp_server",
+            "port": port,
+            "video": {
+                "resolution": {
+                    "width": 640,
+                    "height": 360,
+                },
+                "encoder_preset": "ultrafast",
+                "initial": {
+                    "type": "tiles",
+                    "padding": 3,
+                    "background_color_rgba": "#DDDDDDFF",
+                    "children": [
+                        {
+                            "type": "input_stream",
+                            "input_id": "input_1",
+                        },
+                        {
+                            "type": "image",
+                            "image_id": "image_1",
+                        },
+                    ],
+                }
             },
-            "encoder_preset": "ultrafast",
-            "initial": {
-                "type": "tiles",
-                "padding": 3,
-                "background_color_rgba": "#DDDDDDFF",
-                "children": [
-                    {
-                        "type": "input_stream",
-                        "input_id": "input_1",
-                    },
-                    {
-                        "type": "image",
-                        "image_id": "image_1",
-                    },
-                ],
-            }
-        },
-    }))
+        }),
+    )
 }

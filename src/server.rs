@@ -7,20 +7,25 @@ use tracing::error;
 use std::{net::SocketAddr, process, thread};
 use tokio::runtime::Runtime;
 
-use crate::{api::Api, config::read_config, logger::init_logger, routes::routes};
+use crate::{config::read_config, logger::init_logger, routes::routes, state::ApiState};
 
 pub fn run() {
     let config = read_config();
     init_logger(config.logger.clone());
 
     info!("Starting LiveCompositor with config:\n{:#?}", config);
-    let (api, event_loop) = Api::new(config).unwrap();
+    let (state, event_loop) = ApiState::new(config).unwrap_or_else(|err| {
+        panic!(
+            "Failed to start event loop.\n{}",
+            ErrorStack::new(&err).into_string()
+        )
+    });
 
     thread::Builder::new()
         .name("HTTP server startup thread".to_string())
         .spawn(move || {
             let (_, should_close_receiver) = crossbeam_channel::bounded(1);
-            if let Err(err) = start_api(api, should_close_receiver) {
+            if let Err(err) = start_api(state, should_close_receiver) {
                 error!(%err);
                 process::exit(1);
             }
@@ -38,14 +43,14 @@ pub fn run() {
     }
 }
 
-pub fn start_api(api: Api, should_close_receiver: Receiver<()>) -> tokio::io::Result<()> {
+pub fn start_api(state: ApiState, should_close_receiver: Receiver<()>) -> tokio::io::Result<()> {
     let rt = Runtime::new().unwrap();
-    rt.block_on(async { run_tokio_runtime(api, should_close_receiver).await })
+    rt.block_on(async { run_tokio_runtime(state, should_close_receiver).await })
 }
 
-async fn run_tokio_runtime(api: Api, should_close: Receiver<()>) -> tokio::io::Result<()> {
-    let port = api.config.api_port;
-    let app = routes(api);
+async fn run_tokio_runtime(state: ApiState, should_close: Receiver<()>) -> tokio::io::Result<()> {
+    let port = state.config.api_port;
+    let app = routes(state);
     let listener = tokio::net::TcpListener::bind(SocketAddr::from(([0, 0, 0, 0], port))).await?;
 
     axum::serve(listener, app)

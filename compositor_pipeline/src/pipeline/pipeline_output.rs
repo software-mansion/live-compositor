@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use compositor_render::InputId;
+use compositor_render::{InputId, OutputId};
 
 use crate::error::RegisterOutputError;
 
@@ -29,10 +29,10 @@ pub struct PipelineOutput {
 impl Pipeline {
     pub(super) fn register_pipeline_output(
         &mut self,
+        output_id: OutputId,
         opts: RegisterOutputOptions,
     ) -> Result<Option<Port>, RegisterOutputError> {
         let RegisterOutputOptions {
-            output_id,
             video,
             audio,
             output_options,
@@ -58,10 +58,10 @@ impl Pipeline {
             }),
         };
 
-        let (encoder, packets) = Encoder::new(encoder_opts, self.output_sample_rate)
+        let (encoder, packets) = Encoder::new(&output_id, encoder_opts, self.output_sample_rate)
             .map_err(|e| RegisterOutputError::EncoderError(output_id.clone(), e))?;
 
-        let (output, port) = Output::new(output_options, packets)
+        let (output, port) = Output::new(&output_id, output_options, packets)
             .map_err(|e| RegisterOutputError::OutputError(output_id.clone(), e))?;
 
         let output = PipelineOutput {

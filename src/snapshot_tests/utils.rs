@@ -1,8 +1,8 @@
 use std::{collections::HashSet, fs, path::PathBuf, time::Duration};
 
-use compositor_render::{
-    web_renderer, Frame, Framerate, OutputId, Renderer, RendererOptions, YuvData,
-};
+use compositor_render::{web_renderer, Frame, Framerate, Renderer, RendererOptions, YuvData};
+
+use super::test_case::OUTPUT_ID;
 
 pub const SNAPSHOTS_DIR_NAME: &str = "snapshot_tests/snapshots/render_snapshots";
 
@@ -93,7 +93,7 @@ pub fn find_unused_snapshots(
     unused_snapshots
 }
 
-pub(super) fn snaphot_save_path(test_name: &str, pts: &Duration, output_id: OutputId) -> PathBuf {
-    let out_file_name = format!("{}_{}_{}.png", test_name, pts.as_millis(), output_id);
+pub(super) fn snaphot_save_path(test_name: &str, pts: &Duration) -> PathBuf {
+    let out_file_name = format!("{}_{}_{}.png", test_name, pts.as_millis(), OUTPUT_ID);
     snapshots_path().join(out_file_name)
 }

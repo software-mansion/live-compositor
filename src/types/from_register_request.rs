@@ -18,12 +18,11 @@ use compositor_pipeline::{
 use super::register_request::*;
 use super::*;
 
-impl TryFrom<RtpInputStream> for (compositor_render::InputId, pipeline::RegisterInputOptions) {
+impl TryFrom<RtpInputStream> for pipeline::RegisterInputOptions {
     type Error = TypeError;
 
     fn try_from(value: RtpInputStream) -> Result<Self, Self::Error> {
         let RtpInputStream {
-            input_id,
             port,
             video,
             audio,
@@ -60,7 +59,6 @@ impl TryFrom<RtpInputStream> for (compositor_render::InputId, pipeline::Register
 
         let input_options = input::InputOptions::Rtp(input::rtp::RtpReceiverOptions {
             port: port.try_into()?,
-            input_id: input_id.clone().into(),
             stream: rtp_stream,
             transport_protocol: match transport_protocol.unwrap_or(TransportProtocol::Udp) {
                 TransportProtocol::Udp => rtp::TransportProtocol::Udp,
@@ -73,22 +71,18 @@ impl TryFrom<RtpInputStream> for (compositor_render::InputId, pipeline::Register
             offset: offset_ms.map(|offset_ms| Duration::from_secs_f64(offset_ms / 1000.0)),
         };
 
-        Ok((
-            input_id.into(),
-            pipeline::RegisterInputOptions {
-                input_options,
-                queue_options,
-            },
-        ))
+        Ok(pipeline::RegisterInputOptions {
+            input_options,
+            queue_options,
+        })
     }
 }
 
-impl TryFrom<Mp4> for (compositor_render::InputId, pipeline::RegisterInputOptions) {
+impl TryFrom<Mp4> for pipeline::RegisterInputOptions {
     type Error = TypeError;
 
     fn try_from(value: Mp4) -> Result<Self, Self::Error> {
         let Mp4 {
-            input_id,
             url,
             path,
             required,
@@ -112,16 +106,10 @@ impl TryFrom<Mp4> for (compositor_render::InputId, pipeline::RegisterInputOption
             offset: offset_ms.map(|offset_ms| Duration::from_secs_f64(offset_ms / 1000.0)),
         };
 
-        Ok((
-            input_id.clone().into(),
-            pipeline::RegisterInputOptions {
-                input_options: input::InputOptions::Mp4(input::mp4::Mp4Options {
-                    input_id: input_id.into(),
-                    source,
-                }),
-                queue_options,
-            },
-        ))
+        Ok(pipeline::RegisterInputOptions {
+            input_options: input::InputOptions::Mp4(input::mp4::Mp4Options { source }),
+            queue_options,
+        })
     }
 }
 
@@ -235,7 +223,6 @@ impl TryFrom<RegisterOutputRequest> for pipeline::RegisterOutputOptions {
 
     fn try_from(request: RegisterOutputRequest) -> Result<Self, Self::Error> {
         let RegisterOutputRequest {
-            output_id,
             port,
             ip,
             transport_protocol,
@@ -262,7 +249,6 @@ impl TryFrom<RegisterOutputRequest> for pipeline::RegisterOutputOptions {
                     encoder_opts: pipeline::encoder::VideoEncoderOptions::H264(Options {
                         preset: v.encoder_preset.into(),
                         resolution: v.resolution.into(),
-                        output_id: output_id.clone().into(),
                         raw_options: v.ffmpeg_options.unwrap_or_default().into_iter().collect(),
                     }),
                     end_condition: v.send_eos_when.unwrap_or_default().try_into()?,
@@ -314,14 +300,12 @@ impl TryFrom<RegisterOutputRequest> for pipeline::RegisterOutputOptions {
         };
 
         let output_options = output::OutputOptions::Rtp(RtpSenderOptions {
-            output_id: output_id.clone().into(),
             connection_options,
             video: video.map(|_| pipeline::VideoCodec::H264),
             audio: audio.map(|_| pipeline::AudioCodec::Opus),
         });
 
         Ok(Self {
-            output_id: output_id.into(),
             output_options,
             video: output_video_options,
             audio: output_audio_options,

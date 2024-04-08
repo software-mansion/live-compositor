@@ -19,19 +19,44 @@ pub fn schedule_update() -> Result<()> {
     let input_2_port = instance.get_port();
     let output_port = instance.get_port();
 
-    instance.send_request(json!({
-        "type": "register",
-        "entity_type": "output_stream",
-        "output_id": "output_1",
-        "transport_protocol": "tcp_server",
-        "port": output_port,
-        "video": {
-            "resolution": {
-                "width": 640,
-                "height": 360,
+    instance.send_request(
+        "output/output_1/register",
+        json!({
+            "type": "rtp_stream",
+            "transport_protocol": "tcp_server",
+            "port": output_port,
+            "video": {
+                "resolution": {
+                    "width": 640,
+                    "height": 360,
+                },
+                "encoder_preset": "ultrafast",
+                "initial": {
+                    "type": "tiles",
+                    "id": "tiles_1",
+                    "padding": 3,
+                    "background_color_rgba": "#DDDDDDFF",
+                    "transition": {
+                        "duration_ms": 500,
+                        "easing_function": {
+                            "function_name": "bounce"
+                        }
+                    },
+                    "children": [
+                        {
+                            "type": "input_stream",
+                            "input_id": "input_1",
+                        },
+                    ],
+                }
             },
-            "encoder_preset": "ultrafast",
-            "initial": {
+        }),
+    )?;
+
+    instance.send_request(
+        "output/output_1/update",
+        json!({
+            "video": {
                 "type": "tiles",
                 "id": "tiles_1",
                 "padding": 3,
@@ -47,73 +72,50 @@ pub fn schedule_update() -> Result<()> {
                         "type": "input_stream",
                         "input_id": "input_1",
                     },
+                    {
+                        "type": "input_stream",
+                        "input_id": "input_2",
+                    },
                 ],
-            }
-        },
-    }))?;
-
-    instance.send_request(json!({
-        "type": "update_output",
-        "output_id": "output_1",
-        "video": {
-            "type": "tiles",
-            "id": "tiles_1",
-            "padding": 3,
-            "background_color_rgba": "#DDDDDDFF",
-            "transition": {
-                "duration_ms": 500,
-                "easing_function": {
-                    "function_name": "bounce"
-                }
             },
-            "children": [
-                {
-                    "type": "input_stream",
-                    "input_id": "input_1",
-                },
-                {
-                    "type": "input_stream",
-                    "input_id": "input_2",
-                },
-            ],
-        },
-        "schedule_time_ms": 2000
-    }))?;
+            "schedule_time_ms": 2000
+        }),
+    )?;
 
-    instance.send_request(json!({
-        "type": "unregister",
-        "entity_type": "output_stream",
-        "output_id": "output_1",
-        "schedule_time_ms": 20000,
-    }))?;
+    instance.send_request(
+        "output/output_1/unregister",
+        json!({
+            "schedule_time_ms": 20000,
+        }),
+    )?;
 
     let output_receiver = OutputReceiver::start(output_port, CommunicationProtocol::Tcp)?;
 
-    instance.send_request(json!({
-        "type": "register",
-        "entity_type": "rtp_input_stream",
-        "transport_protocol": "udp",
-        "input_id": "input_1",
-        "port": input_1_port,
-        "video": {
-            "codec": "h264"
-        },
-    }))?;
+    instance.send_request(
+        "input/input_1/register",
+        json!({
+            "type": "rtp_stream",
+            "transport_protocol": "udp",
+            "port": input_1_port,
+            "video": {
+                "codec": "h264"
+            },
+        }),
+    )?;
 
-    instance.send_request(json!({
-        "type": "register",
-        "entity_type": "rtp_input_stream",
-        "transport_protocol": "tcp_server",
-        "input_id": "input_2",
-        "port": input_2_port,
-        "video": {
-            "codec": "h264"
-        },
-    }))?;
+    instance.send_request(
+        "input/input_2/register",
+        json!({
+            "type": "rtp_stream",
+            "transport_protocol": "tcp_server",
+            "port": input_2_port,
+            "video": {
+                "codec": "h264"
+            },
+        }),
+    )?;
 
-    instance.send_request(json!({
-        "type": "start",
-    }))?;
+    instance.send_request("start", json!({}))?;
 
     let mut input_1_sender = PacketSender::new(CommunicationProtocol::Udp, input_1_port)?;
     let mut input_2_sender = PacketSender::new(CommunicationProtocol::Tcp, input_2_port)?;

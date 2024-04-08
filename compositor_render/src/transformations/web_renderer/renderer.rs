@@ -16,7 +16,7 @@ use crate::{
         common_pipeline::CreateShaderError,
         texture::{BGRATexture, NodeTexture, Texture},
     },
-    Resolution,
+    RendererId, Resolution,
 };
 
 use super::{
@@ -38,7 +38,11 @@ pub struct WebRenderer {
 }
 
 impl WebRenderer {
-    pub fn new(ctx: &RegisterCtx, spec: WebRendererSpec) -> Result<Self, CreateWebRendererError> {
+    pub fn new(
+        ctx: &RegisterCtx,
+        instance_id: &RendererId,
+        spec: WebRendererSpec,
+    ) -> Result<Self, CreateWebRendererError> {
         if ctx.chromium.context.is_none() {
             return Err(CreateWebRendererError::WebRendererDisabled);
         }
@@ -53,7 +57,7 @@ impl WebRenderer {
             source_transforms.clone(),
             spec.resolution,
         );
-        let chromium_sender = ChromiumSender::new(ctx, &spec, client);
+        let chromium_sender = ChromiumSender::new(ctx, instance_id, &spec, client);
         let embedding_helper = EmbeddingHelper::new(ctx, chromium_sender, spec.embedding_method);
         let render_website_shader = WebRendererShader::new(&ctx.wgpu_ctx)?;
         let website_texture = BGRATexture::new(&ctx.wgpu_ctx, spec.resolution);

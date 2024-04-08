@@ -19,23 +19,22 @@ use crate::{
         texture::{NodeTexture, RGBATexture},
         WgpuCtx,
     },
-    RendererId, Resolution,
+    Resolution,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ImageSpec {
     pub src: ImageSource,
-    pub image_id: RendererId,
     pub image_type: ImageType,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ImageSource {
     Url { url: String },
     LocalPath { path: String },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ImageType {
     Png,
     Jpeg,
@@ -295,7 +294,7 @@ impl AnimatedAsset {
     fn new(ctx: &WgpuCtx, data: Bytes, format: ImageFormat) -> Result<Self, AnimatedError> {
         let decoded_frames = match format {
             ImageFormat::Gif => GifDecoder::new(&data[..])?.into_frames(),
-            _ => todo!(),
+            other => return Err(AnimatedError::UnsupportedImageFormat(other)),
         };
 
         let mut animation_duration: Duration = Duration::ZERO;
@@ -470,4 +469,7 @@ pub enum AnimatedError {
 
     #[error("Failed to parse image: {0}")]
     FailedToParse(#[from] image::ImageError),
+
+    #[error("Unsupported animated image format: {0:?}")]
+    UnsupportedImageFormat(ImageFormat),
 }

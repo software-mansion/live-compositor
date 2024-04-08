@@ -24,7 +24,7 @@ pub enum Component {
 pub struct InputStream {
     /// Id of a component.
     pub id: Option<ComponentId>,
-    /// Id of an input. It identifies a stream registered using a [`RegisterInputStream`](../routes#register-input-stream) request.
+    /// Id of an input. It identifies a stream registered using a [`RegisterInputStream`](../routes.md#register-input) request.
     pub input_id: InputId,
 }
 
@@ -171,7 +171,7 @@ pub struct WebView {
     /// List of component's children.
     pub children: Option<Vec<Component>>,
 
-    /// Id of a web renderer instance. It identifies an instance registered using a [`RegisterRenderer`](../routes#register-renderer) request.
+    /// Id of a web renderer instance. It identifies an instance registered using a [`register web renderer`](../routes.md#register-web-renderer-instance) request.
     ///
     /// <br/> <br/>
     ///
@@ -189,7 +189,7 @@ pub struct Image {
     /// Id of a component.
     pub id: Option<ComponentId>,
 
-    /// Id of an image. It identifies an image registered using a [`RegisterRenderer`](../routes#register-renderer) request.
+    /// Id of an image. It identifies an image registered using a [`register image`](../routes.md#register-image) request.
     pub image_id: RendererId,
 }
 
@@ -201,7 +201,7 @@ pub struct Shader {
     /// List of component's children.
     pub children: Option<Vec<Component>>,
 
-    /// Id of a shader. It identifies a shader registered using a [`RegisterRenderer`](../routes#register-renderer) request.
+    /// Id of a shader. It identifies a shader registered using a [`register shader`](../routes.md#register-shader) request.
     pub shader_id: RendererId,
     /// Object that will be serialized into a `struct` and passed inside the shader as:
     ///

@@ -13,10 +13,10 @@ use std::{
 };
 use tracing::info;
 use video_compositor::{
-    api::Api,
     config::{read_config, LoggerConfig, LoggerFormat},
     logger::{self, FfmpegLogLevel},
     server::start_api,
+    state::ApiState,
 };
 
 pub struct CompositorInstance {
@@ -41,12 +41,12 @@ impl CompositorInstance {
         info!("Starting LiveCompositor Integration Test with config:\n{config:#?}",);
 
         let (should_close_sender, should_close_receiver) = crossbeam_channel::bounded(1);
-        let (api, _event_loop) = Api::new(config).unwrap();
+        let (state, _event_loop) = ApiState::new(config).unwrap();
 
         thread::Builder::new()
             .name("HTTP server startup thread".to_string())
             .spawn(move || {
-                start_api(api, should_close_receiver).unwrap();
+                start_api(state, should_close_receiver).unwrap();
             })
             .unwrap();
         let instance = CompositorInstance {
@@ -58,10 +58,10 @@ impl CompositorInstance {
         instance
     }
 
-    pub fn send_request(&self, request_body: serde_json::Value) -> Result<()> {
+    pub fn send_request(&self, path: &str, request_body: serde_json::Value) -> Result<()> {
         let resp = self
             .http_client
-            .post(format!("http://127.0.0.1:{}/--/api", self.api_port))
+            .post(format!("http://127.0.0.1:{}/api/{}", self.api_port, path))
             .timeout(Duration::from_secs(100))
             .json(&request_body)
             .send()?;

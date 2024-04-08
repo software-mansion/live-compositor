@@ -2,6 +2,7 @@ use std::path::Path;
 
 use crate::{error::InputInitError, queue::PipelineEvent};
 
+use compositor_render::InputId;
 use crossbeam_channel::Receiver;
 use rtp::{RtpReceiver, RtpReceiverOptions};
 
@@ -19,11 +20,12 @@ pub enum Input {
 
 impl Input {
     pub fn new(
+        input_id: &InputId,
         options: InputOptions,
         download_dir: &Path,
     ) -> Result<(Self, ChunksReceiver, DecoderOptions, Option<Port>), InputInitError> {
         match options {
-            InputOptions::Rtp(opts) => Ok(RtpReceiver::new(opts).map(
+            InputOptions::Rtp(opts) => Ok(RtpReceiver::new(input_id, opts).map(
                 |(receiver, chunks_receiver, decoder_options, port)| {
                     (
                         Self::Rtp(receiver),
@@ -34,7 +36,7 @@ impl Input {
                 },
             )?),
 
-            InputOptions::Mp4(opts) => Ok(Mp4::new(opts, download_dir).map(
+            InputOptions::Mp4(opts) => Ok(Mp4::new(input_id, opts, download_dir).map(
                 |(mp4, chunks_receiver, decoder_options)| {
                     (Self::Mp4(mp4), chunks_receiver, decoder_options, None)
                 },

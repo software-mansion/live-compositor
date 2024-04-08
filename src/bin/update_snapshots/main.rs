@@ -34,7 +34,7 @@ fn main() {
     };
     for test in tests.iter() {
         for pts in &test.case.timestamps {
-            let (snapshots, Err(_)) = test.test_snapshots_for_pts(*pts) else {
+            let (snapshot, Err(_)) = test.test_snapshots_for_pts(*pts) else {
                 println!("PASS: \"{}\" (pts: {}ms)", test.case.name, pts.as_millis());
                 continue;
             };
@@ -45,30 +45,28 @@ fn main() {
                 pts.as_millis()
             );
 
-            for snapshot in snapshots {
-                let snapshot_path = snapshot.save_path();
+            let snapshot_path = snapshot.save_path();
 
-                if let Err(err) = fs::remove_file(&snapshot_path) {
-                    if err.kind() != io::ErrorKind::NotFound {
-                        panic!("Failed to remove old snapshots: {err}");
-                    }
+            if let Err(err) = fs::remove_file(&snapshot_path) {
+                if err.kind() != io::ErrorKind::NotFound {
+                    panic!("Failed to remove old snapshots: {err}");
                 }
-                let parent_folder = snapshot_path.parent().unwrap();
-                if !parent_folder.exists() {
-                    fs::create_dir_all(parent_folder).unwrap();
-                }
-
-                let width = snapshot.resolution.width - (snapshot.resolution.width % 2);
-                let height = snapshot.resolution.height - (snapshot.resolution.height % 2);
-                image::save_buffer(
-                    snapshot_path,
-                    &snapshot.data,
-                    width as u32,
-                    height as u32,
-                    image::ColorType::Rgba8,
-                )
-                .unwrap();
             }
+            let parent_folder = snapshot_path.parent().unwrap();
+            if !parent_folder.exists() {
+                fs::create_dir_all(parent_folder).unwrap();
+            }
+
+            let width = snapshot.resolution.width - (snapshot.resolution.width % 2);
+            let height = snapshot.resolution.height - (snapshot.resolution.height % 2);
+            image::save_buffer(
+                snapshot_path,
+                &snapshot.data,
+                width as u32,
+                height as u32,
+                image::ColorType::Rgba8,
+            )
+            .unwrap();
         }
     }
     if !has_only_flag {

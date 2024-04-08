@@ -22,45 +22,47 @@ pub fn push_entire_input_before_start_tcp() -> Result<()> {
     let input_port = instance.get_port();
     let output_port = instance.get_port();
 
-    instance.send_request(json!({
-        "type": "register",
-        "entity_type": "output_stream",
-        "output_id": "output_1",
-        "transport_protocol": "tcp_server",
-        "port": output_port,
-        "video": {
-            "resolution": {
-                "width": 640,
-                "height": 360,
+    instance.send_request(
+        "output/output_1/register",
+        json!({
+            "type": "rtp_stream",
+            "transport_protocol": "tcp_server",
+            "port": output_port,
+            "video": {
+                "resolution": {
+                    "width": 640,
+                    "height": 360,
+                },
+                "encoder_preset": "ultrafast",
+                "initial": {
+                    "type": "input_stream",
+                    "input_id": "input_1",
+                }
             },
-            "encoder_preset": "ultrafast",
-            "initial": {
-                "type": "input_stream",
-                "input_id": "input_1",
-            }
-        },
-    }))?;
+        }),
+    )?;
 
     let output_receiver = OutputReceiver::start(output_port, CommunicationProtocol::Tcp)?;
 
-    instance.send_request(json!({
-        "type": "unregister",
-        "entity_type": "output_stream",
-        "output_id": "output_1",
-        "schedule_time_ms": 30_000,
-    }))?;
+    instance.send_request(
+        "output/output_1/unregister",
+        json!({
+            "schedule_time_ms": 30_000,
+        }),
+    )?;
 
-    instance.send_request(json!({
-        "type": "register",
-        "entity_type": "rtp_input_stream",
-        "transport_protocol": "tcp_server",
-        "input_id": "input_1",
-        "port": input_port,
-        "video": {
-            "codec": "h264"
-        },
-        "offset_ms": 0
-    }))?;
+    instance.send_request(
+        "input/input_1/register",
+        json!({
+            "type": "rtp_stream",
+            "transport_protocol": "tcp_server",
+            "port": input_port,
+            "video": {
+                "codec": "h264"
+            },
+            "offset_ms": 0
+        }),
+    )?;
 
     let mut input_1_sender = PacketSender::new(CommunicationProtocol::Tcp, input_port)?;
     let input_1_dump = input_dump_from_disk("8_colors_input_video.rtp")?;
@@ -69,9 +71,7 @@ pub fn push_entire_input_before_start_tcp() -> Result<()> {
 
     thread::sleep(Duration::from_secs(5));
 
-    instance.send_request(json!({
-        "type": "start",
-    }))?;
+    instance.send_request("start", json!({}))?;
 
     let new_output_dump = output_receiver.wait_for_output()?;
 
@@ -101,45 +101,47 @@ pub fn push_entire_input_before_start_udp() -> Result<()> {
     let input_port = instance.get_port();
     let output_port = instance.get_port();
 
-    instance.send_request(json!({
-        "type": "register",
-        "entity_type": "output_stream",
-        "output_id": "output_1",
-        "transport_protocol": "tcp_server",
-        "port": output_port,
-        "video": {
-            "resolution": {
-                "width": 640,
-                "height": 360,
+    instance.send_request(
+        "output/output_1/register",
+        json!({
+            "type": "rtp_stream",
+            "transport_protocol": "tcp_server",
+            "port": output_port,
+            "video": {
+                "resolution": {
+                    "width": 640,
+                    "height": 360,
+                },
+                "encoder_preset": "ultrafast",
+                "initial": {
+                    "type": "input_stream",
+                    "input_id": "input_1",
+                }
             },
-            "encoder_preset": "ultrafast",
-            "initial": {
-                "type": "input_stream",
-                "input_id": "input_1",
-            }
-        },
-    }))?;
+        }),
+    )?;
 
     let output_receiver = OutputReceiver::start(output_port, CommunicationProtocol::Tcp)?;
 
-    instance.send_request(json!({
-        "type": "unregister",
-        "entity_type": "output_stream",
-        "output_id": "output_1",
-        "schedule_time_ms": 30_000,
-    }))?;
+    instance.send_request(
+        "output/output_1/unregister",
+        json!({
+            "schedule_time_ms": 30_000,
+        }),
+    )?;
 
-    instance.send_request(json!({
-        "type": "register",
-        "entity_type": "rtp_input_stream",
-        "transport_protocol": "udp",
-        "input_id": "input_1",
-        "port": input_port,
-        "video": {
-            "codec": "h264"
-        },
-        "offset_ms": 0
-    }))?;
+    instance.send_request(
+        "input/input_1/register",
+        json!({
+            "type": "rtp_stream",
+            "transport_protocol": "udp",
+            "port": input_port,
+            "video": {
+                "codec": "h264"
+            },
+            "offset_ms": 0
+        }),
+    )?;
 
     let mut input_1_sender = PacketSender::new(CommunicationProtocol::Udp, input_port)?;
     let input_1_dump = input_dump_from_disk("8_colors_input_video.rtp")?;
@@ -148,9 +150,7 @@ pub fn push_entire_input_before_start_udp() -> Result<()> {
 
     thread::sleep(Duration::from_secs(5));
 
-    instance.send_request(json!({
-        "type": "start",
-    }))?;
+    instance.send_request("start", json!({}))?;
 
     let new_output_dump = output_receiver.wait_for_output()?;
 
@@ -180,44 +180,46 @@ pub fn push_entire_input_before_start_tcp_without_offset() -> Result<()> {
     let input_port = instance.get_port();
     let output_port = instance.get_port();
 
-    instance.send_request(json!({
-        "type": "register",
-        "entity_type": "output_stream",
-        "output_id": "output_1",
-        "transport_protocol": "tcp_server",
-        "port": output_port,
-        "video": {
-            "resolution": {
-                "width": 640,
-                "height": 360,
+    instance.send_request(
+        "output/output_1/register",
+        json!({
+            "type": "rtp_stream",
+            "transport_protocol": "tcp_server",
+            "port": output_port,
+            "video": {
+                "resolution": {
+                    "width": 640,
+                    "height": 360,
+                },
+                "encoder_preset": "ultrafast",
+                "initial": {
+                    "type": "input_stream",
+                    "input_id": "input_1",
+                }
             },
-            "encoder_preset": "ultrafast",
-            "initial": {
-                "type": "input_stream",
-                "input_id": "input_1",
-            }
-        },
-    }))?;
+        }),
+    )?;
 
     let output_receiver = OutputReceiver::start(output_port, CommunicationProtocol::Tcp)?;
 
-    instance.send_request(json!({
-        "type": "unregister",
-        "entity_type": "output_stream",
-        "output_id": "output_1",
-        "schedule_time_ms": 30_000,
-    }))?;
+    instance.send_request(
+        "output/output_1/unregister",
+        json!({
+            "schedule_time_ms": 30_000,
+        }),
+    )?;
 
-    instance.send_request(json!({
-        "type": "register",
-        "entity_type": "rtp_input_stream",
-        "transport_protocol": "tcp_server",
-        "input_id": "input_1",
-        "port": input_port,
-        "video": {
-            "codec": "h264"
-        },
-    }))?;
+    instance.send_request(
+        "input/input_1/register",
+        json!({
+            "type": "rtp_stream",
+            "transport_protocol": "tcp_server",
+            "port": input_port,
+            "video": {
+                "codec": "h264"
+            },
+        }),
+    )?;
 
     let mut input_1_sender = PacketSender::new(CommunicationProtocol::Tcp, input_port)?;
     let input_1_dump = input_dump_from_disk("8_colors_input_video.rtp")?;
@@ -226,9 +228,7 @@ pub fn push_entire_input_before_start_tcp_without_offset() -> Result<()> {
 
     thread::sleep(Duration::from_secs(5));
 
-    instance.send_request(json!({
-        "type": "start",
-    }))?;
+    instance.send_request("start", json!({}))?;
 
     let new_output_dump = output_receiver.wait_for_output()?;
 
@@ -259,44 +259,46 @@ pub fn push_entire_input_before_start_udp_without_offset() -> Result<()> {
     let input_port = instance.get_port();
     let output_port = instance.get_port();
 
-    instance.send_request(json!({
-        "type": "register",
-        "entity_type": "output_stream",
-        "output_id": "output_1",
-        "transport_protocol": "tcp_server",
-        "port": output_port,
-        "video": {
-            "resolution": {
-                "width": 640,
-                "height": 360,
+    instance.send_request(
+        "output/output_1/register",
+        json!({
+            "type": "rtp_stream",
+            "transport_protocol": "tcp_server",
+            "port": output_port,
+            "video": {
+                "resolution": {
+                    "width": 640,
+                    "height": 360,
+                },
+                "encoder_preset": "ultrafast",
+                "initial": {
+                    "type": "input_stream",
+                    "input_id": "input_1",
+                }
             },
-            "encoder_preset": "ultrafast",
-            "initial": {
-                "type": "input_stream",
-                "input_id": "input_1",
-            }
-        },
-    }))?;
+        }),
+    )?;
 
     let output_receiver = OutputReceiver::start(output_port, CommunicationProtocol::Tcp)?;
 
-    instance.send_request(json!({
-        "type": "unregister",
-        "entity_type": "output_stream",
-        "output_id": "output_1",
-        "schedule_time_ms": 30_000,
-    }))?;
+    instance.send_request(
+        "output/output_1/unregister",
+        json!({
+            "schedule_time_ms": 30_000,
+        }),
+    )?;
 
-    instance.send_request(json!({
-        "type": "register",
-        "entity_type": "rtp_input_stream",
-        "transport_protocol": "udp",
-        "input_id": "input_1",
-        "port": input_port,
-        "video": {
-            "codec": "h264"
-        },
-    }))?;
+    instance.send_request(
+        "input/input_1/register",
+        json!({
+            "type": "rtp_stream",
+            "transport_protocol": "udp",
+            "port": input_port,
+            "video": {
+                "codec": "h264"
+            },
+        }),
+    )?;
 
     let mut input_1_sender = PacketSender::new(CommunicationProtocol::Udp, input_port)?;
     let input_1_dump = input_dump_from_disk("8_colors_input_video.rtp")?;
@@ -305,9 +307,7 @@ pub fn push_entire_input_before_start_udp_without_offset() -> Result<()> {
 
     thread::sleep(Duration::from_secs(5));
 
-    instance.send_request(json!({
-        "type": "start",
-    }))?;
+    instance.send_request("start", json!({}))?;
 
     let new_output_dump = output_receiver.wait_for_output()?;
 
