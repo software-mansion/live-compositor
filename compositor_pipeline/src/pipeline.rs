@@ -75,7 +75,6 @@ pub struct OutputAudioOptions {
 
 #[derive(Debug, Clone)]
 pub struct RegisterOutputOptions {
-    pub output_id: OutputId,
     pub output_options: OutputOptions,
     pub video: Option<OutputVideoOptions>,
     pub audio: Option<OutputAudioOptions>,
@@ -168,9 +167,10 @@ impl Pipeline {
 
     pub fn register_output(
         &mut self,
+        output_id: OutputId,
         register_options: RegisterOutputOptions,
     ) -> Result<Option<Port>, RegisterOutputError> {
-        self.register_pipeline_output(register_options)
+        self.register_pipeline_output(output_id, register_options)
     }
 
     pub fn unregister_output(&mut self, output_id: &OutputId) -> Result<(), UnregisterOutputError> {
@@ -186,10 +186,11 @@ impl Pipeline {
 
     pub fn register_renderer(
         pipeline: &Arc<Mutex<Self>>,
+        renderer_id: RendererId,
         transformation_spec: RendererSpec,
     ) -> Result<(), RegisterRendererError> {
         let renderer = pipeline.lock().unwrap().renderer.clone();
-        renderer.register_renderer(transformation_spec)?;
+        renderer.register_renderer(renderer_id, transformation_spec)?;
         Ok(())
     }
 

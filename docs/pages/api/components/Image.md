@@ -9,7 +9,7 @@ import Docs from "@site/pages/api/generated/component-Image.md"
 A component for rendering images.
 
 :::note
-To use this component, you need to first register the image with matching `image_id` using [`RegisterRenderer`](../routes#register-renderer) request.
+To use this component, you need to first register the image with matching `image_id` using [`register image`](../routes.md#register-image) request.
 :::
 
 <Docs />

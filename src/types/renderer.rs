@@ -2,13 +2,10 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use super::util::*;
-use super::*;
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct ShaderSpec {
-    /// Id of a shader. It can be used in a [`Shader`](../components/Shader) component after registration.
-    pub shader_id: RendererId,
     /// Shader source code. [Learn more.](../../concept/shaders)
     pub source: String,
 }
@@ -16,8 +13,6 @@ pub struct ShaderSpec {
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct WebRendererSpec {
-    /// Id of a web renderer instance. It can be used in a [`WebView`](../components/WebView) component after registration.
-    pub instance_id: RendererId,
     /// Url of a website that you want to render.
     pub url: String,
     /// Resolution.
@@ -51,23 +46,19 @@ pub enum WebEmbeddingMethod {
 #[serde(tag = "asset_type", rename_all = "snake_case", deny_unknown_fields)]
 pub enum ImageSpec {
     Png {
-        image_id: RendererId,
         url: Option<String>,
         path: Option<String>,
     },
     Jpeg {
-        image_id: RendererId,
         url: Option<String>,
         path: Option<String>,
     },
     Svg {
-        image_id: RendererId,
         url: Option<String>,
         path: Option<String>,
         resolution: Option<Resolution>,
     },
     Gif {
-        image_id: RendererId,
         url: Option<String>,
         path: Option<String>,
     },

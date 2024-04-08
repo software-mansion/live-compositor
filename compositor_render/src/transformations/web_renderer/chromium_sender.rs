@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{scene::ComponentId, state::RegisterCtx, Resolution};
+use crate::{scene::ComponentId, state::RegisterCtx, RendererId, Resolution};
 use crossbeam_channel::{Receiver, Sender};
 use log::error;
 
@@ -26,12 +26,18 @@ impl Drop for ChromiumSender {
 }
 
 impl ChromiumSender {
-    pub fn new(ctx: &RegisterCtx, spec: &WebRendererSpec, browser_client: BrowserClient) -> Self {
+    pub fn new(
+        ctx: &RegisterCtx,
+        instance_id: &RendererId,
+        spec: &WebRendererSpec,
+        browser_client: BrowserClient,
+    ) -> Self {
         let (message_sender, message_receiver) = crossbeam_channel::unbounded();
         let (unmap_signal_sender, unmap_signal_receiver) = crossbeam_channel::bounded(0);
 
         ChromiumSenderThread::new(
             ctx,
+            instance_id,
             spec,
             browser_client,
             message_receiver,

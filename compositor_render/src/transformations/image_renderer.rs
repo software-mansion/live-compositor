@@ -19,23 +19,22 @@ use crate::{
         texture::{NodeTexture, RGBATexture},
         WgpuCtx,
     },
-    RendererId, Resolution,
+    Resolution,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ImageSpec {
     pub src: ImageSource,
-    pub image_id: RendererId,
     pub image_type: ImageType,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ImageSource {
     Url { url: String },
     LocalPath { path: String },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ImageType {
     Png,
     Jpeg,

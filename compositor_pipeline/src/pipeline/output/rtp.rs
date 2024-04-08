@@ -31,7 +31,6 @@ pub struct RtpSender {
 
 #[derive(Debug, Clone)]
 pub struct RtpSenderOptions {
-    pub output_id: OutputId,
     pub connection_options: RtpConnectionOptions,
     pub video: Option<VideoCodec>,
     pub audio: Option<AudioCodec>,
@@ -45,6 +44,7 @@ pub enum RtpConnectionOptions {
 
 impl RtpSender {
     pub fn new(
+        output_id: &OutputId,
         options: RtpSenderOptions,
         packets_receiver: Receiver<EncoderOutputEvent>,
     ) -> Result<(Self, Option<Port>), OutputInitError> {
@@ -62,10 +62,10 @@ impl RtpSender {
 
         let should_close = Arc::new(AtomicBool::new(false));
         let connection_options = options.connection_options.clone();
-        let output_id = options.output_id.clone();
+        let output_id = output_id.clone();
         let should_close2 = should_close.clone();
         std::thread::Builder::new()
-            .name(format!("RTP sender for output {}", options.output_id))
+            .name(format!("RTP sender for output {}", output_id))
             .spawn(move || {
                 let _span =
                     span!(Level::INFO, "RTP sender", output_id = output_id.to_string()).entered();

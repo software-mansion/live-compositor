@@ -35,6 +35,7 @@ pub(super) struct ChromiumSenderThread {
 impl ChromiumSenderThread {
     pub fn new(
         ctx: &RegisterCtx,
+        instance_id: &RendererId,
         spec: &WebRendererSpec,
         browser_client: BrowserClient,
         message_receiver: Receiver<ChromiumSenderMessage>,
@@ -43,7 +44,7 @@ impl ChromiumSenderThread {
         Self {
             chromium_ctx: ctx.chromium.clone(),
             url: spec.url.clone(),
-            web_renderer_id: spec.instance_id.clone(),
+            web_renderer_id: instance_id.clone(),
             browser_client,
             message_receiver,
             unmap_signal_sender,

@@ -5,28 +5,14 @@ use std::sync::Arc;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use super::renderer::*;
 use super::util::*;
 use super::*;
-
-#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-#[serde(tag = "entity_type", rename_all = "snake_case")]
-pub enum RegisterRequest {
-    RtpInputStream(RtpInputStream),
-    Mp4(Mp4),
-    OutputStream(RegisterOutputRequest),
-    Shader(ShaderSpec),
-    WebRenderer(WebRendererSpec),
-    Image(ImageSpec),
-}
 
 /// Parameters for an input stream from RTP source.
 /// At least one of `video` and `audio` has to be defined.
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct RtpInputStream {
-    /// An identifier for the input stream.
-    pub input_id: InputId,
     /// UDP port or port range on which the compositor should listen for the stream.
     pub port: Port,
     /// Transport protocol.
@@ -49,8 +35,6 @@ pub struct RtpInputStream {
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct Mp4 {
-    /// An identifier for the input stream.
-    pub input_id: InputId,
     /// URL of the MP4 file.
     pub url: Option<String>,
     /// Path to the MP4 file.
@@ -169,8 +153,6 @@ pub enum AudioEncoderPreset {
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct RegisterOutputRequest {
-    /// An identifier for the output stream. It can be used in the `UpdateOutput` request to define what to render for the output stream.
-    pub output_id: OutputId,
     /// Depends on the value of the `transport_protocol` field:
     ///
     ///   - `udp` - An UDP port number that RTP packets will be sent to.

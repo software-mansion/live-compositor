@@ -18,12 +18,13 @@ use websocket::{Message, OwnedMessage};
 
 use serde::Serialize;
 
-pub fn post<T: Serialize + ?Sized>(json: &T) -> Result<Response> {
+pub fn post<T: Serialize + ?Sized>(route: &str, json: &T) -> Result<Response> {
     let client = reqwest::blocking::Client::new();
     let response = client
         .post(format!(
-            "http://127.0.0.1:{}/--/api",
-            read_config().api_port
+            "http://127.0.0.1:{}/api/{}",
+            read_config().api_port,
+            route
         ))
         .timeout(Duration::from_secs(100))
         .json(json)
@@ -39,7 +40,7 @@ pub fn post<T: Serialize + ?Sized>(json: &T) -> Result<Response> {
 #[allow(dead_code)]
 pub fn start_websocket_thread() {
     let client = websocket::sync::client::ClientBuilder::new(&format!(
-        "ws://127.0.0.1:{}/--/ws",
+        "ws://127.0.0.1:{}/ws",
         read_config().api_port
     ))
     .unwrap()

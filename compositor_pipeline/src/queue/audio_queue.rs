@@ -278,13 +278,13 @@ impl AudioQueueInput {
     /// Drops samples that won't be used for processing. This function should only be called before
     /// queue start.
     fn drop_old_samples_before_start(&mut self) {
-        if self.offset.is_some() {
-            // if offset is defined never drop frames before start.
+        let Some(start_input_stream) = self.input_start_time() else {
+            // before first frame, so nothing to do
             return;
         };
 
-        let Some(start_input_stream) = self.input_start_time() else {
-            // before first frame, so nothing to do
+        if self.offset.is_some() {
+            // if offset is defined never drop frames before start.
             return;
         };
 

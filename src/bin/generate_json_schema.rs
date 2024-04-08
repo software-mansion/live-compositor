@@ -16,7 +16,6 @@ fn main() {
         "scene",
         update_flag,
     );
-    generate_schema(schema_for!(types::RegisterRequest), "register", update_flag);
 }
 
 /// When variant inside oneOf has a schema additionalProperties set to false then
