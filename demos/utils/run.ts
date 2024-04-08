@@ -69,7 +69,6 @@ function getCompositorRunCmd(): {
       args: [],
     };
   } else if (process.platform === "darwin") {
-
     return {
       command: path.join(COMPOSITOR_DIR, "video_compositor/video_compositor"),
       args: [],

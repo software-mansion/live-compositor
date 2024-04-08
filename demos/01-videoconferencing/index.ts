@@ -53,9 +53,9 @@ async function example() {
     })
   );
 
-  await sendAsync({ type: "start" });
-
   await sleepAsync(2000);
+  
+  await sendAsync({ type: "start" });
   gstStreamWebcam(IP, INPUT_PORT);
 }
 

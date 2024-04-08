@@ -16,6 +16,7 @@ export function spawn(
   args: string[],
   options: SpawnOptions,
 ): SpawnPromise {
+  console.log(`Spawning: ${command} ${args.join(" ")}`);
   const child = nodeSpawn(command, args, {
     stdio: "inherit",
     env: {

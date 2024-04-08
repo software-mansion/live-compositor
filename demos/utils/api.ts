@@ -15,6 +15,7 @@ export async function sendAsync(body: Request): Promise<object> {
 
   if (response.status >= 400) {
     const err: any = new Error(`Request to compositor failed.`);
+    err.request = JSON.stringify(body);
     err.status = await response.status;
     err.response = await response.json();
     throw err;
