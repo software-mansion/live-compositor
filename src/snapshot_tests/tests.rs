@@ -1109,6 +1109,44 @@ fn text_snapshot_tests() -> Vec<TestCase> {
             allowed_error: 321.8,
             ..Default::default()
         },
+        TestCase {
+            // Test if removing text from scene works
+            name: "text/remove_text_in_view",
+            scene_updates: Updates::Scenes(vec![
+                (
+                    include_str!("../../snapshot_tests/text/align_center.scene.json"),
+                    DEFAULT_RESOLUTION,
+                ),
+                (
+                    include_str!("../../snapshot_tests/view/empty_view.scene.json"),
+                    DEFAULT_RESOLUTION,
+                ),
+            ]),
+            ..Default::default()
+        },
+        TestCase {
+            // Test if removing text from scene works
+            name: "text/remove_text_as_root",
+            scene_updates: Updates::Scenes(vec![
+                (
+                    include_str!("../../snapshot_tests/text/root_text.scene.json"),
+                    DEFAULT_RESOLUTION,
+                ),
+                (
+                    include_str!("../../snapshot_tests/view/empty_view.scene.json"),
+                    DEFAULT_RESOLUTION,
+                ),
+            ]),
+            ..Default::default()
+        },
+        TestCase {
+            name: "text/text_as_root",
+            scene_updates: Updates::Scene(
+                include_str!("../../snapshot_tests/text/root_text.scene.json"),
+                DEFAULT_RESOLUTION,
+            ),
+            ..Default::default()
+        },
     ])
 }
 
@@ -1150,6 +1188,40 @@ fn image_snapshot_tests() -> Vec<TestCase> {
                 include_str!("../../snapshot_tests/image/jpeg_in_view_overflow_fit.scene.json"),
                 DEFAULT_RESOLUTION,
             ),
+            renderers: vec![image_renderer.clone()],
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
+        TestCase {
+            // Test if removing image from scene works
+            name: "image/remove_jpeg_as_root",
+            scene_updates: Updates::Scenes(vec![
+                (
+                    include_str!("../../snapshot_tests/image/jpeg_as_root.scene.json"),
+                    DEFAULT_RESOLUTION,
+                ),
+                (
+                    include_str!("../../snapshot_tests/view/empty_view.scene.json"),
+                    DEFAULT_RESOLUTION,
+                ),
+            ]),
+            renderers: vec![image_renderer.clone()],
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
+        TestCase {
+            // Test if removing image from scene works
+            name: "image/remove_jpeg_in_view",
+            scene_updates: Updates::Scenes(vec![
+                (
+                    include_str!("../../snapshot_tests/image/jpeg_in_view.scene.json"),
+                    DEFAULT_RESOLUTION,
+                ),
+                (
+                    include_str!("../../snapshot_tests/view/empty_view.scene.json"),
+                    DEFAULT_RESOLUTION,
+                ),
+            ]),
             renderers: vec![image_renderer.clone()],
             inputs: vec![TestInput::new(1)],
             ..Default::default()
