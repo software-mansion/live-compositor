@@ -61,8 +61,30 @@ async function example() {
 
 
 function sceneWithInputs(n: number): Component {
-  let children: Array<Component> = Array.from({ length: n }, () => {
-    return { type: "input_stream", input_id: "input_1" }
+  const input_stream: Component = { type: "input_stream", input_id: "input_1" }
+  const children: Array<Component> = Array.from({ length: n }, (_, i) => {
+    const text: Component = {
+      type: "text",
+      text: `InputStream ${i}`,
+      font_size: 20,
+      color_rgba: "#00800000",
+      background_color_rgba: "#1E90FF00",
+    };
+
+    return { 
+      type: "view", 
+      children: [
+        input_stream,
+        {
+          type: "view",
+          width: 300,
+          height: 50,
+          left: 0,
+          bottom: 0,
+          children: [text]
+        }
+      ]
+    };
   });
 
   return {
