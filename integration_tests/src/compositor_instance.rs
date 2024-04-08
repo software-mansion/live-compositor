@@ -8,10 +8,12 @@ use std::{
         atomic::{AtomicU16, Ordering},
         OnceLock,
     },
+    thread,
     time::{Duration, Instant},
 };
 use tracing::info;
 use video_compositor::{
+    api::Api,
     config::{read_config, LoggerConfig, LoggerFormat},
     logger::{self, FfmpegLogLevel},
     server::start_api,
@@ -38,7 +40,15 @@ impl CompositorInstance {
 
         info!("Starting LiveCompositor Integration Test with config:\n{config:#?}",);
 
-        let (_event_loop, should_close_sender) = start_api(config);
+        let (should_close_sender, should_close_receiver) = crossbeam_channel::bounded(1);
+        let (api, _event_loop) = Api::new(config).unwrap();
+
+        thread::Builder::new()
+            .name("HTTP server startup thread".to_string())
+            .spawn(move || {
+                start_api(api, should_close_receiver).unwrap();
+            })
+            .unwrap();
         let instance = CompositorInstance {
             api_port,
             http_client: reqwest::blocking::Client::new(),
