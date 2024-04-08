@@ -149,13 +149,13 @@ fn try_read_config() -> Result<Config, String> {
     let ahead_of_time_processing: bool =
         match env::var("LIVE_COMPOSITOR_AHEAD_OF_TIME_PROCESSING_ENABLE") {
             Ok(enable) => bool_env_from_str(&enable).unwrap_or(offline_processing),
-            Err(_) => false,
+            Err(_) => offline_processing,
         };
 
     let never_drop_output_frames: bool = match env::var("LIVE_COMPOSITOR_NEVER_DROP_OUTPUT_FRAMES")
     {
         Ok(enable) => bool_env_from_str(&enable).unwrap_or(offline_processing),
-        Err(_) => false,
+        Err(_) => offline_processing,
     };
 
     let run_late_scheduled_events = match env::var("LIVE_COMPOSITOR_RUN_LATE_SCHEDULED_EVENTS") {
