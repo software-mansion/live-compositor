@@ -470,7 +470,7 @@ pub enum AnimatedError {
 
     #[error("Failed to parse image: {0}")]
     FailedToParse(#[from] image::ImageError),
-    
+
     #[error("Unsupported animated image format: {0:?}")]
     UnsupportedImageFormat(ImageFormat),
 }
