@@ -64,57 +64,57 @@ fn start_example_client_code() -> Result<()> {
         .to_string();
 
     info!("[example] Send register input request.");
-    common::post(&json!({
-        "type": "register",
-        "entity_type": "rtp_input_stream",
-        "input_id": "input_1",
-        "port": INPUT_PORT,
-        "video": {
-            "codec": "h264"
-        }
-    }))?;
+    common::post(
+        "input/input_1/register",
+        &json!({
+            "type": "rtp_stream",
+            "port": INPUT_PORT,
+            "video": {
+                "codec": "h264"
+            }
+        }),
+    )?;
 
     info!("[example] Register web renderer transform");
-    common::post(&json!({
-        "type": "register",
-        "entity_type": "web_renderer",
-        "instance_id": "example_website",
-        "url": format!("file://{html_file_path}"), // or other way of providing source
-        "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
-    }))?;
+    common::post(
+        "web-renderer/example_website/register",
+        &json!({
+            "url": format!("file://{html_file_path}"), // or other way of providing source
+            "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+        }),
+    )?;
 
     info!("[example] Send register output request.");
-    common::post(&json!({
-        "type": "register",
-        "entity_type": "output_stream",
-        "output_id": "output_1",
-        "ip": IP,
-        "port": OUTPUT_PORT,
-        "video": {
-            "resolution": {
-                "width": VIDEO_RESOLUTION.width,
-                "height": VIDEO_RESOLUTION.height,
-            },
-            "encoder_preset": "ultrafast",
-            "initial": {
-                "id": "embed_input_on_website",
-                "type": "web_view",
-                "instance_id": "example_website",
-                "children": [
-                    {
-                        "id": "big_bunny_video",
-                        "type": "input_stream",
-                        "input_id": "input_1",
-                    }
-                ]
+    common::post(
+        "output/output_1/register",
+        &json!({
+            "type": "rtp_stream",
+            "ip": IP,
+            "port": OUTPUT_PORT,
+            "video": {
+                "resolution": {
+                    "width": VIDEO_RESOLUTION.width,
+                    "height": VIDEO_RESOLUTION.height,
+                },
+                "encoder_preset": "ultrafast",
+                "initial": {
+                    "id": "embed_input_on_website",
+                    "type": "web_view",
+                    "instance_id": "example_website",
+                    "children": [
+                        {
+                            "id": "big_bunny_video",
+                            "type": "input_stream",
+                            "input_id": "input_1",
+                        }
+                    ]
+                }
             }
-        }
-    }))?;
+        }),
+    )?;
 
     info!("[example] Start pipeline");
-    common::post(&json!({
-        "type": "start",
-    }))?;
+    common::post("start", &json!({}))?;
 
     stream_video(IP, INPUT_PORT, sample_path)?;
     Ok(())

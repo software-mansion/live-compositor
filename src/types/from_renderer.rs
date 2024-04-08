@@ -10,7 +10,6 @@ impl TryFrom<ShaderSpec> for compositor_render::RendererSpec {
 
     fn try_from(spec: ShaderSpec) -> Result<Self, Self::Error> {
         let spec = shader::ShaderSpec {
-            shader_id: spec.shader_id.into(),
             source: spec.source.into(),
         };
         Ok(Self::Shader(spec))
@@ -35,7 +34,6 @@ impl TryFrom<WebRendererSpec> for compositor_render::RendererSpec {
         };
 
         let spec = web_renderer::WebRendererSpec {
-            instance_id: spec.instance_id.into(),
             url: spec.url,
             resolution: spec.resolution.into(),
             embedding_method,
@@ -64,43 +62,26 @@ impl TryFrom<ImageSpec> for compositor_render::RendererSpec {
             }
         }
         let image = match spec {
-            ImageSpec::Png {
-                image_id,
-                url,
-                path,
-            } => image::ImageSpec {
+            ImageSpec::Png { url, path } => image::ImageSpec {
                 src: from_url_or_path(url, path)?,
-                image_id: image_id.into(),
                 image_type: image::ImageType::Png,
             },
-            ImageSpec::Jpeg {
-                image_id,
-                url,
-                path,
-            } => image::ImageSpec {
+            ImageSpec::Jpeg { url, path } => image::ImageSpec {
                 src: from_url_or_path(url, path)?,
-                image_id: image_id.into(),
                 image_type: image::ImageType::Jpeg,
             },
             ImageSpec::Svg {
-                image_id,
                 url,
                 path,
                 resolution,
             } => image::ImageSpec {
                 src: from_url_or_path(url, path)?,
-                image_id: image_id.into(),
                 image_type: image::ImageType::Svg {
                     resolution: resolution.map(Into::into),
                 },
             },
-            ImageSpec::Gif {
-                image_id,
-                url,
-                path,
-            } => image::ImageSpec {
+            ImageSpec::Gif { url, path } => image::ImageSpec {
                 src: from_url_or_path(url, path)?,
-                image_id: image_id.into(),
                 image_type: image::ImageType::Gif,
             },
         };

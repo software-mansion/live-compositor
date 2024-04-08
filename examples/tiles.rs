@@ -36,15 +36,16 @@ fn start_example_client_code() -> Result<()> {
     start_websocket_thread();
 
     info!("[example] Send register input request.");
-    common::post(&json!({
-        "type": "register",
-        "entity_type": "rtp_input_stream",
-        "input_id": "input_1",
-        "port": INPUT_PORT,
-        "video": {
-            "codec": "h264"
-        }
-    }))?;
+    common::post(
+        "input/input_1/register",
+        &json!({
+            "type": "rtp_stream",
+            "port": INPUT_PORT,
+            "video": {
+                "codec": "h264"
+            }
+        }),
+    )?;
 
     let scene_with_inputs = |n: usize| {
         let children: Vec<_> = (0..n)
@@ -72,57 +73,59 @@ fn start_example_client_code() -> Result<()> {
     };
 
     info!("[example] Send register output request.");
-    common::post(&json!({
-        "type": "register",
-        "entity_type": "output_stream",
-        "output_id": "output_1",
-        "ip": IP,
-        "port": OUTPUT_PORT,
-        "video": {
-            "resolution": {
-                "width": VIDEO_RESOLUTION.width,
-                "height": VIDEO_RESOLUTION.height,
-            },
-            "encoder_preset": "ultrafast",
-            "initial": scene_with_inputs(0)
-        }
-    }))?;
+    common::post(
+        "output/output_1/register",
+        &json!({
+            "type": "rtp_stream",
+            "ip": IP,
+            "port": OUTPUT_PORT,
+            "video": {
+                "resolution": {
+                    "width": VIDEO_RESOLUTION.width,
+                    "height": VIDEO_RESOLUTION.height,
+                },
+                "encoder_preset": "ultrafast",
+                "initial": scene_with_inputs(0)
+            }
+        }),
+    )?;
 
     for i in 1..=16 {
         info!("[example] Update output");
-        common::post(&json!({
-            "type": "update_output",
-            "output_id": "output_1",
-            "video": scene_with_inputs(i),
-            "schedule_time_ms": i * 1000,
-        }))?;
+        common::post(
+            "output/output_1/update",
+            &json!({
+                "video": scene_with_inputs(i),
+                "schedule_time_ms": i * 1000,
+            }),
+        )?;
     }
 
     info!("[example] Start pipeline");
-    common::post(&json!({
-        "type": "start",
-    }))?;
+    common::post("start", &json!({}))?;
 
     info!("[example] Start input stream");
     stream_ffmpeg_testsrc(IP, INPUT_PORT, VIDEO_RESOLUTION)?;
 
     for i in 0..16 {
         info!("[example] Update output");
-        common::post(&json!({
-            "type": "update_output",
-            "output_id": "output_1",
-            "video": scene_with_inputs(16 - i),
-            "schedule_time_ms": (20 + i) * 1000,
-        }))?;
+        common::post(
+            "output/output_1/update",
+            &json!({
+                "video": scene_with_inputs(16 - i),
+                "schedule_time_ms": (20 + i) * 1000,
+            }),
+        )?;
     }
 
     info!("[example] Update output");
-    common::post(&json!({
-        "type": "update_output",
-        "output_id": "output_1",
-        "video": scene_with_inputs(4),
-        "schedule_time_ms": 40 * 1000,
-    }))?;
+    common::post(
+        "output/output_1/update",
+        &json!({
+            "video": scene_with_inputs(4),
+            "schedule_time_ms": 40 * 1000,
+        }),
+    )?;
 
     Ok(())
 }

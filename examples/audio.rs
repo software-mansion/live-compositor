@@ -59,103 +59,107 @@ fn start_example_client_code() -> Result<()> {
     let elephant_path = download_file(ELEPHANT_DREAM_FILE_URL, ELEPHANT_DREAM_FILE_PATH)?;
 
     info!("[example] Send register input request.");
-    common::post(&json!({
-        "type": "register",
-        "entity_type": "rtp_input_stream",
-        "input_id": "input_1",
-        "port": INPUT_1_PORT,
-        "video": {
-            "codec": "h264"
-        },
-    }))?;
+    common::post(
+        "input/input_1/register",
+        &json!({
+            "type": "rtp_stream",
+            "port": INPUT_1_PORT,
+            "video": {
+                "codec": "h264"
+            },
+        }),
+    )?;
 
     info!("[example] Send register input request.");
-    common::post(&json!({
-        "type": "register",
-        "entity_type": "rtp_input_stream",
-        "input_id": "input_2",
-        "port": INPUT_2_PORT,
-        "audio": {
-            "codec": "opus"
-        },
-    }))?;
+    common::post(
+        "input/input_2/register",
+        &json!({
+            "type": "rtp_stream",
+            "port": INPUT_2_PORT,
+            "audio": {
+                "codec": "opus"
+            },
+        }),
+    )?;
 
     info!("[example] Send register input request.");
-    common::post(&json!({
-        "type": "register",
-        "entity_type": "rtp_input_stream",
-        "input_id": "input_3",
-        "port": INPUT_3_PORT,
-        "video": {
-            "codec": "h264"
-        },
-    }))?;
+    common::post(
+        "input/input_3/register",
+        &json!({
+            "type": "rtp_stream",
+            "port": INPUT_3_PORT,
+            "video": {
+                "codec": "h264"
+            },
+        }),
+    )?;
 
     info!("[example] Send register input request.");
-    common::post(&json!({
-        "type": "register",
-        "entity_type": "rtp_input_stream",
-        "input_id": "input_4",
-        "port": INPUT_4_PORT,
-        "audio": {
-            "codec": "opus"
-        },
-    }))?;
+    common::post(
+        "input/input_4/register",
+        &json!({
+            "type": "rtp_stream",
+            "port": INPUT_4_PORT,
+            "audio": {
+                "codec": "opus"
+            },
+        }),
+    )?;
 
     info!("[example] Send register output request.");
-    common::post(&json!({
-        "type": "register",
-        "entity_type": "output_stream",
-        "output_id": "output_1",
-        "ip": IP,
-        "port": OUTPUT_VIDEO_PORT,
-        "video": {
-            "resolution": {
-                "width": VIDEO_RESOLUTION.width,
-                "height": VIDEO_RESOLUTION.height,
-            },
-            "encoder_preset": "medium",
-            "initial": {
-                "type": "tiles",
-                "children": [
-                    {
-                        "type": "input_stream",
-                        "input_id": "input_1"
-                    },
-                    {
-                        "type": "input_stream",
-                        "input_id": "input_3"
-                    }
-                ]
-            },
-            "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
-        }
-    }))?;
+    common::post(
+        "output/output_1/register",
+        &json!({
+            "type": "rtp_stream",
+            "ip": IP,
+            "port": OUTPUT_VIDEO_PORT,
+            "video": {
+                "resolution": {
+                    "width": VIDEO_RESOLUTION.width,
+                    "height": VIDEO_RESOLUTION.height,
+                },
+                "encoder_preset": "medium",
+                "initial": {
+                    "type": "tiles",
+                    "children": [
+                        {
+                            "type": "input_stream",
+                            "input_id": "input_1"
+                        },
+                        {
+                            "type": "input_stream",
+                            "input_id": "input_3"
+                        }
+                    ]
+                },
+                "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+            }
+        }),
+    )?;
 
     info!("[example] Send register output request.");
-    common::post(&json!({
-        "type": "register",
-        "entity_type": "output_stream",
-        "output_id": "output_2",
-        "ip": IP,
-        "port": OUTPUT_AUDIO_PORT,
-        "audio": {
-            "initial": {
-                "inputs": [
-                    {"input_id": "input_2"},
-                    {"input_id": "input_4"}
-                ]
-            },
-            "channels": "stereo"
-        }
-    }))?;
+    common::post(
+        "output/output_2/register",
+        &json!({
+            "type": "rtp_stream",
+            "ip": IP,
+            "port": OUTPUT_AUDIO_PORT,
+            "audio": {
+                "initial": {
+                    "inputs": [
+                        {"input_id": "input_2"},
+                        {"input_id": "input_4"}
+                    ]
+                },
+                "channels": "stereo"
+            }
+        }),
+    )?;
 
     std::thread::sleep(Duration::from_millis(500));
 
     info!("[example] Start pipeline");
-    common::post(&json!({
-        "type": "start",
-    }))?;
+    common::post("start", &json!({}))?;
 
     stream_video(IP, INPUT_1_PORT, bunny_path.clone())?;
     stream_audio(IP, INPUT_2_PORT, bunny_path)?;

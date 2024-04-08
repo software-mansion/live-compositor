@@ -6,26 +6,68 @@ use axum::{
     routing::{get, post},
     Router,
 };
+use compositor_pipeline::Pipeline;
 use serde_json::{json, Value};
-use tracing::debug;
 
-use crate::api::{self, Api};
+use crate::{
+    error::ApiError,
+    state::{ApiState, Response},
+};
 
-use self::ws::handle_ws_upgrade;
+use self::{update_output::handle_output_update, ws::handle_ws_upgrade};
 
+mod register_request;
+mod unregister_request;
+mod update_output;
 mod ws;
 
-pub fn routes(api: Api) -> Router {
+pub fn routes(state: ApiState) -> Router {
+    let inputs = Router::new()
+        .route("/:id/register", post(register_request::handle_input))
+        .route("/:id/unregister", post(unregister_request::handle_input));
+
+    let outputs = Router::new()
+        .route("/:id/register", post(register_request::handle_output))
+        .route("/:id/unregister", post(unregister_request::handle_output))
+        .route("/:id/update", post(handle_output_update));
+
+    let image = Router::new()
+        .route("/:id/register", post(register_request::handle_image))
+        .route("/:id/unregister", post(unregister_request::handle_image));
+
+    let web = Router::new()
+        .route("/:id/register", post(register_request::handle_web_renderer))
+        .route(
+            "/:id/unregister",
+            post(unregister_request::handle_web_renderer),
+        );
+
+    let shader = Router::new()
+        .route("/:id/register", post(register_request::handle_shader))
+        .route("/:id/unregister", post(unregister_request::handle_shader));
+
+    async fn handle_start(State(state): State<ApiState>) -> Result<Response, ApiError> {
+        Pipeline::start(&state.pipeline);
+        Ok(Response::Ok {})
+    }
+
     Router::new()
-        .route("/--/api", post(handle_api_request))
-        .route("/--/ws", get(ws_handler))
+        .nest("/api/input", inputs)
+        .nest("/api/output", outputs)
+        .nest("/api/image", image)
+        .nest("/api/web-renderer", web)
+        .nest("/api/shader", shader)
+        // Start request
+        .route("/api/start", post(handle_start))
+        // WebSocket - events
+        .route("/ws", get(ws_handler))
         .route(
             "/status",
             get(axum::Json(json!({
-                "instance_id": api.config.instance_id
+                "instance_id": state.config.instance_id
             }))),
         )
-        .with_state(api)
+        .with_state(state)
 }
 
 async fn ws_handler(ws: WebSocketUpgrade) -> impl IntoResponse {
@@ -33,16 +75,8 @@ async fn ws_handler(ws: WebSocketUpgrade) -> impl IntoResponse {
     ws.on_upgrade(handle_ws_upgrade)
 }
 
-async fn handle_api_request(
-    State(api): State<Api>,
-    Json(request): Json<api::Request>,
-) -> impl IntoResponse {
-    debug!(?request, "Received API request");
-    api.handle_request(request).await
-}
-
 /// Wrap axum::Json to return serialization errors as json
-struct Json<T>(pub T);
+pub(super) struct Json<T>(pub T);
 
 #[async_trait]
 impl<S, T> FromRequest<S> for Json<T>

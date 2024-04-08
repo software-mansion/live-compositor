@@ -1,19 +1,21 @@
-use std::{collections::HashSet, fmt::Display, path::PathBuf, sync::Arc, time::Duration};
+use std::{fmt::Display, path::PathBuf, sync::Arc, time::Duration};
 
 use super::utils::{create_renderer, frame_to_rgba, snaphot_save_path, snapshots_diff};
 
 use anyhow::Result;
 use compositor_render::{
-    scene::RGBColor, Frame, FrameSet, InputId, OutputId, Renderer, RendererSpec, Resolution,
-    YuvData,
+    scene::RGBColor, Frame, FrameSet, InputId, OutputId, Renderer, RendererId, RendererSpec,
+    Resolution, YuvData,
 };
 use image::ImageBuffer;
-use video_compositor::types::{self, RegisterRequest};
+use video_compositor::types::{self};
+
+pub(super) const OUTPUT_ID: &str = "output_1";
 
 pub struct TestCase {
     pub name: &'static str,
     pub inputs: Vec<TestInput>,
-    pub renderers: Vec<&'static str>,
+    pub renderers: Vec<(RendererId, RendererSpec)>,
     pub timestamps: Vec<Duration>,
     pub scene_updates: Updates,
     pub only: bool,
@@ -41,38 +43,20 @@ impl Default for TestCase {
 
 pub struct TestCaseInstance {
     pub case: TestCase,
-    pub expected_outputs: HashSet<OutputId>,
     pub renderer: Renderer,
 }
 
 impl TestCaseInstance {
     pub fn new(test_case: TestCase) -> TestCaseInstance {
-        fn register_requests_to_renderers(register_request: RegisterRequest) -> RendererSpec {
-            match register_request {
-                RegisterRequest::Mp4(_)
-                | RegisterRequest::RtpInputStream(_)
-                | RegisterRequest::OutputStream(_) => {
-                    panic!("Input and output streams are not supported in snapshot tests")
-                }
-                RegisterRequest::Shader(shader) => shader.try_into().unwrap(),
-                RegisterRequest::WebRenderer(web_renderer) => web_renderer.try_into().unwrap(),
-                RegisterRequest::Image(img) => img.try_into().unwrap(),
-            }
-        }
-
         if test_case.name.is_empty() {
             panic!("Snapshot test name has to be provided");
         }
 
         let mut renderer = create_renderer();
-        for json in test_case.renderers.iter() {
-            let spec = register_requests_to_renderers(
-                serde_json::from_str::<RegisterRequest>(json).unwrap(),
-            );
-            if matches!(spec, RendererSpec::WebRenderer(_)) {
-                panic!("Tests with web renderer are not supported");
-            }
-            renderer.register_renderer(spec).unwrap();
+        for (id, spec) in test_case.renderers.iter() {
+            renderer
+                .register_renderer(id.clone(), spec.clone())
+                .unwrap();
         }
 
         for (index, _) in test_case.inputs.iter().enumerate() {
@@ -84,20 +68,21 @@ impl TestCaseInstance {
             Updates::Scenes(ref scenes) => scenes.clone(),
         };
 
-        let mut expected_outputs = HashSet::new();
         for (update_str, resolution) in outputs {
             let scene: types::UpdateOutputRequest = serde_json::from_str(update_str).unwrap();
-            expected_outputs.insert(scene.output_id.clone().into());
             if let Some(root) = scene.video {
                 renderer
-                    .update_scene(scene.output_id.into(), resolution, root.try_into().unwrap())
+                    .update_scene(
+                        OutputId(OUTPUT_ID.into()),
+                        resolution,
+                        root.try_into().unwrap(),
+                    )
                     .unwrap();
             }
         }
 
         TestCaseInstance {
             case: test_case,
-            expected_outputs,
             renderer,
         }
     }
@@ -111,72 +96,51 @@ impl TestCaseInstance {
         Ok(())
     }
 
-    pub fn test_snapshots_for_pts(
-        &self,
-        pts: Duration,
-    ) -> (Vec<Snapshot>, Result<(), TestCaseError>) {
-        let snapshots = self.snapshots_for_pts(pts).unwrap();
+    pub fn test_snapshots_for_pts(&self, pts: Duration) -> (Snapshot, Result<(), TestCaseError>) {
+        let snapshot = self.snapshot_for_pts(pts).unwrap();
 
-        for snapshot in snapshots.iter() {
-            let save_path = snapshot.save_path();
-            if !save_path.exists() {
-                return (
-                    snapshots.clone(),
-                    Err(TestCaseError::SnapshotNotFound(snapshot.clone())),
-                );
-            }
-
-            let snapshot_from_disk = image::open(&save_path).unwrap().to_rgba8();
-            let snapshots_diff = snapshots_diff(&snapshot_from_disk, &snapshot.data);
-            if snapshots_diff > self.case.allowed_error {
-                return (
-                    snapshots.clone(),
-                    Err(TestCaseError::Mismatch {
-                        snapshot_from_disk: snapshot_from_disk.into(),
-                        produced_snapshot: snapshot.clone(),
-                        diff: snapshots_diff,
-                    }),
-                );
-            } else if snapshots_diff > 0.0 {
-                println!(
-                    "Snapshot error in range (allowed: {}, current: {})",
-                    self.case.allowed_error, snapshots_diff
-                );
-            }
+        let save_path = snapshot.save_path();
+        if !save_path.exists() {
+            return (
+                snapshot.clone(),
+                Err(TestCaseError::SnapshotNotFound(snapshot.clone())),
+            );
         }
 
-        // Check if every output was produced
-        let produced_outputs: HashSet<OutputId> = snapshots
-            .iter()
-            .map(|snapshot| snapshot.output_id.clone())
-            .collect();
-        let expected_outputs: HashSet<OutputId> = self.expected_outputs.iter().cloned().collect();
-        if produced_outputs != expected_outputs {
+        let snapshot_from_disk = image::open(&save_path).unwrap().to_rgba8();
+        let snapshots_diff = snapshots_diff(&snapshot_from_disk, &snapshot.data);
+        if snapshots_diff > self.case.allowed_error {
             return (
-                snapshots,
-                Err(TestCaseError::OutputMismatch {
-                    expected: expected_outputs,
-                    received: produced_outputs,
+                snapshot.clone(),
+                Err(TestCaseError::Mismatch {
+                    snapshot_from_disk: snapshot_from_disk.into(),
+                    produced_snapshot: snapshot.clone(),
+                    diff: snapshots_diff,
                 }),
             );
         }
 
-        (snapshots, Ok(()))
+        if snapshots_diff > 0.0 {
+            println!(
+                "Snapshot error in range (allowed: {}, current: {})",
+                self.case.allowed_error, snapshots_diff
+            );
+        }
+
+        (snapshot, Ok(()))
     }
 
     #[allow(dead_code)]
     pub fn snapshot_paths(&self) -> Vec<PathBuf> {
         let mut paths = Vec::new();
         for pts in self.case.timestamps.iter() {
-            for output_id in self.expected_outputs.iter() {
-                paths.push(snaphot_save_path(self.case.name, pts, output_id.clone()));
-            }
+            paths.push(snaphot_save_path(self.case.name, pts));
         }
 
         paths
     }
 
-    pub fn snapshots_for_pts(&self, pts: Duration) -> Result<Vec<Snapshot>> {
+    pub fn snapshot_for_pts(&self, pts: Duration) -> Result<Snapshot> {
         let mut frame_set = FrameSet::new(pts);
         for input in self.case.inputs.iter() {
             let input_id = InputId::from(Arc::from(input.name.clone()));
@@ -189,21 +153,15 @@ impl TestCaseInstance {
         }
 
         let outputs = self.renderer.render(frame_set)?;
-        let mut snapshots = Vec::new();
 
-        for output_id in &self.expected_outputs {
-            let output_frame = outputs.frames.get(output_id).unwrap();
-            let new_snapshot = frame_to_rgba(output_frame);
-            snapshots.push(Snapshot {
-                test_name: self.case.name.to_owned(),
-                output_id: output_id.clone(),
-                pts,
-                resolution: output_frame.resolution,
-                data: new_snapshot,
-            });
-        }
-
-        Ok(snapshots)
+        let output_frame = outputs.frames.get(&OutputId(OUTPUT_ID.into())).unwrap();
+        let new_snapshot = frame_to_rgba(output_frame);
+        Ok(Snapshot {
+            test_name: self.case.name.to_owned(),
+            pts,
+            resolution: output_frame.resolution,
+            data: new_snapshot,
+        })
     }
 }
 
@@ -320,7 +278,6 @@ impl TestInput {
 #[derive(Debug, Clone)]
 pub struct Snapshot {
     pub test_name: String,
-    pub output_id: OutputId,
     pub pts: Duration,
     pub resolution: Resolution,
     pub data: Vec<u8>,
@@ -328,7 +285,7 @@ pub struct Snapshot {
 
 impl Snapshot {
     pub fn save_path(&self) -> PathBuf {
-        snaphot_save_path(&self.test_name, &self.pts, self.output_id.clone())
+        snaphot_save_path(&self.test_name, &self.pts)
     }
 }
 
@@ -340,10 +297,6 @@ pub enum TestCaseError {
         produced_snapshot: Snapshot,
         diff: f32,
     },
-    OutputMismatch {
-        expected: HashSet<OutputId>,
-        received: HashSet<OutputId>,
-    },
 }
 
 impl std::error::Error for TestCaseError {}
@@ -351,35 +304,23 @@ impl std::error::Error for TestCaseError {}
 impl Display for TestCaseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let err_msg = match self {
-            TestCaseError::SnapshotNotFound(Snapshot {
+            TestCaseError::SnapshotNotFound(Snapshot { test_name, pts, .. }) => format!(
+                "FAILED: \"{}\", PTS({}). Snapshot file not found. Generate snapshots first",
                 test_name,
-                output_id,
-                pts,
-                ..
-            }) => format!(
-                "FAILED: \"{}\", OutputId({}), PTS({}). Snapshot file not found. Generate snapshots first",
-                test_name,
-                output_id,
                 pts.as_secs()
             ),
-            TestCaseError::Mismatch{produced_snapshot: Snapshot {
-                test_name,
-                output_id,
-                pts,
+            TestCaseError::Mismatch {
+                produced_snapshot: Snapshot { test_name, pts, .. },
+                diff,
                 ..
-            },
-            diff,
-            ..
             } => {
                 format!(
-                    "FAILED: \"{}\", OutputId({}), PTS({}). Snapshots are different error={}",
+                    "FAILED: \"{}\", PTS({}). Snapshots are different error={}",
                     test_name,
-                    output_id,
                     pts.as_secs_f32(),
                     diff,
                 )
             }
-            TestCaseError::OutputMismatch { expected, received } => format!("Mismatched output\nexpected: {expected:#?}\nreceived: {received:#?}"),
         };
 
         f.write_str(&err_msg)

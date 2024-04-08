@@ -41,10 +41,10 @@ impl CompositorInstance {
         instance
     }
 
-    pub fn send_request(&self, request_body: serde_json::Value) -> Result<()> {
+    pub fn send_request(&self, path: &str, request_body: serde_json::Value) -> Result<()> {
         let resp = self
             .http_client
-            .post(format!("http://127.0.0.1:{}/--/api", self.api_port))
+            .post(format!("http://127.0.0.1:{}/api/{}", self.api_port, path))
             .timeout(Duration::from_secs(100))
             .json(&request_body)
             .send()?;

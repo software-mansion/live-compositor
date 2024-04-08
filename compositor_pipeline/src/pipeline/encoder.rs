@@ -1,4 +1,4 @@
-use compositor_render::{Frame, Resolution};
+use compositor_render::{Frame, OutputId, Resolution};
 use crossbeam_channel::{bounded, Receiver, Sender};
 use log::error;
 
@@ -48,6 +48,7 @@ pub enum AudioEncoder {
 
 impl Encoder {
     pub fn new(
+        output_id: &OutputId,
         options: EncoderOptions,
         sample_rate: u32,
     ) -> Result<(Self, Receiver<EncoderOutputEvent>), EncoderInitError> {
@@ -55,6 +56,7 @@ impl Encoder {
 
         let video_encoder = match options.video {
             Some(video_encoder_options) => Some(VideoEncoder::new(
+                output_id,
                 video_encoder_options,
                 encoded_chunks_sender.clone(),
             )?),
@@ -110,13 +112,14 @@ impl VideoEncoderOptions {
 
 impl VideoEncoder {
     pub fn new(
+        output_id: &OutputId,
         options: VideoEncoderOptions,
         sender: Sender<EncoderOutputEvent>,
     ) -> Result<Self, EncoderInitError> {
         match options {
-            VideoEncoderOptions::H264(options) => {
-                Ok(Self::H264(LibavH264Encoder::new(options, sender)?))
-            }
+            VideoEncoderOptions::H264(options) => Ok(Self::H264(LibavH264Encoder::new(
+                output_id, options, sender,
+            )?)),
         }
     }
 

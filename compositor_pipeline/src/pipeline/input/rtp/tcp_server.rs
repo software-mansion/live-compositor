@@ -8,7 +8,7 @@ use std::{
 };
 
 use bytes::BytesMut;
-use compositor_render::error::ErrorStack;
+use compositor_render::{error::ErrorStack, InputId};
 use crossbeam_channel::{bounded, Receiver, Sender};
 use log::error;
 use tracing::{debug, info, span, trace, Level};
@@ -18,12 +18,13 @@ use crate::pipeline::{rtp::bind_to_requested_port, Port};
 use super::{RtpReceiverError, RtpReceiverOptions};
 
 pub(super) fn start_tcp_server_thread(
+    input_id: &InputId,
     opts: &RtpReceiverOptions,
     should_close: Arc<AtomicBool>,
 ) -> Result<(Port, Receiver<bytes::Bytes>), RtpReceiverError> {
     let (packets_tx, packets_rx) = bounded(1000);
-    let input_id = opts.input_id.clone();
-    info!(input_id=?input_id.0, "Starting tcp socket");
+    let input_id = input_id.clone();
+    info!(?input_id, "Starting tcp socket");
 
     let socket = socket2::Socket::new(
         socket2::Domain::IPV4,
@@ -39,7 +40,7 @@ pub(super) fn start_tcp_server_thread(
     let socket = std::net::TcpListener::from(socket);
 
     thread::Builder::new()
-        .name(format!("RTP TCP server receiver {}", opts.input_id))
+        .name(format!("RTP TCP server receiver {}", input_id))
         .spawn(move || {
             let _span = span!(
                 Level::INFO,
