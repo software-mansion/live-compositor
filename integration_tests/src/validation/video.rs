@@ -36,7 +36,17 @@ pub fn validate(
         let expected_frames = find_frames_for_time_range(&expected_frames, time_range);
         let actual_frames = find_frames_for_time_range(&actual_frames, time_range);
 
-        let mut incorrect_frames_count = 0;
+        let expected_framerate = average_framerate(&expected_frames);
+        let actual_framerate = average_framerate(&actual_frames);
+
+        if (expected_framerate - actual_framerate).abs() > 2.0 {
+            return Err(anyhow::anyhow!(
+                "Framerate mismatch. Expected: {expected_framerate}, Actual: {actual_framerate}"
+            ));
+        }
+
+        let mut incorrect_frames_count =
+            usize::abs_diff(expected_frames.len(), actual_frames.len());
         for (i, (expected, actual)) in expected_frames.iter().zip(actual_frames.iter()).enumerate()
         {
             if let Err(err) = validate_frame(expected, actual, allowed_error) {
@@ -57,6 +67,21 @@ pub fn validate(
     }
 
     Ok(())
+}
+
+fn average_framerate(frames: &[Frame]) -> f32 {
+    if frames.len() <= 1 {
+        return 0.0;
+    }
+
+    let mut total_duration = Duration::from_secs(0);
+    for i in 1..frames.len() {
+        let duration = frames[i].pts - frames[i - 1].pts;
+        total_duration += duration;
+    }
+
+    let total_duration_secs = total_duration.as_secs_f32();
+    (frames.len() - 1) as f32 / total_duration_secs
 }
 
 fn validate_frame(expected: &Frame, actual: &Frame, allowed_error: f32) -> Result<()> {

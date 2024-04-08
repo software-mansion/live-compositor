@@ -105,7 +105,8 @@ pub fn required_inputs() -> Result<()> {
         OUTPUT_DUMP_FILE,
         &new_output_dump,
         VideoValidationConfig {
-            validation_intervals: vec![Duration::from_millis(0)..Duration::from_millis(1200)],
+            validation_intervals: vec![Duration::from_millis(500)..Duration::from_millis(2000)],
+            allowed_invalid_frames: 1,
             ..Default::default()
         },
     )?;
