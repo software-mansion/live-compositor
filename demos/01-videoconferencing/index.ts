@@ -1,9 +1,9 @@
-import { sendAsync } from "../utils/api";
+import { registerInput, registerOutput, start, updateOutput, } from "../utils/api";
 import { ffplayListenAsync } from "../utils/ffmpeg";
 import { runCompositorExample } from "../utils/run";
-import { Component, Resolution } from "../types/types";
 import { gstStreamWebcam } from "../utils/gst";
 import { sleepAsync } from "../utils/utils";
+import { Component, Resolution } from "../types/api";
 
 const OUTPUT_RESOLUTION: Resolution = {
   width: 1920,
@@ -17,45 +17,37 @@ const IP = "127.0.0.1";
 async function example() {
   // starts ffplay that will listen for streams on port 8002 and display them.
   await ffplayListenAsync(OUTPUT_PORT);
-
-  await sendAsync({
-    type: "register",
-    entity_type: "rtp_input_stream",
+  await registerInput("input_1", {
+    type: "rtp_stream",
     transport_protocol: "tcp_server",
-    input_id: "input_1",
     port: INPUT_PORT,
     video: {
       codec: "h264"
     }
   });
 
-  await sendAsync({
-    "type": "register",
-    "entity_type": "output_stream",
-    "output_id": "output_1",
-    "ip": IP,
-    "port": OUTPUT_PORT,
-    "video": {
-      "resolution": OUTPUT_RESOLUTION,
-      "encoder_preset": "ultrafast",
-      "initial": sceneWithInputs(0)
+  await registerOutput("output_1", {
+    type: "rtp_stream",
+    ip: IP,
+    port: OUTPUT_PORT,
+    video: {
+      resolution: OUTPUT_RESOLUTION,
+      encoder_preset: "ultrafast",
+      initial: sceneWithInputs(0)
     }
   });
 
-
   const inputs = [1, 2, 3, 4, 5, 6, 7, 8, 9, 8, 7, 6, 5, 4, 3, 2, 1];
   inputs.forEach(async (input, index) =>
-    await sendAsync({
-      type: "update_output",
-      output_id: "output_1",
+    await updateOutput("output_1", {
       video: sceneWithInputs(input),
       schedule_time_ms: 2000 * index
     })
   );
 
   await sleepAsync(2000);
-  
-  await sendAsync({ type: "start" });
+
+  await start();
   gstStreamWebcam(IP, INPUT_PORT);
 }
 
@@ -66,7 +58,6 @@ function sceneWithInputs(n: number): Component {
     child: {
       type: "input_stream",
       input_id: "input_1",
-
     }
   }
   const children: Array<Component> = Array.from({ length: n }, (_, i) => {

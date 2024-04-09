@@ -1,10 +1,10 @@
-import { sendAsync } from "../utils/api";
+import { registerImage, registerInput, registerOutput, registerShader, start } from "../utils/api";
 import { ffmpegSendVideoFromMp4, ffplayListenAsync } from "../utils/ffmpeg";
 import { runCompositorExample } from "../utils/run";
-import { Component, Resolution } from "../types/types";
 import { sleepAsync } from "../utils/utils";
 import fs from "fs-extra";
 import path from "path";
+import { Component, Resolution } from "../types/api";
 
 const OUTPUT_RESOLUTION: Resolution = {
     width: 1920,
@@ -19,37 +19,25 @@ async function example() {
     // starts ffplay that will listen for streams on port 8002 and display them.
     await ffplayListenAsync(OUTPUT_PORT);
 
-    await sendAsync({
-        type: "register",
-        entity_type: "rtp_input_stream",
-        input_id: "input_1",
+    await registerInput("input_1", {
+        type: "rtp_stream",
         port: INPUT_PORT,
         video: {
             codec: "h264"
         }
     });
 
-    await sendAsync({
-        type: "register",
-        entity_type: "shader",
-        shader_id: "shader_1",
+    await registerShader("shader_1", {
         source: await fs.readFile(path.join(__dirname, "green_screen.wgsl"), "utf-8")
     })
 
-    await sendAsync({
-        type: "register",
-        entity_type: "image",
-        image_id: "background",
+    await registerImage("background", {
         asset_type: "jpeg",
         path: path.join(__dirname, "../assets/news_room.jpg")
     });
 
-    console.log(JSON.stringify(initialScene(), null, 2));
-
-    await sendAsync({
-        type: "register",
-        entity_type: "output_stream",
-        output_id: "output_1",
+    await registerOutput("output_1", {
+        type: "rtp_stream",
         ip: IP,
         port: OUTPUT_PORT,
         video: {
@@ -61,7 +49,8 @@ async function example() {
 
 
     await sleepAsync(2000);
-    await sendAsync({ type: "start" });
+    await start();
+
     ffmpegSendVideoFromMp4(INPUT_PORT, path.join(__dirname, "../assets/green_screen_example.mp4"));
 }
 

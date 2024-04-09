@@ -21,6 +21,11 @@ mod unregister_request;
 mod update_output;
 mod ws;
 
+#[allow(unused_imports)]
+pub use register_request::{RegisterInput, RegisterOutput};
+#[allow(unused_imports)]
+pub use unregister_request::{UnregisterInput, UnregisterOutput};
+
 pub fn routes(state: ApiState) -> Router {
     let inputs = Router::new()
         .route("/:id/register", post(register_request::handle_input))

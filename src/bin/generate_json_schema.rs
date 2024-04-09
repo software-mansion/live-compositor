@@ -2,11 +2,26 @@ use std::{fs, io, path::PathBuf};
 
 use schemars::{
     schema::{RootSchema, Schema, SchemaObject},
-    schema_for,
+    schema_for, JsonSchema,
 };
-use video_compositor::types;
+use serde::{Deserialize, Serialize};
+use video_compositor::{routes, types};
 
 const ROOT_DIR: &str = env!("CARGO_MANIFEST_DIR");
+
+/// This enum is used to generate JSON schema for all API types.
+/// This prevents repeating types in generated schema.
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(untagged)]
+#[allow(dead_code)]
+enum ApiTypes {
+    RegisterInput(routes::RegisterInput),
+    RegisterOutput(routes::RegisterOutput),
+    RegisterImage(types::ImageSpec),
+    RegisterWebRenderer(types::WebRendererSpec),
+    RegisterShader(types::ShaderSpec),
+    UpdateOutput(types::UpdateOutputRequest),
+}
 
 fn main() {
     let update_flag = std::env::args().any(|arg| &arg == "--update");
@@ -16,6 +31,7 @@ fn main() {
         "scene",
         update_flag,
     );
+    generate_schema(schema_for!(ApiTypes), "api_types", update_flag);
 }
 
 /// When variant inside oneOf has a schema additionalProperties set to false then

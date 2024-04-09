@@ -3,11 +3,11 @@ import * as path from 'path';
 import { compileFromFile } from 'json-schema-to-typescript'
 
 async function generateTypes() {
-    const schemaPath = path.resolve(__dirname, '../../schemas/request.schema.json');
-    const tsOutputPath = path.resolve(__dirname, '../types/types.ts');
+    const schemaPath = path.resolve(__dirname, '../../schemas/api_types.schema.json');
+    const tsOutputPath = path.resolve(__dirname, '../types/api.ts');
 
-    const registerTs = await compileFromFile(schemaPath);
-    fs.writeFileSync(tsOutputPath, registerTs);
+    const typesTs = await compileFromFile(schemaPath, {additionalProperties: false});
+    fs.writeFileSync(tsOutputPath, typesTs);
 }
 
 generateTypes();

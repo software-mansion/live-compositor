@@ -19,7 +19,7 @@ export async function runCompositorExample(
     });
 
     await sleepAsync(
-      process.env.VIDEO_COMPOSITOR_SOURCE_DIR ? 10000 : 3000,
+      process.env.LIVE_COMPOSITOR_SOURCE_DIR ? 10000 : 3000,
     );
 
     await fn();
@@ -57,11 +57,11 @@ function getCompositorRunCmd(): {
   args: string[];
   cwd?: string;
 } {
-  if (process.env.VIDEO_COMPOSITOR_SOURCE_DIR) {
+  if (process.env.LIVE_COMPOSITOR_SOURCE_DIR) {
     return {
       command: "cargo",
       args: ["run", "--release", "--bin", "video_compositor"],
-      cwd: process.env.VIDEO_COMPOSITOR_SOURCE_DIR,
+      cwd: process.env.LIVE_COMPOSITOR_SOURCE_DIR,
     };
   } else if (process.platform === "linux") {
     return {

@@ -5,207 +5,82 @@
  * and run json-schema-to-typescript to regenerate this file.
  */
 
-export type Request =
-  | (
-      | {
-          entity_type: "rtp_input_stream";
-          /**
-           * An identifier for the input stream.
-           */
-          input_id: InputId;
-          /**
-           * UDP port or port range on which the compositor should listen for the stream.
-           */
-          port: Port;
-          /**
-           * Transport protocol.
-           */
-          transport_protocol?: TransportProtocol | null;
-          /**
-           * Parameters of a video source included in the RTP stream.
-           */
-          video?: InputRtpVideoOptions | null;
-          /**
-           * Parameters of an audio source included in the RTP stream.
-           */
-          audio?: InputRtpAudioOptions | null;
-          /**
-           * (**default=`false`**) If input is required and the stream is not delivered on time, then LiveCompositor will delay producing output frames.
-           */
-          required?: boolean | null;
-          /**
-           * Offset in milliseconds relative to the pipeline start (start request). If the offset is not defined then the stream will be synchronized based on the delivery time of the initial frames.
-           */
-          offset_ms?: number | null;
-          [k: string]: unknown;
-        }
-      | {
-          entity_type: "mp4";
-          /**
-           * An identifier for the input stream.
-           */
-          input_id: InputId;
-          /**
-           * URL of the MP4 file.
-           */
-          url?: string | null;
-          /**
-           * Path to the MP4 file.
-           */
-          path?: string | null;
-          /**
-           * (**default=`false`**) If input is required and frames are not processed on time, then LiveCompositor will delay producing output frames.
-           */
-          required?: boolean | null;
-          /**
-           * Offset in milliseconds relative to the pipeline start (start request). If offset is not defined then stream is synchronized based on the first frames delivery time.
-           */
-          offset_ms?: number | null;
-          [k: string]: unknown;
-        }
-      | {
-          entity_type: "output_stream";
-          /**
-           * An identifier for the output stream. It can be used in the `UpdateOutput` request to define what to render for the output stream.
-           */
-          output_id: OutputId;
-          /**
-           * Depends on the value of the `transport_protocol` field:
-           *
-           * - `udp` - An UDP port number that RTP packets will be sent to.
-           *
-           * - `tcp_server` - A local TCP port number or a port range that LiveCompositor will listen for incoming connections.
-           */
-          port: Port;
-          /**
-           * Only valid if `transport_protocol="udp"`. IP address where RTP packets should be sent to.
-           */
-          ip?: string | null;
-          /**
-           * (**default=`"udp"`**) Transport layer protocol that will be used to send RTP packets.
-           */
-          transport_protocol?: TransportProtocol | null;
-          video?: OutputVideoOptions | null;
-          audio?: OutputAudioOptions | null;
-          [k: string]: unknown;
-        }
-      | {
-          entity_type: "shader";
-          /**
-           * Id of a shader. It can be used in a [`Shader`](../components/Shader) component after registration.
-           */
-          shader_id: RendererId;
-          /**
-           * Shader source code. [Learn more.](../../concept/shaders)
-           */
-          source: string;
-          [k: string]: unknown;
-        }
-      | {
-          entity_type: "web_renderer";
-          /**
-           * Id of a web renderer instance. It can be used in a [`WebView`](../components/WebView) component after registration.
-           */
-          instance_id: RendererId;
-          /**
-           * Url of a website that you want to render.
-           */
-          url: string;
-          /**
-           * Resolution.
-           */
-          resolution: Resolution;
-          /**
-           * Mechanism used to render input frames on the website.
-           */
-          embedding_method?: WebEmbeddingMethod | null;
-          [k: string]: unknown;
-        }
-      | (
-          | {
-              asset_type: "png";
-              image_id: RendererId;
-              url?: string | null;
-              path?: string | null;
-              [k: string]: unknown;
-            }
-          | {
-              asset_type: "jpeg";
-              image_id: RendererId;
-              url?: string | null;
-              path?: string | null;
-              [k: string]: unknown;
-            }
-          | {
-              asset_type: "svg";
-              image_id: RendererId;
-              url?: string | null;
-              path?: string | null;
-              resolution?: Resolution | null;
-              [k: string]: unknown;
-            }
-          | {
-              asset_type: "gif";
-              image_id: RendererId;
-              url?: string | null;
-              path?: string | null;
-              [k: string]: unknown;
-            }
-        )
-    )
-  | (
-      | {
-          entity_type: "input_stream";
-          input_id: InputId;
-          /**
-           * Time in milliseconds when this request should be applied. Value `0` represents time of the start request.
-           */
-          schedule_time_ms?: number | null;
-          [k: string]: unknown;
-        }
-      | {
-          entity_type: "output_stream";
-          output_id: OutputId;
-          /**
-           * Time in milliseconds when this request should be applied. Value `0` represents time of the start request.
-           */
-          schedule_time_ms?: number | null;
-          [k: string]: unknown;
-        }
-      | {
-          entity_type: "shader";
-          shader_id: RendererId;
-          [k: string]: unknown;
-        }
-      | {
-          entity_type: "web_renderer";
-          instance_id: RendererId;
-          [k: string]: unknown;
-        }
-      | {
-          entity_type: "image";
-          image_id: RendererId;
-          [k: string]: unknown;
-        }
-    )
+/**
+ * This enum is used to generate JSON schema for all API types. This prevents repeating types in generated schema.
+ */
+export type ApiTypes = RegisterInput | RegisterOutput | ImageSpec | WebRendererSpec | ShaderSpec | UpdateOutputRequest;
+export type RegisterInput =
   | {
-      type: "update_output";
-      output_id: OutputId;
-      video?: Component | null;
-      audio?: Audio | null;
-      schedule_time_ms?: number | null;
-      [k: string]: unknown;
+      type: "rtp_stream";
+      /**
+       * UDP port or port range on which the compositor should listen for the stream.
+       */
+      port: Port;
+      /**
+       * Transport protocol.
+       */
+      transport_protocol?: TransportProtocol | null;
+      /**
+       * Parameters of a video source included in the RTP stream.
+       */
+      video?: InputRtpVideoOptions | null;
+      /**
+       * Parameters of an audio source included in the RTP stream.
+       */
+      audio?: InputRtpAudioOptions | null;
+      /**
+       * (**default=`false`**) If input is required and the stream is not delivered on time, then LiveCompositor will delay producing output frames.
+       */
+      required?: boolean | null;
+      /**
+       * Offset in milliseconds relative to the pipeline start (start request). If the offset is not defined then the stream will be synchronized based on the delivery time of the initial frames.
+       */
+      offset_ms?: number | null;
     }
   | {
-      type: "start";
-      [k: string]: unknown;
+      type: "mp4";
+      /**
+       * URL of the MP4 file.
+       */
+      url?: string | null;
+      /**
+       * Path to the MP4 file.
+       */
+      path?: string | null;
+      /**
+       * (**default=`false`**) If input is required and frames are not processed on time, then LiveCompositor will delay producing output frames.
+       */
+      required?: boolean | null;
+      /**
+       * Offset in milliseconds relative to the pipeline start (start request). If offset is not defined then stream is synchronized based on the first frames delivery time.
+       */
+      offset_ms?: number | null;
     };
-export type InputId = string;
 export type Port = string | number;
 export type TransportProtocol = "udp" | "tcp_server";
 export type VideoCodec = "h264";
 export type AudioCodec = "opus";
-export type OutputId = string;
+export type RegisterOutput = {
+  type: "rtp_stream";
+  /**
+   * Depends on the value of the `transport_protocol` field:
+   *
+   * - `udp` - An UDP port number that RTP packets will be sent to.
+   *
+   * - `tcp_server` - A local TCP port number or a port range that LiveCompositor will listen for incoming connections.
+   */
+  port: Port;
+  /**
+   * Only valid if `transport_protocol="udp"`. IP address where RTP packets should be sent to.
+   */
+  ip?: string | null;
+  /**
+   * (**default=`"udp"`**) Transport layer protocol that will be used to send RTP packets.
+   */
+  transport_protocol?: TransportProtocol | null;
+  video?: OutputVideoOptions | null;
+  audio?: OutputAudioOptions | null;
+};
 export type VideoEncoderPreset =
   | "ultrafast"
   | "superfast"
@@ -225,7 +100,7 @@ export type Component =
        */
       id?: ComponentId | null;
       /**
-       * Id of an input. It identifies a stream registered using a [`RegisterInputStream`](../routes#register-input-stream) request.
+       * Id of an input. It identifies a stream registered using a [`RegisterInputStream`](../routes.md#register-input) request.
        */
       input_id: InputId;
     }
@@ -295,7 +170,7 @@ export type Component =
        */
       children?: Component[] | null;
       /**
-       * Id of a web renderer instance. It identifies an instance registered using a [`RegisterRenderer`](../routes#register-renderer) request.
+       * Id of a web renderer instance. It identifies an instance registered using a [`register web renderer`](../routes.md#register-web-renderer-instance) request.
        *
        * <br/> <br/>
        *
@@ -318,7 +193,7 @@ export type Component =
        */
       children?: Component[] | null;
       /**
-       * Id of a shader. It identifies a shader registered using a [`RegisterRenderer`](../routes#register-renderer) request.
+       * Id of a shader. It identifies a shader registered using a [`register shader`](../routes.md#register-shader) request.
        */
       shader_id: RendererId;
       /**
@@ -351,7 +226,7 @@ export type Component =
        */
       id?: ComponentId | null;
       /**
-       * Id of an image. It identifies an image registered using a [`RegisterRenderer`](../routes#register-renderer) request.
+       * Id of an image. It identifies an image registered using a [`register image`](../routes.md#register-image) request.
        */
       image_id: RendererId;
     }
@@ -523,6 +398,7 @@ export type Component =
       transition?: Transition | null;
     };
 export type ComponentId = string;
+export type InputId = string;
 export type ViewDirection = "row" | "column";
 /**
  * Easing functions are used to interpolate between two values over time.
@@ -532,11 +408,9 @@ export type ViewDirection = "row" | "column";
 export type EasingFunction =
   | {
       function_name: "linear";
-      [k: string]: unknown;
     }
   | {
       function_name: "bounce";
-      [k: string]: unknown;
     }
   | {
       function_name: "cubic_bezier";
@@ -545,7 +419,6 @@ export type EasingFunction =
        * @maxItems 4
        */
       points: [number, number, number, number];
-      [k: string]: unknown;
     };
 export type Overflow = "visible" | "hidden" | "fit";
 export type RGBAColor = string;
@@ -573,7 +446,6 @@ export type ShaderParam =
     };
 export type ShaderParamStructField = {
   field_name: string;
-  [k: string]: unknown;
 } & ShaderParamStructField1;
 export type ShaderParamStructField1 =
   | {
@@ -623,6 +495,28 @@ export type RescaleMode = "fit" | "fill";
 export type AudioChannels = "mono" | "stereo";
 export type AudioEncoderPreset = "quality" | "voip" | "lowest_latency";
 export type MixingStrategy = "sum_clip" | "sum_scale";
+export type ImageSpec =
+  | {
+      asset_type: "png";
+      url?: string | null;
+      path?: string | null;
+    }
+  | {
+      asset_type: "jpeg";
+      url?: string | null;
+      path?: string | null;
+    }
+  | {
+      asset_type: "svg";
+      url?: string | null;
+      path?: string | null;
+      resolution?: Resolution | null;
+    }
+  | {
+      asset_type: "gif";
+      url?: string | null;
+      path?: string | null;
+    };
 export type WebEmbeddingMethod =
   | "chromium_embedding"
   | "native_embedding_over_content"
@@ -677,7 +571,6 @@ export interface Resolution {
    * Height in pixels.
    */
   height: number;
-  [k: string]: unknown;
 }
 export interface Transition {
   /**
@@ -688,7 +581,6 @@ export interface Transition {
    * (**default=`"linear"`**) Easing function to be used for the transition.
    */
   easing_function?: EasingFunction | null;
-  [k: string]: unknown;
 }
 /**
  * This type defines when end of an input stream should trigger end of the output stream. Only one of those fields can be set at the time.
@@ -753,4 +645,29 @@ export interface InputAudio {
    * (**default=`1.0`**) float in `[0, 1]` range representing input volume
    */
   volume?: number | null;
+}
+export interface WebRendererSpec {
+  /**
+   * Url of a website that you want to render.
+   */
+  url: string;
+  /**
+   * Resolution.
+   */
+  resolution: Resolution;
+  /**
+   * Mechanism used to render input frames on the website.
+   */
+  embedding_method?: WebEmbeddingMethod | null;
+}
+export interface ShaderSpec {
+  /**
+   * Shader source code. [Learn more.](../../concept/shaders)
+   */
+  source: string;
+}
+export interface UpdateOutputRequest {
+  video?: Component | null;
+  audio?: Audio | null;
+  schedule_time_ms?: number | null;
 }
