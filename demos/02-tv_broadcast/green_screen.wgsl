@@ -33,10 +33,14 @@ var<push_constant> base_params: BaseShaderParameters;
 @fragment
 fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
     let greenScreenTexture = textureSample(textures[0], sampler_, input.tex_coords);
+    let backgroundTexture = textureSample(textures[1], sampler_, input.tex_coords);
 
-    if (greenScreenTexture.g > 0.5 && greenScreenTexture.r < 0.5 && greenScreenTexture.b < 0.5) {
-        return vec4(0.0, 0.0, 0.0, 0.0);
-    } else {
-        return vec4(greenScreenTexture.r, greenScreenTexture.g, greenScreenTexture.b, greenScreenTexture.a);
-    }
+    return vec4(
+        mix(
+            greenScreenTexture.rgb, 
+            backgroundTexture.rgb, 
+            smoothstep(0.6, 0.9, dot(normalize(greenScreenTexture.rgb), normalize(vec3(0.0, 1.0, 0.0))))
+        ),
+        1.0
+    );
 }

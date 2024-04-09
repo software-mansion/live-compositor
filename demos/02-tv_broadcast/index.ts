@@ -75,28 +75,11 @@ function initialScene(): Component {
         }
     };
 
-    const shader: Component = {
+    return {
         type: "shader",
         shader_id: "shader_1",
         children: [rescaledInputStream, rescaledImage],
         resolution: OUTPUT_RESOLUTION
-    };
-
-    return {
-        type: "view",
-        children: [
-            rescaledImage,
-            {
-                type: "view",
-                width: OUTPUT_RESOLUTION.width,
-                height: OUTPUT_RESOLUTION.height,
-                left: 0,
-                top: 0,
-                children: [
-                    shader
-                ],
-            }
-        ],
     };
 }
 
