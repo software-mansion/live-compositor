@@ -58,11 +58,14 @@ impl TryFrom<RtpOutputStream> for pipeline::RegisterOutputOptions {
 
         let output_audio_options = match audio.clone() {
             Some(a) => {
-                let AudioEncoderOptions::Opus {
+                let AudioEncoderOptions::Opus(OpusEncoderOptions {
                     channels,
                     preset,
                     forward_error_correction,
-                } = a.encoder;
+                }) = a.encoder
+                else {
+                    panic!("slkdfj")
+                };
                 Some(pipeline::OutputAudioOptions {
                     initial: a.initial.try_into()?,
                     channels: channels.into(),

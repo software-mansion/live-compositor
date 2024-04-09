@@ -68,17 +68,22 @@ pub enum VideoEncoderOptions {
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
 pub enum AudioEncoderOptions {
-    Opus {
-        channels: AudioChannels,
+    Opus(OpusEncoderOptions),
+    Acc(OpusEncoderOptions),
+}
 
-        /// (**default="voip"**) Specifies preset for audio output encoder.
-        preset: Option<OpusEncoderPreset>,
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct OpusEncoderOptions {
+    pub channels: AudioChannels,
 
-        /// (**default=`false`**) Specifies whether the stream use forward error correction.
-        /// It's specific for Opus codec.
-        /// For more information, check out [RFC](https://datatracker.ietf.org/doc/html/rfc6716#section-2.1.7).
-        forward_error_correction: Option<bool>,
-    },
+    /// (**default="voip"**) Specifies preset for audio output encoder.
+    pub preset: Option<OpusEncoderPreset>,
+
+    /// (**default=`false`**) Specifies whether the stream use forward error correction.
+    /// It's specific for Opus codec.
+    /// For more information, check out [RFC](https://datatracker.ietf.org/doc/html/rfc6716#section-2.1.7).
+    pub forward_error_correction: Option<bool>,
 }
 
 /// This type defines when end of an input stream should trigger end of the output stream. Only one of those fields can be set at the time.
