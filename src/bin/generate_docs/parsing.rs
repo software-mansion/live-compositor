@@ -253,6 +253,10 @@ fn parse_schema(schema: &SchemaObject) -> TypeDefinition {
                 let is_optional = types.iter().any(|def| def.kind == Kind::Null);
                 types.retain(|def| def.kind != Kind::Null);
 
+                if types.len() == 1 {
+                    return types[0].clone()
+                }
+
                 return TypeDefinition::complex(name, description, Kind::Union(types), is_optional);
             }
 

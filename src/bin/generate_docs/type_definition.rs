@@ -77,6 +77,7 @@ impl TypeDefinition {
 
             let indent = match &prop.type_def.kind {
                 Kind::Union(_) => base_indent + 2,
+                Kind::Object(_) => base_indent + 2,
                 _ => base_indent,
             };
             out += &format!(
@@ -107,7 +108,13 @@ impl TypeDefinition {
     fn union_to_string(variants: &[TypeDefinition], base_indent: usize) -> String {
         fn variant_to_string(variant: &TypeDefinition, indent: usize) -> String {
             match &variant.kind {
-                Kind::Object(properties) => TypeDefinition::object_to_string(properties, indent),
+                Kind::Object(properties) => {
+                    let single_line = TypeDefinition::object_to_single_line(properties);
+                    if single_line.len() < 60 {
+                        return single_line
+                    }
+                    TypeDefinition::object_to_string(properties, indent)
+                },
                 _ => variant.to_pretty_string(indent),
             }
         }
