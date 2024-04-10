@@ -48,7 +48,7 @@ fn start_example_client_code() -> Result<()> {
             "type": "rtp_stream",
             "port": "8004:8008",
             "video": {
-                "codec": "h264"
+                "decoder": "ffmpeg_h264"
             },
             "offset_ms": 0,
             "required": true,
@@ -90,8 +90,13 @@ fn start_example_client_code() -> Result<()> {
                     "width": VIDEO_RESOLUTION.width,
                     "height": VIDEO_RESOLUTION.height,
                 },
-                "encoder_preset": "ultrafast",
-                "initial": scene
+                "encoder": {
+                    "type": "ffmpeg_h264",
+                    "preset": "ultrafast"
+                },
+                "initial": {
+                    "root": scene
+                }
             }
         }),
     )?;

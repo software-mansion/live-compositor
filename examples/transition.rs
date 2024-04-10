@@ -42,7 +42,7 @@ fn start_example_client_code() -> Result<()> {
             "type": "rtp_stream",
             "port": INPUT_PORT,
             "video": {
-                "codec": "h264"
+                "decoder": "ffmpeg_h264"
             }
         }),
     )?;
@@ -169,8 +169,13 @@ fn start_example_client_code() -> Result<()> {
                     "width": VIDEO_RESOLUTION.width,
                     "height": VIDEO_RESOLUTION.height,
                 },
-                "encoder_preset": "ultrafast",
-                "initial": scene1
+                "encoder": {
+                    "type": "ffmpeg_h264",
+                    "preset": "ultrafast"
+                },
+                "initial": {
+                    "root": scene1
+                }
             }
         }),
     )?;
@@ -187,7 +192,9 @@ fn start_example_client_code() -> Result<()> {
     common::post(
         "output/output_1/update",
         &json!({
-            "video": scene2,
+            "video": {
+                "root": scene2,
+            }
         }),
     )?;
 
@@ -197,7 +204,9 @@ fn start_example_client_code() -> Result<()> {
     common::post(
         "output/output_1/update",
         &json!({
-            "video": scene3,
+            "video": {
+                "root": scene3
+            },
         }),
     )?;
 

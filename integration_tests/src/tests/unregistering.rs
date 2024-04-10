@@ -47,7 +47,7 @@ pub fn unregistering() -> Result<()> {
             "transport_protocol": "udp",
             "port": input_port,
             "video": {
-                "codec": "h264"
+                "decoder": "ffmpeg_h264"
             },
         }),
     )?;
@@ -91,21 +91,26 @@ fn register_output_with_initial_scene(instance: &CompositorInstance, port: u16) 
                     "width": 640,
                     "height": 360,
                 },
-                "encoder_preset": "ultrafast",
+                "encoder": {
+                    "type": "ffmpeg_h264",
+                    "preset": "ultrafast"
+                },
                 "initial": {
-                    "type": "tiles",
-                    "padding": 3,
-                    "background_color_rgba": "#DDDDDDFF",
-                    "children": [
-                        {
-                            "type": "input_stream",
-                            "input_id": "input_1",
-                        },
-                        {
-                            "type": "image",
-                            "image_id": "image_1",
-                        },
-                    ],
+                    "root": {
+                        "type": "tiles",
+                        "padding": 3,
+                        "background_color_rgba": "#DDDDDDFF",
+                        "children": [
+                            {
+                                "type": "input_stream",
+                                "input_id": "input_1",
+                            },
+                            {
+                                "type": "image",
+                                "image_id": "image_1",
+                            },
+                        ],
+                    }
                 }
             },
         }),

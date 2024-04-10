@@ -42,7 +42,7 @@ fn start_example_client_code() -> Result<()> {
             "type": "rtp_stream",
             "port": INPUT_PORT,
             "video": {
-                "codec": "h264"
+                "decoder": "ffmpeg_h264"
             }
         }),
     )?;
@@ -84,8 +84,13 @@ fn start_example_client_code() -> Result<()> {
                     "width": VIDEO_RESOLUTION.width,
                     "height": VIDEO_RESOLUTION.height,
                 },
-                "encoder_preset": "ultrafast",
-                "initial": scene_with_inputs(0)
+                "encoder": {
+                    "type": "ffmpeg_h264",
+                    "preset": "ultrafast"
+                },
+                "initial": {
+                    "root": scene_with_inputs(0)
+                }
             }
         }),
     )?;
@@ -95,7 +100,9 @@ fn start_example_client_code() -> Result<()> {
         common::post(
             "output/output_1/update",
             &json!({
-                "video": scene_with_inputs(i),
+                "video": {
+                    "root": scene_with_inputs(i)
+                },
                 "schedule_time_ms": i * 1000,
             }),
         )?;
@@ -112,7 +119,9 @@ fn start_example_client_code() -> Result<()> {
         common::post(
             "output/output_1/update",
             &json!({
-                "video": scene_with_inputs(16 - i),
+                "video": {
+                    "root": scene_with_inputs(16 - i),
+                },
                 "schedule_time_ms": (20 + i) * 1000,
             }),
         )?;
@@ -122,7 +131,9 @@ fn start_example_client_code() -> Result<()> {
     common::post(
         "output/output_1/update",
         &json!({
-            "video": scene_with_inputs(4),
+            "video": {
+                "root": scene_with_inputs(4),
+            },
             "schedule_time_ms": 40 * 1000,
         }),
     )?;

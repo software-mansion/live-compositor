@@ -30,8 +30,39 @@ pub fn schedule_update() -> Result<()> {
                     "width": 640,
                     "height": 360,
                 },
-                "encoder_preset": "ultrafast",
+                "encoder": {
+                    "type": "ffmpeg_h264",
+                    "preset": "ultrafast"
+                },
                 "initial": {
+                    "root": {
+                        "type": "tiles",
+                        "id": "tiles_1",
+                        "padding": 3,
+                        "background_color_rgba": "#DDDDDDFF",
+                        "transition": {
+                            "duration_ms": 500,
+                            "easing_function": {
+                                "function_name": "bounce"
+                            }
+                        },
+                        "children": [
+                            {
+                                "type": "input_stream",
+                                "input_id": "input_1",
+                            },
+                        ],
+                    }
+                }
+            },
+        }),
+    )?;
+
+    instance.send_request(
+        "output/output_1/update",
+        json!({
+            "video": {
+                "root": {
                     "type": "tiles",
                     "id": "tiles_1",
                     "padding": 3,
@@ -47,36 +78,12 @@ pub fn schedule_update() -> Result<()> {
                             "type": "input_stream",
                             "input_id": "input_1",
                         },
+                        {
+                            "type": "input_stream",
+                            "input_id": "input_2",
+                        },
                     ],
                 }
-            },
-        }),
-    )?;
-
-    instance.send_request(
-        "output/output_1/update",
-        json!({
-            "video": {
-                "type": "tiles",
-                "id": "tiles_1",
-                "padding": 3,
-                "background_color_rgba": "#DDDDDDFF",
-                "transition": {
-                    "duration_ms": 500,
-                    "easing_function": {
-                        "function_name": "bounce"
-                    }
-                },
-                "children": [
-                    {
-                        "type": "input_stream",
-                        "input_id": "input_1",
-                    },
-                    {
-                        "type": "input_stream",
-                        "input_id": "input_2",
-                    },
-                ],
             },
             "schedule_time_ms": 2000
         }),
@@ -98,7 +105,7 @@ pub fn schedule_update() -> Result<()> {
             "transport_protocol": "udp",
             "port": input_1_port,
             "video": {
-                "codec": "h264"
+                "decoder": "ffmpeg_h264"
             },
         }),
     )?;
@@ -110,7 +117,7 @@ pub fn schedule_update() -> Result<()> {
             "transport_protocol": "tcp_server",
             "port": input_2_port,
             "video": {
-                "codec": "h264"
+                "decoder": "ffmpeg_h264"
             },
         }),
     )?;

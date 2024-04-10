@@ -29,21 +29,26 @@ pub fn required_inputs() -> Result<()> {
                     "width": 640,
                     "height": 360,
                 },
-                "encoder_preset": "ultrafast",
+                "encoder": {
+                    "type": "ffmpeg_h264",
+                    "preset": "ultrafast",
+                },
                 "initial": {
-                    "type": "tiles",
-                    "padding": 3,
-                    "background_color_rgba": "#DDDDDDFF",
-                    "children": [
-                        {
-                            "type": "input_stream",
-                            "input_id": "input_1",
-                        },
-                        {
-                            "type": "input_stream",
-                            "input_id": "input_2",
-                        },
-                    ],
+                    "root": {
+                        "type": "tiles",
+                        "padding": 3,
+                        "background_color_rgba": "#DDDDDDFF",
+                        "children": [
+                            {
+                                "type": "input_stream",
+                                "input_id": "input_1",
+                            },
+                            {
+                                "type": "input_stream",
+                                "input_id": "input_2",
+                            },
+                        ],
+                    }
                 }
             },
         }),
@@ -65,7 +70,7 @@ pub fn required_inputs() -> Result<()> {
             "transport_protocol": "tcp_server",
             "port": input_1_port,
             "video": {
-                "codec": "h264"
+                "decoder": "ffmpeg_h264"
             },
             "required": true
         }),
@@ -78,7 +83,7 @@ pub fn required_inputs() -> Result<()> {
             "transport_protocol": "tcp_server",
             "port": input_2_port,
             "video": {
-                "codec": "h264"
+                "decoder": "ffmpeg_h264"
             },
             "required": true
         }),
