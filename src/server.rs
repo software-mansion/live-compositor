@@ -25,7 +25,7 @@ pub fn run() {
         .name("HTTP server startup thread".to_string())
         .spawn(move || {
             let (_, should_close_receiver) = crossbeam_channel::bounded(1);
-            if let Err(err) = start_api(state, should_close_receiver) {
+            if let Err(err) = run_api(state, should_close_receiver) {
                 error!(%err);
                 process::exit(1);
             }
@@ -43,19 +43,18 @@ pub fn run() {
     }
 }
 
-pub fn start_api(state: ApiState, should_close_receiver: Receiver<()>) -> tokio::io::Result<()> {
+pub fn run_api(state: ApiState, should_close: Receiver<()>) -> tokio::io::Result<()> {
     let rt = Runtime::new().unwrap();
-    rt.block_on(async { run_tokio_runtime(state, should_close_receiver).await })
-}
+    rt.block_on(async {
+        let port = state.config.api_port;
+        let app = routes(state);
+        let listener =
+            tokio::net::TcpListener::bind(SocketAddr::from(([0, 0, 0, 0], port))).await?;
 
-async fn run_tokio_runtime(state: ApiState, should_close: Receiver<()>) -> tokio::io::Result<()> {
-    let port = state.config.api_port;
-    let app = routes(state);
-    let listener = tokio::net::TcpListener::bind(SocketAddr::from(([0, 0, 0, 0], port))).await?;
-
-    axum::serve(listener, app)
-        .with_graceful_shutdown(async move {
-            should_close.recv().unwrap();
-        })
-        .await
+        axum::serve(listener, app)
+            .with_graceful_shutdown(async move {
+                should_close.recv().unwrap();
+            })
+            .await
+    })
 }

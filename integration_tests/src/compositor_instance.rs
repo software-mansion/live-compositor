@@ -15,7 +15,7 @@ use tracing::info;
 use video_compositor::{
     config::{read_config, LoggerConfig, LoggerFormat},
     logger::{self, FfmpegLogLevel},
-    server::start_api,
+    server::run_api,
     state::ApiState,
 };
 
@@ -46,9 +46,10 @@ impl CompositorInstance {
         thread::Builder::new()
             .name("HTTP server startup thread".to_string())
             .spawn(move || {
-                start_api(state, should_close_receiver).unwrap();
+                run_api(state, should_close_receiver).unwrap();
             })
             .unwrap();
+
         let instance = CompositorInstance {
             api_port,
             http_client: reqwest::blocking::Client::new(),
