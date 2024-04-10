@@ -1,22 +1,24 @@
 {
     "video": {
-        "type": "view",
-        "children": [
-            {
-                "type": "view",
-                "width": 200,
-                "background_color_rgba": "#FF0000FF"
-            },
-            {
-                "type": "view",
-                "width": 200,
-                "background_color_rgba": "#00FF00FF"
-            },
-            {
-                "type": "view",
-                "width": 200,
-                "background_color_rgba": "#0000FFFF"
-            }
-        ]
+        "root": {
+            "type": "view",
+            "children": [
+                {
+                    "type": "view",
+                    "width": 200,
+                    "background_color_rgba": "#FF0000FF"
+                },
+                {
+                    "type": "view",
+                    "width": 200,
+                    "background_color_rgba": "#00FF00FF"
+                },
+                {
+                    "type": "view",
+                    "width": 200,
+                    "background_color_rgba": "#0000FFFF"
+                }
+            ]
+        }
     }
 }

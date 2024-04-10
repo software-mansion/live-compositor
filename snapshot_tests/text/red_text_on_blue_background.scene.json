@@ -1,20 +1,22 @@
 {
     "video": {
-        "type": "view",
-        "overflow": "fit",
-        "children": [
-            {
-                "type": "text",
-                "text": "Example text",
-                "font_size": 50,
-                "font_family": "Verdana",
-                "align": "left",
-                "wrap": "word",
-                "color_rgba": "#FF0000FF",
-                "background_color_rgba": "#0000FFFF",
-                "width": 1000,
-                "height": 500
-            }
-        ]
+        "root": {
+            "type": "view",
+            "overflow": "fit",
+            "children": [
+                {
+                    "type": "text",
+                    "text": "Example text",
+                    "font_size": 50,
+                    "font_family": "Verdana",
+                    "align": "left",
+                    "wrap": "word",
+                    "color_rgba": "#FF0000FF",
+                    "background_color_rgba": "#0000FFFF",
+                    "width": 1000,
+                    "height": 500
+                }
+            ]
+        }
     }
 }

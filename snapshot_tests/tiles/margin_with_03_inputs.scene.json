@@ -1,21 +1,23 @@
 {
     "video": {
-        "type": "tiles",
-        "margin": 50,
-        "children": [
-            {
-                "type": "input_stream",
-                "input_id": "input_1"
-            },
-            {
-                "type": "input_stream",
-                "input_id": "input_2"
-            },
-            {
-                "type": "input_stream",
-                "input_id": "input_3"
-            }
-        ],
-        "background_color_rgba": "#333333FF"
+        "root": {
+            "type": "tiles",
+            "margin": 50,
+            "children": [
+                {
+                    "type": "input_stream",
+                    "input_id": "input_1"
+                },
+                {
+                    "type": "input_stream",
+                    "input_id": "input_2"
+                },
+                {
+                    "type": "input_stream",
+                    "input_id": "input_3"
+                }
+            ],
+            "background_color_rgba": "#333333FF"
+        }
     }
 }

@@ -1,25 +1,27 @@
 {
     "video": {
-        "type": "view",
-        "children": [
-            {
-                "type": "view",
-                "background_color_rgba": "#FF0000FF",
-                "width": 160,
-                "height": 90
-            },
-            {
-                "type": "rescaler",
-                "mode": "fit",
-                "top": 90,
-                "left": 160,
-                "width": 320,
-                "height": 180,
-                "child": {
+        "root": {
+            "type": "view",
+            "children": [
+                {
                     "type": "view",
-                    "background_color_rgba": "#0000FFFF"
+                    "background_color_rgba": "#FF0000FF",
+                    "width": 160,
+                    "height": 90
+                },
+                {
+                    "type": "rescaler",
+                    "mode": "fit",
+                    "top": 90,
+                    "left": 160,
+                    "width": 320,
+                    "height": 180,
+                    "child": {
+                        "type": "view",
+                        "background_color_rgba": "#0000FFFF"
+                    }
                 }
-            }
-        ]
+            ]
+        }
     }
 }
