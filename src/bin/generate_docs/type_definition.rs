@@ -104,7 +104,12 @@ impl TypeDefinition {
                 for variant in variants {
                     let variant_description = match variant.kind.clone() {
                         Kind::Object(props) => format_object_variant(key, props),
-                        _ => format!("- `{}`\n", variant.to_markdown(config)),
+                        _ => match &variant.description {
+                            Some(description) => {
+                                format!("#### {}\n{}", variant.to_pretty_string(0), description)
+                            }
+                            None => String::new(),
+                        },
                     };
 
                     properties_string += &variant_description;

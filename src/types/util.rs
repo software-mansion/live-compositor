@@ -74,7 +74,7 @@ pub struct TypeError(String);
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema, PartialEq, Eq)]
 #[serde(untagged)]
-pub enum Port {
+pub enum PortOrPortRange {
     String(String),
     U16(u16),
 }

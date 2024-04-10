@@ -11,7 +11,7 @@ use super::util::*;
 #[serde(deny_unknown_fields)]
 pub struct RtpInputStream {
     /// UDP port or port range on which the compositor should listen for the stream.
-    pub port: Port,
+    pub port: PortOrPortRange,
     /// Transport protocol.
     pub transport_protocol: Option<TransportProtocol>,
     /// Parameters of a video source included in the RTP stream.

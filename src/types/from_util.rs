@@ -195,15 +195,15 @@ impl TryFrom<RGBAColor> for scene::RGBAColor {
     }
 }
 
-impl TryFrom<Port> for rtp::RequestedPort {
+impl TryFrom<PortOrPortRange> for rtp::RequestedPort {
     type Error = TypeError;
 
-    fn try_from(value: Port) -> Result<Self, Self::Error> {
+    fn try_from(value: PortOrPortRange) -> Result<Self, Self::Error> {
         const PORT_CONVERSION_ERROR_MESSAGE: &str = "Port needs to be a number between 1 and 65535 or a string in the \"START:END\" format, where START and END represent a range of ports.";
         match value {
-            Port::U16(0) => Err(TypeError::new(PORT_CONVERSION_ERROR_MESSAGE)),
-            Port::U16(v) => Ok(rtp::RequestedPort::Exact(v)),
-            Port::String(s) => {
+            PortOrPortRange::U16(0) => Err(TypeError::new(PORT_CONVERSION_ERROR_MESSAGE)),
+            PortOrPortRange::U16(v) => Ok(rtp::RequestedPort::Exact(v)),
+            PortOrPortRange::String(s) => {
                 let (start, end) = s
                     .split_once(':')
                     .ok_or(TypeError::new(PORT_CONVERSION_ERROR_MESSAGE))?;
