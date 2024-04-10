@@ -13,7 +13,7 @@ use schemars::{
 use crate::type_definition::{Kind, ObjectProperty, TypeDefinition};
 
 const IGNORED_DEFINITIONS: [&str; 1] = ["Component"];
-const ALWAYS_INLINED_DEFINITIONS: [&str; 3] = ["Port", "Resolution", "Audio"];
+const ALWAYS_INLINED_DEFINITIONS: [&str; 4] = ["Port", "Resolution", "Audio", "Video"];
 const NEVER_INLINED_DEFINITIONS: [&str; 0] = [];
 
 #[derive(Debug)]
@@ -253,7 +253,21 @@ fn parse_schema(schema: &SchemaObject) -> TypeDefinition {
                 let is_optional = types.iter().any(|def| def.kind == Kind::Null);
                 types.retain(|def| def.kind != Kind::Null);
 
-                return TypeDefinition::complex(name, description, Kind::Union(types), is_optional);
+                if types.len() == 1 {
+                    let mut ty = types[0].clone();
+                    // TODO: merge descriptions
+                    if ty.description.is_none() {
+                        ty.description = description.map(Into::into);
+                    }
+                    return ty;
+                } else {
+                    return TypeDefinition::complex(
+                        name,
+                        description,
+                        Kind::Union(types),
+                        is_optional,
+                    );
+                }
             }
 
             unimplemented!("Unsupported type");
