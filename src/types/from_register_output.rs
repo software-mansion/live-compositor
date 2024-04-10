@@ -63,6 +63,7 @@ impl TryFrom<RtpOutputStream> for pipeline::RegisterOutputOptions {
                     preset,
                     forward_error_correction,
                 } = a.encoder;
+
                 Some(pipeline::OutputAudioOptions {
                     initial: a.initial.try_into()?,
                     channels: channels.into(),

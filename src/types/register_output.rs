@@ -46,7 +46,7 @@ pub struct OutputRtpAudioOptions {
     pub initial: Audio,
     /// Audio encoder options.
     pub encoder: AudioEncoderOptions,
-    /// (**default="sum_clip") Specifies how audio should be mixed.
+    /// (**default="sum_clip"**) Specifies how audio should be mixed.
     pub mixing_strategy: Option<MixingStrategy>,
     /// Condition for termination of output stream based on the input streams states.
     pub send_eos_when: Option<OutputEndCondition>,

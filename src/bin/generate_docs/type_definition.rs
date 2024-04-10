@@ -1,4 +1,6 @@
-use std::rc::Rc;
+use std::{ops::Deref, rc::Rc};
+
+use crate::docs_config::DocsConfig;
 
 const INDENT: &str = " ";
 
@@ -34,7 +36,7 @@ impl TypeDefinition {
         Self::complex(None, None, kind, is_optional)
     }
 
-    pub fn to_markdown(&self) -> String {
+    pub fn to_markdown(&self, config: &DocsConfig) -> String {
         let name = self.name.as_ref().unwrap();
         let description = self
             .description
@@ -48,23 +50,70 @@ impl TypeDefinition {
             name,
             self.to_pretty_string(0),
             description,
-            self.properties_markdown(),
+            self.properties_markdown(config),
         )
     }
 
-    fn properties_markdown(&self) -> String {
-        let Kind::Object(properties) = &self.kind else {
-            return String::new();
-        };
-        let properties = properties
-            .iter()
-            .map(ObjectProperty::to_markdown)
-            .collect::<String>();
-        if properties.is_empty() {
-            return String::new();
+    fn properties_markdown(&self, config: &DocsConfig) -> String {
+        fn format_props(properties: &[ObjectProperty]) -> String {
+            properties
+                .iter()
+                .map(|prop| prop.to_markdown())
+                .collect::<String>()
         }
 
-        format!("#### Properties\n{properties}")
+        fn format_object_variant(key: Option<&str>, mut properties: Vec<ObjectProperty>) -> String {
+            let properties_key = match key {
+                Some(key) => {
+                    let key_value = properties
+                        .iter()
+                        .find(|prop| prop.name.deref() == key)
+                        .cloned()
+                        .unwrap();
+                    properties.retain(|prop| prop.name.deref() != key);
+
+                    format!("(`type: {}`)", key_value.type_def.to_pretty_string(0))
+                }
+                None => String::new(),
+            };
+
+            let properties = format_props(&properties);
+            if properties.is_empty() {
+                return String::new();
+            }
+
+            format!("#### Properties {properties_key}\n{properties}")
+        }
+
+        match &self.kind {
+            Kind::Object(properties) => {
+                let properties = format_props(properties);
+                if properties.is_empty() {
+                    return String::new();
+                }
+
+                format!("#### Properties\n{properties}")
+            }
+            Kind::Union(variants) => {
+                let key = self
+                    .name
+                    .clone()
+                    .and_then(|name| config.variant_discriminators.get(name.deref()).cloned());
+
+                let mut properties_string = String::new();
+                for variant in variants {
+                    let variant_description = match variant.kind.clone() {
+                        Kind::Object(props) => format_object_variant(key, props),
+                        _ => format!("- `{}`\n", variant.to_markdown(config)),
+                    };
+
+                    properties_string += &variant_description;
+                }
+
+                properties_string
+            }
+            _ => String::new(),
+        }
     }
 
     fn object_to_string(properties: &[ObjectProperty], base_indent: usize) -> String {
