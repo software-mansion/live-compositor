@@ -31,11 +31,16 @@ pub fn muxed_video_audio() -> Result<()> {
                     "width": 640,
                     "height": 360,
                 },
-                "encoder_preset": "ultrafast",
+                "encoder": {
+                    "type": "ffmpeg_h264",
+                    "preset": "ultrafast",
+                },
                 "initial": {
-                    "id": "input_1",
-                    "type": "input_stream",
-                    "input_id": "input_1",
+                    "root": {
+                        "id": "input_1",
+                        "type": "input_stream",
+                        "input_id": "input_1",
+                    }
                 }
             },
             "audio": {
@@ -46,7 +51,10 @@ pub fn muxed_video_audio() -> Result<()> {
                         }
                     ]
                 },
-                "channels": "stereo"
+                "encoder": {
+                    "type": "opus",
+                    "channels": "stereo"
+                }
             }
         }),
     )?;
@@ -65,10 +73,10 @@ pub fn muxed_video_audio() -> Result<()> {
             "transport_protocol": "tcp_server",
             "port": input_port,
             "video": {
-                "codec": "h264"
+                "decoder": "ffmpeg_h264"
             },
             "audio": {
-                "codec": "opus"
+                "decoder": "opus"
             }
         }),
     )?;

@@ -1,5 +1,7 @@
 {
     "video": {
-        "type": "view"
+        "root": {
+            "type": "view"
+        }
     }
 }

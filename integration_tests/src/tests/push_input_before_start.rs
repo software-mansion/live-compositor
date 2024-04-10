@@ -33,10 +33,15 @@ pub fn push_entire_input_before_start_tcp() -> Result<()> {
                     "width": 640,
                     "height": 360,
                 },
-                "encoder_preset": "ultrafast",
+                "encoder": {
+                    "type": "ffmpeg_h264",
+                    "preset": "ultrafast"
+                },
                 "initial": {
-                    "type": "input_stream",
-                    "input_id": "input_1",
+                    "root": {
+                        "type": "input_stream",
+                        "input_id": "input_1",
+                    }
                 }
             },
         }),
@@ -58,7 +63,7 @@ pub fn push_entire_input_before_start_tcp() -> Result<()> {
             "transport_protocol": "tcp_server",
             "port": input_port,
             "video": {
-                "codec": "h264"
+                "decoder": "ffmpeg_h264"
             },
             "offset_ms": 0
         }),
@@ -112,10 +117,15 @@ pub fn push_entire_input_before_start_udp() -> Result<()> {
                     "width": 640,
                     "height": 360,
                 },
-                "encoder_preset": "ultrafast",
+                "encoder": {
+                    "type": "ffmpeg_h264",
+                    "preset": "ultrafast"
+                },
                 "initial": {
-                    "type": "input_stream",
-                    "input_id": "input_1",
+                    "root": {
+                        "type": "input_stream",
+                        "input_id": "input_1",
+                    }
                 }
             },
         }),
@@ -137,7 +147,7 @@ pub fn push_entire_input_before_start_udp() -> Result<()> {
             "transport_protocol": "udp",
             "port": input_port,
             "video": {
-                "codec": "h264"
+                "decoder": "ffmpeg_h264"
             },
             "offset_ms": 0
         }),
@@ -191,10 +201,15 @@ pub fn push_entire_input_before_start_tcp_without_offset() -> Result<()> {
                     "width": 640,
                     "height": 360,
                 },
-                "encoder_preset": "ultrafast",
+                "encoder": {
+                    "type": "ffmpeg_h264",
+                    "preset": "ultrafast"
+                },
                 "initial": {
-                    "type": "input_stream",
-                    "input_id": "input_1",
+                    "root": {
+                        "type": "input_stream",
+                        "input_id": "input_1",
+                    }
                 }
             },
         }),
@@ -216,7 +231,7 @@ pub fn push_entire_input_before_start_tcp_without_offset() -> Result<()> {
             "transport_protocol": "tcp_server",
             "port": input_port,
             "video": {
-                "codec": "h264"
+                "decoder": "ffmpeg_h264"
             },
         }),
     )?;
@@ -270,10 +285,15 @@ pub fn push_entire_input_before_start_udp_without_offset() -> Result<()> {
                     "width": 640,
                     "height": 360,
                 },
-                "encoder_preset": "ultrafast",
+                "encoder": {
+                    "type": "ffmpeg_h264",
+                    "preset": "ultrafast"
+                },
                 "initial": {
-                    "type": "input_stream",
-                    "input_id": "input_1",
+                    "root": {
+                        "type": "input_stream",
+                        "input_id": "input_1",
+                    }
                 }
             },
         }),
@@ -295,7 +315,7 @@ pub fn push_entire_input_before_start_udp_without_offset() -> Result<()> {
             "transport_protocol": "udp",
             "port": input_port,
             "video": {
-                "codec": "h264"
+                "decoder": "ffmpeg_h264"
             },
         }),
     )?;

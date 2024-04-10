@@ -1,10 +1,12 @@
 {
     "video": {
-        "type": "text",
-        "text": "Example text",
-        "font_size": 100,
-        "font_family": "Verdana",
-        "width": 1000,
-        "height": 200
+        "root": {
+            "type": "text",
+            "text": "Example text",
+            "font_size": 100,
+            "font_family": "Verdana",
+            "width": 1000,
+            "height": 200
+        }
     }
 }

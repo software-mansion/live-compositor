@@ -68,11 +68,16 @@ fn start_example_client_code() -> Result<()> {
                     "width": VIDEO_RESOLUTION.width,
                     "height": VIDEO_RESOLUTION.height,
                 },
-                "encoder_preset": "medium",
+                "encoder": {
+                    "type": "ffmpeg_h264",
+                    "preset": "ultrafast"
+                },
                 "initial": {
-                    "id": "input_1",
-                    "type": "input_stream",
-                    "input_id": "input_1",
+                    "root": {
+                        "id": "input_1",
+                        "type": "input_stream",
+                        "input_id": "input_1",
+                    }
                 }
             }
         }),
@@ -91,7 +96,10 @@ fn start_example_client_code() -> Result<()> {
                         {"input_id": "input_1"}
                     ]
                 },
-                "channels": "stereo"
+                "encoder": {
+                    "type": "opus",
+                    "channels": "stereo"
+                }
             }
         }),
     )?;

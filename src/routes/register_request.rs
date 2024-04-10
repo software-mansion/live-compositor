@@ -7,8 +7,8 @@ use crate::{
     routes::Json,
     state::{Pipeline, Response},
     types::{
-        ImageSpec, InputId, Mp4, OutputId, RegisterOutputRequest, RendererId, RtpInputStream,
-        ShaderSpec, WebRendererSpec,
+        ImageSpec, InputId, Mp4, OutputId, RendererId, RtpInputStream, RtpOutputStream, ShaderSpec,
+        WebRendererSpec,
     },
 };
 
@@ -24,7 +24,7 @@ pub enum RegisterInput {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum RegisterOutput {
-    RtpStream(RegisterOutputRequest),
+    RtpStream(RtpOutputStream),
 }
 
 pub(super) async fn handle_input(

@@ -46,18 +46,23 @@ fn start_example_client_code() -> Result<()> {
                     "width": VIDEO_RESOLUTION.width,
                     "height": VIDEO_RESOLUTION.height,
                 },
-                "encoder_preset": "ultrafast",
+                "encoder": {
+                    "type": "ffmpeg_h264",
+                    "preset": "ultrafast"
+                },
                 "initial": {
-                    "type": "text",
-                    "text": "VideoCompositor🚀\nSecond Line\nLorem ipsum dolor sit amet consectetur adipisicing elit. Soluta delectus optio fugit maiores eaque ab totam, veritatis aperiam provident, aliquam consectetur deserunt cumque est? Saepe tenetur impedit culpa asperiores id?",
-                    "font_size": 100.0,
-                    "font_family": "Comic Sans MS",
-                    "align": "center",
-                    "wrap": "word",
-                    "background_color_rgba": "#00800000",
-                    "weight": "bold",
-                    "width": VIDEO_RESOLUTION.width,
-                    "height": VIDEO_RESOLUTION.height,
+                    "root": {
+                        "type": "text",
+                        "text": "VideoCompositor🚀\nSecond Line\nLorem ipsum dolor sit amet consectetur adipisicing elit. Soluta delectus optio fugit maiores eaque ab totam, veritatis aperiam provident, aliquam consectetur deserunt cumque est? Saepe tenetur impedit culpa asperiores id?",
+                        "font_size": 100.0,
+                        "font_family": "Comic Sans MS",
+                        "align": "center",
+                        "wrap": "word",
+                        "background_color_rgba": "#00800000",
+                        "weight": "bold",
+                        "width": VIDEO_RESOLUTION.width,
+                        "height": VIDEO_RESOLUTION.height,
+                    }
                 }
             }
         }),

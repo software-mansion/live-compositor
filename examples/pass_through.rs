@@ -48,7 +48,7 @@ fn start_example_client_code() -> Result<()> {
             "type": "rtp_stream",
             "port": INPUT_PORT,
             "video": {
-                "codec": "h264"
+                "decoder": "ffmpeg_h264"
             }
         }),
     )?;
@@ -65,11 +65,16 @@ fn start_example_client_code() -> Result<()> {
                     "width": VIDEO_RESOLUTION.width,
                     "height": VIDEO_RESOLUTION.height,
                 },
-                "encoder_preset": "veryfast",
+                "encoder": {
+                    "type": "ffmpeg_h264",
+                    "preset": "ultrafast"
+                },
                 "initial": {
-                    "id": "input_1",
-                    "type": "input_stream",
-                    "input_id": "input_1",
+                    "root": {
+                        "id": "input_1",
+                        "type": "input_stream",
+                        "input_id": "input_1",
+                    }
                 }
             }
         }),

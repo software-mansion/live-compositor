@@ -1,13 +1,15 @@
 {
     "video": {
-        "type": "tiles",
-        "tile_aspect_ratio": "1:2",
-        "children": [
-            {
-                "type": "input_stream",
-                "input_id": "input_1"
-            }
-        ],
-        "background_color_rgba": "#333333FF"
+        "root": {
+            "type": "tiles",
+            "tile_aspect_ratio": "1:2",
+            "children": [
+                {
+                    "type": "input_stream",
+                    "input_id": "input_1"
+                }
+            ],
+            "background_color_rgba": "#333333FF"
+        }
     }
 }

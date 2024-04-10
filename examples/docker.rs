@@ -109,7 +109,7 @@ fn start_example_client_code(host_ip: String) -> Result<()> {
             "type": "rtp_stream",
             "port": INPUT_PORT,
             "video": {
-                "codec": "h264"
+                "decoder": "ffmpeg_h264"
             }
         }),
     )?;
@@ -135,17 +135,22 @@ fn start_example_client_code(host_ip: String) -> Result<()> {
                     "width": VIDEO_RESOLUTION.width,
                     "height": VIDEO_RESOLUTION.height,
                 },
-                "encoder_preset": "ultrafast",
+                "encoder": {
+                    "type": "ffmpeg_h264",
+                    "preset": "ultrafast"
+                },
                 "initial": {
-                    "type": "shader",
-                    "shader_id": "example_shader",
-                    "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
-                    "children": [
-                        {
-                           "type": "input_stream",
-                           "input_id": "input_1",
-                        }
-                    ]
+                    "root": {
+                        "type": "shader",
+                        "shader_id": "example_shader",
+                        "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+                        "children": [
+                            {
+                               "type": "input_stream",
+                               "input_id": "input_1",
+                            }
+                        ]
+                    }
                 }
             }
         }),

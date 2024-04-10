@@ -167,14 +167,16 @@ fn shader_user_params_snapshot_tests() -> Vec<TestCase> {
     let circle_layout_scene = Box::new(
         json!({
             "video": {
-                "type": "shader",
-                "shader_id": "user_params_circle_layout",
-                "resolution": {
-                    "width": DEFAULT_RESOLUTION.width,
-                    "height": DEFAULT_RESOLUTION.height
-                },
-                "shader_param": shader_param,
-                "children": children,
+                "root": {
+                    "type": "shader",
+                    "shader_id": "user_params_circle_layout",
+                    "resolution": {
+                        "width": DEFAULT_RESOLUTION.width,
+                        "height": DEFAULT_RESOLUTION.height
+                    },
+                    "shader_param": shader_param,
+                    "children": children,
+                }
             }
         })
         .to_string(),

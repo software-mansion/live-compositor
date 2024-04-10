@@ -65,7 +65,7 @@ fn start_example_client_code() -> Result<()> {
             "type": "rtp_stream",
             "port": INPUT_1_PORT,
             "video": {
-                "codec": "h264"
+                "decoder": "ffmpeg_h264"
             },
         }),
     )?;
@@ -77,7 +77,7 @@ fn start_example_client_code() -> Result<()> {
             "type": "rtp_stream",
             "port": INPUT_2_PORT,
             "audio": {
-                "codec": "opus"
+                "decoder": "opus"
             },
         }),
     )?;
@@ -89,7 +89,7 @@ fn start_example_client_code() -> Result<()> {
             "type": "rtp_stream",
             "port": INPUT_3_PORT,
             "video": {
-                "codec": "h264"
+                "decoder": "ffmpeg_h264"
             },
         }),
     )?;
@@ -101,7 +101,7 @@ fn start_example_client_code() -> Result<()> {
             "type": "rtp_stream",
             "port": INPUT_4_PORT,
             "audio": {
-                "codec": "opus"
+                "decoder": "opus"
             },
         }),
     )?;
@@ -118,19 +118,24 @@ fn start_example_client_code() -> Result<()> {
                     "width": VIDEO_RESOLUTION.width,
                     "height": VIDEO_RESOLUTION.height,
                 },
-                "encoder_preset": "medium",
+                "encoder": {
+                    "type": "ffmpeg_h264",
+                    "preset": "fast"
+                },
                 "initial": {
-                    "type": "tiles",
-                    "children": [
-                        {
-                            "type": "input_stream",
-                            "input_id": "input_1"
-                        },
-                        {
-                            "type": "input_stream",
-                            "input_id": "input_3"
-                        }
-                    ]
+                    "root": {
+                        "type": "tiles",
+                        "children": [
+                            {
+                                "type": "input_stream",
+                                "input_id": "input_1"
+                            },
+                            {
+                                "type": "input_stream",
+                                "input_id": "input_3"
+                            }
+                        ]
+                    }
                 },
                 "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
             }
@@ -151,7 +156,10 @@ fn start_example_client_code() -> Result<()> {
                         {"input_id": "input_4"}
                     ]
                 },
-                "channels": "stereo"
+                "encoder": {
+                    "type": "opus",
+                    "channels": "stereo",
+                }
             }
         }),
     )?;

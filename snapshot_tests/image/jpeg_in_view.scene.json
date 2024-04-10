@@ -1,11 +1,13 @@
 {
     "video": {
-        "type": "view",
-        "children": [
-            {
-                "type": "image",
-                "image_id": "image_jpeg"
-            }
-        ]
+        "root": {
+            "type": "view",
+            "children": [
+                {
+                    "type": "image",
+                    "image_id": "image_jpeg"
+                }
+            ]
+        }
     }
 }

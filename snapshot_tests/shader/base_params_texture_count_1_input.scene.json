@@ -1,16 +1,18 @@
 {
     "video": {
-        "type": "shader",
-        "shader_id": "base_params_texture_count",
-        "resolution": {
-            "width": 640,
-            "height": 360
-        },
-        "children": [
-            {
-                "type": "input_stream",
-                "input_id": "input_1"
-            }
-        ]
+        "root": {
+            "type": "shader",
+            "shader_id": "base_params_texture_count",
+            "resolution": {
+                "width": 640,
+                "height": 360
+            },
+            "children": [
+                {
+                    "type": "input_stream",
+                    "input_id": "input_1"
+                }
+            ]
+        }
     }
 }

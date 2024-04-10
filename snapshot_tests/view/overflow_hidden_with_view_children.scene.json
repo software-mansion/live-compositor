@@ -1,37 +1,39 @@
 {
     "video": {
-        "type": "view",
-        "children": [
-            {
-                "type": "view",
-                "width": 100,
-                "background_color_rgba": "#FF0000FF"
-            },
-            {
-                "type": "view",
-                "width": 300,
-                "background_color_rgba": "#00FF00FF",
-                "children": [
-                    {
-                        "type": "view",
-                        "width": 180,
-                        "height": 200,
-                        "background_color_rgba": "#FFFF00FF"
-                    },
-                    {
-                        "type": "view",
-                        "width": 180,
-                        "height": 200,
-                        "background_color_rgba": "#BBBB00FF"
-                    },
-                    {
-                        "type": "view",
-                        "width": 180,
-                        "height": 200,
-                        "background_color_rgba": "#888800FF"
-                    }
-                ]
-            }
-        ]
+        "root": {
+            "type": "view",
+            "children": [
+                {
+                    "type": "view",
+                    "width": 100,
+                    "background_color_rgba": "#FF0000FF"
+                },
+                {
+                    "type": "view",
+                    "width": 300,
+                    "background_color_rgba": "#00FF00FF",
+                    "children": [
+                        {
+                            "type": "view",
+                            "width": 180,
+                            "height": 200,
+                            "background_color_rgba": "#FFFF00FF"
+                        },
+                        {
+                            "type": "view",
+                            "width": 180,
+                            "height": 200,
+                            "background_color_rgba": "#BBBB00FF"
+                        },
+                        {
+                            "type": "view",
+                            "width": 180,
+                            "height": 200,
+                            "background_color_rgba": "#888800FF"
+                        }
+                    ]
+                }
+            ]
+        }
     }
 }

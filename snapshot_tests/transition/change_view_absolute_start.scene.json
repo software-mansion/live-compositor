@@ -1,16 +1,18 @@
 {
     "video": {
-        "type": "view",
-        "children": [
-            {
-                "id": "resize_1",
-                "type": "view",
-                "width": 200,
-                "height": 200,
-                "top": 20,
-                "right": 20,
-                "background_color_rgba": "#00FF00FF"
-            }
-        ]
+        "root": {
+            "type": "view",
+            "children": [
+                {
+                    "id": "resize_1",
+                    "type": "view",
+                    "width": 200,
+                    "height": 200,
+                    "top": 20,
+                    "right": 20,
+                    "background_color_rgba": "#00FF00FF"
+                }
+            ]
+        }
     }
 }

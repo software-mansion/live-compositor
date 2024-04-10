@@ -40,7 +40,10 @@ pub fn audio_mixing() -> Result<()> {
                         }
                     ]
                 },
-                "channels": "stereo",
+                "encoder": {
+                    "type": "opus",
+                    "channels": "stereo",
+                }
             },
         }),
     )?;
@@ -59,7 +62,7 @@ pub fn audio_mixing() -> Result<()> {
             "transport_protocol": "tcp_server",
             "port": input_1_port,
             "audio": {
-                "codec": "opus"
+                "decoder": "opus"
             }
         }),
     )?;
@@ -71,7 +74,7 @@ pub fn audio_mixing() -> Result<()> {
             "transport_protocol": "udp",
             "port": input_2_port,
             "audio": {
-                "codec": "opus"
+                "decoder": "opus"
             }
         }),
     )?;

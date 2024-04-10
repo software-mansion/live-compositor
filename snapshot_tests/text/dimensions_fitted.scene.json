@@ -1,15 +1,17 @@
 {
     "video": {
-        "type": "view",
-        "overflow": "fit",
-        "children": [
-            {
-                "type": "text",
-                "text": "Example text",
-                "font_size": 100,
-                "font_family": "Verdana",
-                "background_color_rgba": "#FF0000FF"
-            }
-        ]
+        "root": {
+            "type": "view",
+            "overflow": "fit",
+            "children": [
+                {
+                    "type": "text",
+                    "text": "Example text",
+                    "font_size": 100,
+                    "font_family": "Verdana",
+                    "background_color_rgba": "#FF0000FF"
+                }
+            ]
+        }
     }
 }
