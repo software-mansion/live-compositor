@@ -69,6 +69,8 @@ pub enum VideoDepayloader {
     H264 {
         depayloader: H264Packet,
         buffer: Vec<Bytes>,
+        previous_timestamp: u32,
+        rollover_count: usize,
     },
 }
 
@@ -78,6 +80,8 @@ impl VideoDepayloader {
             VideoCodec::H264 => VideoDepayloader::H264 {
                 depayloader: H264Packet::default(),
                 buffer: vec![],
+                previous_timestamp: 0,
+                rollover_count: 0,
             },
         }
     }
@@ -90,6 +94,8 @@ impl VideoDepayloader {
             VideoDepayloader::H264 {
                 depayloader,
                 buffer,
+                previous_timestamp,
+                rollover_count,
             } => {
                 let kind = EncodedChunkKind::Video(VideoCodec::H264);
                 let h264_chunk = depayloader.depacketize(&packet.payload)?;
@@ -104,9 +110,17 @@ impl VideoDepayloader {
                     return Ok(None);
                 }
 
+                let timestamp = timestamp_with_rollover(
+                    rollover_count,
+                    *previous_timestamp,
+                    packet.header.timestamp,
+                );
+
+                *previous_timestamp = packet.header.timestamp;
+
                 let new_chunk = EncodedChunk {
                     data: mem::take(buffer).concat().into(),
-                    pts: Duration::from_secs_f64(packet.header.timestamp as f64 / 90000.0),
+                    pts: Duration::from_secs_f64(timestamp as f64 / 90000.0),
                     dts: None,
                     kind,
                 };
@@ -124,13 +138,21 @@ pub enum AudioDepayloaderNewError {
 }
 
 pub enum AudioDepayloader {
-    Opus(OpusPacket),
+    Opus {
+        depayloader: OpusPacket,
+        previous_timestamp: u32,
+        rollover_count: usize,
+    },
 }
 
 impl AudioDepayloader {
     pub fn new(options: &decoder::AudioDecoderOptions) -> Result<Self, AudioDepayloaderNewError> {
         match options {
-            decoder::AudioDecoderOptions::Opus(_) => Ok(AudioDepayloader::Opus(OpusPacket)),
+            decoder::AudioDecoderOptions::Opus(_) => Ok(AudioDepayloader::Opus {
+                depayloader: OpusPacket,
+                previous_timestamp: 0,
+                rollover_count: 0,
+            }),
             decoder::AudioDecoderOptions::Aac(_) => Err(
                 AudioDepayloaderNewError::UnsupportedDepayloader(options.clone()),
             ),
@@ -142,7 +164,11 @@ impl AudioDepayloader {
         packet: rtp::packet::Packet,
     ) -> Result<Option<EncodedChunk>, DepayloadingError> {
         match self {
-            AudioDepayloader::Opus(depayloader) => {
+            AudioDepayloader::Opus {
+                depayloader,
+                previous_timestamp,
+                rollover_count,
+            } => {
                 let kind = EncodedChunkKind::Audio(AudioCodec::Opus);
                 let opus_packet = depayloader.depacketize(&packet.payload)?;
 
@@ -150,13 +176,91 @@ impl AudioDepayloader {
                     return Ok(None);
                 }
 
+                let timestamp = timestamp_with_rollover(
+                    rollover_count,
+                    *previous_timestamp,
+                    packet.header.timestamp,
+                );
+
+                *previous_timestamp = packet.header.timestamp;
+
                 Ok(Some(EncodedChunk {
                     data: opus_packet,
-                    pts: Duration::from_secs_f64(packet.header.timestamp as f64 / 48000.0),
+                    pts: Duration::from_secs_f64(timestamp as f64 / 48000.0),
                     dts: None,
                     kind,
                 }))
             }
         }
+    }
+}
+
+fn timestamp_with_rollover(
+    rollover_count: &mut usize,
+    previous_timestamp: u32,
+    current_timestamp: u32,
+) -> u64 {
+    let timestamp_diff = u32::abs_diff(previous_timestamp, current_timestamp);
+    if timestamp_diff >= u32::MAX / 2 {
+        if previous_timestamp > current_timestamp {
+            *rollover_count += 1;
+        } else {
+            // We received a packet from before the rollover, so we need to decrement the count
+            *rollover_count = rollover_count.saturating_sub(1);
+        }
+    }
+
+    (*rollover_count as u64) * (u32::MAX as u64 + 1) + current_timestamp as u64
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::pipeline::input::rtp::depayloader::timestamp_with_rollover;
+
+    #[test]
+    fn timestamp_rollover() {
+        let mut rollover_count = 0;
+
+        let previous_timestamp = 0;
+        let current_timestamp = 1;
+        assert_eq!(
+            timestamp_with_rollover(&mut rollover_count, previous_timestamp, current_timestamp),
+            1
+        );
+
+        let previous_timestamp = u32::MAX;
+        let current_timestamp = 0;
+        assert_eq!(
+            timestamp_with_rollover(&mut rollover_count, previous_timestamp, current_timestamp),
+            u32::MAX as u64 + 1 + current_timestamp as u64
+        );
+
+        let previous_timestamp = u32::MAX;
+        let current_timestamp = 1;
+        assert_eq!(
+            timestamp_with_rollover(&mut rollover_count, previous_timestamp, current_timestamp),
+            2 * (u32::MAX as u64 + 1) + current_timestamp as u64
+        );
+
+        let previous_timestamp = 1;
+        let current_timestamp = u32::MAX;
+        assert_eq!(
+            timestamp_with_rollover(&mut rollover_count, previous_timestamp, current_timestamp),
+            u32::MAX as u64 + 1 + current_timestamp as u64
+        );
+
+        let previous_timestamp = u32::MAX;
+        let current_timestamp = u32::MAX - 1;
+        assert_eq!(
+            timestamp_with_rollover(&mut rollover_count, previous_timestamp, current_timestamp),
+            u32::MAX as u64 + 1 + current_timestamp as u64
+        );
+
+        let previous_timestamp = u32::MAX - 1;
+        let current_timestamp = u32::MAX;
+        assert_eq!(
+            timestamp_with_rollover(&mut rollover_count, previous_timestamp, current_timestamp),
+            u32::MAX as u64 + 1 + current_timestamp as u64
+        );
     }
 }
