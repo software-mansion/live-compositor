@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use crate::{
     compare_video_dumps, input_dump_from_disk, CommunicationProtocol, CompositorInstance,
-    OutputReceiver, PacketSender,
+    OutputReceiver, PacketSender, VideoValidationConfig,
 };
 use anyhow::Result;
 use serde_json::json;
@@ -130,8 +130,10 @@ pub fn schedule_update() -> Result<()> {
     compare_video_dumps(
         OUTPUT_DUMP_FILE,
         &new_output_dump,
-        &[Duration::from_millis(500), Duration::from_millis(3500)],
-        20.0,
+        VideoValidationConfig {
+            validation_intervals: vec![Duration::from_millis(500)..Duration::from_millis(3500)],
+            ..Default::default()
+        },
     )?;
 
     Ok(())

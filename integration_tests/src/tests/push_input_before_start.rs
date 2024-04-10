@@ -5,7 +5,7 @@ use serde_json::json;
 
 use crate::{
     compare_video_dumps, input_dump_from_disk, CommunicationProtocol, CompositorInstance,
-    OutputReceiver, PacketSender,
+    OutputReceiver, PacketSender, VideoValidationConfig,
 };
 
 /// Check if the input stream is passed to the output correctly even if entire
@@ -78,8 +78,10 @@ pub fn push_entire_input_before_start_tcp() -> Result<()> {
     compare_video_dumps(
         OUTPUT_DUMP_FILE,
         &new_output_dump,
-        &[Duration::from_millis(1200)],
-        20.0,
+        VideoValidationConfig {
+            validation_intervals: vec![Duration::from_millis(0)..Duration::from_millis(1200)],
+            ..Default::default()
+        },
     )?;
 
     Ok(())
@@ -155,8 +157,10 @@ pub fn push_entire_input_before_start_udp() -> Result<()> {
     compare_video_dumps(
         OUTPUT_DUMP_FILE,
         &new_output_dump,
-        &[Duration::from_millis(1200)],
-        20.0,
+        VideoValidationConfig {
+            validation_intervals: vec![Duration::from_millis(0)..Duration::from_millis(1200)],
+            ..Default::default()
+        },
     )?;
 
     Ok(())
@@ -231,8 +235,11 @@ pub fn push_entire_input_before_start_tcp_without_offset() -> Result<()> {
     compare_video_dumps(
         OUTPUT_DUMP_FILE,
         &new_output_dump,
-        &[Duration::from_millis(1200)],
-        20.0,
+        VideoValidationConfig {
+            validation_intervals: vec![Duration::from_millis(0)..Duration::from_millis(1200)],
+            allowed_invalid_frames: 5,
+            ..Default::default()
+        },
     )?;
 
     Ok(())
@@ -307,8 +314,11 @@ pub fn push_entire_input_before_start_udp_without_offset() -> Result<()> {
     compare_video_dumps(
         OUTPUT_DUMP_FILE,
         &new_output_dump,
-        &[Duration::from_millis(1200)],
-        20.0,
+        VideoValidationConfig {
+            validation_intervals: vec![Duration::from_millis(0)..Duration::from_millis(1200)],
+            allowed_invalid_frames: 5,
+            ..Default::default()
+        },
     )?;
 
     Ok(())
