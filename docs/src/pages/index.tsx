@@ -28,7 +28,8 @@ function HomepageHeader() {
     <header className={clsx('hero hero--primary', styles.heroBanner)}>
       <div className="container">
         <div className="row">
-          <div className="col col--6">
+          <div className="col col--2"></div>
+          <div className="col col--8">
             <div className="container">
               <Heading as="h2" className="hero__title">
                 The best solution for programmatic live video compositing.
@@ -51,7 +52,6 @@ function HomepageHeader() {
               </div>
             </div>
           </div>
-          <div className="col col--6"></div>
         </div>
       </div>
     </header>
