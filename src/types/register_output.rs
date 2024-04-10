@@ -17,7 +17,7 @@ pub struct RtpOutputStream {
     ///   - `udp` - An UDP port number that RTP packets will be sent to.
     ///
     ///   - `tcp_server` - A local TCP port number or a port range that LiveCompositor will listen for incoming connections.
-    pub port: Port,
+    pub port: PortOrPortRange,
     /// Only valid if `transport_protocol="udp"`. IP address where RTP packets should be sent to.
     pub ip: Option<Arc<str>>,
     /// (**default=`"udp"`**) Transport layer protocol that will be used to send RTP packets.
@@ -31,25 +31,25 @@ pub struct RtpOutputStream {
 pub struct OutputRtpVideoOptions {
     /// Output resolution in pixels.
     pub resolution: Resolution,
+    /// Defines when output stream should end if some of the input streams are finished. If output includes both audio and video streams, then EOS needs to be sent on both.
+    pub send_eos_when: Option<OutputEndCondition>,
     /// Video encoder options.
     pub encoder: VideoEncoderOptions,
     /// Root of a component tree/scene that should be rendered for the output. Use [`update_output` request](../routes.md#update-output) to update this value after registration. [Learn more](../../concept/component.md).
     pub initial: Video,
-    /// Defines when output stream should end if some of the input streams are finished. If output includes both audio and video streams, then EOS needs to be sent on both.
-    pub send_eos_when: Option<OutputEndCondition>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct OutputRtpAudioOptions {
-    /// Initial audio mixer configuration for output.
-    pub initial: Audio,
-    /// Audio encoder options.
-    pub encoder: AudioEncoderOptions,
     /// (**default="sum_clip") Specifies how audio should be mixed.
     pub mixing_strategy: Option<MixingStrategy>,
     /// Condition for termination of output stream based on the input streams states.
     pub send_eos_when: Option<OutputEndCondition>,
+    /// Audio encoder options.
+    pub encoder: AudioEncoderOptions,
+    /// Initial audio mixer configuration for output.
+    pub initial: Audio,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]

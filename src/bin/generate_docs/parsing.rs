@@ -13,7 +13,7 @@ use schemars::{
 use crate::type_definition::{Kind, ObjectProperty, TypeDefinition};
 
 const IGNORED_DEFINITIONS: [&str; 1] = ["Component"];
-const ALWAYS_INLINED_DEFINITIONS: [&str; 4] = ["Port", "Resolution", "Audio", "Video"];
+const ALWAYS_INLINED_DEFINITIONS: [&str; 4] = ["PortOrPortRange", "Resolution", "Audio", "Video"];
 const NEVER_INLINED_DEFINITIONS: [&str; 0] = [];
 
 #[derive(Debug)]
