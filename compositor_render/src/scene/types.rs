@@ -49,8 +49,8 @@ pub struct Size {
 
 #[derive(Debug, Clone, Copy)]
 pub struct AbsolutePosition {
-    pub width: f32,
-    pub height: f32,
+    pub width: Option<f32>,
+    pub height: Option<f32>,
     pub position_horizontal: HorizontalPosition,
     pub position_vertical: VerticalPosition,
     pub rotation_degrees: f32,
