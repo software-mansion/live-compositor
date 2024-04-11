@@ -44,6 +44,13 @@ pub struct Mp4 {
     pub offset_ms: Option<f64>,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum AacRtpMode {
+    LowBitrate,
+    HighBitrate,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(tag = "decoder", rename_all = "snake_case", deny_unknown_fields)]
 pub enum InputRtpAudioOptions {
@@ -52,6 +59,17 @@ pub enum InputRtpAudioOptions {
         /// It's specific for Opus codec.
         /// For more information, check out [RFC](https://datatracker.ietf.org/doc/html/rfc6716#section-2.1.7).
         forward_error_correction: Option<bool>,
+    },
+
+    Aac {
+        /// Specific to the AAC codec.
+        /// The config should be encoded as described in [RFC 3640](https://datatracker.ietf.org/doc/html/rfc3640#section-4.1)
+        /// The value has to be provided.
+        audio_specific_config: Option<String>,
+        /// (**default=`"high_bitrate"`**) Specific to the AAC codec.
+        /// Specifies the [RFC 3640 mode](https://datatracker.ietf.org/doc/html/rfc3640#section-3.3.1)
+        /// that should be used when depacketizing this stream.
+        rtp_mode: Option<AacRtpMode>,
     },
 }
 
