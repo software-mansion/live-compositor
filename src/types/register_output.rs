@@ -42,7 +42,7 @@ pub struct OutputRtpVideoOptions {
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct OutputRtpAudioOptions {
-    /// (**default="sum_clip") Specifies how audio should be mixed.
+    /// (**default="sum_clip"**) Specifies how audio should be mixed.
     pub mixing_strategy: Option<MixingStrategy>,
     /// Condition for termination of output stream based on the input streams states.
     pub send_eos_when: Option<OutputEndCondition>,
