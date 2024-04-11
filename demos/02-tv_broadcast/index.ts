@@ -36,6 +36,11 @@ async function example() {
         path: path.join(__dirname, "../assets/news_room.jpg")
     });
 
+    await registerImage("logo", {
+        asset_type: "png",
+        url: "https://i.ibb.co/vHtG8Rr/logo.png"
+    })
+
     await registerOutput("output_1", {
         type: "rtp_stream",
         ip: IP,
@@ -75,11 +80,98 @@ function initialScene(): Component {
         }
     };
 
-    return {
+    const reportWithBackground: Component = {
         type: "shader",
         shader_id: "shader_1",
         children: [rescaledInputStream, rescaledImage],
         resolution: OUTPUT_RESOLUTION
+    }
+
+    return {
+        type: "view",
+        width: OUTPUT_RESOLUTION.width,
+        height: OUTPUT_RESOLUTION.height,
+        children: [
+            reportWithBackground,
+            breakingNewsText(),
+            logo()
+        ]
+    };
+}
+
+function breakingNewsText(): Component {
+    return {
+        type: "view",
+        width: OUTPUT_RESOLUTION.width,
+        height: 180,
+        bottom: 0,
+        left: 0,
+        direction: "column",
+        children: [
+            {
+                type: "text",
+                text: "BREAKING NEWS",
+                width: 600,
+                height: 50,
+                font_size: 50,
+                weight: "bold",
+                align: "center",
+                color_rgba: "#FFFFFFFF",
+                background_color_rgba: "#FF0000FF",
+            },
+            {
+                type: "text",
+                text: "LiveCompositor is rumored to allegedly compose video",
+                font_size: 65,
+                width: OUTPUT_RESOLUTION.width,
+                height: 80,
+                align: "center",
+                color_rgba: "#FFFFFFFF",
+                background_color_rgba: "#808080FF",
+            },
+            {
+                type: "view",
+                width: OUTPUT_RESOLUTION.width,
+                height: 50,
+                children: [
+                    {
+                        type: "text",
+                        text: "21:37",
+                        font_size: 40,
+                        width: 200,
+                        height: 50,
+                        align: "center",
+                        color_rgba: "#FFFFFFFF",
+                        background_color_rgba: "#000000FF",
+                    },
+                    {
+                        type: "text",
+                        text: "Leak docs can be found at https://compositor.live/docs/intro",
+                        font_size: 40,
+                        width: OUTPUT_RESOLUTION.width - 200,
+                        height: 50,
+                        align: "center",
+                        color_rgba: "#000000FF",
+                        background_color_rgba: "#FFFF00FF",
+                    }
+                ]
+            }
+        ]
+    }
+}
+
+function logo(): Component {
+    return {
+        type: "view",
+        width: 160,
+        height: 90,
+        top: 50,
+        left: 50,
+        overflow: "fit",
+        children: [{
+            type: "image",
+            image_id: "logo",
+        }]
     };
 }
 
