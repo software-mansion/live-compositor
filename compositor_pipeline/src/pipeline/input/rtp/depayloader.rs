@@ -107,7 +107,7 @@ impl VideoDepayloader {
                     return Ok(None);
                 }
 
-                let timestamp = rollover_state.timestamp_with_rollover(packet.header.timestamp);
+                let timestamp = rollover_state.timestamp(packet.header.timestamp);
                 let new_chunk = EncodedChunk {
                     data: mem::take(buffer).concat().into(),
                     pts: Duration::from_secs_f64(timestamp as f64 / 90000.0),
@@ -163,7 +163,7 @@ impl AudioDepayloader {
                     return Ok(None);
                 }
 
-                let timestamp = rollover_state.timestamp_with_rollover(packet.header.timestamp);
+                let timestamp = rollover_state.timestamp(packet.header.timestamp);
                 Ok(Some(EncodedChunk {
                     data: opus_packet,
                     pts: Duration::from_secs_f64(timestamp as f64 / 48000.0),
@@ -177,12 +177,12 @@ impl AudioDepayloader {
 
 #[derive(Default)]
 pub struct RolloverState {
-    pub previous_timestamp: Option<u32>,
-    pub rollover_count: usize,
+    previous_timestamp: Option<u32>,
+    rollover_count: usize,
 }
 
 impl RolloverState {
-    fn timestamp_with_rollover(&mut self, current_timestamp: u32) -> u64 {
+    fn timestamp(&mut self, current_timestamp: u32) -> u64 {
         let Some(previous_timestamp) = self.previous_timestamp else {
             self.previous_timestamp = Some(current_timestamp);
             return current_timestamp as u64;
@@ -214,47 +214,47 @@ mod tests {
 
         let current_timestamp = 1;
         assert_eq!(
-            rollover_state.timestamp_with_rollover(current_timestamp),
+            rollover_state.timestamp(current_timestamp),
             current_timestamp as u64
         );
 
         let current_timestamp = u32::MAX / 2 + 1;
         assert_eq!(
-            rollover_state.timestamp_with_rollover(current_timestamp),
+            rollover_state.timestamp(current_timestamp),
             current_timestamp as u64
         );
 
         let current_timestamp = 0;
         assert_eq!(
-            rollover_state.timestamp_with_rollover(current_timestamp),
+            rollover_state.timestamp(current_timestamp),
             u32::MAX as u64 + 1 + current_timestamp as u64
         );
 
         rollover_state.previous_timestamp = Some(u32::MAX);
         let current_timestamp = 1;
         assert_eq!(
-            rollover_state.timestamp_with_rollover(current_timestamp),
+            rollover_state.timestamp(current_timestamp),
             2 * (u32::MAX as u64 + 1) + current_timestamp as u64
         );
 
         rollover_state.previous_timestamp = Some(1);
         let current_timestamp = u32::MAX;
         assert_eq!(
-            rollover_state.timestamp_with_rollover(current_timestamp),
+            rollover_state.timestamp(current_timestamp),
             u32::MAX as u64 + 1 + current_timestamp as u64
         );
 
         rollover_state.previous_timestamp = Some(u32::MAX);
         let current_timestamp = u32::MAX - 1;
         assert_eq!(
-            rollover_state.timestamp_with_rollover(current_timestamp),
+            rollover_state.timestamp(current_timestamp),
             u32::MAX as u64 + 1 + current_timestamp as u64
         );
 
         rollover_state.previous_timestamp = Some(u32::MAX - 1);
         let current_timestamp = u32::MAX;
         assert_eq!(
-            rollover_state.timestamp_with_rollover(current_timestamp),
+            rollover_state.timestamp(current_timestamp),
             u32::MAX as u64 + 1 + current_timestamp as u64
         );
     }
