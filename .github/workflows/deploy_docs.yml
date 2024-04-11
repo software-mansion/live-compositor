@@ -6,6 +6,7 @@ on:
         paths:
             - "docs/**"
             - "schemas/**"
+            - "src/bin/generate_docs/**"
             - ".github/workflows/deploy_docs.yml"
 
 permissions:
