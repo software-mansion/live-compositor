@@ -11,7 +11,7 @@ impl Default for DocsConfig {
     fn default() -> Self {
         Self {
             ignored_definitions: vec!["Component"],
-            always_inlined_definitions: vec!["Port", "Resolution", "Audio", "Video"],
+            always_inlined_definitions: vec!["PortOrPortRange", "Resolution", "Audio", "Video"],
             never_inlined_definitions: vec![],
             variant_discriminators: [("AudioEncoderOptions", "type")].into(),
         }
