@@ -69,6 +69,7 @@ pub enum VideoDepayloader {
     H264 {
         depayloader: H264Packet,
         buffer: Vec<Bytes>,
+        rollover_state: RolloverState,
     },
 }
 
@@ -78,6 +79,7 @@ impl VideoDepayloader {
             VideoCodec::H264 => VideoDepayloader::H264 {
                 depayloader: H264Packet::default(),
                 buffer: vec![],
+                rollover_state: RolloverState::default(),
             },
         }
     }
@@ -90,6 +92,7 @@ impl VideoDepayloader {
             VideoDepayloader::H264 {
                 depayloader,
                 buffer,
+                rollover_state,
             } => {
                 let kind = EncodedChunkKind::Video(VideoCodec::H264);
                 let h264_chunk = depayloader.depacketize(&packet.payload)?;
@@ -104,9 +107,10 @@ impl VideoDepayloader {
                     return Ok(None);
                 }
 
+                let timestamp = rollover_state.timestamp(packet.header.timestamp);
                 let new_chunk = EncodedChunk {
                     data: mem::take(buffer).concat().into(),
-                    pts: Duration::from_secs_f64(packet.header.timestamp as f64 / 90000.0),
+                    pts: Duration::from_secs_f64(timestamp as f64 / 90000.0),
                     dts: None,
                     kind,
                 };
@@ -124,13 +128,19 @@ pub enum AudioDepayloaderNewError {
 }
 
 pub enum AudioDepayloader {
-    Opus(OpusPacket),
+    Opus {
+        depayloader: OpusPacket,
+        rollover_state: RolloverState,
+    },
 }
 
 impl AudioDepayloader {
     pub fn new(options: &decoder::AudioDecoderOptions) -> Result<Self, AudioDepayloaderNewError> {
         match options {
-            decoder::AudioDecoderOptions::Opus(_) => Ok(AudioDepayloader::Opus(OpusPacket)),
+            decoder::AudioDecoderOptions::Opus(_) => Ok(AudioDepayloader::Opus {
+                depayloader: OpusPacket,
+                rollover_state: RolloverState::default(),
+            }),
             decoder::AudioDecoderOptions::Aac(_) => Err(
                 AudioDepayloaderNewError::UnsupportedDepayloader(options.clone()),
             ),
@@ -142,7 +152,10 @@ impl AudioDepayloader {
         packet: rtp::packet::Packet,
     ) -> Result<Option<EncodedChunk>, DepayloadingError> {
         match self {
-            AudioDepayloader::Opus(depayloader) => {
+            AudioDepayloader::Opus {
+                depayloader,
+                rollover_state,
+            } => {
                 let kind = EncodedChunkKind::Audio(AudioCodec::Opus);
                 let opus_packet = depayloader.depacketize(&packet.payload)?;
 
@@ -150,13 +163,99 @@ impl AudioDepayloader {
                     return Ok(None);
                 }
 
+                let timestamp = rollover_state.timestamp(packet.header.timestamp);
                 Ok(Some(EncodedChunk {
                     data: opus_packet,
-                    pts: Duration::from_secs_f64(packet.header.timestamp as f64 / 48000.0),
+                    pts: Duration::from_secs_f64(timestamp as f64 / 48000.0),
                     dts: None,
                     kind,
                 }))
             }
         }
+    }
+}
+
+#[derive(Default)]
+pub struct RolloverState {
+    previous_timestamp: Option<u32>,
+    rollover_count: usize,
+}
+
+impl RolloverState {
+    fn timestamp(&mut self, current_timestamp: u32) -> u64 {
+        let Some(previous_timestamp) = self.previous_timestamp else {
+            self.previous_timestamp = Some(current_timestamp);
+            return current_timestamp as u64;
+        };
+
+        let timestamp_diff = u32::abs_diff(previous_timestamp, current_timestamp);
+        if timestamp_diff >= u32::MAX / 2 {
+            if previous_timestamp > current_timestamp {
+                self.rollover_count += 1;
+            } else {
+                // We received a packet from before the rollover, so we need to decrement the count
+                self.rollover_count = self.rollover_count.saturating_sub(1);
+            }
+        }
+
+        self.previous_timestamp = Some(current_timestamp);
+
+        (self.rollover_count as u64) * (u32::MAX as u64 + 1) + current_timestamp as u64
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::RolloverState;
+
+    #[test]
+    fn timestamp_rollover() {
+        let mut rollover_state = RolloverState::default();
+
+        let current_timestamp = 1;
+        assert_eq!(
+            rollover_state.timestamp(current_timestamp),
+            current_timestamp as u64
+        );
+
+        let current_timestamp = u32::MAX / 2 + 1;
+        assert_eq!(
+            rollover_state.timestamp(current_timestamp),
+            current_timestamp as u64
+        );
+
+        let current_timestamp = 0;
+        assert_eq!(
+            rollover_state.timestamp(current_timestamp),
+            u32::MAX as u64 + 1 + current_timestamp as u64
+        );
+
+        rollover_state.previous_timestamp = Some(u32::MAX);
+        let current_timestamp = 1;
+        assert_eq!(
+            rollover_state.timestamp(current_timestamp),
+            2 * (u32::MAX as u64 + 1) + current_timestamp as u64
+        );
+
+        rollover_state.previous_timestamp = Some(1);
+        let current_timestamp = u32::MAX;
+        assert_eq!(
+            rollover_state.timestamp(current_timestamp),
+            u32::MAX as u64 + 1 + current_timestamp as u64
+        );
+
+        rollover_state.previous_timestamp = Some(u32::MAX);
+        let current_timestamp = u32::MAX - 1;
+        assert_eq!(
+            rollover_state.timestamp(current_timestamp),
+            u32::MAX as u64 + 1 + current_timestamp as u64
+        );
+
+        rollover_state.previous_timestamp = Some(u32::MAX - 1);
+        let current_timestamp = u32::MAX;
+        assert_eq!(
+            rollover_state.timestamp(current_timestamp),
+            u32::MAX as u64 + 1 + current_timestamp as u64
+        );
     }
 }
