@@ -99,9 +99,8 @@ async fn websocket_thread() {
         }
     });
 
-    let (task1_res, task2_res) = tokio::join!(sender_task, receiver_task);
-    task1_res.unwrap();
-    task2_res.unwrap();
+    sender_task.await.unwrap();
+    receiver_task.await.unwrap();
 }
 
 #[allow(dead_code)]
