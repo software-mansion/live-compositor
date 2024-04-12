@@ -36,9 +36,21 @@ pub struct View {
     /// List of component's children.
     pub children: Option<Vec<Component>>,
 
-    /// Width of a component in pixels. Required when using absolute positioning.
+    /// Width of a component in pixels. Exact behavior might be different based on the parent
+    /// component:
+    ///
+    /// - If the parent component is a layout, check sections "Absolute positioning" and "Static
+    /// positioning" of that component.
+    ///
+    /// - If the parent component is not a layout, then this field is required.
     pub width: Option<f32>,
-    /// Height of a component in pixels. Required when using absolute positioning.
+    /// Height of a component in pixels. Exact behavior might be different based on the parent
+    /// component:
+    ///
+    /// - If the parent component is a layout, check sections "Absolute positioning" and "Static
+    /// positioning" of that component.
+    ///
+    /// - If the parent component is not a layout, then this field is required.
     pub height: Option<f32>,
 
     /// Direction defines how static children are positioned inside a View component.
@@ -122,9 +134,21 @@ pub struct Rescaler {
     /// (**default=`"center"`**) Vertical alignment.
     pub vertical_align: Option<VerticalAlign>,
 
-    /// Width of a component in pixels. Required when using absolute positioning.
+    /// Width of a component in pixels. Exact behavior might be different based on the parent
+    /// component:
+    ///
+    /// - If the parent component is a layout, check sections "Absolute positioning" and "Static
+    /// positioning" of that component.
+    ///
+    /// - If the parent component is not a layout, then this field is required.
     pub width: Option<f32>,
-    /// Height of a component in pixels. Required when using absolute positioning.
+    /// Height of a component in pixels. Exact behavior might be different based on the parent
+    /// component:
+    ///
+    /// - If the parent component is a layout, check sections "Absolute positioning" and "Static
+    /// positioning" of that component.
+    ///
+    /// - If the parent component is not a layout, then this field is required.
     pub height: Option<f32>,
 
     /// Distance in pixels between this component's top edge and its parent's top edge.
@@ -349,9 +373,21 @@ pub struct Tiles {
     /// List of component's children.
     pub children: Option<Vec<Component>>,
 
-    /// Width of a component in pixels.
+    /// Width of a component in pixels. Exact behavior might be different based on the parent
+    /// component:
+    ///
+    /// - If the parent component is a layout, check sections "Absolute positioning" and "Static
+    /// positioning" of that component.
+    ///
+    /// - If the parent component is not a layout, then this field is required.
     pub width: Option<f32>,
-    /// Height of a component in pixels.
+    /// Height of a component in pixels. Exact behavior might be different based on the parent
+    /// component:
+    ///
+    /// - If the parent component is a layout, check sections "Absolute positioning" and "Static
+    /// positioning" of that component.
+    ///
+    /// - If the parent component is not a layout, then this field is required.
     pub height: Option<f32>,
 
     /// (**default=`"#00000000"`**) Background color in a `"#RRGGBBAA"` format.

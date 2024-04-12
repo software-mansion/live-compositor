@@ -14,7 +14,7 @@ import AbsolutePositionDefinition from "@site/pages/common/absolute-position.md"
 <AbsolutePositionDefinition />
 
 - `Tiles` **does not** support absolute positioning for its child components. All children will still be rendered, but all fields like `top`, `left`, `right`, `bottom`, and `rotation` will be ignored.
-- `Tiles` **can not** be absolutely positioned relative to it's parent.
+- `Tiles` **can not** be absolutely positioned relative to its parent.
 
 ### Static positioning
 
@@ -33,13 +33,13 @@ When placing a child component inside a tile, the component might change its siz
 
 The `Tiles` component does not support size transitions in the same way as `View` or `Rescaler` do. If you want to achieve that effect, you can wrap a `Tiles` component inside a `View` and define a transition on `View`.
 
-Currently supported transitions:
+Currently, supported transitions:
 - Adding a new component. When a component is added, all of the existing components move to their new location within `transition.duration_ms` time. At the end of a transition, the new child component shows up without an animation.
 - Removing an existing component. When a component is removed, a tile with that item disappears immediately without any animation, and the remaining elements move to their new location within `transition.duration_ms`.
 - Changing the order of child components.
 
 
-Adding/removing/changing the order of components can only be properly defined if there is a way to identify child components. We need to know if a specific child in a scene update should be treated as the same item as a child from a previous scene. Currently identity of a child component is resolved in the following way:
+Adding/removing/changing the order of components can only be properly defined if there is a way to identify child components. We need to know if a specific child in a scene update should be treated as the same item as a child from a previous scene. Currently, identity of a child component is resolved in the following way:
 - If a child component has an `"id"` defined, then this is its primary way of identification.
 - If a child component does not have an `"id"` defined, then it's identified by order inside the `children` list, while only counting components without an `"id"`. For example:
   - A component without an `"id"` is 1st child in the old scene. After an update, the 1st component has an `"id"`, but the 2nd does not. In this situation, 1st component in the old scene and 2nd in the new one are considered to be the same component. It's the same because 2nd component in a new scene is still 1st if you only count components without an id.

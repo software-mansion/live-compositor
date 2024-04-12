@@ -14,7 +14,7 @@ import AbsolutePositionDefinition from "@site/pages/common/absolute-position.md"
 
 <AbsolutePositionDefinition />
 
-- `View` supports absolute positioning for its child components.
+- `View` supports absolute positioning for its child components. If not provided explicitly, an absolutely positioned child will inherit `"width"` and `"height"` from the parent.
 - `View` can be absolutely positioned relative to its parent if the parent component supports it.
 
 ### Static positioning
