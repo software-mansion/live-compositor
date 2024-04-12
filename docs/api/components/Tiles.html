@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="generator" content="Docusaurus v3.1.1">
 <title data-rh="true">Tiles | Live Compositor</title><meta data-rh="true" name="viewport" content="width=device-width,initial-scale=1"><meta data-rh="true" name="twitter:card" content="summary_large_image"><meta data-rh="true" property="og:url" content="https://compositor.live/docs/api/components/Tiles"><meta data-rh="true" property="og:locale" content="en"><meta data-rh="true" name="docusaurus_locale" content="en"><meta data-rh="true" name="docsearch:language" content="en"><meta data-rh="true" name="docusaurus_version" content="current"><meta data-rh="true" name="docusaurus_tag" content="docs-default-current"><meta data-rh="true" name="docsearch:version" content="current"><meta data-rh="true" name="docsearch:docusaurus_tag" content="docs-default-current"><meta data-rh="true" property="og:title" content="Tiles | Live Compositor"><meta data-rh="true" name="description" content="Tiles is a layout component that places all the child components next to each other while maximizing the use of available space. The component divides its area into multiple rectangles/tiles, one for each child component. All of those rectangles are the same size and do not overlap over each other."><meta data-rh="true" property="og:description" content="Tiles is a layout component that places all the child components next to each other while maximizing the use of available space. The component divides its area into multiple rectangles/tiles, one for each child component. All of those rectangles are the same size and do not overlap over each other."><link data-rh="true" rel="icon" href="/img/favicon.ico"><link data-rh="true" rel="canonical" href="https://compositor.live/docs/api/components/Tiles"><link data-rh="true" rel="alternate" href="https://compositor.live/docs/api/components/Tiles" hreflang="en"><link data-rh="true" rel="alternate" href="https://compositor.live/docs/api/components/Tiles" hreflang="x-default"><link rel="stylesheet" href="/assets/css/styles.21c89122.css">
-<script src="/assets/js/runtime~main.40cbcc4d.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.3ea8d885.js" defer="defer"></script>
 <script src="/assets/js/main.ce02992f.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard">
@@ -16,7 +16,7 @@ Those fields define the component&#x27;s position relative to its parent. Howeve
 the parent component has to be a layout component that supports absolute positioning.</p>
 <ul>
 <li><code>Tiles</code> <strong>does not</strong> support absolute positioning for its child components. All children will still be rendered, but all fields like <code>top</code>, <code>left</code>, <code>right</code>, <code>bottom</code>, and <code>rotation</code> will be ignored.</li>
-<li><code>Tiles</code> <strong>can not</strong> be absolutely positioned relative to it&#x27;s parent.</li>
+<li><code>Tiles</code> <strong>can not</strong> be absolutely positioned relative to its parent.</li>
 </ul>
 <h3 class="anchor anchorWithStickyNavbar_LWe7" id="static-positioning">Static positioning<a href="#static-positioning" class="hash-link" aria-label="Direct link to Static positioning" title="Direct link to Static positioning">​</a></h3>
 <p>The component calculates the number of rows and columns that children should be divided into. The result is based on:</p>
@@ -33,13 +33,13 @@ the parent component has to be a layout component that supports absolute positio
 </ul>
 <h3 class="anchor anchorWithStickyNavbar_LWe7" id="transitions">Transitions<a href="#transitions" class="hash-link" aria-label="Direct link to Transitions" title="Direct link to Transitions">​</a></h3>
 <p>The <code>Tiles</code> component does not support size transitions in the same way as <code>View</code> or <code>Rescaler</code> do. If you want to achieve that effect, you can wrap a <code>Tiles</code> component inside a <code>View</code> and define a transition on <code>View</code>.</p>
-<p>Currently supported transitions:</p>
+<p>Currently, supported transitions:</p>
 <ul>
 <li>Adding a new component. When a component is added, all of the existing components move to their new location within <code>transition.duration_ms</code> time. At the end of a transition, the new child component shows up without an animation.</li>
 <li>Removing an existing component. When a component is removed, a tile with that item disappears immediately without any animation, and the remaining elements move to their new location within <code>transition.duration_ms</code>.</li>
 <li>Changing the order of child components.</li>
 </ul>
-<p>Adding/removing/changing the order of components can only be properly defined if there is a way to identify child components. We need to know if a specific child in a scene update should be treated as the same item as a child from a previous scene. Currently identity of a child component is resolved in the following way:</p>
+<p>Adding/removing/changing the order of components can only be properly defined if there is a way to identify child components. We need to know if a specific child in a scene update should be treated as the same item as a child from a previous scene. Currently, identity of a child component is resolved in the following way:</p>
 <ul>
 <li>If a child component has an <code>&quot;id&quot;</code> defined, then this is its primary way of identification.</li>
 <li>If a child component does not have an <code>&quot;id&quot;</code> defined, then it&#x27;s identified by order inside the <code>children</code> list, while only counting components without an <code>&quot;id&quot;</code>. For example:<!-- -->
@@ -55,8 +55,18 @@ the parent component has to be a layout component that supports absolute positio
 <ul>
 <li><code>id</code> - Id of a component.</li>
 <li><code>children</code> - List of component&#x27;s children.</li>
-<li><code>width</code> - Width of a component in pixels.</li>
-<li><code>height</code> - Height of a component in pixels.</li>
+<li><code>width</code> - Width of a component in pixels. Exact behavior might be different based on the parent component:<!-- -->
+<ul>
+<li>If the parent component is a layout, check sections &quot;Absolute positioning&quot; and &quot;Static positioning&quot; of that component.</li>
+<li>If the parent component is not a layout, then this field is required.</li>
+</ul>
+</li>
+<li><code>height</code> - Height of a component in pixels. Exact behavior might be different based on the parent component:<!-- -->
+<ul>
+<li>If the parent component is a layout, check sections &quot;Absolute positioning&quot; and &quot;Static positioning&quot; of that component.</li>
+<li>If the parent component is not a layout, then this field is required.</li>
+</ul>
+</li>
 <li><code>background_color_rgba</code> - (<strong>default=<code>&quot;#00000000&quot;</code></strong>) Background color in a <code>&quot;#RRGGBBAA&quot;</code> format.</li>
 <li><code>tile_aspect_ratio</code> - (<strong>default=<code>&quot;16:9&quot;</code></strong>) Aspect ratio of a tile in <code>&quot;W:H&quot;</code> format, where W and H are integers.</li>
 <li><code>margin</code> - (<strong>default=<code>0</code></strong>) Margin of each tile in pixels.</li>

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="generator" content="Docusaurus v3.1.1">
 <title data-rh="true">component-Tiles | Live Compositor</title><meta data-rh="true" name="viewport" content="width=device-width,initial-scale=1"><meta data-rh="true" name="twitter:card" content="summary_large_image"><meta data-rh="true" property="og:url" content="https://compositor.live/docs/api/generated/component-Tiles"><meta data-rh="true" property="og:locale" content="en"><meta data-rh="true" name="docusaurus_locale" content="en"><meta data-rh="true" name="docsearch:language" content="en"><meta data-rh="true" name="docusaurus_version" content="current"><meta data-rh="true" name="docusaurus_tag" content="docs-default-current"><meta data-rh="true" name="docsearch:version" content="current"><meta data-rh="true" name="docsearch:docusaurus_tag" content="docs-default-current"><meta data-rh="true" property="og:title" content="component-Tiles | Live Compositor"><meta data-rh="true" name="description" content="Tiles"><meta data-rh="true" property="og:description" content="Tiles"><link data-rh="true" rel="icon" href="/img/favicon.ico"><link data-rh="true" rel="canonical" href="https://compositor.live/docs/api/generated/component-Tiles"><link data-rh="true" rel="alternate" href="https://compositor.live/docs/api/generated/component-Tiles" hreflang="en"><link data-rh="true" rel="alternate" href="https://compositor.live/docs/api/generated/component-Tiles" hreflang="x-default"><link rel="stylesheet" href="/assets/css/styles.21c89122.css">
-<script src="/assets/js/runtime~main.40cbcc4d.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.3ea8d885.js" defer="defer"></script>
 <script src="/assets/js/main.ce02992f.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard">
@@ -14,8 +14,18 @@
 <ul>
 <li><code>id</code> - Id of a component.</li>
 <li><code>children</code> - List of component&#x27;s children.</li>
-<li><code>width</code> - Width of a component in pixels.</li>
-<li><code>height</code> - Height of a component in pixels.</li>
+<li><code>width</code> - Width of a component in pixels. Exact behavior might be different based on the parent component:<!-- -->
+<ul>
+<li>If the parent component is a layout, check sections &quot;Absolute positioning&quot; and &quot;Static positioning&quot; of that component.</li>
+<li>If the parent component is not a layout, then this field is required.</li>
+</ul>
+</li>
+<li><code>height</code> - Height of a component in pixels. Exact behavior might be different based on the parent component:<!-- -->
+<ul>
+<li>If the parent component is a layout, check sections &quot;Absolute positioning&quot; and &quot;Static positioning&quot; of that component.</li>
+<li>If the parent component is not a layout, then this field is required.</li>
+</ul>
+</li>
 <li><code>background_color_rgba</code> - (<strong>default=<code>&quot;#00000000&quot;</code></strong>) Background color in a <code>&quot;#RRGGBBAA&quot;</code> format.</li>
 <li><code>tile_aspect_ratio</code> - (<strong>default=<code>&quot;16:9&quot;</code></strong>) Aspect ratio of a tile in <code>&quot;W:H&quot;</code> format, where W and H are integers.</li>
 <li><code>margin</code> - (<strong>default=<code>0</code></strong>) Margin of each tile in pixels.</li>

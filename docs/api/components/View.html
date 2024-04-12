@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="generator" content="Docusaurus v3.1.1">
 <title data-rh="true">View | Live Compositor</title><meta data-rh="true" name="viewport" content="width=device-width,initial-scale=1"><meta data-rh="true" name="twitter:card" content="summary_large_image"><meta data-rh="true" property="og:url" content="https://compositor.live/docs/api/components/View"><meta data-rh="true" property="og:locale" content="en"><meta data-rh="true" name="docusaurus_locale" content="en"><meta data-rh="true" name="docsearch:language" content="en"><meta data-rh="true" name="docusaurus_version" content="current"><meta data-rh="true" name="docusaurus_tag" content="docs-default-current"><meta data-rh="true" name="docsearch:version" content="current"><meta data-rh="true" name="docsearch:docusaurus_tag" content="docs-default-current"><meta data-rh="true" property="og:title" content="View | Live Compositor"><meta data-rh="true" name="description" content="View is the compositor&#x27;s core layout mechanism. Its role is analogous to the"><meta data-rh="true" property="og:description" content="View is the compositor&#x27;s core layout mechanism. Its role is analogous to the"><link data-rh="true" rel="icon" href="/img/favicon.ico"><link data-rh="true" rel="canonical" href="https://compositor.live/docs/api/components/View"><link data-rh="true" rel="alternate" href="https://compositor.live/docs/api/components/View" hreflang="en"><link data-rh="true" rel="alternate" href="https://compositor.live/docs/api/components/View" hreflang="x-default"><link rel="stylesheet" href="/assets/css/styles.21c89122.css">
-<script src="/assets/js/runtime~main.40cbcc4d.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.3ea8d885.js" defer="defer"></script>
 <script src="/assets/js/main.ce02992f.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard">
@@ -16,7 +16,7 @@
 Those fields define the component&#x27;s position relative to its parent. However, to respect those values,
 the parent component has to be a layout component that supports absolute positioning.</p>
 <ul>
-<li><code>View</code> supports absolute positioning for its child components.</li>
+<li><code>View</code> supports absolute positioning for its child components. If not provided explicitly, an absolutely positioned child will inherit <code>&quot;width&quot;</code> and <code>&quot;height&quot;</code> from the parent.</li>
 <li><code>View</code> can be absolutely positioned relative to its parent if the parent component supports it.</li>
 </ul>
 <h3 class="anchor anchorWithStickyNavbar_LWe7" id="static-positioning">Static positioning<a href="#static-positioning" class="hash-link" aria-label="Direct link to Static positioning" title="Direct link to Static positioning">​</a></h3>
@@ -47,8 +47,18 @@ the parent component has to be a layout component that supports absolute positio
 <ul>
 <li><code>id</code> - Id of a component.</li>
 <li><code>children</code> - List of component&#x27;s children.</li>
-<li><code>width</code> - Width of a component in pixels. Required when using absolute positioning.</li>
-<li><code>height</code> - Height of a component in pixels. Required when using absolute positioning.</li>
+<li><code>width</code> - Width of a component in pixels. Exact behavior might be different based on the parent component:<!-- -->
+<ul>
+<li>If the parent component is a layout, check sections &quot;Absolute positioning&quot; and &quot;Static positioning&quot; of that component.</li>
+<li>If the parent component is not a layout, then this field is required.</li>
+</ul>
+</li>
+<li><code>height</code> - Height of a component in pixels. Exact behavior might be different based on the parent component:<!-- -->
+<ul>
+<li>If the parent component is a layout, check sections &quot;Absolute positioning&quot; and &quot;Static positioning&quot; of that component.</li>
+<li>If the parent component is not a layout, then this field is required.</li>
+</ul>
+</li>
 <li><code>direction</code> - Direction defines how static children are positioned inside a View component.<!-- -->
 <ul>
 <li><code>&quot;row&quot;</code> - Children positioned from left to right.</li>
