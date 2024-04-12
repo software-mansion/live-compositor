@@ -3,7 +3,7 @@ import { runCompositorExample } from "../utils/run";
 import { gstStreamWebcam } from "../utils/gst";
 import { sleepAsync } from "../utils/utils";
 import { Component, Resolution } from "../types/api";
-import { ffplayListenAsync } from "../utils/ffmpeg";
+import { ffplayListenVideoAsync } from "../utils/ffmpeg";
 import { randomInt } from "crypto";
 
 const OUTPUT_RESOLUTION: Resolution = {
@@ -16,7 +16,7 @@ const OUTPUT_PORT = randomInt(9000, 10000);
 const IP = "127.0.0.1";
 
 async function example() {
-    await ffplayListenAsync(OUTPUT_PORT);
+    await ffplayListenVideoAsync(IP, OUTPUT_PORT);
     await registerImage("background", {
         asset_type: "png",
         url: "https://i.ibb.co/h1wrkbg/membrane-background-fullhd.png"
@@ -27,7 +27,7 @@ async function example() {
         transport_protocol: "tcp_server",
         port: INPUT_PORT,
         video: {
-            codec: "h264"
+            decoder: "ffmpeg_h264"
         }
     });
 
@@ -37,15 +37,22 @@ async function example() {
         port: OUTPUT_PORT,
         video: {
             resolution: OUTPUT_RESOLUTION,
-            encoder_preset: "fast",
-            initial: sceneWithInputs(0)
+            encoder: {
+                type: "ffmpeg_h264",
+                preset: "medium"
+            },
+            initial: {
+                root: sceneWithInputs(0)
+            }
         }
     });
 
     const inputs = [1, 2, 3, 4, 5, 6, 7, 8, 9, 8, 7, 6, 5, 4, 3, 2, 1];
     inputs.forEach(async (input, index) =>
         await updateOutput("output_1", {
-            video: sceneWithInputs(input),
+            video: {
+                root: sceneWithInputs(input)
+            },
             schedule_time_ms: 2000 * index
         })
     );
@@ -67,18 +74,14 @@ function sceneWithInputs(n: number): Component {
             align: "center",
             color_rgba: "#FFFFFFFF",
             background_color_rgba: "#FF0000FF",
+            font_family: "Arial",
         };
 
         const inputStreamTile: Component = {
             type: "view",
-            width: OUTPUT_RESOLUTION.width,
-            height: OUTPUT_RESOLUTION.height,
-            overflow: "fit",
             children: [
                 {
                     type: "rescaler",
-                    width: OUTPUT_RESOLUTION.width,
-                    height: OUTPUT_RESOLUTION.height,
                     child: {
                         type: "input_stream",
                         input_id: "input_1"
@@ -86,10 +89,9 @@ function sceneWithInputs(n: number): Component {
                 },
                 {
                     type: "view",
-                    width: OUTPUT_RESOLUTION.width,
-                    height: 100,
-                    left: 0,
+                    height: 50,
                     bottom: 0,
+                    left: 0,
                     children: [emptyView, text, emptyView]
                 }
             ]

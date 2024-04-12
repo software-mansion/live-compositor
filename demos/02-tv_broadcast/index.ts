@@ -1,5 +1,5 @@
 import { registerImage, registerInput, registerOutput, registerShader, start } from "../utils/api";
-import { ffmpegSendVideoFromMp4, ffplayListenAsync } from "../utils/ffmpeg";
+import { ffmpegSendVideoFromMp4, ffplayListenVideoAsync } from "../utils/ffmpeg";
 import { runCompositorExample } from "../utils/run";
 import { sleepAsync } from "../utils/utils";
 import fs from "fs-extra";
@@ -17,13 +17,13 @@ const IP = "127.0.0.1";
 
 async function example() {
     // starts ffplay that will listen for streams on port 8002 and display them.
-    await ffplayListenAsync(OUTPUT_PORT);
+    await ffplayListenVideoAsync(IP, OUTPUT_PORT);
 
     await registerInput("input_1", {
         type: "rtp_stream",
         port: INPUT_PORT,
         video: {
-            codec: "h264"
+            decoder: "ffmpeg_h264"
         }
     });
 
@@ -47,8 +47,13 @@ async function example() {
         port: OUTPUT_PORT,
         video: {
             resolution: OUTPUT_RESOLUTION,
-            encoder_preset: "ultrafast",
-            initial: initialScene()
+            encoder: {
+                type: "ffmpeg_h264",
+                preset: "ultrafast"
+            },
+            initial: {
+                root: initialScene()
+            }
         }
     });
 

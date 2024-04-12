@@ -43,7 +43,7 @@
               "description": "UDP port or port range on which the compositor should listen for the stream.",
               "allOf": [
                 {
-                  "$ref": "#/definitions/Port"
+                  "$ref": "#/definitions/PortOrPortRange"
                 }
               ]
             },
@@ -143,7 +143,7 @@
         }
       ]
     },
-    "Port": {
+    "PortOrPortRange": {
       "anyOf": [
         {
           "type": "string"
@@ -174,65 +174,47 @@
       ]
     },
     "InputRtpVideoOptions": {
-      "type": "object",
-      "properties": {
-        "codec": {
-          "description": "(**default=`\"h264\"`**) Video codec.",
-          "anyOf": [
-            {
-              "$ref": "#/definitions/VideoCodec"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "VideoCodec": {
       "oneOf": [
         {
-          "description": "H264 video.",
-          "type": "string",
-          "enum": [
-            "h264"
-          ]
+          "type": "object",
+          "required": [
+            "decoder"
+          ],
+          "properties": {
+            "decoder": {
+              "type": "string",
+              "enum": [
+                "ffmpeg_h264"
+              ]
+            }
+          },
+          "additionalProperties": false
         }
       ]
     },
     "InputRtpAudioOptions": {
-      "type": "object",
-      "properties": {
-        "codec": {
-          "description": "(**default=`\"opus\"`**) Audio codec.",
-          "anyOf": [
-            {
-              "$ref": "#/definitions/AudioCodec"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "forward_error_correction": {
-          "description": "(**default=`false`**) Specifies whether the stream uses forward error correction. It's specific for Opus codec. For more information, check out [RFC](https://datatracker.ietf.org/doc/html/rfc6716#section-2.1.7).",
-          "type": [
-            "boolean",
-            "null"
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "AudioCodec": {
       "oneOf": [
         {
-          "description": "Opus audio.",
-          "type": "string",
-          "enum": [
-            "opus"
-          ]
+          "type": "object",
+          "required": [
+            "decoder"
+          ],
+          "properties": {
+            "decoder": {
+              "type": "string",
+              "enum": [
+                "opus"
+              ]
+            },
+            "forward_error_correction": {
+              "description": "(**default=`false`**) Specifies whether the stream uses forward error correction. It's specific for Opus codec. For more information, check out [RFC](https://datatracker.ietf.org/doc/html/rfc6716#section-2.1.7).",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            }
+          },
+          "additionalProperties": false
         }
       ]
     },
@@ -255,7 +237,7 @@
               "description": "Depends on the value of the `transport_protocol` field:\n\n- `udp` - An UDP port number that RTP packets will be sent to.\n\n- `tcp_server` - A local TCP port number or a port range that LiveCompositor will listen for incoming connections.",
               "allOf": [
                 {
-                  "$ref": "#/definitions/Port"
+                  "$ref": "#/definitions/PortOrPortRange"
                 }
               ]
             },
@@ -280,7 +262,7 @@
             "video": {
               "anyOf": [
                 {
-                  "$ref": "#/definitions/OutputVideoOptions"
+                  "$ref": "#/definitions/OutputRtpVideoOptions"
                 },
                 {
                   "type": "null"
@@ -290,7 +272,7 @@
             "audio": {
               "anyOf": [
                 {
-                  "$ref": "#/definitions/OutputAudioOptions"
+                  "$ref": "#/definitions/OutputRtpAudioOptions"
                 },
                 {
                   "type": "null"
@@ -301,10 +283,10 @@
         }
       ]
     },
-    "OutputVideoOptions": {
+    "OutputRtpVideoOptions": {
       "type": "object",
       "required": [
-        "encoder_preset",
+        "encoder",
         "initial",
         "resolution"
       ],
@@ -317,32 +299,6 @@
             }
           ]
         },
-        "encoder_preset": {
-          "description": "(**default=`\"fast\"`**) Preset for an encoder. See `FFmpeg` [docs](https://trac.ffmpeg.org/wiki/Encode/H.264#Preset) to learn more.",
-          "allOf": [
-            {
-              "$ref": "#/definitions/VideoEncoderPreset"
-            }
-          ]
-        },
-        "ffmpeg_options": {
-          "description": "Raw FFmpeg encoder options. See [docs](https://ffmpeg.org/ffmpeg-codecs.html) for more.",
-          "type": [
-            "object",
-            "null"
-          ],
-          "additionalProperties": {
-            "type": "string"
-          }
-        },
-        "initial": {
-          "description": "Root of a component tree/scene that should be rendered for the output. Use [`update_output` request](../routes.md#update-output) to update this value after registration. [Learn more](../../concept/component.md).",
-          "allOf": [
-            {
-              "$ref": "#/definitions/Component"
-            }
-          ]
-        },
         "send_eos_when": {
           "description": "Defines when output stream should end if some of the input streams are finished. If output includes both audio and video streams, then EOS needs to be sent on both.",
           "anyOf": [
@@ -351,6 +307,22 @@
             },
             {
               "type": "null"
+            }
+          ]
+        },
+        "encoder": {
+          "description": "Video encoder options.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/VideoEncoderOptions"
+            }
+          ]
+        },
+        "initial": {
+          "description": "Root of a component tree/scene that should be rendered for the output. Use [`update_output` request](../routes.md#update-output) to update this value after registration. [Learn more](../../concept/component.md).",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Video"
             }
           ]
         }
@@ -378,7 +350,89 @@
         }
       }
     },
-    "VideoEncoderPreset": {
+    "OutputEndCondition": {
+      "description": "This type defines when end of an input stream should trigger end of the output stream. Only one of those fields can be set at the time.\n\nUnless specified otherwise the input stream is considered finished/ended when:\n\n- TCP connection was dropped/closed.\n\n- RTCP Goodbye packet (`BYE`) was received.\n\n- Mp4 track has ended.\n\n- Input was unregistered already (or never registered).",
+      "type": "object",
+      "properties": {
+        "any_of": {
+          "description": "Terminate output stream if any of the input streams from the list are finished.",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/definitions/InputId"
+          }
+        },
+        "all_of": {
+          "description": "Terminate output stream if all the input streams from the list are finished.",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/definitions/InputId"
+          }
+        },
+        "any_input": {
+          "description": "Terminate output stream if any of the input streams ends. This includes streams added after the output was registered. In particular, output stream will **not be** terminated if no inputs were ever connected.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "all_inputs": {
+          "description": "Terminate output stream if all the input streams finish. In particular, output stream will **be** terminated if no inputs were ever connected.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "InputId": {
+      "type": "string"
+    },
+    "VideoEncoderOptions": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "preset",
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "ffmpeg_h264"
+              ]
+            },
+            "preset": {
+              "description": "(**default=`\"fast\"`**) Preset for an encoder. See `FFmpeg` [docs](https://trac.ffmpeg.org/wiki/Encode/H.264#Preset) to learn more.",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/H264EncoderPreset"
+                }
+              ]
+            },
+            "ffmpeg_options": {
+              "description": "Raw FFmpeg encoder options. See [docs](https://ffmpeg.org/ffmpeg-codecs.html) for more.",
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "H264EncoderPreset": {
       "type": "string",
       "enum": [
         "ultrafast",
@@ -392,6 +446,18 @@
         "veryslow",
         "placebo"
       ]
+    },
+    "Video": {
+      "type": "object",
+      "required": [
+        "root"
+      ],
+      "properties": {
+        "root": {
+          "$ref": "#/definitions/Component"
+        }
+      },
+      "additionalProperties": false
     },
     "Component": {
       "oneOf": [
@@ -1125,9 +1191,6 @@
     "ComponentId": {
       "type": "string"
     },
-    "InputId": {
-      "type": "string"
-    },
     "ViewDirection": {
       "oneOf": [
         {
@@ -1640,85 +1703,15 @@
         }
       ]
     },
-    "OutputEndCondition": {
-      "description": "This type defines when end of an input stream should trigger end of the output stream. Only one of those fields can be set at the time.\n\nUnless specified otherwise the input stream is considered finished/ended when:\n\n- TCP connection was dropped/closed.\n\n- RTCP Goodbye packet (`BYE`) was received.\n\n- Mp4 track has ended.\n\n- Input was unregistered already (or never registered).",
-      "type": "object",
-      "properties": {
-        "any_of": {
-          "description": "Terminate output stream if any of the input streams from the list are finished.",
-          "type": [
-            "array",
-            "null"
-          ],
-          "items": {
-            "$ref": "#/definitions/InputId"
-          }
-        },
-        "all_of": {
-          "description": "Terminate output stream if all the input streams from the list are finished.",
-          "type": [
-            "array",
-            "null"
-          ],
-          "items": {
-            "$ref": "#/definitions/InputId"
-          }
-        },
-        "any_input": {
-          "description": "Terminate output stream if any of the input streams ends. This includes streams added after the output was registered. In particular, output stream will **not be** terminated if no inputs were ever connected.",
-          "type": [
-            "boolean",
-            "null"
-          ]
-        },
-        "all_inputs": {
-          "description": "Terminate output stream if all the input streams finish. In particular, output stream will **be** terminated if no inputs were ever connected.",
-          "type": [
-            "boolean",
-            "null"
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "OutputAudioOptions": {
+    "OutputRtpAudioOptions": {
       "type": "object",
       "required": [
-        "channels",
+        "encoder",
         "initial"
       ],
       "properties": {
-        "initial": {
-          "description": "Initial audio for output.",
-          "allOf": [
-            {
-              "$ref": "#/definitions/Audio"
-            }
-          ]
-        },
-        "channels": {
-          "$ref": "#/definitions/AudioChannels"
-        },
-        "forward_error_correction": {
-          "description": "(**default=`false`**) Specifies whether the stream use forward error correction. It's specific for Opus codec. For more information, check out [RFC](https://datatracker.ietf.org/doc/html/rfc6716#section-2.1.7).",
-          "type": [
-            "boolean",
-            "null"
-          ]
-        },
-        "encoder_preset": {
-          "description": "(**default=\"voip\"**) Specifies preset for audio output encoder.",
-          "anyOf": [
-            {
-              "$ref": "#/definitions/AudioEncoderPreset"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
         "mixing_strategy": {
-          "description": "(**default=\"sum_clip\") Specifies how audio should be mixed.",
+          "description": "(**default=\"sum_clip\"**) Specifies how audio should be mixed.",
           "anyOf": [
             {
               "$ref": "#/definitions/MixingStrategy"
@@ -1738,9 +1731,127 @@
               "type": "null"
             }
           ]
+        },
+        "encoder": {
+          "description": "Audio encoder options.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/AudioEncoderOptions"
+            }
+          ]
+        },
+        "initial": {
+          "description": "Initial audio mixer configuration for output.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Audio"
+            }
+          ]
         }
       },
       "additionalProperties": false
+    },
+    "MixingStrategy": {
+      "oneOf": [
+        {
+          "description": "Firstly, input samples are summed. If the result is outside the i16 PCM range, it gets clipped.",
+          "type": "string",
+          "enum": [
+            "sum_clip"
+          ]
+        },
+        {
+          "description": "Firstly, input samples are summed. If the result is outside the i16 PCM range, nearby summed samples are scaled down by factor, such that the summed wave is in the i16 PCM range.",
+          "type": "string",
+          "enum": [
+            "sum_scale"
+          ]
+        }
+      ]
+    },
+    "AudioEncoderOptions": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "channels",
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "opus"
+              ]
+            },
+            "channels": {
+              "$ref": "#/definitions/AudioChannels"
+            },
+            "preset": {
+              "description": "(**default=\"voip\"**) Specifies preset for audio output encoder.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/OpusEncoderPreset"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "forward_error_correction": {
+              "description": "(**default=`false`**) Specifies whether the stream use forward error correction. It's specific for Opus codec. For more information, check out [RFC](https://datatracker.ietf.org/doc/html/rfc6716#section-2.1.7).",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "AudioChannels": {
+      "oneOf": [
+        {
+          "description": "Mono audio (single channel).",
+          "type": "string",
+          "enum": [
+            "mono"
+          ]
+        },
+        {
+          "description": "Stereo audio (two channels).",
+          "type": "string",
+          "enum": [
+            "stereo"
+          ]
+        }
+      ]
+    },
+    "OpusEncoderPreset": {
+      "oneOf": [
+        {
+          "description": "Best for broadcast/high-fidelity application where the decoded audio should be as close as possible to the input.",
+          "type": "string",
+          "enum": [
+            "quality"
+          ]
+        },
+        {
+          "description": "Best for most VoIP/videoconference applications where listening quality and intelligibility matter most.",
+          "type": "string",
+          "enum": [
+            "voip"
+          ]
+        },
+        {
+          "description": "Only use when lowest-achievable latency is what matters most.",
+          "type": "string",
+          "enum": [
+            "lowest_latency"
+          ]
+        }
+      ]
     },
     "Audio": {
       "type": "object",
@@ -1776,67 +1887,6 @@
         }
       },
       "additionalProperties": false
-    },
-    "AudioChannels": {
-      "oneOf": [
-        {
-          "description": "Mono audio (single channel).",
-          "type": "string",
-          "enum": [
-            "mono"
-          ]
-        },
-        {
-          "description": "Stereo audio (two channels).",
-          "type": "string",
-          "enum": [
-            "stereo"
-          ]
-        }
-      ]
-    },
-    "AudioEncoderPreset": {
-      "oneOf": [
-        {
-          "description": "Best for broadcast/high-fidelity application where the decoded audio should be as close as possible to the input.",
-          "type": "string",
-          "enum": [
-            "quality"
-          ]
-        },
-        {
-          "description": "Best for most VoIP/videoconference applications where listening quality and intelligibility matter most.",
-          "type": "string",
-          "enum": [
-            "voip"
-          ]
-        },
-        {
-          "description": "Only use when lowest-achievable latency is what matters most.",
-          "type": "string",
-          "enum": [
-            "lowest_latency"
-          ]
-        }
-      ]
-    },
-    "MixingStrategy": {
-      "oneOf": [
-        {
-          "description": "Firstly, input samples are summed. If the result is outside the i16 PCM range, it gets clipped.",
-          "type": "string",
-          "enum": [
-            "sum_clip"
-          ]
-        },
-        {
-          "description": "Firstly, input samples are summed. If the result is outside the i16 PCM range, nearby summed samples are scaled down by factor, such that the summed wave is in the i16 PCM range.",
-          "type": "string",
-          "enum": [
-            "sum_scale"
-          ]
-        }
-      ]
     },
     "ImageSpec": {
       "oneOf": [
@@ -2037,7 +2087,7 @@
         "video": {
           "anyOf": [
             {
-              "$ref": "#/definitions/Component"
+              "$ref": "#/definitions/Video"
             },
             {
               "type": "null"

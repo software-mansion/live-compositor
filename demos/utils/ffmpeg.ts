@@ -3,22 +3,35 @@ import { SpawnPromise, sleepAsync, spawn } from "./utils";
 import path from "path";
 import fs from "fs-extra";
 
-const PIPE_OR_INHERIT = process.env.DEBUG ? "inherit" : "pipe";
-
-export async function ffplayListenAsync(
+export async function ffplayListenVideoAsync(
+  ip: string,
   port: number,
 ): Promise<{ spawn_promise: SpawnPromise }> {
-  const sdpFilePath = path.join(COMPOSITOR_DIR, `input_${port}.sdp`);
-  await writeSdpFile("127.0.0.1", port, sdpFilePath);
+  const sdpFilePath = path.join(COMPOSITOR_DIR, `video_input_${port}.sdp`);
+  await writeVideoSdpFile(ip, port, sdpFilePath);
   const promise = spawn(
     "ffplay",
     ["-protocol_whitelist", "file,rtp,udp", sdpFilePath],
-    { stdio: [PIPE_OR_INHERIT, PIPE_OR_INHERIT, "ignore"] }, // no idea why stderr can't be set to "pipe"
+    { stdio: ["inherit", "inherit", "ignore"] }, // no idea why stderr can't be set to "pipe"
   );
   // sleep to make sure ffplay have a chance to start before compositor starts sending frames
   await sleepAsync(2000);
   return { spawn_promise: promise };
 }
+
+export async function ffplayListenAudioAsync(ip: string, port: number): Promise<{ spawn_promise: SpawnPromise }> {
+  const sdpFilePath = path.join(COMPOSITOR_DIR, `audio_input_${port}.sdp`);
+  await writeAudioSdpFile(ip, port, sdpFilePath);
+  const promise = spawn(
+    "ffplay",
+    ["-protocol_whitelist", "file,rtp,udp", sdpFilePath],
+    { stdio: ["inherit", "inherit", "ignore"] }, // no idea why stderr can't be set to "pipe"
+  );
+  // sleep to make sure ffplay have a chance to start before compositor starts sending frames
+  await sleepAsync(2000);
+  return { spawn_promise: promise };
+}
+
 
 export function ffmpegSendTestPattern(
   port: number,
@@ -39,7 +52,7 @@ export function ffmpegSendTestPattern(
       "rtp",
       `rtp://127.0.0.1:${port}?rtcpport=${port}`,
     ],
-    { stdio: [PIPE_OR_INHERIT, PIPE_OR_INHERIT, "ignore"] },
+    { stdio: ["inherit", "inherit", "ignore"] },
   );
 }
 
@@ -62,7 +75,7 @@ export function ffmpegSendVideoFromMp4(
       "rtp",
       `rtp://127.0.0.1:${port}?rtcpport=${port}`,
     ],
-    { stdio: [PIPE_OR_INHERIT, PIPE_OR_INHERIT, "ignore"] },
+    { stdio: ["inherit", "inherit", "ignore"] },
   );
 }
 
@@ -76,7 +89,7 @@ export function ffmpegStreamScreen(ip: string, port: number): SpawnPromise {
   } else {
     throw new Error("Unsupported platform");
   }
-  
+
   return spawn(
     "ffmpeg",
     [
@@ -89,11 +102,11 @@ export function ffmpegStreamScreen(ip: string, port: number): SpawnPromise {
       "rtp",
       `rtp://${ip}:${port}?rtcpport=${port}`,
     ],
-    { stdio: [PIPE_OR_INHERIT, PIPE_OR_INHERIT, "ignore"] },
+    { stdio: ["inherit", "inherit", "ignore"] },
   );
 }
 
-async function writeSdpFile(
+async function writeVideoSdpFile(
   ip: string,
   port: number,
   destination: string,
@@ -108,6 +121,25 @@ c=IN IP4 ${ip}
 m=video ${port} RTP/AVP 96
 a=rtpmap:96 H264/90000
 a=fmtp:96 packetization-mode=1
+a=rtcp-mux
+`,
+  );
+}
+
+async function writeAudioSdpFile(
+  ip: string,
+  port: number,
+  destination: string,
+): Promise<void> {
+  fs.writeFile(
+    destination,
+    `
+v=0
+o=- 0 0 IN IP4 ${ip}
+s=No Name
+c=IN IP4 ${ip}
+m=audio ${port} RTP/AVP 97
+a=rtpmap:97 opus/48000/2
 a=rtcp-mux
 `,
   );

@@ -1,6 +1,42 @@
 import { exec } from "child_process";
 import { SpawnPromise, spawn } from "./utils";
 
+export async function gstStartPlayerAsync(ip: string, port: number): Promise<void> {
+    const gstPipeline = [
+        "-v",
+        "tcpclientsrc",
+        `host=${ip}`,
+        `port=${port}`,
+        "!",
+        "\"application/x-rtp-stream\"",
+        "!",
+        "rtpstreamdepay",
+        "!",
+        "rtph264depay",
+        "!",
+        "decodebin",
+        "!",
+        "videoconvert",
+        "!",
+        "autovideosink"
+    ];
+
+    const plugins = [
+        "tcpclientsrc",
+        "rtpstreamdepay",
+        "rtph264depay",
+        "decodebin",
+        "videoconvert",
+        "autovideosink"
+    ];
+    checkGstPlugins(plugins);
+
+    await spawn("gst-launch-1.0", gstPipeline, {
+        stdio: "inherit",
+        cwd: process.cwd()
+    });
+}
+
 export function gstStreamWebcam(ip: string, port: number): SpawnPromise {
     const isMacOS = process.platform === 'darwin';
 
@@ -16,13 +52,7 @@ export function gstStreamWebcam(ip: string, port: number): SpawnPromise {
         "udpsink",
     ];
 
-    plugins.forEach(plugin => {
-        isGstPluginAvailable(plugin).then(isAvailable => {
-            if (!isAvailable) {
-                throw Error(`Gstreamer plugin: ${plugin} is not available.`);
-            };
-        });
-    })
+   checkGstPlugins(plugins);
 
     const gstPipeline = [
         gstWebcamSource,
@@ -46,6 +76,16 @@ export function gstStreamWebcam(ip: string, port: number): SpawnPromise {
     return spawn("gst-launch-1.0", gstPipeline, {
         stdio: "inherit",
         cwd: process.cwd()
+    });
+}
+
+function checkGstPlugins(plugins: string[]) {
+    plugins.forEach(plugin => {
+        isGstPluginAvailable(plugin).then(isAvailable => {
+            if (!isAvailable) {
+                throw Error(`Gstreamer plugin: ${plugin} is not available.`);
+            };
+        });
     });
 }
 

@@ -1,30 +1,40 @@
 import { registerInput, registerOutput, start } from "../utils/api";
-import { ffmpegStreamScreen, ffplayListenAsync } from "../utils/ffmpeg";
+import { ffmpegSendTestPattern, ffplayListenVideoAsync } from "../utils/ffmpeg";
 import { runCompositorExample } from "../utils/run";
 import { sleepAsync } from "../utils/utils";
 import { Component, Resolution } from "../types/api";
+import { gstStreamWebcam } from "../utils/gst";
 
 const OUTPUT_RESOLUTION: Resolution = {
     width: 1920,
     height: 1080,
 };
 
-const INPUT_PORT = 8002;
-const OUTPUT_PORT = 8004;
+const WEBCAM_INPUT_PORT = 8002;
+const SCREEN_CAPTURE_INPUT_PORT = 8004;
+const OUTPUT_PORT = 8006;
 const IP = "127.0.0.1";
 
 async function example() {
     // starts ffplay that will listen for streams on port 8002 and display them.
-    await ffplayListenAsync(OUTPUT_PORT);
+    await ffplayListenVideoAsync(IP, OUTPUT_PORT);
 
-    await registerInput("input_1", {
+    await registerInput("webcam_input", {
         type: "rtp_stream",
-        port: INPUT_PORT,
+        port: WEBCAM_INPUT_PORT,
+        transport_protocol: "tcp_server",
         video: {
-            codec: "h264"
+            decoder: "ffmpeg_h264"
         }
     });
 
+    await registerInput("screen_input", {
+        type: "rtp_stream",
+        port: SCREEN_CAPTURE_INPUT_PORT,
+        video: {
+            decoder: "ffmpeg_h264"
+        }
+    });
 
     await registerOutput("output_1", {
         type: "rtp_stream",
@@ -32,8 +42,13 @@ async function example() {
         port: OUTPUT_PORT,
         video: {
             resolution: OUTPUT_RESOLUTION,
-            encoder_preset: "ultrafast",
-            initial: initialScene()
+            encoder: {
+                type: "ffmpeg_h264",
+                preset: "ultrafast"
+            },
+            initial: {
+                root: scene()
+            }
         }
     });
 
@@ -41,14 +56,41 @@ async function example() {
     await sleepAsync(2000);
     await start();
 
-    ffmpegStreamScreen(IP, INPUT_PORT);
+    // TODO: replace with actual streams
+    // ffmpegSendTestPattern(WEBCAM_INPUT_PORT, OUTPUT_RESOLUTION);
+    gstStreamWebcam(IP, WEBCAM_INPUT_PORT);
+    ffmpegSendTestPattern(SCREEN_CAPTURE_INPUT_PORT, OUTPUT_RESOLUTION);
 }
 
-function initialScene(): Component {
+function scene(): Component {
     return {
-        type: "input_stream",
-        input_id: "input_1"
-    }
+        type: "view",
+        children: [
+            {
+                type: "rescaler",
+                child: {
+                    type: "input_stream",
+                    input_id: "screen_input"
+                }
+            },
+            {
+                type: "view",
+                width: 500,
+                height: 300,
+                top: 30,
+                right: 30,
+                children: [{
+                    type: "rescaler",
+                    vertical_align: "top",
+                    horizontal_align: "right",
+                    child: {
+                        type: "input_stream",
+                        input_id: "webcam_input"
+                    }
+                }]
+            }
+        ]
+    };
 }
 
 runCompositorExample(example);

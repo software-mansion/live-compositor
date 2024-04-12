@@ -15,7 +15,7 @@ export type RegisterInput =
       /**
        * UDP port or port range on which the compositor should listen for the stream.
        */
-      port: Port;
+      port: PortOrPortRange;
       /**
        * Transport protocol.
        */
@@ -56,10 +56,18 @@ export type RegisterInput =
        */
       offset_ms?: number | null;
     };
-export type Port = string | number;
+export type PortOrPortRange = string | number;
 export type TransportProtocol = "udp" | "tcp_server";
-export type VideoCodec = "h264";
-export type AudioCodec = "opus";
+export type InputRtpVideoOptions = {
+  decoder: "ffmpeg_h264";
+};
+export type InputRtpAudioOptions = {
+  decoder: "opus";
+  /**
+   * (**default=`false`**) Specifies whether the stream uses forward error correction. It's specific for Opus codec. For more information, check out [RFC](https://datatracker.ietf.org/doc/html/rfc6716#section-2.1.7).
+   */
+  forward_error_correction?: boolean | null;
+};
 export type RegisterOutput = {
   type: "rtp_stream";
   /**
@@ -69,7 +77,7 @@ export type RegisterOutput = {
    *
    * - `tcp_server` - A local TCP port number or a port range that LiveCompositor will listen for incoming connections.
    */
-  port: Port;
+  port: PortOrPortRange;
   /**
    * Only valid if `transport_protocol="udp"`. IP address where RTP packets should be sent to.
    */
@@ -78,10 +86,24 @@ export type RegisterOutput = {
    * (**default=`"udp"`**) Transport layer protocol that will be used to send RTP packets.
    */
   transport_protocol?: TransportProtocol | null;
-  video?: OutputVideoOptions | null;
-  audio?: OutputAudioOptions | null;
+  video?: OutputRtpVideoOptions | null;
+  audio?: OutputRtpAudioOptions | null;
 };
-export type VideoEncoderPreset =
+export type InputId = string;
+export type VideoEncoderOptions = {
+  type: "ffmpeg_h264";
+  /**
+   * (**default=`"fast"`**) Preset for an encoder. See `FFmpeg` [docs](https://trac.ffmpeg.org/wiki/Encode/H.264#Preset) to learn more.
+   */
+  preset: H264EncoderPreset;
+  /**
+   * Raw FFmpeg encoder options. See [docs](https://ffmpeg.org/ffmpeg-codecs.html) for more.
+   */
+  ffmpeg_options?: {
+    [k: string]: string;
+  } | null;
+};
+export type H264EncoderPreset =
   | "ultrafast"
   | "superfast"
   | "veryfast"
@@ -398,7 +420,6 @@ export type Component =
       transition?: Transition | null;
     };
 export type ComponentId = string;
-export type InputId = string;
 export type ViewDirection = "row" | "column";
 /**
  * Easing functions are used to interpolate between two values over time.
@@ -492,9 +513,21 @@ export type TextWeight =
 export type AspectRatio = string;
 export type VerticalAlign = "top" | "center" | "bottom" | "justified";
 export type RescaleMode = "fit" | "fill";
-export type AudioChannels = "mono" | "stereo";
-export type AudioEncoderPreset = "quality" | "voip" | "lowest_latency";
 export type MixingStrategy = "sum_clip" | "sum_scale";
+export type AudioEncoderOptions = {
+  type: "opus";
+  channels: AudioChannels;
+  /**
+   * (**default="voip"**) Specifies preset for audio output encoder.
+   */
+  preset?: OpusEncoderPreset | null;
+  /**
+   * (**default=`false`**) Specifies whether the stream use forward error correction. It's specific for Opus codec. For more information, check out [RFC](https://datatracker.ietf.org/doc/html/rfc6716#section-2.1.7).
+   */
+  forward_error_correction?: boolean | null;
+};
+export type AudioChannels = "mono" | "stereo";
+export type OpusEncoderPreset = "quality" | "voip" | "lowest_latency";
 export type ImageSpec =
   | {
       asset_type: "png";
@@ -522,45 +555,23 @@ export type WebEmbeddingMethod =
   | "native_embedding_over_content"
   | "native_embedding_under_content";
 
-export interface InputRtpVideoOptions {
-  /**
-   * (**default=`"h264"`**) Video codec.
-   */
-  codec?: VideoCodec | null;
-}
-export interface InputRtpAudioOptions {
-  /**
-   * (**default=`"opus"`**) Audio codec.
-   */
-  codec?: AudioCodec | null;
-  /**
-   * (**default=`false`**) Specifies whether the stream uses forward error correction. It's specific for Opus codec. For more information, check out [RFC](https://datatracker.ietf.org/doc/html/rfc6716#section-2.1.7).
-   */
-  forward_error_correction?: boolean | null;
-}
-export interface OutputVideoOptions {
+export interface OutputRtpVideoOptions {
   /**
    * Output resolution in pixels.
    */
   resolution: Resolution;
   /**
-   * (**default=`"fast"`**) Preset for an encoder. See `FFmpeg` [docs](https://trac.ffmpeg.org/wiki/Encode/H.264#Preset) to learn more.
-   */
-  encoder_preset: VideoEncoderPreset;
-  /**
-   * Raw FFmpeg encoder options. See [docs](https://ffmpeg.org/ffmpeg-codecs.html) for more.
-   */
-  ffmpeg_options?: {
-    [k: string]: string;
-  } | null;
-  /**
-   * Root of a component tree/scene that should be rendered for the output. Use [`update_output` request](../routes.md#update-output) to update this value after registration. [Learn more](../../concept/component.md).
-   */
-  initial: Component;
-  /**
    * Defines when output stream should end if some of the input streams are finished. If output includes both audio and video streams, then EOS needs to be sent on both.
    */
   send_eos_when?: OutputEndCondition | null;
+  /**
+   * Video encoder options.
+   */
+  encoder: VideoEncoderOptions;
+  /**
+   * Root of a component tree/scene that should be rendered for the output. Use [`update_output` request](../routes.md#update-output) to update this value after registration. [Learn more](../../concept/component.md).
+   */
+  initial: Video;
 }
 export interface Resolution {
   /**
@@ -571,16 +582,6 @@ export interface Resolution {
    * Height in pixels.
    */
   height: number;
-}
-export interface Transition {
-  /**
-   * Duration of a transition in milliseconds.
-   */
-  duration_ms: number;
-  /**
-   * (**default=`"linear"`**) Easing function to be used for the transition.
-   */
-  easing_function?: EasingFunction | null;
 }
 /**
  * This type defines when end of an input stream should trigger end of the output stream. Only one of those fields can be set at the time.
@@ -613,28 +614,36 @@ export interface OutputEndCondition {
    */
   all_inputs?: boolean | null;
 }
-export interface OutputAudioOptions {
+export interface Video {
+  root: Component;
+}
+export interface Transition {
   /**
-   * Initial audio for output.
+   * Duration of a transition in milliseconds.
    */
-  initial: Audio;
-  channels: AudioChannels;
+  duration_ms: number;
   /**
-   * (**default=`false`**) Specifies whether the stream use forward error correction. It's specific for Opus codec. For more information, check out [RFC](https://datatracker.ietf.org/doc/html/rfc6716#section-2.1.7).
+   * (**default=`"linear"`**) Easing function to be used for the transition.
    */
-  forward_error_correction?: boolean | null;
+  easing_function?: EasingFunction | null;
+}
+export interface OutputRtpAudioOptions {
   /**
-   * (**default="voip"**) Specifies preset for audio output encoder.
-   */
-  encoder_preset?: AudioEncoderPreset | null;
-  /**
-   * (**default="sum_clip") Specifies how audio should be mixed.
+   * (**default="sum_clip"**) Specifies how audio should be mixed.
    */
   mixing_strategy?: MixingStrategy | null;
   /**
    * Condition for termination of output stream based on the input streams states.
    */
   send_eos_when?: OutputEndCondition | null;
+  /**
+   * Audio encoder options.
+   */
+  encoder: AudioEncoderOptions;
+  /**
+   * Initial audio mixer configuration for output.
+   */
+  initial: Audio;
 }
 export interface Audio {
   inputs: InputAudio[];
@@ -667,7 +676,7 @@ export interface ShaderSpec {
   source: string;
 }
 export interface UpdateOutputRequest {
-  video?: Component | null;
+  video?: Video | null;
   audio?: Audio | null;
   schedule_time_ms?: number | null;
 }
