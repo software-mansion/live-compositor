@@ -116,7 +116,7 @@
               }
             },
             "width": {
-              "description": "Width of a component in pixels. Required when using absolute positioning.",
+              "description": "Width of a component in pixels. Exact behavior might be different based on the parent component:\n\n- If the parent component is a layout, check sections \"Absolute positioning\" and \"Static positioning\" of that component.\n\n- If the parent component is not a layout, then this field is required.",
               "type": [
                 "number",
                 "null"
@@ -124,7 +124,7 @@
               "format": "float"
             },
             "height": {
-              "description": "Height of a component in pixels. Required when using absolute positioning.",
+              "description": "Height of a component in pixels. Exact behavior might be different based on the parent component:\n\n- If the parent component is a layout, check sections \"Absolute positioning\" and \"Static positioning\" of that component.\n\n- If the parent component is not a layout, then this field is required.",
               "type": [
                 "number",
                 "null"
@@ -548,7 +548,7 @@
               }
             },
             "width": {
-              "description": "Width of a component in pixels.",
+              "description": "Width of a component in pixels. Exact behavior might be different based on the parent component:\n\n- If the parent component is a layout, check sections \"Absolute positioning\" and \"Static positioning\" of that component.\n\n- If the parent component is not a layout, then this field is required.",
               "type": [
                 "number",
                 "null"
@@ -556,7 +556,7 @@
               "format": "float"
             },
             "height": {
-              "description": "Height of a component in pixels.",
+              "description": "Height of a component in pixels. Exact behavior might be different based on the parent component:\n\n- If the parent component is a layout, check sections \"Absolute positioning\" and \"Static positioning\" of that component.\n\n- If the parent component is not a layout, then this field is required.",
               "type": [
                 "number",
                 "null"
@@ -703,7 +703,7 @@
               ]
             },
             "width": {
-              "description": "Width of a component in pixels. Required when using absolute positioning.",
+              "description": "Width of a component in pixels. Exact behavior might be different based on the parent component:\n\n- If the parent component is a layout, check sections \"Absolute positioning\" and \"Static positioning\" of that component.\n\n- If the parent component is not a layout, then this field is required.",
               "type": [
                 "number",
                 "null"
@@ -711,7 +711,7 @@
               "format": "float"
             },
             "height": {
-              "description": "Height of a component in pixels. Required when using absolute positioning.",
+              "description": "Height of a component in pixels. Exact behavior might be different based on the parent component:\n\n- If the parent component is a layout, check sections \"Absolute positioning\" and \"Static positioning\" of that component.\n\n- If the parent component is not a layout, then this field is required.",
               "type": [
                 "number",
                 "null"
