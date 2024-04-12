@@ -39,9 +39,14 @@ pub fn post<T: Serialize + ?Sized>(route: &str, json: &T) -> Result<Response> {
 
 #[allow(dead_code)]
 pub fn start_websocket_thread() {
-    tokio::runtime::Runtime::new()
-        .unwrap()
-        .block_on(async { websocket_thread().await });
+    thread::Builder::new()
+        .name("Websocket Thread".to_string())
+        .spawn(|| {
+            tokio::runtime::Runtime::new()
+                .unwrap()
+                .block_on(async { websocket_thread().await });
+        })
+        .unwrap();
 }
 
 async fn websocket_thread() {
@@ -54,7 +59,7 @@ async fn websocket_thread() {
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
     let (mut outgoing, mut incoming) = ws_stream.split();
 
-    tokio::spawn(async move {
+    let sender_task = tokio::spawn(async move {
         while let Some(msg) = rx.recv().await {
             if let tungstenite::Message::Close(None) = &msg {
                 let _ = outgoing.send(msg).await;
@@ -71,7 +76,7 @@ async fn websocket_thread() {
         }
     });
 
-    tokio::spawn(async move {
+    let receiver_task = tokio::spawn(async move {
         while let Some(result) = incoming.next().await {
             match result {
                 Ok(tungstenite::Message::Close(_)) => {
@@ -93,6 +98,10 @@ async fn websocket_thread() {
             }
         }
     });
+
+    let (task1_res, task2_res) = tokio::join!(sender_task, receiver_task);
+    task1_res.unwrap();
+    task2_res.unwrap();
 }
 
 #[allow(dead_code)]
