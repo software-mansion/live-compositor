@@ -27,8 +27,8 @@ async function example() {
         }
     });
 
-    await registerShader("shader_1", {
-        source: await fs.readFile(path.join(__dirname, "green_screen.wgsl"), "utf-8")
+    await registerShader("remove_green_screen", {
+        source: await fs.readFile(path.join(__dirname, "remove_green_screen.wgsl"), "utf-8")
     })
 
     await registerImage("background", {
@@ -82,7 +82,7 @@ function initialScene(): Component {
 
     const reportWithBackground: Component = {
         type: "shader",
-        shader_id: "shader_1",
+        shader_id: "remove_green_screen",
         children: [rescaledInputStream, rescaledImage],
         resolution: OUTPUT_RESOLUTION
     }

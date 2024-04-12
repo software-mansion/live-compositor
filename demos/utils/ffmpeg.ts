@@ -66,6 +66,33 @@ export function ffmpegSendVideoFromMp4(
   );
 }
 
+export function ffmpegStreamScreen(ip: string, port: number): SpawnPromise {
+  const platform = process.platform;
+  let inputOptions: string[];
+  if (platform === "darwin") {
+    inputOptions = ["-f", "avfoundation", "-i", "1"];
+  } else if (platform === "linux") {
+    inputOptions = ["-f", "x11grab", "-i", ":0.0"];
+  } else {
+    throw new Error("Unsupported platform");
+  }
+  
+  return spawn(
+    "ffmpeg",
+    [
+      ...inputOptions,
+      "-vf",
+      "format=yuv420p",
+      "-c:v",
+      "libx264",
+      "-f",
+      "rtp",
+      `rtp://${ip}:${port}?rtcpport=${port}`,
+    ],
+    { stdio: [PIPE_OR_INHERIT, PIPE_OR_INHERIT, "ignore"] },
+  );
+}
+
 async function writeSdpFile(
   ip: string,
   port: number,
