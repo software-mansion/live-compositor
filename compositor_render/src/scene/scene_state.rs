@@ -210,7 +210,7 @@ impl IntermediateNode {
                     Position::Static { width, height } => (width, height),
                     // Technically absolute positioning is a bug here, but I think throwing error
                     // in this case would be to invasive. It's better to just ignore those values.
-                    Position::Absolute(position) => (Some(position.width), Some(position.height)),
+                    Position::Absolute(position) => (position.width, position.height),
                 };
                 if let (Some(width), Some(height)) = (width, height) {
                     Ok(Size { width, height })
