@@ -1,18 +1,20 @@
 {
     "video": {
-        "type": "view",
-        "overflow": "fit",
-        "children": [
-            {
-                "type": "text",
-                "text": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum id eros non eros dictum scelerisque. Sed vehicula magna et metus fringilla, nec placerat felis elementum. Nullam tincidunt dui id purus egestas, et pulvinar est facilisis.",
-                "font_size": 50,
-                "font_family": "Verdana",
-                "align": "left",
-                "wrap": "glyph",
-                "width": 1000,
-                "height": 500
-            }
-        ]
+        "root": {
+            "type": "view",
+            "overflow": "fit",
+            "children": [
+                {
+                    "type": "text",
+                    "text": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum id eros non eros dictum scelerisque. Sed vehicula magna et metus fringilla, nec placerat felis elementum. Nullam tincidunt dui id purus egestas, et pulvinar est facilisis.",
+                    "font_size": 50,
+                    "font_family": "Verdana",
+                    "align": "left",
+                    "wrap": "glyph",
+                    "width": 1000,
+                    "height": 500
+                }
+            ]
+        }
     }
 }

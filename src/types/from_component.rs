@@ -37,10 +37,6 @@ impl TryFrom<View> for scene::ViewComponent {
     type Error = TypeError;
 
     fn try_from(view: View) -> Result<Self, Self::Error> {
-        const WIDTH_REQUIRED_MSG: &str =
-            "\"View\" component with absolute positioning requires \"width\" to be specified.";
-        const HEIGHT_REQUIRED_MSG: &str =
-            "\"View\" component with absolute positioning requires \"height\" to be specified.";
         const VERTICAL_REQUIRED_MSG: &str =
             "\"View\" component with absolute positioning requires either \"top\" or \"bottom\" coordinate.";
         const VERTICAL_ONLY_ONE_MSG: &str = "Fields \"top\" and \"bottom\" are mutually exclusive, you can only specify one on a \"View\" component.";
@@ -66,12 +62,8 @@ impl TryFrom<View> for scene::ViewComponent {
                 (Some(_), Some(_)) => return Err(TypeError::new(HORIZONTAL_ONLY_ONE_MSG)),
             };
             Position::Absolute(scene::AbsolutePosition {
-                width: (view
-                    .width
-                    .ok_or_else(|| TypeError::new(WIDTH_REQUIRED_MSG))?),
-                height: (view
-                    .height
-                    .ok_or_else(|| TypeError::new(HEIGHT_REQUIRED_MSG))?),
+                width: view.width.map(Into::into),
+                height: view.height.map(Into::into),
                 position_horizontal,
                 position_vertical,
                 rotation_degrees: view.rotation.unwrap_or(0.0),
@@ -117,10 +109,6 @@ impl TryFrom<Rescaler> for scene::RescalerComponent {
     type Error = TypeError;
 
     fn try_from(rescaler: Rescaler) -> Result<Self, Self::Error> {
-        const WIDTH_REQUIRED_MSG: &str =
-            "\"Rescaler\" component with absolute positioning requires \"width\" to be specified.";
-        const HEIGHT_REQUIRED_MSG: &str =
-            "\"Rescaler\" component with absolute positioning requires \"height\" to be specified.";
         const VERTICAL_REQUIRED_MSG: &str =
             "\"Rescaler\" component with absolute positioning requires either \"top\" or \"bottom\" coordinate.";
         const VERTICAL_ONLY_ONE_MSG: &str = "Fields \"top\" and \"bottom\" are mutually exclusive, you can only specify one on a \"Rescaler\" component.";
@@ -146,12 +134,8 @@ impl TryFrom<Rescaler> for scene::RescalerComponent {
                 (Some(_), Some(_)) => return Err(TypeError::new(HORIZONTAL_ONLY_ONE_MSG)),
             };
             Position::Absolute(scene::AbsolutePosition {
-                width: (rescaler
-                    .width
-                    .ok_or_else(|| TypeError::new(WIDTH_REQUIRED_MSG))?),
-                height: (rescaler
-                    .height
-                    .ok_or_else(|| TypeError::new(HEIGHT_REQUIRED_MSG))?),
+                width: rescaler.width.map(Into::into),
+                height: rescaler.height.map(Into::into),
                 position_horizontal,
                 position_vertical,
                 rotation_degrees: rescaler.rotation.unwrap_or(0.0),

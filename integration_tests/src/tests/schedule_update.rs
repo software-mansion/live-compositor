@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use crate::{
     compare_video_dumps, input_dump_from_disk, CommunicationProtocol, CompositorInstance,
-    OutputReceiver, PacketSender,
+    OutputReceiver, PacketSender, VideoValidationConfig,
 };
 use anyhow::Result;
 use serde_json::json;
@@ -30,8 +30,39 @@ pub fn schedule_update() -> Result<()> {
                     "width": 640,
                     "height": 360,
                 },
-                "encoder_preset": "ultrafast",
+                "encoder": {
+                    "type": "ffmpeg_h264",
+                    "preset": "ultrafast"
+                },
                 "initial": {
+                    "root": {
+                        "type": "tiles",
+                        "id": "tiles_1",
+                        "padding": 3,
+                        "background_color_rgba": "#DDDDDDFF",
+                        "transition": {
+                            "duration_ms": 500,
+                            "easing_function": {
+                                "function_name": "bounce"
+                            }
+                        },
+                        "children": [
+                            {
+                                "type": "input_stream",
+                                "input_id": "input_1",
+                            },
+                        ],
+                    }
+                }
+            },
+        }),
+    )?;
+
+    instance.send_request(
+        "output/output_1/update",
+        json!({
+            "video": {
+                "root": {
                     "type": "tiles",
                     "id": "tiles_1",
                     "padding": 3,
@@ -47,36 +78,12 @@ pub fn schedule_update() -> Result<()> {
                             "type": "input_stream",
                             "input_id": "input_1",
                         },
+                        {
+                            "type": "input_stream",
+                            "input_id": "input_2",
+                        },
                     ],
                 }
-            },
-        }),
-    )?;
-
-    instance.send_request(
-        "output/output_1/update",
-        json!({
-            "video": {
-                "type": "tiles",
-                "id": "tiles_1",
-                "padding": 3,
-                "background_color_rgba": "#DDDDDDFF",
-                "transition": {
-                    "duration_ms": 500,
-                    "easing_function": {
-                        "function_name": "bounce"
-                    }
-                },
-                "children": [
-                    {
-                        "type": "input_stream",
-                        "input_id": "input_1",
-                    },
-                    {
-                        "type": "input_stream",
-                        "input_id": "input_2",
-                    },
-                ],
             },
             "schedule_time_ms": 2000
         }),
@@ -98,7 +105,7 @@ pub fn schedule_update() -> Result<()> {
             "transport_protocol": "udp",
             "port": input_1_port,
             "video": {
-                "codec": "h264"
+                "decoder": "ffmpeg_h264"
             },
         }),
     )?;
@@ -110,7 +117,7 @@ pub fn schedule_update() -> Result<()> {
             "transport_protocol": "tcp_server",
             "port": input_2_port,
             "video": {
-                "codec": "h264"
+                "decoder": "ffmpeg_h264"
             },
         }),
     )?;
@@ -130,8 +137,10 @@ pub fn schedule_update() -> Result<()> {
     compare_video_dumps(
         OUTPUT_DUMP_FILE,
         &new_output_dump,
-        &[Duration::from_millis(500), Duration::from_millis(3500)],
-        20.0,
+        VideoValidationConfig {
+            validation_intervals: vec![Duration::from_millis(500)..Duration::from_millis(3500)],
+            ..Default::default()
+        },
     )?;
 
     Ok(())

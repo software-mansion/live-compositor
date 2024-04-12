@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use compositor_pipeline::pipeline::rtp;
 use compositor_render::scene;
 
 use super::util::*;
@@ -18,15 +19,6 @@ impl From<Resolution> for scene::Size {
         Self {
             width: resolution.width as f32,
             height: resolution.height as f32,
-        }
-    }
-}
-
-impl From<compositor_render::Resolution> for Resolution {
-    fn from(resolution: compositor_render::Resolution) -> Self {
-        Self {
-            width: resolution.width,
-            height: resolution.height,
         }
     }
 }
@@ -78,17 +70,6 @@ impl From<HorizontalAlign> for scene::HorizontalAlign {
     }
 }
 
-impl From<scene::HorizontalAlign> for HorizontalAlign {
-    fn from(alignment: scene::HorizontalAlign) -> Self {
-        match alignment {
-            scene::HorizontalAlign::Left => HorizontalAlign::Left,
-            scene::HorizontalAlign::Right => HorizontalAlign::Right,
-            scene::HorizontalAlign::Justified => HorizontalAlign::Justified,
-            scene::HorizontalAlign::Center => HorizontalAlign::Center,
-        }
-    }
-}
-
 impl From<VerticalAlign> for scene::VerticalAlign {
     fn from(alignment: VerticalAlign) -> Self {
         match alignment {
@@ -100,26 +81,9 @@ impl From<VerticalAlign> for scene::VerticalAlign {
     }
 }
 
-impl From<scene::VerticalAlign> for VerticalAlign {
-    fn from(alignment: scene::VerticalAlign) -> Self {
-        match alignment {
-            scene::VerticalAlign::Top => VerticalAlign::Top,
-            scene::VerticalAlign::Center => VerticalAlign::Center,
-            scene::VerticalAlign::Bottom => VerticalAlign::Bottom,
-            scene::VerticalAlign::Justified => VerticalAlign::Justified,
-        }
-    }
-}
-
 impl From<Degree> for scene::Degree {
     fn from(value: Degree) -> Self {
         Self(value.0)
-    }
-}
-
-impl From<scene::Degree> for Degree {
-    fn from(degree: scene::Degree) -> Self {
-        Self(degree.0)
     }
 }
 
@@ -197,12 +161,6 @@ impl TryFrom<RGBColor> for scene::RGBColor {
     }
 }
 
-impl From<scene::RGBColor> for RGBColor {
-    fn from(value: scene::RGBColor) -> Self {
-        RGBColor(format!("#{:02X}{:02X}{:02X}", value.0, value.1, value.2))
-    }
-}
-
 impl TryFrom<RGBAColor> for scene::RGBAColor {
     type Error = TypeError;
 
@@ -237,11 +195,45 @@ impl TryFrom<RGBAColor> for scene::RGBAColor {
     }
 }
 
-impl From<scene::RGBAColor> for RGBAColor {
-    fn from(value: scene::RGBAColor) -> Self {
-        Self(format!(
-            "#{:02X}{:02X}{:02X}{:02X}",
-            value.0, value.1, value.2, value.3
-        ))
+impl TryFrom<PortOrPortRange> for rtp::RequestedPort {
+    type Error = TypeError;
+
+    fn try_from(value: PortOrPortRange) -> Result<Self, Self::Error> {
+        const PORT_CONVERSION_ERROR_MESSAGE: &str = "Port needs to be a number between 1 and 65535 or a string in the \"START:END\" format, where START and END represent a range of ports.";
+        match value {
+            PortOrPortRange::U16(0) => Err(TypeError::new(PORT_CONVERSION_ERROR_MESSAGE)),
+            PortOrPortRange::U16(v) => Ok(rtp::RequestedPort::Exact(v)),
+            PortOrPortRange::String(s) => {
+                let (start, end) = s
+                    .split_once(':')
+                    .ok_or(TypeError::new(PORT_CONVERSION_ERROR_MESSAGE))?;
+
+                let start = start
+                    .parse::<u16>()
+                    .or(Err(TypeError::new(PORT_CONVERSION_ERROR_MESSAGE)))?;
+                let end = end
+                    .parse::<u16>()
+                    .or(Err(TypeError::new(PORT_CONVERSION_ERROR_MESSAGE)))?;
+
+                if start > end {
+                    return Err(TypeError::new(PORT_CONVERSION_ERROR_MESSAGE));
+                }
+
+                if start == 0 || end == 0 {
+                    return Err(TypeError::new(PORT_CONVERSION_ERROR_MESSAGE));
+                }
+
+                Ok(rtp::RequestedPort::Range((start, end)))
+            }
+        }
+    }
+}
+
+impl From<TransportProtocol> for rtp::TransportProtocol {
+    fn from(value: TransportProtocol) -> Self {
+        match value {
+            TransportProtocol::Udp => rtp::TransportProtocol::Udp,
+            TransportProtocol::TcpServer => rtp::TransportProtocol::TcpServer,
+        }
     }
 }

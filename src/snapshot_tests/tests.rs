@@ -167,14 +167,16 @@ fn shader_user_params_snapshot_tests() -> Vec<TestCase> {
     let circle_layout_scene = Box::new(
         json!({
             "video": {
-                "type": "shader",
-                "shader_id": "user_params_circle_layout",
-                "resolution": {
-                    "width": DEFAULT_RESOLUTION.width,
-                    "height": DEFAULT_RESOLUTION.height
-                },
-                "shader_param": shader_param,
-                "children": children,
+                "root": {
+                    "type": "shader",
+                    "shader_id": "user_params_circle_layout",
+                    "resolution": {
+                        "width": DEFAULT_RESOLUTION.width,
+                        "height": DEFAULT_RESOLUTION.height
+                    },
+                    "shader_param": shader_param,
+                    "children": children,
+                }
             }
         })
         .to_string(),
@@ -1002,6 +1004,12 @@ fn tiles_snapshot_tests() -> Vec<TestCase> {
             inputs: vec![input1.clone(), input2.clone(), input3.clone()],
             ..Default::default()
         },
+        TestCase{
+            name: "tiles/video_call_with_labels",
+            scene_updates: Updates::Scene(include_str!("../../snapshot_tests/tiles/video_call_with_labels.scene.json"), DEFAULT_RESOLUTION),
+            inputs: vec![portrait_input1.clone(), portrait_input2.clone(), portrait_input3.clone()],
+            ..Default::default()
+        }
     ])
 }
 

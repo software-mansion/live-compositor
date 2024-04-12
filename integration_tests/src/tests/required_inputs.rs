@@ -2,7 +2,7 @@ use std::{thread, time::Duration};
 
 use crate::{
     compare_video_dumps, input_dump_from_disk, split_rtp_packet_dump, CommunicationProtocol,
-    CompositorInstance, OutputReceiver, PacketSender,
+    CompositorInstance, OutputReceiver, PacketSender, VideoValidationConfig,
 };
 use anyhow::Result;
 use serde_json::json;
@@ -29,21 +29,26 @@ pub fn required_inputs() -> Result<()> {
                     "width": 640,
                     "height": 360,
                 },
-                "encoder_preset": "ultrafast",
+                "encoder": {
+                    "type": "ffmpeg_h264",
+                    "preset": "ultrafast",
+                },
                 "initial": {
-                    "type": "tiles",
-                    "padding": 3,
-                    "background_color_rgba": "#DDDDDDFF",
-                    "children": [
-                        {
-                            "type": "input_stream",
-                            "input_id": "input_1",
-                        },
-                        {
-                            "type": "input_stream",
-                            "input_id": "input_2",
-                        },
-                    ],
+                    "root": {
+                        "type": "tiles",
+                        "padding": 3,
+                        "background_color_rgba": "#DDDDDDFF",
+                        "children": [
+                            {
+                                "type": "input_stream",
+                                "input_id": "input_1",
+                            },
+                            {
+                                "type": "input_stream",
+                                "input_id": "input_2",
+                            },
+                        ],
+                    }
                 }
             },
         }),
@@ -65,7 +70,7 @@ pub fn required_inputs() -> Result<()> {
             "transport_protocol": "tcp_server",
             "port": input_1_port,
             "video": {
-                "codec": "h264"
+                "decoder": "ffmpeg_h264"
             },
             "required": true
         }),
@@ -78,7 +83,7 @@ pub fn required_inputs() -> Result<()> {
             "transport_protocol": "tcp_server",
             "port": input_2_port,
             "video": {
-                "codec": "h264"
+                "decoder": "ffmpeg_h264"
             },
             "required": true
         }),
@@ -105,8 +110,11 @@ pub fn required_inputs() -> Result<()> {
     compare_video_dumps(
         OUTPUT_DUMP_FILE,
         &new_output_dump,
-        &[Duration::from_millis(1200)],
-        20.0,
+        VideoValidationConfig {
+            validation_intervals: vec![Duration::from_millis(500)..Duration::from_millis(2000)],
+            allowed_invalid_frames: 1,
+            ..Default::default()
+        },
     )?;
 
     Ok(())

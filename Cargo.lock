@@ -1095,6 +1095,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "generate"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bytes 1.5.0",
+ "compositor_render",
+ "crossbeam-channel",
+ "ffmpeg-next",
+ "opus",
+ "pitch-detection",
+ "reqwest",
+ "rtcp",
+ "rtp",
+ "serde_json",
+ "socket2",
+ "tracing",
+ "video_compositor",
+ "webrtc-util",
+]
+
+[[package]]
 name = "generic-array"
 version = "0.12.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"

@@ -1,6 +1,8 @@
 {
     "video": {
-        "type": "image",
-        "image_id": "image_jpeg"
+        "root": {
+            "type": "image",
+            "image_id": "image_jpeg"
+        }
     }
 }

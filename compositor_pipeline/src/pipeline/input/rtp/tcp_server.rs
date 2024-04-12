@@ -102,6 +102,9 @@ struct TcpReadPacketStream {
 impl TcpReadPacketStream {
     fn new(socket: TcpStream, should_close: Arc<AtomicBool>) -> Self {
         socket
+            .set_nonblocking(false)
+            .expect("Cannot set blocking tcp input stream");
+        socket
             .set_read_timeout(Some(Duration::from_millis(50)))
             .expect("Cannot set read timeout");
         Self {
@@ -134,7 +137,7 @@ impl TcpReadPacketStream {
                                 "Error while reading from TCP socket: {}",
                                 ErrorStack::new(&err).into_string()
                             );
-                            return Some(());
+                            return None;
                         }
                     }
                 }

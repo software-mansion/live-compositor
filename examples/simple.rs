@@ -47,7 +47,7 @@ fn start_example_client_code() -> Result<()> {
             "type": "rtp_stream",
             "port": INPUT_PORT,
             "video": {
-                "codec": "h264"
+                "decoder": "ffmpeg_h264"
             }
         }),
     )?;
@@ -73,19 +73,24 @@ fn start_example_client_code() -> Result<()> {
                     "width": VIDEO_RESOLUTION.width,
                     "height": VIDEO_RESOLUTION.height,
                 },
-                "encoder_preset": "medium",
+                "encoder": {
+                    "type": "ffmpeg_h264",
+                    "preset": "fast"
+                },
                 "initial": {
-                    "type": "shader",
-                    "id": "shader_node_1",
-                    "shader_id": "shader_example_1",
-                    "children": [
-                        {
-                            "id": "input_1",
-                            "type": "input_stream",
-                            "input_id": "input_1",
-                        }
-                    ],
-                    "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+                    "root": {
+                        "type": "shader",
+                        "id": "shader_node_1",
+                        "shader_id": "shader_example_1",
+                        "children": [
+                            {
+                                "id": "input_1",
+                                "type": "input_stream",
+                                "input_id": "input_1",
+                            }
+                        ],
+                        "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+                    }
                 }
             }
         }),

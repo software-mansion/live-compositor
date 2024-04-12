@@ -1,24 +1,26 @@
 {
     "video": {
-        "type": "tiles",
-        "id": "tiles",
-        "children": [
-            {
-                "type": "input_stream",
-                "input_id": "input_1"
-            },
-            {
-                "type": "input_stream",
-                "input_id": "input_2"
-            },
-            {
-                "type": "input_stream",
-                "input_id": "input_3"
-            },
-            {
-                "type": "input_stream",
-                "input_id": "input_4"
-            }
-        ]
+        "root": {
+            "type": "tiles",
+            "id": "tiles",
+            "children": [
+                {
+                    "type": "input_stream",
+                    "input_id": "input_1"
+                },
+                {
+                    "type": "input_stream",
+                    "input_id": "input_2"
+                },
+                {
+                    "type": "input_stream",
+                    "input_id": "input_3"
+                },
+                {
+                    "type": "input_stream",
+                    "input_id": "input_4"
+                }
+            ]
+        }
     }
 }

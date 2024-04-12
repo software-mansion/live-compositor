@@ -107,7 +107,7 @@ impl StatefulComponent {
             StatefulComponent::Text(text) => Some(text.width()),
             StatefulComponent::Layout(layout) => match layout.position(pts) {
                 Position::Static { width, .. } => width,
-                Position::Absolute(position) => Some(position.width),
+                Position::Absolute(position) => position.width,
             },
         }
     }
@@ -121,7 +121,7 @@ impl StatefulComponent {
             StatefulComponent::Text(text) => Some(text.height()),
             StatefulComponent::Layout(layout) => match layout.position(pts) {
                 Position::Static { height, .. } => height,
-                Position::Absolute(position) => Some(position.height),
+                Position::Absolute(position) => position.height,
             },
         }
     }

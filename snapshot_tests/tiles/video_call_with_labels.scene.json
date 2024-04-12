@@ -1,0 +1,115 @@
+{
+    "video": {
+        "root": {
+            "type": "tiles",
+            "margin": 10,
+            "children": [
+                {
+                    "type": "view",
+                    "background_color_rgba": "#555555FF",
+                    "children": [
+                        {
+                            "type": "rescaler",
+                            "child": {
+                                "type": "input_stream",
+                                "input_id": "input_1"
+                            }
+                        },
+                        {
+                            "type": "view",
+                            "height": 40,
+                            "left": 0,
+                            "bottom": 0,
+                            "children": [
+                                {
+                                    "type": "view"
+                                },
+                                {
+                                    "type": "text",
+                                    "text": "InputStream 1 🚀",
+                                    "font_size": 25,
+                                    "align": "center",
+                                    "color_rgba": "#FFFFFFFF",
+                                    "background_color_rgba": "#FF0000FF"
+                                },
+                                {
+                                    "type": "view"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "view",
+                    "background_color_rgba": "#555555FF",
+                    "children": [
+                        {
+                            "type": "rescaler",
+                            "child": {
+                                "type": "input_stream",
+                                "input_id": "input_2"
+                            }
+                        },
+                        {
+                            "type": "view",
+                            "height": 40,
+                            "left": 0,
+                            "bottom": 0,
+                            "children": [
+                                {
+                                    "type": "view"
+                                },
+                                {
+                                    "type": "text",
+                                    "text": "InputStream 2 🚀",
+                                    "font_size": 25,
+                                    "align": "center",
+                                    "color_rgba": "#FFFFFFFF",
+                                    "background_color_rgba": "#FF0000FF"
+                                },
+                                {
+                                    "type": "view"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "view",
+                    "background_color_rgba": "#555555FF",
+                    "children": [
+                        {
+                            "type": "rescaler",
+                            "child": {
+                                "type": "input_stream",
+                                "input_id": "input_3"
+                            }
+                        },
+                        {
+                            "type": "view",
+                            "height": 40,
+                            "left": 0,
+                            "bottom": 0,
+                            "children": [
+                                {
+                                    "type": "view"
+                                },
+                                {
+                                    "type": "text",
+                                    "text": "InputStream 3 🚀",
+                                    "font_size": 25,
+                                    "align": "center",
+                                    "color_rgba": "#FFFFFFFF",
+                                    "background_color_rgba": "#FF0000FF"
+                                },
+                                {
+                                    "type": "view"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+}

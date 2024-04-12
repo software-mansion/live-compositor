@@ -3,8 +3,8 @@ use serde_json::json;
 use std::time::Duration;
 
 use crate::{
-    audio_decoder::AudioChannels, compare_audio_dumps, compare_video_dumps, input_dump_from_disk,
-    CommunicationProtocol, CompositorInstance, OutputReceiver, PacketSender,
+    compare_audio_dumps, compare_video_dumps, input_dump_from_disk, AudioValidationConfig,
+    CommunicationProtocol, CompositorInstance, OutputReceiver, PacketSender, VideoValidationConfig,
 };
 
 /// Input and output streams with muxed video and audio.
@@ -31,11 +31,16 @@ pub fn muxed_video_audio() -> Result<()> {
                     "width": 640,
                     "height": 360,
                 },
-                "encoder_preset": "ultrafast",
+                "encoder": {
+                    "type": "ffmpeg_h264",
+                    "preset": "ultrafast",
+                },
                 "initial": {
-                    "id": "input_1",
-                    "type": "input_stream",
-                    "input_id": "input_1",
+                    "root": {
+                        "id": "input_1",
+                        "type": "input_stream",
+                        "input_id": "input_1",
+                    }
                 }
             },
             "audio": {
@@ -46,7 +51,10 @@ pub fn muxed_video_audio() -> Result<()> {
                         }
                     ]
                 },
-                "channels": "stereo"
+                "encoder": {
+                    "type": "opus",
+                    "channels": "stereo"
+                }
             }
         }),
     )?;
@@ -65,10 +73,10 @@ pub fn muxed_video_audio() -> Result<()> {
             "transport_protocol": "tcp_server",
             "port": input_port,
             "video": {
-                "codec": "h264"
+                "decoder": "ffmpeg_h264"
             },
             "audio": {
-                "codec": "opus"
+                "decoder": "opus"
             }
         }),
     )?;
@@ -84,19 +92,22 @@ pub fn muxed_video_audio() -> Result<()> {
     compare_video_dumps(
         OUTPUT_DUMP_FILE,
         &new_output_dump,
-        &[Duration::from_millis(500), Duration::from_millis(2500)],
-        20.0,
+        VideoValidationConfig {
+            validation_intervals: vec![Duration::from_millis(500)..Duration::from_millis(2500)],
+            ..Default::default()
+        },
     )?;
 
     compare_audio_dumps(
         OUTPUT_DUMP_FILE,
         &new_output_dump,
-        &[
-            Duration::from_millis(500)..Duration::from_millis(1500),
-            Duration::from_millis(2500)..Duration::from_millis(3500),
-        ],
-        4.0,
-        AudioChannels::Stereo,
+        AudioValidationConfig {
+            sampling_intervals: vec![
+                Duration::from_millis(500)..Duration::from_millis(1500),
+                Duration::from_millis(2500)..Duration::from_millis(3500),
+            ],
+            ..Default::default()
+        },
     )?;
 
     Ok(())

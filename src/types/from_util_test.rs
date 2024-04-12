@@ -6,17 +6,6 @@ use crate::types::{
 };
 
 #[test]
-fn test_rgb_serialization() {
-    fn test_case(color: scene::RGBColor, expected: &str) {
-        assert_eq!(RGBColor::from(color), RGBColor(expected.to_string()));
-    }
-
-    test_case(scene::RGBColor(0, 0, 0), "#000000");
-    test_case(scene::RGBColor(1, 2, 3), "#010203");
-    test_case(scene::RGBColor(1, 255, 3), "#01FF03");
-}
-
-#[test]
 fn test_rgb_deserialization() {
     fn test_case(color: &str, expected: Result<scene::RGBColor, TypeError>) {
         assert_eq!(
@@ -40,16 +29,6 @@ fn test_rgb_deserialization() {
             "Invalid format. Color has to be in #RRGGBB format.",
         )),
     );
-}
-
-#[test]
-fn test_rgba_serialization() {
-    fn test_case(color: scene::RGBAColor, expected: &str) {
-        assert_eq!(RGBAColor::from(color), RGBAColor(expected.to_string()));
-    }
-    test_case(scene::RGBAColor(0, 0, 0, 0), "#00000000");
-    test_case(scene::RGBAColor(1, 2, 3, 4), "#01020304");
-    test_case(scene::RGBAColor(1, 255, 3, 4), "#01FF0304");
 }
 
 #[test]

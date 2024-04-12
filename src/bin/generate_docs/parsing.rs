@@ -10,11 +10,10 @@ use schemars::{
     JsonSchema,
 };
 
-use crate::type_definition::{Kind, ObjectProperty, TypeDefinition};
-
-const IGNORED_DEFINITIONS: [&str; 1] = ["Component"];
-const ALWAYS_INLINED_DEFINITIONS: [&str; 3] = ["Port", "Resolution", "Audio"];
-const NEVER_INLINED_DEFINITIONS: [&str; 0] = [];
+use crate::{
+    docs_config::DocsConfig,
+    type_definition::{Kind, ObjectProperty, TypeDefinition},
+};
 
 #[derive(Debug)]
 pub struct DocPage {
@@ -46,7 +45,7 @@ impl DocPage {
             .any(|def| def.name.as_ref() == Some(name))
     }
 
-    fn simplify(&mut self) {
+    fn simplify(&mut self, config: &DocsConfig) {
         fn merge_descriptions(desc1: Option<Rc<str>>, desc2: Option<Rc<str>>) -> Option<Rc<str>> {
             match (desc1, desc2) {
                 (Some(desc1), Some(desc2)) => {
@@ -114,6 +113,15 @@ impl DocPage {
                 variants.remove(*idx);
             }
             variants.append(&mut variants_to_merge);
+
+            if variants.len() == 1 {
+                let mut variant = variants.pop().unwrap();
+                variant.name = def.name.clone();
+                variant.is_optional = def.is_optional;
+                variant.description =
+                    merge_descriptions(def.description.clone(), variant.description);
+                *def = variant;
+            }
         }
 
         let mut inline_definitions = HashMap::new();
@@ -121,7 +129,7 @@ impl DocPage {
             flatten_union_definition(def);
 
             if let Some(name) = &def.name {
-                if NEVER_INLINED_DEFINITIONS.contains(&name.as_ref()) {
+                if config.never_inlined_definitions.contains(&name.as_ref()) {
                     continue;
                 }
             }
@@ -145,7 +153,7 @@ impl DocPage {
                 || def
                     .name
                     .as_deref()
-                    .map(|name| ALWAYS_INLINED_DEFINITIONS.contains(&name))
+                    .map(|name| config.always_inlined_definitions.contains(&name))
                     .unwrap_or(false);
 
             if should_inline {
@@ -162,23 +170,30 @@ impl DocPage {
         }
     }
 
-    pub fn to_markdown(&self) -> String {
+    pub fn to_markdown(&self, config: &DocsConfig) -> String {
         self.definitions
             .iter()
-            .map(TypeDefinition::to_markdown)
+            .map(|def| def.to_markdown(config))
             .collect::<Vec<_>>()
             .join("\n")
     }
 }
 
-pub fn generate_docs<T: JsonSchema>(title: &str) -> DocPage {
+pub fn generate_docs<T: JsonSchema>(title: &str, config: &DocsConfig) -> DocPage {
     let title: Rc<str> = title.into();
     let schema_generator = new_schema_generator();
     let root_schema = schema_generator.into_root_schema_for::<T>();
 
     let mut page = DocPage::new(title.clone());
-    populate_page(&mut page, title, &root_schema.schema.clone(), &root_schema);
-    page.simplify();
+    populate_page(
+        &mut page,
+        title,
+        &root_schema.schema.clone(),
+        &root_schema,
+        config,
+    );
+
+    page.simplify(config);
     page
 }
 
@@ -187,6 +202,7 @@ fn populate_page(
     name: Rc<str>,
     schema: &SchemaObject,
     root_schema: &RootSchema,
+    config: &DocsConfig,
 ) {
     let mut definition = parse_schema(schema);
     let mut references = VecDeque::from(definition.references.clone());
@@ -195,7 +211,7 @@ fn populate_page(
     page.add_definition(definition);
 
     while let Some(refer) = references.front() {
-        if IGNORED_DEFINITIONS.contains(&refer.as_ref()) {
+        if config.ignored_definitions.contains(&refer.as_ref()) {
             references.pop_front();
             continue;
         }

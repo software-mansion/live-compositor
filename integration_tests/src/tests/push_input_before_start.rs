@@ -5,7 +5,7 @@ use serde_json::json;
 
 use crate::{
     compare_video_dumps, input_dump_from_disk, CommunicationProtocol, CompositorInstance,
-    OutputReceiver, PacketSender,
+    OutputReceiver, PacketSender, VideoValidationConfig,
 };
 
 /// Check if the input stream is passed to the output correctly even if entire
@@ -33,10 +33,15 @@ pub fn push_entire_input_before_start_tcp() -> Result<()> {
                     "width": 640,
                     "height": 360,
                 },
-                "encoder_preset": "ultrafast",
+                "encoder": {
+                    "type": "ffmpeg_h264",
+                    "preset": "ultrafast"
+                },
                 "initial": {
-                    "type": "input_stream",
-                    "input_id": "input_1",
+                    "root": {
+                        "type": "input_stream",
+                        "input_id": "input_1",
+                    }
                 }
             },
         }),
@@ -58,7 +63,7 @@ pub fn push_entire_input_before_start_tcp() -> Result<()> {
             "transport_protocol": "tcp_server",
             "port": input_port,
             "video": {
-                "codec": "h264"
+                "decoder": "ffmpeg_h264"
             },
             "offset_ms": 0
         }),
@@ -78,8 +83,10 @@ pub fn push_entire_input_before_start_tcp() -> Result<()> {
     compare_video_dumps(
         OUTPUT_DUMP_FILE,
         &new_output_dump,
-        &[Duration::from_millis(1200)],
-        20.0,
+        VideoValidationConfig {
+            validation_intervals: vec![Duration::from_millis(0)..Duration::from_millis(1200)],
+            ..Default::default()
+        },
     )?;
 
     Ok(())
@@ -110,10 +117,15 @@ pub fn push_entire_input_before_start_udp() -> Result<()> {
                     "width": 640,
                     "height": 360,
                 },
-                "encoder_preset": "ultrafast",
+                "encoder": {
+                    "type": "ffmpeg_h264",
+                    "preset": "ultrafast"
+                },
                 "initial": {
-                    "type": "input_stream",
-                    "input_id": "input_1",
+                    "root": {
+                        "type": "input_stream",
+                        "input_id": "input_1",
+                    }
                 }
             },
         }),
@@ -135,7 +147,7 @@ pub fn push_entire_input_before_start_udp() -> Result<()> {
             "transport_protocol": "udp",
             "port": input_port,
             "video": {
-                "codec": "h264"
+                "decoder": "ffmpeg_h264"
             },
             "offset_ms": 0
         }),
@@ -155,8 +167,10 @@ pub fn push_entire_input_before_start_udp() -> Result<()> {
     compare_video_dumps(
         OUTPUT_DUMP_FILE,
         &new_output_dump,
-        &[Duration::from_millis(1200)],
-        20.0,
+        VideoValidationConfig {
+            validation_intervals: vec![Duration::from_millis(0)..Duration::from_millis(1200)],
+            ..Default::default()
+        },
     )?;
 
     Ok(())
@@ -187,10 +201,15 @@ pub fn push_entire_input_before_start_tcp_without_offset() -> Result<()> {
                     "width": 640,
                     "height": 360,
                 },
-                "encoder_preset": "ultrafast",
+                "encoder": {
+                    "type": "ffmpeg_h264",
+                    "preset": "ultrafast"
+                },
                 "initial": {
-                    "type": "input_stream",
-                    "input_id": "input_1",
+                    "root": {
+                        "type": "input_stream",
+                        "input_id": "input_1",
+                    }
                 }
             },
         }),
@@ -212,7 +231,7 @@ pub fn push_entire_input_before_start_tcp_without_offset() -> Result<()> {
             "transport_protocol": "tcp_server",
             "port": input_port,
             "video": {
-                "codec": "h264"
+                "decoder": "ffmpeg_h264"
             },
         }),
     )?;
@@ -231,8 +250,11 @@ pub fn push_entire_input_before_start_tcp_without_offset() -> Result<()> {
     compare_video_dumps(
         OUTPUT_DUMP_FILE,
         &new_output_dump,
-        &[Duration::from_millis(1200)],
-        20.0,
+        VideoValidationConfig {
+            validation_intervals: vec![Duration::from_millis(0)..Duration::from_millis(1200)],
+            allowed_invalid_frames: 5,
+            ..Default::default()
+        },
     )?;
 
     Ok(())
@@ -263,10 +285,15 @@ pub fn push_entire_input_before_start_udp_without_offset() -> Result<()> {
                     "width": 640,
                     "height": 360,
                 },
-                "encoder_preset": "ultrafast",
+                "encoder": {
+                    "type": "ffmpeg_h264",
+                    "preset": "ultrafast"
+                },
                 "initial": {
-                    "type": "input_stream",
-                    "input_id": "input_1",
+                    "root": {
+                        "type": "input_stream",
+                        "input_id": "input_1",
+                    }
                 }
             },
         }),
@@ -288,7 +315,7 @@ pub fn push_entire_input_before_start_udp_without_offset() -> Result<()> {
             "transport_protocol": "udp",
             "port": input_port,
             "video": {
-                "codec": "h264"
+                "decoder": "ffmpeg_h264"
             },
         }),
     )?;
@@ -307,8 +334,11 @@ pub fn push_entire_input_before_start_udp_without_offset() -> Result<()> {
     compare_video_dumps(
         OUTPUT_DUMP_FILE,
         &new_output_dump,
-        &[Duration::from_millis(1200)],
-        20.0,
+        VideoValidationConfig {
+            validation_intervals: vec![Duration::from_millis(0)..Duration::from_millis(1200)],
+            allowed_invalid_frames: 5,
+            ..Default::default()
+        },
     )?;
 
     Ok(())

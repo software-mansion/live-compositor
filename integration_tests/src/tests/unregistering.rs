@@ -2,7 +2,7 @@ use std::{thread, time::Duration};
 
 use crate::{
     compare_video_dumps, input_dump_from_disk, CommunicationProtocol, CompositorInstance,
-    OutputReceiver, PacketSender,
+    OutputReceiver, PacketSender, VideoValidationConfig,
 };
 use anyhow::Result;
 use serde_json::json;
@@ -47,7 +47,7 @@ pub fn unregistering() -> Result<()> {
             "transport_protocol": "udp",
             "port": input_port,
             "video": {
-                "codec": "h264"
+                "decoder": "ffmpeg_h264"
             },
         }),
     )?;
@@ -70,8 +70,10 @@ pub fn unregistering() -> Result<()> {
     compare_video_dumps(
         OUTPUT_DUMP_FILE,
         &new_output_dump,
-        &[Duration::from_secs(1), Duration::from_secs(3)],
-        20.0,
+        VideoValidationConfig {
+            allowed_invalid_frames: 1,
+            ..Default::default()
+        },
     )?;
 
     Ok(())
@@ -89,21 +91,26 @@ fn register_output_with_initial_scene(instance: &CompositorInstance, port: u16) 
                     "width": 640,
                     "height": 360,
                 },
-                "encoder_preset": "ultrafast",
+                "encoder": {
+                    "type": "ffmpeg_h264",
+                    "preset": "ultrafast"
+                },
                 "initial": {
-                    "type": "tiles",
-                    "padding": 3,
-                    "background_color_rgba": "#DDDDDDFF",
-                    "children": [
-                        {
-                            "type": "input_stream",
-                            "input_id": "input_1",
-                        },
-                        {
-                            "type": "image",
-                            "image_id": "image_1",
-                        },
-                    ],
+                    "root": {
+                        "type": "tiles",
+                        "padding": 3,
+                        "background_color_rgba": "#DDDDDDFF",
+                        "children": [
+                            {
+                                "type": "input_stream",
+                                "input_id": "input_1",
+                            },
+                            {
+                                "type": "image",
+                                "image_id": "image_1",
+                            },
+                        ],
+                    }
                 }
             },
         }),

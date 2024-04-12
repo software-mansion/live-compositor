@@ -1,11 +1,13 @@
 {
     "video": {
-        "type": "shader",
-        "shader_id": "base_params_plane_id",
-        "resolution": {
-            "width": 640,
-            "height": 360
-        },
-        "children": []
+        "root": {
+            "type": "shader",
+            "shader_id": "base_params_plane_id",
+            "resolution": {
+                "width": 640,
+                "height": 360
+            },
+            "children": []
+        }
     }
 }

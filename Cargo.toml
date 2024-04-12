@@ -11,6 +11,7 @@ members = [
     "compositor_pipeline",
     "compositor_chromium",
     "integration_tests",
+    "generate"
 ]
 resolver = "2"
 

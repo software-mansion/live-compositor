@@ -1,15 +1,17 @@
 {
     "video": {
-        "type": "view",
-        "overflow": "fit",
-        "children": [
-            {
-                "type": "text",
-                "text": "Example text",
-                "font_size": 30,
-                "font_family": "Verdana",
-                "width": 300
-            }
-        ]
+        "root": {
+            "type": "view",
+            "overflow": "fit",
+            "children": [
+                {
+                    "type": "text",
+                    "text": "Example text",
+                    "font_size": 30,
+                    "font_family": "Verdana",
+                    "width": 300
+                }
+            ]
+        }
     }
 }

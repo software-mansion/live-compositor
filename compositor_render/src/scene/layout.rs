@@ -162,16 +162,18 @@ impl StatefulLayoutComponent {
         parent_size: Size,
         pts: Duration,
     ) -> NestedLayout {
+        let width = position.width.unwrap_or(parent_size.width);
+        let height = position.height.unwrap_or(parent_size.height);
+
         let top = match position.position_vertical {
             VerticalPosition::TopOffset(top) => top,
-            VerticalPosition::BottomOffset(bottom) => parent_size.height - bottom - position.height,
+            VerticalPosition::BottomOffset(bottom) => parent_size.height - bottom - height,
         };
         let left = match position.position_horizontal {
             HorizontalPosition::LeftOffset(left) => left,
-            HorizontalPosition::RightOffset(right) => parent_size.width - right - position.width,
+            HorizontalPosition::RightOffset(right) => parent_size.width - right - width,
         };
-        let width = position.width;
-        let height = position.height;
+
         let rotation_degrees = position.rotation_degrees;
         let content = Self::layout_content(child, 0);
         let crop = None;
@@ -235,8 +237,8 @@ impl SizedLayoutComponent {
                 height: height.unwrap_or(self.size.height),
             },
             Position::Absolute(position) => Size {
-                width: position.width,
-                height: position.height,
+                width: position.width.unwrap_or(self.size.width),
+                height: position.height.unwrap_or(self.size.height),
             },
         }
         .into()
