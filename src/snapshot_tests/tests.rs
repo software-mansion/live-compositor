@@ -1421,7 +1421,7 @@ fn transition_snapshot_tests() -> Vec<TestCase> {
             ],
             ..Default::default()
         },
-                TestCase {
+        TestCase {
             name: "transition/change_view_absolute_cubic_bezier_linear_like",
             scene_updates: Updates::Scenes(vec![
                 (
