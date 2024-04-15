@@ -319,7 +319,7 @@ fn parse_asc(asc: &[u8]) -> Result<Asc, AudioSpecificConfigParseError> {
     let frame_length: u32;
 
     if profile == 31 {
-        profile = ((first & 0b00000111) << 3) + ((second & 0b11100000) >> 5) + 32;
+        profile = ((first & 0b00000111) << 3) + ((second & 0b11100000) >> 5) + 0b00100000;
         let frequency_id = (second & 0b00011110) >> 1;
 
         let channel_and_frame_len_bytes: [u8; 2];

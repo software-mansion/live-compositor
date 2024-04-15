@@ -62,11 +62,13 @@ pub enum InputRtpAudioOptions {
     },
 
     Aac {
-        /// Specific to the AAC codec.
         /// The config should be encoded as described in [RFC 3640](https://datatracker.ietf.org/doc/html/rfc3640#section-4.1)
-        /// The value has to be provided.
-        audio_specific_config: Option<String>,
-        /// (**default=`"high_bitrate"`**) Specific to the AAC codec.
+        /// The simplest way to obtain this value when using ffmpeg to stream to the compositor is
+        /// to pass the additional `-sdp_file FILENAME` option to ffmpeg. This will cause it to
+        /// write out an sdp file, which will contain this field. Programs which have the ability
+        /// to stream AAC to the compositor should provide this information.
+        audio_specific_config: String,
+        /// (**default=`"high_bitrate"`**)
         /// Specifies the [RFC 3640 mode](https://datatracker.ietf.org/doc/html/rfc3640#section-3.3.1)
         /// that should be used when depacketizing this stream.
         rtp_mode: Option<AacRtpMode>,
