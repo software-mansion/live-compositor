@@ -122,8 +122,6 @@ pub fn schedule_update() -> Result<()> {
         }),
     )?;
 
-    instance.send_request("start", json!({}))?;
-
     let mut input_1_sender = PacketSender::new(CommunicationProtocol::Udp, input_1_port)?;
     let mut input_2_sender = PacketSender::new(CommunicationProtocol::Tcp, input_2_port)?;
     let input_1_dump = input_dump_from_disk("8_colors_input_video.rtp")?;
@@ -131,6 +129,8 @@ pub fn schedule_update() -> Result<()> {
 
     input_1_sender.send(&input_1_dump)?;
     input_2_sender.send(&input_2_dump)?;
+
+    instance.send_request("start", json!({}))?;
 
     let new_output_dump = output_receiver.wait_for_output()?;
 
