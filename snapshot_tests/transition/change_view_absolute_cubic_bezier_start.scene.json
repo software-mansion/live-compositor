@@ -1,0 +1,18 @@
+{
+    "video": {
+        "root": {
+            "type": "view",
+            "children": [
+                {
+                    "id": "resize_1",
+                    "type": "view",
+                    "width": 200,
+                    "height": 200,
+                    "top": 0,
+                    "right": 0,
+                    "background_color_rgba": "#00FF00FF"
+                }
+            ]
+        }
+    }
+}
