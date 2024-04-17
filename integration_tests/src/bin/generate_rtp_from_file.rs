@@ -4,7 +4,7 @@ fn main() {
     let args = std::env::args().collect::<Vec<_>>();
     if args.len() != 3 {
         eprintln!(
-            "Usage: {} <video/audio/muxed_video_audio> <input_file>",
+            "Usage: {} <video/audio-opus/audio-aac/muxed_video_audio> <input_file>",
             args[0]
         );
         return;
@@ -25,9 +25,14 @@ fn main() {
                 "gst-launch-1.0 -v funnel name=fn filesrc location={input_path} ! qtdemux ! h264parse ! rtph264pay config-interval=1 pt=96  ! .send_rtp_sink rtpsession name=session .send_rtp_src ! fn. session.send_rtcp_src ! fn. fn. ! rtpstreampay ! filesink location={output_path}_video.rtp"
             )
         }
-        "audio" => {
+        "audio-opus" => {
             format!(
                 "gst-launch-1.0 -v filesrc location={input_path} ! qtdemux ! rtpopuspay ! application/x-rtp,payload=97 ! rtpstreampay ! filesink location={output_path}_audio.rtp"
+            )
+        }
+        "audio-aac" => {
+            format!(
+                "gst-launch-1.0 -v filesrc location={input_path} ! qtdemux ! rtpmp4gpay ! application/x-rtp,payload=97 ! rtpstreampay ! filesink location={output_path}_audio_aac.rtp"
             )
         }
         "muxed_video_audio" => {
