@@ -156,14 +156,14 @@ pub fn stream_video(ip: &str, port: u16, path: PathBuf) -> Result<()> {
 }
 
 #[allow(dead_code)]
-pub fn stream_audio(ip: &str, port: u16, path: PathBuf) -> Result<()> {
+pub fn stream_audio(ip: &str, port: u16, path: PathBuf, codec: &str) -> Result<()> {
     Command::new("ffmpeg")
         .args(["-stream_loop", "-1", "-re", "-i"])
         .arg(path.clone())
         .args([
             "-vn",
             "-c:a",
-            "libopus",
+            codec,
             "-f",
             "rtp",
             &format!("rtp://{ip}:{port}?rtcpport={port}"),

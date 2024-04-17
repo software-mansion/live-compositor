@@ -83,7 +83,16 @@ pub struct DecodedDataReceiver {
     pub audio: Option<Receiver<PipelineEvent<InputSamples>>>,
 }
 
+/// [RFC 3640, section 3.3.5. Low Bit-rate AAC](https://datatracker.ietf.org/doc/html/rfc3640#section-3.3.5)
+/// [RFC 3640, section 3.3.6. High Bit-rate AAC](https://datatracker.ietf.org/doc/html/rfc3640#section-3.3.6)
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AacDepayloaderMode {
+    LowBitrate,
+    HighBitrate,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AacDecoderOptions {
+    pub depayloader_mode: Option<AacDepayloaderMode>,
     pub asc: Option<Bytes>,
 }
