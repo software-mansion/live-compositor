@@ -120,6 +120,7 @@ pub struct PipelineOutputEndConditionState {
 enum InputAction<'a> {
     AddInput(&'a InputId),
     RemoveInput(&'a InputId),
+    NoChanges,
 }
 
 impl PipelineOutputEndConditionState {
@@ -159,6 +160,7 @@ impl PipelineOutputEndConditionState {
     }
 
     pub(super) fn should_send_eos(&mut self) -> bool {
+        self.on_event(InputAction::NoChanges);
         if self.did_end && !self.did_send_eos {
             self.did_send_eos = true;
             return true;
@@ -177,9 +179,17 @@ impl PipelineOutputEndConditionState {
     }
 
     fn on_event(&mut self, action: InputAction) {
+        if self.did_end {
+            return;
+        }
         match action {
-            InputAction::AddInput(id) => self.connected_inputs.insert(id.clone()),
-            InputAction::RemoveInput(id) => self.connected_inputs.remove(id),
+            InputAction::AddInput(id) => {
+                self.connected_inputs.insert(id.clone());
+            }
+            InputAction::RemoveInput(id) => {
+                self.connected_inputs.remove(id);
+            }
+            InputAction::NoChanges => (),
         };
         self.did_end = match self.condition {
             PipelineOutputEndCondition::AnyOf(ref inputs) => {
