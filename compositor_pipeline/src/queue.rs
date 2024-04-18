@@ -84,6 +84,7 @@ impl From<QueueVideoOutput> for FrameSet<InputId> {
     }
 }
 
+#[derive(Debug)]
 pub(super) struct QueueAudioOutput {
     pub samples: HashMap<InputId, PipelineEvent<Vec<InputSamples>>>,
     pub start_pts: Duration,

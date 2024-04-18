@@ -11,7 +11,7 @@ const OUTPUT_RESOLUTION: Resolution = {
     height: 1080,
 };
 
-const INPUT_PORT = randomInt(8000, 9000);
+const INPUT_PORT = 8010;
 const OUTPUT_PORT = randomInt(9000, 10000);
 const IP = "127.0.0.1";
 

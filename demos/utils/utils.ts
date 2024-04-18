@@ -26,18 +26,15 @@ export function spawn(
     ...options,
   });
 
-  const promise = new Promise((res, rej) => {
+  const promise = new Promise<void>((resolve, reject) => {
     child.on("exit", (code) => {
       if (code === 0) {
-        res();
+        console.log(`Command "${command} ${args.join(" ")}" completed successfully.`);
+        resolve();
       } else {
-        rej(
-          new Error(
-            `Command "${command} ${args.join(
-              " ",
-            )}" failed with exit code ${code}.`,
-          ),
-        );
+        const errorMessage = `Command "${command} ${args.join(" ")}" failed with exit code ${code}.`;
+        console.error(errorMessage);
+        reject(new Error(errorMessage));
       }
     });
   }) as SpawnPromise;
@@ -81,6 +78,7 @@ export async function downloadAsync(
 }
 
 export async function sleepAsync(timeout_ms: number): Promise<void> {
+  console.log(`Sleeping for ${timeout_ms} ms`);
   await new Promise<void>((res) => {
     setTimeout(() => {
       res();

@@ -10,8 +10,8 @@
     "ts": "ts-node --transpile-only",
     "01-videoconferencing": "npm run ts ./01-videoconferencing/index.ts",
     "02-tv_broadcast": "npm run ts ./02-tv_broadcast/index.ts",
-    "03-screen_stream": "npm run ts ./03-screen_stream/index.ts",
-    "04-multiple_outputs": "npm run ts ./04-multiple_outputs/index.ts",
+    "03-live_stream": "npm run ts ./03-live_stream/index.ts",
+    "04-mp4_to_mp4": "npm run ts ./04-mp4_to_mp4/index.ts",
     "generate-types": "ts-node ./utils/generate_types.ts"
   },
   "repository": {
@@ -38,6 +38,7 @@
     "fs-extra": "^11.1.1",
     "json-schema-to-typescript": "^13.1.2",
     "node-fetch": "^2.7.0",
+    "node-popup": "^0.1.14",
     "prettier": "^3.0.3",
     "ts-node": "^10.9.1",
     "typescript": "^5.2.2"

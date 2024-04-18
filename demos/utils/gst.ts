@@ -1,40 +1,16 @@
 import { exec } from "child_process";
 import { SpawnPromise, spawn } from "./utils";
 
-export async function gstStartPlayerAsync(ip: string, port: number): Promise<void> {
-    const gstPipeline = [
-        "-v",
-        "tcpclientsrc",
-        `host=${ip}`,
-        `port=${port}`,
-        "!",
-        "\"application/x-rtp-stream\"",
-        "!",
-        "rtpstreamdepay",
-        "!",
-        "rtph264depay",
-        "!",
-        "decodebin",
-        "!",
-        "videoconvert",
-        "!",
-        "autovideosink"
-    ];
+export function gstStartPlayer(ip: string, port: number): SpawnPromise {
+    const gstCommand = `gst-launch-1.0 -v ` +
+        `rtpptdemux name=demux ` +
+        `tcpclientsrc host=${ip} port=${port} ! "application/x-rtp-stream" ! rtpstreamdepay ! demux. ` +
+        `demux.src_96 ! "application/x-rtp,media=video,clock-rate=90000,encoding-name=H264" ! queue ! rtph264depay ! decodebin ! videoconvert ! autovideosink ` +
+        `demux.src_97 ! "application/x-rtp,media=audio,clock-rate=48000,encoding-name=OPUS" ! queue ! rtpopusdepay ! decodebin ! audioconvert ! autoaudiosink `;
 
-    const plugins = [
-        "tcpclientsrc",
-        "rtpstreamdepay",
-        "rtph264depay",
-        "decodebin",
-        "videoconvert",
-        "autovideosink"
-    ];
-    checkGstPlugins(plugins);
-
-    await spawn("gst-launch-1.0", gstPipeline, {
-        stdio: "inherit",
-        cwd: process.cwd()
-    });
+    return spawn("bash", ["-c", gstCommand],
+        { stdio: ["inherit", "inherit", "ignore"] },
+    );
 }
 
 export function gstStreamWebcam(ip: string, port: number): SpawnPromise {
@@ -51,8 +27,7 @@ export function gstStreamWebcam(ip: string, port: number): SpawnPromise {
         "rtph264pay",
         "udpsink",
     ];
-
-   checkGstPlugins(plugins);
+    checkGstPlugins(plugins);
 
     const gstPipeline = [
         gstWebcamSource,
