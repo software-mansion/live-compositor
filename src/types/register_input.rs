@@ -62,7 +62,8 @@ pub enum InputRtpAudioOptions {
     },
 
     Aac {
-        /// The config should be encoded as described in [RFC 3640](https://datatracker.ietf.org/doc/html/rfc3640#section-4.1)
+        /// The config should be encoded as described in [RFC 3640](https://datatracker.ietf.org/doc/html/rfc3640#section-4.1).
+        ///
         /// The simplest way to obtain this value when using ffmpeg to stream to the compositor is
         /// to pass the additional `-sdp_file FILENAME` option to ffmpeg. This will cause it to
         /// write out an sdp file, which will contain this field. Programs which have the ability
