@@ -24,11 +24,27 @@ fn vs_main(input: VertexInput) -> VertexOutput {
 
 @group(1) @binding(0) var sampler_: sampler;
 
+struct PushConstantParams {
+    // 0 - YUV420P
+    // 1 - YUVJ420P
+    pixel_format: u32,
+}
+
+var<push_constant> params: PushConstantParams;
+
 @fragment
 fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
-    let y = textureSample(y_texture, sampler_, input.tex_coords).x;
-    let u = textureSample(u_texture, sampler_, input.tex_coords).x;
-    let v = textureSample(v_texture, sampler_, input.tex_coords).x;
+    var y = textureSample(y_texture, sampler_, input.tex_coords).x;
+    var u = textureSample(u_texture, sampler_, input.tex_coords).x;
+    var v = textureSample(v_texture, sampler_, input.tex_coords).x;
+    
+    if params.pixel_format == 1u {
+        // (235 - 16) / (255 - 0) = (219 / 255) ~= .858
+        y = y * 0.85882352941 + (16.0/255.0);
+        // (240 - 16) / (255 - 0) = (224 / 255) ~= .878
+        u = u * 0.87843137254 + (16.0/255.0);
+        v = v * 0.87843137254 + (16.0/255.0);
+    } 
 
     let r = y + 1.40200 * (v - 128.0 / 255.0);
     let g = y - 0.34414 * (u - 128.0 / 255.0) - 0.71414 * (v - 128.0 / 255.0);

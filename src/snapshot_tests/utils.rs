@@ -11,6 +11,7 @@ pub(super) fn frame_to_rgba(frame: &Frame) -> Vec<u8> {
         y_plane,
         u_plane,
         v_plane,
+        ..
     } = &frame.data;
 
     // Renderer can sometimes produce resolution that is not dividable by 2

@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use bytes::Bytes;
 use wgpu::Buffer;
 
-use crate::{wgpu::WgpuCtx, Resolution, YuvData};
+use crate::{wgpu::WgpuCtx, Resolution, YuvData, YuvVariant};
 
 use super::base::Texture;
 
@@ -35,6 +35,8 @@ where
     pub fn wait(self) -> Result<YuvData, E> {
         let YUVPendingDownload { y, u, v, _phantom } = self;
         Ok(YuvData {
+            // output pixel format will always be YUV420P
+            variant: crate::YuvVariant::YUV420P,
             y_plane: y()?,
             u_plane: u()?,
             v_plane: v()?,
@@ -43,6 +45,7 @@ where
 }
 
 pub struct YUVTextures {
+    pub(super) variant: YuvVariant,
     pub(super) planes: [Texture; 3],
     pub(super) resolution: Resolution,
 }
@@ -50,6 +53,7 @@ pub struct YUVTextures {
 impl YUVTextures {
     pub fn new(ctx: &WgpuCtx, resolution: Resolution) -> Self {
         Self {
+            variant: YuvVariant::YUV420P,
             planes: [
                 Self::new_plane(ctx, resolution.width, resolution.height),
                 Self::new_plane(ctx, resolution.width / 2, resolution.height / 2),
@@ -61,6 +65,10 @@ impl YUVTextures {
 
     pub fn plane(&self, i: usize) -> &Texture {
         &self.planes[i]
+    }
+
+    pub fn variant(&self) -> YuvVariant {
+        self.variant
     }
 
     fn new_plane(ctx: &WgpuCtx, width: usize, height: usize) -> Texture {
@@ -140,7 +148,8 @@ impl YUVTextures {
         ctx.queue.submit(Some(encoder.finish()));
     }
 
-    pub fn upload(&self, ctx: &WgpuCtx, data: &YuvData) {
+    pub fn upload(&mut self, ctx: &WgpuCtx, data: &YuvData) {
+        self.variant = data.variant;
         self.planes[0].upload_data(&ctx.queue, &data.y_plane, 1);
         self.planes[1].upload_data(&ctx.queue, &data.u_plane, 1);
         self.planes[2].upload_data(&ctx.queue, &data.v_plane, 1);
