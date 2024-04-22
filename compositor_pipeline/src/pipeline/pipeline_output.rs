@@ -117,7 +117,7 @@ pub struct PipelineOutputEndConditionState {
     did_send_eos: bool,
 }
 
-enum InputAction<'a> {
+enum StateChange<'a> {
     AddInput(&'a InputId),
     RemoveInput(&'a InputId),
     NoChanges,
@@ -141,6 +141,7 @@ impl PipelineOutputEndConditionState {
             did_send_eos: false,
         }
     }
+
     fn new_audio(
         condition: PipelineOutputEndCondition,
         inputs: &HashMap<InputId, PipelineInput>,
@@ -160,7 +161,7 @@ impl PipelineOutputEndConditionState {
     }
 
     pub(super) fn should_send_eos(&mut self) -> bool {
-        self.on_event(InputAction::NoChanges);
+        self.on_event(StateChange::NoChanges);
         if self.did_end && !self.did_send_eos {
             self.did_send_eos = true;
             return true;
@@ -169,27 +170,27 @@ impl PipelineOutputEndConditionState {
     }
 
     pub(super) fn on_input_registered(&mut self, input_id: &InputId) {
-        self.on_event(InputAction::AddInput(input_id))
+        self.on_event(StateChange::AddInput(input_id))
     }
     pub(super) fn on_input_unregistered(&mut self, input_id: &InputId) {
-        self.on_event(InputAction::RemoveInput(input_id))
+        self.on_event(StateChange::RemoveInput(input_id))
     }
     pub(super) fn on_input_eos(&mut self, input_id: &InputId) {
-        self.on_event(InputAction::RemoveInput(input_id))
+        self.on_event(StateChange::RemoveInput(input_id))
     }
 
-    fn on_event(&mut self, action: InputAction) {
+    fn on_event(&mut self, action: StateChange) {
         if self.did_end {
             return;
         }
         match action {
-            InputAction::AddInput(id) => {
+            StateChange::AddInput(id) => {
                 self.connected_inputs.insert(id.clone());
             }
-            InputAction::RemoveInput(id) => {
+            StateChange::RemoveInput(id) => {
                 self.connected_inputs.remove(id);
             }
-            InputAction::NoChanges => (),
+            StateChange::NoChanges => (),
         };
         self.did_end = match self.condition {
             PipelineOutputEndCondition::AnyOf(ref inputs) => {
@@ -206,7 +207,7 @@ impl PipelineOutputEndConditionState {
                     .count();
                 connected_inputs_from_list == 0
             }
-            PipelineOutputEndCondition::AnyInput => matches!(action, InputAction::RemoveInput(_)),
+            PipelineOutputEndCondition::AnyInput => matches!(action, StateChange::RemoveInput(_)),
             PipelineOutputEndCondition::AllInputs => self.connected_inputs.is_empty(),
             PipelineOutputEndCondition::Never => false,
         };
