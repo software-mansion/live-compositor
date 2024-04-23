@@ -16,7 +16,7 @@ use compositor_render::RendererOptions;
 use compositor_render::{error::UpdateSceneError, Renderer};
 use compositor_render::{EventLoop, InputId, OutputId, RendererId, RendererSpec};
 use crossbeam_channel::{bounded, Receiver};
-use tracing::{error, info, trace, warn};
+use tracing::{debug, error, info, trace, warn};
 
 use crate::audio_mixer::AudioMixer;
 use crate::audio_mixer::MixingStrategy;
@@ -348,7 +348,7 @@ fn run_renderer_thread(
             };
 
             if frame_sender.send(PipelineEvent::Data(frame)).is_err() {
-                warn!(?output_id, "Failed to send output frames. Channel closed.");
+                debug!(?output_id, "Failed to send output frames. Channel closed.");
             }
 
             if send_eos {
@@ -407,7 +407,7 @@ fn run_audio_mixer_thread(
             };
 
             if samples_sender.send(PipelineEvent::Data(batch)).is_err() {
-                warn!(?output_id, "Failed to send mixed audio. Channel closed.");
+                debug!(?output_id, "Failed to send mixed audio. Channel closed.");
             }
 
             if send_eos {
