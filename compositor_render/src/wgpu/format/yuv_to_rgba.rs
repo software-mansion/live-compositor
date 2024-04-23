@@ -1,6 +1,11 @@
-use crate::wgpu::{
-    common_pipeline::{Sampler, Vertex, PRIMITIVE_STATE},
-    texture::{RGBATexture, YUVTextures},
+use wgpu::ShaderStages;
+
+use crate::{
+    wgpu::{
+        common_pipeline::{Sampler, Vertex, PRIMITIVE_STATE},
+        texture::{RGBATexture, YUVTextures},
+    },
+    YuvVariant,
 };
 
 use super::WgpuCtx;
@@ -22,7 +27,10 @@ impl YUVToRGBAConverter {
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("YUV to RGBA color converter render pipeline layout"),
             bind_group_layouts: &[yuv_textures_bind_group_layout, &sampler.bind_group_layout],
-            push_constant_ranges: &[],
+            push_constant_ranges: &[wgpu::PushConstantRange {
+                stages: wgpu::ShaderStages::VERTEX_FRAGMENT,
+                range: 0..YUVToRGBAPushConstants::push_constant_size(),
+            }],
         });
 
         let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
@@ -84,10 +92,42 @@ impl YUVToRGBAConverter {
             render_pass.set_pipeline(&self.pipeline);
             render_pass.set_bind_group(0, src.1, &[]);
             render_pass.set_bind_group(1, &self.sampler.bind_group, &[]);
+            render_pass.set_push_constants(
+                ShaderStages::VERTEX_FRAGMENT,
+                0,
+                YUVToRGBAPushConstants::new(src.0.variant()).push_constant(),
+            );
 
             ctx.plane.draw(&mut render_pass);
         }
 
         ctx.queue.submit(Some(encoder.finish()));
+    }
+}
+
+#[repr(C)]
+#[derive(Debug, bytemuck::Pod, bytemuck::Zeroable, Clone, Copy)]
+struct YUVToRGBAPushConstants {
+    pixel_format: u32,
+}
+
+impl YUVToRGBAPushConstants {
+    fn new(variant: YuvVariant) -> Self {
+        match variant {
+            YuvVariant::YUV420P => Self { pixel_format: 0 },
+            YuvVariant::YUVJ420P => Self { pixel_format: 1 },
+        }
+    }
+
+    fn push_constant_size() -> u32 {
+        let size = std::mem::size_of::<YUVToRGBAPushConstants>() as u32;
+        match size % 4 {
+            0 => size,
+            rest => size + (4 - rest),
+        }
+    }
+
+    fn push_constant(&self) -> &[u8] {
+        bytemuck::bytes_of(self)
     }
 }

@@ -65,7 +65,7 @@ impl InputTexture {
         &'a mut self,
         ctx: &WgpuCtx,
         new_resolution: Resolution,
-    ) -> &'a InputTextureState {
+    ) -> &'a mut InputTextureState {
         fn new_state(ctx: &WgpuCtx, new_resolution: Resolution) -> InputTextureState {
             let textures = YUVTextures::new(ctx, new_resolution);
             let bind_group = textures.new_bind_group(ctx, ctx.format.yuv_layout());
@@ -85,11 +85,15 @@ impl InputTexture {
             }
             OptionalState::None => OptionalState::Some(new_state(ctx, new_resolution)),
         };
-        self.state().unwrap()
+        self.state_mut().unwrap()
     }
 
     pub fn state(&self) -> Option<&InputTextureState> {
         self.0.state()
+    }
+
+    fn state_mut(&mut self) -> Option<&mut InputTextureState> {
+        self.0.state_mut()
     }
 }
 
@@ -280,6 +284,14 @@ impl<State> OptionalState<State> {
             OptionalState::None => None,
             OptionalState::NoneWithOldState(_) => None,
             OptionalState::Some(ref state) => Some(state),
+        }
+    }
+
+    fn state_mut(&mut self) -> Option<&mut State> {
+        match self {
+            OptionalState::None => None,
+            OptionalState::NoneWithOldState(_) => None,
+            OptionalState::Some(ref mut state) => Some(state),
         }
     }
 

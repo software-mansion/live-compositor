@@ -14,9 +14,16 @@ pub struct Frame {
 
 #[derive(Clone)]
 pub struct YuvData {
+    pub variant: YuvVariant,
     pub y_plane: bytes::Bytes,
     pub u_plane: bytes::Bytes,
     pub v_plane: bytes::Bytes,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum YuvVariant {
+    YUV420P,
+    YUVJ420P,
 }
 
 impl fmt::Debug for YuvData {
