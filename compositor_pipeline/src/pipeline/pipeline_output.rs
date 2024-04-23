@@ -193,20 +193,12 @@ impl PipelineOutputEndConditionState {
             StateChange::NoChanges => (),
         };
         self.did_end = match self.condition {
-            PipelineOutputEndCondition::AnyOf(ref inputs) => {
-                let connected_inputs_from_list = inputs
-                    .iter()
-                    .filter(|input_id| self.connected_inputs.get(input_id).is_some())
-                    .count();
-                connected_inputs_from_list != inputs.len()
-            }
-            PipelineOutputEndCondition::AllOf(ref inputs) => {
-                let connected_inputs_from_list = inputs
-                    .iter()
-                    .filter(|input_id| self.connected_inputs.get(input_id).is_some())
-                    .count();
-                connected_inputs_from_list == 0
-            }
+            PipelineOutputEndCondition::AnyOf(ref inputs) => inputs
+                .iter()
+                .any(|input_id| !self.connected_inputs.contains(input_id)),
+            PipelineOutputEndCondition::AllOf(ref inputs) => inputs
+                .iter()
+                .all(|input_id| !self.connected_inputs.contains(input_id)),
             PipelineOutputEndCondition::AnyInput => matches!(action, StateChange::RemoveInput(_)),
             PipelineOutputEndCondition::AllInputs => self.connected_inputs.is_empty(),
             PipelineOutputEndCondition::Never => false,
