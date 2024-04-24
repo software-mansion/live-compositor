@@ -1,8 +1,13 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::{Arc, Mutex},
+};
 
-use compositor_render::{InputId, OutputId};
+use compositor_render::{Frame, InputId, OutputId};
+use crossbeam_channel::Sender;
+use tracing::{info, warn};
 
-use crate::error::RegisterOutputError;
+use crate::{audio_mixer::OutputSamples, error::RegisterOutputError, queue::PipelineEvent};
 
 use super::{
     encoder::{self, opus, AudioEncoderOptions, Encoder, EncoderOptions},
@@ -107,6 +112,73 @@ impl Pipeline {
 
         Ok(port)
     }
+
+    pub(super) fn get_output_video_sender(
+        pipeline: &Arc<Mutex<Pipeline>>,
+        output_id: &OutputId,
+    ) -> Option<Sender<PipelineEvent<Frame>>> {
+        let mut guard = pipeline.lock().unwrap();
+        let Some(output) = guard.outputs.get_mut(output_id) else {
+            warn!(
+                ?output_id,
+                "Failed to send output frame. Output does not exists.",
+            );
+            return None;
+        };
+        let sender = output.encoder.frame_sender()?.clone();
+        let eos_status = output.video_end_condition.as_mut()?.eos_status();
+        drop(guard);
+
+        match eos_status {
+            EosStatus::None => Some(sender),
+            EosStatus::SendEos => {
+                info!(?output_id, "Sending video EOS on output.");
+                if sender.send(PipelineEvent::EOS).is_err() {
+                    warn!(
+                        ?output_id,
+                        "Failed to send EOS from renderer. Channel closed."
+                    );
+                };
+                None
+            }
+            EosStatus::AlreadySent => {
+                warn!(?output_id, "Received new frame from renderer after EOS.");
+                None
+            }
+        }
+    }
+
+    pub(super) fn get_output_audio_sender(
+        pipeline: &Arc<Mutex<Pipeline>>,
+        output_id: &OutputId,
+    ) -> Option<Sender<PipelineEvent<OutputSamples>>> {
+        let mut guard = pipeline.lock().unwrap();
+        let Some(output) = guard.outputs.get_mut(output_id) else {
+            warn!(
+                ?output_id,
+                "Failed to send output samples. Output does not exists.",
+            );
+            return None;
+        };
+        let sender = output.encoder.samples_batch_sender()?.clone();
+        let eos_status = output.audio_end_condition.as_mut()?.eos_status();
+        drop(guard);
+
+        match eos_status {
+            EosStatus::None => Some(sender),
+            EosStatus::SendEos => {
+                info!(?output_id, "Sending audio EOS on output.");
+                if sender.send(PipelineEvent::EOS).is_err() {
+                    warn!(?output_id, "Failed to send EOS from mixer. Channel closed.");
+                };
+                None
+            }
+            EosStatus::AlreadySent => {
+                warn!(?output_id, "Received new mixed samples after EOS.");
+                None
+            }
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -121,6 +193,12 @@ enum StateChange<'a> {
     AddInput(&'a InputId),
     RemoveInput(&'a InputId),
     NoChanges,
+}
+
+enum EosStatus {
+    None,
+    SendEos,
+    AlreadySent,
 }
 
 impl PipelineOutputEndConditionState {
@@ -160,13 +238,16 @@ impl PipelineOutputEndConditionState {
         }
     }
 
-    pub(super) fn should_send_eos(&mut self) -> bool {
+    fn eos_status(&mut self) -> EosStatus {
         self.on_event(StateChange::NoChanges);
-        if self.did_end && !self.did_send_eos {
-            self.did_send_eos = true;
-            return true;
+        if self.did_end {
+            if !self.did_send_eos {
+                self.did_send_eos = true;
+                return EosStatus::SendEos;
+            }
+            return EosStatus::AlreadySent;
         }
-        false
+        EosStatus::None
     }
 
     pub(super) fn on_input_registered(&mut self, input_id: &InputId) {
