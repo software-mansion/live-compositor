@@ -91,7 +91,7 @@ fn start_example_client_code() -> Result<()> {
                         "align": "right",
                         "width": 400,
                         "font_size": 40.0,
-                        "font_family": "Comic Sans MS",
+                        "font_family": "Inter",
                     }]
                 }
             ]

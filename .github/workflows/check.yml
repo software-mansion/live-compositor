@@ -17,13 +17,9 @@ jobs:
               run: |
                   set -e
 
-                  echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | sudo debconf-set-selections
-
                   sudo add-apt-repository ppa:ubuntuhandbook1/ffmpeg6
                   sudo apt-get update -y -qq
-                  sudo apt-get install -y mesa-vulkan-drivers libegl1-mesa-dev libgl1-mesa-dri libxcb-xfixes0-dev ffmpeg libavcodec-dev libavformat-dev libavfilter-dev libavdevice-dev ttf-mscorefonts-installer libopus-dev
-                
-                  fc-cache -f
+                  sudo apt-get install -y mesa-vulkan-drivers libegl1-mesa-dev libgl1-mesa-dri libxcb-xfixes0-dev ffmpeg libavcodec-dev libavformat-dev libavfilter-dev libavdevice-dev libopus-dev fonts-inter
 
             - name: 🔧 Install the rust toolchain
               uses: dtolnay/rust-toolchain@stable

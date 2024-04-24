@@ -55,7 +55,7 @@ fn start_example_client_code() -> Result<()> {
                         "type": "text",
                         "text": "VideoCompositor🚀\nSecond Line\nLorem ipsum dolor sit amet consectetur adipisicing elit. Soluta delectus optio fugit maiores eaque ab totam, veritatis aperiam provident, aliquam consectetur deserunt cumque est? Saepe tenetur impedit culpa asperiores id?",
                         "font_size": 100.0,
-                        "font_family": "Comic Sans MS",
+                        "font_family": "Inter",
                         "align": "center",
                         "wrap": "word",
                         "background_color_rgba": "#00800000",

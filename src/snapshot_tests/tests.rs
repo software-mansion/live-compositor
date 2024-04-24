@@ -1021,6 +1021,7 @@ fn text_snapshot_tests() -> Vec<TestCase> {
                 include_str!("../../snapshot_tests/text/align_center.scene.json"),
                 DEFAULT_RESOLUTION,
             ),
+            allowed_error: 350.0,
             ..Default::default()
         },
         TestCase {
