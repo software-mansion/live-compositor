@@ -27,7 +27,7 @@ Example scene:
 ```typescript
 {
     "type": "view",
-    "background_color_rgba": "#0000FFFF"
+    "background_color_rgba": "#0000FFFF",
     "children": [
         {
             "type": "input-stream",
