@@ -13,9 +13,7 @@ use super::*;
 #[serde(deny_unknown_fields)]
 pub struct RtpOutputStream {
     /// Depends on the value of the `transport_protocol` field:
-    ///
     ///   - `udp` - An UDP port number that RTP packets will be sent to.
-    ///
     ///   - `tcp_server` - A local TCP port number or a port range that LiveCompositor will listen for incoming connections.
     pub port: PortOrPortRange,
     /// Only valid if `transport_protocol="udp"`. IP address where RTP packets should be sent to.
@@ -82,15 +80,10 @@ pub enum AudioEncoderOptions {
 }
 
 /// This type defines when end of an input stream should trigger end of the output stream. Only one of those fields can be set at the time.
-///
 /// Unless specified otherwise the input stream is considered finished/ended when:
-///
 /// - TCP connection was dropped/closed.
-///
 /// - RTCP Goodbye packet (`BYE`) was received.
-///
 /// - Mp4 track has ended.
-///
 /// - Input was unregistered already (or never registered).
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema, Default)]
 #[serde(deny_unknown_fields)]
