@@ -79,7 +79,7 @@ jobs:
                 path: artifacts/video_compositor_linux_aarch64.tar.gz
 
     macos_x86_64:
-        runs-on: macos-latest
+        runs-on: macos-12
         steps:
             - name: 🛠 Install system dependencies
               run: brew install ffmpeg
