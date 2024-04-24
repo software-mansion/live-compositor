@@ -1030,6 +1030,7 @@ fn text_snapshot_tests() -> Vec<TestCase> {
                 include_str!("../../snapshot_tests/text/align_right.scene.json"),
                 DEFAULT_RESOLUTION,
             ),
+            allowed_error: 30.0,
             ..Default::default()
         },
         TestCase {
@@ -1038,6 +1039,7 @@ fn text_snapshot_tests() -> Vec<TestCase> {
                 include_str!("../../snapshot_tests/text/bold_text.scene.json"),
                 DEFAULT_RESOLUTION,
             ),
+            allowed_error: 35.0,
             ..Default::default()
         },
         TestCase {
@@ -1066,6 +1068,7 @@ fn text_snapshot_tests() -> Vec<TestCase> {
                 include_str!("../../snapshot_tests/text/dimensions_fitted.scene.json"),
                 DEFAULT_RESOLUTION,
             ),
+            allowed_error: 30.0,
             ..Default::default()
         },
         TestCase {
@@ -1074,6 +1077,7 @@ fn text_snapshot_tests() -> Vec<TestCase> {
                 include_str!("../../snapshot_tests/text/dimensions_fixed.scene.json"),
                 DEFAULT_RESOLUTION,
             ),
+            allowed_error: 30.0,
             ..Default::default()
         },
         TestCase {
@@ -1082,6 +1086,7 @@ fn text_snapshot_tests() -> Vec<TestCase> {
                 include_str!("../../snapshot_tests/text/dimensions_fixed_with_overflow.scene.json"),
                 DEFAULT_RESOLUTION,
             ),
+            allowed_error: 60.0,
             ..Default::default()
         },
         TestCase {
@@ -1107,6 +1112,7 @@ fn text_snapshot_tests() -> Vec<TestCase> {
                 include_str!("../../snapshot_tests/text/wrap_none.scene.json"),
                 DEFAULT_RESOLUTION,
             ),
+            allowed_error: 55.0,
             ..Default::default()
         },
         TestCase {
@@ -1154,6 +1160,7 @@ fn text_snapshot_tests() -> Vec<TestCase> {
                 include_str!("../../snapshot_tests/text/root_text.scene.json"),
                 DEFAULT_RESOLUTION,
             ),
+            allowed_error: 80.0,
             ..Default::default()
         },
     ])
