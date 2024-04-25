@@ -125,8 +125,8 @@ impl Pipeline {
             );
             return None;
         };
-        let sender = output.encoder.frame_sender()?.clone();
         let eos_status = output.video_end_condition.as_mut()?.eos_status();
+        let sender = output.encoder.frame_sender()?.clone();
         drop(guard);
 
         match eos_status {
@@ -141,10 +141,7 @@ impl Pipeline {
                 };
                 None
             }
-            EosStatus::AlreadySent => {
-                warn!(?output_id, "Received new frame from renderer after EOS.");
-                None
-            }
+            EosStatus::AlreadySent => None,
         }
     }
 
@@ -160,8 +157,8 @@ impl Pipeline {
             );
             return None;
         };
-        let sender = output.encoder.samples_batch_sender()?.clone();
         let eos_status = output.audio_end_condition.as_mut()?.eos_status();
+        let sender = output.encoder.samples_batch_sender()?.clone();
         drop(guard);
 
         match eos_status {
@@ -173,10 +170,7 @@ impl Pipeline {
                 };
                 None
             }
-            EosStatus::AlreadySent => {
-                warn!(?output_id, "Received new mixed samples after EOS.");
-                None
-            }
+            EosStatus::AlreadySent => None,
         }
     }
 }

@@ -24,6 +24,7 @@ use crate::audio_mixer::{AudioChannels, AudioMixingParams};
 use crate::error::{
     RegisterInputError, RegisterOutputError, UnregisterInputError, UnregisterOutputError,
 };
+
 use crate::queue::PipelineEvent;
 use crate::queue::QueueAudioOutput;
 use crate::queue::{self, Queue, QueueOptions, QueueVideoOutput};
@@ -317,6 +318,19 @@ fn run_renderer_thread(
         }
 
         let input_frames: FrameSet<InputId> = input_frames.into();
+
+        let output_ids: Vec<_> = pipeline.lock().unwrap().outputs.keys().cloned().collect();
+        let output_frame_senders: HashMap<_, _> = output_ids
+            .into_iter()
+            .filter_map(|id| {
+                let Some(sender) = Pipeline::get_output_video_sender(&pipeline, &id) else {
+                    renderer.unregister_output(&id);
+                    return None;
+                };
+                Some((id, sender))
+            })
+            .collect();
+
         trace!(?input_frames, "Rendering frames");
         let output_frames = renderer.render(input_frames);
         let Ok(output_frames) = output_frames else {
@@ -328,9 +342,8 @@ fn run_renderer_thread(
         };
 
         for (output_id, frame) in output_frames.frames {
-            let frame_sender = Pipeline::get_output_video_sender(&pipeline, &output_id);
-            let Some(frame_sender) = frame_sender else {
-                renderer.unregister_output(&output_id);
+            let Some(frame_sender) = output_frame_senders.get(&output_id) else {
+                warn!(?output_id, "Received new frame from renderer after EOS.");
                 continue;
             };
 
@@ -361,11 +374,24 @@ fn run_audio_mixer_thread(
                 }
             }
         }
+
+        let output_ids: Vec<_> = pipeline.lock().unwrap().outputs.keys().cloned().collect();
+        let output_samples_senders: HashMap<_, _> = output_ids
+            .into_iter()
+            .filter_map(|output_id| {
+                let Some(sender) = Pipeline::get_output_audio_sender(&pipeline, &output_id) else {
+                    audio_mixer.unregister_output(&output_id);
+                    return None;
+                };
+                Some((output_id, sender))
+            })
+            .collect();
+
         let mixed_samples = audio_mixer.mix_samples(samples.into());
+
         for (output_id, batch) in mixed_samples.0 {
-            let samples_sender = Pipeline::get_output_audio_sender(&pipeline, &output_id);
-            let Some(samples_sender) = samples_sender else {
-                audio_mixer.unregister_output(&output_id);
+            let Some(samples_sender) = output_samples_senders.get(&output_id) else {
+                warn!(?output_id, "Received new mixed samples after EOS.");
                 continue;
             };
 
