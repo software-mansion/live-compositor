@@ -1,8 +1,13 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::{Arc, Mutex},
+};
 
-use compositor_render::{InputId, OutputId};
+use compositor_render::{Frame, InputId, OutputId};
+use crossbeam_channel::Sender;
+use tracing::{info, warn};
 
-use crate::error::RegisterOutputError;
+use crate::{audio_mixer::OutputSamples, error::RegisterOutputError, queue::PipelineEvent};
 
 use super::{
     encoder::{self, opus, AudioEncoderOptions, Encoder, EncoderOptions},
@@ -24,6 +29,11 @@ pub struct PipelineOutput {
     pub output: output::Output,
     pub video_end_condition: Option<PipelineOutputEndConditionState>,
     pub audio_end_condition: Option<PipelineOutputEndConditionState>,
+}
+
+pub(super) enum OutputSender<T> {
+    ActiveSender(T),
+    FinishedSender,
 }
 
 impl Pipeline {
@@ -107,6 +117,69 @@ impl Pipeline {
 
         Ok(port)
     }
+
+    pub(super) fn all_output_video_senders_iter(
+        pipeline: &Arc<Mutex<Pipeline>>,
+    ) -> impl Iterator<Item = (OutputId, OutputSender<Sender<PipelineEvent<Frame>>>)> {
+        let outputs: HashMap<_, _> = pipeline
+            .lock()
+            .unwrap()
+            .outputs
+            .iter_mut()
+            .filter_map(|(output_id, output)| {
+                let eos_status = output.video_end_condition.as_mut()?.eos_status();
+                let sender = output.encoder.frame_sender()?.clone();
+                Some((output_id.clone(), (sender, eos_status)))
+            })
+            .collect();
+
+        outputs
+            .into_iter()
+            .filter_map(|(output_id, (sender, eos_status))| match eos_status {
+                EosStatus::None => Some((output_id, OutputSender::ActiveSender(sender))),
+                EosStatus::SendEos => {
+                    info!(?output_id, "Sending video EOS on output.");
+                    if sender.send(PipelineEvent::EOS).is_err() {
+                        warn!(
+                            ?output_id,
+                            "Failed to send EOS from renderer. Channel closed."
+                        );
+                    };
+                    Some((output_id, OutputSender::FinishedSender))
+                }
+                EosStatus::AlreadySent => None,
+            })
+    }
+
+    pub(super) fn all_output_audio_senders_iter(
+        pipeline: &Arc<Mutex<Pipeline>>,
+    ) -> impl Iterator<Item = (OutputId, OutputSender<Sender<PipelineEvent<OutputSamples>>>)> {
+        let outputs: HashMap<_, _> = pipeline
+            .lock()
+            .unwrap()
+            .outputs
+            .iter_mut()
+            .filter_map(|(output_id, output)| {
+                let eos_status = output.audio_end_condition.as_mut()?.eos_status();
+                let sender = output.encoder.samples_batch_sender()?.clone();
+                Some((output_id.clone(), (sender, eos_status)))
+            })
+            .collect();
+
+        outputs
+            .into_iter()
+            .filter_map(|(output_id, (sender, eos_status))| match eos_status {
+                EosStatus::None => Some((output_id, OutputSender::ActiveSender(sender))),
+                EosStatus::SendEos => {
+                    info!(?output_id, "Sending audio EOS on output.");
+                    if sender.send(PipelineEvent::EOS).is_err() {
+                        warn!(?output_id, "Failed to send EOS from mixer. Channel closed.");
+                    };
+                    Some((output_id, OutputSender::FinishedSender))
+                }
+                EosStatus::AlreadySent => None,
+            })
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -121,6 +194,12 @@ enum StateChange<'a> {
     AddInput(&'a InputId),
     RemoveInput(&'a InputId),
     NoChanges,
+}
+
+enum EosStatus {
+    None,
+    SendEos,
+    AlreadySent,
 }
 
 impl PipelineOutputEndConditionState {
@@ -160,13 +239,16 @@ impl PipelineOutputEndConditionState {
         }
     }
 
-    pub(super) fn should_send_eos(&mut self) -> bool {
+    fn eos_status(&mut self) -> EosStatus {
         self.on_event(StateChange::NoChanges);
-        if self.did_end && !self.did_send_eos {
-            self.did_send_eos = true;
-            return true;
+        if self.did_end {
+            if !self.did_send_eos {
+                self.did_send_eos = true;
+                return EosStatus::SendEos;
+            }
+            return EosStatus::AlreadySent;
         }
-        false
+        EosStatus::None
     }
 
     pub(super) fn on_input_registered(&mut self, input_id: &InputId) {
