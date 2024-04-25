@@ -64,7 +64,9 @@ POST: /api/output/:output_id/update
 
 ```typescript
 type RequestBody = {
-  video?: Component;
+  video?: {
+    root: Component
+  };
   audio?: {
     inputs: AudioInput[];
   };
@@ -79,8 +81,10 @@ type AudioInput = {
 
 Update scene definition and audio mixer configuration for output with ID `:output_id`. The output stream has to be registered first. See [`register output`](./routes.md#register-output) request.
 
-- `video` - Root of a component tree/scene that should be rendered for the output. [Learn more](../concept/component)
-- `audio` - Parameters for mixing input audio streams.
+- `video` - Configuration for video output. 
+- `video.root` - Root of a component tree/scene that should be rendered for the output. [Learn more](../concept/component)
+- `audio` - Configuration for audio output.
+- `audio.inputs` - Input streams that should be mixed together and their configuration.
 - `audio.inputs[].input_id` - Input ID.
 - `audio.inputs[].volume` - (**default=`1.0`**) Float in `[0, 1]` range representing volume.
 - `schedule_time_ms` - Time in milliseconds when this request should be applied. Value `0` represents time of [the start request](#start-request).
