@@ -22,13 +22,13 @@ jobs:
 
             - uses: actions/upload-artifact@v3
               with:
-                name: video_compositor_linux_x86_64.tar.gz
-                path: video_compositor_linux_x86_64.tar.gz
+                name: live_compositor_linux_x86_64.tar.gz
+                path: live_compositor_linux_x86_64.tar.gz
 
             - uses: actions/upload-artifact@v3
               with:
-                name: video_compositor_with_web_renderer_linux_x86_64.tar.gz
-                path: video_compositor_with_web_renderer_linux_x86_64.tar.gz
+                name: live_compositor_with_web_renderer_linux_x86_64.tar.gz
+                path: live_compositor_with_web_renderer_linux_x86_64.tar.gz
 
     linux-aarch64:
         runs-on: ubuntu-latest
@@ -75,8 +75,8 @@ jobs:
                   cp *.tar.gz /artifacts
             - uses: actions/upload-artifact@v3
               with:
-                name: video_compositor_linux_aarch64.tar.gz
-                path: artifacts/video_compositor_linux_aarch64.tar.gz
+                name: live_compositor_linux_aarch64.tar.gz
+                path: artifacts/live_compositor_linux_aarch64.tar.gz
 
     macos_x86_64:
         runs-on: macos-12
@@ -95,13 +95,13 @@ jobs:
 
             - uses: actions/upload-artifact@v3
               with:
-                name: video_compositor_darwin_x86_64.tar.gz
-                path: video_compositor_darwin_x86_64.tar.gz
+                name: live_compositor_darwin_x86_64.tar.gz
+                path: live_compositor_darwin_x86_64.tar.gz
 
             - uses: actions/upload-artifact@v3
               with:
-                name: video_compositor_with_web_renderer_darwin_x86_64.tar.gz
-                path: video_compositor_with_web_renderer_darwin_x86_64.tar.gz
+                name: live_compositor_with_web_renderer_darwin_x86_64.tar.gz
+                path: live_compositor_with_web_renderer_darwin_x86_64.tar.gz
 
     macos-aarch64:
         runs-on: macos-14
@@ -120,10 +120,10 @@ jobs:
 
             - uses: actions/upload-artifact@v3
               with:
-                name: video_compositor_darwin_aarch64.tar.gz
-                path: video_compositor_darwin_aarch64.tar.gz
+                name: live_compositor_darwin_aarch64.tar.gz
+                path: live_compositor_darwin_aarch64.tar.gz
 
             - uses: actions/upload-artifact@v3
               with:
-                name: video_compositor_with_web_renderer_darwin_aarch64.tar.gz
-                path: video_compositor_with_web_renderer_darwin_aarch64.tar.gz
+                name: live_compositor_with_web_renderer_darwin_aarch64.tar.gz
+                path: live_compositor_with_web_renderer_darwin_aarch64.tar.gz

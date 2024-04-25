@@ -1,6 +1,6 @@
 # Get started
 
-To familiarize yourself with a compositor you can start with `examples` directory. It includes example applications that use ffmpeg and ffplay to simulate compositor inputs and outputs. For a more detailed explanation of some of the terms used in this documentation, you can check [this page](https://github.com/membraneframework/video_compositor/wiki/Main-concepts).
+To familiarize yourself with a compositor you can start with `examples` directory. It includes example applications that use ffmpeg and ffplay to simulate compositor inputs and outputs. For a more detailed explanation of some of the terms used in this documentation, you can check [this page](https://github.com/membraneframework/live_compositor/wiki/Main-concepts).
 
 Running examples requires:
 

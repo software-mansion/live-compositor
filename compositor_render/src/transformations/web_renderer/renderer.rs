@@ -145,7 +145,7 @@ impl WebRenderer {
 
     pub fn shared_memory_root_path(compositor_instance_id: &str, web_renderer_id: &str) -> PathBuf {
         env::temp_dir()
-            .join("video_compositor")
+            .join("live_compositor")
             .join(format!("instance_{compositor_instance_id}"))
             .join(web_renderer_id)
     }

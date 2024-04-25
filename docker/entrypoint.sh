@@ -9,4 +9,4 @@ export DBUS_SESSION_BUS_ADDRESS=unix:path=$XDG_RUNTIME_DIR/bus
 sudo service dbus start
 dbus-daemon --session --address=$DBUS_SESSION_BUS_ADDRESS --nofork --nopidfile --syslog-only &
 
-xvfb-run "$MEMBRANE_VIDEO_COMPOSITOR_MAIN_EXECUTABLE_PATH"
+xvfb-run "$LIVE_COMPOSITOR_MAIN_EXECUTABLE_PATH"

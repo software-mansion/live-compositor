@@ -1,9 +1,9 @@
 use anyhow::{anyhow, Result};
+use live_compositor::{config::read_config, types::Resolution};
 use log::{error, info, warn};
 use serde_json::json;
 use signal_hook::{consts, iterator::Signals};
 use std::{env, process::Command, thread, time::Duration};
-use video_compositor::{config::read_config, types::Resolution};
 
 use crate::common::{start_ffplay, start_websocket_thread, stream_ffmpeg_testsrc};
 

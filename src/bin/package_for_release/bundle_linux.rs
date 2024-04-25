@@ -8,12 +8,12 @@ use std::process::Command;
 use crate::utils;
 
 const X86_TARGET: &str = "x86_64-unknown-linux-gnu";
-const X86_OUTPUT_FILE: &str = "video_compositor_linux_x86_64.tar.gz";
+const X86_OUTPUT_FILE: &str = "live_compositor_linux_x86_64.tar.gz";
 const X86_WITH_WEB_RENDERER_OUTPUT_FILE: &str =
-    "video_compositor_with_web_renderer_linux_x86_64.tar.gz";
+    "live_compositor_with_web_renderer_linux_x86_64.tar.gz";
 
 const ARM_TARGET: &str = "aarch64-unknown-linux-gnu";
-const ARM_OUTPUT_FILE: &str = "video_compositor_linux_aarch64.tar.gz";
+const ARM_OUTPUT_FILE: &str = "live_compositor_linux_aarch64.tar.gz";
 
 pub fn bundle_linux_app() -> Result<()> {
     tracing_subscriber::fmt().init();
@@ -41,7 +41,7 @@ fn bundle_app(
     let root_dir_str = env!("CARGO_MANIFEST_DIR");
     let root_dir: PathBuf = root_dir_str.into();
     let release_dir = root_dir.join(format!("target/{target_name}/release"));
-    let tmp_dir = root_dir.join("video_compositor");
+    let tmp_dir = root_dir.join("live_compositor");
     utils::setup_bundle_dir(&tmp_dir)?;
 
     info!("Build main_process binary.");
@@ -57,19 +57,19 @@ fn bundle_app(
         info!("Copy main_process binary.");
         fs::copy(
             release_dir.join("main_process"),
-            tmp_dir.join("video_compositor_main"),
+            tmp_dir.join("live_compositor_main"),
         )?;
 
         info!("Copy process_helper binary.");
         fs::copy(
             release_dir.join("process_helper"),
-            tmp_dir.join("video_compositor_process_helper"),
+            tmp_dir.join("live_compositor_process_helper"),
         )?;
 
         info!("Copy wrapper script.");
         fs::copy(
             root_dir.join("src/bin/package_for_release/linux_runtime_wrapper.sh"),
-            tmp_dir.join("video_compositor"),
+            tmp_dir.join("live_compositor"),
         )?;
 
         info!(
@@ -83,13 +83,13 @@ fn bundle_app(
         info!("Copy main_process binary.");
         fs::copy(
             release_dir.join("main_process"),
-            tmp_dir.join("video_compositor"),
+            tmp_dir.join("live_compositor"),
         )?;
     }
 
     info!("Create tar.gz archive.");
     let exit_code = Command::new("tar")
-        .args(["-C", root_dir_str, "-czvf", output_name, "video_compositor"])
+        .args(["-C", root_dir_str, "-czvf", output_name, "live_compositor"])
         .spawn()?
         .wait()?
         .code();

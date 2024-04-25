@@ -46,7 +46,7 @@ function HomepageHeader() {
                 </Link>
                 <Link
                   className="button button--secondary button--outline button--lg col col-6 margin--sm"
-                  to="https://github.com/membraneframework/video_compositor">
+                  to="https://github.com/membraneframework/live_compositor">
                   View on GitHub
                 </Link>
               </div>
@@ -218,13 +218,13 @@ function IntegrationMembranePlugin() {
           <p>
             <FaFile style={{ fontSize: 15, marginRight: 7 }} />
             Documentation -{' '}
-            <Link href="docs/get-started/elixir">Get started with Membrane plugin</Link>
+            <Link href="docs/get-started/membrane">Get started with Membrane plugin</Link>
           </p>
           <p>
             <FaGithub style={{ fontSize: 15, marginRight: 7 }} />
             GitHub repository -{' '}
-            <Link href="https://github.com/membraneframework/membrane_video_compositor_plugin">
-              membraneframework/membrane_video_compositor_plugin
+            <Link href="https://github.com/membraneframework/membrane_live_compositor_plugin">
+              membraneframework/membrane_live_compositor_plugin
             </Link>
           </p>
         </div>
