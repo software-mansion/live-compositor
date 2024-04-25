@@ -31,6 +31,11 @@ pub struct PipelineOutput {
     pub audio_end_condition: Option<PipelineOutputEndConditionState>,
 }
 
+pub(super) enum OutputSender<T> {
+    ActiveSender(T),
+    FinishedSender,
+}
+
 impl Pipeline {
     pub(super) fn register_pipeline_output(
         &mut self,
@@ -113,65 +118,67 @@ impl Pipeline {
         Ok(port)
     }
 
-    pub(super) fn get_output_video_sender(
+    pub(super) fn all_output_video_senders_iter(
         pipeline: &Arc<Mutex<Pipeline>>,
-        output_id: &OutputId,
-    ) -> Option<Sender<PipelineEvent<Frame>>> {
-        let mut guard = pipeline.lock().unwrap();
-        let Some(output) = guard.outputs.get_mut(output_id) else {
-            warn!(
-                ?output_id,
-                "Failed to send output frame. Output does not exists.",
-            );
-            return None;
-        };
-        let eos_status = output.video_end_condition.as_mut()?.eos_status();
-        let sender = output.encoder.frame_sender()?.clone();
-        drop(guard);
+    ) -> impl Iterator<Item = (OutputId, OutputSender<Sender<PipelineEvent<Frame>>>)> {
+        let outputs: HashMap<_, _> = pipeline
+            .lock()
+            .unwrap()
+            .outputs
+            .iter_mut()
+            .filter_map(|(output_id, output)| {
+                let eos_status = output.video_end_condition.as_mut()?.eos_status();
+                let sender = output.encoder.frame_sender()?.clone();
+                Some((output_id.clone(), (sender, eos_status)))
+            })
+            .collect();
 
-        match eos_status {
-            EosStatus::None => Some(sender),
-            EosStatus::SendEos => {
-                info!(?output_id, "Sending video EOS on output.");
-                if sender.send(PipelineEvent::EOS).is_err() {
-                    warn!(
-                        ?output_id,
-                        "Failed to send EOS from renderer. Channel closed."
-                    );
-                };
-                None
-            }
-            EosStatus::AlreadySent => None,
-        }
+        outputs
+            .into_iter()
+            .filter_map(|(output_id, (sender, eos_status))| match eos_status {
+                EosStatus::None => Some((output_id, OutputSender::ActiveSender(sender))),
+                EosStatus::SendEos => {
+                    info!(?output_id, "Sending video EOS on output.");
+                    if sender.send(PipelineEvent::EOS).is_err() {
+                        warn!(
+                            ?output_id,
+                            "Failed to send EOS from renderer. Channel closed."
+                        );
+                    };
+                    Some((output_id, OutputSender::FinishedSender))
+                }
+                EosStatus::AlreadySent => None,
+            })
     }
 
-    pub(super) fn get_output_audio_sender(
+    pub(super) fn all_output_audio_senders_iter(
         pipeline: &Arc<Mutex<Pipeline>>,
-        output_id: &OutputId,
-    ) -> Option<Sender<PipelineEvent<OutputSamples>>> {
-        let mut guard = pipeline.lock().unwrap();
-        let Some(output) = guard.outputs.get_mut(output_id) else {
-            warn!(
-                ?output_id,
-                "Failed to send output samples. Output does not exists.",
-            );
-            return None;
-        };
-        let eos_status = output.audio_end_condition.as_mut()?.eos_status();
-        let sender = output.encoder.samples_batch_sender()?.clone();
-        drop(guard);
+    ) -> impl Iterator<Item = (OutputId, OutputSender<Sender<PipelineEvent<OutputSamples>>>)> {
+        let outputs: HashMap<_, _> = pipeline
+            .lock()
+            .unwrap()
+            .outputs
+            .iter_mut()
+            .filter_map(|(output_id, output)| {
+                let eos_status = output.audio_end_condition.as_mut()?.eos_status();
+                let sender = output.encoder.samples_batch_sender()?.clone();
+                Some((output_id.clone(), (sender, eos_status)))
+            })
+            .collect();
 
-        match eos_status {
-            EosStatus::None => Some(sender),
-            EosStatus::SendEos => {
-                info!(?output_id, "Sending audio EOS on output.");
-                if sender.send(PipelineEvent::EOS).is_err() {
-                    warn!(?output_id, "Failed to send EOS from mixer. Channel closed.");
-                };
-                None
-            }
-            EosStatus::AlreadySent => None,
-        }
+        outputs
+            .into_iter()
+            .filter_map(|(output_id, (sender, eos_status))| match eos_status {
+                EosStatus::None => Some((output_id, OutputSender::ActiveSender(sender))),
+                EosStatus::SendEos => {
+                    info!(?output_id, "Sending audio EOS on output.");
+                    if sender.send(PipelineEvent::EOS).is_err() {
+                        warn!(?output_id, "Failed to send EOS from mixer. Channel closed.");
+                    };
+                    Some((output_id, OutputSender::FinishedSender))
+                }
+                EosStatus::AlreadySent => None,
+            })
     }
 }
 

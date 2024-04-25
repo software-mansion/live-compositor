@@ -25,6 +25,7 @@ use crate::error::{
     RegisterInputError, RegisterOutputError, UnregisterInputError, UnregisterOutputError,
 };
 
+use crate::pipeline::pipeline_output::OutputSender;
 use crate::queue::PipelineEvent;
 use crate::queue::QueueAudioOutput;
 use crate::queue::{self, Queue, QueueOptions, QueueVideoOutput};
@@ -317,20 +318,18 @@ fn run_renderer_thread(
             }
         }
 
+        let output_frame_senders: HashMap<_, _> =
+            Pipeline::all_output_video_senders_iter(&pipeline)
+                .filter_map(|(output_id, sender)| match sender {
+                    OutputSender::ActiveSender(sender) => Some((output_id, sender)),
+                    OutputSender::FinishedSender => {
+                        renderer.unregister_output(&output_id);
+                        None
+                    }
+                })
+                .collect();
+
         let input_frames: FrameSet<InputId> = input_frames.into();
-
-        let output_ids: Vec<_> = pipeline.lock().unwrap().outputs.keys().cloned().collect();
-        let output_frame_senders: HashMap<_, _> = output_ids
-            .into_iter()
-            .filter_map(|id| {
-                let Some(sender) = Pipeline::get_output_video_sender(&pipeline, &id) else {
-                    renderer.unregister_output(&id);
-                    return None;
-                };
-                Some((id, sender))
-            })
-            .collect();
-
         trace!(?input_frames, "Rendering frames");
         let output_frames = renderer.render(input_frames);
         let Ok(output_frames) = output_frames else {
@@ -375,17 +374,16 @@ fn run_audio_mixer_thread(
             }
         }
 
-        let output_ids: Vec<_> = pipeline.lock().unwrap().outputs.keys().cloned().collect();
-        let output_samples_senders: HashMap<_, _> = output_ids
-            .into_iter()
-            .filter_map(|output_id| {
-                let Some(sender) = Pipeline::get_output_audio_sender(&pipeline, &output_id) else {
-                    audio_mixer.unregister_output(&output_id);
-                    return None;
-                };
-                Some((output_id, sender))
-            })
-            .collect();
+        let output_samples_senders: HashMap<_, _> =
+            Pipeline::all_output_audio_senders_iter(&pipeline)
+                .filter_map(|(output_id, sender)| match sender {
+                    OutputSender::ActiveSender(sender) => Some((output_id, sender)),
+                    OutputSender::FinishedSender => {
+                        audio_mixer.unregister_output(&output_id);
+                        None
+                    }
+                })
+                .collect();
 
         let mixed_samples = audio_mixer.mix_samples(samples.into());
 
