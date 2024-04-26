@@ -69,9 +69,8 @@ impl WgpuCtx {
             error!("Selected adapter is CPU based. Aborting.");
             return Err(CreateWgpuCtxError::NoAdapter);
         }
-        let critical_features = wgpu::Features::TEXTURE_BINDING_ARRAY
-            | wgpu::Features::TEXTURE_COMPRESSION_ETC2
-            | wgpu::Features::PUSH_CONSTANTS;
+        let critical_features =
+            wgpu::Features::TEXTURE_BINDING_ARRAY | wgpu::Features::PUSH_CONSTANTS;
         let nominal_mode_features =
             wgpu::Features::SAMPLED_TEXTURE_AND_STORAGE_BUFFER_ARRAY_NON_UNIFORM_INDEXING
                 | wgpu::Features::UNIFORM_BUFFER_AND_STORAGE_TEXTURE_ARRAY_NON_UNIFORM_INDEXING;
