@@ -1,30 +1,36 @@
 import { registerImage, registerInput, registerOutput, start, updateOutput, } from "../utils/api";
 import { runCompositorExample } from "../utils/run";
 import { gstStreamWebcam } from "../utils/gst";
-import { sleepAsync } from "../utils/utils";
+import { downloadAsync, sleepAsync } from "../utils/utils";
 import { Component, Resolution } from "../types/api";
-import { ffplayListenVideoAsync } from "../utils/ffmpeg";
-import { randomInt } from "crypto";
+import { ffmpegSendVideoFromMp4, ffplayListenVideoAsync } from "../utils/ffmpeg";
+import path from "path";
 
 const OUTPUT_RESOLUTION: Resolution = {
     width: 1920,
     height: 1080,
 };
 
-const INPUT_PORT = 8010;
-const OUTPUT_PORT = randomInt(9000, 10000);
+const INPUT_PORT = 8000;
+const OUTPUT_PORT = 8002;
 const IP = "127.0.0.1";
+const DISPLAY_LOGS = true;
 
 async function example() {
-    await ffplayListenVideoAsync(IP, OUTPUT_PORT);
+    const useWebCam = process.env.LIVE_COMPOSITOR_WEBCAM !== "false";
+    await ffplayListenVideoAsync(IP, OUTPUT_PORT, DISPLAY_LOGS);
+    
+    // sleep to make sure ffplay have a chance to start before compositor starts sending packets
+    await sleepAsync(2000);
+
     await registerImage("background", {
         asset_type: "png",
-        url: "https://i.ibb.co/h1wrkbg/membrane-background-fullhd.png"
+        url: "https://raw.githubusercontent.com/membraneframework-labs/video_compositor_snapshot_tests/main/demo_assets/triangles_background.png"
     })
 
     await registerInput("input_1", {
         type: "rtp_stream",
-        transport_protocol: "tcp_server",
+        transport_protocol: useWebCam ? "tcp_server" : "udp",
         port: INPUT_PORT,
         video: {
             decoder: "ffmpeg_h264"
@@ -42,25 +48,29 @@ async function example() {
                 preset: "medium"
             },
             initial: {
-                root: sceneWithInputs(0)
+                root: sceneWithInputs(1)
             }
         }
     });
 
-    const inputs = [1, 2, 3, 4, 5, 6, 7, 8, 9, 8, 7, 6, 5, 4, 3, 2, 1];
-    inputs.forEach(async (input, index) =>
+    if (useWebCam) {
+        gstStreamWebcam(IP, INPUT_PORT, DISPLAY_LOGS);
+    } else {
+        const callPath = path.join(__dirname, "../assets/call.mp4");
+        await downloadAsync("https://raw.githubusercontent.com/membraneframework-labs/video_compositor_snapshot_tests/main/demo_assets/call.mp4", path.join(__dirname, "../assets/call.mp4"));
+        ffmpegSendVideoFromMp4(INPUT_PORT, callPath, DISPLAY_LOGS);
+    }
+    await start();
+    
+    const inputs = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 13, 12, 11, 10., 9, 8, 7, 6, 5, 4, 3, 2, 1];
+    inputs.forEach(async (input, index) => {
+        await sleepAsync(2000 * index);
         await updateOutput("output_1", {
             video: {
                 root: sceneWithInputs(input)
             },
-            schedule_time_ms: 2000 * index
         })
-    );
-
-    await sleepAsync(2000);
-
-    await start();
-    gstStreamWebcam(IP, INPUT_PORT);
+    });
 }
 
 
@@ -144,4 +154,4 @@ function sceneWithInputs(n: number): Component {
     }
 }
 
-runCompositorExample(example);
+runCompositorExample(example, DISPLAY_LOGS);

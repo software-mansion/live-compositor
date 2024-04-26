@@ -1,34 +1,31 @@
 import { COMPOSITOR_DIR } from "./prepare_compositor";
-import { SpawnPromise, sleepAsync, spawn } from "./utils";
+import { SpawnPromise, spawn } from "./utils";
 import path from "path";
 import fs from "fs-extra";
 
 export async function ffplayListenVideoAsync(
   ip: string,
   port: number,
+  displayOutput: boolean
 ): Promise<{ spawn_promise: SpawnPromise }> {
   const sdpFilePath = path.join(COMPOSITOR_DIR, `video_input_${port}.sdp`);
   await writeVideoSdpFile(ip, port, sdpFilePath);
   const promise = spawn(
     "ffplay",
     ["-protocol_whitelist", "file,rtp,udp", sdpFilePath],
-    { stdio: ["inherit", "inherit", "ignore"] }, // no idea why stderr can't be set to "pipe"
+    { displayOutput }
   );
-  // sleep to make sure ffplay have a chance to start before compositor starts sending frames
-  await sleepAsync(2000);
   return { spawn_promise: promise };
 }
 
-export async function ffplayListenAudioAsync(ip: string, port: number): Promise<{ spawn_promise: SpawnPromise }> {
+export async function ffplayListenAudioAsync(ip: string, port: number, displayOutput: boolean): Promise<{ spawn_promise: SpawnPromise }> {
   const sdpFilePath = path.join(COMPOSITOR_DIR, `audio_input_${port}.sdp`);
   await writeAudioSdpFile(ip, port, sdpFilePath);
   const promise = spawn(
     "ffplay",
     ["-protocol_whitelist", "file,rtp,udp", sdpFilePath],
-    { stdio: ["inherit", "inherit", "ignore"] }, // no idea why stderr can't be set to "pipe"
+    { displayOutput }
   );
-  // sleep to make sure ffplay have a chance to start before compositor starts sending frames
-  await sleepAsync(2000);
   return { spawn_promise: promise };
 }
 
@@ -36,6 +33,7 @@ export async function ffplayListenAudioAsync(ip: string, port: number): Promise<
 export function ffmpegSendTestPattern(
   port: number,
   resolution: { width: number; height: number },
+  displayOutput: boolean
 ): SpawnPromise {
   const ffmpeg_source = `testsrc=s=${resolution.width}x${resolution.height}:r=30,format=yuv420p`;
   return spawn(
@@ -52,13 +50,14 @@ export function ffmpegSendTestPattern(
       "rtp",
       `rtp://127.0.0.1:${port}?rtcpport=${port}`,
     ],
-    { stdio: ["inherit", "inherit", "ignore"] },
+    { displayOutput }
   );
 }
 
 export function ffmpegSendVideoFromMp4(
   port: number,
   mp4Path: string,
+  displayOutput: boolean
 ): SpawnPromise {
   return spawn(
     "ffmpeg",
@@ -75,11 +74,11 @@ export function ffmpegSendVideoFromMp4(
       "rtp",
       `rtp://127.0.0.1:${port}?rtcpport=${port}`,
     ],
-    { stdio: ["inherit", "inherit", "ignore"] },
+    { displayOutput }
   );
 }
 
-export function ffmpegStreamScreen(ip: string, port: number): SpawnPromise {
+export function ffmpegStreamScreen(ip: string, port: number, displayOutput: boolean): SpawnPromise {
   const platform = process.platform;
   let inputOptions: string[];
   if (platform === "darwin") {
@@ -102,7 +101,7 @@ export function ffmpegStreamScreen(ip: string, port: number): SpawnPromise {
       "rtp",
       `rtp://${ip}:${port}?rtcpport=${port}`,
     ],
-    { stdio: ["inherit", "inherit", "ignore"] },
+    { displayOutput }
   );
 }
 

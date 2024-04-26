@@ -2,7 +2,8 @@ import fetch from "node-fetch";
 import fs from "fs-extra";
 import { promisify } from "util";
 import { Stream } from "stream";
-import { ChildProcess, SpawnOptions, spawn as nodeSpawn } from "child_process";
+import { ChildProcess, spawn as nodeSpawn } from "child_process";
+import { cwd } from "process";
 
 const pipeline = promisify(Stream.pipeline);
 const child_processes: ChildProcess[] = [];
@@ -11,20 +12,27 @@ process.on("exit", () => {
   killAllChildren();
 });
 
-export function spawn(
-  command: string,
-  args: string[],
-  options: SpawnOptions,
-): SpawnPromise {
+type SpawnOptions = {
+  displayOutput: boolean;
+  cwd?: string;
+}
+
+export function spawn(command: string, args: string[], opts: SpawnOptions): SpawnPromise {
   console.log(`Spawning: ${command} ${args.join(" ")}`);
   const child = nodeSpawn(command, args, {
-    stdio: "inherit",
+    stdio: opts.displayOutput ? "inherit" : "pipe",
+    cwd: opts.cwd ?? cwd(),
     env: {
       ...process.env,
       LIVE_COMPOSITOR_LOGGER_FORMAT: "compact"
     },
-    ...options,
   });
+
+  console.log(`Options: ${JSON.stringify(opts)}`);
+  if (!opts.displayOutput) {
+    const stdoutStream = fs.createWriteStream('stdout.txt');
+    child.stdout?.pipe(stdoutStream);
+  }
 
   const promise = new Promise<void>((resolve, reject) => {
     child.on("exit", (code) => {
@@ -64,21 +72,25 @@ export async function downloadAsync(
   url: string,
   destination: string,
 ): Promise<void> {
-  const response = await fetch(url, { method: "GET" });
+  if (fs.existsSync(destination)) {
+    console.log(`File ${destination} already exists. Skipping download.`);
+    return;
+  }
+
+  const response = await fetch(url, { method: "GET" , timeout: 0});
   if (response.status >= 400) {
     const err: any = new Error(`Request to ${url} failed. \n${response.body}`);
     err.response = response;
     throw err;
   }
   if (response.body) {
-    await pipeline(response.body, fs.createWriteStream(destination));
+    return await pipeline(response.body, fs.createWriteStream(destination));
   } else {
     throw Error(`Response with empty body.`);
   }
 }
 
 export async function sleepAsync(timeout_ms: number): Promise<void> {
-  console.log(`Sleeping for ${timeout_ms} ms`);
   await new Promise<void>((res) => {
     setTimeout(() => {
       res();

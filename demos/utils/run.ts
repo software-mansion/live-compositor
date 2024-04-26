@@ -1,20 +1,22 @@
 import { sleepAsync, spawn } from "./utils";
 import chalk from "chalk";
 import { Response } from "node-fetch";
+import path from "path";
+import { ensureCompositorReadyAsync } from "./prepare_compositor";
 
 export async function runCompositorExample(
   fn: () => Promise<void>,
+  displayOutput: boolean
 ): Promise<void> {
-  // TODO fix with release
-  // await ensureCompositorReadyAsync();
+  await ensureCompositorReadyAsync();
   const { command, args, cwd } = getCompositorRunCmd();
   try {
     spawn(command, args, {
-      stdio: "inherit",
+      displayOutput: displayOutput,
       cwd: cwd ?? process.cwd(),
     });
 
-    await sleepAsync(1000);
+    await sleepAsync(2000);
 
     await fn();
   } catch (err) {
@@ -46,32 +48,31 @@ async function logError(err: any): Promise<void> {
   }
 }
 
+const COMPOSITOR_DIR = path.join(__dirname, "../.video_compositor");
+
 function getCompositorRunCmd(): {
   command: string;
   args: string[];
   cwd?: string;
 } {
-  // TODO fix with release
-  return {
-    command: "cargo",
-    args: ["run", "--release", "--bin", "video_compositor"],
-  };
-  // if (process.env.LIVE_COMPOSITOR_SOURCE_DIR) {
-  //   return {
-  //     command: "cargo",
-  //     args: ["run", "--release", "--bin", "video_compositor"],
-  //     cwd: process.env.LIVE_COMPOSITOR_SOURCE_DIR,
-  //   };
-  // } 
-  // else if (process.platform === "linux") {
-  //   return {
-  //     command: path.join(COMPOSITOR_DIR, "video_compositor/video_compositor"),
-  //     args: [],
-  //   };
-  // } else if (process.platform === "darwin") {
-  //   return {
-  //     command: path.join(COMPOSITOR_DIR, "video_compositor/video_compositor"),
-  //     args: [],
-  //   };
-  // }
+  if (process.env.LIVE_COMPOSITOR_SOURCE_DIR) {
+    return {
+      command: "cargo",
+      args: ["run", "--release", "--bin", "video_compositor"],
+      cwd: process.env.LIVE_COMPOSITOR_SOURCE_DIR,
+    };
+  }
+  else if (process.platform === "linux") {
+    return {
+      command: path.join(COMPOSITOR_DIR, "video_compositor/video_compositor"),
+      args: [],
+    };
+  } else if (process.platform === "darwin") {
+    return {
+      command: path.join(COMPOSITOR_DIR, "video_compositor/video_compositor"),
+      args: [],
+    };
+  }
+
+  throw new Error("Unsupported platform.");
 }

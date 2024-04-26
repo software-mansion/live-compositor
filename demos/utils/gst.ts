@@ -1,19 +1,17 @@
 import { exec } from "child_process";
 import { SpawnPromise, spawn } from "./utils";
 
-export function gstStartPlayer(ip: string, port: number): SpawnPromise {
+export function gstStartPlayer(ip: string, port: number, displayOutput: boolean): SpawnPromise {
     const gstCommand = `gst-launch-1.0 -v ` +
         `rtpptdemux name=demux ` +
         `tcpclientsrc host=${ip} port=${port} ! "application/x-rtp-stream" ! rtpstreamdepay ! demux. ` +
         `demux.src_96 ! "application/x-rtp,media=video,clock-rate=90000,encoding-name=H264" ! queue ! rtph264depay ! decodebin ! videoconvert ! autovideosink ` +
         `demux.src_97 ! "application/x-rtp,media=audio,clock-rate=48000,encoding-name=OPUS" ! queue ! rtpopusdepay ! decodebin ! audioconvert ! autoaudiosink `;
 
-    return spawn("bash", ["-c", gstCommand],
-        { stdio: ["inherit", "inherit", "ignore"] },
-    );
+    return spawn("bash", ["-c", gstCommand], { displayOutput });
 }
 
-export function gstStreamWebcam(ip: string, port: number): SpawnPromise {
+export function gstStreamWebcam(ip: string, port: number, displayOutput: boolean): SpawnPromise {
     const isMacOS = process.platform === 'darwin';
 
     const [gstWebcamSource, gstEncoder, gstEncoderOptions] = isMacOS ?
@@ -29,29 +27,10 @@ export function gstStreamWebcam(ip: string, port: number): SpawnPromise {
     ];
     checkGstPlugins(plugins);
 
-    const gstPipeline = [
-        gstWebcamSource,
-        "!",
-        "videoconvert",
-        "!",
-        gstEncoder,
-        gstEncoderOptions,
-        "!",
-        "rtph264pay",
-        "config-interval=1",
-        "pt=96",
-        "!",
-        "rtpstreampay",
-        "!",
-        "tcpclientsink",
-        `host=${ip}`,
-        `port=${port}`
-    ];
+    const gstCommand = `gst-launch-1.0 -v ` +
+        `${gstWebcamSource} ! videoconvert ! ${gstEncoder} ${gstEncoderOptions} ! rtph264pay config-interval=1 pt=96 ! rtpstreampay ! queue ! tcpclientsink host=${ip} port=${port}`;
 
-    return spawn("gst-launch-1.0", gstPipeline, {
-        stdio: "inherit",
-        cwd: process.cwd()
-    });
+    return spawn("bash", ["-c", gstCommand], { displayOutput });
 }
 
 function checkGstPlugins(plugins: string[]) {

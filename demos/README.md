@@ -25,7 +25,7 @@ npm run 01-videoconferencing
 This example simulates composing video conference footage.
 It demonstrate how you can change output dynamically with smooth transitions.
 
-This example also use your webcam. If you have problems with webcam footage, you can substitute it with FFmpegs `testsrc`:
+This example also use your webcam. If you have problems with webcam footage, you can substitute it with prerecorded mp4 file:
 
 ```console
 export LIVE_COMPOSITOR_WEBCAM=false
@@ -54,11 +54,10 @@ npm run 03-screen_stream
 This example simulates live streaming screen footage with webcam.
 It demonstrate how to setup simple output and add elements like donate notifications.
 
-This example also use your webcam and screen share. If you have problems with webcam or screen streaming, you can substitute it with FFmpegs `testsrc`:
+This example also use your webcam. If you have problems with webcam footage, you can substitute it with prerecorded mp4 file:
 
 ```console
 export LIVE_COMPOSITOR_WEBCAM=false
-export LIVE_COMPOSITOR_SCREEN_SHARE=false
 ```
 
 ## Learn more

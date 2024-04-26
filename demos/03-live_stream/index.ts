@@ -1,36 +1,60 @@
 import { registerInput, registerOutput, start, updateOutput } from "../utils/api";
-import { ffplayListenVideoAsync } from "../utils/ffmpeg";
+import { ffmpegSendVideoFromMp4, ffplayListenVideoAsync } from "../utils/ffmpeg";
 import { runCompositorExample } from "../utils/run";
-import { sleepAsync } from "../utils/utils";
+import { downloadAsync, sleepAsync } from "../utils/utils";
 import { Component, Resolution } from "../types/api";
 import { gstStreamWebcam } from "../utils/gst";
+import path from "path";
 
 const OUTPUT_RESOLUTION: Resolution = {
     width: 1920,
     height: 1080,
 };
 
-const WEBCAM_INPUT_PORT = 8002;
+const WEBCAM_INPUT_PORT = 8000;
+const GAMEPLAY_PORT = 8002;
 const OUTPUT_PORT = 8006;
 const IP = "127.0.0.1";
+const DISPLAY_LOGS = false;
 
 async function example() {
-    // starts ffplay that will listen for streams on port 8002 and display them.
-    await ffplayListenVideoAsync(IP, OUTPUT_PORT);
+    await ffplayListenVideoAsync(IP, OUTPUT_PORT, DISPLAY_LOGS);
 
-    await registerInput("webcam_input", {
-        type: "rtp_stream",
-        port: WEBCAM_INPUT_PORT,
-        transport_protocol: "tcp_server",
-        video: {
-            decoder: "ffmpeg_h264"
-        }
-    });
+    // sleep to make sure ffplay have a chance to start before compositor starts sending packets
+    await sleepAsync(2000);
+
+    const useWebCam = process.env.LIVE_COMPOSITOR_WEBCAM !== "false";
+    const gameplayPath = path.join(__dirname, "../assets/gameplay.mp4");
+    await downloadAsync("https://raw.githubusercontent.com/membraneframework-labs/video_compositor_snapshot_tests/main/demo_assets/gameplay.mp4", gameplayPath);
 
     // This is mock, since recording screen requires too many permissions and it's heavily OS specific.
     await registerInput("screen_input", {
         type: "mp4",
-        url: "https://d3cgycspz6gssr.cloudfront.net/b1eej1%2Ffile%2Fc3c04e4e6e7aadc26b80e06008e397ca_a5ce5f1975f904e035b2de01e0952d6f.mp4?response-content-disposition=inline%3Bfilename%3D%22c3c04e4e6e7aadc26b80e06008e397ca_a5ce5f1975f904e035b2de01e0952d6f.mp4%22%3B&response-content-type=video%2Fmp4&Expires=1713301809&Signature=I-Vvr5YOOfCp2vjyuVIac~IumIrDgouFUxie03fFHBufbhGH84n0-vE8KuKl0YlKHlWhVkqS6Hw2J3HZvKDQzwJlVAB0bEXTcgl0BWtqnnL8yNE2kIn0cvN4JDtcM2Gs95jpjRAGNnvy7lG5IMQFcanm~atEmj238EqEfJczx1uYsuJqJQX9n7pQPWuoI5ovO9WY5KgvLLeohF~tR0YDrFFAlk7xEtT~ZoImqkieGg4LPcvT7C4tQYGeEY4d64Z1rRaysrJMxUkgzR~q9kwQD2zHnTjHkqTrnmXb1iU69yx71wQXAIYuJm21usrhkJdO-4R4Q9JKBM3M~ZxFTgfiyg__&Key-Pair-Id=APKAJT5WQLLEOADKLHBQ"
+        path: path.join(__dirname, "../assets/green_screen_example.mp4"),
+    });
+
+    await registerInput("webcam_input", {
+        type: "rtp_stream",
+        port: WEBCAM_INPUT_PORT,
+        transport_protocol: useWebCam ? "tcp_server" : "udp",
+        video: {
+            decoder: "ffmpeg_h264"
+        }
+    })
+
+
+    if (useWebCam) {
+        gstStreamWebcam(IP, WEBCAM_INPUT_PORT, DISPLAY_LOGS);
+    } else {
+        const callPath = path.join(__dirname, "../assets/call.mp4");
+        await downloadAsync("https://raw.githubusercontent.com/membraneframework-labs/video_compositor_snapshot_tests/main/demo_assets/call.mp4", path.join(__dirname, "../assets/call.mp4"));
+        ffmpegSendVideoFromMp4(WEBCAM_INPUT_PORT, callPath, DISPLAY_LOGS);
+    }
+
+    await registerInput("screen_input", {
+        type: "rtp_stream",
+        port: GAMEPLAY_PORT,
+
     });
 
     await registerOutput("output_1", {
@@ -49,11 +73,9 @@ async function example() {
         }
     });
 
-
     await sleepAsync(2000);
-    await start();
 
-    gstStreamWebcam(IP, WEBCAM_INPUT_PORT);
+    await start();
     await sleepAsync(5000);
     displayDonate("XDDD!");
 }
@@ -80,7 +102,7 @@ function donateCard(msg: string): Component {
         type: "view",
         width: OUTPUT_RESOLUTION.width,
         height: OUTPUT_RESOLUTION.height,
-        top: 0,
+        top: 50,
         left: 0,
         children: [
             emptyView,
@@ -135,4 +157,4 @@ function baseScene(): Component {
     };
 }
 
-runCompositorExample(example);
+runCompositorExample(example, DISPLAY_LOGS);
