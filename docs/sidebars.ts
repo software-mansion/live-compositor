@@ -6,7 +6,7 @@ const sidebars: SidebarsConfig = {
     {
       label: 'Get started',
       type: 'category',
-      items: ['get-started/elixir', 'get-started/node'],
+      items: ['get-started/membrane'],
       collapsed: true,
       link: {
         type: 'doc',

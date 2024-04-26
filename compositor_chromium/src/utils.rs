@@ -10,7 +10,7 @@ use std::{fs, path::Path};
 pub fn bundle_for_development(target_path: &Path) -> Result<()> {
     let current_exe = env::current_exe()?;
     let current_dir = current_exe.parent().unwrap();
-    let bundle_path = current_dir.join("video_compositor.app");
+    let bundle_path = current_dir.join("live_compositor.app");
 
     bundle_app(target_path, &bundle_path)?;
 
@@ -60,11 +60,11 @@ pub fn bundle_app(target_path: &Path, bundle_path: &Path) -> Result<()> {
 
     let helper_info = fs::read_to_string(target_path.join("resources").join("helper-Info.plist"))?;
     let helpers = [
-        ("video_compositor Helper", ""),
-        ("video_compositor Helper (Alerts)", ".alerts"),
-        ("video_compositor Helper (GPU)", ".gpu"),
-        ("video_compositor Helper (Plugin)", ".plugin"),
-        ("video_compositor Helper (Renderer)", ".renderer"),
+        ("live_compositor Helper", ""),
+        ("live_compositor Helper (Alerts)", ".alerts"),
+        ("live_compositor Helper (GPU)", ".gpu"),
+        ("live_compositor Helper (Plugin)", ".plugin"),
+        ("live_compositor Helper (Renderer)", ".renderer"),
     ];
 
     for (name, bundle_id) in helpers {

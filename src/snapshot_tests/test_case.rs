@@ -5,10 +5,10 @@ use super::utils::{create_renderer, frame_to_rgba, snaphot_save_path, snapshots_
 use anyhow::Result;
 use compositor_render::{
     scene::RGBColor, Frame, FrameSet, InputId, OutputId, Renderer, RendererId, RendererSpec,
-    Resolution, YuvData,
+    Resolution, YuvData, YuvVariant,
 };
 use image::ImageBuffer;
-use video_compositor::types::{self};
+use live_compositor::types::{self};
 
 pub(super) const OUTPUT_ID: &str = "output_1";
 
@@ -262,6 +262,7 @@ impl TestInput {
         }
 
         let data = YuvData {
+            variant: YuvVariant::YUV420P,
             y_plane: y_plane.into(),
             u_plane: u_plane.into(),
             v_plane: v_plane.into(),

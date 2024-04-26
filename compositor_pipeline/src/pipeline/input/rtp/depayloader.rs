@@ -8,12 +8,18 @@ use rtp::{
 };
 
 use crate::pipeline::{
-    decoder,
+    decoder::{self, AacDecoderOptions},
     rtp::{AUDIO_PAYLOAD_TYPE, VIDEO_PAYLOAD_TYPE},
     structs::{AudioCodec, EncodedChunk, EncodedChunkKind, VideoCodec},
 };
 
+use self::aac::AacDepayloaderNewError;
+
 use super::{DepayloadingError, RtpStream};
+
+pub use aac::{AacDepayloader, AacDepayloadingError};
+
+mod aac;
 
 #[derive(Debug, thiserror::Error)]
 pub enum DepayloaderNewError {
@@ -46,7 +52,7 @@ impl Depayloader {
     pub fn depayload(
         &mut self,
         packet: rtp::packet::Packet,
-    ) -> Result<Option<EncodedChunk>, DepayloadingError> {
+    ) -> Result<Vec<EncodedChunk>, DepayloadingError> {
         match packet.header.payload_type {
             VIDEO_PAYLOAD_TYPE => match self.video.as_mut() {
                 Some(video_depayloader) => video_depayloader.depayload(packet),
@@ -87,7 +93,7 @@ impl VideoDepayloader {
     fn depayload(
         &mut self,
         packet: rtp::packet::Packet,
-    ) -> Result<Option<EncodedChunk>, DepayloadingError> {
+    ) -> Result<Vec<EncodedChunk>, DepayloadingError> {
         match self {
             VideoDepayloader::H264 {
                 depayloader,
@@ -98,13 +104,13 @@ impl VideoDepayloader {
                 let h264_chunk = depayloader.depacketize(&packet.payload)?;
 
                 if h264_chunk.is_empty() {
-                    return Ok(None);
+                    return Ok(Vec::new());
                 }
 
                 buffer.push(h264_chunk);
                 if !packet.header.marker {
                     // the marker bit is set on the last packet of an access unit
-                    return Ok(None);
+                    return Ok(Vec::new());
                 }
 
                 let timestamp = rollover_state.timestamp(packet.header.timestamp);
@@ -115,7 +121,7 @@ impl VideoDepayloader {
                     kind,
                 };
 
-                Ok(Some(new_chunk))
+                Ok(vec![new_chunk])
             }
         }
     }
@@ -125,6 +131,12 @@ impl VideoDepayloader {
 pub enum AudioDepayloaderNewError {
     #[error("Unsupported depayloader for provided decoder settings: {0:?}")]
     UnsupportedDepayloader(decoder::AudioDecoderOptions),
+
+    #[error("No required depayloader settings were provided")]
+    DepayloaderSettingsRequired,
+
+    #[error(transparent)]
+    AacDepayloaderNewError(#[from] AacDepayloaderNewError),
 }
 
 pub enum AudioDepayloader {
@@ -132,6 +144,7 @@ pub enum AudioDepayloader {
         depayloader: OpusPacket,
         rollover_state: RolloverState,
     },
+    Aac(AacDepayloader),
 }
 
 impl AudioDepayloader {
@@ -141,16 +154,21 @@ impl AudioDepayloader {
                 depayloader: OpusPacket,
                 rollover_state: RolloverState::default(),
             }),
-            decoder::AudioDecoderOptions::Aac(_) => Err(
-                AudioDepayloaderNewError::UnsupportedDepayloader(options.clone()),
-            ),
+            decoder::AudioDecoderOptions::Aac(AacDecoderOptions {
+                depayloader_mode,
+                asc,
+            }) => Ok(AudioDepayloader::Aac(AacDepayloader::new(
+                depayloader_mode.ok_or(AudioDepayloaderNewError::DepayloaderSettingsRequired)?,
+                asc.as_ref()
+                    .ok_or(AudioDepayloaderNewError::DepayloaderSettingsRequired)?,
+            )?)),
         }
     }
 
     fn depayload(
         &mut self,
         packet: rtp::packet::Packet,
-    ) -> Result<Option<EncodedChunk>, DepayloadingError> {
+    ) -> Result<Vec<EncodedChunk>, DepayloadingError> {
         match self {
             AudioDepayloader::Opus {
                 depayloader,
@@ -160,17 +178,19 @@ impl AudioDepayloader {
                 let opus_packet = depayloader.depacketize(&packet.payload)?;
 
                 if opus_packet.is_empty() {
-                    return Ok(None);
+                    return Ok(Vec::new());
                 }
 
                 let timestamp = rollover_state.timestamp(packet.header.timestamp);
-                Ok(Some(EncodedChunk {
+                Ok(vec![EncodedChunk {
                     data: opus_packet,
                     pts: Duration::from_secs_f64(timestamp as f64 / 48000.0),
                     dts: None,
                     kind,
-                }))
+                }])
             }
+
+            AudioDepayloader::Aac(aac) => Ok(aac.depayload(packet)?),
         }
     }
 }
@@ -206,7 +226,7 @@ impl RolloverState {
 
 #[cfg(test)]
 mod tests {
-    use super::RolloverState;
+    use super::*;
 
     #[test]
     fn timestamp_rollover() {

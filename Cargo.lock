@@ -210,26 +210,6 @@ checksum = "9475866fec1451be56a3c2400fd081ff546538961565ccb5b7142cbd22bc7a51"
 
 [[package]]
 name = "bindgen"
-version = "0.64.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c4243e6031260db77ede97ad86c27e501d646a27ab57b59a574f725d98ab1fb4"
-dependencies = [
- "bitflags 1.3.2",
- "cexpr",
- "clang-sys",
- "lazy_static",
- "lazycell",
- "peeking_take_while",
- "proc-macro2",
- "quote",
- "regex",
- "rustc-hash",
- "shlex",
- "syn 1.0.109",
-]
-
-[[package]]
-name = "bindgen"
 version = "0.66.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f2b84e06fc203107bfbad243f4aba2af864eb7db3b1cf46ea0a023b0b433d2a7"
@@ -249,6 +229,26 @@ dependencies = [
  "shlex",
  "syn 2.0.58",
  "which",
+]
+
+[[package]]
+name = "bindgen"
+version = "0.69.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a00dc851838a2120612785d195287475a3ac45514741da670b735818822129a0"
+dependencies = [
+ "bitflags 2.5.0",
+ "cexpr",
+ "clang-sys",
+ "itertools",
+ "lazy_static",
+ "lazycell",
+ "proc-macro2",
+ "quote",
+ "regex",
+ "rustc-hash",
+ "shlex",
+ "syn 2.0.58",
 ]
 
 [[package]]
@@ -757,22 +757,22 @@ dependencies = [
 
 [[package]]
 name = "ffmpeg-next"
-version = "6.1.1"
+version = "7.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4e72c72e8dcf638fb0fb03f033a954691662b5dabeaa3f85a6607d101569fccd"
+checksum = "7f46a28a7161e8066ebe0d854cd9e30fcee4b64059660ef8580db7084b25b5e4"
 dependencies = [
- "bitflags 1.3.2",
+ "bitflags 2.5.0",
  "ffmpeg-sys-next",
  "libc",
 ]
 
 [[package]]
 name = "ffmpeg-sys-next"
-version = "6.1.0"
+version = "7.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c2529ad916d08c3562c754c21bc9b17a26c7882c0f5706cc2cd69472175f1620"
+checksum = "972a460dd8e901b737ce0482bf71a837e1751e3dd7c8f8b0a4ead808e7f174a5"
 dependencies = [
- "bindgen 0.64.0",
+ "bindgen 0.69.4",
  "cc",
  "libc",
  "num_cpus",
@@ -985,6 +985,7 @@ dependencies = [
  "compositor_render",
  "crossbeam-channel",
  "ffmpeg-next",
+ "live_compositor",
  "opus",
  "pitch-detection",
  "reqwest",
@@ -993,7 +994,6 @@ dependencies = [
  "serde_json",
  "socket2",
  "tracing",
- "video_compositor",
  "webrtc-util",
 ]
 
@@ -1394,6 +1394,7 @@ dependencies = [
  "compositor_render",
  "crossbeam-channel",
  "ffmpeg-next",
+ "live_compositor",
  "opus",
  "pitch-detection",
  "reqwest",
@@ -1402,7 +1403,6 @@ dependencies = [
  "serde_json",
  "socket2",
  "tracing",
- "video_compositor",
  "webrtc-util",
 ]
 
@@ -1411,6 +1411,15 @@ name = "ipnet"
 version = "2.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8f518f335dce6725a761382244631d86cf0ccb2863413590b31338feb467f9c3"
+
+[[package]]
+name = "itertools"
+version = "0.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ba291022dbbd398a455acf126c1e341954079855bc60dfdda641363bd6922569"
+dependencies = [
+ "either",
+]
 
 [[package]]
 name = "itoa"
@@ -1532,6 +1541,41 @@ name = "linux-raw-sys"
 version = "0.4.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "01cda141df6706de531b6c46c3a33ecca755538219bd484262fa09410c13539c"
+
+[[package]]
+name = "live_compositor"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "bytes",
+ "compositor_chromium",
+ "compositor_pipeline",
+ "compositor_render",
+ "crossbeam-channel",
+ "ffmpeg-next",
+ "fs_extra",
+ "futures-util",
+ "image",
+ "libc",
+ "log",
+ "rand",
+ "reqwest",
+ "rtp",
+ "rubato",
+ "schemars",
+ "serde",
+ "serde_json",
+ "shared_memory",
+ "signal-hook",
+ "thiserror",
+ "tiny_http",
+ "tokio",
+ "tokio-tungstenite",
+ "tracing",
+ "tracing-subscriber",
+ "webrtc-util",
+]
 
 [[package]]
 name = "lock_api"
@@ -3443,41 +3487,6 @@ name = "version_check"
 version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
-
-[[package]]
-name = "video_compositor"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "axum",
- "bytes",
- "compositor_chromium",
- "compositor_pipeline",
- "compositor_render",
- "crossbeam-channel",
- "ffmpeg-next",
- "fs_extra",
- "futures-util",
- "image",
- "libc",
- "log",
- "rand",
- "reqwest",
- "rtp",
- "rubato",
- "schemars",
- "serde",
- "serde_json",
- "shared_memory",
- "signal-hook",
- "thiserror",
- "tiny_http",
- "tokio",
- "tokio-tungstenite",
- "tracing",
- "tracing-subscriber",
- "webrtc-util",
-]
 
 [[package]]
 name = "want"

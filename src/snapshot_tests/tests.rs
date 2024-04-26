@@ -1398,6 +1398,52 @@ fn transition_snapshot_tests() -> Vec<TestCase> {
             ],
             ..Default::default()
         },
+        TestCase {
+            name: "transition/change_view_absolute_cubic_bezier",
+            scene_updates: Updates::Scenes(vec![
+                (
+                    include_str!(
+                        "../../snapshot_tests/transition/change_view_absolute_cubic_bezier_start.scene.json"
+                    ),
+                    DEFAULT_RESOLUTION,
+                ),
+                (
+                    include_str!(
+                        "../../snapshot_tests/transition/change_view_absolute_cubic_bezier_end.scene.json"
+                    ),
+                    DEFAULT_RESOLUTION,
+                ),
+            ]),
+            timestamps: vec![
+                Duration::from_millis(0),
+                Duration::from_millis(2500),
+                Duration::from_secs(5000),
+            ],
+            ..Default::default()
+        },
+        TestCase {
+            name: "transition/change_view_absolute_cubic_bezier_linear_like",
+            scene_updates: Updates::Scenes(vec![
+                (
+                    include_str!(
+                        "../../snapshot_tests/transition/change_view_absolute_cubic_bezier_linear_like_start.scene.json"
+                    ),
+                    DEFAULT_RESOLUTION,
+                ),
+                (
+                    include_str!(
+                        "../../snapshot_tests/transition/change_view_absolute_cubic_bezier_linear_like_end.scene.json"
+                    ),
+                    DEFAULT_RESOLUTION,
+                ),
+            ]),
+            timestamps: vec![
+                Duration::from_millis(0),
+                Duration::from_millis(2500),
+                Duration::from_secs(5000),
+            ],
+            ..Default::default()
+        },
     ])
 }
 

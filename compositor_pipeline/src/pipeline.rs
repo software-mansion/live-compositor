@@ -24,6 +24,8 @@ use crate::audio_mixer::{AudioChannels, AudioMixingParams};
 use crate::error::{
     RegisterInputError, RegisterOutputError, UnregisterInputError, UnregisterOutputError,
 };
+
+use crate::pipeline::pipeline_output::OutputSender;
 use crate::queue::PipelineEvent;
 use crate::queue::QueueAudioOutput;
 use crate::queue::{self, Queue, QueueOptions, QueueVideoOutput};
@@ -254,7 +256,7 @@ impl Pipeline {
             return Err(UpdateSceneError::AudioVideoNotMatching(output_id));
         };
 
-        info!("Update scene {:#?}", scene_root);
+        info!(?output_id, "Update scene {:#?}", scene_root);
 
         self.renderer
             .update_scene(output_id, resolution, scene_root)
@@ -265,6 +267,7 @@ impl Pipeline {
         output_id: &OutputId,
         audio: AudioMixingParams,
     ) -> Result<(), UpdateSceneError> {
+        info!(?output_id, "Update audio mixer {:#?}", audio);
         self.audio_mixer.update_output(output_id, audio)
     }
 
@@ -316,6 +319,17 @@ fn run_renderer_thread(
             }
         }
 
+        let output_frame_senders: HashMap<_, _> =
+            Pipeline::all_output_video_senders_iter(&pipeline)
+                .filter_map(|(output_id, sender)| match sender {
+                    OutputSender::ActiveSender(sender) => Some((output_id, sender)),
+                    OutputSender::FinishedSender => {
+                        renderer.unregister_output(&output_id);
+                        None
+                    }
+                })
+                .collect();
+
         let input_frames: FrameSet<InputId> = input_frames.into();
         trace!(?input_frames, "Rendering frames");
         let output_frames = renderer.render(input_frames);
@@ -328,38 +342,13 @@ fn run_renderer_thread(
         };
 
         for (output_id, frame) in output_frames.frames {
-            let output_data = pipeline
-                .lock()
-                .unwrap()
-                .outputs
-                .get_mut(&output_id)
-                .and_then(|output| {
-                    Some((
-                        output.encoder.frame_sender()?.clone(),
-                        output.video_end_condition.as_mut()?.should_send_eos(),
-                    ))
-                });
-            let Some((frame_sender, send_eos)) = output_data else {
-                warn!(
-                    ?output_id,
-                    "Failed to send output frame. Output does not exists.",
-                );
+            let Some(frame_sender) = output_frame_senders.get(&output_id) else {
+                warn!(?output_id, "Received new frame from renderer after EOS.");
                 continue;
             };
 
             if frame_sender.send(PipelineEvent::Data(frame)).is_err() {
                 warn!(?output_id, "Failed to send output frames. Channel closed.");
-            }
-
-            if send_eos {
-                info!(?output_id, "Sending video EOS on output.");
-                renderer.unregister_output(&output_id);
-                if frame_sender.send(PipelineEvent::EOS).is_err() {
-                    warn!(
-                        ?output_id,
-                        "Failed to send EOS from renderer. Channel closed."
-                    );
-                }
             }
         }
     }
@@ -385,40 +374,28 @@ fn run_audio_mixer_thread(
                 }
             }
         }
+
+        let output_samples_senders: HashMap<_, _> =
+            Pipeline::all_output_audio_senders_iter(&pipeline)
+                .filter_map(|(output_id, sender)| match sender {
+                    OutputSender::ActiveSender(sender) => Some((output_id, sender)),
+                    OutputSender::FinishedSender => {
+                        audio_mixer.unregister_output(&output_id);
+                        None
+                    }
+                })
+                .collect();
+
         let mixed_samples = audio_mixer.mix_samples(samples.into());
+
         for (output_id, batch) in mixed_samples.0 {
-            let output_data = pipeline
-                .lock()
-                .unwrap()
-                .outputs
-                .get_mut(&output_id)
-                .and_then(|output| {
-                    Some((
-                        output.encoder.samples_batch_sender()?.clone(),
-                        output.audio_end_condition.as_mut()?.should_send_eos(),
-                    ))
-                });
-            let Some((samples_sender, send_eos)) = output_data else {
-                warn!(
-                    ?output_id,
-                    "Failed to send mixed audio. Output does not exists."
-                );
+            let Some(samples_sender) = output_samples_senders.get(&output_id) else {
+                warn!(?output_id, "Received new mixed samples after EOS.");
                 continue;
             };
 
             if samples_sender.send(PipelineEvent::Data(batch)).is_err() {
                 warn!(?output_id, "Failed to send mixed audio. Channel closed.");
-            }
-
-            if send_eos {
-                info!(?output_id, "Sending audio EOS on output.");
-                audio_mixer.unregister_output(&output_id);
-                if samples_sender.send(PipelineEvent::EOS).is_err() {
-                    warn!(
-                        ?output_id,
-                        "Failed to send EOS from audio mixer. Channel closed."
-                    );
-                }
             }
         }
     }

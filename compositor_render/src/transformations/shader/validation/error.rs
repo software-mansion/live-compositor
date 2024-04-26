@@ -5,8 +5,7 @@ use crate::{
     wgpu::common_pipeline::VERTEX_ENTRYPOINT_NAME,
 };
 
-const HEADER_DOCS_URL: &str =
-    "https://github.com/membraneframework/video_compositor/wiki/Shader#header";
+const HEADER_DOCS_URL: &str = "https://compositor.live/docs/concept/shaders#header";
 
 #[derive(Debug, thiserror::Error)]
 pub struct ShaderParseError {

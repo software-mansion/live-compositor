@@ -1,6 +1,12 @@
 use anyhow::{anyhow, Result};
 use compositor_render::use_global_wgpu_ctx;
 use crossbeam_channel::Sender;
+use live_compositor::{
+    config::{read_config, LoggerConfig, LoggerFormat},
+    logger::{self, FfmpegLogLevel},
+    server::run_api,
+    state::ApiState,
+};
 use reqwest::StatusCode;
 use std::{
     env,
@@ -12,12 +18,6 @@ use std::{
     time::{Duration, Instant},
 };
 use tracing::info;
-use video_compositor::{
-    config::{read_config, LoggerConfig, LoggerFormat},
-    logger::{self, FfmpegLogLevel},
-    server::run_api,
-    state::ApiState,
-};
 
 pub struct CompositorInstance {
     pub api_port: u16,

@@ -203,16 +203,24 @@ fn run_depayloader_thread(
                 if packet.header.payload_type == 97 && audio_ssrc.is_none() {
                     audio_ssrc = Some(packet.header.ssrc);
                 }
+
                 match depayloader.depayload(packet) {
-                    Ok(Some(chunk)) => match &chunk.kind {
-                        EncodedChunkKind::Video(_) => video_sender
-                            .as_ref()
-                            .map(|video_sender| video_sender.send(PipelineEvent::Data(chunk))),
-                        EncodedChunkKind::Audio(_) => audio_sender
-                            .as_ref()
-                            .map(|audio_sender| audio_sender.send(PipelineEvent::Data(chunk))),
-                    },
-                    Ok(None) => continue,
+                    Ok(chunks) => {
+                        for chunk in chunks {
+                            match &chunk.kind {
+                                EncodedChunkKind::Video(_) => {
+                                    video_sender.as_ref().map(|video_sender| {
+                                        video_sender.send(PipelineEvent::Data(chunk))
+                                    })
+                                }
+                                EncodedChunkKind::Audio(_) => {
+                                    audio_sender.as_ref().map(|audio_sender| {
+                                        audio_sender.send(PipelineEvent::Data(chunk))
+                                    })
+                                }
+                            };
+                        }
+                    }
                     Err(err) => {
                         warn!("RTP depayloading error: {}", err);
                         continue;
@@ -258,6 +266,8 @@ pub enum DepayloadingError {
     BadPayloadType(u8),
     #[error(transparent)]
     Rtp(#[from] rtp::Error),
+    #[error("AAC depayoading error")]
+    Aac(#[from] depayloader::AacDepayloadingError),
 }
 
 impl From<BindToPortError> for RtpReceiverError {

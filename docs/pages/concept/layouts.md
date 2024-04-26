@@ -36,7 +36,7 @@ The size of a layout component is defined by its parent:
 - If a layout component is a root in a component tree, then its size is based on the declared resolution of an output stream.
 - If a layout component is a child of a non-layout component, then it has to have its size defined, usually via the `width`/`height` fields.
 - If a layout component is a child of another layout component, then, unless explicitly defined, its size will be based on the area defined by its parent. For example:
-  - For the `Tails` component, it will be an area of a single tile.
+  - For the `Tiles` component, it will be an area of a single tile.
   - For the `View` component, it will be an area calculated based on the sizes of other sibling components.
 
 

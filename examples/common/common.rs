@@ -1,6 +1,7 @@
 use anyhow::{anyhow, Result};
 
 use futures_util::{SinkExt, StreamExt};
+use live_compositor::{config::read_config, types::Resolution};
 use log::error;
 use reqwest::{blocking::Response, StatusCode};
 use std::{
@@ -14,7 +15,6 @@ use std::{
 };
 use tokio_tungstenite::tungstenite;
 use tracing::info;
-use video_compositor::{config::read_config, types::Resolution};
 
 use serde::Serialize;
 
@@ -156,14 +156,14 @@ pub fn stream_video(ip: &str, port: u16, path: PathBuf) -> Result<()> {
 }
 
 #[allow(dead_code)]
-pub fn stream_audio(ip: &str, port: u16, path: PathBuf) -> Result<()> {
+pub fn stream_audio(ip: &str, port: u16, path: PathBuf, codec: &str) -> Result<()> {
     Command::new("ffmpeg")
         .args(["-stream_loop", "-1", "-re", "-i"])
         .arg(path.clone())
         .args([
             "-vn",
             "-c:a",
-            "libopus",
+            codec,
             "-f",
             "rtp",
             &format!("rtp://{ip}:{port}?rtcpport={port}"),
