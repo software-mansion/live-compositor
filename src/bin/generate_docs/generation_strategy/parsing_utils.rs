@@ -147,49 +147,49 @@ pub fn flatten_unions(definitions: &mut [TopLevelDefinition]) {
 pub fn inline_definitions(definitions: &mut Vec<TopLevelDefinition>, config: &DocsConfig) {
     fn inline_for(
         definition: &mut TypeDefinition,
-        inlineable_definitions: &HashMap<String, TypeDefinition>,
+        definitions_to_inline: &HashMap<String, TypeDefinition>,
     ) {
         match &mut definition.kind {
             Kind::Ref(reference) => {
-                if let Some(inline_def) = inlineable_definitions.get(reference) {
+                if let Some(inline_def) = definitions_to_inline.get(reference) {
                     *definition = definition.merge_into(inline_def);
                 }
             }
             Kind::Tuple(variants) | Kind::Union(variants) => {
                 variants
                     .iter_mut()
-                    .for_each(|variant| inline_for(variant, inlineable_definitions));
+                    .for_each(|variant| inline_for(variant, definitions_to_inline));
             }
-            Kind::Array { array_type } => inline_for(array_type, inlineable_definitions),
+            Kind::Array { array_type } => inline_for(array_type, definitions_to_inline),
             Kind::Object { fields } => {
                 fields
                     .iter_mut()
-                    .for_each(|(_, prop)| inline_for(prop, inlineable_definitions));
+                    .for_each(|(_, prop)| inline_for(prop, definitions_to_inline));
             }
-            Kind::Map { value_type } => inline_for(value_type, inlineable_definitions),
+            Kind::Map { value_type } => inline_for(value_type, definitions_to_inline),
             _ => {}
         }
     }
 
-    let mut inlineable_definitions = HashMap::new();
+    let mut definitions_to_inline = HashMap::new();
 
     for TopLevelDefinition { name, definition } in definitions.iter() {
         if config.never_inlined_definitions.contains(&name.as_str()) {
             continue;
         }
 
-        let should_inline = definition.kind.is_inlineable()
+        let should_inline = definition.kind.inlineable_by_default()
             || config.always_inlined_definitions.contains(&name.as_str());
 
         if should_inline {
-            inlineable_definitions.insert(name.clone(), definition.clone());
+            definitions_to_inline.insert(name.clone(), definition.clone());
         }
     }
 
     // Remove top level definitions that are inlined
-    definitions.retain(|def| !inlineable_definitions.contains_key(&def.name));
+    definitions.retain(|def| !definitions_to_inline.contains_key(&def.name));
 
     for TopLevelDefinition { definition, .. } in definitions.iter_mut() {
-        inline_for(definition, &inlineable_definitions);
+        inline_for(definition, &definitions_to_inline);
     }
 }

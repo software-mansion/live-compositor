@@ -93,7 +93,7 @@ pub enum Kind {
 }
 
 impl Kind {
-    pub fn is_inlineable(&self) -> bool {
+    pub fn inlineable_by_default(&self) -> bool {
         match self {
             Kind::Null
             | Kind::I32
@@ -103,7 +103,7 @@ impl Kind {
             | Kind::U16
             | Kind::U8
             | Kind::String { .. } => true,
-            Kind::Union(variants) => variants.iter().all(|v| v.kind.is_inlineable()),
+            Kind::Union(variants) => variants.iter().all(|v| v.kind.inlineable_by_default()),
             _ => false,
         }
     }
