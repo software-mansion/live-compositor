@@ -70,23 +70,24 @@ impl WgpuCtx {
             return Err(CreateWgpuCtxError::NoAdapter);
         }
         let critical_features = wgpu::Features::TEXTURE_BINDING_ARRAY
-                    | wgpu::Features::TEXTURE_COMPRESSION_ETC2
-                    | wgpu::Features::PUSH_CONSTANTS;
+            | wgpu::Features::TEXTURE_COMPRESSION_ETC2
+            | wgpu::Features::PUSH_CONSTANTS;
         let nominal_mode_features =
-                    wgpu::Features::SAMPLED_TEXTURE_AND_STORAGE_BUFFER_ARRAY_NON_UNIFORM_INDEXING
-                    | wgpu::Features::UNIFORM_BUFFER_AND_STORAGE_TEXTURE_ARRAY_NON_UNIFORM_INDEXING;
+            wgpu::Features::SAMPLED_TEXTURE_AND_STORAGE_BUFFER_ARRAY_NON_UNIFORM_INDEXING
+                | wgpu::Features::UNIFORM_BUFFER_AND_STORAGE_TEXTURE_ARRAY_NON_UNIFORM_INDEXING;
 
         let missing_critical_features = critical_features.difference(adapter.features());
-        if ! missing_critical_features.is_empty() {
+        if !missing_critical_features.is_empty() {
             error!("Selected adapter or it's driver don't support critical wgpu {missing_critical_features:?}. Aborting.");
             return Err(CreateWgpuCtxError::NoAdapter);
         }
         let missing_nominal_mode_features = nominal_mode_features.difference(adapter.features());
-        if ! missing_nominal_mode_features.is_empty() {
+        if !missing_nominal_mode_features.is_empty() {
             error!("Selected adapter or it's driver don't support nominal mode wgpu {missing_nominal_mode_features:?}.");
             error!("Starting in degraded mode, some valid and correct user shaders may not able to run on this adapter.");
         }
-        let required_features = critical_features.union(nominal_mode_features.difference(missing_nominal_mode_features));
+        let required_features = critical_features
+            .union(nominal_mode_features.difference(missing_nominal_mode_features));
 
         let (device, queue) = pollster::block_on(adapter.request_device(
             &wgpu::DeviceDescriptor {
