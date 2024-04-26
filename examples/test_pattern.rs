@@ -1,9 +1,9 @@
 use anyhow::Result;
+use live_compositor::{server, types::Resolution};
 use log::{error, info};
 use serde::Deserialize;
 use serde_json::json;
 use std::{env, thread};
-use video_compositor::{server, types::Resolution};
 
 use crate::common::{start_ffplay, start_websocket_thread, stream_ffmpeg_testsrc};
 

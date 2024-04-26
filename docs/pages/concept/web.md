@@ -8,7 +8,7 @@ Furthermore, you can place other components on the website. We refer to this pro
 Make sure you have a compositor version built with web renderer support. The web renderer introduces additional dependencies and significantly increases the size of the compositor binaries. To minimize that impact, we are supporting two versions of the compositor, one with web renderer support and one without it.
 
 :::tip
-You can view a working example [here](https://github.com/membraneframework/video_compositor/blob/master/examples/web_view.rs)
+You can view a working example [here](https://github.com/membraneframework/live_compositor/blob/master/examples/web_view.rs)
 :::
 
 ## Embedding components

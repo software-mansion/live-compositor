@@ -1,6 +1,7 @@
 use anyhow::{anyhow, Result};
 
 use futures_util::{SinkExt, StreamExt};
+use live_compositor::{config::read_config, types::Resolution};
 use log::error;
 use reqwest::{blocking::Response, StatusCode};
 use std::{
@@ -14,7 +15,6 @@ use std::{
 };
 use tokio_tungstenite::tungstenite;
 use tracing::info;
-use video_compositor::{config::read_config, types::Resolution};
 
 use serde::Serialize;
 

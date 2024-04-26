@@ -985,6 +985,7 @@ dependencies = [
  "compositor_render",
  "crossbeam-channel",
  "ffmpeg-next",
+ "live_compositor",
  "opus",
  "pitch-detection",
  "reqwest",
@@ -993,7 +994,6 @@ dependencies = [
  "serde_json",
  "socket2",
  "tracing",
- "video_compositor",
  "webrtc-util",
 ]
 
@@ -1394,6 +1394,7 @@ dependencies = [
  "compositor_render",
  "crossbeam-channel",
  "ffmpeg-next",
+ "live_compositor",
  "opus",
  "pitch-detection",
  "reqwest",
@@ -1402,7 +1403,6 @@ dependencies = [
  "serde_json",
  "socket2",
  "tracing",
- "video_compositor",
  "webrtc-util",
 ]
 
@@ -1541,6 +1541,41 @@ name = "linux-raw-sys"
 version = "0.4.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "01cda141df6706de531b6c46c3a33ecca755538219bd484262fa09410c13539c"
+
+[[package]]
+name = "live_compositor"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "bytes",
+ "compositor_chromium",
+ "compositor_pipeline",
+ "compositor_render",
+ "crossbeam-channel",
+ "ffmpeg-next",
+ "fs_extra",
+ "futures-util",
+ "image",
+ "libc",
+ "log",
+ "rand",
+ "reqwest",
+ "rtp",
+ "rubato",
+ "schemars",
+ "serde",
+ "serde_json",
+ "shared_memory",
+ "signal-hook",
+ "thiserror",
+ "tiny_http",
+ "tokio",
+ "tokio-tungstenite",
+ "tracing",
+ "tracing-subscriber",
+ "webrtc-util",
+]
 
 [[package]]
 name = "lock_api"
@@ -3454,41 +3489,6 @@ name = "version_check"
 version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
-
-[[package]]
-name = "video_compositor"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "axum",
- "bytes",
- "compositor_chromium",
- "compositor_pipeline",
- "compositor_render",
- "crossbeam-channel",
- "ffmpeg-next",
- "fs_extra",
- "futures-util",
- "image",
- "libc",
- "log",
- "rand",
- "reqwest",
- "rtp",
- "rubato",
- "schemars",
- "serde",
- "serde_json",
- "shared_memory",
- "signal-hook",
- "thiserror",
- "tiny_http",
- "tokio",
- "tokio-tungstenite",
- "tracing",
- "tracing-subscriber",
- "webrtc-util",
-]
 
 [[package]]
 name = "want"

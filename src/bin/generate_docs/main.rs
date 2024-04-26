@@ -1,10 +1,10 @@
 use docs_config::DocsConfig;
-use parsing::generate_docs;
-use std::{fs, path::PathBuf};
-use video_compositor::types::{
+use live_compositor::types::{
     Image, ImageSpec, InputStream, Mp4, Rescaler, RtpInputStream, RtpOutputStream, Shader,
     ShaderSpec, Text, Tiles, View, WebRendererSpec, WebView,
 };
+use parsing::generate_docs;
+use std::{fs, path::PathBuf};
 
 mod docs_config;
 mod parsing;

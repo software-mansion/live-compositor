@@ -1,11 +1,11 @@
 use anyhow::Result;
+use live_compositor::{server, types::Resolution};
 use log::{error, info};
 use serde_json::json;
 use std::{
     env,
     thread::{self},
 };
-use video_compositor::{server, types::Resolution};
 
 use crate::common::{download_file, start_ffplay, stream_video};
 

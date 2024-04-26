@@ -1,10 +1,10 @@
 use std::{fs, io, path::PathBuf};
 
+use live_compositor::types;
 use schemars::{
     schema::{RootSchema, Schema, SchemaObject},
     schema_for,
 };
-use video_compositor::types;
 
 const ROOT_DIR: &str = env!("CARGO_MANIFEST_DIR");
 

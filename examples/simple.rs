@@ -1,8 +1,8 @@
 use anyhow::Result;
+use live_compositor::{server, types::Resolution};
 use log::{error, info};
 use serde_json::json;
 use std::{thread, time::Duration};
-use video_compositor::{server, types::Resolution};
 
 use crate::common::{download_file, start_ffplay, start_websocket_thread, stream_video};
 

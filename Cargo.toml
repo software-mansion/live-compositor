@@ -1,5 +1,5 @@
 [package]
-name = "video_compositor"
+name = "live_compositor"
 version = "0.1.0"
 edition = "2021"
 

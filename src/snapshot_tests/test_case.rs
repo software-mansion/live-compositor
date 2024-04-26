@@ -8,7 +8,7 @@ use compositor_render::{
     Resolution, YuvData, YuvVariant,
 };
 use image::ImageBuffer;
-use video_compositor::types::{self};
+use live_compositor::types::{self};
 
 pub(super) const OUTPUT_ID: &str = "output_1";
 
