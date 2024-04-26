@@ -41,7 +41,7 @@ jobs:
               id: build
               with:
                 arch: aarch64
-                distro: ubuntu_latest
+                distro: ubuntu22.04
 
                   # Not required, but speeds up builds
                 githubToken: ${{ github.token }}
