@@ -37,7 +37,7 @@ pub(super) async fn handle_output_update(
                         .update_output(output_id, scene, audio)
                     {
                         error!(
-                            "Error while running scheduled output unregister for pts {}ms: {}",
+                            "Error while running scheduled output update for pts {}ms: {}",
                             schedule_time.as_millis(),
                             ErrorStack::new(&err).into_string()
                         )
