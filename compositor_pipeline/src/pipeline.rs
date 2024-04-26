@@ -256,7 +256,7 @@ impl Pipeline {
             return Err(UpdateSceneError::AudioVideoNotMatching(output_id));
         };
 
-        info!("Update scene {:#?}", scene_root);
+        info!(?output_id, "Update scene {:#?}", scene_root);
 
         self.renderer
             .update_scene(output_id, resolution, scene_root)
@@ -267,6 +267,7 @@ impl Pipeline {
         output_id: &OutputId,
         audio: AudioMixingParams,
     ) -> Result<(), UpdateSceneError> {
+        info!(?output_id, "Update audio mixer {:#?}", audio);
         self.audio_mixer.update_output(output_id, audio)
     }
 
