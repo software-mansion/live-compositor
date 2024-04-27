@@ -4,6 +4,7 @@ import { promisify } from "util";
 import { Stream } from "stream";
 import { ChildProcess, spawn as nodeSpawn } from "child_process";
 import { cwd } from "process";
+import path from "path";
 
 const pipeline = promisify(Stream.pipeline);
 const child_processes: ChildProcess[] = [];
@@ -20,19 +21,13 @@ type SpawnOptions = {
 export function spawn(command: string, args: string[], opts: SpawnOptions): SpawnPromise {
   console.log(`Spawning: ${command} ${args.join(" ")}`);
   const child = nodeSpawn(command, args, {
-    stdio: opts.displayOutput ? "inherit" : "pipe",
+    stdio: opts.displayOutput ? "inherit" : "ignore",
     cwd: opts.cwd ?? cwd(),
     env: {
       ...process.env,
       LIVE_COMPOSITOR_LOGGER_FORMAT: "compact"
     },
   });
-
-  console.log(`Options: ${JSON.stringify(opts)}`);
-  if (!opts.displayOutput) {
-    const stdoutStream = fs.createWriteStream('stdout.txt');
-    child.stdout?.pipe(stdoutStream);
-  }
 
   const promise = new Promise<void>((resolve, reject) => {
     child.on("exit", (code) => {
@@ -77,6 +72,7 @@ export async function downloadAsync(
     return;
   }
 
+  ensureDirectoryExist(destination);
   const response = await fetch(url, { method: "GET" , timeout: 0});
   if (response.status >= 400) {
     const err: any = new Error(`Request to ${url} failed. \n${response.body}`);
@@ -96,4 +92,12 @@ export async function sleepAsync(timeout_ms: number): Promise<void> {
       res();
     }, timeout_ms);
   });
+}
+
+function ensureDirectoryExist(filePath: string) {
+  var dirname = path.dirname(filePath);
+  if (fs.existsSync(dirname)) {
+    return;
+  }
+  fs.mkdirSync(dirname, {recursive: true});
 }

@@ -1,39 +1,42 @@
-import { registerInput, registerOutput, start, updateOutput } from "../utils/api";
-import { ffmpegSendVideoFromMp4, ffplayListenVideoAsync } from "../utils/ffmpeg";
+import path from "path";
+import * as readline from "readline";
+
+import { ffmpegSendVideoFromMp4, ffplayStartPlayerAsync } from "../utils/ffmpeg";
 import { runCompositorExample } from "../utils/run";
 import { downloadAsync, sleepAsync } from "../utils/utils";
 import { Component, Resolution } from "../types/api";
 import { gstStreamWebcam } from "../utils/gst";
-import path from "path";
+import { registerImageAsync, registerInputAsync, registerOutputAsync, startAsync, updateOutputAsync } from "../utils/api";
 
 const OUTPUT_RESOLUTION: Resolution = {
     width: 1920,
     height: 1080,
 };
 
-const WEBCAM_INPUT_PORT = 8000;
-const GAMEPLAY_PORT = 8002;
-const OUTPUT_PORT = 8006;
+const WEBCAM_INPUT_PORT = 10000;
+const GAMEPLAY_PORT = 10002;
+const VIDEO_OUTPUT_PORT = 10004;
+const AUDIO_OUTPUT_PORT = 10006;
 const IP = "127.0.0.1";
 const DISPLAY_LOGS = false;
 
 async function example() {
-    await ffplayListenVideoAsync(IP, OUTPUT_PORT, DISPLAY_LOGS);
+    await ffplayStartPlayerAsync(IP, DISPLAY_LOGS, VIDEO_OUTPUT_PORT, AUDIO_OUTPUT_PORT);
 
     // sleep to make sure ffplay have a chance to start before compositor starts sending packets
     await sleepAsync(2000);
 
-    const useWebCam = process.env.LIVE_COMPOSITOR_WEBCAM !== "false";
     const gameplayPath = path.join(__dirname, "../assets/gameplay.mp4");
     await downloadAsync("https://raw.githubusercontent.com/membraneframework-labs/video_compositor_snapshot_tests/main/demo_assets/gameplay.mp4", gameplayPath);
 
-    // This is mock, since recording screen requires too many permissions and it's heavily OS specific.
-    await registerInput("screen_input", {
-        type: "mp4",
-        path: path.join(__dirname, "../assets/green_screen_example.mp4"),
+    await registerImageAsync("donate", {
+        asset_type: "gif",
+        // url: "https://raw.githubusercontent.com/membraneframework-labs/video_compositor_snapshot_tests/main/demo_assets/donate.gif"
+        path: path.join(__dirname, "../assets/donate.gif")
     });
 
-    await registerInput("webcam_input", {
+    const useWebCam = process.env.LIVE_COMPOSITOR_WEBCAM !== "false";
+    await registerInputAsync("webcam_input", {
         type: "rtp_stream",
         port: WEBCAM_INPUT_PORT,
         transport_protocol: useWebCam ? "tcp_server" : "udp",
@@ -42,25 +45,21 @@ async function example() {
         }
     })
 
-
-    if (useWebCam) {
-        gstStreamWebcam(IP, WEBCAM_INPUT_PORT, DISPLAY_LOGS);
-    } else {
-        const callPath = path.join(__dirname, "../assets/call.mp4");
-        await downloadAsync("https://raw.githubusercontent.com/membraneframework-labs/video_compositor_snapshot_tests/main/demo_assets/call.mp4", path.join(__dirname, "../assets/call.mp4"));
-        ffmpegSendVideoFromMp4(WEBCAM_INPUT_PORT, callPath, DISPLAY_LOGS);
-    }
-
-    await registerInput("screen_input", {
+    await registerInputAsync("gameplay", {
         type: "rtp_stream",
         port: GAMEPLAY_PORT,
-
+        video: {
+            decoder: "ffmpeg_h264"
+        },
+        audio: {
+            decoder: "opus"
+        }
     });
 
-    await registerOutput("output_1", {
+    await registerOutputAsync("video_output", {
         type: "rtp_stream",
         ip: IP,
-        port: OUTPUT_PORT,
+        port: VIDEO_OUTPUT_PORT,
         video: {
             resolution: OUTPUT_RESOLUTION,
             encoder: {
@@ -73,56 +72,126 @@ async function example() {
         }
     });
 
-    await sleepAsync(2000);
+    await registerOutputAsync("audio_output", {
+        type: "rtp_stream",
+        ip: IP,
+        port: AUDIO_OUTPUT_PORT,
+        audio: {
+            encoder: {
+                channels: "stereo",
+                type: "opus",
+            },
+            initial: {
+                inputs: [{ input_id: "gameplay" }]
+            }
+        }
+    });
 
-    await start();
-    await sleepAsync(5000);
-    displayDonate("XDDD!");
+    if (useWebCam) {
+        gstStreamWebcam(IP, WEBCAM_INPUT_PORT, DISPLAY_LOGS);
+    } else {
+        const callPath = path.join(__dirname, "../assets/call.mp4");
+        await downloadAsync("https://raw.githubusercontent.com/membraneframework-labs/video_compositor_snapshot_tests/main/demo_assets/call.mp4", callPath);
+        ffmpegSendVideoFromMp4(WEBCAM_INPUT_PORT, callPath, DISPLAY_LOGS);
+    }
+    ffmpegSendVideoFromMp4(GAMEPLAY_PORT, gameplayPath, DISPLAY_LOGS);
+
+    await sleepAsync(2000);
+    await startAsync();
+
+    const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout
+    });
+
+    rl.question("Enter donate content: ", async (donate_content) => {
+        console.log(`Donate content: ${donate_content}`);
+        await displayDonateAsync(donate_content);
+    });
 }
 
-function displayDonate(msg: string) {
-    const newScene: Component = {
-        type: "view",
-        children: [
-            baseScene(),
-            donateCard(msg)
-        ]
-    };
-
-    updateOutput("output_1", {
+async function displayDonateAsync(msg: string) {
+    await updateOutputAsync("video_output", {
         video: {
-            root: newScene
+            root: {
+                type: "view",
+                children: [
+                    baseScene(),
+                    donateCard(msg, "start")
+                ]
+            }
+        }
+    });
+    await updateOutputAsync("video_output", {
+        video: {
+            root: {
+                type: "view",
+                children: [
+                    baseScene(),
+                    donateCard(msg, "middle")
+                ]
+            }
+        }
+    });
+    await sleepAsync(3000);
+    await updateOutputAsync("video_output", {
+        video: {
+            root: {
+                type: "view",
+                children: [
+                    baseScene(),
+                    donateCard(msg, "end")
+                ]
+            }
         }
     });
 };
 
-function donateCard(msg: string): Component {
-    const emptyView: Component = { type: "view" };
+function donateCard(msg: string, stage: "start" | "middle" | "end"): Component {
+    const width = 480;
+    let top;
+    if (stage === "start" || stage === "end") {
+        top = -270;
+    } else if (stage === "middle") {
+        top = 30
+    }
+
     return {
         type: "view",
-        width: OUTPUT_RESOLUTION.width,
-        height: OUTPUT_RESOLUTION.height,
-        top: 50,
-        left: 0,
+        id: "donate_view",
+        width,
+        height: 270,
+        top,
+        left: (OUTPUT_RESOLUTION.width / 2) - (width / 2),
+        direction: "column",
         children: [
-            emptyView,
             {
                 type: "view",
-                width: 500,
-                height: 300,
-                background_color_rgba: "#87CEEBFF",
+                top: 0,
+                left: 0,
                 children: [{
-                    type: "text",
-                    text: msg,
-                    font_size: 30,
-                    align: "center",
-                    color_rgba: "#32CD32FF",
-                    font_family: "Comic Sans MS",
-                    width: 500,
+                    type: "image",
+                    image_id: "donate",
                 }]
+
             },
-            emptyView
-        ]
+            {
+                type: "text",
+                width,
+                text: msg,
+                weight: "extra_bold",
+                font_size: 50,
+                align: "center",
+                color_rgba: "#FF0000FF",
+                font_family: "Comic Sans MS",
+            }
+        ],
+        transition: {
+            duration_ms: 1000,
+            easing_function: {
+                function_name: "bounce"
+            }
+        }
     };
 }
 
@@ -134,7 +203,7 @@ function baseScene(): Component {
                 type: "rescaler",
                 child: {
                     type: "input_stream",
-                    input_id: "screen_input"
+                    input_id: "gameplay"
                 }
             },
             {

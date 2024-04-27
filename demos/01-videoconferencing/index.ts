@@ -1,10 +1,10 @@
-import { registerImage, registerInput, registerOutput, start, updateOutput, } from "../utils/api";
 import { runCompositorExample } from "../utils/run";
 import { gstStreamWebcam } from "../utils/gst";
 import { downloadAsync, sleepAsync } from "../utils/utils";
 import { Component, Resolution } from "../types/api";
-import { ffmpegSendVideoFromMp4, ffplayListenVideoAsync } from "../utils/ffmpeg";
+import { ffmpegSendVideoFromMp4, ffplayStartPlayerAsync } from "../utils/ffmpeg";
 import path from "path";
+import { registerImageAsync, registerInputAsync, registerOutputAsync, startAsync, updateOutputAsync } from "../utils/api";
 
 const OUTPUT_RESOLUTION: Resolution = {
     width: 1920,
@@ -18,17 +18,18 @@ const DISPLAY_LOGS = true;
 
 async function example() {
     const useWebCam = process.env.LIVE_COMPOSITOR_WEBCAM !== "false";
-    await ffplayListenVideoAsync(IP, OUTPUT_PORT, DISPLAY_LOGS);
-    
+    await ffplayStartPlayerAsync(IP, DISPLAY_LOGS, OUTPUT_PORT);
+
     // sleep to make sure ffplay have a chance to start before compositor starts sending packets
     await sleepAsync(2000);
 
-    await registerImage("background", {
+    await registerImageAsync("background", {
         asset_type: "png",
-        url: "https://raw.githubusercontent.com/membraneframework-labs/video_compositor_snapshot_tests/main/demo_assets/triangles_background.png"
+        // url: "https://raw.githubusercontent.com/membraneframework-labs/video_compositor_snapshot_tests/main/demo_assets/triangles_background.png"
+        path: path.join(__dirname, "../assets/triangles_background.png")
     })
 
-    await registerInput("input_1", {
+    await registerInputAsync("input_1", {
         type: "rtp_stream",
         transport_protocol: useWebCam ? "tcp_server" : "udp",
         port: INPUT_PORT,
@@ -37,7 +38,7 @@ async function example() {
         }
     });
 
-    await registerOutput("output_1", {
+    await registerOutputAsync("output_1", {
         type: "rtp_stream",
         ip: IP,
         port: OUTPUT_PORT,
@@ -60,12 +61,12 @@ async function example() {
         await downloadAsync("https://raw.githubusercontent.com/membraneframework-labs/video_compositor_snapshot_tests/main/demo_assets/call.mp4", path.join(__dirname, "../assets/call.mp4"));
         ffmpegSendVideoFromMp4(INPUT_PORT, callPath, DISPLAY_LOGS);
     }
-    await start();
-    
+    await startAsync();
+
     const inputs = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 13, 12, 11, 10., 9, 8, 7, 6, 5, 4, 3, 2, 1];
     inputs.forEach(async (input, index) => {
         await sleepAsync(2000 * index);
-        await updateOutput("output_1", {
+        await updateOutputAsync("output_1", {
             video: {
                 root: sceneWithInputs(input)
             },

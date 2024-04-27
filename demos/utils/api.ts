@@ -5,51 +5,51 @@ const COMPOSITOR_URL = "http://127.0.0.1:8081";
 
 type CompositorRequestBody = RegisterInput | RegisterOutput | UpdateOutputRequest | ShaderSpec | WebRendererSpec | ImageSpec;
 
-export async function registerInput(inputId: string, body: RegisterInput): Promise<object> {
+export async function registerInputAsync(inputId: string, body: RegisterInput): Promise<object> {
   return sendAsync(`/api/input/${inputId}/register`, body);
 }
 
-export async function unregisterInput(inputId: string): Promise<object> {
+export async function unregisterInputAsync(inputId: string): Promise<object> {
   return sendAsync(`/api/input/${inputId}/unregister`, {});
 }
 
-export async function registerOutput(outputId: string, body: RegisterOutput): Promise<object> {
+export async function registerOutputAsync(outputId: string, body: RegisterOutput): Promise<object> {
   return sendAsync(`/api/output/${outputId}/register`, body);
 }
 
-export async function unregisterOutput(outputId: string): Promise<object> {
+export async function unregisterOutputAsync(outputId: string): Promise<object> {
   return sendAsync(`/api/output/${outputId}/unregister`, {});
 }
 
-export async function updateOutput(outputId: string, body: UpdateOutputRequest): Promise<object> {
+export async function updateOutputAsync(outputId: string, body: UpdateOutputRequest): Promise<object> {
   return sendAsync(`/api/output/${outputId}/update`, body);
 }
 
-export async function registerShader(shaderId: string, body: ShaderSpec): Promise<object> {
+export async function registerShaderAsync(shaderId: string, body: ShaderSpec): Promise<object> {
   return sendAsync(`/api/shader/${shaderId}/register`, body);
 }
 
-export async function unregisterShader(shaderId: string): Promise<object> {
+export async function unregisterShaderAsync(shaderId: string): Promise<object> {
   return sendAsync(`/api/shader/${shaderId}/unregister`, {});
 }
 
-export async function registerWebRenderer(rendererId: string, body: WebRendererSpec): Promise<object> {
+export async function registerWebRendererAsync(rendererId: string, body: WebRendererSpec): Promise<object> {
   return sendAsync(`/api/web_renderer/${rendererId}/register`, body);
 }
 
-export async function unregisterWebRenderer(rendererId: string): Promise<object> {
+export async function unregisterWebRendererAsync(rendererId: string): Promise<object> {
   return sendAsync(`/api/web_renderer/${rendererId}/unregister`, {});
 }
 
-export async function registerImage(imageId: string, body: ImageSpec): Promise<object> {
+export async function registerImageAsync(imageId: string, body: ImageSpec): Promise<object> {
   return sendAsync(`/api/image/${imageId}/register`, body);
 }
 
-export async function unregisterImage(imageId: string): Promise<object> {
+export async function unregisterImageAsync(imageId: string): Promise<object> {
   return sendAsync(`/api/image/${imageId}/unregister`, {});
 }
 
-export async function start(): Promise<object> {
+export async function startAsync(): Promise<object> {
   return sendAsync(`/api/start`, {});
 }
 
