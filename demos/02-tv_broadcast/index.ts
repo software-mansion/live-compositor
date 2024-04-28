@@ -54,14 +54,12 @@ async function example() {
 
     await registerImageAsync("background", {
         asset_type: "jpeg",
-        // url: "https://raw.githubusercontent.com/membraneframework-labs/video_compositor_snapshot_tests/main/demo_assets/news_room.jpeg"
-        path: path.join(__dirname, "../assets/news_room.jpeg")
+        url: "https://raw.githubusercontent.com/membraneframework-labs/video_compositor_snapshot_tests/main/demo_assets/news_room.jpeg"
     });
 
     await registerImageAsync("logo", {
         asset_type: "png",
-        // url: "https://raw.githubusercontent.com/membraneframework-labs/video_compositor_snapshot_tests/main/demo_assets/logo.png"
-        path: path.join(__dirname, "../assets/logo.png")
+        url: "https://raw.githubusercontent.com/membraneframework-labs/video_compositor_snapshot_tests/main/demo_assets/logo.png"
     })
 
     await registerOutputAsync("output_video", {

@@ -1,4 +1,4 @@
-# LiveCompositor TypeScript examples
+# LiveCompositor TypeScript demos
 
 ## Technical requirements
 
@@ -6,13 +6,13 @@
 - **Gstreamer**
 - NodeJS + npm
 
-Before running examples, install JS dependencies with:
+Before running demos, install JS dependencies with:
 
 ```console
 npm install
 ```
 
-## Examples
+## Demos
 
 ### 1. Video Conferencing
 

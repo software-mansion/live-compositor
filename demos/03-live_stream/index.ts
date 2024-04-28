@@ -31,8 +31,7 @@ async function example() {
 
     await registerImageAsync("donate", {
         asset_type: "gif",
-        // url: "https://raw.githubusercontent.com/membraneframework-labs/video_compositor_snapshot_tests/main/demo_assets/donate.gif"
-        path: path.join(__dirname, "../assets/donate.gif")
+        url: "https://raw.githubusercontent.com/membraneframework-labs/video_compositor_snapshot_tests/main/demo_assets/donate.gif"
     });
 
     const useWebCam = process.env.LIVE_COMPOSITOR_WEBCAM !== "false";
@@ -133,7 +132,7 @@ async function displayDonateAsync(msg: string) {
             }
         }
     });
-    await sleepAsync(3000);
+    await sleepAsync(4500);
     await updateOutputAsync("video_output", {
         video: {
             root: {

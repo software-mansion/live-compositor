@@ -25,8 +25,7 @@ async function example() {
 
     await registerImageAsync("background", {
         asset_type: "png",
-        // url: "https://raw.githubusercontent.com/membraneframework-labs/video_compositor_snapshot_tests/main/demo_assets/triangles_background.png"
-        path: path.join(__dirname, "../assets/triangles_background.png")
+        url: "https://raw.githubusercontent.com/membraneframework-labs/video_compositor_snapshot_tests/main/demo_assets/triangles_background.png"
     })
 
     await registerInputAsync("input_1", {

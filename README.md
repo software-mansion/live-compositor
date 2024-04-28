@@ -16,7 +16,9 @@ For the initial release, we want VideoCompositor to support those four types of 
 - Web Rendering - embedding videos in custom websites
 - Text Rendering
 
-Currently, the project is under development and API is unstable.
+## Demos
+
+TypeScript demos presenting what you can do with LiveCompositor are available in the `demos` directory.
 
 ## Examples
 
