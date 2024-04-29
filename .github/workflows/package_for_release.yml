@@ -15,17 +15,17 @@ jobs:
               uses: dtolnay/rust-toolchain@stable
 
             - name: 📥 Checkout repo
-              uses: actions/checkout@v3
+              uses: actions/checkout@v4
 
             - name: 📦 Package
               run: cargo run --bin package_for_release
 
-            - uses: actions/upload-artifact@v3
+            - uses: actions/upload-artifact@v4
               with:
                 name: live_compositor_linux_x86_64.tar.gz
                 path: live_compositor_linux_x86_64.tar.gz
 
-            - uses: actions/upload-artifact@v3
+            - uses: actions/upload-artifact@v4
               with:
                 name: live_compositor_with_web_renderer_linux_x86_64.tar.gz
                 path: live_compositor_with_web_renderer_linux_x86_64.tar.gz
@@ -41,7 +41,7 @@ jobs:
               id: build
               with:
                 arch: aarch64
-                distro: ubuntu_latest
+                distro: ubuntu22.04
 
                   # Not required, but speeds up builds
                 githubToken: ${{ github.token }}
@@ -73,7 +73,7 @@ jobs:
                   cd "/repo"
                   cargo run --bin package_for_release
                   cp *.tar.gz /artifacts
-            - uses: actions/upload-artifact@v3
+            - uses: actions/upload-artifact@v4
               with:
                 name: live_compositor_linux_aarch64.tar.gz
                 path: artifacts/live_compositor_linux_aarch64.tar.gz
@@ -88,17 +88,17 @@ jobs:
               uses: dtolnay/rust-toolchain@stable
 
             - name: 📥 Checkout repo
-              uses: actions/checkout@v3
+              uses: actions/checkout@v4
 
             - name: 📦 Package
               run: cargo run --bin package_for_release
 
-            - uses: actions/upload-artifact@v3
+            - uses: actions/upload-artifact@v4
               with:
                 name: live_compositor_darwin_x86_64.tar.gz
                 path: live_compositor_darwin_x86_64.tar.gz
 
-            - uses: actions/upload-artifact@v3
+            - uses: actions/upload-artifact@v4
               with:
                 name: live_compositor_with_web_renderer_darwin_x86_64.tar.gz
                 path: live_compositor_with_web_renderer_darwin_x86_64.tar.gz
@@ -113,17 +113,17 @@ jobs:
               uses: dtolnay/rust-toolchain@stable
 
             - name: 📥 Checkout repo
-              uses: actions/checkout@v3
+              uses: actions/checkout@v4
 
             - name: 📦 Package
               run: cargo run --bin package_for_release
 
-            - uses: actions/upload-artifact@v3
+            - uses: actions/upload-artifact@v4
               with:
                 name: live_compositor_darwin_aarch64.tar.gz
                 path: live_compositor_darwin_aarch64.tar.gz
 
-            - uses: actions/upload-artifact@v3
+            - uses: actions/upload-artifact@v4
               with:
                 name: live_compositor_with_web_renderer_darwin_aarch64.tar.gz
                 path: live_compositor_with_web_renderer_darwin_aarch64.tar.gz

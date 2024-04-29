@@ -51,10 +51,10 @@ const config: Config = {
       defaultMode: 'dark',
     },
     navbar: {
-      title: 'Live Compositor',
       logo: {
         alt: 'logo',
         src: 'img/logo.svg',
+        srcDark: 'img/logo-dark.svg',
       },
       items: [
         {
