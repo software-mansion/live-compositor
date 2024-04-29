@@ -82,8 +82,7 @@ impl WgpuCtx {
         }
         let missing_nominal_mode_features = nominal_mode_features.difference(adapter.features());
         if !missing_nominal_mode_features.is_empty() {
-            error!("Selected adapter or it's driver don't support nominal mode wgpu {missing_nominal_mode_features:?}.");
-            error!("Starting in degraded mode, some valid and correct user shaders may not able to run on this adapter.");
+            error!("Selected adapter or its driver does not support optional wgpu features. Missing features: {missing_optional_features:?}).");
         }
         let required_features = critical_features
             .union(nominal_mode_features.difference(missing_nominal_mode_features));
