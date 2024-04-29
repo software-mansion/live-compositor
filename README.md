@@ -16,8 +16,6 @@ For the initial release, we want LiveCompositor to support those four types of t
 - Web Rendering - embedding videos in custom websites.
 - Text Rendering
 
-Currently, the project is under development and API is unstable.
-
 ## Examples
 
 Examples source code is under the `examples` directory.
