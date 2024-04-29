@@ -1,5 +1,5 @@
 # Builder image
-FROM ubuntu:mantic-20231011 as builder
+FROM ubuntu:noble-20240423 as builder
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
