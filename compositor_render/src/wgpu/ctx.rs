@@ -77,7 +77,7 @@ impl WgpuCtx {
 
         let missing_critical_features = critical_features.difference(adapter.features());
         if !missing_critical_features.is_empty() {
-            error!("Selected adapter or it's driver don't support critical wgpu {missing_critical_features:?}. Aborting.");
+            error!("Selected adapter or its driver does not support required wgpu features. Missing features: {missing_critical_features:?}).");
             return Err(CreateWgpuCtxError::NoAdapter);
         }
         let missing_nominal_mode_features = nominal_mode_features.difference(adapter.features());
