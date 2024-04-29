@@ -75,17 +75,17 @@ impl WgpuCtx {
             wgpu::Features::SAMPLED_TEXTURE_AND_STORAGE_BUFFER_ARRAY_NON_UNIFORM_INDEXING
                 | wgpu::Features::UNIFORM_BUFFER_AND_STORAGE_TEXTURE_ARRAY_NON_UNIFORM_INDEXING;
 
-        let missing_critical_features = critical_features.difference(adapter.features());
-        if !missing_critical_features.is_empty() {
-            error!("Selected adapter or its driver does not support required wgpu features. Missing features: {missing_critical_features:?}).");
+        let missing_required_features = required_features.difference(adapter.features());
+        if !missing_required_features.is_empty() {
+            error!("Selected adapter or its driver does not support required wgpu features. Missing features: {missing_required_features:?}).");
             return Err(CreateWgpuCtxError::NoAdapter);
         }
-        let missing_nominal_mode_features = nominal_mode_features.difference(adapter.features());
-        if !missing_nominal_mode_features.is_empty() {
+        let missing_optional_features = optional_features.difference(adapter.features());
+        if !missing_optional_features.is_empty() {
             error!("Selected adapter or its driver does not support optional wgpu features. Missing features: {missing_optional_features:?}).");
         }
-        let required_features = critical_features
-            .union(nominal_mode_features.difference(missing_nominal_mode_features));
+        let requested_features =
+            required_features.union(optional_features.difference(missing_optional_features));
 
         let (device, queue) = pollster::block_on(adapter.request_device(
             &wgpu::DeviceDescriptor {
@@ -94,7 +94,7 @@ impl WgpuCtx {
                     max_push_constant_size: 128,
                     ..Default::default()
                 },
-                required_features,
+                required_features: requested_features,
             },
             None,
         ))?;
