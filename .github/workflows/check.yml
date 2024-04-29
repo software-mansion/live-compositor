@@ -36,7 +36,7 @@ jobs:
                   node-version: 20
 
             - name: 📥 Checkout repo
-              uses: actions/checkout@v3
+              uses: actions/checkout@v4
               with:
                   submodules: 'true'
 
@@ -75,7 +75,7 @@ jobs:
 
             - name: 📦 Upload failed snapshot test artifacts
               if: failure()
-              uses: actions/upload-artifact@v3
+              uses: actions/upload-artifact@v4
               with:
                   name: failed_snapshot_tests
                   path: failed_snapshot_tests
