@@ -1,5 +1,3 @@
-use live_compositor::types;
-
 use crate::definition::{Kind, TypeDefinition};
 
 use super::MarkdownGenerator;
