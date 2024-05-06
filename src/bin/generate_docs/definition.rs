@@ -1,17 +1,6 @@
 #[derive(Debug, Clone)]
-pub struct TopLevelDefinition {
-    pub name: String,
-    pub definition: TypeDefinition,
-}
-
-impl TopLevelDefinition {
-    pub fn new(name: String, definition: TypeDefinition) -> Self {
-        Self { name, definition }
-    }
-}
-
-#[derive(Debug, Clone)]
 pub struct TypeDefinition {
+    pub name: Option<String>,
     pub description: String,
     pub kind: Kind,
     pub is_optional: bool,
@@ -49,6 +38,12 @@ impl TypeDefinition {
         let desc1 = self.description.clone();
         let desc2 = other.description.clone();
 
+        let name = if other.name.is_some() {
+            other.name.clone()
+        } else {
+            self.name.clone()
+        };
+
         let description = if desc1.is_empty() {
             desc2
         } else if desc2.is_empty() {
@@ -58,6 +53,7 @@ impl TypeDefinition {
         };
 
         Self {
+            name,
             description,
             kind: other.kind.clone(),
             is_optional: self.is_optional || other.is_optional,
