@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::cef_string::CefString;
 
 /// Used for creating IPC message data and/or reading from it
@@ -254,9 +256,9 @@ impl From<chromium_sys::cef_value_type_t> for ValueType {
     }
 }
 
-impl ToString for ValueType {
-    fn to_string(&self) -> String {
-        match self {
+impl Display for ValueType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let type_name = match self {
             ValueType::Invalid => "invalid",
             ValueType::Null => "null",
             ValueType::Bool => "bool",
@@ -266,7 +268,8 @@ impl ToString for ValueType {
             ValueType::Binary => "binary",
             ValueType::Dictionary => "dictionary",
             ValueType::List => "list",
-        }
-        .to_string()
+        };
+
+        f.write_str(type_name)
     }
 }

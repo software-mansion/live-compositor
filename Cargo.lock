@@ -2592,8 +2592,7 @@ dependencies = [
 [[package]]
 name = "schemars"
 version = "0.8.16"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "45a28f4c49489add4ce10783f7911893516f15afe45d015608d41faca6bc4d29"
+source = "git+https://github.com/membraneframework-labs/schemars?rev=a5ad1f9#a5ad1f9e5729ff699c576fb5a98e483e7a570bda"
 dependencies = [
  "dyn-clone",
  "indexmap 1.9.3",
@@ -2605,8 +2604,7 @@ dependencies = [
 [[package]]
 name = "schemars_derive"
 version = "0.8.16"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c767fd6fa65d9ccf9cf026122c1b555f2ef9a4f0cea69da4d7dbc3e258d30967"
+source = "git+https://github.com/membraneframework-labs/schemars?rev=a5ad1f9#a5ad1f9e5729ff699c576fb5a98e483e7a570bda"
 dependencies = [
  "proc-macro2",
  "quote",
