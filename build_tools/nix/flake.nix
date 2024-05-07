@@ -2,8 +2,7 @@
   description = "Dev shell for LiveCompositor";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/8db50d6f207f6e6bea072986fe5abfc955f04bfc";
-    flake-parts.url = "github:hercules-ci/flake-parts/b253292d9c0a5ead9bc98c4e9a26c6312e27d69f";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
   };
 
   outputs = inputs@{ flake-parts, ... }:
