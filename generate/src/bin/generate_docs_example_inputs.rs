@@ -7,8 +7,19 @@ use serde_json::json;
 fn main() {
     let _ = fs::remove_dir_all(workingdir());
     fs::create_dir_all(workingdir()).unwrap();
-    generate_video(workingdir().join("input_1.rtp"), "Input 1", "#4d4d4dff").unwrap();
-    generate_video(workingdir().join("input_2.rtp"), "Input 2", "#9999ffff").unwrap();
+
+    // HSV 0°, 50%, 65%
+    generate_video(workingdir().join("input_1.rtp"), "Input 1", "#a65353ff").unwrap();
+    // HSV 60°, 50%, 65%
+    generate_video(workingdir().join("input_2.rtp"), "Input 2", "#a6a653ff").unwrap();
+    // HSV 120°, 50%, 65%
+    generate_video(workingdir().join("input_3.rtp"), "Input 3", "#53a653ff").unwrap();
+    // HSV 180°, 50%, 65%
+    generate_video(workingdir().join("input_4.rtp"), "Input 4", "#53a6a6ff").unwrap();
+    // HSV 240°, 50%, 65%
+    generate_video(workingdir().join("input_5.rtp"), "Input 5", "#5353a6ff").unwrap();
+    // HSV 300°, 50%, 65%
+    generate_video(workingdir().join("input_6.rtp"), "Input 6", "#a653a6ff").unwrap();
 }
 
 fn workingdir() -> PathBuf {
@@ -44,13 +55,13 @@ fn generate_video(path: PathBuf, text: &str, rgba_color: &str) -> Result<()> {
     instance.send_request(
         "output/output_1/unregister",
         json!({
-            "schedule_time_ms": 10_000,
+            "schedule_time_ms": 20_000,
         }),
     )?;
 
     const EVENT_COUNT: u64 = 10_000;
     for i in 0..EVENT_COUNT {
-        let pts = Duration::from_millis(10_000 * i / EVENT_COUNT);
+        let pts = Duration::from_millis(20_000 * i / EVENT_COUNT);
         instance.send_request(
             "output/output_1/update",
             json!({
@@ -87,7 +98,7 @@ fn scene(text: &str, rgba_color: &str, pts: Duration) -> serde_json::Value {
                 {
                     "type": "text",
                     "text": text,
-                    "font_size": 200,
+                    "font_size": 250,
                     "width": 1920,
                     "align": "center",
                     "font_family": "Comic Sans MS",
@@ -95,15 +106,17 @@ fn scene(text: &str, rgba_color: &str, pts: Duration) -> serde_json::Value {
                 { "type": "view" },
                 {
                   "type": "view",
-                  "bottom": 50,
-                  "right": 50,
-                  "width":  200,
-                  "height": 50,
+                  "bottom": 100,
+                  "right": 100,
+                  "width":  300,
+                  "height": 100,
                   "children": [
                      {
                             "type": "text",
                             "text": format!("{:.2}s", pts.as_millis() as f32 / 1000.0),
-                            "font_size": 50,
+                            "font_size": 90,
+                            "width": 300,
+                            "align": "right",
                             "font_family": "Comic Sans MS",
                      },
                   ]
