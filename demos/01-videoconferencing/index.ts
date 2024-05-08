@@ -16,7 +16,10 @@ const OUTPUT_PORT = 8002;
 const IP = "127.0.0.1";
 const DISPLAY_LOGS = true;
 
-async function example() {
+const BACKGROUND_URL = "https://raw.githubusercontent.com/membraneframework-labs/video_compositor_snapshot_tests/main/demo_assets/triangles_background.png";
+const CALL_URL = "https://raw.githubusercontent.com/membraneframework-labs/video_compositor_snapshot_tests/main/demo_assets/call.mp4";
+
+async function exampleAsync() {
     const useWebCam = process.env.LIVE_COMPOSITOR_WEBCAM !== "false";
     await ffplayStartPlayerAsync(IP, DISPLAY_LOGS, OUTPUT_PORT);
 
@@ -25,7 +28,7 @@ async function example() {
 
     await registerImageAsync("background", {
         asset_type: "png",
-        url: "https://raw.githubusercontent.com/membraneframework-labs/video_compositor_snapshot_tests/main/demo_assets/triangles_background.png"
+        url: BACKGROUND_URL
     })
 
     await registerInputAsync("input_1", {
@@ -57,18 +60,18 @@ async function example() {
         gstStreamWebcam(IP, INPUT_PORT, DISPLAY_LOGS);
     } else {
         const callPath = path.join(__dirname, "../assets/call.mp4");
-        await downloadAsync("https://raw.githubusercontent.com/membraneframework-labs/video_compositor_snapshot_tests/main/demo_assets/call.mp4", path.join(__dirname, "../assets/call.mp4"));
+        await downloadAsync(CALL_URL, path.join(__dirname, "../assets/call.mp4"));
         ffmpegSendVideoFromMp4(INPUT_PORT, callPath, DISPLAY_LOGS);
     }
     await startAsync();
 
-    const inputs = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 13, 12, 11, 10., 9, 8, 7, 6, 5, 4, 3, 2, 1];
+    const inputs = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
     inputs.forEach(async (input, index) => {
-        await sleepAsync(2000 * index);
         await updateOutputAsync("output_1", {
             video: {
                 root: sceneWithInputs(input)
             },
+            schedule_time_ms: 2000 * (index + 1)
         })
     });
 }
@@ -76,7 +79,6 @@ async function example() {
 
 function sceneWithInputs(n: number): Component {
     const children: Array<Component> = Array.from({ length: n }, (_, i) => {
-        const emptyView: Component = { type: "view" }
         const text: Component = {
             type: "text",
             text: `InputStream ${i} 🚀`,
@@ -102,7 +104,7 @@ function sceneWithInputs(n: number): Component {
                     height: 50,
                     bottom: 0,
                     left: 0,
-                    children: [emptyView, text, emptyView]
+                    children: [{ type: "view" }, text, { type: "view" }]
                 }
             ]
         };
@@ -154,4 +156,4 @@ function sceneWithInputs(n: number): Component {
     }
 }
 
-runCompositorExample(example, DISPLAY_LOGS);
+runCompositorExample(exampleAsync, DISPLAY_LOGS);

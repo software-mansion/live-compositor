@@ -20,7 +20,7 @@ const DISPLAY_LOGS = true;
 const BUNNY_PATH = path.join(__dirname, "../assets/bunny.mp4");
 const TV_PATH = path.join(__dirname, "../assets/green_screen_example.mp4");
 
-async function example() {
+async function exampleAsync() {
     ffplayStartPlayerAsync(IP, DISPLAY_LOGS, VIDEO_OUTPUT_PORT, AUDIO_OUTPUT_PORT);
     await sleepAsync(2000);
 
@@ -73,7 +73,7 @@ async function example() {
                 preset: "ultrafast"
             },
             initial: {
-                root: makeScene(undefined)
+                root: scene(undefined)
             }
         }
     });
@@ -99,35 +99,35 @@ async function example() {
     // First update to set start position of the bunny for transition
     await updateOutputAsync("output_video", {
         video: {
-            root: makeScene(bunnyOutside)
+            root: scene(bunnyOutside)
         },
-        schedule_time_ms: 10_000
+        schedule_time_ms: 7_000
     });
 
     // Bunny transitions
     await updateOutputAsync("output_video", {
         video: {
-            root: makeScene(bunnyInside)
+            root: scene(bunnyInside)
         },
-        schedule_time_ms: 10_001
+        schedule_time_ms: 7_000
     });
 
     await updateOutputAsync("output_video", {
         video: {
-            root: makeScene(finalBunnyPosition)
+            root: scene(finalBunnyPosition)
         },
-        schedule_time_ms: 15_000
+        schedule_time_ms: 13_000
     });
 
     await updateOutputAsync("output_audio", {
         audio: {
             inputs: [{ input_id: "bunny" }]
         },
-        schedule_time_ms: 10_000
+        schedule_time_ms: 13_000
     });
 }
 
-function makeScene(bunnyProducer: (() => Component) | undefined): Component {
+function scene(bunnyProducer?: () => Component): Component {
     let components: Component[] = bunnyProducer ? [
         news_report(),
         bunnyProducer(),
@@ -315,4 +315,4 @@ function logo(): Component {
     }
 }
 
-runCompositorExample(example, DISPLAY_LOGS);
+runCompositorExample(exampleAsync, DISPLAY_LOGS);

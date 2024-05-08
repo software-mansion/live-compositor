@@ -20,7 +20,7 @@ const AUDIO_OUTPUT_PORT = 10006;
 const IP = "127.0.0.1";
 const DISPLAY_LOGS = false;
 
-async function example() {
+async function exampleAsync() {
     await ffplayStartPlayerAsync(IP, DISPLAY_LOGS, VIDEO_OUTPUT_PORT, AUDIO_OUTPUT_PORT);
 
     // sleep to make sure ffplay have a chance to start before compositor starts sending packets
@@ -225,4 +225,4 @@ function baseScene(): Component {
     };
 }
 
-runCompositorExample(example, DISPLAY_LOGS);
+runCompositorExample(exampleAsync, DISPLAY_LOGS);

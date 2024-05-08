@@ -72,7 +72,7 @@ export async function downloadAsync(
     return;
   }
 
-  ensureDirectoryExist(destination);
+  await fs.mkdirp(path.dirname(destination));
   const response = await fetch(url, { method: "GET" , timeout: 0});
   if (response.status >= 400) {
     const err: any = new Error(`Request to ${url} failed. \n${response.body}`);
@@ -92,12 +92,4 @@ export async function sleepAsync(timeout_ms: number): Promise<void> {
       res();
     }, timeout_ms);
   });
-}
-
-function ensureDirectoryExist(filePath: string) {
-  var dirname = path.dirname(filePath);
-  if (fs.existsSync(dirname)) {
-    return;
-  }
-  fs.mkdirSync(dirname, {recursive: true});
 }
