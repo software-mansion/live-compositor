@@ -16,23 +16,29 @@ process.on("exit", () => {
 type SpawnOptions = {
   displayOutput: boolean;
   cwd?: string;
-}
+};
 
-export function spawn(command: string, args: string[], opts: SpawnOptions): SpawnPromise {
+export function spawn(
+  command: string,
+  args: string[],
+  opts: SpawnOptions,
+): SpawnPromise {
   console.log(`Spawning: ${command} ${args.join(" ")}`);
   const child = nodeSpawn(command, args, {
     stdio: opts.displayOutput ? "inherit" : "ignore",
     cwd: opts.cwd ?? cwd(),
     env: {
       ...process.env,
-      LIVE_COMPOSITOR_LOGGER_FORMAT: "compact"
+      LIVE_COMPOSITOR_LOGGER_FORMAT: "compact",
     },
   });
 
   const promise = new Promise<void>((resolve, reject) => {
     child.on("exit", (code) => {
       if (code === 0) {
-        console.log(`Command "${command} ${args.join(" ")}" completed successfully.`);
+        console.log(
+          `Command "${command} ${args.join(" ")}" completed successfully.`,
+        );
         resolve();
       } else {
         const errorMessage = `Command "${command} ${args.join(" ")}" failed with exit code ${code}.`;
@@ -73,7 +79,7 @@ export async function downloadAsync(
   }
 
   await fs.mkdirp(path.dirname(destination));
-  const response = await fetch(url, { method: "GET" , timeout: 0});
+  const response = await fetch(url, { method: "GET", timeout: 0 });
   if (response.status >= 400) {
     const err: any = new Error(`Request to ${url} failed. \n${response.body}`);
     err.response = response;

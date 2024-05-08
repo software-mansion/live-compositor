@@ -6,7 +6,7 @@ import { ensureCompositorReadyAsync } from "./prepare_compositor";
 
 export async function runCompositorExample(
   fn: () => Promise<void>,
-  displayOutput: boolean
+  displayOutput: boolean,
 ): Promise<void> {
   await ensureCompositorReadyAsync();
   const { command, args, cwd } = getCompositorRunCmd();
@@ -61,8 +61,7 @@ function getCompositorRunCmd(): {
       args: ["run", "--release", "--bin", "video_compositor"],
       cwd: process.env.LIVE_COMPOSITOR_SOURCE_DIR,
     };
-  }
-  else if (process.platform === "linux") {
+  } else if (process.platform === "linux") {
     return {
       command: path.join(COMPOSITOR_DIR, "video_compositor/video_compositor"),
       args: [],
