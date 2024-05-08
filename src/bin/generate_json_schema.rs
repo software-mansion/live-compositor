@@ -5,6 +5,7 @@ use schemars::{
     schema::{RootSchema, Schema, SchemaObject},
     schema_for, JsonSchema,
 };
+
 use serde::{Deserialize, Serialize};
 use video_compositor::{routes, types};
 
