@@ -5,7 +5,7 @@ use schemars::JsonSchema;
 use crate::{
     definition::{Kind, TypeDefinition},
     docs_config::DocsConfig,
-    generation::MarkdownGenerator,
+    markdown::MarkdownGenerator,
     schema_parser::{parse_schema, utils::new_schema_generator},
 };
 

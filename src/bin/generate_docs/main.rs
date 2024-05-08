@@ -1,16 +1,16 @@
 use docs_config::DocsConfig;
 use document::generate;
-use generation::overrides;
 use live_compositor::types::{
     Image, ImageSpec, InputStream, Mp4, Rescaler, RtpInputStream, RtpOutputStream, Shader,
     ShaderSpec, Text, Tiles, View, WebRendererSpec, WebView,
 };
+use markdown::overrides;
 use std::{fs, path::PathBuf};
 
 mod definition;
 mod docs_config;
 mod document;
-mod generation;
+mod markdown;
 mod schema_parser;
 
 fn main() {

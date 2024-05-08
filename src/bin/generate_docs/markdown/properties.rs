@@ -3,22 +3,22 @@ use crate::definition::{Kind, TypeDefinition};
 use super::MarkdownGenerator;
 
 impl<'a> MarkdownGenerator<'a> {
-    pub fn generate_properties(&mut self, definition: &TypeDefinition) {
+    pub(super) fn write_properties(&mut self, definition: &TypeDefinition) {
         let name = definition.name.clone();
 
         match &definition.kind {
-            Kind::Object { fields } => self.generate_object_properties(fields.clone()),
-            Kind::Union(variants) => self.generate_union_properties(name, variants.clone()),
+            Kind::Object { fields } => self.write_object_properties(fields.clone()),
+            Kind::Union(variants) => self.write_union_properties(name, variants.clone()),
             _ => {}
         }
     }
 
-    pub fn generate_object_properties(&mut self, fields: Vec<(String, TypeDefinition)>) {
+    fn write_object_properties(&mut self, fields: Vec<(String, TypeDefinition)>) {
         self.add_header(4, "Properties");
-        self.generate_object_fields_descriptions(fields);
+        self.write_object_fields_descriptions(fields);
     }
 
-    pub fn generate_union_properties(
+    fn write_union_properties(
         &mut self,
         union_name: Option<String>,
         variants: Vec<TypeDefinition>,
@@ -27,23 +27,21 @@ impl<'a> MarkdownGenerator<'a> {
             let description = variant.description.clone();
 
             match variant.kind.clone() {
-                Kind::Object { fields } => self.generate_object_variant_properties(
-                    union_name.as_deref(),
-                    description,
-                    fields,
-                ),
-                _ => self.generate_variant_description(variant),
+                Kind::Object { fields } => {
+                    self.write_object_variant_properties(union_name.as_deref(), description, fields)
+                }
+                _ => self.write_variant_description(variant),
             }
         }
     }
 
     /// Generates descriptions for each field in an object
-    pub fn generate_object_fields_descriptions(&mut self, fields: Vec<(String, TypeDefinition)>) {
+    fn write_object_fields_descriptions(&mut self, fields: Vec<(String, TypeDefinition)>) {
         // "- `{name}` - {description}\n{union_variant_properties}\n"
         for (name, def) in fields {
             let union_properties_len = self.calculate_generation_length(|generator| {
                 if let Kind::Union(variants) = def.kind.clone() {
-                    generator.generate_union_properties(def.name.clone(), variants);
+                    generator.write_union_properties(def.name.clone(), variants);
                 }
             });
             if def.description.is_empty() && union_properties_len == 0 {
@@ -61,7 +59,7 @@ impl<'a> MarkdownGenerator<'a> {
                 }
                 self.add_text("\n");
                 if let Kind::Union(variants) = def.kind {
-                    self.generate_union_properties(def.name, variants);
+                    self.write_union_properties(def.name, variants);
                 }
             }
             self.dec_indent();
@@ -70,7 +68,7 @@ impl<'a> MarkdownGenerator<'a> {
 
     /// Generates new `Properties` section for an union variant
     /// If variant discriminant is present, it will be displayed in `Properties` header
-    pub fn generate_object_variant_properties(
+    fn write_object_variant_properties(
         &mut self,
         union_name: Option<&str>,
         variant_description: String,
@@ -97,10 +95,10 @@ impl<'a> MarkdownGenerator<'a> {
             self.add_text("\n");
         }
 
-        self.generate_object_fields_descriptions(fields);
+        self.write_object_fields_descriptions(fields);
     }
 
-    pub fn generate_variant_description(&mut self, variant: TypeDefinition) {
+    fn write_variant_description(&mut self, variant: TypeDefinition) {
         let description = variant.description.clone();
         if description.is_empty() {
             return;
@@ -109,7 +107,7 @@ impl<'a> MarkdownGenerator<'a> {
         // Generates "- `{type}` - {description}\n"
         self.add_text("- ");
         self.add_text("`");
-        self.generate_type_definition(variant);
+        self.write_type_definition(variant);
         self.add_text("`");
 
         // Indent is needed when the description is multiline

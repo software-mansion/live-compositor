@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::{
     definition::TypeDefinition,
-    generation::{overrides, MarkdownGenerator},
+    markdown::{overrides, MarkdownGenerator},
 };
 
 type OverrideFn = fn(&mut MarkdownGenerator<'_>, TypeDefinition);

@@ -28,15 +28,15 @@ impl<'a> MarkdownGenerator<'a> {
         generator.add_header(2, &name);
         generator.with_codeblock(|code_block| {
             code_block.add_text(format!("type {name} = "));
-            code_block.generate_type_definition(definition.clone());
+            code_block.write_type_definition(definition.clone());
         });
         generator.add_text(description);
-        generator.generate_properties(&definition);
+        generator.write_properties(&definition);
 
         generator.document
     }
 
-    pub fn add_header<S: Into<String>>(&mut self, level: usize, text: S) {
+    fn add_header<S: Into<String>>(&mut self, level: usize, text: S) {
         if !self.was_newline {
             self.add_text("\n");
         }
