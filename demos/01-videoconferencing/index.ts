@@ -60,7 +60,7 @@ async function exampleAsync() {
         gstStreamWebcam(IP, INPUT_PORT, DISPLAY_LOGS);
     } else {
         const callPath = path.join(__dirname, "../assets/call.mp4");
-        await downloadAsync(CALL_URL, path.join(__dirname, "../assets/call.mp4"));
+        await downloadAsync(CALL_URL, callPath);
         ffmpegSendVideoFromMp4(INPUT_PORT, callPath, DISPLAY_LOGS);
     }
     await startAsync();

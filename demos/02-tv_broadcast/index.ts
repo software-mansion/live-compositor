@@ -20,18 +20,23 @@ const DISPLAY_LOGS = true;
 const BUNNY_PATH = path.join(__dirname, "../assets/bunny.mp4");
 const TV_PATH = path.join(__dirname, "../assets/green_screen_example.mp4");
 
+const REPORTER_URL = "https://assets.mixkit.co/videos/preview/mixkit-female-reporter-reporting-with-microphone-in-hand-on-a-chroma-28293-large.mp4";
+const BUNNY_URL = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+const BACKGROUND_URL = "https://raw.githubusercontent.com/membraneframework-labs/video_compositor_snapshot_tests/main/demo_assets/triangles_background.png";
+const LOGO_URL = "https://raw.githubusercontent.com/membraneframework-labs/video_compositor_snapshot_tests/main/demo_assets/logo.png";
+
 async function exampleAsync() {
     ffplayStartPlayerAsync(IP, DISPLAY_LOGS, VIDEO_OUTPUT_PORT, AUDIO_OUTPUT_PORT);
     await sleepAsync(2000);
 
     process.env.LIVE_COMPOSITOR_LOGGER_LEVEL = "debug";
     await downloadAsync(
-        "https://assets.mixkit.co/videos/preview/mixkit-female-reporter-reporting-with-microphone-in-hand-on-a-chroma-28293-large.mp4",
+        REPORTER_URL,
         TV_PATH
     );
 
     await downloadAsync(
-        "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+        BUNNY_URL,
         BUNNY_PATH
     );
 
@@ -54,12 +59,12 @@ async function exampleAsync() {
 
     await registerImageAsync("background", {
         asset_type: "jpeg",
-        url: "https://raw.githubusercontent.com/membraneframework-labs/video_compositor_snapshot_tests/main/demo_assets/news_room.jpeg"
+        url: BACKGROUND_URL
     });
 
     await registerImageAsync("logo", {
         asset_type: "png",
-        url: "https://raw.githubusercontent.com/membraneframework-labs/video_compositor_snapshot_tests/main/demo_assets/logo.png"
+        url: LOGO_URL
     })
 
     await registerOutputAsync("output_video", {

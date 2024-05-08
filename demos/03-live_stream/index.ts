@@ -20,6 +20,10 @@ const AUDIO_OUTPUT_PORT = 10006;
 const IP = "127.0.0.1";
 const DISPLAY_LOGS = false;
 
+const GAMEPLAY_URL = "https://raw.githubusercontent.com/membraneframework-labs/video_compositor_snapshot_tests/main/demo_assets/gameplay.mp4";
+const DONATE_URL = "https://raw.githubusercontent.com/membraneframework-labs/video_compositor_snapshot_tests/main/demo_assets/donate.gif";
+const CALL_URL = "https://raw.githubusercontent.com/membraneframework-labs/video_compositor_snapshot_tests/main/demo_assets/call.mp4";
+
 async function exampleAsync() {
     await ffplayStartPlayerAsync(IP, DISPLAY_LOGS, VIDEO_OUTPUT_PORT, AUDIO_OUTPUT_PORT);
 
@@ -27,11 +31,11 @@ async function exampleAsync() {
     await sleepAsync(2000);
 
     const gameplayPath = path.join(__dirname, "../assets/gameplay.mp4");
-    await downloadAsync("https://raw.githubusercontent.com/membraneframework-labs/video_compositor_snapshot_tests/main/demo_assets/gameplay.mp4", gameplayPath);
+    await downloadAsync(GAMEPLAY_URL, gameplayPath);
 
     await registerImageAsync("donate", {
         asset_type: "gif",
-        url: "https://raw.githubusercontent.com/membraneframework-labs/video_compositor_snapshot_tests/main/demo_assets/donate.gif"
+        url: DONATE_URL
     });
 
     const useWebCam = process.env.LIVE_COMPOSITOR_WEBCAM !== "false";
@@ -90,7 +94,7 @@ async function exampleAsync() {
         gstStreamWebcam(IP, WEBCAM_INPUT_PORT, DISPLAY_LOGS);
     } else {
         const callPath = path.join(__dirname, "../assets/call.mp4");
-        await downloadAsync("https://raw.githubusercontent.com/membraneframework-labs/video_compositor_snapshot_tests/main/demo_assets/call.mp4", callPath);
+        await downloadAsync(CALL_URL, callPath);
         ffmpegSendVideoFromMp4(WEBCAM_INPUT_PORT, callPath, DISPLAY_LOGS);
     }
     ffmpegSendVideoFromMp4(GAMEPLAY_PORT, gameplayPath, DISPLAY_LOGS);
