@@ -1,13 +1,11 @@
 use std::{fs, io, path::PathBuf};
 
-use live_compositor::types;
+use live_compositor::{routes, types};
 use schemars::{
     schema::{RootSchema, Schema, SchemaObject},
     schema_for, JsonSchema,
 };
-
 use serde::{Deserialize, Serialize};
-use video_compositor::{routes, types};
 
 const ROOT_DIR: &str = env!("CARGO_MANIFEST_DIR");
 
