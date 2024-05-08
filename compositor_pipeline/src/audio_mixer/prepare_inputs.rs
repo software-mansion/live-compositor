@@ -40,7 +40,7 @@ pub(super) fn prepare_input_samples(
 ///
 /// How to define pts of a single sample in batch:
 /// - Sample has a start time, the first item in a sample batch starts at the same time as batch PTS.
-/// - Sample has an end time, the first item in a sample batch ends `1/sample_rate` seconds latter.
+/// - Sample has an end time, the first item in a sample batch ends `1/sample_rate` seconds later.
 /// - Each consecutive sample in the batch is starting when the previous one has ended.
 /// - Input and output samples are out of sync, so all samples need to be shifted to match.
 ///

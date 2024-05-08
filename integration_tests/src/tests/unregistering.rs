@@ -25,7 +25,7 @@ pub fn unregistering() -> Result<()> {
         "image/image_1/register",
         json!({
             "asset_type": "svg",
-            "url": "https://compositor.live/img/logo.svg"
+            "path": format!("{}/../docs/static/img/logo.svg", env!("CARGO_MANIFEST_DIR"))
         }),
     )?;
 

@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use anyhow::{Context, Result};
 use bytes::BytesMut;
-use compositor_render::{Frame, Resolution, YuvData};
+use compositor_render::{Frame, Resolution, YuvData, YuvVariant};
 use ffmpeg_next::{
     codec::{Context as FfmpegContext, Id},
     decoder,
@@ -71,6 +71,7 @@ impl VideoDecoder {
         let mut decoded_frame = frame::Video::empty();
         while self.decoder.receive_frame(&mut decoded_frame).is_ok() {
             let data = YuvData {
+                variant: YuvVariant::YUV420P,
                 y_plane: copy_plane_from_av(&decoded_frame, 0),
                 u_plane: copy_plane_from_av(&decoded_frame, 1),
                 v_plane: copy_plane_from_av(&decoded_frame, 2),

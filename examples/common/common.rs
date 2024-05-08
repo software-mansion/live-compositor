@@ -1,6 +1,7 @@
 use anyhow::{anyhow, Result};
 
-use crossbeam_channel::unbounded;
+use futures_util::{SinkExt, StreamExt};
+use live_compositor::{config::read_config, types::Resolution};
 use log::error;
 use reqwest::{blocking::Response, StatusCode};
 use std::{
@@ -12,9 +13,8 @@ use std::{
     thread,
     time::Duration,
 };
+use tokio_tungstenite::tungstenite;
 use tracing::info;
-use video_compositor::{config::read_config, types::Resolution};
-use websocket::{Message, OwnedMessage};
 
 use serde::Serialize;
 
@@ -39,55 +39,68 @@ pub fn post<T: Serialize + ?Sized>(route: &str, json: &T) -> Result<Response> {
 
 #[allow(dead_code)]
 pub fn start_websocket_thread() {
-    let client = websocket::sync::client::ClientBuilder::new(&format!(
-        "ws://127.0.0.1:{}/ws",
-        read_config().api_port
-    ))
-    .unwrap()
-    .connect_insecure()
-    .unwrap();
+    thread::Builder::new()
+        .name("Websocket Thread".to_string())
+        .spawn(|| {
+            tokio::runtime::Runtime::new()
+                .unwrap()
+                .block_on(async { websocket_thread().await });
+        })
+        .unwrap();
+}
 
-    let (mut receiver, mut sender) = client.split().unwrap();
+async fn websocket_thread() {
+    let url = format!("ws://127.0.0.1:{}/ws", read_config().api_port);
 
-    let (tx, rx) = unbounded();
+    let (ws_stream, _) = tokio_tungstenite::connect_async(url)
+        .await
+        .expect("Failed to connect");
 
-    thread::spawn(move || {
-        for message in rx {
-            if let OwnedMessage::Close(_) = message {
-                let _ = sender.send_message(&message);
+    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
+    let (mut outgoing, mut incoming) = ws_stream.split();
+
+    let sender_task = tokio::spawn(async move {
+        while let Some(msg) = rx.recv().await {
+            if let tungstenite::Message::Close(None) = &msg {
+                let _ = outgoing.send(msg).await;
                 return;
             }
-            match sender.send_message(&message) {
+            match outgoing.send(msg).await {
                 Ok(()) => (),
                 Err(e) => {
                     println!("Send Loop: {:?}", e);
-                    let _ = sender.send_message(&Message::close());
+                    let _ = outgoing.send(tungstenite::Message::Close(None)).await;
                     return;
                 }
             }
         }
     });
 
-    thread::spawn(move || {
-        for message in receiver.incoming_messages() {
-            match message {
-                Ok(OwnedMessage::Close(_)) => {
-                    let _ = tx.send(OwnedMessage::Close(None));
+    let receiver_task = tokio::spawn(async move {
+        while let Some(result) = incoming.next().await {
+            match result {
+                Ok(tungstenite::Message::Close(_)) => {
+                    let _ = tx.send(tungstenite::Message::Close(None));
                     return;
                 }
-                Ok(OwnedMessage::Ping(data)) => {
-                    if tx.send(OwnedMessage::Pong(data)).is_err() {
+                Ok(tungstenite::Message::Ping(data)) => {
+                    if tx.send(tungstenite::Message::Pong(data)).is_err() {
                         return;
                     }
                 }
                 Err(_) => {
-                    let _ = tx.send(OwnedMessage::Close(None));
+                    let _ = tx.send(tungstenite::Message::Close(None));
                     return;
                 }
-                _ => info!("Received compositor event: {:?}", message),
+                _ => {
+                    info!("Received compositor event: {:?}", result);
+                }
             }
         }
     });
+
+    sender_task.await.unwrap();
+    receiver_task.await.unwrap();
 }
 
 #[allow(dead_code)]
@@ -143,14 +156,14 @@ pub fn stream_video(ip: &str, port: u16, path: PathBuf) -> Result<()> {
 }
 
 #[allow(dead_code)]
-pub fn stream_audio(ip: &str, port: u16, path: PathBuf) -> Result<()> {
+pub fn stream_audio(ip: &str, port: u16, path: PathBuf, codec: &str) -> Result<()> {
     Command::new("ffmpeg")
         .args(["-stream_loop", "-1", "-re", "-i"])
         .arg(path.clone())
         .args([
             "-vn",
             "-c:a",
-            "libopus",
+            codec,
             "-f",
             "rtp",
             &format!("rtp://{ip}:{port}?rtcpport={port}"),

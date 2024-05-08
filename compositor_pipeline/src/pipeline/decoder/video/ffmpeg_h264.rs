@@ -6,10 +6,11 @@ use crate::{
     queue::PipelineEvent,
 };
 
-use compositor_render::{Frame, InputId, Resolution, YuvData};
+use compositor_render::{Frame, InputId, Resolution, YuvData, YuvVariant};
 use crossbeam_channel::{Receiver, Sender};
 use ffmpeg_next::{
     codec::{Context, Id},
+    format::Pixel,
     frame::Video,
     media::Type,
     Rational,
@@ -166,15 +167,15 @@ fn chunk_to_av(chunk: EncodedChunk) -> Result<ffmpeg_next::Packet, DecoderChunkC
 enum DecoderFrameConversionError {
     #[error("Error converting frame: {0}")]
     FrameConversionError(String),
+    #[error("Unsupported pixel format: {0:?}")]
+    UnsupportedPixelFormat(ffmpeg_next::format::pixel::Pixel),
 }
 
 fn frame_from_av(
     decoded: &mut Video,
     pts_offset: &mut Option<i64>,
 ) -> Result<Frame, DecoderFrameConversionError> {
-    if decoded.format() != ffmpeg_next::format::pixel::Pixel::YUV420P {
-        panic!("only YUV420P is supported");
-    }
+    let variant = variant_from_pixel_format(decoded.format())?;
     let original_pts = decoded.pts();
     if let (Some(pts), None) = (decoded.pts(), &pts_offset) {
         *pts_offset = Some(-pts)
@@ -190,6 +191,7 @@ fn frame_from_av(
     let pts = Duration::from_micros(i64::max(pts, 0) as u64);
     Ok(Frame {
         data: YuvData {
+            variant,
             y_plane: copy_plane_from_av(decoded, 0),
             u_plane: copy_plane_from_av(decoded, 1),
             v_plane: copy_plane_from_av(decoded, 2),
@@ -200,6 +202,14 @@ fn frame_from_av(
         },
         pts,
     })
+}
+
+fn variant_from_pixel_format(fmt: Pixel) -> Result<YuvVariant, DecoderFrameConversionError> {
+    match fmt {
+        Pixel::YUV420P => Ok(YuvVariant::YUV420P),
+        Pixel::YUVJ420P => Ok(YuvVariant::YUVJ420P),
+        fmt => Err(DecoderFrameConversionError::UnsupportedPixelFormat(fmt)),
+    }
 }
 
 fn copy_plane_from_av(decoded: &Video, plane: usize) -> bytes::Bytes {

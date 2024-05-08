@@ -1,5 +1,5 @@
 use std::{
-    collections::BinaryHeap,
+    collections::BTreeMap,
     ops::Add,
     sync::{Arc, MutexGuard},
     thread::{self, JoinHandle},
@@ -18,7 +18,7 @@ pub(super) struct QueueThread {
     queue: Arc<Queue>,
     start_receiver: Receiver<QueueStartEvent>,
     scheduled_event_receiver: Receiver<ScheduledEvent>,
-    scheduled_events: BinaryHeap<ScheduledEvent>,
+    scheduled_events: BTreeMap<Duration, Vec<Box<dyn FnOnce() + Send>>>,
 }
 
 pub(super) struct QueueStartEvent {
@@ -37,7 +37,7 @@ impl QueueThread {
             queue,
             start_receiver,
             scheduled_event_receiver,
-            scheduled_events: BinaryHeap::new(),
+            scheduled_events: BTreeMap::new(),
         }
     }
 
@@ -57,7 +57,15 @@ impl QueueThread {
                     self.cleanup_old_data()
                 },
                 recv(self.scheduled_event_receiver) -> event => {
-                    self.scheduled_events.push(event.unwrap())
+                    let event = event.unwrap();
+                    match self.scheduled_events.get_mut(&event.pts) {
+                        Some(events) => {
+                            events.push(event.callback);
+                        }
+                        None => {
+                            self.scheduled_events.insert(event.pts, vec![event.callback]);
+                        }
+                    }
                 }
                 recv(self.start_receiver) -> start_event => {
                     QueueThreadAfterStart::new(self, start_event.unwrap()).run();
@@ -88,7 +96,7 @@ struct QueueThreadAfterStart {
     audio_processor: AudioQueueProcessor,
     video_processor: VideoQueueProcessor,
     scheduled_event_receiver: Receiver<ScheduledEvent>,
-    scheduled_events: BinaryHeap<ScheduledEvent>,
+    scheduled_events: BTreeMap<Duration, Vec<Box<dyn FnOnce() + Send>>>,
 }
 
 impl QueueThreadAfterStart {
@@ -132,14 +140,16 @@ impl QueueThreadAfterStart {
         loop {
             let audio_pts_range = self.audio_processor.next_buffer_pts_range();
             let video_pts = self.video_processor.next_buffer_pts();
-            let event_pts = self.scheduled_events.peek().map(|e| e.pts);
+            let event_pts = self.scheduled_events.first_key_value().map(|(pts, _)| *pts);
 
             if let Some(true) = event_pts
                 .map(|event_pts: Duration| event_pts < video_pts && event_pts < audio_pts_range.0)
             {
                 info!("Handle scheduled event for PTS={:?}", event_pts);
-                if let Some(ScheduledEvent { callback, .. }) = self.scheduled_events.pop() {
-                    callback()
+                if let Some((_, callbacks)) = self.scheduled_events.pop_first() {
+                    for callback in callbacks {
+                        callback()
+                    }
                 }
             } else if video_pts > audio_pts_range.0 {
                 trace!(pts_range=?audio_pts_range, "Try to push audio samples for.");
@@ -170,14 +180,22 @@ impl QueueThreadAfterStart {
     fn on_enqueue_event(&mut self, scheduled_event: ScheduledEvent) {
         let audio_pts_range = self.audio_processor.next_buffer_pts_range();
         let video_pts = self.video_processor.next_buffer_pts();
-        let event_pts = self.scheduled_events.peek().map(|e| e.pts);
+        let event_pts = self.scheduled_events.first_key_value().map(|(pts, _)| *pts);
 
         let is_future_event = scheduled_event.pts >= video_pts
             && scheduled_event.pts >= audio_pts_range.0
             && scheduled_event.pts >= event_pts.unwrap_or(Duration::ZERO);
 
         if self.queue.run_late_scheduled_events || is_future_event {
-            self.scheduled_events.push(scheduled_event);
+            match self.scheduled_events.get_mut(&scheduled_event.pts) {
+                Some(events) => {
+                    events.push(scheduled_event.callback);
+                }
+                None => {
+                    self.scheduled_events
+                        .insert(scheduled_event.pts, vec![scheduled_event.callback]);
+                }
+            }
         }
     }
 }

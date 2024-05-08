@@ -69,6 +69,23 @@ impl WgpuCtx {
             error!("Selected adapter is CPU based. Aborting.");
             return Err(CreateWgpuCtxError::NoAdapter);
         }
+        let required_features =
+            wgpu::Features::TEXTURE_BINDING_ARRAY | wgpu::Features::PUSH_CONSTANTS;
+        let optional_features =
+            wgpu::Features::SAMPLED_TEXTURE_AND_STORAGE_BUFFER_ARRAY_NON_UNIFORM_INDEXING
+                | wgpu::Features::UNIFORM_BUFFER_AND_STORAGE_TEXTURE_ARRAY_NON_UNIFORM_INDEXING;
+
+        let missing_required_features = required_features.difference(adapter.features());
+        if !missing_required_features.is_empty() {
+            error!("Selected adapter or its driver does not support required wgpu features. Missing features: {missing_required_features:?}).");
+            return Err(CreateWgpuCtxError::NoAdapter);
+        }
+        let missing_optional_features = optional_features.difference(adapter.features());
+        if !missing_optional_features.is_empty() {
+            error!("Selected adapter or its driver does not support optional wgpu features. Missing features: {missing_optional_features:?}).");
+        }
+        let requested_features =
+            required_features.union(optional_features.difference(missing_optional_features));
 
         let (device, queue) = pollster::block_on(adapter.request_device(
             &wgpu::DeviceDescriptor {
@@ -77,10 +94,7 @@ impl WgpuCtx {
                     max_push_constant_size: 128,
                     ..Default::default()
                 },
-                required_features: wgpu::Features::TEXTURE_BINDING_ARRAY
-                    | wgpu::Features::PUSH_CONSTANTS
-                    | wgpu::Features::SAMPLED_TEXTURE_AND_STORAGE_BUFFER_ARRAY_NON_UNIFORM_INDEXING
-                    | wgpu::Features::UNIFORM_BUFFER_AND_STORAGE_TEXTURE_ARRAY_NON_UNIFORM_INDEXING,
+                required_features: requested_features,
             },
             None,
         ))?;

@@ -15,7 +15,7 @@ const config: Config = {
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
   organizationName: 'membraneframework', // Usually your GitHub org/user name.
-  projectName: 'video_compositor', // Usually your repo name.
+  projectName: 'live_compositor', // Usually your repo name.
 
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'throw',
@@ -51,14 +51,14 @@ const config: Config = {
       defaultMode: 'dark',
     },
     navbar: {
-      title: 'Live Compositor',
       logo: {
         alt: 'logo',
         src: 'img/logo.svg',
+        srcDark: 'img/logo-dark.svg',
       },
       items: [
         {
-          href: 'https://github.com/membraneframework/video_compositor',
+          href: 'https://github.com/membraneframework/live_compositor',
           label: 'GitHub',
           position: 'right',
         },

@@ -1,8 +1,13 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::{Arc, Mutex},
+};
 
-use compositor_render::{InputId, OutputId};
+use compositor_render::{Frame, InputId, OutputId};
+use crossbeam_channel::Sender;
+use tracing::{info, warn};
 
-use crate::error::RegisterOutputError;
+use crate::{audio_mixer::OutputSamples, error::RegisterOutputError, queue::PipelineEvent};
 
 use super::{
     encoder::{self, opus, AudioEncoderOptions, Encoder, EncoderOptions},
@@ -24,6 +29,11 @@ pub struct PipelineOutput {
     pub output: output::Output,
     pub video_end_condition: Option<PipelineOutputEndConditionState>,
     pub audio_end_condition: Option<PipelineOutputEndConditionState>,
+}
+
+pub(super) enum OutputSender<T> {
+    ActiveSender(T),
+    FinishedSender,
 }
 
 impl Pipeline {
@@ -107,6 +117,69 @@ impl Pipeline {
 
         Ok(port)
     }
+
+    pub(super) fn all_output_video_senders_iter(
+        pipeline: &Arc<Mutex<Pipeline>>,
+    ) -> impl Iterator<Item = (OutputId, OutputSender<Sender<PipelineEvent<Frame>>>)> {
+        let outputs: HashMap<_, _> = pipeline
+            .lock()
+            .unwrap()
+            .outputs
+            .iter_mut()
+            .filter_map(|(output_id, output)| {
+                let eos_status = output.video_end_condition.as_mut()?.eos_status();
+                let sender = output.encoder.frame_sender()?.clone();
+                Some((output_id.clone(), (sender, eos_status)))
+            })
+            .collect();
+
+        outputs
+            .into_iter()
+            .filter_map(|(output_id, (sender, eos_status))| match eos_status {
+                EosStatus::None => Some((output_id, OutputSender::ActiveSender(sender))),
+                EosStatus::SendEos => {
+                    info!(?output_id, "Sending video EOS on output.");
+                    if sender.send(PipelineEvent::EOS).is_err() {
+                        warn!(
+                            ?output_id,
+                            "Failed to send EOS from renderer. Channel closed."
+                        );
+                    };
+                    Some((output_id, OutputSender::FinishedSender))
+                }
+                EosStatus::AlreadySent => None,
+            })
+    }
+
+    pub(super) fn all_output_audio_senders_iter(
+        pipeline: &Arc<Mutex<Pipeline>>,
+    ) -> impl Iterator<Item = (OutputId, OutputSender<Sender<PipelineEvent<OutputSamples>>>)> {
+        let outputs: HashMap<_, _> = pipeline
+            .lock()
+            .unwrap()
+            .outputs
+            .iter_mut()
+            .filter_map(|(output_id, output)| {
+                let eos_status = output.audio_end_condition.as_mut()?.eos_status();
+                let sender = output.encoder.samples_batch_sender()?.clone();
+                Some((output_id.clone(), (sender, eos_status)))
+            })
+            .collect();
+
+        outputs
+            .into_iter()
+            .filter_map(|(output_id, (sender, eos_status))| match eos_status {
+                EosStatus::None => Some((output_id, OutputSender::ActiveSender(sender))),
+                EosStatus::SendEos => {
+                    info!(?output_id, "Sending audio EOS on output.");
+                    if sender.send(PipelineEvent::EOS).is_err() {
+                        warn!(?output_id, "Failed to send EOS from mixer. Channel closed.");
+                    };
+                    Some((output_id, OutputSender::FinishedSender))
+                }
+                EosStatus::AlreadySent => None,
+            })
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -117,9 +190,16 @@ pub struct PipelineOutputEndConditionState {
     did_send_eos: bool,
 }
 
-enum InputAction<'a> {
+enum StateChange<'a> {
     AddInput(&'a InputId),
     RemoveInput(&'a InputId),
+    NoChanges,
+}
+
+enum EosStatus {
+    None,
+    SendEos,
+    AlreadySent,
 }
 
 impl PipelineOutputEndConditionState {
@@ -140,6 +220,7 @@ impl PipelineOutputEndConditionState {
             did_send_eos: false,
         }
     }
+
     fn new_audio(
         condition: PipelineOutputEndCondition,
         inputs: &HashMap<InputId, PipelineInput>,
@@ -158,45 +239,49 @@ impl PipelineOutputEndConditionState {
         }
     }
 
-    pub(super) fn should_send_eos(&mut self) -> bool {
-        if self.did_end && !self.did_send_eos {
-            self.did_send_eos = true;
-            return true;
+    fn eos_status(&mut self) -> EosStatus {
+        self.on_event(StateChange::NoChanges);
+        if self.did_end {
+            if !self.did_send_eos {
+                self.did_send_eos = true;
+                return EosStatus::SendEos;
+            }
+            return EosStatus::AlreadySent;
         }
-        false
+        EosStatus::None
     }
 
     pub(super) fn on_input_registered(&mut self, input_id: &InputId) {
-        self.on_event(InputAction::AddInput(input_id))
+        self.on_event(StateChange::AddInput(input_id))
     }
     pub(super) fn on_input_unregistered(&mut self, input_id: &InputId) {
-        self.on_event(InputAction::RemoveInput(input_id))
+        self.on_event(StateChange::RemoveInput(input_id))
     }
     pub(super) fn on_input_eos(&mut self, input_id: &InputId) {
-        self.on_event(InputAction::RemoveInput(input_id))
+        self.on_event(StateChange::RemoveInput(input_id))
     }
 
-    fn on_event(&mut self, action: InputAction) {
+    fn on_event(&mut self, action: StateChange) {
+        if self.did_end {
+            return;
+        }
         match action {
-            InputAction::AddInput(id) => self.connected_inputs.insert(id.clone()),
-            InputAction::RemoveInput(id) => self.connected_inputs.remove(id),
+            StateChange::AddInput(id) => {
+                self.connected_inputs.insert(id.clone());
+            }
+            StateChange::RemoveInput(id) => {
+                self.connected_inputs.remove(id);
+            }
+            StateChange::NoChanges => (),
         };
         self.did_end = match self.condition {
-            PipelineOutputEndCondition::AnyOf(ref inputs) => {
-                let connected_inputs_from_list = inputs
-                    .iter()
-                    .filter(|input_id| self.connected_inputs.get(input_id).is_some())
-                    .count();
-                connected_inputs_from_list != inputs.len()
-            }
-            PipelineOutputEndCondition::AllOf(ref inputs) => {
-                let connected_inputs_from_list = inputs
-                    .iter()
-                    .filter(|input_id| self.connected_inputs.get(input_id).is_some())
-                    .count();
-                connected_inputs_from_list == 0
-            }
-            PipelineOutputEndCondition::AnyInput => matches!(action, InputAction::RemoveInput(_)),
+            PipelineOutputEndCondition::AnyOf(ref inputs) => inputs
+                .iter()
+                .any(|input_id| !self.connected_inputs.contains(input_id)),
+            PipelineOutputEndCondition::AllOf(ref inputs) => inputs
+                .iter()
+                .all(|input_id| !self.connected_inputs.contains(input_id)),
+            PipelineOutputEndCondition::AnyInput => matches!(action, StateChange::RemoveInput(_)),
             PipelineOutputEndCondition::AllInputs => self.connected_inputs.is_empty(),
             PipelineOutputEndCondition::Never => false,
         };

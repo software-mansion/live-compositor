@@ -1,4 +1,5 @@
 use anyhow::Result;
+use live_compositor::{server, types::Resolution};
 use log::{error, info};
 use serde_json::json;
 use std::{
@@ -6,7 +7,6 @@ use std::{
     thread::{self},
     time::Duration,
 };
-use video_compositor::{server, types::Resolution};
 
 use crate::common::{
     download_file, start_ffplay, start_websocket_thread, stream_audio, stream_video,
@@ -170,9 +170,9 @@ fn start_example_client_code() -> Result<()> {
     common::post("start", &json!({}))?;
 
     stream_video(IP, INPUT_1_PORT, bunny_path.clone())?;
-    stream_audio(IP, INPUT_2_PORT, bunny_path)?;
+    stream_audio(IP, INPUT_2_PORT, bunny_path, "libopus")?;
     stream_video(IP, INPUT_3_PORT, elephant_path.clone())?;
-    stream_audio(IP, INPUT_4_PORT, elephant_path)?;
+    stream_audio(IP, INPUT_4_PORT, elephant_path, "libopus")?;
 
     Ok(())
 }

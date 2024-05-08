@@ -102,7 +102,10 @@ impl Mp4FileReader<AudioDecoderOptions> {
             .and_then(|esds| esds.es_desc.dec_config.dec_specific.full_config.clone())
             .map(Bytes::from);
 
-        let decoder_options = AudioDecoderOptions::Aac(AacDecoderOptions { asc });
+        let decoder_options = AudioDecoderOptions::Aac(AacDecoderOptions {
+            asc,
+            depayloader_mode: None,
+        });
 
         Some(TrackInfo {
             sample_count: track.sample_count(),

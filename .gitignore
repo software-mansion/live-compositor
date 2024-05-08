@@ -32,11 +32,11 @@ target/
 /failed_snapshot_tests
 /docs/pages/api/generated
 
-/video_compositor.app
-/video_compositor
-/video_compositor_linux_x86_64.tar.gz
-/video_compositor_darwin_aarch64.tar.gz
-/video_compositor_darwin_x86_64.tar.gz
+/live_compositor.app
+/live_compositor
+/live_compositor_linux_x86_64.tar.gz
+/live_compositor_darwin_aarch64.tar.gz
+/live_compositor_darwin_x86_64.tar.gz
 
 .direnv
 /result

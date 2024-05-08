@@ -1,5 +1,5 @@
 # Builder image
-FROM ubuntu:mantic-20231011 as builder
+FROM ubuntu:noble-20240423 as builder
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
@@ -41,12 +41,12 @@ RUN apt-get update -y -qq && \
 RUN useradd -ms /bin/bash $USERNAME && adduser $USERNAME sudo
 RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 USER $USERNAME
-RUN mkdir -p /home/$USERNAME/video_compositor
-WORKDIR /home/$USERNAME/video_compositor
+RUN mkdir -p /home/$USERNAME/live_compositor
+WORKDIR /home/$USERNAME/live_compositor
 
-COPY --from=builder --chown=$USERNAME:$USERNAME /root/project/target/release/main_process /home/$USERNAME/video_compositor/main_process
+COPY --from=builder --chown=$USERNAME:$USERNAME /root/project/target/release/main_process /home/$USERNAME/live_compositor/main_process
 
 ENV LIVE_COMPOSITOR_WEB_RENDERER_ENABLE=0
 ENV LIVE_COMPOSITOR_WEB_RENDERER_GPU_ENABLE=0
 
-ENTRYPOINT ["/home/compositor/video_compositor/main_process"]
+ENTRYPOINT ["/home/compositor/live_compositor/main_process"]

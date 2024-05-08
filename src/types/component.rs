@@ -36,9 +36,17 @@ pub struct View {
     /// List of component's children.
     pub children: Option<Vec<Component>>,
 
-    /// Width of a component in pixels. Required when using absolute positioning.
+    /// Width of a component in pixels. Exact behavior might be different based on the parent
+    /// component:
+    /// - If the parent component is a layout, check sections "Absolute positioning" and "Static
+    /// positioning" of that component.
+    /// - If the parent component is not a layout, then this field is required.
     pub width: Option<f32>,
-    /// Height of a component in pixels. Required when using absolute positioning.
+    /// Height of a component in pixels. Exact behavior might be different based on the parent
+    /// component:
+    /// - If the parent component is a layout, check sections "Absolute positioning" and "Static
+    /// positioning" of that component.
+    /// - If the parent component is not a layout, then this field is required.
     pub height: Option<f32>,
 
     /// Direction defines how static children are positioned inside a View component.
@@ -86,14 +94,10 @@ pub enum Overflow {
     /// Components that have unknown sizes will be treated as if they had a size 0 when calculating
     /// scaling factor.
     ///
-    /// <br/><br/>
-    ///
     /// :::warning
-    ///
     /// This will resize everything inside, even absolutely positioned elements. For example, if
     /// you have an element in the bottom right corner and the content will be rescaled by a factor 0.5x,
     /// then that component will end up in the middle of its parent
-    ///
     /// :::
     Fit,
 }
@@ -122,9 +126,17 @@ pub struct Rescaler {
     /// (**default=`"center"`**) Vertical alignment.
     pub vertical_align: Option<VerticalAlign>,
 
-    /// Width of a component in pixels. Required when using absolute positioning.
+    /// Width of a component in pixels. Exact behavior might be different based on the parent
+    /// component:
+    /// - If the parent component is a layout, check sections "Absolute positioning" and "Static
+    /// positioning" of that component.
+    /// - If the parent component is not a layout, then this field is required.
     pub width: Option<f32>,
-    /// Height of a component in pixels. Required when using absolute positioning.
+    /// Height of a component in pixels. Exact behavior might be different based on the parent
+    /// component:
+    /// - If the parent component is a layout, check sections "Absolute positioning" and "Static
+    /// positioning" of that component.
+    /// - If the parent component is not a layout, then this field is required.
     pub height: Option<f32>,
 
     /// Distance in pixels between this component's top edge and its parent's top edge.
@@ -173,12 +185,8 @@ pub struct WebView {
 
     /// Id of a web renderer instance. It identifies an instance registered using a [`register web renderer`](../routes.md#register-web-renderer-instance) request.
     ///
-    /// <br/> <br/>
-    ///
     /// :::warning
-    ///
     /// You can only refer to specific instances in one Component at a time.
-    ///
     /// :::
     pub instance_id: RendererId,
 }
@@ -205,19 +213,12 @@ pub struct Shader {
     pub shader_id: RendererId,
     /// Object that will be serialized into a `struct` and passed inside the shader as:
     ///
-    /// <br/><br/>
-    ///
     /// ```wgsl
-    ///
     /// @group(1) @binding(0) var<uniform>
-    ///
     /// ```
-    ///
     /// :::note
-    ///
     ///   This object's structure must match the structure defined in a shader source code. Currently, we do not handle memory layout automatically.
     ///   To achieve the correct memory alignment, you might need to pad your data with additional fields. See [WGSL documentation](https://www.w3.org/TR/WGSL/#alignment-and-size) for more details.
-    ///
     /// :::
     pub shader_param: Option<ShaderParam>,
     /// Resolution of a texture where shader will be executed.
@@ -260,7 +261,6 @@ pub struct Text {
     pub width: Option<f32>,
     /// Height of a texture that text will be rendered on. If not provided, the resulting texture
     /// will be sized based on the defined text but limited to `max_height` value.
-    ///
     /// It's an error to provide `height` if `width` is not defined.
     pub height: Option<f32>,
     /// (**default=`7682`**) Maximal `width`. Limits the width of the texture that the text will be rendered on.
@@ -349,9 +349,17 @@ pub struct Tiles {
     /// List of component's children.
     pub children: Option<Vec<Component>>,
 
-    /// Width of a component in pixels.
+    /// Width of a component in pixels. Exact behavior might be different based on the parent
+    /// component:
+    /// - If the parent component is a layout, check sections "Absolute positioning" and "Static
+    /// positioning" of that component.
+    /// - If the parent component is not a layout, then this field is required.
     pub width: Option<f32>,
-    /// Height of a component in pixels.
+    /// Height of a component in pixels. Exact behavior might be different based on the parent
+    /// component:
+    /// - If the parent component is a layout, check sections "Absolute positioning" and "Static
+    /// positioning" of that component.
+    /// - If the parent component is not a layout, then this field is required.
     pub height: Option<f32>,
 
     /// (**default=`"#00000000"`**) Background color in a `"#RRGGBBAA"` format.

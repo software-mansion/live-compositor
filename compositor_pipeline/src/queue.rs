@@ -4,7 +4,6 @@ mod utils;
 mod video_queue;
 
 use std::{
-    cmp::{self, Ordering},
     collections::HashMap,
     fmt::Debug,
     sync::{Arc, Mutex},
@@ -219,31 +218,6 @@ impl Queue {
         self.scheduled_event_sender
             .send(ScheduledEvent { pts, callback })
             .unwrap();
-    }
-}
-
-impl PartialOrd for ScheduledEvent {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl cmp::Eq for ScheduledEvent {}
-
-impl cmp::PartialEq for ScheduledEvent {
-    fn eq(&self, other: &Self) -> bool {
-        self.pts.eq(&other.pts) && std::ptr::eq(&self.callback, &other.callback)
-    }
-}
-
-impl Ord for ScheduledEvent {
-    fn cmp(&self, other: &Self) -> Ordering {
-        // Invert duration compare to make heap return smallest values
-        match self.pts.cmp(&other.pts) {
-            Ordering::Less => Ordering::Greater,
-            Ordering::Equal => Ordering::Equal,
-            Ordering::Greater => Ordering::Less,
-        }
     }
 }
 

@@ -1,8 +1,8 @@
 use anyhow::{Context, Result};
 use bytes::Bytes;
+use live_compositor::config::read_config;
 use pitch_detection::detector::{mcleod::McLeodDetector, PitchDetector};
 use std::{ops::Range, time::Duration};
-use video_compositor::config::read_config;
 
 use crate::{
     audio_decoder::{AudioChannels, AudioDecoder, AudioSampleBatch},

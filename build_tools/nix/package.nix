@@ -43,7 +43,7 @@ let
   rpath = lib.makeLibraryPath buildInputs;
 in
 rustPlatform.buildRustPackage {
-  pname = "video_compositor";
+  pname = "live_compositor";
   version = "0.2.0-rc.1";
   src = ../..;
   cargoLock = {
@@ -63,7 +63,7 @@ rustPlatform.buildRustPackage {
     ''
       rm -f $out/bin/generate_docs
       rm -f $out/bin/generate_json_schema
-      rm -f $out/bin/video_compositor
+      rm -f $out/bin/live_compositor
       rm -f $out/bin/package_for_release
       rm -f $out/bin/update_snapshots
 

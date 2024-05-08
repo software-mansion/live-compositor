@@ -25,13 +25,8 @@ pub struct WebRendererSpec {
 #[serde(rename_all = "snake_case")]
 pub enum WebEmbeddingMethod {
     /// Pass raw input frames as JS buffers so they can be rendered, for example, using a `<canvas>` component.
-    ///
-    /// <br/> <br/>
-    ///
     /// :::warning
-    ///
     /// This method might have a significant performance impact, especially for a large number of inputs.
-    ///
     /// :::
     ChromiumEmbedding,
 
