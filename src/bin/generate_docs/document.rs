@@ -73,7 +73,13 @@ pub fn inline_definitions(definitions: &mut Vec<TypeDefinition>, config: &DocsCo
         match &mut definition.kind {
             Kind::Ref(reference) => {
                 if let Some(inline_def) = definitions_to_inline.get(reference) {
-                    *definition = definition.merge_into(inline_def);
+                    let description =
+                        merge_descriptions(&definition.description, &inline_def.description);
+                    let is_optional = definition.is_optional || inline_def.is_optional;
+
+                    *definition = inline_def.clone();
+                    definition.description = description;
+                    definition.is_optional = is_optional;
                 }
             }
             Kind::Tuple(variants) | Kind::Union(variants) => {
@@ -114,5 +120,17 @@ pub fn inline_definitions(definitions: &mut Vec<TypeDefinition>, config: &DocsCo
 
     for definition in definitions.iter_mut() {
         inline_for(definition, &definitions_to_inline);
+    }
+}
+
+fn merge_descriptions(desc1: &str, desc2: &str) -> String {
+    if desc1.is_empty() {
+        desc2.to_owned()
+    } else if desc2.is_empty() {
+        desc1.to_owned()
+    } else {
+        let desc1 = desc1.trim_end();
+        let separator = if !desc1.ends_with('.') { ". " } else { " " };
+        format!("{desc1}{separator}{desc2}")
     }
 }
