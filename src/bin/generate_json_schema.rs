@@ -26,12 +26,16 @@ enum ApiTypes {
 fn main() {
     let update_flag = std::env::args().any(|arg| &arg == "--update");
 
+    let (scene_schema_action, api_schema_action) = match update_flag {
+        true => (SchemaAction::Update, SchemaAction::Update),
+        false => (SchemaAction::CheckIfChanged, SchemaAction::Nothing),
+    };
     generate_schema(
         schema_for!(types::UpdateOutputRequest),
         "scene",
-        update_flag,
+        scene_schema_action,
     );
-    generate_schema(schema_for!(ApiTypes), "api_types", update_flag);
+    generate_schema(schema_for!(ApiTypes), "api_types", api_schema_action);
 }
 
 /// When variant inside oneOf has a schema additionalProperties set to false then
@@ -71,7 +75,7 @@ fn flatten_definition_with_one_of(definition: &mut SchemaObject) {
     }
 }
 
-fn generate_schema(mut current_schema: RootSchema, name: &'static str, update: bool) {
+fn generate_schema(mut current_schema: RootSchema, name: &'static str, action: SchemaAction) {
     flatten_definitions_with_one_of(&mut current_schema);
 
     let root_dir: PathBuf = ROOT_DIR.into();
@@ -86,10 +90,18 @@ fn generate_schema(mut current_schema: RootSchema, name: &'static str, update: b
     let json_current = serde_json::to_string_pretty(&current_schema).unwrap() + "\n";
 
     if json_current != json_from_disk {
-        if update {
-            fs::write(schema_path, &json_current).unwrap();
-        } else {
-            panic!("Schema changed. Rerun with --update to regenerate it.")
-        }
+        match action {
+            SchemaAction::Update => fs::write(schema_path, &json_current).unwrap(),
+            SchemaAction::CheckIfChanged => {
+                panic!("Schema changed. Rerun with --update to regenerate it.")
+            }
+            SchemaAction::Nothing => (),
+        };
     }
+}
+
+enum SchemaAction {
+    Update,
+    CheckIfChanged,
+    Nothing,
 }
