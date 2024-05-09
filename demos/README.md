@@ -19,7 +19,7 @@ npm install
 Run this example with:
 
 ```console
-npm run 01-videoconferencing
+npm run 1-videoconferencing
 ```
 
 This example simulates composing video conference footage.
@@ -36,7 +36,7 @@ export LIVE_COMPOSITOR_WEBCAM=false
 Run this example with:
 
 ```console
-npm run 02-tv_broadcast
+npm run 2-tv_broadcast
 ```
 
 This example simulates TV broadcasting scenario.
@@ -48,7 +48,7 @@ In this example, green-screen is removed from input stream with use of custom sh
 Run this example with:
 
 ```console
-npm run 03-screen_stream
+npm run 3-screen_stream
 ```
 
 This example simulates live streaming screen footage with webcam.

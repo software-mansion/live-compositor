@@ -1,0 +1,47 @@
+name: demos lint
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "demos/**"
+  pull_request:
+    types: [opened, synchronize]
+    paths:
+      - "demos/**"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout repo
+        uses: actions/checkout@v2
+        with:
+          submodules: "true"
+
+      - name: 🛠 Setup Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: "18"
+
+      - name: 📦 Cache dependencies
+        uses: actions/cache@v2
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+            ${{ runner.os }}-
+
+      - name: 💾 Install project dependencies
+        working-directory: ./demos
+        run: npm install
+
+      - name: 📖 Lint code
+        working-directory: ./demos
+        run: npm run lint
