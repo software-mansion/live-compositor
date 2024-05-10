@@ -1,7 +1,7 @@
 {
-  "name": "video_compositor",
+  "name": "live_compositor_demos",
   "version": "1.0.0",
-  "description": "TODO",
+  "description": "Demos for LiveCompositor - media server for low-latency video and audio mixing/composing",
   "main": "index.js",
   "scripts": {
     "lint": "eslint .",
@@ -15,14 +15,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/membraneframework/video_compositor.git"
+    "url": "git+https://github.com/membraneframework/live_compositor.git"
   },
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/membraneframework/video_compositor/issues"
+    "url": "https://github.com/membraneframework/live_compositor/issues"
   },
-  "homepage": "https://github.com/membraneframework/video_compositor#readme",
+  "homepage": "https://github.com/membraneframework/live_compositor#readme",
   "dependencies": {
     "@types/fs-extra": "^11.0.2",
     "@types/node": "^18.18.0",
