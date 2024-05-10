@@ -16,6 +16,10 @@ For the initial release, we want LiveCompositor to support those four types of t
 - Web Rendering - embedding videos in custom websites.
 - Text Rendering
 
+## Demos
+
+TypeScript demos presenting what you can do with LiveCompositor are available in the `demos` directory.
+
 ## Examples
 
 Examples source code is under the `examples` directory.

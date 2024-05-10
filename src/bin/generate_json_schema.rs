@@ -1,21 +1,41 @@
 use std::{fs, io, path::PathBuf};
 
-use live_compositor::types;
+use live_compositor::{routes, types};
 use schemars::{
     schema::{RootSchema, Schema, SchemaObject},
-    schema_for,
+    schema_for, JsonSchema,
 };
+use serde::{Deserialize, Serialize};
 
 const ROOT_DIR: &str = env!("CARGO_MANIFEST_DIR");
+
+/// This enum is used to generate JSON schema for all API types.
+/// This prevents repeating types in generated schema.
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(untagged)]
+#[allow(dead_code)]
+enum ApiTypes {
+    RegisterInput(routes::RegisterInput),
+    RegisterOutput(routes::RegisterOutput),
+    RegisterImage(types::ImageSpec),
+    RegisterWebRenderer(types::WebRendererSpec),
+    RegisterShader(types::ShaderSpec),
+    UpdateOutput(types::UpdateOutputRequest),
+}
 
 fn main() {
     let update_flag = std::env::args().any(|arg| &arg == "--update");
 
+    let (scene_schema_action, api_schema_action) = match update_flag {
+        true => (SchemaAction::Update, SchemaAction::Update),
+        false => (SchemaAction::CheckIfChanged, SchemaAction::Nothing),
+    };
     generate_schema(
         schema_for!(types::UpdateOutputRequest),
         "scene",
-        update_flag,
+        scene_schema_action,
     );
+    generate_schema(schema_for!(ApiTypes), "api_types", api_schema_action);
 }
 
 /// When variant inside oneOf has a schema additionalProperties set to false then
@@ -55,7 +75,7 @@ fn flatten_definition_with_one_of(definition: &mut SchemaObject) {
     }
 }
 
-fn generate_schema(mut current_schema: RootSchema, name: &'static str, update: bool) {
+fn generate_schema(mut current_schema: RootSchema, name: &'static str, action: SchemaAction) {
     flatten_definitions_with_one_of(&mut current_schema);
 
     let root_dir: PathBuf = ROOT_DIR.into();
@@ -70,10 +90,18 @@ fn generate_schema(mut current_schema: RootSchema, name: &'static str, update: b
     let json_current = serde_json::to_string_pretty(&current_schema).unwrap() + "\n";
 
     if json_current != json_from_disk {
-        if update {
-            fs::write(schema_path, &json_current).unwrap();
-        } else {
-            panic!("Schema changed. Rerun with --update to regenerate it.")
-        }
+        match action {
+            SchemaAction::Update => fs::write(schema_path, &json_current).unwrap(),
+            SchemaAction::CheckIfChanged => {
+                panic!("Schema changed. Rerun with --update to regenerate it.")
+            }
+            SchemaAction::Nothing => (),
+        };
     }
+}
+
+enum SchemaAction {
+    Update,
+    CheckIfChanged,
+    Nothing,
 }

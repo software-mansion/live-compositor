@@ -1,5 +1,6 @@
 use axum::extract::{Path, State};
 use compositor_pipeline::pipeline::Port;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -14,14 +15,14 @@ use crate::{
 
 use super::ApiState;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum RegisterInput {
     RtpStream(RtpInputStream),
     Mp4(Mp4),
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum RegisterOutput {
     RtpStream(RtpOutputStream),
