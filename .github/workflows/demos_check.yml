@@ -46,6 +46,6 @@ jobs:
               working-directory: ./demos
               run: npm run lint
 
-            - name: Typechecking code
+            - name: Typecheck code
               working-directory: ./demos
               run: npm run typecheck
