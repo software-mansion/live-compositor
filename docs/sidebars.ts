@@ -15,6 +15,31 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: 'category',
+      label: 'Guides',
+      collapsible: false,
+      link: {
+        type: 'generated-index',
+      },
+      items: [
+        {
+          type: 'doc',
+          id: 'guides/simple-scene',
+          label: 'Simple scene',
+        },
+        {
+          type: 'doc',
+          id: 'guides/deliver-input',
+          label: 'Deliver input streams',
+        },
+        {
+          type: 'doc',
+          id: 'guides/receive-output',
+          label: 'Receive output streams',
+        },
+      ],
+    },
+    {
+      type: 'category',
       label: 'Concepts',
       collapsible: false,
       items: ['concept/component', 'concept/layouts', 'concept/shaders', 'concept/web'],
