@@ -4,10 +4,15 @@ hide_table_of_contents: true
 ---
 import Docs from "@site/pages/api/generated/component-Tiles.md"
 import AbsolutePositionDefinition from "@site/pages/common/absolute-position.md"
+import TilesExample from "./tile_transition.webp"
 
 # Tiles
 
 `Tiles` is a layout component that places all the child components next to each other while maximizing the use of available space. The component divides its area into multiple rectangles/tiles, one for each child component. All of those rectangles are the same size and do not overlap over each other.
+
+<div style={{textAlign: 'center'}}>
+    <img src={TilesExample} style={{width: 600 }} />
+</div>
 
 ### Absolute positioning
 
