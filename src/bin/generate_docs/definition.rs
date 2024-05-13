@@ -1,17 +1,7 @@
 #[derive(Debug, Clone)]
-pub struct TopLevelDefinition {
-    pub name: String,
-    pub definition: TypeDefinition,
-}
-
-impl TopLevelDefinition {
-    pub fn new(name: String, definition: TypeDefinition) -> Self {
-        Self { name, definition }
-    }
-}
-
-#[derive(Debug, Clone)]
 pub struct TypeDefinition {
+    /// Type name. If `None`, the type is anonymous and does not have a name (e.g. object type as an union variant).
+    pub name: Option<String>,
     pub description: String,
     pub kind: Kind,
     pub is_optional: bool,
@@ -42,26 +32,6 @@ impl TypeDefinition {
         find_references(&self.kind, &mut references);
 
         references
-    }
-
-    /// Merges two definitions into one. The other definition's kind takes precedence.
-    pub fn merge_into(&self, other: &Self) -> Self {
-        let desc1 = self.description.clone();
-        let desc2 = other.description.clone();
-
-        let description = if desc1.is_empty() {
-            desc2
-        } else if desc2.is_empty() {
-            desc1
-        } else {
-            format!("{}\n\n{}", desc1, desc2)
-        };
-
-        Self {
-            description,
-            kind: other.kind.clone(),
-            is_optional: self.is_optional || other.is_optional,
-        }
     }
 }
 

@@ -1,15 +1,16 @@
 use docs_config::DocsConfig;
-use document::Doc;
+use document::generate;
 use live_compositor::types::{
     Image, ImageSpec, InputStream, Mp4, Rescaler, RtpInputStream, RtpOutputStream, Shader,
     ShaderSpec, Text, Tiles, View, WebRendererSpec, WebView,
 };
+use markdown::overrides;
 use std::{fs, path::PathBuf};
 
 mod definition;
 mod docs_config;
 mod document;
-mod generation_strategy;
+mod markdown;
 mod schema_parser;
 
 fn main() {
@@ -22,26 +23,31 @@ fn main() {
 
     let config = DocsConfig::default();
 
+    let mut img_component_config = config.clone();
+    img_component_config
+        .overrides
+        .insert("Image", overrides::force_multiline);
+
     let renderer_pages = [
-        Doc::<ShaderSpec>::generate("Shader", &config),
-        Doc::<ImageSpec>::generate("Image", &config),
-        Doc::<WebRendererSpec>::generate("WebRenderer", &config),
-        Doc::<RtpInputStream>::generate("RtpInputStream", &config),
-        Doc::<Mp4>::generate("Mp4", &config),
+        generate::<ShaderSpec>("Shader", &config),
+        generate::<ImageSpec>("Image", &config),
+        generate::<WebRendererSpec>("WebRenderer", &config),
+        generate::<RtpInputStream>("RtpInputStream", &config),
+        generate::<Mp4>("Mp4", &config),
     ];
 
     let component_pages = [
-        Doc::<Shader>::generate("Shader", &config),
-        Doc::<InputStream>::generate("InputStream", &config),
-        Doc::<View>::generate("View", &config),
-        Doc::<WebView>::generate("WebView", &config),
-        Doc::<Image>::generate("Image", &config),
-        Doc::<Text>::generate("Text", &config),
-        Doc::<Tiles>::generate("Tiles", &config),
-        Doc::<Rescaler>::generate("Rescaler", &config),
+        generate::<Shader>("Shader", &config),
+        generate::<InputStream>("InputStream", &config),
+        generate::<View>("View", &config),
+        generate::<WebView>("WebView", &config),
+        generate::<Image>("Image", &img_component_config),
+        generate::<Text>("Text", &config),
+        generate::<Tiles>("Tiles", &config),
+        generate::<Rescaler>("Rescaler", &config),
     ];
 
-    let output_pages = [Doc::<RtpOutputStream>::generate("OutputStream", &config)];
+    let output_pages = [generate::<RtpOutputStream>("OutputStream", &config)];
 
     for page in renderer_pages {
         fs::write(
