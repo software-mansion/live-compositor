@@ -19,17 +19,17 @@ jobs:
         runs-on: ubuntu-latest
 
         steps:
-            - name: 📥 Checkout repo
+            - name: Checkout repo
               uses: actions/checkout@v2
               with:
                   submodules: "true"
 
-            - name: 🛠 Setup Node.js
+            - name: Setup Node.js
               uses: actions/setup-node@v2
               with:
                   node-version: "20"
 
-            - name: 📦 Cache dependencies
+            - name: Cache dependencies
               uses: actions/cache@v2
               with:
                   path: ~/.npm
@@ -38,10 +38,14 @@ jobs:
                       ${{ runner.os }}-node-
                       ${{ runner.os }}-
 
-            - name: 💾 Install project dependencies
+            - name: Install project dependencies
               working-directory: ./demos
-              run: npm install
+              run: npm ci
 
-            - name: 📖 Lint code
+            - name: Lint code
               working-directory: ./demos
               run: npm run lint
+
+            - name: Typechecking code
+              working-directory: ./demos
+              run: npm run typecheck

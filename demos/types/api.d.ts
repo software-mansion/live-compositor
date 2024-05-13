@@ -6,7 +6,8 @@
  */
 
 /**
- * This enum is used to generate JSON schema for all API types. This prevents repeating types in generated schema.
+ * This enum is used to generate JSON schema for all API types.
+ * This prevents repeating types in generated schema.
  */
 export type ApiTypes = RegisterInput | RegisterOutput | ImageSpec | WebRendererSpec | ShaderSpec | UpdateOutputRequest;
 export type RegisterInput =
@@ -29,11 +30,14 @@ export type RegisterInput =
        */
       audio?: InputRtpAudioOptions | null;
       /**
-       * (**default=`false`**) If input is required and the stream is not delivered on time, then LiveCompositor will delay producing output frames.
+       * (**default=`false`**) If input is required and the stream is not delivered
+       * on time, then LiveCompositor will delay producing output frames.
        */
       required?: boolean | null;
       /**
-       * Offset in milliseconds relative to the pipeline start (start request). If the offset is not defined then the stream will be synchronized based on the delivery time of the initial frames.
+       * Offset in milliseconds relative to the pipeline start (start request). If the offset is
+       * not defined then the stream will be synchronized based on the delivery time of the initial
+       * frames.
        */
       offset_ms?: number | null;
     }
@@ -48,11 +52,13 @@ export type RegisterInput =
        */
       path?: string | null;
       /**
-       * (**default=`false`**) If input is required and frames are not processed on time, then LiveCompositor will delay producing output frames.
+       * (**default=`false`**) If input is required and frames are not processed
+       * on time, then LiveCompositor will delay producing output frames.
        */
       required?: boolean | null;
       /**
-       * Offset in milliseconds relative to the pipeline start (start request). If offset is not defined then stream is synchronized based on the first frames delivery time.
+       * Offset in milliseconds relative to the pipeline start (start request). If offset is
+       * not defined then stream is synchronized based on the first frames delivery time.
        */
       offset_ms?: number | null;
     };
@@ -61,20 +67,47 @@ export type TransportProtocol = "udp" | "tcp_server";
 export type InputRtpVideoOptions = {
   decoder: "ffmpeg_h264";
 };
-export type InputRtpAudioOptions = {
-  decoder: "opus";
-  /**
-   * (**default=`false`**) Specifies whether the stream uses forward error correction. It's specific for Opus codec. For more information, check out [RFC](https://datatracker.ietf.org/doc/html/rfc6716#section-2.1.7).
-   */
-  forward_error_correction?: boolean | null;
-};
+export type InputRtpAudioOptions =
+  | {
+      decoder: "opus";
+      /**
+       * (**default=`false`**) Specifies whether the stream uses forward error correction.
+       * It's specific for Opus codec.
+       * For more information, check out [RFC](https://datatracker.ietf.org/doc/html/rfc6716#section-2.1.7).
+       */
+      forward_error_correction?: boolean | null;
+    }
+  | {
+      decoder: "aac";
+      /**
+       * AudioSpecificConfig as described in MPEG-4 part 3, section 1.6.2.1
+       * The config should be encoded as described in [RFC 3640](https://datatracker.ietf.org/doc/html/rfc3640#section-4.1).
+       *
+       * The simplest way to obtain this value when using ffmpeg to stream to the compositor is
+       * to pass the additional `-sdp_file FILENAME` option to ffmpeg. This will cause it to
+       * write out an sdp file, which will contain this field. Programs which have the ability
+       * to stream AAC to the compositor should provide this information.
+       *
+       * In MP4 files, the ASC is embedded inside the esds box (note that it is not the whole
+       * box, only a part of it). This also applies to fragmented MP4s downloaded over HLS, if
+       * the playlist uses MP4s instead of MPEG Transport Streams
+       *
+       * In FLV files and the RTMP protocol, the ASC can be found in the `AACAUDIODATA` tag.
+       */
+      audio_specific_config: string;
+      /**
+       * (**default=`"high_bitrate"`**)
+       * Specifies the [RFC 3640 mode](https://datatracker.ietf.org/doc/html/rfc3640#section-3.3.1)
+       * that should be used when depacketizing this stream.
+       */
+      rtp_mode?: AacRtpMode | null;
+    };
+export type AacRtpMode = "low_bitrate" | "high_bitrate";
 export type RegisterOutput = {
   type: "rtp_stream";
   /**
    * Depends on the value of the `transport_protocol` field:
-   *
    * - `udp` - An UDP port number that RTP packets will be sent to.
-   *
    * - `tcp_server` - A local TCP port number or a port range that LiveCompositor will listen for incoming connections.
    */
   port: PortOrPortRange;
@@ -137,11 +170,19 @@ export type Component =
        */
       children?: Component[] | null;
       /**
-       * Width of a component in pixels. Required when using absolute positioning.
+       * Width of a component in pixels. Exact behavior might be different based on the parent
+       * component:
+       * - If the parent component is a layout, check sections "Absolute positioning" and "Static
+       * positioning" of that component.
+       * - If the parent component is not a layout, then this field is required.
        */
       width?: number | null;
       /**
-       * Height of a component in pixels. Required when using absolute positioning.
+       * Height of a component in pixels. Exact behavior might be different based on the parent
+       * component:
+       * - If the parent component is a layout, check sections "Absolute positioning" and "Static
+       * positioning" of that component.
+       * - If the parent component is not a layout, then this field is required.
        */
       height?: number | null;
       /**
@@ -149,27 +190,36 @@ export type Component =
        */
       direction?: ViewDirection | null;
       /**
-       * Distance in pixels between this component's top edge and its parent's top edge. If this field is defined, then the component will ignore a layout defined by its parent.
+       * Distance in pixels between this component's top edge and its parent's top edge.
+       * If this field is defined, then the component will ignore a layout defined by its parent.
        */
       top?: number | null;
       /**
-       * Distance in pixels between this component's left edge and its parent's left edge. If this field is defined, this element will be absolutely positioned, instead of being laid out by its parent.
+       * Distance in pixels between this component's left edge and its parent's left edge.
+       * If this field is defined, this element will be absolutely positioned, instead of being
+       * laid out by its parent.
        */
       left?: number | null;
       /**
-       * Distance in pixels between the bottom edge of this component and the bottom edge of its parent. If this field is defined, this element will be absolutely positioned, instead of being laid out by its parent.
+       * Distance in pixels between the bottom edge of this component and the bottom edge of its parent.
+       * If this field is defined, this element will be absolutely positioned, instead of being
+       * laid out by its parent.
        */
       bottom?: number | null;
       /**
-       * Distance in pixels between this component's right edge and its parent's right edge. If this field is defined, this element will be absolutely positioned, instead of being laid out by its parent.
+       * Distance in pixels between this component's right edge and its parent's right edge.
+       * If this field is defined, this element will be absolutely positioned, instead of being
+       * laid out by its parent.
        */
       right?: number | null;
       /**
-       * Rotation of a component in degrees. If this field is defined, this element will be absolutely positioned, instead of being laid out by its parent.
+       * Rotation of a component in degrees. If this field is defined, this element will be
+       * absolutely positioned, instead of being laid out by its parent.
        */
       rotation?: number | null;
       /**
-       * Defines how this component will behave during a scene update. This will only have an effect if the previous scene already contained a View component with the same id.
+       * Defines how this component will behave during a scene update. This will only have an
+       * effect if the previous scene already contained a View component with the same id.
        */
       transition?: Transition | null;
       /**
@@ -194,12 +244,8 @@ export type Component =
       /**
        * Id of a web renderer instance. It identifies an instance registered using a [`register web renderer`](../routes.md#register-web-renderer-instance) request.
        *
-       * <br/> <br/>
-       *
        * :::warning
-       *
        * You can only refer to specific instances in one Component at a time.
-       *
        * :::
        */
       instance_id: RendererId;
@@ -221,18 +267,12 @@ export type Component =
       /**
        * Object that will be serialized into a `struct` and passed inside the shader as:
        *
-       * <br/><br/>
-       *
        * ```wgsl
-       *
        * @group(1) @binding(0) var<uniform>
-       *
        * ```
-       *
        * :::note
-       *
-       * This object's structure must match the structure defined in a shader source code. Currently, we do not handle memory layout automatically. To achieve the correct memory alignment, you might need to pad your data with additional fields. See [WGSL documentation](https://www.w3.org/TR/WGSL/#alignment-and-size) for more details.
-       *
+       * This object's structure must match the structure defined in a shader source code. Currently, we do not handle memory layout automatically.
+       * To achieve the correct memory alignment, you might need to pad your data with additional fields. See [WGSL documentation](https://www.w3.org/TR/WGSL/#alignment-and-size) for more details.
        * :::
        */
       shader_param?: ShaderParam | null;
@@ -263,21 +303,24 @@ export type Component =
        */
       text: string;
       /**
-       * Width of a texture that text will be rendered on. If not provided, the resulting texture will be sized based on the defined text but limited to `max_width` value.
+       * Width of a texture that text will be rendered on. If not provided, the resulting texture
+       * will be sized based on the defined text but limited to `max_width` value.
        */
       width?: number | null;
       /**
-       * Height of a texture that text will be rendered on. If not provided, the resulting texture will be sized based on the defined text but limited to `max_height` value.
-       *
+       * Height of a texture that text will be rendered on. If not provided, the resulting texture
+       * will be sized based on the defined text but limited to `max_height` value.
        * It's an error to provide `height` if `width` is not defined.
        */
       height?: number | null;
       /**
-       * (**default=`7682`**) Maximal `width`. Limits the width of the texture that the text will be rendered on. Value is ignored if `width` is defined.
+       * (**default=`7682`**) Maximal `width`. Limits the width of the texture that the text will be rendered on.
+       * Value is ignored if `width` is defined.
        */
       max_width?: number | null;
       /**
-       * (**default=`4320`**) Maximal `height`. Limits the height of the texture that the text will be rendered on. Value is ignored if height is defined.
+       * (**default=`4320`**) Maximal `height`. Limits the height of the texture that the text will be rendered on.
+       * Value is ignored if height is defined.
        */
       max_height?: number | null;
       /**
@@ -297,7 +340,8 @@ export type Component =
        */
       background_color_rgba?: RGBAColor | null;
       /**
-       * (**default=`"Verdana"`**) Font family. Provide [family-name](https://www.w3.org/TR/2018/REC-css-fonts-3-20180920/#family-name-value) for a specific font. "generic-family" values like e.g. "sans-serif" will not work.
+       * (**default=`"Verdana"`**) Font family. Provide [family-name](https://www.w3.org/TR/2018/REC-css-fonts-3-20180920/#family-name-value)
+       * for a specific font. "generic-family" values like e.g. "sans-serif" will not work.
        */
       font_family?: string | null;
       /**
@@ -328,11 +372,19 @@ export type Component =
        */
       children?: Component[] | null;
       /**
-       * Width of a component in pixels.
+       * Width of a component in pixels. Exact behavior might be different based on the parent
+       * component:
+       * - If the parent component is a layout, check sections "Absolute positioning" and "Static
+       * positioning" of that component.
+       * - If the parent component is not a layout, then this field is required.
        */
       width?: number | null;
       /**
-       * Height of a component in pixels.
+       * Height of a component in pixels. Exact behavior might be different based on the parent
+       * component:
+       * - If the parent component is a layout, check sections "Absolute positioning" and "Static
+       * positioning" of that component.
+       * - If the parent component is not a layout, then this field is required.
        */
       height?: number | null;
       /**
@@ -360,7 +412,8 @@ export type Component =
        */
       vertical_align?: VerticalAlign | null;
       /**
-       * Defines how this component will behave during a scene update. This will only have an effect if the previous scene already contained a `Tiles` component with the same id.
+       * Defines how this component will behave during a scene update. This will only have an
+       * effect if the previous scene already contained a `Tiles` component with the same id.
        */
       transition?: Transition | null;
     }
@@ -387,35 +440,52 @@ export type Component =
        */
       vertical_align?: VerticalAlign | null;
       /**
-       * Width of a component in pixels. Required when using absolute positioning.
+       * Width of a component in pixels. Exact behavior might be different based on the parent
+       * component:
+       * - If the parent component is a layout, check sections "Absolute positioning" and "Static
+       * positioning" of that component.
+       * - If the parent component is not a layout, then this field is required.
        */
       width?: number | null;
       /**
-       * Height of a component in pixels. Required when using absolute positioning.
+       * Height of a component in pixels. Exact behavior might be different based on the parent
+       * component:
+       * - If the parent component is a layout, check sections "Absolute positioning" and "Static
+       * positioning" of that component.
+       * - If the parent component is not a layout, then this field is required.
        */
       height?: number | null;
       /**
-       * Distance in pixels between this component's top edge and its parent's top edge. If this field is defined, then the component will ignore a layout defined by its parent.
+       * Distance in pixels between this component's top edge and its parent's top edge.
+       * If this field is defined, then the component will ignore a layout defined by its parent.
        */
       top?: number | null;
       /**
-       * Distance in pixels between this component's left edge and its parent's left edge. If this field is defined, this element will be absolutely positioned, instead of being laid out by its parent.
+       * Distance in pixels between this component's left edge and its parent's left edge.
+       * If this field is defined, this element will be absolutely positioned, instead of being
+       * laid out by its parent.
        */
       left?: number | null;
       /**
-       * Distance in pixels between this component's bottom edge and its parent's bottom edge. If this field is defined, this element will be absolutely positioned, instead of being laid out by its parent.
+       * Distance in pixels between this component's bottom edge and its parent's bottom edge.
+       * If this field is defined, this element will be absolutely positioned, instead of being
+       * laid out by its parent.
        */
       bottom?: number | null;
       /**
-       * Distance in pixels between this component's right edge and its parent's right edge. If this field is defined, this element will be absolutely positioned, instead of being laid out by its parent.
+       * Distance in pixels between this component's right edge and its parent's right edge.
+       * If this field is defined, this element will be absolutely positioned, instead of being
+       * laid out by its parent.
        */
       right?: number | null;
       /**
-       * Rotation of a component in degrees. If this field is defined, this element will be absolutely positioned, instead of being laid out by its parent.
+       * Rotation of a component in degrees. If this field is defined, this element will be
+       * absolutely positioned, instead of being laid out by its parent.
        */
       rotation?: number | null;
       /**
-       * Defines how this component will behave during a scene update. This will only have an effect if the previous scene already contained a View component with the same id.
+       * Defines how this component will behave during a scene update. This will only have an
+       * effect if the previous scene already contained a View component with the same id.
        */
       transition?: Transition | null;
     };
@@ -424,7 +494,9 @@ export type ViewDirection = "row" | "column";
 /**
  * Easing functions are used to interpolate between two values over time.
  *
- * Custom easing functions can be implemented with cubic Bézier. The control points are defined with `points` field by providing four numerical values: `x1`, `y1`, `x2` and `y2`. The `x1` and `x2` values have to be in the range `[0; 1]`. The cubic Bézier result is clamped to the range `[0; 1]`. You can find example control point configurations [here](https://easings.net/).
+ * Custom easing functions can be implemented with cubic Bézier.
+ * The control points are defined with `points` field by providing four numerical values: `x1`, `y1`, `x2` and `y2`. The `x1` and `x2` values have to be in the range `[0; 1]`. The cubic Bézier result is clamped to the range `[0; 1]`.
+ * You can find example control point configurations [here](https://easings.net/).
  */
 export type EasingFunction =
   | {
@@ -522,7 +594,9 @@ export type AudioEncoderOptions = {
    */
   preset?: OpusEncoderPreset | null;
   /**
-   * (**default=`false`**) Specifies whether the stream use forward error correction. It's specific for Opus codec. For more information, check out [RFC](https://datatracker.ietf.org/doc/html/rfc6716#section-2.1.7).
+   * (**default=`false`**) Specifies whether the stream use forward error correction.
+   * It's specific for Opus codec.
+   * For more information, check out [RFC](https://datatracker.ietf.org/doc/html/rfc6716#section-2.1.7).
    */
   forward_error_correction?: boolean | null;
 };
@@ -585,15 +659,10 @@ export interface Resolution {
 }
 /**
  * This type defines when end of an input stream should trigger end of the output stream. Only one of those fields can be set at the time.
- *
  * Unless specified otherwise the input stream is considered finished/ended when:
- *
  * - TCP connection was dropped/closed.
- *
  * - RTCP Goodbye packet (`BYE`) was received.
- *
  * - Mp4 track has ended.
- *
  * - Input was unregistered already (or never registered).
  */
 export interface OutputEndCondition {
