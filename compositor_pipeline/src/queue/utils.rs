@@ -89,7 +89,10 @@ impl<Payload: InputProcessorMediaExt> InputProcessor<Payload> {
 
     fn handle_eos(&mut self) -> VecDeque<Payload> {
         match self.state {
-            InputState::WaitingForStart => VecDeque::new(),
+            InputState::WaitingForStart => {
+                self.state = InputState::Done;
+                VecDeque::new()
+            }
             InputState::Buffering { ref mut buffer } => {
                 let first_pts = buffer.first().map(|(_, p)| *p).unwrap_or(Duration::ZERO);
                 let chunks = mem::take(buffer)
