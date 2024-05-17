@@ -2,21 +2,32 @@
 
 ![LiveCompositor logo](./assets/lc_logo_large.svg)
 
-Application for real-time video processing/transforming/composing, providing simple, language-agnostic API for live video rendering.
+LiveCompositor is an open-source media server for real-time, low-latency, programmable video and audio mixing/composing.
 
-LiveCompositor targets real-time use cases, like video conferencing, live-streaming, or broadcasting (e.g. with [WebRTC](https://en.wikipedia.org/wiki/WebRTC) / [HLS](https://en.wikipedia.org/wiki/HTTP_Live_Streaming) / [RTMP](https://en.wikipedia.org/wiki/Real-Time_Messaging_Protocol)).
+LiveCompositor targets real-time use cases, like video conferencing, live-streaming, or broadcasting (e.g. with [WebRTC](https://en.wikipedia.org/wiki/WebRTC) / [HLS](https://en.wikipedia.org/wiki/HTTP_Live_Streaming) / [RTMP](https://en.wikipedia.org/wiki/Real-Time_Messaging_Protocol)), however [offline processing](https://compositor.live/docs/deployment/configuration#live_compositor_offline_processing_enable) is also available.
+
+<!-- TODO change offline processing url to offline processing guide -->
+
+We don't have plans to introduce any major breaking changes in the API in the forseeable future.
 
 ## Features
 
-LiveCompositor receives inputs and sends outputs streams via [RTP](https://en.wikipedia.org/wiki/Real-time_Transport_Protocol).
+LiveCompositor receives inputs and sends output streams via [RTP](https://en.wikipedia.org/wiki/Real-time_Transport_Protocol).
 HTTP API is used to define how inputs should be transformed and combined to produce desired outputs.
 
-For the initial release, we want LiveCompositor to support those four types of transformations, that you can combine:
+High-level, web-style API, similar to HTML, can be used to layout and mix:
 
-- Common transformations - frequently used, already implemented transformations, like layouts, grids, cropping, corners rounding, blending, fading, etc.
-- Custom shader transformations - registering and using custom shaders, allowing to adapt LiveCompositor for specific business needs.
-- Web Rendering - embedding videos in custom websites.
-- Text Rendering
+- live RTP input streams
+- MP4s
+- images / GIFs
+- text
+- color backgrounds
+- websites (experimental, rendered with Chromium embedded in LiveCompositor, not recommended for high-performance/production usage)
+
+Dynamic output layout transitions are directly supported.
+For any custom effects, users can [register and use their own WGSL shaders](https://compositor.live/docs/concept/shaders).
+
+Input audio can be mixed directly in LiveCompositor, providing synchronization for video/audio outputs.
 
 ## Demos
 
@@ -26,7 +37,7 @@ TypeScript demos presenting what you can do with LiveCompositor are available in
 
 ## Examples
 
-Examples source code is under the `examples` directory.
+Examples source code showcasing single API components usage are available in the `examples` directory.
 
 Running examples requires:
 
@@ -39,9 +50,21 @@ For better performance, build examples with the [release compilation profile](ht
 cargo run --release --example <example_name>
 ```
 
+## Guides
+
+Step-by-step introduction guides are available on the [LiveCompositor website](https://compositor.live/docs/guides).
+
 ## Supported platforms
 
 Linux and macOS.
+
+## Current development
+
+Currently, we are working on:
+
+- hardware decoding/encoding implementation for Vulcan (for better performance)
+- guides/documentation/deployment improvements
+- supporting more features, like corners-rounding
 
 ## Copyright
 
