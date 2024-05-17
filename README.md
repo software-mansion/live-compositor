@@ -20,7 +20,7 @@ For the initial release, we want LiveCompositor to support those four types of t
 
 ## Demos
 
-![demos](./assets/demos.mp4)
+https://github.com/membraneframework/live_compositor/assets/104033489/44cfa3a8-bb92-4f90-b563-a028bf7f3efa
 
 TypeScript demos presenting what you can do with LiveCompositor are available in the `demos` directory.
 
