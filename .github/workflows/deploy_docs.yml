@@ -57,6 +57,10 @@ jobs:
             - name: 📦 Build website
               run: npm run build
 
+            - name: 🔍 Add site verification token
+              run: |
+                echo "google-site-verification: google6d25fc2581984d6a.html" > ./build/google6d25fc2581984d6a.html
+
             - name: 🖋️ Deploy to GitHub Pages
               uses: peaceiris/actions-gh-pages@v3
               with:
