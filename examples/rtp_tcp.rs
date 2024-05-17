@@ -2,23 +2,29 @@ use anyhow::Result;
 use live_compositor::{server, types::Resolution};
 use log::{error, info};
 use serde_json::json;
-use std::{process::Command, thread, time::Duration};
+use std::{
+    process::{Command, Stdio},
+    thread,
+    time::Duration,
+};
 
 use crate::common::{download_file, start_websocket_thread};
 
 #[path = "./common/common.rs"]
 mod common;
 
-const SAMPLE_FILE_URL: &str = "https://filesamples.com/samples/video/mp4/sample_1280x720.mp4";
-const SAMPLE_FILE_PATH: &str = "examples/assets/sample_1280_720.mp4";
+const SAMPLE_FILE_URL: &str =
+    "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+const SAMPLE_FILE_PATH: &str = "examples/assets/BigBuckBunny.mp4";
 const VIDEO_RESOLUTION: Resolution = Resolution {
     width: 1280,
     height: 720,
 };
 
 const IP: &str = "127.0.0.1";
-const INPUT_PORT: u16 = 8002;
-const OUTPUT_PORT: u16 = 8004;
+const INPUT_1_PORT: u16 = 8002;
+const INPUT_2_PORT: u16 = 8004;
+const OUTPUT_PORT: u16 = 8006;
 
 fn main() {
     ffmpeg_next::format::network::init();
@@ -44,10 +50,22 @@ fn start_example_client_code() -> Result<()> {
         &json!({
             "type": "rtp_stream",
             "transport_protocol": "tcp_server",
-            "port": INPUT_PORT,
+            "port": INPUT_1_PORT,
             "video": {
                 "decoder": "ffmpeg_h264"
-            }
+            },
+        }),
+    )?;
+
+    common::post(
+        "input/input_2/register",
+        &json!({
+            "type": "rtp_stream",
+            "transport_protocol": "tcp_server",
+            "port": INPUT_2_PORT,
+            "audio": {
+                "decoder": "opus"
+            },
         }),
     )?;
 
@@ -67,6 +85,17 @@ fn start_example_client_code() -> Result<()> {
             "type": "rtp_stream",
             "transport_protocol": "tcp_server",
             "port": OUTPUT_PORT,
+            "audio": {
+                "initial": {
+                    "inputs": [
+                        {"input_id": "input_2"},
+                    ]
+                },
+                "encoder": {
+                   "type": "opus",
+                   "channels": "stereo",
+                }
+            },
             "video": {
                 "resolution": {
                     "width": VIDEO_RESOLUTION.width,
@@ -94,10 +123,19 @@ fn start_example_client_code() -> Result<()> {
             }
         }),
     )?;
-    let gst_output_command = format!("gst-launch-1.0 -v tcpclientsrc host={IP} port={OUTPUT_PORT} ! \"application/x-rtp-stream\" ! rtpstreamdepay ! rtph264depay ! decodebin ! videoconvert ! autovideosink");
+    let gst_output_command =  [
+        "gst-launch-1.0 -v ",
+        "rtpptdemux name=demux ",
+        &format!("tcpclientsrc host={IP} port={OUTPUT_PORT} ! \"application/x-rtp-stream\" ! rtpstreamdepay ! queue ! demux. "),
+        "demux.src_96 ! \"application/x-rtp,media=video,clock-rate=90000,encoding-name=H264\" ! queue ! rtph264depay ! decodebin ! videoconvert ! autovideosink ",
+        "demux.src_97 ! \"application/x-rtp,media=audio,clock-rate=48000,encoding-name=OPUS\" ! queue ! rtpopusdepay ! decodebin ! audioconvert ! autoaudiosink ",
+    ].concat();
+
     Command::new("bash")
         .arg("-c")
         .arg(gst_output_command)
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
         .spawn()?;
     std::thread::sleep(Duration::from_millis(500));
 
@@ -108,10 +146,9 @@ fn start_example_client_code() -> Result<()> {
 
     let gst_input_command = [
         "gst-launch-1.0 -v ",
-        "funnel name=fn ",
-        &format!("filesrc location={sample_path_str} ! qtdemux ! h264parse ! rtph264pay config-interval=1 pt=96 ! .send_rtp_sink rtpsession name=session .send_rtp_src ! fn. "),
-        "session.send_rtcp_src ! fn. ",
-        &format!("fn. ! rtpstreampay ! tcpclientsink host={IP} port={INPUT_PORT} "),
+        &format!("filesrc location={sample_path_str} ! qtdemux name=demux "),
+        &format!("demux.video_0 ! queue ! h264parse ! rtph264pay config-interval=1 !  application/x-rtp,payload=96  ! rtpstreampay ! tcpclientsink host={IP} port={INPUT_1_PORT} "),
+        &format!("demux.audio_0 ! queue ! decodebin ! audioconvert ! audioresample ! opusenc ! rtpopuspay ! application/x-rtp,payload=97 !  rtpstreampay ! tcpclientsink host={IP} port={INPUT_2_PORT} "),
     ].concat();
 
     Command::new("bash")

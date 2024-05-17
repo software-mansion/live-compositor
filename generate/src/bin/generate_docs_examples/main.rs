@@ -1,11 +1,14 @@
 use std::path::PathBuf;
 
+use simple_scene::generate_simple_scene_guide;
 use transition::generate_tile_transition_video;
 
+mod simple_scene;
 mod transition;
 
 fn main() {
     generate_tile_transition_video().unwrap();
+    generate_simple_scene_guide().unwrap();
 }
 
 fn workingdir() -> PathBuf {
