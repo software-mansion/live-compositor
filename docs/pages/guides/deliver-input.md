@@ -2,13 +2,13 @@
 
 Live Compositor currently supports 2 input types:
 - RTP
-- MP4 (not supported in MembraneFramework plugin)
+- MP4 (not supported in Membrane Framework plugin)
 
 MP4 support is useful if you want to add some prerecorded assets, but for most streaming use cases RTP protocol will be a primary choice.
 
 Our RTP implementation supports following codecs:
 - H264 for video
-- AAC and Opus for audio (AAC is not supported via MembraneFramework plugin)
+- AAC and Opus for audio (AAC is not supported via Membrane Framework plugin)
 
 ### RTP over TCP vs UDP
 
@@ -22,9 +22,9 @@ What to choose?
 
 ### What to use to stream over RTP?
 
-#### MembraneFramework
+#### Membrane Framework
 
-If you are using MembraneFramework plugin you do not need anything else. Just connect appropriate input pads to the `LiveCompositor` bin.
+If you are using Membrane Framework plugin you do not need anything else. Just connect appropriate input pads to the `LiveCompositor` bin.
 
 #### FFmpeg
 
@@ -33,7 +33,8 @@ FFmpeg does not support RTP over TCP, so you are limited to UDP only.
 Stream a H264 video from MP4 file (without transcoding) over RTP to `127.0.0.1:9001`.
 
 ```bash
-ffmpeg -re -i path_to_file.mp4 -an -c:v copy -f rtp -bsf:v h264_mp4toannexb rtp://127.0.0.1:9001?rtcpport=9001
+ffmpeg -re -i path_to_file.mp4 -an -c:v copy \
+    -f rtp -bsf:v h264_mp4toannexb rtp://127.0.0.1:9001?rtcpport=9001
 ```
 
 - `-re` - Limits speed of transfer to send data in real-time. Without this option entire file would be sent very quickly.

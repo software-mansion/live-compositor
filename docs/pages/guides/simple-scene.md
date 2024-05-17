@@ -186,7 +186,7 @@ Configure it to render just an empty [`View`](../api/components/View.md) compone
   </TabItem>
 </Tabs>
 
-`View` component is empty, so on the output you should see just a blank screen of a specified color as shown below.
+`View` component does not have any children, so on the output you should see just a blank screen of a specified color as shown below.
 
 <div style={{textAlign: 'center'}}>
     <img src={SimpleSceneEmpty} style={{ width: 600 }} />
@@ -235,7 +235,7 @@ Update output to render a [`View`](../api/components/View.md) component with an 
   </TabItem>
 </Tabs>
 
-The input stream in the example has resolution `1920x1080` and it is rendered on the output `1270x720`. As a result only part of the stream is visible.
+The input stream in the example has a resolution `1920x1080` and it is rendered on the `1270x720` output. As a result only part of the stream is visible.
 
 <div style={{textAlign: 'center'}}>
     <img src={SimpleSceneOverflow} style={{ width: 600 }} />
@@ -299,7 +299,7 @@ Input stream now fully fits inside the output.
 
 :::note
 The same effect (for single input) could be achieved by either:
-- Setting `InputStream` as a root directly. (It would only work if aspect ratio of input and output is the same)
+- Setting `InputStream` as a root directly. It would only work if aspect ratio of input and output is the same.
 - Replacing `View` component with a `Rescaler`.
 :::
 
@@ -359,8 +359,8 @@ Add another [`InputStream`](../api/components/InputStream.md) wrapped with [`Res
   </TabItem>
 </Tabs>
 
-By default, a `View` component positions its children next to each other in a row. Each child without defined width or
-height fills available space inside the parent component. To place them in a column set a `direction: "column"` option.
+By default, a `View` component positions its children next to each other in a row. Each child without a defined width or
+height fills available space inside the parent component. To place them in a column, set a `direction: "column"` option.
 
 In an example below we can see that:
 - `View` has 2 children components with unspecified dimensions, so they will divide available width exactly in half.
@@ -435,8 +435,8 @@ Specify `width` and `height` of one of the `Rescaler` components and position it
   </TabItem>
 </Tabs>
 
-When you specified `top`/`right` options on the `Rescaler` component the `View` component does not take that component
-into the account when calculating row layout of its children. See [absolute positioning](../api/components/View.md#absolute-positioning) to learn more.
+When you specify `top`/`right` options on the `Rescaler` component, the `View` component does not take that component
+into account when calculating the row layout of its children. See [absolute positioning](../api/components/View.md#absolute-positioning) to learn more.
 
 As a result:
 - The first child extends to the full width of a parent.
