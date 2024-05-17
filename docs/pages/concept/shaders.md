@@ -1,10 +1,10 @@
 # Shaders
 
-Shaders are small programs that we send to a GPU to perform some computation for us. They are used extensively in the video compositor. All builtin transformation are implemented as shaders under the hood. It is also possible to create render nodes that run a custom shader on their input. Since video compositor is implemented using wgpu, the shaders have to be written in WGSL (WebGPU Shading Language). They also have to fulfill some custom requirements that allow them to be run by the video compositor.
+Shaders are small programs that we send to a GPU to perform some computation for us. They are used extensively in the LiveCompositor. All builtin transformation are implemented as shaders under the hood. It is also possible to create render nodes that run a custom shader on their input. Since LiveCompositor is implemented using wgpu, the shaders have to be written in WGSL (WebGPU Shading Language). They also have to fulfill some custom requirements that allow them to be run by the LiveCompositor.
 
 ## General concepts
 
-There are two kinds of shaders that are used in the video compositor: vertex shaders and fragment shaders.
+There are two kinds of shaders that are used in the LiveCompositor: vertex shaders and fragment shaders.
 
 ### Vertex shaders
 
