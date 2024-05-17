@@ -1,5 +1,7 @@
 # LiveCompositor
 
+![LiveCompositor logo](./assets/lc_logo_large.svg)
+
 Application for real-time video processing/transforming/composing, providing simple, language-agnostic API for live video rendering.
 
 LiveCompositor targets real-time use cases, like video conferencing, live-streaming, or broadcasting (e.g. with [WebRTC](https://en.wikipedia.org/wiki/WebRTC) / [HLS](https://en.wikipedia.org/wiki/HTTP_Live_Streaming) / [RTMP](https://en.wikipedia.org/wiki/Real-Time_Messaging_Protocol)).
@@ -17,6 +19,8 @@ For the initial release, we want LiveCompositor to support those four types of t
 - Text Rendering
 
 ## Demos
+
+![demos](./assets/demos.mp4)
 
 TypeScript demos presenting what you can do with LiveCompositor are available in the `demos` directory.
 
