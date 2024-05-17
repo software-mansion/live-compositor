@@ -4,19 +4,19 @@ Live Compositor currently supports only RTP (H264 + Opus) as an output format:
 
 ### RTP over TCP vs UDP
 
-RTP streams can be delivered over TCP or UDP. Depending on your use case different choice might make more sense, but in general we recommend using TCP if possible.
+RTP streams can be delivered over TCP or UDP. Depending on your use case, a different choice might make more sense, but in general, we recommend using TCP if possible.
 
 What to choose?
-- If you are using Membrane Framework plugin all communication already happens over TCP. Currently, we do not support any way to configure it.
+- If you are using the Membrane Framework plugin all communication already happens over TCP. Currently, we do not support any way to configure it.
 - Some of the popular multimedia tools do not support RTP over TCP e.g. FFmpeg.
-- UDP should only be used for communication on localhost. We do not support retransmission or packet reordering, so if you use it in unreliable network it might lead to unexpected behavior.
-- UDP does not have a congestion control, so if you are using any non-real time sources for inputs (e.g. streaming file with FFmpeg over RTP) then if you don't throttle the input it might lead high memory usage.
+- UDP should only be used for communication on localhost. We do not support retransmission or packet reordering, so if you use it in an unreliable network it might lead to unexpected behavior.
+- UDP does not have a congestion control, so if you are using any non-real-time sources for inputs (e.g. streaming file with FFmpeg over RTP) then if you don't throttle the input it might lead to high memory usage.
 
 ### What to use to receive RTP streams?
 
 #### Membrane Framework
 
-If you are using Membrane Framework plugin you do not need anything else. Just connect appropriate output pads to the `LiveCompositor` bin.
+If you are using the Membrane Framework plugin you do not need anything else. Just connect appropriate output pads to the `LiveCompositor` bin.
 
 #### FFmpeg
 

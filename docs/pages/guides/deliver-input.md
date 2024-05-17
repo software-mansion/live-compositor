@@ -2,35 +2,35 @@
 
 Live Compositor currently supports 2 input types:
 - RTP
-- MP4 (not supported in Membrane Framework plugin)
+- MP4 (not supported in the Membrane Framework plugin)
 
 MP4 support is useful if you want to add some prerecorded assets, but for most streaming use cases RTP protocol will be a primary choice.
 
-Our RTP implementation supports following codecs:
+Our RTP implementation supports the following codecs:
 - H264 for video
-- AAC and Opus for audio (AAC is not supported via Membrane Framework plugin)
+- AAC and Opus for audio (AAC is not supported via the Membrane Framework plugin)
 
 ### RTP over TCP vs UDP
 
-RTP streams can be delivered over TCP or UDP. Depending on your use case different choice might make more sense, but in general we recommend using TCP if possible.
+RTP streams can be delivered over TCP or UDP. Depending on your use case, a different choice might make more sense, but in general, we recommend using TCP if possible.
 
 What to choose?
-- If you are using MembraneFramework plugin all communication already happens over TCP. Currently, we do not support any way to configure it.
+- If you are using the Membrane Framework plugin all communication already happens over TCP. Currently, we do not support any way to configure it.
 - Some of the popular multimedia tools do not support RTP over TCP e.g. FFmpeg.
-- UDP should only be used for communication on localhost. We do not support retransmission or packet reordering, so if you use it in unreliable network it might lead to unexpected behavior.
-- UDP does not have a congestion control, so if you are using any non-real time sources for inputs (e.g. streaming file with FFmpeg over RTP) then if you don't throttle the input it might lead high memory usage.
+- UDP should only be used for communication on localhost. We do not support retransmission or packet reordering, so if you use it in an unreliable network it might lead to unexpected behavior.
+- UDP does not have a congestion control, so if you are using any non-real-time sources for inputs (e.g. streaming file with FFmpeg over RTP) then if you don't throttle the input it might lead to high memory usage.
 
 ### What to use to stream over RTP?
 
 #### Membrane Framework
 
-If you are using Membrane Framework plugin you do not need anything else. Just connect appropriate input pads to the `LiveCompositor` bin.
+If you are using the Membrane Framework plugin you do not need anything else. Just connect appropriate input pads to the `LiveCompositor` bin.
 
 #### FFmpeg
 
 FFmpeg does not support RTP over TCP, so you are limited to UDP only.
 
-Stream a H264 video from MP4 file (without transcoding) over RTP to `127.0.0.1:9001`.
+Stream an H264 video from an MP4 file (without transcoding) over RTP to `127.0.0.1:9001`.
 
 ```bash
 ffmpeg -re -i path_to_file.mp4 -an -c:v copy \

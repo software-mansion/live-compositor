@@ -20,11 +20,13 @@ This guide will explain how to create simple scene that is combining input strea
   </TabItem>
   <TabItem value="membrane" label="Membrane Framework">
     ```elixir
+    alias Membrane.LiveCompositor
+
     def handle_init(ctx, opts) do
       spec = [
         ...
 
-        child(:live_compositor, %Membrane.LiveCompositor{
+        child(:live_compositor, %LiveCompositor{
           framerate: {30, 1},
           server_setup: :start_locally,
         }),
@@ -165,7 +167,7 @@ Configure it to render just an empty [`View`](../api/components/View.md) compone
         |> via_out(Pad.ref(:video_output, "output_1"), options: [
           width: 1280,
           height: 720,
-          encoder: %Encoder.FFmpegH264{
+          encoder: %LiveCompositor.Encoder.FFmpegH264{
             preset: :ultrafast
           },
           initial: %{
