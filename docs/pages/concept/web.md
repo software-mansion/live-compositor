@@ -1,5 +1,7 @@
 # Web Renderer
 
+Web renderer allows you to capture that output of a browser and compose it with other streams.
+
 ## Overview
 
 Web rendering is an experimental feature that lets you render websites.

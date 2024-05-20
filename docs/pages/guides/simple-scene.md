@@ -16,7 +16,7 @@ This guide will explain how to create simple scene that is combining input strea
 
 <Tabs queryString="lang">
   <TabItem value="http" label="HTTP">
-    Start the compositor server. Checkout [configuration page](../deployment/configuration.md) for available configuration options.
+    Start the compositor server. Check out [configuration page](../deployment/configuration.md) for available configuration options.
   </TabItem>
   <TabItem value="membrane" label="Membrane Framework">
     ```elixir
@@ -58,7 +58,7 @@ This guide will explain how to create simple scene that is combining input strea
     }
     ```
 
-    After receiving the response you can establish the connection and start sending the stream. Checkout [how to deliver input streams](./deliver-input.md) to learn more.
+    After receiving the response you can establish the connection and start sending the stream. Check out [how to deliver input streams](./deliver-input.md) to learn more.
 
     In this example we are using RTP over TCP, but it could be easily replaced by UDP.
   </TabItem>
@@ -99,7 +99,7 @@ This guide will explain how to create simple scene that is combining input strea
     }
     ```
 
-    After receiving the response you can establish the connection and start sending the stream. Checkout [how to deliver input streams](./deliver-input.md) to learn more.
+    After receiving the response you can establish the connection and start sending the stream. Check out [how to deliver input streams](./deliver-input.md) to learn more.
 
     In this example we are using RTP over TCP, but it could be easily replaced by UDP.
   </TabItem>
@@ -152,7 +152,7 @@ Configure it to render just an empty [`View`](../api/components/View.md) compone
     }
     ```
 
-    After receiving the response you can establish the connection and start listening for the stream. Checkout [how to receive output streams](./receive-output.md) to learn more.
+    After receiving the response you can establish the connection and start listening for the stream. Check out [how to receive output streams](./receive-output.md) to learn more.
 
     In this example we are using RTP over TCP, if you prefer to use UDP you need start listening on the specified port before sending register request to make sure you are not losing
     first frames.

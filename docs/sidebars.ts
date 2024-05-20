@@ -2,21 +2,14 @@ import type { SidebarsConfig } from '@docusaurus/plugin-content-docs';
 
 const sidebars: SidebarsConfig = {
   sidebar: [
-    'intro',
     {
-      label: 'Get started',
-      type: 'category',
-      items: ['get-started/membrane'],
-      collapsed: true,
-      link: {
-        type: 'doc',
-        id: 'get-started',
-      },
+      label: 'Getting started',
+      type: 'doc',
+      id: 'intro',
     },
     {
       type: 'category',
       label: 'Guides',
-      collapsible: false,
       link: {
         type: 'generated-index',
       },
@@ -41,13 +34,15 @@ const sidebars: SidebarsConfig = {
     {
       type: 'category',
       label: 'Concepts',
-      collapsible: false,
+      link: {
+        type: 'doc',
+        id: 'concept/overview',
+      },
       items: ['concept/component', 'concept/layouts', 'concept/shaders', 'concept/web'],
     },
     {
       type: 'category',
       label: 'Deployment',
-      collapsible: true,
       link: {
         type: 'generated-index',
       },

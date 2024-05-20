@@ -63,6 +63,7 @@ function HomepageHeader() {
               autoPlay
               muted
               src="https://github.com/membraneframework/live_compositor/assets/104033489/e6f5ba7c-ab05-4935-a42a-bc28c42fc895"
+              poster="/img/demo_poster.png"
               style={{ width: '100%', display: 'block' }}
             />
           </div>
@@ -222,7 +223,9 @@ function IntegrationMembranePlugin() {
             <p>
               <FaFile style={{ fontSize: 15, marginRight: 7 }} />
               Documentation -{' '}
-              <Link href="docs/get-started/membrane">Get started with Membrane plugin</Link>
+              <Link href="/docs/intro#membrane-framework-plugin">
+                Get started with Membrane plugin
+              </Link>
             </p>
             <p>
               <FaGithub style={{ fontSize: 15, marginRight: 7 }} />
@@ -256,7 +259,7 @@ function ContactUs() {
         <div className="row" style={{ justifyContent: 'center' }}>
           <SwmLogo width={220} className="margin--lg" style={{ alignSelf: 'center' }} />
           <div className="col">
-            <div className="card__header">
+            <div className="card__header margin-top--md">
               <Heading as="h1">
                 <span className="text--primary">Contact</span> us
               </Heading>
