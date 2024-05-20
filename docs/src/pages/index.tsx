@@ -1,14 +1,5 @@
 import clsx from 'clsx';
-import {
-  FaChrome,
-  FaCode,
-  FaFile,
-  FaFont,
-  FaGithub,
-  FaImage,
-  FaLink,
-  FaMicrochip,
-} from 'react-icons/fa6';
+import { FaChrome, FaCode, FaFile, FaGithub, FaImage, FaLink, FaMicrochip } from 'react-icons/fa6';
 import { MdLiveTv } from 'react-icons/md';
 import Link from '@docusaurus/Link';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
@@ -22,50 +13,73 @@ import MembraneLogo from '@site/static/img/membrane-logo.svg';
 import WebGpuLogoDark from '@site/static/img/webgpu-dark.svg';
 import WebGpuLogoLight from '@site/static/img/webgpu-light.svg';
 import { useColorMode } from '@docusaurus/theme-common';
+import TypewriterComponent from 'typewriter-effect';
 
 function HomepageHeader() {
   return (
-    <header className={clsx('hero hero--primary', styles.heroBanner)}>
-      <div className="container">
-        <div className="row">
-          <div className="col col--2"></div>
-          <div className="col col--8">
-            <div className="container">
-              <Heading as="h2" className="hero__title">
-                The best solution for programmatic live video compositing.
-              </Heading>
-              <p>
-                Process live video streams in real-time. Apply effects, combine videos, or add
-                transitions to produce any output you want.
-              </p>
-              <div className="row">
-                <Link
-                  className="button button--secondary button--lg col col-6 margin--sm"
-                  to="/docs/intro">
-                  Docs
-                </Link>
-                <Link
-                  className="button button--secondary button--outline button--lg col col-6 margin--sm"
-                  to="https://github.com/membraneframework/live_compositor">
-                  View on GitHub
-                </Link>
-              </div>
+    <div className={clsx('container', styles.firstSection)}>
+      <div className="row">
+        <div className="col col--6">
+          <div className="container">
+            <Heading as="h1" style={{ fontSize: 55 }}>
+              <span className="text--primary">Mix video and audio</span>
+              <TypewriterComponent
+                options={{
+                  strings: ['in real-time.', 'using code.', 'with low-latency.'],
+                  autoStart: true,
+                  loop: true,
+                  deleteSpeed: 60,
+                  delay: 80,
+                }}
+              />
+            </Heading>
+            <p className={styles.sectionSubheading}>
+              Open-source media server for real-time, low-latency, programmable video and audio
+              mixing.
+            </p>
+            <div className="row margin-bottom--md">
+              <Link
+                className="button button--primary button--lg col col-6 margin--sm"
+                to="/docs/intro">
+                Docs
+              </Link>
+              <Link
+                className="button button--secondary button--outline button--lg col col-6 margin--sm"
+                to="https://github.com/membraneframework/live_compositor">
+                View on GitHub
+              </Link>
             </div>
           </div>
         </div>
+        <div className="col col--6">
+          <div
+            style={{
+              borderRadius: '30px',
+              overflow: 'hidden',
+            }}>
+            <video
+              loop
+              autoPlay
+              muted
+              src="https://github.com/membraneframework/live_compositor/assets/104033489/e6f5ba7c-ab05-4935-a42a-bc28c42fc895"
+              style={{ width: '100%', display: 'block' }}
+            />
+          </div>
+        </div>
       </div>
-    </header>
+    </div>
   );
 }
 
 function ProsCards() {
-  const wgpuLink = (
-    <Link href="https://github.com/gfx-rs/wgpu">
-      <code>wgpu</code>
-    </Link>
-  );
   return (
-    <div className="container">
+    <div className="container margin-top--md">
+      <Heading as="h1" className="margin-bottom--md text--center text--primary">
+        Vision
+      </Heading>
+      <p className={clsx('text--center', styles.sectionSubheading)}>
+        Make mixing live streams as simple as building a website.
+      </p>
       <div className="row">
         <ProsCard title="Simple Declarative API" icon={FaCode}>
           <p className="padding--md">
@@ -75,16 +89,14 @@ function ProsCards() {
         </ProsCard>
         <ProsCard title="Language agnostic" icon={FaLink}>
           <p className="padding--md">
-            The entire configuration process happens over HTTP API, and streams are delivered over
-            RTP. You can leverage technology of your choice and easily integrate it with your own
+            You can leverage tech stack of your choice and easily integrate it with your own
             solutions.
           </p>
         </ProsCard>
         <ProsCard title="Hardware accelerated" icon={FaMicrochip}>
           <p className="padding--md">
-            Rendering is GPU accelerated using {wgpuLink} library, which implements API based on the
-            WebGPU standard. Parts of the standard, like the ability to run WGSL shaders, are
-            directly accessible via Live Compositor API.
+            Rendering is GPU accelerated using wgpu library, which implements API based on the
+            WebGPU standard.
           </p>
         </ProsCard>
       </div>
@@ -105,7 +117,7 @@ function ProsCard(props: PropsWithChildren<ProsCardProps>) {
         <Icon className={styles.icon} />
       </div>
       <div className="card__header">
-        <Heading as="h3" style={{ textAlign: 'center' }}>
+        <Heading as="h2" style={{ textAlign: 'center' }}>
           {props.title}
         </Heading>
       </div>
@@ -130,47 +142,32 @@ function Feature(props: FeatureProps) {
       <p>{props.secondaryText}</p>
     </div>
   );
-  if (props.inverted) {
-    return (
-      <div className="row margin-right--lg margin-left--lg" style={{ alignItems: 'center' }}>
-        {props.image}
-        {text}
-      </div>
-    );
-  } else {
-    return (
-      <div className="row margin-right--lg margin-left--lg" style={{ alignItems: 'center' }}>
-        {text}
-        {props.image}
-      </div>
-    );
-  }
+  return (
+    <div className="row margin-right--lg margin-left--lg" style={{ alignItems: 'center' }}>
+      {props.image}
+      {text}
+    </div>
+  );
 }
 
 function Features() {
   const { colorMode } = useColorMode();
-  const imageTextRendering = (
-    <div className="row margin--lg">
-      <div>
-        <FaImage style={{ fontSize: 80, marginBottom: 30 }} />
-      </div>
-      <div>
-        <FaFont style={{ fontSize: 80, marginTop: 30 }} />
-      </div>
-    </div>
-  );
+
   const wgpuLogo =
     colorMode === 'dark' ? (
-      <WebGpuLogoDark className="margin--lg" width={100} height={100} />
+      <WebGpuLogoDark className={styles.featureIcon} width={80} height={80} />
     ) : (
-      <WebGpuLogoLight className="margin--lg" width={100} height={100} />
+      <WebGpuLogoLight className={styles.featureIcon} width={80} height={80} />
     );
 
   return (
     <div className="container margin-top--lg margin-bottom--md">
-      <Heading as="h2" className="margin-bottom--md">
+      <Heading as="h1" className="margin-bottom--md text--center text--primary">
         Features
       </Heading>
+      <p className={clsx('text--center', styles.sectionSubheading)}>
+        Simple, powerful, fast. Pick three.
+      </p>
 
       <Feature
         text="WebGPU APIs"
@@ -180,19 +177,19 @@ function Features() {
       <Feature
         text="Real-time processing"
         secondaryText="Process live video streams in real-time with low latency. Blazingly fast processing makes video conferencing, live-streaming, and broadcasting an everyday bread and butter for Live Compositor."
-        image={<MdLiveTv className="margin--lg" style={{ fontSize: 100 }} />}
+        image={<MdLiveTv className={styles.featureIcon} style={{ fontSize: 80 }} />}
         inverted
       />
       <Feature
         text="Static content"
         secondaryText="Render text and static images onto your output streams or pass them to other components for further processing."
-        image={imageTextRendering}
+        image={<FaImage className={styles.featureIcon} style={{ fontSize: 80 }} />}
       />
       <Feature
         text="Web rendering"
         inverted
         secondaryText="You can render any website and combine it with video streams or other elements using the Chromium browser embedded inside the compositor."
-        image={<FaChrome className="margin--lg" style={{ fontSize: 100 }} />}
+        image={<FaChrome className={styles.featureIcon} style={{ fontSize: 80 }} />}
       />
     </div>
   );
@@ -236,7 +233,7 @@ function IntegrationMembranePlugin() {
 function Integrations() {
   return (
     <div className="container margin-top--lg margin-bottom--md">
-      <Heading as="h2" className="margin-bottom--md">
+      <Heading as="h1" className="margin-bottom--md text--center text--primary">
         Integrations
       </Heading>
       <IntegrationMembranePlugin />
@@ -251,8 +248,11 @@ export default function Home(): JSX.Element {
       title={siteConfig.title}
       description="Tool for real-time video processing / transforming / composing">
       <HomepageHeader />
+      <div className={styles.sectionSeparator} />
       <ProsCards />
+      <div className={styles.sectionSeparator} />
       <Features />
+      <div className={styles.sectionSeparator} />
       <Integrations />
     </Layout>
   );
