@@ -10,6 +10,7 @@ import styles from './index.module.css';
 import { PropsWithChildren } from 'react';
 import { IconType } from 'react-icons';
 import MembraneLogo from '@site/static/img/membrane-logo.svg';
+import SwmLogo from '@site/static/img/swm-logo.svg';
 import WebGpuLogoDark from '@site/static/img/webgpu-dark.svg';
 import WebGpuLogoLight from '@site/static/img/webgpu-light.svg';
 import { useColorMode } from '@docusaurus/theme-common';
@@ -197,33 +198,40 @@ function Features() {
 
 function IntegrationMembranePlugin() {
   return (
-    <div className="row" style={{ alignItems: 'center' }}>
-      <MembraneLogo height={220} width={220} className="margin--lg" />
-      <div className="card col">
-        <div className="card__header">
-          <Heading as="h3" className="margin-top--sm">
-            Membrane plugin
-          </Heading>
-        </div>
-        <div className="card__body container">
-          <p>
-            Membrane is a developer-friendly multimedia framework for Elixir. You can easily add
-            video composing functionality into your multimedia pipeline using Membrane Live
-            Compositor Plugin.
-          </p>
-          <p>For more, see:</p>
-          <p>
-            <FaFile style={{ fontSize: 15, marginRight: 7 }} />
-            Documentation -{' '}
-            <Link href="docs/get-started/membrane">Get started with Membrane plugin</Link>
-          </p>
-          <p>
-            <FaGithub style={{ fontSize: 15, marginRight: 7 }} />
-            GitHub repository -{' '}
-            <Link href="https://github.com/membraneframework/membrane_live_compositor_plugin">
-              membraneframework/membrane_live_compositor_plugin
-            </Link>
-          </p>
+    <div className="row" style={{ justifyContent: 'center' }}>
+      <MembraneLogo
+        width={200}
+        height={200}
+        className="margin--lg"
+        style={{ alignSelf: 'center' }}
+      />
+      <div className="col">
+        <div className="card">
+          <div className="card__header">
+            <Heading as="h3" className="margin-top--sm">
+              Membrane plugin
+            </Heading>
+          </div>
+          <div className="card__body container">
+            <p>
+              Membrane is a developer-friendly multimedia framework for Elixir. You can easily add
+              video composing functionality into your multimedia pipeline using Membrane Live
+              Compositor Plugin.
+            </p>
+            <p>For more, see:</p>
+            <p>
+              <FaFile style={{ fontSize: 15, marginRight: 7 }} />
+              Documentation -{' '}
+              <Link href="docs/get-started/membrane">Get started with Membrane plugin</Link>
+            </p>
+            <p>
+              <FaGithub style={{ fontSize: 15, marginRight: 7 }} />
+              GitHub repository -{' '}
+              <Link href="https://github.com/membraneframework/membrane_live_compositor_plugin">
+                membraneframework/membrane_live_compositor_plugin
+              </Link>
+            </p>
+          </div>
         </div>
       </div>
     </div>
@@ -232,11 +240,52 @@ function IntegrationMembranePlugin() {
 
 function Integrations() {
   return (
-    <div className="container margin-top--lg margin-bottom--md">
+    <div className="container">
       <Heading as="h1" className="margin-bottom--md text--center text--primary">
         Integrations
       </Heading>
       <IntegrationMembranePlugin />
+    </div>
+  );
+}
+
+function ContactUs() {
+  return (
+    <div className="container margin-bottom--lg">
+      <div className="card container">
+        <div className="row" style={{ justifyContent: 'center' }}>
+          <SwmLogo width={220} className="margin--lg" style={{ alignSelf: 'center' }} />
+          <div className="col">
+            <div className="card__header">
+              <Heading as="h1">
+                <span className="text--primary">Contact</span> us
+              </Heading>
+            </div>
+            <div className="card__body">
+              <p className={styles.sectionSubheading}>
+                LiveCompositor is free and open-source. It's created by Software Mansion - a
+                software company that is specialized in building tools for developers. At Software
+                Mansion, we work on multiple multimedia projects, like Membrane Framework, Elixir
+                WebRTC, FishJam, and more. We also work on custom solutions for clients. Contact us
+                and create something together.
+              </p>
+              <div className="row" style={{ justifyContent: 'end' }}>
+                <Link
+                  className={clsx(
+                    'button',
+                    'button--primary',
+                    'button--lg',
+                    'margin--sm',
+                    styles.contactButton
+                  )}
+                  to="https://membrane.stream/contact">
+                  Contact us
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -254,6 +303,8 @@ export default function Home(): JSX.Element {
       <Features />
       <div className={styles.sectionSeparator} />
       <Integrations />
+      <div className={styles.sectionSeparator} />
+      <ContactUs />
     </Layout>
   );
 }
