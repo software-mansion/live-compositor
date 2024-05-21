@@ -53,11 +53,6 @@
   color: hsl(240 5% 34.9%);
 }
 
-.featureIcon {
-  margin: 20px;
-  margin-top: 10px;
-  margin-right: 30px;
-}
 
 @media screen and (max-width: 1200px) {
   .firstSection {
@@ -69,10 +64,20 @@
   }
 }
 
-@media screen and (max-width: 1000px) {
+.featureIcon {
+  margin: 20px;
+  margin-top: 10px;
+  margin-right: 30px;
+}
+
+@media screen and (max-width: 966px) {
   .featureIcon {
     visibility: hidden;
     position: absolute;
+  }
+
+  .contactButton {
+    flex: 1;
   }
 }
 
