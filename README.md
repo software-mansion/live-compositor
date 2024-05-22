@@ -1,5 +1,5 @@
 <h1 align="center">
-  <img src="assets/lc_logo_large.svg" alt="LiveCompositor">
+  <img src="assets/lc_logo_large.svg" width=600 alt="LiveCompositor">
 
   <a href="https://compositor.live/docs">Documentation</a> |
   <a href="">Discord</a>
@@ -7,9 +7,9 @@
 
 LiveCompositor is an open-source media server for real-time, low-latency, programmable video and audio mixing.
 
-LiveCompositor targets real-time use cases, with significant focus on situations where latency is critical. It is a great fit
+LiveCompositor targets real-time use cases, with a significant focus on situations where latency is critical. It is a great fit
 for any video conferencing, live-streaming, or broadcasting solutions where you need to operate in any way on an uncompressed video.
-However, you can also use it for non-real-time use cases, for example, apply some effect on a video from a MP4 file and write the output
+However, you can also use it for non-real-time use cases, for example, apply some effect on a video from an MP4 file and write the output
 to the new MP4.
 
 We don't have plans to introduce any major breaking changes in the API in the foreseeable future.
