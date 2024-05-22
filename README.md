@@ -1,70 +1,33 @@
-# LiveCompositor
+<h1 align="center">
+  <img src="assets/lc_logo_large.svg" width=600 alt="LiveCompositor">
 
-![LiveCompositor logo](./assets/lc_logo_large.svg)
+  <a href="https://compositor.live/docs">Documentation</a> |
+  <a href="https://discord.gg/Cxj3rzTTag">Discord</a>
+</h1>
 
-LiveCompositor is an open-source media server for real-time, low-latency, programmable video and audio mixing/composing.
+LiveCompositor is an open-source media server for real-time, low-latency, programmable video and audio mixing.
 
-LiveCompositor targets real-time use cases, like video conferencing, live-streaming, or broadcasting (e.g. with [WebRTC](https://en.wikipedia.org/wiki/WebRTC) / [HLS](https://en.wikipedia.org/wiki/HTTP_Live_Streaming) / [RTMP](https://en.wikipedia.org/wiki/Real-Time_Messaging_Protocol)), however [offline processing](https://compositor.live/docs/deployment/configuration#live_compositor_offline_processing_enable) is also available.
+LiveCompositor targets real-time use cases, with a significant focus on situations where latency is critical. It is a great fit
+for any video conferencing, live-streaming, or broadcasting solutions where you need to combine or modify video on the fly.
+However, you can also use it for non-real-time use cases, for example, apply some effect on a video from an MP4 file and write the output
+to the new MP4.
 
-<!-- TODO change offline processing url to offline processing guide -->
+We don't have plans to introduce any major breaking changes in the API in the foreseeable future.
 
-We don't have plans to introduce any major breaking changes in the API in the forseeable future.
+## Where to start?
 
-## Features
+Check out our [`Getting started`](https://compositor.live/docs/intro) section.
 
-LiveCompositor receives inputs and sends output streams via [RTP](https://en.wikipedia.org/wiki/Real-time_Transport_Protocol).
-HTTP API is used to define how inputs should be transformed and combined to produce desired outputs.
-
-High-level, web-style API, similar to HTML, can be used to layout and mix:
-
-- live RTP input streams
-- MP4s
-- images / GIFs
-- text
-- color backgrounds
-- websites (experimental, rendered with Chromium embedded in LiveCompositor, not recommended for high-performance/production usage)
-
-Dynamic output layout transitions are directly supported.
-For any custom effects, users can [register and use their own WGSL shaders](https://compositor.live/docs/concept/shaders).
-
-Input audio can be mixed directly in LiveCompositor, providing synchronization for video/audio outputs.
+LiveCompositor supports Linux and macOS and can be used in 2 ways:
+- Standalone media server - [`compositor.live/docs`](https://compositor.live/docs/intro).
+- Element in a Membrane Framework pipeline - [github.com/membraneframework/membrane_live_compositor_plugin](https://github.com/membraneframework/membrane_live_compositor_plugin).
 
 ## Demos
 
 https://github.com/membraneframework/live_compositor/assets/104033489/e6f5ba7c-ab05-4935-a42a-bc28c42fc895
 
-TypeScript demos presenting what you can do with LiveCompositor are available in the `demos` directory.
-
-## Examples
-
-Examples source code showcasing single API components usage are available in the `examples` directory.
-
-Running examples requires:
-
-- [Rust](https://www.rust-lang.org/tools/install)
-- [FFmpeg 6.0](https://ffmpeg.org/download.html)
-
-For better performance, build examples with the [release compilation profile](https://doc.rust-lang.org/book/ch14-01-release-profiles.html):
-
-```console
-cargo run --release --example <example_name>
-```
-
-## Guides
-
-Step-by-step introduction guides are available on the [LiveCompositor website](https://compositor.live/docs/guides).
-
-## Supported platforms
-
-Linux and macOS.
-
-## Current development
-
-Currently, we are working on:
-
-- hardware decoding/encoding implementation for Vulcan (for better performance)
-- guides/documentation/deployment improvements
-- supporting more features, like corners-rounding
+This is just a sample of effects that you can achieve with LiveCompositor. It is a compilation of a few demo projects
+written in TypeScript that you can find in [`demos`](./demos) directory.
 
 ## Copyright
 
