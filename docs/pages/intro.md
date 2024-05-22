@@ -16,7 +16,7 @@ To get started check out our [`Guides`](./category/guides) section that will wal
 - [`Deliver input streams`](./guides/deliver-input.md) explains and shows examples of streaming multimedia to the LiveCompositor and use them for mixing/composition.
 - [`Receive output streams`](./guides/receive-output.md) explains and shows examples of receiving streams with results of mixing/composition from the LiveCompositor
 
-The main concept and basic abstractions that the LiveCompositor operates on are described in the [`Concepts`](/docs/category/concepts) section.
+The main concept and basic abstractions that the LiveCompositor operates on are described in the [`Concepts`](./concept/overview.md) section.
 
 ## How to use it?
 
