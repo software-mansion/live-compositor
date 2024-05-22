@@ -28,7 +28,8 @@ You can use LiveCompositor as a standalone multimedia server. The server can be 
 - Building [`github.com/membraneframework/live_compositor`](https://github.com/membraneframework/live_compositor) from source.
 - Using binaries from [GitHub releases](https://github.com/membraneframework/live_compositor/releases).
 - Using Docker
-  - (recommended) Dockerfile with compositor without Whttps://github.com/membraneframework/live_compositor/blob/master/build_tools/docker/slim.Dockerfile
+  - (recommended) Dockerfile with compositor without web rendering support [https://github.com/membraneframework/live_compositor/blob/master/build_tools/docker/slim.Dockerfile](https://github.com/membraneframework/live_compositor/blob/master/build_tools/docker/slim.Dockerfile)
+  - Dockerfile with compositor with web rendering support [https://github.com/membraneframework/live_compositor/blob/master/build_tools/docker/full.Dockerfile](https://github.com/membraneframework/live_compositor/blob/master/build_tools/docker/full.Dockerfile)
 
 ### Membrane Framework plugin
 
