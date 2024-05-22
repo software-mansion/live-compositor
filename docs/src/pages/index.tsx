@@ -1,5 +1,14 @@
 import clsx from 'clsx';
-import { FaChrome, FaCode, FaFile, FaGithub, FaImage, FaLink, FaMicrochip } from 'react-icons/fa6';
+import {
+  FaBook,
+  FaChrome,
+  FaCode,
+  FaFile,
+  FaGithub,
+  FaImage,
+  FaLink,
+  FaMicrochip,
+} from 'react-icons/fa6';
 import { MdLiveTv } from 'react-icons/md';
 import Link from '@docusaurus/Link';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
@@ -21,6 +30,7 @@ function HomepageHeader() {
     <div className={clsx('container', styles.firstSection)}>
       <div className="row">
         <div className="col col--6">
+          <div className={styles.shadow}></div>
           <div className="container">
             <Heading as="h1" style={{ fontSize: 55 }}>
               <span className="text--primary">Mix video and audio</span>
@@ -29,7 +39,7 @@ function HomepageHeader() {
                   strings: ['in real-time.', 'using code.', 'with low-latency.'],
                   autoStart: true,
                   loop: true,
-                  deleteSpeed: 60,
+                  deleteSpeed: 30,
                   delay: 80,
                 }}
               />
@@ -40,13 +50,21 @@ function HomepageHeader() {
             </p>
             <div className="row margin-bottom--md">
               <Link
-                className="button button--primary button--lg col col-6 margin--sm"
+                className={clsx(
+                  'button button--primary button--lg col col-6 margin--sm',
+                  styles.hoverPrimary
+                )}
                 to="/docs/intro">
+                <FaBook style={{ marginRight: 3 }} />
                 Docs
               </Link>
               <Link
-                className="button button--secondary button--outline button--lg col col-6 margin--sm"
+                className={clsx(
+                  'button button--secondary button--outline button--lg col col-6 margin--sm',
+                  styles.hoverSecondary
+                )}
                 to="https://github.com/membraneframework/live_compositor">
+                <FaGithub style={{ marginRight: 5 }} />
                 View on GitHub
               </Link>
             </div>
@@ -114,7 +132,7 @@ type ProsCardProps = {
 function ProsCard(props: PropsWithChildren<ProsCardProps>) {
   const Icon = props.icon;
   return (
-    <div className={clsx('card', styles.card)}>
+    <div className={clsx('card', styles.card, styles.hoverPrimary)}>
       <div style={{ display: 'flex', justifyContent: 'center' }}>
         <Icon className={styles.icon} />
       </div>
@@ -279,7 +297,8 @@ function ContactUs() {
                     'button--primary',
                     'button--lg',
                     'margin--sm',
-                    styles.contactButton
+                    styles.contactButton,
+                    styles.hoverPrimary
                   )}
                   to="https://membrane.stream/contact">
                   Contact us
