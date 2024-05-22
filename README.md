@@ -8,7 +8,7 @@
 LiveCompositor is an open-source media server for real-time, low-latency, programmable video and audio mixing.
 
 LiveCompositor targets real-time use cases, with a significant focus on situations where latency is critical. It is a great fit
-for any video conferencing, live-streaming, or broadcasting solutions where you need to operate in any way on an uncompressed video.
+for any video conferencing, live-streaming, or broadcasting solutions where you need to combine or modify video on the fly.
 However, you can also use it for non-real-time use cases, for example, apply some effect on a video from an MP4 file and write the output
 to the new MP4.
 
@@ -31,6 +31,6 @@ written in TypeScript that you can find in [`demos`](./demos) directory.
 
 ## Copyright
 
-Copyright 2024, [Software Mansion](https://swmansion.com/?utm_source=git&utm_medium=readme&utm_campaign=live_compositor)
+Copyright 2023, [Software Mansion](https://swmansion.com/?utm_source=git&utm_medium=readme&utm_campaign=live_compositor)
 
 [![Software Mansion](https://logo.swmansion.com/logo?color=white&variant=desktop&width=200&tag=membrane-github)](https://swmansion.com/?utm_source=git&utm_medium=readme&utm_campaign=live_compositor)
