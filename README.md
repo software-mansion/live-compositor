@@ -1,7 +1,7 @@
 <h1 align="center">
   <img src="assets/lc_logo_large.svg" width=600 alt="LiveCompositor">
 
-  <a href="https://compositor.live/docs">Documentation</a> |
+  <a href="https://compositor.live/docs/intro">Documentation</a> |
   <a href="https://discord.gg/Cxj3rzTTag">Discord</a>
 </h1>
 
