@@ -2,7 +2,7 @@
   <img src="assets/lc_logo_large.svg" width=600 alt="LiveCompositor">
 
   <a href="https://compositor.live/docs">Documentation</a> |
-  <a href="">Discord</a>
+  <a href="https://discord.gg/Cxj3rzTTag">Discord</a>
 </h1>
 
 LiveCompositor is an open-source media server for real-time, low-latency, programmable video and audio mixing.
@@ -16,10 +16,10 @@ We don't have plans to introduce any major breaking changes in the API in the fo
 
 ## Where to start?
 
-Check out our [`Getting started`](https:://compositor.live/docs/intro) section.
+Check out our [`Getting started`](https://compositor.live/docs/intro) section.
 
 LiveCompositor supports Linux and macOS and can be used in 2 ways:
-- Standalone media server - [`compositor.live/docs`](https:://compositor.live/docs/intro).
+- Standalone media server - [`compositor.live/docs`](https://compositor.live/docs/intro).
 - Element in a Membrane Framework pipeline - [github.com/membraneframework/membrane_live_compositor_plugin](https://github.com/membraneframework/membrane_live_compositor_plugin).
 
 ## Demos

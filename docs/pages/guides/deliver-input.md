@@ -10,7 +10,7 @@ Our RTP implementation supports the following codecs:
 - H264 for video
 - AAC and Opus for audio (AAC is not supported via the Membrane Framework plugin)
 
-To deliver input from any other format you can use tools like FFmpeg, GStreamer or Membrane Framework to convert between RTP end desired format.
+To deliver input from any other format you can use tools like FFmpeg, GStreamer or Membrane Framework to convert between RTP end the desired format.
 
 ### RTP over TCP vs UDP
 
