@@ -8,9 +8,9 @@
     "typecheck": "tsc --noEmit",
     "watch": "tsc --noEmit --watch",
     "ts": "ts-node --transpile-only",
-    "1-videoconferencing": "npm run ts ./01-videoconferencing/index.ts",
-    "2-tv_broadcast": "npm run ts ./02-tv_broadcast/index.ts",
-    "3-live_stream": "npm run ts ./03-live_stream/index.ts",
+    "1-videoconferencing": "npm run ts ./1-videoconferencing/index.ts",
+    "2-tv_broadcast": "npm run ts ./2-tv_broadcast/index.ts",
+    "3-live_stream": "npm run ts ./3-live_stream/index.ts",
     "generate-types": "ts-node ./utils/generate_types.ts"
   },
   "repository": {
