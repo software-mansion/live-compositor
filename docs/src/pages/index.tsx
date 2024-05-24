@@ -81,7 +81,7 @@ function HomepageHeader() {
               autoPlay
               muted
               src="https://github.com/membraneframework/live_compositor/assets/104033489/e6f5ba7c-ab05-4935-a42a-bc28c42fc895"
-              poster="/img/demo_poster.png"
+              poster="/img/demo_poster.jpg"
               style={{ width: '100%', display: 'block' }}
             />
           </div>
