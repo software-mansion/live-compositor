@@ -4,7 +4,7 @@
 
 LiveCompositor receives inputs and sends output streams via [RTP](https://en.wikipedia.org/wiki/Real-time_Transport_Protocol).
 Additionally, you can also use MP4 files directly as an input. To deliver/receive any other formats you can use tools like
-FFmpeg, GStreamer, or Membrane Framework to convert between RTP end the desired format.
+FFmpeg, GStreamer, or Membrane Framework to convert between RTP and the desired format.
 
 ## Video composition
 
