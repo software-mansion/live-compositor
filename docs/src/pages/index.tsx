@@ -22,6 +22,9 @@ import MembraneLogo from '@site/static/img/membrane-logo.svg';
 import SwmLogo from '@site/static/img/swm-logo.svg';
 import WebGpuLogoDark from '@site/static/img/webgpu-dark.svg';
 import WebGpuLogoLight from '@site/static/img/webgpu-light.svg';
+import VideoConferencingImg from '@site/static/img/videoconferencing.jpg';
+import StreamingImg from '@site/static/img/streaming.jpg';
+import BroadcastingImg from '@site/static/img/broadcasting.jpg';
 import { useColorMode } from '@docusaurus/theme-common';
 import TypewriterComponent from 'typewriter-effect';
 
@@ -91,6 +94,25 @@ function HomepageHeader() {
   );
 }
 
+function UseCases() {
+  return (
+    <div className="container margin-top--md">
+      <Heading as="h1" className="margin-bottom--md text--center text--primary">
+        Applications
+      </Heading>
+      <p className={clsx('text--center', styles.sectionSubheading)}>
+        Use LiveCompositor for video conferencing, live-streaming, broadcasting, and more.
+        <br />
+      </p>
+      <div className="row">
+        <UseCaseCard title="Video conferencing" img={VideoConferencingImg} />
+        <UseCaseCard title="Live-streaming" img={StreamingImg} />
+        <UseCaseCard title="Broadcasting" img={BroadcastingImg} />
+      </div>
+    </div>
+  );
+}
+
 function ProsCards() {
   return (
     <div className="container margin-top--md">
@@ -119,6 +141,26 @@ function ProsCards() {
             WebGPU standard.
           </p>
         </ProsCard>
+      </div>
+    </div>
+  );
+}
+
+type UseCaseCardProps = {
+  title: string;
+  img: any;
+};
+
+function UseCaseCard(props: UseCaseCardProps) {
+  return (
+    <div className={clsx('card', styles.card, styles.hoverPrimary)}>
+      <div className="text--primary">
+        <Heading as="h2" style={{ textAlign: 'center' }}>
+          {props.title}
+        </Heading>
+      </div>
+      <div className="card__body">
+        <img src={props.img} alt={props.title} />
       </div>
     </div>
   );
@@ -319,6 +361,8 @@ export default function Home(): JSX.Element {
       title={siteConfig.title}
       description="Tool for real-time video processing / transforming / composing">
       <HomepageHeader />
+      <div className={styles.sectionSeparator} />
+      <UseCases />
       <div className={styles.sectionSeparator} />
       <ProsCards />
       <div className={styles.sectionSeparator} />

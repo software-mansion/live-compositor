@@ -21,6 +21,12 @@
   text-align: center;
 }
 
+.card img {
+  width: 90%;
+  max-width: 400px;
+  border-radius: 10px;
+}
+
 @media screen and (max-width: 1200px) {
   .card {
     width: 100%;
