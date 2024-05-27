@@ -261,7 +261,7 @@ Wrap an [`InputStream`](../api/components/InputStream.md) component with a [`Res
           "background_color_rgba": "#4d4d4dff",
           "children": [
             {
-              "type": "rescaler".
+              "type": "rescaler",
               "child": { "type": "input_stream", "input_id": "input_1" },
             }
           ]
@@ -322,11 +322,11 @@ Add another [`InputStream`](../api/components/InputStream.md) wrapped with [`Res
           "background_color_rgba": "#4d4d4dff",
           "children": [
             {
-              "type": "rescaler".
+              "type": "rescaler",
               "child": { "type": "input_stream", "input_id": "input_1" },
             },
             {
-              "type": "rescaler".
+              "type": "rescaler",
               "child": { "type": "input_stream", "input_id": "input_2" },
             }
           ]
@@ -390,11 +390,11 @@ Specify `width` and `height` of one of the `Rescaler` components and position it
           "background_color_rgba": "#4d4d4dff",
           "children": [
             {
-              "type": "rescaler".
+              "type": "rescaler",
               "child": { "type": "input_stream", "input_id": "input_1" },
             },
             {
-              "type": "rescaler".
+              "type": "rescaler",
               "width": 320,
               "height": 180,
               "top": 20,
