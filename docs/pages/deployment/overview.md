@@ -2,6 +2,15 @@
 
 LiveCompositor can be deployed in various ways, depending on your platform, used features and whether it is used standalone or via Membrane Framework plugin.
 
+You can consider following options for LiveCompositor deployment:
+- Using docker
+  - (recommended) Dockerfile with compositor without web rendering support [https://github.com/membraneframework/live_compositor/blob/master/build_tools/docker/slim.Dockerfile](https://github.com/membraneframework/live_compositor/blob/master/build_tools/docker/slim.Dockerfile)
+  - Dockerfile with compositor with web rendering support [https://github.com/membraneframework/live_compositor/blob/master/build_tools/docker/full.Dockerfile](https://github.com/membraneframework/live_compositor/blob/master/build_tools/docker/full.Dockerfile)
+- Standalone binaries
+  - Building [`github.com/membraneframework/live_compositor`](https://github.com/membraneframework/live_compositor) from source.
+  - Binaries from [GitHub releases](https://github.com/membraneframework/live_compositor/releases).
+- As an element in a Membrane pipeline. [Learn more.](#membrane-framework-plugin)
+
 ## Requirements
 
 See [`requirements`](./requirements.md) page for details about software and hardware requirements of the compositor in various configurations.
