@@ -151,3 +151,19 @@
   transform: scale(1.03);
   box-shadow: 0 0 20px var(--ifm-color-secondary);
 }
+
+.sceneExample {
+  font-size: 1.1rem;
+}
+
+@media screen and (max-width: 1400px) {
+  .sceneExample {
+    font-size: 0.8rem;
+  }
+}
+
+@media screen and (max-width: 600px) {
+  .sceneExample {
+    font-size: 0.6rem;
+  }
+}

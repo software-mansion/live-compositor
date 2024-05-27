@@ -1,14 +1,15 @@
 import clsx from 'clsx';
 import {
   FaBook,
-  FaChrome,
   FaCode,
+  FaDocker,
   FaFile,
   FaGithub,
-  FaImage,
   FaLink,
-  FaMicrochip,
+  FaPuzzlePiece,
+  FaRust,
 } from 'react-icons/fa6';
+import { GiFeather } from "react-icons/gi";
 import { MdLiveTv } from 'react-icons/md';
 import Link from '@docusaurus/Link';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
@@ -20,6 +21,7 @@ import { PropsWithChildren } from 'react';
 import { IconType } from 'react-icons';
 import MembraneLogo from '@site/static/img/membrane-logo.svg';
 import SwmLogo from '@site/static/img/swm-logo.svg';
+import ComposingImg from '@site/static/img/how_it_works.png';
 import WebGpuLogoDark from '@site/static/img/webgpu-dark.svg';
 import WebGpuLogoLight from '@site/static/img/webgpu-light.svg';
 import VideoConferencingImg from '@site/static/img/videoconferencing.jpg';
@@ -27,6 +29,7 @@ import StreamingImg from '@site/static/img/streaming.jpg';
 import BroadcastingImg from '@site/static/img/broadcasting.jpg';
 import { useColorMode } from '@docusaurus/theme-common';
 import TypewriterComponent from 'typewriter-effect';
+import ExampleScene from './example_scene';
 
 function HomepageHeader() {
   return (
@@ -94,6 +97,29 @@ function HomepageHeader() {
   );
 }
 
+function HowItWorks() {
+  return (
+    <div className="container margin-top--md">
+      <Heading as="h1" className="margin-bottom--md text--center text--primary">
+        How it works?
+      </Heading>
+      <p className={clsx('text--center', styles.sectionSubheading)}>
+        Send inputs as RTP streams or MP4 files. Configure mixing with HTTP requests. Get the mixed
+        streams as RTP.
+        <br />
+      </p>
+      <div className="row">
+        <div className="col col--6">
+          <img src={ComposingImg} alt="Composing" />
+        </div>
+        <div className={clsx('col col--6', styles.sceneExample)}>
+          <ExampleScene />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function UseCases() {
   return (
     <div className="container margin-top--md">
@@ -105,42 +131,17 @@ function UseCases() {
         <br />
       </p>
       <div className="row">
-        <UseCaseCard title="Video conferencing" img={VideoConferencingImg} />
-        <UseCaseCard title="Live-streaming" img={StreamingImg} />
-        <UseCaseCard title="Broadcasting" img={BroadcastingImg} />
-      </div>
-    </div>
-  );
-}
-
-function ProsCards() {
-  return (
-    <div className="container margin-top--md">
-      <Heading as="h1" className="margin-bottom--md text--center text--primary">
-        Vision
-      </Heading>
-      <p className={clsx('text--center', styles.sectionSubheading)}>
-        Make mixing live streams as simple as building a website.
-      </p>
-      <div className="row">
-        <ProsCard title="Simple Declarative API" icon={FaCode}>
-          <p className="padding--md">
-            Simple Web-like component tree. Easy to pick up for anyone familiar with web
-            development.
-          </p>
-        </ProsCard>
-        <ProsCard title="Language agnostic" icon={FaLink}>
-          <p className="padding--md">
-            You can leverage tech stack of your choice and easily integrate it with your own
-            solutions.
-          </p>
-        </ProsCard>
-        <ProsCard title="Hardware accelerated" icon={FaMicrochip}>
-          <p className="padding--md">
-            Rendering is GPU accelerated using wgpu library, which implements API based on the
-            WebGPU standard.
-          </p>
-        </ProsCard>
+        <UseCaseCard
+          title="Video conferencing"
+          subtitle="Stream or record video conferences"
+          img={VideoConferencingImg}
+        />
+        <UseCaseCard title="Broadcasting" subtitle="Compose broadcasts" img={BroadcastingImg} />
+        <UseCaseCard
+          title="Live-streaming"
+          subtitle="Create awesome live-streams"
+          img={StreamingImg}
+        />
       </div>
     </div>
   );
@@ -148,6 +149,7 @@ function ProsCards() {
 
 type UseCaseCardProps = {
   title: string;
+  subtitle: string;
   img: any;
 };
 
@@ -166,12 +168,45 @@ function UseCaseCard(props: UseCaseCardProps) {
   );
 }
 
-type ProsCardProps = {
+function ProsCards() {
+  return (
+    <div className="container margin-top--md">
+      <Heading as="h1" className="margin-bottom--md text--center text--primary">
+        Vision
+      </Heading>
+      <p className={clsx('text--center', styles.sectionSubheading)}>
+        Make mixing live streams as simple as building a website.
+      </p>
+      <div className="row">
+        <VisionCard title="Simple declarative API" icon={FaCode}>
+          <p className="padding--md">
+            Mixing is specified using simple component tree, easy to pick up for anyone familiar
+            with web development.
+          </p>
+        </VisionCard>
+        <VisionCard title="Easy integration" icon={FaLink}>
+          <p className="padding--md">
+            API is language agnostic. You can leverage tech stack of your choice and easily
+            integrate it with your own solutions.
+          </p>
+        </VisionCard>
+        <VisionCard title="Real-time performance" icon={FaRust}>
+          <p className="padding--md">
+            LiveCompositor focus on real-time processing and low-latency. It's implemented in Rust
+            and use WebGPU for rendering.
+          </p>
+        </VisionCard>
+      </div>
+    </div>
+  );
+}
+
+type VisionCardProps = {
   title: string;
   icon: IconType;
 };
 
-function ProsCard(props: PropsWithChildren<ProsCardProps>) {
+function VisionCard(props: PropsWithChildren<VisionCardProps>) {
   const Icon = props.icon;
   return (
     <div className={clsx('card', styles.card, styles.hoverPrimary)}>
@@ -192,10 +227,9 @@ type FeatureProps = {
   text: string;
   secondaryText?: string;
   image: any;
-  inverted?: boolean;
 };
 
-function Feature(props: FeatureProps) {
+function Feature(props: PropsWithChildren<FeatureProps>) {
   const text = (
     <div className="col">
       <Heading as="h2" className="margin-top--sm">
@@ -207,7 +241,10 @@ function Feature(props: FeatureProps) {
   return (
     <div className="row margin-right--lg margin-left--lg" style={{ alignItems: 'center' }}>
       {props.image}
-      {text}
+      <div className="col">
+        {text}
+        {props.children}
+      </div>
     </div>
   );
 }
@@ -225,33 +262,46 @@ function Features() {
   return (
     <div className="container margin-top--lg margin-bottom--md">
       <Heading as="h1" className="margin-bottom--md text--center text--primary">
-        Features
+        Capabilities
       </Heading>
       <p className={clsx('text--center', styles.sectionSubheading)}>
         Simple, powerful, fast. Pick three.
       </p>
 
       <Feature
-        text="WebGPU APIs"
-        secondaryText="Utilize existing WebGPU-based components or craft your own WGSL shader to achieve any desired effect and directly leverage GPU parallel processing capabilities."
+        text="Built-in components"
+        secondaryText="Use built-in components to process streams, render text, images, GIFs or websites, and combine them into output streams."
+        image={<FaPuzzlePiece className={styles.featureIcon} style={{ fontSize: 80 }} />}
+      />
+
+      <Feature
+        text="Highly customizable"
+        secondaryText="To create custom effects you can write own WGSL shaders and directly leverage GPU parallel processing capabilities."
         image={wgpuLogo}
       />
+
+      <Feature
+        text="Smooth transitions"
+        secondaryText="Smoothly transition layouts with animations using built in transition mechanism."
+        image={<GiFeather className={styles.featureIcon} style={{ fontSize: 80 }} />}
+      />
+
       <Feature
         text="Real-time processing"
         secondaryText="Process live video streams in real-time with low latency. Blazingly fast processing makes video conferencing, live-streaming, and broadcasting an everyday bread and butter for Live Compositor."
         image={<MdLiveTv className={styles.featureIcon} style={{ fontSize: 80 }} />}
-        inverted
       />
+
       <Feature
-        text="Static content"
-        secondaryText="Render text and static images onto your output streams or pass them to other components for further processing."
-        image={<FaImage className={styles.featureIcon} style={{ fontSize: 80 }} />}
+        text="Easy deployment"
+        secondaryText="Docker images, nix configs, and guides are made to make deployment as easy as possible."
+        image={<FaDocker className={styles.featureIcon} style={{ fontSize: 80 }} />}
       />
+
       <Feature
-        text="Web rendering"
-        inverted
-        secondaryText="You can render any website and combine it with video streams or other elements using the Chromium browser embedded inside the compositor."
-        image={<FaChrome className={styles.featureIcon} style={{ fontSize: 80 }} />}
+        text="Membrane plugin"
+        secondaryText="Membrane is a developer-friendly multimedia framework for Elixir. You can easily add video composing functionality into your multimedia pipeline using Membrane LiveCompositor Plugin."
+        image={<MembraneLogo className={styles.featureIcon} width={80} height={80} />}
       />
     </div>
   );
@@ -361,6 +411,8 @@ export default function Home(): JSX.Element {
       title={siteConfig.title}
       description="Tool for real-time video processing / transforming / composing">
       <HomepageHeader />
+      <div className={styles.sectionSeparator} />
+      <HowItWorks />
       <div className={styles.sectionSeparator} />
       <UseCases />
       <div className={styles.sectionSeparator} />
