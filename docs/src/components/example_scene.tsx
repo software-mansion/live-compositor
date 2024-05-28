@@ -7,16 +7,13 @@ export default function ExampleScene() {
   "type": "view",
   "children": [
     {
-      "type": "rescaler",
-      "child": {
-        "type": "shader",
-        "shader_id": "remove_green_screen",
-        "resolution": { "width": 1920, "height": 1080 },
-        "children": [
-            { "type": "input_stream", "input_id": "tv" },
-            { "type": "image", "image_id": "background" }
-        ]
-      }
+      "type": "shader",
+      "shader_id": "remove_green_screen",
+      "resolution": { "width": 1920, "height": 1080 },
+      "children": [
+          { "type": "input_stream", "input_id": "tv" },
+          { "type": "image", "image_id": "background" }
+      ]
     },
     {
       "type": "rescaler",
@@ -28,12 +25,14 @@ export default function ExampleScene() {
     },
     {
       "type": "view",
-      "left": 0, "bottom": 0, "height": 150,
+      "height": 150,
+      "left": 0, "bottom": 0, 
       "background_color_rgba": "#FF0000FF",
       "children": [{
         "type": "text", 
         "text": "LiveCompositor 😃😍",
-        "font_size": 100, "weight": "bold",
+        "font_size": 100,
+        "weight": "bold",
         "color_rgba": "#675BF1FF",
       }]
     }

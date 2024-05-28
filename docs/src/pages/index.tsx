@@ -2,15 +2,16 @@ import clsx from 'clsx';
 import {
   FaBook,
   FaCode,
-  FaDocker,
   FaFile,
+  FaGears,
   FaGithub,
   FaLink,
-  FaPuzzlePiece,
   FaRust,
 } from 'react-icons/fa6';
-import { GiFeather } from 'react-icons/gi';
+import { GiFeather, GiBattery100 } from 'react-icons/gi';
+import { IoCloudOffline } from 'react-icons/io5';
 import { MdLiveTv } from 'react-icons/md';
+import { TiBatteryFull } from "react-icons/ti";
 import Link from '@docusaurus/Link';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import Layout from '@theme/Layout';
@@ -106,9 +107,11 @@ function HowItWorks() {
         How it works?
       </Heading>
       <p className={clsx('text--center', styles.sectionSubheading)}>
-        Send inputs as RTP streams or MP4 files. Configure mixing with HTTP requests. Get the mixed
-        streams as RTP.
+        1. Send inputs as RTP streams or MP4 files
         <br />
+        2. Configure mixing with HTTP requests
+        <br />
+        3. Get the mixed streams via RTP
       </p>
       <div className="row">
         <div className="col col--6">
@@ -194,10 +197,9 @@ function VisionCards() {
             integrate it with your own solutions.
           </p>
         </VisionCard>
-        <VisionCard title="Real-time performance" icon={FaRust}>
+        <VisionCard title="Real-time and low latency" icon={FaRust}>
           <p className="padding--md">
-            LiveCompositor focus on real-time processing and low latency. It's implemented in Rust
-            and use WebGPU for rendering.
+            LiveCompositor is leveraging the power and performance of WebGPU API and Rust.
           </p>
         </VisionCard>
       </div>
@@ -273,33 +275,39 @@ function Features() {
       </p>
 
       <Feature
-        text="Built-in components"
-        secondaryText="Use built-in components to process streams, render text, images, GIFs or websites, and combine them into output streams."
-        image={<FaPuzzlePiece className={styles.featureIcon} style={{ fontSize: 80 }} />}
+        text="Batteries included"
+        secondaryText="Process streams, render text, images, GIFs or websites, and combine them into output streams without writing low-level code."
+        image={<GiBattery100 className={styles.featureIcon} style={{ fontSize: 80 }} />}
       />
 
       <Feature
         text="Highly customizable"
         secondaryText="Create custom effects with WGSL shaders and directly leverage GPU parallel processing capabilities."
+        image={<FaGears className={styles.featureIcon} style={{ fontSize: 80 }} />}
+      />
+
+      <Feature
+        text="WebGPU rendering"
+        secondaryText="Rendering is hardware accelerated using wgpu, a Rust library implementing WebGPU standard. It's fast, modern, and cross-platform."
         image={wgpuLogo}
       />
 
       <Feature
-        text="Smooth transitions"
-        secondaryText="Smoothly transition layouts with animations using built-in transition mechanism."
+        text="Animated transitions"
+        secondaryText="Dynamically change the composition with customizable animated transitions."
         image={<GiFeather className={styles.featureIcon} style={{ fontSize: 80 }} />}
       />
 
       <Feature
         text="Real-time processing"
-        secondaryText="Process live video streams in real-time with low latency. Blazingly fast processing makes video conferencing, live-streaming, and broadcasting an everyday bread and butter for Live Compositor."
+        secondaryText="Process live streams in real-time with low latency."
         image={<MdLiveTv className={styles.featureIcon} style={{ fontSize: 80 }} />}
       />
 
       <Feature
-        text="Easy deployment"
-        secondaryText="Docker images, nix configs, and guides are made to make deployment as easy as possible."
-        image={<FaDocker className={styles.featureIcon} style={{ fontSize: 80 }} />}
+        text="Offline processing"
+        secondaryText="You can also use LiveCompositor for non-real-time use cases, like mixing MP4 files."
+        image={<IoCloudOffline className={styles.featureIcon} style={{ fontSize: 80 }} />}
       />
     </div>
   );
