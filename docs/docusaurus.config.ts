@@ -69,7 +69,6 @@ const config: Config = {
         alt: 'logo',
         src: 'img/logo.svg',
         srcDark: 'img/logo-dark.svg',
-        className: 'navbar-logo',
       },
       items: [
         {
