@@ -43,7 +43,7 @@ function HomepageHeader() {
               <div className={styles.typewriter}>
                 <TypewriterComponent
                   options={{
-                    strings: ['in real-time.', 'using code.', 'with low-latency.'],
+                    strings: ['in real-time.', 'using code.', 'with low latency.'],
                     autoStart: true,
                     loop: true,
                     deleteSpeed: 30,
@@ -196,7 +196,7 @@ function VisionCards() {
         </VisionCard>
         <VisionCard title="Real-time performance" icon={FaRust}>
           <p className="padding--md">
-            LiveCompositor focus on real-time processing and low-latency. It's implemented in Rust
+            LiveCompositor focus on real-time processing and low latency. It's implemented in Rust
             and use WebGPU for rendering.
           </p>
         </VisionCard>
