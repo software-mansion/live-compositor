@@ -14,7 +14,7 @@ export default function ExampleScene() {
         "resolution": { "width": 1920, "height": 1080 },
         "children": [
             { "type": "input_stream", "input_id": "tv" },
-            { "type": "input_stream", "input_id": "bg" }
+            { "type": "image", "image_id": "background" }
         ]
       }
     },
