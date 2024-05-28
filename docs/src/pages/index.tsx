@@ -29,7 +29,7 @@ import StreamingImg from '@site/static/img/streaming.jpg';
 import BroadcastingImg from '@site/static/img/broadcasting.jpg';
 import { useColorMode } from '@docusaurus/theme-common';
 import TypewriterComponent from 'typewriter-effect';
-import ExampleScene from './example_scene';
+import ExampleScene from '../components/example_scene';
 
 function HomepageHeader() {
   return (
@@ -53,7 +53,7 @@ function HomepageHeader() {
               </div>
             </Heading>
             <p className={styles.sectionSubheading}>
-              Open-source media server for real-time, low-latency, programmable video and audio
+              Open-source media server for real-time, low latency, programmable video and audio
               mixing.
             </p>
             <div className="row margin-bottom--md">
