@@ -153,17 +153,5 @@
 }
 
 .sceneExample {
-  font-size: 1.1rem;
-}
-
-@media screen and (max-width: 1400px) {
-  .sceneExample {
-    font-size: 0.8rem;
-  }
-}
-
-@media screen and (max-width: 600px) {
-  .sceneExample {
-    font-size: 0.6rem;
-  }
+  font-size: 100%;
 }

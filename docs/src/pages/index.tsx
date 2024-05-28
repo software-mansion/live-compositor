@@ -9,7 +9,7 @@ import {
   FaPuzzlePiece,
   FaRust,
 } from 'react-icons/fa6';
-import { GiFeather } from "react-icons/gi";
+import { GiFeather } from 'react-icons/gi';
 import { MdLiveTv } from 'react-icons/md';
 import Link from '@docusaurus/Link';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
@@ -282,7 +282,7 @@ function Features() {
 
       <Feature
         text="Smooth transitions"
-        secondaryText="Smoothly transition layouts with animations using built in transition mechanism."
+        secondaryText="Smoothly transition layouts with animations using built-in transition mechanism."
         image={<GiFeather className={styles.featureIcon} style={{ fontSize: 80 }} />}
       />
 
