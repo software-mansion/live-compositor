@@ -1,13 +1,5 @@
 import clsx from 'clsx';
-import {
-  FaBook,
-  FaCode,
-  FaFile,
-  FaGears,
-  FaGithub,
-  FaLink,
-  FaRust,
-} from 'react-icons/fa6';
+import { FaBook, FaCode, FaFile, FaGears, FaGithub, FaLink, FaRust } from 'react-icons/fa6';
 import { GiFeather, GiBattery100 } from 'react-icons/gi';
 import { IoCloudOffline } from 'react-icons/io5';
 import { MdLiveTv } from 'react-icons/md';
