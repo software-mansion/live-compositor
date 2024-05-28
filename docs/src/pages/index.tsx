@@ -11,7 +11,6 @@ import {
 import { GiFeather, GiBattery100 } from 'react-icons/gi';
 import { IoCloudOffline } from 'react-icons/io5';
 import { MdLiveTv } from 'react-icons/md';
-import { TiBatteryFull } from "react-icons/ti";
 import Link from '@docusaurus/Link';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import Layout from '@theme/Layout';
@@ -125,23 +124,23 @@ function HowItWorks() {
   );
 }
 
-function Applications() {
+function UseCases() {
   return (
     <div className="container margin-top--md">
       <Heading as="h1" className="margin-bottom--md text--center text--primary">
-        Applications
+        Use cases
       </Heading>
       <p className={clsx('text--center', styles.sectionSubheading)}>
         Use LiveCompositor for video conferencing, live-streaming, broadcasting, and more.
       </p>
       <div className="row">
-        <ApplicationCard
+        <UseCaseCard
           title="Video conferencing"
           subtitle="Stream or record video conferences"
           img={VideoConferencingImg}
         />
-        <ApplicationCard title="Broadcasting" subtitle="Compose broadcasts" img={BroadcastingImg} />
-        <ApplicationCard
+        <UseCaseCard title="Broadcasting" subtitle="Compose broadcasts" img={BroadcastingImg} />
+        <UseCaseCard
           title="Live-streaming"
           subtitle="Create awesome live-streams"
           img={StreamingImg}
@@ -151,13 +150,13 @@ function Applications() {
   );
 }
 
-type ApplicationCardProps = {
+type UseCaseCardProps = {
   title: string;
   subtitle: string;
   img: any;
 };
 
-function ApplicationCard(props: ApplicationCardProps) {
+function UseCaseCard(props: UseCaseCardProps) {
   return (
     <div className={clsx('card', styles.card, styles.hoverPrimary)}>
       <div className="text--primary">
@@ -420,7 +419,7 @@ export default function Home(): JSX.Element {
       <div className={styles.sectionSeparator} />
       <HowItWorks />
       <div className={styles.sectionSeparator} />
-      <Applications />
+      <UseCases />
       <div className={styles.sectionSeparator} />
       <VisionCards />
       <div className={styles.sectionSeparator} />

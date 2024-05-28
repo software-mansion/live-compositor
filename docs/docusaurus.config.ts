@@ -72,14 +72,14 @@ const config: Config = {
       },
       items: [
         {
-          label: 'Docs',
+          type: 'custom',
           to: '/docs/intro',
           position: 'right',
           className: 'navbar-docs-link',
           'aria-label': 'Docs',
         },
         {
-          label: 'GitHub',
+          type: 'custom',
           to: 'https://github.com/membraneframework/live_compositor',
           position: 'right',
           className: 'navbar-github-link',

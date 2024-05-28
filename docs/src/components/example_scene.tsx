@@ -27,13 +27,13 @@ export default function ExampleScene() {
       "type": "view",
       "height": 150,
       "left": 0, "bottom": 0, 
-      "background_color_rgba": "#FF0000FF",
+      "background_color_rgba": "#FFFF00FF",
       "children": [{
         "type": "text", 
         "text": "LiveCompositor 😃😍",
         "font_size": 100,
         "weight": "bold",
-        "color_rgba": "#675BF1FF",
+        "color_rgba": "#000000FF",
       }]
     }
   ]

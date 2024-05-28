@@ -135,7 +135,7 @@
     top: 100px;
     width: 200px;
     height: 150px;
-    filter: blur(100px);
+    filter: blur(150px);
   }
 }
 
@@ -153,8 +153,8 @@
 }
 
 .hoverSecondary:hover {
-  transform: scale(1.03);
-  box-shadow: 0 0 20px var(--ifm-color-secondary);
+  transform: scale(1.015);
+  box-shadow: 0 0 15px var(--ifm-color-secondary);
 }
 
 .sceneExample {
