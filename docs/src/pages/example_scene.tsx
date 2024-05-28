@@ -2,7 +2,7 @@ import CodeBlock from '@theme/CodeBlock';
 
 export default function ExampleScene() {
   return (
-    <CodeBlock language="jsx">
+    <CodeBlock language="typescript">
       {`{
   "type": "view",
   "children": [
