@@ -93,8 +93,7 @@ const config: Config = {
       copyright: `Copyright © ${new Date().getFullYear()} Software Mansion S.A.`,
     },
     prism: {
-      theme: prismThemes.github,
-      darkTheme: prismThemes.dracula,
+      theme: prismThemes.duotoneDark,
       additionalLanguages: ['wgsl', 'http', 'elixir', 'bash'],
     },
   } satisfies Preset.ThemeConfig,

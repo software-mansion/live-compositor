@@ -9,12 +9,17 @@
   margin-top: 20px;
 }
 
+@media (max-width: 510px) {
+  .typewriter {
+    height: 2.3em;
+  }
+}
+
 .card {
   flex: 1;
   min-width: 330px;
   margin: 10px;
   padding-top: 20px;
-  height: 300px;
   border-width: 1px;
   border-style: solid;
   border-color: var(--ifm-color-emphasis-200);
@@ -139,8 +144,8 @@
 }
 
 .hoverPrimary:hover {
-  transform: scale(1.03);
-  box-shadow: 0 0 20px var(--ifm-color-primary);
+  transform: scale(1.015);
+  box-shadow: 0 0 15px var(--ifm-color-primary);
 }
 
 .hoverSecondary {

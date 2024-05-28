@@ -31,10 +31,10 @@ export default function ExampleScene() {
       "left": 0, "bottom": 0, "height": 150,
       "background_color_rgba": "#FF0000FF",
       "children": [{
-          "type": "text", 
-          "text": "LiveCompositor 😃😍",
-          "font_size": 100,
-          "color_rgba": "#675BF1FF"
+        "type": "text", 
+        "text": "LiveCompositor 😃😍",
+        "font_size": 100, "weight": "bold",
+        "color_rgba": "#675BF1FF",
       }]
     }
   ]

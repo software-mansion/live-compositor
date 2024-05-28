@@ -40,15 +40,17 @@ function HomepageHeader() {
           <div className="container">
             <Heading as="h1" style={{ fontSize: 55 }}>
               <span className="text--primary">Mix video and audio</span>
-              <TypewriterComponent
-                options={{
-                  strings: ['in real-time.', 'using code.', 'with low-latency.'],
-                  autoStart: true,
-                  loop: true,
-                  deleteSpeed: 30,
-                  delay: 80,
-                }}
-              />
+              <div className={styles.typewriter}>
+                <TypewriterComponent
+                  options={{
+                    strings: ['in real-time.', 'using code.', 'with low-latency.'],
+                    autoStart: true,
+                    loop: true,
+                    deleteSpeed: 30,
+                    delay: 80,
+                  }}
+                />
+              </div>
             </Heading>
             <p className={styles.sectionSubheading}>
               Open-source media server for real-time, low-latency, programmable video and audio
@@ -120,7 +122,7 @@ function HowItWorks() {
   );
 }
 
-function UseCases() {
+function Applications() {
   return (
     <div className="container margin-top--md">
       <Heading as="h1" className="margin-bottom--md text--center text--primary">
@@ -128,16 +130,15 @@ function UseCases() {
       </Heading>
       <p className={clsx('text--center', styles.sectionSubheading)}>
         Use LiveCompositor for video conferencing, live-streaming, broadcasting, and more.
-        <br />
       </p>
       <div className="row">
-        <UseCaseCard
+        <ApplicationCard
           title="Video conferencing"
           subtitle="Stream or record video conferences"
           img={VideoConferencingImg}
         />
-        <UseCaseCard title="Broadcasting" subtitle="Compose broadcasts" img={BroadcastingImg} />
-        <UseCaseCard
+        <ApplicationCard title="Broadcasting" subtitle="Compose broadcasts" img={BroadcastingImg} />
+        <ApplicationCard
           title="Live-streaming"
           subtitle="Create awesome live-streams"
           img={StreamingImg}
@@ -147,20 +148,23 @@ function UseCases() {
   );
 }
 
-type UseCaseCardProps = {
+type ApplicationCardProps = {
   title: string;
   subtitle: string;
   img: any;
 };
 
-function UseCaseCard(props: UseCaseCardProps) {
+function ApplicationCard(props: ApplicationCardProps) {
   return (
     <div className={clsx('card', styles.card, styles.hoverPrimary)}>
       <div className="text--primary">
-        <Heading as="h2" style={{ textAlign: 'center' }}>
+        <Heading as="h2" style={{ textAlign: 'center', margin: 0 }}>
           {props.title}
         </Heading>
       </div>
+      <p className={clsx('text--center', styles.sectionSubheading)} style={{ margin: 0 }}>
+        {props.subtitle}
+      </p>
       <div className="card__body">
         <img src={props.img} alt={props.title} />
       </div>
@@ -168,7 +172,7 @@ function UseCaseCard(props: UseCaseCardProps) {
   );
 }
 
-function ProsCards() {
+function VisionCards() {
   return (
     <div className="container margin-top--md">
       <Heading as="h1" className="margin-bottom--md text--center text--primary">
@@ -276,7 +280,7 @@ function Features() {
 
       <Feature
         text="Highly customizable"
-        secondaryText="To create custom effects you can write own WGSL shaders and directly leverage GPU parallel processing capabilities."
+        secondaryText="Create custom effects with WGSL shaders and directly leverage GPU parallel processing capabilities."
         image={wgpuLogo}
       />
 
@@ -296,12 +300,6 @@ function Features() {
         text="Easy deployment"
         secondaryText="Docker images, nix configs, and guides are made to make deployment as easy as possible."
         image={<FaDocker className={styles.featureIcon} style={{ fontSize: 80 }} />}
-      />
-
-      <Feature
-        text="Membrane plugin"
-        secondaryText="Membrane is a developer-friendly multimedia framework for Elixir. You can easily add video composing functionality into your multimedia pipeline using Membrane LiveCompositor Plugin."
-        image={<MembraneLogo className={styles.featureIcon} width={80} height={80} />}
       />
     </div>
   );
@@ -414,9 +412,9 @@ export default function Home(): JSX.Element {
       <div className={styles.sectionSeparator} />
       <HowItWorks />
       <div className={styles.sectionSeparator} />
-      <UseCases />
+      <Applications />
       <div className={styles.sectionSeparator} />
-      <ProsCards />
+      <VisionCards />
       <div className={styles.sectionSeparator} />
       <Features />
       <div className={styles.sectionSeparator} />
