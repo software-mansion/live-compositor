@@ -24,3 +24,4 @@ crossbeam-channel = { workspace = true }
 tracing = { workspace = true }
 opus = { workspace = true }
 pitch-detection = "0.3.0"
+rand = { workspace = true }

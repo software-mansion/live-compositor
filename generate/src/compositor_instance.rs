@@ -102,8 +102,9 @@ impl CompositorInstance {
 }
 
 fn get_free_port() -> u16 {
-    static LAST_PORT: AtomicU16 = AtomicU16::new(10_000);
-    LAST_PORT.fetch_add(1, Ordering::Relaxed)
+    static LAST_PORT: OnceLock<AtomicU16> = OnceLock::new();
+    let port = LAST_PORT.get_or_init(|| AtomicU16::new(10_000 + (rand::random::<u16>() % 10_000)));
+    port.fetch_add(1, Ordering::Relaxed)
 }
 
 fn init_compositor_prerequisites() {
