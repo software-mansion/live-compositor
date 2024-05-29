@@ -1,5 +1,6 @@
 import clsx from 'clsx';
 import { FaBook, FaCode, FaFile, FaGears, FaGithub, FaLink } from 'react-icons/fa6';
+import { FaServer } from 'react-icons/fa';
 import { GiFeather, GiBattery100, GiSpeedometer } from 'react-icons/gi';
 import { IoCloudOffline } from 'react-icons/io5';
 import { MdAudiotrack, MdLiveTv } from 'react-icons/md';
@@ -310,7 +311,46 @@ function Features() {
   );
 }
 
-function IntegrationMembranePlugin() {
+function StandaloneSever() {
+  return (
+    <div className="row" style={{ justifyContent: 'center' }}>
+      <FaServer className="margin--lg" style={{ fontSize: 200, alignSelf: 'center' }} />
+      <div className="col">
+        <div className="card">
+          <div className="card__header">
+            <Heading as="h3" className="margin-top--sm">
+              Standalone server
+            </Heading>
+          </div>
+          <div className="card__body container">
+            <p>
+              LiveCompositor can be deployed as a standalone server. Language-agnostic API allows
+              you to seamlessly integrate it into your existing solutions. Docker images and
+              deployment section in docs are meant to make the deployment process as easy as
+              possible.
+            </p>
+            <p>For more, see:</p>
+            <p>
+              <FaFile style={{ fontSize: 15, marginRight: 7 }} />
+              Deployment overview -{' '}
+              <Link href="/docs/deployment/overview">
+                Deployment overview in LiveCompositor docs
+              </Link>
+            </p>
+            <p>
+              <FaGithub style={{ fontSize: 15, marginRight: 7 }} />
+              <Link href="https://github.com/membraneframework/live_compositor/tree/master/build_tools/docker">
+                Dockerfiles in repo
+              </Link>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MembranePlugin() {
   return (
     <div className="row" style={{ justifyContent: 'center' }}>
       <MembraneLogo
@@ -329,8 +369,8 @@ function IntegrationMembranePlugin() {
           <div className="card__body container">
             <p>
               Membrane is a developer-friendly multimedia framework for Elixir. You can easily add
-              video composing functionality into your multimedia pipeline using Membrane Live
-              Compositor Plugin.
+              video and audio composing functionality into your multimedia pipeline using Membrane
+              LiveCompositor Plugin.
             </p>
             <p>For more, see:</p>
             <p>
@@ -342,9 +382,8 @@ function IntegrationMembranePlugin() {
             </p>
             <p>
               <FaGithub style={{ fontSize: 15, marginRight: 7 }} />
-              GitHub repository -{' '}
               <Link href="https://github.com/membraneframework/membrane_live_compositor_plugin">
-                membraneframework/membrane_live_compositor_plugin
+                GitHub repository
               </Link>
             </p>
           </div>
@@ -354,13 +393,15 @@ function IntegrationMembranePlugin() {
   );
 }
 
-function Integrations() {
+function Usage() {
   return (
     <div className="container">
       <Heading as="h1" className="margin-bottom--md text--center text--primary">
-        Integrations
+        Usage
       </Heading>
-      <IntegrationMembranePlugin />
+      <StandaloneSever />
+      <br />
+      <MembranePlugin />
     </div>
   );
 }
@@ -423,7 +464,7 @@ export default function Home(): JSX.Element {
       <div className={styles.sectionSeparator} />
       <Features />
       <div className={styles.sectionSeparator} />
-      <Integrations />
+      <Usage />
       <div className={styles.sectionSeparator} />
       <ContactUs />
     </Layout>
