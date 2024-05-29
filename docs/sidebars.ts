@@ -38,15 +38,32 @@ const sidebars: SidebarsConfig = {
         type: 'doc',
         id: 'concept/overview',
       },
-      items: ['concept/component', 'concept/layouts', 'concept/shaders', 'concept/web'],
+      items: [
+        { type: 'ref', id: 'concept/overview', label: 'Overview' },
+        'concept/component',
+        'concept/layouts',
+        'concept/shaders',
+        'concept/web',
+      ],
     },
     {
       type: 'category',
       label: 'Deployment',
       link: {
-        type: 'generated-index',
+        type: 'doc',
+        id: 'deployment/overview',
       },
       items: [
+        {
+          type: 'ref',
+          id: 'deployment/overview',
+          label: 'Overview',
+        },
+        {
+          type: 'doc',
+          id: 'deployment/requirements',
+          label: 'Requirements',
+        },
         {
           type: 'doc',
           id: 'deployment/configuration',
