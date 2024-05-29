@@ -104,3 +104,12 @@ Defaults to `false`. Valid values: `true`, `false`, `1`, `0`.
 Parts of the compositor API support a `schedule_time_ms` field to apply certain actions at a specific time. If enabled, the event will still be executed, even if it was scheduled too late. Otherwise, it will be discarded.
 
 Defaults to `false`. Valid values: `true`, `false`, `1`, `0`.
+
+### `LIVE_COMPOSITOR_REQUIRED_WGPU_FEATURES`
+
+Comma separated list of WebGPU features that need to be enabled. See [https://docs.rs/wgpu/0.20.0/wgpu/struct.Features.html](https://docs.rs/wgpu/0.20.0/wgpu/struct.Features.html) for a list of available options.
+
+Defaults to `UNIFORM_BUFFER_AND_STORAGE_TEXTURE_ARRAY_NON_UNIFORM_INDEXING,SAMPLED_TEXTURE_AND_STORAGE_BUFFER_ARRAY_NON_UNIFORM_INDEXING`.
+
+Additionally, `TEXTURE_BINDING_ARRAY` and `PUSH_CONSTANTS` are also required, but this requirement can not be overwritten by changing this
+environment variable.
