@@ -1,7 +1,7 @@
 use std::{env, path::PathBuf, str::FromStr, time::Duration};
 
 use compositor_pipeline::queue::QueueOptions;
-use compositor_render::{web_renderer::WebRendererInitOptions, Framerate};
+use compositor_render::{web_renderer::WebRendererInitOptions, Framerate, WgpuFeatures};
 use log::error;
 use rand::Rng;
 
@@ -18,6 +18,7 @@ pub struct Config {
     pub download_root: PathBuf,
     pub queue_options: QueueOptions,
     pub output_sample_rate: u32,
+    pub required_wgpu_features: WgpuFeatures,
 }
 
 #[derive(Debug, Clone)]
@@ -163,6 +164,16 @@ fn try_read_config() -> Result<Config, String> {
         Err(_) => false,
     };
 
+    let default_wgpu_features: WgpuFeatures =
+        WgpuFeatures::UNIFORM_BUFFER_AND_STORAGE_TEXTURE_ARRAY_NON_UNIFORM_INDEXING
+            | WgpuFeatures::SAMPLED_TEXTURE_AND_STORAGE_BUFFER_ARRAY_NON_UNIFORM_INDEXING;
+    let required_wgpu_features = match env::var("LIVE_COMPOSITOR_REQUIRED_WGPU_FEATURES") {
+        Ok(required_wgpu_features) => {
+            wgpu_features_from_str(&required_wgpu_features).unwrap_or(default_wgpu_features)
+        }
+        Err(_) => default_wgpu_features,
+    };
+
     let config = Config {
         instance_id,
         api_port,
@@ -185,6 +196,7 @@ fn try_read_config() -> Result<Config, String> {
         },
         download_root,
         output_sample_rate,
+        required_wgpu_features,
     };
     Ok(config)
 }
@@ -212,4 +224,68 @@ fn bool_env_from_str(s: &str) -> Option<bool> {
         "0" | "false" => Some(false),
         _ => None,
     }
+}
+
+fn wgpu_features_from_str(s: &str) -> Result<WgpuFeatures, String> {
+    let mut all_features = WgpuFeatures::default();
+    for feature in s.split(',') {
+        let feature = match feature {
+            "DEPTH_CLIP_CONTROL" => WgpuFeatures::DEPTH_CLIP_CONTROL,
+            "TIMESTAMP_QUERY" => WgpuFeatures::TIMESTAMP_QUERY,
+            "INDIRECT_FIRST_INSTANCE" => WgpuFeatures::INDIRECT_FIRST_INSTANCE,
+            "SHADER_F16" => WgpuFeatures::SHADER_F16,
+            "BGRA8UNORM_STORAGE" => WgpuFeatures::BGRA8UNORM_STORAGE,
+            "FLOAT32_FILTERABLE" => WgpuFeatures::FLOAT32_FILTERABLE,
+            "RG11B10UFLOAT_RENDERABLE" => WgpuFeatures::RG11B10UFLOAT_RENDERABLE,
+            "DEPTH32FLOAT_STENCIL8" => WgpuFeatures::DEPTH32FLOAT_STENCIL8,
+            "TEXTURE_COMPRESSION_BC" => WgpuFeatures::TEXTURE_COMPRESSION_BC,
+            "TEXTURE_COMPRESSION_ETC2" => WgpuFeatures::TEXTURE_COMPRESSION_ETC2,
+            "TEXTURE_COMPRESSION_ASTC" => WgpuFeatures::TEXTURE_COMPRESSION_ASTC,
+            "TEXTURE_FORMAT_16BIT_NORM" => WgpuFeatures::TEXTURE_FORMAT_16BIT_NORM,
+            "TEXTURE_COMPRESSION_ASTC_HDR" => WgpuFeatures::TEXTURE_COMPRESSION_ASTC_HDR,
+            "TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES" => {
+                WgpuFeatures::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES
+            }
+            "PIPELINE_STATISTICS_QUERY" => WgpuFeatures::PIPELINE_STATISTICS_QUERY,
+            "TIMESTAMP_QUERY_INSIDE_PASSES" => WgpuFeatures::TIMESTAMP_QUERY_INSIDE_PASSES,
+            "MAPPABLE_PRIMARY_BUFFERS" => WgpuFeatures::MAPPABLE_PRIMARY_BUFFERS,
+            "TEXTURE_BINDING_ARRAY" => WgpuFeatures::TEXTURE_BINDING_ARRAY,
+            "BUFFER_BINDING_ARRAY" => WgpuFeatures::BUFFER_BINDING_ARRAY,
+            "STORAGE_RESOURCE_BINDING_ARRAY" => WgpuFeatures::STORAGE_RESOURCE_BINDING_ARRAY,
+            "SAMPLED_TEXTURE_AND_STORAGE_BUFFER_ARRAY_NON_UNIFORM_INDEXING" => {
+                WgpuFeatures::SAMPLED_TEXTURE_AND_STORAGE_BUFFER_ARRAY_NON_UNIFORM_INDEXING
+            }
+            "UNIFORM_BUFFER_AND_STORAGE_TEXTURE_ARRAY_NON_UNIFORM_INDEXING" => {
+                WgpuFeatures::UNIFORM_BUFFER_AND_STORAGE_TEXTURE_ARRAY_NON_UNIFORM_INDEXING
+            }
+            "PARTIALLY_BOUND_BINDING_ARRAY" => WgpuFeatures::PARTIALLY_BOUND_BINDING_ARRAY,
+            "MULTI_DRAW_INDIRECT" => WgpuFeatures::MULTI_DRAW_INDIRECT,
+            "MULTI_DRAW_INDIRECT_COUNT" => WgpuFeatures::MULTI_DRAW_INDIRECT_COUNT,
+            "PUSH_CONSTANTS" => WgpuFeatures::PUSH_CONSTANTS,
+            "ADDRESS_MODE_CLAMP_TO_ZERO" => WgpuFeatures::ADDRESS_MODE_CLAMP_TO_ZERO,
+            "ADDRESS_MODE_CLAMP_TO_BORDER" => WgpuFeatures::ADDRESS_MODE_CLAMP_TO_BORDER,
+            "POLYGON_MODE_LINE" => WgpuFeatures::POLYGON_MODE_LINE,
+            "POLYGON_MODE_POINT" => WgpuFeatures::POLYGON_MODE_POINT,
+            "CONSERVATIVE_RASTERIZATION" => WgpuFeatures::CONSERVATIVE_RASTERIZATION,
+            "VERTEX_WRITABLE_STORAGE" => WgpuFeatures::VERTEX_WRITABLE_STORAGE,
+            "CLEAR_TEXTURE" => WgpuFeatures::CLEAR_TEXTURE,
+            "SPIRV_SHADER_PASSTHROUGH" => WgpuFeatures::SPIRV_SHADER_PASSTHROUGH,
+            "MULTIVIEW" => WgpuFeatures::MULTIVIEW,
+            "VERTEX_ATTRIBUTE_64BIT" => WgpuFeatures::VERTEX_ATTRIBUTE_64BIT,
+            "SHADER_UNUSED_VERTEX_OUTPUT" => WgpuFeatures::SHADER_UNUSED_VERTEX_OUTPUT,
+            "TEXTURE_FORMAT_NV12" => WgpuFeatures::TEXTURE_FORMAT_NV12,
+            "RAY_TRACING_ACCELERATION_STRUCTURE" => {
+                WgpuFeatures::RAY_TRACING_ACCELERATION_STRUCTURE
+            }
+            "RAY_QUERY" => WgpuFeatures::RAY_QUERY,
+            "SHADER_F64" => WgpuFeatures::SHADER_F64,
+            "SHADER_I16" => WgpuFeatures::SHADER_I16,
+            "SHADER_PRIMITIVE_INDEX" => WgpuFeatures::SHADER_PRIMITIVE_INDEX,
+            "SHADER_EARLY_DEPTH_TEST" => WgpuFeatures::SHADER_EARLY_DEPTH_TEST,
+            "DUAL_SOURCE_BLENDING" => WgpuFeatures::DUAL_SOURCE_BLENDING,
+            feature => return Err(format!("Unknown wgpu feature \"{feature}\"")),
+        };
+        all_features.set(feature, true)
+    }
+    Ok(all_features)
 }

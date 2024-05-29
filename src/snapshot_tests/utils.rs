@@ -1,6 +1,8 @@
 use std::{collections::HashSet, fs, path::PathBuf, time::Duration};
 
-use compositor_render::{web_renderer, Frame, Framerate, Renderer, RendererOptions, YuvData};
+use compositor_render::{
+    web_renderer, Frame, Framerate, Renderer, RendererOptions, WgpuFeatures, YuvData,
+};
 
 use super::test_case::OUTPUT_ID;
 
@@ -61,6 +63,7 @@ pub(super) fn create_renderer() -> Renderer {
         force_gpu: false,
         framerate: Framerate { num: 30, den: 1 },
         stream_fallback_timeout: Duration::from_secs(3),
+        wgpu_features: WgpuFeatures::default(),
     })
     .unwrap();
     renderer
