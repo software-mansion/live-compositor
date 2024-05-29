@@ -11,10 +11,10 @@ This guide will show a few basic examples of animated transitions on `View`/`Res
 
 ### Configure inputs and output
 
-Start compositor and configure 2 input streams and a single output streams as described in "Simple scene"
+Start the compositor and configure 2 input streams and a single output stream as described in the "Simple scene"
 guide in the ["Configure inputs and output"](./simple-scene.md##configure-inputs-and-output) section.
 
-### Transition that changes `width` of an input stream
+### Transition that changes the `width` of an input stream
 
 <Tabs queryString="lang">
   <TabItem value="http" label="HTTP">
@@ -125,10 +125,10 @@ guide in the ["Configure inputs and output"](./simple-scene.md##configure-inputs
   </TabItem>
 </Tabs>
 
-In the first update request you can see that rescaler has width of 480, and in the second one it is changed
+In the first update request, you can see that the rescaler has a width of 480, and in the second one, it is changed
 to 1280 and `transition.duration_ms: 2000` was added.
 
-It is important that component has the same `"id"` in both initial state and the update that starts the
+The component must have the same `"id"` in both the initial state and the update that starts the
 transition, otherwise it will switch immediately to the new state without a transition.
 
 <div style={{textAlign: 'center'}}>
@@ -138,10 +138,10 @@ transition, otherwise it will switch immediately to the new state without a tran
 
 ### Transition on one of the sibling components
 
-In the above scenario you saw how transition on single component behave, but let's see what happens with
-components that are not a part of the transition, but their size and position still depends on other components.
+In the above scenario you saw how transition on a single component behaves, but let's see what happens with
+components that are not a part of the transition, but their size and position still depend on other components.
 
-Add second input stream wrapped with `Rescaler`, but without any transition options.
+Add a second input stream wrapped with `Rescaler`, but without any transition options.
 
 <Tabs queryString="lang">
   <TabItem value="http" label="HTTP">
@@ -277,10 +277,10 @@ Add second input stream wrapped with `Rescaler`, but without any transition opti
 Currently, a state before the transition and after needs to use the same type of configuration. In particular:
 - It is not possible to transition a component between static and absolute positioning.
 - It is not possible to transition a component between using `top` and `bottom` fields (the same for `left`/`right`).
-- It is not possible to transition a component with known `width`/`height` to state with dynamic `width/height` based
-on parent layout.
+- It is not possible to transition a component with known `width`/`height` to a state with dynamic `width/height` based
+on the parent layout.
 
-Let's try the same example as in first scenario with a single input, but instead change `Rescaler` component to be absolutely positioned in the second update.
+Let's try the same example as in the first scenario with a single input, but instead, change the `Rescaler` component to be absolutely positioned in the second update.
 
 <Tabs queryString="lang">
   <TabItem value="http" label="HTTP">
@@ -401,7 +401,7 @@ in the initial scene was using static positioning and after the update it was po
 
 ### Different interpolation functions
 
-All of the above examples were using default linear interpolation, but there are also few other
+All of the above examples use default linear interpolation, but there are also a few other
 modes available.
 
 <Tabs queryString="lang">
@@ -615,7 +615,7 @@ modes available.
 </div>
 
 - `Input 1` - Linear transition
-- `Input 2` - Debounce transition
+- `Input 2` - Bounce transition
 - `Input 3` - Cubic Bézier transition with `[0.65, 0, 0.35, 1]` points ([`easeInOutCubic`](https://easings.net/#easeInOutCubic))
 - `Input 4` - Cubic Bézier transition with `[0.33, 1, 0.68, 1]` points ([`easeOutCubic`](https://easings.net/#easeOutCubic))
 
