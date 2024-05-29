@@ -1,8 +1,8 @@
 import clsx from 'clsx';
-import { FaBook, FaCode, FaFile, FaGears, FaGithub, FaLink, FaRust } from 'react-icons/fa6';
-import { GiFeather, GiBattery100 } from 'react-icons/gi';
+import { FaBook, FaCode, FaFile, FaGears, FaGithub, FaLink } from 'react-icons/fa6';
+import { GiFeather, GiBattery100, GiSpeedometer } from 'react-icons/gi';
 import { IoCloudOffline } from 'react-icons/io5';
-import { MdLiveTv } from 'react-icons/md';
+import { MdAudiotrack, MdLiveTv } from 'react-icons/md';
 import Link from '@docusaurus/Link';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import Layout from '@theme/Layout';
@@ -28,7 +28,6 @@ function HomepageHeader() {
     <div className={clsx('container', styles.firstSection)}>
       <div className="row">
         <div className="col col--6">
-          <div className={styles.shadow}></div>
           <div className="container">
             <Heading as="h1" style={{ fontSize: 55 }}>
               <span className="text--primary">Mix video and audio</span>
@@ -38,7 +37,7 @@ function HomepageHeader() {
                     strings: ['in real-time.', 'using code.', 'with low latency.'],
                     autoStart: true,
                     loop: true,
-                    deleteSpeed: 30,
+                    deleteSpeed: 50,
                     delay: 80,
                   }}
                 />
@@ -188,9 +187,10 @@ function VisionCards() {
             integrate it with your own solutions.
           </p>
         </VisionCard>
-        <VisionCard title="Real-time and low latency" icon={FaRust}>
+        <VisionCard title="Real-time and low latency" icon={GiSpeedometer}>
           <p className="padding--md">
-            LiveCompositor is leveraging the power and performance of WebGPU API and Rust.
+            LiveCompositor targets real-time use cases, with a significant focus on situations where
+            latency is critical.
           </p>
         </VisionCard>
       </div>
@@ -267,7 +267,7 @@ function Features() {
 
       <Feature
         text="Batteries included"
-        secondaryText="Process streams, render text, images, GIFs or websites, and combine them into output streams without writing low-level code."
+        secondaryText="Process streams, render text, images, GIFs or websites, and combine them into output streams using high-level Components."
         image={<GiBattery100 className={styles.featureIcon} style={{ fontSize: 80 }} />}
       />
 
@@ -278,14 +278,20 @@ function Features() {
       />
 
       <Feature
-        text="WebGPU rendering"
-        secondaryText="Rendering is hardware accelerated using wgpu, a Rust library implementing WebGPU standard. It's fast, modern, and cross-platform."
+        text="Audio support"
+        secondaryText="Mix multiple audio tracks directly in LiveCompositor."
+        image={<MdAudiotrack className={styles.featureIcon} style={{ fontSize: 80 }} />}
+      />
+
+      <Feature
+        text="WebGPU and Rust"
+        secondaryText="Leverage blazingly-fast Rust implementation with WebGPU rendering."
         image={wgpuLogo}
       />
 
       <Feature
         text="Animated transitions"
-        secondaryText="Dynamically change the composition with customizable animated transitions."
+        secondaryText="Modify composition on the fly with animated transitions."
         image={<GiFeather className={styles.featureIcon} style={{ fontSize: 80 }} />}
       />
 
@@ -297,7 +303,7 @@ function Features() {
 
       <Feature
         text="Offline processing"
-        secondaryText="You can also use LiveCompositor for non-real-time use cases, like mixing MP4 files."
+        secondaryText="Use LiveCompositor for non-real-time use cases with offline processing mode."
         image={<IoCloudOffline className={styles.featureIcon} style={{ fontSize: 80 }} />}
       />
     </div>
