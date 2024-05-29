@@ -12,7 +12,7 @@ This guide will show a few basic examples of animated transitions on `View`/`Res
 ### Configure inputs and output
 
 Start the compositor and configure 2 input streams and a single output stream as described in the "Simple scene"
-guide in the ["Configure inputs and output"](./simple-scene.md##configure-inputs-and-output) section.
+guide in the ["Configure inputs and output"](./simple-scene.md#configure-inputs-and-output) section.
 
 ### Transition that changes the `width` of an input stream
 
