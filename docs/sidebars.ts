@@ -29,6 +29,11 @@ const sidebars: SidebarsConfig = {
           id: 'guides/receive-output',
           label: 'Receive output streams',
         },
+        {
+          type: 'doc',
+          id: 'guides/view-transition',
+          label: 'Transitions (View/Rescaler)',
+        },
       ],
     },
     {
