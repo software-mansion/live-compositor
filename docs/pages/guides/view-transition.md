@@ -91,13 +91,11 @@ guide in the ["Configure inputs and output"](./simple-scene.md##configure-inputs
           ]
         }
       }
-      {[
-        notify_child: {:live_compositor, request},
-        start_timer: {:add_videos_timer, Membrane.Time.seconds(2)}
-      ], state}
+      Process.send_after(self(), :start_transition, 2000)
+      {[notify_child: {:live_compositor, request}], state}
     end
 
-    def handle_tick(:start_transition, _ctx, state)
+    def handle_info(:start_transition, _ctx, state)
       request = %LiveCompositor.Request.UpdateVideoOutput{
         output_id: "output_1",
         root: %{
@@ -116,10 +114,7 @@ guide in the ["Configure inputs and output"](./simple-scene.md##configure-inputs
           ]
         }
       }
-      {[
-        notify_child: {:live_compositor, request},
-        stop_timer: :start_transition
-      ], state}
+      {[notify_child: {:live_compositor, request}], state}
     end
     ```
   </TabItem>
@@ -227,13 +222,11 @@ Add a second input stream wrapped with `Rescaler`, but without any transition op
           ]
         }
       }
-      {[
-        notify_child: {:live_compositor, request},
-        start_timer: {:add_videos_timer, Membrane.Time.seconds(2)}
-      ], state}
+      Process.send_after(self(), :start_transition, 2000)
+      {[notify_child: {:live_compositor, request}], state}
     end
 
-    def handle_tick(:start_transition, _ctx, state)
+    def handle_info(:start_transition, _ctx, state)
       request = %LiveCompositor.Request.UpdateVideoOutput{
         output_id: "output_1",
         root: %{
@@ -256,10 +249,7 @@ Add a second input stream wrapped with `Rescaler`, but without any transition op
           ]
         }
       }
-      {[
-        notify_child: {:live_compositor, request},
-        stop_timer: :start_transition
-      ], state}
+      {[notify_child: {:live_compositor, request}], state}
     end
     ```
   </TabItem>
@@ -277,7 +267,7 @@ Add a second input stream wrapped with `Rescaler`, but without any transition op
 Currently, a state before the transition and after needs to use the same type of configuration. In particular:
 - It is not possible to transition a component between static and absolute positioning.
 - It is not possible to transition a component between using `top` and `bottom` fields (the same for `left`/`right`).
-- It is not possible to transition a component with known `width`/`height` to a state with dynamic `width/height` based
+- It is not possible to transition a component with known `width`/`height` to a state with dynamic `width`/`height` based
 on the parent layout.
 
 Let's try the same example as in the first scenario with a single input, but instead, change the `Rescaler` component to be absolutely positioned in the second update.
@@ -355,13 +345,11 @@ Let's try the same example as in the first scenario with a single input, but ins
           ]
         }
       }
-      {[
-        notify_child: {:live_compositor, request},
-        start_timer: {:add_videos_timer, Membrane.Time.seconds(2)}
-      ], state}
+      Process.send_after(self(), :start_transition, 2000)
+      {[notify_child: {:live_compositor, request}], state}
     end
 
-    def handle_tick(:start_transition, _ctx, state)
+    def handle_info(:start_transition, _ctx, state)
       request = %LiveCompositor.Request.UpdateVideoOutput{
         output_id: "output_1",
         root: %{
@@ -382,16 +370,13 @@ Let's try the same example as in the first scenario with a single input, but ins
           ]
         }
       }
-      {[
-        notify_child: {:live_compositor, request},
-        stop_timer: :start_transition
-      ], state}
+      {[notify_child: {:live_compositor, request}], state}
     end
     ```
   </TabItem>
 </Tabs>
 
-As you can see on the resulting stream transition did not happen because the `Rescaler` component
+As you can see on the resulting stream, the transition did not happen because the `Rescaler` component
 in the initial scene was using static positioning and after the update it was positioned absolutely.
 
 <div style={{textAlign: 'center'}}>
@@ -540,13 +525,11 @@ modes available.
           ]
         }
       }
-      {[
-        notify_child: {:live_compositor, request},
-        start_timer: {:add_videos_timer, Membrane.Time.seconds(2)}
-      ], state}
+      Process.send_after(self(), :start_transition, 2000)
+      {[notify_child: {:live_compositor, request}], state}
     end
 
-    def handle_tick(:start_transition, _ctx, state)
+    def handle_info(:start_transition, _ctx, state)
       request = %LiveCompositor.Request.UpdateVideoOutput{
         output_id: "output_1",
         root: %{
@@ -599,10 +582,7 @@ modes available.
           ]
         }
       }
-      {[
-        notify_child: {:live_compositor, request},
-        stop_timer: :start_transition
-      ], state}
+      {[notify_child: {:live_compositor, request}], state}
     end
     ```
   </TabItem>
