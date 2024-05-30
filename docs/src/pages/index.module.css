@@ -98,7 +98,7 @@
 
 .hoverPrimary:hover {
   transform: scale(1.015);
-  box-shadow: 0 0 15px var(--ifm-color-primary);
+  box-shadow: 0 0 10px var(--ifm-color-primary);
 }
 
 .hoverSecondary {
@@ -107,7 +107,7 @@
 
 .hoverSecondary:hover {
   transform: scale(1.015);
-  box-shadow: 0 0 15px var(--ifm-color-secondary);
+  box-shadow: 0 0 10px var(--ifm-color-secondary);
 }
 
 .sceneExample {

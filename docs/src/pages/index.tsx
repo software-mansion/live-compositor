@@ -1,5 +1,5 @@
 import clsx from 'clsx';
-import { FaBook, FaCode, FaFile, FaGears, FaGithub, FaLink } from 'react-icons/fa6';
+import { FaBook, FaCode, FaDocker, FaGears, FaGithub, FaLink, FaRocket } from 'react-icons/fa6';
 import { FaServer } from 'react-icons/fa';
 import { GiFeather, GiBattery100, GiSpeedometer } from 'react-icons/gi';
 import { IoCloudOffline } from 'react-icons/io5';
@@ -11,7 +11,7 @@ import Heading from '@theme/Heading';
 
 import styles from './index.module.css';
 import { PropsWithChildren } from 'react';
-import { IconType } from 'react-icons';
+import { IconContext, IconType } from 'react-icons';
 import MembraneLogo from '@site/static/img/membrane-logo.svg';
 import SwmLogo from '@site/static/img/swm-logo.svg';
 import ComposingImg from '@site/static/img/how_it_works.png';
@@ -55,8 +55,10 @@ function HomepageHeader() {
                   styles.hoverPrimary
                 )}
                 to="/docs/intro">
-                <FaBook style={{ marginRight: 3 }} />
-                Docs
+                <IconContext.Provider value={{ style: { verticalAlign: 'middle' } }}>
+                  <FaBook style={{ marginRight: 3 }} />
+                  Docs
+                </IconContext.Provider>
               </Link>
               <Link
                 className={clsx(
@@ -64,8 +66,10 @@ function HomepageHeader() {
                   styles.hoverSecondary
                 )}
                 to="https://github.com/membraneframework/live_compositor">
-                <FaGithub style={{ marginRight: 5 }} />
-                View on GitHub
+                <IconContext.Provider value={{ style: { verticalAlign: 'middle' } }}>
+                  <FaGithub style={{ marginRight: 5 }} />
+                  View on GitHub
+                </IconContext.Provider>
               </Link>
             </div>
           </div>
@@ -268,7 +272,7 @@ function Features() {
 
       <Feature
         text="Batteries included"
-        secondaryText="Process streams, render text, images, GIFs or websites, and combine them into output streams using high-level Components."
+        secondaryText="Process streams, render text, images, GIFs or websites, and combine them into output streams using high-level components."
         image={<GiBattery100 className={styles.featureIcon} style={{ fontSize: 80 }} />}
       />
 
@@ -280,19 +284,19 @@ function Features() {
 
       <Feature
         text="Audio support"
-        secondaryText="Mix multiple audio tracks directly in LiveCompositor."
+        secondaryText="Mix audio directly in LiveCompositor."
         image={<MdAudiotrack className={styles.featureIcon} style={{ fontSize: 80 }} />}
       />
 
       <Feature
         text="WebGPU and Rust"
-        secondaryText="Leverage blazingly-fast Rust implementation with WebGPU rendering."
+        secondaryText="Leverage Rust and WebGPU rendering for great performance."
         image={wgpuLogo}
       />
 
       <Feature
         text="Animated transitions"
-        secondaryText="Modify composition on the fly with animated transitions."
+        secondaryText="Change layouts on the fly with animated transitions."
         image={<GiFeather className={styles.featureIcon} style={{ fontSize: 80 }} />}
       />
 
@@ -314,7 +318,7 @@ function Features() {
 function StandaloneSever() {
   return (
     <div className="row" style={{ justifyContent: 'center' }}>
-      <FaServer className="margin--lg" style={{ fontSize: 200, alignSelf: 'center' }} />
+      <FaServer className="margin--lg" style={{ fontSize: 150, alignSelf: 'center' }} />
       <div className="col">
         <div className="card">
           <div className="card__header">
@@ -329,20 +333,38 @@ function StandaloneSever() {
               deployment section in docs are meant to make the deployment process as easy as
               possible.
             </p>
-            <p>For more, see:</p>
-            <p>
-              <FaFile style={{ fontSize: 15, marginRight: 7 }} />
-              Deployment overview -{' '}
-              <Link href="/docs/deployment/overview">
-                Deployment overview in LiveCompositor docs
+            <div className="row" style={{ justifyContent: 'center' }}>
+              <div className="col" />
+              <Link
+                className={clsx(
+                  'button button--primary button--lg margin--sm',
+                  'col',
+                  styles.hoverPrimary
+                )}
+                to="/docs/deployment/overview">
+                <IconContext.Provider value={{ style: { verticalAlign: 'middle' } }}>
+                  <FaBook style={{ marginRight: 5 }} />
+                  Docs
+                </IconContext.Provider>
               </Link>
-            </p>
-            <p>
-              <FaGithub style={{ fontSize: 15, marginRight: 7 }} />
-              <Link href="https://github.com/membraneframework/live_compositor/tree/master/build_tools/docker">
-                Dockerfiles in repo
+              <Link
+                className={clsx(
+                  'button',
+                  'button--secondary',
+                  'button--outline',
+                  'button--lg',
+                  'margin--sm',
+                  'col',
+                  styles.hoverSecondary
+                )}
+                to="https://github.com/membraneframework/live_compositor/tree/master/build_tools/docker">
+                <IconContext.Provider value={{ style: { verticalAlign: 'middle' } }}>
+                  <FaDocker style={{ marginRight: 5 }} />
+                  Docker images
+                </IconContext.Provider>
               </Link>
-            </p>
+              <div className="col" />
+            </div>
           </div>
         </div>
       </div>
@@ -354,8 +376,8 @@ function MembranePlugin() {
   return (
     <div className="row" style={{ justifyContent: 'center' }}>
       <MembraneLogo
-        width={200}
-        height={200}
+        width={150}
+        height={150}
         className="margin--lg"
         style={{ alignSelf: 'center' }}
       />
@@ -372,20 +394,39 @@ function MembranePlugin() {
               video and audio composing functionality into your multimedia pipeline using Membrane
               LiveCompositor Plugin.
             </p>
-            <p>For more, see:</p>
-            <p>
-              <FaFile style={{ fontSize: 15, marginRight: 7 }} />
-              Documentation -{' '}
-              <Link href="/docs/intro#membrane-framework-plugin">
-                Get started with Membrane plugin
+            <div className="row" style={{ justifyContent: 'center' }}>
+              <div className="col" />
+              <Link
+                className={clsx(
+                  'button',
+                  'button--primary',
+                  'button--lg',
+                  'margin--sm',
+                  'col',
+                  styles.hoverPrimary
+                )}
+                to="/docs/deployment/overview">
+                <IconContext.Provider value={{ style: { verticalAlign: 'middle' } }}>
+                  <FaBook style={{ marginRight: 5 }} />
+                  Plugin docs
+                </IconContext.Provider>
               </Link>
-            </p>
-            <p>
-              <FaGithub style={{ fontSize: 15, marginRight: 7 }} />
-              <Link href="https://github.com/membraneframework/membrane_live_compositor_plugin">
-                GitHub repository
+              <Link
+                className={clsx(
+                  'button',
+                  'button--secondary',
+                  'button--outline',
+                  'button--lg',
+                  'margin--sm',
+                  'col',
+                  styles.hoverSecondary
+                )}
+                to="https://github.com/membraneframework/live_compositor/tree/master/build_tools/docker">
+                <FaGithub style={{ marginRight: 5 }} />
+                Plugin repo
               </Link>
-            </p>
+              <div className="col" />
+            </div>
           </div>
         </div>
       </div>
