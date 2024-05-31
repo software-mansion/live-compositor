@@ -19,6 +19,10 @@ This guide will explain how to create simple scene that is combining input strea
     Start the compositor server. Check out [configuration page](../deployment/configuration.md) for available configuration options.
   </TabItem>
   <TabItem value="membrane" label="Membrane Framework">
+    Following code snippets are implementing `handle_init/2` or `handle_setup/2` callbacks. Those
+    are just examples, you can use any [`Membrane.Pipeline` callbacks](https://hexdocs.pm/membrane_core/Membrane.Pipeline.html#callbacks)
+    instead.
+
     ```elixir
     alias Membrane.LiveCompositor
 
