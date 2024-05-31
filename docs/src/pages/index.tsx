@@ -421,9 +421,11 @@ function MembranePlugin() {
                   'col',
                   styles.hoverSecondary
                 )}
-                to="https://github.com/membraneframework/live_compositor/tree/master/build_tools/docker">
-                <FaGithub style={{ marginRight: 5 }} />
-                Plugin repo
+                to="https://github.com/membraneframework/membrane_live_compositor_plugin">
+                <IconContext.Provider value={{ style: { verticalAlign: 'middle' } }}>
+                  <FaGithub style={{ marginRight: 5 }} />
+                  Plugin repo
+                </IconContext.Provider>
               </Link>
               <div className="col" />
             </div>
