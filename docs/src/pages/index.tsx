@@ -1,5 +1,5 @@
 import clsx from 'clsx';
-import { FaBook, FaCode, FaDocker, FaGears, FaGithub, FaLink, FaRocket } from 'react-icons/fa6';
+import { FaBook, FaCode, FaDocker, FaGears, FaGithub, FaLink } from 'react-icons/fa6';
 import { FaServer } from 'react-icons/fa';
 import { GiFeather, GiBattery100, GiSpeedometer } from 'react-icons/gi';
 import { IoCloudOffline } from 'react-icons/io5';
@@ -333,7 +333,7 @@ function StandaloneSever() {
               deployment section in docs are meant to make the deployment process as easy as
               possible.
             </p>
-            <div className="row" style={{ justifyContent: 'center' }}>
+            <div className="row margin--sm" style={{ justifyContent: 'center' }}>
               <div className="col" />
               <Link
                 className={clsx(
@@ -394,7 +394,7 @@ function MembranePlugin() {
               video and audio composing functionality into your multimedia pipeline using Membrane
               LiveCompositor Plugin.
             </p>
-            <div className="row" style={{ justifyContent: 'center' }}>
+            <div className="row margin--sm" style={{ justifyContent: 'center' }}>
               <div className="col" />
               <Link
                 className={clsx(
@@ -405,10 +405,10 @@ function MembranePlugin() {
                   'col',
                   styles.hoverPrimary
                 )}
-                to="/docs/deployment/overview">
+                to="https://hexdocs.pm/membrane_video_compositor_plugin/Membrane.VideoCompositor.html">
                 <IconContext.Provider value={{ style: { verticalAlign: 'middle' } }}>
                   <FaBook style={{ marginRight: 5 }} />
-                  Plugin docs
+                  Docs
                 </IconContext.Provider>
               </Link>
               <Link
