@@ -4,17 +4,17 @@ LiveCompositor imposes certain requirements both in the runtime and during a bui
 
 ## WebGPU features
 
-Required:
+If a feature is not supported then compositor server will fail on startup.
+
+Always required:
 - `TEXTURE_BINDING_ARRAY`
 - `PUSH_CONSTANTS`
 
-If required feature is not supported then compositor server will fail on startup.
-
-Optional:
+Enabled by default:
 - `SAMPLED_TEXTURE_AND_STORAGE_BUFFER_ARRAY_NON_UNIFORM_INDEXING`
 - `UNIFORM_BUFFER_AND_STORAGE_TEXTURE_ARRAY_NON_UNIFORM_INDEXING`
 
-Optional features are enabled automatically if they are supported.
+Those options are enabled by default, but can be disabled using [`LIVE_COMPOSITOR_REQUIRED_WGPU_FEATURES`](./configuration.md#live_compositor_required_wgpu_features) environment variable.
 
 :::note
 All of the above features should be available on almost any GPU. If you are getting an error
