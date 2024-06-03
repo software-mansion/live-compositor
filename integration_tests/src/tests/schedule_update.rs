@@ -107,6 +107,7 @@ pub fn schedule_update() -> Result<()> {
             "video": {
                 "decoder": "ffmpeg_h264"
             },
+            "required": true,
             "offset_ms": 0,
         }),
     )?;
@@ -120,6 +121,7 @@ pub fn schedule_update() -> Result<()> {
             "video": {
                 "decoder": "ffmpeg_h264"
             },
+            "required": true,
             "offset_ms": 0,
         }),
     )?;
