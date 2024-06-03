@@ -1,0 +1,15 @@
+-xc++
+-std=c++20
+-g
+-ffunction-sections
+-fdata-sections
+-fPIC
+-gdwarf-4
+-fno-omit-frame-pointer
+-m64
+-Wall
+-Wextra
+-I..
+-I../target/cxxbridge
+-I./cpp
+-I./declink_sdk/include
