@@ -167,9 +167,7 @@ fn try_read_config() -> Result<Config, String> {
         WgpuFeatures::UNIFORM_BUFFER_AND_STORAGE_TEXTURE_ARRAY_NON_UNIFORM_INDEXING
             | WgpuFeatures::SAMPLED_TEXTURE_AND_STORAGE_BUFFER_ARRAY_NON_UNIFORM_INDEXING;
     let required_wgpu_features = match env::var("LIVE_COMPOSITOR_REQUIRED_WGPU_FEATURES") {
-        Ok(required_wgpu_features) => {
-            wgpu_features_from_str(&required_wgpu_features).unwrap_or(default_wgpu_features)
-        }
+        Ok(required_wgpu_features) => wgpu_features_from_str(&required_wgpu_features).unwrap(),
         Err(_) => default_wgpu_features,
     };
 
@@ -284,7 +282,6 @@ fn wgpu_features_from_str(s: &str) -> Result<WgpuFeatures, String> {
             "DUAL_SOURCE_BLENDING" => WgpuFeatures::DUAL_SOURCE_BLENDING,
             "" => WgpuFeatures::default(),
             feature => {
-                println!("CONFIG ERROR: Unknown wgpu feature \"{feature}\"");
                 return Err(format!("Unknown wgpu feature \"{feature}\""));
             }
         };
