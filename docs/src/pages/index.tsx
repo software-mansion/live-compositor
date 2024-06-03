@@ -338,7 +338,7 @@ function StandaloneSever() {
                 className={clsx(
                   'button button--secondary button--outline button--lg margin--sm',
                   styles.hoverSecondary,
-                  styles.flexButton
+                  styles.smallScreenFlexButton
                 )}
                 to="/docs/deployment/overview">
                 <IconContext.Provider value={{ style: { verticalAlign: 'middle' } }}>
@@ -350,7 +350,7 @@ function StandaloneSever() {
                 className={clsx(
                   'button button--secondary button--outline button--lg margin--sm',
                   styles.hoverSecondary,
-                  styles.flexButton
+                  styles.smallScreenFlexButton
                 )}
                 to="https://github.com/membraneframework/live_compositor/tree/master/build_tools/docker">
                 <IconContext.Provider value={{ style: { verticalAlign: 'middle' } }}>
@@ -393,7 +393,7 @@ function MembranePlugin() {
                 className={clsx(
                   'button button--secondary button--outline button--lg margin--sm',
                   styles.hoverSecondary,
-                  styles.flexButton
+                  styles.smallScreenFlexButton
                 )}
                 to="/docs/guides/simple-scene?lang=membrane">
                 <IconContext.Provider value={{ style: { verticalAlign: 'middle' } }}>
@@ -409,7 +409,7 @@ function MembranePlugin() {
                   'button--lg',
                   'margin--sm',
                   styles.hoverSecondary,
-                  styles.flexButton
+                  styles.smallScreenFlexButton
                 )}
                 to="https://github.com/membraneframework/membrane_live_compositor_plugin">
                 <IconContext.Provider value={{ style: { verticalAlign: 'middle' } }}>
@@ -465,7 +465,7 @@ function ContactUs() {
                     'button--primary',
                     'button--lg',
                     'margin--sm',
-                    styles.flexButton,
+                    styles.smallScreenFlexButton,
                     styles.hoverPrimary
                   )}
                   to="https://membrane.stream/contact">

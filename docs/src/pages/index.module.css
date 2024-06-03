@@ -87,7 +87,7 @@
     position: absolute;
   }
 
-  .flexButton {
+  .smallScreenFlexButton {
     flex: 1;
   }
 }
