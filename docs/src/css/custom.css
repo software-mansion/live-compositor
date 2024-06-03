@@ -29,6 +29,46 @@
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
 }
 
+.navbar-github-link {
+  padding: 0px;
+  margin-right: 10px;
+}
+
+.navbar-docs-link {
+  padding: 0px;
+  margin-right: 10px;
+}
+
+.navbar-github-link::before {
+  content: '';
+  width: 96px;
+  height: 32px;
+  display: flex;
+  background-color: var(--ifm-navbar-link-color);
+  mask-image: url("../../static/img/github_icon.svg");
+  transition: background-color var(--ifm-transition-fast)
+    var(--ifm-transition-timing-default);
+}
+
+.navbar-github-link:hover::before {
+  background-color: var(--ifm-navbar-link-hover-color);
+}
+
+.navbar-docs-link::before {
+  content: '';
+  width: 96px;
+  height: 32px;
+  display: flex;
+  background-color: var(--ifm-navbar-link-color);
+  mask-image: url("../../static/img/docs_icon.svg");
+  transition: background-color var(--ifm-transition-fast)
+    var(--ifm-transition-timing-default);
+}
+
+.navbar-docs-link:hover::before {
+  background-color: var(--ifm-navbar-link-hover-color);
+}
+
 /*
 
 :root {

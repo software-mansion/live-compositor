@@ -76,9 +76,16 @@ const config: Config = {
       },
       items: [
         {
-          href: 'https://github.com/membraneframework/live_compositor',
-          label: 'GitHub',
+          to: '/docs/intro',
           position: 'right',
+          className: 'navbar-docs-link',
+          'aria-label': 'Docs',
+        },
+        {
+          to: 'https://github.com/membraneframework/live_compositor',
+          position: 'right',
+          className: 'navbar-github-link',
+          'aria-label': 'GitHub repository',
         },
       ],
     },
@@ -87,8 +94,7 @@ const config: Config = {
       copyright: `Copyright © ${new Date().getFullYear()} Software Mansion S.A.`,
     },
     prism: {
-      theme: prismThemes.github,
-      darkTheme: prismThemes.dracula,
+      theme: prismThemes.duotoneDark,
       additionalLanguages: ['wgsl', 'http', 'elixir', 'bash'],
     },
   } satisfies Preset.ThemeConfig,
