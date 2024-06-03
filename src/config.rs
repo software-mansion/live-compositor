@@ -2,7 +2,6 @@ use std::{env, path::PathBuf, str::FromStr, time::Duration};
 
 use compositor_pipeline::queue::QueueOptions;
 use compositor_render::{web_renderer::WebRendererInitOptions, Framerate, WgpuFeatures};
-use log::error;
 use rand::Rng;
 
 use crate::logger::FfmpegLogLevel;
@@ -99,7 +98,7 @@ fn try_read_config() -> Result<Config, String> {
         Ok(timeout_ms) => match timeout_ms.parse::<f64>() {
             Ok(timeout_ms) => Duration::from_secs_f64(timeout_ms / 1000.0),
             Err(_) => {
-                error!("Invalid value provided for \"LIVE_COMPOSITOR_STREAM_FALLBACK_TIMEOUT_MS\". Falling back to default value 500ms.");
+                println!("CONFIG ERROR: Invalid value provided for \"LIVE_COMPOSITOR_STREAM_FALLBACK_TIMEOUT_MS\". Falling back to default value 500ms.");
                 DEFAULT_STREAM_FALLBACK_TIMEOUT
             }
         },
@@ -283,7 +282,11 @@ fn wgpu_features_from_str(s: &str) -> Result<WgpuFeatures, String> {
             "SHADER_PRIMITIVE_INDEX" => WgpuFeatures::SHADER_PRIMITIVE_INDEX,
             "SHADER_EARLY_DEPTH_TEST" => WgpuFeatures::SHADER_EARLY_DEPTH_TEST,
             "DUAL_SOURCE_BLENDING" => WgpuFeatures::DUAL_SOURCE_BLENDING,
-            feature => return Err(format!("Unknown wgpu feature \"{feature}\"")),
+            "" => WgpuFeatures::default(),
+            feature => {
+                println!("CONFIG ERROR: Unknown wgpu feature \"{feature}\"");
+                return Err(format!("Unknown wgpu feature \"{feature}\""));
+            }
         };
         all_features.set(feature, true)
     }
