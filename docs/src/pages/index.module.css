@@ -87,7 +87,7 @@
     position: absolute;
   }
 
-  .contactButton {
+  .flexButton {
     flex: 1;
   }
 }

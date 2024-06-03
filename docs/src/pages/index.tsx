@@ -329,17 +329,16 @@ function StandaloneSever() {
           <div className="card__body container">
             <p>
               LiveCompositor can be deployed as a standalone server. Language-agnostic API allows
-              you to seamlessly integrate it into your existing solutions. Docker images and
+              you to seamlessly integrate it into your existing solutions. Dockerfiles and
               deployment section in docs are meant to make the deployment process as easy as
               possible.
             </p>
-            <div className="row margin--sm" style={{ justifyContent: 'center' }}>
-              <div className="col" />
+            <div className="row margin--sm" style={{ justifyContent: 'end' }}>
               <Link
                 className={clsx(
-                  'button button--primary button--lg margin--sm',
-                  'col',
-                  styles.hoverPrimary
+                  'button button--secondary button--lg margin--sm',
+                  styles.hoverSecondary,
+                  styles.flexButton
                 )}
                 to="/docs/deployment/overview">
                 <IconContext.Provider value={{ style: { verticalAlign: 'middle' } }}>
@@ -349,21 +348,16 @@ function StandaloneSever() {
               </Link>
               <Link
                 className={clsx(
-                  'button',
-                  'button--secondary',
-                  'button--outline',
-                  'button--lg',
-                  'margin--sm',
-                  'col',
-                  styles.hoverSecondary
+                  'button button--secondary button--outline button--lg margin--sm',
+                  styles.hoverSecondary,
+                  styles.flexButton
                 )}
                 to="https://github.com/membraneframework/live_compositor/tree/master/build_tools/docker">
                 <IconContext.Provider value={{ style: { verticalAlign: 'middle' } }}>
                   <FaDocker style={{ marginRight: 5 }} />
-                  Docker images
+                  Dockerfiles
                 </IconContext.Provider>
               </Link>
-              <div className="col" />
             </div>
           </div>
         </div>
@@ -394,18 +388,14 @@ function MembranePlugin() {
               video and audio composing functionality into your multimedia pipeline using Membrane
               LiveCompositor Plugin.
             </p>
-            <div className="row margin--sm" style={{ justifyContent: 'center' }}>
-              <div className="col" />
+            <div className="row margin--sm" style={{ justifyContent: 'end' }}>
               <Link
                 className={clsx(
-                  'button',
-                  'button--primary',
-                  'button--lg',
-                  'margin--sm',
-                  'col',
-                  styles.hoverPrimary
+                  'button button--secondary button--lg margin--sm',
+                  styles.hoverSecondary,
+                  styles.flexButton
                 )}
-                to="https://hexdocs.pm/membrane_video_compositor_plugin/Membrane.VideoCompositor.html">
+                to="/docs/guides/simple-scene?lang=membrane">
                 <IconContext.Provider value={{ style: { verticalAlign: 'middle' } }}>
                   <FaBook style={{ marginRight: 5 }} />
                   Docs
@@ -418,16 +408,15 @@ function MembranePlugin() {
                   'button--outline',
                   'button--lg',
                   'margin--sm',
-                  'col',
-                  styles.hoverSecondary
+                  styles.hoverSecondary,
+                  styles.flexButton
                 )}
                 to="https://github.com/membraneframework/membrane_live_compositor_plugin">
                 <IconContext.Provider value={{ style: { verticalAlign: 'middle' } }}>
                   <FaGithub style={{ marginRight: 5 }} />
-                  Plugin repo
+                  Repository
                 </IconContext.Provider>
               </Link>
-              <div className="col" />
             </div>
           </div>
         </div>
@@ -476,7 +465,7 @@ function ContactUs() {
                     'button--primary',
                     'button--lg',
                     'margin--sm',
-                    styles.contactButton,
+                    styles.flexButton,
                     styles.hoverPrimary
                   )}
                   to="https://membrane.stream/contact">
