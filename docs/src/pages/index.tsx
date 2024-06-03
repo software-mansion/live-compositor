@@ -336,7 +336,7 @@ function StandaloneSever() {
             <div className="row margin--sm" style={{ justifyContent: 'end' }}>
               <Link
                 className={clsx(
-                  'button button--secondary button--lg margin--sm',
+                  'button button--secondary button--outline button--lg margin--sm',
                   styles.hoverSecondary,
                   styles.flexButton
                 )}
@@ -391,7 +391,7 @@ function MembranePlugin() {
             <div className="row margin--sm" style={{ justifyContent: 'end' }}>
               <Link
                 className={clsx(
-                  'button button--secondary button--lg margin--sm',
+                  'button button--secondary button--outline button--lg margin--sm',
                   styles.hoverSecondary,
                   styles.flexButton
                 )}
