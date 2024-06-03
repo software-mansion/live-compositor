@@ -44,6 +44,26 @@ pub struct Mp4 {
     pub offset_ms: Option<f64>,
 }
 
+/// Capture streams from devices connected to Blackmagic DeckLink card.
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct DeckLink {
+    /// Single DeckLink device can consist of multiple sub-devices. This field defines
+    /// index of sub-device that should be used.
+    pub subdevice_index: Option<u32>,
+
+    /// Select device to use based on the display name. This the value you see in e.g.
+    /// Blackmagic Media Express app. like "DeckLink Quad HDMI Recorder (3)"
+    pub display_name: Option<String>,
+
+    /// (**default=`true`**) Enable audio support.
+    pub enable_audio: Option<bool>,
+
+    /// (**default=`false`**) If input is required and frames are not processed
+    /// on time, then LiveCompositor will delay producing output frames.
+    pub required: Option<bool>,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum AacRtpMode {

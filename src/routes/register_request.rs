@@ -8,8 +8,8 @@ use crate::{
     routes::Json,
     state::{Pipeline, Response},
     types::{
-        ImageSpec, InputId, Mp4, OutputId, RendererId, RtpInputStream, RtpOutputStream, ShaderSpec,
-        WebRendererSpec,
+        DeckLink, ImageSpec, InputId, Mp4, OutputId, RendererId, RtpInputStream, RtpOutputStream,
+        ShaderSpec, WebRendererSpec,
     },
 };
 
@@ -20,6 +20,8 @@ use super::ApiState;
 pub enum RegisterInput {
     RtpStream(RtpInputStream),
     Mp4(Mp4),
+    #[serde(rename = "decklink")]
+    DeckLink(DeckLink),
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
@@ -41,6 +43,9 @@ pub(super) async fn handle_input(
             }
             RegisterInput::Mp4(mp4) => {
                 Pipeline::register_input(&api.pipeline, input_id.into(), mp4.try_into()?)?
+            }
+            RegisterInput::DeckLink(decklink) => {
+                Pipeline::register_input(&api.pipeline, input_id.into(), decklink.try_into()?)?
             }
         };
         match response {

@@ -128,7 +128,7 @@ fn start_example_client_code() -> Result<()> {
         "rtpptdemux name=demux ",
         &format!("tcpclientsrc host={IP} port={OUTPUT_PORT} ! \"application/x-rtp-stream\" ! rtpstreamdepay ! queue ! demux. "),
         "demux.src_96 ! \"application/x-rtp,media=video,clock-rate=90000,encoding-name=H264\" ! queue ! rtph264depay ! decodebin ! videoconvert ! autovideosink ",
-        "demux.src_97 ! \"application/x-rtp,media=audio,clock-rate=48000,encoding-name=OPUS\" ! queue ! rtpopusdepay ! decodebin ! audioconvert ! autoaudiosink ",
+  //      "demux.src_97 ! \"application/x-rtp,media=audio,clock-rate=48000,encoding-name=OPUS\" ! queue ! rtpopusdepay ! decodebin ! audioconvert ! autoaudiosink ",
     ].concat();
 
     Command::new("bash")
