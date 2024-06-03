@@ -2,7 +2,7 @@
 
 ## Technical requirements
 
-- **FFmpeg**
+- **FFmpeg** (FFmpeg6 on Linux, FFmpeg 7 on MacOS)
 - **Gstreamer**
 - NodeJS + npm
 
@@ -10,6 +10,28 @@ Before running demos, install JS dependencies with:
 
 ```console
 npm install
+```
+LiveCompositor should run on any computer with modern GPU, but if you want to check detailed requirements, visit [requirements section in docs](https://compositor.live/docs/deployment/requirements).
+
+### MacOS installation guide
+
+1. Install FFmpeg 7
+```console
+brew install ffmpeg
+```
+
+2. Install GStreamer
+
+- Go to GStreamer website, download and open runtime installers (we tested 1.24 release, but should work on the others as well).
+- Check if directory `/Library/Frameworks/GStreamer.framework/Commands/` exists.
+- Add `/Library/Frameworks/GStreamer.framework/Commands/` to `PATH`.
+If you're using `zshrc` add: `export PATH="$PATH:/Library/Frameworks/GStreamer.framework/Commands"` to `~/.zshrc`
+
+3. Install `node` and `ts-node`
+
+```console
+brew install node
+npm install ts-node
 ```
 
 ## Demos
