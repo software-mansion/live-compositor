@@ -70,12 +70,12 @@ This example simulates TV broadcasting scenario.
 It demonstrate how you can combine build-in components with own shaders, customizing LiveCompositor for specific use-case, while utilizing GPU rendering acceleration.
 In this example, green-screen is removed from input stream with use of custom shader. Transformed input stream, background image, logo, and text are combined in output stream.
 
-### 3. Screen stream
+### 3. Live stream
 
 Run this example with:
 
 ```console
-npm run 3-screen_stream
+npm run 3-live_stream
 ```
 
 This example simulates live streaming screen footage with webcam.
