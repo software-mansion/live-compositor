@@ -27,11 +27,16 @@ brew install ffmpeg
 - Add `/Library/Frameworks/GStreamer.framework/Commands/` to `PATH`.
 If you're using `zshrc` add: `export PATH="$PATH:/Library/Frameworks/GStreamer.framework/Commands"` to `~/.zshrc`
 
-3. Install `node` and `ts-node`
+3. Install `node`
 
 ```console
 brew install node
-npm install ts-node
+```
+
+4. Install node dependencies
+
+```console
+npm install
 ```
 
 ## Demos
