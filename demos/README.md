@@ -33,7 +33,7 @@ If you're using `zshrc` add: `export PATH="$PATH:/Library/Frameworks/GStreamer.f
 brew install node
 ```
 
-4. Install node dependencies
+4. Install JS dependencies
 
 ```console
 npm install
