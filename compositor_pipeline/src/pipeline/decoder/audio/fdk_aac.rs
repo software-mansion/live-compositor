@@ -3,10 +3,10 @@ use std::sync::Arc;
 use tracing::error;
 
 use crate::{
-    error::DecoderInitError,
+    error::InputInitError,
     pipeline::{
         decoder::AacDecoderOptions,
-        structs::{EncodedChunk, EncodedChunkKind},
+        structs::{EncodedChunk, EncodedChunkKind, Samples},
     },
 };
 
@@ -37,7 +37,7 @@ impl AacDecoder {
     pub fn new(
         options: AacDecoderOptions,
         first_chunk: &EncodedChunk,
-    ) -> Result<Self, DecoderInitError> {
+    ) -> Result<Self, InputInitError> {
         let transport = if first_chunk.data[..4] == [b'A', b'D', b'I', b'F'] {
             fdk::TRANSPORT_TYPE_TT_MP4_ADIF
         } else if first_chunk.data[0] == 0xff && first_chunk.data[1] & 0xf0 == 0xf0 {
@@ -141,13 +141,13 @@ impl AudioDecoderExt for AacDecoder {
             }
 
             let samples = match info.channelConfig {
-                1 => Arc::new(decoded_samples.iter().map(|s| (*s, *s)).collect()),
-                2 => Arc::new(
+                1 => Arc::new(Samples::Mono16Bit(decoded_samples)),
+                2 => Arc::new(Samples::Stereo16Bit(
                     decoded_samples
                         .chunks_exact(2)
                         .map(|c| (c[0], c[1]))
                         .collect(),
-                ),
+                )),
                 _ => return Err(AacDecoderError::UnsupportedChannelConfig.into()),
             };
 

@@ -6,13 +6,13 @@ use crossbeam_channel::Receiver;
 use tracing::error;
 
 use crate::{
-    pipeline::decoder::{AudioDecoderOptions, DecoderOptions, VideoDecoderOptions},
+    pipeline::decoder::{AudioDecoderOptions, VideoDecoderOptions},
     queue::PipelineEvent,
 };
 
 use mp4_file_reader::Mp4FileReader;
 
-use super::ChunksReceiver;
+use super::{AudioInputReceiver, Input, InputInitInfo, InputInitResult, VideoInputReceiver};
 
 pub mod mp4_file_reader;
 
@@ -60,11 +60,11 @@ pub struct Mp4 {
 }
 
 impl Mp4 {
-    pub(crate) fn new(
+    pub(super) fn start_new_input(
         input_id: &InputId,
         options: Mp4Options,
         download_dir: &Path,
-    ) -> Result<(Self, ChunksReceiver, DecoderOptions), Mp4Error> {
+    ) -> Result<InputInitResult, Mp4Error> {
         let input_path = match options.source {
             Source::Url(ref url) => {
                 let file_response = reqwest::blocking::get(url)?;
@@ -92,12 +92,15 @@ impl Mp4 {
             input_id.clone(),
         )?;
 
-        let (video_reader, video_receiver, video_decoder_options) = match video {
+        let (video_reader, video_receiver) = match video {
             Some((reader, receiver)) => {
-                let decoder_options = reader.decoder_options();
-                (Some(reader), Some(receiver), Some(decoder_options))
+                let input_receiver = VideoInputReceiver::Encoded {
+                    chunk_receiver: receiver,
+                    decoder_options: reader.decoder_options(),
+                };
+                (Some(reader), Some(input_receiver))
             }
-            None => (None, None, None),
+            None => (None, None),
         };
 
         let audio = Mp4FileReader::new_audio(
@@ -107,31 +110,29 @@ impl Mp4 {
             input_id.clone(),
         )?;
 
-        let (audio_reader, audio_receiver, audio_deocder_options) = match audio {
+        let (audio_reader, audio_receiver) = match audio {
             Some((reader, receiver)) => {
-                let decoder_options = reader.decoder_options();
-                (Some(reader), Some(receiver), Some(decoder_options))
+                let input_receiver = AudioInputReceiver::Encoded {
+                    decoder_options: reader.decoder_options(),
+                    chunk_receiver: receiver,
+                };
+                (Some(reader), Some(input_receiver))
             }
-            None => (None, None, None),
+            None => (None, None),
         };
 
-        Ok((
-            Self {
+        Ok(InputInitResult {
+            input: Input::Mp4(Self {
                 input_id: input_id.clone(),
                 _video_thread: video_reader,
                 _audio_thread: audio_reader,
                 source: options.source,
                 path_to_file: input_path,
-            },
-            ChunksReceiver {
-                video: video_receiver,
-                audio: audio_receiver,
-            },
-            DecoderOptions {
-                video: video_decoder_options,
-                audio: audio_deocder_options,
-            },
-        ))
+            }),
+            video: video_receiver,
+            audio: audio_receiver,
+            init_info: InputInitInfo { port: None },
+        })
     }
 }
 

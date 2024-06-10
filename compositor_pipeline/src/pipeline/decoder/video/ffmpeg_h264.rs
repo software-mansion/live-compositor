@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use crate::{
-    error::DecoderInitError,
+    error::InputInitError,
     pipeline::structs::{EncodedChunk, EncodedChunkKind, VideoCodec},
     queue::PipelineEvent,
 };
@@ -21,7 +21,7 @@ pub fn start_ffmpeg_decoder_thread(
     chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
     frame_sender: Sender<PipelineEvent<Frame>>,
     input_id: InputId,
-) -> Result<(), DecoderInitError> {
+) -> Result<(), InputInitError> {
     let (init_result_sender, init_result_receiver) = crossbeam_channel::bounded(0);
 
     let mut parameters = ffmpeg_next::codec::Parameters::new();
@@ -65,12 +65,12 @@ enum DecoderChunkConversionError {
 
 fn run_decoder_thread(
     parameters: ffmpeg_next::codec::Parameters,
-    init_result_sender: Sender<Result<(), DecoderInitError>>,
+    init_result_sender: Sender<Result<(), InputInitError>>,
     chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
     frame_sender: Sender<PipelineEvent<Frame>>,
 ) {
     let decoder = Context::from_parameters(parameters.clone())
-        .map_err(DecoderInitError::FfmpegError)
+        .map_err(InputInitError::FfmpegError)
         .and_then(|mut decoder| {
             unsafe {
                 // This is because we use microseconds as pts and dts in the packets.
@@ -81,7 +81,7 @@ fn run_decoder_thread(
             let decoder = decoder.decoder();
             decoder
                 .open_as(Into::<Id>::into(parameters.id()))
-                .map_err(DecoderInitError::FfmpegError)
+                .map_err(InputInitError::FfmpegError)
         });
 
     let mut decoder = match decoder {

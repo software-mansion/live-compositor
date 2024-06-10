@@ -13,9 +13,6 @@ pub enum RegisterInputError {
     #[error("Failed to register input stream. Stream \"{0}\" is already registered.")]
     AlreadyRegistered(InputId),
 
-    #[error("Decoder error while registering input stream for stream \"{0}\".")]
-    DecoderError(InputId, #[source] DecoderInitError),
-
     #[error("Input initialization error while registering input for stream \"{0}\".")]
     InputError(InputId, #[source] InputInitError),
 }
@@ -91,26 +88,27 @@ pub enum EncoderInitError {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum DecoderInitError {
-    #[error(transparent)]
-    FfmpegError(#[from] ffmpeg_next::Error),
-    #[error(transparent)]
-    OpusError(#[from] opus::Error),
-    #[error(transparent)]
-    AacError(#[from] AacDecoderError),
-    #[error(transparent)]
-    ResamplerError(#[from] rubato::ResamplerConstructionError),
-    #[error("Couldn't read decoder init result.")]
-    CannotReadInitResult,
-}
-
-#[derive(Debug, thiserror::Error)]
 pub enum InputInitError {
     #[error(transparent)]
     Rtp(#[from] crate::pipeline::input::rtp::RtpReceiverError),
 
     #[error(transparent)]
     Mp4(#[from] crate::pipeline::input::mp4::Mp4Error),
+
+    #[error(transparent)]
+    FfmpegError(#[from] ffmpeg_next::Error),
+
+    #[error(transparent)]
+    OpusError(#[from] opus::Error),
+
+    #[error(transparent)]
+    AacError(#[from] AacDecoderError),
+
+    #[error(transparent)]
+    ResamplerError(#[from] rubato::ResamplerConstructionError),
+
+    #[error("Couldn't read decoder init result.")]
+    CannotReadInitResult,
 }
 
 pub enum ErrorType {
@@ -134,7 +132,6 @@ impl PipelineErrorInfo {
 }
 
 const INPUT_STREAM_ALREADY_REGISTERED: &str = "INPUT_STREAM_ALREADY_REGISTERED";
-const DECODER_ERROR: &str = "INPUT_STREAM_DECODER_ERROR";
 const INPUT_ERROR: &str = "INPUT_STREAM_INPUT_ERROR";
 
 impl From<&RegisterInputError> for PipelineErrorInfo {
@@ -142,10 +139,6 @@ impl From<&RegisterInputError> for PipelineErrorInfo {
         match err {
             RegisterInputError::AlreadyRegistered(_) => {
                 PipelineErrorInfo::new(INPUT_STREAM_ALREADY_REGISTERED, ErrorType::UserError)
-            }
-
-            RegisterInputError::DecoderError(_, _) => {
-                PipelineErrorInfo::new(DECODER_ERROR, ErrorType::ServerError)
             }
 
             RegisterInputError::InputError(_, _) => {
