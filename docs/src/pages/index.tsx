@@ -452,11 +452,11 @@ function ContactUs() {
             </div>
             <div className="card__body">
               <p className={styles.sectionSubheading}>
-                LiveCompositor is free and open-source. It's created by Software Mansion - a
-                software company that is specialized in building tools for developers. At Software
-                Mansion, we work on multiple multimedia projects, like Membrane Framework, Elixir
-                WebRTC, FishJam, and more. We also work on custom solutions for clients. Contact us
-                and create something together.
+                LiveCompositor is developed by Software Mansion - a software company that is
+                specialized in building tools for developers. At Software Mansion, we work on
+                multiple multimedia projects, like Membrane Framework, Elixir WebRTC, FishJam, and
+                more. We also work on custom solutions for clients. Contact us and create something
+                together.
               </p>
               <div className="row" style={{ justifyContent: 'end' }}>
                 <Link
