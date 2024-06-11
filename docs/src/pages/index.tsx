@@ -45,8 +45,7 @@ function HomepageHeader() {
               </div>
             </Heading>
             <p className={styles.sectionSubheading}>
-              Open-source media server for real-time, low latency, programmable video and audio
-              mixing.
+              Media server for real-time, low latency, programmable video and audio mixing.
             </p>
             <div className="row margin-bottom--md">
               <Link
