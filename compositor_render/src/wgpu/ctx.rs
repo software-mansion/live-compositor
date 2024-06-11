@@ -13,10 +13,13 @@ pub fn use_global_wgpu_ctx() {
     USE_GLOBAL_WGPU_CTX.store(true, std::sync::atomic::Ordering::Relaxed);
 }
 
-fn global_wgpu_ctx(force_gpu: bool) -> Result<Arc<WgpuCtx>, CreateWgpuCtxError> {
+fn global_wgpu_ctx(
+    force_gpu: bool,
+    features: wgpu::Features,
+) -> Result<Arc<WgpuCtx>, CreateWgpuCtxError> {
     static CTX: OnceLock<Result<Arc<WgpuCtx>, CreateWgpuCtxError>> = OnceLock::new();
 
-    CTX.get_or_init(|| Ok(Arc::new(WgpuCtx::create(force_gpu)?)))
+    CTX.get_or_init(|| Ok(Arc::new(WgpuCtx::create(force_gpu, features)?)))
         .clone()
 }
 
@@ -36,15 +39,15 @@ pub struct WgpuCtx {
 }
 
 impl WgpuCtx {
-    pub fn new(force_gpu: bool) -> Result<Arc<Self>, CreateWgpuCtxError> {
+    pub fn new(force_gpu: bool, features: wgpu::Features) -> Result<Arc<Self>, CreateWgpuCtxError> {
         if USE_GLOBAL_WGPU_CTX.load(std::sync::atomic::Ordering::Relaxed) {
-            global_wgpu_ctx(force_gpu)
+            global_wgpu_ctx(force_gpu, features)
         } else {
-            Ok(Arc::new(Self::create(force_gpu)?))
+            Ok(Arc::new(Self::create(force_gpu, features)?))
         }
     }
 
-    fn create(force_gpu: bool) -> Result<Self, CreateWgpuCtxError> {
+    fn create(force_gpu: bool, features: wgpu::Features) -> Result<Self, CreateWgpuCtxError> {
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
             backends: wgpu::Backends::all(),
             ..Default::default()
@@ -70,22 +73,14 @@ impl WgpuCtx {
             return Err(CreateWgpuCtxError::NoAdapter);
         }
         let required_features =
-            wgpu::Features::TEXTURE_BINDING_ARRAY | wgpu::Features::PUSH_CONSTANTS;
-        let optional_features =
-            wgpu::Features::SAMPLED_TEXTURE_AND_STORAGE_BUFFER_ARRAY_NON_UNIFORM_INDEXING
-                | wgpu::Features::UNIFORM_BUFFER_AND_STORAGE_TEXTURE_ARRAY_NON_UNIFORM_INDEXING;
+            features | wgpu::Features::TEXTURE_BINDING_ARRAY | wgpu::Features::PUSH_CONSTANTS;
 
-        let missing_required_features = required_features.difference(adapter.features());
-        if !missing_required_features.is_empty() {
-            error!("Selected adapter or its driver does not support required wgpu features. Missing features: {missing_required_features:?}).");
+        let missing_features = required_features.difference(adapter.features());
+        if !missing_features.is_empty() {
+            error!("Selected adapter or its driver does not support required wgpu features. Missing features: {missing_features:?}).");
+            error!("You can configure some of the required features using \"LIVE_COMPOSITOR_REQUIRED_WGPU_FEATURES\" environment variable. Check https://compositor.live/docs for more.");
             return Err(CreateWgpuCtxError::NoAdapter);
         }
-        let missing_optional_features = optional_features.difference(adapter.features());
-        if !missing_optional_features.is_empty() {
-            error!("Selected adapter or its driver does not support optional wgpu features. Missing features: {missing_optional_features:?}).");
-        }
-        let requested_features =
-            required_features.union(optional_features.difference(missing_optional_features));
 
         let (device, queue) = pollster::block_on(adapter.request_device(
             &wgpu::DeviceDescriptor {
@@ -94,7 +89,7 @@ impl WgpuCtx {
                     max_push_constant_size: 128,
                     ..Default::default()
                 },
-                required_features: requested_features,
+                required_features,
             },
             None,
         ))?;

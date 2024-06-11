@@ -20,6 +20,7 @@ pub use state::RendererOptions;
 pub use state::RendererSpec;
 
 pub use wgpu::use_global_wgpu_ctx;
+pub use wgpu::WgpuFeatures;
 
 pub mod image {
     pub use crate::transformations::image_renderer::{ImageSource, ImageSpec, ImageType};

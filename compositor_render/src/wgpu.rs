@@ -8,6 +8,7 @@ pub(crate) mod utils;
 
 pub use ctx::use_global_wgpu_ctx;
 pub(crate) use ctx::WgpuCtx;
+pub use wgpu::Features as WgpuFeatures;
 
 #[must_use]
 pub(crate) struct WgpuErrorScope;

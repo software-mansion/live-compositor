@@ -13,6 +13,7 @@ use compositor_render::web_renderer::WebRendererInitOptions;
 use compositor_render::FrameSet;
 use compositor_render::RegistryType;
 use compositor_render::RendererOptions;
+use compositor_render::WgpuFeatures;
 use compositor_render::{error::UpdateSceneError, Renderer};
 use compositor_render::{EventLoop, InputId, OutputId, RendererId, RendererSpec};
 use crossbeam_channel::{bounded, Receiver};
@@ -107,6 +108,7 @@ pub struct Options {
     pub force_gpu: bool,
     pub download_root: PathBuf,
     pub output_sample_rate: u32,
+    pub wgpu_features: WgpuFeatures,
 }
 
 impl Pipeline {
@@ -116,6 +118,7 @@ impl Pipeline {
             framerate: opts.queue_options.output_framerate,
             stream_fallback_timeout: opts.stream_fallback_timeout,
             force_gpu: opts.force_gpu,
+            wgpu_features: opts.wgpu_features,
         })?;
 
         let mut download_dir = opts.download_root;

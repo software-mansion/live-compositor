@@ -38,6 +38,7 @@ impl ApiState {
             force_gpu,
             download_root,
             output_sample_rate,
+            required_wgpu_features,
             ..
         } = config.clone();
         let (pipeline, event_loop) = Pipeline::new(pipeline::Options {
@@ -47,6 +48,7 @@ impl ApiState {
             force_gpu,
             download_root,
             output_sample_rate,
+            wgpu_features: required_wgpu_features,
         })?;
         Ok((
             ApiState {
