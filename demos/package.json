@@ -18,7 +18,7 @@
     "url": "git+https://github.com/membraneframework/live_compositor.git"
   },
   "author": "",
-  "license": "Apache-2.0",
+  "license": "BUSL-1.1",
   "bugs": {
     "url": "https://github.com/membraneframework/live_compositor/issues"
   },
