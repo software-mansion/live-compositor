@@ -451,27 +451,14 @@ function ContactUs() {
               </Heading>
             </div>
             <div className="card__body">
-              <p className={styles.sectionSubheading}>
+              <p className={clsx(styles.sectionSubheading, 'margin-bottom--md')}>
                 LiveCompositor is developed by Software Mansion - a software company that is
                 specialized in building tools for developers. At Software Mansion, we work on
                 multiple multimedia projects, like Membrane Framework, Elixir WebRTC, FishJam, and
-                more. We also work on custom solutions for clients. Contact us and create something
-                together.
+                more. We also work on custom solutions for clients. Email us at{' '}
+                <Link to="mailto:projects@swmansion.com">projects@swmansion.com</Link> or contact us
+                via <Link to="https://membrane.stream/contact">this form</Link>.
               </p>
-              <div className="row" style={{ justifyContent: 'end' }}>
-                <Link
-                  className={clsx(
-                    'button',
-                    'button--primary',
-                    'button--lg',
-                    'margin--sm',
-                    styles.smallScreenFlexButton,
-                    styles.hoverPrimary
-                  )}
-                  to="https://membrane.stream/contact">
-                  Contact us
-                </Link>
-              </div>
             </div>
           </div>
         </div>
