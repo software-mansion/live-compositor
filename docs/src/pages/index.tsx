@@ -394,7 +394,7 @@ function MembranePlugin() {
                   styles.hoverSecondary,
                   styles.smallScreenFlexButton
                 )}
-                to="/docs/guides/simple-scene?lang=membrane">
+                to="https://hexdocs.pm/membrane_live_compositor_plugin/0.9.0/Membrane.LiveCompositor.html">
                 <IconContext.Provider value={{ style: { verticalAlign: 'middle' } }}>
                   <FaBook style={{ marginRight: 5 }} />
                   Docs
