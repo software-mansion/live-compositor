@@ -44,7 +44,7 @@ let
 in
 rustPlatform.buildRustPackage {
   pname = "live_compositor";
-  version = "0.2.0-rc.1";
+  version = "0.2.0";
   src = ../..;
   cargoLock = {
     lockFile = ../../Cargo.lock;
