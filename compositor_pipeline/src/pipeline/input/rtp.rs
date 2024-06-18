@@ -2,11 +2,10 @@ use std::sync::{atomic::AtomicBool, Arc};
 
 use crate::{
     pipeline::{
-        decoder::{self, DecoderOptions},
+        decoder::{self},
         encoder,
         rtp::{BindToPortError, RequestedPort, TransportProtocol},
         structs::{EncodedChunk, EncodedChunkKind},
-        Port,
     },
     queue::PipelineEvent,
 };
@@ -22,7 +21,7 @@ use self::{
     udp::start_udp_reader_thread,
 };
 
-use super::ChunksReceiver;
+use super::{AudioInputReceiver, Input, InputInitInfo, InputInitResult, VideoInputReceiver};
 
 mod depayloader;
 mod tcp_server;
@@ -73,16 +72,21 @@ pub struct RtpStream {
     pub audio: Option<InputAudioStream>,
 }
 
+struct DepayloaderThreadReceivers {
+    video: Option<Receiver<PipelineEvent<EncodedChunk>>>,
+    audio: Option<Receiver<PipelineEvent<EncodedChunk>>>,
+}
+
 pub struct RtpReceiver {
     should_close: Arc<AtomicBool>,
     pub port: u16,
 }
 
 impl RtpReceiver {
-    pub fn new(
+    pub(super) fn start_new_input(
         input_id: &InputId,
         opts: RtpReceiverOptions,
-    ) -> Result<(Self, ChunksReceiver, DecoderOptions, Port), RtpReceiverError> {
+    ) -> Result<InputInitResult, RtpReceiverError> {
         let should_close = Arc::new(AtomicBool::new(false));
 
         let (port, packets_rx) = match opts.transport_protocol {
@@ -96,27 +100,40 @@ impl RtpReceiver {
 
         let depayloader = Depayloader::new(&opts.stream)?;
 
-        let chunks_receiver = Self::start_depayloader_thread(input_id, packets_rx, depayloader);
+        let depayloader_receivers =
+            Self::start_depayloader_thread(input_id, packets_rx, depayloader);
 
-        Ok((
-            Self {
-                port: port.0,
+        let video = match (depayloader_receivers.video, opts.stream.video) {
+            (Some(chunk_receiver), Some(stream)) => Some(VideoInputReceiver::Encoded {
+                chunk_receiver,
+                decoder_options: stream.options,
+            }),
+            _ => None,
+        };
+        let audio = match (depayloader_receivers.audio, opts.stream.audio) {
+            (Some(chunk_receiver), Some(stream)) => Some(AudioInputReceiver::Encoded {
+                chunk_receiver,
+                decoder_options: stream.options,
+            }),
+            _ => None,
+        };
+
+        Ok(InputInitResult {
+            input: Input::Rtp(Self {
                 should_close,
-            },
-            chunks_receiver,
-            DecoderOptions {
-                video: opts.stream.video.map(|v| v.options),
-                audio: opts.stream.audio.map(|a| a.options),
-            },
-            port,
-        ))
+                port: port.0,
+            }),
+            video,
+            audio,
+            init_info: InputInitInfo { port: Some(port) },
+        })
     }
 
     fn start_depayloader_thread(
         input_id: &InputId,
         receiver: Receiver<bytes::Bytes>,
         depayloader: Depayloader,
-    ) -> ChunksReceiver {
+    ) -> DepayloaderThreadReceivers {
         let (video_sender, video_receiver) = depayloader
             .video
             .as_ref()
@@ -142,7 +159,7 @@ impl RtpReceiver {
             })
             .unwrap();
 
-        ChunksReceiver {
+        DepayloaderThreadReceivers {
             video: video_receiver,
             audio: audio_receiver,
         }

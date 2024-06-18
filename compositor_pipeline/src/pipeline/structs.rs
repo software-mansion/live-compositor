@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{fmt, sync::Arc, time::Duration};
 
 use bytes::Bytes;
 
@@ -83,5 +83,38 @@ impl TryFrom<ffmpeg_next::Codec> for VideoCodec {
             ffmpeg_next::codec::Id::H264 => Ok(Self::H264),
             v => Err(CodecFromFfmpegError::UnsupportedCodec(v)),
         }
+    }
+}
+
+/// Raw samples produced by a decoder or received from external source.
+/// They still need to be resampled before passing them to the queue.
+#[derive(Debug)]
+pub(super) struct DecodedSamples {
+    pub samples: Arc<Samples>,
+    pub start_pts: Duration,
+    pub sample_rate: u32,
+}
+
+#[allow(clippy::enum_variant_names)]
+pub(super) enum Samples {
+    Mono16Bit(Vec<i16>),
+    #[allow(dead_code)]
+    Mono32Bit(Vec<i32>),
+    Stereo16Bit(Vec<(i16, i16)>),
+    #[allow(dead_code)]
+    Stereo32Bit(Vec<(i32, i32)>),
+}
+
+impl fmt::Debug for Samples {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let (name, length) = match self {
+            Samples::Mono16Bit(s) => ("Mono16Bit", s.len()),
+            Samples::Mono32Bit(s) => ("Mono32Bit", s.len()),
+            Samples::Stereo16Bit(s) => ("Stereo16Bit", s.len()),
+            Samples::Stereo32Bit(s) => ("Stereo32Bit", s.len()),
+        };
+        f.debug_struct(&format!("Samples::{}", name))
+            .field("len", &length)
+            .finish()
     }
 }

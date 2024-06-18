@@ -1,8 +1,11 @@
 use std::sync::Arc;
 
 use crate::{
-    error::DecoderInitError,
-    pipeline::{decoder::OpusDecoderOptions, structs::EncodedChunk},
+    error::InputInitError,
+    pipeline::{
+        decoder::OpusDecoderOptions,
+        structs::{EncodedChunk, Samples},
+    },
 };
 
 use super::{AudioDecoderExt, DecodedSamples, DecodingError};
@@ -15,10 +18,7 @@ pub(super) struct OpusDecoder {
 }
 
 impl OpusDecoder {
-    pub fn new(
-        opts: OpusDecoderOptions,
-        output_sample_rate: u32,
-    ) -> Result<Self, DecoderInitError> {
+    pub fn new(opts: OpusDecoderOptions, output_sample_rate: u32) -> Result<Self, InputInitError> {
         const OPUS_SAMPLE_RATES: [u32; 5] = [8_000, 12_000, 16_000, 24_000, 48_000];
         let decoded_sample_rate = if OPUS_SAMPLE_RATES.contains(&output_sample_rate) {
             output_sample_rate
@@ -40,13 +40,14 @@ impl OpusDecoder {
     }
 
     /// Panics if buffer.len() < 2 * decoded_samples_count
-    fn read_buffer(buffer: &[i16], decoded_samples_count: usize) -> Arc<Vec<(i16, i16)>> {
-        Arc::new(
+    fn read_buffer(buffer: &[i16], decoded_samples_count: usize) -> Arc<Samples> {
+        Samples::Stereo16Bit(
             buffer[0..(2 * decoded_samples_count)]
                 .chunks_exact(2)
                 .map(|c| (c[0], c[1]))
                 .collect(),
         )
+        .into()
     }
 }
 

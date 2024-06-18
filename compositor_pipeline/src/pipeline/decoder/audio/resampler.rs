@@ -5,9 +5,11 @@ use log::{debug, error};
 use rubato::{FftFixedOut, Resampler as _};
 use tracing::trace;
 
-use crate::{audio_mixer::InputSamples, error::DecoderInitError};
-
-use super::DecodedSamples;
+use crate::{
+    audio_mixer::InputSamples,
+    error::InputInitError,
+    pipeline::structs::{DecodedSamples, Samples},
+};
 
 const SAMPLE_BATCH_DURATION: Duration = Duration::from_millis(20);
 
@@ -17,7 +19,7 @@ pub(super) enum Resampler {
 }
 
 impl Resampler {
-    pub fn new(input_sample_rate: u32, output_sample_rate: u32) -> Result<Self, DecoderInitError> {
+    pub fn new(input_sample_rate: u32, output_sample_rate: u32) -> Result<Self, InputInitError> {
         if input_sample_rate == output_sample_rate {
             Ok(Self::Passthrough(PassthroughResampler::new(
                 input_sample_rate,
@@ -59,8 +61,17 @@ impl PassthroughResampler {
             error!("Passthrough resampler received decoded samples in wrong sample rate. Expected {}, actual: {}", self.input_sample_rate, decoded_samples.sample_rate);
             return Vec::new();
         }
+        let samples = if let Samples::Stereo16Bit(samples) = decoded_samples.samples.as_ref() {
+            Arc::new(samples.clone())
+        } else {
+            let samples = iter_as_f64_stereo(&decoded_samples.samples)
+                .into_iter()
+                .map(|(l, r)| (pcm_f64_to_i16(l), pcm_f64_to_i16(r)))
+                .collect();
+            Arc::new(samples)
+        };
         Vec::from([InputSamples::new(
-            decoded_samples.samples,
+            samples,
             decoded_samples.start_pts,
             self.output_sample_rate,
         )])
@@ -82,7 +93,7 @@ impl FftResampler {
     fn new(
         input_sample_rate: u32,
         output_sample_rate: u32,
-    ) -> Result<FftResampler, DecoderInitError> {
+    ) -> Result<FftResampler, InputInitError> {
         /// This part of pipeline use stereo
         const CHANNELS: usize = 2;
         /// Not sure what should be here, but rubato example used 2
@@ -179,9 +190,9 @@ impl FftResampler {
             }
         }
 
-        for (l, r) in decoded_samples.samples.iter().cloned() {
-            self.input_buffer[0].push(pcm_i16_to_f64(l));
-            self.input_buffer[1].push(pcm_i16_to_f64(r));
+        for (l, r) in iter_as_f64_stereo(&decoded_samples.samples) {
+            self.input_buffer[0].push(l);
+            self.input_buffer[1].push(r);
         }
     }
 
@@ -208,13 +219,37 @@ impl FftResampler {
     }
 }
 
-fn pcm_i16_to_f64(val: i16) -> f64 {
-    val as f64 / i16::MAX as f64
-}
-
 fn pcm_f64_to_i16(val: f64) -> i16 {
     let mapped_to_i16_range = val * i16::MAX as f64;
     mapped_to_i16_range
         .min(i16::MAX as f64)
         .max(i16::MIN as f64) as i16
+}
+
+fn iter_as_f64_stereo(samples: &Samples) -> Vec<(f64, f64)> {
+    fn pcm_i16_to_f64(val: i16) -> f64 {
+        val as f64 / i16::MAX as f64
+    }
+
+    fn pcm_i32_to_f64(val: i32) -> f64 {
+        val as f64 / i32::MAX as f64
+    }
+    match samples {
+        Samples::Mono16Bit(samples) => samples
+            .iter()
+            .map(|s| (pcm_i16_to_f64(*s), pcm_i16_to_f64(*s)))
+            .collect(),
+        Samples::Mono32Bit(samples) => samples
+            .iter()
+            .map(|s| (pcm_i32_to_f64(*s), pcm_i32_to_f64(*s)))
+            .collect(),
+        Samples::Stereo16Bit(samples) => samples
+            .iter()
+            .map(|(l, r)| (pcm_i16_to_f64(*l), pcm_i16_to_f64(*r)))
+            .collect(),
+        Samples::Stereo32Bit(samples) => samples
+            .iter()
+            .map(|(l, r)| (pcm_i32_to_f64(*l), pcm_i32_to_f64(*r)))
+            .collect(),
+    }
 }

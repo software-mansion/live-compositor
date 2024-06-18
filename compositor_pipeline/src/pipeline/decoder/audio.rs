@@ -1,5 +1,3 @@
-use std::{fmt, sync::Arc, time::Duration};
-
 use compositor_render::InputId;
 use crossbeam_channel::{bounded, Receiver, Sender};
 use log::{debug, error};
@@ -7,7 +5,9 @@ use tracing::{span, trace, Level};
 
 extern crate opus as lib_opus;
 use crate::{
-    audio_mixer::InputSamples, error::DecoderInitError, pipeline::structs::EncodedChunk,
+    audio_mixer::InputSamples,
+    error::InputInitError,
+    pipeline::structs::{DecodedSamples, EncodedChunk},
     queue::PipelineEvent,
 };
 
@@ -19,22 +19,6 @@ pub use fdk_aac::AacDecoderError;
 mod fdk_aac;
 mod opus;
 mod resampler;
-
-struct DecodedSamples {
-    samples: Arc<Vec<(i16, i16)>>,
-    start_pts: Duration,
-    sample_rate: u32,
-}
-
-impl fmt::Debug for DecodedSamples {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("audio::DecodedSamples")
-            .field("samples", &format!("len={}", self.samples.len()))
-            .field("start_pts", &self.start_pts)
-            .field("sample_rate", &self.sample_rate)
-            .finish()
-    }
-}
 
 #[derive(Debug, thiserror::Error)]
 pub enum DecodingError {
@@ -51,13 +35,13 @@ trait AudioDecoderExt {
     fn decoded_sample_rate(&self) -> u32;
 }
 
-pub fn start_audio_decoder_thread(
-    opts: AudioDecoderOptions,
+pub fn start_audio_resampler_only_thread(
+    input_sample_rate: u32,
     output_sample_rate: u32,
-    chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
+    raw_samples_receiver: Receiver<PipelineEvent<DecodedSamples>>,
     samples_sender: Sender<PipelineEvent<InputSamples>>,
     input_id: InputId,
-) -> Result<(), DecoderInitError> {
+) -> Result<(), InputInitError> {
     let (decoder_init_result_sender, decoder_init_result_receiver) = bounded(0);
     std::thread::Builder::new()
         .name(format!("Decoder thread for input {}", input_id.clone()))
@@ -69,10 +53,10 @@ pub fn start_audio_decoder_thread(
             )
             .entered();
 
-            run_decoder_thread(
-                opts,
+            run_resampler_only_thread(
+                input_sample_rate,
                 output_sample_rate,
-                chunks_receiver,
+                raw_samples_receiver,
                 samples_sender,
                 decoder_init_result_sender,
             );
@@ -82,46 +66,107 @@ pub fn start_audio_decoder_thread(
     match decoder_init_result_receiver.recv() {
         Ok(Ok(())) => Ok(()),
         Ok(Err(init_err)) => Err(init_err),
-        Err(_recv_err) => Err(DecoderInitError::CannotReadInitResult),
+        Err(_recv_err) => Err(InputInitError::CannotReadInitResult),
     }
 }
 
-/// init_result_sender sends:
-/// - true init result for Opus
-/// - always ok for AAC (aac sample rate is unknown at register time, first chunk is need to determine it)
-fn run_decoder_thread(
-    opts: AudioDecoderOptions,
+fn run_resampler_only_thread(
+    input_sample_rate: u32,
     output_sample_rate: u32,
-    chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
+    raw_samples_receiver: Receiver<PipelineEvent<DecodedSamples>>,
     samples_sender: Sender<PipelineEvent<InputSamples>>,
-    init_result_sender: Sender<Result<(), DecoderInitError>>,
+    init_result_sender: Sender<Result<(), InputInitError>>,
 ) {
-    // This ensures that EOS is send only once
-    let sender = |samples: InputSamples| {
-        if samples_sender.send(PipelineEvent::Data(samples)).is_err() {
-            debug!("Failed to send decoded input samples.");
-        };
+    let mut resampler = match Resampler::new(input_sample_rate, output_sample_rate) {
+        Ok(resampler) => {
+            if init_result_sender.send(Ok(())).is_err() {
+                error!("Failed to send rescaler init result.");
+            }
+            resampler
+        }
+        Err(err) => {
+            if init_result_sender.send(Err(err)).is_err() {
+                error!("Failed to send rescaler init result.");
+            }
+            return;
+        }
     };
 
-    run_decoding(
-        opts,
-        output_sample_rate,
-        chunks_receiver,
-        sender,
-        init_result_sender,
-    );
+    for event in raw_samples_receiver {
+        let PipelineEvent::Data(raw_sample) = event else {
+            break;
+        };
+
+        for input_samples in resampler.resample(raw_sample) {
+            if samples_sender
+                .send(PipelineEvent::Data(input_samples))
+                .is_err()
+            {
+                debug!("Failed to send decoded input samples.");
+            };
+        }
+    }
 
     if samples_sender.send(PipelineEvent::EOS).is_err() {
         debug!("Failed to send EOS message.")
     }
 }
 
+pub fn start_audio_decoder_thread(
+    opts: AudioDecoderOptions,
+    output_sample_rate: u32,
+    chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
+    samples_sender: Sender<PipelineEvent<InputSamples>>,
+    input_id: InputId,
+) -> Result<(), InputInitError> {
+    let (init_result_sender, init_result_receiver) = bounded(0);
+    std::thread::Builder::new()
+        .name(format!("Decoder thread for input {}", input_id.clone()))
+        .spawn(move || {
+            let _span = span!(
+                Level::INFO,
+                "Audio decoder",
+                input_id = input_id.to_string()
+            )
+            .entered();
+
+            // This ensures that EOS is send only once
+            let sender = |samples: InputSamples| {
+                if samples_sender.send(PipelineEvent::Data(samples)).is_err() {
+                    debug!("Failed to send decoded input samples.");
+                };
+            };
+
+            run_decoding(
+                opts,
+                output_sample_rate,
+                chunks_receiver,
+                sender,
+                init_result_sender,
+            );
+
+            if samples_sender.send(PipelineEvent::EOS).is_err() {
+                debug!("Failed to send EOS message.")
+            }
+        })
+        .unwrap();
+
+    match init_result_receiver.recv() {
+        Ok(Ok(())) => Ok(()),
+        Ok(Err(init_err)) => Err(init_err),
+        Err(_recv_err) => Err(InputInitError::CannotReadInitResult),
+    }
+}
+
+/// init_result_sender sends:
+/// - true init result for Opus
+/// - always ok for AAC (aac sample rate is unknown at register time, first chunk is need to determine it)
 fn run_decoding<F>(
     opts: AudioDecoderOptions,
     output_sample_rate: u32,
     chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
     samples_sender: F,
-    init_result_sender: Sender<Result<(), DecoderInitError>>,
+    init_result_sender: Sender<Result<(), InputInitError>>,
 ) where
     F: Fn(InputSamples),
 {
@@ -136,7 +181,7 @@ fn run_decoding<F>(
     // It means that AAC decoder output sample rate is unknown at register
     // and AAC decoder init error and resampler init error won't be send back.
 
-    let send_result = |result: Result<(), DecoderInitError>| {
+    let send_result = |result: Result<(), InputInitError>| {
         if init_result_sender.send(result).is_err() {
             error!("Failed to send decoder init result.");
         }
@@ -233,7 +278,7 @@ fn run_decoding_loop<Decoder, F>(
 fn init_opus_decoder(
     opus_decoder_opts: OpusDecoderOptions,
     output_sample_rate: u32,
-) -> Result<(OpusDecoder, Resampler), DecoderInitError> {
+) -> Result<(OpusDecoder, Resampler), InputInitError> {
     let decoder = OpusDecoder::new(opus_decoder_opts, output_sample_rate)?;
     let resampler = Resampler::new(decoder.decoded_sample_rate(), output_sample_rate)?;
     Ok((decoder, resampler))
