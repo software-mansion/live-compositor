@@ -18,6 +18,7 @@ pub struct TestCase {
     pub renderers: Vec<(RendererId, RendererSpec)>,
     pub timestamps: Vec<Duration>,
     pub scene_updates: Updates,
+    #[allow(dead_code)]
     pub only: bool,
     pub allowed_error: f32,
 }
@@ -294,6 +295,7 @@ impl Snapshot {
 pub enum TestCaseError {
     SnapshotNotFound(Snapshot),
     Mismatch {
+        #[allow(dead_code)]
         snapshot_from_disk: Box<ImageBuffer<image::Rgba<u8>, Vec<u8>>>,
         produced_snapshot: Snapshot,
         diff: f32,
