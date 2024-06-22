@@ -185,7 +185,7 @@ impl AudioInputPacket {
             for index in 0..sample_count {
                 let ch1 = *packet_ptr.add(index * 2);
                 let ch2 = *packet_ptr.add(index * 2 + 1);
-                result.push((i32::from_be_bytes(ch1), i32::from_be_bytes(ch2)));
+                result.push((i32::from_le_bytes(ch1), i32::from_le_bytes(ch2)));
             }
         }
         Ok(result)
