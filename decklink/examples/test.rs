@@ -39,6 +39,9 @@ pub fn test() -> Result<(), DeckLinkError> {
     for deck in &decklinks {
         println!("{:#?}", deck.info()?);
     }
+    for deck in &decklinks {
+        println!("{:#?}", deck.info()?);
+    }
 
     let decklink = &decklinks[0];
 

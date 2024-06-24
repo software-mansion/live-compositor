@@ -2,7 +2,10 @@ use crate::{
     api::{device::DeckLinkConfiguration, profile::ProfileAttributes},
     enums::{
         self,
-        ffi::{FlagAttributeId, IntegerAttributeId, IntegerConfigurationId, StringAttributeId},
+        ffi::{
+            FlagAttributeId, FloatConfigurationId, IntegerAttributeId, IntegerConfigurationId,
+            StringAttributeId, StringConfigurationId,
+        },
     },
     DeckLink, DeckLinkError, VideoIOSupport, VideoInputConversionMode,
 };
@@ -101,6 +104,16 @@ impl ProfileAttributes {
 #[derive(Debug)]
 pub struct ConfigurationInfo {
     pub video_input_conversion_mode: Option<VideoInputConversionMode>,
+
+    pub audio_input_scale: Option<f64>,
+    pub headphone_volume: Option<f64>,
+
+    pub device_label: Option<String>,
+    pub device_serial_number: Option<String>,
+    pub device_company: Option<String>,
+    pub device_phone: Option<String>,
+    pub device_email: Option<String>,
+    pub device_date: Option<String>,
 }
 
 impl DeckLinkConfiguration {
@@ -109,6 +122,19 @@ impl DeckLinkConfiguration {
             video_input_conversion_mode: self
                 .get_integer(IntegerConfigurationId::ConfigVideoInputConversionMode)?
                 .map(|value| enums::ffi::into_video_input_conversion_mode(value as u32)),
+
+            audio_input_scale: self
+                .get_float(FloatConfigurationId::ConfigDigitalAudioInputScale)?,
+            headphone_volume: self.get_float(FloatConfigurationId::ConfigHeadphoneVolume)?,
+
+            device_label: self.get_string(StringConfigurationId::ConfigDeviceInformationLabel)?,
+            device_serial_number: self
+                .get_string(StringConfigurationId::ConfigDeviceInformationSerialNumber)?,
+            device_company: self
+                .get_string(StringConfigurationId::ConfigDeviceInformationCompany)?,
+            device_phone: self.get_string(StringConfigurationId::ConfigDeviceInformationPhone)?,
+            device_email: self.get_string(StringConfigurationId::ConfigDeviceInformationEmail)?,
+            device_date: self.get_string(StringConfigurationId::ConfigDeviceInformationDate)?,
         })
     }
 }

@@ -37,17 +37,8 @@ pub enum DeckLinkError {
     #[error("Unknown error: {0:#}")]
     UnknownError(#[from] cxx::Exception),
 
-    #[error("ProfileAttribute error: {0}")]
-    ProfileAttributeError(String),
-
-    #[error("Configuration error: {0}")]
-    ConfigurationError(String),
-
     #[error("Method {0} failed with {1:?}")]
     DeckLinkCallFailed(&'static str, HResult),
-
-    #[error("Decklink error: {0:?}")]
-    HResultError(HResult),
 }
 
 impl From<i64> for VideoIOSupport {
