@@ -57,7 +57,7 @@ impl DeckLink {
         )?;
         input.enable_audio(AUDIO_SAMPLE_RATE, decklink::AudioSampleType::Sample32bit, 2)?;
 
-        let (callback, video_receiver, audio_receiver) = ChannelCallbackAdapter::new(
+        let (callback, receivers) = ChannelCallbackAdapter::new(
             span,
             opts.enable_audio,
             Arc::<decklink::Input>::downgrade(&input),
@@ -67,10 +67,10 @@ impl DeckLink {
 
         Ok(InputInitResult {
             input: Input::DeckLink(Self { input }),
-            video: video_receiver.map(|rec| VideoInputReceiver::Raw {
+            video: receivers.video.map(|rec| VideoInputReceiver::Raw {
                 frame_receiver: rec,
             }),
-            audio: audio_receiver.map(|rec| AudioInputReceiver::Raw {
+            audio: receivers.audio.map(|rec| AudioInputReceiver::Raw {
                 sample_receiver: rec,
                 sample_rate: AUDIO_SAMPLE_RATE,
             }),

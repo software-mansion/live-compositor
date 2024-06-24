@@ -23,6 +23,11 @@ use crate::{
 
 use super::AUDIO_SAMPLE_RATE;
 
+pub(super) struct DataReceivers {
+    pub(super) video: Option<Receiver<PipelineEvent<Frame>>>,
+    pub(super) audio: Option<Receiver<PipelineEvent<DecodedSamples>>>,
+}
+
 pub(super) struct ChannelCallbackAdapter {
     video_sender: Option<Sender<PipelineEvent<Frame>>>,
     audio_sender: Option<Sender<PipelineEvent<DecodedSamples>>>,
@@ -43,11 +48,7 @@ impl ChannelCallbackAdapter {
         span: Span,
         enable_audio: bool,
         input: Weak<decklink::Input>,
-    ) -> (
-        Self,
-        Option<Receiver<PipelineEvent<Frame>>>,
-        Option<Receiver<PipelineEvent<DecodedSamples>>>,
-    ) {
+    ) -> (Self, DataReceivers) {
         let (video_sender, video_receiver) = bounded(1000);
         let (audio_sender, audio_receiver) = match enable_audio {
             true => {
@@ -66,8 +67,10 @@ impl ChannelCallbackAdapter {
                 offset: Mutex::new(Duration::ZERO),
                 counter: AtomicU64::new(0),
             },
-            Some(video_receiver),
-            audio_receiver,
+            DataReceivers {
+                video: Some(video_receiver),
+                audio: audio_receiver,
+            },
         )
     }
 
