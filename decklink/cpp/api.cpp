@@ -7,13 +7,12 @@
 #include "decklink/src/api.rs.h"
 #include "decklink/src/enums.rs.h"
 #include <cstdint>
-#include <format>
 #include <stdexcept>
 
 rust::Vec<IDeckLinkPtr> get_decklinks() {
   auto deckLinkIterator = CreateDeckLinkIteratorInstance();
   if (deckLinkIterator == nullptr) {
-    throw "This application requires the DeckLink drivers installed.";
+    throw std::runtime_error("This application requires the DeckLink drivers installed.");
   }
 
   rust::Vec<IDeckLinkPtr> deckLinks;
