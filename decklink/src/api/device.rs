@@ -1,5 +1,3 @@
-use log::warn;
-
 use crate::DeckLinkError;
 
 use super::ffi::{self, HResult};
@@ -96,9 +94,6 @@ impl DeckLinkConfiguration {
 
 impl Drop for DeckLinkConfiguration {
     fn drop(&mut self) {
-        let result = unsafe { ffi::configuration_release(self.0) };
-        if result != HResult::Ok {
-            warn!("Error when releasing DeckLinkConfiguration ({result:?}).")
-        }
+        unsafe { ffi::configuration_release(self.0) };
     }
 }

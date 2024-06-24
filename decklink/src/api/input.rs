@@ -1,7 +1,5 @@
 use std::time::Duration;
 
-use log::warn;
-
 use crate::{DeckLinkError, InputCallback, InputCallbackResult};
 
 use super::{
@@ -115,10 +113,7 @@ impl Input {
 
 impl Drop for Input {
     fn drop(&mut self) {
-        let result = unsafe { ffi::input_release(self.0) };
-        if result != HResult::Ok {
-            warn!("Error when releasing decklink::Input ({result:?}).")
-        }
+        unsafe { ffi::input_release(self.0) };
     }
 }
 

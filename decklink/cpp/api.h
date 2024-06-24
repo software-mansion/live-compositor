@@ -12,7 +12,7 @@ HResult decklink_profile_attributes(IDeckLink *, IDeckLinkProfileAttributes *&);
 HResult decklink_input(IDeckLink *, IDeckLinkInput *&);
 HResult decklink_profile_manager(IDeckLink *, IDeckLinkProfileManager *&);
 HResult decklink_configuration(IDeckLink *, IDeckLinkConfiguration *&);
-HResult decklink_release(IDeckLink *decklink);
+void decklink_release(IDeckLink *decklink);
 
 // IDeckLinkProfileAttributes
 HResult profile_attributes_flag(IDeckLinkProfileAttributes *attrs,
@@ -24,7 +24,7 @@ HResult profile_attributes_float(IDeckLinkProfileAttributes *attrs,
 HResult profile_attributes_string(IDeckLinkProfileAttributes *attrs,
                                   StringAttributeId id, rust::String &out,
                                   bool is_static);
-HResult profile_attributes_release(IDeckLinkProfileAttributes *attrs);
+void profile_attributes_release(IDeckLinkProfileAttributes *attrs);
 
 // IDeckLinkInput
 HResult input_supports_video_mode(IDeckLinkInput *, VideoConnection,
@@ -42,18 +42,18 @@ HResult input_start_streams(IDeckLinkInput *input);
 HResult input_stop_streams(IDeckLinkInput *input);
 HResult input_pause_streams(IDeckLinkInput *input);
 HResult input_flush_streams(IDeckLinkInput *input);
-HResult input_release(IDeckLinkInput *input);
+void input_release(IDeckLinkInput *input);
 
 // IDeckLinkProfileManager
 HResult profile_manager_profiles(IDeckLinkProfileManager *,
                                  rust::Vec<IDeckLinkProfilePtr> &);
-HResult profile_manager_release(IDeckLinkProfileManager *);
+void profile_manager_release(IDeckLinkProfileManager *);
 
 // IDeckLinkProfile
 HResult profile_profile_attributes(IDeckLinkProfile *,
                                    IDeckLinkProfileAttributes *&);
 HResult profile_is_active(IDeckLinkProfile *, bool &);
-HResult profile_release(IDeckLinkProfile *);
+void profile_release(IDeckLinkProfile *);
 
 // IDeckLinkConfiguration
 HResult configuration_flag(IDeckLinkConfiguration *conf, FlagConfigurationId id,
@@ -72,7 +72,7 @@ HResult configuration_set_float(IDeckLinkConfiguration *conf,
                                 FloatConfigurationId id, double value);
 HResult configuration_set_string(IDeckLinkConfiguration *conf,
                                  StringConfigurationId id, rust::String value);
-HResult configuration_release(IDeckLinkConfiguration *conf);
+void configuration_release(IDeckLinkConfiguration *conf);
 
 // IDeckLinkVideoInputFrame
 long video_input_frame_width(IDeckLinkVideoInputFrame *frame);
@@ -95,4 +95,4 @@ int64_t display_mode_height(IDeckLinkDisplayMode *mode);
 rust::String display_mode_name(IDeckLinkDisplayMode *mode);
 DisplayModeType display_mode_display_mode_type(IDeckLinkDisplayMode *mode);
 Ratio display_mode_frame_rate(IDeckLinkDisplayMode *mode);
-HResult display_mode_release(IDeckLinkDisplayMode *mode);
+void display_mode_release(IDeckLinkDisplayMode *mode);

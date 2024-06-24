@@ -12,7 +12,8 @@
 rust::Vec<IDeckLinkPtr> get_decklinks() {
   auto deckLinkIterator = CreateDeckLinkIteratorInstance();
   if (deckLinkIterator == nullptr) {
-    throw std::runtime_error("This application requires the DeckLink drivers installed.");
+    throw std::runtime_error(
+        "This application requires the DeckLink drivers installed.");
   }
 
   rust::Vec<IDeckLinkPtr> deckLinks;
@@ -54,9 +55,7 @@ HResult decklink_configuration(IDeckLink *decklink,
   return static_cast<HResult>(result);
 }
 
-HResult decklink_release(IDeckLink *decklink) {
-  return static_cast<HResult>(decklink->Release());
-}
+void decklink_release(IDeckLink *decklink) { decklink->Release(); }
 
 //
 // IDeckLinkProfileAttributes
@@ -91,8 +90,8 @@ HResult profile_attributes_string(IDeckLinkProfileAttributes *attrs,
   return static_cast<HResult>(result);
 }
 
-HResult profile_attributes_release(IDeckLinkProfileAttributes *attrs) {
-  return static_cast<HResult>(attrs->Release());
+void profile_attributes_release(IDeckLinkProfileAttributes *attrs) {
+  attrs->Release();
 }
 
 //
@@ -158,9 +157,7 @@ HResult input_flush_streams(IDeckLinkInput *input) {
   return static_cast<HResult>(input->FlushStreams());
 }
 
-HResult input_release(IDeckLinkInput *input) {
-  return static_cast<HResult>(input->Release());
-}
+void input_release(IDeckLinkInput *input) { input->Release(); }
 
 //
 // IDeckLinkProfileManager
@@ -185,8 +182,8 @@ HResult profile_manager_profiles(IDeckLinkProfileManager *manager,
   }
 }
 
-HResult profile_manager_release(IDeckLinkProfileManager *manager) {
-  return static_cast<HResult>(manager->Release());
+void profile_manager_release(IDeckLinkProfileManager *manager) {
+  manager->Release();
 }
 
 //
@@ -204,9 +201,7 @@ HResult profile_is_active(IDeckLinkProfile *profile, bool &out) {
   return static_cast<HResult>(profile->IsActive(&out));
 }
 
-HResult profile_release(IDeckLinkProfile *profile) {
-  return static_cast<HResult>(profile->Release());
-}
+void profile_release(IDeckLinkProfile *profile) { profile->Release(); }
 
 //
 // IDeckLinkConfiguration
@@ -260,9 +255,7 @@ HResult configuration_set_string(IDeckLinkConfiguration *conf,
   return HResult(conf->SetString(string_configuration_id(id), value.c_str()));
 }
 
-HResult configuration_release(IDeckLinkConfiguration *conf) {
-  return static_cast<HResult>(conf->Release());
-}
+void configuration_release(IDeckLinkConfiguration *conf) { conf->Release(); }
 
 //
 // IDeckLinkVideoInputFrame
@@ -364,6 +357,4 @@ Ratio display_mode_frame_rate(IDeckLinkDisplayMode *mode) {
   return Ratio{num, den};
 }
 
-HResult display_mode_release(IDeckLinkDisplayMode *mode) {
-  return static_cast<HResult>(mode->Release());
-}
+void display_mode_release(IDeckLinkDisplayMode *mode) { mode->Release(); }

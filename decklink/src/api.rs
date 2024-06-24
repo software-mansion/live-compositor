@@ -8,7 +8,6 @@ use self::{
     profile::{ProfileAttributes, ProfileManager},
 };
 use input::DynInputCallback;
-use log::warn;
 
 pub(super) mod device;
 pub(super) mod input;
@@ -133,7 +132,7 @@ mod ffi {
             decklink: *mut IDeckLink,
             out: &mut *mut IDeckLinkConfiguration,
         ) -> HResult;
-        unsafe fn decklink_release(decklink: *mut IDeckLink) -> HResult;
+        unsafe fn decklink_release(decklink: *mut IDeckLink);
     }
 
     // IDeckLinkProfileAttributes
@@ -159,7 +158,7 @@ mod ffi {
             out: &mut String,
             is_static: bool,
         ) -> Result<HResult>;
-        unsafe fn profile_attributes_release(attrs: *mut IDeckLinkProfileAttributes) -> HResult;
+        unsafe fn profile_attributes_release(attrs: *mut IDeckLinkProfileAttributes);
     }
 
     // InputRef
@@ -196,7 +195,7 @@ mod ffi {
             cb: Box<DynInputCallback>,
         ) -> HResult;
 
-        unsafe fn input_release(input: *mut IDeckLinkInput) -> HResult;
+        unsafe fn input_release(input: *mut IDeckLinkInput);
     }
 
     // IDeckLinkProfileManager
@@ -205,7 +204,7 @@ mod ffi {
             manger: *mut IDeckLinkProfileManager,
             out: &mut Vec<IDeckLinkProfilePtr>,
         ) -> HResult;
-        unsafe fn profile_manager_release(manager: *mut IDeckLinkProfileManager) -> HResult;
+        unsafe fn profile_manager_release(manager: *mut IDeckLinkProfileManager);
     }
 
     // IDeckLinkProfile
@@ -215,7 +214,7 @@ mod ffi {
             out: &mut *mut IDeckLinkProfileAttributes,
         ) -> HResult;
         unsafe fn profile_is_active(profile: *mut IDeckLinkProfile, out: &mut bool) -> HResult;
-        unsafe fn profile_release(profile: *mut IDeckLinkProfile) -> HResult;
+        unsafe fn profile_release(profile: *mut IDeckLinkProfile);
     }
 
     // IDeckLinkConfiguration
@@ -260,7 +259,7 @@ mod ffi {
             id: StringConfigurationId,
             value: String,
         ) -> Result<HResult>;
-        unsafe fn configuration_release(conf: *mut IDeckLinkConfiguration) -> HResult;
+        unsafe fn configuration_release(conf: *mut IDeckLinkConfiguration);
     }
 
     // IDeckLinkVideoInputFrame
@@ -300,7 +299,7 @@ mod ffi {
         ) -> Result<DisplayModeType>;
         unsafe fn display_mode_frame_rate(mode: *mut IDeckLinkDisplayMode) -> Result<Ratio>;
 
-        unsafe fn display_mode_release(mode: *mut IDeckLinkDisplayMode) -> HResult;
+        unsafe fn display_mode_release(mode: *mut IDeckLinkDisplayMode);
     }
 }
 
@@ -345,10 +344,7 @@ impl DeckLink {
 
 impl Drop for DeckLink {
     fn drop(&mut self) {
-        let result = unsafe { ffi::decklink_release(self.0) };
-        if result != HResult::Ok {
-            warn!("Error when releasing ProfileAttributes ({result:?}).");
-        }
+        unsafe { ffi::decklink_release(self.0) };
     }
 }
 
@@ -389,10 +385,7 @@ impl Drop for DisplayMode {
         if !self.1 {
             return;
         }
-        let result = unsafe { ffi::display_mode_release(self.0) };
-        if result != HResult::Ok {
-            warn!("Error when releasing DisplayMode ({result:?}).");
-        }
+        unsafe { ffi::display_mode_release(self.0) };
     }
 }
 

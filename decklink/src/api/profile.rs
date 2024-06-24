@@ -1,7 +1,5 @@
 use std::ptr::null_mut;
 
-use log::warn;
-
 use crate::DeckLinkError;
 
 use super::ffi::{self, HResult};
@@ -56,10 +54,7 @@ impl ProfileAttributes {
 
 impl Drop for ProfileAttributes {
     fn drop(&mut self) {
-        let result = unsafe { ffi::profile_attributes_release(self.0) };
-        if result != HResult::Ok {
-            warn!("Error when releasing ProfileAttributes ({result:?}).")
-        }
+        unsafe { ffi::profile_attributes_release(self.0) };
     }
 }
 
@@ -79,10 +74,7 @@ impl ProfileManager {
 
 impl Drop for ProfileManager {
     fn drop(&mut self) {
-        let result = unsafe { ffi::profile_manager_release(self.0) };
-        if result != HResult::Ok {
-            warn!("Error when releasing ProfileManager ({result:?}).")
-        }
+        unsafe { ffi::profile_manager_release(self.0) };
     }
 }
 
@@ -108,9 +100,6 @@ impl Profile {
 
 impl Drop for Profile {
     fn drop(&mut self) {
-        let result = unsafe { ffi::profile_release(self.0) };
-        if result != HResult::Ok {
-            warn!("Error when releasing Profile ({result:?}).")
-        }
+        unsafe { ffi::profile_release(self.0) };
     }
 }
