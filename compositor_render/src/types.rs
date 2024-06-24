@@ -7,28 +7,28 @@ use std::{
 
 #[derive(Debug, Clone)]
 pub struct Frame {
-    pub data: YuvData,
+    pub data: FrameData,
     pub resolution: Resolution,
     pub pts: Duration,
 }
 
+#[derive(Debug, Clone)]
+pub enum FrameData {
+    PlanarYuv420(YuvPlanes),
+    PlanarYuvJ420(YuvPlanes),
+    PixelYuv422(bytes::Bytes),
+}
+
 #[derive(Clone)]
-pub struct YuvData {
-    pub variant: YuvVariant,
+pub struct YuvPlanes {
     pub y_plane: bytes::Bytes,
     pub u_plane: bytes::Bytes,
     pub v_plane: bytes::Bytes,
 }
 
-#[derive(Debug, Clone, Copy)]
-pub enum YuvVariant {
-    YUV420P,
-    YUVJ420P,
-}
-
-impl fmt::Debug for YuvData {
+impl fmt::Debug for YuvPlanes {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("YUV data")
+        f.debug_struct("Planar YUV data")
             .field("y_plane", &format!("len={}", self.y_plane.len()))
             .field("u_plane", &format!("len={}", self.u_plane.len()))
             .field("v_plane", &format!("len={}", self.v_plane.len()))

@@ -6,7 +6,7 @@ use crate::{
     queue::PipelineEvent,
 };
 
-use compositor_render::{Frame, InputId, Resolution, YuvData, YuvVariant};
+use compositor_render::{Frame, FrameData, InputId, Resolution, YuvPlanes};
 use crossbeam_channel::{Receiver, Sender};
 use ffmpeg_next::{
     codec::{Context, Id},
@@ -175,7 +175,6 @@ fn frame_from_av(
     decoded: &mut Video,
     pts_offset: &mut Option<i64>,
 ) -> Result<Frame, DecoderFrameConversionError> {
-    let variant = variant_from_pixel_format(decoded.format())?;
     let original_pts = decoded.pts();
     if let (Some(pts), None) = (decoded.pts(), &pts_offset) {
         *pts_offset = Some(-pts)
@@ -189,27 +188,28 @@ fn frame_from_av(
         error!(pts, pts_offset, "Received negative PTS. PTS values of the decoder output are not monotonically increasing.")
     }
     let pts = Duration::from_micros(i64::max(pts, 0) as u64);
-    Ok(Frame {
-        data: YuvData {
-            variant,
+    let data = match decoded.format() {
+        Pixel::YUV420P => FrameData::PlanarYuv420(YuvPlanes {
             y_plane: copy_plane_from_av(decoded, 0),
             u_plane: copy_plane_from_av(decoded, 1),
             v_plane: copy_plane_from_av(decoded, 2),
-        },
+        }),
+        Pixel::YUVJ420P => FrameData::PlanarYuvJ420(YuvPlanes {
+            y_plane: copy_plane_from_av(decoded, 0),
+            u_plane: copy_plane_from_av(decoded, 1),
+            v_plane: copy_plane_from_av(decoded, 2),
+        }),
+        Pixel::UYVY422 => FrameData::PixelYuv422(copy_plane_from_av(decoded, 0)),
+        fmt => return Err(DecoderFrameConversionError::UnsupportedPixelFormat(fmt)),
+    };
+    Ok(Frame {
+        data,
         resolution: Resolution {
             width: decoded.width().try_into().unwrap(),
             height: decoded.height().try_into().unwrap(),
         },
         pts,
     })
-}
-
-fn variant_from_pixel_format(fmt: Pixel) -> Result<YuvVariant, DecoderFrameConversionError> {
-    match fmt {
-        Pixel::YUV420P => Ok(YuvVariant::YUV420P),
-        Pixel::YUVJ420P => Ok(YuvVariant::YUVJ420P),
-        fmt => Err(DecoderFrameConversionError::UnsupportedPixelFormat(fmt)),
-    }
 }
 
 fn copy_plane_from_av(decoded: &Video, plane: usize) -> bytes::Bytes {

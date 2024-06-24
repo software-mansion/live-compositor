@@ -1,7 +1,8 @@
+use core::panic;
 use std::{collections::HashSet, fs, path::PathBuf, time::Duration};
 
 use compositor_render::{
-    web_renderer, Frame, Framerate, Renderer, RendererOptions, WgpuFeatures, YuvData,
+    web_renderer, Frame, FrameData, Framerate, Renderer, RendererOptions, WgpuFeatures, YuvPlanes,
 };
 
 use super::test_case::OUTPUT_ID;
@@ -9,12 +10,14 @@ use super::test_case::OUTPUT_ID;
 pub const SNAPSHOTS_DIR_NAME: &str = "snapshot_tests/snapshots/render_snapshots";
 
 pub(super) fn frame_to_rgba(frame: &Frame) -> Vec<u8> {
-    let YuvData {
+    let FrameData::PlanarYuv420(YuvPlanes {
         y_plane,
         u_plane,
         v_plane,
-        ..
-    } = &frame.data;
+    }) = &frame.data
+    else {
+        panic!("Wrong pixel format")
+    };
 
     // Renderer can sometimes produce resolution that is not dividable by 2
     let corrected_width = frame.resolution.width - (frame.resolution.width % 2);

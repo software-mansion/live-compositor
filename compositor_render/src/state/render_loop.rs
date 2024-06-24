@@ -30,17 +30,7 @@ pub(super) fn populate_inputs(
     ctx.wgpu_ctx.queue.submit([]);
 
     for (node_texture, input_textures) in scene.inputs.values_mut() {
-        if let Some(input_textures) = input_textures.state() {
-            let node_texture_state =
-                node_texture.ensure_size(ctx.wgpu_ctx, input_textures.resolution());
-            ctx.wgpu_ctx.format.convert_yuv_to_rgba(
-                ctx.wgpu_ctx,
-                (input_textures.yuv_textures(), input_textures.bind_group()),
-                node_texture_state.rgba_texture(),
-            );
-        } else {
-            node_texture.clear()
-        }
+        input_textures.convert_to_node_texture(ctx.wgpu_ctx, node_texture);
     }
 }
 
