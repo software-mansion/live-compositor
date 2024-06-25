@@ -148,7 +148,6 @@ impl TryFrom<Mp4> for pipeline::RegisterInputOptions {
             (Some(_), Some(_)) | (None, None) => {
                 return Err(TypeError::new(BAD_URL_PATH_SPEC));
             }
-
             (Some(url), None) => input::mp4::Source::Url(url),
             (None, Some(path)) => input::mp4::Source::File(path.into()),
         };
@@ -162,5 +161,31 @@ impl TryFrom<Mp4> for pipeline::RegisterInputOptions {
             input_options: input::InputOptions::Mp4(input::mp4::Mp4Options { source }),
             queue_options,
         })
+    }
+}
+
+impl TryFrom<DeckLink> for pipeline::RegisterInputOptions {
+    type Error = TypeError;
+
+    #[cfg(feature = "decklink")]
+    fn try_from(value: DeckLink) -> Result<Self, Self::Error> {
+        Ok(pipeline::RegisterInputOptions {
+            input_options: input::InputOptions::DeckLink(input::decklink::DeckLinkOptions {
+                subdevice_index: value.subdevice_index,
+                display_name: value.display_name,
+                enable_audio: value.enable_audio.unwrap_or(true),
+            }),
+            queue_options: queue::InputOptions {
+                required: value.required.unwrap_or(false),
+                offset: None,
+            },
+        })
+    }
+
+    #[cfg(not(feature = "decklink"))]
+    fn try_from(_value: DeckLink) -> Result<Self, Self::Error> {
+        Err(TypeError::new(
+            "This Live Compositor binary was build without DeckLink support. Rebuilt it with \"decklink\" feature enabled.",
+        ))
     }
 }

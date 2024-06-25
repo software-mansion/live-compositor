@@ -35,6 +35,7 @@ fn main() {
 fn start_example_client_code() -> Result<()> {
     info!("[example] Start listening on output port.");
     start_ffplay(IP, OUTPUT_PORT, None)?;
+    thread::sleep(Duration::from_secs(2));
     start_websocket_thread();
 
     info!("[example] Download sample.");
@@ -75,7 +76,7 @@ fn start_example_client_code() -> Result<()> {
                 },
                 "encoder": {
                     "type": "ffmpeg_h264",
-                    "preset": "fast"
+                    "preset": "ultrafast"
                 },
                 "initial": {
                     "root": {

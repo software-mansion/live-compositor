@@ -47,6 +47,8 @@ pub use register_input::Mp4;
 pub use register_output::RtpOutputStream;
 
 #[allow(unused_imports)]
+pub use register_input::DeckLink;
+#[allow(unused_imports)]
 pub use register_input::RtpInputStream;
 
 #[allow(unused_imports)]

@@ -473,6 +473,7 @@ dependencies = [
  "bytes",
  "compositor_render",
  "crossbeam-channel",
+ "decklink",
  "fdk-aac-sys",
  "ffmpeg-next",
  "log",

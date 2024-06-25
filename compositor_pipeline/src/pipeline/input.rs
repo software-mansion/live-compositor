@@ -17,12 +17,16 @@ use super::{
     Port,
 };
 
+#[cfg(feature = "decklink")]
+pub mod decklink;
 pub mod mp4;
 pub mod rtp;
 
 pub enum Input {
     Rtp(RtpReceiver),
     Mp4(Mp4),
+    #[cfg(feature = "decklink")]
+    DeckLink(decklink::DeckLink),
 }
 
 /// Start entire processing pipeline for an input, including decoders and resamplers.
@@ -40,6 +44,8 @@ pub(super) fn start_input_threads(
     } = match options {
         InputOptions::Rtp(opts) => RtpReceiver::start_new_input(input_id, opts)?,
         InputOptions::Mp4(opts) => Mp4::start_new_input(input_id, opts, download_dir)?,
+        #[cfg(feature = "decklink")]
+        InputOptions::DeckLink(opts) => decklink::DeckLink::start_new_input(input_id, opts)?,
     };
 
     let video = if let Some(video) = video {
@@ -107,6 +113,8 @@ pub(super) fn start_input_threads(
 pub enum InputOptions {
     Rtp(RtpReceiverOptions),
     Mp4(Mp4Options),
+    #[cfg(feature = "decklink")]
+    DeckLink(decklink::DeckLinkOptions),
 }
 
 pub struct InputInitInfo {
