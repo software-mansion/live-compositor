@@ -50,10 +50,16 @@ pub struct Mp4 {
 pub struct DeckLink {
     /// Single DeckLink device can consist of multiple sub-devices. This field defines
     /// index of sub-device that should be used.
+    ///
+    /// When selecting an input device both `subdevice_index` AND `display_name` fields need
+    /// to match id they are specified.
     pub subdevice_index: Option<u32>,
 
-    /// Select device to use based on the display name. This the value you see in e.g.
+    /// Select sub-device to use based on the display name. This is the value you see in e.g.
     /// Blackmagic Media Express app. like "DeckLink Quad HDMI Recorder (3)"
+    ///
+    /// When selecting an input both `subdevice_index` AND `display_name` fields need
+    /// to match id they are specified.
     pub display_name: Option<String>,
 
     /// (**default=`true`**) Enable audio support.
