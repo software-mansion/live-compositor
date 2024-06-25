@@ -18,7 +18,7 @@ members = [
 resolver = "2"
 
 [features]
-default = ["web_renderer", "decklink"]
+default = ["web_renderer"]
 decklink = ["compositor_pipeline/decklink"]
 web_renderer = ["dep:compositor_chromium", "compositor_render/web_renderer"]
 

@@ -53,7 +53,7 @@ jobs:
 
             - name: 🛠 Cargo build
               run: |
-                cargo build
+                cargo build --features decklink
                 cargo build --no-default-features
 
             - name: 📄 Generate JSON schema

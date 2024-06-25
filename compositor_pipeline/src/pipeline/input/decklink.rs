@@ -47,7 +47,7 @@ impl DeckLink {
         let input = Arc::new(find_decklink(&opts)?.input()?);
 
         // Initial options, real config should be set based on detected format, thanks
-        // to the `enable_format_detection` option. When enabled it will call 
+        // to the `enable_format_detection` option. When enabled it will call
         // `video_input_format_changed` method with a detected format.
         input.enable_video(
             decklink::DisplayModeType::ModeHD720p50,
