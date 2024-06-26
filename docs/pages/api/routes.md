@@ -101,7 +101,7 @@ POST: /api/input/:input_id/register
 
 ```typescript
 type RequestBody = {
-  type: "rtp_stream" | "mp4";
+  type: "rtp_stream" | "mp4" | "decklink";
   ... // input specific options
 }
 ```
@@ -110,6 +110,7 @@ Register external source that can be used as a compositor input. See inputs docu
 
 - [RTP](./inputs/rtp.md)
 - [MP4](./inputs/mp4.md)
+- [DeckLink](./inputs/decklink.md)
 
 ### Unregister input
 
