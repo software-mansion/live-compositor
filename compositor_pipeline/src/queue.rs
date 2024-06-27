@@ -25,7 +25,7 @@ use self::{
     video_queue::VideoQueue,
 };
 
-const DEFAULT_BUFFER_DURATION: Duration = Duration::from_millis(16 * 5); // about 5 frames at 60 fps
+pub const DEFAULT_BUFFER_DURATION: Duration = Duration::from_millis(16 * 5); // about 5 frames at 60 fps
 const DEFAULT_AUDIO_CHUNK_DURATION: Duration = Duration::from_millis(20); // typical audio packet size
 
 /// Queue is responsible for consuming frames from different inputs and producing
@@ -55,6 +55,8 @@ pub struct Queue {
     /// true - Event will be executed immediately.
     /// false - Event will be discarded.
     run_late_scheduled_events: bool,
+
+    default_buffer_duration: Duration,
 
     start_sender: Mutex<Option<Sender<QueueStartEvent>>>,
     scheduled_event_sender: Sender<ScheduledEvent>,
@@ -108,15 +110,33 @@ impl From<QueueAudioOutput> for InputSamplesSet {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct InputOptions {
+pub struct QueueInputOptions {
     pub required: bool,
     /// Relative offset this input stream should have to the clock that
     /// starts when pipeline is started.
     pub offset: Option<Duration>,
+
+    /// Duration of stream that should be buffered before stream is started.
+    /// If you have both audio and video streams then make sure to use the same value
+    /// to avoid desync.
+    ///
+    /// This value defines minimal latency on the queue, but if you set it to low and fail
+    /// to deliver the input stream on time it can cause either black screen or flickering image.
+    ///
+    /// By default DEFAULT_BUFFER_DURATION will be used.
+    pub buffer_duration: Option<Duration>,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct InputOptions {
+    required: bool,
+    offset: Option<Duration>,
+    buffer_duration: Duration,
 }
 
 #[derive(Debug, Clone, Copy)]
 pub struct QueueOptions {
+    pub default_buffer_duration: Duration,
     pub ahead_of_time_processing: bool,
     pub output_framerate: Framerate,
     pub run_late_scheduled_events: bool,
@@ -147,12 +167,11 @@ impl Queue {
     pub fn new(opts: QueueOptions) -> Arc<Self> {
         let (queue_start_sender, queue_start_receiver) = bounded(0);
         let (scheduled_event_sender, scheduled_event_receiver) = bounded(0);
-        let buffer_duration = DEFAULT_BUFFER_DURATION;
         let queue = Arc::new(Queue {
-            video_queue: Mutex::new(VideoQueue::new(buffer_duration)),
+            video_queue: Mutex::new(VideoQueue::new()),
             output_framerate: opts.output_framerate,
 
-            audio_queue: Mutex::new(AudioQueue::new(buffer_duration)),
+            audio_queue: Mutex::new(AudioQueue::new()),
             audio_chunk_duration: DEFAULT_AUDIO_CHUNK_DURATION,
 
             scheduled_event_sender,
@@ -160,6 +179,7 @@ impl Queue {
             ahead_of_time_processing: opts.ahead_of_time_processing,
             never_drop_output_frames: opts.never_drop_output_frames,
             run_late_scheduled_events: opts.run_late_scheduled_events,
+            default_buffer_duration: opts.default_buffer_duration,
 
             clock: Clock::new(),
         });
@@ -174,12 +194,23 @@ impl Queue {
         queue
     }
 
-    pub fn add_input(&self, input_id: &InputId, receiver: DecodedDataReceiver, opts: InputOptions) {
+    pub fn add_input(
+        &self,
+        input_id: &InputId,
+        receiver: DecodedDataReceiver,
+        opts: QueueInputOptions,
+    ) {
+        let input_options = InputOptions {
+            required: opts.required,
+            offset: opts.offset,
+            buffer_duration: opts.buffer_duration.unwrap_or(self.default_buffer_duration),
+        };
+
         if let Some(receiver) = receiver.video {
             self.video_queue.lock().unwrap().add_input(
                 input_id,
                 receiver,
-                opts,
+                input_options,
                 self.clock.clone(),
             );
         };
@@ -187,7 +218,7 @@ impl Queue {
             self.audio_queue.lock().unwrap().add_input(
                 input_id,
                 receiver,
-                opts,
+                input_options,
                 self.clock.clone(),
             );
         }

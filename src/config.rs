@@ -1,6 +1,6 @@
 use std::{env, path::PathBuf, str::FromStr, time::Duration};
 
-use compositor_pipeline::queue::QueueOptions;
+use compositor_pipeline::queue::{self, QueueOptions};
 use compositor_render::{web_renderer::WebRendererInitOptions, Framerate, WgpuFeatures};
 use rand::Rng;
 
@@ -171,6 +171,17 @@ fn try_read_config() -> Result<Config, String> {
         Err(_) => default_wgpu_features,
     };
 
+    let default_buffer_duration = match env::var("LIVE_COMPOSITOR_INPUT_BUFFER_DURATION_MS") {
+        Ok(duration) => match duration.parse::<f64>() {
+            Ok(duration) => Duration::from_secs_f64(duration / 1000.0),
+            Err(_) => {
+                println!("CONFIG ERROR: Invalid value provided for \"LIVE_COMPOSITOR_INPUT_BUFFER_DURATION_MS\". Falling back to default value {:?}.", queue::DEFAULT_BUFFER_DURATION);
+                queue::DEFAULT_BUFFER_DURATION
+            }
+        },
+        Err(_) => queue::DEFAULT_BUFFER_DURATION,
+    };
+
     let config = Config {
         instance_id,
         api_port,
@@ -180,6 +191,7 @@ fn try_read_config() -> Result<Config, String> {
             level: logger_level,
         },
         queue_options: QueueOptions {
+            default_buffer_duration,
             ahead_of_time_processing,
             output_framerate: framerate,
             run_late_scheduled_events,
