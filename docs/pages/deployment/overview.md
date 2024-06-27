@@ -34,6 +34,13 @@ or content provided by the end user. Unless you specifically need that capabilit
 web rendering support.
 :::
 
+## DeckLink support
+
+If you want to use a DeckLink device as an input you need to use binaries compiled with support for it. When building from
+source you need to have `decklink` feature enabled (enabled by default).
+
+Currently, we do not provide binaries or Dockerfiles with DeckLink support, and only support x86_64 Linux platform.
+
 ## Membrane Framework plugin
 
 #### Requirements
@@ -51,3 +58,7 @@ configure compositor with environment variables.
 
 Default binary used by the plugin was built without web rendering support. To use web rendering inside the plugin you need to override
 the compositor binary.
+
+#### DeckLink support
+
+Not supported

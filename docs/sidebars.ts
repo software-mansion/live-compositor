@@ -125,7 +125,7 @@ const sidebars: SidebarsConfig = {
           label: 'Inputs',
           collapsible: false,
           description: 'Elements that deliver media from external sources.',
-          items: ['api/inputs/rtp', 'api/inputs/mp4'],
+          items: ['api/inputs/rtp', 'api/inputs/mp4', 'api/inputs/decklink'],
         },
       ],
     },

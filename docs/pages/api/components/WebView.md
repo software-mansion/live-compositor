@@ -1,7 +1,11 @@
 ---
 sidebar_position: 8
 hide_table_of_contents: true
+title: WebView
 ---
+
+[<span class="badge badge--info">Required feature: web_renderer</span>](../../deployment/overview.md#web-renderer-support)
+
 import Docs from "@site/pages/api/generated/component-WebView.md"
 
 # WebView

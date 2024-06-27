@@ -1,8 +1,8 @@
 use docs_config::DocsConfig;
 use document::generate;
 use live_compositor::types::{
-    Image, ImageSpec, InputStream, Mp4, Rescaler, RtpInputStream, RtpOutputStream, Shader,
-    ShaderSpec, Text, Tiles, View, WebRendererSpec, WebView,
+    DeckLink, Image, ImageSpec, InputStream, Mp4, Rescaler, RtpInputStream, RtpOutputStream,
+    Shader, ShaderSpec, Text, Tiles, View, WebRendererSpec, WebView,
 };
 use markdown::overrides;
 use std::{fs, path::PathBuf};
@@ -34,6 +34,7 @@ fn main() {
         generate::<WebRendererSpec>("WebRenderer", &config),
         generate::<RtpInputStream>("RtpInputStream", &config),
         generate::<Mp4>("Mp4", &config),
+        generate::<DeckLink>("DeckLink", &config),
     ];
 
     let component_pages = [

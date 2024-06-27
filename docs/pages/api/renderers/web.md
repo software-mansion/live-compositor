@@ -1,4 +1,10 @@
+---
+title: Web Renderer
+---
+
 import Docs from "@site/pages/api/generated/renderer-WebRenderer.md"
+
+[<span class="badge badge--info">Required feature: web_renderer</span>](../../deployment/overview.md#web-renderer-support)
 
 # Web Renderer
 

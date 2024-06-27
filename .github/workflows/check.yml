@@ -58,8 +58,8 @@ jobs:
 
             - name: 📄 Generate JSON schema
               run: |
-                cargo run --bin generate_json_schema
-                cargo run --bin generate_docs
+                cargo run --bin generate_json_schema --features decklink
+                cargo run --bin generate_docs --features decklink
 
             - name: 🧪 Run tests
               run: |
