@@ -6,12 +6,12 @@ use crate::{
 use super::base::Texture;
 
 #[derive(Debug)]
-pub struct PixelYuv422Texture {
+pub struct InterleavedYuv422Texture {
     pub(super) texture: Texture,
     pub(super) resolution: Resolution,
 }
 
-impl PixelYuv422Texture {
+impl InterleavedYuv422Texture {
     pub fn new(ctx: &WgpuCtx, resolution: Resolution) -> Self {
         Self {
             resolution,
@@ -46,7 +46,7 @@ impl PixelYuv422Texture {
         layout: &wgpu::BindGroupLayout,
     ) -> wgpu::BindGroup {
         ctx.device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("YUV422 texture bind group"),
+            label: Some("Interleaved YUV 4:2:2 texture bind group"),
             layout,
             entries: &[wgpu::BindGroupEntry {
                 binding: 0,

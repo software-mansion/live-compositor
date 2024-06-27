@@ -23,7 +23,7 @@ impl PlanarYuvToRgbaConverter {
         let sampler = Sampler::new(device);
 
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("YUV to RGBA color converter render pipeline layout"),
+            label: Some("Planar YUV 4:2:0 to RGBA color converter render pipeline layout"),
             bind_group_layouts: &[yuv_textures_bind_group_layout, &sampler.bind_group_layout],
             push_constant_ranges: &[wgpu::PushConstantRange {
                 stages: wgpu::ShaderStages::VERTEX_FRAGMENT,
@@ -32,7 +32,7 @@ impl PlanarYuvToRgbaConverter {
         });
 
         let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("YUV to RGBA color converter render pipeline"),
+            label: Some("Planar YUV 4:2:0 to RGBA color converter render pipeline"),
             layout: Some(&pipeline_layout),
             primitive: PRIMITIVE_STATE,
 
@@ -73,12 +73,12 @@ impl PlanarYuvToRgbaConverter {
         let mut encoder = ctx
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                label: Some("YUV to RGBA color converter encoder"),
+                label: Some("Planar YUV 4:2:0 to RGBA color converter encoder"),
             });
 
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("YUV to RGBA color converter render pass"),
+                label: Some("Planar YUV 4:2:0 to RGBA color converter render pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),

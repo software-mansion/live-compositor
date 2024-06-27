@@ -101,7 +101,7 @@ impl PlanarYuvTextures {
             count: None,
         };
         device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("yuv all textures bind group layout"),
+            label: Some("Planar YUV 4:2:0 all textures bind group layout"),
             entries: &[create_entry(0), create_entry(1), create_entry(2)],
         })
     }
@@ -112,7 +112,7 @@ impl PlanarYuvTextures {
         layout: &wgpu::BindGroupLayout,
     ) -> wgpu::BindGroup {
         ctx.device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("yuv all textures bind group"),
+            label: Some("Planar YUV 4:2:0 all textures bind group"),
             layout,
             entries: &[
                 wgpu::BindGroupEntry {

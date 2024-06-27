@@ -133,7 +133,7 @@ impl ChannelCallbackAdapter {
             data
         };
         Frame {
-            data: FrameData::PixelYuv422(data),
+            data: FrameData::InterleavedYuv422(data),
             resolution: Resolution { width, height },
             pts,
         }

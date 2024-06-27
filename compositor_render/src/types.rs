@@ -16,7 +16,7 @@ pub struct Frame {
 pub enum FrameData {
     PlanarYuv420(YuvPlanes),
     PlanarYuvJ420(YuvPlanes),
-    PixelYuv422(bytes::Bytes),
+    InterleavedYuv422(bytes::Bytes),
 }
 
 #[derive(Clone)]

@@ -199,7 +199,7 @@ fn frame_from_av(
             u_plane: copy_plane_from_av(decoded, 1),
             v_plane: copy_plane_from_av(decoded, 2),
         }),
-        Pixel::UYVY422 => FrameData::PixelYuv422(copy_plane_from_av(decoded, 0)),
+        Pixel::UYVY422 => FrameData::InterleavedYuv422(copy_plane_from_av(decoded, 0)),
         fmt => return Err(DecoderFrameConversionError::UnsupportedPixelFormat(fmt)),
     };
     Ok(Frame {
