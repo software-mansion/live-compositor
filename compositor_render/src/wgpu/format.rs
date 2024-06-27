@@ -1,39 +1,53 @@
-use self::{rgba_to_yuv::RGBAToYUVConverter, yuv_to_rgba::YUVToRGBAConverter};
+use interleaved_yuv_to_rgba::InterleavedYuv422ToRgbaConverter;
+
+use self::{planar_yuv_to_rgba::PlanarYuvToRgbaConverter, rgba_to_yuv::RgbaToYuvConverter};
 
 use super::{
-    texture::{RGBATexture, YUVTextures},
+    texture::{InterleavedYuv422Texture, PlanarYuvTextures, RGBATexture},
     WgpuCtx,
 };
 
+mod interleaved_yuv_to_rgba;
+mod planar_yuv_to_rgba;
 mod rgba_to_yuv;
-mod yuv_to_rgba;
 
 #[derive(Debug)]
 pub struct TextureFormat {
-    yuv_to_rgba: YUVToRGBAConverter,
-    rgba_to_yuv: RGBAToYUVConverter,
+    planar_yuv_to_rgba: PlanarYuvToRgbaConverter,
+    interleaved_yuv_to_rgba: InterleavedYuv422ToRgbaConverter,
+    rgba_to_yuv: RgbaToYuvConverter,
 
-    yuv_layout: wgpu::BindGroupLayout,
+    planar_yuv_layout: wgpu::BindGroupLayout,
+    interleaved_yuv_layout: wgpu::BindGroupLayout,
     rgba_layout: wgpu::BindGroupLayout,
 }
 
 impl TextureFormat {
     pub fn new(device: &wgpu::Device) -> Self {
-        let yuv_layout = YUVTextures::new_bind_group_layout(device);
+        let planar_yuv_layout = PlanarYuvTextures::new_bind_group_layout(device);
+        let interleaved_yuv_layout = InterleavedYuv422Texture::new_bind_group_layout(device);
         let rgba_layout = RGBATexture::new_bind_group_layout(device);
-        let yuv_to_rgba = YUVToRGBAConverter::new(device, &yuv_layout);
-        let rgba_to_yuv = RGBAToYUVConverter::new(device, &rgba_layout);
+        let planar_yuv_to_rgba = PlanarYuvToRgbaConverter::new(device, &planar_yuv_layout);
+        let rgba_to_yuv = RgbaToYuvConverter::new(device, &rgba_layout);
+        let interleaved_yuv_to_rgba =
+            InterleavedYuv422ToRgbaConverter::new(device, &interleaved_yuv_layout);
         Self {
-            yuv_to_rgba,
+            planar_yuv_to_rgba,
             rgba_to_yuv,
+            interleaved_yuv_to_rgba,
 
-            yuv_layout,
+            planar_yuv_layout,
             rgba_layout,
+            interleaved_yuv_layout,
         }
     }
 
-    pub fn yuv_layout(&self) -> &wgpu::BindGroupLayout {
-        &self.yuv_layout
+    pub fn planar_yuv_layout(&self) -> &wgpu::BindGroupLayout {
+        &self.planar_yuv_layout
+    }
+
+    pub fn interleaved_yuv_layout(&self) -> &wgpu::BindGroupLayout {
+        &self.interleaved_yuv_layout
     }
 
     pub fn rgba_layout(&self) -> &wgpu::BindGroupLayout {
@@ -44,17 +58,26 @@ impl TextureFormat {
         &self,
         ctx: &WgpuCtx,
         src: (&RGBATexture, &wgpu::BindGroup),
-        dst: &YUVTextures,
+        dst: &PlanarYuvTextures,
     ) {
         self.rgba_to_yuv.convert(ctx, src, dst);
     }
 
-    pub fn convert_yuv_to_rgba(
+    pub fn convert_planar_yuv_to_rgba(
         &self,
         ctx: &WgpuCtx,
-        src: (&YUVTextures, &wgpu::BindGroup),
+        src: (&PlanarYuvTextures, &wgpu::BindGroup),
         dst: &RGBATexture,
     ) {
-        self.yuv_to_rgba.convert(ctx, src, dst)
+        self.planar_yuv_to_rgba.convert(ctx, src, dst)
+    }
+
+    pub fn convert_interleaved_yuv_to_rgba(
+        &self,
+        ctx: &WgpuCtx,
+        src: (&InterleavedYuv422Texture, &wgpu::BindGroup),
+        dst: &RGBATexture,
+    ) {
+        self.interleaved_yuv_to_rgba.convert(ctx, src, dst)
     }
 }

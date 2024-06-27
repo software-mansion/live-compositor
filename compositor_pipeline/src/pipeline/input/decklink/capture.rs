@@ -1,13 +1,9 @@
 use std::{
-    sync::{
-        atomic::{AtomicU64, Ordering},
-        Arc, Mutex, OnceLock, Weak,
-    },
+    sync::{Arc, Mutex, OnceLock, Weak},
     time::{Duration, Instant},
 };
 
-use bytes::{BufMut, BytesMut};
-use compositor_render::{error::ErrorStack, Frame, Resolution, YuvData, YuvVariant};
+use compositor_render::{error::ErrorStack, Frame, FrameData, Resolution};
 use crossbeam_channel::{bounded, Receiver, Sender, TrySendError};
 use decklink::{
     AudioInputPacket, DetectedVideoInputFormatFlags, DisplayMode, InputCallback,
@@ -38,9 +34,6 @@ pub(super) struct ChannelCallbackAdapter {
     input: Weak<decklink::Input>,
     start_time: OnceLock<Instant>,
     offset: Mutex<Duration>,
-
-    // TODO: temporary (CPU processing might be to slow, so drop every second frame)
-    counter: AtomicU64,
 }
 
 impl ChannelCallbackAdapter {
@@ -65,7 +58,6 @@ impl ChannelCallbackAdapter {
                 input,
                 start_time: OnceLock::new(),
                 offset: Mutex::new(Duration::ZERO),
-                counter: AtomicU64::new(0),
             },
             DataReceivers {
                 video: Some(video_receiver),
@@ -83,19 +75,13 @@ impl ChannelCallbackAdapter {
         video_frame: &mut VideoInputFrame,
         sender: &Sender<PipelineEvent<Frame>>,
     ) -> Result<(), decklink::DeckLinkError> {
-        // TODO: remove
-        let count = self.counter.fetch_add(1, Ordering::Relaxed);
-        if count % 3 != 0 {
-            return Ok(());
-        }
-
         let offset = *self.offset.lock().unwrap();
         let pts = video_frame.stream_time()? + offset;
 
         let width = video_frame.width();
         let height = video_frame.height();
-        let data = video_frame.bytes()?;
         let bytes_per_row = video_frame.bytes_per_row();
+        let data = video_frame.bytes()?;
         let pixel_format = video_frame.pixel_format()?;
 
         let frame = match pixel_format {
@@ -135,34 +121,19 @@ impl ChannelCallbackAdapter {
         data: bytes::Bytes,
         pts: Duration,
     ) -> Frame {
-        let mut y_plane = BytesMut::with_capacity(width * height);
-        let mut u_plane = BytesMut::with_capacity((width / 2) * (height / 2));
-        let mut v_plane = BytesMut::with_capacity((width / 2) * (height / 2));
+        let data = if width != bytes_per_row * 2 {
+            let mut output_buffer = bytes::BytesMut::with_capacity(width * 2 * height);
 
-        // TODO: temporary conversion in Rust. Rework it to do it on a GPU
-        for (row_index, row) in data.chunks(bytes_per_row).enumerate() {
-            for (index, pixel) in row.chunks(2).enumerate() {
-                if index < width && pixel.len() >= 2 {
-                    y_plane.put_u8(pixel[1]);
-                }
-            }
-            if row_index % 2 == 0 && row_index < height {
-                for (index, pixel) in row.chunks(4).enumerate() {
-                    if index * 2 < width && pixel.len() >= 4 {
-                        u_plane.put_u8(pixel[0]);
-                        v_plane.put_u8(pixel[2]);
-                    }
-                }
-            }
-        }
+            data.chunks(bytes_per_row)
+                .map(|chunk| &chunk[..(width * 2)])
+                .for_each(|chunk| output_buffer.extend_from_slice(chunk));
 
+            output_buffer.freeze()
+        } else {
+            data
+        };
         Frame {
-            data: YuvData {
-                variant: YuvVariant::YUV420P,
-                y_plane: y_plane.freeze(),
-                u_plane: u_plane.freeze(),
-                v_plane: v_plane.freeze(),
-            },
+            data: FrameData::InterleavedYuv422(data),
             resolution: Resolution { width, height },
             pts,
         }

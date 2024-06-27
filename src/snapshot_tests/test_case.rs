@@ -4,8 +4,8 @@ use super::utils::{create_renderer, frame_to_rgba, snaphot_save_path, snapshots_
 
 use anyhow::Result;
 use compositor_render::{
-    scene::RGBColor, Frame, FrameSet, InputId, OutputId, Renderer, RendererId, RendererSpec,
-    Resolution, YuvData, YuvVariant,
+    scene::RGBColor, Frame, FrameData, FrameSet, InputId, OutputId, Renderer, RendererId,
+    RendererSpec, Resolution, YuvPlanes,
 };
 use image::ImageBuffer;
 use live_compositor::types::{self};
@@ -170,7 +170,7 @@ impl TestCaseInstance {
 pub struct TestInput {
     pub name: String,
     pub resolution: Resolution,
-    pub data: YuvData,
+    pub data: FrameData,
 }
 
 impl TestInput {
@@ -262,12 +262,11 @@ impl TestInput {
             }
         }
 
-        let data = YuvData {
-            variant: YuvVariant::YUV420P,
+        let data = FrameData::PlanarYuv420(YuvPlanes {
             y_plane: y_plane.into(),
             u_plane: u_plane.into(),
             v_plane: v_plane.into(),
-        };
+        });
 
         Self {
             name: format!("input_{index}"),

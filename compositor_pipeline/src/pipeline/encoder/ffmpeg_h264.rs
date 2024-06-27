@@ -1,4 +1,4 @@
-use compositor_render::{Frame, OutputId, Resolution};
+use compositor_render::{Frame, FrameData, OutputId, Resolution};
 use crossbeam_channel::{Receiver, Sender};
 use ffmpeg_next::{
     codec::{Context, Id},
@@ -266,36 +266,42 @@ fn run_encoder_thread(
 struct FrameConversionError(String);
 
 fn frame_into_av(frame: Frame, av_frame: &mut frame::Video) -> Result<(), FrameConversionError> {
+    let FrameData::PlanarYuv420(data) = frame.data else {
+        return Err(FrameConversionError(format!(
+            "Unsupported pixel format {:?}",
+            frame.data
+        )));
+    };
     let expected_y_plane_size = (av_frame.plane_width(0) * av_frame.plane_height(0)) as usize;
     let expected_u_plane_size = (av_frame.plane_width(1) * av_frame.plane_height(1)) as usize;
     let expected_v_plane_size = (av_frame.plane_width(2) * av_frame.plane_height(2)) as usize;
-    if expected_y_plane_size != frame.data.y_plane.len() {
+    if expected_y_plane_size != data.y_plane.len() {
         return Err(FrameConversionError(format!(
             "Y plane is a wrong size, expected: {} received: {}",
             expected_y_plane_size,
-            frame.data.y_plane.len()
+            data.y_plane.len()
         )));
     }
-    if expected_u_plane_size != frame.data.u_plane.len() {
+    if expected_u_plane_size != data.u_plane.len() {
         return Err(FrameConversionError(format!(
             "U plane is a wrong size, expected: {} received: {}",
             expected_u_plane_size,
-            frame.data.u_plane.len()
+            data.u_plane.len()
         )));
     }
-    if expected_v_plane_size != frame.data.v_plane.len() {
+    if expected_v_plane_size != data.v_plane.len() {
         return Err(FrameConversionError(format!(
             "V plane is a wrong size, expected: {} received: {}",
             expected_v_plane_size,
-            frame.data.v_plane.len()
+            data.v_plane.len()
         )));
     }
 
     av_frame.set_pts(Some(frame.pts.as_micros() as i64));
 
-    write_plane_to_av(av_frame, 0, &frame.data.y_plane);
-    write_plane_to_av(av_frame, 1, &frame.data.u_plane);
-    write_plane_to_av(av_frame, 2, &frame.data.v_plane);
+    write_plane_to_av(av_frame, 0, &data.y_plane);
+    write_plane_to_av(av_frame, 1, &data.u_plane);
+    write_plane_to_av(av_frame, 2, &data.v_plane);
 
     Ok(())
 }

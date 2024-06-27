@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use bytes::Bytes;
 use wgpu::Buffer;
 
-use crate::{wgpu::WgpuCtx, Resolution, YuvData, YuvVariant};
+use crate::{wgpu::WgpuCtx, FrameData, Resolution, YuvPlanes};
 
 use super::base::Texture;
 
@@ -32,28 +32,33 @@ where
 
     /// `device.poll(wgpu::MaintainBase::Wait)` needs to be called after download
     /// is started, but before this method is called.
-    pub fn wait(self) -> Result<YuvData, E> {
+    pub fn wait(self) -> Result<FrameData, E> {
         let YUVPendingDownload { y, u, v, _phantom } = self;
-        Ok(YuvData {
-            // output pixel format will always be YUV420P
-            variant: crate::YuvVariant::YUV420P,
+        // output pixel format will always be YUV420P
+        Ok(FrameData::PlanarYuv420(YuvPlanes {
             y_plane: y()?,
             u_plane: u()?,
             v_plane: v()?,
-        })
+        }))
     }
 }
 
-pub struct YUVTextures {
+#[derive(Debug, Clone, Copy)]
+pub enum YuvVariant {
+    YUV420,
+    YUVJ420,
+}
+
+pub struct PlanarYuvTextures {
     pub(super) variant: YuvVariant,
     pub(super) planes: [Texture; 3],
     pub(super) resolution: Resolution,
 }
 
-impl YUVTextures {
+impl PlanarYuvTextures {
     pub fn new(ctx: &WgpuCtx, resolution: Resolution) -> Self {
         Self {
-            variant: YuvVariant::YUV420P,
+            variant: YuvVariant::YUV420,
             planes: [
                 Self::new_plane(ctx, resolution.width, resolution.height),
                 Self::new_plane(ctx, resolution.width / 2, resolution.height / 2),
@@ -96,7 +101,7 @@ impl YUVTextures {
             count: None,
         };
         device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("yuv all textures bind group layout"),
+            label: Some("Planar YUV 4:2:0 all textures bind group layout"),
             entries: &[create_entry(0), create_entry(1), create_entry(2)],
         })
     }
@@ -107,7 +112,7 @@ impl YUVTextures {
         layout: &wgpu::BindGroupLayout,
     ) -> wgpu::BindGroup {
         ctx.device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("yuv all textures bind group"),
+            label: Some("Planar YUV 4:2:0 all textures bind group"),
             layout,
             entries: &[
                 wgpu::BindGroupEntry {
@@ -148,10 +153,10 @@ impl YUVTextures {
         ctx.queue.submit(Some(encoder.finish()));
     }
 
-    pub fn upload(&mut self, ctx: &WgpuCtx, data: &YuvData) {
-        self.variant = data.variant;
-        self.planes[0].upload_data(&ctx.queue, &data.y_plane, 1);
-        self.planes[1].upload_data(&ctx.queue, &data.u_plane, 1);
-        self.planes[2].upload_data(&ctx.queue, &data.v_plane, 1);
+    pub fn upload(&mut self, ctx: &WgpuCtx, planes: &YuvPlanes, variant: YuvVariant) {
+        self.variant = variant;
+        self.planes[0].upload_data(&ctx.queue, &planes.y_plane, 1);
+        self.planes[1].upload_data(&ctx.queue, &planes.u_plane, 1);
+        self.planes[2].upload_data(&ctx.queue, &planes.v_plane, 1);
     }
 }

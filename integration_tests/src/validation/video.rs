@@ -1,6 +1,7 @@
 use anyhow::Result;
 use bytes::Bytes;
-use compositor_render::Frame;
+use compositor_render::{Frame, FrameData};
+use core::panic;
 use std::{ops::Range, time::Duration};
 use tracing::warn;
 
@@ -85,9 +86,15 @@ fn average_framerate(frames: &[Frame]) -> f32 {
 }
 
 fn validate_frame(expected: &Frame, actual: &Frame, allowed_error: f32) -> Result<()> {
-    let diff_y = calculate_mse(&expected.data.y_plane, &actual.data.y_plane);
-    let diff_u = calculate_mse(&expected.data.u_plane, &actual.data.u_plane);
-    let diff_v = calculate_mse(&expected.data.v_plane, &actual.data.v_plane);
+    let FrameData::PlanarYuv420(ref expected) = expected.data else {
+        panic!("Invalid format");
+    };
+    let FrameData::PlanarYuv420(ref actual) = actual.data else {
+        panic!("Invalid format");
+    };
+    let diff_y = calculate_mse(&expected.y_plane, &actual.y_plane);
+    let diff_u = calculate_mse(&expected.u_plane, &actual.u_plane);
+    let diff_v = calculate_mse(&expected.v_plane, &actual.v_plane);
 
     if diff_y > allowed_error || diff_u > allowed_error || diff_v > allowed_error {
         return Err(anyhow::anyhow!(

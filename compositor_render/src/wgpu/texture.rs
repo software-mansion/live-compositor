@@ -5,43 +5,63 @@ use crossbeam_channel::bounded;
 use log::error;
 use wgpu::{Buffer, BufferAsyncError, MapMode};
 
-use crate::{Frame, Resolution};
+use crate::{Frame, FrameData, Resolution};
 
 use self::{
+    planar_yuv::YUVPendingDownload,
     utils::{pad_to_256, texture_size_to_resolution},
-    yuv::YUVPendingDownload,
 };
 
 use super::WgpuCtx;
 
 mod base;
 mod bgra;
+mod interleaved_yuv422;
+mod planar_yuv;
 mod rgba;
 pub mod utils;
-mod yuv;
 
 pub type BGRATexture = bgra::BGRATexture;
 pub type RGBATexture = rgba::RGBATexture;
-pub type YUVTextures = yuv::YUVTextures;
+pub type PlanarYuvTextures = planar_yuv::PlanarYuvTextures;
+pub type PlanarYuvVariant = planar_yuv::YuvVariant;
+pub type InterleavedYuv422Texture = interleaved_yuv422::InterleavedYuv422Texture;
 
 pub type Texture = base::Texture;
 
-pub struct InputTextureState {
-    textures: YUVTextures,
+struct InputTextureState {
+    textures: InnerInputTexture,
     bind_group: wgpu::BindGroup,
 }
 
+enum InnerInputTexture {
+    PlanarYuvTextures(PlanarYuvTextures),
+    InterleavedYuv422Texture(InterleavedYuv422Texture),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum InputTextureKind {
+    PlanarYuvTextures,
+    InterleavedYuv422Texture,
+}
+
 impl InputTextureState {
-    pub fn yuv_textures(&self) -> &YUVTextures {
-        &self.textures
+    fn resolution(&self) -> Resolution {
+        match &self.textures {
+            InnerInputTexture::PlanarYuvTextures(texture) => texture.resolution,
+            InnerInputTexture::InterleavedYuv422Texture(texture) => texture.resolution,
+        }
     }
+}
 
-    pub fn bind_group(&self) -> &wgpu::BindGroup {
-        &self.bind_group
-    }
-
-    pub fn resolution(&self) -> Resolution {
-        self.textures.resolution
+impl InnerInputTexture {
+    fn kind(&self) -> InputTextureKind {
+        match self {
+            InnerInputTexture::PlanarYuvTextures(_) => InputTextureKind::PlanarYuvTextures,
+            InnerInputTexture::InterleavedYuv422Texture(_) => {
+                InputTextureKind::InterleavedYuv422Texture
+            }
+        }
     }
 }
 
@@ -57,38 +77,122 @@ impl InputTexture {
     }
 
     pub fn upload(&mut self, ctx: &WgpuCtx, frame: Frame) {
-        let state = self.ensure_size(ctx, frame.resolution);
-        state.textures.upload(ctx, &frame.data)
+        match frame.data {
+            FrameData::PlanarYuv420(planes) => {
+                let state = self.ensure_type_and_size(
+                    ctx,
+                    frame.resolution,
+                    InputTextureKind::PlanarYuvTextures,
+                );
+
+                let InnerInputTexture::PlanarYuvTextures(textures) = &mut state.textures else {
+                    error!("Invalid texture format.");
+                    return;
+                };
+                textures.upload(ctx, &planes, planar_yuv::YuvVariant::YUV420)
+            }
+            FrameData::PlanarYuvJ420(planes) => {
+                let state = self.ensure_type_and_size(
+                    ctx,
+                    frame.resolution,
+                    InputTextureKind::PlanarYuvTextures,
+                );
+                let InnerInputTexture::PlanarYuvTextures(textures) = &mut state.textures else {
+                    error!("Invalid texture format.");
+                    return;
+                };
+                textures.upload(ctx, &planes, planar_yuv::YuvVariant::YUVJ420)
+            }
+            FrameData::InterleavedYuv422(data) => {
+                let state = self.ensure_type_and_size(
+                    ctx,
+                    frame.resolution,
+                    InputTextureKind::InterleavedYuv422Texture,
+                );
+                let InnerInputTexture::InterleavedYuv422Texture(textures) = &mut state.textures
+                else {
+                    error!("Invalid texture format.");
+                    return;
+                };
+                textures.upload(ctx, &data)
+            }
+        }
     }
 
-    fn ensure_size<'a>(
+    pub fn convert_to_node_texture(&self, ctx: &WgpuCtx, dest: &mut NodeTexture) {
+        match self.state() {
+            Some(input_texture) => {
+                let dest_state = dest.ensure_size(ctx, input_texture.resolution());
+                match &input_texture.textures {
+                    InnerInputTexture::PlanarYuvTextures(textures) => {
+                        ctx.format.convert_planar_yuv_to_rgba(
+                            ctx,
+                            (textures, &input_texture.bind_group),
+                            dest_state.rgba_texture(),
+                        )
+                    }
+                    InnerInputTexture::InterleavedYuv422Texture(texture) => {
+                        ctx.format.convert_interleaved_yuv_to_rgba(
+                            ctx,
+                            (texture, &input_texture.bind_group),
+                            dest_state.rgba_texture(),
+                        )
+                    }
+                }
+            }
+            None => dest.clear(),
+        }
+    }
+
+    fn ensure_type_and_size<'a>(
         &'a mut self,
         ctx: &WgpuCtx,
         new_resolution: Resolution,
+        new_texture_kind: InputTextureKind,
     ) -> &'a mut InputTextureState {
-        fn new_state(ctx: &WgpuCtx, new_resolution: Resolution) -> InputTextureState {
-            let textures = YUVTextures::new(ctx, new_resolution);
-            let bind_group = textures.new_bind_group(ctx, ctx.format.yuv_layout());
-            InputTextureState {
-                textures,
-                bind_group,
+        fn new_state(
+            ctx: &WgpuCtx,
+            new_resolution: Resolution,
+            new_texture_kind: InputTextureKind,
+        ) -> InputTextureState {
+            match new_texture_kind {
+                InputTextureKind::PlanarYuvTextures => {
+                    let textures = PlanarYuvTextures::new(ctx, new_resolution);
+                    let bind_group = textures.new_bind_group(ctx, ctx.format.planar_yuv_layout());
+                    InputTextureState {
+                        textures: InnerInputTexture::PlanarYuvTextures(textures),
+                        bind_group,
+                    }
+                }
+                InputTextureKind::InterleavedYuv422Texture => {
+                    let textures = InterleavedYuv422Texture::new(ctx, new_resolution);
+                    let bind_group =
+                        textures.new_bind_group(ctx, ctx.format.interleaved_yuv_layout());
+                    InputTextureState {
+                        textures: InnerInputTexture::InterleavedYuv422Texture(textures),
+                        bind_group,
+                    }
+                }
             }
         }
 
         self.0 = match self.0.replace(OptionalState::None) {
             OptionalState::Some(state) | OptionalState::NoneWithOldState(state) => {
-                if state.textures.resolution == new_resolution {
+                if state.resolution() == new_resolution && state.textures.kind() == new_texture_kind
+                {
                     OptionalState::Some(state)
                 } else {
-                    OptionalState::Some(new_state(ctx, new_resolution))
+                    OptionalState::Some(new_state(ctx, new_resolution, new_texture_kind))
                 }
             }
-            OptionalState::None => OptionalState::Some(new_state(ctx, new_resolution)),
+            OptionalState::None => {
+                OptionalState::Some(new_state(ctx, new_resolution, new_texture_kind))
+            }
         };
         self.state_mut().unwrap()
     }
 
-    pub fn state(&self) -> Option<&InputTextureState> {
+    fn state(&self) -> Option<&InputTextureState> {
         self.0.state()
     }
 
@@ -185,14 +289,14 @@ impl Default for NodeTexture {
 }
 
 pub struct OutputTexture {
-    textures: YUVTextures,
+    textures: PlanarYuvTextures,
     buffers: [wgpu::Buffer; 3],
     resolution: Resolution,
 }
 
 impl OutputTexture {
     pub fn new(ctx: &WgpuCtx, resolution: Resolution) -> Self {
-        let textures = YUVTextures::new(ctx, resolution);
+        let textures = PlanarYuvTextures::new(ctx, resolution);
         let buffers = textures.new_download_buffers(ctx);
 
         Self {
@@ -202,7 +306,7 @@ impl OutputTexture {
         }
     }
 
-    pub fn yuv_textures(&self) -> &YUVTextures {
+    pub fn yuv_textures(&self) -> &PlanarYuvTextures {
         &self.textures
     }
 

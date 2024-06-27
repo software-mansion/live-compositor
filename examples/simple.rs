@@ -1,10 +1,11 @@
 use anyhow::Result;
+use common::stream_video;
 use live_compositor::{server, types::Resolution};
 use log::{error, info};
 use serde_json::json;
 use std::{thread, time::Duration};
 
-use crate::common::{download_file, start_ffplay, start_websocket_thread, stream_video};
+use crate::common::{download_file, start_ffplay, start_websocket_thread};
 
 #[path = "./common/common.rs"]
 mod common;
