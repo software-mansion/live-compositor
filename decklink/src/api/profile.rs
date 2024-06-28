@@ -41,8 +41,15 @@ impl ProfileAttributes {
     }
 
     pub fn get_string(&self, id: ffi::StringAttributeId) -> Result<Option<String>, DeckLinkError> {
+        // List of attributes that should not be freed
+        const STATIC_STRING_ATTRIBUTES: [ffi::StringAttributeId; 1] =
+            [ffi::StringAttributeId::VendorName];
+
+        let is_static = STATIC_STRING_ATTRIBUTES
+            .iter()
+            .any(|static_id| static_id == &id);
         let mut value = String::new();
-        match unsafe { ffi::profile_attributes_string(self.0, id, &mut value, false)? } {
+        match unsafe { ffi::profile_attributes_string(self.0, id, &mut value, is_static)? } {
             HResult::NotImplementedError => Ok(None),
             hresult => {
                 hresult.into_result("IDeckLinkProfileAttributes::GetString")?;
