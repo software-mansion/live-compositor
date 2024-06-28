@@ -16,14 +16,12 @@ use crossbeam_channel::{Receiver, TryRecvError};
 #[derive(Debug)]
 pub struct AudioQueue {
     inputs: HashMap<InputId, AudioQueueInput>,
-    buffer_duration: Duration,
 }
 
 impl AudioQueue {
-    pub fn new(buffer_duration: Duration) -> Self {
+    pub fn new() -> Self {
         AudioQueue {
             inputs: HashMap::new(),
-            buffer_duration,
         }
     }
 
@@ -41,7 +39,7 @@ impl AudioQueue {
                 queue: VecDeque::new(),
                 receiver,
                 input_samples_processor: InputProcessor::new(
-                    self.buffer_duration,
+                    opts.buffer_duration,
                     clock,
                     input_id.clone(),
                 ),

@@ -118,9 +118,10 @@ impl TryFrom<RtpInputStream> for pipeline::RegisterInputOptions {
             transport_protocol: transport_protocol.unwrap_or(TransportProtocol::Udp).into(),
         });
 
-        let queue_options = queue::InputOptions {
+        let queue_options = queue::QueueInputOptions {
             required: required.unwrap_or(false),
             offset: offset_ms.map(|offset_ms| Duration::from_secs_f64(offset_ms / 1000.0)),
+            buffer_duration: None,
         };
 
         Ok(pipeline::RegisterInputOptions {
@@ -152,9 +153,10 @@ impl TryFrom<Mp4> for pipeline::RegisterInputOptions {
             (None, Some(path)) => input::mp4::Source::File(path.into()),
         };
 
-        let queue_options = queue::InputOptions {
+        let queue_options = queue::QueueInputOptions {
             required: required.unwrap_or(false),
             offset: offset_ms.map(|offset_ms| Duration::from_secs_f64(offset_ms / 1000.0)),
+            buffer_duration: None,
         };
 
         Ok(pipeline::RegisterInputOptions {
@@ -175,9 +177,10 @@ impl TryFrom<DeckLink> for pipeline::RegisterInputOptions {
                 display_name: value.display_name,
                 enable_audio: value.enable_audio.unwrap_or(true),
             }),
-            queue_options: queue::InputOptions {
+            queue_options: queue::QueueInputOptions {
                 required: value.required.unwrap_or(false),
                 offset: None,
+                buffer_duration: Some(Duration::from_millis(5)),
             },
         })
     }

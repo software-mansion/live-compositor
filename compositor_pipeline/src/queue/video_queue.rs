@@ -19,14 +19,12 @@ use super::QueueVideoOutput;
 
 pub struct VideoQueue {
     inputs: HashMap<InputId, VideoQueueInput>,
-    buffer_duration: Duration,
 }
 
 impl VideoQueue {
-    pub fn new(buffer_duration: Duration) -> Self {
+    pub fn new() -> Self {
         VideoQueue {
             inputs: HashMap::new(),
-            buffer_duration,
         }
     }
 
@@ -44,7 +42,7 @@ impl VideoQueue {
                 queue: VecDeque::new(),
                 receiver,
                 input_frames_processor: InputProcessor::new(
-                    self.buffer_duration,
+                    opts.buffer_duration,
                     clock,
                     input_id.clone(),
                 ),

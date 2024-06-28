@@ -113,3 +113,18 @@ Defaults to `UNIFORM_BUFFER_AND_STORAGE_TEXTURE_ARRAY_NON_UNIFORM_INDEXING,SAMPL
 
 Additionally, `TEXTURE_BINDING_ARRAY` and `PUSH_CONSTANTS` are also required, but this requirement can not be overwritten by changing this
 environment variable.
+
+### `LIVE_COMPOSITOR_INPUT_BUFFER_DURATION_MS`
+
+Duration of an input buffer in milliseconds. New stream will not be processed until this buffer is filled, so this value controls the trade-off between
+latency and resilience to stream delays.
+
+This value can be safely set to 0 if either:
+- All input streams are `required`
+- All input streams are started with a specific `offset_ms` and you are delivering them early enough for decoding to finish.
+
+:::warning
+Increasing this value always increases the latency of the stream by the same amount.
+:::
+
+Defaults to `80ms` (about 5 frames in 60 fps).

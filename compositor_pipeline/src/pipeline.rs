@@ -56,7 +56,7 @@ pub struct Port(pub u16);
 
 pub struct RegisterInputOptions {
     pub input_options: InputOptions,
-    pub queue_options: queue::InputOptions,
+    pub queue_options: queue::QueueInputOptions,
 }
 
 #[derive(Debug, Clone)]
