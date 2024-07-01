@@ -473,7 +473,7 @@ function Licensing() {
               <li>
                 We do not want to vendor-lock or provide predatory per-seat/per-core/per-instance
                 pricing. Exact conditions will be discussed case-by-case, but you can expect terms
-                you are comfortable with and do not threaten your business model.
+                you are comfortable with and that do not threaten your business model.
               </li>
               <li>
                 We do not want to block use cases already achievable with existing open-source
