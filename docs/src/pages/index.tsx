@@ -458,7 +458,7 @@ function Licensing() {
           <span className={styles.sectionSubheading}>
             What is the goal of those limitations?
             <ul>
-              <li>We want to know where and how LiveCompositor is used.</li>
+              <li>We want to have insight into where and how LiveCompositor is used.</li>
               <li>We want to block third parties from re-packaging and providing it as a SaaS.</li>
               <li>
                 In the future, we will add additional grants for free production usage (including
