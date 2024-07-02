@@ -13,7 +13,7 @@ members = [
     "compositor_chromium",
     "integration_tests",
     "generate",
-    "decklink",
+    # "decklink",
 ]
 resolver = "2"
 
