@@ -6,14 +6,14 @@ All examples are located in [github.com/membraneframework-labs/live_compositor_d
 - `project` directory includes an example Membrane project that can consume multiple streams over RTMP and host the composed stream as an HLS playlist.
 - `aws-ec2-terraform` directory includes an example Terraform+Packer configuration for building an AMI (Amazon Machine Image) and deploying it to EC2.
 
-## Prerequisites
+### Prerequisites
 
 - Terraform
 - Packer
 - Elixir - required to build an example project
 - FFmpeg - used to send/receive streams from/to the compositor
 
-### The trade-off between CPU+GPU and CPU-only instances
+### CPU vs GPU rendering trade-off
 
 - `GPU+CPU` - LiveCompositor uses `wgpu` (implementation of WebGPU standard written in Rust) for rendering. However, all decoding and encoding still happens on the CPU. When running on GPU the rendering cost should be negligible compared to the decoding/encoding.
 - `CPU-only` - When running on a CPU-only instance, all `WebGPU` code is emulated on the CPU. Unless your encoder quality is set very high, rendering will use most of the CPU processing time.
