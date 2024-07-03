@@ -8,7 +8,7 @@ use tracing::trace;
 use crate::{
     audio_mixer::InputSamples,
     error::InputInitError,
-    pipeline::structs::{DecodedSamples, Samples},
+    pipeline::types::{DecodedSamples, Samples},
 };
 
 const SAMPLE_BATCH_DURATION: Duration = Duration::from_millis(20);

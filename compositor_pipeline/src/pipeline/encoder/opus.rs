@@ -6,7 +6,7 @@ use crate::{
     audio_mixer::{AudioChannels, AudioSamples, OutputSamples},
     error::EncoderInitError,
     pipeline::{
-        structs::{EncodedChunk, EncodedChunkKind, EncoderOutputEvent},
+        types::{EncodedChunk, EncodedChunkKind, EncoderOutputEvent},
         AudioCodec,
     },
     queue::PipelineEvent,

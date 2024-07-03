@@ -11,12 +11,16 @@ use compositor_render::error::{
 use compositor_render::scene::Component;
 use compositor_render::web_renderer::WebRendererInitOptions;
 use compositor_render::FrameSet;
+use compositor_render::Framerate;
 use compositor_render::RegistryType;
 use compositor_render::RendererOptions;
 use compositor_render::WgpuFeatures;
 use compositor_render::{error::UpdateSceneError, Renderer};
 use compositor_render::{EventLoop, InputId, OutputId, RendererId, RendererSpec};
 use crossbeam_channel::{bounded, Receiver};
+use output::EncodedDataOutputOptions;
+use output::OutputOptions;
+use output::RawDataOutputOptions;
 use tracing::{error, info, trace, warn};
 
 use crate::audio_mixer::AudioMixer;
@@ -31,9 +35,7 @@ use crate::queue::PipelineEvent;
 use crate::queue::QueueAudioOutput;
 use crate::queue::{self, Queue, QueueOptions, QueueVideoOutput};
 
-use self::encoder::{AudioEncoderPreset, VideoEncoderOptions};
 use self::input::InputOptions;
-use self::output::OutputOptions;
 
 pub mod decoder;
 pub mod encoder;
@@ -42,13 +44,15 @@ pub mod output;
 mod pipeline_input;
 mod pipeline_output;
 pub mod rtp;
-mod structs;
+mod types;
 
 use self::pipeline_input::register_pipeline_input;
 use self::pipeline_input::PipelineInput;
 use self::pipeline_output::PipelineOutput;
-pub use self::structs::AudioCodec;
-pub use self::structs::VideoCodec;
+
+pub use self::types::{
+    AudioCodec, EncodedChunk, EncodedChunkKind, EncoderOutputEvent, RawDataReceiver, VideoCodec,
+};
 pub use pipeline_output::PipelineOutputEndCondition;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -60,8 +64,14 @@ pub struct RegisterInputOptions {
 }
 
 #[derive(Debug, Clone)]
+pub struct RegisterOutputOptions<T> {
+    pub output_options: T,
+    pub video: Option<OutputVideoOptions>,
+    pub audio: Option<OutputAudioOptions>,
+}
+
+#[derive(Debug, Clone)]
 pub struct OutputVideoOptions {
-    pub encoder_opts: VideoEncoderOptions,
     pub initial: Component,
     pub end_condition: PipelineOutputEndCondition,
 }
@@ -71,16 +81,7 @@ pub struct OutputAudioOptions {
     pub initial: AudioMixingParams,
     pub mixing_strategy: MixingStrategy,
     pub channels: AudioChannels,
-    pub forward_error_correction: bool,
-    pub encoder_preset: AudioEncoderPreset,
     pub end_condition: PipelineOutputEndCondition,
-}
-
-#[derive(Debug, Clone)]
-pub struct RegisterOutputOptions {
-    pub output_options: OutputOptions,
-    pub video: Option<OutputVideoOptions>,
-    pub audio: Option<OutputAudioOptions>,
 }
 
 #[derive(Debug, Clone)]
@@ -90,14 +91,13 @@ pub struct OutputScene {
 }
 
 pub struct Pipeline {
+    ctx: PipelineCtx,
     inputs: HashMap<InputId, PipelineInput>,
     outputs: HashMap<OutputId, PipelineOutput>,
     queue: Arc<Queue>,
     renderer: Renderer,
     audio_mixer: AudioMixer,
     is_started: bool,
-    download_dir: PathBuf,
-    output_sample_rate: u32,
 }
 
 #[derive(Debug, Clone)]
@@ -111,6 +111,13 @@ pub struct Options {
     pub wgpu_features: WgpuFeatures,
 }
 
+#[derive(Debug)]
+pub struct PipelineCtx {
+    pub output_sample_rate: u32,
+    pub output_framerate: Framerate,
+    pub download_dir: Arc<PathBuf>,
+}
+
 impl Pipeline {
     pub fn new(opts: Options) -> Result<(Self, Arc<dyn EventLoop>), InitPipelineError> {
         let (renderer, event_loop) = Renderer::new(RendererOptions {
@@ -121,8 +128,9 @@ impl Pipeline {
             wgpu_features: opts.wgpu_features,
         })?;
 
-        let mut download_dir = opts.download_root;
-        download_dir.push(format!("live-compositor-{}", rand::random::<u64>()));
+        let download_dir = opts
+            .download_root
+            .join(format!("live-compositor-{}", rand::random::<u64>()));
         std::fs::create_dir_all(&download_dir).map_err(InitPipelineError::CreateDownloadDir)?;
 
         let pipeline = Pipeline {
@@ -132,8 +140,11 @@ impl Pipeline {
             renderer,
             audio_mixer: AudioMixer::new(opts.output_sample_rate),
             is_started: false,
-            download_dir,
-            output_sample_rate: opts.output_sample_rate,
+            ctx: PipelineCtx {
+                output_sample_rate: opts.output_sample_rate,
+                output_framerate: opts.queue_options.output_framerate,
+                download_dir: download_dir.into(),
+            },
         };
 
         Ok((pipeline, event_loop))
@@ -173,9 +184,40 @@ impl Pipeline {
     pub fn register_output(
         &mut self,
         output_id: OutputId,
-        register_options: RegisterOutputOptions,
+        register_options: RegisterOutputOptions<OutputOptions>,
     ) -> Result<Option<Port>, RegisterOutputError> {
-        self.register_pipeline_output(output_id, register_options)
+        self.register_pipeline_output(
+            output_id,
+            &register_options.output_options,
+            register_options.video,
+            register_options.audio,
+        )
+    }
+
+    pub fn register_encoded_data_output(
+        &mut self,
+        output_id: OutputId,
+        register_options: RegisterOutputOptions<EncodedDataOutputOptions>,
+    ) -> Result<Receiver<EncoderOutputEvent>, RegisterOutputError> {
+        self.register_pipeline_output(
+            output_id,
+            &register_options.output_options,
+            register_options.video,
+            register_options.audio,
+        )
+    }
+
+    pub fn register_raw_data_output(
+        &mut self,
+        output_id: OutputId,
+        register_options: RegisterOutputOptions<RawDataOutputOptions>,
+    ) -> Result<RawDataReceiver, RegisterOutputError> {
+        self.register_pipeline_output(
+            output_id,
+            &register_options.output_options,
+            register_options.video,
+            register_options.audio,
+        )
     }
 
     pub fn unregister_output(&mut self, output_id: &OutputId) -> Result<(), UnregisterOutputError> {
@@ -255,14 +297,17 @@ impl Pipeline {
             .outputs
             .get(&output_id)
             .ok_or_else(|| UpdateSceneError::OutputNotRegistered(output_id.clone()))?;
-        let Some(resolution) = output.encoder.video.as_ref().map(|v| v.resolution()) else {
+        let (Some(resolution), Some(frame_format)) = (
+            output.output.resolution(),
+            output.output.output_frame_format(),
+        ) else {
             return Err(UpdateSceneError::AudioVideoNotMatching(output_id));
         };
 
         info!(?output_id, "Update scene {:#?}", scene_root);
 
         self.renderer
-            .update_scene(output_id, resolution, scene_root)
+            .update_scene(output_id, resolution, frame_format, scene_root)
     }
 
     fn update_audio(
@@ -298,6 +343,10 @@ impl Pipeline {
 
     pub fn outputs(&self) -> impl Iterator<Item = (&OutputId, &PipelineOutput)> {
         self.outputs.iter()
+    }
+
+    pub fn wgpu_ctx(&self) -> (Arc<wgpu::Device>, Arc<wgpu::Queue>) {
+        self.renderer.wgpu_ctx()
     }
 }
 

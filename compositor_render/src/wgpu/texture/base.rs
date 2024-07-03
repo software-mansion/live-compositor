@@ -38,6 +38,28 @@ impl Texture {
         Self { texture, view }
     }
 
+    pub fn copy_to_wgpu_texture(&self, ctx: &WgpuCtx) -> wgpu::Texture {
+        let mut encoder = ctx.device.create_command_encoder(&Default::default());
+
+        let dst_texture = ctx.device.create_texture(&wgpu::TextureDescriptor {
+            label: None,
+            size: self.texture.size(),
+            mip_level_count: self.texture.mip_level_count(),
+            sample_count: self.texture.sample_count(),
+            dimension: self.texture.dimension(),
+            format: self.texture.format(),
+            usage: self.texture.usage(),
+            view_formats: &[self.texture.format()],
+        });
+        encoder.copy_texture_to_texture(
+            self.texture.as_image_copy(),
+            dst_texture.as_image_copy(),
+            self.texture.size(),
+        );
+        ctx.queue.submit(Some(encoder.finish()));
+        dst_texture
+    }
+
     pub fn empty(device: &wgpu::Device) -> Self {
         Self::new(
             device,

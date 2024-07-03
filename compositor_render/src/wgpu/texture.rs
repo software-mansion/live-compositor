@@ -7,10 +7,7 @@ use wgpu::{Buffer, BufferAsyncError, MapMode};
 
 use crate::{Frame, FrameData, Resolution};
 
-use self::{
-    planar_yuv::YUVPendingDownload,
-    utils::{pad_to_256, texture_size_to_resolution},
-};
+use self::utils::{pad_to_256, texture_size_to_resolution};
 
 use super::WgpuCtx;
 
@@ -28,6 +25,8 @@ pub type PlanarYuvVariant = planar_yuv::YuvVariant;
 pub type InterleavedYuv422Texture = interleaved_yuv422::InterleavedYuv422Texture;
 
 pub type Texture = base::Texture;
+
+pub use planar_yuv::YuvPendingDownload as PlanarYuvPendingDownload;
 
 struct InputTextureState {
     textures: InnerInputTexture,
@@ -115,6 +114,10 @@ impl InputTexture {
                     return;
                 };
                 textures.upload(ctx, &data)
+            }
+            FrameData::Rgba8UnormWgpuTexture(_) => {
+                // TODO: Implement wgpu texture input
+                error!("Unsupported input format")
             }
         }
     }
@@ -317,14 +320,14 @@ impl OutputTexture {
     pub fn start_download<'a>(
         &'a self,
         ctx: &WgpuCtx,
-    ) -> YUVPendingDownload<
+    ) -> PlanarYuvPendingDownload<
         'a,
         impl FnOnce() -> Result<Bytes, BufferAsyncError> + 'a,
         BufferAsyncError,
     > {
         self.textures.copy_to_buffers(ctx, &self.buffers);
 
-        YUVPendingDownload::new(
+        PlanarYuvPendingDownload::new(
             self.download_buffer(self.textures.planes[0].texture.size(), &self.buffers[0]),
             self.download_buffer(self.textures.planes[1].texture.size(), &self.buffers[1]),
             self.download_buffer(self.textures.planes[2].texture.size(), &self.buffers[2]),

@@ -7,7 +7,7 @@ use crate::{wgpu::WgpuCtx, FrameData, Resolution, YuvPlanes};
 
 use super::base::Texture;
 
-pub struct YUVPendingDownload<'a, F, E>
+pub struct YuvPendingDownload<'a, F, E>
 where
     F: FnOnce() -> Result<Bytes, E> + 'a,
 {
@@ -17,7 +17,7 @@ where
     _phantom: PhantomData<&'a F>,
 }
 
-impl<'a, F, E> YUVPendingDownload<'a, F, E>
+impl<'a, F, E> YuvPendingDownload<'a, F, E>
 where
     F: FnOnce() -> Result<Bytes, E>,
 {
@@ -33,7 +33,7 @@ where
     /// `device.poll(wgpu::MaintainBase::Wait)` needs to be called after download
     /// is started, but before this method is called.
     pub fn wait(self) -> Result<FrameData, E> {
-        let YUVPendingDownload { y, u, v, _phantom } = self;
+        let YuvPendingDownload { y, u, v, _phantom } = self;
         // output pixel format will always be YUV420P
         Ok(FrameData::PlanarYuv420(YuvPlanes {
             y_plane: y()?,

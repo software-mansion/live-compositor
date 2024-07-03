@@ -1,6 +1,10 @@
 use std::{fmt, sync::Arc, time::Duration};
 
 use bytes::Bytes;
+use compositor_render::Frame;
+use crossbeam_channel::Receiver;
+
+use crate::{audio_mixer::OutputSamples, queue::PipelineEvent};
 
 /// A struct representing a chunk of encoded data.
 ///
@@ -33,29 +37,12 @@ pub enum ChunkFromFfmpegError {
     NoPts,
 }
 
-impl EncodedChunk {
-    pub fn from_av_packet(
-        value: &ffmpeg_next::Packet,
-        kind: EncodedChunkKind,
-        timescale: i64,
-    ) -> Result<Self, ChunkFromFfmpegError> {
-        let data = match value.data() {
-            Some(data) => Bytes::copy_from_slice(data),
-            None => return Err(ChunkFromFfmpegError::NoData),
-        };
-
-        let rescale = |v: i64| Duration::from_secs_f64((v as f64) * (1.0 / timescale as f64));
-
-        Ok(Self {
-            data,
-            pts: value
-                .pts()
-                .map(rescale)
-                .ok_or(ChunkFromFfmpegError::NoPts)?,
-            dts: value.dts().map(rescale),
-            kind,
-        })
-    }
+/// Receiver sides of video/audio channels for data produced by
+/// audio mixer and renderer
+#[derive(Debug, Clone)]
+pub struct RawDataReceiver {
+    pub video: Option<Receiver<PipelineEvent<Frame>>>,
+    pub audio: Option<Receiver<PipelineEvent<OutputSamples>>>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

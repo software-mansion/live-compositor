@@ -4,7 +4,7 @@ use crate::{
     error::InputInitError,
     pipeline::{
         decoder::OpusDecoderOptions,
-        structs::{EncodedChunk, Samples},
+        types::{EncodedChunk, Samples},
     },
 };
 

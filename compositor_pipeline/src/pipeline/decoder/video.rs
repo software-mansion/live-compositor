@@ -3,7 +3,7 @@ use crossbeam_channel::{Receiver, Sender};
 
 use crate::{
     error::InputInitError,
-    pipeline::{structs::EncodedChunk, VideoCodec},
+    pipeline::{types::EncodedChunk, VideoCodec},
     queue::PipelineEvent,
 };
 

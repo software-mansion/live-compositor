@@ -7,7 +7,7 @@ extern crate opus as lib_opus;
 use crate::{
     audio_mixer::InputSamples,
     error::InputInitError,
-    pipeline::structs::{DecodedSamples, EncodedChunk},
+    pipeline::types::{DecodedSamples, EncodedChunk},
     queue::PipelineEvent,
 };
 

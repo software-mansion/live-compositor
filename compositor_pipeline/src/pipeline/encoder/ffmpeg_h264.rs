@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use compositor_render::{Frame, FrameData, OutputId, Resolution};
 use crossbeam_channel::{Receiver, Sender};
 use ffmpeg_next::{
@@ -9,7 +11,9 @@ use tracing::{debug, error, span, trace, warn, Level};
 
 use crate::{
     error::EncoderInitError,
-    pipeline::structs::{EncodedChunk, EncodedChunkKind, EncoderOutputEvent, VideoCodec},
+    pipeline::types::{
+        ChunkFromFfmpegError, EncodedChunk, EncodedChunkKind, EncoderOutputEvent, VideoCodec,
+    },
     queue::PipelineEvent,
 };
 
@@ -225,7 +229,7 @@ fn run_encoder_thread(
         loop {
             match encoder.receive_packet(&mut packet) {
                 Ok(_) => {
-                    match EncodedChunk::from_av_packet(
+                    match encoded_chunk_from_av_packet(
                         &packet,
                         EncodedChunkKind::Video(VideoCodec::H264),
                         1_000_000,
@@ -333,4 +337,27 @@ fn merge_options_with_defaults<'a>(
                 .iter()
                 .map(|(key, value)| (key.as_str(), value.as_str())),
         )
+}
+
+fn encoded_chunk_from_av_packet(
+    value: &ffmpeg_next::Packet,
+    kind: EncodedChunkKind,
+    timescale: i64,
+) -> Result<EncodedChunk, ChunkFromFfmpegError> {
+    let data = match value.data() {
+        Some(data) => bytes::Bytes::copy_from_slice(data),
+        None => return Err(ChunkFromFfmpegError::NoData),
+    };
+
+    let rescale = |v: i64| Duration::from_secs_f64((v as f64) * (1.0 / timescale as f64));
+
+    Ok(EncodedChunk {
+        data,
+        pts: value
+            .pts()
+            .map(rescale)
+            .ok_or(ChunkFromFfmpegError::NoPts)?,
+        dts: value.dts().map(rescale),
+        kind,
+    })
 }

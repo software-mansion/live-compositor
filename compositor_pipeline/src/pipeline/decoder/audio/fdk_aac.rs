@@ -6,7 +6,7 @@ use crate::{
     error::InputInitError,
     pipeline::{
         decoder::AacDecoderOptions,
-        structs::{EncodedChunk, EncodedChunkKind, Samples},
+        types::{EncodedChunk, EncodedChunkKind, Samples},
     },
 };
 

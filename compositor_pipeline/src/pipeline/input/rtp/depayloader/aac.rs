@@ -4,7 +4,7 @@ use bytes::{Buf, BytesMut};
 
 use crate::pipeline::{
     decoder::AacDepayloaderMode,
-    structs::{EncodedChunk, EncodedChunkKind},
+    types::{EncodedChunk, EncodedChunkKind},
     AudioCodec,
 };
 

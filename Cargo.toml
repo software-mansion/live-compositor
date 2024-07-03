@@ -46,6 +46,7 @@ opus = "0.3.0"
 rubato = "0.15.0"
 futures-util = "0.3.30"
 tokio = { version = "1", features = ["full"] }
+wgpu = { version = "0.19.1", features = ["naga-ir"] }
 
 [dependencies]
 compositor_render = { workspace = true }

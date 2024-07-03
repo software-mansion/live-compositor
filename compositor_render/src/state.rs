@@ -15,7 +15,7 @@ use crate::{
     types::Framerate,
     EventLoop, FrameSet, InputId, OutputId,
 };
-use crate::{image, Resolution};
+use crate::{image, OutputFrameFormat, Resolution};
 use crate::{
     scene::SceneState,
     wgpu::{WgpuCtx, WgpuErrorScope},
@@ -163,12 +163,18 @@ impl Renderer {
         &mut self,
         output_id: OutputId,
         resolution: Resolution,
+        output_format: OutputFrameFormat,
         scene_root: Component,
     ) -> Result<(), UpdateSceneError> {
         self.0
             .lock()
             .unwrap()
-            .update_scene(output_id, resolution, scene_root)
+            .update_scene(output_id, resolution, scene_root, output_format)
+    }
+
+    pub fn wgpu_ctx(&self) -> (Arc<wgpu::Device>, Arc<wgpu::Queue>) {
+        let guard = self.0.lock().unwrap();
+        (guard.wgpu_ctx.device.clone(), guard.wgpu_ctx.queue.clone())
     }
 }
 
@@ -230,6 +236,7 @@ impl InnerRenderer {
         output_id: OutputId,
         resolution: Resolution,
         scene_root: Component,
+        output_format: OutputFrameFormat,
     ) -> Result<(), UpdateSceneError> {
         let output = OutputScene {
             output_id: output_id.clone(),
@@ -247,6 +254,7 @@ impl InnerRenderer {
                 stream_fallback_timeout: self.stream_fallback_timeout,
             },
             output_node,
+            output_format,
         )?;
         Ok(())
     }

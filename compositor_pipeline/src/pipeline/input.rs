@@ -13,7 +13,7 @@ use super::{
         start_audio_decoder_thread, start_audio_resampler_only_thread, start_video_decoder_thread,
         AudioDecoderOptions, DecodedDataReceiver, VideoDecoderOptions,
     },
-    structs::{DecodedSamples, EncodedChunk},
+    types::{DecodedSamples, EncodedChunk},
     Port,
 };
 

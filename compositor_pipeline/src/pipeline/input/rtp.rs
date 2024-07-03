@@ -5,7 +5,7 @@ use crate::{
         decoder::{self},
         encoder,
         rtp::{BindToPortError, RequestedPort, TransportProtocol},
-        structs::{EncodedChunk, EncodedChunkKind},
+        types::{EncodedChunk, EncodedChunkKind},
     },
     queue::PipelineEvent,
 };
