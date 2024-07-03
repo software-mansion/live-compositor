@@ -79,7 +79,10 @@ fn generate_schema(mut current_schema: RootSchema, name: &'static str, action: S
     flatten_definitions_with_one_of(&mut current_schema);
 
     let root_dir: PathBuf = ROOT_DIR.into();
-    let schema_path = root_dir.parent().expect("REASON").join(format!("schemas/{}.schema.json", name));
+    let schema_path = root_dir
+        .parent()
+        .expect("REASON")
+        .join(format!("schemas/{}.schema.json", name));
     fs::create_dir_all(schema_path.parent().unwrap()).unwrap();
 
     let json_from_disk = match fs::read_to_string(&schema_path) {
