@@ -2,7 +2,7 @@
 
 This is an example configuration that shows how to deploy LiveCompositor to an AWS EC2 instance with Terraform configuration.
 
-All examples are located in [github.com/membraneframework-labs/live_compositor_deployment](https://github.com/membraneframework-labs/live_compositor_deployment) repository:
+All examples are located in the [github.com/membraneframework-labs/live_compositor_deployment](https://github.com/membraneframework-labs/live_compositor_deployment) repository:
 - `project` directory includes an example Membrane project that can consume multiple streams over RTMP and host the composed stream as an HLS playlist.
 - `aws-ec2-terraform` directory includes an example Terraform+Packer configuration for building an AMI (Amazon Machine Image) and deploying it to EC2.
 
@@ -15,10 +15,13 @@ All examples are located in [github.com/membraneframework-labs/live_compositor_d
 
 ### CPU vs GPU rendering trade-off
 
-- `GPU+CPU` - LiveCompositor uses `wgpu` (implementation of WebGPU standard written in Rust) for rendering. However, all decoding and encoding still happens on the CPU. When running on GPU the rendering cost should be negligible compared to the decoding/encoding.
-- `CPU-only` - When running on a CPU-only instance, all `WebGPU` code is emulated on the CPU. Unless your encoder quality is set very high, rendering will use most of the CPU processing time.
+- `GPU+CPU` - LiveCompositor uses `wgpu` (implementation of WebGPU standard written in Rust) for rendering. However, all decoding and
+encoding still happens on the CPU. When running on GPU the rendering cost should be negligible compared to the decoding/encoding.
+- `CPU-only` - When running on a CPU-only instance, all `WebGPU` code is emulated on the CPU. Unless your encoder quality is set very
+high, rendering will use most of the CPU processing time.
 
-Actual price-to-performance can vary, but in general, CPU+GPU instances make more sense for fast encoder presets and complex rendering pipelines. However, CPU-only can be more optimal when using simple layouts and prioritizing quality over performance with slower preset.
+Actual price-to-performance can vary, but in general, CPU+GPU instances make more sense for fast encoder presets and complex rendering
+pipelines. However, CPU-only can be more optimal when using simple layouts and prioritizing quality over performance with slower preset.
 
 ### How to deploy
 
@@ -33,8 +36,8 @@ Go to **aws-ec2-terraform/packer** directory and run
 ```bash
 packer build membrane.pkr.hcl
 ```
-to build AMI image with an example Membrane
-project. At the end of the process, the terminal will print AMI ID that will be needed in the next step (something like `ami-0e18e9d7b8c037ec2`).
+to build an AMI image with an example Membrane project. At the end of the process, the terminal will print the AMI ID, that will
+be needed in the next step (something like `ami-0e18e9d7b8c037ec2`).
 
 > The other `pkr.hcl` file in this directory (**standalone.pkr.hcl**) includes configuration for deploying just a standalone LiveCompositor
 instance, so you can also go that route, but the rest of this guide assumes you are using the provided Membrane project.
@@ -52,7 +55,7 @@ Go to **aws-ec2-terraform/packer** directory and run
 ```bash
 packer build -var "with-gpu=true" membrane.pkr.hcl
 ```
-to build AMI image with an example Membrane project. At the end of the process, the terminal will print AMI ID that will
+to build an AMI image with an example Membrane project. At the end of the process, the terminal will print the AMI ID that, will
 be needed in the next step (something like `ami-0e18e9d7b8c037ec2`).
 
 Open **aws-ec2-terraform/main.tf**, find `aws_instance.demo_instance` definition and update the `ami` field with the AMI ID from the previous step.
@@ -76,11 +79,11 @@ To test the service, run in separate terminals:
   ```
   ffplay http://YOUR_INSTANCE_IP:9001/index.m3u8
   ```
-- To send example input stream
+- To send an example input stream
   ```
   ffmpeg -re -f lavfi -i testsrc
     -vf scale=1280:720 -vcodec libx264 \
     -profile:v baseline -preset fast -pix_fmt yuv420p \
     -f flv rtmp://YOUR_INSTANCE_IP:9000/app/stream_key
   ```
-  - You can run this command multiple times with different path instead of `app/stream_key` to connect multiple streams.
+  - You can run this command multiple times with different paths instead of `app/stream_key` to connect multiple streams.
