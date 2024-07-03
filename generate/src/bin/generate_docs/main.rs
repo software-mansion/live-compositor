@@ -15,7 +15,7 @@ mod schema_parser;
 
 fn main() {
     tracing_subscriber::fmt().init();
-    let docs_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("docs/pages/api/generated");
+    let docs_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).parent().expect("REASON").join("docs/pages/api/generated");
     if docs_path.exists() {
         fs::remove_dir_all(&docs_path).unwrap();
     }
