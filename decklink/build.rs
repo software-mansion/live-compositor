@@ -1,6 +1,6 @@
 fn main() {
     if !cfg!(target_os = "linux") {
-        println!("Non linux target os. Skipping decklink build.");
+        return
     }
     let profile = std::env::var("PROFILE").unwrap();
 
