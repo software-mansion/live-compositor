@@ -1,67 +1,77 @@
-use decklink::{
-    get_decklinks, AudioSampleType, DeckLinkError, DisplayModeType, PixelFormat,
-    SupportedVideoModeFlags, VideoConnection, VideoInputConversionMode, VideoInputFlags,
-};
-
-pub struct ErrorStack<'a>(Option<&'a (dyn std::error::Error + 'static)>);
-
-impl<'a> ErrorStack<'a> {
-    pub fn new(value: &'a (dyn std::error::Error + 'static)) -> Self {
-        ErrorStack(Some(value))
+#[cfg(target_os = "linux")]
+mod test {
+    use decklink::{
+        get_decklinks, AudioSampleType, DeckLinkError, DisplayModeType, PixelFormat,
+        SupportedVideoModeFlags, VideoConnection, VideoInputConversionMode, VideoInputFlags,
+    };
+    
+    pub struct ErrorStack<'a>(Option<&'a (dyn std::error::Error + 'static)>);
+    
+    impl<'a> ErrorStack<'a> {
+        pub fn new(value: &'a (dyn std::error::Error + 'static)) -> Self {
+            ErrorStack(Some(value))
+        }
+    
+        pub fn into_string(self) -> String {
+            let stack: Vec<String> = self.map(ToString::to_string).collect();
+            stack.join("\n")
+        }
     }
-
-    pub fn into_string(self) -> String {
-        let stack: Vec<String> = self.map(ToString::to_string).collect();
-        stack.join("\n")
+    
+    impl<'a> Iterator for ErrorStack<'a> {
+        type Item = &'a (dyn std::error::Error + 'static);
+    
+        fn next(&mut self) -> Option<Self::Item> {
+            self.0.map(|err| {
+                self.0 = err.source();
+                err
+            })
+        }
     }
-}
-
-impl<'a> Iterator for ErrorStack<'a> {
-    type Item = &'a (dyn std::error::Error + 'static);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.0.map(|err| {
-            self.0 = err.source();
-            err
-        })
+    
+    pub fn test() -> Result<(), DeckLinkError> {
+        let decklinks = get_decklinks()?;
+        println!("Detected {} decklinks", decklinks.len());
+        for deck in &decklinks {
+            println!("{:#?}", deck.info()?);
+        }
+        for deck in &decklinks {
+            println!("{:#?}", deck.info()?);
+        }
+    
+        let decklink = &decklinks[0];
+    
+        let input = decklink.input()?;
+        let (_is_supported, mode) = input.supports_video_mode(
+            VideoConnection::HDMI,
+            DisplayModeType::Mode4K2160p60,
+            PixelFormat::Format8BitYUV,
+            VideoInputConversionMode::NoVideoInputConversion,
+            SupportedVideoModeFlags::default(),
+        )?;
+        println!("{mode:?}");
+        input.enable_video(
+            mode,
+            PixelFormat::Format8BitYUV,
+            VideoInputFlags {
+                enable_format_detection: true,
+                ..Default::default()
+            },
+        )?;
+        input.enable_audio(48_000, AudioSampleType::Sample32bit, 2)?;
+        Ok(())
     }
 }
 
 fn main() {
-    if let Err(err) = test() {
-        println!("error {}", ErrorStack::new(&err).into_string())
+    #[cfg(target_os = "linux")]
+    {
+        if let Err(err) = test::test() {
+            println!("error: {}", err.to_string()); // Updated to use a simpler error reporting
+        }
+        return;
     }
+
+    println!("Example only available on Linux.");
 }
 
-pub fn test() -> Result<(), DeckLinkError> {
-    let decklinks = get_decklinks()?;
-    println!("Detected {} decklinks", decklinks.len());
-    for deck in &decklinks {
-        println!("{:#?}", deck.info()?);
-    }
-    for deck in &decklinks {
-        println!("{:#?}", deck.info()?);
-    }
-
-    let decklink = &decklinks[0];
-
-    let input = decklink.input()?;
-    let (_is_supported, mode) = input.supports_video_mode(
-        VideoConnection::HDMI,
-        DisplayModeType::Mode4K2160p60,
-        PixelFormat::Format8BitYUV,
-        VideoInputConversionMode::NoVideoInputConversion,
-        SupportedVideoModeFlags::default(),
-    )?;
-    println!("{mode:?}");
-    input.enable_video(
-        mode,
-        PixelFormat::Format8BitYUV,
-        VideoInputFlags {
-            enable_format_detection: true,
-            ..Default::default()
-        },
-    )?;
-    input.enable_audio(48_000, AudioSampleType::Sample32bit, 2)?;
-    Ok(())
-}
