@@ -1,6 +1,6 @@
 fn main() {
     if !cfg!(target_os = "linux") {
-        return
+        return;
     }
     let profile = std::env::var("PROFILE").unwrap();
 
