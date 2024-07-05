@@ -1,4 +1,7 @@
 fn main() {
+    if !cfg!(target_os = "linux") {
+        return;
+    }
     let profile = std::env::var("PROFILE").unwrap();
 
     let mut bridge = cxx_build::bridges(["src/api.rs", "src/enums.rs"]);
