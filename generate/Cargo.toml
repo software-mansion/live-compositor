@@ -7,7 +7,7 @@ license = "BUSL-1.1"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-live_compositor = { path = ".." }
+live_compositor = { path = "..", features=["decklink"] }
 reqwest = { workspace = true }
 anyhow = { workspace = true }
 serde = { workspace = true }
@@ -24,7 +24,5 @@ tracing = { workspace = true }
 opus = { workspace = true }
 pitch-detection = "0.3.0"
 rand = { workspace = true }
-schemars = { git = "https://github.com/membraneframework-labs/schemars", rev = "a5ad1f9", features = [
-    "preserve_order",
-] }
+schemars = { workspace = true}
 tracing-subscriber = { version = "0.3.18", features = ["json", "env-filter"] }

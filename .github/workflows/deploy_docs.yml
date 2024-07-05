@@ -50,7 +50,7 @@ jobs:
 
             - name: 📄 Generate docs from JSON schema
               working-directory: ./generate
-              run: cargo run --bin generate_docs --features decklink
+              run: cargo run --bin generate_docs
 
             - name: 🛠 Install dependencies
               run: npm ci
