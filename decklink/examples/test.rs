@@ -4,23 +4,23 @@ mod test {
         get_decklinks, AudioSampleType, DeckLinkError, DisplayModeType, PixelFormat,
         SupportedVideoModeFlags, VideoConnection, VideoInputConversionMode, VideoInputFlags,
     };
-    
+
     pub struct ErrorStack<'a>(Option<&'a (dyn std::error::Error + 'static)>);
-    
+
     impl<'a> ErrorStack<'a> {
         pub fn new(value: &'a (dyn std::error::Error + 'static)) -> Self {
             ErrorStack(Some(value))
         }
-    
+
         pub fn into_string(self) -> String {
             let stack: Vec<String> = self.map(ToString::to_string).collect();
             stack.join("\n")
         }
     }
-    
+
     impl<'a> Iterator for ErrorStack<'a> {
         type Item = &'a (dyn std::error::Error + 'static);
-    
+
         fn next(&mut self) -> Option<Self::Item> {
             self.0.map(|err| {
                 self.0 = err.source();
@@ -28,7 +28,7 @@ mod test {
             })
         }
     }
-    
+
     pub fn test() -> Result<(), DeckLinkError> {
         let decklinks = get_decklinks()?;
         println!("Detected {} decklinks", decklinks.len());
@@ -38,9 +38,9 @@ mod test {
         for deck in &decklinks {
             println!("{:#?}", deck.info()?);
         }
-    
+
         let decklink = &decklinks[0];
-    
+
         let input = decklink.input()?;
         let (_is_supported, mode) = input.supports_video_mode(
             VideoConnection::HDMI,
@@ -74,4 +74,3 @@ fn main() {
 
     println!("Example only available on Linux.");
 }
-
