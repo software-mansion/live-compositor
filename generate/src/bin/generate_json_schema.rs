@@ -81,7 +81,7 @@ fn generate_schema(mut current_schema: RootSchema, name: &'static str, action: S
     let root_dir: PathBuf = ROOT_DIR.into();
     let schema_path = root_dir
         .parent()
-        .expect("REASON")
+        .unwrap()
         .join(format!("schemas/{}.schema.json", name));
     fs::create_dir_all(schema_path.parent().unwrap()).unwrap();
 
