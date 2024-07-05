@@ -1,5 +1,5 @@
 #[cfg(target_os = "linux")]
-mod test {
+mod example {
     use decklink::{
         get_decklinks, AudioSampleType, DeckLinkError, DisplayModeType, PixelFormat,
         SupportedVideoModeFlags, VideoConnection, VideoInputConversionMode, VideoInputFlags,
@@ -29,7 +29,7 @@ mod test {
         }
     }
 
-    pub fn test() -> Result<(), DeckLinkError> {
+    pub fn example() -> Result<(), DeckLinkError> {
         let decklinks = get_decklinks()?;
         println!("Detected {} decklinks", decklinks.len());
         for deck in &decklinks {
@@ -63,14 +63,14 @@ mod test {
     }
 }
 
+#[cfg(target_os = "linux")]
 fn main() {
-    #[cfg(target_os = "linux")]
-    {
-        if let Err(err) = test::test() {
-            println!("error: {}", err.to_string()); // Updated to use a simpler error reporting
-        }
-        return;
+    if let Err(err) = example::example() {
+        println!("error: {}", example::ErrorStack::new(&err).into_string());
     }
+}
 
+#[cfg(not(target_os = "linux"))]
+fn main() {
     println!("Example only available on Linux.");
 }

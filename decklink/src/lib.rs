@@ -1,10 +1,17 @@
 #[cfg(target_os = "linux")]
-mod lib {
-    pub(crate) mod api;
-    pub(crate) mod enums;
-    pub(crate) mod input_callback;
+mod api;
+#[cfg(target_os = "linux")]
+mod enums;
+#[cfg(target_os = "linux")]
+mod info;
+#[cfg(target_os = "linux")]
+mod input_callback;
 
-    mod info;
+#[cfg(target_os = "linux")]
+mod lib {
+    use crate::api;
+    use crate::enums;
+    use crate::input_callback;
 
     pub use enums::ffi::FlagAttributeId;
     pub use enums::ffi::FloatAttributeId;
