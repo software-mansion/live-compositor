@@ -4,10 +4,9 @@ use log::{error, info};
 use serde_json::json;
 use std::{env, thread, time::Duration};
 
-use crate::common::{download_file, start_ffplay, start_websocket_thread, stream_video};
-
-#[path = "./common/common.rs"]
-mod common;
+use integration_tests::examples_common::{
+    self, download_file, start_ffplay, start_websocket_thread, stream_video,
+};
 
 const SAMPLE_FILE_URL: &str = "https://filesamples.com/samples/video/mp4/sample_1280x720.mp4";
 const SAMPLE_FILE_PATH: &str = "examples/assets/sample_1280_720.mp4";
@@ -42,7 +41,7 @@ fn start_example_client_code() -> Result<()> {
     let sample_path = download_file(SAMPLE_FILE_URL, SAMPLE_FILE_PATH)?;
 
     info!("[example] Send register input request.");
-    common::post(
+    examples_common::post(
         "input/input_1/register",
         &json!({
             "type": "rtp_stream",
@@ -54,7 +53,7 @@ fn start_example_client_code() -> Result<()> {
     )?;
 
     info!("[example] Send register output request.");
-    common::post(
+    examples_common::post(
         "output/output_1/register",
         &json!({
             "type": "rtp_stream",
@@ -83,8 +82,8 @@ fn start_example_client_code() -> Result<()> {
     std::thread::sleep(Duration::from_millis(500));
 
     info!("[example] Start pipeline");
-    common::post("start", &json!({}))?;
+    examples_common::post("start", &json!({}))?;
 
-    stream_video(IP, OUTPUT_PORT, sample_path)?;
+    stream_video(IP, INPUT_PORT, sample_path)?;
     Ok(())
 }

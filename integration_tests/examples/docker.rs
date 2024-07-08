@@ -5,11 +5,9 @@ use serde_json::json;
 use signal_hook::{consts, iterator::Signals};
 use std::{env, process::Command, thread, time::Duration};
 
-use crate::common::{start_ffplay, start_websocket_thread, stream_ffmpeg_testsrc};
-
-#[path = "./common/common.rs"]
-mod common;
-
+use integration_tests::examples_common::{
+    self, start_ffplay, start_websocket_thread, stream_ffmpeg_testsrc,
+};
 const VIDEO_RESOLUTION: Resolution = Resolution {
     width: 1920,
     height: 1080,
@@ -54,7 +52,7 @@ fn build_and_start_docker(skip_build: bool) -> Result<()> {
             .args([
                 "build",
                 "-f",
-                "build_tools/docker/slim.Dockerfile",
+                "../build_tools/docker/slim.Dockerfile",
                 "-t",
                 "video-compositor",
                 ".",
@@ -103,7 +101,7 @@ fn start_example_client_code(host_ip: String) -> Result<()> {
     start_websocket_thread();
 
     info!("[example] Send register input request.");
-    common::post(
+    examples_common::post(
         "input/input_1/register",
         &json!({
             "type": "rtp_stream",
@@ -116,7 +114,7 @@ fn start_example_client_code(host_ip: String) -> Result<()> {
 
     let shader_source = include_str!("./silly.wgsl");
     info!("[example] Register shader transform");
-    common::post(
+    examples_common::post(
         "shader/example_shader/register",
         &json!({
             "source": shader_source,
@@ -124,7 +122,7 @@ fn start_example_client_code(host_ip: String) -> Result<()> {
     )?;
 
     info!("[example] Send register output request.");
-    common::post(
+    examples_common::post(
         "output/output_1/register",
         &json!({
             "type": "rtp_stream",
@@ -157,7 +155,7 @@ fn start_example_client_code(host_ip: String) -> Result<()> {
     )?;
 
     info!("[example] Start pipeline");
-    common::post("start", &json!({}))?;
+    examples_common::post("start", &json!({}))?;
 
     info!("[example] Start input stream");
     stream_ffmpeg_testsrc(IP, INPUT_PORT, VIDEO_RESOLUTION)?;

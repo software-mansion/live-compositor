@@ -2,14 +2,14 @@ use anyhow::Result;
 use live_compositor::{server, types::Resolution};
 use log::{error, info};
 use serde_json::json;
-use std::{env, process::Command, thread, time::Duration};
+use std::{thread, time::Duration};
 
-use crate::common::start_websocket_thread;
+use integration_tests::examples_common::{
+    self, download_file, start_ffplay, start_websocket_thread, stream_video,
+};
 
-#[path = "./common/common.rs"]
-mod common;
-
-const HLS_URL: &str = "https://raw.githubusercontent.com/membraneframework/membrane_http_adaptive_stream_plugin/master/test/membrane_http_adaptive_stream/integration_test/fixtures/audio_multiple_video_tracks/index.m3u8";
+const SAMPLE_FILE_URL: &str = "https://filesamples.com/samples/video/mp4/sample_1280x720.mp4";
+const SAMPLE_FILE_PATH: &str = "examples/assets/sample_1280_720.mp4";
 const VIDEO_RESOLUTION: Resolution = Resolution {
     width: 1280,
     height: 720,
@@ -20,7 +20,6 @@ const INPUT_PORT: u16 = 8002;
 const OUTPUT_PORT: u16 = 8004;
 
 fn main() {
-    env::set_var("LIVE_COMPOSITOR_WEB_RENDERER_ENABLE", "0");
     ffmpeg_next::format::network::init();
 
     thread::spawn(|| {
@@ -33,15 +32,19 @@ fn main() {
 }
 
 fn start_example_client_code() -> Result<()> {
+    info!("[example] Start listening on output port.");
+    start_ffplay(IP, OUTPUT_PORT, None)?;
     thread::sleep(Duration::from_secs(2));
     start_websocket_thread();
 
+    info!("[example] Download sample.");
+    let sample_path = download_file(SAMPLE_FILE_URL, SAMPLE_FILE_PATH)?;
+
     info!("[example] Send register input request.");
-    common::post(
+    examples_common::post(
         "input/input_1/register",
         &json!({
             "type": "rtp_stream",
-            "transport_protocol": "tcp_server",
             "port": INPUT_PORT,
             "video": {
                 "decoder": "ffmpeg_h264"
@@ -51,7 +54,7 @@ fn start_example_client_code() -> Result<()> {
 
     let shader_source = include_str!("./silly.wgsl");
     info!("[example] Register shader transform");
-    common::post(
+    examples_common::post(
         "shader/shader_example_1/register",
         &json!({
             "source": shader_source,
@@ -59,20 +62,20 @@ fn start_example_client_code() -> Result<()> {
     )?;
 
     info!("[example] Send register output request.");
-    common::post(
+    examples_common::post(
         "output/output_1/register",
         &json!({
             "type": "rtp_stream",
-            "transport_protocol": "tcp_server",
             "port": OUTPUT_PORT,
+            "ip": IP,
             "video": {
                 "resolution": {
                     "width": VIDEO_RESOLUTION.width,
                     "height": VIDEO_RESOLUTION.height,
                 },
                 "encoder": {
-                    "type": "ffmepg_h264",
-                    "preset": "fast",
+                    "type": "ffmpeg_h264",
+                    "preset": "ultrafast"
                 },
                 "initial": {
                     "root": {
@@ -93,21 +96,11 @@ fn start_example_client_code() -> Result<()> {
         }),
     )?;
 
-    let gst_output_command = format!("gst-launch-1.0 -v tcpclientsrc host={IP} port={OUTPUT_PORT} ! \"application/x-rtp-stream\" ! rtpstreamdepay ! rtph264depay ! decodebin ! videoconvert ! autovideosink");
-    Command::new("bash")
-        .arg("-c")
-        .arg(gst_output_command)
-        .spawn()?;
     std::thread::sleep(Duration::from_millis(500));
 
     info!("[example] Start pipeline");
-    common::post("start", &json!({}))?;
+    examples_common::post("start", &json!({}))?;
 
-    let gst_input_command = format!("gst-launch-1.0 -v souphttpsrc location={HLS_URL} ! hlsdemux ! qtdemux ! h264parse ! rtph264pay config-interval=1 pt=96 ! .send_rtp_sink rtpsession .send_rtp_src ! rtpstreampay ! tcpclientsink host=127.0.0.1 port={INPUT_PORT}");
-    Command::new("bash")
-        .arg("-c")
-        .arg(gst_input_command)
-        .spawn()?;
-
+    stream_video(IP, INPUT_PORT, sample_path)?;
     Ok(())
 }

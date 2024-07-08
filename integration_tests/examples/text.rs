@@ -4,10 +4,7 @@ use log::{error, info};
 use serde_json::json;
 use std::thread;
 
-use crate::common::{start_ffplay, start_websocket_thread};
-
-#[path = "./common/common.rs"]
-mod common;
+use integration_tests::examples_common::{self, start_ffplay, start_websocket_thread};
 
 const VIDEO_RESOLUTION: Resolution = Resolution {
     width: 1920,
@@ -35,7 +32,7 @@ fn start_example_client_code() -> Result<()> {
     start_websocket_thread();
 
     info!("[example] Send register output request.");
-    common::post(
+    examples_common::post(
         "output/output_1/register",
         &json!({
             "type": "rtp_stream",
@@ -69,7 +66,7 @@ fn start_example_client_code() -> Result<()> {
     )?;
 
     info!("[example] Start pipeline");
-    common::post("start", &json!({}))?;
+    examples_common::post("start", &json!({}))?;
 
     Ok(())
 }

@@ -4,10 +4,7 @@ use log::{error, info};
 use serde_json::json;
 use std::{thread, time::Duration};
 
-use crate::common::{start_ffplay, start_websocket_thread};
-
-#[path = "./common/common.rs"]
-mod common;
+use integration_tests::examples_common::{self, start_ffplay, start_websocket_thread};
 
 const BUNNY_URL: &str =
     "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
@@ -39,7 +36,7 @@ fn start_example_client_code() -> Result<()> {
     start_websocket_thread();
 
     info!("[example] Send register input request.");
-    common::post(
+    examples_common::post(
         "input/input_1/register",
         &json!({
             "type": "mp4",
@@ -49,7 +46,7 @@ fn start_example_client_code() -> Result<()> {
 
     let shader_source = include_str!("./silly.wgsl");
     info!("[example] Register shader transform");
-    common::post(
+    examples_common::post(
         "shader/shader_example_1/register",
         &json!({
             "source": shader_source,
@@ -57,7 +54,7 @@ fn start_example_client_code() -> Result<()> {
     )?;
 
     info!("[example] Send register output video request.");
-    common::post(
+    examples_common::post(
         "output/output_1/register",
         &json!({
             "type": "rtp_stream",
@@ -84,7 +81,7 @@ fn start_example_client_code() -> Result<()> {
     )?;
 
     info!("[example] Send register output audio request.");
-    common::post(
+    examples_common::post(
         "output/output_2/register",
         &json!({
             "type": "rtp_stream",
@@ -107,7 +104,7 @@ fn start_example_client_code() -> Result<()> {
     std::thread::sleep(Duration::from_millis(500));
 
     info!("[example] Start pipeline");
-    common::post("start", &json!({}))?;
+    examples_common::post("start", &json!({}))?;
 
     Ok(())
 }
