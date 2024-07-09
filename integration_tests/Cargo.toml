@@ -12,11 +12,13 @@ update_snapshots = []
 web_renderer = [
     "dep:compositor_chromium",
     "compositor_render/web_renderer",
+    "compositor_pipeline/web_renderer",
     "live_compositor/web_renderer",
 ]
 
 [dependencies]
 live_compositor = { path = ".." }
+compositor_pipeline = { path = "../compositor_pipeline" }
 reqwest = { workspace = true }
 anyhow = { workspace = true }
 serde = { workspace = true }
@@ -39,3 +41,5 @@ tokio = { workspace = true }
 signal-hook = { workspace = true }
 compositor_chromium = { path = "../compositor_chromium", optional = true }
 tokio-tungstenite = "0.21.0"
+wgpu = { workspace = true }
+image = { workspace = true }

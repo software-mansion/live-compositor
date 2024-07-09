@@ -1452,10 +1452,12 @@ dependencies = [
  "anyhow",
  "bytes",
  "compositor_chromium",
+ "compositor_pipeline",
  "compositor_render",
  "crossbeam-channel",
  "ffmpeg-next",
  "futures-util",
+ "image",
  "live_compositor",
  "log",
  "opus",
@@ -1472,6 +1474,7 @@ dependencies = [
  "tokio-tungstenite",
  "tracing",
  "webrtc-util",
+ "wgpu",
 ]
 
 [[package]]

@@ -109,7 +109,7 @@ impl Texture {
             label: Some("texture buffer"),
             mapped_at_creation: false,
             usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
-            size: (block_size * pad_to_256(size.width) * size.height) as u64,
+            size: (pad_to_256(block_size * size.width) * size.height) as u64,
         })
     }
 
@@ -128,7 +128,7 @@ impl Texture {
             wgpu::ImageCopyBuffer {
                 buffer,
                 layout: wgpu::ImageDataLayout {
-                    bytes_per_row: Some(block_size * pad_to_256(size.width)),
+                    bytes_per_row: Some(pad_to_256(block_size * size.width)),
                     rows_per_image: Some(size.height),
                     offset: 0,
                 },
