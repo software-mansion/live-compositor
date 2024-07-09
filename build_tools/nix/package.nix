@@ -61,8 +61,6 @@ rustPlatform.buildRustPackage {
 
   postFixup =
     ''
-      rm -f $out/bin/generate_docs
-      rm -f $out/bin/generate_json_schema
       rm -f $out/bin/live_compositor
       rm -f $out/bin/package_for_release
       rm -f $out/bin/update_snapshots

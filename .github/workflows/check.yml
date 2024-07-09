@@ -59,8 +59,7 @@ jobs:
             - name: 📄 Generate JSON schema
               working-directory: ./generate
               run: |
-                cargo run --bin generate_json_schema
-                cargo run --bin generate_docs
+                cargo run --bin generate_from_types -- --check
 
             - name: 🧪 Run tests
               run: |

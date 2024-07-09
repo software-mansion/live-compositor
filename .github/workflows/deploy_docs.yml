@@ -7,7 +7,7 @@ on:
         paths:
             - "docs/**"
             - "schemas/**"
-            - "src/bin/generate/generate_docs/**"
+            - "generate/src/bin/generate_from_types/**"
             - ".github/workflows/deploy_docs.yml"
 
 permissions:
@@ -50,7 +50,7 @@ jobs:
 
             - name: 📄 Generate docs from JSON schema
               working-directory: ./generate
-              run: cargo run --bin generate_docs
+              run: cargo run --bin generate_from_types
 
             - name: 🛠 Install dependencies
               run: npm ci

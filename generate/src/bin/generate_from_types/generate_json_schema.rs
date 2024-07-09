@@ -23,12 +23,10 @@ enum ApiTypes {
     UpdateOutput(types::UpdateOutputRequest),
 }
 
-pub fn generate_json_schema() {
-    let update_flag = std::env::args().any(|arg| &arg == "--update");
-
-    let (scene_schema_action, api_schema_action) = match update_flag {
-        true => (SchemaAction::Update, SchemaAction::Update),
-        false => (SchemaAction::CheckIfChanged, SchemaAction::Nothing),
+pub fn generate_json_schema(check_flag: bool) {
+    let (scene_schema_action, api_schema_action) = match check_flag {
+        true => (SchemaAction::CheckIfChanged, SchemaAction::Nothing),
+        false => (SchemaAction::Update, SchemaAction::Update),
     };
     generate_schema(
         schema_for!(types::UpdateOutputRequest),
@@ -79,10 +77,7 @@ fn generate_schema(mut current_schema: RootSchema, name: &'static str, action: S
     flatten_definitions_with_one_of(&mut current_schema);
 
     let root_dir: PathBuf = ROOT_DIR.into();
-    let schema_path = root_dir
-        .parent()
-        .unwrap()
-        .join(format!("schemas/{}.schema.json", name));
+    let schema_path = root_dir.join(format!("../schemas/{}.schema.json", name));
     fs::create_dir_all(schema_path.parent().unwrap()).unwrap();
 
     let json_from_disk = match fs::read_to_string(&schema_path) {
@@ -96,7 +91,7 @@ fn generate_schema(mut current_schema: RootSchema, name: &'static str, action: S
         match action {
             SchemaAction::Update => fs::write(schema_path, &json_current).unwrap(),
             SchemaAction::CheckIfChanged => {
-                panic!("Schema changed. Rerun with --update to regenerate it.")
+                panic!("Schema changed. Rerun without --check arg to regenerate it.")
             }
             SchemaAction::Nothing => (),
         };

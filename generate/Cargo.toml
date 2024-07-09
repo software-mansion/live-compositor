@@ -6,8 +6,11 @@ license = "BUSL-1.1"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+decklink = ["live_compositor/decklink"]
+
 [dependencies]
-live_compositor = { path = "..", features=["decklink"] }
+live_compositor = { path = ".." }
 reqwest = { workspace = true }
 anyhow = { workspace = true }
 serde = { workspace = true }
