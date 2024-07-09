@@ -51,16 +51,25 @@ pub struct DeckLink {
     /// Single DeckLink device can consist of multiple sub-devices. This field defines
     /// index of sub-device that should be used.
     ///
-    /// When selecting an input device both `subdevice_index` **AND** `display_name` fields need
-    /// to match if they are specified.
+    /// The input device is selected based on fields `subdevice_index`, `persistent_id` **AND** `display_name`.
+    /// All of them need to match the device if they are specified. If nothing is matched, the error response
+    /// will list available devices.
     pub subdevice_index: Option<u32>,
 
     /// Select sub-device to use based on the display name. This is the value you see in e.g.
     /// Blackmagic Media Express app. like "DeckLink Quad HDMI Recorder (3)"
     ///
-    /// When selecting an input both `subdevice_index` **AND** `display_name` fields need
-    /// to match if they are specified.
+    /// The input device is selected based on fields `subdevice_index`, `persistent_id` **AND** `display_name`.
+    /// All of them need to match the device if they are specified. If nothing is matched, the error response
+    /// will list available devices.
     pub display_name: Option<String>,
+
+    /// Persistent ID of a device represented by 32-bit hex number. Each DeckLink sub-device has a separate id.
+    ///
+    /// The input device is selected based on fields `subdevice_index`, `persistent_id` **AND** `display_name`.
+    /// All of them need to match the device if they are specified. If nothing is matched, the error response
+    /// will list available devices.
+    pub persistent_id: Option<String>,
 
     /// (**default=`true`**) Enable audio support.
     pub enable_audio: Option<bool>,

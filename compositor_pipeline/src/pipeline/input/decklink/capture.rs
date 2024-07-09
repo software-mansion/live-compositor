@@ -34,12 +34,14 @@ pub(super) struct ChannelCallbackAdapter {
     input: Weak<decklink::Input>,
     start_time: OnceLock<Instant>,
     offset: Mutex<Duration>,
+    pixel_format: Option<PixelFormat>,
 }
 
 impl ChannelCallbackAdapter {
     pub(super) fn new(
         span: Span,
         enable_audio: bool,
+        pixel_format: Option<PixelFormat>,
         input: Weak<decklink::Input>,
     ) -> (Self, DataReceivers) {
         let (video_sender, video_receiver) = bounded(1000);
@@ -58,6 +60,7 @@ impl ChannelCallbackAdapter {
                 input,
                 start_time: OnceLock::new(),
                 offset: Mutex::new(Duration::ZERO),
+                pixel_format,
             },
             DataReceivers {
                 video: Some(video_receiver),
@@ -180,9 +183,7 @@ impl ChannelCallbackAdapter {
 
         let mode = display_mode.display_mode_type()?;
 
-        // TODO: mostly placeholder to pick sth
-        // in case of unsupported format
-        let pixel_format = if flags.format_y_cb_cr_422 {
+        let detected_pixel_format = if flags.format_y_cb_cr_422 {
             if flags.bit_depth_8 {
                 PixelFormat::Format8BitYUV
             } else if flags.bit_depth_10 {
@@ -207,7 +208,16 @@ impl ChannelCallbackAdapter {
             return Ok(());
         };
 
-        info!("Detected new input format {mode:?} {pixel_format:?} {flags:?}");
+        info!("Detected new input format {mode:?} {detected_pixel_format:?} {flags:?}");
+
+        let pixel_format = self.pixel_format.unwrap_or(detected_pixel_format);
+        if detected_pixel_format != pixel_format {
+            info!(
+                ?detected_pixel_format,
+                ?pixel_format,
+                "Specified pixel format does not match what was detected. Using {pixel_format:?}"
+            );
+        }
 
         input.pause_streams()?;
         input.enable_video(

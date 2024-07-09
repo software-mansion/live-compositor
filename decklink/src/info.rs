@@ -67,6 +67,7 @@ pub struct ProfileAttributesInfo {
 
     pub subdevice_index: Option<i64>,
     pub persistent_id: Option<i64>,
+    pub persistent_id_hex_str: Option<String>,
     pub device_group_id: Option<i64>,
     pub topological_id: Option<i64>,
 
@@ -91,6 +92,9 @@ impl ProfileAttributes {
             number_of_subdevices: self.get_integer(IntegerAttributeId::NumberOfSubDevices)?,
             subdevice_index: self.get_integer(IntegerAttributeId::SubDeviceIndex)?,
             persistent_id: self.get_integer(IntegerAttributeId::PersistentID)?,
+            persistent_id_hex_str: self
+                .get_integer(IntegerAttributeId::PersistentID)?
+                .map(|value| format!("{value:X}")),
             device_group_id: self.get_integer(IntegerAttributeId::DeviceGroupID)?,
             topological_id: self.get_integer(IntegerAttributeId::TopologicalID)?,
 
