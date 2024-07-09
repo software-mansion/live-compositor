@@ -1,19 +1,13 @@
-use docs_config::DocsConfig;
-use document::generate;
+use super::docs_config::DocsConfig;
+use super::document::generate;
+use super::markdown::overrides;
 use live_compositor::types::{
     DeckLink, Image, ImageSpec, InputStream, Mp4, Rescaler, RtpInputStream, RtpOutputStream,
     Shader, ShaderSpec, Text, Tiles, View, WebRendererSpec, WebView,
 };
-use markdown::overrides;
 use std::{fs, path::PathBuf};
 
-mod definition;
-mod docs_config;
-mod document;
-mod markdown;
-mod schema_parser;
-
-fn main() {
+pub fn generate_docs() {
     tracing_subscriber::fmt().init();
     let docs_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .parent()

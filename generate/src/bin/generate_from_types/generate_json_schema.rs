@@ -23,7 +23,7 @@ enum ApiTypes {
     UpdateOutput(types::UpdateOutputRequest),
 }
 
-fn main() {
+pub fn generate_json_schema() {
     let update_flag = std::env::args().any(|arg| &arg == "--update");
 
     let (scene_schema_action, api_schema_action) = match update_flag {
