@@ -79,6 +79,10 @@ impl DeckLink {
             opts.enable_audio,
             opts.pixel_format,
             Arc::<decklink::Input>::downgrade(&input),
+            (
+                decklink::DisplayModeType::ModeHD720p50,
+                decklink::PixelFormat::Format8BitYUV,
+            ),
         );
         input.set_callback(Box::new(callback))?;
         input.start_streams()?;

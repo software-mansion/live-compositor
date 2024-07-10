@@ -6,7 +6,7 @@ use std::{
 use compositor_render::{error::ErrorStack, Frame, FrameData, Resolution};
 use crossbeam_channel::{bounded, Receiver, Sender, TrySendError};
 use decklink::{
-    AudioInputPacket, DetectedVideoInputFormatFlags, DisplayMode, InputCallback,
+    AudioInputPacket, DetectedVideoInputFormatFlags, DisplayMode, DisplayModeType, InputCallback,
     InputCallbackResult, PixelFormat, VideoInputFlags, VideoInputFormatChangedEvents,
     VideoInputFrame,
 };
@@ -35,6 +35,7 @@ pub(super) struct ChannelCallbackAdapter {
     start_time: OnceLock<Instant>,
     offset: Mutex<Duration>,
     pixel_format: Option<PixelFormat>,
+    last_format: Mutex<(DisplayModeType, PixelFormat)>,
 }
 
 impl ChannelCallbackAdapter {
@@ -43,6 +44,7 @@ impl ChannelCallbackAdapter {
         enable_audio: bool,
         pixel_format: Option<PixelFormat>,
         input: Weak<decklink::Input>,
+        initial_format: (DisplayModeType, PixelFormat),
     ) -> (Self, DataReceivers) {
         let (video_sender, video_receiver) = bounded(1000);
         let (audio_sender, audio_receiver) = match enable_audio {
@@ -61,6 +63,7 @@ impl ChannelCallbackAdapter {
                 start_time: OnceLock::new(),
                 offset: Mutex::new(Duration::ZERO),
                 pixel_format,
+                last_format: Mutex::new(initial_format),
             },
             DataReceivers {
                 video: Some(video_receiver),
@@ -208,9 +211,18 @@ impl ChannelCallbackAdapter {
             return Ok(());
         };
 
+        let pixel_format = self.pixel_format.unwrap_or(detected_pixel_format);
+        let (last_display_mode, last_pixel_format) = *self.last_format.lock().unwrap();
+        if pixel_format == last_pixel_format && mode == last_display_mode {
+            // skip if format is the same, otherwise this callback will be triggered
+            // in the loop
+            return Ok(());
+        }
+
+        *self.last_format.lock().unwrap() = (mode, pixel_format);
+
         info!("Detected new input format {mode:?} {detected_pixel_format:?} {flags:?}");
 
-        let pixel_format = self.pixel_format.unwrap_or(detected_pixel_format);
         if detected_pixel_format != pixel_format {
             info!(
                 ?detected_pixel_format,
