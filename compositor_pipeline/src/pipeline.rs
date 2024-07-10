@@ -268,7 +268,7 @@ impl Pipeline {
 
         Ok(())
     }
-    
+
     pub fn request_keyframe(&self, output_id: OutputId) -> Result<(), RequestKeyframeError> {
         let Some(output) = self.outputs.get(&output_id) else {
             return Err(RequestKeyframeError::OutputNotRegistered(output_id.clone()));

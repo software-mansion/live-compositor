@@ -11,9 +11,12 @@ use tracing::{debug, error, span, trace, warn, Level};
 
 use crate::{
     error::EncoderInitError,
-    pipeline::{output::KeyframeRequest, types::{
-        ChunkFromFfmpegError, EncodedChunk, EncodedChunkKind, EncoderOutputEvent, VideoCodec,
-    }},
+    pipeline::{
+        output::KeyframeRequest,
+        types::{
+            ChunkFromFfmpegError, EncodedChunk, EncodedChunkKind, EncoderOutputEvent, VideoCodec,
+        },
+    },
     queue::PipelineEvent,
 };
 

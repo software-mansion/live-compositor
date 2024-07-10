@@ -1,4 +1,6 @@
-use compositor_render::{error::RequestKeyframeError, Frame, OutputFrameFormat, OutputId, Resolution};
+use compositor_render::{
+    error::RequestKeyframeError, Frame, OutputFrameFormat, OutputId, Resolution,
+};
 use crossbeam_channel::{bounded, Receiver, Sender};
 
 use crate::{audio_mixer::OutputSamples, error::RegisterOutputError, queue::PipelineEvent};
@@ -201,15 +203,19 @@ impl Output {
 
     pub fn request_keyframe(&self, output_id: OutputId) -> Result<(), RequestKeyframeError> {
         match &self {
-            Output::Rtp { keyframe_req_sender, .. } => {
-                keyframe_req_sender.send(KeyframeRequest).map_err(|_| RequestKeyframeError::SendError(output_id))
-            }
-            Output::EncodedData { keyframe_req_sender, .. } => {
-                keyframe_req_sender.send(KeyframeRequest).map_err(|_| RequestKeyframeError::SendError(output_id))
-            }
-            Output::RawData { .. } => {
-                Err(RequestKeyframeError::RawOutput(output_id))
-            }
+            Output::Rtp {
+                keyframe_req_sender,
+                ..
+            } => keyframe_req_sender
+                .send(KeyframeRequest)
+                .map_err(|_| RequestKeyframeError::SendError(output_id)),
+            Output::EncodedData {
+                keyframe_req_sender,
+                ..
+            } => keyframe_req_sender
+                .send(KeyframeRequest)
+                .map_err(|_| RequestKeyframeError::SendError(output_id)),
+            Output::RawData { .. } => Err(RequestKeyframeError::RawOutput(output_id)),
         }
     }
 
