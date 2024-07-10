@@ -5,6 +5,7 @@ use std::sync::Mutex;
 use std::thread;
 use std::time::Duration;
 
+use compositor_render::error::RequestKeyframeError;
 use compositor_render::error::{
     ErrorStack, InitPipelineError, RegisterRendererError, UnregisterRendererError,
 };
@@ -266,6 +267,14 @@ impl Pipeline {
         }
 
         Ok(())
+    }
+    
+    pub fn request_keyframe(&self, output_id: OutputId) -> Result<(), RequestKeyframeError> {
+        let Some(output) = self.outputs.get(&output_id) else {
+            return Err(RequestKeyframeError::OutputNotRegistered(output_id.clone()));
+        };
+
+        output.output.request_keyframe(output_id)
     }
 
     fn check_output_spec(

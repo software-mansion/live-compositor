@@ -83,6 +83,16 @@ pub enum UpdateSceneError {
     AudioVideoNotMatching(OutputId),
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum RequestKeyframeError {
+    #[error("Output \"{0}\" does not exist, register it first before requesting keyframe.")]
+    OutputNotRegistered(OutputId),
+    #[error("Output \"{0}\" is a raw output. Keyframe request is only available for encoded outputs.")]
+    RawOutput(OutputId),
+    #[error("Failed to send keyframe request to encoder thread for output \"{0}\".")]
+    SendError(OutputId)
+}
+
 pub struct ErrorStack<'a>(Option<&'a (dyn std::error::Error + 'static)>);
 
 impl<'a> ErrorStack<'a> {

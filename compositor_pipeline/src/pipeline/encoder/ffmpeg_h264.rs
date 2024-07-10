@@ -11,9 +11,9 @@ use tracing::{debug, error, span, trace, warn, Level};
 
 use crate::{
     error::EncoderInitError,
-    pipeline::types::{
+    pipeline::{output::KeyframeRequest, types::{
         ChunkFromFfmpegError, EncodedChunk, EncodedChunkKind, EncoderOutputEvent, VideoCodec,
-    },
+    }},
     queue::PipelineEvent,
 };
 
@@ -95,6 +95,7 @@ impl LibavH264Encoder {
         output_id: &OutputId,
         options: Options,
         chunks_sender: Sender<EncoderOutputEvent>,
+        keyframe_req_rx: Receiver<KeyframeRequest>,
     ) -> Result<Self, EncoderInitError> {
         let (frame_sender, frame_receiver) = crossbeam_channel::bounded(5);
         let (result_sender, result_receiver) = crossbeam_channel::bounded(0);
@@ -114,6 +115,7 @@ impl LibavH264Encoder {
                 let encoder_result = run_encoder_thread(
                     options_clone,
                     frame_receiver,
+                    keyframe_req_rx,
                     chunks_sender,
                     &result_sender,
                 );
@@ -148,6 +150,7 @@ impl LibavH264Encoder {
 fn run_encoder_thread(
     options: Options,
     frame_receiver: Receiver<PipelineEvent<Frame>>,
+    keyframe_req_rx: Receiver<KeyframeRequest>,
     packet_sender: Sender<EncoderOutputEvent>,
     result_sender: &Sender<Result<(), EncoderInitError>>,
 ) -> Result<(), EncoderInitError> {
@@ -219,6 +222,10 @@ fn run_encoder_thread(
                 e.0
             );
             continue;
+        }
+
+        if let Ok(KeyframeRequest) = keyframe_req_rx.try_recv() {
+            av_frame.set_kind(ffmpeg_next::picture::Type::I);
         }
 
         if let Err(e) = encoder.send_frame(&av_frame) {

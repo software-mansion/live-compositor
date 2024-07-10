@@ -1,4 +1,4 @@
-use compositor_render::{Frame, OutputFrameFormat, OutputId, Resolution};
+use compositor_render::{error::RequestKeyframeError, Frame, OutputFrameFormat, OutputId, Resolution};
 use crossbeam_channel::{bounded, Receiver, Sender};
 
 use crate::{audio_mixer::OutputSamples, error::RegisterOutputError, queue::PipelineEvent};
@@ -54,13 +54,17 @@ pub struct RawVideoOptions {
 #[derive(Debug, Clone)]
 pub struct RawAudioOptions;
 
+pub struct KeyframeRequest;
+
 pub enum Output {
     Rtp {
         sender: RtpSender,
         encoder: Encoder,
+        keyframe_req_sender: Sender<KeyframeRequest>,
     },
     EncodedData {
         encoder: Encoder,
+        keyframe_req_sender: Sender<KeyframeRequest>,
     },
     RawData {
         resolution: Option<Resolution>,
@@ -88,8 +92,9 @@ impl OutputOptionsExt<Option<Port>> for OutputOptions {
             audio: self.audio.clone(),
         };
 
-        let (encoder, packets) = Encoder::new(output_id, encoder_opts, ctx.output_sample_rate)
-            .map_err(|e| RegisterOutputError::EncoderError(output_id.clone(), e))?;
+        let (encoder, packets, keyframe_req_sender) =
+            Encoder::new(output_id, encoder_opts, ctx.output_sample_rate)
+                .map_err(|e| RegisterOutputError::EncoderError(output_id.clone(), e))?;
 
         match &self.output_protocol {
             OutputProtocolOptions::Rtp(rtp_options) => {
@@ -97,7 +102,14 @@ impl OutputOptionsExt<Option<Port>> for OutputOptions {
                     rtp::RtpSender::new(output_id, rtp_options.clone(), packets)
                         .map_err(|e| RegisterOutputError::OutputError(output_id.clone(), e))?;
 
-                Ok((Output::Rtp { sender, encoder }, port))
+                Ok((
+                    Output::Rtp {
+                        sender,
+                        encoder,
+                        keyframe_req_sender,
+                    },
+                    port,
+                ))
             }
         }
     }
@@ -114,10 +126,17 @@ impl OutputOptionsExt<Receiver<EncoderOutputEvent>> for EncodedDataOutputOptions
             audio: self.audio.clone(),
         };
 
-        let (encoder, packets) = Encoder::new(output_id, encoder_opts, ctx.output_sample_rate)
-            .map_err(|e| RegisterOutputError::EncoderError(output_id.clone(), e))?;
+        let (encoder, packets, keyframe_req_sender) =
+            Encoder::new(output_id, encoder_opts, ctx.output_sample_rate)
+                .map_err(|e| RegisterOutputError::EncoderError(output_id.clone(), e))?;
 
-        Ok((Output::EncodedData { encoder }, packets))
+        Ok((
+            Output::EncodedData {
+                encoder,
+                keyframe_req_sender,
+            },
+            packets,
+        ))
     }
 }
 
@@ -159,7 +178,7 @@ impl Output {
     pub fn frame_sender(&self) -> Option<&Sender<PipelineEvent<Frame>>> {
         match &self {
             Output::Rtp { encoder, .. } => encoder.frame_sender(),
-            Output::EncodedData { encoder } => encoder.frame_sender(),
+            Output::EncodedData { encoder, .. } => encoder.frame_sender(),
             Output::RawData { video, .. } => video.as_ref(),
         }
     }
@@ -167,7 +186,7 @@ impl Output {
     pub fn samples_batch_sender(&self) -> Option<&Sender<PipelineEvent<OutputSamples>>> {
         match &self {
             Output::Rtp { encoder, .. } => encoder.samples_batch_sender(),
-            Output::EncodedData { encoder } => encoder.samples_batch_sender(),
+            Output::EncodedData { encoder, .. } => encoder.samples_batch_sender(),
             Output::RawData { audio, .. } => audio.as_ref(),
         }
     }
@@ -175,8 +194,22 @@ impl Output {
     pub fn resolution(&self) -> Option<Resolution> {
         match &self {
             Output::Rtp { encoder, .. } => encoder.video.as_ref().map(|v| v.resolution()),
-            Output::EncodedData { encoder } => encoder.video.as_ref().map(|v| v.resolution()),
+            Output::EncodedData { encoder, .. } => encoder.video.as_ref().map(|v| v.resolution()),
             Output::RawData { resolution, .. } => *resolution,
+        }
+    }
+
+    pub fn request_keyframe(&self, output_id: OutputId) -> Result<(), RequestKeyframeError> {
+        match &self {
+            Output::Rtp { keyframe_req_sender, .. } => {
+                keyframe_req_sender.send(KeyframeRequest).map_err(|_| RequestKeyframeError::SendError(output_id))
+            }
+            Output::EncodedData { keyframe_req_sender, .. } => {
+                keyframe_req_sender.send(KeyframeRequest).map_err(|_| RequestKeyframeError::SendError(output_id))
+            }
+            Output::RawData { .. } => {
+                Err(RequestKeyframeError::RawOutput(output_id))
+            }
         }
     }
 
@@ -186,7 +219,7 @@ impl Output {
                 .video
                 .as_ref()
                 .map(|_| OutputFrameFormat::PlanarYuv420Bytes),
-            Output::EncodedData { encoder } => encoder
+            Output::EncodedData { encoder, .. } => encoder
                 .video
                 .as_ref()
                 .map(|_| OutputFrameFormat::PlanarYuv420Bytes),

@@ -6,7 +6,7 @@ use crate::{audio_mixer::OutputSamples, error::EncoderInitError, queue::Pipeline
 
 use self::{ffmpeg_h264::LibavH264Encoder, opus::OpusEncoder};
 
-use super::types::EncoderOutputEvent;
+use super::{output::KeyframeRequest, types::EncoderOutputEvent};
 
 pub mod ffmpeg_h264;
 pub mod opus;
@@ -51,14 +51,17 @@ impl Encoder {
         output_id: &OutputId,
         options: EncoderOptions,
         sample_rate: u32,
-    ) -> Result<(Self, Receiver<EncoderOutputEvent>), EncoderInitError> {
+    ) -> Result<(Self, Receiver<EncoderOutputEvent>, Sender<KeyframeRequest>), EncoderInitError>
+    {
         let (encoded_chunks_sender, encoded_chunks_receiver) = bounded(1);
+        let (keyframe_req_sender, keyframe_req_receiver) = bounded(1);
 
         let video_encoder = match options.video {
             Some(video_encoder_options) => Some(VideoEncoder::new(
                 output_id,
                 video_encoder_options,
                 encoded_chunks_sender.clone(),
+                keyframe_req_receiver,
             )?),
             None => None,
         };
@@ -78,6 +81,7 @@ impl Encoder {
                 audio: audio_encoder,
             },
             encoded_chunks_receiver,
+            keyframe_req_sender,
         ))
     }
 
@@ -115,10 +119,14 @@ impl VideoEncoder {
         output_id: &OutputId,
         options: VideoEncoderOptions,
         sender: Sender<EncoderOutputEvent>,
+        keyframe_req_rx: Receiver<KeyframeRequest>,
     ) -> Result<Self, EncoderInitError> {
         match options {
             VideoEncoderOptions::H264(options) => Ok(Self::H264(LibavH264Encoder::new(
-                output_id, options, sender,
+                output_id,
+                options,
+                sender,
+                keyframe_req_rx,
             )?)),
         }
     }

@@ -91,6 +91,28 @@ Update scene definition and audio mixer configuration for output with ID `:outpu
 
 ***
 
+### Request keyframe
+
+```http
+POST: /api/output/:output_id/request_keyframe
+```
+
+```typescript
+type RequestBody = {}
+```
+
+Requests keyframe (I frame) on the video output. It doesn't guarantee that the next output frame will be a keyframe.
+
+It can be used to implement handling of browser/player keyframe request callback.
+
+:::warning
+This shouldn't be used to configure the quality of the output stream. Check the output encoder and resolution options in the [output register](#register-output) for that.
+:::
+
+:::warning
+Overuse of this request (using it every few frames) might lead to high CPU and memory usage.
+:::
+
 ## Inputs configuration
 
 ### Register input

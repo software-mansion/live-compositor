@@ -106,7 +106,7 @@ You can define a custom WGSL struct and bind a value of this type as
 @group(1) @binding(0) var<uniform> custom_name: CustomStruct;
 ```
 
-This struct has to be provided when creating a node using the `shader_params` field of the [shader node struct](https://github.com/membraneframework/live_compositor/wiki/API-%E2%80%90-nodes#shader)
+This struct has to be provided when creating a node using the `shader_params` field of the [shader node struct](./../api/components/Shader.md#shader).
 
 ### Entrypoints
 
@@ -128,4 +128,4 @@ fn fs_main(input: A) -> @location(0) vec4<f32>
 
 Where `A` is the output type of the vertex shader.
 
-Shaders have to be registered using the [register shader](https://github.com/membraneframework/live_compositor/wiki/Api-%E2%80%90-renderers#shader) request before they can be used.
+Shaders have to be registered using the [register shader](./../api/routes.md#register-shader) request before they can be used.

@@ -49,3 +49,12 @@ pub(super) async fn handle_output_update(
     };
     Ok(Response::Ok {})
 }
+
+pub(super) async fn handle_keyframe_request(
+    State(api): State<ApiState>,
+    Path(output_id): Path<OutputId>,
+) -> Result<Response, ApiError> {
+    api.pipeline().request_keyframe(output_id.into())?;
+
+    Ok(Response::Ok {})
+}

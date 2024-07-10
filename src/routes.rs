@@ -14,7 +14,10 @@ use crate::{
     state::{ApiState, Response},
 };
 
-use self::{update_output::handle_output_update, ws::handle_ws_upgrade};
+use self::{
+    update_output::handle_keyframe_request, update_output::handle_output_update,
+    ws::handle_ws_upgrade,
+};
 
 mod register_request;
 mod unregister_request;
@@ -34,7 +37,8 @@ pub fn routes(state: ApiState) -> Router {
     let outputs = Router::new()
         .route("/:id/register", post(register_request::handle_output))
         .route("/:id/unregister", post(unregister_request::handle_output))
-        .route("/:id/update", post(handle_output_update));
+        .route("/:id/update", post(handle_output_update))
+        .route("/:id/request_keyframe", post(handle_keyframe_request));
 
     let image = Router::new()
         .route("/:id/register", post(register_request::handle_image))
