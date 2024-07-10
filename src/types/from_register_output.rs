@@ -2,17 +2,16 @@ use compositor_pipeline::pipeline::{
     self,
     encoder::{
         self,
-        ffmpeg_h264::{self, Options},
+        ffmpeg_h264::{self},
     },
-    output::{self, rtp::RtpSenderOptions},
-    rtp,
+    output,
 };
 
 use super::register_output::*;
 use super::util::*;
 use super::*;
 
-impl TryFrom<RtpOutputStream> for pipeline::RegisterOutputOptions {
+impl TryFrom<RtpOutputStream> for pipeline::RegisterOutputOptions<output::OutputOptions> {
     type Error = TypeError;
 
     fn try_from(request: RtpOutputStream) -> Result<Self, Self::Error> {
@@ -30,7 +29,7 @@ impl TryFrom<RtpOutputStream> for pipeline::RegisterOutputOptions {
             ));
         }
 
-        let output_video_options = match video.clone() {
+        let (video_options, video_encoder_options) = match video.clone() {
             Some(v) => {
                 if v.resolution.width % 2 != 0 || v.resolution.height % 2 != 0 {
                     return Err(TypeError::new(
@@ -43,42 +42,51 @@ impl TryFrom<RtpOutputStream> for pipeline::RegisterOutputOptions {
                     ffmpeg_options,
                 } = v.encoder;
 
-                Some(pipeline::OutputVideoOptions {
-                    initial: v.initial.try_into()?,
-                    encoder_opts: pipeline::encoder::VideoEncoderOptions::H264(Options {
-                        preset: preset.into(),
-                        resolution: v.resolution.into(),
-                        raw_options: ffmpeg_options.unwrap_or_default().into_iter().collect(),
+                (
+                    Some(pipeline::OutputVideoOptions {
+                        initial: v.initial.try_into()?,
+                        end_condition: v.send_eos_when.unwrap_or_default().try_into()?,
                     }),
-                    end_condition: v.send_eos_when.unwrap_or_default().try_into()?,
-                })
+                    Some(pipeline::encoder::VideoEncoderOptions::H264(
+                        ffmpeg_h264::Options {
+                            preset: preset.into(),
+                            resolution: v.resolution.into(),
+                            raw_options: ffmpeg_options.unwrap_or_default().into_iter().collect(),
+                        },
+                    )),
+                )
             }
-            None => None,
+            None => (None, None),
         };
 
-        let output_audio_options = match audio.clone() {
+        let (audio_options, audio_encoder_options) = match audio.clone() {
             Some(a) => {
-                let AudioEncoderOptions::Opus {
-                    channels,
-                    preset,
-                    forward_error_correction,
-                } = a.encoder;
+                let AudioEncoderOptions::Opus { channels, preset } = a.encoder;
 
-                Some(pipeline::OutputAudioOptions {
-                    initial: a.initial.try_into()?,
-                    channels: channels.into(),
-                    forward_error_correction: forward_error_correction.unwrap_or(false),
-                    encoder_preset: preset.unwrap_or(OpusEncoderPreset::Voip).into(),
-                    end_condition: a.send_eos_when.unwrap_or_default().try_into()?,
-                    mixing_strategy: a.mixing_strategy.unwrap_or(MixingStrategy::SumClip).into(),
-                })
+                (
+                    Some(pipeline::OutputAudioOptions {
+                        initial: a.initial.try_into()?,
+                        channels: channels.clone().into(),
+                        end_condition: a.send_eos_when.unwrap_or_default().try_into()?,
+                        mixing_strategy: a
+                            .mixing_strategy
+                            .unwrap_or(MixingStrategy::SumClip)
+                            .into(),
+                    }),
+                    Some(pipeline::encoder::AudioEncoderOptions::Opus(
+                        encoder::opus::Options {
+                            channels: channels.into(),
+                            preset: preset.unwrap_or(OpusEncoderPreset::Voip).into(),
+                        },
+                    )),
+                )
             }
-            None => None,
+            None => (None, None),
         };
 
         let connection_options = match transport_protocol.unwrap_or(TransportProtocol::Udp) {
             TransportProtocol::Udp => {
-                let rtp::RequestedPort::Exact(port) = port.try_into()? else {
+                let pipeline::rtp::RequestedPort::Exact(port) = port.try_into()? else {
                     return Err(TypeError::new(
                         "Port range can not be used with UDP output stream (transport_protocol=\"udp\").",
                     ));
@@ -106,16 +114,20 @@ impl TryFrom<RtpOutputStream> for pipeline::RegisterOutputOptions {
             }
         };
 
-        let output_options = output::OutputOptions::Rtp(RtpSenderOptions {
-            connection_options,
-            video: video.map(|_| pipeline::VideoCodec::H264),
-            audio: audio.map(|_| pipeline::AudioCodec::Opus),
-        });
+        let output_options = output::OutputOptions {
+            output_protocol: output::OutputProtocolOptions::Rtp(output::rtp::RtpSenderOptions {
+                connection_options,
+                video: video.map(|_| pipeline::VideoCodec::H264),
+                audio: audio.map(|_| pipeline::AudioCodec::Opus),
+            }),
+            video: video_encoder_options,
+            audio: audio_encoder_options,
+        };
 
         Ok(Self {
             output_options,
-            video: output_video_options,
-            audio: output_audio_options,
+            video: video_options,
+            audio: audio_options,
         })
     }
 }

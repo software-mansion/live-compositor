@@ -4,8 +4,8 @@ use super::utils::{create_renderer, frame_to_rgba, snaphot_save_path, snapshots_
 
 use anyhow::Result;
 use compositor_render::{
-    scene::RGBColor, Frame, FrameData, FrameSet, InputId, OutputId, Renderer, RendererId,
-    RendererSpec, Resolution, YuvPlanes,
+    scene::RGBColor, Frame, FrameData, FrameSet, InputId, OutputFrameFormat, OutputId, Renderer,
+    RendererId, RendererSpec, Resolution, YuvPlanes,
 };
 use image::ImageBuffer;
 use live_compositor::types::{self};
@@ -76,6 +76,7 @@ impl TestCaseInstance {
                     .update_scene(
                         OutputId(OUTPUT_ID.into()),
                         resolution,
+                        OutputFrameFormat::PlanarYuv420Bytes,
                         root.try_into().unwrap(),
                     )
                     .unwrap();

@@ -11,7 +11,7 @@ web_renderer = ["dep:compositor_chromium"]
 [dependencies]
 pollster = "0.3.0"
 thiserror = { workspace = true }
-wgpu = { version = "0.19.1", features = ["naga-ir"] }
+wgpu = { workspace = true }
 compositor_chromium = { path = "../compositor_chromium", optional = true }
 image = { workspace = true }
 reqwest = { workspace = true }
@@ -25,3 +25,4 @@ nalgebra-glm = { version = "0.18.0", features = ["convert-bytemuck"] }
 shared_memory = { workspace = true }
 naga = "0.19.0"
 rand = { workspace = true }
+tracing = { workspace = true }

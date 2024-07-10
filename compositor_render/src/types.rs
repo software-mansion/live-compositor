@@ -17,6 +17,7 @@ pub enum FrameData {
     PlanarYuv420(YuvPlanes),
     PlanarYuvJ420(YuvPlanes),
     InterleavedYuv422(bytes::Bytes),
+    Rgba8UnormWgpuTexture(Arc<wgpu::Texture>),
 }
 
 #[derive(Clone)]
@@ -123,4 +124,10 @@ impl Resolution {
     pub fn ratio(&self) -> f32 {
         self.width as f32 / self.height as f32
     }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum OutputFrameFormat {
+    PlanarYuv420Bytes,
+    RgbaWgpuTexture,
 }

@@ -1,6 +1,6 @@
 use crate::{audio_mixer::InputSamples, queue::PipelineEvent};
 
-use super::structs::VideoCodec;
+use super::types::VideoCodec;
 
 use bytes::Bytes;
 use compositor_render::Frame;

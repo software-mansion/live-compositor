@@ -6,7 +6,7 @@ use crate::{audio_mixer::OutputSamples, error::EncoderInitError, queue::Pipeline
 
 use self::{ffmpeg_h264::LibavH264Encoder, opus::OpusEncoder};
 
-use super::structs::EncoderOutputEvent;
+use super::types::EncoderOutputEvent;
 
 pub mod ffmpeg_h264;
 pub mod opus;

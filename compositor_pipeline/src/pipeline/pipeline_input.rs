@@ -34,7 +34,7 @@ pub(super) fn register_pipeline_input(
         if guard.inputs.contains_key(&input_id) {
             return Err(RegisterInputError::AlreadyRegistered(input_id));
         }
-        (guard.download_dir.clone(), guard.output_sample_rate)
+        (guard.ctx.download_dir.clone(), guard.ctx.output_sample_rate)
     };
 
     let InputStartResult {

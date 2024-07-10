@@ -13,7 +13,7 @@ use decklink::{
 use tracing::{debug, info, trace, warn, Span};
 
 use crate::{
-    pipeline::structs::{DecodedSamples, Samples},
+    pipeline::types::{DecodedSamples, Samples},
     queue::PipelineEvent,
 };
 

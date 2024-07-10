@@ -10,7 +10,7 @@ use rtp::{
 use crate::pipeline::{
     decoder::{self, AacDecoderOptions},
     rtp::{AUDIO_PAYLOAD_TYPE, VIDEO_PAYLOAD_TYPE},
-    structs::{AudioCodec, EncodedChunk, EncodedChunkKind, VideoCodec},
+    types::{AudioCodec, EncodedChunk, EncodedChunkKind, VideoCodec},
 };
 
 use self::aac::AacDepayloaderNewError;

@@ -4,6 +4,8 @@
 
 ### 💥 Breaking changes
 
+- Remove `forward_error_correction` option from RTP OPUS output. ([#615](https://github.com/membraneframework/live_compositor/pull/615) by [@wkozyra95](https://github.com/wkozyra95))
+
 ### ✨ New features
 
 - Support DeckLink cards as an input. ([#587](https://github.com/membraneframework/live_compositor/pull/587), [#597](https://github.com/membraneframework/live_compositor/pull/597), [#598](https://github.com/membraneframework/live_compositor/pull/598), [#599](https://github.com/membraneframework/live_compositor/pull/599) by [@wkozyra95](https://github.com/wkozyra95))

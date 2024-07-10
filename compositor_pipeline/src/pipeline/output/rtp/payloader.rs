@@ -8,7 +8,7 @@ use rtp::codecs::{h264::H264Payloader, opus::OpusPayloader};
 
 use crate::pipeline::{
     rtp::{AUDIO_PAYLOAD_TYPE, VIDEO_PAYLOAD_TYPE},
-    structs::{EncodedChunk, EncodedChunkKind},
+    types::{EncodedChunk, EncodedChunkKind},
     AudioCodec, VideoCodec,
 };
 

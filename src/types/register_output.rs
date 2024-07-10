@@ -71,11 +71,6 @@ pub enum AudioEncoderOptions {
 
         /// (**default="voip"**) Specifies preset for audio output encoder.
         preset: Option<OpusEncoderPreset>,
-
-        /// (**default=`false`**) Specifies whether the stream use forward error correction.
-        /// It's specific for Opus codec.
-        /// For more information, check out [RFC](https://datatracker.ietf.org/doc/html/rfc6716#section-2.1.7).
-        forward_error_correction: Option<bool>,
     },
 }
 

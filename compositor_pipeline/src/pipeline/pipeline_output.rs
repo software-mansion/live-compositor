@@ -10,9 +10,8 @@ use tracing::{info, warn};
 use crate::{audio_mixer::OutputSamples, error::RegisterOutputError, queue::PipelineEvent};
 
 use super::{
-    encoder::{self, opus, AudioEncoderOptions, Encoder, EncoderOptions},
-    output::{self, Output},
-    Pipeline, PipelineInput, Port, RegisterOutputOptions,
+    output::{self, OutputOptionsExt},
+    OutputAudioOptions, OutputVideoOptions, Pipeline, PipelineInput,
 };
 
 #[derive(Debug, Clone)]
@@ -25,7 +24,6 @@ pub enum PipelineOutputEndCondition {
 }
 
 pub struct PipelineOutput {
-    pub encoder: encoder::Encoder,
     pub output: output::Output,
     pub video_end_condition: Option<PipelineOutputEndConditionState>,
     pub audio_end_condition: Option<PipelineOutputEndConditionState>,
@@ -37,16 +35,13 @@ pub(super) enum OutputSender<T> {
 }
 
 impl Pipeline {
-    pub(super) fn register_pipeline_output(
+    pub(super) fn register_pipeline_output<NewOutputResult>(
         &mut self,
         output_id: OutputId,
-        opts: RegisterOutputOptions,
-    ) -> Result<Option<Port>, RegisterOutputError> {
-        let RegisterOutputOptions {
-            video,
-            audio,
-            output_options,
-        } = opts;
+        output_options: &dyn OutputOptionsExt<NewOutputResult>,
+        video: Option<OutputVideoOptions>,
+        audio: Option<OutputAudioOptions>,
+    ) -> Result<NewOutputResult, RegisterOutputError> {
         let (has_video, has_audio) = (video.is_some(), audio.is_some());
         if !has_video && !has_audio {
             return Err(RegisterOutputError::NoVideoAndAudio(output_id));
@@ -56,26 +51,9 @@ impl Pipeline {
             return Err(RegisterOutputError::AlreadyRegistered(output_id));
         }
 
-        let encoder_opts = EncoderOptions {
-            video: video
-                .as_ref()
-                .map(|video_opts| video_opts.encoder_opts.clone()),
-            audio: audio.as_ref().map(|audio_opts| {
-                AudioEncoderOptions::Opus(opus::Options {
-                    channels: audio_opts.channels,
-                    preset: audio_opts.encoder_preset,
-                })
-            }),
-        };
-
-        let (encoder, packets) = Encoder::new(&output_id, encoder_opts, self.output_sample_rate)
-            .map_err(|e| RegisterOutputError::EncoderError(output_id.clone(), e))?;
-
-        let (output, port) = Output::new(&output_id, output_options, packets)
-            .map_err(|e| RegisterOutputError::OutputError(output_id.clone(), e))?;
+        let (output, output_result) = output_options.new_output(&output_id, &self.ctx)?;
 
         let output = PipelineOutput {
-            encoder,
             output,
             audio_end_condition: audio.as_ref().map(|audio| {
                 PipelineOutputEndConditionState::new_audio(
@@ -91,10 +69,15 @@ impl Pipeline {
             }),
         };
 
-        if let Some(video_opts) = video.clone() {
+        if let (Some(video_opts), Some(resolution), Some(format)) = (
+            video.clone(),
+            output.output.resolution(),
+            output.output.output_frame_format(),
+        ) {
             let result = self.renderer.update_scene(
                 output_id.clone(),
-                video_opts.encoder_opts.resolution(),
+                resolution,
+                format,
                 video_opts.initial,
             );
 
@@ -115,7 +98,7 @@ impl Pipeline {
 
         self.outputs.insert(output_id.clone(), output);
 
-        Ok(port)
+        Ok(output_result)
     }
 
     pub(super) fn all_output_video_senders_iter(
@@ -128,7 +111,7 @@ impl Pipeline {
             .iter_mut()
             .filter_map(|(output_id, output)| {
                 let eos_status = output.video_end_condition.as_mut()?.eos_status();
-                let sender = output.encoder.frame_sender()?.clone();
+                let sender = output.output.frame_sender()?.clone();
                 Some((output_id.clone(), (sender, eos_status)))
             })
             .collect();
@@ -161,7 +144,7 @@ impl Pipeline {
             .iter_mut()
             .filter_map(|(output_id, output)| {
                 let eos_status = output.audio_end_condition.as_mut()?.eos_status();
-                let sender = output.encoder.samples_batch_sender()?.clone();
+                let sender = output.output.samples_batch_sender()?.clone();
                 Some((output_id.clone(), (sender, eos_status)))
             })
             .collect();

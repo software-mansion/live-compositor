@@ -5,7 +5,7 @@ use tracing::{debug, span, Level};
 
 use crate::{
     error::OutputInitError,
-    pipeline::{rtp::RequestedPort, structs::EncoderOutputEvent, AudioCodec, Port, VideoCodec},
+    pipeline::{rtp::RequestedPort, types::EncoderOutputEvent, AudioCodec, Port, VideoCodec},
 };
 
 use self::{packet_stream::PacketStream, payloader::Payloader};

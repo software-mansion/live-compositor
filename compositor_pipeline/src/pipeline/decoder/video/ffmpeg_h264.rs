@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use crate::{
     error::InputInitError,
-    pipeline::structs::{EncodedChunk, EncodedChunkKind, VideoCodec},
+    pipeline::types::{EncodedChunk, EncodedChunkKind, VideoCodec},
     queue::PipelineEvent,
 };
 

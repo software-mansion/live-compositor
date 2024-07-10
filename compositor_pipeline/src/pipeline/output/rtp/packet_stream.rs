@@ -2,7 +2,7 @@ use std::collections::VecDeque;
 
 use crossbeam_channel::Receiver;
 
-use crate::pipeline::structs::EncoderOutputEvent;
+use crate::pipeline::types::EncoderOutputEvent;
 
 use super::payloader::{Payloader, PayloadingError};
 

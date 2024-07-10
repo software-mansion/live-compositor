@@ -488,6 +488,7 @@ dependencies = [
  "thiserror",
  "tracing",
  "webrtc-util",
+ "wgpu",
 ]
 
 [[package]]
@@ -509,6 +510,7 @@ dependencies = [
  "resvg",
  "shared_memory",
  "thiserror",
+ "tracing",
  "wgpu",
 ]
 
