@@ -21,12 +21,16 @@ use compositor_render::{
 };
 use crossbeam_channel::bounded;
 use image::{codecs::png::PngEncoder, ColorType, ImageEncoder};
-use integration_tests::read_rgba_texture;
+use integration_tests::{examples::download_file, read_rgba_texture};
 use live_compositor::{
     config::{read_config, LoggerConfig, LoggerFormat},
     logger::{self, FfmpegLogLevel},
     state::ApiState,
 };
+
+const BUNNY_FILE_URL: &str =
+    "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+const BUNNY_FILE_PATH: &str = "examples/assets/BigBuckBunny.mp4";
 
 fn root_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -55,6 +59,8 @@ fn main() {
     });
     let output_id = OutputId("output_1".into());
     let input_id = InputId("input_id".into());
+
+    download_file(BUNNY_FILE_URL, BUNNY_FILE_PATH).unwrap();
 
     let output_options = RegisterOutputOptions {
         output_options: RawDataOutputOptions {
@@ -88,7 +94,7 @@ fn main() {
 
     let input_options = RegisterInputOptions {
         input_options: InputOptions::Mp4(Mp4Options {
-            source: Source::File(root_dir().join("../examples/assets/BigBuckBunny.mp4")),
+            source: Source::File(root_dir().join("examples/assets/BigBuckBunny.mp4")),
         }),
         queue_options: QueueInputOptions {
             required: true,
@@ -127,7 +133,7 @@ fn main() {
         .unwrap();
 
     let mut audio_dump =
-        File::create(root_dir().join("examples/wgpu_textures_audio_dump.debug")).unwrap();
+        File::create(root_dir().join("examples/raw_channel_output_audio_dump.debug")).unwrap();
 
     thread::Builder::new()
         .spawn(move || {
@@ -164,7 +170,10 @@ fn write_frame(
     let size = texture.size();
     let frame_data = read_rgba_texture(device, queue, &texture);
 
-    let filepath = root_dir().join(format!("examples/wgpu_textures_video_frame_{}.png", index));
+    let filepath = root_dir().join(format!(
+        "examples/raw_channel_output_video_frame_{}.png",
+        index
+    ));
     let file = File::create(filepath).unwrap();
     let encoder = PngEncoder::new(file);
     encoder

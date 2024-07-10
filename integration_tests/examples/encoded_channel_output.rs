@@ -22,11 +22,16 @@ use compositor_render::{
     scene::{Component, InputStreamComponent},
     InputId, OutputId, Resolution,
 };
+use integration_tests::examples::download_file;
 use live_compositor::{
     config::{read_config, LoggerConfig, LoggerFormat},
     logger::{self, FfmpegLogLevel},
     state::ApiState,
 };
+
+const BUNNY_FILE_URL: &str =
+    "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+const BUNNY_FILE_PATH: &str = "examples/assets/BigBuckBunny.mp4";
 
 // Start simple pipeline with output that sends encoded video/audio via Rust channel.
 //
@@ -50,6 +55,8 @@ fn main() {
     });
     let output_id = OutputId("output_1".into());
     let input_id = InputId("input_id".into());
+
+    download_file(BUNNY_FILE_URL, BUNNY_FILE_PATH).unwrap();
 
     let output_options = RegisterOutputOptions {
         output_options: EncodedDataOutputOptions {
@@ -88,7 +95,7 @@ fn main() {
 
     let input_options = RegisterInputOptions {
         input_options: InputOptions::Mp4(Mp4Options {
-            source: Source::File(root_dir.join("../examples/assets/BigBuckBunny.mp4")),
+            source: Source::File(root_dir.join("examples/assets/BigBuckBunny.mp4")),
         }),
         queue_options: QueueInputOptions {
             required: true,
@@ -108,8 +115,10 @@ fn main() {
 
     Pipeline::start(&state.pipeline);
 
-    let mut h264_dump = File::create(root_dir.join("examples/encoded_output_dump.h264")).unwrap();
-    let mut opus_dump = File::create(root_dir.join("examples/encoded_output_dump.opus")).unwrap();
+    let mut h264_dump =
+        File::create(root_dir.join("examples/encoded_channel_output_dump.h264")).unwrap();
+    let mut opus_dump =
+        File::create(root_dir.join("examples/encoded_channel_output_dump.opus")).unwrap();
 
     for (index, chunk) in output_receiver.iter().enumerate() {
         if index > 3000 {

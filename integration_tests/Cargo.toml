@@ -12,7 +12,6 @@ update_snapshots = []
 web_renderer = [
     "dep:compositor_chromium",
     "compositor_render/web_renderer",
-    "compositor_pipeline/web_renderer",
     "live_compositor/web_renderer",
 ]
 

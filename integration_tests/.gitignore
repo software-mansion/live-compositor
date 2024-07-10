@@ -1,4 +1,4 @@
-/examples/encoded_output_dump.opus
-/examples/encoded_output_dump.h264
-/examples/wgpu_textures_audio_dump.debug
-/examples/wgpu_textures_video_frame_*.png
+/examples/encoded_channel_output_dump.opus
+/examples/encoded_channel_output_dump.h264
+/examples/raw_channel_output_audio_dump.debug
+/examples/raw_channel_output_video_frame_*.png
