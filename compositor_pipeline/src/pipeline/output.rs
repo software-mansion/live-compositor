@@ -45,7 +45,7 @@ pub struct RawDataOutputOptions {
 /// TODO: add option, for now it implies RGBA wgpu::Texture
 #[derive(Debug, Clone)]
 pub struct RawVideoOptions {
-    resolution: Resolution,
+    pub resolution: Resolution,
 }
 
 /// Options to configure audio output that returns raw audio via channel.
