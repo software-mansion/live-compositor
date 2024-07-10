@@ -38,10 +38,8 @@ impl Texture {
         Self { texture, view }
     }
 
-    pub fn copy_to_wgpu_texture(&self, ctx: &WgpuCtx) -> wgpu::Texture {
-        let mut encoder = ctx.device.create_command_encoder(&Default::default());
-
-        let dst_texture = ctx.device.create_texture(&wgpu::TextureDescriptor {
+    pub fn copy_wgpu_texture(&self, ctx: &WgpuCtx) -> wgpu::Texture {
+        let destination = ctx.device.create_texture(&wgpu::TextureDescriptor {
             label: None,
             size: self.texture.size(),
             mip_level_count: self.texture.mip_level_count(),
@@ -51,13 +49,40 @@ impl Texture {
             usage: self.texture.usage(),
             view_formats: &[self.texture.format()],
         });
-        encoder.copy_texture_to_texture(
-            self.texture.as_image_copy(),
-            dst_texture.as_image_copy(),
+        copy_wgpu_texture(ctx, &self.texture, &destination);
+        destination
+    }
+
+    pub fn fill_from_wgpu_texture(
+        &self,
+        ctx: &WgpuCtx,
+        source: &wgpu::Texture,
+    ) -> Result<(), TextureCopyError> {
+        let expected = (
             self.texture.size(),
+            self.texture.mip_level_count(),
+            self.texture.sample_count(),
+            self.texture.dimension(),
+            self.texture.format(),
+            self.texture.usage(),
         );
-        ctx.queue.submit(Some(encoder.finish()));
-        dst_texture
+        let actual = (
+            self.texture.size(),
+            self.texture.mip_level_count(),
+            self.texture.sample_count(),
+            self.texture.dimension(),
+            self.texture.format(),
+            self.texture.usage(),
+        );
+
+        if expected != actual {
+            return Err(TextureCopyError {
+                expected: format!("{expected:?}"),
+                actual: format!("{actual:?}"),
+            });
+        }
+        copy_wgpu_texture(ctx, source, &self.texture);
+        Ok(())
     }
 
     pub fn empty(device: &wgpu::Device) -> Self {
@@ -136,4 +161,22 @@ impl Texture {
             size,
         );
     }
+}
+
+#[derive(Debug, thiserror::Error)]
+#[error("Passed invalid texture. Expected: {expected}, Actual: {actual}")]
+pub struct TextureCopyError {
+    expected: String,
+    actual: String,
+}
+
+fn copy_wgpu_texture(ctx: &WgpuCtx, source: &wgpu::Texture, destination: &wgpu::Texture) {
+    let mut encoder = ctx.device.create_command_encoder(&Default::default());
+
+    encoder.copy_texture_to_texture(
+        source.as_image_copy(),
+        destination.as_image_copy(),
+        source.size(),
+    );
+    ctx.queue.submit(Some(encoder.finish()));
 }

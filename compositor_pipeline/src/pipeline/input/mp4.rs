@@ -16,6 +16,7 @@ use super::{AudioInputReceiver, Input, InputInitInfo, InputInitResult, VideoInpu
 
 pub mod mp4_file_reader;
 
+#[derive(Debug, Clone)]
 pub struct Mp4Options {
     pub source: Source,
 }
@@ -31,6 +32,7 @@ pub(crate) enum Mp4ReaderOptions {
     },
 }
 
+#[derive(Debug, Clone)]
 pub enum Source {
     Url(String),
     File(PathBuf),

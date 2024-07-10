@@ -74,7 +74,7 @@ pub(super) fn read_outputs(
                     let texture = node
                         .rgba_texture()
                         .texture()
-                        .copy_to_wgpu_texture(ctx.wgpu_ctx);
+                        .copy_wgpu_texture(ctx.wgpu_ctx);
                     let size = texture.size();
                     let frame = Frame {
                         data: FrameData::Rgba8UnormWgpuTexture(texture.into()),

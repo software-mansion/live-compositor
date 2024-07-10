@@ -33,6 +33,7 @@ pub struct DeckLinkInfo {
     pub subdevice_index: Option<u32>,
 }
 
+#[derive(Debug, Clone)]
 pub struct DeckLinkOptions {
     pub subdevice_index: Option<u32>,
     pub display_name: Option<String>,
