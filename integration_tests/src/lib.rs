@@ -1,7 +1,7 @@
 mod audio_decoder;
 mod common;
 mod compositor_instance;
-pub mod examples_common;
+pub mod examples;
 mod output_receiver;
 mod packet_sender;
 mod validation;

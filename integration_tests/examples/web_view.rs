@@ -7,7 +7,7 @@ use std::{
     thread::{self},
 };
 
-use integration_tests::examples_common::{self, download_file, start_ffplay, stream_video};
+use integration_tests::examples::{self, download_file, start_ffplay, stream_video};
 
 const SAMPLE_FILE_URL: &str = "https://filesamples.com/samples/video/mp4/sample_1280x720.mp4";
 const SAMPLE_FILE_PATH: &str = "examples/assets/sample_1280_720.mp4";
@@ -61,7 +61,7 @@ fn start_example_client_code() -> Result<()> {
         .to_string();
 
     info!("[example] Send register input request.");
-    examples_common::post(
+    examples::post(
         "input/input_1/register",
         &json!({
             "type": "rtp_stream",
@@ -73,7 +73,7 @@ fn start_example_client_code() -> Result<()> {
     )?;
 
     info!("[example] Register web renderer transform");
-    examples_common::post(
+    examples::post(
         "web-renderer/example_website/register",
         &json!({
             "url": format!("file://{html_file_path}"), // or other way of providing source
@@ -82,7 +82,7 @@ fn start_example_client_code() -> Result<()> {
     )?;
 
     info!("[example] Send register output request.");
-    examples_common::post(
+    examples::post(
         "output/output_1/register",
         &json!({
             "type": "rtp_stream",
@@ -116,7 +116,7 @@ fn start_example_client_code() -> Result<()> {
     )?;
 
     info!("[example] Start pipeline");
-    examples_common::post("start", &json!({}))?;
+    examples::post("start", &json!({}))?;
 
     stream_video(IP, INPUT_PORT, sample_path)?;
     Ok(())

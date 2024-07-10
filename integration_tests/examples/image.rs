@@ -4,7 +4,7 @@ use log::{error, info};
 use serde_json::json;
 use std::{env, path::PathBuf, thread};
 
-use integration_tests::examples_common::{self, start_ffplay, start_websocket_thread};
+use integration_tests::examples::{self, start_ffplay, start_websocket_thread};
 
 const VIDEO_RESOLUTION: Resolution = Resolution {
     width: 1920,
@@ -33,21 +33,21 @@ fn start_example_client_code() -> Result<()> {
     start_websocket_thread();
 
     info!("[example] Register static images");
-    examples_common::post(
+    examples::post(
         "image/example_gif/register",
         &json!({
             "asset_type": "gif",
             "url": "https://gifdb.com/images/high/rust-logo-on-fire-o41c0v9om8drr8dv.gif",
         }),
     )?;
-    examples_common::post(
+    examples::post(
         "image/example_jpeg/register",
         &json!({
             "asset_type": "jpeg",
             "url": "https://www.rust-lang.org/static/images/rust-social.jpg",
         }),
     )?;
-    examples_common::post(
+    examples::post(
         "image/example_svg/register",
         &json!({
             "asset_type": "svg",
@@ -55,7 +55,7 @@ fn start_example_client_code() -> Result<()> {
             "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.width},
         }),
     )?;
-    examples_common::post(
+    examples::post(
         "image/example_png/register",
         &json!({
             "asset_type": "png",
@@ -107,7 +107,7 @@ fn start_example_client_code() -> Result<()> {
     });
 
     info!("[example] Send register output request.");
-    examples_common::post(
+    examples::post(
         "output/output_1/register",
         &json!({
             "type": "rtp_stream",
@@ -130,7 +130,7 @@ fn start_example_client_code() -> Result<()> {
     )?;
 
     info!("[example] Start pipeline");
-    examples_common::post("start", &json!({}))?;
+    examples::post("start", &json!({}))?;
 
     Ok(())
 }

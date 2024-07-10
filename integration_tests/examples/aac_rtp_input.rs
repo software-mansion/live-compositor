@@ -8,7 +8,7 @@ use std::{
     time::Duration,
 };
 
-use integration_tests::examples_common::{
+use integration_tests::examples::{
     self, download_file, start_ffplay, start_websocket_thread, stream_audio, stream_video,
 };
 
@@ -48,7 +48,7 @@ fn start_example_client_code() -> Result<()> {
     let bunny_path = download_file(BUNNY_FILE_URL, BUNNY_FILE_PATH)?;
 
     info!("[example] Send register input request.");
-    examples_common::post(
+    examples::post(
         "input/input_1/register",
         &json!({
             "type": "rtp_stream",
@@ -60,7 +60,7 @@ fn start_example_client_code() -> Result<()> {
     )?;
 
     info!("[example] Send register input request.");
-    examples_common::post(
+    examples::post(
         "input/input_2/register",
         &json!({
             "type": "rtp_stream",
@@ -78,7 +78,7 @@ fn start_example_client_code() -> Result<()> {
     )?;
 
     info!("[example] Send register output request.");
-    examples_common::post(
+    examples::post(
         "output/output_1/register",
         &json!({
             "type": "rtp_stream",
@@ -105,7 +105,7 @@ fn start_example_client_code() -> Result<()> {
     )?;
 
     info!("[example] Send register output request.");
-    examples_common::post(
+    examples::post(
         "output/output_2/register",
         &json!({
             "type": "rtp_stream",
@@ -128,7 +128,7 @@ fn start_example_client_code() -> Result<()> {
     std::thread::sleep(Duration::from_millis(500));
 
     info!("[example] Start pipeline");
-    examples_common::post("start", &json!({}))?;
+    examples::post("start", &json!({}))?;
 
     stream_video(IP, INPUT_1_PORT, bunny_path.clone())?;
     stream_audio(IP, INPUT_2_PORT, bunny_path, "aac")?;

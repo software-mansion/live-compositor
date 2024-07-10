@@ -5,7 +5,7 @@ use serde_json::json;
 use signal_hook::{consts, iterator::Signals};
 use std::{env, process::Command, thread, time::Duration};
 
-use integration_tests::examples_common::{
+use integration_tests::examples::{
     self, start_ffplay, start_websocket_thread, stream_ffmpeg_testsrc,
 };
 const VIDEO_RESOLUTION: Resolution = Resolution {
@@ -101,7 +101,7 @@ fn start_example_client_code(host_ip: String) -> Result<()> {
     start_websocket_thread();
 
     info!("[example] Send register input request.");
-    examples_common::post(
+    examples::post(
         "input/input_1/register",
         &json!({
             "type": "rtp_stream",
@@ -114,7 +114,7 @@ fn start_example_client_code(host_ip: String) -> Result<()> {
 
     let shader_source = include_str!("./silly.wgsl");
     info!("[example] Register shader transform");
-    examples_common::post(
+    examples::post(
         "shader/example_shader/register",
         &json!({
             "source": shader_source,
@@ -122,7 +122,7 @@ fn start_example_client_code(host_ip: String) -> Result<()> {
     )?;
 
     info!("[example] Send register output request.");
-    examples_common::post(
+    examples::post(
         "output/output_1/register",
         &json!({
             "type": "rtp_stream",
@@ -155,7 +155,7 @@ fn start_example_client_code(host_ip: String) -> Result<()> {
     )?;
 
     info!("[example] Start pipeline");
-    examples_common::post("start", &json!({}))?;
+    examples::post("start", &json!({}))?;
 
     info!("[example] Start input stream");
     stream_ffmpeg_testsrc(IP, INPUT_PORT, VIDEO_RESOLUTION)?;

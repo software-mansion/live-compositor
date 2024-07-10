@@ -8,7 +8,7 @@ use std::{
     time::Duration,
 };
 
-use integration_tests::examples_common::{self, start_websocket_thread};
+use integration_tests::examples::{self, start_websocket_thread};
 
 const VIDEO_RESOLUTION: Resolution = Resolution {
     width: 1280,
@@ -36,7 +36,7 @@ fn start_example_client_code() -> Result<()> {
     start_websocket_thread();
 
     info!("[example] Send register input request.");
-    examples_common::post(
+    examples::post(
         "input/input_1/register",
         &json!({
             "type": "decklink",
@@ -46,7 +46,7 @@ fn start_example_client_code() -> Result<()> {
     )?;
 
     info!("[example] Send register output video request.");
-    examples_common::post(
+    examples::post(
         "output/output_1/register",
         &json!({
             "type": "rtp_stream",
@@ -113,7 +113,7 @@ fn start_example_client_code() -> Result<()> {
     std::thread::sleep(Duration::from_millis(1000));
 
     info!("[example] Start pipeline");
-    examples_common::post("start", &json!({}))?;
+    examples::post("start", &json!({}))?;
 
     Ok(())
 }

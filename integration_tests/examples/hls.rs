@@ -4,7 +4,7 @@ use log::{error, info};
 use serde_json::json;
 use std::{env, process::Command, thread, time::Duration};
 
-use integration_tests::examples_common::{self, start_websocket_thread};
+use integration_tests::examples::{self, start_websocket_thread};
 
 const HLS_URL: &str = "https://raw.githubusercontent.com/membraneframework/membrane_http_adaptive_stream_plugin/master/test/membrane_http_adaptive_stream/integration_test/fixtures/audio_multiple_video_tracks/index.m3u8";
 const VIDEO_RESOLUTION: Resolution = Resolution {
@@ -34,7 +34,7 @@ fn start_example_client_code() -> Result<()> {
     start_websocket_thread();
 
     info!("[example] Send register input request.");
-    examples_common::post(
+    examples::post(
         "input/input_1/register",
         &json!({
             "type": "rtp_stream",
@@ -48,7 +48,7 @@ fn start_example_client_code() -> Result<()> {
 
     let shader_source = include_str!("./silly.wgsl");
     info!("[example] Register shader transform");
-    examples_common::post(
+    examples::post(
         "shader/shader_example_1/register",
         &json!({
             "source": shader_source,
@@ -56,7 +56,7 @@ fn start_example_client_code() -> Result<()> {
     )?;
 
     info!("[example] Send register output request.");
-    examples_common::post(
+    examples::post(
         "output/output_1/register",
         &json!({
             "type": "rtp_stream",
@@ -98,7 +98,7 @@ fn start_example_client_code() -> Result<()> {
     std::thread::sleep(Duration::from_millis(500));
 
     info!("[example] Start pipeline");
-    examples_common::post("start", &json!({}))?;
+    examples::post("start", &json!({}))?;
 
     let gst_input_command = format!("gst-launch-1.0 -v souphttpsrc location={HLS_URL} ! hlsdemux ! qtdemux ! h264parse ! rtph264pay config-interval=1 pt=96 ! .send_rtp_sink rtpsession .send_rtp_src ! rtpstreampay ! tcpclientsink host=127.0.0.1 port={INPUT_PORT}");
     Command::new("bash")

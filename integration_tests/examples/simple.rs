@@ -4,7 +4,7 @@ use log::{error, info};
 use serde_json::json;
 use std::{thread, time::Duration};
 
-use integration_tests::examples_common::{
+use integration_tests::examples::{
     self, download_file, start_ffplay, start_websocket_thread, stream_video,
 };
 
@@ -41,7 +41,7 @@ fn start_example_client_code() -> Result<()> {
     let sample_path = download_file(SAMPLE_FILE_URL, SAMPLE_FILE_PATH)?;
 
     info!("[example] Send register input request.");
-    examples_common::post(
+    examples::post(
         "input/input_1/register",
         &json!({
             "type": "rtp_stream",
@@ -54,7 +54,7 @@ fn start_example_client_code() -> Result<()> {
 
     let shader_source = include_str!("./silly.wgsl");
     info!("[example] Register shader transform");
-    examples_common::post(
+    examples::post(
         "shader/shader_example_1/register",
         &json!({
             "source": shader_source,
@@ -62,7 +62,7 @@ fn start_example_client_code() -> Result<()> {
     )?;
 
     info!("[example] Send register output request.");
-    examples_common::post(
+    examples::post(
         "output/output_1/register",
         &json!({
             "type": "rtp_stream",
@@ -99,7 +99,7 @@ fn start_example_client_code() -> Result<()> {
     std::thread::sleep(Duration::from_millis(500));
 
     info!("[example] Start pipeline");
-    examples_common::post("start", &json!({}))?;
+    examples::post("start", &json!({}))?;
 
     stream_video(IP, INPUT_PORT, sample_path)?;
     Ok(())

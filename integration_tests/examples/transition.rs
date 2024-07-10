@@ -4,7 +4,7 @@ use log::{error, info};
 use serde_json::json;
 use std::{thread, time::Duration};
 
-use integration_tests::examples_common::{
+use integration_tests::examples::{
     self, start_ffplay, start_websocket_thread, stream_ffmpeg_testsrc,
 };
 
@@ -35,7 +35,7 @@ fn start_example_client_code() -> Result<()> {
     start_websocket_thread();
 
     info!("[example] Send register input request.");
-    examples_common::post(
+    examples::post(
         "input/input_1/register",
         &json!({
             "type": "rtp_stream",
@@ -48,7 +48,7 @@ fn start_example_client_code() -> Result<()> {
 
     let shader_source = include_str!("./silly.wgsl");
     info!("[example] Register shader transform");
-    examples_common::post(
+    examples::post(
         "shader/example_shader/register",
         &json!({
             "source": shader_source,
@@ -56,7 +56,7 @@ fn start_example_client_code() -> Result<()> {
     )?;
 
     info!("[example] Register static image");
-    examples_common::post(
+    examples::post(
         "image/example_image/register",
         &json!({
             "asset_type": "gif",
@@ -157,7 +157,7 @@ fn start_example_client_code() -> Result<()> {
     });
 
     info!("[example] Send register output request.");
-    examples_common::post(
+    examples::post(
         "output/output_1/register",
         &json!({
             "type": "rtp_stream",
@@ -180,7 +180,7 @@ fn start_example_client_code() -> Result<()> {
     )?;
 
     info!("[example] Start pipeline");
-    examples_common::post("start", &json!({}))?;
+    examples::post("start", &json!({}))?;
 
     info!("[example] Start input stream");
     stream_ffmpeg_testsrc(IP, INPUT_PORT, VIDEO_RESOLUTION)?;
@@ -188,7 +188,7 @@ fn start_example_client_code() -> Result<()> {
     thread::sleep(Duration::from_secs(5));
 
     info!("[example] Update output");
-    examples_common::post(
+    examples::post(
         "output/output_1/update",
         &json!({
             "video": {
@@ -200,7 +200,7 @@ fn start_example_client_code() -> Result<()> {
     thread::sleep(Duration::from_secs(2));
 
     info!("[example] Update output");
-    examples_common::post(
+    examples::post(
         "output/output_1/update",
         &json!({
             "video": {
