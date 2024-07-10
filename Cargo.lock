@@ -1051,9 +1051,12 @@ dependencies = [
  "reqwest",
  "rtcp",
  "rtp",
+ "schemars",
+ "serde",
  "serde_json",
  "socket2",
  "tracing",
+ "tracing-subscriber",
  "webrtc-util",
 ]
 

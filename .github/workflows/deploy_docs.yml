@@ -7,7 +7,7 @@ on:
         paths:
             - "docs/**"
             - "schemas/**"
-            - "src/bin/generate_docs/**"
+            - "generate/src/bin/generate_from_types/**"
             - ".github/workflows/deploy_docs.yml"
 
 permissions:
@@ -49,7 +49,8 @@ jobs:
               uses: dtolnay/rust-toolchain@stable
 
             - name: 📄 Generate docs from JSON schema
-              run: cargo run --bin generate_docs --features decklink
+              working-directory: ./generate
+              run: cargo run --bin generate_from_types
 
             - name: 🛠 Install dependencies
               run: npm ci
