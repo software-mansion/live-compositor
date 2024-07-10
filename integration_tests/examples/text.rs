@@ -2,26 +2,19 @@ use anyhow::Result;
 use live_compositor::{server, types::Resolution};
 use log::{error, info};
 use serde_json::json;
-use std::{env, thread, time::Duration};
+use std::thread;
 
-use crate::common::{download_file, start_ffplay, start_websocket_thread, stream_video};
+use integration_tests::examples::{self, start_ffplay, start_websocket_thread};
 
-#[path = "./common/common.rs"]
-mod common;
-
-const SAMPLE_FILE_URL: &str = "https://filesamples.com/samples/video/mp4/sample_1280x720.mp4";
-const SAMPLE_FILE_PATH: &str = "examples/assets/sample_1280_720.mp4";
 const VIDEO_RESOLUTION: Resolution = Resolution {
-    width: 1280,
-    height: 720,
+    width: 1920,
+    height: 1080,
 };
 
 const IP: &str = "127.0.0.1";
-const INPUT_PORT: u16 = 8002;
-const OUTPUT_PORT: u16 = 8004;
+const OUTPUT_PORT: u16 = 8002;
 
 fn main() {
-    env::set_var("LIVE_COMPOSITOR_WEB_RENDERER_ENABLE", "0");
     ffmpeg_next::format::network::init();
 
     thread::spawn(|| {
@@ -38,23 +31,8 @@ fn start_example_client_code() -> Result<()> {
     start_ffplay(IP, OUTPUT_PORT, None)?;
     start_websocket_thread();
 
-    info!("[example] Download sample.");
-    let sample_path = download_file(SAMPLE_FILE_URL, SAMPLE_FILE_PATH)?;
-
-    info!("[example] Send register input request.");
-    common::post(
-        "input/input_1/register",
-        &json!({
-            "type": "rtp_stream",
-            "port": INPUT_PORT,
-            "video": {
-                "decoder": "ffmpeg_h264"
-            }
-        }),
-    )?;
-
     info!("[example] Send register output request.");
-    common::post(
+    examples::post(
         "output/output_1/register",
         &json!({
             "type": "rtp_stream",
@@ -71,20 +49,24 @@ fn start_example_client_code() -> Result<()> {
                 },
                 "initial": {
                     "root": {
-                        "id": "input_1",
-                        "type": "input_stream",
-                        "input_id": "input_1",
+                        "type": "text",
+                        "text": "VideoCompositor🚀\nSecond Line\nLorem ipsum dolor sit amet consectetur adipisicing elit. Soluta delectus optio fugit maiores eaque ab totam, veritatis aperiam provident, aliquam consectetur deserunt cumque est? Saepe tenetur impedit culpa asperiores id?",
+                        "font_size": 100.0,
+                        "font_family": "Comic Sans MS",
+                        "align": "center",
+                        "wrap": "word",
+                        "background_color_rgba": "#00800000",
+                        "weight": "bold",
+                        "width": VIDEO_RESOLUTION.width,
+                        "height": VIDEO_RESOLUTION.height,
                     }
                 }
             }
         }),
     )?;
 
-    std::thread::sleep(Duration::from_millis(500));
-
     info!("[example] Start pipeline");
-    common::post("start", &json!({}))?;
+    examples::post("start", &json!({}))?;
 
-    stream_video(IP, OUTPUT_PORT, sample_path)?;
     Ok(())
 }

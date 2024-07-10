@@ -5,10 +5,9 @@ use serde::Deserialize;
 use serde_json::json;
 use std::{env, thread};
 
-use crate::common::{start_ffplay, start_websocket_thread, stream_ffmpeg_testsrc};
-
-#[path = "./common/common.rs"]
-mod common;
+use integration_tests::examples::{
+    self, start_ffplay, start_websocket_thread, stream_ffmpeg_testsrc,
+};
 
 const VIDEO_RESOLUTION: Resolution = Resolution {
     width: 1920,
@@ -42,7 +41,7 @@ fn start_example_client_code() -> Result<()> {
     start_websocket_thread();
 
     info!("[example] Send register input request.");
-    let RegisterResponse { port: input_port } = common::post(
+    let RegisterResponse { port: input_port } = examples::post(
         "input/input_1/register",
         &json!({
             "type": "rtp_stream",
@@ -58,7 +57,7 @@ fn start_example_client_code() -> Result<()> {
 
     let shader_source = include_str!("./silly.wgsl");
     info!("[example] Register shader transform");
-    common::post(
+    examples::post(
         "shader/example_shader/register",
         &json!({
             "source": shader_source,
@@ -79,7 +78,7 @@ fn start_example_client_code() -> Result<()> {
     });
 
     info!("[example] Send register output request.");
-    common::post(
+    examples::post(
         "output/output_1/register",
         &json!({
             "type": "rtp_stream",
@@ -105,7 +104,7 @@ fn start_example_client_code() -> Result<()> {
     stream_ffmpeg_testsrc(IP, input_port, VIDEO_RESOLUTION)?;
 
     info!("[example] Start pipeline");
-    common::post("start", &json!({}))?;
+    examples::post("start", &json!({}))?;
 
     Ok(())
 }

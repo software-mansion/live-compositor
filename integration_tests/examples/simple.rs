@@ -4,22 +4,20 @@ use log::{error, info};
 use serde_json::json;
 use std::{thread, time::Duration};
 
-use crate::common::{start_ffplay, start_websocket_thread};
+use integration_tests::examples::{
+    self, download_file, start_ffplay, start_websocket_thread, stream_video,
+};
 
-#[path = "./common/common.rs"]
-mod common;
-
-const BUNNY_URL: &str =
-    "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
-
+const SAMPLE_FILE_URL: &str = "https://filesamples.com/samples/video/mp4/sample_1280x720.mp4";
+const SAMPLE_FILE_PATH: &str = "examples/assets/sample_1280_720.mp4";
 const VIDEO_RESOLUTION: Resolution = Resolution {
     width: 1280,
     height: 720,
 };
 
 const IP: &str = "127.0.0.1";
-const OUTPUT_VIDEO_PORT: u16 = 8002;
-const OUTPUT_AUDIO_PORT: u16 = 8004;
+const INPUT_PORT: u16 = 8002;
+const OUTPUT_PORT: u16 = 8004;
 
 fn main() {
     ffmpeg_next::format::network::init();
@@ -35,33 +33,40 @@ fn main() {
 
 fn start_example_client_code() -> Result<()> {
     info!("[example] Start listening on output port.");
-    start_ffplay(IP, OUTPUT_VIDEO_PORT, Some(OUTPUT_AUDIO_PORT))?;
+    start_ffplay(IP, OUTPUT_PORT, None)?;
+    thread::sleep(Duration::from_secs(2));
     start_websocket_thread();
 
+    info!("[example] Download sample.");
+    let sample_path = download_file(SAMPLE_FILE_URL, SAMPLE_FILE_PATH)?;
+
     info!("[example] Send register input request.");
-    common::post(
+    examples::post(
         "input/input_1/register",
         &json!({
-            "type": "mp4",
-            "url": BUNNY_URL
+            "type": "rtp_stream",
+            "port": INPUT_PORT,
+            "video": {
+                "decoder": "ffmpeg_h264"
+            }
         }),
     )?;
 
     let shader_source = include_str!("./silly.wgsl");
     info!("[example] Register shader transform");
-    common::post(
+    examples::post(
         "shader/shader_example_1/register",
         &json!({
             "source": shader_source,
         }),
     )?;
 
-    info!("[example] Send register output video request.");
-    common::post(
+    info!("[example] Send register output request.");
+    examples::post(
         "output/output_1/register",
         &json!({
             "type": "rtp_stream",
-            "port": OUTPUT_VIDEO_PORT,
+            "port": OUTPUT_PORT,
             "ip": IP,
             "video": {
                 "resolution": {
@@ -74,31 +79,18 @@ fn start_example_client_code() -> Result<()> {
                 },
                 "initial": {
                     "root": {
-                        "id": "input_1",
-                        "type": "input_stream",
-                        "input_id": "input_1",
+                        "type": "shader",
+                        "id": "shader_node_1",
+                        "shader_id": "shader_example_1",
+                        "children": [
+                            {
+                                "id": "input_1",
+                                "type": "input_stream",
+                                "input_id": "input_1",
+                            }
+                        ],
+                        "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
                     }
-                }
-            }
-        }),
-    )?;
-
-    info!("[example] Send register output audio request.");
-    common::post(
-        "output/output_2/register",
-        &json!({
-            "type": "rtp_stream",
-            "port": OUTPUT_AUDIO_PORT,
-            "ip": IP,
-            "audio": {
-                "initial": {
-                    "inputs": [
-                        {"input_id": "input_1"}
-                    ]
-                },
-                "encoder": {
-                    "type": "opus",
-                    "channels": "stereo"
                 }
             }
         }),
@@ -107,7 +99,8 @@ fn start_example_client_code() -> Result<()> {
     std::thread::sleep(Duration::from_millis(500));
 
     info!("[example] Start pipeline");
-    common::post("start", &json!({}))?;
+    examples::post("start", &json!({}))?;
 
+    stream_video(IP, INPUT_PORT, sample_path)?;
     Ok(())
 }

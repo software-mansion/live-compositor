@@ -4,10 +4,9 @@ use log::{error, info};
 use serde_json::json;
 use std::thread;
 
-use crate::common::{start_ffplay, start_websocket_thread, stream_ffmpeg_testsrc};
-
-#[path = "./common/common.rs"]
-mod common;
+use integration_tests::examples::{
+    self, start_ffplay, start_websocket_thread, stream_ffmpeg_testsrc,
+};
 
 const VIDEO_RESOLUTION: Resolution = Resolution {
     width: 1920,
@@ -36,7 +35,7 @@ fn start_example_client_code() -> Result<()> {
     start_websocket_thread();
 
     info!("[example] Send register input request.");
-    common::post(
+    examples::post(
         "input/input_1/register",
         &json!({
             "type": "rtp_stream",
@@ -73,7 +72,7 @@ fn start_example_client_code() -> Result<()> {
     };
 
     info!("[example] Send register output request.");
-    common::post(
+    examples::post(
         "output/output_1/register",
         &json!({
             "type": "rtp_stream",
@@ -97,7 +96,7 @@ fn start_example_client_code() -> Result<()> {
 
     for i in 1..=16 {
         info!("[example] Update output");
-        common::post(
+        examples::post(
             "output/output_1/update",
             &json!({
                 "video": {
@@ -109,14 +108,14 @@ fn start_example_client_code() -> Result<()> {
     }
 
     info!("[example] Start pipeline");
-    common::post("start", &json!({}))?;
+    examples::post("start", &json!({}))?;
 
     info!("[example] Start input stream");
     stream_ffmpeg_testsrc(IP, INPUT_PORT, VIDEO_RESOLUTION)?;
 
     for i in 0..16 {
         info!("[example] Update output");
-        common::post(
+        examples::post(
             "output/output_1/update",
             &json!({
                 "video": {
@@ -128,7 +127,7 @@ fn start_example_client_code() -> Result<()> {
     }
 
     info!("[example] Update output");
-    common::post(
+    examples::post(
         "output/output_1/update",
         &json!({
             "video": {

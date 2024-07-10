@@ -44,6 +44,8 @@ compositor_render = { path = "compositor_render" }
 webrtc-util = "0.8.0"
 opus = "0.3.0"
 rubato = "0.15.0"
+futures-util = "0.3.30"
+tokio = { version = "1", features = ["full"] }
 
 [dependencies]
 compositor_render = { workspace = true }
@@ -73,12 +75,9 @@ webrtc-util = { workspace = true }
 rand = { workspace = true }
 reqwest = { workspace = true }
 rubato = { workspace = true }
-tokio = { version = "1", features = ["full"] }
-futures-util = "0.3.30"
+tokio = { workspace = true }
 axum = { version = "0.7.4", features = ["ws"] }
-
-[dev-dependencies]
-tokio-tungstenite = "0.21.0"
+futures-util = { workspace = true }
 
 [[bin]]
 name = "process_helper"

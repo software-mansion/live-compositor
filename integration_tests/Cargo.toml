@@ -7,12 +7,19 @@ license = "BUSL-1.1"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
+default = ["web_renderer"]
 update_snapshots = []
+web_renderer = [
+    "dep:compositor_chromium",
+    "compositor_render/web_renderer",
+    "live_compositor/web_renderer",
+]
 
 [dependencies]
 live_compositor = { path = ".." }
 reqwest = { workspace = true }
 anyhow = { workspace = true }
+serde = { workspace = true }
 serde_json = { workspace = true }
 ffmpeg-next = { workspace = true }
 compositor_render = { workspace = true }
@@ -26,3 +33,9 @@ tracing = { workspace = true }
 opus = { workspace = true }
 pitch-detection = "0.3.0"
 rand = { workspace = true }
+futures-util = { workspace = true }
+log = { workspace = true }
+tokio = { workspace = true }
+signal-hook = { workspace = true }
+compositor_chromium = { path = "../compositor_chromium", optional = true }
+tokio-tungstenite = "0.21.0"

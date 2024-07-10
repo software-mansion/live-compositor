@@ -8,10 +8,7 @@ use std::{
     time::Duration,
 };
 
-use crate::common::{download_file, start_websocket_thread};
-
-#[path = "./common/common.rs"]
-mod common;
+use integration_tests::examples::{self, download_file, start_websocket_thread};
 
 const SAMPLE_FILE_URL: &str =
     "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
@@ -45,7 +42,7 @@ fn start_example_client_code() -> Result<()> {
     start_websocket_thread();
 
     info!("[example] Send register input request.");
-    common::post(
+    examples::post(
         "input/input_1/register",
         &json!({
             "type": "rtp_stream",
@@ -57,7 +54,7 @@ fn start_example_client_code() -> Result<()> {
         }),
     )?;
 
-    common::post(
+    examples::post(
         "input/input_2/register",
         &json!({
             "type": "rtp_stream",
@@ -71,7 +68,7 @@ fn start_example_client_code() -> Result<()> {
 
     let shader_source = include_str!("./silly.wgsl");
     info!("[example] Register shader transform");
-    common::post(
+    examples::post(
         "shader/shader_example_1/register",
         &json!({
             "source": shader_source,
@@ -79,7 +76,7 @@ fn start_example_client_code() -> Result<()> {
     )?;
 
     info!("[example] Send register output request.");
-    common::post(
+    examples::post(
         "output/output_1/register",
         &json!({
             "type": "rtp_stream",
@@ -140,7 +137,7 @@ fn start_example_client_code() -> Result<()> {
     std::thread::sleep(Duration::from_millis(500));
 
     info!("[example] Start pipeline");
-    common::post("start", &json!({}))?;
+    examples::post("start", &json!({}))?;
 
     let sample_path_str = sample_path.to_string_lossy().to_string();
 

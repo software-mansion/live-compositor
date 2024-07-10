@@ -176,7 +176,7 @@ pub fn stream_audio(ip: &str, port: u16, path: PathBuf, codec: &str) -> Result<(
 #[allow(dead_code)]
 pub fn stream_ffmpeg_testsrc(ip: &str, port: u16, resolution: Resolution) -> Result<()> {
     let ffmpeg_source = format!(
-        "testsrc=s={}x{}:r=30,format=yuv422p",
+        "testsrc=s={}x{}:r=30,format=yuv420p",
         resolution.width, resolution.height
     );
 
