@@ -119,14 +119,14 @@ impl VideoEncoder {
         output_id: &OutputId,
         options: VideoEncoderOptions,
         sender: Sender<EncoderOutputEvent>,
-        keyframe_req_rx: Receiver<KeyframeRequest>,
+        keyframe_req_receiver: Receiver<KeyframeRequest>,
     ) -> Result<Self, EncoderInitError> {
         match options {
             VideoEncoderOptions::H264(options) => Ok(Self::H264(LibavH264Encoder::new(
                 output_id,
                 options,
                 sender,
-                keyframe_req_rx,
+                keyframe_req_receiver,
             )?)),
         }
     }

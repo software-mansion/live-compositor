@@ -98,7 +98,7 @@ impl LibavH264Encoder {
         output_id: &OutputId,
         options: Options,
         chunks_sender: Sender<EncoderOutputEvent>,
-        keyframe_req_rx: Receiver<KeyframeRequest>,
+        keyframe_req_receiver: Receiver<KeyframeRequest>,
     ) -> Result<Self, EncoderInitError> {
         let (frame_sender, frame_receiver) = crossbeam_channel::bounded(5);
         let (result_sender, result_receiver) = crossbeam_channel::bounded(0);
@@ -118,7 +118,7 @@ impl LibavH264Encoder {
                 let encoder_result = run_encoder_thread(
                     options_clone,
                     frame_receiver,
-                    keyframe_req_rx,
+                    keyframe_req_receiver,
                     chunks_sender,
                     &result_sender,
                 );
@@ -153,7 +153,7 @@ impl LibavH264Encoder {
 fn run_encoder_thread(
     options: Options,
     frame_receiver: Receiver<PipelineEvent<Frame>>,
-    keyframe_req_rx: Receiver<KeyframeRequest>,
+    keyframe_req_receiver: Receiver<KeyframeRequest>,
     packet_sender: Sender<EncoderOutputEvent>,
     result_sender: &Sender<Result<(), EncoderInitError>>,
 ) -> Result<(), EncoderInitError> {
@@ -227,7 +227,7 @@ fn run_encoder_thread(
             continue;
         }
 
-        if let Ok(KeyframeRequest) = keyframe_req_rx.try_recv() {
+        if let Ok(KeyframeRequest) = keyframe_req_receiver.try_recv() {
             av_frame.set_kind(ffmpeg_next::picture::Type::I);
         }
 
