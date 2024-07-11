@@ -1,15 +1,15 @@
-import fetch from "node-fetch";
-import fs from "fs-extra";
-import { promisify } from "util";
-import { Stream } from "stream";
-import { ChildProcess, spawn as nodeSpawn } from "child_process";
-import { cwd } from "process";
-import path from "path";
+import fetch from 'node-fetch';
+import fs from 'fs-extra';
+import { promisify } from 'util';
+import { Stream } from 'stream';
+import { ChildProcess, spawn as nodeSpawn } from 'child_process';
+import { cwd } from 'process';
+import path from 'path';
 
 const pipeline = promisify(Stream.pipeline);
 const child_processes: ChildProcess[] = [];
 
-process.on("exit", () => {
+process.on('exit', () => {
   killAllChildren();
 });
 
@@ -18,30 +18,24 @@ type SpawnOptions = {
   cwd?: string;
 };
 
-export function spawn(
-  command: string,
-  args: string[],
-  opts: SpawnOptions,
-): SpawnPromise {
-  console.log(`Spawning: ${command} ${args.join(" ")}`);
+export function spawn(command: string, args: string[], opts: SpawnOptions): SpawnPromise {
+  console.log(`Spawning: ${command} ${args.join(' ')}`);
   const child = nodeSpawn(command, args, {
-    stdio: opts.displayOutput ? "inherit" : "ignore",
+    stdio: opts.displayOutput ? 'inherit' : 'ignore',
     cwd: opts.cwd ?? cwd(),
     env: {
       ...process.env,
-      LIVE_COMPOSITOR_LOGGER_FORMAT: "compact",
+      LIVE_COMPOSITOR_LOGGER_FORMAT: 'compact',
     },
   });
 
   const promise = new Promise<void>((resolve, reject) => {
-    child.on("exit", (code) => {
+    child.on('exit', code => {
       if (code === 0) {
-        console.log(
-          `Command "${command} ${args.join(" ")}" completed successfully.`,
-        );
+        console.log(`Command "${command} ${args.join(' ')}" completed successfully.`);
         resolve();
       } else {
-        const errorMessage = `Command "${command} ${args.join(" ")}" failed with exit code ${code}.`;
+        const errorMessage = `Command "${command} ${args.join(' ')}" failed with exit code ${code}.`;
         console.error(errorMessage);
         reject(new Error(errorMessage));
       }
@@ -69,17 +63,14 @@ export interface SpawnPromise extends Promise<void> {
   child: ChildProcess;
 }
 
-export async function downloadAsync(
-  url: string,
-  destination: string,
-): Promise<void> {
+export async function downloadAsync(url: string, destination: string): Promise<void> {
   if (fs.existsSync(destination)) {
     console.log(`File ${destination} already exists. Skipping download.`);
     return;
   }
 
   await fs.mkdirp(path.dirname(destination));
-  const response = await fetch(url, { method: "GET", timeout: 0 });
+  const response = await fetch(url, { method: 'GET', timeout: 0 });
   if (response.status >= 400) {
     const err: any = new Error(`Request to ${url} failed. \n${response.body}`);
     err.response = response;
@@ -93,7 +84,7 @@ export async function downloadAsync(
 }
 
 export async function sleepAsync(timeout_ms: number): Promise<void> {
-  await new Promise<void>((res) => {
+  await new Promise<void>(res => {
     setTimeout(() => {
       res();
     }, timeout_ms);
