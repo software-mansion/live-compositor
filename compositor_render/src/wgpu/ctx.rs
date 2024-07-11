@@ -3,8 +3,8 @@ use std::sync::{atomic::AtomicBool, Arc, OnceLock};
 use log::{error, info};
 
 use super::{
-    common_pipeline::plane::Plane, format::TextureFormat, texture::Texture, CreateWgpuCtxError,
-    WgpuErrorScope,
+    common_pipeline::plane::Plane, format::TextureFormat, texture::Texture, utils::TextureUtils,
+    CreateWgpuCtxError, WgpuErrorScope,
 };
 
 static USE_GLOBAL_WGPU_CTX: AtomicBool = AtomicBool::new(false);
@@ -31,6 +31,7 @@ pub struct WgpuCtx {
     pub shader_header: naga::Module,
 
     pub format: TextureFormat,
+    pub utils: TextureUtils,
 
     pub uniform_bgl: wgpu::BindGroupLayout,
     pub plane: Plane,
@@ -98,6 +99,7 @@ impl WgpuCtx {
         let scope = WgpuErrorScope::push(&device);
 
         let format = TextureFormat::new(&device);
+        let utils = TextureUtils::new(&device);
 
         let uniform_bgl = uniform_bind_group_layout(&device);
 
@@ -115,6 +117,7 @@ impl WgpuCtx {
             queue: queue.into(),
             shader_header,
             format,
+            utils,
             uniform_bgl,
             plane,
             empty_texture,

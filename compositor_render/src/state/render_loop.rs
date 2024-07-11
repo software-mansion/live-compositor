@@ -1,8 +1,9 @@
 use std::{collections::HashMap, time::Duration};
 
-use tracing::{error, trace, warn};
+use tracing::error;
 
 use crate::{
+    scene::RGBColor,
     state::{node::RenderNode, render_graph::RenderGraph, RenderCtx},
     wgpu::texture::{InputTexture, NodeTexture, PlanarYuvPendingDownload},
     Frame, FrameData, FrameSet, InputId, OutputFrameFormat, OutputId, Resolution,
@@ -91,10 +92,29 @@ pub(super) fn read_outputs(
                 }
             },
             None => {
-                // This should happen only after EOS
-                // TODO: unregister output on EOS and increase log level
-                trace!(?output_id, "Missing output texture");
-                continue;
+                let (y, u, v) = RGBColor::BLACK.to_yuv();
+                ctx.wgpu_ctx.utils.fill_r8_with_value(
+                    ctx.wgpu_ctx,
+                    output.output_texture.yuv_textures().plane(0),
+                    y,
+                );
+                ctx.wgpu_ctx.utils.fill_r8_with_value(
+                    ctx.wgpu_ctx,
+                    output.output_texture.yuv_textures().plane(1),
+                    u,
+                );
+                ctx.wgpu_ctx.utils.fill_r8_with_value(
+                    ctx.wgpu_ctx,
+                    output.output_texture.yuv_textures().plane(2),
+                    v,
+                );
+
+                let pending_download = output.output_texture.start_download(ctx.wgpu_ctx);
+                partial_textures.push(PartialOutputFrame::PendingYuvDownload {
+                    output_id: output_id.clone(),
+                    pending_download,
+                    resolution: output.output_texture.resolution().to_owned(),
+                });
             }
         };
     }

@@ -4,6 +4,7 @@ pub(crate) mod common_pipeline;
 mod ctx;
 pub(crate) mod format;
 pub(crate) mod texture;
+pub(crate) mod utils;
 
 pub use ctx::use_global_wgpu_ctx;
 pub(crate) use ctx::WgpuCtx;
