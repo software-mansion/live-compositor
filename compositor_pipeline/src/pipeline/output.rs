@@ -161,7 +161,7 @@ impl Output {
     pub fn frame_sender(&self) -> Option<&Sender<PipelineEvent<Frame>>> {
         match &self {
             Output::Rtp { encoder, .. } => encoder.frame_sender(),
-            Output::EncodedData { encoder, .. } => encoder.frame_sender(),
+            Output::EncodedData { encoder } => encoder.frame_sender(),
             Output::RawData { video, .. } => video.as_ref(),
         }
     }
@@ -169,7 +169,7 @@ impl Output {
     pub fn samples_batch_sender(&self) -> Option<&Sender<PipelineEvent<OutputSamples>>> {
         match &self {
             Output::Rtp { encoder, .. } => encoder.samples_batch_sender(),
-            Output::EncodedData { encoder, .. } => encoder.samples_batch_sender(),
+            Output::EncodedData { encoder } => encoder.samples_batch_sender(),
             Output::RawData { audio, .. } => audio.as_ref(),
         }
     }
@@ -177,7 +177,7 @@ impl Output {
     pub fn resolution(&self) -> Option<Resolution> {
         match &self {
             Output::Rtp { encoder, .. } => encoder.video.as_ref().map(|v| v.resolution()),
-            Output::EncodedData { encoder, .. } => encoder.video.as_ref().map(|v| v.resolution()),
+            Output::EncodedData { encoder } => encoder.video.as_ref().map(|v| v.resolution()),
             Output::RawData { resolution, .. } => *resolution,
         }
     }
@@ -185,7 +185,7 @@ impl Output {
     pub fn request_keyframe(&self, output_id: OutputId) -> Result<(), RequestKeyframeError> {
         let encoder = match &self {
             Output::Rtp { encoder, .. } => encoder,
-            Output::EncodedData { encoder, .. } => encoder,
+            Output::EncodedData { encoder } => encoder,
             Output::RawData { .. } => return Err(RequestKeyframeError::RawOutput(output_id)),
         };
 
@@ -204,7 +204,7 @@ impl Output {
                 .video
                 .as_ref()
                 .map(|_| OutputFrameFormat::PlanarYuv420Bytes),
-            Output::EncodedData { encoder, .. } => encoder
+            Output::EncodedData { encoder } => encoder
                 .video
                 .as_ref()
                 .map(|_| OutputFrameFormat::PlanarYuv420Bytes),

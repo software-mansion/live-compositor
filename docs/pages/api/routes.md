@@ -101,7 +101,7 @@ POST: /api/output/:output_id/request_keyframe
 type RequestBody = {}
 ```
 
-Requests additional keyframe (I frame) on the video output. It doesn't guarantee that the next output frame will be a keyframe.
+Requests additional keyframe (I frame) on the video output.
 
 ## Inputs configuration
 

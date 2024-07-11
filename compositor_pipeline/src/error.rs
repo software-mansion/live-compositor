@@ -246,14 +246,10 @@ impl From<&UpdateSceneError> for PipelineErrorInfo {
 const REQUEST_KEYFRAME_ERROR: &str = "REQUEST_KEYFRAME_ERROR";
 
 impl From<&RequestKeyframeError> for PipelineErrorInfo {
-    fn from(err: &RequestKeyframeError) -> Self {
-        match err {
-            RequestKeyframeError::OutputNotRegistered(_)
-            | RequestKeyframeError::RawOutput(_)
-            | RequestKeyframeError::NoVideoOutput(_) => PipelineErrorInfo {
-                error_code: REQUEST_KEYFRAME_ERROR,
-                error_type: ErrorType::UserError,
-            },
+    fn from(_err: &RequestKeyframeError) -> Self {
+        PipelineErrorInfo {
+            error_code: REQUEST_KEYFRAME_ERROR,
+            error_type: ErrorType::UserError,
         }
     }
 }
