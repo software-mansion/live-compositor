@@ -53,7 +53,7 @@ fn main() {
     // no chromium support, so we can ignore _event_loop
     let (state, _event_loop) = ApiState::new(config).unwrap_or_else(|err| {
         panic!(
-            "Failed to start event loop.\n{}",
+            "Failed to start compositor.\n{}",
             ErrorStack::new(&err).into_string()
         )
     });
