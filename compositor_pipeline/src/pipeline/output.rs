@@ -1,4 +1,6 @@
-use compositor_render::{Frame, OutputFrameFormat, OutputId, Resolution};
+use compositor_render::{
+    error::RequestKeyframeError, Frame, OutputFrameFormat, OutputId, Resolution,
+};
 use crossbeam_channel::{bounded, Receiver, Sender};
 
 use crate::{audio_mixer::OutputSamples, error::RegisterOutputError, queue::PipelineEvent};
@@ -178,6 +180,22 @@ impl Output {
             Output::EncodedData { encoder } => encoder.video.as_ref().map(|v| v.resolution()),
             Output::RawData { resolution, .. } => *resolution,
         }
+    }
+
+    pub fn request_keyframe(&self, output_id: OutputId) -> Result<(), RequestKeyframeError> {
+        let encoder = match &self {
+            Output::Rtp { encoder, .. } => encoder,
+            Output::EncodedData { encoder } => encoder,
+            Output::RawData { .. } => return Err(RequestKeyframeError::RawOutput(output_id)),
+        };
+
+        encoder
+            .video
+            .as_ref()
+            .ok_or(RequestKeyframeError::NoVideoOutput(output_id))?
+            .request_keyframe();
+
+        Ok(())
     }
 
     pub(super) fn output_frame_format(&self) -> Option<OutputFrameFormat> {

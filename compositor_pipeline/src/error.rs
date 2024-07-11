@@ -1,7 +1,7 @@
 use compositor_render::{
     error::{
-        InitRendererEngineError, RegisterError, RegisterRendererError, UnregisterRendererError,
-        UpdateSceneError, WgpuError,
+        InitRendererEngineError, RegisterError, RegisterRendererError, RequestKeyframeError,
+        UnregisterRendererError, UpdateSceneError, WgpuError,
     },
     InputId, OutputId,
 };
@@ -239,6 +239,17 @@ impl From<&UpdateSceneError> for PipelineErrorInfo {
                 error_code: AUDIO_VIDEO_SPECIFICATION_NOT_MATCHING,
                 error_type: ErrorType::UserError,
             },
+        }
+    }
+}
+
+const REQUEST_KEYFRAME_ERROR: &str = "REQUEST_KEYFRAME_ERROR";
+
+impl From<&RequestKeyframeError> for PipelineErrorInfo {
+    fn from(_err: &RequestKeyframeError) -> Self {
+        PipelineErrorInfo {
+            error_code: REQUEST_KEYFRAME_ERROR,
+            error_type: ErrorType::UserError,
         }
     }
 }

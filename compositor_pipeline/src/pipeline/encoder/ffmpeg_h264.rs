@@ -88,6 +88,7 @@ pub struct Options {
 pub struct LibavH264Encoder {
     resolution: Resolution,
     frame_sender: Sender<PipelineEvent<Frame>>,
+    keyframe_req_sender: Sender<()>,
 }
 
 impl LibavH264Encoder {
@@ -98,6 +99,7 @@ impl LibavH264Encoder {
     ) -> Result<Self, EncoderInitError> {
         let (frame_sender, frame_receiver) = crossbeam_channel::bounded(5);
         let (result_sender, result_receiver) = crossbeam_channel::bounded(0);
+        let (keyframe_req_sender, keyframe_req_receiver) = crossbeam_channel::unbounded();
 
         let options_clone = options.clone();
         let output_id = output_id.clone();
@@ -114,6 +116,7 @@ impl LibavH264Encoder {
                 let encoder_result = run_encoder_thread(
                     options_clone,
                     frame_receiver,
+                    keyframe_req_receiver,
                     chunks_sender,
                     &result_sender,
                 );
@@ -133,6 +136,7 @@ impl LibavH264Encoder {
         Ok(Self {
             frame_sender,
             resolution: options.resolution,
+            keyframe_req_sender,
         })
     }
 
@@ -143,11 +147,18 @@ impl LibavH264Encoder {
     pub fn resolution(&self) -> Resolution {
         self.resolution
     }
+
+    pub fn request_keyframe(&self) {
+        if let Err(err) = self.keyframe_req_sender.send(()) {
+            debug!(%err, "Failed to send keyframe request to the encoder.");
+        }
+    }
 }
 
 fn run_encoder_thread(
     options: Options,
     frame_receiver: Receiver<PipelineEvent<Frame>>,
+    keyframe_req_receiver: Receiver<()>,
     packet_sender: Sender<EncoderOutputEvent>,
     result_sender: &Sender<Result<(), EncoderInitError>>,
 ) -> Result<(), EncoderInitError> {
@@ -219,6 +230,10 @@ fn run_encoder_thread(
                 e.0
             );
             continue;
+        }
+
+        if keyframe_req_receiver.try_recv().is_ok() {
+            av_frame.set_kind(ffmpeg_next::picture::Type::I);
         }
 
         if let Err(e) = encoder.send_frame(&av_frame) {

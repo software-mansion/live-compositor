@@ -128,6 +128,12 @@ impl VideoEncoder {
             Self::H264(encoder) => encoder.resolution(),
         }
     }
+
+    pub fn request_keyframe(&self) {
+        match self {
+            Self::H264(encoder) => encoder.request_keyframe(),
+        }
+    }
 }
 
 impl AudioEncoder {

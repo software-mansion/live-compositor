@@ -91,6 +91,18 @@ Update scene definition and audio mixer configuration for output with ID `:outpu
 
 ***
 
+### Request keyframe
+
+```http
+POST: /api/output/:output_id/request_keyframe
+```
+
+```typescript
+type RequestBody = {}
+```
+
+Requests additional keyframe (I frame) on the video output.
+
 ## Inputs configuration
 
 ### Register input
