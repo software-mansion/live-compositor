@@ -2,12 +2,9 @@ use std::sync::{Arc, Mutex};
 
 use compositor_render::InputId;
 
-use crate::{error::RegisterInputError, Pipeline};
+use crate::{error::RegisterInputError, queue::QueueInputOptions, Pipeline};
 
-use super::{
-    input::{self, start_input_threads, InputStartResult},
-    Port, RegisterInputOptions,
-};
+use super::input::{self, InputOptionsExt};
 
 pub struct PipelineInput {
     pub input: input::Input,
@@ -20,29 +17,15 @@ pub struct PipelineInput {
     pub(super) video_eos_received: Option<bool>,
 }
 
-pub(super) fn register_pipeline_input(
+pub(super) fn register_pipeline_input<NewInputResult>(
     pipeline: &Arc<Mutex<Pipeline>>,
     input_id: InputId,
-    register_options: RegisterInputOptions,
-) -> Result<Option<Port>, RegisterInputError> {
-    let RegisterInputOptions {
-        input_options,
-        queue_options,
-    } = register_options;
-    let (download_dir, output_sample_rate) = {
-        let guard = pipeline.lock().unwrap();
-        if guard.inputs.contains_key(&input_id) {
-            return Err(RegisterInputError::AlreadyRegistered(input_id));
-        }
-        (guard.ctx.download_dir.clone(), guard.ctx.output_sample_rate)
-    };
+    input_options: &dyn InputOptionsExt<NewInputResult>,
+    queue_options: QueueInputOptions,
+) -> Result<NewInputResult, RegisterInputError> {
+    let pipeline_ctx = pipeline.lock().unwrap().ctx.clone();
 
-    let InputStartResult {
-        input,
-        receiver,
-        init_info,
-    } = start_input_threads(&input_id, input_options, &download_dir, output_sample_rate)
-        .map_err(|e| RegisterInputError::InputError(input_id.clone(), e))?;
+    let (input, receiver, input_result) = input_options.new_input(&input_id, &pipeline_ctx)?;
 
     let (audio_eos_received, video_eos_received) = (
         receiver.audio.as_ref().map(|_| false),
@@ -77,7 +60,7 @@ pub(super) fn register_pipeline_input(
     guard.queue.add_input(&input_id, receiver, queue_options);
     guard.renderer.register_input(input_id);
 
-    Ok(init_info.port)
+    Ok(input_result)
 }
 
 impl PipelineInput {

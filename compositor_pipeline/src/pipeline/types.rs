@@ -2,9 +2,12 @@ use std::{fmt, sync::Arc, time::Duration};
 
 use bytes::Bytes;
 use compositor_render::Frame;
-use crossbeam_channel::Receiver;
+use crossbeam_channel::{Receiver, Sender};
 
-use crate::{audio_mixer::OutputSamples, queue::PipelineEvent};
+use crate::{
+    audio_mixer::{InputSamples, OutputSamples},
+    queue::PipelineEvent,
+};
 
 /// A struct representing a chunk of encoded data.
 ///
@@ -43,6 +46,12 @@ pub enum ChunkFromFfmpegError {
 pub struct RawDataReceiver {
     pub video: Option<Receiver<PipelineEvent<Frame>>>,
     pub audio: Option<Receiver<PipelineEvent<OutputSamples>>>,
+}
+
+#[derive(Debug)]
+pub struct RawDataSender {
+    pub video: Option<Sender<PipelineEvent<Frame>>>,
+    pub audio: Option<Sender<PipelineEvent<InputSamples>>>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

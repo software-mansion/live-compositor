@@ -1,8 +1,9 @@
 use std::{collections::HashMap, time::Duration};
 
-use tracing::{error, warn};
+use tracing::error;
 
 use crate::{
+    scene::RGBColor,
     state::{node::RenderNode, render_graph::RenderGraph, RenderCtx},
     wgpu::texture::{InputTexture, NodeTexture, PlanarYuvPendingDownload},
     Frame, FrameData, FrameSet, InputId, OutputFrameFormat, OutputId, Resolution,
@@ -74,7 +75,7 @@ pub(super) fn read_outputs(
                     let texture = node
                         .rgba_texture()
                         .texture()
-                        .copy_to_wgpu_texture(ctx.wgpu_ctx);
+                        .copy_wgpu_texture(ctx.wgpu_ctx);
                     let size = texture.size();
                     let frame = Frame {
                         data: FrameData::Rgba8UnormWgpuTexture(texture.into()),
@@ -91,10 +92,29 @@ pub(super) fn read_outputs(
                 }
             },
             None => {
-                warn!(?output_id, "Missing output texture");
-                // registering output is not possible without a scene so this
-                // should never happen
-                continue;
+                let (y, u, v) = RGBColor::BLACK.to_yuv();
+                ctx.wgpu_ctx.utils.fill_r8_with_value(
+                    ctx.wgpu_ctx,
+                    output.output_texture.yuv_textures().plane(0),
+                    y,
+                );
+                ctx.wgpu_ctx.utils.fill_r8_with_value(
+                    ctx.wgpu_ctx,
+                    output.output_texture.yuv_textures().plane(1),
+                    u,
+                );
+                ctx.wgpu_ctx.utils.fill_r8_with_value(
+                    ctx.wgpu_ctx,
+                    output.output_texture.yuv_textures().plane(2),
+                    v,
+                );
+
+                let pending_download = output.output_texture.start_download(ctx.wgpu_ctx);
+                partial_textures.push(PartialOutputFrame::PendingYuvDownload {
+                    output_id: output_id.clone(),
+                    pending_download,
+                    resolution: output.output_texture.resolution().to_owned(),
+                });
             }
         };
     }

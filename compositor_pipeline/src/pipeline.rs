@@ -19,10 +19,13 @@ use compositor_render::WgpuFeatures;
 use compositor_render::{error::UpdateSceneError, Renderer};
 use compositor_render::{EventLoop, InputId, OutputId, RendererId, RendererSpec};
 use crossbeam_channel::{bounded, Receiver};
+use input::InputInitInfo;
+use input::RawDataInputOptions;
 use output::EncodedDataOutputOptions;
 use output::OutputOptions;
 use output::RawDataOutputOptions;
 use tracing::{error, info, trace, warn};
+use types::RawDataSender;
 
 use crate::audio_mixer::AudioMixer;
 use crate::audio_mixer::MixingStrategy;
@@ -34,6 +37,7 @@ use crate::error::{
 use crate::pipeline::pipeline_output::OutputSender;
 use crate::queue::PipelineEvent;
 use crate::queue::QueueAudioOutput;
+use crate::queue::QueueInputOptions;
 use crate::queue::{self, Queue, QueueOptions, QueueVideoOutput};
 
 use self::input::InputOptions;
@@ -112,7 +116,7 @@ pub struct Options {
     pub wgpu_features: WgpuFeatures,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PipelineCtx {
     pub output_sample_rate: u32,
     pub output_framerate: Framerate,
@@ -159,8 +163,22 @@ impl Pipeline {
         pipeline: &Arc<Mutex<Self>>,
         input_id: InputId,
         register_options: RegisterInputOptions,
-    ) -> Result<Option<Port>, RegisterInputError> {
-        register_pipeline_input(pipeline, input_id, register_options)
+    ) -> Result<InputInitInfo, RegisterInputError> {
+        register_pipeline_input(
+            pipeline,
+            input_id,
+            &register_options.input_options,
+            register_options.queue_options,
+        )
+    }
+
+    pub fn register_raw_data_input(
+        pipeline: &Arc<Mutex<Self>>,
+        input_id: InputId,
+        raw_input_options: RawDataInputOptions,
+        queue_options: QueueInputOptions,
+    ) -> Result<RawDataSender, RegisterInputError> {
+        register_pipeline_input(pipeline, input_id, &raw_input_options, queue_options)
     }
 
     pub fn unregister_input(&mut self, input_id: &InputId) -> Result<(), UnregisterInputError> {

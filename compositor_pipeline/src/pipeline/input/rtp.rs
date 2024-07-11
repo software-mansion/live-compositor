@@ -45,6 +45,7 @@ pub enum RtpReceiverError {
     DepayloaderError(#[from] DepayloaderNewError),
 }
 
+#[derive(Debug, Clone)]
 pub struct RtpReceiverOptions {
     pub port: RequestedPort,
     pub transport_protocol: TransportProtocol,

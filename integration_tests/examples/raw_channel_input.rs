@@ -1,0 +1,223 @@
+use core::panic;
+use std::{process::Command, sync::Arc, thread, time::Duration};
+
+use compositor_pipeline::{
+    pipeline::{
+        encoder::{
+            ffmpeg_h264::{self, EncoderPreset},
+            VideoEncoderOptions,
+        },
+        input::RawDataInputOptions,
+        output::{
+            rtp::{RtpConnectionOptions, RtpSenderOptions},
+            OutputOptions, OutputProtocolOptions,
+        },
+        rtp::RequestedPort,
+        Pipeline, PipelineOutputEndCondition, RegisterOutputOptions, VideoCodec,
+    },
+    queue::{PipelineEvent, QueueInputOptions},
+};
+use compositor_render::{
+    error::ErrorStack,
+    scene::{Component, InputStreamComponent},
+    Frame, FrameData, InputId, OutputId, Resolution,
+};
+use integration_tests::test_input::TestInput;
+use live_compositor::{
+    config::{read_config, LoggerConfig, LoggerFormat},
+    logger::{self, FfmpegLogLevel},
+    state::ApiState,
+};
+
+const VIDEO_OUTPUT_PORT: u16 = 8002;
+
+// Start simple pipeline with input that sends PCM audio and wgpu::Textures via Rust channel.
+fn main() {
+    ffmpeg_next::format::network::init();
+    logger::init_logger(LoggerConfig {
+        ffmpeg_logger_level: FfmpegLogLevel::Info,
+        format: LoggerFormat::Compact,
+        level: "info,wgpu_hal=warn,wgpu_core=warn".to_string(),
+    });
+    let config = read_config();
+    // no chromium support, so we can ignore _event_loop
+    let (state, _event_loop) = ApiState::new(config).unwrap_or_else(|err| {
+        panic!(
+            "Failed to start compositor.\n{}",
+            ErrorStack::new(&err).into_string()
+        )
+    });
+    let output_id = OutputId("output_1".into());
+    let input_id = InputId("input_id".into());
+
+    let output_options = RegisterOutputOptions {
+        output_options: OutputOptions {
+            output_protocol: OutputProtocolOptions::Rtp(RtpSenderOptions {
+                connection_options: RtpConnectionOptions::TcpServer {
+                    port: RequestedPort::Exact(VIDEO_OUTPUT_PORT),
+                },
+                video: Some(VideoCodec::H264),
+                audio: None,
+            }),
+            video: Some(VideoEncoderOptions::H264(ffmpeg_h264::Options {
+                preset: EncoderPreset::Ultrafast,
+                resolution: Resolution {
+                    width: 1280,
+                    height: 720,
+                },
+                raw_options: vec![],
+            })),
+            audio: None,
+        },
+        video: Some(compositor_pipeline::pipeline::OutputVideoOptions {
+            initial: Component::InputStream(InputStreamComponent {
+                id: None,
+                input_id: input_id.clone(),
+            }),
+            end_condition: PipelineOutputEndCondition::Never,
+        }),
+        audio: None, // TODO: add audio example
+    };
+
+    let sender = Pipeline::register_raw_data_input(
+        &state.pipeline,
+        input_id.clone(),
+        RawDataInputOptions {
+            video: true,
+            audio: false,
+        },
+        QueueInputOptions {
+            required: true,
+            offset: Some(Duration::ZERO),
+            buffer_duration: None,
+        },
+    )
+    .unwrap();
+
+    let (wgpu_device, wgpu_queue) = state.pipeline.lock().unwrap().wgpu_ctx();
+
+    state
+        .pipeline
+        .lock()
+        .unwrap()
+        .register_output(output_id.clone(), output_options)
+        .unwrap();
+
+    let frames = generate_frames(&wgpu_device, &wgpu_queue);
+
+    let gst_output_command = format!("gst-launch-1.0 -v tcpclientsrc host=127.0.0.1 port={VIDEO_OUTPUT_PORT} ! \"application/x-rtp-stream\" ! rtpstreamdepay ! rtph264depay ! decodebin ! videoconvert ! autovideosink");
+    Command::new("bash")
+        .arg("-c")
+        .arg(gst_output_command)
+        .spawn()
+        .unwrap();
+
+    Pipeline::start(&state.pipeline);
+
+    let video_sender = sender.video.unwrap();
+    for frame in frames {
+        video_sender.send(PipelineEvent::Data(frame)).unwrap();
+    }
+    thread::sleep(Duration::from_millis(30000));
+}
+
+fn generate_frames(device: &wgpu::Device, queue: &wgpu::Queue) -> Vec<Frame> {
+    let texture_a = create_texture(0, device, queue);
+    let texture_b = create_texture(1, device, queue);
+    let texture_c = create_texture(2, device, queue);
+    let resolution = Resolution {
+        width: 640,
+        height: 360,
+    };
+    let mut frames = vec![];
+
+    for i in 0..200 {
+        frames.push(Frame {
+            data: FrameData::Rgba8UnormWgpuTexture(texture_a.clone()),
+            resolution,
+            pts: Duration::from_millis(i * 20),
+        })
+    }
+
+    for i in 200..400 {
+        frames.push(Frame {
+            data: FrameData::Rgba8UnormWgpuTexture(texture_b.clone()),
+            resolution,
+            pts: Duration::from_millis(i * 20),
+        })
+    }
+
+    for i in 400..600 {
+        frames.push(Frame {
+            data: FrameData::Rgba8UnormWgpuTexture(texture_c.clone()),
+            resolution,
+            pts: Duration::from_millis(i * 20),
+        })
+    }
+
+    for i in 600..800 {
+        frames.push(Frame {
+            data: FrameData::Rgba8UnormWgpuTexture(texture_a.clone()),
+            resolution,
+            pts: Duration::from_millis(i * 20),
+        })
+    }
+
+    for i in 800..1000 {
+        frames.push(Frame {
+            data: FrameData::Rgba8UnormWgpuTexture(texture_b.clone()),
+            resolution,
+            pts: Duration::from_millis(i * 20),
+        })
+    }
+
+    for i in 1000..1200 {
+        frames.push(Frame {
+            data: FrameData::Rgba8UnormWgpuTexture(texture_c.clone()),
+            resolution,
+            pts: Duration::from_millis(i * 20),
+        })
+    }
+
+    frames
+}
+
+fn create_texture(index: usize, device: &wgpu::Device, queue: &wgpu::Queue) -> Arc<wgpu::Texture> {
+    let input = TestInput::new(index);
+    let size = wgpu::Extent3d {
+        width: input.resolution.width as u32,
+        height: input.resolution.height as u32,
+        depth_or_array_layers: 1,
+    };
+    let texture = device.create_texture(&wgpu::TextureDescriptor {
+        label: None,
+        size,
+        mip_level_count: 1,
+        sample_count: 1,
+        dimension: wgpu::TextureDimension::D2,
+        format: wgpu::TextureFormat::Rgba8Unorm,
+        usage: wgpu::TextureUsages::RENDER_ATTACHMENT
+            | wgpu::TextureUsages::COPY_DST
+            | wgpu::TextureUsages::COPY_SRC
+            | wgpu::TextureUsages::TEXTURE_BINDING,
+        view_formats: &[wgpu::TextureFormat::Rgba8Unorm],
+    });
+
+    queue.write_texture(
+        wgpu::ImageCopyTexture {
+            aspect: wgpu::TextureAspect::All,
+            mip_level: 0,
+            origin: wgpu::Origin3d::ZERO,
+            texture: &texture,
+        },
+        &input.data,
+        wgpu::ImageDataLayout {
+            offset: 0,
+            bytes_per_row: Some(texture.width() * 4),
+            rows_per_image: Some(texture.height()),
+        },
+        size,
+    );
+    queue.submit([]);
+    texture.into()
+}

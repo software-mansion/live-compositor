@@ -48,7 +48,7 @@ pub(super) async fn handle_input(
                 Pipeline::register_input(&api.pipeline, input_id.into(), decklink.try_into()?)?
             }
         };
-        match response {
+        match response.port {
             Some(Port(port)) => Ok(Response::RegisteredPort { port }),
             None => Ok(Response::Ok {}),
         }

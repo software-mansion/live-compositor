@@ -1,12 +1,14 @@
 mod audio_decoder;
 mod common;
 mod compositor_instance;
-pub mod examples;
 mod output_receiver;
 mod packet_sender;
 mod texture;
 mod validation;
 mod video_decoder;
+
+pub mod examples;
+pub mod test_input;
 
 #[cfg(test)]
 mod tests;
