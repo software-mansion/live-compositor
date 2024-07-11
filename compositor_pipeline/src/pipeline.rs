@@ -5,9 +5,9 @@ use std::sync::Mutex;
 use std::thread;
 use std::time::Duration;
 
-use compositor_render::error::RequestKeyframeError;
 use compositor_render::error::{
-    ErrorStack, InitPipelineError, RegisterRendererError, UnregisterRendererError,
+    ErrorStack, InitPipelineError, RegisterRendererError, RequestKeyframeError,
+    UnregisterRendererError,
 };
 use compositor_render::scene::Component;
 use compositor_render::web_renderer::WebRendererInitOptions;
