@@ -63,13 +63,13 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
     let sample: vec4<f32> = textureSample(textures[base_params.plane_id], sampler_, input.tex_coords);
 
     if (base_params.plane_id == 0) {
-        if (base_params.time < 19.0) {
+        if (base_params.time < 17.0) {
             return vec4(0.0, 0.0, 0.0, 0.0);
-        } else if (base_params.time < 20.0) {
+        } else if (base_params.time < 18.0) {
             return mix(
                 vec4(0.0, 0.0, 0.0, 0.0),
                 sample,
-                (base_params.time - 19.0)
+                (base_params.time - 17.0)
             );
         } else {
             return sample;
@@ -81,37 +81,37 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
             smoothstep(0.6, 0.9, dot(normalize(sample.rgb), normalize(vec3(0.0, 1.0, 0.0))))
         );
     } else if (base_params.plane_id == 2) {
-        if (base_params.time < 31.0) {
+        if (base_params.time < 29.0) {
             return vec4(0.0, 0.0, 0.0, 0.0);
-        } else if (base_params.time < 32.0) {
+        } else if (base_params.time < 30.0) {
             return mix(
                 vec4(0.0, 0.0, 0.0, 0.0),
                 sample,
-                (base_params.time - 31.0)
+                (base_params.time - 29.0)
             );
         } else {
             return sample;
         }
     } else if (base_params.plane_id == 3) {
-        if (base_params.time < 38.0) {
+        if (base_params.time < 36.0) {
             return vec4(0.0, 0.0, 0.0, 0.0);
-        } else if (base_params.time < 39.0) {
+        } else if (base_params.time < 37.0) {
             return mix(
                 vec4(0.0, 0.0, 0.0, 0.0),
                 sample,
-                (base_params.time - 38.0)
+                (base_params.time - 36.0)
             );
         } else {
             return sample;
         }
     } else {
-        if (base_params.time < 25.0) {
+        if (base_params.time < 23.0) {
             return vec4(0.0, 0.0, 0.0, 0.0);
-        } else if (base_params.time < 26.0) {
+        } else if (base_params.time < 24.0) {
             return mix(
                 vec4(0.0, 0.0, 0.0, 0.0),
                 sample,
-                (base_params.time - 25.0)
+                (base_params.time - 23.0)
             );
         } else {
             return sample;

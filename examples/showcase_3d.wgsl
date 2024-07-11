@@ -198,10 +198,10 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
             alpha = 0.0;
         } else if (base_params.time < 10.0) {
             alpha = (base_params.time - 9.0);
-        } else if (base_params.time < 13.0) {
+        } else if (base_params.time < 11.0) {
             alpha = 1.0;
-        } else if (base_params.time < 14.0) {
-            alpha = 1.0 - (base_params.time - 13.0);
+        } else if (base_params.time < 13.0) {
+            alpha = 1.0 - (base_params.time - 12.0);
         } else {
             alpha = 0.0;
         }
