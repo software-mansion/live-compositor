@@ -91,8 +91,8 @@ pub enum RequestKeyframeError {
         "Output \"{0}\" is a raw output. Keyframe request is only available for encoded outputs."
     )]
     RawOutput(OutputId),
-    #[error("Failed to send keyframe request to encoder thread for output \"{0}\".")]
-    SendError(OutputId),
+    #[error("Output \"{0}\" is not a video output. Can't request a keyframe on non video output.")]
+    NoVideoOutput(OutputId),
 }
 
 pub struct ErrorStack<'a>(Option<&'a (dyn std::error::Error + 'static)>);

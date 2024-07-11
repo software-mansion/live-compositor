@@ -248,15 +248,11 @@ const REQUEST_KEYFRAME_ERROR: &str = "REQUEST_KEYFRAME_ERROR";
 impl From<&RequestKeyframeError> for PipelineErrorInfo {
     fn from(err: &RequestKeyframeError) -> Self {
         match err {
-            RequestKeyframeError::OutputNotRegistered(_) | RequestKeyframeError::RawOutput(_) => {
-                PipelineErrorInfo {
-                    error_code: REQUEST_KEYFRAME_ERROR,
-                    error_type: ErrorType::UserError,
-                }
-            }
-            RequestKeyframeError::SendError(_) => PipelineErrorInfo {
+            RequestKeyframeError::OutputNotRegistered(_)
+            | RequestKeyframeError::RawOutput(_)
+            | RequestKeyframeError::NoVideoOutput(_) => PipelineErrorInfo {
                 error_code: REQUEST_KEYFRAME_ERROR,
-                error_type: ErrorType::ServerError,
+                error_type: ErrorType::UserError,
             },
         }
     }

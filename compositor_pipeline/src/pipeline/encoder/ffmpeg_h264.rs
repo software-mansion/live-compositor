@@ -11,12 +11,9 @@ use tracing::{debug, error, span, trace, warn, Level};
 
 use crate::{
     error::EncoderInitError,
-    pipeline::{
-        output::KeyframeRequest,
-        types::{
+    pipeline::types::{
             ChunkFromFfmpegError, EncodedChunk, EncodedChunkKind, EncoderOutputEvent, VideoCodec,
         },
-    },
     queue::PipelineEvent,
 };
 
@@ -91,6 +88,7 @@ pub struct Options {
 pub struct LibavH264Encoder {
     resolution: Resolution,
     frame_sender: Sender<PipelineEvent<Frame>>,
+    keyframe_req_sender: Sender<()>,
 }
 
 impl LibavH264Encoder {
@@ -98,10 +96,10 @@ impl LibavH264Encoder {
         output_id: &OutputId,
         options: Options,
         chunks_sender: Sender<EncoderOutputEvent>,
-        keyframe_req_receiver: Receiver<KeyframeRequest>,
     ) -> Result<Self, EncoderInitError> {
         let (frame_sender, frame_receiver) = crossbeam_channel::bounded(5);
         let (result_sender, result_receiver) = crossbeam_channel::bounded(0);
+        let (keyframe_req_sender, keyframe_req_receiver) = crossbeam_channel::unbounded();
 
         let options_clone = options.clone();
         let output_id = output_id.clone();
@@ -138,6 +136,7 @@ impl LibavH264Encoder {
         Ok(Self {
             frame_sender,
             resolution: options.resolution,
+            keyframe_req_sender,
         })
     }
 
@@ -148,12 +147,18 @@ impl LibavH264Encoder {
     pub fn resolution(&self) -> Resolution {
         self.resolution
     }
+
+    pub fn request_keyframe(&self) {
+        if let Err(err) = self.keyframe_req_sender.send(()) {
+            debug!(%err, "Failed to send keyframe request to the encoder.");
+        }
+    }
 }
 
 fn run_encoder_thread(
     options: Options,
     frame_receiver: Receiver<PipelineEvent<Frame>>,
-    keyframe_req_receiver: Receiver<KeyframeRequest>,
+    keyframe_req_receiver: Receiver<()>,
     packet_sender: Sender<EncoderOutputEvent>,
     result_sender: &Sender<Result<(), EncoderInitError>>,
 ) -> Result<(), EncoderInitError> {
@@ -227,7 +232,7 @@ fn run_encoder_thread(
             continue;
         }
 
-        if let Ok(KeyframeRequest) = keyframe_req_receiver.try_recv() {
+        if keyframe_req_receiver.try_recv().is_ok() {
             av_frame.set_kind(ffmpeg_next::picture::Type::I);
         }
 
