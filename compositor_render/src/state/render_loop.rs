@@ -1,6 +1,6 @@
 use std::{collections::HashMap, time::Duration};
 
-use tracing::{error, warn};
+use tracing::{error, trace, warn};
 
 use crate::{
     state::{node::RenderNode, render_graph::RenderGraph, RenderCtx},
@@ -91,9 +91,9 @@ pub(super) fn read_outputs(
                 }
             },
             None => {
-                warn!(?output_id, "Missing output texture");
-                // registering output is not possible without a scene so this
-                // should never happen
+                // This should happen only after EOS
+                // TODO: unregister output on EOS and increase log level
+                trace!(?output_id, "Missing output texture");
                 continue;
             }
         };
