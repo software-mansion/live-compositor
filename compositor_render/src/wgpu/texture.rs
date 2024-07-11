@@ -128,7 +128,7 @@ impl InputTexture {
     ) {
         let should_recreate = match &self.0 {
             Some(state) => {
-                !matches!(state, InputTextureState::PlanarYuvTextures { .. })
+                !matches!(state, InputTextureState::InterleavedYuv422Texture { .. })
                     || resolution != state.resolution()
             }
             None => true,
