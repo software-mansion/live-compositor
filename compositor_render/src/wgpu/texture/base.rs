@@ -49,7 +49,7 @@ impl Texture {
             usage: self.texture.usage(),
             view_formats: &[self.texture.format()],
         });
-        copy_wgpu_texture(ctx, &self.texture, &destination);
+        copy_texture_to_texture(ctx, &self.texture, &destination);
         destination
     }
 
@@ -67,12 +67,12 @@ impl Texture {
             self.texture.usage(),
         );
         let actual = (
-            self.texture.size(),
-            self.texture.mip_level_count(),
-            self.texture.sample_count(),
-            self.texture.dimension(),
-            self.texture.format(),
-            self.texture.usage(),
+            source.size(),
+            source.mip_level_count(),
+            source.sample_count(),
+            source.dimension(),
+            source.format(),
+            source.usage(),
         );
 
         if expected != actual {
@@ -81,7 +81,7 @@ impl Texture {
                 actual: format!("{actual:?}"),
             });
         }
-        copy_wgpu_texture(ctx, source, &self.texture);
+        copy_texture_to_texture(ctx, source, &self.texture);
         Ok(())
     }
 
@@ -170,7 +170,7 @@ pub struct TextureCopyError {
     actual: String,
 }
 
-fn copy_wgpu_texture(ctx: &WgpuCtx, source: &wgpu::Texture, destination: &wgpu::Texture) {
+fn copy_texture_to_texture(ctx: &WgpuCtx, source: &wgpu::Texture, destination: &wgpu::Texture) {
     let mut encoder = ctx.device.create_command_encoder(&Default::default());
 
     encoder.copy_texture_to_texture(

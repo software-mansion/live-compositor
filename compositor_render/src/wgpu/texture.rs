@@ -199,12 +199,12 @@ impl InputTexture {
         let (new_state, should_recreate) = match self.0.replace(OptionalState::None) {
             OptionalState::Some(state) => {
                 let should_recreate =
-                    state.resolution() == new_resolution && state.kind() == new_texture_kind;
+                    state.resolution() != new_resolution || state.kind() != new_texture_kind;
                 (OptionalState::Some(state), should_recreate)
             }
             OptionalState::NoneWithOldState(state) => {
                 let should_recreate =
-                    state.resolution() == new_resolution && state.kind() == new_texture_kind;
+                    state.resolution() != new_resolution || state.kind() != new_texture_kind;
                 (OptionalState::Some(state), should_recreate)
             }
             OptionalState::None => (OptionalState::None, true),
