@@ -25,7 +25,7 @@ const PAWEL_PATH: &str = "./examples/assets/pawel.mp4";
 const GAMEPLAY_PATH: &str = "./examples/assets/gameplay.mp4";
 
 const BG_PATH: &str = "./examples/assets/bg.png";
-const NEWS_PATH: &str = "./examples/assets/news_room.jpg";
+const NEWS_PATH: &str = "./examples/assets/news_room.jpeg";
 const CODE_BG_PATH: &str = "./examples/assets/code_bg.png";
 const BROADCAST_BG_PATH: &str = "./examples/assets/broadcast_bg.png";
 const VC_BG_PATH: &str = "./examples/assets/vc_bg.png";
@@ -283,7 +283,7 @@ fn start_example_client_code() -> Result<()> {
                 },
                 "encoder": {
                     "type": "ffmpeg_h264",
-                    "preset": "veryslow"
+                    "preset": "slow"
                     // "preset": "ultrafast"
                 },
                 "initial": {
@@ -338,7 +338,7 @@ fn start_example_client_code() -> Result<()> {
                             "type": "view",
                             "top": 0,
                             "left": 0,
-                            "children": [code_bg()]
+                            "children": [make_bg("code_bg")]
                         },
                         {
                             "type": "view",
@@ -362,7 +362,7 @@ fn start_example_client_code() -> Result<()> {
                                     "width": 992,
                                     "height": 558,
                                     "top": 337,
-                                    "left": 0,
+                                    "left": 20,
                                     "children": [
                                         {
                                             "type": "rescaler",
@@ -395,7 +395,7 @@ fn start_example_client_code() -> Result<()> {
                             "type": "view",
                             "top": 0,
                             "left": 0,
-                            "children": [code_bg()]
+                            "children": [make_bg("code_bg")]
                         },
                         {
                             "type": "view",
@@ -419,7 +419,7 @@ fn start_example_client_code() -> Result<()> {
                                     "width": 992,
                                     "height": 558,
                                     "top": 337,
-                                    "left": 0,
+                                    "left": 20,
                                     "children": [{
                                         "type": "rescaler",
                                         "child": shader_3d()
@@ -444,7 +444,7 @@ fn start_example_client_code() -> Result<()> {
                 "id": "code_bg",
                 "top": 0,
                 "left": 0,
-                "children": [code_bg()]
+                "children": [make_bg("code_bg")]
             },
             {
                 "type": "view",
@@ -467,7 +467,7 @@ fn start_example_client_code() -> Result<()> {
                     "width": 992,
                     "height": 558,
                     "top": 337,
-                    "left": 0,
+                    "left": 20,
                     "children": [{
                         "type": "rescaler",
                         "child": shader_code()
@@ -490,12 +490,7 @@ fn start_example_client_code() -> Result<()> {
                             "id": "broadcast_bg",
                             "top": 0,
                             "left": 1920,
-                            "children": [
-                                {
-                                    "type": "image",
-                                    "image_id": "broadcast_bg"
-                                }
-                            ],
+                            "children": [make_bg("broadcast_bg")],
                         },
                         {
                             "type": "view",
@@ -526,7 +521,7 @@ fn start_example_client_code() -> Result<()> {
                             "id": "code_bg",
                             "top": 0,
                             "left": -1920,
-                            "children": [code_bg()],
+                            "children": [make_bg("code_bg")],
                             "transition": {
                                 "duration_ms": 1000,
                             }
@@ -536,10 +531,7 @@ fn start_example_client_code() -> Result<()> {
                             "id": "broadcast_bg",
                             "top": 0,
                             "left": 0,
-                            "children": [{
-                                "type": "image",
-                                "image_id": "broadcast_bg"
-                            }],
+                            "children": [make_bg("broadcast_bg")],
                             "transition": {
                                 "duration_ms": 1000,
                             }
@@ -549,10 +541,7 @@ fn start_example_client_code() -> Result<()> {
                             "id": "vc_bg",
                             "top": 0,
                             "left": 1920,
-                            "children": [{
-                                "type": "image",
-                                "image_id": "vc_bg"
-                            }],
+                            "children": [make_bg("vc_bg")],
                         },
                         {
                             "type": "view",
@@ -598,12 +587,7 @@ fn start_example_client_code() -> Result<()> {
                             "id": "broadcast_bg",
                             "top": 0,
                             "left": -1920,
-                            "children": [
-                                {
-                                    "type": "image",
-                                    "image_id": "broadcast_bg"
-                                }
-                            ],
+                            "children": [make_bg("broadcast_bg")],
                             "transition": {
                                 "duration_ms": 1000,
                             }
@@ -613,12 +597,7 @@ fn start_example_client_code() -> Result<()> {
                             "id": "vc_bg",
                             "top": 0,
                             "left": 0,
-                            "children": [
-                                {
-                                    "type": "image",
-                                    "image_id": "vc_bg"
-                                }
-                            ],
+                            "children": [make_bg("vc_bg")],
                             "transition": {
                                 "duration_ms": 1000,
                             }
@@ -668,12 +647,7 @@ fn start_example_client_code() -> Result<()> {
                             "id": "vc_bg",
                             "top": 0,
                             "left": 0,
-                            "children": [
-                                {
-                                    "type": "image",
-                                    "image_id": "vc_bg"
-                                }
-                            ]
+                            "children": [make_bg("vc_bg")]
                         },
                         {
                             "type": "view",
@@ -689,12 +663,7 @@ fn start_example_client_code() -> Result<()> {
                             "id": "ls_bg",
                             "top": 0,
                             "left": 1920,
-                            "children": [
-                                {
-                                    "type": "image",
-                                    "image_id": "ls_bg"
-                                }
-                            ],
+                            "children": [make_bg("ls_bg")],
                         },
                         {
                             "type": "view",
@@ -725,12 +694,7 @@ fn start_example_client_code() -> Result<()> {
                             "id": "vc_bg",
                             "top": 0,
                             "left": -1920,
-                            "children": [
-                                {
-                                    "type": "image",
-                                    "image_id": "vc_bg"
-                                }
-                            ],
+                            "children": [make_bg("vc_bg")],
                             "transition": {
                                 "duration_ms": 1000,
                             }
@@ -740,12 +704,13 @@ fn start_example_client_code() -> Result<()> {
                             "id": "ending",
                             "top": 0,
                             "left": 1920,
-                            "children": [
-                                {
+                            "children": [{
+                                "type": "rescaler",
+                                "child": {
                                     "type": "image",
                                     "image_id": "ending"
                                 }
-                            ],
+                            }],
                             "transition": {
                                 "duration_ms": 1000,
                             }
@@ -767,12 +732,7 @@ fn start_example_client_code() -> Result<()> {
                             "id": "ls_bg",
                             "top": 0,
                             "left": 0,
-                            "children": [
-                                {
-                                    "type": "image",
-                                    "image_id": "ls_bg"
-                                }
-                            ],
+                            "children": [make_bg("ls_bg")],
                             "transition": {
                                 "duration_ms": 1000,
                             }
@@ -809,12 +769,13 @@ fn start_example_client_code() -> Result<()> {
                             "id": "ending",
                             "top": 0,
                             "left": 0,
-                            "children": [
-                                {
+                            "children": [{
+                                "type": "rescaler",
+                                "child": {
                                     "type": "image",
                                     "image_id": "ending"
                                 }
-                            ],
+                            }],
                             "transition": {
                                 "duration_ms": 1000,
                             }
@@ -824,12 +785,7 @@ fn start_example_client_code() -> Result<()> {
                             "id": "ls_bg",
                             "top": 0,
                             "left": -1920,
-                            "children": [
-                                {
-                                    "type": "image",
-                                    "image_id": "ls_bg"
-                                }
-                            ],
+                            "children": [make_bg("ls_bg")],
                             "transition": {
                                 "duration_ms": 1000,
                             }
@@ -1219,7 +1175,7 @@ fn bg() -> serde_json::Value {
      })
 }
 
-fn code_bg() -> serde_json::Value {
+fn make_bg(image_id: &str) -> serde_json::Value {
     json!({
         "type": "view",
         "width": 1920,
@@ -1227,22 +1183,25 @@ fn code_bg() -> serde_json::Value {
         "top": 0,
         "left": 0,
         "children": [{
-            "type": "shader",
-            "shader_id": "code_bg",
-            "resolution": {
-                "width": 1920,
-                "height": 1080,
-            },
-            "children": [
-                {
-                    "type": "image",
-                    "image_id": "code_bg"
+            "type": "rescaler",
+            "child": {
+                "type": "shader",
+                "shader_id": "code_bg",
+                "resolution": {
+                    "width": 3840,
+                    "height": 2160,
                 },
-                {
-                    "type": "input_stream",
-                    "input_id": "code"
-                }
-            ]
+                "children": [
+                    {
+                        "type": "image",
+                        "image_id": image_id
+                    },
+                    {
+                        "type": "input_stream",
+                        "input_id": "code"
+                    }
+                ]
+            }
         }]
     })
 }
