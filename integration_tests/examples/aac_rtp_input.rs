@@ -9,12 +9,15 @@ use std::{
 };
 
 use integration_tests::examples::{
-    self, download_file, start_ffplay, start_websocket_thread, stream_audio, stream_video,
+    self, download_file, ff_stream_audio, ff_stream_video, start_ffplay, start_websocket_thread,
 };
 
 const BUNNY_FILE_URL: &str =
     "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
-const BUNNY_FILE_PATH: &str = "examples/assets/BigBuckBunny.mp4";
+const BUNNY_FILE_PATH: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/examples/assets/BigBuckBunny.mp4"
+);
 const VIDEO_RESOLUTION: Resolution = Resolution {
     width: 1280,
     height: 720,
@@ -41,7 +44,7 @@ fn main() {
 
 fn start_example_client_code() -> Result<()> {
     info!("[example] Start listening on output port.");
-    start_ffplay(IP, OUTPUT_VIDEO_PORT, Some(OUTPUT_AUDIO_PORT))?;
+    start_ffplay(IP, Some(OUTPUT_VIDEO_PORT), Some(OUTPUT_AUDIO_PORT))?;
     start_websocket_thread();
 
     info!("[example] Download sample.");
@@ -130,8 +133,8 @@ fn start_example_client_code() -> Result<()> {
     info!("[example] Start pipeline");
     examples::post("start", &json!({}))?;
 
-    stream_video(IP, INPUT_1_PORT, bunny_path.clone())?;
-    stream_audio(IP, INPUT_2_PORT, bunny_path, "aac")?;
+    ff_stream_video(IP, INPUT_1_PORT, bunny_path.clone())?;
+    ff_stream_audio(IP, INPUT_2_PORT, bunny_path, "aac")?;
 
     Ok(())
 }

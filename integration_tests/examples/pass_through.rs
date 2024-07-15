@@ -5,7 +5,7 @@ use serde_json::json;
 use std::{env, thread, time::Duration};
 
 use integration_tests::examples::{
-    self, download_file, start_ffplay, start_websocket_thread, stream_video,
+    self, download_file, ff_stream_video, start_ffplay, start_websocket_thread,
 };
 
 const SAMPLE_FILE_URL: &str = "https://filesamples.com/samples/video/mp4/sample_1280x720.mp4";
@@ -34,7 +34,7 @@ fn main() {
 
 fn start_example_client_code() -> Result<()> {
     info!("[example] Start listening on output port.");
-    start_ffplay(IP, OUTPUT_PORT, None)?;
+    start_ffplay(IP, Some(OUTPUT_PORT), None)?;
     start_websocket_thread();
 
     info!("[example] Download sample.");
@@ -84,6 +84,6 @@ fn start_example_client_code() -> Result<()> {
     info!("[example] Start pipeline");
     examples::post("start", &json!({}))?;
 
-    stream_video(IP, INPUT_PORT, sample_path)?;
+    ff_stream_video(IP, INPUT_PORT, sample_path)?;
     Ok(())
 }

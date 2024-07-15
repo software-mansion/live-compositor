@@ -64,6 +64,7 @@ pub struct Queue {
     clock: Clock,
 }
 
+#[derive(Debug)]
 pub(super) struct QueueVideoOutput {
     pub(super) pts: Duration,
     pub(super) frames: HashMap<InputId, PipelineEvent<Frame>>,

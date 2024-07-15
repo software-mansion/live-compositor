@@ -383,6 +383,7 @@ fn run_renderer_thread(
 ) {
     let renderer = pipeline.lock().unwrap().renderer.clone();
     for mut input_frames in frames_receiver.iter() {
+        dbg!(&input_frames);
         for (input_id, event) in input_frames.frames.iter_mut() {
             if let PipelineEvent::EOS = event {
                 let mut guard = pipeline.lock().unwrap();
