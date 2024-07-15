@@ -10,7 +10,11 @@ license = "BUSL-1.1"
 default = ["web_renderer"]
 update_snapshots = []
 decklink = ["live_compositor/decklink"]
-web_renderer = ["dep:compositor_chromium", "live_compositor/web_renderer"]
+web_renderer = [
+    "dep:compositor_chromium",
+    "compositor_render/web_renderer",
+    "live_compositor/web_renderer",
+]
 
 [dependencies]
 live_compositor = { workspace = true }

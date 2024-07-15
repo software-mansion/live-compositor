@@ -1,21 +1,13 @@
 use anyhow::Result;
 use compositor_api::types::Resolution;
-use live_compositor::server;
-use log::{error, info};
 use serde_json::json;
-use std::{
-    env,
-    thread::{self},
-    time::Duration,
+use std::time::Duration;
+
+use integration_tests::{
+    examples::{self, run_example},
+    ffmpeg::{start_ffmpeg_receive, start_ffmpeg_send},
 };
 
-use integration_tests::examples::{
-    self, download_file, start_ffplay, start_websocket_thread, stream_audio, stream_video,
-};
-
-const BUNNY_FILE_URL: &str =
-    "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
-const BUNNY_FILE_PATH: &str = "examples/assets/BigBuckBunny.mp4";
 const VIDEO_RESOLUTION: Resolution = Resolution {
     width: 1280,
     height: 720,
@@ -28,27 +20,12 @@ const OUTPUT_VIDEO_PORT: u16 = 8010;
 const OUTPUT_AUDIO_PORT: u16 = 8012;
 
 fn main() {
-    env::set_var("LIVE_COMPOSITOR_WEB_RENDERER_ENABLE", "0");
-    ffmpeg_next::format::network::init();
-
-    thread::spawn(|| {
-        if let Err(err) = start_example_client_code() {
-            error!("{err}")
-        }
-    });
-
-    server::run();
+    run_example(client_code);
 }
 
-fn start_example_client_code() -> Result<()> {
-    info!("[example] Start listening on output port.");
-    start_ffplay(IP, OUTPUT_VIDEO_PORT, Some(OUTPUT_AUDIO_PORT))?;
-    start_websocket_thread();
+fn client_code() -> Result<()> {
+    start_ffmpeg_receive(Some(OUTPUT_VIDEO_PORT), Some(OUTPUT_AUDIO_PORT))?;
 
-    info!("[example] Download sample.");
-    let bunny_path = download_file(BUNNY_FILE_URL, BUNNY_FILE_PATH)?;
-
-    info!("[example] Send register input request.");
     examples::post(
         "input/input_1/register",
         &json!({
@@ -60,7 +37,6 @@ fn start_example_client_code() -> Result<()> {
         }),
     )?;
 
-    info!("[example] Send register input request.");
     examples::post(
         "input/input_2/register",
         &json!({
@@ -78,7 +54,6 @@ fn start_example_client_code() -> Result<()> {
         }),
     )?;
 
-    info!("[example] Send register output request.");
     examples::post(
         "output/output_1/register",
         &json!({
@@ -105,7 +80,6 @@ fn start_example_client_code() -> Result<()> {
         }),
     )?;
 
-    info!("[example] Send register output request.");
     examples::post(
         "output/output_2/register",
         &json!({
@@ -128,11 +102,14 @@ fn start_example_client_code() -> Result<()> {
 
     std::thread::sleep(Duration::from_millis(500));
 
-    info!("[example] Start pipeline");
     examples::post("start", &json!({}))?;
 
-    stream_video(IP, INPUT_1_PORT, bunny_path.clone())?;
-    stream_audio(IP, INPUT_2_PORT, bunny_path, "aac")?;
+    start_ffmpeg_send(
+        IP,
+        Some(INPUT_1_PORT),
+        Some(INPUT_2_PORT),
+        examples::TestSample::BigBuckBunnyAAC,
+    )?;
 
     Ok(())
 }

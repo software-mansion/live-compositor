@@ -1,11 +1,12 @@
 use anyhow::Result;
 use compositor_api::types::Resolution;
-use live_compositor::server;
-use log::{error, info};
 use serde_json::json;
-use std::{thread, time::Duration};
+use std::time::Duration;
 
-use integration_tests::examples::{self, start_ffplay, start_websocket_thread};
+use integration_tests::{
+    examples::{self, run_example},
+    ffmpeg::start_ffmpeg_receive,
+};
 
 const BUNNY_URL: &str =
     "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
@@ -20,23 +21,12 @@ const OUTPUT_VIDEO_PORT: u16 = 8002;
 const OUTPUT_AUDIO_PORT: u16 = 8004;
 
 fn main() {
-    ffmpeg_next::format::network::init();
-
-    thread::spawn(|| {
-        if let Err(err) = start_example_client_code() {
-            error!("{err}")
-        }
-    });
-
-    server::run();
+    run_example(client_code);
 }
 
-fn start_example_client_code() -> Result<()> {
-    info!("[example] Start listening on output port.");
-    start_ffplay(IP, OUTPUT_VIDEO_PORT, Some(OUTPUT_AUDIO_PORT))?;
-    start_websocket_thread();
+fn client_code() -> Result<()> {
+    start_ffmpeg_receive(Some(OUTPUT_VIDEO_PORT), Some(OUTPUT_AUDIO_PORT))?;
 
-    info!("[example] Send register input request.");
     examples::post(
         "input/input_1/register",
         &json!({
@@ -46,7 +36,6 @@ fn start_example_client_code() -> Result<()> {
     )?;
 
     let shader_source = include_str!("./silly.wgsl");
-    info!("[example] Register shader transform");
     examples::post(
         "shader/shader_example_1/register",
         &json!({
@@ -54,7 +43,6 @@ fn start_example_client_code() -> Result<()> {
         }),
     )?;
 
-    info!("[example] Send register output video request.");
     examples::post(
         "output/output_1/register",
         &json!({
@@ -81,7 +69,6 @@ fn start_example_client_code() -> Result<()> {
         }),
     )?;
 
-    info!("[example] Send register output audio request.");
     examples::post(
         "output/output_2/register",
         &json!({
@@ -104,7 +91,6 @@ fn start_example_client_code() -> Result<()> {
 
     std::thread::sleep(Duration::from_millis(500));
 
-    info!("[example] Start pipeline");
     examples::post("start", &json!({}))?;
 
     Ok(())

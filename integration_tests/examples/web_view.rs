@@ -1,17 +1,13 @@
 use anyhow::Result;
 use compositor_api::types::Resolution;
-use live_compositor::server;
-use log::{error, info};
 use serde_json::json;
-use std::{
-    env,
-    thread::{self},
+use std::env;
+
+use integration_tests::{
+    examples::{self, run_example, TestSample},
+    ffmpeg::{start_ffmpeg_receive, start_ffmpeg_send},
 };
 
-use integration_tests::examples::{self, download_file, start_ffplay, stream_video};
-
-const SAMPLE_FILE_URL: &str = "https://filesamples.com/samples/video/mp4/sample_1280x720.mp4";
-const SAMPLE_FILE_PATH: &str = "examples/assets/sample_1280_720.mp4";
 const HTML_FILE_PATH: &str = "examples/web_view.html";
 
 const VIDEO_RESOLUTION: Resolution = Resolution {
@@ -25,7 +21,6 @@ const OUTPUT_PORT: u16 = 8004;
 
 fn main() {
     env::set_var("LIVE_COMPOSITOR_WEB_RENDERER_ENABLE", "1");
-    ffmpeg_next::format::network::init();
 
     use compositor_chromium::cef::bundle_for_development;
 
@@ -40,28 +35,18 @@ fn main() {
             err
         );
     }
-    thread::spawn(|| {
-        if let Err(err) = start_example_client_code() {
-            error!("{err}")
-        }
-    });
 
-    server::run();
+    run_example(client_code);
 }
 
-fn start_example_client_code() -> Result<()> {
-    info!("[example] Start listening on output port.");
-    start_ffplay(IP, OUTPUT_PORT, None)?;
-
-    info!("[example] Download sample.");
-    let sample_path = download_file(SAMPLE_FILE_URL, SAMPLE_FILE_PATH)?;
+fn client_code() -> Result<()> {
+    start_ffmpeg_receive(Some(OUTPUT_PORT), None)?;
 
     let html_file_path = env::current_dir()?
         .join(HTML_FILE_PATH)
         .display()
         .to_string();
 
-    info!("[example] Send register input request.");
     examples::post(
         "input/input_1/register",
         &json!({
@@ -73,7 +58,6 @@ fn start_example_client_code() -> Result<()> {
         }),
     )?;
 
-    info!("[example] Register web renderer transform");
     examples::post(
         "web-renderer/example_website/register",
         &json!({
@@ -82,7 +66,6 @@ fn start_example_client_code() -> Result<()> {
         }),
     )?;
 
-    info!("[example] Send register output request.");
     examples::post(
         "output/output_1/register",
         &json!({
@@ -116,9 +99,8 @@ fn start_example_client_code() -> Result<()> {
         }),
     )?;
 
-    info!("[example] Start pipeline");
     examples::post("start", &json!({}))?;
 
-    stream_video(IP, INPUT_PORT, sample_path)?;
+    start_ffmpeg_send(IP, Some(INPUT_PORT), None, TestSample::SampleLoop)?;
     Ok(())
 }

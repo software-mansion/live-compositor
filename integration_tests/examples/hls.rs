@@ -1,11 +1,12 @@
 use anyhow::Result;
 use compositor_api::types::Resolution;
-use live_compositor::server;
-use log::{error, info};
 use serde_json::json;
-use std::{env, process::Command, thread, time::Duration};
+use std::{process::Command, time::Duration};
 
-use integration_tests::examples::{self, start_websocket_thread};
+use integration_tests::{
+    examples::{self, run_example},
+    gstreamer::start_gst_receive_tcp,
+};
 
 const HLS_URL: &str = "https://raw.githubusercontent.com/membraneframework/membrane_http_adaptive_stream_plugin/master/test/membrane_http_adaptive_stream/integration_test/fixtures/audio_multiple_video_tracks/index.m3u8";
 const VIDEO_RESOLUTION: Resolution = Resolution {
@@ -18,23 +19,10 @@ const INPUT_PORT: u16 = 8002;
 const OUTPUT_PORT: u16 = 8004;
 
 fn main() {
-    env::set_var("LIVE_COMPOSITOR_WEB_RENDERER_ENABLE", "0");
-    ffmpeg_next::format::network::init();
-
-    thread::spawn(|| {
-        if let Err(err) = start_example_client_code() {
-            error!("{err}")
-        }
-    });
-
-    server::run();
+    run_example(client_code);
 }
 
-fn start_example_client_code() -> Result<()> {
-    thread::sleep(Duration::from_secs(2));
-    start_websocket_thread();
-
-    info!("[example] Send register input request.");
+fn client_code() -> Result<()> {
     examples::post(
         "input/input_1/register",
         &json!({
@@ -48,7 +36,6 @@ fn start_example_client_code() -> Result<()> {
     )?;
 
     let shader_source = include_str!("./silly.wgsl");
-    info!("[example] Register shader transform");
     examples::post(
         "shader/shader_example_1/register",
         &json!({
@@ -56,7 +43,6 @@ fn start_example_client_code() -> Result<()> {
         }),
     )?;
 
-    info!("[example] Send register output request.");
     examples::post(
         "output/output_1/register",
         &json!({
@@ -91,14 +77,9 @@ fn start_example_client_code() -> Result<()> {
         }),
     )?;
 
-    let gst_output_command = format!("gst-launch-1.0 -v tcpclientsrc host={IP} port={OUTPUT_PORT} ! \"application/x-rtp-stream\" ! rtpstreamdepay ! rtph264depay ! decodebin ! videoconvert ! autovideosink");
-    Command::new("bash")
-        .arg("-c")
-        .arg(gst_output_command)
-        .spawn()?;
+    start_gst_receive_tcp(IP, OUTPUT_PORT, true, false)?;
     std::thread::sleep(Duration::from_millis(500));
 
-    info!("[example] Start pipeline");
     examples::post("start", &json!({}))?;
 
     let gst_input_command = format!("gst-launch-1.0 -v souphttpsrc location={HLS_URL} ! hlsdemux ! qtdemux ! h264parse ! rtph264pay config-interval=1 pt=96 ! .send_rtp_sink rtpsession .send_rtp_src ! rtpstreampay ! tcpclientsink host=127.0.0.1 port={INPUT_PORT}");

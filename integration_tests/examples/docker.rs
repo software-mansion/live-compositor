@@ -6,8 +6,9 @@ use serde_json::json;
 use signal_hook::{consts, iterator::Signals};
 use std::{env, process::Command, thread, time::Duration};
 
-use integration_tests::examples::{
-    self, start_ffplay, start_websocket_thread, stream_ffmpeg_testsrc,
+use integration_tests::{
+    examples::{self, start_server_msg_listener, TestSample},
+    ffmpeg::{start_ffmpeg_receive, start_ffmpeg_send},
 };
 const VIDEO_RESOLUTION: Resolution = Resolution {
     width: 1920,
@@ -17,6 +18,10 @@ const VIDEO_RESOLUTION: Resolution = Resolution {
 const IP: &str = "127.0.0.1";
 const INPUT_PORT: u16 = 8002;
 const OUTPUT_PORT: u16 = 8004;
+const DOCKER_FILE_PATH: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../build_tools/docker/slim.Dockerfile"
+);
 
 fn main() {
     let Ok(host_ip) = env::var("DOCKER_HOST_IP") else {
@@ -53,7 +58,7 @@ fn build_and_start_docker(skip_build: bool) -> Result<()> {
             .args([
                 "build",
                 "-f",
-                "../build_tools/docker/slim.Dockerfile",
+                DOCKER_FILE_PATH,
                 "-t",
                 "video-compositor",
                 ".",
@@ -97,11 +102,9 @@ fn build_and_start_docker(skip_build: bool) -> Result<()> {
 fn start_example_client_code(host_ip: String) -> Result<()> {
     thread::sleep(Duration::from_secs(5));
 
-    info!("[example] Start listening on output port.");
-    start_ffplay(&host_ip, OUTPUT_PORT, None)?;
-    start_websocket_thread();
+    start_ffmpeg_receive(Some(OUTPUT_PORT), None)?;
+    start_server_msg_listener();
 
-    info!("[example] Send register input request.");
     examples::post(
         "input/input_1/register",
         &json!({
@@ -114,7 +117,6 @@ fn start_example_client_code(host_ip: String) -> Result<()> {
     )?;
 
     let shader_source = include_str!("./silly.wgsl");
-    info!("[example] Register shader transform");
     examples::post(
         "shader/example_shader/register",
         &json!({
@@ -122,7 +124,6 @@ fn start_example_client_code(host_ip: String) -> Result<()> {
         }),
     )?;
 
-    info!("[example] Send register output request.");
     examples::post(
         "output/output_1/register",
         &json!({
@@ -155,11 +156,9 @@ fn start_example_client_code(host_ip: String) -> Result<()> {
         }),
     )?;
 
-    info!("[example] Start pipeline");
     examples::post("start", &json!({}))?;
 
-    info!("[example] Start input stream");
-    stream_ffmpeg_testsrc(IP, INPUT_PORT, VIDEO_RESOLUTION)?;
+    start_ffmpeg_send(IP, Some(INPUT_PORT), None, TestSample::TestPattern)?;
 
     Ok(())
 }
