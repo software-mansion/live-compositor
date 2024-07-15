@@ -2,13 +2,11 @@ use anyhow::Result;
 use live_compositor::{server, types::Resolution};
 use log::{error, info};
 use serde_json::json;
-use std::{
-    process::{Command, Stdio},
-    thread,
-    time::Duration,
-};
+use std::{thread, time::Duration};
 
-use integration_tests::examples::{self, download_file, start_websocket_thread};
+use integration_tests::examples::{
+    self, download_file, gst_stream, start_gstplay, start_websocket_thread,
+};
 
 const SAMPLE_FILE_URL: &str =
     "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
@@ -120,38 +118,14 @@ fn start_example_client_code() -> Result<()> {
             }
         }),
     )?;
-    let gst_output_command =  [
-        "gst-launch-1.0 -v ",
-        "rtpptdemux name=demux ",
-        &format!("tcpclientsrc host={IP} port={OUTPUT_PORT} ! \"application/x-rtp-stream\" ! rtpstreamdepay ! queue ! demux. "),
-        "demux.src_96 ! \"application/x-rtp,media=video,clock-rate=90000,encoding-name=H264\" ! queue ! rtph264depay ! decodebin ! videoconvert ! autovideosink ",
-        "demux.src_97 ! \"application/x-rtp,media=audio,clock-rate=48000,encoding-name=OPUS\" ! queue ! rtpopusdepay ! decodebin ! audioconvert ! autoaudiosink ",
-    ].concat();
 
-    Command::new("bash")
-        .arg("-c")
-        .arg(gst_output_command)
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn()?;
-    std::thread::sleep(Duration::from_millis(500));
+    start_gstplay(IP, OUTPUT_PORT, true, true)?;
 
     info!("[example] Start pipeline");
     examples::post("start", &json!({}))?;
 
     let sample_path_str = sample_path.to_string_lossy().to_string();
 
-    let gst_input_command = [
-        "gst-launch-1.0 -v ",
-        &format!("filesrc location={sample_path_str} ! qtdemux name=demux "),
-        &format!("demux.video_0 ! queue ! h264parse ! rtph264pay config-interval=1 !  application/x-rtp,payload=96  ! rtpstreampay ! tcpclientsink host={IP} port={INPUT_1_PORT} "),
-        &format!("demux.audio_0 ! queue ! decodebin ! audioconvert ! audioresample ! opusenc ! rtpopuspay ! application/x-rtp,payload=97 !  rtpstreampay ! tcpclientsink host={IP} port={INPUT_2_PORT} "),
-    ].concat();
-
-    Command::new("bash")
-        .arg("-c")
-        .arg(gst_input_command)
-        .spawn()?;
-
+    gst_stream(IP, Some(INPUT_1_PORT), Some(INPUT_2_PORT), &sample_path_str)?;
     Ok(())
 }

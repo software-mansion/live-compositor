@@ -28,7 +28,7 @@ fn main() {
 
 fn start_example_client_code() -> Result<()> {
     info!("[example] Start listening on output port.");
-    start_ffplay(IP, OUTPUT_PORT, None)?;
+    start_ffplay(IP, Some(OUTPUT_PORT), None)?;
     start_websocket_thread();
 
     info!("[example] Send register output request.");

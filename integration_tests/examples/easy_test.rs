@@ -9,21 +9,9 @@ use std::{
 };
 
 use integration_tests::examples::{
-    self, download_file, ff_stream_audio, ff_stream_video, start_ffplay, start_websocket_thread,
+    self, ff_stream_sample, start_ffplay, start_websocket_thread, TestSample,
 };
 
-const BUNNY_FILE_URL: &str =
-    "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
-const ELEPHANT_DREAM_FILE_URL: &str =
-    "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4";
-const BUNNY_FILE_PATH: &str = concat!(
-    env!("CARGO_MANIFEST_DIR"),
-    "/examples/assets/BigBuckBunny.mp4"
-);
-const ELEPHANT_DREAM_FILE_PATH: &str = concat!(
-    env!("CARGO_MANIFEST_DIR"),
-    "/examples/assets/ElephantsDream.mp4"
-);
 const VIDEO_RESOLUTION: Resolution = Resolution {
     width: 1280,
     height: 720,
@@ -34,6 +22,9 @@ const INPUT_1_PORT: u16 = 8002;
 const INPUT_2_PORT: u16 = 8004;
 const INPUT_3_PORT: u16 = 8006;
 const INPUT_4_PORT: u16 = 8008;
+const INPUT_5_PORT: u16 = 8014;
+const INPUT_6_PORT: u16 = 8016;
+const INPUT_7_PORT: u16 = 8018;
 const OUTPUT_VIDEO_PORT: u16 = 8010;
 const OUTPUT_AUDIO_PORT: u16 = 8012;
 
@@ -52,15 +43,8 @@ fn main() {
 
 fn start_example_client_code() -> Result<()> {
     info!("[example] Start listening on output port.");
-    // start_ffplay(IP, OUTPUT_VIDEO_PORT, Some(OUTPUT_AUDIO_PORT))?;
     start_ffplay(IP, Some(OUTPUT_VIDEO_PORT), Some(OUTPUT_AUDIO_PORT))?;
     start_websocket_thread();
-
-    info!("[example] Download sample.");
-    let bunny_path = download_file(BUNNY_FILE_URL, BUNNY_FILE_PATH)?;
-
-    info!("[example] Download sample.");
-    let elephant_path = download_file(ELEPHANT_DREAM_FILE_URL, ELEPHANT_DREAM_FILE_PATH)?;
 
     info!("[example] Send register input request.");
     examples::post(
@@ -110,6 +94,42 @@ fn start_example_client_code() -> Result<()> {
         }),
     )?;
 
+    info!("[example] Send register input request.");
+    examples::post(
+        "input/input_5/register",
+        &json!({
+            "type": "rtp_stream",
+            "port": INPUT_5_PORT,
+            "video": {
+                "decoder": "ffmpeg_h264"
+            },
+        }),
+    )?;
+
+    info!("[example] Send register input request.");
+    examples::post(
+        "input/input_6/register",
+        &json!({
+            "type": "rtp_stream",
+            "port": INPUT_6_PORT,
+            "video": {
+                "decoder": "ffmpeg_h264"
+            },
+        }),
+    )?;
+
+    info!("[example] Send register input request.");
+    examples::post(
+        "input/input_7/register",
+        &json!({
+            "type": "rtp_stream",
+            "port": INPUT_7_PORT,
+            "video": {
+                "decoder": "ffmpeg_h264"
+            },
+        }),
+    )?;
+
     info!("[example] Send register output request.");
     examples::post(
         "output/output_1/register",
@@ -137,6 +157,18 @@ fn start_example_client_code() -> Result<()> {
                             {
                                 "type": "input_stream",
                                 "input_id": "input_3"
+                            },
+                            {
+                                "type": "input_stream",
+                                "input_id": "input_5"
+                            },
+                            {
+                                "type": "input_stream",
+                                "input_id": "input_6"
+                            },
+                            {
+                                "type": "input_stream",
+                                "input_id": "input_7"
                             }
                         ]
                     }
@@ -173,10 +205,21 @@ fn start_example_client_code() -> Result<()> {
     info!("[example] Start pipeline");
     examples::post("start", &json!({}))?;
 
-    ff_stream_video(IP, INPUT_1_PORT, bunny_path.clone())?;
-    ff_stream_audio(IP, INPUT_2_PORT, bunny_path, "libopus")?;
-    ff_stream_video(IP, INPUT_3_PORT, elephant_path.clone())?;
-    ff_stream_audio(IP, INPUT_4_PORT, elephant_path, "libopus")?;
+    ff_stream_sample(
+        IP,
+        Some(INPUT_1_PORT),
+        Some(INPUT_2_PORT),
+        TestSample::BigBuckBunny,
+    )?;
+    ff_stream_sample(
+        IP,
+        Some(INPUT_3_PORT),
+        Some(INPUT_4_PORT),
+        TestSample::ElephantsDream,
+    )?;
+    ff_stream_sample(IP, Some(INPUT_5_PORT), None, TestSample::Sample)?;
+    ff_stream_sample(IP, Some(INPUT_6_PORT), None, TestSample::SampleLoop)?;
+    ff_stream_sample(IP, Some(INPUT_7_PORT), None, TestSample::Generic)?;
 
     Ok(())
 }

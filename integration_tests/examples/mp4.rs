@@ -32,7 +32,7 @@ fn main() {
 
 fn start_example_client_code() -> Result<()> {
     info!("[example] Start listening on output port.");
-    start_ffplay(IP, OUTPUT_VIDEO_PORT, Some(OUTPUT_AUDIO_PORT))?;
+    start_ffplay(IP, Some(OUTPUT_VIDEO_PORT), Some(OUTPUT_AUDIO_PORT))?;
     start_websocket_thread();
 
     info!("[example] Send register input request.");

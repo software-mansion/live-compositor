@@ -5,7 +5,7 @@ use serde_json::json;
 use std::{thread, time::Duration};
 
 use integration_tests::examples::{
-    self, start_ffplay, start_websocket_thread, stream_ffmpeg_testsrc,
+    self, start_ffplay, start_websocket_thread, ff_stream_testsrc,
 };
 
 const VIDEO_RESOLUTION: Resolution = Resolution {
@@ -31,7 +31,7 @@ fn main() {
 
 fn start_example_client_code() -> Result<()> {
     info!("[example] Start listening on output port.");
-    start_ffplay(IP, OUTPUT_PORT, None)?;
+    start_ffplay(IP, Some(OUTPUT_PORT), None)?;
     start_websocket_thread();
 
     info!("[example] Send register input request.");
@@ -183,7 +183,7 @@ fn start_example_client_code() -> Result<()> {
     examples::post("start", &json!({}))?;
 
     info!("[example] Start input stream");
-    stream_ffmpeg_testsrc(IP, INPUT_PORT, VIDEO_RESOLUTION)?;
+    ff_stream_testsrc(IP, INPUT_PORT, VIDEO_RESOLUTION)?;
 
     thread::sleep(Duration::from_secs(5));
 
