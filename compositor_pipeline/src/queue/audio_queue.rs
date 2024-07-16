@@ -153,6 +153,9 @@ impl AudioQueueInput {
         pts_range: (Duration, Duration),
         queue_start: Instant,
     ) -> PipelineEvent<Vec<InputSamples>> {
+        // ignore result, we only need to ensure samples are enqueued
+        self.check_ready_for_pts(pts_range, queue_start);
+
         // range in queue pts time frame
         let (start_pts, end_pts) = pts_range;
 

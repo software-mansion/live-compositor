@@ -158,6 +158,9 @@ impl VideoQueueInput {
         buffer_pts: Duration,
         queue_start: Instant,
     ) -> Option<PipelineEvent<Frame>> {
+        // ignore result, we only need to ensure frames are enqueued
+        self.check_ready_for_pts(buffer_pts, queue_start);
+
         self.drop_old_frames(buffer_pts, queue_start);
         let input_start_time = self.input_start_time()?;
         let frame = match self.offset {
