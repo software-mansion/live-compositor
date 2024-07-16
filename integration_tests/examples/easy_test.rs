@@ -1,15 +1,12 @@
 use anyhow::Result;
-use live_compositor::{server, types::Resolution};
-use log::{error, info};
+use live_compositor::types::Resolution;
+use log::info;
 use serde_json::json;
-use std::{
-    env,
-    thread::{self},
-    time::Duration,
-};
+use std::time::Duration;
 
-use integration_tests::examples::{
-    self, ff_stream_sample, start_ffplay, start_websocket_thread, TestSample,
+use integration_tests::{
+    examples::{self, run_example, TestSample},
+    ffmpeg::{start_ffmpeg_receive, start_ffmpeg_send_sample},
 };
 
 const VIDEO_RESOLUTION: Resolution = Resolution {
@@ -29,22 +26,12 @@ const OUTPUT_VIDEO_PORT: u16 = 8010;
 const OUTPUT_AUDIO_PORT: u16 = 8012;
 
 fn main() {
-    env::set_var("LIVE_COMPOSITOR_WEB_RENDERER_ENABLE", "0");
-    ffmpeg_next::format::network::init();
-
-    thread::spawn(|| {
-        if let Err(err) = start_example_client_code() {
-            error!("{err}")
-        }
-    });
-
-    server::run();
+    run_example(start_example_client_code);
 }
 
 fn start_example_client_code() -> Result<()> {
     info!("[example] Start listening on output port.");
-    start_ffplay(IP, Some(OUTPUT_VIDEO_PORT), Some(OUTPUT_AUDIO_PORT))?;
-    start_websocket_thread();
+    start_ffmpeg_receive(Some(OUTPUT_VIDEO_PORT), Some(OUTPUT_AUDIO_PORT))?;
 
     info!("[example] Send register input request.");
     examples::post(
@@ -174,17 +161,7 @@ fn start_example_client_code() -> Result<()> {
                     }
                 },
                 "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
-            }
-        }),
-    )?;
-
-    info!("[example] Send register output request.");
-    examples::post(
-        "output/output_2/register",
-        &json!({
-            "type": "rtp_stream",
-            "ip": IP,
-            "port": OUTPUT_AUDIO_PORT,
+            },
             "audio": {
                 "initial": {
                     "inputs": [
@@ -196,7 +173,7 @@ fn start_example_client_code() -> Result<()> {
                     "type": "opus",
                     "channels": "stereo",
                 }
-            }
+            },
         }),
     )?;
 
@@ -205,21 +182,21 @@ fn start_example_client_code() -> Result<()> {
     info!("[example] Start pipeline");
     examples::post("start", &json!({}))?;
 
-    ff_stream_sample(
+    start_ffmpeg_send_sample(
         IP,
         Some(INPUT_1_PORT),
         Some(INPUT_2_PORT),
         TestSample::BigBuckBunny,
     )?;
-    ff_stream_sample(
+    start_ffmpeg_send_sample(
         IP,
         Some(INPUT_3_PORT),
         Some(INPUT_4_PORT),
         TestSample::ElephantsDream,
     )?;
-    ff_stream_sample(IP, Some(INPUT_5_PORT), None, TestSample::Sample)?;
-    ff_stream_sample(IP, Some(INPUT_6_PORT), None, TestSample::SampleLoop)?;
-    ff_stream_sample(IP, Some(INPUT_7_PORT), None, TestSample::Generic)?;
+    start_ffmpeg_send_sample(IP, Some(INPUT_5_PORT), None, TestSample::Sample)?;
+    start_ffmpeg_send_sample(IP, Some(INPUT_6_PORT), None, TestSample::SampleLoop)?;
+    start_ffmpeg_send_sample(IP, Some(INPUT_7_PORT), None, TestSample::Generic)?;
 
     Ok(())
 }
