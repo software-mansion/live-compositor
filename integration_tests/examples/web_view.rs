@@ -7,7 +7,7 @@ use std::{
     thread::{self},
 };
 
-use integration_tests::examples::{self, download_file, start_ffplay, ff_stream_video};
+use integration_tests::{ffmpeg_utils::{start_ffmpeg_send_video, start_ffmpeg_receive}, utils::{self, download_file}};
 
 const SAMPLE_FILE_URL: &str = "https://filesamples.com/samples/video/mp4/sample_1280x720.mp4";
 const SAMPLE_FILE_PATH: &str = "examples/assets/sample_1280_720.mp4";
@@ -50,7 +50,7 @@ fn main() {
 
 fn start_example_client_code() -> Result<()> {
     info!("[example] Start listening on output port.");
-    start_ffplay(IP, Some(OUTPUT_PORT), None)?;
+    start_ffmpeg_receive(Some(OUTPUT_PORT), None)?;
 
     info!("[example] Download sample.");
     let sample_path = download_file(SAMPLE_FILE_URL, SAMPLE_FILE_PATH)?;
@@ -61,7 +61,7 @@ fn start_example_client_code() -> Result<()> {
         .to_string();
 
     info!("[example] Send register input request.");
-    examples::post(
+    utils::post(
         "input/input_1/register",
         &json!({
             "type": "rtp_stream",
@@ -73,7 +73,7 @@ fn start_example_client_code() -> Result<()> {
     )?;
 
     info!("[example] Register web renderer transform");
-    examples::post(
+    utils::post(
         "web-renderer/example_website/register",
         &json!({
             "url": format!("file://{html_file_path}"), // or other way of providing source
@@ -82,7 +82,7 @@ fn start_example_client_code() -> Result<()> {
     )?;
 
     info!("[example] Send register output request.");
-    examples::post(
+    utils::post(
         "output/output_1/register",
         &json!({
             "type": "rtp_stream",
@@ -116,8 +116,8 @@ fn start_example_client_code() -> Result<()> {
     )?;
 
     info!("[example] Start pipeline");
-    examples::post("start", &json!({}))?;
+    utils::post("start", &json!({}))?;
 
-    ff_stream_video(IP, INPUT_PORT, sample_path)?;
+    start_ffmpeg_send_video(IP, INPUT_PORT, sample_path)?;
     Ok(())
 }

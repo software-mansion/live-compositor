@@ -5,7 +5,10 @@ use serde_json::json;
 use signal_hook::{consts, iterator::Signals};
 use std::{env, process::Command, thread, time::Duration};
 
-use integration_tests::examples::{self, ff_stream_testsrc, start_ffplay, start_websocket_thread};
+use integration_tests::{
+    ffmpeg_utils::{start_ffmpeg_receive, start_ffmpeg_send_testsrc},
+    utils::{self, start_websocket_thread},
+};
 const VIDEO_RESOLUTION: Resolution = Resolution {
     width: 1920,
     height: 1080,
@@ -99,11 +102,11 @@ fn start_example_client_code(host_ip: String) -> Result<()> {
     thread::sleep(Duration::from_secs(5));
 
     info!("[example] Start listening on output port.");
-    start_ffplay(&host_ip, Some(OUTPUT_PORT), None)?;
+    start_ffmpeg_receive(Some(OUTPUT_PORT), None)?;
     start_websocket_thread();
 
     info!("[example] Send register input request.");
-    examples::post(
+    utils::post(
         "input/input_1/register",
         &json!({
             "type": "rtp_stream",
@@ -117,7 +120,7 @@ fn start_example_client_code(host_ip: String) -> Result<()> {
     // let shader_source = include_str!(SHADER_PATH);
     let shader_source = include_str!("./silly.wgsl");
     info!("[example] Register shader transform");
-    examples::post(
+    utils::post(
         "shader/example_shader/register",
         &json!({
             "source": shader_source,
@@ -125,7 +128,7 @@ fn start_example_client_code(host_ip: String) -> Result<()> {
     )?;
 
     info!("[example] Send register output request.");
-    examples::post(
+    utils::post(
         "output/output_1/register",
         &json!({
             "type": "rtp_stream",
@@ -158,10 +161,10 @@ fn start_example_client_code(host_ip: String) -> Result<()> {
     )?;
 
     info!("[example] Start pipeline");
-    examples::post("start", &json!({}))?;
+    utils::post("start", &json!({}))?;
 
     info!("[example] Start input stream");
-    ff_stream_testsrc(IP, INPUT_PORT, VIDEO_RESOLUTION)?;
+    start_ffmpeg_send_testsrc(IP, INPUT_PORT, VIDEO_RESOLUTION)?;
 
     Ok(())
 }

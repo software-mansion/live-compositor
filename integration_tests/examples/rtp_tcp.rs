@@ -4,8 +4,9 @@ use log::{error, info};
 use serde_json::json;
 use std::{thread, time::Duration};
 
-use integration_tests::examples::{
-    self, download_file, gst_stream, start_gstplay, start_websocket_thread,
+use integration_tests::{
+    gstreamer_utils::{start_gst_receive_tcp, start_gst_send_tcp},
+    utils::{self, download_file, start_websocket_thread},
 };
 
 const SAMPLE_FILE_URL: &str =
@@ -40,7 +41,7 @@ fn start_example_client_code() -> Result<()> {
     start_websocket_thread();
 
     info!("[example] Send register input request.");
-    examples::post(
+    utils::post(
         "input/input_1/register",
         &json!({
             "type": "rtp_stream",
@@ -52,7 +53,7 @@ fn start_example_client_code() -> Result<()> {
         }),
     )?;
 
-    examples::post(
+    utils::post(
         "input/input_2/register",
         &json!({
             "type": "rtp_stream",
@@ -66,7 +67,7 @@ fn start_example_client_code() -> Result<()> {
 
     let shader_source = include_str!("./silly.wgsl");
     info!("[example] Register shader transform");
-    examples::post(
+    utils::post(
         "shader/shader_example_1/register",
         &json!({
             "source": shader_source,
@@ -74,7 +75,7 @@ fn start_example_client_code() -> Result<()> {
     )?;
 
     info!("[example] Send register output request.");
-    examples::post(
+    utils::post(
         "output/output_1/register",
         &json!({
             "type": "rtp_stream",
@@ -119,13 +120,10 @@ fn start_example_client_code() -> Result<()> {
         }),
     )?;
 
-    start_gstplay(IP, OUTPUT_PORT, true, true)?;
+    start_gst_receive_tcp(IP, OUTPUT_PORT, true, true)?;
 
     info!("[example] Start pipeline");
-    examples::post("start", &json!({}))?;
-
-    let sample_path_str = sample_path.to_string_lossy().to_string();
-
-    gst_stream(IP, Some(INPUT_1_PORT), Some(INPUT_2_PORT), &sample_path_str)?;
+    utils::post("start", &json!({}))?;
+    start_gst_send_tcp(IP, Some(INPUT_1_PORT), Some(INPUT_2_PORT), sample_path)?;
     Ok(())
 }

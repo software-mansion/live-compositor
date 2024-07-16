@@ -4,14 +4,16 @@ use log::{error, info};
 use serde_json::json;
 use std::{env, path::PathBuf, thread};
 
-use integration_tests::examples::{self, start_ffplay, start_websocket_thread};
+use integration_tests::{
+    ffmpeg_utils::start_ffmpeg_receive,
+    utils::{self, start_websocket_thread},
+};
 
 const VIDEO_RESOLUTION: Resolution = Resolution {
     width: 1920,
     height: 1080,
 };
 
-const IP: &str = "127.0.0.1";
 const OUTPUT_PORT: u16 = 8002;
 
 fn main() {
@@ -29,25 +31,25 @@ fn main() {
 
 fn start_example_client_code() -> Result<()> {
     info!("[example] Start listening on output port.");
-    start_ffplay(IP, Some(OUTPUT_PORT), None)?;
+    start_ffmpeg_receive(Some(OUTPUT_PORT), None)?;
     start_websocket_thread();
 
     info!("[example] Register static images");
-    examples::post(
+    utils::post(
         "image/example_gif/register",
         &json!({
             "asset_type": "gif",
             "url": "https://gifdb.com/images/high/rust-logo-on-fire-o41c0v9om8drr8dv.gif",
         }),
     )?;
-    examples::post(
+    utils::post(
         "image/example_jpeg/register",
         &json!({
             "asset_type": "jpeg",
             "url": "https://www.rust-lang.org/static/images/rust-social.jpg",
         }),
     )?;
-    examples::post(
+    utils::post(
         "image/example_svg/register",
         &json!({
             "asset_type": "svg",
@@ -55,7 +57,7 @@ fn start_example_client_code() -> Result<()> {
             "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.width},
         }),
     )?;
-    examples::post(
+    utils::post(
         "image/example_png/register",
         &json!({
             "asset_type": "png",
@@ -107,7 +109,7 @@ fn start_example_client_code() -> Result<()> {
     });
 
     info!("[example] Send register output request.");
-    examples::post(
+    utils::post(
         "output/output_1/register",
         &json!({
             "type": "rtp_stream",
@@ -130,7 +132,7 @@ fn start_example_client_code() -> Result<()> {
     )?;
 
     info!("[example] Start pipeline");
-    examples::post("start", &json!({}))?;
+    utils::post("start", &json!({}))?;
 
     Ok(())
 }

@@ -21,7 +21,7 @@ use compositor_render::{
 };
 use crossbeam_channel::bounded;
 use image::{codecs::png::PngEncoder, ColorType, ImageEncoder};
-use integration_tests::{examples::download_file, read_rgba_texture};
+use integration_tests::{utils::download_file, read_rgba_texture};
 use live_compositor::{
     config::{read_config, LoggerConfig, LoggerFormat},
     logger::{self, FfmpegLogLevel},

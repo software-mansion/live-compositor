@@ -4,8 +4,9 @@ use log::{error, info};
 use serde_json::json;
 use std::thread;
 
-use integration_tests::examples::{
-    self, start_ffplay, start_websocket_thread, ff_stream_testsrc,
+use integration_tests::{
+    ffmpeg_utils::{start_ffmpeg_receive, start_ffmpeg_send_testsrc},
+    utils::{self, start_websocket_thread},
 };
 
 const VIDEO_RESOLUTION: Resolution = Resolution {
@@ -31,11 +32,11 @@ fn main() {
 
 fn start_example_client_code() -> Result<()> {
     info!("[example] Start listening on output port.");
-    start_ffplay(IP, Some(OUTPUT_PORT), None)?;
+    start_ffmpeg_receive(Some(OUTPUT_PORT), None)?;
     start_websocket_thread();
 
     info!("[example] Send register input request.");
-    examples::post(
+    utils::post(
         "input/input_1/register",
         &json!({
             "type": "rtp_stream",
@@ -72,7 +73,7 @@ fn start_example_client_code() -> Result<()> {
     };
 
     info!("[example] Send register output request.");
-    examples::post(
+    utils::post(
         "output/output_1/register",
         &json!({
             "type": "rtp_stream",
@@ -96,7 +97,7 @@ fn start_example_client_code() -> Result<()> {
 
     for i in 1..=16 {
         info!("[example] Update output");
-        examples::post(
+        utils::post(
             "output/output_1/update",
             &json!({
                 "video": {
@@ -108,14 +109,14 @@ fn start_example_client_code() -> Result<()> {
     }
 
     info!("[example] Start pipeline");
-    examples::post("start", &json!({}))?;
+    utils::post("start", &json!({}))?;
 
     info!("[example] Start input stream");
-    ff_stream_testsrc(IP, INPUT_PORT, VIDEO_RESOLUTION)?;
+    start_ffmpeg_send_testsrc(IP, INPUT_PORT, VIDEO_RESOLUTION)?;
 
     for i in 0..16 {
         info!("[example] Update output");
-        examples::post(
+        utils::post(
             "output/output_1/update",
             &json!({
                 "video": {
@@ -127,7 +128,7 @@ fn start_example_client_code() -> Result<()> {
     }
 
     info!("[example] Update output");
-    examples::post(
+    utils::post(
         "output/output_1/update",
         &json!({
             "video": {

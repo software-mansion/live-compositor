@@ -22,7 +22,7 @@ use compositor_render::{
     scene::{Component, InputStreamComponent},
     InputId, OutputId, Resolution,
 };
-use integration_tests::examples::download_file;
+use integration_tests::utils::download_file;
 use live_compositor::{
     config::{read_config, LoggerConfig, LoggerFormat},
     logger::{self, FfmpegLogLevel},

@@ -7,7 +7,9 @@ mod texture;
 mod validation;
 mod video_decoder;
 
-pub mod examples;
+pub mod utils;
+pub mod ffmpeg_utils;
+pub mod gstreamer_utils;
 pub mod test_input;
 
 #[cfg(test)]

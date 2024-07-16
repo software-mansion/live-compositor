@@ -8,8 +8,9 @@ use std::{
     time::Duration,
 };
 
-use integration_tests::examples::{
-    self, download_file, ff_stream_audio, ff_stream_video, start_ffplay, start_websocket_thread,
+use integration_tests::{
+    ffmpeg_utils::{start_ffmpeg_receive, start_ffmpeg_send_audio, start_ffmpeg_send_video},
+    utils::{self, download_file, start_websocket_thread},
 };
 
 const BUNNY_FILE_URL: &str =
@@ -53,7 +54,7 @@ fn main() {
 fn start_example_client_code() -> Result<()> {
     info!("[example] Start listening on output port.");
     // start_ffplay(IP, OUTPUT_VIDEO_PORT, Some(OUTPUT_AUDIO_PORT))?;
-    start_ffplay(IP, Some(OUTPUT_VIDEO_PORT), Some(OUTPUT_AUDIO_PORT))?;
+    start_ffmpeg_receive(Some(OUTPUT_VIDEO_PORT), Some(OUTPUT_AUDIO_PORT))?;
     start_websocket_thread();
 
     info!("[example] Download sample.");
@@ -63,7 +64,7 @@ fn start_example_client_code() -> Result<()> {
     let elephant_path = download_file(ELEPHANT_DREAM_FILE_URL, ELEPHANT_DREAM_FILE_PATH)?;
 
     info!("[example] Send register input request.");
-    examples::post(
+    utils::post(
         "input/input_1/register",
         &json!({
             "type": "rtp_stream",
@@ -75,7 +76,7 @@ fn start_example_client_code() -> Result<()> {
     )?;
 
     info!("[example] Send register input request.");
-    examples::post(
+    utils::post(
         "input/input_2/register",
         &json!({
             "type": "rtp_stream",
@@ -87,7 +88,7 @@ fn start_example_client_code() -> Result<()> {
     )?;
 
     info!("[example] Send register input request.");
-    examples::post(
+    utils::post(
         "input/input_3/register",
         &json!({
             "type": "rtp_stream",
@@ -99,7 +100,7 @@ fn start_example_client_code() -> Result<()> {
     )?;
 
     info!("[example] Send register input request.");
-    examples::post(
+    utils::post(
         "input/input_4/register",
         &json!({
             "type": "rtp_stream",
@@ -111,7 +112,7 @@ fn start_example_client_code() -> Result<()> {
     )?;
 
     info!("[example] Send register output request.");
-    examples::post(
+    utils::post(
         "output/output_1/register",
         &json!({
             "type": "rtp_stream",
@@ -147,7 +148,7 @@ fn start_example_client_code() -> Result<()> {
     )?;
 
     info!("[example] Send register output request.");
-    examples::post(
+    utils::post(
         "output/output_2/register",
         &json!({
             "type": "rtp_stream",
@@ -171,12 +172,12 @@ fn start_example_client_code() -> Result<()> {
     std::thread::sleep(Duration::from_millis(500));
 
     info!("[example] Start pipeline");
-    examples::post("start", &json!({}))?;
+    utils::post("start", &json!({}))?;
 
-    ff_stream_video(IP, INPUT_1_PORT, bunny_path.clone())?;
-    ff_stream_audio(IP, INPUT_2_PORT, bunny_path, "libopus")?;
-    ff_stream_video(IP, INPUT_3_PORT, elephant_path.clone())?;
-    ff_stream_audio(IP, INPUT_4_PORT, elephant_path, "libopus")?;
+    start_ffmpeg_send_video(IP, INPUT_1_PORT, bunny_path.clone())?;
+    start_ffmpeg_send_audio(IP, INPUT_2_PORT, bunny_path, "libopus")?;
+    start_ffmpeg_send_video(IP, INPUT_3_PORT, elephant_path.clone())?;
+    start_ffmpeg_send_audio(IP, INPUT_4_PORT, elephant_path, "libopus")?;
 
     Ok(())
 }
