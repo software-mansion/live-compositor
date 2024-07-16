@@ -11,8 +11,8 @@ use crate::{
 ///
 /// Show `input_1` with audio for 20 seconds.
 #[test]
-pub fn muxed_video_audio() -> Result<()> {
-    const OUTPUT_DUMP_FILE: &str = "muxed_video_audio_output.rtp";
+pub fn single_input_with_video_and_audio_flaky() -> Result<()> {
+    const OUTPUT_DUMP_FILE: &str = "single_input_with_video_and_audio_output.rtp";
     let instance = CompositorInstance::start();
     let input_port = instance.get_port();
     let output_port = instance.get_port();
@@ -82,18 +82,19 @@ pub fn muxed_video_audio() -> Result<()> {
     )?;
 
     let packets_dump = input_dump_from_disk("8_colors_input_video_audio.rtp")?;
-    let mut packet_sender = PacketSender::new(CommunicationProtocol::Tcp, input_port)?;
-    packet_sender.send(&packets_dump)?;
+    let sender_handle =
+        PacketSender::new(CommunicationProtocol::Tcp, input_port)?.send_non_blocking(packets_dump);
 
     instance.send_request("start", json!({}))?;
 
+    sender_handle.join().unwrap();
     let new_output_dump = output_receiver.wait_for_output()?;
 
     compare_video_dumps(
         OUTPUT_DUMP_FILE,
         &new_output_dump,
         VideoValidationConfig {
-            validation_intervals: vec![Duration::from_millis(500)..Duration::from_millis(2500)],
+            validation_intervals: vec![Duration::ZERO..Duration::from_secs(18)],
             ..Default::default()
         },
     )?;
@@ -103,8 +104,9 @@ pub fn muxed_video_audio() -> Result<()> {
         &new_output_dump,
         AudioValidationConfig {
             sampling_intervals: vec![
-                Duration::from_millis(500)..Duration::from_millis(1500),
-                Duration::from_millis(2500)..Duration::from_millis(3500),
+                Duration::from_millis(0)..Duration::from_millis(2000),
+                Duration::from_millis(2000)..Duration::from_millis(4000),
+                Duration::from_millis(8000)..Duration::from_millis(10000),
             ],
             ..Default::default()
         },

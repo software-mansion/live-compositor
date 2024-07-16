@@ -1,10 +1,12 @@
 use std::{
     io::Write,
     net::{Ipv4Addr, SocketAddr},
+    thread::{self, JoinHandle},
 };
 
 use crate::common::CommunicationProtocol;
 use anyhow::Result;
+use bytes::Bytes;
 
 pub struct PacketSender {
     protocol: CommunicationProtocol,
@@ -36,6 +38,12 @@ impl PacketSender {
             CommunicationProtocol::Udp => self.send_via_udp(rtp_packets),
             CommunicationProtocol::Tcp => self.send_via_tcp(rtp_packets),
         }
+    }
+
+    pub fn send_non_blocking(mut self, rtp_packets: Bytes) -> JoinHandle<()> {
+        thread::spawn(move || {
+            self.send(&rtp_packets).unwrap();
+        })
     }
 
     fn send_via_udp(&mut self, rtp_packets: &[u8]) -> Result<()> {

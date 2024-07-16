@@ -12,11 +12,11 @@ use crate::{
 /// stream was delivered before the compositor start. (TCP input)
 ///
 /// Output:
-/// - Display entire input stream from the beginning (16 seconds). Not black frames at the
-/// beginning. Starts with a green.
-/// - Black screen for remaining 14 seconds.
+/// - Display entire input stream from the beginning (16 seconds). No black frames at the
+/// beginning. Starts with a green color.
+/// - Black screen for remaining 4 seconds.
 #[test]
-pub fn push_entire_input_before_start_tcp() -> Result<()> {
+pub fn push_input_before_start_tcp() -> Result<()> {
     const OUTPUT_DUMP_FILE: &str = "push_entire_input_before_start_tcp.rtp";
     let instance = CompositorInstance::start();
     let input_port = instance.get_port();
@@ -52,7 +52,7 @@ pub fn push_entire_input_before_start_tcp() -> Result<()> {
     instance.send_request(
         "output/output_1/unregister",
         json!({
-            "schedule_time_ms": 30_000,
+            "schedule_time_ms": 20_000,
         }),
     )?;
 
@@ -65,26 +65,27 @@ pub fn push_entire_input_before_start_tcp() -> Result<()> {
             "video": {
                 "decoder": "ffmpeg_h264"
             },
+            "required": true,
             "offset_ms": 0
         }),
     )?;
 
-    let mut input_1_sender = PacketSender::new(CommunicationProtocol::Tcp, input_port)?;
     let input_1_dump = input_dump_from_disk("8_colors_input_video.rtp")?;
-
-    input_1_sender.send(&input_1_dump)?;
+    let input_1_handle =
+        PacketSender::new(CommunicationProtocol::Tcp, input_port)?.send_non_blocking(input_1_dump);
 
     thread::sleep(Duration::from_secs(5));
 
     instance.send_request("start", json!({}))?;
 
+    input_1_handle.join().unwrap();
     let new_output_dump = output_receiver.wait_for_output()?;
 
     compare_video_dumps(
         OUTPUT_DUMP_FILE,
         &new_output_dump,
         VideoValidationConfig {
-            validation_intervals: vec![Duration::from_millis(0)..Duration::from_millis(1200)],
+            validation_intervals: vec![Duration::ZERO..Duration::from_secs(20)],
             ..Default::default()
         },
     )?;
@@ -98,9 +99,9 @@ pub fn push_entire_input_before_start_tcp() -> Result<()> {
 /// Output:
 /// - Display entire input stream from the beginning (16 seconds). No black frames at the
 /// beginning. Starts with a green screen.
-/// - Black screen for remaining 14 seconds.
+/// - Black screen for remaining 4 seconds.
 #[test]
-pub fn push_entire_input_before_start_udp() -> Result<()> {
+pub fn push_input_before_start_udp() -> Result<()> {
     const OUTPUT_DUMP_FILE: &str = "push_entire_input_before_start_udp.rtp";
     let instance = CompositorInstance::start();
     let input_port = instance.get_port();
@@ -136,7 +137,7 @@ pub fn push_entire_input_before_start_udp() -> Result<()> {
     instance.send_request(
         "output/output_1/unregister",
         json!({
-            "schedule_time_ms": 30_000,
+            "schedule_time_ms": 20_000,
         }),
     )?;
 
@@ -149,26 +150,27 @@ pub fn push_entire_input_before_start_udp() -> Result<()> {
             "video": {
                 "decoder": "ffmpeg_h264"
             },
+            "required": true,
             "offset_ms": 0
         }),
     )?;
 
-    let mut input_1_sender = PacketSender::new(CommunicationProtocol::Udp, input_port)?;
     let input_1_dump = input_dump_from_disk("8_colors_input_video.rtp")?;
-
-    input_1_sender.send(&input_1_dump)?;
+    let input_1_handle =
+        PacketSender::new(CommunicationProtocol::Udp, input_port)?.send_non_blocking(input_1_dump);
 
     thread::sleep(Duration::from_secs(5));
 
     instance.send_request("start", json!({}))?;
 
+    input_1_handle.join().unwrap();
     let new_output_dump = output_receiver.wait_for_output()?;
 
     compare_video_dumps(
         OUTPUT_DUMP_FILE,
         &new_output_dump,
         VideoValidationConfig {
-            validation_intervals: vec![Duration::from_millis(0)..Duration::from_millis(1200)],
+            validation_intervals: vec![Duration::ZERO..Duration::from_secs(20)],
             ..Default::default()
         },
     )?;
@@ -181,10 +183,10 @@ pub fn push_entire_input_before_start_udp() -> Result<()> {
 ///
 /// Output:
 /// - Display input stream without initial 5 seconds from the beginning (11 seconds). Not black frames at the
-/// beginning. Starts with a red color.
-/// - Black screen for remaining 19 seconds.
+/// beginning. Starts with a red color. Initial 5 second of input stream is missing.
+/// - Black screen for remaining 9 seconds.
 #[test]
-pub fn push_entire_input_before_start_tcp_without_offset() -> Result<()> {
+pub fn push_input_before_start_tcp_no_offset() -> Result<()> {
     const OUTPUT_DUMP_FILE: &str = "push_entire_input_before_start_tcp_without_offset.rtp";
     let instance = CompositorInstance::start();
     let input_port = instance.get_port();
@@ -220,7 +222,7 @@ pub fn push_entire_input_before_start_tcp_without_offset() -> Result<()> {
     instance.send_request(
         "output/output_1/unregister",
         json!({
-            "schedule_time_ms": 30_000,
+            "schedule_time_ms": 20_000,
         }),
     )?;
 
@@ -233,26 +235,27 @@ pub fn push_entire_input_before_start_tcp_without_offset() -> Result<()> {
             "video": {
                 "decoder": "ffmpeg_h264"
             },
+            "required": true,
         }),
     )?;
 
-    let mut input_1_sender = PacketSender::new(CommunicationProtocol::Tcp, input_port)?;
     let input_1_dump = input_dump_from_disk("8_colors_input_video.rtp")?;
-
-    input_1_sender.send(&input_1_dump)?;
+    let input_1_handle =
+        PacketSender::new(CommunicationProtocol::Tcp, input_port)?.send_non_blocking(input_1_dump);
 
     thread::sleep(Duration::from_secs(5));
 
     instance.send_request("start", json!({}))?;
 
+    input_1_handle.join().unwrap();
     let new_output_dump = output_receiver.wait_for_output()?;
 
     compare_video_dumps(
         OUTPUT_DUMP_FILE,
         &new_output_dump,
         VideoValidationConfig {
-            validation_intervals: vec![Duration::from_millis(0)..Duration::from_millis(1200)],
-            allowed_invalid_frames: 5,
+            validation_intervals: vec![Duration::ZERO..Duration::from_secs(20)],
+            allowed_invalid_frames: 10,
             ..Default::default()
         },
     )?;
@@ -265,10 +268,10 @@ pub fn push_entire_input_before_start_tcp_without_offset() -> Result<()> {
 ///
 /// Output:
 /// - Display entire input stream from the beginning (16 seconds). No black frames at the
-/// beginning. Starts with a red color.
-/// - Black screen for remaining 14 seconds.
+/// beginning. Starts with a red color. Initial 5 second of input stream is missing.
+/// - Black screen for remaining 19 seconds.
 #[test]
-pub fn push_entire_input_before_start_udp_without_offset() -> Result<()> {
+pub fn push_input_before_start_udp_no_offset() -> Result<()> {
     const OUTPUT_DUMP_FILE: &str = "push_entire_input_before_start_udp_without_offset.rtp";
     let instance = CompositorInstance::start();
     let input_port = instance.get_port();
@@ -304,7 +307,7 @@ pub fn push_entire_input_before_start_udp_without_offset() -> Result<()> {
     instance.send_request(
         "output/output_1/unregister",
         json!({
-            "schedule_time_ms": 30_000,
+            "schedule_time_ms": 20_000,
         }),
     )?;
 
@@ -317,26 +320,27 @@ pub fn push_entire_input_before_start_udp_without_offset() -> Result<()> {
             "video": {
                 "decoder": "ffmpeg_h264"
             },
+            "required": true,
         }),
     )?;
 
-    let mut input_1_sender = PacketSender::new(CommunicationProtocol::Udp, input_port)?;
     let input_1_dump = input_dump_from_disk("8_colors_input_video.rtp")?;
-
-    input_1_sender.send(&input_1_dump)?;
+    let input_1_handle =
+        PacketSender::new(CommunicationProtocol::Udp, input_port)?.send_non_blocking(input_1_dump);
 
     thread::sleep(Duration::from_secs(5));
 
     instance.send_request("start", json!({}))?;
 
+    input_1_handle.join().unwrap();
     let new_output_dump = output_receiver.wait_for_output()?;
 
     compare_video_dumps(
         OUTPUT_DUMP_FILE,
         &new_output_dump,
         VideoValidationConfig {
-            validation_intervals: vec![Duration::from_millis(0)..Duration::from_millis(1200)],
-            allowed_invalid_frames: 5,
+            validation_intervals: vec![Duration::ZERO..Duration::from_secs(18)],
+            allowed_invalid_frames: 10,
             ..Default::default()
         },
     )?;
