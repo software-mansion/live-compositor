@@ -97,6 +97,12 @@ const config: Config = {
       theme: prismThemes.duotoneDark,
       additionalLanguages: ['wgsl', 'http', 'elixir', 'bash'],
     },
+    algolia: {
+      appId: 'AB30AX8OU1',
+      apiKey: '4dae5f71952b8ebd63dd7645128c3b24',
+      indexName: 'compositor',
+      contextualSearch: true,
+    },
   } satisfies Preset.ThemeConfig,
 };
 
