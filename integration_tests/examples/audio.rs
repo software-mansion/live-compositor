@@ -8,8 +8,9 @@ use std::{
     time::Duration,
 };
 
-use integration_tests::examples::{
-    self, download_file, ff_stream_audio, ff_stream_video, start_ffplay, start_websocket_thread,
+use integration_tests::{
+    examples::{self, download_file, start_websocket_thread},
+    ffmpeg::{start_ffmpeg_receive, start_ffmpeg_send_audio, start_ffmpeg_send_video},
 };
 
 const BUNNY_FILE_URL: &str =
@@ -52,8 +53,7 @@ fn main() {
 
 fn start_example_client_code() -> Result<()> {
     info!("[example] Start listening on output port.");
-    // start_ffplay(IP, OUTPUT_VIDEO_PORT, Some(OUTPUT_AUDIO_PORT))?;
-    start_ffplay(IP, Some(OUTPUT_VIDEO_PORT), Some(OUTPUT_AUDIO_PORT))?;
+    start_ffmpeg_receive(Some(OUTPUT_VIDEO_PORT), Some(OUTPUT_AUDIO_PORT))?;
     start_websocket_thread();
 
     info!("[example] Download sample.");
@@ -173,10 +173,10 @@ fn start_example_client_code() -> Result<()> {
     info!("[example] Start pipeline");
     examples::post("start", &json!({}))?;
 
-    ff_stream_video(IP, INPUT_1_PORT, bunny_path.clone())?;
-    ff_stream_audio(IP, INPUT_2_PORT, bunny_path, "libopus")?;
-    ff_stream_video(IP, INPUT_3_PORT, elephant_path.clone())?;
-    ff_stream_audio(IP, INPUT_4_PORT, elephant_path, "libopus")?;
+    start_ffmpeg_send_video(IP, INPUT_1_PORT, bunny_path.clone())?;
+    start_ffmpeg_send_audio(IP, INPUT_2_PORT, bunny_path, "libopus")?;
+    start_ffmpeg_send_video(IP, INPUT_3_PORT, elephant_path.clone())?;
+    start_ffmpeg_send_audio(IP, INPUT_4_PORT, elephant_path, "libopus")?;
 
     Ok(())
 }

@@ -4,8 +4,9 @@ use log::{error, info};
 use serde_json::json;
 use std::{thread, time::Duration};
 
-use integration_tests::examples::{
-    self, download_file, gst_stream, start_gstplay, start_websocket_thread,
+use integration_tests::{
+    examples::{self, download_file, start_websocket_thread},
+    gstreamer::{start_gst_receive_tcp, start_gst_send_tcp},
 };
 
 const SAMPLE_FILE_URL: &str =
@@ -119,13 +120,10 @@ fn start_example_client_code() -> Result<()> {
         }),
     )?;
 
-    start_gstplay(IP, OUTPUT_PORT, true, true)?;
+    start_gst_receive_tcp(IP, OUTPUT_PORT, true, true)?;
 
     info!("[example] Start pipeline");
     examples::post("start", &json!({}))?;
-
-    let sample_path_str = sample_path.to_string_lossy().to_string();
-
-    gst_stream(IP, Some(INPUT_1_PORT), Some(INPUT_2_PORT), &sample_path_str)?;
+    start_gst_send_tcp(IP, Some(INPUT_1_PORT), Some(INPUT_2_PORT), sample_path)?;
     Ok(())
 }

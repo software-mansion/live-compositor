@@ -4,7 +4,10 @@ use log::{error, info};
 use serde_json::json;
 use std::{thread, time::Duration};
 
-use integration_tests::examples::{self, start_ffplay, start_websocket_thread};
+use integration_tests::{
+    examples::{self, start_websocket_thread},
+    ffmpeg::start_ffmpeg_receive,
+};
 
 const BUNNY_URL: &str =
     "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
@@ -32,7 +35,7 @@ fn main() {
 
 fn start_example_client_code() -> Result<()> {
     info!("[example] Start listening on output port.");
-    start_ffplay(IP, Some(OUTPUT_VIDEO_PORT), Some(OUTPUT_AUDIO_PORT))?;
+    start_ffmpeg_receive(Some(OUTPUT_VIDEO_PORT), Some(OUTPUT_AUDIO_PORT))?;
     start_websocket_thread();
 
     info!("[example] Send register input request.");
