@@ -70,7 +70,7 @@ ffmpeg -protocol_whitelist "file,rtp,udp" -i output.sdp out.mp4
 
 #### GStreamer
 
-Receive RTP stream over TCP by connecting to `127.0.0.1:9001`. Play both audio and video streams using `autovideosink` 
+Receive RTP stream over TCP by connecting to `127.0.0.1:9001`. Play both audio and video streams using `autovideosink`
 and `autoaudiosink`.
 
 ```bash
@@ -86,7 +86,7 @@ To use UDP instead replace
 ```
 tcpclientsrc host=127.0.0.1 port=9001 ! \"application/x-rtp-stream\" ! rtpstreamdepay
 ```
-with 
+with
 ```
-udpsrc port=9001
+udpsrc port=9001 ! \"application/x-rtp\"
 ```
