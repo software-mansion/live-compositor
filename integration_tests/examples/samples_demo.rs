@@ -19,11 +19,11 @@ const INPUT_1_PORT: u16 = 8002;
 const INPUT_2_PORT: u16 = 8004;
 const INPUT_3_PORT: u16 = 8006;
 const INPUT_4_PORT: u16 = 8008;
-const INPUT_5_PORT: u16 = 8014;
-const INPUT_6_PORT: u16 = 8016;
-const INPUT_7_PORT: u16 = 8018;
-const OUTPUT_VIDEO_PORT: u16 = 8010;
-const OUTPUT_AUDIO_PORT: u16 = 8012;
+const INPUT_5_PORT: u16 = 8010;
+const INPUT_6_PORT: u16 = 8012;
+const INPUT_7_PORT: u16 = 8014;
+const OUTPUT_VIDEO_PORT: u16 = 8016;
+const OUTPUT_AUDIO_PORT: u16 = 8018;
 
 fn main() {
     run_example(start_example_client_code);

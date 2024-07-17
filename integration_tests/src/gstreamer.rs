@@ -86,7 +86,7 @@ pub fn start_gst_send_sample_tcp(
             start_gst_send_tcp(ip, video_port, audio_port, get_asset_path(test_sample)?)
         }
         TestSample::SampleLoop => Err(anyhow!(
-            "Cannot play sample in loop using gstreamer, try ffmpeg."
+            "Cannot play sample in loop using gstreamer, try ffmpeg instead."
         )),
         TestSample::Generic => start_gst_send_testsrc_tcp(ip, video_port, audio_port),
     }
@@ -103,7 +103,7 @@ pub fn start_gst_send_sample_udp(
             start_gst_send_udp(ip, video_port, audio_port, get_asset_path(test_sample)?)
         }
         TestSample::SampleLoop => Err(anyhow!(
-            "Cannot play sample in loop using gstreamer, try ffmpeg."
+            "Cannot play sample in loop using gstreamer, try ffmpeg instead."
         )),
         TestSample::Generic => start_gst_send_testsrc_udp(ip, video_port, audio_port),
     }
