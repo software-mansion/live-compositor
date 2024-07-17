@@ -59,10 +59,11 @@ ffmpeg -re -i path_to_file -vn -c:a libopus -f rtp rtp://127.0.0.1:9001?rtcpport
 
 #### GStreamer
 
-Stream audio and video from a MP4 file over RTP TCP:
+Stream audio and video from a MP4 file over RTP:
 - video to `127.0.0.1:9001`
 - audio to `127.0.0.1:9002`
 
+Using TCP:
 ```bash
 gst-launch-1.0 filesrc location=path_to_file.mp4 ! qtdemux name=demux \
     ! demux.video_0 ! queue ! h264parse ! rtph264pay config-interval=1 \
@@ -71,12 +72,19 @@ gst-launch-1.0 filesrc location=path_to_file.mp4 ! qtdemux name=demux \
     ! "application/x-rtp,payload=97" ! rtpstreampay ! tcpclientsink host=127.0.0.1 port=9002
 ```
 
-- `"application/x-rtp,payload=97"`/`"application/x-rtp,payload=97"` - Compositor detects audio stream based on payload type. It needs 
+- `"application/x-rtp,payload=97"`/`"application/x-rtp,payload=97"` - Compositor detects audio stream based on payload type. It needs
 to be set to 96 for video and 97 for audio.
-- `decodebin ! audioconvert ! audioresample ! opusenc` - Transcode audio (most likely from AAC) from MP4 file into Opus. If you know 
+- `decodebin ! audioconvert ! audioresample ! opusenc` - Transcode audio (most likely from AAC) from MP4 file into Opus. If you know
 what format is inside you can simplify this part.
-- Compositor supports multiplexing audio and video stream on the same port, but it is hard to create a GStreamer pipeline that demuxes 
+- Compositor supports multiplexing audio and video stream on the same port, but it is hard to create a GStreamer pipeline that demuxes
 audio and video tracks converts them to RTP and multiplex them on the same port.
 
-To stream over UDP replace `rtpstreampay ! tcpclientsink host=127.0.0.1 port=9002` with <nobr>`udpsink host=127.0.0.1 port=9002`</nobr>.
+Using UDP:
+```bash
+gst-launch-1.0 filesrc location=path_to_file.mp4 ! qtdemux name=demux \
+    ! demux.video_0 ! queue ! h264parse ! rtph264pay config-interval=1 \
+    ! "application/x-rtp,payload=96" ! udpsink host=127.0.0.1 port=9001  \
+    ! demux.audio_0 ! queue ! decodebin ! audioconvert ! audioresample ! opusenc ! rtpopuspay \
+    ! "application/x-rtp,payload=97" ! udpsink host=127.0.0.1 port=9002
+```
 Additionally, you can use the same port for video and audio.
