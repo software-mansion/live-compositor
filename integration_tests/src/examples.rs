@@ -1,7 +1,8 @@
 use anyhow::{anyhow, Result};
 
+use compositor_api::types::Resolution;
 use futures_util::{SinkExt, StreamExt};
-use live_compositor::{config::read_config, types::Resolution};
+use live_compositor::config::read_config;
 use log::error;
 use reqwest::{blocking::Response, StatusCode};
 use std::{

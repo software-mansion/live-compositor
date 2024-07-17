@@ -5,9 +5,10 @@ use compositor_render::{error::ErrorStack, RegistryType};
 use log::error;
 use serde::{Deserialize, Serialize};
 
-use crate::{
+use crate::state::{ApiState, Response};
+
+use compositor_api::{
     error::ApiError,
-    state::{ApiState, Response},
     types::{InputId, OutputId, RendererId},
 };
 

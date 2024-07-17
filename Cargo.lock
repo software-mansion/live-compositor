@@ -454,6 +454,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "compositor_api"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "bytes",
+ "compositor_pipeline",
+ "compositor_render",
+ "schemars",
+ "serde",
+]
+
+[[package]]
 name = "compositor_chromium"
 version = "0.1.0"
 dependencies = [
@@ -1041,6 +1053,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "bytes",
+ "compositor_api",
  "compositor_render",
  "crossbeam-channel",
  "ffmpeg-next",
@@ -1454,6 +1467,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "bytes",
+ "compositor_api",
  "compositor_chromium",
  "compositor_pipeline",
  "compositor_render",
@@ -1632,6 +1646,7 @@ dependencies = [
  "anyhow",
  "axum",
  "bytes",
+ "compositor_api",
  "compositor_chromium",
  "compositor_pipeline",
  "compositor_render",

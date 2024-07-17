@@ -1,0 +1,12 @@
+[package]
+name = "compositor_api"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+compositor_pipeline = { path = "../compositor_pipeline" }
+compositor_render = { path = "../compositor_render"}
+serde = { workspace = true }
+schemars = { workspace = true }
+bytes = { workspace = true }
+axum = { version = "0.7.4", features = ["ws"] }

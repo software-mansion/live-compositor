@@ -1,5 +1,6 @@
 use anyhow::Result;
-use live_compositor::{server, types::Resolution};
+use compositor_api::types::Resolution;
+use live_compositor::server;
 use log::{error, info};
 use serde::Deserialize;
 use serde_json::json;

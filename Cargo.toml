@@ -14,6 +14,7 @@ members = [
     "integration_tests",
     "generate",
     "decklink",
+    "compositor_api",
 ]
 resolver = "2"
 
@@ -52,6 +53,7 @@ schemars = { git = "https://github.com/membraneframework-labs/schemars", rev = "
 ] }
 
 [dependencies]
+compositor_api = { path = "compositor_api" }
 compositor_render = { workspace = true }
 compositor_pipeline = { path = "compositor_pipeline" }
 compositor_chromium = { path = "compositor_chromium", optional = true }

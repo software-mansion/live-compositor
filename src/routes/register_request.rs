@@ -4,9 +4,11 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    error::ApiError,
     routes::Json,
     state::{Pipeline, Response},
+};
+use compositor_api::{
+    error::ApiError,
     types::{
         DeckLink, ImageSpec, InputId, Mp4, OutputId, RendererId, RtpInputStream, RtpOutputStream,
         ShaderSpec, WebRendererSpec,

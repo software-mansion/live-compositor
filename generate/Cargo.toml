@@ -11,6 +11,7 @@ decklink = ["live_compositor/decklink"]
 
 [dependencies]
 live_compositor = { path = ".." }
+compositor_api = { path="../compositor_api" }
 reqwest = { workspace = true }
 anyhow = { workspace = true }
 serde = { workspace = true }

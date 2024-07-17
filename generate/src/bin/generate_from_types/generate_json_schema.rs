@@ -1,6 +1,7 @@
 use std::{fs, io, path::PathBuf};
 
-use live_compositor::{routes, types};
+use compositor_api::types;
+use live_compositor::routes;
 use schemars::{
     schema::{RootSchema, Schema, SchemaObject},
     schema_for, JsonSchema,
