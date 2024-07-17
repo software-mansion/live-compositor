@@ -1,14 +1,13 @@
 use anyhow::Result;
-use live_compositor::{server, types::Resolution};
-use log::{error, info};
+use live_compositor::types::Resolution;
+use log::info;
 use serde_json::json;
-use std::{
-    process::{Command, Stdio},
-    thread,
-    time::Duration,
-};
+use std::time::Duration;
 
-use integration_tests::examples::{self, start_websocket_thread};
+use integration_tests::{
+    examples::{self, run_example},
+    gstreamer::start_gst_receive_tcp,
+};
 
 const VIDEO_RESOLUTION: Resolution = Resolution {
     width: 1280,
@@ -19,22 +18,10 @@ const IP: &str = "127.0.0.1";
 const OUTPUT_VIDEO_PORT: u16 = 8002;
 
 fn main() {
-    ffmpeg_next::format::network::init();
-
-    thread::spawn(|| {
-        if let Err(err) = start_example_client_code() {
-            error!("{err}")
-        }
-    });
-
-    server::run();
+    run_example(client_code);
 }
 
-fn start_example_client_code() -> Result<()> {
-    info!("[example] Start listening on output port.");
-    thread::sleep(Duration::from_secs(2));
-    start_websocket_thread();
-
+fn client_code() -> Result<()> {
     info!("[example] Send register input request.");
     examples::post(
         "input/input_1/register",
@@ -96,19 +83,7 @@ fn start_example_client_code() -> Result<()> {
         }),
     )?;
 
-    let gst_output_command =  [
-        "gst-launch-1.0 -v ",
-        "rtpptdemux name=demux ",
-        &format!("tcpclientsrc host={IP} port={OUTPUT_VIDEO_PORT} ! \"application/x-rtp-stream\" ! rtpstreamdepay ! queue ! demux. "),
-        "demux.src_96 ! \"application/x-rtp,media=video,clock-rate=90000,encoding-name=H264\" ! queue ! rtph264depay ! decodebin ! videoconvert ! autovideosink ",
-        "demux.src_97 ! \"application/x-rtp,media=audio,clock-rate=48000,encoding-name=OPUS\" ! queue ! rtpopusdepay ! decodebin ! audioconvert ! autoaudiosink ",
-    ].concat();
-    Command::new("bash")
-        .arg("-c")
-        .arg(gst_output_command)
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn()?;
+    start_gst_receive_tcp(IP, OUTPUT_VIDEO_PORT, true, false)?;
 
     std::thread::sleep(Duration::from_millis(1000));
 

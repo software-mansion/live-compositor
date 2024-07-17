@@ -54,7 +54,7 @@ pub fn run_example(client_code: fn() -> Result<()>) {
             }
         });
 
-        start_websocket_thread();
+        start_server_msg_listener();
     });
     server::run();
 }
@@ -75,18 +75,18 @@ fn wait_for_server_ready(timeout: Duration) -> Result<()> {
     Ok(())
 }
 
-pub fn start_websocket_thread() {
+pub fn start_server_msg_listener() {
     thread::Builder::new()
         .name("Websocket Thread".to_string())
         .spawn(|| {
             tokio::runtime::Runtime::new()
                 .unwrap()
-                .block_on(async { websocket_thread().await });
+                .block_on(async { server_msg_listener().await });
         })
         .unwrap();
 }
 
-async fn websocket_thread() {
+async fn server_msg_listener() {
     let url = format!("ws://127.0.0.1:{}/ws", read_config().api_port);
 
     let (ws_stream, _) = tokio_tungstenite::connect_async(url)

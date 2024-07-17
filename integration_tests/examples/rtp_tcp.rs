@@ -1,17 +1,13 @@
 use anyhow::Result;
-use live_compositor::{server, types::Resolution};
-use log::{error, info};
+use live_compositor::types::Resolution;
+use log::info;
 use serde_json::json;
-use std::{thread, time::Duration};
 
 use integration_tests::{
-    examples::{self, download_file, start_websocket_thread},
-    gstreamer::{start_gst_receive_tcp, start_gst_send_tcp},
+    examples::{self, run_example, TestSample},
+    gstreamer::{start_gst_receive_tcp, start_gst_send_sample_tcp},
 };
 
-const SAMPLE_FILE_URL: &str =
-    "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
-const SAMPLE_FILE_PATH: &str = "examples/assets/BigBuckBunny.mp4";
 const VIDEO_RESOLUTION: Resolution = Resolution {
     width: 1280,
     height: 720,
@@ -23,23 +19,10 @@ const INPUT_2_PORT: u16 = 8004;
 const OUTPUT_PORT: u16 = 8006;
 
 fn main() {
-    ffmpeg_next::format::network::init();
-
-    thread::spawn(|| {
-        if let Err(err) = start_example_client_code() {
-            error!("{err}")
-        }
-    });
-
-    server::run()
+    run_example(client_code);
 }
 
-fn start_example_client_code() -> Result<()> {
-    info!("[example] Download sample.");
-    let sample_path = download_file(SAMPLE_FILE_URL, SAMPLE_FILE_PATH)?;
-    thread::sleep(Duration::from_secs(2));
-    start_websocket_thread();
-
+fn client_code() -> Result<()> {
     info!("[example] Send register input request.");
     examples::post(
         "input/input_1/register",
@@ -124,6 +107,11 @@ fn start_example_client_code() -> Result<()> {
 
     info!("[example] Start pipeline");
     examples::post("start", &json!({}))?;
-    start_gst_send_tcp(IP, Some(INPUT_1_PORT), Some(INPUT_2_PORT), sample_path)?;
+    start_gst_send_sample_tcp(
+        IP,
+        Some(INPUT_1_PORT),
+        Some(INPUT_2_PORT),
+        TestSample::BigBuckBunny,
+    )?;
     Ok(())
 }

@@ -6,7 +6,7 @@ use signal_hook::{consts, iterator::Signals};
 use std::{env, process::Command, thread, time::Duration};
 
 use integration_tests::{
-    examples::{self, start_websocket_thread},
+    examples::{self, start_server_msg_listener},
     ffmpeg::{start_ffmpeg_receive, start_ffmpeg_send_testsrc},
 };
 const VIDEO_RESOLUTION: Resolution = Resolution {
@@ -103,7 +103,7 @@ fn start_example_client_code(host_ip: String) -> Result<()> {
 
     info!("[example] Start listening on output port.");
     start_ffmpeg_receive(Some(OUTPUT_PORT), None)?;
-    start_websocket_thread();
+    start_server_msg_listener();
 
     info!("[example] Send register input request.");
     examples::post(

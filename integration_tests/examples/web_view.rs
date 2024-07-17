@@ -1,19 +1,14 @@
 use anyhow::Result;
-use live_compositor::{server, types::Resolution};
-use log::{error, info};
+use live_compositor::types::Resolution;
+use log::info;
 use serde_json::json;
-use std::{
-    env,
-    thread::{self},
-};
+use std::env;
 
 use integration_tests::{
-    examples::{self, download_file},
-    ffmpeg::{start_ffmpeg_receive, start_ffmpeg_send_video},
+    examples::{self, run_example, TestSample},
+    ffmpeg::{start_ffmpeg_receive, start_ffmpeg_send_sample},
 };
 
-const SAMPLE_FILE_URL: &str = "https://filesamples.com/samples/video/mp4/sample_1280x720.mp4";
-const SAMPLE_FILE_PATH: &str = "examples/assets/sample_1280_720.mp4";
 const HTML_FILE_PATH: &str = "examples/web_view.html";
 
 const VIDEO_RESOLUTION: Resolution = Resolution {
@@ -27,7 +22,6 @@ const OUTPUT_PORT: u16 = 8004;
 
 fn main() {
     env::set_var("LIVE_COMPOSITOR_WEB_RENDERER_ENABLE", "1");
-    ffmpeg_next::format::network::init();
 
     use compositor_chromium::cef::bundle_for_development;
 
@@ -42,21 +36,13 @@ fn main() {
             err
         );
     }
-    thread::spawn(|| {
-        if let Err(err) = start_example_client_code() {
-            error!("{err}")
-        }
-    });
 
-    server::run();
+    run_example(client_code);
 }
 
-fn start_example_client_code() -> Result<()> {
+fn client_code() -> Result<()> {
     info!("[example] Start listening on output port.");
     start_ffmpeg_receive(Some(OUTPUT_PORT), None)?;
-
-    info!("[example] Download sample.");
-    let sample_path = download_file(SAMPLE_FILE_URL, SAMPLE_FILE_PATH)?;
 
     let html_file_path = env::current_dir()?
         .join(HTML_FILE_PATH)
@@ -121,6 +107,6 @@ fn start_example_client_code() -> Result<()> {
     info!("[example] Start pipeline");
     examples::post("start", &json!({}))?;
 
-    start_ffmpeg_send_video(IP, INPUT_PORT, sample_path)?;
+    start_ffmpeg_send_sample(IP, Some(INPUT_PORT), None, TestSample::SampleLoop)?;
     Ok(())
 }

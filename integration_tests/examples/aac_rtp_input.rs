@@ -1,15 +1,11 @@
 use anyhow::Result;
-use live_compositor::{server, types::Resolution};
-use log::{error, info};
+use live_compositor::types::Resolution;
+use log::info;
 use serde_json::json;
-use std::{
-    env,
-    thread::{self},
-    time::Duration,
-};
+use std::time::Duration;
 
 use integration_tests::{
-    examples::{self, download_file, start_websocket_thread},
+    examples::{self, download_file, run_example},
     ffmpeg::{start_ffmpeg_receive, start_ffmpeg_send_audio, start_ffmpeg_send_video},
 };
 
@@ -31,25 +27,12 @@ const OUTPUT_VIDEO_PORT: u16 = 8010;
 const OUTPUT_AUDIO_PORT: u16 = 8012;
 
 fn main() {
-    env::set_var("LIVE_COMPOSITOR_WEB_RENDERER_ENABLE", "0");
-    ffmpeg_next::format::network::init();
-
-    thread::spawn(|| {
-        if let Err(err) = start_example_client_code() {
-            error!("{err}")
-        }
-    });
-
-    server::run();
+    run_example(client_code);
 }
 
-fn start_example_client_code() -> Result<()> {
+fn client_code() -> Result<()> {
     info!("[example] Start listening on output port.");
     start_ffmpeg_receive(Some(OUTPUT_VIDEO_PORT), Some(OUTPUT_AUDIO_PORT))?;
-    start_websocket_thread();
-
-    info!("[example] Download sample.");
-    let bunny_path = download_file(BUNNY_FILE_URL, BUNNY_FILE_PATH)?;
 
     info!("[example] Send register input request.");
     examples::post(
@@ -62,6 +45,9 @@ fn start_example_client_code() -> Result<()> {
             },
         }),
     )?;
+
+    info!("[example] Download sample.");
+    let bunny_path = download_file(BUNNY_FILE_URL, BUNNY_FILE_PATH)?;
 
     info!("[example] Send register input request.");
     examples::post(

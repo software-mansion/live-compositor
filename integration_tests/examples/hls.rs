@@ -1,10 +1,10 @@
 use anyhow::Result;
-use live_compositor::{server, types::Resolution};
-use log::{error, info};
+use live_compositor::types::Resolution;
+use log::info;
 use serde_json::json;
-use std::{env, process::Command, thread, time::Duration};
+use std::{process::Command, time::Duration};
 
-use integration_tests::examples::{self, start_websocket_thread};
+use integration_tests::examples::{self, run_example};
 
 const HLS_URL: &str = "https://raw.githubusercontent.com/membraneframework/membrane_http_adaptive_stream_plugin/master/test/membrane_http_adaptive_stream/integration_test/fixtures/audio_multiple_video_tracks/index.m3u8";
 const VIDEO_RESOLUTION: Resolution = Resolution {
@@ -17,22 +17,10 @@ const INPUT_PORT: u16 = 8002;
 const OUTPUT_PORT: u16 = 8004;
 
 fn main() {
-    env::set_var("LIVE_COMPOSITOR_WEB_RENDERER_ENABLE", "0");
-    ffmpeg_next::format::network::init();
-
-    thread::spawn(|| {
-        if let Err(err) = start_example_client_code() {
-            error!("{err}")
-        }
-    });
-
-    server::run();
+    run_example(client_code);
 }
 
-fn start_example_client_code() -> Result<()> {
-    thread::sleep(Duration::from_secs(2));
-    start_websocket_thread();
-
+fn client_code() -> Result<()> {
     info!("[example] Send register input request.");
     examples::post(
         "input/input_1/register",
