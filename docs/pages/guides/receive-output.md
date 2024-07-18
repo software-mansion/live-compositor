@@ -70,23 +70,25 @@ ffmpeg -protocol_whitelist "file,rtp,udp" -i output.sdp out.mp4
 
 #### GStreamer
 
-Receive RTP stream over TCP by connecting to `127.0.0.1:9001`. Play both audio and video streams using `autovideosink`
+Receive RTP stream on port `127.0.0.1:9001`. Play both audio and video streams using `autovideosink`
 and `autoaudiosink`.
 
+Connecting over TCP:
 ```bash
 gst-launch-1.0 rtpptdemux name=demux \
-    tcpclientsrc host=127.0.0.1 port=9001 ! \"application/x-rtp-stream\" ! rtpstreamdepay ! demux. \
+    tcpclientsrc host=127.0.0.1 port=9001 ! \"application/x-rtp-stream\" ! rtpstreamdepay ! queue ! demux. \
     demux.src_96 ! \"application/x-rtp,media=video,clock-rate=90000,encoding-name=H264\" ! queue \
     ! rtph264depay ! decodebin ! videoconvert ! autovideosink \
     demux.src_97 ! \"application/x-rtp,media=audio,clock-rate=48000,encoding-name=OPUS\" ! queue \
     ! rtpopusdepay ! decodebin ! audioconvert ! autoaudiosink
 ```
 
-To use UDP instead replace
-```
-tcpclientsrc host=127.0.0.1 port=9001 ! \"application/x-rtp-stream\" ! rtpstreamdepay
-```
-with
-```
-udpsrc port=9001 ! \"application/x-rtp\"
+Using UDP:
+```bash
+gst-launch-1.0 rtpptdemux name=demux \
+    udpsrc port=9001 ! \"application/x-rtp\" ! queue ! demux. \
+    demux.src_96 ! \"application/x-rtp,media=video,clock-rate=90000,encoding-name=H264\" ! queue \
+    ! rtph264depay ! decodebin ! videoconvert ! autovideosink \
+    demux.src_97 ! \"application/x-rtp,media=audio,clock-rate=48000,encoding-name=OPUS\" ! queue \
+    ! rtpopusdepay ! decodebin ! audioconvert ! autoaudiosink sync=false
 ```
