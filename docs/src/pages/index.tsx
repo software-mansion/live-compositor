@@ -28,10 +28,10 @@ function HomepageHeader() {
   return (
     <div className={clsx('container', styles.firstSection)}>
       <div className="row">
-        <div className="col col--6">
+        <div className={styles.heroText}>
           <div className="container">
-            <Heading as="h1" style={{ fontSize: 55 }}>
-              <span className="text--primary">Mix video and audio</span>
+            <Heading as="h1">
+              <span className="text--primary">Mix video and audio </span>
               <div className={styles.typewriter}>
                 <TypewriterComponent
                   options={{
@@ -47,7 +47,7 @@ function HomepageHeader() {
             <p className={styles.sectionSubheading}>
               Media server for real-time, low latency, programmable video and audio mixing.
             </p>
-            <div className="row margin-bottom--md">
+            <div className="row">
               <Link
                 className={clsx(
                   'button button--primary button--lg col col-6 margin--sm',
@@ -73,18 +73,19 @@ function HomepageHeader() {
             </div>
           </div>
         </div>
-        <div className="col col--6">
+        <div className={styles.heroVideo}>
           <div
             style={{
-              borderRadius: '30px',
+              borderRadius: '15px',
               overflow: 'hidden',
+              boxShadow: '0px 0px 20px 1px #4332a6',
             }}>
             <video
               loop
               autoPlay
               muted
-              src="https://github.com/membraneframework/live_compositor/assets/104033489/e6f5ba7c-ab05-4935-a42a-bc28c42fc895"
-              poster="/img/demo_poster.jpg"
+              src="/video/showcase.mp4"
+              poster="/img/showcase_poster.jpg"
               style={{ width: '100%', display: 'block' }}
             />
           </div>
@@ -107,7 +108,7 @@ function HowItWorks() {
         <br />
         3. Get the mixed streams via RTP
       </p>
-      <div className="row">
+      <div className="row" style={{ alignItems: 'center' }}>
         <div className="col col--6">
           <img src={ComposingImg} alt="Composing" />
         </div>
