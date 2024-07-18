@@ -47,7 +47,7 @@ function HomepageHeader() {
             <p className={styles.sectionSubheading}>
               Media server for real-time, low latency, programmable video and audio mixing.
             </p>
-            <div className="row margin-bottom--md">
+            <div className="row">
               <Link
                 className={clsx(
                   'button button--primary button--lg col col-6 margin--sm',
@@ -108,7 +108,7 @@ function HowItWorks() {
         <br />
         3. Get the mixed streams via RTP
       </p>
-      <div className="row">
+      <div className="row" style={{ alignItems: 'center' }}>
         <div className="col col--6">
           <img src={ComposingImg} alt="Composing" />
         </div>

@@ -55,12 +55,12 @@
 }
 
 [data-theme='dark'] .sectionSubheading {
-  font-size: 18px;
+  font-size: 25px;
   color: hsl(240 5% 64.9%);
 }
 
 [data-theme='light'] .sectionSubheading {
-  font-size: 18px;
+  font-size: 25px;
   color: hsl(240 5% 34.9%);
 }
 
