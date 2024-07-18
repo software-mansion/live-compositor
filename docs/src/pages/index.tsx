@@ -28,10 +28,10 @@ function HomepageHeader() {
   return (
     <div className={clsx('container', styles.firstSection)}>
       <div className="row">
-        <div className="col col--5">
+        <div className={styles.heroText}>
           <div className="container">
-            <Heading as="h1" style={{ fontSize: 50 }}>
-              <span className="text--primary">Mix video and audio</span>
+            <Heading as="h1">
+              <span className="text--primary">Mix video and audio </span>
               <div className={styles.typewriter}>
                 <TypewriterComponent
                   options={{
@@ -73,12 +73,12 @@ function HomepageHeader() {
             </div>
           </div>
         </div>
-        <div className="col col--7">
+        <div className={styles.heroVideo}>
           <div
             style={{
               borderRadius: '15px',
               overflow: 'hidden',
-              boxShadow: '0px 0px 20px 1px var(--ifm-color-primary)',
+              boxShadow: '0px 0px 20px 1px #4332a6',
             }}>
             <video
               loop
