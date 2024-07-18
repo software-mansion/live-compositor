@@ -101,7 +101,7 @@ const config: Config = {
       appId: 'AB30AX8OU1',
       apiKey: '4dae5f71952b8ebd63dd7645128c3b24',
       indexName: 'compositor',
-      contextualSearch: true,
+      contextualSearch: false,
     },
   } satisfies Preset.ThemeConfig,
 };
