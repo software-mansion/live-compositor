@@ -28,9 +28,9 @@ function HomepageHeader() {
   return (
     <div className={clsx('container', styles.firstSection)}>
       <div className="row">
-        <div className="col col--6">
+        <div className="col col--5">
           <div className="container">
-            <Heading as="h1" style={{ fontSize: 55 }}>
+            <Heading as="h1" style={{ fontSize: 50 }}>
               <span className="text--primary">Mix video and audio</span>
               <div className={styles.typewriter}>
                 <TypewriterComponent
@@ -73,18 +73,19 @@ function HomepageHeader() {
             </div>
           </div>
         </div>
-        <div className="col col--6">
+        <div className="col col--7">
           <div
             style={{
-              borderRadius: '30px',
+              borderRadius: '15px',
               overflow: 'hidden',
+              boxShadow: '0px 0px 20px 1px var(--ifm-color-primary)',
             }}>
             <video
               loop
               autoPlay
               muted
-              src="https://github.com/membraneframework/live_compositor/assets/104033489/e6f5ba7c-ab05-4935-a42a-bc28c42fc895"
-              poster="/img/demo_poster.jpg"
+              src="/video/showcase.mp4"
+              poster="/img/showcase_poster.jpg"
               style={{ width: '100%', display: 'block' }}
             />
           </div>

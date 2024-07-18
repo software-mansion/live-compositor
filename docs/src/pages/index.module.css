@@ -9,7 +9,7 @@
   margin-top: 20px;
 }
 
-@media (max-width: 510px) {
+@media (max-width: 460px) {
   .typewriter {
     height: 2.3em;
   }
@@ -51,7 +51,7 @@
 }
 
 .firstSection {
-  margin-top: 120px;
+  margin-top: 50px;
 }
 
 [data-theme='dark'] .sectionSubheading {
