@@ -7,11 +7,13 @@ license = "BUSL-1.1"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
+default = ["web_renderer" ]
 decklink = ["live_compositor/decklink"]
+web_renderer = ["live_compositor/web_renderer"]
 
 [dependencies]
-live_compositor = { path = ".." }
-compositor_api = { path="../compositor_api" }
+live_compositor = { workspace = true }
+compositor_api = { workspace = true }
 reqwest = { workspace = true }
 anyhow = { workspace = true }
 serde = { workspace = true }
