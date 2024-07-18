@@ -2,7 +2,6 @@ use anyhow::{anyhow, Result};
 
 use futures_util::{SinkExt, StreamExt};
 use live_compositor::{config::read_config, server};
-use log::error;
 use reqwest::{blocking::Response, StatusCode};
 use std::{
     env,
@@ -13,11 +12,13 @@ use std::{
     time::{Duration, Instant},
 };
 use tokio_tungstenite::tungstenite;
-use tracing::info;
+use tracing::{error, info, warn};
 
 use serde::Serialize;
 
 pub fn post<T: Serialize + ?Sized>(route: &str, json: &T) -> Result<Response> {
+    info!("[example] Sent post request to `{route}`.");
+
     let client = reqwest::blocking::Client::new();
     let response = client
         .post(format!(
@@ -210,16 +211,12 @@ fn download_all_assets() -> Result<()> {
         path: examples_root_dir().join("examples/assets/sample_1280_720.mp4"),
     }];
 
-    let any_asset_downloaded = assets
-        .iter()
-        .map(download_asset)
-        .any(|download_result| download_result.is_ok());
-
-    if !any_asset_downloaded {
-        return Err(anyhow!(
-            "Error while downloading assets, couldn't download any"
-        ));
+    for asset in assets {
+        if let Err(err) = download_asset(&asset) {
+            warn!(?asset, "Error while downloading asset: {err}");
+        }
     }
+
     Ok(())
 }
 

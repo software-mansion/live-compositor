@@ -1,4 +1,5 @@
 use anyhow::{anyhow, Result};
+use tracing::info;
 
 use std::{
     path::PathBuf,
@@ -10,10 +11,11 @@ use std::{
 use super::examples::{get_asset_path, TestSample};
 
 pub fn start_gst_receive_tcp(ip: &str, port: u16, video: bool, audio: bool) -> Result<()> {
-    if !video && !audio {
-        return Err(anyhow!(
-            "At least one of: 'video_port', 'audio_port' has to be specified."
-        ));
+    match (video, audio) {
+        (true, true) => info!("[example] Start listening video and audio on port {port}."),
+        (true, false) => info!("[example] Start listening video on port {port}."),
+        (false, true) => info!("[example] Start listening audio on port {port}."),
+        (false, false) => return Err(anyhow!("At least one of: 'video', 'audio' has to be true.")),
     }
 
     let mut gst_output_command = [
@@ -41,10 +43,11 @@ pub fn start_gst_receive_tcp(ip: &str, port: u16, video: bool, audio: bool) -> R
 }
 
 pub fn start_gst_receive_udp(port: u16, video: bool, audio: bool) -> Result<()> {
-    if !video && !audio {
-        return Err(anyhow!(
-            "At least one of: 'video_port', 'audio_port' has to be specified."
-        ));
+    match (video, audio) {
+        (true, true) => info!("[example] Start listening video and audio on port {port}."),
+        (true, false) => info!("[example] Start listening video on port {port}."),
+        (false, true) => info!("[example] Start listening audio on port {port}."),
+        (false, false) => return Err(anyhow!("At least one of: 'video', 'audio' has to be true.")),
     }
 
     let mut gst_output_command = [
@@ -115,10 +118,17 @@ pub fn start_gst_send_tcp(
     audio_port: Option<u16>,
     path: PathBuf,
 ) -> Result<()> {
-    if video_port.is_none() && audio_port.is_none() {
-        return Err(anyhow!(
-            "At least one of: 'video_port', 'audio_port' has to be specified."
-        ));
+    match (video_port, audio_port) {
+        (Some(video_port), Some(audio_port)) => info!(
+            "[example] Start sending video on port {video_port} and audio on port {audio_port}."
+        ),
+        (Some(video_port), None) => info!("[example] Start sending video on port {video_port}."),
+        (None, Some(audio_port)) => info!("[example] Start sending audio on port {audio_port}."),
+        (None, None) => {
+            return Err(anyhow!(
+                "At least one of: 'video_port', 'audio_port' has to be specified."
+            ))
+        }
     }
 
     let path = path.to_string_lossy();
@@ -149,10 +159,17 @@ pub fn start_gst_send_udp(
     audio_port: Option<u16>,
     path: PathBuf,
 ) -> Result<()> {
-    if video_port.is_none() && audio_port.is_none() {
-        return Err(anyhow!(
-            "At least one of: 'video_port', 'audio_port' has to be specified."
-        ));
+    match (video_port, audio_port) {
+        (Some(video_port), Some(audio_port)) => info!(
+            "[example] Start sending video on port {video_port} and audio on port {audio_port}."
+        ),
+        (Some(video_port), None) => info!("[example] Start sending video on port {video_port}."),
+        (None, Some(audio_port)) => info!("[example] Start sending audio on port {audio_port}."),
+        (None, None) => {
+            return Err(anyhow!(
+                "At least one of: 'video_port', 'audio_port' has to be specified."
+            ))
+        }
     }
 
     let path = path.to_string_lossy();
@@ -185,10 +202,17 @@ pub fn start_gst_send_testsrc_tcp(
     video_port: Option<u16>,
     audio_port: Option<u16>,
 ) -> Result<()> {
-    if video_port.is_none() && audio_port.is_none() {
-        return Err(anyhow!(
-            "At least one of: 'video_port', 'audio_port' has to be specified."
-        ));
+    match (video_port, audio_port) {
+        (Some(video_port), Some(audio_port)) => info!(
+            "[example] Start sending generic video on port {video_port} and audio on port {audio_port}."
+        ),
+        (Some(video_port), None) => info!("[example] Start sending generic video on port {video_port}."),
+        (None, Some(audio_port)) => info!("[example] Start sending generic audio on port {audio_port}."),
+        (None, None) => {
+            return Err(anyhow!(
+                "At least one of: 'video_port', 'audio_port' has to be specified."
+            ))
+        }
     }
 
     let mut gst_input_command = [
@@ -219,10 +243,17 @@ pub fn start_gst_send_testsrc_udp(
     video_port: Option<u16>,
     audio_port: Option<u16>,
 ) -> Result<()> {
-    if video_port.is_none() && audio_port.is_none() {
-        return Err(anyhow!(
-            "At least one of: 'video_port', 'audio_port' has to be specified."
-        ));
+    match (video_port, audio_port) {
+        (Some(video_port), Some(audio_port)) => info!(
+            "[example] Start sending generic video on port {video_port} and audio on port {audio_port}."
+        ),
+        (Some(video_port), None) => info!("[example] Start sending generic video on port {video_port}."),
+        (None, Some(audio_port)) => info!("[example] Start sending generic audio on port {audio_port}."),
+        (None, None) => {
+            return Err(anyhow!(
+                "At least one of: 'video_port', 'audio_port' has to be specified."
+            ))
+        }
     }
 
     let mut gst_input_command = [

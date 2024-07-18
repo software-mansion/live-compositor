@@ -1,5 +1,6 @@
 use anyhow::{anyhow, Result};
 use live_compositor::types::Resolution;
+use log::info;
 
 use super::examples::{get_asset_path, TestSample};
 use std::{
@@ -14,10 +15,19 @@ use std::{
 pub fn start_ffmpeg_receive(video_port: Option<u16>, audio_port: Option<u16>) -> Result<()> {
     let output_sdp_path = match (video_port, audio_port) {
         (Some(video_port), Some(audio_port)) => {
+            info!(
+                "[example] Start listening video on port {video_port} and audio on {audio_port}."
+            );
             write_video_audio_example_sdp_file(video_port, audio_port)
         }
-        (Some(video_port), None) => write_video_example_sdp_file(video_port),
-        (None, Some(audio_port)) => write_audio_example_sdp_file(audio_port),
+        (Some(video_port), None) => {
+            info!("[example] Start listening video on port {video_port}.");
+            write_video_example_sdp_file(video_port)
+        }
+        (None, Some(audio_port)) => {
+            info!("[example] Start listening audio on {audio_port}.");
+            write_audio_example_sdp_file(audio_port)
+        }
         (None, None) => {
             return Err(anyhow!(
                 "At least one of: 'video_port', 'audio_port' has to be specified."
@@ -90,6 +100,8 @@ pub fn start_ffmpeg_send(
 }
 
 pub fn start_ffmpeg_send_video(ip: &str, port: u16, path: PathBuf) -> Result<()> {
+    info!("[example] Start sending video to input port {port}.");
+
     Command::new("ffmpeg")
         .args(["-re", "-i"])
         .arg(path)
@@ -111,6 +123,8 @@ pub fn start_ffmpeg_send_video(ip: &str, port: u16, path: PathBuf) -> Result<()>
 }
 
 pub fn start_ffmpeg_send_video_loop(ip: &str, port: u16, path: PathBuf) -> Result<()> {
+    info!("[example] Start sending video loop to input port {port}.");
+
     Command::new("ffmpeg")
         .args(["-stream_loop", "-1", "-re", "-i"])
         .arg(path)
@@ -132,6 +146,8 @@ pub fn start_ffmpeg_send_video_loop(ip: &str, port: u16, path: PathBuf) -> Resul
 }
 
 pub fn start_ffmpeg_send_audio(ip: &str, port: u16, path: PathBuf, codec: &str) -> Result<()> {
+    info!("[example] Start sending audio to input port {port}.");
+
     Command::new("ffmpeg")
         .args(["-stream_loop", "-1", "-re", "-i"])
         .arg(path.clone())
@@ -151,6 +167,8 @@ pub fn start_ffmpeg_send_audio(ip: &str, port: u16, path: PathBuf, codec: &str) 
 }
 
 pub fn start_ffmpeg_send_testsrc(ip: &str, port: u16, resolution: Resolution) -> Result<()> {
+    info!("[example] Start sending generic video to input port {port}.");
+
     let ffmpeg_source = format!(
         "testsrc=s={}x{}:r=30,format=yuv420p",
         resolution.width, resolution.height

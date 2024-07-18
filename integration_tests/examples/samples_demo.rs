@@ -33,7 +33,6 @@ fn start_example_client_code() -> Result<()> {
     info!("[example] Start listening on output port.");
     start_ffmpeg_receive(Some(OUTPUT_VIDEO_PORT), Some(OUTPUT_AUDIO_PORT))?;
 
-    info!("[example] Send register input request.");
     examples::post(
         "input/input_1/register",
         &json!({
@@ -45,7 +44,6 @@ fn start_example_client_code() -> Result<()> {
         }),
     )?;
 
-    info!("[example] Send register input request.");
     examples::post(
         "input/input_2/register",
         &json!({
@@ -57,7 +55,6 @@ fn start_example_client_code() -> Result<()> {
         }),
     )?;
 
-    info!("[example] Send register input request.");
     examples::post(
         "input/input_3/register",
         &json!({
@@ -69,7 +66,6 @@ fn start_example_client_code() -> Result<()> {
         }),
     )?;
 
-    info!("[example] Send register input request.");
     examples::post(
         "input/input_4/register",
         &json!({
@@ -81,7 +77,6 @@ fn start_example_client_code() -> Result<()> {
         }),
     )?;
 
-    info!("[example] Send register input request.");
     examples::post(
         "input/input_5/register",
         &json!({
@@ -93,7 +88,6 @@ fn start_example_client_code() -> Result<()> {
         }),
     )?;
 
-    info!("[example] Send register input request.");
     examples::post(
         "input/input_6/register",
         &json!({
@@ -105,7 +99,6 @@ fn start_example_client_code() -> Result<()> {
         }),
     )?;
 
-    info!("[example] Send register input request.");
     examples::post(
         "input/input_7/register",
         &json!({
@@ -117,7 +110,6 @@ fn start_example_client_code() -> Result<()> {
         }),
     )?;
 
-    info!("[example] Send register output request.");
     examples::post(
         "output/output_1/register",
         &json!({
@@ -179,7 +171,6 @@ fn start_example_client_code() -> Result<()> {
 
     std::thread::sleep(Duration::from_millis(500));
 
-    info!("[example] Start pipeline");
     examples::post("start", &json!({}))?;
 
     start_ffmpeg_send_sample(
