@@ -9,13 +9,6 @@
   margin-top: 20px;
 }
 
-@media (max-width: 915px) {
-  .heroText h1 {
-    font-size: 30px;
-    height: 5em;
-  }
-}
-
 .card {
   flex: 1;
   min-width: 330px;
@@ -46,6 +39,7 @@
 
 .heroText h1 {
   font-size: 50px;
+  min-height: 2.5em;
   margin-bottom: 25px;
 }
 
@@ -53,7 +47,13 @@
   margin-bottom: 50px;
 }
 
-@media screen and (max-width: 1450px) {
+@media screen and (max-width: 445px) {
+  .heroText h1 {
+    min-height: 5em;
+  }
+}
+
+@media screen and (max-width: 1440px) {
   .heroText h1 {
     margin-bottom: 5px;
   }
@@ -84,9 +84,6 @@
   }
 }
 
-.typewriter {
-  display: inline;
-}
 
 @media screen and (max-width: 1200px) {
   .card {
