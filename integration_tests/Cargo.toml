@@ -15,7 +15,7 @@ web_renderer = ["dep:compositor_chromium", "live_compositor/web_renderer"]
 live_compositor = { workspace = true }
 compositor_api = { workspace = true }
 compositor_pipeline = { workspace = true }
-compositor_chromium = { workspace = true, optional = true } 
+compositor_chromium = { workspace = true, optional = true }
 reqwest = { workspace = true }
 anyhow = { workspace = true }
 serde = { workspace = true }
