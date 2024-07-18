@@ -1,12 +1,12 @@
 use anyhow::Result;
 use live_compositor::types::Resolution;
+use log::info;
 use serde_json::json;
 use std::time::Duration;
 
 use integration_tests::{
     examples::{self, run_example, TestSample},
     ffmpeg::{start_ffmpeg_receive, start_ffmpeg_send_sample},
-    gstreamer::start_gst_send_sample_udp,
 };
 
 const VIDEO_RESOLUTION: Resolution = Resolution {
@@ -19,17 +19,18 @@ const INPUT_1_PORT: u16 = 8002;
 const INPUT_2_PORT: u16 = 8004;
 const INPUT_3_PORT: u16 = 8006;
 const INPUT_4_PORT: u16 = 8008;
-const INPUT_5_PORT: u16 = 8014;
-const INPUT_6_PORT: u16 = 8016;
-const INPUT_7_PORT: u16 = 8018;
-const OUTPUT_VIDEO_PORT: u16 = 8010;
-const OUTPUT_AUDIO_PORT: u16 = 8012;
+const INPUT_5_PORT: u16 = 8010;
+const INPUT_6_PORT: u16 = 8012;
+const INPUT_7_PORT: u16 = 8014;
+const OUTPUT_VIDEO_PORT: u16 = 8016;
+const OUTPUT_AUDIO_PORT: u16 = 8018;
 
 fn main() {
     run_example(start_example_client_code);
 }
 
 fn start_example_client_code() -> Result<()> {
+    info!("[example] Start listening on output port.");
     start_ffmpeg_receive(Some(OUTPUT_VIDEO_PORT), Some(OUTPUT_AUDIO_PORT))?;
 
     examples::post(
@@ -153,15 +154,6 @@ fn start_example_client_code() -> Result<()> {
                 },
                 "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
             },
-        }),
-    )?;
-
-    examples::post(
-        "output/output_2/register",
-        &json!({
-            "type": "rtp_stream",
-            "ip": IP,
-            "port": OUTPUT_AUDIO_PORT,
             "audio": {
                 "initial": {
                     "inputs": [
@@ -180,7 +172,7 @@ fn start_example_client_code() -> Result<()> {
 
     examples::post("start", &json!({}))?;
 
-    start_gst_send_sample_udp(
+    start_ffmpeg_send_sample(
         IP,
         Some(INPUT_1_PORT),
         Some(INPUT_2_PORT),
@@ -192,7 +184,7 @@ fn start_example_client_code() -> Result<()> {
         Some(INPUT_4_PORT),
         TestSample::ElephantsDream,
     )?;
-    start_gst_send_sample_udp(IP, Some(INPUT_5_PORT), None, TestSample::Sample)?;
+    start_ffmpeg_send_sample(IP, Some(INPUT_5_PORT), None, TestSample::Sample)?;
     start_ffmpeg_send_sample(IP, Some(INPUT_6_PORT), None, TestSample::SampleLoop)?;
     start_ffmpeg_send_sample(IP, Some(INPUT_7_PORT), None, TestSample::Generic)?;
 

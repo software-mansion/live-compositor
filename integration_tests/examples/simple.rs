@@ -1,19 +1,14 @@
 use anyhow::Result;
-use live_compositor::{server, types::Resolution};
-use log::{error, info};
+use live_compositor::types::Resolution;
+use log::info;
 use serde_json::json;
-use std::{thread, time::Duration};
+use std::time::Duration;
 
 use integration_tests::{
-    examples::{self, download_file, start_websocket_thread},
-    ffmpeg::{start_ffmpeg_receive, start_ffmpeg_send_video},
+    examples::{self, run_example, TestSample},
+    ffmpeg::{start_ffmpeg_receive, start_ffmpeg_send_sample},
 };
 
-const SAMPLE_FILE_URL: &str = "https://filesamples.com/samples/video/mp4/sample_1280x720.mp4";
-const SAMPLE_FILE_PATH: &str = concat!(
-    env!("CARGO_MANIFEST_DIR"),
-    "/examples/assets/sample_1280_720.mp4"
-);
 const VIDEO_RESOLUTION: Resolution = Resolution {
     width: 1280,
     height: 720,
@@ -24,25 +19,12 @@ const INPUT_PORT: u16 = 8002;
 const OUTPUT_PORT: u16 = 8004;
 
 fn main() {
-    ffmpeg_next::format::network::init();
-
-    thread::spawn(|| {
-        if let Err(err) = start_example_client_code() {
-            error!("{err}")
-        }
-    });
-
-    server::run();
+    run_example(client_code);
 }
 
-fn start_example_client_code() -> Result<()> {
+fn client_code() -> Result<()> {
     info!("[example] Start listening on output port.");
     start_ffmpeg_receive(Some(OUTPUT_PORT), None)?;
-    thread::sleep(Duration::from_secs(2));
-    start_websocket_thread();
-
-    info!("[example] Download sample.");
-    let sample_path = download_file(SAMPLE_FILE_URL, SAMPLE_FILE_PATH)?;
 
     info!("[example] Send register input request.");
     examples::post(
@@ -105,6 +87,6 @@ fn start_example_client_code() -> Result<()> {
     info!("[example] Start pipeline");
     examples::post("start", &json!({}))?;
 
-    start_ffmpeg_send_video(IP, INPUT_PORT, sample_path)?;
+    start_ffmpeg_send_sample(IP, Some(INPUT_PORT), None, TestSample::SampleLoop)?;
     Ok(())
 }

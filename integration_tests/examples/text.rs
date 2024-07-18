@@ -1,11 +1,10 @@
 use anyhow::Result;
-use live_compositor::{server, types::Resolution};
-use log::{error, info};
+use live_compositor::types::Resolution;
+use log::info;
 use serde_json::json;
-use std::thread;
 
 use integration_tests::{
-    examples::{self, start_websocket_thread},
+    examples::{self, run_example},
     ffmpeg::start_ffmpeg_receive,
 };
 
@@ -18,21 +17,12 @@ const IP: &str = "127.0.0.1";
 const OUTPUT_PORT: u16 = 8002;
 
 fn main() {
-    ffmpeg_next::format::network::init();
-
-    thread::spawn(|| {
-        if let Err(err) = start_example_client_code() {
-            error!("{err}")
-        }
-    });
-
-    server::run()
+    run_example(client_code);
 }
 
-fn start_example_client_code() -> Result<()> {
+fn client_code() -> Result<()> {
     info!("[example] Start listening on output port.");
     start_ffmpeg_receive(Some(OUTPUT_PORT), None)?;
-    start_websocket_thread();
 
     info!("[example] Send register output request.");
     examples::post(

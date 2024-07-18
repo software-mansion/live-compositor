@@ -2,7 +2,6 @@ use anyhow::{anyhow, Result};
 
 use futures_util::{SinkExt, StreamExt};
 use live_compositor::{config::read_config, server};
-use log::error;
 use reqwest::{blocking::Response, StatusCode};
 use std::{
     env,
@@ -13,7 +12,7 @@ use std::{
     time::{Duration, Instant},
 };
 use tokio_tungstenite::tungstenite;
-use tracing::info;
+use tracing::{error, info, warn};
 
 use serde::Serialize;
 
@@ -56,7 +55,7 @@ pub fn run_example(client_code: fn() -> Result<()>) {
             }
         });
 
-        start_websocket_thread();
+        start_server_msg_listener();
     });
     server::run();
 }
@@ -77,18 +76,18 @@ fn wait_for_server_ready(timeout: Duration) -> Result<()> {
     Ok(())
 }
 
-pub fn start_websocket_thread() {
+pub fn start_server_msg_listener() {
     thread::Builder::new()
         .name("Websocket Thread".to_string())
         .spawn(|| {
             tokio::runtime::Runtime::new()
                 .unwrap()
-                .block_on(async { websocket_thread().await });
+                .block_on(async { server_msg_listener().await });
         })
         .unwrap();
 }
 
-async fn websocket_thread() {
+async fn server_msg_listener() {
     let url = format!("ws://127.0.0.1:{}/ws", read_config().api_port);
 
     let (ws_stream, _) = tokio_tungstenite::connect_async(url)
@@ -212,16 +211,12 @@ fn download_all_assets() -> Result<()> {
         path: examples_root_dir().join("examples/assets/sample_1280_720.mp4"),
     }];
 
-    let any_asset_downloaded = assets
-        .iter()
-        .map(download_asset)
-        .any(|download_result| download_result.is_ok());
-
-    if !any_asset_downloaded {
-        return Err(anyhow!(
-            "Error while downloading assets, couldn't download any"
-        ));
+    for asset in assets {
+        if let Err(err) = download_asset(&asset) {
+            warn!(?asset, "Error while downloading asset: {err}");
+        }
     }
+
     Ok(())
 }
 

@@ -1,12 +1,11 @@
 use anyhow::Result;
-use live_compositor::{server, types::Resolution};
-use log::{error, info};
+use live_compositor::types::Resolution;
+use log::info;
 use serde::Deserialize;
 use serde_json::json;
-use std::{env, thread};
 
 use integration_tests::{
-    examples::{self, start_websocket_thread},
+    examples::{self, run_example, start_server_msg_listener},
     ffmpeg::{start_ffmpeg_receive, start_ffmpeg_send_testsrc},
 };
 
@@ -19,16 +18,7 @@ const IP: &str = "127.0.0.1";
 const OUTPUT_PORT: u16 = 8002;
 
 fn main() {
-    env::set_var("LIVE_COMPOSITOR_WEB_RENDERER_ENABLE", "0");
-    ffmpeg_next::format::network::init();
-
-    thread::spawn(|| {
-        if let Err(err) = start_example_client_code() {
-            error!("{err}")
-        }
-    });
-
-    server::run()
+    run_example(client_code);
 }
 
 #[derive(Deserialize)]
@@ -36,10 +26,10 @@ struct RegisterResponse {
     port: u16,
 }
 
-fn start_example_client_code() -> Result<()> {
+fn client_code() -> Result<()> {
     info!("[example] Start listening on output port.");
     start_ffmpeg_receive(Some(OUTPUT_PORT), None)?;
-    start_websocket_thread();
+    start_server_msg_listener();
 
     info!("[example] Send register input request.");
     let RegisterResponse { port: input_port } = examples::post(
