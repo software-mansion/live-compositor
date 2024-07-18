@@ -11,7 +11,8 @@
 
 @media (max-width: 915px) {
   .heroText h1 {
-    height: 3em;
+    font-size: 30px;
+    height: 5em;
   }
 }
 
@@ -53,9 +54,20 @@
 }
 
 @media screen and (max-width: 1450px) {
+  .heroText h1 {
+    margin-bottom: 5px;
+  }
+
+  .heroText p {
+    margin-bottom: 5px;
+  }
+}
+
+@media screen and (max-width: 1200px) {
   .heroText {
     width: 100%;
     flex: unset;
+    margin-top: 0px;
   }
 
   .heroVideo {
@@ -70,10 +82,10 @@
   .heroText p {
     margin-bottom: 0px;
   }
-  
-  .typewriter {
-    display: inline-block;
-  }
+}
+
+.typewriter {
+  display: inline;
 }
 
 @media screen and (max-width: 1200px) {
