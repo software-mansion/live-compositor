@@ -9,10 +9,9 @@ use axum::{
 use compositor_pipeline::Pipeline;
 use serde_json::{json, Value};
 
-use crate::{
-    error::ApiError,
-    state::{ApiState, Response},
-};
+use crate::state::{ApiState, Response};
+
+use compositor_api::error::ApiError;
 
 use self::{
     update_output::handle_keyframe_request, update_output::handle_output_update,

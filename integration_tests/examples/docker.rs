@@ -1,5 +1,6 @@
 use anyhow::{anyhow, Result};
-use live_compositor::{config::read_config, types::Resolution};
+use compositor_api::types::Resolution;
+use live_compositor::config::read_config;
 use log::{error, info, warn};
 use serde_json::json;
 use signal_hook::{consts, iterator::Signals};

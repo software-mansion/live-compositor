@@ -1,12 +1,10 @@
 use log::info;
 
 mod config;
-mod error;
 mod logger;
 mod routes;
 mod server;
 mod state;
-mod types;
 
 #[cfg(test)]
 mod snapshot_tests;

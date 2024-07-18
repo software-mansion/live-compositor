@@ -14,15 +14,24 @@ members = [
     "integration_tests",
     "generate",
     "decklink",
+    "compositor_api",
 ]
 resolver = "2"
 
 [features]
 default = ["web_renderer"]
-decklink = ["compositor_pipeline/decklink"]
-web_renderer = ["dep:compositor_chromium", "compositor_render/web_renderer"]
+decklink = ["compositor_api/decklink"]
+web_renderer = [
+    "dep:compositor_chromium",
+    "compositor_api/web_renderer"
+]
 
 [workspace.dependencies]
+live_compositor = { path = "." }
+compositor_api = { path = "compositor_api" }
+compositor_pipeline = { path = "compositor_pipeline" }
+compositor_chromium = { path = "compositor_chromium" }
+compositor_render = { path = "compositor_render" }
 bytes = "1.4.0"
 serde_json = { version = "1.0.99", features = ["preserve_order"] }
 serde = { version = "1.0.164", features = ["derive", "rc"] }
@@ -40,7 +49,6 @@ rtcp = "0.10.0"
 rand = "0.8.5"
 tracing = "0.1.40"
 socket2 = "0.5.5"
-compositor_render = { path = "compositor_render" }
 webrtc-util = "0.8.0"
 opus = "0.3.0"
 rubato = "0.15.0"
@@ -52,9 +60,10 @@ schemars = { git = "https://github.com/membraneframework-labs/schemars", rev = "
 ] }
 
 [dependencies]
+compositor_api = { workspace = true }
 compositor_render = { workspace = true }
-compositor_pipeline = { path = "compositor_pipeline" }
-compositor_chromium = { path = "compositor_chromium", optional = true }
+compositor_pipeline = { workspace = true }
+compositor_chromium = { workspace = true, optional = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 anyhow = { workspace = true }

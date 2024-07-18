@@ -4,9 +4,10 @@ use axum::extract::{Path, State};
 use compositor_render::error::ErrorStack;
 use tracing::error;
 
-use crate::{
+use crate::state::{ApiState, Response};
+
+use compositor_api::{
     error::ApiError,
-    state::{ApiState, Response},
     types::{OutputId, UpdateOutputRequest},
 };
 

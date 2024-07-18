@@ -12,7 +12,7 @@ web_renderer = ["dep:compositor_chromium"]
 pollster = "0.3.0"
 thiserror = { workspace = true }
 wgpu = { workspace = true }
-compositor_chromium = { path = "../compositor_chromium", optional = true }
+compositor_chromium = { workspace = true, optional = true }
 image = { workspace = true }
 reqwest = { workspace = true }
 bytes = { workspace = true }

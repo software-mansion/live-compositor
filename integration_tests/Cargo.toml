@@ -9,18 +9,14 @@ license = "BUSL-1.1"
 [features]
 default = ["web_renderer"]
 update_snapshots = []
-decklink = [
-    "live_compositor/decklink",
-]
-web_renderer = [
-    "dep:compositor_chromium",
-    "compositor_render/web_renderer",
-    "live_compositor/web_renderer",
-]
+decklink = ["live_compositor/decklink"]
+web_renderer = ["dep:compositor_chromium", "live_compositor/web_renderer"]
 
 [dependencies]
-live_compositor = { path = ".." }
-compositor_pipeline = { path = "../compositor_pipeline" }
+live_compositor = { workspace = true }
+compositor_api = { workspace = true }
+compositor_pipeline = { workspace = true }
+compositor_chromium = { workspace = true, optional = true }
 reqwest = { workspace = true }
 anyhow = { workspace = true }
 serde = { workspace = true }
@@ -41,7 +37,6 @@ futures-util = { workspace = true }
 log = { workspace = true }
 tokio = { workspace = true }
 signal-hook = { workspace = true }
-compositor_chromium = { path = "../compositor_chromium", optional = true }
 tokio-tungstenite = "0.21.0"
 wgpu = { workspace = true }
 image = { workspace = true }

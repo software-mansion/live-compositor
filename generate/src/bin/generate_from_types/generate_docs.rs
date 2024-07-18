@@ -1,7 +1,7 @@
 use super::docs_config::DocsConfig;
 use super::document::generate;
 use super::markdown::overrides;
-use live_compositor::types::{
+use compositor_api::types::{
     DeckLink, Image, ImageSpec, InputStream, Mp4, Rescaler, RtpInputStream, RtpOutputStream,
     Shader, ShaderSpec, Text, Tiles, View, WebRendererSpec, WebView,
 };

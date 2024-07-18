@@ -3,12 +3,12 @@ use std::{fmt::Display, path::PathBuf, sync::Arc, time::Duration};
 use super::utils::{create_renderer, frame_to_rgba, snaphot_save_path, snapshots_diff};
 
 use anyhow::Result;
+use compositor_api::types::{self};
 use compositor_render::{
     scene::RGBColor, Frame, FrameData, FrameSet, InputId, OutputFrameFormat, OutputId, Renderer,
     RendererId, RendererSpec, Resolution, YuvPlanes,
 };
 use image::ImageBuffer;
-use live_compositor::types::{self};
 
 pub(super) const OUTPUT_ID: &str = "output_1";
 
