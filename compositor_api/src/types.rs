@@ -24,41 +24,25 @@ mod video;
 mod from_util_test;
 
 pub use component::Component;
-#[allow(unused_imports)]
 pub use component::Image;
-#[allow(unused_imports)]
 pub use component::InputStream;
-#[allow(unused_imports)]
 pub use component::Rescaler;
-#[allow(unused_imports)]
 pub use component::Shader;
-#[allow(unused_imports)]
 pub use component::Text;
-#[allow(unused_imports)]
 pub use component::Tiles;
-#[allow(unused_imports)]
 pub use component::View;
-#[allow(unused_imports)]
 pub use component::WebView;
 
-#[allow(unused_imports)]
 pub use register_input::Mp4;
-#[allow(unused_imports)]
 pub use register_output::RtpOutputStream;
 
-#[allow(unused_imports)]
 pub use register_input::DeckLink;
-#[allow(unused_imports)]
 pub use register_input::RtpInputStream;
 
-#[allow(unused_imports)]
 pub use renderer::ImageSpec;
-#[allow(unused_imports)]
 pub use renderer::ShaderSpec;
-#[allow(unused_imports)]
 pub use renderer::WebRendererSpec;
 
-#[allow(unused_imports)]
 pub use util::Resolution;
 pub use util::TypeError;
 

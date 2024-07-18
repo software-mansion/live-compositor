@@ -2,14 +2,15 @@
 name = "compositor_api"
 version = "0.1.0"
 edition = "2021"
+license = "BUSL-1.1"
 
 [features]
 decklink = ["compositor_pipeline/decklink"]
 web_renderer = ["compositor_render/web_renderer"]
 
 [dependencies]
-compositor_pipeline = { path = "../compositor_pipeline" }
-compositor_render = { path = "../compositor_render" }
+compositor_pipeline = { workspace = true }
+compositor_render = { workspace = true }
 serde = { workspace = true }
 schemars = { workspace = true }
 bytes = { workspace = true }
