@@ -8,7 +8,7 @@ export default function ExampleScene() {
   "children": [
     {
       "type": "shader",
-      "shader_id": "remove_green_screen",
+      "shader_id": "replace_green_screen",
       "resolution": { "width": 1920, "height": 1080 },
       "children": [
           { "type": "input_stream", "input_id": "tv" },
@@ -17,7 +17,7 @@ export default function ExampleScene() {
     },
     {
       "type": "rescaler",
-      "width": 800, "height": 450,
+      "width": 640, "height": 360,
       "top": 20, "left": 20,
       "child": { 
         "type": "input_stream", "input_id": "bunny"
@@ -25,16 +25,20 @@ export default function ExampleScene() {
     },
     {
       "type": "view",
-      "height": 150,
+      "height": 120,
       "left": 0, "bottom": 0, 
-      "background_color_rgba": "#FFFF00FF",
-      "children": [{
-        "type": "text", 
-        "text": "LiveCompositor 😃😍",
-        "font_size": 100,
-        "weight": "bold",
-        "color_rgba": "#000000FF",
-      }]
+      "background_color_rgba": "#B3B3B3FF",
+      "children": [
+        { "type": "view" },
+        {
+          "type": "text", 
+          "text": "LiveCompositor 😃😍",
+          "font_size": 100,
+          "weight": "bold",
+          "color_rgba": "#000000FF",
+        },
+        { "type": "view" }
+      ]
     }
   ]
 }`}
