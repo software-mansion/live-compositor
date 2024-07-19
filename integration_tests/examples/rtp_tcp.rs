@@ -99,12 +99,11 @@ fn client_code() -> Result<()> {
         }),
     )?;
 
-    start_gst_receive_tcp(IP, OUTPUT_PORT, true, true)?;
+    start_gst_receive_tcp(OUTPUT_PORT, true, true)?;
 
     examples::post("start", &json!({}))?;
 
     start_gst_send_tcp(
-        IP,
         Some(INPUT_1_PORT),
         Some(INPUT_2_PORT),
         TestSample::BigBuckBunny,

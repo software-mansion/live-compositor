@@ -133,13 +133,11 @@ fn client_code() -> Result<()> {
     examples::post("start", &json!({}))?;
 
     start_ffmpeg_send(
-        IP,
         Some(INPUT_1_PORT),
         Some(INPUT_2_PORT),
         TestSample::BigBuckBunny,
     )?;
     start_ffmpeg_send(
-        IP,
         Some(INPUT_3_PORT),
         Some(INPUT_4_PORT),
         TestSample::ElephantsDream,

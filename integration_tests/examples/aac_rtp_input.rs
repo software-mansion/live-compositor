@@ -105,7 +105,6 @@ fn client_code() -> Result<()> {
     examples::post("start", &json!({}))?;
 
     start_ffmpeg_send(
-        IP,
         Some(INPUT_1_PORT),
         Some(INPUT_2_PORT),
         examples::TestSample::BigBuckBunnyAAC,

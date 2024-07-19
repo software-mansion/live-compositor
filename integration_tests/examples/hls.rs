@@ -77,7 +77,7 @@ fn client_code() -> Result<()> {
         }),
     )?;
 
-    start_gst_receive_tcp(IP, OUTPUT_PORT, true, false)?;
+    start_gst_receive_tcp(OUTPUT_PORT, true, false)?;
     std::thread::sleep(Duration::from_millis(500));
 
     examples::post("start", &json!({}))?;

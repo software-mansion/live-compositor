@@ -101,6 +101,6 @@ fn client_code() -> Result<()> {
 
     examples::post("start", &json!({}))?;
 
-    start_ffmpeg_send(IP, Some(INPUT_PORT), None, TestSample::SampleLoop)?;
+    start_ffmpeg_send(Some(INPUT_PORT), None, TestSample::SampleLoop)?;
     Ok(())
 }

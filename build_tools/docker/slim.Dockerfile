@@ -1,5 +1,5 @@
 # Builder image
-FROM ubuntu:noble-20240423 as builder
+FROM ubuntu:noble-20240423 AS builder
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
@@ -9,11 +9,11 @@ ARG RUST_VERSION=1.74
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update -y -qq && \
-  apt-get install -y \
+    apt-get install -y \
     build-essential curl pkg-config libssl-dev libclang-dev git sudo \
     libegl1-mesa-dev libgl1-mesa-dri libxcb-xfixes0-dev mesa-vulkan-drivers \
     ffmpeg libavcodec-dev libavformat-dev libavfilter-dev libavdevice-dev libopus-dev && \
-  rm -rf /var/lib/apt/lists/*
+    rm -rf /var/lib/apt/lists/*
 
 RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
 RUN source ~/.cargo/env && rustup install $RUST_VERSION && rustup default $RUST_VERSION
@@ -30,13 +30,16 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 ARG USERNAME=compositor
 
+ENV XDG_RUNTIME_DIR=/home/$USERNAME/live_compositor/xdg_runtime
+RUN mkdir -p /home/$USERNAME/live_compositor/xdg_runtime
+
 ENV DEBIAN_FRONTEND=noninteractive
 ENV NVIDIA_DRIVER_CAPABILITIES=compute,graphics,utility
 
 RUN apt-get update -y -qq && \
-  apt-get install -y \
+    apt-get install -y \
     sudo adduser ffmpeg && \
-  rm -rf /var/lib/apt/lists/*
+    rm -rf /var/lib/apt/lists/*
 
 RUN useradd -ms /bin/bash $USERNAME && adduser $USERNAME sudo
 RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers

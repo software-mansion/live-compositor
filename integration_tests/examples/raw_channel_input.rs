@@ -105,7 +105,7 @@ fn main() {
 
     let frames = generate_frames(&wgpu_device, &wgpu_queue);
 
-    start_gst_receive_tcp("127.0.0.1", VIDEO_OUTPUT_PORT, true, false).unwrap();
+    start_gst_receive_tcp(VIDEO_OUTPUT_PORT, true, false).unwrap();
 
     Pipeline::start(&state.pipeline);
 

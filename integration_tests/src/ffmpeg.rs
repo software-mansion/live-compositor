@@ -37,8 +37,8 @@ pub fn start_ffmpeg_receive(video_port: Option<u16>, audio_port: Option<u16>) ->
 
     Command::new("ffplay")
         .args(["-protocol_whitelist", "file,rtp,udp", &output_sdp_path])
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
+        // .stdout(Stdio::null())
+        // .stderr(Stdio::null())
         .spawn()?;
     thread::sleep(Duration::from_secs(2));
 
@@ -46,34 +46,29 @@ pub fn start_ffmpeg_receive(video_port: Option<u16>, audio_port: Option<u16>) ->
 }
 
 pub fn start_ffmpeg_send(
-    ip: &str,
     video_port: Option<u16>,
     audio_port: Option<u16>,
     test_sample: TestSample,
 ) -> Result<()> {
     match test_sample {
         TestSample::BigBuckBunny | TestSample::ElephantsDream => {
-            start_ffmpeg_send_from_file(ip, video_port, audio_port, get_asset_path(test_sample)?)
+            start_ffmpeg_send_from_file(video_port, audio_port, get_asset_path(test_sample)?)
         }
-        TestSample::BigBuckBunnyAAC => start_ffmpeg_send_from_file_aac(
-            ip,
-            video_port,
-            audio_port,
-            get_asset_path(test_sample)?,
-        ),
+        TestSample::BigBuckBunnyAAC => {
+            start_ffmpeg_send_from_file_aac(video_port, audio_port, get_asset_path(test_sample)?)
+        }
         TestSample::Sample => match video_port {
-            Some(port) => start_ffmpeg_send_video_from_file(ip, port, get_asset_path(test_sample)?),
+            Some(port) => start_ffmpeg_send_video_from_file(port, get_asset_path(test_sample)?),
             None => Err(anyhow!("video port required for test sample")),
         },
         TestSample::SampleLoop => match video_port {
             Some(port) => {
-                start_ffmpeg_send_video_from_file_loop(ip, port, get_asset_path(test_sample)?)
+                start_ffmpeg_send_video_from_file_loop(port, get_asset_path(test_sample)?)
             }
             None => Err(anyhow!("video port required for test sample")),
         },
         TestSample::TestPattern => match video_port {
             Some(port) => start_ffmpeg_send_testsrc(
-                ip,
                 port,
                 Resolution {
                     width: 1920,
@@ -86,7 +81,6 @@ pub fn start_ffmpeg_send(
 }
 
 fn start_ffmpeg_send_from_file(
-    ip: &str,
     video_port: Option<u16>,
     audio_port: Option<u16>,
     path: PathBuf,
@@ -98,17 +92,16 @@ fn start_ffmpeg_send_from_file(
     }
 
     if let Some(port) = video_port {
-        start_ffmpeg_send_video_from_file(ip, port, path.clone())?;
+        start_ffmpeg_send_video_from_file(port, path.clone())?;
     }
     if let Some(port) = audio_port {
-        start_ffmpeg_send_audio_from_file(ip, port, path, "libopus")?
+        start_ffmpeg_send_audio_from_file(port, path, "libopus")?
     }
 
     Ok(())
 }
 
 fn start_ffmpeg_send_from_file_aac(
-    ip: &str,
     video_port: Option<u16>,
     audio_port: Option<u16>,
     path: PathBuf,
@@ -120,16 +113,16 @@ fn start_ffmpeg_send_from_file_aac(
     }
 
     if let Some(port) = video_port {
-        start_ffmpeg_send_video_from_file(ip, port, path.clone())?;
+        start_ffmpeg_send_video_from_file(port, path.clone())?;
     }
     if let Some(port) = audio_port {
-        start_ffmpeg_send_audio_from_file(ip, port, path, "aac")?
+        start_ffmpeg_send_audio_from_file(port, path, "aac")?
     }
 
     Ok(())
 }
 
-fn start_ffmpeg_send_video_from_file(ip: &str, port: u16, path: PathBuf) -> Result<()> {
+fn start_ffmpeg_send_video_from_file(port: u16, path: PathBuf) -> Result<()> {
     info!("[example] Start sending video to input port {port}.");
 
     Command::new("ffmpeg")
@@ -143,7 +136,7 @@ fn start_ffmpeg_send_video_from_file(ip: &str, port: u16, path: PathBuf) -> Resu
             "rtp",
             "-bsf:v",
             "h264_mp4toannexb",
-            &format!("rtp://{ip}:{port}?rtcpport={port}"),
+            &format!("rtp://127.0.0.1:{port}?rtcpport={port}"),
         ])
         .stdout(Stdio::null())
         .stderr(Stdio::null())
@@ -152,7 +145,7 @@ fn start_ffmpeg_send_video_from_file(ip: &str, port: u16, path: PathBuf) -> Resu
     Ok(())
 }
 
-fn start_ffmpeg_send_video_from_file_loop(ip: &str, port: u16, path: PathBuf) -> Result<()> {
+fn start_ffmpeg_send_video_from_file_loop(port: u16, path: PathBuf) -> Result<()> {
     info!("[example] Start sending video loop to input port {port}.");
 
     Command::new("ffmpeg")
@@ -166,7 +159,7 @@ fn start_ffmpeg_send_video_from_file_loop(ip: &str, port: u16, path: PathBuf) ->
             "rtp",
             "-bsf:v",
             "h264_mp4toannexb",
-            &format!("rtp://{ip}:{port}?rtcpport={port}"),
+            &format!("rtp://127.0.0.1:{port}?rtcpport={port}"),
         ])
         .stdout(Stdio::null())
         .stderr(Stdio::null())
@@ -175,12 +168,7 @@ fn start_ffmpeg_send_video_from_file_loop(ip: &str, port: u16, path: PathBuf) ->
     Ok(())
 }
 
-fn start_ffmpeg_send_audio_from_file(
-    ip: &str,
-    port: u16,
-    path: PathBuf,
-    codec: &str,
-) -> Result<()> {
+fn start_ffmpeg_send_audio_from_file(port: u16, path: PathBuf, codec: &str) -> Result<()> {
     info!("[example] Start sending audio to input port {port}.");
 
     Command::new("ffmpeg")
@@ -192,7 +180,7 @@ fn start_ffmpeg_send_audio_from_file(
             codec,
             "-f",
             "rtp",
-            &format!("rtp://{ip}:{port}?rtcpport={port}"),
+            &format!("rtp://127.0.0.1:{port}?rtcpport={port}"),
         ])
         .stdout(Stdio::null())
         .stderr(Stdio::null())
@@ -201,7 +189,7 @@ fn start_ffmpeg_send_audio_from_file(
     Ok(())
 }
 
-fn start_ffmpeg_send_testsrc(ip: &str, port: u16, resolution: Resolution) -> Result<()> {
+fn start_ffmpeg_send_testsrc(port: u16, resolution: Resolution) -> Result<()> {
     info!("[example] Start sending generic video to input port {port}.");
 
     let ffmpeg_source = format!(
@@ -220,7 +208,7 @@ fn start_ffmpeg_send_testsrc(ip: &str, port: u16, resolution: Resolution) -> Res
             "libx264",
             "-f",
             "rtp",
-            &format!("rtp://{ip}:{port}?rtcpport={port}"),
+            &format!("rtp://127.0.0.1:{port}?rtcpport={port}"),
         ])
         .stdout(Stdio::null())
         .stderr(Stdio::null())
@@ -241,11 +229,12 @@ fn write_video_example_sdp_file(port: u16) -> Result<String> {
                     o=- 0 0 IN IP4 {}\n\
                     s=No Name\n\
                     c=IN IP4 {}\n\
+                    t=0 0\n\
                     m=video {} RTP/AVP 96\n\
                     a=rtpmap:96 H264/90000\n\
-                    a=fmtp:96 packetization-mode=1\n\
-                    a=rtcp-mux\n\
                 ",
+                // a=fmtp:96 packetization-mode=1\n\
+                // a=rtcp-mux\n\
             ip, ip, port
         )
         .as_bytes(),

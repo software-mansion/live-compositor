@@ -10,7 +10,7 @@ use std::{
 
 use super::examples::{get_asset_path, TestSample};
 
-pub fn start_gst_receive_tcp(ip: &str, port: u16, video: bool, audio: bool) -> Result<()> {
+pub fn start_gst_receive_tcp(port: u16, video: bool, audio: bool) -> Result<()> {
     match (video, audio) {
         (true, true) => info!("[example] Start listening video and audio on port {port}."),
         (true, false) => info!("[example] Start listening video on port {port}."),
@@ -21,7 +21,7 @@ pub fn start_gst_receive_tcp(ip: &str, port: u16, video: bool, audio: bool) -> R
     let mut gst_output_command = [
         "gst-launch-1.0 -v ",
         "rtpptdemux name=demux ",
-        &format!("tcpclientsrc host={} port={} ! \"application/x-rtp-stream\" ! rtpstreamdepay ! queue ! demux. ", ip, port)
+        &format!("tcpclientsrc host=127.0.0.1 port={} ! \"application/x-rtp-stream\" ! rtpstreamdepay ! queue ! demux. ", port)
         ].concat();
 
     if video {
@@ -79,14 +79,13 @@ pub fn start_gst_receive_udp(port: u16, video: bool, audio: bool) -> Result<()> 
 }
 
 pub fn start_gst_send_tcp(
-    ip: &str,
     video_port: Option<u16>,
     audio_port: Option<u16>,
     test_sample: TestSample,
 ) -> Result<()> {
     match test_sample {
         TestSample::BigBuckBunny | TestSample::ElephantsDream | TestSample::Sample => {
-            start_gst_send_from_file_tcp(ip, video_port, audio_port, get_asset_path(test_sample)?)
+            start_gst_send_from_file_tcp(video_port, audio_port, get_asset_path(test_sample)?)
         }
         TestSample::BigBuckBunnyAAC => Err(anyhow!(
             "GStreamer does not support AAC, try ffmpeg instead"
@@ -94,19 +93,18 @@ pub fn start_gst_send_tcp(
         TestSample::SampleLoop => Err(anyhow!(
             "Cannot play sample in loop using gstreamer, try ffmpeg instead."
         )),
-        TestSample::TestPattern => start_gst_send_testsrc_tcp(ip, video_port, audio_port),
+        TestSample::TestPattern => start_gst_send_testsrc_tcp(video_port, audio_port),
     }
 }
 
 pub fn start_gst_send_udp(
-    ip: &str,
     video_port: Option<u16>,
     audio_port: Option<u16>,
     test_sample: TestSample,
 ) -> Result<()> {
     match test_sample {
         TestSample::BigBuckBunny | TestSample::ElephantsDream | TestSample::Sample => {
-            start_gst_send_from_file_udp(ip, video_port, audio_port, get_asset_path(test_sample)?)
+            start_gst_send_from_file_udp(video_port, audio_port, get_asset_path(test_sample)?)
         }
         TestSample::BigBuckBunnyAAC => Err(anyhow!(
             "GStreamer does not support AAC, try ffmpeg instead"
@@ -114,12 +112,11 @@ pub fn start_gst_send_udp(
         TestSample::SampleLoop => Err(anyhow!(
             "Cannot play sample in loop using gstreamer, try ffmpeg instead."
         )),
-        TestSample::TestPattern => start_gst_send_testsrc_udp(ip, video_port, audio_port),
+        TestSample::TestPattern => start_gst_send_testsrc_udp(video_port, audio_port),
     }
 }
 
 fn start_gst_send_from_file_tcp(
-    ip: &str,
     video_port: Option<u16>,
     audio_port: Option<u16>,
     path: PathBuf,
@@ -143,10 +140,10 @@ fn start_gst_send_from_file_tcp(
         format!("gst-launch-1.0 -v filesrc location={path} ! qtdemux name=demux ");
 
     if let Some(port) = video_port {
-        gst_input_command = gst_input_command + &format!("demux.video_0 ! queue ! h264parse ! rtph264pay config-interval=1 !  application/x-rtp,payload=96  ! rtpstreampay ! tcpclientsink host={ip} port={port} ");
+        gst_input_command = gst_input_command + &format!("demux.video_0 ! queue ! h264parse ! rtph264pay config-interval=1 !  application/x-rtp,payload=96  ! rtpstreampay ! tcpclientsink host=127.0.0.1 port={port} ");
     }
     if let Some(port) = audio_port {
-        gst_input_command = gst_input_command + &format!("demux.audio_0 ! queue ! decodebin ! audioconvert ! audioresample ! opusenc ! rtpopuspay ! application/x-rtp,payload=97 !  rtpstreampay ! tcpclientsink host={ip} port={port} ");
+        gst_input_command = gst_input_command + &format!("demux.audio_0 ! queue ! decodebin ! audioconvert ! audioresample ! opusenc ! rtpopuspay ! application/x-rtp,payload=97 !  rtpstreampay ! tcpclientsink host=127.0.0.1 port={port} ");
     }
 
     Command::new("bash")
@@ -160,7 +157,6 @@ fn start_gst_send_from_file_tcp(
 }
 
 fn start_gst_send_from_file_udp(
-    ip: &str,
     video_port: Option<u16>,
     audio_port: Option<u16>,
     path: PathBuf,
@@ -187,10 +183,10 @@ fn start_gst_send_from_file_udp(
     .concat();
 
     if let Some(port) = video_port {
-        gst_input_command = gst_input_command + &format!("demux.video_0 ! queue ! h264parse ! rtph264pay config-interval=1 !  application/x-rtp,payload=96  ! udpsink host={ip} port={port} ");
+        gst_input_command = gst_input_command + &format!("demux.video_0 ! queue ! h264parse ! rtph264pay config-interval=1 !  application/x-rtp,payload=96  ! udpsink host=127.0.0.1 port={port} ");
     }
     if let Some(port) = audio_port {
-        gst_input_command = gst_input_command + &format!("demux.audio_0 ! queue ! decodebin ! audioconvert ! audioresample ! opusenc ! rtpopuspay ! application/x-rtp,payload=97 ! udpsink host={ip} port={port} ");
+        gst_input_command = gst_input_command + &format!("demux.audio_0 ! queue ! decodebin ! audioconvert ! audioresample ! opusenc ! rtpopuspay ! application/x-rtp,payload=97 ! udpsink host=127.0.0.1 port={port} ");
     }
 
     Command::new("bash")
@@ -203,11 +199,7 @@ fn start_gst_send_from_file_udp(
     Ok(())
 }
 
-fn start_gst_send_testsrc_tcp(
-    ip: &str,
-    video_port: Option<u16>,
-    audio_port: Option<u16>,
-) -> Result<()> {
+fn start_gst_send_testsrc_tcp(video_port: Option<u16>, audio_port: Option<u16>) -> Result<()> {
     match (video_port, audio_port) {
         (Some(video_port), Some(audio_port)) => info!(
             "[example] Start sending generic video on port {video_port} and audio on port {audio_port}."
@@ -228,10 +220,10 @@ fn start_gst_send_testsrc_tcp(
     .concat();
 
     if let Some(port) = video_port {
-        gst_input_command = gst_input_command + &format!(" x264enc tune=zerolatency speed-preset=superfast ! rtph264pay ! application/x-rtp,payload=96 ! rtpstreampay ! tcpclientsink host={ip} port={port}");
+        gst_input_command = gst_input_command + &format!(" x264enc tune=zerolatency speed-preset=superfast ! rtph264pay ! application/x-rtp,payload=96 ! rtpstreampay ! tcpclientsink host=127.0.0.1 port={port}");
     }
     if let Some(port) = audio_port {
-        gst_input_command = gst_input_command + &format!(" audiotestsrc ! audioconvert ! audioresample ! opusenc ! rtpopuspay ! application/x-rtp,payload=97 ! rtpstreampay ! tcpclientsink host={ip} port={port}");
+        gst_input_command = gst_input_command + &format!(" audiotestsrc ! audioconvert ! audioresample ! opusenc ! rtpopuspay ! application/x-rtp,payload=97 ! rtpstreampay ! tcpclientsink host=127.0.0.1 port={port}");
     }
 
     Command::new("bash")
@@ -244,11 +236,7 @@ fn start_gst_send_testsrc_tcp(
     Ok(())
 }
 
-fn start_gst_send_testsrc_udp(
-    ip: &str,
-    video_port: Option<u16>,
-    audio_port: Option<u16>,
-) -> Result<()> {
+fn start_gst_send_testsrc_udp(video_port: Option<u16>, audio_port: Option<u16>) -> Result<()> {
     match (video_port, audio_port) {
         (Some(video_port), Some(audio_port)) => info!(
             "[example] Start sending generic video on port {video_port} and audio on port {audio_port}."
@@ -269,10 +257,10 @@ fn start_gst_send_testsrc_udp(
     .concat();
 
     if let Some(port) = video_port {
-        gst_input_command = gst_input_command + &format!(" x264enc tune=zerolatency speed-preset=superfast ! rtph264pay ! application/x-rtp,payload=96 ! udpsink host={ip} port={port}");
+        gst_input_command = gst_input_command + &format!(" x264enc tune=zerolatency speed-preset=superfast ! rtph264pay ! application/x-rtp,payload=96 ! udpsink host=127.0.0.1 port={port}");
     }
     if let Some(port) = audio_port {
-        gst_input_command = gst_input_command + &format!(" audiotestsrc ! audioconvert ! audioresample ! opusenc ! rtpopuspay ! application/x-rtp,payload=97 ! udpsink host={ip} port={port}");
+        gst_input_command = gst_input_command + &format!(" audiotestsrc ! audioconvert ! audioresample ! opusenc ! rtpopuspay ! application/x-rtp,payload=97 ! udpsink host=127.0.0.1 port={port}");
     }
 
     Command::new("bash")

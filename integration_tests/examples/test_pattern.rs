@@ -85,7 +85,7 @@ fn client_code() -> Result<()> {
         }),
     )?;
 
-    start_ffmpeg_send(IP, Some(input_port), None, TestSample::TestPattern)?;
+    start_ffmpeg_send(Some(input_port), None, TestSample::TestPattern)?;
 
     examples::post("start", &json!({}))?;
 

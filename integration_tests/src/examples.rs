@@ -1,14 +1,16 @@
 use anyhow::{anyhow, Result};
 
 use futures_util::{SinkExt, StreamExt};
-use live_compositor::{config::read_config, server};
+use live_compositor::{config::read_config, logger::init_logger, server};
 use reqwest::{blocking::Response, StatusCode};
+use signal_hook::{consts, iterator::Signals};
 use std::{
     env,
     fs::{self, File},
     io,
     path::PathBuf,
-    process, thread,
+    process::{self, Command},
+    thread,
     time::{Duration, Instant},
 };
 use tokio_tungstenite::tungstenite;
@@ -38,12 +40,14 @@ pub fn post<T: Serialize + ?Sized>(route: &str, json: &T) -> Result<Response> {
 }
 
 pub fn run_example(client_code: fn() -> Result<()>) {
+    // let config = read_config();
+    // init_logger(config.logger.clone());
     thread::spawn(move || {
-        ffmpeg_next::format::network::init();
+        // ffmpeg_next::format::network::init();
 
         download_all_assets().unwrap();
 
-        if let Err(err) = wait_for_server_ready(Duration::from_secs(10)) {
+        if let Err(err) = wait_for_server_ready(Duration::from_secs(300)) {
             error!("{err}");
             process::exit(1);
         }
@@ -57,13 +61,84 @@ pub fn run_example(client_code: fn() -> Result<()>) {
 
         start_server_msg_listener();
     });
-    server::run();
+
+    if is_docker_used() {
+        println!("========================== docker");
+        // let skip_build = env::var("SKIP_DOCKER_REBUILD").is_ok();
+        let skip_build = true;
+
+        build_and_start_docker(skip_build).unwrap();
+
+        let mut signals = Signals::new([consts::SIGINT]).unwrap();
+        signals.forever().next();
+    } else {
+        println!("========================== local");
+        server::run();
+    }
+}
+
+fn build_and_start_docker(skip_build: bool) -> Result<()> {
+    let docker_file_path = examples_root_dir().join("../build_tools/docker/slim.Dockerfile");
+
+    if !skip_build {
+        info!("[example] docker build");
+        let mut process = Command::new("docker")
+            .args([
+                "build",
+                "-f",
+                docker_file_path.to_str().unwrap(),
+                "-t",
+                "video-compositor",
+                ".",
+            ])
+            .current_dir(examples_root_dir().parent().unwrap())
+            // .current_dir(examples_root_dir().join(".."))
+            .spawn()?;
+        let exit_code = process.wait()?;
+        if Some(0) != exit_code.code() {
+            return Err(anyhow!("Docker build finished with exit code {exit_code}"));
+        }
+    } else {
+        warn!("Skipping image build, using old version.")
+    }
+
+    let mut args = vec![
+        "run",
+        "-it",
+        // "-p",
+        // format!("8010-9000:8000-9000/tcp").leak(),
+        "-p",
+        format!("8000:8000/udp").leak(),
+        "-p",
+        format!("8002:8002/udp").leak(),
+        "-p",
+        format!("{}:{}", read_config().api_port, read_config().api_port).leak(),
+        "--rm",
+    ];
+
+    if env::var("NVIDIA").is_ok() {
+        info!("[example] configured for nvidia GPUs");
+        args.extend_from_slice(&["--gpus", "all", "--runtime=nvidia"]);
+    } else if env::var("NO_GPU").is_ok() || cfg!(target_os = "macos") {
+        info!("[example] configured for software based rendering");
+    } else {
+        info!("[example] configured for non-nvidia GPUs");
+        args.extend_from_slice(&["--device", "/dev/dri"]);
+    }
+
+    args.push("video-compositor");
+
+    println!("[example] docker run");
+    Command::new("docker").args(args).spawn()?;
+    println!(" $$$$$$$$$$$$$$$$$$$$$$$$$$$$ spawned");
+    Ok(())
 }
 
 fn wait_for_server_ready(timeout: Duration) -> Result<()> {
     let server_status_url = "http://127.0.0.1:8081/status";
     let wait_start_time = Instant::now();
     loop {
+        println!("Dupa");
         match reqwest::blocking::get(server_status_url) {
             Ok(_) => break,
             Err(_) => info!("Waiting for the server to start."),
@@ -256,7 +331,7 @@ fn ensure_asset_available(asset_path: &PathBuf) -> Result<()> {
     Ok(())
 }
 
-fn examples_root_dir() -> PathBuf {
+pub fn examples_root_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
 }
 
@@ -282,4 +357,31 @@ fn download_asset(asset: &AssetData) -> Result<()> {
         io::copy(&mut resp, &mut out)?;
     }
     Ok(())
+}
+
+pub fn is_docker_used() -> bool {
+    // env::var("LIVE_COMPOSITOR_RUN_WITH_DOCKER").is_ok()
+    true
+}
+
+pub fn get_client_ip() -> Result<String> {
+    if is_docker_used() {
+        Ok(String::from("host.docker.internal"))
+        // match env::var("DOCKER_HOST_IP") {
+        //     Ok(host_ip) => Ok(host_ip),
+        //     Err(err) => {
+        //         if cfg!(target_os = "macos") {
+        //             Err(anyhow!(
+        //                 "DOCKER_HOST_IP is not specified. You can find ip using 'ipconfig getifaddr en0' or 'ipconfig getifaddr en1': {err}")
+        //             )
+        //         } else {
+        //             Err(anyhow!(
+        //                 "DOCKER_HOST_IP is not specified. You can find ip using 'ip addr show docker0': {err}"
+        //             ))
+        //         }
+        //     }
+        // }
+    } else {
+        Ok(String::from("127.0.0.1"))
+    }
 }
