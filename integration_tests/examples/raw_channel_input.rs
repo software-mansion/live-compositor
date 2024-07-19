@@ -1,5 +1,5 @@
 use core::panic;
-use std::{process::Command, sync::Arc, thread, time::Duration};
+use std::{sync::Arc, thread, time::Duration};
 
 use compositor_pipeline::{
     pipeline::{
@@ -22,7 +22,7 @@ use compositor_render::{
     scene::{Component, InputStreamComponent},
     Frame, FrameData, InputId, OutputId, Resolution,
 };
-use integration_tests::test_input::TestInput;
+use integration_tests::{gstreamer::start_gst_receive_tcp, test_input::TestInput};
 use live_compositor::{
     config::{read_config, LoggerConfig, LoggerFormat},
     logger::{self, FfmpegLogLevel},
@@ -105,12 +105,7 @@ fn main() {
 
     let frames = generate_frames(&wgpu_device, &wgpu_queue);
 
-    let gst_output_command = format!("gst-launch-1.0 -v tcpclientsrc host=127.0.0.1 port={VIDEO_OUTPUT_PORT} ! \"application/x-rtp-stream\" ! rtpstreamdepay ! rtph264depay ! decodebin ! videoconvert ! autovideosink");
-    Command::new("bash")
-        .arg("-c")
-        .arg(gst_output_command)
-        .spawn()
-        .unwrap();
+    start_gst_receive_tcp("127.0.0.1", VIDEO_OUTPUT_PORT, true, false).unwrap();
 
     Pipeline::start(&state.pipeline);
 

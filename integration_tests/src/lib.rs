@@ -8,6 +8,8 @@ mod validation;
 mod video_decoder;
 
 pub mod examples;
+pub mod ffmpeg;
+pub mod gstreamer;
 pub mod test_input;
 
 #[cfg(test)]

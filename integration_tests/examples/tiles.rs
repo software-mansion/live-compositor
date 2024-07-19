@@ -1,12 +1,10 @@
 use anyhow::Result;
 use compositor_api::types::Resolution;
-use live_compositor::server;
-use log::{error, info};
 use serde_json::json;
-use std::thread;
 
-use integration_tests::examples::{
-    self, start_ffplay, start_websocket_thread, stream_ffmpeg_testsrc,
+use integration_tests::{
+    examples::{self, run_example, TestSample},
+    ffmpeg::{start_ffmpeg_receive, start_ffmpeg_send},
 };
 
 const VIDEO_RESOLUTION: Resolution = Resolution {
@@ -19,23 +17,12 @@ const INPUT_PORT: u16 = 8002;
 const OUTPUT_PORT: u16 = 8004;
 
 fn main() {
-    ffmpeg_next::format::network::init();
-
-    thread::spawn(|| {
-        if let Err(err) = start_example_client_code() {
-            error!("{err}")
-        }
-    });
-
-    server::run()
+    run_example(client_code);
 }
 
-fn start_example_client_code() -> Result<()> {
-    info!("[example] Start listening on output port.");
-    start_ffplay(IP, OUTPUT_PORT, None)?;
-    start_websocket_thread();
+fn client_code() -> Result<()> {
+    start_ffmpeg_receive(Some(OUTPUT_PORT), None)?;
 
-    info!("[example] Send register input request.");
     examples::post(
         "input/input_1/register",
         &json!({
@@ -72,7 +59,6 @@ fn start_example_client_code() -> Result<()> {
         })
     };
 
-    info!("[example] Send register output request.");
     examples::post(
         "output/output_1/register",
         &json!({
@@ -96,7 +82,6 @@ fn start_example_client_code() -> Result<()> {
     )?;
 
     for i in 1..=16 {
-        info!("[example] Update output");
         examples::post(
             "output/output_1/update",
             &json!({
@@ -108,14 +93,11 @@ fn start_example_client_code() -> Result<()> {
         )?;
     }
 
-    info!("[example] Start pipeline");
     examples::post("start", &json!({}))?;
 
-    info!("[example] Start input stream");
-    stream_ffmpeg_testsrc(IP, INPUT_PORT, VIDEO_RESOLUTION)?;
+    start_ffmpeg_send(IP, Some(INPUT_PORT), None, TestSample::TestPattern)?;
 
     for i in 0..16 {
-        info!("[example] Update output");
         examples::post(
             "output/output_1/update",
             &json!({
@@ -127,7 +109,6 @@ fn start_example_client_code() -> Result<()> {
         )?;
     }
 
-    info!("[example] Update output");
     examples::post(
         "output/output_1/update",
         &json!({

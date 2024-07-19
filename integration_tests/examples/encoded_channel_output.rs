@@ -95,7 +95,7 @@ fn main() {
 
     let input_options = RegisterInputOptions {
         input_options: InputOptions::Mp4(Mp4Options {
-            source: Source::File(root_dir.join("examples/assets/BigBuckBunny.mp4")),
+            source: Source::File(root_dir.join(BUNNY_FILE_PATH)),
         }),
         queue_options: QueueInputOptions {
             required: true,

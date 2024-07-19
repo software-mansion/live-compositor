@@ -1,25 +1,24 @@
 use anyhow::{anyhow, Result};
 
-use compositor_api::types::Resolution;
 use futures_util::{SinkExt, StreamExt};
-use live_compositor::config::read_config;
-use log::error;
+use live_compositor::{config::read_config, server};
 use reqwest::{blocking::Response, StatusCode};
 use std::{
     env,
     fs::{self, File},
-    io::{self, Write},
+    io,
     path::PathBuf,
-    process::{Command, Stdio},
-    thread,
-    time::Duration,
+    process, thread,
+    time::{Duration, Instant},
 };
 use tokio_tungstenite::tungstenite;
-use tracing::info;
+use tracing::{error, info, warn};
 
 use serde::Serialize;
 
 pub fn post<T: Serialize + ?Sized>(route: &str, json: &T) -> Result<Response> {
+    info!("[example] Sent post request to `{route}`.");
+
     let client = reqwest::blocking::Client::new();
     let response = client
         .post(format!(
@@ -33,24 +32,63 @@ pub fn post<T: Serialize + ?Sized>(route: &str, json: &T) -> Result<Response> {
         .unwrap();
     if response.status() >= StatusCode::BAD_REQUEST {
         log_request_error(&json, response);
-        return Err(anyhow!("request failed"));
+        return Err(anyhow!("Request failed."));
     }
     Ok(response)
 }
 
-#[allow(dead_code)]
-pub fn start_websocket_thread() {
+pub fn run_example(client_code: fn() -> Result<()>) {
+    thread::spawn(move || {
+        ffmpeg_next::format::network::init();
+
+        download_all_assets().unwrap();
+
+        if let Err(err) = wait_for_server_ready(Duration::from_secs(10)) {
+            error!("{err}");
+            process::exit(1);
+        }
+
+        thread::spawn(move || {
+            if let Err(err) = client_code() {
+                error!("{err}");
+                process::exit(1);
+            }
+        });
+
+        start_server_msg_listener();
+    });
+    server::run();
+}
+
+fn wait_for_server_ready(timeout: Duration) -> Result<()> {
+    let server_status_url = "http://127.0.0.1:8081/status";
+    let wait_start_time = Instant::now();
+    loop {
+        match reqwest::blocking::get(server_status_url) {
+            Ok(_) => break,
+            Err(_) => info!("Waiting for the server to start."),
+        };
+        if wait_start_time.elapsed() > timeout {
+            return Err(anyhow!("Error while starting server, timeout exceeded."));
+        }
+        thread::sleep(Duration::from_millis(1000));
+    }
+    Ok(())
+}
+
+// has to be public as long as docker is enabled externally, not through this crate
+pub fn start_server_msg_listener() {
     thread::Builder::new()
         .name("Websocket Thread".to_string())
         .spawn(|| {
             tokio::runtime::Runtime::new()
                 .unwrap()
-                .block_on(async { websocket_thread().await });
+                .block_on(async { server_msg_listener().await });
         })
         .unwrap();
 }
 
-async fn websocket_thread() {
+async fn server_msg_listener() {
     let url = format!("ws://127.0.0.1:{}/ws", read_config().api_port);
 
     let (ws_stream, _) = tokio_tungstenite::connect_async(url)
@@ -104,166 +142,6 @@ async fn websocket_thread() {
     receiver_task.await.unwrap();
 }
 
-#[allow(dead_code)]
-pub fn download_file(url: &str, path: &str) -> Result<PathBuf> {
-    let sample_path = env::current_dir()?.join(path);
-    fs::create_dir_all(sample_path.parent().unwrap())?;
-
-    if sample_path.exists() {
-        return Ok(sample_path);
-    }
-
-    let mut resp = reqwest::blocking::get(url)?;
-    let mut out = File::create(sample_path.clone())?;
-    io::copy(&mut resp, &mut out)?;
-    Ok(sample_path)
-}
-
-#[allow(dead_code)]
-pub fn start_ffplay(ip: &str, video_port: u16, audio_port: Option<u16>) -> Result<()> {
-    let output_sdp_path = match audio_port {
-        Some(audio_port) => write_video_audio_example_sdp_file(ip, video_port, audio_port),
-        None => write_video_example_sdp_file(ip, video_port),
-    }?;
-
-    Command::new("ffplay")
-        .args(["-protocol_whitelist", "file,rtp,udp", &output_sdp_path])
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn()?;
-    thread::sleep(Duration::from_secs(2));
-
-    Ok(())
-}
-
-#[allow(dead_code)]
-pub fn stream_video(ip: &str, port: u16, path: PathBuf) -> Result<()> {
-    Command::new("ffmpeg")
-        .args(["-stream_loop", "-1", "-re", "-i"])
-        .arg(path)
-        .args([
-            "-an",
-            "-c:v",
-            "copy",
-            "-f",
-            "rtp",
-            "-bsf:v",
-            "h264_mp4toannexb",
-            &format!("rtp://{ip}:{port}?rtcpport={port}"),
-        ])
-        .spawn()?;
-
-    Ok(())
-}
-
-#[allow(dead_code)]
-pub fn stream_audio(ip: &str, port: u16, path: PathBuf, codec: &str) -> Result<()> {
-    Command::new("ffmpeg")
-        .args(["-stream_loop", "-1", "-re", "-i"])
-        .arg(path.clone())
-        .args([
-            "-vn",
-            "-c:a",
-            codec,
-            "-f",
-            "rtp",
-            &format!("rtp://{ip}:{port}?rtcpport={port}"),
-        ])
-        .spawn()?;
-
-    Ok(())
-}
-
-#[allow(dead_code)]
-pub fn stream_ffmpeg_testsrc(ip: &str, port: u16, resolution: Resolution) -> Result<()> {
-    let ffmpeg_source = format!(
-        "testsrc=s={}x{}:r=30,format=yuv420p",
-        resolution.width, resolution.height
-    );
-
-    Command::new("ffmpeg")
-        .args([
-            "-re",
-            "-f",
-            "lavfi",
-            "-i",
-            &ffmpeg_source,
-            "-c:v",
-            "libx264",
-            "-f",
-            "rtp",
-            &format!("rtp://{ip}:{port}?rtcpport={port}"),
-        ])
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn()?;
-
-    Ok(())
-}
-
-/// The SDP file will describe an RTP session on localhost with H264 encoding.
-fn write_video_example_sdp_file(ip: &str, port: u16) -> Result<String> {
-    let sdp_filepath = PathBuf::from(format!("/tmp/example_sdp_video_input_{}.sdp", port));
-    let mut file = File::create(&sdp_filepath)?;
-    file.write_all(
-        format!(
-            "\
-                    v=0\n\
-                    o=- 0 0 IN IP4 {}\n\
-                    s=No Name\n\
-                    c=IN IP4 {}\n\
-                    m=video {} RTP/AVP 96\n\
-                    a=rtpmap:96 H264/90000\n\
-                    a=fmtp:96 packetization-mode=1\n\
-                    a=rtcp-mux\n\
-                ",
-            ip, ip, port
-        )
-        .as_bytes(),
-    )?;
-    Ok(String::from(
-        sdp_filepath
-            .to_str()
-            .ok_or_else(|| anyhow!("invalid utf string"))?,
-    ))
-}
-
-/// The SDP file will describe an RTP session on localhost with H264 video encoding and Opus audio encoding.
-fn write_video_audio_example_sdp_file(
-    ip: &str,
-    video_port: u16,
-    audio_port: u16,
-) -> Result<String> {
-    let sdp_filepath = PathBuf::from(format!(
-        "/tmp/example_sdp_video_audio_input_{}.sdp",
-        video_port
-    ));
-    let mut file = File::create(&sdp_filepath)?;
-    file.write_all(
-        format!(
-            "\
-                    v=0\n\
-                    o=- 0 0 IN IP4 {}\n\
-                    s=No Name\n\
-                    c=IN IP4 {}\n\
-                    m=video {} RTP/AVP 96\n\
-                    a=rtpmap:96 H264/90000\n\
-                    a=fmtp:96 packetization-mode=1\n\
-                    a=rtcp-mux\n\
-                    m=audio {} RTP/AVP 97\n\
-                    a=rtpmap:97 opus/48000/2\n\
-                ",
-            ip, ip, video_port, audio_port
-        )
-        .as_bytes(),
-    )?;
-    Ok(String::from(
-        sdp_filepath
-            .to_str()
-            .ok_or_else(|| anyhow!("invalid utf string"))?,
-    ))
-}
-
 fn log_request_error<T: Serialize + ?Sized>(request_body: &T, response: Response) {
     let status = response.status();
     let request_str = serde_json::to_string_pretty(request_body).unwrap();
@@ -299,4 +177,109 @@ fn get_formated_body(body_str: &str) -> String {
         serde_json::to_string_pretty(&body_map).unwrap(),
         msg_string,
     )
+}
+
+pub enum TestSample {
+    /// 10 minute animated video with sound
+    BigBuckBunny,
+    /// 10 minute animated video with ACC encoded sound
+    BigBuckBunnyAAC,
+    /// 11 minute animated video with sound
+    ElephantsDream,
+    /// 28 sec video with no sound
+    Sample,
+    /// looped 28 sec video with no sound
+    SampleLoop,
+    /// generated sample video with no sound (also with second timer when using ffmpeg)
+    TestPattern,
+}
+
+#[derive(Debug)]
+struct AssetData {
+    url: String,
+    path: PathBuf,
+}
+
+fn download_all_assets() -> Result<()> {
+    let assets = [AssetData {
+        url: String::from("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"),
+        path: examples_root_dir().join("examples/assets/BigBuckBunny.mp4"),
+    },
+    AssetData {
+        url: String::from("http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4"),
+        path: examples_root_dir().join("examples/assets/ElephantsDream.mp4"),
+    },
+    AssetData {
+        url: String::from("https://filesamples.com/samples/video/mp4/sample_1280x720.mp4"),
+        path: examples_root_dir().join("examples/assets/sample_1280_720.mp4"),
+    }];
+
+    for asset in assets {
+        if let Err(err) = download_asset(&asset) {
+            warn!(?asset, "Error while downloading asset: {err}");
+        }
+    }
+
+    Ok(())
+}
+
+fn map_asset_to_path(asset: &TestSample) -> Option<PathBuf> {
+    match asset {
+        TestSample::BigBuckBunny | TestSample::BigBuckBunnyAAC => {
+            Some(examples_root_dir().join("examples/assets/BigBuckBunny.mp4"))
+        }
+        TestSample::ElephantsDream => {
+            Some(examples_root_dir().join("examples/assets/ElephantsDream.mp4"))
+        }
+        TestSample::Sample | TestSample::SampleLoop => {
+            Some(examples_root_dir().join("examples/assets/sample_1280_720.mp4"))
+        }
+        TestSample::TestPattern => None,
+    }
+}
+
+pub fn get_asset_path(asset: TestSample) -> Result<PathBuf> {
+    let path = map_asset_to_path(&asset).unwrap();
+    match ensure_asset_available(&path) {
+        Ok(()) => Ok(path),
+        Err(e) => Err(e),
+    }
+}
+
+fn ensure_asset_available(asset_path: &PathBuf) -> Result<()> {
+    if !asset_path.exists() {
+        return Err(anyhow!(
+            "asset under path {:?} does not exist, try downloading it again",
+            asset_path
+        ));
+    }
+    Ok(())
+}
+
+fn examples_root_dir() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+}
+
+pub fn download_file(url: &str, path: &str) -> Result<PathBuf> {
+    let sample_path = env::current_dir()?.join(path);
+    fs::create_dir_all(sample_path.parent().unwrap())?;
+
+    if sample_path.exists() {
+        return Ok(sample_path);
+    }
+
+    let mut resp = reqwest::blocking::get(url)?;
+    let mut out = File::create(sample_path.clone())?;
+    io::copy(&mut resp, &mut out)?;
+    Ok(sample_path)
+}
+
+fn download_asset(asset: &AssetData) -> Result<()> {
+    fs::create_dir_all(asset.path.parent().unwrap())?;
+    if !asset.path.exists() {
+        let mut resp = reqwest::blocking::get(&asset.url)?;
+        let mut out = File::create(asset.path.clone())?;
+        io::copy(&mut resp, &mut out)?;
+    }
+    Ok(())
 }

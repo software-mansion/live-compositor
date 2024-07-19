@@ -6,6 +6,7 @@ use std::time::Duration;
 use integration_tests::{
     examples::{self, run_example, TestSample},
     ffmpeg::{start_ffmpeg_receive, start_ffmpeg_send},
+    gstreamer::start_gst_send_udp,
 };
 
 const VIDEO_RESOLUTION: Resolution = Resolution {
@@ -18,14 +19,17 @@ const INPUT_1_PORT: u16 = 8002;
 const INPUT_2_PORT: u16 = 8004;
 const INPUT_3_PORT: u16 = 8006;
 const INPUT_4_PORT: u16 = 8008;
-const OUTPUT_VIDEO_PORT: u16 = 8010;
-const OUTPUT_AUDIO_PORT: u16 = 8012;
+const INPUT_5_PORT: u16 = 8010;
+const INPUT_6_PORT: u16 = 8012;
+const INPUT_7_PORT: u16 = 8014;
+const OUTPUT_VIDEO_PORT: u16 = 8016;
+const OUTPUT_AUDIO_PORT: u16 = 8018;
 
 fn main() {
-    run_example(client_code);
+    run_example(start_example_client_code);
 }
 
-fn client_code() -> Result<()> {
+fn start_example_client_code() -> Result<()> {
     start_ffmpeg_receive(Some(OUTPUT_VIDEO_PORT), Some(OUTPUT_AUDIO_PORT))?;
 
     examples::post(
@@ -73,6 +77,39 @@ fn client_code() -> Result<()> {
     )?;
 
     examples::post(
+        "input/input_5/register",
+        &json!({
+            "type": "rtp_stream",
+            "port": INPUT_5_PORT,
+            "video": {
+                "decoder": "ffmpeg_h264"
+            },
+        }),
+    )?;
+
+    examples::post(
+        "input/input_6/register",
+        &json!({
+            "type": "rtp_stream",
+            "port": INPUT_6_PORT,
+            "video": {
+                "decoder": "ffmpeg_h264"
+            },
+        }),
+    )?;
+
+    examples::post(
+        "input/input_7/register",
+        &json!({
+            "type": "rtp_stream",
+            "port": INPUT_7_PORT,
+            "video": {
+                "decoder": "ffmpeg_h264"
+            },
+        }),
+    )?;
+
+    examples::post(
         "output/output_1/register",
         &json!({
             "type": "rtp_stream",
@@ -98,12 +135,24 @@ fn client_code() -> Result<()> {
                             {
                                 "type": "input_stream",
                                 "input_id": "input_3"
+                            },
+                            {
+                                "type": "input_stream",
+                                "input_id": "input_5"
+                            },
+                            {
+                                "type": "input_stream",
+                                "input_id": "input_6"
+                            },
+                            {
+                                "type": "input_stream",
+                                "input_id": "input_7"
                             }
                         ]
                     }
                 },
                 "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
-            }
+            },
         }),
     )?;
 
@@ -124,15 +173,14 @@ fn client_code() -> Result<()> {
                     "type": "opus",
                     "channels": "stereo",
                 }
-            }
+            },
         }),
     )?;
-
     std::thread::sleep(Duration::from_millis(500));
 
     examples::post("start", &json!({}))?;
 
-    start_ffmpeg_send(
+    start_gst_send_udp(
         IP,
         Some(INPUT_1_PORT),
         Some(INPUT_2_PORT),
@@ -144,6 +192,9 @@ fn client_code() -> Result<()> {
         Some(INPUT_4_PORT),
         TestSample::ElephantsDream,
     )?;
+    start_gst_send_udp(IP, Some(INPUT_5_PORT), None, TestSample::Sample)?;
+    start_ffmpeg_send(IP, Some(INPUT_6_PORT), None, TestSample::SampleLoop)?;
+    start_ffmpeg_send(IP, Some(INPUT_7_PORT), None, TestSample::TestPattern)?;
 
     Ok(())
 }

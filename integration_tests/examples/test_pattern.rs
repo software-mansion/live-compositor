@@ -1,13 +1,11 @@
 use anyhow::Result;
 use compositor_api::types::Resolution;
-use live_compositor::server;
-use log::{error, info};
 use serde::Deserialize;
 use serde_json::json;
-use std::{env, thread};
 
-use integration_tests::examples::{
-    self, start_ffplay, start_websocket_thread, stream_ffmpeg_testsrc,
+use integration_tests::{
+    examples::{self, run_example, TestSample},
+    ffmpeg::{start_ffmpeg_receive, start_ffmpeg_send},
 };
 
 const VIDEO_RESOLUTION: Resolution = Resolution {
@@ -19,16 +17,7 @@ const IP: &str = "127.0.0.1";
 const OUTPUT_PORT: u16 = 8002;
 
 fn main() {
-    env::set_var("LIVE_COMPOSITOR_WEB_RENDERER_ENABLE", "0");
-    ffmpeg_next::format::network::init();
-
-    thread::spawn(|| {
-        if let Err(err) = start_example_client_code() {
-            error!("{err}")
-        }
-    });
-
-    server::run()
+    run_example(client_code);
 }
 
 #[derive(Deserialize)]
@@ -36,12 +25,9 @@ struct RegisterResponse {
     port: u16,
 }
 
-fn start_example_client_code() -> Result<()> {
-    info!("[example] Start listening on output port.");
-    start_ffplay(IP, OUTPUT_PORT, None)?;
-    start_websocket_thread();
+fn client_code() -> Result<()> {
+    start_ffmpeg_receive(Some(OUTPUT_PORT), None)?;
 
-    info!("[example] Send register input request.");
     let RegisterResponse { port: input_port } = examples::post(
         "input/input_1/register",
         &json!({
@@ -57,7 +43,6 @@ fn start_example_client_code() -> Result<()> {
     .json::<RegisterResponse>()?;
 
     let shader_source = include_str!("./silly.wgsl");
-    info!("[example] Register shader transform");
     examples::post(
         "shader/example_shader/register",
         &json!({
@@ -78,7 +63,6 @@ fn start_example_client_code() -> Result<()> {
         "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
     });
 
-    info!("[example] Send register output request.");
     examples::post(
         "output/output_1/register",
         &json!({
@@ -101,10 +85,8 @@ fn start_example_client_code() -> Result<()> {
         }),
     )?;
 
-    info!("[example] Start input stream");
-    stream_ffmpeg_testsrc(IP, input_port, VIDEO_RESOLUTION)?;
+    start_ffmpeg_send(IP, Some(input_port), None, TestSample::TestPattern)?;
 
-    info!("[example] Start pipeline");
     examples::post("start", &json!({}))?;
 
     Ok(())
