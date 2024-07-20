@@ -107,15 +107,26 @@
   margin-top: 50px;
 }
 
-[data-theme='dark'] .sectionSubheading {
+[data-theme='dark'] .mainSubheading {
   font-size: 20px;
   color: hsl(240 5% 64.9%);
 }
 
-[data-theme='light'] .sectionSubheading {
+[data-theme='light'] .mainSubheading {
   font-size: 20px;
   color: hsl(240 5% 34.9%);
 }
+
+[data-theme='dark'] .grayText {
+  font-size: 18px;
+  color: hsl(240 5% 64.9%);
+}
+
+[data-theme='light'] .grayText {
+  font-size: 18px;
+  color: hsl(240 5% 34.9%);
+}
+
 
 
 @media screen and (max-width: 1200px) {

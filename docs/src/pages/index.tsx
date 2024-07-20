@@ -44,7 +44,7 @@ function HomepageHeader() {
                 />
               </div>
             </Heading>
-            <p className={styles.sectionSubheading}>
+            <p className={styles.mainSubheading}>
               Media server for real-time, low latency, programmable video and audio mixing.
             </p>
             <div className="row">
@@ -101,7 +101,7 @@ function HowItWorks() {
       <Heading as="h1" className="margin-bottom--md text--center text--primary">
         How it works?
       </Heading>
-      <p className={clsx('text--center', styles.sectionSubheading)}>
+      <p className={clsx('text--center', styles.grayText)}>
         1. Send inputs as RTP streams or MP4 files
         <br />
         2. Configure mixing with HTTP requests
@@ -126,7 +126,7 @@ function UseCases() {
       <Heading as="h1" className="margin-bottom--md text--center text--primary">
         Use cases
       </Heading>
-      <p className={clsx('text--center', styles.sectionSubheading)}>
+      <p className={clsx('text--center', styles.grayText)}>
         Use LiveCompositor for video conferencing, live-streaming, broadcasting, and more.
       </p>
       <div className="row">
@@ -160,7 +160,7 @@ function UseCaseCard(props: UseCaseCardProps) {
           {props.title}
         </Heading>
       </div>
-      <p className={clsx('text--center', styles.sectionSubheading)} style={{ margin: 0 }}>
+      <p className={clsx('text--center', styles.grayText)} style={{ margin: 0 }}>
         {props.subtitle}
       </p>
       <div className="card__body">
@@ -176,7 +176,7 @@ function VisionCards() {
       <Heading as="h1" className="margin-bottom--md text--center text--primary">
         Vision
       </Heading>
-      <p className={clsx('text--center', styles.sectionSubheading)}>
+      <p className={clsx('text--center', styles.grayText)}>
         Make mixing live streams as simple as building a website.
       </p>
       <div className="row">
@@ -266,9 +266,7 @@ function Features() {
       <Heading as="h1" className="margin-bottom--md text--center text--primary">
         Capabilities
       </Heading>
-      <p className={clsx('text--center', styles.sectionSubheading)}>
-        Simple, powerful, fast. Pick three.
-      </p>
+      <p className={clsx('text--center', styles.grayText)}>Simple, powerful, fast. Pick three.</p>
 
       <Feature
         text="Batteries included"
@@ -446,17 +444,17 @@ function Licensing() {
       </Heading>
       <div className="card container">
         <div className="card__body">
-          <p className={styles.sectionSubheading}>
+          <p className={styles.grayText}>
             LiveCompositor is licensed under{' '}
             <Link to="https://github.com/membraneframework/live_compositor/blob/master/LICENSE">
               Business Source License 1.1
             </Link>
           </p>
-          <p className={styles.sectionSubheading}>
+          <p className={styles.grayText}>
             Currently, allowed usage is limited to non-production use cases. If you are interested
             in the production usage contact us (see the section below).
           </p>
-          <span className={styles.sectionSubheading}>
+          <span className={styles.grayText}>
             What is the goal of those limitations?
             <ul>
               <li>We want to have insight into where and how LiveCompositor is used.</li>
@@ -468,7 +466,7 @@ function Licensing() {
               </li>
             </ul>
           </span>
-          <span className={styles.sectionSubheading}>
+          <span className={styles.grayText}>
             What is <b>not</b> our goal?
             <ul>
               <li>
@@ -502,7 +500,7 @@ function ContactUs() {
               </Heading>
             </div>
             <div className="card__body">
-              <p className={clsx(styles.sectionSubheading, 'margin-bottom--md')}>
+              <p className={clsx(styles.grayText, 'margin-bottom--md')}>
                 LiveCompositor is developed by Software Mansion - a software company that is
                 specialized in building tools for developers. At Software Mansion, we work on
                 multiple multimedia projects, like Membrane Framework, Elixir WebRTC, FishJam, and
