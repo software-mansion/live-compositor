@@ -3,7 +3,7 @@ use std::process::Command;
 fn main() {
     let args = std::env::args().collect::<Vec<_>>();
     if args.len() != 3 {
-        eprintln!("Usage: {} <video/audio> <input_file>", args[0]);
+        eprintln!("Usage: {} <video/audio/av> <input_file>", args[0]);
         return;
     }
 
@@ -18,6 +18,16 @@ fn main() {
             format!(
                 "gst-launch-1.0 -v filesrc location={input_file} ! application/x-rtp-stream,payload=97,encoding-name=OPUS ! rtpstreamdepay ! rtpopusdepay ! audio/x-opus ! opusdec ! autoaudiosink"
             )
+        }
+        "av" => {
+            [
+                "gst-launch-1.0 rtpptdemux name=demux ",
+                &format!("filesrc location={input_file} ! \"application/x-rtp-stream\" ! rtpstreamdepay ! queue ! demux. "),
+                "demux.src_96 ! \"application/x-rtp,media=video,clock-rate=90000,encoding-name=H264\" ! queue ",
+                "! rtph264depay ! decodebin ! videoconvert ! autovideosink ",
+                "demux.src_97 ! \"application/x-rtp,media=audio,clock-rate=48000,encoding-name=OPUS\" ! queue ",
+                "! rtpopusdepay ! decodebin ! audioconvert ! autoaudiosink  ",
+            ].concat()
         }
         option => panic!("Invalid option \"{option}\". Must be video or audio."),
     };

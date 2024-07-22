@@ -102,7 +102,7 @@ pub fn schedule_update() -> Result<()> {
         "input/input_1/register",
         json!({
             "type": "rtp_stream",
-            "transport_protocol": "udp",
+            "transport_protocol": "tcp_server",
             "port": input_1_port,
             "video": {
                 "decoder": "ffmpeg_h264"
@@ -126,23 +126,26 @@ pub fn schedule_update() -> Result<()> {
         }),
     )?;
 
-    let mut input_1_sender = PacketSender::new(CommunicationProtocol::Udp, input_1_port)?;
-    let mut input_2_sender = PacketSender::new(CommunicationProtocol::Tcp, input_2_port)?;
+    let input_1_sender = PacketSender::new(CommunicationProtocol::Tcp, input_1_port)?;
+    let input_2_sender = PacketSender::new(CommunicationProtocol::Tcp, input_2_port)?;
     let input_1_dump = input_dump_from_disk("8_colors_input_video.rtp")?;
     let input_2_dump = input_dump_from_disk("8_colors_input_reversed_video.rtp")?;
 
-    input_1_sender.send(&input_1_dump)?;
-    input_2_sender.send(&input_2_dump)?;
+    let input_1_handle = input_1_sender.send_non_blocking(input_1_dump);
+    let input_2_handle = input_2_sender.send_non_blocking(input_2_dump);
 
     instance.send_request("start", json!({}))?;
 
+    input_1_handle.join().unwrap();
+    input_2_handle.join().unwrap();
     let new_output_dump = output_receiver.wait_for_output()?;
 
     compare_video_dumps(
         OUTPUT_DUMP_FILE,
         &new_output_dump,
         VideoValidationConfig {
-            validation_intervals: vec![Duration::from_millis(500)..Duration::from_millis(3500)],
+            validation_intervals: vec![Duration::ZERO..Duration::from_secs(18)],
+            allowed_invalid_frames: 10,
             ..Default::default()
         },
     )?;

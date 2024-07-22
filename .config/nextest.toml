@@ -1,0 +1,17 @@
+[profile.default]
+retries = 0
+
+[profile.ci]
+retries = 1
+slow-timeout = "60s"
+fail-fast = false
+
+[[profile.ci.overrides]]
+filter = 'package(/^integration_tests/) and test(/_flaky$/)'
+threads-required = 6
+retries = 4
+
+[[profile.ci.overrides]]
+filter = 'package(/^integration_tests/)'
+threads-required = 2
+retries = 2

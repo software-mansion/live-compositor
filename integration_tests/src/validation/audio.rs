@@ -53,7 +53,9 @@ pub fn validate(
             let pts_end = time_range.end.as_micros();
 
             return Err(anyhow::anyhow!(
-                "Audio mismatch. Time range: ({pts_start}, {pts_end}), Diff Pitch Left: {diff_pitch_left}, Diff Pitch Right: {diff_pitch_right}"
+                "Audio mismatch. Time range: ({pts_start}, {pts_end}), Expected: ({}, {}) Actual: ({}, {})",
+                expected_pitch_left, expected_pitch_right,
+                actual_pitch_left, actual_pitch_right
             ));
         }
     }
@@ -76,6 +78,9 @@ fn pitch_from_sample_batch(
     sample_rate: u32,
 ) -> Result<(f64, f64)> {
     fn get_pitch(samples: &[f64], sample_rate: u32) -> Result<f64> {
+        if samples.is_empty() {
+            return Err(anyhow::anyhow!("No samples"));
+        }
         let mut detector: McLeodDetector<f64> = McLeodDetector::new(samples.len(), 0);
         detector
             .get_pitch(samples, sample_rate as usize, 0.0, 0.0)

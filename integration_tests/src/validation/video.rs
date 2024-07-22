@@ -48,12 +48,18 @@ pub fn validate(
 
         let mut incorrect_frames_count =
             usize::abs_diff(expected_frames.len(), actual_frames.len());
+        if incorrect_frames_count != 0 {
+            warn!(
+                ?time_range,
+                expected = expected_frames.len(),
+                actual = actual_frames.len(),
+                "Frame count mismatch."
+            )
+        }
         for (i, (expected, actual)) in expected_frames.iter().zip(actual_frames.iter()).enumerate()
         {
             if let Err(err) = validate_frame(expected, actual, allowed_error) {
-                let start_pts = time_range.start.as_micros();
-                let end_pts = time_range.end.as_micros();
-                warn!("Frame {i} mismatch. PTS: {start_pts}_{end_pts}. Error: {err}");
+                warn!(?time_range, "Frame {i} mismatch. Error: {err}");
                 incorrect_frames_count += 1;
             }
         }

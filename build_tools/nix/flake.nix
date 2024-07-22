@@ -67,6 +67,7 @@
             rustfmt
             clippy
             cargo-watch
+            cargo-nextest
             rust-analyzer
             clang-tools
             mesa.drivers

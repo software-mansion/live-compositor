@@ -7,9 +7,9 @@ use crate::{
 use anyhow::Result;
 use serde_json::json;
 
-/// Checks if input stream frames are not shown after unregistering.
+/// Setup scene with stream and image and send unregister request after 4 seconds for both.
 ///
-/// Show image on the right side for 20 seconds.
+/// Show image and stream for 4 seconds. After that only image is displayed.
 #[test]
 pub fn unregistering() -> Result<()> {
     const OUTPUT_DUMP_FILE: &str = "unregistering_test_output.rtp";
@@ -44,7 +44,7 @@ pub fn unregistering() -> Result<()> {
         "input/input_1/register",
         json!({
             "type": "rtp_stream",
-            "transport_protocol": "udp",
+            "transport_protocol": "tcp_server",
             "port": input_port,
             "video": {
                 "decoder": "ffmpeg_h264"
@@ -53,14 +53,12 @@ pub fn unregistering() -> Result<()> {
     )?;
 
     let input_1_dump = input_dump_from_disk("8_colors_long_input_video.rtp")?;
-    let mut input_1_sender = PacketSender::new(CommunicationProtocol::Udp, input_port)?;
+    PacketSender::new(CommunicationProtocol::Tcp, input_port)?.send_non_blocking(input_1_dump);
 
     instance.send_request("start", json!({}))?;
 
-    thread::sleep(Duration::from_secs(2));
+    thread::sleep(Duration::from_secs(4));
 
-    // After whole input dump is sent, unregister input stream immediately.
-    input_1_sender.send(&input_1_dump)?;
     instance.send_request("input/input_1/unregister", json!({}))?;
 
     instance.send_request("image/image_1/unregister", json!({}))?;
@@ -71,6 +69,7 @@ pub fn unregistering() -> Result<()> {
         OUTPUT_DUMP_FILE,
         &new_output_dump,
         VideoValidationConfig {
+            validation_intervals: vec![Duration::from_secs(0)..Duration::from_secs(10)],
             allowed_invalid_frames: 1,
             ..Default::default()
         },
