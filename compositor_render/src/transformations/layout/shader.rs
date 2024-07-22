@@ -97,13 +97,13 @@ impl LayoutShader {
             render_pass.set_bind_group(1, params, &[]);
             render_pass.set_bind_group(2, &self.sampler.bind_group, &[]);
 
-            for (layout_id, texture_bg) in input_texture_bgs.iter().enumerate() {                
+            for (layout_id, texture_bg) in input_texture_bgs.iter().enumerate() {
                 render_pass.set_push_constants(
                     ShaderStages::VERTEX_FRAGMENT,
                     0,
                     &(layout_id as u32).to_le_bytes(),
                 );
-                
+
                 render_pass.set_bind_group(0, texture_bg, &[]);
 
                 wgpu_ctx.plane.draw(&mut render_pass);

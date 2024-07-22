@@ -36,7 +36,6 @@ fn vs_main(input: VertexInput) -> VertexOutput {
     return output;
 }
 
-// Constants
 const PI: f32 = 3.1415926535897932384626433832795;
 // Lanczos parameter a
 const A: f32 = 3.0;
@@ -69,7 +68,7 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
     let input_resolution: vec2<f32> = vec2<f32>(f32(dim.x), f32(dim.y));
     let scaling_factor: vec2<f32> = current_layout.layout_resolution / input_resolution;
 
-    let pixel_size: vec2<f32> = vec2<f32>(0.5) / input_resolution;
+    let half_pixel_size: vec2<f32> = vec2<f32>(0.5) / input_resolution;
 
     var color: vec4<f32> = vec4<f32>(0.0, 0.0, 0.0, 0.0);
     var normalization: f32 = 0.0;
@@ -77,17 +76,23 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
 
     for (var i: f32 = -A; i <= A; i += 1.0) {
         for (var j: f32 = -A; j <= A; j += 1.0) {
+            // Position on input texture in pixels
             let x = input.tex_coords * input_resolution;
+            // Sample position in pixels
             let sample_pixel_x = floor(input.tex_coords.x * input_resolution.x) + i;
             let sample_pixel_y = floor(input.tex_coords.y * input_resolution.y) + j;
 
-            let sample_coord_x = clamp(sample_pixel_x / input_resolution.x, 0.0, 1.0);
-            let sample_coord_y = clamp(sample_pixel_y / input_resolution.y, 0.0, 1.0);
+            // Sample position in texture coordinates
+            let sample_coord_x = clamp((sample_pixel_x / input_resolution.x) + half_pixel_size.x, 0.0, 1.0);
+            let sample_coord_y = clamp((sample_pixel_y / input_resolution.y) + half_pixel_size.y, 0.0, 1.0);
             let sample_coords = vec2<f32>(sample_coord_x, sample_coord_y);
+            
+            // Distance of sampled output pixel from sampled position 
             let dx = sample_pixel_x - x.x;
             let dy = sample_pixel_y - x.y;
 
             let sample_color: vec4<f32> = textureSample(texture, sampler_, sample_coords);
+            // Lanczos weight normalizing sampled values
             let weight: f32 = lanczos(dx) * lanczos(dy);
             color += sample_color * weight;
             normalization += weight;

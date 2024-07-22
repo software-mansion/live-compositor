@@ -74,8 +74,8 @@ fn start_example_client_code() -> Result<()> {
                 "type": "rescaler",
                 "width": 1760,
                 "height": 990,
-                "child": { 
-                    "type": "input_stream", 
+                "child": {
+                    "type": "input_stream",
                     "input_id": "input_1"
                 },
             }
