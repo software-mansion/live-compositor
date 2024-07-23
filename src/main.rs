@@ -24,6 +24,8 @@ fn main() {
         }
     }
 
+    println!("Hello, world!");
+
     ffmpeg_next::format::network::init();
 
     server::run();
