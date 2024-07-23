@@ -23,7 +23,7 @@ fn main() {
             panic!("Build process helper first. For release profile use: cargo build -r --bin process_helper");
         }
     }
-    
+
     ffmpeg_next::format::network::init();
 
     server::run();
