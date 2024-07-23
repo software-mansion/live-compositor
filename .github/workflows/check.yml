@@ -75,7 +75,6 @@ jobs:
 
             - name: 🧪 Run tests
               run: |
-                cargo clean
                 cargo nextest run --workspace --profile ci
 
             - name: 🖋️ Run website lint + typecheck + build
