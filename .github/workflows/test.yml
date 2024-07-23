@@ -1,4 +1,4 @@
-name: build, lint and test
+name: build and test
 on:
     push:
         branches: [master]
@@ -26,18 +26,11 @@ jobs:
 
             - name: 🔧 Install the rust toolchain
               uses: dtolnay/rust-toolchain@stable
-              with:
-                  components: rustfmt, clippy
 
             - name: 🔬 Install nextest
               uses: taiki-e/install-action@v2
               with:
                   tool: cargo-nextest
-
-            - name: 🛠 Setup Node.JS
-              uses: actions/setup-node@v4
-              with:
-                  node-version: 20
 
             - name: 📥 Checkout repo
               uses: actions/checkout@v4
@@ -57,31 +50,14 @@ jobs:
             - name: 🪢 Generate Chromium Embedded Framework bindings
               run: cargo build --package compositor_chromium
 
-            - name: 📖 Check formatting
-              run: cargo fmt --all --check
-
-            - name: 📎 Run clippy
-              run: cargo clippy --workspace --all-targets --all-features -- -D clippy::todo -D warnings
-
             - name: 🛠 Cargo build
               run: |
                 cargo build --features decklink
                 cargo build --no-default-features
 
-            - name: 📄 Generate JSON schema
-              working-directory: ./generate
-              run: |
-                cargo run --bin generate_from_types -- --check
-
             - name: 🧪 Run tests
               run: |
                 cargo nextest run --workspace --profile ci
-
-            - name: 🖋️ Run website lint + typecheck + build
-              working-directory: ./docs
-              run: |
-                npm ci
-                npm run typecheck && npm run lint --max-warnings=0 && npm run build
 
             - name: 📦 Upload failed snapshot test artifacts
               if: failure()
