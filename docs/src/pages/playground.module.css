@@ -1,0 +1,30 @@
+/**
+ * CSS files with the .module.css suffix will be treated as CSS modules
+ * and scoped locally.
+ */
+
+ .page {
+    margin: 30px;
+ }
+  
+.codeArea {
+    height: 75dvh;
+    width: 100%;
+    left: 0;
+    top: 0;
+    resize: none;
+}
+
+.options {
+    margin: 30px;
+}
+
+.imageDisplay {
+    border-radius: 2px;
+    border-style: groove;
+    height: 45dvh;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
