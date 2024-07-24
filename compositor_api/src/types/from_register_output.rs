@@ -4,7 +4,10 @@ use compositor_pipeline::pipeline::{
         self,
         ffmpeg_h264::{self},
     },
-    output::{self, mp4::{Mp4OutputOptions, Mp4VideoTrack}},
+    output::{
+        self,
+        mp4::{Mp4AudioTrack, Mp4OutputOptions, Mp4VideoTrack},
+    },
 };
 
 use super::register_output::*;
@@ -96,9 +99,11 @@ impl TryFrom<Mp4Output> for pipeline::RegisterOutputOptions<output::OutputOption
                 width: v.resolution.width as u32,
                 height: v.resolution.height as u32,
             },
-        }); 
-        let audio_codec = audio.as_ref().map(|a| match a.encoder {
-            AudioEncoderOptions::Opus { .. } => pipeline::AudioCodec::Opus,
+        });
+        let mp4_audio = audio.as_ref().map(|a| match a.encoder {
+            AudioEncoderOptions::Opus { .. } => Mp4AudioTrack {
+                codec: pipeline::AudioCodec::Opus,
+            },
         });
 
         let ConvertedOptions {
@@ -112,7 +117,7 @@ impl TryFrom<Mp4Output> for pipeline::RegisterOutputOptions<output::OutputOption
             output_protocol: output::OutputProtocolOptions::Mp4(Mp4OutputOptions {
                 output_path: path.into(),
                 video: mp4_video,
-                audio: audio_codec,
+                audio: mp4_audio,
             }),
             video: video_encoder_options,
             audio: audio_encoder_options,

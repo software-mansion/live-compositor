@@ -34,8 +34,8 @@ pub use component::View;
 pub use component::WebView;
 
 pub use register_input::Mp4;
-pub use register_output::RtpOutputStream;
 pub use register_output::Mp4Output;
+pub use register_output::RtpOutputStream;
 
 pub use register_input::DeckLink;
 pub use register_input::RtpInputStream;

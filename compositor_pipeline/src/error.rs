@@ -36,12 +36,6 @@ pub enum RegisterOutputError {
 
     #[error("Failed to register output stream \"{0}\". At least one of \"video\" and \"audio\" must be specified.")]
     NoVideoAndAudio(OutputId),
-
-    // TODO: handle audio and remove this error
-    #[error(
-        "Failed to register output stream \"{0}\". Audio output for Mp4 is not supported yet."
-    )]
-    Mp4AudioNotSupported(OutputId),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -80,8 +74,8 @@ pub enum OutputInitError {
     #[error("Failed to register output. All ports in range {lower_bound} to {upper_bound} are already used or not available.")]
     AllPortsAlreadyInUse { lower_bound: u16, upper_bound: u16 },
 
-    #[error("Invalid mp4 path.")]
-    InvalidMp4Path,
+    #[error("Path {path} already exist. Can't create a new mp4 file under that path.")]
+    Mp4PathExist { path: String },
 
     #[error("Failed to register output. FFmpeg error: {0}.")]
     FfmpegMp4Error(ffmpeg_next::Error),
@@ -169,7 +163,6 @@ const ENCODER_ERROR: &str = "OUTPUT_STREAM_ENCODER_ERROR";
 const OUTPUT_ERROR: &str = "OUTPUT_STREAM_OUTPUT_ERROR";
 const UNSUPPORTED_RESOLUTION: &str = "UNSUPPORTED_RESOLUTION";
 const NO_VIDEO_OR_AUDIO_FOR_OUTPUT: &str = "NO_VIDEO_OR_AUDIO_FOR_OUTPUT";
-const MP4_AUDIO_NOT_SUPPORTED: &str = "MP4_AUDIO_NOT_SUPPORTED";
 
 impl From<&RegisterOutputError> for PipelineErrorInfo {
     fn from(err: &RegisterOutputError) -> Self {
@@ -192,9 +185,6 @@ impl From<&RegisterOutputError> for PipelineErrorInfo {
             RegisterOutputError::SceneError(_, err) => err.into(),
             RegisterOutputError::NoVideoAndAudio(_) => {
                 PipelineErrorInfo::new(NO_VIDEO_OR_AUDIO_FOR_OUTPUT, ErrorType::UserError)
-            }
-            RegisterOutputError::Mp4AudioNotSupported(_) => {
-                PipelineErrorInfo::new(MP4_AUDIO_NOT_SUPPORTED, ErrorType::UserError)
             }
         }
     }

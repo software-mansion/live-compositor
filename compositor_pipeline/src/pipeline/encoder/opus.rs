@@ -93,7 +93,7 @@ fn run_encoder_thread(
         let chunk = EncodedChunk {
             data,
             pts: batch.start_pts,
-            dts: None,
+            dts: Some(batch.start_pts),
             kind: EncodedChunkKind::Audio(AudioCodec::Opus),
         };
 

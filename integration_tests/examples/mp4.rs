@@ -44,7 +44,7 @@ fn client_code() -> Result<()> {
         "output/output_1/register",
         &json!({
             "type": "mp4",
-            "path": "output.mp4", 
+            "path": "output.mp4",
             "video": {
                 "resolution": {
                     "width": VIDEO_RESOLUTION.width,
@@ -61,29 +61,20 @@ fn client_code() -> Result<()> {
                         "input_id": "input_1",
                     }
                 }
+            },
+            "audio": {
+                "encoder": {
+                    "type": "opus",
+                    "channels": "stereo"
+                },
+                "initial": {
+                    "inputs": [
+                        {"input_id": "input_1"}
+                    ]
+                }
             }
         }),
     )?;
-
-    // examples::post(
-    //     "output/output_2/register",
-    //     &json!({
-    //         "type": "rtp_stream",
-    //         "port": OUTPUT_AUDIO_PORT,
-    //         "ip": IP,
-    //         "audio": {
-    //             "initial": {
-    //                 "inputs": [
-    //                     {"input_id": "input_1"}
-    //                 ]
-    //             },
-    //             "encoder": {
-    //                 "type": "opus",
-    //                 "channels": "stereo"
-    //             }
-    //         }
-    //     }),
-    // )?;
 
     std::thread::sleep(Duration::from_millis(500));
 
