@@ -1,0 +1,26 @@
+{
+  "name": "live-compositor",
+  "version": "0.1.0-rc.0",
+  "description": "",
+  "main": "dist/index.js",
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "watch": "tsc --watch",
+    "build": "tsc",
+    "clean": "rimraf dist"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/software-mansion/live-compositor/issues"
+  },
+  "homepage": "https://github.com/software-mansion/live-compositor",
+  "devDependencies": {
+    "@types/react": "^18.3.3"
+  },
+  "dependencies": {},
+  "peerDependencies": {
+    "react": "*"
+  }
+}

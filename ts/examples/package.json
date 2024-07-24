@@ -1,0 +1,25 @@
+{
+  "name": "examples",
+  "private": true,
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "watch": "tsc --watch",
+    "build": "tsc",
+    "clean": "rimraf dist",
+    "ts-node": "ts-node"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@live-compositor/node": "*",
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^20.14.10",
+    "fs-extra": "^11.2.0",
+    "live-compositor": "^0.0.1",
+    "ts-node": "^10.9.2"
+  }
+}
