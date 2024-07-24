@@ -1,0 +1,66 @@
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import * as LiveCompositor from '../compositor';
+
+import View from '../components/View';
+import Text from '../components/Text';
+import Tiles from '../components/Tiles';
+import InputStream from '../components/InputStream';
+
+export type VideoCallParticipant = {
+  name: string;
+  pinned: boolean;
+  inputId: string;
+};
+
+export type VideoCallProps = {
+  participants: VideoCallParticipant[];
+  showPinnedPreview: boolean;
+  TileComponent?: (participant: VideoCallParticipant) => LiveCompositor.Element<any>;
+};
+
+export function VideoCall(props: VideoCallProps) {
+  const pinned = props.participants.filter(participant => participant.pinned);
+
+  if (pinned.length === 0) {
+    return <VideoCallGroup {...props} />;
+  } else {
+    const participants = props.showPinnedPreview
+      ? props.participants
+      : props.participants.filter(participant => !participant.pinned);
+    return (
+      <View>
+        <VideoCallGroup participants={pinned} TileComponent={props.TileComponent} />
+        <View width={400}>
+          <VideoCallGroup participants={participants} TileComponent={props.TileComponent} />
+        </View>
+      </View>
+    );
+  }
+}
+
+export type VideoCallGroupProps = {
+  participants: VideoCallParticipant[];
+  TileComponent?: (participant: VideoCallParticipant) => LiveCompositor.Element<any>;
+};
+
+export function VideoCallGroup(props: VideoCallGroupProps) {
+  const TileComponent = props.TileComponent || DefaultTile;
+  return (
+    <Tiles>
+      {props.participants.map(participant => (
+        <TileComponent {...participant} />
+      ))}
+    </Tiles>
+  );
+}
+
+export function DefaultTile(participant: VideoCallParticipant) {
+  return (
+    <View>
+      <InputStream inputId={participant.inputId} />
+      <View bottom={0} left={0} height={50}>
+        <Text fontSize={45}>{participant.name}</Text>
+      </View>
+    </View>
+  );
+}

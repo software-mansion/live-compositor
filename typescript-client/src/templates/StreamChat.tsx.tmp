@@ -1,0 +1,75 @@
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import * as LiveCompositor from '../compositor';
+
+import View from '../components/View';
+import Text from '../components/Text';
+import { useExternal } from '../hooks';
+
+type StreamChatProps = {
+  apiUrl: string;
+};
+
+type Message = {
+  msg: string;
+  user: string;
+};
+
+type State = {
+  // This could be just one value if we only wanted to support one
+  // render tree in per-app.
+  triggerUpdate: Array<() => void>;
+  onUnregister: () => void;
+};
+
+const chatGlobalState: Record<string, State> = {};
+
+export function StreamChat(props: StreamChatProps) {
+  useExternal(
+    triggerUpdate => {
+      registerChatListener(props.apiUrl, triggerUpdate);
+      return () => {
+        unregisterChatListener(props.apiUrl);
+      };
+    },
+    [props.apiUrl]
+  );
+
+  return (
+    <View>
+      <Text fontSize={20}>{messages.map(({ user, msg }) => `${user}: ${msg}`).concat('\n')}</Text>
+    </View>
+  );
+}
+
+function getLatestMessage(apiUrl: string): Message[] {
+  const state = chatGlobalState[apiUrl];
+  // state.ws.getLatestMessages()
+  return [];
+}
+
+function registerChatListener(apiUrl: string, triggerUpdate: () => void) {
+  const state = chatGlobalState[apiUrl] ?? {
+    triggerUpdate: [],
+  };
+  if (!chatGlobalState[apiUrl]) {
+    //(async () => {
+    //  state.onUnregister = function () {
+    //    // stop ws connection
+    //  };
+    //  while true {
+    //    let message = ws.read();
+    //    chatGlobalState[apiUrl].messages = [...messages, message]
+    //  }
+    //})()
+  }
+  if (state.triggerUpdate.filter(fn => fn === triggerUpdate).length === 0) {
+    state.triggerUpdate.push(triggerUpdate);
+  }
+  chatGlobalState[apiUrl] = state;
+}
+
+function unregisterChatListener(apiUrl: string) {
+  const state = chatGlobalState[apiUrl];
+  delete chatGlobalState[apiUrl];
+  state.onUnregister();
+}

@@ -1,0 +1,31 @@
+{
+  "name": "live-compositor",
+  "version": "0.1.0",
+  "description": "",
+  "main": "dist/index.js",
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "watch": "tsc --watch",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/membraneframework/live_compositor/issues"
+  },
+  "homepage": "https://github.com/membraneframework/live_compositor",
+  "devDependencies": {
+    "@types/node": "^20.14.10",
+    "@types/node-fetch": "^2.6.11",
+    "@typescript-eslint/eslint-plugin": "^7.16.0",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-import": "^2.29.1",
+    "eslint-plugin-prettier": "^5.1.3",
+    "prettier": "^3.3.2"
+  },
+  "dependencies": {
+    "node-fetch": "^3.3.2"
+  }
+}

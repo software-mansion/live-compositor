@@ -1,0 +1,24 @@
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import * as LiveCompositor from '../compositor';
+
+import Text from '../components/Text';
+import { useWithInterval } from '../hooks';
+
+type ClockProps = {
+  fontSize?: number;
+};
+
+export function Clock(props: ClockProps) {
+  const now = new Date();
+  useWithInterval(1000);
+  return (
+    <Text fontSize={props.fontSize || 20}>
+      {now.getHours()}:{now.getMinutes()}
+    </Text>
+  );
+}
+
+export function StreamTimer(props: ClockProps) {
+  const pts = useWithInterval(1000);
+  return <Text fontSize={props.fontSize || 20}>{pts}</Text>;
+}
