@@ -4,7 +4,7 @@ use compositor_pipeline::pipeline::{
         self,
         ffmpeg_h264::{self},
     },
-    output,
+    output::{self, mp4::{Mp4OutputOptions, Mp4VideoTrack}},
 };
 
 use super::register_output::*;
@@ -22,7 +22,124 @@ impl TryFrom<RtpOutputStream> for pipeline::RegisterOutputOptions<output::Output
             video,
             audio,
         } = request;
+        let video_codec = video.as_ref().map(|v| match v.encoder {
+            VideoEncoderOptions::FfmpegH264 { .. } => pipeline::VideoCodec::H264,
+        });
+        let audio_codec = audio.as_ref().map(|a| match a.encoder {
+            AudioEncoderOptions::Opus { .. } => pipeline::AudioCodec::Opus,
+        });
 
+        let ConvertedOptions {
+            video_encoder_options,
+            video_options,
+            audio_encoder_options,
+            audio_options,
+        } = (video, audio).try_into()?;
+
+        let connection_options = match transport_protocol.unwrap_or(TransportProtocol::Udp) {
+            TransportProtocol::Udp => {
+                let pipeline::rtp::RequestedPort::Exact(port) = port.try_into()? else {
+                    return Err(TypeError::new(
+                        "Port range can not be used with UDP output stream (transport_protocol=\"udp\").",
+                    ));
+                };
+                let Some(ip) = ip else {
+                    return Err(TypeError::new(
+                        "\"ip\" field is required when registering output UDP stream (transport_protocol=\"udp\").",
+                    ));
+                };
+                output::rtp::RtpConnectionOptions::Udp {
+                    port: pipeline::Port(port),
+                    ip,
+                }
+            }
+            TransportProtocol::TcpServer => {
+                if ip.is_some() {
+                    return Err(TypeError::new(
+                        "\"ip\" field is not allowed when registering TCP server connection (transport_protocol=\"tcp_server\").",
+                    ));
+                }
+
+                output::rtp::RtpConnectionOptions::TcpServer {
+                    port: port.try_into()?,
+                }
+            }
+        };
+
+        let output_options = output::OutputOptions {
+            output_protocol: output::OutputProtocolOptions::Rtp(output::rtp::RtpSenderOptions {
+                connection_options,
+                video: video_codec,
+                audio: audio_codec,
+            }),
+            video: video_encoder_options,
+            audio: audio_encoder_options,
+        };
+
+        Ok(Self {
+            output_options,
+            video: video_options,
+            audio: audio_options,
+        })
+    }
+}
+
+impl TryFrom<Mp4Output> for pipeline::RegisterOutputOptions<output::OutputOptions> {
+    type Error = TypeError;
+
+    fn try_from(request: Mp4Output) -> Result<Self, Self::Error> {
+        let Mp4Output { path, video, audio } = request;
+
+        let mp4_video = video.as_ref().map(|v| match v.encoder {
+            VideoEncoderOptions::FfmpegH264 { .. } => Mp4VideoTrack {
+                codec: pipeline::VideoCodec::H264,
+                width: v.resolution.width as u32,
+                height: v.resolution.height as u32,
+            },
+        }); 
+        let audio_codec = audio.as_ref().map(|a| match a.encoder {
+            AudioEncoderOptions::Opus { .. } => pipeline::AudioCodec::Opus,
+        });
+
+        let ConvertedOptions {
+            video_encoder_options,
+            video_options,
+            audio_encoder_options,
+            audio_options,
+        } = (video, audio).try_into()?;
+
+        let output_options = output::OutputOptions {
+            output_protocol: output::OutputProtocolOptions::Mp4(Mp4OutputOptions {
+                output_path: path.into(),
+                video: mp4_video,
+                audio: audio_codec,
+            }),
+            video: video_encoder_options,
+            audio: audio_encoder_options,
+        };
+
+        Ok(Self {
+            output_options,
+            video: video_options,
+            audio: audio_options,
+        })
+    }
+}
+
+struct ConvertedOptions {
+    video_encoder_options: Option<pipeline::encoder::VideoEncoderOptions>,
+    video_options: Option<pipeline::OutputVideoOptions>,
+    audio_encoder_options: Option<pipeline::encoder::AudioEncoderOptions>,
+    audio_options: Option<pipeline::OutputAudioOptions>,
+}
+
+impl TryFrom<(Option<OutputVideoOptions>, Option<OutputAudioOptions>)> for ConvertedOptions {
+    type Error = TypeError;
+
+    fn try_from(
+        value: (Option<OutputVideoOptions>, Option<OutputAudioOptions>),
+    ) -> Result<Self, Self::Error> {
+        let (video, audio) = value;
         if video.is_none() && audio.is_none() {
             return Err(TypeError::new(
                 "At least one of \"video\" and \"audio\" fields have to be specified.",
@@ -84,50 +201,11 @@ impl TryFrom<RtpOutputStream> for pipeline::RegisterOutputOptions<output::Output
             None => (None, None),
         };
 
-        let connection_options = match transport_protocol.unwrap_or(TransportProtocol::Udp) {
-            TransportProtocol::Udp => {
-                let pipeline::rtp::RequestedPort::Exact(port) = port.try_into()? else {
-                    return Err(TypeError::new(
-                        "Port range can not be used with UDP output stream (transport_protocol=\"udp\").",
-                    ));
-                };
-                let Some(ip) = ip else {
-                    return Err(TypeError::new(
-                        "\"ip\" field is required when registering output UDP stream (transport_protocol=\"udp\").",
-                    ));
-                };
-                output::rtp::RtpConnectionOptions::Udp {
-                    port: pipeline::Port(port),
-                    ip,
-                }
-            }
-            TransportProtocol::TcpServer => {
-                if ip.is_some() {
-                    return Err(TypeError::new(
-                        "\"ip\" field is not allowed when registering TCP server connection (transport_protocol=\"tcp_server\").",
-                    ));
-                }
-
-                output::rtp::RtpConnectionOptions::TcpServer {
-                    port: port.try_into()?,
-                }
-            }
-        };
-
-        let output_options = output::OutputOptions {
-            output_protocol: output::OutputProtocolOptions::Rtp(output::rtp::RtpSenderOptions {
-                connection_options,
-                video: video.map(|_| pipeline::VideoCodec::H264),
-                audio: audio.map(|_| pipeline::AudioCodec::Opus),
-            }),
-            video: video_encoder_options,
-            audio: audio_encoder_options,
-        };
-
-        Ok(Self {
-            output_options,
-            video: video_options,
-            audio: audio_options,
+        Ok(ConvertedOptions {
+            video_encoder_options,
+            video_options,
+            audio_encoder_options,
+            audio_options,
         })
     }
 }
