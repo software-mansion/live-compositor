@@ -4,62 +4,12 @@ import Layout from '@theme/Layout';
 
 import styles from './playground.module.css';
 import { useState } from 'react';
+import Options from '../components/options';
+import ImageDisplay from '../components/imageDisplay';
+import CodeInputArea from '../components/codeInputArea';
+import toast, { Toaster } from 'react-hot-toast';
 
-const CodeInputArea = ({ value, onChange }) => (
-  <textarea
-    className={clsx(styles.codeArea)}
-    name="inputArea"
-    placeholder="Enter your code to try it out"
-    onChange={onChange}
-    style={{ height: value, width: '100%' }}
-  />
-);
-
-const ImageDisplay = ({ imageUrl }) => (
-  <div className={clsx(styles.imageDisplay)}>
-    {imageUrl ? (
-      <img
-        src={imageUrl}
-        alt="Generated"
-        style={{
-          objectFit: 'contain',
-          height: '100%',
-          width: '100%',
-        }}
-      />
-    ) : (
-      <div></div>
-    )}
-  </div>
-);
-
-const Options = ({ onSubmit }) => (
-  <div className={clsx('row', styles.options)}>
-    <div className="col">
-      <select>
-        <option value="someOption">Some option</option>
-        <option value="otherOption">Other option</option>
-      </select>
-    </div>
-    <div className="col">
-      <select>
-        <option value="someOption">Some option</option>
-        <option value="otherOption">Other option</option>
-      </select>
-    </div>
-    <div className="col">
-      <select>
-        <option value="someOption">Some option</option>
-        <option value="otherOption">Other option</option>
-      </select>
-    </div>
-    <div className="col">
-      <button className="button button--outline button--primary" onClick={onSubmit}>
-        Submit
-      </button>
-    </div>
-  </div>
-);
+const backendUrl = 'http://localhost:8081/render_image';
 
 function Homepage() {
   const [textAreaValue, setTextAreaValue] = useState('');
@@ -70,8 +20,6 @@ function Homepage() {
   };
 
   const handleSubmit = async () => {
-    const backendUrl = 'http://localhost:8081/render_image';
-
     try {
       const response = await fetch(backendUrl, {
         method: 'POST',
@@ -81,26 +29,42 @@ function Homepage() {
         body: textAreaValue,
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      if (response.status >= 400) {
+        const contentType = response.headers.get('Content-Type');
+        const errorStatus = `Error status: ${response.status}`;
+        let errorMessage = '';
+
+        if (contentType === 'text/plain; charset=utf-8') {
+          const txt = await response.text();
+          errorMessage = `Error message:\n${txt}`;
+        } else if (contentType === 'application/json') {
+          const apiError = await response.json();
+          errorMessage = `Error message:\n${apiError.stack}`;
+        }
+
+        throw new Error(`${errorStatus}\n${errorMessage}`);
       }
 
       const blob = await response.blob();
       const imageObjectURL = URL.createObjectURL(blob);
       setImageUrl(imageObjectURL);
     } catch (error) {
-      console.error('Error:', error);
+      toast.error(`${error.message}`);
     }
   };
 
   return (
     <div className={clsx(styles.page)}>
-      <div className="row">
-        <div className={clsx('col col-6', styles.codeArea)}>
-          <CodeInputArea value={textAreaValue} onChange={handleInputChange} />
+      <div className={clsx(styles.leftSide)}>
+        <div className={clsx(styles.codeArea)}>
+          <CodeInputArea onChange={handleInputChange} />
         </div>
-        <div className="col col-6">
+      </div>
+      <div className={clsx(styles.rightSide)}>
+        <div className={clsx(styles.imageDisplay)}>
           <ImageDisplay imageUrl={imageUrl} />
+        </div>
+        <div className={clsx(styles.options)}>
           <Options onSubmit={handleSubmit} />
         </div>
       </div>
@@ -112,6 +76,7 @@ export default function Home(): JSX.Element {
   const { siteConfig } = useDocusaurusContext();
   return (
     <Layout title={siteConfig.title}>
+      <Toaster />
       <Homepage />
     </Layout>
   );
