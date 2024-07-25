@@ -20,13 +20,21 @@ pub struct RtpOutputStream {
     pub ip: Option<Arc<str>>,
     /// (**default=`"udp"`**) Transport layer protocol that will be used to send RTP packets.
     pub transport_protocol: Option<TransportProtocol>,
-    pub video: Option<OutputRtpVideoOptions>,
-    pub audio: Option<OutputRtpAudioOptions>,
+    pub video: Option<OutputVideoOptions>,
+    pub audio: Option<OutputAudioOptions>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(deny_unknown_fields)]
-pub struct OutputRtpVideoOptions {
+pub struct Mp4Output {
+    pub path: String,
+    pub video: Option<OutputVideoOptions>,
+    pub audio: Option<OutputAudioOptions>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct OutputVideoOptions {
     /// Output resolution in pixels.
     pub resolution: Resolution,
     /// Defines when output stream should end if some of the input streams are finished. If output includes both audio and video streams, then EOS needs to be sent on both.
@@ -39,7 +47,7 @@ pub struct OutputRtpVideoOptions {
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(deny_unknown_fields)]
-pub struct OutputRtpAudioOptions {
+pub struct OutputAudioOptions {
     /// (**default="sum_clip"**) Specifies how audio should be mixed.
     pub mixing_strategy: Option<MixingStrategy>,
     /// Condition for termination of output stream based on the input streams states.
