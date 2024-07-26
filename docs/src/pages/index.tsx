@@ -97,7 +97,7 @@ function HomepageHeader() {
 function HowItWorks() {
   return (
     <div className="container margin-top--md">
-      <Heading as="h1" className="margin-bottom--md text--center text--primary">
+      <Heading as="h2" className="margin-bottom--md text--center text--primary">
         How it works?
       </Heading>
       <p className={clsx('text--center', styles.grayText)}>
@@ -122,7 +122,7 @@ function HowItWorks() {
 function UseCases() {
   return (
     <div className="container margin-top--md">
-      <Heading as="h1" className="margin-bottom--md text--center text--primary">
+      <Heading as="h2" className="margin-bottom--md text--center text--primary">
         Use cases
       </Heading>
       <p className={clsx('text--center', styles.grayText)}>
@@ -155,7 +155,7 @@ function UseCaseCard(props: UseCaseCardProps) {
   return (
     <div className={clsx('card', styles.card, styles.hoverPrimary)}>
       <div className="text--primary">
-        <Heading as="h2" style={{ textAlign: 'center', margin: 0 }}>
+        <Heading as="h3" style={{ textAlign: 'center', margin: 0 }}>
           {props.title}
         </Heading>
       </div>
@@ -172,7 +172,7 @@ function UseCaseCard(props: UseCaseCardProps) {
 function VisionCards() {
   return (
     <div className="container margin-top--md">
-      <Heading as="h1" className="margin-bottom--md text--center text--primary">
+      <Heading as="h2" className="margin-bottom--md text--center text--primary">
         Vision
       </Heading>
       <p className={clsx('text--center', styles.grayText)}>
@@ -262,7 +262,7 @@ function Features() {
 
   return (
     <div className="container margin-top--lg margin-bottom--md">
-      <Heading as="h1" className="margin-bottom--md text--center text--primary">
+      <Heading as="h2" className="margin-bottom--md text--center text--primary">
         Capabilities
       </Heading>
       <p className={clsx('text--center', styles.grayText)}>Simple, powerful, fast. Pick three.</p>
@@ -425,7 +425,7 @@ function MembranePlugin() {
 function Usage() {
   return (
     <div className="container">
-      <Heading as="h1" className="margin-bottom--md text--center text--primary">
+      <Heading as="h2" className="margin-bottom--md text--center text--primary">
         Usage
       </Heading>
       <StandaloneSever />
@@ -438,7 +438,7 @@ function Usage() {
 function Licensing() {
   return (
     <div className="container margin-top--lg margin-bottom--md">
-      <Heading as="h1" className="margin-bottom--md text--center text--primary">
+      <Heading as="h2" className="margin-bottom--md text--center text--primary">
         Licensing
       </Heading>
       <div className="card container">
@@ -494,7 +494,7 @@ function ContactUs() {
           <SwmLogo width={220} className="margin--lg" style={{ alignSelf: 'center' }} />
           <div className="col">
             <div className="card__header margin-top--md">
-              <Heading as="h1">
+              <Heading as="h2">
                 <span className="text--primary">Contact</span> us
               </Heading>
             </div>

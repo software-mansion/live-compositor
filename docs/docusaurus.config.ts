@@ -3,7 +3,7 @@ import type { Config } from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
-  title: 'Live Compositor',
+  title: 'LiveCompositor',
   favicon: 'img/favicon.png',
 
   // Set the production url of your site here
@@ -66,6 +66,7 @@ const config: Config = {
 
   themeConfig: {
     metadata: [
+      { name: 'description', content: 'Real-time, low latency, programmable video & audio mixer' },
       { name: 'keywords', content: 'video, audio, mixing, real-time, live' },
       { name: 'twitter:card', content: 'summary_large_image' },
       { name: 'twitter:title', content: 'LiveCompositor' },
