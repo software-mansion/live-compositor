@@ -65,6 +65,23 @@ const config: Config = {
   ],
 
   themeConfig: {
+    metadata: [
+      { name: 'keywords', content: 'video, audio, mixing, real-time, live' },
+      { name: 'twitter:card', content: 'summary_large_image' },
+      { name: 'twitter:title', content: 'LiveCompositor' },
+      {
+        name: 'twitter:description',
+        content: 'Real-time, low latency, programmable video & audio mixer',
+      },
+      { name: 'twitter:site', content: 'ElixirMembrane' },
+      { name: 'og:type', content: 'website' },
+      { name: 'og:title', content: 'LiveCompositor' },
+      {
+        name: 'og:description',
+        content: 'Real-time, low latency, programmable video & audio mixer',
+      },
+      { name: 'og:url', content: 'https://compositor.live/' },
+    ],
     colorMode: {
       defaultMode: 'dark',
     },

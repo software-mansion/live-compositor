@@ -5,7 +5,6 @@ import { GiFeather, GiBattery100, GiSpeedometer } from 'react-icons/gi';
 import { IoCloudOffline } from 'react-icons/io5';
 import { MdAudiotrack, MdLiveTv } from 'react-icons/md';
 import Link from '@docusaurus/Link';
-import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import Layout from '@theme/Layout';
 import Heading from '@theme/Heading';
 
@@ -517,11 +516,8 @@ function ContactUs() {
 }
 
 export default function Home(): JSX.Element {
-  const { siteConfig } = useDocusaurusContext();
   return (
-    <Layout
-      title={siteConfig.title}
-      description="Tool for real-time video processing / transforming / composing">
+    <Layout>
       <HomepageHeader />
       <div className={styles.sectionSeparator} />
       <HowItWorks />
