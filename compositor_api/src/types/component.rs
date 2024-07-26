@@ -39,13 +39,13 @@ pub struct View {
     /// Width of a component in pixels. Exact behavior might be different based on the parent
     /// component:
     /// - If the parent component is a layout, check sections "Absolute positioning" and "Static
-    /// positioning" of that component.
+    ///   positioning" of that component.
     /// - If the parent component is not a layout, then this field is required.
     pub width: Option<f32>,
     /// Height of a component in pixels. Exact behavior might be different based on the parent
     /// component:
     /// - If the parent component is a layout, check sections "Absolute positioning" and "Static
-    /// positioning" of that component.
+    ///   positioning" of that component.
     /// - If the parent component is not a layout, then this field is required.
     pub height: Option<f32>,
 
@@ -129,13 +129,13 @@ pub struct Rescaler {
     /// Width of a component in pixels. Exact behavior might be different based on the parent
     /// component:
     /// - If the parent component is a layout, check sections "Absolute positioning" and "Static
-    /// positioning" of that component.
+    ///   positioning" of that component.
     /// - If the parent component is not a layout, then this field is required.
     pub width: Option<f32>,
     /// Height of a component in pixels. Exact behavior might be different based on the parent
     /// component:
     /// - If the parent component is a layout, check sections "Absolute positioning" and "Static
-    /// positioning" of that component.
+    ///   positioning" of that component.
     /// - If the parent component is not a layout, then this field is required.
     pub height: Option<f32>,
 
@@ -352,13 +352,13 @@ pub struct Tiles {
     /// Width of a component in pixels. Exact behavior might be different based on the parent
     /// component:
     /// - If the parent component is a layout, check sections "Absolute positioning" and "Static
-    /// positioning" of that component.
+    ///   positioning" of that component.
     /// - If the parent component is not a layout, then this field is required.
     pub width: Option<f32>,
     /// Height of a component in pixels. Exact behavior might be different based on the parent
     /// component:
     /// - If the parent component is a layout, check sections "Absolute positioning" and "Static
-    /// positioning" of that component.
+    ///   positioning" of that component.
     /// - If the parent component is not a layout, then this field is required.
     pub height: Option<f32>,
 

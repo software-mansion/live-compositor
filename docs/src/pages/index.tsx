@@ -215,7 +215,7 @@ function VisionCard(props: PropsWithChildren<VisionCardProps>) {
         <Icon className={styles.icon} />
       </div>
       <div className="card__header">
-        <Heading as="h2" style={{ textAlign: 'center' }}>
+        <Heading as="h3" style={{ textAlign: 'center' }}>
           {props.title}
         </Heading>
       </div>
@@ -233,7 +233,7 @@ type FeatureProps = {
 function Feature(props: PropsWithChildren<FeatureProps>) {
   const text = (
     <div className="col">
-      <Heading as="h2" className="margin-top--sm">
+      <Heading as="h3" className="margin-top--sm">
         {props.text}
       </Heading>
       <p>{props.secondaryText}</p>

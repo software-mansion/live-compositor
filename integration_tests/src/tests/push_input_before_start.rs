@@ -13,7 +13,7 @@ use crate::{
 ///
 /// Output:
 /// - Display entire input stream from the beginning (16 seconds). No black frames at the
-/// beginning. Starts with a green color.
+///   beginning. Starts with a green color.
 /// - Black screen for remaining 4 seconds.
 #[test]
 pub fn push_input_before_start_tcp() -> Result<()> {
@@ -98,7 +98,7 @@ pub fn push_input_before_start_tcp() -> Result<()> {
 ///
 /// Output:
 /// - Display entire input stream from the beginning (16 seconds). No black frames at the
-/// beginning. Starts with a green screen.
+///   beginning. Starts with a green screen.
 /// - Black screen for remaining 4 seconds.
 #[test]
 pub fn push_input_before_start_udp() -> Result<()> {
@@ -183,7 +183,7 @@ pub fn push_input_before_start_udp() -> Result<()> {
 ///
 /// Output:
 /// - Display input stream without initial 5 seconds from the beginning (11 seconds). Not black frames at the
-/// beginning. Starts with a red color. Initial 5 second of input stream is missing.
+///   beginning. Starts with a red color. Initial 5 second of input stream is missing.
 /// - Black screen for remaining 9 seconds.
 #[test]
 pub fn push_input_before_start_tcp_no_offset() -> Result<()> {
@@ -268,7 +268,7 @@ pub fn push_input_before_start_tcp_no_offset() -> Result<()> {
 ///
 /// Output:
 /// - Display entire input stream from the beginning (16 seconds). No black frames at the
-/// beginning. Starts with a red color. Initial 5 second of input stream is missing.
+///   beginning. Starts with a red color. Initial 5 second of input stream is missing.
 /// - Black screen for remaining 19 seconds.
 #[test]
 pub fn push_input_before_start_udp_no_offset() -> Result<()> {
