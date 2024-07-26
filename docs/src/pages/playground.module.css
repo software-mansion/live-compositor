@@ -5,44 +5,53 @@
 .page {
     display: flex;
     flex-direction: row;
+    flex-wrap: wrap;
     height: 75vh;
     margin: 20px;
   }
   
   .leftSide {
     flex: 1;
+    margin: 5px;
   }
   
   .rightSide {
     display: flex;
     flex-direction: column;
     flex: 1;
+    margin: 5px;
   }
 
-  .codeArea {
+  .codeEditor{
     height: 100%;
     width: 100%;
     resize: none;
+    min-width: 300px;
+    min-height: 120px;
+    justify-content: center;
 }
 
-.imageDisplay,
-.options {
-  margin-left: 10px;
+.preview,
+.settingsBox {
   flex: 1;
   display: flex;
   justify-content: center;
+  min-width: 300px;
+  min-height: 120px;
 }
 
-.options {
+.settingsBox {
     width: 100%;
-    height: 100%;
-    margin-top: 5px;
+    height: 50%;
 }
 
-.imageDisplay {
+.preview {
     border-radius: 2px;
     border-style: groove;
     width: 100%;
-    height: 100%;
-    margin-bottom: 5px;
+    height: 50%;
+}
+
+.settings {
+    margin: 10px;
 }
