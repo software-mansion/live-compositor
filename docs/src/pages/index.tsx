@@ -84,7 +84,7 @@ function HomepageHeader() {
               autoPlay
               muted
               src="/video/showcase.mp4"
-              poster="/img/showcase_poster.jpg"
+              poster="/img/showcase_poster.png"
               style={{ width: '100%', display: 'block' }}
             />
           </div>
