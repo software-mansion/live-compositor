@@ -6,7 +6,7 @@ use compositor_render::{
     InputId, OutputId,
 };
 
-use crate::pipeline::{decoder::AacDecoderError, VideoCodec};
+use crate::pipeline::{decoder::AacDecoderError, encoder::fdk_aac::AacEncoderError, VideoCodec};
 
 #[derive(Debug, thiserror::Error)]
 pub enum RegisterInputError {
@@ -79,6 +79,9 @@ pub enum OutputInitError {
 
     #[error("Failed to register output. FFmpeg error: {0}.")]
     FfmpegMp4Error(ffmpeg_next::Error),
+
+    #[error(transparent)]
+    FdkAacError(#[from] AacEncoderError),
 }
 
 #[derive(Debug, thiserror::Error)]

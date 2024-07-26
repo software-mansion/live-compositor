@@ -1,5 +1,6 @@
 use compositor_render::{Frame, OutputId, Resolution};
 use crossbeam_channel::{bounded, Receiver, Sender};
+use fdk_aac::AacEncoder;
 use log::error;
 
 use crate::{audio_mixer::OutputSamples, error::EncoderInitError, queue::PipelineEvent};
@@ -10,6 +11,8 @@ use super::types::EncoderOutputEvent;
 
 pub mod ffmpeg_h264;
 pub mod opus;
+pub mod fdk_aac;
+
 
 pub struct EncoderOptions {
     pub video: Option<VideoEncoderOptions>,
@@ -44,6 +47,7 @@ pub enum VideoEncoder {
 
 pub enum AudioEncoder {
     Opus(OpusEncoder),
+    Aac(AacEncoder),
 }
 
 impl Encoder {
@@ -93,7 +97,7 @@ impl Encoder {
 
     pub fn samples_batch_sender(&self) -> Option<&Sender<PipelineEvent<OutputSamples>>> {
         match &self.audio {
-            Some(AudioEncoder::Opus(encoder)) => Some(encoder.samples_batch_sender()),
+            Some(encoder) => Some(encoder.samples_batch_sender()),
             None => {
                 error!("Non audio encoder received samples to send.");
                 None
@@ -146,6 +150,13 @@ impl AudioEncoder {
             AudioEncoderOptions::Opus(opus_encoder_options) => {
                 OpusEncoder::new(opus_encoder_options, sample_rate, sender).map(AudioEncoder::Opus)
             }
+        }
+    }
+
+    fn samples_batch_sender(&self) -> &Sender<PipelineEvent<OutputSamples>> {
+        match self {
+            Self::Opus(encoder) => encoder.samples_batch_sender(),
+            Self::Aac(encoder) => encoder.samples_batch_sender(),
         }
     }
 }
