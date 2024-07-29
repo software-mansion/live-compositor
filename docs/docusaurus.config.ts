@@ -76,6 +76,7 @@ const config: Config = {
       },
       { name: 'twitter:site', content: 'ElixirMembrane' },
       { name: 'og:type', content: 'website' },
+      { name: 'og:image', content: 'https://compositor.live/img/logo.webp' },
       { name: 'og:title', content: 'LiveCompositor' },
       {
         name: 'og:description',
