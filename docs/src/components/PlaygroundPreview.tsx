@@ -1,18 +1,15 @@
 interface PlaygroundPreviewProps {
-  responseData: {
-    imageUrl: string;
-    errorMessage: string;
-  };
+  imageUrl?: string;
+  errorMessage?: string;
 }
 
-function PlaygroundPreview({ responseData }: PlaygroundPreviewProps): JSX.Element {
-  if (responseData.errorMessage) {
-    return <div>{responseData.errorMessage}</div>;
-  }
-  if (responseData.imageUrl) {
+function PlaygroundPreview({ imageUrl, errorMessage }: PlaygroundPreviewProps) {
+  if (errorMessage) {
+    return <div>{errorMessage}</div>;
+  } else if (imageUrl) {
     return (
       <img
-        src={responseData.imageUrl}
+        src={imageUrl}
         style={{
           objectFit: 'contain',
           height: '100%',
@@ -20,8 +17,9 @@ function PlaygroundPreview({ responseData }: PlaygroundPreviewProps): JSX.Elemen
         }}
       />
     );
+  } else {
+    return null;
   }
-  return null;
 }
 
 export default PlaygroundPreview;

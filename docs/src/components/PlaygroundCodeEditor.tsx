@@ -1,4 +1,4 @@
-import styles from '../pages/playground.module.css';
+import styles from './PlaygroundCodeEditor.module.css';
 import { ChangeEvent, useState } from 'react';
 
 interface PlaygroundCodeEditorProps {
@@ -6,18 +6,14 @@ interface PlaygroundCodeEditorProps {
   initialCodeEditorContent: string;
 }
 
-function PlaygroundCodeEditor({
-  onChange,
-  initialCodeEditorContent,
-}: PlaygroundCodeEditorProps): JSX.Element {
-  const [currCodeEditorContent, setCurrCodeEditorContent] =
-    useState<string>(initialCodeEditorContent);
+function PlaygroundCodeEditor({ onChange, initialCodeEditorContent }: PlaygroundCodeEditorProps) {
+  const [content, setContent] = useState<string>(initialCodeEditorContent);
 
   const handleChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
-    const currCode = event.target.value;
-    setCurrCodeEditorContent(currCode);
+    const codeContent = event.target.value;
+    setContent(codeContent);
     try {
-      const scene = JSON.parse(currCode);
+      const scene = JSON.parse(codeContent);
       onChange(scene);
     } catch (error) {
       onChange(error);
@@ -29,7 +25,7 @@ function PlaygroundCodeEditor({
       className={styles.codeEditor}
       name="inputArea"
       placeholder="Enter your code to try it out"
-      value={currCodeEditorContent}
+      value={content}
       onChange={handleChange}
     />
   );

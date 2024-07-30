@@ -1,8 +1,6 @@
-import styles from '../pages/playground.module.css';
-
-function PlaygroundRenderSettings({ onSubmit }: { onSubmit: () => Promise<void> }): JSX.Element {
+function PlaygroundRenderSettings({ onSubmit }: { onSubmit: () => Promise<void> }) {
   return (
-    <div className={styles.settings}>
+    <div style={{ margin: '10px' }}>
       <div className="row">
         <div className="col">Settings:</div>
         <div className="col">

@@ -1,0 +1,8 @@
+.codeEditor{
+  height: 100%;
+  width: 100%;
+  min-width: 300px;
+  min-height: 120px;
+  resize: none;
+  justify-content: center;
+}

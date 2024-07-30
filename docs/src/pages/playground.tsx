@@ -7,14 +7,15 @@ import PlaygroundRenderSettings from '../components/PlaygroundRenderSettings';
 import PlaygroundPreview from '../components/PlaygroundPreview';
 import PlaygroundCodeEditor from '../components/PlaygroundCodeEditor';
 import toast, { Toaster } from 'react-hot-toast';
-import { buildRequestSceneObject, handleRenderImageRequest } from '../api';
+import { renderImage } from '../api';
 
-const BACKEND_URL: URL = new URL('http://localhost:8081');
+const INITIAL_SCENE = {
+  type: 'view',
+};
+const INITIAL_SCENE_STRING = JSON.stringify(INITIAL_SCENE, null, 2);
 
-function Homepage(): JSX.Element {
-  const [scene, setScene] = useState<object | Error>({
-    type: 'view',
-  });
+function Homepage() {
+  const [scene, setScene] = useState<object | Error>(INITIAL_SCENE);
 
   const [responseData, setResponseData] = useState({
     imageUrl: '',
@@ -25,15 +26,12 @@ function Homepage(): JSX.Element {
     setResponseData(prevResponseData => ({ ...prevResponseData, errorMessage: message }));
   };
 
-  const handleCodeEditorChange = (scene: object | Error): void => {
-    setScene(scene);
-  };
-
   const handleSubmit = async (): Promise<void> => {
     try {
-      const requestObject = buildRequestSceneObject('POST', scene);
-
-      const blob = await handleRenderImageRequest(BACKEND_URL, requestObject);
+      if (scene instanceof Error) {
+        throw new Error(`${scene.name};\n${scene.message}`);
+      }
+      const blob = await renderImage({ scene });
       const imageObjectURL = URL.createObjectURL(blob);
 
       setResponseData({ imageUrl: imageObjectURL, errorMessage: '' });
@@ -46,16 +44,16 @@ function Homepage(): JSX.Element {
   return (
     <div className={styles.page}>
       <div className={styles.leftSide}>
-        <div className={styles.codeEditor}>
+        <div className={styles.codeEditorBox}>
           <PlaygroundCodeEditor
-            onChange={handleCodeEditorChange}
-            initialCodeEditorContent={JSON.stringify(scene, null, 2)}
+            onChange={setScene}
+            initialCodeEditorContent={INITIAL_SCENE_STRING}
           />
         </div>
       </div>
       <div className={styles.rightSide}>
         <div className={styles.preview}>
-          <PlaygroundPreview responseData={responseData} />
+          <PlaygroundPreview {...responseData} />
         </div>
         <div className={styles.settingsBox}>
           <PlaygroundRenderSettings onSubmit={handleSubmit} />
@@ -65,7 +63,7 @@ function Homepage(): JSX.Element {
   );
 }
 
-export default function Home(): JSX.Element {
+export default function Home() {
   const { siteConfig } = useDocusaurusContext();
   return (
     <Layout title={siteConfig.title}>

@@ -1,3 +1,5 @@
+const BACKEND_URL: URL = new URL('http://localhost:8081');
+
 interface RequestObject {
   method: string;
   headers: {
@@ -6,41 +8,43 @@ interface RequestObject {
   body: string;
 }
 
-export function buildRequestSceneObject(method: string, scene: object): RequestObject {
+function buildRequestRenderImage(body: object): RequestObject {
   return {
-    method: method,
+    method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ scene: scene }),
+    body: JSON.stringify(body),
   };
 }
 
-export async function handleRenderImageRequest(
-  backendUrl: URL,
-  requestObject: RequestObject
-): Promise<Blob> {
-  const renderImageUrl = new URL('/render_image', backendUrl);
-  const response = await fetch(renderImageUrl, requestObject);
-  if (response.status >= 400) {
-    const contentType = response.headers.get('Content-Type');
-    const errorStatus = `Error status: ${response.status}`;
-    let errorMsg = '';
+async function getErrorDescription(response: Response): Promise<string> {
+  const contentType = response.headers.get('Content-Type');
+  const errorStatus = `Error status: ${response.status}`;
+  let errorMessage = '';
 
-    if (contentType === 'application/json') {
-      const apiError = await response.json();
-      if (apiError.stack) {
-        errorMsg = `Error message: ${apiError.stack.map(String).join('\n')}`;
-      } else {
-        errorMsg = `Error message: ${apiError.message}`;
-      }
+  if (contentType === 'application/json') {
+    const apiError = await response.json();
+    if (apiError.stack) {
+      errorMessage = `Error message: ${apiError.stack.map(String).join('\n')}`;
     } else {
-      const txt = await response.text();
-      errorMsg = `Error message: ${txt}`;
+      errorMessage = `Error message: ${apiError.message}`;
     }
-
-    throw new Error(`${errorStatus}\n${errorMsg}`);
+  } else {
+    const txt = await response.text();
+    errorMessage = `Error message: ${txt}`;
   }
+  return `${errorStatus};\n${errorMessage}`;
+}
 
+export async function renderImage(body: object): Promise<Blob> {
+  const requestObject = buildRequestRenderImage(body);
+  const renderImageUrl = new URL('/render_image', BACKEND_URL);
+  const response = await fetch(renderImageUrl, requestObject);
+
+  if (response.status >= 400) {
+    const errorDescription = await getErrorDescription(response);
+    throw new Error(errorDescription);
+  }
   return await response.blob();
 }
