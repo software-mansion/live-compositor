@@ -1,11 +1,10 @@
-import clsx from 'clsx';
 import styles from '../pages/playground.module.css';
 
-function PlaygroundRenderSettings({ onSubmit }) {
+function PlaygroundRenderSettings({ onSubmit }: { onSubmit: () => Promise<void> }): JSX.Element {
   return (
-    <div className={clsx(styles.settings)}>
+    <div className={styles.settings}>
       <div className="row">
-        <div className="col">Resolution:</div>
+        <div className="col">Settings:</div>
         <div className="col">
           <select>
             <option value="someOption">Some option</option>
