@@ -1,0 +1,48 @@
+.page {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  height: 75vh;
+  margin: 20px;
+}
+  
+.leftSide {
+  flex: 1;
+  margin: 5px;
+}
+  
+.rightSide {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  margin: 5px;
+}
+
+.codeEditorBox{
+  height: 100%;
+  width: 100%;
+  min-width: 300px;
+  min-height: 120px;
+  justify-content: center;
+}
+
+.preview,
+.settingsBox {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  min-width: 300px;
+  min-height: 120px;
+}
+
+.settingsBox {
+  width: 100%;
+  height: 50%;
+}
+
+.preview {
+  border-radius: 2px;
+  border-style: groove;
+  width: 100%;
+  height: 50%;
+}
