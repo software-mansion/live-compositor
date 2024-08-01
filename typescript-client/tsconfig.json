@@ -3,7 +3,6 @@
     "module": "commonjs",
     "strict": true,
     "jsx": "react",
-    "jsxFactory": "LiveCompositor.createElement",
     "noEmitOnError": false,
     "outDir": "dist",
     "noUnusedLocals": true,

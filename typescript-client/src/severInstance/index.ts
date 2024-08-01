@@ -1,5 +1,3 @@
-import * as Api from '../api';
-
 export type ApiRequest = {
   method: 'GET' | 'POST';
   route: string;

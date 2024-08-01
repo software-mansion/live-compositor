@@ -3,9 +3,10 @@ import { Component } from '../component';
 import { intoComponent } from '../element';
 import { RenderContext } from '../context';
 import { intoApiTransition, Transition } from './common';
+import React from 'react';
 
 export type ViewProps = {
-  children?: Component<any>[];
+  children?: React.ReactNode | undefined;
 
   /**
    * Id of a component.
@@ -74,14 +75,7 @@ export type ViewProps = {
   backgroundColorRgba?: Api.RGBAColor;
 };
 
-class View extends Component<ViewProps> {
-  props: ViewProps;
-
-  constructor(props: ViewProps) {
-    super();
-    this.props = props;
-  }
-
+class View extends React.Component<ViewProps> {
   scene(ctx: RenderContext): Api.Component {
     return {
       type: 'view',
@@ -103,10 +97,6 @@ class View extends Component<ViewProps> {
       overflow: this.props.overflow,
       background_color_rgba: this.props.backgroundColorRgba,
     };
-  }
-
-  update(props: ViewProps): void {
-    this.props = props;
   }
 }
 

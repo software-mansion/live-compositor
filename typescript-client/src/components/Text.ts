@@ -1,8 +1,8 @@
+import React from 'react';
 import * as Api from '../api';
-import { Component } from '../component';
 
 type TextProps = {
-  children?: (string | number)[];
+  children?: (string | number)[] | string | number;
 
   /**
    * Id of a component.
@@ -68,14 +68,7 @@ type TextProps = {
   weight?: Api.TextWeight;
 };
 
-class Text extends Component<TextProps> {
-  props: TextProps;
-
-  constructor(props: TextProps) {
-    super();
-    this.props = props;
-  }
-
+class Text extends React.Component<TextProps> {
   public scene(): Api.Component {
     return {
       type: 'text',
@@ -102,7 +95,7 @@ class Text extends Component<TextProps> {
       return '';
     }
     return this.props.children
-      .map(child => {
+      .map((child: any) => {
         if (typeof child === 'string') {
           return child;
         } else if (typeof child === 'number') {
@@ -112,10 +105,6 @@ class Text extends Component<TextProps> {
         }
       })
       .join();
-  }
-
-  update(props: TextProps): void {
-    this.props = props;
   }
 }
 
