@@ -9,41 +9,53 @@ fn main() {
     let _ = fs::remove_dir_all(workingdir());
     fs::create_dir_all(workingdir()).unwrap();
 
-    let horizontal_16x9_1080 = Resolution {
-        width: 1920,
-        height: 1080,
-    };
-    generate_input_series(horizontal_16x9_1080, "horizontal_16x9_1080");
+    generate_input_series(
+        Resolution {
+            width: 1920,
+            height: 1080,
+        },
+        "1920x1080",
+    );
 
-    let vertical_9x16_1080 = Resolution {
-        width: 1080,
-        height: 1920,
-    };
-    generate_input_series(vertical_9x16_1080, "vertical_9x16_1080");
+    generate_input_series(
+        Resolution {
+            width: 1080,
+            height: 1920,
+        },
+        "1080x1920",
+    );
 
-    let horizontal_16x9_480 = Resolution {
-        width: 854,
-        height: 480,
-    };
-    generate_input_series(horizontal_16x9_480, "horizontal_16x9_480");
+    generate_input_series(
+        Resolution {
+            width: 854,
+            height: 480,
+        },
+        "854x480",
+    );
 
-    let vertical_9x16_480 = Resolution {
-        width: 480,
-        height: 854,
-    };
-    generate_input_series(vertical_9x16_480, "vertical_9x16_480");
+    generate_input_series(
+        Resolution {
+            width: 480,
+            height: 854,
+        },
+        "480x854",
+    );
 
-    let horizontal_4x3_1080 = Resolution {
-        width: 1440,
-        height: 1080,
-    };
-    generate_input_series(horizontal_4x3_1080, "horizontal_4x3_1080");
+    generate_input_series(
+        Resolution {
+            width: 1440,
+            height: 1080,
+        },
+        "1440x1080",
+    );
 
-    let vertical_3x4_1080 = Resolution {
-        width: 1080,
-        height: 1440,
-    };
-    generate_input_series(vertical_3x4_1080, "vertical_3x4_1080");
+    generate_input_series(
+        Resolution {
+            width: 1080,
+            height: 1440,
+        },
+        "1080x1440",
+    );
 }
 
 fn generate_input_series(resolution: Resolution, name_suffix: &str) {
