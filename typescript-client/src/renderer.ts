@@ -1,37 +1,61 @@
 import Reconciler from 'react-reconciler';
 
 import {
-  batchedUpdates as batchedUpdatesImpl,
   createContainer,
   updateContainer,
   getPublicRootInstance,
-  defaultOnRecoverableError,
 } from 'react-reconciler/src/ReactFiberReconciler';
 
-const HostConfig: Reconciler.HostConfig<> = {
+class LiveCompositorHostComponent {}
+type HostContext = {}
+
+const HostConfig: Reconciler.HostConfig<
+  string,
+  object,
+  number,
+  LiveCompositorHostComponent,
+  number, //TextInstance,
+  void, // SuspenseInstance,
+  void, // HydratableInstance,
+  LiveCompositorHostComponent, //PublicInstance,
+  HostContext, //HostContext,
+  object, // UpdatePayload,
+  void, // ChildSet,
+  NodeJS.Timeout, // TimeoutHandle,
+  -1 // NoTimeout
+> = {
   supportsPersistence: true,
-  // You'll need to implement some methods here.
-  // See below for more information and examples.
+
+  createInstance(
+    type,
+    props,
+    rootContainer,
+    hostContext,
+    internalHandle
+  ): LiveCompositorHostComponent {
+    console.log('this.createInstance', type, props, rootContainer, hostContext, internalHandle);
+    return new LiveCompositorHostComponent();
+  },
 };
 
 const MyRenderer = Reconciler(HostConfig);
 
 const RendererPublicAPI = {
   render(element, container, callback) {
-    const root = createContainer(
+    const root = MyRenderer.createContainer(
       container,
-      LegacyRoot,
+      new LiveCompositorHostComponent(),
       null,
       false,
       null,
       '',
-      onUncaughtError,
-      onCaughtError,
-      onRecoverableError,
+      console.error, //onUncaughtError,
+      console.error, // onCaughtError,
+      console.error, //onRecoverableError,
       null
     );
 
-    updateContainer(element, root, null, callback);
+    MyRenderer.updateContainer(element, root, null, callback);
 
     return getPublicRootInstance(root);
   },

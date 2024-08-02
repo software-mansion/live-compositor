@@ -10,6 +10,7 @@
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "esModuleInterop": true,
-    "declaration": true
+    "declaration": true,
+    "typeRoots": ["./ts-declarations"]
   }
 }
