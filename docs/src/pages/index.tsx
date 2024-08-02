@@ -505,7 +505,7 @@ function ContactUs() {
                 multiple multimedia projects, like Membrane Framework, Elixir WebRTC, FishJam, and
                 more. We also work on custom solutions for clients. Email us at{' '}
                 <Link to="mailto:projects@swmansion.com">projects@swmansion.com</Link> or contact us
-                via <Link to="https://membrane.stream/contact">this form</Link>.
+                via <Link to="https://swmansion.com/contact">this form</Link>.
               </p>
             </div>
           </div>
