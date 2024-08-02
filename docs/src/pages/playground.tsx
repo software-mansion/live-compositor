@@ -12,7 +12,6 @@ import { renderImage } from '../api';
 const INITIAL_SCENE = {
   type: 'view',
 };
-const INITIAL_SCENE_STRING = JSON.stringify(INITIAL_SCENE, null, 2);
 
 function Homepage() {
   const [scene, setScene] = useState<object | Error>(INITIAL_SCENE);
@@ -45,10 +44,7 @@ function Homepage() {
     <div className={styles.page}>
       <div className={styles.leftSide}>
         <div className={styles.codeEditorBox}>
-          <PlaygroundCodeEditor
-            onChange={setScene}
-            initialCodeEditorContent={INITIAL_SCENE_STRING}
-          />
+          <PlaygroundCodeEditor onChange={setScene} initialCodeEditorContent={INITIAL_SCENE} />
         </div>
       </div>
       <div className={styles.rightSide}>
