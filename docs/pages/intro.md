@@ -26,11 +26,11 @@ Live Compositor can be used standalone or as a part of a Membrane Framework mult
 ### Standalone
 
 You can use LiveCompositor as a standalone multimedia server. The server can be started by:
-- Building [`github.com/membraneframework/live_compositor`](https://github.com/membraneframework/live_compositor) from source.
-- Using binaries from [GitHub releases](https://github.com/membraneframework/live_compositor/releases).
+- Building [`github.com/software-mansion/live-compositor`](https://github.com/software-mansion/live-compositor) from source.
+- Using binaries from [GitHub releases](https://github.com/software-mansion/live-compositor/releases).
 - Using Docker
-  - (recommended) Dockerfile with compositor without web rendering support [https://github.com/membraneframework/live_compositor/blob/master/build_tools/docker/slim.Dockerfile](https://github.com/membraneframework/live_compositor/blob/master/build_tools/docker/slim.Dockerfile)
-  - Dockerfile with compositor with web rendering support [https://github.com/membraneframework/live_compositor/blob/master/build_tools/docker/full.Dockerfile](https://github.com/membraneframework/live_compositor/blob/master/build_tools/docker/full.Dockerfile)
+  - (recommended) Dockerfile with compositor without web rendering support [https://github.com/software-mansion/live-compositor/blob/master/build_tools/docker/slim.Dockerfile](https://github.com/software-mansion/live-compositor/blob/master/build_tools/docker/slim.Dockerfile)
+  - Dockerfile with compositor with web rendering support [https://github.com/software-mansion/live-compositor/blob/master/build_tools/docker/full.Dockerfile](https://github.com/software-mansion/live-compositor/blob/master/build_tools/docker/full.Dockerfile)
 
 ### Membrane Framework plugin
 
