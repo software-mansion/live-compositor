@@ -1,5 +1,5 @@
-import React from 'react';
 import * as Api from '../api';
+import LiveCompositorComponent, { SceneBuilder, SceneComponent } from '../component';
 
 type TextProps = {
   children?: (string | number)[] | string | number;
@@ -68,44 +68,29 @@ type TextProps = {
   weight?: Api.TextWeight;
 };
 
-class Text extends React.Component<TextProps> {
-  public scene(): Api.Component {
-    return {
-      type: 'text',
-      id: this.props.id,
-      text: this.text(),
-      width: this.props.width,
-      height: this.props.height,
-      max_width: this.props.maxWidth,
-      max_height: this.props.maxHeight,
-      font_size: this.props.fontSize,
-      line_height: this.props.lineHeight,
-      color_rgba: this.props.colorRgba,
-      background_color_rgba: this.props.backgroundColorRgba,
-      font_family: this.props.fontFamily,
-      style: this.props.style,
-      align: this.props.align,
-      wrap: this.props.wrap,
-      weight: this.props.weight,
-    };
-  }
+class Text extends LiveCompositorComponent<TextProps> {
+  builder: SceneBuilder<TextProps> = sceneBuilder;
+}
 
-  private text(): string {
-    if (!this.props.children || this.props.children.length == 0) {
-      return '';
-    }
-    return this.props.children
-      .map((child: any) => {
-        if (typeof child === 'string') {
-          return child;
-        } else if (typeof child === 'number') {
-          return `${child}`;
-        } else {
-          throw Error('Text component can only take string and numbers as its children.');
-        }
-      })
-      .join();
-  }
+function sceneBuilder(props: TextProps, children: SceneComponent[]): Api.Component {
+  return {
+    type: 'text',
+    id: props.id,
+    text: children.map(child => (typeof child === 'string' ? child : String(child))).join(''),
+    width: props.width,
+    height: props.height,
+    max_width: props.maxWidth,
+    max_height: props.maxHeight,
+    font_size: props.fontSize,
+    line_height: props.lineHeight,
+    color_rgba: props.colorRgba,
+    background_color_rgba: props.backgroundColorRgba,
+    font_family: props.fontFamily,
+    style: props.style,
+    align: props.align,
+    wrap: props.wrap,
+    weight: props.weight,
+  };
 }
 
 export default Text;

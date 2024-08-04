@@ -1,5 +1,5 @@
 import * as Api from '../api';
-import { Component } from '../component';
+import LiveCompositorComponent, { SceneBuilder, SceneComponent } from '../component';
 
 type InputStreamProps = {
   children: undefined;
@@ -14,25 +14,16 @@ type InputStreamProps = {
   inputId: Api.InputId;
 };
 
-class InputStream extends Component<InputStreamProps> {
-  props: InputStreamProps;
+class InputStream extends LiveCompositorComponent<InputStreamProps> {
+  builder: SceneBuilder<InputStreamProps> = sceneBuilder;
+}
 
-  constructor(props: InputStreamProps) {
-    super();
-    this.props = props;
-  }
-
-  scene(): Api.Component {
-    return {
-      type: 'input_stream',
-      id: this.props.id,
-      input_id: this.props.inputId,
-    };
-  }
-
-  update(props: InputStreamProps): void {
-    this.props = props;
-  }
+function sceneBuilder(props: InputStreamProps, _children: SceneComponent[]): Api.Component {
+  return {
+    type: 'input_stream',
+    id: props.id,
+    input_id: props.inputId,
+  };
 }
 
 export default InputStream;

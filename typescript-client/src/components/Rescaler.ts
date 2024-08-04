@@ -1,11 +1,14 @@
+import React from 'react';
 import * as Api from '../api';
-import { Component } from '../component';
-import { intoComponent } from '../element';
-import { RenderContext } from '../context';
 import { intoApiTransition, Transition } from './common';
+import LiveCompositorComponent, {
+  SceneBuilder,
+  SceneComponent,
+  sceneComponentIntoApi,
+} from '../component';
 
 type RescalerProps = {
-  children?: Component<any>[];
+  children: React.ReactElement | string | number;
 
   /**
    * Id of a component.
@@ -74,48 +77,30 @@ type RescalerProps = {
   transition?: Transition;
 };
 
-class Rescaler extends Component<RescalerProps> {
-  props: RescalerProps;
+class Rescaler extends LiveCompositorComponent<RescalerProps> {
+  builder: SceneBuilder<RescalerProps> = sceneBuilder;
+}
 
-  constructor(props: RescalerProps) {
-    super();
-    this.props = props;
+function sceneBuilder(props: RescalerProps, children: SceneComponent[]): Api.Component {
+  if (children?.length !== 1) {
+    throw new Error('Exactly one child is required for Rescaler component');
   }
-
-  scene(ctx: RenderContext): Api.Component {
-    return {
-      type: 'rescaler',
-      id: this.props.id,
-      child: this.child(ctx),
-      mode: this.props.mode,
-      horizontal_align: this.props.horizontalAlign,
-      vertical_align: this.props.verticalAlign,
-      width: this.props.width,
-      height: this.props.height,
-      top: this.props.top,
-      bottom: this.props.bottom,
-      left: this.props.left,
-      right: this.props.right,
-      rotation: this.props.rotation,
-      transition: this.props.transition && intoApiTransition(this.props.transition),
-    };
-  }
-
-  private child(ctx: RenderContext): Api.Component {
-    const children = this.props?.children?.map(intoComponent);
-    if (!children || children.length === 0) {
-      return { type: 'view' };
-    } else {
-      if (children.length > 1) {
-        console.error('Rescaler component can only have one child.');
-      }
-      return children[0].scene(ctx);
-    }
-  }
-
-  update(props: RescalerProps): void {
-    this.props = props;
-  }
+  return {
+    type: 'rescaler',
+    id: props.id,
+    child: sceneComponentIntoApi(children[0]),
+    mode: props.mode,
+    horizontal_align: props.horizontalAlign,
+    vertical_align: props.verticalAlign,
+    width: props.width,
+    height: props.height,
+    top: props.top,
+    bottom: props.bottom,
+    left: props.left,
+    right: props.right,
+    rotation: props.rotation,
+    transition: props.transition && intoApiTransition(props.transition),
+  };
 }
 
 export default Rescaler;

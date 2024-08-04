@@ -1,12 +1,12 @@
 import * as Api from '../api';
-import { Component } from '../component';
-import { intoComponent } from '../element';
-import { RenderContext } from '../context';
 import { intoApiTransition, Transition } from './common';
+import LiveCompositorComponent, {
+  SceneBuilder,
+  SceneComponent,
+  sceneComponentIntoApi,
+} from '../component';
 
 type TilesProps = {
-  children?: Component<any>[];
-
   /**
    * Id of a component.
    */
@@ -58,34 +58,25 @@ type TilesProps = {
   transition?: Transition;
 };
 
-class Tiles extends Component<TilesProps> {
-  props: TilesProps;
+class Tiles extends LiveCompositorComponent<TilesProps> {
+  builder: SceneBuilder<TilesProps> = sceneBuilder;
+}
 
-  constructor(props: TilesProps) {
-    super();
-    this.props = props;
-  }
-
-  scene(ctx: RenderContext): Api.Component {
-    return {
-      type: 'tiles',
-      id: this.props.id,
-      children: (this.props.children || []).map(child => intoComponent(child).scene(ctx)),
-      width: this.props.width,
-      height: this.props.height,
-      background_color_rgba: this.props.backgroundColorRgba,
-      tile_aspect_ratio: this.props.tileAspectRatio,
-      margin: this.props.margin,
-      padding: this.props.padding,
-      horizontal_align: this.props.horizontalAlign,
-      vertical_align: this.props.verticalAlign,
-      transition: this.props.transition && intoApiTransition(this.props.transition),
-    };
-  }
-
-  update(props: TilesProps): void {
-    this.props = props;
-  }
+function sceneBuilder(props: TilesProps, children: SceneComponent[]): Api.Component {
+  return {
+    type: 'tiles',
+    id: props.id,
+    children: children.map(sceneComponentIntoApi),
+    width: props.width,
+    height: props.height,
+    background_color_rgba: props.backgroundColorRgba,
+    tile_aspect_ratio: props.tileAspectRatio,
+    margin: props.margin,
+    padding: props.padding,
+    horizontal_align: props.horizontalAlign,
+    vertical_align: props.verticalAlign,
+    transition: props.transition && intoApiTransition(props.transition),
+  };
 }
 
 export default Tiles;

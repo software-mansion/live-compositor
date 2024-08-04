@@ -1,13 +1,12 @@
 import * as Api from '../api';
-import { Component } from '../component';
-import { intoComponent } from '../element';
-import { RenderContext } from '../context';
+import LiveCompositorComponent, {
+  SceneBuilder,
+  SceneComponent,
+  sceneComponentIntoApi,
+} from '../component';
 import { intoApiTransition, Transition } from './common';
-import React from 'react';
 
 export type ViewProps = {
-  children?: React.ReactNode | undefined;
-
   /**
    * Id of a component.
    */
@@ -75,29 +74,31 @@ export type ViewProps = {
   backgroundColorRgba?: Api.RGBAColor;
 };
 
-class View extends React.Component<ViewProps> {
-  scene(ctx: RenderContext): Api.Component {
-    return {
-      type: 'view',
+class View extends LiveCompositorComponent<ViewProps> {
+  builder: SceneBuilder<ViewProps> = sceneBuilder;
+}
 
-      children: (this.props.children || []).map(child => intoComponent(child).scene(ctx)),
+function sceneBuilder(props: ViewProps, children: SceneComponent[]): Api.Component {
+  return {
+    type: 'view',
 
-      id: this.props.id,
-      width: this.props.width,
-      height: this.props.height,
-      direction: this.props.direction,
+    children: children.map(sceneComponentIntoApi),
 
-      top: this.props.top,
-      left: this.props.left,
-      bottom: this.props.bottom,
-      right: this.props.right,
-      rotation: this.props.rotation,
+    id: props.id,
+    width: props.width,
+    height: props.height,
+    direction: props.direction,
 
-      transition: this.props.transition && intoApiTransition(this.props.transition),
-      overflow: this.props.overflow,
-      background_color_rgba: this.props.backgroundColorRgba,
-    };
-  }
+    top: props.top,
+    left: props.left,
+    bottom: props.bottom,
+    right: props.right,
+    rotation: props.rotation,
+
+    transition: props.transition && intoApiTransition(props.transition),
+    overflow: props.overflow,
+    background_color_rgba: props.backgroundColorRgba,
+  };
 }
 
 export default View;

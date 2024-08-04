@@ -10,6 +10,33 @@ class Api {
     this.serverManager = serverManager;
   }
 
+  public async updateScene(
+    outputId: string,
+    request: ApiTypes.UpdateOutputRequest
+  ): Promise<object> {
+    return this.serverManager.sendRequest({
+      method: 'POST',
+      route: `/api/output/${encodeURIComponent(outputId)}/update`,
+      body: request,
+    });
+  }
+
+  public async registerOutput(outptuId: string, request: ApiTypes.RegisterOutput): Promise<object> {
+    return this.serverManager.sendRequest({
+      method: 'POST',
+      route: `/api/output/${encodeURIComponent(outptuId)}/register`,
+      body: request,
+    });
+  }
+
+  public async unregisterOutput(outptuId: string): Promise<object> {
+    return this.serverManager.sendRequest({
+      method: 'POST',
+      route: `/api/output/${encodeURIComponent(outptuId)}/unregister`,
+      body: {},
+    });
+  }
+
   public async registerInput(inputId: string, request: ApiTypes.RegisterInput): Promise<object> {
     return this.serverManager.sendRequest({
       method: 'POST',
@@ -42,18 +69,18 @@ class Api {
     });
   }
 
-  public async registerImage(shaderId: string, request: ApiTypes.ImageSpec): Promise<object> {
+  public async registerImage(imageId: string, request: ApiTypes.ImageSpec): Promise<object> {
     return this.serverManager.sendRequest({
       method: 'POST',
-      route: `/api/image/${encodeURIComponent(shaderId)}/register`,
+      route: `/api/image/${encodeURIComponent(imageId)}/register`,
       body: request,
     });
   }
 
-  public async unregisterImage(shaderId: string): Promise<object> {
+  public async unregisterImage(imageId: string): Promise<object> {
     return this.serverManager.sendRequest({
       method: 'POST',
-      route: `/api/image/${encodeURIComponent(shaderId)}/unregister`,
+      route: `/api/image/${encodeURIComponent(imageId)}/unregister`,
       body: {},
     });
   }
@@ -73,6 +100,14 @@ class Api {
     return this.serverManager.sendRequest({
       method: 'POST',
       route: `/api/web-renderer/${encodeURIComponent(instanceId)}/unregister`,
+      body: {},
+    });
+  }
+
+  public async start(): Promise<void> {
+    await this.serverManager.sendRequest({
+      method: 'POST',
+      route: `/api/start`,
       body: {},
     });
   }

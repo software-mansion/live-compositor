@@ -1,5 +1,5 @@
 import * as Api from '../api';
-import { Component } from '../component';
+import LiveCompositorComponent, { SceneBuilder, SceneComponent } from '../component';
 
 type ImageProps = {
   children: undefined;
@@ -14,25 +14,16 @@ type ImageProps = {
   imageId: Api.RendererId;
 };
 
-class Image extends Component<ImageProps> {
-  props: ImageProps;
+class Image extends LiveCompositorComponent<ImageProps> {
+  builder: SceneBuilder<ImageProps> = sceneBuilder;
+}
 
-  constructor(props: ImageProps) {
-    super();
-    this.props = props;
-  }
-
-  scene(): Api.Component {
-    return {
-      type: 'image',
-      id: this.props.id,
-      image_id: this.props.imageId,
-    };
-  }
-
-  update(props: ImageProps): void {
-    this.props = props;
-  }
+function sceneBuilder(props: ImageProps, _children: SceneComponent[]): Api.Component {
+  return {
+    type: 'image',
+    id: props.id,
+    image_id: props.imageId,
+  };
 }
 
 export default Image;

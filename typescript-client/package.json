@@ -16,10 +16,12 @@
   },
   "homepage": "https://github.com/membraneframework/live_compositor",
   "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
     "@types/node": "^20.14.10",
     "@types/node-fetch": "^2.6.11",
     "@types/react": "^18.3.3",
     "@types/react-reconciler": "^0.28.8",
+    "@types/uuid": "^10.0.0",
     "@typescript-eslint/eslint-plugin": "^7.16.0",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
@@ -28,8 +30,11 @@
     "prettier": "^3.3.2"
   },
   "dependencies": {
-    "node-fetch": "^3.3.2",
-    "react-reconciler": "^0.29.2"
+    "fs-extra": "^11.2.0",
+    "node-fetch": "^2.0.0",
+    "react-reconciler": "^0.29.2",
+    "tar": "^7.4.3",
+    "uuid": "^10.0.0"
   },
   "peerDependencies": {
     "react": "^18.3.1"

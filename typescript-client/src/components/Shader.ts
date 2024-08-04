@@ -1,11 +1,11 @@
 import * as Api from '../api';
-import { Component } from '../component';
-import { RenderContext } from '../context';
-import { intoComponent } from '../element';
+import LiveCompositorComponent, {
+  SceneBuilder,
+  SceneComponent,
+  sceneComponentIntoApi,
+} from '../component';
 
 type ShaderProps = {
-  children: Component<any>[];
-
   /**
    * Id of a component.
    */
@@ -32,28 +32,19 @@ type ShaderProps = {
   resolution: Api.Resolution;
 };
 
-class Shader extends Component<ShaderProps> {
-  props: ShaderProps;
+class Shader extends LiveCompositorComponent<ShaderProps> {
+  builder: SceneBuilder<ShaderProps> = sceneBuilder;
+}
 
-  constructor(props: ShaderProps) {
-    super();
-    this.props = props;
-  }
-
-  scene(ctx: RenderContext): Api.Component {
-    return {
-      type: 'shader',
-      id: this.props.id,
-      shader_id: this.props.shaderId,
-      shader_param: this.props.shaderParam, // TODO: map from snake case
-      resolution: this.props.resolution,
-      children: this.props.children.map(c => intoComponent(c).scene(ctx)) || [],
-    };
-  }
-
-  update(props: ShaderProps): void {
-    this.props = props;
-  }
+function sceneBuilder(props: ShaderProps, children: SceneComponent[]): Api.Component {
+  return {
+    type: 'shader',
+    children: children.map(sceneComponentIntoApi),
+    id: props.id,
+    shader_id: props.shaderId,
+    shader_param: props.shaderParam, // TODO: map from snake case
+    resolution: props.resolution,
+  };
 }
 
 export default Shader;

@@ -5,6 +5,6 @@ export type ApiRequest = {
 };
 
 export interface ServerManager {
-  ensureStarted(): void;
+  ensureStarted(): Promise<void>;
   sendRequest(request: ApiRequest): Promise<object>;
 }

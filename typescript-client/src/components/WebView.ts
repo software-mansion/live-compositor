@@ -1,11 +1,11 @@
 import * as Api from '../api';
-import { Component } from '../component';
-import { intoComponent } from '../element';
-import { RenderContext } from '../context';
+import LiveCompositorComponent, {
+  SceneBuilder,
+  SceneComponent,
+  sceneComponentIntoApi,
+} from '../component';
 
 type WebViewProps = {
-  children?: Component<any>[];
-
   /**
    * Id of a component.
    */
@@ -18,26 +18,17 @@ type WebViewProps = {
   instanceId: Api.RendererId;
 };
 
-class WebView extends Component<WebViewProps> {
-  props: WebViewProps;
+class WebView extends LiveCompositorComponent<WebViewProps> {
+  builder: SceneBuilder<WebViewProps> = sceneBuilder;
+}
 
-  constructor(props: WebViewProps) {
-    super();
-    this.props = props;
-  }
-
-  scene(ctx: RenderContext): Api.Component {
-    return {
-      type: 'web_view',
-      id: this.props.id,
-      instance_id: this.props.instanceId,
-      children: (this.props.children || []).map(child => intoComponent(child).scene(ctx)),
-    };
-  }
-
-  update(props: WebViewProps): void {
-    this.props = props;
-  }
+function sceneBuilder(props: WebViewProps, children: SceneComponent[]): Api.Component {
+  return {
+    type: 'web_view',
+    children: children.map(sceneComponentIntoApi),
+    id: props.id,
+    instance_id: props.instanceId,
+  };
 }
 
 export default WebView;
