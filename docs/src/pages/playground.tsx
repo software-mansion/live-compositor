@@ -52,7 +52,7 @@ function Homepage() {
           <PlaygroundPreview {...responseData} />
         </div>
         <div className={styles.settingsBox}>
-          <PlaygroundRenderSettings onSubmit={handleSubmit} />
+          <PlaygroundRenderSettings onSubmit={handleSubmit} active={!(scene instanceof Error)} />
         </div>
       </div>
     </div>
