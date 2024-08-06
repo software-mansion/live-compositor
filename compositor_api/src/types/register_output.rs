@@ -80,6 +80,9 @@ pub enum AudioEncoderOptions {
         /// (**default="voip"**) Specifies preset for audio output encoder.
         preset: Option<OpusEncoderPreset>,
     },
+    Aac {
+        channels: AudioChannels,   
+    }
 }
 
 /// This type defines when end of an input stream should trigger end of the output stream. Only one of those fields can be set at the time.

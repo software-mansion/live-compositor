@@ -9,10 +9,9 @@ use self::{ffmpeg_h264::LibavH264Encoder, opus::OpusEncoder};
 
 use super::types::EncoderOutputEvent;
 
+pub mod fdk_aac;
 pub mod ffmpeg_h264;
 pub mod opus;
-pub mod fdk_aac;
-
 
 pub struct EncoderOptions {
     pub video: Option<VideoEncoderOptions>,
@@ -26,7 +25,8 @@ pub enum VideoEncoderOptions {
 
 #[derive(Debug, Clone)]
 pub enum AudioEncoderOptions {
-    Opus(opus::Options),
+    Opus(opus::OpusEncoderOptions),
+    Aac(fdk_aac::AacEncoderOptions),
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -147,9 +147,10 @@ impl AudioEncoder {
         sender: Sender<EncoderOutputEvent>,
     ) -> Result<Self, EncoderInitError> {
         match options {
-            AudioEncoderOptions::Opus(opus_encoder_options) => {
-                OpusEncoder::new(opus_encoder_options, sample_rate, sender).map(AudioEncoder::Opus)
+            AudioEncoderOptions::Opus(options) => {
+                OpusEncoder::new(options, sample_rate, sender).map(AudioEncoder::Opus)
             }
+            AudioEncoderOptions::Aac(options) => AacEncoder::new(options, sample_rate, sender).map(AudioEncoder::Aac),
         }
     }
 

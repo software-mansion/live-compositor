@@ -15,7 +15,7 @@ use crate::{
 use super::AudioEncoderPreset;
 
 #[derive(Debug, Clone)]
-pub struct Options {
+pub struct OpusEncoderOptions {
     pub channels: AudioChannels,
     pub preset: AudioEncoderPreset,
 }
@@ -26,7 +26,7 @@ pub struct OpusEncoder {
 
 impl OpusEncoder {
     pub fn new(
-        options: Options,
+        options: OpusEncoderOptions,
         sample_rate: u32,
         packets_sender: Sender<EncoderOutputEvent>,
     ) -> Result<Self, EncoderInitError> {
@@ -93,7 +93,7 @@ fn run_encoder_thread(
         let chunk = EncodedChunk {
             data,
             pts: batch.start_pts,
-            dts: Some(batch.start_pts),
+            dts: None,
             kind: EncodedChunkKind::Audio(AudioCodec::Opus),
         };
 

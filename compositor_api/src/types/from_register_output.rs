@@ -2,6 +2,7 @@ use compositor_pipeline::pipeline::{
     self,
     encoder::{
         self,
+        fdk_aac::AacEncoderOptions,
         ffmpeg_h264::{self},
     },
     output::{
@@ -30,6 +31,7 @@ impl TryFrom<RtpOutputStream> for pipeline::RegisterOutputOptions<output::Output
         });
         let audio_codec = audio.as_ref().map(|a| match a.encoder {
             AudioEncoderOptions::Opus { .. } => pipeline::AudioCodec::Opus,
+            AudioEncoderOptions::Aac { .. } => pipeline::AudioCodec::Aac,
         });
 
         let ConvertedOptions {
@@ -100,9 +102,14 @@ impl TryFrom<Mp4Output> for pipeline::RegisterOutputOptions<output::OutputOption
                 height: v.resolution.height as u32,
             },
         });
-        let mp4_audio = audio.as_ref().map(|a| match a.encoder {
-            AudioEncoderOptions::Opus { .. } => Mp4AudioTrack {
+        let mp4_audio = audio.as_ref().map(|a| match &a.encoder {
+            AudioEncoderOptions::Opus { channels, .. } => Mp4AudioTrack {
                 codec: pipeline::AudioCodec::Opus,
+                channels: channels.clone().into(),
+            },
+            AudioEncoderOptions::Aac { channels } => Mp4AudioTrack {
+                codec: pipeline::AudioCodec::Aac,
+                channels: channels.clone().into(),
             },
         });
 
@@ -183,24 +190,37 @@ impl TryFrom<(Option<OutputVideoOptions>, Option<OutputAudioOptions>)> for Conve
 
         let (audio_options, audio_encoder_options) = match audio.clone() {
             Some(a) => {
-                let AudioEncoderOptions::Opus { channels, preset } = a.encoder;
+                let (channels, audio_encoder_options) = match a.encoder {
+                    AudioEncoderOptions::Opus { channels, preset } => (
+                        channels.clone().into(),
+                        Some(pipeline::encoder::AudioEncoderOptions::Opus(
+                            encoder::opus::OpusEncoderOptions {
+                                channels: channels.into(),
+                                preset: preset.unwrap_or(OpusEncoderPreset::Voip).into(),
+                            },
+                        )),
+                    ),
+                    AudioEncoderOptions::Aac { channels } => (
+                        channels.clone().into(),
+                        Some(pipeline::encoder::AudioEncoderOptions::Aac(
+                            AacEncoderOptions {
+                                channels: channels.into(),
+                            },
+                        )),
+                    ),
+                };
 
                 (
                     Some(pipeline::OutputAudioOptions {
                         initial: a.initial.try_into()?,
-                        channels: channels.clone().into(),
+                        channels,
                         end_condition: a.send_eos_when.unwrap_or_default().try_into()?,
                         mixing_strategy: a
                             .mixing_strategy
                             .unwrap_or(MixingStrategy::SumClip)
                             .into(),
                     }),
-                    Some(pipeline::encoder::AudioEncoderOptions::Opus(
-                        encoder::opus::Options {
-                            channels: channels.into(),
-                            preset: preset.unwrap_or(OpusEncoderPreset::Voip).into(),
-                        },
-                    )),
+                    audio_encoder_options,
                 )
             }
             None => (None, None),

@@ -68,7 +68,7 @@ fn main() {
                 },
                 raw_options: vec![],
             })),
-            audio: Some(AudioEncoderOptions::Opus(encoder::opus::Options {
+            audio: Some(AudioEncoderOptions::Opus(encoder::opus::OpusEncoderOptions {
                 channels: AudioChannels::Stereo,
                 preset: AudioEncoderPreset::Voip,
             })),
