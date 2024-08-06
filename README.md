@@ -24,7 +24,7 @@ LiveCompositor supports Linux and macOS and can be used in 2 ways:
 
 ## Demos
 
-https://github.com/membraneframework/live_compositor/assets/104033489/e6f5ba7c-ab05-4935-a42a-bc28c42fc895
+https://github.com/software-mansion/live-compositor/assets/104033489/e6f5ba7c-ab05-4935-a42a-bc28c42fc895
 
 This is just a sample of effects that you can achieve with LiveCompositor. It is a compilation of a few demo projects
 written in TypeScript that you can find in [`demos`](./demos) directory.

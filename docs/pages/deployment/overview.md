@@ -4,11 +4,11 @@ LiveCompositor can be deployed in various ways, depending on your platform, used
 
 You can consider following options for LiveCompositor deployment:
 - Using docker
-  - (recommended) Dockerfile with compositor without web rendering support [https://github.com/membraneframework/live_compositor/blob/master/build_tools/docker/slim.Dockerfile](https://github.com/membraneframework/live_compositor/blob/master/build_tools/docker/slim.Dockerfile)
-  - Dockerfile with compositor with web rendering support [https://github.com/membraneframework/live_compositor/blob/master/build_tools/docker/full.Dockerfile](https://github.com/membraneframework/live_compositor/blob/master/build_tools/docker/full.Dockerfile)
+  - (recommended) Dockerfile with compositor without web rendering support [https://github.com/software-mansion/live-compositor/blob/master/build_tools/docker/slim.Dockerfile](https://github.com/software-mansion/live-compositor/blob/master/build_tools/docker/slim.Dockerfile)
+  - Dockerfile with compositor with web rendering support [https://github.com/software-mansion/live-compositor/blob/master/build_tools/docker/full.Dockerfile](https://github.com/software-mansion/live-compositor/blob/master/build_tools/docker/full.Dockerfile)
 - Standalone binaries
-  - Building [`github.com/membraneframework/live_compositor`](https://github.com/membraneframework/live_compositor) from source.
-  - Binaries from [GitHub releases](https://github.com/membraneframework/live_compositor/releases).
+  - Building [`github.com/software-mansion/live-compositor`](https://github.com/software-mansion/live-compositor) from source.
+  - Binaries from [GitHub releases](https://github.com/software-mansion/live-compositor/releases).
 - As an element in a Membrane pipeline. [Learn more.](#membrane-framework-plugin)
 
 ## Requirements
@@ -25,8 +25,8 @@ environment variables. Full list of those variables can be found [here](./config
 If you want to use a [`WebView`](../api/components/WebView.md) component in your scene definition you need to use binaries compiled
 with web rendering support.
 - When building from source you need to have `web_renderer` feature enabled (enabled by default).
-- When using binaries from [GitHub releases](https://github.com/membraneframework/live_compositor/releases) use files with `_with_web_renderer_` in the name.
-- When using Docker use [github.com/membraneframework/live_compositor/blob/master/build_tools/docker/full.Dockerfile](https://github.com/membraneframework/live_compositor/blob/master/build_tools/docker/full.Dockerfile)
+- When using binaries from [GitHub releases](https://github.com/software-mansion/live-compositor/releases) use files with `_with_web_renderer_` in the name.
+- When using Docker use [github.com/software-mansion/live-compositor/blob/master/build_tools/docker/full.Dockerfile](https://github.com/software-mansion/live-compositor/blob/master/build_tools/docker/full.Dockerfile)
 
 :::warning
 Keep in mind that using a browser for rendering might not be secure, especially if you use it to render untrusted websites
