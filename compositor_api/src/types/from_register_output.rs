@@ -48,9 +48,15 @@ impl TryFrom<RtpOutput> for pipeline::RegisterOutputOptions<output::OutputOption
                 encoder,
                 initial,
             }) => {
-                let (enc_opt, out_opt) =
-                    audio_options(mixing_strategy, send_eos_when, encoder, initial)?;
-                (Some(enc_opt), Some(out_opt))
+                let audio_encoder_options: AudioEncoderOptions = encoder.into();
+                let output_audio_options = pipeline::OutputAudioOptions {
+                    initial: initial.try_into()?,
+                    end_condition: send_eos_when.unwrap_or_default().try_into()?,
+                    mixing_strategy: mixing_strategy.unwrap_or(MixingStrategy::SumClip).into(),
+                    channels: audio_encoder_options.channels(),
+                };
+
+                (Some(audio_encoder_options), Some(output_audio_options))
             }
             None => (None, None),
         };
@@ -137,9 +143,15 @@ impl TryFrom<Mp4Output> for pipeline::RegisterOutputOptions<output::OutputOption
                 encoder,
                 initial,
             }) => {
-                let (enc_opt, out_opt) =
-                    audio_options(mixing_strategy, send_eos_when, encoder, initial)?;
-                (Some(enc_opt), Some(out_opt))
+                let audio_encoder_options: AudioEncoderOptions = encoder.into();
+                let output_audio_options = pipeline::OutputAudioOptions {
+                    initial: initial.try_into()?,
+                    end_condition: send_eos_when.unwrap_or_default().try_into()?,
+                    mixing_strategy: mixing_strategy.unwrap_or(MixingStrategy::SumClip).into(),
+                    channels: audio_encoder_options.channels(),
+                };
+
+                (Some(audio_encoder_options), Some(output_audio_options))
             }
             None => (None, None),
         };
@@ -192,32 +204,6 @@ fn video_options(
     };
 
     Ok((Some(encoder_options), Some(output_options)))
-}
-
-fn audio_options<EncoderOptions>(
-    mixing_strategy: Option<MixingStrategy>,
-    send_eos_when: Option<OutputEndCondition>,
-    encoder: EncoderOptions,
-    initial: Audio,
-) -> Result<
-    (
-        pipeline::encoder::AudioEncoderOptions,
-        pipeline::OutputAudioOptions,
-    ),
-    TypeError,
->
-where
-    EncoderOptions: Into<AudioEncoderOptions>,
-{
-    let audio_encoder_options = encoder.into();
-    let output_audio_options = pipeline::OutputAudioOptions {
-        initial: initial.try_into()?,
-        end_condition: send_eos_when.unwrap_or_default().try_into()?,
-        mixing_strategy: mixing_strategy.unwrap_or(MixingStrategy::SumClip).into(),
-        channels: audio_encoder_options.channels(),
-    };
-
-    Ok((audio_encoder_options, output_audio_options))
 }
 
 impl From<Mp4AudioEncoderOptions> for pipeline::encoder::AudioEncoderOptions {
