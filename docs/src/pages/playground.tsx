@@ -8,6 +8,7 @@ import PlaygroundPreview from '../components/PlaygroundPreview';
 import PlaygroundCodeEditor from '../components/PlaygroundCodeEditor';
 import toast, { Toaster } from 'react-hot-toast';
 import { renderImage } from '../api';
+import 'react-tooltip/dist/react-tooltip.css';
 
 const INITIAL_SCENE = {
   type: 'view',
@@ -52,7 +53,10 @@ function Homepage() {
           <PlaygroundPreview {...responseData} />
         </div>
         <div className={styles.settingsBox}>
-          <PlaygroundRenderSettings onSubmit={handleSubmit} active={!(scene instanceof Error)} />
+          <PlaygroundRenderSettings
+            onSubmit={handleSubmit}
+            readyToSubmit={!(scene instanceof Error)}
+          />
         </div>
       </div>
     </div>
