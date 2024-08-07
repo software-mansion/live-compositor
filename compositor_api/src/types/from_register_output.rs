@@ -16,11 +16,11 @@ use super::register_output::*;
 use super::util::*;
 use super::*;
 
-impl TryFrom<RtpOutputStream> for pipeline::RegisterOutputOptions<output::OutputOptions> {
+impl TryFrom<RtpOutput> for pipeline::RegisterOutputOptions<output::OutputOptions> {
     type Error = TypeError;
 
-    fn try_from(request: RtpOutputStream) -> Result<Self, Self::Error> {
-        let RtpOutputStream {
+    fn try_from(request: RtpOutput) -> Result<Self, Self::Error> {
+        let RtpOutput {
             port,
             ip,
             transport_protocol,
@@ -42,10 +42,16 @@ impl TryFrom<RtpOutputStream> for pipeline::RegisterOutputOptions<output::Output
 
         let (video_encoder_options, output_video_options) = video_options(video)?;
         let (audio_encoder_options, output_audio_options) = match audio {
-            Some(OutputRtpAudioOptions { mixing_strategy, send_eos_when, encoder, initial }) => {
-                let (enc_opt, out_opt) = audio_options(mixing_strategy, send_eos_when, encoder, initial)?;
+            Some(OutputRtpAudioOptions {
+                mixing_strategy,
+                send_eos_when,
+                encoder,
+                initial,
+            }) => {
+                let (enc_opt, out_opt) =
+                    audio_options(mixing_strategy, send_eos_when, encoder, initial)?;
                 (Some(enc_opt), Some(out_opt))
-            },
+            }
             None => (None, None),
         };
 
@@ -125,10 +131,16 @@ impl TryFrom<Mp4Output> for pipeline::RegisterOutputOptions<output::OutputOption
 
         let (video_encoder_options, output_video_options) = video_options(video)?;
         let (audio_encoder_options, output_audio_options) = match audio {
-            Some(OutputMp4AudioOptions { mixing_strategy, send_eos_when, encoder, initial }) => {
-                let (enc_opt, out_opt) = audio_options(mixing_strategy, send_eos_when, encoder, initial)?;
+            Some(OutputMp4AudioOptions {
+                mixing_strategy,
+                send_eos_when,
+                encoder,
+                initial,
+            }) => {
+                let (enc_opt, out_opt) =
+                    audio_options(mixing_strategy, send_eos_when, encoder, initial)?;
                 (Some(enc_opt), Some(out_opt))
-            },
+            }
             None => (None, None),
         };
 

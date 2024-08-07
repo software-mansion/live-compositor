@@ -12,7 +12,7 @@ use super::*;
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(deny_unknown_fields)]
-pub struct RtpOutputStream {
+pub struct RtpOutput {
     /// Depends on the value of the `transport_protocol` field:
     ///   - `udp` - An UDP port number that RTP packets will be sent to.
     ///   - `tcp_server` - A local TCP port number or a port range that LiveCompositor will listen for incoming connections.
@@ -21,15 +21,20 @@ pub struct RtpOutputStream {
     pub ip: Option<Arc<str>>,
     /// (**default=`"udp"`**) Transport layer protocol that will be used to send RTP packets.
     pub transport_protocol: Option<TransportProtocol>,
+    /// Specifies video included in output RTP stream.
     pub video: Option<OutputVideoOptions>,
+    /// Specifies audio included in output RTP stream.
     pub audio: Option<OutputRtpAudioOptions>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct Mp4Output {
+    /// Path to output MP4 file.
     pub path: String,
+    /// Specifies video included in output MP4 file.
     pub video: Option<OutputVideoOptions>,
+    /// Specifies audio included in output MP4 file.
     pub audio: Option<OutputMp4AudioOptions>,
 }
 
@@ -89,6 +94,7 @@ pub enum VideoEncoderOptions {
 #[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
 pub enum RtpAudioEncoderOptions {
     Opus {
+        /// Specifies channels configuration.
         channels: AudioChannels,
 
         /// (**default="voip"**) Specifies preset for audio output encoder.
