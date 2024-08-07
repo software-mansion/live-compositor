@@ -61,7 +61,7 @@ impl Mp4FileWriter {
         let (output_ctx, video_stream, audio_stream) = init_ffmpeg_output(options, sample_rate)?;
 
         std::thread::Builder::new()
-            .name(format!("mp4 writer thread for output {}", output_id))
+            .name(format!("MP4 writer thread for output {}", output_id))
             .spawn(move || {
                 let _span =
                     tracing::info_span!("MP4 writer", output_id = output_id.to_string()).entered();
@@ -191,26 +191,26 @@ fn run_ffmpeg_output_thread(
             EncoderOutputEvent::VideoEOS => match received_video_eos {
                 Some(false) => received_video_eos = Some(true),
                 Some(true) => {
-                    error!("Received multiple video EOS events");
+                    error!("Received multiple video EOS events.");
                 }
                 None => {
-                    error!("Received video EOS event on non video output");
+                    error!("Received video EOS event on non video output.");
                 }
             },
             EncoderOutputEvent::AudioEOS => match received_audio_eos {
                 Some(false) => received_audio_eos = Some(true),
                 Some(true) => {
-                    error!("Received multiple audio EOS events");
+                    error!("Received multiple audio EOS events.");
                 }
                 None => {
-                    error!("Received audio EOS event on non audio output");
+                    error!("Received audio EOS event on non audio output.");
                 }
             },
         };
 
         if received_video_eos.unwrap_or(true) && received_audio_eos.unwrap_or(true) {
             if let Err(err) = output_ctx.write_trailer() {
-                error!("Failed to write trailer to mp4 file: {}", err);
+                error!("Failed to write trailer to mp4 file: {}.", err);
             };
             break;
         }
@@ -226,7 +226,7 @@ fn write_chunk(
     let packet = create_packet(chunk, video_stream, audio_stream);
     if let Some(packet) = packet {
         if let Err(err) = packet.write(output_ctx) {
-            error!("Failed to write packet to mp4 file: {}", err);
+            error!("Failed to write packet to mp4 file: {}.", err);
         }
     }
 }
