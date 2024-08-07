@@ -187,7 +187,7 @@ impl AacEncoderInner {
             // FDK docs 2.5 states that "the input buffer should be handled as a modulo buffer". I couldn't find what "modulo buffer" means.
             // Code examples in docs use static array and move samples after each `encode` call (it's not a circular buffer).
             // Circular/ring buffer (sth like VecDeque) can't be used, since it doesn't guarantee contiguous memory layout.
-            // So, Vec is used here instead. This approach does additional heap allocation on every `fdk::aacEncEncode` call, 
+            // So, Vec is used here instead. This approach does additional heap allocation after every `fdk::aacEncEncode` call (on drain), 
             // but is safer / more readable (no buffer overflows etc.).
             //
             // Calling `drain` on the input buffer will reallocate it, so the buffer descriptions are created right before calling `aacEncEncode`.
