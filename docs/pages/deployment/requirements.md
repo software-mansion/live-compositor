@@ -38,7 +38,7 @@ Other platforms are not regularly tested, but compositor should also work on:
 
 ### Dockerfile
 
-Dockerfile defines all software requirements. Configurations provided in [the compositor repo](https://github.com/membraneframework/live_compositor/tree/master/build_tools/docker)
+Dockerfile defines all software requirements. Configurations provided in [the compositor repo](https://github.com/software-mansion/live-compositor/tree/master/build_tools/docker)
 are written to work with both GPU and CPU based rendering. To use them in your own project, just copy
 the Dockerfile and replace `COPY . /root/project` with an appropriate <nobr>`RUN git clone ...`</nobr> command.
 

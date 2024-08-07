@@ -5,7 +5,6 @@ import { GiFeather, GiBattery100, GiSpeedometer } from 'react-icons/gi';
 import { IoCloudOffline } from 'react-icons/io5';
 import { MdAudiotrack, MdLiveTv } from 'react-icons/md';
 import Link from '@docusaurus/Link';
-import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import Layout from '@theme/Layout';
 import Heading from '@theme/Heading';
 
@@ -14,12 +13,12 @@ import { PropsWithChildren } from 'react';
 import { IconContext, IconType } from 'react-icons';
 import MembraneLogo from '@site/static/img/membrane-logo.svg';
 import SwmLogo from '@site/static/img/swm-logo.svg';
-import ComposingImg from '@site/static/img/how_it_works.png';
+import ComposingImg from '@site/static/img/how_it_works.webp';
 import WebGpuLogoDark from '@site/static/img/webgpu-dark.svg';
 import WebGpuLogoLight from '@site/static/img/webgpu-light.svg';
-import VideoConferencingImg from '@site/static/img/videoconferencing.jpg';
-import StreamingImg from '@site/static/img/streaming.jpg';
-import BroadcastingImg from '@site/static/img/broadcasting.jpg';
+import VideoConferencingImg from '@site/static/img/videoconferencing.webp';
+import StreamingImg from '@site/static/img/streaming.webp';
+import BroadcastingImg from '@site/static/img/broadcasting.webp';
 import { useColorMode } from '@docusaurus/theme-common';
 import TypewriterComponent from 'typewriter-effect';
 import ExampleScene from '../components/example_scene';
@@ -64,7 +63,7 @@ function HomepageHeader() {
                   'button button--secondary button--outline button--lg col col-6 margin--sm',
                   styles.hoverSecondary
                 )}
-                to="https://github.com/membraneframework/live_compositor">
+                to="https://github.com/software-mansion/live-compositor">
                 <IconContext.Provider value={{ style: { verticalAlign: 'middle' } }}>
                   <FaGithub style={{ marginRight: 5 }} />
                   View on GitHub
@@ -85,7 +84,7 @@ function HomepageHeader() {
               autoPlay
               muted
               src="/video/showcase.mp4"
-              poster="/img/showcase_poster.jpg"
+              poster="/img/showcase_poster.webp"
               style={{ width: '100%', display: 'block' }}
             />
           </div>
@@ -98,7 +97,7 @@ function HomepageHeader() {
 function HowItWorks() {
   return (
     <div className="container margin-top--md">
-      <Heading as="h1" className="margin-bottom--md text--center text--primary">
+      <Heading as="h2" className="margin-bottom--md text--center text--primary">
         How it works?
       </Heading>
       <p className={clsx('text--center', styles.grayText)}>
@@ -123,7 +122,7 @@ function HowItWorks() {
 function UseCases() {
   return (
     <div className="container margin-top--md">
-      <Heading as="h1" className="margin-bottom--md text--center text--primary">
+      <Heading as="h2" className="margin-bottom--md text--center text--primary">
         Use cases
       </Heading>
       <p className={clsx('text--center', styles.grayText)}>
@@ -156,7 +155,7 @@ function UseCaseCard(props: UseCaseCardProps) {
   return (
     <div className={clsx('card', styles.card, styles.hoverPrimary)}>
       <div className="text--primary">
-        <Heading as="h2" style={{ textAlign: 'center', margin: 0 }}>
+        <Heading as="h3" style={{ textAlign: 'center', margin: 0 }}>
           {props.title}
         </Heading>
       </div>
@@ -173,7 +172,7 @@ function UseCaseCard(props: UseCaseCardProps) {
 function VisionCards() {
   return (
     <div className="container margin-top--md">
-      <Heading as="h1" className="margin-bottom--md text--center text--primary">
+      <Heading as="h2" className="margin-bottom--md text--center text--primary">
         Vision
       </Heading>
       <p className={clsx('text--center', styles.grayText)}>
@@ -216,7 +215,7 @@ function VisionCard(props: PropsWithChildren<VisionCardProps>) {
         <Icon className={styles.icon} />
       </div>
       <div className="card__header">
-        <Heading as="h2" style={{ textAlign: 'center' }}>
+        <Heading as="h3" style={{ textAlign: 'center' }}>
           {props.title}
         </Heading>
       </div>
@@ -234,7 +233,7 @@ type FeatureProps = {
 function Feature(props: PropsWithChildren<FeatureProps>) {
   const text = (
     <div className="col">
-      <Heading as="h2" className="margin-top--sm">
+      <Heading as="h3" className="margin-top--sm">
         {props.text}
       </Heading>
       <p>{props.secondaryText}</p>
@@ -263,7 +262,7 @@ function Features() {
 
   return (
     <div className="container margin-top--lg margin-bottom--md">
-      <Heading as="h1" className="margin-bottom--md text--center text--primary">
+      <Heading as="h2" className="margin-bottom--md text--center text--primary">
         Capabilities
       </Heading>
       <p className={clsx('text--center', styles.grayText)}>Simple, powerful, fast. Pick three.</p>
@@ -350,7 +349,7 @@ function StandaloneSever() {
                   styles.hoverSecondary,
                   styles.smallScreenFlexButton
                 )}
-                to="https://github.com/membraneframework/live_compositor/tree/master/build_tools/docker">
+                to="https://github.com/software-mansion/live-compositor/tree/master/build_tools/docker">
                 <IconContext.Provider value={{ style: { verticalAlign: 'middle' } }}>
                   <FaDocker style={{ marginRight: 5 }} />
                   Dockerfiles
@@ -426,7 +425,7 @@ function MembranePlugin() {
 function Usage() {
   return (
     <div className="container">
-      <Heading as="h1" className="margin-bottom--md text--center text--primary">
+      <Heading as="h2" className="margin-bottom--md text--center text--primary">
         Usage
       </Heading>
       <StandaloneSever />
@@ -439,14 +438,14 @@ function Usage() {
 function Licensing() {
   return (
     <div className="container margin-top--lg margin-bottom--md">
-      <Heading as="h1" className="margin-bottom--md text--center text--primary">
+      <Heading as="h2" className="margin-bottom--md text--center text--primary">
         Licensing
       </Heading>
       <div className="card container">
         <div className="card__body">
           <p className={styles.grayText}>
             LiveCompositor is licensed under{' '}
-            <Link to="https://github.com/membraneframework/live_compositor/blob/master/LICENSE">
+            <Link to="https://github.com/software-mansion/live-compositor/blob/master/LICENSE">
               Business Source License 1.1
             </Link>
           </p>
@@ -495,7 +494,7 @@ function ContactUs() {
           <SwmLogo width={220} className="margin--lg" style={{ alignSelf: 'center' }} />
           <div className="col">
             <div className="card__header margin-top--md">
-              <Heading as="h1">
+              <Heading as="h2">
                 <span className="text--primary">Contact</span> us
               </Heading>
             </div>
@@ -506,7 +505,7 @@ function ContactUs() {
                 multiple multimedia projects, like Membrane Framework, Elixir WebRTC, FishJam, and
                 more. We also work on custom solutions for clients. Email us at{' '}
                 <Link to="mailto:projects@swmansion.com">projects@swmansion.com</Link> or contact us
-                via <Link to="https://membrane.stream/contact">this form</Link>.
+                via <Link to="https://swmansion.com/contact">this form</Link>.
               </p>
             </div>
           </div>
@@ -517,11 +516,8 @@ function ContactUs() {
 }
 
 export default function Home(): JSX.Element {
-  const { siteConfig } = useDocusaurusContext();
   return (
-    <Layout
-      title={siteConfig.title}
-      description="Tool for real-time video processing / transforming / composing">
+    <Layout>
       <HomepageHeader />
       <div className={styles.sectionSeparator} />
       <HowItWorks />

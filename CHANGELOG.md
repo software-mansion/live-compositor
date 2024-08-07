@@ -4,7 +4,7 @@
 
 ### 💥 Breaking changes
 
-- Remove `forward_error_correction` option from RTP OPUS output. ([#615](https://github.com/membraneframework/live_compositor/pull/615) by [@wkozyra95](https://github.com/wkozyra95))
+- Remove `forward_error_correction` option from RTP OPUS output. ([#615](https://github.com/software-mansion/live-compositor/pull/615) by [@wkozyra95](https://github.com/wkozyra95))
 
 ### ✨ New features
 
@@ -15,8 +15,8 @@
 
 ### 🐛 Bug fixes
 
-- Fix input queueing when some of the inputs do not produce frames/samples . ([#625](https://github.com/membraneframework/live_compositor/pull/625) by [@wkozyra95](https://github.com/wkozyra95))
+- Fix input queueing when some of the inputs do not produce frames/samples . ([#625](https://github.com/software-mansion/live-compositor/pull/625) by [@wkozyra95](https://github.com/wkozyra95))
 
-## [v0.2.0](https://github.com/membraneframework/live_compositor/releases/tag/v0.2.0)
+## [v0.2.0](https://github.com/software-mansion/live-compositor/releases/tag/v0.2.0)
 
 Initial release

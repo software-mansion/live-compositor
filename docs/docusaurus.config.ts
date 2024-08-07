@@ -3,7 +3,7 @@ import type { Config } from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
-  title: 'Live Compositor',
+  title: 'LiveCompositor',
   favicon: 'img/favicon.png',
 
   // Set the production url of your site here
@@ -14,8 +14,8 @@ const config: Config = {
 
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
-  organizationName: 'membraneframework', // Usually your GitHub org/user name.
-  projectName: 'live_compositor', // Usually your repo name.
+  organizationName: 'software-mansion', // Usually your GitHub org/user name.
+  projectName: 'live-compositor', // Usually your repo name.
 
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'throw',
@@ -65,6 +65,25 @@ const config: Config = {
   ],
 
   themeConfig: {
+    metadata: [
+      { name: 'description', content: 'Real-time, low latency, programmable video & audio mixer' },
+      { name: 'keywords', content: 'video, audio, mixing, real-time, live' },
+      { name: 'twitter:card', content: 'summary_large_image' },
+      { name: 'twitter:title', content: 'LiveCompositor' },
+      {
+        name: 'twitter:description',
+        content: 'Real-time, low latency, programmable video & audio mixer',
+      },
+      { name: 'twitter:site', content: 'ElixirMembrane' },
+      { name: 'og:type', content: 'website' },
+      { name: 'og:image', content: 'https://compositor.live/img/logo.webp' },
+      { name: 'og:title', content: 'LiveCompositor' },
+      {
+        name: 'og:description',
+        content: 'Real-time, low latency, programmable video & audio mixer',
+      },
+      { name: 'og:url', content: 'https://compositor.live/' },
+    ],
     colorMode: {
       defaultMode: 'dark',
     },
@@ -82,7 +101,7 @@ const config: Config = {
           'aria-label': 'Docs',
         },
         {
-          to: 'https://github.com/membraneframework/live_compositor',
+          to: 'https://github.com/software-mansion/live-compositor',
           position: 'right',
           className: 'navbar-github-link',
           'aria-label': 'GitHub repository',
