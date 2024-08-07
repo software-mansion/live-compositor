@@ -109,8 +109,9 @@ impl OutputOptionsExt<Option<Port>> for OutputOptions {
                 Ok((Output::Rtp { sender, encoder }, Some(port)))
             }
             OutputProtocolOptions::Mp4(mp4_opt) => {
-                let writer = Mp4FileWriter::new(output_id, mp4_opt.clone(), packets)
-                    .map_err(|e| RegisterOutputError::OutputError(output_id.clone(), e))?;
+                let writer =
+                    Mp4FileWriter::new(output_id, mp4_opt.clone(), packets, ctx.output_sample_rate)
+                        .map_err(|e| RegisterOutputError::OutputError(output_id.clone(), e))?;
 
                 Ok((Output::Mp4 { writer, encoder }, None))
             }
@@ -173,36 +174,36 @@ impl OutputOptionsExt<RawDataReceiver> for RawDataOutputOptions {
 impl Output {
     pub fn frame_sender(&self) -> Option<&Sender<PipelineEvent<Frame>>> {
         match &self {
-            Output::Rtp { encoder, .. }
-            | Output::Mp4 { encoder, .. }
-            | Output::EncodedData { encoder } => encoder.frame_sender(),
+            Output::Rtp { encoder, .. } => encoder.frame_sender(),
+            Output::Mp4 { encoder, .. } => encoder.frame_sender(),
+            Output::EncodedData { encoder } => encoder.frame_sender(),
             Output::RawData { video, .. } => video.as_ref(),
         }
     }
 
     pub fn samples_batch_sender(&self) -> Option<&Sender<PipelineEvent<OutputSamples>>> {
         match &self {
-            Output::Rtp { encoder, .. }
-            | Output::Mp4 { encoder, .. }
-            | Output::EncodedData { encoder } => encoder.samples_batch_sender(),
+            Output::Rtp { encoder, .. } => encoder.samples_batch_sender(),
+            Output::Mp4 { encoder, .. } => encoder.samples_batch_sender(),
+            Output::EncodedData { encoder } => encoder.samples_batch_sender(),
             Output::RawData { audio, .. } => audio.as_ref(),
         }
     }
 
     pub fn resolution(&self) -> Option<Resolution> {
         match &self {
-            Output::Rtp { encoder, .. }
-            | Output::Mp4 { encoder, .. }
-            | Output::EncodedData { encoder } => encoder.video.as_ref().map(|v| v.resolution()),
+            Output::Rtp { encoder, .. } => encoder.video.as_ref().map(|v| v.resolution()),
+            Output::Mp4 { encoder, .. } => encoder.video.as_ref().map(|v| v.resolution()),
+            Output::EncodedData { encoder } => encoder.video.as_ref().map(|v| v.resolution()),
             Output::RawData { resolution, .. } => *resolution,
         }
     }
 
     pub fn request_keyframe(&self, output_id: OutputId) -> Result<(), RequestKeyframeError> {
         let encoder = match &self {
-            Output::Rtp { encoder, .. }
-            | Output::Mp4 { encoder, .. }
-            | Output::EncodedData { encoder } => encoder,
+            Output::Rtp { encoder, .. } => encoder,
+            Output::Mp4 { encoder, .. } => encoder,
+            Output::EncodedData { encoder } => encoder,
             Output::RawData { .. } => return Err(RequestKeyframeError::RawOutput(output_id)),
         };
 

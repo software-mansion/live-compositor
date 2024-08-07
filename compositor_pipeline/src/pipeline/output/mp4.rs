@@ -51,6 +51,7 @@ impl Mp4FileWriter {
         output_id: &OutputId,
         options: Mp4OutputOptions,
         packets_receiver: Receiver<EncoderOutputEvent>,
+        sample_rate: u32,
     ) -> Result<Self, OutputInitError> {
         if options.output_path.exists() {
             return Err(OutputInitError::Mp4PathExist {
@@ -58,7 +59,8 @@ impl Mp4FileWriter {
             });
         }
 
-        let (mut output_ctx, video_stream_id, audio_stream_id) = Self::init_ffmpeg_output(options)?;
+        let (mut output_ctx, video_stream_id, audio_stream_id) =
+            Self::init_ffmpeg_output(options, sample_rate)?;
         let mut received_video_eos = video_stream_id.map(|_| false);
         let mut received_audio_eos = audio_stream_id.map(|_| false);
 
@@ -110,6 +112,7 @@ impl Mp4FileWriter {
 
     fn init_ffmpeg_output(
         options: Mp4OutputOptions,
+        sample_rate: u32,
     ) -> Result<
         (
             ffmpeg_next::format::context::Output,
@@ -173,7 +176,7 @@ impl Mp4FileWriter {
                     (*(*stream.as_mut_ptr()).codecpar).codec_id = codec.into();
                     (*(*stream.as_mut_ptr()).codecpar).codec_type =
                         ffmpeg_next::ffi::AVMediaType::AVMEDIA_TYPE_AUDIO;
-                    (*(*stream.as_mut_ptr()).codecpar).sample_rate = 48_000;
+                    (*(*stream.as_mut_ptr()).codecpar).sample_rate = sample_rate as i32;
                     (*(*stream.as_mut_ptr()).codecpar).ch_layout = AVChannelLayout {
                         nb_channels: channels,
                         order: AVChannelOrder::AV_CHANNEL_ORDER_UNSPEC,
