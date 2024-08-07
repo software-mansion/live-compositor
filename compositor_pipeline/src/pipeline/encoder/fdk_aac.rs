@@ -267,8 +267,7 @@ impl AacEncoderInner {
 
         match samples.samples {
             AudioSamples::Mono(mono_samples) => {
-                self.input_buffer
-                    .extend(mono_samples.iter());
+                self.input_buffer.extend(mono_samples.iter());
             }
             AudioSamples::Stereo(stereo_samples) => {
                 for (l, r) in stereo_samples {

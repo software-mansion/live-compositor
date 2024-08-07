@@ -3,7 +3,11 @@ use crossbeam_channel::{bounded, Receiver, Sender};
 use fdk_aac::AacEncoder;
 use log::error;
 
-use crate::{audio_mixer::{AudioChannels, OutputSamples}, error::EncoderInitError, queue::PipelineEvent};
+use crate::{
+    audio_mixer::{AudioChannels, OutputSamples},
+    error::EncoderInitError,
+    queue::PipelineEvent,
+};
 
 use self::{ffmpeg_h264::LibavH264Encoder, opus::OpusEncoder};
 
@@ -150,7 +154,9 @@ impl AudioEncoder {
             AudioEncoderOptions::Opus(options) => {
                 OpusEncoder::new(options, sample_rate, sender).map(AudioEncoder::Opus)
             }
-            AudioEncoderOptions::Aac(options) => AacEncoder::new(options, sample_rate, sender).map(AudioEncoder::Aac),
+            AudioEncoderOptions::Aac(options) => {
+                AacEncoder::new(options, sample_rate, sender).map(AudioEncoder::Aac)
+            }
         }
     }
 
@@ -161,7 +167,6 @@ impl AudioEncoder {
         }
     }
 }
-
 
 impl AudioEncoderOptions {
     pub fn channels(&self) -> AudioChannels {
