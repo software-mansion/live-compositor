@@ -7,6 +7,7 @@ use compositor_render::{
 };
 
 use crate::pipeline::{decoder::AacDecoderError, VideoCodec};
+use fdk_aac_sys as fdk;
 
 #[derive(Debug, thiserror::Error)]
 pub enum RegisterInputError {
@@ -91,6 +92,9 @@ pub enum EncoderInitError {
 
     #[error(transparent)]
     OpusError(#[from] opus::Error),
+
+    #[error("Internal FDK AAC encoder error: {0}")]
+    AacError(fdk::AACENC_ERROR),
 }
 
 #[derive(Debug, thiserror::Error)]

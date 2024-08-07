@@ -10,8 +10,8 @@ use crate::{
 use compositor_api::{
     error::ApiError,
     types::{
-        DeckLink, ImageSpec, InputId, Mp4, Mp4Output, OutputId, RendererId, RtpInputStream,
-        RtpOutputStream, ShaderSpec, WebRendererSpec,
+        DeckLink, ImageSpec, InputId, Mp4Input, Mp4Output, OutputId, RendererId, RtpInput,
+        RtpOutput, ShaderSpec, WebRendererSpec,
     },
 };
 
@@ -20,8 +20,8 @@ use super::ApiState;
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum RegisterInput {
-    RtpStream(RtpInputStream),
-    Mp4(Mp4),
+    RtpStream(RtpInput),
+    Mp4(Mp4Input),
     #[serde(rename = "decklink")]
     DeckLink(DeckLink),
 }
@@ -29,7 +29,7 @@ pub enum RegisterInput {
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum RegisterOutput {
-    RtpStream(RtpOutputStream),
+    RtpStream(RtpOutput),
     Mp4(Mp4Output),
 }
 

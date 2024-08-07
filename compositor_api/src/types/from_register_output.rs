@@ -2,7 +2,9 @@ use compositor_pipeline::pipeline::{
     self,
     encoder::{
         self,
+        fdk_aac::AacEncoderOptions,
         ffmpeg_h264::{self},
+        AudioEncoderOptions,
     },
     output::{
         self,
@@ -14,30 +16,44 @@ use super::register_output::*;
 use super::util::*;
 use super::*;
 
-impl TryFrom<RtpOutputStream> for pipeline::RegisterOutputOptions<output::OutputOptions> {
+impl TryFrom<RtpOutput> for pipeline::RegisterOutputOptions<output::OutputOptions> {
     type Error = TypeError;
 
-    fn try_from(request: RtpOutputStream) -> Result<Self, Self::Error> {
-        let RtpOutputStream {
+    fn try_from(request: RtpOutput) -> Result<Self, Self::Error> {
+        let RtpOutput {
             port,
             ip,
             transport_protocol,
             video,
             audio,
         } = request;
+
+        if video.is_none() && audio.is_none() {
+            return Err(TypeError::new(
+                "At least one of \"video\" and \"audio\" fields have to be specified.",
+            ));
+        }
         let video_codec = video.as_ref().map(|v| match v.encoder {
             VideoEncoderOptions::FfmpegH264 { .. } => pipeline::VideoCodec::H264,
         });
         let audio_codec = audio.as_ref().map(|a| match a.encoder {
-            AudioEncoderOptions::Opus { .. } => pipeline::AudioCodec::Opus,
+            RtpAudioEncoderOptions::Opus { .. } => pipeline::AudioCodec::Opus,
         });
 
-        let ConvertedOptions {
-            video_encoder_options,
-            video_options,
-            audio_encoder_options,
-            audio_options,
-        } = (video, audio).try_into()?;
+        let (video_encoder_options, output_video_options) = video_options(video)?;
+        let (audio_encoder_options, output_audio_options) = match audio {
+            Some(OutputRtpAudioOptions {
+                mixing_strategy,
+                send_eos_when,
+                encoder,
+                initial,
+            }) => {
+                let (enc_opt, out_opt) =
+                    audio_options(mixing_strategy, send_eos_when, encoder, initial)?;
+                (Some(enc_opt), Some(out_opt))
+            }
+            None => (None, None),
+        };
 
         let connection_options = match transport_protocol.unwrap_or(TransportProtocol::Udp) {
             TransportProtocol::Udp => {
@@ -81,8 +97,8 @@ impl TryFrom<RtpOutputStream> for pipeline::RegisterOutputOptions<output::Output
 
         Ok(Self {
             output_options,
-            video: video_options,
-            audio: audio_options,
+            video: output_video_options,
+            audio: output_audio_options,
         })
     }
 }
@@ -93,6 +109,12 @@ impl TryFrom<Mp4Output> for pipeline::RegisterOutputOptions<output::OutputOption
     fn try_from(request: Mp4Output) -> Result<Self, Self::Error> {
         let Mp4Output { path, video, audio } = request;
 
+        if video.is_none() && audio.is_none() {
+            return Err(TypeError::new(
+                "At least one of \"video\" and \"audio\" fields have to be specified.",
+            ));
+        }
+
         let mp4_video = video.as_ref().map(|v| match v.encoder {
             VideoEncoderOptions::FfmpegH264 { .. } => Mp4VideoTrack {
                 codec: pipeline::VideoCodec::H264,
@@ -100,18 +122,27 @@ impl TryFrom<Mp4Output> for pipeline::RegisterOutputOptions<output::OutputOption
                 height: v.resolution.height as u32,
             },
         });
-        let mp4_audio = audio.as_ref().map(|a| match a.encoder {
-            AudioEncoderOptions::Opus { .. } => Mp4AudioTrack {
-                codec: pipeline::AudioCodec::Opus,
+        let mp4_audio = audio.as_ref().map(|a| match &a.encoder {
+            Mp4AudioEncoderOptions::Aac { channels } => Mp4AudioTrack {
+                codec: pipeline::AudioCodec::Aac,
+                channels: channels.clone().into(),
             },
         });
 
-        let ConvertedOptions {
-            video_encoder_options,
-            video_options,
-            audio_encoder_options,
-            audio_options,
-        } = (video, audio).try_into()?;
+        let (video_encoder_options, output_video_options) = video_options(video)?;
+        let (audio_encoder_options, output_audio_options) = match audio {
+            Some(OutputMp4AudioOptions {
+                mixing_strategy,
+                send_eos_when,
+                encoder,
+                initial,
+            }) => {
+                let (enc_opt, out_opt) =
+                    audio_options(mixing_strategy, send_eos_when, encoder, initial)?;
+                (Some(enc_opt), Some(out_opt))
+            }
+            None => (None, None),
+        };
 
         let output_options = output::OutputOptions {
             output_protocol: output::OutputProtocolOptions::Mp4(Mp4OutputOptions {
@@ -125,93 +156,92 @@ impl TryFrom<Mp4Output> for pipeline::RegisterOutputOptions<output::OutputOption
 
         Ok(Self {
             output_options,
-            video: video_options,
-            audio: audio_options,
+            video: output_video_options,
+            audio: output_audio_options,
         })
     }
 }
 
-struct ConvertedOptions {
-    video_encoder_options: Option<pipeline::encoder::VideoEncoderOptions>,
-    video_options: Option<pipeline::OutputVideoOptions>,
-    audio_encoder_options: Option<pipeline::encoder::AudioEncoderOptions>,
-    audio_options: Option<pipeline::OutputAudioOptions>,
+fn video_options(
+    options: Option<OutputVideoOptions>,
+) -> Result<
+    (
+        Option<pipeline::encoder::VideoEncoderOptions>,
+        Option<pipeline::OutputVideoOptions>,
+    ),
+    TypeError,
+> {
+    let Some(options) = options else {
+        return Ok((None, None));
+    };
+
+    let encoder_options = match options.encoder {
+        VideoEncoderOptions::FfmpegH264 {
+            preset,
+            ffmpeg_options,
+        } => pipeline::encoder::VideoEncoderOptions::H264(ffmpeg_h264::Options {
+            preset: preset.into(),
+            resolution: options.resolution.into(),
+            raw_options: ffmpeg_options.unwrap_or_default().into_iter().collect(),
+        }),
+    };
+
+    let output_options = pipeline::OutputVideoOptions {
+        initial: options.initial.try_into()?,
+        end_condition: options.send_eos_when.unwrap_or_default().try_into()?,
+    };
+
+    Ok((Some(encoder_options), Some(output_options)))
 }
 
-impl TryFrom<(Option<OutputVideoOptions>, Option<OutputAudioOptions>)> for ConvertedOptions {
-    type Error = TypeError;
+fn audio_options<EncoderOptions>(
+    mixing_strategy: Option<MixingStrategy>,
+    send_eos_when: Option<OutputEndCondition>,
+    encoder: EncoderOptions,
+    initial: Audio,
+) -> Result<
+    (
+        pipeline::encoder::AudioEncoderOptions,
+        pipeline::OutputAudioOptions,
+    ),
+    TypeError,
+>
+where
+    EncoderOptions: Into<AudioEncoderOptions>,
+{
+    let audio_encoder_options = encoder.into();
+    let output_audio_options = pipeline::OutputAudioOptions {
+        initial: initial.try_into()?,
+        end_condition: send_eos_when.unwrap_or_default().try_into()?,
+        mixing_strategy: mixing_strategy.unwrap_or(MixingStrategy::SumClip).into(),
+        channels: audio_encoder_options.channels(),
+    };
 
-    fn try_from(
-        value: (Option<OutputVideoOptions>, Option<OutputAudioOptions>),
-    ) -> Result<Self, Self::Error> {
-        let (video, audio) = value;
-        if video.is_none() && audio.is_none() {
-            return Err(TypeError::new(
-                "At least one of \"video\" and \"audio\" fields have to be specified.",
-            ));
+    Ok((audio_encoder_options, output_audio_options))
+}
+
+impl From<Mp4AudioEncoderOptions> for pipeline::encoder::AudioEncoderOptions {
+    fn from(value: Mp4AudioEncoderOptions) -> Self {
+        match value {
+            Mp4AudioEncoderOptions::Aac { channels } => {
+                AudioEncoderOptions::Aac(AacEncoderOptions {
+                    channels: channels.into(),
+                })
+            }
         }
+    }
+}
 
-        let (video_options, video_encoder_options) = match video.clone() {
-            Some(v) => {
-                if v.resolution.width % 2 != 0 || v.resolution.height % 2 != 0 {
-                    return Err(TypeError::new(
-                        "Output video width and height has to be divisible by 2",
-                    ));
-                };
-
-                let VideoEncoderOptions::FfmpegH264 {
-                    preset,
-                    ffmpeg_options,
-                } = v.encoder;
-
-                (
-                    Some(pipeline::OutputVideoOptions {
-                        initial: v.initial.try_into()?,
-                        end_condition: v.send_eos_when.unwrap_or_default().try_into()?,
-                    }),
-                    Some(pipeline::encoder::VideoEncoderOptions::H264(
-                        ffmpeg_h264::Options {
-                            preset: preset.into(),
-                            resolution: v.resolution.into(),
-                            raw_options: ffmpeg_options.unwrap_or_default().into_iter().collect(),
-                        },
-                    )),
-                )
+impl From<RtpAudioEncoderOptions> for pipeline::encoder::AudioEncoderOptions {
+    fn from(value: RtpAudioEncoderOptions) -> Self {
+        match value {
+            RtpAudioEncoderOptions::Opus { channels, preset } => {
+                AudioEncoderOptions::Opus(encoder::opus::OpusEncoderOptions {
+                    channels: channels.into(),
+                    preset: preset.unwrap_or(OpusEncoderPreset::Voip).into(),
+                })
             }
-            None => (None, None),
-        };
-
-        let (audio_options, audio_encoder_options) = match audio.clone() {
-            Some(a) => {
-                let AudioEncoderOptions::Opus { channels, preset } = a.encoder;
-
-                (
-                    Some(pipeline::OutputAudioOptions {
-                        initial: a.initial.try_into()?,
-                        channels: channels.clone().into(),
-                        end_condition: a.send_eos_when.unwrap_or_default().try_into()?,
-                        mixing_strategy: a
-                            .mixing_strategy
-                            .unwrap_or(MixingStrategy::SumClip)
-                            .into(),
-                    }),
-                    Some(pipeline::encoder::AudioEncoderOptions::Opus(
-                        encoder::opus::Options {
-                            channels: channels.into(),
-                            preset: preset.unwrap_or(OpusEncoderPreset::Voip).into(),
-                        },
-                    )),
-                )
-            }
-            None => (None, None),
-        };
-
-        Ok(ConvertedOptions {
-            video_encoder_options,
-            video_options,
-            audio_encoder_options,
-            audio_options,
-        })
+        }
     }
 }
 
