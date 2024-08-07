@@ -184,7 +184,13 @@ impl AacEncoderInner {
                 numAncBytes: 0,
             };
 
-            // Calling `drain` on the input buffer will reallocate it, so we need to create the buffer descriptions right before calling `aacEncEncode`.
+            // FDK docs 2.5 states that "the input buffer should be handled as a modulo buffer". I couldn't find what "modulo buffer" means.
+            // Code examples in docs use static array and move samples after each `encode` call (it's not a circular buffer).
+            // Circular/ring buffer (sth like VecDeque) can't be used, since it doesn't guarantee contiguous memory layout.
+            // So, Vec is used here instead. This approach does additional heap allocation on every `fdk::aacEncEncode` call, 
+            // but is safer / more readable (no buffer overflows etc.).
+            //
+            // Calling `drain` on the input buffer will reallocate it, so the buffer descriptions are created right before calling `aacEncEncode`.
             // It's unsafe to use pointers obtained by calling `as_ptr()` and `as_ptr_mut()` after moving / reallocating the buffer.
             let mut in_buf = self.input_buffer.as_ptr();
             let mut in_buf_ident: c_int = fdk::AACENC_BufferIdentifier_IN_AUDIO_DATA as c_int;
