@@ -13,17 +13,11 @@ const VIDEO_RESOLUTION: Resolution = Resolution {
     height: 720,
 };
 
-// const IP: &str = "127.0.0.1";
-// const OUTPUT_VIDEO_PORT: u16 = 8002;
-// const OUTPUT_AUDIO_PORT: u16 = 8004;
-
 fn main() {
     run_example(client_code);
 }
 
 fn client_code() -> Result<()> {
-    // start_ffmpeg_receive(Some(OUTPUT_VIDEO_PORT), Some(OUTPUT_AUDIO_PORT))?;
-
     examples::post(
         "input/input_1/register",
         &json!({

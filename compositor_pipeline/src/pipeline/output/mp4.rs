@@ -7,7 +7,6 @@ use ffmpeg_next::{
     Packet,
 };
 use log::error;
-use tracing::info;
 
 use crate::{
     audio_mixer::AudioChannels,
@@ -59,10 +58,10 @@ impl Mp4FileWriter {
             });
         }
 
-        let (mut output_ctx, video_stream_id, audio_stream_id) =
+        let (mut output_ctx, video_stream, audio_stream) =
             Self::init_ffmpeg_output(options, sample_rate)?;
-        let mut received_video_eos = video_stream_id.map(|_| false);
-        let mut received_audio_eos = audio_stream_id.map(|_| false);
+        let mut received_video_eos = video_stream.as_ref().map(|_| false);
+        let mut received_audio_eos = audio_stream.as_ref().map(|_| false);
 
         std::thread::Builder::new()
             .name(format!("mp4 writer thread for output {}", output_id))
@@ -70,12 +69,7 @@ impl Mp4FileWriter {
                 for packet in packets_receiver {
                     match packet {
                         EncoderOutputEvent::Data(chunk) => {
-                            Self::write_chunk(
-                                chunk,
-                                video_stream_id,
-                                audio_stream_id,
-                                &mut output_ctx,
-                            );
+                            Self::write_chunk(chunk, &video_stream, &audio_stream, &mut output_ctx);
                         }
                         EncoderOutputEvent::VideoEOS => match received_video_eos {
                             Some(false) => received_video_eos = Some(true),
@@ -116,8 +110,8 @@ impl Mp4FileWriter {
     ) -> Result<
         (
             ffmpeg_next::format::context::Output,
-            Option<usize>,
-            Option<usize>,
+            Option<Stream>,
+            Option<Stream>,
         ),
         OutputInitError,
     > {
@@ -126,9 +120,11 @@ impl Mp4FileWriter {
 
         let mut stream_count = 0;
 
-        let video_stream_id = options
+        let video_stream = options
             .video
             .map(|v| {
+                const VIDEO_TIME_BASE: i32 = 90000;
+
                 let codec = match v.codec {
                     VideoCodec::H264 => ffmpeg_next::codec::Id::H264,
                 };
@@ -137,7 +133,7 @@ impl Mp4FileWriter {
                     .add_stream(ffmpeg_next::codec::Id::H264)
                     .map_err(OutputInitError::FfmpegMp4Error)?;
 
-                stream.set_time_base(ffmpeg_next::Rational::new(1, 90000));
+                stream.set_time_base(ffmpeg_next::Rational::new(1, VIDEO_TIME_BASE));
 
                 unsafe {
                     (*(*stream.as_mut_ptr()).codecpar).codec_id = codec.into();
@@ -150,11 +146,14 @@ impl Mp4FileWriter {
                 let id = stream_count;
                 stream_count += 1;
 
-                Ok::<usize, OutputInitError>(id)
+                Ok::<Stream, OutputInitError>(Stream {
+                    id,
+                    time_base: VIDEO_TIME_BASE as f64,
+                })
             })
             .transpose()?;
 
-        let audio_stream_id = options
+        let audio_stream = options
             .audio
             .map(|a| {
                 let codec = match a.codec {
@@ -170,7 +169,8 @@ impl Mp4FileWriter {
                     .add_stream(codec)
                     .map_err(OutputInitError::FfmpegMp4Error)?;
 
-                stream.set_time_base(ffmpeg_next::Rational::new(1, 48000));
+                // If audio time base doesn't match sample rate, ffmpeg muxer produces incorrect timestamps.
+                stream.set_time_base(ffmpeg_next::Rational::new(1, sample_rate as i32));
 
                 unsafe {
                     (*(*stream.as_mut_ptr()).codecpar).codec_id = codec.into();
@@ -190,25 +190,27 @@ impl Mp4FileWriter {
                 let id = stream_count;
                 stream_count += 1;
 
-                Ok::<usize, OutputInitError>(id)
+                Ok::<Stream, OutputInitError>(Stream {
+                    id,
+                    time_base: sample_rate as f64,
+                })
             })
             .transpose()?;
-        output_ctx.streams().for_each(|s| info!("Stream: {:?}", s));
 
         output_ctx
             .write_header()
             .map_err(OutputInitError::FfmpegMp4Error)?;
 
-        Ok((output_ctx, video_stream_id, audio_stream_id))
+        Ok((output_ctx, video_stream, audio_stream))
     }
 
     fn write_chunk(
         chunk: EncodedChunk,
-        video_stream_id: Option<usize>,
-        audio_stream_id: Option<usize>,
+        video_stream: &Option<Stream>,
+        audio_stream: &Option<Stream>,
         output_ctx: &mut ffmpeg_next::format::context::Output,
     ) {
-        let packet = Self::create_packet(chunk, video_stream_id, audio_stream_id);
+        let packet = Self::create_packet(chunk, video_stream, audio_stream);
         if let Some(packet) = packet {
             if let Err(err) = packet.write(output_ctx) {
                 error!("Failed to write packet to mp4 file: {}", err);
@@ -218,19 +220,19 @@ impl Mp4FileWriter {
 
     fn create_packet(
         chunk: EncodedChunk,
-        video_stream_id: Option<usize>,
-        audio_stream_id: Option<usize>,
+        video_stream: &Option<Stream>,
+        audio_stream: &Option<Stream>,
     ) -> Option<Packet> {
         let (stream_id, timebase) = match chunk.kind {
-            EncodedChunkKind::Video(_) => match video_stream_id {
-                Some(id) => Some((id, 90000.0)),
+            EncodedChunkKind::Video(_) => match video_stream {
+                Some(Stream { id, time_base }) => Some((*id, *time_base)),
                 None => {
                     error!("Failed to create packet for video chunk. No video stream registered on init.");
                     None
                 }
             },
-            EncodedChunkKind::Audio(_) => match audio_stream_id {
-                Some(id) => Some((id, 48000.0)),
+            EncodedChunkKind::Audio(_) => match audio_stream {
+                Some(Stream { id, time_base }) => Some((*id, *time_base)),
                 None => {
                     error!("Failed to create packet for audio chunk. No audio stream registered on init.");
                     None
@@ -247,4 +249,10 @@ impl Mp4FileWriter {
 
         Some(packet)
     }
+}
+
+#[derive(Debug, Clone)]
+struct Stream {
+    id: usize,
+    time_base: f64,
 }

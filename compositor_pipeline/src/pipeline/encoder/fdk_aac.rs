@@ -112,7 +112,7 @@ impl AacEncoderInner {
             check(fdk::aacEncoder_SetParam(
                 encoder,
                 fdk::AACENC_PARAM_AACENC_TRANSMUX,
-                2,
+                0,
             ))?;
             check(fdk::aacEncoder_SetParam(
                 encoder,
