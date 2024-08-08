@@ -2,16 +2,13 @@ use std::{path::PathBuf, ptr};
 
 use compositor_render::OutputId;
 use crossbeam_channel::Receiver;
-use ffmpeg_next::{
-    ffi::{AVChannelLayout, AVChannelOrder},
-    Packet,
-};
+use ffmpeg_next as ffmpeg;
 use log::error;
 
 use crate::{
     audio_mixer::AudioChannels,
     error::OutputInitError,
-    pipeline::{AudioCodec, EncodedChunk, EncodedChunkKind, EncoderOutputEvent, VideoCodec},
+    pipeline::{EncodedChunk, EncodedChunkKind, EncoderOutputEvent, VideoCodec},
 };
 
 #[derive(Debug, Clone)]
@@ -30,7 +27,6 @@ pub struct Mp4VideoTrack {
 
 #[derive(Debug, Clone)]
 pub struct Mp4AudioTrack {
-    pub codec: AudioCodec,
     pub channels: AudioChannels,
 }
 
@@ -79,13 +75,13 @@ fn init_ffmpeg_output(
     sample_rate: u32,
 ) -> Result<
     (
-        ffmpeg_next::format::context::Output,
+        ffmpeg::format::context::Output,
         Option<Stream>,
         Option<Stream>,
     ),
     OutputInitError,
 > {
-    let mut output_ctx = ffmpeg_next::format::output_as(&options.output_path, "mp4")
+    let mut output_ctx = ffmpeg::format::output_as(&options.output_path, "mp4")
         .map_err(OutputInitError::FfmpegMp4Error)?;
 
     let mut stream_count = 0;
@@ -96,19 +92,19 @@ fn init_ffmpeg_output(
             const VIDEO_TIME_BASE: i32 = 90000;
 
             let codec = match v.codec {
-                VideoCodec::H264 => ffmpeg_next::codec::Id::H264,
+                VideoCodec::H264 => ffmpeg::codec::Id::H264,
             };
 
             let mut stream = output_ctx
-                .add_stream(ffmpeg_next::codec::Id::H264)
+                .add_stream(ffmpeg::codec::Id::H264)
                 .map_err(OutputInitError::FfmpegMp4Error)?;
 
-            stream.set_time_base(ffmpeg_next::Rational::new(1, VIDEO_TIME_BASE));
+            stream.set_time_base(ffmpeg::Rational::new(1, VIDEO_TIME_BASE));
 
             unsafe {
                 (*(*stream.as_mut_ptr()).codecpar).codec_id = codec.into();
                 (*(*stream.as_mut_ptr()).codecpar).codec_type =
-                    ffmpeg_next::ffi::AVMediaType::AVMEDIA_TYPE_VIDEO;
+                    ffmpeg::ffi::AVMediaType::AVMEDIA_TYPE_VIDEO;
                 (*(*stream.as_mut_ptr()).codecpar).width = v.width as i32;
                 (*(*stream.as_mut_ptr()).codecpar).height = v.height as i32;
             }
@@ -126,10 +122,7 @@ fn init_ffmpeg_output(
     let audio_stream = options
         .audio
         .map(|a| {
-            let codec = match a.codec {
-                AudioCodec::Aac => ffmpeg_next::codec::Id::AAC,
-                AudioCodec::Opus => ffmpeg_next::codec::Id::OPUS,
-            };
+            let codec = ffmpeg::codec::Id::AAC;
             let channels = match a.channels {
                 AudioChannels::Mono => 1,
                 AudioChannels::Stereo => 2,
@@ -140,18 +133,18 @@ fn init_ffmpeg_output(
                 .map_err(OutputInitError::FfmpegMp4Error)?;
 
             // If audio time base doesn't match sample rate, ffmpeg muxer produces incorrect timestamps.
-            stream.set_time_base(ffmpeg_next::Rational::new(1, sample_rate as i32));
+            stream.set_time_base(ffmpeg::Rational::new(1, sample_rate as i32));
 
             unsafe {
                 (*(*stream.as_mut_ptr()).codecpar).codec_id = codec.into();
                 (*(*stream.as_mut_ptr()).codecpar).codec_type =
-                    ffmpeg_next::ffi::AVMediaType::AVMEDIA_TYPE_AUDIO;
+                    ffmpeg::ffi::AVMediaType::AVMEDIA_TYPE_AUDIO;
                 (*(*stream.as_mut_ptr()).codecpar).sample_rate = sample_rate as i32;
-                (*(*stream.as_mut_ptr()).codecpar).ch_layout = AVChannelLayout {
+                (*(*stream.as_mut_ptr()).codecpar).ch_layout = ffmpeg::ffi::AVChannelLayout {
                     nb_channels: channels,
-                    order: AVChannelOrder::AV_CHANNEL_ORDER_UNSPEC,
+                    order: ffmpeg::ffi::AVChannelOrder::AV_CHANNEL_ORDER_UNSPEC,
                     // This value is ignored when order is AV_CHANNEL_ORDER_UNSPEC
-                    u: ffmpeg_next::ffi::AVChannelLayout__bindgen_ty_1 { mask: 0 },
+                    u: ffmpeg::ffi::AVChannelLayout__bindgen_ty_1 { mask: 0 },
                     // Field doc: "For some private data of the user."
                     opaque: ptr::null_mut(),
                 };
@@ -175,7 +168,7 @@ fn init_ffmpeg_output(
 }
 
 fn run_ffmpeg_output_thread(
-    mut output_ctx: ffmpeg_next::format::context::Output,
+    mut output_ctx: ffmpeg::format::context::Output,
     video_stream: Option<Stream>,
     audio_stream: Option<Stream>,
     packets_receiver: Receiver<EncoderOutputEvent>,
@@ -221,7 +214,7 @@ fn write_chunk(
     chunk: EncodedChunk,
     video_stream: &Option<Stream>,
     audio_stream: &Option<Stream>,
-    output_ctx: &mut ffmpeg_next::format::context::Output,
+    output_ctx: &mut ffmpeg::format::context::Output,
 ) {
     let packet = create_packet(chunk, video_stream, audio_stream);
     if let Some(packet) = packet {
@@ -235,7 +228,7 @@ fn create_packet(
     chunk: EncodedChunk,
     video_stream: &Option<Stream>,
     audio_stream: &Option<Stream>,
-) -> Option<Packet> {
+) -> Option<ffmpeg::Packet> {
     let (stream_id, timebase) = match chunk.kind {
         EncodedChunkKind::Video(_) => {
             match video_stream {
@@ -257,11 +250,11 @@ fn create_packet(
         }
     }?;
 
-    let mut packet = ffmpeg_next::Packet::copy(&chunk.data);
+    let mut packet = ffmpeg::Packet::copy(&chunk.data);
     packet.set_pts(Some((chunk.pts.as_secs_f64() * timebase) as i64));
     let dts = chunk.dts.unwrap_or(chunk.pts);
     packet.set_dts(Some((dts.as_secs_f64() * timebase) as i64));
-    packet.set_time_base(ffmpeg_next::Rational::new(1, timebase as i32));
+    packet.set_time_base(ffmpeg::Rational::new(1, timebase as i32));
     packet.set_stream(stream_id);
 
     Some(packet)

@@ -130,7 +130,6 @@ impl TryFrom<Mp4Output> for pipeline::RegisterOutputOptions<output::OutputOption
         });
         let mp4_audio = audio.as_ref().map(|a| match &a.encoder {
             Mp4AudioEncoderOptions::Aac { channels } => Mp4AudioTrack {
-                codec: pipeline::AudioCodec::Aac,
                 channels: channels.clone().into(),
             },
         });
