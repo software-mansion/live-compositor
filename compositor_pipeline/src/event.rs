@@ -20,7 +20,7 @@ fn input_event(kind: &str, input_id: InputId) -> event_handler::Event {
 fn output_event(kind: &str, output_id: OutputId) -> event_handler::Event {
     event_handler::Event {
         kind: kind.to_string(),
-        properties: vec![("input_id".to_string(), output_id.to_string())],
+        properties: vec![("output_id".to_string(), output_id.to_string())],
     }
 }
 

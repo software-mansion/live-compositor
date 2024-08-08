@@ -53,7 +53,6 @@ impl AudioQueue {
 
     pub fn remove_input(&mut self, input_id: &InputId) {
         self.inputs.remove(input_id);
-        emit_event(Event::AudioInputStreamEos(input_id.clone()));
     }
 
     /// Checks if all inputs are ready to produce frames for specific PTS value (if all inputs have
