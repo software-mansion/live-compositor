@@ -56,6 +56,7 @@ impl VideoQueue {
 
     pub fn remove_input(&mut self, input_id: &InputId) {
         self.inputs.remove(input_id);
+        emit_event(Event::VideoInputStreamEos(input_id.clone()));
     }
 
     /// Gets frames closest to buffer pts. It does not check whether input is ready
