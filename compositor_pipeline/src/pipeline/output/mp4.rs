@@ -9,7 +9,10 @@ use ffmpeg_next::{
 use log::error;
 
 use crate::{
-    audio_mixer::AudioChannels, error::OutputInitError, event::Event, pipeline::{AudioCodec, EncodedChunk, EncodedChunkKind, EncoderOutputEvent, VideoCodec}
+    audio_mixer::AudioChannels,
+    error::OutputInitError,
+    event::Event,
+    pipeline::{AudioCodec, EncodedChunk, EncodedChunkKind, EncoderOutputEvent, VideoCodec},
 };
 
 #[derive(Debug, Clone)]

@@ -4,7 +4,9 @@ use std::sync::{atomic::AtomicBool, Arc};
 use tracing::{debug, span, Level};
 
 use crate::{
-    error::OutputInitError, event::Event, pipeline::{rtp::RequestedPort, types::EncoderOutputEvent, AudioCodec, Port, VideoCodec}
+    error::OutputInitError,
+    event::Event,
+    pipeline::{rtp::RequestedPort, types::EncoderOutputEvent, AudioCodec, Port, VideoCodec},
 };
 
 use self::{packet_stream::PacketStream, payloader::Payloader};
