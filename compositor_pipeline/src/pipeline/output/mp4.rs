@@ -101,13 +101,11 @@ fn init_ffmpeg_output(
 
             stream.set_time_base(ffmpeg::Rational::new(1, VIDEO_TIME_BASE));
 
-            unsafe {
-                (*(*stream.as_mut_ptr()).codecpar).codec_id = codec.into();
-                (*(*stream.as_mut_ptr()).codecpar).codec_type =
-                    ffmpeg::ffi::AVMediaType::AVMEDIA_TYPE_VIDEO;
-                (*(*stream.as_mut_ptr()).codecpar).width = v.width as i32;
-                (*(*stream.as_mut_ptr()).codecpar).height = v.height as i32;
-            }
+            let codecpar = unsafe { &mut *(*stream.as_mut_ptr()).codecpar };
+            codecpar.codec_id = codec.into();
+            codecpar.codec_type = ffmpeg::ffi::AVMediaType::AVMEDIA_TYPE_VIDEO;
+            codecpar.width = v.width as i32;
+            codecpar.height = v.height as i32;
 
             let id = stream_count;
             stream_count += 1;
@@ -135,20 +133,18 @@ fn init_ffmpeg_output(
             // If audio time base doesn't match sample rate, ffmpeg muxer produces incorrect timestamps.
             stream.set_time_base(ffmpeg::Rational::new(1, sample_rate as i32));
 
-            unsafe {
-                (*(*stream.as_mut_ptr()).codecpar).codec_id = codec.into();
-                (*(*stream.as_mut_ptr()).codecpar).codec_type =
-                    ffmpeg::ffi::AVMediaType::AVMEDIA_TYPE_AUDIO;
-                (*(*stream.as_mut_ptr()).codecpar).sample_rate = sample_rate as i32;
-                (*(*stream.as_mut_ptr()).codecpar).ch_layout = ffmpeg::ffi::AVChannelLayout {
-                    nb_channels: channels,
-                    order: ffmpeg::ffi::AVChannelOrder::AV_CHANNEL_ORDER_UNSPEC,
-                    // This value is ignored when order is AV_CHANNEL_ORDER_UNSPEC
-                    u: ffmpeg::ffi::AVChannelLayout__bindgen_ty_1 { mask: 0 },
-                    // Field doc: "For some private data of the user."
-                    opaque: ptr::null_mut(),
-                };
-            }
+            let codecpar = unsafe { &mut *(*stream.as_mut_ptr()).codecpar };
+            codecpar.codec_id = codec.into();
+            codecpar.codec_type = ffmpeg::ffi::AVMediaType::AVMEDIA_TYPE_AUDIO;
+            codecpar.sample_rate = sample_rate as i32;
+            codecpar.ch_layout = ffmpeg::ffi::AVChannelLayout {
+                nb_channels: channels,
+                order: ffmpeg::ffi::AVChannelOrder::AV_CHANNEL_ORDER_UNSPEC,
+                // This value is ignored when order is AV_CHANNEL_ORDER_UNSPEC
+                u: ffmpeg::ffi::AVChannelLayout__bindgen_ty_1 { mask: 0 },
+                // Field doc: "For some private data of the user."
+                opaque: ptr::null_mut(),
+            };
 
             let id = stream_count;
             stream_count += 1;
