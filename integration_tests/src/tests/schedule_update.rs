@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use crate::{
     compare_video_dumps, input_dump_from_disk, CommunicationProtocol, CompositorInstance,
-    OutputReceiver, PacketSender, VideoValidationConfig,
+    CompositorInstanceMode, OutputReceiver, PacketSender, VideoValidationConfig,
 };
 use anyhow::Result;
 use serde_json::json;
@@ -14,7 +14,7 @@ use serde_json::json;
 #[test]
 pub fn schedule_update() -> Result<()> {
     const OUTPUT_DUMP_FILE: &str = "schedule_update_output.rtp";
-    let instance = CompositorInstance::start(None);
+    let instance = CompositorInstance::start(CompositorInstanceMode::RealTime);
     let input_1_port = instance.get_port();
     let input_2_port = instance.get_port();
     let output_port = instance.get_port();

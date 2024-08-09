@@ -2,7 +2,7 @@ use anyhow::{anyhow, Result};
 use compositor_render::use_global_wgpu_ctx;
 use crossbeam_channel::Sender;
 use live_compositor::{
-    config::{read_config, Config, LoggerConfig, LoggerFormat},
+    config::{read_config, LoggerConfig, LoggerFormat},
     logger::{self, FfmpegLogLevel},
     server::run_api,
     state::ApiState,
@@ -19,6 +19,12 @@ use std::{
 };
 use tracing::info;
 
+#[derive(Debug, PartialEq, Eq)]
+pub enum CompositorInstanceMode {
+    RealTime,
+    Offline,
+}
+
 pub struct CompositorInstance {
     pub api_port: u16,
     pub http_client: reqwest::blocking::Client,
@@ -32,11 +38,15 @@ impl Drop for CompositorInstance {
 }
 
 impl CompositorInstance {
-    pub fn start(config: Option<Config>) -> Self {
+    pub fn start(mode: CompositorInstanceMode) -> Self {
         init_compositor_prerequisites();
         let api_port = get_free_port();
-        let mut config = config.unwrap_or(read_config());
+        let mut config = read_config();
         config.api_port = api_port;
+        if mode == CompositorInstanceMode::Offline {
+            config.queue_options.ahead_of_time_processing = true;
+            config.queue_options.never_drop_output_frames = true;
+        };
 
         info!("Starting LiveCompositor Integration Test with config:\n{config:#?}",);
 
