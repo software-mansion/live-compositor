@@ -1,6 +1,6 @@
-use std::{thread, time::Duration};
+use std::process::Command;
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use crossbeam_channel::Sender;
 use futures_util::{SinkExt, StreamExt};
 use log::info;
@@ -14,7 +14,7 @@ const BUNNY_URL: &str =
 
 #[test]
 pub fn offline_processing() -> Result<()> {
-    const OUTPUT_FILE: &str = "offline_processing_output.mp4";
+    const OUTPUT_FILE: &str = "/tmp/offline_processing_output.mp4";
 
     let instance = CompositorInstance::start(None);
     let (msg_sender, msg_receiver) = crossbeam_channel::unbounded();
@@ -73,13 +73,13 @@ pub fn offline_processing() -> Result<()> {
     instance.send_request(
         "input/input_1/unregister",
         json!({
-            "schedule_time_ms": 20000
+            "schedule_time_ms": 2000
         }),
     )?;
     instance.send_request(
         "output/output_1/unregister",
         json!({
-            "schedule_time_ms": 20000
+            "schedule_time_ms": 2000
         }),
     )?;
 
@@ -87,15 +87,17 @@ pub fn offline_processing() -> Result<()> {
 
     for msg in msg_receiver.iter() {
         if let tungstenite::Message::Text(msg) = msg {
-            if msg.contains("VIDEO_INPUT_EOS") {
+            if msg.contains("\"type\":\"OUTPUT_EOS\",\"output_id\":\"output_1\"") {
                 info!("breaking");
                 break;
-            } else {
-                info!("msg: {}", msg);
             }
         }
     }
-    thread::sleep(Duration::from_millis(20));
+
+    Command::new("ffprobe")
+        .args(["-v", "error", OUTPUT_FILE])
+        .output()
+        .map_err(|e| anyhow!("Invalid mp4 file. FFprobe error: {}", e))?;
 
     Ok(())
 }
