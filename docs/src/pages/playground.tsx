@@ -6,8 +6,12 @@ import toast, { Toaster } from 'react-hot-toast';
 import { renderImage } from '../api';
 import PlaygroundCodeEditor from '../components/PlaygroundCodeEditor';
 import PlaygroundPreview from '../components/PlaygroundPreview';
-import PlaygroundRenderSettings from '../components/PlaygroundRenderSettings';
-import { AVAILABLE_RESOLUTIONS, InputResolutions, Resolution } from './Resolution';
+import PlaygroundSettings from '../components/PlaygroundSettings';
+import {
+  InputResolutionNames,
+  inputResolutionNamesToResolutions,
+  ResolutionName,
+} from '../resolution';
 import styles from './playground.module.css';
 
 const INITIAL_SCENE = {
@@ -61,26 +65,22 @@ const INITIAL_SCENE = {
   ],
 };
 
-const INITIAL_INPUTS_RESOLUTIONS: InputResolutions = {
-  input_1: AVAILABLE_RESOLUTIONS.Resoultion1920x1080,
-  input_2: AVAILABLE_RESOLUTIONS.Resoultion1920x1080,
-  input_3: AVAILABLE_RESOLUTIONS.Resoultion1920x1080,
-  input_4: AVAILABLE_RESOLUTIONS.Resoultion1920x1080,
-  input_5: AVAILABLE_RESOLUTIONS.Resoultion1920x1080,
-  input_6: AVAILABLE_RESOLUTIONS.Resoultion1920x1080,
-};
-
 const INITIAL_SCENE_STRING = JSON.stringify(INITIAL_SCENE, null, 2);
 
 function Homepage() {
   const [scene, setScene] = useState<object | Error>(INITIAL_SCENE);
-  const [inputsResolutions, setInputsResolutions] = useState<InputResolutions>(
-    INITIAL_INPUTS_RESOLUTIONS
-  );
-  function updateInputsResolutions(inputId: string, resolution: Resolution) {
-    setInputsResolutions({
-      ...inputsResolutions,
-      [inputId]: { ...resolution },
+  const [inputResolutions, setInputResolutions] = useState<InputResolutionNames>({
+    input_1: ResolutionName.Resoultion1920x1080,
+    input_2: ResolutionName.Resoultion1920x1080,
+    input_3: ResolutionName.Resoultion1920x1080,
+    input_4: ResolutionName.Resoultion1920x1080,
+    input_5: ResolutionName.Resoultion1920x1080,
+    input_6: ResolutionName.Resoultion1920x1080,
+  });
+  function updateInputResolutions(inputId: string, resolution: ResolutionName) {
+    setInputResolutions({
+      ...inputResolutions,
+      [inputId]: resolution,
     });
   }
 
@@ -100,7 +100,7 @@ function Homepage() {
       }
       const request = {
         scene: scene,
-        inputs: inputsResolutions,
+        inputs: inputResolutionNamesToResolutions(inputResolutions),
       };
       const blob = await renderImage({ ...request });
       const imageObjectURL = URL.createObjectURL(blob);
@@ -127,7 +127,11 @@ function Homepage() {
           <PlaygroundPreview {...responseData} />
         </div>
         <div className={styles.settingsBox}>
-          <PlaygroundRenderSettings onSubmit={handleSubmit} onChange={updateInputsResolutions} />
+          <PlaygroundSettings
+            onSubmit={handleSubmit}
+            onChange={updateInputResolutions}
+            inputResolutions={inputResolutions}
+          />
         </div>
       </div>
     </div>
