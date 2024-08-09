@@ -4,8 +4,7 @@ use std::time::Duration;
 
 use crate::{
     compare_audio_dumps, compare_video_dumps, input_dump_from_disk, AudioValidationConfig,
-    CommunicationProtocol, CompositorInstance, CompositorInstanceMode, OutputReceiver,
-    PacketSender, VideoValidationConfig,
+    CommunicationProtocol, CompositorInstance, OutputReceiver, PacketSender, VideoValidationConfig,
 };
 
 /// Input and output streams with muxed video and audio.
@@ -14,7 +13,7 @@ use crate::{
 #[test]
 pub fn single_input_with_video_and_audio_flaky() -> Result<()> {
     const OUTPUT_DUMP_FILE: &str = "single_input_with_video_and_audio_output.rtp";
-    let instance = CompositorInstance::start(CompositorInstanceMode::RealTime);
+    let instance = CompositorInstance::start(None);
     let input_port = instance.get_port();
     let output_port = instance.get_port();
 

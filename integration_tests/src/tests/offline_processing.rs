@@ -3,11 +3,12 @@ use std::process::Command;
 use anyhow::{anyhow, Result};
 use crossbeam_channel::Sender;
 use futures_util::{SinkExt, StreamExt};
+use live_compositor::config::read_config;
 use log::info;
 use serde_json::json;
 use tokio_tungstenite::tungstenite;
 
-use crate::{CompositorInstance, CompositorInstanceMode};
+use crate::CompositorInstance;
 
 const BUNNY_URL: &str =
     "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
@@ -15,7 +16,10 @@ const BUNNY_URL: &str =
 #[test]
 pub fn offline_processing() -> Result<()> {
     const OUTPUT_FILE: &str = "/tmp/offline_processing_output.mp4";
-    let instance = CompositorInstance::start(CompositorInstanceMode::Offline);
+    let mut config = read_config();
+    config.queue_options.ahead_of_time_processing = true;
+    config.queue_options.never_drop_output_frames = true;
+    let instance = CompositorInstance::start(Some(config));
     let (msg_sender, msg_receiver) = crossbeam_channel::unbounded();
     start_server_msg_listener(instance.api_port, msg_sender);
 

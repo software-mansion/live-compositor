@@ -2,7 +2,7 @@ use std::{thread, time::Duration};
 
 use crate::{
     compare_video_dumps, input_dump_from_disk, CommunicationProtocol, CompositorInstance,
-    CompositorInstanceMode, OutputReceiver, PacketSender, VideoValidationConfig,
+    OutputReceiver, PacketSender, VideoValidationConfig,
 };
 use anyhow::Result;
 use serde_json::json;
@@ -13,7 +13,7 @@ use serde_json::json;
 #[test]
 pub fn unregistering() -> Result<()> {
     const OUTPUT_DUMP_FILE: &str = "unregistering_test_output.rtp";
-    let instance = CompositorInstance::start(CompositorInstanceMode::RealTime);
+    let instance = CompositorInstance::start(None);
     let input_port = instance.get_port();
     let output_port = instance.get_port();
 
