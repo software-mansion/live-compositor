@@ -12,7 +12,7 @@ for any video conferencing, live-streaming, or broadcasting solutions where you 
 However, you can also use it for non-real-time use cases, for example, apply some effect on a video from an MP4 file and write the output
 to the new MP4.
 
-We don't have plans to introduce any major breaking changes in the API in the foreseeable future.
+https://github.com/user-attachments/assets/d8716866-67bd-4721-b1c2-1a1d31e1c5b5
 
 ## Where to start?
 
@@ -24,10 +24,12 @@ LiveCompositor supports Linux and macOS and can be used in 2 ways:
 
 ## Demos
 
-https://github.com/software-mansion/live-compositor/assets/104033489/e6f5ba7c-ab05-4935-a42a-bc28c42fc895
-
 This is just a sample of effects that you can achieve with LiveCompositor. It is a compilation of a few demo projects
 written in TypeScript that you can find in [`demos`](./demos) directory.
+
+## API stability
+
+We don't have plans to introduce any major breaking changes in the API in the foreseeable future.
 
 ## Copyright
 

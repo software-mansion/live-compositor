@@ -1,5 +1,7 @@
 # LiveCompositor TypeScript demos
 
+https://github.com/software-mansion/live-compositor/assets/104033489/e6f5ba7c-ab05-4935-a42a-bc28c42fc895
+
 ## Technical requirements
 
 - **FFmpeg** (FFmpeg6 on Linux, FFmpeg 7 on MacOS)
