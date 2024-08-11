@@ -1,7 +1,7 @@
 { rustPlatform
+, ffmpeg_7-headless
 , openssl
 , pkg-config
-, ffmpeg_6-headless
 , llvmPackages_16
 , libGL
 , cmake
@@ -12,23 +12,10 @@
 , darwin
 , stdenv
 , makeWrapper
-, x264
 }:
 let
-  ffmpeg =
-    (if stdenv.isDarwin then
-      (ffmpeg_6-headless.override {
-        x264 = x264.overrideAttrs (old: {
-          postPatch = old.postPatch + ''
-            substituteInPlace Makefile --replace '$(if $(STRIP), $(STRIP) -x $@)' '$(if $(STRIP), $(STRIP) -S $@)'
-          '';
-        });
-      })
-    else
-      ffmpeg_6-headless
-    );
   buildInputs = [
-    ffmpeg
+    ffmpeg_7-headless
     openssl
     libopus
     libGL
