@@ -7,7 +7,7 @@ pub(crate) enum Event {
     VideoInputStreamPlaying(InputId),
     AudioInputStreamEos(InputId),
     VideoInputStreamEos(InputId),
-    OutputEos(OutputId),
+    OutputDone(OutputId),
 }
 
 fn input_event(kind: &str, input_id: InputId) -> event_handler::Event {
@@ -33,7 +33,7 @@ impl From<Event> for event_handler::Event {
             Event::VideoInputStreamPlaying(id) => input_event("VIDEO_INPUT_PLAYING", id),
             Event::AudioInputStreamEos(id) => input_event("AUDIO_INPUT_EOS", id),
             Event::VideoInputStreamEos(id) => input_event("VIDEO_INPUT_EOS", id),
-            Event::OutputEos(id) => output_event("OUTPUT_EOS", id),
+            Event::OutputDone(id) => output_event("OUTPUT_DONE", id),
         }
     }
 }

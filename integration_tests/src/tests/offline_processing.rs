@@ -90,7 +90,7 @@ pub fn offline_processing() -> Result<()> {
 
     for msg in msg_receiver.iter() {
         if let tungstenite::Message::Text(msg) = msg {
-            if msg.contains("\"type\":\"OUTPUT_EOS\",\"output_id\":\"output_1\"") {
+            if msg.contains("\"type\":\"OUTPUT_DONE\",\"output_id\":\"output_1\"") {
                 info!("breaking");
                 break;
             }

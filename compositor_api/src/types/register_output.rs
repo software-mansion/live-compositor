@@ -21,9 +21,9 @@ pub struct RtpOutput {
     pub ip: Option<Arc<str>>,
     /// (**default=`"udp"`**) Transport layer protocol that will be used to send RTP packets.
     pub transport_protocol: Option<TransportProtocol>,
-    /// Specifies video included in output RTP stream.
+    /// Video stream configuration.
     pub video: Option<OutputVideoOptions>,
-    /// Specifies audio included in output RTP stream.
+    /// Audio stream configuration.
     pub audio: Option<OutputRtpAudioOptions>,
 }
 
@@ -32,9 +32,9 @@ pub struct RtpOutput {
 pub struct Mp4Output {
     /// Path to output MP4 file.
     pub path: String,
-    /// Specifies video included in output MP4 file.
+    /// Video track configuration.
     pub video: Option<OutputVideoOptions>,
-    /// Specifies audio included in output MP4 file.
+    /// Audio track configuration.
     pub audio: Option<OutputMp4AudioOptions>,
 }
 

@@ -82,11 +82,11 @@ type Event = {
 The input stream has ended and all the audio samples were already processed.
 It's not emitted on [`input unregister`](routes.md#unregister-input).
 
-### `OUTPUT_EOS`
+### `OUTPUT_DONE`
 
 ```typescript
 type Event = {
-  type: "OUTPUT_EOS",
+  type: "OUTPUT_DONE",
   output_id: string
 }
 ```
