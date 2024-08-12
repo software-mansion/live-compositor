@@ -68,7 +68,7 @@ impl Mp4FileWriter {
                     tracing::info_span!("MP4 writer", output_id = output_id.to_string()).entered();
 
                 run_ffmpeg_output_thread(output_ctx, video_stream, audio_stream, packets_receiver);
-                emit_event(Event::OutputEos(output_id));
+                emit_event(Event::OutputDone(output_id));
             })
             .unwrap();
 

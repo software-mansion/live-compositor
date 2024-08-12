@@ -78,7 +78,7 @@ impl RtpSender {
                         tcp_server::run_tcp_sender_thread(socket, should_close2, packet_stream)
                     }
                 }
-                emit_event(Event::OutputEos(output_id));
+                emit_event(Event::OutputDone(output_id));
                 debug!("Closing RTP sender thread.")
             })
             .unwrap();
