@@ -13,53 +13,98 @@ div.jsoneditor-menu {
   background-color: #4b4b4b;
 }
 
-.ace_editor {
+[data-theme='dark'] .ace_editor {
   font-size: 16px;
   color: rgb(108, 103, 131);
 }
 
-.ace_editor .ace_gutter {
+[data-theme='light'] .ace_editor {
+  font-size: 16px;
+  color: rgb(0, 0, 0);
+}
+
+[data-theme='dark'] .ace_editor .ace_gutter {
   background: rgb(42, 39, 52);
   color: rgb(108, 103, 131);
 }
 
-.ace_content {
+[data-theme='light'] .ace_editor .ace_gutter {
+  background: rgb(255, 255, 255);
+  color: rgb(97, 97, 97);
+}
+[data-theme='dark'] .ace_content {
   background-color: rgb(42, 39, 52);
 }
 
-.ace_content .ace_variable {
+[data-theme='light'] .ace_content {
+  background-color: rgb(255, 255, 255);
+}
+
+[data-theme='dark'] .ace_content .ace_variable {
   color: #9a86fd;
 }
-
-.ace_line {
-  color: rgb(108, 103, 131);
+[data-theme='light'] .ace_content .ace_variable {
+  color: #6f54fa;
 }
 
-.ace_editor .ace_content .ace_string {
+[data-theme='dark'] .ace_line {
+  color: rgb(108, 103, 131);
+}
+[data-theme='light'] .ace_line {
+  color: rgb(97, 97, 97);
+}
+
+[data-theme='dark'] .ace_editor .ace_content .ace_string {
   color: rgb(255, 204, 153);
 }
 
-.ace_editor .ace_content .ace_bool,
+[data-theme='light'] .ace_editor .ace_content .ace_string {
+  color: rgb(255, 153, 51);
+}
+
+[data-theme='dark'] .ace_editor .ace_content .ace_bool,
 .ace_editor .ace_content .ace_numeric {
   color: rgb(224, 145, 66);
 }
 
-.ace-jsoneditor .ace_marker-layer .ace_active-line {
+[data-theme='light'] .ace_editor .ace_content .ace_bool,
+.ace_editor .ace_content .ace_numeric {
+  color: rgb(224, 112, 0);
+}
+
+[data-theme='dark'] .ace-jsoneditor .ace_marker-layer .ace_active-line {
   color: rgb(108, 103, 131);
   background-color: rgb(62, 58, 76);
 }
 
-.ace-jsoneditor .ace_gutter-active-line {
+[data-theme='light'] .ace-jsoneditor .ace_marker-layer .ace_active-line {
+  color: rgb(108, 103, 131);
+  background-color: rgb(235, 235, 235);
+}
+
+[data-theme='dark'] .ace-jsoneditor .ace_gutter-active-line {
   color: rgb(108, 103, 131);
   background-color: rgb(62, 58, 76);
 }
+[data-theme='light'] .ace-jsoneditor .ace_gutter-active-line {
+  color: rgb(108, 103, 131);
+  background-color: rgb(235, 235, 235);
+}
 
-.ace_content .ace_cursor {
+[data-theme='dark'] .ace_content .ace_cursor {
   border-color: #949494;
 }
 
-.ace_editor .ace_marker-layer .ace_selection {
+[data-theme='light'] .ace_content .ace_cursor {
+  border-color: #000000;
+}
+
+[data-theme='dark'] .ace_editor .ace_marker-layer .ace_selection {
   background: rgb(98, 94, 113);
+}
+
+[data-theme='light'] .ace_editor .ace_marker-layer .ace_selection {
+  background: rgb(222, 222, 222);
 }
 .ace_editor .ace_ .ace_editor .ace_marker-layer .ace_selected-word {
   border: none;

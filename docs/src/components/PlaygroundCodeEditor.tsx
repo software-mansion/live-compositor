@@ -1,12 +1,29 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import 'jsoneditor/dist/jsoneditor.css';
 import './jsoneditor-dark.css';
-import componentTypesJsonSchema from '../../../schemas/component_types.schema.json';
-import { ajvInitialization, JSONEditor } from '../playgroundCodeEditorUtils';
+import componentTypesJsonSchema from '../../component_types.schema.json';
+import { JSONEditor } from '../playgroundCodeEditorUtils';
 
 interface PlaygroundCodeEditorProps {
   onChange: (content: object | Error) => void;
   initialCodeEditorContent: object;
+}
+
+function ajvInitialization() {
+  const ajv = JSONEditor.Ajv({
+    allErrors: true,
+    verbose: true,
+    schemaId: 'auto',
+    $data: true,
+  });
+
+  ajv.addFormat('float', '^-?d+(.d+)?([eE][+-]?d+)?$');
+  ajv.addFormat('double', '^-?d+(.d+)?([eE][+-]?d+)?$');
+  ajv.addFormat('int32', '^-?d+$');
+  ajv.addFormat('uint32', '^d+$');
+  ajv.addFormat('uint', '^d+$');
+
+  return ajv;
 }
 
 function PlaygroundCodeEditor({ onChange, initialCodeEditorContent }: PlaygroundCodeEditorProps) {
@@ -30,7 +47,16 @@ function PlaygroundCodeEditor({ onChange, initialCodeEditorContent }: Playground
         try {
           const jsonContent = editor.get();
           onChange(jsonContent);
-          if (!validate(jsonContent)) throw new Error('Invalid JSON!');
+          if (!validate(jsonContent)) {
+            throw new Error('Invalid JSON!');
+          }
+        } catch (error) {
+          onChange(error);
+        }
+      },
+      onBlur: () => {
+        try {
+          editor.format();
         } catch (error) {
           onChange(error);
         }

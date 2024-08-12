@@ -20,6 +20,7 @@
     "@docusaurus/plugin-client-redirects": "3.1.1",
     "@docusaurus/preset-classic": "^3.1.1",
     "@mdx-js/react": "^3.0.0",
+    "@types/jsoneditor": "^9.9.5",
     "clsx": "^1.2.1",
     "jsoneditor": "^10.1.0",
     "prism-react-renderer": "^2.1.0",

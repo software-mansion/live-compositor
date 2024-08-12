@@ -20,28 +20,28 @@ function buildRequestRenderImage(body: object): RequestObject {
 
 async function getErrorDescription(response: Response): Promise<string> {
   const contentType = response.headers.get('Content-Type');
-  const errorStatus = `Error status: ${response.status}`;
+  const errorStatus = `Error status: ${response.status} ${response.statusText}`;
   let errorMessage = '';
 
   if (contentType === 'application/json') {
     const apiError = await response.json();
     if (apiError.stack) {
-      errorMessage = `Error message: ${apiError.stack.map(String).join('\n')}`;
+      errorMessage = `${apiError.stack.map(String).join('\n')}`;
     } else {
-      errorMessage = `Error message: ${apiError.message}`;
+      errorMessage = `${apiError.message}`;
     }
   } else {
     const txt = await response.text();
-    errorMessage = `Error message: ${txt}`;
+    errorMessage = `${txt}`;
   }
-  return `${errorStatus};\n${errorMessage}`;
+  console.log(`${errorStatus};\nError message: ${errorMessage}`);
+  return `${errorMessage}`;
 }
 
 export async function renderImage(body: object): Promise<Blob> {
   const requestObject = buildRequestRenderImage(body);
   const renderImageUrl = new URL('/render_image', BACKEND_URL);
   const response = await fetch(renderImageUrl, requestObject);
-
   if (response.status >= 400) {
     const errorDescription = await getErrorDescription(response);
     throw new Error(errorDescription);

@@ -36,8 +36,14 @@ function Homepage() {
 
       setResponseData({ imageUrl: imageObjectURL, errorMessage: '' });
     } catch (error: any) {
-      setErrorMessage(error.message);
-      toast.error(`${error.message}`);
+      let errorDescription;
+      if (error.message === 'Failed to fetch') {
+        errorDescription = 'Failed to connect to the server!';
+      } else {
+        errorDescription = error.message;
+      }
+      setErrorMessage(errorDescription);
+      toast.error(`${errorDescription}`);
     }
   };
 

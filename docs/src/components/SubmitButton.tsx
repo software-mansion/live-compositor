@@ -10,7 +10,7 @@ function SubmitButton({
   return (
     <div
       data-tooltip-id={readyToSubmit ? null : 'disableSubmit'}
-      data-tooltip-content={readyToSubmit ? null : 'Enter valid JSON!'}
+      data-tooltip-content={readyToSubmit ? null : 'Invalid scene provided!'}
       data-tooltip-place={readyToSubmit ? null : 'top'}>
       <button
         className={`button ${
