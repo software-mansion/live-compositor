@@ -1,6 +1,6 @@
 use std::{path::PathBuf, ptr};
 
-use compositor_render::OutputId;
+use compositor_render::{event_handler::emit_event, OutputId};
 use crossbeam_channel::Receiver;
 use ffmpeg_next as ffmpeg;
 use log::error;
@@ -9,6 +9,7 @@ use tracing::debug;
 use crate::{
     audio_mixer::AudioChannels,
     error::OutputInitError,
+    event::Event,
     pipeline::{EncodedChunk, EncodedChunkKind, EncoderOutputEvent, VideoCodec},
 };
 
@@ -64,6 +65,7 @@ impl Mp4FileWriter {
                     tracing::info_span!("MP4 writer", output_id = output_id.to_string()).entered();
 
                 run_ffmpeg_output_thread(output_ctx, video_stream, audio_stream, packets_receiver);
+                emit_event(Event::OutputDone(output_id));
                 debug!("Closing MP4 writer thread.");
             })
             .unwrap();
