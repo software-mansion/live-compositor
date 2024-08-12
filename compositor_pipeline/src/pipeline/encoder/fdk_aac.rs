@@ -9,7 +9,7 @@ use bytes::BytesMut;
 use compositor_render::OutputId;
 use crossbeam_channel::{bounded, Receiver, Sender};
 use fdk_aac_sys as fdk;
-use tracing::{debug, error, info, span, Level};
+use tracing::{debug, error, span, Level};
 
 use crate::{
     audio_mixer::{AudioChannels, AudioSamples, OutputSamples},
@@ -316,33 +316,43 @@ fn run_encoder_thread(
         }
     };
 
-    let send_encode_res = |res: Result<Option<EncodedChunk>, fdk::AACENC_ERROR>| match res {
+    for event in samples_batch_receiver {
+        let samples = match event {
+            PipelineEvent::Data(samples) => samples,
+            PipelineEvent::EOS => break,
+        };
+
+        match encoder.encode(samples) {
+            Ok(Some(encoded_samples)) => {
+                let send_result = packets_sender.send(EncoderOutputEvent::Data(encoded_samples));
+                if send_result.is_err() {
+                    debug!("Failed to send AAC encoded samples.");
+                    break;
+                };
+            }
+            Ok(None) => {}
+            Err(err) => {
+                error!("Error encoding audio samples: {:?}", err);
+            }
+        }
+    }
+
+    match encoder.flush() {
         Ok(Some(encoded_samples)) => {
-            if packets_sender
-                .send(EncoderOutputEvent::Data(encoded_samples))
-                .is_err()
-            {
-                info!("Failed to send AAC encoded samples.");
+            let send_result = packets_sender.send(EncoderOutputEvent::Data(encoded_samples));
+            if send_result.is_err() {
+                debug!("Failed to send AAC encoded samples.");
             };
         }
         Ok(None) => {}
         Err(err) => {
-            error!("Error encoding audio samples: {:?}", err);
-        }
-    };
-
-    loop {
-        match samples_batch_receiver.recv() {
-            Ok(PipelineEvent::Data(samples)) => send_encode_res(encoder.encode(samples)),
-            Err(_) | Ok(PipelineEvent::EOS) => {
-                send_encode_res(encoder.flush());
-                if packets_sender.send(EncoderOutputEvent::AudioEOS).is_err() {
-                    info!("Failed to send EOS event.");
-                };
-                break;
-            }
+            error!("Error flushing audio samples: {:?}", err);
         }
     }
+
+    if packets_sender.send(EncoderOutputEvent::AudioEOS).is_err() {
+        debug!("Failed to send EOS event.");
+    };
 }
 
 fn check(result: fdk::AACENC_ERROR) -> Result<(), fdk::AACENC_ERROR> {
