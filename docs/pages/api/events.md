@@ -86,7 +86,7 @@ It's not emitted on [`input unregister`](routes.md#unregister-input).
 
 ```typescript
 type Event = {
-  type: "OUTPUT_EOS",
+  type: "OUTPUT_DONE",
   output_id: string
 }
 ```
