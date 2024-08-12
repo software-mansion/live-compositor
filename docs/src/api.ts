@@ -8,6 +8,16 @@ interface RequestObject {
   body: string;
 }
 
+export class ApiError extends Error {
+  response: Response;
+  body: string | object;
+  constructor(message: string, response?: Response, body?: string | object) {
+    super(message);
+    this.response = response;
+    this.body = body;
+  }
+}
+
 function buildRequestRenderImage(body: object): RequestObject {
   return {
     method: 'POST',
@@ -18,33 +28,38 @@ function buildRequestRenderImage(body: object): RequestObject {
   };
 }
 
-async function getErrorDescription(response: Response): Promise<string> {
+async function createError(response: Response): Promise<ApiError> {
   const contentType = response.headers.get('Content-Type');
   const errorStatus = `Error status: ${response.status} ${response.statusText}`;
   let errorMessage = '';
-
+  let body;
   if (contentType === 'application/json') {
     const apiError = await response.json();
+    body = apiError;
     if (apiError.stack) {
-      errorMessage = `${apiError.stack.map(String).join('\n')}`;
+      errorMessage = apiError.stack.map(String).join('\n');
     } else {
-      errorMessage = `${apiError.message}`;
+      errorMessage = apiError.message;
     }
   } else {
-    const txt = await response.text();
-    errorMessage = `${txt}`;
+    errorMessage = await response.text();
+    body = errorMessage;
   }
   console.log(`${errorStatus};\nError message: ${errorMessage}`);
-  return `${errorMessage}`;
+  return new ApiError(errorMessage, response, body);
 }
 
 export async function renderImage(body: object): Promise<Blob> {
   const requestObject = buildRequestRenderImage(body);
   const renderImageUrl = new URL('/render_image', BACKEND_URL);
-  const response = await fetch(renderImageUrl, requestObject);
+  let response;
+  try {
+    response = await fetch(renderImageUrl, requestObject);
+  } catch (error) {
+    throw new ApiError(error.message);
+  }
   if (response.status >= 400) {
-    const errorDescription = await getErrorDescription(response);
-    throw new Error(errorDescription);
+    throw await createError(response);
   }
   return await response.blob();
 }

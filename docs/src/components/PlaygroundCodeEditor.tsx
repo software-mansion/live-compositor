@@ -61,8 +61,12 @@ function PlaygroundCodeEditor({ onChange, initialCodeEditorContent }: Playground
           const repaired = jsonrepair(editor.getText());
           const formated = JSON.stringify(JSON.parse(repaired), null, 2);
           editor.updateText(formated);
+          const jsonContent = editor.get();
+          onChange(jsonContent);
+          if (!validate(jsonContent)) {
+            throw new Error('Invalid JSON!');
+          }
         } catch (error) {
-          console.log(error);
           onChange(error);
         }
       },

@@ -7,7 +7,7 @@ import PlaygroundRenderSettings from '../components/PlaygroundRenderSettings';
 import PlaygroundPreview from '../components/PlaygroundPreview';
 import PlaygroundCodeEditor from '../components/PlaygroundCodeEditor';
 import toast, { Toaster } from 'react-hot-toast';
-import { renderImage } from '../api';
+import { ApiError, renderImage } from '../api';
 import 'react-tooltip/dist/react-tooltip.css';
 
 const INITIAL_SCENE = {
@@ -37,7 +37,7 @@ function Homepage() {
       setResponseData({ imageUrl: imageObjectURL, errorMessage: '' });
     } catch (error: any) {
       let errorDescription;
-      if (error.message === 'Failed to fetch') {
+      if (error instanceof ApiError && !error.response) {
         errorDescription = 'Failed to connect to the server!';
       } else {
         errorDescription = error.message;
