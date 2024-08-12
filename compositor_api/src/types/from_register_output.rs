@@ -40,7 +40,7 @@ impl TryFrom<RtpOutput> for pipeline::RegisterOutputOptions<output::OutputOption
             RtpAudioEncoderOptions::Opus { .. } => pipeline::AudioCodec::Opus,
         });
 
-        let (video_encoder_options, output_video_options) = video_options(video)?;
+        let (video_encoder_options, output_video_options) = maybe_video_options(video)?;
         let (audio_encoder_options, output_audio_options) = match audio {
             Some(OutputRtpAudioOptions {
                 mixing_strategy,
@@ -130,12 +130,11 @@ impl TryFrom<Mp4Output> for pipeline::RegisterOutputOptions<output::OutputOption
         });
         let mp4_audio = audio.as_ref().map(|a| match &a.encoder {
             Mp4AudioEncoderOptions::Aac { channels } => Mp4AudioTrack {
-                codec: pipeline::AudioCodec::Aac,
                 channels: channels.clone().into(),
             },
         });
 
-        let (video_encoder_options, output_video_options) = video_options(video)?;
+        let (video_encoder_options, output_video_options) = maybe_video_options(video)?;
         let (audio_encoder_options, output_audio_options) = match audio {
             Some(OutputMp4AudioOptions {
                 mixing_strategy,
@@ -174,7 +173,7 @@ impl TryFrom<Mp4Output> for pipeline::RegisterOutputOptions<output::OutputOption
     }
 }
 
-fn video_options(
+fn maybe_video_options(
     options: Option<OutputVideoOptions>,
 ) -> Result<
     (

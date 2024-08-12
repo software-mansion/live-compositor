@@ -73,6 +73,7 @@ impl Encoder {
 
         let audio_encoder = match options.audio {
             Some(audio_encoder_options) => Some(AudioEncoder::new(
+                output_id,
                 audio_encoder_options,
                 sample_rate,
                 encoded_chunks_sender,
@@ -146,6 +147,7 @@ impl VideoEncoder {
 
 impl AudioEncoder {
     fn new(
+        output_id: &OutputId,
         options: AudioEncoderOptions,
         sample_rate: u32,
         sender: Sender<EncoderOutputEvent>,
@@ -155,7 +157,7 @@ impl AudioEncoder {
                 OpusEncoder::new(options, sample_rate, sender).map(AudioEncoder::Opus)
             }
             AudioEncoderOptions::Aac(options) => {
-                AacEncoder::new(options, sample_rate, sender).map(AudioEncoder::Aac)
+                AacEncoder::new(output_id, options, sample_rate, sender).map(AudioEncoder::Aac)
             }
         }
     }

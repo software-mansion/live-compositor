@@ -6,9 +6,10 @@ use std::{
 };
 
 use bytes::BytesMut;
+use compositor_render::OutputId;
 use crossbeam_channel::{bounded, Receiver, Sender};
 use fdk_aac_sys as fdk;
-use tracing::{error, info, span, Level};
+use tracing::{debug, error, span, Level};
 
 use crate::{
     audio_mixer::{AudioChannels, AudioSamples, OutputSamples},
@@ -31,6 +32,7 @@ pub struct AacEncoderOptions {
 
 impl AacEncoder {
     pub fn new(
+        output_id: &OutputId,
         options: AacEncoderOptions,
         sample_rate: u32,
         packets_sender: Sender<EncoderOutputEvent>,
@@ -38,11 +40,13 @@ impl AacEncoder {
         let (samples_batch_sender, samples_batch_receiver) = bounded(5);
         // Since AAC encoder holds ref to internal structure (handler), it's unsafe to send it between threads.
         let (init_result_sender, init_result_receiver) = bounded(0);
+        let output_id = output_id.to_string();
 
         std::thread::Builder::new()
-            .name("Aac encoder thread".to_string())
+            .name("AAC encoder thread".to_string())
             .spawn(move || {
-                let _span = span!(Level::INFO, "Aac encoder thread").entered();
+                let _span =
+                    span!(Level::INFO, "AAC encoder thread", output_id = output_id).entered();
                 run_encoder_thread(
                     init_result_sender,
                     options,
@@ -50,6 +54,7 @@ impl AacEncoder {
                     samples_batch_receiver,
                     packets_sender,
                 );
+                debug!("Closing AAC encoder thread.");
             })
             .unwrap();
 
@@ -311,33 +316,43 @@ fn run_encoder_thread(
         }
     };
 
-    let send_encode_res = |res: Result<Option<EncodedChunk>, fdk::AACENC_ERROR>| match res {
+    for event in samples_batch_receiver {
+        let samples = match event {
+            PipelineEvent::Data(samples) => samples,
+            PipelineEvent::EOS => break,
+        };
+
+        match encoder.encode(samples) {
+            Ok(Some(encoded_samples)) => {
+                let send_result = packets_sender.send(EncoderOutputEvent::Data(encoded_samples));
+                if send_result.is_err() {
+                    debug!("Failed to send AAC encoded samples.");
+                    break;
+                };
+            }
+            Ok(None) => {}
+            Err(err) => {
+                error!("Error encoding audio samples: {:?}", err);
+            }
+        }
+    }
+
+    match encoder.flush() {
         Ok(Some(encoded_samples)) => {
-            if packets_sender
-                .send(EncoderOutputEvent::Data(encoded_samples))
-                .is_err()
-            {
-                info!("Failed to send AAC encoded samples.");
+            let send_result = packets_sender.send(EncoderOutputEvent::Data(encoded_samples));
+            if send_result.is_err() {
+                debug!("Failed to send AAC encoded samples.");
             };
         }
         Ok(None) => {}
         Err(err) => {
-            error!("Error encoding audio samples: {:?}", err);
-        }
-    };
-
-    loop {
-        match samples_batch_receiver.recv() {
-            Ok(PipelineEvent::Data(samples)) => send_encode_res(encoder.encode(samples)),
-            Err(_) | Ok(PipelineEvent::EOS) => {
-                send_encode_res(encoder.flush());
-                if packets_sender.send(EncoderOutputEvent::AudioEOS).is_err() {
-                    info!("Failed to send EOS event.");
-                };
-                break;
-            }
+            error!("Error flushing audio samples: {:?}", err);
         }
     }
+
+    if packets_sender.send(EncoderOutputEvent::AudioEOS).is_err() {
+        debug!("Failed to send EOS event.");
+    };
 }
 
 fn check(result: fdk::AACENC_ERROR) -> Result<(), fdk::AACENC_ERROR> {
