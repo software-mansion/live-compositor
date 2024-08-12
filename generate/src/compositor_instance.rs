@@ -1,5 +1,4 @@
 use anyhow::{anyhow, Result};
-use compositor_render::use_global_wgpu_ctx;
 use crossbeam_channel::Sender;
 use live_compositor::{
     config::{read_config, LoggerConfig, LoggerFormat},
@@ -117,6 +116,5 @@ fn init_compositor_prerequisites() {
             format: LoggerFormat::Compact,
             level: "warn,wgpu_hal=warn,wgpu_core=warn".to_string(),
         });
-        use_global_wgpu_ctx();
     });
 }

@@ -49,6 +49,7 @@ impl ApiState {
             download_root,
             output_sample_rate,
             wgpu_features: required_wgpu_features,
+            wgpu_ctx: None,
         })?;
         Ok((
             ApiState {

@@ -114,6 +114,7 @@ pub struct Options {
     pub download_root: PathBuf,
     pub output_sample_rate: u32,
     pub wgpu_features: WgpuFeatures,
+    pub wgpu_ctx: Option<(Arc<wgpu::Device>, Arc<wgpu::Queue>)>,
 }
 
 #[derive(Debug, Clone)]
@@ -131,6 +132,7 @@ impl Pipeline {
             stream_fallback_timeout: opts.stream_fallback_timeout,
             force_gpu: opts.force_gpu,
             wgpu_features: opts.wgpu_features,
+            wgpu_ctx: opts.wgpu_ctx,
         })?;
 
         let download_dir = opts
@@ -370,10 +372,6 @@ impl Pipeline {
 
     pub fn outputs(&self) -> impl Iterator<Item = (&OutputId, &PipelineOutput)> {
         self.outputs.iter()
-    }
-
-    pub fn wgpu_ctx(&self) -> (Arc<wgpu::Device>, Arc<wgpu::Queue>) {
-        self.renderer.wgpu_ctx()
     }
 }
 

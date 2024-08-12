@@ -6,7 +6,7 @@ pub(crate) mod format;
 pub(crate) mod texture;
 pub(crate) mod utils;
 
-pub use ctx::use_global_wgpu_ctx;
+pub use ctx::create_wgpu_ctx;
 pub(crate) use ctx::WgpuCtx;
 pub use wgpu::Features as WgpuFeatures;
 
