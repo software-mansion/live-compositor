@@ -7,7 +7,10 @@ use log::error;
 use tracing::debug;
 
 use crate::{
-    audio_mixer::AudioChannels, error::OutputInitError, event::Event, pipeline::{EncodedChunk, EncodedChunkKind, EncoderOutputEvent, VideoCodec}
+    audio_mixer::AudioChannels,
+    error::OutputInitError,
+    event::Event,
+    pipeline::{EncodedChunk, EncodedChunkKind, EncoderOutputEvent, VideoCodec},
 };
 
 #[derive(Debug, Clone)]
