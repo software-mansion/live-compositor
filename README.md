@@ -27,10 +27,6 @@ LiveCompositor supports Linux and macOS and can be used in 2 ways:
 This is just a sample of effects that you can achieve with LiveCompositor. It is a compilation of a few demo projects
 written in TypeScript that you can find in [`demos`](./demos) directory.
 
-## API stability
-
-We don't have plans to introduce any major breaking changes in the API in the foreseeable future.
-
 ## Copyright
 
 Copyright 2023, [Software Mansion](https://swmansion.com/?utm_source=git&utm_medium=readme&utm_campaign=live_compositor)
