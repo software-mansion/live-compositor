@@ -2,15 +2,17 @@ import React, { useState, useEffect, useCallback } from 'react';
 import 'jsoneditor/dist/jsoneditor.css';
 import './jsoneditor-dark.css';
 import componentTypesJsonSchema from '../../component_types.schema.json';
-import { JSONEditor } from '../playgroundCodeEditorUtils';
+import JSONEditor from '../jsonEditor';
+import { jsonrepair } from 'jsonrepair';
+import Ajv from 'ajv';
 
 interface PlaygroundCodeEditorProps {
   onChange: (content: object | Error) => void;
   initialCodeEditorContent: object;
 }
 
-function ajvInitialization() {
-  const ajv = JSONEditor.Ajv({
+function ajvInitialization(): Ajv.Ajv {
+  const ajv = new Ajv({
     allErrors: true,
     verbose: true,
     schemaId: 'auto',
@@ -27,9 +29,9 @@ function ajvInitialization() {
 }
 
 function PlaygroundCodeEditor({ onChange, initialCodeEditorContent }: PlaygroundCodeEditorProps) {
-  const [jsonEditor, setJsonEditor] = useState<typeof JSONEditor | null>(null);
+  const [jsonEditor, setJsonEditor] = useState<JSONEditor | null>(null);
 
-  const editorContainer = useCallback(node => {
+  const editorContainer = useCallback((node: HTMLElement) => {
     if (node === null) {
       return;
     }
@@ -56,8 +58,11 @@ function PlaygroundCodeEditor({ onChange, initialCodeEditorContent }: Playground
       },
       onBlur: () => {
         try {
-          editor.format();
+          const repaired = jsonrepair(editor.getText());
+          const formated = JSON.stringify(JSON.parse(repaired), null, 2);
+          editor.updateText(formated);
         } catch (error) {
+          console.log(error);
           onChange(error);
         }
       },
