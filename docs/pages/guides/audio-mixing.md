@@ -146,6 +146,10 @@ Configure it to mix audio from `input_1` and audio from `input_2` with reduced v
                 { "input_id": "input_1" },
                 { "input_id": "input_2", "volume": 0.9 }
             ]
+        },
+        "encoder": {
+          "type": "opus",
+          "channels": "stereo"
         }
       }
     }
