@@ -35,11 +35,7 @@ function PlaygroundSettings({ onSubmit, onChange, inputResolutions }: Playground
         overlayClassName={styles.overlay}
         className={styles.content}
         ariaHideApp={false}>
-        <SettingsInputs
-          closeModal={() => setInputsSettingsModalOpen(false)}
-          handleSettingsUpdate={onChange}
-          inputResolutions={inputResolutions}
-        />
+        <SettingsInputs handleSettingsUpdate={onChange} inputResolutions={inputResolutions} />
       </ReactModal>
     </div>
   );

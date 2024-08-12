@@ -1,28 +1,67 @@
 .container {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    flex-direction: column;
+    padding: 2vw;
+    /* padding-left: 24px; */
 }
 
+.headerContainer {
+    border: 1px solid red;
+    /* margin: 4px; */
+    /* display: flex; */
+}
+
+.headerInputLabel {
+    /* flex-grow: 3;
+    height: 4vh; */
+}
+
+.headerResolutionLabel {
+    /* flex-grow: 5;
+    height: 4vh; */
+}
+
+.headerPreviewLabel {
+    /* flex-grow: 4;
+    height: 4vh; */
+}
+
+
 .inputSelector {
-    display: flex;
-    flex-direction: column;
-    flex-basis: 50%;
-    padding: 12px;
-    padding-left: 8px;
-    width: 128px + 12px;
+    border: 1px solid green;
+    /* height: 64px; */
+    height: 10vh;
+    align-items: center;
+    /* display: flex; */
+    /* margin: 4px; */
 }
 
 .inputSelectorLabel {
-    margin-top: -12px;
-    justify-content: center;
-    align-items: center;
+    /* flex-grow: 3; */
+    border: 1px solid yellow;
+    /* display: flex;
+    justify-content: center; */
 }
 
 .inputSelectorSelect {
+    border: 1px solid cyan;
+    /* flex-grow: 5; */
     background-color: #303947;
     border-radius: 4px;
     padding: 1px 4px 2px 4px;
+}
 
+.inputSelectorImgContainer {
+    /* flex-grow: 10; */
+    height: 100%;
+}
+
+.inputSelectorImg {
+    /* border: 1px solid yellow; */
+    height: 100%;
+    object-fit: contain;
+    margin-left: 0px;
 }
 
 .controlButtonsContainer {
@@ -30,8 +69,4 @@
     display: flex;
     margin-top: 6px;
     justify-content: center;
-}
-
-.controlButton {
-    width: 128px;
 }
