@@ -32,7 +32,6 @@ This guide will explain how to create simple scene that is combining input strea
 
         child(:live_compositor, %LiveCompositor{
           framerate: {30, 1},
-          server_setup: :start_locally,
         }),
 
         ...

@@ -27,7 +27,6 @@ This guide will explain how to mix audio.
 
         child(:live_compositor, %LiveCompositor{
           framerate: {30, 1},
-          server_setup: :start_locally,
         }),
 
         ...
