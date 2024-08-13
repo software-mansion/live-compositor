@@ -23,6 +23,7 @@ default = ["web_renderer"]
 decklink = ["compositor_api/decklink"]
 web_renderer = [
     "dep:compositor_chromium",
+    "dep:chromium_sys",
     "compositor_api/web_renderer"
 ]
 
@@ -32,6 +33,7 @@ compositor_api = { path = "compositor_api" }
 compositor_pipeline = { path = "compositor_pipeline" }
 compositor_chromium = { path = "compositor_chromium" }
 compositor_render = { path = "compositor_render" }
+chromium_sys = { path = "compositor_chromium/chromium_sys" }
 bytes = "1.4.0"
 serde_json = { version = "1.0.99", features = ["preserve_order"] }
 serde = { version = "1.0.164", features = ["derive", "rc"] }
@@ -64,6 +66,7 @@ compositor_api = { workspace = true }
 compositor_render = { workspace = true }
 compositor_pipeline = { workspace = true }
 compositor_chromium = { workspace = true, optional = true }
+chromium_sys = { workspace = true, optional = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 anyhow = { workspace = true }

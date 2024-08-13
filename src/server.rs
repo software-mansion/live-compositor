@@ -4,7 +4,7 @@ use log::info;
 use signal_hook::{consts, iterator::Signals};
 use tracing::error;
 
-use std::{net::SocketAddr, process, thread};
+use std::{net::SocketAddr, process, thread, time::Duration};
 use tokio::runtime::Runtime;
 
 use crate::{config::read_config, logger::init_logger, routes::routes, state::ApiState};
@@ -14,7 +14,7 @@ pub fn run() {
     init_logger(config.logger.clone());
 
     info!("Starting LiveCompositor with config:\n{:#?}", config);
-    let (state, event_loop) = ApiState::new(config).unwrap_or_else(|err| {
+    let (state, _event_loop) = ApiState::new(config).unwrap_or_else(|err| {
         panic!(
             "Failed to start event loop.\n{}",
             ErrorStack::new(&err).into_string()
@@ -35,12 +35,19 @@ pub fn run() {
         let mut signals = Signals::new([consts::SIGINT]).unwrap();
         signals.forever().next();
     };
-    if let Err(err) = event_loop.run_with_fallback(&event_loop_fallback) {
-        panic!(
-            "Failed to start event loop.\n{}",
-            ErrorStack::new(&err).into_string()
-        )
+
+    loop {
+        unsafe {
+            chromium_sys::cef_do_message_loop_work();
+        }
+        thread::sleep(Duration::from_millis(100))
     }
+    //   if let Err(err) = event_loop.run_with_fallback(&event_loop_fallback) {
+    //       panic!(
+    //           "Failed to start event loop.\n{}",
+    //           ErrorStack::new(&err).into_string()
+    //       )
+    //   }
 }
 
 pub fn run_api(state: ApiState, should_close: Receiver<()>) -> tokio::io::Result<()> {
