@@ -11,7 +11,7 @@ use regex::Regex;
 use serde_json::json;
 use tokio_tungstenite::tungstenite;
 
-use crate::{tests::utils::start_server_msg_listener, CompositorInstance};
+use crate::{tests::start_server_msg_listener, CompositorInstance};
 
 const BUNNY_URL: &str =
     "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
