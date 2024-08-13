@@ -1,3 +1,7 @@
+:root {
+
+}
+
 .container {
     display: flex;
     flex-wrap: nowrap;
@@ -89,4 +93,9 @@
     .headerResolutionLabel {
         min-width: 0;
     }
+}
+
+.a {
+  color: #222 !important;
+  background-color: #f5f6f7 !important;
 }

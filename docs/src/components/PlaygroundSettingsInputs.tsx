@@ -1,3 +1,4 @@
+import { Tooltip } from 'react-tooltip';
 import { InputResolutionNames, ResolutionName } from '../resolution';
 import styles from './PlaygroundSettingsInputs.module.css';
 
@@ -16,14 +17,10 @@ export default function PlaygroundSettingsInputs({
 
   return (
     <div className={styles.container}>
-      <div className={`${styles.headerContainer}`}>
-        {/* <div className={`${styles.headerContainer} row`}> */}
-        <div className={`${styles.headerInputLabel}`}>Input ID</div>
-        {/* <div className={`${styles.headerLabel} col col--3`}>Input ID</div> */}
-        <div className={`${styles.headerResolutionLabel}`}>Resolution</div>
-        {/* <div className={`${styles.headerLabel} col col--5`}>Resolution</div> */}
-        <div className={`${styles.headerPreviewLabel}`}>Preview</div>
-        {/* <div className={`${styles.headerLabel} col col--4`}>Preview</div> */}
+      <div className={styles.headerContainer}>
+        <div className={styles.headerInputLabel}>Input ID</div>
+        <div className={styles.headerResolutionLabel}>Resolution</div>
+        <div className={styles.headerPreviewLabel}>Preview</div>
       </div>
       {Object.keys(inputResolutions).map(inputId => (
         <InputResolutionSelect
@@ -49,12 +46,11 @@ function InputResolutionSelect({
   handleChange,
 }: InputResolutionSelectProps) {
   return (
-    <div className={`${styles.inputSelector}`}>
-      {/* <div className={`${styles.inputSelector} row`}> */}
-      <label className={`${styles.inputSelectorLabel}`}>{inputName}</label>
-      {/* <label className={`${styles.inputSelectorLabel} col col--3`}>{inputName}</label> */}
-      <div className={`${styles.inputSelectorSelectContainer}`}>
-        {/* <div className={`${styles.inputSelectorSelectContainer} col col--5`}> */}
+    <div className={styles.inputSelector}>
+      <label id={`${inputName}_tooltip`} className={styles.inputSelectorLabel}>
+        {inputName}
+      </label>
+      <div className={styles.inputSelectorSelectContainer}>
         <select
           onChange={handleChange}
           value={selectedValue}
@@ -71,10 +67,14 @@ function InputResolutionSelect({
         <img
           src={getImagePath(inputName, selectedValue)}
           alt={'alt'}
-          className={`${styles.inputSelectorImg}`}
-          // className={`${styles.inputSelectorImg} col col--4`}
+          className={styles.inputSelectorImg}
         />
       </div>
+      <Tooltip anchorSelect={`#${inputName}_tooltip`} className={styles.a}>
+        <div style={{ maxWidth: '89vw' }}>
+          {`To use this input insert ${inputName} as "input_id" in "input_stream" type`}
+        </div>
+      </Tooltip>
     </div>
   );
 }
