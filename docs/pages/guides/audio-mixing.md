@@ -5,6 +5,8 @@ import TabItem from '@theme/TabItem';
 
 This guide will explain how to mix audio.
 
+LiveCompositor supports audio streams and provides a simple mixer to combine them. Even if you only have one audio stream and do not need to modify it in any way, then it is still good to pass that stream to the compositor to avoid synchronization issues between audio and video.
+
 ## Configure input and output
 
 ### Start the compositor
@@ -26,7 +28,7 @@ This guide will explain how to mix audio.
         ...
 
         child(:live_compositor, %LiveCompositor{
-          framerate: {30, 1},
+          framerate: {30, 1}
         }),
 
         ...
@@ -37,7 +39,7 @@ This guide will explain how to mix audio.
   </TabItem>
 </Tabs>
 
-### Register input `input_1`
+### Register input `input_1` with video and audio
 
 <Tabs queryString="lang">
   <TabItem value="http" label="HTTP">
@@ -49,6 +51,9 @@ This guide will explain how to mix audio.
       "type": "rtp_stream",
       "transport_protocol": "tcp_server",
       "port": 9001,
+      "video": {
+        "decoder": "ffmpeg_h264"
+      },
       "audio": {
         "decoder": "opus"
       }
@@ -64,32 +69,25 @@ This guide will explain how to mix audio.
     def handle_init(ctx, opts) do
       spec = [
         ...
-
-        input_1_spec
-        |> via_in(Pad.ref(:audio_input, "input_1"))
+        video_input_1_spec
+        |> via_in(Pad.ref(:video_input, "video_input_1"))
         |> get_child(:live_compositor),
-
+        audio_input_1_spec
+        |> via_in(Pad.ref(:audio_input, "audio_input_1"))
+        |> get_child(:live_compositor),
         ...
       ]
       {[spec: spec], %{}}
     end
     ```
-    where `input_1_spec` is an element that produces Opus audio.
+    where `video_input_1_spec` and `audio_input_1_spec` are elements producing H264 video and Opus audio respectively.
+
+    Note that `:video_input` and `:audio_input` are separate pads and should have unique names.
   </TabItem>
 </Tabs>
 
-:::note
-<Tabs queryString="lang">
-  <TabItem value="http" label="HTTP">
-    You can configure both `audio` and `video` in the same `input`.
-  </TabItem>
-    <TabItem value="membrane" label="Membrane Framework">
-    `video_input` and `audio_input` are separate pads.
-  </TabItem>
-</Tabs>
-:::
 
-### Register input `input_2`
+### Register input `input_2` with only audio
 
 <Tabs queryString="lang">
   <TabItem value="http" label="HTTP">
@@ -98,12 +96,14 @@ This guide will explain how to mix audio.
     Content-Type: application/json
 
     {
-      "type": "mp4",
-      "url": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4", 
+      "type": "rtp_stream",
+      "transport_protocol": "tcp_server",
+      "port": 9002,
+      "audio": {
+        "decoder": "opus"
+      }
     }
     ```
-
-    When using MP4 as an input, video and audio parameters are automatically detected.
   </TabItem>
   <TabItem value="membrane" label="Membrane Framework">
     ```elixir
@@ -111,8 +111,8 @@ This guide will explain how to mix audio.
       spec = [
         ...
 
-        input_2_spec
-        |> via_in(Pad.ref(:audio_input, "input_2"))
+        audio_input_2_spec
+        |> via_in(Pad.ref(:audio_input, "audio_input_2"))
         |> get_child(:live_compositor),
 
         ...
@@ -120,7 +120,7 @@ This guide will explain how to mix audio.
       {[spec: spec], %{}}
     end
     ```
-    where `input_2_spec` is an element that produces Opus audio.
+    where `audio_input_2_spec` is an element that produces Opus audio.
 
     Using Membrane, video and audio inputs should be a separate pads.
   </TabItem>
@@ -128,7 +128,9 @@ This guide will explain how to mix audio.
 
 ### Register output `output_1`
 
-Configure it to mix audio from `input_1` and audio from `input_2` with reduced volume to 90% of the original volume. 
+Configure it to:
+- pass through video from `input_1` with [`Text`](../api/components/Text.md) overlay  
+- mix audio from `input_1` and audio from `input_2` with reduced volume to 90% of the original volume. 
 
 <Tabs queryString="lang">
   <TabItem value="http" label="HTTP">
@@ -140,17 +142,55 @@ Configure it to mix audio from `input_1` and audio from `input_2` with reduced v
       "type": "rtp_stream",
       "transport_protocol": "tcp_server",
       "port": 9003,
+      "video": {
+        "resolution": { "width": 1280, "height": 720 },
+        "encoder": {
+          "type": "ffmpeg_h264",
+          "preset": "ultrafast",
+        },
+        "initial": {
+          "root": {
+            "type": "view",
+            "children": [
+              {
+                "type": "rescaler",
+                "width": 1280,
+                "height": 720,
+                "top": 0,
+                "left": 0,
+                "child": {
+                  "type": "input_stream",
+                  "input_id": "input_1"
+                }
+              },
+              {
+                "type": "view",
+                "width": 1280,
+                "height": 100,
+                "background_color_rgba": "#40E0D0FF",
+                "children": [{
+                  "type": "text",
+                  "text": "LiveCompositor 🚀😃",
+                  "font_size": 80,
+                  "align": "center"
+                }]
+              }
+            ]
+          }
+        }
+      },
       "audio": {
         "initial": {
             "inputs": [
-                { "input_id": "input_1" },
-                { "input_id": "input_2", "volume": 0.9 }
+                { "input_id": "audio_input_1" },
+                { "input_id": "audio_input_2", "volume": 0.9 }
             ]
         },
         "encoder": {
           "type": "opus",
           "channels": "stereo"
-        }
+        },
+
       }
     }
     ```
@@ -165,42 +205,39 @@ Configure it to mix audio from `input_1` and audio from `input_2` with reduced v
     def handle_init(ctx, opts) do
       spec = [
         ...
+        get_child(:live_compositor)
+        |> via_out(Pad.ref(:video_output, "video_output_1|), options: [
+          encoder: %LiveCompositor.Encoder.FFmpegH264{
+            preset: :ultrafast
+          }
+        ])
 
         get_child(:live_compositor),
-        |> via_out(Pad.ref(:audio_output, "output_1"), options: [
+        |> via_out(Pad.ref(:audio_output, "audio_output_1"), options: [
           encoder: %LiveCompositor.Encoder.Opus{
             channels: :stereo
           },
           initial: %{
-            %{input_id: "input_1"},
-            %{input_id: "input_2", volume: 0.9}
+            inputs: [
+              %{input_id: "audio_input_1"},
+              %{input_id: "audio_input_2", volume: 0.9}
+            ]
           }
         ])
-        |> output_1_spec
+        |> audio_output_1_spec
 
         ...
       ]
       {[spec: spec], %{}}
     end
     ```
-    where `output_1_spec` is an element that can consume H264 video.
+    where `video_output_1_spec` and `audio_output_1_spec` are elements consuming H264 video and Opus audio respectively.
   </TabItem>
 </Tabs>
-
-:::note
-<Tabs queryString="lang">
-  <TabItem value="http" label="HTTP">
-    You can configure both `audio` and `video` in the same `output`.
-  </TabItem>
-    <TabItem value="membrane" label="Membrane Framework">
-    `video_output` and `audio_output` are separate pads.
-  </TabItem>
-</Tabs>
-:::
 
 ### Update output `output_1`
 
-Send only audio from `input_1` to output.
+Forward video and audio from `input_1` to output `output_1`.
 
 <Tabs queryString="lang">
   <TabItem value="http" label="HTTP">
@@ -209,6 +246,15 @@ Send only audio from `input_1` to output.
     Content-Type: application/json
 
     {
+      "video": {
+        "root": {
+          "type": "rescaler",
+          "child": {
+            "type": "input_stream",
+            "input_id": "input_1"
+          }
+        }
+      },
       "audio": {
         "inputs": [
           { "input_id": "input_1" }
@@ -220,13 +266,30 @@ Send only audio from `input_1` to output.
   <TabItem value="membrane" label="Membrane Framework">
     ```elixir
     def handle_setup(ctx, state) do
-      request = %LiveCompositor.Request.UpdateAudioOutput{
-        output_id: "output_1",
+      video_update_request = %LiveCompositor.Request.UpdateVideoOutput{
+        output_id: "video_output_1",
+        root: {
+          "type": "rescaler",
+          "child": {
+            "type": "input_stream",
+            "input_id": "video_input_1"
+          }
+        }
+      }
+      audio_update_request = %LiveCompositor.Request.UpdateAudioOutput{
+        output_id: "audio_output_1",
         inputs: [
-          %{input_id: "input_1"}
+          %{input_id: "audio_input_1"}
         ]
       }
-      {[notify_child: {:live_compositor, request}], state}
+      
+      {
+        [
+          notify_child: {:live_compositor, video_update_request},
+          notify_child: {:live_compositor, audio_update_request}
+        ],
+        state
+      }
     end
     ```
   </TabItem>

@@ -31,7 +31,7 @@ This guide will explain how to create simple scene that is combining input strea
         ...
 
         child(:live_compositor, %LiveCompositor{
-          framerate: {30, 1},
+          framerate: {30, 1}
         }),
 
         ...
@@ -176,8 +176,8 @@ Configure it to render just an empty [`View`](../api/components/View.md) compone
             root: %{
               type: :view,
               background_color_rgba: "#4d4d4dff",
-            },
-          },
+            }
+          }
         ])
         |> output_1_spec
 
@@ -213,7 +213,7 @@ Update output to render a [`View`](../api/components/View.md) component with an 
           "type": "view",
           "background_color_rgba": "#4d4d4dff",
           "children": [
-            { "type": "input_stream", "input_id": "input_1" },
+            { "type": "input_stream", "input_id": "input_1" }
           ]
         }
       }
@@ -264,7 +264,7 @@ Wrap an [`InputStream`](../api/components/InputStream.md) component with a [`Res
           "children": [
             {
               "type": "rescaler",
-              "child": { "type": "input_stream", "input_id": "input_1" },
+              "child": { "type": "input_stream", "input_id": "input_1" }
             }
           ]
         }
@@ -283,7 +283,7 @@ Wrap an [`InputStream`](../api/components/InputStream.md) component with a [`Res
           children: [
             %{
               type: :rescaler,
-              child: %{ type: :input_stream, input_id: :input_1 },
+              child: %{ type: :input_stream, input_id: :input_1 }
             }
           ]
         }
@@ -325,11 +325,11 @@ Add another [`InputStream`](../api/components/InputStream.md) wrapped with [`Res
           "children": [
             {
               "type": "rescaler",
-              "child": { "type": "input_stream", "input_id": "input_1" },
+              "child": { "type": "input_stream", "input_id": "input_1" }
             },
             {
               "type": "rescaler",
-              "child": { "type": "input_stream", "input_id": "input_2" },
+              "child": { "type": "input_stream", "input_id": "input_2" }
             }
           ]
         }
@@ -348,11 +348,11 @@ Add another [`InputStream`](../api/components/InputStream.md) wrapped with [`Res
           children: [
             %{
               type: :rescaler,
-              child: %{ type: :input_stream, input_id: :input_1 },
+              child: %{ type: :input_stream, input_id: :input_1 }
             },
             %{
               type: :rescaler,
-              child: %{ type: :input_stream, input_id: :input_2 },
+              child: %{ type: :input_stream, input_id: :input_2 }
             }
           ]
         }
@@ -393,7 +393,7 @@ Specify `width` and `height` of one of the `Rescaler` components and position it
           "children": [
             {
               "type": "rescaler",
-              "child": { "type": "input_stream", "input_id": "input_1" },
+              "child": { "type": "input_stream", "input_id": "input_1" }
             },
             {
               "type": "rescaler",
@@ -401,7 +401,7 @@ Specify `width` and `height` of one of the `Rescaler` components and position it
               "height": 180,
               "top": 20,
               "right": 20,
-              "child": { "type": "input_stream", "input_id": "input_2" },
+              "child": { "type": "input_stream", "input_id": "input_2" }
             }
           ]
         }
@@ -420,7 +420,7 @@ Specify `width` and `height` of one of the `Rescaler` components and position it
           children: [
             %{
               type: :rescaler,
-              child: %{ type: :input_stream, input_id: :input_1 },
+              child: %{ type: :input_stream, input_id: :input_1 }
             },
             %{
               type: :rescaler,
@@ -428,7 +428,7 @@ Specify `width` and `height` of one of the `Rescaler` components and position it
               height: 180,
               top: 20,
               right: 20,
-              child: %{ type: :input_stream, input_id: :input_2 },
+              child: %{ type: :input_stream, input_id: :input_2 }
             }
           ]
         }
