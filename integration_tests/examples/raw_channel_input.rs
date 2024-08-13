@@ -1,5 +1,9 @@
 use core::panic;
-use std::{sync::Arc, thread, time::Duration};
+use std::{
+    sync::{Arc, Mutex},
+    thread,
+    time::Duration,
+};
 
 use compositor_pipeline::{
     pipeline::{
@@ -13,11 +17,12 @@ use compositor_pipeline::{
             OutputOptions, OutputProtocolOptions,
         },
         rtp::RequestedPort,
-        Pipeline, PipelineOutputEndCondition, RegisterOutputOptions, VideoCodec,
+        Options, Pipeline, PipelineOutputEndCondition, RegisterOutputOptions, VideoCodec,
     },
     queue::{PipelineEvent, QueueInputOptions},
 };
 use compositor_render::{
+    create_wgpu_ctx,
     error::ErrorStack,
     scene::{Component, InputStreamComponent},
     Frame, FrameData, InputId, OutputId, Resolution,
@@ -26,7 +31,6 @@ use integration_tests::{gstreamer::start_gst_receive_tcp, test_input::TestInput}
 use live_compositor::{
     config::{read_config, LoggerConfig, LoggerFormat},
     logger::{self, FfmpegLogLevel},
-    state::ApiState,
 };
 
 const VIDEO_OUTPUT_PORT: u16 = 8002;
@@ -40,13 +44,25 @@ fn main() {
         level: "info,wgpu_hal=warn,wgpu_core=warn".to_string(),
     });
     let config = read_config();
+    let (wgpu_device, wgpu_queue) = create_wgpu_ctx(false, Default::default()).unwrap();
     // no chromium support, so we can ignore _event_loop
-    let (state, _event_loop) = ApiState::new(config).unwrap_or_else(|err| {
+    let (pipeline, _event_loop) = Pipeline::new(Options {
+        queue_options: config.queue_options,
+        stream_fallback_timeout: config.stream_fallback_timeout,
+        web_renderer: config.web_renderer,
+        force_gpu: config.force_gpu,
+        download_root: config.download_root,
+        output_sample_rate: config.output_sample_rate,
+        wgpu_features: config.required_wgpu_features,
+        wgpu_ctx: Some((wgpu_device.clone(), wgpu_queue.clone())),
+    })
+    .unwrap_or_else(|err| {
         panic!(
             "Failed to start compositor.\n{}",
             ErrorStack::new(&err).into_string()
         )
     });
+    let pipeline = Arc::new(Mutex::new(pipeline));
     let output_id = OutputId("output_1".into());
     let input_id = InputId("input_id".into());
 
@@ -80,7 +96,7 @@ fn main() {
     };
 
     let sender = Pipeline::register_raw_data_input(
-        &state.pipeline,
+        &pipeline,
         input_id.clone(),
         RawDataInputOptions {
             video: true,
@@ -94,10 +110,7 @@ fn main() {
     )
     .unwrap();
 
-    let (wgpu_device, wgpu_queue) = state.pipeline.lock().unwrap().wgpu_ctx();
-
-    state
-        .pipeline
+    pipeline
         .lock()
         .unwrap()
         .register_output(output_id.clone(), output_options)
@@ -107,7 +120,7 @@ fn main() {
 
     start_gst_receive_tcp("127.0.0.1", VIDEO_OUTPUT_PORT, true, false).unwrap();
 
-    Pipeline::start(&state.pipeline);
+    Pipeline::start(&pipeline);
 
     let video_sender = sender.video.unwrap();
     for frame in frames {

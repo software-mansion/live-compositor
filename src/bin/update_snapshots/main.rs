@@ -20,7 +20,6 @@ use crate::{
 fn main() {
     println!("Updating snapshots:");
     tracing_subscriber::fmt().init();
-    compositor_render::use_global_wgpu_ctx();
 
     let tests: Vec<_> = snapshot_tests();
     let has_only_flag = tests.iter().any(|t| t.only);

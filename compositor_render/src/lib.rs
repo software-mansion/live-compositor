@@ -19,7 +19,7 @@ pub use state::Renderer;
 pub use state::RendererOptions;
 pub use state::RendererSpec;
 
-pub use wgpu::use_global_wgpu_ctx;
+pub use wgpu::create_wgpu_ctx;
 pub use wgpu::WgpuFeatures;
 
 pub mod image {
