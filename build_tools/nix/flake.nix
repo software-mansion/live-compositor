@@ -65,7 +65,7 @@
         {
           devShells = {
             default = pkgs.mkShell {
-              packages = devDependencies;
+              packages = devDependencies ++ [ pkgs.mesa.drivers ];
 
               # Fixes "ffplay" used in examples on Linux (not needed on NixOS)
               env.LIBGL_DRIVERS_PATH = "${pkgs.mesa.drivers}/lib/dri";
