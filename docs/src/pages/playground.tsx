@@ -7,12 +7,12 @@ import PlaygroundRenderSettings from '../components/PlaygroundRenderSettings';
 import PlaygroundPreview from '../components/PlaygroundPreview';
 import PlaygroundCodeEditor from '../components/PlaygroundCodeEditor';
 import toast, { Toaster } from 'react-hot-toast';
-import { renderImage } from '../api';
+import { ApiError, renderImage } from '../api';
+import 'react-tooltip/dist/react-tooltip.css';
 
 const INITIAL_SCENE = {
   type: 'view',
 };
-const INITIAL_SCENE_STRING = JSON.stringify(INITIAL_SCENE, null, 2);
 
 function Homepage() {
   const [scene, setScene] = useState<object | Error>(INITIAL_SCENE);
@@ -36,8 +36,14 @@ function Homepage() {
 
       setResponseData({ imageUrl: imageObjectURL, errorMessage: '' });
     } catch (error: any) {
-      setErrorMessage(error.message);
-      toast.error(`${error.message}`);
+      let errorDescription;
+      if (error instanceof ApiError && !error.response) {
+        errorDescription = 'Failed to connect to the server!';
+      } else {
+        errorDescription = error.message;
+      }
+      setErrorMessage(errorDescription);
+      toast.error(`${errorDescription}`);
     }
   };
 
@@ -45,10 +51,7 @@ function Homepage() {
     <div className={styles.page}>
       <div className={styles.leftSide}>
         <div className={styles.codeEditorBox}>
-          <PlaygroundCodeEditor
-            onChange={setScene}
-            initialCodeEditorContent={INITIAL_SCENE_STRING}
-          />
+          <PlaygroundCodeEditor onChange={setScene} initialCodeEditorContent={INITIAL_SCENE} />
         </div>
       </div>
       <div className={styles.rightSide}>
@@ -56,7 +59,10 @@ function Homepage() {
           <PlaygroundPreview {...responseData} />
         </div>
         <div className={styles.settingsBox}>
-          <PlaygroundRenderSettings onSubmit={handleSubmit} />
+          <PlaygroundRenderSettings
+            onSubmit={handleSubmit}
+            readyToSubmit={!(scene instanceof Error)}
+          />
         </div>
       </div>
     </div>
