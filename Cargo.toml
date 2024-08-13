@@ -89,6 +89,7 @@ rubato = { workspace = true }
 tokio = { workspace = true }
 axum = { version = "0.7.4", features = ["ws"] }
 futures-util = { workspace = true }
+wgpu = { workspace = true }
 
 [[bin]]
 name = "process_helper"

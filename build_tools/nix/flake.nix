@@ -11,18 +11,7 @@
       perSystem = { config, self', inputs', pkgs, system, lib, ... }:
         let
           packageWithoutChromium = (pkgs.callPackage ./package.nix { });
-          ffmpeg =
-            (if pkgs.stdenv.isDarwin then
-              (pkgs.ffmpeg_6-full.override {
-                x264 = pkgs.x264.overrideAttrs (old: {
-                  postPatch = old.postPatch + ''
-                    substituteInPlace Makefile --replace '$(if $(STRIP), $(STRIP) -x $@)' '$(if $(STRIP), $(STRIP) -S $@)'
-                  '';
-                });
-              })
-            else
-              pkgs.ffmpeg_6-full
-            );
+
           # https://github.com/NixOS/nixpkgs/blob/master/pkgs/development/libraries/libcef/default.nix#L33
           libcefDependencies = with pkgs;  [
             glib
@@ -54,7 +43,7 @@
             ]
           );
           devDependencies = with pkgs; [
-            ffmpeg # to add ffplay
+            ffmpeg_7-full
 
             gst_all_1.gstreamer
             gst_all_1.gst-plugins-base
@@ -70,20 +59,27 @@
             cargo-nextest
             rust-analyzer
             clang-tools
-            mesa.drivers
             blackmagic-desktop-video
           ];
         in
         {
           devShells = {
             default = pkgs.mkShell {
-              packages = devDependencies;
+              packages = devDependencies ++ [ pkgs.mesa.drivers ];
 
               # Fixes "ffplay" used in examples on Linux (not needed on NixOS)
               env.LIBGL_DRIVERS_PATH = "${pkgs.mesa.drivers}/lib/dri";
 
               env.LIBCLANG_PATH = "${pkgs.llvmPackages_16.libclang.lib}/lib";
               env.LD_LIBRARY_PATH = lib.makeLibraryPath (libcefDependencies ++ [ pkgs.mesa.drivers pkgs.libGL pkgs.blackmagic-desktop-video ]);
+
+              inputsFrom = [ packageWithoutChromium ];
+            };
+            nixos = pkgs.mkShell {
+              packages = devDependencies;
+
+              env.LIBCLANG_PATH = "${pkgs.llvmPackages_16.libclang.lib}/lib";
+              env.LD_LIBRARY_PATH = lib.makeLibraryPath (libcefDependencies ++ [ pkgs.blackmagic-desktop-video ]);
 
               inputsFrom = [ packageWithoutChromium ];
             };
