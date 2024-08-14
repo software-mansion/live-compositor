@@ -3,14 +3,15 @@ import Layout from '@theme/Layout';
 
 import { useState } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
-import { renderImage } from '../api';
+import 'react-tooltip/dist/react-tooltip.css';
+import { ApiError, renderImage } from '../api';
 import PlaygroundCodeEditor from '../components/PlaygroundCodeEditor';
 import PlaygroundPreview from '../components/PlaygroundPreview';
 import PlaygroundSettings from '../components/PlaygroundSettings';
 import {
-  InputResolutionNames,
-  inputResolutionNamesToResolutions,
-  ResolutionName,
+    InputResolutionNames,
+    inputResolutionNamesToResolutions,
+    ResolutionName,
 } from '../resolution';
 import styles from './playground.module.css';
 
@@ -107,8 +108,14 @@ function Homepage() {
 
       setResponseData({ imageUrl: imageObjectURL, errorMessage: '' });
     } catch (error: any) {
-      setErrorMessage(error.message);
-      toast.error(`${error.message}`);
+      let errorDescription;
+      if (error instanceof ApiError && !error.response) {
+        errorDescription = 'Failed to connect to the server!';
+      } else {
+        errorDescription = error.message;
+      }
+      setErrorMessage(errorDescription);
+      toast.error(`${errorDescription}`);
     }
   };
 
@@ -116,10 +123,7 @@ function Homepage() {
     <div className={styles.page}>
       <div className={styles.leftSide}>
         <div className={styles.codeEditorBox}>
-          <PlaygroundCodeEditor
-            onChange={setScene}
-            initialCodeEditorContent={INITIAL_SCENE_STRING}
-          />
+          <PlaygroundCodeEditor onChange={setScene} initialCodeEditorContent={INITIAL_SCENE} />
         </div>
       </div>
       <div className={styles.rightSide}>
@@ -129,6 +133,7 @@ function Homepage() {
         <div className={styles.settingsBox}>
           <PlaygroundSettings
             onSubmit={handleSubmit}
+            readyToSubmit={!(scene instanceof Error)}
             onChange={updateInputResolutions}
             inputResolutions={inputResolutions}
           />
