@@ -16,13 +16,8 @@ const sidebars: SidebarsConfig = {
       items: [
         {
           type: 'doc',
-          id: 'guides/simple-scene',
-          label: 'Simple scene',
-        },
-        {
-          type: 'doc',
-          id: 'guides/audio-mixing',
-          label: 'Audio mixing',
+          id: 'guides/quick-start',
+          label: 'Quick start',
         },
         {
           type: 'doc',
@@ -36,7 +31,12 @@ const sidebars: SidebarsConfig = {
         },
         {
           type: 'doc',
-          id: 'guides/view-transition',
+          id: 'guides/layouts',
+          label: 'Layout',
+        },
+        {
+          type: 'doc',
+          id: 'guides/transitions',
           label: 'Transitions (View/Rescaler)',
         },
       ],

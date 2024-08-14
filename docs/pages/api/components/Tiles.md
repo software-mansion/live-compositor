@@ -4,7 +4,7 @@ hide_table_of_contents: true
 ---
 import Docs from "@site/pages/api/generated/component-Tiles.md"
 import AbsolutePositionDefinition from "@site/pages/common/absolute-position.md"
-import TilesExample from "./tile_transition.webp"
+import TilesExample from "./assets/tile_transitions.webp"
 
 # Tiles
 
