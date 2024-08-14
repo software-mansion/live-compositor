@@ -45,11 +45,13 @@ function InputResolutionSelect({
   selectedValue,
   handleChange,
 }: InputResolutionSelectProps) {
+  const tooltipJson = { type: 'input_stream', input_id: inputName };
+
   return (
     <div className={styles.inputSelector}>
-      <label id={`${inputName}_tooltip`} className={styles.inputSelectorLabel}>
-        {inputName}
-      </label>
+      <div className={styles.inputSelectorLabelContainer}>
+        <code id={`${inputName}_tooltip`}>{inputName}</code>
+      </div>
       <div className={styles.inputSelectorSelectContainer}>
         <select
           onChange={handleChange}
@@ -70,9 +72,19 @@ function InputResolutionSelect({
           className={styles.inputSelectorImg}
         />
       </div>
-      <Tooltip anchorSelect={`#${inputName}_tooltip`} className={styles.a}>
-        <div style={{ maxWidth: '89vw' }}>
-          {`To use this input insert ${inputName} as "input_id" in "input_stream" type`}
+      <Tooltip
+        anchorSelect={`#${inputName}_tooltip`}
+        className={styles.tooltip}
+        clickable={true}
+        delayShow={128}>
+        <div style={{ maxWidth: '88vw' }}>
+          {`Add `}
+          <code
+            className={styles.tooltipCode}
+            onClick={() => navigator.clipboard.writeText(JSON.stringify(tooltipJson))}>
+            {JSON.stringify(tooltipJson)}
+          </code>
+          {` to use this input.`}
         </div>
       </Tooltip>
     </div>

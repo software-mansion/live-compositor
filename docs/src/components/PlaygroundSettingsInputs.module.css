@@ -1,7 +1,3 @@
-:root {
-
-}
-
 .container {
     display: flex;
     flex-wrap: nowrap;
@@ -13,7 +9,7 @@
     display: flex;
     margin-bottom: 6px;
     font-size: 1.4rem;
-    /* border: 1px solid red; */
+    padding: 0 10px 0 10px;
 }
 
 .headerInputLabel {
@@ -25,14 +21,13 @@
 .headerResolutionLabel {
     flex: 0 0 40%;
     max-width: 40%;
-    width: 11rem;
+    width: 12rem;
 }
 
 .headerPreviewLabel {
     flex: 0 0 30%;
     max-width: 30%;
     padding-left: 10px;
-    /* border: 1px solid green; */
 }
 
 
@@ -41,31 +36,31 @@
     align-items: center;
     display: flex;
     border-width: 1px 0 0 0;
-    border-color: #706c6c;
+    border-color: var(--ifm-color-emphasis-300);
     border-style: solid;
     margin-top: 4px;
-    padding-top: 4px;
-    /* border: 1px solid red; */
+    padding: 4px 10px 0 10px;
 }
 
-.inputSelectorLabel {
+.inputSelectorLabelContainer {
     flex: 0 0 30%;
     max-width: 30%;
     padding-right: 10px;
-    /* border: 1px solid yellow; */
+    height: 100%;
+    display: flex;
+    align-items: center;
 }
 
 .inputSelectorSelectContainer {
     flex: 0 0 40%;
     max-width: 40%;
-    width: 11rem;
+    width: 12rem;
     display: flex;
     align-items: center;
-    /* border: 1px solid magenta; */
 }
 
 .inputSelectorSelect {
-    background-color: #444950;
+    background-color: var(--ifm-color-emphasis-200);
     border-radius: 4px;
     padding: 1px 4px 2px 4px;
     width: 80%;
@@ -78,7 +73,6 @@
     display: flex;
     justify-content: center;
     padding-left: 10px;
-    /* border: 1px solid green; */
 }
 
 .inputSelectorImg {
@@ -95,7 +89,20 @@
     }
 }
 
-.a {
-  color: #222 !important;
-  background-color: #f5f6f7 !important;
+.tooltip {
+  color: var(--ifm-font-color-base-inverse) !important;
+  background-color: var(--ifm-color-emphasis-700) !important;
+  opacity: 1 !important;
 }
+.tooltip:hover {
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+.tooltipCode {
+    color: var(--ifm-font-color-base-inverse) !important;
+    background-color: var(--ifm-color-emphasis-600) !important;
+    cursor: copy !important;
+}
+
+

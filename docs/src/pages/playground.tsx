@@ -9,9 +9,9 @@ import PlaygroundCodeEditor from '../components/PlaygroundCodeEditor';
 import PlaygroundPreview from '../components/PlaygroundPreview';
 import PlaygroundSettings from '../components/PlaygroundSettings';
 import {
-    InputResolutionNames,
-    inputResolutionNamesToResolutions,
-    ResolutionName,
+  InputResolutionNames,
+  inputResolutionNamesToResolutions,
+  ResolutionName,
 } from '../resolution';
 import styles from './playground.module.css';
 
@@ -65,8 +65,6 @@ const INITIAL_SCENE = {
     },
   ],
 };
-
-const INITIAL_SCENE_STRING = JSON.stringify(INITIAL_SCENE, null, 2);
 
 function Homepage() {
   const [scene, setScene] = useState<object | Error>(INITIAL_SCENE);
