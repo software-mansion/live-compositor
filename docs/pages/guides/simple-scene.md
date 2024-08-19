@@ -1,10 +1,10 @@
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
-import SimpleSceneEmpty from "./simple_scene_1.webp"
-import SimpleSceneOverflow from "./simple_scene_2.webp"
-import SimpleSceneFitted from "./simple_scene_3.webp"
-import SimpleSceneBothInputs from "./simple_scene_4.webp"
-import SimpleSceneAbsolutePosition from "./simple_scene_5.webp"
+import SimpleSceneEmpty from "./assets/simple_scene_1.webp"
+import SimpleSceneOverflow from "./assets/simple_scene_2.webp"
+import SimpleSceneFitted from "./assets/simple_scene_3.webp"
+import SimpleSceneBothInputs from "./assets/simple_scene_4.webp"
+import SimpleSceneAbsolutePosition from "./assets/simple_scene_5.webp"
 
 # Simple scene
 

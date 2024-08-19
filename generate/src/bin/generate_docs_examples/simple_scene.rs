@@ -148,7 +148,7 @@ pub(super) fn generate_scene(filename: &str, scene: serde_json::Value) -> Result
         }),
     )?;
 
-    let path = pages_dir().join("guides").join(filename);
+    let path = pages_dir().join("guides").join("assets").join(filename);
     let gst_thread = thread::Builder::new().name("gst sink".to_string()).spawn(move  ||{
         let gst_cmd = format!(
             "gst-launch-1.0 -v tcpclientsrc host=127.0.0.1 port={} ! \"application/x-rtp-stream\" ! rtpstreamdepay ! rtph264depay ! video/x-h264,framerate=30/1 ! h264parse ! h264timestamper ! decodebin ! webpenc animated=true speed=6 quality=50 ! filesink location={}",

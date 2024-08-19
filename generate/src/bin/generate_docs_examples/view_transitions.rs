@@ -8,7 +8,7 @@ use crate::{pages_dir, workingdir};
 
 pub(super) fn generate_view_transition_guide() -> Result<()> {
     generate_scene(
-        "view_transtion_1.webp",
+        "view_transition_1.webp",
         json!({
             "type": "view",
             "background_color_rgba": "#4d4d4dff",
@@ -39,7 +39,7 @@ pub(super) fn generate_view_transition_guide() -> Result<()> {
     )?;
 
     generate_scene(
-        "view_transtion_2.webp",
+        "view_transition_2.webp",
         json!({
             "type": "view",
             "background_color_rgba": "#4d4d4dff",
@@ -79,7 +79,7 @@ pub(super) fn generate_view_transition_guide() -> Result<()> {
     )?;
 
     generate_scene(
-        "view_transtion_3.webp",
+        "view_transition_3.webp",
         json!({
             "type": "view",
             "background_color_rgba": "#4d4d4dff",
@@ -110,7 +110,7 @@ pub(super) fn generate_view_transition_guide() -> Result<()> {
     )?;
 
     generate_scene(
-        "view_transtion_4.webp",
+        "view_transition_4.webp",
         json!({
             "type": "view",
             "background_color_rgba": "#4d4d4dff",
@@ -311,7 +311,7 @@ pub(super) fn generate_scene(
         }),
     )?;
 
-    let path = pages_dir().join("guides").join(filename);
+    let path = pages_dir().join("guides").join("assets").join(filename);
     let gst_thread = thread::Builder::new().name("gst sink".to_string()).spawn(move  ||{
         let gst_cmd = format!(
             "gst-launch-1.0 -v tcpclientsrc host=127.0.0.1 port={} ! \"application/x-rtp-stream\" ! rtpstreamdepay ! rtph264depay ! video/x-h264,framerate=30/1 ! h264parse ! h264timestamper ! decodebin ! webpenc animated=true speed=6 quality=50 ! filesink location={}",
