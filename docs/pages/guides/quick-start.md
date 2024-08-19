@@ -1,7 +1,7 @@
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
-import QuickStartEmpty from "./assets/layouts_1.webp"
-import QuickStartBothInputs from "./assets/layouts_4.webp"
+import QuickStartEmpty from "./assets/quick_start_1.webp"
+import QuickStartBothInputs from "./assets/quick_start_2.webp"
 
 # Quick start
 
@@ -170,6 +170,7 @@ Configure it to:
       }
     }
     ```
+    You can configure output framerate and sample rate using [`LIVE_COMPOSITOR_OUTPUT_FRAMERATE`](../deployment/configuration.md#live_compositor_output_framerate) and [`LIVE_COMPOSITOR_OUTPUT_SAMPLE_RATE`](../deployment/configuration.md#live_compositor_output_sample_rate) environmental variables.
 
     After receiving the response you can establish the connection and start listening for the stream. Check out [how to receive output streams](./receive-output.md) to learn more.
 
@@ -212,6 +213,8 @@ Configure it to:
     end
     ```
     where `video_output_1_spec` and `audio_output_1_spec` are elements that can consume H264 video and Opus audio respectively.
+
+    You can configure output framerate and sample rate using [`framerate` and `output_sample_rate` bin options](https://hexdocs.pm/membrane_live_compositor_plugin/Membrane.LiveCompositor.html#module-bin-options).
   </TabItem>
 </Tabs>
 
@@ -227,7 +230,7 @@ Configure it to:
 ## Update output
 
 Configure it to:
-- show `input_1` and `input_2` [`InputSteams`](../api/components/InputStream.md) side by side using [`Tiles`](../api/components/Tiles.md) component
+- show `input_1` and `input_2` [`InputSteams`](../api/components/InputStream.md) using [`Tiles`](../api/components/Tiles.md) component
 - mix slightly silenced audio from `input_1` and audio from `input_2`
 
 <Tabs queryString="lang">
