@@ -28,7 +28,7 @@ This guide will explain basic LiveCompositor setup.
         ...
 
         child(:live_compositor, %LiveCompositor{
-          framerate: {30, 1},
+          framerate: {30, 1}
         }),
 
         ...
@@ -195,9 +195,10 @@ Configure it to:
               type: :view,
               background_color_rgba: "#4d4d4dff",
             },
-          },
+          }
         ])
         |> video_output_1_spec,
+        
         get_child(:live_compositor)
         |> via_out(Pad.ref(:audio_output, "audio_output_1"), options: [
           encoder: LiveCompositor.Encoder.Opus.t(),

@@ -38,7 +38,7 @@ Update output to render a [`View`](../api/components/View.md) component with an 
           "type": "view",
           "background_color_rgba": "#4d4d4dff",
           "children": [
-            { "type": "input_stream", "input_id": "input_1" },
+            { "type": "input_stream", "input_id": "input_1" }
           ]
         }
       }
@@ -89,7 +89,7 @@ Wrap an [`InputStream`](../api/components/InputStream.md) component with a [`Res
           "children": [
             {
               "type": "rescaler",
-              "child": { "type": "input_stream", "input_id": "input_1" },
+              "child": { "type": "input_stream", "input_id": "input_1" }
             }
           ]
         }
@@ -108,7 +108,7 @@ Wrap an [`InputStream`](../api/components/InputStream.md) component with a [`Res
           children: [
             %{
               type: :rescaler,
-              child: %{ type: :input_stream, input_id: :input_1 },
+              child: %{ type: :input_stream, input_id: :input_1 }
             }
           ]
         }
@@ -150,11 +150,11 @@ Add another [`InputStream`](../api/components/InputStream.md) wrapped with [`Res
           "children": [
             {
               "type": "rescaler",
-              "child": { "type": "input_stream", "input_id": "input_1" },
+              "child": { "type": "input_stream", "input_id": "input_1" }
             },
             {
               "type": "rescaler",
-              "child": { "type": "input_stream", "input_id": "input_2" },
+              "child": { "type": "input_stream", "input_id": "input_2" }
             }
           ]
         }
@@ -173,11 +173,11 @@ Add another [`InputStream`](../api/components/InputStream.md) wrapped with [`Res
           children: [
             %{
               type: :rescaler,
-              child: %{ type: :input_stream, input_id: :input_1 },
+              child: %{ type: :input_stream, input_id: :input_1 }
             },
             %{
               type: :rescaler,
-              child: %{ type: :input_stream, input_id: :input_2 },
+              child: %{ type: :input_stream, input_id: :input_2 }
             }
           ]
         }
@@ -218,7 +218,7 @@ Specify `width` and `height` of one of the `Rescaler` components and position it
           "children": [
             {
               "type": "rescaler",
-              "child": { "type": "input_stream", "input_id": "input_1" },
+              "child": { "type": "input_stream", "input_id": "input_1" }
             },
             {
               "type": "rescaler",
@@ -226,7 +226,7 @@ Specify `width` and `height` of one of the `Rescaler` components and position it
               "height": 180,
               "top": 20,
               "right": 20,
-              "child": { "type": "input_stream", "input_id": "input_2" },
+              "child": { "type": "input_stream", "input_id": "input_2" }
             }
           ]
         }
@@ -245,7 +245,7 @@ Specify `width` and `height` of one of the `Rescaler` components and position it
           children: [
             %{
               type: :rescaler,
-              child: %{ type: :input_stream, input_id: :input_1 },
+              child: %{ type: :input_stream, input_id: :input_1 }
             },
             %{
               type: :rescaler,
@@ -253,7 +253,7 @@ Specify `width` and `height` of one of the `Rescaler` components and position it
               height: 180,
               top: 20,
               right: 20,
-              child: %{ type: :input_stream, input_id: :input_2 },
+              child: %{ type: :input_stream, input_id: :input_2 }
             }
           ]
         }
