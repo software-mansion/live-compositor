@@ -6,7 +6,7 @@ import SimpleSceneFitted from "./assets/simple_scene_3.webp"
 import SimpleSceneBothInputs from "./assets/simple_scene_4.webp"
 import SimpleSceneAbsolutePosition from "./assets/simple_scene_5.webp"
 
-# Simple scene
+# Layouts
 
 This guide will explain how to create simple scene that is combining input streams in a simple layout into single output stream.
 

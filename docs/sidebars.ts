@@ -16,8 +16,8 @@ const sidebars: SidebarsConfig = {
       items: [
         {
           type: 'doc',
-          id: 'guides/simple-scene',
-          label: 'Simple scene',
+          id: 'guides/quick-start',
+          label: 'Quick start',
         },
         {
           type: 'doc',
@@ -28,6 +28,11 @@ const sidebars: SidebarsConfig = {
           type: 'doc',
           id: 'guides/receive-output',
           label: 'Receive output streams',
+        },
+        {
+          type: 'doc',
+          id: 'guides/layouts',
+          label: 'Layouts',
         },
         {
           type: 'doc',
