@@ -68,8 +68,12 @@ This guide will explain basic LiveCompositor setup.
       spec = [
         ...
 
-        input_1_spec
-        |> via_in(Pad.ref(:video_input, "input_1"))
+        video_input_1_spec
+        |> via_in(Pad.ref(:video_input, "video_input_1"))
+        |> get_child(:live_compositor),
+
+        audio_input_1_spec
+        |> via_in(Pad.ref(:audio_input, "audio_input_1"))
         |> get_child(:live_compositor),
 
         ...
@@ -77,7 +81,7 @@ This guide will explain basic LiveCompositor setup.
       {[spec: spec], %{}}
     end
     ```
-    where `input_1_spec` is an element that produces H264 video.
+    where `video_input_1_spec` and `audio_input_1_spec` are elements producing H264 video and Opus audio respectively.
   </TabItem>
 </Tabs>
 
@@ -109,8 +113,12 @@ This guide will explain basic LiveCompositor setup.
       spec = [
         ...
 
-        input_2_spec
-        |> via_in(Pad.ref(:video_input, "input_2"))
+        video_input_2_spec
+        |> via_in(Pad.ref(:video_input, "video_input_2"))
+        |> get_child(:live_compositor),
+
+        audio_input_2_spec
+        |> via_in(Pad.ref(:audio_input, "audio_input_2"))
         |> get_child(:live_compositor),
 
         ...
@@ -118,7 +126,7 @@ This guide will explain basic LiveCompositor setup.
       {[spec: spec], %{}}
     end
     ```
-    where `input_2_spec` is an element that produces H264 video.
+    where `video_input_2_spec` and `audio_input_2_spec` are elements that produce H264 video and Opus audio respectively.
   </TabItem>
 </Tabs>
 
