@@ -35,6 +35,7 @@ pub fn offline_processing() -> Result<()> {
         json!({
             "type": "mp4",
             "url": BUNNY_URL,
+            "offset_ms": 0,
             "required": true
         }),
     )?;
