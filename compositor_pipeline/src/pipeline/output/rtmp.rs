@@ -1,72 +1,65 @@
-use std::{path::PathBuf, ptr};
+use std::ptr;
 
 use compositor_render::{event_handler::emit_event, OutputId};
 use crossbeam_channel::Receiver;
 use ffmpeg_next as ffmpeg;
-use log::error;
-use tracing::debug;
+use tracing::{debug, error};
 
 use crate::{
     audio_mixer::AudioChannels,
     error::OutputInitError,
     event::Event,
-    pipeline::{EncodedChunk, EncodedChunkKind, EncoderOutputEvent, VideoCodec},
+    pipeline::{EncodedChunk, EncodedChunkKind, EncoderOutputEvent},
 };
 
 #[derive(Debug, Clone)]
-pub struct Mp4OutputOptions {
-    pub output_path: PathBuf,
-    pub video: Option<Mp4VideoTrack>,
-    pub audio: Option<Mp4AudioTrack>,
+pub struct RtmpSenderOptions {
+    pub url: String,
+    pub video: Option<RtmpVideoTrack>,
+    pub audio: Option<RtmpAudioTrack>,
 }
 
 #[derive(Debug, Clone)]
-pub struct Mp4VideoTrack {
-    pub codec: VideoCodec,
+pub struct RtmpVideoTrack {
     pub width: u32,
     pub height: u32,
 }
 
 #[derive(Debug, Clone)]
-pub struct Mp4AudioTrack {
+pub struct RtmpAudioTrack {
     pub channels: AudioChannels,
 }
 
-pub struct Mp4FileWriter;
+pub struct RmtpSender;
 
-impl Mp4FileWriter {
+impl RmtpSender {
     pub fn new(
-        output_id: OutputId,
-        options: Mp4OutputOptions,
+        output_id: &OutputId,
+        options: RtmpSenderOptions,
         packets_receiver: Receiver<EncoderOutputEvent>,
         sample_rate: u32,
     ) -> Result<Self, OutputInitError> {
-        if options.output_path.exists() {
-            return Err(OutputInitError::Mp4PathExist {
-                path: options.output_path.to_string_lossy().into_owned(),
-            });
-        }
-
         let (output_ctx, video_stream, audio_stream) = init_ffmpeg_output(options, sample_rate)?;
 
+        let output_id = output_id.clone();
         std::thread::Builder::new()
-            .name(format!("MP4 writer thread for output {}", output_id))
+            .name(format!("RTMP sender thread for output {}", output_id))
             .spawn(move || {
                 let _span =
-                    tracing::info_span!("MP4 writer", output_id = output_id.to_string()).entered();
+                    tracing::info_span!("RTMP sender  writer", output_id = output_id.to_string())
+                        .entered();
 
                 run_ffmpeg_output_thread(output_ctx, video_stream, audio_stream, packets_receiver);
                 emit_event(Event::OutputDone(output_id));
-                debug!("Closing MP4 writer thread.");
+                debug!("Closing RTMP sender thread.");
             })
             .unwrap();
-
-        Ok(Mp4FileWriter)
+        Ok(Self)
     }
 }
 
 fn init_ffmpeg_output(
-    options: Mp4OutputOptions,
+    options: RtmpSenderOptions,
     sample_rate: u32,
 ) -> Result<
     (
@@ -76,8 +69,8 @@ fn init_ffmpeg_output(
     ),
     OutputInitError,
 > {
-    let mut output_ctx = ffmpeg::format::output_as(&options.output_path, "mp4")
-        .map_err(OutputInitError::FfmpegMp4Error)?;
+    let mut output_ctx =
+        ffmpeg::format::output_as(&options.url, "flv").map_err(OutputInitError::FfmpegMp4Error)?;
 
     let mut stream_count = 0;
 
@@ -111,21 +104,20 @@ fn init_ffmpeg_output(
     let audio_stream = options
         .audio
         .map(|a| {
-            let codec = ffmpeg::codec::Id::AAC;
             let channels = match a.channels {
                 AudioChannels::Mono => 1,
                 AudioChannels::Stereo => 2,
             };
 
             let mut stream = output_ctx
-                .add_stream(codec)
+                .add_stream(ffmpeg::codec::Id::AAC)
                 .map_err(OutputInitError::FfmpegMp4Error)?;
 
             // If audio time base doesn't match sample rate, ffmpeg muxer produces incorrect timestamps.
             stream.set_time_base(ffmpeg::Rational::new(1, sample_rate as i32));
 
             let codecpar = unsafe { &mut *(*stream.as_mut_ptr()).codecpar };
-            codecpar.codec_id = codec.into();
+            codecpar.codec_id = ffmpeg::codec::Id::AAC.into();
             codecpar.codec_type = ffmpeg::ffi::AVMediaType::AVMEDIA_TYPE_AUDIO;
             codecpar.sample_rate = sample_rate as i32;
             codecpar.ch_layout = ffmpeg::ffi::AVChannelLayout {
@@ -190,7 +182,7 @@ fn run_ffmpeg_output_thread(
 
         if received_video_eos.unwrap_or(true) && received_audio_eos.unwrap_or(true) {
             if let Err(err) = output_ctx.write_trailer() {
-                error!("Failed to write trailer to mp4 file: {}.", err);
+                error!("Failed to write trailer to RTMP stream: {}.", err);
             };
             break;
         }
@@ -206,7 +198,7 @@ fn write_chunk(
     let packet = create_packet(chunk, video_stream, audio_stream);
     if let Some(packet) = packet {
         if let Err(err) = packet.write(output_ctx) {
-            error!("Failed to write packet to mp4 file: {}.", err);
+            error!("Failed to write packet to RTMP stream: {}.", err);
         }
     }
 }

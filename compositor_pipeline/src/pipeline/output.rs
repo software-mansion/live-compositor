@@ -3,6 +3,7 @@ use compositor_render::{
 };
 use crossbeam_channel::{bounded, Receiver, Sender};
 use mp4::{Mp4FileWriter, Mp4OutputOptions};
+use rtmp::RtmpSenderOptions;
 
 use crate::{audio_mixer::OutputSamples, error::RegisterOutputError, queue::PipelineEvent};
 
@@ -15,6 +16,7 @@ use super::{
 };
 
 pub mod mp4;
+pub mod rtmp;
 pub mod rtp;
 
 /// Options to configure public outputs that can be constructed via REST API
@@ -28,6 +30,7 @@ pub struct OutputOptions {
 #[derive(Debug, Clone)]
 pub enum OutputProtocolOptions {
     Rtp(RtpSenderOptions),
+    Rtmp(RtmpSenderOptions),
     Mp4(Mp4OutputOptions),
 }
 
@@ -62,6 +65,10 @@ pub struct RawAudioOptions;
 pub enum Output {
     Rtp {
         sender: RtpSender,
+        encoder: Encoder,
+    },
+    Rtmp {
+        sender: rtmp::RmtpSender,
         encoder: Encoder,
     },
     Mp4 {
@@ -107,6 +114,17 @@ impl OutputOptionsExt<Option<Port>> for OutputOptions {
                         .map_err(|e| RegisterOutputError::OutputError(output_id.clone(), e))?;
 
                 Ok((Output::Rtp { sender, encoder }, Some(port)))
+            }
+            OutputProtocolOptions::Rtmp(rtmp_options) => {
+                let sender = rtmp::RmtpSender::new(
+                    output_id,
+                    rtmp_options.clone(),
+                    packets,
+                    ctx.output_sample_rate,
+                )
+                .map_err(|e| RegisterOutputError::OutputError(output_id.clone(), e))?;
+
+                Ok((Output::Rtmp { sender, encoder }, None))
             }
             OutputProtocolOptions::Mp4(mp4_opt) => {
                 let writer = Mp4FileWriter::new(
@@ -179,6 +197,7 @@ impl Output {
     pub fn frame_sender(&self) -> Option<&Sender<PipelineEvent<Frame>>> {
         match &self {
             Output::Rtp { encoder, .. } => encoder.frame_sender(),
+            Output::Rtmp { encoder, .. } => encoder.frame_sender(),
             Output::Mp4 { encoder, .. } => encoder.frame_sender(),
             Output::EncodedData { encoder } => encoder.frame_sender(),
             Output::RawData { video, .. } => video.as_ref(),
@@ -188,6 +207,7 @@ impl Output {
     pub fn samples_batch_sender(&self) -> Option<&Sender<PipelineEvent<OutputSamples>>> {
         match &self {
             Output::Rtp { encoder, .. } => encoder.samples_batch_sender(),
+            Output::Rtmp { encoder, .. } => encoder.samples_batch_sender(),
             Output::Mp4 { encoder, .. } => encoder.samples_batch_sender(),
             Output::EncodedData { encoder } => encoder.samples_batch_sender(),
             Output::RawData { audio, .. } => audio.as_ref(),
@@ -197,6 +217,7 @@ impl Output {
     pub fn resolution(&self) -> Option<Resolution> {
         match &self {
             Output::Rtp { encoder, .. } => encoder.video.as_ref().map(|v| v.resolution()),
+            Output::Rtmp { encoder, .. } => encoder.video.as_ref().map(|v| v.resolution()),
             Output::Mp4 { encoder, .. } => encoder.video.as_ref().map(|v| v.resolution()),
             Output::EncodedData { encoder } => encoder.video.as_ref().map(|v| v.resolution()),
             Output::RawData { resolution, .. } => *resolution,
@@ -206,6 +227,7 @@ impl Output {
     pub fn request_keyframe(&self, output_id: OutputId) -> Result<(), RequestKeyframeError> {
         let encoder = match &self {
             Output::Rtp { encoder, .. } => encoder,
+            Output::Rtmp { encoder, .. } => encoder,
             Output::Mp4 { encoder, .. } => encoder,
             Output::EncodedData { encoder } => encoder,
             Output::RawData { .. } => return Err(RequestKeyframeError::RawOutput(output_id)),
@@ -223,6 +245,10 @@ impl Output {
     pub(super) fn output_frame_format(&self) -> Option<OutputFrameFormat> {
         match &self {
             Output::Rtp { encoder, .. } => encoder
+                .video
+                .as_ref()
+                .map(|_| OutputFrameFormat::PlanarYuv420Bytes),
+            Output::Rtmp { encoder, .. } => encoder
                 .video
                 .as_ref()
                 .map(|_| OutputFrameFormat::PlanarYuv420Bytes),
