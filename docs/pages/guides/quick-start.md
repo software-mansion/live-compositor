@@ -1,10 +1,7 @@
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
-import SimpleSceneEmpty from "./assets/simple_scene_1.webp"
-import SimpleSceneOverflow from "./assets/simple_scene_2.webp"
-import SimpleSceneFitted from "./assets/simple_scene_3.webp"
-import SimpleSceneBothInputs from "./assets/simple_scene_4.webp"
-import SimpleSceneAbsolutePosition from "./assets/simple_scene_5.webp"
+import QuickStartEmpty from "./assets/layouts_1.webp"
+import QuickStartBothInputs from "./assets/layouts_4.webp"
 
 # Quick start
 
@@ -214,7 +211,7 @@ Configure it to:
 `inputs` list is empty, so the output audio will be silent.
 
 <div style={{textAlign: 'center'}}>
-    <img src={SimpleSceneEmpty} style={{ width: 600 }} />
+    <img src={QuickStartEmpty} style={{ width: 600 }} />
     Output stream
 </div>
 
@@ -283,6 +280,6 @@ Configure it to:
 </Tabs>
 
 <div style={{textAlign: 'center'}}>
-    <img src={SimpleSceneBothInputs} style={{ width: 600 }} />
+    <img src={QuickStartBothInputs} style={{ width: 600 }} />
     Output stream
 </div>

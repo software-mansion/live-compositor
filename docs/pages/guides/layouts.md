@@ -1,201 +1,24 @@
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
-import SimpleSceneEmpty from "./assets/simple_scene_1.webp"
-import SimpleSceneOverflow from "./assets/simple_scene_2.webp"
-import SimpleSceneFitted from "./assets/simple_scene_3.webp"
-import SimpleSceneBothInputs from "./assets/simple_scene_4.webp"
-import SimpleSceneAbsolutePosition from "./assets/simple_scene_5.webp"
+import LayoutsEmpty from "./assets/layouts_1.webp"
+import LayoutsOverflow from "./assets/layouts_2.webp"
+import LayoutsFitted from "./assets/layouts_3.webp"
+import LayoutsBothInputs from "./assets/layouts_4.webp"
+import LayoutsAbsolutePosition from "./assets/layouts_5.webp"
 
 # Layouts
 
 This guide will explain how to create simple scene that is combining input streams in a simple layout into single output stream.
 
-## Configure inputs and output
+### Configure inputs and output
 
-### Start the compositor
+Start the compositor and configure 2 input streams and a single output stream as described in the "Simple scene"
+guide in the ["Configure inputs and output"](./quick-start.md#configure-inputs-and-output) section.
 
-<Tabs queryString="lang">
-  <TabItem value="http" label="HTTP">
-    Start the compositor server. Check out [configuration page](../deployment/configuration.md) for available configuration options.
-  </TabItem>
-  <TabItem value="membrane" label="Membrane Framework">
-    Following code snippets are implementing `handle_init/2` or `handle_setup/2` callbacks. Those
-    are just examples, you can use any [`Membrane.Pipeline` callbacks](https://hexdocs.pm/membrane_core/Membrane.Pipeline.html#callbacks)
-    instead.
-
-    ```elixir
-    alias Membrane.LiveCompositor
-
-    def handle_init(ctx, opts) do
-      spec = [
-        ...
-
-        child(:live_compositor, %LiveCompositor{
-          framerate: {30, 1},
-          server_setup: :start_locally,
-        }),
-
-        ...
-      ]
-      {[spec: spec], %{}}
-    end
-    ```
-  </TabItem>
-</Tabs>
-
-
-### Register input stream `input_1`.
-
-<Tabs queryString="lang">
-  <TabItem value="http" label="HTTP">
-    ```http
-    POST: /api/input/input_1/register
-    Content-Type: application/json
-
-    {
-      "type": "rtp_stream",
-      "transport_protocol": "tcp_server",
-      "port": 9001,
-      "video": {
-        "decoder": "ffmpeg_h264"
-      }
-    }
-    ```
-
-    After receiving the response you can establish the connection and start sending the stream. Check out [how to deliver input streams](./deliver-input.md) to learn more.
-
-    In this example we are using RTP over TCP, but it could be easily replaced by UDP.
-  </TabItem>
-  <TabItem value="membrane" label="Membrane Framework">
-    ```elixir
-    def handle_init(ctx, opts) do
-      spec = [
-        ...
-
-        input_1_spec
-        |> via_in(Pad.ref(:video_input, "input_1"))
-        |> get_child(:live_compositor),
-
-        ...
-      ]
-      {[spec: spec], %{}}
-    end
-    ```
-    where `input_1_spec` is an element that produces H264 video.
-  </TabItem>
-</Tabs>
-
-### Register input stream `input_2`.
-
-<Tabs queryString="lang">
-  <TabItem value="http" label="HTTP">
-    ```http
-    POST: /api/input/input_2/register
-    Content-Type: application/json
-
-    {
-      "type": "rtp_stream",
-      "transport_protocol": "tcp_server",
-      "port": 9002,
-      "video": {
-        "decoder": "ffmpeg_h264"
-      }
-    }
-    ```
-
-    After receiving the response you can establish the connection and start sending the stream. Check out [how to deliver input streams](./deliver-input.md) to learn more.
-
-    In this example we are using RTP over TCP, but it could be easily replaced by UDP.
-  </TabItem>
-  <TabItem value="membrane" label="Membrane Framework">
-    ```elixir
-    def handle_init(ctx, opts) do
-      spec = [
-        ...
-
-        input_2_spec
-        |> via_in(Pad.ref(:video_input, "input_2"))
-        |> get_child(:live_compositor),
-
-        ...
-      ]
-      {[spec: spec], %{}}
-    end
-    ```
-    where `input_2_spec` is an element that produces H264 video.
-  </TabItem>
-</Tabs>
-
-### Register output stream `output_1`.
-
-Configure it to render just an empty [`View`](../api/components/View.md) component with a background color set to `#4d4d4d` (gray).
-
-<Tabs queryString="lang">
-  <TabItem value="http" label="HTTP">
-    ```http
-    POST: /api/output/output_1/register
-    Content-Type: application/json
-
-    {
-      "type": "rtp_stream",
-      "transport_protocol": "tcp_server",
-      "port": 9003,
-      "video": {
-        "resolution": { "width": 1280, "height": 720 },
-        "encoder": {
-          "type": "ffmpeg_h264",
-          "preset": "ultrafast",
-          "initial": {
-            "root": {
-              "type": "view",
-              "background_color_rgba": "#4d4d4dff",
-            }
-          }
-        }
-      }
-    }
-    ```
-
-    After receiving the response you can establish the connection and start listening for the stream. Check out [how to receive output streams](./receive-output.md) to learn more.
-
-    In this example we are using RTP over TCP, if you prefer to use UDP you need start listening on the specified port before sending register request to make sure you are not losing
-    first frames.
-  </TabItem>
-  <TabItem value="membrane" label="Membrane Framework">
-    ```elixir
-    def handle_init(ctx, opts) do
-      spec = [
-        ...
-
-        get_child(:live_compositor),
-        |> via_out(Pad.ref(:video_output, "output_1"), options: [
-          width: 1280,
-          height: 720,
-          encoder: %LiveCompositor.Encoder.FFmpegH264{
-            preset: :ultrafast
-          },
-          initial: %{
-            root: %{
-              type: :view,
-              background_color_rgba: "#4d4d4dff",
-            },
-          },
-        ])
-        |> output_1_spec
-
-        ...
-      ]
-      {[spec: spec], %{}}
-    end
-    ```
-    where `output_1_spec` is an element that can consume H264 video.
-  </TabItem>
-</Tabs>
-
-`View` component does not have any children, so on the output you should see just a blank screen of a specified color as shown below.
+After configuration you should see the following output:
 
 <div style={{textAlign: 'center'}}>
-    <img src={SimpleSceneEmpty} style={{ width: 600 }} />
+    <img src={LayoutsEmpty} style={{ width: 600 }} />
     Output stream
 </div>
 
@@ -244,7 +67,7 @@ Update output to render a [`View`](../api/components/View.md) component with an 
 The input stream in the example has a resolution `1920x1080` and it is rendered on the `1270x720` output. As a result only part of the stream is visible.
 
 <div style={{textAlign: 'center'}}>
-    <img src={SimpleSceneOverflow} style={{ width: 600 }} />
+    <img src={LayoutsOverflow} style={{ width: 600 }} />
     Output stream
 </div>
 
@@ -299,7 +122,7 @@ Wrap an [`InputStream`](../api/components/InputStream.md) component with a [`Res
 Input stream now fully fits inside the output.
 
 <div style={{textAlign: 'center'}}>
-    <img src={SimpleSceneFitted} style={{ width: 600 }} />
+    <img src={LayoutsFitted} style={{ width: 600 }} />
     Output stream
 </div>
 
@@ -373,7 +196,7 @@ In an example below we can see that:
 - Each `Rescaler` component has a size `640x720` (half of `1280x720`), but it needs to fit an input stream with `16:9` aspect ratio.
 
 <div style={{textAlign: 'center'}}>
-    <img src={SimpleSceneBothInputs} style={{ width: 600 }} />
+    <img src={LayoutsBothInputs} style={{ width: 600 }} />
     Output stream
 </div>
 
@@ -449,6 +272,6 @@ As a result:
 - The second component takes the specified size, and it is positioned in the top-right corner (20px from border).
 
 <div style={{textAlign: 'center'}}>
-    <img src={SimpleSceneAbsolutePosition} style={{ width: 600 }} />
+    <img src={LayoutsAbsolutePosition} style={{ width: 600 }} />
     Output stream
 </div>

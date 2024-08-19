@@ -6,16 +6,16 @@ use serde_json::json;
 
 use crate::{pages_dir, workingdir};
 
-pub(super) fn generate_simple_scene_guide() -> Result<()> {
+pub(super) fn generate_layouts_guide() -> Result<()> {
     generate_scene(
-        "simple_scene_1.webp",
+        "layouts_1.webp",
         json!({
             "type": "view",
             "background_color_rgba": "#4d4d4dff",
         }),
     )?;
     generate_scene(
-        "simple_scene_2.webp",
+        "layouts_2.webp",
         json!({
             "type": "view",
             "background_color_rgba": "#4d4d4dff",
@@ -25,7 +25,7 @@ pub(super) fn generate_simple_scene_guide() -> Result<()> {
         }),
     )?;
     generate_scene(
-        "simple_scene_3.webp",
+        "layouts_3.webp",
         json!({
             "type": "view",
             "background_color_rgba": "#4d4d4dff",
@@ -38,7 +38,7 @@ pub(super) fn generate_simple_scene_guide() -> Result<()> {
         }),
     )?;
     generate_scene(
-        "simple_scene_4.webp",
+        "layouts_4.webp",
         json!({
             "type": "view",
             "background_color_rgba": "#4d4d4dff",
@@ -55,7 +55,7 @@ pub(super) fn generate_simple_scene_guide() -> Result<()> {
         }),
     )?;
     generate_scene(
-        "simple_scene_5.webp",
+        "layouts_5.webp",
         json!({
             "type": "view",
             "background_color_rgba": "#4d4d4dff",
