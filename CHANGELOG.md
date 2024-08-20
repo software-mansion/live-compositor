@@ -4,6 +4,14 @@
 
 ### 💥 Breaking changes
 
+### ✨ New features
+
+### 🐛 Bug fixes
+
+## [v0.3.0](https://github.com/software-mansion/live-compositor/releases/tag/v0.3.0)
+
+### 💥 Breaking changes
+
 - Remove `forward_error_correction` option from RTP OPUS output. ([#615](https://github.com/software-mansion/live-compositor/pull/615) by [@wkozyra95](https://github.com/wkozyra95))
 
 ### ✨ New features
