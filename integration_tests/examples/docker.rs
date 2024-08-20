@@ -4,10 +4,17 @@ use live_compositor::config::read_config;
 use log::{error, info, warn};
 use serde_json::json;
 use signal_hook::{consts, iterator::Signals};
-use std::{env, process::Command, thread, time::Duration};
+use std::{
+    env,
+    path::{Path, PathBuf},
+    process::Command,
+    thread,
+    time::Duration,
+};
+use tracing_subscriber::util::SubscriberInitExt;
 
 use integration_tests::{
-    examples::{self, start_server_msg_listener, TestSample},
+    examples::{self, examples_root_dir, start_server_msg_listener, TestSample},
     ffmpeg::{start_ffmpeg_receive, start_ffmpeg_send},
 };
 const VIDEO_RESOLUTION: Resolution = Resolution {
@@ -24,6 +31,7 @@ const DOCKER_FILE_PATH: &str = concat!(
 );
 
 fn main() {
+    tracing_subscriber::fmt().init();
     let Ok(host_ip) = env::var("DOCKER_HOST_IP") else {
         if cfg!(target_os = "macos") {
             error!(
@@ -63,6 +71,7 @@ fn build_and_start_docker(skip_build: bool) -> Result<()> {
                 "video-compositor",
                 ".",
             ])
+            .current_dir(examples_root_dir().parent().unwrap())
             .spawn()?;
         let exit_code = process.wait()?;
         if Some(0) != exit_code.code() {

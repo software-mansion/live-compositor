@@ -1491,6 +1491,7 @@ dependencies = [
  "tokio",
  "tokio-tungstenite",
  "tracing",
+ "tracing-subscriber",
  "webrtc-util",
  "wgpu",
 ]

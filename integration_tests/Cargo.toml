@@ -34,6 +34,7 @@ rtcp = { workspace = true }
 webrtc-util = { workspace = true }
 crossbeam-channel = { workspace = true }
 tracing = { workspace = true }
+tracing-subscriber = { version = "0.3.18", features = ["json", "env-filter"] }
 opus = { workspace = true }
 pitch-detection = "0.3.0"
 rand = { workspace = true }
