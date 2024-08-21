@@ -5,13 +5,13 @@ import LiveCompositorComponent, {
   sceneComponentIntoApi,
 } from '../component';
 
-type WebViewProps = {
+export type WebViewProps = {
   /**
    * Id of a component.
    */
   id?: Api.ComponentId | null;
   /**
-   * Id of a web renderer instance. It identifies an instance registered using a [`register web renderer`](../routes.md#register-web-renderer-instance) request.
+   * Id of a web renderer instance. It identifies an instance registered using `LiveCompositor.registerWebRenderer`.
    *
    * You can only refer to specific instances in one Component at a time.
    */

@@ -7,7 +7,7 @@ import LiveCompositorComponent, {
   sceneComponentIntoApi,
 } from '../component';
 
-type RescalerProps = {
+export type RescalerProps = {
   children: React.ReactElement | string | number;
 
   /**

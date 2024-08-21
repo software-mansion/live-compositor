@@ -1,7 +1,7 @@
 import * as Api from '../api';
 import LiveCompositorComponent, { SceneBuilder, SceneComponent } from '../component';
 
-type InputStreamProps = {
+export type InputStreamProps = {
   children?: undefined;
 
   /**
@@ -9,7 +9,7 @@ type InputStreamProps = {
    */
   id?: Api.ComponentId;
   /**
-   * Id of an input. It identifies a stream registered using a [`RegisterInputStream`](../routes.md#register-input) request.
+   * Id of an input. It identifies a stream registered using a `LiveCompositor.registerInput`.
    */
   inputId: Api.InputId;
 };

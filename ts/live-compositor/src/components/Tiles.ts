@@ -6,7 +6,7 @@ import LiveCompositorComponent, {
   sceneComponentIntoApi,
 } from '../component';
 
-type TilesProps = {
+export type TilesProps = {
   /**
    * Id of a component.
    */

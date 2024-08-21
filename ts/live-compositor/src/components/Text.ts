@@ -1,7 +1,7 @@
 import * as Api from '../api';
 import LiveCompositorComponent, { SceneBuilder, SceneComponent } from '../component';
 
-type TextProps = {
+export type TextProps = {
   children?: (string | number)[] | string | number;
 
   /**

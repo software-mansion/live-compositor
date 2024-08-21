@@ -1,7 +1,7 @@
 import * as Api from '../api';
 import LiveCompositorComponent, { SceneBuilder, SceneComponent } from '../component';
 
-type ImageProps = {
+export type ImageProps = {
   children?: undefined;
 
   /**
@@ -9,7 +9,7 @@ type ImageProps = {
    */
   id?: Api.ComponentId | null;
   /**
-   * Id of an image. It identifies an image registered using a [`register image`](../routes.md#register-image) request.
+   * Id of an image. It identifies an image registered using `LiveCompositor.registerImage`.
    */
   imageId: Api.RendererId;
 };
