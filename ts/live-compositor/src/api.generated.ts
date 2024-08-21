@@ -61,6 +61,44 @@ export type RegisterInput =
        * not defined then stream is synchronized based on the first frames delivery time.
        */
       offset_ms?: number | null;
+    }
+  | {
+      type: "decklink";
+      /**
+       * Single DeckLink device can consist of multiple sub-devices. This field defines
+       * index of sub-device that should be used.
+       *
+       * The input device is selected based on fields `subdevice_index`, `persistent_id` **AND** `display_name`.
+       * All of them need to match the device if they are specified. If nothing is matched, the error response
+       * will list available devices.
+       */
+      subdevice_index?: number | null;
+      /**
+       * Select sub-device to use based on the display name. This is the value you see in e.g.
+       * Blackmagic Media Express app. like "DeckLink Quad HDMI Recorder (3)"
+       *
+       * The input device is selected based on fields `subdevice_index`, `persistent_id` **AND** `display_name`.
+       * All of them need to match the device if they are specified. If nothing is matched, the error response
+       * will list available devices.
+       */
+      display_name?: string | null;
+      /**
+       * Persistent ID of a device represented by 32-bit hex number. Each DeckLink sub-device has a separate id.
+       *
+       * The input device is selected based on fields `subdevice_index`, `persistent_id` **AND** `display_name`.
+       * All of them need to match the device if they are specified. If nothing is matched, the error response
+       * will list available devices.
+       */
+      persistent_id?: string | null;
+      /**
+       * (**default=`true`**) Enable audio support.
+       */
+      enable_audio?: boolean | null;
+      /**
+       * (**default=`false`**) If input is required and frames are not processed
+       * on time, then LiveCompositor will delay producing output frames.
+       */
+      required?: boolean | null;
     };
 export type PortOrPortRange = string | number;
 export type TransportProtocol = "udp" | "tcp_server";
@@ -563,7 +601,7 @@ export type ShaderParamStructField1 =
     }
   | {
       type: "struct";
-      value: ShaderParamStructField1[];
+      value: ShaderParamStructField[];
       field_name?: string;
     };
 export type TextStyle = "normal" | "italic" | "oblique";
@@ -593,12 +631,6 @@ export type AudioEncoderOptions = {
    * (**default="voip"**) Specifies preset for audio output encoder.
    */
   preset?: OpusEncoderPreset | null;
-  /**
-   * (**default=`false`**) Specifies whether the stream use forward error correction.
-   * It's specific for Opus codec.
-   * For more information, check out [RFC](https://datatracker.ietf.org/doc/html/rfc6716#section-2.1.7).
-   */
-  forward_error_correction?: boolean | null;
 };
 export type AudioChannels = "mono" | "stereo";
 export type OpusEncoderPreset = "quality" | "voip" | "lowest_latency";
