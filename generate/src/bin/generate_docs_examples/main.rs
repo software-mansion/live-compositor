@@ -1,18 +1,18 @@
 use std::path::PathBuf;
 
-use layouts::generate_layouts_guide;
+use basic_layouts::generate_basic_layouts_guide;
 use quick_start::generate_quick_start_guide;
 use transition::generate_tile_transition_video;
 use view_transitions::generate_view_transition_guide;
 
-mod layouts;
+mod basic_layouts;
 mod quick_start;
 mod transition;
 mod view_transitions;
 
 fn main() {
     generate_quick_start_guide().unwrap();
-    generate_layouts_guide().unwrap();
+    generate_basic_layouts_guide().unwrap();
     generate_tile_transition_video().unwrap();
     generate_view_transition_guide().unwrap();
 }

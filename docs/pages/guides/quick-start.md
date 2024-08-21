@@ -244,6 +244,7 @@ Configure it to:
       "video": {
         "root": {
           "type": "tiles",
+          "background_color_rgba": "#4d4d4dff",
           "children": [
             { "type": "input_stream", "input_id": "input_1" },
             { "type": "input_stream", "input_id": "input_2" }

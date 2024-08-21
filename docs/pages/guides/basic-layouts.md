@@ -1,10 +1,10 @@
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
-import LayoutsEmpty from "./assets/layouts_1.webp"
-import LayoutsOverflow from "./assets/layouts_2.webp"
-import LayoutsFitted from "./assets/layouts_3.webp"
-import LayoutsBothInputs from "./assets/layouts_4.webp"
-import LayoutsAbsolutePosition from "./assets/layouts_5.webp"
+import LayoutsEmpty from "./assets/basic_layouts_1.webp"
+import LayoutsOverflow from "./assets/basic_layouts_2.webp"
+import LayoutsFitted from "./assets/basic_layouts_3.webp"
+import LayoutsBothInputs from "./assets/basic_layouts_4.webp"
+import LayoutsAbsolutePosition from "./assets/basic_layouts_5.webp"
 
 # Basic Layouts
 
