@@ -1,4 +1,4 @@
-import { languages } from './reactEditor';
+import { languages } from './monacoEditor';
 
 export function tsCompilerOptions() {
   return {

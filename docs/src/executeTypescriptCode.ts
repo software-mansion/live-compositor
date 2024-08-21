@@ -5,12 +5,6 @@ import type { TraverseOptions } from '@babel/traverse';
 import type TemplateGenerator from '@babel/template';
 import { tsCompilerOptions } from './monacoEditorConfig';
 
-function tsToJs(code: string): string {
-  return transpileModule(code, {
-    compilerOptions: tsCompilerOptions(),
-  }).outputText;
-}
-
 const template = (Babel as unknown as { packages: { template: typeof TemplateGenerator } }).packages
   .template;
 
@@ -55,7 +49,6 @@ const MAX_ITERATIONS = 2000;
 /**
  * from https://github.com/facebook/react/blob/d906de7f602df810c38aa622c83023228b047db6/scripts/babel/transform-prevent-infinite-loops.js
  */
-// biome-ignore lint/suspicious/noExplicitAny:
 const preventInfiniteLoops = ({ types: t, template }: any) => {
   const buildGuard = template(`
     if (ITERATOR++ > MAX_ITERATIONS) {
@@ -69,7 +62,6 @@ const preventInfiniteLoops = ({ types: t, template }: any) => {
 
   return {
     visitor: {
-      // biome-ignore lint/suspicious/noExplicitAny:
       'WhileStatement|ForStatement|DoWhileStatement': (path: any) => {
         const iterator = path.scope.parent.generateUidIdentifier('loopIt');
         const iteratorInit = t.numericLiteral(0);
@@ -93,7 +85,7 @@ const preventInfiniteLoops = ({ types: t, template }: any) => {
   };
 };
 
-export default async function playgroundReactRunner(code: string) {
+export default async function executeTypescriptCode(code: string) {
   try {
     const _import = async (moduleKey: string) => {
       if (moduleKey === 'react') {
@@ -104,7 +96,9 @@ export default async function playgroundReactRunner(code: string) {
       }
       throw new Error(`Module ${moduleKey} is not available in the sandbox.`);
     };
-    const jsCode = tsToJs(code);
+    const jsCode = transpileModule(code, {
+      compilerOptions: tsCompilerOptions(),
+    }).outputText;
 
     const transformedCode =
       Babel.transform(jsCode, {

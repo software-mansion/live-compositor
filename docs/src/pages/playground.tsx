@@ -10,7 +10,7 @@ import toast, { Toaster } from 'react-hot-toast';
 import { ApiError, renderImage } from '../api';
 import 'react-tooltip/dist/react-tooltip.css';
 import PlaygroundReactEditor from '../components/PlaygroundReactEditor';
-import playgroundReactRunner from '../playgroundReactRunner';
+import executeTypescriptCode from '../executeTypescriptCode';
 
 const INITIAL_SCENE = {
   type: 'view',
@@ -50,7 +50,7 @@ function Homepage() {
   const handleSubmit = async (): Promise<void> => {
     try {
       if (showReactEditor) {
-        await playgroundReactRunner(code);
+        await executeTypescriptCode(code);
       } else {
         if (scene instanceof Error) {
           throw new Error(`${scene.name};\n${scene.message}`);
@@ -73,13 +73,8 @@ function Homepage() {
   };
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const codeEditorMode = params.get('mode');
-    if (codeEditorMode === 'react') {
-      setShowReactEditor(true);
-    } else {
-      setShowReactEditor(false);
-    }
+    const ifReactMode = new URLSearchParams(window.location.search).get('mode') === 'react';
+    setShowReactEditor(ifReactMode);
   }, []);
 
   return (
