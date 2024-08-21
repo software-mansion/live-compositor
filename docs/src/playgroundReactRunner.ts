@@ -7,7 +7,7 @@ import { tsCompilerOptions } from './monacoEditorConfig';
 
 function tsToJs(code: string): string {
   return transpileModule(code, {
-    compilerOptions: tsCompilerOptions,
+    compilerOptions: tsCompilerOptions(),
   }).outputText;
 }
 
@@ -112,8 +112,6 @@ export default async function playgroundReactRunner(code: string) {
         retainLines: true,
         plugins: [staticToDynamicImports, preventInfiniteLoops],
       }).code ?? jsCode;
-
-    console.log(transformedCode);
 
     const mod = Function(`
         return async (_import) => {

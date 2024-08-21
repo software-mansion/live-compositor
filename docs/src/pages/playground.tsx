@@ -11,7 +11,6 @@ import { ApiError, renderImage } from '../api';
 import 'react-tooltip/dist/react-tooltip.css';
 import PlaygroundReactEditor from '../components/PlaygroundReactEditor';
 import playgroundReactRunner from '../playgroundReactRunner';
-import BrowserOnly from '@docusaurus/BrowserOnly';
 
 const INITIAL_SCENE = {
   type: 'view',
@@ -23,7 +22,7 @@ const INITIAL_REACT_CODE = [
   'function View() {',
   '    return null;',
   '}',
-  'function a() {',
+  'function a(): JSX.Element {',
   '    return (',
   '        <div>',
   '            <View/>',
@@ -75,8 +74,8 @@ function Homepage() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const codeEditorParam = params.get('code');
-    if (codeEditorParam === 'react') {
+    const codeEditorMode = params.get('mode');
+    if (codeEditorMode === 'react') {
       setShowReactEditor(true);
     } else {
       setShowReactEditor(false);
@@ -84,35 +83,28 @@ function Homepage() {
   }, []);
 
   return (
-    <BrowserOnly>
-      {() => (
-        <div className={styles.page}>
-          <div className={styles.leftSide}>
-            <div className={styles.codeEditorBox}>
-              {showReactEditor ? (
-                <PlaygroundReactEditor code={code} onCodeChange={setCode} />
-              ) : (
-                <PlaygroundCodeEditor
-                  onChange={setScene}
-                  initialCodeEditorContent={INITIAL_SCENE}
-                />
-              )}
-            </div>
-          </div>
-          <div className={styles.rightSide}>
-            <div className={styles.preview}>
-              <PlaygroundPreview {...responseData} />
-            </div>
-            <div className={styles.settingsBox}>
-              <PlaygroundRenderSettings
-                onSubmit={handleSubmit}
-                readyToSubmit={!(scene instanceof Error)}
-              />
-            </div>
-          </div>
+    <div className={styles.page}>
+      <div className={styles.leftSide}>
+        <div className={styles.codeEditorBox}>
+          {showReactEditor ? (
+            <PlaygroundReactEditor code={code} onCodeChange={setCode} />
+          ) : (
+            <PlaygroundCodeEditor onChange={setScene} initialCodeEditorContent={INITIAL_SCENE} />
+          )}
         </div>
-      )}
-    </BrowserOnly>
+      </div>
+      <div className={styles.rightSide}>
+        <div className={styles.preview}>
+          <PlaygroundPreview {...responseData} />
+        </div>
+        <div className={styles.settingsBox}>
+          <PlaygroundRenderSettings
+            onSubmit={handleSubmit}
+            readyToSubmit={!(scene instanceof Error) || showReactEditor}
+          />
+        </div>
+      </div>
+    </div>
   );
 }
 
