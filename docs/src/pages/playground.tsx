@@ -2,20 +2,41 @@ import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import Layout from '@theme/Layout';
 
 import styles from './playground.module.css';
-import { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import PlaygroundRenderSettings from '../components/PlaygroundRenderSettings';
 import PlaygroundPreview from '../components/PlaygroundPreview';
 import PlaygroundCodeEditor from '../components/PlaygroundCodeEditor';
 import toast, { Toaster } from 'react-hot-toast';
 import { ApiError, renderImage } from '../api';
 import 'react-tooltip/dist/react-tooltip.css';
+import PlaygroundReactEditor from '../components/PlaygroundReactEditor';
+import executeTypescriptCode from '../executeTypescriptCode';
 
 const INITIAL_SCENE = {
   type: 'view',
 };
 
+const INITIAL_REACT_CODE = [
+  "import React from 'react';\n",
+
+  'function View() {',
+  '    return null;',
+  '}',
+  'function a(): JSX.Element {',
+  '    return (',
+  '        <div>',
+  '            <View/>',
+  '        </div>',
+  '    )',
+  '}',
+  'console.log(a());',
+  'console.log("Hello");',
+].join('\n');
+
 function Homepage() {
   const [scene, setScene] = useState<object | Error>(INITIAL_SCENE);
+  const [code, setCode] = useState<string>(INITIAL_REACT_CODE);
+  const [showReactEditor, setShowReactEditor] = useState<boolean>(false);
 
   const [responseData, setResponseData] = useState({
     imageUrl: '',
@@ -28,13 +49,17 @@ function Homepage() {
 
   const handleSubmit = async (): Promise<void> => {
     try {
-      if (scene instanceof Error) {
-        throw new Error(`${scene.name};\n${scene.message}`);
-      }
-      const blob = await renderImage({ scene });
-      const imageObjectURL = URL.createObjectURL(blob);
+      if (showReactEditor) {
+        await executeTypescriptCode(code);
+      } else {
+        if (scene instanceof Error) {
+          throw new Error(`${scene.name};\n${scene.message}`);
+        }
+        const blob = await renderImage({ scene });
+        const imageObjectURL = URL.createObjectURL(blob);
 
-      setResponseData({ imageUrl: imageObjectURL, errorMessage: '' });
+        setResponseData({ imageUrl: imageObjectURL, errorMessage: '' });
+      }
     } catch (error: any) {
       let errorDescription;
       if (error instanceof ApiError && !error.response) {
@@ -47,11 +72,20 @@ function Homepage() {
     }
   };
 
+  useEffect(() => {
+    const ifReactMode = new URLSearchParams(window.location.search).get('mode') === 'react';
+    setShowReactEditor(ifReactMode);
+  }, []);
+
   return (
     <div className={styles.page}>
       <div className={styles.leftSide}>
         <div className={styles.codeEditorBox}>
-          <PlaygroundCodeEditor onChange={setScene} initialCodeEditorContent={INITIAL_SCENE} />
+          {showReactEditor ? (
+            <PlaygroundReactEditor code={code} onCodeChange={setCode} />
+          ) : (
+            <PlaygroundCodeEditor onChange={setScene} initialCodeEditorContent={INITIAL_SCENE} />
+          )}
         </div>
       </div>
       <div className={styles.rightSide}>
@@ -61,7 +95,7 @@ function Homepage() {
         <div className={styles.settingsBox}>
           <PlaygroundRenderSettings
             onSubmit={handleSubmit}
-            readyToSubmit={!(scene instanceof Error)}
+            readyToSubmit={!(scene instanceof Error) || showReactEditor}
           />
         </div>
       </div>
