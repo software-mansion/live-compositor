@@ -15,7 +15,7 @@ To get started check out our [`Guides`](./category/guides) section that will wal
 - [`Quick start`](./guides/quick-start.md) basic video composing and audio mixing setup.
 - [`Deliver input streams`](./guides/deliver-input.md) explains and shows examples of streaming multimedia to the LiveCompositor and use them for mixing/composition.
 - [`Receive output streams`](./guides/receive-output.md) explains and shows examples of receiving streams with results of mixing/composition from the LiveCompositor
-- [`Layouts`](./guides/layouts.md) describes how to achieve a few of the most basic layouts when composing video.
+- [`Basic Layouts`](./guides/basic-layouts.md) describes how to achieve a few of the most basic layouts when composing video.
 - [`Transitions (View/Rescaler)`](./guides/view-transition.md) shows a few basic examples of animated transitions on `View`/`Rescaler` components.
 
 The main concept and basic abstractions that the LiveCompositor operates on are described in the [`Concepts`](./concept/overview.md) section.

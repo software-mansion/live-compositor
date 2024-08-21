@@ -6,7 +6,7 @@ import LayoutsFitted from "./assets/layouts_3.webp"
 import LayoutsBothInputs from "./assets/layouts_4.webp"
 import LayoutsAbsolutePosition from "./assets/layouts_5.webp"
 
-# Layouts
+# Basic Layouts
 
 This guide will explain how to create simple scene that is combining input streams in a simple layout into single output stream.
 

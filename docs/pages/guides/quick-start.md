@@ -170,7 +170,7 @@ Configure it to:
       }
     }
     ```
-    You can configure output framerate and sample rate using [`LIVE_COMPOSITOR_OUTPUT_FRAMERATE`](../deployment/configuration.md#live_compositor_output_framerate) and [`LIVE_COMPOSITOR_OUTPUT_SAMPLE_RATE`](../deployment/configuration.md#live_compositor_output_sample_rate) environmental variables.
+    You can configure the output framerate and the sample rate using [`LIVE_COMPOSITOR_OUTPUT_FRAMERATE`](../deployment/configuration.md#live_compositor_output_framerate) and [`LIVE_COMPOSITOR_OUTPUT_SAMPLE_RATE`](../deployment/configuration.md#live_compositor_output_sample_rate) environment variables.
 
     After receiving the response you can establish the connection and start listening for the stream. Check out [how to receive output streams](./receive-output.md) to learn more.
 
@@ -220,7 +220,7 @@ Configure it to:
 </Tabs>
 
 `View` component does not have any children, so on the output you should see just a blank screen of a specified color as shown below.
-`inputs` list is empty, so the output audio will be silent.
+The `initial.inputs` list in audio config is empty, so the output audio will be silent.
 
 <div style={{textAlign: 'center'}}>
     <img src={QuickStartEmpty} style={{ width: 600 }} />
@@ -231,8 +231,8 @@ Configure it to:
 ## Update output
 
 Configure it to:
-- show `input_1` and `input_2` [`InputSteams`](../api/components/InputStream.md) using [`Tiles`](../api/components/Tiles.md) component
-- mix slightly silenced audio from `input_1` and audio from `input_2`
+- Show input streams `input_1` and `input_2` using [`Tiles`](../api/components/Tiles.md) component.
+- Mix audio from input streams `input_1` and `input_2`, where `input_1` volume is slightly lowered.  
 
 <Tabs queryString="lang">
   <TabItem value="http" label="HTTP">

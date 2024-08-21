@@ -31,8 +31,8 @@ const sidebars: SidebarsConfig = {
         },
         {
           type: 'doc',
-          id: 'guides/layouts',
-          label: 'Layouts',
+          id: 'guides/basic-layouts',
+          label: 'Basic Layouts',
         },
         {
           type: 'doc',
