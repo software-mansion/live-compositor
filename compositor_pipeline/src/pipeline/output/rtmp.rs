@@ -77,13 +77,9 @@ fn init_ffmpeg_output(
     let video_stream = options
         .video
         .map(|v| {
-            const VIDEO_TIME_BASE: i32 = 90000;
-
             let mut stream = output_ctx
                 .add_stream(ffmpeg::codec::Id::H264)
                 .map_err(OutputInitError::FfmpegMp4Error)?;
-
-            stream.set_time_base(ffmpeg::Rational::new(1, VIDEO_TIME_BASE));
 
             let codecpar = unsafe { &mut *(*stream.as_mut_ptr()).codecpar };
             codecpar.codec_id = ffmpeg::codec::Id::H264.into();
@@ -94,10 +90,7 @@ fn init_ffmpeg_output(
             let id = stream_count;
             stream_count += 1;
 
-            Ok::<Stream, OutputInitError>(Stream {
-                id,
-                time_base: VIDEO_TIME_BASE as f64,
-            })
+            Ok::<Stream, OutputInitError>(Stream { id })
         })
         .transpose()?;
 
@@ -132,10 +125,7 @@ fn init_ffmpeg_output(
             let id = stream_count;
             stream_count += 1;
 
-            Ok::<Stream, OutputInitError>(Stream {
-                id,
-                time_base: sample_rate as f64,
-            })
+            Ok::<Stream, OutputInitError>(Stream { id })
         })
         .transpose()?;
 
@@ -208,10 +198,10 @@ fn create_packet(
     video_stream: &Option<Stream>,
     audio_stream: &Option<Stream>,
 ) -> Option<ffmpeg::Packet> {
-    let (stream_id, timebase) = match chunk.kind {
+    let stream_id = match chunk.kind {
         EncodedChunkKind::Video(_) => {
             match video_stream {
-                Some(Stream { id, time_base }) => Some((*id, *time_base)),
+                Some(Stream { id }) => Some(*id),
                 None => {
                     error!("Failed to create packet for video chunk. No video stream registered on init.");
                     None
@@ -220,7 +210,7 @@ fn create_packet(
         }
         EncodedChunkKind::Audio(_) => {
             match audio_stream {
-                Some(Stream { id, time_base }) => Some((*id, *time_base)),
+                Some(Stream { id }) => Some(*id),
                 None => {
                     error!("Failed to create packet for audio chunk. No audio stream registered on init.");
                     None
@@ -230,10 +220,10 @@ fn create_packet(
     }?;
 
     let mut packet = ffmpeg::Packet::copy(&chunk.data);
-    packet.set_pts(Some((chunk.pts.as_secs_f64() * timebase) as i64));
+    packet.set_pts(Some((chunk.pts.as_secs_f64() * 1000.0) as i64));
     let dts = chunk.dts.unwrap_or(chunk.pts);
-    packet.set_dts(Some((dts.as_secs_f64() * timebase) as i64));
-    packet.set_time_base(ffmpeg::Rational::new(1, timebase as i32));
+    packet.set_dts(Some((dts.as_secs_f64() * 1000.0) as i64));
+    packet.set_time_base(ffmpeg::Rational::new(1, 1000));
     packet.set_stream(stream_id);
 
     Some(packet)
@@ -242,5 +232,4 @@ fn create_packet(
 #[derive(Debug, Clone)]
 struct Stream {
     id: usize,
-    time_base: f64,
 }
