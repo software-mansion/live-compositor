@@ -1,9 +1,9 @@
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
-import SimpleTransition from "./view_transtion_1.webp"
-import BothStreamsTransition from "./view_transtion_2.webp"
-import UnsupportedTransition from "./view_transtion_3.webp"
-import InterpolationShowcaseTransition from "./view_transtion_4.webp"
+import SimpleTransition from "./assets/view_transition_1.webp"
+import BothStreamsTransition from "./assets/view_transition_2.webp"
+import UnsupportedTransition from "./assets/view_transition_3.webp"
+import InterpolationShowcaseTransition from "./assets/view_transition_4.webp"
 
 # Transitions (View/Rescaler)
 
@@ -12,7 +12,7 @@ This guide will show a few basic examples of animated transitions on `View`/`Res
 ### Configure inputs and output
 
 Start the compositor and configure 2 input streams and a single output stream as described in the "Simple scene"
-guide in the ["Configure inputs and output"](./simple-scene.md#configure-inputs-and-output) section.
+guide in the ["Configure inputs and output"](./quick-start.md#configure-inputs-and-output) section.
 
 ### Transition that changes the `width` of an input stream
 
