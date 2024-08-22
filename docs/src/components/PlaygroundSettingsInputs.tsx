@@ -1,15 +1,15 @@
 import { Tooltip } from 'react-tooltip';
-import { InputResolutionNames, ResolutionName } from '../resolution';
+import { InputResolution, InputsSettings } from '../resolution';
 import styles from './PlaygroundSettingsInputs.module.css';
 
 interface PlaygroundSettingsInputsProps {
-  handleSettingsUpdate: (input_id: string, resolution: ResolutionName) => void;
-  inputResolutions: InputResolutionNames;
+  handleSettingsUpdate: (input_id: string, resolution: InputResolution) => void;
+  inputsSettings: InputsSettings;
 }
 
 export default function PlaygroundSettingsInputs({
   handleSettingsUpdate,
-  inputResolutions,
+  inputsSettings: inputResolutions,
 }: PlaygroundSettingsInputsProps) {
   function handleChange(event, inputId: string) {
     handleSettingsUpdate(inputId, event.target.value);
@@ -36,7 +36,7 @@ export default function PlaygroundSettingsInputs({
 
 interface InputResolutionSelectProps {
   inputName: string;
-  selectedValue: ResolutionName;
+  selectedValue: InputResolution;
   handleChange: (Event) => void;
 }
 
@@ -57,12 +57,12 @@ function InputResolutionSelect({
           onChange={handleChange}
           value={selectedValue}
           className={styles.inputSelectorSelect}>
-          <option value={ResolutionName.Resoultion1920x1080}>[16:9] 1920x1080</option>
-          <option value={ResolutionName.Resoultion1080x1920}>[9:16] 1080x1920</option>
-          <option value={ResolutionName.Resoultion854x480}>[16:9] 854x480</option>
-          <option value={ResolutionName.Resoultion480x854}>[9:16] 480x854</option>
-          <option value={ResolutionName.Resoultion1440x1080}>[4:3] 1440x1080</option>
-          <option value={ResolutionName.Resoultion1080x1440}>[3:4] 1080x1440</option>
+          <option value={InputResolution.Resoultion1920x1080}>[16:9] 1920x1080</option>
+          <option value={InputResolution.Resoultion1080x1920}>[9:16] 1080x1920</option>
+          <option value={InputResolution.Resoultion854x480}>[16:9] 854x480</option>
+          <option value={InputResolution.Resoultion480x854}>[9:16] 480x854</option>
+          <option value={InputResolution.Resoultion1440x1080}>[4:3] 1440x1080</option>
+          <option value={InputResolution.Resoultion1080x1440}>[3:4] 1080x1440</option>
         </select>
       </div>
       <div className={styles.inputSelectorImgContainer}>
@@ -91,21 +91,21 @@ function InputResolutionSelect({
   );
 }
 
-function getImagePath(inputName: string, resolutionName: ResolutionName): string {
+function getImagePath(inputName: string, resolutionName: InputResolution): string {
   return `/img/inputs/${inputName}_${nameToMiniature(resolutionName)}.webp`;
 }
 
-function nameToMiniature(resolutionName: ResolutionName): string {
+function nameToMiniature(resolutionName: InputResolution): string {
   switch (resolutionName) {
-    case ResolutionName.Resoultion1920x1080:
-    case ResolutionName.Resoultion854x480:
+    case InputResolution.Resoultion1920x1080:
+    case InputResolution.Resoultion854x480:
       return '640x360';
-    case ResolutionName.Resoultion1080x1920:
-    case ResolutionName.Resoultion480x854:
+    case InputResolution.Resoultion1080x1920:
+    case InputResolution.Resoultion480x854:
       return '360x640';
-    case ResolutionName.Resoultion1440x1080:
+    case InputResolution.Resoultion1440x1080:
       return '640x480';
-    case ResolutionName.Resoultion1080x1440:
+    case InputResolution.Resoultion1080x1440:
       return '480x640';
   }
 }

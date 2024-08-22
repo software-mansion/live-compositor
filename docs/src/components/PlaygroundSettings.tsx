@@ -2,50 +2,49 @@ import clsx from 'clsx';
 import { useState } from 'react';
 import ReactModal from 'react-modal';
 import { Tooltip } from 'react-tooltip';
-import { InputResolutionNames, ResolutionName } from '../resolution';
+import { InputResolution, InputsSettings } from '../resolution';
 import styles from './PlaygroundSettings.module.css';
 import SettingsInputs from './PlaygroundSettingsInputs';
 
 interface PlaygroundSettingsProps {
   onSubmit: () => Promise<void>;
-  onChange: (input_id: string, resolution: ResolutionName) => void;
-  inputResolutions: InputResolutionNames;
+  onChange: (input_id: string, resolution: InputResolution) => void;
+  inputsSettings: InputsSettings;
   readyToSubmit: boolean;
 }
 
 export default function PlaygroundSettings({
   onSubmit,
   onChange,
-  inputResolutions,
+  inputsSettings,
   readyToSubmit,
 }: PlaygroundSettingsProps) {
   const [inputsSettingsModalOpen, setInputsSettingsModalOpen] = useState(false);
 
   return (
     <div className={styles.settingsPanel}>
-      <div className={styles.cardsContainer}>
-        <UseCaseCard
-          title="Inputs resolutions"
-          subtitle="settings"
-          onClick={() => setInputsSettingsModalOpen(true)}
-        />
+      <div className={styles.settings}>
+        <div className={styles.cardsContainer}>
+          <Card
+            title="Inputs resolutions"
+            subtitle="settings"
+            onClick={() => setInputsSettingsModalOpen(true)}
+          />
 
-        {/* <UseCaseCard
-          title="Images"
-          subtitle="preview"
-          onClick={() => setInputsSettingsModalOpen(true)}
-        /> */}
+          <Card
+            title="Images"
+            subtitle="preview"
+            onClick={() => setInputsSettingsModalOpen(true)}
+          />
 
-        {/* <UseCaseCard
-          title="Shaders"
-          subtitle="preview"
-          onClick={() => setInputsSettingsModalOpen(true)}
-        /> */}
-      </div>
-      {/* <OutputResolution /> */}
+          <Card
+            title="Shaders"
+            subtitle="preview"
+            onClick={() => setInputsSettingsModalOpen(true)}
+          />
 
-      <div className={styles.submitButtonContainer}>
-        <SubmitButton onSubmit={onSubmit} readyToSubmit={readyToSubmit} />
+          <div style={{ flex: 1, margin: 10, padding: 10 }}></div>
+        </div>
       </div>
 
       <ReactModal
@@ -54,19 +53,24 @@ export default function PlaygroundSettings({
         overlayClassName={styles.modalOverlay}
         className={styles.modalContent}
         ariaHideApp={false}>
-        <SettingsInputs handleSettingsUpdate={onChange} inputResolutions={inputResolutions} />
+        <SettingsInputs handleSettingsUpdate={onChange} inputsSettings={inputsSettings} />
       </ReactModal>
+
+      <div className={styles.bottomContainer}>
+        <OutputResolution />
+        <SubmitButton onSubmit={onSubmit} readyToSubmit={readyToSubmit} />
+      </div>
     </div>
   );
 }
 
-type UseCaseCardProps = {
+type CardProps = {
   title: string;
   subtitle: string;
   onClick: () => void;
 };
 
-function UseCaseCard(props: UseCaseCardProps) {
+function Card(props: CardProps) {
   return (
     <div className={clsx('card', styles.card, styles.hoverPrimary)} onClick={props.onClick}>
       <div className={styles.cardTitle}>{props.title}</div>
@@ -92,31 +96,30 @@ function SubmitButton({
       data-tooltip-content={readyToSubmit ? null : 'Invalid scene provided!'}
       data-tooltip-place={readyToSubmit ? null : 'top'}>
       <button
-        className={`button ${
-          readyToSubmit ? 'button--outline button--primary' : 'disabled button--secondary'
+        className={`${styles.submitButton} ${styles.hoverPrimary} ${
+          readyToSubmit ? styles.submitButtonActive : styles.submitButtonInactive
         }`}
-        style={readyToSubmit ? {} : { color: '#f5f5f5', backgroundColor: '#dbdbdb' }}
         onClick={onSubmit}>
-        <span style={{ fontSize: '1.2rem' }}>Submit</span>
+        Submit
       </button>
       <Tooltip id="disableSubmit" style={tooltipStyle} opacity={1} />
     </div>
   );
 }
 
-// function OutputResolution() {
-//   return (
-//     <div className={styles.outputResolutionsContainer}>
-//       <div className={styles.outputResolutionLabel}>Output resolution:</div>
+function OutputResolution() {
+  return (
+    <div className={styles.outputResolutionsContainer}>
+      <div className={styles.outputResolutionLabel}>Output resolution:</div>
 
-//       <select className={styles.outputResolutionSelect}>
-//         <option value="Resoultion1920x1080">[16:9] 1920x1080</option>
-//         <option value="Resoultion1080x1920">[9:16] 1080x1920</option>
-//         <option value="Resoultion854x480">[16:9] 854x480</option>
-//         <option value="Resoultion480x854">[9:16] 480x854</option>
-//         <option value="Resoultion1440x1080">[4:3] 1440x1080</option>
-//         <option value="Resoultion1080x1440">[3:4] 1080x1440</option>
-//       </select>
-//     </div>
-//   );
-// }
+      <select className={styles.outputResolutionSelect}>
+        <option value="Resoultion1920x1080">[16:9] 1920x1080</option>
+        <option value="Resoultion1080x1920">[9:16] 1080x1920</option>
+        <option value="Resoultion854x480">[16:9] 854x480</option>
+        <option value="Resoultion480x854">[9:16] 480x854</option>
+        <option value="Resoultion1440x1080">[4:3] 1440x1080</option>
+        <option value="Resoultion1080x1440">[3:4] 1080x1440</option>
+      </select>
+    </div>
+  );
+}
