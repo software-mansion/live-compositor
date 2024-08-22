@@ -8,7 +8,12 @@ import { ApiError, renderImage } from '../api';
 import PlaygroundCodeEditor from '../components/PlaygroundCodeEditor';
 import PlaygroundPreview from '../components/PlaygroundPreview';
 import PlaygroundSettings from '../components/PlaygroundSettings';
-import { InputResolution, inputResolutionsToResolutions, InputsSettings } from '../resolution';
+import {
+  InputResolution,
+  inputResolutionsToResolutions,
+  inputResolutionToResolution,
+  InputsSettings,
+} from '../resolution';
 import styles from './playground.module.css';
 
 const INITIAL_SCENE = {
@@ -78,6 +83,9 @@ function Homepage() {
       [inputId]: resolution,
     });
   }
+  const [outputResolution, setOutputResolution] = useState<InputResolution>(
+    InputResolution.Resoultion1920x1080
+  );
 
   const [responseData, setResponseData] = useState({
     imageUrl: '',
@@ -96,6 +104,7 @@ function Homepage() {
       const request = {
         scene: scene,
         inputs: inputResolutionsToResolutions(inputResolutions),
+        output: inputResolutionToResolution(outputResolution),
       };
       const blob = await renderImage({ ...request });
       const imageObjectURL = URL.createObjectURL(blob);
@@ -128,7 +137,10 @@ function Homepage() {
           <PlaygroundSettings
             onSubmit={handleSubmit}
             readyToSubmit={!(scene instanceof Error)}
-            onChange={updateInputResolutions}
+            onInputResolutionChange={updateInputResolutions}
+            onOutputResolutionChange={(resolution: InputResolution) => {
+              setOutputResolution(resolution);
+            }}
             inputsSettings={inputResolutions}
           />
         </div>

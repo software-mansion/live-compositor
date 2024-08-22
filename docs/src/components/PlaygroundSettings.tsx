@@ -8,14 +8,16 @@ import SettingsInputs from './PlaygroundSettingsInputs';
 
 interface PlaygroundSettingsProps {
   onSubmit: () => Promise<void>;
-  onChange: (input_id: string, resolution: InputResolution) => void;
+  onInputResolutionChange: (input_id: string, resolution: InputResolution) => void;
+  onOutputResolutionChange: (resolution: InputResolution) => void;
   inputsSettings: InputsSettings;
   readyToSubmit: boolean;
 }
 
 export default function PlaygroundSettings({
   onSubmit,
-  onChange,
+  onInputResolutionChange,
+  onOutputResolutionChange,
   inputsSettings,
   readyToSubmit,
 }: PlaygroundSettingsProps) {
@@ -47,7 +49,7 @@ export default function PlaygroundSettings({
             onClick={() => setInputsSettingsModalOpen(true)}
           />
         </div>
-        <OutputResolution />
+        <OutputResolution handleSettingsUpdate={onOutputResolutionChange} />
       </div>
 
       <ReactModal
@@ -56,7 +58,10 @@ export default function PlaygroundSettings({
         overlayClassName={styles.modalOverlay}
         className={styles.modalContent}
         ariaHideApp={false}>
-        <SettingsInputs handleSettingsUpdate={onChange} inputsSettings={inputsSettings} />
+        <SettingsInputs
+          handleSettingsUpdate={onInputResolutionChange}
+          inputsSettings={inputsSettings}
+        />
       </ReactModal>
     </div>
   );
@@ -105,12 +110,20 @@ function SubmitButton({
   );
 }
 
-function OutputResolution() {
+interface OutputResolutionProps {
+  handleSettingsUpdate: (outputResolution: InputResolution) => void;
+}
+
+function OutputResolution({ handleSettingsUpdate }: OutputResolutionProps) {
+  function handleChange(event) {
+    handleSettingsUpdate(event.target.value);
+  }
+
   return (
     <div className={styles.outputResolutionsContainer}>
       <div className={styles.outputResolutionLabel}>Output resolution:</div>
 
-      <select className={styles.outputResolutionSelect}>
+      <select className={styles.outputResolutionSelect} onChange={handleChange}>
         <option value="Resoultion1920x1080">[16:9] 1920x1080</option>
         <option value="Resoultion1080x1920">[9:16] 1080x1920</option>
         <option value="Resoultion854x480">[16:9] 854x480</option>

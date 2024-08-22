@@ -70,6 +70,6 @@ export function inputResolutionsToResolutions(
   };
 }
 
-function inputResolutionToResolution(inputResolution: InputResolution): Resolution {
+export function inputResolutionToResolution(inputResolution: InputResolution): Resolution {
   return AVAILABLE_RESOLUTIONS[inputResolution];
 }
