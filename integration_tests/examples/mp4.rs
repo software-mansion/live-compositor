@@ -39,6 +39,7 @@ fn client_code() -> Result<()> {
         &json!({
             "type": "mp4",
             "path": "output.mp4",
+            "overwrite": true,
             "video": {
                 "resolution": {
                     "width": VIDEO_RESOLUTION.width,

@@ -1,4 +1,4 @@
-use std::{path::PathBuf, ptr};
+use std::{fs, path::PathBuf, ptr};
 
 use compositor_render::{event_handler::emit_event, OutputId};
 use crossbeam_channel::Receiver;
@@ -16,6 +16,7 @@ use crate::{
 #[derive(Debug, Clone)]
 pub struct Mp4OutputOptions {
     pub output_path: PathBuf,
+    pub overwrite: bool,
     pub video: Option<Mp4VideoTrack>,
     pub audio: Option<Mp4AudioTrack>,
 }
@@ -50,10 +51,14 @@ impl Mp4FileWriter {
         packets_receiver: Receiver<EncoderOutputEvent>,
         sample_rate: u32,
     ) -> Result<Self, OutputInitError> {
-        if options.output_path.exists() {
-            return Err(OutputInitError::Mp4PathExist {
-                path: options.output_path.to_string_lossy().into_owned(),
-            });
+        if options.output_path.exists() && !options.overwrite {
+            match options.overwrite {
+                true => fs::remove_file(options.output_path.clone())
+                    .map_err(OutputInitError::Mp4OverwriteError),
+                false => Err(OutputInitError::Mp4PathExist {
+                    path: options.output_path.to_string_lossy().into_owned(),
+                }),
+            }?
         }
 
         let (output_ctx, video_stream, audio_stream) = init_ffmpeg_output(options, sample_rate)?;
