@@ -8,11 +8,7 @@ import { ApiError, renderImage } from '../api';
 import PlaygroundCodeEditor from '../components/PlaygroundCodeEditor';
 import PlaygroundPreview from '../components/PlaygroundPreview';
 import PlaygroundSettings from '../components/PlaygroundSettings';
-import {
-  InputResolutionNames,
-  inputResolutionNamesToResolutions,
-  ResolutionName,
-} from '../resolution';
+import { InputResolution, inputResolutionsToResolutions, InputsSettings } from '../resolution';
 import styles from './playground.module.css';
 
 const INITIAL_SCENE = {
@@ -68,15 +64,15 @@ const INITIAL_SCENE = {
 
 function Homepage() {
   const [scene, setScene] = useState<object | Error>(INITIAL_SCENE);
-  const [inputResolutions, setInputResolutions] = useState<InputResolutionNames>({
-    input_1: ResolutionName.Resoultion1920x1080,
-    input_2: ResolutionName.Resoultion1920x1080,
-    input_3: ResolutionName.Resoultion1920x1080,
-    input_4: ResolutionName.Resoultion1920x1080,
-    input_5: ResolutionName.Resoultion1920x1080,
-    input_6: ResolutionName.Resoultion1920x1080,
+  const [inputResolutions, setInputResolutions] = useState<InputsSettings>({
+    input_1: InputResolution.Resoultion1920x1080,
+    input_2: InputResolution.Resoultion1920x1080,
+    input_3: InputResolution.Resoultion1920x1080,
+    input_4: InputResolution.Resoultion1920x1080,
+    input_5: InputResolution.Resoultion1920x1080,
+    input_6: InputResolution.Resoultion1920x1080,
   });
-  function updateInputResolutions(inputId: string, resolution: ResolutionName) {
+  function updateInputResolutions(inputId: string, resolution: InputResolution) {
     setInputResolutions({
       ...inputResolutions,
       [inputId]: resolution,
@@ -99,7 +95,7 @@ function Homepage() {
       }
       const request = {
         scene: scene,
-        inputs: inputResolutionNamesToResolutions(inputResolutions),
+        inputs: inputResolutionsToResolutions(inputResolutions),
       };
       const blob = await renderImage({ ...request });
       const imageObjectURL = URL.createObjectURL(blob);
@@ -133,7 +129,7 @@ function Homepage() {
             onSubmit={handleSubmit}
             readyToSubmit={!(scene instanceof Error)}
             onChange={updateInputResolutions}
-            inputResolutions={inputResolutions}
+            inputsSettings={inputResolutions}
           />
         </div>
       </div>

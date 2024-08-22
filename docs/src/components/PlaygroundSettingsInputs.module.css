@@ -8,7 +8,7 @@
 .headerContainer {
     display: flex;
     margin-bottom: 6px;
-    font-size: 1.4rem;
+    font-size: 22px;
     padding: 0 10px 0 10px;
 }
 
@@ -21,7 +21,7 @@
 .headerResolutionLabel {
     flex: 0 0 40%;
     max-width: 40%;
-    width: 12rem;
+    width: 200px;
 }
 
 .headerPreviewLabel {
@@ -54,7 +54,7 @@
 .inputSelectorSelectContainer {
     flex: 0 0 40%;
     max-width: 40%;
-    width: 12rem;
+    width: 200px;
     display: flex;
     align-items: center;
 }
@@ -104,5 +104,3 @@
     background-color: var(--ifm-color-emphasis-600) !important;
     cursor: copy !important;
 }
-
-

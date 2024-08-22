@@ -29,14 +29,16 @@
 
 @media only screen and (max-width:660px) {
     .modalContent {
-        top: calc(50% + 3.75rem / 2);
+        top: calc(50% + var(--ifm-navbar-height) / 2);
         width: calc(100vw - 10px);
     }
 }
 
 
 .settingsPanel {
+    position: relative;
     width: 100%;
+    height: 100%;
     margin-top: 10px;
     display: flex;
     flex-direction: column;
@@ -51,27 +53,27 @@
   }
 
 .card {
-  min-width: 11rem;
-  width: calc((100% - 3 * (2 * 10px))/ 3 );
-  margin: 10px;
-  padding: 10px;
-  border-width: 1px;
-  border-style: solid;
-  border-color: var(--ifm-color-emphasis-200);
-  text-align: center;
+    flex: 1;
+    min-width: 180px;
+    margin: 10px;
+    padding: 10px;
+    border-width: 1px;
+    border-style: solid;
+    border-color: var(--ifm-color-emphasis-200);
+    text-align: center;
 }
 
 .cardTitle {
-  font-size: 1.1rem;
-  font-weight: bold;
-  margin: 0;
-  text-align: 'center';
-  margin: 0;
-  color: var(--ifm-color-primary)
+    font-size: 18px;
+    font-weight: bold;
+    margin: 0;
+    text-align: 'center';
+    margin: 0;
+    color: var(--ifm-color-primary)
 }
 
 .cardSubtitle {
-    font-size: 0.9rem;
+    font-size: 15px;
     text-align: center;
     margin: 0;
 }
@@ -97,6 +99,7 @@
 .outputResolutionsContainer {
     display: flex;
     align-items: center;
+    justify-content: center;
     margin: 10px;
     border-width: 1px 0 1px 0;
     border-style: solid;
@@ -106,7 +109,7 @@
 
 .outputResolutionLabel {
     margin: 0 10px 0 10px;
-    font-size: 1.1rem;
+    font-size: 18px;
     font-weight: bold;
     color: var(--ifm-color-primary)
 }
@@ -120,11 +123,38 @@
 
 
 .submitButtonContainer {
+    width: 100%;
+    position: absolute;
+    right: 20px;
+    bottom: 20px;
     display: flex;
-    justify-content: center;
-    margin-top: 20px;
+    justify-content: end;
 }
 
+.submitButton {
+    padding: 10px 60px 10px 60px;
+    border-radius: 12px;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+
+.submitButtonActive {
+    border: 1px solid var(--ifm-color-primary);
+    background-color:  var(--docsearch-primary-color);
+    color: var(--ifm-color-emphasis-0);
+}
+
+.submitButtonInactive {
+    border: 1px solid var(--ifm-color-emphasis-500);
+    color: var(--ifm-color-emphasis-400);
+    background-color: var(--ifm-color-emphasis-500);
+}
+
+.submitButtonInactive:hover{
+    transform: scale(1);
+    box-shadow: 0 0 0 0;
+}
 
 @media only screen and (max-width:1236px) {
     .card {
@@ -135,13 +165,31 @@
         display: none;
     }
     .cardTitle {
-        font-size: 1rem;
+        font-size: 16px;
     }
     .outputResolutionsContainer {
         margin: 5px;
         padding: 10px 0 10px 0;
     }
-    .submitButtonContainer {
-        margin-top: 10px
-    }
 }
+
+
+@media only screen and (max-width:660px) {
+    .submitButtonContainer {
+        margin-top: 10px;
+        margin-bottom: 60px;
+        position: static;
+        margin-bottom: 15px;
+        justify-content: center;
+    }
+    .submitButton {
+        width: 100%;
+    }
+
+}
+
+/* .settings {
+    width: 100%;
+    position: absolute;
+    bottom: 60px;
+} */
