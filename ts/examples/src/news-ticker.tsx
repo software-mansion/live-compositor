@@ -1,6 +1,6 @@
 import LiveCompositor from '@live-compositor/node';
 import { View, Text } from 'live-compositor';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useId } from 'react';
 import { ffplayStartPlayerAsync, sleep } from './utils';
 
 const EXAMPLE_TEXTS = [
@@ -83,7 +83,6 @@ function NewsTicker(props: NewsTickerProps) {
         return (
           <NewsTickerItem
             key={id}
-            id={`ticker_item_${id}`}
             text={text}
             offset={index * TEXT_CHUNK_SIZE - tickerState.offset}
           />
@@ -93,16 +92,18 @@ function NewsTicker(props: NewsTickerProps) {
   );
 }
 
-function NewsTickerItem(props: { text: string; offset: number; id: string }) {
+function NewsTickerItem(props: { text: string; offset: number }) {
+  const id = useId();
   return (
     <View
-      id={props.id}
+      id={id}
       width={TEXT_CHUNK_SIZE}
       left={props.offset}
       top={0}
       transition={{
         easingFunction: 'linear',
-        durationMs: 1000,
+        // bit longer than how often we are sending updates
+        durationMs: 1050,
       }}>
       <Text colorRgba="#FF0000FF" fontSize={30}>
         {props.text}
@@ -115,14 +116,15 @@ function ExampleApp() {
   return (
     <View direction="column">
       <View bottom={0} left={0} height={60}>
-        <NewsTicker text={EXAMPLE_TEXTS} width={1920} durationMs={5_000} />
+        <NewsTicker text={EXAMPLE_TEXTS} width={1920} durationMs={10_000} />
       </View>
     </View>
   );
 }
 
-export async function test() {
+async function run() {
   const compositor = await LiveCompositor.create();
+
   ffplayStartPlayerAsync('127.0.0.1', 8001);
   await sleep(2000);
 
@@ -143,6 +145,7 @@ export async function test() {
       root: <ExampleApp />,
     },
   });
+
   await compositor.start();
 }
-test();
+run();

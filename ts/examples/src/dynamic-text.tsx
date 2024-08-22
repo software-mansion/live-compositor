@@ -51,7 +51,7 @@ function ExampleApp() {
   );
 }
 
-export async function run() {
+async function run() {
   const compositor = await LiveCompositor.create();
 
   ffplayStartPlayerAsync('127.0.0.1', 8001);
