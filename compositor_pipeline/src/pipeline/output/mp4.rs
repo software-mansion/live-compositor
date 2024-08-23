@@ -1,8 +1,12 @@
-use std::{fs, path::PathBuf, ptr};
+use std::{
+    fs,
+    path::PathBuf,
+    ptr,
+};
 
 use compositor_render::{event_handler::emit_event, OutputId};
 use crossbeam_channel::Receiver;
-use ffmpeg_next as ffmpeg;
+use ffmpeg_next::{self as ffmpeg};
 use log::error;
 use tracing::debug;
 
@@ -16,7 +20,6 @@ use crate::{
 #[derive(Debug, Clone)]
 pub struct Mp4OutputOptions {
     pub output_path: PathBuf,
-    pub overwrite: bool,
     pub video: Option<Mp4VideoTrack>,
     pub audio: Option<Mp4AudioTrack>,
 }
@@ -51,14 +54,24 @@ impl Mp4FileWriter {
         packets_receiver: Receiver<EncoderOutputEvent>,
         sample_rate: u32,
     ) -> Result<Self, OutputInitError> {
-        if options.output_path.exists() && !options.overwrite {
-            match options.overwrite {
-                true => fs::remove_file(options.output_path.clone())
-                    .map_err(OutputInitError::Mp4OverwriteError),
-                false => Err(OutputInitError::Mp4PathExist {
-                    path: options.output_path.to_string_lossy().into_owned(),
-                }),
-            }?
+        if options.output_path.exists() {
+            let mut old_index = 0;
+            let mut new_path_for_old_file;
+            loop {
+                new_path_for_old_file = PathBuf::from(format!(
+                    "{}.old.{}",
+                    options.output_path.to_string_lossy(),
+                    old_index
+                ));
+                if !new_path_for_old_file.exists() {
+                    break;
+                }
+                old_index += 1;
+            }
+
+            if let Err(err) = fs::rename(options.output_path.clone(), new_path_for_old_file) {
+                error!("Failed to rename existing output file. Error: {}", err);
+            };
         }
 
         let (output_ctx, video_stream, audio_stream) = init_ffmpeg_output(options, sample_rate)?;

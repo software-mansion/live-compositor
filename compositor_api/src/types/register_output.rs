@@ -36,8 +36,6 @@ pub struct Mp4Output {
     pub video: Option<OutputVideoOptions>,
     /// Audio track configuration.
     pub audio: Option<OutputMp4AudioOptions>,
-    /// (**default=`false`**) Specifies file under `path` should be overwritten if present.
-    pub overwrite: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
