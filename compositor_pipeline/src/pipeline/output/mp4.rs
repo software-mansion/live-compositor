@@ -1,10 +1,10 @@
-use std::{path::PathBuf, ptr};
+use std::{fs, path::PathBuf, ptr};
 
 use compositor_render::{event_handler::emit_event, OutputId};
 use crossbeam_channel::Receiver;
 use ffmpeg_next as ffmpeg;
 use log::error;
-use tracing::debug;
+use tracing::{debug, warn};
 
 use crate::{
     audio_mixer::AudioChannels,
@@ -51,9 +51,28 @@ impl Mp4FileWriter {
         sample_rate: u32,
     ) -> Result<Self, OutputInitError> {
         if options.output_path.exists() {
-            return Err(OutputInitError::Mp4PathExist {
-                path: options.output_path.to_string_lossy().into_owned(),
-            });
+            let mut old_index = 0;
+            let mut new_path_for_old_file;
+            loop {
+                new_path_for_old_file = PathBuf::from(format!(
+                    "{}.old.{}",
+                    options.output_path.to_string_lossy(),
+                    old_index
+                ));
+                if !new_path_for_old_file.exists() {
+                    break;
+                }
+                old_index += 1;
+            }
+
+            warn!(
+                "Output file {} already exists. Renaming to {}.",
+                options.output_path.to_string_lossy(),
+                new_path_for_old_file.to_string_lossy()
+            );
+            if let Err(err) = fs::rename(options.output_path.clone(), new_path_for_old_file) {
+                error!("Failed to rename existing output file. Error: {}", err);
+            };
         }
 
         let (output_ctx, video_stream, audio_stream) = init_ffmpeg_output(options, sample_rate)?;

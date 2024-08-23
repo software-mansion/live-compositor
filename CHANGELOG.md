@@ -8,6 +8,10 @@
 
 ### 🐛 Bug fixes
 
+### 🔧 Others
+
+- Automatically rename file under the output path for MP4 output if it already exists. ([#684](https://github.com/software-mansion/live-compositor/pull/684) by [@WojciechBarczynski](https://github.com/WojciechBarczynski))
+
 ## [v0.3.0](https://github.com/software-mansion/live-compositor/releases/tag/v0.3.0)
 
 ### 💥 Breaking changes
