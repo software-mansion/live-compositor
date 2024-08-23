@@ -3,7 +3,7 @@ use wgpu::util::DeviceExt;
 
 use crate::{scene::RGBAColor, wgpu::WgpuCtx};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(super) struct LayoutNodeParams {
     pub(super) transform_vertices_matrix: Mat4,
     pub(super) transform_texture_coords_matrix: Mat4,
@@ -11,8 +11,8 @@ pub(super) struct LayoutNodeParams {
     pub(super) background_color: RGBAColor,
 }
 
-impl LayoutNodeParams {
-    pub fn empty() -> Self {
+impl Default for LayoutNodeParams {
+    fn default() -> Self {
         Self {
             transform_vertices_matrix: Mat4::identity(),
             transform_texture_coords_matrix: Mat4::identity(),
@@ -30,7 +30,11 @@ pub(super) struct ParamsBuffer {
 
 impl ParamsBuffer {
     pub fn new(wgpu_ctx: &WgpuCtx, params: Vec<LayoutNodeParams>) -> Self {
-        let content = Self::shader_buffer_content(params);
+        let mut content = Self::shader_buffer_content(&params);
+        if content.is_empty() {
+            content = bytes::Bytes::copy_from_slice(&[0]);
+        }
+
         let buffer = wgpu_ctx
             .device
             .create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -62,14 +66,26 @@ impl ParamsBuffer {
     }
 
     pub fn update(&mut self, params: Vec<LayoutNodeParams>, wgpu_ctx: &WgpuCtx) {
-        let content = Self::shader_buffer_content(params);
+        let content = Self::shader_buffer_content(&params);
+        if self.content.len() != content.len() {
+            *self = Self::new(wgpu_ctx, params);
+        }
+
         if self.content != content {
             wgpu_ctx.queue.write_buffer(&self.buffer, 0, &content);
         }
     }
 
-    fn shader_buffer_content(mut params: Vec<LayoutNodeParams>) -> bytes::Bytes {
-        params.resize_with(100, LayoutNodeParams::empty);
+    fn shader_buffer_content(params: &[LayoutNodeParams]) -> bytes::Bytes {
+        #[cfg(target_arch = "wasm32")]
+        let params = {
+            // On WebGL we have to fill the whole array
+            const MAX_PARAMS_COUNT: usize = 100;
+            let mut params = params.to_vec();
+            params.resize_with(MAX_PARAMS_COUNT, LayoutNodeParams::default);
+            params
+        };
+
         params
             .iter()
             .map(LayoutNodeParams::shader_buffer_content)

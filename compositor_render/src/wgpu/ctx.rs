@@ -42,13 +42,12 @@ impl WgpuCtx {
     }
 
     fn check_wgpu_ctx(device: &wgpu::Device, features: wgpu::Features) {
-        #[cfg(not(target_arch = "wasm32"))]
-        let expected_features =
-            features | wgpu::Features::TEXTURE_BINDING_ARRAY | wgpu::Features::PUSH_CONSTANTS;
-
-        // TEXTURE_BINDING_ARRAY is not supported by WebGl backend
-        #[cfg(target_arch = "wasm32")]
-        let mut expected_features = features | wgpu::Features::PUSH_CONSTANTS;
+        let expected_features = match cfg!(target_arch = "wasm32") {
+            false => {
+                features | wgpu::Features::TEXTURE_BINDING_ARRAY | wgpu::Features::PUSH_CONSTANTS
+            }
+            true => features | wgpu::Features::PUSH_CONSTANTS,
+        };
 
         let missing_features = expected_features.difference(device.features());
         if !missing_features.is_empty() {

@@ -6,7 +6,7 @@ license = "BUSL-1.1"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [features]
-web_renderer = ["dep:compositor_chromium", "shared_memory"]
+web_renderer = ["dep:compositor_chromium", "dep:shared_memory"]
 
 [dependencies]
 pollster = "0.3.0"
