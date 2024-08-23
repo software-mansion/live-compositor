@@ -22,6 +22,7 @@ import BroadcastingImg from '@site/static/img/broadcasting.webp';
 import { useColorMode } from '@docusaurus/theme-common';
 import TypewriterComponent from 'typewriter-effect';
 import ExampleScene from '../components/example_scene';
+import RTCOnBanner from '@site/src/components/RtcOnBanner';
 
 function HomepageHeader() {
   return (
@@ -533,6 +534,7 @@ export default function Home(): JSX.Element {
       <Licensing />
       <div className={styles.sectionSeparator} />
       <ContactUs />
+      <RTCOnBanner />
     </Layout>
   );
 }
