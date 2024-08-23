@@ -1,0 +1,28 @@
+{
+  "name": "@live-compositor/node",
+  "version": "0.1.0-rc.0",
+  "description": "",
+  "main": "dist/index.js",
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "watch": "tsc --watch",
+    "build": "tsc",
+    "clean": "rimraf dist"
+  },
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^20.14.10",
+    "@types/node-fetch": "^2.6.11",
+    "@types/uuid": "^10.0.0"
+  },
+  "dependencies": {
+    "@live-compositor/core": "0.1.0-rc.0",
+    "fs-extra": "^11.2.0",
+    "node-fetch": "^2.0.0",
+    "tar": "^7.4.3",
+    "uuid": "^10.0.0"
+  }
+}

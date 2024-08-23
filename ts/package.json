@@ -1,0 +1,27 @@
+{
+  "name": "live-compositor-workspace",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "lint": "npm --workspaces run lint",
+    "build": "npm --workspaces run build",
+    "typecheck": "npm --workspaces run typecheck",
+    "clean": "npm --workspaces run clean",
+    "generate-types": "ts-node ./scripts/generateTypes.ts"
+  },
+  "workspaces": [
+    "live-compositor",
+    "@live-compositor/core",
+    "@live-compositor/node",
+    "examples"
+  ],
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^7.16.0",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-import": "^2.29.1",
+    "eslint-plugin-prettier": "^5.1.3",
+    "json-schema-to-typescript": "^15.0.1",
+    "prettier": "^3.3.2"
+  }
+}
