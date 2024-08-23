@@ -3,7 +3,7 @@ import TabItem from '@theme/TabItem';
 import QuickStartEmpty from "./assets/quick_start_1.webp"
 import QuickStartBothInputs from "./assets/quick_start_2.webp"
 
-# Quick start
+# Quick Start
 
 This guide will explain basic LiveCompositor setup.
 
@@ -13,7 +13,16 @@ This guide will explain basic LiveCompositor setup.
 
 <Tabs queryString="lang">
   <TabItem value="http" label="HTTP">
-    Start the compositor server. Check out [configuration page](../deployment/configuration.md) for available configuration options.
+    Start the compositor server. Check out the [configuration page](../deployment/configuration.md) for available configuration options.
+
+    Send [`start request`](../api/routes.md#start-request) to start processing.
+
+    ```http
+    POST: /api/start
+    Content-Type: application/json
+
+    {}
+    ```
   </TabItem>
   <TabItem value="membrane" label="Membrane Framework">
     Following code snippets are implementing `handle_init/2` or `handle_setup/2` callbacks. Those
@@ -268,8 +277,8 @@ Configure it to:
         root: %{
           type: :tiles,
           children: [
-            %{ type: :input_stream, input_id: :input_1 },
-            %{ type: :input_stream, input_id: :input_2 }
+            %{ type: :input_stream, input_id: "input_1" },
+            %{ type: :input_stream, input_id: "input_2" }
           ]
         }
       }

@@ -86,7 +86,7 @@ guide in the ["Configure inputs and output"](./quick-start.md#configure-inputs-a
               // highlight-start
               width: 480,
               // highlight-end
-              child: %{ type: :input_stream, input_id: :input_1 },
+              child: %{ type: :input_stream, input_id: "input_1" },
             }
           ]
         }
@@ -109,7 +109,7 @@ guide in the ["Configure inputs and output"](./quick-start.md#configure-inputs-a
               width: 1280,
               transition: %{ duration_ms: 2000 },
               // highlight-end
-              child: %{ type: :input_stream, input_id: :input_1 },
+              child: %{ type: :input_stream, input_id: "input_1" },
             }
           ]
         }
@@ -213,11 +213,11 @@ Add a second input stream wrapped with `Rescaler`, but without any transition op
               // highlight-start
               width: 480,
               // highlight-end
-              child: %{ type: :input_stream, input_id: :input_1 },
+              child: %{ type: :input_stream, input_id: "input_1" },
             },
             %{
               type: :rescaler,
-              child: %{ type: :input_stream, input_id: :input_2 },
+              child: %{ type: :input_stream, input_id: "input_2" },
             }
           ]
         }
@@ -240,11 +240,11 @@ Add a second input stream wrapped with `Rescaler`, but without any transition op
               width: 1280,
               transition: %{ duration_ms: 2000 },
               // highlight-end
-              child: %{ type: :input_stream, input_id: :input_1 },
+              child: %{ type: :input_stream, input_id: "input_1" },
             },
             %{
               type: :rescaler,
-              child: %{ type: :input_stream, input_id: :input_2 },
+              child: %{ type: :input_stream, input_id: "input_2" },
             }
           ]
         }
@@ -340,7 +340,7 @@ Let's try the same example as in the first scenario with a single input, but ins
               // highlight-start
               width: 480,
               // highlight-end
-              child: %{ type: :input_stream, input_id: :input_1 },
+              child: %{ type: :input_stream, input_id: "input_1" },
             }
           ]
         }
@@ -365,7 +365,7 @@ Let's try the same example as in the first scenario with a single input, but ins
               left: 0,
               transition: %{ duration_ms: 2000 },
               // highlight-end
-              child: %{ type: :input_stream, input_id: :input_1 },
+              child: %{ type: :input_stream, input_id: "input_1" },
             }
           ]
         }
@@ -502,13 +502,13 @@ modes available.
               type: :rescaler,
               id: "rescaler_1",
               width: 320, height: 180, top: 0, left: 0,
-              child: %{ type: :input_stream, input_id: :input_1 },
+              child: %{ type: :input_stream, input_id: "input_1" },
             },
             %{
               type: :rescaler,
               id: "rescaler_2",
               width: 320, height: 180, top: 0, left: 320,
-              child: %{ type: :input_stream, input_id: :input_2 },
+              child: %{ type: :input_stream, input_id: "input_2" },
             },
             %{
               type: :rescaler,
@@ -540,14 +540,14 @@ modes available.
               type: :rescaler,
               id: "rescaler_1",
               width: 320, height: 180, top: 0, left: 0,
-              child: %{ type: :input_stream, input_id: :input_1 },
+              child: %{ type: :input_stream, input_id: "input_1" },
               transition: %{ duration_ms: 2000 },
             },
             %{
               type: :rescaler,
               id: "rescaler_2",
               width: 320, height: 180, top: 0, left: 320,
-              child: %{ type: :input_stream, input_id: :input_2 },
+              child: %{ type: :input_stream, input_id: "input_2" },
               transition: %{
                 duration_ms: 2000
                 easing_function: %{ function_name: :bounce}

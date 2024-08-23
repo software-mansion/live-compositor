@@ -39,6 +39,11 @@ const sidebars: SidebarsConfig = {
           id: 'guides/view-transition',
           label: 'Transitions (View/Rescaler)',
         },
+        {
+          type: 'doc',
+          id: 'guides/offline-processing',
+          label: 'Offline Processing',
+        },
       ],
     },
     {
