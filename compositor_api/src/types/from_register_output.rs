@@ -113,11 +113,7 @@ impl TryFrom<Mp4Output> for pipeline::RegisterOutputOptions<output::OutputOption
     type Error = TypeError;
 
     fn try_from(request: Mp4Output) -> Result<Self, Self::Error> {
-        let Mp4Output {
-            path,
-            video,
-            audio,
-        } = request;
+        let Mp4Output { path, video, audio } = request;
 
         if video.is_none() && audio.is_none() {
             return Err(TypeError::new(

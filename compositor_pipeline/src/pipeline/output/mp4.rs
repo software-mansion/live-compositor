@@ -1,8 +1,4 @@
-use std::{
-    fs,
-    path::PathBuf,
-    ptr,
-};
+use std::{fs, path::PathBuf, ptr};
 
 use compositor_render::{event_handler::emit_event, OutputId};
 use crossbeam_channel::Receiver;
