@@ -2,9 +2,9 @@ use std::{fs, path::PathBuf, ptr};
 
 use compositor_render::{event_handler::emit_event, OutputId};
 use crossbeam_channel::Receiver;
-use ffmpeg_next::{self as ffmpeg};
+use ffmpeg_next as ffmpeg;
 use log::error;
-use tracing::debug;
+use tracing::{debug, warn};
 
 use crate::{
     audio_mixer::AudioChannels,
@@ -65,6 +65,11 @@ impl Mp4FileWriter {
                 old_index += 1;
             }
 
+            warn!(
+                "Output file {} already exists. Renaming to {}.",
+                options.output_path.to_string_lossy(),
+                new_path_for_old_file.to_string_lossy()
+            );
             if let Err(err) = fs::rename(options.output_path.clone(), new_path_for_old_file) {
                 error!("Failed to rename existing output file. Error: {}", err);
             };
