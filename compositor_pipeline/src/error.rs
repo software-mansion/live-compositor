@@ -1,5 +1,3 @@
-use std::io;
-
 use compositor_render::{
     error::{
         InitRendererEngineError, RegisterError, RegisterRendererError, RequestKeyframeError,
@@ -76,9 +74,6 @@ pub enum OutputInitError {
 
     #[error("Failed to register output. All ports in range {lower_bound} to {upper_bound} are already used or not available.")]
     AllPortsAlreadyInUse { lower_bound: u16, upper_bound: u16 },
-
-    #[error("Failed to overwrite existing output file. Error: {0}.")]
-    Mp4OverwriteError(io::Error),
 
     #[error("Path {path} already exist. Can't create a new mp4 file under that path.")]
     Mp4PathExist { path: String },
