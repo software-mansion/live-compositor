@@ -17,7 +17,7 @@ const sidebars: SidebarsConfig = {
         {
           type: 'doc',
           id: 'guides/quick-start',
-          label: 'Quick start',
+          label: 'Quick Start',
         },
         {
           type: 'doc',

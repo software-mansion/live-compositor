@@ -1,11 +1,13 @@
 use std::path::PathBuf;
 
 use basic_layouts::generate_basic_layouts_guide;
+use offline_processing::generate_offline_processing_guide;
 use quick_start::generate_quick_start_guide;
 use transition::generate_tile_transition_video;
 use view_transitions::generate_view_transition_guide;
 
 mod basic_layouts;
+mod offline_processing;
 mod quick_start;
 mod transition;
 mod view_transitions;
@@ -13,8 +15,9 @@ mod view_transitions;
 fn main() {
     generate_quick_start_guide().unwrap();
     generate_basic_layouts_guide().unwrap();
-    generate_tile_transition_video().unwrap();
     generate_view_transition_guide().unwrap();
+    generate_offline_processing_guide().unwrap();
+    generate_tile_transition_video().unwrap();
 }
 
 fn workingdir() -> PathBuf {
