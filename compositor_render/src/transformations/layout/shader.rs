@@ -1,7 +1,5 @@
 use std::sync::Arc;
 
-use wgpu::ShaderStages;
-
 use crate::wgpu::{
     common_pipeline::{self, CreateShaderError, Sampler},
     texture::{NodeTexture, NodeTextureState},
@@ -97,7 +95,7 @@ impl LayoutShader {
                 render_pass.set_pipeline(&self.pipeline);
 
                 render_pass.set_push_constants(
-                    ShaderStages::VERTEX_FRAGMENT,
+                    wgpu::ShaderStages::VERTEX_FRAGMENT,
                     0,
                     &(layout_id as u32).to_le_bytes(),
                 );

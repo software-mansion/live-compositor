@@ -11,6 +11,17 @@ pub(super) struct LayoutNodeParams {
     pub(super) background_color: RGBAColor,
 }
 
+impl LayoutNodeParams {
+    pub fn empty() -> Self {
+        Self {
+            transform_vertices_matrix: Mat4::identity(),
+            transform_texture_coords_matrix: Mat4::identity(),
+            is_texture: 0,
+            background_color: RGBAColor(0, 0, 0, 0),
+        }
+    }
+}
+
 pub(super) struct ParamsBuffer {
     bind_group: wgpu::BindGroup,
     buffer: wgpu::Buffer,
@@ -19,11 +30,7 @@ pub(super) struct ParamsBuffer {
 
 impl ParamsBuffer {
     pub fn new(wgpu_ctx: &WgpuCtx, params: Vec<LayoutNodeParams>) -> Self {
-        let mut content = Self::shader_buffer_content(&params);
-        if content.is_empty() {
-            content = bytes::Bytes::copy_from_slice(&[0]);
-        }
-
+        let content = Self::shader_buffer_content(params);
         let buffer = wgpu_ctx
             .device
             .create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -55,18 +62,14 @@ impl ParamsBuffer {
     }
 
     pub fn update(&mut self, params: Vec<LayoutNodeParams>, wgpu_ctx: &WgpuCtx) {
-        let content = Self::shader_buffer_content(&params);
-        if self.content.len() != content.len() {
-            *self = Self::new(wgpu_ctx, params);
-            return;
-        }
-
+        let content = Self::shader_buffer_content(params);
         if self.content != content {
             wgpu_ctx.queue.write_buffer(&self.buffer, 0, &content);
         }
     }
 
-    fn shader_buffer_content(params: &[LayoutNodeParams]) -> bytes::Bytes {
+    fn shader_buffer_content(mut params: Vec<LayoutNodeParams>) -> bytes::Bytes {
+        params.resize_with(100, LayoutNodeParams::empty);
         params
             .iter()
             .map(LayoutNodeParams::shader_buffer_content)
@@ -93,7 +96,6 @@ impl LayoutNodeParams {
         result[64..128].copy_from_slice(bytemuck::bytes_of(
             &transform_texture_coords_matrix.transpose(),
         ));
-        // 12 bytes padding
         result[128..132].copy_from_slice(&from_u8_color(background_color.0));
         result[132..136].copy_from_slice(&from_u8_color(background_color.1));
         result[136..140].copy_from_slice(&from_u8_color(background_color.2));

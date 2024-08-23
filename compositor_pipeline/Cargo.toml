@@ -9,7 +9,7 @@ license = "BUSL-1.1"
 decklink = ["dep:decklink"]
 
 [dependencies]
-compositor_render = { path = "../compositor_render" }
+compositor_render = { workspace = true }
 bytes = { workspace = true }
 crossbeam-channel = { workspace = true }
 anyhow = "1.0.71"

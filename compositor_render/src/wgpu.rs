@@ -14,6 +14,7 @@ pub use wgpu::Features as WgpuFeatures;
 pub(crate) struct WgpuErrorScope;
 
 impl WgpuErrorScope {
+    #[cfg(not(target_arch = "wasm32"))]
     pub(crate) fn push(device: &wgpu::Device) -> Self {
         device.push_error_scope(wgpu::ErrorFilter::Validation);
         device.push_error_scope(wgpu::ErrorFilter::OutOfMemory);
@@ -21,6 +22,12 @@ impl WgpuErrorScope {
         Self
     }
 
+    #[cfg(target_arch = "wasm32")]
+    pub(crate) fn push(device: &wgpu::Device) -> Self {
+        Self
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
     pub(crate) fn pop(self, device: &wgpu::Device) -> Result<(), WgpuError> {
         for _ in 0..2 {
             if let Some(error) = pollster::block_on(device.pop_error_scope()) {
@@ -28,6 +35,11 @@ impl WgpuErrorScope {
             }
         }
 
+        Ok(())
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    pub(crate) fn pop(self, device: &wgpu::Device) -> Result<(), WgpuError> {
         Ok(())
     }
 }

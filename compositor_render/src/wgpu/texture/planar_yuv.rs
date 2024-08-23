@@ -85,6 +85,7 @@ impl PlanarYuvTextures {
                 height: height as u32,
                 depth_or_array_layers: 1,
             },
+            // TODO(noituri): [WASM] Format unsupported on firefox
             wgpu::TextureFormat::R8Unorm,
             wgpu::TextureUsages::RENDER_ATTACHMENT
                 | wgpu::TextureUsages::COPY_DST
