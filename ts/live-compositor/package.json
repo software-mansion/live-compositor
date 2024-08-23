@@ -6,9 +6,10 @@
   "scripts": {
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "watch": "tsc --watch",
+    "watch": "tsc --watch --preserveWatchOutput",
     "build": "tsc",
-    "clean": "rimraf dist"
+    "clean": "rimraf dist",
+    "prepublishOnly": "npm run clean && npm run build"
   },
   "author": "",
   "license": "MIT",
@@ -16,6 +17,9 @@
     "url": "https://github.com/software-mansion/live-compositor/issues"
   },
   "homepage": "https://github.com/software-mansion/live-compositor",
+  "files": [
+    "/dist"
+  ],
   "devDependencies": {
     "@types/react": "^18.3.3"
   },
