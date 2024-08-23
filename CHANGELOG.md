@@ -6,8 +6,6 @@
 
 ### ✨ New features
 
-- Add `overwrite` option for MP4 output ([#684](https://github.com/software-mansion/live-compositor/pull/684) by [@WojciechBarczynski](https://github.com/WojciechBarczynski))
-
 ### 🐛 Bug fixes
 
 ## [v0.3.0](https://github.com/software-mansion/live-compositor/releases/tag/v0.3.0)
