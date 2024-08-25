@@ -9,6 +9,8 @@ import { ApiRequest, CompositorManager } from '@live-compositor/core';
 import { download, sendRequest } from '../fetch';
 import { retry, sleep } from '../utils';
 import { spawn } from '../spawn';
+import { WebSocketConnection } from '../ws';
+import { CompositorEvent } from 'live-compositor';
 
 const VERSION = `v0.3.0`;
 
@@ -25,11 +27,13 @@ class LocallySpawnedInstance implements CompositorManager {
   private port: number;
   private workingdir: string;
   private executablePath?: string;
+  private wsConnection: WebSocketConnection;
 
   constructor(opts: ManagedInstanceOptions) {
     this.port = opts.port;
     this.workingdir = opts.workingdir ?? path.join(os.tmpdir(), `live-compositor-${uuidv4()}`);
     this.executablePath = opts.executablePath;
+    this.wsConnection = new WebSocketConnection(`ws://127.0.0.1:${this.port}/ws`);
   }
 
   public static defaultManager(): LocallySpawnedInstance {
@@ -64,10 +68,16 @@ class LocallySpawnedInstance implements CompositorManager {
         route: '/status',
       });
     }, 10);
+
+    await this.wsConnection.connect();
   }
 
   public async sendRequest(request: ApiRequest): Promise<object> {
     return await sendRequest(`http://127.0.0.1:${this.port}`, request);
+  }
+
+  public registerEventListener(cb: (event: CompositorEvent) => void): void {
+    this.wsConnection.registerEventListener(cb);
   }
 }
 

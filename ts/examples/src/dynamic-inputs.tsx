@@ -9,9 +9,11 @@ function ExampleApp() {
   const id = useId();
   return (
     <Tiles id={id} transition={{ durationMs: 2000 }}>
-      {inputs.map(input => (
-        <InputTile key={input.inputId} inputId={input.inputId} />
-      ))}
+      {inputs
+        .filter(input => input.videoState === 'playing')
+        .map(input => (
+          <InputTile key={input.inputId} inputId={input.inputId} />
+        ))}
     </Tiles>
   );
 }
