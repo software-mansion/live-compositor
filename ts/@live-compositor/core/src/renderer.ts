@@ -13,8 +13,11 @@ export class LiveCompositorHostComponent {
     this.sceneBuilder = sceneBuilder;
   }
 
-  public scene(children: SceneComponent[]): Api.Component {
-    return this.sceneBuilder(this.props, children);
+  public scene(): Api.Component {
+    const children = this.children.map(child =>
+      typeof child === 'string' ? child : child.scene()
+    );
+    return this.sceneBuilder(this.props, groupTextComponents(children));
   }
 }
 
@@ -64,7 +67,9 @@ const HostConfig: Reconciler.HostConfig<
     return null;
   },
 
-  resetAfterCommit(_containerInfo: Container): void {},
+  resetAfterCommit(container: Container): void {
+    container.onUpdate();
+  },
 
   createInstance(
     type: Type,
@@ -176,16 +181,14 @@ const HostConfig: Reconciler.HostConfig<
     }
   },
 
-  createContainerChildSet(_container: Container) {
+  createContainerChildSet(_container: Container): ChildSet {
     return [];
   },
   appendChildToContainerChildSet(childSet: ChildSet, child: Instance | TextInstance) {
     childSet.push(child);
   },
   finalizeContainerChildren(_container: Container, _newChildren: (Instance | TextInstance)[]) {},
-  replaceContainerChildren(container: Container, _newChildren: (Instance | TextInstance)[]) {
-    container.onUpdate();
-  },
+  replaceContainerChildren(_container: Container, _newChildren: (Instance | TextInstance)[]) {},
 
   cloneHiddenInstance(
     _instance: Instance,
@@ -209,13 +212,9 @@ const CompositorRenderer = Reconciler(HostConfig);
 
 class Renderer {
   root: any;
-  onUpdateFn: (scene: SceneComponent[]) => void;
+  onUpdateFn: () => void;
 
-  constructor(
-    element: React.ReactElement,
-    onUpdate: (scene: SceneComponent[]) => void,
-    idPrefix: string
-  ) {
+  constructor(element: React.ReactElement, onUpdate: () => void, idPrefix: string) {
     const root = CompositorRenderer.createContainer(
       this, // container tag
       LegacyRoot,
@@ -232,34 +231,32 @@ class Renderer {
     CompositorRenderer.updateContainer(element, root, null, () => {});
   }
 
-  public scene(): SceneComponent[] {
-    return buildScene(this.root.current);
+  public scene(): Api.Component {
+    // When resetAfterCommit is called `this.root.current` is not updated yet, so we need to rely
+    // on `pendingChildren`. I'm not sure it is always populated, so there is a fallback to
+    // `root.current`.
+    const rootComponent = this.root.pendingChildren[0] ?? rootHostComponent(this.root.current);
+    return rootComponent.scene();
   }
 
   public onUpdate() {
-    this.onUpdateFn(this.scene());
+    this.onUpdateFn();
   }
 }
 
-function buildScene(root: any): SceneComponent[] {
-  const components: SceneComponent[] = [];
-
+function rootHostComponent(root: any): LiveCompositorHostComponent {
+  console.error('No pendingChildren found, this might be an error');
   let current = root;
   while (current) {
-    const stateNode = current?.stateNode;
-    const children = current.child ? buildScene(current.child) : [];
-    if (stateNode instanceof LiveCompositorHostComponent) {
-      components.push(stateNode.scene(children));
-    } else if (typeof stateNode === 'string') {
-      components.push(stateNode);
-    } else {
-      components.push(...children);
+    if (current?.stateNode instanceof LiveCompositorHostComponent) {
+      return current?.stateNode;
     }
-
-    current = current.sibling;
+    current = current.child;
   }
+  throw new Error('No live compositor host component found in the tree.');
+}
 
-  // concat raw strings
+function groupTextComponents(components: SceneComponent[]): SceneComponent[] {
   const groupedComponents: SceneComponent[] = [];
   let currentString: string | null = null;
   for (const component of components) {

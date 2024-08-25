@@ -1,6 +1,11 @@
 import path from 'path';
 import fs from 'fs-extra';
 import { ChildProcess, spawn as nodeSpawn } from 'child_process';
+import { promisify } from 'util';
+import { Stream } from 'stream';
+import fetch from 'node-fetch';
+
+const pipeline = promisify(Stream.pipeline);
 
 const TMP_SDP_DIR = '/tmp/live-compositor-examples';
 
@@ -109,4 +114,40 @@ export async function sleep(timeout_ms: number): Promise<void> {
       res();
     }, timeout_ms);
   });
+}
+
+const exampleAssets = [
+  {
+    path: 'BigBuckBunny.mp4',
+    url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+  },
+  {
+    path: 'ElephantsDream.mp4',
+    url: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+  },
+];
+
+export async function downloadAllAssets(): Promise<void> {
+  const downloadDir = path.join(__dirname, '../.assets');
+  await fs.mkdirp(downloadDir);
+
+  for (const asset of exampleAssets) {
+    if (!(await fs.pathExists(path.join(downloadDir, asset.path)))) {
+      await download(asset.url, path.join(downloadDir, asset.path));
+    }
+  }
+}
+
+async function download(url: string, destination: string): Promise<void> {
+  const response = await fetch(url, { method: 'GET' });
+  if (response.status >= 400) {
+    const err: any = new Error(`Request to ${url} failed. \n${response.body}`);
+    err.response = response;
+    throw err;
+  }
+  if (response.body) {
+    await pipeline(response.body, fs.createWriteStream(destination));
+  } else {
+    throw Error(`Response with empty body.`);
+  }
 }

@@ -116,7 +116,13 @@ function ExampleApp() {
   return (
     <View direction="column">
       <View bottom={0} left={0} height={60}>
-        <NewsTicker text={EXAMPLE_TEXTS} width={1920} durationMs={10_000} />
+        <NewsTicker text={EXAMPLE_TEXTS} width={1920} durationMs={3_000} />
+      </View>
+      <View bottom={100} left={0} height={60}>
+        <NewsTicker text={EXAMPLE_TEXTS} width={1920} durationMs={6_000} />
+      </View>
+      <View bottom={200} left={0} height={60}>
+        <NewsTicker text={EXAMPLE_TEXTS} width={1920} durationMs={9_000} />
       </View>
     </View>
   );
