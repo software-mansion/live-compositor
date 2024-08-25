@@ -1,10 +1,6 @@
 import * as Api from '../api';
 import { intoApiTransition, Transition } from './common';
-import LiveCompositorComponent, {
-  SceneBuilder,
-  SceneComponent,
-  sceneComponentIntoApi,
-} from '../component';
+import { createCompositorComponent, SceneComponent, sceneComponentIntoApi } from '../component';
 
 export type TilesProps = {
   /**
@@ -58,9 +54,7 @@ export type TilesProps = {
   transition?: Transition;
 };
 
-class Tiles extends LiveCompositorComponent<TilesProps> {
-  builder: SceneBuilder<TilesProps> = sceneBuilder;
-}
+const Tiles = createCompositorComponent<TilesProps>(sceneBuilder);
 
 function sceneBuilder(props: TilesProps, children: SceneComponent[]): Api.Component {
   return {

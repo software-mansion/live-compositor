@@ -1,9 +1,5 @@
 import * as Api from '../api';
-import LiveCompositorComponent, {
-  SceneBuilder,
-  SceneComponent,
-  sceneComponentIntoApi,
-} from '../component';
+import { createCompositorComponent, SceneComponent, sceneComponentIntoApi } from '../component';
 import { intoApiTransition, Transition } from './common';
 
 export type ViewProps = {
@@ -74,9 +70,7 @@ export type ViewProps = {
   backgroundColorRgba?: Api.RGBAColor;
 };
 
-class View extends LiveCompositorComponent<ViewProps> {
-  builder: SceneBuilder<ViewProps> = sceneBuilder;
-}
+const View = createCompositorComponent<ViewProps>(sceneBuilder);
 
 function sceneBuilder(props: ViewProps, children: SceneComponent[]): Api.Component {
   return {

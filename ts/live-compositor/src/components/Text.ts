@@ -1,5 +1,5 @@
 import * as Api from '../api';
-import LiveCompositorComponent, { SceneBuilder, SceneComponent } from '../component';
+import { createCompositorComponent, SceneComponent } from '../component';
 
 export type TextProps = {
   children?: (string | number)[] | string | number;
@@ -68,9 +68,7 @@ export type TextProps = {
   weight?: Api.TextWeight;
 };
 
-class Text extends LiveCompositorComponent<TextProps> {
-  builder: SceneBuilder<TextProps> = sceneBuilder;
-}
+const Text = createCompositorComponent<TextProps>(sceneBuilder);
 
 function sceneBuilder(props: TextProps, children: SceneComponent[]): Api.Component {
   return {

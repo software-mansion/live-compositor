@@ -1,5 +1,5 @@
 import * as Api from '../api';
-import LiveCompositorComponent, { SceneBuilder, SceneComponent } from '../component';
+import { createCompositorComponent, SceneComponent } from '../component';
 
 export type InputStreamProps = {
   children?: undefined;
@@ -14,9 +14,7 @@ export type InputStreamProps = {
   inputId: Api.InputId;
 };
 
-class InputStream extends LiveCompositorComponent<InputStreamProps> {
-  builder: SceneBuilder<InputStreamProps> = sceneBuilder;
-}
+const InputStream = createCompositorComponent<InputStreamProps>(sceneBuilder);
 
 function sceneBuilder(props: InputStreamProps, _children: SceneComponent[]): Api.Component {
   return {

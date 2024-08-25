@@ -1,9 +1,5 @@
 import * as Api from '../api';
-import LiveCompositorComponent, {
-  SceneBuilder,
-  SceneComponent,
-  sceneComponentIntoApi,
-} from '../component';
+import { createCompositorComponent, SceneComponent, sceneComponentIntoApi } from '../component';
 
 export type ShaderProps = {
   /**
@@ -57,9 +53,7 @@ export type ShaderParamStructField =
       fieldName: string;
     };
 
-class Shader extends LiveCompositorComponent<ShaderProps> {
-  builder: SceneBuilder<ShaderProps> = sceneBuilder;
-}
+const Shader = createCompositorComponent<ShaderProps>(sceneBuilder);
 
 function sceneBuilder(props: ShaderProps, children: SceneComponent[]): Api.Component {
   return {
