@@ -1,9 +1,7 @@
 export type InputStreamInfo = {
   inputId: string;
-  // TODO: add input stream state
-  // state: 'registered' | 'playing' | 'finished';
-
-  // TODO: add input type (maybe other options too)
+  videoState?: 'ready' | 'playing' | 'finished';
+  audioState?: 'ready' | 'playing' | 'finished';
 };
 
 type Context = {
@@ -17,10 +15,20 @@ export class ContextStore {
   private onChangeCallbacks: Set<() => void> = new Set();
 
   public addInput(input: InputStreamInfo) {
-    this.context = {
-      ...this.context,
-      inputs: [...this.context.inputs, input],
-    };
+    const inputs = [...this.context.inputs, input];
+    this.context = { ...this.context, inputs };
+    this.signalUpdate();
+  }
+
+  public updateInput(update: Partial<InputStreamInfo>) {
+    const inputs = this.context.inputs.map(input =>
+      input.inputId === update.inputId ? { ...input, ...update } : input
+    );
+    this.context = { ...this.context, inputs };
+    this.signalUpdate();
+  }
+
+  private signalUpdate() {
     for (const cb of this.onChangeCallbacks) {
       cb();
     }

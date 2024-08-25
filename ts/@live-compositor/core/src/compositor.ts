@@ -4,10 +4,11 @@ import Output from './output';
 import { CompositorManager } from './compositorManager';
 import { intoRegisterOutput } from './api/output';
 import { intoRegisterInput } from './api/input';
+import { onCompositorEvent } from './event';
 
 export async function createLiveCompositor(manager: CompositorManager): Promise<LiveCompositor> {
   const compositor = new LiveCompositor(manager);
-  await compositor['manager'].setupInstance();
+  await compositor['setupInstance']();
   return compositor;
 }
 
@@ -20,6 +21,11 @@ export class LiveCompositor {
   public constructor(manager: CompositorManager) {
     this.manager = manager;
     this.api = new ApiClient(this.manager);
+  }
+
+  private async setupInstance() {
+    this.manager.registerEventListener((event: unknown) => onCompositorEvent(this.store, event));
+    await this.manager.setupInstance();
   }
 
   public async registerOutput(outputId: string, request: RegisterOutput): Promise<object> {
