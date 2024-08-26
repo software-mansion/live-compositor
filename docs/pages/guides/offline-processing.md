@@ -4,9 +4,9 @@ import OfflineProcessingResult from "./assets/offline_processing.webp"
 
 # Offline Processing
 
-This guide will explain how to use LiveCompositor for non-real-time use cases.
+This guide will explain how to use LiveCompositor in non-real-time cases.
 
-By `offline processing` we mean processing in which output produced by LiveCompositor is not synchronized with a real-time clock. 
+By `offline processing`, we mean processing in which outputs produced by LiveCompositor are not synchronized with a real-time clock. 
 
 ## Differences overview
 
@@ -18,7 +18,7 @@ There are a few differences in LiveCompositor configuration for `offline` and `l
   1. To enable offline processing, the [`LIVE_COMPOSITOR_OFFLINE_PROCESSING_ENABLE`](../deployment/configuration.md#live_compositor_offline_processing_enable) environment variable should be set to `true`.
   2. [`start request`](../api/routes.md#start-request) should be sent **after** registering all assets/inputs/outputs and sending all scheduled update/unregister requests.
   3. To avoid missing frames on inputs, register them with the `required` parameter set to `true` and `offset_ms` set to the appropriate value (if you want to start rendering input at the beginning of the output use `0`). 
-  It's recommended to use MP4 as input/output protocol for non-real-time use cases. 
+  It's recommended that MP4 be used as an input/output protocol for non-real-time use cases.
   If you want to use RTP, TCP is a preferred transport protocol, as it implements flow-control mechanisms.
   4. You can use a better `video.encoder.preset` option in [output register request](../api/routes.md#register-output). This option has the highest impact on output quality and performance. In offline processing LiveCompositor doesn't drop output frames when processing is slower than real-time, so you can safely choose slower presets.
   5. `schedule_time_ms` should be used in [update output requests](../api/routes.md#update-output) to achieve frame-perfect updates.
@@ -298,7 +298,7 @@ We will configure the output to simply:
 
 ### Schedule update output to show both inputs
 
-We are going to schedule output update 5s after the begging and configure it to:
+We are going to schedule output update 5s after the beginning and configure it to:
 - Show both inputs side-by-side using the [`Tiles`](../api/components/Tiles.md) component.
 - Mix audio from both inputs, where `input_2` volume is reduced to 35% of the original volume.
 
