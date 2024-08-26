@@ -21,7 +21,8 @@ pub(super) fn generate_offline_processing_guide() -> Result<()> {
             "video": {
                 "decoder": "ffmpeg_h264"
             },
-            "required": true
+            "required": true,
+            "offset_ms": 0
         }),
     )?;
 
@@ -57,7 +58,7 @@ pub(super) fn generate_offline_processing_guide() -> Result<()> {
                 "initial": {
                     "root": {
                         "type": "rescaler",
-                        "children": [{
+                        "child": [{
                             "type": "input_stream",
                             "input_id": "input_1"
                         }]
@@ -66,15 +67,6 @@ pub(super) fn generate_offline_processing_guide() -> Result<()> {
             },
         }),
     )?;
-
-    PacketSender::new(input_1_port)
-        .unwrap()
-        .send(&fs::read(workingdir().join("input_1.rtp")).unwrap())
-        .unwrap();
-    PacketSender::new(input_2_port)
-        .unwrap()
-        .send(&fs::read(workingdir().join("input_2.rtp")).unwrap())
-        .unwrap();
 
     instance.send_request(
         "output/output_1/update",
@@ -97,6 +89,15 @@ pub(super) fn generate_offline_processing_guide() -> Result<()> {
             "schedule_time_ms": 10_000,
         }),
     )?;
+
+    PacketSender::new(input_1_port)
+        .unwrap()
+        .send(&fs::read(workingdir().join("input_1.rtp")).unwrap())
+        .unwrap();
+    PacketSender::new(input_2_port)
+        .unwrap()
+        .send(&fs::read(workingdir().join("input_2.rtp")).unwrap())
+        .unwrap();
 
     let path = pages_dir()
         .join("guides")
