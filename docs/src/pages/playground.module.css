@@ -24,6 +24,8 @@
   min-width: 300px;
   min-height: 120px;
   justify-content: center;
+  border: solid;
+  border-color: grey;
 }
 
 .preview,
