@@ -1,8 +1,6 @@
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
-
-import QuickStartPassThrough from "./assets/basic_layouts_3.webp"
-import QuickStartTiles from "./assets/basic_layouts_4.webp"
+import OfflineProcessingResult from "./assets/offline_processing.webp"
 
 # Offline Processing
 
@@ -233,7 +231,7 @@ We will configure the output to simply:
         "initial": {
           "root": {
             "type": "rescaler",
-            "children": [{
+            "child": [{
               "type": "input_stream",
               "input_id": "input_1"
             }]
@@ -270,7 +268,7 @@ We will configure the output to simply:
           initial: %{
             root: {
               type: :rescaler,
-              children: [{
+              child: [{
                 type: :input_stream,
                 input_id: "input_1"
               }]
@@ -521,3 +519,8 @@ We are going to schedule output update 5s after the begging and configure it to:
     LiveCompositor bin starts composing automatically after spawning, so it's important to register all inputs/outputs and register all updates in [`handle_init`](https://hexdocs.pm/membrane_core/Membrane.Pipeline.html#c:handle_init/2) or [`handle_setup`](https://hexdocs.pm/membrane_core/Membrane.Pipeline.html#c:handle_setup/2) callbacks - before spawned bin will start processing buffers.
   </TabItem>
 </Tabs>
+
+<div style={{textAlign: 'center'}}>
+    <img src={OfflineProcessingResult} style={{ width: 600 }} />
+    Output MP4 video
+</div>
