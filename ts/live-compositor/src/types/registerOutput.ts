@@ -19,24 +19,24 @@ export type RegisterRtpOutput = {
   /**
    * (**default=`"udp"`**) Transport layer protocol that will be used to send RTP packets.
    */
-  transportProtocol?: Api.TransportProtocol | null;
+  transportProtocol?: Api.TransportProtocol;
   video?: OutputRtpVideoOptions;
   audio?: OutputRtpAudioOptions;
 };
 
 export type RegisterMp4Output = {
   /**
-   * Path to output MP4 file.
+   * Path to output MP4 file (location on the server where LiveCompositor server is deployed).
    */
-  path: string;
+  serverPath: string;
   /**
    * Video track configuration.
    */
-  video?: OutputMp4VideoOptions | null;
+  video?: OutputMp4VideoOptions;
   /**
    * Audio track configuration.
    */
-  audio?: OutputMp4AudioOptions | null;
+  audio?: OutputMp4AudioOptions;
 };
 
 export type OutputRtpVideoOptions = {
@@ -142,12 +142,6 @@ export type RtpAudioEncoderOptions = {
    * (**default="voip"**) Specifies preset for audio output encoder.
    */
   preset?: Api.OpusEncoderPreset;
-  /**
-   * (**default=`false`**) Specifies whether the stream use forward error correction.
-   * It's specific for Opus codec.
-   * For more information, check out [RFC](https://datatracker.ietf.org/doc/html/rfc6716#section-2.1.7).
-   */
-  forwardErrorCorrection?: boolean;
 };
 
 export type Mp4AudioEncoderOptions = {

@@ -33,7 +33,7 @@ function intoRegisterMp4Output(
 ): Api.RegisterOutput {
   return {
     type: 'mp4',
-    path: output.path,
+    path: output.serverPath,
     video: output.video && initialVideo && intoOutputVideoOptions(output.video, initialVideo),
     audio: output.audio && intoOutputMp4AudioOptions(output.audio),
   };

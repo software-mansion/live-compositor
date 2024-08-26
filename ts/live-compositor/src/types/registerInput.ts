@@ -40,9 +40,9 @@ export type RegisterMp4Input = {
    */
   url?: string | null;
   /**
-   * Path to the MP4 file.
+   * Path to the MP4 file (location on the server where LiveCompositor server is deployed).
    */
-  path?: string | null;
+  serverPath?: string | null;
   /**
    * (**default=`false`**) If input is required and frames are not processed
    * on time, then LiveCompositor will delay producing output frames.
