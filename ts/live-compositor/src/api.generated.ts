@@ -141,25 +141,47 @@ export type InputRtpAudioOptions =
       rtp_mode?: AacRtpMode | null;
     };
 export type AacRtpMode = "low_bitrate" | "high_bitrate";
-export type RegisterOutput = {
-  type: "rtp_stream";
-  /**
-   * Depends on the value of the `transport_protocol` field:
-   * - `udp` - An UDP port number that RTP packets will be sent to.
-   * - `tcp_server` - A local TCP port number or a port range that LiveCompositor will listen for incoming connections.
-   */
-  port: PortOrPortRange;
-  /**
-   * Only valid if `transport_protocol="udp"`. IP address where RTP packets should be sent to.
-   */
-  ip?: string | null;
-  /**
-   * (**default=`"udp"`**) Transport layer protocol that will be used to send RTP packets.
-   */
-  transport_protocol?: TransportProtocol | null;
-  video?: OutputRtpVideoOptions | null;
-  audio?: OutputRtpAudioOptions | null;
-};
+export type RegisterOutput =
+  | {
+      type: "rtp_stream";
+      /**
+       * Depends on the value of the `transport_protocol` field:
+       * - `udp` - An UDP port number that RTP packets will be sent to.
+       * - `tcp_server` - A local TCP port number or a port range that LiveCompositor will listen for incoming connections.
+       */
+      port: PortOrPortRange;
+      /**
+       * Only valid if `transport_protocol="udp"`. IP address where RTP packets should be sent to.
+       */
+      ip?: string | null;
+      /**
+       * (**default=`"udp"`**) Transport layer protocol that will be used to send RTP packets.
+       */
+      transport_protocol?: TransportProtocol | null;
+      /**
+       * Video stream configuration.
+       */
+      video?: OutputVideoOptions | null;
+      /**
+       * Audio stream configuration.
+       */
+      audio?: OutputRtpAudioOptions | null;
+    }
+  | {
+      type: "mp4";
+      /**
+       * Path to output MP4 file.
+       */
+      path: string;
+      /**
+       * Video track configuration.
+       */
+      video?: OutputVideoOptions | null;
+      /**
+       * Audio track configuration.
+       */
+      audio?: OutputMp4AudioOptions | null;
+    };
 export type InputId = string;
 export type VideoEncoderOptions = {
   type: "ffmpeg_h264";
@@ -624,8 +646,11 @@ export type AspectRatio = string;
 export type VerticalAlign = "top" | "center" | "bottom" | "justified";
 export type RescaleMode = "fit" | "fill";
 export type MixingStrategy = "sum_clip" | "sum_scale";
-export type AudioEncoderOptions = {
+export type RtpAudioEncoderOptions = {
   type: "opus";
+  /**
+   * Specifies channels configuration.
+   */
   channels: AudioChannels;
   /**
    * (**default="voip"**) Specifies preset for audio output encoder.
@@ -634,6 +659,10 @@ export type AudioEncoderOptions = {
 };
 export type AudioChannels = "mono" | "stereo";
 export type OpusEncoderPreset = "quality" | "voip" | "lowest_latency";
+export type Mp4AudioEncoderOptions = {
+  type: "aac";
+  channels: AudioChannels;
+};
 export type ImageSpec =
   | {
       asset_type: "png";
@@ -661,7 +690,7 @@ export type WebEmbeddingMethod =
   | "native_embedding_over_content"
   | "native_embedding_under_content";
 
-export interface OutputRtpVideoOptions {
+export interface OutputVideoOptions {
   /**
    * Output resolution in pixels.
    */
@@ -740,7 +769,7 @@ export interface OutputRtpAudioOptions {
   /**
    * Audio encoder options.
    */
-  encoder: AudioEncoderOptions;
+  encoder: RtpAudioEncoderOptions;
   /**
    * Initial audio mixer configuration for output.
    */
@@ -755,6 +784,24 @@ export interface InputAudio {
    * (**default=`1.0`**) float in `[0, 1]` range representing input volume
    */
   volume?: number | null;
+}
+export interface OutputMp4AudioOptions {
+  /**
+   * (**default="sum_clip"**) Specifies how audio should be mixed.
+   */
+  mixing_strategy?: MixingStrategy | null;
+  /**
+   * Condition for termination of output stream based on the input streams states.
+   */
+  send_eos_when?: OutputEndCondition | null;
+  /**
+   * Audio encoder options.
+   */
+  encoder: Mp4AudioEncoderOptions;
+  /**
+   * Initial audio mixer configuration for output.
+   */
+  initial: Audio;
 }
 export interface WebRendererSpec {
   /**

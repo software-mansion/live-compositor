@@ -1,7 +1,9 @@
 import React from 'react';
 import * as Api from '../api';
 
-export type RegisterOutput = { type: 'rtp_stream' } & RegisterRtpOutput;
+export type RegisterOutput =
+  | ({ type: 'rtp_stream' } & RegisterRtpOutput)
+  | ({ type: 'mp4' } & RegisterMp4Output);
 
 export type RegisterRtpOutput = {
   /**
@@ -22,6 +24,21 @@ export type RegisterRtpOutput = {
   audio?: OutputRtpAudioOptions;
 };
 
+export type RegisterMp4Output = {
+  /**
+   * Path to output MP4 file.
+   */
+  path: string;
+  /**
+   * Video track configuration.
+   */
+  video?: OutputMp4VideoOptions | null;
+  /**
+   * Audio track configuration.
+   */
+  audio?: OutputMp4AudioOptions | null;
+};
+
 export type OutputRtpVideoOptions = {
   /**
    * Output resolution in pixels.
@@ -34,12 +51,41 @@ export type OutputRtpVideoOptions = {
   /**
    * Video encoder options.
    */
-  encoder: VideoEncoderOptions;
+  encoder: RtpVideoEncoderOptions;
 
   root: React.ReactElement;
 };
 
-export type VideoEncoderOptions = {
+export type OutputMp4VideoOptions = {
+  /**
+   * Output resolution in pixels.
+   */
+  resolution: Api.Resolution;
+  /**
+   * Defines when output stream should end if some of the input streams are finished. If output includes both audio and video streams, then EOS needs to be sent on both.
+   */
+  sendEosWhen?: OutputEndCondition;
+  /**
+   * Video encoder options.
+   */
+  encoder: Mp4VideoEncoderOptions;
+
+  root: React.ReactElement;
+};
+
+export type RtpVideoEncoderOptions = {
+  type: 'ffmpeg_h264';
+  /**
+   * (**default=`"fast"`**) Preset for an encoder. See `FFmpeg` [docs](https://trac.ffmpeg.org/wiki/Encode/H.264#Preset) to learn more.
+   */
+  preset: Api.H264EncoderPreset;
+  /**
+   * Raw FFmpeg encoder options. See [docs](https://ffmpeg.org/ffmpeg-codecs.html) for more.
+   */
+  ffmpegOptions?: Api.VideoEncoderOptions['ffmpeg_options'];
+};
+
+export type Mp4VideoEncoderOptions = {
   type: 'ffmpeg_h264';
   /**
    * (**default=`"fast"`**) Preset for an encoder. See `FFmpeg` [docs](https://trac.ffmpeg.org/wiki/Encode/H.264#Preset) to learn more.
@@ -63,14 +109,33 @@ export type OutputRtpAudioOptions = {
   /**
    * Audio encoder options.
    */
-  encoder: AudioEncoderOptions;
+  encoder: RtpAudioEncoderOptions;
   /**
    * Initial audio mixer configuration for output.
    */
   initial: AudioInputsConfiguration;
 };
 
-export type AudioEncoderOptions = {
+export interface OutputMp4AudioOptions {
+  /**
+   * (**default="sum_clip"**) Specifies how audio should be mixed.
+   */
+  mixingStrategy?: Api.MixingStrategy | null;
+  /**
+   * Condition for termination of output stream based on the input streams states.
+   */
+  sendEosWhen?: OutputEndCondition | null;
+  /**
+   * Audio encoder options.
+   */
+  encoder: Mp4AudioEncoderOptions;
+  /**
+   * Initial audio mixer configuration for output.
+   */
+  initial: AudioInputsConfiguration;
+}
+
+export type RtpAudioEncoderOptions = {
   type: 'opus';
   channels: Api.AudioChannels;
   /**
@@ -83,6 +148,11 @@ export type AudioEncoderOptions = {
    * For more information, check out [RFC](https://datatracker.ietf.org/doc/html/rfc6716#section-2.1.7).
    */
   forwardErrorCorrection?: boolean;
+};
+
+export type Mp4AudioEncoderOptions = {
+  type: 'aac';
+  channels: Api.AudioChannels;
 };
 
 export type OutputEndCondition =
