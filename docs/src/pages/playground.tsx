@@ -1,13 +1,14 @@
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import Layout from '@theme/Layout';
-
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
 import 'react-tooltip/dist/react-tooltip.css';
 import { ApiError, renderImage } from '../api';
 import PlaygroundCodeEditor from '../components/PlaygroundCodeEditor';
 import PlaygroundPreview from '../components/PlaygroundPreview';
+import PlaygroundReactEditor from '../components/PlaygroundReactEditor';
 import PlaygroundSettings from '../components/PlaygroundSettings';
+import executeTypescriptCode from '../executeTypescriptCode';
 import {
   InputResolution,
   inputResolutionsToResolutions,
@@ -67,8 +68,27 @@ const INITIAL_SCENE = {
   ],
 };
 
+const INITIAL_REACT_CODE = [
+  "import React from 'react';\n",
+
+  'function View() {',
+  '    return null;',
+  '}',
+  'function a(): JSX.Element {',
+  '    return (',
+  '        <div>',
+  '            <View/>',
+  '        </div>',
+  '    )',
+  '}',
+  'console.log(a());',
+  'console.log("Hello");',
+].join('\n');
+
 function Homepage() {
   const [scene, setScene] = useState<object | Error>(INITIAL_SCENE);
+  const [code, setCode] = useState<string>(INITIAL_REACT_CODE);
+  const [showReactEditor, setShowReactEditor] = useState<boolean>(false);
   const [inputResolutions, setInputResolutions] = useState<InputsSettings>({
     input_1: InputResolution.Resoultion1920x1080,
     input_2: InputResolution.Resoultion1920x1080,
@@ -98,18 +118,22 @@ function Homepage() {
 
   const handleSubmit = async (): Promise<void> => {
     try {
-      if (scene instanceof Error) {
-        throw new Error(`${scene.name};\n${scene.message}`);
-      }
-      const request = {
-        scene: scene,
-        inputs: inputResolutionsToResolutions(inputResolutions),
-        output: inputResolutionToResolution(outputResolution),
-      };
-      const blob = await renderImage({ ...request });
-      const imageObjectURL = URL.createObjectURL(blob);
+      if (showReactEditor) {
+        await executeTypescriptCode(code);
+      } else {
+        if (scene instanceof Error) {
+          throw new Error(`${scene.name};\n${scene.message}`);
+        }
+        const request = {
+          scene: scene,
+          inputs: inputResolutionsToResolutions(inputResolutions),
+          output: inputResolutionToResolution(outputResolution),
+        };
+        const blob = await renderImage({ ...request });
+        const imageObjectURL = URL.createObjectURL(blob);
 
-      setResponseData({ imageUrl: imageObjectURL, errorMessage: '' });
+        setResponseData({ imageUrl: imageObjectURL, errorMessage: '' });
+      }
     } catch (error: any) {
       let errorDescription;
       if (error instanceof ApiError && !error.response) {
@@ -122,11 +146,20 @@ function Homepage() {
     }
   };
 
+  useEffect(() => {
+    const ifReactMode = new URLSearchParams(window.location.search).get('mode') === 'react';
+    setShowReactEditor(ifReactMode);
+  }, []);
+
   return (
     <div className={styles.page}>
       <div className={styles.leftSide}>
         <div className={styles.codeEditorBox}>
-          <PlaygroundCodeEditor onChange={setScene} initialCodeEditorContent={INITIAL_SCENE} />
+          {showReactEditor ? (
+            <PlaygroundReactEditor code={code} onCodeChange={setCode} />
+          ) : (
+            <PlaygroundCodeEditor onChange={setScene} initialCodeEditorContent={INITIAL_SCENE} />
+          )}
         </div>
       </div>
       <div className={styles.rightSide}>
@@ -136,7 +169,7 @@ function Homepage() {
         <div className={styles.settingsBox}>
           <PlaygroundSettings
             onSubmit={handleSubmit}
-            readyToSubmit={!(scene instanceof Error)}
+            readyToSubmit={!(scene instanceof Error) || showReactEditor}
             onInputResolutionChange={updateInputResolutions}
             onOutputResolutionChange={(resolution: InputResolution) => {
               setOutputResolution(resolution);

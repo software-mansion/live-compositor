@@ -47,14 +47,15 @@
 
 
 .cardsContainer {
-    display: flex;
-    flex-wrap: wrap;
+    /* display: flex;
+    flex-wrap: wrap; */
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     justify-content: center;
   }
 
 .card {
-    flex: 1;
-    min-width: 180px;
+    min-width: 300px;
     margin: 10px;
     padding: 10px;
     border-width: 1px;
@@ -96,14 +97,19 @@
 }
 
 
+.bottomContainer {
+    width: 100%;
+    position: absolute;
+    padding: 10px;
+    bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
 .outputResolutionsContainer {
     display: flex;
     align-items: center;
-    justify-content: center;
-    margin: 10px;
-    border-width: 1px 0 1px 0;
-    border-style: solid;
-    border-color: var(--ifm-color-emphasis-200);
     padding: 20px 0 20px 0;
 }
 
@@ -119,16 +125,6 @@
     border: 1px solid var(--ifm-color-emphasis-200);
     border-radius: 10px;
     background-color: var(--ifm-card-background-color);
-}
-
-
-.submitButtonContainer {
-    width: 100%;
-    position: absolute;
-    right: 20px;
-    bottom: 20px;
-    display: flex;
-    justify-content: end;
 }
 
 .submitButton {
@@ -156,9 +152,11 @@
     box-shadow: 0 0 0 0;
 }
 
-@media only screen and (max-width:1236px) {
+@media only screen and (max-width:1340px) {
+    .cardsContainer {
+        grid-template-columns: 1fr;
+    }
     .card {
-        width: 100%;
         margin: 5px
     }
     .cardSubtitle {
@@ -167,23 +165,10 @@
     .cardTitle {
         font-size: 16px;
     }
-    .outputResolutionsContainer {
-        margin: 5px;
-        padding: 10px 0 10px 0;
-    }
-}
-
-
-@media only screen and (max-width:660px) {
-    .submitButtonContainer {
-        margin-top: 10px;
-        margin-bottom: 60px;
+    .bottomContainer {
         position: static;
-        margin-bottom: 15px;
-        justify-content: center;
-    }
-    .submitButton {
-        width: 100%;
+        flex-direction: column;
+        padding: 0;
     }
 
 }

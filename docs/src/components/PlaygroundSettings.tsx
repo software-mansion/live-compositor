@@ -25,10 +25,6 @@ export default function PlaygroundSettings({
 
   return (
     <div className={styles.settingsPanel}>
-      <div className={styles.submitButtonContainer}>
-        <SubmitButton onSubmit={onSubmit} readyToSubmit={readyToSubmit} />
-      </div>
-
       <div className={styles.settings}>
         <div className={styles.cardsContainer}>
           <Card
@@ -49,7 +45,6 @@ export default function PlaygroundSettings({
             onClick={() => setInputsSettingsModalOpen(true)}
           />
         </div>
-        <OutputResolution handleSettingsUpdate={onOutputResolutionChange} />
       </div>
 
       <ReactModal
@@ -63,6 +58,11 @@ export default function PlaygroundSettings({
           inputsSettings={inputsSettings}
         />
       </ReactModal>
+
+      <div className={styles.bottomContainer}>
+        <OutputResolution handleSettingsUpdate={onOutputResolutionChange} />
+        <SubmitButton onSubmit={onSubmit} readyToSubmit={readyToSubmit} />
+      </div>
     </div>
   );
 }
