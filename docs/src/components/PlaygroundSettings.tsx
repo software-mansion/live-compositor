@@ -2,14 +2,14 @@ import clsx from 'clsx';
 import { useState } from 'react';
 import ReactModal from 'react-modal';
 import { Tooltip } from 'react-tooltip';
-import { InputResolution, InputsSettings } from '../resolution';
+import { InputResolution, InputsSettings, Resolution } from '../resolution';
 import styles from './PlaygroundSettings.module.css';
 import SettingsInputs from './PlaygroundSettingsInputs';
 
 interface PlaygroundSettingsProps {
   onSubmit: () => Promise<void>;
   onInputResolutionChange: (input_id: string, resolution: InputResolution) => void;
-  onOutputResolutionChange: (resolution: InputResolution) => void;
+  onOutputResolutionChange: (resolution: Resolution) => void;
   inputsSettings: InputsSettings;
   readyToSubmit: boolean;
 }
@@ -111,26 +111,50 @@ function SubmitButton({
 }
 
 interface OutputResolutionProps {
-  handleSettingsUpdate: (outputResolution: InputResolution) => void;
+  handleSettingsUpdate: (outputResolution: Resolution) => void;
 }
 
 function OutputResolution({ handleSettingsUpdate }: OutputResolutionProps) {
-  function handleChange(event) {
-    handleSettingsUpdate(event.target.value);
+  const [resolution, setResolution] = useState<Resolution>({ width: 1920, height: 1080 });
+
+  function updateWidth(event) {
+    const newResolution: Resolution = {
+      width: parseInt(event.target.value),
+      height: resolution.height,
+    };
+    handleSettingsUpdate(newResolution);
+    setResolution(newResolution);
+  }
+
+  function updateHeight(event) {
+    const newResolution: Resolution = {
+      width: resolution.width,
+      height: parseInt(event.target.value),
+    };
+    handleSettingsUpdate(newResolution);
+    setResolution(newResolution);
   }
 
   return (
     <div className={styles.outputResolutionsContainer}>
       <div className={styles.outputResolutionLabel}>Output resolution:</div>
-
-      <select className={styles.outputResolutionSelect} onChange={handleChange}>
-        <option value="Resoultion1920x1080">[16:9] 1920x1080</option>
-        <option value="Resoultion1080x1920">[9:16] 1080x1920</option>
-        <option value="Resoultion854x480">[16:9] 854x480</option>
-        <option value="Resoultion480x854">[9:16] 480x854</option>
-        <option value="Resoultion1440x1080">[4:3] 1440x1080</option>
-        <option value="Resoultion1080x1440">[3:4] 1080x1440</option>
-      </select>
+      <div>
+        <input
+          id="width"
+          className={styles.resolutionInput}
+          type="number"
+          value={resolution.width}
+          onChange={updateWidth}
+        />
+        <span style={{ margin: 2 }}>&#215;</span>
+        <input
+          id="height"
+          className={styles.resolutionInput}
+          type="number"
+          value={resolution.height}
+          onChange={updateHeight}
+        />
+      </div>
     </div>
   );
 }

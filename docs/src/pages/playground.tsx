@@ -12,8 +12,8 @@ import executeTypescriptCode from '../executeTypescriptCode';
 import {
   InputResolution,
   inputResolutionsToResolutions,
-  inputResolutionToResolution,
   InputsSettings,
+  Resolution,
 } from '../resolution';
 import styles from './playground.module.css';
 
@@ -103,9 +103,10 @@ function Homepage() {
       [inputId]: resolution,
     });
   }
-  const [outputResolution, setOutputResolution] = useState<InputResolution>(
-    InputResolution.Resoultion1920x1080
-  );
+  const [outputResolution, setOutputResolution] = useState<Resolution>({
+    width: 1920,
+    height: 1080,
+  });
 
   const [responseData, setResponseData] = useState({
     imageUrl: '',
@@ -127,7 +128,7 @@ function Homepage() {
         const request = {
           scene: scene,
           inputs: inputResolutionsToResolutions(inputResolutions),
-          output: inputResolutionToResolution(outputResolution),
+          output: outputResolution,
         };
         const blob = await renderImage({ ...request });
         const imageObjectURL = URL.createObjectURL(blob);
@@ -171,7 +172,8 @@ function Homepage() {
             onSubmit={handleSubmit}
             readyToSubmit={!(scene instanceof Error) || showReactEditor}
             onInputResolutionChange={updateInputResolutions}
-            onOutputResolutionChange={(resolution: InputResolution) => {
+            onOutputResolutionChange={(resolution: Resolution) => {
+              console.log(resolution);
               setOutputResolution(resolution);
             }}
             inputsSettings={inputResolutions}
