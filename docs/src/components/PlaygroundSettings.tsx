@@ -5,6 +5,7 @@ import { Tooltip } from 'react-tooltip';
 import { InputResolution, InputsSettings, Resolution } from '../resolution';
 import styles from './PlaygroundSettings.module.css';
 import SettingsInputs from './PlaygroundSettingsInputs';
+import OutputResolution from './PlaygroundSettingsOutput';
 
 interface PlaygroundSettingsProps {
   onSubmit: () => Promise<void>;
@@ -22,6 +23,7 @@ export default function PlaygroundSettings({
   readyToSubmit,
 }: PlaygroundSettingsProps) {
   const [inputsSettingsModalOpen, setInputsSettingsModalOpen] = useState(false);
+  const [isResolutionValid, setIsResolutionValid] = useState(true);
 
   return (
     <div className={styles.settingsPanel}>
@@ -60,8 +62,11 @@ export default function PlaygroundSettings({
       </ReactModal>
 
       <div className={styles.bottomContainer}>
-        <OutputResolution handleSettingsUpdate={onOutputResolutionChange} />
-        <SubmitButton onSubmit={onSubmit} readyToSubmit={readyToSubmit} />
+        <OutputResolution
+          handleSettingsUpdate={onOutputResolutionChange}
+          setValidity={setIsResolutionValid}
+        />
+        <SubmitButton onSubmit={onSubmit} readyToSubmit={readyToSubmit && isResolutionValid} />
       </div>
     </div>
   );
@@ -106,55 +111,6 @@ function SubmitButton({
         Submit
       </button>
       <Tooltip id="disableSubmit" style={tooltipStyle} opacity={1} />
-    </div>
-  );
-}
-
-interface OutputResolutionProps {
-  handleSettingsUpdate: (outputResolution: Resolution) => void;
-}
-
-function OutputResolution({ handleSettingsUpdate }: OutputResolutionProps) {
-  const [resolution, setResolution] = useState<Resolution>({ width: 1920, height: 1080 });
-
-  function updateWidth(event) {
-    const newResolution: Resolution = {
-      width: parseInt(event.target.value),
-      height: resolution.height,
-    };
-    handleSettingsUpdate(newResolution);
-    setResolution(newResolution);
-  }
-
-  function updateHeight(event) {
-    const newResolution: Resolution = {
-      width: resolution.width,
-      height: parseInt(event.target.value),
-    };
-    handleSettingsUpdate(newResolution);
-    setResolution(newResolution);
-  }
-
-  return (
-    <div className={styles.outputResolutionsContainer}>
-      <div className={styles.outputResolutionLabel}>Output resolution:</div>
-      <div>
-        <input
-          id="width"
-          className={styles.resolutionInput}
-          type="number"
-          value={resolution.width}
-          onChange={updateWidth}
-        />
-        <span style={{ margin: 2 }}>&#215;</span>
-        <input
-          id="height"
-          className={styles.resolutionInput}
-          type="number"
-          value={resolution.height}
-          onChange={updateHeight}
-        />
-      </div>
     </div>
   );
 }

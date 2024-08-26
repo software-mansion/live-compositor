@@ -1,0 +1,31 @@
+.outputResolutionsContainer {
+    display: flex;
+    align-items: center;
+    padding: 20px 0 20px 0;
+}
+
+.outputResolutionLabel {
+    margin: 0 10px 0 10px;
+    font-size: 18px;
+    font-weight: bold;
+    color: var(--ifm-color-primary)
+}
+
+.outputResolutionSelect {
+    padding: 8px;
+    border: 1px solid var(--ifm-color-emphasis-200);
+    border-radius: 10px;
+    background-color: var(--ifm-card-background-color);
+}
+
+.outputResolutionInput {
+    width: 64px;
+    border: 1px solid var(--ifm-color-emphasis-200);
+    border-radius: 4px;
+    background-color: var(--ifm-card-background-color);
+}
+
+.invalidInput {
+    border: 2px solid #bb3838;
+    background-color: var(--ifm-color-emphasis-300);
+}

@@ -105,26 +105,6 @@
     align-items: center;
 }
 
-.outputResolutionsContainer {
-    display: flex;
-    align-items: center;
-    padding: 20px 0 20px 0;
-}
-
-.outputResolutionLabel {
-    margin: 0 10px 0 10px;
-    font-size: 18px;
-    font-weight: bold;
-    color: var(--ifm-color-primary)
-}
-
-.outputResolutionSelect {
-    padding: 8px;
-    border: 1px solid var(--ifm-color-emphasis-200);
-    border-radius: 10px;
-    background-color: var(--ifm-card-background-color);
-}
-
 .submitButton {
     padding: 10px 60px 10px 60px;
     border-radius: 12px;
@@ -148,10 +128,6 @@
 .submitButtonInactive:hover{
     transform: scale(1);
     box-shadow: 0 0 0 0;
-}
-
-.resolutionInput {
-    width: 64px;
 }
 
 @media only screen and (max-width:1340px) {
