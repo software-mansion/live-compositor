@@ -18,12 +18,12 @@ There are a few differences in LiveCompositor configuration for `offline` and `l
   <TabItem value="http" label="HTTP">
 
   1. To enable offline processing, the [`LIVE_COMPOSITOR_OFFLINE_PROCESSING_ENABLE`](../deployment/configuration.md#live_compositor_offline_processing_enable) environment variable should be set to `true`.
-  2. [`start request`](../api/routes.md#start-request) should be sent **after** registering all inputs/outputs and sending all scheduled update/unregister requests.
+  2. [`start request`](../api/routes.md#start-request) should be sent **after** registering all assets/inputs/outputs and sending all scheduled update/unregister requests.
   3. To avoid missing frames on inputs, register them with the `required` parameter set to `true` and `offset_ms` set to the appropriate value (if you want to start rendering input at the beginning of the output use `0`). 
   It's recommended to use MP4 as input/output protocol for non-real-time use cases. 
   If you want to use RTP, TCP is a preferred transport protocol, as it implements flow-control mechanisms.
   4. You can use a better `video.encoder.preset` option in [output register request](../api/routes.md#register-output). This option has the highest impact on output quality and performance. In offline processing LiveCompositor doesn't drop output frames when processing is slower than real-time, so you can safely choose slower presets.
-  5. `schedule_time_ms` should be used in [update output requests](../api/routes.md#update-output) to achieve frame-perfect precision.
+  5. `schedule_time_ms` should be used in [update output requests](../api/routes.md#update-output) to achieve frame-perfect updates.
   </TabItem>
   <TabItem value="membrane" label="Membrane Framework">
 
@@ -31,7 +31,7 @@ There are a few differences in LiveCompositor configuration for `offline` and `l
   2. To avoid missing frames on inputs, link input pads with the `required` option set to `true` and `offset_ms` set to the appropriate value (if you want to start rendering input at the beginning of the output use `0`).
   3. You can use better `video.encoder.preset` option in output pads options. This option has the highest impact on output quality and performance. 
   In offline processing LiveCompositor doesn't drop output frames when processing is slower than real-time, so you can safely choose slower presets.
-  4. `schedule_time` should be used in [`UpdateVideoOutput`](https://hexdocs.pm/membrane_live_compositor_plugin/Membrane.LiveCompositor.Request.UpdateVideoOutput.html) and [`UpdateAudioOutput`](https://hexdocs.pm/membrane_live_compositor_plugin/Membrane.LiveCompositor.Request.UpdateAudioOutput.html).
+  4. `schedule_time` should be used in [`UpdateVideoOutput`](https://hexdocs.pm/membrane_live_compositor_plugin/Membrane.LiveCompositor.Request.UpdateVideoOutput.html) and [`UpdateAudioOutput`](https://hexdocs.pm/membrane_live_compositor_plugin/Membrane.LiveCompositor.Request.UpdateAudioOutput.html). Update requests should be scheduled before LiveCompositor bin starts processing buffers - in [`handle_init`](https://hexdocs.pm/membrane_core/Membrane.Pipeline.html#c:handle_init/2) or [`handle_setup`](https://hexdocs.pm/membrane_core/Membrane.Pipeline.html#c:handle_setup/2) callbacks.
   </TabItem>
 </Tabs>
 
@@ -40,7 +40,7 @@ There are a few differences in LiveCompositor configuration for `offline` and `l
 The `required` option will block LiveCompositor processing if input stops delivering data.
 Don't use this option for unreliable inputs, as they might block LiveCompositor processing entirely.
 
-It's not recommended to use this option in real-time processing scenarios, as it might cause latency spikes when `required` input stops delivering data.
+It's not recommended to use this option in real-time processing scenarios, as it might cause latency spikes when `required` input stops delivering video or audio.
 :::
 
 
@@ -50,12 +50,12 @@ It's not recommended to use this option in real-time processing scenarios, as it
 
 <Tabs queryString="lang">
   <TabItem value="http" label="HTTP">
-    Start the compositor server with the `LIVE_COMPOSITOR_OFFLINE_PROCESSING_ENABLE` environment variable set to `true`.
+    Start the compositor server with the [`LIVE_COMPOSITOR_OFFLINE_PROCESSING_ENABLE`](../deployment/configuration.md#live_compositor_offline_processing_enable) environment variable set to `true`.
 
     Check out the [configuration page](../deployment/configuration.md) for more available configuration options.
   </TabItem>
   <TabItem value="membrane" label="Membrane Framework">
-    Spawn LiveCompositor element with `composing_strategy` option set to `:offline_processing`.
+    Spawn LiveCompositor element with [`composing_strategy`](https://hexdocs.pm/membrane_live_compositor_plugin/Membrane.LiveCompositor.html#module-bin-options) option set to `:offline_processing`.
 
     ```elixir
     alias Membrane.LiveCompositor
@@ -83,6 +83,10 @@ It's not recommended to use this option in real-time processing scenarios, as it
 
 <Tabs queryString="lang">
   <TabItem value="http" label="HTTP">
+    Set:
+    - The `required` field to `true` to prevent dropping any input frames from `input_1` input.
+    - The `offset_ms` field to `0`, as we want to start displaying this input from the first output frame.
+
     ```http
     POST: /api/input/input_1/register
     Content-Type: application/json
@@ -96,11 +100,12 @@ It's not recommended to use this option in real-time processing scenarios, as it
       // highlight-end
     }
     ```
-    Notice that:
-    - The `required` field is set to `true` to prevent dropping any input frames from `input_1` input.
-    - The `offset_ms` field is set to `0`, as we want to start displaying this input from the first output frame
   </TabItem>
   <TabItem value="membrane" label="Membrane Framework">
+    Set:
+    - The `required` option to `true` to prevent dropping any input frames from the `input_1` input.
+    - The `offset` to `0s`, as we want to start displaying this input from the first output frame.
+
     ```elixir
     def handle_init(ctx, opts) do
       spec = [
@@ -135,10 +140,6 @@ It's not recommended to use this option in real-time processing scenarios, as it
     ```
     where `video_input_1_spec` and `audio_input_1_spec` are elements producing H264 video and Opus audio respectively.
 
-    Notice that:
-    - the `required` option is set to `true` to prevent dropping any input frames from the `input_1` input
-    - `offset` is set to `0s`, as we want to start displaying this input from the first output frame
-
     If you want to use MP4 as an input and output, check out [this example](https://github.com/membraneframework/membrane_live_compositor_plugin/blob/master/examples/lib/offline_processing.exs) for complete pipeline setup.
   </TabItem>
 </Tabs>
@@ -147,6 +148,8 @@ It's not recommended to use this option in real-time processing scenarios, as it
 
 <Tabs queryString="lang">
   <TabItem value="http" label="HTTP">
+    Here we are going to set `offset_ms` to `5000` to start playing this input 5s after the start of the output.
+
     ```http
     POST: /api/input/input_2/register
     Content-Type: application/json
@@ -160,9 +163,10 @@ It's not recommended to use this option in real-time processing scenarios, as it
       // highlight-end
     }
     ```
-    Here we are going to set `offset_ms` to `5000` to start playing this input 5s after the start of the output.
   </TabItem>
   <TabItem value="membrane" label="Membrane Framework">
+    Here we are going to set `offset` to `5s` to start playing this input 5s after the start.
+    
     ```elixir
     def handle_init(ctx, opts) do
       spec = [
@@ -196,8 +200,6 @@ It's not recommended to use this option in real-time processing scenarios, as it
     end
     ```
     where `video_input_1_spec` and `audio_input_1_spec` are elements producing H264 video and Opus audio respectively.
-
-    Here we are going to set `offset` to `5s` to start playing this input 5s after the start.
   </TabItem>
 </Tabs>
 
