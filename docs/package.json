@@ -16,14 +16,17 @@
     "typecheck": "tsc"
   },
   "dependencies": {
+    "@babel/standalone": "^7.25.3",
     "@docusaurus/core": "^3.1.1",
     "@docusaurus/plugin-client-redirects": "3.1.1",
     "@docusaurus/preset-classic": "^3.1.1",
     "@mdx-js/react": "^3.0.0",
+    "@monaco-editor/react": "^4.6.0",
     "@types/jsoneditor": "^9.9.5",
     "ajv": "^6.12.6",
     "clsx": "^1.2.1",
     "jsoneditor": "^10.1.0",
+    "monaco-editor": "^0.50.0",
     "prism-react-renderer": "^2.1.0",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
@@ -31,6 +34,7 @@
     "react-icons": "^4.12.0",
     "react-modal": "^3.16.1",
     "react-tooltip": "^5.28.0",
+    "remeda": "^2.11.0",
     "typewriter-effect": "^2.21.0"
   },
   "devDependencies": {

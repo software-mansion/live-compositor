@@ -42,8 +42,6 @@ export default function PlaygroundSettings({
             subtitle="preview"
             onClick={() => setInputsSettingsModalOpen(true)}
           />
-
-          <div style={{ flex: 1, margin: 10, padding: 10 }}></div>
         </div>
       </div>
 
