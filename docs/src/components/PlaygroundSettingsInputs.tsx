@@ -1,3 +1,4 @@
+import toast from 'react-hot-toast';
 import { Tooltip } from 'react-tooltip';
 import { InputResolution, InputsSettings } from '../resolution';
 import styles from './PlaygroundSettingsInputs.module.css';
@@ -81,7 +82,10 @@ function InputResolutionSelect({
           {`Add `}
           <code
             className={styles.tooltipCode}
-            onClick={() => navigator.clipboard.writeText(JSON.stringify(tooltipJson))}>
+            onClick={() => {
+              navigator.clipboard.writeText(JSON.stringify(tooltipJson));
+              toast.success('Copied to clipboard!');
+            }}>
             {JSON.stringify(tooltipJson)}
           </code>
           {` to use this input.`}
