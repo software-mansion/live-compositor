@@ -13,25 +13,26 @@
 }
 
 .headerInputLabel {
-    flex: 0 0 30%;
-    max-width: 30%;
+    flex: 0 0 20%;
+    max-width: 20%;
     padding-right: 10px;
+    min-width: 130px;
 }
 
-.headerResolutionLabel {
-    flex: 0 0 40%;
-    max-width: 40%;
-    width: 200px;
+.headerDescriptionLabel {
+    flex: 0 0 60%;
+    max-width: 60%;
 }
 
 .headerPreviewLabel {
-    flex: 0 0 30%;
-    max-width: 30%;
+    flex: 0 0 20%;
+    max-width: 20%;
     padding-left: 10px;
+    min-width: 120px;
 }
 
 
-.inputSelector {
+.imagePreview {
     min-height: 100px;
     align-items: center;
     display: flex;
@@ -42,49 +43,41 @@
     padding: 4px 10px 0 10px;
 }
 
-.inputSelectorLabelContainer {
-    flex: 0 0 30%;
-    max-width: 30%;
+.imagePreviewLabelContainer {
+    flex: 0 0 20%;
+    max-width: 20%;
     padding-right: 10px;
     height: 100%;
     display: flex;
     align-items: center;
+    min-width: 130px;
 }
 
-.inputSelectorSelectContainer {
-    flex: 0 0 40%;
-    max-width: 40%;
-    width: 200px;
+.imagePreviewDescriptionContainer {
+    flex: 0 0 60%;
+    max-width: 60%;
+    width: 500px;
     display: flex;
     align-items: center;
 }
 
-.inputSelectorSelect {
-    background-color: var(--ifm-color-emphasis-200);
-    border-radius: 4px;
-    padding: 1px 4px 2px 4px;
-    width: 80%;
-}
-
-.inputSelectorImgContainer {
+.imagePreviewImgContainer {
     height: 100%;
-    flex: 0 0 30%;
-    max-width: 30%;
+    flex: 0 0 20%;
+    max-width: 20%;
     display: flex;
     justify-content: center;
     padding-left: 10px;
+    min-width: 120px;
 }
 
-.inputSelectorImg {
+.imagePreviewImg {
     height: 100%;
     object-fit: contain;
 }
 
 @media only screen and (max-width:660px) {
-    .inputSelectorSelectContainer {
-        min-width: 0;
-    }
-    .headerResolutionLabel {
+    .imagePreviewDescriptionContainer {
         min-width: 0;
     }
     .container {
@@ -107,4 +100,8 @@
     color: var(--ifm-font-color-base-inverse) !important;
     background-color: var(--ifm-color-emphasis-600) !important;
     cursor: copy !important;
+}
+
+code {
+    white-space: nowrap;
 }

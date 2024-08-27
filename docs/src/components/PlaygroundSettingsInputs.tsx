@@ -10,7 +10,7 @@ interface PlaygroundSettingsInputsProps {
 
 export default function PlaygroundSettingsInputs({
   handleSettingsUpdate,
-  inputsSettings: inputResolutions,
+  inputsSettings,
 }: PlaygroundSettingsInputsProps) {
   function handleChange(event, inputId: string) {
     handleSettingsUpdate(inputId, event.target.value);
@@ -23,10 +23,10 @@ export default function PlaygroundSettingsInputs({
         <div className={styles.headerResolutionLabel}>Resolution</div>
         <div className={styles.headerPreviewLabel}>Preview</div>
       </div>
-      {Object.keys(inputResolutions).map(inputId => (
+      {Object.keys(inputsSettings).map(inputId => (
         <InputResolutionSelect
           inputName={inputId}
-          selectedValue={inputResolutions[inputId]}
+          selectedValue={inputsSettings[inputId]}
           handleChange={event => handleChange(event, inputId)}
           key={inputId}
         />

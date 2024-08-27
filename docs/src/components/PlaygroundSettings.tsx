@@ -4,6 +4,7 @@ import ReactModal from 'react-modal';
 import { Tooltip } from 'react-tooltip';
 import { InputResolution, InputsSettings, Resolution } from '../resolution';
 import styles from './PlaygroundSettings.module.css';
+import PlaygroundSettingsImages from './PlaygroundSettingsImages';
 import SettingsInputs from './PlaygroundSettingsInputs';
 import OutputResolution from './PlaygroundSettingsOutput';
 
@@ -25,6 +26,7 @@ export default function PlaygroundSettings({
   outputResolution,
 }: PlaygroundSettingsProps) {
   const [inputsSettingsModalOpen, setInputsSettingsModalOpen] = useState(false);
+  const [imagesModalOpen, setImagesModalOpen] = useState(false);
   const [outputResolutionValidity, setOutputResolutionValidity] = useState(true);
 
   return (
@@ -37,11 +39,7 @@ export default function PlaygroundSettings({
             onClick={() => setInputsSettingsModalOpen(true)}
           />
 
-          <Card
-            title="Images"
-            subtitle="preview"
-            onClick={() => setInputsSettingsModalOpen(true)}
-          />
+          <Card title="Images" subtitle="preview" onClick={() => setImagesModalOpen(true)} />
 
           <Card
             title="Shaders"
@@ -77,6 +75,14 @@ export default function PlaygroundSettings({
           handleSettingsUpdate={onInputResolutionChange}
           inputsSettings={inputsSettings}
         />
+      </ReactModal>
+      <ReactModal
+        isOpen={imagesModalOpen}
+        onRequestClose={() => setImagesModalOpen(false)}
+        overlayClassName={styles.modalOverlay}
+        className={styles.modalContent}
+        ariaHideApp={false}>
+        <PlaygroundSettingsImages />
       </ReactModal>
     </div>
   );
