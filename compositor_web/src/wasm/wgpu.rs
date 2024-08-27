@@ -2,23 +2,19 @@ use std::sync::Arc;
 
 use wasm_bindgen::JsValue;
 
-use super::{app::App, types::to_js_error};
+use super::types::to_js_error;
 
-pub async fn create_wgpu_context(
-) -> Result<(Arc<wgpu::Device>, Arc<wgpu::Queue>, wgpu::Surface<'static>), JsValue> {
+pub async fn create_wgpu_context() -> Result<(Arc<wgpu::Device>, Arc<wgpu::Queue>), JsValue> {
     let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
         backends: wgpu::Backends::GL,
         ..Default::default()
     });
 
-    let app_session = App::spawn().map_err(to_js_error)?;
-    let surface = unsafe {
-        let target =
-            wgpu::SurfaceTargetUnsafe::from_window(&app_session.window).map_err(to_js_error)?;
-        instance
-            .create_surface_unsafe(target)
-            .map_err(to_js_error)?
-    };
+    let canvas = web_sys::OffscreenCanvas::new(0, 0)?;
+    let surface_target = wgpu::SurfaceTarget::OffscreenCanvas(canvas);
+    let surface = instance
+        .create_surface(surface_target)
+        .map_err(to_js_error)?;
 
     let adapter = instance
         .request_adapter(&wgpu::RequestAdapterOptions {
@@ -43,7 +39,7 @@ pub async fn create_wgpu_context(
         .await
         .map_err(to_js_error)?;
 
-    Ok((device.into(), queue.into(), surface))
+    Ok((device.into(), queue.into()))
 }
 
 pub fn pad_to_256(value: u32) -> u32 {

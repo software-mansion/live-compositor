@@ -56,9 +56,7 @@ jobs:
               run: cargo fmt --all --check
 
             - name: 📎 Run clippy
-              run: |
-                cargo clippy --workspace --all-targets --all-features -- -D clippy::todo -D warnings
-                # cargo clippy -p compositor_web --all-targets --all-features --target=wasm32-unknown-unknown -- -D clippy::todo -D warnings
+              run: cargo clippy --workspace --all-targets --all-features -- -D clippy::todo -D warnings
 
             - name: 📄 Generate JSON schema
               working-directory: ./generate

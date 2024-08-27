@@ -5,7 +5,7 @@ use wasm_bindgen::JsValue;
 
 use super::{
     types::{FrameFormat, InputFrame, InputFrameSet},
-    utils::pad_to_256,
+    wgpu::pad_to_256,
 };
 
 #[derive(Default)]

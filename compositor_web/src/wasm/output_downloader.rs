@@ -5,7 +5,7 @@ use tracing::error;
 use wasm_bindgen::JsValue;
 use web_sys::ImageData;
 
-use super::{types::to_js_error, utils::pad_to_256};
+use super::{types::to_js_error, wgpu::pad_to_256};
 
 #[derive(Default)]
 pub struct OutputDownloader {

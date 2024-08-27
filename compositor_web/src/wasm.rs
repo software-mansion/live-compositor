@@ -7,12 +7,12 @@ use input_uploader::InputUploader;
 use output_downloader::OutputDownloader;
 use types::to_js_error;
 use wasm_bindgen::prelude::*;
+use wgpu::create_wgpu_context;
 
-mod app;
 mod input_uploader;
 mod output_downloader;
 mod types;
-mod utils;
+mod wgpu;
 
 // Executed during WASM module init
 #[wasm_bindgen(start)]
@@ -26,7 +26,7 @@ pub fn start() -> Result<(), JsValue> {
 
 #[wasm_bindgen(js_name = createRenderer)]
 pub async fn create_renderer(options: JsValue) -> Result<LiveCompositorRenderer, JsValue> {
-    let (device, queue, surface) = utils::create_wgpu_context().await?;
+    let (device, queue) = create_wgpu_context().await?;
     let mut options: compositor_render::RendererOptions =
         types::from_js_value::<types::RendererOptions>(options)?.into();
     options.wgpu_ctx = Some((device, queue));
@@ -39,7 +39,6 @@ pub async fn create_renderer(options: JsValue) -> Result<LiveCompositorRenderer,
         renderer,
         input_uploader,
         output_downloader,
-        _surface: surface,
     })
 }
 
@@ -48,7 +47,6 @@ pub struct LiveCompositorRenderer {
     renderer: Renderer,
     input_uploader: InputUploader,
     output_downloader: OutputDownloader,
-    _surface: wgpu::Surface<'static>,
 }
 
 #[wasm_bindgen]
