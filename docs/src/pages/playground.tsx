@@ -1,16 +1,21 @@
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import Layout from '@theme/Layout';
-import styles from './playground.module.css';
-import React, { useEffect, useState } from 'react';
-import PlaygroundPreview from '../components/PlaygroundPreview';
-import PlaygroundCodeEditor from '../components/PlaygroundCodeEditor';
+import { useEffect, useState } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
 import 'react-tooltip/dist/react-tooltip.css';
 import { ApiError, renderImage } from '../api';
-import PlaygroundSettings from '../components/PlaygroundSettings';
-import { InputResolution, inputResolutionsToResolutions, InputsSettings } from '../resolution';
+import PlaygroundCodeEditor from '../components/PlaygroundCodeEditor';
+import PlaygroundPreview from '../components/PlaygroundPreview';
 import PlaygroundReactEditor from '../components/PlaygroundReactEditor';
+import PlaygroundSettings from '../components/PlaygroundSettings';
 import executeTypescriptCode from '../executeTypescriptCode';
+import {
+  InputResolution,
+  inputResolutionsToResolutions,
+  InputsSettings,
+  Resolution,
+} from '../resolution';
+import styles from './playground.module.css';
 
 const INITIAL_SCENE = {
   type: 'view',
@@ -98,6 +103,10 @@ function Homepage() {
       [inputId]: resolution,
     });
   }
+  const [outputResolution, setOutputResolution] = useState<Resolution>({
+    width: 1920,
+    height: 1080,
+  });
 
   const [responseData, setResponseData] = useState({
     imageUrl: '',
@@ -119,6 +128,7 @@ function Homepage() {
         const request = {
           scene: scene,
           inputs: inputResolutionsToResolutions(inputResolutions),
+          output: outputResolution,
         };
         const blob = await renderImage({ ...request });
         const imageObjectURL = URL.createObjectURL(blob);
@@ -160,9 +170,13 @@ function Homepage() {
         <div className={styles.settingsBox}>
           <PlaygroundSettings
             onSubmit={handleSubmit}
-            readyToSubmit={!(scene instanceof Error) || showReactEditor}
-            onChange={updateInputResolutions}
+            sceneValidity={!(scene instanceof Error) || showReactEditor}
+            onInputResolutionChange={updateInputResolutions}
+            onOutputResolutionChange={(resolution: Resolution) => {
+              setOutputResolution(resolution);
+            }}
             inputsSettings={inputResolutions}
+            outputResolution={outputResolution}
           />
         </div>
       </div>
