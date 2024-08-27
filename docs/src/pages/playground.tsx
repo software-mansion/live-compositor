@@ -1,14 +1,11 @@
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import Layout from '@theme/Layout';
-import styles from './playground.module.css';
-import React, { useEffect, useState } from 'react';
-import PlaygroundPreview from '../components/PlaygroundPreview';
-import PlaygroundCodeEditor from '../components/PlaygroundCodeEditor';
+import { useEffect, useState } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
 import 'react-tooltip/dist/react-tooltip.css';
 import { ApiError, renderImage } from '../api';
-import PlaygroundSettings from '../components/PlaygroundSettings';
-import { InputResolution, inputResolutionsToResolutions, InputsSettings } from '../resolution';
+import PlaygroundCodeEditor from '../components/PlaygroundCodeEditor';
+import PlaygroundPreview from '../components/PlaygroundPreview';
 import PlaygroundReactEditor from '../components/PlaygroundReactEditor';
 import PlaygroundSettings from '../components/PlaygroundSettings';
 import executeTypescriptCode from '../executeTypescriptCode';

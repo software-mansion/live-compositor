@@ -14,6 +14,7 @@ export default function OutputResolution({
   handleSettingsUpdate,
   setValidity,
 }: OutputResolutionProps) {
+  const [inputsValidity, setInputsValidity] = useState({ width: true, height: true });
   return (
     <div className={styles.outputResolutionsContainer}>
       <label className={styles.outputResolutionLabel}>Output resolution:</label>
@@ -29,7 +30,10 @@ export default function OutputResolution({
             };
             handleSettingsUpdate(newResolution);
           }}
-          setValidity={setValidity}
+          setValidity={(widthValidity: boolean) => {
+            setInputsValidity({ width: widthValidity, height: inputsValidity.height });
+            setValidity(widthValidity && inputsValidity.height);
+          }}
         />
         <span style={{ margin: 2 }}>&#215;</span>
         <ResolutionInputField
@@ -44,7 +48,10 @@ export default function OutputResolution({
             console.log(newResolution);
             handleSettingsUpdate(newResolution);
           }}
-          setValidity={setValidity}
+          setValidity={(heightValidity: boolean) => {
+            setInputsValidity({ width: inputsValidity.width, height: heightValidity });
+            setValidity(inputsValidity.width && heightValidity);
+          }}
         />
       </div>
     </div>
