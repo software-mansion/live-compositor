@@ -120,12 +120,7 @@ pub(super) fn read_outputs(
                 OutputFrameFormat::RgbaWgpuTexture => {
                     let resolution = output.output_texture.resolution();
                     let rgba_texture = RGBATexture::new(ctx.wgpu_ctx, resolution);
-                    ctx.wgpu_ctx.utils.fill_r8_with_value(
-                        ctx.wgpu_ctx,
-                        rgba_texture.texture(),
-                        0.0,
-                    );
-                    let wgpu_texture = rgba_texture.texture().copy_wgpu_texture(ctx.wgpu_ctx);
+                    let wgpu_texture = rgba_texture.texture_owned().texture;
                     let frame = Frame {
                         data: FrameData::Rgba8UnormWgpuTexture(Arc::new(wgpu_texture)),
                         resolution,
