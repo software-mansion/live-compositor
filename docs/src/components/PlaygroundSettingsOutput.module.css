@@ -1,11 +1,12 @@
 .outputResolutionsContainer {
     display: flex;
     align-items: center;
-    padding: 20px 0 20px 0;
+    padding: 10px 0 10px 0;
 }
 
 .outputResolutionLabel {
-    margin: 0 10px 0 10px;
+    /* margin: 0 10px 0 10px; */
+    margin: 5px;
     font-size: 18px;
     font-weight: bold;
     color: var(--ifm-color-primary)
@@ -28,4 +29,20 @@
 .invalidInput {
     border: 2px solid #bb3838;
     background-color: var(--ifm-color-emphasis-300);
+}
+
+.tooltip {
+    color: var(--ifm-font-color-base-inverse) !important;
+    background-color: var(--ifm-color-emphasis-700) !important;
+    opacity: 1 !important;
+}
+
+.inactiveTooltip {
+    display: none;
+}
+
+.resolutionInputFieldsContainer {
+    display: flex;
+    align-items: center;
+    margin: 5px;
 }

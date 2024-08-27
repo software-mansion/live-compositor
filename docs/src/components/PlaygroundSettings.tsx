@@ -13,6 +13,7 @@ interface PlaygroundSettingsProps {
   onOutputResolutionChange: (resolution: Resolution) => void;
   inputsSettings: InputsSettings;
   readyToSubmit: boolean;
+  outputResolution: Resolution;
 }
 
 export default function PlaygroundSettings({
@@ -21,6 +22,7 @@ export default function PlaygroundSettings({
   onOutputResolutionChange,
   inputsSettings,
   readyToSubmit,
+  outputResolution,
 }: PlaygroundSettingsProps) {
   const [inputsSettingsModalOpen, setInputsSettingsModalOpen] = useState(false);
   const [isResolutionValid, setIsResolutionValid] = useState(true);
@@ -49,6 +51,15 @@ export default function PlaygroundSettings({
         </div>
       </div>
 
+      <div className={styles.bottomContainer}>
+        <OutputResolution
+          resolution={outputResolution}
+          handleSettingsUpdate={onOutputResolutionChange}
+          setValidity={setIsResolutionValid}
+        />
+
+        <SubmitButton onSubmit={onSubmit} readyToSubmit={readyToSubmit && isResolutionValid} />
+      </div>
       <ReactModal
         isOpen={inputsSettingsModalOpen}
         onRequestClose={() => setInputsSettingsModalOpen(false)}
@@ -60,14 +71,6 @@ export default function PlaygroundSettings({
           inputsSettings={inputsSettings}
         />
       </ReactModal>
-
-      <div className={styles.bottomContainer}>
-        <OutputResolution
-          handleSettingsUpdate={onOutputResolutionChange}
-          setValidity={setIsResolutionValid}
-        />
-        <SubmitButton onSubmit={onSubmit} readyToSubmit={readyToSubmit && isResolutionValid} />
-      </div>
     </div>
   );
 }

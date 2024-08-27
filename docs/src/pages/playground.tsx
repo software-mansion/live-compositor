@@ -10,10 +10,10 @@ import PlaygroundReactEditor from '../components/PlaygroundReactEditor';
 import PlaygroundSettings from '../components/PlaygroundSettings';
 import executeTypescriptCode from '../executeTypescriptCode';
 import {
-  InputResolution,
-  inputResolutionsToResolutions,
-  InputsSettings,
-  Resolution,
+    InputResolution,
+    inputResolutionsToResolutions,
+    InputsSettings,
+    Resolution,
 } from '../resolution';
 import styles from './playground.module.css';
 
@@ -177,6 +177,7 @@ function Homepage() {
               setOutputResolution(resolution);
             }}
             inputsSettings={inputResolutions}
+            outputResolution={outputResolution}
           />
         </div>
       </div>
