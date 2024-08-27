@@ -10,10 +10,10 @@ import PlaygroundReactEditor from '../components/PlaygroundReactEditor';
 import PlaygroundSettings from '../components/PlaygroundSettings';
 import executeTypescriptCode from '../executeTypescriptCode';
 import {
-    InputResolution,
-    inputResolutionsToResolutions,
-    InputsSettings,
-    Resolution,
+  InputResolution,
+  inputResolutionsToResolutions,
+  InputsSettings,
+  Resolution,
 } from '../resolution';
 import styles from './playground.module.css';
 
@@ -170,7 +170,7 @@ function Homepage() {
         <div className={styles.settingsBox}>
           <PlaygroundSettings
             onSubmit={handleSubmit}
-            readyToSubmit={!(scene instanceof Error) || showReactEditor}
+            sceneValidity={!(scene instanceof Error) || showReactEditor}
             onInputResolutionChange={updateInputResolutions}
             onOutputResolutionChange={(resolution: Resolution) => {
               console.log(resolution);

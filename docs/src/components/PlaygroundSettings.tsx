@@ -12,7 +12,7 @@ interface PlaygroundSettingsProps {
   onInputResolutionChange: (input_id: string, resolution: InputResolution) => void;
   onOutputResolutionChange: (resolution: Resolution) => void;
   inputsSettings: InputsSettings;
-  readyToSubmit: boolean;
+  sceneValidity: boolean;
   outputResolution: Resolution;
 }
 
@@ -21,7 +21,7 @@ export default function PlaygroundSettings({
   onInputResolutionChange,
   onOutputResolutionChange,
   inputsSettings,
-  readyToSubmit,
+  sceneValidity: readyToSubmit,
   outputResolution,
 }: PlaygroundSettingsProps) {
   const [inputsSettingsModalOpen, setInputsSettingsModalOpen] = useState(false);
@@ -58,7 +58,13 @@ export default function PlaygroundSettings({
           setValidity={setIsResolutionValid}
         />
 
-        <SubmitButton onSubmit={onSubmit} readyToSubmit={readyToSubmit && isResolutionValid} />
+        <SubmitButton
+          onSubmit={onSubmit}
+          validity={{
+            scene: readyToSubmit,
+            outputResolution: isResolutionValid,
+          }}
+        />
       </div>
       <ReactModal
         isOpen={inputsSettingsModalOpen}
@@ -92,28 +98,44 @@ function Card(props: CardProps) {
 
 function SubmitButton({
   onSubmit,
-  readyToSubmit,
+  validity,
 }: {
   onSubmit: () => Promise<void>;
-  readyToSubmit: boolean;
+  validity: {
+    scene: boolean;
+    outputResolution: boolean;
+  };
 }) {
   const tooltipStyle = {
     color: 'var(--ifm-font-color-base-inverse)',
     backgroundColor: 'var(--ifm-color-emphasis-700)',
   };
+  function isValid() {
+    return validity.scene && validity.outputResolution;
+  }
+  function errorMessage() {
+    if (!validity.scene) {
+      return 'Invalid scene provided';
+    } else if (!validity.outputResolution) {
+      return 'Invalid output resolution';
+    } else {
+      return null;
+    }
+  }
   return (
     <div
-      data-tooltip-id={readyToSubmit ? null : 'disableSubmit'}
-      data-tooltip-content={readyToSubmit ? null : 'Invalid scene provided!'}
-      data-tooltip-place={readyToSubmit ? null : 'top'}>
+      data-tooltip-id={isValid() ? null : 'disableSubmit'}
+      data-tooltip-content={errorMessage()}
+      data-tooltip-place={isValid() ? null : 'top'}>
       <button
         className={`${styles.submitButton} ${styles.hoverPrimary} ${
-          readyToSubmit ? styles.submitButtonActive : styles.submitButtonInactive
+          isValid() ? styles.submitButtonActive : styles.submitButtonInactive
         }`}
-        onClick={onSubmit}>
+        onClick={onSubmit}
+        disabled={!isValid()}>
         Submit
       </button>
-      <Tooltip id="disableSubmit" style={tooltipStyle} opacity={1} />
+      <Tooltip id="disableSubmit" style={tooltipStyle} opacity={1} offset={5} />
     </div>
   );
 }

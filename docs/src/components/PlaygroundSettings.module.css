@@ -149,7 +149,4 @@
         flex-direction: column;
         padding: 0;
     }
-    .outputResolutionsContainer {
-        flex-direction: column;
-    }
 }
