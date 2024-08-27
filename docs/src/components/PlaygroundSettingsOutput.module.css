@@ -29,6 +29,9 @@
     border: 2px solid #bb3838;
     background-color: var(--ifm-color-emphasis-300);
 }
+.invalidInput:focus {
+    outline: none;
+}
 
 .tooltip {
     color: var(--ifm-font-color-base-inverse) !important;

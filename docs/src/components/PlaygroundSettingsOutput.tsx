@@ -79,27 +79,6 @@ function ResolutionInputField({
   onValueChange,
   setValidity,
 }: ResolutionInputFieldProps) {
-  enum ValidationResult {
-    Ok = 'Ok',
-    TooLargeError = 'TooLarge',
-    TooSmallError = 'TooSmall',
-    UnevenError = 'Uneven',
-    ParsingError = 'ParsingError',
-  }
-  function validationResultMessage(validationResult: ValidationResult, maxValue: number) {
-    if (validationResult == ValidationResult.Ok) {
-      return 'Everything is fine';
-    } else if (validationResult == ValidationResult.ParsingError) {
-      return "Value isn't a valid number";
-    } else if (validationResult == ValidationResult.TooLargeError) {
-      return `Value has to be not greater than ${maxValue}`;
-    } else if (validationResult == ValidationResult.TooSmallError) {
-      return 'Value has to be greater than 0';
-    } else if (validationResult == ValidationResult.UnevenError) {
-      return 'Value has to be even';
-    }
-  }
-
   const [validationResult, setValidationResult] = useState<ValidationResult>(ValidationResult.Ok);
   function setInputValidationResult(result: ValidationResult) {
     if (result == ValidationResult.Ok) {
@@ -110,24 +89,8 @@ function ResolutionInputField({
     setValidationResult(result);
   }
 
-  function parseAndValidate(input_string: string): number {
-    const input_val = parseInt(input_string);
-    if (Number.isNaN(input_val)) {
-      setInputValidationResult(ValidationResult.ParsingError);
-    } else if (input_val % 2 == 1) {
-      setInputValidationResult(ValidationResult.UnevenError);
-    } else if (input_val > maxValue) {
-      setInputValidationResult(ValidationResult.TooLargeError);
-    } else if (input_val <= 0) {
-      setInputValidationResult(ValidationResult.TooSmallError);
-    } else {
-      setInputValidationResult(ValidationResult.Ok);
-    }
-    return input_val;
-  }
-
   function updateInputValue(event) {
-    const value = parseAndValidate(event.target.value);
+    const value = parseAndValidate(event.target.value, maxValue, setInputValidationResult);
     if (!Number.isNaN(value)) {
       onValueChange(value);
     }
@@ -154,4 +117,46 @@ function ResolutionInputField({
       </Tooltip>
     </div>
   );
+}
+
+function parseAndValidate(
+  input_string: string,
+  maxValue: number,
+  setInputValidationResult: (ValidationResult) => void
+): number {
+  const input_val = parseInt(input_string);
+  if (Number.isNaN(input_val)) {
+    setInputValidationResult(ValidationResult.ParsingError);
+  } else if (input_val % 2 == 1) {
+    setInputValidationResult(ValidationResult.UnevenError);
+  } else if (input_val > maxValue) {
+    setInputValidationResult(ValidationResult.TooLargeError);
+  } else if (input_val <= 0) {
+    setInputValidationResult(ValidationResult.TooSmallError);
+  } else {
+    setInputValidationResult(ValidationResult.Ok);
+  }
+  return input_val;
+}
+
+enum ValidationResult {
+  Ok = 'Ok',
+  TooLargeError = 'TooLarge',
+  TooSmallError = 'TooSmall',
+  UnevenError = 'Uneven',
+  ParsingError = 'ParsingError',
+}
+
+function validationResultMessage(validationResult: ValidationResult, maxValue: number) {
+  if (validationResult == ValidationResult.Ok) {
+    return 'Everything is fine';
+  } else if (validationResult == ValidationResult.ParsingError) {
+    return "Value isn't a valid number";
+  } else if (validationResult == ValidationResult.TooLargeError) {
+    return `Value has to be not greater than ${maxValue}`;
+  } else if (validationResult == ValidationResult.TooSmallError) {
+    return 'Value has to be greater than 0';
+  } else if (validationResult == ValidationResult.UnevenError) {
+    return 'Value has to be even';
+  }
 }
