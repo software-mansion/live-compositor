@@ -7,6 +7,8 @@ import WebView, { WebViewProps } from './components/WebView';
 import Shader, { ShaderParam, ShaderParamStructField, ShaderProps } from './components/Shader';
 import Tiles, { TilesProps } from './components/Tiles';
 import { EasingFunction, Transition } from './components/common';
+import { LiveCompositorContext, useInputStreams } from './hooks/useInputStream';
+import { ContextStore } from './hooks/store';
 
 export { RegisterInput } from './types/registerInput';
 export { RegisterOutput } from './types/registerOutput';
@@ -35,5 +37,7 @@ export {
   Tiles,
   TilesProps,
 };
+
+export { useInputStreams, LiveCompositorContext, ContextStore };
 
 export { ShaderParam, ShaderParamStructField, EasingFunction, Transition };

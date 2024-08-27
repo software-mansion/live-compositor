@@ -6,12 +6,16 @@
   "scripts": {
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "watch": "tsc --watch",
+    "watch": "tsc --watch --preserveWatchOutput",
     "build": "tsc",
-    "clean": "rimraf dist"
+    "clean": "rimraf dist",
+    "prepublishOnly": "npm run clean && npm run build"
   },
   "author": "",
   "license": "MIT",
+  "files": [
+    "/dist"
+  ],
   "devDependencies": {
     "@types/fs-extra": "^11.0.4",
     "@types/node": "^20.14.10",
@@ -21,7 +25,7 @@
   "dependencies": {
     "@live-compositor/core": "0.1.0-rc.0",
     "fs-extra": "^11.2.0",
-    "node-fetch": "^2.0.0",
+    "node-fetch": "^2.6.7",
     "tar": "^7.4.3",
     "uuid": "^10.0.0"
   }

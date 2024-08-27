@@ -7,7 +7,7 @@
   "scripts": {
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "watch": "tsc --watch",
+    "watch": "tsc --watch --preserveWatchOutput",
     "build": "tsc",
     "clean": "rimraf dist",
     "ts-node": "ts-node"
@@ -20,6 +20,7 @@
     "@types/node": "^20.14.10",
     "fs-extra": "^11.2.0",
     "live-compositor": "0.1.0-rc.0",
+    "node-fetch": "^2.6.7",
     "ts-node": "^10.9.2"
   }
 }
