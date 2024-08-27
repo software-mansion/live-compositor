@@ -112,7 +112,7 @@ impl Mp4 {
         let audio = Mp4FileReader::new_audio(
             Mp4ReaderOptions::NonFragmented {
                 file: input_path.clone(),
-                looped: options.looped
+                looped: options.looped,
             },
             input_id.clone(),
         )?;

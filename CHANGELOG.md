@@ -6,6 +6,8 @@
 
 ### ✨ New features
 
+- Add MP4 `looped` option ([#699](https://github.com/software-mansion/live-compositor/pull/699)) by [@WojciechBarczynski](https://github.com/WojciechBarczynski)
+
 ### 🐛 Bug fixes
 
 ### 🔧 Others
