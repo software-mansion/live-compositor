@@ -91,31 +91,74 @@ pub(super) fn read_outputs(
                     })
                 }
             },
-            None => {
-                let (y, u, v) = RGBColor::BLACK.to_yuv();
-                ctx.wgpu_ctx.utils.fill_r8_with_value(
-                    ctx.wgpu_ctx,
-                    output.output_texture.yuv_textures().plane(0),
-                    y,
-                );
-                ctx.wgpu_ctx.utils.fill_r8_with_value(
-                    ctx.wgpu_ctx,
-                    output.output_texture.yuv_textures().plane(1),
-                    u,
-                );
-                ctx.wgpu_ctx.utils.fill_r8_with_value(
-                    ctx.wgpu_ctx,
-                    output.output_texture.yuv_textures().plane(2),
-                    v,
-                );
+            None => match output.output_format {
+                OutputFrameFormat::PlanarYuv420Bytes => {
+                    let (y, u, v) = RGBColor::BLACK.to_yuv();
+                    ctx.wgpu_ctx.utils.fill_r8_with_value(
+                        ctx.wgpu_ctx,
+                        output.output_texture.yuv_textures().plane(0),
+                        y,
+                    );
+                    ctx.wgpu_ctx.utils.fill_r8_with_value(
+                        ctx.wgpu_ctx,
+                        output.output_texture.yuv_textures().plane(1),
+                        u,
+                    );
+                    ctx.wgpu_ctx.utils.fill_r8_with_value(
+                        ctx.wgpu_ctx,
+                        output.output_texture.yuv_textures().plane(2),
+                        v,
+                    );
 
-                let pending_download = output.output_texture.start_download(ctx.wgpu_ctx);
-                partial_textures.push(PartialOutputFrame::PendingYuvDownload {
-                    output_id: output_id.clone(),
-                    pending_download,
-                    resolution: output.output_texture.resolution().to_owned(),
-                });
-            }
+                    let pending_download = output.output_texture.start_download(ctx.wgpu_ctx);
+                    partial_textures.push(PartialOutputFrame::PendingYuvDownload {
+                        output_id: output_id.clone(),
+                        pending_download,
+                        resolution: output.output_texture.resolution().to_owned(),
+                    });
+                }
+                OutputFrameFormat::RgbaWgpuTexture => {
+                    let output_resolution = output.output_texture.resolution();
+                    let wgpu_texture =
+                        ctx.wgpu_ctx
+                            .device
+                            .create_texture(&wgpu::TextureDescriptor {
+                                label: None,
+                                size: wgpu::Extent3d {
+                                    width: output_resolution.width as u32,
+                                    height: output_resolution.height as u32,
+                                    depth_or_array_layers: 1,
+                                },
+                                mip_level_count: 1,
+                                sample_count: 1,
+                                dimension: wgpu::TextureDimension::D2,
+                                format: wgpu::TextureFormat::Rgba8Unorm,
+                                usage: wgpu::TextureUsages::COPY_SRC
+                                    | wgpu::TextureUsages::COPY_DST
+                                    | wgpu::TextureUsages::TEXTURE_BINDING
+                                    | wgpu::TextureUsages::RENDER_ATTACHMENT,
+                                view_formats: &[wgpu::TextureFormat::Rgba8Unorm],
+                            });
+                    let view = wgpu_texture.create_view(&wgpu::TextureViewDescriptor::default());
+                    let compositor_texture = crate::wgpu::texture::Texture {
+                        texture: wgpu_texture,
+                        view,
+                    };
+                    ctx.wgpu_ctx
+                        .utils
+                        .fill_r8_with_value(ctx.wgpu_ctx, &compositor_texture, 0.0);
+
+                    let frame = Frame {
+                        data: FrameData::Rgba8UnormWgpuTexture(compositor_texture.texture.into()),
+                        resolution: output_resolution,
+                        pts,
+                    };
+                    partial_textures.push(PartialOutputFrame::CompleteFrame {
+                        output_id: output_id.clone(),
+                        frame,
+                    })
+                }
+            },
         };
     }
 
