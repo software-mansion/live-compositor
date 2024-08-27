@@ -14,7 +14,10 @@ export default function OutputResolution({
   handleSettingsUpdate,
   setValidity,
 }: OutputResolutionProps) {
-  const [inputsValidity, setInputsValidity] = useState({ width: true, height: true });
+  const [resolutionInputsValidity, setResolutionInputsValidity] = useState({
+    width: true,
+    height: true,
+  });
   return (
     <div className={styles.outputResolutionsContainer}>
       <label className={styles.outputResolutionLabel}>Output resolution:</label>
@@ -24,15 +27,17 @@ export default function OutputResolution({
           value={resolution.width}
           maxValue={7682}
           onValueChange={(width: number) => {
-            const newResolution: Resolution = {
+            handleSettingsUpdate({
               width: width,
               height: resolution.height,
-            };
-            handleSettingsUpdate(newResolution);
+            });
           }}
           setValidity={(widthValidity: boolean) => {
-            setInputsValidity({ width: widthValidity, height: inputsValidity.height });
-            setValidity(widthValidity && inputsValidity.height);
+            setResolutionInputsValidity({
+              width: widthValidity,
+              height: resolutionInputsValidity.height,
+            });
+            setValidity(widthValidity && resolutionInputsValidity.height);
           }}
         />
         <span style={{ margin: 2 }}>&#215;</span>
@@ -41,29 +46,22 @@ export default function OutputResolution({
           value={resolution.height}
           maxValue={4320}
           onValueChange={(height: number) => {
-            const newResolution: Resolution = {
+            handleSettingsUpdate({
               width: resolution.width,
               height: height,
-            };
-            console.log(newResolution);
-            handleSettingsUpdate(newResolution);
+            });
           }}
           setValidity={(heightValidity: boolean) => {
-            setInputsValidity({ width: inputsValidity.width, height: heightValidity });
-            setValidity(inputsValidity.width && heightValidity);
+            setResolutionInputsValidity({
+              width: resolutionInputsValidity.width,
+              height: heightValidity,
+            });
+            setValidity(resolutionInputsValidity.width && heightValidity);
           }}
         />
       </div>
     </div>
   );
-}
-
-enum ValidationResult {
-  Ok = 'Ok',
-  TooLargeError = 'TooLarge',
-  TooSmallError = 'TooSmall',
-  UnevenError = 'Uneven',
-  ParsingError = 'ParsingError',
 }
 
 interface ResolutionInputFieldProps {
@@ -81,6 +79,27 @@ function ResolutionInputField({
   onValueChange,
   setValidity,
 }: ResolutionInputFieldProps) {
+  enum ValidationResult {
+    Ok = 'Ok',
+    TooLargeError = 'TooLarge',
+    TooSmallError = 'TooSmall',
+    UnevenError = 'Uneven',
+    ParsingError = 'ParsingError',
+  }
+  function validationResultMessage(validationResult: ValidationResult, maxValue: number) {
+    if (validationResult == ValidationResult.Ok) {
+      return 'Everything is fine';
+    } else if (validationResult == ValidationResult.ParsingError) {
+      return "Value isn't a valid number";
+    } else if (validationResult == ValidationResult.TooLargeError) {
+      return `Value has to be not greater than ${maxValue}`;
+    } else if (validationResult == ValidationResult.TooSmallError) {
+      return 'Value has to be greater than 0';
+    } else if (validationResult == ValidationResult.UnevenError) {
+      return 'Value has to be even';
+    }
+  }
+
   const [validationResult, setValidationResult] = useState<ValidationResult>(ValidationResult.Ok);
   function setInputValidationResult(result: ValidationResult) {
     if (result == ValidationResult.Ok) {
@@ -109,7 +128,6 @@ function ResolutionInputField({
 
   function updateInputValue(event) {
     const value = parseAndValidate(event.target.value);
-    console.log(value);
     if (!Number.isNaN(value)) {
       onValueChange(value);
     }
@@ -136,18 +154,4 @@ function ResolutionInputField({
       </Tooltip>
     </div>
   );
-}
-
-function validationResultMessage(validationResult: ValidationResult, maxValue: number) {
-  if (validationResult == ValidationResult.Ok) {
-    return 'Everything is fine';
-  } else if (validationResult == ValidationResult.ParsingError) {
-    return "Value isn't a valid number";
-  } else if (validationResult == ValidationResult.TooLargeError) {
-    return `Value has to be not greater than ${maxValue}`;
-  } else if (validationResult == ValidationResult.TooSmallError) {
-    return 'Value has to be greater than 0';
-  } else if (validationResult == ValidationResult.UnevenError) {
-    return 'Value has to be even';
-  }
 }

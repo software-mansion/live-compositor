@@ -21,11 +21,11 @@ export default function PlaygroundSettings({
   onInputResolutionChange,
   onOutputResolutionChange,
   inputsSettings,
-  sceneValidity: readyToSubmit,
+  sceneValidity,
   outputResolution,
 }: PlaygroundSettingsProps) {
   const [inputsSettingsModalOpen, setInputsSettingsModalOpen] = useState(false);
-  const [isResolutionValid, setIsResolutionValid] = useState(true);
+  const [outputResolutionValidity, setOutputResolutionValidity] = useState(true);
 
   return (
     <div className={styles.settingsPanel}>
@@ -55,17 +55,18 @@ export default function PlaygroundSettings({
         <OutputResolution
           resolution={outputResolution}
           handleSettingsUpdate={onOutputResolutionChange}
-          setValidity={setIsResolutionValid}
+          setValidity={setOutputResolutionValidity}
         />
 
         <SubmitButton
           onSubmit={onSubmit}
           validity={{
-            scene: readyToSubmit,
-            outputResolution: isResolutionValid,
+            scene: sceneValidity,
+            outputResolution: outputResolutionValidity,
           }}
         />
       </div>
+
       <ReactModal
         isOpen={inputsSettingsModalOpen}
         onRequestClose={() => setInputsSettingsModalOpen(false)}
