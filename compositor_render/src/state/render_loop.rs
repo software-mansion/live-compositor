@@ -1,11 +1,11 @@
-use std::{collections::HashMap, time::Duration};
+use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use tracing::error;
 
 use crate::{
     scene::RGBColor,
     state::{node::RenderNode, render_graph::RenderGraph, RenderCtx},
-    wgpu::texture::{InputTexture, NodeTexture, PlanarYuvPendingDownload},
+    wgpu::texture::{InputTexture, NodeTexture, PlanarYuvPendingDownload, RGBATexture},
     Frame, FrameData, FrameSet, InputId, OutputFrameFormat, OutputId, Resolution,
 };
 
@@ -91,31 +91,47 @@ pub(super) fn read_outputs(
                     })
                 }
             },
-            None => {
-                let (y, u, v) = RGBColor::BLACK.to_yuv();
-                ctx.wgpu_ctx.utils.fill_r8_with_value(
-                    ctx.wgpu_ctx,
-                    output.output_texture.yuv_textures().plane(0),
-                    y,
-                );
-                ctx.wgpu_ctx.utils.fill_r8_with_value(
-                    ctx.wgpu_ctx,
-                    output.output_texture.yuv_textures().plane(1),
-                    u,
-                );
-                ctx.wgpu_ctx.utils.fill_r8_with_value(
-                    ctx.wgpu_ctx,
-                    output.output_texture.yuv_textures().plane(2),
-                    v,
-                );
+            None => match output.output_format {
+                OutputFrameFormat::PlanarYuv420Bytes => {
+                    let (y, u, v) = RGBColor::BLACK.to_yuv();
+                    ctx.wgpu_ctx.utils.fill_r8_with_value(
+                        ctx.wgpu_ctx,
+                        output.output_texture.yuv_textures().plane(0),
+                        y,
+                    );
+                    ctx.wgpu_ctx.utils.fill_r8_with_value(
+                        ctx.wgpu_ctx,
+                        output.output_texture.yuv_textures().plane(1),
+                        u,
+                    );
+                    ctx.wgpu_ctx.utils.fill_r8_with_value(
+                        ctx.wgpu_ctx,
+                        output.output_texture.yuv_textures().plane(2),
+                        v,
+                    );
 
-                let pending_download = output.output_texture.start_download(ctx.wgpu_ctx);
-                partial_textures.push(PartialOutputFrame::PendingYuvDownload {
-                    output_id: output_id.clone(),
-                    pending_download,
-                    resolution: output.output_texture.resolution().to_owned(),
-                });
-            }
+                    let pending_download = output.output_texture.start_download(ctx.wgpu_ctx);
+                    partial_textures.push(PartialOutputFrame::PendingYuvDownload {
+                        output_id: output_id.clone(),
+                        pending_download,
+                        resolution: output.output_texture.resolution().to_owned(),
+                    });
+                }
+                OutputFrameFormat::RgbaWgpuTexture => {
+                    let resolution = output.output_texture.resolution();
+                    let rgba_texture = RGBATexture::new(ctx.wgpu_ctx, resolution);
+                    let wgpu_texture = rgba_texture.texture_owned().texture;
+                    let frame = Frame {
+                        data: FrameData::Rgba8UnormWgpuTexture(Arc::new(wgpu_texture)),
+                        resolution,
+                        pts,
+                    };
+                    partial_textures.push(PartialOutputFrame::CompleteFrame {
+                        output_id: output_id.clone(),
+                        frame,
+                    })
+                }
+            },
         };
     }
 
