@@ -1,8 +1,8 @@
 .page {
+  flex: 1;
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
-  min-height: 82vh;
   margin: 20px;
 }
 
