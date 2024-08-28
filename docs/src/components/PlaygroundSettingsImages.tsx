@@ -33,8 +33,18 @@ export default function PlaygroundSettingsImages() {
         filename="person.webp"
         description={
           <div>
-            Person photo, can be used ex. as a videocall substitute, <code>[3:2] 4096x2731</code>{' '}
+            Person photo, can be used e.g. as a videocall substitute, <code>[3:2] 4096x2731</code>{' '}
             resolution.
+          </div>
+        }
+      />
+      <ImagePreview
+        image_id="greenscreen_guy"
+        filename="greenscreen_guy.webp"
+        description={
+          <div>
+            Photo of guy on greenscreen, can be used to demo <code>remove_greenscreen</code> shader,{' '}
+            <code>2160x2880</code> resolution.
           </div>
         }
       />
@@ -52,7 +62,7 @@ export default function PlaygroundSettingsImages() {
         filename="compositor.svg"
         description={
           <div>
-            Svg compositor logo, <code>572x140</code> resolution.
+            Svg compositor logo with alpha channel, <code>572x140</code> resolution.
           </div>
         }
       />
@@ -61,7 +71,7 @@ export default function PlaygroundSettingsImages() {
         filename="compositor_small.webp"
         description={
           <div>
-            Png compositor logo, <code>200x140</code> resolution.
+            Png small compositor logo alpha channel, <code>200x140</code> resolution.
           </div>
         }
       />
@@ -76,7 +86,7 @@ interface ImagePreviewProps {
 }
 
 function ImagePreview({ image_id, description, filename }: ImagePreviewProps) {
-  const tooltipJson = { type: 'image', input_id: image_id };
+  const tooltipJson = { type: 'image', image_id: image_id };
 
   return (
     <div className={styles.imagePreview}>
