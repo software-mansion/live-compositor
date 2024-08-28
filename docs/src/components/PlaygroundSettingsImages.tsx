@@ -11,35 +11,57 @@ export default function PlaygroundSettingsImages() {
         <div className={styles.headerPreviewLabel}>Preview</div>
       </div>
       <ImagePreview
-        name="bunny"
+        image_id="bunny"
+        filename="bunny.webp"
         description={
           <div>
-            Big Buck Bunny screenshot, <code>[16:9] 1280x720</code> resolution
+            Big Buck Bunny screenshot, <code>[16:9] 1280x720</code> resolution.
           </div>
         }
       />
       <ImagePreview
-        name="landscape"
+        image_id="landscape"
+        filename="landscape.webp"
         description={
           <div>
-            Landscape photo, <code>[4:3] 2560x1920</code> resolution
+            Landscape photo, <code>[16:9] 2560x1440</code> resolution.
           </div>
         }
       />
       <ImagePreview
-        name="person"
+        image_id="person"
+        filename="person.webp"
         description={
           <div>
             Person photo, can be used ex. as a videocall substitute, <code>[3:2] 4096x2731</code>{' '}
-            resolution
+            resolution.
           </div>
         }
       />
       <ImagePreview
-        name="test_pattern"
+        image_id="test_pattern"
+        filename="test_pattern.webp"
         description={
           <div>
-            FFmpeg-generated test source, <code>[16:9] 7680x4320</code> resolution
+            FFmpeg-generated test source, <code>[16:9] 7680x4320</code> resolution.
+          </div>
+        }
+      />
+      <ImagePreview
+        image_id="compositor"
+        filename="compositor.svg"
+        description={
+          <div>
+            Svg compositor logo, <code>572x140</code> resolution.
+          </div>
+        }
+      />
+      <ImagePreview
+        image_id="compositor_small"
+        filename="compositor_small.webp"
+        description={
+          <div>
+            Png compositor logo, <code>200x140</code> resolution.
           </div>
         }
       />
@@ -48,24 +70,25 @@ export default function PlaygroundSettingsImages() {
 }
 
 interface ImagePreviewProps {
-  name: string;
+  image_id: string;
+  filename: string;
   description: JSX.Element;
 }
 
-function ImagePreview({ name, description }: ImagePreviewProps) {
-  const tooltipJson = { type: 'image', input_id: name };
+function ImagePreview({ image_id, description, filename }: ImagePreviewProps) {
+  const tooltipJson = { type: 'image', input_id: image_id };
 
   return (
     <div className={styles.imagePreview}>
       <div className={styles.imagePreviewLabelContainer}>
-        <code id={`${name}_tooltip`}>{name}</code>
+        <code id={`${image_id}_tooltip`}>{image_id}</code>
       </div>
       <div className={styles.imagePreviewDescriptionContainer}>{description}</div>
       <div className={styles.imagePreviewImgContainer}>
-        <img src={getImagePath(name)} alt={'alt'} className={styles.imagePreviewImg} />
+        <img src={getImagePath(filename)} alt={'alt'} className={styles.imagePreviewImg} />
       </div>
       <Tooltip
-        anchorSelect={`#${name}_tooltip`}
+        anchorSelect={`#${image_id}_tooltip`}
         className={styles.tooltip}
         clickable={true}
         delayShow={128}>
@@ -86,6 +109,6 @@ function ImagePreview({ name, description }: ImagePreviewProps) {
   );
 }
 
-function getImagePath(inputName: string): string {
-  return `/img/images/${inputName}.webp`;
+function getImagePath(filename: string): string {
+  return `/img/images/${filename}`;
 }

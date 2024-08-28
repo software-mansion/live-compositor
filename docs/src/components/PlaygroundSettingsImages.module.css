@@ -16,12 +16,13 @@
     flex: 0 0 20%;
     max-width: 20%;
     padding-right: 10px;
-    min-width: 130px;
+    min-width: 160px;
 }
 
 .headerDescriptionLabel {
     flex: 0 0 60%;
     max-width: 60%;
+    min-width: 320px;
 }
 
 .headerPreviewLabel {
@@ -50,15 +51,15 @@
     height: 100%;
     display: flex;
     align-items: center;
-    min-width: 130px;
+    min-width: 160px;
 }
 
 .imagePreviewDescriptionContainer {
     flex: 0 0 60%;
     max-width: 60%;
-    width: 500px;
     display: flex;
     align-items: center;
+    min-width: 320px;
 }
 
 .imagePreviewImgContainer {
@@ -67,9 +68,13 @@
     max-width: 20%;
     display: flex;
     justify-content: center;
-    padding-left: 10px;
+    margin-left: 10px;
     min-width: 120px;
 }
+
+[data-theme='light'] .imagePreviewImgContainer {
+    background-color: var(--ifm-color-emphasis-600);
+  }
 
 .imagePreviewImg {
     height: 100%;
@@ -77,9 +82,6 @@
 }
 
 @media only screen and (max-width:660px) {
-    .imagePreviewDescriptionContainer {
-        min-width: 0;
-    }
     .container {
         height: 76vh;
         overflow: scroll;
