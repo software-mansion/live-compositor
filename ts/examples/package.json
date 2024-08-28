@@ -16,8 +16,10 @@
   "license": "MIT",
   "dependencies": {
     "@live-compositor/node": "0.1.0-rc.0",
+    "@types/express": "^4.17.21",
     "@types/fs-extra": "^11.0.4",
     "@types/node": "^20.14.10",
+    "express": "^4.19.2",
     "fs-extra": "^11.2.0",
     "live-compositor": "0.1.0-rc.0",
     "node-fetch": "^2.6.7",

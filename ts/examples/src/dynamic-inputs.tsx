@@ -1,8 +1,7 @@
 import LiveCompositor from '@live-compositor/node';
 import { useInputStreams, Text, InputStream, Tiles, Rescaler, View } from 'live-compositor';
-import { downloadAllAssets, ffplayStartPlayerAsync, sleep } from './utils';
 import { useId } from 'react';
-import path from 'path';
+import express from 'express';
 
 function ExampleApp() {
   const inputs = useInputStreams();
@@ -31,18 +30,29 @@ function InputTile({ inputId }: { inputId: string }) {
   );
 }
 
-async function run() {
-  await downloadAllAssets();
+let compositor: LiveCompositor;
+const server = express();
+
+server.get('/add-participant', async (req, res) => {
+  await compositor.registerInput(req.body.inputId, {
+    type: 'rtp_stream',
+    transportProtocol: 'tcp_server',
+    port: req.body.port,
+    video: {
+      decoder: 'ffmpeg_h264',
+    },
+  });
+  // Update some state managment e.g. redux store to e.g. specify data needed for scene
+  // e.g. for video call this could be text label for the participant
+  res.send({ status: 'ok' });
+});
+
+async function start() {
   const compositor = await LiveCompositor.create();
-
-  ffplayStartPlayerAsync('127.0.0.1', 8001);
-  await sleep(2000);
-
   await compositor.registerOutput('output_1', {
     type: 'rtp_stream',
     port: 8001,
-    ip: '127.0.0.1',
-    transportProtocol: 'udp',
+    transportProtocol: 'tcp_server',
     video: {
       encoder: {
         type: 'ffmpeg_h264',
@@ -55,18 +65,8 @@ async function run() {
       root: <ExampleApp />,
     },
   });
+  // For RTP you will need to notify here a destination server to start receiving the stream.
   await compositor.start();
-
-  await sleep(5000);
-  await compositor.registerInput('input_1', {
-    type: 'mp4',
-    serverPath: path.join(__dirname, '../.assets/BigBuckBunny.mp4'),
-  });
-
-  await sleep(5000);
-  await compositor.registerInput('input_2', {
-    type: 'mp4',
-    serverPath: path.join(__dirname, '../.assets/ElephantsDream.mp4'),
-  });
+  server.listen(3000);
 }
-run();
+start();
