@@ -10,7 +10,7 @@ use super::{
 
 #[derive(Default)]
 pub struct InputUploader {
-    textures: HashMap<String, Texture>,
+    textures: HashMap<InputId, Texture>,
 }
 
 impl InputUploader {
@@ -33,7 +33,7 @@ impl InputUploader {
             };
 
             frames.insert(
-                InputId(frame.id.into()),
+                frame.id,
                 Frame {
                     data,
                     resolution: frame.resolution,
@@ -43,6 +43,10 @@ impl InputUploader {
         }
 
         Ok(FrameSet { frames, pts })
+    }
+
+    pub fn remove_input(&mut self, input_id: &InputId) {
+        self.textures.remove(input_id);
     }
 
     fn upload_input_frame(
