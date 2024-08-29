@@ -6,12 +6,22 @@ import path from 'path';
 function ExampleApp() {
   const inputs = useInputStreams();
   return (
-    <Tiles transition={{ durationMs: 2000 }}>
-      {inputs
-        .filter(input => input.videoState === 'playing')
-        .map(input => (
+    <Tiles transition={{ durationMs: 200 }}>
+      {Object.values(inputs).map(input =>
+        !input.videoState ? (
+          <Text key={input.inputId} fontSize={40}>
+            Waiting for stream {input.inputId} to connect
+          </Text>
+        ) : input.videoState === 'playing' ? (
           <InputTile key={input.inputId} inputId={input.inputId} />
-        ))}
+        ) : input.videoState === 'finished' ? (
+          <Text key={input.inputId} fontSize={40}>
+            Stream {input.inputId} finished
+          </Text>
+        ) : (
+          'Fallback'
+        )
+      )}
     </Tiles>
   );
 }

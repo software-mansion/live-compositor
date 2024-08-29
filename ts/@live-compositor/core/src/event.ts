@@ -1,6 +1,8 @@
-import { CompositorEvent, CompositorEventType, ContextStore } from 'live-compositor';
+import { _liveCompositorInternals, CompositorEvent, CompositorEventType } from 'live-compositor';
 
-export function onCompositorEvent(store: ContextStore, rawEvent: unknown) {
+type InstanceContextStore = _liveCompositorInternals.InstanceContextStore;
+
+export function onCompositorEvent(store: InstanceContextStore, rawEvent: unknown) {
   const event = parseEvent(rawEvent);
   if (!event) {
     return;

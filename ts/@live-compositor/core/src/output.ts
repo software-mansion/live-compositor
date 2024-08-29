@@ -1,91 +1,130 @@
-import { ContextStore, LiveCompositorContext, RegisterOutput } from 'live-compositor';
+import { _liveCompositorInternals, RegisterOutput, View } from 'live-compositor';
+import React, { useSyncExternalStore } from 'react';
 import { ApiClient, Api } from './api';
 import Renderer from './renderer';
 import { intoAudioInputsConfiguration } from './api/output';
-import React from 'react';
+import { throttle } from './utils';
+
+type OutputContext = _liveCompositorInternals.OutputContext;
+type InstanceContextStore = _liveCompositorInternals.InstanceContextStore;
 
 class Output {
   api: ApiClient;
   outputId: string;
+  outputCtx: OutputContext;
+  outputShutdownStateStore: OutputShutdownStateStore;
   initialized: boolean = false;
 
   throttledUpdate: () => void;
   videoRenderer?: Renderer;
 
-  constructor(outputId: string, output: RegisterOutput, api: ApiClient, store: ContextStore) {
+  constructor(
+    outputId: string,
+    registerRequest: RegisterOutput,
+    api: ApiClient,
+    store: InstanceContextStore
+  ) {
     this.api = api;
     this.outputId = outputId;
+    this.outputShutdownStateStore = new OutputShutdownStateStore();
 
-    let audioOptions: Api.Audio | undefined;
-    if (output.video) {
-      this.videoRenderer = new Renderer(
-        React.createElement(LiveCompositorContext.Provider, { value: store }, output.video.root),
-        () => this.onRendererUpdate(),
-        `${outputId}-`
-      );
-    }
-    if (output.audio) {
-      audioOptions = intoAudioInputsConfiguration(output.audio.initial);
-    }
-    this.throttledUpdate = throttle(async () => {
-      await api.updateScene(this.outputId, {
-        video: this.videoRenderer && { root: this.videoRenderer.scene() },
-        audio: audioOptions,
+    const onUpdate = () => this.throttledUpdate?.();
+    this.outputCtx = new _liveCompositorInternals.OutputContext(
+      onUpdate,
+      registerRequest.audio?.initial
+    );
+
+    if (registerRequest.video) {
+      const rootElement = React.createElement(OutputRootComponent, {
+        instanceStore: store,
+        outputCtx: this.outputCtx,
+        outputRoot: registerRequest.video.root,
+        outputShutdownStateStore: this.outputShutdownStateStore,
       });
+
+      this.videoRenderer = new Renderer({
+        rootElement,
+        onUpdate,
+        idPrefix: `${outputId}-`,
+      });
+    }
+
+    this.throttledUpdate = throttle(async () => {
+      await api.updateScene(this.outputId, this.scene());
     }, 30);
   }
 
-  public scene(): Api.Video | undefined {
-    return this.videoRenderer && { root: this.videoRenderer.scene() };
+  public scene(): { video?: Api.Video; audio?: Api.Audio } {
+    const audio = this.outputCtx.getAudioConfig();
+    return {
+      video: this.videoRenderer && { root: this.videoRenderer.scene() },
+      audio: audio && intoAudioInputsConfiguration(audio),
+    };
   }
 
-  private onRendererUpdate() {
-    if (!this.throttledUpdate || !this.videoRenderer) {
-      return;
-    }
-    this.throttledUpdate();
+  public close(): void {
+    this.throttledUpdate = () => {};
+    // close will switch a scene to just a <View />, so we need replace `throttledUpdate`
+    // callback before it is called
+    this.outputShutdownStateStore.close();
   }
 }
 
-function throttle(fn: () => Promise<void>, timeoutMs: number): () => void {
-  let shouldCall: boolean = false;
-  let running: boolean = false;
+// External store to share shutdown information between React tree
+// and external code that is managing it.
+class OutputShutdownStateStore {
+  private shutdown: boolean = false;
+  private onChangeCallbacks: Set<() => void> = new Set();
 
-  const start = async () => {
-    while (shouldCall) {
-      const start = Date.now();
-      shouldCall = false;
+  public close() {
+    this.shutdown = true;
+    this.onChangeCallbacks.forEach(cb => cb());
+  }
 
-      try {
-        await fn();
-      } catch (error) {
-        console.log(error);
-      }
-
-      const timeoutLeft = start + timeoutMs - Date.now();
-      if (timeoutLeft > 0) {
-        await sleep(timeoutLeft);
-      }
-      running = false;
-    }
+  // callback for useSyncExternalStore
+  public getSnapshot = (): boolean => {
+    return this.shutdown;
   };
 
-  return () => {
-    shouldCall = true;
-    if (running) {
-      return;
-    }
-    running = true;
-    void start();
+  // callback for useSyncExternalStore
+  public subscribe = (onStoreChange: () => void): (() => void) => {
+    this.onChangeCallbacks.add(onStoreChange);
+    return () => {
+      this.onChangeCallbacks.delete(onStoreChange);
+    };
   };
 }
 
-async function sleep(timeout_ms: number): Promise<void> {
-  await new Promise<void>(res => {
-    setTimeout(() => {
-      res();
-    }, timeout_ms);
-  });
+function OutputRootComponent({
+  outputRoot,
+  instanceStore,
+  outputCtx,
+  outputShutdownStateStore,
+}: {
+  outputRoot: React.ReactElement;
+  instanceStore: InstanceContextStore;
+  outputCtx: OutputContext;
+  outputShutdownStateStore: OutputShutdownStateStore;
+}) {
+  const shouldShutdown = useSyncExternalStore(
+    outputShutdownStateStore.subscribe,
+    outputShutdownStateStore.getSnapshot
+  );
+
+  if (shouldShutdown) {
+    // replace root with view to stop all the dynamic code
+    return React.createElement(View, {});
+  }
+
+  const reactCtx = {
+    instanceStore,
+    outputCtx,
+  };
+  return React.createElement(
+    _liveCompositorInternals.LiveCompositorContext.Provider,
+    { value: reactCtx },
+    outputRoot
+  );
 }
 
 export default Output;

@@ -1,7 +1,11 @@
 import Reconciler from 'react-reconciler';
 import { DefaultEventPriority, LegacyRoot } from 'react-reconciler/constants';
 import { Api } from './api';
-import { SceneBuilder, SceneComponent } from 'live-compositor';
+import { _liveCompositorInternals } from 'live-compositor';
+import React from 'react';
+
+type SceneBuilder<P> = _liveCompositorInternals.SceneBuilder<P>;
+type SceneComponent = _liveCompositorInternals.SceneComponent;
 
 export class LiveCompositorHostComponent {
   public props: object;
@@ -210,12 +214,20 @@ const HostConfig: Reconciler.HostConfig<
 
 const CompositorRenderer = Reconciler(HostConfig);
 
-class Renderer {
-  root: any;
-  onUpdateFn: () => void;
+type RendererOptions = {
+  rootElement: React.ReactElement;
+  onUpdate: () => void;
+  idPrefix: string;
+};
 
-  constructor(element: React.ReactElement, onUpdate: () => void, idPrefix: string) {
-    const root = CompositorRenderer.createContainer(
+class Renderer {
+  private root: any;
+  public readonly onUpdate: () => void;
+
+  constructor({ rootElement, onUpdate, idPrefix }: RendererOptions) {
+    this.onUpdate = onUpdate;
+
+    this.root = CompositorRenderer.createContainer(
       this, // container tag
       LegacyRoot,
       null, // hydrationCallbacks
@@ -225,10 +237,8 @@ class Renderer {
       console.error, // onRecoverableError
       null // transitionCallbacks
     );
-    this.root = root;
-    this.onUpdateFn = onUpdate;
 
-    CompositorRenderer.updateContainer(element, root, null, () => {});
+    CompositorRenderer.updateContainer(rootElement, this.root, null, () => {});
   }
 
   public scene(): Api.Component {
@@ -237,10 +247,6 @@ class Renderer {
     // `root.current`.
     const rootComponent = this.root.pendingChildren[0] ?? rootHostComponent(this.root.current);
     return rootComponent.scene();
-  }
-
-  public onUpdate() {
-    this.onUpdateFn();
   }
 }
 

@@ -28,6 +28,21 @@ export async function ffplayStartPlayerAsync(
   return { spawn_promise: promise };
 }
 
+export async function gstReceiveTcpStream(
+  ip: string,
+  port: number
+): Promise<{ spawn_promise: SpawnPromise }> {
+  const tcpReceiver = `tcpclientsrc host=${ip} port=${port} ! "application/x-rtp-stream" ! rtpstreamdepay ! queue ! demux.`;
+  const videoPipe =
+    'demux.src_96 ! "application/x-rtp,media=video,clock-rate=90000,encoding-name=H264" ! queue ! rtph264depay ! decodebin ! videoconvert ! autovideosink';
+  const audioPipe =
+    'demux.src_97 ! "application/x-rtp,media=audio,clock-rate=48000,encoding-name=OPUS" ! queue ! rtpopusdepay ! decodebin ! audioconvert ! autoaudiosink ';
+  const gstCmd = `gst-launch-1.0 -v rtpptdemux name=demux ${tcpReceiver} ${videoPipe} ${audioPipe}`;
+
+  const promise = spawn('bash', ['-c', gstCmd]);
+  return { spawn_promise: promise };
+}
+
 export function ffmpegSendVideoFromMp4(port: number, mp4Path: string): SpawnPromise {
   return spawn('ffmpeg', [
     '-stream_loop',
