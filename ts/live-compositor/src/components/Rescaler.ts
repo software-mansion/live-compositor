@@ -1,11 +1,7 @@
 import React from 'react';
 import * as Api from '../api';
 import { intoApiTransition, Transition } from './common';
-import LiveCompositorComponent, {
-  SceneBuilder,
-  SceneComponent,
-  sceneComponentIntoApi,
-} from '../component';
+import { createCompositorComponent, SceneComponent, sceneComponentIntoApi } from '../component';
 
 export type RescalerProps = {
   children: React.ReactElement | string | number;
@@ -77,9 +73,7 @@ export type RescalerProps = {
   transition?: Transition;
 };
 
-class Rescaler extends LiveCompositorComponent<RescalerProps> {
-  builder: SceneBuilder<RescalerProps> = sceneBuilder;
-}
+const Rescaler = createCompositorComponent<RescalerProps>(sceneBuilder);
 
 function sceneBuilder(props: RescalerProps, children: SceneComponent[]): Api.Component {
   if (children?.length !== 1) {

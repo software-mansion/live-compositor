@@ -1,26 +1,27 @@
-import React from 'react';
+import React, { useId } from 'react';
 import * as Api from './api';
 
-type ComponentProps<P> = { children?: React.ReactNode } & P;
+type ComponentProps<P> = { children?: React.ReactNode; id?: Api.ComponentId } & P;
 
 export type SceneComponent = Api.Component | string;
 export type SceneBuilder<P> = (props: P, children: SceneComponent[]) => Api.Component;
 
-abstract class LiveCompositorComponent<P> extends React.Component<ComponentProps<P>> {
-  abstract builder: SceneBuilder<P>;
-
-  render(): React.ReactNode {
-    const { children, ...props } = this.props;
+export function createCompositorComponent<P>(
+  sceneBuilder: SceneBuilder<P>
+): (props: ComponentProps<P>) => React.ReactNode {
+  return (props: ComponentProps<P>): React.ReactNode => {
+    const { children, ...otherProps } = props;
+    const autoId = useId();
 
     return React.createElement(
       'compositor',
       {
-        sceneBuilder: this.builder,
-        props,
+        sceneBuilder,
+        props: { ...otherProps, id: otherProps.id ?? autoId },
       },
       ...(Array.isArray(children) ? children : [children])
     );
-  }
+  };
 }
 
 export function sceneComponentIntoApi(component: SceneComponent): Api.Component {
@@ -33,5 +34,3 @@ export function sceneComponentIntoApi(component: SceneComponent): Api.Component 
   }
   return component;
 }
-
-export default LiveCompositorComponent;

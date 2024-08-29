@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "scripts": {
     "lint": "lerna run lint",
+    "lint:fix": "lerna run lint -- --fix",
     "build": "lerna run build",
     "typecheck": "lerna run typecheck",
     "clean": "lerna run clean",

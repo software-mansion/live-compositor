@@ -1,5 +1,5 @@
 import * as Api from '../api';
-import LiveCompositorComponent, { SceneBuilder, SceneComponent } from '../component';
+import { createCompositorComponent, SceneComponent } from '../component';
 
 export type ImageProps = {
   children?: undefined;
@@ -14,9 +14,7 @@ export type ImageProps = {
   imageId: Api.RendererId;
 };
 
-class Image extends LiveCompositorComponent<ImageProps> {
-  builder: SceneBuilder<ImageProps> = sceneBuilder;
-}
+const Image = createCompositorComponent<ImageProps>(sceneBuilder);
 
 function sceneBuilder(props: ImageProps, _children: SceneComponent[]): Api.Component {
   return {

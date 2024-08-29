@@ -1,9 +1,5 @@
 import * as Api from '../api';
-import LiveCompositorComponent, {
-  SceneBuilder,
-  SceneComponent,
-  sceneComponentIntoApi,
-} from '../component';
+import { createCompositorComponent, SceneComponent, sceneComponentIntoApi } from '../component';
 
 export type WebViewProps = {
   /**
@@ -18,9 +14,7 @@ export type WebViewProps = {
   instanceId: Api.RendererId;
 };
 
-class WebView extends LiveCompositorComponent<WebViewProps> {
-  builder: SceneBuilder<WebViewProps> = sceneBuilder;
-}
+const WebView = createCompositorComponent<WebViewProps>(sceneBuilder);
 
 function sceneBuilder(props: WebViewProps, children: SceneComponent[]): Api.Component {
   return {

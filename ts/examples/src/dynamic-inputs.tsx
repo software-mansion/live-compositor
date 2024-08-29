@@ -1,14 +1,12 @@
 import LiveCompositor from '@live-compositor/node';
 import { useInputStreams, Text, InputStream, Tiles, Rescaler, View } from 'live-compositor';
 import { downloadAllAssets, ffplayStartPlayerAsync, sleep } from './utils';
-import { useId } from 'react';
 import path from 'path';
 
 function ExampleApp() {
   const inputs = useInputStreams();
-  const id = useId();
   return (
-    <Tiles id={id} transition={{ durationMs: 2000 }}>
+    <Tiles transition={{ durationMs: 2000 }}>
       {inputs
         .filter(input => input.videoState === 'playing')
         .map(input => (
