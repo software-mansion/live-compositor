@@ -1,7 +1,7 @@
 use compositor_api::types as api;
 use compositor_render::{
     image::{ImageSource, ImageType},
-    InputId, OutputFrameFormat, OutputId, Renderer, RendererId, RendererSpec,
+    InputId, OutputFrameFormat, OutputId, RegistryType, Renderer, RendererId, RendererSpec,
 };
 use input_uploader::InputUploader;
 use output_downloader::OutputDownloader;
@@ -115,6 +115,24 @@ impl LiveCompositorRenderer {
         });
         self.renderer
             .register_renderer(RendererId(renderer_id.into()), renderer_spec)
+            .map_err(to_js_error)
+    }
+
+    pub fn unregister_input(&mut self, input_id: String) {
+        let input_id = InputId(input_id.into());
+        self.renderer.unregister_input(&input_id);
+        self.input_uploader.remove_input(&input_id);
+    }
+
+    pub fn unregister_output(&mut self, output_id: String) {
+        let output_id = OutputId(output_id.into());
+        self.renderer.unregister_output(&output_id);
+        self.output_downloader.remove_output(&output_id);
+    }
+
+    pub fn unregister_image(&mut self, renderer_id: String) -> Result<(), JsValue> {
+        self.renderer
+            .unregister_renderer(&RendererId(renderer_id.into()), RegistryType::Image)
             .map_err(to_js_error)
     }
 }

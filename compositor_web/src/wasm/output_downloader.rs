@@ -71,6 +71,10 @@ impl OutputDownloader {
         Ok(output_data)
     }
 
+    pub fn remove_output(&mut self, output_id: &OutputId) {
+        self.buffers.remove(output_id);
+    }
+
     fn create_buffer(device: &wgpu::Device, resolution: Resolution) -> wgpu::Buffer {
         device.create_buffer(&wgpu::BufferDescriptor {
             label: None,

@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use compositor_render::{web_renderer::WebRendererInitOptions, Resolution};
+use compositor_render::{web_renderer::WebRendererInitOptions, InputId, Resolution};
 use serde::{de::DeserializeOwned, Deserialize};
 use wasm_bindgen::prelude::*;
 
@@ -43,7 +43,7 @@ impl InputFrameSet {
 }
 
 pub struct InputFrame {
-    pub id: String,
+    pub id: InputId,
     pub resolution: Resolution,
     pub format: FrameFormat,
     pub data: Vec<u8>,
@@ -97,6 +97,7 @@ impl TryFrom<JsValue> for InputFrame {
         let id = js_sys::Reflect::get_u32(&entry, 0)?
             .as_string()
             .ok_or(JsValue::from_str("Expected string used as a key"))?;
+        let id = InputId(id.into());
 
         // 1 - map value
         let value = js_sys::Reflect::get_u32(&entry, 1)?;
