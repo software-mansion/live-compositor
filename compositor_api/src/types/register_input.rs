@@ -37,6 +37,7 @@ pub struct Mp4Input {
     /// Path to the MP4 file.
     pub path: Option<String>,
     /// (**default=`false`**) If input should be played in the loop.
+    /// Added in v0.4.0.
     #[serde(rename = "loop")]
     pub should_loop: Option<bool>,
     /// (**default=`false`**) If input is required and frames are not processed
