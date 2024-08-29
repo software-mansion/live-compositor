@@ -1,4 +1,7 @@
-use std::sync::{Arc, Mutex};
+use std::{
+    collections::hash_map::Entry,
+    sync::{Arc, Mutex},
+};
 
 use compositor_render::InputId;
 
@@ -62,7 +65,10 @@ pub(super) fn register_pipeline_input<NewInputResult>(
         }
     }
 
-    guard.inputs.insert(input_id.clone(), pipeline_input);
+    match guard.inputs.entry(input_id.clone()) {
+        Entry::Occupied(_) => return Err(RegisterInputError::AlreadyRegistered(input_id)),
+        Entry::Vacant(entry) => entry.insert(pipeline_input),
+    };
     guard.queue.add_input(&input_id, receiver, queue_options);
     guard.renderer.register_input(input_id);
 
