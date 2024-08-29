@@ -17,12 +17,18 @@ pub struct PipelineInput {
     pub(super) video_eos_received: Option<bool>,
 }
 
+/// This method doesn't take pipeline lock for the whole scope,
+/// because input registration can potentially take a relatively long time.
 pub(super) fn register_pipeline_input<NewInputResult>(
     pipeline: &Arc<Mutex<Pipeline>>,
     input_id: InputId,
     input_options: &dyn InputOptionsExt<NewInputResult>,
     queue_options: QueueInputOptions,
 ) -> Result<NewInputResult, RegisterInputError> {
+    if pipeline.lock().unwrap().inputs.contains_key(&input_id) {
+        return Err(RegisterInputError::AlreadyRegistered(input_id));
+    }
+
     let pipeline_ctx = pipeline.lock().unwrap().ctx.clone();
 
     let (input, receiver, input_result) = input_options.new_input(&input_id, &pipeline_ctx)?;
@@ -39,6 +45,10 @@ pub(super) fn register_pipeline_input<NewInputResult>(
     };
 
     let mut guard = pipeline.lock().unwrap();
+
+    if guard.inputs.contains_key(&input_id) {
+        return Err(RegisterInputError::AlreadyRegistered(input_id));
+    };
 
     if pipeline_input.audio_eos_received.is_some() {
         for (_, output) in guard.outputs.iter_mut() {
