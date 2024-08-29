@@ -573,11 +573,13 @@ dependencies = [
 name = "compositor_web"
 version = "0.1.0"
 dependencies = [
+ "bytes",
  "compositor_api",
  "compositor_render",
  "console_error_panic_hook",
  "crossbeam-channel",
  "getrandom",
+ "glyphon",
  "js-sys",
  "log",
  "reqwest",

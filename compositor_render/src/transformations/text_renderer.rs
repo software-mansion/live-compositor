@@ -5,8 +5,8 @@ use std::{
 };
 
 use glyphon::{
-    AttrsOwned, Buffer, Color, FontSystem, Metrics, Shaping, SwashCache, TextArea, TextAtlas,
-    TextBounds,
+    fontdb::Source, AttrsOwned, Buffer, Color, FontSystem, Metrics, Shaping, SwashCache, TextArea,
+    TextAtlas, TextBounds,
 };
 use wgpu::{
     CommandEncoderDescriptor, LoadOp, MultisampleState, Operations, RenderPassColorAttachment,
@@ -203,7 +203,7 @@ impl From<&TextComponent> for TextParams {
     }
 }
 
-pub(crate) struct TextRendererCtx {
+pub struct TextRendererCtx {
     font_system: Mutex<FontSystem>,
     swash_cache: Mutex<SwashCache>,
 }
@@ -214,6 +214,11 @@ impl TextRendererCtx {
             font_system: Mutex::new(FontSystem::new()),
             swash_cache: Mutex::new(SwashCache::new()),
         }
+    }
+
+    pub fn add_font(&self, source: Source) {
+        let mut font_system = self.font_system.lock().unwrap();
+        font_system.db_mut().load_font_source(source);
     }
 }
 
