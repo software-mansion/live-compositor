@@ -1,5 +1,8 @@
-const BACKEND_URL: URL = new URL('http://localhost:8081');
-
+const BACKEND_URL: URL = new URL(
+  process.env.NODE_ENV === 'production'
+    ? 'https://playground.compositor.live'
+    : 'http://localhost:8081'
+);
 interface RequestObject {
   method: string;
   headers: {
