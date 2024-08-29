@@ -72,10 +72,6 @@
     min-width: 120px;
 }
 
-[data-theme='light'] .imagePreviewImgContainer {
-    background-color: var(--ifm-color-emphasis-600);
-  }
-
 .imagePreviewImg {
     height: 100%;
     object-fit: contain;
