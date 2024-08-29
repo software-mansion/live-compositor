@@ -140,7 +140,7 @@ impl TryFrom<Mp4Input> for pipeline::RegisterInputOptions {
             path,
             required,
             offset_ms,
-            looped,
+            should_loop: looped,
         } = value;
 
         const BAD_URL_PATH_SPEC: &str =
