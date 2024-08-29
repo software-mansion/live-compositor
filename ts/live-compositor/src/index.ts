@@ -9,6 +9,7 @@ import Tiles, { TilesProps } from './components/Tiles';
 import { EasingFunction, Transition } from './components/common';
 import { LiveCompositorContext, useInputStreams } from './hooks/useInputStream';
 import { ContextStore } from './hooks/store';
+import { CompositorEvent, CompositorEventType } from './types/events';
 
 export { RegisterInput } from './types/registerInput';
 export { RegisterOutput } from './types/registerOutput';
@@ -37,6 +38,8 @@ export {
   Tiles,
   TilesProps,
 };
+
+export { CompositorEvent, CompositorEventType };
 
 export { useInputStreams, LiveCompositorContext, ContextStore };
 
