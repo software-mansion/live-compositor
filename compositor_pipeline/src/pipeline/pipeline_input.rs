@@ -17,6 +17,8 @@ pub struct PipelineInput {
     pub(super) video_eos_received: Option<bool>,
 }
 
+/// This method doesn't take pipeline lock for the whole scope,
+/// because input registration can potentially take a relatively long time.
 pub(super) fn register_pipeline_input<NewInputResult>(
     pipeline: &Arc<Mutex<Pipeline>>,
     input_id: InputId,
