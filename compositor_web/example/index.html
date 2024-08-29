@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compositor Web - Example</title>
+</head>
+
+<body>
+    <canvas id="canvas" width="1280" height="720" style="border: 2px solid black;"></canvas>
+    <canvas id="headless-canvas" style="display:none" width="1280" height="1280"></canvas>
+
+    <script type="module">
+        import init, {createRenderer, InputFrameSet} from "./pkg/compositor_web.js";
+
+        const IMAGE1_URL = "https://media.tenor.com/eFPFHSN4rJ8AAAAM/example.gif";
+        const IMAGE2_URL = "https://compositor.live/img/logo-dark.svg";
+
+        const image = new Image();
+        image.src = IMAGE2_URL;
+        image.crossOrigin = "Anonymous";
+
+        image.addEventListener("load", (e) => {
+            const canvas = document.getElementById("headless-canvas");
+            const headless = canvas.getContext("2d");
+            headless.width = 1024;
+            headless.height = 1024;
+            headless.drawImage(image, 0, 0);
+            const imageData = headless.getImageData(0, 0, headless.width, headless.height);
+
+            // Using IMAGE2 RGBA data for input stream
+            startRendering(imageData);
+        });
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function startRendering(imageData) {
+            init().then(async () => {
+                const renderer = await createRenderer({
+                    framerate: {
+                        num: 30,
+                        den: 1
+                    },
+                    stream_fallback_timeout_ms: 500,
+                });
+                renderer.register_input("input");
+                await renderer.register_image("img", {
+                    url: IMAGE1_URL,
+                    asset_type: "gif"
+                });
+                renderer.update_scene(
+                    "output",
+                    {
+                        width: 1280,
+                        height: 720,
+                    },
+                    {
+                        type: "view",
+                        children: [
+                            {
+                                type: "rescaler",
+                                id: "rescaler",
+                                width: 640,
+                                height: 360,
+                                top: 0,
+                                right: 0,
+                                child: {
+                                    type: "image",
+                                    image_id: "img",
+                                }
+                            },
+                            {
+                                type: "input_stream",
+                                input_id: "input",
+                            }
+                        ]
+                    }
+                );
+                renderer.update_scene(
+                    "output",
+                    {
+                        width: 1280,
+                        height: 720,
+                    },
+                    {
+                        type: "view",
+                        children: [
+                            {
+                                type: "rescaler",
+                                id: "rescaler",
+                                width: 1280,
+                                height: 720,
+                                top: 0,
+                                right: 0,
+                                child: {
+                                    type: "image",
+                                    image_id: "img",
+                                },
+                                transition: {
+                                    duration_ms: 10000,
+                                    easing_function: {
+                                        function_name: "bounce"
+                                    }
+                                }
+                            },
+                            {
+                                type: "input_stream",
+                                input_id: "input",
+                            }
+                        ]
+                    }
+                );
+
+                const canvas = document.getElementById("canvas");
+                const ctx = canvas.getContext("2d");
+                const inputs = new Map();
+                inputs.set("input", {
+                    resolution: {
+                        width: imageData.width,
+                        height: imageData.height
+                    },
+                    format: "rgbaBytes",
+                    data: imageData.data,
+                });
+
+                for (let i = 0; i < 100; i++) {
+                    const frame_set = new InputFrameSet(100 * i, inputs);
+                    const outputs = renderer.render(frame_set);
+                    const output = outputs.get("output");
+                    ctx.putImageData(output, 0, 0);
+                    await sleep(10);
+                }
+            });
+        }
+    </script>
+</body>
+
+</html>

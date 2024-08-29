@@ -3,12 +3,23 @@ use wgpu::util::DeviceExt;
 
 use crate::{scene::RGBAColor, wgpu::WgpuCtx};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(super) struct LayoutNodeParams {
     pub(super) transform_vertices_matrix: Mat4,
     pub(super) transform_texture_coords_matrix: Mat4,
     pub(super) is_texture: u32,
     pub(super) background_color: RGBAColor,
+}
+
+impl Default for LayoutNodeParams {
+    fn default() -> Self {
+        Self {
+            transform_vertices_matrix: Mat4::identity(),
+            transform_texture_coords_matrix: Mat4::identity(),
+            is_texture: 0,
+            background_color: RGBAColor(0, 0, 0, 0),
+        }
+    }
 }
 
 pub(super) struct ParamsBuffer {
@@ -58,7 +69,6 @@ impl ParamsBuffer {
         let content = Self::shader_buffer_content(&params);
         if self.content.len() != content.len() {
             *self = Self::new(wgpu_ctx, params);
-            return;
         }
 
         if self.content != content {
@@ -67,6 +77,15 @@ impl ParamsBuffer {
     }
 
     fn shader_buffer_content(params: &[LayoutNodeParams]) -> bytes::Bytes {
+        #[cfg(target_arch = "wasm32")]
+        let params = {
+            // On WebGL we have to fill the whole array
+            const MAX_PARAMS_COUNT: usize = 100;
+            let mut params = params.to_vec();
+            params.resize_with(MAX_PARAMS_COUNT, LayoutNodeParams::default);
+            params
+        };
+
         params
             .iter()
             .map(LayoutNodeParams::shader_buffer_content)
@@ -93,7 +112,6 @@ impl LayoutNodeParams {
         result[64..128].copy_from_slice(bytemuck::bytes_of(
             &transform_texture_coords_matrix.transpose(),
         ));
-        // 12 bytes padding
         result[128..132].copy_from_slice(&from_u8_color(background_color.0));
         result[132..136].copy_from_slice(&from_u8_color(background_color.1));
         result[136..140].copy_from_slice(&from_u8_color(background_color.2));

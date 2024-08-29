@@ -6,13 +6,17 @@ use serde::{Deserialize, Serialize};
 
 mod audio;
 mod component;
+#[cfg(not(target_arch = "wasm32"))]
 mod from_audio;
 mod from_component;
+#[cfg(not(target_arch = "wasm32"))]
 mod from_register_input;
+#[cfg(not(target_arch = "wasm32"))]
 mod from_register_output;
 mod from_renderer;
 mod from_types;
 mod from_util;
+#[cfg(not(target_arch = "wasm32"))]
 mod from_video;
 mod register_input;
 mod register_output;
