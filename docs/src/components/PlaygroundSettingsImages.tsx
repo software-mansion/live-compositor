@@ -5,6 +5,11 @@ import styles from './PlaygroundSettingsImages.module.css';
 export default function PlaygroundSettingsImages() {
   return (
     <div className={styles.container}>
+      <div className={styles.imagePreviewIntro}>
+        List of available images. You can use them in the scene by adding{' '}
+        <code>{'{ "type": "image"; "image_id": "[image_id]" }'}</code> in&nbsp;the&nbsp;JSON
+        definition.
+      </div>
       <div className={styles.headerContainer}>
         <div className={styles.headerInputLabel}>Image ID</div>
         <div className={styles.headerDescriptionLabel}>Description</div>
@@ -15,7 +20,8 @@ export default function PlaygroundSettingsImages() {
         filename="bunny.webp"
         description={
           <div>
-            Big Buck Bunny screenshot, <code>[16:9] 1280x720</code> resolution.
+            Big Buck Bunny screenshot,{' '}
+            <code className={styles.descriptionCode}>[16:9] 1280x720</code> resolution.
           </div>
         }
       />
@@ -24,7 +30,8 @@ export default function PlaygroundSettingsImages() {
         filename="landscape.webp"
         description={
           <div>
-            Landscape photo, <code>[16:9] 2560x1440</code> resolution.
+            Landscape photo, <code className={styles.descriptionCode}>[16:9] 2560x1440</code>{' '}
+            resolution.
           </div>
         }
       />
@@ -33,8 +40,8 @@ export default function PlaygroundSettingsImages() {
         filename="person.webp"
         description={
           <div>
-            Person photo, can be used e.g. as a videocall substitute, <code>[3:2] 4096x2731</code>{' '}
-            resolution.
+            Person photo, can be used e.g. as a videocall substitute,{' '}
+            <code className={styles.descriptionCode}>[3:2] 4096x2731</code> resolution.
           </div>
         }
       />
@@ -43,7 +50,8 @@ export default function PlaygroundSettingsImages() {
         filename="greenscreen_guy.webp"
         description={
           <div>
-            Photo of guy on greenscreen, can be used to demo <code>remove_greenscreen</code> shader,{' '}
+            Photo of guy on greenscreen, can be used to demo{' '}
+            <code className={styles.descriptionCode}>remove_greenscreen</code> shader,{' '}
             <code>2160x2880</code> resolution.
           </div>
         }
@@ -53,7 +61,8 @@ export default function PlaygroundSettingsImages() {
         filename="test_pattern.webp"
         description={
           <div>
-            FFmpeg-generated test source, <code>[16:9] 7680x4320</code> resolution.
+            FFmpeg-generated test source,{' '}
+            <code className={styles.descriptionCode}>[16:9] 7680x4320</code> resolution.
           </div>
         }
       />
@@ -62,7 +71,8 @@ export default function PlaygroundSettingsImages() {
         filename="compositor.svg"
         description={
           <div>
-            Svg compositor logo with alpha channel, <code>572x140</code> resolution.
+            Svg compositor logo with alpha channel,{' '}
+            <code className={styles.descriptionCode}>572x140</code> resolution.
           </div>
         }
       />
@@ -71,7 +81,8 @@ export default function PlaygroundSettingsImages() {
         filename="compositor_small.webp"
         description={
           <div>
-            Png small compositor logo alpha channel, <code>200x140</code> resolution.
+            Png small compositor logo alpha channel,{' '}
+            <code className={styles.descriptionCode}>200x140</code> resolution.
           </div>
         }
       />

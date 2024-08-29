@@ -5,6 +5,12 @@
     padding: 4px 8px 4px 8px;
 }
 
+.imagePreviewIntro {
+    font-size: 22px;
+    margin-bottom: 48px;
+    padding: 20px;
+}
+
 .headerContainer {
     display: flex;
     margin-bottom: 6px;
@@ -77,11 +83,17 @@
     object-fit: contain;
 }
 
+
+code {
+    white-space: nowrap;
+}
+
 @media only screen and (max-width:660px) {
     .container {
         height: 76vh;
         overflow: scroll;
     }
+    code {white-space: wrap}
 }
 
 .tooltip {
@@ -98,8 +110,4 @@
     color: var(--ifm-font-color-base-inverse) !important;
     background-color: var(--ifm-color-emphasis-600) !important;
     cursor: copy !important;
-}
-
-code {
-    white-space: nowrap;
 }

@@ -18,6 +18,10 @@
     border-radius: 4px;
     border: 1px solid var(--ifm-color-emphasis-300);
     z-index: 11;
+    max-height: 75vh;
+    min-width: 60vw;
+    overflow-y: scroll;
+    overflow-x: visible;
 }
 
 [data-theme='light'] .modalContent {
