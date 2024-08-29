@@ -58,13 +58,13 @@ async function run() {
   await sleep(5000);
   await compositor.registerInput('input_1', {
     type: 'mp4',
-    path: path.join(__dirname, '../.assets/BigBuckBunny.mp4'),
+    serverPath: path.join(__dirname, '../.assets/BigBuckBunny.mp4'),
   });
 
   await sleep(5000);
   await compositor.registerInput('input_2', {
     type: 'mp4',
-    path: path.join(__dirname, '../.assets/ElephantsDream.mp4'),
+    serverPath: path.join(__dirname, '../.assets/ElephantsDream.mp4'),
   });
 }
 run();

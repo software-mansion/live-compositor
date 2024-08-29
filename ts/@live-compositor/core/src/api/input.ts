@@ -15,7 +15,7 @@ function intoMp4RegisterInput(input: Inputs.RegisterMp4Input): Api.RegisterInput
   return {
     type: 'mp4',
     url: input.url,
-    path: input.path,
+    path: input.serverPath,
     required: input.required,
     offset_ms: input.offsetMs,
   };
