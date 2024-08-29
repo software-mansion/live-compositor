@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkcompositor_live=self.webpackChunkcompositor_live||[]).push([[6519],{8978:e=>{e.exports=JSON.parse('{"title":"Guides","slug":"/category/guides","permalink":"/docs/category/guides","navigation":{"previous":{"title":"Getting started","permalink":"/docs/intro"},"next":{"title":"Quick start","permalink":"/docs/guides/quick-start"}}}')}}]);
