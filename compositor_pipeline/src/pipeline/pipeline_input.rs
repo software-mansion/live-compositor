@@ -1,7 +1,4 @@
-use std::{
-    collections::hash_map::Entry,
-    sync::{Arc, Mutex},
-};
+use std::sync::{Arc, Mutex};
 
 use compositor_render::InputId;
 
@@ -49,6 +46,10 @@ pub(super) fn register_pipeline_input<NewInputResult>(
 
     let mut guard = pipeline.lock().unwrap();
 
+    if guard.inputs.contains_key(&input_id) {
+        return Err(RegisterInputError::AlreadyRegistered(input_id));
+    };
+
     if pipeline_input.audio_eos_received.is_some() {
         for (_, output) in guard.outputs.iter_mut() {
             if let Some(ref mut cond) = output.audio_end_condition {
@@ -65,10 +66,7 @@ pub(super) fn register_pipeline_input<NewInputResult>(
         }
     }
 
-    match guard.inputs.entry(input_id.clone()) {
-        Entry::Occupied(_) => return Err(RegisterInputError::AlreadyRegistered(input_id)),
-        Entry::Vacant(entry) => entry.insert(pipeline_input),
-    };
+    guard.inputs.insert(input_id.clone(), pipeline_input);
     guard.queue.add_input(&input_id, receiver, queue_options);
     guard.renderer.register_input(input_id);
 
