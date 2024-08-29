@@ -140,7 +140,7 @@ impl TryFrom<Mp4Input> for pipeline::RegisterInputOptions {
             path,
             required,
             offset_ms,
-            should_loop: looped,
+            should_loop,
         } = value;
 
         const BAD_URL_PATH_SPEC: &str =
@@ -163,7 +163,7 @@ impl TryFrom<Mp4Input> for pipeline::RegisterInputOptions {
         Ok(pipeline::RegisterInputOptions {
             input_options: input::InputOptions::Mp4(input::mp4::Mp4Options {
                 source,
-                looped: looped.unwrap_or(false),
+                should_loop: should_loop.unwrap_or(false),
             }),
             queue_options,
         })

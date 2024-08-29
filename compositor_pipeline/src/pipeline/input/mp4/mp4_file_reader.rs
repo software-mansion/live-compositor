@@ -48,7 +48,7 @@ impl Mp4FileReader<AudioDecoderOptions> {
         let span = span!(Level::INFO, "MP4 audio", input_id = input_id.to_string());
 
         match options {
-            Mp4ReaderOptions::NonFragmented { file, looped } => {
+            Mp4ReaderOptions::NonFragmented { file, should_loop } => {
                 let input_file = std::fs::File::open(file)?;
                 let size = input_file.metadata()?.size();
                 Self::new(
@@ -58,13 +58,13 @@ impl Mp4FileReader<AudioDecoderOptions> {
                     None,
                     stop_thread,
                     span,
-                    looped,
+                    should_loop,
                 )
             }
             Mp4ReaderOptions::Fragmented {
                 header,
                 fragment_receiver,
-                looped,
+                should_loop,
             } => {
                 let size = header.len() as u64;
                 let reader = std::io::Cursor::new(header);
@@ -75,7 +75,7 @@ impl Mp4FileReader<AudioDecoderOptions> {
                     Some(fragment_receiver),
                     stop_thread,
                     span,
-                    looped,
+                    should_loop,
                 )
             }
         }
@@ -130,7 +130,7 @@ impl Mp4FileReader<VideoDecoderOptions> {
         let span = span!(Level::INFO, "MP4 video", input_id = input_id.to_string());
 
         match options {
-            Mp4ReaderOptions::NonFragmented { file, looped } => {
+            Mp4ReaderOptions::NonFragmented { file, should_loop } => {
                 let input_file = std::fs::File::open(file)?;
                 let size = input_file.metadata()?.size();
                 Self::new(
@@ -140,13 +140,13 @@ impl Mp4FileReader<VideoDecoderOptions> {
                     None,
                     stop_thread,
                     span,
-                    looped,
+                    should_loop,
                 )
             }
             Mp4ReaderOptions::Fragmented {
                 header,
                 fragment_receiver,
-                looped,
+                should_loop,
             } => {
                 let size = header.len() as u64;
                 let reader = std::io::Cursor::new(header);
@@ -157,7 +157,7 @@ impl Mp4FileReader<VideoDecoderOptions> {
                     Some(fragment_receiver),
                     stop_thread,
                     span,
-                    looped,
+                    should_loop,
                 )
             }
         }
@@ -266,7 +266,7 @@ impl<DecoderOptions: Clone + Send + 'static> Mp4FileReader<DecoderOptions> {
         fragment_receiver: Option<Receiver<PipelineEvent<Bytes>>>,
         stop_thread: Arc<AtomicBool>,
         span: Span,
-        looped: bool,
+        should_loop: bool,
     ) -> Result<Option<(Self, ChunkReceiver)>, Mp4Error> {
         let reader = mp4::Mp4Reader::read_header(reader, size)?;
 
@@ -288,7 +288,7 @@ impl<DecoderOptions: Clone + Send + 'static> Mp4FileReader<DecoderOptions> {
                     stop_thread_clone,
                     fragment_receiver,
                     track_info,
-                    looped,
+                    should_loop,
                 );
                 debug!("Closing MP4 reader thread");
             })
@@ -322,7 +322,7 @@ fn run_reader_thread<Reader: Read + Seek, DecoderOptions>(
     stop_thread: Arc<AtomicBool>,
     _fragment_receiver: Option<Receiver<PipelineEvent<Bytes>>>,
     track_info: TrackInfo<DecoderOptions, impl FnMut(mp4::Mp4Sample) -> Bytes>,
-    looped: bool,
+    should_loop: bool,
 ) {
     let mut sample_unpacker = track_info.sample_unpacker;
     let mut loop_offset = Duration::ZERO;
@@ -375,7 +375,7 @@ fn run_reader_thread<Reader: Read + Seek, DecoderOptions>(
             }
         }
         loop_offset = last_end_pts;
-        if !looped {
+        if !should_loop {
             break;
         }
     }
