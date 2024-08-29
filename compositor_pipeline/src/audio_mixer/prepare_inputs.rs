@@ -67,7 +67,7 @@ fn frame_input_samples(
     let sample_offset = samples
         .first()
         .map(|batch| {
-            let duration_secs = start_pts.as_secs_f64() - batch.start_pts.as_secs_f64();
+            let duration_secs = (start_pts - batch.start_pts).as_secs_f64();
             let sample_duration_secs = 1.0 / sample_rate as f64;
             Duration::from_secs_f64(duration_secs.rem_euclid(sample_duration_secs))
         })
