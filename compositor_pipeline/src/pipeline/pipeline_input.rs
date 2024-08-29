@@ -23,6 +23,10 @@ pub(super) fn register_pipeline_input<NewInputResult>(
     input_options: &dyn InputOptionsExt<NewInputResult>,
     queue_options: QueueInputOptions,
 ) -> Result<NewInputResult, RegisterInputError> {
+    if pipeline.lock().unwrap().inputs.contains_key(&input_id) {
+        return Err(RegisterInputError::AlreadyRegistered(input_id));
+    }
+
     let pipeline_ctx = pipeline.lock().unwrap().ctx.clone();
 
     let (input, receiver, input_result) = input_options.new_input(&input_id, &pipeline_ctx)?;
