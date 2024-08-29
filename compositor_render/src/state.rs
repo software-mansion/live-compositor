@@ -1,6 +1,8 @@
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
+use glyphon::fontdb;
+
 use crate::error::{RegisterRendererError, UnregisterRendererError};
 
 use crate::scene::{Component, OutputScene};
@@ -47,7 +49,7 @@ pub struct Renderer(Arc<Mutex<InnerRenderer>>);
 
 struct InnerRenderer {
     wgpu_ctx: Arc<WgpuCtx>,
-    text_renderer_ctx: TextRendererCtx,
+    text_renderer_ctx: Arc<TextRendererCtx>,
     chromium_context: Arc<ChromiumContext>,
 
     render_graph: RenderGraph,
@@ -156,6 +158,11 @@ impl Renderer {
         Ok(())
     }
 
+    pub fn register_font(&self, font_source: fontdb::Source) {
+        let ctx = self.0.lock().unwrap().text_renderer_ctx.clone();
+        ctx.add_font(font_source);
+    }
+
     pub fn render(&self, input: FrameSet<InputId>) -> Result<FrameSet<OutputId>, RenderSceneError> {
         self.0.lock().unwrap().render(input)
     }
@@ -185,7 +192,7 @@ impl InnerRenderer {
 
         Ok(Self {
             wgpu_ctx: wgpu_ctx.clone(),
-            text_renderer_ctx: TextRendererCtx::new(),
+            text_renderer_ctx: Arc::new(TextRendererCtx::new()),
             chromium_context: Arc::new(ChromiumContext::new(opts.web_renderer, opts.framerate)?),
             render_graph: RenderGraph::empty(),
             renderers: Renderers::new(wgpu_ctx)?,

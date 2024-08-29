@@ -1,8 +1,12 @@
+use std::sync::Arc;
+
+use bytes::Bytes;
 use compositor_api::types as api;
 use compositor_render::{
     image::{ImageSource, ImageType},
     InputId, OutputFrameFormat, OutputId, RegistryType, Renderer, RendererId, RendererSpec,
 };
+use glyphon::fontdb::Source;
 use input_uploader::InputUploader;
 use output_downloader::OutputDownloader;
 use types::to_js_error;
@@ -107,8 +111,7 @@ impl LiveCompositorRenderer {
             return Err(JsValue::from_str("Expected `url` field in image spec"));
         };
 
-        let resp = reqwest::get(url).await.map_err(to_js_error)?;
-        let bytes = resp.bytes().await.map_err(to_js_error)?;
+        let bytes = download(&url).await?;
         let renderer_spec = RendererSpec::Image(compositor_render::image::ImageSpec {
             src: ImageSource::Bytes { bytes },
             image_type,
@@ -116,6 +119,13 @@ impl LiveCompositorRenderer {
         self.renderer
             .register_renderer(RendererId(renderer_id.into()), renderer_spec)
             .map_err(to_js_error)
+    }
+
+    pub async fn register_font(&mut self, font_url: String) -> Result<(), JsValue> {
+        let bytes = download(&font_url).await?;
+        self.renderer
+            .register_font(Source::Binary(Arc::new(bytes.to_vec())));
+        Ok(())
     }
 
     pub fn unregister_input(&mut self, input_id: String) {
@@ -135,4 +145,10 @@ impl LiveCompositorRenderer {
             .unregister_renderer(&RendererId(renderer_id.into()), RegistryType::Image)
             .map_err(to_js_error)
     }
+}
+
+async fn download(url: &str) -> Result<Bytes, JsValue> {
+    let resp = reqwest::get(url).await.map_err(to_js_error)?;
+    let resp = resp.error_for_status().map_err(to_js_error)?;
+    resp.bytes().await.map_err(to_js_error)
 }
