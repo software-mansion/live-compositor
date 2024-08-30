@@ -8,6 +8,8 @@ import PlaygroundSettingsImages from './PlaygroundSettingsImages';
 import SettingsInputs from './PlaygroundSettingsInputs';
 import OutputResolution from './PlaygroundSettingsOutput';
 
+type ModalContent = 'inputs' | 'images' | 'shaders';
+
 interface PlaygroundSettingsProps {
   onSubmit: () => Promise<void>;
   onInputResolutionChange: (input_id: string, resolution: InputResolution) => void;
@@ -25,9 +27,26 @@ export default function PlaygroundSettings({
   sceneValidity,
   outputResolution,
 }: PlaygroundSettingsProps) {
-  const [inputsSettingsModalOpen, setInputsSettingsModalOpen] = useState(false);
-  const [imagesModalOpen, setImagesModalOpen] = useState(false);
-  const [outputResolutionValidity, setOutputResolutionValidity] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [modalContent, setModalContent] = useState<ModalContent>('images');
+  const [outputResolutionValidity, setOutputResolutionValidity] = useState<boolean>(true);
+
+  function openModal(modalContent: ModalContent) {
+    setIsModalOpen(true);
+    setModalContent(modalContent);
+  }
+
+  const modalContentElement =
+    modalContent === 'inputs' ? (
+      <SettingsInputs
+        handleSettingsUpdate={onInputResolutionChange}
+        inputsSettings={inputsSettings}
+      />
+    ) : modalContent === 'images' ? (
+      <PlaygroundSettingsImages />
+    ) : (
+      <PlaygroundSettingsImages />
+    );
 
   return (
     <div className={styles.settingsPanel}>
@@ -36,16 +55,12 @@ export default function PlaygroundSettings({
           <Card
             title="Inputs resolutions"
             subtitle="settings"
-            onClick={() => setInputsSettingsModalOpen(true)}
+            onClick={() => openModal('inputs')}
           />
 
-          <Card title="Images" subtitle="preview" onClick={() => setImagesModalOpen(true)} />
+          <Card title="Images" subtitle="preview" onClick={() => openModal('images')} />
 
-          <Card
-            title="Shaders"
-            subtitle="preview"
-            onClick={() => setInputsSettingsModalOpen(true)}
-          />
+          <Card title="Shaders" subtitle="preview" onClick={() => openModal('shaders')} />
         </div>
       </div>
 
@@ -66,23 +81,12 @@ export default function PlaygroundSettings({
       </div>
 
       <ReactModal
-        isOpen={inputsSettingsModalOpen}
-        onRequestClose={() => setInputsSettingsModalOpen(false)}
+        isOpen={isModalOpen}
+        onRequestClose={() => setIsModalOpen(false)}
         overlayClassName={styles.modalOverlay}
         className={styles.modalContent}
         ariaHideApp={false}>
-        <SettingsInputs
-          handleSettingsUpdate={onInputResolutionChange}
-          inputsSettings={inputsSettings}
-        />
-      </ReactModal>
-      <ReactModal
-        isOpen={imagesModalOpen}
-        onRequestClose={() => setImagesModalOpen(false)}
-        overlayClassName={styles.modalOverlay}
-        className={styles.modalContent}
-        ariaHideApp={false}>
-        <PlaygroundSettingsImages />
+        {modalContentElement}
       </ReactModal>
     </div>
   );

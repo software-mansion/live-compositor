@@ -29,7 +29,7 @@ export default function PlaygroundSettingsImages() {
         filename="landscape.webp"
         description={
           <div>
-            Photo of a person speaking to a camera, <code>[16:9] 2560x1440</code> resolution.
+            Landscape photo, <code>[16:9] 2560x1440</code> resolution.
           </div>
         }
       />
@@ -38,8 +38,7 @@ export default function PlaygroundSettingsImages() {
         filename="person.webp"
         description={
           <div>
-            Person photo, can be used e.g. as a videocall substitute, <code>[3:2] 4096x2731</code>{' '}
-            resolution.
+            Photo of a person speaking to a camera, <code>[3:2] 4096x2731</code> resolution.
           </div>
         }
       />
@@ -49,7 +48,8 @@ export default function PlaygroundSettingsImages() {
         description={
           <div>
             Photo of a person with a green background, <code>2160x2880</code> resolution. Example
-            shader <code>remove_greenscreen</code> can remove the background from the image.
+            shader <code>remove_greenscreen</code> can be used to remove the background from the
+            image.
           </div>
         }
       />
@@ -76,7 +76,7 @@ export default function PlaygroundSettingsImages() {
         filename="compositor_icon.webp"
         description={
           <div>
-            PNG of the LiveCompositor logo with alpha channel, <code>200x140</code> resolution.
+            PNG of the LiveCompositor logo with an alpha channel, <code>200x140</code> resolution.
           </div>
         }
       />

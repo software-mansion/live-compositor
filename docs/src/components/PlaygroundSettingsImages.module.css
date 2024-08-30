@@ -104,7 +104,7 @@ code {
 .tooltip:hover {
     visibility: visible !important;
     opacity: 1 !important;
-  }
+}
 
 .tooltipCode {
     color: var(--ifm-font-color-base-inverse) !important;
