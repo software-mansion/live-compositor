@@ -20,8 +20,7 @@ export default function PlaygroundSettingsImages() {
         filename="bunny.webp"
         description={
           <div>
-            Big Buck Bunny screenshot,{' '}
-            <code className={styles.descriptionCode}>[16:9] 1280x720</code> resolution.
+            Screenshot from Big Buck Bunny video, <code>[16:9] 1280x720</code> resolution.
           </div>
         }
       />
@@ -30,8 +29,7 @@ export default function PlaygroundSettingsImages() {
         filename="landscape.webp"
         description={
           <div>
-            Landscape photo, <code className={styles.descriptionCode}>[16:9] 2560x1440</code>{' '}
-            resolution.
+            Photo of a person speaking to a camera, <code>[16:9] 2560x1440</code> resolution.
           </div>
         }
       />
@@ -40,19 +38,18 @@ export default function PlaygroundSettingsImages() {
         filename="person.webp"
         description={
           <div>
-            Person photo, can be used e.g. as a videocall substitute,{' '}
-            <code className={styles.descriptionCode}>[3:2] 4096x2731</code> resolution.
+            Person photo, can be used e.g. as a videocall substitute, <code>[3:2] 4096x2731</code>{' '}
+            resolution.
           </div>
         }
       />
       <ImagePreview
-        image_id="greenscreen_guy"
-        filename="greenscreen_guy.webp"
+        image_id="greenscreen"
+        filename="greenscreen.webp"
         description={
           <div>
-            Photo of guy on greenscreen, can be used to demo{' '}
-            <code className={styles.descriptionCode}>remove_greenscreen</code> shader,{' '}
-            <code>2160x2880</code> resolution.
+            Photo of a person with a green background, <code>2160x2880</code> resolution. Example
+            shader <code>remove_greenscreen</code> can remove the background from the image.
           </div>
         }
       />
@@ -61,28 +58,25 @@ export default function PlaygroundSettingsImages() {
         filename="test_pattern.webp"
         description={
           <div>
-            FFmpeg-generated test source,{' '}
-            <code className={styles.descriptionCode}>[16:9] 7680x4320</code> resolution.
+            Example test pattern, <code>[16:9] 1920x1080</code> resolution.
           </div>
         }
       />
       <ImagePreview
-        image_id="compositor"
-        filename="compositor.svg"
+        image_id="compositor_logo"
+        filename="compositor_logo.svg"
         description={
           <div>
-            Svg compositor logo with alpha channel,{' '}
-            <code className={styles.descriptionCode}>572x140</code> resolution.
+            SVG of the LiveCompositor logo with text, <code>572x140</code> resolution.
           </div>
         }
       />
       <ImagePreview
-        image_id="compositor_small"
-        filename="compositor_small.webp"
+        image_id="compositor_icon"
+        filename="compositor_icon.webp"
         description={
           <div>
-            Png small compositor logo alpha channel,{' '}
-            <code className={styles.descriptionCode}>200x140</code> resolution.
+            PNG of the LiveCompositor logo with alpha channel, <code>200x140</code> resolution.
           </div>
         }
       />
@@ -131,5 +125,5 @@ function ImagePreview({ image_id, description, filename }: ImagePreviewProps) {
 }
 
 function getImagePath(filename: string): string {
-  return `/img/images/${filename}`;
+  return `/img/playground_images/${filename}`;
 }
