@@ -33,10 +33,10 @@ async function handleEditorWillMount(monaco: Monaco) {
       tsDefaults.addExtraLib(reactTypes, 'react/jsx-runtime.d.ts');
     });
 
-  await fetch('https://unpkg.com/@types/react-dom/index.d.ts')
+  await fetch('https://unpkg.com/live-compositor@0.1.0-rc.1/src/index.ts')
     .then(response => response.text())
     .then(reactDOMTypes => {
-      tsDefaults.addExtraLib(reactDOMTypes, 'react-dom/index.d.ts');
+      tsDefaults.addExtraLib(reactDOMTypes, 'live-compositor/index.d.ts');
     });
 
   tsDefaults.setCompilerOptions({
