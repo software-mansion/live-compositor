@@ -337,16 +337,19 @@ fn run_encoder_thread(
         }
     }
 
-    match encoder.flush() {
-        Ok(Some(encoded_samples)) => {
-            let send_result = packets_sender.send(EncoderOutputEvent::Data(encoded_samples));
-            if send_result.is_err() {
-                debug!("Failed to send AAC encoded samples.");
-            };
-        }
-        Ok(None) => {}
-        Err(err) => {
-            error!("Error flushing audio samples: {:?}", err);
+    // Flush encoder only if some samples were enqueued.
+    if encoder.start_pts.is_some() {
+        match encoder.flush() {
+            Ok(Some(encoded_samples)) => {
+                let send_result = packets_sender.send(EncoderOutputEvent::Data(encoded_samples));
+                if send_result.is_err() {
+                    debug!("Failed to send AAC encoded samples.");
+                };
+            }
+            Ok(None) => {}
+            Err(err) => {
+                error!("Error flushing audio samples: {:?}", err);
+            }
         }
     }
 
