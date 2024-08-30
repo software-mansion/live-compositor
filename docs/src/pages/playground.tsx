@@ -97,6 +97,7 @@ function Homepage() {
     input_5: InputResolution.Resoultion1920x1080,
     input_6: InputResolution.Resoultion1920x1080,
   });
+
   function updateInputResolutions(inputId: string, resolution: InputResolution) {
     setInputResolutions({
       ...inputResolutions,
