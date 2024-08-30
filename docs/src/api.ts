@@ -1,4 +1,6 @@
-const BACKEND_URL: URL = new URL('http://localhost:8081');
+// The @generated/docusaurus.config file is built at runtime, not present during linting.
+// eslint-disable-next-line import/no-unresolved
+import config from '@generated/docusaurus.config';
 
 interface RequestObject {
   method: string;
@@ -51,7 +53,13 @@ async function createError(response: Response): Promise<ApiError> {
 
 export async function renderImage(body: object): Promise<Blob> {
   const requestObject = buildRequestRenderImage(body);
-  const renderImageUrl = new URL('/render_image', BACKEND_URL);
+
+  const backend_url: URL = new URL(
+    config.customFields.environment === 'development'
+      ? 'http://localhost:8081'
+      : 'https://playground.compositor.live'
+  );
+  const renderImageUrl = new URL('/render_image', backend_url);
   let response;
   try {
     response = await fetch(renderImageUrl, requestObject);

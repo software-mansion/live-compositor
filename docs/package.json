@@ -6,6 +6,7 @@
     "docusaurus": "docusaurus",
     "lint": "eslint .",
     "start": "docusaurus start",
+    "dev": "ENVIRONMENT=development docusaurus start",
     "build": "docusaurus build",
     "swizzle": "docusaurus swizzle",
     "deploy": "docusaurus deploy",
