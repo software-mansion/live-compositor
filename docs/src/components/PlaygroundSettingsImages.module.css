@@ -5,6 +5,12 @@
     padding: 4px 8px 4px 8px;
 }
 
+.imagePreviewIntro {
+    font-size: 22px;
+    margin-bottom: 48px;
+    padding: 20px;
+}
+
 .headerContainer {
     display: flex;
     margin-bottom: 6px;
@@ -13,25 +19,27 @@
 }
 
 .headerInputLabel {
-    flex: 0 0 30%;
-    max-width: 30%;
+    flex: 0 0 20%;
+    max-width: 20%;
     padding-right: 10px;
+    min-width: 160px;
 }
 
-.headerResolutionLabel {
-    flex: 0 0 40%;
-    max-width: 40%;
-    width: 200px;
+.headerDescriptionLabel {
+    flex: 0 0 60%;
+    max-width: 60%;
+    min-width: 320px;
 }
 
 .headerPreviewLabel {
-    flex: 0 0 30%;
-    max-width: 30%;
+    flex: 0 0 20%;
+    max-width: 20%;
     padding-left: 10px;
+    min-width: 120px;
 }
 
 
-.inputSelector {
+.imagePreview {
     height: 100px;
     align-items: center;
     display: flex;
@@ -42,55 +50,50 @@
     padding: 4px 10px 0 10px;
 }
 
-.inputSelectorLabelContainer {
-    flex: 0 0 30%;
-    max-width: 30%;
+.imagePreviewLabelContainer {
+    flex: 0 0 20%;
+    max-width: 20%;
     padding-right: 10px;
     height: 100%;
     display: flex;
     align-items: center;
+    min-width: 160px;
 }
 
-.inputSelectorSelectContainer {
-    flex: 0 0 40%;
-    max-width: 40%;
-    width: 200px;
+.imagePreviewDescriptionContainer {
+    flex: 0 0 60%;
+    max-width: 60%;
     display: flex;
     align-items: center;
+    min-width: 320px;
 }
 
-.inputSelectorSelect {
-    background-color: var(--ifm-color-emphasis-200);
-    border-radius: 4px;
-    padding: 1px 4px 2px 4px;
-    width: 80%;
-}
-
-.inputSelectorImgContainer {
+.imagePreviewImgContainer {
     height: 100%;
-    flex: 0 0 30%;
-    max-width: 30%;
+    flex: 0 0 20%;
+    max-width: 20%;
     display: flex;
     justify-content: center;
-    padding-left: 10px;
+    margin-left: 10px;
+    min-width: 120px;
 }
 
-.inputSelectorImg {
+.imagePreviewImg {
     height: 100%;
     object-fit: contain;
 }
 
+
+code {
+    white-space: nowrap;
+}
+
 @media only screen and (max-width:660px) {
-    .inputSelectorSelectContainer {
-        min-width: 0;
-    }
-    .headerResolutionLabel {
-        min-width: 0;
-    }
     .container {
         height: 76vh;
         overflow: scroll;
     }
+    code {white-space: wrap}
 }
 
 .tooltip {
@@ -101,7 +104,7 @@
 .tooltip:hover {
     visibility: visible !important;
     opacity: 1 !important;
-  }
+}
 
 .tooltipCode {
     color: var(--ifm-font-color-base-inverse) !important;

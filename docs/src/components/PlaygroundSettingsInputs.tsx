@@ -1,3 +1,4 @@
+import toast from 'react-hot-toast';
 import { Tooltip } from 'react-tooltip';
 import { InputResolution, InputsSettings } from '../resolution';
 import styles from './PlaygroundSettingsInputs.module.css';
@@ -9,7 +10,7 @@ interface PlaygroundSettingsInputsProps {
 
 export default function PlaygroundSettingsInputs({
   handleSettingsUpdate,
-  inputsSettings: inputResolutions,
+  inputsSettings,
 }: PlaygroundSettingsInputsProps) {
   function handleChange(event, inputId: string) {
     handleSettingsUpdate(inputId, event.target.value);
@@ -22,10 +23,10 @@ export default function PlaygroundSettingsInputs({
         <div className={styles.headerResolutionLabel}>Resolution</div>
         <div className={styles.headerPreviewLabel}>Preview</div>
       </div>
-      {Object.keys(inputResolutions).map(inputId => (
+      {Object.keys(inputsSettings).map(inputId => (
         <InputResolutionSelect
           inputName={inputId}
-          selectedValue={inputResolutions[inputId]}
+          selectedValue={inputsSettings[inputId]}
           handleChange={event => handleChange(event, inputId)}
           key={inputId}
         />
@@ -81,7 +82,10 @@ function InputResolutionSelect({
           {`Add `}
           <code
             className={styles.tooltipCode}
-            onClick={() => navigator.clipboard.writeText(JSON.stringify(tooltipJson))}>
+            onClick={() => {
+              navigator.clipboard.writeText(JSON.stringify(tooltipJson));
+              toast.success('Copied to clipboard!');
+            }}>
             {JSON.stringify(tooltipJson)}
           </code>
           {` to use this input.`}
