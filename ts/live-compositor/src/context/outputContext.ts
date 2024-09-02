@@ -4,55 +4,67 @@ export type ContextAudioOptions = {
   volume: number;
 };
 
+export type AudioConfig = AudioInputConfig[];
+
+export type AudioInputConfig = {
+  inputId: string;
+  volumeComponents: ContextAudioOptions[];
+};
+
 export class OutputContext {
-  private audioMixerConfig?: AudioInputsConfiguration;
-  private supportsAudio: boolean;
+  private audioMixerConfig?: AudioConfig;
   private onChange: () => void;
 
-  constructor(onChange: () => void, initialAudioConfig?: AudioInputsConfiguration) {
-    this.audioMixerConfig = initialAudioConfig;
-    this.supportsAudio = !!initialAudioConfig;
+  constructor(onChange: () => void, supportsAudio: boolean) {
+    this.audioMixerConfig = supportsAudio ? [] : undefined;
     this.onChange = onChange;
   }
 
   public getAudioConfig(): AudioInputsConfiguration | undefined {
-    return this.audioMixerConfig;
+    if (!this.audioMixerConfig) {
+      return undefined;
+    }
+
+    return {
+      inputs: this.audioMixerConfig.map(input => ({
+        inputId: input.inputId,
+        volume: Math.min(
+          input.volumeComponents.reduce((acc, opt) => acc + opt.volume, 0),
+          1.0
+        ),
+      })),
+    };
   }
 
-  public configureInputAudio(inputId: string, audioOptions: ContextAudioOptions) {
-    if (!this.supportsAudio) {
-      return;
-    }
+  public addInputAudioComponent(inputId: string, options: ContextAudioOptions) {
     if (!this.audioMixerConfig) {
-      this.audioMixerConfig = {
-        inputs: [{ inputId, volume: audioOptions.volume }],
-      };
       return;
     }
 
-    const oldInput = this.audioMixerConfig.inputs.find(input => input.inputId === inputId);
-
-    const shouldUpdate = oldInput && oldInput.volume !== audioOptions.volume;
-
-    if (!oldInput) {
-      this.audioMixerConfig = {
+    const inputConfig = this.audioMixerConfig.find(input => input.inputId === inputId);
+    if (inputConfig) {
+      inputConfig.volumeComponents = [...inputConfig.volumeComponents, options];
+    } else {
+      this.audioMixerConfig = [
         ...this.audioMixerConfig,
-        inputs: [
-          ...this.audioMixerConfig.inputs,
-          {
-            inputId,
-            volume: audioOptions.volume,
-          },
-        ],
-      };
-      this.onChange();
-    } else if (shouldUpdate) {
-      this.audioMixerConfig = {
-        ...this.audioMixerConfig,
-        inputs: this.audioMixerConfig.inputs.map(input =>
-          input.inputId === inputId ? { ...input, volume: audioOptions.volume } : input
-        ),
-      };
+        {
+          inputId,
+          volumeComponents: [options],
+        },
+      ];
+    }
+    this.onChange();
+  }
+
+  public removeInputAudioComponent(inputId: string, options: ContextAudioOptions) {
+    if (!this.audioMixerConfig) {
+      return;
+    }
+
+    const inputConfig = this.audioMixerConfig.find(input => input.inputId === inputId);
+    if (inputConfig) {
+      // opt !== options compares objects by reference
+      inputConfig.volumeComponents = inputConfig.volumeComponents.filter(opt => opt !== options);
       this.onChange();
     }
   }

@@ -1,4 +1,4 @@
-import { _liveCompositorInternals, RegisterOutput, View } from 'live-compositor';
+import { _liveCompositorInternals, RegisterOutput, View, Outputs } from 'live-compositor';
 import React, { useSyncExternalStore } from 'react';
 import { ApiClient, Api } from './api';
 import Renderer from './renderer';
@@ -17,6 +17,7 @@ class Output {
 
   throttledUpdate: () => void;
   videoRenderer?: Renderer;
+  initialAudioConfig?: Outputs.AudioInputsConfiguration;
 
   constructor(
     outputId: string,
@@ -27,12 +28,10 @@ class Output {
     this.api = api;
     this.outputId = outputId;
     this.outputShutdownStateStore = new OutputShutdownStateStore();
+    this.initialAudioConfig = registerRequest.audio?.initial;
 
     const onUpdate = () => this.throttledUpdate?.();
-    this.outputCtx = new _liveCompositorInternals.OutputContext(
-      onUpdate,
-      registerRequest.audio?.initial
-    );
+    this.outputCtx = new _liveCompositorInternals.OutputContext(onUpdate, !!registerRequest.audio);
 
     if (registerRequest.video) {
       const rootElement = React.createElement(OutputRootComponent, {
@@ -55,7 +54,7 @@ class Output {
   }
 
   public scene(): { video?: Api.Video; audio?: Api.Audio } {
-    const audio = this.outputCtx.getAudioConfig();
+    const audio = this.outputCtx.getAudioConfig() ?? this.initialAudioConfig;
     return {
       video: this.videoRenderer && { root: this.videoRenderer.scene() },
       audio: audio && intoAudioInputsConfiguration(audio),

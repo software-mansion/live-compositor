@@ -22,11 +22,6 @@ export type InputStreamProps = {
    * Mute audio.
    */
   mute?: boolean;
-  /**
-   * Disables audio controls in this component. It is useful if you want to manage your
-   * audio configuration with `useAudioInput` hook, or you are using the same InputStream more than once.
-   */
-  disableAudioControl?: boolean;
 };
 
 type AudioPropNames = 'mute' | 'volume' | 'disableAudioControl';
@@ -35,10 +30,9 @@ const InnerInputStream =
   createCompositorComponent<Omit<InputStreamProps, AudioPropNames>>(sceneBuilder);
 
 function InputStream(props: InputStreamProps) {
-  const { mute, volume, disableAudioControl, ...otherProps } = props;
+  const { mute, volume, ...otherProps } = props;
   useAudioInput(props.inputId, {
     volume: mute ? 0 : (volume ?? 1),
-    disabled: disableAudioControl,
   });
   return React.createElement(InnerInputStream, otherProps);
 }

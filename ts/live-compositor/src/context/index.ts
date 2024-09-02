@@ -11,7 +11,7 @@ type CompositorOutputContext = {
 
 export const LiveCompositorContext = createContext<CompositorOutputContext>({
   instanceStore: new InstanceContextStore(),
-  outputCtx: new OutputContext(() => {}),
+  outputCtx: new OutputContext(() => {}, false),
 });
 
 export { InstanceContextStore, OutputContext };
