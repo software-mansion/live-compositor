@@ -27,14 +27,8 @@ export default function PlaygroundSettings({
   sceneValidity,
   outputResolution,
 }: PlaygroundSettingsProps) {
-  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
-  const [modalContent, setModalContent] = useState<ModalContent>('images');
+  const [modalContent, setModalContent] = useState<ModalContent | null>(null);
   const [outputResolutionValidity, setOutputResolutionValidity] = useState<boolean>(true);
-
-  function openModal(modalContent: ModalContent) {
-    setIsModalOpen(true);
-    setModalContent(modalContent);
-  }
 
   const modalContentElement =
     modalContent === 'inputs' ? (
@@ -55,12 +49,12 @@ export default function PlaygroundSettings({
           <Card
             title="Inputs resolutions"
             subtitle="settings"
-            onClick={() => openModal('inputs')}
+            onClick={() => setModalContent('inputs')}
           />
 
-          <Card title="Images" subtitle="preview" onClick={() => openModal('images')} />
+          <Card title="Images" subtitle="preview" onClick={() => setModalContent('images')} />
 
-          <Card title="Shaders" subtitle="preview" onClick={() => openModal('shaders')} />
+          <Card title="Shaders" subtitle="preview" onClick={() => setModalContent('shaders')} />
         </div>
       </div>
 
@@ -81,8 +75,8 @@ export default function PlaygroundSettings({
       </div>
 
       <ReactModal
-        isOpen={isModalOpen}
-        onRequestClose={() => setIsModalOpen(false)}
+        isOpen={modalContent !== null}
+        onRequestClose={() => setModalContent(null)}
         overlayClassName={styles.modalOverlay}
         className={styles.modalContent}
         ariaHideApp={false}>
