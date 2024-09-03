@@ -1,0 +1,30 @@
+{
+  "name": "@live-compositor/browser-render",
+  "version": "1.0.0-rc.0",
+  "main": "dist/index.js",
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "watch": "tsc --watch --preserveWatchOutput",
+    "build-wasm": "ts-node ./scripts/buildWasm.ts",
+    "build": "rollup -c",
+    "clean": "rimraf dist"
+  },
+  "author": "",
+  "license": "BUSL-1.1",
+  "description": "",
+  "devDependencies": {
+    "@rollup/plugin-typescript": "^11.1.6",
+    "rollup": "^4.21.2",
+    "rollup-plugin-copy": "^3.5.0",
+    "rollup-plugin-dts": "^6.1.1",
+    "wasm-pack": "^0.13.0"
+  },
+  "nx": {
+    "targets": {
+      "build": {
+        "dependsOn" : ["build-wasm"]
+      }
+    }
+  }
+}

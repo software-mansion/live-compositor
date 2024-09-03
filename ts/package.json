@@ -5,7 +5,7 @@
   "scripts": {
     "lint": "lerna run lint",
     "lint:fix": "lerna run lint -- --fix",
-    "build": "lerna run build",
+    "build": "lerna run build --concurrency=1",
     "typecheck": "lerna run typecheck",
     "clean": "lerna run clean",
     "watch": "lerna run --parallel --stream watch --private",
@@ -15,6 +15,7 @@
     "live-compositor",
     "@live-compositor/core",
     "@live-compositor/node",
+    "@live-compositor/browser-render",
     "examples"
   ],
   "devDependencies": {
