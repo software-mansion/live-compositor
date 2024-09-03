@@ -3,7 +3,8 @@ use std::{collections::HashMap, sync::Arc, time::Duration};
 use compositor_render::{Frame, FrameData, FrameSet, InputId};
 use wasm_bindgen::JsValue;
 
-use super::{types, wgpu::pad_to_256};
+use super::types;
+use super::wgpu::pad_to_256;
 
 #[derive(Default)]
 pub struct InputUploader {
