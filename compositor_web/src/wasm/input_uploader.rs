@@ -3,10 +3,7 @@ use std::{collections::HashMap, sync::Arc, time::Duration};
 use compositor_render::{Frame, FrameData, FrameSet, InputId};
 use wasm_bindgen::JsValue;
 
-use super::{
-    types::{FrameFormat, InputFrame, InputFrameSet},
-    wgpu::pad_to_256,
-};
+use super::{types, wgpu::pad_to_256};
 
 #[derive(Default)]
 pub struct InputUploader {
@@ -18,16 +15,16 @@ impl InputUploader {
         &mut self,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
-        input: InputFrameSet,
+        input: types::FrameSet,
     ) -> Result<FrameSet<InputId>, JsValue> {
         let pts = Duration::from_millis(input.pts_ms as u64);
         let mut frames = HashMap::new();
         for frame in input.frames.entries() {
-            let frame: InputFrame = frame?.try_into()?;
+            let frame: types::Frame = frame?.try_into()?;
             self.upload_input_frame(device, queue, &frame);
 
             let data = match frame.format {
-                FrameFormat::RgbaBytes => FrameData::Rgba8UnormWgpuTexture(
+                types::FrameFormat::RgbaBytes => FrameData::Rgba8UnormWgpuTexture(
                     self.textures.get(&frame.id).unwrap().texture.clone(),
                 ),
             };
@@ -53,10 +50,10 @@ impl InputUploader {
         &mut self,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
-        frame: &InputFrame,
+        frame: &types::Frame,
     ) {
         match frame.format {
-            FrameFormat::RgbaBytes => {
+            types::FrameFormat::RgbaBytes => {
                 let size = wgpu::Extent3d {
                     width: frame.resolution.width as u32,
                     height: frame.resolution.height as u32,
@@ -84,7 +81,7 @@ impl InputUploader {
         }
     }
 
-    fn create_texture(device: &wgpu::Device, frame: &InputFrame) -> Texture {
+    fn create_texture(device: &wgpu::Device, frame: &types::Frame) -> Texture {
         let size = wgpu::Extent3d {
             width: frame.resolution.width as u32,
             height: frame.resolution.height as u32,

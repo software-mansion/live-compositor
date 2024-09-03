@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use compositor_render::{web_renderer::WebRendererInitOptions, InputId, Resolution};
-use serde::{de::DeserializeOwned, Deserialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
 #[derive(Debug, Deserialize)]
@@ -17,7 +17,7 @@ pub struct Framerate {
 }
 
 #[wasm_bindgen]
-pub struct InputFrameSet {
+pub struct FrameSet {
     pub pts_ms: f64,
 
     #[wasm_bindgen(skip)]
@@ -25,7 +25,7 @@ pub struct InputFrameSet {
 }
 
 #[wasm_bindgen]
-impl InputFrameSet {
+impl FrameSet {
     #[wasm_bindgen(constructor)]
     pub fn new(pts_ms: f64, frames: js_sys::Map) -> Self {
         Self { pts_ms, frames }
@@ -42,7 +42,7 @@ impl InputFrameSet {
     }
 }
 
-pub struct InputFrame {
+pub struct Frame {
     pub id: InputId,
     pub resolution: Resolution,
     pub format: FrameFormat,
@@ -50,8 +50,8 @@ pub struct InputFrame {
 }
 
 #[wasm_bindgen]
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum FrameFormat {
     RgbaBytes,
 }
@@ -89,7 +89,7 @@ impl From<Framerate> for compositor_render::Framerate {
     }
 }
 
-impl TryFrom<JsValue> for InputFrame {
+impl TryFrom<JsValue> for Frame {
     type Error = JsValue;
 
     fn try_from(entry: JsValue) -> Result<Self, Self::Error> {
