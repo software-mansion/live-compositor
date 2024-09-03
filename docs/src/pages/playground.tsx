@@ -70,14 +70,11 @@ const INITIAL_SCENE = {
 
 const INITIAL_REACT_CODE = [
   "import React from 'react';\n",
-
-  'function View() {',
-  '    return null;',
-  '}',
+  "import { View } from 'live-compositor';\n",
   'function a(): JSX.Element {',
   '    return (',
   '        <div>',
-  '            <View/>',
+  '            <View direction="column" />',
   '        </div>',
   '    )',
   '}',

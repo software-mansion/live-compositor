@@ -94,6 +94,9 @@ export default async function executeTypescriptCode(code: string) {
       if (moduleKey === 'react-dom') {
         return await import('react-dom');
       }
+      if (moduleKey === 'live-compositor') {
+        return await import('live-compositor');
+      }
       throw new Error(`Module ${moduleKey} is not available in the sandbox.`);
     };
     const jsCode = transpileModule(code, {

@@ -2,6 +2,7 @@ import Editor, { Monaco } from '@monaco-editor/react';
 import React, { useCallback, useLayoutEffect, useRef } from 'react';
 import { useColorMode } from '@docusaurus/theme-common';
 import { tsCompilerOptions } from '../monacoEditorConfig';
+import { usePluginData } from '@docusaurus/useGlobalData';
 
 function useEvent<TFunction extends (...params: any[]) => any>(handler: TFunction) {
   const handlerRef = useRef(handler);
@@ -18,26 +19,16 @@ function useEvent<TFunction extends (...params: any[]) => any>(handler: TFunctio
   }, []) as TFunction;
 }
 
-async function handleEditorWillMount(monaco: Monaco) {
+async function handleEditorWillMount(monaco: Monaco, pathsToTypeFiles: string[]) {
   const tsDefaults = monaco?.languages.typescript.typescriptDefaults;
 
-  await fetch('https://unpkg.com/@types/react/index.d.ts')
-    .then(response => response.text())
-    .then(reactTypes => {
-      tsDefaults.addExtraLib(reactTypes, 'react/index.d.ts');
-    });
-
-  await fetch('https://unpkg.com/@types/react/jsx-runtime.d.ts')
-    .then(response => response.text())
-    .then(reactTypes => {
-      tsDefaults.addExtraLib(reactTypes, 'react/jsx-runtime.d.ts');
-    });
-
-  await fetch('https://unpkg.com/@types/react-dom/index.d.ts')
-    .then(response => response.text())
-    .then(reactDOMTypes => {
-      tsDefaults.addExtraLib(reactDOMTypes, 'react-dom/index.d.ts');
-    });
+  for (const pathToTypeFile of pathsToTypeFiles) {
+    await fetch(pathToTypeFile)
+      .then(response => response.text())
+      .then(fileContent => {
+        tsDefaults.addExtraLib(fileContent, pathToTypeFile.replace('/playground-types/', ''));
+      });
+  }
 
   tsDefaults.setCompilerOptions({
     ...tsCompilerOptions(),
@@ -52,6 +43,8 @@ type Props = {
 export default function PlaygroundReactEditor(props: Props) {
   const { code, onCodeChange } = props;
   const { colorMode } = useColorMode();
+  const pluginData = usePluginData('copy-type-files-plugin');
+  const pathsToTypeFiles = pluginData['pathsToTypeFiles'];
 
   const handleChange = useEvent((value: string | undefined) => {
     onCodeChange(value ?? '');
@@ -65,7 +58,7 @@ export default function PlaygroundReactEditor(props: Props) {
       defaultLanguage="typescript"
       value={code}
       onChange={handleChange}
-      beforeMount={handleEditorWillMount}
+      beforeMount={monaco => handleEditorWillMount(monaco, pathsToTypeFiles)}
       defaultPath="file:///main.tsx"
       theme={colorMode === 'dark' ? 'vs-dark' : 'light'}
     />
