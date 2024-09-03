@@ -125,6 +125,9 @@ const config: Config = {
       contextualSearch: false,
     },
   } satisfies Preset.ThemeConfig,
+  customFields: {
+    environment: process.env.ENVIRONMENT,
+  },
 };
 
 export default config;
