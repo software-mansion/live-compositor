@@ -12,7 +12,7 @@
     <canvas id="headless-canvas" style="display:none" width="1280" height="1280"></canvas>
 
     <script type="module">
-        import init, {createRenderer, InputFrameSet} from "./pkg/compositor_web.js";
+        import init, {create_renderer, FrameSet} from "./pkg/compositor_web.js";
 
         const IMAGE1_URL = "https://media.tenor.com/eFPFHSN4rJ8AAAAM/example.gif";
         const IMAGE2_URL = "https://compositor.live/img/logo-dark.svg";
@@ -39,7 +39,7 @@
 
         function startRendering(imageData) {
             init().then(async () => {
-                const renderer = await createRenderer({
+                const renderer = await create_renderer({
                     framerate: {
                         num: 30,
                         den: 1
@@ -122,15 +122,15 @@
                         width: imageData.width,
                         height: imageData.height
                     },
-                    format: "rgbaBytes",
+                    format: "RGBA_BYTES",
                     data: imageData.data,
                 });
 
                 for (let i = 0; i < 100; i++) {
-                    const frame_set = new InputFrameSet(100 * i, inputs);
+                    const frame_set = new FrameSet(100 * i, inputs);
                     const outputs = renderer.render(frame_set);
-                    const output = outputs.get("output");
-                    ctx.putImageData(output, 0, 0);
+                    const output = outputs.frames.get("output");
+                    ctx.putImageData(new ImageData(output.data, output.resolution.width, output.resolution.height), 0, 0);
                     await sleep(10);
                 }
             });
