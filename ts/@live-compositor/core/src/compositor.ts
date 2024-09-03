@@ -1,4 +1,4 @@
-import { ContextStore, RegisterInput, RegisterOutput } from 'live-compositor';
+import { _liveCompositorInternals, RegisterInput, RegisterOutput } from 'live-compositor';
 import { ApiClient, Api } from './api';
 import Output from './output';
 import { CompositorManager } from './compositorManager';
@@ -15,12 +15,13 @@ export async function createLiveCompositor(manager: CompositorManager): Promise<
 export class LiveCompositor {
   private manager: CompositorManager;
   private api: ApiClient;
-  private store: ContextStore = new ContextStore();
+  private store: _liveCompositorInternals.InstanceContextStore;
   private outputs: Record<string, Output> = {};
 
   public constructor(manager: CompositorManager) {
     this.manager = manager;
     this.api = new ApiClient(this.manager);
+    this.store = new _liveCompositorInternals.InstanceContextStore();
   }
 
   private async setupInstance() {
@@ -30,12 +31,17 @@ export class LiveCompositor {
 
   public async registerOutput(outputId: string, request: RegisterOutput): Promise<object> {
     const output = new Output(outputId, request, this.api, this.store);
-    const initialVideo = output.scene();
 
-    const apiRequest = intoRegisterOutput(request, initialVideo);
+    const apiRequest = intoRegisterOutput(request, output.scene());
     const result = await this.api.registerOutput(outputId, apiRequest);
     this.outputs[outputId] = output;
     return result;
+  }
+
+  public async unregisterOutput(outputId: string): Promise<object> {
+    this.outputs[outputId].close();
+    delete this.outputs[outputId];
+    return this.api.unregisterOutput(outputId);
   }
 
   public async registerInput(inputId: string, request: RegisterInput): Promise<object> {
