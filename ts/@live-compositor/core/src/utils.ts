@@ -31,10 +31,10 @@ export function throttle(fn: () => Promise<void>, timeoutMs: number): () => void
   };
 }
 
-export async function sleep(timeout_ms: number): Promise<void> {
+export async function sleep(timeoutMs: number): Promise<void> {
   await new Promise<void>(res => {
     setTimeout(() => {
       res();
-    }, timeout_ms);
+    }, timeoutMs);
   });
 }
