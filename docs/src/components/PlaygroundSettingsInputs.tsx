@@ -46,7 +46,7 @@ function InputResolutionSelect({
   selectedValue,
   handleChange,
 }: InputResolutionSelectProps) {
-  const tooltipJson = { type: 'input_stream', input_id: inputName };
+  const json = JSON.stringify({ type: 'input_stream', input_id: inputName }, null, 2);
 
   return (
     <div className={styles.inputSelector}>
@@ -83,10 +83,10 @@ function InputResolutionSelect({
           <code
             className={styles.tooltipCode}
             onClick={() => {
-              navigator.clipboard.writeText(JSON.stringify(tooltipJson));
+              navigator.clipboard.writeText(json);
               toast.success('Copied to clipboard!');
             }}>
-            {JSON.stringify(tooltipJson)}
+            {json}
           </code>
           {` to use this input.`}
         </div>

@@ -20,7 +20,7 @@
     z-index: 11;
     max-height: 75vh;
     min-width: 60vw;
-    overflow-y: scroll;
+    overflow-y: auto;
     overflow-x: visible;
 }
 
