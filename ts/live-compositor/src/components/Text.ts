@@ -1,5 +1,6 @@
 import * as Api from '../api';
 import { createCompositorComponent, SceneComponent } from '../component';
+import { intoApiRgbaColor } from './common';
 
 export type TextProps = {
   children?: (string | number)[] | string | number;
@@ -38,13 +39,13 @@ export type TextProps = {
    */
   lineHeight?: number;
   /**
-   * (**default=`"#FFFFFFFF"`**) Font color in `#RRGGBBAA` format.
+   * (**default=`"#FFFFFFFF"`**) Font color in `#RRGGBBAA` or `#RRGGBB` format.
    */
-  colorRgba?: Api.RGBAColor;
+  color?: string;
   /**
-   * (**default=`"#00000000"`**) Background color in `#RRGGBBAA` format.
+   * (**default=`"#00000000"`**) Background color in `#RRGGBBAA` or `#RRGGBB` format.
    */
-  backgroundColorRgba?: Api.RGBAColor;
+  backgroundColor?: string;
   /**
    * (**default=`"Verdana"`**) Font family. Provide [family-name](https://www.w3.org/TR/2018/REC-css-fonts-3-20180920/#family-name-value)
    * for a specific font. "generic-family" values like e.g. "sans-serif" will not work.
@@ -81,8 +82,8 @@ function sceneBuilder(props: TextProps, children: SceneComponent[]): Api.Compone
     max_height: props.maxHeight,
     font_size: props.fontSize,
     line_height: props.lineHeight,
-    color_rgba: props.colorRgba,
-    background_color_rgba: props.backgroundColorRgba,
+    color_rgba: props.color && intoApiRgbaColor(props.color),
+    background_color_rgba: props.backgroundColor && intoApiRgbaColor(props.backgroundColor),
     font_family: props.fontFamily,
     style: props.style,
     align: props.align,

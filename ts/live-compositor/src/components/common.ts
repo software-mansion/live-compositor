@@ -27,10 +27,6 @@ export type EasingFunction =
   | { functionName: 'bounce' }
   | {
       functionName: 'cubic-bezier';
-      /**
-       * @minItems 4
-       * @maxItems 4
-       */
       points: [number, number, number, number];
     };
 
@@ -49,5 +45,15 @@ export function intoApiEasingFunction(easing: EasingFunction): Api.EasingFunctio
     };
   } else {
     throw new Error(`Invalid LiveCompositor.EasingFunction ${easing}`);
+  }
+}
+
+const rgbRegExp = /^#[0-9a-fA-F]{6}$/;
+
+export function intoApiRgbaColor(color: string): Api.RGBAColor {
+  if (rgbRegExp.test(color)) {
+    return `${color}FF`;
+  } else {
+    return color;
   }
 }

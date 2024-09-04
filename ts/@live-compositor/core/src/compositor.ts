@@ -35,6 +35,7 @@ export class LiveCompositor {
     const apiRequest = intoRegisterOutput(request, output.scene());
     const result = await this.api.registerOutput(outputId, apiRequest);
     this.outputs[outputId] = output;
+    await output.ready();
     return result;
   }
 
@@ -45,13 +46,19 @@ export class LiveCompositor {
   }
 
   public async registerInput(inputId: string, request: RegisterInput): Promise<object> {
-    const result = await this.api.registerInput(inputId, intoRegisterInput(request));
-    this.store.addInput({ inputId });
-    return result;
+    return this.store.runBlocking(async updateStore => {
+      const result = await this.api.registerInput(inputId, intoRegisterInput(request));
+      updateStore({ type: 'add_input', input: { inputId } });
+      return result;
+    });
   }
 
   public async unregisterInput(inputId: string): Promise<object> {
-    return this.api.unregisterInput(inputId);
+    return this.store.runBlocking(async updateStore => {
+      const result = this.api.unregisterInput(inputId);
+      updateStore({ type: 'remove_input', inputId });
+      return result;
+    });
   }
 
   public async registerShader(shaderId: string, request: Api.ShaderSpec): Promise<object> {
