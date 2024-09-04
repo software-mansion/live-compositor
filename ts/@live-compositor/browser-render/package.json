@@ -23,8 +23,15 @@
   "nx": {
     "targets": {
       "build": {
-        "dependsOn" : ["build-wasm"]
+        "dependsOn": [
+          "build-wasm"
+        ]
       }
+    }
+  },
+  "overrides": {
+    "rollup-plugin-copy": {
+      "globby": "^11.0.0"
     }
   }
 }
