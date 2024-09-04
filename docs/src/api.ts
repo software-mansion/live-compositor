@@ -54,20 +54,55 @@ async function createError(response: Response): Promise<ApiError> {
 export async function renderImage(body: object): Promise<Blob> {
   const requestObject = buildRequestRenderImage(body);
 
-  const backend_url: URL = new URL(
+  const backendUrl: URL = new URL(
     config.customFields.environment === 'development'
       ? 'http://localhost:8081'
       : 'https://playground.compositor.live'
   );
-  const renderImageUrl = new URL('/render_image', backend_url);
-  let response;
-  try {
-    response = await fetch(renderImageUrl, requestObject);
-  } catch (error) {
-    throw new ApiError(error.message);
+  const renderImageUrl = new URL('/render_image', backendUrl);
+
+  const maxAttempts = 5;
+  let delay = 500;
+  const timeout = 5000;
+
+  for (let attemptCount = 1; attemptCount <= maxAttempts; attemptCount++) {
+    try {
+      const response = await fetchWithTimeout(renderImageUrl, requestObject, timeout);
+
+      if (response.status >= 400) {
+        throw await createError(response);
+      }
+
+      return await response.blob();
+    } catch (error) {
+      if (attemptCount < maxAttempts && error instanceof ApiError && !error.response) {
+        delay *= 2;
+        await new Promise(resolve => setTimeout(resolve, delay));
+      } else {
+        throw error;
+      }
+    }
   }
-  if (response.status >= 400) {
-    throw await createError(response);
-  }
-  return await response.blob();
+}
+
+async function fetchWithTimeout(
+  url: URL,
+  requestObject: RequestObject,
+  timeout: number
+): Promise<Response> {
+  return new Promise<Response>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new ApiError(`Fetch not responding after ${timeout / 1000} s`));
+    }, timeout);
+
+    fetch(url, requestObject)
+      .then(response => {
+        clearTimeout(timer);
+        resolve(response);
+      })
+      .catch(error => {
+        clearTimeout(timer);
+        reject(new ApiError(error.message));
+      });
+  });
 }
