@@ -6,9 +6,11 @@
 
 ### ✨ New features
 
-- Add `loop` option for MP4 input ([#699](https://github.com/software-mansion/live-compositor/pull/699)) by [@WojciechBarczynski](https://github.com/WojciechBarczynski)
+- Add `loop` option for MP4 input. ([#699](https://github.com/software-mansion/live-compositor/pull/699)) by [@WojciechBarczynski](https://github.com/WojciechBarczynski)
 
 ### 🐛 Bug fixes
+
+- Fix AAC output unregister before the first sample. ([#714](https://github.com/software-mansion/live-compositor/pull/714)) by [@WojciechBarczynski](https://github.com/WojciechBarczynski)pull/714)) by [@WojciechBarczynski](https://github.com/WojciechBarczynski)
 
 ### 🔧 Others
 
