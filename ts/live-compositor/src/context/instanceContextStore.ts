@@ -1,9 +1,11 @@
 import * as Api from '../api';
 
+export type StreamState = 'ready' | 'playing' | 'finished';
+
 export type InputStreamInfo = {
   inputId: string;
-  videoState?: 'ready' | 'playing' | 'finished';
-  audioState?: 'ready' | 'playing' | 'finished';
+  videoState?: StreamState;
+  audioState?: StreamState;
 };
 
 type InstanceContext = {
@@ -16,33 +18,22 @@ export class InstanceContextStore {
   };
   private onChangeCallbacks: Set<() => void> = new Set();
 
-  public addInput(input: InputStreamInfo) {
-    if (this.context.inputs[input.inputId]) {
-      console.warn(`Input ${input.inputId} already exists. Overriding old context.`);
-    }
+  public updateInput(update: InputStreamInfo) {
+    const oldInput = this.context.inputs[update.inputId];
     this.context = {
       ...this.context,
       inputs: {
         ...this.context.inputs,
-        [input.inputId]: input,
+        [update.inputId]: updatedInput(update, oldInput),
       },
     };
     this.signalUpdate();
   }
 
-  public updateInput(update: Partial<InputStreamInfo> & { inputId: string }) {
-    const oldInput = this.context.inputs[update.inputId];
-    if (!oldInput) {
-      console.warn('Trying to update input that does not exists.');
-      return;
-    }
-    this.context = {
-      ...this.context,
-      inputs: {
-        ...this.context.inputs,
-        [update.inputId]: { ...oldInput, ...update },
-      },
-    };
+  public removeInput(inputId: string) {
+    const inputs = { ...this.context.inputs };
+    delete inputs[inputId];
+    this.context = { ...this.context, inputs };
     this.signalUpdate();
   }
 
@@ -64,4 +55,32 @@ export class InstanceContextStore {
       this.onChangeCallbacks.delete(onStoreChange);
     };
   };
+}
+
+const STATE_CHANGES: Record<StreamState, StreamState[]> = {
+  ready: ['playing', 'finished'],
+  playing: ['finished'],
+  finished: [],
+};
+
+function updatedInput(update: InputStreamInfo, oldState?: InputStreamInfo): InputStreamInfo {
+  return {
+    inputId: update.inputId,
+    videoState: updateStreamState(update.videoState, oldState?.videoState),
+    audioState: updateStreamState(update.audioState, oldState?.audioState),
+  };
+}
+
+function updateStreamState(
+  update: StreamState | undefined,
+  oldState: StreamState | undefined
+): StreamState | undefined {
+  if (!oldState) {
+    return update;
+  }
+  if (!update) {
+    return oldState;
+  }
+  const validStates = STATE_CHANGES[oldState];
+  return validStates.includes(update) ? update : oldState;
 }

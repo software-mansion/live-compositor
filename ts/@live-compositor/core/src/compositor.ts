@@ -46,7 +46,7 @@ export class LiveCompositor {
 
   public async registerInput(inputId: string, request: RegisterInput): Promise<object> {
     const result = await this.api.registerInput(inputId, intoRegisterInput(request));
-    this.store.addInput({ inputId });
+    this.store.addInput(inputId);
     return result;
   }
 

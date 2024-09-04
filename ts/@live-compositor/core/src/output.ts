@@ -28,7 +28,9 @@ class Output {
     this.api = api;
     this.outputId = outputId;
     this.outputShutdownStateStore = new OutputShutdownStateStore();
-    this.initialAudioConfig = registerRequest.audio?.initial;
+    if (registerRequest.audio) {
+      this.initialAudioConfig = registerRequest.audio.initial ?? { inputs: [] };
+    }
 
     const onUpdate = () => this.throttledUpdate?.();
     this.outputCtx = new _liveCompositorInternals.OutputContext(onUpdate, !!registerRequest.audio);
@@ -62,7 +64,7 @@ class Output {
   }
 
   public close(): void {
-    this.throttledUpdate = () => {};
+    this.throttledUpdate = () => { };
     // close will switch a scene to just a <View />, so we need replace `throttledUpdate`
     // callback before it is called
     this.outputShutdownStateStore.close();

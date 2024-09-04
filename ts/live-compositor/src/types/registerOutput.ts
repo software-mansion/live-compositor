@@ -113,7 +113,7 @@ export type OutputRtpAudioOptions = {
   /**
    * Initial audio mixer configuration for output.
    */
-  initial: AudioInputsConfiguration;
+  initial?: AudioInputsConfiguration;
 };
 
 export interface OutputMp4AudioOptions {
@@ -132,7 +132,7 @@ export interface OutputMp4AudioOptions {
   /**
    * Initial audio mixer configuration for output.
    */
-  initial: AudioInputsConfiguration;
+  initial?: AudioInputsConfiguration;
 }
 
 export type RtpAudioEncoderOptions = {

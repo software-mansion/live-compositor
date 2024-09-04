@@ -66,7 +66,7 @@ interface SpawnPromise extends Promise<void> {
 function spawn(command: string, args: string[]): SpawnPromise {
   console.log(`Spawning: ${command} ${args.join(' ')}`);
   const child = nodeSpawn(command, args, {
-    stdio: 'ignore',
+    stdio: process.env.DEBUG ? 'inherit' : 'ignore',
   });
 
   return new Promise<void>((resolve, reject) => {
@@ -123,11 +123,11 @@ a=rtcp-mux
   );
 }
 
-export async function sleep(timeout_ms: number): Promise<void> {
+export async function sleep(timeoutMs: number): Promise<void> {
   await new Promise<void>(res => {
     setTimeout(() => {
       res();
-    }, timeout_ms);
+    }, timeoutMs);
   });
 }
 
