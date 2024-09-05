@@ -13,14 +13,14 @@ export default [
       typescript(),
       copy({
         targets: [
-          { src: 'src/generated', dest: 'dist/src' },
+          { src: 'src/generated', dest: 'dist' },
           { src: 'src/generated/compositor_web_bg.wasm', dest: 'dist', rename: 'live-compositor.wasm' }
         ]
       })
     ]
   },
   {
-    input: 'dist/src/index.d.ts',
+    input: 'dist/index.d.ts',
     output: {
       file: 'dist/index.d.ts',
       format: 'es',

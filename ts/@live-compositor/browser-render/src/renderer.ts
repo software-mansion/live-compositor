@@ -1,5 +1,5 @@
 import { wasm } from './wasm';
-import * as api from './api';
+import * as Api from './api';
 
 export type RendererOptions = {
   /**
@@ -13,13 +13,13 @@ export type Framerate = {
   den: number;
 };
 
-export type FrameSet<T> = {
+export type FrameSet = {
   ptsMs: number;
-  frames: Map<T, Frame>;
+  frames: { [id: string]: Frame };
 };
 
 export type Frame = {
-  resolution: api.Resolution;
+  resolution: Api.Resolution;
   format: FrameFormat;
   data: Uint8ClampedArray;
 };
@@ -42,24 +42,25 @@ export class Renderer {
     return new Renderer(renderer);
   }
 
-  public render(input: FrameSet<api.InputId>): FrameSet<api.OutputId> {
-    const inputFrameSet = new wasm.FrameSet(input.ptsMs, input.frames);
+  public render(input: FrameSet): FrameSet {
+    const frames = new Map(Object.entries(input.frames));
+    const inputFrameSet = new wasm.FrameSet(input.ptsMs, frames);
     const output = this.renderer.render(inputFrameSet);
     return {
       ptsMs: output.pts_ms,
-      frames: output.frames,
+      frames: Object.fromEntries(output.frames),
     };
   }
 
-  public updateScene(outputId: api.OutputId, resolution: api.Resolution, scene: api.Component) {
+  public updateScene(outputId: Api.OutputId, resolution: Api.Resolution, scene: Api.Component) {
     this.renderer.update_scene(outputId, resolution, scene);
   }
 
-  public registerInput(inputId: api.InputId) {
+  public registerInput(inputId: Api.InputId) {
     this.renderer.register_input(inputId);
   }
 
-  public async registerImage(rendererId: api.RendererId, imageSpec: api.ImageSpec) {
+  public async registerImage(rendererId: Api.RendererId, imageSpec: Api.ImageSpec) {
     await this.renderer.register_image(rendererId, imageSpec);
   }
 
@@ -67,15 +68,15 @@ export class Renderer {
     await this.renderer.register_font(fontUrl);
   }
 
-  public unregisterInput(inputId: api.InputId) {
+  public unregisterInput(inputId: Api.InputId) {
     this.renderer.unregister_input(inputId);
   }
 
-  public unregisterImage(rendererId: api.RendererId) {
+  public unregisterImage(rendererId: Api.RendererId) {
     this.renderer.unregister_image(rendererId);
   }
 
-  public unregisterOutput(outputId: api.OutputId) {
+  public unregisterOutput(outputId: Api.OutputId) {
     this.renderer.unregister_output(outputId);
   }
 }

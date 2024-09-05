@@ -1,2 +1,2 @@
-export { initCompositor } from './wasm';
+export { loadWasmModule } from './wasm';
 export * from './renderer';

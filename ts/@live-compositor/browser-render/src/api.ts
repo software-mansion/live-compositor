@@ -1,11 +1,11 @@
-import * as api from './api.generated';
+import { Api } from 'live-compositor';
 
-export type Resolution = api.Resolution;
-export type ImageSpec = Required<Pick<api.ImageSpec, 'asset_type' | 'url'>>;
+export type Resolution = Api.Resolution;
+export type ImageSpec = Required<Pick<Api.ImageSpec, 'asset_type' | 'url'>>;
 export type Component = Extract<
-  api.Component,
+  Api.Component,
   { type: 'input_stream' | 'view' | 'rescaler' | 'image' | 'text' | 'tiles' }
 >;
-export type RendererId = api.RendererId;
-export type InputId = api.InputId;
+export type RendererId = Api.RendererId;
+export type InputId = Api.InputId;
 export type OutputId = string;

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import './App.css'
-import { Renderer, initCompositor } from '@live-compositor/browser-render';
+import { Renderer, loadWasmModule } from '@live-compositor/browser-render';
 
 function App() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -9,7 +9,7 @@ function App() {
 
   useEffect(() => {
     const setupRenderer = async () => {
-      await initCompositor("./assets/live-compositor.wasm");
+      await loadWasmModule("./assets/live-compositor.wasm");
       const renderer = await Renderer.create({
         streamFallbackTimeoutMs: 500,
       });
@@ -60,11 +60,11 @@ function App() {
     const renderInterval = setInterval(() => {
       const input = {
         ptsMs: pts,
-        frames: new Map(),
+        frames: {},
       };
       const outputs = renderer.render(input);
-      const frame = outputs.frames.get("output");
-      const resolution = frame!.resolution;
+      const frame = outputs.frames["output"];
+      const resolution = frame.resolution;
       const canvas = canvasRef.current;
       const context = canvas!.getContext("2d");
       context?.putImageData(new ImageData(frame!.data, resolution.width, resolution.height), 0, 0);
