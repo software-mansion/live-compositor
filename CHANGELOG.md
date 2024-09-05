@@ -11,6 +11,7 @@
 ### 🐛 Bug fixes
 
 - Fix AAC output unregister before the first sample. ([#714](https://github.com/software-mansion/live-compositor/pull/714)) by [@WojciechBarczynski](https://github.com/WojciechBarczynski)pull/714)) by [@WojciechBarczynski](https://github.com/WojciechBarczynski)
+- Fix output mp4 timestamps when output is registered after pipeline start. ([#731](https://github.com/software-mansion/live-compositor/pull/731)) by [@WojciechBarczynski](https://github.com/WojciechBarczynski)
 
 ### 🔧 Others
 
