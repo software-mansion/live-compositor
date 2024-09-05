@@ -53,21 +53,51 @@ async function createError(response: Response): Promise<ApiError> {
 
 export async function renderImage(body: object): Promise<Blob> {
   const requestObject = buildRequestRenderImage(body);
+  return retryRequest(fetchWithTimeout, '/render_image', requestObject);
+}
 
+async function fetchWithTimeout(
+  path: string,
+  requestObject: RequestObject,
+  timeout: number
+): Promise<Response> {
   const backendUrl: URL = new URL(
     config.customFields.environment === 'development'
       ? 'http://localhost:8081'
       : 'https://playground.compositor.live'
   );
-  const renderImageUrl = new URL('/render_image', backendUrl);
+  const fullUrl = new URL(path, backendUrl);
 
-  const maxAttempts = 5;
-  let delay = 500;
+  const controller = new AbortController();
+  const signal = controller.signal;
+
+  return new Promise<Response>((res, rej) => {
+    const timer = setTimeout(() => {
+      controller.abort();
+      rej(new ApiError(`Fetch not responding after ${timeout / 1000} s`));
+    }, timeout);
+
+    fetch(fullUrl, { ...requestObject, signal })
+      .then(response => {
+        clearTimeout(timer);
+        res(response);
+      })
+      .catch(error => {
+        clearTimeout(timer);
+        rej(new ApiError(error.message));
+      });
+  });
+}
+
+async function retryRequest(func, path, requestObject) {
+  const delay = 1000;
   const timeout = 5000;
+  const maxTimeForRetries = 30000;
+  const startTime = performance.now();
 
-  for (let attemptCount = 1; attemptCount <= maxAttempts; attemptCount++) {
+  while (performance.now() - startTime < maxTimeForRetries) {
     try {
-      const response = await fetchWithTimeout(renderImageUrl, requestObject, timeout);
+      const response = await func(path, requestObject, timeout);
 
       if (response.status >= 400) {
         throw await createError(response);
@@ -75,34 +105,12 @@ export async function renderImage(body: object): Promise<Blob> {
 
       return await response.blob();
     } catch (error) {
-      if (attemptCount < maxAttempts && error instanceof ApiError && !error.response) {
-        delay *= 2;
-        await new Promise(resolve => setTimeout(resolve, delay));
+      if (error instanceof ApiError && !error.response) {
+        await new Promise(res => setTimeout(res, delay));
       } else {
         throw error;
       }
     }
   }
-}
-
-async function fetchWithTimeout(
-  url: URL,
-  requestObject: RequestObject,
-  timeout: number
-): Promise<Response> {
-  return new Promise<Response>((resolve, reject) => {
-    const timer = setTimeout(() => {
-      reject(new ApiError(`Fetch not responding after ${timeout / 1000} s`));
-    }, timeout);
-
-    fetch(url, requestObject)
-      .then(response => {
-        clearTimeout(timer);
-        resolve(response);
-      })
-      .catch(error => {
-        clearTimeout(timer);
-        reject(new ApiError(error.message));
-      });
-  });
+  throw new ApiError('Maximum time exited!');
 }

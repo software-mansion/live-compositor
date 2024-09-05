@@ -109,6 +109,7 @@ function Homepage() {
   const [responseData, setResponseData] = useState({
     imageUrl: '',
     errorMessage: '',
+    loading: false,
   });
 
   const setErrorMessage = message => {
@@ -116,10 +117,16 @@ function Homepage() {
   };
 
   const handleSubmit = async (): Promise<void> => {
+    let loadingToastTimer;
     try {
       if (showReactEditor) {
         await executeTypescriptCode(code);
       } else {
+        loadingToastTimer = setTimeout(() => {
+          toast.loading('Rendering... It can take a while');
+        }, 5000);
+
+        setResponseData({ imageUrl: '', errorMessage: '', loading: true });
         if (scene instanceof Error) {
           throw new Error(`${scene.name};\n${scene.message}`);
         }
@@ -130,8 +137,10 @@ function Homepage() {
         };
         const blob = await renderImage({ ...request });
         const imageObjectURL = URL.createObjectURL(blob);
+        toast.dismiss();
+        clearTimeout(loadingToastTimer);
 
-        setResponseData({ imageUrl: imageObjectURL, errorMessage: '' });
+        setResponseData({ imageUrl: imageObjectURL, errorMessage: '', loading: false });
       }
     } catch (error: any) {
       let errorDescription;
@@ -141,6 +150,10 @@ function Homepage() {
         errorDescription = error.message;
       }
       setErrorMessage(errorDescription);
+      if (loadingToastTimer) {
+        toast.dismiss();
+        clearTimeout(loadingToastTimer);
+      }
       toast.error(`${errorDescription}`);
     }
   };
