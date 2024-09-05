@@ -2,6 +2,11 @@
 // eslint-disable-next-line import/no-unresolved
 import config from '@generated/docusaurus.config';
 
+const BACKEND_URL: string =
+  config.customFields.environment === 'development'
+    ? 'http://localhost:8081'
+    : 'https://playground.compositor.live';
+
 interface RequestObject {
   method: string;
   headers: {
@@ -52,8 +57,15 @@ async function createError(response: Response): Promise<ApiError> {
 }
 
 export async function renderImage(body: object): Promise<Blob> {
+  const TIMEOUT_MS = 5000;
   const requestObject = buildRequestRenderImage(body);
-  return retryRequest(fetchWithTimeout, '/render_image', requestObject);
+  const fn = async () => await fetchWithTimeout('/render_image', requestObject, TIMEOUT_MS);
+
+  const response = await retryWithSleep(fn);
+  if (response.status >= 400) {
+    throw await createError(response);
+  }
+  return await response.blob();
 }
 
 async function fetchWithTimeout(
@@ -61,12 +73,7 @@ async function fetchWithTimeout(
   requestObject: RequestObject,
   timeout: number
 ): Promise<Response> {
-  const backendUrl: URL = new URL(
-    config.customFields.environment === 'development'
-      ? 'http://localhost:8081'
-      : 'https://playground.compositor.live'
-  );
-  const fullUrl = new URL(path, backendUrl);
+  const fullUrl = new URL(path, BACKEND_URL);
 
   const controller = new AbortController();
   const signal = controller.signal;
@@ -89,28 +96,27 @@ async function fetchWithTimeout(
   });
 }
 
-async function retryRequest(func, path, requestObject) {
-  const delay = 1000;
-  const timeout = 5000;
-  const maxTimeForRetries = 30000;
+async function retryWithSleep<T>(fn: () => Promise<T>): Promise<T> {
+  const DELAY_MS = 1000;
+  const MAX_TIME_FOR_RETRIES_MS = 30000;
   const startTime = performance.now();
 
-  while (performance.now() - startTime < maxTimeForRetries) {
+  while (true) {
     try {
-      const response = await func(path, requestObject, timeout);
-
-      if (response.status >= 400) {
-        throw await createError(response);
-      }
-
-      return await response.blob();
+      return await fn();
     } catch (error) {
-      if (error instanceof ApiError && !error.response) {
-        await new Promise(res => setTimeout(res, delay));
-      } else {
+      await sleep(DELAY_MS);
+      if (performance.now() - startTime > MAX_TIME_FOR_RETRIES_MS) {
         throw error;
       }
     }
   }
-  throw new ApiError('Maximum time exited!');
+}
+
+async function sleep(timeout_ms: number): Promise<void> {
+  await new Promise<void>(res => {
+    setTimeout(() => {
+      res();
+    }, timeout_ms);
+  });
 }

@@ -128,7 +128,7 @@ function Homepage() {
       } else {
         loadingToastTimer = setTimeout(() => {
           toast.loading('Rendering... It can take a while');
-        }, 5000);
+        }, 3000);
 
         setResponseData({ imageUrl: '', errorMessage: '', loading: true });
         if (scene instanceof Error) {
