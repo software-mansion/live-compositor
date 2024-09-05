@@ -297,12 +297,6 @@ struct StreamState {
 
 impl StreamState {
     fn timestamp_offset(&mut self, chunk: &EncodedChunk) -> Duration {
-        match self.timestamp_offset {
-            Some(offset) => offset,
-            None => {
-                self.timestamp_offset = Some(chunk.pts);
-                chunk.pts
-            }
-        }
+        *self.timestamp_offset.get_or_insert_with(|| chunk.pts)
     }
 }
