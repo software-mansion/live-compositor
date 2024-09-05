@@ -113,7 +113,11 @@ function Homepage() {
   });
 
   const setErrorMessage = message => {
-    setResponseData(prevResponseData => ({ ...prevResponseData, errorMessage: message }));
+    setResponseData(prevResponseData => ({
+      ...prevResponseData,
+      errorMessage: message,
+      loading: false,
+    }));
   };
 
   const handleSubmit = async (): Promise<void> => {
@@ -181,6 +185,7 @@ function Homepage() {
         <div className={styles.settingsBox}>
           <PlaygroundSettings
             onSubmit={handleSubmit}
+            isLoading={responseData.loading}
             sceneValidity={!(scene instanceof Error) || showReactEditor}
             onInputResolutionChange={updateInputResolutions}
             onOutputResolutionChange={(resolution: Resolution) => {
