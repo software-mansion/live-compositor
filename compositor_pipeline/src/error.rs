@@ -321,6 +321,7 @@ impl From<&UnregisterRendererError> for PipelineErrorInfo {
 
 const WGPU_VALIDATION_ERROR: &str = "WGPU_VALIDATION_ERROR";
 const WGPU_OUT_OF_MEMORY_ERROR: &str = "WGPU_OUT_OF_MEMORY_ERROR";
+const WGPU_INTERNAL_ERROR: &str = "WGPU_INTERNAL_ERROR";
 
 impl From<&WgpuError> for PipelineErrorInfo {
     fn from(err: &WgpuError) -> Self {
@@ -330,6 +331,9 @@ impl From<&WgpuError> for PipelineErrorInfo {
             }
             WgpuError::OutOfMemory(_) => {
                 PipelineErrorInfo::new(WGPU_OUT_OF_MEMORY_ERROR, ErrorType::ServerError)
+            }
+            WgpuError::Internal(_) => {
+                PipelineErrorInfo::new(WGPU_INTERNAL_ERROR, ErrorType::ServerError)
             }
         }
     }

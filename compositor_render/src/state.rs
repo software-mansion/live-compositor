@@ -192,7 +192,7 @@ impl InnerRenderer {
 
         Ok(Self {
             wgpu_ctx: wgpu_ctx.clone(),
-            text_renderer_ctx: Arc::new(TextRendererCtx::new()),
+            text_renderer_ctx: Arc::new(TextRendererCtx::new(&wgpu_ctx.device)),
             chromium_context: Arc::new(ChromiumContext::new(opts.web_renderer, opts.framerate)?),
             render_graph: RenderGraph::empty(),
             renderers: Renderers::new(wgpu_ctx)?,
