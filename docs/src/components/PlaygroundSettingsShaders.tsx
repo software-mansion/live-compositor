@@ -23,7 +23,7 @@ export default function PlaygroundSettingsShaders() {
       />
       <ShaderInfo
         shader_id="red_border"
-        description="Shader that adds a red border around the child component. It supports exactly one child component and takes color as a param (list of u32 RGBA values from 0 to 255)."
+        description="Shader that adds a red border around the child component. It supports exactly one child component and takes color as a param (4-element list of u32 RGBA values from 0 to 255)."
         tooltipJson={`{
   "type": "shader",
   "shader_id": "red_border",
