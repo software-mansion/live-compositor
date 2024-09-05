@@ -11,7 +11,7 @@ export default function PlaygroundSettingsShaders() {
       </div>
       <ShaderInfo
         shader_id="remove_greenscreen"
-        description="Shader removing green color."
+        description="Shader removing a green background. It supports exactly one child component."
         tooltipJson={`{
   type: 'shader',
   shader_id: 'remove_greenscreen',
@@ -23,22 +23,26 @@ export default function PlaygroundSettingsShaders() {
       />
       <ShaderInfo
         shader_id="red_border"
-        description="Shader adding red border around image"
+        description="Shader that adds a red border around the child component. It supports exactly one child component and takes color as a param (list of u32 RGBA values from 0 to 255)."
         tooltipJson={`{
-  type: 'shader',
-  shader_id: 'red_border',
-  children: [
-    { type: 'image', image_id: 'landscape' }
+  "type": "shader",
+  "shader_id": "red_border",
+  "shader_param": {
+    "type": "list",
+    "value": [{ "type": "u32", "value": 0 }, { "type": "u32", "value": 128 }, { "type": "u32", "value": 255 }, { "type": "u32", "value": 255 }]
+  },
+  "children": [
+    { "type": "image", "image_id": "landscape" }
   ],
-  resolution: { width: 1920, height: 1080 }
+  "resolution": { "width": 1920, "height": 1080 }
 }`}
       />
       <ShaderInfo
-        shader_id="round_corners"
-        description="Shader rounding corners of image. Takes radius as a param."
+        shader_id="rounded_corners"
+        description="Shader that implements rounded corners. It supports exactly one child component and takes radius as a param (f32 value)."
         tooltipJson={`{
   type: 'shader',
-  shader_id: 'round_corners',
+  shader_id: 'rounded_corners',
   shader_param: { type: 'f32', value: 64 },
   children: [
     { type: 'image', image_id: 'person' },
