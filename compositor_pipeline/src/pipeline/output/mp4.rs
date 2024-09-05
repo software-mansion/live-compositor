@@ -99,8 +99,8 @@ fn init_ffmpeg_output(
 ) -> Result<
     (
         ffmpeg::format::context::Output,
-        Option<Stream>,
-        Option<Stream>,
+        Option<StreamState>,
+        Option<StreamState>,
     ),
     OutputInitError,
 > {
@@ -133,10 +133,10 @@ fn init_ffmpeg_output(
             let id = stream_count;
             stream_count += 1;
 
-            Ok::<Stream, OutputInitError>(Stream {
+            Ok::<StreamState, OutputInitError>(StreamState {
                 id,
                 time_base: VIDEO_TIME_BASE as f64,
-                start_pts: None,
+                timestamp_offset: None,
             })
         })
         .transpose()?;
@@ -173,10 +173,10 @@ fn init_ffmpeg_output(
             let id = stream_count;
             stream_count += 1;
 
-            Ok::<Stream, OutputInitError>(Stream {
+            Ok::<StreamState, OutputInitError>(StreamState {
                 id,
                 time_base: sample_rate as f64,
-                start_pts: None,
+                timestamp_offset: None,
             })
         })
         .transpose()?;
@@ -190,8 +190,8 @@ fn init_ffmpeg_output(
 
 fn run_ffmpeg_output_thread(
     mut output_ctx: ffmpeg::format::context::Output,
-    mut video_stream: Option<Stream>,
-    mut audio_stream: Option<Stream>,
+    mut video_stream: Option<StreamState>,
+    mut audio_stream: Option<StreamState>,
     packets_receiver: Receiver<EncoderOutputEvent>,
 ) {
     let mut received_video_eos = video_stream.as_ref().map(|_| false);
@@ -233,8 +233,8 @@ fn run_ffmpeg_output_thread(
 
 fn write_chunk(
     chunk: EncodedChunk,
-    video_stream: &mut Option<Stream>,
-    audio_stream: &mut Option<Stream>,
+    video_stream: &mut Option<StreamState>,
+    audio_stream: &mut Option<StreamState>,
     output_ctx: &mut ffmpeg::format::context::Output,
 ) {
     let packet = create_packet(chunk, video_stream, audio_stream);
@@ -247,17 +247,13 @@ fn write_chunk(
 
 fn create_packet(
     chunk: EncodedChunk,
-    video_stream: &mut Option<Stream>,
-    audio_stream: &mut Option<Stream>,
+    video_stream: &mut Option<StreamState>,
+    audio_stream: &mut Option<StreamState>,
 ) -> Option<ffmpeg::Packet> {
-    let (stream_id, timebase, start_pts) = match chunk.kind {
+    let stream_state = match chunk.kind {
         EncodedChunkKind::Video(_) => {
             match video_stream {
-                Some(Stream {
-                    id,
-                    time_base,
-                    start_pts,
-                }) => Some((*id, *time_base, start_pts)),
+                Some(stream_state) => Some(stream_state),
                 None => {
                     error!("Failed to create packet for video chunk. No video stream registered on init.");
                     None
@@ -266,11 +262,7 @@ fn create_packet(
         }
         EncodedChunkKind::Audio(_) => {
             match audio_stream {
-                Some(Stream {
-                    id,
-                    time_base,
-                    start_pts,
-                }) => Some((*id, *time_base, start_pts)),
+                Some(stream_state) => Some(stream_state),
                 None => {
                     error!("Failed to create packet for audio chunk. No audio stream registered on init.");
                     None
@@ -280,13 +272,7 @@ fn create_packet(
     }?;
 
     // Starting output PTS from 0
-    let timestamp_offset = match start_pts {
-        Some(start_pts) => *start_pts,
-        None => {
-            *start_pts = Some(chunk.pts);
-            chunk.pts
-        }
-    };
+    let timestamp_offset = stream_state.timestamp_offset(&chunk);
     let pts = chunk.pts.saturating_sub(timestamp_offset);
     let dts = chunk
         .dts
@@ -294,17 +280,29 @@ fn create_packet(
         .unwrap_or(pts);
 
     let mut packet = ffmpeg::Packet::copy(&chunk.data);
-    packet.set_pts(Some((pts.as_secs_f64() * timebase) as i64));
-    packet.set_dts(Some((dts.as_secs_f64() * timebase) as i64));
-    packet.set_time_base(ffmpeg::Rational::new(1, timebase as i32));
-    packet.set_stream(stream_id);
+    packet.set_pts(Some((pts.as_secs_f64() * stream_state.time_base) as i64));
+    packet.set_dts(Some((dts.as_secs_f64() * stream_state.time_base) as i64));
+    packet.set_time_base(ffmpeg::Rational::new(1, stream_state.time_base as i32));
+    packet.set_stream(stream_state.id);
 
     Some(packet)
 }
 
 #[derive(Debug, Clone)]
-struct Stream {
+struct StreamState {
     id: usize,
     time_base: f64,
-    start_pts: Option<Duration>,
+    timestamp_offset: Option<Duration>,
+}
+
+impl StreamState {
+    fn timestamp_offset(&mut self, chunk: &EncodedChunk) -> Duration {
+        match self.timestamp_offset {
+            Some(offset) => offset,
+            None => {
+                self.timestamp_offset = Some(chunk.pts);
+                chunk.pts
+            }
+        }
+    }
 }
