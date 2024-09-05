@@ -12,14 +12,12 @@ pub struct InterleavedYuv422ToRgbaConverter {
 }
 
 impl InterleavedYuv422ToRgbaConverter {
-    pub fn new(
-        device: &wgpu::Device,
-        yuv_textures_bind_group_layout: &wgpu::BindGroupLayout,
-    ) -> Self {
+    pub fn new(device: &wgpu::Device) -> Self {
         let shader_module =
             device.create_shader_module(wgpu::include_wgsl!("interleaved_yuv_to_rgba.wgsl"));
         let sampler = Sampler::new(device);
 
+        let yuv_textures_bind_group_layout = InterleavedYuv422Texture::bind_group_layout(device);
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("Interleaved YUV 4:2:2 to RGBA color converter render pipeline layout"),
             bind_group_layouts: &[yuv_textures_bind_group_layout, &sampler.bind_group_layout],

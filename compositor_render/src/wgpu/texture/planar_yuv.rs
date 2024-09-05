@@ -1,4 +1,4 @@
-use std::marker::PhantomData;
+use std::{marker::PhantomData, sync::OnceLock};
 
 use bytes::Bytes;
 use wgpu::Buffer;
@@ -6,6 +6,8 @@ use wgpu::Buffer;
 use crate::{wgpu::WgpuCtx, FrameData, Resolution, YuvPlanes};
 
 use super::base::Texture;
+
+static PLANAR_YUB_BIND_GROUP_LAYOUT: OnceLock<wgpu::BindGroupLayout> = OnceLock::new();
 
 pub struct YuvPendingDownload<'a, F, E>
 where
@@ -94,24 +96,36 @@ impl PlanarYuvTextures {
         )
     }
 
-    pub fn new_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
-        let create_entry = |binding: u32| wgpu::BindGroupLayoutEntry {
-            binding,
-            ty: Texture::DEFAULT_BINDING_TYPE,
-            visibility: wgpu::ShaderStages::FRAGMENT,
-            count: None,
-        };
-        device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("Planar YUV 4:2:0 all textures bind group layout"),
-            entries: &[create_entry(0), create_entry(1), create_entry(2)],
+    pub fn bind_group_layout(device: &wgpu::Device) -> &wgpu::BindGroupLayout {
+        PLANAR_YUB_BIND_GROUP_LAYOUT.get_or_init(|| {
+            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("Planar YUV 4:2:0 all textures bind group layout"),
+                entries: &[
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 0,
+                        ty: Texture::DEFAULT_BINDING_TYPE,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        count: None,
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 1,
+                        ty: Texture::DEFAULT_BINDING_TYPE,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        count: None,
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 2,
+                        ty: Texture::DEFAULT_BINDING_TYPE,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        count: None,
+                    },
+                ],
+            })
         })
     }
 
-    pub(super) fn new_bind_group(
-        &self,
-        ctx: &WgpuCtx,
-        layout: &wgpu::BindGroupLayout,
-    ) -> wgpu::BindGroup {
+    pub(super) fn new_bind_group(&self, ctx: &WgpuCtx) -> wgpu::BindGroup {
+        let layout = Self::bind_group_layout(&ctx.device);
         ctx.device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("Planar YUV 4:2:0 all textures bind group"),
             layout,

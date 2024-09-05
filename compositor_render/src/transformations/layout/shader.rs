@@ -1,4 +1,6 @@
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
+
+use tracing::error;
 
 use crate::wgpu::{
     common_pipeline::{self, CreateShaderError, Sampler},
@@ -6,11 +8,46 @@ use crate::wgpu::{
     WgpuCtx, WgpuErrorScope,
 };
 
+use super::params::LayoutBindGroups;
+
+static LAYOUT_SHADER_BIND_GROUP_2_LAYOUT: OnceLock<wgpu::BindGroupLayout> = OnceLock::new();
+
+pub fn bind_group_2_layout(wgpu_ctx: &WgpuCtx) -> &wgpu::BindGroupLayout {
+    LAYOUT_SHADER_BIND_GROUP_2_LAYOUT.get_or_init(|| {
+        wgpu_ctx
+            .device
+            .create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("Bind group 2 layout"),
+                entries: &[
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 0,
+                        visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
+                        ty: wgpu::BindingType::Buffer {
+                            ty: wgpu::BufferBindingType::Uniform,
+                            has_dynamic_offset: false,
+                            min_binding_size: None,
+                        },
+                        count: None,
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 1,
+                        visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
+                        ty: wgpu::BindingType::Buffer {
+                            ty: wgpu::BufferBindingType::Uniform,
+                            has_dynamic_offset: false,
+                            min_binding_size: None,
+                        },
+                        count: None,
+                    },
+                ],
+            })
+    })
+}
+
 #[derive(Debug)]
 pub struct LayoutShader {
     pipeline: wgpu::RenderPipeline,
     sampler: Sampler,
-    texture_bgl: wgpu::BindGroupLayout,
 }
 
 impl LayoutShader {
@@ -33,7 +70,9 @@ impl LayoutShader {
     ) -> Result<Self, CreateShaderError> {
         let sampler = Sampler::new(&wgpu_ctx.device);
 
-        let texture_bgl = common_pipeline::create_single_texture_bgl(&wgpu_ctx.device);
+        let texture_bgl = common_pipeline::single_texture_bind_group_layout(&wgpu_ctx.device);
+        let bind_group_1_layout = &wgpu_ctx.uniform_bgl;
+        let bind_group_2_layout = bind_group_2_layout(wgpu_ctx);
 
         let pipeline_layout =
             wgpu_ctx
@@ -41,8 +80,9 @@ impl LayoutShader {
                 .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                     label: Some("shader transformation pipeline layout"),
                     bind_group_layouts: &[
-                        &texture_bgl,
-                        &wgpu_ctx.uniform_bgl,
+                        texture_bgl,
+                        bind_group_1_layout,
+                        bind_group_2_layout,
                         &sampler.bind_group_layout,
                     ],
                     push_constant_ranges: &[wgpu::PushConstantRange {
@@ -57,20 +97,20 @@ impl LayoutShader {
             &shader_module,
         );
 
-        Ok(Self {
-            pipeline,
-            sampler,
-            texture_bgl,
-        })
+        Ok(Self { pipeline, sampler })
     }
 
     pub fn render(
         &self,
         wgpu_ctx: &Arc<WgpuCtx>,
-        params: &wgpu::BindGroup,
+        param_bind_groups: LayoutBindGroups,
         textures: &[Option<&NodeTexture>],
         target: &NodeTextureState,
     ) {
+        let LayoutBindGroups {
+            bind_group_1,
+            bind_groups_2,
+        } = param_bind_groups;
         let input_texture_bgs: Vec<wgpu::BindGroup> = self.input_textures_bg(wgpu_ctx, textures);
 
         let mut encoder = wgpu_ctx.device.create_command_encoder(&Default::default());
@@ -91,18 +131,21 @@ impl LayoutShader {
                 occlusion_query_set: None,
             });
 
-            for (layout_id, texture_bg) in input_texture_bgs.iter().enumerate() {
+            if input_texture_bgs.len() != bind_groups_2.len() {
+                error!(
+                    "Input textures bind groups count ({}) doesn't match params bind groups count ({})",
+                    input_texture_bgs.len(),
+                    bind_groups_2.len()
+                );
+            }
+
+            for (texture_bg, bind_group_2) in input_texture_bgs.iter().zip(bind_groups_2.iter()) {
                 render_pass.set_pipeline(&self.pipeline);
 
-                render_pass.set_push_constants(
-                    wgpu::ShaderStages::VERTEX_FRAGMENT,
-                    0,
-                    &(layout_id as u32).to_le_bytes(),
-                );
-
                 render_pass.set_bind_group(0, texture_bg, &[]);
-                render_pass.set_bind_group(1, params, &[]);
-                render_pass.set_bind_group(2, &self.sampler.bind_group, &[]);
+                render_pass.set_bind_group(1, &bind_group_1, &[]);
+                render_pass.set_bind_group(2, bind_group_2, &[]);
+                render_pass.set_bind_group(3, &self.sampler.bind_group, &[]);
 
                 wgpu_ctx.plane.draw(&mut render_pass);
             }
@@ -127,7 +170,7 @@ impl LayoutShader {
                 wgpu_ctx
                     .device
                     .create_bind_group(&wgpu::BindGroupDescriptor {
-                        layout: &self.texture_bgl,
+                        layout: common_pipeline::single_texture_bind_group_layout(&wgpu_ctx.device),
                         label: None,
                         entries: &[wgpu::BindGroupEntry {
                             binding: 0,

@@ -13,7 +13,6 @@ use super::embedder::RenderInfo;
 #[derive(Debug)]
 pub(super) struct WebRendererShader {
     pipeline: wgpu::RenderPipeline,
-    texture_bgl: wgpu::BindGroupLayout,
     sampler: Sampler,
 }
 
@@ -25,14 +24,14 @@ impl WebRendererShader {
             .device
             .create_shader_module(wgpu::include_wgsl!("../web_renderer/render_website.wgsl"));
         let sampler = Sampler::new(&wgpu_ctx.device);
-        let texture_bgl = common_pipeline::create_single_texture_bgl(&wgpu_ctx.device);
+        let texture_bgl = common_pipeline::single_texture_bind_group_layout(&wgpu_ctx.device);
 
         let pipeline_layout =
             wgpu_ctx
                 .device
                 .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                     label: Some("Web renderer pipeline layout"),
-                    bind_group_layouts: &[&texture_bgl, &sampler.bind_group_layout],
+                    bind_group_layouts: &[texture_bgl, &sampler.bind_group_layout],
                     push_constant_ranges: &[wgpu::PushConstantRange {
                         stages: wgpu::ShaderStages::VERTEX_FRAGMENT,
                         range: 0..RenderInfo::size(),
@@ -47,11 +46,7 @@ impl WebRendererShader {
 
         scope.pop(&wgpu_ctx.device)?;
 
-        Ok(Self {
-            pipeline,
-            texture_bgl,
-            sampler,
-        })
+        Ok(Self { pipeline, sampler })
     }
 
     pub(super) fn render(
@@ -76,7 +71,7 @@ impl WebRendererShader {
                 .device
                 .create_bind_group(&wgpu::BindGroupDescriptor {
                     label: Some("Web renderer input textures bgl"),
-                    layout: &self.texture_bgl,
+                    layout: common_pipeline::single_texture_bind_group_layout(&wgpu_ctx.device),
                     entries: &[wgpu::BindGroupEntry {
                         binding: 0,
                         resource: wgpu::BindingResource::TextureView(texture_view),

@@ -10,9 +10,31 @@ pub const PRIMITIVE_STATE: wgpu::PrimitiveState = wgpu::PrimitiveState {
     unclipped_depth: false,
 };
 
+use std::sync::OnceLock;
+
 use crate::transformations::shader::validation::error::{ShaderParseError, ShaderValidationError};
 
 use super::WgpuError;
+
+static TEXTURE_BIND_GROUP_LAYOUT: OnceLock<wgpu::BindGroupLayout> = OnceLock::new();
+
+pub fn single_texture_bind_group_layout(device: &wgpu::Device) -> &wgpu::BindGroupLayout {
+    TEXTURE_BIND_GROUP_LAYOUT.get_or_init(|| {
+        device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("Texture bind group layout"),
+            entries: &[wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Texture {
+                    multisampled: false,
+                    sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                    view_dimension: wgpu::TextureViewDimension::D2,
+                },
+                count: None,
+            }],
+        })
+    })
+}
 
 pub const VERTEX_ENTRYPOINT_NAME: &str = "vs_main";
 pub const FRAGMENT_ENTRYPOINT_NAME: &str = "fs_main";
@@ -129,21 +151,5 @@ pub fn create_render_pipeline(
             alpha_to_coverage_enabled: false,
         },
         multiview: None,
-    })
-}
-
-pub fn create_single_texture_bgl(device: &wgpu::Device) -> wgpu::BindGroupLayout {
-    device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-        label: None,
-        entries: &[wgpu::BindGroupLayoutEntry {
-            binding: 0,
-            count: None,
-            visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
-            ty: wgpu::BindingType::Texture {
-                multisampled: false,
-                sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                view_dimension: wgpu::TextureViewDimension::D2,
-            },
-        }],
     })
 }
