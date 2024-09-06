@@ -1,4 +1,5 @@
 import { RotatingLines } from 'react-loader-spinner';
+
 interface PlaygroundPreviewProps {
   imageUrl?: string;
   errorMessage?: string;
@@ -9,16 +10,7 @@ function PlaygroundPreview({ imageUrl, errorMessage, loading }: PlaygroundPrevie
   if (errorMessage) {
     return <div style={{ alignContent: 'center', margin: '20px' }}>{errorMessage}</div>;
   } else if (imageUrl) {
-    return (
-      <img
-        src={imageUrl}
-        style={{
-          objectFit: 'contain',
-          height: '100%',
-          width: '100%',
-        }}
-      />
-    );
+    return <img src={imageUrl} className="object-contain max-w-full max-h-full" />;
   } else if (loading) {
     return (
       <div style={{ alignContent: 'center' }}>
