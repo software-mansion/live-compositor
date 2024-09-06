@@ -61,7 +61,6 @@ impl OutputDownloader {
             let buffer = self.buffers.get(&id).unwrap();
             let frame_object = Self::create_frame_object(frame, buffer)?;
             output_data.set(&id.to_string().into(), &frame_object);
-
             buffer.unmap();
         }
 

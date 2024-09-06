@@ -40,10 +40,6 @@
         function startRendering(imageData) {
             init().then(async () => {
                 const renderer = await create_renderer({
-                    framerate: {
-                        num: 30,
-                        den: 1
-                    },
                     stream_fallback_timeout_ms: 500,
                 });
                 renderer.register_input("input");
