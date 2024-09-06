@@ -2,6 +2,7 @@ import toast from 'react-hot-toast';
 import { Tooltip } from 'react-tooltip';
 import { InputResolution, InputsSettings } from '../resolution';
 import styles from './PlaygroundSettingsInputs.module.css';
+import { ChangeEvent, ChangeEventHandler } from 'react';
 
 interface PlaygroundSettingsInputsProps {
   handleSettingsUpdate: (input_id: string, resolution: InputResolution) => void;
@@ -12,8 +13,8 @@ export default function PlaygroundSettingsInputs({
   handleSettingsUpdate,
   inputsSettings,
 }: PlaygroundSettingsInputsProps) {
-  function handleChange(event, inputId: string) {
-    handleSettingsUpdate(inputId, event.target.value);
+  function handleChange(event: ChangeEvent<HTMLSelectElement>, inputId: string) {
+    handleSettingsUpdate(inputId, event.target.value as InputResolution);
   }
 
   return (
@@ -38,7 +39,7 @@ export default function PlaygroundSettingsInputs({
 interface InputResolutionSelectProps {
   inputName: string;
   selectedValue: InputResolution;
-  handleChange: (Event) => void;
+  handleChange: ChangeEventHandler<HTMLSelectElement>;
 }
 
 function InputResolutionSelect({

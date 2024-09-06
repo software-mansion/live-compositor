@@ -83,8 +83,7 @@
     object-fit: contain;
 }
 
-
-code {
+.imagePreviewDescriptionContainer code {
     white-space: nowrap;
 }
 
@@ -92,7 +91,9 @@ code {
     .container {
         height: 76vh;
     }
-    code {white-space: wrap}
+    .imagePreviewDescriptionContainer code {
+        white-space: wrap;
+    }
 }
 
 .tooltip {
