@@ -27,6 +27,7 @@ struct RoundedCorner {
 struct LayoutInfo {
     layout_id: u32,
     rounded_corners_count: u32,
+    output_resolution: vec2<f32>,
 }
 
 @group(0) @binding(0) var texture: texture_2d<f32>;
@@ -66,29 +67,27 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
     // clamp transparent, when crop > input texture
     let is_inside: f32 = round(f32(input.tex_coords.x < 1.0 && input.tex_coords.x > 0.0 && input.tex_coords.y > 0.0 && input.tex_coords.y < 1.0));
 
-    let alpha: f32 = cornerns_rounding_alpha(input.tex_coords);
+    let alpha: f32 = cornerns_rounding_alpha(input.position.xy);
     let sample = textureSample(texture, sampler_, input.tex_coords);
 
     return is_inside * vec4(sample.xyz, sample.w * alpha);
 }
 
-// position in pixels of input texture
-fn cornerns_rounding_alpha(position: vec2<f32>) -> f32 {
-    let texture_res = textureDimensions(texture);
-    let position_pixels = vec2<f32>(
-        position.x * f32(texture_res.x),
-        (1.0 - position.y) * f32(texture_res.y) // flip y axis, as texture coords go from (0.0, 0.0) - top left to (1.0, 1.0) - bottom right
-    );
-
+// input_position in VertexOutput.position from input of fs_main
+// It's in range of (0.0, 0.0) [top-left corner] to (output_resolution.x, output_resolution.y) [bottom-right corner]
+fn cornerns_rounding_alpha(input_position: vec2<f32>) -> f32 {
     var alpha: f32 = 1.0;
+    // Flip y axis to match corner_center coordinates
+    let position = vec2(input_position.x, layout_info.output_resolution.y - input_position.y);
     for (var i: u32 = 0u; i < layout_info.rounded_corners_count; i = i + 1u) {
         let corner: RoundedCorner = rounded_corners[i];
-        let distance: f32 = length(position_pixels - corner.center);
+        let distance: f32 = length(position - corner.center);
 
-        let is_left = position_pixels.x < corner.center.x;
-        let is_top = position_pixels.y > corner.center.y;
+        // Is position on the left/top side of the corner center
+        let is_left = position.x < corner.center.x;
+        let is_top = position.y > corner.center.y;
 
-        let anti_aliasing_pixels = 1.5;
+        let anti_aliasing_pixels = 2.0;
 
         let corner_aplha: f32 = smoothstep(corner.radius + anti_aliasing_pixels, corner.radius - anti_aliasing_pixels, distance);
 

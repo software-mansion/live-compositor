@@ -2,7 +2,7 @@ use bytes::Bytes;
 use nalgebra_glm::Mat4;
 use wgpu::util::DeviceExt;
 
-use crate::{scene::RGBAColor, wgpu::WgpuCtx};
+use crate::{scene::RGBAColor, wgpu::WgpuCtx, Resolution};
 
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
@@ -81,14 +81,23 @@ struct BindGroup2Buffers {
 }
 
 impl BindGroup2Buffers {
-    pub fn new(wgpu_ctx: &WgpuCtx, params: &LayoutNodeParams, layout_id: u32) -> Self {
+    pub fn new(
+        wgpu_ctx: &WgpuCtx,
+        params: &LayoutNodeParams,
+        layout_id: u32,
+        output_resolution: Resolution,
+    ) -> Self {
         let rounded_corners_buffer = Buffer::new(
             wgpu_ctx,
             rounded_corners_buffer_content(&params.rounded_corners),
         );
         let layouts_info_buffer = Buffer::new(
             wgpu_ctx,
-            layout_info_buffer_content(layout_id, params.rounded_corners.len() as u32),
+            layout_info_buffer_content(
+                layout_id,
+                params.rounded_corners.len() as u32,
+                output_resolution,
+            ),
         );
         Self {
             rounded_corners_buffer,
@@ -96,25 +105,41 @@ impl BindGroup2Buffers {
         }
     }
 
-    pub fn update(&mut self, wgpu_ctx: &WgpuCtx, params: &LayoutNodeParams, layout_id: u32) {
+    pub fn update(
+        &mut self,
+        wgpu_ctx: &WgpuCtx,
+        params: &LayoutNodeParams,
+        layout_id: u32,
+        output_resolution: Resolution,
+    ) {
         self.rounded_corners_buffer.update(
             wgpu_ctx,
             rounded_corners_buffer_content(&params.rounded_corners),
         );
         self.layouts_info_buffer.update(
             wgpu_ctx,
-            layout_info_buffer_content(layout_id, params.rounded_corners.len() as u32),
+            layout_info_buffer_content(
+                layout_id,
+                params.rounded_corners.len() as u32,
+                output_resolution,
+            ),
         );
     }
 }
 
 impl LayoutParamBuffers {
-    pub fn new(wgpu_ctx: &WgpuCtx, params: &[LayoutNodeParams]) -> Self {
+    pub fn new(
+        wgpu_ctx: &WgpuCtx,
+        params: &[LayoutNodeParams],
+        output_resolution: Resolution,
+    ) -> Self {
         let bind_group_1_buffer = Buffer::new(wgpu_ctx, layouts_buffer_content(params));
         let bind_group_2_buffers = params
             .iter()
             .enumerate()
-            .map(|(layout_id, params)| BindGroup2Buffers::new(wgpu_ctx, params, layout_id as u32))
+            .map(|(layout_id, params)| {
+                BindGroup2Buffers::new(wgpu_ctx, params, layout_id as u32, output_resolution)
+            })
             .collect();
 
         let bind_group_2_layout =
@@ -206,20 +231,26 @@ impl LayoutParamBuffers {
         }
     }
 
-    pub fn update_buffers(&mut self, wgpu_ctx: &WgpuCtx, params: &[LayoutNodeParams]) {
+    pub fn update_buffers(
+        &mut self,
+        wgpu_ctx: &WgpuCtx,
+        params: &[LayoutNodeParams],
+        output_resolution: Resolution,
+    ) {
         self.bind_group_1_buffer
             .update(wgpu_ctx, layouts_buffer_content(params));
 
         for (layout_id, params) in params.iter().enumerate() {
             match self.bind_group_2_buffers.get_mut(layout_id) {
                 Some(buffer) => {
-                    buffer.update(wgpu_ctx, params, layout_id as u32);
+                    buffer.update(wgpu_ctx, params, layout_id as u32, output_resolution);
                 }
                 None => {
                     self.bind_group_2_buffers.push(BindGroup2Buffers::new(
                         wgpu_ctx,
                         params,
                         layout_id as u32,
+                        output_resolution,
                     ));
                 }
             }
@@ -277,8 +308,8 @@ fn rounded_corners_buffer_content(corners: &[RoundedCorner]) -> Bytes {
                 &match corner.direction {
                     RoundingDirection::TopLeft => 0u32,
                     RoundingDirection::TopRight => 1u32,
-                    RoundingDirection::BottomLeft => 2u32,
-                    RoundingDirection::BottomRight => 3u32,
+                    RoundingDirection::BottomRight => 2u32,
+                    RoundingDirection::BottomLeft => 3u32,
                 }
                 .to_ne_bytes(),
             );
@@ -289,9 +320,15 @@ fn rounded_corners_buffer_content(corners: &[RoundedCorner]) -> Bytes {
         .into()
 }
 
-fn layout_info_buffer_content(layout_id: u32, rounded_corners_count: u32) -> Bytes {
-    let mut result = [0; 8];
+fn layout_info_buffer_content(
+    layout_id: u32,
+    rounded_corners_count: u32,
+    output_resolution: Resolution,
+) -> Bytes {
+    let mut result = [0; 16];
     result[0..4].copy_from_slice(&layout_id.to_ne_bytes());
     result[4..8].copy_from_slice(&rounded_corners_count.to_ne_bytes());
+    result[8..12].copy_from_slice(&(output_resolution.width as f32).to_ne_bytes());
+    result[12..16].copy_from_slice(&(output_resolution.height as f32).to_ne_bytes());
     Bytes::copy_from_slice(&result)
 }

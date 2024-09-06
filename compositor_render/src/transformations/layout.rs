@@ -17,7 +17,7 @@ use self::{params::LayoutNodeParams, shader::LayoutShader};
 
 pub(crate) use layout_renderer::LayoutRenderer;
 use log::error;
-use params::{LayoutParamBuffers, RoundedCorner, RoundingDirection};
+use params::LayoutParamBuffers;
 pub(crate) use transformation_matrices::{vertices_transformation_matrix, Position};
 
 pub(crate) trait LayoutProvider: Send {
@@ -70,7 +70,7 @@ pub struct NestedLayout {
     pub height: f32,
     pub rotation_degrees: f32,
     /// scale will affect content/children, but not the properties of current layout like
-    /// top/left/widht/height
+    /// top/left/width/height
     pub scale_x: f32,
     pub scale_y: f32,
     /// Crop is applied before scaling.
@@ -135,39 +135,19 @@ impl LayoutNode {
                         .vertices_transformation_matrix(&output_resolution),
                     transform_texture_coords_matrix: layout
                         .texture_coords_transformation_matrix(&input_resolution),
-                    rounded_corners: vec![
-                        RoundedCorner {
-                            radius: 50.0,
-                            center: (50.0, 1020.0),
-                            direction: RoundingDirection::TopLeft,
-                        },
-                        RoundedCorner {
-                            radius: 50.0,
-                            center: (1870.0, 1020.0),
-                            direction: RoundingDirection::TopRight,
-                        },
-                        RoundedCorner {
-                            radius: 50.0,
-                            center: (1870.0, 50.0),
-                            direction: RoundingDirection::BottomRight,
-                        },
-                        RoundedCorner {
-                            radius: 50.0,
-                            center: (50.0, 50.0),
-                            direction: RoundingDirection::BottomLeft,
-                        },
-                    ],
+                    rounded_corners: Vec::new(),
                 }
             })
             .collect();
 
         let param_buffers = match &mut self.param_buffers {
             Some(param_buffers) => {
-                param_buffers.update_buffers(ctx.wgpu_ctx, &params);
+                param_buffers.update_buffers(ctx.wgpu_ctx, &params, output_resolution);
                 param_buffers
             }
             None => {
-                let param_buffers = LayoutParamBuffers::new(ctx.wgpu_ctx, &params);
+                let param_buffers =
+                    LayoutParamBuffers::new(ctx.wgpu_ctx, &params, output_resolution);
                 self.param_buffers = Some(param_buffers);
                 self.param_buffers.as_mut().unwrap()
             }
