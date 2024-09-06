@@ -57,11 +57,14 @@ async function createError(response: Response): Promise<ApiError> {
 }
 
 export async function renderImage(body: object): Promise<Blob> {
+  const MAX_TIME_FOR_RETRIES_MS = 30000;
   const TIMEOUT_MS = 5000;
   const requestObject = buildRequestRenderImage(body);
-  const fn = async () => await fetchWithTimeout('/render_image', requestObject, TIMEOUT_MS);
 
-  const response = await retryWithSleep(fn);
+  const response = await retryWithTimeout(
+    async () => await fetchWithTimeout('/render_image', requestObject, TIMEOUT_MS),
+    MAX_TIME_FOR_RETRIES_MS
+  );
   if (response.status >= 400) {
     throw await createError(response);
   }
@@ -96,9 +99,8 @@ async function fetchWithTimeout(
   });
 }
 
-async function retryWithSleep<T>(fn: () => Promise<T>): Promise<T> {
+async function retryWithTimeout<T>(fn: () => Promise<T>, timeoutMs: number): Promise<T> {
   const DELAY_MS = 1000;
-  const MAX_TIME_FOR_RETRIES_MS = 30000;
   const startTime = performance.now();
 
   while (true) {
@@ -106,17 +108,17 @@ async function retryWithSleep<T>(fn: () => Promise<T>): Promise<T> {
       return await fn();
     } catch (error) {
       await sleep(DELAY_MS);
-      if (performance.now() - startTime > MAX_TIME_FOR_RETRIES_MS) {
+      if (performance.now() - startTime > timeoutMs) {
         throw error;
       }
     }
   }
 }
 
-async function sleep(timeout_ms: number): Promise<void> {
+async function sleep(timeoutMs: number): Promise<void> {
   await new Promise<void>(res => {
     setTimeout(() => {
       res();
-    }, timeout_ms);
+    }, timeoutMs);
   });
 }
