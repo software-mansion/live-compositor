@@ -18,6 +18,7 @@ interface PlaygroundSettingsProps {
   inputsSettings: InputsSettings;
   sceneValidity: boolean;
   outputResolution: Resolution;
+  isLoading: boolean;
 }
 
 export default function PlaygroundSettings({
@@ -27,6 +28,7 @@ export default function PlaygroundSettings({
   inputsSettings,
   sceneValidity,
   outputResolution,
+  isLoading,
 }: PlaygroundSettingsProps) {
   const [modalContent, setModalContent] = useState<ModalContent | null>(null);
   const [outputResolutionValidity, setOutputResolutionValidity] = useState<boolean>(true);
@@ -68,6 +70,7 @@ export default function PlaygroundSettings({
 
         <SubmitButton
           onSubmit={onSubmit}
+          isLoading={isLoading}
           validity={{
             scene: sceneValidity,
             outputResolution: outputResolutionValidity,
@@ -104,9 +107,11 @@ function Card(props: CardProps) {
 
 function SubmitButton({
   onSubmit,
+  isLoading,
   validity,
 }: {
   onSubmit: () => Promise<void>;
+  isLoading: boolean;
   validity: {
     scene: boolean;
     outputResolution: boolean;
@@ -117,13 +122,15 @@ function SubmitButton({
     backgroundColor: 'var(--ifm-color-emphasis-700)',
   };
   function isValid() {
-    return validity.scene && validity.outputResolution;
+    return validity.scene && validity.outputResolution && !isLoading;
   }
   function errorMessage() {
     if (!validity.scene) {
       return 'Invalid scene provided';
     } else if (!validity.outputResolution) {
       return 'Invalid output resolution';
+    } else if (isLoading) {
+      return 'Loading...';
     } else {
       return null;
     }

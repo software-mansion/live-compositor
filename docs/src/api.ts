@@ -2,6 +2,11 @@
 // eslint-disable-next-line import/no-unresolved
 import config from '@generated/docusaurus.config';
 
+const BACKEND_URL: string =
+  config.customFields.environment === 'development'
+    ? 'http://localhost:8081'
+    : 'https://playground.compositor.live';
+
 interface RequestObject {
   method: string;
   headers: {
@@ -52,22 +57,68 @@ async function createError(response: Response): Promise<ApiError> {
 }
 
 export async function renderImage(body: object): Promise<Blob> {
+  const MAX_TIME_FOR_RETRIES_MS = 30000;
+  const TIMEOUT_MS = 5000;
   const requestObject = buildRequestRenderImage(body);
 
-  const backend_url: URL = new URL(
-    config.customFields.environment === 'development'
-      ? 'http://localhost:8081'
-      : 'https://playground.compositor.live'
+  const response = await retryWithTimeout(
+    async () => await fetchWithTimeout('/render_image', requestObject, TIMEOUT_MS),
+    MAX_TIME_FOR_RETRIES_MS
   );
-  const renderImageUrl = new URL('/render_image', backend_url);
-  let response;
-  try {
-    response = await fetch(renderImageUrl, requestObject);
-  } catch (error) {
-    throw new ApiError(error.message);
-  }
   if (response.status >= 400) {
     throw await createError(response);
   }
   return await response.blob();
+}
+
+async function fetchWithTimeout(
+  path: string,
+  requestObject: RequestObject,
+  timeout: number
+): Promise<Response> {
+  const fullUrl = new URL(path, BACKEND_URL);
+
+  const controller = new AbortController();
+  const signal = controller.signal;
+
+  return new Promise<Response>((res, rej) => {
+    const timer = setTimeout(() => {
+      controller.abort();
+      rej(new ApiError(`Fetch not responding after ${timeout / 1000} s`));
+    }, timeout);
+
+    fetch(fullUrl, { ...requestObject, signal })
+      .then(response => {
+        clearTimeout(timer);
+        res(response);
+      })
+      .catch(error => {
+        clearTimeout(timer);
+        rej(new ApiError(error.message));
+      });
+  });
+}
+
+async function retryWithTimeout<T>(fn: () => Promise<T>, timeoutMs: number): Promise<T> {
+  const DELAY_MS = 1000;
+  const startTime = performance.now();
+
+  while (true) {
+    try {
+      return await fn();
+    } catch (error) {
+      await sleep(DELAY_MS);
+      if (performance.now() - startTime > timeoutMs) {
+        throw error;
+      }
+    }
+  }
+}
+
+async function sleep(timeoutMs: number): Promise<void> {
+  await new Promise<void>(res => {
+    setTimeout(() => {
+      res();
+    }, timeoutMs);
+  });
 }
