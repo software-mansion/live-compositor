@@ -24,9 +24,9 @@ export type TilesProps = {
    */
   height?: number;
   /**
-   * (**default=`"#00000000"`**) Background color in a `"#RRGGBBAA"` format.
+   * (**default=`"#00000000"`**) Background color in a `"#RRGGBBAA"` or `"#RRGGBB"` format.
    */
-  backgroundColorRgba?: Api.RGBAColor;
+  backgroundColor?: string;
   /**
    * (**default=`"16:9"`**) Aspect ratio of a tile in `"W:H"` format, where W and H are integers.
    */
@@ -63,7 +63,7 @@ function sceneBuilder(props: TilesProps, children: SceneComponent[]): Api.Compon
     children: children.map(sceneComponentIntoApi),
     width: props.width,
     height: props.height,
-    background_color_rgba: props.backgroundColorRgba,
+    background_color_rgba: props.backgroundColor,
     tile_aspect_ratio: props.tileAspectRatio,
     margin: props.margin,
     padding: props.padding,

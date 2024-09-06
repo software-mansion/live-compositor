@@ -75,7 +75,6 @@ async function run() {
         type: 'opus',
         channels: 'stereo',
       },
-      initial: { inputs: [] },
     },
   });
   gstReceiveTcpStream('127.0.0.1', 8001);

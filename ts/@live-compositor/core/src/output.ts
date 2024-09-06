@@ -13,8 +13,8 @@ class Output {
   outputId: string;
   outputCtx: OutputContext;
   outputShutdownStateStore: OutputShutdownStateStore;
-  initialized: boolean = false;
 
+  shouldUpdateWhenReady: boolean = false;
   throttledUpdate: () => void;
   videoRenderer?: Renderer;
   initialAudioConfig?: Outputs.AudioInputsConfiguration;
@@ -28,9 +28,16 @@ class Output {
     this.api = api;
     this.outputId = outputId;
     this.outputShutdownStateStore = new OutputShutdownStateStore();
-    this.initialAudioConfig = registerRequest.audio?.initial;
+    this.shouldUpdateWhenReady = false;
+    this.throttledUpdate = () => {
+      this.shouldUpdateWhenReady = true;
+    };
 
-    const onUpdate = () => this.throttledUpdate?.();
+    if (registerRequest.audio) {
+      this.initialAudioConfig = registerRequest.audio.initial ?? { inputs: [] };
+    }
+
+    const onUpdate = () => this.throttledUpdate();
     this.outputCtx = new _liveCompositorInternals.OutputContext(onUpdate, !!registerRequest.audio);
 
     if (registerRequest.video) {
@@ -47,10 +54,6 @@ class Output {
         idPrefix: `${outputId}-`,
       });
     }
-
-    this.throttledUpdate = throttle(async () => {
-      await api.updateScene(this.outputId, this.scene());
-    }, 30);
   }
 
   public scene(): { video?: Api.Video; audio?: Api.Audio } {
@@ -66,6 +69,15 @@ class Output {
     // close will switch a scene to just a <View />, so we need replace `throttledUpdate`
     // callback before it is called
     this.outputShutdownStateStore.close();
+  }
+
+  public async ready() {
+    this.throttledUpdate = throttle(async () => {
+      await this.api.updateScene(this.outputId, this.scene());
+    }, 30);
+    if (this.shouldUpdateWhenReady) {
+      this.throttledUpdate();
+    }
   }
 }
 

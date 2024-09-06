@@ -1,6 +1,6 @@
 import * as Api from '../api';
 import { createCompositorComponent, SceneComponent, sceneComponentIntoApi } from '../component';
-import { intoApiTransition, Transition } from './common';
+import { intoApiRgbaColor, intoApiTransition, Transition } from './common';
 
 export type ViewProps = {
   /**
@@ -65,9 +65,9 @@ export type ViewProps = {
    */
   overflow?: Api.Overflow;
   /**
-   * (**default=`"#00000000"`**) Background color in a `"#RRGGBBAA"` format.
+   * (**default=`"#00000000"`**) Background color in a `"#RRGGBBAA"` or `"#RRGGBB"`format.
    */
-  backgroundColorRgba?: Api.RGBAColor;
+  backgroundColor?: string;
 };
 
 const View = createCompositorComponent<ViewProps>(sceneBuilder);
@@ -91,7 +91,7 @@ function sceneBuilder(props: ViewProps, children: SceneComponent[]): Api.Compone
 
     transition: props.transition && intoApiTransition(props.transition),
     overflow: props.overflow,
-    background_color_rgba: props.backgroundColorRgba,
+    background_color_rgba: props.backgroundColor && intoApiRgbaColor(props.backgroundColor),
   };
 }
 
