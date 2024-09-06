@@ -20,7 +20,7 @@ import WebGpuLogoLight from '@site/static/img/webgpu-light.svg';
 import { PropsWithChildren } from 'react';
 import { IconContext, IconType } from 'react-icons';
 import TypewriterComponent from 'typewriter-effect';
-import ExampleScene from '../components/example_scene';
+import ExampleSceneJson from '../components/ExampleSceneJson';
 import RTCOnBanner from '@site/src/components/RtcOnBanner';
 import styles from './index.module.css';
 
@@ -113,7 +113,7 @@ function HowItWorks() {
           <img src={ComposingImg} alt="Composing" />
         </div>
         <div className={clsx('col col--6', styles.sceneExample)}>
-          <ExampleScene />
+          <ExampleSceneJson />
         </div>
       </div>
     </div>

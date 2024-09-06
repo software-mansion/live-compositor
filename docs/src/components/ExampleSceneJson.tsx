@@ -1,6 +1,6 @@
 import CodeBlock from '@theme/CodeBlock';
 
-export default function ExampleScene() {
+export default function ExampleSceneJson() {
   return (
     <CodeBlock language="typescript">
       {`{
