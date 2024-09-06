@@ -15,57 +15,9 @@ import {
   InputsSettings,
   Resolution,
 } from '../resolution';
+import { defaultJsonScene } from '@site/src/scene/defaultJson';
 
-const INITIAL_SCENE = {
-  type: 'view',
-  background_color_rgba: '#4d4d4dff',
-  children: [
-    {
-      type: 'rescaler',
-      child: { type: 'input_stream', input_id: 'input_1' },
-    },
-    {
-      type: 'rescaler',
-      width: 320,
-      height: 180,
-      top: 20,
-      right: 20,
-      child: { type: 'input_stream', input_id: 'input_2' },
-    },
-    {
-      type: 'rescaler',
-      width: 320,
-      height: 180,
-      top: 20,
-      left: 20,
-      child: { type: 'input_stream', input_id: 'input_3' },
-    },
-    {
-      type: 'rescaler',
-      width: 320,
-      height: 180,
-      bottom: 20,
-      left: 20,
-      child: { type: 'input_stream', input_id: 'input_4' },
-    },
-    {
-      type: 'rescaler',
-      width: 320,
-      height: 180,
-      bottom: 20,
-      right: 20,
-      child: { type: 'input_stream', input_id: 'input_5' },
-    },
-    {
-      type: 'rescaler',
-      width: 640,
-      height: 400,
-      top: 20,
-      right: 800,
-      child: { type: 'input_stream', input_id: 'input_6' },
-    },
-  ],
-};
+const INITIAL_SCENE = defaultJsonScene();
 
 const INITIAL_REACT_CODE = [
   "import React from 'react';\n",
