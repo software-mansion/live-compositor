@@ -50,14 +50,20 @@ export default function PlaygroundSettings({
       <div className={styles.settings}>
         <div className={styles.cardsContainer}>
           <Card
-            title="Inputs resolutions"
-            subtitle="settings"
+            title="Inputs"
+            subtitle="Configure resolution for example inputs"
             onClick={() => setModalContent('inputs')}
           />
-
-          <Card title="Images" subtitle="preview" onClick={() => setModalContent('images')} />
-
-          <Card title="Shaders" subtitle="preview" onClick={() => setModalContent('shaders')} />
+          <Card
+            title="Images"
+            subtitle="Check out available images and how to use them"
+            onClick={() => setModalContent('images')}
+          />
+          <Card
+            title="Shaders"
+            subtitle="Check out available shaders and how to use them"
+            onClick={() => setModalContent('shaders')}
+          />
         </div>
       </div>
 

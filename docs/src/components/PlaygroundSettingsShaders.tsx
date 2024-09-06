@@ -6,7 +6,7 @@ export default function PlaygroundSettingsShaders() {
   return (
     <div className={styles.container}>
       <div className={styles.headerContainer}>
-        <div className={styles.headerInputLabel}>Image ID</div>
+        <div className={styles.headerInputLabel}>Shader ID</div>
         <div className={styles.headerDescriptionLabel}>Description</div>
       </div>
       <ShaderInfo
