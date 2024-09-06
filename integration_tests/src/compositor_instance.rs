@@ -1,8 +1,7 @@
 use anyhow::{anyhow, Result};
-use compositor_render::use_global_wgpu_ctx;
 use crossbeam_channel::Sender;
 use live_compositor::{
-    config::{read_config, LoggerConfig, LoggerFormat},
+    config::{read_config, Config, LoggerConfig, LoggerFormat},
     logger::{self, FfmpegLogLevel},
     server::run_api,
     state::ApiState,
@@ -32,10 +31,11 @@ impl Drop for CompositorInstance {
 }
 
 impl CompositorInstance {
-    pub fn start() -> Self {
+    /// api port in config is overwritten
+    pub fn start(config: Option<Config>) -> Self {
         init_compositor_prerequisites();
         let api_port = get_free_port();
-        let mut config = read_config();
+        let mut config = config.unwrap_or(read_config());
         config.api_port = api_port;
 
         info!("Starting LiveCompositor Integration Test with config:\n{config:#?}",);
@@ -117,6 +117,5 @@ fn init_compositor_prerequisites() {
             format: LoggerFormat::Compact,
             level: "info,wgpu_hal=warn,wgpu_core=warn".to_string(),
         });
-        use_global_wgpu_ctx();
     });
 }

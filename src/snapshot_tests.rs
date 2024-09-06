@@ -12,8 +12,6 @@ mod utils;
 
 #[test]
 fn test_snapshots() {
-    compositor_render::use_global_wgpu_ctx();
-
     let tests: Vec<TestCaseInstance> = snapshot_tests()
         .into_iter()
         .map(TestCaseInstance::new)

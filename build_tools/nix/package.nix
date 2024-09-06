@@ -1,7 +1,7 @@
 { rustPlatform
+, ffmpeg_7-headless
 , openssl
 , pkg-config
-, ffmpeg_6-headless
 , llvmPackages_16
 , libGL
 , cmake
@@ -12,39 +12,27 @@
 , darwin
 , stdenv
 , makeWrapper
-, x264
 }:
 let
-  ffmpeg =
-    (if stdenv.isDarwin then
-      (ffmpeg_6-headless.override {
-        x264 = x264.overrideAttrs (old: {
-          postPatch = old.postPatch + ''
-            substituteInPlace Makefile --replace '$(if $(STRIP), $(STRIP) -x $@)' '$(if $(STRIP), $(STRIP) -S $@)'
-          '';
-        });
-      })
-    else
-      ffmpeg_6-headless
-    );
   buildInputs = [
-    ffmpeg
+    ffmpeg_7-headless
     openssl
     libopus
     libGL
-    mesa.drivers
     vulkan-loader
   ] ++ lib.optionals stdenv.isDarwin [
     darwin.apple_sdk.frameworks.Metal
     darwin.apple_sdk.frameworks.Foundation
     darwin.apple_sdk.frameworks.QuartzCore
     darwin.libobjc
+  ] ++ lib.optionals stdenv.isLinux [
+    mesa.drivers
   ];
   rpath = lib.makeLibraryPath buildInputs;
 in
 rustPlatform.buildRustPackage {
   pname = "live_compositor";
-  version = "0.2.0";
+  version = "0.3.0";
   src = ../..;
   cargoLock = {
     lockFile = ../../Cargo.lock;

@@ -7,6 +7,7 @@ use compositor_render::{
 };
 
 use crate::pipeline::{decoder::AacDecoderError, VideoCodec};
+use fdk_aac_sys as fdk;
 
 #[derive(Debug, thiserror::Error)]
 pub enum RegisterInputError {
@@ -73,6 +74,9 @@ pub enum OutputInitError {
 
     #[error("Failed to register output. All ports in range {lower_bound} to {upper_bound} are already used or not available.")]
     AllPortsAlreadyInUse { lower_bound: u16, upper_bound: u16 },
+
+    #[error("Failed to register output. FFmpeg error: {0}.")]
+    FfmpegMp4Error(ffmpeg_next::Error),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -85,6 +89,9 @@ pub enum EncoderInitError {
 
     #[error(transparent)]
     OpusError(#[from] opus::Error),
+
+    #[error("Internal FDK AAC encoder error: {0}")]
+    AacError(fdk::AACENC_ERROR),
 }
 
 #[derive(Debug, thiserror::Error)]

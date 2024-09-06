@@ -7,6 +7,7 @@ import styles from './PlaygroundSettings.module.css';
 import PlaygroundSettingsImages from './PlaygroundSettingsImages';
 import SettingsInputs from './PlaygroundSettingsInputs';
 import OutputResolution from './PlaygroundSettingsOutput';
+import PlaygroundSettingsShaders from './PlaygroundSettingsShaders';
 
 type ModalContent = 'inputs' | 'images' | 'shaders';
 
@@ -41,7 +42,7 @@ export default function PlaygroundSettings({
     ) : modalContent === 'images' ? (
       <PlaygroundSettingsImages />
     ) : (
-      <PlaygroundSettingsImages />
+      <PlaygroundSettingsShaders />
     );
 
   return (

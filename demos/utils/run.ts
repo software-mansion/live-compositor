@@ -44,7 +44,7 @@ async function logError(err: any): Promise<void> {
   }
 }
 
-const COMPOSITOR_DIR = path.join(__dirname, '../.video_compositor');
+const COMPOSITOR_DIR = path.join(__dirname, '../.live_compositor');
 
 function getCompositorRunCmd(): {
   command: string;
@@ -54,17 +54,17 @@ function getCompositorRunCmd(): {
   if (process.env.LIVE_COMPOSITOR_SOURCE_DIR) {
     return {
       command: 'cargo',
-      args: ['run', '--release', '--bin', 'video_compositor'],
+      args: ['run', '--release', '--bin', 'live_compositor'],
       cwd: process.env.LIVE_COMPOSITOR_SOURCE_DIR,
     };
   } else if (process.platform === 'linux') {
     return {
-      command: path.join(COMPOSITOR_DIR, 'video_compositor/video_compositor'),
+      command: path.join(COMPOSITOR_DIR, 'live_compositor/live_compositor'),
       args: [],
     };
   } else if (process.platform === 'darwin') {
     return {
-      command: path.join(COMPOSITOR_DIR, 'video_compositor/video_compositor'),
+      command: path.join(COMPOSITOR_DIR, 'live_compositor/live_compositor'),
       args: [],
     };
   }

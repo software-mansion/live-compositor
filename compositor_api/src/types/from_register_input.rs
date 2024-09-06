@@ -81,11 +81,11 @@ impl TryFrom<InputRtpAudioOptions> for InputAudioStream {
     }
 }
 
-impl TryFrom<RtpInputStream> for pipeline::RegisterInputOptions {
+impl TryFrom<RtpInput> for pipeline::RegisterInputOptions {
     type Error = TypeError;
 
-    fn try_from(value: RtpInputStream) -> Result<Self, Self::Error> {
-        let RtpInputStream {
+    fn try_from(value: RtpInput) -> Result<Self, Self::Error> {
+        let RtpInput {
             port,
             video,
             audio,
@@ -131,15 +131,16 @@ impl TryFrom<RtpInputStream> for pipeline::RegisterInputOptions {
     }
 }
 
-impl TryFrom<Mp4> for pipeline::RegisterInputOptions {
+impl TryFrom<Mp4Input> for pipeline::RegisterInputOptions {
     type Error = TypeError;
 
-    fn try_from(value: Mp4) -> Result<Self, Self::Error> {
-        let Mp4 {
+    fn try_from(value: Mp4Input) -> Result<Self, Self::Error> {
+        let Mp4Input {
             url,
             path,
             required,
             offset_ms,
+            should_loop,
         } = value;
 
         const BAD_URL_PATH_SPEC: &str =
@@ -160,7 +161,10 @@ impl TryFrom<Mp4> for pipeline::RegisterInputOptions {
         };
 
         Ok(pipeline::RegisterInputOptions {
-            input_options: input::InputOptions::Mp4(input::mp4::Mp4Options { source }),
+            input_options: input::InputOptions::Mp4(input::mp4::Mp4Options {
+                source,
+                should_loop: should_loop.unwrap_or(false),
+            }),
             queue_options,
         })
     }

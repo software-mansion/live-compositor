@@ -83,17 +83,17 @@
     object-fit: contain;
 }
 
-
-code {
+.imagePreviewDescriptionContainer code {
     white-space: nowrap;
 }
 
 @media only screen and (max-width:660px) {
     .container {
         height: 76vh;
-        overflow: scroll;
     }
-    code {white-space: wrap}
+    .imagePreviewDescriptionContainer code {
+        white-space: wrap;
+    }
 }
 
 .tooltip {
@@ -110,4 +110,6 @@ code {
     color: var(--ifm-font-color-base-inverse) !important;
     background-color: var(--ifm-color-emphasis-600) !important;
     cursor: copy !important;
+    display: block;
+    white-space: pre-wrap;
 }

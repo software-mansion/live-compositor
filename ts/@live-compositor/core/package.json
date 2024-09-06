@@ -1,0 +1,28 @@
+{
+  "name": "@live-compositor/core",
+  "version": "0.1.0-rc.0",
+  "description": "",
+  "main": "dist/index.js",
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "watch": "tsc --watch --preserveWatchOutput",
+    "build": "tsc",
+    "clean": "rimraf dist",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "author": "",
+  "license": "MIT",
+  "files": [
+    "/dist"
+  ],
+  "devDependencies": {
+    "@types/react-reconciler": "0.28.8"
+  },
+  "dependencies": {
+    "react-reconciler": "0.29.2"
+  },
+  "peerDependencies": {
+    "live-compositor": "0.1.0-rc.0"
+  }
+}

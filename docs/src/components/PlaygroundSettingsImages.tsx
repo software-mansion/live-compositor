@@ -38,7 +38,7 @@ export default function PlaygroundSettingsImages() {
         filename="person.webp"
         description={
           <div>
-            Photo of a person speaking to a camera, <code>[3:2] 4096x2731</code> resolution.
+            Photo of a person speaking to a camera, <code>[3:2] 3000x2000</code> resolution.
           </div>
         }
       />
@@ -91,7 +91,7 @@ interface ImagePreviewProps {
 }
 
 function ImagePreview({ image_id, description, filename }: ImagePreviewProps) {
-  const tooltipJson = { type: 'image', image_id: image_id };
+  const json = JSON.stringify({ type: 'image', image_id: image_id }, null, 2);
 
   return (
     <div className={styles.imagePreview}>
@@ -112,10 +112,10 @@ function ImagePreview({ image_id, description, filename }: ImagePreviewProps) {
           <code
             className={styles.tooltipCode}
             onClick={() => {
-              navigator.clipboard.writeText(JSON.stringify(tooltipJson));
+              navigator.clipboard.writeText(json);
               toast.success('Copied to clipboard!');
             }}>
-            {JSON.stringify(tooltipJson)}
+            {json}
           </code>
           {` to use this image.`}
         </div>

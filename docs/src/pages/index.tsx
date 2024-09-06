@@ -21,6 +21,7 @@ import { PropsWithChildren } from 'react';
 import { IconContext, IconType } from 'react-icons';
 import TypewriterComponent from 'typewriter-effect';
 import ExampleScene from '../components/example_scene';
+import RTCOnBanner from '@site/src/components/RtcOnBanner';
 import styles from './index.module.css';
 
 function HomepageHeader() {
@@ -63,7 +64,7 @@ function HomepageHeader() {
                   'button button--secondary button--outline button--lg col col-6 margin--sm',
                   styles.hoverSecondary
                 )}
-                to="https://github.com/membraneframework/live_compositor">
+                to="https://github.com/software-mansion/live-compositor">
                 <IconContext.Provider value={{ style: { verticalAlign: 'middle' } }}>
                   <FaGithub style={{ marginRight: 5 }} />
                   View on GitHub
@@ -349,7 +350,7 @@ function StandaloneSever() {
                   styles.hoverSecondary,
                   styles.smallScreenFlexButton
                 )}
-                to="https://github.com/membraneframework/live_compositor/tree/master/build_tools/docker">
+                to="https://github.com/software-mansion/live-compositor/tree/master/build_tools/docker">
                 <IconContext.Provider value={{ style: { verticalAlign: 'middle' } }}>
                   <FaDocker style={{ marginRight: 5 }} />
                   Dockerfiles
@@ -445,7 +446,7 @@ function Licensing() {
         <div className="card__body">
           <p className={styles.grayText}>
             LiveCompositor is licensed under{' '}
-            <Link to="https://github.com/membraneframework/live_compositor/blob/master/LICENSE">
+            <Link to="https://github.com/software-mansion/live-compositor/blob/master/LICENSE">
               Business Source License 1.1
             </Link>
           </p>
@@ -505,7 +506,7 @@ function ContactUs() {
                 multiple multimedia projects, like Membrane Framework, Elixir WebRTC, FishJam, and
                 more. We also work on custom solutions for clients. Email us at{' '}
                 <Link to="mailto:projects@swmansion.com">projects@swmansion.com</Link> or contact us
-                via <Link to="https://membrane.stream/contact">this form</Link>.
+                via <Link to="https://swmansion.com/contact">this form</Link>.
               </p>
             </div>
           </div>
@@ -533,6 +534,7 @@ export default function Home(): JSX.Element {
       <Licensing />
       <div className={styles.sectionSeparator} />
       <ContactUs />
+      <RTCOnBanner />
     </Layout>
   );
 }

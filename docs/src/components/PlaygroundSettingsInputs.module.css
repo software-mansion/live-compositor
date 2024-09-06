@@ -89,7 +89,6 @@
     }
     .container {
         height: 76vh;
-        overflow: scroll;
     }
 }
 
@@ -107,4 +106,6 @@
     color: var(--ifm-font-color-base-inverse) !important;
     background-color: var(--ifm-color-emphasis-600) !important;
     cursor: copy !important;
+    display: block;
+    white-space: pre-wrap;
 }

@@ -1,6 +1,7 @@
 import { themes as prismThemes } from 'prism-react-renderer';
 import type { Config } from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
+import tailwindPlugin from './plugins/tailwind-config.cjs';
 import copyTypeFilesPlugin from './plugins/live-compositor-types.js';
 
 const config: Config = {
@@ -15,8 +16,8 @@ const config: Config = {
 
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
-  organizationName: 'membraneframework', // Usually your GitHub org/user name.
-  projectName: 'live_compositor', // Usually your repo name.
+  organizationName: 'software-mansion', // Usually your GitHub org/user name.
+  projectName: 'live-compositor', // Usually your repo name.
 
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'throw',
@@ -63,6 +64,7 @@ const config: Config = {
         ],
       },
     ],
+    tailwindPlugin,
     copyTypeFilesPlugin,
   ],
 
@@ -103,7 +105,7 @@ const config: Config = {
           'aria-label': 'Docs',
         },
         {
-          to: 'https://github.com/membraneframework/live_compositor',
+          to: 'https://github.com/software-mansion/live-compositor',
           position: 'right',
           className: 'navbar-github-link',
           'aria-label': 'GitHub repository',

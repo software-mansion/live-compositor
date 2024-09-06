@@ -68,10 +68,12 @@ fn main() {
                 },
                 raw_options: vec![],
             })),
-            audio: Some(AudioEncoderOptions::Opus(encoder::opus::Options {
-                channels: AudioChannels::Stereo,
-                preset: AudioEncoderPreset::Voip,
-            })),
+            audio: Some(AudioEncoderOptions::Opus(
+                encoder::opus::OpusEncoderOptions {
+                    channels: AudioChannels::Stereo,
+                    preset: AudioEncoderPreset::Voip,
+                },
+            )),
         },
         video: Some(compositor_pipeline::pipeline::OutputVideoOptions {
             initial: Component::InputStream(InputStreamComponent {
@@ -96,6 +98,7 @@ fn main() {
     let input_options = RegisterInputOptions {
         input_options: InputOptions::Mp4(Mp4Options {
             source: Source::File(root_dir.join(BUNNY_FILE_PATH)),
+            should_loop: false,
         }),
         queue_options: QueueInputOptions {
             required: true,

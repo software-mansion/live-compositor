@@ -6,13 +6,17 @@ use serde::{Deserialize, Serialize};
 
 mod audio;
 mod component;
+#[cfg(not(target_arch = "wasm32"))]
 mod from_audio;
 mod from_component;
+#[cfg(not(target_arch = "wasm32"))]
 mod from_register_input;
+#[cfg(not(target_arch = "wasm32"))]
 mod from_register_output;
 mod from_renderer;
 mod from_types;
 mod from_util;
+#[cfg(not(target_arch = "wasm32"))]
 mod from_video;
 mod register_input;
 mod register_output;
@@ -33,11 +37,12 @@ pub use component::Tiles;
 pub use component::View;
 pub use component::WebView;
 
-pub use register_input::Mp4;
-pub use register_output::RtpOutputStream;
+pub use register_input::Mp4Input;
+pub use register_output::Mp4Output;
+pub use register_output::RtpOutput;
 
 pub use register_input::DeckLink;
-pub use register_input::RtpInputStream;
+pub use register_input::RtpInput;
 
 pub use renderer::ImageSpec;
 pub use renderer::ShaderSpec;

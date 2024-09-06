@@ -64,4 +64,8 @@ impl RGBATexture {
     pub fn texture(&self) -> &Texture {
         &self.0
     }
+
+    pub fn texture_owned(self) -> Texture {
+        self.0
+    }
 }

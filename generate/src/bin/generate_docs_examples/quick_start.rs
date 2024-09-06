@@ -6,75 +6,27 @@ use serde_json::json;
 
 use crate::{pages_dir, workingdir};
 
-pub(super) fn generate_simple_scene_guide() -> Result<()> {
+pub(super) fn generate_quick_start_guide() -> Result<()> {
     generate_scene(
-        "simple_scene_1.webp",
+        "quick_start_1.webp",
         json!({
             "type": "view",
             "background_color_rgba": "#4d4d4dff",
+            "children": []
         }),
     )?;
     generate_scene(
-        "simple_scene_2.webp",
+        "quick_start_2.webp",
         json!({
-            "type": "view",
+            "type": "tiles",
             "background_color_rgba": "#4d4d4dff",
             "children": [
                 { "type": "input_stream", "input_id": "input_1" },
+                { "type": "input_stream", "input_id": "input_2" },
             ]
         }),
     )?;
-    generate_scene(
-        "simple_scene_3.webp",
-        json!({
-            "type": "view",
-            "background_color_rgba": "#4d4d4dff",
-            "children": [
-                {
-                    "type": "rescaler",
-                    "child": { "type": "input_stream", "input_id": "input_1" },
-                },
-            ]
-        }),
-    )?;
-    generate_scene(
-        "simple_scene_4.webp",
-        json!({
-            "type": "view",
-            "background_color_rgba": "#4d4d4dff",
-            "children": [
-                {
-                    "type": "rescaler",
-                    "child": { "type": "input_stream", "input_id": "input_1" },
-                },
-                {
-                    "type": "rescaler",
-                    "child": { "type": "input_stream", "input_id": "input_2" },
-                }
-            ]
-        }),
-    )?;
-    generate_scene(
-        "simple_scene_5.webp",
-        json!({
-            "type": "view",
-            "background_color_rgba": "#4d4d4dff",
-            "children": [
-                {
-                    "type": "rescaler",
-                    "child": { "type": "input_stream", "input_id": "input_1" },
-                },
-                {
-                    "type": "rescaler",
-                    "width": 320,
-                    "height": 180,
-                    "top": 20,
-                    "right": 20,
-                    "child": { "type": "input_stream", "input_id": "input_2" },
-                }
-            ]
-        }),
-    )?;
+
     Ok(())
 }
 
@@ -148,7 +100,7 @@ pub(super) fn generate_scene(filename: &str, scene: serde_json::Value) -> Result
         }),
     )?;
 
-    let path = pages_dir().join("guides").join(filename);
+    let path = pages_dir().join("guides").join("assets").join(filename);
     let gst_thread = thread::Builder::new().name("gst sink".to_string()).spawn(move  ||{
         let gst_cmd = format!(
             "gst-launch-1.0 -v tcpclientsrc host=127.0.0.1 port={} ! \"application/x-rtp-stream\" ! rtpstreamdepay ! rtph264depay ! video/x-h264,framerate=30/1 ! h264parse ! h264timestamper ! decodebin ! webpenc animated=true speed=6 quality=50 ! filesink location={}",

@@ -1,6 +1,5 @@
 use std::time::Duration;
 
-use compositor_pipeline::pipeline::rtp;
 use compositor_render::scene;
 
 use super::util::*;
@@ -195,10 +194,12 @@ impl TryFrom<RGBAColor> for scene::RGBAColor {
     }
 }
 
-impl TryFrom<PortOrPortRange> for rtp::RequestedPort {
+#[cfg(not(target_arch = "wasm32"))]
+impl TryFrom<PortOrPortRange> for compositor_pipeline::pipeline::rtp::RequestedPort {
     type Error = TypeError;
 
     fn try_from(value: PortOrPortRange) -> Result<Self, Self::Error> {
+        use compositor_pipeline::pipeline::rtp;
         const PORT_CONVERSION_ERROR_MESSAGE: &str = "Port needs to be a number between 1 and 65535 or a string in the \"START:END\" format, where START and END represent a range of ports.";
         match value {
             PortOrPortRange::U16(0) => Err(TypeError::new(PORT_CONVERSION_ERROR_MESSAGE)),
@@ -229,8 +230,11 @@ impl TryFrom<PortOrPortRange> for rtp::RequestedPort {
     }
 }
 
-impl From<TransportProtocol> for rtp::TransportProtocol {
+#[cfg(not(target_arch = "wasm32"))]
+impl From<TransportProtocol> for compositor_pipeline::pipeline::rtp::TransportProtocol {
     fn from(value: TransportProtocol) -> Self {
+        use compositor_pipeline::pipeline::rtp;
+
         match value {
             TransportProtocol::Udp => rtp::TransportProtocol::Udp,
             TransportProtocol::TcpServer => rtp::TransportProtocol::TcpServer,

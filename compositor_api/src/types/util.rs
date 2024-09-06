@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{error::Error, fmt::Display};
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -88,20 +88,13 @@ pub enum TransportProtocol {
     TcpServer,
 }
 
-impl<E> From<E> for TypeError
-where
-    E: std::error::Error + Send + Sync + 'static,
-{
-    fn from(err: E) -> Self {
-        Self(err.to_string())
-    }
-}
-
 impl Display for TypeError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.0.fmt(f)
     }
 }
+
+impl Error for TypeError {}
 
 impl TypeError {
     pub fn new<S: Into<String>>(msg: S) -> Self {

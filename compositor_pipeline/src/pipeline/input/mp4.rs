@@ -19,16 +19,19 @@ pub mod mp4_file_reader;
 #[derive(Debug, Clone)]
 pub struct Mp4Options {
     pub source: Source,
+    pub should_loop: bool,
 }
 
 pub(crate) enum Mp4ReaderOptions {
     NonFragmented {
         file: PathBuf,
+        should_loop: bool,
     },
     #[allow(dead_code)]
     Fragmented {
         header: Bytes,
         fragment_receiver: Receiver<PipelineEvent<Bytes>>,
+        should_loop: bool,
     },
 }
 
@@ -90,6 +93,7 @@ impl Mp4 {
         let video = Mp4FileReader::new_video(
             Mp4ReaderOptions::NonFragmented {
                 file: input_path.clone(),
+                should_loop: options.should_loop,
             },
             input_id.clone(),
         )?;
@@ -108,6 +112,7 @@ impl Mp4 {
         let audio = Mp4FileReader::new_audio(
             Mp4ReaderOptions::NonFragmented {
                 file: input_path.clone(),
+                should_loop: options.should_loop,
             },
             input_id.clone(),
         )?;

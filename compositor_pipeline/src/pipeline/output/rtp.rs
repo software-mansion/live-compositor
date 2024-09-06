@@ -1,10 +1,11 @@
-use compositor_render::OutputId;
+use compositor_render::{event_handler::emit_event, OutputId};
 use crossbeam_channel::Receiver;
 use std::sync::{atomic::AtomicBool, Arc};
 use tracing::{debug, span, Level};
 
 use crate::{
     error::OutputInitError,
+    event::Event,
     pipeline::{rtp::RequestedPort, types::EncoderOutputEvent, AudioCodec, Port, VideoCodec},
 };
 
@@ -47,7 +48,7 @@ impl RtpSender {
         output_id: &OutputId,
         options: RtpSenderOptions,
         packets_receiver: Receiver<EncoderOutputEvent>,
-    ) -> Result<(Self, Option<Port>), OutputInitError> {
+    ) -> Result<(Self, Port), OutputInitError> {
         let payloader = Payloader::new(options.video, options.audio);
         let mtu = match options.connection_options {
             RtpConnectionOptions::Udp { .. } => 1400,
@@ -77,6 +78,7 @@ impl RtpSender {
                         tcp_server::run_tcp_sender_thread(socket, should_close2, packet_stream)
                     }
                 }
+                emit_event(Event::OutputDone(output_id));
                 debug!("Closing RTP sender thread.")
             })
             .unwrap();
@@ -86,7 +88,7 @@ impl RtpSender {
                 connection_options: options.connection_options,
                 should_close,
             },
-            Some(port),
+            port,
         ))
     }
 }

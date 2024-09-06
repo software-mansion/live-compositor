@@ -32,6 +32,7 @@ pub struct ImageSpec {
 pub enum ImageSource {
     Url { url: String },
     LocalPath { path: String },
+    Bytes { bytes: Bytes },
 }
 
 #[derive(Debug, Clone)]
@@ -91,14 +92,21 @@ impl Image {
     fn download_file(src: &ImageSource) -> Result<bytes::Bytes, ImageError> {
         match src {
             ImageSource::Url { url } => {
-                let response = reqwest::blocking::get(url)?;
-                let response = response.error_for_status()?;
-                Ok(response.bytes()?)
+                #[cfg(target_arch = "wasm32")]
+                return Err(ImageError::ImageSourceUrlNotSupported);
+
+                #[cfg(not(target_arch = "wasm32"))]
+                {
+                    let response = reqwest::blocking::get(url)?;
+                    let response = response.error_for_status()?;
+                    Ok(response.bytes()?)
+                }
             }
             ImageSource::LocalPath { path } => {
                 let file = fs::read(path)?;
                 Ok(Bytes::from(file))
             }
+            ImageSource::Bytes { bytes } => Ok(bytes.clone()),
         }
     }
 }
@@ -438,6 +446,9 @@ pub enum ImageError {
 
     #[error(transparent)]
     ParsingAnimatedFailed(#[from] AnimatedError),
+
+    #[error("Providing URL as image source is not supported on wasm platform")]
+    ImageSourceUrlNotSupported,
 }
 
 #[derive(Debug, thiserror::Error)]

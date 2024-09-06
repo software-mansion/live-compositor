@@ -60,9 +60,9 @@ impl Emitter {
             .enumerate()
             .filter_map(|(index, sender)| {
                 if disconnected.contains(&index) {
-                    Some(sender)
-                } else {
                     None
+                } else {
+                    Some(sender)
                 }
             })
             .collect()

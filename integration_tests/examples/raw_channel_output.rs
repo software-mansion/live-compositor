@@ -1,5 +1,12 @@
 use core::panic;
-use std::{fs::File, io::Write, path::PathBuf, thread, time::Duration};
+use std::{
+    fs::File,
+    io::Write,
+    path::PathBuf,
+    sync::{Arc, Mutex},
+    thread,
+    time::Duration,
+};
 
 use compositor_pipeline::{
     audio_mixer::{AudioChannels, AudioMixingParams, AudioSamples, InputParams, MixingStrategy},
@@ -9,12 +16,14 @@ use compositor_pipeline::{
             InputOptions,
         },
         output::{RawAudioOptions, RawDataOutputOptions, RawVideoOptions},
-        Pipeline, PipelineOutputEndCondition, RawDataReceiver, RegisterInputOptions,
+        Options, PipelineOutputEndCondition, RawDataReceiver, RegisterInputOptions,
         RegisterOutputOptions,
     },
     queue::{PipelineEvent, QueueInputOptions},
+    Pipeline,
 };
 use compositor_render::{
+    create_wgpu_ctx,
     error::ErrorStack,
     scene::{Component, InputStreamComponent},
     Frame, FrameData, InputId, OutputId, Resolution,
@@ -25,7 +34,6 @@ use integration_tests::{examples::download_file, read_rgba_texture};
 use live_compositor::{
     config::{read_config, LoggerConfig, LoggerFormat},
     logger::{self, FfmpegLogLevel},
-    state::ApiState,
 };
 
 const BUNNY_FILE_URL: &str =
@@ -50,13 +58,25 @@ fn main() {
     });
     let mut config = read_config();
     config.queue_options.ahead_of_time_processing = true;
+    let (wgpu_device, wgpu_queue) = create_wgpu_ctx(false, Default::default()).unwrap();
     // no chromium support, so we can ignore _event_loop
-    let (state, _event_loop) = ApiState::new(config).unwrap_or_else(|err| {
+    let (pipeline, _event_loop) = Pipeline::new(Options {
+        queue_options: config.queue_options,
+        stream_fallback_timeout: config.stream_fallback_timeout,
+        web_renderer: config.web_renderer,
+        force_gpu: config.force_gpu,
+        download_root: config.download_root,
+        output_sample_rate: config.output_sample_rate,
+        wgpu_features: config.required_wgpu_features,
+        wgpu_ctx: Some((wgpu_device.clone(), wgpu_queue.clone())),
+    })
+    .unwrap_or_else(|err| {
         panic!(
             "Failed to start compositor.\n{}",
             ErrorStack::new(&err).into_string()
         )
     });
+    let pipeline = Arc::new(Mutex::new(pipeline));
     let output_id = OutputId("output_1".into());
     let input_id = InputId("input_id".into());
 
@@ -95,6 +115,7 @@ fn main() {
     let input_options = RegisterInputOptions {
         input_options: InputOptions::Mp4(Mp4Options {
             source: Source::File(root_dir().join(BUNNY_FILE_PATH)),
+            should_loop: false,
         }),
         queue_options: QueueInputOptions {
             required: true,
@@ -103,18 +124,15 @@ fn main() {
         },
     };
 
-    Pipeline::register_input(&state.pipeline, input_id.clone(), input_options).unwrap();
+    Pipeline::register_input(&pipeline, input_id.clone(), input_options).unwrap();
 
-    let (wgpu_device, wgpu_queue) = state.pipeline.lock().unwrap().wgpu_ctx();
-
-    let RawDataReceiver { video, audio } = state
-        .pipeline
+    let RawDataReceiver { video, audio } = pipeline
         .lock()
         .unwrap()
         .register_raw_data_output(output_id.clone(), output_options)
         .unwrap();
 
-    Pipeline::start(&state.pipeline);
+    Pipeline::start(&pipeline);
 
     let (send_done, recv_done) = bounded(0);
 

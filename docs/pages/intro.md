@@ -12,9 +12,10 @@ to file as MP4.
 ## Where to start?
 
 To get started check out our [`Guides`](./category/guides) section that will walk you through common scenarios.
-- [`Simple scene`](./guides/simple-scene.md) describes how to achieve a few of the most basic layouts when composing video.
+- [`Quick start`](./guides/quick-start.md) basic video composing and audio mixing setup.
 - [`Deliver input streams`](./guides/deliver-input.md) explains and shows examples of streaming multimedia to the LiveCompositor and use them for mixing/composition.
 - [`Receive output streams`](./guides/receive-output.md) explains and shows examples of receiving streams with results of mixing/composition from the LiveCompositor
+- [`Basic Layouts`](./guides/basic-layouts.md) describes how to achieve a few of the most basic layouts when composing video.
 - [`Transitions (View/Rescaler)`](./guides/view-transition.md) shows a few basic examples of animated transitions on `View`/`Rescaler` components.
 
 The main concept and basic abstractions that the LiveCompositor operates on are described in the [`Concepts`](./concept/overview.md) section.
@@ -26,11 +27,11 @@ Live Compositor can be used standalone or as a part of a Membrane Framework mult
 ### Standalone
 
 You can use LiveCompositor as a standalone multimedia server. The server can be started by:
-- Building [`github.com/membraneframework/live_compositor`](https://github.com/membraneframework/live_compositor) from source.
-- Using binaries from [GitHub releases](https://github.com/membraneframework/live_compositor/releases).
+- Building [`github.com/software-mansion/live-compositor`](https://github.com/software-mansion/live-compositor) from source.
+- Using binaries from [GitHub releases](https://github.com/software-mansion/live-compositor/releases).
 - Using Docker
-  - (recommended) Dockerfile with compositor without web rendering support [https://github.com/membraneframework/live_compositor/blob/master/build_tools/docker/slim.Dockerfile](https://github.com/membraneframework/live_compositor/blob/master/build_tools/docker/slim.Dockerfile)
-  - Dockerfile with compositor with web rendering support [https://github.com/membraneframework/live_compositor/blob/master/build_tools/docker/full.Dockerfile](https://github.com/membraneframework/live_compositor/blob/master/build_tools/docker/full.Dockerfile)
+  - (recommended) Dockerfile with compositor without web rendering support [https://github.com/software-mansion/live-compositor/blob/master/build_tools/docker/slim.Dockerfile](https://github.com/software-mansion/live-compositor/blob/master/build_tools/docker/slim.Dockerfile)
+  - Dockerfile with compositor with web rendering support [https://github.com/software-mansion/live-compositor/blob/master/build_tools/docker/full.Dockerfile](https://github.com/software-mansion/live-compositor/blob/master/build_tools/docker/full.Dockerfile)
 
 ### Membrane Framework plugin
 

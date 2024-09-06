@@ -16,8 +16,8 @@ const sidebars: SidebarsConfig = {
       items: [
         {
           type: 'doc',
-          id: 'guides/simple-scene',
-          label: 'Simple scene',
+          id: 'guides/quick-start',
+          label: 'Quick start',
         },
         {
           type: 'doc',
@@ -28,6 +28,11 @@ const sidebars: SidebarsConfig = {
           type: 'doc',
           id: 'guides/receive-output',
           label: 'Receive output streams',
+        },
+        {
+          type: 'doc',
+          id: 'guides/basic-layouts',
+          label: 'Basic Layouts',
         },
         {
           type: 'doc',
@@ -123,7 +128,7 @@ const sidebars: SidebarsConfig = {
           label: 'Outputs',
           collapsible: false,
           description: 'Elements that deliver generated media.',
-          items: ['api/outputs/rtp'],
+          items: ['api/outputs/rtp', 'api/outputs/mp4'],
         },
         {
           type: 'category',

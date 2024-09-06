@@ -1,5 +1,4 @@
 use anyhow::{anyhow, Result};
-use compositor_render::use_global_wgpu_ctx;
 use crossbeam_channel::Sender;
 use live_compositor::{
     config::{read_config, LoggerConfig, LoggerFormat},
@@ -37,6 +36,8 @@ impl CompositorInstance {
         let mut config = read_config();
         let api_port = get_free_port();
         config.api_port = api_port;
+        config.queue_options.ahead_of_time_processing = true;
+        config.queue_options.never_drop_output_frames = true;
 
         info!("Starting LiveCompositor Integration Test with config:\n{config:#?}",);
 
@@ -117,6 +118,5 @@ fn init_compositor_prerequisites() {
             format: LoggerFormat::Compact,
             level: "warn,wgpu_hal=warn,wgpu_core=warn".to_string(),
         });
-        use_global_wgpu_ctx();
     });
 }

@@ -1,13 +1,30 @@
 use core::panic;
-use std::{collections::HashSet, fs, path::PathBuf, time::Duration};
+use std::{
+    collections::HashSet,
+    fs,
+    path::PathBuf,
+    sync::{Arc, OnceLock},
+    time::Duration,
+};
 
 use compositor_render::{
-    web_renderer, Frame, FrameData, Framerate, Renderer, RendererOptions, WgpuFeatures, YuvPlanes,
+    create_wgpu_ctx, web_renderer, Frame, FrameData, Framerate, Renderer, RendererOptions,
+    WgpuFeatures, YuvPlanes,
 };
 
 use super::test_case::OUTPUT_ID;
 
 pub const SNAPSHOTS_DIR_NAME: &str = "snapshot_tests/snapshots/render_snapshots";
+
+fn global_wgpu_ctx(
+    force_gpu: bool,
+    features: wgpu::Features,
+) -> (Arc<wgpu::Device>, Arc<wgpu::Queue>) {
+    static CTX: OnceLock<(Arc<wgpu::Device>, Arc<wgpu::Queue>)> = OnceLock::new();
+
+    CTX.get_or_init(|| create_wgpu_ctx(force_gpu, features).unwrap())
+        .clone()
+}
 
 pub(super) fn frame_to_rgba(frame: &Frame) -> Vec<u8> {
     let FrameData::PlanarYuv420(YuvPlanes {
@@ -67,6 +84,7 @@ pub(super) fn create_renderer() -> Renderer {
         framerate: Framerate { num: 30, den: 1 },
         stream_fallback_timeout: Duration::from_secs(3),
         wgpu_features: WgpuFeatures::default(),
+        wgpu_ctx: Some(global_wgpu_ctx(false, Default::default())),
     })
     .unwrap();
     renderer

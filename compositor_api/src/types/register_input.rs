@@ -9,7 +9,7 @@ use super::util::*;
 /// At least one of `video` and `audio` has to be defined.
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(deny_unknown_fields)]
-pub struct RtpInputStream {
+pub struct RtpInput {
     /// UDP port or port range on which the compositor should listen for the stream.
     pub port: PortOrPortRange,
     /// Transport protocol.
@@ -31,11 +31,14 @@ pub struct RtpInputStream {
 /// Exactly one of `url` and `path` has to be defined.
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(deny_unknown_fields)]
-pub struct Mp4 {
+pub struct Mp4Input {
     /// URL of the MP4 file.
     pub url: Option<String>,
     /// Path to the MP4 file.
     pub path: Option<String>,
+    /// (**default=`false`**) If input should be played in the loop. <span class="badge badge--primary">Added in v0.4.0</span>
+    #[serde(rename = "loop")]
+    pub should_loop: Option<bool>,
     /// (**default=`false`**) If input is required and frames are not processed
     /// on time, then LiveCompositor will delay producing output frames.
     pub required: Option<bool>,

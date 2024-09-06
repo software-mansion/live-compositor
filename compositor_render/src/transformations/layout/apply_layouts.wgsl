@@ -17,7 +17,7 @@ struct Layout {
 }
 
 @group(0) @binding(0) var texture: texture_2d<f32>;
-@group(1) @binding(0) var<uniform> layouts: array<Layout, 128>;
+@group(1) @binding(0) var<uniform> layouts: array<Layout, 100>;
 @group(2) @binding(0) var sampler_: sampler;
 
 var<push_constant> layout_id: u32;
@@ -25,7 +25,7 @@ var<push_constant> layout_id: u32;
 @vertex
 fn vs_main(input: VertexInput) -> VertexOutput {
     var output: VertexOutput;
-    
+
     let vertices_transformation_matrix: mat4x4<f32> = layouts[layout_id].vertices_transformation;
     let texture_coord_transformation_matrix: mat4x4<f32> = layouts[layout_id].texture_coord_transformation;
 
@@ -46,6 +46,6 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
     }
     // clamp transparent, when crop > input texture
     let is_inside: f32 = round(f32(input.tex_coords.x < 1.0 && input.tex_coords.x > 0.0 && input.tex_coords.y > 0.0 && input.tex_coords.y < 1.0));
-    
+
     return is_inside * textureSample(texture, sampler_, input.tex_coords);
 }

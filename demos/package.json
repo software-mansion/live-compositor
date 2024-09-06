@@ -15,14 +15,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/membraneframework/live_compositor.git"
+    "url": "git+https://github.com/software-mansion/live-compositor.git"
   },
   "author": "",
   "license": "BUSL-1.1",
   "bugs": {
-    "url": "https://github.com/membraneframework/live_compositor/issues"
+    "url": "https://github.com/software-mansion/live-compositor/issues"
   },
-  "homepage": "https://github.com/membraneframework/live_compositor#readme",
+  "homepage": "https://github.com/software-mansion/live-compositor#readme",
   "dependencies": {
     "@types/fs-extra": "^11.0.2",
     "@types/node": "^20.12.11",
