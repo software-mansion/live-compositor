@@ -62,6 +62,7 @@ mod ffi {
     }
 
     extern "Rust" {
+        #[allow(clippy::needless_maybe_sized)]
         pub type DynInputCallback;
         unsafe fn video_input_frame_arrived(
             self: &DynInputCallback,
