@@ -4,7 +4,6 @@ use compositor_render::{Frame, FrameData, FrameSet, InputId};
 use wasm_bindgen::JsValue;
 
 use super::types;
-use super::wgpu::pad_to_256;
 
 #[derive(Default)]
 pub struct InputUploader {
@@ -73,7 +72,7 @@ impl InputUploader {
                     &frame.data,
                     wgpu::ImageDataLayout {
                         offset: 0,
-                        bytes_per_row: Some(pad_to_256(4 * size.width)),
+                        bytes_per_row: Some(4 * size.width),
                         rows_per_image: Some(size.height),
                     },
                     size,
