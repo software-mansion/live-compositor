@@ -16,22 +16,16 @@
     flex: 0 0 30%;
     max-width: 30%;
     padding-right: 10px;
+    min-width: 200px;
 }
 
-.headerResolutionLabel {
-    flex: 0 0 40%;
-    max-width: 40%;
-    width: 200px;
+.headerDescriptionLabel {
+    flex: 0 0 70%;
+    max-width: 70%;
+    min-width: 320px;
 }
 
-.headerPreviewLabel {
-    flex: 0 0 30%;
-    max-width: 30%;
-    padding-left: 10px;
-}
-
-
-.inputSelector {
+.shaderInfo {
     height: 100px;
     align-items: center;
     display: flex;
@@ -42,51 +36,25 @@
     padding: 4px 10px 0 10px;
 }
 
-.inputSelectorLabelContainer {
+.shaderInfoLabelContainer {
     flex: 0 0 30%;
     max-width: 30%;
     padding-right: 10px;
     height: 100%;
     display: flex;
     align-items: center;
+    min-width: 200px;
 }
 
-.inputSelectorSelectContainer {
-    flex: 0 0 40%;
-    max-width: 40%;
-    width: 200px;
+.shaderInfoDescriptionContainer {
+    flex: 0 0 70%;
+    max-width: 70%;
     display: flex;
     align-items: center;
-}
-
-.inputSelectorSelect {
-    background-color: var(--ifm-color-emphasis-200);
-    border-radius: 4px;
-    padding: 1px 4px 2px 4px;
-    width: 80%;
-}
-
-.inputSelectorImgContainer {
-    height: 100%;
-    flex: 0 0 30%;
-    max-width: 30%;
-    display: flex;
-    justify-content: center;
-    padding-left: 10px;
-}
-
-.inputSelectorImg {
-    height: 100%;
-    object-fit: contain;
+    min-width: 320px;
 }
 
 @media only screen and (max-width:660px) {
-    .inputSelectorSelectContainer {
-        min-width: 0;
-    }
-    .headerResolutionLabel {
-        min-width: 0;
-    }
     .container {
         height: 76vh;
     }
