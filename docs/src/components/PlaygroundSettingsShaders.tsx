@@ -13,12 +13,12 @@ export default function PlaygroundSettingsShaders() {
         shader_id="remove_greenscreen"
         description="Shader removing a green background. It supports exactly one child component."
         tooltipJson={`{
-  type: 'shader',
-  shader_id: 'remove_greenscreen',
-  children: [
-    { type: 'image', image_id: 'greenscreen' },
+  "type": "shader",
+  "shader_id": "remove_greenscreen",
+  "children": [
+    { "type": "image", "image_id": "greenscreen" }
   ],
-  resolution: { width: 2160, height: 2880 }
+  "resolution": { "width": 2160, "height": 2880 }
 }`}
       />
       <ShaderInfo
@@ -41,13 +41,13 @@ export default function PlaygroundSettingsShaders() {
         shader_id="rounded_corners"
         description="Shader that implements rounded corners. It supports exactly one child component and takes radius as a param (f32 value)."
         tooltipJson={`{
-  type: 'shader',
-  shader_id: 'rounded_corners',
-  shader_param: { type: 'f32', value: 64 },
-  children: [
-    { type: 'image', image_id: 'person' },
+  "type": "shader",
+  "shader_id": "rounded_corners",
+  "shader_param": { "type": "f32", "value": 64 },
+  "children": [
+    { "type": "image", "image_id": "person" }
   ],
-  resolution: { width: 3000, height: 2000 }
+  "resolution": { "width": 3000, "height": 2000 }
 }`}
       />
     </div>
