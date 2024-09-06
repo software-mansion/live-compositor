@@ -1,6 +1,8 @@
 import { themes as prismThemes } from 'prism-react-renderer';
 import type { Config } from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
+import tailwindPlugin from './plugins/tailwind-config.cjs';
+import copyTypeFilesPlugin from './plugins/live-compositor-types.js';
 
 const config: Config = {
   title: 'LiveCompositor',
@@ -62,6 +64,8 @@ const config: Config = {
         ],
       },
     ],
+    tailwindPlugin,
+    copyTypeFilesPlugin,
   ],
 
   themeConfig: {
@@ -123,6 +127,9 @@ const config: Config = {
       contextualSearch: false,
     },
   } satisfies Preset.ThemeConfig,
+  customFields: {
+    environment: process.env.ENVIRONMENT,
+  },
 };
 
 export default config;

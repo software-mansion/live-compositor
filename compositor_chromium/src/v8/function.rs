@@ -67,9 +67,8 @@ impl V8Function {
             .enumerate()
             .map(|(i, arg)| {
                 arg.get_raw()
-                    .map(|inner| unsafe {
+                    .inspect(|&inner| unsafe {
                         increment_ref_count(&mut (*inner).base);
-                        inner
                     })
                     .map_err(|err| V8FunctionError::ArgNotValid(err, i))
             })

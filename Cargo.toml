@@ -1,6 +1,6 @@
 [package]
 name = "live_compositor"
-version = "0.1.0"
+version = "0.3.0"
 edition = "2021"
 license = "BUSL-1.1"
 
@@ -15,16 +15,14 @@ members = [
     "generate",
     "decklink",
     "compositor_api",
+    "compositor_web",
 ]
 resolver = "2"
 
 [features]
 default = ["web_renderer"]
 decklink = ["compositor_api/decklink"]
-web_renderer = [
-    "dep:compositor_chromium",
-    "compositor_api/web_renderer"
-]
+web_renderer = ["dep:compositor_chromium", "compositor_api/web_renderer"]
 
 [workspace.dependencies]
 live_compositor = { path = "." }
@@ -40,7 +38,6 @@ thiserror = "1.0.40"
 crossbeam-channel = "0.5.8"
 reqwest = { version = "0.12.3", features = ["blocking", "json"] }
 signal-hook = "0.3.15"
-shared_memory = "0.12.4"
 ffmpeg-next = "7.0.0"
 anyhow = "1.0.71"
 image = { version = "0.24.7", features = ["jpeg", "png"] }
@@ -52,11 +49,20 @@ socket2 = "0.5.5"
 webrtc-util = "0.8.0"
 opus = "0.3.0"
 rubato = "0.15.0"
+glyphon = "0.5.0"
 futures-util = "0.3.30"
 tokio = { version = "1", features = ["full"] }
-wgpu = { version = "0.19.1", features = ["naga-ir"] }
 schemars = { git = "https://github.com/membraneframework-labs/schemars", rev = "a5ad1f9", features = [
     "preserve_order",
+] }
+shared_memory = "0.12.4"
+wgpu = { version = "0.19.1", default-features = false, features = [
+    "wgsl",
+    "dx12",
+    "metal",
+    "naga-ir",
+    "webgl",
+    "fragile-send-sync-non-atomic-wasm",
 ] }
 
 [dependencies]
@@ -73,9 +79,8 @@ ffmpeg-next = { workspace = true }
 crossbeam-channel = { workspace = true }
 log = { workspace = true }
 signal-hook = { workspace = true }
-shared_memory = { workspace = true }
 fs_extra = "1.3.0"
-schemars = { workspace = true}
+schemars = { workspace = true }
 image = { workspace = true }
 thiserror = { workspace = true }
 rtp = { workspace = true }
@@ -90,6 +95,9 @@ tokio = { workspace = true }
 axum = { version = "0.7.4", features = ["ws"] }
 futures-util = { workspace = true }
 wgpu = { workspace = true }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+shared_memory = { workspace = true }
 
 [[bin]]
 name = "process_helper"

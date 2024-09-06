@@ -22,7 +22,9 @@ fn client_code() -> Result<()> {
         "input/input_1/register",
         &json!({
             "type": "mp4",
-            "url": BUNNY_URL
+            "url": BUNNY_URL,
+            "required": true,
+            "offset_ms": 0,
         }),
     )?;
 

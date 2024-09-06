@@ -75,9 +75,6 @@ pub enum OutputInitError {
     #[error("Failed to register output. All ports in range {lower_bound} to {upper_bound} are already used or not available.")]
     AllPortsAlreadyInUse { lower_bound: u16, upper_bound: u16 },
 
-    #[error("Path {path} already exist. Can't create a new mp4 file under that path.")]
-    Mp4PathExist { path: String },
-
     #[error("Failed to register output. FFmpeg error: {0}.")]
     FfmpegMp4Error(ffmpeg_next::Error),
 }

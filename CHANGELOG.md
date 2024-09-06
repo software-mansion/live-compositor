@@ -4,6 +4,23 @@
 
 ### 💥 Breaking changes
 
+### ✨ New features
+
+- Add `loop` option for MP4 input. ([#699](https://github.com/software-mansion/live-compositor/pull/699)) by [@WojciechBarczynski](https://github.com/WojciechBarczynski)
+
+### 🐛 Bug fixes
+
+- Fix AAC output unregister before the first sample. ([#714](https://github.com/software-mansion/live-compositor/pull/714)) by [@WojciechBarczynski](https://github.com/WojciechBarczynski)pull/714)) by [@WojciechBarczynski](https://github.com/WojciechBarczynski)
+- Fix output mp4 timestamps when output is registered after pipeline start. ([#731](https://github.com/software-mansion/live-compositor/pull/731)) by [@WojciechBarczynski](https://github.com/WojciechBarczynski)
+
+### 🔧 Others
+
+- Automatically rename file under the output path for MP4 output if it already exists. ([#684](https://github.com/software-mansion/live-compositor/pull/684) by [@WojciechBarczynski](https://github.com/WojciechBarczynski))
+
+## [v0.3.0](https://github.com/software-mansion/live-compositor/releases/tag/v0.3.0)
+
+### 💥 Breaking changes
+
 - Remove `forward_error_correction` option from RTP OPUS output. ([#615](https://github.com/software-mansion/live-compositor/pull/615) by [@wkozyra95](https://github.com/wkozyra95))
 
 ### ✨ New features

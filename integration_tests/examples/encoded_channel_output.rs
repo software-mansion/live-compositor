@@ -98,6 +98,7 @@ fn main() {
     let input_options = RegisterInputOptions {
         input_options: InputOptions::Mp4(Mp4Options {
             source: Source::File(root_dir.join(BUNNY_FILE_PATH)),
+            should_loop: false,
         }),
         queue_options: QueueInputOptions {
             required: true,

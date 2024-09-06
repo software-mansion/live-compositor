@@ -1,6 +1,6 @@
 use std::{fs, io, path::PathBuf};
 
-use compositor_api::types;
+use compositor_api::types::{self, Component};
 use live_compositor::routes;
 use schemars::{
     schema::{RootSchema, Schema, SchemaObject},
@@ -31,10 +31,19 @@ pub fn generate_json_schema(check_flag: bool) {
     };
     generate_schema(
         schema_for!(types::UpdateOutputRequest),
-        "scene",
+        "../schemas/scene.schema.json",
         scene_schema_action,
     );
-    generate_schema(schema_for!(ApiTypes), "api_types", api_schema_action);
+    generate_schema(
+        schema_for!(ApiTypes),
+        "../schemas/api_types.schema.json",
+        api_schema_action,
+    );
+    generate_schema(
+        schema_for!(Component),
+        "../docs/component_types.schema.json",
+        SchemaAction::Update,
+    );
 }
 
 /// When variant inside oneOf has a schema additionalProperties set to false then
@@ -74,11 +83,11 @@ fn flatten_definition_with_one_of(definition: &mut SchemaObject) {
     }
 }
 
-fn generate_schema(mut current_schema: RootSchema, name: &'static str, action: SchemaAction) {
+fn generate_schema(mut current_schema: RootSchema, path: &'static str, action: SchemaAction) {
     flatten_definitions_with_one_of(&mut current_schema);
 
     let root_dir: PathBuf = ROOT_DIR.into();
-    let schema_path = root_dir.join(format!("../schemas/{}.schema.json", name));
+    let schema_path = root_dir.join(path);
     fs::create_dir_all(schema_path.parent().unwrap()).unwrap();
 
     let json_from_disk = match fs::read_to_string(&schema_path) {

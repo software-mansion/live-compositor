@@ -48,7 +48,7 @@ impl Mp4FileReader<AudioDecoderOptions> {
         let span = span!(Level::INFO, "MP4 audio", input_id = input_id.to_string());
 
         match options {
-            Mp4ReaderOptions::NonFragmented { file } => {
+            Mp4ReaderOptions::NonFragmented { file, should_loop } => {
                 let input_file = std::fs::File::open(file)?;
                 let size = input_file.metadata()?.size();
                 Self::new(
@@ -58,11 +58,13 @@ impl Mp4FileReader<AudioDecoderOptions> {
                     None,
                     stop_thread,
                     span,
+                    should_loop,
                 )
             }
             Mp4ReaderOptions::Fragmented {
                 header,
                 fragment_receiver,
+                should_loop,
             } => {
                 let size = header.len() as u64;
                 let reader = std::io::Cursor::new(header);
@@ -73,6 +75,7 @@ impl Mp4FileReader<AudioDecoderOptions> {
                     Some(fragment_receiver),
                     stop_thread,
                     span,
+                    should_loop,
                 )
             }
         }
@@ -127,7 +130,7 @@ impl Mp4FileReader<VideoDecoderOptions> {
         let span = span!(Level::INFO, "MP4 video", input_id = input_id.to_string());
 
         match options {
-            Mp4ReaderOptions::NonFragmented { file } => {
+            Mp4ReaderOptions::NonFragmented { file, should_loop } => {
                 let input_file = std::fs::File::open(file)?;
                 let size = input_file.metadata()?.size();
                 Self::new(
@@ -137,11 +140,13 @@ impl Mp4FileReader<VideoDecoderOptions> {
                     None,
                     stop_thread,
                     span,
+                    should_loop,
                 )
             }
             Mp4ReaderOptions::Fragmented {
                 header,
                 fragment_receiver,
+                should_loop,
             } => {
                 let size = header.len() as u64;
                 let reader = std::io::Cursor::new(header);
@@ -152,6 +157,7 @@ impl Mp4FileReader<VideoDecoderOptions> {
                     Some(fragment_receiver),
                     stop_thread,
                     span,
+                    should_loop,
                 )
             }
         }
@@ -260,6 +266,7 @@ impl<DecoderOptions: Clone + Send + 'static> Mp4FileReader<DecoderOptions> {
         fragment_receiver: Option<Receiver<PipelineEvent<Bytes>>>,
         stop_thread: Arc<AtomicBool>,
         span: Span,
+        should_loop: bool,
     ) -> Result<Option<(Self, ChunkReceiver)>, Mp4Error> {
         let reader = mp4::Mp4Reader::read_header(reader, size)?;
 
@@ -281,6 +288,7 @@ impl<DecoderOptions: Clone + Send + 'static> Mp4FileReader<DecoderOptions> {
                     stop_thread_clone,
                     fragment_receiver,
                     track_info,
+                    should_loop,
                 );
                 debug!("Closing MP4 reader thread");
             })
@@ -314,43 +322,61 @@ fn run_reader_thread<Reader: Read + Seek, DecoderOptions>(
     stop_thread: Arc<AtomicBool>,
     _fragment_receiver: Option<Receiver<PipelineEvent<Bytes>>>,
     track_info: TrackInfo<DecoderOptions, impl FnMut(mp4::Mp4Sample) -> Bytes>,
+    should_loop: bool,
 ) {
     let mut sample_unpacker = track_info.sample_unpacker;
+    let mut loop_offset = Duration::ZERO;
 
-    for i in 1..track_info.sample_count {
-        if stop_thread.load(std::sync::atomic::Ordering::Relaxed) {
-            return;
-        }
+    loop {
+        let mut last_end_pts = Duration::ZERO;
+        for i in 1..track_info.sample_count {
+            if stop_thread.load(std::sync::atomic::Ordering::Relaxed) {
+                return;
+            }
 
-        match reader.read_sample(track_info.track_id, i) {
-            Ok(Some(sample)) => {
-                let rendering_offset = sample.rendering_offset;
-                let start_time = sample.start_time;
-                let data = sample_unpacker(sample);
+            match reader.read_sample(track_info.track_id, i) {
+                Ok(Some(sample)) => {
+                    let rendering_offset = sample.rendering_offset;
+                    let start_time = sample.start_time;
+                    let sample_duration = Duration::from_secs_f64(
+                        sample.duration as f64 / track_info.timescale as f64,
+                    );
 
-                let dts = Duration::from_secs_f64(start_time as f64 / track_info.timescale as f64);
-                let chunk = EncodedChunk {
-                    data,
-                    pts: Duration::from_secs_f64(
+                    let dts =
+                        Duration::from_secs_f64(start_time as f64 / track_info.timescale as f64)
+                            + loop_offset;
+                    let pts = Duration::from_secs_f64(
                         (start_time as f64 + rendering_offset as f64) / track_info.timescale as f64,
-                    ),
-                    dts: Some(dts),
-                    kind: track_info.chunk_kind,
-                };
+                    ) + loop_offset;
+                    last_end_pts = pts + sample_duration;
 
-                trace!(pts=?chunk.pts, "MP4 reader produced a chunk.");
-                match sender.send(PipelineEvent::Data(chunk)) {
-                    Ok(_) => {}
-                    Err(_) => {
-                        debug!("Failed to send MP4 chunk. Channel closed.");
-                        return;
+                    let data = sample_unpacker(sample);
+
+                    let chunk = EncodedChunk {
+                        data,
+                        pts,
+                        dts: Some(dts),
+                        kind: track_info.chunk_kind,
+                    };
+
+                    trace!(pts=?chunk.pts, "MP4 reader produced a chunk.");
+                    match sender.send(PipelineEvent::Data(chunk)) {
+                        Ok(_) => {}
+                        Err(_) => {
+                            debug!("Failed to send MP4 chunk. Channel closed.");
+                            return;
+                        }
                     }
                 }
+                Err(e) => {
+                    warn!("Error while reading MP4 video sample: {:?}", e);
+                }
+                _ => {}
             }
-            Err(e) => {
-                warn!("Error while reading MP4 video sample: {:?}", e);
-            }
-            _ => {}
+        }
+        loop_offset = last_end_pts;
+        if !should_loop {
+            break;
         }
     }
     if let Err(_err) = sender.send(PipelineEvent::EOS) {
