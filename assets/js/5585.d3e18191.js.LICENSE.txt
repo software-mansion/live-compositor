@@ -1,0 +1,71 @@
+/*
+* React Tooltip
+* {@link https://github.com/ReactTooltip/react-tooltip}
+* @copyright ReactTooltip Team
+* @license MIT
+*/
+
+/*!
+	Copyright (c) 2018 Jed Watson.
+	Licensed under the MIT License (MIT), see
+	http://jedwatson.github.io/classnames
+*/
+
+/*!
+  Copyright (c) 2015 Jed Watson.
+  Based on code that is Copyright 2013-2015, Facebook, Inc.
+  All rights reserved.
+*/
+
+/*!
+ * Adapted from jQuery UI core
+ *
+ * http://jqueryui.com
+ *
+ * Copyright 2014 jQuery Foundation and other contributors
+ * Released under the MIT license.
+ * http://jquery.org/license
+ *
+ * http://api.jqueryui.com/category/ui-core/
+ */
+
+/*!
+ * jsoneditor.js
+ *
+ * @brief
+ * JSONEditor is a web-based tool to view, edit, format, and validate JSON.
+ * It has various modes such as a tree editor, a code editor, and a plain text
+ * editor.
+ *
+ * Supported browsers: Chrome, Firefox, Safari, Edge
+ *
+ * @license
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy
+ * of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ *
+ * Copyright (c) 2011-2024 Jos de Jong, http://jsoneditoronline.org
+ *
+ * @author  Jos de Jong, <wjosdejong@gmail.com>
+ * @version 10.1.0
+ * @date    2024-06-19
+ */
+
+/*! @license DOMPurify 3.0.5 | (c) Cure53 and other contributors | Released under the Apache license 2.0 and Mozilla Public License 2.0 | github.com/cure53/DOMPurify/blob/3.0.5/LICENSE */
+
+/*!-----------------------------------------------------------------------------
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Version: 0.50.0(c321d0fbecb50ab8a5365fa1965476b0ae63fc87)
+ * Released under the MIT license
+ * https://github.com/microsoft/monaco-editor/blob/main/LICENSE.txt
+ *-----------------------------------------------------------------------------*/
+
+/** @license URI.js v4.4.1 (c) 2011 Gary Court. License: http://github.com/garycourt/uri-js */
