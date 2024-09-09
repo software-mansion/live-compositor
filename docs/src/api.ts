@@ -1,9 +1,12 @@
 // The @generated/docusaurus.config file is built at runtime, not present during linting.
 // eslint-disable-next-line import/no-unresolved
 import config from '@generated/docusaurus.config';
+import ExecutionEnvironment from '@docusaurus/ExecutionEnvironment';
 
 const BACKEND_URL: string =
-  config.customFields.environment === 'development'
+  config.customFields.environment === 'development' ||
+  (ExecutionEnvironment.canUseDOM &&
+    new URLSearchParams(window.location.search).get('local') === 'true')
     ? 'http://localhost:8081'
     : 'https://playground.compositor.live';
 
