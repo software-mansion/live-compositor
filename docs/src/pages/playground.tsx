@@ -131,7 +131,7 @@ function Homepage() {
         <div className="flex flex-1 m-2 justify-center border-2 border-gray-400 border-solid rounded-md min-w-[300px] min-h-[120px]">
           <PlaygroundPreview {...responseData} />
         </div>
-        <div className="flex flex-1 m=2 min-w-[300px] min-h-[400px]">
+        <div className="flex flex-1 m=2 min-w-[300px] min-h-[300px]">
           <PlaygroundSettings
             onSubmit={handleSubmit}
             isLoading={responseData.loading}
