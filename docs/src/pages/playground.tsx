@@ -15,58 +15,9 @@ import {
   InputsSettings,
   Resolution,
 } from '../resolution';
-import styles from './playground.module.css';
+import { defaultJsonScene } from '@site/src/scene/defaultJson';
 
-const INITIAL_SCENE = {
-  type: 'view',
-  background_color_rgba: '#4d4d4dff',
-  children: [
-    {
-      type: 'rescaler',
-      child: { type: 'input_stream', input_id: 'input_1' },
-    },
-    {
-      type: 'rescaler',
-      width: 320,
-      height: 180,
-      top: 20,
-      right: 20,
-      child: { type: 'input_stream', input_id: 'input_2' },
-    },
-    {
-      type: 'rescaler',
-      width: 320,
-      height: 180,
-      top: 20,
-      left: 20,
-      child: { type: 'input_stream', input_id: 'input_3' },
-    },
-    {
-      type: 'rescaler',
-      width: 320,
-      height: 180,
-      bottom: 20,
-      left: 20,
-      child: { type: 'input_stream', input_id: 'input_4' },
-    },
-    {
-      type: 'rescaler',
-      width: 320,
-      height: 180,
-      bottom: 20,
-      right: 20,
-      child: { type: 'input_stream', input_id: 'input_5' },
-    },
-    {
-      type: 'rescaler',
-      width: 640,
-      height: 400,
-      top: 20,
-      right: 800,
-      child: { type: 'input_stream', input_id: 'input_6' },
-    },
-  ],
-};
+const INITIAL_SCENE = defaultJsonScene();
 
 const INITIAL_REACT_CODE = [
   "import React from 'react';\n",
@@ -168,21 +119,19 @@ function Homepage() {
   }, []);
 
   return (
-    <div className={styles.page}>
-      <div className={styles.leftSide}>
-        <div className={styles.codeEditorBox}>
-          {showReactEditor ? (
-            <PlaygroundReactEditor code={code} onCodeChange={setCode} />
-          ) : (
-            <PlaygroundCodeEditor onChange={setScene} initialCodeEditorContent={INITIAL_SCENE} />
-          )}
-        </div>
+    <div className="flex flex-row flex-wrap p-8 lg:h-[calc(100vh-110px)]">
+      <div className="flex-1 m-2 border-2 border-gray-400 border-solid rounded-md max-h-full min-w-[300px] min-h-[500px]">
+        {showReactEditor ? (
+          <PlaygroundReactEditor code={code} onCodeChange={setCode} />
+        ) : (
+          <PlaygroundCodeEditor onChange={setScene} initialCodeEditorContent={INITIAL_SCENE} />
+        )}
       </div>
-      <div className={styles.rightSide}>
-        <div className={styles.preview}>
+      <div className="flex flex-col flex-1 max-h-full">
+        <div className="flex flex-1 m-2 justify-center border-2 border-gray-400 border-solid rounded-md min-w-[300px] min-h-[120px]">
           <PlaygroundPreview {...responseData} />
         </div>
-        <div className={styles.settingsBox}>
+        <div className="flex flex-1 m=2 min-w-[300px] min-h-[400px]">
           <PlaygroundSettings
             onSubmit={handleSubmit}
             isLoading={responseData.loading}

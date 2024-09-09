@@ -51,7 +51,7 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     justify-content: center;
-  }
+}
 
 .card {
     min-width: 300px;
@@ -59,8 +59,16 @@
     padding: 10px;
     border-width: 1px;
     border-style: solid;
-    border-color: var(--ifm-color-emphasis-200);
     text-align: center;
+}
+
+[data-theme='dark'] .card {
+    border-color: var(--ifm-color-emphasis-200);
+}
+
+[data-theme='light'] .card {
+    border-color: var(--ifm-color-emphasis-800);
+    background-color: var(--ifm-color-emphasis-100);
 }
 
 .cardTitle {
