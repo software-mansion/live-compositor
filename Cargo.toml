@@ -49,14 +49,14 @@ socket2 = "0.5.5"
 webrtc-util = "0.8.0"
 opus = "0.3.0"
 rubato = "0.15.0"
-glyphon = "0.5.0"
+glyphon = { git = "https://github.com/grovesNL/glyphon", branch = "main" }
 futures-util = "0.3.30"
 tokio = { version = "1", features = ["full"] }
 schemars = { git = "https://github.com/membraneframework-labs/schemars", rev = "a5ad1f9", features = [
     "preserve_order",
 ] }
 shared_memory = "0.12.4"
-wgpu = { version = "0.19.1", default-features = false, features = [
+wgpu = { version = "22.1.0", default-features = false, features = [
     "wgsl",
     "dx12",
     "metal",

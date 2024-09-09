@@ -107,7 +107,7 @@ Defaults to `false`. Valid values: `true`, `false`, `1`, `0`.
 
 ### `LIVE_COMPOSITOR_REQUIRED_WGPU_FEATURES`
 
-Comma separated list of WebGPU features that need to be enabled. See [https://docs.rs/wgpu/0.20.0/wgpu/struct.Features.html](https://docs.rs/wgpu/0.20.0/wgpu/struct.Features.html) for a list of available options.
+Comma separated list of WebGPU features that need to be enabled. See [https://docs.rs/wgpu/22.1.0/wgpu/struct.Features.html](https://docs.rs/wgpu/22.1.0/wgpu/struct.Features.html) for a list of available options.
 
 Defaults to `UNIFORM_BUFFER_AND_STORAGE_TEXTURE_ARRAY_NON_UNIFORM_INDEXING,SAMPLED_TEXTURE_AND_STORAGE_BUFFER_ARRAY_NON_UNIFORM_INDEXING`.
 

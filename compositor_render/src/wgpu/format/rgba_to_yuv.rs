@@ -38,6 +38,7 @@ impl RgbaToYuvConverter {
                 module: &shader_module,
                 entry_point: "vs_main",
                 buffers: &[Vertex::LAYOUT],
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
             },
 
             fragment: Some(wgpu::FragmentState {
@@ -48,6 +49,7 @@ impl RgbaToYuvConverter {
                     write_mask: wgpu::ColorWrites::all(),
                     blend: None,
                 })],
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
             }),
             depth_stencil: None,
             multisample: wgpu::MultisampleState {
@@ -56,6 +58,7 @@ impl RgbaToYuvConverter {
                 alpha_to_coverage_enabled: false,
             },
             multiview: None,
+            cache: None,
         });
 
         Self { pipeline, sampler }

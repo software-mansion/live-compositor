@@ -77,7 +77,8 @@ impl ParamsBuffer {
     }
 
     fn shader_buffer_content(params: &[LayoutNodeParams]) -> bytes::Bytes {
-        #[cfg(target_arch = "wasm32")]
+        // this should only be enabled on `wasm32`, but it needs to be enabled as a temporary fix
+        // (@wbarczynski has a PR fixing this in the works right now)
         let params = {
             // On WebGL we have to fill the whole array
             const MAX_PARAMS_COUNT: usize = 100;

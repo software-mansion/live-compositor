@@ -112,6 +112,7 @@ pub fn create_render_pipeline(
             buffers: &[Vertex::LAYOUT],
             module: shader_module,
             entry_point: crate::wgpu::common_pipeline::VERTEX_ENTRYPOINT_NAME,
+            compilation_options: wgpu::PipelineCompilationOptions::default(),
         },
         fragment: Some(wgpu::FragmentState {
             module: shader_module,
@@ -121,6 +122,7 @@ pub fn create_render_pipeline(
                 write_mask: wgpu::ColorWrites::all(),
                 blend: Some(wgpu::BlendState::ALPHA_BLENDING),
             })],
+            compilation_options: wgpu::PipelineCompilationOptions::default(),
         }),
         layout: Some(pipeline_layout),
         multisample: wgpu::MultisampleState {
@@ -129,6 +131,7 @@ pub fn create_render_pipeline(
             alpha_to_coverage_enabled: false,
         },
         multiview: None,
+        cache: None,
     })
 }
 

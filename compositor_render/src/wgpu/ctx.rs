@@ -101,6 +101,7 @@ pub fn create_wgpu_ctx(
         ..Default::default()
     });
 
+    #[cfg(not(target_arch = "wasm32"))]
     log_available_adapters(&instance);
 
     let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptionsBase {
@@ -137,6 +138,7 @@ pub fn create_wgpu_ctx(
                 ..Default::default()
             },
             required_features,
+            memory_hints: wgpu::MemoryHints::default(),
         },
         None,
     ))?;
@@ -159,6 +161,7 @@ fn uniform_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
     })
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 fn log_available_adapters(instance: &wgpu::Instance) {
     let adapters: Vec<_> = instance
         .enumerate_adapters(wgpu::Backends::all())
