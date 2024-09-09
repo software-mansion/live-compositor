@@ -9,17 +9,17 @@ fn main() {
     fs::create_dir_all(workingdir()).unwrap();
 
     // HSV 240°, 50%, 65% (dark blue)
-    generate_video(workingdir().join("input_1.rtp"), "Input 1", "#5353a6ff").unwrap();
+    generate_video(workingdir().join("input_1.mp4"), "Input 1", "#5353a6ff").unwrap();
     // HSV 120°, 50%, 65% (green)
-    generate_video(workingdir().join("input_2.rtp"), "Input 2", "#53a653ff").unwrap();
+    generate_video(workingdir().join("input_2.mp4"), "Input 2", "#53a653ff").unwrap();
     // HSV 0°, 50%, 65% (red)
-    generate_video(workingdir().join("input_3.rtp"), "Input 3", "#a65353ff").unwrap();
+    generate_video(workingdir().join("input_3.mp4"), "Input 3", "#a65353ff").unwrap();
     // HSV 60°, 50%, 65% (yellow)
-    generate_video(workingdir().join("input_4.rtp"), "Input 4", "#a6a653ff").unwrap();
+    generate_video(workingdir().join("input_4.mp4"), "Input 4", "#a6a653ff").unwrap();
     // HSV 180°, 50%, 65% (light blue)
-    generate_video(workingdir().join("input_5.rtp"), "Input 5", "#53a6a6ff").unwrap();
+    generate_video(workingdir().join("input_5.mp4"), "Input 5", "#53a6a6ff").unwrap();
     // HSV 300°, 50%, 65% (purple)
-    generate_video(workingdir().join("input_6.rtp"), "Input 6", "#a653a6ff").unwrap();
+    generate_video(workingdir().join("input_6.mp4"), "Input 6", "#a653a6ff").unwrap();
 }
 
 fn workingdir() -> PathBuf {
@@ -73,7 +73,7 @@ fn generate_video(path: PathBuf, text: &str, rgba_color: &str) -> Result<()> {
 
     let gst_thread = thread::Builder::new().name("gst sink".to_string()).spawn(move  ||{
         let gst_cmd = format!(
-            "gst-launch-1.0 -v tcpclientsrc host=127.0.0.1 port={} ! \"application/x-rtp-stream\" ! filesink location={}",
+            "gst-launch-1.0 -v tcpclientsrc host=127.0.0.1 port={} ! \"application/x-rtp-stream\" ! x264enc ! mp4mux ! filesink location={}",
             output_port,
             path.to_string_lossy(),
         );
