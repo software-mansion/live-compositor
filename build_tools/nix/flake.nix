@@ -52,13 +52,14 @@
             gst_all_1.gst-plugins-ugly
             gst_all_1.gst-libav
 
-            nodejs_18
+            nodejs_20
             rustfmt
             clippy
             cargo-watch
             cargo-nextest
             rust-analyzer
             clang-tools
+            llvmPackages.bintools
           ];
         in
         {

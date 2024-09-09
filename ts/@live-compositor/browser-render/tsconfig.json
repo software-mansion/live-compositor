@@ -4,9 +4,11 @@
     "outDir": "dist",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "target": "ESNext"
+    "target": "ESNext",
+    "noEmit": true,
+    "declaration": false
   },
-  "exclude": [
-    "example"
+  "include": [
+    "./src/**/*"
   ]
 }

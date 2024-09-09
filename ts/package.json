@@ -6,6 +6,7 @@
     "lint": "lerna run lint",
     "lint:fix": "lerna run lint -- --fix",
     "build": "lerna run build --concurrency=1",
+    "build-sdk": "lerna run build --concurrency 1 --scope @live-compositor/core --scope @live-compositor/node --scope live-compositor --scope examples",
     "typecheck": "lerna run typecheck",
     "clean": "lerna run clean",
     "watch": "lerna run --parallel --stream watch --private",
