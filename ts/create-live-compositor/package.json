@@ -1,0 +1,34 @@
+{
+  "name": "create-live-compositor",
+  "version": "0.1.0-rc.0",
+  "description": "",
+  "main": "dist/index.js",
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "watch": "tsc --watch --preserveWatchOutput",
+    "build": "tsc",
+    "clean": "rimraf dist",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/software-mansion/live-compositor/issues"
+  },
+  "homepage": "https://github.com/software-mansion/live-compositor",
+  "files": [
+    "/dist",
+    "/templates"
+  ],
+  "bin": {
+    "create-live-compositor": "./dist/index.js"
+  },
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "prompts": "^2.4.2"
+  },
+  "devDependencies": {
+    "@types/prompts": "^2.4.9"
+  }
+}
