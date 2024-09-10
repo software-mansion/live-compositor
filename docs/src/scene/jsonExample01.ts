@@ -1,6 +1,6 @@
 import { Api } from 'live-compositor';
 
-export function defaultJsonScene(): Api.Component {
+export function example01(): Api.Component {
   return {
     type: 'view',
     background_color_rgba: '#4d4d4dff',

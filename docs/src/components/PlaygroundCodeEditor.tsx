@@ -5,10 +5,11 @@ import componentTypesJsonSchema from '../../component_types.schema.json';
 import JSONEditor from '../jsonEditor';
 import { jsonrepair } from 'jsonrepair';
 import Ajv from 'ajv';
+import ExecutionEnvironment from '@docusaurus/ExecutionEnvironment';
 
 interface PlaygroundCodeEditorProps {
   onChange: (content: object | Error) => void;
-  initialCodeEditorContent: object;
+  codeExample: object;
 }
 
 function ajvInitialization(): Ajv.Ajv {
@@ -28,9 +29,24 @@ function ajvInitialization(): Ajv.Ajv {
   return ajv;
 }
 
-function PlaygroundCodeEditor({ onChange, initialCodeEditorContent }: PlaygroundCodeEditorProps) {
+function PlaygroundCodeEditor({ onChange, codeExample }: PlaygroundCodeEditorProps) {
   const [jsonEditor, setJsonEditor] = useState<JSONEditor | null>(null);
 
+  const saveToLocalStorage = (jsonContent: object) => {
+    if (ExecutionEnvironment.canUseDOM) {
+      sessionStorage.setItem('playgroundCodeEditorContent', JSON.stringify(jsonContent));
+    }
+  };
+
+  const loadFromLocalStorage = () => {
+    const savedContent = ExecutionEnvironment.canUseDOM
+      ? sessionStorage.getItem('playgroundCodeEditorContent')
+      : null;
+    if (savedContent) {
+      return JSON.parse(savedContent);
+    }
+    return codeExample;
+  };
   const editorContainer = useCallback((node: HTMLElement) => {
     if (node === null) {
       return;
@@ -52,6 +68,7 @@ function PlaygroundCodeEditor({ onChange, initialCodeEditorContent }: Playground
           if (!validate(jsonContent)) {
             throw new Error('Invalid JSON!');
           }
+          saveToLocalStorage(jsonContent);
         } catch (error) {
           onChange(error);
         }
@@ -66,17 +83,24 @@ function PlaygroundCodeEditor({ onChange, initialCodeEditorContent }: Playground
           if (!validate(jsonContent)) {
             throw new Error('Invalid JSON!');
           }
+          saveToLocalStorage(jsonContent);
         } catch (error) {
           onChange(error);
         }
       },
     });
-
     editor.setSchema(componentTypesJsonSchema);
-    editor.set(initialCodeEditorContent);
+    editor.set(loadFromLocalStorage());
 
     setJsonEditor(editor);
   }, []);
+
+  useEffect(() => {
+    saveToLocalStorage(codeExample);
+    if (jsonEditor && codeExample) {
+      jsonEditor.update(codeExample);
+    }
+  }, [jsonEditor, codeExample]);
 
   useEffect(() => {
     return () => {

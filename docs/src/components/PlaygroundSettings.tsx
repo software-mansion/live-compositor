@@ -8,13 +8,15 @@ import PlaygroundSettingsImages from './PlaygroundSettingsImages';
 import SettingsInputs from './PlaygroundSettingsInputs';
 import OutputResolution from './PlaygroundSettingsOutput';
 import PlaygroundSettingsShaders from './PlaygroundSettingsShaders';
+import PlaygroundSettingsExamples from './PlaygroundSettingsExamples';
 
-type ModalContent = 'inputs' | 'images' | 'shaders';
+type ModalContent = 'inputs' | 'images' | 'shaders' | 'examples';
 
 interface PlaygroundSettingsProps {
   onSubmit: () => Promise<void>;
   onInputResolutionChange: (input_id: string, resolution: InputResolution) => void;
   onOutputResolutionChange: (resolution: Resolution) => void;
+  setExample: (content: object | Error) => void;
   inputsSettings: InputsSettings;
   sceneValidity: boolean;
   outputResolution: Resolution;
@@ -25,6 +27,7 @@ export default function PlaygroundSettings({
   onSubmit,
   onInputResolutionChange,
   onOutputResolutionChange,
+  setExample,
   inputsSettings,
   sceneValidity,
   outputResolution,
@@ -33,6 +36,9 @@ export default function PlaygroundSettings({
   const [modalContent, setModalContent] = useState<ModalContent | null>(null);
   const [outputResolutionValidity, setOutputResolutionValidity] = useState<boolean>(true);
 
+  function closeModal() {
+    setModalContent(null);
+  }
   const modalContentElement =
     modalContent === 'inputs' ? (
       <SettingsInputs
@@ -41,6 +47,8 @@ export default function PlaygroundSettings({
       />
     ) : modalContent === 'images' ? (
       <PlaygroundSettingsImages />
+    ) : modalContent === 'examples' ? (
+      <PlaygroundSettingsExamples closeModal={closeModal} setExample={setExample} />
     ) : (
       <PlaygroundSettingsShaders />
     );
@@ -63,6 +71,11 @@ export default function PlaygroundSettings({
             title="Shaders"
             subtitle="Check out available shaders and how to use them"
             onClick={() => setModalContent('shaders')}
+          />
+          <Card
+            title="Examples"
+            subtitle="Check out some example scenes"
+            onClick={() => setModalContent('examples')}
           />
         </div>
       </div>
