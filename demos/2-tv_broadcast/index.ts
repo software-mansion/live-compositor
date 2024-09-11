@@ -27,8 +27,7 @@ const DISPLAY_LOGS = true;
 const BUNNY_PATH = path.join(__dirname, '../assets/bunny.mp4');
 const TV_PATH = path.join(__dirname, '../assets/green_screen_example.mp4');
 
-const REPORTER_URL =
-  'https://assets.mixkit.co/videos/preview/mixkit-female-reporter-reporting-with-microphone-in-hand-on-a-chroma-28293-large.mp4';
+const REPORTER_URL = 'https://assets.mixkit.co/videos/28293/28293-1080.mp4';
 const BUNNY_URL =
   'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
 const BACKGROUND_URL =
