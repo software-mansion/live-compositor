@@ -89,7 +89,7 @@ async function writeVideoAudioSdpFile(
   audio_port: number,
   destination: string
 ): Promise<void> {
-  fs.writeFile(
+  void fs.writeFile(
     destination,
     `
 v=0
@@ -108,7 +108,7 @@ a=rtcp-mux
 }
 
 async function writeVideoSdpFile(ip: string, port: number, destination: string): Promise<void> {
-  fs.writeFile(
+  void fs.writeFile(
     destination,
     `
 v=0
