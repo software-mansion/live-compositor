@@ -1,6 +1,7 @@
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
-use compositor_render::{Frame, FrameData, FrameSet, InputId};
+use bytes::Bytes;
+use compositor_render::{Frame, FrameData, FrameSet, InputId, YuvPlanes};
 use wasm_bindgen::JsValue;
 
 use super::types;
@@ -27,6 +28,7 @@ impl InputUploader {
                 types::FrameFormat::RgbaBytes => FrameData::Rgba8UnormWgpuTexture(
                     self.textures.get(&frame.id).unwrap().texture.clone(),
                 ),
+                types::FrameFormat::YuvBytes => FrameData::PlanarYuv420(Self::create_yuv_planes(&frame))
             };
 
             frames.insert(
@@ -78,6 +80,7 @@ impl InputUploader {
                     size,
                 );
             }
+            types::FrameFormat::YuvBytes => {}
         }
     }
 
@@ -104,6 +107,23 @@ impl InputUploader {
         Texture {
             size,
             texture: Arc::new(texture),
+        }
+    }
+
+    fn create_yuv_planes(frame: &types::Frame) -> YuvPlanes {
+        let width = frame.resolution.width;
+        let height = frame.resolution.height;
+
+        let y_plane_len = width * height;
+        let uv_planes_len = (width * height) / 4;
+        let y_plane = &frame.data[..y_plane_len];
+        let u_plane = &frame.data[y_plane_len..(y_plane_len + uv_planes_len)];
+        let v_plane = &frame.data[(y_plane_len + uv_planes_len)..];
+
+        YuvPlanes {
+            y_plane: Bytes::copy_from_slice(y_plane),
+            u_plane: Bytes::copy_from_slice(u_plane),
+            v_plane: Bytes::copy_from_slice(v_plane),
         }
     }
 }
