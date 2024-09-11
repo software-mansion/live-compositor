@@ -1,6 +1,6 @@
 import { Api } from 'live-compositor';
 
-export function example03(): Api.Component {
+export function tvPresenterExample(): Api.Component {
   return {
     type: 'view',
     background_color_rgba: '#ffc89ad9',

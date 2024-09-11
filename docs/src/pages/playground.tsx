@@ -15,15 +15,15 @@ import {
   InputsSettings,
   Resolution,
 } from '../resolution';
-import { example01 } from '@site/src/scene/jsonExample01';
+import { videoCallWithLecturerExample } from '@site/src/scene/videoCallWithLecturerExample';
 import ExecutionEnvironment from '@docusaurus/ExecutionEnvironment';
 
-const STORED_CODE_EDITOR_CONTENT = ExecutionEnvironment.canUseDOM
-  ? sessionStorage.getItem('playgroundCodeEditorContent')
-  : null;
+const STORED_CODE_EDITOR_CONTENT = ExecutionEnvironment.canUseDOM ? getStoredEditorContent() : null;
 
 const INITIAL_SCENE =
-  STORED_CODE_EDITOR_CONTENT !== null ? JSON.parse(STORED_CODE_EDITOR_CONTENT) : example01();
+  STORED_CODE_EDITOR_CONTENT !== null
+    ? JSON.parse(STORED_CODE_EDITOR_CONTENT)
+    : videoCallWithLecturerExample();
 
 const INITIAL_REACT_CODE = [
   "import React from 'react';\n",
@@ -38,6 +38,15 @@ const INITIAL_REACT_CODE = [
   'console.log(a());',
   'console.log("Hello");',
 ].join('\n');
+
+function getStoredEditorContent() {
+  const sessionStorageContent = sessionStorage.getItem('playgroundCodeEditorContent');
+  if (sessionStorageContent) {
+    return sessionStorageContent;
+  } else {
+    return localStorage.getItem('playgroundCodeEditorContent');
+  }
+}
 
 function Homepage() {
   const [scene, setScene] = useState<object | Error>(INITIAL_SCENE);
@@ -127,7 +136,7 @@ function Homepage() {
     setShowReactEditor(ifReactMode);
   }, []);
 
-  function updateExample(content: object) {
+  function populateEditorWithExample(content: object) {
     setScene(content);
     setExample(content);
   }
@@ -160,7 +169,7 @@ function Homepage() {
             }}
             inputsSettings={inputResolutions}
             outputResolution={outputResolution}
-            setExample={updateExample}
+            populateEditorWithExample={populateEditorWithExample}
           />
         </div>
       </div>

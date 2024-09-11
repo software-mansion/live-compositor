@@ -1,6 +1,6 @@
 import { Api } from 'live-compositor';
 
-export function example02(): Api.Component {
+export function videoCallExample(): Api.Component {
   return {
     type: 'view',
     background_color_rgba: '#ffffffd9',

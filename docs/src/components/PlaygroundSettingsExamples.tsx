@@ -1,32 +1,36 @@
-import { example01 } from '@site/src/scene/jsonExample01';
-import { example02 } from '@site/src/scene/jsonExample02';
-import { example03 } from '@site/src/scene/jsonExample03';
+import { videoCallWithLecturerExample } from '@site/src/scene/videoCallWithLecturerExample';
+import { videoCallExample } from '@site/src/scene/videoCallExample';
+import { tvPresenterExample } from '@site/src/scene/tvPresenterExample';
+import { Api } from 'live-compositor';
 
 export default function PlaygroundSettingsExamples({
-  setExample,
+  populateEditorWithExample,
   closeModal,
 }: {
-  setExample: (content: object | Error) => void;
+  populateEditorWithExample: (content: object | Error) => void;
   closeModal: () => void;
 }) {
   return (
-    <div className="flex flex-nowrap flex-col p-[4px_8px_4px_8px]">
+    <div className="flex flex-nowrap flex-col p-[2px_4px_2px_4px] divide-y divide-x-0 divide-solid divide-[var(--ifm-color-emphasis-300)]">
       <ExampleInfo
-        example_name="Example 01"
-        description="Video call scene with one main window (with shader removing greenscreen) and side bar with the rest participants' windows."
-        setExample={setExample}
+        exampleName="Default example"
+        description="Showcase of various components and layout mechanism combined with custom shaders."
+        jsonExample={videoCallWithLecturerExample}
+        populateEditorWithExample={populateEditorWithExample}
         closeModal={closeModal}
       />
       <ExampleInfo
-        example_name="Example 02"
-        description="Scene with windows in grid layout on white background. Done using tiles component."
-        setExample={setExample}
+        exampleName="Video call"
+        description="Grid layout commonly used to display participants of a video call. One tile has a border rendered with a shader. One tile renders an image instead of a stream."
+        jsonExample={videoCallExample}
+        populateEditorWithExample={populateEditorWithExample}
         closeModal={closeModal}
       />
       <ExampleInfo
-        example_name="Example 03"
-        description="Image of the man (with shader removing greenscreen) with live-compositor logo in the top-left corner."
-        setExample={setExample}
+        exampleName="Greenscreen"
+        description="Image of the man (with shader replacing greenscreen) with live-compositor logo in the top-left corner."
+        jsonExample={tvPresenterExample}
+        populateEditorWithExample={populateEditorWithExample}
         closeModal={closeModal}
       />
     </div>
@@ -34,33 +38,38 @@ export default function PlaygroundSettingsExamples({
 }
 
 interface ExampleInfoProps {
-  example_name: string;
+  exampleName: string;
   description: string;
-  setExample: (content: object | Error) => void;
+  jsonExample: () => Api.Component;
+  populateEditorWithExample: (content: object | Error) => void;
   closeModal: () => void;
 }
 
-function ExampleInfo({ example_name, description, setExample, closeModal }: ExampleInfoProps) {
+function ExampleInfo({
+  exampleName,
+  description,
+  jsonExample,
+  populateEditorWithExample,
+  closeModal,
+}: ExampleInfoProps) {
   return (
-    <div className="flex m-4 border-b-solid border-t-solid">
-      <div className="flex-[0_0_20%] text-center font-bold text-xl">{example_name}</div>
-      <div className="flex-[0_0_2%]" />
-      <div className="flex-[0_0_60%]">{description}</div>
-      <div className="flex-[0_0_3%]" />
-      <button
-        className="flex-[0_0_15%] rounded-xl font-bold bg-[var(--docsearch-primary-color)] text-lg h-16 text-[var(--ifm-color-emphasis-0)] border-solid border border-[var(--ifm-color-primary)]"
-        onClick={() => {
-          if (example_name === 'Example 01') {
-            setExample(example01());
-          } else if (example_name === 'Example 02') {
-            setExample(example02());
-          } else {
-            setExample(example03());
-          }
-          closeModal();
-        }}>
-        Use example
-      </button>
+    <div>
+      <div className=" flex">
+        <div className="flex-[0_0_20%] flex font-semibold text-center py-3 min-w-5 justify-center items-center">
+          {exampleName}
+        </div>
+        <div className="flex-[0_0_70%] flex text-left py-3 px-5 items-center">{description}</div>
+        <div className="flex-[0_0_10%] flex py-3 justify-center items-center">
+          <button
+            className="rounded-xl font-bold bg-[var(--docsearch-primary-color)] text-lg text-[var(--ifm-color-emphasis-0)] border-solid border border-[var(--ifm-color-primary)]"
+            onClick={() => {
+              populateEditorWithExample(jsonExample());
+              closeModal();
+            }}>
+            Run
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

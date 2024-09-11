@@ -29,16 +29,18 @@ function ajvInitialization(): Ajv.Ajv {
   return ajv;
 }
 
+function saveToLocalAndSessionStorage(jsonContent: object) {
+  if (ExecutionEnvironment.canUseDOM) {
+    const jsonContentStringify = JSON.stringify(jsonContent);
+    sessionStorage.setItem('playgroundCodeEditorContent', jsonContentStringify);
+    localStorage.setItem('playgroundCodeEditorContent', jsonContentStringify);
+  }
+}
+
 function PlaygroundCodeEditor({ onChange, codeExample }: PlaygroundCodeEditorProps) {
   const [jsonEditor, setJsonEditor] = useState<JSONEditor | null>(null);
 
-  const saveToLocalStorage = (jsonContent: object) => {
-    if (ExecutionEnvironment.canUseDOM) {
-      sessionStorage.setItem('playgroundCodeEditorContent', JSON.stringify(jsonContent));
-    }
-  };
-
-  const loadFromLocalStorage = () => {
+  const loadFromSessionStorage = () => {
     const savedContent = ExecutionEnvironment.canUseDOM
       ? sessionStorage.getItem('playgroundCodeEditorContent')
       : null;
@@ -47,6 +49,7 @@ function PlaygroundCodeEditor({ onChange, codeExample }: PlaygroundCodeEditorPro
     }
     return codeExample;
   };
+
   const editorContainer = useCallback((node: HTMLElement) => {
     if (node === null) {
       return;
@@ -63,12 +66,12 @@ function PlaygroundCodeEditor({ onChange, codeExample }: PlaygroundCodeEditorPro
       ajv,
       onChange: () => {
         try {
-          const jsonContent = editor.get();
+          const jsonContent = JSON.parse(jsonrepair(editor.getText()));
           onChange(jsonContent);
           if (!validate(jsonContent)) {
             throw new Error('Invalid JSON!');
           }
-          saveToLocalStorage(jsonContent);
+          saveToLocalAndSessionStorage(jsonContent);
         } catch (error) {
           onChange(error);
         }
@@ -83,20 +86,18 @@ function PlaygroundCodeEditor({ onChange, codeExample }: PlaygroundCodeEditorPro
           if (!validate(jsonContent)) {
             throw new Error('Invalid JSON!');
           }
-          saveToLocalStorage(jsonContent);
         } catch (error) {
           onChange(error);
         }
       },
     });
     editor.setSchema(componentTypesJsonSchema);
-    editor.set(loadFromLocalStorage());
-
+    editor.set(loadFromSessionStorage());
     setJsonEditor(editor);
   }, []);
 
   useEffect(() => {
-    saveToLocalStorage(codeExample);
+    saveToLocalAndSessionStorage(codeExample);
     if (jsonEditor && codeExample) {
       jsonEditor.update(codeExample);
     }

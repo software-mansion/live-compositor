@@ -16,7 +16,7 @@ interface PlaygroundSettingsProps {
   onSubmit: () => Promise<void>;
   onInputResolutionChange: (input_id: string, resolution: InputResolution) => void;
   onOutputResolutionChange: (resolution: Resolution) => void;
-  setExample: (content: object | Error) => void;
+  populateEditorWithExample: (content: object | Error) => void;
   inputsSettings: InputsSettings;
   sceneValidity: boolean;
   outputResolution: Resolution;
@@ -27,7 +27,7 @@ export default function PlaygroundSettings({
   onSubmit,
   onInputResolutionChange,
   onOutputResolutionChange,
-  setExample,
+  populateEditorWithExample,
   inputsSettings,
   sceneValidity,
   outputResolution,
@@ -36,9 +36,6 @@ export default function PlaygroundSettings({
   const [modalContent, setModalContent] = useState<ModalContent | null>(null);
   const [outputResolutionValidity, setOutputResolutionValidity] = useState<boolean>(true);
 
-  function closeModal() {
-    setModalContent(null);
-  }
   const modalContentElement =
     modalContent === 'inputs' ? (
       <SettingsInputs
@@ -48,7 +45,12 @@ export default function PlaygroundSettings({
     ) : modalContent === 'images' ? (
       <PlaygroundSettingsImages />
     ) : modalContent === 'examples' ? (
-      <PlaygroundSettingsExamples closeModal={closeModal} setExample={setExample} />
+      <PlaygroundSettingsExamples
+        closeModal={() => {
+          setModalContent(null);
+        }}
+        populateEditorWithExample={populateEditorWithExample}
+      />
     ) : (
       <PlaygroundSettingsShaders />
     );
@@ -74,7 +76,7 @@ export default function PlaygroundSettings({
           />
           <Card
             title="Examples"
-            subtitle="Check out some example scenes"
+            subtitle="Select and run one of the examples"
             onClick={() => setModalContent('examples')}
           />
         </div>
