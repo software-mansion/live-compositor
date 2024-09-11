@@ -6,7 +6,10 @@ mod video_queue;
 use std::{
     collections::HashMap,
     fmt::Debug,
-    sync::{Arc, Mutex},
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc, Mutex,
+    },
     time::{Duration, Instant},
 };
 
@@ -62,6 +65,8 @@ pub struct Queue {
     scheduled_event_sender: Sender<ScheduledEvent>,
 
     clock: Clock,
+
+    should_close: AtomicBool,
 }
 
 #[derive(Debug)]
@@ -183,6 +188,7 @@ impl Queue {
             default_buffer_duration: opts.default_buffer_duration,
 
             clock: Clock::new(),
+            should_close: AtomicBool::new(false),
         });
 
         QueueThread::new(
@@ -193,6 +199,10 @@ impl Queue {
         .spawn();
 
         queue
+    }
+
+    pub fn shutdown(&self) {
+        self.should_close.store(true, Ordering::Relaxed)
     }
 
     pub fn add_input(

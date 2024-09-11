@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::Mutex;
+use std::sync::Weak;
 use std::thread;
 use std::time::Duration;
 
@@ -359,11 +360,11 @@ impl Pipeline {
         let (audio_sender, audio_receiver) = bounded(100);
         guard.queue.start(video_sender, audio_sender);
 
-        let pipeline_clone = pipeline.clone();
-        thread::spawn(move || run_renderer_thread(pipeline_clone, video_receiver));
+        let weak_pipeline = Arc::downgrade(pipeline);
+        thread::spawn(move || run_renderer_thread(weak_pipeline, video_receiver));
 
-        let pipeline_clone = pipeline.clone();
-        thread::spawn(move || run_audio_mixer_thread(pipeline_clone, audio_receiver));
+        let weak_pipeline = Arc::downgrade(pipeline);
+        thread::spawn(move || run_audio_mixer_thread(weak_pipeline, audio_receiver));
     }
 
     pub fn inputs(&self) -> impl Iterator<Item = (&InputId, &PipelineInput)> {
@@ -375,12 +376,28 @@ impl Pipeline {
     }
 }
 
+impl Drop for Pipeline {
+    fn drop(&mut self) {
+        self.queue.shutdown()
+    }
+}
+
 fn run_renderer_thread(
-    pipeline: Arc<Mutex<Pipeline>>,
+    pipeline: Weak<Mutex<Pipeline>>,
     frames_receiver: Receiver<QueueVideoOutput>,
 ) {
-    let renderer = pipeline.lock().unwrap().renderer.clone();
+    let renderer = match pipeline.upgrade() {
+        Some(pipeline) => pipeline.lock().unwrap().renderer.clone(),
+        None => {
+            warn!("Pipeline stopped before render thread was started.");
+            return;
+        }
+    };
+
     for mut input_frames in frames_receiver.iter() {
+        let Some(pipeline) = pipeline.upgrade() else {
+            break;
+        };
         for (input_id, event) in input_frames.frames.iter_mut() {
             if let PipelineEvent::EOS = event {
                 let mut guard = pipeline.lock().unwrap();
@@ -429,14 +446,25 @@ fn run_renderer_thread(
             }
         }
     }
+    info!("Stopping renderer thread.")
 }
 
 fn run_audio_mixer_thread(
-    pipeline: Arc<Mutex<Pipeline>>,
+    pipeline: Weak<Mutex<Pipeline>>,
     audio_receiver: Receiver<QueueAudioOutput>,
 ) {
-    let audio_mixer = pipeline.lock().unwrap().audio_mixer.clone();
+    let audio_mixer = match pipeline.upgrade() {
+        Some(pipeline) => pipeline.lock().unwrap().audio_mixer.clone(),
+        None => {
+            warn!("Pipeline stopped before mixer thread was started.");
+            return;
+        }
+    };
+
     for mut samples in audio_receiver.iter() {
+        let Some(pipeline) = pipeline.upgrade() else {
+            break;
+        };
         for (input_id, event) in samples.samples.iter_mut() {
             if let PipelineEvent::EOS = event {
                 let mut guard = pipeline.lock().unwrap();
@@ -476,4 +504,5 @@ fn run_audio_mixer_thread(
             }
         }
     }
+    info!("Stopping audio mixer thread.")
 }
