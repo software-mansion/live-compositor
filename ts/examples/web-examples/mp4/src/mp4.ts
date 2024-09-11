@@ -1,10 +1,10 @@
-import MP4Box, { DataStream } from 'mp4box';
-import { Renderer, loadWasmModule } from '@live-compositor/browser-render';
+import MP4Box, { DataStream, MP4ArrayBuffer, TrakBox } from 'mp4box';
+import { FrameFormat, FrameSet, Renderer, loadWasmModule } from '@live-compositor/browser-render';
 
-export async function play(videoUrl) {
+export async function play(videoUrl: string) {
   await loadWasmModule('./assets/live-compositor.wasm');
 
-  const frames = [];
+  const frames: VideoFrame[] = [];
   const renderer = await Renderer.create({
     streamFallbackTimeoutMs: 500,
   });
@@ -81,12 +81,12 @@ export async function play(videoUrl) {
         }
       );
 
-      startDecoding(videoData, frame => {
+      startDecoding(videoData as MP4ArrayBuffer, frame => {
         frames.push(frame);
       });
     });
 
-  const canvas = document.getElementById('canvas');
+  const canvas = document.getElementById('canvas') as HTMLCanvasElement;
   const ctx = canvas.getContext('2d');
 
   canvas.width = 1280;
@@ -94,7 +94,7 @@ export async function play(videoUrl) {
 
   let pts = 0;
   setInterval(() => {
-    const inputs = {
+    const inputs: FrameSet = {
       ptsMs: pts,
       frames: {},
     };
@@ -104,22 +104,24 @@ export async function play(videoUrl) {
       const frameOptions = {
         format: 'RGBA',
       };
-      const buffer = new Uint8ClampedArray(frame.allocationSize(frameOptions));
-      frame.copyTo(buffer, frameOptions);
+      const buffer = new Uint8ClampedArray(
+        frame.allocationSize(frameOptions as VideoFrameCopyToOptions)
+      );
+      frame.copyTo(buffer, frameOptions as VideoFrameCopyToOptions);
 
       inputs.frames['bunny_video'] = {
         resolution: {
           width: frame.displayWidth,
           height: frame.displayHeight,
         },
-        format: 'RGBA_BYTES',
+        format: FrameFormat.RGBA_BYTES,
         data: buffer,
       };
     }
 
     const outputs = renderer.render(inputs);
     const output = outputs.frames['output'];
-    ctx.putImageData(
+    ctx!.putImageData(
       new ImageData(output.data, output.resolution.width, output.resolution.height),
       0,
       0
@@ -132,7 +134,7 @@ export async function play(videoUrl) {
   }, 30);
 }
 
-function startDecoding(videoData, onFrame) {
+function startDecoding(videoData: MP4ArrayBuffer, onFrame: (frame: VideoFrame) => void) {
   const file = MP4Box.createFile();
   const decoder = new VideoDecoder({
     output: onFrame,
@@ -141,23 +143,12 @@ function startDecoding(videoData, onFrame) {
     },
   });
 
-  function getCodecDescription(track) {
-    const trak = file.getTrackById(track.id);
-    for (const entry of trak.mdia.minf.stbl.stsd.entries) {
-      const box = entry.avcC || entry.hvcC || entry.vpcC || entry.av1C;
-      if (box) {
-        const stream = new DataStream(undefined, 0, DataStream.BIG_ENDIAN);
-        box.write(stream);
-        return new Uint8Array(stream.buffer, 8);
-      }
-    }
-  }
-
   file.onReady = info => {
     const videoTrack = info.videoTracks[0];
     console.log(`Using codec: ${videoTrack.codec}`);
 
-    let description = getCodecDescription(videoTrack);
+    const trak = file.getTrackById(videoTrack.id);
+    const description = getCodecDescription(trak);
     if (!description) {
       console.error('Codec description not found');
       return;
@@ -187,11 +178,22 @@ function startDecoding(videoData, onFrame) {
     }
   };
 
-  file.onError = error => {
+  file.onError = (error: string) => {
     console.error(`MP4 Parser Error: ${error}`);
   };
 
   videoData.fileStart = 0;
   file.appendBuffer(videoData);
   file.flush();
+}
+
+function getCodecDescription(trak: TrakBox) {
+  for (const entry of trak.mdia.minf.stbl.stsd.entries) {
+    const box = entry.avcC || entry.hvcC || entry.vpcC || entry.av1C;
+    if (box) {
+      const stream = new DataStream(undefined, 0, DataStream.BIG_ENDIAN);
+      box.write(stream);
+      return new Uint8Array(stream.buffer, 8);
+    }
+  }
 }

@@ -10,11 +10,13 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
     "preview": "vite preview"
   },
   "type": "module",
   "dependencies": {
     "mp4box": "^0.5.2",
-    "@live-compositor/browser-render": "file:../.."
+    "@live-compositor/browser-render": "file:../../../@live-compositor/browser-render"
   }
 }
