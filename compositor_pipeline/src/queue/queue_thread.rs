@@ -1,7 +1,7 @@
 use std::{
     collections::BTreeMap,
     ops::Add,
-    sync::{Arc, MutexGuard},
+    sync::{atomic::Ordering, Arc, MutexGuard},
     thread::{self, JoinHandle},
     time::{Duration, Instant},
 };
@@ -51,7 +51,7 @@ impl QueueThread {
     fn run(mut self) {
         let _span = info_span!("Queue").entered();
         let ticker = tick(self.queue.output_framerate.get_interval_duration());
-        loop {
+        while !self.queue.should_close.load(Ordering::Relaxed) {
             select! {
                 recv(ticker) -> _ => {
                     self.cleanup_old_data()
@@ -124,7 +124,7 @@ impl QueueThreadAfterStart {
     fn run(mut self) {
         let ticker = tick(Duration::from_millis(10));
 
-        loop {
+        while !self.queue.should_close.load(Ordering::Relaxed) {
             select! {
                 recv(ticker) -> _ => {
                     self.on_handle_tick()
