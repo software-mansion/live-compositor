@@ -1,6 +1,6 @@
 {
   "extends": [
-    "../.eslintrc.base.json"
+    "../../.eslintrc.base.json"
   ],
   "parserOptions": {
     "project": [

@@ -5,7 +5,7 @@
   "scripts": {
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "watch": "tsc --watch --preserveWatchOutput",
+    "watch": "rollup -w --no-watch.clearScreen -c",
     "build-wasm": "node ./scripts/buildWasm.mjs",
     "build": "rollup -c",
     "clean": "rimraf dist"

@@ -1,5 +1,5 @@
-import * as path from 'path';
-import { spawn as nodeSpawn } from 'child_process';
+import path from 'node:path';
+import { spawn as nodeSpawn } from 'node:child_process';
 
 async function build() {
   const dirName = import.meta.dirname;

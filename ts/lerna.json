@@ -4,6 +4,6 @@
   "packages": [
     "@live-compositor/*",
     "live-compositor",
-    "examples"
+    "examples/node-examples"
   ]
 }

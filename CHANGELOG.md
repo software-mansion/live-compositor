@@ -4,6 +4,8 @@
 
 ### 💥 Breaking changes
 
+- Drop support for `SHADER_UNUSED_VERTEX_OUTPUT` `wgpu` feature.  ([#733](https://github.com/software-mansion/live-compositor/pull/733)) by [@jerzywilczek](https://github.com/jerzywilczek)
+
 ### ✨ New features
 
 - Add `loop` option for MP4 input. ([#699](https://github.com/software-mansion/live-compositor/pull/699) by [@WojciechBarczynski](https://github.com/WojciechBarczynski))

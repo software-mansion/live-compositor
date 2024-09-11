@@ -5,8 +5,8 @@ use std::{
 };
 
 use glyphon::{
-    fontdb::Source, AttrsOwned, Buffer, Color, FontSystem, Metrics, Shaping, SwashCache, TextArea,
-    TextAtlas, TextBounds,
+    fontdb::Source, AttrsOwned, Buffer, Cache, Color, FontSystem, Metrics, Shaping, SwashCache,
+    TextArea, TextAtlas, TextBounds,
 };
 use wgpu::{
     CommandEncoderDescriptor, LoadOp, MultisampleState, Operations, RenderPassColorAttachment,
@@ -39,6 +39,15 @@ impl fmt::Debug for TextBuffer {
     }
 }
 
+impl From<Resolution> for glyphon::Resolution {
+    fn from(value: Resolution) -> Self {
+        Self {
+            width: value.width as u32,
+            height: value.height as u32,
+        }
+    }
+}
+
 pub(crate) struct TextRendererNode {
     buffer: TextBuffer,
     resolution: Resolution,
@@ -65,12 +74,17 @@ impl TextRendererNode {
 
         let text_renderer = renderer_ctx.text_renderer_ctx;
         let font_system = &mut text_renderer.font_system.lock().unwrap();
-        let cache = &mut text_renderer.swash_cache.lock().unwrap();
+        let swash_cache = &mut text_renderer.swash_cache.lock().unwrap();
+        let cache = &mut text_renderer.cache.lock().unwrap();
+
+        let mut viewport = glyphon::Viewport::new(&renderer_ctx.wgpu_ctx.device, cache);
+        viewport.update(&renderer_ctx.wgpu_ctx.queue, self.resolution.into());
 
         let swapchain_format = TextureFormat::Rgba8Unorm;
         let mut atlas = TextAtlas::new(
             &renderer_ctx.wgpu_ctx.device,
             &renderer_ctx.wgpu_ctx.queue,
+            cache,
             swapchain_format,
         );
         let mut text_renderer = glyphon::TextRenderer::new(
@@ -86,10 +100,7 @@ impl TextRendererNode {
                 &renderer_ctx.wgpu_ctx.queue,
                 font_system,
                 &mut atlas,
-                glyphon::Resolution {
-                    width: self.resolution.width as u32,
-                    height: self.resolution.height as u32,
-                },
+                &viewport,
                 [TextArea {
                     buffer: &self.buffer.0,
                     left: 0 as f32,
@@ -103,7 +114,7 @@ impl TextRendererNode {
                     },
                     default_color: Color::rgb(255, 255, 255),
                 }],
-                cache,
+                swash_cache,
             )
             .unwrap();
 
@@ -133,7 +144,7 @@ impl TextRendererNode {
                 occlusion_query_set: None,
             });
 
-            text_renderer.render(&atlas, &mut pass).unwrap();
+            text_renderer.render(&atlas, &viewport, &mut pass).unwrap();
         }
 
         renderer_ctx.wgpu_ctx.queue.submit(Some(encoder.finish()));
@@ -193,6 +204,8 @@ impl From<&TextComponent> for TextParams {
                 style,
                 weight,
                 metadata: Default::default(),
+                cache_key_flags: glyphon::cosmic_text::CacheKeyFlags::empty(),
+                metrics_opt: None,
             },
             content: text.text.clone(),
             font_size: text.font_size,
@@ -206,13 +219,15 @@ impl From<&TextComponent> for TextParams {
 pub struct TextRendererCtx {
     font_system: Mutex<FontSystem>,
     swash_cache: Mutex<SwashCache>,
+    cache: Mutex<Cache>,
 }
 
 impl TextRendererCtx {
-    pub(crate) fn new() -> Self {
+    pub(crate) fn new(device: &wgpu::Device) -> Self {
         Self {
             font_system: Mutex::new(FontSystem::new()),
             swash_cache: Mutex::new(SwashCache::new()),
+            cache: Mutex::new(Cache::new(device)),
         }
     }
 
@@ -251,8 +266,8 @@ impl TextRendererCtx {
                 max_width,
                 max_height,
             } => {
-                buffer.set_size(font_system, max_width, max_height);
-                buffer.shape_until_scroll(font_system);
+                buffer.set_size(font_system, Some(max_width), Some(max_height));
+                buffer.shape_until_scroll(font_system, false);
                 Self::get_text_resolution(
                     buffer.lines.iter(),
                     text_params.line_height,
@@ -260,8 +275,8 @@ impl TextRendererCtx {
                 )
             }
             TextDimensions::FittedColumn { width, max_height } => {
-                buffer.set_size(font_system, width, max_height);
-                buffer.shape_until_scroll(font_system);
+                buffer.set_size(font_system, Some(width), Some(max_height));
+                buffer.shape_until_scroll(font_system, false);
                 let text_size = Self::get_text_resolution(
                     buffer.lines.iter(),
                     text_params.line_height,
@@ -277,13 +292,13 @@ impl TextRendererCtx {
 
         buffer.set_size(
             font_system,
-            texture_size.width as f32,
-            texture_size.height as f32 + text_params.line_height,
+            Some(texture_size.width as f32),
+            Some(texture_size.height as f32 + text_params.line_height),
         );
         for line in &mut buffer.lines {
             line.set_align(Some(text_params.align));
         }
-        buffer.shape_until_scroll(font_system);
+        buffer.shape_until_scroll(font_system, false);
 
         (TextBuffer(buffer.into()), texture_size)
     }

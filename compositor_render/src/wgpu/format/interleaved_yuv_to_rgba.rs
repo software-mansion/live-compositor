@@ -35,6 +35,7 @@ impl InterleavedYuv422ToRgbaConverter {
                 module: &shader_module,
                 entry_point: "vs_main",
                 buffers: &[Vertex::LAYOUT],
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
             },
 
             fragment: Some(wgpu::FragmentState {
@@ -45,6 +46,7 @@ impl InterleavedYuv422ToRgbaConverter {
                     write_mask: wgpu::ColorWrites::all(),
                     blend: None,
                 })],
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
             }),
 
             multisample: wgpu::MultisampleState {
@@ -54,6 +56,7 @@ impl InterleavedYuv422ToRgbaConverter {
             },
             multiview: None,
             depth_stencil: None,
+            cache: None,
         });
 
         Self { pipeline, sampler }

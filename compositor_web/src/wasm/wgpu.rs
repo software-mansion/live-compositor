@@ -33,6 +33,7 @@ pub async fn create_wgpu_context() -> Result<(Arc<wgpu::Device>, Arc<wgpu::Queue
                     max_push_constant_size: 128,
                     ..wgpu::Limits::downlevel_webgl2_defaults()
                 },
+                memory_hints: wgpu::MemoryHints::default(),
             },
             None,
         )

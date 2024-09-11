@@ -32,6 +32,7 @@ impl R8FillWithValue {
                 module: &shader_module,
                 entry_point: "vs_main",
                 buffers: &[Vertex::LAYOUT],
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
             },
             fragment: Some(wgpu::FragmentState {
                 module: &shader_module,
@@ -41,6 +42,7 @@ impl R8FillWithValue {
                     write_mask: wgpu::ColorWrites::all(),
                     blend: None,
                 })],
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
             }),
             depth_stencil: None,
             multisample: wgpu::MultisampleState {
@@ -49,6 +51,7 @@ impl R8FillWithValue {
                 alpha_to_coverage_enabled: false,
             },
             multiview: None,
+            cache: None,
         });
 
         Self { pipeline }
