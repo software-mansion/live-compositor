@@ -28,7 +28,9 @@ impl InputUploader {
                 types::FrameFormat::RgbaBytes => FrameData::Rgba8UnormWgpuTexture(
                     self.textures.get(&frame.id).unwrap().texture.clone(),
                 ),
-                types::FrameFormat::YuvBytes => FrameData::PlanarYuv420(Self::create_yuv_planes(&frame))
+                types::FrameFormat::YuvBytes => {
+                    FrameData::PlanarYuv420(Self::create_yuv_planes(&frame))
+                }
             };
 
             frames.insert(
