@@ -6,7 +6,10 @@ mod video_queue;
 use std::{
     collections::HashMap,
     fmt::Debug,
-    sync::{atomic::{AtomicBool, Ordering}, Arc, Mutex},
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc, Mutex,
+    },
     time::{Duration, Instant},
 };
 
