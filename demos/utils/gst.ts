@@ -31,7 +31,7 @@ export function gstStreamWebcam(ip: string, port: number, displayOutput: boolean
 
 function checkGstPlugins(plugins: string[]) {
   plugins.forEach(plugin => {
-    isGstPluginAvailable(plugin).then(isAvailable => {
+    void isGstPluginAvailable(plugin).then(isAvailable => {
       if (!isAvailable) {
         throw Error(`Gstreamer plugin: ${plugin} is not available.`);
       }

@@ -100,13 +100,13 @@ async function exampleAsync() {
   });
 
   if (useWebCam) {
-    gstStreamWebcam(IP, WEBCAM_INPUT_PORT, DISPLAY_LOGS);
+    void gstStreamWebcam(IP, WEBCAM_INPUT_PORT, DISPLAY_LOGS);
   } else {
     const callPath = path.join(__dirname, '../assets/call.mp4');
     await downloadAsync(CALL_URL, callPath);
-    ffmpegSendVideoFromMp4(WEBCAM_INPUT_PORT, callPath, DISPLAY_LOGS);
+    void ffmpegSendVideoFromMp4(WEBCAM_INPUT_PORT, callPath, DISPLAY_LOGS);
   }
-  ffmpegSendVideoFromMp4(GAMEPLAY_PORT, gameplayPath, DISPLAY_LOGS);
+  void ffmpegSendVideoFromMp4(GAMEPLAY_PORT, gameplayPath, DISPLAY_LOGS);
 
   await sleepAsync(2000);
   await startAsync();
@@ -232,4 +232,4 @@ function baseScene(): Component {
   };
 }
 
-runCompositorExample(exampleAsync, DISPLAY_LOGS);
+void runCompositorExample(exampleAsync, DISPLAY_LOGS);

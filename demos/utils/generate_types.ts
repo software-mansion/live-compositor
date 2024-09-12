@@ -12,4 +12,4 @@ async function generateTypes() {
   fs.writeFileSync(tsOutputPath, typesTs);
 }
 
-generateTypes();
+void generateTypes();
