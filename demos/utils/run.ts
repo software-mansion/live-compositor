@@ -20,7 +20,7 @@ export async function runCompositorExample(
 
     await fn();
   } catch (err) {
-    void logError(err);
+    await logError(err);
     throw err;
   }
 }
