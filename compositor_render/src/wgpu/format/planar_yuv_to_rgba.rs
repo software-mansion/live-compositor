@@ -39,6 +39,7 @@ impl PlanarYuvToRgbaConverter {
                 module: &shader_module,
                 entry_point: "vs_main",
                 buffers: &[Vertex::LAYOUT],
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
             },
 
             fragment: Some(wgpu::FragmentState {
@@ -49,6 +50,7 @@ impl PlanarYuvToRgbaConverter {
                     write_mask: wgpu::ColorWrites::all(),
                     blend: None,
                 })],
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
             }),
 
             multisample: wgpu::MultisampleState {
@@ -58,6 +60,7 @@ impl PlanarYuvToRgbaConverter {
             },
             multiview: None,
             depth_stencil: None,
+            cache: None,
         });
 
         Self { pipeline, sampler }

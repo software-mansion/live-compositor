@@ -7,8 +7,7 @@ import WebView, { WebViewProps } from './components/WebView';
 import Shader, { ShaderParam, ShaderParamStructField, ShaderProps } from './components/Shader';
 import Tiles, { TilesProps } from './components/Tiles';
 import { EasingFunction, Transition } from './components/common';
-import { LiveCompositorContext, useInputStreams } from './hooks/useInputStream';
-import { ContextStore } from './hooks/store';
+import { useAudioInput, useInputStreams } from './hooks';
 import { CompositorEvent, CompositorEventType } from './types/events';
 
 export { RegisterInput } from './types/registerInput';
@@ -17,8 +16,7 @@ export { RegisterOutput } from './types/registerOutput';
 export * as Inputs from './types/registerInput';
 export * as Outputs from './types/registerOutput';
 export * as Api from './api';
-
-export { SceneBuilder, SceneComponent } from './component';
+export * as _liveCompositorInternals from './internal';
 
 export {
   View,
@@ -41,6 +39,6 @@ export {
 
 export { CompositorEvent, CompositorEventType };
 
-export { useInputStreams, LiveCompositorContext, ContextStore };
+export { useInputStreams, useAudioInput };
 
 export { ShaderParam, ShaderParamStructField, EasingFunction, Transition };

@@ -1,23 +1,16 @@
 use std::time::Duration;
 
 use compositor_render::{web_renderer::WebRendererInitOptions, InputId, Resolution};
-use serde::{de::DeserializeOwned, Deserialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
 #[derive(Debug, Deserialize)]
 pub struct RendererOptions {
-    framerate: Framerate,
     stream_fallback_timeout_ms: u64,
 }
 
-#[derive(Debug, Deserialize)]
-pub struct Framerate {
-    num: u32,
-    den: u32,
-}
-
 #[wasm_bindgen]
-pub struct InputFrameSet {
+pub struct FrameSet {
     pub pts_ms: f64,
 
     #[wasm_bindgen(skip)]
@@ -25,7 +18,7 @@ pub struct InputFrameSet {
 }
 
 #[wasm_bindgen]
-impl InputFrameSet {
+impl FrameSet {
     #[wasm_bindgen(constructor)]
     pub fn new(pts_ms: f64, frames: js_sys::Map) -> Self {
         Self { pts_ms, frames }
@@ -42,7 +35,7 @@ impl InputFrameSet {
     }
 }
 
-pub struct InputFrame {
+pub struct Frame {
     pub id: InputId,
     pub resolution: Resolution,
     pub format: FrameFormat,
@@ -50,8 +43,8 @@ pub struct InputFrame {
 }
 
 #[wasm_bindgen]
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum FrameFormat {
     RgbaBytes,
 }
@@ -71,7 +64,8 @@ impl From<RendererOptions> for compositor_render::RendererOptions {
                 enable: false,
                 enable_gpu: false,
             },
-            framerate: value.framerate.into(),
+            // Framerate is only required by web renderer which is not used
+            framerate: compositor_render::Framerate { num: 30, den: 1 },
             stream_fallback_timeout: Duration::from_millis(value.stream_fallback_timeout_ms),
             force_gpu: false,
             wgpu_features: wgpu::Features::empty(),
@@ -80,16 +74,7 @@ impl From<RendererOptions> for compositor_render::RendererOptions {
     }
 }
 
-impl From<Framerate> for compositor_render::Framerate {
-    fn from(framerate: Framerate) -> Self {
-        Self {
-            num: framerate.num,
-            den: framerate.den,
-        }
-    }
-}
-
-impl TryFrom<JsValue> for InputFrame {
+impl TryFrom<JsValue> for Frame {
     type Error = JsValue;
 
     fn try_from(entry: JsValue) -> Result<Self, Self::Error> {

@@ -5,7 +5,8 @@
   "scripts": {
     "lint": "lerna run lint",
     "lint:fix": "lerna run lint -- --fix",
-    "build": "lerna run build",
+    "build": "lerna run build --concurrency=1",
+    "build-sdk": "lerna run build --concurrency 1 --scope @live-compositor/core --scope @live-compositor/node --scope live-compositor",
     "typecheck": "lerna run typecheck",
     "clean": "lerna run clean",
     "watch": "lerna run --parallel --stream watch --private",
@@ -15,7 +16,8 @@
     "live-compositor",
     "@live-compositor/core",
     "@live-compositor/node",
-    "examples"
+    "@live-compositor/browser-render",
+    "examples/node-examples"
   ],
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^7.16.0",
@@ -27,5 +29,10 @@
     "json-schema-to-typescript": "^15.0.1",
     "lerna": "^8.1.8",
     "prettier": "^3.3.2"
+  },
+  "overrides": {
+    "rollup-plugin-copy": {
+      "globby": "11.0.4"
+    }
   }
 }

@@ -256,7 +256,7 @@ fn ensure_asset_available(asset_path: &PathBuf) -> Result<()> {
     Ok(())
 }
 
-fn examples_root_dir() -> PathBuf {
+pub fn examples_root_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
 }
 

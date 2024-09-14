@@ -19,13 +19,14 @@ let
     openssl
     libopus
     libGL
-    mesa.drivers
     vulkan-loader
   ] ++ lib.optionals stdenv.isDarwin [
     darwin.apple_sdk.frameworks.Metal
     darwin.apple_sdk.frameworks.Foundation
     darwin.apple_sdk.frameworks.QuartzCore
     darwin.libobjc
+  ] ++ lib.optionals stdenv.isLinux [
+    mesa.drivers
   ];
   rpath = lib.makeLibraryPath buildInputs;
 in

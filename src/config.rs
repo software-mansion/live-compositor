@@ -281,7 +281,6 @@ fn wgpu_features_from_str(s: &str) -> Result<WgpuFeatures, String> {
             "SPIRV_SHADER_PASSTHROUGH" => WgpuFeatures::SPIRV_SHADER_PASSTHROUGH,
             "MULTIVIEW" => WgpuFeatures::MULTIVIEW,
             "VERTEX_ATTRIBUTE_64BIT" => WgpuFeatures::VERTEX_ATTRIBUTE_64BIT,
-            "SHADER_UNUSED_VERTEX_OUTPUT" => WgpuFeatures::SHADER_UNUSED_VERTEX_OUTPUT,
             "TEXTURE_FORMAT_NV12" => WgpuFeatures::TEXTURE_FORMAT_NV12,
             "RAY_TRACING_ACCELERATION_STRUCTURE" => {
                 WgpuFeatures::RAY_TRACING_ACCELERATION_STRUCTURE

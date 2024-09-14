@@ -1,21 +1,41 @@
-import { CompositorEvent, CompositorEventType, ContextStore } from 'live-compositor';
+import { _liveCompositorInternals, CompositorEvent, CompositorEventType } from 'live-compositor';
 
-export function onCompositorEvent(store: ContextStore, rawEvent: unknown) {
+type InstanceContextStore = _liveCompositorInternals.InstanceContextStore;
+
+export function onCompositorEvent(store: InstanceContextStore, rawEvent: unknown) {
   const event = parseEvent(rawEvent);
   if (!event) {
     return;
   } else if (event.type === CompositorEventType.VIDEO_INPUT_DELIVERED) {
-    store.updateInput({ inputId: event.inputId, videoState: 'ready' });
+    store.dispatchUpdate({
+      type: 'update_input',
+      input: { inputId: event.inputId, videoState: 'ready' },
+    });
   } else if (event.type === CompositorEventType.VIDEO_INPUT_PLAYING) {
-    store.updateInput({ inputId: event.inputId, videoState: 'playing' });
+    store.dispatchUpdate({
+      type: 'update_input',
+      input: { inputId: event.inputId, videoState: 'playing' },
+    });
   } else if (event.type === CompositorEventType.VIDEO_INPUT_EOS) {
-    store.updateInput({ inputId: event.inputId, videoState: 'finished' });
+    store.dispatchUpdate({
+      type: 'update_input',
+      input: { inputId: event.inputId, videoState: 'finished' },
+    });
   } else if (event.type === CompositorEventType.AUDIO_INPUT_DELIVERED) {
-    store.updateInput({ inputId: event.inputId, audioState: 'ready' });
+    store.dispatchUpdate({
+      type: 'update_input',
+      input: { inputId: event.inputId, audioState: 'ready' },
+    });
   } else if (event.type === CompositorEventType.AUDIO_INPUT_PLAYING) {
-    store.updateInput({ inputId: event.inputId, audioState: 'playing' });
+    store.dispatchUpdate({
+      type: 'update_input',
+      input: { inputId: event.inputId, audioState: 'playing' },
+    });
   } else if (event.type === CompositorEventType.AUDIO_INPUT_EOS) {
-    store.updateInput({ inputId: event.inputId, audioState: 'finished' });
+    store.dispatchUpdate({
+      type: 'update_input',
+      input: { inputId: event.inputId, audioState: 'finished' },
+    });
   }
 }
 

@@ -7,7 +7,7 @@ use signal_hook::{consts, iterator::Signals};
 use std::{env, process::Command, thread, time::Duration};
 
 use integration_tests::{
-    examples::{self, start_server_msg_listener, TestSample},
+    examples::{self, examples_root_dir, start_server_msg_listener, TestSample},
     ffmpeg::{start_ffmpeg_receive, start_ffmpeg_send},
 };
 const VIDEO_RESOLUTION: Resolution = Resolution {
@@ -63,6 +63,7 @@ fn build_and_start_docker(skip_build: bool) -> Result<()> {
                 "video-compositor",
                 ".",
             ])
+            .current_dir(examples_root_dir().parent().unwrap())
             .spawn()?;
         let exit_code = process.wait()?;
         if Some(0) != exit_code.code() {

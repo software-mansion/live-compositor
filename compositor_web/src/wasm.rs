@@ -28,7 +28,7 @@ pub fn start() -> Result<(), JsValue> {
     Ok(())
 }
 
-#[wasm_bindgen(js_name = createRenderer)]
+#[wasm_bindgen]
 pub async fn create_renderer(options: JsValue) -> Result<LiveCompositorRenderer, JsValue> {
     let (device, queue) = create_wgpu_context().await?;
     let mut options: compositor_render::RendererOptions =
@@ -55,7 +55,7 @@ pub struct LiveCompositorRenderer {
 
 #[wasm_bindgen]
 impl LiveCompositorRenderer {
-    pub fn render(&mut self, input: types::InputFrameSet) -> Result<js_sys::Map, JsValue> {
+    pub fn render(&mut self, input: types::FrameSet) -> Result<types::FrameSet, JsValue> {
         let (device, queue) = self.renderer.wgpu_ctx();
         let frame_set = self.input_uploader.upload(&device, &queue, input)?;
 

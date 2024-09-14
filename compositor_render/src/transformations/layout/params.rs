@@ -4,6 +4,9 @@ use wgpu::util::DeviceExt;
 
 use crate::{scene::RGBAColor, wgpu::WgpuCtx, Resolution};
 
+const LAYOUTS_ARRAY_LEN: usize = 100;
+const ROUNDED_CORNERS_ARRAY_LEN: usize = 100;
+
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub(super) enum RoundingDirection {
@@ -51,12 +54,7 @@ impl Buffer {
         Self { buffer, content }
     }
 
-    pub fn update(&mut self, wgpu_ctx: &WgpuCtx, mut content: Bytes) {
-        // wgpu panics when creating bind group with empty buffer
-        if content.is_empty() {
-            content = Bytes::from_static(&[0]);
-        }
-
+    pub fn update(&mut self, wgpu_ctx: &WgpuCtx, content: Bytes) {
         if self.content.len() != content.len() {
             *self = Self::new(wgpu_ctx, content);
             return;
@@ -264,7 +262,7 @@ pub(super) struct LayoutBindGroups {
 }
 
 fn layouts_buffer_content(params: &[LayoutNodeParams]) -> bytes::Bytes {
-    params
+    let mut array_elements = params
         .iter()
         .map(|params| {
             let mut result = [0; 160];
@@ -288,16 +286,16 @@ fn layouts_buffer_content(params: &[LayoutNodeParams]) -> bytes::Bytes {
 
             result
         })
-        .collect::<Vec<[u8; 160]>>()
-        .concat()
-        .into()
+        .collect::<Vec<[u8; 160]>>();
+
+    // Resize buffer content to match buffer size defined in the shader
+    array_elements.resize_with(LAYOUTS_ARRAY_LEN, || [0; 160]);
+
+    array_elements.concat().into()
 }
 
 fn rounded_corners_buffer_content(corners: &[RoundedCorner]) -> Bytes {
-    if corners.is_empty() {
-        return Bytes::from_static(&[0; 16]);
-    }
-    corners
+    let mut array_elements = corners
         .iter()
         .map(|corner| {
             let mut result = [0; 16];
@@ -315,9 +313,11 @@ fn rounded_corners_buffer_content(corners: &[RoundedCorner]) -> Bytes {
             );
             result
         })
-        .collect::<Vec<[u8; 16]>>()
-        .concat()
-        .into()
+        .collect::<Vec<[u8; 16]>>();
+
+    // Resize buffer content to match buffer size defined in the shader
+    array_elements.resize_with(ROUNDED_CORNERS_ARRAY_LEN, || [0u8; 16]);
+    array_elements.concat().into()
 }
 
 fn layout_info_buffer_content(

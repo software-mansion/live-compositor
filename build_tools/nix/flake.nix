@@ -52,20 +52,21 @@
             gst_all_1.gst-plugins-ugly
             gst_all_1.gst-libav
 
-            nodejs_18
+            nodejs_20
             rustfmt
             clippy
             cargo-watch
             cargo-nextest
             rust-analyzer
             clang-tools
-            blackmagic-desktop-video
+            llvmPackages.bintools
           ];
         in
         {
           devShells = {
-            default = pkgs.mkShell {
-              packages = devDependencies ++ [ pkgs.mesa.drivers ];
+            default = if pkgs.stdenv.isLinux then self'.devShells.linux else self'.devShells.macos;
+            linux = pkgs.mkShell {
+              packages = devDependencies ++ [ pkgs.mesa.drivers pkgs.blackmagic-desktop-video];
 
               # Fixes "ffplay" used in examples on Linux (not needed on NixOS)
               env.LIBGL_DRIVERS_PATH = "${pkgs.mesa.drivers}/lib/dri";
@@ -75,8 +76,12 @@
 
               inputsFrom = [ packageWithoutChromium ];
             };
-            nixos = pkgs.mkShell {
+            macos = pkgs.mkShell {
               packages = devDependencies;
+              inputsFrom = [ packageWithoutChromium ];
+            };
+            nixos = pkgs.mkShell {
+              packages = devDependencies ++ [ pkgs.blackmagic-desktop-video];
 
               env.LIBCLANG_PATH = "${pkgs.llvmPackages_16.libclang.lib}/lib";
               env.LD_LIBRARY_PATH = lib.makeLibraryPath (libcefDependencies ++ [ pkgs.blackmagic-desktop-video ]);

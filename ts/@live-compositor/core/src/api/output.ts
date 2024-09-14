@@ -2,12 +2,12 @@ import { RegisterOutput, Api, Outputs } from 'live-compositor';
 
 export function intoRegisterOutput(
   output: RegisterOutput,
-  initialVideo?: Api.Video
+  initial: { video?: Api.Video; audio?: Api.Audio }
 ): Api.RegisterOutput {
   if (output.type === 'rtp_stream') {
-    return intoRegisterRtpOutput(output, initialVideo);
+    return intoRegisterRtpOutput(output, initial);
   } else if (output.type === 'mp4') {
-    return intoRegisterMp4Output(output, initialVideo);
+    return intoRegisterMp4Output(output, initial);
   } else {
     throw new Error(`Unknown input type ${(output as any).type}`);
   }
@@ -15,27 +15,27 @@ export function intoRegisterOutput(
 
 function intoRegisterRtpOutput(
   output: Outputs.RegisterRtpOutput,
-  initialVideo?: Api.Video
+  initial: { video?: Api.Video; audio?: Api.Audio }
 ): Api.RegisterOutput {
   return {
     type: 'rtp_stream',
     port: output.port,
     ip: output.ip,
     transport_protocol: output.transportProtocol,
-    video: output.video && initialVideo && intoOutputVideoOptions(output.video, initialVideo),
-    audio: output.audio && intoOutputRtpAudioOptions(output.audio),
+    video: output.video && initial.video && intoOutputVideoOptions(output.video, initial.video),
+    audio: output.audio && initial.audio && intoOutputRtpAudioOptions(output.audio, initial.audio),
   };
 }
 
 function intoRegisterMp4Output(
   output: Outputs.RegisterMp4Output,
-  initialVideo?: Api.Video
+  initial: { video?: Api.Video; audio?: Api.Audio }
 ): Api.RegisterOutput {
   return {
     type: 'mp4',
     path: output.serverPath,
-    video: output.video && initialVideo && intoOutputVideoOptions(output.video, initialVideo),
-    audio: output.audio && intoOutputMp4AudioOptions(output.audio),
+    video: output.video && initial.video && intoOutputVideoOptions(output.video, initial.video),
+    audio: output.audio && initial.audio && intoOutputMp4AudioOptions(output.audio, initial.audio),
   };
 }
 
@@ -62,22 +62,24 @@ function intoVideoEncoderOptions(
 }
 
 function intoOutputRtpAudioOptions(
-  audio: Outputs.OutputRtpAudioOptions
+  audio: Outputs.OutputRtpAudioOptions,
+  initial: Api.Audio
 ): Api.OutputRtpAudioOptions {
   return {
     send_eos_when: audio.sendEosWhen && intoOutputEosCondition(audio.sendEosWhen),
     encoder: intoRtpAudioEncoderOptions(audio.encoder),
-    initial: intoAudioInputsConfiguration(audio.initial),
+    initial,
   };
 }
 
 function intoOutputMp4AudioOptions(
-  audio: Outputs.OutputMp4AudioOptions
+  audio: Outputs.OutputMp4AudioOptions,
+  initial: Api.Audio
 ): Api.OutputMp4AudioOptions {
   return {
     send_eos_when: audio.sendEosWhen && intoOutputEosCondition(audio.sendEosWhen),
     encoder: intoMp4AudioEncoderOptions(audio.encoder),
-    initial: intoAudioInputsConfiguration(audio.initial),
+    initial,
   };
 }
 
