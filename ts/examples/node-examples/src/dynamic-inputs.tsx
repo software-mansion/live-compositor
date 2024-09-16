@@ -45,7 +45,7 @@ async function run() {
   await downloadAllAssets();
   const compositor = await LiveCompositor.create();
 
-  ffplayStartPlayerAsync('127.0.0.1', 8001);
+  void ffplayStartPlayerAsync('127.0.0.1', 8001);
   await sleep(2000);
 
   await compositor.registerOutput('output_1', {
@@ -79,4 +79,4 @@ async function run() {
     serverPath: path.join(__dirname, '../.assets/ElephantsDream.mp4'),
   });
 }
-run();
+void run();

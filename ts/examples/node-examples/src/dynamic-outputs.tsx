@@ -60,7 +60,7 @@ async function run() {
       },
     },
   });
-  gstReceiveTcpStream('127.0.0.1', 8001);
+  void gstReceiveTcpStream('127.0.0.1', 8001);
   await compositor.registerOutput('output_recording', {
     type: 'mp4',
     serverPath: path.join(__dirname, '../.workingdir/dynamic_outputs_recording.mp4'),
@@ -117,4 +117,4 @@ async function run() {
   await compositor.unregisterOutput('output_recording_part2');
   await compositor.unregisterOutput('output_stream');
 }
-run();
+void run();

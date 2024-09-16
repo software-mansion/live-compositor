@@ -77,7 +77,7 @@ async function run() {
       },
     },
   });
-  gstReceiveTcpStream('127.0.0.1', 8001);
+  void gstReceiveTcpStream('127.0.0.1', 8001);
 
   await compositor.registerInput('input_1', {
     type: 'mp4',
@@ -91,4 +91,4 @@ async function run() {
 
   await compositor.start();
 }
-run();
+void run();
