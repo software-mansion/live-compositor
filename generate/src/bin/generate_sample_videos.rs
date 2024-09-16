@@ -1,14 +1,12 @@
 use std::{
-    fs::{self, File},
-    io::Write,
+    fs::{self},
     path::PathBuf,
-    process::{Command, Stdio},
-    thread::{self, Thread},
+    thread::{self},
     time::Duration,
 };
 
 use anyhow::Result;
-use compositor_api::types::Resolution;
+use compositor_render::{event_handler::subscribe, Resolution};
 use generate::compositor_instance::CompositorInstance;
 use serde_json::json;
 
@@ -25,50 +23,50 @@ fn main() {
         "1920x1080",
     );
 
-    // generate_video_series(
-    //     Duration::from_secs(10),
-    //     Resolution {
-    //         width: 1080,
-    //         height: 1920,
-    //     },
-    //     "1080x1920",
-    // );
+    generate_video_series(
+        Duration::from_secs(10),
+        Resolution {
+            width: 1080,
+            height: 1920,
+        },
+        "1080x1920",
+    );
 
-    // generate_video_series(
-    //     Duration::from_secs(10),
-    //     Resolution {
-    //         width: 854,
-    //         height: 480,
-    //     },
-    //     "854x480",
-    // );
+    generate_video_series(
+        Duration::from_secs(10),
+        Resolution {
+            width: 854,
+            height: 480,
+        },
+        "854x480",
+    );
 
-    // generate_video_series(
-    //     Duration::from_secs(10),
-    //     Resolution {
-    //         width: 480,
-    //         height: 854,
-    //     },
-    //     "480x854",
-    // );
+    generate_video_series(
+        Duration::from_secs(10),
+        Resolution {
+            width: 480,
+            height: 854,
+        },
+        "480x854",
+    );
 
-    // generate_video_series(
-    //     Duration::from_secs(10),
-    //     Resolution {
-    //         width: 1440,
-    //         height: 1080,
-    //     },
-    //     "1440x1080",
-    // );
+    generate_video_series(
+        Duration::from_secs(10),
+        Resolution {
+            width: 1440,
+            height: 1080,
+        },
+        "1440x1080",
+    );
 
-    // generate_video_series(
-    //     Duration::from_secs(10),
-    //     Resolution {
-    //         width: 1080,
-    //         height: 1440,
-    //     },
-    //     "1080x1440",
-    // );
+    generate_video_series(
+        Duration::from_secs(10),
+        Resolution {
+            width: 1080,
+            height: 1440,
+        },
+        "1080x1440",
+    );
 }
 
 fn generate_video_series(duration: Duration, resolution: Resolution, name_suffix: &str) {
@@ -131,7 +129,7 @@ fn generate_video_series(duration: Duration, resolution: Resolution, name_suffix
 fn workingdir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("workingdir")
-        .join("inputs_mp4_maybe")
+        .join("inputs_mp4")
 }
 
 fn generate_video(
@@ -142,16 +140,12 @@ fn generate_video(
     resolution: &Resolution,
 ) -> Result<()> {
     let instance = CompositorInstance::start();
-    let output_port = instance.get_port();
 
     instance.send_request(
         "output/output_1/register",
         json!({
-            "type": "rtp_stream",
-            "transport_protocol": "tcp_server",
-            "port": output_port,
-            // "type": "mp4",
-            // "path": format!("{}", path.to_string_lossy().to_string()),
+            "type": "mp4",
+            "path": format!("{}", path.to_string_lossy().to_string()),
             "video": {
                 "resolution": {
                     "width": resolution.width,
@@ -159,9 +153,12 @@ fn generate_video(
                 },
                 "encoder": {
                     "type": "ffmpeg_h264",
-                    "preset": "ultrafast"
+                    "preset": "medium",
+                    "ffmpeg_options": {
+                        "crf": "32"
+                    }
                 },
-                "initial": scene(text, rgba_color, Duration::ZERO)
+                "initial": scene(text, rgba_color, resolution, Duration::ZERO)
             },
         }),
     )?;
@@ -179,29 +176,36 @@ fn generate_video(
         instance.send_request(
             "output/output_1/update",
             json!({
-                "video": scene(text, rgba_color, pts),
+                "video": scene(text, rgba_color, resolution, pts),
                 "schedule_time_ms": pts.as_millis(),
             }),
         )?;
     }
 
-    let gst_thread = thread::Builder::new().name("gst sink".to_string()).spawn(move  ||{
-        let gst_cmd = format!(
-            "gst-launch-1.0 -v tcpclientsrc host=127.0.0.1 port={} ! \"application/x-rtp-stream\" ! rtpstreamdepay ! queue ! \"application/x-rtp,media=video,clock-rate=90000,encoding-name=H264,payload=96\" ! queue ! rtph264depay ! h264parse ! mp4mux ! filesink location={}",
-            output_port,
-            path.to_string_lossy()
-        );
-        Command::new("bash").arg("-c").arg(gst_cmd).status().unwrap();
-    }).unwrap();
-
     instance.send_request("start", json!({}))?;
 
-    gst_thread.join().unwrap();
+    thread::spawn(|| {
+        let event_receiver = subscribe();
+        loop {
+            if let Ok(event) = event_receiver.recv() {
+                if event.kind == "OUTPUT_DONE".to_string() {
+                    break;
+                }
+            }
+        }
+    })
+    .join()
+    .unwrap();
 
     Ok(())
 }
 
-fn scene(text: &str, rgba_color: &str, pts: Duration) -> serde_json::Value {
+fn scene(
+    text: &str,
+    rgba_color: &str,
+    resolution: &Resolution,
+    pts: Duration,
+) -> serde_json::Value {
     json!({
         "root": {
             "type": "view",
@@ -212,24 +216,24 @@ fn scene(text: &str, rgba_color: &str, pts: Duration) -> serde_json::Value {
                 {
                     "type": "text",
                     "text": text,
-                    "font_size": 250,
-                    "width": 1920,
+                    "font_size": resolution.width / 8,
+                    "width": resolution.width,
                     "align": "center",
                     "font_family": "Comic Sans MS",
                 },
                 { "type": "view" },
                 {
                   "type": "view",
-                  "bottom": 100,
-                  "right": 100,
-                  "width":  300,
-                  "height": 100,
+                  "bottom": resolution.height / 6,
+                  "right": resolution.width / 8,
+                  "width":  resolution.width / 6,
+                  "height": resolution.height / 6,
                   "children": [
                      {
                             "type": "text",
                             "text": format!("{:.2}s", pts.as_millis() as f32 / 1000.0),
-                            "font_size": 90,
-                            "width": 300,
+                            "font_size": resolution.width / 16,
+                            "width": resolution.width / 6,
                             "align": "right",
                             "font_family": "Comic Sans MS",
                      },
