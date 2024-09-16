@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@live-compositor/browser-render": "0.1.0-rc.0",
+    "mp4box": "^0.5.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
