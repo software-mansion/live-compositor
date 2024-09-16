@@ -20,7 +20,7 @@ export function gstStreamWebcam(ip: string, port: number, displayOutput: boolean
     : ['v4l2src', 'x264enc', 'tune=zerolatency bitrate=2000 speed-preset=superfast'];
 
   const plugins = [gstWebcamSource, 'videoconvert', gstEncoder, 'rtph264pay', 'udpsink'];
-  checkGstPlugins(plugins);
+  void checkGstPlugins(plugins);
 
   const gstCommand =
     `gst-launch-1.0 -v ` +
@@ -29,14 +29,15 @@ export function gstStreamWebcam(ip: string, port: number, displayOutput: boolean
   return spawn('bash', ['-c', gstCommand], { displayOutput });
 }
 
-function checkGstPlugins(plugins: string[]) {
-  plugins.forEach(plugin => {
-    void isGstPluginAvailable(plugin).then(isAvailable => {
+async function checkGstPlugins(plugins: string[]) {
+  await Promise.all(
+    plugins.map(async plugin => {
+      const isAvailable = await isGstPluginAvailable(plugin);
       if (!isAvailable) {
         throw Error(`Gstreamer plugin: ${plugin} is not available.`);
       }
-    });
-  });
+    })
+  );
 }
 
 function isGstPluginAvailable(pluginName: string): Promise<boolean> {
