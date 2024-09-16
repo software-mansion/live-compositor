@@ -1,6 +1,6 @@
 import { Api } from 'live-compositor';
 
-export function videoCallWithLecturerExample(): Api.Component {
+export function defaultJsonExample(): Api.Component {
   return {
     type: 'view',
     background_color_rgba: '#4d4d4dff',

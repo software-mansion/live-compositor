@@ -15,7 +15,7 @@ import {
   InputsSettings,
   Resolution,
 } from '../resolution';
-import { videoCallWithLecturerExample } from '@site/src/scene/videoCallWithLecturerExample';
+import { defaultJsonExample } from '@site/src/scene/defaultJsonExample';
 import ExecutionEnvironment from '@docusaurus/ExecutionEnvironment';
 
 const STORED_CODE_EDITOR_CONTENT = ExecutionEnvironment.canUseDOM ? getStoredEditorContent() : null;
@@ -23,7 +23,7 @@ const STORED_CODE_EDITOR_CONTENT = ExecutionEnvironment.canUseDOM ? getStoredEdi
 const INITIAL_SCENE =
   STORED_CODE_EDITOR_CONTENT !== null
     ? JSON.parse(STORED_CODE_EDITOR_CONTENT)
-    : videoCallWithLecturerExample();
+    : defaultJsonExample();
 
 const INITIAL_REACT_CODE = [
   "import React from 'react';\n",
@@ -49,8 +49,10 @@ function getStoredEditorContent() {
 }
 
 function Homepage() {
+  // Is updated when code editor content changes, but changes here are not passed back to the editor.
   const [scene, setScene] = useState<object | Error>(INITIAL_SCENE);
-  const [example, setExample] = useState<object>(INITIAL_SCENE);
+  // Code editor will be updated if this state changes.
+  const [codeEditorOverrideContent, setCodeEditorOverrideContent] = useState<object>(INITIAL_SCENE);
   const [code, setCode] = useState<string>(INITIAL_REACT_CODE);
   const [showReactEditor, setShowReactEditor] = useState<boolean>(false);
   const [inputResolutions, setInputResolutions] = useState<InputsSettings>({
@@ -138,12 +140,12 @@ function Homepage() {
 
   function populateEditorWithExample(content: object) {
     setScene(content);
-    setExample(content);
+    setCodeEditorOverrideContent(content);
   }
 
   useEffect(() => {
     handleSubmit();
-  }, [example]);
+  }, [codeEditorOverrideContent]);
 
   return (
     <div className="flex flex-row flex-wrap p-8 lg:h-[calc(100vh-110px)]">
@@ -151,7 +153,10 @@ function Homepage() {
         {showReactEditor ? (
           <PlaygroundReactEditor code={code} onCodeChange={setCode} />
         ) : (
-          <PlaygroundCodeEditor onChange={setScene} codeExample={example} />
+          <PlaygroundCodeEditor
+            onChange={setScene}
+            codeEditorOverrideContent={codeEditorOverrideContent}
+          />
         )}
       </div>
       <div className="flex flex-col flex-1 max-h-full">

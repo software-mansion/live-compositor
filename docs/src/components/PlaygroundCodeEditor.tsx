@@ -9,7 +9,7 @@ import ExecutionEnvironment from '@docusaurus/ExecutionEnvironment';
 
 interface PlaygroundCodeEditorProps {
   onChange: (content: object | Error) => void;
-  codeExample: object;
+  codeEditorOverrideContent: object;
 }
 
 function ajvInitialization(): Ajv.Ajv {
@@ -37,7 +37,7 @@ function saveToLocalAndSessionStorage(jsonContent: object) {
   }
 }
 
-function PlaygroundCodeEditor({ onChange, codeExample }: PlaygroundCodeEditorProps) {
+function PlaygroundCodeEditor({ onChange, codeEditorOverrideContent }: PlaygroundCodeEditorProps) {
   const [jsonEditor, setJsonEditor] = useState<JSONEditor | null>(null);
 
   const loadFromSessionStorage = () => {
@@ -47,7 +47,7 @@ function PlaygroundCodeEditor({ onChange, codeExample }: PlaygroundCodeEditorPro
     if (savedContent) {
       return JSON.parse(savedContent);
     }
-    return codeExample;
+    return codeEditorOverrideContent;
   };
 
   const editorContainer = useCallback((node: HTMLElement) => {
@@ -97,11 +97,11 @@ function PlaygroundCodeEditor({ onChange, codeExample }: PlaygroundCodeEditorPro
   }, []);
 
   useEffect(() => {
-    saveToLocalAndSessionStorage(codeExample);
-    if (jsonEditor && codeExample) {
-      jsonEditor.update(codeExample);
+    saveToLocalAndSessionStorage(codeEditorOverrideContent);
+    if (jsonEditor && codeEditorOverrideContent) {
+      jsonEditor.update(codeEditorOverrideContent);
     }
-  }, [jsonEditor, codeExample]);
+  }, [jsonEditor, codeEditorOverrideContent]);
 
   useEffect(() => {
     return () => {

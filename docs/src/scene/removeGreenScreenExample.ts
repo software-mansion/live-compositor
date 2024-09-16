@@ -1,6 +1,6 @@
 import { Api } from 'live-compositor';
 
-export function tvPresenterExample(): Api.Component {
+export function removeGreenScreenExample(): Api.Component {
   return {
     type: 'view',
     background_color_rgba: '#ffc89ad9',

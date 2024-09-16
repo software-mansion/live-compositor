@@ -1,6 +1,6 @@
-import { videoCallWithLecturerExample } from '@site/src/scene/videoCallWithLecturerExample';
+import { defaultJsonExample } from '@site/src/scene/defaultJsonExample';
 import { videoCallExample } from '@site/src/scene/videoCallExample';
-import { tvPresenterExample } from '@site/src/scene/tvPresenterExample';
+import { removeGreenScreenExample } from '@site/src/scene/removeGreenScreenExample';
 import { Api } from 'live-compositor';
 
 export default function PlaygroundSettingsExamples({
@@ -15,7 +15,7 @@ export default function PlaygroundSettingsExamples({
       <ExampleInfo
         exampleName="Default example"
         description="Showcase of various components and layout mechanism combined with custom shaders."
-        jsonExample={videoCallWithLecturerExample}
+        jsonExample={defaultJsonExample}
         populateEditorWithExample={populateEditorWithExample}
         closeModal={closeModal}
       />
@@ -28,8 +28,8 @@ export default function PlaygroundSettingsExamples({
       />
       <ExampleInfo
         exampleName="Greenscreen"
-        description="Image of the man (with shader replacing greenscreen) with live-compositor logo in the top-left corner."
-        jsonExample={tvPresenterExample}
+        description="Image of a man (with shader replacing greenscreen) with live-compositor logo in the top-left corner."
+        jsonExample={removeGreenScreenExample}
         populateEditorWithExample={populateEditorWithExample}
         closeModal={closeModal}
       />
@@ -61,7 +61,7 @@ function ExampleInfo({
         <div className="flex-[0_0_70%] flex text-left py-3 px-5 items-center">{description}</div>
         <div className="flex-[0_0_10%] flex py-3 justify-center items-center">
           <button
-            className="rounded-xl font-bold bg-[var(--docsearch-primary-color)] text-lg text-[var(--ifm-color-emphasis-0)] border-solid border border-[var(--ifm-color-primary)]"
+            className="rounded-md px-2 font-bold bg-[var(--docsearch-primary-color)] text-lg text-[var(--ifm-color-emphasis-0)] border-solid border border-[var(--ifm-color-primary)]"
             onClick={() => {
               populateEditorWithExample(jsonExample());
               closeModal();
