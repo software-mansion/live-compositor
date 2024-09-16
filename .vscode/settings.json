@@ -6,5 +6,6 @@
             ],
             "url": "./schemas/scene.schema.json"
         }
-    ]
+    ],
+    "eslint.workingDirectories": [{ "mode": "auto" }]
 }

@@ -111,8 +111,8 @@ function ImagePreview({ image_id, description, filename }: ImagePreviewProps) {
           {`Add `}
           <code
             className={styles.tooltipCode}
-            onClick={() => {
-              navigator.clipboard.writeText(json);
+            onClick={async () => {
+              await navigator.clipboard.writeText(json);
               toast.success('Copied to clipboard!');
             }}>
             {json}

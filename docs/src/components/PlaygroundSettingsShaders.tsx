@@ -77,8 +77,8 @@ function ShaderInfo({ shader_id, description, tooltipJson }: ShaderInfoProps) {
           {`Add `}
           <code
             className={styles.tooltipCode}
-            onClick={() => {
-              navigator.clipboard.writeText(tooltipJson);
+            onClick={async () => {
+              await navigator.clipboard.writeText(tooltipJson);
               toast.success('Copied to clipboard!');
             }}>
             {tooltipJson}

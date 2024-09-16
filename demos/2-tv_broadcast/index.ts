@@ -36,7 +36,7 @@ const LOGO_URL =
   'https://raw.githubusercontent.com/membraneframework-labs/video_compositor_snapshot_tests/main/demo_assets/logo.png';
 
 async function exampleAsync() {
-  ffplayStartPlayerAsync(IP, DISPLAY_LOGS, VIDEO_OUTPUT_PORT, AUDIO_OUTPUT_PORT);
+  void ffplayStartPlayerAsync(IP, DISPLAY_LOGS, VIDEO_OUTPUT_PORT, AUDIO_OUTPUT_PORT);
   await sleepAsync(2000);
 
   process.env.LIVE_COMPOSITOR_LOGGER_LEVEL = 'debug';
@@ -102,7 +102,7 @@ async function exampleAsync() {
     },
   });
 
-  ffmpegSendVideoFromMp4(INPUT_PORT, TV_PATH, DISPLAY_LOGS);
+  void ffmpegSendVideoFromMp4(INPUT_PORT, TV_PATH, DISPLAY_LOGS);
   await startAsync();
 
   // First update to set start position of the bunny for transition
@@ -318,4 +318,4 @@ function logo(): Component {
   };
 }
 
-runCompositorExample(exampleAsync, DISPLAY_LOGS);
+void runCompositorExample(exampleAsync, DISPLAY_LOGS);

@@ -11,7 +11,7 @@ export async function runCompositorExample(
   await ensureCompositorReadyAsync();
   const { command, args, cwd } = getCompositorRunCmd();
   try {
-    spawn(command, args, {
+    void spawn(command, args, {
       displayOutput: displayOutput,
       cwd: cwd ?? process.cwd(),
     });
@@ -20,7 +20,7 @@ export async function runCompositorExample(
 
     await fn();
   } catch (err) {
-    logError(err);
+    await logError(err);
     throw err;
   }
 }

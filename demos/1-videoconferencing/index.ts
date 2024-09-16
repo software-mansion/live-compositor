@@ -65,11 +65,11 @@ async function exampleAsync() {
   });
 
   if (useWebCam) {
-    gstStreamWebcam(IP, INPUT_PORT, DISPLAY_LOGS);
+    void gstStreamWebcam(IP, INPUT_PORT, DISPLAY_LOGS);
   } else {
     const callPath = path.join(__dirname, '../assets/call.mp4');
     await downloadAsync(CALL_URL, callPath);
-    ffmpegSendVideoFromMp4(INPUT_PORT, callPath, DISPLAY_LOGS);
+    void ffmpegSendVideoFromMp4(INPUT_PORT, callPath, DISPLAY_LOGS);
   }
   await startAsync();
 
@@ -166,4 +166,4 @@ function sceneWithInputs(n: number): Component {
   };
 }
 
-runCompositorExample(exampleAsync, DISPLAY_LOGS);
+void runCompositorExample(exampleAsync, DISPLAY_LOGS);
