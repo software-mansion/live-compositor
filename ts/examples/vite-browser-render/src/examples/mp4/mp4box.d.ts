@@ -1,3 +1,4 @@
+/* eslint-disable  @typescript-eslint/no-explicit-any */
 declare module 'mp4box' {
   export class DataStream {
     constructor(buffer?: ArrayBuffer, byteOffset?: number, endianness?: boolean);
