@@ -21,7 +21,6 @@ import { PropsWithChildren } from 'react';
 import { IconContext, IconType } from 'react-icons';
 import TypewriterComponent from 'typewriter-effect';
 import ExampleSceneJson from '../components/ExampleSceneJson';
-import RTCOnBanner from '@site/src/components/RtcOnBanner';
 import styles from './index.module.css';
 
 function HomepageHeader() {
@@ -534,7 +533,6 @@ export default function Home(): JSX.Element {
       <Licensing />
       <div className={styles.sectionSeparator} />
       <ContactUs />
-      <RTCOnBanner />
     </Layout>
   );
 }
