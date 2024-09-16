@@ -47,12 +47,14 @@ pub struct Frame {
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum FrameFormat {
     RgbaBytes,
+    YuvBytes,
 }
 
 impl From<FrameFormat> for compositor_render::OutputFrameFormat {
     fn from(value: FrameFormat) -> Self {
         match value {
             FrameFormat::RgbaBytes => compositor_render::OutputFrameFormat::RgbaWgpuTexture,
+            FrameFormat::YuvBytes => compositor_render::OutputFrameFormat::PlanarYuv420Bytes,
         }
     }
 }

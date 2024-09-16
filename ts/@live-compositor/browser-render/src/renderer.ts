@@ -26,6 +26,7 @@ export type Frame = {
 
 export enum FrameFormat {
   RGBA_BYTES = 'RGBA_BYTES',
+  YUV_BYTES = 'YUV_BYTES',
 }
 
 export class Renderer {
