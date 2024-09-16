@@ -144,7 +144,7 @@ function Homepage() {
   }
 
   useEffect(() => {
-    handleSubmit();
+    void handleSubmit();
   }, [codeEditorOverrideContent]);
 
   return (
