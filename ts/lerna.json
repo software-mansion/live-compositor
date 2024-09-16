@@ -4,6 +4,7 @@
   "packages": [
     "@live-compositor/*",
     "live-compositor",
-    "examples/node-examples"
+    "examples/node-examples",
+    "examples/vite-browser-render"
   ]
 }
