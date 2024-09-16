@@ -8,13 +8,15 @@ import PlaygroundSettingsImages from './PlaygroundSettingsImages';
 import SettingsInputs from './PlaygroundSettingsInputs';
 import OutputResolution from './PlaygroundSettingsOutput';
 import PlaygroundSettingsShaders from './PlaygroundSettingsShaders';
+import PlaygroundSettingsExamples from './PlaygroundSettingsExamples';
 
-type ModalContent = 'inputs' | 'images' | 'shaders';
+type ModalContent = 'inputs' | 'images' | 'shaders' | 'examples';
 
 interface PlaygroundSettingsProps {
   onSubmit: () => Promise<void>;
   onInputResolutionChange: (input_id: string, resolution: InputResolution) => void;
   onOutputResolutionChange: (resolution: Resolution) => void;
+  populateEditorWithExample: (content: object | Error) => void;
   inputsSettings: InputsSettings;
   sceneValidity: boolean;
   outputResolution: Resolution;
@@ -25,6 +27,7 @@ export default function PlaygroundSettings({
   onSubmit,
   onInputResolutionChange,
   onOutputResolutionChange,
+  populateEditorWithExample,
   inputsSettings,
   sceneValidity,
   outputResolution,
@@ -41,6 +44,13 @@ export default function PlaygroundSettings({
       />
     ) : modalContent === 'images' ? (
       <PlaygroundSettingsImages />
+    ) : modalContent === 'examples' ? (
+      <PlaygroundSettingsExamples
+        closeModal={() => {
+          setModalContent(null);
+        }}
+        populateEditorWithExample={populateEditorWithExample}
+      />
     ) : (
       <PlaygroundSettingsShaders />
     );
@@ -63,6 +73,11 @@ export default function PlaygroundSettings({
             title="Shaders"
             subtitle="Check out available shaders and how to use them"
             onClick={() => setModalContent('shaders')}
+          />
+          <Card
+            title="Examples"
+            subtitle="Select and run one of the examples"
+            onClick={() => setModalContent('examples')}
           />
         </div>
       </div>

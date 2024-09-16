@@ -15,9 +15,15 @@ import {
   InputsSettings,
   Resolution,
 } from '../resolution';
-import { defaultJsonScene } from '@site/src/scene/defaultJson';
+import { defaultJsonExample } from '@site/src/scene/defaultJsonExample';
+import ExecutionEnvironment from '@docusaurus/ExecutionEnvironment';
 
-const INITIAL_SCENE = defaultJsonScene();
+const STORED_CODE_EDITOR_CONTENT = ExecutionEnvironment.canUseDOM ? getStoredEditorContent() : null;
+
+const INITIAL_SCENE =
+  STORED_CODE_EDITOR_CONTENT !== null
+    ? JSON.parse(STORED_CODE_EDITOR_CONTENT)
+    : defaultJsonExample();
 
 const INITIAL_REACT_CODE = [
   "import React from 'react';\n",
@@ -33,8 +39,20 @@ const INITIAL_REACT_CODE = [
   'console.log("Hello");',
 ].join('\n');
 
+function getStoredEditorContent() {
+  const sessionStorageContent = sessionStorage.getItem('playgroundCodeEditorContent');
+  if (sessionStorageContent) {
+    return sessionStorageContent;
+  } else {
+    return localStorage.getItem('playgroundCodeEditorContent');
+  }
+}
+
 function Homepage() {
+  // Is updated when code editor content changes, but changes here are not passed back to the editor.
   const [scene, setScene] = useState<object | Error>(INITIAL_SCENE);
+  // Code editor will be updated if this state changes.
+  const [codeEditorOverrideContent, setCodeEditorOverrideContent] = useState<object>(INITIAL_SCENE);
   const [code, setCode] = useState<string>(INITIAL_REACT_CODE);
   const [showReactEditor, setShowReactEditor] = useState<boolean>(false);
   const [inputResolutions, setInputResolutions] = useState<InputsSettings>({
@@ -52,6 +70,7 @@ function Homepage() {
       [inputId]: resolution,
     });
   }
+
   const [outputResolution, setOutputResolution] = useState<Resolution>({
     width: 1920,
     height: 1080,
@@ -73,12 +92,13 @@ function Homepage() {
 
   const handleSubmit = async (): Promise<void> => {
     let loadingToastTimer;
+    let loadingToast;
     try {
       if (showReactEditor) {
         await executeTypescriptCode(code);
       } else {
         loadingToastTimer = setTimeout(() => {
-          toast.loading('Rendering... It can take a while');
+          loadingToast = toast.loading('Rendering... It can take a while');
         }, 3000);
 
         setResponseData({ imageUrl: '', errorMessage: '', loading: true });
@@ -92,7 +112,7 @@ function Homepage() {
         };
         const blob = await renderImage({ ...request });
         const imageObjectURL = URL.createObjectURL(blob);
-        toast.dismiss();
+        if (loadingToast) toast.dismiss(loadingToast);
         clearTimeout(loadingToastTimer);
 
         setResponseData({ imageUrl: imageObjectURL, errorMessage: '', loading: false });
@@ -118,13 +138,25 @@ function Homepage() {
     setShowReactEditor(ifReactMode);
   }, []);
 
+  function populateEditorWithExample(content: object) {
+    setScene(content);
+    setCodeEditorOverrideContent(content);
+  }
+
+  useEffect(() => {
+    handleSubmit();
+  }, [codeEditorOverrideContent]);
+
   return (
     <div className="flex flex-row flex-wrap p-8 lg:h-[calc(100vh-110px)]">
       <div className="flex-1 m-2 border-2 border-gray-400 border-solid rounded-md max-h-full min-w-[300px] min-h-[500px]">
         {showReactEditor ? (
           <PlaygroundReactEditor code={code} onCodeChange={setCode} />
         ) : (
-          <PlaygroundCodeEditor onChange={setScene} initialCodeEditorContent={INITIAL_SCENE} />
+          <PlaygroundCodeEditor
+            onChange={setScene}
+            codeEditorOverrideContent={codeEditorOverrideContent}
+          />
         )}
       </div>
       <div className="flex flex-col flex-1 max-h-full">
@@ -142,6 +174,7 @@ function Homepage() {
             }}
             inputsSettings={inputResolutions}
             outputResolution={outputResolution}
+            populateEditorWithExample={populateEditorWithExample}
           />
         </div>
       </div>
