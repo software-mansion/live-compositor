@@ -13,7 +13,7 @@ const VIDEO_RESOLUTION: Resolution = Resolution {
     height: 720,
 };
 
-const OUTPUT_URL: &str = "rtmp://0.0.0.0:8002/liveapp/stream";
+const OUTPUT_URL: &str = "rtmp://a.rtmp.youtube.com/live2/appkey";
 
 fn main() {
     run_example(client_code);
@@ -58,9 +58,39 @@ fn client_code() -> Result<()> {
                 },
                 "initial": {
                     "root": {
-                        "id": "input_1",
-                        "type": "input_stream",
-                        "input_id": "input_1",
+                        "type": "view",
+                        "children": [
+                            {
+                                "type": "rescaler",
+                                "width": VIDEO_RESOLUTION.width,
+                                "height": VIDEO_RESOLUTION.height,
+                                "top": 0,
+                                "left": 0,
+                                "child": {
+                                    "type": "input_stream",
+                                    "input_id": "input_1",
+                                }
+                            },
+                            {
+                                "type": "view",
+                                "bottom": 0,
+                                "left": 0,
+                                "width": VIDEO_RESOLUTION.width,
+                                "height": 100,
+                                "background_color_rgba": "#00000088",
+                                "children": [
+                                    { "type": "view" },
+                                    {
+                                        "type": "text", 
+                                        "text": "LiveCompositor 😃😍",
+                                        "font_size": 80,
+                                        "color_rgba": "#40E0D0FF",
+                                        "weight": "bold",
+                                    },
+                                    { "type": "view" }
+                                ]
+                            }
+                        ]
                     }
                 }
             },
