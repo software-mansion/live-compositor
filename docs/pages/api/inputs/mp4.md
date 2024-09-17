@@ -8,4 +8,25 @@ This input type supports mp4 video tracks encoded with h264 and audio tracks enc
 
 If the file contains multiple video or audio tracks, the first audio track and the first video track will be used and the other ones will be ignored.
 
+### Usage
+
+To use MP4 Input you must register it first. You can do it by sending a request like this:
+
+<details>
+    <summary>Example request</summary>
+    ```http
+    POST: /api/input/input_1/register
+    Content-Type: application/json
+
+    {
+    "url": "https://url.to.file.mp4",
+    "loop": true,
+    "required": true,
+    "offset_ms": 128
+    }
+    ```
+</details>
+
+See [HTTP Routes](../routes.md#outputs-configuration) documentation to learn more about managing inputs.
+
 <Docs />
