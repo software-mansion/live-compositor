@@ -1,37 +1,77 @@
-import MP4Box, { DataStream, MP4ArrayBuffer, TrakBox } from "mp4box";
+import MP4Box, { DataStream, MP4ArrayBuffer, MP4File, MP4Info, Sample, TrakBox } from "mp4box";
 
-export function startDecoding(videoData: MP4ArrayBuffer, onFrame: (frame: VideoFrame) => void) {
-  const file = MP4Box.createFile();
-  const decoder = new VideoDecoder({
-    output: onFrame,
-    error: error => {
-      console.error(`VideoDecoder Error: ${error}`);
-    },
-  });
+const MAX_FRAMEBUFFER_SIZE = 3;
 
-  file.onReady = info => {
+export class MP4Decoder {
+  private file: MP4File;
+  private chunks: EncodedVideoChunk[] = [];
+  private frames: VideoFrame[] = [];
+  private decoder: VideoDecoder;
+
+  public constructor() {
+    this.file = MP4Box.createFile();
+    this.decoder = new VideoDecoder({
+      output: frame => {
+        this.frames.push(frame);
+      },
+      error: error => {
+        console.error(`VideoDecoder Error: ${error}`);
+      },
+    });
+
+    this.file.onReady = this.onReady.bind(this);
+    this.file.onSamples = this.onSamples.bind(this);
+    this.file.onError = (error: string) => {
+      console.error(`MP4 Parser Error: ${error}`);
+    };
+  }
+
+  public decode(videoData: MP4ArrayBuffer) {
+    videoData.fileStart = 0;
+    this.file.appendBuffer(videoData);
+    this.file.flush();
+  }
+
+  public nextFrame(): VideoFrame | undefined {
+    this.enqueueNextChunks();
+
+    return this.frames.shift();
+  }
+
+  private enqueueNextChunks() {
+    while (this.decoder.decodeQueueSize < MAX_FRAMEBUFFER_SIZE) {
+      const chunk = this.chunks.shift();
+      if (!chunk) {
+        return null;
+      }
+
+      this.decoder.decode(chunk);
+    }
+  }
+
+  private onReady(info: MP4Info) {
     const videoTrack = info.videoTracks[0];
     console.log(`Using codec: ${videoTrack.codec}`);
 
-    const trak = file.getTrackById(videoTrack.id);
+    const trak = this.file.getTrackById(videoTrack.id);
     const description = getCodecDescription(trak);
     if (!description) {
       console.error('Codec description not found');
       return;
     }
 
-    decoder.configure({
+    this.decoder.configure({
       codec: videoTrack.codec,
       codedWidth: videoTrack.video.width,
       codedHeight: videoTrack.video.height,
       description: description,
     });
 
-    file.setExtractionOptions(videoTrack.id);
-    file.start();
-  };
+    this.file.setExtractionOptions(videoTrack.id);
+    this.file.start();
+  }
 
-  file.onSamples = (_id, _user, samples) => {
+  private onSamples(_id: number, _user: any, samples: Sample[]) {
     for (const sample of samples) {
       const chunk = new EncodedVideoChunk({
         type: sample.is_sync ? 'key' : 'delta',
@@ -40,17 +80,9 @@ export function startDecoding(videoData: MP4ArrayBuffer, onFrame: (frame: VideoF
         data: sample.data,
       });
 
-      decoder.decode(chunk);
+      this.chunks.push(chunk);
     }
-  };
-
-  file.onError = (error: string) => {
-    console.error(`MP4 Parser Error: ${error}`);
-  };
-
-  videoData.fileStart = 0;
-  file.appendBuffer(videoData);
-  file.flush();
+  }
 }
 
 function getCodecDescription(trak: TrakBox) {

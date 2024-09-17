@@ -1,5 +1,5 @@
 import { MP4ArrayBuffer } from 'mp4box';
-import { startDecoding } from './mp4/decoder';
+import { MP4Decoder } from './mp4/decoder';
 import { FrameFormat, FrameSet } from '@live-compositor/browser-render';
 import { useEffect, useRef } from 'react';
 import { useRenderer } from './utils';
@@ -44,7 +44,7 @@ function MP4Player() {
       }
     );
 
-    const frames: VideoFrame[] = [];
+    const decoder = new MP4Decoder();
     fetch(BUNNY_URL)
       .then(resp => resp.arrayBuffer())
       .then(videoData => {
@@ -85,9 +85,7 @@ function MP4Player() {
           }
         );
 
-        startDecoding(videoData as MP4ArrayBuffer, frame => {
-          frames.push(frame);
-        });
+        decoder.decode(videoData as MP4ArrayBuffer);
       });
 
     const canvas = canvasRef!.current!;
@@ -100,7 +98,7 @@ function MP4Player() {
         frames: {},
       };
 
-      const frame = frames.shift();
+      const frame = decoder.nextFrame();
       if (frame) {
         const frameOptions = {
           format: 'RGBA',
