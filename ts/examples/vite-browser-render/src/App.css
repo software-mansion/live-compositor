@@ -8,3 +8,12 @@
 .card {
   padding: 2em;
 }
+
+.examples-tabs {
+  display: flexbox;
+  flex-direction: row;
+}
+
+.examples-tabs button {
+  margin: 5px;
+}

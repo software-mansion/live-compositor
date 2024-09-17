@@ -17,7 +17,8 @@
     "@live-compositor/core",
     "@live-compositor/node",
     "@live-compositor/browser-render",
-    "examples/node-examples"
+    "examples/node-examples",
+    "examples/vite-browser-render"
   ],
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^7.16.0",
