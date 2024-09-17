@@ -10,8 +10,8 @@ use crate::{
 use compositor_api::{
     error::ApiError,
     types::{
-        DeckLink, ImageSpec, InputId, Mp4Input, Mp4Output, OutputId, RendererId, RtpInput,
-        RtpOutput, ShaderSpec, WebRendererSpec,
+        DeckLink, ImageSpec, InputId, Mp4Input, Mp4Output, OutputId, RendererId, RtmpOutput,
+        RtpInput, RtpOutput, ShaderSpec, WebRendererSpec,
     },
 };
 
@@ -30,6 +30,7 @@ pub enum RegisterInput {
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum RegisterOutput {
     RtpStream(RtpOutput),
+    RtmpStream(RtmpOutput),
     Mp4(Mp4Output),
 }
 
@@ -74,6 +75,9 @@ pub(super) async fn handle_output(
             }
             RegisterOutput::Mp4(mp4) => {
                 Pipeline::register_output(&mut api.pipeline(), output_id.into(), mp4.try_into()?)?
+            }
+            RegisterOutput::RtmpStream(rtmp) => {
+                Pipeline::register_output(&mut api.pipeline(), output_id.into(), rtmp.try_into()?)?
             }
         };
         match response {
