@@ -19,8 +19,8 @@ export class MP4Decoder {
       },
     });
 
-    this.file.onReady = this.onReady.bind(this);
-    this.file.onSamples = this.onSamples.bind(this);
+    this.file.onReady = info => this.onReady(info);
+    this.file.onSamples = (id, user, info) => this.onSamples(id, user, info);
     this.file.onError = (error: string) => {
       console.error(`MP4 Parser Error: ${error}`);
     };
@@ -39,7 +39,7 @@ export class MP4Decoder {
   }
 
   private enqueueNextChunks() {
-    while (this.decoder.decodeQueueSize < MAX_FRAMEBUFFER_SIZE) {
+    while (this.decoder.decodeQueueSize < MAX_FRAMEBUFFER_SIZE && this.frames.length < MAX_FRAMEBUFFER_SIZE) {
       const chunk = this.chunks.shift();
       if (!chunk) {
         return null;
@@ -71,7 +71,7 @@ export class MP4Decoder {
     this.file.start();
   }
 
-  private onSamples(_id: number, _user: any, samples: Sample[]) {
+  private onSamples(_id: number, _user: object, samples: Sample[]) {
     for (const sample of samples) {
       const chunk = new EncodedVideoChunk({
         type: sample.is_sync ? 'key' : 'delta',

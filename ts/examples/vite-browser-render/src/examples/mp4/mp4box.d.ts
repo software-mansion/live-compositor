@@ -1,4 +1,3 @@
-/* eslint-disable  @typescript-eslint/no-explicit-any */
 declare module 'mp4box' {
   export class DataStream {
     constructor(buffer?: ArrayBuffer, byteOffset?: number, endianness?: boolean);
@@ -13,7 +12,7 @@ declare module 'mp4box' {
   export interface MP4File {
     onReady?: (info: MP4Info) => void;
     onError?: (e: string) => void;
-    onSamples?: (id: number, user: any, samples: Sample[]) => void;
+    onSamples?: (id: number, user: object, samples: Sample[]) => void;
 
     getTrackById(id: number): BoxParser.trakBox | undefined;
 
@@ -22,7 +21,7 @@ declare module 'mp4box' {
     stop(): void;
     flush(): void;
 
-    setExtractionOptions(id: number, user?: any, options?: ExtractionOptions): void;
+    setExtractionOptions(id: number, user?: object, options?: ExtractionOptions): void;
   }
 
   export interface MP4MediaTrack {
@@ -79,7 +78,7 @@ declare module 'mp4box' {
   export type MP4ArrayBuffer = ArrayBuffer & { fileStart: number };
 
   export class Box {
-    write(stream: any): void;
+    write(stream: DataStream): void;
   }
 
   export class TrakBox extends Box {
