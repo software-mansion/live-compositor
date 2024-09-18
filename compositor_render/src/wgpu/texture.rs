@@ -107,7 +107,7 @@ impl InputTexture {
 
         if should_recreate {
             let textures = PlanarYuvTextures::new(ctx, resolution);
-            let bind_group = textures.new_bind_group(ctx, ctx.format.planar_yuv_layout());
+            let bind_group = textures.new_bind_group(ctx);
             self.0 = Some(InputTextureState::PlanarYuvTextures {
                 textures,
                 bind_group,
@@ -136,7 +136,10 @@ impl InputTexture {
 
         if should_recreate {
             let texture = InterleavedYuv422Texture::new(ctx, resolution);
-            let bind_group = texture.new_bind_group(ctx, ctx.format.interleaved_yuv_layout());
+            let bind_group = texture.new_bind_group(
+                ctx,
+                InterleavedYuv422Texture::bind_group_layout(&ctx.device),
+            );
 
             self.0 = Some(InputTextureState::InterleavedYuv422Texture {
                 texture,
@@ -203,7 +206,7 @@ pub struct NodeTextureState {
 impl NodeTextureState {
     fn new(ctx: &WgpuCtx, resolution: Resolution) -> Self {
         let texture = RGBATexture::new(ctx, resolution);
-        let bind_group = texture.new_bind_group(ctx, ctx.format.rgba_layout());
+        let bind_group = texture.new_bind_group(ctx, RGBATexture::bind_group_layout(&ctx.device));
 
         Self {
             texture,

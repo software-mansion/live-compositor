@@ -12,12 +12,10 @@ pub struct RgbaToYuvConverter {
 }
 
 impl RgbaToYuvConverter {
-    pub fn new(
-        device: &wgpu::Device,
-        single_texture_bind_group_layout: &wgpu::BindGroupLayout,
-    ) -> Self {
+    pub fn new(device: &wgpu::Device) -> Self {
         let sampler = Sampler::new(device);
 
+        let single_texture_bind_group_layout = RGBATexture::bind_group_layout(device);
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("RGBA to YUV color converter pipeline layout"),
             bind_group_layouts: &[single_texture_bind_group_layout, &sampler.bind_group_layout],

@@ -13,13 +13,11 @@ mod params;
 mod shader;
 mod transformation_matrices;
 
-use self::{
-    params::{LayoutNodeParams, ParamsBuffer},
-    shader::LayoutShader,
-};
+use self::{params::LayoutNodeParams, shader::LayoutShader};
 
 pub(crate) use layout_renderer::LayoutRenderer;
 use log::error;
+use params::LayoutParamBuffers;
 pub(crate) use transformation_matrices::{vertices_transformation_matrix, Position};
 
 pub(crate) trait LayoutProvider: Send {
@@ -30,7 +28,7 @@ pub(crate) trait LayoutProvider: Send {
 pub(crate) struct LayoutNode {
     layout_provider: Box<dyn LayoutProvider>,
     shader: Arc<LayoutShader>,
-    params: ParamsBuffer,
+    param_buffers: Option<LayoutParamBuffers>,
 }
 
 #[derive(Debug, Clone)]
@@ -72,7 +70,7 @@ pub struct NestedLayout {
     pub height: f32,
     pub rotation_degrees: f32,
     /// scale will affect content/children, but not the properties of current layout like
-    /// top/left/widht/height
+    /// top/left/width/height
     pub scale_x: f32,
     pub scale_y: f32,
     /// Crop is applied before scaling.
@@ -97,7 +95,7 @@ impl LayoutNode {
         Self {
             layout_provider,
             shader,
-            params: ParamsBuffer::new(ctx.wgpu_ctx, vec![]),
+            param_buffers: None,
         }
     }
 
@@ -137,10 +135,24 @@ impl LayoutNode {
                         .vertices_transformation_matrix(&output_resolution),
                     transform_texture_coords_matrix: layout
                         .texture_coords_transformation_matrix(&input_resolution),
+                    rounded_corners: Vec::new(),
                 }
             })
             .collect();
-        self.params.update(params, ctx.wgpu_ctx);
+
+        let param_buffers = match &mut self.param_buffers {
+            Some(param_buffers) => {
+                param_buffers.update_buffers(ctx.wgpu_ctx, &params, output_resolution);
+                param_buffers
+            }
+            None => {
+                let param_buffers =
+                    LayoutParamBuffers::new(ctx.wgpu_ctx, &params, output_resolution);
+                self.param_buffers = Some(param_buffers);
+                self.param_buffers.as_mut().unwrap()
+            }
+        };
+        let bind_groups = param_buffers.create_bind_groups(ctx.wgpu_ctx);
 
         let textures: Vec<Option<&NodeTexture>> = layouts
             .iter()
@@ -158,7 +170,7 @@ impl LayoutNode {
 
         let target = target.ensure_size(ctx.wgpu_ctx, output_resolution);
         self.shader
-            .render(ctx.wgpu_ctx, self.params.bind_group(), &textures, target);
+            .render(ctx.wgpu_ctx, bind_groups, &textures, target);
     }
 }
 

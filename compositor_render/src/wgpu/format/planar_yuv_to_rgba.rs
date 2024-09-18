@@ -14,13 +14,12 @@ pub struct PlanarYuvToRgbaConverter {
 }
 
 impl PlanarYuvToRgbaConverter {
-    pub fn new(
-        device: &wgpu::Device,
-        yuv_textures_bind_group_layout: &wgpu::BindGroupLayout,
-    ) -> Self {
+    pub fn new(device: &wgpu::Device) -> Self {
         let shader_module =
             device.create_shader_module(wgpu::include_wgsl!("planar_yuv_to_rgba.wgsl"));
         let sampler = Sampler::new(device);
+
+        let yuv_textures_bind_group_layout = PlanarYuvTextures::bind_group_layout(device);
 
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("Planar YUV 4:2:0 to RGBA color converter render pipeline layout"),
