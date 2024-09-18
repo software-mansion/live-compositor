@@ -10,10 +10,13 @@ To use RTP Output you must register it first. You can do it by sending a request
 
 <details>
     <summary>Example request</summary>
-    ```http
-    POST: /api/output/output_1/register
-    Content-Type: application/json
 
+    ```http
+    POST: /api/output/:output_id/register
+    Content-Type: application/json
+    ```
+
+    ```js
     {
       "type": "rtp_stream",
       "transport_protocol": "tcp_server",

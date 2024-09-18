@@ -17,10 +17,13 @@ To use MP4 Output you need to register it first.
 
 <details>
     <summary> Example register requests </summary>
+
     ```http
     POST: /api/output/:output_id/register
     Content-Type: application/json
+    ```
 
+    ```js
     {
       "type": "mp4",
       "path": "/path/to/file.mp4",
@@ -29,7 +32,7 @@ To use MP4 Output you need to register it first.
         "encoder": {
           "type": "ffmpeg_h264",
           "preset": "ultrafast",
-          "ffmpeg_options": { "crf": 32 }
+          "ffmpeg_options": { "crf": "32" }
         },
         "initial": {
           "root": {

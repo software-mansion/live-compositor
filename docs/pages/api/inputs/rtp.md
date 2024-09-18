@@ -9,10 +9,13 @@ To use RTP Input you must register it first. You can do it by sending a request 
 
 <details>
     <summary>Example request</summary>
-    ```http
-    POST: /api/input/input_1/register
-    Content-Type: application/json
 
+    ```http
+    POST: /api/input/:input_id/register
+    Content-Type: application/json
+    ```
+
+    ```js
     {
     "type": "rtp_stream",
     "transport_protocol": "tcp_server",
