@@ -5,7 +5,7 @@ import MP4Player from './examples/MP4Player';
 
 const EXAMPLES = {
   'counter': <Counter />,
-  'mp4': <MP4Player />
+  'mp4': <MP4Player />,
 };
 
 function App() {
