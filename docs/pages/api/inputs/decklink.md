@@ -1,5 +1,6 @@
 ---
 title: DeckLink
+hide_table_of_contents: true
 ---
 import Docs from "@site/pages/api/generated/renderer-DeckLink.md"
 

@@ -1,3 +1,8 @@
+---
+title: MP4
+hide_table_of_contents: true
+---
+
 import Docs from "@site/pages/api/generated/renderer-Mp4Input.md"
 
 # MP4

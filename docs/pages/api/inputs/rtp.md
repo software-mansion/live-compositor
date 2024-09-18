@@ -1,3 +1,8 @@
+---
+title: RTP
+hide_table_of_contents: true
+---
+
 import Docs from "@site/pages/api/generated/renderer-RtpInputStream.md"
 
 # RTP
@@ -17,17 +22,17 @@ To use RTP Input you must register it first. You can do it by sending a request 
 
     ```js
     {
-    "type": "rtp_stream",
-    "transport_protocol": "tcp_server",
-    "port": 9001,
-    "video": {
-      "decoder": "ffmpeg_h264"
-    },
-    "audio": {
-      "decoder": "opus"
-    },
-    "required": true,
-    "offset_ms": 64
+      "type": "rtp_stream",
+      "transport_protocol": "tcp_server",
+      "port": 9001,
+      "video": {
+        "decoder": "ffmpeg_h264"
+      },
+      "audio": {
+        "decoder": "opus"
+      },
+      "required": true,
+      "offset_ms": 64
     }
     ```
 </details>

@@ -1,6 +1,8 @@
 ---
 title: MP4
+hide_table_of_contents: true
 ---
+
 import Docs from "@site/pages/api/generated/output-Mp4Output.md"
 
 <span class="badge badge--primary">Added in v0.3.0</span>

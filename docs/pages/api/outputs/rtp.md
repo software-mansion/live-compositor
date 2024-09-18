@@ -1,3 +1,8 @@
+---
+title: RTP
+hide_table_of_contents: true
+---
+
 import Docs from "@site/pages/api/generated/output-RtpOutputStream.md"
 
 # RTP
