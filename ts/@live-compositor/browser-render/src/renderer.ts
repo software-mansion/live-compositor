@@ -8,11 +8,6 @@ export type RendererOptions = {
   streamFallbackTimeoutMs: number;
 };
 
-export type Framerate = {
-  num: number;
-  den: number;
-};
-
 export type FrameSet = {
   ptsMs: number;
   frames: { [id: string]: Frame };

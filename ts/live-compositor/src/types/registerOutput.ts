@@ -3,7 +3,8 @@ import * as Api from '../api';
 
 export type RegisterOutput =
   | ({ type: 'rtp_stream' } & RegisterRtpOutput)
-  | ({ type: 'mp4' } & RegisterMp4Output);
+  | ({ type: 'mp4' } & RegisterMp4Output)
+  | ({ type: 'bytes' } & RegisterBytesOutput);
 
 export type RegisterRtpOutput = {
   /**
@@ -39,6 +40,10 @@ export type RegisterMp4Output = {
   audio?: Mp4AudioOptions;
 };
 
+export type RegisterBytesOutput = {
+  video: OutputBytesVideoOptions;
+};
+
 export type RtpVideoOptions = {
   /**
    * Output resolution in pixels.
@@ -70,6 +75,18 @@ export type Mp4VideoOptions = {
    */
   encoder: Mp4VideoEncoderOptions;
 
+  root: React.ReactElement;
+};
+
+export type OutputBytesVideoOptions = {
+  /**
+   * Output resolution in pixels.
+   */
+  resolution: Api.Resolution;
+  /**
+   * Output byte format.
+   */
+  format: OutputByteFormat;
   root: React.ReactElement;
 };
 
@@ -174,6 +191,10 @@ export type OutputEndCondition =
        */
       allInputs: boolean;
     };
+
+export enum OutputByteFormat {
+  RGBA_BYTES = 'RGBA_BYTES',
+}
 
 export interface AudioInputsConfiguration {
   inputs: InputAudio[];

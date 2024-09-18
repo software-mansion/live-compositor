@@ -11,7 +11,7 @@ import { useAudioInput, useInputStreams } from './hooks';
 import { CompositorEvent, CompositorEventType } from './types/events';
 
 export { RegisterInput } from './types/registerInput';
-export { RegisterOutput } from './types/registerOutput';
+export { RegisterOutput, OutputByteFormat } from './types/registerOutput';
 
 export * as Inputs from './types/registerInput';
 export * as Outputs from './types/registerOutput';
