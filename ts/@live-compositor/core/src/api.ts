@@ -1,5 +1,7 @@
 import { Api } from 'live-compositor';
 import { CompositorManager } from './compositorManager.js';
+import { RegisterOutputRequest } from './api/output.js';
+import { RegisterInputRequest } from './api/input.js';
 
 export { Api };
 
@@ -24,7 +26,7 @@ export class ApiClient {
     });
   }
 
-  public async registerOutput(outptuId: string, request: Api.RegisterOutput): Promise<object> {
+  public async registerOutput(outptuId: string, request: RegisterOutputRequest): Promise<object> {
     return this.serverManager.sendRequest({
       method: 'POST',
       route: `/api/output/${encodeURIComponent(outptuId)}/register`,
@@ -40,7 +42,7 @@ export class ApiClient {
     });
   }
 
-  public async registerInput(inputId: string, request: Api.RegisterInput): Promise<object> {
+  public async registerInput(inputId: string, request: RegisterInputRequest): Promise<object> {
     return this.serverManager.sendRequest({
       method: 'POST',
       route: `/api/input/${encodeURIComponent(inputId)}/register`,

@@ -33,12 +33,13 @@ class Output {
       this.shouldUpdateWhenReady = true;
     };
 
-    if (registerRequest.audio) {
-      this.initialAudioConfig = registerRequest.audio.initial ?? { inputs: [] };
+    const hasAudio = 'audio' in registerRequest && !!registerRequest.audio;
+    if (hasAudio) {
+      this.initialAudioConfig = registerRequest.audio!.initial ?? { inputs: [] };
     }
 
     const onUpdate = () => this.throttledUpdate();
-    this.outputCtx = new _liveCompositorInternals.OutputContext(onUpdate, !!registerRequest.audio);
+    this.outputCtx = new _liveCompositorInternals.OutputContext(onUpdate, hasAudio);
 
     if (registerRequest.video) {
       const rootElement = React.createElement(OutputRootComponent, {
