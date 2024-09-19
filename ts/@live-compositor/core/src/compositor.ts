@@ -6,12 +6,6 @@ import { intoRegisterOutput } from './api/output';
 import { intoRegisterInput } from './api/input';
 import { onCompositorEvent } from './event';
 
-export async function createLiveCompositor(manager: CompositorManager): Promise<LiveCompositor> {
-  const compositor = new LiveCompositor(manager);
-  await compositor['setupInstance']();
-  return compositor;
-}
-
 export class LiveCompositor {
   private manager: CompositorManager;
   private api: ApiClient;
@@ -24,7 +18,7 @@ export class LiveCompositor {
     this.store = new _liveCompositorInternals.InstanceContextStore();
   }
 
-  private async setupInstance() {
+  public async init(): Promise<void> {
     this.manager.registerEventListener((event: unknown) => onCompositorEvent(this.store, event));
     await this.manager.setupInstance();
   }

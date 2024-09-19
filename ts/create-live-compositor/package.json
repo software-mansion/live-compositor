@@ -1,6 +1,6 @@
 {
-  "name": "live-compositor",
-  "version": "0.1.0-rc.3",
+  "name": "create-live-compositor",
+  "version": "0.1.0-rc.4",
   "description": "",
   "main": "dist/index.js",
   "scripts": {
@@ -18,12 +18,19 @@
   },
   "homepage": "https://github.com/software-mansion/live-compositor",
   "files": [
-    "/dist"
+    "/dist",
+    "/templates"
   ],
-  "devDependencies": {
-    "@types/react": "^18.3.3"
+  "bin": {
+    "create-live-compositor": "./dist/index.js"
   },
-  "peerDependencies": {
-    "react": "*"
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "fs-extra": "^11.2.0",
+    "prompts": "^2.4.2"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/prompts": "^2.4.9"
   }
 }

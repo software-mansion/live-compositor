@@ -1,0 +1,22 @@
+{
+  "name": "template-node-minimal",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Live Compositor app",
+  "main": "./dist/index.js",
+  "license": "MIT",
+  "scripts": {
+    "start": "ts-node ./src/App.tsx",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@live-compositor/node": "0.1.0-rc.3",
+    "live-compositor": "0.1.0-rc.3",
+    "react": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.10",
+    "@types/react": "^18.3.3",
+    "typescript": "^5.5.3"
+  }
+}

@@ -19,7 +19,8 @@ function ExampleApp() {
 }
 
 async function run() {
-  const compositor = await LiveCompositor.create();
+  const compositor = new LiveCompositor();
+  await compositor.init()
 
   // register input/outputs/images/shaders/...
 

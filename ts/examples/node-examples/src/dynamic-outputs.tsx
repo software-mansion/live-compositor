@@ -33,7 +33,8 @@ function InputTile({ inputId }: { inputId: string }) {
 async function run() {
   await fs.mkdirp(path.join(__dirname, '../.workingdir'));
   await downloadAllAssets();
-  const compositor = await LiveCompositor.create();
+  const compositor = new LiveCompositor();
+  await compositor.init();
 
   const RESOLUTION = {
     width: 1920,

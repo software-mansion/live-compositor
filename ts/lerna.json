@@ -1,9 +1,11 @@
 {
   "$schema": "node_modules/lerna/schemas/lerna-schema.json",
-  "version": "0.0.0",
+  "version": "independent",
   "packages": [
     "@live-compositor/*",
     "live-compositor",
-    "examples/*"
+    "examples/*",
+    "create-live-compositor",
+    "create-live-compositor/templates/*"
   ]
 }

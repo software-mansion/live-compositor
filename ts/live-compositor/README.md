@@ -22,7 +22,9 @@ function ExampleApp() {
 }
 
 async function run() {
-  const compositor = await LiveCompositor.create();
+  const compositor = new LiveCompositor();
+  await compositor.init()
+
   await compositor.registerInput('example_input_1', {
     ...EXAMPLE_INPUT_OPTIONS,
   })

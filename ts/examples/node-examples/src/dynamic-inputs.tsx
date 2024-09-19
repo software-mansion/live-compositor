@@ -43,7 +43,8 @@ function InputTile({ inputId }: { inputId: string }) {
 
 async function run() {
   await downloadAllAssets();
-  const compositor = await LiveCompositor.create();
+  const compositor = new LiveCompositor();
+  await compositor.init();
 
   void ffplayStartPlayerAsync('127.0.0.1', 8001);
   await sleep(2000);

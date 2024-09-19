@@ -51,7 +51,8 @@ function InputTile({ inputId, mute }: { inputId: string; mute: boolean }) {
 
 async function run() {
   await downloadAllAssets();
-  const compositor = await LiveCompositor.create();
+  const compositor = new LiveCompositor();
+  await compositor.init();
 
   await sleep(2000);
 
