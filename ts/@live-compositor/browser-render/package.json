@@ -1,6 +1,6 @@
 {
   "name": "@live-compositor/browser-render",
-  "version": "0.1.0-rc.0",
+  "version": "0.1.0-rc.2",
   "main": "dist/index.js",
   "scripts": {
     "lint": "eslint .",
@@ -21,7 +21,7 @@
     "wasm-pack": "^0.13.0"
   },
   "peerDependencies": {
-    "live-compositor": "0.1.0-rc.0"
+    "live-compositor": "0.1.0-rc.2"
   },
   "nx": {
     "targets": {

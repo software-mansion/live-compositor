@@ -1,6 +1,6 @@
 {
   "name": "@live-compositor/core",
-  "version": "0.1.0-rc.0",
+  "version": "0.1.0-rc.2",
   "description": "",
   "main": "dist/index.js",
   "scripts": {
@@ -23,6 +23,6 @@
     "react-reconciler": "0.29.2"
   },
   "peerDependencies": {
-    "live-compositor": "0.1.0-rc.0"
+    "live-compositor": "0.1.0-rc.2"
   }
 }
