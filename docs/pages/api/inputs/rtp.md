@@ -30,9 +30,7 @@ To use RTP Input you must register it first. You can do it by sending a request 
       },
       "audio": {
         "decoder": "opus"
-      },
-      "required": true,
-      "offset_ms": 64
+      }
     }
     ```
 </details>

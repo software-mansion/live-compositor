@@ -28,10 +28,7 @@ To use MP4 Input you must register it first. You can do it by sending a request 
     ```js
     {
       "type": "mp4"
-      "url": "https://url.to.file.mp4",
-      "loop": true,
-      "required": true,
-      "offset_ms": 128
+      "url": "https://url.to.file.mp4"
     }
     ```
 </details>

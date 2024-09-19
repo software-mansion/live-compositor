@@ -33,8 +33,7 @@ To use MP4 Output you need to register it first.
         "resolution": { "width": 1280, "height": 720 },
         "encoder": {
           "type": "ffmpeg_h264",
-          "preset": "ultrafast",
-          "ffmpeg_options": { "crf": "32" }
+          "preset": "ultrafast"
         },
         "initial": {
           "root": {
@@ -44,10 +43,6 @@ To use MP4 Output you need to register it first.
         }
       },
       "audio": {
-        "mixing_strategy": "sum_scale",
-        "send_eos_when": {
-          "any_of": [ "input1" ]
-        },
         "encoder": {
           "type": "aac",
           "channels": "stereo"

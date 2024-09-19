@@ -14,7 +14,7 @@ An input type that allows consuming streams from Blackmagic DeckLink cards.
 
 ### Usage
 
-To use DeckLink Input you must register it first. You can do it by sending a request like this:
+To use DeckLink input you must register it first. You can do it by sending a request like this:
 
 <details>
     <summary>Example request</summary>
@@ -27,11 +27,7 @@ To use DeckLink Input you must register it first. You can do it by sending a req
     ```js
     {
       "type": "decklink",
-      "subdevice_index": 0,
-      "display_name": "DeckLink Quad HDMI Recorder (3)",
-      "persistent_id": "ffffffff",
-      "enable_audio": false,
-      "required": true,
+      "display_name": "DeckLink Quad HDMI Recorder (3)"
     }
     ```
 </details>
