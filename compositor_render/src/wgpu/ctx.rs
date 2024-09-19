@@ -42,12 +42,7 @@ impl WgpuCtx {
     }
 
     fn check_wgpu_ctx(device: &wgpu::Device, features: wgpu::Features) {
-        let expected_features = match cfg!(target_arch = "wasm32") {
-            false => {
-                features | wgpu::Features::TEXTURE_BINDING_ARRAY | wgpu::Features::PUSH_CONSTANTS
-            }
-            true => features | wgpu::Features::PUSH_CONSTANTS,
-        };
+        let expected_features = features | required_wgpu_features();
 
         let missing_features = expected_features.difference(device.features());
         if !missing_features.is_empty() {
@@ -92,6 +87,13 @@ impl WgpuCtx {
     }
 }
 
+pub fn required_wgpu_features() -> wgpu::Features {
+    match cfg!(target_arch = "wasm32") {
+        false => wgpu::Features::TEXTURE_BINDING_ARRAY | wgpu::Features::PUSH_CONSTANTS,
+        true => wgpu::Features::PUSH_CONSTANTS,
+    }
+}
+
 pub fn create_wgpu_ctx(
     force_gpu: bool,
     features: wgpu::Features,
@@ -120,8 +122,7 @@ pub fn create_wgpu_ctx(
         error!("Selected adapter is CPU based. Aborting.");
         return Err(CreateWgpuCtxError::NoAdapter);
     }
-    let required_features =
-        features | wgpu::Features::TEXTURE_BINDING_ARRAY | wgpu::Features::PUSH_CONSTANTS;
+    let required_features = features | required_wgpu_features();
 
     let missing_features = required_features.difference(adapter.features());
     if !missing_features.is_empty() {

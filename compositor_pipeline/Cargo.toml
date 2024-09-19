@@ -27,6 +27,7 @@ reqwest = { workspace = true }
 tracing = { workspace = true }
 fdk-aac-sys = "0.5.0"
 rubato = "0.15.0"
+vk-video = { workspace = true }
 wgpu = { workspace = true }
 glyphon = { workspace = true }
 

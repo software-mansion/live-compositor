@@ -7,8 +7,7 @@ use std::thread;
 use std::time::Duration;
 
 use compositor_render::error::{
-    ErrorStack, InitPipelineError, RegisterRendererError, RequestKeyframeError,
-    UnregisterRendererError,
+    ErrorStack, RegisterRendererError, RequestKeyframeError, UnregisterRendererError,
 };
 use compositor_render::scene::Component;
 use compositor_render::web_renderer::WebRendererInitOptions;
@@ -32,6 +31,7 @@ use types::RawDataSender;
 use crate::audio_mixer::AudioMixer;
 use crate::audio_mixer::MixingStrategy;
 use crate::audio_mixer::{AudioChannels, AudioMixingParams};
+use crate::error::InitPipelineError;
 use crate::error::{
     RegisterInputError, RegisterOutputError, UnregisterInputError, UnregisterOutputError,
 };
@@ -61,6 +61,7 @@ use self::pipeline_output::PipelineOutput;
 
 pub use self::types::{
     AudioCodec, EncodedChunk, EncodedChunkKind, EncoderOutputEvent, RawDataReceiver, VideoCodec,
+    VideoDecoder,
 };
 pub use pipeline_output::PipelineOutputEndCondition;
 
@@ -109,7 +110,36 @@ pub struct Pipeline {
     is_started: bool,
 }
 
-#[derive(Debug, Clone)]
+pub struct PreinitializedContext {
+    pub device: Arc<wgpu::Device>,
+    pub queue: Arc<wgpu::Queue>,
+
+    #[cfg(target_os = "linux")]
+    pub vulkan_ctx: Arc<vk_video::VulkanCtx>,
+}
+
+impl PreinitializedContext {
+    #[cfg(target_os = "linux")]
+    pub fn new(features: wgpu::Features, limits: wgpu::Limits) -> Result<Self, InitPipelineError> {
+        let vulkan_ctx = Arc::new(vk_video::VulkanCtx::new(features, limits)?);
+        Ok(PreinitializedContext {
+            device: vulkan_ctx.wgpu_ctx.device.clone(),
+            queue: vulkan_ctx.wgpu_ctx.queue.clone(),
+            vulkan_ctx,
+        })
+    }
+}
+
+impl std::fmt::Debug for PreinitializedContext {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("PreinitializedContext")
+            .field("device", &self.device)
+            .field("queue", &self.queue)
+            .finish()
+    }
+}
+
+#[derive(Debug)]
 pub struct Options {
     pub queue_options: QueueOptions,
     pub stream_fallback_timeout: Duration,
@@ -118,28 +148,59 @@ pub struct Options {
     pub download_root: PathBuf,
     pub output_sample_rate: u32,
     pub wgpu_features: WgpuFeatures,
-    pub wgpu_ctx: Option<(Arc<wgpu::Device>, Arc<wgpu::Queue>)>,
     pub load_system_fonts: Option<bool>,
+    pub wgpu_ctx: Option<PreinitializedContext>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct PipelineCtx {
     pub output_sample_rate: u32,
     pub output_framerate: Framerate,
     pub download_dir: Arc<PathBuf>,
     pub event_emitter: Arc<EventEmitter>,
+    #[cfg(target_os = "linux")]
+    pub vulkan_ctx: Arc<vk_video::VulkanCtx>,
+}
+
+impl std::fmt::Debug for PipelineCtx {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("PipelineCtx")
+            .field("output_sample_rate", &self.output_sample_rate)
+            .field("output_framerate", &self.output_framerate)
+            .field("download_dir", &self.download_dir)
+            .field("event_emitter", &self.event_emitter)
+            .finish()
+    }
 }
 
 impl Pipeline {
     pub fn new(opts: Options) -> Result<(Self, Arc<dyn EventLoop>), InitPipelineError> {
+        let preinitialized_ctx = match opts.wgpu_ctx {
+            Some(ctx) => Some(ctx),
+            None => {
+                if cfg!(target_os = "linux") {
+                    Some(PreinitializedContext::new(opts.wgpu_features | wgpu::Features::PUSH_CONSTANTS | wgpu::Features::TEXTURE_BINDING_ARRAY | wgpu::Features::UNIFORM_BUFFER_AND_STORAGE_TEXTURE_ARRAY_NON_UNIFORM_INDEXING | wgpu::Features::SAMPLED_TEXTURE_AND_STORAGE_BUFFER_ARRAY_NON_UNIFORM_INDEXING, wgpu::Limits {
+                        max_push_constant_size: 128,
+                        ..Default::default()
+                    })?)
+                } else {
+                    None
+                }
+            }
+        };
+
+        let wgpu_ctx = preinitialized_ctx
+            .as_ref()
+            .map(|ctx| (ctx.device.clone(), ctx.queue.clone()));
+
         let (renderer, event_loop) = Renderer::new(RendererOptions {
             web_renderer: opts.web_renderer,
             framerate: opts.queue_options.output_framerate,
             stream_fallback_timeout: opts.stream_fallback_timeout,
             force_gpu: opts.force_gpu,
             wgpu_features: opts.wgpu_features,
-            wgpu_ctx: opts.wgpu_ctx,
             load_system_fonts: opts.load_system_fonts.unwrap_or(true),
+            wgpu_ctx,
         })?;
 
         let download_dir = opts
@@ -160,6 +221,10 @@ impl Pipeline {
                 output_framerate: opts.queue_options.output_framerate,
                 download_dir: download_dir.into(),
                 event_emitter,
+                #[cfg(target_os = "linux")]
+                vulkan_ctx: preinitialized_ctx
+                    .map(|ctx| ctx.vulkan_ctx)
+                    .expect("This should not fail on linux"),
             },
         };
 

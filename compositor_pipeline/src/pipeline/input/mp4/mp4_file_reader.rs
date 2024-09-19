@@ -15,7 +15,7 @@ use crate::{
     pipeline::{
         decoder::{AacDecoderOptions, AudioDecoderOptions, VideoDecoderOptions},
         types::{EncodedChunk, EncodedChunkKind},
-        AudioCodec, VideoCodec,
+        AudioCodec, VideoCodec, VideoDecoder,
     },
     queue::PipelineEvent,
 };
@@ -235,6 +235,7 @@ impl Mp4FileReader<VideoDecoderOptions> {
 
         let decoder_options = VideoDecoderOptions {
             codec: VideoCodec::H264,
+            decoder: VideoDecoder::FFmpegH264,
         };
 
         Some(TrackInfo {

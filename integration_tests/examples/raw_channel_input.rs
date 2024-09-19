@@ -17,12 +17,12 @@ use compositor_pipeline::{
             OutputOptions, OutputProtocolOptions,
         },
         rtp::RequestedPort,
-        Options, Pipeline, PipelineOutputEndCondition, RegisterOutputOptions, VideoCodec,
+        Options, Pipeline, PipelineOutputEndCondition, PreinitializedContext,
+        RegisterOutputOptions, VideoCodec,
     },
     queue::{PipelineEvent, QueueInputOptions},
 };
 use compositor_render::{
-    create_wgpu_ctx,
     error::ErrorStack,
     scene::{Component, InputStreamComponent},
     Frame, FrameData, InputId, OutputId, Resolution,
@@ -44,7 +44,15 @@ fn main() {
         level: "info,wgpu_hal=warn,wgpu_core=warn".to_string(),
     });
     let config = read_config();
-    let (wgpu_device, wgpu_queue) = create_wgpu_ctx(false, Default::default()).unwrap();
+    let ctx = PreinitializedContext::new(
+        wgpu::Features::TEXTURE_BINDING_ARRAY | wgpu::Features::PUSH_CONSTANTS,
+        wgpu::Limits {
+            max_push_constant_size: 128,
+            ..Default::default()
+        },
+    )
+    .unwrap();
+    let (wgpu_device, wgpu_queue) = (ctx.device.clone(), ctx.queue.clone());
     // no chromium support, so we can ignore _event_loop
     let (pipeline, _event_loop) = Pipeline::new(Options {
         queue_options: config.queue_options,
@@ -54,8 +62,8 @@ fn main() {
         download_root: config.download_root,
         output_sample_rate: config.output_sample_rate,
         wgpu_features: config.required_wgpu_features,
-        wgpu_ctx: Some((wgpu_device.clone(), wgpu_queue.clone())),
         load_system_fonts: Some(true),
+        wgpu_ctx: Some(ctx),
     })
     .unwrap_or_else(|err| {
         panic!(

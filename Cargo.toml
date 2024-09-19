@@ -16,6 +16,7 @@ members = [
     "decklink",
     "compositor_api",
     "compositor_web",
+    "vk-video",
 ]
 resolver = "2"
 
@@ -56,6 +57,7 @@ schemars = { git = "https://github.com/membraneframework-labs/schemars", rev = "
     "preserve_order",
 ] }
 shared_memory = "0.12.4"
+vk-video = { path = "vk-video" }
 wgpu = { version = "22.1.0", default-features = false, features = [
     "wgsl",
     "dx12",

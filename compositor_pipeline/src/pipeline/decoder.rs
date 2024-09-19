@@ -1,6 +1,7 @@
 use crate::{audio_mixer::InputSamples, queue::PipelineEvent};
 
 use super::types::VideoCodec;
+use super::types::VideoDecoder;
 
 use bytes::Bytes;
 use compositor_render::Frame;
@@ -17,6 +18,7 @@ pub(super) use video::start_video_decoder_thread;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct VideoDecoderOptions {
+    pub decoder: VideoDecoder,
     pub codec: VideoCodec,
 }
 

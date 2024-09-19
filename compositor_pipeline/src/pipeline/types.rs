@@ -56,6 +56,12 @@ pub struct RawDataSender {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum VideoDecoder {
+    FFmpegH264,
+    VulkanVideo,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum VideoCodec {
     H264,
 }
