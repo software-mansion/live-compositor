@@ -6,7 +6,7 @@ import { ChildProcess, spawn as nodeSpawn, SpawnOptions } from 'child_process';
 const TMP_SDP_DIR = path.join(os.tmpdir(), 'live-composiotor-sdp');
 
 /**
- * Util function that displays video send over RTP to specified port.
+ * Util function that displays video sent over RTP to the specified port.
  * This is only for debugging, do not use for production use cases.
  */
 export async function ffplayStartPlayerAsync(ip: string, videoPort: number): Promise<void> {
@@ -16,15 +16,14 @@ export async function ffplayStartPlayerAsync(ip: string, videoPort: number): Pro
   const sdpFilePath = path.join(TMP_SDP_DIR, `video_input_${videoPort}.sdp`);
   writeVideoSdpFile(ip, videoPort, sdpFilePath);
   void spawn('ffplay', ['-protocol_whitelist', 'file,rtp,udp', sdpFilePath], {});
-  // give time for ffplay to start
   await new Promise<void>(res => setTimeout(() => res(), 2000));
 }
 
-export interface SpawnPromise extends Promise<void> {
+interface SpawnPromise extends Promise<void> {
   child: ChildProcess;
 }
 
-export function spawn(command: string, args: string[], options: SpawnOptions): SpawnPromise {
+function spawn(command: string, args: string[], options: SpawnOptions): SpawnPromise {
   const child = nodeSpawn(command, args, {
     stdio: 'inherit',
     ...options,

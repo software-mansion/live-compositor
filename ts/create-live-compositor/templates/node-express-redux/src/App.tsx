@@ -34,7 +34,7 @@ function Instructions() {
       <View height={20} />
       <Text width={960} fontSize={30} wrap="word">
         This example renders static text and sends the output stream via RTP to local port
-        8001. Generated code includes a helpers in liveCompositorFfplayHelper.ts that display output
+        8001. Generated code includes helpers in liveCompositorFfplayHelper.ts that display the output
         stream using ffplay, make sure to remove them for any real production use.
       </Text>
       <View height={20} />
