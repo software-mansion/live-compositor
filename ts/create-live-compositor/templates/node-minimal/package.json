@@ -1,7 +1,6 @@
 {
-  "name": "node-minimal",
+  "name": "template-node-minimal",
   "private": true,
-  "version": "1.0.0",
   "description": "Live Compositor app",
   "main": "./dist/index.js",
   "license": "MIT",

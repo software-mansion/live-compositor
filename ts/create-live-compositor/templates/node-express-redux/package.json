@@ -1,7 +1,6 @@
 {
-  "name": "node-express-redux",
+  "name": "template-node-express-redux",
   "private": true,
-  "version": "1.0.0",
   "description": "Live Compositor app",
   "main": "./dist/index.js",
   "license": "MIT",
