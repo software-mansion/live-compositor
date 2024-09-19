@@ -52,7 +52,7 @@ export async function resolveOptions(): Promise<ProjectOptions> {
     runtime: runtimeOptions,
     packageManager,
     projectName,
-    directory: path.join(process.cwd(), 'app'),
+    directory: path.join(process.cwd(), projectName),
   };
 }
 
