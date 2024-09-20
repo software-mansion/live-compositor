@@ -14,8 +14,8 @@ To use this component, you need to first register the stream with matching `inpu
 
 ```typescript
 type InputStreamProps = {
-  id?: Api.ComponentId;
-  inputId: Api.InputId;
+  id?: string;
+  inputId: string;
   volume?: number;
   mute?: boolean;
 }

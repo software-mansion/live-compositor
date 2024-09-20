@@ -18,7 +18,7 @@ type Text = {
   lineHeight?: number;
   color?: string;
   backgroundColor?: string;
-  font_family?: string;
+  fontFamily?: string;
   style?: "normal" | "italic" | "oblique";
   align?: "left" | "right" | "justified" | "center";
   wrap?: "none" | "glyph" | "word";

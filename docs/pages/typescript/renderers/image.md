@@ -12,7 +12,7 @@ type RegisterImage = {
   | { 
       assetType: "svg";
       url?: string;
-      path?: string;
+      serverPath?: string;
       resolution?: {
         width: u32,
         height: u32,
@@ -20,7 +20,7 @@ type RegisterImage = {
     }
 ```
 
+- `assetType` - Format of an image.
 - `url` - Url to download an image. This field is mutually exclusive with the `path` field.
-- `path` - Path to an image. This field is mutually exclusive with the `url` field.
-- `asset_type` - Format of an image.
+- `serverPath` - Path to an image (location on the server where LiveCompositor server is deployed). This field is mutually exclusive with the `url` field.
 - `resolution` - The resolution at which an SVG image should be rendered.

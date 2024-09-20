@@ -72,13 +72,13 @@ type RtpVideoEncoderOptions =
         | "slower"
         | "veryslow"
         | "placebo";
-      ffmpeg_options?: Map<string, string>;
+      ffmpegOptions?: Map<string, string>;
     }
 ```
 
 #### Properties (`type: "ffmpeg_h264"`)
 - `preset` - (**default=`"fast"`**) Preset for an encoder. See `FFmpeg` [docs](https://trac.ffmpeg.org/wiki/Encode/H.264#Preset) to learn more.
-- `ffmpeg_options` - Raw FFmpeg encoder options. See [docs](https://ffmpeg.org/ffmpeg-codecs.html) for more.
+- `ffmpegOptions` - Raw FFmpeg encoder options. See [docs](https://ffmpeg.org/ffmpeg-codecs.html) for more.
 
 ### `Outputs.RtpAudioOptions`
 

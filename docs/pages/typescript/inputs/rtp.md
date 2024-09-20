@@ -40,7 +40,9 @@ At least one of `video` and `audio` has to be defined.
 ### `Inputs.InputRtpVideoOptions`
 
 ```typescript
-type InputRtpVideoOptions = { decoder: "ffmpeg_h264"; }
+type InputRtpVideoOptions = {
+  decoder: "ffmpeg_h264";
+}
 ```
 
 ### `Inputs.InputRtpAudioOptions` 
@@ -58,13 +60,13 @@ type InputRtpAudioOptions =
     }
 ```
 
-#### Properties (`type: "opus"`)
+#### Properties (`decoder: "opus"`)
 
 - `forwardErrorCorrection` - (**default=`false`**) Specifies whether the stream uses forward error correction.
   It's specific for Opus codec.
   For more information, check out [RFC](https://datatracker.ietf.org/doc/html/rfc6716#section-2.1.7).
 
-#### Properties (`type: "aac"`)
+#### Properties (`decoder: "aac"`)
 
 - `audioSpecificConfig` - AudioSpecificConfig as described in MPEG-4 part 3, section 1.6.2.1
   The config should be encoded as described in [RFC 3640](https://datatracker.ietf.org/doc/html/rfc3640#section-4.1).

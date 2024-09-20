@@ -90,11 +90,12 @@ const sidebars: SidebarsConfig = {
       type: 'category',
       label: 'TypeScript SDK Reference',
       link: {
-        type: 'generated-index',
+        type: 'doc',
+        id: 'typescript/api',
       },
       items: [
         {
-          type: 'doc',
+          type: 'ref',
           id: 'typescript/api',
           label: 'LiveCompositor instance',
         },
