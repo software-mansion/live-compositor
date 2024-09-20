@@ -20,8 +20,8 @@ export type RegisterRtpOutput = {
    * (**default=`"udp"`**) Transport layer protocol that will be used to send RTP packets.
    */
   transportProtocol?: Api.TransportProtocol;
-  video?: OutputRtpVideoOptions;
-  audio?: OutputRtpAudioOptions;
+  video?: RtpVideoOptions;
+  audio?: RtpAudioOptions;
 };
 
 export type RegisterMp4Output = {
@@ -32,14 +32,14 @@ export type RegisterMp4Output = {
   /**
    * Video track configuration.
    */
-  video?: OutputMp4VideoOptions;
+  video?: Mp4VideoOptions;
   /**
    * Audio track configuration.
    */
-  audio?: OutputMp4AudioOptions;
+  audio?: Mp4AudioOptions;
 };
 
-export type OutputRtpVideoOptions = {
+export type RtpVideoOptions = {
   /**
    * Output resolution in pixels.
    */
@@ -56,7 +56,7 @@ export type OutputRtpVideoOptions = {
   root: React.ReactElement;
 };
 
-export type OutputMp4VideoOptions = {
+export type Mp4VideoOptions = {
   /**
    * Output resolution in pixels.
    */
@@ -97,7 +97,7 @@ export type Mp4VideoEncoderOptions = {
   ffmpegOptions?: Api.VideoEncoderOptions['ffmpeg_options'];
 };
 
-export type OutputRtpAudioOptions = {
+export type RtpAudioOptions = {
   /**
    * (**default="sum_clip"**) Specifies how audio should be mixed.
    */
@@ -116,7 +116,7 @@ export type OutputRtpAudioOptions = {
   initial?: AudioInputsConfiguration;
 };
 
-export interface OutputMp4AudioOptions {
+export interface Mp4AudioOptions {
   /**
    * (**default="sum_clip"**) Specifies how audio should be mixed.
    */

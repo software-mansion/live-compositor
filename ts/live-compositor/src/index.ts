@@ -15,6 +15,7 @@ export { RegisterOutput } from './types/registerOutput';
 
 export * as Inputs from './types/registerInput';
 export * as Outputs from './types/registerOutput';
+export * as Renderers from './types/registerRenderer';
 export * as Api from './api';
 export * as _liveCompositorInternals from './internal';
 
