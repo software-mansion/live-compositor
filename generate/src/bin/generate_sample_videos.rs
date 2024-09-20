@@ -243,7 +243,7 @@ fn generate_video(
         let event_receiver = subscribe();
         loop {
             if let Ok(event) = event_receiver.recv() {
-                if event.kind == "OUTPUT_DONE".to_string() {
+                if event.kind == *"OUTPUT_DONE" {
                     break;
                 }
             }
