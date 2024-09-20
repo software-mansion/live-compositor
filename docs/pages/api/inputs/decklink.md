@@ -1,5 +1,6 @@
 ---
 title: DeckLink
+hide_table_of_contents: true
 ---
 import Docs from "@site/pages/api/generated/renderer-DeckLink.md"
 
@@ -10,5 +11,27 @@ import Docs from "@site/pages/api/generated/renderer-DeckLink.md"
 # DeckLink
 
 An input type that allows consuming streams from Blackmagic DeckLink cards.
+
+### Usage
+
+To use DeckLink input you must register it first. You can do it by sending a request like this:
+
+<details>
+    <summary>Example request</summary>
+
+    ```http
+    POST: /api/input/:input_id/register
+    Content-Type: application/json
+    ```
+
+    ```js
+    {
+      "type": "decklink",
+      "display_name": "DeckLink Quad HDMI Recorder (3)"
+    }
+    ```
+</details>
+
+See [HTTP Routes](../routes.md#outputs-configuration) documentation to learn more about managing inputs.
 
 <Docs />
