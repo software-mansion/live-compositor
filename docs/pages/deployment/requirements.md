@@ -71,6 +71,8 @@ mostly for development, and it is highly unlikely to be used for a production de
   - FFmpeg dependencies: `libavcodec`, `libavformat`, `libavfilter`, `libavdevice`, `libavutil`, `libswscale`, `libswresample`
   - `libopus`
   - `libssl`
+- cmake
+- pkg-config
 
 Linux specific (with a Vulkan backend):
 - MESA
