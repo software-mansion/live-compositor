@@ -191,7 +191,7 @@ fn maybe_video_options(
             preset,
             ffmpeg_options,
         } => pipeline::encoder::VideoEncoderOptions::H264(ffmpeg_h264::Options {
-            preset: preset.into(),
+            preset: preset.unwrap_or(H264EncoderPreset::Fast).into(),
             resolution: options.resolution.into(),
             raw_options: ffmpeg_options.unwrap_or_default().into_iter().collect(),
         }),
