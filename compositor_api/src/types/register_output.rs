@@ -83,7 +83,7 @@ pub enum VideoEncoderOptions {
     #[serde(rename = "ffmpeg_h264")]
     FfmpegH264 {
         /// (**default=`"fast"`**) Preset for an encoder. See `FFmpeg` [docs](https://trac.ffmpeg.org/wiki/Encode/H.264#Preset) to learn more.
-        preset: H264EncoderPreset,
+        preset: Option<H264EncoderPreset>,
 
         /// Raw FFmpeg encoder options. See [docs](https://ffmpeg.org/ffmpeg-codecs.html) for more.
         ffmpeg_options: Option<HashMap<String, String>>,
