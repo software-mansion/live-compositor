@@ -1,14 +1,13 @@
+use anyhow::Result;
+use compositor_render::{event_handler::subscribe, Resolution};
+use generate::compositor_instance::CompositorInstance;
+use serde_json::json;
 use std::{
     fs::{self},
     path::PathBuf,
     thread::{self},
     time::Duration,
 };
-
-use anyhow::Result;
-use compositor_render::{event_handler::subscribe, Resolution};
-use generate::compositor_instance::CompositorInstance;
-use serde_json::json;
 
 struct SceneStyle {
     timer_font_size: u32,
@@ -210,7 +209,8 @@ fn generate_video(
                     "type": "ffmpeg_h264",
                     "preset": "medium",
                     "ffmpeg_options": {
-                        "crf": "32"
+                        "crf": "32",
+                        "tune": "zerolatency"
                     }
                 },
                 "initial": scene(text, rgba_color, resolution, Duration::ZERO, scene_style)
