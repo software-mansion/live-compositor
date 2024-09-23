@@ -18,6 +18,7 @@ pub enum FrameData {
     PlanarYuvJ420(YuvPlanes),
     InterleavedYuv422(bytes::Bytes),
     Rgba8UnormWgpuTexture(Arc<wgpu::Texture>),
+    Nv12WgpuTexture(Arc<wgpu::Texture>),
 }
 
 #[derive(Clone)]
