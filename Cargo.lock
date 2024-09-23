@@ -1244,8 +1244,9 @@ dependencies = [
 
 [[package]]
 name = "glyphon"
-version = "0.5.0"
-source = "git+https://github.com/grovesNL/glyphon?branch=main#ce6ede951caf84569563ffdf1ef5a98aeae484e1"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b11b1afb04c1a1be055989042258499473d0a9447f16450b433aba10bc2a46e7"
 dependencies = [
  "cosmic-text",
  "etagere",
