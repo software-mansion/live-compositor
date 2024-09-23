@@ -2,6 +2,7 @@ use log::info;
 
 mod config;
 mod logger;
+mod middleware;
 mod routes;
 mod server;
 mod state;

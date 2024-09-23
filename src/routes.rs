@@ -1,20 +1,16 @@
 use axum::{
     async_trait,
-    body::Body,
     extract::{rejection::JsonRejection, ws::WebSocketUpgrade, FromRequest, Request, State},
     http::StatusCode,
-    middleware::{self, Next},
-    response::{IntoResponse, Response},
+    middleware,
+    response::IntoResponse,
     routing::{get, post},
     Router,
 };
 use compositor_pipeline::Pipeline;
-use core::str;
-use http_body_util::BodyExt;
-use log::info;
 use serde_json::{json, Value};
 
-use crate::state::{self, ApiState};
+use crate::state::{ApiState, Response};
 
 use compositor_api::error::ApiError;
 
@@ -22,6 +18,7 @@ use self::{
     update_output::handle_keyframe_request, update_output::handle_output_update,
     ws::handle_ws_upgrade,
 };
+use crate::middleware::body_logger_middleware;
 
 mod register_request;
 mod unregister_request;
@@ -59,9 +56,9 @@ pub fn routes(state: ApiState) -> Router {
         .route("/:id/register", post(register_request::handle_shader))
         .route("/:id/unregister", post(unregister_request::handle_shader));
 
-    async fn handle_start(State(state): State<ApiState>) -> Result<state::Response, ApiError> {
+    async fn handle_start(State(state): State<ApiState>) -> Result<Response, ApiError> {
         Pipeline::start(&state.pipeline);
-        Ok(state::Response::Ok {})
+        Ok(Response::Ok {})
     }
 
     Router::new()
@@ -80,7 +77,7 @@ pub fn routes(state: ApiState) -> Router {
                 "instance_id": state.config.instance_id
             }))),
         )
-        .layer(middleware::from_fn(log_request_response_body))
+        .layer(middleware::from_fn(body_logger_middleware))
         .with_state(state)
 }
 
@@ -116,43 +113,4 @@ where
             }
         }
     }
-}
-
-async fn log_request_response_body(
-    request: Request,
-    next: Next,
-) -> Result<impl IntoResponse, Response> {
-    let request = buffer_request_body(request).await?;
-    let response = next.run(request).await;
-    let response = buffer_response_body(response).await?;
-
-    Ok(response)
-}
-
-async fn buffer_request_body(request: Request) -> Result<Request, Response> {
-    let (parts, body) = request.into_parts();
-
-    let bytes = body
-        .collect()
-        .await
-        .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()).into_response())?
-        .to_bytes();
-
-    info!("Request body: {:?}", str::from_utf8(&bytes).unwrap());
-
-    Ok(Request::from_parts(parts, Body::from(bytes)))
-}
-
-async fn buffer_response_body(response: Response) -> Result<Response, Response> {
-    let (parts, body) = response.into_parts();
-
-    let bytes = body
-        .collect()
-        .await
-        .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()).into_response())?
-        .to_bytes();
-
-    info!("Response body: {:?}", str::from_utf8(&bytes).unwrap());
-
-    Ok(Response::from_parts(parts, Body::from(bytes)))
 }
