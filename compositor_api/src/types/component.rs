@@ -72,7 +72,7 @@ pub struct View {
     pub rotation: Option<f32>,
 
     /// Defines how this component will behave during a scene update. This will only have an
-    /// effect if the previous scene already contained a View component with the same id.
+    /// effect if the previous scene already contained a `View` component with the same id.
     pub transition: Option<Transition>,
 
     /// (**default=`"hidden"`**) Controls what happens to content that is too big to fit into an area.
@@ -159,7 +159,7 @@ pub struct Rescaler {
     pub rotation: Option<f32>,
 
     /// Defines how this component will behave during a scene update. This will only have an
-    /// effect if the previous scene already contained a View component with the same id.
+    /// effect if the previous scene already contained a `Rescaler` component with the same id.
     pub transition: Option<Transition>,
 }
 

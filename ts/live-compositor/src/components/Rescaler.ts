@@ -68,7 +68,7 @@ export type RescalerProps = {
   rotation?: number;
   /**
    * Defines how this component will behave during a scene update. This will only have an
-   * effect if the previous scene already contained a View component with the same id.
+   * effect if the previous scene already contained a `Rescaler` component with the same id.
    */
   transition?: Transition;
 };

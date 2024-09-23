@@ -88,7 +88,7 @@ type ViewProps = {
 - `rotation` - Rotation of a component in degrees. If this field is defined, this element will be
   absolutely positioned, instead of being laid out by its parent.
 - `transition` - Defines how this component will behave during a scene update. This will only have an
-  effect if the previous scene already contained a View component with the same id.
+   effect if the previous scene already contained a `View` component with the same id.
 - `overflow` - (**default=`"hidden"`**) Controls what happens to content that is too big to fit into an area.
   - `"visible"` - Render everything, including content that extends beyond their parent.
   - `"hidden"` - Render only parts of the children that are inside their parent area.
