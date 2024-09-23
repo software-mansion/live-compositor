@@ -12,6 +12,16 @@ This guide will explain basic LiveCompositor setup.
 ### Start the compositor
 
 <Tabs queryString="lang">
+  <TabItem value="react" label="React">
+    ```tsx
+    import LiveCompositor from "@live-compositor/node"
+
+    async function start() {
+        const compositor = new LiveCompositor();
+        await compositor.init();
+    }
+    ```
+  </TabItem>
   <TabItem value="http" label="HTTP">
     Start the compositor server. Check out [configuration page](../deployment/configuration.md) for available configuration options.
   </TabItem>
@@ -43,6 +53,21 @@ This guide will explain basic LiveCompositor setup.
 ### Register input stream `input_1`.
 
 <Tabs queryString="lang">
+  <TabItem value="react" label="React">
+    ```tsx
+    await compositor.registerInput("input_1", {
+      type: "rtp_stream",
+      transportProtocol: "tcp_server",
+      port: 9001,
+      video: {
+        decoder: "ffmpeg_h264"
+      }
+    })
+    ```
+    After `registerInput` call is done you can establish the connection and start sending the stream. Check out [how to deliver input streams](./deliver-input.md) to learn more.
+
+    In this example we are using RTP over TCP, but it could be easily replaced by UDP.
+  </TabItem>
   <TabItem value="http" label="HTTP">
     ```http
     POST: /api/input/input_1/register
@@ -88,6 +113,21 @@ This guide will explain basic LiveCompositor setup.
 ### Register input stream `input_2`.
 
 <Tabs queryString="lang">
+  <TabItem value="react" label="React">
+    ```tsx
+    await compositor.registerInput("input_2", {
+      type: "rtp_stream",
+      transportProtocol: "tcp_server",
+      port: 9002,
+      video: {
+        decoder: "ffmpeg_h264"
+      }
+    })
+    ```
+    After `registerInput` call is done you can establish the connection and start sending the stream. Check out [how to deliver input streams](./deliver-input.md) to learn more.
+
+    In this example we are using RTP over TCP, but it could be easily replaced by UDP.
+  </TabItem>
   <TabItem value="http" label="HTTP">
     ```http
     POST: /api/input/input_2/register
@@ -137,6 +177,41 @@ Configure it to:
 - produce silent audio
 
 <Tabs queryString="lang">
+  <TabItem value="react" label="React">
+    ```tsx
+    function App() {
+      return <View backgroundColor="#4d4d4d"/>
+    }
+
+    async function start() {
+      // init code from previous steps
+
+      await compositor.registerOutput("output_1", {
+        type: "rtp_stream",
+        transportProtocol: "tcp_server",
+        port: 9003,
+        video: {
+          resolution: { width: 1280, height: 720 },
+          encoder": {
+            type: "ffmpeg_h264",
+            preset: "ultrafast"
+          },
+          root: <App />
+        },
+        audio: {
+          encoder: {
+            type: "opus",
+            channels: "stereo"
+          },
+        }
+      })
+    }
+    ```
+    After `registerOutput` is done you can establish the connection and start listening for the stream. Check out [how to receive output streams](./receive-output.md) to learn more.
+
+    In this example we are using RTP over TCP, if you prefer to use UDP you need start listening on the specified
+    port before registering output to make sure you are not losing first frames.
+  </TabItem>
   <TabItem value="http" label="HTTP">
     ```http
     POST: /api/output/output_1/register
@@ -170,8 +245,6 @@ Configure it to:
       }
     }
     ```
-    You can configure the output framerate and the sample rate using [`LIVE_COMPOSITOR_OUTPUT_FRAMERATE`](../deployment/configuration.md#live_compositor_output_framerate) and [`LIVE_COMPOSITOR_OUTPUT_SAMPLE_RATE`](../deployment/configuration.md#live_compositor_output_sample_rate) environment variables.
-
     After receiving the response you can establish the connection and start listening for the stream. Check out [how to receive output streams](./receive-output.md) to learn more.
 
     In this example we are using RTP over TCP, if you prefer to use UDP you need start listening on the specified port before sending register request to make sure you are not losing
@@ -235,6 +308,18 @@ Configure it to:
 - Mix audio from input streams `input_1` and `input_2`, where `input_1` volume is slightly lowered.  
 
 <Tabs queryString="lang">
+  <TabItem value="react" label="React">
+    ```tsx
+    function App() {
+      return (
+        <Tiles backgroundColor="#4d4d4d">
+          <InputStream inputId="input_1" volume={0.9} />
+          <InputStream inputId="input_2" />
+        </Tiles>
+      )
+    }
+    ```
+  </TabItem>
   <TabItem value="http" label="HTTP">
     ```http
     POST: /api/output/output_1/update

@@ -17,6 +17,26 @@ guide in the ["Configure inputs and output"](./quick-start.md#configure-inputs-a
 ### Transition that changes the `width` of an input stream
 
 <Tabs queryString="lang">
+  <TabItem value="react" label="React">
+    ```tsx
+    function App() {
+      const [beforeTransition, setBeforeTransition] = useState(true);
+      useEffect(() => {
+        setTimeout(() => setBeforeTransition(false), 2000);
+      }, []);
+
+      return (
+        <View backgroundColor="#4d4d4d">
+          <Rescaler
+            width={beforeTransition ? 480 : 1280}
+            transition={{ durationMs: 2000 }}>
+            <InputStream inputId="input_1" />
+          </Rescaler>
+        </View>
+      )
+    }
+    ```
+  </TabItem>
   <TabItem value="http" label="HTTP">
     Set initial scene for the transition:
     ```http
@@ -139,6 +159,29 @@ components that are not a part of the transition, but their size and position st
 Add a second input stream wrapped with `Rescaler`, but without any transition options.
 
 <Tabs queryString="lang">
+  <TabItem value="react" label="React">
+    ```tsx
+    function App() {
+      const [beforeTransition, setBeforeTransition] = useState(true);
+      useEffect(() => {
+        setTimeout(() => setBeforeTransition(false), 2000);
+      }, []);
+
+      return (
+        <View backgroundColor="#4d4d4d">
+          <Rescaler
+            width={beforeTransition ? 480 : 1280}
+            transition={{ durationMs: 2000 }}>
+            <InputStream inputId="input_1" />
+          </Rescaler>
+          <Rescaler>
+            <InputStream inputId="input_2" />
+          </Rescaler>
+        </View>
+      )
+    }
+    ```
+  </TabItem>
   <TabItem value="http" label="HTTP">
     ```http
     POST: /api/output/output_1/update
@@ -273,6 +316,30 @@ on the parent layout.
 Let's try the same example as in the first scenario with a single input, but instead, change the `Rescaler` component to be absolutely positioned in the second update.
 
 <Tabs queryString="lang">
+  <TabItem value="react" label="React">
+    ```tsx
+    function App() {
+      const [beforeTransition, setBeforeTransition] = useState(true);
+      useEffect(() => {
+        setTimeout(() => setBeforeTransition(false), 2000);
+      }, []);
+
+      return (
+        <View backgroundColor="#4d4d4d">
+          {beforeTransition ? (
+            <Rescaler width={480}>
+              <InputStream inputId="input_1" />
+            </Rescaler>
+          ) : (
+            <Rescaler width={1280} top={0} left={0} transition={{ durationMs: 2000 }} >
+              <InputStream inputId="input_1" />
+            </Rescaler>
+          )}
+        </View>
+      );
+    }
+    ```
+  </TabItem>
   <TabItem value="http" label="HTTP">
     ```http
     POST: /api/output/output_1/update
@@ -390,6 +457,55 @@ All of the above examples use default linear interpolation, but there are also a
 modes available.
 
 <Tabs queryString="lang">
+  <TabItem value="react" label="React">
+    ```tsx
+    function App() {
+      const [beforeTransition, setBeforeTransition] = useState(true);
+      useEffect(() => {
+        setTimeout(() => setBeforeTransition(false), 2000);
+      }, []);
+
+      const top = beforeTransition ? 0 : 540;
+
+      return (
+        <View backgroundColor="#4d4d4d">
+          <Rescaler
+            width={320} height={180} top={top} left={0}
+            transition={{ durationMs: 2000 }}>
+            <InputStream inputId="input_1" />
+          </Rescaler>
+          <Rescaler
+            width={320} height={180} top={top} left={320}
+            transition={{ durationMs: 2000, easingFunction: 'bounce' }}>
+            <InputStream inputId="input_2" />
+          </Rescaler>
+          <Rescaler
+            width={320} height={180} top={top} left={640}
+            transition={{
+              durationMs: 2000,
+              easingFunction: {
+                functionName: 'cubic_bezier',
+                points: [0.65, 0, 0.35, 1],
+              },
+            }}>
+            <InputStream inputId="input_3" />
+          </Rescaler>
+          <Rescaler
+            width={320} height={180} top={top} left={960}
+            transition={{
+              durationMs: 2000,
+              easingFunction: {
+                functionName: 'cubic_bezier',
+                points: [0.33, 1, 0.68, 1],
+              },
+            }}>
+            <InputStream inputId="input_4" />
+          </Rescaler>
+        </View>
+      );
+    }
+    ```
+  </TabItem>
   <TabItem value="http" label="HTTP">
     ```http
     POST: /api/output/output_1/update

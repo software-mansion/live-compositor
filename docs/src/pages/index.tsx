@@ -1,6 +1,8 @@
 import Link from '@docusaurus/Link';
 import Heading from '@theme/Heading';
 import Layout from '@theme/Layout';
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
 import clsx from 'clsx';
 import { FaServer } from 'react-icons/fa';
 import { FaBook, FaCode, FaDocker, FaGears, FaGithub, FaLink } from 'react-icons/fa6';
@@ -21,6 +23,7 @@ import { PropsWithChildren } from 'react';
 import { IconContext, IconType } from 'react-icons';
 import TypewriterComponent from 'typewriter-effect';
 import ExampleSceneJson from '../components/ExampleSceneJson';
+import ExampleSceneJsx from '../components/ExampleSceneJsx';
 import styles from './index.module.css';
 
 function HomepageHeader() {
@@ -107,12 +110,19 @@ function HowItWorks() {
         <br />
         3. Get the mixed streams via RTP
       </p>
-      <div className="row" style={{ alignItems: 'center' }}>
-        <div className="col col--6">
+      <div className="flex flex-row flex-wrap">
+        <div className="flex-1 mx-8 mt-20 min-w-[400px]">
           <img src={ComposingImg} alt="Composing" />
         </div>
-        <div className={clsx('col col--6', styles.sceneExample)}>
-          <ExampleSceneJson />
+        <div className="flex-1">
+          <Tabs>
+            <TabItem value="react" label="React" default>
+              <ExampleSceneJsx />
+            </TabItem>
+            <TabItem value="json" label="JSON">
+              <ExampleSceneJson />
+            </TabItem>
+          </Tabs>
         </div>
       </div>
     </div>
