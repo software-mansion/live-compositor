@@ -113,6 +113,7 @@ impl TextRendererNode {
                         bottom: self.resolution.height as i32,
                     },
                     default_color: Color::rgb(255, 255, 255),
+                    custom_glyphs: &[],
                 }],
                 swash_cache,
             )

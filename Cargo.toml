@@ -49,7 +49,7 @@ socket2 = "0.5.5"
 webrtc-util = "0.8.0"
 opus = "0.3.0"
 rubato = "0.15.0"
-glyphon = { git = "https://github.com/grovesNL/glyphon", branch = "main" }
+glyphon = "0.6.0"
 futures-util = "0.3.30"
 tokio = { version = "1", features = ["full"] }
 schemars = { git = "https://github.com/membraneframework-labs/schemars", rev = "a5ad1f9", features = [
