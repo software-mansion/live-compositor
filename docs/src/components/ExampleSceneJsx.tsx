@@ -3,7 +3,7 @@ import CodeBlock from '@theme/CodeBlock';
 const JSX_CODE = `import {
   InputStream,
   Image,
-  Rescaler
+  Rescaler,
   Shader,
   Text,
   View,
@@ -22,7 +22,9 @@ function Example() {
         <InputStream inputId="bunny" />
       </Rescaler>
       <View
-        bottom={0} left={0} height={120}
+        bottom={0}
+        left={0}
+        height={120}
         backgroundColor="#B3B3B3">
         <View />
         <Text fontSize={100} weight="bold" color="#000000">
