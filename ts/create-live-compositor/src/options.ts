@@ -1,6 +1,8 @@
-import { Choice, selectPrompt, textPrompt } from './utils/prompts';
+import { Choice, confirmPrompt, selectPrompt, textPrompt } from './utils/prompts';
 import path from 'path';
 import { PackageManager } from './utils/packageManager';
+import { spawn } from './utils/spawn';
+import chalk from 'chalk';
 
 export type ProjectOptions = {
   projectName: string;
@@ -30,6 +32,7 @@ const packageManagers: Choice<PackageManager>[] = [
 
 export async function resolveOptions(): Promise<ProjectOptions> {
   const projectName = await textPrompt('Project name: ', 'live-compositor-app');
+  await checkFFmpeg();
   // TODO: replace
   // const runtime = await selectPrompt('Select environment:', [
   //   { value: 'node', title: 'Node.js' },
@@ -82,4 +85,32 @@ export async function resolveNodeOptions(): Promise<NodeOptions> {
     type: 'node',
     templateName,
   };
+}
+
+export async function checkFFmpeg(): Promise<void> {
+  try {
+    await spawn('ffplay', ['-version'], { stdio: 'pipe' });
+    await spawn('ffmpeg', ['-version'], { stdio: 'pipe' });
+  } catch (err: any) {
+    if (err.stderr) {
+      console.log(chalk.red(err.stderr));
+    } else {
+      console.log(chalk.red(err.message));
+    }
+    console.log();
+    console.log(
+      chalk.yellow(
+        `Failed to run FFmpeg command. Live Compositor requires FFmpeg to work and generated starter project will use "ffplay" to show the LiveCompositor output stream.`
+      )
+    );
+    console.log(chalk.yellow(`Please install it before continuing.`));
+    if (process.platform === 'darwin') {
+      console.log(chalk.yellow(`Run "${chalk.bold('brew install ffmpeg')}" to install it.`));
+    }
+
+    if (!(await confirmPrompt('Do you want to continue regardless?'))) {
+      console.error('Aboring ...');
+      process.exit(1);
+    }
+  }
 }
