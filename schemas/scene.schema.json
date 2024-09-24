@@ -183,7 +183,7 @@
               "format": "float"
             },
             "transition": {
-              "description": "Defines how this component will behave during a scene update. This will only have an\neffect if the previous scene already contained a View component with the same id.",
+              "description": "Defines how this component will behave during a scene update. This will only have an\neffect if the previous scene already contained a `View` component with the same id.",
               "anyOf": [
                 {
                   "$ref": "#/definitions/Transition"
@@ -759,7 +759,7 @@
               "format": "float"
             },
             "transition": {
-              "description": "Defines how this component will behave during a scene update. This will only have an\neffect if the previous scene already contained a View component with the same id.",
+              "description": "Defines how this component will behave during a scene update. This will only have an\neffect if the previous scene already contained a `Rescaler` component with the same id.",
               "anyOf": [
                 {
                   "$ref": "#/definitions/Transition"

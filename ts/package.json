@@ -10,7 +10,7 @@
     "typecheck": "lerna run typecheck",
     "clean": "lerna run clean",
     "watch": "lerna run --parallel --stream watch --private",
-    "generate-types": "ts-node ./scripts/generateTypes.ts"
+    "generate-types": "node ./scripts/generateTypes.mjs"
   },
   "workspaces": [
     "live-compositor",

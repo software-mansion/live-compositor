@@ -40,7 +40,7 @@ function intoRegisterMp4Output(
 }
 
 function intoOutputVideoOptions(
-  video: Outputs.OutputRtpVideoOptions | Outputs.OutputMp4VideoOptions,
+  video: Outputs.RtpVideoOptions | Outputs.Mp4VideoOptions,
   initial: Api.Video
 ): Api.OutputVideoOptions {
   return {
@@ -62,7 +62,7 @@ function intoVideoEncoderOptions(
 }
 
 function intoOutputRtpAudioOptions(
-  audio: Outputs.OutputRtpAudioOptions,
+  audio: Outputs.RtpAudioOptions,
   initial: Api.Audio
 ): Api.OutputRtpAudioOptions {
   return {
@@ -73,7 +73,7 @@ function intoOutputRtpAudioOptions(
 }
 
 function intoOutputMp4AudioOptions(
-  audio: Outputs.OutputMp4AudioOptions,
+  audio: Outputs.Mp4AudioOptions,
   initial: Api.Audio
 ): Api.OutputMp4AudioOptions {
   return {
