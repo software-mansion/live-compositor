@@ -54,7 +54,8 @@ class LocallySpawnedInstance implements CompositorManager {
         LIVE_COMPOSITOR_DOWNLOAD_DIR: path.join(this.workingdir, 'download'),
         LIVE_COMPOSITOR_API_PORT: this.port.toString(),
         // silence scene updates logging
-        LIVE_COMPOSITOR_LOGGER_LEVEL: 'info,compositor_pipeline::pipeline=warn',
+        LIVE_COMPOSITOR_LOGGER_LEVEL:
+          'info,wgpu_hal=warn,wgpu_core=warn,compositor_pipeline::pipeline=warn',
       },
     }).catch(err => {
       console.error('LiveCompositor instance failed', err);
