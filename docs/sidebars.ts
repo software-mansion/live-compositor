@@ -4,8 +4,28 @@ const sidebars: SidebarsConfig = {
   sidebar: [
     {
       label: 'Getting started',
-      type: 'doc',
-      id: 'intro',
+      type: 'category',
+      link: {
+        type: 'doc',
+        id: 'intro',
+      },
+      items: [
+        {
+          type: 'doc',
+          id: 'intro/what-is-compositor',
+          label: 'What is Live Compositor?',
+        },
+        {
+          type: 'doc',
+          id: 'intro/how-to-use',
+          label: 'How to use it?',
+        },
+        {
+          type: 'doc',
+          id: 'intro/where-next',
+          label: 'Where to go next?',
+        },
+      ],
     },
     {
       type: 'category',
@@ -97,7 +117,12 @@ const sidebars: SidebarsConfig = {
         {
           type: 'ref',
           id: 'typescript/api',
-          label: 'LiveCompositor instance',
+          label: 'Overview',
+        },
+        {
+          type: 'doc',
+          id: 'typescript/instance',
+          label: 'new LiveCompositor()',
         },
         {
           type: 'doc',

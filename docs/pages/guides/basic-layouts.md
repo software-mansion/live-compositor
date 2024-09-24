@@ -27,6 +27,17 @@ After configuration you should see the following output:
 Update output to render a [`View`](../api/components/View.md) component with an [`InputStream`](../api/components/InputStream.md) as its child.
 
 <Tabs queryString="lang">
+  <TabItem value="react" label="React">
+    ```tsx
+    function App() {
+      return (
+        <View backgroundColor="#4d4d4d">
+          <InputStream inputId="input_1" />
+        </View>
+      )
+    }
+    ```
+  </TabItem>
   <TabItem value="http" label="HTTP">
     ```http
     POST: /api/output/output_1/update
@@ -76,6 +87,19 @@ The input stream in the example has a resolution `1920x1080` and it is rendered 
 Wrap an [`InputStream`](../api/components/InputStream.md) component with a [`Rescaler`](../api/components/Rescaler.md).
 
 <Tabs queryString="lang">
+  <TabItem value="react" label="React">
+    ```tsx
+    function App() {
+      return (
+        <View backgroundColor="#4d4d4d">
+          <Rescaler>
+            <InputStream inputId="input_1" />
+          </Rescaler>
+        </View>
+      )
+    }
+    ```
+  </TabItem>
   <TabItem value="http" label="HTTP">
     ```http
     POST: /api/output/output_1/update
@@ -137,6 +161,22 @@ The same effect (for single input) could be achieved by either:
 Add another [`InputStream`](../api/components/InputStream.md) wrapped with [`Rescaler`](../api/components/Rescaler.md).
 
 <Tabs queryString="lang">
+  <TabItem value="react" label="React">
+    ```tsx
+    function App() {
+      return (
+        <View backgroundColor="#4d4d4d">
+          <Rescaler>
+            <InputStream inputId="input_1" />
+          </Rescaler>
+          <Rescaler>
+            <InputStream inputId="input_2" />
+          </Rescaler>
+        </View>
+      )
+    }
+    ```
+  </TabItem>
   <TabItem value="http" label="HTTP">
     ```http
     POST: /api/output/output_1/update
@@ -205,6 +245,22 @@ In an example below we can see that:
 Specify `width` and `height` of one of the `Rescaler` components and position it using `top`/`right` options in the corner.
 
 <Tabs queryString="lang">
+  <TabItem value="react" label="React">
+    ```tsx
+    function App() {
+      return (
+        <View backgroundColor="#4d4d4d">
+          <Rescaler>
+            <InputStream inputId="input_1" />
+          </Rescaler>
+          <Rescaler width={320} height={180} top={20} right={20}>
+            <InputStream inputId="input_2" />
+          </Rescaler>
+        </View>
+      )
+    }
+    ```
+  </TabItem>
   <TabItem value="http" label="HTTP">
     ```http
     POST: /api/output/output_1/update

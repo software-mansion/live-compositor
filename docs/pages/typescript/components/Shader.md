@@ -6,7 +6,7 @@ sidebar_position: 6
 `Shader` applies transformation defined via WGSL shader on its children. [Learn more.](../../concept/shaders.md)
 
 :::note
-To use this component, you need to first register the shader with matching `shaderId` using [`LiveCompositor.registerShader`](../api.md#register-shader) method.
+To use this component, you need to first register the shader with matching `shaderId` using [`LiveCompositor.registerShader`](../instance.md#register-shader) method.
 :::
 
 ## ShaderProps
@@ -26,7 +26,7 @@ type ShaderProps = {
 
 - `id` - Id of a component. Defaults to value produced by `useId` hook.
 - `children` - List of component's children.
-- `shaderId` - Id of a shader. It identifies a shader registered using a [`LiveCompositor.registerShader`](../api.md#register-shader) method.
+- `shaderId` - Id of a shader. It identifies a shader registered using a [`LiveCompositor.registerShader`](../instance.md#register-shader) method.
 - `shaderParam` - Object that will be serialized into a `struct` and passed inside the shader as:
   
   ```wgsl

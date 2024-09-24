@@ -26,7 +26,7 @@ export type EasingFunction =
   | { functionName: 'linear' }
   | { functionName: 'bounce' }
   | {
-      functionName: 'cubic-bezier';
+      functionName: 'cubic_bezier';
       points: [number, number, number, number];
     };
 
@@ -38,7 +38,7 @@ export function intoApiEasingFunction(easing: EasingFunction): Api.EasingFunctio
     (easing.functionName === 'linear' || easing.functionName == 'bounce')
   ) {
     return { function_name: easing.functionName };
-  } else if (typeof easing === 'object' && easing.functionName === 'cubic-bezier') {
+  } else if (typeof easing === 'object' && easing.functionName === 'cubic_bezier') {
     return {
       function_name: 'cubic_bezier',
       points: easing.points,

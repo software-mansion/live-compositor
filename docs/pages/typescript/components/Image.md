@@ -6,7 +6,7 @@ sidebar_position: 7
 A component for rendering images.
 
 :::note
-To use this component, you need to first register the image with matching `imageId` using [`LiveCompositor.registerImage`](../api.md#register-image) request.
+To use this component, you need to first register the image with matching `imageId` using [`LiveCompositor.registerImage`](../instance.md#register-image) request.
 :::
 
 ## ImageProps
@@ -21,4 +21,4 @@ type ImageProps = {
 
 #### Properties
 - `id` - Id of a component. Defaults to value produced by `useId` hook.
-- `imageId` - Id of an image. It identifies an image registered using a [`LiveCompositor.registerImage`](../api.md#register-image) method.
+- `imageId` - Id of an image. It identifies an image registered using a [`LiveCompositor.registerImage`](../instance.md#register-image) method.
