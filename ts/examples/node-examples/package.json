@@ -15,11 +15,11 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@live-compositor/node": "0.1.0-rc.4",
+    "@live-compositor/node": "0.1.0-rc.5",
     "@types/fs-extra": "^11.0.4",
     "@types/node": "^20.14.10",
     "fs-extra": "^11.2.0",
-    "live-compositor": "0.1.0-rc.4",
+    "live-compositor": "0.1.0-rc.5",
     "node-fetch": "^2.6.7",
     "ts-node": "^10.9.2"
   }
