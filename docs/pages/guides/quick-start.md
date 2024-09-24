@@ -17,8 +17,8 @@ This guide will explain basic LiveCompositor setup.
     import LiveCompositor from "@live-compositor/node"
 
     async function start() {
-        const compositor = new LiveCompositor();
-        await compositor.init();
+      const compositor = new LiveCompositor();
+      await compositor.init();
     }
     ```
   </TabItem>
@@ -61,12 +61,13 @@ This guide will explain basic LiveCompositor setup.
       port: 9001,
       video: {
         decoder: "ffmpeg_h264"
+      },
+      audio: {
+        decoder: "opus"
       }
     })
     ```
     After `registerInput` call is done you can establish the connection and start sending the stream. Check out [how to deliver input streams](./deliver-input.md) to learn more.
-
-    In this example we are using RTP over TCP, but it could be easily replaced by UDP.
   </TabItem>
   <TabItem value="http" label="HTTP">
     ```http
@@ -80,12 +81,13 @@ This guide will explain basic LiveCompositor setup.
       "video": {
         "decoder": "ffmpeg_h264"
       }
+      "audio": {
+        "decoder": "opus"
+      }
     }
     ```
 
     After receiving the response you can establish the connection and start sending the stream. Check out [how to deliver input streams](./deliver-input.md) to learn more.
-
-    In this example we are using RTP over TCP, but it could be easily replaced by UDP.
   </TabItem>
   <TabItem value="membrane" label="Membrane Framework">
     ```elixir
@@ -121,12 +123,13 @@ This guide will explain basic LiveCompositor setup.
       port: 9002,
       video: {
         decoder: "ffmpeg_h264"
+      },
+      audio: {
+        decoder: "opus"
       }
     })
     ```
     After `registerInput` call is done you can establish the connection and start sending the stream. Check out [how to deliver input streams](./deliver-input.md) to learn more.
-
-    In this example we are using RTP over TCP, but it could be easily replaced by UDP.
   </TabItem>
   <TabItem value="http" label="HTTP">
     ```http
@@ -139,13 +142,14 @@ This guide will explain basic LiveCompositor setup.
       "port": 9002,
       "video": {
         "decoder": "ffmpeg_h264"
+      },
+      "audio": {
+        "decoder": "opus"
       }
     }
     ```
 
     After receiving the response you can establish the connection and start sending the stream. Check out [how to deliver input streams](./deliver-input.md) to learn more.
-
-    In this example we are using RTP over TCP, but it could be easily replaced by UDP.
   </TabItem>
   <TabItem value="membrane" label="Membrane Framework">
     ```elixir
@@ -209,8 +213,9 @@ Configure it to:
     ```
     After `registerOutput` is done you can establish the connection and start listening for the stream. Check out [how to receive output streams](./receive-output.md) to learn more.
 
-    In this example we are using RTP over TCP, if you prefer to use UDP you need start listening on the specified
-    port before registering output to make sure you are not losing first frames.
+    `View` component does not have any children, so on the output you should see just a blank screen
+    of a specified color as shown below. There are no `InputStream` components in the scene and 
+    `useAudioInput` hook was not used, so output audio will be silent.
   </TabItem>
   <TabItem value="http" label="HTTP">
     ```http
@@ -247,8 +252,9 @@ Configure it to:
     ```
     After receiving the response you can establish the connection and start listening for the stream. Check out [how to receive output streams](./receive-output.md) to learn more.
 
-    In this example we are using RTP over TCP, if you prefer to use UDP you need start listening on the specified port before sending register request to make sure you are not losing
-    first frames.
+    `View` component does not have any children, so on the output you should see just a blank screen
+    of a specified color as shown below. The `initial.inputs` list in audio config is empty, so the
+    output audio will be silent.
   </TabItem>
   <TabItem value="membrane" label="Membrane Framework">
     ```elixir
@@ -289,11 +295,12 @@ Configure it to:
     where `video_output_1_spec` and `audio_output_1_spec` are elements that can consume H264 video and Opus audio respectively.
 
     You can configure output framerate and sample rate using [`framerate` and `output_sample_rate` bin options](https://hexdocs.pm/membrane_live_compositor_plugin/Membrane.LiveCompositor.html#module-bin-options).
+    
+    `View` component does not have any children, so on the output you should see just a blank screen
+    of a specified color as shown below. The `initial.inputs` list in audio config is empty, so the
+    output audio will be silent.
   </TabItem>
 </Tabs>
-
-`View` component does not have any children, so on the output you should see just a blank screen of a specified color as shown below.
-The `initial.inputs` list in audio config is empty, so the output audio will be silent.
 
 <div style={{textAlign: 'center'}}>
     <img src={QuickStartEmpty} style={{ width: 600 }} />
@@ -304,7 +311,7 @@ The `initial.inputs` list in audio config is empty, so the output audio will be 
 ## Update output
 
 Configure it to:
-- Show input streams `input_1` and `input_2` using [`Tiles`](../api/components/Tiles.md) component.
+- Show input streams `input_1` and `input_2` using [`Tiles`](../typescript/components/Tiles.md) component.
 - Mix audio from input streams `input_1` and `input_2`, where `input_1` volume is slightly lowered.  
 
 <Tabs queryString="lang">

@@ -15,7 +15,7 @@ This guide will explain how to create simple scene that is combining input strea
 Start the compositor and configure 2 input streams and a single output stream as described in the "Simple scene"
 guide in the ["Configure inputs and output"](./quick-start.md#configure-inputs-and-output) section.
 
-After configuration you should see the following output:
+After configuration, you should see the following output:
 
 <div style={{textAlign: 'center'}}>
     <img src={LayoutsEmpty} style={{ width: 600 }} />
@@ -24,7 +24,7 @@ After configuration you should see the following output:
 
 ## Update scene to show an input
 
-Update output to render a [`View`](../api/components/View.md) component with an [`InputStream`](../api/components/InputStream.md) as its child.
+Update output to render a `View` component with an `InputStream` as its child.
 
 <Tabs queryString="lang">
   <TabItem value="react" label="React">
@@ -75,7 +75,7 @@ Update output to render a [`View`](../api/components/View.md) component with an 
   </TabItem>
 </Tabs>
 
-The input stream in the example has a resolution `1920x1080` and it is rendered on the `1270x720` output. As a result only part of the stream is visible.
+The input stream in the example has a resolution `1920x1080`, but it is rendered on the `1270x720` output. As a result only part of the stream is visible.
 
 <div style={{textAlign: 'center'}}>
     <img src={LayoutsOverflow} style={{ width: 600 }} />
@@ -84,7 +84,7 @@ The input stream in the example has a resolution `1920x1080` and it is rendered 
 
 ## Resize input stream to fit inside the output
 
-Wrap an [`InputStream`](../api/components/InputStream.md) component with a [`Rescaler`](../api/components/Rescaler.md).
+Wrap an `InputStream` component with a `Rescaler`.
 
 <Tabs queryString="lang">
   <TabItem value="react" label="React">
@@ -158,7 +158,7 @@ The same effect (for single input) could be achieved by either:
 
 ## Show both inputs side by side
 
-Add another [`InputStream`](../api/components/InputStream.md) wrapped with [`Rescaler`](../api/components/Rescaler.md).
+Add another `InputStream` wrapped with `Rescaler`.
 
 <Tabs queryString="lang">
   <TabItem value="react" label="React">
@@ -321,7 +321,7 @@ Specify `width` and `height` of one of the `Rescaler` components and position it
 </Tabs>
 
 When you specify `top`/`right` options on the `Rescaler` component, the `View` component does not take that component
-into account when calculating the row layout of its children. See [absolute positioning](../api/components/View.md#absolute-positioning) to learn more.
+into account when calculating the row layout of its children. See [absolute positioning](../typescript/components/View.md#absolute-positioning) to learn more.
 
 As a result:
 - The first child extends to the full width of a parent.

@@ -36,6 +36,8 @@ guide in the ["Configure inputs and output"](./quick-start.md#configure-inputs-a
       )
     }
     ```
+
+    After 2 seconds component changes state where width changes from 480 to 1280.
   </TabItem>
   <TabItem value="http" label="HTTP">
     Set initial scene for the transition:
@@ -88,6 +90,11 @@ guide in the ["Configure inputs and output"](./quick-start.md#configure-inputs-a
       }
     }
     ```
+    In the first update request, you can see that the rescaler has a width of 480, and in the second one, it is changed
+    to 1280 and `transition.duration_ms: 2000` was added.
+    
+    The component must have the same `"id"` in both the initial state and the update that starts the
+    transition, otherwise it will switch immediately to the new state without a transition.
   </TabItem>
   <TabItem value="membrane" label="Membrane Framework">
     Set initial scene for the transition and after few seconds update a component
@@ -137,14 +144,15 @@ guide in the ["Configure inputs and output"](./quick-start.md#configure-inputs-a
       {[notify_child: {:live_compositor, request}], state}
     end
     ```
+
+    In the first update request, you can see that the rescaler has a width of 480, and in the second one, it is changed
+    to 1280 and `transition.duration_ms: 2000` was added.
+    
+    The component must have the same `"id"` in both the initial state and the update that starts the
+    transition, otherwise it will switch immediately to the new state without a transition.
   </TabItem>
 </Tabs>
 
-In the first update request, you can see that the rescaler has a width of 480, and in the second one, it is changed
-to 1280 and `transition.duration_ms: 2000` was added.
-
-The component must have the same `"id"` in both the initial state and the update that starts the
-transition, otherwise it will switch immediately to the new state without a transition.
 
 <div style={{textAlign: 'center'}}>
     <img src={SimpleTransition} style={{ width: 600 }} />

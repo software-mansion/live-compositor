@@ -1,3 +1,6 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
 # Component
 
 A component is a basic block used to define how video streams are composed.
@@ -7,9 +10,9 @@ A component is a basic block used to define how video streams are composed.
 Layout component is a type of component responsible for defining the size and position of other components.
 
 Currently, we support the following layout components:
-- [View](../api/components/View)
-- [Tiles](../api/components/Tiles)
-- [Rescaler](../api/components/Rescaler)
+- `View` - ([`TypeScript`](../typescript/components/View.md), [`HTTP`](../api/components/View.md))
+- `Tiles` - ([`TypeScript`](../typescript/components/Tiles.md), [`HTTP`](../api/components/Tiles.md))
+- `Rescaler` - ([`TypeScript`](../typescript/components/Rescaler.md), [`HTTP`](../api/components/Rescaler.md))
 
 Learn more about layouts [here](./layouts).
 
@@ -24,20 +27,41 @@ For example, if you create a `Shader` component with a `View` component as its c
 Component tree that represents what will be rendered for a specific output.
 
 Example scene:
-```typescript
-{
-    "type": "view",
-    "background_color_rgba": "#0000FFFF",
-    "children": [
-        {
-            "type": "input-stream",
-            "input_id": "example_input_1",
-        }
-    ]
-}
-```
 
-In the example above, we define a scene where an input stream `example_input_1` is rendered inside a [`View` component](../api/components/View.md). You can configure that scene for a specific output in the [`RegisterOutputStream` request](../api/routes.md#register-output) using `initial_scene` field or in the [`UpdateScene` request](../api/routes.md#update-output).
+<Tabs queryString="lang">
+  <TabItem value="react" label="React">
+    ```tsx
+    function App() {
+      return (
+        <View backgroundColor="#0000FF">
+          <InputStream inputId="example_input_1" />
+        </View>
+      )
+    }
+    ```
+
+    In the example above, we define a scene where an [`InputStream`](../typescript/components/InputStream.md) `example_input_1` is rendered inside a [`View` component](../typescript/components/View.md).
+  </TabItem>
+  <TabItem value="http" label="HTTP">
+    ```typescript
+    {
+      "type": "view",
+      "background_color_rgba": "#0000FFFF",
+      "children": [
+        {
+          "type": "input-stream",
+          "input_id": "example_input_1"
+        }
+      ]
+    }
+    ```
+
+    In the example above, we define a scene where an input stream `example_input_1` is rendered inside a [`View` component](../api/components/View.md). You can configure that scene for a specific output in the [`RegisterOutputStream` request](../api/routes.md#register-output) using `video.root` field or in the [`UpdateScene` request](../api/routes.md#update-output).
+  </TabItem>
+</Tabs>
+
+
+
 
 :::note
 You need to register `"example_input_1"` before using it in the scene definition.
@@ -48,9 +72,9 @@ You need to register `"example_input_1"` before using it in the scene definition
 Renderers are entities capable of producing frames (in some cases based on some provided input). The renderer could be a WGSL shader, web renderer instance, or an image. They are not directly part of the scene definition. Instead, components are using them as part of their internal implementation.
 
 For example:
-- [The `Shader` component](../api/components/Shader) has a field `shader_id` that identifies a [`Shader` renderer](../api/renderers/shader).
-- [The `Image` component](../api/components/Image) has a field `image_id` that identifies an [`Image` renderer](../api/renderers/image).
+- When used via TypeScript SDK [the `Shader` component](../typescript/components/Shader) has a field `shaderId` that identifies a [`Shader` renderer](../typescript/renderers/shader).
+- When used via TypeScript SDK [the `Image` component](../typescript/components/Image) has a field `imageId` that identifies an [`Image` renderer](../typescript/renderers/image).
+- When used via HTTP API [the `Shader` component](../api/components/Shader) has a field `shader_id` that identifies a [`Shader` renderer](../api/renderers/shader).
 
-Every renderer, except [`WebRenderer`](../api/renderers/web), can be used in multiple components. For example, you can create a single `Shader` renderer that applies some effect and use that `shader_id` in multiple `Shader` components.
-
+Every renderer, except [`WebRenderer`](../api/renderers/web), can be used in multiple components. For example, you can create a single `Shader` renderer that applies some effect and use that `shader_id`/`shaderId` in multiple `Shader` components.
 

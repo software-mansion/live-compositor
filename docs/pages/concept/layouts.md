@@ -3,9 +3,9 @@
 Layout components define the size, position, and simple styling of other components.
 
 Currently, we support the following layout components:
-- [View](../api/components/View)
-- [Tiles](../api/components/Tiles)
-- [Rescaler](../api/components/Rescaler)
+- `View` - ([`TypeScript`](../typescript/components/View.md), [`HTTP`](../api/components/View.md))
+- `Tiles` - ([`TypeScript`](../typescript/components/Tiles.md), [`HTTP`](../api/components/Tiles.md))
+- `Rescaler` - ([`TypeScript`](../typescript/components/Rescaler.md), [`HTTP`](../api/components/Rescaler.md))
 
 ## Common properties
 
