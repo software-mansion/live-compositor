@@ -40,7 +40,7 @@ export async function resolveOptions(): Promise<ProjectOptions> {
   // ] as const);
   const runtime: Runtime = 'node' as any;
 
-  const packageManager = await selectPrompt('Select package manager: ', packageManagers);
+  const packageManager = await resolvePackageManager();
 
   let runtimeOptions: ProjectOptions['runtime'];
   if (runtime === 'browser') {
@@ -78,7 +78,7 @@ export async function resolveBrowserOptions(): Promise<BrowserOptions> {
 
 export async function resolveNodeOptions(): Promise<NodeOptions> {
   const templateName = await selectPrompt('Select project template: ', [
-    { title: 'minimal', value: 'node-minimal' },
+    { title: 'Minimal example', value: 'node-minimal' },
     { title: 'Express.js + Redux', value: 'node-express-redux' },
   ] as const);
   return {
@@ -113,4 +113,16 @@ export async function checkFFmpeg(): Promise<void> {
       process.exit(1);
     }
   }
+}
+
+export async function resolvePackageManager(): Promise<PackageManager> {
+  const nodeUserAgent = process.env.npm_config_user_agent;
+  if (nodeUserAgent?.startsWith('pnpm')) {
+    return 'pnpm';
+  }
+  if (nodeUserAgent?.startsWith('yarn')) {
+    return 'yarn';
+  }
+
+  return await selectPrompt('Select package manager: ', packageManagers);
 }

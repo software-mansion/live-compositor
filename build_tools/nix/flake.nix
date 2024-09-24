@@ -52,12 +52,18 @@
             gst_all_1.gst-plugins-ugly
             gst_all_1.gst-libav
 
+            # Node.js
             nodejs_20
+            pnpm
+            yarn
+
+            # Rust
             rustfmt
             clippy
             cargo-watch
             cargo-nextest
             rust-analyzer
+
             clang-tools
             llvmPackages.bintools
           ];
