@@ -1,6 +1,6 @@
 {
   "name": "@live-compositor/browser-render",
-  "version": "0.1.0-rc.3",
+  "version": "0.1.0-rc.4",
   "main": "dist/index.js",
   "scripts": {
     "lint": "eslint .",
@@ -8,7 +8,8 @@
     "watch": "rollup -w --no-watch.clearScreen -c",
     "build-wasm": "node ./scripts/buildWasm.mjs",
     "build": "rollup -c",
-    "clean": "rimraf dist"
+    "clean": "rimraf dist",
+    "prepublishOnly": "npm run clean && npm run build-wasm && npm run build"
   },
   "author": "",
   "license": "BUSL-1.1",
@@ -21,7 +22,7 @@
     "wasm-pack": "^0.13.0"
   },
   "peerDependencies": {
-    "live-compositor": "0.1.0-rc.3"
+    "live-compositor": "0.1.0-rc.4"
   },
   "nx": {
     "targets": {

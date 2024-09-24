@@ -10,6 +10,9 @@ export function spawn(command: string, args: string[], options: SpawnOptions): S
     ...options,
   });
   const promise = new Promise((res, rej) => {
+    child.on('error', err => {
+      rej(err);
+    });
     child.on('exit', code => {
       if (code === 0) {
         res();
