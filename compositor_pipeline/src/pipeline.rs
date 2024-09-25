@@ -110,27 +110,61 @@ pub struct Pipeline {
     is_started: bool,
 }
 
-pub struct PreinitializedContext {
+pub struct GraphicsContext {
     pub device: Arc<wgpu::Device>,
     pub queue: Arc<wgpu::Queue>,
 
     #[cfg(target_os = "linux")]
-    pub vulkan_ctx: Arc<vk_video::VulkanCtx>,
+    pub vulkan_ctx: Option<Arc<vk_video::VulkanCtx>>,
 }
 
-impl PreinitializedContext {
+impl GraphicsContext {
     #[cfg(target_os = "linux")]
-    pub fn new(features: wgpu::Features, limits: wgpu::Limits) -> Result<Self, InitPipelineError> {
-        let vulkan_ctx = Arc::new(vk_video::VulkanCtx::new(features, limits)?);
-        Ok(PreinitializedContext {
-            device: vulkan_ctx.wgpu_ctx.device.clone(),
-            queue: vulkan_ctx.wgpu_ctx.queue.clone(),
-            vulkan_ctx,
-        })
+    pub fn new(
+        force_gpu: bool,
+        features: wgpu::Features,
+        limits: wgpu::Limits,
+    ) -> Result<Self, InitPipelineError> {
+        use compositor_render::{create_wgpu_ctx, error::InitRendererEngineError};
+
+        let vulkan_features = features
+            | wgpu::Features::TEXTURE_BINDING_ARRAY
+            | wgpu::Features::PUSH_CONSTANTS
+            | wgpu::Features::TEXTURE_FORMAT_NV12;
+
+        let limits = if limits.max_push_constant_size < 128 {
+            wgpu::Limits {
+                max_push_constant_size: 128,
+                ..limits
+            }
+        } else {
+            limits
+        };
+
+        match vk_video::VulkanCtx::new(vulkan_features, limits) {
+            Ok(ctx) => Ok(GraphicsContext {
+                device: ctx.wgpu_ctx.device.clone(),
+                queue: ctx.wgpu_ctx.queue.clone(),
+                vulkan_ctx: Some(ctx.into()),
+            }),
+
+            Err(err) => {
+                info!("Cannot initialize vulkan video decoding context. Reason: {err}. Initializing without vulkan video support.");
+
+                let (device, queue) = create_wgpu_ctx(force_gpu, features)
+                    .map_err(InitRendererEngineError::FailedToInitWgpuCtx)?;
+
+                Ok(GraphicsContext {
+                    device,
+                    queue,
+                    vulkan_ctx: None,
+                })
+            }
+        }
     }
 }
 
-impl std::fmt::Debug for PreinitializedContext {
+impl std::fmt::Debug for GraphicsContext {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("PreinitializedContext")
             .field("device", &self.device)
@@ -149,7 +183,7 @@ pub struct Options {
     pub output_sample_rate: u32,
     pub wgpu_features: WgpuFeatures,
     pub load_system_fonts: Option<bool>,
-    pub wgpu_ctx: Option<PreinitializedContext>,
+    pub wgpu_ctx: Option<GraphicsContext>,
 }
 
 #[derive(Clone)]
@@ -159,7 +193,7 @@ pub struct PipelineCtx {
     pub download_dir: Arc<PathBuf>,
     pub event_emitter: Arc<EventEmitter>,
     #[cfg(target_os = "linux")]
-    pub vulkan_ctx: Arc<vk_video::VulkanCtx>,
+    pub vulkan_ctx: Option<Arc<vk_video::VulkanCtx>>,
 }
 
 impl std::fmt::Debug for PipelineCtx {
@@ -179,10 +213,11 @@ impl Pipeline {
             Some(ctx) => Some(ctx),
             None => {
                 if cfg!(target_os = "linux") {
-                    Some(PreinitializedContext::new(opts.wgpu_features | wgpu::Features::PUSH_CONSTANTS | wgpu::Features::TEXTURE_BINDING_ARRAY | wgpu::Features::UNIFORM_BUFFER_AND_STORAGE_TEXTURE_ARRAY_NON_UNIFORM_INDEXING | wgpu::Features::SAMPLED_TEXTURE_AND_STORAGE_BUFFER_ARRAY_NON_UNIFORM_INDEXING, wgpu::Limits {
-                        max_push_constant_size: 128,
-                        ..Default::default()
-                    })?)
+                    Some(GraphicsContext::new(
+                        opts.force_gpu,
+                        opts.wgpu_features,
+                        Default::default(),
+                    )?)
                 } else {
                     None
                 }
@@ -222,9 +257,7 @@ impl Pipeline {
                 download_dir: download_dir.into(),
                 event_emitter,
                 #[cfg(target_os = "linux")]
-                vulkan_ctx: preinitialized_ctx
-                    .map(|ctx| ctx.vulkan_ctx)
-                    .expect("This should not fail on linux"),
+                vulkan_ctx: preinitialized_ctx.and_then(|ctx| ctx.vulkan_ctx),
             },
         };
 

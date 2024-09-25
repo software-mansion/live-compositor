@@ -136,6 +136,9 @@ pub enum InputInitError {
     #[cfg(target_os = "linux")]
     #[error(transparent)]
     VulkanDecoderError(#[from] vk_video::DecoderError),
+
+    #[error("Vulkan context is not available. Cannot create a vulkan video decoder")]
+    VulkanContextRequiredForVulkanDecoder,
 }
 
 pub enum ErrorType {

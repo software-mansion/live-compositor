@@ -25,8 +25,12 @@ pub fn start_video_decoder_thread(
         }
 
         (VideoCodec::H264, VideoDecoder::VulkanVideo) => {
+            let Some(vulkan_ctx) = pipeline_ctx.vulkan_ctx.as_ref().map(|ctx| ctx.clone()) else {
+                return Err(InputInitError::VulkanContextRequiredForVulkanDecoder);
+            };
+
             vulkan_video::start_vulkan_video_decoder_thread(
-                pipeline_ctx.vulkan_ctx.clone(),
+                vulkan_ctx,
                 chunks_receiver,
                 frame_sender,
                 input_id,

@@ -17,8 +17,8 @@ use compositor_pipeline::{
             OutputOptions, OutputProtocolOptions,
         },
         rtp::RequestedPort,
-        Options, Pipeline, PipelineOutputEndCondition, PreinitializedContext,
-        RegisterOutputOptions, VideoCodec,
+        GraphicsContext, Options, Pipeline, PipelineOutputEndCondition, RegisterOutputOptions,
+        VideoCodec,
     },
     queue::{PipelineEvent, QueueInputOptions},
 };
@@ -44,14 +44,7 @@ fn main() {
         level: "info,wgpu_hal=warn,wgpu_core=warn".to_string(),
     });
     let config = read_config();
-    let ctx = PreinitializedContext::new(
-        wgpu::Features::TEXTURE_BINDING_ARRAY | wgpu::Features::PUSH_CONSTANTS,
-        wgpu::Limits {
-            max_push_constant_size: 128,
-            ..Default::default()
-        },
-    )
-    .unwrap();
+    let ctx = GraphicsContext::new(false, Default::default(), Default::default()).unwrap();
     let (wgpu_device, wgpu_queue) = (ctx.device.clone(), ctx.queue.clone());
     // no chromium support, so we can ignore _event_loop
     let (pipeline, _event_loop) = Pipeline::new(Options {
