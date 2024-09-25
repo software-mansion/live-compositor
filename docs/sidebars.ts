@@ -59,6 +59,11 @@ const sidebars: SidebarsConfig = {
           id: 'guides/view-transition',
           label: 'Transitions (View/Rescaler)',
         },
+        {
+          type: 'doc',
+          id: 'guides/web',
+          label: 'Web Rendering',
+        },
       ],
     },
     {
@@ -73,7 +78,6 @@ const sidebars: SidebarsConfig = {
         'concept/component',
         'concept/layouts',
         'concept/shaders',
-        'concept/web',
       ],
     },
     {
