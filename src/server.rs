@@ -10,6 +10,7 @@ use tokio::runtime::Runtime;
 use crate::{config::read_config, logger::init_logger, routes::routes, state::ApiState};
 
 pub fn run() {
+    listen_for_parent_termination();
     let config = read_config();
     init_logger(config.logger.clone());
 
@@ -57,4 +58,33 @@ pub fn run_api(state: ApiState, should_close: Receiver<()>) -> tokio::io::Result
             })
             .await
     })
+}
+
+#[cfg(target_os = "linux")]
+fn listen_for_parent_termination() {
+    use libc::{prctl, SIGTERM};
+    unsafe {
+        prctl(libc::PR_SET_PDEATHSIG, SIGTERM);
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn listen_for_parent_termination() {
+    use libc::SIGTERM;
+    use std::{os::unix::process::parent_id, time::Duration};
+    let ppid = parent_id();
+
+    thread::Builder::new()
+        .name("Parent process pid change".to_string())
+        .spawn(move || loop {
+            let current_pid = parent_id();
+            if current_pid != ppid {
+                info!("Compositor parent process was terminated.");
+                unsafe {
+                    libc::kill(std::process::id() as libc::c_int, SIGTERM);
+                }
+            }
+            thread::sleep(Duration::from_secs(1));
+        })
+        .unwrap();
 }
