@@ -1,0 +1,1133 @@
+use std::time::Duration;
+
+use anyhow::Result;
+use compositor_api::types::Resolution;
+use integration_tests::examples::{self, download_file, run_example};
+use serde_json::json;
+
+const BUNNY_URL: &str =
+    "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+const TV_PATH: &str = "./examples/assets/tv_looped.mp4";
+const MEMBRANE_PATH: &str = "./examples/assets/membrane.mp4";
+const CODE_VIDEO_PATH: &str = "./examples/assets/combined.mp4";
+const JELLY_PATH: &str = "./examples/assets/jelly.mp4";
+const SQUIRTLE_PATH: &str = "./examples/assets/squirtle.mp4";
+const PAWEL_PATH: &str = "./examples/assets/pawel.mp4";
+const GAMEPLAY_PATH: &str = "./examples/assets/gameplay.mp4";
+
+const BG_PATH: &str = "./examples/assets/bg.png";
+const NEWS_PATH: &str = "./examples/assets/news_room.jpeg";
+const CODE_BG_PATH: &str = "./examples/assets/code_bg.png";
+const BROADCAST_BG_PATH: &str = "./examples/assets/broadcast_bg.png";
+const VC_BG_PATH: &str = "./examples/assets/vc_bg.png";
+const LS_BG_PATH: &str = "./examples/assets/ls_bg.png";
+const ENDING_BG_PATH: &str = "./examples/assets/ending.png";
+
+const VIDEO_RESOLUTION: Resolution = Resolution {
+    width: 1920,
+    height: 1080,
+};
+
+fn main() {
+    run_example(client_code);
+}
+
+fn client_code() -> Result<()> {
+    const BUNNY_PATH: &str = "./examples/assets/bunny_out.mp4";
+    download_file(BUNNY_URL, BUNNY_PATH)?;
+
+    examples::post(
+        "input/bunny/register",
+        &json!({
+            "type": "mp4",
+            "path": BUNNY_PATH
+        }),
+    )?;
+
+    examples::post(
+        "input/tv/register",
+        &json!({
+            "type": "mp4",
+            "path": TV_PATH,
+            "required": true
+        }),
+    )?;
+
+    examples::post(
+        "input/code/register",
+        &json!({
+            "type": "mp4",
+            "path": CODE_VIDEO_PATH,
+            "offset_ms": 9000,
+            "required": true
+        }),
+    )?;
+
+    examples::post(
+        "input/membrane/register",
+        &json!({
+            "type": "mp4",
+            "path": MEMBRANE_PATH,
+            "offset_ms": 45000,
+            "required": true
+        }),
+    )?;
+
+    examples::post(
+        "input/jelly/register",
+        &json!({
+            "type": "mp4",
+            "path": JELLY_PATH,
+            "offset_ms": 45000,
+            "required": true
+        }),
+    )?;
+
+    examples::post(
+        "input/squirtle/register",
+        &json!({
+            "type": "mp4",
+            "path": SQUIRTLE_PATH,
+            "offset_ms": 45000,
+            "required": true
+        }),
+    )?;
+
+    examples::post(
+        "input/pawel/register",
+        &json!({
+            "type": "mp4",
+            "path": PAWEL_PATH,
+            "offset_ms": 50000,
+            "required": true
+        }),
+    )?;
+
+    examples::post(
+        "input/gameplay/register",
+        &json!({
+            "type": "mp4",
+            "path": GAMEPLAY_PATH,
+            "offset_ms": 50000,
+            "required": true
+        }),
+    )?;
+
+    examples::post(
+        "shader/showcase_3d/register",
+        &json!({
+            "source": include_str!("./showcase_3d.wgsl")
+        }),
+    )?;
+
+    examples::post(
+        "shader/showcase_code/register",
+        &json!({
+            "source": include_str!("./showcase_code.wgsl")
+        }),
+    )?;
+
+    examples::post(
+        "shader/round_corners_20/register",
+        &json!({
+            "source": include_str!("./round_corners_20.wgsl")
+        }),
+    )?;
+
+    examples::post(
+        "shader/round_corners_50/register",
+        &json!({
+            "source": include_str!("./round_corners_50.wgsl")
+        }),
+    )?;
+
+    examples::post(
+        "shader/round_corners_100/register",
+        &json!({
+            "source": include_str!("./round_corners_100.wgsl")
+        }),
+    )?;
+
+    examples::post(
+        "shader/round_corners_dynamic/register",
+        &json!({
+            "source": include_str!("./round_corners_dynamic.wgsl")
+        }),
+    )?;
+
+    examples::post(
+        "shader/code_bg/register",
+        &json!({
+            "source": include_str!("./code_bg.wgsl")
+        }),
+    )?;
+
+
+    examples::post(
+        "image/background/register",
+        &json!({
+            "path": BG_PATH,
+            "asset_type": "png"
+        }),
+    )?;
+
+    examples::post(
+        "image/news_room/register",
+        &json!({
+            "path": NEWS_PATH,
+            "asset_type": "jpeg"
+        }),
+    )?;
+
+    examples::post(
+        "image/code_bg/register",
+        &json!({
+            "path": CODE_BG_PATH,
+            "asset_type": "png"
+        }),
+    )?;
+
+    examples::post(
+        "image/broadcast_bg/register",
+        &json!({
+            "path": BROADCAST_BG_PATH,
+            "asset_type": "png"
+        }),
+    )?;
+
+    examples::post(
+        "image/vc_bg/register",
+        &json!({
+            "path": VC_BG_PATH,
+            "asset_type": "png"
+        }),
+    )?;
+
+    examples::post(
+        "image/ls_bg/register",
+        &json!({
+            "path": LS_BG_PATH,
+            "asset_type": "png"
+        }),
+    )?;
+
+    examples::post(
+        "image/ending/register",
+        &json!({
+            "path": ENDING_BG_PATH,
+            "asset_type": "png"
+        }),
+    )?;
+
+    examples::post(
+        "output/output_video/register",
+        &json!({
+            "type": "mp4",
+            "path": "showcase.mp4",
+            "video": {
+                "resolution": {
+                    "width": VIDEO_RESOLUTION.width,
+                    "height": VIDEO_RESOLUTION.height,
+                },
+                "encoder": {
+                    "type": "ffmpeg_h264",
+                    "preset": "medium"
+                    // "preset": "ultrafast"
+                },
+                "initial": {
+                    "root":
+                        {
+                            "type": "view",
+                            "id": "animation",
+                            "width": VIDEO_RESOLUTION.width,
+                            "height": VIDEO_RESOLUTION.height,
+                            "top": 0,
+                            "left": 0,
+                            "id": "animation",
+                            "children": [
+                                shader_3d()
+                            ]
+                        }
+
+                }
+            }
+        }),
+    )?;
+
+    examples::post(
+        "output/output_video/update",
+        &json!({
+            "video": {
+                "root": {
+                    "type": "view",
+                    "direction": "row",
+                    "children": [
+                        {
+                            "type": "view",
+                            "top": 0,
+                            "left": 0,
+                            "children": [make_bg("code_bg")]
+                        },
+                        {
+                            "type": "view",
+                            "width": 928,
+                            "height": 1080,
+                            "top": 220,
+                            "left": 992,
+                            "children": [{
+                                "type": "input_stream",
+                                "input_id": "code"
+                            }]
+                        },
+                        {
+                            "type": "view",
+                            "width": 992,
+                            "height": 1080,
+                            "children": [
+                                {
+                                    "type": "view",
+                                    "id": "animation",
+                                    "width": 992,
+                                    "height": 558,
+                                    "top": 337,
+                                    "left": 20,
+                                    "children": [
+                                        {
+                                            "type": "rescaler",
+                                            "child": shader_3d()
+                                        }
+                                    ],
+                                    "transition": {
+                                        "duration_ms": 1000,
+                                    }
+                                },
+                            ],
+                        },
+                    ]
+                }
+            },
+            "schedule_time_ms": 9000
+        }),
+    )?;
+
+    examples::post(
+        "output/output_video/update",
+        &json!({
+            "video": {
+                "root": {
+                    "type": "view",
+                    "direction": "row",
+                    "children": [
+                        {
+                            "type": "view",
+                            "top": 0,
+                            "left": 0,
+                            "children": [make_bg("code_bg")]
+                        },
+                        {
+                            "type": "view",
+                            "width": 928,
+                            "height": 1080,
+                            "top": 220,
+                            "left": 992,
+                            "children": [{
+                                "type": "input_stream",
+                                "input_id": "code"
+                            }]
+                        },
+                        {
+                            "type": "view",
+                            "width": 992,
+                            "height": 1080,
+                            "children": [
+                                {
+                                    "type": "view",
+                                    "id": "animation",
+                                    "width": 992,
+                                    "height": 558,
+                                    "top": 337,
+                                    "left": 20,
+                                    "children": [{
+                                        "type": "rescaler",
+                                        "child": shader_3d()
+                                    }],
+                                    "transition": {
+                                        "duration_ms": 1000,
+                                    }
+                                },
+                            ],
+                        },
+                    ]
+                }
+            },
+            "schedule_time_ms": 11000
+        }),
+    )?;
+
+    let coding = json!(
+        [
+            {
+                "type": "view",
+                "id": "code_bg",
+                "top": 0,
+                "left": 0,
+                "children": [make_bg("code_bg")]
+            },
+            {
+                "type": "view",
+                "width": 928,
+                "height": 1080,
+                "top": 220,
+                "left": 992,
+                "children": [{
+                    "type": "input_stream",
+                    "input_id": "code"
+                }]
+            },
+            {
+                "type": "view",
+                "width": 992,
+                "height": 1080,
+                "children": [{
+                    "type": "view",
+                    "id": "animation",
+                    "width": 992,
+                    "height": 558,
+                    "top": 337,
+                    "left": 20,
+                    "children": [{
+                        "type": "rescaler",
+                        "child": shader_code()
+                    }],
+                }],
+            }
+        ]
+    );
+
+    examples::post(
+        "output/output_video/update",
+        &json!({
+            "video": {
+                "root": {
+                    "type": "view",
+                    "children": [
+                        {
+                            "type": "view",
+                            "id": "broadcast_bg",
+                            "top": 0,
+                            "left": 1920,
+                            "children": [make_bg("broadcast_bg")],
+                        },
+                        {
+                            "type": "view",
+                            "id": "coding",
+                            "top": 0,
+                            "left": 0,
+                            "direction": "row",
+                            "children": coding
+                        },
+                    ]
+
+                },
+            },
+            "schedule_time_ms": 15000
+        }),
+    )?;
+
+    examples::post(
+        "output/output_video/update",
+        &json!({
+            "video": {
+                "root": {
+                    "type": "view",
+                    "children": [
+                        {
+                            "type": "view",
+                            "id": "code_bg",
+                            "top": 0,
+                            "left": -1920,
+                            "children": [make_bg("code_bg")],
+                            "transition": {
+                                "duration_ms": 1000,
+                            }
+                        },
+                        {
+                            "type": "view",
+                            "id": "broadcast_bg",
+                            "top": 0,
+                            "left": 0,
+                            "children": [make_bg("broadcast_bg")],
+                            "transition": {
+                                "duration_ms": 1000,
+                            }
+                        },
+                        {
+                            "type": "view",
+                            "id": "vc_bg",
+                            "top": 0,
+                            "left": 1920,
+                            "children": [make_bg("vc_bg")],
+                        },
+                        {
+                            "type": "view",
+                            "id": "animation",
+                            "width": 1600,
+                            "height": 900,
+                            "top": 110,
+                            "left": 160,
+                            "children": [{
+                                "type": "rescaler",
+                                "child": shader_dynamic()
+                            }],
+                            "transition": {
+                                "duration_ms": 1000,
+                            }
+                        },
+                        {
+                            "type": "view",
+                            "id": "video_conferencing",
+                            "width": 1600,
+                            "height": 900,
+                            "top": 110,
+                            "left": 1920,
+                            "children": video_conferencing(),
+                        },
+                    ]
+                },
+            },
+            "schedule_time_ms": 43000
+        }),
+    )?;
+
+    examples::post(
+        "output/output_video/update",
+        &json!({
+            "video": {
+                "root": {
+                    "type": "view",
+                    "children": [
+                        {
+                            "type": "view",
+                            "id": "broadcast_bg",
+                            "top": 0,
+                            "left": -1920,
+                            "children": [make_bg("broadcast_bg")],
+                            "transition": {
+                                "duration_ms": 1000,
+                            }
+                        },
+                        {
+                            "type": "view",
+                            "id": "vc_bg",
+                            "top": 0,
+                            "left": 0,
+                            "children": [make_bg("vc_bg")],
+                            "transition": {
+                                "duration_ms": 1000,
+                            }
+                        },
+                        {
+                            "type": "view",
+                            "id": "animation",
+                            "width": 1600,
+                            "height": 900,
+                            "top": 110,
+                            "left": -1920,
+                            "children": [shader_dynamic()],
+                            "transition": {
+                                "duration_ms": 1000,
+                            }
+                        },
+                        {
+                            "type": "view",
+                            "id": "video_conferencing",
+                            "width": 1600,
+                            "height": 900,
+                            "top": 110,
+                            "left": 160,
+                            "children": video_conferencing(),
+                            "transition": {
+                                "duration_ms": 1000,
+                            }
+                        },
+                    ]
+                },
+            },
+            "schedule_time_ms": 49000
+        }),
+    )?;
+
+
+    examples::post(
+        "output/output_video/update",
+        &json!({
+            "video": {
+                "root": {
+                    "type": "view",
+                    "children": [
+                        {
+                            "type": "view",
+                            "id": "vc_bg",
+                            "top": 0,
+                            "left": 0,
+                            "children": [make_bg("vc_bg")]
+                        },
+                        {
+                            "type": "view",
+                            "id": "video_conferencing",
+                            "width": 1600,
+                            "height": 900,
+                            "top": 110,
+                            "left": 160,
+                            "children": video_conferencing2(),
+                        },
+                        {
+                            "type": "view",
+                            "id": "ls_bg",
+                            "top": 0,
+                            "left": 1920,
+                            "children": [make_bg("ls_bg")],
+                        },
+                        {
+                            "type": "view",
+                            "id": "ls",
+                            "width": 1600,
+                            "height": 900,
+                            "top": 110,
+                            "left": 1920,
+                            "children": [live_stream()],
+                        }
+                    ]
+                },
+            },
+            "schedule_time_ms": 51000
+        }),
+    )?;
+
+    examples::post(
+        "output/output_video/update",
+        &json!({
+            "video": {
+                "root": {
+                    "type": "view",
+                    "children": [
+                        {
+                            "type": "view",
+                            "id": "vc_bg",
+                            "top": 0,
+                            "left": -1920,
+                            "children": [make_bg("vc_bg")],
+                            "transition": {
+                                "duration_ms": 1000,
+                            }
+                        },
+                        {
+                            "type": "view",
+                            "id": "ending",
+                            "top": 0,
+                            "left": 1920,
+                            "children": [{
+                                "type": "rescaler",
+                                "child": {
+                                    "type": "image",
+                                    "image_id": "ending"
+                                }
+                            }],
+                            "transition": {
+                                "duration_ms": 1000,
+                            }
+                        },
+                        {
+                            "type": "view",
+                            "id": "video_conferencing",
+                            "width": 1600,
+                            "height": 900,
+                            "top": 110,
+                            "left": -1920,
+                            "children": video_conferencing2(),
+                            "transition": {
+                                "duration_ms": 1000,
+                            }
+                        },
+                        {
+                            "type": "view",
+                            "id": "ls_bg",
+                            "top": 0,
+                            "left": 0,
+                            "children": [make_bg("ls_bg")],
+                            "transition": {
+                                "duration_ms": 1000,
+                            }
+                        },
+                        {
+                            "type": "view",
+                            "id": "ls",
+                            "width": 1600,
+                            "height": 900,
+                            "top": 110,
+                            "left": 160,
+                            "children": [live_stream()],
+                            "transition": {
+                                "duration_ms": 1000,
+                            }
+                        }
+                    ]
+                },
+            },
+            "schedule_time_ms": 55000
+        }),
+    )?;
+
+    examples::post(
+        "output/output_video/update",
+        &json!({
+            "video": {
+                "root": {
+                    "type": "view",
+                    "children": [
+                        {
+                            "type": "view",
+                            "id": "ending",
+                            "top": 0,
+                            "left": 0,
+                            "children": [{
+                                "type": "rescaler",
+                                "child": {
+                                    "type": "image",
+                                    "image_id": "ending"
+                                }
+                            }],
+                            "transition": {
+                                "duration_ms": 1000,
+                            }
+                        },
+                        {
+                            "type": "view",
+                            "id": "ls_bg",
+                            "top": 0,
+                            "left": -1920,
+                            "children": [make_bg("ls_bg")],
+                            "transition": {
+                                "duration_ms": 1000,
+                            }
+                        },
+                        {
+                            "type": "view",
+                            "id": "ls",
+                            "width": 1600,
+                            "height": 900,
+                            "top": 110,
+                            "left": -1920,
+                            "children": [live_stream()],
+                            "transition": {
+                                "duration_ms": 1000,
+                            }
+                        }
+                    ]
+                },
+            },
+            "schedule_time_ms": 61000
+        }),
+    )?;
+
+    examples::post(
+        "output/output_video/unregister",
+        &json!({
+            "schedule_time_ms": 65000
+        }),
+    )?;
+
+    std::thread::sleep(Duration::from_millis(500));
+
+    examples::post("start", &json!({}))?;
+
+    Ok(())
+}
+
+fn shader_3d() -> serde_json::Value {
+    json!({
+        "type": "rescaler",
+        "width": VIDEO_RESOLUTION.width,
+        "height": VIDEO_RESOLUTION.height,
+        "child": {
+            "type": "shader",
+            "shader_id": "showcase_3d",
+            "resolution": {
+                "width": VIDEO_RESOLUTION.width * 2,
+                "height": VIDEO_RESOLUTION.height * 2,
+            },
+            "children": [
+                {
+                    "type": "image",
+                    "image_id": "background",
+                },
+                bg(),
+                {
+                    "type": "input_stream",
+                    "input_id": "tv",
+                },
+                {
+                    "type": "input_stream",
+                    "input_id": "bunny"
+                },
+            ]
+        }
+    })
+}
+
+
+fn shader_dynamic() -> serde_json::Value {
+    json!({
+        "type": "rescaler",
+        "id": "animation_res",
+        "width": 1600,
+        "height": 900,
+        "child": {
+            "type": "shader",
+            "shader_id": "round_corners_dynamic",
+            "resolution": {
+                "width": 1920,
+                "height": 1080,
+            },
+            "children": [{
+                "type": "shader",
+                "shader_id": "showcase_code",
+                "resolution": {
+                    "width": VIDEO_RESOLUTION.width * 2,
+                    "height": VIDEO_RESOLUTION.height * 2,
+                },
+                "children": [
+                    {
+                        "type": "image",
+                        "image_id": "news_room",
+                    },
+                    {
+                        "type": "input_stream",
+                        "input_id": "tv",
+                    },
+                    {
+                        "type": "view",
+                        "width": 1920,
+                        "height": 1080,
+                        "children": [{
+                            "type": "view",
+                            "height": 120,
+                            "left": 0,
+                            "bottom": 0,
+                            "background_color_rgba": "#B3B3B3FF",
+                            "children": []
+                        }]
+                    },
+                    {
+                        "type": "view",
+                        "width": 1920,
+                        "height": 1080,
+                        "children": [
+                            {
+                                "type": "view",
+                                "height": 120,
+                                "left": 0,
+                                "bottom": 0,
+                                "children": [
+                                    {
+                                        "type": "view"
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "LiveCompositor",
+                                        "font_size": 100,
+                                        "weight": "bold",
+                                        "color_rgba": "#000000FF"
+                                    },
+                                    {
+                                        "type": "view"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "shader",
+                        "shader_id": "round_corners_dynamic",
+                        "resolution": {
+                            "width": 1920,
+                            "height": 1080,
+                        },
+                        "children": [{
+                            "type": "input_stream",
+                            "input_id": "bunny"
+                        }]
+                    },
+                ]
+            }]
+        }   
+    })
+}
+
+fn shader_code() -> serde_json::Value {
+    json!({
+        "type": "rescaler",
+        "id": "animation_res",
+        "width": VIDEO_RESOLUTION.width,
+        "height": VIDEO_RESOLUTION.height,
+        "child": {
+            "type": "shader",
+            "shader_id": "showcase_code",
+            "resolution": {
+                "width": VIDEO_RESOLUTION.width * 2,
+                "height": VIDEO_RESOLUTION.height * 2,
+            },
+            "children": [
+                {
+                    "type": "image",
+                    "image_id": "news_room",
+                },
+                {
+                    "type": "input_stream",
+                    "input_id": "tv",
+                },
+                {
+                    "type": "view",
+                    "width": 1920,
+                    "height": 1080,
+                    "children": [{
+                        "type": "view",
+                        "height": 120,
+                        "left": 0,
+                        "bottom": 0,
+                        "background_color_rgba": "#B3B3B3FF",
+                        "children": []
+                    }]
+                },
+                {
+                    "type": "view",
+                    "width": 1920,
+                    "height": 1080,
+                    "children": [
+                        {
+                            "type": "view",
+                            "height": 120,
+                            "left": 0,
+                            "bottom": 0,
+                            "children": [
+                                {
+                                    "type": "view"
+                                },
+                                {
+                                    "type": "text",
+                                    "text": "LiveCompositor",
+                                    "font_size": 100,
+                                    "weight": "bold",
+                                    "color_rgba": "#000000FF"
+                                },
+                                {
+                                    "type": "view"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "input_stream",
+                    "input_id": "bunny"
+                },
+            ]
+        }   
+    })
+}
+
+fn video_conferencing() -> serde_json::Value {
+    json!([{
+        "type": "tiles",
+        "id": "tiles",
+        "margin": 10,
+        "children": [
+           tile("membrane".to_owned(), " Membrane 🪼 ".to_owned()),
+           tile("jelly".to_owned(), " Jelly 🐙 ".to_owned()),
+        ],
+    }])
+}
+
+fn video_conferencing2() -> serde_json::Value {
+    json!([{
+        "type": "tiles",
+        "id": "tiles",
+        "margin": 10,
+        "children": [
+           tile("membrane".to_owned(), " Membrane 🪼 ".to_owned()),
+           tile("jelly".to_owned(), " Jelly 🐙 ".to_owned()),
+           tile("squirtle".to_owned(), " Squirtle 🐢 ".to_owned()),
+        ],
+        "transition": {
+            "duration_ms": 500,
+        }
+    }])
+}
+
+fn tile(input_id: String, text: String) -> serde_json::Value {
+    json!({
+        "type": "shader",
+        "shader_id": "round_corners_20",
+        "resolution": {
+            "width": 1920,
+            "height": 1080,
+        },
+        "children": [{
+            "type": "view",
+            "width": 1920,
+            "height": 1080,
+            "children": [
+                {
+                    "type": "input_stream",
+                    "input_id": input_id
+                },
+                {
+                    "type": "view",
+                    "width": 1920,
+                    "height": 200,
+                    "left": 0,
+                    "bottom": 0,
+                    "direction": "row",
+                    "children": [
+                        { "type": "view" },
+                        {
+                        "type": "text",
+                        "text": text,
+                        "font_size": 100,
+                        "weight": "bold",
+                        "color_rgba": "#FFFFFFFF",
+                        "background_color_rgba": "#40E0D0FF",
+                        "font_family": "Comic Sans MS",
+                        "align": "center"
+                        },
+                        { "type": "view" },
+                    ]
+                }
+            ]
+        }]
+    })
+}
+
+fn live_stream() -> serde_json::Value {
+    json!({
+        "type": "rescaler",
+        "child": {
+            "type": "shader",
+            "shader_id": "round_corners_50",
+            "resolution": {
+                "width": 1920,
+                "height": 1080
+            },
+            "children": [{
+                "type": "view",
+                "width": 1600,
+                "height": 900,
+                "children": [
+                    {
+                        "type": "rescaler",
+                        "child": {
+                            "type": "input_stream",
+                            "input_id": "gameplay"
+                        }
+                    },
+                    {
+                        "type": "view",
+                        "width": 400,
+                        "height": 300,
+                        "top": 30,
+                        "left": 30,
+                        "children": [{
+                            "type": "rescaler",
+                            "child": {
+                                "type": "shader",
+                                "shader_id": "round_corners_50",
+                                "resolution": {
+                                    "width": 1440,
+                                    "height": 1080,
+                                },
+                                "children": [
+                                    {
+                                        "type": "input_stream",
+                                        "input_id": "pawel"
+                                    }
+                                ]
+                            }
+                        }]
+                    }
+                ]
+            }]
+        }
+    })
+}
+
+fn bg() -> serde_json::Value {
+    json!({
+        "type": "view",
+        "width": 1920,
+        "height": 1080,
+        "children": [
+             {
+                 "type": "view",
+                 "width": 1920,
+                 "height": 1080,
+                 "top": 0, "left": 0,
+                 "children": [{
+                    "type": "rescaler",
+                    "mode": "fill",
+                    "child": {
+                        "type": "image",
+                        "image_id": "news_room"
+                    }
+                 }]
+             },
+             {
+                 "type": "view",
+                 "height": 120,
+                 "bottom": 0, "left": 0,
+                 "background_color_rgba": "#B3B3B3FF",
+                 "children": [
+                   { "type": "view" },
+                   {
+                     "type": "text",
+                     "text": "LiveCompositor",
+                     "font_size": 100,
+                     "weight": "bold",
+                     "color_rgba": "#000000FF"
+                   },
+                   { "type": "view" }
+                 ]
+             },
+        ]
+     })
+}
+
+fn make_bg(image_id: &str) -> serde_json::Value {
+    json!({
+        "type": "view",
+        "width": 1920,
+        "height": 1080,
+        "top": 0,
+        "left": 0,
+        "children": [{
+            "type": "rescaler",
+            "child": {
+                "type": "shader",
+                "shader_id": "code_bg",
+                "resolution": {
+                    "width": 3840,
+                    "height": 2160,
+                },
+                "children": [
+                    {
+                        "type": "image",
+                        "image_id": image_id
+                    },
+                    {
+                        "type": "input_stream",
+                        "input_id": "code"
+                    }
+                ]
+            }
+        }]
+    })
+}
