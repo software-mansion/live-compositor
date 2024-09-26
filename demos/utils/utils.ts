@@ -14,14 +14,13 @@ process.on('exit', () => {
 });
 
 type SpawnOptions = {
-  displayOutput: boolean;
   cwd?: string;
 };
 
 export function spawn(command: string, args: string[], opts: SpawnOptions): SpawnPromise {
   console.log(`Spawning: ${command} ${args.join(' ')}`);
   const child = nodeSpawn(command, args, {
-    stdio: opts.displayOutput ? 'inherit' : 'ignore',
+    stdio: 'ignore',
     cwd: opts.cwd ?? cwd(),
     env: {
       ...process.env,
