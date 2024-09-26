@@ -18,9 +18,10 @@ https://github.com/user-attachments/assets/d8716866-67bd-4721-b1c2-1a1d31e1c5b5
 
 Check out our [`Getting started`](https://compositor.live/docs/intro) section.
 
-LiveCompositor supports Linux and macOS and can be used in 2 ways:
-- Standalone media server - [`compositor.live/docs`](https://compositor.live/docs/intro).
-- Element in a Membrane Framework pipeline - [github.com/membraneframework/membrane_live_compositor_plugin](https://github.com/membraneframework/membrane_live_compositor_plugin).
+LiveCompositor supports Linux and macOS and can be used in 3 ways:
+- TypeScript SDK - [TypeScript SDK Reference](https://compositor.live/docs/typescript/api)
+- Standalone media server - [API Reference](https://compositor.live/docs/api/routes).
+- Element in a Membrane Framework pipeline - [https://hexdocs.pm/membrane_live_compositor_plugin](https://hexdocs.pm/membrane_live_compositor_plugin).
 
 ## Demos
 

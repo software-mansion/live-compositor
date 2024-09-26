@@ -106,9 +106,9 @@ function HowItWorks() {
       <p className={clsx('text--center', styles.grayText)}>
         1. Send inputs as RTP streams or MP4 files
         <br />
-        2. Configure mixing with HTTP requests
+        2. Configure mixing with React components or via HTTP API
         <br />
-        3. Get the mixed streams via RTP
+        3. Get the mixed streams via RTP or as MP4 files
       </p>
       <div className="flex flex-row flex-wrap">
         <div className="flex-1 mx-8 mt-20 min-w-[400px]">
