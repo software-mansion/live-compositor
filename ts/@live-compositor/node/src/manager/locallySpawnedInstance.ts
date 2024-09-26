@@ -17,6 +17,7 @@ type ManagedInstanceOptions = {
   port: number;
   workingdir?: string;
   executablePath?: string;
+  enableWebRenderer?: boolean;
 };
 
 /**
@@ -27,11 +28,13 @@ class LocallySpawnedInstance implements CompositorManager {
   private workingdir: string;
   private executablePath?: string;
   private wsConnection: WebSocketConnection;
+  private enableWebRenderer?: boolean;
 
   constructor(opts: ManagedInstanceOptions) {
     this.port = opts.port;
     this.workingdir = opts.workingdir ?? path.join(os.tmpdir(), `live-compositor-${uuidv4()}`);
     this.executablePath = opts.executablePath;
+    this.enableWebRenderer = opts.enableWebRenderer;
     this.wsConnection = new WebSocketConnection(`ws://127.0.0.1:${this.port}/ws`);
   }
 
@@ -46,13 +49,14 @@ class LocallySpawnedInstance implements CompositorManager {
   }
 
   public async setupInstance(): Promise<void> {
-    const executablePath = this.executablePath ?? (await prepareExecutable());
+    const executablePath = this.executablePath ?? (await prepareExecutable(this.enableWebRenderer));
 
     spawn(executablePath, [], {
       env: {
         ...process.env,
         LIVE_COMPOSITOR_DOWNLOAD_DIR: path.join(this.workingdir, 'download'),
         LIVE_COMPOSITOR_API_PORT: this.port.toString(),
+        LIVE_COMPOSITOR_WEB_RENDERER_ENABLE: this.enableWebRenderer ? 'true' : 'false',
         // silence scene updates logging
         LIVE_COMPOSITOR_LOGGER_LEVEL:
           'info,wgpu_hal=warn,wgpu_core=warn,compositor_pipeline::pipeline=warn',
@@ -81,10 +85,10 @@ class LocallySpawnedInstance implements CompositorManager {
   }
 }
 
-async function prepareExecutable(): Promise<string> {
-  const downloadDir = path.join(os.homedir(), '.live_compositor', VERSION, architecture());
+async function prepareExecutable(enableWebRenderer?: boolean): Promise<string> {
+  const version = enableWebRenderer ? `${VERSION}-web` : VERSION;
+  const downloadDir = path.join(os.homedir(), '.live_compositor', version, architecture());
   const readyFilePath = path.join(downloadDir, '.ready');
-  // TODO: make sure it works on all platforms and variants
   const executablePath = path.join(downloadDir, 'live_compositor/live_compositor');
 
   if (await fs.pathExists(readyFilePath)) {
@@ -96,7 +100,7 @@ async function prepareExecutable(): Promise<string> {
   if (await fs.pathExists(tarGzPath)) {
     await fs.remove(tarGzPath);
   }
-  await download(compositorTarGzUrl(), tarGzPath);
+  await download(compositorTarGzUrl(enableWebRenderer), tarGzPath);
 
   await tar.x({
     file: tarGzPath,
@@ -122,8 +126,10 @@ function architecture(): 'linux_aarch64' | 'linux_x86_64' | 'darwin_x86_64' | 'd
   }
 }
 
-function compositorTarGzUrl(): string {
-  return `https://github.com/software-mansion/live-compositor/releases/download/${VERSION}/live_compositor_${architecture()}.tar.gz`;
+function compositorTarGzUrl(withWebRenderer?: boolean): string {
+  const archiveNameSuffix = withWebRenderer ? '_with_web_renderer' : '';
+  const archiveName = `live_compositor${archiveNameSuffix}_${architecture()}.tar.gz`;
+  return `https://github.com/software-mansion/live-compositor/releases/download/${VERSION}/${archiveName}`;
 }
 
 export default LocallySpawnedInstance;
