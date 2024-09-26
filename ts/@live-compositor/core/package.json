@@ -23,6 +23,6 @@
     "react-reconciler": "0.29.2"
   },
   "peerDependencies": {
-    "live-compositor": "0.1.0-rc.5"
+    "live-compositor": "^0.1.0"
   }
 }
