@@ -1,6 +1,6 @@
 {
   "name": "@live-compositor/node",
-  "version": "0.1.0-rc.5",
+  "version": "0.1.0",
   "description": "",
   "main": "dist/index.js",
   "scripts": {
@@ -24,7 +24,7 @@
     "@types/ws": "^8.5.12"
   },
   "dependencies": {
-    "@live-compositor/core": "0.1.0-rc.5",
+    "@live-compositor/core": "^0.1.0",
     "fs-extra": "^11.2.0",
     "node-fetch": "^2.6.7",
     "tar": "^7.4.3",
