@@ -28,8 +28,8 @@ LiveCompositor supports Linux and macOS and can be used in 3 ways:
 This is just a sample of effects that you can achieve with LiveCompositor. It is a compilation of a few demo projects
 written in TypeScript that you can find in [`demos`](./demos) directory.
 
-## Copyright
+## LiveCompositor is created by Software Mansion
 
-Copyright 2023, [Software Mansion](https://swmansion.com/?utm_source=git&utm_medium=readme&utm_campaign=live_compositor)
+[![swm](https://logo.swmansion.com/logo?color=white&variant=desktop&width=150&tag=live-compositor-github 'Software Mansion')](https://swmansion.com)
 
-[![Software Mansion](https://logo.swmansion.com/logo?color=white&variant=desktop&width=200&tag=membrane-github)](https://swmansion.com/?utm_source=git&utm_medium=readme&utm_campaign=live_compositor)
+Since 2012 [Software Mansion](https://swmansion.com) is a software agency with experience in building web and mobile apps as well as complex multimedia solutions. We are Core React Native Contributors and experts in live streaming and broadcasting technologies. We can help you build your next dream product – [Hire us](https://swmansion.com/contact/projects?utm_source=live-compositor&utm_medium=readme).
