@@ -1,6 +1,13 @@
-use std::io::Write;
-
+#[cfg(any(
+    windows,
+    all(
+        unix,
+        not(any(target_os = "macos", target_os = "ios", target_os = "emscripten"))
+    )
+))]
 fn main() {
+    use std::io::Write;
+
     let subscriber = tracing_subscriber::FmtSubscriber::builder()
         .with_max_level(tracing::Level::INFO)
         .finish();
@@ -36,4 +43,17 @@ fn main() {
             output_file.write_all(&frame).unwrap();
         }
     }
+}
+
+#[cfg(not(any(
+    windows,
+    all(
+        unix,
+        not(any(target_os = "macos", target_os = "ios", target_os = "emscripten"))
+    )
+)))]
+fn main() {
+    println!(
+        "This crate doesn't work on your operating system, because it does not support vulkan"
+    );
 }

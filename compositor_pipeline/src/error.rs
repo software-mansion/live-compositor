@@ -17,6 +17,7 @@ pub enum InitPipelineError {
     #[error("Failed to create a download directory.")]
     CreateDownloadDir(#[source] std::io::Error),
 
+    #[cfg(feature = "vk-video")]
     #[error(transparent)]
     VulkanCtxError(#[from] vk_video::VulkanCtxError),
 }
@@ -133,11 +134,11 @@ pub enum InputInitError {
     #[error("Couldn't read decoder init result.")]
     CannotReadInitResult,
 
-    #[cfg(target_os = "linux")]
+    #[cfg(feature = "vk-video")]
     #[error(transparent)]
     VulkanDecoderError(#[from] vk_video::DecoderError),
 
-    #[error("Vulkan context is not available. Cannot create a vulkan video decoder")]
+    #[error("Pipeline couldn't detect a vulkan video compatible device when it was being initialized. Cannot create a vulkan video decoder")]
     VulkanContextRequiredForVulkanDecoder,
 }
 

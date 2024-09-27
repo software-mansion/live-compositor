@@ -1,3 +1,4 @@
+#![cfg(not(target_os = "macos"))]
 mod parser;
 mod vulkan_decoder;
 

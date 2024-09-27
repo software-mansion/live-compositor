@@ -7,6 +7,7 @@ license = "BUSL-1.1"
 [features]
 decklink = ["compositor_pipeline/decklink"]
 web_renderer = ["compositor_render/web_renderer"]
+vk-video = ["compositor_pipeline/vk-video"]
 
 [dependencies]
 compositor_render = { workspace = true }

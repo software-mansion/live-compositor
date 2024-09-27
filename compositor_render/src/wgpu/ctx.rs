@@ -34,7 +34,7 @@ impl WgpuCtx {
                 Self::new_from_device_queue(device, queue)?
             }
             None => {
-                let (device, queue) = create_wgpu_ctx(force_gpu, features)?;
+                let (device, queue) = create_wgpu_ctx(force_gpu, features, Default::default())?;
                 Self::new_from_device_queue(device, queue)?
             }
         };
@@ -94,9 +94,17 @@ pub fn required_wgpu_features() -> wgpu::Features {
     }
 }
 
+pub fn set_required_wgpu_limits(limits: wgpu::Limits) -> wgpu::Limits {
+    wgpu::Limits {
+        max_push_constant_size: limits.max_push_constant_size.max(128),
+        ..limits
+    }
+}
+
 pub fn create_wgpu_ctx(
     force_gpu: bool,
     features: wgpu::Features,
+    limits: wgpu::Limits,
 ) -> Result<(Arc<wgpu::Device>, Arc<wgpu::Queue>), CreateWgpuCtxError> {
     let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
         backends: wgpu::Backends::all(),
@@ -134,10 +142,7 @@ pub fn create_wgpu_ctx(
     let (device, queue) = pollster::block_on(adapter.request_device(
         &wgpu::DeviceDescriptor {
             label: None,
-            required_limits: wgpu::Limits {
-                max_push_constant_size: 128,
-                ..Default::default()
-            },
+            required_limits: set_required_wgpu_limits(limits),
             required_features,
             memory_hints: wgpu::MemoryHints::default(),
         },

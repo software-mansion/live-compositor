@@ -1,6 +1,13 @@
-use std::io::Write;
-
+#[cfg(any(
+    windows,
+    all(
+        unix,
+        not(any(target_os = "macos", target_os = "ios", target_os = "emscripten"))
+    )
+))]
 fn main() {
+    use std::io::Write;
+
     let subscriber = tracing_subscriber::FmtSubscriber::builder()
         .with_max_level(tracing::Level::INFO)
         .finish();
@@ -40,11 +47,33 @@ fn main() {
     }
 }
 
+#[cfg(not(any(
+    windows,
+    all(
+        unix,
+        not(any(target_os = "macos", target_os = "ios", target_os = "emscripten"))
+    )
+)))]
+fn main() {
+    println!(
+        "This crate doesn't work on your operating system, because it does not support vulkan"
+    );
+}
+
+#[cfg(any(
+    windows,
+    all(
+        unix,
+        not(any(target_os = "macos", target_os = "ios", target_os = "emscripten"))
+    )
+))]
 fn download_wgpu_texture(
     device: &wgpu::Device,
     queue: &wgpu::Queue,
     frame: wgpu::Texture,
 ) -> Vec<u8> {
+    use std::io::Write;
+
     let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
     let y_plane_bytes_per_row = (frame.width() as u64 + 255) / 256 * 256;
     let y_plane_size = y_plane_bytes_per_row * frame.height() as u64;

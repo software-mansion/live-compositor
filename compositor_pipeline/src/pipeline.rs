@@ -63,6 +63,7 @@ pub use self::types::{
     AudioCodec, EncodedChunk, EncodedChunkKind, EncoderOutputEvent, RawDataReceiver, VideoCodec,
     VideoDecoder,
 };
+use compositor_render::{create_wgpu_ctx, error::InitRendererEngineError};
 pub use pipeline_output::PipelineOutputEndCondition;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -114,34 +115,25 @@ pub struct GraphicsContext {
     pub device: Arc<wgpu::Device>,
     pub queue: Arc<wgpu::Queue>,
 
-    #[cfg(target_os = "linux")]
+    #[cfg(feature = "vk-video")]
     pub vulkan_ctx: Option<Arc<vk_video::VulkanCtx>>,
 }
 
 impl GraphicsContext {
-    #[cfg(target_os = "linux")]
+    #[cfg(feature = "vk-video")]
     pub fn new(
         force_gpu: bool,
         features: wgpu::Features,
         limits: wgpu::Limits,
     ) -> Result<Self, InitPipelineError> {
-        use compositor_render::{create_wgpu_ctx, error::InitRendererEngineError};
+        use compositor_render::{required_wgpu_features, set_required_wgpu_limits};
 
-        let vulkan_features = features
-            | wgpu::Features::TEXTURE_BINDING_ARRAY
-            | wgpu::Features::PUSH_CONSTANTS
-            | wgpu::Features::TEXTURE_FORMAT_NV12;
+        let vulkan_features =
+            features | required_wgpu_features() | wgpu::Features::TEXTURE_FORMAT_NV12;
 
-        let limits = if limits.max_push_constant_size < 128 {
-            wgpu::Limits {
-                max_push_constant_size: 128,
-                ..limits
-            }
-        } else {
-            limits
-        };
+        let limits = set_required_wgpu_limits(limits);
 
-        match vk_video::VulkanCtx::new(vulkan_features, limits) {
+        match vk_video::VulkanCtx::new(vulkan_features, limits.clone()) {
             Ok(ctx) => Ok(GraphicsContext {
                 device: ctx.wgpu_ctx.device.clone(),
                 queue: ctx.wgpu_ctx.queue.clone(),
@@ -151,7 +143,7 @@ impl GraphicsContext {
             Err(err) => {
                 info!("Cannot initialize vulkan video decoding context. Reason: {err}. Initializing without vulkan video support.");
 
-                let (device, queue) = create_wgpu_ctx(force_gpu, features)
+                let (device, queue) = create_wgpu_ctx(force_gpu, features, limits)
                     .map_err(InitRendererEngineError::FailedToInitWgpuCtx)?;
 
                 Ok(GraphicsContext {
@@ -161,6 +153,18 @@ impl GraphicsContext {
                 })
             }
         }
+    }
+
+    #[cfg(not(feature = "vk-video"))]
+    pub fn new(
+        force_gpu: bool,
+        features: wgpu::Features,
+        limits: wgpu::Limits,
+    ) -> Result<Self, InitPipelineError> {
+        let (device, queue) = create_wgpu_ctx(force_gpu, features, limits)
+            .map_err(InitRendererEngineError::FailedToInitWgpuCtx)?;
+
+        Ok(GraphicsContext { device, queue })
     }
 }
 
@@ -192,7 +196,7 @@ pub struct PipelineCtx {
     pub output_framerate: Framerate,
     pub download_dir: Arc<PathBuf>,
     pub event_emitter: Arc<EventEmitter>,
-    #[cfg(target_os = "linux")]
+    #[cfg(feature = "vk-video")]
     pub vulkan_ctx: Option<Arc<vk_video::VulkanCtx>>,
 }
 
@@ -211,17 +215,14 @@ impl Pipeline {
     pub fn new(opts: Options) -> Result<(Self, Arc<dyn EventLoop>), InitPipelineError> {
         let preinitialized_ctx = match opts.wgpu_ctx {
             Some(ctx) => Some(ctx),
-            None => {
-                if cfg!(target_os = "linux") {
-                    Some(GraphicsContext::new(
-                        opts.force_gpu,
-                        opts.wgpu_features,
-                        Default::default(),
-                    )?)
-                } else {
-                    None
-                }
-            }
+            #[cfg(feature = "vk-video")]
+            None => Some(GraphicsContext::new(
+                opts.force_gpu,
+                opts.wgpu_features,
+                Default::default(),
+            )?),
+            #[cfg(not(feature = "vk-video"))]
+            None => None,
         };
 
         let wgpu_ctx = preinitialized_ctx
@@ -256,7 +257,7 @@ impl Pipeline {
                 output_framerate: opts.queue_options.output_framerate,
                 download_dir: download_dir.into(),
                 event_emitter,
-                #[cfg(target_os = "linux")]
+                #[cfg(feature = "vk-video")]
                 vulkan_ctx: preinitialized_ctx.and_then(|ctx| ctx.vulkan_ctx),
             },
         };

@@ -7,16 +7,20 @@ use vk_video::{Decoder, VulkanCtx};
 
 use crate::{
     error::InputInitError,
-    pipeline::{EncodedChunk, EncodedChunkKind, VideoCodec},
+    pipeline::{EncodedChunk, EncodedChunkKind, PipelineCtx, VideoCodec},
     queue::PipelineEvent,
 };
 
 pub fn start_vulkan_video_decoder_thread(
-    vulkan_ctx: Arc<VulkanCtx>,
+    pipeline_ctx: &PipelineCtx,
     chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
     frame_sender: Sender<PipelineEvent<Frame>>,
     input_id: InputId,
 ) -> Result<(), InputInitError> {
+    let Some(vulkan_ctx) = pipeline_ctx.vulkan_ctx.as_ref().map(|ctx| ctx.clone()) else {
+        return Err(InputInitError::VulkanContextRequiredForVulkanDecoder);
+    };
+
     let (init_result_sender, init_result_receiver) = crossbeam_channel::bounded(0);
 
     std::thread::Builder::new()
