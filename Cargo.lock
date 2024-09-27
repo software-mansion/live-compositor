@@ -553,6 +553,7 @@ dependencies = [
  "reqwest",
  "resvg",
  "shared_memory",
+ "sys-locale",
  "thiserror",
  "tracing",
  "wgpu",

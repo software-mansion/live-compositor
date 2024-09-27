@@ -116,6 +116,7 @@ pub struct Options {
     pub output_sample_rate: u32,
     pub wgpu_features: WgpuFeatures,
     pub wgpu_ctx: Option<(Arc<wgpu::Device>, Arc<wgpu::Queue>)>,
+    pub load_system_fonts: Option<bool>,
 }
 
 #[derive(Debug, Clone)]
@@ -134,6 +135,7 @@ impl Pipeline {
             force_gpu: opts.force_gpu,
             wgpu_features: opts.wgpu_features,
             wgpu_ctx: opts.wgpu_ctx,
+            load_system_fonts: opts.load_system_fonts.unwrap_or(true),
         })?;
 
         let download_dir = opts
@@ -156,6 +158,10 @@ impl Pipeline {
         };
 
         Ok((pipeline, event_loop))
+    }
+
+    pub fn renderer_mut(&mut self) -> &mut Renderer {
+        &mut self.renderer
     }
 
     pub fn queue(&self) -> &Queue {
