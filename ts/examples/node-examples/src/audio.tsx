@@ -1,6 +1,6 @@
 import LiveCompositor from '@live-compositor/node';
 import { Text, InputStream, Tiles, Rescaler, View } from 'live-compositor';
-import { downloadAllAssets, gstReceiveTcpStream, sleep } from './utils';
+import { downloadAllAssets, gstReceiveTcpStream } from './utils';
 import path from 'path';
 import { useState, useEffect } from 'react';
 
@@ -53,8 +53,6 @@ async function run() {
   await downloadAllAssets();
   const compositor = new LiveCompositor();
   await compositor.init();
-
-  await sleep(2000);
 
   await compositor.registerOutput('output_1', {
     type: 'rtp_stream',

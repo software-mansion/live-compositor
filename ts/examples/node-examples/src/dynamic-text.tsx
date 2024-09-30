@@ -1,7 +1,7 @@
 import LiveCompositor from '@live-compositor/node';
 import { View, Text } from 'live-compositor';
 import { useEffect, useState } from 'react';
-import { ffplayStartPlayerAsync, sleep } from './utils';
+import { ffplayStartPlayerAsync } from './utils';
 
 type PartialTextProps = {
   text: string;
@@ -55,8 +55,7 @@ async function run() {
   const compositor = new LiveCompositor();
   await compositor.init();
 
-  void ffplayStartPlayerAsync('127.0.0.1', 8001);
-  await sleep(2000);
+  await ffplayStartPlayerAsync('127.0.0.1', 8001);
 
   await compositor.registerOutput('output_1', {
     type: 'rtp_stream',
