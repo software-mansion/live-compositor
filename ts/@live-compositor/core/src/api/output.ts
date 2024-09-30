@@ -1,14 +1,14 @@
-import { RegisterOutput, Api, Outputs, OutputByteFormat } from 'live-compositor';
+import { RegisterOutput, Api, Outputs, OutputFrameFormat } from 'live-compositor';
 
 export type RegisterOutputRequest = Api.RegisterOutput | RegisterBytesOutput;
 
 export type RegisterBytesOutput = {
-  type: 'bytes';
+  type: 'raw_frames';
   video?: OutputBytesVideoOptions;
 };
 
 export type OutputBytesVideoOptions = {
-  format: OutputByteFormat;
+  format: OutputFrameFormat;
   resolution: Api.Resolution;
   initial: Api.Video;
 };
@@ -21,8 +21,8 @@ export function intoRegisterOutput(
     return intoRegisterRtpOutput(output, initial);
   } else if (output.type === 'mp4') {
     return intoRegisterMp4Output(output, initial);
-  } else if (output.type === 'bytes') {
-    return intoRegisterBytesOutput(output, initial);
+  } else if (output.type === 'raw_frames') {
+    return intoRegisterRawFramesOutput(output, initial);
   } else {
     throw new Error(`Unknown output type ${(output as any).type}`);
   }
@@ -54,12 +54,12 @@ function intoRegisterMp4Output(
   };
 }
 
-function intoRegisterBytesOutput(
-  output: Outputs.RegisterBytesOutput,
+function intoRegisterRawFramesOutput(
+  output: Outputs.RegisterRawFramesOutput,
   initial: { video?: Api.Video; _audio?: Api.Audio }
 ): RegisterOutputRequest {
   return {
-    type: 'bytes',
+    type: 'raw_frames',
     video: {
       format: output.video.format,
       resolution: output.video.resolution,

@@ -1,5 +1,5 @@
 import { Resolution } from '@live-compositor/browser-render';
-import { RegisterOutput as InternalRegisterOutput, OutputByteFormat } from 'live-compositor';
+import { RegisterOutput as InternalRegisterOutput, OutputFrameFormat } from 'live-compositor';
 
 export type RegisterOutput = { type: 'canvas' } & RegisterCanvasOutput;
 
@@ -19,10 +19,10 @@ export function intoRegisterOutput(output: RegisterOutput): InternalRegisterOutp
 
 function fromRegisterCanvasOutput(output: RegisterCanvasOutput): InternalRegisterOutput {
   return {
-    type: 'bytes',
+    type: 'raw_frames',
     video: {
       resolution: output.resolution,
-      format: OutputByteFormat.RGBA_BYTES,
+      format: OutputFrameFormat.RGBA_BYTES,
       root: output.root,
     },
   };

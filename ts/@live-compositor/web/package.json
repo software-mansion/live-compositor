@@ -17,9 +17,11 @@
     "/dist"
   ],
   "dependencies": {
+    "@datastructures-js/queue": "^4.2.3",
     "@live-compositor/browser-render": "0.1.0-rc.4",
-    "@live-compositor/core": "0.1.0-rc.5",
-    "live-compositor": "^0.1.0-rc.5",
-    "mp4box": "^0.5.2"
+    "@live-compositor/core": "0.1.0",
+    "live-compositor": "^0.1.0",
+    "mp4box": "^0.5.2",
+    "path-parser": "^6.1.0"
   }
 }

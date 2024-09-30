@@ -1,24 +1,62 @@
-import { InputId } from '@live-compositor/browser-render';
-import { CompositorEventType } from 'live-compositor';
+import { CompositorEvent, CompositorEventType } from 'live-compositor';
 
 export class EventSender {
-  private eventCallback: (event: object) => void;
+  private eventCallback?: (event: object) => void;
 
-  public constructor(eventCallback: (event: object) => void) {
+  public setEventCallback(eventCallback: (event: object) => void) {
     this.eventCallback = eventCallback;
   }
 
-  public sendEvent(event: ApiEvent) {
-    this.eventCallback(event);
+  public sendEvent(event: CompositorEvent) {
+    if (!this.eventCallback) {
+      console.warn(`Failed to send event: ${event}`);
+      return;
+    }
+
+    this.eventCallback!(toWebSocketMessage(event));
   }
 }
 
-export type ApiEvent =
+function toWebSocketMessage(event: CompositorEvent): WebSocketMessage {
+  if (event.type == CompositorEventType.OUTPUT_DONE) {
+    return {
+      type: event.type,
+      output_id: event.outputId,
+    };
+  }
+
+  return {
+    type: event.type,
+    input_id: event.inputId,
+  };
+}
+
+export type WebSocketMessage =
+  | {
+      type: CompositorEventType.AUDIO_INPUT_DELIVERED;
+      input_id: string;
+    }
   | {
       type: CompositorEventType.VIDEO_INPUT_DELIVERED;
-      input_id: InputId;
+      input_id: string;
+    }
+  | {
+      type: CompositorEventType.AUDIO_INPUT_PLAYING;
+      input_id: string;
     }
   | {
       type: CompositorEventType.VIDEO_INPUT_PLAYING;
-      input_id: InputId;
+      input_id: string;
+    }
+  | {
+      type: CompositorEventType.AUDIO_INPUT_EOS;
+      input_id: string;
+    }
+  | {
+      type: CompositorEventType.VIDEO_INPUT_EOS;
+      input_id: string;
+    }
+  | {
+      type: CompositorEventType.OUTPUT_DONE;
+      output_id: string;
     };

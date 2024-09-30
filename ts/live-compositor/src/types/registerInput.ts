@@ -3,7 +3,7 @@ import * as Api from '../api.js';
 export type RegisterInput =
   | ({ type: 'rtp_stream' } & RegisterRtpInput)
   | ({ type: 'mp4' } & RegisterMp4Input)
-  | { type: 'bytes' };
+  | { type: 'raw_frames' };
 
 export type RegisterRtpInput = {
   /**

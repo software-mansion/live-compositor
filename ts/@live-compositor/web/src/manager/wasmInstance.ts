@@ -1,12 +1,15 @@
 import { ApiRequest, CompositorManager, RegisterOutputRequest } from '@live-compositor/core';
 import { Renderer, Resolution, Component, ImageSpec } from '@live-compositor/browser-render';
 import { Api } from 'live-compositor';
+import { Path } from 'path-parser';
 
 type Output = {
   resolution: Resolution;
 };
 
 export type OnRegisterCallback = (event: object) => void;
+
+const apiPath = new Path('/api/:type/:id/:operation');
 
 class WasmInstance implements CompositorManager {
   private renderer: Renderer;
@@ -25,21 +28,20 @@ class WasmInstance implements CompositorManager {
   public async setupInstance(): Promise<void> {}
 
   public async sendRequest(request: ApiRequest): Promise<object> {
-    const paths = request.route.split('/');
-    if (paths.length < 3) {
+    const route = apiPath.test(request.route);
+    if (!route) {
       return {};
     }
 
-    const requestType = paths[2];
-    if (requestType === 'input') {
-      this.handleInputRequest(paths[3], paths[4]);
-    } else if (requestType === 'output') {
-      this.handleOutputRequest(paths[3], paths[4], request.body);
-    } else if (requestType === 'image') {
-      await this.handleImageRequest(paths[3], paths[4], request.body);
-    } else if (requestType === 'shader') {
+    if (route.type == 'input') {
+      this.handleInputRequest(route.id, route.operation);
+    } else if (route.type === 'output') {
+      this.handleOutputRequest(route.id, route.operation, request.body);
+    } else if (route.type === 'image') {
+      await this.handleImageRequest(route.id, route.operation, request.body);
+    } else if (route.type === 'shader') {
       throw 'Shaders are not supported';
-    } else if (requestType === 'web-renderer') {
+    } else if (route.type === 'web-renderer') {
       throw 'Web renderers are not supported';
     }
 

@@ -1,20 +1,19 @@
-import { RefObject, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { LiveCompositor } from '@live-compositor/web';
 import { InputStream, Text, useInputStreams, View } from 'live-compositor';
 
 const BUNNY_URL = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
 
 function MP4Player() {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const compositor = useCompositor(canvasRef);
+  const [compositor, canvasRef] = useCompositor();
 
   useEffect(() => {
     if (compositor == null) {
       return;
     }
 
-    const stopQueue = compositor.start();
-    return () => stopQueue();
+    compositor.start();
+    return () => compositor.stop();
   }, [compositor])
 
   return (
@@ -28,9 +27,9 @@ function MP4Player() {
 
 function Scene() {
   const inputs = useInputStreams();
-  const inputState = inputs['bunny_video'].videoState;
+  const inputState = inputs['bunny_video']?.videoState;
 
-  if (inputState == 'ready') {
+  if (!inputState || inputState == 'ready') {
     return (
       <View backgroundColor="#000000">
         <View width={530} height={40} bottom={300} left={500}>
@@ -54,16 +53,15 @@ function Scene() {
   );
 }
 
-function useCompositor(canvasRef: RefObject<HTMLCanvasElement>): LiveCompositor | undefined {
+function useCompositor(): [LiveCompositor | undefined, (canvas: HTMLCanvasElement) => void] {
   const [compositor, setCompositor] = useState<LiveCompositor | undefined>(undefined);
-  useEffect(() => {
-    if (!canvasRef.current) {
+  const canvasRef = useCallback((canvas: HTMLCanvasElement) => {
+    if (!canvas) {
       return;
     }
 
-    // TODO(noituri): Fix issue with compositor starting multiple times
     const setupCompositor = async () => {
-      const compositor = await LiveCompositor.create({
+      const compositor = new LiveCompositor({
         framerate: {
           num: 30,
           den: 1,
@@ -71,15 +69,17 @@ function useCompositor(canvasRef: RefObject<HTMLCanvasElement>): LiveCompositor 
         streamFallbackTimeoutMs: 500,
       });
 
+      await compositor.init();
+
       setCompositor(compositor);
 
       await compositor.registerFont(
         'https://fonts.gstatic.com/s/notosans/v36/o-0mIpQlx3QUlC5A4PNB6Ryti20_6n1iPHjcz6L1SoM-jCpoiyD9A-9a6Vc.ttf'
       );
-      await compositor.registerInput('bunny_video', { type: 'mp4', url: BUNNY_URL });
+      void compositor.registerInput('bunny_video', { type: 'mp4', url: BUNNY_URL });
       await compositor.registerOutput('output', {
         type: 'canvas',
-        canvas: canvasRef.current!,
+        canvas: canvas,
         resolution: {
           width: 1280,
           height: 720,
@@ -89,9 +89,9 @@ function useCompositor(canvasRef: RefObject<HTMLCanvasElement>): LiveCompositor 
     }
 
     setupCompositor();
-  }, [canvasRef]);
+  }, [])
 
-  return compositor;
+  return [compositor, canvasRef];
 }
 
 export default MP4Player;
