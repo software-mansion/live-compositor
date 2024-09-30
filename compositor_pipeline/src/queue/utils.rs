@@ -8,11 +8,11 @@ use std::{
     time::{Duration, Instant},
 };
 
-use compositor_render::{event_handler::emit_event, Frame, InputId};
+use compositor_render::{Frame, InputId};
 use tracing::warn;
 
-use crate::audio_mixer::InputSamples;
 use crate::event::Event;
+use crate::{audio_mixer::InputSamples, event::EventEmitter};
 
 use super::PipelineEvent;
 
@@ -42,6 +42,8 @@ pub(super) struct InputProcessor<Payload: InputProcessorMediaExt> {
     state: InputState<Payload>,
 
     clock: Clock,
+
+    event_emitter: Arc<EventEmitter>,
 }
 
 #[derive(Debug)]
@@ -59,13 +61,19 @@ pub(super) enum InputState<Payload: InputProcessorMediaExt> {
 }
 
 impl<Payload: InputProcessorMediaExt> InputProcessor<Payload> {
-    pub(super) fn new(buffer_duration: Duration, clock: Clock, input_id: InputId) -> Self {
+    pub(super) fn new(
+        buffer_duration: Duration,
+        clock: Clock,
+        input_id: InputId,
+        event_emitter: Arc<EventEmitter>,
+    ) -> Self {
         Self {
             buffer_duration,
             start_time: None,
             state: InputState::WaitingForStart,
             clock,
             input_id,
+            event_emitter,
         }
     }
 
@@ -163,8 +171,12 @@ impl<Payload: InputProcessorMediaExt> InputProcessor<Payload> {
 
     fn on_ready(&self) {
         match Payload::media_type() {
-            MediaType::Audio => emit_event(Event::AudioInputStreamDelivered(self.input_id.clone())),
-            MediaType::Video => emit_event(Event::VideoInputStreamDelivered(self.input_id.clone())),
+            MediaType::Audio => self
+                .event_emitter
+                .emit(Event::AudioInputStreamDelivered(self.input_id.clone())),
+            MediaType::Video => self
+                .event_emitter
+                .emit(Event::VideoInputStreamDelivered(self.input_id.clone())),
         }
     }
 }

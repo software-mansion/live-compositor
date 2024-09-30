@@ -18,6 +18,7 @@ use crossbeam_channel::{bounded, Sender};
 
 use crate::{
     audio_mixer::{InputSamples, InputSamplesSet},
+    event::EventEmitter,
     pipeline::decoder::DecodedDataReceiver,
 };
 
@@ -170,14 +171,14 @@ impl<T: Clone> Clone for PipelineEvent<T> {
 }
 
 impl Queue {
-    pub fn new(opts: QueueOptions) -> Arc<Self> {
+    pub(crate) fn new(opts: QueueOptions, event_emitter: &Arc<EventEmitter>) -> Arc<Self> {
         let (queue_start_sender, queue_start_receiver) = bounded(0);
         let (scheduled_event_sender, scheduled_event_receiver) = bounded(0);
         let queue = Arc::new(Queue {
-            video_queue: Mutex::new(VideoQueue::new()),
+            video_queue: Mutex::new(VideoQueue::new(event_emitter.clone())),
             output_framerate: opts.output_framerate,
 
-            audio_queue: Mutex::new(AudioQueue::new()),
+            audio_queue: Mutex::new(AudioQueue::new(event_emitter.clone())),
             audio_chunk_duration: DEFAULT_AUDIO_CHUNK_DURATION,
 
             scheduled_event_sender,

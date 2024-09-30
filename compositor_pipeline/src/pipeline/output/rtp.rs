@@ -1,4 +1,4 @@
-use compositor_render::{event_handler::emit_event, OutputId};
+use compositor_render::OutputId;
 use crossbeam_channel::Receiver;
 use std::sync::{atomic::AtomicBool, Arc};
 use tracing::{debug, span, Level};
@@ -6,7 +6,9 @@ use tracing::{debug, span, Level};
 use crate::{
     error::OutputInitError,
     event::Event,
-    pipeline::{rtp::RequestedPort, types::EncoderOutputEvent, AudioCodec, Port, VideoCodec},
+    pipeline::{
+        rtp::RequestedPort, types::EncoderOutputEvent, AudioCodec, PipelineCtx, Port, VideoCodec,
+    },
 };
 
 use self::{packet_stream::PacketStream, payloader::Payloader};
@@ -48,6 +50,7 @@ impl RtpSender {
         output_id: &OutputId,
         options: RtpSenderOptions,
         packets_receiver: Receiver<EncoderOutputEvent>,
+        pipeline_ctx: &PipelineCtx,
     ) -> Result<(Self, Port), OutputInitError> {
         let payloader = Payloader::new(options.video, options.audio);
         let mtu = match options.connection_options {
@@ -65,6 +68,7 @@ impl RtpSender {
         let connection_options = options.connection_options.clone();
         let output_id = output_id.clone();
         let should_close2 = should_close.clone();
+        let event_emitter = pipeline_ctx.event_emitter.clone();
         std::thread::Builder::new()
             .name(format!("RTP sender for output {}", output_id))
             .spawn(move || {
@@ -78,7 +82,7 @@ impl RtpSender {
                         tcp_server::run_tcp_sender_thread(socket, should_close2, packet_stream)
                     }
                 }
-                emit_event(Event::OutputDone(output_id));
+                event_emitter.emit(Event::OutputDone(output_id));
                 debug!("Closing RTP sender thread.")
             })
             .unwrap();

@@ -103,19 +103,14 @@ impl OutputOptionsExt<Option<Port>> for OutputOptions {
         match &self.output_protocol {
             OutputProtocolOptions::Rtp(rtp_options) => {
                 let (sender, port) =
-                    rtp::RtpSender::new(output_id, rtp_options.clone(), packets)
+                    rtp::RtpSender::new(output_id, rtp_options.clone(), packets, ctx)
                         .map_err(|e| RegisterOutputError::OutputError(output_id.clone(), e))?;
 
                 Ok((Output::Rtp { sender, encoder }, Some(port)))
             }
             OutputProtocolOptions::Mp4(mp4_opt) => {
-                let writer = Mp4FileWriter::new(
-                    output_id.clone(),
-                    mp4_opt.clone(),
-                    packets,
-                    ctx.output_sample_rate,
-                )
-                .map_err(|e| RegisterOutputError::OutputError(output_id.clone(), e))?;
+                let writer = Mp4FileWriter::new(output_id.clone(), mp4_opt.clone(), packets, ctx)
+                    .map_err(|e| RegisterOutputError::OutputError(output_id.clone(), e))?;
 
                 Ok((Output::Mp4 { writer, encoder }, None))
             }
