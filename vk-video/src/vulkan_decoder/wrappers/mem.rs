@@ -157,6 +157,44 @@ impl Buffer {
             allocator,
         })
     }
+
+    /// ## Safety
+    /// the buffer has to be mappable and readable
+    pub(crate) unsafe fn download_data_from_buffer(
+        &mut self,
+        size: usize,
+    ) -> Result<Vec<u8>, VulkanDecoderError> {
+        let mut output = Vec::new();
+        unsafe {
+            let memory = self.allocator.map_memory(&mut self.allocation)?;
+            let memory_slice = std::slice::from_raw_parts_mut(memory, size);
+            output.extend_from_slice(memory_slice);
+            self.allocator.unmap_memory(&mut self.allocation);
+        }
+
+        Ok(output)
+    }
+
+    pub(crate) fn new_with_decode_data(
+        allocator: Arc<Allocator>,
+        data: &[u8],
+        buffer_size: u64,
+    ) -> Result<Buffer, VulkanDecoderError> {
+        let mut decode_buffer = Buffer::new_decode(
+            allocator.clone(),
+            buffer_size,
+            &H264ProfileInfo::decode_h264_yuv420(),
+        )?;
+
+        unsafe {
+            let mem = allocator.map_memory(&mut decode_buffer.allocation)?;
+            let slice = std::slice::from_raw_parts_mut(mem.cast(), data.len());
+            slice.copy_from_slice(data);
+            allocator.unmap_memory(&mut decode_buffer.allocation);
+        }
+
+        Ok(decode_buffer)
+    }
 }
 
 impl Drop for Buffer {
@@ -180,6 +218,7 @@ pub(crate) struct Image {
     pub(crate) image: vk::Image,
     allocation: vk_mem::Allocation,
     allocator: Arc<Allocator>,
+    pub(crate) extent: vk::Extent3D,
 }
 
 impl Image {
@@ -187,6 +226,7 @@ impl Image {
         allocator: Arc<Allocator>,
         image_create_info: &vk::ImageCreateInfo,
     ) -> Result<Self, VulkanDecoderError> {
+        let extent = image_create_info.extent;
         let alloc_info = vk_mem::AllocationCreateInfo {
             usage: vk_mem::MemoryUsage::Auto,
             ..Default::default()
@@ -199,6 +239,7 @@ impl Image {
             image,
             allocation,
             allocator,
+            extent,
         })
     }
 }

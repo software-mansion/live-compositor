@@ -3,18 +3,17 @@ use std::sync::Arc;
 use ash::vk;
 
 use h264_reader::nal::{pps::PicParameterSet, sps::SeqParameterSet};
+use session_resources::VideoSessionResources;
 use tracing::error;
 use wrappers::*;
 
 use crate::parser::{DecodeInformation, DecoderInstruction, ReferenceId};
 
-mod parameter_sets;
+mod session_resources;
 mod vulkan_ctx;
 mod wrappers;
 
 pub use vulkan_ctx::*;
-
-const MACROBLOCK_SIZE: u32 = 16;
 
 pub struct VulkanDecoder<'a> {
     vulkan_ctx: Arc<VulkanCtx>,
@@ -36,12 +35,6 @@ struct CommandBuffers {
     decode_buffer: CommandBuffer,
     gpu_to_mem_transfer_buffer: CommandBuffer,
     vulkan_to_wgpu_transfer_buffer: CommandBuffer,
-}
-
-struct VideoSessionResources<'a> {
-    video_session: VideoSession,
-    parameters_manager: VideoSessionParametersManager,
-    decoding_images: DecodingImages<'a>,
 }
 
 /// this cannot outlive the image and semaphore it borrows, but it seems impossible to encode that
@@ -213,7 +206,7 @@ impl VulkanDecoder<'_> {
                         Some(dpb_idx) => self
                             .video_session_resources
                             .as_mut()
-                            .map(|s| s.decoding_images.free_reference_picture(dpb_idx)),
+                            .map(|s| s.free_reference_picture(dpb_idx)),
                         None => return Err(VulkanDecoderError::NonExistantReferenceRequested),
                     };
                 }
@@ -228,109 +221,22 @@ impl VulkanDecoder<'_> {
     }
 
     fn process_sps(&mut self, sps: &SeqParameterSet) -> Result<(), VulkanDecoderError> {
-        let profile = H264ProfileInfo::decode_h264_yuv420();
-
-        let width = match sps.frame_cropping {
-            None => (sps.pic_width_in_mbs_minus1 + 1) * MACROBLOCK_SIZE,
-            Some(_) => return Err(VulkanDecoderError::FrameCroppingNotSupported),
-        };
-
-        let height = match sps.frame_mbs_flags {
-            h264_reader::nal::sps::FrameMbsFlags::Frames => {
-                (sps.pic_height_in_map_units_minus1 + 1) * MACROBLOCK_SIZE
-            }
-            h264_reader::nal::sps::FrameMbsFlags::Fields { .. } => {
-                return Err(VulkanDecoderError::FieldsNotSupported)
-            }
-        };
-
-        let max_coded_extent = vk::Extent2D { width, height };
-        // +1 for current frame
-        let max_dpb_slots = sps.max_num_ref_frames + 1;
-        let max_active_references = sps.max_num_ref_frames;
-
-        if let Some(VideoSessionResources {
-            video_session,
-            parameters_manager: parameters,
-            ..
-        }) = &mut self.video_session_resources
-        {
-            if video_session.max_coded_extent.width >= width
-                && video_session.max_coded_extent.height >= height
-                && video_session.max_dpb_slots >= max_dpb_slots
-            {
-                // no need to change the session
-                parameters.put_sps(sps)?;
-                return Ok(());
+        match self.video_session_resources.as_mut() {
+            Some(session) => session.process_sps(
+                &self.vulkan_ctx,
+                &self.command_buffers.decode_buffer,
+                sps,
+                &self.sync_structures.fence_memory_barrier_completed,
+            )?,
+            None => {
+                self.video_session_resources = Some(VideoSessionResources::new_from_sps(
+                    &self.vulkan_ctx,
+                    &self.command_buffers.decode_buffer,
+                    sps,
+                    &self.sync_structures.fence_memory_barrier_completed,
+                )?)
             }
         }
-
-        let video_session = VideoSession::new(
-            &self.vulkan_ctx,
-            &profile.profile_info,
-            max_coded_extent,
-            max_dpb_slots,
-            max_active_references,
-            &self.vulkan_ctx.video_capabilities.std_header_version,
-        )?;
-
-        let parameters = self
-            .video_session_resources
-            .take()
-            .map(|r| r.parameters_manager);
-
-        let mut parameters = match parameters {
-            Some(mut parameters) => {
-                parameters.change_session(video_session.session)?;
-                parameters
-            }
-            None => VideoSessionParametersManager::new(&self.vulkan_ctx, video_session.session)?,
-        };
-
-        parameters.put_sps(sps)?;
-
-        // FIXME: usually, sps arrives either at the start of the stream (when all spses are sent
-        // at the begginning of the stream) or right before an IDR. It is however possible for an
-        // sps nal to arrive in between P-frames. This would cause us to loose the reference
-        // pictures we need to decode the stream until we receive a new IDR. Don't know if this is
-        // an issue worth fixing, I don't think I ever saw a stream like this.
-        let (decoding_images, memory_barrier) = DecodingImages::new(
-            &self.vulkan_ctx,
-            profile,
-            &self.vulkan_ctx.h264_dpb_format_properties,
-            &self.vulkan_ctx.h264_dst_format_properties,
-            max_coded_extent,
-            max_dpb_slots,
-        )?;
-
-        self.command_buffers.decode_buffer.begin()?;
-
-        unsafe {
-            self.vulkan_ctx.device.cmd_pipeline_barrier2(
-                *self.command_buffers.decode_buffer,
-                &vk::DependencyInfo::default().image_memory_barriers(&memory_barrier),
-            );
-        }
-
-        self.command_buffers.decode_buffer.end()?;
-
-        self.command_buffers.decode_buffer.submit(
-            *self.vulkan_ctx.queues.h264_decode.queue.lock().unwrap(),
-            &[],
-            &[],
-            Some(*self.sync_structures.fence_memory_barrier_completed),
-        )?;
-
-        // TODO: this shouldn't be a fence
-        self.sync_structures
-            .fence_memory_barrier_completed
-            .wait_and_reset(u64::MAX)?;
-
-        self.video_session_resources = Some(VideoSessionResources {
-            video_session,
-            parameters_manager: parameters,
-            decoding_images,
-        });
 
         Ok(())
     }
@@ -338,9 +244,8 @@ impl VulkanDecoder<'_> {
     fn process_pps(&mut self, pps: &PicParameterSet) -> Result<(), VulkanDecoderError> {
         self.video_session_resources
             .as_mut()
-            .map(|r| &mut r.parameters_manager)
             .ok_or(VulkanDecoderError::NoSession)?
-            .put_pps(pps)?;
+            .process_pps(pps)?;
 
         Ok(())
     }
@@ -384,8 +289,11 @@ impl VulkanDecoder<'_> {
                 .min_bitstream_buffer_offset_alignment,
         );
 
-        let decode_buffer =
-            self.upload_decode_data_to_buffer(&decode_information.rbsp_bytes, size)?;
+        let decode_buffer = Buffer::new_with_decode_data(
+            self.vulkan_ctx.allocator.clone(),
+            &decode_information.rbsp_bytes,
+            size,
+        )?;
 
         // decode
         let video_session_resources = self
@@ -533,28 +441,22 @@ impl VulkanDecoder<'_> {
             .std_picture_info(&std_picture_info)
             .slice_offsets(&slice_offsets);
 
-        let dst_picture_resource_info = match &video_session_resources.decoding_images.dst_image {
-            Some(image) => image.video_resource_info[0],
-            None => *new_reference_slot_video_picture_resource_info,
-        };
+        let dst_picture_resource_info = &video_session_resources
+            .decoding_images
+            .target_picture_resource_info(new_reference_slot_index)
+            .unwrap();
 
         // these 3 veriables are for copying the result later
-        let (dst_image, dst_image_layout, dst_layer) =
-            match &video_session_resources.decoding_images.dst_image {
-                Some(image) => (**image.image, vk::ImageLayout::VIDEO_DECODE_DST_KHR, 0),
-                None => (
-                    **video_session_resources.decoding_images.dpb_image.image,
-                    vk::ImageLayout::VIDEO_DECODE_DPB_KHR,
-                    new_reference_slot_index,
-                ),
-            };
+        let (target_image, target_image_layout, target_layer) = video_session_resources
+            .decoding_images
+            .target_info(new_reference_slot_index);
 
         // fill out the final struct and issue the command
         let decode_info = vk::VideoDecodeInfoKHR::default()
             .src_buffer(*decode_buffer)
             .src_buffer_offset(0)
             .src_buffer_range(size)
-            .dst_picture_resource(dst_picture_resource_info)
+            .dst_picture_resource(*dst_picture_resource_info)
             .setup_reference_slot(&setup_reference_slot)
             .reference_slots(&pic_reference_slots)
             .push_next(&mut decode_h264_picture_info);
@@ -586,8 +488,8 @@ impl VulkanDecoder<'_> {
 
         self.command_buffers.decode_buffer.end()?;
 
-        self.command_buffers.decode_buffer.submit(
-            *self.vulkan_ctx.queues.h264_decode.queue.lock().unwrap(),
+        self.vulkan_ctx.queues.h264_decode.submit(
+            &self.command_buffers.decode_buffer,
             &[],
             &[(
                 *self.sync_structures.sem_decode_done,
@@ -605,10 +507,10 @@ impl VulkanDecoder<'_> {
         let dimensions = video_session_resources.video_session.max_coded_extent;
 
         Ok(DecodeOutput {
-            image: dst_image,
+            image: target_image,
             wait_semaphore: *self.sync_structures.sem_decode_done,
-            layer: dst_layer as u32,
-            current_layout: dst_image_layout,
+            layer: target_layer as u32,
+            current_layout: target_image_layout,
             dimensions,
             _input_buffer: decode_buffer,
         })
@@ -773,8 +675,8 @@ impl VulkanDecoder<'_> {
 
         self.command_buffers.vulkan_to_wgpu_transfer_buffer.end()?;
 
-        self.command_buffers.vulkan_to_wgpu_transfer_buffer.submit(
-            *self.vulkan_ctx.queues.transfer.queue.lock().unwrap(),
+        self.vulkan_ctx.queues.transfer.submit(
+            &self.command_buffers.vulkan_to_wgpu_transfer_buffer,
             &[(
                 decode_output.wait_semaphore,
                 vk::PipelineStageFlags2::TOP_OF_PIPE,
@@ -867,8 +769,7 @@ impl VulkanDecoder<'_> {
             .wait_and_reset(u64::MAX)?;
 
         let output = unsafe {
-            self.download_data_from_buffer(
-                &mut dst_buffer,
+            dst_buffer.download_data_from_buffer(
                 decode_output.dimensions.width as usize
                     * decode_output.dimensions.height as usize
                     * 3
@@ -930,55 +831,6 @@ impl VulkanDecoder<'_> {
         }
 
         Ok(pic_reference_slots)
-    }
-
-    /// ## Safety
-    /// the buffer has to be mappable and readable
-    unsafe fn download_data_from_buffer(
-        &self,
-        buffer: &mut Buffer,
-        size: usize,
-    ) -> Result<Vec<u8>, VulkanDecoderError> {
-        let mut output = Vec::new();
-        unsafe {
-            let memory = self
-                .vulkan_ctx
-                .allocator
-                .map_memory(&mut buffer.allocation)?;
-            let memory_slice = std::slice::from_raw_parts_mut(memory, size);
-            output.extend_from_slice(memory_slice);
-            self.vulkan_ctx
-                .allocator
-                .unmap_memory(&mut buffer.allocation);
-        }
-
-        Ok(output)
-    }
-
-    fn upload_decode_data_to_buffer(
-        &self,
-        data: &[u8],
-        buffer_size: u64,
-    ) -> Result<Buffer, VulkanDecoderError> {
-        let mut decode_buffer = Buffer::new_decode(
-            self.vulkan_ctx.allocator.clone(),
-            buffer_size,
-            &H264ProfileInfo::decode_h264_yuv420(),
-        )?;
-
-        unsafe {
-            let mem = self
-                .vulkan_ctx
-                .allocator
-                .map_memory(&mut decode_buffer.allocation)?;
-            let slice = std::slice::from_raw_parts_mut(mem.cast(), data.len());
-            slice.copy_from_slice(data);
-            self.vulkan_ctx
-                .allocator
-                .unmap_memory(&mut decode_buffer.allocation);
-        }
-
-        Ok(decode_buffer)
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -1091,279 +943,14 @@ impl VulkanDecoder<'_> {
 
         self.command_buffers.gpu_to_mem_transfer_buffer.end()?;
 
-        self.command_buffers.gpu_to_mem_transfer_buffer.submit(
-            *self.vulkan_ctx.queues.transfer.queue.lock().unwrap(),
+        self.vulkan_ctx.queues.transfer.submit(
+            &self.command_buffers.gpu_to_mem_transfer_buffer,
             wait_semaphores,
             signal_semaphores,
             fence,
         )?;
 
         Ok(dst_buffer)
-    }
-}
-
-impl From<crate::parser::PictureInfo> for vk::native::StdVideoDecodeH264ReferenceInfo {
-    fn from(picture_info: crate::parser::PictureInfo) -> Self {
-        vk::native::StdVideoDecodeH264ReferenceInfo {
-            flags: vk::native::StdVideoDecodeH264ReferenceInfoFlags {
-                __bindgen_padding_0: [0; 3],
-                _bitfield_align_1: [],
-                _bitfield_1: vk::native::StdVideoDecodeH264ReferenceInfoFlags::new_bitfield_1(
-                    0,
-                    0,
-                    picture_info.used_for_long_term_reference.into(),
-                    picture_info.non_existing.into(),
-                ),
-            },
-            FrameNum: picture_info.FrameNum,
-            PicOrderCnt: picture_info.PicOrderCnt,
-            reserved: 0,
-        }
-    }
-}
-
-pub(crate) struct DecodingImages<'a> {
-    pub(crate) dpb_image: DecodingImageBundle<'a>,
-    pub(crate) dpb_slot_active: Vec<bool>,
-    pub(crate) dst_image: Option<DecodingImageBundle<'a>>,
-}
-
-pub(crate) struct DecodingImageBundle<'a> {
-    pub(crate) image: Arc<Image>,
-    pub(crate) _image_view: ImageView,
-    pub(crate) video_resource_info: Vec<vk::VideoPictureResourceInfoKHR<'a>>,
-}
-
-impl<'a> DecodingImageBundle<'a> {
-    #[allow(clippy::too_many_arguments)]
-    pub(crate) fn new(
-        vulkan_ctx: &VulkanCtx,
-        format: &vk::VideoFormatPropertiesKHR<'a>,
-        dimensions: vk::Extent2D,
-        image_usage: vk::ImageUsageFlags,
-        profile_info: &H264ProfileInfo,
-        array_layer_count: u32,
-        queue_indices: Option<&[u32]>,
-        layout: vk::ImageLayout,
-    ) -> Result<(Self, vk::ImageMemoryBarrier2<'a>), VulkanDecoderError> {
-        let mut profile_list_info = vk::VideoProfileListInfoKHR::default()
-            .profiles(std::slice::from_ref(&profile_info.profile_info));
-
-        let mut image_create_info = vk::ImageCreateInfo::default()
-            .flags(format.image_create_flags)
-            .image_type(format.image_type)
-            .format(format.format)
-            .extent(vk::Extent3D {
-                width: dimensions.width,
-                height: dimensions.height,
-                depth: 1,
-            })
-            .mip_levels(1)
-            .array_layers(array_layer_count)
-            .samples(vk::SampleCountFlags::TYPE_1)
-            .tiling(format.image_tiling)
-            .usage(image_usage)
-            .initial_layout(vk::ImageLayout::UNDEFINED)
-            .push_next(&mut profile_list_info);
-
-        match queue_indices {
-            Some(indices) => {
-                image_create_info = image_create_info
-                    .sharing_mode(vk::SharingMode::CONCURRENT)
-                    .queue_family_indices(indices);
-            }
-            None => {
-                image_create_info = image_create_info.sharing_mode(vk::SharingMode::EXCLUSIVE);
-            }
-        }
-
-        let image = Arc::new(Image::new(
-            vulkan_ctx.allocator.clone(),
-            &image_create_info,
-        )?);
-
-        let subresource_range = vk::ImageSubresourceRange {
-            aspect_mask: vk::ImageAspectFlags::COLOR,
-            base_mip_level: 0,
-            level_count: 1,
-            base_array_layer: 0,
-            layer_count: vk::REMAINING_ARRAY_LAYERS,
-        };
-
-        let image_view_create_info = vk::ImageViewCreateInfo::default()
-            .flags(vk::ImageViewCreateFlags::empty())
-            .image(**image)
-            .view_type(if array_layer_count == 1 {
-                vk::ImageViewType::TYPE_2D
-            } else {
-                vk::ImageViewType::TYPE_2D_ARRAY
-            })
-            .format(format.format)
-            .components(vk::ComponentMapping::default())
-            .subresource_range(subresource_range);
-
-        let image_view = ImageView::new(
-            vulkan_ctx.device.clone(),
-            image.clone(),
-            &image_view_create_info,
-        )?;
-
-        let video_resource_info = (0..array_layer_count)
-            .map(|i| {
-                vk::VideoPictureResourceInfoKHR::default()
-                    .coded_offset(vk::Offset2D { x: 0, y: 0 })
-                    .coded_extent(dimensions)
-                    .base_array_layer(i)
-                    .image_view_binding(image_view.view)
-            })
-            .collect();
-
-        let image_memory_barrier = vk::ImageMemoryBarrier2::default()
-            .src_stage_mask(vk::PipelineStageFlags2::NONE)
-            .src_access_mask(vk::AccessFlags2::NONE)
-            .dst_stage_mask(vk::PipelineStageFlags2::NONE)
-            .dst_access_mask(vk::AccessFlags2::NONE)
-            .old_layout(vk::ImageLayout::UNDEFINED)
-            .new_layout(layout)
-            .src_queue_family_index(vk::QUEUE_FAMILY_IGNORED)
-            .dst_queue_family_index(vk::QUEUE_FAMILY_IGNORED)
-            .image(**image)
-            .subresource_range(subresource_range);
-
-        Ok((
-            Self {
-                image,
-                _image_view: image_view,
-                video_resource_info,
-            },
-            image_memory_barrier,
-        ))
-    }
-}
-
-impl<'a> DecodingImages<'a> {
-    pub(crate) fn new(
-        vulkan_ctx: &VulkanCtx,
-        profile: H264ProfileInfo,
-        dpb_format: &vk::VideoFormatPropertiesKHR<'a>,
-        dst_format: &Option<vk::VideoFormatPropertiesKHR<'a>>,
-        dimensions: vk::Extent2D,
-        max_dpb_slots: u32,
-    ) -> Result<(Self, Vec<vk::ImageMemoryBarrier2<'a>>), VulkanDecoderError> {
-        let dpb_image_usage = if dst_format.is_some() {
-            dpb_format.image_usage_flags & vk::ImageUsageFlags::VIDEO_DECODE_DPB_KHR
-        } else {
-            dpb_format.image_usage_flags
-                & (vk::ImageUsageFlags::VIDEO_DECODE_DPB_KHR
-                    | vk::ImageUsageFlags::VIDEO_DECODE_DST_KHR
-                    | vk::ImageUsageFlags::TRANSFER_SRC)
-        };
-
-        let queue_indices = [
-            vulkan_ctx.queues.transfer.idx as u32,
-            vulkan_ctx.queues.h264_decode.idx as u32,
-        ];
-
-        let (dpb_image, dpb_memory_barrier) = DecodingImageBundle::new(
-            vulkan_ctx,
-            dpb_format,
-            dimensions,
-            dpb_image_usage,
-            &profile,
-            max_dpb_slots,
-            if dst_format.is_some() {
-                None
-            } else {
-                Some(&queue_indices)
-            },
-            vk::ImageLayout::VIDEO_DECODE_DPB_KHR,
-        )?;
-
-        let output = dst_format
-            .map(|dst_format| {
-                let dst_image_usage = dst_format.image_usage_flags
-                    & (vk::ImageUsageFlags::VIDEO_DECODE_DST_KHR
-                        | vk::ImageUsageFlags::TRANSFER_SRC);
-                DecodingImageBundle::new(
-                    vulkan_ctx,
-                    &dst_format,
-                    dimensions,
-                    dst_image_usage,
-                    &profile,
-                    1,
-                    Some(&queue_indices),
-                    vk::ImageLayout::VIDEO_DECODE_DST_KHR,
-                )
-            })
-            .transpose()?;
-
-        let (dst_image, dst_memory_barrier) = match output {
-            Some((output_images, output_memory_barrier)) => {
-                (Some(output_images), Some(output_memory_barrier))
-            }
-            None => (None, None),
-        };
-
-        let barriers = [dpb_memory_barrier]
-            .into_iter()
-            .chain(dst_memory_barrier)
-            .collect::<Vec<_>>();
-
-        Ok((
-            Self {
-                dpb_image,
-                dpb_slot_active: vec![false; max_dpb_slots as usize],
-                dst_image,
-            },
-            barriers,
-        ))
-    }
-
-    fn reference_slot_info(&self) -> Vec<vk::VideoReferenceSlotInfoKHR> {
-        self.dpb_image
-            .video_resource_info
-            .iter()
-            .enumerate()
-            .map(|(i, info)| {
-                vk::VideoReferenceSlotInfoKHR::default()
-                    .picture_resource(info)
-                    .slot_index(if self.dpb_slot_active[i] {
-                        i as i32
-                    } else {
-                        -1
-                    })
-            })
-            .collect()
-    }
-
-    fn allocate_reference_picture(&mut self) -> Result<usize, VulkanDecoderError> {
-        let i = self
-            .dpb_slot_active
-            .iter()
-            .enumerate()
-            .find(|(_, &v)| !v)
-            .map(|(i, _)| i)
-            .ok_or(VulkanDecoderError::NoFreeSlotsInDpb)?;
-
-        self.dpb_slot_active[i] = true;
-
-        Ok(i)
-    }
-
-    fn video_resource_info(&self, i: usize) -> Option<&vk::VideoPictureResourceInfoKHR> {
-        self.dpb_image.video_resource_info.get(i)
-    }
-
-    fn free_reference_picture(&mut self, i: usize) -> Result<(), VulkanDecoderError> {
-        self.dpb_slot_active[i] = false;
-
-        Ok(())
-    }
-
-    fn reset_all_allocations(&mut self) {
-        self.dpb_slot_active
-            .iter_mut()
-            .for_each(|slot| *slot = false);
     }
 }
 

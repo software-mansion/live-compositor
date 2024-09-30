@@ -6,7 +6,10 @@ use std::{
 use ash::{vk, Entry};
 use tracing::{error, info};
 
-use super::{Allocator, CommandPool, DebugMessenger, Device, H264ProfileInfo, Instance};
+use super::{
+    Allocator, CommandBuffer, CommandPool, DebugMessenger, Device, H264ProfileInfo, Instance,
+    VulkanDecoderError,
+};
 
 const REQUIRED_EXTENSIONS: &[&CStr] = &[
     vk::KHR_VIDEO_QUEUE_NAME,
@@ -73,6 +76,7 @@ pub(crate) struct Queue {
     _video_properties: vk::QueueFamilyVideoPropertiesKHR<'static>,
     pub(crate) query_result_status_properties:
         vk::QueueFamilyQueryResultStatusPropertiesKHR<'static>,
+    device: Arc<Device>,
 }
 
 impl Queue {
@@ -80,6 +84,48 @@ impl Queue {
         self.query_result_status_properties
             .query_result_status_support
             == vk::TRUE
+    }
+
+    pub(crate) fn submit(
+        &self,
+        buffer: &CommandBuffer,
+        wait_semaphores: &[(vk::Semaphore, vk::PipelineStageFlags2)],
+        signal_semaphores: &[(vk::Semaphore, vk::PipelineStageFlags2)],
+        fence: Option<vk::Fence>,
+    ) -> Result<(), VulkanDecoderError> {
+        fn to_sem_submit_info(
+            submits: &[(vk::Semaphore, vk::PipelineStageFlags2)],
+        ) -> Vec<vk::SemaphoreSubmitInfo> {
+            submits
+                .iter()
+                .map(|&(sem, stage)| {
+                    vk::SemaphoreSubmitInfo::default()
+                        .semaphore(sem)
+                        .stage_mask(stage)
+                })
+                .collect::<Vec<_>>()
+        }
+
+        let wait_semaphores = to_sem_submit_info(wait_semaphores);
+        let signal_semaphores = to_sem_submit_info(signal_semaphores);
+
+        let buffer_submit_info =
+            [vk::CommandBufferSubmitInfo::default().command_buffer(buffer.buffer)];
+
+        let submit_info = [vk::SubmitInfo2::default()
+            .wait_semaphore_infos(&wait_semaphores)
+            .signal_semaphore_infos(&signal_semaphores)
+            .command_buffer_infos(&buffer_submit_info)];
+
+        unsafe {
+            self.device.queue_submit2(
+                *self.queue.lock().unwrap(),
+                &submit_info,
+                fence.unwrap_or(vk::Fence::null()),
+            )?
+        };
+
+        Ok(())
     }
 }
 
@@ -222,40 +268,6 @@ impl VulkanCtx {
             .push_next(&mut vk_synch_2_feature);
 
         let device = unsafe { instance.create_device(physical_device, &device_create_info, None)? };
-        let h264_decode_queue =
-            unsafe { device.get_device_queue(queue_indices.h264_decode.idx as u32, 0) };
-        let transfer_queue =
-            unsafe { device.get_device_queue(queue_indices.transfer.idx as u32, 0) };
-        let wgpu_queue = unsafe {
-            device.get_device_queue(queue_indices.graphics_transfer_compute.idx as u32, 0)
-        };
-        let queues = Queues {
-            transfer: Queue {
-                queue: transfer_queue.into(),
-                idx: queue_indices.transfer.idx,
-                _video_properties: queue_indices.transfer.video_properties,
-                query_result_status_properties: queue_indices
-                    .transfer
-                    .query_result_status_properties,
-            },
-            h264_decode: Queue {
-                queue: h264_decode_queue.into(),
-                idx: queue_indices.h264_decode.idx,
-                _video_properties: queue_indices.h264_decode.video_properties,
-                query_result_status_properties: queue_indices
-                    .h264_decode
-                    .query_result_status_properties,
-            },
-            wgpu: Queue {
-                queue: wgpu_queue.into(),
-                idx: queue_indices.graphics_transfer_compute.idx,
-                _video_properties: queue_indices.graphics_transfer_compute.video_properties,
-                query_result_status_properties: queue_indices
-                    .graphics_transfer_compute
-                    .query_result_status_properties,
-            },
-        };
-
         let video_queue_ext = ash::khr::video_queue::Device::new(&instance, &device);
         let video_decode_queue_ext = ash::khr::video_decode_queue::Device::new(&instance, &device);
 
@@ -265,6 +277,44 @@ impl VulkanCtx {
             video_decode_queue_ext,
             _instance: instance.clone(),
         });
+
+        let h264_decode_queue =
+            unsafe { device.get_device_queue(queue_indices.h264_decode.idx as u32, 0) };
+        let transfer_queue =
+            unsafe { device.get_device_queue(queue_indices.transfer.idx as u32, 0) };
+        let wgpu_queue = unsafe {
+            device.get_device_queue(queue_indices.graphics_transfer_compute.idx as u32, 0)
+        };
+
+        let queues = Queues {
+            transfer: Queue {
+                queue: transfer_queue.into(),
+                idx: queue_indices.transfer.idx,
+                _video_properties: queue_indices.transfer.video_properties,
+                query_result_status_properties: queue_indices
+                    .transfer
+                    .query_result_status_properties,
+                device: device.clone(),
+            },
+            h264_decode: Queue {
+                queue: h264_decode_queue.into(),
+                idx: queue_indices.h264_decode.idx,
+                _video_properties: queue_indices.h264_decode.video_properties,
+                query_result_status_properties: queue_indices
+                    .h264_decode
+                    .query_result_status_properties,
+                device: device.clone(),
+            },
+            wgpu: Queue {
+                queue: wgpu_queue.into(),
+                idx: queue_indices.graphics_transfer_compute.idx,
+                _video_properties: queue_indices.graphics_transfer_compute.video_properties,
+                query_result_status_properties: queue_indices
+                    .graphics_transfer_compute
+                    .query_result_status_properties,
+                device: device.clone(),
+            },
+        };
 
         let wgpu_device = unsafe {
             wgpu_adapter.adapter.device_from_raw(

@@ -1,7 +1,34 @@
 use ash::vk;
 use h264_reader::nal::sps::SeqParameterSet;
 
-use super::VulkanDecoderError;
+use crate::VulkanDecoderError;
+
+const MACROBLOCK_SIZE: u32 = 16;
+
+pub(crate) trait SeqParameterSetExt {
+    fn width(&self) -> Result<u32, VulkanDecoderError>;
+    fn height(&self) -> Result<u32, VulkanDecoderError>;
+}
+
+impl SeqParameterSetExt for SeqParameterSet {
+    fn width(&self) -> Result<u32, VulkanDecoderError> {
+        match self.frame_cropping {
+            None => Ok((self.pic_width_in_mbs_minus1 + 1) * MACROBLOCK_SIZE),
+            Some(_) => Err(VulkanDecoderError::FrameCroppingNotSupported),
+        }
+    }
+
+    fn height(&self) -> Result<u32, VulkanDecoderError> {
+        match self.frame_mbs_flags {
+            h264_reader::nal::sps::FrameMbsFlags::Frames => {
+                Ok((self.pic_height_in_map_units_minus1 + 1) * MACROBLOCK_SIZE)
+            }
+            h264_reader::nal::sps::FrameMbsFlags::Fields { .. } => {
+                Err(VulkanDecoderError::FieldsNotSupported)
+            }
+        }
+    }
+}
 
 pub(crate) struct VkSequenceParameterSet {
     pub(crate) sps: vk::native::StdVideoH264SequenceParameterSet,
@@ -195,8 +222,8 @@ fn h264_level_idc_to_vk(level_idc: u8) -> u32 {
     }
 }
 
-pub(super) struct VkPictureParameterSet {
-    pub(super) pps: vk::native::StdVideoH264PictureParameterSet,
+pub(crate) struct VkPictureParameterSet {
+    pub(crate) pps: vk::native::StdVideoH264PictureParameterSet,
 }
 
 impl TryFrom<&'_ h264_reader::nal::pps::PicParameterSet> for VkPictureParameterSet {

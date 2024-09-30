@@ -1,122 +1,10 @@
-use std::{collections::HashMap, sync::Arc};
+use std::sync::Arc;
 
 use ash::vk;
-use h264_reader::nal::{pps::PicParameterSet, sps::SeqParameterSet};
 
-use crate::{
-    vulkan_decoder::{
-        parameter_sets::{VkPictureParameterSet, VkSequenceParameterSet},
-        VulkanDecoderError,
-    },
-    VulkanCtx,
-};
+use crate::{vulkan_decoder::VulkanDecoderError, VulkanCtx};
 
 use super::{Device, MemoryAllocation, VideoQueueExt};
-
-/// Since `VideoSessionParameters` can only add sps and pps values (inserting sps or pps with an
-/// existing id is prohibited), this is an abstraction which provides the capability to replace an
-/// existing sps or pps.
-pub(crate) struct VideoSessionParametersManager {
-    pub(crate) parameters: VideoSessionParameters,
-    sps: HashMap<u8, VkSequenceParameterSet>,
-    pps: HashMap<(u8, u8), VkPictureParameterSet>,
-    device: Arc<Device>,
-    session: vk::VideoSessionKHR,
-}
-
-impl VideoSessionParametersManager {
-    pub(crate) fn new(
-        vulkan_ctx: &VulkanCtx,
-        session: vk::VideoSessionKHR,
-    ) -> Result<Self, VulkanDecoderError> {
-        Ok(Self {
-            parameters: VideoSessionParameters::new(
-                vulkan_ctx.device.clone(),
-                session,
-                &[],
-                &[],
-                None,
-            )?,
-            sps: HashMap::new(),
-            pps: HashMap::new(),
-            device: vulkan_ctx.device.clone(),
-            session,
-        })
-    }
-
-    pub(crate) fn parameters(&self) -> vk::VideoSessionParametersKHR {
-        self.parameters.parameters
-    }
-
-    pub(crate) fn change_session(
-        &mut self,
-        session: vk::VideoSessionKHR,
-    ) -> Result<(), VulkanDecoderError> {
-        if self.session == session {
-            return Ok(());
-        }
-        self.session = session;
-
-        let sps = self.sps.values().map(|sps| sps.sps).collect::<Vec<_>>();
-        let pps = self.pps.values().map(|pps| pps.pps).collect::<Vec<_>>();
-
-        self.parameters =
-            VideoSessionParameters::new(self.device.clone(), session, &sps, &pps, None)?;
-
-        Ok(())
-    }
-
-    // it is probably not optimal to insert sps and pps searately. this could be optimized, so that
-    // the insertion happens lazily when the parameters are bound to a session.
-    pub(crate) fn put_sps(&mut self, sps: &SeqParameterSet) -> Result<(), VulkanDecoderError> {
-        let key = sps.seq_parameter_set_id.id();
-        match self.sps.entry(key) {
-            std::collections::hash_map::Entry::Occupied(mut e) => {
-                e.insert(sps.try_into()?);
-
-                self.parameters = VideoSessionParameters::new(
-                    self.device.clone(),
-                    self.session,
-                    &[self.sps[&key].sps],
-                    &[],
-                    Some(&self.parameters),
-                )?
-            }
-            std::collections::hash_map::Entry::Vacant(e) => {
-                e.insert(sps.try_into()?);
-
-                self.parameters.add(&[self.sps[&key].sps], &[])?;
-            }
-        }
-
-        Ok(())
-    }
-
-    pub(crate) fn put_pps(&mut self, pps: &PicParameterSet) -> Result<(), VulkanDecoderError> {
-        let key = (pps.seq_parameter_set_id.id(), pps.pic_parameter_set_id.id());
-        match self.pps.entry(key) {
-            std::collections::hash_map::Entry::Occupied(mut e) => {
-                e.insert(pps.try_into()?);
-
-                self.parameters = VideoSessionParameters::new(
-                    self.device.clone(),
-                    self.session,
-                    &[],
-                    &[self.pps[&key].pps],
-                    Some(&self.parameters),
-                )?;
-            }
-
-            std::collections::hash_map::Entry::Vacant(e) => {
-                e.insert(pps.try_into()?);
-
-                self.parameters.add(&[], &[self.pps[&key].pps])?;
-            }
-        }
-
-        Ok(())
-    }
-}
 
 pub(crate) struct VideoSessionParameters {
     pub(crate) parameters: vk::VideoSessionParametersKHR,
@@ -294,5 +182,25 @@ impl Drop for VideoSession {
                 .video_queue_ext
                 .destroy_video_session_khr(self.session, None)
         };
+    }
+}
+
+impl From<crate::parser::PictureInfo> for vk::native::StdVideoDecodeH264ReferenceInfo {
+    fn from(picture_info: crate::parser::PictureInfo) -> Self {
+        vk::native::StdVideoDecodeH264ReferenceInfo {
+            flags: vk::native::StdVideoDecodeH264ReferenceInfoFlags {
+                __bindgen_padding_0: [0; 3],
+                _bitfield_align_1: [],
+                _bitfield_1: vk::native::StdVideoDecodeH264ReferenceInfoFlags::new_bitfield_1(
+                    0,
+                    0,
+                    picture_info.used_for_long_term_reference.into(),
+                    picture_info.non_existing.into(),
+                ),
+            },
+            FrameNum: picture_info.FrameNum,
+            PicOrderCnt: picture_info.PicOrderCnt,
+            reserved: 0,
+        }
     }
 }
