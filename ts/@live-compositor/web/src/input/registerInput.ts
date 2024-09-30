@@ -8,7 +8,7 @@ export type RegisterMP4Input = {
 
 export function intoRegisterInput(input: RegisterInput): InternalRegisterInput {
   if (input.type === 'mp4') {
-    return { type: 'bytes' };
+    return { type: 'raw_frames' };
   } else {
     throw new Error(`Unknown input type ${(input as any).type}`);
   }
