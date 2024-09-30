@@ -1,9 +1,9 @@
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
-import SimpleTransition from "./assets/view_transition_1.webp"
-import BothStreamsTransition from "./assets/view_transition_2.webp"
-import UnsupportedTransition from "./assets/view_transition_3.webp"
-import InterpolationShowcaseTransition from "./assets/view_transition_4.webp"
+import SimpleTransition from "../assets/view_transition_1.webp"
+import BothStreamsTransition from "../assets/view_transition_2.webp"
+import UnsupportedTransition from "../assets/view_transition_3.webp"
+import InterpolationShowcaseTransition from "../assets/view_transition_4.webp"
 
 # Transitions (View/Rescaler)
 

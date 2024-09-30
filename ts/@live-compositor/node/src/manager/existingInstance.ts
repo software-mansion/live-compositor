@@ -11,7 +11,7 @@ type CreateInstanceOptions = {
 };
 
 /**
- * CompositorManager that will connect to existing instance
+ * CompositorManager that will connect to existing instance.
  */
 class ExistingInstance implements CompositorManager {
   private ip: string;

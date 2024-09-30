@@ -1,10 +1,10 @@
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
-import LayoutsEmpty from "./assets/basic_layouts_1.webp"
-import LayoutsOverflow from "./assets/basic_layouts_2.webp"
-import LayoutsFitted from "./assets/basic_layouts_3.webp"
-import LayoutsBothInputs from "./assets/basic_layouts_4.webp"
-import LayoutsAbsolutePosition from "./assets/basic_layouts_5.webp"
+import LayoutsEmpty from "../assets/basic_layouts_1.webp"
+import LayoutsOverflow from "../assets/basic_layouts_2.webp"
+import LayoutsFitted from "../assets/basic_layouts_3.webp"
+import LayoutsBothInputs from "../assets/basic_layouts_4.webp"
+import LayoutsAbsolutePosition from "../assets/basic_layouts_5.webp"
 
 # Basic Layouts
 
@@ -13,7 +13,7 @@ This guide will explain how to create simple scene that is combining input strea
 ### Configure inputs and output
 
 Start the compositor and configure 2 input streams and a single output stream as described in the "Simple scene"
-guide in the ["Configure inputs and output"](./quick-start.md#configure-inputs-and-output) section.
+guide in the ["Configure inputs and output"](../quick-start.md#configure-inputs-and-output) section.
 
 After configuration, you should see the following output:
 
@@ -321,7 +321,7 @@ Specify `width` and `height` of one of the `Rescaler` components and position it
 </Tabs>
 
 When you specify `top`/`right` options on the `Rescaler` component, the `View` component does not take that component
-into account when calculating the row layout of its children. See [absolute positioning](../typescript/components/View.md#absolute-positioning) to learn more.
+into account when calculating the row layout of its children. See [absolute positioning](../../typescript/components/View.md#absolute-positioning) to learn more.
 
 As a result:
 - The first child extends to the full width of a parent.

@@ -21,7 +21,7 @@ type ManagedInstanceOptions = {
 };
 
 /**
- * CompositorManager that will download and spawn it's own LiveCompositor instance locally.
+ * CompositorManager that will download and spawn its own LiveCompositor instance locally.
  */
 class LocallySpawnedInstance implements CompositorManager {
   private port: number;

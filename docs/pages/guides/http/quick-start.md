@@ -1,7 +1,7 @@
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
-import QuickStartEmpty from "./assets/quick_start_1.webp"
-import QuickStartBothInputs from "./assets/quick_start_2.webp"
+import QuickStartEmpty from "../assets/quick_start_1.webp"
+import QuickStartBothInputs from "../assets/quick_start_2.webp"
 
 # Quick start
 
@@ -23,7 +23,7 @@ This guide will explain basic LiveCompositor setup.
     ```
   </TabItem>
   <TabItem value="http" label="HTTP">
-    Start the compositor server. Check out [configuration page](../deployment/configuration.md) for available configuration options.
+    Start the compositor server. Check out [configuration page](../../deployment/configuration.md) for available configuration options.
   </TabItem>
   <TabItem value="membrane" label="Membrane Framework">
     Following code snippets are implementing `handle_init/2` or `handle_setup/2` callbacks. Those
@@ -67,7 +67,7 @@ This guide will explain basic LiveCompositor setup.
       }
     })
     ```
-    After `registerInput` call is done you can establish the connection and start sending the stream. Check out [how to deliver input streams](./deliver-input.md) to learn more.
+    After `registerInput` call is done you can establish the connection and start sending the stream. Check out [how to deliver input streams](../deliver-input.md) to learn more.
   </TabItem>
   <TabItem value="http" label="HTTP">
     ```http
@@ -87,7 +87,7 @@ This guide will explain basic LiveCompositor setup.
     }
     ```
 
-    After receiving the response you can establish the connection and start sending the stream. Check out [how to deliver input streams](./deliver-input.md) to learn more.
+    After receiving the response you can establish the connection and start sending the stream. Check out [how to deliver input streams](../deliver-input.md) to learn more.
   </TabItem>
   <TabItem value="membrane" label="Membrane Framework">
     ```elixir
@@ -129,7 +129,7 @@ This guide will explain basic LiveCompositor setup.
       }
     })
     ```
-    After `registerInput` call is done you can establish the connection and start sending the stream. Check out [how to deliver input streams](./deliver-input.md) to learn more.
+    After `registerInput` call is done you can establish the connection and start sending the stream. Check out [how to deliver input streams](../deliver-input.md) to learn more.
   </TabItem>
   <TabItem value="http" label="HTTP">
     ```http
@@ -149,7 +149,7 @@ This guide will explain basic LiveCompositor setup.
     }
     ```
 
-    After receiving the response you can establish the connection and start sending the stream. Check out [how to deliver input streams](./deliver-input.md) to learn more.
+    After receiving the response you can establish the connection and start sending the stream. Check out [how to deliver input streams](../deliver-input.md) to learn more.
   </TabItem>
   <TabItem value="membrane" label="Membrane Framework">
     ```elixir
@@ -177,7 +177,7 @@ This guide will explain basic LiveCompositor setup.
 ### Register output stream `output_1`.
 
 Configure it to:
-- render an empty [`View`](../api/components/View.md) component with a background color set to `#4d4d4d` (gray)
+- render an empty [`View`](../../api/components/View.md) component with a background color set to `#4d4d4d` (gray)
 - produce silent audio
 
 <Tabs queryString="lang">
@@ -211,7 +211,7 @@ Configure it to:
       })
     }
     ```
-    After `registerOutput` is done you can establish the connection and start listening for the stream. Check out [how to receive output streams](./receive-output.md) to learn more.
+    After `registerOutput` is done you can establish the connection and start listening for the stream. Check out [how to receive output streams](../receive-output.md) to learn more.
 
     `View` component does not have any children, so on the output you should see just a blank screen
     of a specified color as shown below. There are no `InputStream` components in the scene and 
@@ -250,7 +250,7 @@ Configure it to:
       }
     }
     ```
-    After receiving the response you can establish the connection and start listening for the stream. Check out [how to receive output streams](./receive-output.md) to learn more.
+    After receiving the response you can establish the connection and start listening for the stream. Check out [how to receive output streams](../receive-output.md) to learn more.
 
     `View` component does not have any children, so on the output you should see just a blank screen
     of a specified color as shown below. The `initial.inputs` list in audio config is empty, so the
@@ -311,7 +311,7 @@ Configure it to:
 ## Update output
 
 Configure it to:
-- Show input streams `input_1` and `input_2` using [`Tiles`](../typescript/components/Tiles.md) component.
+- Show input streams `input_1` and `input_2` using [`Tiles`](../../api/components/Tiles.md) component.
 - Mix audio from input streams `input_1` and `input_2`, where `input_1` volume is slightly lowered.  
 
 <Tabs queryString="lang">
