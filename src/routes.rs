@@ -2,6 +2,7 @@ use axum::{
     async_trait,
     extract::{rejection::JsonRejection, ws::WebSocketUpgrade, FromRequest, Request, State},
     http::StatusCode,
+    middleware,
     response::IntoResponse,
     routing::{get, post},
     Router,
@@ -17,6 +18,7 @@ use self::{
     update_output::handle_keyframe_request, update_output::handle_output_update,
     ws::handle_ws_upgrade,
 };
+use crate::middleware::body_logger_middleware;
 
 mod register_request;
 mod unregister_request;
@@ -75,6 +77,7 @@ pub fn routes(state: ApiState) -> Router {
                 "instance_id": state.config.instance_id
             }))),
         )
+        .layer(middleware::from_fn(body_logger_middleware))
         .with_state(state)
 }
 
