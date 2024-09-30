@@ -20,6 +20,7 @@ use compositor_render::WgpuFeatures;
 use compositor_render::{error::UpdateSceneError, Renderer};
 use compositor_render::{EventLoop, InputId, OutputId, RendererId, RendererSpec};
 use crossbeam_channel::{bounded, Receiver};
+use glyphon::fontdb;
 use input::InputInitInfo;
 use input::RawDataInputOptions;
 use output::EncodedDataOutputOptions;
@@ -160,10 +161,6 @@ impl Pipeline {
         Ok((pipeline, event_loop))
     }
 
-    pub fn renderer_mut(&mut self) -> &mut Renderer {
-        &mut self.renderer
-    }
-
     pub fn queue(&self) -> &Queue {
         &self.queue
     }
@@ -302,6 +299,10 @@ impl Pipeline {
         };
 
         output.output.request_keyframe(output_id)
+    }
+
+    pub fn register_font(&self, font_source: fontdb::Source) {
+        self.renderer.register_font(font_source);
     }
 
     fn check_output_spec(

@@ -520,6 +520,7 @@ dependencies = [
  "decklink",
  "fdk-aac-sys",
  "ffmpeg-next",
+ "glyphon",
  "log",
  "mp4",
  "opus",

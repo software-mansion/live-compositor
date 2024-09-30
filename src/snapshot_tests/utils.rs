@@ -85,7 +85,7 @@ pub(super) fn create_renderer() -> Renderer {
         stream_fallback_timeout: Duration::from_secs(3),
         wgpu_features: WgpuFeatures::default(),
         wgpu_ctx: Some(global_wgpu_ctx(false, Default::default())),
-        load_system_fonts: true
+        load_system_fonts: true,
     })
     .unwrap();
     renderer
