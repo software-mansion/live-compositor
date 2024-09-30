@@ -9,6 +9,7 @@ export async function ffplayStartPlayerAsync(
   audio_port: number | undefined = undefined
 ): Promise<void> {
   let sdpFilePath;
+  await fs.mkdirp(COMPOSITOR_DIR);
   if (audio_port === undefined) {
     sdpFilePath = path.join(COMPOSITOR_DIR, `video_input_${video_port}.sdp`);
     await writeVideoSdpFile('127.0.0.1', video_port, sdpFilePath);
