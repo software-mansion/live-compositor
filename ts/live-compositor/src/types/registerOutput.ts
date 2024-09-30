@@ -4,7 +4,7 @@ import * as Api from '../api.js';
 export type RegisterOutput =
   | ({ type: 'rtp_stream' } & RegisterRtpOutput)
   | ({ type: 'mp4' } & RegisterMp4Output)
-  | ({ type: 'bytes' } & RegisterBytesOutput);
+  | ({ type: 'raw_frames' } & RegisterRawFramesOutput);
 
 export type RegisterRtpOutput = {
   /**
@@ -40,8 +40,8 @@ export type RegisterMp4Output = {
   audio?: Mp4AudioOptions;
 };
 
-export type RegisterBytesOutput = {
-  video: OutputBytesVideoOptions;
+export type RegisterRawFramesOutput = {
+  video: OutputRawFramesVideoOptions;
 };
 
 export type RtpVideoOptions = {
@@ -78,7 +78,7 @@ export type Mp4VideoOptions = {
   root: React.ReactElement;
 };
 
-export type OutputBytesVideoOptions = {
+export type OutputRawFramesVideoOptions = {
   /**
    * Output resolution in pixels.
    */
@@ -86,7 +86,7 @@ export type OutputBytesVideoOptions = {
   /**
    * Output byte format.
    */
-  format: OutputByteFormat;
+  format: OutputFrameFormat;
   root: React.ReactElement;
 };
 
@@ -192,7 +192,7 @@ export type OutputEndCondition =
       allInputs: boolean;
     };
 
-export enum OutputByteFormat {
+export enum OutputFrameFormat {
   RGBA_BYTES = 'RGBA_BYTES',
 }
 

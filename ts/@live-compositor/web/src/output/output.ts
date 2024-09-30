@@ -6,13 +6,9 @@ import { RegisterOutput } from './registerOutput';
 export class Output {
   private sink: OutputSink;
 
-  private constructor(sink: OutputSink) {
-    this.sink = sink;
-  }
-
-  public static create(request: RegisterOutput): Output {
+  public constructor(request: RegisterOutput) {
     if (request.type === 'canvas') {
-      return new Output(new CanvasSink(request.canvas));
+      this.sink = new CanvasSink(request.canvas);
     } else {
       throw new Error(`Unknown output type ${(request as any).type}`);
     }
