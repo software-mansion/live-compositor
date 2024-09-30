@@ -5,9 +5,11 @@ use std::{
 };
 
 use glyphon::{
-    fontdb::Source, AttrsOwned, Buffer, Cache, Color, FontSystem, Metrics, Shaping, SwashCache,
-    TextArea, TextAtlas, TextBounds,
+    fontdb::{Database, Source},
+    AttrsOwned, Buffer, Cache, Color, FontSystem, Metrics, Shaping, SwashCache, TextArea,
+    TextAtlas, TextBounds,
 };
+use tracing::warn;
 use wgpu::{
     CommandEncoderDescriptor, LoadOp, MultisampleState, Operations, RenderPassColorAttachment,
     RenderPassDescriptor, TextureFormat,
@@ -224,9 +226,28 @@ pub struct TextRendererCtx {
 }
 
 impl TextRendererCtx {
-    pub(crate) fn new(device: &wgpu::Device) -> Self {
+    pub(crate) fn new(device: &wgpu::Device, load_system_fonts: bool) -> Self {
+        let mut font_system = if load_system_fonts {
+            FontSystem::new()
+        } else {
+            let locale = sys_locale::get_locale().unwrap_or_else(|| {
+                warn!("failed to get system locale, falling back to en-US");
+                String::from("en-US")
+            });
+            FontSystem::new_with_locale_and_db(locale, Database::new())
+        };
+        font_system
+            .db_mut()
+            .load_font_source(Source::Binary(Arc::new(include_bytes!(
+                "../../fonts/Inter_18pt-Regular.ttf"
+            ))));
+        font_system
+            .db_mut()
+            .load_font_source(Source::Binary(Arc::new(include_bytes!(
+                "../../fonts/Inter_18pt-Italic.ttf"
+            ))));
         Self {
-            font_system: Mutex::new(FontSystem::new()),
+            font_system: Mutex::new(font_system),
             swash_cache: Mutex::new(SwashCache::new()),
             cache: Mutex::new(Cache::new(device)),
         }

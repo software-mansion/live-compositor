@@ -72,6 +72,7 @@ impl From<RendererOptions> for compositor_render::RendererOptions {
             force_gpu: false,
             wgpu_features: wgpu::Features::empty(),
             wgpu_ctx: None,
+            load_system_fonts: true,
         }
     }
 }

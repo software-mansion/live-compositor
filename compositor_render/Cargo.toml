@@ -26,3 +26,4 @@ naga = "22.1.0"
 rand = { workspace = true }
 tracing = { workspace = true }
 shared_memory = { workspace = true, optional = true }
+sys-locale = "0.3.1"

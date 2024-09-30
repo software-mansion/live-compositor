@@ -50,6 +50,7 @@ impl ApiState {
             output_sample_rate,
             wgpu_features: required_wgpu_features,
             wgpu_ctx: None,
+            load_system_fonts: Some(true),
         })?;
         Ok((
             ApiState {

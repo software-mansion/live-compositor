@@ -42,6 +42,7 @@ pub struct RendererOptions {
     pub force_gpu: bool,
     pub wgpu_features: wgpu::Features,
     pub wgpu_ctx: Option<(Arc<wgpu::Device>, Arc<wgpu::Queue>)>,
+    pub load_system_fonts: bool,
 }
 
 #[derive(Clone)]
@@ -192,7 +193,10 @@ impl InnerRenderer {
 
         Ok(Self {
             wgpu_ctx: wgpu_ctx.clone(),
-            text_renderer_ctx: Arc::new(TextRendererCtx::new(&wgpu_ctx.device)),
+            text_renderer_ctx: Arc::new(TextRendererCtx::new(
+                &wgpu_ctx.device,
+                opts.load_system_fonts,
+            )),
             chromium_context: Arc::new(ChromiumContext::new(opts.web_renderer, opts.framerate)?),
             render_graph: RenderGraph::empty(),
             renderers: Renderers::new(wgpu_ctx)?,

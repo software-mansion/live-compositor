@@ -20,6 +20,7 @@ use compositor_render::WgpuFeatures;
 use compositor_render::{error::UpdateSceneError, Renderer};
 use compositor_render::{EventLoop, InputId, OutputId, RendererId, RendererSpec};
 use crossbeam_channel::{bounded, Receiver};
+use glyphon::fontdb;
 use input::InputInitInfo;
 use input::RawDataInputOptions;
 use output::EncodedDataOutputOptions;
@@ -116,6 +117,7 @@ pub struct Options {
     pub output_sample_rate: u32,
     pub wgpu_features: WgpuFeatures,
     pub wgpu_ctx: Option<(Arc<wgpu::Device>, Arc<wgpu::Queue>)>,
+    pub load_system_fonts: Option<bool>,
 }
 
 #[derive(Debug, Clone)]
@@ -134,6 +136,7 @@ impl Pipeline {
             force_gpu: opts.force_gpu,
             wgpu_features: opts.wgpu_features,
             wgpu_ctx: opts.wgpu_ctx,
+            load_system_fonts: opts.load_system_fonts.unwrap_or(true),
         })?;
 
         let download_dir = opts
@@ -296,6 +299,10 @@ impl Pipeline {
         };
 
         output.output.request_keyframe(output_id)
+    }
+
+    pub fn register_font(&self, font_source: fontdb::Source) {
+        self.renderer.register_font(font_source);
     }
 
     fn check_output_spec(
