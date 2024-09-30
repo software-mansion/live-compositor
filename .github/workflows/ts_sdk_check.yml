@@ -42,7 +42,7 @@ jobs:
 
             - name: Build
               working-directory: ./ts
-              run: npm run build
+              run: npm run build:all
 
             - name: Lint code
               working-directory: ./ts

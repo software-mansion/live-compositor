@@ -1,5 +1,5 @@
-import * as Api from '../api';
-import { createCompositorComponent, SceneComponent, sceneComponentIntoApi } from '../component';
+import * as Api from '../api.js';
+import { createCompositorComponent, SceneComponent, sceneComponentIntoApi } from '../component.js';
 
 export type WebViewProps = {
   /**

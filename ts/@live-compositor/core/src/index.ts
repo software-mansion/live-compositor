@@ -1,3 +1,3 @@
-export { ApiClient, ApiRequest } from './api';
-export { LiveCompositor } from './compositor';
-export { CompositorManager } from './compositorManager';
+export { ApiClient, ApiRequest } from './api.js';
+export { LiveCompositor } from './compositor.js';
+export { CompositorManager } from './compositorManager.js';

@@ -4,13 +4,13 @@ import {
   RegisterOutput,
   Renderers,
 } from 'live-compositor';
-import { ApiClient } from './api';
-import Output from './output';
-import { CompositorManager } from './compositorManager';
-import { intoRegisterOutput } from './api/output';
-import { intoRegisterInput } from './api/input';
-import { onCompositorEvent } from './event';
-import { intoRegisterImage, intoRegisterWebRenderer } from './api/renderer';
+import { ApiClient } from './api.js';
+import Output from './output.js';
+import { CompositorManager } from './compositorManager.js';
+import { intoRegisterOutput } from './api/output.js';
+import { intoRegisterInput } from './api/input.js';
+import { onCompositorEvent } from './event.js';
+import { intoRegisterImage, intoRegisterWebRenderer } from './api/renderer.js';
 
 export class LiveCompositor {
   private manager: CompositorManager;

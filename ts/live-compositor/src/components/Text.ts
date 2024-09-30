@@ -1,6 +1,6 @@
-import * as Api from '../api';
-import { createCompositorComponent, SceneComponent } from '../component';
-import { intoApiRgbaColor } from './common';
+import * as Api from '../api.js';
+import { createCompositorComponent, SceneComponent } from '../component.js';
+import { intoApiRgbaColor } from './common.js';
 
 export type TextProps = {
   children?: (string | number)[] | string | number;

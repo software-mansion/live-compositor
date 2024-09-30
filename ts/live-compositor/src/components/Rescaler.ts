@@ -1,7 +1,7 @@
 import React from 'react';
-import * as Api from '../api';
-import { intoApiTransition, Transition } from './common';
-import { createCompositorComponent, SceneComponent, sceneComponentIntoApi } from '../component';
+import * as Api from '../api.js';
+import { intoApiTransition, Transition } from './common.js';
+import { createCompositorComponent, SceneComponent, sceneComponentIntoApi } from '../component.js';
 
 export type RescalerProps = {
   children: React.ReactElement | string | number;

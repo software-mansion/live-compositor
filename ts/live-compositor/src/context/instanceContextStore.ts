@@ -1,4 +1,4 @@
-import * as Api from '../api';
+import * as Api from '../api.js';
 
 export type StreamState = 'ready' | 'playing' | 'finished';
 

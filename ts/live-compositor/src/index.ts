@@ -1,23 +1,23 @@
-import View, { ViewProps } from './components/View';
-import Image, { ImageProps } from './components/Image';
-import Text, { TextProps } from './components/Text';
-import InputStream, { InputStreamProps } from './components/InputStream';
-import Rescaler, { RescalerProps } from './components/Rescaler';
-import WebView, { WebViewProps } from './components/WebView';
-import Shader, { ShaderParam, ShaderParamStructField, ShaderProps } from './components/Shader';
-import Tiles, { TilesProps } from './components/Tiles';
-import { EasingFunction, Transition } from './components/common';
-import { useAudioInput, useInputStreams } from './hooks';
-import { CompositorEvent, CompositorEventType } from './types/events';
+import View, { ViewProps } from './components/View.js';
+import Image, { ImageProps } from './components/Image.js';
+import Text, { TextProps } from './components/Text.js';
+import InputStream, { InputStreamProps } from './components/InputStream.js';
+import Rescaler, { RescalerProps } from './components/Rescaler.js';
+import WebView, { WebViewProps } from './components/WebView.js';
+import Shader, { ShaderParam, ShaderParamStructField, ShaderProps } from './components/Shader.js';
+import Tiles, { TilesProps } from './components/Tiles.js';
+import { EasingFunction, Transition } from './components/common.js';
+import { useAudioInput, useInputStreams } from './hooks.js';
+import { CompositorEvent, CompositorEventType } from './types/events.js';
 
-export { RegisterInput } from './types/registerInput';
-export { RegisterOutput } from './types/registerOutput';
+export { RegisterInput } from './types/registerInput.js';
+export { RegisterOutput } from './types/registerOutput.js';
 
-export * as Inputs from './types/registerInput';
-export * as Outputs from './types/registerOutput';
-export * as Renderers from './types/registerRenderer';
-export * as Api from './api';
-export * as _liveCompositorInternals from './internal';
+export * as Inputs from './types/registerInput.js';
+export * as Outputs from './types/registerOutput.js';
+export * as Renderers from './types/registerRenderer.js';
+export * as Api from './api.js';
+export * as _liveCompositorInternals from './internal.js';
 
 export {
   View,
