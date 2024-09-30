@@ -1,4 +1,4 @@
-import { Api } from '../api';
+import { Api } from '../api.js';
 import { RegisterInput, Inputs } from 'live-compositor';
 
 export type RegisterInputRequest = Api.RegisterInput | { type: 'bytes' };

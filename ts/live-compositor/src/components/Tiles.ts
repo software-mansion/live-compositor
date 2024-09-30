@@ -1,6 +1,6 @@
-import * as Api from '../api';
-import { intoApiRgbaColor, intoApiTransition, Transition } from './common';
-import { createCompositorComponent, SceneComponent, sceneComponentIntoApi } from '../component';
+import * as Api from '../api.js';
+import { intoApiRgbaColor, intoApiTransition, Transition } from './common.js';
+import { createCompositorComponent, SceneComponent, sceneComponentIntoApi } from '../component.js';
 
 export type TilesProps = {
   /**

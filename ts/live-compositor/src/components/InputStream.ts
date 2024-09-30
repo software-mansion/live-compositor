@@ -1,7 +1,7 @@
 import React from 'react';
-import * as Api from '../api';
-import { createCompositorComponent, SceneComponent } from '../component';
-import { useAudioInput } from '../hooks';
+import * as Api from '../api.js';
+import { createCompositorComponent, SceneComponent } from '../component.js';
+import { useAudioInput } from '../hooks.js';
 
 export type InputStreamProps = {
   children?: undefined;

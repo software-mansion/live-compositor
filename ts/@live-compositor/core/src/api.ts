@@ -1,7 +1,7 @@
 import { Api } from 'live-compositor';
-import { CompositorManager } from './compositorManager';
-import { RegisterOutputRequest } from './api/output';
-import { RegisterInputRequest } from './api/input';
+import { CompositorManager } from './compositorManager.js';
+import { RegisterOutputRequest } from './api/output.js';
+import { RegisterInputRequest } from './api/input.js';
 
 export { Api };
 
