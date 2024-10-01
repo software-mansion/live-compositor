@@ -1,6 +1,6 @@
 use std::{fs, path::PathBuf, ptr, time::Duration};
 
-use compositor_render::{event_handler::emit_event, OutputId};
+use compositor_render::OutputId;
 use crossbeam_channel::Receiver;
 use ffmpeg_next as ffmpeg;
 use log::error;
@@ -10,7 +10,7 @@ use crate::{
     audio_mixer::AudioChannels,
     error::OutputInitError,
     event::Event,
-    pipeline::{EncodedChunk, EncodedChunkKind, EncoderOutputEvent, VideoCodec},
+    pipeline::{EncodedChunk, EncodedChunkKind, EncoderOutputEvent, PipelineCtx, VideoCodec},
 };
 
 #[derive(Debug, Clone)]
@@ -48,7 +48,7 @@ impl Mp4FileWriter {
         output_id: OutputId,
         options: Mp4OutputOptions,
         packets_receiver: Receiver<EncoderOutputEvent>,
-        sample_rate: u32,
+        pipeline_ctx: &PipelineCtx,
     ) -> Result<Self, OutputInitError> {
         if options.output_path.exists() {
             let mut old_index = 0;
@@ -75,8 +75,10 @@ impl Mp4FileWriter {
             };
         }
 
-        let (output_ctx, video_stream, audio_stream) = init_ffmpeg_output(options, sample_rate)?;
+        let (output_ctx, video_stream, audio_stream) =
+            init_ffmpeg_output(options, pipeline_ctx.output_sample_rate)?;
 
+        let event_emitter = pipeline_ctx.event_emitter.clone();
         std::thread::Builder::new()
             .name(format!("MP4 writer thread for output {}", output_id))
             .spawn(move || {
@@ -84,7 +86,7 @@ impl Mp4FileWriter {
                     tracing::info_span!("MP4 writer", output_id = output_id.to_string()).entered();
 
                 run_ffmpeg_output_thread(output_ctx, video_stream, audio_stream, packets_receiver);
-                emit_event(Event::OutputDone(output_id));
+                event_emitter.emit(Event::OutputDone(output_id));
                 debug!("Closing MP4 writer thread.");
             })
             .unwrap();

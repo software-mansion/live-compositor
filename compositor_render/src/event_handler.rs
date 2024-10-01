@@ -14,26 +14,30 @@ pub struct Event {
 }
 
 pub fn emit_event<T: Into<Event>>(event: T) {
-    Emitter::instance().send_event(event)
+    global_instance().send_event(event)
 }
 
 pub fn subscribe() -> Receiver<Event> {
-    Emitter::instance().subscribe()
+    global_instance().subscribe()
 }
 
-struct Emitter {
-    subscribers: RwLock<Vec<Sender<Event>>>,
+pub struct Emitter<E: Clone> {
+    subscribers: RwLock<Vec<Sender<E>>>,
 }
 
-impl Emitter {
-    fn instance() -> &'static Self {
-        static EMITTER: OnceLock<Emitter> = OnceLock::new();
-        EMITTER.get_or_init(|| Self {
+fn global_instance() -> &'static Emitter<Event> {
+    static EMITTER: OnceLock<Emitter<Event>> = OnceLock::new();
+    EMITTER.get_or_init(Emitter::new)
+}
+
+impl<E: Clone> Emitter<E> {
+    pub fn new() -> Self {
+        Self {
             subscribers: vec![].into(),
-        })
+        }
     }
 
-    fn send_event<T: Into<Event>>(&self, event: T) {
+    pub fn send_event<T: Into<E>>(&self, event: T) {
         let event = event.into();
         let mut disconnected_subscriber_indexes = HashSet::new();
         for (index, subscriber) in self.subscribers.read().unwrap().iter().enumerate() {
@@ -47,7 +51,7 @@ impl Emitter {
         }
     }
 
-    fn subscribe(&self) -> Receiver<Event> {
+    pub fn subscribe(&self) -> Receiver<E> {
         let (sender, receiver) = unbounded();
         self.subscribers.write().unwrap().push(sender);
         receiver
@@ -66,5 +70,11 @@ impl Emitter {
                 }
             })
             .collect()
+    }
+}
+
+impl<E: Clone> Default for Emitter<E> {
+    fn default() -> Self {
+        Self::new()
     }
 }

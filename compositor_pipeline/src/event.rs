@@ -1,6 +1,13 @@
-use compositor_render::{event_handler, InputId, OutputId};
+use std::fmt::Debug;
 
-pub(crate) enum Event {
+use compositor_render::{
+    event_handler::{self, emit_event, Emitter},
+    InputId, OutputId,
+};
+use crossbeam_channel::Receiver;
+
+#[derive(Debug, Clone)]
+pub enum Event {
     AudioInputStreamDelivered(InputId),
     VideoInputStreamDelivered(InputId),
     AudioInputStreamPlaying(InputId),
@@ -35,5 +42,33 @@ impl From<Event> for event_handler::Event {
             Event::VideoInputStreamEos(id) => input_event("VIDEO_INPUT_EOS", id),
             Event::OutputDone(id) => output_event("OUTPUT_DONE", id),
         }
+    }
+}
+
+pub struct EventEmitter {
+    emitter: Emitter<Event>,
+}
+
+impl Debug for EventEmitter {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("EventEmitter").finish()
+    }
+}
+
+impl EventEmitter {
+    pub(super) fn new() -> Self {
+        Self {
+            emitter: Emitter::new(),
+        }
+    }
+
+    pub(super) fn emit(&self, event: Event) {
+        self.emitter.send_event(event.clone());
+        // emit global event
+        emit_event(event)
+    }
+
+    pub(super) fn subscribe(&self) -> Receiver<Event> {
+        self.emitter.subscribe()
     }
 }

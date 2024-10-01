@@ -1,27 +1,33 @@
 use std::{
     collections::{HashMap, VecDeque},
+    sync::Arc,
     time::{Duration, Instant},
     vec,
 };
 
-use crate::{audio_mixer::InputSamples, event::Event};
+use crate::{
+    audio_mixer::InputSamples,
+    event::{Event, EventEmitter},
+};
 
 use super::{
     utils::{Clock, InputProcessor},
     InputOptions, PipelineEvent, QueueAudioOutput,
 };
-use compositor_render::{event_handler::emit_event, InputId};
+use compositor_render::InputId;
 use crossbeam_channel::{Receiver, TryRecvError};
 
 #[derive(Debug)]
 pub struct AudioQueue {
     inputs: HashMap<InputId, AudioQueueInput>,
+    event_emitter: Arc<EventEmitter>,
 }
 
 impl AudioQueue {
-    pub fn new() -> Self {
+    pub fn new(event_emitter: Arc<EventEmitter>) -> Self {
         AudioQueue {
             inputs: HashMap::new(),
+            event_emitter,
         }
     }
 
@@ -42,11 +48,13 @@ impl AudioQueue {
                     opts.buffer_duration,
                     clock,
                     input_id.clone(),
+                    self.event_emitter.clone(),
                 ),
                 required: opts.required,
                 offset: opts.offset,
                 eos_sent: false,
                 first_samples_sent: false,
+                event_emitter: self.event_emitter.clone(),
             },
         );
     }
@@ -142,6 +150,8 @@ struct AudioQueueInput {
 
     eos_sent: bool,
     first_samples_sent: bool,
+
+    event_emitter: Arc<EventEmitter>,
 }
 
 impl AudioQueueInput {
@@ -217,11 +227,13 @@ impl AudioQueueInput {
             && !self.eos_sent
         {
             self.eos_sent = true;
-            emit_event(Event::AudioInputStreamEos(self.input_id.clone()));
+            self.event_emitter
+                .emit(Event::AudioInputStreamEos(self.input_id.clone()));
             PipelineEvent::EOS
         } else {
             if !self.first_samples_sent && !popped_samples.is_empty() {
-                emit_event(Event::AudioInputStreamPlaying(self.input_id.clone()));
+                self.event_emitter
+                    .emit(Event::AudioInputStreamPlaying(self.input_id.clone()));
                 self.first_samples_sent = true
             }
             PipelineEvent::Data(popped_samples)

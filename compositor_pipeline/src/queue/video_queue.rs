@@ -1,4 +1,3 @@
-use compositor_render::event_handler::emit_event;
 use compositor_render::Frame;
 use compositor_render::InputId;
 use crossbeam_channel::Receiver;
@@ -6,10 +5,12 @@ use crossbeam_channel::TryRecvError;
 
 use std::collections::HashMap;
 use std::collections::VecDeque;
+use std::sync::Arc;
 use std::time::Duration;
 use std::time::Instant;
 
 use crate::event::Event;
+use crate::event::EventEmitter;
 
 use super::utils::Clock;
 use super::utils::InputProcessor;
@@ -19,12 +20,14 @@ use super::QueueVideoOutput;
 
 pub struct VideoQueue {
     inputs: HashMap<InputId, VideoQueueInput>,
+    event_emitter: Arc<EventEmitter>,
 }
 
 impl VideoQueue {
-    pub fn new() -> Self {
+    pub fn new(event_emitter: Arc<EventEmitter>) -> Self {
         VideoQueue {
             inputs: HashMap::new(),
+            event_emitter,
         }
     }
 
@@ -45,11 +48,13 @@ impl VideoQueue {
                     opts.buffer_duration,
                     clock,
                     input_id.clone(),
+                    self.event_emitter.clone(),
                 ),
                 required: opts.required,
                 offset: opts.offset,
                 eos_sent: false,
                 first_frame_sent: false,
+                event_emitter: self.event_emitter.clone(),
             },
         );
     }
@@ -148,6 +153,8 @@ pub struct VideoQueueInput {
 
     eos_sent: bool,
     first_frame_sent: bool,
+
+    event_emitter: Arc<EventEmitter>,
 }
 
 impl VideoQueueInput {
@@ -185,11 +192,13 @@ impl VideoQueueInput {
 
         if self.input_frames_processor.did_receive_eos() && frame.is_none() && !self.eos_sent {
             self.eos_sent = true;
-            emit_event(Event::VideoInputStreamEos(self.input_id.clone()));
+            self.event_emitter
+                .emit(Event::VideoInputStreamEos(self.input_id.clone()));
             Some(PipelineEvent::EOS)
         } else {
             if !self.first_frame_sent && frame.is_some() {
-                emit_event(Event::VideoInputStreamPlaying(self.input_id.clone()));
+                self.event_emitter
+                    .emit(Event::VideoInputStreamPlaying(self.input_id.clone()));
                 self.first_frame_sent = true
             }
             frame.map(PipelineEvent::Data)

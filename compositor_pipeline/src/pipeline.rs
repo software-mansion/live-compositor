@@ -36,6 +36,8 @@ use crate::error::{
     RegisterInputError, RegisterOutputError, UnregisterInputError, UnregisterOutputError,
 };
 
+use crate::event::Event;
+use crate::event::EventEmitter;
 use crate::pipeline::pipeline_output::OutputSender;
 use crate::queue::PipelineEvent;
 use crate::queue::QueueAudioOutput;
@@ -125,6 +127,7 @@ pub struct PipelineCtx {
     pub output_sample_rate: u32,
     pub output_framerate: Framerate,
     pub download_dir: Arc<PathBuf>,
+    pub event_emitter: Arc<EventEmitter>,
 }
 
 impl Pipeline {
@@ -144,10 +147,11 @@ impl Pipeline {
             .join(format!("live-compositor-{}", rand::random::<u64>()));
         std::fs::create_dir_all(&download_dir).map_err(InitPipelineError::CreateDownloadDir)?;
 
+        let event_emitter = Arc::new(EventEmitter::new());
         let pipeline = Pipeline {
             outputs: HashMap::new(),
             inputs: HashMap::new(),
-            queue: Queue::new(opts.queue_options),
+            queue: Queue::new(opts.queue_options, &event_emitter),
             renderer,
             audio_mixer: AudioMixer::new(opts.output_sample_rate),
             is_started: false,
@@ -155,6 +159,7 @@ impl Pipeline {
                 output_sample_rate: opts.output_sample_rate,
                 output_framerate: opts.queue_options.output_framerate,
                 download_dir: download_dir.into(),
+                event_emitter,
             },
         };
 
@@ -163,6 +168,10 @@ impl Pipeline {
 
     pub fn queue(&self) -> &Queue {
         &self.queue
+    }
+
+    pub fn subscribe_pipeline_events(&self) -> Receiver<Event> {
+        self.ctx.event_emitter.subscribe()
     }
 
     pub fn register_input(
