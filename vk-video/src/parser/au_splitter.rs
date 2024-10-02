@@ -40,6 +40,9 @@ impl AUSplitter {
     }
 }
 
+// The below code is taken from Membrane's AU Splitter in their h264 parser. The comments contain
+// elixir versions of the functions below them.
+
 // defguardp first_mb_in_slice_zero(a)
 //           when a.first_mb_in_slice == 0 and
 //                  a.nal_unit_type in [1, 2, 5]
