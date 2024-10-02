@@ -5,7 +5,7 @@ import QuickStartBothInputs from "./assets/quick_start_2.webp"
 
 # Quick start
 
-This guide will explain basic LiveCompositor setup.
+This guide explains creating a basic compositor setup. We will take two input videos and create an output video with both of them side-by-side.
 
 ## Configure inputs and output
 
@@ -214,7 +214,7 @@ Configure it to:
     After `registerOutput` is done you can establish the connection and start listening for the stream. Check out [how to receive output streams](./receive-output.md) to learn more.
 
     `View` component does not have any children, so on the output you should see just a blank screen
-    of a specified color as shown below. There are no `InputStream` components in the scene and 
+    of a specified color as shown below. There are no `InputStream` components in the scene and
     `useAudioInput` hook was not used, so output audio will be silent.
   </TabItem>
   <TabItem value="http" label="HTTP">
@@ -277,7 +277,7 @@ Configure it to:
           }
         ])
         |> video_output_1_spec,
-        
+
         get_child(:live_compositor)
         |> via_out(Pad.ref(:audio_output, "audio_output_1"), options: [
           encoder: LiveCompositor.Encoder.Opus.t(),
@@ -295,7 +295,7 @@ Configure it to:
     where `video_output_1_spec` and `audio_output_1_spec` are elements that can consume H264 video and Opus audio respectively.
 
     You can configure output framerate and sample rate using [`framerate` and `output_sample_rate` bin options](https://hexdocs.pm/membrane_live_compositor_plugin/Membrane.LiveCompositor.html#module-bin-options).
-    
+
     `View` component does not have any children, so on the output you should see just a blank screen
     of a specified color as shown below. The `initial.inputs` list in audio config is empty, so the
     output audio will be silent.
@@ -312,7 +312,7 @@ Configure it to:
 
 Configure it to:
 - Show input streams `input_1` and `input_2` using [`Tiles`](../typescript/components/Tiles.md) component.
-- Mix audio from input streams `input_1` and `input_2`, where `input_1` volume is slightly lowered.  
+- Mix audio from input streams `input_1` and `input_2`, where `input_1` volume is slightly lowered.
 
 <Tabs queryString="lang">
   <TabItem value="react" label="React">
@@ -372,7 +372,7 @@ Configure it to:
           %{ input_id: "input_2" }
         ]
       }
-      
+
       events = [
         notify_child: {:live_compositor, video_request},
         notify_child: {:live_compositor, audio_request}

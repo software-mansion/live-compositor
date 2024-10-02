@@ -101,14 +101,14 @@ function HowItWorks() {
   return (
     <div className="container margin-top--md">
       <Heading as="h2" className="margin-bottom--md text--center text--primary">
-        How it works?
+        How does it work?
       </Heading>
       <p className={clsx('text--center', styles.grayText)}>
-        1. Send inputs as RTP streams or MP4 files
+        1. Either stream intputs in or provide them as MP4 files
         <br />
         2. Configure mixing with React components or via HTTP API
         <br />
-        3. Get the mixed streams via RTP or as MP4 files
+        3. Write the outputs to a file or stream them to a separate service
       </p>
       <div className="flex flex-row flex-wrap">
         <div className="flex-1 mx-8 mt-20 min-w-[400px]">
