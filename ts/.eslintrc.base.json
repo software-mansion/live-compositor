@@ -8,6 +8,7 @@
     "prettier"
   ],
   "plugins": [
+    "import",
     "prettier"
   ],
   "parser": "@typescript-eslint/parser",
@@ -15,6 +16,17 @@
     "project": [
       "tsconfig.json"
     ]
+  },
+  "settings": {
+    "import/parsers": {
+      "@typescript-eslint/parser": [".ts", ".tsx"]
+    },
+    "import/resolver": {
+      "typescript": {
+        "alwaysTryTypes": true,
+        "project": "**/tsconfig.json"
+      }
+    }
   },
   "rules": {
     "prettier/prettier": ["error"],

@@ -1,4 +1,4 @@
-import { Api } from '../api';
+import { Api } from '../api.js';
 import { Renderers } from 'live-compositor';
 
 export function intoRegisterImage(image: Renderers.RegisterImage): Api.ImageSpec {

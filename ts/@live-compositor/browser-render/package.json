@@ -23,14 +23,5 @@
   },
   "peerDependencies": {
     "live-compositor": "^0.1.0"
-  },
-  "nx": {
-    "targets": {
-      "build": {
-        "dependsOn": [
-          "build-wasm"
-        ]
-      }
-    }
   }
 }

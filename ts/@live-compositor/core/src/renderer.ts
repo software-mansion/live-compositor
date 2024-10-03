@@ -1,6 +1,6 @@
 import Reconciler from 'react-reconciler';
-import { DefaultEventPriority, LegacyRoot } from 'react-reconciler/constants';
-import { Api } from './api';
+import { DefaultEventPriority, LegacyRoot } from 'react-reconciler/constants.js';
+import { Api } from './api.js';
 import { _liveCompositorInternals } from 'live-compositor';
 import React from 'react';
 
