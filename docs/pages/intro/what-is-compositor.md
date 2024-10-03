@@ -8,6 +8,7 @@ The resulting outputs can then be written to a file or streamed to a separate se
 ## The TypeScript SDK
 
 The TypeScript SDK is the recommended way to start using the compositor right now.
-It is a library which allows controlling how the compositor manipulates videos in a way which is simpler to wrap your head around than raw HTTP requests.
-It allows writing React-based code, which then controlls how the videos are processed.
+It is a library that allows you to control how the compositor manipulates videos with React components.
+This approach should be very intuitive for anyone with a web development background and simpler to wrap your head around than raw HTTP requests.
+It allows writing React-based code, which then controls how the videos are processed.
 

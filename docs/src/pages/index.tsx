@@ -104,7 +104,7 @@ function HowItWorks() {
         How does it work?
       </Heading>
       <p className={clsx('text--center', styles.grayText)}>
-        1. Either stream intputs in or provide them as MP4 files
+        1. Either stream inputs in or provide them as MP4 files
         <br />
         2. Configure mixing with React components or via HTTP API
         <br />

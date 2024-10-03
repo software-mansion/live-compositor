@@ -5,7 +5,7 @@ import QuickStartBothInputs from "./assets/quick_start_2.webp"
 
 # Quick start
 
-This guide explains creating a basic compositor setup. We will take two input videos and create an output video with both of them side-by-side.
+This guide explains creating a basic compositor setup. We will take two input videos and produce an output video with both of them side-by-side.
 
 ## Configure inputs and output
 
