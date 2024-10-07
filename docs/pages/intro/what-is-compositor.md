@@ -1,8 +1,14 @@
 # What is Live Compositor?
 
-LiveCompositor is a media server for real-time, low latency, programmable video and audio mixing.
+Live Compositor is an engine for applying effects to videos and for combining multiple videos together.
+On a very basic level, it is an application which exposes an HTTP API.
+The API allows you to specify where to get input videos, and how to modify and compose them together.
+The resulting outputs can then be written to a file or streamed to a separate service.
 
-LiveCompositor targets real-time use cases, with a significant focus on situations where latency is critical. It is a great fit
-for any video conferencing, live-streaming, or broadcasting solutions where you need to combine or modify video on the fly.
-However, you can also use it for non-real-time use cases, for example, apply some effect on a video from an MP4 file and write the output
-to file as MP4.
+## The TypeScript SDK
+
+The TypeScript SDK is the recommended way to start using the compositor right now.
+It is a library that allows you to control how the compositor manipulates videos with React components.
+This approach should be very intuitive for anyone with a web development background and simpler to wrap your head around than raw HTTP requests.
+It allows writing React-based code, which then controls how the videos are processed.
+
