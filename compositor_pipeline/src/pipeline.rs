@@ -48,6 +48,7 @@ use self::input::InputOptions;
 
 pub mod decoder;
 pub mod encoder;
+mod graphics_context;
 pub mod input;
 pub mod output;
 mod pipeline_input;
@@ -63,8 +64,9 @@ pub use self::types::{
     AudioCodec, EncodedChunk, EncodedChunkKind, EncoderOutputEvent, RawDataReceiver, VideoCodec,
     VideoDecoder,
 };
-use compositor_render::{create_wgpu_ctx, error::InitRendererEngineError};
 pub use pipeline_output::PipelineOutputEndCondition;
+
+pub use graphics_context::GraphicsContext;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Port(pub u16);
@@ -109,72 +111,6 @@ pub struct Pipeline {
     renderer: Renderer,
     audio_mixer: AudioMixer,
     is_started: bool,
-}
-
-pub struct GraphicsContext {
-    pub device: Arc<wgpu::Device>,
-    pub queue: Arc<wgpu::Queue>,
-
-    #[cfg(feature = "vk-video")]
-    pub vulkan_ctx: Option<Arc<vk_video::VulkanCtx>>,
-}
-
-impl GraphicsContext {
-    #[cfg(feature = "vk-video")]
-    pub fn new(
-        force_gpu: bool,
-        features: wgpu::Features,
-        limits: wgpu::Limits,
-    ) -> Result<Self, InitPipelineError> {
-        use compositor_render::{required_wgpu_features, set_required_wgpu_limits};
-
-        let vulkan_features =
-            features | required_wgpu_features() | wgpu::Features::TEXTURE_FORMAT_NV12;
-
-        let limits = set_required_wgpu_limits(limits);
-
-        match vk_video::VulkanCtx::new(vulkan_features, limits.clone()) {
-            Ok(ctx) => Ok(GraphicsContext {
-                device: ctx.wgpu_ctx.device.clone(),
-                queue: ctx.wgpu_ctx.queue.clone(),
-                vulkan_ctx: Some(ctx.into()),
-            }),
-
-            Err(err) => {
-                info!("Cannot initialize vulkan video decoding context. Reason: {err}. Initializing without vulkan video support.");
-
-                let (device, queue) = create_wgpu_ctx(force_gpu, features, limits)
-                    .map_err(InitRendererEngineError::FailedToInitWgpuCtx)?;
-
-                Ok(GraphicsContext {
-                    device,
-                    queue,
-                    vulkan_ctx: None,
-                })
-            }
-        }
-    }
-
-    #[cfg(not(feature = "vk-video"))]
-    pub fn new(
-        force_gpu: bool,
-        features: wgpu::Features,
-        limits: wgpu::Limits,
-    ) -> Result<Self, InitPipelineError> {
-        let (device, queue) = create_wgpu_ctx(force_gpu, features, limits)
-            .map_err(InitRendererEngineError::FailedToInitWgpuCtx)?;
-
-        Ok(GraphicsContext { device, queue })
-    }
-}
-
-impl std::fmt::Debug for GraphicsContext {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("PreinitializedContext")
-            .field("device", &self.device)
-            .field("queue", &self.queue)
-            .finish()
-    }
 }
 
 #[derive(Debug)]
