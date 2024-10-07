@@ -100,10 +100,17 @@ export class H264Decoder implements Decoder {
         break;
       }
 
+      if (this.eosReceived) {
+        console.warn(payload);
+      }
+
       if (payload.type == 'chunk') {
         this.decoder.decode(payload.chunk);
       } else if (payload.type == 'eos') {
+        console.warn(payload);
         this.eosReceived = true;
+        this.decoder.close();
+        // this.decoder.flush().then(() => this.decoder.close());
       }
     }
   }

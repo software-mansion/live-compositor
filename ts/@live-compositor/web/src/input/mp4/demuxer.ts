@@ -62,10 +62,6 @@ export class MP4Demuxer {
 
   private onSamples(samples: Sample[]) {
     for (const sample of samples) {
-      if (sample.number == this.samplesCount! - 1) {
-        this.onPayload({ type: 'eos' });
-      }
-
       const chunk = new EncodedVideoChunk({
         type: sample.is_sync ? 'key' : 'delta',
         timestamp: (sample.cts * 1_000_000) / sample.timescale,
@@ -74,6 +70,9 @@ export class MP4Demuxer {
       });
 
       this.onPayload({ type: 'chunk', chunk: chunk });
+      if (sample.number == this.samplesCount! - 1) {
+        this.onPayload({ type: 'eos' });
+      }
     }
   }
 
