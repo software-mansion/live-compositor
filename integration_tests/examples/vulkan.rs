@@ -105,8 +105,7 @@ fn client_code() -> Result<()> {
                 stream: RtpStream {
                     video: Some(InputVideoStream {
                         options: VideoDecoderOptions {
-                            codec: VideoCodec::H264,
-                            decoder: VideoDecoder::VulkanVideo,
+                            decoder: VideoDecoder::VulkanVideoH264,
                         },
                     }),
                     audio: None,

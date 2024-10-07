@@ -3,7 +3,7 @@ use crossbeam_channel::{Receiver, Sender};
 
 use crate::{
     error::InputInitError,
-    pipeline::{types::EncodedChunk, PipelineCtx, VideoCodec, VideoDecoder},
+    pipeline::{types::EncodedChunk, PipelineCtx, VideoDecoder},
     queue::PipelineEvent,
 };
 
@@ -20,8 +20,8 @@ pub fn start_video_decoder_thread(
     frame_sender: Sender<PipelineEvent<Frame>>,
     input_id: InputId,
 ) -> Result<(), InputInitError> {
-    match (options.codec, options.decoder) {
-        (VideoCodec::H264, VideoDecoder::FFmpegH264) => ffmpeg_h264::start_ffmpeg_decoder_thread(
+    match options.decoder {
+        VideoDecoder::FFmpegH264 => ffmpeg_h264::start_ffmpeg_decoder_thread(
             pipeline_ctx,
             chunks_receiver,
             frame_sender,
@@ -29,13 +29,11 @@ pub fn start_video_decoder_thread(
         ),
 
         #[cfg(feature = "vk-video")]
-        (VideoCodec::H264, VideoDecoder::VulkanVideo) => {
-            vulkan_video::start_vulkan_video_decoder_thread(
-                pipeline_ctx,
-                chunks_receiver,
-                frame_sender,
-                input_id,
-            )
-        }
+        VideoDecoder::VulkanVideoH264 => vulkan_video::start_vulkan_video_decoder_thread(
+            pipeline_ctx,
+            chunks_receiver,
+            frame_sender,
+            input_id,
+        ),
     }
 }

@@ -108,7 +108,6 @@ impl TryFrom<RtpInput> for pipeline::RegisterInputOptions {
                     Ok(input::rtp::InputVideoStream {
                         options: match video {
                             InputRtpVideoOptions::FfmepgH264 => decoder::VideoDecoderOptions {
-                                codec: pipeline::VideoCodec::H264,
                                 decoder: pipeline::VideoDecoder::FFmpegH264,
                             },
                         },

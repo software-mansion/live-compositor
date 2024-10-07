@@ -234,7 +234,6 @@ impl Mp4FileReader<VideoDecoderOptions> {
         };
 
         let decoder_options = VideoDecoderOptions {
-            codec: VideoCodec::H264,
             decoder: VideoDecoder::FFmpegH264,
         };
 
