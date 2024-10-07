@@ -20,7 +20,7 @@ impl GraphicsContext {
             create_wgpu_ctx, error::InitRendererEngineError, required_wgpu_features,
             set_required_wgpu_limits,
         };
-        use tracing::info;
+        use tracing::warn;
 
         let vulkan_features =
             features | required_wgpu_features() | wgpu::Features::TEXTURE_FORMAT_NV12;
@@ -35,7 +35,7 @@ impl GraphicsContext {
             }),
 
             Err(err) => {
-                info!("Cannot initialize vulkan video decoding context. Reason: {err}. Initializing without vulkan video support.");
+                warn!("Cannot initialize vulkan video decoding context. Reason: {err}. Initializing without vulkan video support.");
 
                 let (device, queue) = create_wgpu_ctx(force_gpu, features, limits)
                     .map_err(InitRendererEngineError::FailedToInitWgpuCtx)?;

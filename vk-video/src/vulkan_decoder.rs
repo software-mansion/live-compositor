@@ -75,7 +75,7 @@ pub enum VulkanDecoderError {
     NoFreeSlotsInDpb,
 
     #[error("A picture which is not in the decoded pictures buffer was requested as a reference picture")]
-    NonExistantReferenceRequested,
+    NonExistentReferenceRequested,
 
     #[error("A vulkan decode operation failed with code {0:?}")]
     DecodeOperationFailed(vk::QueryResultStatusKHR),
@@ -207,7 +207,7 @@ impl VulkanDecoder<'_> {
                             .video_session_resources
                             .as_mut()
                             .map(|s| s.free_reference_picture(dpb_idx)),
-                        None => return Err(VulkanDecoderError::NonExistantReferenceRequested),
+                        None => return Err(VulkanDecoderError::NonExistentReferenceRequested),
                     };
                 }
             }
@@ -815,14 +815,14 @@ impl VulkanDecoder<'_> {
         {
             let i = *reference_id_to_dpb_slot_index
                 .get(&ref_info.id)
-                .ok_or(VulkanDecoderError::NonExistantReferenceRequested)?;
+                .ok_or(VulkanDecoderError::NonExistentReferenceRequested)?;
 
             let reference = *reference_slots
                 .get(i)
-                .ok_or(VulkanDecoderError::NonExistantReferenceRequested)?;
+                .ok_or(VulkanDecoderError::NonExistentReferenceRequested)?;
 
             if reference.slot_index < 0 || reference.p_picture_resource.is_null() {
-                return Err(VulkanDecoderError::NonExistantReferenceRequested);
+                return Err(VulkanDecoderError::NonExistentReferenceRequested);
             }
 
             let reference = reference.push_next(dpb_slot_info);

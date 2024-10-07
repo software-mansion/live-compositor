@@ -34,6 +34,6 @@ glyphon = { workspace = true }
 [target.x86_64-unknown-linux-gnu.dependencies]
 decklink = { path = "../decklink", optional = true }
 
-# platforms that support vulkan are: windows and all non-apple unixes. emscripten is something for the web, where vulkan is not available either
+# platforms that support vulkan are: windows and all non-apple unixes. emscripten is a web-based platform, where vulkan is not available either
 [target.'cfg(any(windows, all(unix, not(target_os = "emscripten"), not(target_os = "ios"), not(target_os = "macos"))))'.dependencies]
 vk-video = { path = "../vk-video/", optional = true }
