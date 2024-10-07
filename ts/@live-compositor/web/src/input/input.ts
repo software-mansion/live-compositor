@@ -4,8 +4,9 @@ import { CompositorEventType } from 'live-compositor';
 import { EventSender } from '../eventSender';
 import InputSource from './source';
 import { RegisterInput } from './registerInput';
-import { H264Decoder, MAX_DECODED_FRAMES } from './decoder/h264Decoder';
+import { H264Decoder } from './decoder/h264Decoder';
 import { VideoPayload } from './payload';
+import Decoder from './decoder/decoder';
 
 /**
  * Represents frame produced by decoder. All `InputFrame`s have to be manually freed.
@@ -23,11 +24,9 @@ export type InputState = 'waiting_for_start' | 'buffering' | 'playing' | 'finish
 export class Input {
   private id: InputId;
   private source: InputSource;
-  // TODO(noituri): Decoder interface
-  private decoder: H264Decoder;
+  private decoder: Decoder;
   private state: InputState;
   private eventSender: EventSender;
-  private bufferSize: number;
 
   /**
    * Queue PTS of the first frame
@@ -46,9 +45,9 @@ export class Input {
       throw new Error(`Unknown input type ${(request as any).type}`);
     }
 
-    this.decoder = new H264Decoder();
-    // TODO(noituri): This should be passed down to decoder
-    this.bufferSize = MAX_DECODED_FRAMES;
+    this.decoder = new H264Decoder({
+      maxDecodedFrames: 1000,
+    });
 
     this.source.registerCallbacks({
       onDecoderConfig: config => this.decoder.configure(config),
@@ -73,7 +72,9 @@ export class Input {
   private handlePayload(payload: VideoPayload) {
     this.decoder.enqueue(payload)
 
-    if (this.state == 'buffering' && this.decoder.getBufferLength() >= this.bufferSize) {
+    // TODO(noituri): This does not work if buffer length > samples
+    // Preferably handlePayload should handle also frames
+    if (this.state == 'buffering' && this.decoder.isBufferFull()) {
       this.state = 'playing';
       this.eventSender.sendEvent({
         type: CompositorEventType.VIDEO_INPUT_PLAYING,

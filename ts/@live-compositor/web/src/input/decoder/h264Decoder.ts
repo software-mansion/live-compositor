@@ -2,18 +2,18 @@ import { Queue } from '@datastructures-js/queue';
 import { VideoPayload } from '../payload';
 import { InputFrame } from '../input';
 import { FrameFormat } from '@live-compositor/browser-render';
+import Decoder from './decoder';
 
-export const MAX_DECODED_FRAMES = 3;
-
-export class H264Decoder {
+export class H264Decoder implements Decoder {
   private decodeQueue: Queue<VideoPayload>;
   private frames: Queue<VideoFrame>;
   private decoder: VideoDecoder;
   private ptsOffset?: number;
   private frameFormat: VideoPixelFormat;
+  private maxDecodedFrames: number;
   private eosReceived: boolean = false;
 
-  public constructor() {
+  public constructor(options: { maxDecodedFrames: number }) {
     this.decodeQueue = new Queue();
     this.frames = new Queue();
     this.decoder = new VideoDecoder({
@@ -29,13 +29,14 @@ export class H264Decoder {
     // Chrome does not support conversion to YUV
     const isSafari = !!(window as any).safari;
     this.frameFormat = isSafari ? 'I420' : 'RGBA';
+    this.maxDecodedFrames = options.maxDecodedFrames;
   }
 
-  public configure(config: VideoDecoderConfig) {
+  public configure(config: VideoDecoderConfig): void {
     this.decoder.configure(config);
   }
 
-  public enqueue(payload: VideoPayload) {
+  public enqueue(payload: VideoPayload): void {
     if (this.eosReceived) {
       console.warn('Already closed decoder received payload');
     }
@@ -85,14 +86,14 @@ export class H264Decoder {
     return this.frames.isEmpty() && this.decoder.decodeQueueSize == 0 && this.eosReceived;
   }
 
-  public getBufferLength(): number {
-    return this.frames.size();
+  public isBufferFull(): boolean {
+    return this.frames.size() >= this.maxDecodedFrames;
   }
 
   private decodeChunks() {
     while (
-      this.frames.size() < MAX_DECODED_FRAMES &&
-      this.decoder.decodeQueueSize < MAX_DECODED_FRAMES
+      this.frames.size() < this.maxDecodedFrames &&
+      this.decoder.decodeQueueSize < this.maxDecodedFrames
     ) {
       const payload = this.decodeQueue.pop();
       if (!payload) {
