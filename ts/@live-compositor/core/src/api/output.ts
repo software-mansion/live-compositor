@@ -1,22 +1,37 @@
-import { RegisterOutput, Api, Outputs } from 'live-compositor';
+import { RegisterOutput, Api, Outputs, OutputFrameFormat } from 'live-compositor';
+
+export type RegisterOutputRequest = Api.RegisterOutput | RegisterBytesOutput;
+
+export type RegisterBytesOutput = {
+  type: 'raw_frames';
+  video?: OutputBytesVideoOptions;
+};
+
+export type OutputBytesVideoOptions = {
+  format: OutputFrameFormat;
+  resolution: Api.Resolution;
+  initial: Api.Video;
+};
 
 export function intoRegisterOutput(
   output: RegisterOutput,
   initial: { video?: Api.Video; audio?: Api.Audio }
-): Api.RegisterOutput {
+): RegisterOutputRequest {
   if (output.type === 'rtp_stream') {
     return intoRegisterRtpOutput(output, initial);
   } else if (output.type === 'mp4') {
     return intoRegisterMp4Output(output, initial);
+  } else if (output.type === 'raw_frames') {
+    return intoRegisterRawFramesOutput(output, initial);
   } else {
-    throw new Error(`Unknown input type ${(output as any).type}`);
+    throw new Error(`Unknown output type ${(output as any).type}`);
   }
 }
 
 function intoRegisterRtpOutput(
   output: Outputs.RegisterRtpOutput,
   initial: { video?: Api.Video; audio?: Api.Audio }
-): Api.RegisterOutput {
+): RegisterOutputRequest {
   return {
     type: 'rtp_stream',
     port: output.port,
@@ -30,12 +45,26 @@ function intoRegisterRtpOutput(
 function intoRegisterMp4Output(
   output: Outputs.RegisterMp4Output,
   initial: { video?: Api.Video; audio?: Api.Audio }
-): Api.RegisterOutput {
+): RegisterOutputRequest {
   return {
     type: 'mp4',
     path: output.serverPath,
     video: output.video && initial.video && intoOutputVideoOptions(output.video, initial.video),
     audio: output.audio && initial.audio && intoOutputMp4AudioOptions(output.audio, initial.audio),
+  };
+}
+
+function intoRegisterRawFramesOutput(
+  output: Outputs.RegisterRawFramesOutput,
+  initial: { video?: Api.Video; _audio?: Api.Audio }
+): RegisterOutputRequest {
+  return {
+    type: 'raw_frames',
+    video: {
+      format: output.video.format,
+      resolution: output.video.resolution,
+      initial: initial.video!,
+    },
   };
 }
 
