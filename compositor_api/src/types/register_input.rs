@@ -126,7 +126,4 @@ pub enum InputRtpAudioOptions {
 pub enum InputRtpVideoOptions {
     #[serde(rename = "ffmpeg_h264")]
     FfmepgH264,
-
-    #[serde(rename = "vulkan_video")]
-    VulkanVideo,
 }

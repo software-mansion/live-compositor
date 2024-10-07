@@ -1,10 +1,4 @@
-#[cfg(any(
-    windows,
-    all(
-        unix,
-        not(any(target_os = "macos", target_os = "ios", target_os = "emscripten"))
-    )
-))]
+#[cfg(vulkan)]
 fn main() {
     use std::io::Write;
 
@@ -45,13 +39,7 @@ fn main() {
     }
 }
 
-#[cfg(not(any(
-    windows,
-    all(
-        unix,
-        not(any(target_os = "macos", target_os = "ios", target_os = "emscripten"))
-    )
-)))]
+#[cfg(not(vulkan))]
 fn main() {
     println!(
         "This crate doesn't work on your operating system, because it does not support vulkan"
