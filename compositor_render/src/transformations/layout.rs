@@ -14,11 +14,11 @@ mod shader;
 mod transformation_matrices;
 
 use self::shader::LayoutShader;
-pub(crate) use transformation_matrices::{vertices_transformation_matrix, Position};
 
 pub(crate) use layout_renderer::LayoutRenderer;
+pub(crate) use transformation_matrices::{vertices_transformation_matrix, Position};
+
 use log::error;
-use params::{LayoutNodeParams, ParamsBuffer};
 
 pub(crate) trait LayoutProvider: Send {
     fn layouts(&mut self, pts: Duration, inputs: &[Option<Resolution>]) -> NestedLayout;
@@ -28,7 +28,6 @@ pub(crate) trait LayoutProvider: Send {
 pub(crate) struct LayoutNode {
     layout_provider: Box<dyn LayoutProvider>,
     shader: Arc<LayoutShader>,
-    params: ParamsBuffer,
 }
 
 #[derive(Debug, Clone)]
@@ -82,6 +81,7 @@ enum RenderLayoutContent {
         border_color: RGBAColor,
         border_width: f32,
     },
+    #[allow(dead_code)]
     BoxShadow {
         color: RGBAColor,
         blur_radius: f32,
@@ -128,7 +128,6 @@ impl LayoutNode {
         Self {
             layout_provider,
             shader,
-            params: ParamsBuffer::new(ctx.wgpu_ctx, vec![]),
         }
     }
 
@@ -149,31 +148,6 @@ impl LayoutNode {
             .layouts(pts, &input_resolutions)
             .flatten(&input_resolutions, output_resolution);
 
-        let params: Vec<LayoutNodeParams> = layouts
-            .iter()
-            .map(|layout| {
-                let (is_texture, background_color, input_resolution) = match layout.content {
-                    RenderLayoutContent::ChildNode { index, .. } => (
-                        1,
-                        RGBAColor(0, 0, 0, 0),
-                        *input_resolutions.get(index).unwrap_or(&None),
-                    ),
-                    RenderLayoutContent::Color { color, .. } => (0, color, None),
-                    RenderLayoutContent::BoxShadow { .. } => todo!(),
-                };
-
-                LayoutNodeParams {
-                    is_texture,
-                    background_color,
-                    transform_vertices_matrix: layout
-                        .vertices_transformation_matrix(&output_resolution),
-                    transform_texture_coords_matrix: layout
-                        .texture_coords_transformation_matrix(&input_resolution),
-                }
-            })
-            .collect();
-        self.params.update(params, ctx.wgpu_ctx);
-
         let textures: Vec<Option<&NodeTexture>> = layouts
             .iter()
             .map(|layout| match layout.content {
@@ -191,7 +165,7 @@ impl LayoutNode {
 
         let target = target.ensure_size(ctx.wgpu_ctx, output_resolution);
         self.shader
-            .render(ctx.wgpu_ctx, self.params.bind_group(), &textures, target);
+            .render(ctx.wgpu_ctx, output_resolution, layouts, &textures, target);
     }
 }
 

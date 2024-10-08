@@ -1,9 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use crate::{
-    transformations::layout::{vertices_transformation_matrix, Position},
-    Resolution,
-};
+use crate::{transformations::layout::{vertices_transformation_matrix, Position}, Resolution};
 use bytes::Bytes;
 use compositor_chromium::cef;
 use log::error;

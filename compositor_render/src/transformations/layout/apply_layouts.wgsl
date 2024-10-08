@@ -12,55 +12,78 @@ struct VertexOutput {
     @location(0) tex_coords: vec2<f32>,
 }
 
-struct Layout {
-    // position of the rectangle in output in pixel coordinates [0, 0] (top-left) X [output_resolution.x, output_resolution.y] (bottom-right)
+struct BoxShadowParams {
+    border_radius: vec4<f32>,
+    color: vec4<f32>,
     top: f32,
     left: f32,
-    // size of the rectangle in pixels
     width: f32,
     height: f32,
-    // texture crop params in pixels
+    rotation_degrees: f32,
+    blur_radius: f32,
+}
+
+struct TextureParams {
+    border_radius: vec4<f32>,
+    border_color: vec4<f32>,
+    // position
+    top: f32,
+    left: f32,
+    width: f32,
+    height: f32,
+    // texture crop
     crop_top: f32,
     crop_left: f32,
     crop_width: f32,
     crop_height: f32,
-    // color of the rectangle / box shadow, only used when render_type == 1 || 2 (color or box shadow)
-    color: vec4<f32>,
-    // border color, in rgba [0.0-255.0] scale
-    border_color: vec4<f32>,
-    // radius of corners in pixels [top-left, top-right, bottom-right, bottom-left]
-    border_radius: vec4<f32>,
-    // rotation in degrees
-    rotation: f32,
-    // border width in pixels, only used if render_type == 0 || 1 (texture or color)
-    border: f32,
-    // blur of the box shadow in pixels, only used if render_type == 2 (box shadow)
-    blur: f32,
-    // render type, 0 -> texture, 1 -> color, 2 -> box shadow
-    render_type: u32,
-    // accutal length of the parent_rounded_borders array
-    parent_rounded_borders_len: u32,
+
+    rotation_degrees: f32,
+    // border size in pixels
+    border_width: f32,
 }
 
-struct ParentRoundedCorners {
+struct ColorParams {
     border_radius: vec4<f32>,
-    // position of the parent in output in pixel coordinates [0, 0] (top-left) X [output_resolution.x, output_resolution.y] (bottom-right)
+    border_color: vec4<f32>,
+    color: vec4<f32>,
+
     top: f32,
     left: f32,
-    // size of the parent in pixels
     width: f32,
     height: f32,
-    // rotation in degrees
-    rotation: f32,
+
+    rotation_degrees: f32,
+    border_width: f32,
 }
 
-@group(0) @binding(0) var texture: texture_2d<f32>;
-@group(1) @binding(0) var<uniform> current_layout: Layout;
-// TODO try using dynamically sized storage buffers instead
-@group(1) @binding(1) var<uniform> parent_rounded_borders: array<ParentRoundedCorners, 100>;
+struct ParentBorderRadius {
+    radius: vec4<f32>,
+    top: f32,
+    left: f32,
+    width: f32,
+    height: f32,
+}
 
-@group(2) @binding(0) var sampler_: sampler;
-@group(2) @binding(1) var<uniform> output_resolution: vec2<u32>;
+struct LayoutInfo {
+    // 0 -> Texture, 1 -> Color, 2 -> BoxShadow
+    layout_type: u32,
+    index: u32,
+    parent_border_radiuses_len: u32
+}
+
+
+@group(0) @binding(0) var texture: texture_2d<f32>;
+
+@group(1) @binding(0) var<uniform> output_resolution: vec2<f32>;
+@group(1) @binding(1) var<uniform> texture_params: array<TextureParams, 100>;
+@group(1) @binding(2) var<uniform> color_params: array<ColorParams, 100>;
+@group(1) @binding(3) var<uniform> box_shadow_params: array<BoxShadowParams, 100>;
+
+@group(2) @binding(0) var<uniform> parent_border_radiuses: array<ParentBorderRadius, 20>;
+
+@group(3) @binding(0) var sampler_: sampler;
+
+var<push_constant> layout_info: LayoutInfo;
 
 fn rotation_matrix(rotation: f32) -> mat3x3<f32> {
     // wgsl is column-major
@@ -88,13 +111,13 @@ fn translation_matrix(translation: vec2<f32>) -> mat3x3<f32> {
         vec3<f32>(1.0, 0.0, 0.0),
         vec3<f32>(0.0, 1.0, 0.0),
         vec3<f32>(translation, 1.0)
-    )
+    );
 }
 
-fn vertices_transformation_matrix(left: f32, top: f32, width: f32, height: f32) -> mat3x3<f32> {
+fn vertices_transformation_matrix(left: f32, top: f32, width: f32, height: f32, rotation: f32) -> mat3x3<f32> {
     let scale = vec2<f32>(
-        width / output_resolution.x as f32,
-        height / output_resolution.y as f32,
+        width / f32(output_resolution.x),
+        height / f32(output_resolution.y),
     );
 
     // center of the rectangle in clip space coordinates
@@ -105,11 +128,11 @@ fn vertices_transformation_matrix(left: f32, top: f32, width: f32, height: f32) 
         2.0 * (top + height / 2.0) / f32(output_resolution.y) - 1.0,
     );
 
-    return translation_matrix(center) * rotation_matrix(current_layout.rotate) * scale_matrix(scale);
+    return translation_matrix(center) * rotation_matrix(rotation) * scale_matrix(scale);
 }
 
 fn texture_coord_transformation_matrix(crop_left: f32, crop_top: f32, crop_width: f32, crop_height: f32) -> mat3x3<f32> {
-    let dim = textureDimentsions(texture);
+    let dim = textureDimensions(texture);
     let scale = vec2<f32>(
         crop_width / f32(dim.x),
         crop_height / f32(dim.y),
@@ -126,31 +149,51 @@ fn texture_coord_transformation_matrix(crop_left: f32, crop_top: f32, crop_width
 @vertex
 fn vs_main(input: VertexInput) -> VertexOutput {
     var output: VertexOutput;
-    
-    if (current_layout.render_type == 2u) {
-        // make rectagle bigger due to blur effect
-        let left = current_layout.left - current_layout.blur;
-        let top = current_layout.top - current_layout.blur;
-        let width = current_layout.width + 2.0 * current_layout.blur;
-        let height = current_layout.height + 2.0 * current_layout.blur;
-        let vertices_transformation = vertices_transformation_matrix(left, top, width, height);
-        output.position = vec4<f32>(vertices_transformation * input.position, 1.0);
-        output.tex_coords = input.tex_coords;    
-    } else {
-        let vertices_transformation = vertices_transformation_matrix(
-            current_layout.left,
-            current_layout.top,
-            current_layout.width,
-            current_layout.height
-        );
-        let texture_transformation = texture_coord_transformation_matrix(
-            current_layout.crop_left,
-            current_layout.crop_top,
-            current_layout.crop_width,
-            current_layout.crop_height
-        );
-        output.position = vec4<f32>(vertices_transformation * input.position, 1.0);
-        output.tex_coords = texture_transformation *  input.tex_coords
+
+    switch (layout_info.layout_type) {
+        // texture
+        case 1u: {
+            let vertices_transformation = vertices_transformation_matrix(
+                texture_params[layout_info.index].left,
+                texture_params[layout_info.index].top,
+                texture_params[layout_info.index].width,
+                texture_params[layout_info.index].height,
+                texture_params[layout_info.index].rotation_degrees
+            );
+            let texture_transformation = texture_coord_transformation_matrix(
+                texture_params[layout_info.index].crop_left,
+                texture_params[layout_info.index].crop_top,
+                texture_params[layout_info.index].crop_width,
+                texture_params[layout_info.index].crop_height
+            );
+            output.position = vec4<f32>(vertices_transformation * input.position, 1.0);
+            output.tex_coords = texture_transformation *  input.tex_coords;
+        }
+        // color
+        case 2u: {
+            let vertices_transformation = vertices_transformation_matrix(
+                color_params[layout_info.index].left,
+                color_params[layout_info.index].top,
+                color_params[layout_info.index].width,
+                color_params[layout_info.index].height,
+                color_params[layout_info.index].rotation_degrees
+            );
+            output.position = vec4<f32>(vertices_transformation * input.position, 1.0);
+            output.tex_coords = input.tex_coords;
+        }
+        // box shadow
+        case 3u {
+            let vertices_transformation = vertices_transformation_matrix(
+                box_shadow_params[layout_info.index].left - box_shadow_params[layout_info.index].blur_radius,
+                box_shadow_params[layout_info.index].top - box_shadow_params[layout_info.index].blur_radius,
+                box_shadow_params[layout_info.index].width + 2.0 * box_shadow_params[layout_info.index].blur_radius,
+                box_shadow_params[layout_info.index].height + 2.0 * box_shadow_params[layout_info.index].blur_radius,
+                box_shadow_params[layout_info.index].rotation_degrees
+            );
+            output.position = vec4<f32>(vertices_transformation * input.position, 1.0);
+            output.tex_coords = input.tex_coords;
+        }
+        default {}
     }
 
     return output;
@@ -181,29 +224,46 @@ fn roundedRectSDF(position: vec2<f32>, size: vec2<f32>, radius: vec4<f32>, rotat
 @fragment
 fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
     let sample = textureSample(texture, sampler_, input.tex_coords);
-    let size = vec2<f32>(current_layout.width, current_layout.height);
-    let center = vec2<f32>(
-        current_layout.left + current_layout.width / 2.0,
-        current_layout.top + current_layout.height / 2.0
-    );
-    let position = input.position.xy - center;
-    let edge_sdf = roundedRectSDF(position, size, current_layout.border_radius, current_layout.rotation);
-    let border_color_alpha = select(0.0, 1.0, edge_sdf > -current_layout.border);
-    let sample_alpha = 1.0 - border_color_alpha;
 
-    switch current_layout.render_type {
-        case 0u: {
-            // clamp transparent, when crop > input texture
-            let is_inside: f32 = round(f32(input.tex_coords.x < 1.0 && input.tex_coords.x > 0.0 && input.tex_coords.y > 0.0 && input.tex_coords.y < 1.0));
-            let mixed = mix(current_layout.border_color, sample, border_color_alpha);
-            return is_inside * mixed;
-        }
+    switch layout_info.layout_type {
         case 1u: {
-            let mixed = mix(current_layout.border_color, current_layout.color, border_color_alpha);
-            return mixed;
+            let position = vec2<f32>(
+                input.position.x - texture_params[layout_info.index].left - texture_params[layout_info.index].width / 2.0,
+                input.position.y - texture_params[layout_info.index].top - texture_params[layout_info.index].height / 2.0
+            );
+            let size = vec2<f32>(texture_params[layout_info.index].width, texture_params[layout_info.index].height);
+            let edge_distance = roundedRectSDF(
+                position, 
+                size, 
+                texture_params[layout_info.index].border_radius, 
+                texture_params[layout_info.index].rotation_degrees
+            );
+            let smoothed_alpha = 1.0 - smoothstep(0.0, 2.0, edge_distance);
+            let border_alpha = 1.0 - smoothstep(0.0, -texture_params[layout_info.index].border_width, edge_distance);
+            let mixed_background = mix(sample, vec4<f32>(0.0, 0.0, 0.0, 0.0), smoothed_alpha);
+            let mixed_border = mix(mixed_background, texture_params[layout_info.index].border_color, border_alpha);
+            return mixed_border;
         }
         case 2u: {
-            return vec4(1.0, 1.0, 1.0, 1.0);
+            let position = vec2<f32>(
+                input.position.x - color_params[layout_info.index].left - color_params[layout_info.index].width / 2.0,
+                input.position.y - color_params[layout_info.index].top - color_params[layout_info.index].height / 2.0
+            );
+            let size = vec2<f32>(color_params[layout_info.index].width, color_params[layout_info.index].height);
+            let edge_distance = roundedRectSDF(
+                position,
+                size,
+                color_params[layout_info.index].border_radius,
+                color_params[layout_info.index].rotation_degrees
+            );
+            let smoothed_alpha = 1.0 - smoothstep(0.0, 2.0, edge_distance);
+            let border_alpha = 1.0 - smoothstep(0.0, -color_params[layout_info.index].border_width, edge_distance);
+            let mixed_background = mix(color_params[layout_info.index].color, vec4<f32>(0.0, 0.0, 0.0, 0.0), smoothed_alpha);
+            let mixed_border = mix(mixed_background, color_params[layout_info.index].border_color, border_alpha);
+            return mixed_border;
+        }
+        default {
+            return vec4(0.0, 0.0, 0.0, 0.0);
         }
     }
 }
