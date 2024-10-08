@@ -29,7 +29,7 @@ impl RenderLayout {
         };
 
         match self.content {
-            super::RenderLayoutContent::Color(_) => Mat4::identity(),
+            super::RenderLayoutContent::Color { .. } => Mat4::identity(),
             super::RenderLayoutContent::ChildNode { ref crop, .. } => {
                 let x_scale = crop.width / input_resolution.width as f32;
                 let y_scale = crop.height / input_resolution.height as f32;
@@ -47,6 +47,7 @@ impl RenderLayout {
 
                 transform_texture_matrix
             }
+            super::RenderLayoutContent::BoxShadow { .. } => todo!(),
         }
     }
 }

@@ -13,14 +13,12 @@ mod params;
 mod shader;
 mod transformation_matrices;
 
-use self::{
-    params::{LayoutNodeParams, ParamsBuffer},
-    shader::LayoutShader,
-};
+use self::shader::LayoutShader;
+pub(crate) use transformation_matrices::{vertices_transformation_matrix, Position};
 
 pub(crate) use layout_renderer::LayoutRenderer;
 use log::error;
-pub(crate) use transformation_matrices::{vertices_transformation_matrix, Position};
+use params::{LayoutNodeParams, ParamsBuffer};
 
 pub(crate) trait LayoutProvider: Send {
     fn layouts(&mut self, pts: Duration, inputs: &[Option<Resolution>]) -> NestedLayout;
@@ -42,19 +40,52 @@ pub struct Crop {
 }
 
 #[derive(Debug, Clone)]
+pub struct BorderRadius {
+    pub top_left: f32,
+    pub top_right: f32,
+    pub bottom_right: f32,
+    pub bottom_left: f32,
+}
+
+#[derive(Debug, Clone)]
+pub struct ParentBodererRadius {
+    pub radius: BorderRadius,
+    // position of parent on the output frame
+    pub top: f32,
+    pub left: f32,
+    pub width: f32,
+    pub height: f32,
+}
+
+#[derive(Debug, Clone)]
 struct RenderLayout {
     top: f32,
     left: f32,
     width: f32,
     height: f32,
     rotation_degrees: f32,
+    border_radius: BorderRadius,
+    parent_border_radiuses: Vec<ParentBodererRadius>,
     content: RenderLayoutContent,
 }
 
 #[derive(Debug, Clone)]
 enum RenderLayoutContent {
-    Color(RGBAColor),
-    ChildNode { index: usize, crop: Crop },
+    Color {
+        color: RGBAColor,
+        border_color: RGBAColor,
+        border_width: f32,
+    },
+    ChildNode {
+        index: usize,
+        crop: Crop,
+        border_color: RGBAColor,
+        border_width: f32,
+    },
+    BoxShadow {
+        color: RGBAColor,
+        blur_radius: f32,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -127,7 +158,8 @@ impl LayoutNode {
                         RGBAColor(0, 0, 0, 0),
                         *input_resolutions.get(index).unwrap_or(&None),
                     ),
-                    RenderLayoutContent::Color(color) => (0, color, None),
+                    RenderLayoutContent::Color { color, .. } => (0, color, None),
+                    RenderLayoutContent::BoxShadow { .. } => todo!(),
                 };
 
                 LayoutNodeParams {
@@ -145,7 +177,8 @@ impl LayoutNode {
         let textures: Vec<Option<&NodeTexture>> = layouts
             .iter()
             .map(|layout| match layout.content {
-                RenderLayoutContent::Color(_) => None,
+                RenderLayoutContent::BoxShadow { .. } => None,
+                RenderLayoutContent::Color { .. } => None,
                 RenderLayoutContent::ChildNode { index, .. } => match sources.get(index) {
                     Some(node_texture) => Some(*node_texture),
                     None => {
