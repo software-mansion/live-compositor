@@ -102,13 +102,18 @@ impl TryFrom<RtpInput> for pipeline::RegisterInputOptions {
         }
 
         let rtp_stream = input::rtp::RtpStream {
-            video: video.as_ref().map(|video| input::rtp::InputVideoStream {
-                options: match video {
-                    InputRtpVideoOptions::FfmepgH264 => decoder::VideoDecoderOptions {
-                        codec: pipeline::VideoCodec::H264,
-                    },
-                },
-            }),
+            video: video
+                .as_ref()
+                .map(|video| {
+                    Ok(input::rtp::InputVideoStream {
+                        options: match video {
+                            InputRtpVideoOptions::FfmepgH264 => decoder::VideoDecoderOptions {
+                                decoder: pipeline::VideoDecoder::FFmpegH264,
+                            },
+                        },
+                    })
+                })
+                .transpose()?,
             audio: audio.map(TryFrom::try_from).transpose()?,
         };
 

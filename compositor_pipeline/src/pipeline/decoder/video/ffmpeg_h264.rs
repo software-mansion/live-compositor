@@ -2,7 +2,10 @@ use std::time::Duration;
 
 use crate::{
     error::InputInitError,
-    pipeline::types::{EncodedChunk, EncodedChunkKind, VideoCodec},
+    pipeline::{
+        types::{EncodedChunk, EncodedChunkKind, VideoCodec},
+        PipelineCtx,
+    },
     queue::PipelineEvent,
 };
 
@@ -18,6 +21,7 @@ use ffmpeg_next::{
 use tracing::{debug, error, span, trace, warn, Level};
 
 pub fn start_ffmpeg_decoder_thread(
+    _pipeline_ctx: &PipelineCtx,
     chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
     frame_sender: Sender<PipelineEvent<Frame>>,
     input_id: InputId,

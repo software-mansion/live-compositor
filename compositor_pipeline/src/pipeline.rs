@@ -7,8 +7,7 @@ use std::thread;
 use std::time::Duration;
 
 use compositor_render::error::{
-    ErrorStack, InitPipelineError, RegisterRendererError, RequestKeyframeError,
-    UnregisterRendererError,
+    ErrorStack, RegisterRendererError, RequestKeyframeError, UnregisterRendererError,
 };
 use compositor_render::scene::Component;
 use compositor_render::web_renderer::WebRendererInitOptions;
@@ -32,6 +31,7 @@ use types::RawDataSender;
 use crate::audio_mixer::AudioMixer;
 use crate::audio_mixer::MixingStrategy;
 use crate::audio_mixer::{AudioChannels, AudioMixingParams};
+use crate::error::InitPipelineError;
 use crate::error::{
     RegisterInputError, RegisterOutputError, UnregisterInputError, UnregisterOutputError,
 };
@@ -48,6 +48,7 @@ use self::input::InputOptions;
 
 pub mod decoder;
 pub mod encoder;
+mod graphics_context;
 pub mod input;
 pub mod output;
 mod pipeline_input;
@@ -61,8 +62,11 @@ use self::pipeline_output::PipelineOutput;
 
 pub use self::types::{
     AudioCodec, EncodedChunk, EncodedChunkKind, EncoderOutputEvent, RawDataReceiver, VideoCodec,
+    VideoDecoder,
 };
 pub use pipeline_output::PipelineOutputEndCondition;
+
+pub use graphics_context::GraphicsContext;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Port(pub u16);
@@ -109,7 +113,7 @@ pub struct Pipeline {
     is_started: bool,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Options {
     pub queue_options: QueueOptions,
     pub stream_fallback_timeout: Duration,
@@ -118,28 +122,57 @@ pub struct Options {
     pub download_root: PathBuf,
     pub output_sample_rate: u32,
     pub wgpu_features: WgpuFeatures,
-    pub wgpu_ctx: Option<(Arc<wgpu::Device>, Arc<wgpu::Queue>)>,
     pub load_system_fonts: Option<bool>,
+    pub wgpu_ctx: Option<GraphicsContext>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct PipelineCtx {
     pub output_sample_rate: u32,
     pub output_framerate: Framerate,
     pub download_dir: Arc<PathBuf>,
     pub event_emitter: Arc<EventEmitter>,
+    #[cfg(feature = "vk-video")]
+    pub vulkan_ctx: Option<Arc<vk_video::VulkanCtx>>,
+}
+
+impl std::fmt::Debug for PipelineCtx {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("PipelineCtx")
+            .field("output_sample_rate", &self.output_sample_rate)
+            .field("output_framerate", &self.output_framerate)
+            .field("download_dir", &self.download_dir)
+            .field("event_emitter", &self.event_emitter)
+            .finish()
+    }
 }
 
 impl Pipeline {
     pub fn new(opts: Options) -> Result<(Self, Arc<dyn EventLoop>), InitPipelineError> {
+        let preinitialized_ctx = match opts.wgpu_ctx {
+            Some(ctx) => Some(ctx),
+            #[cfg(feature = "vk-video")]
+            None => Some(GraphicsContext::new(
+                opts.force_gpu,
+                opts.wgpu_features,
+                Default::default(),
+            )?),
+            #[cfg(not(feature = "vk-video"))]
+            None => None,
+        };
+
+        let wgpu_ctx = preinitialized_ctx
+            .as_ref()
+            .map(|ctx| (ctx.device.clone(), ctx.queue.clone()));
+
         let (renderer, event_loop) = Renderer::new(RendererOptions {
             web_renderer: opts.web_renderer,
             framerate: opts.queue_options.output_framerate,
             stream_fallback_timeout: opts.stream_fallback_timeout,
             force_gpu: opts.force_gpu,
             wgpu_features: opts.wgpu_features,
-            wgpu_ctx: opts.wgpu_ctx,
             load_system_fonts: opts.load_system_fonts.unwrap_or(true),
+            wgpu_ctx,
         })?;
 
         let download_dir = opts
@@ -160,6 +193,8 @@ impl Pipeline {
                 output_framerate: opts.queue_options.output_framerate,
                 download_dir: download_dir.into(),
                 event_emitter,
+                #[cfg(feature = "vk-video")]
+                vulkan_ctx: preinitialized_ctx.and_then(|ctx| ctx.vulkan_ctx),
             },
         };
 

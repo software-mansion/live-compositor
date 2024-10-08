@@ -162,6 +162,7 @@ fn start_input_threads(
                 let (sender, receiver) = bounded(10);
                 start_video_decoder_thread(
                     decoder_options,
+                    pipeline_ctx,
                     chunk_receiver,
                     sender,
                     input_id.clone(),

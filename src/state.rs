@@ -1,8 +1,11 @@
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use axum::response::IntoResponse;
-use compositor_pipeline::pipeline::{self};
-use compositor_render::{error::InitPipelineError, EventLoop};
+use compositor_pipeline::{
+    error::InitPipelineError,
+    pipeline::{self},
+};
+use compositor_render::EventLoop;
 
 use serde::Serialize;
 

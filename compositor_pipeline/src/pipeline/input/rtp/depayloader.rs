@@ -11,6 +11,7 @@ use crate::pipeline::{
     decoder::{self, AacDecoderOptions},
     rtp::{AUDIO_PAYLOAD_TYPE, VIDEO_PAYLOAD_TYPE},
     types::{AudioCodec, EncodedChunk, EncodedChunkKind, VideoCodec},
+    VideoDecoder,
 };
 
 use self::aac::AacDepayloaderNewError;
@@ -81,8 +82,8 @@ pub enum VideoDepayloader {
 
 impl VideoDepayloader {
     pub fn new(options: &decoder::VideoDecoderOptions) -> Self {
-        match options.codec {
-            VideoCodec::H264 => VideoDepayloader::H264 {
+        match options.decoder {
+            VideoDecoder::FFmpegH264 | VideoDecoder::VulkanVideoH264 => VideoDepayloader::H264 {
                 depayloader: H264Packet::default(),
                 buffer: vec![],
                 rollover_state: RolloverState::default(),
