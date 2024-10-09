@@ -2,8 +2,8 @@ use std::time::Duration;
 
 use crate::{
     scene::{
-        layout::StatefulLayoutComponent, HorizontalAlign, RescaleMode, Size, StatefulComponent,
-        VerticalAlign,
+        layout::StatefulLayoutComponent, BorderRadius, HorizontalAlign, RGBAColor, RescaleMode,
+        Size, StatefulComponent, VerticalAlign,
     },
     transformations::layout::{Crop, LayoutContent, NestedLayout},
 };
@@ -52,8 +52,8 @@ impl RescalerComponentParam {
             StatefulComponent::Layout(layout_component) => {
                 let children_layouts = layout_component.layout(
                     Size {
-                        width: size.width / scale,
-                        height: size.height / scale,
+                        width: f32::max((size.width / scale) - 2.0 * self.border_width, 0.0),
+                        height: f32::max((size.height / scale) - 2.0 * self.border_width, 0.0),
                     },
                     pts,
                 );
@@ -113,6 +113,7 @@ impl RescalerComponentParam {
                 width: size.width,
                 height: size.height,
             }),
+            mask: None,
             content: LayoutContent::None,
             children: vec![NestedLayout {
                 top,
@@ -123,11 +124,20 @@ impl RescalerComponentParam {
                 scale_x: scale,
                 scale_y: scale,
                 crop: None,
+                mask: None,
                 content,
                 child_nodes_count,
                 children,
+                border_width: 0.0,
+                border_color: RGBAColor(0, 0, 0, 0),
+                border_radius: BorderRadius::ZERO,
+                box_shadow: vec![],
             }],
             child_nodes_count,
+            border_width: self.border_width,
+            border_color: self.border_color,
+            border_radius: self.border_radius,
+            box_shadow: self.box_shadows.clone(),
         }
     }
 }

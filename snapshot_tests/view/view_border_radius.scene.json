@@ -1,0 +1,29 @@
+{
+  "video": {
+    "root": {
+      "type": "view",
+      "background_color_rgba": "#FFFFFFFF",
+      "children": [
+        {
+          "type": "view",
+          "background_color_rgba": "#FFFF0000",
+          "top": 10,
+          "left": 10,
+          "border_radius": 100,
+          "border_width": 20,
+          "border_color": "#0000FFFF",
+          "children": [
+          ],
+          "box_shadows": [
+            {
+              "offset_x": -20,
+              "offset_y": -30,
+              "blur_radius": 60,
+              "color_rgba": "#00FF00FF"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

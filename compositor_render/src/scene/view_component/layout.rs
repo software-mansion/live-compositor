@@ -2,10 +2,10 @@ use std::time::Duration;
 
 use crate::{
     scene::{
-        layout::StatefulLayoutComponent, Overflow, Position, Size, StatefulComponent,
-        ViewChildrenDirection,
+        layout::StatefulLayoutComponent, BorderRadius, Overflow, Position, RGBAColor, Size,
+        StatefulComponent, ViewChildrenDirection,
     },
-    transformations::layout::{Crop, LayoutContent, NestedLayout},
+    transformations::layout::{Crop, LayoutContent, Mask, NestedLayout},
 };
 
 use super::ViewComponentParam;
@@ -27,31 +27,57 @@ struct StaticChildLayoutOpts {
 impl ViewComponentParam {
     pub(super) fn layout(
         &self,
-        size: Size,
+        size: Size, // how much size component has available(includes space for border)
         children: &mut [StatefulComponent],
         pts: Duration,
     ) -> NestedLayout {
-        let static_child_size = self.static_child_size(size, children, pts);
-        let (scale, crop) = match self.overflow {
-            Overflow::Visible => (1.0, None),
-            Overflow::Hidden => (
-                1.0,
-                Some(Crop {
-                    top: 0.0,
-                    left: 0.0,
-                    width: size.width,
-                    height: size.height,
-                }),
-            ),
+        let content_size = Size {
+            width: f32::max(size.width - 2.0 * self.border_width, 0.0),
+            height: f32::max(size.height - 2.0 * self.border_width, 0.0),
+        };
+        let static_child_size = self.static_child_size(content_size, children, pts);
+        let (scale, crop, mask) = match self.overflow {
+            Overflow::Visible => (1.0, None, None),
+            Overflow::Hidden => {
+                let non_zero_radius = self.border_radius.top_left > 0.0
+                    || self.border_radius.top_right > 0.0
+                    || self.border_radius.bottom_left > 0.0
+                    || self.border_radius.bottom_right > 0.0;
+                if non_zero_radius {
+                    (
+                        1.0,
+                        None,
+                        Some(Mask {
+                            radius: self.border_radius + (-self.border_width),
+                            top: self.border_width,
+                            left: self.border_width,
+                            width: content_size.width,
+                            height: content_size.height,
+                        }),
+                    )
+                } else {
+                    (
+                        1.0,
+                        Some(Crop {
+                            top: 0.0,
+                            left: 0.0,
+                            width: size.width,
+                            height: size.height,
+                        }),
+                        None,
+                    )
+                }
+            }
             Overflow::Fit => (
-                self.scale_factor_for_overflow_fit(size, children, pts),
+                self.scale_factor_for_overflow_fit(content_size, children, pts),
+                None,
                 None,
             ),
         };
 
         // offset along x or y direction (depends on self.direction) where next
         // child component should be placed
-        let mut static_offset = 0.0;
+        let mut static_offset = self.border_width;
 
         let children: Vec<_> = children
             .iter_mut()
@@ -72,7 +98,7 @@ impl ViewComponentParam {
                                 height,
                                 static_offset,
                                 static_child_size,
-                                parent_size: size,
+                                parent_size: content_size,
                             },
                             pts,
                         );
@@ -97,9 +123,14 @@ impl ViewComponentParam {
             scale_x: scale,
             scale_y: scale,
             crop,
+            mask,
             content: LayoutContent::Color(self.background_color),
             child_nodes_count: children.iter().map(|l| l.child_nodes_count).sum(),
             children,
+            border_width: self.border_width,
+            border_color: self.border_color,
+            border_radius: self.border_radius,
+            box_shadow: self.box_shadows.clone(),
         }
     }
 
@@ -114,18 +145,18 @@ impl ViewComponentParam {
             ViewChildrenDirection::Row => {
                 let width = opts.width.unwrap_or(opts.static_child_size);
                 let height = opts.height.unwrap_or(opts.parent_size.height);
-                let top = 0.0;
+                let top = self.border_width;
                 let left = static_offset;
                 static_offset += width;
-                (top as f32, left, width, height)
+                (top, left, width, height)
             }
             ViewChildrenDirection::Column => {
                 let height = opts.height.unwrap_or(opts.static_child_size);
                 let width = opts.width.unwrap_or(opts.parent_size.width);
                 let top = static_offset;
-                let left = 0.0;
+                let left = self.border_width;
                 static_offset += height;
-                (top, left as f32, width, height)
+                (top, left, width, height)
             }
         };
         let layout = match child {
@@ -140,9 +171,14 @@ impl ViewComponentParam {
                     scale_x: 1.0,
                     scale_y: 1.0,
                     crop: None,
+                    mask: None,
                     content: LayoutContent::None,
                     child_nodes_count: children_layouts.child_nodes_count,
                     children: vec![children_layouts],
+                    border_width: 0.0,
+                    border_color: RGBAColor(0, 0, 0, 0),
+                    border_radius: BorderRadius::ZERO,
+                    box_shadow: vec![],
                 }
             }
             _ => NestedLayout {
@@ -154,9 +190,14 @@ impl ViewComponentParam {
                 scale_x: 1.0,
                 scale_y: 1.0,
                 crop: None,
+                mask: None,
                 content: StatefulLayoutComponent::layout_content(child, 0),
                 child_nodes_count: 1,
                 children: vec![],
+                border_width: 0.0,
+                border_color: RGBAColor(0, 0, 0, 0),
+                border_radius: BorderRadius::ZERO,
+                box_shadow: vec![],
             },
         };
         (layout, static_offset)
@@ -165,6 +206,8 @@ impl ViewComponentParam {
     /// Calculate a size of a static child component that does not have it explicitly defined.
     /// Returned value represents width if the direction is `ViewChildrenDirection::Row` or
     /// height if the direction is `ViewChildrenDirection::Column`.
+    ///
+    /// size represents dimensions of content (without a border).
     fn static_child_size(&self, size: Size, children: &[StatefulComponent], pts: Duration) -> f32 {
         let max_size = match self.direction {
             super::ViewChildrenDirection::Row => size.width,
@@ -190,7 +233,7 @@ impl ViewComponentParam {
 
     fn scale_factor_for_overflow_fit(
         &self,
-        size: Size,
+        content_size: Size,
         children: &[StatefulComponent],
         pts: Duration,
     ) -> f32 {
@@ -198,8 +241,8 @@ impl ViewComponentParam {
             .sum_static_children_sizes(children, pts)
             .max(0.000000001); // avoid division by 0
         let (max_size, max_alternative_size) = match self.direction {
-            super::ViewChildrenDirection::Row => (size.width, size.height),
-            super::ViewChildrenDirection::Column => (size.height, size.width),
+            super::ViewChildrenDirection::Row => (content_size.width, content_size.height),
+            super::ViewChildrenDirection::Column => (content_size.height, content_size.width),
         };
         let max_alternative_size_for_child = Self::static_children_iter(children, pts)
             .map(|child| match self.direction {

@@ -25,7 +25,10 @@ use compositor_pipeline::{
 use compositor_render::{
     create_wgpu_ctx,
     error::ErrorStack,
-    scene::{Component, InputStreamComponent},
+    scene::{
+        AbsolutePosition, BorderRadius, BoxShadow, Component, HorizontalPosition, Overflow,
+        Position, RGBAColor, VerticalPosition, ViewChildrenDirection, ViewComponent,
+    },
     Frame, FrameData, InputId, OutputId, Resolution,
 };
 use crossbeam_channel::bounded;
@@ -87,16 +90,51 @@ fn main() {
         output_options: RawDataOutputOptions {
             video: Some(RawVideoOptions {
                 resolution: Resolution {
-                    width: 1280,
-                    height: 720,
+                    width: 640,
+                    height: 360,
                 },
             }),
             audio: Some(RawAudioOptions),
         },
         video: Some(compositor_pipeline::pipeline::OutputVideoOptions {
-            initial: Component::InputStream(InputStreamComponent {
+            initial: Component::View(ViewComponent {
                 id: None,
-                input_id: input_id.clone(),
+                children: vec![Component::View(ViewComponent {
+                    id: None,
+                    children: vec![],
+                    direction: ViewChildrenDirection::Row,
+                    position: Position::Absolute(AbsolutePosition {
+                        width: Some(300.0),
+                        height: Some(200.0),
+                        position_horizontal: HorizontalPosition::LeftOffset(20.0),
+                        position_vertical: VerticalPosition::TopOffset(20.0),
+                        rotation_degrees: 0.0,
+                    }),
+                    transition: None,
+                    overflow: Overflow::Hidden,
+                    background_color: RGBAColor(255, 0, 0, 255),
+                    border_radius: BorderRadius::new_with_radius(70.0),
+                    border_width: 50.0,
+                    border_color: RGBAColor(0, 255, 0, 255),
+                    box_shadows: vec![BoxShadow {
+                        offset_x: 60.0,
+                        offset_y: 60.0,
+                        blur_radius: 60.0,
+                        color: RGBAColor(0, 255, 0, 255),
+                    }],
+                })],
+                direction: ViewChildrenDirection::Row,
+                position: Position::Static {
+                    width: None,
+                    height: None,
+                },
+                transition: None,
+                overflow: Overflow::Hidden,
+                background_color: RGBAColor(0, 255, 255, 255),
+                border_radius: BorderRadius::ZERO,
+                border_width: 0.0,
+                border_color: RGBAColor(0, 0, 0, 0),
+                box_shadows: vec![],
             }),
             end_condition: PipelineOutputEndCondition::Never,
         }),
@@ -143,7 +181,7 @@ fn main() {
                 if [0, 200, 400, 600, 800, 1000].contains(&index) {
                     write_frame(index, frame, &wgpu_device, &wgpu_queue);
                 }
-                if index > 1000 {
+                if index > 1 {
                     send_done.send(()).unwrap();
                     return;
                 }

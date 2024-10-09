@@ -1,7 +1,7 @@
 use std::{sync::Arc, time::Duration};
 
 use crate::{
-    scene::{RGBAColor, Size},
+    scene::{BorderRadius, BoxShadow, RGBAColor, Size},
     state::RenderCtx,
     wgpu::texture::NodeTexture,
     Resolution,
@@ -16,7 +16,7 @@ use self::shader::LayoutShader;
 
 pub(crate) use layout_renderer::LayoutRenderer;
 
-use log::error;
+use log::{error, info};
 
 pub(crate) trait LayoutProvider: Send {
     fn layouts(&mut self, pts: Duration, inputs: &[Option<Resolution>]) -> NestedLayout;
@@ -28,6 +28,8 @@ pub(crate) struct LayoutNode {
     shader: Arc<LayoutShader>,
 }
 
+/// When rendering we cut this fragment from texture and stretch it on
+/// the expected position
 #[derive(Debug, Clone)]
 pub struct Crop {
     pub top: f32,
@@ -37,15 +39,7 @@ pub struct Crop {
 }
 
 #[derive(Debug, Clone)]
-pub struct BorderRadius {
-    pub top_left: f32,
-    pub top_right: f32,
-    pub bottom_right: f32,
-    pub bottom_left: f32,
-}
-
-#[derive(Debug, Clone)]
-pub struct ParentMask {
+pub struct Mask {
     pub radius: BorderRadius,
     // position of parent on the output frame
     pub top: f32,
@@ -56,13 +50,25 @@ pub struct ParentMask {
 
 #[derive(Debug, Clone)]
 struct RenderLayout {
+    // top-left corner, includes border
     top: f32,
     left: f32,
+
+    // size on the output texture, includes border
     width: f32,
     height: f32,
+
+    // Defines what should be cut from the content.
+    // - for texture defines part of the texture that will be stretched to
+    //   the `self.width/self.height`. It might cut off border radius.
+    // - for box shadow
+
+    // Rotated around the center
     rotation_degrees: f32,
+    // border radius needs to applied before cropping, so we can't just make it a part of a parent
+    // mask
     border_radius: BorderRadius,
-    parent_masks: Vec<ParentMask>,
+    masks: Vec<Mask>,
     content: RenderLayoutContent,
 }
 
@@ -75,9 +81,9 @@ enum RenderLayoutContent {
     },
     ChildNode {
         index: usize,
-        crop: Crop,
         border_color: RGBAColor,
         border_width: f32,
+        crop: Crop,
     },
     #[allow(dead_code)]
     BoxShadow { color: RGBAColor, blur_radius: f32 },
@@ -92,18 +98,39 @@ pub enum LayoutContent {
 
 #[derive(Debug, Clone)]
 pub struct NestedLayout {
+    // top-left corner, includes border
     pub top: f32,
     pub left: f32,
+
+    // size on the output texture, includes border
     pub width: f32,
     pub height: f32,
+
     pub rotation_degrees: f32,
     /// scale will affect content/children, but not the properties of current layout like
-    /// top/left/widht/height
+    /// top/left/width/height
     pub scale_x: f32,
     pub scale_y: f32,
     /// Crop is applied before scaling.
+    ///
+    /// If you need to scale before cropping use 2 nested layouts:
+    /// - child to scale
+    /// - parent to crop
+    ///
+    /// Depending on content
+    /// - For texture it describes what chunk of texture should be cut and stretched on
+    ///   width/height
+    /// - For layout it cuts of part of it (defined in coordinates system of this component)
     pub crop: Option<Crop>,
+    /// Everything outside this mask should not be rendered. Coordinates are relative to
+    /// the layouts top-left corner (and not to the 0,0 point that top-left are defined in)
+    pub mask: Option<Mask>,
     pub content: LayoutContent,
+
+    pub border_width: f32,
+    pub border_color: RGBAColor,
+    pub border_radius: BorderRadius,
+    pub box_shadow: Vec<BoxShadow>,
 
     pub(crate) children: Vec<NestedLayout>,
     /// Describes how many children of this component are nodes. This value also
@@ -138,10 +165,11 @@ impl LayoutNode {
             .map(|node_texture| node_texture.resolution())
             .collect();
         let output_resolution = self.layout_provider.resolution(pts);
-        let layouts = self
-            .layout_provider
-            .layouts(pts, &input_resolutions)
-            .flatten(&input_resolutions, output_resolution);
+        let layouts = self.layout_provider.layouts(pts, &input_resolutions);
+        info!("Layout {layouts:#?}");
+
+        let layouts = layouts.flatten(&input_resolutions, output_resolution);
+        info!("Flatten {layouts:#?}");
 
         let textures: Vec<Option<&NodeTexture>> = layouts
             .iter()
@@ -178,9 +206,14 @@ impl NestedLayout {
             scale_x: 1.0,
             scale_y: 1.0,
             crop: None,
+            mask: None,
             content: LayoutContent::None,
             children: vec![],
             child_nodes_count,
+            border_width: 0.0,
+            border_color: RGBAColor(0, 0, 0, 0),
+            border_radius: BorderRadius::ZERO,
+            box_shadow: vec![],
         }
     }
 }
