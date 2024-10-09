@@ -85,36 +85,39 @@ struct LayoutInfo {
 
 var<push_constant> layout_info: LayoutInfo;
 
-fn rotation_matrix(rotation: f32) -> mat3x3<f32> {
+fn rotation_matrix(rotation: f32) -> mat4x4<f32> {
     // wgsl is column-major
     let angle = radians(rotation);
     let c = cos(angle);
     let s = sin(angle);
-    return mat3x3<f32>(
-        vec3<f32>(c, s, 0.0),
-        vec3<f32>(-s, c, 0.0),
-        vec3<f32>(0.0, 0.0, 1.0)
+    return mat4x4<f32>(
+        vec4<f32>(c, s, 0.0, 0.0),
+        vec4<f32>(-s, c, 0.0, 0.0),
+        vec4<f32>(0.0, 0.0, 1.0, 0.0),
+        vec4<f32>(0.0, 0.0, 0.0, 1.0)
     );
 }
 
-fn scale_matrix(scale: vec2<f32>) -> mat3x3<f32> {
-    return mat3x3<f32>(
-        vec3<f32>(scale.x, 0.0, 0.0),
-        vec3<f32>(0.0, scale.y, 0.0),
-        vec3<f32>(0.0, 0.0, 1.0)
+fn scale_matrix(scale: vec2<f32>) -> mat4x4<f32> {
+    return mat4x4<f32>(
+        vec4<f32>(scale.x, 0.0, 0.0, 0.0),
+        vec4<f32>(0.0, scale.y, 0.0, 0.0),
+        vec4<f32>(0.0, 0.0, 1.0, 0.0),
+        vec4<f32>(0.0, 0.0, 0.0, 1.0)
     );
 }
 
 
-fn translation_matrix(translation: vec2<f32>) -> mat3x3<f32> {
-    return mat3x3<f32>(
-        vec3<f32>(1.0, 0.0, 0.0),
-        vec3<f32>(0.0, 1.0, 0.0),
-        vec3<f32>(translation, 1.0)
+fn translation_matrix(translation: vec2<f32>) -> mat4x4<f32> {
+    return mat4x4<f32>(
+        vec4<f32>(1.0, 0.0, 0.0, 0.0),
+        vec4<f32>(0.0, 1.0, 0.0, 0.0),
+        vec4<f32>(0.0, 0.0, 1.0, 0.0),
+        vec4<f32>(translation, 0.0, 1.0)
     );
 }
 
-fn vertices_transformation_matrix(left: f32, top: f32, width: f32, height: f32, rotation: f32) -> mat3x3<f32> {
+fn vertices_transformation_matrix(left: f32, top: f32, width: f32, height: f32, rotation: f32) -> mat4x4<f32> {
     let scale = vec2<f32>(
         width / f32(output_resolution.x),
         height / f32(output_resolution.y),
@@ -125,13 +128,13 @@ fn vertices_transformation_matrix(left: f32, top: f32, width: f32, height: f32, 
     // scaling to clip space -> 2 * (left + width / 2) / output_resolution.x - 1
     let center = vec2<f32>(
         2.0 * (left + width / 2.0) / f32(output_resolution.x) - 1.0,
-        2.0 * (top + height / 2.0) / f32(output_resolution.y) - 1.0,
+        1.0 - 2.0 * (top + height / 2.0) / f32(output_resolution.y),
     );
 
     return translation_matrix(center) * rotation_matrix(rotation) * scale_matrix(scale);
 }
 
-fn texture_coord_transformation_matrix(crop_left: f32, crop_top: f32, crop_width: f32, crop_height: f32) -> mat3x3<f32> {
+fn texture_coord_transformation_matrix(crop_left: f32, crop_top: f32, crop_width: f32, crop_height: f32) -> mat4x4<f32> {
     let dim = textureDimensions(texture);
     let scale = vec2<f32>(
         crop_width / f32(dim.x),
@@ -152,7 +155,7 @@ fn vs_main(input: VertexInput) -> VertexOutput {
 
     switch (layout_info.layout_type) {
         // texture
-        case 1u: {
+        case 0u: {
             let vertices_transformation = vertices_transformation_matrix(
                 texture_params[layout_info.index].left,
                 texture_params[layout_info.index].top,
@@ -166,11 +169,11 @@ fn vs_main(input: VertexInput) -> VertexOutput {
                 texture_params[layout_info.index].crop_width,
                 texture_params[layout_info.index].crop_height
             );
-            output.position = vec4<f32>(vertices_transformation * input.position, 1.0);
-            output.tex_coords = texture_transformation *  input.tex_coords;
+            output.position = vertices_transformation * vec4(input.position, 1.0);
+            output.tex_coords = (texture_transformation * vec4<f32>(input.tex_coords, 0.0, 1.0)).xy;
         }
         // color
-        case 2u: {
+        case 1u: {
             let vertices_transformation = vertices_transformation_matrix(
                 color_params[layout_info.index].left,
                 color_params[layout_info.index].top,
@@ -178,11 +181,11 @@ fn vs_main(input: VertexInput) -> VertexOutput {
                 color_params[layout_info.index].height,
                 color_params[layout_info.index].rotation_degrees
             );
-            output.position = vec4<f32>(vertices_transformation * input.position, 1.0);
+            output.position = vertices_transformation * vec4(input.position, 1.0);
             output.tex_coords = input.tex_coords;
         }
         // box shadow
-        case 3u {
+        case 2u {
             let vertices_transformation = vertices_transformation_matrix(
                 box_shadow_params[layout_info.index].left - box_shadow_params[layout_info.index].blur_radius,
                 box_shadow_params[layout_info.index].top - box_shadow_params[layout_info.index].blur_radius,
@@ -190,7 +193,7 @@ fn vs_main(input: VertexInput) -> VertexOutput {
                 box_shadow_params[layout_info.index].height + 2.0 * box_shadow_params[layout_info.index].blur_radius,
                 box_shadow_params[layout_info.index].rotation_degrees
             );
-            output.position = vec4<f32>(vertices_transformation * input.position, 1.0);
+            output.position = vertices_transformation * vec4(input.position, 1.0);
             output.tex_coords = input.tex_coords;
         }
         default {}
@@ -213,53 +216,77 @@ fn roundedRectSDF(position: vec2<f32>, size: vec2<f32>, radius: vec4<f32>, rotat
     );
 
     // wierd hack to get the radius of the nearest corner stored in r.x
-    var r: vec2<f32> = radius.xy;
-    r = select(radius.zw, r, rotated_position.x >= 0 );
-    r.x = select(r.y, r.x, rotated_position.y >= 0 );
+    var r: vec2<f32> = vec2<f32>(0.0, 0.0);
+    r = select(radius.yz, radius.xw, rotated_position.x < 0.0 );
+    r.x = select(r.y, r.x, rotated_position.y < 0.0 );
 
     let q = abs(rotated_position) - half_size + r.x;
-    return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - r.x;
+    return min(max(q.x, q.y), 0.0) + length(max(q, vec2<f32>(0.0, 0.0))) - r.x;
 }
 
 @fragment
 fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
-    let sample = textureSample(texture, sampler_, input.tex_coords);
-
     switch layout_info.layout_type {
-        case 1u: {
+        case 0u: {
+            let sample = textureSample(texture, sampler_, input.tex_coords);
+
+            let left = texture_params[layout_info.index].left;
+            let top = texture_params[layout_info.index].top;
+            let width = texture_params[layout_info.index].width;
+            let height = texture_params[layout_info.index].height;
+            let border_radius = texture_params[layout_info.index].border_radius;
+            let rotation_degrees = texture_params[layout_info.index].rotation_degrees;
+            let border_width = texture_params[layout_info.index].border_width;
+            let border_color = texture_params[layout_info.index].border_color;
+
             let position = vec2<f32>(
-                input.position.x - texture_params[layout_info.index].left - texture_params[layout_info.index].width / 2.0,
-                input.position.y - texture_params[layout_info.index].top - texture_params[layout_info.index].height / 2.0
+                input.position.x - left - width / 2.0,
+                input.position.y - top - height / 2.0
             );
-            let size = vec2<f32>(texture_params[layout_info.index].width, texture_params[layout_info.index].height);
+            let size = vec2<f32>(width, height);
             let edge_distance = roundedRectSDF(
                 position, 
                 size, 
-                texture_params[layout_info.index].border_radius, 
-                texture_params[layout_info.index].rotation_degrees
+                border_radius, 
+                rotation_degrees
             );
+
             let smoothed_alpha = 1.0 - smoothstep(0.0, 2.0, edge_distance);
-            let border_alpha = 1.0 - smoothstep(0.0, -texture_params[layout_info.index].border_width, edge_distance);
-            let mixed_background = mix(sample, vec4<f32>(0.0, 0.0, 0.0, 0.0), smoothed_alpha);
-            let mixed_border = mix(mixed_background, texture_params[layout_info.index].border_color, border_alpha);
+            let border_alpha = 1.0 - smoothstep(-border_width + 1.0, -border_width, edge_distance);
+
+            let mixed_background = vec4<f32>(sample.xyz, sample.w * smoothed_alpha);
+            let mixed_border = mix(mixed_background, border_color, min(border_alpha, smoothed_alpha));
             return mixed_border;
         }
-        case 2u: {
+        case 1u: {
+            let color = color_params[layout_info.index].color;
+
+            let left = color_params[layout_info.index].left;
+            let top = color_params[layout_info.index].top;
+            let width = color_params[layout_info.index].width;
+            let height = color_params[layout_info.index].height;
+            let border_radius = color_params[layout_info.index].border_radius;
+            let rotation_degrees = color_params[layout_info.index].rotation_degrees;
+            let border_width = color_params[layout_info.index].border_width;
+            let border_color = color_params[layout_info.index].border_color;
+
             let position = vec2<f32>(
-                input.position.x - color_params[layout_info.index].left - color_params[layout_info.index].width / 2.0,
-                input.position.y - color_params[layout_info.index].top - color_params[layout_info.index].height / 2.0
+                input.position.x - left - width / 2.0,
+                input.position.y - top - height / 2.0
             );
-            let size = vec2<f32>(color_params[layout_info.index].width, color_params[layout_info.index].height);
+            let size = vec2<f32>(width, height);
             let edge_distance = roundedRectSDF(
-                position,
-                size,
-                color_params[layout_info.index].border_radius,
-                color_params[layout_info.index].rotation_degrees
+                position, 
+                size, 
+                border_radius, 
+                rotation_degrees
             );
+
             let smoothed_alpha = 1.0 - smoothstep(0.0, 2.0, edge_distance);
-            let border_alpha = 1.0 - smoothstep(0.0, -color_params[layout_info.index].border_width, edge_distance);
-            let mixed_background = mix(color_params[layout_info.index].color, vec4<f32>(0.0, 0.0, 0.0, 0.0), smoothed_alpha);
-            let mixed_border = mix(mixed_background, color_params[layout_info.index].border_color, border_alpha);
+            let border_alpha = 1.0 - smoothstep(-border_width + 1.0, -border_width, edge_distance);
+
+            let mixed_background = vec4<f32>(color.xyz, color.w * smoothed_alpha);
+            let mixed_border = mix(mixed_background, border_color, border_alpha);
             return mixed_border;
         }
         default {

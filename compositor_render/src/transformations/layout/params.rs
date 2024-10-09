@@ -1,6 +1,4 @@
-use std::num::NonZeroU32;
-
-use tracing::error;
+use tracing::{error, info};
 use wgpu::{
     util::{BufferInitDescriptor, DeviceExt},
     BindGroupLayoutDescriptor, BufferUsages,
@@ -8,14 +6,14 @@ use wgpu::{
 
 use crate::{scene::RGBAColor, wgpu::WgpuCtx, Resolution};
 
-use super::{BorderRadius, RenderLayout};
+use super::{vertices_transformation_matrix, BorderRadius, RenderLayout};
 
 const ARRAY_SIZE: usize = 100;
 const TEXTURE_PARAMS_BUFFER_SIZE: usize = ARRAY_SIZE * 80;
 const COLOR_PARAMS_SIZE: usize = ARRAY_SIZE * 80;
 const BOX_SHADOW_PARAMS_SIZE: usize = ARRAY_SIZE * 80;
-const PARENT_RADIUSES_SIZE: usize = 20 * 16;
 
+#[derive(Debug)]
 pub struct LayoutInfo {
     pub layout_type: u32,
     pub index: u32,
@@ -46,7 +44,7 @@ pub struct ParamsBindGroups {
 
 impl ParamsBindGroups {
     pub fn new(ctx: &WgpuCtx) -> ParamsBindGroups {
-        let output_resolution_buffer = create_buffer(ctx, 16);
+        let output_resolution_buffer = create_buffer(ctx, 8);
         let texture_params_buffer = create_buffer(ctx, TEXTURE_PARAMS_BUFFER_SIZE);
         let color_params_buffer = create_buffer(ctx, COLOR_PARAMS_SIZE);
         let box_shadow_params_buffer = create_buffer(ctx, BOX_SHADOW_PARAMS_SIZE);
@@ -68,7 +66,7 @@ impl ParamsBindGroups {
                     },
                     wgpu::BindGroupLayoutEntry {
                         binding: 1,
-                        count: Some(NonZeroU32::new(ARRAY_SIZE as u32).unwrap()),
+                        count: None,
                         visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
                         ty: wgpu::BindingType::Buffer {
                             ty: wgpu::BufferBindingType::Uniform,
@@ -78,7 +76,7 @@ impl ParamsBindGroups {
                     },
                     wgpu::BindGroupLayoutEntry {
                         binding: 2,
-                        count: Some(NonZeroU32::new(ARRAY_SIZE as u32).unwrap()),
+                        count: None,
                         visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
                         ty: wgpu::BindingType::Buffer {
                             ty: wgpu::BufferBindingType::Uniform,
@@ -88,7 +86,7 @@ impl ParamsBindGroups {
                     },
                     wgpu::BindGroupLayoutEntry {
                         binding: 3,
-                        count: Some(NonZeroU32::new(ARRAY_SIZE as u32).unwrap()),
+                        count: None,
                         visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
                         ty: wgpu::BindingType::Buffer {
                             ty: wgpu::BufferBindingType::Uniform,
@@ -134,13 +132,13 @@ impl ParamsBindGroups {
                         has_dynamic_offset: false,
                         min_binding_size: None,
                     },
-                    count: Some(NonZeroU32::new(20).unwrap()),
+                    count: None,
                 }],
             });
 
         let mut bind_groups_2 = Vec::with_capacity(100);
         for _ in 0..100 {
-            let buffer = create_buffer(ctx, 20 * 16);
+            let buffer = create_buffer(ctx, 20 * 32);
             
             let bind_group_2 = ctx.device.create_bind_group(&wgpu::BindGroupDescriptor {
                 label: Some("Bind group 2"),
@@ -171,9 +169,9 @@ impl ParamsBindGroups {
         output_resolution: Resolution,
         layouts: Vec<RenderLayout>,
     ) -> Vec<LayoutInfo> {
-        let mut output_resolution_bytes = [0u8; 16];
-        output_resolution_bytes[0..8].copy_from_slice(&output_resolution.width.to_le_bytes());
-        output_resolution_bytes[8..16].copy_from_slice(&output_resolution.height.to_le_bytes());
+        let mut output_resolution_bytes = [0u8; 8];
+        output_resolution_bytes[0..4].copy_from_slice(&(output_resolution.width as f32).to_le_bytes());
+        output_resolution_bytes[4..8].copy_from_slice(&(output_resolution.height as f32).to_le_bytes());
 
         ctx.queue
             .write_buffer(&self.output_resolution_buffer, 0, &output_resolution_bytes);
@@ -215,9 +213,9 @@ impl ParamsBindGroups {
                     color_params_bytes[48..52].copy_from_slice(&top.to_le_bytes());
                     color_params_bytes[52..56].copy_from_slice(&left.to_le_bytes());
                     color_params_bytes[56..60].copy_from_slice(&width.to_le_bytes());
-                    color_params_bytes[64..68].copy_from_slice(&height.to_le_bytes());
-                    color_params_bytes[68..72].copy_from_slice(&rotation_degrees.to_le_bytes());
-                    color_params_bytes[72..76].copy_from_slice(&border_width.to_le_bytes());
+                    color_params_bytes[60..64].copy_from_slice(&height.to_le_bytes());
+                    color_params_bytes[64..68].copy_from_slice(&rotation_degrees.to_le_bytes());
+                    color_params_bytes[68..72].copy_from_slice(&border_width.to_le_bytes());
                     color_params.push(color_params_bytes);
                     layout_infos.push(layout_info);
                 }

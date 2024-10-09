@@ -51,26 +51,35 @@ fn client_code() -> Result<()> {
             "ip": IP,
             "video": {
                 "resolution": {
-                    "width": VIDEO_RESOLUTION.width,
-                    "height": VIDEO_RESOLUTION.height,
+                    "width": 1920,
+                    "height": 1080,
                 },
                 "encoder": {
                     "type": "ffmpeg_h264",
                     "preset": "ultrafast"
                 },
+                // "initial": {
+                //     "root": {
+                //         "type": "shader",
+                //         "id": "shader_node_1",
+                //         "shader_id": "shader_example_1",
+                //         "children": [
+                //             {
+                //                 "id": "input_1",
+                //                 "type": "input_stream",
+                //                 "input_id": "input_1",
+                //             }
+                //         ],
+                //         "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+                //     }
+                // }
                 "initial": {
                     "root": {
-                        "type": "shader",
-                        "id": "shader_node_1",
-                        "shader_id": "shader_example_1",
-                        "children": [
-                            {
-                                "id": "input_1",
-                                "type": "input_stream",
-                                "input_id": "input_1",
-                            }
-                        ],
-                        "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+                        "type": "view",
+                        "children": [{
+                            "type": "input_stream",
+                            "input_id": "input_1"
+                        }]
                     }
                 }
             }

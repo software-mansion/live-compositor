@@ -1,8 +1,10 @@
 use std::sync::Arc;
 
-use tracing::error;
+use tracing::{error, info};
 
 use crate::{
+    scene::RGBAColor,
+    transformations::layout::{BorderRadius, Crop, RenderLayoutContent},
     wgpu::{
         common_pipeline::{self, CreateShaderError, Sampler},
         texture::{NodeTexture, NodeTextureState},
@@ -11,10 +13,7 @@ use crate::{
     Resolution,
 };
 
-use super::{
-    params::ParamsBindGroups,
-    RenderLayout,
-};
+use super::{params::ParamsBindGroups, vertices_transformation_matrix, RenderLayout};
 
 #[derive(Debug)]
 pub struct LayoutShader {
@@ -43,9 +42,7 @@ impl LayoutShader {
         shader_module: wgpu::ShaderModule,
     ) -> Result<Self, CreateShaderError> {
         let sampler = Sampler::new(&wgpu_ctx.device);
-
         let texture_bgl = common_pipeline::create_single_texture_bgl(&wgpu_ctx.device);
-
         let params_bind_groups = ParamsBindGroups::new(wgpu_ctx);
 
         let pipeline_layout =
@@ -61,7 +58,7 @@ impl LayoutShader {
                     ],
                     push_constant_ranges: &[wgpu::PushConstantRange {
                         stages: wgpu::ShaderStages::VERTEX_FRAGMENT,
-                        range: 0..4,
+                        range: 0..16,
                     }],
                 });
 
@@ -84,13 +81,61 @@ impl LayoutShader {
         wgpu_ctx: &Arc<WgpuCtx>,
         output_resolution: Resolution,
         layouts: Vec<RenderLayout>,
-        textures: &[Option<&NodeTexture>],
+        textures: &mut Vec<Option<&NodeTexture>>,
         target: &NodeTextureState,
     ) {
+        // let new_layouts = vec![
+        //     RenderLayout {
+        //         top: 0.0,
+        //         left: 0.0,
+        //         width: 960.0,
+        //         height: 540.0,
+        //         rotation_degrees: 0.0,
+        //         border_radius: super::BorderRadius {
+        //             top_left: 50.0,
+        //             top_right: 100.0,
+        //             bottom_right: 150.0,
+        //             bottom_left: 200.0,
+        //         },
+        //         parent_border_radiuses: vec![],
+        //         content: RenderLayoutContent::ChildNode {
+        //             index: 0,
+        //             crop: Crop {
+        //                 top: 0.0,
+        //                 left: 0.0,
+        //                 width: 720.0,
+        //                 height: 480.0,
+        //             },
+        //             border_color: RGBAColor(255, 0, 0, 255),
+        //             border_width: 20.0,
+        //         },
+        //     },
+        //     RenderLayout {
+        //         top: 540.0,
+        //         left: 960.0,
+        //         width: 960.0,
+        //         height: 540.0,
+        //         rotation_degrees: 0.0,
+        //         border_radius: BorderRadius {
+        //             top_left: 0.0,
+        //             top_right: 100.0,
+        //             bottom_right: 200.0,
+        //             bottom_left: 300.0,
+        //         },
+        //         parent_border_radiuses: vec![],
+        //         content: RenderLayoutContent::Color {
+        //             color: RGBAColor(0, 255, 0, 255),
+        //             border_color: RGBAColor(0, 0, 0, 0),
+        //             border_width: 0.0,
+        //         },
+        //     },
+        // ];
+
         let layout_infos = self
             .params_bind_groups
             .update(wgpu_ctx, output_resolution, layouts);
-        let input_texture_bgs: Vec<wgpu::BindGroup> = self.input_textures_bg(wgpu_ctx, textures);
+        // textures.push(None);
+        let input_texture_bgs: Vec<wgpu::BindGroup> = self.input_textures_bg(wgpu_ctx, &textures);
 
         if layout_infos.len() != input_texture_bgs.len() {
             error!(
