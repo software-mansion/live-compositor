@@ -109,7 +109,7 @@ export async function checkFFmpeg(): Promise<void> {
     }
 
     if (!(await confirmPrompt('Do you want to continue regardless?'))) {
-      console.error('Aboring ...');
+      console.error('Aborting ...');
       process.exit(1);
     }
   }

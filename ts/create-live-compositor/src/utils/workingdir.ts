@@ -11,7 +11,7 @@ export async function ensureProjectDir(directory: string) {
         console.log(`Removing ${directory}.`);
         await fs.remove(directory);
       } else {
-        console.error('Aboring ...');
+        console.error('Aborting ...');
         process.exit(1);
       }
     }
