@@ -47,8 +47,8 @@ function Instructions() {
         streams/images/shader.
       </Text>
       <Text width={960} fontSize={30} wrap="word">
-        - ./store.ts implements Redux store that is used for storing global state and sharing it
-        between express API and React.
+        - ./store.ts implements global store using Zustand, enabling express API and React to share
+        common settings.
       </Text>
       <View />
     </View>

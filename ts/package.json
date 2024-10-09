@@ -22,7 +22,7 @@
     "examples/vite-browser-render",
     "create-live-compositor",
     "create-live-compositor/templates/node-minimal",
-    "create-live-compositor/templates/node-express-redux"
+    "create-live-compositor/templates/node-express-zustand"
   ],
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^7.16.0",
