@@ -1,7 +1,7 @@
 use std::{sync::Arc, time::Duration};
 
 use crate::{
-    scene::{RGBAColor, Size},
+    scene::{BorderRadius, RGBAColor, Size},
     state::RenderCtx,
     wgpu::texture::NodeTexture,
     Resolution,
@@ -28,6 +28,8 @@ pub(crate) struct LayoutNode {
     shader: Arc<LayoutShader>,
 }
 
+/// When rendering we cut this fragment from texture and stretch it on
+/// the expected position
 #[derive(Debug, Clone)]
 pub struct Crop {
     pub top: f32,
@@ -36,13 +38,6 @@ pub struct Crop {
     pub height: f32,
 }
 
-#[derive(Debug, Clone)]
-pub struct BorderRadius {
-    pub top_left: f32,
-    pub top_right: f32,
-    pub bottom_right: f32,
-    pub bottom_left: f32,
-}
 
 #[derive(Debug, Clone)]
 pub struct ParentMask {
@@ -84,6 +79,14 @@ enum RenderLayoutContent {
 }
 
 #[derive(Debug, Clone)]
+pub struct BoxShadow {
+    offset_x: f32,
+    offset_y: f32,
+    blur_radius: f32,
+    color: RGBAColor,
+}
+
+#[derive(Debug, Clone)]
 pub enum LayoutContent {
     Color(RGBAColor),
     ChildNode { index: usize, size: Size },
@@ -98,12 +101,17 @@ pub struct NestedLayout {
     pub height: f32,
     pub rotation_degrees: f32,
     /// scale will affect content/children, but not the properties of current layout like
-    /// top/left/widht/height
+    /// top/left/width/height
     pub scale_x: f32,
     pub scale_y: f32,
     /// Crop is applied before scaling.
     pub crop: Option<Crop>,
     pub content: LayoutContent,
+
+    pub border_width: f32,
+    pub border_color: RGBAColor,
+    pub border_radius: BorderRadius,
+    pub box_shadow: Vec<BoxShadow>,
 
     pub(crate) children: Vec<NestedLayout>,
     /// Describes how many children of this component are nodes. This value also
@@ -181,6 +189,15 @@ impl NestedLayout {
             content: LayoutContent::None,
             children: vec![],
             child_nodes_count,
+            border_width: 0.0,
+            border_color: RGBAColor(0, 0, 0, 0),
+            border_radius: BorderRadius {
+                top_left: 0.0,
+                top_right: 0.0,
+                bottom_right: 0.0,
+                bottom_left: 0.0,
+            },
+            box_shadow: vec![],
         }
     }
 }

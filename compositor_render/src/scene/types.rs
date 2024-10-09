@@ -74,3 +74,20 @@ pub enum InterpolationKind {
     Bounce,
     CubicBezier { x1: f64, y1: f64, x2: f64, y2: f64 },
 }
+
+#[derive(Debug, Clone, Copy)]
+pub struct BorderRadius {
+    pub top_left: f32,
+    pub top_right: f32,
+    pub bottom_right: f32,
+    pub bottom_left: f32,
+}
+
+impl BorderRadius {
+    pub const ZERO: BorderRadius = BorderRadius {
+        top_left: 0.0,
+        top_right: 0.0,
+        bottom_right: 0.0,
+        bottom_left: 0.0,
+    };
+}

@@ -126,8 +126,16 @@ impl RescalerComponentParam {
                 content,
                 child_nodes_count,
                 children,
+                border_width: todo!(),
+                border_color: todo!(),
+                border_radius: todo!(),
+                box_shadow: todo!(),
             }],
             child_nodes_count,
+            border_width: todo!(),
+            border_color: todo!(),
+            border_radius: todo!(),
+            box_shadow: todo!(),
         }
     }
 }

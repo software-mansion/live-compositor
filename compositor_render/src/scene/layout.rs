@@ -198,6 +198,10 @@ impl StatefulLayoutComponent {
                     content,
                     child_nodes_count,
                     children: vec![children_layouts],
+                    border_width: todo!(),
+                    border_color: todo!(),
+                    border_radius: todo!(),
+                    box_shadow: todo!(),
                 }
             }
             _non_layout_components => {
@@ -219,6 +223,10 @@ impl StatefulLayoutComponent {
                     content,
                     child_nodes_count,
                     children: vec![],
+                    border_width: todo!(),
+                    border_color: todo!(),
+                    border_radius: todo!(),
+                    box_shadow: todo!(),
                 }
             }
         }

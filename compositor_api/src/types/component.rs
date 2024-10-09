@@ -80,6 +80,8 @@ pub struct View {
 
     /// (**default=`"#00000000"`**) Background color in a `"#RRGGBBAA"` format.
     pub background_color_rgba: Option<RGBAColor>,
+
+    pub border_radius: Option<f32>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
@@ -378,4 +380,6 @@ pub struct Tiles {
     /// Defines how this component will behave during a scene update. This will only have an
     /// effect if the previous scene already contained a `Tiles` component with the same id.
     pub transition: Option<Transition>,
+
+    pub border_radius: Option<f32>,
 }

@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use compositor_render::scene;
+use compositor_render::scene::BorderRadius;
 use compositor_render::scene::Position;
 use compositor_render::MAX_NODE_RESOLUTION;
 
@@ -101,6 +102,12 @@ impl TryFrom<View> for scene::ViewComponent {
                 .map(TryInto::try_into)
                 .unwrap_or(Ok(scene::RGBAColor(0, 0, 0, 0)))?,
             transition: view.transition.map(TryInto::try_into).transpose()?,
+            border_radius: BorderRadius {
+                top_left: view.border_radius.unwrap_or(0.0),
+                top_right: view.border_radius.unwrap_or(0.0),
+                bottom_right: view.border_radius.unwrap_or(0.0),
+                bottom_left: view.border_radius.unwrap_or(0.0),
+            },
         })
     }
 }

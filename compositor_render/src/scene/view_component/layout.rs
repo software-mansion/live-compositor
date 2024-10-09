@@ -2,8 +2,7 @@ use std::time::Duration;
 
 use crate::{
     scene::{
-        layout::StatefulLayoutComponent, Overflow, Position, Size, StatefulComponent,
-        ViewChildrenDirection,
+        layout::StatefulLayoutComponent, BorderRadius, Overflow, Position, RGBAColor, Size, StatefulComponent, ViewChildrenDirection
     },
     transformations::layout::{Crop, LayoutContent, NestedLayout},
 };
@@ -100,6 +99,10 @@ impl ViewComponentParam {
             content: LayoutContent::Color(self.background_color),
             child_nodes_count: children.iter().map(|l| l.child_nodes_count).sum(),
             children,
+            border_width: 0.0,                       // TODO(wkozyra95)
+            border_color: RGBAColor(0, 0, 255, 255), // TODO(wkozyra95)
+            border_radius: self.border_radius,
+            box_shadow: vec![], // TODO(wkozyra95)
         }
     }
 
@@ -143,6 +146,10 @@ impl ViewComponentParam {
                     content: LayoutContent::None,
                     child_nodes_count: children_layouts.child_nodes_count,
                     children: vec![children_layouts],
+                    border_width: 0.0,                       // TODO(wkozyra95)
+                    border_color: RGBAColor(0, 0, 255, 255), // TODO(wkozyra95)
+                    border_radius: BorderRadius::ZERO,
+                    box_shadow: vec![], // TODO(wkozyra95)
                 }
             }
             _ => NestedLayout {
@@ -157,6 +164,10 @@ impl ViewComponentParam {
                 content: StatefulLayoutComponent::layout_content(child, 0),
                 child_nodes_count: 1,
                 children: vec![],
+                border_width: 0.0,                       // TODO(wkozyra95)
+                border_color: RGBAColor(0, 0, 255, 255), // TODO(wkozyra95)
+                border_radius: BorderRadius::ZERO,
+                box_shadow: vec![], // TODO(wkozyra95)
             },
         };
         (layout, static_offset)

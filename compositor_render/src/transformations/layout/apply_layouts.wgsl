@@ -58,7 +58,7 @@ struct ColorParams {
     border_width: f32,
 }
 
-struct ParentBorderRadius {
+struct ParentMask {
     radius: vec4<f32>,
     top: f32,
     left: f32,
@@ -81,7 +81,7 @@ struct LayoutInfo {
 @group(1) @binding(2) var<uniform> color_params: array<ColorParams, 100>;
 @group(1) @binding(3) var<uniform> box_shadow_params: array<BoxShadowParams, 100>;
 
-@group(2) @binding(0) var<uniform> parent_masks: array<ParentBorderRadius, 20>;
+@group(2) @binding(0) var<uniform> parent_masks: array<ParentMask, 20>;
 
 @group(3) @binding(0) var sampler_: sampler;
 

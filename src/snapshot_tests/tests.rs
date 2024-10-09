@@ -1565,6 +1565,16 @@ fn view_snapshot_tests() -> Vec<TestCase> {
             ),
             inputs: vec![TestInput::new(1)],
             ..Default::default()
+        },
+        TestCase {
+            name: "view/border_radius",
+            only: true,
+            scene_updates: Updates::Scene(
+                    include_str!("../../snapshot_tests/view/view_border_radius.scene.json"),
+                    DEFAULT_RESOLUTION,
+            ),
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
         }
     ])
 }

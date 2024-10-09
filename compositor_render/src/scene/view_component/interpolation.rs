@@ -10,6 +10,7 @@ impl ContinuousValue for ViewComponentParam {
             position: ContinuousValue::interpolate(&start.position, &end.position, state),
             background_color: end.background_color,
             overflow: end.overflow,
+            border_radius: end.border_radius, // TODO(wkozyra95)
         }
     }
 }

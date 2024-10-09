@@ -32,6 +32,10 @@ pub(super) fn layout_tiles(
         content: LayoutContent::Color(background_color),
         child_nodes_count: children.iter().map(|l| l.child_nodes_count).sum(),
         children,
+        border_width: todo!(),
+        border_color: todo!(),
+        border_radius: todo!(),
+        box_shadow: todo!(),
     }
 }
 
@@ -67,6 +71,10 @@ fn layout_child(child: &mut StatefulComponent, tile: Option<Tile>, pts: Duration
                 content: LayoutContent::None,
                 child_nodes_count: children_layouts.child_nodes_count,
                 children: vec![children_layouts],
+                border_width: todo!(),
+                border_color: todo!(),
+                border_radius: todo!(),
+                box_shadow: todo!(),
             }
         }
         _ => {
@@ -84,6 +92,10 @@ fn layout_child(child: &mut StatefulComponent, tile: Option<Tile>, pts: Duration
                 content: StatefulLayoutComponent::layout_content(child, 0),
                 child_nodes_count: 1,
                 children: vec![],
+                border_width: todo!(),
+                border_color: todo!(),
+                border_radius: todo!(),
+                box_shadow: todo!(),
             }
         }
     }

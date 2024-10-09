@@ -3,7 +3,7 @@ use std::{fmt::Display, sync::Arc, time::Duration};
 use crate::{InputId, RendererId};
 
 use super::{
-    AbsolutePosition, Component, HorizontalAlign, InterpolationKind, RGBAColor, Size, VerticalAlign,
+    AbsolutePosition, BorderRadius, Component, HorizontalAlign, InterpolationKind, RGBAColor, Size, VerticalAlign
 };
 
 mod interpolation;
@@ -140,6 +140,8 @@ pub struct ViewComponent {
     pub overflow: Overflow,
 
     pub background_color: RGBAColor,
+
+    pub border_radius: BorderRadius,
 }
 
 #[derive(Debug, Clone, Copy)]

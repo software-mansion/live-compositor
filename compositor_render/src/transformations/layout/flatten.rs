@@ -1,6 +1,11 @@
-use crate::{scene::RGBAColor, Resolution};
+use crate::{
+    scene::{BorderRadius, RGBAColor},
+    Resolution,
+};
 
-use super::{Crop, LayoutContent, NestedLayout, RenderLayout, RenderLayoutContent};
+use super::{
+    BoxShadow, Crop, LayoutContent, NestedLayout, ParentMask, RenderLayout, RenderLayoutContent,
+};
 
 impl NestedLayout {
     pub(super) fn flatten(
@@ -8,14 +13,19 @@ impl NestedLayout {
         input_resolutions: &[Option<Resolution>],
         resolution: Resolution,
     ) -> Vec<RenderLayout> {
-        let layouts = self.inner_flatten(0);
-        layouts
+        let (shadow, layouts) = self.inner_flatten(0, &vec![]);
+        shadow
             .into_iter()
+            .chain(layouts.into_iter())
             .filter(|layout| Self::should_render(layout, input_resolutions, resolution))
             .collect()
     }
 
-    fn inner_flatten(mut self, child_index_offset: usize) -> Vec<RenderLayout> {
+    fn inner_flatten(
+        mut self,
+        child_index_offset: usize,
+        parent_masks: &Vec<ParentMask>,
+    ) -> (Vec<RenderLayout>, Vec<RenderLayout>) {
         let mut child_index_offset = child_index_offset;
         if let LayoutContent::ChildNode { index, size } = self.content {
             self.content = LayoutContent::ChildNode {
@@ -25,17 +35,35 @@ impl NestedLayout {
             child_index_offset += 1
         }
         let layout = self.render_layout();
-        let children: Vec<_> = std::mem::take(&mut self.children)
-            .into_iter()
-            .flat_map(|child| {
-                let child_nodes_count = child.child_nodes_count;
-                let layouts = child.inner_flatten(child_index_offset);
-                child_index_offset += child_nodes_count;
-                layouts
-            })
-            .map(|l| self.flatten_child(l))
+        // It is separated because box shadows of all siblings need to be rendered before
+        // this layout and it's siblings
+        let box_shadow_layouts = self
+            .box_shadow
+            .iter()
+            .map(|shadow| self.box_shadow_layout(shadow))
             .collect();
-        [vec![layout], children].concat()
+
+        let (children_shadow, children_layouts): (Vec<_>, Vec<_>) =
+            std::mem::take(&mut self.children)
+                .into_iter()
+                .map(|child| {
+                    let child_nodes_count = child.child_nodes_count;
+                    let (shadows, layouts) = child.inner_flatten(child_index_offset, &vec![]);
+                    child_index_offset += child_nodes_count;
+                    (shadows, layouts)
+                })
+                .unzip();
+        let children_shadow = children_shadow.into_iter().flatten().collect();
+        let children_layouts = children_layouts
+            .into_iter()
+            .flatten()
+            .map(|l| self.flatten_child(&l, parent_masks))
+            .collect();
+
+        (
+            box_shadow_layouts,
+            [vec![layout], children_shadow, children_layouts].concat(),
+        )
     }
 
     fn should_render(
@@ -53,10 +81,16 @@ impl NestedLayout {
         match &layout.content {
             RenderLayoutContent::Color {
                 color: RGBAColor(_, _, _, 0),
-                ..
+                border_color,
+                border_width,
             } => false,
             RenderLayoutContent::Color { .. } => true,
-            RenderLayoutContent::ChildNode { crop, index, .. } => {
+            RenderLayoutContent::ChildNode {
+                crop,
+                index,
+                border_color,
+                border_width,
+            } => {
                 let size = input_resolutions.get(*index).copied().flatten();
                 if let Some(size) = size {
                     if crop.left > size.width as f32 || crop.top > size.height as f32 {
@@ -68,13 +102,11 @@ impl NestedLayout {
                 }
                 true
             }
-
-            #[allow(clippy::todo)]
-            RenderLayoutContent::BoxShadow { .. } => todo!(),
+            RenderLayoutContent::BoxShadow { color, blur_radius } => todo!(),
         }
     }
 
-    fn flatten_child(&self, layout: RenderLayout) -> RenderLayout {
+    fn flatten_child(&self, layout: RenderLayout, parent_masks: &Vec<ParentMask>) -> RenderLayout {
         match &self.crop {
             None => RenderLayout {
                 top: self.top + (layout.top * self.scale_y),
@@ -82,14 +114,19 @@ impl NestedLayout {
                 width: layout.width * self.scale_x,
                 height: layout.height * self.scale_y,
                 rotation_degrees: layout.rotation_degrees + self.rotation_degrees, // TODO: not exactly correct
-                content: layout.content,
-                border_radius: super::BorderRadius {
-                    top_left: 0.0,
-                    top_right: 0.0,
-                    bottom_right: 0.0,
-                    bottom_left: 0.0,
+                content: layout.content.clone(),
+                // TODO: This will not work correctly for layouts that are not proportionally
+                // scaled
+                border_radius: BorderRadius {
+                    top_left: layout.border_radius.top_left * f32::min(self.scale_x, self.scale_y),
+                    top_right: layout.border_radius.top_right
+                        * f32::min(self.scale_x, self.scale_y),
+                    bottom_right: layout.border_radius.bottom_right
+                        * f32::min(self.scale_x, self.scale_y),
+                    bottom_left: layout.border_radius.bottom_left
+                        * f32::min(self.scale_x, self.scale_y),
                 },
-                parent_masks: Vec::new(),
+                parent_masks: vec![],
             },
             Some(crop) => {
                 // Below values are only correct if `crop` is in the same coordinate
@@ -105,7 +142,7 @@ impl NestedLayout {
                 let cropped_right = f32::min(layout.left + layout.width - crop.left, crop.width);
                 let cropped_width = cropped_right - cropped_left;
                 let cropped_height = cropped_bottom - cropped_top;
-                match layout.content {
+                match layout.content.clone() {
                     RenderLayoutContent::Color {
                         color,
                         border_color,
@@ -119,16 +156,16 @@ impl NestedLayout {
                             rotation_degrees: layout.rotation_degrees + self.rotation_degrees, // TODO: not exactly correct
                             content: RenderLayoutContent::Color {
                                 color,
-                                border_color,
-                                border_width,
+                                border_color: todo!(),
+                                border_width: todo!(),
                             },
-                            border_radius: super::BorderRadius {
-                                top_left: 0.0,
-                                top_right: 0.0,
-                                bottom_right: 0.0,
-                                bottom_left: 0.0,
+                            border_radius: BorderRadius {
+                                top_left: todo!(),
+                                top_right: todo!(),
+                                bottom_right: todo!(),
+                                bottom_left: todo!(),
                             },
-                            parent_masks: Vec::new(),
+                            parent_masks: todo!(),
                         }
                     }
                     RenderLayoutContent::ChildNode {
@@ -193,8 +230,8 @@ impl NestedLayout {
             content: match self.content {
                 LayoutContent::Color(color) => RenderLayoutContent::Color {
                     color,
-                    border_color: RGBAColor(0, 0, 0, 0),
-                    border_width: 0.0,
+                    border_color: todo!(),
+                    border_width: todo!(),
                 },
                 LayoutContent::ChildNode { index, size } => RenderLayoutContent::ChildNode {
                     index,
@@ -204,20 +241,36 @@ impl NestedLayout {
                         width: size.width,
                         height: size.height,
                     },
-                    border_color: RGBAColor(0, 0, 0, 0),
-                    border_width: 0.0,
+                    border_color: todo!(),
+                    border_width: todo!(),
                 },
                 LayoutContent::None => RenderLayoutContent::Color {
                     color: RGBAColor(0, 0, 0, 0),
-                    border_color: RGBAColor(0, 0, 0, 0),
-                    border_width: 0.0,
+                    border_color: todo!(),
+                    border_width: todo!(),
                 },
             },
-            border_radius: super::BorderRadius {
+            border_radius: self.border_radius,
+            parent_masks: todo!(),
+        }
+    }
+
+    fn box_shadow_layout(&self, box_shadow: &BoxShadow) -> RenderLayout {
+        RenderLayout {
+            top: self.top + box_shadow.offset_y,
+            left: self.left + box_shadow.offset_x,
+            width: self.width,
+            height: self.height,
+            rotation_degrees: self.rotation_degrees, // TODO: this is incorrect
+            border_radius: BorderRadius {
                 top_left: 0.0,
                 top_right: 0.0,
                 bottom_right: 0.0,
                 bottom_left: 0.0,
+            },
+            content: RenderLayoutContent::BoxShadow {
+                color: box_shadow.color,
+                blur_radius: box_shadow.blur_radius,
             },
             parent_masks: Vec::new(),
         }
