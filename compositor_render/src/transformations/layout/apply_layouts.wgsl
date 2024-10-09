@@ -185,7 +185,7 @@ fn vs_main(input: VertexInput) -> VertexOutput {
             output.tex_coords = input.tex_coords;
         }
         // box shadow
-        case 2u {
+        case 2u:  {
             let vertices_transformation = vertices_transformation_matrix(
                 box_shadow_params[layout_info.index].left - box_shadow_params[layout_info.index].blur_radius,
                 box_shadow_params[layout_info.index].top - box_shadow_params[layout_info.index].blur_radius,
@@ -288,6 +288,32 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
             let mixed_background = vec4<f32>(color.xyz, color.w * smoothed_alpha);
             let mixed_border = mix(mixed_background, border_color, border_alpha);
             return mixed_border;
+        }
+        case 2u: {
+            let color = box_shadow_params[layout_info.index].color;
+
+            let left = box_shadow_params[layout_info.index].left;
+            let top = box_shadow_params[layout_info.index].top;
+            let width = box_shadow_params[layout_info.index].width;
+            let height = box_shadow_params[layout_info.index].height;
+            let border_radius = box_shadow_params[layout_info.index].border_radius;
+            let rotation_degrees = box_shadow_params[layout_info.index].rotation_degrees;
+            let blur_radius = box_shadow_params[layout_info.index].blur_radius;
+
+            let position = vec2<f32>(
+                input.position.x - left - width / 2.0,
+                input.position.y - top - height / 2.0
+            );
+            let size = vec2<f32>(width, height);
+            let edge_distance = roundedRectSDF(
+                position, 
+                size, 
+                border_radius, 
+                rotation_degrees
+            );
+
+            let smoothed_alpha = 1.0 - smoothstep(0.0, blur_radius, edge_distance);
+            return vec4<f32>(color.xyz, color.w * smoothed_alpha);
         }
         default {
             return vec4(0.0, 0.0, 0.0, 0.0);

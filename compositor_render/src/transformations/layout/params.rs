@@ -1,4 +1,4 @@
-use tracing::{error, info};
+use tracing::error;
 use wgpu::{
     util::{BufferInitDescriptor, DeviceExt},
     BindGroupLayoutDescriptor, BufferUsages,
@@ -6,7 +6,7 @@ use wgpu::{
 
 use crate::{scene::RGBAColor, wgpu::WgpuCtx, Resolution};
 
-use super::{vertices_transformation_matrix, BorderRadius, RenderLayout};
+use super::{BorderRadius, RenderLayout};
 
 const ARRAY_SIZE: usize = 100;
 const TEXTURE_PARAMS_BUFFER_SIZE: usize = ARRAY_SIZE * 80;
@@ -259,7 +259,8 @@ impl ParamsBindGroups {
                     box_shadow_params_bytes[36..40].copy_from_slice(&left.to_le_bytes());
                     box_shadow_params_bytes[40..44].copy_from_slice(&width.to_le_bytes());
                     box_shadow_params_bytes[44..48].copy_from_slice(&height.to_le_bytes());
-                    box_shadow_params_bytes[48..52].copy_from_slice(&blur_radius.to_le_bytes());
+                    box_shadow_params_bytes[48..52].copy_from_slice(&rotation_degrees.to_le_bytes());
+                    box_shadow_params_bytes[52..56].copy_from_slice(&blur_radius.to_le_bytes());
                     box_shadow_params.push(box_shadow_params_bytes);
                     layout_infos.push(layout_info);
                 }

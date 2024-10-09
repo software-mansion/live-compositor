@@ -148,7 +148,7 @@ impl LayoutNode {
             .layouts(pts, &input_resolutions)
             .flatten(&input_resolutions, output_resolution);
 
-        let mut textures: Vec<Option<&NodeTexture>> = layouts
+        let textures: Vec<Option<&NodeTexture>> = layouts
             .iter()
             .map(|layout| match layout.content {
                 RenderLayoutContent::BoxShadow { .. } => None,
@@ -165,7 +165,7 @@ impl LayoutNode {
 
         let target = target.ensure_size(ctx.wgpu_ctx, output_resolution);
         self.shader
-            .render(ctx.wgpu_ctx, output_resolution, layouts, &mut textures, target);
+            .render(ctx.wgpu_ctx, output_resolution, layouts, &textures, target);
     }
 }
 
