@@ -33,8 +33,28 @@ pub(crate) struct LayoutNode {
     params: ParamsBuffer,
 }
 
+/// When rendering we cut this fragment from texture and stretch it on
+/// the expected position
 #[derive(Debug, Clone)]
 pub struct Crop {
+    pub top: f32,
+    pub left: f32,
+    pub width: f32,
+    pub height: f32,
+}
+
+#[derive(Debug, Clone)]
+pub struct BorderRadius {
+    pub top_left: f32,
+    pub top_right: f32,
+    pub bottom_right: f32,
+    pub bottom_left: f32,
+}
+
+#[derive(Debug, Clone)]
+pub struct ParentBorderRadius {
+    pub radius: BorderRadius,
+    // position of parent on the output frame
     pub top: f32,
     pub left: f32,
     pub width: f32,
@@ -48,13 +68,37 @@ struct RenderLayout {
     width: f32,
     height: f32,
     rotation_degrees: f32,
+    border_radius: BorderRadius,
+    parent_border_radiuses: Vec<ParentBorderRadius>,
     content: RenderLayoutContent,
 }
 
 #[derive(Debug, Clone)]
 enum RenderLayoutContent {
-    Color(RGBAColor),
-    ChildNode { index: usize, crop: Crop },
+    Color {
+        color: RGBAColor,
+        border_color: RGBAColor,
+        border_width: f32,
+    },
+    ChildNode {
+        index: usize,
+        crop: Crop,
+        border_color: RGBAColor,
+        border_width: f32,
+    },
+    BoxShadow {
+        color: RGBAColor,
+        crop: Crop,
+        blur_radius: f32,
+    },
+}
+
+#[derive(Debug, Clone)]
+struct BoxShadow {
+    offset_x: f32,
+    offset_y: f32,
+    blur_radius: f32,
+    color: RGBAColor,
 }
 
 #[derive(Debug, Clone)]
@@ -72,12 +116,17 @@ pub struct NestedLayout {
     pub height: f32,
     pub rotation_degrees: f32,
     /// scale will affect content/children, but not the properties of current layout like
-    /// top/left/widht/height
+    /// top/left/width/height
     pub scale_x: f32,
     pub scale_y: f32,
     /// Crop is applied before scaling.
     pub crop: Option<Crop>,
     pub content: LayoutContent,
+
+    pub border_width: f32,
+    pub border_color: RGBAColor,
+    pub border_radius: BorderRadius,
+    pub box_shadow: Vec<BoxShadow>,
 
     pub(crate) children: Vec<NestedLayout>,
     /// Describes how many children of this component are nodes. This value also
@@ -127,7 +176,12 @@ impl LayoutNode {
                         RGBAColor(0, 0, 0, 0),
                         *input_resolutions.get(index).unwrap_or(&None),
                     ),
-                    RenderLayoutContent::Color(color) => (0, color, None),
+                    RenderLayoutContent::Color {
+                        color,
+                        border_color,
+                        border_width,
+                    } => (0, color, None),
+                    RenderLayoutContent::BoxShadow { color, blur_radius } => todo!(),
                 };
 
                 LayoutNodeParams {
@@ -145,7 +199,7 @@ impl LayoutNode {
         let textures: Vec<Option<&NodeTexture>> = layouts
             .iter()
             .map(|layout| match layout.content {
-                RenderLayoutContent::Color(_) => None,
+                RenderLayoutContent::Color { .. } => None,
                 RenderLayoutContent::ChildNode { index, .. } => match sources.get(index) {
                     Some(node_texture) => Some(*node_texture),
                     None => {
@@ -153,6 +207,7 @@ impl LayoutNode {
                         None
                     }
                 },
+                RenderLayoutContent::BoxShadow { color, blur_radius } => todo!(),
             })
             .collect();
 
@@ -179,6 +234,14 @@ impl NestedLayout {
             content: LayoutContent::None,
             children: vec![],
             child_nodes_count,
+            border_width: 0.0,
+            border_color: RGBAColor(0, 0, 0, 0),
+            border_radius: BorderRadius {
+                top_left: 0.0,
+                top_right: 0.0,
+                bottom_right: 0.0,
+                bottom_left: 0.0,
+            },
         }
     }
 }

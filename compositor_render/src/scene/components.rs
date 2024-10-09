@@ -140,6 +140,8 @@ pub struct ViewComponent {
     pub overflow: Overflow,
 
     pub background_color: RGBAColor,
+
+    pub border_radius: f32,
 }
 
 #[derive(Debug, Clone, Copy)]
