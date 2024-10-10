@@ -37,59 +37,58 @@ impl TryFrom<View> for scene::ViewComponent {
     type Error = TypeError;
 
     fn try_from(view: View) -> Result<Self, Self::Error> {
-        let View { id, children, style, transition } = view;
-
         const VERTICAL_REQUIRED_MSG: &str =
             "\"View\" component with absolute positioning requires either \"top\" or \"bottom\" coordinate.";
         const VERTICAL_ONLY_ONE_MSG: &str = "Fields \"top\" and \"bottom\" are mutually exclusive, you can only specify one on a \"View\" component.";
         const HORIZONTAL_REQUIRED_MSG: &str =
             "Non-static \"View\" component requires either \"left\" or \"right\" coordinate.";
         const HORIZONTAL_ONLY_ONE_MSG: &str = "Fields \"left\" and \"right\" are mutually exclusive, you can only specify one on a \"View\" component.";
-        let is_absolute_position = style.top.is_some()
-            || style.bottom.is_some()
-            || style.left.is_some()
-            || style.right.is_some()
-            || style.rotation.is_some();
+        let is_absolute_position = view.top.is_some()
+            || view.bottom.is_some()
+            || view.left.is_some()
+            || view.right.is_some()
+            || view.rotation.is_some();
         let position = if is_absolute_position {
-            let position_vertical = match (style.top, style.bottom) {
+            let position_vertical = match (view.top, view.bottom) {
                 (Some(top), None) => scene::VerticalPosition::TopOffset(top),
                 (None, Some(bottom)) => scene::VerticalPosition::BottomOffset(bottom),
                 (None, None) => return Err(TypeError::new(VERTICAL_REQUIRED_MSG)),
                 (Some(_), Some(_)) => return Err(TypeError::new(VERTICAL_ONLY_ONE_MSG)),
             };
-            let position_horizontal = match (style.left, style.right) {
+            let position_horizontal = match (view.left, view.right) {
                 (Some(left), None) => scene::HorizontalPosition::LeftOffset(left),
                 (None, Some(right)) => scene::HorizontalPosition::RightOffset(right),
                 (None, None) => return Err(TypeError::new(HORIZONTAL_REQUIRED_MSG)),
                 (Some(_), Some(_)) => return Err(TypeError::new(HORIZONTAL_ONLY_ONE_MSG)),
             };
             Position::Absolute(scene::AbsolutePosition {
-                width: style.width.map(Into::into),
-                height: style.height.map(Into::into),
+                width: view.width.map(Into::into),
+                height: view.height.map(Into::into),
                 position_horizontal,
                 position_vertical,
-                rotation_degrees: style.rotation.unwrap_or(0.0),
+                rotation_degrees: view.rotation.unwrap_or(0.0),
             })
         } else {
             Position::Static {
-                width: style.width,
-                height: style.height,
+                width: view.width,
+                height: view.height,
             }
         };
-        let direction = match style.direction {
+        let direction = match view.direction {
             Some(ViewDirection::Row) => scene::ViewChildrenDirection::Row,
             Some(ViewDirection::Column) => scene::ViewChildrenDirection::Column,
             None => scene::ViewChildrenDirection::Row,
         };
-        let overflow = match style.overflow {
+        let overflow = match view.overflow {
             Some(Overflow::Visible) => scene::Overflow::Visible,
             Some(Overflow::Hidden) => scene::Overflow::Hidden,
             Some(Overflow::Fit) => scene::Overflow::Fit,
             None => scene::Overflow::Hidden,
         };
         Ok(Self {
-            id: id.map(Into::into),
-            children: children
+            id: view.id.map(Into::into),
+            children: view
+                .children
                 .unwrap_or_default()
                 .into_iter()
                 .map(TryInto::try_into)
@@ -97,11 +96,11 @@ impl TryFrom<View> for scene::ViewComponent {
             direction,
             position,
             overflow,
-            background_color: style
+            background_color: view
                 .background_color_rgba
                 .map(TryInto::try_into)
                 .unwrap_or(Ok(scene::RGBAColor(0, 0, 0, 0)))?,
-            transition: transition.map(TryInto::try_into).transpose()?,
+            transition: view.transition.map(TryInto::try_into).transpose()?,
         })
     }
 }

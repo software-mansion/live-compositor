@@ -30,7 +30,12 @@ pub struct InputStream {
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(deny_unknown_fields)]
-pub struct ViewStyle {
+pub struct View {
+    /// Id of a component.
+    pub id: Option<ComponentId>,
+    /// List of component's children.
+    pub children: Option<Vec<Component>>,
+
     /// Width of a component in pixels. Exact behavior might be different based on the parent
     /// component:
     /// - If the parent component is a layout, check sections "Absolute positioning" and "Static
@@ -43,7 +48,7 @@ pub struct ViewStyle {
     ///   positioning" of that component.
     /// - If the parent component is not a layout, then this field is required.
     pub height: Option<f32>,
-    
+
     /// Direction defines how static children are positioned inside a View component.
     pub direction: Option<ViewDirection>,
 
@@ -66,27 +71,15 @@ pub struct ViewStyle {
     /// absolutely positioned, instead of being laid out by its parent.
     pub rotation: Option<f32>,
 
+    /// Defines how this component will behave during a scene update. This will only have an
+    /// effect if the previous scene already contained a `View` component with the same id.
+    pub transition: Option<Transition>,
+
     /// (**default=`"hidden"`**) Controls what happens to content that is too big to fit into an area.
     pub overflow: Option<Overflow>,
 
     /// (**default=`"#00000000"`**) Background color in a `"#RRGGBBAA"` format.
     pub background_color_rgba: Option<RGBAColor>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-#[serde(deny_unknown_fields)]
-pub struct View {
-    /// Id of a component.
-    pub id: Option<ComponentId>,
-    /// List of component's children.
-    pub children: Option<Vec<Component>>,
-
-    /// Component styling properties.
-    pub style: ViewStyle,
-
-    /// Defines how this component will behave during a scene update. This will only have an
-    /// effect if the previous scene already contained a `View` component with the same id.
-    pub transition: Option<Transition>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
