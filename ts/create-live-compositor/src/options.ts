@@ -79,7 +79,7 @@ export async function resolveBrowserOptions(): Promise<BrowserOptions> {
 export async function resolveNodeOptions(): Promise<NodeOptions> {
   const templateName = await selectPrompt('Select project template: ', [
     { title: 'Minimal example', value: 'node-minimal' },
-    { title: 'Express.js + Redux', value: 'node-express-redux' },
+    { title: 'Express.js + Zustand', value: 'node-express-zustand' },
   ] as const);
   return {
     type: 'node',
