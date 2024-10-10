@@ -2,11 +2,7 @@ import * as Api from '../api.js';
 import { createCompositorComponent, SceneComponent, sceneComponentIntoApi } from '../component.js';
 import { intoApiRgbaColor, intoApiTransition, Transition } from './common.js';
 
-export type ViewProps = {
-  /**
-   * Id of a component.
-   */
-  id?: Api.ComponentId;
+export type ViewStyle = {
   /**
    * Width of a component in pixels. Exact behavior might be different based on the parent
    * component:
@@ -56,11 +52,6 @@ export type ViewProps = {
    */
   rotation?: number;
   /**
-   * Defines how this component will behave during a scene update. This will only have an
-   * effect if the previous scene already contained a `View` component with the same id.
-   */
-  transition?: Transition;
-  /**
    * (**default=`"hidden"`**) Controls what happens to content that is too big to fit into an area.
    */
   overflow?: Api.Overflow;
@@ -70,28 +61,38 @@ export type ViewProps = {
   backgroundColor?: string;
 };
 
+export type ViewProps = {
+  /**
+   * Id of a component.
+   */
+  id?: Api.ComponentId;
+
+  style?: ViewStyle;
+
+  /**
+   * Defines how this component will behave during a scene update. This will only have an
+   * effect if the previous scene already contained a `View` component with the same id.
+   */
+  transition?: Transition;
+};
+
 const View = createCompositorComponent<ViewProps>(sceneBuilder);
 
-function sceneBuilder(props: ViewProps, children: SceneComponent[]): Api.Component {
+function sceneBuilder(
+  { style = {}, transition }: ViewProps,
+  children: SceneComponent[]
+): Api.Component {
   return {
     type: 'view',
 
     children: children.map(sceneComponentIntoApi),
 
-    id: props.id,
-    width: props.width,
-    height: props.height,
-    direction: props.direction,
+    style: {
+      ...style,
+      background_color_rgba: style?.backgroundColor && intoApiRgbaColor(style.backgroundColor),
+    },
 
-    top: props.top,
-    left: props.left,
-    bottom: props.bottom,
-    right: props.right,
-    rotation: props.rotation,
-
-    transition: props.transition && intoApiTransition(props.transition),
-    overflow: props.overflow,
-    background_color_rgba: props.backgroundColor && intoApiRgbaColor(props.backgroundColor),
+    transition: transition && intoApiTransition(transition),
   };
 }
 

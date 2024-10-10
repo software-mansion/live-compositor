@@ -85,6 +85,7 @@
         {
           "type": "object",
           "required": [
+            "style",
             "type"
           ],
           "properties": {
@@ -115,100 +116,19 @@
                 "$ref": "#/definitions/Component"
               }
             },
-            "width": {
-              "description": "Width of a component in pixels. Exact behavior might be different based on the parent\ncomponent:\n- If the parent component is a layout, check sections \"Absolute positioning\" and \"Static\npositioning\" of that component.\n- If the parent component is not a layout, then this field is required.",
-              "type": [
-                "number",
-                "null"
-              ],
-              "format": "float"
-            },
-            "height": {
-              "description": "Height of a component in pixels. Exact behavior might be different based on the parent\ncomponent:\n- If the parent component is a layout, check sections \"Absolute positioning\" and \"Static\npositioning\" of that component.\n- If the parent component is not a layout, then this field is required.",
-              "type": [
-                "number",
-                "null"
-              ],
-              "format": "float"
-            },
-            "direction": {
-              "description": "Direction defines how static children are positioned inside a View component.",
-              "anyOf": [
+            "style": {
+              "description": "Component styling properties.",
+              "allOf": [
                 {
-                  "$ref": "#/definitions/ViewDirection"
-                },
-                {
-                  "type": "null"
+                  "$ref": "#/definitions/ViewStyle"
                 }
               ]
-            },
-            "top": {
-              "description": "Distance in pixels between this component's top edge and its parent's top edge.\nIf this field is defined, then the component will ignore a layout defined by its parent.",
-              "type": [
-                "number",
-                "null"
-              ],
-              "format": "float"
-            },
-            "left": {
-              "description": "Distance in pixels between this component's left edge and its parent's left edge.\nIf this field is defined, this element will be absolutely positioned, instead of being\nlaid out by its parent.",
-              "type": [
-                "number",
-                "null"
-              ],
-              "format": "float"
-            },
-            "bottom": {
-              "description": "Distance in pixels between the bottom edge of this component and the bottom edge of its parent.\nIf this field is defined, this element will be absolutely positioned, instead of being\nlaid out by its parent.",
-              "type": [
-                "number",
-                "null"
-              ],
-              "format": "float"
-            },
-            "right": {
-              "description": "Distance in pixels between this component's right edge and its parent's right edge.\nIf this field is defined, this element will be absolutely positioned, instead of being\nlaid out by its parent.",
-              "type": [
-                "number",
-                "null"
-              ],
-              "format": "float"
-            },
-            "rotation": {
-              "description": "Rotation of a component in degrees. If this field is defined, this element will be\nabsolutely positioned, instead of being laid out by its parent.",
-              "type": [
-                "number",
-                "null"
-              ],
-              "format": "float"
             },
             "transition": {
               "description": "Defines how this component will behave during a scene update. This will only have an\neffect if the previous scene already contained a `View` component with the same id.",
               "anyOf": [
                 {
                   "$ref": "#/definitions/Transition"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "overflow": {
-              "description": "(**default=`\"hidden\"`**) Controls what happens to content that is too big to fit into an area.",
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/Overflow"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "background_color_rgba": {
-              "description": "(**default=`\"#00000000\"`**) Background color in a `\"#RRGGBBAA\"` format.",
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/RGBAColor"
                 },
                 {
                   "type": "null"
@@ -780,6 +700,101 @@
     "InputId": {
       "type": "string"
     },
+    "ViewStyle": {
+      "type": "object",
+      "properties": {
+        "width": {
+          "description": "Width of a component in pixels. Exact behavior might be different based on the parent\ncomponent:\n- If the parent component is a layout, check sections \"Absolute positioning\" and \"Static\npositioning\" of that component.\n- If the parent component is not a layout, then this field is required.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "float"
+        },
+        "height": {
+          "description": "Height of a component in pixels. Exact behavior might be different based on the parent\ncomponent:\n- If the parent component is a layout, check sections \"Absolute positioning\" and \"Static\npositioning\" of that component.\n- If the parent component is not a layout, then this field is required.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "float"
+        },
+        "direction": {
+          "description": "Direction defines how static children are positioned inside a View component.",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ViewDirection"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "top": {
+          "description": "Distance in pixels between this component's top edge and its parent's top edge.\nIf this field is defined, then the component will ignore a layout defined by its parent.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "float"
+        },
+        "left": {
+          "description": "Distance in pixels between this component's left edge and its parent's left edge.\nIf this field is defined, this element will be absolutely positioned, instead of being\nlaid out by its parent.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "float"
+        },
+        "bottom": {
+          "description": "Distance in pixels between the bottom edge of this component and the bottom edge of its parent.\nIf this field is defined, this element will be absolutely positioned, instead of being\nlaid out by its parent.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "float"
+        },
+        "right": {
+          "description": "Distance in pixels between this component's right edge and its parent's right edge.\nIf this field is defined, this element will be absolutely positioned, instead of being\nlaid out by its parent.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "float"
+        },
+        "rotation": {
+          "description": "Rotation of a component in degrees. If this field is defined, this element will be\nabsolutely positioned, instead of being laid out by its parent.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "float"
+        },
+        "overflow": {
+          "description": "(**default=`\"hidden\"`**) Controls what happens to content that is too big to fit into an area.",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Overflow"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "background_color_rgba": {
+          "description": "(**default=`\"#00000000\"`**) Background color in a `\"#RRGGBBAA\"` format.",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/RGBAColor"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
     "ViewDirection": {
       "oneOf": [
         {
@@ -797,6 +812,34 @@
           ]
         }
       ]
+    },
+    "Overflow": {
+      "oneOf": [
+        {
+          "description": "Render everything, including content that extends beyond their parent.",
+          "type": "string",
+          "enum": [
+            "visible"
+          ]
+        },
+        {
+          "description": "Render only parts of the children that are inside their parent area.",
+          "type": "string",
+          "enum": [
+            "hidden"
+          ]
+        },
+        {
+          "description": "If children components are too big to fit inside the parent, resize everything inside to fit.\n\nComponents that have unknown sizes will be treated as if they had a size 0 when calculating\nscaling factor.\n\n:::warning\nThis will resize everything inside, even absolutely positioned elements. For example, if\nyou have an element in the bottom right corner and the content will be rescaled by a factor 0.5x,\nthen that component will end up in the middle of its parent\n:::",
+          "type": "string",
+          "enum": [
+            "fit"
+          ]
+        }
+      ]
+    },
+    "RGBAColor": {
+      "type": "string"
     },
     "Transition": {
       "type": "object",
@@ -878,34 +921,6 @@
           }
         }
       ]
-    },
-    "Overflow": {
-      "oneOf": [
-        {
-          "description": "Render everything, including content that extends beyond their parent.",
-          "type": "string",
-          "enum": [
-            "visible"
-          ]
-        },
-        {
-          "description": "Render only parts of the children that are inside their parent area.",
-          "type": "string",
-          "enum": [
-            "hidden"
-          ]
-        },
-        {
-          "description": "If children components are too big to fit inside the parent, resize everything inside to fit.\n\nComponents that have unknown sizes will be treated as if they had a size 0 when calculating\nscaling factor.\n\n:::warning\nThis will resize everything inside, even absolutely positioned elements. For example, if\nyou have an element in the bottom right corner and the content will be rescaled by a factor 0.5x,\nthen that component will end up in the middle of its parent\n:::",
-          "type": "string",
-          "enum": [
-            "fit"
-          ]
-        }
-      ]
-    },
-    "RGBAColor": {
-      "type": "string"
     },
     "RendererId": {
       "type": "string"

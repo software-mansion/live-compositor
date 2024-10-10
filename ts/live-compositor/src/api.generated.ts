@@ -192,7 +192,7 @@ export type VideoEncoderOptions = {
   /**
    * (**default=`"fast"`**) Preset for an encoder. See `FFmpeg` [docs](https://trac.ffmpeg.org/wiki/Encode/H.264#Preset) to learn more.
    */
-  preset: H264EncoderPreset;
+  preset?: H264EncoderPreset | null;
   /**
    * Raw FFmpeg encoder options. See [docs](https://ffmpeg.org/ffmpeg-codecs.html) for more.
    */
@@ -234,66 +234,14 @@ export type Component =
        */
       children?: Component[] | null;
       /**
-       * Width of a component in pixels. Exact behavior might be different based on the parent
-       * component:
-       * - If the parent component is a layout, check sections "Absolute positioning" and "Static
-       * positioning" of that component.
-       * - If the parent component is not a layout, then this field is required.
+       * Component styling properties.
        */
-      width?: number | null;
-      /**
-       * Height of a component in pixels. Exact behavior might be different based on the parent
-       * component:
-       * - If the parent component is a layout, check sections "Absolute positioning" and "Static
-       * positioning" of that component.
-       * - If the parent component is not a layout, then this field is required.
-       */
-      height?: number | null;
-      /**
-       * Direction defines how static children are positioned inside a View component.
-       */
-      direction?: ViewDirection | null;
-      /**
-       * Distance in pixels between this component's top edge and its parent's top edge.
-       * If this field is defined, then the component will ignore a layout defined by its parent.
-       */
-      top?: number | null;
-      /**
-       * Distance in pixels between this component's left edge and its parent's left edge.
-       * If this field is defined, this element will be absolutely positioned, instead of being
-       * laid out by its parent.
-       */
-      left?: number | null;
-      /**
-       * Distance in pixels between the bottom edge of this component and the bottom edge of its parent.
-       * If this field is defined, this element will be absolutely positioned, instead of being
-       * laid out by its parent.
-       */
-      bottom?: number | null;
-      /**
-       * Distance in pixels between this component's right edge and its parent's right edge.
-       * If this field is defined, this element will be absolutely positioned, instead of being
-       * laid out by its parent.
-       */
-      right?: number | null;
-      /**
-       * Rotation of a component in degrees. If this field is defined, this element will be
-       * absolutely positioned, instead of being laid out by its parent.
-       */
-      rotation?: number | null;
+      style: ViewStyle;
       /**
        * Defines how this component will behave during a scene update. This will only have an
        * effect if the previous scene already contained a `View` component with the same id.
        */
       transition?: Transition | null;
-      /**
-       * (**default=`"hidden"`**) Controls what happens to content that is too big to fit into an area.
-       */
-      overflow?: Overflow | null;
-      /**
-       * (**default=`"#00000000"`**) Background color in a `"#RRGGBBAA"` format.
-       */
-      background_color_rgba?: RGBAColor | null;
     }
   | {
       type: "web_view";
@@ -555,6 +503,8 @@ export type Component =
     };
 export type ComponentId = string;
 export type ViewDirection = "row" | "column";
+export type Overflow = "visible" | "hidden" | "fit";
+export type RGBAColor = string;
 /**
  * Easing functions are used to interpolate between two values over time.
  *
@@ -577,8 +527,6 @@ export type EasingFunction =
        */
       points: [number, number, number, number];
     };
-export type Overflow = "visible" | "hidden" | "fit";
-export type RGBAColor = string;
 export type RendererId = string;
 export type ShaderParam =
   | {
@@ -750,6 +698,64 @@ export interface OutputEndCondition {
 }
 export interface Video {
   root: Component;
+}
+export interface ViewStyle {
+  /**
+   * Width of a component in pixels. Exact behavior might be different based on the parent
+   * component:
+   * - If the parent component is a layout, check sections "Absolute positioning" and "Static
+   * positioning" of that component.
+   * - If the parent component is not a layout, then this field is required.
+   */
+  width?: number | null;
+  /**
+   * Height of a component in pixels. Exact behavior might be different based on the parent
+   * component:
+   * - If the parent component is a layout, check sections "Absolute positioning" and "Static
+   * positioning" of that component.
+   * - If the parent component is not a layout, then this field is required.
+   */
+  height?: number | null;
+  /**
+   * Direction defines how static children are positioned inside a View component.
+   */
+  direction?: ViewDirection | null;
+  /**
+   * Distance in pixels between this component's top edge and its parent's top edge.
+   * If this field is defined, then the component will ignore a layout defined by its parent.
+   */
+  top?: number | null;
+  /**
+   * Distance in pixels between this component's left edge and its parent's left edge.
+   * If this field is defined, this element will be absolutely positioned, instead of being
+   * laid out by its parent.
+   */
+  left?: number | null;
+  /**
+   * Distance in pixels between the bottom edge of this component and the bottom edge of its parent.
+   * If this field is defined, this element will be absolutely positioned, instead of being
+   * laid out by its parent.
+   */
+  bottom?: number | null;
+  /**
+   * Distance in pixels between this component's right edge and its parent's right edge.
+   * If this field is defined, this element will be absolutely positioned, instead of being
+   * laid out by its parent.
+   */
+  right?: number | null;
+  /**
+   * Rotation of a component in degrees. If this field is defined, this element will be
+   * absolutely positioned, instead of being laid out by its parent.
+   */
+  rotation?: number | null;
+  /**
+   * (**default=`"hidden"`**) Controls what happens to content that is too big to fit into an area.
+   */
+  overflow?: Overflow | null;
+  /**
+   * (**default=`"#00000000"`**) Background color in a `"#RRGGBBAA"` format.
+   */
+  background_color_rgba?: RGBAColor | null;
 }
 export interface Transition {
   /**
