@@ -8,10 +8,11 @@ use crate::{scene::RGBAColor, wgpu::WgpuCtx, Resolution};
 
 use super::{BorderRadius, RenderLayout};
 
-const ARRAY_SIZE: usize = 100;
-const TEXTURE_PARAMS_BUFFER_SIZE: usize = ARRAY_SIZE * 80;
-const COLOR_PARAMS_SIZE: usize = ARRAY_SIZE * 80;
-const BOX_SHADOW_PARAMS_SIZE: usize = ARRAY_SIZE * 80;
+const MAX_PARENT_BORDER_RADISUES: usize = 20;
+const MAX_LAYOUTS_COUNT: usize = 100;
+const TEXTURE_PARAMS_BUFFER_SIZE: usize = MAX_LAYOUTS_COUNT * 80;
+const COLOR_PARAMS_SIZE: usize = MAX_LAYOUTS_COUNT * 80;
+const BOX_SHADOW_PARAMS_SIZE: usize = MAX_LAYOUTS_COUNT * 80;
 
 #[derive(Debug)]
 pub struct LayoutInfo {
@@ -120,26 +121,26 @@ impl ParamsBindGroups {
             ],
         });
 
-        let bind_group_2_layout = ctx
-            .device
-            .create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                label: Some("Bind group 2 layout"),
-                entries: &[wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
-                }],
-            });
+        let bind_group_2_layout =
+            ctx.device
+                .create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                    label: Some("Bind group 2 layout"),
+                    entries: &[wgpu::BindGroupLayoutEntry {
+                        binding: 0,
+                        visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
+                        ty: wgpu::BindingType::Buffer {
+                            ty: wgpu::BufferBindingType::Uniform,
+                            has_dynamic_offset: false,
+                            min_binding_size: None,
+                        },
+                        count: None,
+                    }],
+                });
 
         let mut bind_groups_2 = Vec::with_capacity(100);
         for _ in 0..100 {
             let buffer = create_buffer(ctx, 20 * 32);
-            
+
             let bind_group_2 = ctx.device.create_bind_group(&wgpu::BindGroupDescriptor {
                 label: Some("Bind group 2"),
                 layout: &bind_group_2_layout,
@@ -169,9 +170,19 @@ impl ParamsBindGroups {
         output_resolution: Resolution,
         layouts: Vec<RenderLayout>,
     ) -> Vec<LayoutInfo> {
+        if layouts.len() > MAX_LAYOUTS_COUNT {
+            error!(
+                "Max layouts count ({}) exceeded ({}). Skipping rendering some of them.",
+                MAX_LAYOUTS_COUNT,
+                layouts.len()
+            )
+        }
+
         let mut output_resolution_bytes = [0u8; 8];
-        output_resolution_bytes[0..4].copy_from_slice(&(output_resolution.width as f32).to_le_bytes());
-        output_resolution_bytes[4..8].copy_from_slice(&(output_resolution.height as f32).to_le_bytes());
+        output_resolution_bytes[0..4]
+            .copy_from_slice(&(output_resolution.width as f32).to_le_bytes());
+        output_resolution_bytes[4..8]
+            .copy_from_slice(&(output_resolution.height as f32).to_le_bytes());
 
         ctx.queue
             .write_buffer(&self.output_resolution_buffer, 0, &output_resolution_bytes);
@@ -182,7 +193,7 @@ impl ParamsBindGroups {
         let mut color_params = Vec::new();
         let mut box_shadow_params = Vec::new();
 
-        for (index, layout) in layouts.iter().enumerate() {
+        for (index, layout) in layouts.iter().enumerate().take(MAX_LAYOUTS_COUNT) {
             let RenderLayout {
                 top,
                 left,
@@ -259,15 +270,24 @@ impl ParamsBindGroups {
                     box_shadow_params_bytes[36..40].copy_from_slice(&left.to_le_bytes());
                     box_shadow_params_bytes[40..44].copy_from_slice(&width.to_le_bytes());
                     box_shadow_params_bytes[44..48].copy_from_slice(&height.to_le_bytes());
-                    box_shadow_params_bytes[48..52].copy_from_slice(&rotation_degrees.to_le_bytes());
+                    box_shadow_params_bytes[48..52]
+                        .copy_from_slice(&rotation_degrees.to_le_bytes());
                     box_shadow_params_bytes[52..56].copy_from_slice(&blur_radius.to_le_bytes());
                     box_shadow_params.push(box_shadow_params_bytes);
                     layout_infos.push(layout_info);
                 }
             }
+            if parent_border_radiuses.len() > MAX_PARENT_BORDER_RADISUES {
+                error!(
+                    "Max parent border radiuses count ({}) exceeded ({}). Slkipping rendering some og them.",
+                    MAX_PARENT_BORDER_RADISUES,
+                    parent_border_radiuses.len()
+                );
+            }
+
             let mut parent_border_radiuses_bytes = Vec::new();
 
-            for parent_border_radius in parent_border_radiuses.iter() {
+            for parent_border_radius in parent_border_radiuses.iter().take(20) {
                 let mut parent_border_radius_bytes = [0u8; 32];
                 parent_border_radius_bytes[0..16].copy_from_slice(&borders_radius_to_bytes(
                     parent_border_radius.radius.clone(),
