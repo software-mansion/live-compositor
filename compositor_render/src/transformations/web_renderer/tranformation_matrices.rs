@@ -2,58 +2,8 @@ use nalgebra_glm::{rotate_z, scale, translate, vec3, Mat4, Vec3};
 
 use crate::Resolution;
 
-use super::RenderLayout;
-
-impl RenderLayout {
-    /// Returns matrix that transforms input plane vertices
-    /// (located in corners of clip space), to final position
-    pub(super) fn vertices_transformation_matrix(&self, output_resolution: &Resolution) -> Mat4 {
-        vertices_transformation_matrix(
-            &Position {
-                top: self.top,
-                left: self.left,
-                width: self.width,
-                height: self.height,
-                rotation_degrees: self.rotation_degrees,
-            },
-            output_resolution,
-        )
-    }
-
-    pub(super) fn texture_coords_transformation_matrix(
-        &self,
-        input_resolution: &Option<Resolution>,
-    ) -> Mat4 {
-        let Some(input_resolution) = input_resolution else {
-            return Mat4::identity();
-        };
-
-        match self.content {
-            super::RenderLayoutContent::Color { .. } => Mat4::identity(),
-            super::RenderLayoutContent::ChildNode { ref crop, .. } => {
-                let x_scale = crop.width / input_resolution.width as f32;
-                let y_scale = crop.height / input_resolution.height as f32;
-
-                let x_translate = crop.left / input_resolution.width as f32;
-                let y_translate = crop.top / input_resolution.height as f32;
-
-                let mut transform_texture_matrix = Mat4::identity();
-                transform_texture_matrix = translate(
-                    &transform_texture_matrix,
-                    &vec3(x_translate, y_translate, 0.0),
-                );
-                transform_texture_matrix =
-                    scale(&transform_texture_matrix, &vec3(x_scale, y_scale, 1.0));
-
-                transform_texture_matrix
-            }
-            super::RenderLayoutContent::BoxShadow { .. } => todo!(),
-        }
-    }
-}
-
 #[derive(Debug)]
-pub(crate) struct Position {
+pub(super) struct Position {
     pub(crate) top: f32,
     pub(crate) left: f32,
     pub(crate) width: f32,
@@ -61,7 +11,7 @@ pub(crate) struct Position {
     pub(crate) rotation_degrees: f32,
 }
 
-pub(crate) fn vertices_transformation_matrix(
+pub(super) fn vertices_transformation_matrix(
     position: &Position,
     output_resolution: &Resolution,
 ) -> Mat4 {

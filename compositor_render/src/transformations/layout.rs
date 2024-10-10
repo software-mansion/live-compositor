@@ -11,12 +11,10 @@ mod flatten;
 mod layout_renderer;
 mod params;
 mod shader;
-mod transformation_matrices;
 
 use self::shader::LayoutShader;
 
 pub(crate) use layout_renderer::LayoutRenderer;
-pub(crate) use transformation_matrices::{vertices_transformation_matrix, Position};
 
 use log::error;
 

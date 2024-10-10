@@ -226,6 +226,25 @@ fn roundedRectSDF(position: vec2<f32>, size: vec2<f32>, radius: vec4<f32>, rotat
 
 @fragment
 fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
+    var parent_border_alpha = 1.0;
+    for (var i = 0u; i < layout_info.parent_border_radiuses_len; i = i + 1u) {
+        let parent_border_radius = parent_border_radiuses[i];
+        let position = vec2<f32>(
+            input.position.x - parent_border_radius.left - parent_border_radius.width / 2.0,
+            input.position.y - parent_border_radius.top - parent_border_radius.height / 2.0
+        );
+        let size = vec2<f32>(parent_border_radius.width, parent_border_radius.height);
+        let edge_distance = roundedRectSDF(
+            position, 
+            size, 
+            parent_border_radius.radius, 
+            0.0
+        );
+
+        let smoothed_alpha = 1.0 - smoothstep(0.0, 2.0, edge_distance);
+        parent_border_alpha = min(parent_border_alpha, smoothed_alpha);
+    }
+
     switch layout_info.layout_type {
         case 0u: {
             let sample = textureSample(texture, sampler_, input.tex_coords);
@@ -254,7 +273,7 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
             let smoothed_alpha = 1.0 - smoothstep(0.0, 2.0, edge_distance);
             let border_alpha = 1.0 - smoothstep(-border_width + 1.0, -border_width, edge_distance);
 
-            let mixed_background = vec4<f32>(sample.xyz, sample.w * smoothed_alpha);
+            let mixed_background = vec4<f32>(sample.xyz, sample.w * smoothed_alpha * parent_border_alpha);
             let mixed_border = mix(mixed_background, border_color, min(border_alpha, smoothed_alpha));
             return mixed_border;
         }
@@ -285,7 +304,7 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
             let smoothed_alpha = 1.0 - smoothstep(0.0, 2.0, edge_distance);
             let border_alpha = 1.0 - smoothstep(-border_width + 1.0, -border_width, edge_distance);
 
-            let mixed_background = vec4<f32>(color.xyz, color.w * smoothed_alpha);
+            let mixed_background = vec4<f32>(color.xyz, color.w * smoothed_alpha * parent_border_alpha);
             let mixed_border = mix(mixed_background, border_color, border_alpha);
             return mixed_border;
         }
