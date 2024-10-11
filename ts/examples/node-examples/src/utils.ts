@@ -25,6 +25,7 @@ export async function ffplayStartPlayerAsync(
   }
 
   const promise = spawn('ffplay', ['-protocol_whitelist', 'file,rtp,udp', sdpFilePath]);
+  await sleep(2000);
   return { spawn_promise: promise };
 }
 
