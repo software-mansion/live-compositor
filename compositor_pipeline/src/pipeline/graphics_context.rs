@@ -1,6 +1,7 @@
 use crate::error::InitPipelineError;
 use std::sync::Arc;
 
+#[derive(Debug)]
 pub struct GraphicsContext {
     pub device: Arc<wgpu::Device>,
     pub queue: Arc<wgpu::Queue>,
@@ -59,14 +60,5 @@ impl GraphicsContext {
             .map_err(InitRendererEngineError::FailedToInitWgpuCtx)?;
 
         Ok(GraphicsContext { device, queue })
-    }
-}
-
-impl std::fmt::Debug for GraphicsContext {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("PreinitializedContext")
-            .field("device", &self.device)
-            .field("queue", &self.queue)
-            .finish()
     }
 }

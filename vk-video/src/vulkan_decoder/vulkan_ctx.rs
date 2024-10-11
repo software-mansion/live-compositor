@@ -373,6 +373,12 @@ impl VulkanCtx {
     }
 }
 
+impl std::fmt::Debug for VulkanCtx {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("VulkanCtx").finish()
+    }
+}
+
 struct ChosenDevice<'a> {
     physical_device: vk::PhysicalDevice,
     queue_indices: QueueIndices<'a>,
