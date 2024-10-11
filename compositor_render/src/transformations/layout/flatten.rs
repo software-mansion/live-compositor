@@ -51,9 +51,12 @@ impl NestedLayout {
             return false;
         }
         match &layout.content {
-            RenderLayoutContent::Color(RGBAColor(_, _, _, 0)) => false,
-            RenderLayoutContent::Color(_) => true,
-            RenderLayoutContent::ChildNode { crop, index } => {
+            RenderLayoutContent::Color {
+                color: RGBAColor(_, _, _, 0),
+                ..
+            } => false,
+            RenderLayoutContent::Color { .. } => true,
+            RenderLayoutContent::ChildNode { crop, index, .. } => {
                 let size = input_resolutions.get(*index).copied().flatten();
                 if let Some(size) = size {
                     if crop.left > size.width as f32 || crop.top > size.height as f32 {
@@ -65,6 +68,9 @@ impl NestedLayout {
                 }
                 true
             }
+
+            #[allow(clippy::todo)]
+            RenderLayoutContent::BoxShadow { .. } => todo!(),
         }
     }
 
@@ -77,6 +83,13 @@ impl NestedLayout {
                 height: layout.height * self.scale_y,
                 rotation_degrees: layout.rotation_degrees + self.rotation_degrees, // TODO: not exactly correct
                 content: layout.content,
+                border_radius: super::BorderRadius {
+                    top_left: 0.0,
+                    top_right: 0.0,
+                    bottom_right: 0.0,
+                    bottom_left: 0.0,
+                },
+                parent_masks: Vec::new(),
             },
             Some(crop) => {
                 // Below values are only correct if `crop` is in the same coordinate
@@ -93,19 +106,36 @@ impl NestedLayout {
                 let cropped_width = cropped_right - cropped_left;
                 let cropped_height = cropped_bottom - cropped_top;
                 match layout.content {
-                    RenderLayoutContent::Color(color) => {
+                    RenderLayoutContent::Color {
+                        color,
+                        border_color,
+                        border_width,
+                    } => {
                         RenderLayout {
                             top: self.top + (cropped_top * self.scale_y),
                             left: self.left + (cropped_left * self.scale_x),
                             width: cropped_width * self.scale_x,
                             height: cropped_height * self.scale_y,
                             rotation_degrees: layout.rotation_degrees + self.rotation_degrees, // TODO: not exactly correct
-                            content: RenderLayoutContent::Color(color),
+                            content: RenderLayoutContent::Color {
+                                color,
+                                border_color,
+                                border_width,
+                            },
+                            border_radius: super::BorderRadius {
+                                top_left: 0.0,
+                                top_right: 0.0,
+                                bottom_right: 0.0,
+                                bottom_left: 0.0,
+                            },
+                            parent_masks: Vec::new(),
                         }
                     }
                     RenderLayoutContent::ChildNode {
                         index,
                         crop: child_crop,
+                        border_color,
+                        border_width,
                     } => {
                         // Calculate how much top/left coordinates changed when cropping. It represents
                         // how much was removed in layout coordinates. Ignore the change of a position that
@@ -131,9 +161,23 @@ impl NestedLayout {
                             width: cropped_width * self.scale_x,
                             height: cropped_height * self.scale_y,
                             rotation_degrees: layout.rotation_degrees + self.rotation_degrees, // TODO: not exactly correct
-                            content: RenderLayoutContent::ChildNode { index, crop },
+                            content: RenderLayoutContent::ChildNode {
+                                index,
+                                crop,
+                                border_color,
+                                border_width,
+                            },
+                            border_radius: super::BorderRadius {
+                                top_left: 0.0,
+                                top_right: 0.0,
+                                bottom_right: 0.0,
+                                bottom_left: 0.0,
+                            },
+                            parent_masks: Vec::new(),
                         }
                     }
+                    #[allow(clippy::todo)]
+                    RenderLayoutContent::BoxShadow { .. } => todo!(),
                 }
             }
         }
@@ -147,7 +191,11 @@ impl NestedLayout {
             height: self.height,
             rotation_degrees: self.rotation_degrees,
             content: match self.content {
-                LayoutContent::Color(color) => RenderLayoutContent::Color(color),
+                LayoutContent::Color(color) => RenderLayoutContent::Color {
+                    color,
+                    border_color: RGBAColor(0, 0, 0, 0),
+                    border_width: 0.0,
+                },
                 LayoutContent::ChildNode { index, size } => RenderLayoutContent::ChildNode {
                     index,
                     crop: Crop {
@@ -156,9 +204,22 @@ impl NestedLayout {
                         width: size.width,
                         height: size.height,
                     },
+                    border_color: RGBAColor(0, 0, 0, 0),
+                    border_width: 0.0,
                 },
-                LayoutContent::None => RenderLayoutContent::Color(RGBAColor(0, 0, 0, 0)),
+                LayoutContent::None => RenderLayoutContent::Color {
+                    color: RGBAColor(0, 0, 0, 0),
+                    border_color: RGBAColor(0, 0, 0, 0),
+                    border_width: 0.0,
+                },
             },
+            border_radius: super::BorderRadius {
+                top_left: 0.0,
+                top_right: 0.0,
+                bottom_right: 0.0,
+                bottom_left: 0.0,
+            },
+            parent_masks: Vec::new(),
         }
     }
 }

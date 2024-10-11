@@ -11,16 +11,12 @@ mod flatten;
 mod layout_renderer;
 mod params;
 mod shader;
-mod transformation_matrices;
 
-use self::{
-    params::{LayoutNodeParams, ParamsBuffer},
-    shader::LayoutShader,
-};
+use self::shader::LayoutShader;
 
 pub(crate) use layout_renderer::LayoutRenderer;
+
 use log::error;
-pub(crate) use transformation_matrices::{vertices_transformation_matrix, Position};
 
 pub(crate) trait LayoutProvider: Send {
     fn layouts(&mut self, pts: Duration, inputs: &[Option<Resolution>]) -> NestedLayout;
@@ -30,11 +26,28 @@ pub(crate) trait LayoutProvider: Send {
 pub(crate) struct LayoutNode {
     layout_provider: Box<dyn LayoutProvider>,
     shader: Arc<LayoutShader>,
-    params: ParamsBuffer,
 }
 
 #[derive(Debug, Clone)]
 pub struct Crop {
+    pub top: f32,
+    pub left: f32,
+    pub width: f32,
+    pub height: f32,
+}
+
+#[derive(Debug, Clone)]
+pub struct BorderRadius {
+    pub top_left: f32,
+    pub top_right: f32,
+    pub bottom_right: f32,
+    pub bottom_left: f32,
+}
+
+#[derive(Debug, Clone)]
+pub struct ParentMask {
+    pub radius: BorderRadius,
+    // position of parent on the output frame
     pub top: f32,
     pub left: f32,
     pub width: f32,
@@ -48,13 +61,26 @@ struct RenderLayout {
     width: f32,
     height: f32,
     rotation_degrees: f32,
+    border_radius: BorderRadius,
+    parent_masks: Vec<ParentMask>,
     content: RenderLayoutContent,
 }
 
 #[derive(Debug, Clone)]
 enum RenderLayoutContent {
-    Color(RGBAColor),
-    ChildNode { index: usize, crop: Crop },
+    Color {
+        color: RGBAColor,
+        border_color: RGBAColor,
+        border_width: f32,
+    },
+    ChildNode {
+        index: usize,
+        crop: Crop,
+        border_color: RGBAColor,
+        border_width: f32,
+    },
+    #[allow(dead_code)]
+    BoxShadow { color: RGBAColor, blur_radius: f32 },
 }
 
 #[derive(Debug, Clone)]
@@ -97,7 +123,6 @@ impl LayoutNode {
         Self {
             layout_provider,
             shader,
-            params: ParamsBuffer::new(ctx.wgpu_ctx, vec![]),
         }
     }
 
@@ -118,34 +143,11 @@ impl LayoutNode {
             .layouts(pts, &input_resolutions)
             .flatten(&input_resolutions, output_resolution);
 
-        let params: Vec<LayoutNodeParams> = layouts
-            .iter()
-            .map(|layout| {
-                let (is_texture, background_color, input_resolution) = match layout.content {
-                    RenderLayoutContent::ChildNode { index, .. } => (
-                        1,
-                        RGBAColor(0, 0, 0, 0),
-                        *input_resolutions.get(index).unwrap_or(&None),
-                    ),
-                    RenderLayoutContent::Color(color) => (0, color, None),
-                };
-
-                LayoutNodeParams {
-                    is_texture,
-                    background_color,
-                    transform_vertices_matrix: layout
-                        .vertices_transformation_matrix(&output_resolution),
-                    transform_texture_coords_matrix: layout
-                        .texture_coords_transformation_matrix(&input_resolution),
-                }
-            })
-            .collect();
-        self.params.update(params, ctx.wgpu_ctx);
-
         let textures: Vec<Option<&NodeTexture>> = layouts
             .iter()
             .map(|layout| match layout.content {
-                RenderLayoutContent::Color(_) => None,
+                RenderLayoutContent::BoxShadow { .. } => None,
+                RenderLayoutContent::Color { .. } => None,
                 RenderLayoutContent::ChildNode { index, .. } => match sources.get(index) {
                     Some(node_texture) => Some(*node_texture),
                     None => {
@@ -158,7 +160,7 @@ impl LayoutNode {
 
         let target = target.ensure_size(ctx.wgpu_ctx, output_resolution);
         self.shader
-            .render(ctx.wgpu_ctx, self.params.bind_group(), &textures, target);
+            .render(ctx.wgpu_ctx, output_resolution, layouts, &textures, target);
     }
 }
 

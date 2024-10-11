@@ -10,6 +10,8 @@ mod renderer;
 #[path = "web_renderer/disabled_renderer.rs"]
 mod renderer;
 
+mod tranformation_matrices;
+
 pub use renderer::*;
 
 pub mod chromium_context;
