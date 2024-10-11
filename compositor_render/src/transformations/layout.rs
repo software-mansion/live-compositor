@@ -80,10 +80,7 @@ enum RenderLayoutContent {
         border_width: f32,
     },
     #[allow(dead_code)]
-    BoxShadow {
-        color: RGBAColor,
-        blur_radius: f32,
-    },
+    BoxShadow { color: RGBAColor, blur_radius: f32 },
 }
 
 #[derive(Debug, Clone)]

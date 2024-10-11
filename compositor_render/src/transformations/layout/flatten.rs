@@ -51,7 +51,10 @@ impl NestedLayout {
             return false;
         }
         match &layout.content {
-            RenderLayoutContent::Color { color: RGBAColor(_, _, _, 0), .. } => false,
+            RenderLayoutContent::Color {
+                color: RGBAColor(_, _, _, 0),
+                ..
+            } => false,
             RenderLayoutContent::Color { .. } => true,
             RenderLayoutContent::ChildNode { crop, index, .. } => {
                 let size = input_resolutions.get(*index).copied().flatten();
