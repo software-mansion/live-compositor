@@ -1,0 +1,25 @@
+[package]
+name = "vk-video"
+version = "0.1.0"
+edition = "2021"
+authors = ["Software Mansion <contact@swmansion.com>"]
+readme = "README.md"
+license = "MIT"
+repository = "https://github.com/software-mansion/live-compositor"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+ash = "0.38.0"
+derivative = "2.2.0"
+h264-reader = { git = "https://github.com/membraneframework-labs/h264-reader.git", branch = "@jerzywilczek/scaling-lists" }
+thiserror = "1.0.59"
+tracing = "0.1.40"
+vk-mem = "0.4.0"
+wgpu =  "22.1.0"
+
+[dev-dependencies]
+tracing-subscriber = "0.3.18"
+
+[build-dependencies]
+cfg_aliases = "0.2.1"
