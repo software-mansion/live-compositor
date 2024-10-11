@@ -17,10 +17,10 @@ pub struct Decoder<'a> {
 
 #[derive(Debug, thiserror::Error)]
 pub enum DecoderError {
-    #[error("Error originating in the decoder: {0}")]
+    #[error("Decoder error: {0}")]
     VulkanDecoderError(#[from] VulkanDecoderError),
 
-    #[error("Error originating in the h264 parser: {0}")]
+    #[error("H264 parser error: {0}")]
     ParserError(#[from] ParserError),
 }
 
