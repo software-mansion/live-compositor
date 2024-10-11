@@ -45,7 +45,7 @@ pub struct BorderRadius {
 }
 
 #[derive(Debug, Clone)]
-pub struct ParentBodererRadius {
+pub struct ParentMask {
     pub radius: BorderRadius,
     // position of parent on the output frame
     pub top: f32,
@@ -62,7 +62,7 @@ struct RenderLayout {
     height: f32,
     rotation_degrees: f32,
     border_radius: BorderRadius,
-    parent_border_radiuses: Vec<ParentBodererRadius>,
+    parent_masks: Vec<ParentMask>,
     content: RenderLayoutContent,
 }
 

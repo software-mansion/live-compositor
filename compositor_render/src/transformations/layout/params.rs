@@ -201,7 +201,7 @@ impl ParamsBindGroups {
                 height,
                 rotation_degrees,
                 border_radius,
-                parent_border_radiuses,
+                parent_masks: parent_border_radiuses,
                 content,
             } = layout;
             let border_radius_bytes = borders_radius_to_bytes(border_radius.clone());

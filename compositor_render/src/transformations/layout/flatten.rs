@@ -84,7 +84,7 @@ impl NestedLayout {
                     bottom_right: 0.0,
                     bottom_left: 0.0,
                 },
-                parent_border_radiuses: Vec::new(),
+                parent_masks: Vec::new(),
             },
             Some(crop) => {
                 // Below values are only correct if `crop` is in the same coordinate
@@ -123,7 +123,7 @@ impl NestedLayout {
                                 bottom_right: 0.0,
                                 bottom_left: 0.0,
                             },
-                            parent_border_radiuses: Vec::new(),
+                            parent_masks: Vec::new(),
                         }
                     }
                     RenderLayoutContent::ChildNode {
@@ -168,7 +168,7 @@ impl NestedLayout {
                                 bottom_right: 0.0,
                                 bottom_left: 0.0,
                             },
-                            parent_border_radiuses: Vec::new(),
+                            parent_masks: Vec::new(),
                         }
                     }
                     RenderLayoutContent::BoxShadow { .. } => todo!(),
@@ -213,7 +213,7 @@ impl NestedLayout {
                 bottom_right: 0.0,
                 bottom_left: 0.0,
             },
-            parent_border_radiuses: Vec::new(),
+            parent_masks: Vec::new(),
         }
     }
 }
