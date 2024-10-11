@@ -50,7 +50,7 @@ pub(super) fn start_udp_reader_thread(
         .spawn(move || {
             let _span = span!(
                 Level::INFO,
-                "RTP TCP server",
+                "RTP UDP server",
                 input_id = input_id.to_string()
             )
             .entered();

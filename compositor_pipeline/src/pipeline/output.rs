@@ -3,6 +3,7 @@ use compositor_render::{
 };
 use crossbeam_channel::{bounded, Receiver, Sender};
 use mp4::{Mp4FileWriter, Mp4OutputOptions};
+use whip::{WhipSender, WhipSenderOptions};
 
 use crate::{audio_mixer::OutputSamples, error::RegisterOutputError, queue::PipelineEvent};
 
@@ -16,6 +17,7 @@ use super::{
 
 pub mod mp4;
 pub mod rtp;
+pub mod whip;
 
 /// Options to configure public outputs that can be constructed via REST API
 #[derive(Debug, Clone)]
@@ -29,6 +31,7 @@ pub struct OutputOptions {
 pub enum OutputProtocolOptions {
     Rtp(RtpSenderOptions),
     Mp4(Mp4OutputOptions),
+    Whip(WhipSenderOptions),
 }
 
 /// Options to configure output that sends h264 and opus audio via channel
@@ -66,6 +69,10 @@ pub enum Output {
     },
     Mp4 {
         writer: Mp4FileWriter,
+        encoder: Encoder,
+    },
+    Whip {
+        sender: WhipSender,
         encoder: Encoder,
     },
     EncodedData {
@@ -113,6 +120,12 @@ impl OutputOptionsExt<Option<Port>> for OutputOptions {
                     .map_err(|e| RegisterOutputError::OutputError(output_id.clone(), e))?;
 
                 Ok((Output::Mp4 { writer, encoder }, None))
+            }
+            OutputProtocolOptions::Whip(whip_options) => {
+                let sender = whip::WhipSender::new(output_id, whip_options.clone(), packets, ctx)
+                    .map_err(|e| RegisterOutputError::OutputError(output_id.clone(), e))?;
+
+                Ok((Output::Whip { sender, encoder }, None))
             }
         }
     }
