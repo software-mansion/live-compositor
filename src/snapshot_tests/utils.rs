@@ -22,7 +22,7 @@ fn global_wgpu_ctx(
 ) -> (Arc<wgpu::Device>, Arc<wgpu::Queue>) {
     static CTX: OnceLock<(Arc<wgpu::Device>, Arc<wgpu::Queue>)> = OnceLock::new();
 
-    CTX.get_or_init(|| create_wgpu_ctx(force_gpu, features).unwrap())
+    CTX.get_or_init(|| create_wgpu_ctx(force_gpu, features, Default::default()).unwrap())
         .clone()
 }
 

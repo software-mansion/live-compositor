@@ -31,7 +31,7 @@ impl<'a> NV12TextureView<'a> {
         let view_y = texture.create_view(&wgpu::TextureViewDescriptor {
             label: Some("y plane nv12 texture view"),
             dimension: Some(wgpu::TextureViewDimension::D2),
-            format: Some(wgpu::TextureFormat::NV12),
+            format: Some(wgpu::TextureFormat::R8Unorm),
             aspect: wgpu::TextureAspect::Plane0,
             ..Default::default()
         });
@@ -39,7 +39,7 @@ impl<'a> NV12TextureView<'a> {
         let view_uv = texture.create_view(&wgpu::TextureViewDescriptor {
             label: Some("uv plane nv12 texture view"),
             dimension: Some(wgpu::TextureViewDimension::D2),
-            format: Some(wgpu::TextureFormat::NV12),
+            format: Some(wgpu::TextureFormat::Rg8Unorm),
             aspect: wgpu::TextureAspect::Plane1,
             ..Default::default()
         });
