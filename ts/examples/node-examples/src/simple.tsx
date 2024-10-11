@@ -27,7 +27,7 @@ function ExampleApp() {
   });
 
   return (
-    <View direction="column">
+    <View style={{ direction: 'column' }}>
       {[...Array(count)].map((_value, index) => (
         <SimpleComponent key={index} text="Example text" />
       ))}

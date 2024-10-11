@@ -67,6 +67,9 @@ export type ViewProps = {
    */
   id?: Api.ComponentId;
 
+  /**
+   * Component styling properties.
+   */
   style?: ViewStyle;
 
   /**
@@ -79,19 +82,17 @@ export type ViewProps = {
 const View = createCompositorComponent<ViewProps>(sceneBuilder);
 
 function sceneBuilder(
-  { style = {}, transition }: ViewProps,
+  { id, style = {}, transition }: ViewProps,
   children: SceneComponent[]
 ): Api.Component {
   return {
     type: 'view',
-
+    id,
     children: children.map(sceneComponentIntoApi),
-
     style: {
       ...style,
       background_color_rgba: style?.backgroundColor && intoApiRgbaColor(style.backgroundColor),
     },
-
     transition: transition && intoApiTransition(transition),
   };
 }

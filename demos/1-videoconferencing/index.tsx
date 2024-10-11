@@ -67,7 +67,7 @@ function VideoCallTile({ id }: { id: number }) {
       <Rescaler>
         <InputStream inputId="input_1" />
       </Rescaler>
-      <View height={50} bottom={0} left={0}>
+      <View style={{ height: 50, bottom: 0, left: 0 }}>
         <View />
         <Text
           fontSize={25}
