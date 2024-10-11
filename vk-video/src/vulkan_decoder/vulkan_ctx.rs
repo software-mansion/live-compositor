@@ -155,11 +155,27 @@ impl VulkanCtx {
             ..Default::default()
         };
 
-        let layers = if cfg!(debug_assertions) {
-            vec![c"VK_LAYER_KHRONOS_validation".as_ptr()]
+        let requested_layers = if cfg!(debug_assertions) {
+            vec![c"VK_LAYER_KHRONOS_validation"]
         } else {
             Vec::new()
         };
+
+        let instance_layer_properties = unsafe { entry.enumerate_instance_layer_properties()? };
+        let instance_layer_names = instance_layer_properties
+            .iter()
+            .map(|layer| layer.layer_name_as_c_str())
+            .collect::<Result<Vec<_>, _>>()?;
+
+        let layers = requested_layers
+            .into_iter()
+            .filter(|requested_layer_name| {
+                instance_layer_names
+                    .iter()
+                    .any(|instance_layer_name| instance_layer_name == requested_layer_name)
+            })
+            .map(|layer| layer.as_ptr())
+            .collect::<Vec<_>>();
 
         let extensions = if cfg!(debug_assertions) {
             vec![vk::EXT_DEBUG_UTILS_NAME]
