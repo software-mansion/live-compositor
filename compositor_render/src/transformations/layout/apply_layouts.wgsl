@@ -207,16 +207,19 @@ fn vs_main(input: VertexInput) -> VertexOutput {
         }
         // box shadow
         case 2u:  {
+            let width = box_shadow_params[layout_info.index].width + 2.0 * box_shadow_params[layout_info.index].blur_radius;
+            let height = box_shadow_params[layout_info.index].height + 2.0 * box_shadow_params[layout_info.index].blur_radius;
+
             let vertices_transformation = vertices_transformation_matrix(
                 box_shadow_params[layout_info.index].left - box_shadow_params[layout_info.index].blur_radius,
                 box_shadow_params[layout_info.index].top - box_shadow_params[layout_info.index].blur_radius,
-                box_shadow_params[layout_info.index].width + 2.0 * box_shadow_params[layout_info.index].blur_radius,
-                box_shadow_params[layout_info.index].height + 2.0 * box_shadow_params[layout_info.index].blur_radius,
+                width,
+                height,
                 box_shadow_params[layout_info.index].rotation_degrees
             );
             output.position = vertices_transformation * vec4(input.position, 1.0);
             output.tex_coords = input.tex_coords;
-            let rect_size = vec2<f32>(box_shadow_params[layout_info.index].width, box_shadow_params[layout_info.index].height);
+            let rect_size = vec2<f32>(width, height);
             output.center_position = input.position.xy / 2.0 * rect_size;
         }
         default {}
@@ -247,31 +250,13 @@ fn roundedRectSDF(dist: vec2<f32>, size: vec2<f32>, radius: vec4<f32>, rotation:
 @fragment
 fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
     let transparent = vec4<f32>(0.0, 0.0, 0.0, 0.0);
-    var parent_mask_alpha = 1.0;
-    // for (var i = 0u; i < layout_info.parent_masks_len; i = i + 1u) {
-    //     let parent_mask = parent_masks[i];
-    //     let dist = vec2<f32>(
-    //         input.position.x - parent_mask.left - parent_mask.width / 2.0,
-    //         input.position.y - parent_mask.top - parent_mask.height / 2.0
-    //     );
-    //     let size = vec2<f32>(parent_mask.width, parent_mask.height);
-    //     let edge_distance = roundedRectSDF(
-    //         dist,
-    //         size, 
-    //         parent_mask.radius, 
-    //         0.0
-    //     );
-
-    //     let smoothed_alpha = 1.0 - smoothstep(0.0, 2.0, edge_distance);
-    //     parent_mask_alpha = min(parent_mask_alpha, smoothed_alpha);
-    // }
+    // TODO: Add parent mask handling
+    let parent_mask_alpha = 1.0;
 
     switch layout_info.layout_type {
         case 0u: {
             let sample = textureSample(texture, sampler_, input.tex_coords);
 
-            let left = texture_params[layout_info.index].left;
-            let top = texture_params[layout_info.index].top;
             let width = texture_params[layout_info.index].width;
             let height = texture_params[layout_info.index].height;
             let border_radius = texture_params[layout_info.index].border_radius;
@@ -279,10 +264,6 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
             let border_width = texture_params[layout_info.index].border_width;
             let border_color = texture_params[layout_info.index].border_color;
 
-            // let dist = vec2<f32>(
-            //     input.position.x - left - width / 2.0,
-            //     input.position.y - top - height / 2.0
-            // );
             let size = vec2<f32>(width, height);
             let edge_distance = roundedRectSDF(
                 input.center_position,
@@ -301,8 +282,6 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
         case 1u: {
             let color = color_params[layout_info.index].color;
 
-            let left = color_params[layout_info.index].left;
-            let top = color_params[layout_info.index].top;
             let width = color_params[layout_info.index].width;
             let height = color_params[layout_info.index].height;
             let border_radius = color_params[layout_info.index].border_radius;
@@ -310,10 +289,6 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
             let border_width = color_params[layout_info.index].border_width;
             let border_color = color_params[layout_info.index].border_color;
 
-            // let dist = vec2<f32>(
-            //     input.position.x - left - width / 2.0,
-            //     input.position.y - top - height / 2.0
-            // );
             let size = vec2<f32>(width, height);
             let edge_distance = roundedRectSDF(
                 input.center_position,
@@ -332,18 +307,12 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
         case 2u: {
             let color = box_shadow_params[layout_info.index].color;
 
-            let left = box_shadow_params[layout_info.index].left;
-            let top = box_shadow_params[layout_info.index].top;
             let width = box_shadow_params[layout_info.index].width;
             let height = box_shadow_params[layout_info.index].height;
             let border_radius = box_shadow_params[layout_info.index].border_radius;
             let rotation_degrees = box_shadow_params[layout_info.index].rotation_degrees;
             let blur_radius = box_shadow_params[layout_info.index].blur_radius;
 
-            // let dist = vec2<f32>(
-            //     input.position.x - left - width / 2.0,
-            //     input.position.y - top - height / 2.0
-            // );
             let size = vec2<f32>(width, height);
             let edge_distance = roundedRectSDF(
                 input.center_position,

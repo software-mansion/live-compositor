@@ -82,63 +82,10 @@ impl LayoutShader {
         textures: &[Option<&NodeTexture>],
         target: &NodeTextureState,
     ) {
-        // let new_layouts = vec![
-        //     RenderLayout {
-        //         top: 0.0,
-        //         left: 0.0,
-        //         width: 1920.0,
-        //         height: 1080.0,
-        //         rotation_degrees: 0.0,
-        //         border_radius: super::BorderRadius {
-        //             top_left: 0.0,
-        //             top_right: 0.0,
-        //             bottom_right: 0.0,
-        //             bottom_left: 0.0,
-        //         },
-        //         parent_masks: Vec::new(),
-        //         content: super::RenderLayoutContent::Color {
-        //             color: RGBAColor(0, 255, 0, 255),
-        //             border_color: RGBAColor(255, 255, 255, 255),
-        //             border_width: 10.0,
-        //         },
-        //     },
-        //     RenderLayout {
-        //         content: super::RenderLayoutContent::ChildNode {
-        //             index: 0,
-        //             crop: super::Crop {
-        //                 top: 0.0,
-        //                 left: 0.0,
-        //                 width: 1280.0,
-        //                 height: 720.0,
-        //             },
-        //             border_color: RGBAColor(0, 0, 255, 255),
-        //             border_width: 10.0,
-        //         },
-        //         top: 100.0,
-        //         left: 100.0,
-        //         width: 1280.0,
-        //         height: 720.0,
-        //         rotation_degrees: 30.0,
-        //         border_radius: super::BorderRadius {
-        //             top_left: 100.0,
-        //             top_right: 0.0,
-        //             bottom_right: 0.0,
-        //             bottom_left: 0.0,
-        //         },
-        //         parent_masks: Vec::new(),
-        //     },
-        // ];
-
-        // let new_textures = match textures {
-        //     [Some(_)] => vec![None, textures[0]],
-        //     _ => vec![None, None],
-        // };
-
         let layout_infos = self
             .params_bind_groups
             .update(wgpu_ctx, output_resolution, layouts);
-
-        let input_texture_bgs: Vec<wgpu::BindGroup> = self.input_textures_bg(wgpu_ctx, textures);
+        let input_texture_bgs: Vec<wgpu::BindGroup> = self.input_textures_bg(wgpu_ctx, &textures);
 
         if layout_infos.len() != input_texture_bgs.len() {
             error!(
