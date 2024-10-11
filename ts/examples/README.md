@@ -12,11 +12,11 @@
 To launch any of the above examples go to `node-examples` directory and run:
 
 ```bash
-npm run ts-node <path-to-example>
+pnpm run ts-node <path-to-example>
 ```
 
 e.g.
 
 ```bash
-npm run ts-node ./src/simple.tsx
+pnpm run ts-node ./src/simple.tsx
 ```
