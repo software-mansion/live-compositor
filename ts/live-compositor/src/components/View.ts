@@ -89,10 +89,8 @@ function sceneBuilder(
     type: 'view',
     id,
     children: children.map(sceneComponentIntoApi),
-    style: {
-      ...style,
-      background_color_rgba: style?.backgroundColor && intoApiRgbaColor(style.backgroundColor),
-    },
+    ...style,
+    background_color_rgba: style?.backgroundColor && intoApiRgbaColor(style.backgroundColor),
     transition: transition && intoApiTransition(transition),
   };
 }
