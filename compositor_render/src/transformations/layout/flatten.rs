@@ -68,6 +68,8 @@ impl NestedLayout {
                 }
                 true
             }
+
+            #[allow(clippy::todo)]
             RenderLayoutContent::BoxShadow { .. } => todo!(),
         }
     }
@@ -174,6 +176,7 @@ impl NestedLayout {
                             parent_masks: Vec::new(),
                         }
                     }
+                    #[allow(clippy::todo)]
                     RenderLayoutContent::BoxShadow { .. } => todo!(),
                 }
             }

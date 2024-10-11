@@ -85,7 +85,7 @@ impl LayoutShader {
         let layout_infos = self
             .params_bind_groups
             .update(wgpu_ctx, output_resolution, layouts);
-        let input_texture_bgs: Vec<wgpu::BindGroup> = self.input_textures_bg(wgpu_ctx, &textures);
+        let input_texture_bgs: Vec<wgpu::BindGroup> = self.input_textures_bg(wgpu_ctx, textures);
 
         if layout_infos.len() != input_texture_bgs.len() {
             error!(
