@@ -108,6 +108,11 @@ impl TryFrom<View> for scene::ViewComponent {
                 bottom_right: view.border_radius.unwrap_or(0.0),
                 bottom_left: view.border_radius.unwrap_or(0.0),
             },
+            border_width: view.border_width.unwrap_or(0.0),
+            border_color: view
+                .border_color
+                .map(TryInto::try_into)
+                .unwrap_or(Ok(scene::RGBAColor(0, 0, 0, 0)))?,
         })
     }
 }

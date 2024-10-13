@@ -17,7 +17,7 @@ impl NestedLayout {
         shadow
             .into_iter()
             .chain(layouts.into_iter())
-            .filter(|layout| Self::should_render(layout, input_resolutions, resolution))
+            //.filter(|layout| Self::should_render(layout, input_resolutions, resolution))
             .collect()
     }
 
@@ -57,7 +57,7 @@ impl NestedLayout {
         let children_layouts = children_layouts
             .into_iter()
             .flatten()
-            .map(|l| self.flatten_child(&l, parent_masks))
+            .map(|l| self.flatten_child(l, parent_masks))
             .collect();
 
         (
@@ -156,16 +156,11 @@ impl NestedLayout {
                             rotation_degrees: layout.rotation_degrees + self.rotation_degrees, // TODO: not exactly correct
                             content: RenderLayoutContent::Color {
                                 color,
-                                border_color: todo!(),
-                                border_width: todo!(),
+                                border_color, // TODO(wkozyra95)
+                                border_width,                   // TODO(wkozyra95)
                             },
-                            border_radius: BorderRadius {
-                                top_left: todo!(),
-                                top_right: todo!(),
-                                bottom_right: todo!(),
-                                bottom_left: todo!(),
-                            },
-                            parent_masks: todo!(),
+                            border_radius: layout.border_radius,
+                            parent_masks: vec![],
                         }
                     }
                     RenderLayoutContent::ChildNode {
@@ -204,12 +199,7 @@ impl NestedLayout {
                                 border_color,
                                 border_width,
                             },
-                            border_radius: super::BorderRadius {
-                                top_left: 0.0,
-                                top_right: 0.0,
-                                bottom_right: 0.0,
-                                bottom_left: 0.0,
-                            },
+                            border_radius: layout.border_radius,
                             parent_masks: Vec::new(),
                         }
                     }
@@ -230,8 +220,8 @@ impl NestedLayout {
             content: match self.content {
                 LayoutContent::Color(color) => RenderLayoutContent::Color {
                     color,
-                    border_color: todo!(),
-                    border_width: todo!(),
+                    border_color: self.border_color, // TODO(wkozyra95)
+                    border_width:self.border_width,                   // TODO(wkozyra95)
                 },
                 LayoutContent::ChildNode { index, size } => RenderLayoutContent::ChildNode {
                     index,
@@ -241,17 +231,17 @@ impl NestedLayout {
                         width: size.width,
                         height: size.height,
                     },
-                    border_color: todo!(),
-                    border_width: todo!(),
+                    border_color: self.border_color, // TODO(wkozyra95)
+                    border_width: self.border_width,                   // TODO(wkozyra95)
                 },
                 LayoutContent::None => RenderLayoutContent::Color {
                     color: RGBAColor(0, 0, 0, 0),
-                    border_color: todo!(),
-                    border_width: todo!(),
+                    border_color: self.border_color, // TODO(wkozyra95)
+                    border_width: self.border_width,                   // TODO(wkozyra95)
                 },
             },
             border_radius: self.border_radius,
-            parent_masks: todo!(),
+            parent_masks: vec![], // TODO(wkozyra95)
         }
     }
 
@@ -262,12 +252,7 @@ impl NestedLayout {
             width: self.width,
             height: self.height,
             rotation_degrees: self.rotation_degrees, // TODO: this is incorrect
-            border_radius: BorderRadius {
-                top_left: 0.0,
-                top_right: 0.0,
-                bottom_right: 0.0,
-                bottom_left: 0.0,
-            },
+            border_radius: self.border_radius,
             content: RenderLayoutContent::BoxShadow {
                 color: box_shadow.color,
                 blur_radius: box_shadow.blur_radius,

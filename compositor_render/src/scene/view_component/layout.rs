@@ -99,8 +99,8 @@ impl ViewComponentParam {
             content: LayoutContent::Color(self.background_color),
             child_nodes_count: children.iter().map(|l| l.child_nodes_count).sum(),
             children,
-            border_width: 0.0,                       // TODO(wkozyra95)
-            border_color: RGBAColor(0, 0, 255, 255), // TODO(wkozyra95)
+            border_width: self.border_width,                       // TODO(wkozyra95)
+            border_color: self.border_color, // TODO(wkozyra95)
             border_radius: self.border_radius,
             box_shadow: vec![], // TODO(wkozyra95)
         }

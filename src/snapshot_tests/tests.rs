@@ -1574,6 +1574,7 @@ fn view_snapshot_tests() -> Vec<TestCase> {
                     DEFAULT_RESOLUTION,
             ),
             inputs: vec![TestInput::new(1)],
+            allowed_error: 0.0,
             ..Default::default()
         }
     ])

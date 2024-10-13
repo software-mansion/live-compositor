@@ -142,6 +142,8 @@ pub struct ViewComponent {
     pub background_color: RGBAColor,
 
     pub border_radius: BorderRadius,
+    pub border_width: f32,
+    pub border_color: RGBAColor,
 }
 
 #[derive(Debug, Clone, Copy)]

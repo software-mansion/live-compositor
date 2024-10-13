@@ -7,7 +7,9 @@
         {
           "type": "view",
           "background_color_rgba": "#00FF00FF",
-          "border_radius": 50
+          "border_radius": 150,
+          "border_width": 24,
+          "border_color": "#0000FFFF"
         }
       ]
     }

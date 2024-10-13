@@ -16,7 +16,7 @@ use self::shader::LayoutShader;
 
 pub(crate) use layout_renderer::LayoutRenderer;
 
-use log::error;
+use log::{error, info};
 
 pub(crate) trait LayoutProvider: Send {
     fn layouts(&mut self, pts: Duration, inputs: &[Option<Resolution>]) -> NestedLayout;
@@ -37,7 +37,6 @@ pub struct Crop {
     pub width: f32,
     pub height: f32,
 }
-
 
 #[derive(Debug, Clone)]
 pub struct ParentMask {
@@ -146,10 +145,11 @@ impl LayoutNode {
             .map(|node_texture| node_texture.resolution())
             .collect();
         let output_resolution = self.layout_provider.resolution(pts);
-        let layouts = self
-            .layout_provider
-            .layouts(pts, &input_resolutions)
-            .flatten(&input_resolutions, output_resolution);
+        let layouts = self.layout_provider.layouts(pts, &input_resolutions);
+        info!("Layout {layouts:#?}");
+
+        let layouts = layouts.flatten(&input_resolutions, output_resolution);
+        info!("Flatten {layouts:#?}");
 
         let textures: Vec<Option<&NodeTexture>> = layouts
             .iter()

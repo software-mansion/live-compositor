@@ -265,18 +265,18 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
             let border_color = texture_params[layout_info.index].border_color;
 
             let size = vec2<f32>(width, height);
-            let edge_distance = roundedRectSDF(
+            let edge_distance = -roundedRectSDF(
                 input.center_position,
                 size, 
                 border_radius, 
                 rotation_degrees
             );
 
-            let smoothed_alpha = 1.0 - smoothstep(0.0, 2.0, edge_distance);
-            let border_alpha = 1.0 - smoothstep(-border_width + 1.0, -border_width, edge_distance);
+            let content_alpha = step(border_width, edge_distance);
+            let border_alpha = step(-border_width, -edge_distance) * step(0.0, edge_distance);
 
-            let mixed_background = mix(transparent, sample, min(smoothed_alpha, parent_mask_alpha));
-            let mixed_border = mix(mixed_background, border_color, min(border_alpha, smoothed_alpha));
+            let mixed_background = mix(transparent, sample, content_alpha);
+            let mixed_border = mix(mixed_background, border_color, border_alpha);
             return mixed_border;
         }
         case 1u: {
@@ -290,17 +290,17 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
             let border_color = color_params[layout_info.index].border_color;
 
             let size = vec2<f32>(width, height);
-            let edge_distance = roundedRectSDF(
+            let edge_distance = -roundedRectSDF(
                 input.center_position,
                 size, 
                 border_radius, 
                 rotation_degrees
             );
 
-            let smoothed_alpha = 1.0 - smoothstep(0.0, 2.0, edge_distance);
-            let border_alpha = 1.0 - smoothstep(-border_width + 1.0, -border_width, edge_distance);
+            let content_alpha = step(border_width, edge_distance);
+            let border_alpha = step(-border_width, -edge_distance) * step(0.0, edge_distance);
 
-            let mixed_background = mix(transparent, color, min(smoothed_alpha, parent_mask_alpha));
+            let mixed_background = mix(transparent, color, content_alpha);
             let mixed_border = mix(mixed_background, border_color, border_alpha);
             return mixed_border;
         }

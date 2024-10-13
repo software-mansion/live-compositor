@@ -82,6 +82,8 @@ pub struct View {
     pub background_color_rgba: Option<RGBAColor>,
 
     pub border_radius: Option<f32>,
+    pub border_width: Option<f32>,
+    pub border_color: Option<RGBAColor>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]

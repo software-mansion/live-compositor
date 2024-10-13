@@ -3,7 +3,13 @@ use std::time::Duration;
 use crate::{scene::ViewChildrenDirection, transformations::layout::NestedLayout};
 
 use super::{
-    components::ViewComponent, layout::StatefulLayoutComponent, scene_state::BuildStateTreeCtx, transition::{TransitionOptions, TransitionState}, types::interpolation::ContinuousValue, BorderRadius, Component, ComponentId, IntermediateNode, Overflow, Position, RGBAColor, SceneError, Size, StatefulComponent
+    components::ViewComponent,
+    layout::StatefulLayoutComponent,
+    scene_state::BuildStateTreeCtx,
+    transition::{TransitionOptions, TransitionState},
+    types::interpolation::ContinuousValue,
+    BorderRadius, Component, ComponentId, IntermediateNode, Overflow, Position, RGBAColor,
+    SceneError, Size, StatefulComponent,
 };
 
 mod interpolation;
@@ -27,6 +33,8 @@ struct ViewComponentParam {
 
     background_color: RGBAColor,
     border_radius: BorderRadius,
+    border_width: f32,
+    border_color: RGBAColor,
 }
 
 impl StatefulViewComponent {
@@ -115,6 +123,8 @@ impl ViewComponent {
                 background_color: self.background_color,
                 overflow: self.overflow,
                 border_radius: self.border_radius,
+                border_width: self.border_width,
+                border_color: self.border_color,
             },
             transition,
             children: self
