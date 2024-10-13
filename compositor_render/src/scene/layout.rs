@@ -6,9 +6,7 @@ use crate::{
 };
 
 use super::{
-    rescaler_component::StatefulRescalerComponent, tiles_component::StatefulTilesComponent,
-    view_component::StatefulViewComponent, AbsolutePosition, ComponentId, HorizontalPosition,
-    Position, Size, StatefulComponent, VerticalPosition,
+    rescaler_component::StatefulRescalerComponent, tiles_component::StatefulTilesComponent, view_component::StatefulViewComponent, AbsolutePosition, BorderRadius, ComponentId, HorizontalPosition, Position, RGBAColor, Size, StatefulComponent, VerticalPosition
 };
 
 #[derive(Debug, Clone)]
@@ -198,10 +196,10 @@ impl StatefulLayoutComponent {
                     content,
                     child_nodes_count,
                     children: vec![children_layouts],
-                    border_width: todo!(),
-                    border_color: todo!(),
-                    border_radius: todo!(),
-                    box_shadow: todo!(),
+                    border_width: 0.0,
+                    border_color: RGBAColor(0,0,0,0),
+                    border_radius: BorderRadius::ZERO,
+                    box_shadow: vec![], // TODO(wkozyra95)
                 }
             }
             _non_layout_components => {
@@ -223,10 +221,10 @@ impl StatefulLayoutComponent {
                     content,
                     child_nodes_count,
                     children: vec![],
-                    border_width: todo!(),
-                    border_color: todo!(),
-                    border_radius: todo!(),
-                    box_shadow: todo!(),
+                    border_width: 0.0,
+                    border_color: RGBAColor(0,0,0,0),
+                    border_radius: BorderRadius::ZERO,
+                    box_shadow: vec![], // TODO(wkozyra95)
                 }
             }
         }

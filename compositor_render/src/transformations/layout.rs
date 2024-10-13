@@ -52,9 +52,20 @@ pub struct ParentMask {
 struct RenderLayout {
     top: f32,
     left: f32,
+
+    // size on the output texture
     width: f32,
     height: f32,
+
+    // Defines what should be cut from the content.
+    // - for texture defines part of the texture that will be stretched to 
+    //   the `self.width/self.height`. It might cut off border radius.
+    // - for box shadow
+
+    // Rotated around the center
     rotation_degrees: f32,
+    // border radius needs to applied before cropping, so we can't just make it a part of a parent
+    // mask
     border_radius: BorderRadius,
     parent_masks: Vec<ParentMask>,
     content: RenderLayoutContent,
@@ -69,9 +80,9 @@ enum RenderLayoutContent {
     },
     ChildNode {
         index: usize,
-        crop: Crop,
         border_color: RGBAColor,
         border_width: f32,
+        crop: Crop,
     },
     #[allow(dead_code)]
     BoxShadow { color: RGBAColor, blur_radius: f32 },

@@ -186,7 +186,8 @@ fn vs_main(input: VertexInput) -> VertexOutput {
                 texture_params[layout_info.index].crop_width,
                 texture_params[layout_info.index].crop_height
             );
-            output.position = vertices_transformation * vec4(input.position, 1.0);
+            // output.position = vertices_transformation * vec4(input.position, 1.0);
+            output.position = vec4(input.position, 1.0);
             output.tex_coords = (texture_transformation * vec4<f32>(input.tex_coords, 0.0, 1.0)).xy;
             let rect_size = vec2<f32>(texture_params[layout_info.index].width, texture_params[layout_info.index].height);
             output.center_position = input.position.xy / 2.0 * rect_size;
@@ -250,8 +251,25 @@ fn roundedRectSDF(dist: vec2<f32>, size: vec2<f32>, radius: vec4<f32>, rotation:
 @fragment
 fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
     let transparent = vec4<f32>(0.0, 0.0, 0.0, 0.0);
-    // TODO: Add parent mask handling
-    let parent_mask_alpha = 1.0;
+
+    var parent_mask_alpha = 1.0;
+
+    for (var i = 0; i < i32(layout_info.parent_masks_len); i++) {
+        let radius = parent_masks[i].radius;
+        let top = parent_masks[i].top;
+        let left = parent_masks[i].left;
+        let width = parent_masks[i].width;
+        let height = parent_masks[i].height;
+        let size = vec2<f32>(width, height);
+
+        let distance = -roundedRectSDF(
+            input.position.xy - vec2<f32>(top, left) + size/2.0,
+            size,
+            radius,
+            0.0,
+        );
+        parent_mask_alpha = select(parent_mask_alpha, 0.0 , distance > -35);
+    }
 
     switch layout_info.layout_type {
         case 0u: {
@@ -272,8 +290,8 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
                 rotation_degrees
             );
 
-            let content_alpha = step(border_width, edge_distance);
-            let border_alpha = step(-border_width, -edge_distance) * step(0.0, edge_distance);
+            let content_alpha = step(border_width, edge_distance) * parent_mask_alpha;
+            let border_alpha = step(-border_width, -edge_distance) * step(0.0, edge_distance) * parent_mask_alpha;
 
             let mixed_background = mix(transparent, sample, content_alpha);
             let mixed_border = mix(mixed_background, border_color, border_alpha);
@@ -297,8 +315,8 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
                 rotation_degrees
             );
 
-            let content_alpha = step(border_width, edge_distance);
-            let border_alpha = step(-border_width, -edge_distance) * step(0.0, edge_distance);
+            let content_alpha = step(border_width, edge_distance) * parent_mask_alpha;
+            let border_alpha = step(-border_width, -edge_distance) * step(0.0, edge_distance) * parent_mask_alpha;
 
             let mixed_background = mix(transparent, color, content_alpha);
             let mixed_border = mix(mixed_background, border_color, border_alpha);
@@ -321,8 +339,8 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
                 rotation_degrees
             );
 
-            let smoothed_alpha = 1.0 - smoothstep(0.0, blur_radius, edge_distance);
-            let mixed_background = mix(transparent, color, min(smoothed_alpha, parent_mask_alpha));
+            let smoothed_alpha = (1.0 - smoothstep(0.0, blur_radius, edge_distance)) * parent_mask_alpha;
+            let mixed_background = mix(transparent, color, smoothed_alpha);
             return mixed_background;
         }
         default {

@@ -7,9 +7,17 @@
         {
           "type": "view",
           "background_color_rgba": "#00FF00FF",
+          "top": 10,
+          "left": 10,
           "border_radius": 150,
           "border_width": 24,
-          "border_color": "#0000FFFF"
+          "border_color": "#0000FFFF",
+          "children": [
+            {
+              "type": "input_stream",
+              "input_id": "input_1"
+            }
+          ]
         }
       ]
     }
