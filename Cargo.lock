@@ -254,16 +254,14 @@ dependencies = [
 
 [[package]]
 name = "bindgen"
-version = "0.69.4"
+version = "0.70.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a00dc851838a2120612785d195287475a3ac45514741da670b735818822129a0"
+checksum = "f49d8fed880d473ea71efb9bf597651e77201bdd4893efe54c9e5d65ae04ce6f"
 dependencies = [
  "bitflags 2.6.0",
  "cexpr",
  "clang-sys",
  "itertools",
- "lazy_static",
- "lazycell",
  "proc-macro2",
  "quote",
  "regex",
@@ -942,9 +940,9 @@ dependencies = [
 
 [[package]]
 name = "ffmpeg-next"
-version = "7.0.4"
+version = "7.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "19a340e3d664ad5f530147cd6d4a86ece739a829fe2d81c369389ef903bd96f6"
+checksum = "da02698288e0275e442a47fc12ca26d50daf0d48b15398ba5906f20ac2e2a9f9"
 dependencies = [
  "bitflags 2.6.0",
  "ffmpeg-sys-next",
@@ -953,11 +951,11 @@ dependencies = [
 
 [[package]]
 name = "ffmpeg-sys-next"
-version = "7.0.2"
+version = "7.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "db1b7546e70609ead8c06b2b4c618a1ba352364675f81608f431dd4f321fe3f1"
+checksum = "2bc3234d0a4b2f7d083699d0860c6c9dd83713908771b60f94a96f8704adfe45"
 dependencies = [
- "bindgen 0.69.4",
+ "bindgen 0.70.1",
  "cc",
  "libc",
  "num_cpus",
