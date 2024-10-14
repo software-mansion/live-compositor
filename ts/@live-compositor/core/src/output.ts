@@ -1,8 +1,8 @@
-import { _liveCompositorInternals, RegisterOutput, View, Outputs } from 'live-compositor';
+import { _liveCompositorInternals, View, Outputs } from 'live-compositor';
 import React, { useSyncExternalStore } from 'react';
 import { ApiClient, Api } from './api.js';
 import Renderer from './renderer.js';
-import { intoAudioInputsConfiguration } from './api/output.js';
+import { intoAudioInputsConfiguration, RegisterOutput } from './api/output.js';
 import { throttle } from './utils.js';
 
 type OutputContext = _liveCompositorInternals.OutputContext;

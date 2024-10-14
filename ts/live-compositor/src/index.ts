@@ -10,8 +10,12 @@ import { EasingFunction, Transition } from './components/common.js';
 import { useAudioInput, useInputStreams } from './hooks.js';
 import { CompositorEvent, CompositorEventType } from './types/events.js';
 
-export { RegisterInput } from './types/registerInput.js';
-export { RegisterOutput, OutputFrameFormat } from './types/registerOutput.js';
+export { RegisterRtpInput, RegisterMp4Input } from './types/registerInput.js';
+export {
+  RegisterRtpOutput,
+  RegisterMp4Output,
+  RegisterCanvasOutput,
+} from './types/registerOutput.js';
 
 export * as Inputs from './types/registerInput.js';
 export * as Outputs from './types/registerOutput.js';
