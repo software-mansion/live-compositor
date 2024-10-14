@@ -9,5 +9,3 @@ export type Component = Extract<
 export type RendererId = Api.RendererId;
 export type InputId = Api.InputId;
 export type OutputId = string;
-
-console.log('test');
