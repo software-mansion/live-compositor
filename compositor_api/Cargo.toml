@@ -13,6 +13,7 @@ compositor_render = { workspace = true }
 serde = { workspace = true }
 schemars = { workspace = true }
 bytes = { workspace = true }
+tracing = { workspace = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 compositor_pipeline = { workspace = true }

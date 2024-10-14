@@ -40,6 +40,19 @@ pub struct Mp4Output {
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(deny_unknown_fields)]
+pub struct WhipOutput {
+    /// Path to output MP4 file.
+    pub endpoint_url: String,
+    pub port: PortOrPortRange,
+    pub ip: Option<Arc<str>>,
+    /// Video track configuration.
+    pub video: Option<OutputVideoOptions>,
+    /// Audio track configuration.
+    pub audio: Option<OutputRtpAudioOptions>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+#[serde(deny_unknown_fields)]
 pub struct OutputVideoOptions {
     /// Output resolution in pixels.
     pub resolution: Resolution,

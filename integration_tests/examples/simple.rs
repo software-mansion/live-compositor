@@ -46,7 +46,8 @@ fn client_code() -> Result<()> {
     examples::post(
         "output/output_1/register",
         &json!({
-            "type": "rtp_stream",
+            "type": "whip",
+            "endpoint_url": "http://localhost:9000/whip",
             "port": OUTPUT_PORT,
             "ip": IP,
             "video": {
