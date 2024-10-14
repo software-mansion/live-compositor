@@ -1,4 +1,5 @@
 use crate::error::InitPipelineError;
+use compositor_render::{create_wgpu_ctx, error::InitRendererEngineError};
 use std::sync::Arc;
 
 #[derive(Debug)]
@@ -17,10 +18,7 @@ impl GraphicsContext {
         features: wgpu::Features,
         limits: wgpu::Limits,
     ) -> Result<Self, InitPipelineError> {
-        use compositor_render::{
-            create_wgpu_ctx, error::InitRendererEngineError, required_wgpu_features,
-            set_required_wgpu_limits,
-        };
+        use compositor_render::{required_wgpu_features, set_required_wgpu_limits};
         use tracing::warn;
 
         let vulkan_features =

@@ -83,7 +83,14 @@ pub enum VideoDepayloader {
 impl VideoDepayloader {
     pub fn new(options: &decoder::VideoDecoderOptions) -> Self {
         match options.decoder {
-            VideoDecoder::FFmpegH264 | VideoDecoder::VulkanVideoH264 => VideoDepayloader::H264 {
+            VideoDecoder::FFmpegH264 => VideoDepayloader::H264 {
+                depayloader: H264Packet::default(),
+                buffer: vec![],
+                rollover_state: RolloverState::default(),
+            },
+
+            #[cfg(feature = "vk-video")]
+            VideoDecoder::VulkanVideoH264 => VideoDepayloader::H264 {
                 depayloader: H264Packet::default(),
                 buffer: vec![],
                 rollover_state: RolloverState::default(),
