@@ -37,7 +37,7 @@ export class Queue {
   }
 
   public getInput(inputId: InputId): Input | undefined {
-    return this.inputs[inputId]
+    return this.inputs[inputId];
   }
 
   public addOutput(outputId: OutputId, output: Output) {

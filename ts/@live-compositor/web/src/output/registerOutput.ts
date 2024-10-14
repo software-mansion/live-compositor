@@ -1,5 +1,5 @@
 import { Resolution } from '@live-compositor/browser-render';
-import { RegisterOutput as InternalRegisterOutput} from '@live-compositor/core';
+import { RegisterOutput as InternalRegisterOutput } from '@live-compositor/core';
 
 export type RegisterOutput = { type: 'canvas' } & RegisterCanvasOutput;
 
