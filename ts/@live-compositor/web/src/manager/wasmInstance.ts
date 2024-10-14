@@ -1,42 +1,48 @@
-import { ApiRequest, CompositorManager, RegisterOutputRequest } from '@live-compositor/core';
-import { Renderer, Resolution, Component, ImageSpec } from '@live-compositor/browser-render';
+import { ApiRequest, CompositorManager, RegisterInputRequest, RegisterOutputRequest } from '@live-compositor/core';
+import { Renderer, Component, ImageSpec } from '@live-compositor/browser-render';
 import { Api } from 'live-compositor';
 import { Path } from 'path-parser';
-
-type Output = {
-  resolution: Resolution;
-};
+import { Queue, StopQueueFn } from '../queue';
+import { Input } from '../input/input';
+import { EventSender } from '../eventSender';
+import { Framerate } from '../compositor';
+import { Output } from '../output/output';
 
 export type OnRegisterCallback = (event: object) => void;
 
 const apiPath = new Path('/api/:type/:id/:operation');
+const apiStartPath = new Path('/api/start');
 
 class WasmInstance implements CompositorManager {
   private renderer: Renderer;
-  private outputs: Map<string, Output>;
-  private onRegisterCallback: (cb: OnRegisterCallback) => void;
+  private queue: Queue;
+  private eventSender: EventSender;
+  private stopQueue?: StopQueueFn;
 
   public constructor(props: {
     renderer: Renderer;
-    onRegisterCallback: (cb: OnRegisterCallback) => void;
+    framerate: Framerate;
   }) {
     this.renderer = props.renderer;
-    this.onRegisterCallback = props.onRegisterCallback;
-    this.outputs = new Map();
+    this.queue = new Queue(props.framerate, props.renderer);
+    this.eventSender = new EventSender();
   }
 
-  public async setupInstance(): Promise<void> {}
+  public async setupInstance(): Promise<void> { }
 
   public async sendRequest(request: ApiRequest): Promise<object> {
     const route = apiPath.test(request.route);
     if (!route) {
+      if (apiStartPath.test(request.route)) {
+        this.start();
+      }
       return {};
     }
 
     if (route.type == 'input') {
-      this.handleInputRequest(route.id, route.operation);
+      await this.handleInputRequest(route.id, route.operation, request.body);
     } else if (route.type === 'output') {
-      this.handleOutputRequest(route.id, route.operation, request.body);
+      await this.handleOutputRequest(route.id, route.operation, request.body);
     } else if (route.type === 'image') {
       await this.handleImageRequest(route.id, route.operation, request.body);
     } else if (route.type === 'shader') {
@@ -49,37 +55,57 @@ class WasmInstance implements CompositorManager {
   }
 
   public registerEventListener(cb: (event: unknown) => void): void {
-    this.onRegisterCallback(cb);
+    this.eventSender.setEventCallback(cb);
   }
 
-  private handleInputRequest(inputId: string, operation: string): void {
+  private start() {
+    if (this.stopQueue) {
+      throw 'Compositor is already running';
+    }
+    this.stopQueue = this.queue.start();
+  }
+
+  public stop() {
+    if (this.stopQueue) {
+      this.stopQueue();
+      this.stopQueue = undefined;
+    }
+  }
+
+  private async handleInputRequest(inputId: string, operation: string, body?: object): Promise<void> {
     if (operation === 'register') {
+      const request = body! as RegisterInputRequest;
+      const input = new Input(inputId, request, this.eventSender);
       this.renderer.registerInput(inputId);
+      this.queue.addInput(inputId, input);
+      await input.start()
     } else if (operation === 'unregister') {
+      this.queue.removeInput(inputId);
       this.renderer.unregisterInput(inputId);
     }
   }
 
-  private handleOutputRequest(outputId: string, operation: string, body?: object): void {
+  private async handleOutputRequest(outputId: string, operation: string, body?: object): Promise<void> {
     if (operation === 'register') {
-      const outputInfo = body! as RegisterOutputRequest;
-      if (outputInfo.video) {
-        const resolution = outputInfo.video.resolution;
-        this.outputs.set(outputId, { resolution: resolution });
+      const request = body! as RegisterOutputRequest;
+      if (request.video) {
+        const output = new Output(request);
         this.renderer.updateScene(
           outputId,
-          resolution,
-          outputInfo.video?.initial.root as Component
+          request.video.resolution,
+          request.video.initial.root as Component
         );
+        this.queue.addOutput(outputId, output);
       }
     } else if (operation === 'unregister') {
+      this.queue.removeOutput(outputId);
       this.renderer.unregisterOutput(outputId);
     } else if (operation === 'update') {
       const scene = body! as Api.UpdateOutputRequest;
       if (!scene.video) {
         return;
       }
-      const output = this.outputs.get(outputId);
+      const output = this.queue.getOutput(outputId);
       if (!output) {
         throw `Unknown output "${outputId}"`;
       }

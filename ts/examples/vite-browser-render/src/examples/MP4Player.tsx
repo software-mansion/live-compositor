@@ -12,7 +12,7 @@ function MP4Player() {
       return;
     }
 
-    compositor.start();
+    void compositor.start();
     return () => compositor.stop();
   }, [compositor])
 
@@ -29,7 +29,7 @@ function Scene() {
   const inputs = useInputStreams();
   const inputState = inputs['bunny_video']?.videoState;
 
-  if (!inputState || inputState == 'ready') {
+  if (inputState !== 'playing') {
     return (
       <View backgroundColor="#000000">
         <View width={530} height={40} bottom={300} left={500}>

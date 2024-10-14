@@ -1,17 +1,26 @@
-import { RegisterOutput, Api, Outputs, OutputFrameFormat } from 'live-compositor';
+import { Api, Outputs, RegisterRtpOutput, RegisterMp4Output, RegisterCanvasOutput } from 'live-compositor';
 
-export type RegisterOutputRequest = Api.RegisterOutput | RegisterBytesOutput;
+export type RegisterOutputRequest = Api.RegisterOutput | RegisterCanvasOutputRequest;
 
-export type RegisterBytesOutput = {
-  type: 'raw_frames';
-  video?: OutputBytesVideoOptions;
+export type RegisterCanvasOutputRequest = {
+  type: 'canvas';
+  video: OutputCanvasVideoOptions;
 };
 
-export type OutputBytesVideoOptions = {
-  format: OutputFrameFormat;
+export type OutputCanvasVideoOptions = {
   resolution: Api.Resolution;
+  /**
+   * HTMLCanvasElement
+   */
+  canvas: any;
   initial: Api.Video;
 };
+
+export type RegisterOutput =
+  | ({ type: 'rtp_stream' } & RegisterRtpOutput)
+  | ({ type: 'mp4' } & RegisterMp4Output)
+  | ({ type: 'canvas' } & RegisterCanvasOutput);
+
 
 export function intoRegisterOutput(
   output: RegisterOutput,
@@ -21,8 +30,8 @@ export function intoRegisterOutput(
     return intoRegisterRtpOutput(output, initial);
   } else if (output.type === 'mp4') {
     return intoRegisterMp4Output(output, initial);
-  } else if (output.type === 'raw_frames') {
-    return intoRegisterRawFramesOutput(output, initial);
+  } else if (output.type === 'canvas') {
+    return intoRegisterCanvasOutput(output, initial);
   } else {
     throw new Error(`Unknown output type ${(output as any).type}`);
   }
@@ -54,15 +63,15 @@ function intoRegisterMp4Output(
   };
 }
 
-function intoRegisterRawFramesOutput(
-  output: Outputs.RegisterRawFramesOutput,
+function intoRegisterCanvasOutput(
+  output: Outputs.RegisterCanvasOutput,
   initial: { video?: Api.Video; _audio?: Api.Audio }
 ): RegisterOutputRequest {
   return {
-    type: 'raw_frames',
+    type: 'canvas',
     video: {
-      format: output.video.format,
       resolution: output.video.resolution,
+      canvas: output.video.canvas,
       initial: initial.video!,
     },
   };

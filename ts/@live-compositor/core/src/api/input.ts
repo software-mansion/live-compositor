@@ -1,15 +1,17 @@
 import { Api } from '../api.js';
-import { RegisterInput, Inputs } from 'live-compositor';
+import { RegisterMp4Input, RegisterRtpInput, Inputs } from 'live-compositor';
 
-export type RegisterInputRequest = Api.RegisterInput | { type: 'raw_frames' };
+export type RegisterInputRequest = Api.RegisterInput;
+
+export type RegisterInput =
+  | ({ type: 'rtp_stream' } & RegisterRtpInput)
+  | ({ type: 'mp4' } & RegisterMp4Input);
 
 export function intoRegisterInput(input: RegisterInput): RegisterInputRequest {
   if (input.type === 'mp4') {
     return intoMp4RegisterInput(input);
   } else if (input.type === 'rtp_stream') {
     return intoRtpRegisterInput(input);
-  } else if (input.type === 'raw_frames') {
-    return intoRawFramesRegisterInput();
   } else {
     throw new Error(`Unknown input type ${(input as any).type}`);
   }
@@ -36,10 +38,6 @@ function intoRtpRegisterInput(input: Inputs.RegisterRtpInput): RegisterInputRequ
     required: input.required,
     offset_ms: input.offsetMs,
   };
-}
-
-function intoRawFramesRegisterInput(): RegisterInputRequest {
-  return { type: 'raw_frames' };
 }
 
 function intoInputAudio(audio: Inputs.InputRtpAudioOptions): Api.InputRtpAudioOptions {

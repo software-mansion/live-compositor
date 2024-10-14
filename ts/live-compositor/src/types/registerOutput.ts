@@ -1,11 +1,6 @@
 import React from 'react';
 import * as Api from '../api.js';
 
-export type RegisterOutput =
-  | ({ type: 'rtp_stream' } & RegisterRtpOutput)
-  | ({ type: 'mp4' } & RegisterMp4Output)
-  | ({ type: 'raw_frames' } & RegisterRawFramesOutput);
-
 export type RegisterRtpOutput = {
   /**
    * Depends on the value of the `transport_protocol` field:
@@ -40,8 +35,8 @@ export type RegisterMp4Output = {
   audio?: Mp4AudioOptions;
 };
 
-export type RegisterRawFramesOutput = {
-  video: OutputRawFramesVideoOptions;
+export type RegisterCanvasOutput = {
+  video: OutputCanvasVideoOptions;
 };
 
 export type RtpVideoOptions = {
@@ -78,15 +73,15 @@ export type Mp4VideoOptions = {
   root: React.ReactElement;
 };
 
-export type OutputRawFramesVideoOptions = {
+export type OutputCanvasVideoOptions = {
   /**
    * Output resolution in pixels.
    */
   resolution: Api.Resolution;
   /**
-   * Output byte format.
+   * HTMLCanvasElement
    */
-  format: OutputFrameFormat;
+  canvas: any;
   root: React.ReactElement;
 };
 
@@ -191,10 +186,6 @@ export type OutputEndCondition =
        */
       allInputs: boolean;
     };
-
-export enum OutputFrameFormat {
-  RGBA_BYTES = 'RGBA_BYTES',
-}
 
 export interface AudioInputsConfiguration {
   inputs: InputAudio[];

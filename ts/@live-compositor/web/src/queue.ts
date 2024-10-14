@@ -36,12 +36,20 @@ export class Queue {
     delete this.inputs[inputId];
   }
 
+  public getInput(inputId: InputId): Input | undefined {
+    return this.inputs[inputId]
+  }
+
   public addOutput(outputId: OutputId, output: Output) {
     this.outputs[outputId] = output;
   }
 
   public removeOutput(outputId: OutputId) {
     delete this.outputs[outputId];
+  }
+
+  public getOutput(outputId: OutputId): Output | undefined {
+    return this.outputs[outputId];
   }
 
   private async onTick() {

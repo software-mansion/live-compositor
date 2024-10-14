@@ -3,7 +3,7 @@ import MP4Source from './mp4/source';
 import { CompositorEventType } from 'live-compositor';
 import { EventSender } from '../eventSender';
 import InputSource from './source';
-import { RegisterInput } from './registerInput';
+import { RegisterInputRequest } from '@live-compositor/core';
 
 /**
  * Represents frame produced by decoder. All `InputFrame`s have to be manually freed.
@@ -23,12 +23,12 @@ export class Input {
   private state: InputState;
   private eventSender: EventSender;
 
-  public constructor(id: InputId, request: RegisterInput, eventSender: EventSender) {
+  public constructor(id: InputId, request: RegisterInputRequest, eventSender: EventSender) {
     this.id = id;
     this.state = 'waiting_for_start';
     this.eventSender = eventSender;
     if (request.type === 'mp4') {
-      this.source = new MP4Source(request.url);
+      this.source = new MP4Source(request.url!);
     } else {
       throw new Error(`Unknown input type ${(request as any).type}`);
     }
