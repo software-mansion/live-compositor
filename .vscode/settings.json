@@ -7,5 +7,10 @@
             "url": "./schemas/scene.schema.json"
         }
     ],
-    "eslint.workingDirectories": [{ "mode": "auto" }]
+    "eslint.workingDirectories": [
+        {
+            "mode": "auto"
+        }
+    ],
+    "prettier.configPath": "./ts/.prettierrc.js"
 }

@@ -17,6 +17,7 @@ export type ImageProps = {
 const Image = createCompositorComponent<ImageProps>(sceneBuilder);
 
 function sceneBuilder(props: ImageProps, _children: SceneComponent[]): Api.Component {
+  const x = '1234';
   return {
     type: 'image',
     id: props.id,

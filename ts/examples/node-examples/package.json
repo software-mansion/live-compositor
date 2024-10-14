@@ -4,6 +4,7 @@
   "description": "",
   "version": "1.0.0",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
