@@ -3,13 +3,7 @@ use std::time::Duration;
 use crate::{scene::ViewChildrenDirection, transformations::layout::NestedLayout};
 
 use super::{
-    components::ViewComponent,
-    layout::StatefulLayoutComponent,
-    scene_state::BuildStateTreeCtx,
-    transition::{TransitionOptions, TransitionState},
-    types::interpolation::ContinuousValue,
-    BorderRadius, Component, ComponentId, IntermediateNode, Overflow, Position, RGBAColor,
-    SceneError, Size, StatefulComponent,
+    components::ViewComponent, layout::StatefulLayoutComponent, scene_state::BuildStateTreeCtx, transition::{TransitionOptions, TransitionState}, types::interpolation::ContinuousValue, BorderRadius, BoxShadow, Component, ComponentId, IntermediateNode, Overflow, Position, RGBAColor, SceneError, Size, StatefulComponent
 };
 
 mod interpolation;
@@ -35,6 +29,8 @@ struct ViewComponentParam {
     border_radius: BorderRadius,
     border_width: f32,
     border_color: RGBAColor,
+
+    box_shadows: Vec<BoxShadow>,
 }
 
 impl StatefulViewComponent {
@@ -54,8 +50,10 @@ impl StatefulViewComponent {
         self.children.iter_mut().collect()
     }
 
+    /// External position of a component (includes border)
     pub(super) fn position(&self, pts: Duration) -> Position {
-        self.view(pts).position
+        let view = self.view(pts);
+        view.position.with_border(view.border_width)
     }
 
     pub(super) fn component_id(&self) -> Option<&ComponentId> {
@@ -125,6 +123,7 @@ impl ViewComponent {
                 border_radius: self.border_radius,
                 border_width: self.border_width,
                 border_color: self.border_color,
+                box_shadows: self.box_shadows,
             },
             transition,
             children: self

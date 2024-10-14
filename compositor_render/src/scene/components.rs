@@ -3,10 +3,11 @@ use std::{fmt::Display, sync::Arc, time::Duration};
 use crate::{InputId, RendererId};
 
 use super::{
-    AbsolutePosition, BorderRadius, Component, HorizontalAlign, InterpolationKind, RGBAColor, Size, VerticalAlign
+    AbsolutePosition, BorderRadius, BoxShadow, Component, HorizontalAlign, InterpolationKind, RGBAColor, Size, VerticalAlign
 };
 
 mod interpolation;
+mod position;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ComponentId(pub Arc<str>);
@@ -144,6 +145,8 @@ pub struct ViewComponent {
     pub border_radius: BorderRadius,
     pub border_width: f32,
     pub border_color: RGBAColor,
+
+    pub box_shadows: Vec<BoxShadow>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -185,6 +188,10 @@ pub struct RescalerComponent {
     pub mode: RescaleMode,
     pub horizontal_align: HorizontalAlign,
     pub vertical_align: VerticalAlign,
+
+    pub border_radius: BorderRadius,
+    pub border_width: f32,
+    pub border_color: RGBAColor,
 }
 
 #[derive(Debug, Clone, Copy)]

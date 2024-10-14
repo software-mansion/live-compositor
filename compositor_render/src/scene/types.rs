@@ -91,3 +91,11 @@ impl BorderRadius {
         bottom_left: 0.0,
     };
 }
+
+#[derive(Debug, Clone, Copy)]
+pub struct BoxShadow {
+    pub offset_x: f32,
+    pub offset_y: f32,
+    pub blur_radius: f32,
+    pub color: RGBAColor,
+}

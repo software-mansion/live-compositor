@@ -110,9 +110,15 @@ impl TryFrom<View> for scene::ViewComponent {
             },
             border_width: view.border_width.unwrap_or(0.0),
             border_color: view
-                .border_color
+                .border_color_rgba
                 .map(TryInto::try_into)
                 .unwrap_or(Ok(scene::RGBAColor(0, 0, 0, 0)))?,
+            box_shadows: view
+                .box_shadows
+                .unwrap_or(Vec::new())
+                .into_iter()
+                .map(TryInto::try_into)
+                .collect::<Result<_, _>>()?,
         })
     }
 }
@@ -177,6 +183,17 @@ impl TryFrom<Rescaler> for scene::RescalerComponent {
                 .unwrap_or(VerticalAlign::Center)
                 .into(),
             transition: rescaler.transition.map(TryInto::try_into).transpose()?,
+            border_radius: BorderRadius {
+                top_left: rescaler.border_radius.unwrap_or(0.0),
+                top_right: rescaler.border_radius.unwrap_or(0.0),
+                bottom_right: rescaler.border_radius.unwrap_or(0.0),
+                bottom_left: rescaler.border_radius.unwrap_or(0.0),
+            },
+            border_width: rescaler.border_width.unwrap_or(0.0),
+            border_color: rescaler
+                .border_color_rgba
+                .map(TryInto::try_into)
+                .unwrap_or(Ok(scene::RGBAColor(0, 0, 0, 0)))?,
         })
     }
 }
@@ -349,5 +366,21 @@ impl TryFrom<Tiles> for scene::TilesComponent {
             transition: tiles.transition.map(TryInto::try_into).transpose()?,
         };
         Ok(result)
+    }
+}
+
+impl TryFrom<BoxShadow> for scene::BoxShadow {
+    type Error = TypeError;
+
+    fn try_from(value: BoxShadow) -> Result<Self, Self::Error> {
+        Ok(Self {
+            offset_x: value.offset_x.unwrap_or(0.0),
+            offset_y: value.offset_y.unwrap_or(0.0),
+            blur_radius: value.blur_radius.unwrap_or(0.0),
+            color: value
+                .color_rgba
+                .map(TryInto::try_into)
+                .unwrap_or(Ok(scene::RGBAColor(255, 255, 255, 255)))?,
+        })
     }
 }

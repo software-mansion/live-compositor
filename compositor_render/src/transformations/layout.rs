@@ -1,7 +1,7 @@
 use std::{sync::Arc, time::Duration};
 
 use crate::{
-    scene::{BorderRadius, RGBAColor, Size},
+    scene::{BorderRadius, BoxShadow, RGBAColor, Size},
     state::RenderCtx,
     wgpu::texture::NodeTexture,
     Resolution,
@@ -39,7 +39,7 @@ pub struct Crop {
 }
 
 #[derive(Debug, Clone)]
-pub struct ParentMask {
+pub struct Mask {
     pub radius: BorderRadius,
     // position of parent on the output frame
     pub top: f32,
@@ -50,10 +50,11 @@ pub struct ParentMask {
 
 #[derive(Debug, Clone)]
 struct RenderLayout {
+    // top-left corner, includes border
     top: f32,
     left: f32,
 
-    // size on the output texture
+    // size on the output texture, includes border
     width: f32,
     height: f32,
 
@@ -67,7 +68,7 @@ struct RenderLayout {
     // border radius needs to applied before cropping, so we can't just make it a part of a parent
     // mask
     border_radius: BorderRadius,
-    parent_masks: Vec<ParentMask>,
+    masks: Vec<Mask>,
     content: RenderLayoutContent,
 }
 
@@ -88,13 +89,6 @@ enum RenderLayoutContent {
     BoxShadow { color: RGBAColor, blur_radius: f32 },
 }
 
-#[derive(Debug, Clone)]
-pub struct BoxShadow {
-    offset_x: f32,
-    offset_y: f32,
-    blur_radius: f32,
-    color: RGBAColor,
-}
 
 #[derive(Debug, Clone)]
 pub enum LayoutContent {
@@ -105,17 +99,33 @@ pub enum LayoutContent {
 
 #[derive(Debug, Clone)]
 pub struct NestedLayout {
+    // top-left corner, includes border
     pub top: f32,
     pub left: f32,
+
+    // size on the output texture, includes border
     pub width: f32,
     pub height: f32,
+
     pub rotation_degrees: f32,
     /// scale will affect content/children, but not the properties of current layout like
     /// top/left/width/height
     pub scale_x: f32,
     pub scale_y: f32,
     /// Crop is applied before scaling.
+    ///
+    /// If you need to scale before cropping use 2 nested layouts:
+    /// - child to scale
+    /// - parent to crop
+    ///
+    /// Depending on content
+    /// - For texture it describes what chunk of texture should be cut and stretched on
+    /// width/height
+    /// - For layout it cuts of part of it (defined in coordinates system of this component)
     pub crop: Option<Crop>,
+    /// Everything outside this mask should not be rendered. Coordinates are relative to
+    /// the layouts top-left corner (and not to the 0,0 point that top-left are defined in)
+    pub mask: Option<Mask>,
     pub content: LayoutContent,
 
     pub border_width: f32,
@@ -197,6 +207,7 @@ impl NestedLayout {
             scale_x: 1.0,
             scale_y: 1.0,
             crop: None,
+            mask: None,
             content: LayoutContent::None,
             children: vec![],
             child_nodes_count,

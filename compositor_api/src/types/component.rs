@@ -52,10 +52,11 @@ pub struct View {
     /// Direction defines how static children are positioned inside a View component.
     pub direction: Option<ViewDirection>,
 
-    /// Distance in pixels between this component's top edge and its parent's top edge.
-    /// If this field is defined, then the component will ignore a layout defined by its parent.
+    /// Distance in pixels between this component's top edge and its parent's top edge (including a
+    /// border). If this field is defined, then the component will ignore a layout defined by its parent.
     pub top: Option<f32>,
     /// Distance in pixels between this component's left edge and its parent's left edge.
+    /// (including a border)
     /// If this field is defined, this element will be absolutely positioned, instead of being
     /// laid out by its parent.
     pub left: Option<f32>,
@@ -83,7 +84,17 @@ pub struct View {
 
     pub border_radius: Option<f32>,
     pub border_width: Option<f32>,
-    pub border_color: Option<RGBAColor>,
+    pub border_color_rgba: Option<RGBAColor>,
+    pub box_shadows: Option<Vec<BoxShadow>>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct BoxShadow {
+    pub offset_x: Option<f32>,
+    pub offset_y: Option<f32>,
+    pub color_rgba: Option<RGBAColor>,
+    pub blur_radius: Option<f32>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
@@ -165,6 +176,10 @@ pub struct Rescaler {
     /// Defines how this component will behave during a scene update. This will only have an
     /// effect if the previous scene already contained a `Rescaler` component with the same id.
     pub transition: Option<Transition>,
+
+    pub border_radius: Option<f32>,
+    pub border_width: Option<f32>,
+    pub border_color_rgba: Option<RGBAColor>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]

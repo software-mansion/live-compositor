@@ -1,10 +1,12 @@
+use std::iter;
+
 use crate::{
     scene::{BorderRadius, RGBAColor},
     Resolution,
 };
 
 use super::{
-    BoxShadow, Crop, LayoutContent, NestedLayout, ParentMask, RenderLayout, RenderLayoutContent,
+    BoxShadow, Crop, LayoutContent, Mask, NestedLayout, RenderLayout, RenderLayoutContent,
 };
 
 impl NestedLayout {
@@ -25,7 +27,7 @@ impl NestedLayout {
     fn inner_flatten(
         mut self,
         child_index_offset: usize,
-        parent_masks: Vec<ParentMask>,
+        parent_masks: Vec<Mask>,
     ) -> (Vec<RenderLayout>, Vec<RenderLayout>) {
         let mut child_index_offset = child_index_offset;
         if let LayoutContent::ChildNode { index, size } = self.content {
@@ -44,25 +46,22 @@ impl NestedLayout {
             .map(|shadow| self.box_shadow_layout(shadow, &parent_masks))
             .collect();
 
-        let parent_masks = [
-            parent_masks,
-            vec![ParentMask {
-                radius: self.border_radius,
-                top: self.top,
-                left: self.left,
-                width: self.width,
-                height: self.height,
-            }],
-        ]
-        .concat();
+        let parent_masks = match &self.mask {
+            Some(mask) => parent_masks
+                .iter()
+                .chain(iter::once(mask))
+                .cloned()
+                .collect(),
+            None => parent_masks.clone(),
+        };
+        let parent_masks = self.child_parent_masks(parent_masks);
 
         let (children_shadow, children_layouts): (Vec<_>, Vec<_>) =
             std::mem::take(&mut self.children)
                 .into_iter()
                 .map(|child| {
                     let child_nodes_count = child.child_nodes_count;
-                    let mask = self.child_parent_masks(&child, &parent_masks);
-                    let (shadows, layouts) = child.inner_flatten(child_index_offset, mask);
+                    let (shadows, layouts) = child.inner_flatten(child_index_offset, parent_masks.clone());
                     child_index_offset += child_nodes_count;
                     (shadows, layouts)
                 })
@@ -144,7 +143,7 @@ impl NestedLayout {
                     bottom_left: child.border_radius.bottom_left
                         * f32::min(self.scale_x, self.scale_y),
                 },
-                parent_masks: self.parent_parent_masks(&child.parent_masks),
+                masks: self.parent_parent_masks(&child.masks),
             },
             Some(crop) => {
                 // Below values are only correct if `crop` is in the same coordinate
@@ -178,7 +177,7 @@ impl NestedLayout {
                                 border_width, // TODO(wkozyra95)
                             },
                             border_radius: child.border_radius,
-                            parent_masks: self.parent_parent_masks(&child.parent_masks),
+                            masks: self.parent_parent_masks(&child.masks),
                         }
                     }
                     RenderLayoutContent::ChildNode {
@@ -218,7 +217,7 @@ impl NestedLayout {
                                 border_width,
                             },
                             border_radius: child.border_radius,
-                            parent_masks: self.parent_parent_masks(&child.parent_masks),
+                            masks: self.parent_parent_masks(&child.masks),
                         }
                     }
                     #[allow(clippy::todo)]
@@ -229,17 +228,12 @@ impl NestedLayout {
     }
 
     /// Calculate RenderLayout for self (without children)
-    /// Resulting layout is in coordinates
+    /// Resulting layout is in coordinates:
     /// - relative self's parent top-left corner.
     /// - before parent scaling is applied
-    fn render_layout(&self, parent_masks: &Vec<ParentMask>) -> RenderLayout {
-        // TODO debug
-        let top = match self.content {
-            LayoutContent::ChildNode { index, size } => self.top + 10.0,
-            _ => self.top,
-        };
+    fn render_layout(&self, parent_masks: &Vec<Mask>) -> RenderLayout {
         RenderLayout {
-            top: top,
+            top: self.top,
             left: self.left,
             width: self.width,
             height: self.height,
@@ -268,16 +262,12 @@ impl NestedLayout {
                 },
             },
             border_radius: self.border_radius,
-            parent_masks: parent_masks.clone(),
+            masks: parent_masks.clone(),
         }
     }
 
     /// calculate RenderLayout for one of self box shadows
-    fn box_shadow_layout(
-        &self,
-        box_shadow: &BoxShadow,
-        parent_masks: &Vec<ParentMask>,
-    ) -> RenderLayout {
+    fn box_shadow_layout(&self, box_shadow: &BoxShadow, parent_masks: &Vec<Mask>) -> RenderLayout {
         RenderLayout {
             top: self.top + box_shadow.offset_y,
             left: self.left + box_shadow.offset_x,
@@ -289,32 +279,42 @@ impl NestedLayout {
                 color: box_shadow.color,
                 blur_radius: box_shadow.blur_radius,
             },
-            parent_masks: parent_masks.clone(),
+            masks: parent_masks.clone(),
         }
     }
 
-    /// Calculate ParentMasks in coordinates of child NestedLayout
-    fn child_parent_masks(&self, child: &NestedLayout, masks: &Vec<ParentMask>) -> Vec<ParentMask> {
+    /// Calculate ParentMasks in coordinates of child NestedLayout.
+    fn child_parent_masks(&self, masks: Vec<Mask>) -> Vec<Mask> {
         masks
             .iter()
-            .map(|mask| ParentMask {
-                radius: mask.radius,
-                top: mask.top - self.top, // TODO: scaling
-                left: mask.left - self.left,
+            .map(|mask| Mask {
+                radius: BorderRadius {
+                    top_left: mask.radius.top_left / f32::min(self.scale_x, self.scale_y),
+                    top_right: mask.radius.top_right / f32::min(self.scale_x, self.scale_y),
+                    bottom_right: mask.radius.bottom_right / f32::min(self.scale_x, self.scale_y),
+                    bottom_left: mask.radius.bottom_left / f32::min(self.scale_x, self.scale_y),
+                },
+                top: (mask.top / self.scale_y) - self.top, // TODO: scaling
+                left: (mask.left / self.scale_x) - self.left,
                 width: mask.width,
                 height: mask.height,
             })
             .collect()
     }
 
-    /// translates parent mask from child coordinates to parent. Reverse operation to `child_parent_masks`.
-    fn parent_parent_masks(&self, masks: &Vec<ParentMask>) -> Vec<ParentMask> {
+    /// Translates parent mask from child coordinates to parent. Reverse operation to `child_parent_masks`.
+    fn parent_parent_masks(&self, masks: &Vec<Mask>) -> Vec<Mask> {
         masks
             .iter()
-            .map(|mask| ParentMask {
-                radius: mask.radius,
-                top: mask.top + self.top, // TODO: scaling
-                left: mask.left + self.left,
+            .map(|mask| Mask {
+                radius: BorderRadius {
+                    top_left: mask.radius.top_left * f32::min(self.scale_x, self.scale_y),
+                    top_right: mask.radius.top_right * f32::min(self.scale_x, self.scale_y),
+                    bottom_right: mask.radius.bottom_right * f32::min(self.scale_x, self.scale_y),
+                    bottom_left: mask.radius.bottom_left * f32::min(self.scale_x, self.scale_y),
+                },
+                top: (mask.top * self.scale_y) + self.top, // TODO: scaling
+                left: (mask.left * self.scale_x) + self.left,
                 width: mask.width,
                 height: mask.height,
             })

@@ -8,8 +8,8 @@ use super::{
     scene_state::BuildStateTreeCtx,
     transition::{TransitionOptions, TransitionState},
     types::interpolation::ContinuousValue,
-    Component, ComponentId, HorizontalAlign, IntermediateNode, Position, RescaleMode, SceneError,
-    Size, StatefulComponent, VerticalAlign,
+    BorderRadius, Component, ComponentId, HorizontalAlign, IntermediateNode, Position, RGBAColor,
+    RescaleMode, SceneError, Size, StatefulComponent, VerticalAlign,
 };
 
 mod interpolation;
@@ -31,6 +31,10 @@ struct RescalerComponentParam {
     mode: RescaleMode,
     horizontal_align: HorizontalAlign,
     vertical_align: VerticalAlign,
+
+    border_radius: BorderRadius,
+    border_width: f32,
+    border_color: RGBAColor,
 }
 
 impl StatefulRescalerComponent {
@@ -107,7 +111,7 @@ impl RescalerComponent {
             previous_state.and_then(|s| s.transition.clone()),
             ctx.last_render_pts,
         );
-        let view = StatefulRescalerComponent {
+        let rescaler = StatefulRescalerComponent {
             start,
             end: RescalerComponentParam {
                 id: self.id,
@@ -115,12 +119,15 @@ impl RescalerComponent {
                 mode: self.mode,
                 horizontal_align: self.horizontal_align,
                 vertical_align: self.vertical_align,
+                border_radius: self.border_radius,
+                border_width: self.border_width,
+                border_color: self.border_color,
             },
             transition,
             child: Box::new(Component::stateful_component(*self.child, ctx)?),
         };
         Ok(StatefulComponent::Layout(
-            StatefulLayoutComponent::Rescaler(view),
+            StatefulLayoutComponent::Rescaler(rescaler),
         ))
     }
 }

@@ -47,6 +47,7 @@ impl StatefulLayoutComponent {
         }
     }
 
+    // External position of a component (includes border, padding, ...)
     pub(super) fn position(&self, pts: Duration) -> Position {
         match self {
             StatefulLayoutComponent::View(view) => view.position(pts),
@@ -175,6 +176,7 @@ impl StatefulLayoutComponent {
         let rotation_degrees = position.rotation_degrees;
         let content = Self::layout_content(child, 0);
         let crop = None;
+        let mask = None;
 
         match child {
             StatefulComponent::Layout(layout_component) => {
@@ -192,6 +194,7 @@ impl StatefulLayoutComponent {
                     scale_x: 1.0,
                     scale_y: 1.0,
                     crop,
+                    mask,
 
                     content,
                     child_nodes_count,
@@ -217,6 +220,7 @@ impl StatefulLayoutComponent {
                     scale_x: 1.0,
                     scale_y: 1.0,
                     crop,
+                    mask,
 
                     content,
                     child_nodes_count,
