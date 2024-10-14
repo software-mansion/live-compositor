@@ -1,7 +1,4 @@
-import {
-  _liveCompositorInternals,
-  Renderers,
-} from 'live-compositor';
+import { _liveCompositorInternals, Renderers } from 'live-compositor';
 import { ApiClient } from './api.js';
 import Output from './output.js';
 import { CompositorManager } from './compositorManager.js';

@@ -1,4 +1,9 @@
-import { ApiRequest, CompositorManager, RegisterInputRequest, RegisterOutputRequest } from '@live-compositor/core';
+import {
+  ApiRequest,
+  CompositorManager,
+  RegisterInputRequest,
+  RegisterOutputRequest,
+} from '@live-compositor/core';
 import { Renderer, Component, ImageSpec } from '@live-compositor/browser-render';
 import { Api } from 'live-compositor';
 import { Path } from 'path-parser';
@@ -19,16 +24,13 @@ class WasmInstance implements CompositorManager {
   private eventSender: EventSender;
   private stopQueue?: StopQueueFn;
 
-  public constructor(props: {
-    renderer: Renderer;
-    framerate: Framerate;
-  }) {
+  public constructor(props: { renderer: Renderer; framerate: Framerate }) {
     this.renderer = props.renderer;
     this.queue = new Queue(props.framerate, props.renderer);
     this.eventSender = new EventSender();
   }
 
-  public async setupInstance(): Promise<void> { }
+  public async setupInstance(): Promise<void> {}
 
   public async sendRequest(request: ApiRequest): Promise<object> {
     const route = apiPath.test(request.route);
@@ -72,20 +74,28 @@ class WasmInstance implements CompositorManager {
     }
   }
 
-  private async handleInputRequest(inputId: string, operation: string, body?: object): Promise<void> {
+  private async handleInputRequest(
+    inputId: string,
+    operation: string,
+    body?: object
+  ): Promise<void> {
     if (operation === 'register') {
       const request = body! as RegisterInputRequest;
       const input = new Input(inputId, request, this.eventSender);
       this.renderer.registerInput(inputId);
       this.queue.addInput(inputId, input);
-      await input.start()
+      await input.start();
     } else if (operation === 'unregister') {
       this.queue.removeInput(inputId);
       this.renderer.unregisterInput(inputId);
     }
   }
 
-  private async handleOutputRequest(outputId: string, operation: string, body?: object): Promise<void> {
+  private async handleOutputRequest(
+    outputId: string,
+    operation: string,
+    body?: object
+  ): Promise<void> {
     if (operation === 'register') {
       const request = body! as RegisterOutputRequest;
       if (request.video) {

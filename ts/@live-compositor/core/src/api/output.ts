@@ -1,4 +1,10 @@
-import { Api, Outputs, RegisterRtpOutput, RegisterMp4Output, RegisterCanvasOutput } from 'live-compositor';
+import {
+  Api,
+  Outputs,
+  RegisterRtpOutput,
+  RegisterMp4Output,
+  RegisterCanvasOutput,
+} from 'live-compositor';
 
 export type RegisterOutputRequest = Api.RegisterOutput | RegisterCanvasOutputRequest;
 
@@ -20,7 +26,6 @@ export type RegisterOutput =
   | ({ type: 'rtp_stream' } & RegisterRtpOutput)
   | ({ type: 'mp4' } & RegisterMp4Output)
   | ({ type: 'canvas' } & RegisterCanvasOutput);
-
 
 export function intoRegisterOutput(
   output: RegisterOutput,
