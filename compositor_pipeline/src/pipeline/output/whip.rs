@@ -26,10 +26,7 @@ use webrtc::{
 use crate::{
     error::OutputInitError,
     event::Event,
-    pipeline::{
-        types::EncoderOutputEvent, AudioCodec, PipelineCtx,
-        VideoCodec,
-    },
+    pipeline::{types::EncoderOutputEvent, AudioCodec, PipelineCtx, VideoCodec},
 };
 
 use self::{packet_stream::PacketStream, payloader::Payloader};
@@ -38,13 +35,6 @@ mod packet_stream;
 mod payloader;
 // mod tcp_server;
 // mod udp;
-
-// pub(super) struct PacketStream {
-//     packets_receiver: Receiver<EncoderOutputEvent>,
-//     // state: VecDeque<bytes::Bytes>,
-//     payloader: Payloader,
-//     mtu: usize,
-// }
 
 #[derive(Debug)]
 pub struct WhipSender {
@@ -122,33 +112,32 @@ fn start_whip_sender_thread(
         info!("init done");
         connect(peer_connection, endpoint_url, should_close, rt).await;
 
-
-        
         for chunk in packet_stream {
             // println!("{:?}", chunk.unwrap().data);
-                // println!("{:?}", chunk.unwrap().data);
-            // let chunk = match chunk {
-            //     Ok(chunk) => chunk,
-            //     Err(err) => {
-            //         error!("Failed to payload a packet: {}", err);
-            //         continue;
-            //     }
-            // };
+            // println!("{:?}", chunk.unwrap().data);
+            let chunk = match chunk {
+                Ok(chunk) => chunk,
+                Err(err) => {
+                    error!("Failed to payload a packet: {}", err);
+                    continue;
+                }
+            };
 
-            // match chunk.kind {
-            //     DataKind::Audio => {
-            //         if let Err(_) = audio_track.write(&chunk.data).await {
-            //             error!("Error occurred while writing to video track for session");
-            //         }
-            //     }
-            //     DataKind::Video => {
-            if let Err(_) = video_track.write(&chunk.unwrap().data).await {
-                error!("Error occurred while writing to video track for session");
+            match chunk.kind {
+                DataKind::Audio => {
+                    // println!("Audio");
+                    if let Err(_) = audio_track.write(&chunk.data).await {
+                        error!("Error occurred while writing to audio track for session");
+                    }
+                }
+                DataKind::Video => {
+                    // println!("Video");
+                    if let Err(_) = video_track.write(&chunk.data).await {
+                        error!("Error occurred while writing to video track for session");
+                    }
+                }
             }
-            // }
-            // }
-        };
-        
+        }
     });
     info!("spawned");
 }
@@ -238,7 +227,7 @@ async fn connect(
     peer_connection: Arc<RTCPeerConnection>,
     endpoint_url: String,
     should_close: Arc<AtomicBool>,
-    rt:   tokio::runtime::Runtime
+    rt: tokio::runtime::Runtime,
 ) {
     let (done_tx, mut done_rx) = std::sync::mpsc::channel::<()>();
 

@@ -32,9 +32,7 @@ fn client_code() -> Result<()> {
                 rtp::{InputVideoStream, RtpReceiverOptions, RtpStream},
                 InputOptions,
             },
-            output::{
-                OutputOptions, OutputProtocolOptions,
-            },
+            output::{OutputOptions, OutputProtocolOptions},
             rtp::{RequestedPort, TransportProtocol},
             Options, OutputVideoOptions, PipelineOutputEndCondition, Port, RegisterInputOptions,
             RegisterOutputOptions, VideoCodec, VideoDecoder,
@@ -95,8 +93,6 @@ fn client_code() -> Result<()> {
 
     let pipeline = Arc::new(Mutex::new(pipeline));
 
-
-
     let input_id = InputId(format!("input_1").into());
 
     let input_options = RegisterInputOptions {
@@ -107,7 +103,7 @@ fn client_code() -> Result<()> {
                 video: Some(InputVideoStream {
                     options: VideoDecoderOptions {
                         decoder: VideoDecoder::FFmpegH264,
-                    }
+                    },
                 }),
                 audio: None,
             },
@@ -129,7 +125,7 @@ fn client_code() -> Result<()> {
     let output_options = RegisterOutputOptions {
         output_options: OutputOptions {
             output_protocol: OutputProtocolOptions::Whip(WhipSenderOptions {
-              endpoint_url: "http://127.0.0.1:9000/whip".into(), 
+                endpoint_url: "http://127.0.0.1:9000/whip".into(),
                 video: Some(VideoCodec::H264),
                 audio: None,
             }),
@@ -141,20 +137,19 @@ fn client_code() -> Result<()> {
             audio: None,
         },
         video: Some(OutputVideoOptions {
-          initial: Component::Tiles(TilesComponent {
-              id: Some(ComponentId("tiles".into())),
-              padding: 5.0,
-              background_color: RGBAColor(0x44, 0x44, 0x44, 0xff),
-              children: Vec::new(),
-              width: None,
-              height: None,
-              margin: 0.0,
-              transition: None,
-              vertical_align: VerticalAlign::Center,
-              horizontal_align: HorizontalAlign::Center,
-              tile_aspect_ratio: (16, 9),
-          }),
-
+            initial: Component::Tiles(TilesComponent {
+                id: Some(ComponentId("tiles".into())),
+                padding: 5.0,
+                background_color: RGBAColor(0x44, 0x44, 0x44, 0xff),
+                children: Vec::new(),
+                width: None,
+                height: None,
+                margin: 0.0,
+                transition: None,
+                vertical_align: VerticalAlign::Center,
+                horizontal_align: HorizontalAlign::Center,
+                tile_aspect_ratio: (16, 9),
+            }),
 
             end_condition: PipelineOutputEndCondition::Never,
         }),
@@ -169,12 +164,7 @@ fn client_code() -> Result<()> {
 
     Pipeline::start(&pipeline);
 
-    start_ffmpeg_send(
-        IP,
-        Some(INPUT_PORT),
-        None,
-        TestSample::BigBuckBunny,
-    )?;
+    start_ffmpeg_send(IP, Some(INPUT_PORT), None, TestSample::BigBuckBunny)?;
 
     let event_loop_fallback = || {
         let mut signals = Signals::new([consts::SIGINT]).unwrap();

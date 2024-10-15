@@ -219,7 +219,6 @@ impl TryFrom<WhipOutput> for pipeline::RegisterOutputOptions<output::OutputOptio
             None => (None, None),
         };
 
-
         let pipeline::rtp::RequestedPort::Exact(port) = port.try_into()? else {
             return Err(TypeError::new(
                 "Port range can not be used with UDP output stream (transport_protocol=\"udp\").",
@@ -234,7 +233,6 @@ impl TryFrom<WhipOutput> for pipeline::RegisterOutputOptions<output::OutputOptio
             port: pipeline::Port(port),
             ip,
         };
-            
 
         let output_options = output::OutputOptions {
             output_protocol: output::OutputProtocolOptions::Whip(output::whip::WhipSenderOptions {
