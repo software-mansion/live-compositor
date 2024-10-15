@@ -22,9 +22,10 @@
     "examples/vite-browser-render",
     "create-live-compositor",
     "create-live-compositor/templates/node-minimal",
-    "create-live-compositor/templates/node-express-redux"
+    "create-live-compositor/templates/node-express-zustand"
   ],
   "devDependencies": {
+    "@eslint/plugin-kit": "^0.2.0",
     "@typescript-eslint/eslint-plugin": "^7.16.0",
     "@typescript-eslint/parser": "^7.18.0",
     "concurrently": "^9.0.1",

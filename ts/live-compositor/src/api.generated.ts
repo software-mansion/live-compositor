@@ -192,7 +192,7 @@ export type VideoEncoderOptions = {
   /**
    * (**default=`"fast"`**) Preset for an encoder. See `FFmpeg` [docs](https://trac.ffmpeg.org/wiki/Encode/H.264#Preset) to learn more.
    */
-  preset: H264EncoderPreset;
+  preset?: H264EncoderPreset | null;
   /**
    * Raw FFmpeg encoder options. See [docs](https://ffmpeg.org/ffmpeg-codecs.html) for more.
    */

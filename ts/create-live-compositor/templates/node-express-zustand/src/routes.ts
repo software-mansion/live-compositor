@@ -1,6 +1,6 @@
 import express, { json } from 'express';
 import { Compositor } from './compositor';
-import { showInstructionsSlice, store } from './store';
+import { store } from './store';
 
 export const app = express();
 
@@ -17,6 +17,6 @@ app.post('/add-stream', async (req, res) => {
 
 // curl -XPOST 'http://localhost:3000/toggle-instructions'
 app.post('/toggle-instructions', async (_req, res) => {
-  store.dispatch(showInstructionsSlice.actions.toggle());
+  store.getState().toggleInstructions();
   res.send({});
 });
