@@ -1,9 +1,5 @@
 import * as Api from '../api.js';
 
-export type RegisterInput =
-  | ({ type: 'rtp_stream' } & RegisterRtpInput)
-  | ({ type: 'mp4' } & RegisterMp4Input);
-
 export type RegisterRtpInput = {
   /**
    * UDP port or port range on which the compositor should listen for the stream.
