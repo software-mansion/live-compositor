@@ -61,6 +61,7 @@ declare module 'mp4box' {
   }
 
   export interface Sample {
+    number: number;
     timescale: number;
     data: ArrayBuffer;
     size: number;
@@ -83,6 +84,7 @@ declare module 'mp4box' {
 
   export class TrakBox extends Box {
     mdia: MdiaBox;
+    samples: Sample[];
   }
 
   export class MdiaBox extends Box {

@@ -1,16 +1,17 @@
-import MP4Box, { DataStream, MP4ArrayBuffer, MP4File, MP4Info, Sample } from 'mp4box';
+import MP4Box, { DataStream, MP4ArrayBuffer, MP4File, MP4Info, Sample, TrakBox } from 'mp4box';
+import { VideoPayload } from '../payload';
 
 export type OnConfig = (config: VideoDecoderConfig) => void;
-
-export type OnChunk = (chunk: EncodedVideoChunk) => void;
+export type OnPayload = (payload: VideoPayload) => void;
 
 export class MP4Demuxer {
   private file: MP4File;
   private fileOffset: number;
   private onConfig: OnConfig;
-  private onChunk: OnChunk;
+  private onPayload: OnPayload;
+  private samplesCount?: number;
 
-  public constructor(props: { onConfig: OnConfig; onChunk: OnChunk }) {
+  public constructor(props: { onConfig: OnConfig; onPayload: OnPayload }) {
     this.file = MP4Box.createFile();
     this.file.onReady = info => this.onReady(info);
     this.file.onSamples = (_id, _user, samples) => this.onSamples(samples);
@@ -20,7 +21,7 @@ export class MP4Demuxer {
     this.fileOffset = 0;
 
     this.onConfig = props.onConfig;
-    this.onChunk = props.onChunk;
+    this.onPayload = props.onPayload;
   }
 
   public demux(data: ArrayBuffer) {
@@ -41,7 +42,12 @@ export class MP4Demuxer {
     }
 
     const videoTrack = info.videoTracks[0];
-    const codecDescription = this.getCodecDescription(videoTrack.id);
+    const trakBox = this.file.getTrackById(videoTrack.id);
+    if (!trakBox) {
+      throw 'Track does not exist';
+    }
+
+    const codecDescription = this.getCodecDescription(trakBox);
     this.onConfig({
       codec: videoTrack.codec,
       codedWidth: videoTrack.video.width,
@@ -49,6 +55,7 @@ export class MP4Demuxer {
       description: codecDescription,
     });
 
+    this.samplesCount = trakBox.samples.length;
     this.file.setExtractionOptions(videoTrack.id);
     this.file.start();
   }
@@ -62,16 +69,14 @@ export class MP4Demuxer {
         data: sample.data,
       });
 
-      this.onChunk(chunk);
+      this.onPayload({ type: 'chunk', chunk: chunk });
+      if (sample.number == this.samplesCount! - 1) {
+        this.onPayload({ type: 'eos' });
+      }
     }
   }
 
-  private getCodecDescription(trackId: number): Uint8Array {
-    const trak = this.file.getTrackById(trackId);
-    if (!trak) {
-      throw 'Track does not exist';
-    }
-
+  private getCodecDescription(trak: TrakBox): Uint8Array {
     for (const entry of trak.mdia.minf.stbl.stsd.entries) {
       const box = entry.avcC || entry.hvcC || entry.vpcC || entry.av1C;
       if (box) {
