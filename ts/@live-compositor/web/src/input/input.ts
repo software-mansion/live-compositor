@@ -45,7 +45,7 @@ export class Input {
     }
 
     this.decoder = new H264Decoder({
-      maxDecodedFrames: 1000,
+      maxDecodedFrames: 5,
     });
 
     this.source.registerCallbacks({
@@ -87,6 +87,14 @@ export class Input {
   }
 
   public async getFrame(queuePtsMs: number): Promise<InputFrame | undefined> {
+    // TODO(noituri): This is whacky
+    if (this.state == 'buffering' && this.decoder.isBufferFull()) {
+      this.state = 'playing';
+      this.eventSender.sendEvent({
+        type: CompositorEventType.VIDEO_INPUT_PLAYING,
+        inputId: this.id,
+      });
+    }
     if (this.state != 'playing') {
       return;
     }
