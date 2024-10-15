@@ -1,6 +1,7 @@
 import globals from 'globals';
 
 import eslintRecommended from '@eslint/js';
+import eslintConfigPrettier from 'eslint-config-prettier';
 
 import pluginImport from 'eslint-plugin-import';
 import pluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
@@ -14,6 +15,7 @@ export default [
   eslintRecommended.configs.recommended,
   pluginImport.flatConfigs.recommended,
   pluginPrettierRecommended,
+  eslintConfigPrettier,
   {
     files: ['**/*.{js,jsx,ts,tsx}'],
     ignores: ['.prettierrc.js'],
