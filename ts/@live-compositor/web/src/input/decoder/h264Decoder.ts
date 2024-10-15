@@ -1,25 +1,18 @@
-import { Queue } from '@datastructures-js/queue';
-import { VideoPayload } from '../payload';
 import { InputFrame } from '../input';
 import { FrameFormat } from '@live-compositor/browser-render';
-import Decoder from './decoder';
+import Decoder, { DecoderCallbacks } from './decoder';
 
 export class H264Decoder implements Decoder {
-  private decodeQueue: Queue<VideoPayload>;
-  private frames: Queue<VideoFrame>;
   private decoder: VideoDecoder;
   private ptsOffset?: number;
   private frameFormat: VideoPixelFormat;
-  private maxDecodedFrames: number;
-  private eosReceived: boolean = false;
+  private decoderClosed: boolean = false;
+  private callbacks?: DecoderCallbacks;
 
-  public constructor(options: { maxDecodedFrames: number }) {
-    this.decodeQueue = new Queue();
-    this.frames = new Queue();
+  public constructor() {
     this.decoder = new VideoDecoder({
-      output: frame => {
-        this.frames.push(frame);
-      },
+      output: async frame =>
+        this.callbacks?.onPayload({ type: 'frame', data: await this.intoInputFrame(frame) }),
       error: error => {
         console.error(`MP4Decoder error: ${error}`);
       },
@@ -29,32 +22,47 @@ export class H264Decoder implements Decoder {
     // Chrome does not support conversion to YUV
     const isSafari = !!(window as any).safari;
     this.frameFormat = isSafari ? 'I420' : 'RGBA';
-    this.maxDecodedFrames = options.maxDecodedFrames;
   }
 
   public configure(config: VideoDecoderConfig): void {
     this.decoder.configure(config);
   }
 
-  public enqueue(payload: VideoPayload): void {
-    if (this.eosReceived) {
+  public registerCallbacks(callbacks: DecoderCallbacks): void {
+    this.callbacks = callbacks;
+  }
+
+  public enqueue(chunk: EncodedVideoChunk): void {
+    if (this.decoderClosed) {
       console.warn('Already closed decoder received payload');
     }
 
-    this.decodeQueue.push(payload);
-    this.decodeChunks();
+    this.decoder.decode(chunk);
+  }
+
+  public isClosed(): boolean {
+    return this.decoderClosed;
+  }
+
+  public async close(): Promise<void> {
+    if (this.decoderClosed) {
+      console.warn('Decoder already closed');
+      return;
+    }
+
+    this.decoderClosed = true;
+    await this.decoder.flush();
+    this.decoder.close();
+  }
+
+  public decodeQueueSize(): number {
+    return this.decoder.decodeQueueSize;
   }
 
   /**
    * Returns decoded video frames. Frames have to be manually freed from memory
    */
-  public async getFrame(): Promise<InputFrame | undefined> {
-    this.decodeChunks();
-    const frame = this.frames.pop();
-    if (!frame) {
-      return undefined;
-    }
-
+  private async intoInputFrame(frame: VideoFrame): Promise<InputFrame> {
     const currentPts = frame.timestamp / 1000;
     if (!this.ptsOffset) {
       this.ptsOffset = -currentPts;
@@ -77,39 +85,5 @@ export class H264Decoder implements Decoder {
       ptsMs: currentPts + this.ptsOffset!,
       free: () => frame.close(),
     };
-  }
-
-  /**
-   * Returns `true` when all of the decoder's work has finished
-   */
-  public isFinished(): boolean {
-    return this.frames.isEmpty() && this.decoder.decodeQueueSize == 0 && this.eosReceived;
-  }
-
-  public isBufferFull(): boolean {
-    return this.frames.size() >= this.maxDecodedFrames;
-  }
-
-  private decodeChunks() {
-    while (
-      this.frames.size() < this.maxDecodedFrames &&
-      this.decoder.decodeQueueSize < this.maxDecodedFrames
-    ) {
-      const payload = this.decodeQueue.pop();
-      if (!payload) {
-        break;
-      }
-
-      if (this.eosReceived) {
-        console.warn(payload);
-      }
-
-      if (payload.type == 'chunk') {
-        this.decoder.decode(payload.chunk);
-      } else if (payload.type == 'eos') {
-        this.eosReceived = true;
-        void this.decoder.flush().then(() => this.decoder.close());
-      }
-    }
   }
 }

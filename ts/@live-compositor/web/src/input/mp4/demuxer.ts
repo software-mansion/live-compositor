@@ -1,8 +1,7 @@
 import MP4Box, { DataStream, MP4ArrayBuffer, MP4File, MP4Info, Sample, TrakBox } from 'mp4box';
-import { VideoPayload } from '../payload';
+import { OnPayload } from '../payload';
 
 export type OnConfig = (config: VideoDecoderConfig) => void;
-export type OnPayload = (payload: VideoPayload) => void;
 
 export class MP4Demuxer {
   private file: MP4File;
@@ -69,7 +68,7 @@ export class MP4Demuxer {
         data: sample.data,
       });
 
-      this.onPayload({ type: 'chunk', chunk: chunk });
+      this.onPayload({ type: 'chunk', data: chunk });
       if (sample.number == this.samplesCount! - 1) {
         this.onPayload({ type: 'eos' });
       }
