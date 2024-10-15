@@ -7,8 +7,9 @@ use crate::{scene::RGBAColor, wgpu::WgpuCtx};
 pub(super) struct LayoutNodeParams {
     pub(super) transform_vertices_matrix: Mat4,
     pub(super) transform_texture_coords_matrix: Mat4,
-    pub(super) is_texture: u32,
     pub(super) background_color: RGBAColor,
+    pub(super) is_texture: u32,
+    pub(super) layout_resolution: [f32; 2],
 }
 
 impl Default for LayoutNodeParams {
@@ -90,21 +91,24 @@ impl ParamsBuffer {
         params
             .iter()
             .map(LayoutNodeParams::shader_buffer_content)
-            .collect::<Vec<[u8; 160]>>()
+            .collect::<Vec<[u8; LAYOUT_STRUCT_SIZE]>>()
             .concat()
             .into()
     }
 }
 
+const LAYOUT_STRUCT_SIZE: usize = 160;
+
 impl LayoutNodeParams {
-    fn shader_buffer_content(&self) -> [u8; 160] {
+    fn shader_buffer_content(&self) -> [u8; LAYOUT_STRUCT_SIZE] {
         let Self {
             transform_vertices_matrix,
             transform_texture_coords_matrix,
-            is_texture,
             background_color,
+            is_texture,
+            layout_resolution,
         } = self;
-        let mut result = [0; 160];
+        let mut result = [0; LAYOUT_STRUCT_SIZE];
         fn from_u8_color(value: u8) -> [u8; 4] {
             (value as f32 / 255.0).to_ne_bytes()
         }
@@ -120,6 +124,8 @@ impl LayoutNodeParams {
 
         result[144..148].copy_from_slice(&is_texture.to_ne_bytes());
         // 12 bytes padding
+        result[152..156].copy_from_slice(&layout_resolution[0].to_ne_bytes());
+        result[156..160].copy_from_slice(&layout_resolution[1].to_ne_bytes());
 
         result
     }
