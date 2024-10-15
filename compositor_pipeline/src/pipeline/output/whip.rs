@@ -3,7 +3,7 @@ use crossbeam_channel::Receiver;
 use payloader::DataKind;
 use reqwest::Url;
 use std::sync::{atomic::AtomicBool, Arc};
-use tracing::{debug, error, info, span, Level};
+use tracing::{debug, error, info, span, warn, Level};
 use webrtc::{
     api::{
         interceptor_registry::register_default_interceptors,
@@ -26,7 +26,10 @@ use webrtc::{
 use crate::{
     error::OutputInitError,
     event::Event,
-    pipeline::{output::rtp::RtpConnectionOptions, types::EncoderOutputEvent, AudioCodec, PipelineCtx, VideoCodec},
+    pipeline::{
+        types::EncoderOutputEvent, AudioCodec, PipelineCtx,
+        VideoCodec,
+    },
 };
 
 use self::{packet_stream::PacketStream, payloader::Payloader};
@@ -46,13 +49,6 @@ mod payloader;
 #[derive(Debug)]
 pub struct WhipSender {
     pub connection_options: WhipSenderOptions,
-    /// should_close will be set after output is unregistered,
-    /// but the primary way of controlling the shutdown is a channel
-    /// receiver.
-    ///
-    /// RtpSender should be explicitly closed based on this value
-    /// only if TCP connection is disconnected or writes hang for a
-    /// long time.
     should_close: Arc<AtomicBool>,
 }
 
@@ -100,8 +96,7 @@ impl WhipSender {
         Ok(Self {
             connection_options: options,
             should_close,
-        },
-)
+        })
     }
 }
 
@@ -112,23 +107,26 @@ impl Drop for WhipSender {
     }
 }
 
-
 fn start_whip_sender_thread(
     endpoint_url: String,
     should_close: Arc<AtomicBool>,
     packet_stream: PacketStream,
 ) {
     info!("start_whip_sender");
-    let runtime = tokio::runtime::Runtime::new().unwrap();
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    let rt_handle = rt.handle().clone();
 
-    runtime.spawn(async move {
+    rt_handle.block_on(async {
         info!("starting init");
         let (peer_connection, video_track, audio_track) = init_pc().await;
         info!("init done");
-        connect(peer_connection, endpoint_url, should_close).await;
+        connect(peer_connection, endpoint_url, should_close, rt).await;
 
+
+        
         for chunk in packet_stream {
-        //     println!("{:?}", chunk.unwrap().data);
+            // println!("{:?}", chunk.unwrap().data);
+                // println!("{:?}", chunk.unwrap().data);
             // let chunk = match chunk {
             //     Ok(chunk) => chunk,
             //     Err(err) => {
@@ -144,13 +142,15 @@ fn start_whip_sender_thread(
             //         }
             //     }
             //     DataKind::Video => {
-                    if let Err(_) = video_track.write(&chunk.unwrap().data).await {
-                        error!("Error occurred while writing to video track for session");
-                    }
-                // }
+            if let Err(_) = video_track.write(&chunk.unwrap().data).await {
+                error!("Error occurred while writing to video track for session");
+            }
             // }
-        }
+            // }
+        };
+        
     });
+    info!("spawned");
 }
 
 async fn init_pc() -> (
@@ -238,6 +238,7 @@ async fn connect(
     peer_connection: Arc<RTCPeerConnection>,
     endpoint_url: String,
     should_close: Arc<AtomicBool>,
+    rt:   tokio::runtime::Runtime
 ) {
     let (done_tx, mut done_rx) = std::sync::mpsc::channel::<()>();
 
@@ -257,6 +258,8 @@ async fn connect(
     let offer = peer_connection.create_offer(None).await.unwrap();
     let client = reqwest::Client::new();
 
+    warn!("{}", endpoint_url);
+
     let response = client
         .post(endpoint_url)
         .header("Content-Type", "application/sdp")
@@ -265,7 +268,7 @@ async fn connect(
         .await
         .unwrap();
 
-    println!(">>>>>>>> response: {:?}", &response);
+    warn!(">>>>>>>> response: {:?}", &response);
 
     let location = Url::try_from(
         response
@@ -277,7 +280,7 @@ async fn connect(
     )
     .unwrap();
 
-    println!("{:?}", location);
+    warn!("{}", location);
 
     let answer = response.bytes().await.unwrap();
     let _ = peer_connection.set_local_description(offer).await.unwrap();
@@ -296,8 +299,7 @@ async fn connect(
         if let Some(candidate) = candidate {
             let client_clone = client.clone();
             let location_clone = location.clone();
-            let runtime = tokio::runtime::Runtime::new().unwrap();
-            runtime.spawn(async move {
+            rt.spawn(async move {
                 let ice_candidate = candidate.to_json().unwrap();
                 let patch_response = client_clone
                     .patch(location_clone)

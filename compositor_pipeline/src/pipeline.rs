@@ -491,9 +491,6 @@ fn run_renderer_thread(
                 warn!(?output_id, "Received new frame from renderer after EOS.");
                 continue;
             };
-            println!("frame_sender empty: {:?}", frame_sender.is_empty());
-            println!("{:?}", frame);
-            println!("{:?}", PipelineEvent::Data(frame.clone()));
 
             if frame_sender.send(PipelineEvent::Data(frame)).is_err() {
                 warn!(?output_id, "Failed to send output frames. Channel closed.");
