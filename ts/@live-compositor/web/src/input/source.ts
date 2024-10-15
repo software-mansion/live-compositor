@@ -1,6 +1,14 @@
-import { InputFrame } from './input';
+import { VideoPayload } from './payload';
 
+export type SourceCallbacks = {
+  onDecoderConfig: (config: VideoDecoderConfig) => void;
+  onPayload: (payload: VideoPayload) => void;
+};
+
+/**
+ * Represents `EncodedVideoChunk` producer
+ */
 export default interface InputSource {
   start(): Promise<void>;
-  getFrame(): Promise<InputFrame | undefined>;
+  registerCallbacks(callbacks: SourceCallbacks): void;
 }

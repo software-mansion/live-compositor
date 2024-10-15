@@ -10,19 +10,19 @@ export class Queue {
   private outputs: Record<OutputId, Output> = {};
   private renderer: Renderer;
   private framerate: Framerate;
-  private currentPts: number;
+  private currentPtsMs: number;
 
   public constructor(framerate: Framerate, renderer: Renderer) {
     this.renderer = renderer;
     this.framerate = framerate;
-    this.currentPts = 0;
+    this.currentPtsMs = 0;
   }
 
   public start(): StopQueueFn {
     const tickDuration = (1000 * this.framerate.den) / this.framerate.num;
     const queueInterval = setInterval(async () => {
       await this.onTick();
-      this.currentPts += tickDuration;
+      this.currentPtsMs += tickDuration;
     }, tickDuration);
 
     return () => clearInterval(queueInterval);
@@ -55,7 +55,7 @@ export class Queue {
   private async onTick() {
     const inputs = await this.getInputFrames();
     const outputs = this.renderer.render({
-      ptsMs: this.currentPts,
+      ptsMs: this.currentPtsMs,
       frames: inputs,
     });
     this.sendOutputs(outputs);
@@ -68,7 +68,7 @@ export class Queue {
   private async getInputFrames(): Promise<Record<InputId, InputFrame>> {
     const pendingFrames = Object.entries(this.inputs).map(async ([inputId, input]) => [
       inputId,
-      await input.getFrame(),
+      await input.getFrame(this.currentPtsMs),
     ]);
     const frames = await Promise.all(pendingFrames);
     return Object.fromEntries(frames.filter(([_inputId, frame]) => !!frame));

@@ -29,12 +29,24 @@ function Scene() {
   const inputs = useInputStreams();
   const inputState = inputs['bunny_video']?.videoState;
 
-  if (inputState !== 'playing') {
+  if (inputState === 'ready') {
     return (
       <View backgroundColor="#000000">
-        <View width={530} height={40} bottom={300} left={500}>
+        <View width={530} height={40} bottom={350} left={500}>
           <Text fontSize={30} fontFamily="Noto Sans">
             Loading MP4 file
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (inputState === 'finished') {
+    return (
+      <View backgroundColor="#000000">
+        <View width={530} height={40} bottom={350} left={600}>
+          <Text fontSize={30} fontFamily="Noto Sans">
+            End
           </Text>
         </View>
       </View>
