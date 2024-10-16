@@ -1,5 +1,5 @@
 import { Api } from 'live-compositor';
-import { CompositorManager } from './compositorManager.js';
+import type { CompositorManager } from './compositorManager.js';
 
 export { Api };
 

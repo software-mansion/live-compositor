@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from 'react';
 import { useRenderer } from './utils';
 

@@ -1,5 +1,5 @@
-import React from 'react';
-import * as Api from '../api.js';
+import type React from 'react';
+import type * as Api from '../api.js';
 
 export type RegisterOutput =
   | ({ type: 'rtp_stream' } & RegisterRtpOutput)

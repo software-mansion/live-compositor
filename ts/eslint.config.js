@@ -49,7 +49,8 @@ export default [
       '@typescript-eslint/no-explicit-any': [0, {}],
       '@typescript-eslint/no-floating-promises': ['error'],
       'no-constant-condition': [0],
-      'no-unused-vars': [
+      'no-unused-vars': 'off',
+      '@typescript-eslint/no-unused-vars': [
         'error',
         {
           args: 'all',
@@ -59,6 +60,13 @@ export default [
           destructuredArrayIgnorePattern: '^_',
           varsIgnorePattern: '^_',
           ignoreRestSiblings: true,
+          vars: 'local',
+        },
+      ],
+      '@typescript-eslint/consistent-type-imports': [
+        'error',
+        {
+          prefer: 'type-imports',
         },
       ],
     },
@@ -75,12 +83,6 @@ export default [
     },
   },
   {
-    ignores: [
-      '**/dist/**/*',
-      '**/cjs/**/*',
-      '**/esm/**/*',
-      '**/generated/**/*',
-      'create-live-compositor/templates/**/*',
-    ],
+    ignores: ['**/dist/**/*', '**/cjs/**/*', '**/esm/**/*', '**/generated/**/*', '**/*.d.ts'],
   },
 ];

@@ -1,5 +1,6 @@
 import { constants } from 'os';
-import prompts, { Answers, Options, Choice as PromptChoice, PromptObject } from 'prompts';
+import type { Answers, Options, Choice as PromptChoice, PromptObject } from 'prompts';
+import { prompt } from 'prompts';
 
 export interface Choice<T> extends PromptChoice {
   value: T;
@@ -9,7 +10,7 @@ async function promptWrapper<T extends string = string>(
   questions: PromptObject<T> | Array<PromptObject<T>>,
   options?: Options
 ): Promise<Answers<T>> {
-  return await prompts<T>(questions, {
+  return await prompt(questions, {
     onCancel() {
       process.exit(constants.signals.SIGINT + 128); // Exit code 130 used when process is interrupted with ctrl+c.
     },

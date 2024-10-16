@@ -1,4 +1,4 @@
-import { RegisterOutput, Api, Outputs } from 'live-compositor';
+import type { RegisterOutput, Api, Outputs } from 'live-compositor';
 
 export function intoRegisterOutput(
   output: RegisterOutput,
