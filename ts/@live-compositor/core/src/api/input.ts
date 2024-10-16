@@ -1,5 +1,5 @@
-import { Api } from '../api.js';
-import { RegisterInput, Inputs } from 'live-compositor';
+import type { Api } from '../api.js';
+import type { RegisterInput, Inputs } from 'live-compositor';
 
 export function intoRegisterInput(input: RegisterInput): Api.RegisterInput {
   if (input.type === 'mp4') {

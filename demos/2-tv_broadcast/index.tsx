@@ -2,16 +2,8 @@ import { ffmpegSendVideoFromMp4 } from '../utils/ffmpeg';
 import { downloadAsync } from '../utils/utils';
 import fs from 'fs-extra';
 import path from 'path';
-import {
-  View,
-  Image,
-  Text,
-  Rescaler,
-  Shader,
-  InputStream,
-  Transition,
-  useInputStreams,
-} from 'live-compositor';
+import type { Transition } from 'live-compositor';
+import { View, Image, Text, Rescaler, Shader, InputStream, useInputStreams } from 'live-compositor';
 import LiveCompositor from '@live-compositor/node';
 import { useEffect, useState } from 'react';
 import { gstStartPlayer } from '../utils/gst';

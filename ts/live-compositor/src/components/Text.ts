@@ -1,5 +1,6 @@
-import * as Api from '../api.js';
-import { createCompositorComponent, SceneComponent } from '../component.js';
+import type * as Api from '../api.js';
+import type { SceneComponent } from '../component.js';
+import { createCompositorComponent } from '../component.js';
 import { intoApiRgbaColor } from './common.js';
 
 export type TextProps = {

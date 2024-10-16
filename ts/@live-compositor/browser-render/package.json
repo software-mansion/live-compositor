@@ -9,7 +9,7 @@
     "build-wasm": "node ./scripts/buildWasm.mjs",
     "build": "rollup -c",
     "clean": "rimraf dist",
-    "prepublishOnly": "npm run clean && npm run build-wasm && npm run build"
+    "prepublishOnly": "pnpm run clean && pnpm run build-wasm && pnpm run build"
   },
   "author": "",
   "license": "BUSL-1.1",

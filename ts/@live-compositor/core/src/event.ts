@@ -1,4 +1,5 @@
-import { _liveCompositorInternals, CompositorEvent, CompositorEventType } from 'live-compositor';
+import type { _liveCompositorInternals, CompositorEvent } from 'live-compositor';
+import { CompositorEventType } from 'live-compositor';
 
 type InstanceContextStore = _liveCompositorInternals.InstanceContextStore;
 

@@ -1,4 +1,4 @@
-import { ApiRequest, CompositorManager } from '@live-compositor/core';
+import type { ApiRequest, CompositorManager } from '@live-compositor/core';
 
 import { sendRequest } from '../fetch';
 import { retry, sleep } from '../utils';

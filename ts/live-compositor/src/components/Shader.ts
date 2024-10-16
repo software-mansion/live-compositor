@@ -1,5 +1,6 @@
-import * as Api from '../api.js';
-import { createCompositorComponent, SceneComponent, sceneComponentIntoApi } from '../component.js';
+import type * as Api from '../api.js';
+import type { SceneComponent } from '../component.js';
+import { createCompositorComponent, sceneComponentIntoApi } from '../component.js';
 
 export type ShaderProps = {
   /**

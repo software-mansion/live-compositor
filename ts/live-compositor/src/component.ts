@@ -1,5 +1,5 @@
 import React, { useId } from 'react';
-import * as Api from './api.js';
+import type * as Api from './api.js';
 
 type ComponentProps<P> = { children?: React.ReactNode; id?: Api.ComponentId } & P;
 

@@ -1,6 +1,7 @@
 import path from 'path';
 import fs from 'fs-extra';
-import { ChildProcess, spawn as nodeSpawn } from 'child_process';
+import type { ChildProcess } from 'child_process';
+import { spawn as nodeSpawn } from 'child_process';
 import { promisify } from 'util';
 import { Stream } from 'stream';
 import fetch from 'node-fetch';

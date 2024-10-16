@@ -1,4 +1,4 @@
-import { ProjectOptions } from './options';
+import type { ProjectOptions } from './options';
 import { ensureProjectDir } from './utils/workingdir';
 import { runPackageManagerInstall } from './utils/packageManager';
 import { applyTemplate } from './template';

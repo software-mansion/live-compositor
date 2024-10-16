@@ -1,4 +1,5 @@
-import { ChildProcess, SpawnOptions, spawn as nodeSpawn } from 'child_process';
+import type { ChildProcess, SpawnOptions } from 'child_process';
+import { spawn as nodeSpawn } from 'child_process';
 
 export interface SpawnPromise extends Promise<void> {
   child: ChildProcess;

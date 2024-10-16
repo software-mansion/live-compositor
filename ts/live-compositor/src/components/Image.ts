@@ -1,5 +1,6 @@
-import * as Api from '../api.js';
-import { createCompositorComponent, SceneComponent } from '../component.js';
+import type * as Api from '../api.js';
+import type { SceneComponent } from '../component.js';
+import { createCompositorComponent } from '../component.js';
 
 export type ImageProps = {
   children?: undefined;
