@@ -63,6 +63,12 @@ export default [
           vars: 'local',
         },
       ],
+      '@typescript-eslint/consistent-type-imports': [
+        'error',
+        {
+          prefer: 'type-imports',
+        },
+      ],
     },
   },
   {
