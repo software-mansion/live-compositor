@@ -1,14 +1,14 @@
-use compositor_pipeline::{
-    pipeline::{GraphicsContext, Options},
-    Pipeline,
-};
-use live_compositor::config::read_config;
-
 // This example illustrates how to initialize a GraphicsContext separately to get access to a wgpu
 // instance, adapter, queue and device.
 
 #[cfg(target_os = "linux")]
 fn main() {
+    use compositor_pipeline::{
+        pipeline::{GraphicsContext, Options},
+        Pipeline,
+    };
+    use live_compositor::config::read_config;
+
     let graphics_context =
         GraphicsContext::new(false, wgpu::Features::default(), wgpu::Limits::default()).unwrap();
 

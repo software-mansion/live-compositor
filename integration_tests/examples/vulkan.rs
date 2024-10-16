@@ -1,60 +1,9 @@
 use anyhow::Result;
-use compositor_api::types::Resolution;
-use compositor_pipeline::{
-    pipeline::{
-        decoder::VideoDecoderOptions,
-        encoder::{
-            ffmpeg_h264::{EncoderPreset, Options as H264Options},
-            VideoEncoderOptions,
-        },
-        input::{
-            rtp::{InputVideoStream, RtpReceiverOptions, RtpStream},
-            InputOptions,
-        },
-        output::{
-            rtp::{RtpConnectionOptions, RtpSenderOptions},
-            OutputOptions, OutputProtocolOptions,
-        },
-        rtp::{RequestedPort, TransportProtocol},
-        Options, OutputVideoOptions, PipelineOutputEndCondition, Port, RegisterInputOptions,
-        RegisterOutputOptions, VideoCodec, VideoDecoder,
-    },
-    queue::QueueInputOptions,
-    Pipeline,
-};
-use compositor_render::{
-    error::ErrorStack,
-    scene::{
-        Component, ComponentId, HorizontalAlign, InputStreamComponent, RGBAColor, TilesComponent,
-        VerticalAlign,
-    },
-    InputId, OutputId,
-};
+use integration_tests::examples::download_all_assets;
 use live_compositor::{
-    config::{read_config, LoggerConfig, LoggerFormat},
+    config::{LoggerConfig, LoggerFormat},
     logger::{self, FfmpegLogLevel},
 };
-use signal_hook::{consts, iterator::Signals};
-use std::{
-    sync::{Arc, Mutex},
-    time::Duration,
-};
-
-use integration_tests::{
-    examples::{download_all_assets, TestSample},
-    ffmpeg::{start_ffmpeg_receive, start_ffmpeg_send},
-};
-
-const VIDEO_RESOLUTION: Resolution = Resolution {
-    width: 1280,
-    height: 720,
-};
-
-const IP: &str = "127.0.0.1";
-const INPUT_PORT: u16 = 8002;
-const OUTPUT_PORT: u16 = 8004;
-
-const VIDEOS: u16 = 6;
 
 fn main() {
     ffmpeg_next::format::network::init();
@@ -69,7 +18,66 @@ fn main() {
     client_code().unwrap();
 }
 
+#[cfg(target_os = "macos")]
 fn client_code() -> Result<()> {
+    panic!("Your OS does not support vulkan");
+}
+
+#[cfg(target_os = "linux")]
+fn client_code() -> Result<()> {
+    use compositor_api::types::Resolution;
+    use compositor_pipeline::{
+        pipeline::{
+            decoder::VideoDecoderOptions,
+            encoder::{
+                ffmpeg_h264::{EncoderPreset, Options as H264Options},
+                VideoEncoderOptions,
+            },
+            input::{
+                rtp::{InputVideoStream, RtpReceiverOptions, RtpStream},
+                InputOptions,
+            },
+            output::{
+                rtp::{RtpConnectionOptions, RtpSenderOptions},
+                OutputOptions, OutputProtocolOptions,
+            },
+            rtp::{RequestedPort, TransportProtocol},
+            Options, OutputVideoOptions, PipelineOutputEndCondition, Port, RegisterInputOptions,
+            RegisterOutputOptions, VideoCodec, VideoDecoder,
+        },
+        queue::QueueInputOptions,
+        Pipeline,
+    };
+    use compositor_render::{
+        error::ErrorStack,
+        scene::{
+            Component, ComponentId, HorizontalAlign, InputStreamComponent, RGBAColor,
+            TilesComponent, VerticalAlign,
+        },
+        InputId, OutputId,
+    };
+    use live_compositor::config::read_config;
+    use signal_hook::{consts, iterator::Signals};
+    use std::{
+        sync::{Arc, Mutex},
+        time::Duration,
+    };
+
+    use integration_tests::{
+        examples::TestSample,
+        ffmpeg::{start_ffmpeg_receive, start_ffmpeg_send},
+    };
+
+    const VIDEO_RESOLUTION: Resolution = Resolution {
+        width: 1280,
+        height: 720,
+    };
+
+    const IP: &str = "127.0.0.1";
+    const INPUT_PORT: u16 = 8002;
+    const OUTPUT_PORT: u16 = 8004;
+
+    const VIDEOS: u16 = 6;
     start_ffmpeg_receive(Some(OUTPUT_PORT), None)?;
 
     let config = read_config();
