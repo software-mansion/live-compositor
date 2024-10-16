@@ -17,7 +17,9 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@eslint/config-array": "^0.18.0",
     "@eslint/js": "^9.9.0",
+    "@humanwhocodes/retry": "^0.3.1",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",

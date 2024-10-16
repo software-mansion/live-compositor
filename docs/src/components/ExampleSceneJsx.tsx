@@ -21,16 +21,13 @@ function Example() {
       <Rescaler top={20} left={20} width={640} height={360}>
         <InputStream inputId="bunny" />
       </Rescaler>
-      <View
-        bottom={0}
-        left={0}
-        height={120}
-        backgroundColor="#B3B3B3">
+      <View style={{ bottom: 0, left: 0, height: 120, backgroundColor: '#B3B3B3' }}>
         <View />
         <Text fontSize={100} weight="bold" color="#000000">
           LiveCompositor 😃😍
         </Text>
         <View />
+      </View>
       </View>
     </View>
   );
