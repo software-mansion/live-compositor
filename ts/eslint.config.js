@@ -45,6 +45,7 @@ export default [
     },
     rules: {
       'prettier/prettier': ['error'],
+      'import/no-unresolved': 'error',
       '@typescript-eslint/no-explicit-any': [0, {}],
       '@typescript-eslint/no-floating-promises': ['error'],
       'no-constant-condition': [0],

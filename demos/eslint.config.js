@@ -1,38 +1,12 @@
-// {
-//   "env": {
-//     "node": true
-//   },
-//   "extends": [
-//     "eslint:recommended",
-//     "plugin:@typescript-eslint/eslint-recommended",
-//     "plugin:@typescript-eslint/recommended",
-//     "plugin:import/recommended",
-//     "plugin:import/typescript",
-//     "prettier"
-//   ],
-//   "plugins": [
-//     "prettier"
-//   ],
-//   "parser": "@typescript-eslint/parser",
-//   "parserOptions": {
-//     "project": [
-//       "tsconfig.json"
-//     ]
-//   },
-//   "rules": {
-//     "prettier/prettier": ["error"],
-//     "@typescript-eslint/no-explicit-any": [0, {}],
-//     "@typescript-eslint/no-floating-promises": "error",
-//     "no-constant-condition": [0]
-//   }
-// }
+import globals from 'globals';
+
 import eslintRecommended from '@eslint/js';
 import eslintConfigPrettier from 'eslint-config-prettier';
 
 import pluginImport from 'eslint-plugin-import';
 import pluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
 import { plugin as tsEslintPlugin } from 'typescript-eslint';
-
+import reactHooks from 'eslint-plugin-react-hooks';
 import tsParser from '@typescript-eslint/parser';
 
 export default [
@@ -51,6 +25,12 @@ export default [
       parserOptions: {
         project: 'tsconfig.json',
       },
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+      },
     },
     settings: {
       'import/parsers': {
@@ -59,15 +39,40 @@ export default [
       'import/resolver': {
         typescript: {
           alwaysTryTypes: true,
-          project: '**/tsconfig.json',
+          project: 'tsconfig.json',
         },
       },
     },
     rules: {
       'prettier/prettier': ['error'],
+      'import/no-unresolved': 'error',
       '@typescript-eslint/no-explicit-any': [0, {}],
-      '@typescript-eslint/no-floating-promises': 'error',
+      '@typescript-eslint/no-floating-promises': ['error'],
       'no-constant-condition': [0],
+      'no-unused-vars': [
+        'error',
+        {
+          args: 'all',
+          argsIgnorePattern: '^_',
+          caughtErrors: 'all',
+          caughtErrorsIgnorePattern: '^_',
+          destructuredArrayIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          ignoreRestSiblings: true,
+        },
+      ],
     },
+  },
+  {
+    files: ['**/*.{ts,tsx}'],
+    plugins: {
+      'react-hooks': reactHooks,
+    },
+    rules: {
+      ...reactHooks.configs.recommended.rules,
+    },
+  },
+  {
+    ignores: ['eslint.config.js'],
   },
 ];
