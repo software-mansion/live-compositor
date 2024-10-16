@@ -178,9 +178,6 @@ importers:
       '@types/react':
         specifier: ^18.3.3
         version: 18.3.11
-      typescript:
-        specifier: ^5.5.3
-        version: 5.6.3
 
   create-live-compositor/templates/node-minimal:
     dependencies:
@@ -209,12 +206,6 @@ importers:
       '@live-compositor/node':
         specifier: ^0.1.0
         version: 0.1.0(live-compositor@0.1.0(react@18.3.1))(react@18.3.1)
-      '@types/fs-extra':
-        specifier: ^11.0.4
-        version: 11.0.4
-      '@types/node':
-        specifier: ^20.14.10
-        version: 20.16.11
       fs-extra:
         specifier: ^11.2.0
         version: 11.2.0
@@ -231,6 +222,12 @@ importers:
         specifier: ^10.9.2
         version: 10.9.2(@types/node@20.16.11)(typescript@5.6.3)
     devDependencies:
+      '@types/fs-extra':
+        specifier: ^11.0.4
+        version: 11.0.4
+      '@types/node':
+        specifier: ^20.14.10
+        version: 20.16.11
       '@types/node-fetch':
         specifier: ^2.6.11
         version: 2.6.11

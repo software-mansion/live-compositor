@@ -16,8 +16,6 @@
   "license": "MIT",
   "dependencies": {
     "@live-compositor/node": "^0.1.0",
-    "@types/fs-extra": "^11.0.4",
-    "@types/node": "^20.14.10",
     "fs-extra": "^11.2.0",
     "live-compositor": "^0.1.0",
     "node-fetch": "^2.6.7",
@@ -25,6 +23,8 @@
     "ts-node": "^10.9.2"
   },
   "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^20.14.10",
     "@types/node-fetch": "^2.6.11",
     "@types/react": "^18.3.3"
   }
