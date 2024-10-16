@@ -3,7 +3,7 @@ use crossbeam_channel::Receiver;
 use payloader::DataKind;
 use reqwest::Url;
 use std::sync::{atomic::AtomicBool, Arc};
-use tracing::{debug, error, info, span, warn, Level};
+use tracing::{debug, error, info, span, Level};
 use webrtc::{
     api::{
         interceptor_registry::register_default_interceptors,
@@ -33,8 +33,6 @@ use self::{packet_stream::PacketStream, payloader::Payloader};
 
 mod packet_stream;
 mod payloader;
-// mod tcp_server;
-// mod udp;
 
 #[derive(Debug)]
 pub struct WhipSender {
@@ -65,7 +63,6 @@ impl WhipSender {
         let should_close2 = should_close.clone();
         let event_emitter = pipeline_ctx.event_emitter.clone();
 
-        println!("whip sender triggered");
         std::thread::Builder::new()
             .name(format!("WHIP sender for output {}", output_id))
             .spawn(move || {
@@ -75,9 +72,7 @@ impl WhipSender {
                     output_id = output_id.to_string()
                 )
                 .entered();
-                info!("inside builder");
                 start_whip_sender_thread(endpoint_url, should_close2, packet_stream);
-                info!("further");
                 event_emitter.emit(Event::OutputDone(output_id));
                 debug!("Closing RTP sender thread.")
             })
@@ -102,19 +97,14 @@ fn start_whip_sender_thread(
     should_close: Arc<AtomicBool>,
     packet_stream: PacketStream,
 ) {
-    info!("start_whip_sender");
     let rt = tokio::runtime::Runtime::new().unwrap();
     let rt_handle = rt.handle().clone();
 
     rt_handle.block_on(async {
-        info!("starting init");
         let (peer_connection, video_track, audio_track) = init_pc().await;
-        info!("init done");
         connect(peer_connection, endpoint_url, should_close, rt).await;
 
         for chunk in packet_stream {
-            // println!("{:?}", chunk.unwrap().data);
-            // println!("{:?}", chunk.unwrap().data);
             let chunk = match chunk {
                 Ok(chunk) => chunk,
                 Err(err) => {
@@ -125,13 +115,11 @@ fn start_whip_sender_thread(
 
             match chunk.kind {
                 DataKind::Audio => {
-                    // println!("Audio");
                     if let Err(_) = audio_track.write(&chunk.data).await {
                         error!("Error occurred while writing to audio track for session");
                     }
                 }
                 DataKind::Video => {
-                    // println!("Video");
                     if let Err(_) = video_track.write(&chunk.data).await {
                         error!("Error occurred while writing to video track for session");
                     }
@@ -139,7 +127,6 @@ fn start_whip_sender_thread(
             }
         }
     });
-    info!("spawned");
 }
 
 async fn init_pc() -> (
@@ -186,7 +173,6 @@ async fn init_pc() -> (
         .with_interceptor_registry(registry)
         .build();
 
-    info!("init pending 1");
     let config = RTCConfiguration {
         ice_servers: vec![RTCIceServer {
             urls: vec!["stun:stun.l.google.com:19302".to_owned()],
@@ -226,10 +212,10 @@ async fn init_pc() -> (
 async fn connect(
     peer_connection: Arc<RTCPeerConnection>,
     endpoint_url: String,
-    should_close: Arc<AtomicBool>,
+    _should_close: Arc<AtomicBool>, // TODO handle should_close if necessary
     rt: tokio::runtime::Runtime,
 ) {
-    let (done_tx, mut done_rx) = std::sync::mpsc::channel::<()>();
+    let (done_tx, _done_rx) = std::sync::mpsc::channel::<()>();
 
     peer_connection.on_ice_connection_state_change(Box::new(
         move |connection_state: RTCIceConnectionState| {
@@ -247,7 +233,7 @@ async fn connect(
     let offer = peer_connection.create_offer(None).await.unwrap();
     let client = reqwest::Client::new();
 
-    warn!("{}", endpoint_url);
+    info!("[WHIP] endpoint url: {}", endpoint_url);
 
     let response = client
         .post(endpoint_url)
@@ -257,7 +243,7 @@ async fn connect(
         .await
         .unwrap();
 
-    warn!(">>>>>>>> response: {:?}", &response);
+    info!("[WHIP] response: {:?}", &response);
 
     let location = Url::try_from(
         response
@@ -268,8 +254,6 @@ async fn connect(
             .unwrap(),
     )
     .unwrap();
-
-    warn!("{}", location);
 
     let answer = response.bytes().await.unwrap();
     let _ = peer_connection.set_local_description(offer).await.unwrap();

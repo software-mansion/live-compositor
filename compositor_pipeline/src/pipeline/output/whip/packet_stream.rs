@@ -6,11 +6,6 @@ use crate::pipeline::types::EncoderOutputEvent;
 
 use super::payloader::{DataKind, Payload, Payloader, PayloadingError};
 
-pub enum PacketType {
-    Audio,
-    Video,
-}
-
 pub(super) struct PacketStream {
     packets_receiver: Receiver<EncoderOutputEvent>,
     state: VecDeque<Payload>,

@@ -11,8 +11,6 @@ use compositor_pipeline::pipeline::{
         mp4::{Mp4AudioTrack, Mp4OutputOptions, Mp4VideoTrack},
     },
 };
-use tracing::info;
-
 use super::register_output::*;
 use super::util::*;
 use super::*;
@@ -179,11 +177,9 @@ impl TryFrom<WhipOutput> for pipeline::RegisterOutputOptions<output::OutputOptio
 
     fn try_from(request: WhipOutput) -> Result<Self, Self::Error> {
         let WhipOutput {
-            port,
-            ip,
+            endpoint_url,
             video,
             audio,
-            endpoint_url,
         } = request;
 
         if video.is_none() && audio.is_none() {
@@ -219,26 +215,11 @@ impl TryFrom<WhipOutput> for pipeline::RegisterOutputOptions<output::OutputOptio
             None => (None, None),
         };
 
-        let pipeline::rtp::RequestedPort::Exact(port) = port.try_into()? else {
-            return Err(TypeError::new(
-                "Port range can not be used with UDP output stream (transport_protocol=\"udp\").",
-            ));
-        };
-        let Some(ip) = ip else {
-            return Err(TypeError::new(
-                "\"ip\" field is required when registering output UDP stream (transport_protocol=\"udp\").",
-            ));
-        };
-        output::rtp::RtpConnectionOptions::Udp {
-            port: pipeline::Port(port),
-            ip,
-        };
-
         let output_options = output::OutputOptions {
             output_protocol: output::OutputProtocolOptions::Whip(output::whip::WhipSenderOptions {
+                endpoint_url,
                 video: video_codec,
                 audio: audio_codec,
-                endpoint_url,
             }),
             video: video_encoder_options,
             audio: audio_encoder_options,

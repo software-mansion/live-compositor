@@ -41,10 +41,8 @@ pub struct Mp4Output {
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct WhipOutput {
-    /// Path to output MP4 file.
+    /// WHIP server endpoint
     pub endpoint_url: String,
-    pub port: PortOrPortRange,
-    pub ip: Option<Arc<str>>,
     /// Video track configuration.
     pub video: Option<OutputVideoOptions>,
     /// Audio track configuration.
