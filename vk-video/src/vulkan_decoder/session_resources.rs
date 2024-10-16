@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use ash::vk;
 use h264_reader::nal::{pps::PicParameterSet, sps::SeqParameterSet};
 use images::DecodingImages;
@@ -15,13 +17,15 @@ pub(super) struct VideoSessionResources<'a> {
     pub(crate) video_session: VideoSession,
     pub(crate) parameters_manager: VideoSessionParametersManager,
     pub(crate) decoding_images: DecodingImages<'a>,
+    pub(crate) sps: HashMap<u8, SeqParameterSet>,
+    pub(crate) pps: HashMap<(u8, u8), PicParameterSet>,
 }
 
 impl VideoSessionResources<'_> {
     pub(crate) fn new_from_sps(
         vulkan_ctx: &VulkanCtx,
         decode_buffer: &CommandBuffer,
-        sps: &SeqParameterSet,
+        sps: SeqParameterSet,
         fence_memory_barrier_completed: &Fence,
     ) -> Result<Self, VulkanDecoderError> {
         let profile = H264ProfileInfo::decode_h264_yuv420();
@@ -46,7 +50,7 @@ impl VideoSessionResources<'_> {
         let mut parameters_manager =
             VideoSessionParametersManager::new(vulkan_ctx, video_session.session)?;
 
-        parameters_manager.put_sps(sps)?;
+        parameters_manager.put_sps(&sps)?;
 
         let decoding_images = Self::new_decoding_images(
             vulkan_ctx,
@@ -56,10 +60,14 @@ impl VideoSessionResources<'_> {
             fence_memory_barrier_completed,
         )?;
 
+        let sps = HashMap::from_iter([(sps.id().id(), sps)]);
+
         Ok(VideoSessionResources {
             video_session,
             parameters_manager,
             decoding_images,
+            sps,
+            pps: HashMap::new(),
         })
     }
 
@@ -67,7 +75,7 @@ impl VideoSessionResources<'_> {
         &mut self,
         vulkan_ctx: &VulkanCtx,
         decode_buffer: &CommandBuffer,
-        sps: &SeqParameterSet,
+        sps: SeqParameterSet,
         fence_memory_barrier_completed: &Fence,
     ) -> Result<(), VulkanDecoderError> {
         let profile = H264ProfileInfo::decode_h264_yuv420();
@@ -85,7 +93,7 @@ impl VideoSessionResources<'_> {
             && self.video_session.max_dpb_slots >= max_dpb_slots
         {
             // no need to change the session
-            self.parameters_manager.put_sps(sps)?;
+            self.parameters_manager.put_sps(&sps)?;
             return Ok(());
         }
 
@@ -100,7 +108,7 @@ impl VideoSessionResources<'_> {
 
         self.parameters_manager
             .change_session(self.video_session.session)?;
-        self.parameters_manager.put_sps(sps)?;
+        self.parameters_manager.put_sps(&sps)?;
 
         self.decoding_images = Self::new_decoding_images(
             vulkan_ctx,
@@ -110,11 +118,18 @@ impl VideoSessionResources<'_> {
             fence_memory_barrier_completed,
         )?;
 
+        self.sps.insert(sps.id().id(), sps);
+
         Ok(())
     }
 
-    pub(crate) fn process_pps(&mut self, pps: &PicParameterSet) -> Result<(), VulkanDecoderError> {
-        self.parameters_manager.put_pps(pps)
+    pub(crate) fn process_pps(&mut self, pps: PicParameterSet) -> Result<(), VulkanDecoderError> {
+        self.parameters_manager.put_pps(&pps)?;
+        self.pps.insert(
+            (pps.seq_parameter_set_id.id(), pps.pic_parameter_set_id.id()),
+            pps,
+        );
+        Ok(())
     }
 
     fn new_decoding_images<'a>(
