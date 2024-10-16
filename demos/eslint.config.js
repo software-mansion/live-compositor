@@ -81,6 +81,6 @@ export default [
     },
   },
   {
-    ignores: ['eslint.config.js', '**/*.d.ts'],
+    ignores: ['eslint.config.js', '**/generated/**/*', '**/*.d.ts'],
   },
 ];
