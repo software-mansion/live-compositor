@@ -29,10 +29,16 @@ jobs:
               with:
                   components: rustfmt, clippy
 
+            - name: Install pnpm
+              uses: pnpm/action-setup@v4
+              with: 
+                  version: 9
+
             - name: 🛠 Setup Node.JS
               uses: actions/setup-node@v4
               with:
                   node-version: 20
+                  cache: 'pnpm'
 
             - name: 📥 Checkout repo
               uses: actions/checkout@v4
@@ -66,5 +72,5 @@ jobs:
             - name: 🖋️ Run website lint + typecheck + build
               working-directory: ./docs
               run: |
-                npm ci
-                npm run typecheck && npm run lint --max-warnings=0 && npm run build
+                pnpm install --frozen-lockfile
+                pnpm run typecheck && pnpm run lint --max-warnings=0 && pnpm run build
