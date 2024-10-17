@@ -225,14 +225,14 @@ impl VulkanDecoder<'_> {
             Some(session) => session.process_sps(
                 &self.vulkan_ctx,
                 &self.command_buffers.decode_buffer,
-                sps,
+                sps.clone(),
                 &self.sync_structures.fence_memory_barrier_completed,
             )?,
             None => {
                 self.video_session_resources = Some(VideoSessionResources::new_from_sps(
                     &self.vulkan_ctx,
                     &self.command_buffers.decode_buffer,
-                    sps,
+                    sps.clone(),
                     &self.sync_structures.fence_memory_barrier_completed,
                 )?)
             }
@@ -245,7 +245,7 @@ impl VulkanDecoder<'_> {
         self.video_session_resources
             .as_mut()
             .ok_or(VulkanDecoderError::NoSession)?
-            .process_pps(pps)?;
+            .process_pps(pps.clone())?;
 
         Ok(())
     }
@@ -502,9 +502,15 @@ impl VulkanDecoder<'_> {
         self.reference_id_to_dpb_slot_index
             .insert(reference_id, new_reference_slot_index);
 
-        // TODO: those are not the real dimensions of the image. the real dimensions should be
-        // calculated from the sps
-        let dimensions = video_session_resources.video_session.max_coded_extent;
+        let sps = video_session_resources
+            .sps
+            .get(&decode_information.sps_id)
+            .ok_or(VulkanDecoderError::NoSession)?;
+
+        let dimensions = vk::Extent2D {
+            width: sps.width()?,
+            height: sps.height()?,
+        };
 
         Ok(DecodeOutput {
             image: target_image,
@@ -871,8 +877,6 @@ impl VulkanDecoder<'_> {
             )
         };
 
-        // TODO: in this section, we shouldn't be using `max_coded_extent` and use the real frame
-        // resolution
         let y_plane_size = dimensions.width as u64 * dimensions.height as u64;
 
         let dst_buffer = Buffer::new_transfer(
