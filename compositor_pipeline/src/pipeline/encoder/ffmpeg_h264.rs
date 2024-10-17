@@ -211,34 +211,43 @@ fn run_encoder_thread(
 
     let mut packet = Packet::empty();
 
-    loop {
+    'encoder: loop {
         let frame = match frame_receiver.recv() {
-            Ok(PipelineEvent::Data(f)) => f,
-            Ok(PipelineEvent::EOS) => break,
+            Ok(PipelineEvent::Data(f)) => Some(f),
+            Ok(PipelineEvent::EOS) => {
+                if let Err(e) = encoder.send_eof() {
+                    error!("Failed to enter draining mode on encoder: {e}.");
+                    break;
+                }
+
+                None
+            }
             Err(_) => break,
         };
 
-        let mut av_frame = frame::Video::new(
-            Pixel::YUV420P,
-            options.resolution.width as u32,
-            options.resolution.height as u32,
-        );
-
-        if let Err(e) = frame_into_av(frame, &mut av_frame) {
-            error!(
-                "Failed to convert a frame to an ffmpeg frame: {}. Dropping",
-                e.0
+        if let Some(frame) = frame {
+            let mut av_frame = frame::Video::new(
+                Pixel::YUV420P,
+                options.resolution.width as u32,
+                options.resolution.height as u32,
             );
-            continue;
-        }
 
-        if keyframe_req_receiver.try_recv().is_ok() {
-            av_frame.set_kind(ffmpeg_next::picture::Type::I);
-        }
+            if let Err(e) = frame_into_av(frame, &mut av_frame) {
+                error!(
+                    "Failed to convert a frame to an ffmpeg frame: {}. Dropping",
+                    e.0
+                );
+                continue;
+            }
 
-        if let Err(e) = encoder.send_frame(&av_frame) {
-            error!("Encoder error: {e}.");
-            continue;
+            if keyframe_req_receiver.try_recv().is_ok() {
+                av_frame.set_kind(ffmpeg_next::picture::Type::I);
+            }
+
+            if let Err(e) = encoder.send_frame(&av_frame) {
+                error!("Encoder error: {e}.");
+                continue;
+            }
         }
 
         loop {
@@ -261,6 +270,10 @@ fn run_encoder_thread(
                             break;
                         }
                     }
+                }
+
+                Err(ffmpeg_next::Error::Eof) => {
+                    break 'encoder;
                 }
 
                 Err(ffmpeg_next::Error::Other {
