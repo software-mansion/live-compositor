@@ -143,6 +143,12 @@ impl VideoEncoder {
             Self::H264(encoder) => encoder.request_keyframe(),
         }
     }
+
+    pub fn is_finished(&self) -> bool {
+        match self {
+            Self::H264(encoder) => encoder.is_finished(),
+        }
+    }
 }
 
 impl AudioEncoder {

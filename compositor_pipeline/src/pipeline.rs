@@ -325,6 +325,13 @@ impl Pipeline {
         video: Option<Component>,
         audio: Option<AudioMixingParams>,
     ) -> Result<(), UpdateSceneError> {
+        // TODO(noituri): Error handle this
+        let output = self.outputs.get(&output_id).unwrap();
+        if output.output.is_finished() {
+            // TODO(noituri): Return proper error
+            error!("Finished output can not have the scene updated");
+            return Ok(())
+        }
         self.check_output_spec(&output_id, &video, &audio)?;
         if let Some(video) = video {
             self.update_scene_root(output_id.clone(), video)?;

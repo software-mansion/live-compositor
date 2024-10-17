@@ -215,6 +215,39 @@ impl Output {
         Ok(())
     }
 
+    pub fn is_finished(&self) -> bool {
+        // TODO(noituri): What if there is audio without video
+        // TODO(noituri): This is ugly
+        match self {
+            Output::Rtp { sender, encoder } => {
+                return encoder
+                    .video
+                    .as_ref()
+                    .map(|v| v.is_finished())
+                    .unwrap_or(false)
+            }
+            Output::Mp4 { writer, encoder } => {
+                return encoder
+                    .video
+                    .as_ref()
+                    .map(|v| v.is_finished())
+                    .unwrap_or(false)
+            }
+            Output::EncodedData { encoder } => {
+                return encoder
+                    .video
+                    .as_ref()
+                    .map(|v| v.is_finished())
+                    .unwrap_or(false)
+            }
+            Output::RawData {
+                resolution,
+                video,
+                audio,
+            } => false,
+        }
+    }
+
     pub(super) fn output_frame_format(&self) -> Option<OutputFrameFormat> {
         match &self {
             Output::Rtp { encoder, .. } => encoder
