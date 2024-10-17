@@ -214,7 +214,10 @@ fn run_encoder_thread(
     loop {
         let frame = match frame_receiver.recv() {
             Ok(PipelineEvent::Data(f)) => f,
-            Ok(PipelineEvent::EOS) => break,
+            Ok(PipelineEvent::EOS) => {
+                error!("EOS");
+                break;
+            },
             Err(_) => break,
         };
 
