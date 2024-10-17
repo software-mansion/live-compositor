@@ -101,16 +101,23 @@ fn start_whip_sender_thread(
     tokio_rt: Arc<tokio::runtime::Runtime>,
 ) {
     tokio_rt.block_on(async {
+        let client = reqwest::Client::new();
         let (peer_connection, video_track, audio_track) = init_pc().await;
-        connect(
+        let should_close2 = should_close.clone();
+        let whip_session_url = connect(
             peer_connection,
             endpoint_url,
-            should_close,
+            should_close2,
             tokio_rt.clone(),
+            client.clone(),
         )
-        .await;
+        .await
+        .unwrap();
 
         for chunk in packet_stream {
+            if should_close.load(std::sync::atomic::Ordering::Relaxed) {
+                break;
+            }
             let chunk = match chunk {
                 Ok(chunk) => chunk,
                 Err(err) => {
@@ -132,6 +139,7 @@ fn start_whip_sender_thread(
                 }
             }
         }
+        let _ = client.delete(whip_session_url).send().await; // not unwrapping, because server may have gone down, so it should be handled better way
     });
 }
 
@@ -218,11 +226,11 @@ async fn init_pc() -> (
 async fn connect(
     peer_connection: Arc<RTCPeerConnection>,
     endpoint_url: String,
-    _should_close: Arc<AtomicBool>, // TODO handle should_close if necessary
+    should_close: Arc<AtomicBool>, // TODO handle should_close if necessary
     tokio_rt: Arc<tokio::runtime::Runtime>,
-) {
-    let (done_tx, _done_rx) = std::sync::mpsc::channel::<()>();
-
+    client: reqwest::Client,
+) -> anyhow::Result<Url> {
+    // TODO replace anyhow with proper errors
     peer_connection.on_ice_connection_state_change(Box::new(
         move |connection_state: RTCIceConnectionState| {
             debug!("Connection State has changed {connection_state}");
@@ -230,15 +238,13 @@ async fn connect(
                 debug!("ice connected");
             } else if connection_state == RTCIceConnectionState::Failed {
                 debug!("Done writing media files");
-                let _ = done_tx.send(());
-                // TODO handle failed connection properly
+                should_close.store(true, std::sync::atomic::Ordering::Relaxed);
             }
             Box::pin(async {})
         },
     ));
 
     let offer = peer_connection.create_offer(None).await.unwrap();
-    let client = reqwest::Client::new();
 
     info!("[WHIP] endpoint url: {}", endpoint_url);
 
@@ -275,22 +281,25 @@ async fn connect(
 
     let client = Arc::new(client);
 
+    let location1 = location.clone();
+
     peer_connection.on_ice_candidate(Box::new(move |candidate| {
         if let Some(candidate) = candidate {
             let client_clone = client.clone();
-            let location_clone = location.clone();
+            let location2 = location1.clone();
             tokio_rt.spawn(async move {
                 let ice_candidate = candidate.to_json().unwrap();
-                let patch_response = client_clone
-                    .patch(location_clone)
+                let _ = client_clone
+                    .patch(location2)
                     .header("Content-type", "application/trickle-ice-sdpfrag")
                     .body(serde_json::to_string(&ice_candidate).unwrap())
                     .send()
                     .await
                     .unwrap();
-                println!("patch response: {patch_response:?}");
             });
         }
         Box::pin(async {})
     }));
+
+    Ok(location.clone())
 }
