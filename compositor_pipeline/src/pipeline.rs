@@ -25,6 +25,7 @@ use input::RawDataInputOptions;
 use output::EncodedDataOutputOptions;
 use output::OutputOptions;
 use output::RawDataOutputOptions;
+use tokio::runtime::Runtime;
 use tracing::{error, info, trace, warn};
 use types::RawDataSender;
 
@@ -132,6 +133,7 @@ pub struct PipelineCtx {
     pub output_framerate: Framerate,
     pub download_dir: Arc<PathBuf>,
     pub event_emitter: Arc<EventEmitter>,
+    pub tokio_rt: Arc<tokio::runtime::Runtime>,
     #[cfg(feature = "vk-video")]
     pub vulkan_ctx: Option<Arc<vk_video::VulkanCtx>>,
 }
@@ -193,6 +195,9 @@ impl Pipeline {
                 output_framerate: opts.queue_options.output_framerate,
                 download_dir: download_dir.into(),
                 event_emitter,
+                tokio_rt: Arc::new(
+                    Runtime::new().map_err(|err| InitPipelineError::CreateTokioRuntime(err))?,
+                ),
                 #[cfg(feature = "vk-video")]
                 vulkan_ctx: preinitialized_ctx.and_then(|ctx| ctx.vulkan_ctx),
             },

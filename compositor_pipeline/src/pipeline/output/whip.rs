@@ -55,13 +55,14 @@ impl WhipSender {
         pipeline_ctx: &PipelineCtx,
     ) -> Result<Self, OutputInitError> {
         let payloader = Payloader::new(options.video, options.audio);
-        let packet_stream = PacketStream::new(packets_receiver, payloader, 1400);
+        let packet_stream = PacketStream::new(packets_receiver, payloader, 1200);
 
         let should_close = Arc::new(AtomicBool::new(false));
         let endpoint_url = options.endpoint_url.clone();
         let output_id = output_id.clone();
         let should_close2 = should_close.clone();
         let event_emitter = pipeline_ctx.event_emitter.clone();
+        let tokio_rt = pipeline_ctx.tokio_rt.clone();
 
         std::thread::Builder::new()
             .name(format!("WHIP sender for output {}", output_id))
@@ -72,9 +73,9 @@ impl WhipSender {
                     output_id = output_id.to_string()
                 )
                 .entered();
-                start_whip_sender_thread(endpoint_url, should_close2, packet_stream);
+                start_whip_sender_thread(endpoint_url, should_close2, packet_stream, tokio_rt);
                 event_emitter.emit(Event::OutputDone(output_id));
-                debug!("Closing RTP sender thread.")
+                debug!("Closing WHIP sender thread.")
             })
             .unwrap();
 
@@ -86,6 +87,7 @@ impl WhipSender {
 }
 
 impl Drop for WhipSender {
+    // TODO send delete request to whip server
     fn drop(&mut self) {
         self.should_close
             .store(true, std::sync::atomic::Ordering::Relaxed);
@@ -96,13 +98,17 @@ fn start_whip_sender_thread(
     endpoint_url: String,
     should_close: Arc<AtomicBool>,
     packet_stream: PacketStream,
+    tokio_rt: Arc<tokio::runtime::Runtime>,
 ) {
-    let rt = tokio::runtime::Runtime::new().unwrap();
-    let rt_handle = rt.handle().clone();
-
-    rt_handle.block_on(async {
+    tokio_rt.block_on(async {
         let (peer_connection, video_track, audio_track) = init_pc().await;
-        connect(peer_connection, endpoint_url, should_close, rt).await;
+        connect(
+            peer_connection,
+            endpoint_url,
+            should_close,
+            tokio_rt.clone(),
+        )
+        .await;
 
         for chunk in packet_stream {
             let chunk = match chunk {
@@ -213,18 +219,19 @@ async fn connect(
     peer_connection: Arc<RTCPeerConnection>,
     endpoint_url: String,
     _should_close: Arc<AtomicBool>, // TODO handle should_close if necessary
-    rt: tokio::runtime::Runtime,
+    tokio_rt: Arc<tokio::runtime::Runtime>,
 ) {
     let (done_tx, _done_rx) = std::sync::mpsc::channel::<()>();
 
     peer_connection.on_ice_connection_state_change(Box::new(
         move |connection_state: RTCIceConnectionState| {
-            println!("Connection State has changed {connection_state}");
+            debug!("Connection State has changed {connection_state}");
             if connection_state == RTCIceConnectionState::Connected {
-                println!("ice connected");
+                debug!("ice connected");
             } else if connection_state == RTCIceConnectionState::Failed {
-                println!("Done writing media files");
+                debug!("Done writing media files");
                 let _ = done_tx.send(());
+                // TODO handle failed connection properly
             }
             Box::pin(async {})
         },
@@ -272,7 +279,7 @@ async fn connect(
         if let Some(candidate) = candidate {
             let client_clone = client.clone();
             let location_clone = location.clone();
-            rt.spawn(async move {
+            tokio_rt.spawn(async move {
                 let ice_candidate = candidate.to_json().unwrap();
                 let patch_response = client_clone
                     .patch(location_clone)
