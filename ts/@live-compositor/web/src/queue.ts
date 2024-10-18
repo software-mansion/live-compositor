@@ -29,6 +29,9 @@ export class Queue {
   }
 
   public addInput(inputId: InputId, input: Input) {
+    if (this.inputs[inputId]) {
+      throw `Input "${inputId}" already exists`;
+    }
     this.inputs[inputId] = input;
   }
 
@@ -41,6 +44,9 @@ export class Queue {
   }
 
   public addOutput(outputId: OutputId, output: Output) {
+    if (this.outputs[outputId]) {
+      throw `Output "${outputId}" already exists`;
+    }
     this.outputs[outputId] = output;
   }
 
