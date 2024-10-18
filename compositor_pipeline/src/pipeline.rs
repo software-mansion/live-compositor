@@ -402,7 +402,7 @@ impl Pipeline {
     ) -> Result<(), UpdateSceneError> {
         let output = self
             .outputs
-            .get(&output_id)
+            .get(output_id)
             .ok_or_else(|| UpdateSceneError::OutputNotRegistered(output_id.clone()))?;
         if output.output.is_audio_finished() {
             return Err(UpdateSceneError::UpdateAfterEOS(output_id.clone()));
