@@ -279,7 +279,7 @@ impl TextRendererCtx {
         );
         buffer.set_wrap(font_system, text_params.wrap);
 
-        let texture_size = match text_resolution {
+        let mut texture_size = match text_resolution {
             TextDimensions::Fixed { width, height } => Resolution {
                 width: width as usize,
                 height: height as usize,
@@ -311,6 +311,14 @@ impl TextRendererCtx {
                 }
             }
         };
+
+        // Zero sized textures can't be created
+        if texture_size.width == 0 {
+            texture_size.width = 1;
+        }
+        if texture_size.height == 0 {
+            texture_size.height = 1;
+        }
 
         buffer.set_size(
             font_system,

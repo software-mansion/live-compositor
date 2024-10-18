@@ -1,3 +1,5 @@
+use std::{thread::sleep, time::Duration};
+
 use anyhow::Result;
 use compositor_api::types::Resolution;
 use serde_json::json;
@@ -40,15 +42,13 @@ fn client_code() -> Result<()> {
                 "initial": {
                     "root": {
                         "type": "text",
-                        "text": "VideoCompositor🚀\nSecond Line\nLorem ipsum dolor sit amet consectetur adipisicing elit. Soluta delectus optio fugit maiores eaque ab totam, veritatis aperiam provident, aliquam consectetur deserunt cumque est? Saepe tenetur impedit culpa asperiores id?",
+                        "text": "123",
                         "font_size": 100.0,
                         "font_family": "Comic Sans MS",
                         "align": "center",
                         "wrap": "word",
                         "background_color_rgba": "#00800000",
                         "weight": "bold",
-                        "width": VIDEO_RESOLUTION.width,
-                        "height": VIDEO_RESOLUTION.height,
                     }
                 }
             }
@@ -56,6 +56,26 @@ fn client_code() -> Result<()> {
     )?;
 
     examples::post("start", &json!({}))?;
+
+    sleep(Duration::from_secs(5));
+
+    examples::post(
+        "output/output_1/update",
+        &json!({
+            "video": {
+                "root": {
+                    "type": "text",
+                    "text": "",
+                    "font_size": 100.0,
+                    "font_family": "Comic Sans MS",
+                    "align": "center",
+                    "wrap": "word",
+                    "background_color_rgba": "#00800000",
+                    "weight": "bold",
+                },
+            }
+        }),
+    )?;
 
     Ok(())
 }
