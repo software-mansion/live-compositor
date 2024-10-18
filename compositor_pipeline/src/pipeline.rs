@@ -378,6 +378,10 @@ impl Pipeline {
             .outputs
             .get(&output_id)
             .ok_or_else(|| UpdateSceneError::OutputNotRegistered(output_id.clone()))?;
+
+        if output.output.is_video_finished() {
+            return Err(UpdateSceneError::UpdateAfterEOS(output_id));
+        }
         let (Some(resolution), Some(frame_format)) = (
             output.output.resolution(),
             output.output.output_frame_format(),
@@ -396,6 +400,14 @@ impl Pipeline {
         output_id: &OutputId,
         audio: AudioMixingParams,
     ) -> Result<(), UpdateSceneError> {
+        let output = self
+            .outputs
+            .get(&output_id)
+            .ok_or_else(|| UpdateSceneError::OutputNotRegistered(output_id.clone()))?;
+        if output.output.is_audio_finished() {
+            return Err(UpdateSceneError::UpdateAfterEOS(output_id.clone()));
+        }
+
         info!(?output_id, "Update audio mixer {:#?}", audio);
         self.audio_mixer.update_output(output_id, audio)
     }

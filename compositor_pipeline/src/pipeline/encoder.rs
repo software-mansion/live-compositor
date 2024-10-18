@@ -42,7 +42,7 @@ pub enum AudioEncoderPreset {
 
 pub struct Encoder {
     pub video: Option<VideoEncoder>,
-    audio: Option<AudioEncoder>,
+    pub audio: Option<AudioEncoder>,
 }
 
 pub enum VideoEncoder {
@@ -143,6 +143,12 @@ impl VideoEncoder {
             Self::H264(encoder) => encoder.request_keyframe(),
         }
     }
+
+    pub fn is_finished(&self) -> bool {
+        match self {
+            Self::H264(encoder) => encoder.is_finished(),
+        }
+    }
 }
 
 impl AudioEncoder {
@@ -166,6 +172,13 @@ impl AudioEncoder {
         match self {
             Self::Opus(encoder) => encoder.samples_batch_sender(),
             Self::Aac(encoder) => encoder.samples_batch_sender(),
+        }
+    }
+
+    pub fn is_finished(&self) -> bool {
+        match self {
+            AudioEncoder::Opus(encoder) => encoder.is_finished(),
+            AudioEncoder::Aac(encoder) => encoder.is_finished(),
         }
     }
 }

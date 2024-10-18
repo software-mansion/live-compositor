@@ -215,6 +215,36 @@ impl Output {
         Ok(())
     }
 
+    pub fn is_video_finished(&self) -> bool {
+        let encoder = match self {
+            Output::Rtp { encoder, .. } => encoder,
+            Output::Mp4 { encoder, .. } => encoder,
+            Output::EncodedData { encoder, .. } => encoder,
+            Output::RawData { .. } => return false,
+        };
+
+        encoder
+            .video
+            .as_ref()
+            .map(|v| v.is_finished())
+            .unwrap_or(true)
+    }
+
+    pub fn is_audio_finished(&self) -> bool {
+        let encoder = match self {
+            Output::Rtp { encoder, .. } => encoder,
+            Output::Mp4 { encoder, .. } => encoder,
+            Output::EncodedData { encoder, .. } => encoder,
+            Output::RawData { .. } => return false,
+        };
+
+        encoder
+            .audio
+            .as_ref()
+            .map(|a| a.is_finished())
+            .unwrap_or(true)
+    }
+
     pub(super) fn output_frame_format(&self) -> Option<OutputFrameFormat> {
         match &self {
             Output::Rtp { encoder, .. } => encoder
