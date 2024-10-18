@@ -1,7 +1,10 @@
 use anyhow::Result;
 use compositor_api::types::Resolution;
 use serde_json::json;
-use std::{thread, time::Duration};
+use std::{
+    thread::{self, sleep},
+    time::Duration,
+};
 
 use integration_tests::{
     examples::{self, run_example, TestSample},
@@ -45,7 +48,7 @@ fn client_code() -> Result<()> {
 
     let scene1 = json!({
         "type": "view",
-        "background_color_rgba": "#444444FF",
+        "background_color_rgba": "#42daf5ff",
         "children": [
             {
                 "type": "view",
@@ -71,7 +74,7 @@ fn client_code() -> Result<()> {
 
     let scene2 = json!({
         "type": "view",
-        "background_color_rgba": "#444444FF",
+        "background_color_rgba": "#42daf5ff",
         "children": [
             {
                 "type": "view",
@@ -80,6 +83,19 @@ fn client_code() -> Result<()> {
                 "height": 270,
                 "top": 100,
                 "right": 100,
+                "border_radius": 50,
+                "border_width": 10,
+                "border_color_rgba": "#FFFFFFFF",
+                "box_shadows": [
+                    {
+                        "offset_y": 60,
+                        "blur_radius": 60,
+                        "color_rgba": "#00000088",
+                    }
+                ],
+                "transition": {
+                    "duration_ms": 10000
+                },
                 "children": [
                     {
                         "type": "rescaler",
@@ -98,6 +114,8 @@ fn client_code() -> Result<()> {
     examples::post(
         "output/output_1/register",
         &json!({
+            //"type": "mp4",
+            //"path": "smooth2.mp4",
             "type": "rtp_stream",
             "ip": IP,
             "port": OUTPUT_PORT,
@@ -121,7 +139,7 @@ fn client_code() -> Result<()> {
 
     start_ffmpeg_send(IP, Some(INPUT_PORT), None, TestSample::TestPattern)?;
 
-    thread::sleep(Duration::from_secs(10));
+    thread::sleep(Duration::from_secs(5));
 
     examples::post(
         "output/output_1/update",
@@ -131,6 +149,9 @@ fn client_code() -> Result<()> {
             }
         }),
     )?;
+
+    sleep(Duration::from_secs(12));
+    examples::post("output/output_1/unregister", &json!({}))?;
 
     Ok(())
 }

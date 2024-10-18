@@ -2,7 +2,7 @@
   "video": {
     "root": {
       "type": "view",
-      "background_color_rgba": "#FFFFFFFF",
+      "background_color_rgba": "#00FFFFFF",
       "children": [
         {
           "type": "view",
@@ -13,7 +13,7 @@
           "height": 200,
           "border_radius": 50,
           "border_width": 20,
-          "border_color_rgba": "#0000FFFF",
+          "border_color_rgba": "#00FF00FF",
           "box_shadows": [
             {
               "offset_x": 60,

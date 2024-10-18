@@ -292,10 +292,10 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
                 rotation_degrees
             );
 
-            let content_alpha = step(border_width, edge_distance) * mask_alpha;
-            let border_alpha = step(-border_width, -edge_distance) * step(0.0, edge_distance) * mask_alpha;
+            let content_alpha = smoothstep(border_width, border_width + 2.0, edge_distance) * mask_alpha;
+            let border_alpha = smoothstep(-border_width - 2.0, -border_width, -edge_distance) * smoothstep(0.0, 2.0, edge_distance) * mask_alpha;
 
-            let mixed_background = mix(transparent, sample, content_alpha);
+            let mixed_background = vec4<f32>(sample.rgb, sample.a * content_alpha);
             let mixed_border = mix(mixed_background, border_color, border_alpha);
             return mixed_border;
         }
@@ -317,10 +317,10 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
                 rotation_degrees
             );
 
-            let content_alpha = step(border_width, edge_distance) * mask_alpha;
-            let border_alpha = step(-border_width, -edge_distance) * step(0.0, edge_distance) * mask_alpha;
+            let content_alpha = smoothstep(border_width, border_width + 2.0, edge_distance) * mask_alpha;
+            let border_alpha =  mask_alpha;
 
-            let mixed_background = mix(transparent, color, content_alpha);
+            let mixed_background = vec4<f32>(color.rgb, color.a * content_alpha);
             let mixed_border = mix(mixed_background, border_color, border_alpha);
             return mixed_border;
         }
@@ -343,9 +343,7 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
             
             let blur_alpha = smoothstep(0.0, blur_radius, edge_distance) * mask_alpha;
 
-            let mixed_blur = mix(transparent, color, blur_alpha);
-
-            return mixed_blur;
+            return vec4<f32>(color.rgb, color.a * blur_alpha);
         }
         default {
             return vec4(0.0, 0.0, 0.0, 0.0);

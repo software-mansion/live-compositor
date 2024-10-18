@@ -21,6 +21,7 @@ impl NestedLayout {
             .chain(layouts.into_iter())
             // TODO: performance optimize
             //.filter(|layout| Self::should_render(layout, input_resolutions, resolution))
+            .map(NestedLayout::fix_final_render_layout)
             .collect()
     }
 
@@ -61,7 +62,8 @@ impl NestedLayout {
                 .into_iter()
                 .map(|child| {
                     let child_nodes_count = child.child_nodes_count;
-                    let (shadows, layouts) = child.inner_flatten(child_index_offset, parent_masks.clone());
+                    let (shadows, layouts) =
+                        child.inner_flatten(child_index_offset, parent_masks.clone());
                     child_index_offset += child_nodes_count;
                     (shadows, layouts)
                 })
@@ -83,6 +85,24 @@ impl NestedLayout {
         )
     }
 
+    // Final pass on each render layout, it applies following modifications:
+    // - If border_width is between 0 and 1 set it to 1.
+    //
+    fn fix_final_render_layout(mut layout: RenderLayout) -> RenderLayout {
+        match &mut layout.content {
+            RenderLayoutContent::Color { border_width, .. }
+            | RenderLayoutContent::ChildNode { border_width, .. } => {
+                if *border_width > 0.0 && *border_width < 1.0 {
+                    *border_width = 0.0
+                }
+            }
+            _ => (),
+        };
+        layout
+    }
+
+    // Decides if layout will affect the output of the stream, if not this layout will not be
+    // passed to the shader
     fn should_render(
         layout: &RenderLayout,
         input_resolutions: &[Option<Resolution>],
