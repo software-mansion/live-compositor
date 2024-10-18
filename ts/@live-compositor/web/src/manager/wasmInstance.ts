@@ -30,7 +30,7 @@ class WasmInstance implements CompositorManager {
     this.eventSender = new EventSender();
   }
 
-  public async setupInstance(): Promise<void> {}
+  public async setupInstance(): Promise<void> { }
 
   public async sendRequest(request: ApiRequest): Promise<object> {
     const route = apiPath.test(request.route);
@@ -82,8 +82,8 @@ class WasmInstance implements CompositorManager {
     if (operation === 'register') {
       const request = body! as RegisterInputRequest;
       const input = new Input(inputId, request, this.eventSender);
-      this.renderer.registerInput(inputId);
       this.queue.addInput(inputId, input);
+      this.renderer.registerInput(inputId);
       await input.start();
     } else if (operation === 'unregister') {
       this.queue.removeInput(inputId);
@@ -100,12 +100,17 @@ class WasmInstance implements CompositorManager {
       const request = body! as RegisterOutputRequest;
       if (request.video) {
         const output = new Output(request);
-        this.renderer.updateScene(
-          outputId,
-          request.video.resolution,
-          request.video.initial.root as Component
-        );
         this.queue.addOutput(outputId, output);
+        try {
+          this.renderer.updateScene(
+            outputId,
+            request.video.resolution,
+            request.video.initial.root as Component
+          );
+        } catch (e) {
+          this.queue.removeOutput(outputId);
+          throw e;
+        }
       }
     } else if (operation === 'unregister') {
       this.queue.removeOutput(outputId);
