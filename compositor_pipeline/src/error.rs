@@ -246,6 +246,7 @@ impl From<&UnregisterOutputError> for PipelineErrorInfo {
 }
 
 const BUILD_SCENE_ERROR: &str = "BUILD_SCENE_ERROR";
+const UPDATE_AFTER_EOS: &str = "UPDATE_AFTER_EOS";
 
 impl From<&UpdateSceneError> for PipelineErrorInfo {
     fn from(err: &UpdateSceneError) -> Self {
@@ -264,6 +265,10 @@ impl From<&UpdateSceneError> for PipelineErrorInfo {
             },
             UpdateSceneError::AudioVideoNotMatching(_) => PipelineErrorInfo {
                 error_code: AUDIO_VIDEO_SPECIFICATION_NOT_MATCHING,
+                error_type: ErrorType::UserError,
+            },
+            UpdateSceneError::UpdateAfterEOS(_) => PipelineErrorInfo {
+                error_code: UPDATE_AFTER_EOS,
                 error_type: ErrorType::UserError,
             },
         }
