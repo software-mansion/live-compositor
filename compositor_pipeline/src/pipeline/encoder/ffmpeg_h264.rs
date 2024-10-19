@@ -1,10 +1,4 @@
-use std::{
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc,
-    },
-    time::Duration,
-};
+use std::time::Duration;
 
 use compositor_render::{Frame, FrameData, OutputId, Resolution};
 use crossbeam_channel::{Receiver, Sender};
@@ -95,7 +89,6 @@ pub struct LibavH264Encoder {
     resolution: Resolution,
     frame_sender: Sender<PipelineEvent<Frame>>,
     keyframe_req_sender: Sender<()>,
-    is_finished: Arc<AtomicBool>,
 }
 
 impl LibavH264Encoder {
@@ -107,11 +100,9 @@ impl LibavH264Encoder {
         let (frame_sender, frame_receiver) = crossbeam_channel::bounded(5);
         let (result_sender, result_receiver) = crossbeam_channel::bounded(0);
         let (keyframe_req_sender, keyframe_req_receiver) = crossbeam_channel::unbounded();
-        let is_finished = Arc::new(AtomicBool::new(false));
 
         let options_clone = options.clone();
         let output_id = output_id.clone();
-        let is_finished_clone = is_finished.clone();
 
         std::thread::Builder::new()
             .name(format!("Encoder thread for output {}", output_id))
@@ -130,8 +121,6 @@ impl LibavH264Encoder {
                     &result_sender,
                 );
 
-                is_finished_clone.store(true, Ordering::Relaxed);
-
                 if let Err(err) = encoder_result {
                     warn!(%err, "Encoder thread finished with an error.");
                     if let Err(err) = result_sender.send(Err(err)) {
@@ -148,7 +137,6 @@ impl LibavH264Encoder {
             frame_sender,
             resolution: options.resolution,
             keyframe_req_sender,
-            is_finished,
         })
     }
 
@@ -164,10 +152,6 @@ impl LibavH264Encoder {
         if let Err(err) = self.keyframe_req_sender.send(()) {
             debug!(%err, "Failed to send keyframe request to the encoder.");
         }
-    }
-
-    pub fn is_finished(&self) -> bool {
-        self.is_finished.load(Ordering::Relaxed)
     }
 }
 
@@ -230,9 +214,7 @@ fn run_encoder_thread(
     loop {
         let frame = match frame_receiver.recv() {
             Ok(PipelineEvent::Data(f)) => f,
-            Ok(PipelineEvent::EOS) => {
-                break;
-            }
+            Ok(PipelineEvent::EOS) => break,
             Err(_) => break,
         };
 

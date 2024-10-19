@@ -1,8 +1,3 @@
-use std::sync::{
-    atomic::{AtomicBool, Ordering},
-    Arc,
-};
-
 use crossbeam_channel::{bounded, Receiver, Sender};
 use log::error;
 use tracing::{span, trace, warn, Level};
@@ -27,7 +22,6 @@ pub struct OpusEncoderOptions {
 
 pub struct OpusEncoder {
     samples_batch_sender: Sender<PipelineEvent<OutputSamples>>,
-    is_finished: Arc<AtomicBool>,
 }
 
 impl OpusEncoder {
@@ -37,33 +31,25 @@ impl OpusEncoder {
         packets_sender: Sender<EncoderOutputEvent>,
     ) -> Result<Self, EncoderInitError> {
         let (samples_batch_sender, samples_batch_receiver) = bounded(2);
-        let is_finished = Arc::new(AtomicBool::new(false));
 
         let encoder =
             opus::Encoder::new(sample_rate, options.channels.into(), options.preset.into())?;
-        let is_finished_clone = is_finished.clone();
 
         std::thread::Builder::new()
             .name("Opus encoder thread".to_string())
             .spawn(move || {
-                let _span = span!(Level::INFO, "Opus encoder thread",).entered();
-                run_encoder_thread(encoder, samples_batch_receiver, packets_sender);
-                is_finished_clone.store(true, Ordering::Relaxed);
+                let _span = span!(Level::INFO, "Opus encoder thread").entered();
+                run_encoder_thread(encoder, samples_batch_receiver, packets_sender)
             })
             .unwrap();
 
         Ok(Self {
             samples_batch_sender,
-            is_finished,
         })
     }
 
     pub fn samples_batch_sender(&self) -> &Sender<PipelineEvent<OutputSamples>> {
         &self.samples_batch_sender
-    }
-
-    pub fn is_finished(&self) -> bool {
-        self.is_finished.load(Ordering::Relaxed)
     }
 }
 

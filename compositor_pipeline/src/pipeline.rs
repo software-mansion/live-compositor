@@ -379,9 +379,12 @@ impl Pipeline {
             .get(&output_id)
             .ok_or_else(|| UpdateSceneError::OutputNotRegistered(output_id.clone()))?;
 
-        if output.output.is_video_finished() {
-            return Err(UpdateSceneError::UpdateAfterEOS(output_id));
+        if let Some(cond) = &output.video_end_condition {
+            if cond.did_output_end() {
+                return Err(UpdateSceneError::UpdateAfterEOS(output_id.clone()));
+            }
         }
+
         let (Some(resolution), Some(frame_format)) = (
             output.output.resolution(),
             output.output.output_frame_format(),
@@ -404,8 +407,11 @@ impl Pipeline {
             .outputs
             .get(output_id)
             .ok_or_else(|| UpdateSceneError::OutputNotRegistered(output_id.clone()))?;
-        if output.output.is_audio_finished() {
-            return Err(UpdateSceneError::UpdateAfterEOS(output_id.clone()));
+
+        if let Some(cond) = &output.audio_end_condition {
+            if cond.did_output_end() {
+                return Err(UpdateSceneError::UpdateAfterEOS(output_id.clone()));
+            }
         }
 
         info!(?output_id, "Update audio mixer {:#?}", audio);

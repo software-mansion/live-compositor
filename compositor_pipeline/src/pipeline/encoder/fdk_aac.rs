@@ -2,10 +2,6 @@ use std::{
     mem::{self, MaybeUninit},
     os::raw::{c_int, c_void},
     ptr,
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc,
-    },
     time::Duration,
 };
 
@@ -27,7 +23,6 @@ use crate::{
 /// https://github.com/mstorsjo/fdk-aac/blob/master/documentation/aacEncoder.pdf
 pub struct AacEncoder {
     samples_batch_sender: Sender<PipelineEvent<OutputSamples>>,
-    is_finished: Arc<AtomicBool>,
 }
 
 #[derive(Debug, Clone)]
@@ -43,12 +38,9 @@ impl AacEncoder {
         packets_sender: Sender<EncoderOutputEvent>,
     ) -> Result<Self, EncoderInitError> {
         let (samples_batch_sender, samples_batch_receiver) = bounded(5);
-        let is_finished = Arc::new(AtomicBool::new(false));
-
         // Since AAC encoder holds ref to internal structure (handler), it's unsafe to send it between threads.
         let (init_result_sender, init_result_receiver) = bounded(0);
         let output_id = output_id.to_string();
-        let is_finished_clone = is_finished.clone();
 
         std::thread::Builder::new()
             .name("AAC encoder thread".to_string())
@@ -62,7 +54,6 @@ impl AacEncoder {
                     samples_batch_receiver,
                     packets_sender,
                 );
-                is_finished_clone.store(true, Ordering::Relaxed);
                 debug!("Closing AAC encoder thread.");
             })
             .unwrap();
@@ -74,16 +65,11 @@ impl AacEncoder {
 
         Ok(Self {
             samples_batch_sender,
-            is_finished,
         })
     }
 
     pub fn samples_batch_sender(&self) -> &Sender<PipelineEvent<OutputSamples>> {
         &self.samples_batch_sender
-    }
-
-    pub fn is_finished(&self) -> bool {
-        self.is_finished.load(Ordering::Relaxed)
     }
 }
 
