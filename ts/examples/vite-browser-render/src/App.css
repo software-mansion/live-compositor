@@ -6,6 +6,8 @@
 }
 
 .card {
+  display: flex;
+  flex-direction: column;
   padding: 2em;
 }
 
@@ -17,3 +19,4 @@
 .examples-tabs button {
   margin: 5px;
 }
+
