@@ -30,7 +30,7 @@ class WasmInstance implements CompositorManager {
     this.eventSender = new EventSender();
   }
 
-  public async setupInstance(): Promise<void> { }
+  public async setupInstance(): Promise<void> {}
 
   public async sendRequest(request: ApiRequest): Promise<object> {
     const route = apiPath.test(request.route);
