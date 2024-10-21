@@ -273,9 +273,10 @@ async fn connect(
 
     let location_url = Url::try_from(
         format!(
-            "{}://{}{}",
+            "{}://{}:{}{}",
             parsed_endpoint_url.scheme(),
             parsed_endpoint_url.host_str().unwrap(),
+            parsed_endpoint_url.port().unwrap(),
             response
                 .headers()
                 .get("location")
@@ -300,7 +301,7 @@ async fn connect(
 
     let client = Arc::new(client);
 
-    let location1 = location_url.clone();
+    let location1: Url = location_url.clone();
     println!("{location1}");
 
     peer_connection.on_ice_candidate(Box::new(move |candidate| {
