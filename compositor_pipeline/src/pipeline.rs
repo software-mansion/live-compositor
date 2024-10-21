@@ -381,7 +381,9 @@ impl Pipeline {
 
         if let Some(cond) = &output.video_end_condition {
             if cond.did_output_end() {
-                return Err(UpdateSceneError::UpdateAfterEOS(output_id.clone()));
+                // Ignore updates after EOS
+                warn!("Received output update on a finished output");
+                return Ok(());
             }
         }
 
@@ -410,7 +412,9 @@ impl Pipeline {
 
         if let Some(cond) = &output.audio_end_condition {
             if cond.did_output_end() {
-                return Err(UpdateSceneError::UpdateAfterEOS(output_id.clone()));
+                // Ignore updates after EOS
+                warn!("Received output update on a finished output");
+                return Ok(());
             }
         }
 

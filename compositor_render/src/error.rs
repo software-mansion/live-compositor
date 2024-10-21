@@ -72,9 +72,6 @@ pub enum UpdateSceneError {
     If audio or video was specified on register, it has to be specified in update.
     If audio or video wasn't specified on register, it can't be specified in update.")]
     AudioVideoNotMatching(OutputId),
-
-    #[error("Tried to update already finished output \"{0}\"")]
-    UpdateAfterEOS(OutputId),
 }
 
 #[derive(Debug, thiserror::Error)]
