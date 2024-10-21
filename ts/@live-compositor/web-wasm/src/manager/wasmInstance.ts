@@ -48,9 +48,9 @@ class WasmInstance implements CompositorManager {
     } else if (route.type === 'image') {
       await this.handleImageRequest(route.id, route.operation, request.body);
     } else if (route.type === 'shader') {
-      throw 'Shaders are not supported';
+      throw new Error('Shaders are not supported');
     } else if (route.type === 'web-renderer') {
-      throw 'Web renderers are not supported';
+      throw new Error('Web renderers are not supported');
     }
 
     return {};
@@ -62,12 +62,13 @@ class WasmInstance implements CompositorManager {
 
   private start() {
     if (this.stopQueue) {
-      throw 'Compositor is already running';
+      throw new Error('Compositor is already running');
     }
     this.stopQueue = this.queue.start();
   }
 
   public stop() {
+    // TODO(noituri): Clean all remaining `InputFrame`s
     if (this.stopQueue) {
       this.stopQueue();
       this.stopQueue = undefined;

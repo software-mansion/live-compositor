@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { LiveCompositor } from '@live-compositor/web';
+import { LiveCompositor } from '@live-compositor/web-wasm';
 import { InputStream, Text, useInputStreams, View } from 'live-compositor';
 
 const BUNNY_URL = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';

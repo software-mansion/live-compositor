@@ -6,11 +6,13 @@ import InputSource from './source';
 import { RegisterInputRequest } from '@live-compositor/core';
 
 /**
- * Represents frame produced by decoder. All `InputFrame`s have to be manually freed.
+ * Represents frame produced by decoder.
+ * `InputFrame` has to be manually freed from the memory by calling `free()` method. Once freed it no longer can be used.
+ * `Queue` on tick pulls `InputFrame` for each input and once render finishes, manually frees `InputFrame`s.
  */
 export type InputFrame = Frame & {
   /**
-   * Frees InputFrame from memory. InputFrame can not be used after `free()`.
+   * Frees `InputFrame` from memory. `InputFrame` can not be used after `free()`.
    */
   free: () => void;
 };

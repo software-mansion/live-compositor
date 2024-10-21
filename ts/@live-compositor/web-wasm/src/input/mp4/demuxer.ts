@@ -37,7 +37,7 @@ export class MP4Demuxer {
 
   private onReady(info: MP4Info) {
     if (info.videoTracks.length == 0) {
-      throw 'No video tracks';
+      throw new Error('No video tracks');
     }
 
     const videoTrack = info.videoTracks[0];
@@ -67,12 +67,12 @@ export class MP4Demuxer {
   }
 
   private getCodecDescription(trackId: number): Uint8Array {
-    const trak = this.file.getTrackById(trackId);
-    if (!trak) {
-      throw 'Track does not exist';
+    const track = this.file.getTrackById(trackId);
+    if (!track) {
+      throw new Error('Track does not exist');
     }
 
-    for (const entry of trak.mdia.minf.stbl.stsd.entries) {
+    for (const entry of track.mdia.minf.stbl.stsd.entries) {
       const box = entry.avcC || entry.hvcC || entry.vpcC || entry.av1C;
       if (box) {
         const stream = new DataStream(undefined, 0, DataStream.BIG_ENDIAN);
@@ -81,6 +81,6 @@ export class MP4Demuxer {
       }
     }
 
-    throw 'Codec description not found';
+    throw new Error('Codec description not found');
   }
 }
