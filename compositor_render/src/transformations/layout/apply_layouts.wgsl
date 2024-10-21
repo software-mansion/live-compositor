@@ -250,6 +250,16 @@ fn roundedRectSDF(dist: vec2<f32>, size: vec2<f32>, radius: vec4<f32>, rotation:
     return min(max(q.x, q.y), 0.0) + length(max(q, vec2<f32>(0.0, 0.0))) - r.x;
 }
 
+//fn srgb_to_linear(color: vec3<f32>) -> vec3<f32> {
+//  // note: some people use an approximation for the gamma of 2.0, for efficiency, but 2.2 is more correct
+//    return pow(color, vec3<f32>(2.2, 2.2, 2.2));
+//}
+//
+//fn linear_to_srgb(color: vec3<f32>) -> vec3<f32> {
+//  // note: if using gamma of 2.0, instead can use 0.5 as the value here
+//    return pow(color, vec3<f32>(1.0/2.2, 1.0/2.2, 1.0/2.2));
+//}
+
 @fragment
 fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
     let transparent = vec4<f32>(1.0, 1.0, 1.0, 0.0);
@@ -317,12 +327,18 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
                 rotation_degrees
             );
 
-            let content_alpha = smoothstep(border_width, border_width + 2.0, edge_distance) * mask_alpha;
-            let border_alpha =  mask_alpha;
+            let border_end = select(border_width, border_width + 2.0, border_width >= 2.0);
+            let content_alpha = smoothstep(border_width, border_end, edge_distance) * mask_alpha;
+            let border_alpha = smoothstep(-border_end, -border_width, -edge_distance) * smoothstep(0.0, 2.0, edge_distance) * mask_alpha;
 
             let mixed_background = vec4<f32>(color.rgb, color.a * content_alpha);
-            let mixed_border = mix(mixed_background, border_color, border_alpha);
+            let mixed_border = mix(
+                mixed_background, 
+                border_color,
+                border_alpha
+            );
             return mixed_border;
+            //return vec4<f32>(input.tex_coords.x, input.tex_coords.x, input.tex_coords.x, 1.0);
         }
         case 2u: {
             let color = box_shadow_params[layout_info.index].color;

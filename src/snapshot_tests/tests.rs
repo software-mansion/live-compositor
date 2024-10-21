@@ -1600,6 +1600,7 @@ fn view_snapshot_tests() -> Vec<TestCase> {
             scene_updates: Updates::Scene(
                     include_str!("../../snapshot_tests/view/border_radius_border_box_shadow.scene.json"),
                     DEFAULT_RESOLUTION,
+                    //Resolution{ width: 1920, height: 1080 }
             ),
             inputs: vec![TestInput::new(1)],
             ..Default::default()

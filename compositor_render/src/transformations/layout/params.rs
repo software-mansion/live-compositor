@@ -349,7 +349,7 @@ fn borders_radius_to_bytes(border_radius: BorderRadius) -> [u8; 16] {
 fn color_to_bytes(color: RGBAColor) -> [u8; 16] {
     let RGBAColor(r, g, b, a) = color;
     fn color_from_u8(color: u8) -> [u8; 4] {
-        (color as f32 / 255.0).to_le_bytes()
+        f32::powf(color as f32 / 255.0, 2.2).to_le_bytes()
     }
 
     let mut result = [0u8; 16];
