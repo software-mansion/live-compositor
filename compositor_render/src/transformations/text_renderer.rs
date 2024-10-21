@@ -312,14 +312,6 @@ impl TextRendererCtx {
             }
         };
 
-        // Zero sized textures can't be created
-        if texture_size.width == 0 {
-            texture_size.width = 1;
-        }
-        if texture_size.height == 0 {
-            texture_size.height = 1;
-        }
-
         buffer.set_size(
             font_system,
             Some(texture_size.width as f32),
