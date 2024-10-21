@@ -43,6 +43,7 @@ pub struct WhipSender {
 #[derive(Debug, Clone)]
 pub struct WhipSenderOptions {
     pub endpoint_url: String,
+    pub bearer_token: String,
     pub video: Option<VideoCodec>,
     pub audio: Option<AudioCodec>,
 }
@@ -55,10 +56,11 @@ impl WhipSender {
         pipeline_ctx: &PipelineCtx,
     ) -> Result<Self, OutputInitError> {
         let payloader = Payloader::new(options.video, options.audio);
-        let packet_stream = PacketStream::new(packets_receiver, payloader, 1200);
+        let packet_stream = PacketStream::new(packets_receiver, payloader, 1400);
 
         let should_close = Arc::new(AtomicBool::new(false));
         let endpoint_url = options.endpoint_url.clone();
+        let bearer_token = options.bearer_token.clone();
         let output_id = output_id.clone();
         let should_close2 = should_close.clone();
         let event_emitter = pipeline_ctx.event_emitter.clone();
@@ -73,7 +75,13 @@ impl WhipSender {
                     output_id = output_id.to_string()
                 )
                 .entered();
-                start_whip_sender_thread(endpoint_url, should_close2, packet_stream, tokio_rt);
+                start_whip_sender_thread(
+                    endpoint_url,
+                    bearer_token,
+                    should_close2,
+                    packet_stream,
+                    tokio_rt,
+                );
                 event_emitter.emit(Event::OutputDone(output_id));
                 debug!("Closing WHIP sender thread.")
             })
@@ -87,7 +95,6 @@ impl WhipSender {
 }
 
 impl Drop for WhipSender {
-    // TODO send delete request to whip server
     fn drop(&mut self) {
         self.should_close
             .store(true, std::sync::atomic::Ordering::Relaxed);
@@ -96,6 +103,7 @@ impl Drop for WhipSender {
 
 fn start_whip_sender_thread(
     endpoint_url: String,
+    bearer_token: String,
     should_close: Arc<AtomicBool>,
     packet_stream: PacketStream,
     tokio_rt: Arc<tokio::runtime::Runtime>,
@@ -107,6 +115,7 @@ fn start_whip_sender_thread(
         let whip_session_url = connect(
             peer_connection,
             endpoint_url,
+            bearer_token,
             should_close2,
             tokio_rt.clone(),
             client.clone(),
@@ -226,6 +235,7 @@ async fn init_pc() -> (
 async fn connect(
     peer_connection: Arc<RTCPeerConnection>,
     endpoint_url: String,
+    bearer_token: String,
     should_close: Arc<AtomicBool>, // TODO handle should_close if necessary
     tokio_rt: Arc<tokio::runtime::Runtime>,
     client: reqwest::Client,
@@ -249,8 +259,9 @@ async fn connect(
     info!("[WHIP] endpoint url: {}", endpoint_url);
 
     let response = client
-        .post(endpoint_url)
+        .post(endpoint_url.clone())
         .header("Content-Type", "application/sdp")
+        .header("authorization", format!("Bearer {bearer_token}"))
         .body(offer.sdp.clone())
         .send()
         .await
@@ -258,13 +269,21 @@ async fn connect(
 
     info!("[WHIP] response: {:?}", &response);
 
-    let location = Url::try_from(
-        response
-            .headers()
-            .get("location")
-            .unwrap()
-            .to_str()
-            .unwrap(),
+    let parsed_endpoint_url = Url::parse(&endpoint_url).unwrap();
+
+    let location_url = Url::try_from(
+        format!(
+            "{}://{}{}",
+            parsed_endpoint_url.scheme(),
+            parsed_endpoint_url.host_str().unwrap(),
+            response
+                .headers()
+                .get("location")
+                .unwrap()
+                .to_str()
+                .unwrap()
+        )
+        .as_str(),
     )
     .unwrap();
 
@@ -281,7 +300,8 @@ async fn connect(
 
     let client = Arc::new(client);
 
-    let location1 = location.clone();
+    let location1 = location_url.clone();
+    println!("{location1}");
 
     peer_connection.on_ice_candidate(Box::new(move |candidate| {
         if let Some(candidate) = candidate {
@@ -301,5 +321,5 @@ async fn connect(
         Box::pin(async {})
     }));
 
-    Ok(location.clone())
+    Ok(location_url.clone())
 }

@@ -32,7 +32,9 @@ fn client_code() -> Result<()> {
         "output/output_1/register",
         &json!({
             "type": "whip",
-            "endpoint_url": "http://localhost:9000/whip",
+            "endpoint_url": "https://g.webrtc.live-video.net:4443/v2/offer",
+            // "endpoint_url": "http://localhost:9000/whip",
+            "bearer_token": "", // your Bearer token 
             "video": {
                 "resolution": {
                     "width": VIDEO_RESOLUTION.width,

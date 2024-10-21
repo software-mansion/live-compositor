@@ -43,6 +43,8 @@ pub struct Mp4Output {
 pub struct WhipOutput {
     /// WHIP server endpoint
     pub endpoint_url: String,
+    // Bearer token
+    pub bearer_token: String,
     /// Video track configuration.
     pub video: Option<OutputVideoOptions>,
     /// Audio track configuration.

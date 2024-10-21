@@ -1,3 +1,6 @@
+use super::register_output::*;
+use super::util::*;
+use super::*;
 use compositor_pipeline::pipeline::{
     self,
     encoder::{
@@ -11,9 +14,6 @@ use compositor_pipeline::pipeline::{
         mp4::{Mp4AudioTrack, Mp4OutputOptions, Mp4VideoTrack},
     },
 };
-use super::register_output::*;
-use super::util::*;
-use super::*;
 
 impl TryFrom<RtpOutput> for pipeline::RegisterOutputOptions<output::OutputOptions> {
     type Error = TypeError;
@@ -178,6 +178,7 @@ impl TryFrom<WhipOutput> for pipeline::RegisterOutputOptions<output::OutputOptio
     fn try_from(request: WhipOutput) -> Result<Self, Self::Error> {
         let WhipOutput {
             endpoint_url,
+            bearer_token,
             video,
             audio,
         } = request;
@@ -218,6 +219,7 @@ impl TryFrom<WhipOutput> for pipeline::RegisterOutputOptions<output::OutputOptio
         let output_options = output::OutputOptions {
             output_protocol: output::OutputProtocolOptions::Whip(output::whip::WhipSenderOptions {
                 endpoint_url,
+                bearer_token,
                 video: video_codec,
                 audio: audio_codec,
             }),
