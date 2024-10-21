@@ -25,6 +25,10 @@ export default class LiveCompositor {
     this.options = options;
   }
 
+  /*
+   * Initializes LiveCompositor instance. It needs to be called before any resource is registered.
+   * Outputs won't produce any results until `start()` is called.
+   */
   public async init(): Promise<void> {
     this.renderer = await Renderer.create({
       streamFallbackTimeoutMs: this.options.streamFallbackTimeoutMs ?? 500,
@@ -66,11 +70,17 @@ export default class LiveCompositor {
     await this.renderer!.registerFont(fontUrl);
   }
 
+  /**
+   * Starts processing pipeline. Any previously registered output will start producing video data.
+   */
   public async start(): Promise<void> {
-    await this.coreCompositor?.start();
+    await this.coreCompositor!.start();
   }
 
+  /**
+   * Stops processing pipeline.
+   */
   public stop(): void {
-    this.instance?.stop();
+    this.instance!.stop();
   }
 }

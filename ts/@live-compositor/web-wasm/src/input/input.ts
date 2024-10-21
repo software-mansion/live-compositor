@@ -1,16 +1,16 @@
 import { Frame, InputId } from '@live-compositor/browser-render';
-import MP4Source from './mp4/source';
 import { CompositorEventType } from 'live-compositor';
 import { EventSender } from '../eventSender';
 import InputSource from './source';
-import { RegisterInputRequest } from '@live-compositor/core';
 
 /**
- * Represents frame produced by decoder. All `InputFrame`s have to be manually freed.
+ * Represents frame produced by decoder.
+ * `InputFrame` has to be manually freed from the memory by calling `free()` method. Once freed it no longer can be used.
+ * `Queue` on tick pulls `InputFrame` for each input and once render finishes, manually frees `InputFrame`s.
  */
 export type InputFrame = Frame & {
   /**
-   * Frees InputFrame from memory. InputFrame can not be used after `free()`.
+   * Frees `InputFrame` from memory. `InputFrame` can not be used after `free()`.
    */
   free: () => void;
 };
@@ -23,23 +23,19 @@ export class Input {
   private state: InputState;
   private eventSender: EventSender;
 
-  public constructor(id: InputId, request: RegisterInputRequest, eventSender: EventSender) {
+  public constructor(id: InputId, source: InputSource, eventSender: EventSender) {
     this.id = id;
     this.state = 'waiting_for_start';
+    this.source = source;
     this.eventSender = eventSender;
-    if (request.type === 'mp4') {
-      this.source = new MP4Source(request.url!);
-    } else {
-      throw new Error(`Unknown input type ${(request as any).type}`);
-    }
   }
 
-  public async start() {
+  public start() {
     if (this.state !== 'waiting_for_start') {
       console.warn(`Tried to start an already started input "${this.id}"`);
       return;
     }
-    await this.source.start();
+    this.source.start();
     this.state = 'buffering';
     this.eventSender.sendEvent({
       type: CompositorEventType.VIDEO_INPUT_DELIVERED,

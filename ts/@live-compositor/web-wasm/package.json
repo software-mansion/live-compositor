@@ -1,5 +1,5 @@
 {
-  "name": "@live-compositor/web",
+  "name": "@live-compositor/web-wasm",
   "version": "0.1.0-rc.0",
   "description": "",
   "main": "dist/index.js",

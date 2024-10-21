@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { LiveCompositor } from '@live-compositor/web';
+import { LiveCompositor } from '@live-compositor/web-wasm';
 import { InputStream, Text, useInputStreams, View } from 'live-compositor';
 
 const BUNNY_URL = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
@@ -32,7 +32,7 @@ function Scene() {
   if (inputState !== 'playing') {
     return (
       <View backgroundColor="#000000">
-        <View width={530} height={40} bottom={300} left={500}>
+        <View width={530} height={40} bottom={340} left={500}>
           <Text fontSize={30} fontFamily="Noto Sans">
             Loading MP4 file
           </Text>

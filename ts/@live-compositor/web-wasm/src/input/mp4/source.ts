@@ -6,6 +6,7 @@ import InputSource from '../source';
 
 export default class MP4Source implements InputSource {
   private fileUrl: string;
+  private fileData?: ArrayBuffer;
   private demuxer: MP4Demuxer;
   private decoder: H264Decoder;
   private frameFormat: VideoPixelFormat;
@@ -24,9 +25,18 @@ export default class MP4Source implements InputSource {
     this.frameFormat = isSafari ? 'I420' : 'RGBA';
   }
 
-  public async start(): Promise<void> {
+  public async init(): Promise<void> {
     const resp = await fetch(this.fileUrl);
-    await resp.body?.pipeTo(this.sink());
+    this.fileData = await resp.arrayBuffer();
+  }
+
+  public start(): void {
+    if (!this.fileData) {
+      throw new Error('MP4Source has to be initialized first before processing can be started');
+    }
+
+    this.demuxer.demux(this.fileData);
+    this.demuxer.flush();
   }
 
   public async getFrame(): Promise<InputFrame | undefined> {
@@ -50,23 +60,5 @@ export default class MP4Source implements InputSource {
       data: buffer,
       free: () => frame.close(),
     };
-  }
-
-  private sink(): WritableStream {
-    return new WritableStream(
-      {
-        write: (fileChunk: Uint8Array) => {
-          const buffer = fileChunk.buffer.slice(
-            fileChunk.byteOffset,
-            fileChunk.byteOffset + fileChunk.byteLength
-          );
-          this.demuxer.demux(buffer);
-        },
-        close: () => {
-          this.demuxer.flush();
-        },
-      },
-      { highWaterMark: 2 }
-    );
   }
 }
