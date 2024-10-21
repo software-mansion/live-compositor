@@ -1,3 +1,6 @@
+use super::register_output::*;
+use super::util::*;
+use super::*;
 use compositor_pipeline::pipeline::{
     self,
     encoder::{
@@ -11,10 +14,6 @@ use compositor_pipeline::pipeline::{
         mp4::{Mp4AudioTrack, Mp4OutputOptions, Mp4VideoTrack},
     },
 };
-
-use super::register_output::*;
-use super::util::*;
-use super::*;
 
 impl TryFrom<RtpOutput> for pipeline::RegisterOutputOptions<output::OutputOptions> {
     type Error = TypeError;
@@ -160,6 +159,69 @@ impl TryFrom<Mp4Output> for pipeline::RegisterOutputOptions<output::OutputOption
                 output_path: path.into(),
                 video: mp4_video,
                 audio: mp4_audio,
+            }),
+            video: video_encoder_options,
+            audio: audio_encoder_options,
+        };
+
+        Ok(Self {
+            output_options,
+            video: output_video_options,
+            audio: output_audio_options,
+        })
+    }
+}
+
+impl TryFrom<WhipOutput> for pipeline::RegisterOutputOptions<output::OutputOptions> {
+    type Error = TypeError;
+
+    fn try_from(request: WhipOutput) -> Result<Self, Self::Error> {
+        let WhipOutput {
+            endpoint_url,
+            bearer_token,
+            video,
+            audio,
+        } = request;
+
+        if video.is_none() && audio.is_none() {
+            return Err(TypeError::new(
+                "At least one of \"video\" and \"audio\" fields have to be specified.",
+            ));
+        }
+        let video_codec = video.as_ref().map(|v| match v.encoder {
+            VideoEncoderOptions::FfmpegH264 { .. } => pipeline::VideoCodec::H264,
+        });
+        let audio_codec = audio.as_ref().map(|a| match a.encoder {
+            RtpAudioEncoderOptions::Opus { .. } => pipeline::AudioCodec::Opus,
+        });
+
+        let (video_encoder_options, output_video_options) = maybe_video_options(video)?;
+        let (audio_encoder_options, output_audio_options) = match audio {
+            Some(OutputRtpAudioOptions {
+                mixing_strategy,
+                send_eos_when,
+                encoder,
+                initial,
+            }) => {
+                let audio_encoder_options: AudioEncoderOptions = encoder.into();
+                let output_audio_options = pipeline::OutputAudioOptions {
+                    initial: initial.try_into()?,
+                    end_condition: send_eos_when.unwrap_or_default().try_into()?,
+                    mixing_strategy: mixing_strategy.unwrap_or(MixingStrategy::SumClip).into(),
+                    channels: audio_encoder_options.channels(),
+                };
+
+                (Some(audio_encoder_options), Some(output_audio_options))
+            }
+            None => (None, None),
+        };
+
+        let output_options = output::OutputOptions {
+            output_protocol: output::OutputProtocolOptions::Whip(output::whip::WhipSenderOptions {
+                endpoint_url,
+                bearer_token,
+                video: video_codec,
+                audio: audio_codec,
             }),
             video: video_encoder_options,
             audio: audio_encoder_options,
