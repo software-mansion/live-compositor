@@ -234,6 +234,10 @@ impl PipelineOutputEndConditionState {
         EosStatus::None
     }
 
+    pub(super) fn did_output_end(&self) -> bool {
+        self.did_end
+    }
+
     pub(super) fn on_input_registered(&mut self, input_id: &InputId) {
         self.on_event(StateChange::AddInput(input_id))
     }
