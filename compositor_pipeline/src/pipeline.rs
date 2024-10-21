@@ -195,9 +195,7 @@ impl Pipeline {
                 output_framerate: opts.queue_options.output_framerate,
                 download_dir: download_dir.into(),
                 event_emitter,
-                tokio_rt: Arc::new(
-                    Runtime::new().map_err(|err| InitPipelineError::CreateTokioRuntime(err))?,
-                ),
+                tokio_rt: Arc::new(Runtime::new().map_err(InitPipelineError::CreateTokioRuntime)?),
                 #[cfg(feature = "vk-video")]
                 vulkan_ctx: preinitialized_ctx.and_then(|ctx| ctx.vulkan_ctx),
             },

@@ -137,18 +137,18 @@ fn start_whip_sender_thread(
 
             match chunk.kind {
                 DataKind::Audio => {
-                    if let Err(_) = audio_track.write(&chunk.data).await {
+                    if audio_track.write(&chunk.data).await.is_err() {
                         error!("Error occurred while writing to audio track for session");
                     }
                 }
                 DataKind::Video => {
-                    if let Err(_) = video_track.write(&chunk.data).await {
+                    if video_track.write(&chunk.data).await.is_err() {
                         error!("Error occurred while writing to video track for session");
                     }
                 }
             }
         }
-        let _ = client.delete(whip_session_url).send().await; // not unwrapping, because server may have gone down, so it should be handled better way
+        let _ = client.delete(whip_session_url).send().await;
     });
 }
 
@@ -204,7 +204,6 @@ async fn init_pc() -> (
         ..Default::default()
     };
     let peer_connection = Arc::new(api.new_peer_connection(config).await.unwrap());
-    // Create Track that we send video back to browser on
     let video_track = Arc::new(TrackLocalStaticRTP::new(
         RTCRtpCodecCapability {
             mime_type: MIME_TYPE_H264.to_owned(),
@@ -236,11 +235,10 @@ async fn connect(
     peer_connection: Arc<RTCPeerConnection>,
     endpoint_url: String,
     bearer_token: String,
-    should_close: Arc<AtomicBool>, // TODO handle should_close if necessary
+    should_close: Arc<AtomicBool>,
     tokio_rt: Arc<tokio::runtime::Runtime>,
     client: reqwest::Client,
 ) -> anyhow::Result<Url> {
-    // TODO replace anyhow with proper errors
     peer_connection.on_ice_connection_state_change(Box::new(
         move |connection_state: RTCIceConnectionState| {
             debug!("Connection State has changed {connection_state}");
@@ -289,7 +287,7 @@ async fn connect(
     .unwrap();
 
     let answer = response.bytes().await.unwrap();
-    let _ = peer_connection.set_local_description(offer).await.unwrap();
+    peer_connection.set_local_description(offer).await.unwrap();
 
     peer_connection
         .set_remote_description(
@@ -302,7 +300,6 @@ async fn connect(
     let client = Arc::new(client);
 
     let location1: Url = location_url.clone();
-    println!("{location1}");
 
     peer_connection.on_ice_candidate(Box::new(move |candidate| {
         if let Some(candidate) = candidate {
