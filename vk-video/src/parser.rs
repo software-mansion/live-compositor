@@ -32,8 +32,10 @@ pub struct DecodeInformation {
 }
 
 #[derive(Debug, Clone)]
+#[allow(non_snake_case)]
 pub(crate) struct ReferencePictureInfo {
     pub(crate) id: ReferenceId,
+    pub(crate) LongTermPicNum: Option<u64>,
     pub(crate) picture_info: PictureInfo,
 }
 
