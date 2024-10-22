@@ -179,12 +179,9 @@ impl Buffer {
         allocator: Arc<Allocator>,
         data: &[u8],
         buffer_size: u64,
+        profile_info: &H264ProfileInfo,
     ) -> Result<Buffer, VulkanDecoderError> {
-        let mut decode_buffer = Buffer::new_decode(
-            allocator.clone(),
-            buffer_size,
-            &H264ProfileInfo::decode_h264_yuv420(),
-        )?;
+        let mut decode_buffer = Buffer::new_decode(allocator.clone(), buffer_size, profile_info)?;
 
         unsafe {
             let mem = allocator.map_memory(&mut decode_buffer.allocation)?;

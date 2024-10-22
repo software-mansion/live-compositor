@@ -12,6 +12,7 @@ use crate::parser::{DecodeInformation, DecoderInstruction, ReferenceId};
 mod session_resources;
 mod vulkan_ctx;
 mod wrappers;
+mod frame_sorter;
 
 pub use vulkan_ctx::*;
 
@@ -22,7 +23,6 @@ pub struct VulkanDecoder<'a> {
     _command_pools: CommandPools,
     sync_structures: SyncStructures,
     reference_id_to_dpb_slot_index: std::collections::HashMap<ReferenceId, usize>,
-    decode_query_pool: Option<DecodeQueryPool>,
 }
 
 struct SyncStructures {
@@ -80,6 +80,15 @@ pub enum VulkanDecoderError {
     #[error("A vulkan decode operation failed with code {0:?}")]
     DecodeOperationFailed(vk::QueryResultStatusKHR),
 
+    #[error("Invalid input data for the decoder: {0}.")]
+    InvalidInputData(String),
+
+    #[error("Profile changed during the stream")]
+    ProfileChangeUnsupported,
+
+    #[error("Level changed during the stream")]
+    LevelChangeUnsupported,
+
     #[error(transparent)]
     VulkanCtxError(#[from] VulkanCtxError),
 }
@@ -113,19 +122,6 @@ impl<'a> VulkanDecoder<'a> {
             fence_memory_barrier_completed: Fence::new(vulkan_ctx.device.clone(), false)?,
         };
 
-        let decode_query_pool = if vulkan_ctx
-            .queues
-            .h264_decode
-            .supports_result_status_queries()
-        {
-            Some(DecodeQueryPool::new(
-                vulkan_ctx.device.clone(),
-                H264ProfileInfo::decode_h264_yuv420().profile_info,
-            )?)
-        } else {
-            None
-        };
-
         Ok(Self {
             vulkan_ctx,
             video_session_resources: None,
@@ -136,7 +132,6 @@ impl<'a> VulkanDecoder<'a> {
                 vulkan_to_wgpu_transfer_buffer,
             },
             sync_structures,
-            decode_query_pool,
             reference_id_to_dpb_slot_index: Default::default(),
         })
     }
@@ -289,17 +284,18 @@ impl VulkanDecoder<'_> {
                 .min_bitstream_buffer_offset_alignment,
         );
 
-        let decode_buffer = Buffer::new_with_decode_data(
-            self.vulkan_ctx.allocator.clone(),
-            &decode_information.rbsp_bytes,
-            size,
-        )?;
-
         // decode
         let video_session_resources = self
             .video_session_resources
             .as_mut()
             .ok_or(VulkanDecoderError::NoSession)?;
+
+        let decode_buffer = Buffer::new_with_decode_data(
+            self.vulkan_ctx.allocator.clone(),
+            &decode_information.rbsp_bytes,
+            size,
+            &video_session_resources.profile_info,
+        )?;
 
         // IDR - remove all reference picures
         if is_idr {
@@ -328,7 +324,7 @@ impl VulkanDecoder<'_> {
             )
         };
 
-        if let Some(pool) = self.decode_query_pool.as_ref() {
+        if let Some(pool) = video_session_resources.decode_query_pool.as_ref() {
             pool.reset(*self.command_buffers.decode_buffer);
         }
 
@@ -418,7 +414,7 @@ impl VulkanDecoder<'_> {
                     0,
                 ),
             },
-            PicOrderCnt: decode_information.picture_info.PicOrderCnt,
+            PicOrderCnt: decode_information.picture_info.PicOrderCnt_for_decoding,
             seq_parameter_set_id: decode_information.sps_id,
             pic_parameter_set_id: decode_information.pps_id,
             frame_num: decode_information.header.frame_num,
@@ -461,7 +457,7 @@ impl VulkanDecoder<'_> {
             .reference_slots(&pic_reference_slots)
             .push_next(&mut decode_h264_picture_info);
 
-        if let Some(pool) = self.decode_query_pool.as_ref() {
+        if let Some(pool) = video_session_resources.decode_query_pool.as_ref() {
             pool.begin_query(*self.command_buffers.decode_buffer);
         }
 
@@ -472,7 +468,7 @@ impl VulkanDecoder<'_> {
                 .cmd_decode_video_khr(*self.command_buffers.decode_buffer, &decode_info)
         };
 
-        if let Some(pool) = self.decode_query_pool.as_ref() {
+        if let Some(pool) = video_session_resources.decode_query_pool.as_ref() {
             pool.end_query(*self.command_buffers.decode_buffer);
         }
 
@@ -696,8 +692,9 @@ impl VulkanDecoder<'_> {
             .wait_and_reset(u64::MAX)?;
 
         let result = self
-            .decode_query_pool
+            .video_session_resources
             .as_ref()
+            .and_then(|s| s.decode_query_pool.as_ref())
             .map(|pool| pool.get_result_blocking());
 
         if let Some(result) = result {
@@ -790,10 +787,10 @@ impl VulkanDecoder<'_> {
         decode_information: &DecodeInformation,
     ) -> Vec<vk::native::StdVideoDecodeH264ReferenceInfo> {
         decode_information
-            .reference_list
+            .reference_list_l0
             .iter()
             .flatten()
-            .map(|ref_info| ref_info.picture_info.into())
+            .map(|&ref_info| ref_info.into())
             .collect::<Vec<_>>()
     }
 
@@ -814,7 +811,7 @@ impl VulkanDecoder<'_> {
     ) -> Result<Vec<vk::VideoReferenceSlotInfoKHR<'a>>, VulkanDecoderError> {
         let mut pic_reference_slots = Vec::new();
         for (ref_info, dpb_slot_info) in decode_information
-            .reference_list
+            .reference_list_l0
             .iter()
             .flatten()
             .zip(references_dpb_slot_info.iter_mut())
@@ -955,43 +952,5 @@ impl VulkanDecoder<'_> {
         )?;
 
         Ok(dst_buffer)
-    }
-}
-
-pub(crate) struct H264ProfileInfo<'a> {
-    profile_info: vk::VideoProfileInfoKHR<'a>,
-    h264_info_ptr: *mut vk::VideoDecodeH264ProfileInfoKHR<'a>,
-}
-
-impl H264ProfileInfo<'_> {
-    fn decode_h264_yuv420() -> Self {
-        let h264_profile_info = Box::leak(Box::new(
-            vk::VideoDecodeH264ProfileInfoKHR::default()
-                .std_profile_idc(
-                    vk::native::StdVideoH264ProfileIdc_STD_VIDEO_H264_PROFILE_IDC_BASELINE,
-                )
-                .picture_layout(vk::VideoDecodeH264PictureLayoutFlagsKHR::PROGRESSIVE),
-        ));
-
-        let h264_info_ptr = h264_profile_info as *mut _;
-        let profile_info = vk::VideoProfileInfoKHR::default()
-            .video_codec_operation(vk::VideoCodecOperationFlagsKHR::DECODE_H264)
-            .chroma_subsampling(vk::VideoChromaSubsamplingFlagsKHR::TYPE_420)
-            .luma_bit_depth(vk::VideoComponentBitDepthFlagsKHR::TYPE_8)
-            .chroma_bit_depth(vk::VideoComponentBitDepthFlagsKHR::TYPE_8)
-            .push_next(h264_profile_info);
-
-        Self {
-            profile_info,
-            h264_info_ptr,
-        }
-    }
-}
-
-impl<'a> Drop for H264ProfileInfo<'a> {
-    fn drop(&mut self) {
-        unsafe {
-            let _ = Box::from_raw(self.h264_info_ptr);
-        }
     }
 }

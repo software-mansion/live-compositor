@@ -20,7 +20,8 @@ pub use reference_manager::{ReferenceId, ReferenceManagementError};
 #[derivative(Debug)]
 #[allow(non_snake_case)]
 pub struct DecodeInformation {
-    pub(crate) reference_list: Option<Vec<ReferencePictureInfo>>,
+    pub(crate) reference_list_l0: Option<Vec<ReferencePictureInfo>>,
+    pub(crate) reference_list_l1: Option<Vec<ReferencePictureInfo>>,
     #[derivative(Debug = "ignore")]
     pub(crate) rbsp_bytes: Vec<u8>,
     pub(crate) slice_indices: Vec<usize>,
@@ -31,12 +32,14 @@ pub struct DecodeInformation {
     pub(crate) picture_info: PictureInfo,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 #[allow(non_snake_case)]
 pub(crate) struct ReferencePictureInfo {
     pub(crate) id: ReferenceId,
     pub(crate) LongTermPicNum: Option<u64>,
-    pub(crate) picture_info: PictureInfo,
+    pub(crate) non_existing: bool,
+    pub(crate) FrameNum: u16,
+    pub(crate) PicOrderCnt: [i32; 2],
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -45,7 +48,8 @@ pub(crate) struct PictureInfo {
     pub(crate) used_for_long_term_reference: bool,
     pub(crate) non_existing: bool,
     pub(crate) FrameNum: u16,
-    pub(crate) PicOrderCnt: [i32; 2],
+    pub(crate) PicOrderCnt_for_decoding: [i32; 2],
+    pub(crate) PicOrderCnt_as_reference_pic: [i32; 2],
 }
 
 #[derive(Debug, Clone)]
