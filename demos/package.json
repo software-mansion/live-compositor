@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Demos for LiveCompositor - media server for low latency video and audio mixing/composing",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
@@ -25,26 +26,30 @@
   "dependencies": {
     "@live-compositor/node": "^0.1.0",
     "@types/fs-extra": "^11.0.2",
-    "@types/node": "^20.12.11",
     "@types/node-fetch": "^2.6.11",
-    "@typescript-eslint/eslint-plugin": "^6.7.3",
-    "@typescript-eslint/parser": "^6.7.3",
     "chalk": "^4.1.2",
-    "eslint": "^8.50.0",
-    "eslint-config-prettier": "^9.0.0",
-    "eslint-plugin-import": "^2.28.1",
-    "eslint-plugin-prettier": "^5.0.0",
     "fs-extra": "^11.1.1",
     "json-schema-to-typescript": "^14.0.4",
     "live-compositor": "^0.1.0",
     "node-fetch": "^2.7.0",
     "node-popup": "^0.1.14",
-    "prettier": "^3.0.3",
-    "react": "^18.3.1",
-    "ts-node": "^10.9.1",
-    "typescript": "^5.2.2"
+    "react": "^18.3.1"
   },
   "devDependencies": {
-    "@types/react": "^18.3.9"
+    "@types/node": "^20.12.11",
+    "@types/react": "^18.3.9",
+    "@typescript-eslint/eslint-plugin": "^8.8.1",
+    "@typescript-eslint/parser": "^8.8.1",
+    "eslint": "^9.12.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-import-resolver-typescript": "^3.6.3",
+    "eslint-plugin-import": "^2.31.0",
+    "eslint-plugin-prettier": "^5.2.1",
+    "eslint-plugin-react-hooks": "^5.0.0",
+    "globals": "^15.11.0",
+    "prettier": "^3.3.3",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.5.3",
+    "typescript-eslint": "8.8.1"
   }
 }

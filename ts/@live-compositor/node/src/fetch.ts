@@ -5,7 +5,7 @@ import { Stream } from 'stream';
 import { promisify } from 'util';
 
 import fetch from 'node-fetch';
-import { ApiRequest } from '@live-compositor/core';
+import type { ApiRequest } from '@live-compositor/core';
 
 const pipeline = promisify(Stream.pipeline);
 const httpAgent = new http.Agent({ keepAlive: true });

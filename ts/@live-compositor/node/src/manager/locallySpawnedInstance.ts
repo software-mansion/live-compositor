@@ -2,9 +2,9 @@ import os from 'os';
 import path from 'path';
 
 import { v4 as uuidv4 } from 'uuid';
-import fs from 'fs-extra';
+import * as fs from 'fs-extra';
 import * as tar from 'tar';
-import { ApiRequest, CompositorManager } from '@live-compositor/core';
+import type { ApiRequest, CompositorManager } from '@live-compositor/core';
 
 import { download, sendRequest } from '../fetch';
 import { retry, sleep } from '../utils';

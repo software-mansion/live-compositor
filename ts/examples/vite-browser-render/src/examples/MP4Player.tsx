@@ -1,10 +1,12 @@
-import { MP4ArrayBuffer } from 'mp4box';
+import type { MP4ArrayBuffer } from 'mp4box';
 import { MP4Decoder } from './mp4/decoder';
-import { FrameFormat, FrameSet } from '@live-compositor/browser-render';
+import type { FrameSet } from '@live-compositor/browser-render';
+import { FrameFormat } from '@live-compositor/browser-render';
 import { useEffect, useRef } from 'react';
 import { useRenderer } from './utils';
 
-const BUNNY_URL = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
+const BUNNY_URL =
+  'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
 
 function MP4Player() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -47,46 +49,51 @@ function MP4Player() {
     const decoder = new MP4Decoder();
     fetch(BUNNY_URL)
       .then(resp => resp.arrayBuffer())
-      .then(videoData => {
-        renderer.updateScene(
-          'output',
-          {
-            width: 1280,
-            height: 720,
-          },
-          {
-            type: 'view',
-            width: 1280,
-            height: 720,
-            background_color_rgba: '#000000FF',
-            children: [
-              {
-                type: 'input_stream',
-                input_id: 'bunny_video',
-              },
-              {
-                type: 'view',
-                width: 230,
-                height: 40,
-                background_color_rgba: '#000000FF',
-                bottom: 20,
-                left: 500,
-                children: [
-                  {
-                    type: 'text',
-                    font_size: 30,
-                    font_family: 'Noto Sans',
-                    text: 'Playing MP4 file',
-                    align: 'center',
-                  },
-                ],
-              },
-            ],
-          }
-        );
+      .then(
+        videoData => {
+          renderer.updateScene(
+            'output',
+            {
+              width: 1280,
+              height: 720,
+            },
+            {
+              type: 'view',
+              width: 1280,
+              height: 720,
+              background_color_rgba: '#000000FF',
+              children: [
+                {
+                  type: 'input_stream',
+                  input_id: 'bunny_video',
+                },
+                {
+                  type: 'view',
+                  width: 230,
+                  height: 40,
+                  background_color_rgba: '#000000FF',
+                  bottom: 20,
+                  left: 500,
+                  children: [
+                    {
+                      type: 'text',
+                      font_size: 30,
+                      font_family: 'Noto Sans',
+                      text: 'Playing MP4 file',
+                      align: 'center',
+                    },
+                  ],
+                },
+              ],
+            }
+          );
 
-        decoder.decode(videoData as MP4ArrayBuffer);
-      });
+          decoder.decode(videoData as MP4ArrayBuffer);
+        },
+        error => {
+          console.error(error);
+        }
+      );
 
     const canvas = canvasRef!.current!;
     const ctx = canvas.getContext('2d');
@@ -133,7 +140,7 @@ function MP4Player() {
     }, 30);
 
     return () => clearInterval(renderInterval);
-  }, [renderer])
+  }, [renderer]);
 
   return (
     <>

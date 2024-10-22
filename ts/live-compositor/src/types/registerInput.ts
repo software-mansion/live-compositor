@@ -1,4 +1,4 @@
-import * as Api from '../api.js';
+import type * as Api from '../api.js';
 
 export type RegisterInput =
   | ({ type: 'rtp_stream' } & RegisterRtpInput)
