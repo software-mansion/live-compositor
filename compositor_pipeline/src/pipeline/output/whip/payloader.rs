@@ -74,6 +74,9 @@ pub enum PayloadingError {
 
     #[error("Video EOS already sent.")]
     VideoEOSAlreadySent,
+
+    #[error("Unsupported payload type.")]
+    UnsupportedPayloadType,
 }
 
 pub struct Payloader {
@@ -95,14 +98,9 @@ enum AudioPayloader {
     },
 }
 
-pub enum DataKind {
-    Audio,
-    Video,
-}
-
-pub struct Payload {
-    pub data: Bytes,
-    pub kind: DataKind,
+pub enum Payload {
+    Video(Bytes),
+    Audio(Bytes),
 }
 
 impl Payloader {
@@ -304,19 +302,15 @@ fn payload<T: rtp::packetizer::Payloader>(
             };
             context.next_sequence_number = context.next_sequence_number.wrapping_add(1);
 
-            Ok(Payload {
-                data: rtp::packet::Packet { header, payload }.marshal()?,
-                kind: chunk.kind.into(),
-            })
+            match payload_type {
+                VIDEO_PAYLOAD_TYPE => Ok(Payload::Video(
+                    rtp::packet::Packet { header, payload }.marshal()?,
+                )),
+                AUDIO_PAYLOAD_TYPE => Ok(Payload::Audio(
+                    rtp::packet::Packet { header, payload }.marshal()?,
+                )),
+                _ => Err(PayloadingError::UnsupportedPayloadType),
+            }
         })
         .collect()
-}
-
-impl From<EncodedChunkKind> for DataKind {
-    fn from(kind: EncodedChunkKind) -> Self {
-        match kind {
-            EncodedChunkKind::Video(_) => DataKind::Video,
-            EncodedChunkKind::Audio(_) => DataKind::Audio,
-        }
-    }
 }

@@ -1,6 +1,6 @@
 use compositor_render::OutputId;
 use crossbeam_channel::Receiver;
-use payloader::DataKind;
+use payloader::Payload;
 use reqwest::{header::HeaderMap, Url};
 use std::sync::{atomic::AtomicBool, Arc};
 use tracing::{debug, error, info, span, Level};
@@ -46,6 +46,12 @@ pub struct WhipSenderOptions {
     pub bearer_token: Option<String>,
     pub video: Option<VideoCodec>,
     pub audio: Option<AudioCodec>,
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum WhipError {
+    #[error("Missing location header in WHIP response")]
+    MissingLocationHeader,
 }
 
 impl WhipSender {
@@ -111,17 +117,19 @@ fn start_whip_sender_thread(
     tokio_rt.block_on(async {
         let client = reqwest::Client::new();
         let (peer_connection, video_track, audio_track) = init_pc().await;
-        let should_close2 = should_close.clone();
-        let whip_session_url = connect(
+        let whip_session_url = match connect(
             peer_connection,
             endpoint_url,
             bearer_token,
-            should_close2,
+            should_close.clone(),
             tokio_rt.clone(),
             client.clone(),
         )
         .await
-        .unwrap();
+        {
+            Ok(val) => val,
+            Err(_) => return,
+        };
 
         for chunk in packet_stream {
             if should_close.load(std::sync::atomic::Ordering::Relaxed) {
@@ -135,15 +143,15 @@ fn start_whip_sender_thread(
                 }
             };
 
-            match chunk.kind {
-                DataKind::Audio => {
-                    if audio_track.write(&chunk.data).await.is_err() {
-                        error!("Error occurred while writing to audio track for session");
+            match chunk {
+                Payload::Video(bytes) => {
+                    if video_track.write(&bytes).await.is_err() {
+                        error!("Error occurred while writing to video track for session");
                     }
                 }
-                DataKind::Video => {
-                    if video_track.write(&chunk.data).await.is_err() {
-                        error!("Error occurred while writing to video track for session");
+                Payload::Audio(bytes) => {
+                    if audio_track.write(&bytes).await.is_err() {
+                        error!("Error occurred while writing to audio track for session");
                     }
                 }
             }
@@ -238,7 +246,7 @@ async fn connect(
     should_close: Arc<AtomicBool>,
     tokio_rt: Arc<tokio::runtime::Runtime>,
     client: reqwest::Client,
-) -> anyhow::Result<Url> {
+) -> Result<Url, WhipError> {
     peer_connection.on_ice_connection_state_change(Box::new(
         move |connection_state: RTCIceConnectionState| {
             debug!("Connection State has changed {connection_state}");
@@ -277,18 +285,21 @@ async fn connect(
 
     let parsed_endpoint_url = Url::parse(&endpoint_url).unwrap();
 
+    let location_url_path = response.headers()
+        .get("location")
+        .and_then(|url| url.to_str().ok())
+        .ok_or_else(|| {
+            error!("Unable to get location endpoint, check correctness of WHIP endpoint and your Bearer token");
+            WhipError::MissingLocationHeader
+        })?;
+
     let location_url = Url::try_from(
         format!(
             "{}://{}:{}{}",
             parsed_endpoint_url.scheme(),
             parsed_endpoint_url.host_str().unwrap(),
             parsed_endpoint_url.port().unwrap(),
-            response
-                .headers()
-                .get("location")
-                .unwrap()
-                .to_str()
-                .unwrap()
+            location_url_path
         )
         .as_str(),
     )

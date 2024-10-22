@@ -1,6 +1,3 @@
-use super::register_output::*;
-use super::util::*;
-use super::*;
 use compositor_pipeline::pipeline::{
     self,
     encoder::{
@@ -14,6 +11,10 @@ use compositor_pipeline::pipeline::{
         mp4::{Mp4AudioTrack, Mp4OutputOptions, Mp4VideoTrack},
     },
 };
+
+use super::register_output::*;
+use super::util::*;
+use super::*;
 
 impl TryFrom<RtpOutput> for pipeline::RegisterOutputOptions<output::OutputOptions> {
     type Error = TypeError;

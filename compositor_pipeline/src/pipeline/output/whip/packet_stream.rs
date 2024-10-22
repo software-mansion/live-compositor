@@ -4,7 +4,7 @@ use crossbeam_channel::Receiver;
 
 use crate::pipeline::types::EncoderOutputEvent;
 
-use super::payloader::{DataKind, Payload, Payloader, PayloadingError};
+use super::payloader::{Payload, Payloader, PayloadingError};
 
 pub(super) struct PacketStream {
     packets_receiver: Receiver<EncoderOutputEvent>,
@@ -33,28 +33,12 @@ impl PacketStream {
             match self.payloader.audio_eos() {
                 Err(PayloadingError::NoAudioPayloader) => (),
                 Err(PayloadingError::AudioEOSAlreadySent) => (),
-                packet => {
-                    return Some(match packet {
-                        Ok(packet) => Ok(Payload {
-                            data: packet,
-                            kind: DataKind::Audio,
-                        }),
-                        Err(err) => Err(err),
-                    })
-                }
+                packet => return Some(Ok(Payload::Audio(packet.unwrap()))),
             }
             match self.payloader.video_eos() {
                 Err(PayloadingError::NoVideoPayloader) => (),
                 Err(PayloadingError::VideoEOSAlreadySent) => (),
-                packet => {
-                    return Some(match packet {
-                        Ok(packet) => Ok(Payload {
-                            data: packet,
-                            kind: DataKind::Video,
-                        }),
-                        Err(err) => Err(err),
-                    })
-                }
+                packet => return Some(Ok(Payload::Video(packet.unwrap()))),
             }
             return None;
         };
@@ -62,22 +46,10 @@ impl PacketStream {
         let encoded_chunk = match packet {
             EncoderOutputEvent::Data(packet) => packet,
             EncoderOutputEvent::AudioEOS => {
-                return Some(match self.payloader.audio_eos() {
-                    Ok(packet) => Ok(Payload {
-                        data: packet,
-                        kind: DataKind::Video,
-                    }),
-                    Err(err) => Err(err),
-                })
+                return Some(Ok(Payload::Audio(self.payloader.audio_eos().unwrap())));
             }
             EncoderOutputEvent::VideoEOS => {
-                return Some(match self.payloader.video_eos() {
-                    Ok(packet) => Ok(Payload {
-                        data: packet,
-                        kind: DataKind::Video,
-                    }),
-                    Err(err) => Err(err),
-                })
+                return Some(Ok(Payload::Video(self.payloader.video_eos().unwrap())));
             }
         };
 
