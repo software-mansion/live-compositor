@@ -69,7 +69,7 @@ fn client_code() -> Result<()> {
 
     examples::post("start", &json!({}))?;
 
-    sleep(Duration::from_secs(80));
+    sleep(Duration::from_secs(300));
     examples::post("output/output_1/unregister", &json!({}))?;
 
     Ok(())

@@ -1,7 +1,7 @@
 use compositor_render::OutputId;
 use crossbeam_channel::Receiver;
 use payloader::DataKind;
-use reqwest::Url;
+use reqwest::{header::HeaderMap, Url};
 use std::sync::{atomic::AtomicBool, Arc};
 use tracing::{debug, error, info, span, Level};
 use webrtc::{
@@ -43,7 +43,7 @@ pub struct WhipSender {
 #[derive(Debug, Clone)]
 pub struct WhipSenderOptions {
     pub endpoint_url: String,
-    pub bearer_token: String,
+    pub bearer_token: Option<String>,
     pub video: Option<VideoCodec>,
     pub audio: Option<AudioCodec>,
 }
@@ -103,7 +103,7 @@ impl Drop for WhipSender {
 
 fn start_whip_sender_thread(
     endpoint_url: String,
-    bearer_token: String,
+    bearer_token: Option<String>,
     should_close: Arc<AtomicBool>,
     packet_stream: PacketStream,
     tokio_rt: Arc<tokio::runtime::Runtime>,
@@ -234,7 +234,7 @@ async fn init_pc() -> (
 async fn connect(
     peer_connection: Arc<RTCPeerConnection>,
     endpoint_url: String,
-    bearer_token: String,
+    bearer_token: Option<String>,
     should_close: Arc<AtomicBool>,
     tokio_rt: Arc<tokio::runtime::Runtime>,
     client: reqwest::Client,
@@ -256,10 +256,18 @@ async fn connect(
 
     info!("[WHIP] endpoint url: {}", endpoint_url);
 
+    let mut header_map = HeaderMap::new();
+    header_map.append("Content-Type", "application/sdp".parse().unwrap());
+
+    let bearer_token = bearer_token.map(Arc::new);
+
+    if let Some(token) = bearer_token.clone() {
+        header_map.append("Authorization", format!("Bearer {token}").parse().unwrap());
+    }
+
     let response = client
         .post(endpoint_url.clone())
-        .header("Content-Type", "application/sdp")
-        .header("authorization", format!("Bearer {bearer_token}"))
+        .headers(header_map)
         .body(offer.sdp.clone())
         .send()
         .await
@@ -305,11 +313,23 @@ async fn connect(
         if let Some(candidate) = candidate {
             let client_clone = client.clone();
             let location2 = location1.clone();
+            let bearer_token1 = bearer_token.clone();
             tokio_rt.spawn(async move {
                 let ice_candidate = candidate.to_json().unwrap();
+
+                let mut header_map = HeaderMap::new();
+                header_map.append(
+                    "Content-Type",
+                    "application/trickle-ice-sdpfrag".parse().unwrap(),
+                );
+
+                if let Some(token) = bearer_token1 {
+                    header_map.append("Authorization", format!("Bearer {token}").parse().unwrap());
+                }
+
                 let _ = client_clone
                     .patch(location2)
-                    .header("Content-type", "application/trickle-ice-sdpfrag")
+                    .headers(header_map)
                     .body(serde_json::to_string(&ice_candidate).unwrap())
                     .send()
                     .await
