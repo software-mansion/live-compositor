@@ -53,10 +53,17 @@ fn client_code() -> Result<()> {
             {
                 "type": "view",
                 "id": "resized",
-                "width": VIDEO_RESOLUTION.width,
-                "height": VIDEO_RESOLUTION.height,
-                "top": 0,
-                "right": 0,
+                "width": VIDEO_RESOLUTION.width - 320,
+                "height": VIDEO_RESOLUTION.height - 180,
+                "top": 100,
+                "right": 100,
+                "box_shadows": [
+                    {
+                        "offset_y": 20,
+                        "blur_radius": 20,
+                        "color_rgba": "#FF0000FF",
+                    }
+                ],
                 "children": [
                     {
                         "type": "rescaler",
@@ -88,9 +95,9 @@ fn client_code() -> Result<()> {
                 "border_color_rgba": "#FFFFFFFF",
                 "box_shadows": [
                     {
-                        "offset_y": 60,
-                        "blur_radius": 60,
-                        "color_rgba": "#00000088",
+                        "offset_y": 40,
+                        "blur_radius": 40,
+                        "color_rgba": "#FF0000FF",
                     }
                 ],
                 "transition": {

@@ -61,7 +61,7 @@ fn client_code() -> Result<()> {
     examples::post(
         "web-renderer/example_website/register",
         &json!({
-            "url": format!("file://{html_file_path}"), // or other way of providing source
+            "url": format!("https://membrane.stream"), // or other way of providing source
             "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
         }),
     )?;

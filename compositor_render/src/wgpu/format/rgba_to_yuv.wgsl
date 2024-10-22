@@ -23,11 +23,6 @@ fn vs_main(input: VertexInput) -> VertexOutput {
 
 var<push_constant> plane_selector: u32;
 
-fn linear_to_srgb(color: vec4<f32>) -> vec4<f32> {
-  // note: if using gamma of 2.0, instead can use 0.5 as the value here
-    return pow(color, vec4<f32>(1.0/2.2, 1.0/2.2, 1.0/2.2, 1.0));
-}
-
 @fragment
 fn fs_main(input: VertexOutput) -> @location(0) f32 {
     var dimensions = textureDimensions(texture);
@@ -53,5 +48,5 @@ fn fs_main(input: VertexOutput) -> @location(0) f32 {
         conversion_weights = vec4<f32>();
     }
 
-    return clamp(dot(linear_to_srgb(color), conversion_weights) + conversion_bias, 0.0, 1.0);
+    return clamp(dot(color, conversion_weights) + conversion_bias, 0.0, 1.0);
 }

@@ -94,7 +94,7 @@ impl Texture {
                 height: 1,
                 depth_or_array_layers: 1,
             },
-            wgpu::TextureFormat::Rgba8Unorm,
+            wgpu::TextureFormat::Rgba8UnormSrgb,
             wgpu::TextureUsages::TEXTURE_BINDING,
         )
     }

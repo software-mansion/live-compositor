@@ -18,7 +18,7 @@ impl RGBATexture {
                 height: resolution.height as u32,
                 depth_or_array_layers: 1,
             },
-            wgpu::TextureFormat::Rgba8Unorm,
+            wgpu::TextureFormat::Rgba8UnormSrgb,
             wgpu::TextureUsages::RENDER_ATTACHMENT
                 | wgpu::TextureUsages::COPY_DST
                 | wgpu::TextureUsages::COPY_SRC

@@ -349,6 +349,7 @@ fn borders_radius_to_bytes(border_radius: BorderRadius) -> [u8; 16] {
 fn color_to_bytes(color: RGBAColor) -> [u8; 16] {
     let RGBAColor(r, g, b, a) = color;
     fn color_from_u8(color: u8) -> [u8; 4] {
+        // pow(_, 2.2) converts from sRGB to linear space
         f32::powf(color as f32 / 255.0, 2.2).to_le_bytes()
     }
 

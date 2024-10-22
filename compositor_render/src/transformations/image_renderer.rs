@@ -7,7 +7,7 @@ use std::{
 
 use bytes::{Bytes, BytesMut};
 
-use image::{codecs::gif::GifDecoder, AnimationDecoder, ImageFormat};
+use image::{buffer, codecs::gif::GifDecoder, AnimationDecoder, ImageFormat};
 use resvg::{
     tiny_skia,
     usvg::{self, TreeParsing},
@@ -317,7 +317,7 @@ impl AnimatedAsset {
                     height: buffer.height() as usize,
                 },
             );
-            texture.upload(ctx, buffer);
+            texture.upload(ctx, &buffer);
 
             let delay: Duration = frame.delay().into();
             animation_duration += delay;
