@@ -1,31 +1,35 @@
 use h264_reader::nal::slice::PicOrderCountLsb;
 
-use super::Slice;
+use super::nalu_parser::Slice;
 
 #[derive(Default)]
 pub(crate) struct AUSplitter {
-    buffered_nals: Vec<Slice>,
+    buffered_nals: Vec<(Slice, Option<u64>)>,
 }
 
 impl AUSplitter {
-    pub(crate) fn put_slice(&mut self, slice: Slice) -> Option<Vec<Slice>> {
+    pub(crate) fn put_slice(
+        &mut self,
+        slice: Slice,
+        pts: Option<u64>,
+    ) -> Option<Vec<(Slice, Option<u64>)>> {
         if self.is_new_au(&slice) {
             let au = std::mem::take(&mut self.buffered_nals);
-            self.buffered_nals.push(slice);
+            self.buffered_nals.push((slice, pts));
             if !au.is_empty() {
                 Some(au)
             } else {
                 None
             }
         } else {
-            self.buffered_nals.push(slice);
+            self.buffered_nals.push((slice, pts));
             None
         }
     }
 
     /// returns `true` if `slice` is a first slice in an Access Unit
     fn is_new_au(&self, slice: &Slice) -> bool {
-        let Some(last) = self.buffered_nals.last() else {
+        let Some((last, _)) = self.buffered_nals.last() else {
             return true;
         };
 

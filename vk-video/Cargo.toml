@@ -11,6 +11,7 @@ repository = "https://github.com/software-mansion/live-compositor"
 
 [dependencies]
 ash = "0.38.0"
+bytes = "1"
 derivative = "2.2.0"
 h264-reader = { git = "https://github.com/membraneframework-labs/h264-reader.git", branch = "@jerzywilczek/scaling-lists" }
 thiserror = "1.0.59"

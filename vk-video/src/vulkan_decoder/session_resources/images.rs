@@ -157,7 +157,7 @@ impl<'a> DecodingImages<'a> {
 
     pub(crate) fn new(
         vulkan_ctx: &VulkanCtx,
-        profile: H264ProfileInfo,
+        profile: &H264ProfileInfo,
         dpb_format: &vk::VideoFormatPropertiesKHR<'a>,
         dst_format: &Option<vk::VideoFormatPropertiesKHR<'a>>,
         dimensions: vk::Extent2D,
@@ -182,7 +182,7 @@ impl<'a> DecodingImages<'a> {
             dpb_format,
             dimensions,
             dpb_image_usage,
-            &profile,
+            profile,
             max_dpb_slots,
             if dst_format.is_some() {
                 None
@@ -202,7 +202,7 @@ impl<'a> DecodingImages<'a> {
                     &dst_format,
                     dimensions,
                     dst_image_usage,
-                    &profile,
+                    profile,
                     1,
                     Some(&queue_indices),
                     vk::ImageLayout::VIDEO_DECODE_DST_KHR,

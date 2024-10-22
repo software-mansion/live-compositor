@@ -74,10 +74,10 @@ fn client_code() -> Result<()> {
     };
 
     const IP: &str = "127.0.0.1";
-    const INPUT_PORT: u16 = 8002;
+    const INPUT_PORT: u16 = 8006;
     const OUTPUT_PORT: u16 = 8004;
 
-    const VIDEOS: u16 = 6;
+    const VIDEOS: u16 = 1;
     start_ffmpeg_receive(Some(OUTPUT_PORT), None)?;
 
     let config = read_config();
@@ -103,12 +103,12 @@ fn client_code() -> Result<()> {
 
     let mut children = Vec::new();
 
-    for i in 1..VIDEOS + 1 {
+    for i in 0..VIDEOS {
         let input_id = InputId(format!("input_{i}").into());
 
         let input_options = RegisterInputOptions {
             input_options: InputOptions::Rtp(RtpReceiverOptions {
-                port: RequestedPort::Exact(INPUT_PORT + 2 + 2 * i),
+                port: RequestedPort::Exact(INPUT_PORT + 2 * i),
                 transport_protocol: TransportProtocol::Udp,
                 stream: RtpStream {
                     video: Some(InputVideoStream {
@@ -179,13 +179,8 @@ fn client_code() -> Result<()> {
 
     Pipeline::start(&pipeline);
 
-    for i in 1..VIDEOS + 1 {
-        start_ffmpeg_send(
-            IP,
-            Some(INPUT_PORT + 2 + 2 * i),
-            None,
-            TestSample::BigBuckBunny,
-        )?;
+    for i in 0..VIDEOS {
+        start_ffmpeg_send(IP, Some(INPUT_PORT + 2 * i), None, TestSample::Sample)?;
     }
 
     let event_loop_fallback = || {
