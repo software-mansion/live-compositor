@@ -3,6 +3,7 @@ use compositor_render::{
 };
 use crossbeam_channel::{bounded, Receiver, Sender};
 use mp4::{Mp4FileWriter, Mp4OutputOptions};
+use tracing::debug;
 
 use crate::{audio_mixer::OutputSamples, error::RegisterOutputError, queue::PipelineEvent};
 
@@ -121,8 +122,14 @@ impl OutputOptionsExt<Option<Port>> for OutputOptions {
                 Ok((Output::Mp4 { writer, encoder }, None))
             }
             OutputProtocolOptions::Whip(whip_options) => {
-                let sender = whip::WhipSender::new(output_id, whip_options.clone(), packets, ctx)
-                    .map_err(|e| RegisterOutputError::OutputError(output_id.clone(), e))?;
+                let sender = whip::WhipSender::new(
+                    output_id,
+                    whip_options.clone(),
+                    packets,
+                    encoder.request_keyframe(),
+                    ctx,
+                )
+                .map_err(|e| RegisterOutputError::OutputError(output_id.clone(), e))?;
 
                 Ok((Output::Whip { sender, encoder }, None))
             }
@@ -222,11 +229,15 @@ impl Output {
             Output::RawData { .. } => return Err(RequestKeyframeError::RawOutput(output_id)),
         };
 
-        encoder
+        if let Err(err) = encoder
             .video
             .as_ref()
             .ok_or(RequestKeyframeError::NoVideoOutput(output_id))?
-            .request_keyframe();
+            .request_keyframe()
+            .send(())
+        {
+            debug!(%err, "Failed to send keyframe request to the encoder.");
+        };
 
         Ok(())
     }

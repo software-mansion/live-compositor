@@ -1,5 +1,5 @@
 use compositor_render::OutputId;
-use crossbeam_channel::Receiver;
+use crossbeam_channel::{Receiver, Sender};
 use payloader::Payload;
 use reqwest::{header::HeaderMap, Url};
 use std::sync::{atomic::AtomicBool, Arc};
@@ -16,6 +16,7 @@ use webrtc::{
         configuration::RTCConfiguration, sdp::session_description::RTCSessionDescription,
         RTCPeerConnection,
     },
+    rtcp::payload_feedbacks::picture_loss_indication::PictureLossIndication,
     rtp_transceiver::{
         rtp_codec::{RTCRtpCodecCapability, RTCRtpCodecParameters, RTPCodecType},
         rtp_transceiver_direction::RTCRtpTransceiverDirection,
@@ -59,6 +60,7 @@ impl WhipSender {
         output_id: &OutputId,
         options: WhipSenderOptions,
         packets_receiver: Receiver<EncoderOutputEvent>,
+        request_keyframe_sender: Option<Sender<()>>,
         pipeline_ctx: &PipelineCtx,
     ) -> Result<Self, OutputInitError> {
         let payloader = Payloader::new(options.video, options.audio);
@@ -70,6 +72,7 @@ impl WhipSender {
         let output_id = output_id.clone();
         let should_close2 = should_close.clone();
         let event_emitter = pipeline_ctx.event_emitter.clone();
+        let request_keyframe_sender = request_keyframe_sender.clone();
         let tokio_rt = pipeline_ctx.tokio_rt.clone();
 
         std::thread::Builder::new()
@@ -86,6 +89,7 @@ impl WhipSender {
                     bearer_token,
                     should_close2,
                     packet_stream,
+                    request_keyframe_sender,
                     tokio_rt,
                 );
                 event_emitter.emit(Event::OutputDone(output_id));
@@ -112,6 +116,7 @@ fn start_whip_sender_thread(
     bearer_token: Option<String>,
     should_close: Arc<AtomicBool>,
     packet_stream: PacketStream,
+    request_keyframe_sender: Option<Sender<()>>,
     tokio_rt: Arc<tokio::runtime::Runtime>,
 ) {
     tokio_rt.block_on(async {
@@ -124,6 +129,7 @@ fn start_whip_sender_thread(
             should_close.clone(),
             tokio_rt.clone(),
             client.clone(),
+            request_keyframe_sender,
         )
         .await
         {
@@ -246,6 +252,7 @@ async fn connect(
     should_close: Arc<AtomicBool>,
     tokio_rt: Arc<tokio::runtime::Runtime>,
     client: reqwest::Client,
+    request_keyframe_sender: Option<Sender<()>>,
 ) -> Result<Url, WhipError> {
     peer_connection.on_ice_connection_state_change(Box::new(
         move |connection_state: RTCIceConnectionState| {
@@ -259,6 +266,29 @@ async fn connect(
             Box::pin(async {})
         },
     ));
+
+    if let Some(keyframe_sender) = request_keyframe_sender {
+        let senders = peer_connection.get_senders().await;
+        for sender in senders {
+            let keyframe_sender_clone = keyframe_sender.clone();
+            tokio_rt.spawn(async move {
+                loop {
+                    let packets = &sender.read_rtcp().await.unwrap().0;
+                    for packet in packets {
+                        if packet
+                            .as_any()
+                            .downcast_ref::<PictureLossIndication>()
+                            .is_some()
+                        {
+                            if let Err(err) = keyframe_sender_clone.send(()) {
+                                debug!(%err, "Failed to send keyframe request to the encoder.");
+                            };
+                        }
+                    }
+                }
+            });
+        }
+    }
 
     let offer = peer_connection.create_offer(None).await.unwrap();
 

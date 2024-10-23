@@ -100,6 +100,16 @@ impl Encoder {
         }
     }
 
+    pub fn request_keyframe(&self) -> Option<Sender<()>> {
+        match self.video.as_ref() {
+            Some(VideoEncoder::H264(encoder)) => Some(encoder.request_keyframe().clone()),
+            None => {
+                error!("Non video encoder received keyframe request.");
+                None
+            }
+        }
+    }
+
     pub fn samples_batch_sender(&self) -> Option<&Sender<PipelineEvent<OutputSamples>>> {
         match &self.audio {
             Some(encoder) => Some(encoder.samples_batch_sender()),
@@ -138,7 +148,7 @@ impl VideoEncoder {
         }
     }
 
-    pub fn request_keyframe(&self) {
+    pub fn request_keyframe(&self) -> Sender<()> {
         match self {
             Self::H264(encoder) => encoder.request_keyframe(),
         }
