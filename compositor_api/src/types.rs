@@ -40,6 +40,7 @@ pub use component::WebView;
 pub use register_input::Mp4Input;
 pub use register_output::Mp4Output;
 pub use register_output::RtpOutput;
+pub use register_output::WhipOutput;
 
 pub use register_input::DeckLink;
 pub use register_input::RtpInput;
