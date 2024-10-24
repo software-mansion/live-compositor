@@ -77,7 +77,7 @@ impl TextRendererNode {
         if self.resolution.width == 0 || self.resolution.height == 0 {
             // We can't use zero-sized textures
             let target_state = target.ensure_size(
-                &renderer_ctx.wgpu_ctx,
+                renderer_ctx.wgpu_ctx,
                 Resolution {
                     width: 1,
                     height: 1,
@@ -86,7 +86,7 @@ impl TextRendererNode {
 
             target_state
                 .rgba_texture()
-                .upload(&renderer_ctx.wgpu_ctx, &[0; 4]);
+                .upload(renderer_ctx.wgpu_ctx, &[0; 4]);
 
             self.was_rendered = true;
             return;
