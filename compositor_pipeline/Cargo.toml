@@ -34,6 +34,7 @@ webrtc = "0.11.0"
 tokio = {workspace = true }
 serde_json = { workspace = true }
 serde = { workspace = true }
+url = "2.5.2"
 
 [target.x86_64-unknown-linux-gnu.dependencies]
 decklink = { path = "../decklink", optional = true }

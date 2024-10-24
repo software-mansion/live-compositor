@@ -99,8 +99,8 @@ enum AudioPayloader {
 }
 
 pub enum Payload {
-    Video(Bytes),
-    Audio(Bytes),
+    Video(Result<Bytes, PayloadingError>),
+    Audio(Result<Bytes, PayloadingError>),
 }
 
 impl Payloader {
@@ -303,12 +303,16 @@ fn payload<T: rtp::packetizer::Payloader>(
             context.next_sequence_number = context.next_sequence_number.wrapping_add(1);
 
             match payload_type {
-                VIDEO_PAYLOAD_TYPE => Ok(Payload::Video(
-                    rtp::packet::Packet { header, payload }.marshal()?,
-                )),
-                AUDIO_PAYLOAD_TYPE => Ok(Payload::Audio(
-                    rtp::packet::Packet { header, payload }.marshal()?,
-                )),
+                VIDEO_PAYLOAD_TYPE => {
+                    Ok(Payload::Video(Ok(
+                        rtp::packet::Packet { header, payload }.marshal()?
+                    )))
+                }
+                AUDIO_PAYLOAD_TYPE => {
+                    Ok(Payload::Audio(Ok(
+                        rtp::packet::Packet { header, payload }.marshal()?
+                    )))
+                }
                 _ => Err(PayloadingError::UnsupportedPayloadType),
             }
         })
