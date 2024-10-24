@@ -74,6 +74,24 @@ impl TextRendererNode {
             return;
         }
 
+        if self.resolution.width == 0 || self.resolution.height == 0 {
+            // We can't use zero-sized textures
+            let target_state = target.ensure_size(
+                renderer_ctx.wgpu_ctx,
+                Resolution {
+                    width: 1,
+                    height: 1,
+                },
+            );
+
+            target_state
+                .rgba_texture()
+                .upload(renderer_ctx.wgpu_ctx, &[0; 4]);
+
+            self.was_rendered = true;
+            return;
+        }
+
         let text_renderer = renderer_ctx.text_renderer_ctx;
         let font_system = &mut text_renderer.font_system.lock().unwrap();
         let swash_cache = &mut text_renderer.swash_cache.lock().unwrap();
