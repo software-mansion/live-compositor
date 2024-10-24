@@ -1,6 +1,8 @@
 # Builder image
 FROM ubuntu:noble-20240423 as builder
 
+LABEL org.opencontainers.image.source https://github.com/software-mansion/live-compositor
+
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 ARG USERNAME=compositor

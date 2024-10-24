@@ -29,6 +29,8 @@ gh run download "$WORKFLOW_RUN_ID" -n live_compositor_darwin_aarch64.tar.gz
 gh run download "$WORKFLOW_RUN_ID" -n live_compositor_with_web_renderer_linux_x86_64.tar.gz
 gh run download "$WORKFLOW_RUN_ID" -n live_compositor_with_web_renderer_darwin_x86_64.tar.gz
 gh run download "$WORKFLOW_RUN_ID" -n live_compositor_with_web_renderer_darwin_aarch64.tar.gz
+gh run download "$WORKFLOW_RUN_ID" -n docker_image_live_compositor.tar
+gh run download "$WORKFLOW_RUN_ID" -n docker_image_live_compositor_with_web_renderer.tar
 
 gh release create "$RELEASE_TAG"
 gh release upload "$RELEASE_TAG" live_compositor_linux_x86_64.tar.gz
@@ -38,5 +40,12 @@ gh release upload "$RELEASE_TAG" live_compositor_darwin_aarch64.tar.gz
 gh release upload "$RELEASE_TAG" live_compositor_with_web_renderer_linux_x86_64.tar.gz
 gh release upload "$RELEASE_TAG" live_compositor_with_web_renderer_darwin_x86_64.tar.gz
 gh release upload "$RELEASE_TAG" live_compositor_with_web_renderer_darwin_aarch64.tar.gz
+
+DOCKER_IMAGE_NAME="$(tar -O -xf docker_image_live_compositor.tar manifest.json | jq -r '.[].RepoTags[]')"
+DOCKER_IMAGE_WITH_WEB_RENDERER_NAME="$(tar -O -xf docker_image_live_compositor_with_web_renderer.tar manifest.json | jq -r '.[].RepoTags[]')"
+docker image load -i docker_image_live_compositor.tar
+docker image load -i docker_image_live_compositor_with_web_renderer.tar
+docker push "$DOCKER_IMAGE_NAME"
+docker push "$DOCKER_IMAGE_WITH_WEB_RENDERER_NAME"
 
 rm -rf "$ROOT_DIR/release_tmp"
