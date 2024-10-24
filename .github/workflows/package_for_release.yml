@@ -127,3 +127,25 @@ jobs:
               with:
                 name: live_compositor_with_web_renderer_darwin_aarch64.tar.gz
                 path: live_compositor_with_web_renderer_darwin_aarch64.tar.gz
+    docker:
+      runs-on: ubuntu-latest
+      steps:
+          - name: 📥 Checkout repo
+            uses: actions/checkout@v4
+
+          - name: 🖋️ Run dockerfile lint
+            uses: hadolint/hadolint-action@v3.1.0
+            with:
+              # TODO(noituri): handle full.Dockerfile also
+              dockerfile: build_tools/docker/slim.Dockerfile
+
+          - name: 🔑 Log in to GitHub Container Registry
+            run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+          - name: 🔨 Build image
+            # TODO(noituri): handle full.Dockerfile also
+            run: docker build -t ghcr.io/software-mansion/live_compositor -f build_tools/docker/slim.Dockerfile .
+
+          - name: 🚀 Push image
+            # TODO(noituri): handle full.Dockerfile also
+            run: docker push ghcr.io/software-mansion/live_compositor:latest
