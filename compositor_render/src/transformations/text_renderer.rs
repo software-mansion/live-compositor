@@ -82,7 +82,7 @@ impl TextRendererNode {
         let mut viewport = glyphon::Viewport::new(&renderer_ctx.wgpu_ctx.device, cache);
         viewport.update(&renderer_ctx.wgpu_ctx.queue, self.resolution.into());
 
-        let swapchain_format = TextureFormat::Rgba8Unorm;
+        let swapchain_format = TextureFormat::Rgba8UnormSrgb;
         let mut atlas = TextAtlas::new(
             &renderer_ctx.wgpu_ctx.device,
             &renderer_ctx.wgpu_ctx.queue,
@@ -130,7 +130,7 @@ impl TextRendererNode {
                 });
 
         let target_state = target.ensure_size(renderer_ctx.wgpu_ctx, self.resolution);
-        let view = &target_state.rgba_texture().texture().view;
+        let view = &target_state.rgba_texture().srgb_view();
         {
             let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
                 label: None,

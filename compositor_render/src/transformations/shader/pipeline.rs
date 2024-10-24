@@ -123,7 +123,7 @@ impl ShaderPipeline {
                         load,
                         store: wgpu::StoreOp::Store,
                     },
-                    view: &target.rgba_texture().texture().view,
+                    view: &target.rgba_texture().srgb_view(),
                     resolve_target: None,
                 })],
                 depth_stencil_attachment: None,
@@ -188,8 +188,9 @@ impl ShaderPipeline {
                 texture
                     .state()
                     .map(NodeTextureState::rgba_texture)
-                    .map(RGBATexture::texture)
-                    .map_or(&wgpu_ctx.empty_texture.view, |texture| &texture.view)
+                    .map_or(&wgpu_ctx.empty_texture.view, |texture| {
+                        &RGBATexture::srgb_view
+                    })
             })
             .collect();
 

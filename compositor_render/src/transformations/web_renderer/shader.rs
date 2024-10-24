@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
-use wgpu::ShaderStages;
+use wgpu::{ShaderStages, TextureView};
 
 use crate::wgpu::{
     common_pipeline::{self, CreateShaderError, Sampler},
-    texture::{NodeTextureState, Texture},
+    texture::NodeTextureState,
     WgpuCtx, WgpuErrorScope,
 };
 
@@ -57,20 +57,19 @@ impl WebRendererShader {
     pub(super) fn render(
         &self,
         wgpu_ctx: &Arc<WgpuCtx>,
-        textures: &[(Option<&Texture>, RenderInfo)],
+        textures: &[(Option<&wgpu::TextureView>, RenderInfo)],
         target: &NodeTextureState,
     ) {
         let mut encoder = wgpu_ctx.device.create_command_encoder(&Default::default());
 
-        let mut render_plane = |(texture, render_info): &(Option<&Texture>, RenderInfo),
+        let mut render_plane = |(view, render_info): &(Option<&TextureView>, RenderInfo),
                                 clear: bool| {
             let load = match clear {
                 true => wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
                 false => wgpu::LoadOp::Load,
             };
 
-            let texture_view =
-                texture.map_or(&wgpu_ctx.empty_texture.view, |texture| &texture.view);
+            let texture_view = view.unwrap_or(&wgpu_ctx.empty_texture.view);
 
             let input_texture_bg = wgpu_ctx
                 .device
@@ -90,7 +89,7 @@ impl WebRendererShader {
                         load,
                         store: wgpu::StoreOp::Store,
                     },
-                    view: &target.rgba_texture().texture().view,
+                    view: &target.rgba_texture().srgb_view(),
                     resolve_target: None,
                 })],
                 depth_stencil_attachment: None,

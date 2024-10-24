@@ -5,7 +5,10 @@ use wgpu::Buffer;
 
 use crate::{wgpu::WgpuCtx, FrameData, Resolution, YuvPlanes};
 
-use super::base::Texture;
+use super::{
+    base::{copy_to_buffer, new_download_buffer, new_texture, DEFAULT_BINDING_TYPE},
+    TextureExt,
+};
 
 pub struct YuvPendingDownload<'a, F, E>
 where
@@ -51,33 +54,42 @@ pub enum YuvVariant {
 
 pub struct PlanarYuvTextures {
     pub(super) variant: YuvVariant,
-    pub(super) planes: [Texture; 3],
+    pub(super) planes: [wgpu::Texture; 3],
+    pub(super) views: [wgpu::TextureView; 3],
     pub(super) resolution: Resolution,
 }
 
 impl PlanarYuvTextures {
     pub fn new(ctx: &WgpuCtx, resolution: Resolution) -> Self {
+        let plane1 = Self::new_plane(ctx, resolution.width, resolution.height);
+        let plane2 = Self::new_plane(ctx, resolution.width / 2, resolution.height / 2);
+        let plane3 = Self::new_plane(ctx, resolution.width / 2, resolution.height / 2);
+        let view1 = plane1.create_view(&Default::default());
+        let view2 = plane2.create_view(&Default::default());
+        let view3 = plane3.create_view(&Default::default());
+
         Self {
             variant: YuvVariant::YUV420,
-            planes: [
-                Self::new_plane(ctx, resolution.width, resolution.height),
-                Self::new_plane(ctx, resolution.width / 2, resolution.height / 2),
-                Self::new_plane(ctx, resolution.width / 2, resolution.height / 2),
-            ],
+            planes: [plane1, plane2, plane3],
+            views: [view1, view2, view3],
             resolution,
         }
     }
 
-    pub fn plane(&self, i: usize) -> &Texture {
+    pub fn plane(&self, i: usize) -> &wgpu::Texture {
         &self.planes[i]
+    }
+
+    pub fn plane_view(&self, i: usize) -> &wgpu::TextureView {
+        &self.views[i]
     }
 
     pub fn variant(&self) -> YuvVariant {
         self.variant
     }
 
-    fn new_plane(ctx: &WgpuCtx, width: usize, height: usize) -> Texture {
-        Texture::new(
+    fn new_plane(ctx: &WgpuCtx, width: usize, height: usize) -> wgpu::Texture {
+        new_texture(
             &ctx.device,
             None,
             wgpu::Extent3d {
@@ -91,13 +103,14 @@ impl PlanarYuvTextures {
                 | wgpu::TextureUsages::COPY_DST
                 | wgpu::TextureUsages::COPY_SRC
                 | wgpu::TextureUsages::TEXTURE_BINDING,
+            &[wgpu::TextureFormat::R8Unorm],
         )
     }
 
     pub fn new_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
         let create_entry = |binding: u32| wgpu::BindGroupLayoutEntry {
             binding,
-            ty: Texture::DEFAULT_BINDING_TYPE,
+            ty: DEFAULT_BINDING_TYPE,
             visibility: wgpu::ShaderStages::FRAGMENT,
             count: None,
         };
@@ -118,15 +131,15 @@ impl PlanarYuvTextures {
             entries: &[
                 wgpu::BindGroupEntry {
                     binding: 0,
-                    resource: wgpu::BindingResource::TextureView(&self.planes[0].view),
+                    resource: wgpu::BindingResource::TextureView(&self.views[0]),
                 },
                 wgpu::BindGroupEntry {
                     binding: 1,
-                    resource: wgpu::BindingResource::TextureView(&self.planes[1].view),
+                    resource: wgpu::BindingResource::TextureView(&self.views[1]),
                 },
                 wgpu::BindGroupEntry {
                     binding: 2,
-                    resource: wgpu::BindingResource::TextureView(&self.planes[2].view),
+                    resource: wgpu::BindingResource::TextureView(&self.views[2]),
                 },
             ],
         })
@@ -134,9 +147,9 @@ impl PlanarYuvTextures {
 
     pub(super) fn new_download_buffers(&self, ctx: &WgpuCtx) -> [Buffer; 3] {
         [
-            self.planes[0].new_download_buffer(ctx),
-            self.planes[1].new_download_buffer(ctx),
-            self.planes[2].new_download_buffer(ctx),
+            new_download_buffer(&self.planes[0], ctx),
+            new_download_buffer(&self.planes[1], ctx),
+            new_download_buffer(&self.planes[2], ctx),
         ]
     }
 
@@ -148,7 +161,7 @@ impl PlanarYuvTextures {
             });
 
         for plane in [0, 1, 2] {
-            self.planes[plane].copy_to_buffer(&mut encoder, &buffers[plane]);
+            copy_to_buffer(&self.planes[plane], &mut encoder, &buffers[plane]);
         }
 
         ctx.queue.submit(Some(encoder.finish()));

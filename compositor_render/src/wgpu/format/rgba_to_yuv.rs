@@ -101,7 +101,7 @@ impl RgbaToYuvConverter {
                         }),
                         store: wgpu::StoreOp::Store,
                     },
-                    view: &dst.plane(plane).view,
+                    view: &dst.plane_view(plane),
                     resolve_target: None,
                 })],
                 depth_stencil_attachment: None,

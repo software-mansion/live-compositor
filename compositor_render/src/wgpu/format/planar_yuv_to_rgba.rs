@@ -47,7 +47,7 @@ impl PlanarYuvToRgbaConverter {
                 module: &shader_module,
                 entry_point: "fs_main",
                 targets: &[Some(wgpu::ColorTargetState {
-                    format: wgpu::TextureFormat::Rgba8Unorm,
+                    format: wgpu::TextureFormat::Rgba8UnormSrgb,
                     write_mask: wgpu::ColorWrites::all(),
                     blend: None,
                 })],
@@ -87,7 +87,7 @@ impl PlanarYuvToRgbaConverter {
                         load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
                         store: wgpu::StoreOp::Store,
                     },
-                    view: &dst.texture().view,
+                    view: &dst.srgb_view(),
                     resolve_target: None,
                 })],
                 depth_stencil_attachment: None,
