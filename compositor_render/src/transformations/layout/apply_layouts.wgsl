@@ -76,7 +76,7 @@ struct LayoutInfo {
 
 @group(0) @binding(0) var texture: texture_2d<f32>;
 
-@group(1) @binding(0) var<uniform> output_resolution: vec2<f32>;
+@group(1) @binding(0) var<uniform> output_resolution: vec4<f32>;
 @group(1) @binding(1) var<uniform> texture_params: array<TextureParams, 100>;
 @group(1) @binding(2) var<uniform> color_params: array<ColorParams, 100>;
 @group(1) @binding(3) var<uniform> box_shadow_params: array<BoxShadowParams, 100>;
