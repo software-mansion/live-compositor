@@ -14,7 +14,7 @@ declare module 'mp4box' {
     onError?: (e: string) => void;
     onSamples?: (id: number, user: object, samples: Sample[]) => void;
 
-    getTrackById(id: number): BoxParser.trakBox | undefined;
+    getTrackById(id: number): TrakBox | undefined;
 
     appendBuffer(data: MP4ArrayBuffer): number;
     start(): void;

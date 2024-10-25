@@ -3,12 +3,11 @@ import './App.css';
 import Counter from './examples/Counter';
 import MP4Player from './examples/MP4Player';
 
-const EXAMPLES = {
-  'counter': <Counter />,
-  'mp4': <MP4Player />
-};
-
 function App() {
+  const EXAMPLES = {
+    'counter': <Counter />,
+    'mp4': <MP4Player />,
+  };
   const [currentExample, setCurrentExample] = useState<keyof typeof EXAMPLES>('counter');
 
   return (

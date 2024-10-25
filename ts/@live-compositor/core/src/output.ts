@@ -1,8 +1,8 @@
-import { _liveCompositorInternals, RegisterOutput, View, Outputs } from 'live-compositor';
+import { _liveCompositorInternals, View, Outputs } from 'live-compositor';
 import React, { useSyncExternalStore } from 'react';
 import { ApiClient, Api } from './api.js';
 import Renderer from './renderer.js';
-import { intoAudioInputsConfiguration } from './api/output.js';
+import { intoAudioInputsConfiguration, RegisterOutput } from './api/output.js';
 import { throttle } from './utils.js';
 
 type OutputContext = _liveCompositorInternals.OutputContext;
@@ -33,12 +33,13 @@ class Output {
       this.shouldUpdateWhenReady = true;
     };
 
-    if (registerRequest.audio) {
-      this.initialAudioConfig = registerRequest.audio.initial ?? { inputs: [] };
+    const hasAudio = 'audio' in registerRequest && !!registerRequest.audio;
+    if (hasAudio) {
+      this.initialAudioConfig = registerRequest.audio!.initial ?? { inputs: [] };
     }
 
     const onUpdate = () => this.throttledUpdate();
-    this.outputCtx = new _liveCompositorInternals.OutputContext(onUpdate, !!registerRequest.audio);
+    this.outputCtx = new _liveCompositorInternals.OutputContext(onUpdate, hasAudio);
 
     if (registerRequest.video) {
       const rootElement = React.createElement(OutputRootComponent, {

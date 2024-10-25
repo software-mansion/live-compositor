@@ -1,14 +1,9 @@
-import {
-  _liveCompositorInternals,
-  RegisterInput,
-  RegisterOutput,
-  Renderers,
-} from 'live-compositor';
+import { _liveCompositorInternals, Renderers } from 'live-compositor';
 import { ApiClient } from './api.js';
 import Output from './output.js';
 import { CompositorManager } from './compositorManager.js';
-import { intoRegisterOutput } from './api/output.js';
-import { intoRegisterInput } from './api/input.js';
+import { intoRegisterOutput, RegisterOutput } from './api/output.js';
+import { intoRegisterInput, RegisterInput } from './api/input.js';
 import { onCompositorEvent } from './event.js';
 import { intoRegisterImage, intoRegisterWebRenderer } from './api/renderer.js';
 

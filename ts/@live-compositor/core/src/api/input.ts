@@ -1,7 +1,13 @@
 import { Api } from '../api.js';
-import { RegisterInput, Inputs } from 'live-compositor';
+import { RegisterMp4Input, RegisterRtpInput, Inputs } from 'live-compositor';
 
-export function intoRegisterInput(input: RegisterInput): Api.RegisterInput {
+export type RegisterInputRequest = Api.RegisterInput;
+
+export type RegisterInput =
+  | ({ type: 'rtp_stream' } & RegisterRtpInput)
+  | ({ type: 'mp4' } & RegisterMp4Input);
+
+export function intoRegisterInput(input: RegisterInput): RegisterInputRequest {
   if (input.type === 'mp4') {
     return intoMp4RegisterInput(input);
   } else if (input.type === 'rtp_stream') {
@@ -11,7 +17,7 @@ export function intoRegisterInput(input: RegisterInput): Api.RegisterInput {
   }
 }
 
-function intoMp4RegisterInput(input: Inputs.RegisterMp4Input): Api.RegisterInput {
+function intoMp4RegisterInput(input: Inputs.RegisterMp4Input): RegisterInputRequest {
   return {
     type: 'mp4',
     url: input.url,
@@ -22,7 +28,7 @@ function intoMp4RegisterInput(input: Inputs.RegisterMp4Input): Api.RegisterInput
   };
 }
 
-function intoRtpRegisterInput(input: Inputs.RegisterRtpInput): Api.RegisterInput {
+function intoRtpRegisterInput(input: Inputs.RegisterRtpInput): RegisterInputRequest {
   return {
     type: 'rtp_stream',
     port: input.port,
