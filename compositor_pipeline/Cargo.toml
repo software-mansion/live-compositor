@@ -34,6 +34,9 @@ webrtc = "0.11.0"
 tokio = {workspace = true }
 serde_json = { workspace = true }
 serde = { workspace = true }
+axum = "0.7.7"
+tower-http = { version = "0.6.1", features = ["cors"] }
+tracing-subscriber = "0.3.18"
 
 [target.x86_64-unknown-linux-gnu.dependencies]
 decklink = { path = "../decklink", optional = true }
