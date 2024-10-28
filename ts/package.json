@@ -6,7 +6,7 @@
   "scripts": {
     "lint": "pnpm -r run lint",
     "lint:fix": "pnpm -r run lint -- --fix",
-    "build": "pnpm -r --no-sort --filter ./packages/* run build",
+    "build": "pnpm -r --no-sort --filter packages/** run build",
     "build:sdk": "pnpm -C @live-compositor/core run build && pnpm -C @live-compositor/node run build && pnpm -C live-compositor run build",
     "build:all": "pnpm -C @live-compositor/browser-render run build-wasm && pnpm -r run build",
     "typecheck": "pnpm -r run typecheck",
