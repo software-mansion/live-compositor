@@ -11,7 +11,7 @@ use compositor_api::{
     error::ApiError,
     types::{
         DeckLink, ImageSpec, InputId, Mp4Input, Mp4Output, OutputId, RendererId, RtpInput,
-        RtpOutput, ShaderSpec, WebRendererSpec, WhipOutput,
+        RtpOutput, ShaderSpec, WebRendererSpec, WhipOutput, WhipInput,
     },
 };
 
@@ -22,6 +22,7 @@ use super::ApiState;
 pub enum RegisterInput {
     RtpStream(RtpInput),
     Mp4(Mp4Input),
+    Whip(WhipInput),
     #[serde(rename = "decklink")]
     DeckLink(DeckLink),
 }
@@ -50,6 +51,9 @@ pub(super) async fn handle_input(
             }
             RegisterInput::DeckLink(decklink) => {
                 Pipeline::register_input(&api.pipeline, input_id.into(), decklink.try_into()?)?
+            }
+            RegisterInput::Whip(whip) => {
+                Pipeline::register_input(&api.pipeline, input_id.into(), whip.try_into()?)?
             }
         };
         match response.port {

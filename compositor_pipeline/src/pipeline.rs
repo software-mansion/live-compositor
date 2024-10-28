@@ -56,6 +56,7 @@ mod pipeline_input;
 mod pipeline_output;
 pub mod rtp;
 mod types;
+pub mod whip_whep;
 
 use self::pipeline_input::register_pipeline_input;
 use self::pipeline_input::PipelineInput;

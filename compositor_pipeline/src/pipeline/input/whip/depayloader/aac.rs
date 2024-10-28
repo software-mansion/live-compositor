@@ -19,28 +19,30 @@ pub enum AacDepayloadingError {
     InterleavingNotSupported,
 }
 
-impl AacDepayloaderMode {
-    pub fn size_len_in_bits(&self) -> usize {
-        match self {
-            AacDepayloaderMode::LowBitrate => 6,
-            AacDepayloaderMode::HighBitrate => 13,
-        }
-    }
+// TODO just temporary to make it work
 
-    pub fn index_len_in_bits(&self) -> usize {
-        match self {
-            AacDepayloaderMode::LowBitrate => 2,
-            AacDepayloaderMode::HighBitrate => 3,
-        }
-    }
+// impl AacDepayloaderMode {
+//     fn size_len_in_bits(&self) -> usize {
+//         match self {
+//             AacDepayloaderMode::LowBitrate => 6,
+//             AacDepayloaderMode::HighBitrate => 13,
+//         }
+//     }
 
-    pub fn header_len_in_bytes(&self) -> usize {
-        match self {
-            AacDepayloaderMode::LowBitrate => 1,
-            AacDepayloaderMode::HighBitrate => 2,
-        }
-    }
-}
+//     fn index_len_in_bits(&self) -> usize {
+//         match self {
+//             AacDepayloaderMode::LowBitrate => 2,
+//             AacDepayloaderMode::HighBitrate => 3,
+//         }
+//     }
+
+//     fn header_len_in_bytes(&self) -> usize {
+//         match self {
+//             AacDepayloaderMode::LowBitrate => 1,
+//             AacDepayloaderMode::HighBitrate => 2,
+//         }
+//     }
+// }
 
 pub struct AacDepayloader {
     mode: AacDepayloaderMode,
