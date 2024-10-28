@@ -204,12 +204,12 @@ fn create_texture(index: usize, device: &wgpu::Device, queue: &wgpu::Queue) -> A
         mip_level_count: 1,
         sample_count: 1,
         dimension: wgpu::TextureDimension::D2,
-        format: wgpu::TextureFormat::Rgba8Unorm,
+        format: wgpu::TextureFormat::Rgba8UnormSrgb,
         usage: wgpu::TextureUsages::RENDER_ATTACHMENT
             | wgpu::TextureUsages::COPY_DST
             | wgpu::TextureUsages::COPY_SRC
             | wgpu::TextureUsages::TEXTURE_BINDING,
-        view_formats: &[wgpu::TextureFormat::Rgba8Unorm],
+        view_formats: &[wgpu::TextureFormat::Rgba8UnormSrgb],
     });
 
     queue.write_texture(

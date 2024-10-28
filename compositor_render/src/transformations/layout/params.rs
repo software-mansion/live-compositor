@@ -45,7 +45,7 @@ pub struct ParamsBindGroups {
 
 impl ParamsBindGroups {
     pub fn new(ctx: &WgpuCtx) -> ParamsBindGroups {
-        let output_resolution_buffer = create_buffer(ctx, 8);
+        let output_resolution_buffer = create_buffer(ctx, 16);
         let texture_params_buffer = create_buffer(ctx, TEXTURE_PARAMS_BUFFER_SIZE);
         let color_params_buffer = create_buffer(ctx, COLOR_PARAMS_SIZE);
         let box_shadow_params_buffer = create_buffer(ctx, BOX_SHADOW_PARAMS_SIZE);
@@ -358,14 +358,20 @@ fn borders_radius_to_bytes(border_radius: BorderRadius) -> [u8; 16] {
 
 fn color_to_bytes(color: RGBAColor) -> [u8; 16] {
     let RGBAColor(r, g, b, a) = color;
-    fn color_from_u8(color: u8) -> [u8; 4] {
-        (color as f32 / 255.0).to_le_bytes()
-    }
 
     let mut result = [0u8; 16];
-    result[0..4].copy_from_slice(&color_from_u8(r));
-    result[4..8].copy_from_slice(&color_from_u8(g));
-    result[8..12].copy_from_slice(&color_from_u8(b));
-    result[12..16].copy_from_slice(&color_from_u8(a));
+    result[0..4].copy_from_slice(&srgb_to_linear(r).to_le_bytes());
+    result[4..8].copy_from_slice(&srgb_to_linear(g).to_le_bytes());
+    result[8..12].copy_from_slice(&srgb_to_linear(b).to_le_bytes());
+    result[12..16].copy_from_slice(&(a as f32 / 255.0).to_le_bytes());
     result
+}
+
+fn srgb_to_linear(color: u8) -> f32 {
+    let color = color as f32 / 255.0;
+    if color < 0.04045 {
+        color / 12.92
+    } else {
+        f32::powf((color + 0.055) / 1.055, 2.4)
+    }
 }
