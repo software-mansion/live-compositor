@@ -11,7 +11,7 @@ use compositor_api::{
     error::ApiError,
     types::{
         DeckLink, ImageSpec, InputId, Mp4Input, Mp4Output, OutputId, RendererId, RtpInput,
-        RtpOutput, ShaderSpec, WebRendererSpec, WhipOutput, WhipInput,
+        RtpOutput, ShaderSpec, WebRendererSpec, WhipInput, WhipOutput,
     },
 };
 

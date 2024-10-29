@@ -28,6 +28,7 @@ use output::RawDataOutputOptions;
 use tokio::runtime::Runtime;
 use tracing::{error, info, trace, warn};
 use types::RawDataSender;
+use whip_whep::WhipWhepState;
 
 use crate::audio_mixer::AudioMixer;
 use crate::audio_mixer::MixingStrategy;
@@ -135,6 +136,7 @@ pub struct PipelineCtx {
     pub download_dir: Arc<PathBuf>,
     pub event_emitter: Arc<EventEmitter>,
     pub tokio_rt: Arc<tokio::runtime::Runtime>,
+    pub whip_whep_state: Arc<WhipWhepState>,
     #[cfg(feature = "vk-video")]
     pub vulkan_ctx: Option<Arc<vk_video::VulkanCtx>>,
 }
@@ -197,6 +199,7 @@ impl Pipeline {
                 download_dir: download_dir.into(),
                 event_emitter,
                 tokio_rt: Arc::new(Runtime::new().map_err(InitPipelineError::CreateTokioRuntime)?),
+                whip_whep_state: WhipWhepState::new(),
                 #[cfg(feature = "vk-video")]
                 vulkan_ctx: preinitialized_ctx.and_then(|ctx| ctx.vulkan_ctx),
             },

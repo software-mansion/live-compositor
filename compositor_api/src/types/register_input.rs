@@ -141,7 +141,6 @@ pub enum InputRtpAudioOptions {
     },
 }
 
-
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(tag = "decoder", rename_all = "snake_case", deny_unknown_fields)]
 pub enum InputWhipAudioOptions {
@@ -178,12 +177,12 @@ pub enum InputWhipAudioOptions {
 #[serde(tag = "decoder", rename_all = "snake_case", deny_unknown_fields)]
 pub enum InputRtpVideoOptions {
     #[serde(rename = "ffmpeg_h264")]
-    FfmepgH264,
+    FfmpegH264,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(tag = "decoder", rename_all = "snake_case", deny_unknown_fields)]
 pub enum InputWhipVideoOptions {
     #[serde(rename = "ffmpeg_h264")]
-    FfmepgH264,
+    FfmpegH264,
 }

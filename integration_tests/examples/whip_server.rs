@@ -6,7 +6,6 @@ use std::{thread::sleep, time::Duration};
 
 use integration_tests::examples::{self, run_example};
 
-
 const VIDEO_RESOLUTION: Resolution = Resolution {
     width: 1280,
     height: 720,
@@ -15,8 +14,8 @@ const VIDEO_RESOLUTION: Resolution = Resolution {
 // TODO rework, this version just for tests
 
 fn main() {
-  start_whip_whep_server();
-  // run_example(client_code);
+    start_whip_whep_server();
+    // run_example(client_code);
 }
 
 fn client_code() -> Result<()> {

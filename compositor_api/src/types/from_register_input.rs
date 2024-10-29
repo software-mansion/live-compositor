@@ -107,7 +107,7 @@ impl TryFrom<RtpInput> for pipeline::RegisterInputOptions {
                 .map(|video| {
                     Ok(input::rtp::InputVideoStream {
                         options: match video {
-                            InputRtpVideoOptions::FfmepgH264 => decoder::VideoDecoderOptions {
+                            InputRtpVideoOptions::FfmpegH264 => decoder::VideoDecoderOptions {
                                 decoder: pipeline::VideoDecoder::FFmpegH264,
                             },
                         },
@@ -205,7 +205,7 @@ impl TryFrom<WhipInput> for pipeline::RegisterInputOptions {
                 .map(|video| {
                     Ok(input::whip::InputVideoStream {
                         options: match video {
-                            InputWhipVideoOptions::FfmepgH264 => decoder::VideoDecoderOptions {
+                            InputWhipVideoOptions::FfmpegH264 => decoder::VideoDecoderOptions {
                                 decoder: pipeline::VideoDecoder::FFmpegH264,
                             },
                         },

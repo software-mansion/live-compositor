@@ -1,10 +1,9 @@
-use std::{env, path::Path, str::FromStr, sync::Arc};
+use std::{env, str::FromStr};
 
 #[derive(Debug, Clone)]
 pub struct Config {
     pub api_port: u16,
     pub logger: LoggerConfig,
-    pub path_to_assets: Arc<Path>,
     pub start_whip_whep: bool,
 }
 
@@ -39,21 +38,21 @@ pub fn read_config() -> Config {
 }
 
 fn try_read_config() -> Result<Config, String> {
-    let api_port = match env::var("WHIP_WHEP_SERVER_API_PORT") {
+    let api_port = match env::var("LIVE_COMPOSITOR_WHIP_WHEP_SERVER_API_PORT") {
         Ok(api_port) => api_port
             .parse::<u16>()
-            .map_err(|_| "WHIP_WHEP_SERVER_API_PORT has to be valid port number")?,
+            .map_err(|_| "LIVE_COMPOSITOR_WHIP_WHEP_SERVER_API_PORT has to be valid port number")?,
         Err(_) => 9000,
     };
 
     let start_whip_whep = match env::var("LIVE_COMPOSITOR_START_WHIP_WHEP_SERVER") {
         Ok(start_whip_whep) => start_whip_whep
-        .parse::<bool>()
-        .map_err(|_| "LIVE_COMPOSITOR_START_WHIP_WHEP_SERVER has to be boolean value")?,
+            .parse::<bool>()
+            .map_err(|_| "LIVE_COMPOSITOR_START_WHIP_WHEP_SERVER has to be boolean value")?,
         Err(_) => true,
     };
 
-    let logger_level = match env::var("WHIP_WHEP_SERVER_LOGGER_LEVEL") {
+    let logger_level = match env::var("LIVE_COMPOSITOR_WHIP_WHEP_SERVER_LOGGER_LEVEL") {
         Ok(level) => level,
         Err(_) => "info,wgpu_hal=warn,wgpu_core=warn".to_string(),
     };
@@ -63,14 +62,9 @@ fn try_read_config() -> Result<Config, String> {
         Ok(_) => LoggerFormat::Compact,
         Err(_) => LoggerFormat::Json,
     };
-    let logger_format = match env::var("WHIP_WHEP_SERVER_LOGGER_FORMAT") {
+    let logger_format = match env::var("LIVE_COMPOSITOR_WHIP_WHEP_SERVER_LOGGER_FORMAT") {
         Ok(format) => LoggerFormat::from_str(&format).unwrap_or(default_logger_format),
         Err(_) => default_logger_format,
-    };
-
-    let path_to_assets = match env::var("WHIP_WHEP_SERVER_ASSETS_PATH") {
-        Ok(path) => Arc::from(Path::new(&path)),
-        Err(_) => Arc::from(Path::new("./assets")),
     };
 
     let config = Config {
@@ -80,7 +74,6 @@ fn try_read_config() -> Result<Config, String> {
             format: logger_format,
             level: logger_level,
         },
-        path_to_assets,
     };
     Ok(config)
 }

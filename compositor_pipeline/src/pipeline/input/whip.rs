@@ -1,10 +1,13 @@
+use axum::extract::State;
 use bytes::Bytes;
+use rtp::packet::Packet;
 use std::{net::SocketAddr, sync::Arc};
+use tokio::sync::mpsc;
+use wgpu::core::pipeline;
 
 use depayloader::{Depayloader, DepayloaderNewError};
 use serde_json::{json, Value};
 use tracing::{error, info};
-
 
 use std::sync::atomic::AtomicBool;
 
@@ -14,7 +17,8 @@ use crate::{
         encoder,
         rtp::BindToPortError,
         types::{EncodedChunk, EncodedChunkKind},
-        Port,
+        whip_whep::{self, WhipWhepState},
+        PipelineCtx, Port,
     },
     queue::PipelineEvent,
 };
@@ -27,7 +31,6 @@ use webrtc_util::Unmarshal;
 use super::{AudioInputReceiver, Input, InputInitInfo, InputInitResult, VideoInputReceiver};
 
 mod depayloader;
-
 
 #[derive(Debug, thiserror::Error)]
 pub enum WhipReceiverError {
@@ -82,19 +85,24 @@ pub struct WhipReceiver {
     should_close: Arc<AtomicBool>,
     pub port: u16,
 }
+
 impl WhipReceiver {
     pub(super) fn start_new_input(
         input_id: &InputId,
         opts: WhipReceiverOptions,
+        pipeline_ctx: &PipelineCtx,
     ) -> Result<InputInitResult, WhipReceiverError> {
         let should_close = Arc::new(AtomicBool::new(false));
 
-        let (port, packets_rx): (Port, Receiver<Bytes>) = todo!();
-
+        let (video_tx, video_rx): (mpsc::Sender<Packet>, mpsc::Receiver<Packet>) =
+            mpsc::channel(100);
+        let (audio_tx, audio_rx): (mpsc::Sender<Packet>, mpsc::Receiver<Packet>) =
+            mpsc::channel(100);
+        let whip_whep_state = pipeline_ctx.whip_whep_state.clone();
+        WhipWhepState::register_input(video_tx, video_rx, audio_tx, audio_rx);
         let depayloader = Depayloader::new(&opts.stream)?;
 
-        let depayloader_receivers =
-            Self::start_depayloader_thread(input_id, packets_rx, depayloader);
+        let depayloader_receivers = Self::start_depayloader_thread(input_id, todo!(), depayloader);
 
         let video = match (depayloader_receivers.video, opts.stream.video) {
             (Some(chunk_receiver), Some(stream)) => Some(VideoInputReceiver::Encoded {
@@ -114,11 +122,11 @@ impl WhipReceiver {
         Ok(InputInitResult {
             input: Input::Whip(Self {
                 should_close,
-                port: port.0,
+                port: 0,
             }),
             video,
             audio,
-            init_info: InputInitInfo { port: Some(port) },
+            init_info: InputInitInfo { port: None },
         })
     }
 
