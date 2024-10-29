@@ -10,6 +10,7 @@ const EXAMPLES = {
 
 function App() {
   const [currentExample, setCurrentExample] = useState<keyof typeof EXAMPLES>('counter');
+
   return (
     <>
       <h1>Browser Renderer Examples</h1>

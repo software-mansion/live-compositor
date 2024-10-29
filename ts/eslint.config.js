@@ -83,6 +83,13 @@ export default [
     },
   },
   {
-    ignores: ['**/dist/**/*', '**/cjs/**/*', '**/esm/**/*', '**/generated/**/*', '**/*.d.ts'],
+    ignores: [
+      '**/dist/**/*',
+      '**/cjs/**/*',
+      '**/esm/**/*',
+      '**/generated/**/*',
+      '**/*.d.ts',
+      '**/*.mjs',
+    ],
   },
 ];

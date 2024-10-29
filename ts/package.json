@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "lint": "pnpm -r run lint",
+    "lint": "pnpm -r --no-bail run lint",
     "lint:fix": "pnpm -r run lint -- --fix",
     "build": "pnpm -r --no-sort --filter packages/** run build",
     "build:sdk": "pnpm -C @live-compositor/core run build && pnpm -C @live-compositor/node run build && pnpm -C live-compositor run build",
@@ -29,7 +29,7 @@
     "globals": "^15.9.0",
     "json-schema-to-typescript": "^15.0.1",
     "prettier": "^3.3.3",
-    "typescript": "^5.5.3"
+    "typescript": "5.5.3"
   },
   "overrides": {
     "rollup-plugin-copy": {

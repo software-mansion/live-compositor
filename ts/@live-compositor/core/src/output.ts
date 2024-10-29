@@ -1,6 +1,7 @@
 import type { RegisterOutput, Outputs } from 'live-compositor';
 import { _liveCompositorInternals, View } from 'live-compositor';
-import React, { useSyncExternalStore } from 'react';
+import type React from 'react';
+import { createElement, useSyncExternalStore } from 'react';
 import type { ApiClient, Api } from './api.js';
 import Renderer from './renderer.js';
 import { intoAudioInputsConfiguration } from './api/output.js';
@@ -42,7 +43,7 @@ class Output {
     this.outputCtx = new _liveCompositorInternals.OutputContext(onUpdate, !!registerRequest.audio);
 
     if (registerRequest.video) {
-      const rootElement = React.createElement(OutputRootComponent, {
+      const rootElement = createElement(OutputRootComponent, {
         instanceStore: store,
         outputCtx: this.outputCtx,
         outputRoot: registerRequest.video.root,
@@ -125,14 +126,14 @@ function OutputRootComponent({
 
   if (shouldShutdown) {
     // replace root with view to stop all the dynamic code
-    return React.createElement(View, {});
+    return createElement(View, {});
   }
 
   const reactCtx = {
     instanceStore,
     outputCtx,
   };
-  return React.createElement(
+  return createElement(
     _liveCompositorInternals.LiveCompositorContext.Provider,
     { value: reactCtx },
     outputRoot
