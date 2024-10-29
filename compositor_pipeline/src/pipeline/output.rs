@@ -126,7 +126,7 @@ impl OutputOptionsExt<Option<Port>> for OutputOptions {
                     output_id,
                     whip_options.clone(),
                     packets,
-                    encoder.request_keyframe(),
+                    encoder.keyframe_request_sender(),
                     ctx,
                 )
                 .map_err(|e| RegisterOutputError::OutputError(output_id.clone(), e))?;

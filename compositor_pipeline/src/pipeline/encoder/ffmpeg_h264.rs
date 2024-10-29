@@ -148,7 +148,7 @@ impl LibavH264Encoder {
         self.resolution
     }
 
-    pub fn request_keyframe(&self) -> crossbeam_channel::Sender<()> {
+    pub fn keyframe_request_sender(&self) -> crossbeam_channel::Sender<()> {
         self.keyframe_req_sender.clone()
     }
 }

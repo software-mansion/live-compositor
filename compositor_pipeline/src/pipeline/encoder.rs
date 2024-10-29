@@ -100,9 +100,9 @@ impl Encoder {
         }
     }
 
-    pub fn request_keyframe(&self) -> Option<Sender<()>> {
+    pub fn keyframe_request_sender(&self) -> Option<Sender<()>> {
         match self.video.as_ref() {
-            Some(VideoEncoder::H264(encoder)) => Some(encoder.request_keyframe().clone()),
+            Some(VideoEncoder::H264(encoder)) => Some(encoder.keyframe_request_sender().clone()),
             None => {
                 error!("Non video encoder received keyframe request.");
                 None
@@ -150,7 +150,7 @@ impl VideoEncoder {
 
     pub fn request_keyframe(&self) -> Sender<()> {
         match self {
-            Self::H264(encoder) => encoder.request_keyframe(),
+            Self::H264(encoder) => encoder.keyframe_request_sender(),
         }
     }
 }

@@ -6,7 +6,7 @@ use packet_stream::PacketStream;
 use payloader::{Payload, Payloader, PayloadingError};
 use reqwest::{Method, StatusCode, Url};
 use std::sync::{atomic::AtomicBool, Arc};
-use tracing::{debug, error, span, Level};
+use tracing::{debug, error, span, Instrument, Level};
 use url::ParseError;
 use webrtc::{
     peer_connection::RTCPeerConnection,
@@ -106,29 +106,31 @@ impl WhipSender {
         let should_close2 = should_close.clone();
         let event_emitter = pipeline_ctx.event_emitter.clone();
         let request_keyframe_sender = request_keyframe_sender.clone();
-        let tokio_rt = pipeline_ctx.tokio_rt.clone();
 
-        std::thread::Builder::new()
-            .name(format!("WHIP sender for output {}", output_id))
-            .spawn(move || {
-                let _span = span!(
-                    Level::INFO,
-                    "WHIP sender",
-                    output_id = output_id.to_string()
-                )
-                .entered();
-                start_whip_sender_thread(
+        let tokio_rt = pipeline_ctx.tokio_rt.clone();
+        let tokio_rt_clone = tokio_rt.clone();
+        let output_id_clone = output_id.clone();
+
+        tokio_rt.spawn(
+            async move {
+                run_whip_sender_thread(
                     endpoint_url,
                     bearer_token,
                     should_close2,
                     packet_stream,
                     request_keyframe_sender,
-                    tokio_rt,
-                );
-                event_emitter.emit(Event::OutputDone(output_id));
+                    tokio_rt_clone,
+                )
+                .await;
+                event_emitter.emit(Event::OutputDone(output_id_clone));
                 debug!("Closing WHIP sender thread.")
-            })
-            .unwrap();
+            }
+            .instrument(span!(
+                Level::INFO,
+                "WHIP sender",
+                output_id = output_id.to_string()
+            )),
+        );
 
         Ok(Self {
             connection_options: options,
@@ -144,7 +146,7 @@ impl Drop for WhipSender {
     }
 }
 
-fn start_whip_sender_thread(
+async fn run_whip_sender_thread(
     endpoint_url: String,
     bearer_token: Option<String>,
     should_close: Arc<AtomicBool>,
@@ -152,75 +154,74 @@ fn start_whip_sender_thread(
     request_keyframe_sender: Option<Sender<()>>,
     tokio_rt: Arc<tokio::runtime::Runtime>,
 ) {
-    tokio_rt.block_on(async {
-        let client = reqwest::Client::new();
-        let peer_connection: Arc<RTCPeerConnection>;
-        let video_track: Arc<TrackLocalStaticRTP>;
-        let audio_track: Arc<TrackLocalStaticRTP>;
-        match init_pc().await {
-            Ok((pc, video, audio)) => {
-                peer_connection = pc;
-                video_track = video;
-                audio_track = audio;
-            }
-            Err(err) => {
-                error!("Error occured while initializing peer connection: {err}");
-                return;
-            }
+    let client = reqwest::Client::new();
+    let peer_connection: Arc<RTCPeerConnection>;
+    let video_track: Arc<TrackLocalStaticRTP>;
+    let audio_track: Arc<TrackLocalStaticRTP>;
+    match init_pc().await {
+        Ok((pc, video, audio)) => {
+            peer_connection = pc;
+            video_track = video;
+            audio_track = audio;
         }
-        let whip_session_url = match connect(
-            peer_connection,
-            endpoint_url,
-            bearer_token,
-            should_close.clone(),
-            tokio_rt.clone(),
-            client.clone(),
-            request_keyframe_sender,
-        )
-        .await
-        {
-            Ok(val) => val,
+        Err(err) => {
+            error!("Error occured while initializing peer connection: {err}");
+            return;
+        }
+    }
+    let whip_session_url = match connect(
+        peer_connection,
+        endpoint_url,
+        bearer_token,
+        should_close.clone(),
+        tokio_rt,
+        client.clone(),
+        request_keyframe_sender,
+    )
+    .await
+    {
+        Ok(val) => val,
+        Err(err) => {
+            error!("{err}");
+            return;
+        }
+    };
+
+    for chunk in packet_stream {
+        if should_close.load(std::sync::atomic::Ordering::Relaxed) {
+            break;
+        }
+        let chunk = match chunk {
+            Ok(chunk) => chunk,
             Err(err) => {
-                error!("{err}");
-                return;
+                error!("Failed to payload a packet: {}", err);
+                continue;
             }
         };
 
-        for chunk in packet_stream {
-            if should_close.load(std::sync::atomic::Ordering::Relaxed) {
-                break;
-            }
-            let chunk = match chunk {
-                Ok(chunk) => chunk,
-                Err(err) => {
-                    error!("Failed to payload a packet: {}", err);
-                    continue;
+        match chunk {
+            Payload::Video(video_payload) => match video_payload {
+                Ok(video_bytes) => {
+                    if video_track.write(&video_bytes).await.is_err() {
+                        error!("Error occurred while writing to video track for session");
+                    }
                 }
-            };
-
-            match chunk {
-                Payload::Video(video_payload) => match video_payload {
-                    Ok(video_bytes) => {
-                        if video_track.write(&video_bytes).await.is_err() {
-                            error!("Error occurred while writing to video track for session");
-                        }
+                Err(err) => {
+                    error!("Error while reading video bytes: {err}");
+                }
+            },
+            Payload::Audio(audio_payload) => match audio_payload {
+                Ok(audio_bytes) => {
+                    if audio_track.write(&audio_bytes).await.is_err() {
+                        error!("Error occurred while writing to video track for session");
                     }
-                    Err(err) => {
-                        error!("Error while reading video bytes: {err}");
-                    }
-                },
-                Payload::Audio(audio_payload) => match audio_payload {
-                    Ok(audio_bytes) => {
-                        if audio_track.write(&audio_bytes).await.is_err() {
-                            error!("Error occurred while writing to video track for session");
-                        }
-                    }
-                    Err(err) => {
-                        error!("Error while reading audio bytes: {err}");
-                    }
-                },
-            }
+                }
+                Err(err) => {
+                    error!("Error while reading audio bytes: {err}");
+                }
+            },
         }
-        let _ = client.delete(whip_session_url).send().await;
-    });
+    }
+    let _ = client.delete(whip_session_url).send().await;
+    // });
 }
