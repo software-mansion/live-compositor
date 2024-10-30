@@ -88,7 +88,7 @@ impl NestedLayout {
         match &mut layout.content {
             RenderLayoutContent::Color { border_width, .. }
             | RenderLayoutContent::ChildNode { border_width, .. } => {
-                if *border_width > 0.0 && *border_width < 1.0 {
+                if *border_width < 1.0 {
                     *border_width = 0.0
                 }
             }

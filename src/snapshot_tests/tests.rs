@@ -543,18 +543,36 @@ fn rescaler_snapshot_tests() -> Vec<TestCase> {
             ..Default::default()
         },
         TestCase {
-            name: "rescaler/border_radius_box_shadow_overflow_hidden",
+            name: "rescaler/border_radius_box_shadow_fit_input_stream",
             scene_updates: Updates::Scene(
-                    include_str!("../../snapshot_tests/rescaler/border_radius_box_shadow_overflow_hidden.scene.json"),
+                    include_str!("../../snapshot_tests/rescaler/border_radius_box_shadow_fit_input_stream.scene.json"),
                     DEFAULT_RESOLUTION,
             ),
             inputs: vec![TestInput::new(1)],
             ..Default::default()
         },
         TestCase {
-            name: "rescaler/border_radius_box_shadow_rescaler_input_stream",
+            name: "rescaler/border_radius_box_shadow_fill_input_stream",
             scene_updates: Updates::Scene(
-                    include_str!("../../snapshot_tests/rescaler/border_radius_box_shadow_rescaler_input_stream.scene.json"),
+                    include_str!("../../snapshot_tests/rescaler/border_radius_box_shadow_fill_input_stream.scene.json"),
+                    DEFAULT_RESOLUTION,
+            ),
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "rescaler/nested_border_width_radius",
+            scene_updates: Updates::Scene(
+                    include_str!("../../snapshot_tests/rescaler/nested_border_width_radius.scene.json"),
+                    DEFAULT_RESOLUTION,
+            ),
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "rescaler/nested_border_width_radius_aligned",
+            scene_updates: Updates::Scene(
+                    include_str!("../../snapshot_tests/rescaler/nested_border_width_radius_aligned.scene.json"),
                     DEFAULT_RESOLUTION,
             ),
             inputs: vec![TestInput::new(1)],
@@ -1687,6 +1705,43 @@ fn view_snapshot_tests() -> Vec<TestCase> {
             name: "view/border_radius_box_shadow_rescaler_input_stream",
             scene_updates: Updates::Scene(
                     include_str!("../../snapshot_tests/view/border_radius_box_shadow_rescaler_input_stream.scene.json"),
+                    DEFAULT_RESOLUTION,
+            ),
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "view/nested_border_width_radius",
+            scene_updates: Updates::Scene(
+                    include_str!("../../snapshot_tests/view/nested_border_width_radius.scene.json"),
+                    DEFAULT_RESOLUTION,
+            ),
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "view/nested_border_width_radius_aligned",
+            scene_updates: Updates::Scene(
+                    include_str!("../../snapshot_tests/view/nested_border_width_radius_aligned.scene.json"),
+                    DEFAULT_RESOLUTION,
+            ),
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "view/nested_border_width_radius_multi_child",
+            scene_updates: Updates::Scene(
+                    include_str!("../../snapshot_tests/view/nested_border_width_radius_multi_child.scene.json"),
+                    DEFAULT_RESOLUTION,
+            ),
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "view/border_radius_border_box_shadow_rescaled",
+            only: true,
+            scene_updates: Updates::Scene(
+                    include_str!("../../snapshot_tests/view/border_radius_border_box_shadow_rescaled.scene.json"),
                     DEFAULT_RESOLUTION,
             ),
             inputs: vec![TestInput::new(1)],

@@ -39,16 +39,17 @@ impl ViewComponentParam {
         let (scale, crop, mask) = match self.overflow {
             Overflow::Visible => (1.0, None, None),
             Overflow::Hidden => {
-                let non_zero_radius = self.border_radius.top_left > 0.0
+                let non_zero_border_width_radius = self.border_width > 0.0
+                    || self.border_radius.top_left > 0.0
                     || self.border_radius.top_right > 0.0
                     || self.border_radius.bottom_left > 0.0
                     || self.border_radius.bottom_right > 0.0;
-                if non_zero_radius {
+                if non_zero_border_width_radius {
                     (
                         1.0,
                         None,
                         Some(Mask {
-                            radius: self.border_radius + (-self.border_width),
+                            radius: self.border_radius - self.border_width,
                             top: self.border_width,
                             left: self.border_width,
                             width: content_size.width,

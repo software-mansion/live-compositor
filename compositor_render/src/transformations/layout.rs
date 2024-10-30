@@ -98,7 +98,11 @@ pub enum LayoutContent {
 
 #[derive(Debug, Clone)]
 pub struct NestedLayout {
-    // top-left corner, includes border
+    // top-left corner, includes border of current element
+    // (0, 0) represents top-left corner of a parent (inner corner if parent has border too)
+    //
+    // e.g. if parent layout and current layout have border 10 and current layout is at (0, 0) then 
+    // their top  and left edges will be next to each other without overlapping
     pub top: f32,
     pub left: f32,
 
