@@ -378,6 +378,15 @@ impl Pipeline {
             .outputs
             .get(&output_id)
             .ok_or_else(|| UpdateSceneError::OutputNotRegistered(output_id.clone()))?;
+
+        if let Some(cond) = &output.video_end_condition {
+            if cond.did_output_end() {
+                // Ignore updates after EOS
+                warn!("Received output update on a finished output");
+                return Ok(());
+            }
+        }
+
         let (Some(resolution), Some(frame_format)) = (
             output.output.resolution(),
             output.output.output_frame_format(),
@@ -396,6 +405,19 @@ impl Pipeline {
         output_id: &OutputId,
         audio: AudioMixingParams,
     ) -> Result<(), UpdateSceneError> {
+        let output = self
+            .outputs
+            .get(output_id)
+            .ok_or_else(|| UpdateSceneError::OutputNotRegistered(output_id.clone()))?;
+
+        if let Some(cond) = &output.audio_end_condition {
+            if cond.did_output_end() {
+                // Ignore updates after EOS
+                warn!("Received output update on a finished output");
+                return Ok(());
+            }
+        }
+
         info!(?output_id, "Update audio mixer {:#?}", audio);
         self.audio_mixer.update_output(output_id, audio)
     }

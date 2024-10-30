@@ -1,10 +1,6 @@
 import type React from 'react';
 import type * as Api from '../api.js';
 
-export type RegisterOutput =
-  | ({ type: 'rtp_stream' } & RegisterRtpOutput)
-  | ({ type: 'mp4' } & RegisterMp4Output);
-
 export type RegisterRtpOutput = {
   /**
    * Depends on the value of the `transport_protocol` field:
@@ -39,6 +35,10 @@ export type RegisterMp4Output = {
   audio?: Mp4AudioOptions;
 };
 
+export type RegisterCanvasOutput = {
+  video: OutputCanvasVideoOptions;
+};
+
 export type RtpVideoOptions = {
   /**
    * Output resolution in pixels.
@@ -70,6 +70,18 @@ export type Mp4VideoOptions = {
    */
   encoder: Mp4VideoEncoderOptions;
 
+  root: React.ReactElement;
+};
+
+export type OutputCanvasVideoOptions = {
+  /**
+   * Output resolution in pixels.
+   */
+  resolution: Api.Resolution;
+  /**
+   * HTMLCanvasElement
+   */
+  canvas: any;
   root: React.ReactElement;
 };
 

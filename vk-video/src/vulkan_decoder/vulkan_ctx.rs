@@ -4,7 +4,7 @@ use std::{
 };
 
 use ash::{vk, Entry};
-use tracing::{error, info};
+use tracing::{debug, error};
 
 use super::{
     Allocator, CommandBuffer, CommandPool, DebugMessenger, Device, H264ProfileInfo, Instance,
@@ -142,13 +142,6 @@ impl VulkanCtx {
     ) -> Result<Self, VulkanCtxError> {
         let entry = Arc::new(unsafe { Entry::load()? });
 
-        let instance_extension_properties =
-            unsafe { entry.enumerate_instance_extension_properties(None)? };
-        info!(
-            "instance_extension_properties amount: {}",
-            instance_extension_properties.len()
-        );
-
         let api_version = vk::make_api_version(0, 1, 3, 0);
         let app_info = vk::ApplicationInfo {
             api_version,
@@ -248,9 +241,6 @@ impl VulkanCtx {
 
         let wgpu_features = wgpu_features | wgpu::Features::TEXTURE_FORMAT_NV12;
 
-        // TODO: we can only get the required extensions after exposing the adapter; the creation
-        // of the adapter and verification of whether the device supports all extensions should
-        // happen while picking the device.
         let wgpu_extensions = wgpu_adapter
             .adapter
             .required_device_extensions(wgpu_features);
@@ -495,7 +485,7 @@ fn find_device<'a>(
             .max_dpb_slots(caps.max_dpb_slots)
             .max_active_reference_pictures(caps.max_active_reference_pictures)
             .std_header_version(caps.std_header_version);
-        info!("caps: {caps:#?}");
+        debug!("video_caps: {caps:#?}");
 
         let flags = decode_caps.flags;
 
@@ -563,7 +553,7 @@ fn find_device<'a>(
                     .contains(vk::QueueFlags::VIDEO_DECODE_KHR)
             })
             .map(|(i, _)| i)
-            .collect::<Vec<_>>(); // TODO: have to split the queues
+            .collect::<Vec<_>>();
 
         let Some(transfer_queue_idx) = queues
             .iter()
@@ -603,10 +593,10 @@ fn find_device<'a>(
             continue;
         };
 
-        info!("deocde_caps: {decode_caps:#?}");
-        info!("h264_caps: {h264_caps:#?}");
-        info!("dpb_format_properties: {h264_dpb_format_properties:#?}");
-        info!("dst_format_properties: {h264_dst_format_properties:#?}");
+        debug!("deocde_caps: {decode_caps:#?}");
+        debug!("h264_caps: {h264_caps:#?}");
+        debug!("dpb_format_properties: {h264_dpb_format_properties:#?}");
+        debug!("dst_format_properties: {h264_dst_format_properties:#?}");
 
         return Ok(ChosenDevice {
             physical_device: device,

@@ -2,13 +2,6 @@ name: deploy to gh-pages
 
 on:
     workflow_dispatch: {}
-    push:
-        branches: [master]
-        paths:
-            - "docs/**"
-            - "schemas/**"
-            - "generate/src/bin/generate_from_types/**"
-            - ".github/workflows/deploy_docs.yml"
 
 permissions:
   contents: write

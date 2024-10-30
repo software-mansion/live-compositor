@@ -38,7 +38,7 @@ impl OpusEncoder {
         std::thread::Builder::new()
             .name("Opus encoder thread".to_string())
             .spawn(move || {
-                let _span = span!(Level::INFO, "Opus encoder thread",).entered();
+                let _span = span!(Level::INFO, "Opus encoder thread").entered();
                 run_encoder_thread(encoder, samples_batch_receiver, packets_sender)
             })
             .unwrap();
