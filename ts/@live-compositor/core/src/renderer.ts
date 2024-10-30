@@ -1,3 +1,4 @@
+// eslint-disable-next-line import/no-named-as-default
 import Reconciler from 'react-reconciler';
 import { DefaultEventPriority, LegacyRoot } from 'react-reconciler/constants.js';
 import type { Api } from './api.js';

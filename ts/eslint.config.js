@@ -25,7 +25,13 @@ export default [
     languageOptions: {
       parser: tsParser,
       parserOptions: {
-        project: ['tsconfig.json'],
+        project: [
+          'tsconfig.json',
+          '**/examples/vite-browser-render/tsconfig.node.json',
+          '**/examples/vite-browser-render/tsconfig.app.json',
+        ],
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
       },
       globals: {
         ...globals.browser,

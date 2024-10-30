@@ -13,7 +13,10 @@ export default defineConfig({
     viteStaticCopy({
       targets: [
         {
-          src: path.join(path.dirname(require.resolve('@live-compositor/browser-render')), 'live-compositor.wasm'),
+          src: path.join(
+            path.dirname(require.resolve('@live-compositor/browser-render')),
+            'live-compositor.wasm'
+          ),
           dest: 'assets',
         },
       ],
