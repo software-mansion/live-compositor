@@ -58,6 +58,7 @@ export class MP4Decoder {
     console.log(`Using codec: ${videoTrack.codec}`);
 
     const trak = this.file.getTrackById(videoTrack.id);
+    if (!trak) return;
     const description = getCodecDescription(trak);
     if (!description) {
       console.error('Codec description not found');

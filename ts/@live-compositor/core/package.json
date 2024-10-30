@@ -28,12 +28,14 @@
     "/cjs"
   ],
   "devDependencies": {
+    "@types/react": "^18.3.3",
     "@types/react-reconciler": "0.28.8"
   },
   "dependencies": {
     "react-reconciler": "0.29.2"
   },
   "peerDependencies": {
+    "react": "^18.3.1",
     "live-compositor": "workspace:^0.1.0"
   }
 }

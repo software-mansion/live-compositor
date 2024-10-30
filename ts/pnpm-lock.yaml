@@ -81,10 +81,16 @@ importers:
       live-compositor:
         specifier: workspace:^0.1.0
         version: link:../../live-compositor
+      react:
+        specifier: ^18.3.1
+        version: 18.3.1
       react-reconciler:
         specifier: 0.29.2
         version: 0.29.2(react@18.3.1)
     devDependencies:
+      '@types/react':
+        specifier: ^18.3.3
+        version: 18.3.12
       '@types/react-reconciler':
         specifier: 0.28.8
         version: 0.28.8
@@ -258,6 +264,12 @@ importers:
       '@live-compositor/web-wasm':
         specifier: workspace:0.1.0-rc.0
         version: link:../../@live-compositor/web-wasm
+      live-compositor:
+        specifier: workspace:^0.1.0
+        version: link:../../live-compositor
+      mp4box:
+        specifier: ^0.5.2
+        version: 0.5.2
       react:
         specifier: ^18.3.1
         version: 18.3.1
