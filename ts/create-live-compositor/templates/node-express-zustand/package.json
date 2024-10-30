@@ -11,9 +11,9 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@live-compositor/node": "^0.1.0",
+    "@live-compositor/node": "workspace:^0.1.0",
     "express": "^4.21.0",
-    "live-compositor": "^0.1.0",
+    "live-compositor": "workspace:^0.1.0",
     "react": "^18.3.1",
     "zustand": "4.5.5"
   },

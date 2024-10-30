@@ -22,6 +22,6 @@
     "wasm-pack": "^0.13.0"
   },
   "peerDependencies": {
-    "live-compositor": "^0.1.0"
+    "live-compositor": "workspace:0.1.0"
   }
 }
