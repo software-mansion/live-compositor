@@ -1,4 +1,5 @@
-import MP4Box, { DataStream, MP4ArrayBuffer, MP4File, MP4Info, Sample } from 'mp4box';
+import type { MP4ArrayBuffer, MP4File, MP4Info, Sample } from 'mp4box';
+import MP4Box, { DataStream } from 'mp4box';
 
 export type OnConfig = (config: VideoDecoderConfig) => void;
 

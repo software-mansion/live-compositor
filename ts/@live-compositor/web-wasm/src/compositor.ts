@@ -1,9 +1,11 @@
 import { Renderer } from '@live-compositor/browser-render';
 import { LiveCompositor as CoreLiveCompositor } from '@live-compositor/core';
 import WasmInstance from './manager/wasmInstance';
-import { intoRegisterOutput, RegisterOutput } from './output/registerOutput';
-import { intoRegisterInput, RegisterInput } from './input/registerInput';
-import { RegisterImage } from './renderers';
+import type { RegisterOutput } from './output/registerOutput';
+import { intoRegisterOutput } from './output/registerOutput';
+import type { RegisterInput } from './input/registerInput';
+import { intoRegisterInput } from './input/registerInput';
+import type { RegisterImage } from './renderers';
 
 export type LiveCompositorOptions = {
   framerate?: Framerate;

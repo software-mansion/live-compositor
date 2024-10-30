@@ -1,4 +1,5 @@
-import { CompositorEvent, CompositorEventType } from 'live-compositor';
+import type { CompositorEvent } from 'live-compositor';
+import { CompositorEventType } from 'live-compositor';
 
 export class EventSender {
   private eventCallback?: (event: object) => void;

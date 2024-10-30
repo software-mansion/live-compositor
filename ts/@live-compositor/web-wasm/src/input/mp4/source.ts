@@ -1,8 +1,8 @@
 import { FrameFormat } from '@live-compositor/browser-render';
 import { MP4Demuxer } from './demuxer';
 import { H264Decoder } from '../decoder/h264Decoder';
-import { InputFrame } from '../input';
-import InputSource from '../source';
+import type { InputFrame } from '../input';
+import type InputSource from '../source';
 
 export default class MP4Source implements InputSource {
   private fileUrl: string;

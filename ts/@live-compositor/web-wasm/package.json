@@ -9,7 +9,7 @@
     "watch": "tsc --watch --preserveWatchOutput",
     "build": "tsc",
     "clean": "rimraf dist",
-    "prepublishOnly": "npm run clean && npm run build"
+    "prepublishOnly": "pnpm run clean && pnpm run build"
   },
   "author": "",
   "license": "MIT",
@@ -23,5 +23,8 @@
     "live-compositor": "workspace:^0.1.0",
     "mp4box": "^0.5.2",
     "path-parser": "^6.1.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.3"
   }
 }

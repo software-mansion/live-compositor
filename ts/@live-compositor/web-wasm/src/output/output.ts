@@ -1,7 +1,7 @@
-import { Frame, Resolution } from '@live-compositor/browser-render';
-import { OutputSink } from './sink';
+import type { Frame, Resolution } from '@live-compositor/browser-render';
+import type { OutputSink } from './sink';
 import CanvasSink from './canvas';
-import { RegisterOutputRequest } from '@live-compositor/core';
+import type { RegisterOutputRequest } from '@live-compositor/core';
 
 export class Output {
   private sink: OutputSink;
