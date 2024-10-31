@@ -68,8 +68,8 @@ jobs:
               run: |
                 cargo run --bin generate_from_types -- --check
 
-            # - name: 🖋️ Run website lint + typecheck + build
-            #   working-directory: ./docs
-            #   run: |
-            #     pnpm install --frozen-lockfile
-            #     pnpm run typecheck && pnpm run lint --max-warnings=0 && pnpm run build
+            - name: 🖋️ Run website lint + typecheck + build
+              working-directory: ./docs
+              run: |
+                pnpm install --frozen-lockfile
+                pnpm run typecheck && pnpm run lint --max-warnings=0 && pnpm run build
