@@ -21,8 +21,7 @@ mod reference_manager;
 #[derivative(Debug)]
 #[allow(non_snake_case)]
 pub struct DecodeInformation {
-    pub(crate) reference_list_l0: Option<Vec<ReferencePictureInfo>>,
-    pub(crate) reference_list_l1: Option<Vec<ReferencePictureInfo>>,
+    pub(crate) reference_list: Option<Vec<ReferencePictureInfo>>,
     #[derivative(Debug = "ignore")]
     pub(crate) rbsp_bytes: Vec<u8>,
     pub(crate) slice_indices: Vec<usize>,

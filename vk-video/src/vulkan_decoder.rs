@@ -813,10 +813,9 @@ impl VulkanDecoder<'_> {
         decode_information: &DecodeInformation,
     ) -> Vec<vk::native::StdVideoDecodeH264ReferenceInfo> {
         decode_information
-            .reference_list_l0
+            .reference_list
             .iter()
             .flatten()
-            .chain(decode_information.reference_list_l1.iter().flatten())
             .map(|&ref_info| ref_info.into())
             .collect::<Vec<_>>()
     }
@@ -838,10 +837,9 @@ impl VulkanDecoder<'_> {
     ) -> Result<Vec<vk::VideoReferenceSlotInfoKHR<'a>>, VulkanDecoderError> {
         let mut pic_reference_slots: Vec<vk::VideoReferenceSlotInfoKHR<'a>> = Vec::new();
         for (ref_info, dpb_slot_info) in decode_information
-            .reference_list_l0
+            .reference_list
             .iter()
             .flatten()
-            .chain(decode_information.reference_list_l1.iter().flatten())
             .zip(references_dpb_slot_info.iter_mut())
         {
             let i = *reference_id_to_dpb_slot_index

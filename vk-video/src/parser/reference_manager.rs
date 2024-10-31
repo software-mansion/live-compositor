@@ -2,10 +2,7 @@ use std::sync::Arc;
 
 use h264_reader::nal::{
     pps::PicParameterSet,
-    slice::{
-        DecRefPicMarking, MemoryManagementControlOperation, ModificationOfPicNums, NumRefIdxActive,
-        RefPicListModifications, SliceHeader,
-    },
+    slice::{DecRefPicMarking, MemoryManagementControlOperation, SliceHeader},
     sps::SeqParameterSet,
 };
 
@@ -31,12 +28,6 @@ pub enum ReferenceManagementError {
 
 #[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ReferenceId(usize);
-
-#[derive(Debug, Clone, Copy)]
-enum BFrameReferenceListKind {
-    L0,
-    L1,
-}
 
 #[derive(Debug, Default)]
 #[allow(non_snake_case)]
@@ -472,93 +463,21 @@ impl ReferenceContext {
             PicOrderCnt_for_decoding
         };
 
-        let (reference_list_l0, reference_list_l1) = match header.slice_type.family {
-            h264_reader::nal::slice::SliceFamily::P => {
-                let num_ref_idx_l0_active = header.num_ref_idx_l0_active(pps);
-
-                let mut reference_list_l0 =
-                    self.initialize_reference_picture_list_for_p_frame(&header, sps)?;
-
-                match &header.ref_pic_list_modification {
-                    Some(RefPicListModifications::P {
-                        ref_pic_list_modification_l0,
-                    }) => {
-                        self.modify_reference_picture_list(
-                            sps,
-                            &header,
-                            &mut reference_list_l0,
-                            ref_pic_list_modification_l0,
-                        )?;
-                    }
-
-                    None
-                    | Some(RefPicListModifications::I)
-                    | Some(RefPicListModifications::B { .. }) => return Err(ReferenceManagementError::IncorrectData(
-                        "a slice marked 'P' slice family contains a reference picture list for a different family".into()
-                    ))?,
-                }
-
-                reference_list_l0.truncate(num_ref_idx_l0_active as usize);
-
-                (Some(reference_list_l0), None)
+        let reference_list = match header.slice_type.family {
+            h264_reader::nal::slice::SliceFamily::P | h264_reader::nal::slice::SliceFamily::B => {
+                Some(self.reference_list_for_frame(&header, sps)?)
             }
-            h264_reader::nal::slice::SliceFamily::I => (None, None),
-            h264_reader::nal::slice::SliceFamily::B => {
-                let num_ref_idx_l0_active = header.num_ref_idx_l0_active(pps);
-                let num_ref_idx_l1_active = header.num_ref_idx_l1_active(pps)?;
-
-                let mut reference_list_l0 = self.initialize_reference_picture_list_for_b_frame(
-                    PicOrderCnt_for_decoding,
-                    BFrameReferenceListKind::L0,
-                )?;
-                let mut reference_list_l1 = self.initialize_reference_picture_list_for_b_frame(
-                    PicOrderCnt_for_decoding,
-                    BFrameReferenceListKind::L1,
-                )?;
-
-                match &header.ref_pic_list_modification {
-                    Some(RefPicListModifications::B {
-                        ref_pic_list_modification_l0,
-                        ref_pic_list_modification_l1,
-                    }) => {
-                        self.modify_reference_picture_list(
-                            sps,
-                            &header,
-                            &mut reference_list_l0,
-                            ref_pic_list_modification_l0,
-                        )?;
-
-                        self.modify_reference_picture_list(
-                            sps,
-                            &header,
-                            &mut reference_list_l1,
-                            ref_pic_list_modification_l1
-                        )?;
-                    }
-
-                    None
-                    | Some(RefPicListModifications::I)
-                    | Some(RefPicListModifications::P { .. }) => return Err(ReferenceManagementError::IncorrectData(
-                        "a slice marked 'B' slice family contains a reference picture list for a different family".into()
-                    ))?,
-                }
-
-                reference_list_l0.truncate(num_ref_idx_l0_active as usize);
-                reference_list_l1.truncate(num_ref_idx_l1_active as usize);
-
-                (Some(reference_list_l0), Some(reference_list_l1))
-            }
+            h264_reader::nal::slice::SliceFamily::I => None,
             h264_reader::nal::slice::SliceFamily::SP => {
-                return Err(ReferenceManagementError::SPFramesNotSupported)?
+                return Err(ReferenceManagementError::SPFramesNotSupported)
             }
             h264_reader::nal::slice::SliceFamily::SI => {
-                return Err(ReferenceManagementError::SIFramesNotSupported)?
+                return Err(ReferenceManagementError::SIFramesNotSupported)
             }
         };
 
         Ok(DecodeInformation {
-            reference_list_l0,
-            reference_list_l1,
+            reference_list,
             header: header.clone(),
             slice_indices,
             rbsp_bytes,
@@ -693,48 +612,35 @@ impl ReferenceContext {
         Ok([pic_order_cnt; 2])
     }
 
-    fn initialize_short_term_reference_picture_list_for_p_frame(
+    fn short_term_reference_list_for_frame(
         &self,
         header: &SliceHeader,
         sps: &SeqParameterSet,
     ) -> Vec<ReferencePictureInfo> {
-        let mut short_term_reference_list = self
-            .pictures
+        self.pictures
             .short_term
             .iter()
             .map(|reference| {
-                (
-                    reference,
-                    decode_picture_numbers_for_short_term_ref(
-                        reference.header.frame_num.into(),
-                        header.frame_num.into(),
-                        sps,
-                    ),
-                )
-            })
-            .collect::<Vec<_>>();
-
-        short_term_reference_list.sort_by_key(|(_, numbers)| -numbers.PicNum);
-
-        short_term_reference_list
-            .into_iter()
-            .map(|(reference, numbers)| ReferencePictureInfo {
-                id: reference.id,
-                LongTermPicNum: None,
-                FrameNum: numbers.FrameNum as u16,
-                non_existing: false,
-                PicOrderCnt: reference.pic_order_cnt,
+                let numbers = decode_picture_numbers_for_short_term_ref(
+                    reference.header.frame_num.into(),
+                    header.frame_num.into(),
+                    sps,
+                );
+                ReferencePictureInfo {
+                    id: reference.id,
+                    LongTermPicNum: None,
+                    FrameNum: numbers.FrameNum as u16,
+                    non_existing: false,
+                    PicOrderCnt: reference.pic_order_cnt,
+                }
             })
             .collect()
     }
 
-    fn initialize_long_term_reference_picture_list_for_frame(&self) -> Vec<ReferencePictureInfo> {
-        let mut long_term_reference_list = self.pictures.long_term.clone();
-
-        long_term_reference_list.sort_by_key(|pic| pic.LongTermFrameIdx);
-
-        long_term_reference_list
-            .into_iter()
+    fn long_term_reference_list_for_frame(&self) -> Vec<ReferencePictureInfo> {
+        self.pictures
+            .long_term
+            .iter()
             .map(|pic| ReferencePictureInfo {
                 id: pic.id,
                 LongTermPicNum: Some(pic.LongTermFrameIdx),
@@ -745,34 +651,14 @@ impl ReferenceContext {
             .collect()
     }
 
-    fn initialize_reference_picture_list_for_p_frame(
+    fn reference_list_for_frame(
         &self,
         header: &SliceHeader,
         sps: &SeqParameterSet,
     ) -> Result<Vec<ReferencePictureInfo>, ReferenceManagementError> {
-        let short_term_reference_list =
-            self.initialize_short_term_reference_picture_list_for_p_frame(header, sps);
+        let short_term_reference_list = self.short_term_reference_list_for_frame(header, sps);
 
-        let long_term_reference_list = self.initialize_long_term_reference_picture_list_for_frame();
-
-        let reference_list = short_term_reference_list
-            .into_iter()
-            .chain(long_term_reference_list)
-            .collect::<Vec<_>>();
-
-        Ok(reference_list)
-    }
-
-    #[allow(non_snake_case)]
-    fn initialize_reference_picture_list_for_b_frame(
-        &self,
-        CurrPicOrderCnt: [i32; 2],
-        list_kind: BFrameReferenceListKind,
-    ) -> Result<Vec<ReferencePictureInfo>, ReferenceManagementError> {
-        let short_term_reference_list = self
-            .initialize_short_term_reference_picture_list_for_b_frame(CurrPicOrderCnt, list_kind)?;
-
-        let long_term_reference_list = self.initialize_long_term_reference_picture_list_for_frame();
+        let long_term_reference_list = self.long_term_reference_list_for_frame();
 
         let reference_list = short_term_reference_list
             .into_iter()
@@ -780,191 +666,6 @@ impl ReferenceContext {
             .collect();
 
         Ok(reference_list)
-    }
-
-    #[allow(non_snake_case)]
-    fn initialize_short_term_reference_picture_list_for_b_frame(
-        &self,
-        CurrPicOrderCnt: [i32; 2],
-        list_kind: BFrameReferenceListKind,
-    ) -> Result<Vec<ReferencePictureInfo>, ReferenceManagementError> {
-        let mut reference_list = self
-            .pictures
-            .short_term
-            .iter()
-            .filter(|pic| match list_kind {
-                BFrameReferenceListKind::L0 => pic.pic_order_cnt < CurrPicOrderCnt,
-                BFrameReferenceListKind::L1 => pic.pic_order_cnt > CurrPicOrderCnt,
-            })
-            .collect::<Vec<_>>();
-
-        reference_list.sort_by_key(|pic| match list_kind {
-            BFrameReferenceListKind::L0 => -pic.pic_order_cnt[0],
-            BFrameReferenceListKind::L1 => pic.pic_order_cnt[0],
-        });
-
-        let reference_list = reference_list
-            .into_iter()
-            .map(|pic| ReferencePictureInfo {
-                LongTermPicNum: None,
-                FrameNum: pic.header.frame_num,
-                non_existing: false,
-                PicOrderCnt: pic.pic_order_cnt,
-                id: pic.id,
-            })
-            .collect();
-
-        Ok(reference_list)
-    }
-
-    #[allow(non_snake_case)]
-    fn modify_reference_picture_list(
-        &self,
-        sps: &SeqParameterSet,
-        header: &SliceHeader,
-        reference_list: &mut Vec<ReferencePictureInfo>,
-        ref_pic_list_modifications: &[ModificationOfPicNums],
-    ) -> Result<(), ReferenceManagementError> {
-        // 0 is Subtract, 1 is Add, 2 is LongTermRef
-        let mut refIdxL0 = 0;
-        let mut picNumL0Pred = header.frame_num as i64;
-
-        for ref_pic_list_modification in ref_pic_list_modifications {
-            match ref_pic_list_modification {
-                ModificationOfPicNums::Subtract(_) | ModificationOfPicNums::Add(_) => {
-                    self.modify_short_term_reference_picture_list(
-                        sps,
-                        header,
-                        reference_list,
-                        ref_pic_list_modification,
-                        &mut refIdxL0,
-                        &mut picNumL0Pred,
-                    )?;
-                }
-
-                ModificationOfPicNums::LongTermRef(long_term_pic_num) => {
-                    self.modify_long_term_reference_picture_list(
-                        reference_list,
-                        *long_term_pic_num,
-                        &mut refIdxL0,
-                    )?;
-                }
-            }
-        }
-
-        Ok(())
-    }
-
-    #[allow(non_snake_case)]
-    fn modify_long_term_reference_picture_list(
-        &self,
-        reference_list: &mut Vec<ReferencePictureInfo>,
-        picture_to_shift: u32,
-        refIdxLX: &mut usize,
-    ) -> Result<(), ReferenceManagementError> {
-        let shifted_picture_idx = reference_list
-            .iter()
-            .enumerate()
-            .find(|(_, pic)| match pic.LongTermPicNum {
-                Some(num) => num == picture_to_shift.into(),
-                None => false,
-            })
-            .map(|(i, _)| i)
-            .ok_or(ReferenceManagementError::IncorrectData(
-                format!("picture with LongTermPicNum = {picture_to_shift} is not present in the reference list during modification")
-            ))?;
-
-        if reference_list[shifted_picture_idx].non_existing {
-            return Err(ReferenceManagementError::IncorrectData(
-                "a short-term reference picture marked for shifting in the reference list modification process is marked as non-existing".into()
-            ));
-        }
-
-        if reference_list[shifted_picture_idx].LongTermPicNum.is_none() {
-            return Err(ReferenceManagementError::IncorrectData(
-                "a short-term reference picture marked for shifting in the long-term reference list modification process".into()
-            ));
-        }
-
-        let shifted_picture = reference_list.remove(shifted_picture_idx);
-        reference_list.insert(*refIdxLX, shifted_picture);
-        *refIdxLX += 1;
-
-        Ok(())
-    }
-
-    #[allow(non_snake_case)]
-    fn modify_short_term_reference_picture_list(
-        &self,
-        sps: &SeqParameterSet,
-        header: &SliceHeader,
-        reference_list: &mut Vec<ReferencePictureInfo>,
-        ref_pic_list_modification: &ModificationOfPicNums,
-        refIdxLX: &mut usize,
-        picNumLXPred: &mut i64,
-    ) -> Result<(), ReferenceManagementError> {
-        let picNumLXNoWrap = match *ref_pic_list_modification {
-            ModificationOfPicNums::Subtract(abs_diff_pic_num_minus_1) => {
-                let abs_diff_pic_num = abs_diff_pic_num_minus_1 as i64 + 1;
-                if *picNumLXPred - abs_diff_pic_num < 0 {
-                    *picNumLXPred - abs_diff_pic_num + sps.max_frame_num()
-                } else {
-                    *picNumLXPred - abs_diff_pic_num
-                }
-            }
-            ModificationOfPicNums::Add(abs_diff_pic_num_minus_1) => {
-                let abs_diff_pic_num = abs_diff_pic_num_minus_1 as i64 + 1;
-                if *picNumLXPred + abs_diff_pic_num >= sps.max_frame_num() {
-                    *picNumLXPred + abs_diff_pic_num - sps.max_frame_num()
-                } else {
-                    *picNumLXPred + abs_diff_pic_num
-                }
-            }
-            ModificationOfPicNums::LongTermRef(_) => return Ok(()),
-        };
-
-        *picNumLXPred = picNumLXNoWrap;
-
-        let picNumLX = if picNumLXNoWrap > header.frame_num as i64 {
-            picNumLXNoWrap - sps.max_frame_num()
-        } else {
-            picNumLXNoWrap
-        };
-
-        let mut shifted_picture_idx = reference_list
-            .iter()
-            .enumerate()
-            .find(|(_, picture_info)| decode_picture_numbers_for_short_term_ref(picture_info.FrameNum.into(), header.frame_num.into(), sps).PicNum == picNumLX)
-            .map(|(i, _)| i)
-            .ok_or(ReferenceManagementError::IncorrectData(
-                format!("picture with picNumLX = {picNumLX} is not present in the reference list during modification")
-            ))?;
-
-        if reference_list[shifted_picture_idx].non_existing {
-            return Err(ReferenceManagementError::IncorrectData(
-                "a short-term reference picture marked for shifting in the reference list modification process is marked as non-existing".into()
-            ));
-        }
-
-        if reference_list[shifted_picture_idx].LongTermPicNum.is_some() {
-            return Err(ReferenceManagementError::IncorrectData(
-                "a long-term reference picture marked for shifting in the short-term reference list modification process".into()
-            ));
-        }
-
-        let shifted_picture_info = reference_list[shifted_picture_idx];
-        if *refIdxLX <= reference_list.len() {
-            reference_list.insert(*refIdxLX, shifted_picture_info);
-            shifted_picture_idx = if *refIdxLX <= shifted_picture_idx {
-                shifted_picture_idx + 1
-            } else {
-                shifted_picture_idx
-            };
-        }
-        *refIdxLX += 1;
-        reference_list.remove(shifted_picture_idx);
-
-        Ok(())
     }
 }
 
@@ -1026,47 +727,10 @@ struct ReferencePictures {
 }
 
 trait SliceHeaderExt {
-    fn num_ref_idx_l0_active(&self, pps: &PicParameterSet) -> u32;
-    fn num_ref_idx_l1_active(&self, pps: &PicParameterSet)
-        -> Result<u32, ReferenceManagementError>;
     fn includes_mmco_equal_5(&self) -> bool;
 }
 
 impl SliceHeaderExt for SliceHeader {
-    fn num_ref_idx_l0_active(&self, pps: &PicParameterSet) -> u32 {
-        self.num_ref_idx_active
-            .as_ref()
-            .map(|num| match num {
-                NumRefIdxActive::P {
-                    num_ref_idx_l0_active_minus1,
-                } => *num_ref_idx_l0_active_minus1,
-                NumRefIdxActive::B {
-                    num_ref_idx_l0_active_minus1,
-                    ..
-                } => *num_ref_idx_l0_active_minus1,
-            })
-            .unwrap_or(pps.num_ref_idx_l0_default_active_minus1)
-            + 1
-    }
-
-    fn num_ref_idx_l1_active(
-        &self,
-        pps: &PicParameterSet,
-    ) -> Result<u32, ReferenceManagementError> {
-        Ok(
-            self
-                .num_ref_idx_active
-                .as_ref()
-                .map(|num| match num {
-                    NumRefIdxActive::P { .. } => Err(ReferenceManagementError::IncorrectData(
-                        "requested num_ref_idx_l1_active, but the header contains the information for a P-frame, which does not include it".into()
-                    )),
-                    NumRefIdxActive::B { num_ref_idx_l1_active_minus1, .. } => Ok(*num_ref_idx_l1_active_minus1)
-                })
-                .unwrap_or(Ok(pps.num_ref_idx_l1_default_active_minus1))? + 1
-        )
-    }
-
     fn includes_mmco_equal_5(&self) -> bool {
         let Some(DecRefPicMarking::Adaptive(ref mmcos)) = self.dec_ref_pic_marking else {
             return false;
