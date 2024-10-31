@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { LiveCompositor } from '@live-compositor/web-wasm';
 import { InputStream, Text, useInputStreams, View } from 'live-compositor';
 
-const BUNNY_URL = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
+const BUNNY_URL =
+  'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
 
 function MP4Player() {
   const [compositor, canvasRef] = useCompositor();
@@ -14,7 +15,7 @@ function MP4Player() {
 
     void compositor.start();
     return () => compositor.stop();
-  }, [compositor])
+  }, [compositor]);
 
   return (
     <>
@@ -86,10 +87,10 @@ function useCompositor(): [LiveCompositor | undefined, (canvas: HTMLCanvasElemen
         },
         root: <Scene />,
       });
-    }
+    };
 
     setupCompositor();
-  }, [])
+  }, []);
 
   return [compositor, canvasRef];
 }

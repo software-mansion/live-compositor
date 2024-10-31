@@ -1,8 +1,9 @@
+import type { Express } from 'express';
 import express, { json } from 'express';
 import { Compositor } from './compositor';
 import { store } from './store';
 
-export const app = express();
+export const app: Express = express();
 
 app.use(json());
 

@@ -1,5 +1,5 @@
 import { wasm } from './wasm';
-import * as Api from './api';
+import type * as Api from './api';
 
 export type RendererOptions = {
   /**

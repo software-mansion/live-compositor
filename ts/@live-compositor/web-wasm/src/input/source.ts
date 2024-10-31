@@ -1,5 +1,5 @@
-import { RegisterInputRequest } from '@live-compositor/core';
-import { InputFrame } from './input';
+import type { RegisterInputRequest } from '@live-compositor/core';
+import type { InputFrame } from './input';
 import MP4Source from './mp4/source';
 
 export default interface InputSource {

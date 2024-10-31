@@ -1,7 +1,7 @@
-import { FrameSet, InputId, OutputId, Renderer } from '@live-compositor/browser-render';
-import { Framerate } from './compositor';
-import { Input, InputFrame } from './input/input';
-import { Output } from './output/output';
+import type { FrameSet, InputId, OutputId, Renderer } from '@live-compositor/browser-render';
+import type { Framerate } from './compositor';
+import type { Input, InputFrame } from './input/input';
+import type { Output } from './output/output';
 
 export type StopQueueFn = () => void;
 

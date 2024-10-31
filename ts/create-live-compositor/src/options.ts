@@ -1,6 +1,7 @@
-import { Choice, confirmPrompt, selectPrompt, textPrompt } from './utils/prompts';
+import type { Choice } from './utils/prompts';
+import { confirmPrompt, selectPrompt, textPrompt } from './utils/prompts';
 import path from 'path';
-import { PackageManager } from './utils/packageManager';
+import type { PackageManager } from './utils/packageManager';
 import { spawn } from './utils/spawn';
 import chalk from 'chalk';
 

@@ -1,5 +1,5 @@
-import { Api } from '../api.js';
-import { RegisterMp4Input, RegisterRtpInput, Inputs } from 'live-compositor';
+import type { Api } from '../api.js';
+import type { RegisterMp4Input, RegisterRtpInput, Inputs } from 'live-compositor';
 
 export type RegisterInputRequest = Api.RegisterInput;
 

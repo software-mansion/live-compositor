@@ -1,6 +1,8 @@
-import * as Api from '../api.js';
-import { createCompositorComponent, SceneComponent, sceneComponentIntoApi } from '../component.js';
-import { intoApiRgbaColor, intoApiTransition, Transition } from './common.js';
+import type * as Api from '../api.js';
+import type { SceneComponent } from '../component.js';
+import { createCompositorComponent, sceneComponentIntoApi } from '../component.js';
+import type { Transition } from './common.js';
+import { intoApiRgbaColor, intoApiTransition } from './common.js';
 
 export type ViewProps = {
   /**

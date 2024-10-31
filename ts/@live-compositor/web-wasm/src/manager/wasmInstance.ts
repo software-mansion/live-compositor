@@ -1,16 +1,17 @@
-import {
+import type {
   ApiRequest,
   CompositorManager,
   RegisterInputRequest,
   RegisterOutputRequest,
 } from '@live-compositor/core';
-import { Renderer, Component, ImageSpec } from '@live-compositor/browser-render';
-import { Api } from 'live-compositor';
+import type { Renderer, Component, ImageSpec } from '@live-compositor/browser-render';
+import type { Api } from 'live-compositor';
 import { Path } from 'path-parser';
-import { Queue, StopQueueFn } from '../queue';
+import type { StopQueueFn } from '../queue';
+import { Queue } from '../queue';
 import { Input } from '../input/input';
 import { EventSender } from '../eventSender';
-import { Framerate } from '../compositor';
+import type { Framerate } from '../compositor';
 import { Output } from '../output/output';
 import { sourceFromRequest } from '../input/source';
 

@@ -1,4 +1,4 @@
-import { RegisterInput as InternalRegisterInput } from '@live-compositor/core';
+import type { RegisterInput as InternalRegisterInput } from '@live-compositor/core';
 
 export type RegisterInput = { type: 'mp4' } & RegisterMP4Input;
 

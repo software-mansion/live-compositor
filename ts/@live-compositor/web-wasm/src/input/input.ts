@@ -1,7 +1,7 @@
-import { Frame, InputId } from '@live-compositor/browser-render';
+import type { Frame, InputId } from '@live-compositor/browser-render';
 import { CompositorEventType } from 'live-compositor';
-import { EventSender } from '../eventSender';
-import InputSource from './source';
+import type { EventSender } from '../eventSender';
+import type InputSource from './source';
 
 /**
  * Represents frame produced by decoder.

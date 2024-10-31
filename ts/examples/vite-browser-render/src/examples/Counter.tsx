@@ -5,7 +5,6 @@ function Counter() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [count, setCount] = useState(0);
   const renderer = useRenderer();
-
   useEffect(() => {
     if (renderer == null) {
       return;

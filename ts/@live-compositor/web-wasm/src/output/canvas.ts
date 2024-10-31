@@ -1,5 +1,5 @@
-import { Frame } from '@live-compositor/browser-render';
-import { OutputSink } from './sink';
+import type { Frame } from '@live-compositor/browser-render';
+import type { OutputSink } from './sink';
 
 export default class CanvasSink implements OutputSink {
   private ctx: CanvasRenderingContext2D;

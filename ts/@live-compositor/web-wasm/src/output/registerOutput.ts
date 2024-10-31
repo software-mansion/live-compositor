@@ -1,12 +1,13 @@
-import { Resolution } from '@live-compositor/browser-render';
-import { RegisterOutput as InternalRegisterOutput } from '@live-compositor/core';
+import type { Resolution } from '@live-compositor/browser-render';
+import type { RegisterOutput as InternalRegisterOutput } from '@live-compositor/core';
+import type { ReactElement } from 'react';
 
 export type RegisterOutput = { type: 'canvas' } & RegisterCanvasOutput;
 
 export type RegisterCanvasOutput = {
   resolution: Resolution;
   canvas: HTMLCanvasElement;
-  root: React.ReactElement;
+  root: ReactElement;
 };
 
 export function intoRegisterOutput(output: RegisterOutput): InternalRegisterOutput {
