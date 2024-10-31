@@ -35,7 +35,7 @@
     "react-reconciler": "0.29.2"
   },
   "peerDependencies": {
-    "react": "^18.3.1",
+    "react": "*",
     "live-compositor": "workspace:^0.1.0"
   }
 }
