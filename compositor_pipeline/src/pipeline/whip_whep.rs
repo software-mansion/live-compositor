@@ -4,13 +4,18 @@ use axum::{
 };
 use compositor_render::InputId;
 use config::read_config;
-use handlers::{handle_options, status};
-use logger::init_logger;
+use handlers::{
+    handle_options, handle_whip, status, terminate_whip_session, whip_ice_candidates_handler,
+};
 use rtp::packet::Packet;
-use std::{collections::HashMap, net::SocketAddr, sync::Arc};
+use std::{
+    collections::HashMap,
+    net::SocketAddr,
+    sync::{Arc, Mutex, Weak},
+};
 use tokio::sync::{mpsc, Notify};
 use tower_http::cors::{Any, CorsLayer};
-use tracing::info;
+use tracing::{info, warn};
 use webrtc::{
     api::{
         interceptor_registry::register_default_interceptors,
@@ -26,34 +31,44 @@ use webrtc::{
         RTCRtpTransceiverInit,
     },
 };
+use wgpu::core::pipeline;
 
 mod config;
 mod handlers;
-mod logger;
 
 use tokio::task;
 
+use crate::Pipeline;
+
+
 #[tokio::main]
-pub async fn start_whip_whep_server() {
+pub async fn start_whip_whep_server(pipeline: Weak<Mutex<Pipeline>>) {
     let config = read_config();
-    init_logger(config.logger.clone());
     let port = config.api_port;
 
     if !config.start_whip_whep {
         return;
     }
 
-    let state = init().await;
+    let pipeline_ctx = match pipeline.upgrade() {
+        Some(pipeline) => pipeline.lock().unwrap().ctx.clone(),
+        None => {
+            warn!("Pipeline stopped.");
+            return;
+        }
+    };
+
+    let state = pipeline_ctx.whip_whep_state.clone();
 
     //TODO update handlers with new global state
 
     let app = Router::new()
         .route("/status", get(status))
         // .route("/whep", post(handle_whep))
-        // .route("/whip", post(handle_whip))
+        .route("/whip", post(handle_whip))
         .route("/whip", options(handle_options))
-        // .route("/session", patch(whip_ice_candidates_handler))
-        // .route("/session", delete(terminate_whip_session))
+        .route("/session", patch(whip_ice_candidates_handler))
+        .route("/session", delete(terminate_whip_session))
         // .route("/resource/:id", patch(whep_ice_candidates_handler))
         // .route("/resource/:id", delete(terminate_whep_session))
         .layer(
@@ -77,6 +92,7 @@ pub async fn start_whip_whep_server() {
     }
 }
 
+#[derive(Debug)]
 pub struct InputConnectionUtils {
     pub video_receiver: mpsc::Receiver<Packet>,
     pub audio_receiver: mpsc::Receiver<Packet>,
@@ -86,17 +102,18 @@ pub struct InputConnectionUtils {
     pub peer_connection: Arc<RTCPeerConnection>,
 }
 
+#[derive(Debug)]
 pub struct WhipWhepState {
     // pub whip: Arc<WhipUtils>,
-    pub notifier: Arc<Notify>,
-    pub input_connections: HashMap<InputId, InputConnectionUtils>,
+    pub notifier: Arc<Notify>,  // TODO check if necessary
+    pub input_connections: Arc<Mutex<HashMap<InputId, InputConnectionUtils>>>,
 }
 
 impl WhipWhepState {
     pub fn new() -> Arc<Self> {
         Arc::new(WhipWhepState {
             notifier: Arc::new(Notify::new()),
-            input_connections: HashMap::new(),
+            input_connections: Arc::from(Mutex::new(HashMap::new())),
         })
     }
 
@@ -114,7 +131,7 @@ pub async fn init() -> Arc<WhipWhepState> {
     Arc::new(WhipWhepState {
         // whip : init_pc().await,
         notifier: Arc::new(Notify::new()),
-        input_connections: HashMap::new(),
+        input_connections: Arc::from(Mutex::new(HashMap::new())),
     })
 }
 

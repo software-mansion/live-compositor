@@ -17,7 +17,6 @@ use crate::{
         encoder,
         rtp::BindToPortError,
         types::{EncodedChunk, EncodedChunkKind},
-        whip_whep::{self, WhipWhepState},
         PipelineCtx, Port,
     },
     queue::PipelineEvent,
@@ -96,13 +95,18 @@ impl WhipReceiver {
 
         let (video_tx, video_rx): (mpsc::Sender<Packet>, mpsc::Receiver<Packet>) =
             mpsc::channel(100);
-        let (audio_tx, audio_rx): (mpsc::Sender<Packet>, mpsc::Receiver<Packet>) =
-            mpsc::channel(100);
+        // let (audio_tx, audio_rx): (mpsc::Sender<Packet>, mpsc::Receiver<Packet>) =
+        //     mpsc::channel(100);
+
         let whip_whep_state = pipeline_ctx.whip_whep_state.clone();
-        WhipWhepState::register_input(video_tx, video_rx, audio_tx, audio_rx);
+
+        // TODO properly deal with reciver and sender in hashmap
+        // whip_whep_state.input_connections.lock().unwrap().insert(input_id, InputConnectionUtils{});
+
+        // WhipWhepState::register_input(video_tx, video_rx, audio_tx, audio_rx);
         let depayloader = Depayloader::new(&opts.stream)?;
 
-        let depayloader_receivers = Self::start_depayloader_thread(input_id, todo!(), depayloader);
+        let depayloader_receivers = Self::start_depayloader_thread(input_id, video_rx, depayloader);
 
         let video = match (depayloader_receivers.video, opts.stream.video) {
             (Some(chunk_receiver), Some(stream)) => Some(VideoInputReceiver::Encoded {
@@ -132,7 +136,7 @@ impl WhipReceiver {
 
     fn start_depayloader_thread(
         input_id: &InputId,
-        receiver: Receiver<bytes::Bytes>,
+        receiver: tokio::sync::mpsc::Receiver<Packet>,
         depayloader: Depayloader,
     ) -> DepayloaderThreadReceivers {
         let (video_sender, video_receiver) = depayloader
@@ -174,8 +178,8 @@ impl Drop for WhipReceiver {
     }
 }
 
-fn run_depayloader_thread(
-    receiver: Receiver<bytes::Bytes>,
+async fn run_depayloader_thread(
+    mut receiver: tokio::sync::mpsc::Receiver<Packet>,
     mut depayloader: Depayloader,
     video_sender: Option<Sender<PipelineEvent<EncodedChunk>>>,
     audio_sender: Option<Sender<PipelineEvent<EncodedChunk>>>,
@@ -202,78 +206,74 @@ fn run_depayloader_thread(
         }
     };
     loop {
-        let Ok(mut buffer) = receiver.recv() else {
+        let Some(packet) = receiver.recv().await else {
             debug!("Closing RTP depayloader thread.");
             break;
         };
 
-        match rtp::packet::Packet::unmarshal(&mut buffer.clone()) {
-            // https://datatracker.ietf.org/doc/html/rfc5761#section-4
-            //
-            // Given these constraints, it is RECOMMENDED to follow the guidelines
-            // in the RTP/AVP profile [7] for the choice of RTP payload type values,
-            // with the additional restriction that payload type values in the range
-            // 64-95 MUST NOT be used.
-            Ok(packet) if packet.header.payload_type < 64 || packet.header.payload_type > 95 => {
-                if packet.header.payload_type == 96 && video_ssrc.is_none() {
-                    video_ssrc = Some(packet.header.ssrc);
-                }
-                if packet.header.payload_type == 97 && audio_ssrc.is_none() {
-                    audio_ssrc = Some(packet.header.ssrc);
-                }
+        // match rtp::packet::Packet::unmarshal(&mut buffer.clone()) {
+        // https://datatracker.ietf.org/doc/html/rfc5761#section-4
+        //
+        // Given these constraints, it is RECOMMENDED to follow the guidelines
+        // in the RTP/AVP profile [7] for the choice of RTP payload type values,
+        // with the additional restriction that payload type values in the range
+        // 64-95 MUST NOT be used.
+        // Ok(packet) if packet.header.payload_type < 64 || packet.header.payload_type > 95 => {
+        if packet.header.payload_type == 96 && video_ssrc.is_none() {
+            video_ssrc = Some(packet.header.ssrc);
+        }
+        if packet.header.payload_type == 97 && audio_ssrc.is_none() {
+            audio_ssrc = Some(packet.header.ssrc);
+        }
 
-                match depayloader.depayload(packet) {
-                    Ok(chunks) => {
-                        for chunk in chunks {
-                            match &chunk.kind {
-                                EncodedChunkKind::Video(_) => {
-                                    video_sender.as_ref().map(|video_sender| {
-                                        video_sender.send(PipelineEvent::Data(chunk))
-                                    })
-                                }
-                                EncodedChunkKind::Audio(_) => {
-                                    audio_sender.as_ref().map(|audio_sender| {
-                                        audio_sender.send(PipelineEvent::Data(chunk))
-                                    })
-                                }
-                            };
-                        }
-                    }
-                    Err(err) => {
-                        warn!("RTP depayloading error: {}", err);
-                        continue;
-                    }
+        match depayloader.depayload(packet) {
+            Ok(chunks) => {
+                for chunk in chunks {
+                    match &chunk.kind {
+                        EncodedChunkKind::Video(_) => video_sender
+                            .as_ref()
+                            .map(|video_sender| video_sender.send(PipelineEvent::Data(chunk))),
+                        EncodedChunkKind::Audio(_) => audio_sender
+                            .as_ref()
+                            .map(|audio_sender| audio_sender.send(PipelineEvent::Data(chunk))),
+                    };
                 }
             }
-            Ok(_) | Err(_) => {
-                match rtcp::packet::unmarshal(&mut buffer) {
-                    Ok(rtcp_packets) => {
-                        for rtcp_packet in rtcp_packets {
-                            if let PacketType::Goodbye = rtcp_packet.header().packet_type {
-                                for ssrc in rtcp_packet.destination_ssrc() {
-                                    if Some(ssrc) == audio_ssrc {
-                                        maybe_send_audio_eos()
-                                    }
-                                    if Some(ssrc) == video_ssrc {
-                                        maybe_send_video_eos()
-                                    }
-                                }
-                            } else {
-                                debug!(
-                                    packet_type=?rtcp_packet.header().packet_type,
-                                    "Received RTCP packet"
-                                )
-                            }
-                        }
-                    }
-                    Err(err) => {
-                        warn!(%err, "Received an unexpected packet, which is not recognized either as RTP or RTCP. Dropping.");
-                    }
-                }
+            Err(err) => {
+                warn!("RTP depayloading error: {}", err);
                 continue;
             }
-        };
+        }
+        // }
+        // Ok(_) | Err(_) => {
+        //     match rtcp::packet::unmarshal(&mut buffer) {
+        //         Ok(rtcp_packets) => {
+        //             for rtcp_packet in rtcp_packets {
+        //                 if let PacketType::Goodbye = rtcp_packet.header().packet_type {
+        //                     for ssrc in rtcp_packet.destination_ssrc() {
+        //                         if Some(ssrc) == audio_ssrc {
+        //                             maybe_send_audio_eos()
+        //                         }
+        //                         if Some(ssrc) == video_ssrc {
+        //                             maybe_send_video_eos()
+        //                         }
+        //                     }
+        //                 } else {
+        //                     debug!(
+        //                         packet_type=?rtcp_packet.header().packet_type,
+        //                         "Received RTCP packet"
+        //                     )
+        //                 }
+        //             }
+        //         }
+        //         Err(err) => {
+        //             warn!(%err, "Received an unexpected packet, which is not recognized either as RTP or RTCP. Dropping.");
+        //         }
+        //     }
+        //     continue;
+        // }
     }
+    // }
     maybe_send_audio_eos();
     maybe_send_video_eos();
 }

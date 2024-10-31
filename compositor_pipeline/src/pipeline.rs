@@ -28,6 +28,7 @@ use output::RawDataOutputOptions;
 use tokio::runtime::Runtime;
 use tracing::{error, info, trace, warn};
 use types::RawDataSender;
+use whip_whep::start_whip_whep_server;
 use whip_whep::WhipWhepState;
 
 use crate::audio_mixer::AudioMixer;
@@ -186,6 +187,17 @@ impl Pipeline {
         std::fs::create_dir_all(&download_dir).map_err(InitPipelineError::CreateDownloadDir)?;
 
         let event_emitter = Arc::new(EventEmitter::new());
+        let ctx = PipelineCtx {
+            output_sample_rate: opts.output_sample_rate,
+            output_framerate: opts.queue_options.output_framerate,
+            download_dir: download_dir.into(),
+            event_emitter: event_emitter.clone(),
+            tokio_rt: Arc::new(Runtime::new().map_err(InitPipelineError::CreateTokioRuntime)?),
+            whip_whep_state: WhipWhepState::new(),
+            #[cfg(feature = "vk-video")]
+            vulkan_ctx: preinitialized_ctx.and_then(|ctx| ctx.vulkan_ctx),
+        };
+
         let pipeline = Pipeline {
             outputs: HashMap::new(),
             inputs: HashMap::new(),
@@ -193,17 +205,10 @@ impl Pipeline {
             renderer,
             audio_mixer: AudioMixer::new(opts.output_sample_rate),
             is_started: false,
-            ctx: PipelineCtx {
-                output_sample_rate: opts.output_sample_rate,
-                output_framerate: opts.queue_options.output_framerate,
-                download_dir: download_dir.into(),
-                event_emitter,
-                tokio_rt: Arc::new(Runtime::new().map_err(InitPipelineError::CreateTokioRuntime)?),
-                whip_whep_state: WhipWhepState::new(),
-                #[cfg(feature = "vk-video")]
-                vulkan_ctx: preinitialized_ctx.and_then(|ctx| ctx.vulkan_ctx),
-            },
+            ctx: ctx.clone(),
         };
+
+        // start_whip_whep_server(&ctx);
 
         Ok((pipeline, event_loop))
     }
@@ -423,6 +428,8 @@ impl Pipeline {
 
         let weak_pipeline = Arc::downgrade(pipeline);
         thread::spawn(move || run_audio_mixer_thread(weak_pipeline, audio_receiver));
+        let weak_pipeline = Arc::downgrade(pipeline);
+        thread::spawn(move || start_whip_whep_server(weak_pipeline));
     }
 
     pub fn inputs(&self) -> impl Iterator<Item = (&InputId, &PipelineInput)> {
