@@ -270,7 +270,7 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
             radius,
             0.0,
         );
-        mask_alpha = smoothstep(-0.5, 0.5 , -distance);
+        mask_alpha = mask_alpha * smoothstep(-0.5, 0.5 , -distance);
     }
 
     switch layout_info.layout_type {
@@ -295,12 +295,14 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
             if (border_width < 1.0) {
                 let content_alpha = smoothstep(-0.5, 0.5, edge_distance);
                 return vec4<f32>(sample.rgb, sample.a * content_alpha * mask_alpha);
+            } else if (mask_alpha < 0.01) {
+                return vec4<f32>(0, 0, 0, 0);
             } else {
                 if (edge_distance > border_width / 2.0) {
                     // border <-> content
                     let border_alpha = smoothstep(border_width - 0.5, border_width + 0.5, edge_distance);
-
-                    return mix(border_color, sample, border_alpha * mask_alpha);
+                    let border_or_content = mix(border_color, sample, border_alpha);
+                    return vec4<f32>(border_or_content.rgb, border_or_content.a * mask_alpha);
                 } else {
                     // border <-> outside
                     let content_alpha = smoothstep(-0.5, 0.5, edge_distance);
@@ -333,8 +335,8 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
                 if (edge_distance > border_width / 2.0) {
                     // border <-> content
                     let border_alpha = smoothstep(border_width, border_width + 1.0, edge_distance);
-
-                    return mix(border_color, color, border_alpha * mask_alpha);
+                    let border_or_content = mix(border_color, color, border_alpha);
+                    return vec4<f32>(border_or_content.rgb, border_or_content.a * mask_alpha);
                 } else {
                     // border <-> outside
                     let content_alpha = smoothstep(-0.5, 0.5, edge_distance);

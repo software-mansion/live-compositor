@@ -1,11 +1,13 @@
 use std::time::Duration;
 
+use log::info;
+
 use crate::{
     scene::{
         layout::StatefulLayoutComponent, BorderRadius, HorizontalAlign, RGBAColor, RescaleMode,
         Size, StatefulComponent, VerticalAlign,
     },
-    transformations::layout::{Crop, LayoutContent, Mask, NestedLayout},
+    transformations::layout::{LayoutContent, Mask, NestedLayout},
 };
 
 use super::RescalerComponentParam;
@@ -54,12 +56,14 @@ impl RescalerComponentParam {
         pts: Duration,
         scale: f32,
     ) -> NestedLayout {
+        let child_width = child.width(pts);
+        let child_height = child.height(pts);
         let (content, children, child_nodes_count) = match child {
             StatefulComponent::Layout(layout_component) => {
                 let children_layout = layout_component.layout(
                     Size {
-                        width: f32::max(max_size.width / scale, 0.0),
-                        height: f32::max(max_size.height / scale, 0.0),
+                        width: child_width.unwrap_or(max_size.width / scale),
+                        height: child_height.unwrap_or(max_size.height / scale),
                     },
                     pts,
                 );
@@ -72,6 +76,7 @@ impl RescalerComponentParam {
             }
             ref _non_layout => (StatefulLayoutComponent::layout_content(child, 0), vec![], 1),
         };
+        info!("Rescaler child {content:#?} {children:#?}");
 
         let top = match self.vertical_align {
             VerticalAlign::Top => 0.0,
@@ -104,33 +109,6 @@ impl RescalerComponentParam {
             .height(pts)
             .map(|child_height| child_height * scale)
             .unwrap_or(max_size.height);
-        let non_zero_border_width_radius = self.border_width > 0.0
-            || self.border_radius.top_left > 0.0
-            || self.border_radius.top_right > 0.0
-            || self.border_radius.bottom_left > 0.0
-            || self.border_radius.bottom_right > 0.0;
-        let (crop, mask) = if non_zero_border_width_radius {
-            (
-                None,
-                Some(Mask {
-                    radius: self.border_radius - self.border_width,
-                    top: self.border_width,
-                    left: self.border_width,
-                    width: max_size.width,
-                    height: max_size.height,
-                }),
-            )
-        } else {
-            (
-                Some(Crop {
-                    top: 0.0,
-                    left: 0.0,
-                    width: max_size.width,
-                    height: max_size.height,
-                }),
-                None,
-            )
-        };
 
         NestedLayout {
             top: 0.0,
@@ -140,8 +118,14 @@ impl RescalerComponentParam {
             rotation_degrees: 0.0,
             scale_x: 1.0,
             scale_y: 1.0,
-            crop,
-            mask,
+            crop: None,
+            mask: Some(Mask {
+                radius: self.border_radius - self.border_width,
+                top: self.border_width,
+                left: self.border_width,
+                width: max_size.width,
+                height: max_size.height,
+            }),
             content: LayoutContent::None,
             children: vec![NestedLayout {
                 top: top + self.border_width,

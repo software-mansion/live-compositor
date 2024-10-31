@@ -5,7 +5,7 @@ use crate::{
         layout::StatefulLayoutComponent, BorderRadius, Overflow, Position, RGBAColor, Size,
         StatefulComponent, ViewChildrenDirection,
     },
-    transformations::layout::{Crop, LayoutContent, Mask, NestedLayout},
+    transformations::layout::{LayoutContent, Mask, NestedLayout},
 };
 
 use super::ViewComponentParam;
@@ -38,37 +38,17 @@ impl ViewComponentParam {
         let static_child_size = self.static_child_size(content_size, children, pts);
         let (scale, crop, mask) = match self.overflow {
             Overflow::Visible => (1.0, None, None),
-            Overflow::Hidden => {
-                let non_zero_border_width_radius = self.border_width > 0.0
-                    || self.border_radius.top_left > 0.0
-                    || self.border_radius.top_right > 0.0
-                    || self.border_radius.bottom_left > 0.0
-                    || self.border_radius.bottom_right > 0.0;
-                if non_zero_border_width_radius {
-                    (
-                        1.0,
-                        None,
-                        Some(Mask {
-                            radius: self.border_radius - self.border_width,
-                            top: self.border_width,
-                            left: self.border_width,
-                            width: content_size.width,
-                            height: content_size.height,
-                        }),
-                    )
-                } else {
-                    (
-                        1.0,
-                        Some(Crop {
-                            top: 0.0,
-                            left: 0.0,
-                            width: size.width,
-                            height: size.height,
-                        }),
-                        None,
-                    )
-                }
-            }
+            Overflow::Hidden => (
+                1.0,
+                None,
+                Some(Mask {
+                    radius: self.border_radius - self.border_width,
+                    top: self.border_width,
+                    left: self.border_width,
+                    width: content_size.width,
+                    height: content_size.height,
+                }),
+            ),
             Overflow::Fit => (
                 self.scale_factor_for_overflow_fit(content_size, children, pts),
                 None,

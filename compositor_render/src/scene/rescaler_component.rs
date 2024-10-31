@@ -58,7 +58,8 @@ impl StatefulRescalerComponent {
     }
 
     pub(super) fn position(&self, pts: Duration) -> Position {
-        self.transition_snapshot(pts).position
+        let rescaler = self.transition_snapshot(pts);
+        rescaler.position.with_border(rescaler.border_width)
     }
 
     pub(super) fn component_id(&self) -> Option<&ComponentId> {

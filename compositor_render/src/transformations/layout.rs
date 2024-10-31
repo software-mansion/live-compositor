@@ -16,7 +16,7 @@ use self::shader::LayoutShader;
 
 pub(crate) use layout_renderer::LayoutRenderer;
 
-use log::{error, info};
+use log::error;
 
 pub(crate) trait LayoutProvider: Send {
     fn layouts(&mut self, pts: Duration, inputs: &[Option<Resolution>]) -> NestedLayout;
@@ -101,7 +101,7 @@ pub struct NestedLayout {
     // top-left corner, includes border of current element
     // (0, 0) represents top-left corner of a parent (inner corner if parent has border too)
     //
-    // e.g. if parent layout and current layout have border 10 and current layout is at (0, 0) then 
+    // e.g. if parent layout and current layout have border 10 and current layout is at (0, 0) then
     // their top  and left edges will be next to each other without overlapping
     pub top: f32,
     pub left: f32,
@@ -170,10 +170,7 @@ impl LayoutNode {
             .collect();
         let output_resolution = self.layout_provider.resolution(pts);
         let layouts = self.layout_provider.layouts(pts, &input_resolutions);
-        info!("Layout {layouts:#?}");
-
         let layouts = layouts.flatten(&input_resolutions, output_resolution);
-        info!("Flatten {layouts:#?}");
 
         let textures: Vec<Option<&NodeTexture>> = layouts
             .iter()

@@ -1,4 +1,4 @@
-use std::iter;
+use std::{iter, mem};
 
 use crate::{scene::RGBAColor, Resolution};
 
@@ -83,8 +83,18 @@ impl NestedLayout {
 
     // Final pass on each render layout, it applies following modifications:
     // - If border_width is between 0 and 1 set it to 1.
-    //
+    // - Remove masks that don't do anything
     fn fix_final_render_layout(mut layout: RenderLayout) -> RenderLayout {
+        fn filter_mask(layout: &RenderLayout, mask: Mask) -> Option<Mask> {
+            let should_skip = mask.top <= layout.top
+                && mask.left <= layout.left
+                && mask.left + mask.width >= layout.left + layout.width
+                && mask.top + mask.height >= layout.top + layout.height;
+            match should_skip {
+                true => None,
+                false => Some(mask),
+            }
+        }
         match &mut layout.content {
             RenderLayoutContent::Color { border_width, .. }
             | RenderLayoutContent::ChildNode { border_width, .. } => {
@@ -94,6 +104,10 @@ impl NestedLayout {
             }
             _ => (),
         };
+        layout.masks = mem::take(&mut layout.masks)
+            .into_iter()
+            .filter_map(|mask| filter_mask(&layout, mask))
+            .collect();
         layout
     }
 
@@ -147,6 +161,10 @@ impl NestedLayout {
 
     // parent_masks - in self coordinates
     fn flatten_child(&self, child: RenderLayout) -> RenderLayout {
+        // scale factor used if we need to scale something that can't be
+        // scaled separately for horizontal and vertical direction.
+        let unified_scale = f32::min(self.scale_x, self.scale_y);
+
         match &self.crop {
             None => RenderLayout {
                 top: self.top + (child.top * self.scale_y),
@@ -154,10 +172,37 @@ impl NestedLayout {
                 width: child.width * self.scale_x,
                 height: child.height * self.scale_y,
                 rotation_degrees: child.rotation_degrees + self.rotation_degrees, // TODO: not exactly correct
-                content: child.content.clone(),
+                content: match child.content {
+                    RenderLayoutContent::Color {
+                        color,
+                        border_color,
+                        border_width,
+                    } => RenderLayoutContent::Color {
+                        color,
+                        border_color,
+                        border_width: border_width * unified_scale,
+                    },
+                    RenderLayoutContent::ChildNode {
+                        index,
+                        border_color,
+                        border_width,
+                        crop,
+                    } => RenderLayoutContent::ChildNode {
+                        index,
+                        border_color,
+                        border_width: border_width * unified_scale,
+                        crop,
+                    },
+                    RenderLayoutContent::BoxShadow { color, blur_radius } => {
+                        RenderLayoutContent::BoxShadow {
+                            color,
+                            blur_radius: blur_radius * unified_scale,
+                        }
+                    }
+                },
                 // TODO: This will not work correctly for layouts that are not proportionally
                 // scaled
-                border_radius: child.border_radius * f32::min(self.scale_x, self.scale_y),
+                border_radius: child.border_radius * unified_scale,
                 masks: self.parent_parent_masks(&child.masks),
             },
             Some(crop) => {
@@ -189,10 +234,9 @@ impl NestedLayout {
                             content: RenderLayoutContent::Color {
                                 color,
                                 border_color,
-                                border_width: border_width * f32::min(self.scale_x, self.scale_y),
+                                border_width: border_width * unified_scale,
                             },
-                            border_radius: child.border_radius
-                                * f32::min(self.scale_x, self.scale_y),
+                            border_radius: child.border_radius * unified_scale,
                             masks: self.parent_parent_masks(&child.masks),
                         }
                     }
@@ -232,8 +276,7 @@ impl NestedLayout {
                                 border_color,
                                 border_width,
                             },
-                            border_radius: child.border_radius
-                                * f32::min(self.scale_x, self.scale_y),
+                            border_radius: child.border_radius * unified_scale,
                             masks: self.parent_parent_masks(&child.masks),
                         }
                     }
@@ -246,10 +289,9 @@ impl NestedLayout {
                             rotation_degrees: child.rotation_degrees + self.rotation_degrees, // TODO: not exactly correct
                             content: RenderLayoutContent::BoxShadow {
                                 color,
-                                blur_radius: blur_radius * f32::min(self.scale_x, self.scale_y),
+                                blur_radius: blur_radius * unified_scale,
                             },
-                            border_radius: child.border_radius
-                                * f32::min(self.scale_x, self.scale_y),
+                            border_radius: child.border_radius * unified_scale,
                             masks: self.parent_parent_masks(&child.masks),
                         }
                     }
@@ -300,8 +342,8 @@ impl NestedLayout {
     /// calculate RenderLayout for one of self box shadows
     fn box_shadow_layout(&self, box_shadow: &BoxShadow, parent_masks: &[Mask]) -> RenderLayout {
         RenderLayout {
-            top: self.top + box_shadow.offset_y - 1.0 * box_shadow.blur_radius,
-            left: self.left + box_shadow.offset_x - 1.0 * box_shadow.blur_radius,
+            top: self.top + box_shadow.offset_y - 0.5 * box_shadow.blur_radius,
+            left: self.left + box_shadow.offset_x - 0.5 * box_shadow.blur_radius,
             width: self.width + box_shadow.blur_radius,
             height: self.height + box_shadow.blur_radius,
             rotation_degrees: self.rotation_degrees, // TODO: this is incorrect
@@ -321,8 +363,8 @@ impl NestedLayout {
             .iter()
             .map(|mask| Mask {
                 radius: mask.radius / f32::min(self.scale_x, self.scale_y),
-                top: (mask.top / self.scale_y) - self.top,
-                left: (mask.left / self.scale_x) - self.left,
+                top: (mask.top - self.top) / self.scale_y,
+                left: (mask.left - self.left) / self.scale_x,
                 width: mask.width / self.scale_x,
                 height: mask.height / self.scale_y,
             })
