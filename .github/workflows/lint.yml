@@ -71,5 +71,5 @@ jobs:
             - name: 🖋️ Run website lint + typecheck + build
               working-directory: ./docs
               run: |
-                pnpm install --frozen-lockfile
-                pnpm run typecheck && pnpm run lint --max-warnings=0 && pnpm run build
+                npm ci
+                npm run typecheck && npm run lint --max-warnings=0 && npm run build
