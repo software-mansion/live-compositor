@@ -5,7 +5,12 @@ use init_peer_connection::init_pc;
 use packet_stream::PacketStream;
 use payloader::{Payload, Payloader, PayloadingError};
 use reqwest::{Method, StatusCode, Url};
-use std::sync::{atomic::AtomicBool, Arc};
+use std::{
+    sync::{atomic::AtomicBool, Arc},
+    thread,
+    time::{Duration, SystemTime},
+};
+use tokio::sync::oneshot;
 use tracing::{debug, error, span, Instrument, Level};
 use url::ParseError;
 use webrtc::{
@@ -88,6 +93,8 @@ pub enum WhipError {
     PayloadingError(#[from] PayloadingError),
 }
 
+const WHIP_INIT_TIMEOUT: Duration = Duration::from_secs(60);
+
 impl WhipSender {
     pub fn new(
         output_id: &OutputId,
@@ -111,6 +118,9 @@ impl WhipSender {
         let tokio_rt_clone = tokio_rt.clone();
         let output_id_clone = output_id.clone();
 
+        let (init_confirmation_sender, mut init_confirmation_receiver) =
+            oneshot::channel::<Result<(), WhipError>>();
+
         tokio_rt.spawn(
             async move {
                 run_whip_sender_thread(
@@ -120,6 +130,7 @@ impl WhipSender {
                     packet_stream,
                     request_keyframe_sender,
                     tokio_rt_clone,
+                    init_confirmation_sender,
                 )
                 .await;
                 event_emitter.emit(Event::OutputDone(output_id_clone));
@@ -131,6 +142,27 @@ impl WhipSender {
                 output_id = output_id.to_string()
             )),
         );
+
+        let start_time = SystemTime::now();
+        loop {
+            thread::sleep(Duration::from_secs(5));
+            let elapsed_time = SystemTime::now().duration_since(start_time).unwrap();
+            if elapsed_time > WHIP_INIT_TIMEOUT {
+                return Err(OutputInitError::WhipInitTimeout);
+            }
+            match init_confirmation_receiver.try_recv() {
+                Ok(result) => match result {
+                    Ok(_) => break,
+                    Err(err) => return Err(OutputInitError::WhipInitError(err.into())),
+                },
+                Err(err) => match err {
+                    oneshot::error::TryRecvError::Closed => {
+                        return Err(OutputInitError::UnknownWhipError)
+                    }
+                    oneshot::error::TryRecvError::Empty => {}
+                },
+            };
+        }
 
         Ok(Self {
             connection_options: options,
@@ -153,6 +185,7 @@ async fn run_whip_sender_thread(
     packet_stream: PacketStream,
     request_keyframe_sender: Option<Sender<()>>,
     tokio_rt: Arc<tokio::runtime::Runtime>,
+    init_confirmation_sender: oneshot::Sender<Result<(), WhipError>>,
 ) {
     let client = reqwest::Client::new();
     let peer_connection: Arc<RTCPeerConnection>;
@@ -165,7 +198,7 @@ async fn run_whip_sender_thread(
             audio_track = audio;
         }
         Err(err) => {
-            error!("Error occured while initializing peer connection: {err}");
+            init_confirmation_sender.send(Err(err)).unwrap();
             return;
         }
     }
@@ -182,10 +215,11 @@ async fn run_whip_sender_thread(
     {
         Ok(val) => val,
         Err(err) => {
-            error!("{err}");
+            init_confirmation_sender.send(Err(err)).unwrap();
             return;
         }
     };
+    init_confirmation_sender.send(Ok(())).unwrap();
 
     for chunk in packet_stream {
         if should_close.load(std::sync::atomic::Ordering::Relaxed) {
@@ -223,5 +257,4 @@ async fn run_whip_sender_thread(
         }
     }
     let _ = client.delete(whip_session_url).send().await;
-    // });
 }

@@ -127,11 +127,8 @@ fn main() {
 
     Pipeline::register_input(&pipeline, input_id.clone(), input_options).unwrap();
 
-    let RawDataReceiver { video, audio } = pipeline
-        .lock()
-        .unwrap()
-        .register_raw_data_output(output_id.clone(), output_options)
-        .unwrap();
+    let RawDataReceiver { video, audio } =
+        Pipeline::register_raw_data_output(&pipeline, output_id.clone(), output_options).unwrap();
 
     Pipeline::start(&pipeline);
 

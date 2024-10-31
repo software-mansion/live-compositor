@@ -112,11 +112,7 @@ fn main() {
     )
     .unwrap();
 
-    pipeline
-        .lock()
-        .unwrap()
-        .register_output(output_id.clone(), output_options)
-        .unwrap();
+    Pipeline::register_output(&pipeline, output_id.clone(), output_options).unwrap();
 
     let frames = generate_frames(&wgpu_device, &wgpu_queue);
 

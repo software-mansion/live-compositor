@@ -171,11 +171,7 @@ fn client_code() -> Result<()> {
         audio: None,
     };
 
-    pipeline
-        .lock()
-        .unwrap()
-        .register_output(OutputId("output_1".into()), output_options)
-        .unwrap();
+    Pipeline::register_output(&pipeline, OutputId("output_1".into()), output_options).unwrap();
 
     Pipeline::start(&pipeline);
 

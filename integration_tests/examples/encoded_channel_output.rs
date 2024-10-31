@@ -109,12 +109,9 @@ fn main() {
 
     Pipeline::register_input(&state.pipeline, input_id.clone(), input_options).unwrap();
 
-    let output_receiver = state
-        .pipeline
-        .lock()
-        .unwrap()
-        .register_encoded_data_output(output_id.clone(), output_options)
-        .unwrap();
+    let output_receiver =
+        Pipeline::register_encoded_data_output(&state.pipeline, output_id.clone(), output_options)
+            .unwrap();
 
     Pipeline::start(&state.pipeline);
 

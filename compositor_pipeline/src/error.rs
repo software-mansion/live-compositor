@@ -6,7 +6,7 @@ use compositor_render::{
     InputId, OutputId,
 };
 
-use crate::pipeline::{decoder::AacDecoderError, VideoCodec};
+use crate::pipeline::{decoder::AacDecoderError, output::whip, VideoCodec};
 use fdk_aac_sys as fdk;
 
 #[derive(Debug, thiserror::Error)]
@@ -93,6 +93,15 @@ pub enum OutputInitError {
 
     #[error("Failed to register output. FFmpeg error: {0}.")]
     FfmpegMp4Error(ffmpeg_next::Error),
+
+    #[error("Unkown Whip output error, channel unexpectedly closed")]
+    UnknownWhipError,
+
+    #[error("Whip init timeout exceeded")]
+    WhipInitTimeout,
+
+    #[error("Failed to init whip output: {0}")]
+    WhipInitError(Box<whip::WhipError>),
 }
 
 #[derive(Debug, thiserror::Error)]

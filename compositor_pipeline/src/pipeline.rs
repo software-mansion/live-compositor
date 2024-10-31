@@ -25,6 +25,7 @@ use input::RawDataInputOptions;
 use output::EncodedDataOutputOptions;
 use output::OutputOptions;
 use output::RawDataOutputOptions;
+use pipeline_output::register_pipeline_output;
 use tokio::runtime::Runtime;
 use tracing::{error, info, trace, warn};
 use types::RawDataSender;
@@ -254,11 +255,12 @@ impl Pipeline {
     }
 
     pub fn register_output(
-        &mut self,
+        pipeline: &Arc<Mutex<Self>>,
         output_id: OutputId,
         register_options: RegisterOutputOptions<OutputOptions>,
     ) -> Result<Option<Port>, RegisterOutputError> {
-        self.register_pipeline_output(
+        register_pipeline_output(
+            pipeline,
             output_id,
             &register_options.output_options,
             register_options.video,
@@ -267,11 +269,12 @@ impl Pipeline {
     }
 
     pub fn register_encoded_data_output(
-        &mut self,
+        pipeline: &Arc<Mutex<Self>>,
         output_id: OutputId,
         register_options: RegisterOutputOptions<EncodedDataOutputOptions>,
     ) -> Result<Receiver<EncoderOutputEvent>, RegisterOutputError> {
-        self.register_pipeline_output(
+        register_pipeline_output(
+            pipeline,
             output_id,
             &register_options.output_options,
             register_options.video,
@@ -280,11 +283,12 @@ impl Pipeline {
     }
 
     pub fn register_raw_data_output(
-        &mut self,
+        pipeline: &Arc<Mutex<Self>>,
         output_id: OutputId,
         register_options: RegisterOutputOptions<RawDataOutputOptions>,
     ) -> Result<RawDataReceiver, RegisterOutputError> {
-        self.register_pipeline_output(
+        register_pipeline_output(
+            pipeline,
             output_id,
             &register_options.output_options,
             register_options.video,
