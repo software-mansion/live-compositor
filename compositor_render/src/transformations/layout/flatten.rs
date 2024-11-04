@@ -86,10 +86,14 @@ impl NestedLayout {
     // - Remove masks that don't do anything
     fn fix_final_render_layout(mut layout: RenderLayout) -> RenderLayout {
         fn filter_mask(layout: &RenderLayout, mask: Mask) -> Option<Mask> {
-            let should_skip = mask.top <= layout.top
-                && mask.left <= layout.left
-                && mask.left + mask.width >= layout.left + layout.width
-                && mask.top + mask.height >= layout.top + layout.height;
+            let max_top_border = f32::max(mask.radius.top_left, mask.radius.top_right);
+            let max_bottom_border = f32::max(mask.radius.bottom_left, mask.radius.bottom_right);
+            let max_left_border = f32::max(mask.radius.top_left, mask.radius.bottom_left);
+            let max_right_border = f32::max(mask.radius.top_right, mask.radius.bottom_right);
+            let should_skip = mask.top + max_top_border <= layout.top
+                && mask.left + max_left_border <= layout.left
+                && mask.left + mask.width - max_right_border >= layout.left + layout.width
+                && mask.top + mask.height - max_bottom_border >= layout.top + layout.height;
             match should_skip {
                 true => None,
                 false => Some(mask),

@@ -12,8 +12,8 @@ use integration_tests::{
 };
 
 const VIDEO_RESOLUTION: Resolution = Resolution {
-    width: 640,
-    height: 360,
+    width: 1280,
+    height: 720,
 };
 
 const IP: &str = "127.0.0.1";
@@ -51,33 +51,26 @@ fn client_code() -> Result<()> {
         "background_color_rgba": "#42daf5ff",
         "children": [
             {
-                "type": "view",
+                "type": "rescaler",
                 "id": "resized",
-                "width": VIDEO_RESOLUTION.width - 160,
-                "height": VIDEO_RESOLUTION.height - 90,
-                "top": 20.5,
-                "right": 20.5,
-                "border_width": 5,
-                "border_radius": 30,
-                "background_color_rgba": "#0000FFFF",
+                "width": VIDEO_RESOLUTION.width,
+                "height": VIDEO_RESOLUTION.height,
+                "top": 0.0,
+                "right": 0.0,
+                "mode": "fill",
                 "border_color_rgba": "#FFFFFFFF",
-                "box_shadows": [
+                "box_shadow": [
                     {
-                        "offset_y": 60,
-                        "offset_x": -60,
-                        "blur_radius": 60,
-                        "color_rgba": "#FFFF00FF",
+                        "offset_y": 40,
+                        "offset_x": 0,
+                        "blur_radius": 40,
+                        "color_rgba": "#00000088",
                     }
                 ],
-                "children": [
-                    {
-                        "type": "rescaler",
-                        "child": {
-                            "type": "input_stream",
-                            "input_id": "input_1"
-                        }
-                    }
-                ]
+                "child": {
+                    "type": "input_stream",
+                    "input_id": "input_1"
+                }
             }
         ]
     });
@@ -87,36 +80,35 @@ fn client_code() -> Result<()> {
         "background_color_rgba": "#42daf5ff",
         "children": [
             {
-                "type": "view",
+                "type": "rescaler",
                 "id": "resized",
-                "width": VIDEO_RESOLUTION.width - 160*2,
-                "height": VIDEO_RESOLUTION.height - 90*2,
-                "top": 200.5,
-                "right": 200.5,
+                "width": 300,
+                "height": 300,
+                "top": (VIDEO_RESOLUTION.height as f32 - 330.0) / 2.0 ,
+                "right": (VIDEO_RESOLUTION.width as f32 - 330.0) / 2.0,
+                "mode": "fill",
                 "border_radius": 50,
-                "border_width": 5,
-                "border_color_rgba": "#FFFF00FF",
-                "background_color_rgba": "#0000FFFF",
-                "box_shadows": [
+                "border_width": 15,
+                "border_color_rgba": "#FFFFFFFF",
+                "box_shadow": [
                     {
-                        "offset_y": 60,
-                        "offset_x": -60,
+                        "offset_y": 40,
+                        "offset_x": 0,
                         "blur_radius": 40,
-                        "color_rgba": "#FFFF00FF",
+                        "color_rgba": "#00000088",
                     }
                 ],
                 "transition": {
-                    "duration_ms": 10000
-                },
-                "children": [
-                    {
-                        "type": "rescaler",
-                        "child": {
-                            "type": "input_stream",
-                            "input_id": "input_1"
-                        }
+                    "duration_ms": 1500,
+                    "easing_function": {
+                        "function_name": "cubic_bezier",
+                        "points": [0.33, 1, 0.68, 1]
                     }
-                ]
+                },
+                "child": {
+                    "type": "input_stream",
+                    "input_id": "input_1"
+                }
             }
         ]
     });
@@ -124,8 +116,6 @@ fn client_code() -> Result<()> {
     examples::post(
         "output/output_1/register",
         &json!({
-            //"type": "mp4",
-            //"path": "smooth2.mp4",
             "type": "rtp_stream",
             "ip": IP,
             "port": OUTPUT_PORT,
@@ -159,9 +149,6 @@ fn client_code() -> Result<()> {
             }
         }),
     )?;
-
-    //   sleep(Duration::from_secs(12));
-    //  examples::post("output/output_1/unregister", &json!({}))?;
 
     Ok(())
 }

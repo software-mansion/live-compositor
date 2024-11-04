@@ -1,7 +1,5 @@
 use std::time::Duration;
 
-use log::info;
-
 use crate::{
     scene::{
         layout::StatefulLayoutComponent, BorderRadius, HorizontalAlign, RGBAColor, RescaleMode,
@@ -76,7 +74,6 @@ impl RescalerComponentParam {
             }
             ref _non_layout => (StatefulLayoutComponent::layout_content(child, 0), vec![], 1),
         };
-        info!("Rescaler child {content:#?} {children:#?}");
 
         let top = match self.vertical_align {
             VerticalAlign::Top => 0.0,
@@ -130,8 +127,8 @@ impl RescalerComponentParam {
             children: vec![NestedLayout {
                 top: top + self.border_width,
                 left: left + self.border_width,
-                width: width,
-                height: height,
+                width,
+                height,
                 rotation_degrees: 0.0,
                 scale_x: scale,
                 scale_y: scale,

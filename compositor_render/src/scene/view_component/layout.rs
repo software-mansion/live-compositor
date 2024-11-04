@@ -22,6 +22,9 @@ struct StaticChildLayoutOpts {
     /// For direction=column defines height of a static component
     static_child_size: f32,
     parent_size: Size,
+    /// border width before rescaling, it is used to calculate top/left offset correctly
+    /// when `overflow: fit` is set
+    parent_border_width: f32,
 }
 
 impl ViewComponentParam {
@@ -52,13 +55,19 @@ impl ViewComponentParam {
             Overflow::Fit => (
                 self.scale_factor_for_overflow_fit(content_size, children, pts),
                 None,
-                None,
+                Some(Mask {
+                    radius: self.border_radius - self.border_width,
+                    top: self.border_width,
+                    left: self.border_width,
+                    width: content_size.width,
+                    height: content_size.height,
+                }),
             ),
         };
 
         // offset along x or y direction (depends on self.direction) where next
         // child component should be placed
-        let mut static_offset = self.border_width;
+        let mut static_offset = self.border_width / scale;
 
         let children: Vec<_> = children
             .iter_mut()
@@ -80,6 +89,7 @@ impl ViewComponentParam {
                                 static_offset,
                                 static_child_size,
                                 parent_size: content_size,
+                                parent_border_width: self.border_width / scale,
                             },
                             pts,
                         );
@@ -126,7 +136,7 @@ impl ViewComponentParam {
             ViewChildrenDirection::Row => {
                 let width = opts.width.unwrap_or(opts.static_child_size);
                 let height = opts.height.unwrap_or(opts.parent_size.height);
-                let top = self.border_width;
+                let top = opts.parent_border_width;
                 let left = static_offset;
                 static_offset += width;
                 (top, left, width, height)
@@ -135,7 +145,7 @@ impl ViewComponentParam {
                 let height = opts.height.unwrap_or(opts.static_child_size);
                 let width = opts.width.unwrap_or(opts.parent_size.width);
                 let top = static_offset;
-                let left = self.border_width;
+                let left = opts.parent_border_width;
                 static_offset += height;
                 (top, left, width, height)
             }

@@ -25,10 +25,7 @@ use compositor_pipeline::{
 use compositor_render::{
     create_wgpu_ctx,
     error::ErrorStack,
-    scene::{
-        AbsolutePosition, BorderRadius, BoxShadow, Component, HorizontalPosition, Overflow,
-        Position, RGBAColor, VerticalPosition, ViewChildrenDirection, ViewComponent,
-    },
+    scene::{Component, InputStreamComponent},
     Frame, FrameData, InputId, OutputId, Resolution,
 };
 use crossbeam_channel::bounded;
@@ -71,8 +68,8 @@ fn main() {
         download_root: config.download_root,
         output_sample_rate: config.output_sample_rate,
         wgpu_features: config.required_wgpu_features,
-        wgpu_ctx: Some((wgpu_device.clone(), wgpu_queue.clone())),
         load_system_fonts: Some(true),
+        wgpu_ctx: Some((wgpu_device.clone(), wgpu_queue.clone())),
     })
     .unwrap_or_else(|err| {
         panic!(
@@ -90,51 +87,16 @@ fn main() {
         output_options: RawDataOutputOptions {
             video: Some(RawVideoOptions {
                 resolution: Resolution {
-                    width: 640,
-                    height: 360,
+                    width: 1280,
+                    height: 720,
                 },
             }),
             audio: Some(RawAudioOptions),
         },
         video: Some(compositor_pipeline::pipeline::OutputVideoOptions {
-            initial: Component::View(ViewComponent {
+            initial: Component::InputStream(InputStreamComponent {
                 id: None,
-                children: vec![Component::View(ViewComponent {
-                    id: None,
-                    children: vec![],
-                    direction: ViewChildrenDirection::Row,
-                    position: Position::Absolute(AbsolutePosition {
-                        width: Some(300.0),
-                        height: Some(200.0),
-                        position_horizontal: HorizontalPosition::LeftOffset(20.0),
-                        position_vertical: VerticalPosition::TopOffset(20.0),
-                        rotation_degrees: 0.0,
-                    }),
-                    transition: None,
-                    overflow: Overflow::Hidden,
-                    background_color: RGBAColor(255, 0, 0, 255),
-                    border_radius: BorderRadius::new_with_radius(70.0),
-                    border_width: 50.0,
-                    border_color: RGBAColor(0, 255, 0, 255),
-                    box_shadow: vec![BoxShadow {
-                        offset_x: 60.0,
-                        offset_y: 60.0,
-                        blur_radius: 60.0,
-                        color: RGBAColor(0, 255, 0, 255),
-                    }],
-                })],
-                direction: ViewChildrenDirection::Row,
-                position: Position::Static {
-                    width: None,
-                    height: None,
-                },
-                transition: None,
-                overflow: Overflow::Hidden,
-                background_color: RGBAColor(0, 255, 255, 255),
-                border_radius: BorderRadius::ZERO,
-                border_width: 0.0,
-                border_color: RGBAColor(0, 0, 0, 0),
-                box_shadow: vec![],
+                input_id: input_id.clone(),
             }),
             end_condition: PipelineOutputEndCondition::Never,
         }),
@@ -181,7 +143,7 @@ fn main() {
                 if [0, 200, 400, 600, 800, 1000].contains(&index) {
                     write_frame(index, frame, &wgpu_device, &wgpu_queue);
                 }
-                if index > 1 {
+                if index > 1000 {
                     send_done.send(()).unwrap();
                     return;
                 }

@@ -1721,6 +1721,16 @@ fn view_snapshot_tests() -> Vec<TestCase> {
             ..Default::default()
         },
         TestCase {
+            name: "view/border_radius_box_shadow_overflow_fit",
+            only: true,
+            scene_updates: Updates::Scene(
+                    include_str!("../../snapshot_tests/view/border_radius_box_shadow_overflow_fit.scene.json"),
+                    DEFAULT_RESOLUTION,
+            ),
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
+        TestCase {
             name: "view/border_radius_box_shadow_rescaler_input_stream",
             scene_updates: Updates::Scene(
                     include_str!("../../snapshot_tests/view/border_radius_box_shadow_rescaler_input_stream.scene.json"),
