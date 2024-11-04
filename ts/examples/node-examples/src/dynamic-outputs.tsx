@@ -2,7 +2,7 @@ import LiveCompositor from '@live-compositor/node';
 import { Text, InputStream, Tiles, Rescaler, View, useInputStreams } from 'live-compositor';
 import { downloadAllAssets, gstReceiveTcpStream, sleep } from './utils';
 import path from 'path';
-import fs from 'fs-extra';
+import { mkdirp } from 'fs-extra';
 
 function ExampleApp() {
   const inputs = useInputStreams();
@@ -31,7 +31,7 @@ function InputTile({ inputId }: { inputId: string }) {
 }
 
 async function run() {
-  await fs.mkdirp(path.join(__dirname, '../.workingdir'));
+  await mkdirp(path.join(__dirname, '../.workingdir'));
   await downloadAllAssets();
   const compositor = new LiveCompositor();
   await compositor.init();

@@ -4,8 +4,8 @@ import Counter from './examples/Counter';
 import MP4Player from './examples/MP4Player';
 
 const EXAMPLES = {
-  'counter': <Counter />,
-  'mp4': <MP4Player />
+  counter: <Counter />,
+  mp4: <MP4Player />,
 };
 
 function App() {
@@ -18,12 +18,9 @@ function App() {
         <button onClick={() => setCurrentExample('counter')}>Counter</button>
         <button onClick={() => setCurrentExample('mp4')}>MP4</button>
       </div>
-      <div className="card">
-        {EXAMPLES[currentExample]}
-      </div>
+      <div className="card">{EXAMPLES[currentExample]}</div>
     </>
   );
 }
-
 
 export default App;

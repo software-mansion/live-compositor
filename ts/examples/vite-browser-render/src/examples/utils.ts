@@ -1,5 +1,5 @@
-import { loadWasmModule, Renderer } from "@live-compositor/browser-render";
-import { useEffect, useState } from "react";
+import { loadWasmModule, Renderer } from '@live-compositor/browser-render';
+import { useEffect, useState } from 'react';
 
 export function useRenderer(): Renderer | null {
   const [renderer, setRenderer] = useState<Renderer | null>(null);

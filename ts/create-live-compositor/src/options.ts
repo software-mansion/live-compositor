@@ -1,6 +1,7 @@
-import { Choice, confirmPrompt, selectPrompt, textPrompt } from './utils/prompts';
+import type { Choice } from './utils/prompts';
+import { confirmPrompt, selectPrompt, textPrompt } from './utils/prompts';
 import path from 'path';
-import { PackageManager } from './utils/packageManager';
+import type { PackageManager } from './utils/packageManager';
 import { spawn } from './utils/spawn';
 import chalk from 'chalk';
 
@@ -79,7 +80,7 @@ export async function resolveBrowserOptions(): Promise<BrowserOptions> {
 export async function resolveNodeOptions(): Promise<NodeOptions> {
   const templateName = await selectPrompt('Select project template: ', [
     { title: 'Minimal example', value: 'node-minimal' },
-    { title: 'Express.js + Redux', value: 'node-express-redux' },
+    { title: 'Express.js + Zustand', value: 'node-express-zustand' },
   ] as const);
   return {
     type: 'node',

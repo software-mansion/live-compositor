@@ -10,6 +10,19 @@ use crate::pipeline::{decoder::AacDecoderError, VideoCodec};
 use fdk_aac_sys as fdk;
 
 #[derive(Debug, thiserror::Error)]
+pub enum InitPipelineError {
+    #[error(transparent)]
+    InitRendererEngine(#[from] InitRendererEngineError),
+
+    #[error("Failed to create a download directory.")]
+    CreateDownloadDir(#[source] std::io::Error),
+
+    #[cfg(feature = "vk-video")]
+    #[error(transparent)]
+    VulkanCtxError(#[from] vk_video::VulkanCtxError),
+}
+
+#[derive(Debug, thiserror::Error)]
 pub enum RegisterInputError {
     #[error("Failed to register input stream. Stream \"{0}\" is already registered.")]
     AlreadyRegistered(InputId),
@@ -120,6 +133,13 @@ pub enum InputInitError {
 
     #[error("Couldn't read decoder init result.")]
     CannotReadInitResult,
+
+    #[cfg(feature = "vk-video")]
+    #[error(transparent)]
+    VulkanDecoderError(#[from] vk_video::DecoderError),
+
+    #[error("Pipeline couldn't detect a vulkan video compatible device when it was being initialized. Cannot create a vulkan video decoder")]
+    VulkanContextRequiredForVulkanDecoder,
 }
 
 pub enum ErrorType {
