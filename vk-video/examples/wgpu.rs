@@ -2,6 +2,8 @@
 fn main() {
     use std::io::Write;
 
+    use vk_video::Frame;
+
     let subscriber = tracing_subscriber::FmtSubscriber::builder()
         .with_max_level(tracing::Level::INFO)
         .finish();
@@ -25,16 +27,16 @@ fn main() {
         )
         .unwrap(),
     );
-    let mut decoder = vk_video::Decoder::new(vulkan_ctx.clone()).unwrap();
+    let mut decoder = vk_video::WgpuTexturesDeocder::new(vulkan_ctx.clone()).unwrap();
 
     let mut output_file = std::fs::File::create("output.nv12").unwrap();
 
     for chunk in h264_bytestream.chunks(256) {
-        let frames = decoder.decode_to_wgpu_textures(chunk).unwrap();
+        let frames = decoder.decode(chunk, None).unwrap();
 
         let device = &vulkan_ctx.wgpu_ctx.device;
         let queue = &vulkan_ctx.wgpu_ctx.queue;
-        for frame in frames {
+        for Frame { frame, .. } in frames {
             let decoded_frame = download_wgpu_texture(device, queue, frame);
             output_file.write_all(&decoded_frame).unwrap();
         }

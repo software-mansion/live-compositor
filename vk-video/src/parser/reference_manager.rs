@@ -10,14 +10,12 @@ use h264_reader::nal::{
 };
 
 use super::{
-    DecodeInformation, DecoderInstruction, PictureInfo, ReferencePictureInfo, Slice, SpsExt,
+    nalu_parser::{Slice, SpsExt},
+    DecodeInformation, DecoderInstruction, PictureInfo, ReferencePictureInfo,
 };
 
 #[derive(Debug, thiserror::Error)]
 pub enum ReferenceManagementError {
-    #[error("B frames are not supported")]
-    BFramesNotSupported,
-
     #[error("SI frames are not supported")]
     SIFramesNotSupported,
 
@@ -34,6 +32,12 @@ pub enum ReferenceManagementError {
 #[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ReferenceId(usize);
 
+#[derive(Debug, Clone, Copy)]
+enum BFrameReferenceListKind {
+    L0,
+    L1,
+}
+
 #[derive(Debug, Default)]
 #[allow(non_snake_case)]
 pub(crate) struct ReferenceContext {
@@ -45,7 +49,6 @@ pub(crate) struct ReferenceContext {
     MaxLongTermFrameIdx: MaxLongTermFrameIdx,
     prevFrameNumOffset: i64,
     previous_picture_included_mmco_equal_5: bool,
-    current_picture_included_mmco_equal_5: bool,
 }
 
 #[derive(Debug, Default)]
@@ -56,7 +59,7 @@ enum MaxLongTermFrameIdx {
 }
 
 impl ReferenceContext {
-    fn get_next_reference_id(&mut self) -> ReferenceId {
+    fn next_reference_id(&mut self) -> ReferenceId {
         let result = self.next_reference_id;
         self.next_reference_id = ReferenceId(result.0 + 1);
         result
@@ -72,7 +75,6 @@ impl ReferenceContext {
             MaxLongTermFrameIdx: MaxLongTermFrameIdx::NoLongTermFrameIndices,
             prevFrameNumOffset: 0,
             previous_picture_included_mmco_equal_5: false,
-            current_picture_included_mmco_equal_5: false,
         };
     }
 
@@ -83,7 +85,7 @@ impl ReferenceContext {
         LongTermFrameIdx: u64,
         pic_order_cnt: [i32; 2],
     ) -> ReferenceId {
-        let id = self.get_next_reference_id();
+        let id = self.next_reference_id();
         self.pictures.long_term.push(LongTermReferencePicture {
             header,
             id,
@@ -99,7 +101,7 @@ impl ReferenceContext {
         header: Arc<SliceHeader>,
         pic_order_cnt: [i32; 2],
     ) -> ReferenceId {
-        let id = self.get_next_reference_id();
+        let id = self.next_reference_id();
         self.pictures.short_term.push(ShortTermReferencePicture {
             header,
             id,
@@ -110,17 +112,18 @@ impl ReferenceContext {
 
     pub(crate) fn put_picture(
         &mut self,
-        mut slices: Vec<Slice>,
-        sps: &SeqParameterSet,
-        pps: &PicParameterSet,
+        mut slices: Vec<(Slice, Option<u64>)>,
     ) -> Result<Vec<DecoderInstruction>, ReferenceManagementError> {
-        let header = slices.last().unwrap().header.clone();
+        let header = slices.last().unwrap().0.header.clone();
+        let sps = slices.last().unwrap().0.sps.clone();
+        let pps = slices.last().unwrap().0.pps.clone();
+        let pts = slices.last().unwrap().1;
 
         // maybe this should be done in a different place, but if you think about it, there's not
         // really that many places to put this code in
         let mut rbsp_bytes = Vec::new();
         let mut slice_indices = Vec::new();
-        for slice in &mut slices {
+        for (slice, _) in &mut slices {
             if slice.rbsp_bytes.is_empty() {
                 continue;
             }
@@ -128,36 +131,55 @@ impl ReferenceContext {
             rbsp_bytes.append(&mut slice.rbsp_bytes);
         }
 
-        let decode_info =
-            self.decode_information_for_frame(header.clone(), slice_indices, rbsp_bytes, sps, pps)?;
+        let decode_info = self.decode_information_for_frame(
+            header.clone(),
+            slice_indices,
+            rbsp_bytes,
+            &sps,
+            &pps,
+            pts,
+        )?;
 
         let decoder_instructions = match &header.clone().dec_ref_pic_marking {
             Some(DecRefPicMarking::Idr {
                 long_term_reference_flag,
                 ..
             }) => self.reference_picture_marking_process_idr(
-                header,
+                header.clone(),
                 decode_info,
                 *long_term_reference_flag,
             )?,
 
-            Some(DecRefPicMarking::SlidingWindow) => {
-                self.reference_picture_marking_process_sliding_window(sps, header, decode_info)?
-            }
+            Some(DecRefPicMarking::SlidingWindow) => self
+                .reference_picture_marking_process_sliding_window(
+                    &sps,
+                    header.clone(),
+                    decode_info,
+                )?,
             Some(DecRefPicMarking::Adaptive(memory_management_control_operations)) => self
                 .reference_picture_marking_process_adaptive(
-                    sps,
-                    header,
+                    &sps,
+                    header.clone(),
                     decode_info,
                     memory_management_control_operations,
                 )?,
 
             // this picture is not a reference
-            None => vec![DecoderInstruction::Decode { decode_info }],
+            None => {
+                let reference_id = self.next_reference_id();
+                vec![
+                    DecoderInstruction::Decode {
+                        decode_info,
+                        reference_id,
+                    },
+                    DecoderInstruction::Drop {
+                        reference_ids: vec![reference_id],
+                    },
+                ]
+            }
         };
 
-        self.previous_picture_included_mmco_equal_5 = self.current_picture_included_mmco_equal_5;
-        self.current_picture_included_mmco_equal_5 = false;
+        self.previous_picture_included_mmco_equal_5 = header.includes_mmco_equal_5();
 
         Ok(decoder_instructions)
     }
@@ -310,7 +332,6 @@ impl ReferenceContext {
                         .collect();
 
                     self.MaxLongTermFrameIdx = MaxLongTermFrameIdx::NoLongTermFrameIndices;
-                    self.current_picture_included_mmco_equal_5 = true;
 
                     decoder_instructions.push(DecoderInstruction::Drop { reference_ids })
                 }
@@ -332,14 +353,17 @@ impl ReferenceContext {
             Some(long_term_frame_idx) => self.add_long_term_reference(
                 header,
                 long_term_frame_idx,
-                decode_info.picture_info.PicOrderCnt,
+                decode_info.picture_info.PicOrderCnt_as_reference_pic,
             ),
-            None => self.add_short_term_reference(header, decode_info.picture_info.PicOrderCnt),
+            None => self.add_short_term_reference(
+                header,
+                decode_info.picture_info.PicOrderCnt_as_reference_pic,
+            ),
         };
 
         decoder_instructions.insert(
             0,
-            DecoderInstruction::DecodeAndStoreAs {
+            DecoderInstruction::Decode {
                 decode_info,
                 reference_id,
             },
@@ -366,10 +390,12 @@ impl ReferenceContext {
         let num_short_term = self.pictures.short_term.len();
         let num_long_term = self.pictures.long_term.len();
 
-        let reference_id =
-            self.add_short_term_reference(header.clone(), decode_info.picture_info.PicOrderCnt);
+        let reference_id = self.add_short_term_reference(
+            header.clone(),
+            decode_info.picture_info.PicOrderCnt_as_reference_pic,
+        );
 
-        let mut decoder_instructions = vec![DecoderInstruction::DecodeAndStoreAs {
+        let mut decoder_instructions = vec![DecoderInstruction::Decode {
             decode_info,
             reference_id,
         }];
@@ -410,10 +436,17 @@ impl ReferenceContext {
 
         let reference_id = if long_term_reference_flag {
             self.MaxLongTermFrameIdx = MaxLongTermFrameIdx::Idx(0);
-            self.add_long_term_reference(header, 0, decode_info.picture_info.PicOrderCnt)
+            self.add_long_term_reference(
+                header,
+                0,
+                decode_info.picture_info.PicOrderCnt_as_reference_pic,
+            )
         } else {
             self.MaxLongTermFrameIdx = MaxLongTermFrameIdx::NoLongTermFrameIndices;
-            self.add_short_term_reference(header, decode_info.picture_info.PicOrderCnt)
+            self.add_short_term_reference(
+                header,
+                decode_info.picture_info.PicOrderCnt_as_reference_pic,
+            )
         };
 
         Ok(vec![DecoderInstruction::Idr {
@@ -422,6 +455,7 @@ impl ReferenceContext {
         }])
     }
 
+    #[allow(non_snake_case)]
     fn decode_information_for_frame(
         &mut self,
         header: Arc<SliceHeader>,
@@ -429,25 +463,21 @@ impl ReferenceContext {
         rbsp_bytes: Vec<u8>,
         sps: &SeqParameterSet,
         pps: &PicParameterSet,
+        pts: Option<u64>,
     ) -> Result<DecodeInformation, ReferenceManagementError> {
-        let reference_list = match header.slice_type.family {
-            h264_reader::nal::slice::SliceFamily::P => {
-                let num_ref_idx_l0_active = header
-                    .num_ref_idx_active
-                    .as_ref()
-                    .map(|num| match num {
-                        NumRefIdxActive::P {
-                            num_ref_idx_l0_active_minus1,
-                        } => Ok(*num_ref_idx_l0_active_minus1),
-                        NumRefIdxActive::B { .. } => {
-                            Err(ReferenceManagementError::BFramesNotSupported)
-                        }
-                    })
-                    .unwrap_or(Ok(pps.num_ref_idx_l0_default_active_minus1))?
-                    + 1;
+        let PicOrderCnt_for_decoding = self.decode_pic_order_cnt(&header, sps)?;
+        let PicOrderCnt_as_reference_pic = if header.includes_mmco_equal_5() {
+            [0, 0]
+        } else {
+            PicOrderCnt_for_decoding
+        };
 
-                let mut reference_list =
-                    self.initialize_reference_picture_list_for_frame(&header, sps)?;
+        let (reference_list_l0, reference_list_l1) = match header.slice_type.family {
+            h264_reader::nal::slice::SliceFamily::P => {
+                let num_ref_idx_l0_active = header.num_ref_idx_l0_active(pps);
+
+                let mut reference_list_l0 =
+                    self.initialize_reference_picture_list_for_p_frame(&header, sps)?;
 
                 match &header.ref_pic_list_modification {
                     Some(RefPicListModifications::P {
@@ -456,7 +486,7 @@ impl ReferenceContext {
                         self.modify_reference_picture_list(
                             sps,
                             &header,
-                            &mut reference_list,
+                            &mut reference_list_l0,
                             ref_pic_list_modification_l0,
                         )?;
                     }
@@ -468,13 +498,55 @@ impl ReferenceContext {
                     ))?,
                 }
 
-                reference_list.truncate(num_ref_idx_l0_active as usize);
+                reference_list_l0.truncate(num_ref_idx_l0_active as usize);
 
-                Some(reference_list)
+                (Some(reference_list_l0), None)
             }
-            h264_reader::nal::slice::SliceFamily::I => None,
+            h264_reader::nal::slice::SliceFamily::I => (None, None),
             h264_reader::nal::slice::SliceFamily::B => {
-                return Err(ReferenceManagementError::BFramesNotSupported)?
+                let num_ref_idx_l0_active = header.num_ref_idx_l0_active(pps);
+                let num_ref_idx_l1_active = header.num_ref_idx_l1_active(pps)?;
+
+                let mut reference_list_l0 = self.initialize_reference_picture_list_for_b_frame(
+                    PicOrderCnt_for_decoding,
+                    BFrameReferenceListKind::L0,
+                )?;
+                let mut reference_list_l1 = self.initialize_reference_picture_list_for_b_frame(
+                    PicOrderCnt_for_decoding,
+                    BFrameReferenceListKind::L1,
+                )?;
+
+                match &header.ref_pic_list_modification {
+                    Some(RefPicListModifications::B {
+                        ref_pic_list_modification_l0,
+                        ref_pic_list_modification_l1,
+                    }) => {
+                        self.modify_reference_picture_list(
+                            sps,
+                            &header,
+                            &mut reference_list_l0,
+                            ref_pic_list_modification_l0,
+                        )?;
+
+                        self.modify_reference_picture_list(
+                            sps,
+                            &header,
+                            &mut reference_list_l1,
+                            ref_pic_list_modification_l1
+                        )?;
+                    }
+
+                    None
+                    | Some(RefPicListModifications::I)
+                    | Some(RefPicListModifications::P { .. }) => return Err(ReferenceManagementError::IncorrectData(
+                        "a slice marked 'B' slice family contains a reference picture list for a different family".into()
+                    ))?,
+                }
+
+                reference_list_l0.truncate(num_ref_idx_l0_active as usize);
+                reference_list_l1.truncate(num_ref_idx_l1_active as usize);
+
+                (Some(reference_list_l0), Some(reference_list_l1))
             }
             h264_reader::nal::slice::SliceFamily::SP => {
                 return Err(ReferenceManagementError::SPFramesNotSupported)?
@@ -484,22 +556,9 @@ impl ReferenceContext {
             }
         };
 
-        let pic_order_cnt = match sps.pic_order_cnt {
-            h264_reader::nal::sps::PicOrderCntType::TypeZero {
-                log2_max_pic_order_cnt_lsb_minus4,
-            } => self.decode_pic_order_cnt_type_zero(&header, log2_max_pic_order_cnt_lsb_minus4)?,
-
-            h264_reader::nal::sps::PicOrderCntType::TypeOne { .. } => {
-                Err(ReferenceManagementError::PicOrderCntTypeNotSupported(1))?
-            }
-
-            h264_reader::nal::sps::PicOrderCntType::TypeTwo => {
-                self.decode_pic_order_cnt_type_two(&header, sps)?
-            }
-        };
-
         Ok(DecodeInformation {
-            reference_list,
+            reference_list_l0,
+            reference_list_l1,
             header: header.clone(),
             slice_indices,
             rbsp_bytes,
@@ -508,10 +567,32 @@ impl ReferenceContext {
             picture_info: PictureInfo {
                 non_existing: false,
                 used_for_long_term_reference: false,
-                PicOrderCnt: pic_order_cnt,
+                PicOrderCnt_for_decoding,
+                PicOrderCnt_as_reference_pic,
                 FrameNum: header.frame_num,
             },
+            pts,
         })
+    }
+
+    fn decode_pic_order_cnt(
+        &mut self,
+        header: &SliceHeader,
+        sps: &SeqParameterSet,
+    ) -> Result<[i32; 2], ReferenceManagementError> {
+        match sps.pic_order_cnt {
+            h264_reader::nal::sps::PicOrderCntType::TypeZero {
+                log2_max_pic_order_cnt_lsb_minus4,
+            } => self.decode_pic_order_cnt_type_zero(header, log2_max_pic_order_cnt_lsb_minus4),
+
+            h264_reader::nal::sps::PicOrderCntType::TypeOne { .. } => {
+                Err(ReferenceManagementError::PicOrderCntTypeNotSupported(1))
+            }
+
+            h264_reader::nal::sps::PicOrderCntType::TypeTwo => {
+                self.decode_pic_order_cnt_type_two(header, sps)
+            }
+        }
     }
 
     #[allow(non_snake_case)]
@@ -612,7 +693,7 @@ impl ReferenceContext {
         Ok([pic_order_cnt; 2])
     }
 
-    fn initialize_short_term_reference_picture_list_for_frame(
+    fn initialize_short_term_reference_picture_list_for_p_frame(
         &self,
         header: &SliceHeader,
         sps: &SeqParameterSet,
@@ -640,12 +721,9 @@ impl ReferenceContext {
             .map(|(reference, numbers)| ReferencePictureInfo {
                 id: reference.id,
                 LongTermPicNum: None,
-                picture_info: PictureInfo {
-                    FrameNum: numbers.FrameNum as u16,
-                    used_for_long_term_reference: false,
-                    non_existing: false,
-                    PicOrderCnt: reference.pic_order_cnt,
-                },
+                FrameNum: numbers.FrameNum as u16,
+                non_existing: false,
+                PicOrderCnt: reference.pic_order_cnt,
             })
             .collect()
     }
@@ -660,23 +738,20 @@ impl ReferenceContext {
             .map(|pic| ReferencePictureInfo {
                 id: pic.id,
                 LongTermPicNum: Some(pic.LongTermFrameIdx),
-                picture_info: PictureInfo {
-                    used_for_long_term_reference: true,
-                    non_existing: false,
-                    FrameNum: pic.header.frame_num,
-                    PicOrderCnt: pic.pic_order_cnt,
-                },
+                PicOrderCnt: pic.pic_order_cnt,
+                non_existing: false,
+                FrameNum: pic.header.frame_num,
             })
             .collect()
     }
 
-    fn initialize_reference_picture_list_for_frame(
+    fn initialize_reference_picture_list_for_p_frame(
         &self,
         header: &SliceHeader,
         sps: &SeqParameterSet,
     ) -> Result<Vec<ReferencePictureInfo>, ReferenceManagementError> {
         let short_term_reference_list =
-            self.initialize_short_term_reference_picture_list_for_frame(header, sps);
+            self.initialize_short_term_reference_picture_list_for_p_frame(header, sps);
 
         let long_term_reference_list = self.initialize_long_term_reference_picture_list_for_frame();
 
@@ -684,6 +759,60 @@ impl ReferenceContext {
             .into_iter()
             .chain(long_term_reference_list)
             .collect::<Vec<_>>();
+
+        Ok(reference_list)
+    }
+
+    #[allow(non_snake_case)]
+    fn initialize_reference_picture_list_for_b_frame(
+        &self,
+        CurrPicOrderCnt: [i32; 2],
+        list_kind: BFrameReferenceListKind,
+    ) -> Result<Vec<ReferencePictureInfo>, ReferenceManagementError> {
+        let short_term_reference_list = self
+            .initialize_short_term_reference_picture_list_for_b_frame(CurrPicOrderCnt, list_kind)?;
+
+        let long_term_reference_list = self.initialize_long_term_reference_picture_list_for_frame();
+
+        let reference_list = short_term_reference_list
+            .into_iter()
+            .chain(long_term_reference_list)
+            .collect();
+
+        Ok(reference_list)
+    }
+
+    #[allow(non_snake_case)]
+    fn initialize_short_term_reference_picture_list_for_b_frame(
+        &self,
+        CurrPicOrderCnt: [i32; 2],
+        list_kind: BFrameReferenceListKind,
+    ) -> Result<Vec<ReferencePictureInfo>, ReferenceManagementError> {
+        let mut reference_list = self
+            .pictures
+            .short_term
+            .iter()
+            .filter(|pic| match list_kind {
+                BFrameReferenceListKind::L0 => pic.pic_order_cnt < CurrPicOrderCnt,
+                BFrameReferenceListKind::L1 => pic.pic_order_cnt > CurrPicOrderCnt,
+            })
+            .collect::<Vec<_>>();
+
+        reference_list.sort_by_key(|pic| match list_kind {
+            BFrameReferenceListKind::L0 => -pic.pic_order_cnt[0],
+            BFrameReferenceListKind::L1 => pic.pic_order_cnt[0],
+        });
+
+        let reference_list = reference_list
+            .into_iter()
+            .map(|pic| ReferencePictureInfo {
+                LongTermPicNum: None,
+                FrameNum: pic.header.frame_num,
+                non_existing: false,
+                PicOrderCnt: pic.pic_order_cnt,
+                id: pic.id,
+            })
+            .collect();
 
         Ok(reference_list)
     }
@@ -745,19 +874,13 @@ impl ReferenceContext {
                 format!("picture with LongTermPicNum = {picture_to_shift} is not present in the reference list during modification")
             ))?;
 
-        if reference_list[shifted_picture_idx]
-            .picture_info
-            .non_existing
-        {
+        if reference_list[shifted_picture_idx].non_existing {
             return Err(ReferenceManagementError::IncorrectData(
                 "a short-term reference picture marked for shifting in the reference list modification process is marked as non-existing".into()
             ));
         }
 
-        if !reference_list[shifted_picture_idx]
-            .picture_info
-            .used_for_long_term_reference
-        {
+        if reference_list[shifted_picture_idx].LongTermPicNum.is_none() {
             return Err(ReferenceManagementError::IncorrectData(
                 "a short-term reference picture marked for shifting in the long-term reference list modification process".into()
             ));
@@ -808,36 +931,38 @@ impl ReferenceContext {
             picNumLXNoWrap
         };
 
-        let shifted_picture_idx = reference_list
+        let mut shifted_picture_idx = reference_list
             .iter()
             .enumerate()
-            .find(|(_, picture_info)| decode_picture_numbers_for_short_term_ref(picture_info.picture_info.FrameNum.into(), header.frame_num.into(), sps).PicNum == picNumLX)
+            .find(|(_, picture_info)| decode_picture_numbers_for_short_term_ref(picture_info.FrameNum.into(), header.frame_num.into(), sps).PicNum == picNumLX)
             .map(|(i, _)| i)
             .ok_or(ReferenceManagementError::IncorrectData(
                 format!("picture with picNumLX = {picNumLX} is not present in the reference list during modification")
             ))?;
 
-        if reference_list[shifted_picture_idx]
-            .picture_info
-            .non_existing
-        {
+        if reference_list[shifted_picture_idx].non_existing {
             return Err(ReferenceManagementError::IncorrectData(
                 "a short-term reference picture marked for shifting in the reference list modification process is marked as non-existing".into()
             ));
         }
 
-        if reference_list[shifted_picture_idx]
-            .picture_info
-            .used_for_long_term_reference
-        {
+        if reference_list[shifted_picture_idx].LongTermPicNum.is_some() {
             return Err(ReferenceManagementError::IncorrectData(
                 "a long-term reference picture marked for shifting in the short-term reference list modification process".into()
             ));
         }
 
-        let shifted_picture_info = reference_list.remove(shifted_picture_idx);
-        reference_list.insert(*refIdxLX, shifted_picture_info);
+        let shifted_picture_info = reference_list[shifted_picture_idx];
+        if *refIdxLX <= reference_list.len() {
+            reference_list.insert(*refIdxLX, shifted_picture_info);
+            shifted_picture_idx = if *refIdxLX <= shifted_picture_idx {
+                shifted_picture_idx + 1
+            } else {
+                shifted_picture_idx
+            };
+        }
         *refIdxLX += 1;
+        reference_list.remove(shifted_picture_idx);
 
         Ok(())
     }
@@ -898,4 +1023,57 @@ struct ShortTermReferencePictureNumbers {
 struct ReferencePictures {
     long_term: Vec<LongTermReferencePicture>,
     short_term: Vec<ShortTermReferencePicture>,
+}
+
+trait SliceHeaderExt {
+    fn num_ref_idx_l0_active(&self, pps: &PicParameterSet) -> u32;
+    fn num_ref_idx_l1_active(&self, pps: &PicParameterSet)
+        -> Result<u32, ReferenceManagementError>;
+    fn includes_mmco_equal_5(&self) -> bool;
+}
+
+impl SliceHeaderExt for SliceHeader {
+    fn num_ref_idx_l0_active(&self, pps: &PicParameterSet) -> u32 {
+        self.num_ref_idx_active
+            .as_ref()
+            .map(|num| match num {
+                NumRefIdxActive::P {
+                    num_ref_idx_l0_active_minus1,
+                } => *num_ref_idx_l0_active_minus1,
+                NumRefIdxActive::B {
+                    num_ref_idx_l0_active_minus1,
+                    ..
+                } => *num_ref_idx_l0_active_minus1,
+            })
+            .unwrap_or(pps.num_ref_idx_l0_default_active_minus1)
+            + 1
+    }
+
+    fn num_ref_idx_l1_active(
+        &self,
+        pps: &PicParameterSet,
+    ) -> Result<u32, ReferenceManagementError> {
+        Ok(
+            self
+                .num_ref_idx_active
+                .as_ref()
+                .map(|num| match num {
+                    NumRefIdxActive::P { .. } => Err(ReferenceManagementError::IncorrectData(
+                        "requested num_ref_idx_l1_active, but the header contains the information for a P-frame, which does not include it".into()
+                    )),
+                    NumRefIdxActive::B { num_ref_idx_l1_active_minus1, .. } => Ok(*num_ref_idx_l1_active_minus1)
+                })
+                .unwrap_or(Ok(pps.num_ref_idx_l1_default_active_minus1))? + 1
+        )
+    }
+
+    fn includes_mmco_equal_5(&self) -> bool {
+        let Some(DecRefPicMarking::Adaptive(ref mmcos)) = self.dec_ref_pic_marking else {
+            return false;
+        };
+
+        mmcos
+            .iter()
+            .any(|mmco| matches!(mmco, MemoryManagementControlOperation::AllRefPicturesUnused))
+    }
 }

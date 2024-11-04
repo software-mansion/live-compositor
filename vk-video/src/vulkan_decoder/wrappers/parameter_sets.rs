@@ -197,6 +197,64 @@ impl ChromaFormatExt for h264_reader::nal::sps::ChromaFormat {
     }
 }
 
+pub(crate) fn vk_to_h264_level_idc(
+    level_idc: vk::native::StdVideoH264LevelIdc,
+) -> Result<u8, VulkanDecoderError> {
+    match level_idc {
+        vk::native::StdVideoH264LevelIdc_STD_VIDEO_H264_LEVEL_IDC_1_0 => Ok(10),
+        vk::native::StdVideoH264LevelIdc_STD_VIDEO_H264_LEVEL_IDC_1_1 => Ok(11),
+        vk::native::StdVideoH264LevelIdc_STD_VIDEO_H264_LEVEL_IDC_1_2 => Ok(12),
+        vk::native::StdVideoH264LevelIdc_STD_VIDEO_H264_LEVEL_IDC_1_3 => Ok(13),
+        vk::native::StdVideoH264LevelIdc_STD_VIDEO_H264_LEVEL_IDC_2_0 => Ok(20),
+        vk::native::StdVideoH264LevelIdc_STD_VIDEO_H264_LEVEL_IDC_2_1 => Ok(21),
+        vk::native::StdVideoH264LevelIdc_STD_VIDEO_H264_LEVEL_IDC_2_2 => Ok(22),
+        vk::native::StdVideoH264LevelIdc_STD_VIDEO_H264_LEVEL_IDC_3_0 => Ok(30),
+        vk::native::StdVideoH264LevelIdc_STD_VIDEO_H264_LEVEL_IDC_3_1 => Ok(31),
+        vk::native::StdVideoH264LevelIdc_STD_VIDEO_H264_LEVEL_IDC_3_2 => Ok(32),
+        vk::native::StdVideoH264LevelIdc_STD_VIDEO_H264_LEVEL_IDC_4_0 => Ok(40),
+        vk::native::StdVideoH264LevelIdc_STD_VIDEO_H264_LEVEL_IDC_4_1 => Ok(41),
+        vk::native::StdVideoH264LevelIdc_STD_VIDEO_H264_LEVEL_IDC_4_2 => Ok(42),
+        vk::native::StdVideoH264LevelIdc_STD_VIDEO_H264_LEVEL_IDC_5_0 => Ok(50),
+        vk::native::StdVideoH264LevelIdc_STD_VIDEO_H264_LEVEL_IDC_5_1 => Ok(51),
+        vk::native::StdVideoH264LevelIdc_STD_VIDEO_H264_LEVEL_IDC_5_2 => Ok(52),
+        vk::native::StdVideoH264LevelIdc_STD_VIDEO_H264_LEVEL_IDC_6_0 => Ok(60),
+        vk::native::StdVideoH264LevelIdc_STD_VIDEO_H264_LEVEL_IDC_6_1 => Ok(61),
+        vk::native::StdVideoH264LevelIdc_STD_VIDEO_H264_LEVEL_IDC_6_2 => Ok(62),
+        _ => Err(VulkanDecoderError::InvalidInputData(format!(
+            "unknown StdVideoH264LevelIdc: {level_idc}"
+        ))),
+    }
+}
+
+/// As per __Table A-1 Level limits__ in the H.264 spec
+/// `mbs` means macroblocks here
+pub(crate) fn h264_level_idc_to_max_dpb_mbs(level_idc: u8) -> Result<u64, VulkanDecoderError> {
+    match level_idc {
+        10 => Ok(396),
+        11 => Ok(900),
+        12 => Ok(2_376),
+        13 => Ok(2_376),
+        20 => Ok(2_376),
+        21 => Ok(4_752),
+        22 => Ok(8_100),
+        30 => Ok(8_100),
+        31 => Ok(18_000),
+        32 => Ok(20_480),
+        40 => Ok(32_768),
+        41 => Ok(32_768),
+        42 => Ok(34_816),
+        50 => Ok(110_400),
+        51 => Ok(184_320),
+        52 => Ok(184_320),
+        60 => Ok(696_320),
+        61 => Ok(696_320),
+        62 => Ok(696_320),
+        _ => Err(VulkanDecoderError::InvalidInputData(format!(
+            "unknown h264 level_idc: {level_idc}"
+        ))),
+    }
+}
+
 fn h264_level_idc_to_vk(level_idc: u8) -> u32 {
     match level_idc {
         10 => vk::native::StdVideoH264LevelIdc_STD_VIDEO_H264_LEVEL_IDC_1_0,
@@ -219,6 +277,129 @@ fn h264_level_idc_to_vk(level_idc: u8) -> u32 {
         61 => vk::native::StdVideoH264LevelIdc_STD_VIDEO_H264_LEVEL_IDC_6_1,
         62 => vk::native::StdVideoH264LevelIdc_STD_VIDEO_H264_LEVEL_IDC_6_2,
         _ => vk::native::StdVideoH264LevelIdc_STD_VIDEO_H264_LEVEL_IDC_INVALID,
+    }
+}
+
+fn h264_profile_idc_to_vk(
+    profile: h264_reader::nal::sps::Profile,
+) -> vk::native::StdVideoH264ProfileIdc {
+    match profile {
+        h264_reader::nal::sps::Profile::Baseline => {
+            vk::native::StdVideoH264ProfileIdc_STD_VIDEO_H264_PROFILE_IDC_BASELINE
+        }
+        h264_reader::nal::sps::Profile::Main => {
+            vk::native::StdVideoH264ProfileIdc_STD_VIDEO_H264_PROFILE_IDC_MAIN
+        }
+        h264_reader::nal::sps::Profile::High => {
+            vk::native::StdVideoH264ProfileIdc_STD_VIDEO_H264_PROFILE_IDC_HIGH
+        }
+        h264_reader::nal::sps::Profile::High444 => {
+            vk::native::StdVideoH264ProfileIdc_STD_VIDEO_H264_PROFILE_IDC_HIGH_444_PREDICTIVE
+        }
+        h264_reader::nal::sps::Profile::High422
+        | h264_reader::nal::sps::Profile::High10
+        | h264_reader::nal::sps::Profile::Extended
+        | h264_reader::nal::sps::Profile::ScalableBase
+        | h264_reader::nal::sps::Profile::ScalableHigh
+        | h264_reader::nal::sps::Profile::MultiviewHigh
+        | h264_reader::nal::sps::Profile::StereoHigh
+        | h264_reader::nal::sps::Profile::MFCDepthHigh
+        | h264_reader::nal::sps::Profile::MultiviewDepthHigh
+        | h264_reader::nal::sps::Profile::EnhancedMultiviewDepthHigh
+        | h264_reader::nal::sps::Profile::Unknown(_) => {
+            vk::native::StdVideoH264ProfileIdc_STD_VIDEO_H264_PROFILE_IDC_INVALID
+        }
+    }
+}
+
+pub(crate) struct H264ProfileInfo<'a> {
+    pub(crate) profile_info: vk::VideoProfileInfoKHR<'a>,
+    h264_info_ptr: *mut vk::VideoDecodeH264ProfileInfoKHR<'a>,
+}
+
+impl PartialEq for H264ProfileInfo<'_> {
+    fn eq(&self, other: &Self) -> bool {
+        unsafe {
+            other.profile_info.chroma_subsampling == self.profile_info.chroma_subsampling
+                && other.profile_info.luma_bit_depth == self.profile_info.luma_bit_depth
+                && other.profile_info.chroma_bit_depth == self.profile_info.chroma_bit_depth
+                && (*other.h264_info_ptr).std_profile_idc == (*self.h264_info_ptr).std_profile_idc
+                && (*other.h264_info_ptr).picture_layout == (*self.h264_info_ptr).picture_layout
+        }
+    }
+}
+
+impl Eq for H264ProfileInfo<'_> {}
+
+impl H264ProfileInfo<'_> {
+    pub(crate) fn from_sps_decode(sps: &SeqParameterSet) -> Result<Self, VulkanDecoderError> {
+        let profile_idc = h264_profile_idc_to_vk(sps.profile());
+
+        if profile_idc == vk::native::StdVideoH264ProfileIdc_STD_VIDEO_H264_PROFILE_IDC_INVALID {
+            return Err(VulkanDecoderError::InvalidInputData(
+                "unsupported h264 profile".into(),
+            ));
+        }
+
+        let h264_profile_info = Box::leak(Box::new(
+            vk::VideoDecodeH264ProfileInfoKHR::default()
+                .std_profile_idc(profile_idc)
+                .picture_layout(vk::VideoDecodeH264PictureLayoutFlagsKHR::PROGRESSIVE),
+        ));
+
+        let chroma_subsampling = match sps.chroma_info.chroma_format {
+            h264_reader::nal::sps::ChromaFormat::YUV420 => {
+                vk::VideoChromaSubsamplingFlagsKHR::TYPE_420
+            }
+            h264_reader::nal::sps::ChromaFormat::Monochrome
+            | h264_reader::nal::sps::ChromaFormat::YUV422
+            | h264_reader::nal::sps::ChromaFormat::YUV444
+            | h264_reader::nal::sps::ChromaFormat::Invalid(_) => {
+                return Err(VulkanDecoderError::InvalidInputData(format!(
+                    "unsupported chroma format: {:?}",
+                    sps.chroma_info.chroma_format
+                )))
+            }
+        };
+
+        let luma_bit_depth = if sps.chroma_info.bit_depth_luma_minus8 + 8 == 8 {
+            vk::VideoComponentBitDepthFlagsKHR::TYPE_8
+        } else {
+            return Err(VulkanDecoderError::InvalidInputData(format!(
+                "unsupported luma bit length: {}",
+                sps.chroma_info.bit_depth_luma_minus8 + 8
+            )));
+        };
+
+        let chroma_bit_depth = if sps.chroma_info.bit_depth_chroma_minus8 + 8 == 8 {
+            vk::VideoComponentBitDepthFlagsKHR::TYPE_8
+        } else {
+            return Err(VulkanDecoderError::InvalidInputData(format!(
+                "unsupported chroma bit length: {}",
+                sps.chroma_info.bit_depth_chroma_minus8 + 8
+            )));
+        };
+
+        let h264_info_ptr = h264_profile_info as *mut _;
+        let profile_info = vk::VideoProfileInfoKHR::default()
+            .video_codec_operation(vk::VideoCodecOperationFlagsKHR::DECODE_H264)
+            .chroma_subsampling(chroma_subsampling)
+            .luma_bit_depth(luma_bit_depth)
+            .chroma_bit_depth(chroma_bit_depth)
+            .push_next(h264_profile_info);
+
+        Ok(Self {
+            profile_info,
+            h264_info_ptr,
+        })
+    }
+}
+
+impl<'a> Drop for H264ProfileInfo<'a> {
+    fn drop(&mut self) {
+        unsafe {
+            let _ = Box::from_raw(self.h264_info_ptr);
+        }
     }
 }
 

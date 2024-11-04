@@ -3973,6 +3973,7 @@ name = "vk-video"
 version = "0.1.0"
 dependencies = [
  "ash",
+ "bytes",
  "cfg_aliases 0.2.1",
  "derivative",
  "h264-reader",
