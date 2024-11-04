@@ -20,7 +20,7 @@ fn test_snapshots() {
     check_test_names_uniqueness(&tests);
 
     for test in tests.iter() {
-        eprintln!("Test \"{}\"", test.case.name);
+        println!("Test \"{}\"", test.case.name);
         if let Err(err) = test.run() {
             handle_error(err);
         }

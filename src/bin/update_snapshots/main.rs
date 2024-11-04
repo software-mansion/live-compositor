@@ -19,7 +19,8 @@ use crate::{
 
 fn main() {
     println!("Updating snapshots:");
-    tracing_subscriber::fmt().init();
+    let log_filter = tracing_subscriber::EnvFilter::new("info,wgpu_core=warn,wgpu_hal=warn");
+    tracing_subscriber::fmt().with_env_filter(log_filter).init();
 
     let tests: Vec<_> = snapshot_tests();
     let has_only_flag = tests.iter().any(|t| t.only);

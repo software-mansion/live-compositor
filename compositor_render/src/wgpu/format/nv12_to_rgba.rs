@@ -41,7 +41,7 @@ impl Nv12ToRgbaConverter {
                 module: &shader_module,
                 entry_point: "fs_main",
                 targets: &[Some(wgpu::ColorTargetState {
-                    format: wgpu::TextureFormat::Rgba8Unorm,
+                    format: wgpu::TextureFormat::Rgba8UnormSrgb,
                     write_mask: wgpu::ColorWrites::all(),
                     blend: None,
                 })],

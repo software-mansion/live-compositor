@@ -497,6 +497,97 @@ fn rescaler_snapshot_tests() -> Vec<TestCase> {
             inputs: vec![TestInput::new(1)],
             ..Default::default()
         },
+        TestCase {
+            name: "rescaler/border_radius",
+            scene_updates: Updates::Scene(
+                    include_str!("../../snapshot_tests/rescaler/border_radius.scene.json"),
+                    DEFAULT_RESOLUTION,
+            ),
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "rescaler/border_width",
+            scene_updates: Updates::Scene(
+                    include_str!("../../snapshot_tests/rescaler/border_width.scene.json"),
+                    DEFAULT_RESOLUTION,
+            ),
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "rescaler/box_shadow",
+            scene_updates: Updates::Scene(
+                    include_str!("../../snapshot_tests/rescaler/box_shadow.scene.json"),
+                    DEFAULT_RESOLUTION,
+            ),
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "rescaler/border_radius_border_box_shadow",
+            scene_updates: Updates::Scene(
+                    include_str!("../../snapshot_tests/rescaler/border_radius_border_box_shadow.scene.json"),
+                    DEFAULT_RESOLUTION,
+            ),
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "rescaler/border_radius_box_shadow",
+            scene_updates: Updates::Scene(
+                    include_str!("../../snapshot_tests/rescaler/border_radius_box_shadow.scene.json"),
+                    DEFAULT_RESOLUTION,
+            ),
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "rescaler/border_radius_box_shadow_fit_input_stream",
+            scene_updates: Updates::Scene(
+                    include_str!("../../snapshot_tests/rescaler/border_radius_box_shadow_fit_input_stream.scene.json"),
+                    DEFAULT_RESOLUTION,
+            ),
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "rescaler/border_radius_box_shadow_fill_input_stream",
+            scene_updates: Updates::Scene(
+                    include_str!("../../snapshot_tests/rescaler/border_radius_box_shadow_fill_input_stream.scene.json"),
+                    DEFAULT_RESOLUTION,
+            ),
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "rescaler/nested_border_width_radius",
+            scene_updates: Updates::Scene(
+                    include_str!("../../snapshot_tests/rescaler/nested_border_width_radius.scene.json"),
+                    DEFAULT_RESOLUTION,
+            ),
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "rescaler/nested_border_width_radius_aligned",
+            scene_updates: Updates::Scene(
+                    include_str!("../../snapshot_tests/rescaler/nested_border_width_radius_aligned.scene.json"),
+                    DEFAULT_RESOLUTION,
+            ),
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
+        TestCase {
+            // it is supposed to be cut off because of the rescaler that wraps it
+            name: "rescaler/border_radius_border_box_shadow_rescaled",
+            scene_updates: Updates::Scene(
+                    include_str!("../../snapshot_tests/rescaler/border_radius_border_box_shadow_rescaled.scene.json"),
+                    DEFAULT_RESOLUTION,
+            ),
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        }
     ])
 }
 
@@ -1565,7 +1656,144 @@ fn view_snapshot_tests() -> Vec<TestCase> {
             ),
             inputs: vec![TestInput::new(1)],
             ..Default::default()
-        }
+        },
+        TestCase {
+            name: "view/border_radius",
+            scene_updates: Updates::Scene(
+                    include_str!("../../snapshot_tests/view/border_radius.scene.json"),
+                    DEFAULT_RESOLUTION,
+            ),
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "view/border_width",
+            scene_updates: Updates::Scene(
+                    include_str!("../../snapshot_tests/view/border_width.scene.json"),
+                    DEFAULT_RESOLUTION,
+            ),
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "view/box_shadow",
+            scene_updates: Updates::Scene(
+                    include_str!("../../snapshot_tests/view/box_shadow.scene.json"),
+                    DEFAULT_RESOLUTION,
+            ),
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "view/box_shadow_sibling",
+            scene_updates: Updates::Scene(
+                    include_str!("../../snapshot_tests/view/box_shadow_sibling.scene.json"),
+                    DEFAULT_RESOLUTION,
+            ),
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "view/border_radius_border_box_shadow",
+            scene_updates: Updates::Scene(
+                    include_str!("../../snapshot_tests/view/border_radius_border_box_shadow.scene.json"),
+                    DEFAULT_RESOLUTION,
+            ),
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "view/border_radius_box_shadow",
+            scene_updates: Updates::Scene(
+                    include_str!("../../snapshot_tests/view/border_radius_box_shadow.scene.json"),
+                    DEFAULT_RESOLUTION,
+            ),
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "view/border_radius_box_shadow_overflow_hidden",
+            scene_updates: Updates::Scene(
+                    include_str!("../../snapshot_tests/view/border_radius_box_shadow_overflow_hidden.scene.json"),
+                    DEFAULT_RESOLUTION,
+            ),
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "view/border_radius_box_shadow_overflow_fit",
+            only: true,
+            scene_updates: Updates::Scene(
+                    include_str!("../../snapshot_tests/view/border_radius_box_shadow_overflow_fit.scene.json"),
+                    DEFAULT_RESOLUTION,
+            ),
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "view/border_radius_box_shadow_rescaler_input_stream",
+            scene_updates: Updates::Scene(
+                    include_str!("../../snapshot_tests/view/border_radius_box_shadow_rescaler_input_stream.scene.json"),
+                    DEFAULT_RESOLUTION,
+            ),
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "view/nested_border_width_radius",
+            scene_updates: Updates::Scene(
+                    include_str!("../../snapshot_tests/view/nested_border_width_radius.scene.json"),
+                    DEFAULT_RESOLUTION,
+            ),
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "view/nested_border_width_radius_aligned",
+            scene_updates: Updates::Scene(
+                    include_str!("../../snapshot_tests/view/nested_border_width_radius_aligned.scene.json"),
+                    DEFAULT_RESOLUTION,
+            ),
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "view/nested_border_width_radius_multi_child",
+            scene_updates: Updates::Scene(
+                    include_str!("../../snapshot_tests/view/nested_border_width_radius_multi_child.scene.json"),
+                    DEFAULT_RESOLUTION,
+            ),
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
+        TestCase {
+            // it is supposed to be cut off because of the rescaler that wraps it
+            name: "view/border_radius_border_box_shadow_rescaled",
+            scene_updates: Updates::Scene(
+                    include_str!("../../snapshot_tests/view/border_radius_border_box_shadow_rescaled.scene.json"),
+                    DEFAULT_RESOLUTION,
+            ),
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "view/root_border_radius_border_box_shadow",
+            scene_updates: Updates::Scene(
+                    include_str!("../../snapshot_tests/view/root_border_radius_border_box_shadow.scene.json"),
+                    DEFAULT_RESOLUTION,
+            ),
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
+        TestCase {
+            name: "view/border_radius_border_box_shadow_rescaled_and_hidden_by_parent",
+            scene_updates: Updates::Scene(
+                    include_str!("../../snapshot_tests/view/border_radius_border_box_shadow_rescaled_and_hidden_by_parent.scene.json"),
+                    DEFAULT_RESOLUTION,
+            ),
+            inputs: vec![TestInput::new(1)],
+            ..Default::default()
+        },
     ])
 }
 
