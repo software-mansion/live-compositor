@@ -264,6 +264,11 @@ impl TextRendererCtx {
             .load_font_source(Source::Binary(Arc::new(include_bytes!(
                 "../../fonts/Inter_18pt-Italic.ttf"
             ))));
+        font_system
+            .db_mut()
+            .load_font_source(Source::Binary(Arc::new(include_bytes!(
+                "../../fonts/Inter_18pt-Bold.ttf"
+            ))));
         Self {
             font_system: Mutex::new(font_system),
             swash_cache: Mutex::new(SwashCache::new()),
