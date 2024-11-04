@@ -68,8 +68,8 @@ fn main() {
         download_root: config.download_root,
         output_sample_rate: config.output_sample_rate,
         wgpu_features: config.required_wgpu_features,
-        wgpu_ctx: Some((wgpu_device.clone(), wgpu_queue.clone())),
         load_system_fonts: Some(true),
+        wgpu_ctx: Some((wgpu_device.clone(), wgpu_queue.clone())),
     })
     .unwrap_or_else(|err| {
         panic!(

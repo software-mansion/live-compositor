@@ -8,7 +8,7 @@ use crate::{scene::RGBAColor, wgpu::WgpuCtx, Resolution};
 
 use super::{BorderRadius, RenderLayout};
 
-const MAX_PARENT_BORDER_RADISUES: usize = 20;
+const MAX_MASKS: usize = 20;
 const MAX_LAYOUTS_COUNT: usize = 100;
 const TEXTURE_PARAMS_BUFFER_SIZE: usize = MAX_LAYOUTS_COUNT * 80;
 const COLOR_PARAMS_SIZE: usize = MAX_LAYOUTS_COUNT * 80;
@@ -18,7 +18,7 @@ const BOX_SHADOW_PARAMS_SIZE: usize = MAX_LAYOUTS_COUNT * 80;
 pub struct LayoutInfo {
     pub layout_type: u32,
     pub index: u32,
-    pub parent_border_radiuses_len: u32,
+    pub masks_len: u32,
 }
 
 impl LayoutInfo {
@@ -26,7 +26,7 @@ impl LayoutInfo {
         let mut result = [0u8; 16];
         result[0..4].copy_from_slice(&self.layout_type.to_le_bytes());
         result[4..8].copy_from_slice(&self.index.to_le_bytes());
-        result[8..12].copy_from_slice(&self.parent_border_radiuses_len.to_le_bytes());
+        result[8..12].copy_from_slice(&self.masks_len.to_le_bytes());
         result
     }
 }
@@ -201,10 +201,10 @@ impl ParamsBindGroups {
                 height,
                 rotation_degrees,
                 border_radius,
-                parent_masks: parent_border_radiuses,
+                masks,
                 content,
             } = layout;
-            let border_radius_bytes = borders_radius_to_bytes(border_radius.clone());
+            let border_radius_bytes = borders_radius_to_bytes(*border_radius);
 
             match content {
                 super::RenderLayoutContent::Color {
@@ -215,7 +215,7 @@ impl ParamsBindGroups {
                     let layout_info = LayoutInfo {
                         layout_type: 1,
                         index: color_params.len() as u32,
-                        parent_border_radiuses_len: parent_border_radiuses.len() as u32,
+                        masks_len: masks.len() as u32,
                     };
                     let mut color_params_bytes = [0u8; 80];
                     color_params_bytes[0..16].copy_from_slice(&border_radius_bytes);
@@ -239,7 +239,7 @@ impl ParamsBindGroups {
                     let layout_info = LayoutInfo {
                         layout_type: 0,
                         index: texture_params.len() as u32,
-                        parent_border_radiuses_len: parent_border_radiuses.len() as u32,
+                        masks_len: masks.len() as u32,
                     };
                     let mut texture_params_bytes = [0u8; 80];
                     texture_params_bytes[0..16].copy_from_slice(&border_radius_bytes);
@@ -261,7 +261,7 @@ impl ParamsBindGroups {
                     let layout_info = LayoutInfo {
                         layout_type: 2,
                         index: box_shadow_params.len() as u32,
-                        parent_border_radiuses_len: parent_border_radiuses.len() as u32,
+                        masks_len: masks.len() as u32,
                     };
                     let mut box_shadow_params_bytes = [0u8; 64];
                     box_shadow_params_bytes[0..16].copy_from_slice(&border_radius_bytes);
@@ -277,49 +277,39 @@ impl ParamsBindGroups {
                     layout_infos.push(layout_info);
                 }
             }
-            if parent_border_radiuses.len() > MAX_PARENT_BORDER_RADISUES {
+            if masks.len() > MAX_MASKS {
                 error!(
-                    "Max parent border radiuses count ({}) exceeded ({}). Slkipping rendering some og them.",
-                    MAX_PARENT_BORDER_RADISUES,
-                    parent_border_radiuses.len()
+                    "Max parent border radiuses count ({}) exceeded ({}). Skipping rendering some og them.",
+                    MAX_MASKS,
+                    masks.len()
                 );
             }
 
-            let mut parent_border_radiuses_bytes = Vec::new();
+            let mut masks_bytes = Vec::new();
 
-            for parent_border_radius in parent_border_radiuses.iter().take(20) {
-                let mut parent_border_radius_bytes = [0u8; 32];
-                parent_border_radius_bytes[0..16].copy_from_slice(&borders_radius_to_bytes(
-                    parent_border_radius.radius.clone(),
-                ));
-                parent_border_radius_bytes[16..20]
-                    .copy_from_slice(&parent_border_radius.top.to_le_bytes());
-                parent_border_radius_bytes[20..24]
-                    .copy_from_slice(&parent_border_radius.left.to_le_bytes());
-                parent_border_radius_bytes[24..28]
-                    .copy_from_slice(&parent_border_radius.width.to_le_bytes());
-                parent_border_radius_bytes[28..32]
-                    .copy_from_slice(&parent_border_radius.height.to_le_bytes());
+            for mask in masks.iter().take(20) {
+                let mut mask_bytes = [0u8; 32];
+                mask_bytes[0..16].copy_from_slice(&borders_radius_to_bytes(mask.radius));
+                mask_bytes[16..20].copy_from_slice(&mask.top.to_le_bytes());
+                mask_bytes[20..24].copy_from_slice(&mask.left.to_le_bytes());
+                mask_bytes[24..28].copy_from_slice(&mask.width.to_le_bytes());
+                mask_bytes[28..32].copy_from_slice(&mask.height.to_le_bytes());
 
-                parent_border_radiuses_bytes.push(parent_border_radius_bytes);
+                masks_bytes.push(mask_bytes);
             }
 
-            parent_border_radiuses_bytes.resize_with(20, || [0u8; 32]);
+            masks_bytes.resize_with(20, || [0u8; 32]);
             match self.bind_groups_2.get(index) {
                 Some((_bg, buffer)) => {
-                    ctx.queue
-                        .write_buffer(buffer, 0, &parent_border_radiuses_bytes.concat());
+                    ctx.queue.write_buffer(buffer, 0, &masks_bytes.concat());
                 }
                 None => {
                     error!("Not enought parent border radiuses bind groups preallocated");
                 }
             }
 
-            ctx.queue.write_buffer(
-                &self.bind_groups_2[index].1,
-                0,
-                &parent_border_radiuses_bytes.concat(),
-            );
+            ctx.queue
+                .write_buffer(&self.bind_groups_2[index].1, 0, &masks_bytes.concat());
         }
         texture_params.resize_with(100, || [0u8; 80]);
         color_params.resize_with(100, || [0u8; 80]);
@@ -358,7 +348,6 @@ fn borders_radius_to_bytes(border_radius: BorderRadius) -> [u8; 16] {
 
 fn color_to_bytes(color: RGBAColor) -> [u8; 16] {
     let RGBAColor(r, g, b, a) = color;
-
     let mut result = [0u8; 16];
     result[0..4].copy_from_slice(&srgb_to_linear(r).to_le_bytes());
     result[4..8].copy_from_slice(&srgb_to_linear(g).to_le_bytes());

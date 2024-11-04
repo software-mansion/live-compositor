@@ -1,4 +1,7 @@
-use crate::scene::types::interpolation::{ContinuousValue, InterpolationState};
+use crate::scene::{
+    types::interpolation::{ContinuousValue, InterpolationState},
+    BorderRadius, BoxShadow,
+};
 
 use super::{AbsolutePosition, Position};
 
@@ -43,6 +46,45 @@ impl ContinuousValue for AbsolutePosition {
                 &end.rotation_degrees,
                 state,
             ),
+        }
+    }
+}
+
+impl ContinuousValue for BorderRadius {
+    fn interpolate(start: &Self, end: &Self, state: InterpolationState) -> Self {
+        Self {
+            top_left: ContinuousValue::interpolate(&start.top_left, &end.top_left, state),
+            top_right: ContinuousValue::interpolate(&start.top_right, &end.top_right, state),
+            bottom_right: ContinuousValue::interpolate(
+                &start.bottom_right,
+                &end.bottom_right,
+                state,
+            ),
+            bottom_left: ContinuousValue::interpolate(&start.bottom_left, &end.bottom_left, state),
+        }
+    }
+}
+
+impl ContinuousValue for Vec<BoxShadow> {
+    fn interpolate(start: &Self, end: &Self, state: InterpolationState) -> Self {
+        start
+            .iter()
+            .zip(end.iter())
+            // interpolate as long both lists have entries
+            .map(|(start, end)| ContinuousValue::interpolate(start, end, state))
+            // add remaining elements if end is longer
+            .chain(end.iter().skip(usize::min(start.len(), end.len())).copied())
+            .collect()
+    }
+}
+
+impl ContinuousValue for BoxShadow {
+    fn interpolate(start: &Self, end: &Self, state: InterpolationState) -> Self {
+        Self {
+            offset_x: ContinuousValue::interpolate(&start.offset_x, &end.offset_x, state),
+            offset_y: ContinuousValue::interpolate(&start.offset_y, &end.offset_y, state),
+            blur_radius: ContinuousValue::interpolate(&start.blur_radius, &end.blur_radius, state),
+            color: end.color,
         }
     }
 }

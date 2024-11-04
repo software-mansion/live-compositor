@@ -11,7 +11,7 @@ struct VertexOutput {
     // texture coordinates in texture coordiantes [0, 0] (top-left) X [1, 1] (bottom-right)
     @location(0) tex_coords: vec2<f32>,
     // Position relative to center of the rectangle in [-rect_width/2, rect_width/2] X [-rect_height/2, height/2]
-    @location(2) center_position: vec2<f32>
+    @location(2) center_position: vec2<f32>,
 }
 
 struct BoxShadowParams {
@@ -58,7 +58,7 @@ struct ColorParams {
     border_width: f32,
 }
 
-struct ParentBorderRadius {
+struct ParentMask {
     radius: vec4<f32>,
     top: f32,
     left: f32,
@@ -70,7 +70,7 @@ struct LayoutInfo {
     // 0 -> Texture, 1 -> Color, 2 -> BoxShadow
     layout_type: u32,
     index: u32,
-    parent_masks_len: u32
+    masks_len: u32
 }
 
 
@@ -81,7 +81,7 @@ struct LayoutInfo {
 @group(1) @binding(2) var<uniform> color_params: array<ColorParams, 100>;
 @group(1) @binding(3) var<uniform> box_shadow_params: array<BoxShadowParams, 100>;
 
-@group(2) @binding(0) var<uniform> parent_masks: array<ParentBorderRadius, 20>;
+@group(2) @binding(0) var<uniform> masks: array<ParentMask, 20>;
 
 @group(3) @binding(0) var sampler_: sampler;
 
@@ -186,6 +186,7 @@ fn vs_main(input: VertexInput) -> VertexOutput {
                 texture_params[layout_info.index].crop_width,
                 texture_params[layout_info.index].crop_height
             );
+
             output.position = vertices_transformation * vec4(input.position, 1.0);
             output.tex_coords = (texture_transformation * vec4<f32>(input.tex_coords, 0.0, 1.0)).xy;
             let rect_size = vec2<f32>(texture_params[layout_info.index].width, texture_params[layout_info.index].height);
@@ -230,6 +231,8 @@ fn vs_main(input: VertexInput) -> VertexOutput {
 
 // Signed distance function for rounded rectangle https://iquilezles.org/articles/distfunctions
 // adapted from https://www.shadertoy.com/view/4llXD7
+// Distance from outside is positive and inside it is negative
+//
 // dist - signed distance from the center of the rectangle in pixels
 // size - size of the rectangle in pixels
 // radius - radius of the corners in pixels [top-left, top-right, bottom-right, bottom-left]
@@ -240,8 +243,8 @@ fn roundedRectSDF(dist: vec2<f32>, size: vec2<f32>, radius: vec4<f32>, rotation:
     
     // wierd hack to get the radius of the nearest corner stored in r.x
     var r: vec2<f32> = vec2<f32>(0.0, 0.0);
-    r = select(radius.yz, radius.xw, dist.x < 0.0 );
-    r.x = select(r.y, r.x, dist.y < 0.0 );
+    r = select(radius.yz, radius.xw, dist.x < 0.0);
+    r.x = select(r.x, r.y, dist.y < 0.0);
 
     let q = abs(dist) - half_size + r.x;
     return min(max(q.x, q.y), 0.0) + length(max(q, vec2<f32>(0.0, 0.0))) - r.x;
@@ -249,9 +252,26 @@ fn roundedRectSDF(dist: vec2<f32>, size: vec2<f32>, radius: vec4<f32>, rotation:
 
 @fragment
 fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
-    let transparent = vec4<f32>(0.0, 0.0, 0.0, 0.0);
-    // TODO: Add parent mask handling
-    let parent_mask_alpha = 1.0;
+    let transparent = vec4<f32>(1.0, 1.0, 1.0, 0.0);
+
+    var mask_alpha = 1.0;
+
+    for (var i = 0; i < i32(layout_info.masks_len); i++) {
+        let radius = masks[i].radius;
+        let top = masks[i].top;
+        let left = masks[i].left;
+        let width = masks[i].width;
+        let height = masks[i].height;
+        let size = vec2<f32>(width, height);
+
+        let distance = roundedRectSDF(
+            vec2<f32>(left, top) + (size / 2.0) - input.position.xy,
+            size,
+            radius,
+            0.0,
+        );
+        mask_alpha = mask_alpha * smoothstep(-0.5, 0.5 , -distance);
+    }
 
     switch layout_info.layout_type {
         case 0u: {
@@ -265,19 +285,30 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
             let border_color = texture_params[layout_info.index].border_color;
 
             let size = vec2<f32>(width, height);
-            let edge_distance = roundedRectSDF(
+            let edge_distance = -roundedRectSDF(
                 input.center_position,
                 size, 
                 border_radius, 
                 rotation_degrees
             );
 
-            let smoothed_alpha = 1.0 - smoothstep(0.0, 2.0, edge_distance);
-            let border_alpha = 1.0 - smoothstep(-border_width + 1.0, -border_width, edge_distance);
-
-            let mixed_background = mix(transparent, sample, min(smoothed_alpha, parent_mask_alpha));
-            let mixed_border = mix(mixed_background, border_color, min(border_alpha, smoothed_alpha));
-            return mixed_border;
+            if (border_width < 1.0) {
+                let content_alpha = smoothstep(-0.5, 0.5, edge_distance);
+                return vec4<f32>(sample.rgb, sample.a * content_alpha * mask_alpha);
+            } else if (mask_alpha < 0.01) {
+                return vec4<f32>(0, 0, 0, 0);
+            } else {
+                if (edge_distance > border_width / 2.0) {
+                    // border <-> content
+                    let border_alpha = smoothstep(border_width - 0.5, border_width + 0.5, edge_distance);
+                    let border_or_content = mix(border_color, sample, border_alpha);
+                    return vec4<f32>(border_or_content.rgb, border_or_content.a * mask_alpha);
+                } else {
+                    // border <-> outside
+                    let content_alpha = smoothstep(-0.5, 0.5, edge_distance);
+                    return vec4<f32>(border_color.rgb, border_color.a * content_alpha * mask_alpha);
+                }
+            }
         }
         case 1u: {
             let color = color_params[layout_info.index].color;
@@ -290,19 +321,28 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
             let border_color = color_params[layout_info.index].border_color;
 
             let size = vec2<f32>(width, height);
-            let edge_distance = roundedRectSDF(
+            let edge_distance = -roundedRectSDF(
                 input.center_position,
                 size, 
                 border_radius, 
                 rotation_degrees
             );
 
-            let smoothed_alpha = 1.0 - smoothstep(0.0, 2.0, edge_distance);
-            let border_alpha = 1.0 - smoothstep(-border_width + 1.0, -border_width, edge_distance);
-
-            let mixed_background = mix(transparent, color, min(smoothed_alpha, parent_mask_alpha));
-            let mixed_border = mix(mixed_background, border_color, border_alpha);
-            return mixed_border;
+            if (border_width < 1.0) {
+              let content_alpha = smoothstep(-0.5, 0.5, edge_distance);
+              return vec4<f32>(color.rgb, color.a * content_alpha * mask_alpha);
+            } else {
+                if (edge_distance > border_width / 2.0) {
+                    // border <-> content
+                    let border_alpha = smoothstep(border_width, border_width + 1.0, edge_distance);
+                    let border_or_content = mix(border_color, color, border_alpha);
+                    return vec4<f32>(border_or_content.rgb, border_or_content.a * mask_alpha);
+                } else {
+                    // border <-> outside
+                    let content_alpha = smoothstep(-0.5, 0.5, edge_distance);
+                    return vec4<f32>(border_color.rgb, border_color.a * content_alpha * mask_alpha);
+                }
+            }
         }
         case 2u: {
             let color = box_shadow_params[layout_info.index].color;
@@ -314,16 +354,16 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
             let blur_radius = box_shadow_params[layout_info.index].blur_radius;
 
             let size = vec2<f32>(width, height);
-            let edge_distance = roundedRectSDF(
+            let edge_distance = -roundedRectSDF(
                 input.center_position,
                 size, 
                 border_radius, 
                 rotation_degrees
             );
+            
+            let blur_alpha = smoothstep(0.0, blur_radius, edge_distance) * mask_alpha;
 
-            let smoothed_alpha = 1.0 - smoothstep(0.0, blur_radius, edge_distance);
-            let mixed_background = mix(transparent, color, min(smoothed_alpha, parent_mask_alpha));
-            return mixed_background;
+            return vec4<f32>(color.rgb, color.a * blur_alpha);
         }
         default {
             return vec4(0.0, 0.0, 0.0, 0.0);
