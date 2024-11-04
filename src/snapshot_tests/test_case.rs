@@ -37,7 +37,7 @@ impl Default for TestCase {
             timestamps: vec![Duration::from_secs(0)],
             scene_updates: Updates::Scenes(vec![]),
             only: false,
-            allowed_error: 20.0,
+            allowed_error: 1.0,
         }
     }
 }

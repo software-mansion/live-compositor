@@ -1188,7 +1188,6 @@ fn text_snapshot_tests() -> Vec<TestCase> {
                 include_str!("../../snapshot_tests/text/wrap_glyph.scene.json"),
                 DEFAULT_RESOLUTION,
             ),
-            allowed_error: 325.7,
             ..Default::default()
         },
         TestCase {
@@ -1205,7 +1204,6 @@ fn text_snapshot_tests() -> Vec<TestCase> {
                 include_str!("../../snapshot_tests/text/wrap_word.scene.json"),
                 DEFAULT_RESOLUTION,
             ),
-            allowed_error: 321.8,
             ..Default::default()
         },
         TestCase {
@@ -1722,7 +1720,6 @@ fn view_snapshot_tests() -> Vec<TestCase> {
         },
         TestCase {
             name: "view/border_radius_box_shadow_overflow_fit",
-            only: true,
             scene_updates: Updates::Scene(
                     include_str!("../../snapshot_tests/view/border_radius_box_shadow_overflow_fit.scene.json"),
                     DEFAULT_RESOLUTION,
