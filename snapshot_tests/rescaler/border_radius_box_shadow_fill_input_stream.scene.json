@@ -14,7 +14,7 @@
           "border_width": 20,
           "border_color_rgba": "#FFFFFFFF",
           "mode": "fill",
-          "box_shadows": [
+          "box_shadow": [
             {
               "offset_x": 60,
               "offset_y": 30,

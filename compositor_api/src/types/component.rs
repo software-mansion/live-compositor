@@ -91,7 +91,7 @@ pub struct View {
     pub border_color_rgba: Option<RGBAColor>,
 
     /// List of box shadows.
-    pub box_shadows: Option<Vec<BoxShadow>>,
+    pub box_shadow: Option<Vec<BoxShadow>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
@@ -193,7 +193,7 @@ pub struct Rescaler {
     pub border_color_rgba: Option<RGBAColor>,
 
     /// List of box shadows.
-    pub box_shadows: Option<Vec<BoxShadow>>,
+    pub box_shadow: Option<Vec<BoxShadow>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]

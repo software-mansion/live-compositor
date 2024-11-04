@@ -11,7 +11,7 @@
           "width": 400,
           "height": 200,
           "border_radius": 50,
-          "box_shadows": [
+          "box_shadow": [
             {
               "offset_x": 60,
               "offset_y": 30,

@@ -13,7 +13,7 @@
           "border_radius": 50,
           "border_width": 20,
           "border_color_rgba": "#FFFFFFFF",
-          "box_shadows": [
+          "box_shadow": [
             {
               "offset_x": 60,
               "offset_y": 30,

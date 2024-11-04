@@ -116,7 +116,7 @@ fn main() {
                     border_radius: BorderRadius::new_with_radius(70.0),
                     border_width: 50.0,
                     border_color: RGBAColor(0, 255, 0, 255),
-                    box_shadows: vec![BoxShadow {
+                    box_shadow: vec![BoxShadow {
                         offset_x: 60.0,
                         offset_y: 60.0,
                         blur_radius: 60.0,
@@ -134,7 +134,7 @@ fn main() {
                 border_radius: BorderRadius::ZERO,
                 border_width: 0.0,
                 border_color: RGBAColor(0, 0, 0, 0),
-                box_shadows: vec![],
+                box_shadow: vec![],
             }),
             end_condition: PipelineOutputEndCondition::Never,
         }),

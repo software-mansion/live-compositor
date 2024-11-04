@@ -15,7 +15,7 @@
             {
               "type": "view",
               "background_color_rgba": "#FF0000FF",
-              "box_shadows": [
+              "box_shadow": [
                 {
                   "offset_x": 0,
                   "offset_y": 60,
@@ -35,7 +35,7 @@
               "background_color_rgba": "#FF0000FF",
               "border_width": 20,
               "border_color_rgba": "#FFFFFFFF",
-              "box_shadows": [
+              "box_shadow": [
                 {
                   "offset_x": 60,
                   "offset_y": 30,

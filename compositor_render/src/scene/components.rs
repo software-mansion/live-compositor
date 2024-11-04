@@ -147,7 +147,7 @@ pub struct ViewComponent {
     pub border_width: f32,
     pub border_color: RGBAColor,
 
-    pub box_shadows: Vec<BoxShadow>,
+    pub box_shadow: Vec<BoxShadow>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -194,7 +194,7 @@ pub struct RescalerComponent {
     pub border_width: f32,
     pub border_color: RGBAColor,
 
-    pub box_shadows: Vec<BoxShadow>,
+    pub box_shadow: Vec<BoxShadow>,
 }
 
 #[derive(Debug, Clone, Copy)]

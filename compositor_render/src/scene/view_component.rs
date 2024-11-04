@@ -36,7 +36,7 @@ struct ViewComponentParam {
     border_width: f32,
     border_color: RGBAColor,
 
-    box_shadows: Vec<BoxShadow>,
+    box_shadow: Vec<BoxShadow>,
 }
 
 impl StatefulViewComponent {
@@ -129,7 +129,7 @@ impl ViewComponent {
                 border_radius: self.border_radius,
                 border_width: self.border_width,
                 border_color: self.border_color,
-                box_shadows: self.box_shadows,
+                box_shadow: self.box_shadow,
             },
             transition,
             children: self

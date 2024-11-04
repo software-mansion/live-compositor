@@ -242,7 +242,7 @@
                 }
               ]
             },
-            "box_shadows": {
+            "box_shadow": {
               "description": "List of box shadows.",
               "type": [
                 "array",
@@ -840,7 +840,7 @@
                 }
               ]
             },
-            "box_shadows": {
+            "box_shadow": {
               "description": "List of box shadows.",
               "type": [
                 "array",

@@ -149,7 +149,7 @@ impl RescalerComponentParam {
             border_width: self.border_width,
             border_color: self.border_color,
             border_radius: self.border_radius,
-            box_shadow: self.box_shadows.clone(),
+            box_shadow: self.box_shadow.clone(),
         }
     }
 }

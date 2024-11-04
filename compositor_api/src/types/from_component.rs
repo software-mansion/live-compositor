@@ -108,8 +108,8 @@ impl TryFrom<View> for scene::ViewComponent {
                 .border_color_rgba
                 .map(TryInto::try_into)
                 .unwrap_or(Ok(scene::RGBAColor(0, 0, 0, 0)))?,
-            box_shadows: view
-                .box_shadows
+            box_shadow: view
+                .box_shadow
                 .unwrap_or_default()
                 .into_iter()
                 .map(TryInto::try_into)
@@ -184,8 +184,8 @@ impl TryFrom<Rescaler> for scene::RescalerComponent {
                 .border_color_rgba
                 .map(TryInto::try_into)
                 .unwrap_or(Ok(scene::RGBAColor(0, 0, 0, 0)))?,
-            box_shadows: rescaler
-                .box_shadows
+            box_shadow: rescaler
+                .box_shadow
                 .unwrap_or_default()
                 .into_iter()
                 .map(TryInto::try_into)
