@@ -1359,7 +1359,7 @@ dependencies = [
 [[package]]
 name = "h264-reader"
 version = "0.7.1-dev"
-source = "git+https://github.com/membraneframework-labs/h264-reader.git?branch=@jerzywilczek/scaling-lists#7c982f1089558640021ff8a70a2fa253e3e881c7"
+source = "git+https://github.com/membraneframework-labs/h264-reader.git?branch=live-compositor#9292ad0ab24b75e07815f546f41cef24b30b09c9"
 dependencies = [
  "bitstream-io",
  "hex-slice",
