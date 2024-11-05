@@ -60,6 +60,7 @@ struct InputInitResult {
     init_info: InputInitInfo,
 }
 
+#[derive(Debug)]
 pub(super) enum VideoInputReceiver {
     #[allow(dead_code)]
     Raw {

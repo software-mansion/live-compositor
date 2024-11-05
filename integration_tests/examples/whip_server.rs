@@ -14,7 +14,6 @@ const VIDEO_RESOLUTION: Resolution = Resolution {
 // TODO rework, this version just for tests
 
 fn main() {
-    // start_whip_whep_server();
     run_example(client_code);
 }
 

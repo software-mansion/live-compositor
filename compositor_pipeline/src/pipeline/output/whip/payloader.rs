@@ -98,6 +98,7 @@ enum AudioPayloader {
     },
 }
 
+#[derive(Debug)]
 pub enum Payload {
     Video(Bytes),
     Audio(Bytes),

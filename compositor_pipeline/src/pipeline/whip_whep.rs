@@ -31,7 +31,6 @@ use webrtc::{
         RTCRtpTransceiverInit,
     },
 };
-use wgpu::core::pipeline;
 
 mod config;
 mod handlers;
@@ -40,6 +39,8 @@ use tokio::task;
 
 use crate::Pipeline;
 
+pub(crate) const VIDEO_PAYLOAD_TYPE: u8 = 96;
+pub(crate) const AUDIO_PAYLOAD_TYPE: u8 = 111;
 
 #[tokio::main]
 pub async fn start_whip_whep_server(pipeline: Weak<Mutex<Pipeline>>) {
@@ -59,8 +60,6 @@ pub async fn start_whip_whep_server(pipeline: Weak<Mutex<Pipeline>>) {
     };
 
     let state = pipeline_ctx.whip_whep_state.clone();
-
-    //TODO update handlers with new global state
 
     let app = Router::new()
         .route("/status", get(status))
@@ -94,18 +93,18 @@ pub async fn start_whip_whep_server(pipeline: Weak<Mutex<Pipeline>>) {
 
 #[derive(Debug)]
 pub struct InputConnectionUtils {
-    pub video_receiver: mpsc::Receiver<Packet>,
-    pub audio_receiver: mpsc::Receiver<Packet>,
-    pub video_sender: mpsc::Sender<Packet>,
-    pub audio_sender: mpsc::Sender<Packet>,
-    pub bearer_token: String,
-    pub peer_connection: Arc<RTCPeerConnection>,
+    pub video_receiver: Option<mpsc::Receiver<Packet>>,
+    pub audio_receiver: Option<mpsc::Receiver<Packet>>,
+    pub video_sender: Option<mpsc::Sender<Packet>>,
+    pub audio_sender: Option<mpsc::Sender<Packet>>,
+    pub bearer_token: Option<String>,
+    pub peer_connection: Option<Arc<RTCPeerConnection>>,
 }
 
 #[derive(Debug)]
 pub struct WhipWhepState {
     // pub whip: Arc<WhipUtils>,
-    pub notifier: Arc<Notify>,  // TODO check if necessary
+    pub notifier: Arc<Notify>, // TODO check if necessary
     pub input_connections: Arc<Mutex<HashMap<InputId, InputConnectionUtils>>>,
 }
 
@@ -116,20 +115,10 @@ impl WhipWhepState {
             input_connections: Arc::from(Mutex::new(HashMap::new())),
         })
     }
-
-    pub fn register_input(
-        video_tx: mpsc::Sender<Packet>,
-        video_rx: mpsc::Receiver<Packet>,
-        audio_tx: mpsc::Sender<Packet>,
-        audio_rx: mpsc::Receiver<Packet>,
-    ) {
-        println!("Input registered")
-    }
 }
 
 pub async fn init() -> Arc<WhipWhepState> {
     Arc::new(WhipWhepState {
-        // whip : init_pc().await,
         notifier: Arc::new(Notify::new()),
         input_connections: Arc::from(Mutex::new(HashMap::new())),
     })

@@ -27,7 +27,11 @@ use webrtc::{
 use crate::{
     error::OutputInitError,
     event::Event,
-    pipeline::{types::EncoderOutputEvent, AudioCodec, PipelineCtx, VideoCodec},
+    pipeline::{
+        types::EncoderOutputEvent,
+        whip_whep::{AUDIO_PAYLOAD_TYPE, VIDEO_PAYLOAD_TYPE},
+        AudioCodec, PipelineCtx, VideoCodec,
+    },
 };
 
 use self::{packet_stream::PacketStream, payloader::Payloader};
@@ -148,14 +152,17 @@ fn start_whip_sender_thread(
                     continue;
                 }
             };
+            // info!("{:?}", chunk);
 
             match chunk {
                 Payload::Video(bytes) => {
+                    // info!("Video: {:?}", bytes);
                     if video_track.write(&bytes).await.is_err() {
                         error!("Error occurred while writing to video track for session");
                     }
                 }
                 Payload::Audio(bytes) => {
+                    // info!("Audio: {:?}", bytes);
                     if audio_track.write(&bytes).await.is_err() {
                         error!("Error occurred while writing to audio track for session");
                     }
@@ -182,7 +189,7 @@ async fn init_pc() -> (
                 sdp_fmtp_line: "".to_owned(),
                 rtcp_feedback: vec![],
             },
-            payload_type: 96,
+            payload_type: VIDEO_PAYLOAD_TYPE,
             ..Default::default()
         },
         RTPCodecType::Video,
@@ -197,7 +204,7 @@ async fn init_pc() -> (
                 sdp_fmtp_line: "".to_owned(),
                 rtcp_feedback: vec![],
             },
-            payload_type: 111,
+            payload_type: AUDIO_PAYLOAD_TYPE,
             ..Default::default()
         },
         RTPCodecType::Audio,

@@ -8,8 +8,6 @@ use axum::{
 };
 
 use compositor_render::InputId;
-use ffmpeg_next::{codec::video, device::input};
-use tokio::sync::mpsc::channel;
 use webrtc_util::{Marshal, MarshalSize};
 
 use crate::pipeline::whip_whep::{init_pc, InputConnectionUtils, WhipWhepState};
@@ -26,8 +24,6 @@ pub async fn status() -> (StatusCode, axum::Json<Value>) {
     (StatusCode::OK, axum::Json(json!({})))
 }
 
-//TODO update handlers with
-
 pub async fn handle_whip(
     State(state): State<Arc<WhipWhepState>>,
     headers: HeaderMap,
@@ -38,7 +34,7 @@ pub async fn handle_whip(
 
     //get id from bearer token
     // let bearer_token = todo!();
-    let input_id = InputId(Arc::from("frst"));
+    let input_id = InputId(Arc::from("input_1"));
 
     // Validate that the Content-Type is `application/sdp`
     if let Some(content_type) = headers.get("Content-Type") {
@@ -59,25 +55,55 @@ pub async fn handle_whip(
             .unwrap();
     }
 
-    let (video_sender, video_receiver) = channel(100);
-    let (audio_sender, audio_receiver) = channel(100);
+    let video_sender = state
+        .input_connections
+        .lock()
+        .unwrap()
+        .get(&input_id)
+        .unwrap()
+        .video_sender
+        .clone()
+        .unwrap();
+
+    let audio_sender = state
+        .input_connections
+        .lock()
+        .unwrap()
+        .get(&input_id)
+        .unwrap()
+        .audio_sender
+        .clone()
+        .unwrap();
+
+    info!(
+        "video sender closed >>>>>>>> {:?}",
+        video_sender.is_closed()
+    );
+    info!(
+        "audio sender closed >>>>>>>> {:?}",
+        audio_sender.is_closed()
+    );
 
     let peer_connection = init_pc().await;
-
-    let input_connection_utils = InputConnectionUtils {
-        video_receiver,
-        video_sender: video_sender.clone(),
-        audio_receiver,
-        audio_sender: audio_sender.clone(),
-        peer_connection: peer_connection.clone(),
-        bearer_token: input_id.clone().to_string(),
-    };
-
     state
         .input_connections
         .lock()
         .unwrap()
-        .insert(input_id, input_connection_utils);
+        .get_mut(&input_id)
+        .unwrap()
+        .peer_connection = Some(peer_connection.clone());
+    state
+        .input_connections
+        .lock()
+        .unwrap()
+        .get_mut(&input_id)
+        .unwrap()
+        .bearer_token = Some(input_id.clone().to_string());
+
+    info!(
+        "=============== {:?}",
+        state.input_connections.lock().unwrap().get(&input_id)
+    );
 
     peer_connection.on_track(Box::new(move |track, _, _| {
         let audio_sender_clone = audio_sender.clone();
@@ -159,8 +185,11 @@ pub async fn whip_ice_candidates_handler(
 
     let pc = state.input_connections.lock().unwrap()[&input_id]
         .peer_connection
-        .clone();
-    let _ = pc.add_ice_candidate(candidate_obj).await;
+        .clone()
+        .unwrap();
+    {
+        let _ = pc.add_ice_candidate(candidate_obj).await;
+    }
 
     (
         StatusCode::NO_CONTENT,
@@ -184,11 +213,46 @@ pub async fn terminate_whip_session(
     info!("[whip] terminating session");
 
     //get id from bearer token
-    let input_id = InputId(Arc::from("frst"));
+    let input_id = InputId(Arc::from("input_1"));
 
-    let pc = state.input_connections.lock().unwrap()[&input_id]
+    let pc = match state.input_connections.lock().unwrap()[&input_id]
         .peer_connection
-        .clone();
+        .clone()
+    {
+        Some(pc) => pc,
+        None => {
+            error!("Peer connection already terminated");
+            return (
+                StatusCode::NO_CONTENT,
+                axum::Json(json!({"status": "Session terminated"})),
+            );
+        }
+    };
+
+    drop(
+        state
+            .input_connections
+            .lock()
+            .unwrap()
+            .get(&input_id)
+            .unwrap()
+            .video_sender
+            .clone()
+            .unwrap(),
+    );
+
+    drop(
+        state
+            .input_connections
+            .lock()
+            .unwrap()
+            .get(&input_id)
+            .unwrap()
+            .audio_sender
+            .clone()
+            .unwrap(),
+    );
+
     if let Err(err) = pc.close().await {
         error!("Failed to close peer connection: {:?}", err);
         return (

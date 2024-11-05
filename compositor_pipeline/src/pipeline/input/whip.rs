@@ -1,9 +1,12 @@
 use axum::extract::State;
 use bytes::Bytes;
 use rtp::packet::Packet;
-use std::{net::SocketAddr, sync::Arc};
+use std::{
+    net::SocketAddr,
+    sync::{Arc, Mutex},
+    thread,
+};
 use tokio::sync::mpsc;
-use wgpu::core::pipeline;
 
 use depayloader::{Depayloader, DepayloaderNewError};
 use serde_json::{json, Value};
@@ -17,7 +20,8 @@ use crate::{
         encoder,
         rtp::BindToPortError,
         types::{EncodedChunk, EncodedChunkKind},
-        PipelineCtx, Port,
+        whip_whep::InputConnectionUtils,
+        PipelineCtx,
     },
     queue::PipelineEvent,
 };
@@ -82,7 +86,6 @@ struct DepayloaderThreadReceivers {
 }
 pub struct WhipReceiver {
     should_close: Arc<AtomicBool>,
-    pub port: u16,
 }
 
 impl WhipReceiver {
@@ -93,20 +96,31 @@ impl WhipReceiver {
     ) -> Result<InputInitResult, WhipReceiverError> {
         let should_close = Arc::new(AtomicBool::new(false));
 
-        let (video_tx, video_rx): (mpsc::Sender<Packet>, mpsc::Receiver<Packet>) =
-            mpsc::channel(100);
-        // let (audio_tx, audio_rx): (mpsc::Sender<Packet>, mpsc::Receiver<Packet>) =
-        //     mpsc::channel(100);
-
         let whip_whep_state = pipeline_ctx.whip_whep_state.clone();
 
-        // TODO properly deal with reciver and sender in hashmap
-        // whip_whep_state.input_connections.lock().unwrap().insert(input_id, InputConnectionUtils{});
+        let (video_tx, video_rx) = mpsc::channel(100);
+        let (audio_tx, audio_rx) = mpsc::channel(100);
 
-        // WhipWhepState::register_input(video_tx, video_rx, audio_tx, audio_rx);
-        let depayloader = Depayloader::new(&opts.stream)?;
+        info!("{:?}", video_rx.is_closed());
+        info!("{:?}", audio_rx.is_closed());
 
-        let depayloader_receivers = Self::start_depayloader_thread(input_id, video_rx, depayloader);
+        whip_whep_state.input_connections.lock().unwrap().insert(
+            input_id.clone(),
+            InputConnectionUtils {
+                audio_receiver: None,
+                audio_sender: Some(audio_tx.clone()),
+                video_receiver: None,
+                video_sender: Some(video_tx.clone()),
+                bearer_token: None,
+                peer_connection: None,
+            },
+        );
+        info!("Added to hashmap: {:?}", whip_whep_state.input_connections);
+
+        let depayloader = Arc::from(Mutex::new(Depayloader::new(&opts.stream)?));
+
+        let depayloader_receivers =
+            Self::start_depayloader_thread(input_id, video_rx, audio_rx, depayloader);
 
         let video = match (depayloader_receivers.video, opts.stream.video) {
             (Some(chunk_receiver), Some(stream)) => Some(VideoInputReceiver::Encoded {
@@ -124,10 +138,7 @@ impl WhipReceiver {
         };
 
         Ok(InputInitResult {
-            input: Input::Whip(Self {
-                should_close,
-                port: 0,
-            }),
+            input: Input::Whip(Self { should_close }),
             video,
             audio,
             init_info: InputInitInfo { port: None },
@@ -136,33 +147,49 @@ impl WhipReceiver {
 
     fn start_depayloader_thread(
         input_id: &InputId,
-        receiver: tokio::sync::mpsc::Receiver<Packet>,
-        depayloader: Depayloader,
+        video_mpsc_receiver: tokio::sync::mpsc::Receiver<Packet>,
+        audio_mpsc_receiver: tokio::sync::mpsc::Receiver<Packet>,
+        depayloader: Arc<Mutex<Depayloader>>,
     ) -> DepayloaderThreadReceivers {
         let (video_sender, video_receiver) = depayloader
+            .lock()
+            .unwrap()
             .video
             .as_ref()
             .map(|_| bounded(5))
             .map_or((None, None), |(tx, rx)| (Some(tx), Some(rx)));
+
         let (audio_sender, audio_receiver) = depayloader
+            .lock()
+            .unwrap()
             .audio
             .as_ref()
             .map(|_| bounded(5))
             .map_or((None, None), |(tx, rx)| (Some(tx), Some(rx)));
 
-        let input_id = input_id.clone();
-        std::thread::Builder::new()
-            .name(format!("Depayloading thread for input: {}", input_id.0))
-            .spawn(move || {
-                let _span = span!(
-                    Level::INFO,
-                    "RTP depayloader",
-                    input_id = input_id.to_string()
-                )
-                .entered();
-                run_depayloader_thread(receiver, depayloader, video_sender, audio_sender)
-            })
-            .unwrap();
+        let depayloader_clone = depayloader.clone();
+        let input_id_clone = input_id.clone();
+        thread::spawn(move || {
+            let _span = span!(
+                Level::INFO,
+                "RTP depayloader video",
+                input_id = input_id_clone.to_string()
+            )
+            .entered();
+            run_depayloader_loop(video_mpsc_receiver, depayloader_clone, video_sender.clone())
+        });
+
+        let depayloader_clone = depayloader.clone();
+        let input_id_clone = input_id.clone();
+        thread::spawn(move || {
+            let _span = span!(
+                Level::INFO,
+                "RTP depayloader audio",
+                input_id = input_id_clone.to_string()
+            )
+            .entered();
+            run_depayloader_loop(audio_mpsc_receiver, depayloader_clone, audio_sender.clone())
+        });
 
         DepayloaderThreadReceivers {
             video: video_receiver,
@@ -178,35 +205,25 @@ impl Drop for WhipReceiver {
     }
 }
 
-async fn run_depayloader_thread(
+fn run_depayloader_loop(
     mut receiver: tokio::sync::mpsc::Receiver<Packet>,
-    mut depayloader: Depayloader,
-    video_sender: Option<Sender<PipelineEvent<EncodedChunk>>>,
-    audio_sender: Option<Sender<PipelineEvent<EncodedChunk>>>,
+    depayloader: Arc<Mutex<Depayloader>>,
+    sender: Option<Sender<PipelineEvent<EncodedChunk>>>,
 ) {
-    let mut audio_eos_received = audio_sender.as_ref().map(|_| false);
-    let mut video_eos_received = video_sender.as_ref().map(|_| false);
-    let mut audio_ssrc = None;
-    let mut video_ssrc = None;
+    let sender_clone = sender.clone();
+    let mut eos_received = sender.as_ref().map(|_| false);
+    let mut ssrc = None;
 
-    let mut maybe_send_video_eos = || {
-        if let (Some(sender), Some(false)) = (&video_sender, video_eos_received) {
-            video_eos_received = Some(true);
+    let mut maybe_send_eos = || {
+        if let (Some(sender), Some(false)) = (&sender, eos_received) {
+            eos_received = Some(true);
             if sender.send(PipelineEvent::EOS).is_err() {
                 debug!("Failed to send EOS from RTP video depayloader. Channel closed.");
             }
         }
     };
-    let mut maybe_send_audio_eos = || {
-        if let (Some(sender), Some(false)) = (&audio_sender, audio_eos_received) {
-            audio_eos_received = Some(true);
-            if sender.send(PipelineEvent::EOS).is_err() {
-                debug!("Failed to send EOS from RTP audio depayloader. Channel closed.");
-            }
-        }
-    };
     loop {
-        let Some(packet) = receiver.recv().await else {
+        let Some(packet) = receiver.blocking_recv() else {
             debug!("Closing RTP depayloader thread.");
             break;
         };
@@ -218,53 +235,48 @@ async fn run_depayloader_thread(
         // in the RTP/AVP profile [7] for the choice of RTP payload type values,
         // with the additional restriction that payload type values in the range
         // 64-95 MUST NOT be used.
-        // Ok(packet) if packet.header.payload_type < 64 || packet.header.payload_type > 95 => {
-        if packet.header.payload_type == 96 && video_ssrc.is_none() {
-            video_ssrc = Some(packet.header.ssrc);
-        }
-        if packet.header.payload_type == 97 && audio_ssrc.is_none() {
-            audio_ssrc = Some(packet.header.ssrc);
-        }
+        if packet.header.payload_type < 64 || packet.header.payload_type > 95 {
+            if ssrc.is_none() {
+                ssrc = Some(packet.header.ssrc);
+            }
+            // info!("{:?}", packet.header.payload_type);
 
-        match depayloader.depayload(packet) {
-            Ok(chunks) => {
-                for chunk in chunks {
-                    match &chunk.kind {
-                        EncodedChunkKind::Video(_) => video_sender
+            match depayloader.lock().unwrap().depayload(packet) {
+                Ok(chunks) => {
+                    for chunk in chunks {
+                        // println!("{:?}", chunk);
+                        sender_clone
                             .as_ref()
-                            .map(|video_sender| video_sender.send(PipelineEvent::Data(chunk))),
-                        EncodedChunkKind::Audio(_) => audio_sender
-                            .as_ref()
-                            .map(|audio_sender| audio_sender.send(PipelineEvent::Data(chunk))),
-                    };
+                            .map(|sender_clone| sender_clone.send(PipelineEvent::Data(chunk)));
+                    }
+                }
+                Err(err) => {
+                    warn!("RTP depayloading error: {}", err);
+                    continue;
                 }
             }
-            Err(err) => {
-                warn!("RTP depayloading error: {}", err);
-                continue;
-            }
         }
-        // }
+
         // Ok(_) | Err(_) => {
         //     match rtcp::packet::unmarshal(&mut buffer) {
         //         Ok(rtcp_packets) => {
-        //             for rtcp_packet in rtcp_packets {
-        //                 if let PacketType::Goodbye = rtcp_packet.header().packet_type {
-        //                     for ssrc in rtcp_packet.destination_ssrc() {
-        //                         if Some(ssrc) == audio_ssrc {
-        //                             maybe_send_audio_eos()
-        //                         }
-        //                         if Some(ssrc) == video_ssrc {
-        //                             maybe_send_video_eos()
-        //                         }
-        //                     }
-        //                 } else {
-        //                     debug!(
-        //                         packet_type=?rtcp_packet.header().packet_type,
-        //                         "Received RTCP packet"
-        //                     )
-        //                 }
+        // for rtcp_packet in rtcp_packets {
+        //     if let PacketType::Goodbye = rtcp_packet.header().packet_type {
+        //         for ssrc in rtcp_packet.destination_ssrc() {
+        //             if Some(ssrc) == audio_ssrc {
+        //                 maybe_send_audio_eos()
         //             }
+        //             if Some(ssrc) == video_ssrc {
+        //                 maybe_send_video_eos()
+        //             }
+        //         }
+        //     } else {
+        //         debug!(
+        //             packet_type=?rtcp_packet.header().packet_type,
+        //             "Received RTCP packet"
+        //         )
+        //     }
+        // }
         //         }
         //         Err(err) => {
         //             warn!(%err, "Received an unexpected packet, which is not recognized either as RTP or RTCP. Dropping.");
@@ -274,8 +286,7 @@ async fn run_depayloader_thread(
         // }
     }
     // }
-    maybe_send_audio_eos();
-    maybe_send_video_eos();
+    maybe_send_eos();
 }
 
 #[derive(Debug, thiserror::Error)]

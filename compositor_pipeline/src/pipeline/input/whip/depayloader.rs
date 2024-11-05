@@ -9,8 +9,8 @@ use rtp::{
 
 use crate::pipeline::{
     decoder::{self, AacDecoderOptions},
-    rtp::{AUDIO_PAYLOAD_TYPE, VIDEO_PAYLOAD_TYPE},
     types::{AudioCodec, EncodedChunk, EncodedChunkKind, VideoCodec},
+    whip_whep::{AUDIO_PAYLOAD_TYPE, VIDEO_PAYLOAD_TYPE},
     VideoDecoder,
 };
 
