@@ -32,6 +32,7 @@ use webrtc::{
     },
 };
 
+mod authenticator;
 mod config;
 mod handlers;
 
