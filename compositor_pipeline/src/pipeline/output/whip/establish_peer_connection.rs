@@ -3,7 +3,7 @@ use crossbeam_channel::Sender;
 use super::WhipError;
 use reqwest::{header::HeaderMap, Client, Method, StatusCode, Url};
 use std::sync::{atomic::AtomicBool, Arc};
-use tracing::{debug, error, info};
+use tracing::{debug, error, info, warn};
 use webrtc::{
     ice_transport::{ice_candidate::RTCIceCandidate, ice_connection_state::RTCIceConnectionState},
     peer_connection::{sdp::session_description::RTCSessionDescription, RTCPeerConnection},
@@ -194,7 +194,12 @@ async fn handle_candidate(
             .text()
             .await
             .map_err(|e| WhipError::BodyParsingError("Trickle ICE patch".to_string(), e))?;
-        return Err(WhipError::BadStatus(status, body_str));
-    };
+        if status == StatusCode::UNPROCESSABLE_ENTITY || status == StatusCode::METHOD_NOT_ALLOWED {
+            warn!("Error while sending Ice Candidate do WHIP Server (Trickle ICE is probably not supported):\nStaus code: {status}\nBody: {body_str}")
+        } else {
+            return Err(WhipError::BadStatus(status, body_str));
+        }
+    }
+
     Ok(())
 }
