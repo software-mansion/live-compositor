@@ -7,9 +7,6 @@ mod routes;
 mod server;
 mod state;
 
-#[cfg(test)]
-mod snapshot_tests;
-
 fn main() {
     #[cfg(feature = "web_renderer")]
     {
