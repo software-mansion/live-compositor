@@ -1,4 +1,16 @@
-use std::{str::FromStr, sync::OnceLock};
+use std::{
+    fmt::Debug,
+    fs::{self, File},
+    str::FromStr,
+    sync::OnceLock,
+};
+
+use tracing_subscriber::{
+    fmt::{self},
+    layer::SubscriberExt,
+    util::SubscriberInitExt,
+    Layer, Registry,
+};
 
 use crate::config::{read_config, LoggerConfig, LoggerFormat};
 
@@ -58,27 +70,37 @@ extern "C" fn ffmpeg_log_callback(
 }
 
 pub fn init_logger(opts: LoggerConfig) {
-    let env_filter = tracing_subscriber::EnvFilter::new(opts.level);
-    match opts.format {
-        LoggerFormat::Pretty => {
-            tracing_subscriber::fmt()
-                .pretty()
-                .with_env_filter(env_filter)
-                .init();
-        }
-        LoggerFormat::Json => {
-            tracing_subscriber::fmt()
-                .json()
-                .with_env_filter(env_filter)
-                .init();
-        }
-        LoggerFormat::Compact => {
-            tracing_subscriber::fmt()
-                .compact()
-                .with_env_filter(env_filter)
-                .init();
-        }
+    let env_filter = tracing_subscriber::EnvFilter::new(opts.level.clone());
+
+    let stdout_layer = match opts.format {
+        LoggerFormat::Pretty => fmt::Layer::default().pretty().boxed(),
+        LoggerFormat::Json => fmt::Layer::default().json().boxed(),
+        LoggerFormat::Compact => fmt::Layer::default().compact().boxed(),
+    };
+
+    let file_layer = if let Some(log_file) = opts.log_file {
+        if log_file.exists() {
+            fs::remove_file(&log_file).unwrap()
+        };
+        fs::create_dir_all(log_file.parent().unwrap()).unwrap();
+        let writer = File::create(log_file).unwrap();
+        Some(fmt::Layer::default().json().with_writer(writer))
+    } else {
+        None
+    };
+
+    match file_layer {
+        Some(file_layer) => Registry::default()
+            .with(stdout_layer)
+            .with(file_layer)
+            .with(env_filter)
+            .init(),
+        None => Registry::default()
+            .with(stdout_layer)
+            .with(env_filter)
+            .init(),
     }
+
     unsafe {
         ffmpeg_next::sys::av_log_set_callback(Some(ffmpeg_log_callback));
     }
