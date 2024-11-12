@@ -10,7 +10,7 @@ use parameters::VideoSessionParametersManager;
 
 use super::{
     h264_level_idc_to_max_dpb_mbs, vk_to_h264_level_idc, CommandBuffer, DecodeQueryPool, Fence,
-    H264ProfileInfo, SeqParameterSetExt, VideoSession, VulkanCtx, VulkanDecoderError,
+    H264ProfileInfo, SeqParameterSetExt, VideoSession, VulkanDecoderError, VulkanDevice,
 };
 
 mod images;
@@ -55,7 +55,7 @@ fn calculate_max_num_reorder_frames(sps: &SeqParameterSet) -> Result<u64, Vulkan
 
 impl VideoSessionResources<'_> {
     pub(crate) fn new_from_sps(
-        vulkan_ctx: &VulkanCtx,
+        vulkan_ctx: &VulkanDevice,
         decode_buffer: &CommandBuffer,
         sps: SeqParameterSet,
         fence_memory_barrier_completed: &Fence,
@@ -131,7 +131,7 @@ impl VideoSessionResources<'_> {
 
     pub(crate) fn process_sps(
         &mut self,
-        vulkan_ctx: &VulkanCtx,
+        vulkan_ctx: &VulkanDevice,
         decode_buffer: &CommandBuffer,
         sps: SeqParameterSet,
         fence_memory_barrier_completed: &Fence,
@@ -200,7 +200,7 @@ impl VideoSessionResources<'_> {
     }
 
     fn new_decoding_images<'a>(
-        vulkan_ctx: &VulkanCtx,
+        vulkan_ctx: &VulkanDevice,
         profile: &H264ProfileInfo,
         max_coded_extent: vk::Extent2D,
         max_dpb_slots: u32,

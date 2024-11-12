@@ -133,7 +133,7 @@ pub struct PipelineCtx {
     pub download_dir: Arc<PathBuf>,
     pub event_emitter: Arc<EventEmitter>,
     #[cfg(feature = "vk-video")]
-    pub vulkan_ctx: Option<Arc<vk_video::VulkanCtx>>,
+    pub vulkan_ctx: Option<graphics_context::VulkanCtx>,
 }
 
 impl std::fmt::Debug for PipelineCtx {
@@ -156,6 +156,7 @@ impl Pipeline {
                 opts.force_gpu,
                 opts.wgpu_features,
                 Default::default(),
+                None,
             )?),
             #[cfg(not(feature = "vk-video"))]
             None => None,

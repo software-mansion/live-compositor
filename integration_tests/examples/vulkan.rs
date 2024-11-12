@@ -73,7 +73,7 @@ fn client_code() -> Result<()> {
     const INPUT_PORT: u16 = 8006;
     const OUTPUT_PORT: u16 = 8004;
 
-    const VIDEOS: u16 = 1;
+    const VIDEOS: u16 = 6;
     start_ffmpeg_receive(Some(OUTPUT_PORT), None)?;
 
     let config = read_config();
@@ -176,7 +176,7 @@ fn client_code() -> Result<()> {
     Pipeline::start(&pipeline);
 
     for i in 0..VIDEOS {
-        start_ffmpeg_send(IP, Some(INPUT_PORT + 2 * i), None, TestSample::Sample)?;
+        start_ffmpeg_send(IP, Some(INPUT_PORT + 2 * i), None, TestSample::BigBuckBunny)?;
     }
 
     let event_loop_fallback = || {

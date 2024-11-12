@@ -9,27 +9,18 @@ fn main() {
     };
     use live_compositor::config::read_config;
 
-    let graphics_context =
-        GraphicsContext::new(false, wgpu::Features::default(), wgpu::Limits::default()).unwrap();
+    let graphics_context = GraphicsContext::new(
+        false,
+        wgpu::Features::default(),
+        wgpu::Limits::default(),
+        None,
+    )
+    .unwrap();
 
     let _device = graphics_context.device.clone();
     let _queue = graphics_context.queue.clone();
-
-    let _adapter = graphics_context
-        .vulkan_ctx
-        .as_ref()
-        .unwrap()
-        .wgpu_ctx
-        .adapter
-        .clone();
-
-    let _instance = graphics_context
-        .vulkan_ctx
-        .as_ref()
-        .unwrap()
-        .wgpu_ctx
-        .instance
-        .clone();
+    let _adapter = graphics_context.adapter.clone();
+    let _instance = graphics_context.instance.clone();
 
     let config = read_config();
 
