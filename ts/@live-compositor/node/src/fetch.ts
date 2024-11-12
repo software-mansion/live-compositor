@@ -1,11 +1,15 @@
 import fs from 'fs';
+import http from 'http';
+import https from 'https';
 import { Stream } from 'stream';
 import { promisify } from 'util';
 
 import fetch from 'node-fetch';
-import { ApiRequest } from '@live-compositor/core';
+import type { ApiRequest } from '@live-compositor/core';
 
 const pipeline = promisify(Stream.pipeline);
+const httpAgent = new http.Agent({ keepAlive: true });
+const httpsAgent = new https.Agent({ keepAlive: true });
 
 export async function sendRequest(baseUrl: string, request: ApiRequest): Promise<object> {
   const response = await fetch(new URL(request.route, baseUrl), {
@@ -14,6 +18,7 @@ export async function sendRequest(baseUrl: string, request: ApiRequest): Promise
     headers: {
       'Content-Type': 'application/json',
     },
+    agent: url => (url.protocol === 'http:' ? httpAgent : httpsAgent),
   });
   if (response.status >= 400) {
     const err: any = new Error(`Request to compositor failed.`);

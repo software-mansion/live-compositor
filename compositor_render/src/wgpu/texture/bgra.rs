@@ -15,7 +15,7 @@ impl BGRATexture {
                 height: resolution.height as u32,
                 depth_or_array_layers: 1,
             },
-            wgpu::TextureFormat::Rgba8Unorm,
+            wgpu::TextureFormat::Rgba8UnormSrgb,
             wgpu::TextureUsages::COPY_DST | wgpu::TextureUsages::TEXTURE_BINDING,
         ))
     }

@@ -15,58 +15,15 @@ import {
   InputsSettings,
   Resolution,
 } from '../resolution';
-import styles from './playground.module.css';
+import { defaultJsonExample } from '@site/src/scene/defaultJsonExample';
+import ExecutionEnvironment from '@docusaurus/ExecutionEnvironment';
 
-const INITIAL_SCENE = {
-  type: 'view',
-  background_color_rgba: '#4d4d4dff',
-  children: [
-    {
-      type: 'rescaler',
-      child: { type: 'input_stream', input_id: 'input_1' },
-    },
-    {
-      type: 'rescaler',
-      width: 320,
-      height: 180,
-      top: 20,
-      right: 20,
-      child: { type: 'input_stream', input_id: 'input_2' },
-    },
-    {
-      type: 'rescaler',
-      width: 320,
-      height: 180,
-      top: 20,
-      left: 20,
-      child: { type: 'input_stream', input_id: 'input_3' },
-    },
-    {
-      type: 'rescaler',
-      width: 320,
-      height: 180,
-      bottom: 20,
-      left: 20,
-      child: { type: 'input_stream', input_id: 'input_4' },
-    },
-    {
-      type: 'rescaler',
-      width: 320,
-      height: 180,
-      bottom: 20,
-      right: 20,
-      child: { type: 'input_stream', input_id: 'input_5' },
-    },
-    {
-      type: 'rescaler',
-      width: 640,
-      height: 400,
-      top: 20,
-      right: 800,
-      child: { type: 'input_stream', input_id: 'input_6' },
-    },
-  ],
-};
+const STORED_CODE_EDITOR_CONTENT = ExecutionEnvironment.canUseDOM ? getStoredEditorContent() : null;
+
+const INITIAL_SCENE =
+  STORED_CODE_EDITOR_CONTENT !== null
+    ? JSON.parse(STORED_CODE_EDITOR_CONTENT)
+    : defaultJsonExample();
 
 const INITIAL_REACT_CODE = [
   "import React from 'react';\n",
@@ -82,8 +39,20 @@ const INITIAL_REACT_CODE = [
   'console.log("Hello");',
 ].join('\n');
 
+function getStoredEditorContent() {
+  const sessionStorageContent = sessionStorage.getItem('playgroundCodeEditorContent');
+  if (sessionStorageContent) {
+    return sessionStorageContent;
+  } else {
+    return localStorage.getItem('playgroundCodeEditorContent');
+  }
+}
+
 function Homepage() {
+  // Is updated when code editor content changes, but changes here are not passed back to the editor.
   const [scene, setScene] = useState<object | Error>(INITIAL_SCENE);
+  // Code editor will be updated if this state changes.
+  const [codeEditorOverrideContent, setCodeEditorOverrideContent] = useState<object>(INITIAL_SCENE);
   const [code, setCode] = useState<string>(INITIAL_REACT_CODE);
   const [showReactEditor, setShowReactEditor] = useState<boolean>(false);
   const [inputResolutions, setInputResolutions] = useState<InputsSettings>({
@@ -101,6 +70,7 @@ function Homepage() {
       [inputId]: resolution,
     });
   }
+
   const [outputResolution, setOutputResolution] = useState<Resolution>({
     width: 1920,
     height: 1080,
@@ -109,17 +79,29 @@ function Homepage() {
   const [responseData, setResponseData] = useState({
     imageUrl: '',
     errorMessage: '',
+    loading: false,
   });
 
   const setErrorMessage = message => {
-    setResponseData(prevResponseData => ({ ...prevResponseData, errorMessage: message }));
+    setResponseData(prevResponseData => ({
+      ...prevResponseData,
+      errorMessage: message,
+      loading: false,
+    }));
   };
 
   const handleSubmit = async (): Promise<void> => {
+    let loadingToastTimer;
+    let loadingToast;
     try {
       if (showReactEditor) {
         await executeTypescriptCode(code);
       } else {
+        loadingToastTimer = setTimeout(() => {
+          loadingToast = toast.loading('Rendering... It can take a while');
+        }, 3000);
+
+        setResponseData({ imageUrl: '', errorMessage: '', loading: true });
         if (scene instanceof Error) {
           throw new Error(`${scene.name};\n${scene.message}`);
         }
@@ -130,8 +112,10 @@ function Homepage() {
         };
         const blob = await renderImage({ ...request });
         const imageObjectURL = URL.createObjectURL(blob);
+        if (loadingToast) toast.dismiss(loadingToast);
+        clearTimeout(loadingToastTimer);
 
-        setResponseData({ imageUrl: imageObjectURL, errorMessage: '' });
+        setResponseData({ imageUrl: imageObjectURL, errorMessage: '', loading: false });
       }
     } catch (error: any) {
       let errorDescription;
@@ -141,6 +125,10 @@ function Homepage() {
         errorDescription = error.message;
       }
       setErrorMessage(errorDescription);
+      if (loadingToastTimer) {
+        toast.dismiss();
+        clearTimeout(loadingToastTimer);
+      }
       toast.error(`${errorDescription}`);
     }
   };
@@ -150,24 +138,35 @@ function Homepage() {
     setShowReactEditor(ifReactMode);
   }, []);
 
+  function populateEditorWithExample(content: object) {
+    setScene(content);
+    setCodeEditorOverrideContent(content);
+  }
+
+  useEffect(() => {
+    void handleSubmit();
+  }, [codeEditorOverrideContent]);
+
   return (
-    <div className={styles.page}>
-      <div className={styles.leftSide}>
-        <div className={styles.codeEditorBox}>
-          {showReactEditor ? (
-            <PlaygroundReactEditor code={code} onCodeChange={setCode} />
-          ) : (
-            <PlaygroundCodeEditor onChange={setScene} initialCodeEditorContent={INITIAL_SCENE} />
-          )}
-        </div>
+    <div className="flex flex-row flex-wrap p-8 lg:h-[calc(100vh-110px)]">
+      <div className="flex-1 m-2 border-2 border-gray-400 border-solid rounded-md max-h-full min-w-[300px] min-h-[500px]">
+        {showReactEditor ? (
+          <PlaygroundReactEditor code={code} onCodeChange={setCode} />
+        ) : (
+          <PlaygroundCodeEditor
+            onChange={setScene}
+            codeEditorOverrideContent={codeEditorOverrideContent}
+          />
+        )}
       </div>
-      <div className={styles.rightSide}>
-        <div className={styles.preview}>
+      <div className="flex flex-col flex-1 max-h-full">
+        <div className="flex flex-1 m-2 justify-center border-2 border-gray-400 border-solid rounded-md min-w-[300px] min-h-[120px]">
           <PlaygroundPreview {...responseData} />
         </div>
-        <div className={styles.settingsBox}>
+        <div className="flex flex-1 m=2 min-w-[300px] min-h-[300px]">
           <PlaygroundSettings
             onSubmit={handleSubmit}
+            isLoading={responseData.loading}
             sceneValidity={!(scene instanceof Error) || showReactEditor}
             onInputResolutionChange={updateInputResolutions}
             onOutputResolutionChange={(resolution: Resolution) => {
@@ -175,6 +174,7 @@ function Homepage() {
             }}
             inputsSettings={inputResolutions}
             outputResolution={outputResolution}
+            populateEditorWithExample={populateEditorWithExample}
           />
         </div>
       </div>

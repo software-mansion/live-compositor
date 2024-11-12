@@ -117,7 +117,7 @@ const config: Config = {
       copyright: `Copyright © ${new Date().getFullYear()} Software Mansion S.A.`,
     },
     prism: {
-      theme: prismThemes.duotoneDark,
+      theme: prismThemes.oneDark,
       additionalLanguages: ['wgsl', 'http', 'elixir', 'bash'],
     },
     algolia: {

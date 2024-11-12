@@ -1,89 +1,134 @@
-use std::{collections::HashSet, env, fs, path::PathBuf};
-
-use self::{
-    test_case::{TestCaseError, TestCaseInstance},
-    tests::snapshot_tests,
-    utils::{find_unused_snapshots, snapshots_path},
+use std::{
+    collections::HashSet,
+    fs,
+    path::{Path, PathBuf},
+    time::Duration,
 };
 
+use compositor_api::types::UpdateOutputRequest;
+use compositor_render::{scene::Component, Resolution};
+use test_case::{TestCase, TestResult, OUTPUT_ID};
+use utils::SNAPSHOTS_DIR_NAME;
+
+mod input;
+mod snapshot;
 mod test_case;
-mod tests;
 mod utils;
 
-#[test]
-fn test_snapshots() {
-    let tests: Vec<TestCaseInstance> = snapshot_tests()
-        .into_iter()
-        .map(TestCaseInstance::new)
-        .collect();
+mod image_tests;
+mod rescaler_tests;
+mod shader_tests;
+mod simple_tests;
+mod text_tests;
+mod tiles_tests;
+mod tiles_transitions_tests;
+mod transition_tests;
+mod view_tests;
 
-    check_test_names_uniqueness(&tests);
+const DEFAULT_RESOLUTION: Resolution = Resolution {
+    width: 640,
+    height: 360,
+};
 
-    for test in tests.iter() {
-        eprintln!("Test \"{}\"", test.case.name);
-        if let Err(err) = test.run() {
-            handle_error(err);
+struct TestRunner {
+    cases: Vec<TestCase>,
+    snapshot_dir: PathBuf,
+}
+
+impl TestRunner {
+    fn new(snapshot_dir: PathBuf) -> Self {
+        Self {
+            cases: Vec::new(),
+            snapshot_dir,
         }
     }
 
-    // Check for unused snapshots
-    let snapshot_paths = tests
+    fn add(&mut self, case: TestCase) {
+        self.cases.push(case)
+    }
+
+    fn run(self) {
+        check_test_names_uniqueness(&self.cases);
+        check_unused_snapshots(&self.cases, &self.snapshot_dir);
+        let has_only = self.cases.iter().any(|test| test.only);
+
+        let mut failed = false;
+        for test in self.cases.iter() {
+            if has_only && !test.only {
+                continue;
+            }
+            println!("Test \"{}\"", test.name);
+            if let TestResult::Failure = test.run() {
+                failed = true;
+            }
+        }
+        if failed {
+            panic!("Test failed")
+        }
+    }
+}
+
+fn scene_from_json(scene: &'static str) -> Vec<Component> {
+    let scene: UpdateOutputRequest = serde_json::from_str(scene).unwrap();
+    vec![scene.video.unwrap().try_into().unwrap()]
+}
+
+fn scenes_from_json(scenes: &[&'static str]) -> Vec<Component> {
+    scenes
         .iter()
-        .flat_map(TestCaseInstance::snapshot_paths)
-        .collect::<HashSet<_>>();
-    let unused_snapshots = find_unused_snapshots(&snapshot_paths, snapshots_path());
-    if !unused_snapshots.is_empty() {
-        panic!("Some snapshots were not used: {unused_snapshots:#?}")
-    }
+        .map(|scene| {
+            let scene: UpdateOutputRequest = serde_json::from_str(scene).unwrap();
+            scene.video.unwrap().try_into().unwrap()
+        })
+        .collect()
 }
 
-fn handle_error(err: TestCaseError) {
-    let TestCaseError::Mismatch {
-        ref snapshot_from_disk,
-        ref produced_snapshot,
-        ..
-    } = err
-    else {
-        panic!("{err}");
-    };
-
-    let failed_snapshot_path = failed_snapshot_path();
-    if !failed_snapshot_path.exists() {
-        fs::create_dir_all(&failed_snapshot_path).unwrap();
-    }
-    let snapshot_save_path = produced_snapshot.save_path();
-    let snapshot_name = snapshot_save_path.file_name().unwrap().to_string_lossy();
-
-    let width = produced_snapshot.resolution.width - (produced_snapshot.resolution.width % 2);
-    let height = produced_snapshot.resolution.height - (produced_snapshot.resolution.height % 2);
-    image::save_buffer(
-        failed_snapshot_path.join(format!("mismatched_{snapshot_name}")),
-        &produced_snapshot.data,
-        width as u32,
-        height as u32,
-        image::ColorType::Rgba8,
-    )
-    .unwrap();
-
-    snapshot_from_disk
-        .save(failed_snapshot_path.join(format!("original_{snapshot_name}")))
-        .unwrap();
-
-    panic!("{err}");
-}
-
-fn failed_snapshot_path() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("failed_snapshot_tests")
-}
-
-fn check_test_names_uniqueness(tests: &[TestCaseInstance]) {
+fn check_test_names_uniqueness(tests: &[TestCase]) {
     let mut test_names = HashSet::new();
     for test in tests.iter() {
-        if !test_names.insert(test.case.name) {
+        if !test_names.insert(test.name) {
             panic!(
                 "Multiple snapshots tests with the same name: \"{}\".",
-                test.case.name
+                test.name
             );
+        }
+    }
+}
+
+fn snapshots_path() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(SNAPSHOTS_DIR_NAME)
+}
+
+fn snapshot_save_path(test_name: &str, pts: &Duration) -> PathBuf {
+    let out_file_name = format!("{}_{}_{}.png", test_name, pts.as_millis(), OUTPUT_ID);
+    snapshots_path().join(out_file_name)
+}
+
+fn check_unused_snapshots(tests: &[TestCase], snapshot_dir: &Path) {
+    let existing_snapshots = tests
+        .iter()
+        .flat_map(TestCase::snapshot_paths)
+        .collect::<HashSet<_>>();
+    let mut unused_snapshots = Vec::new();
+    for entry in fs::read_dir(snapshot_dir).unwrap() {
+        let entry = entry.unwrap();
+        if !entry.file_name().to_string_lossy().ends_with(".png") {
+            continue;
+        }
+
+        if !existing_snapshots.contains(&entry.path()) {
+            unused_snapshots.push(entry.path())
+        }
+    }
+
+    if !unused_snapshots.is_empty() {
+        if cfg!(feature = "update_snapshots") {
+            for snapshot_path in unused_snapshots {
+                println!("DELETE: Unused snapshot {snapshot_path:?}");
+                fs::remove_file(snapshot_path).unwrap();
+            }
+        } else {
+            panic!("Some snapshots were not used: {unused_snapshots:#?}")
         }
     }
 }

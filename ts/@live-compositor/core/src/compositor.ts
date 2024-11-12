@@ -1,16 +1,14 @@
-import { _liveCompositorInternals, RegisterInput, RegisterOutput } from 'live-compositor';
-import { ApiClient, Api } from './api';
-import Output from './output';
-import { CompositorManager } from './compositorManager';
-import { intoRegisterOutput } from './api/output';
-import { intoRegisterInput } from './api/input';
-import { onCompositorEvent } from './event';
-
-export async function createLiveCompositor(manager: CompositorManager): Promise<LiveCompositor> {
-  const compositor = new LiveCompositor(manager);
-  await compositor['setupInstance']();
-  return compositor;
-}
+import type { Renderers } from 'live-compositor';
+import { _liveCompositorInternals } from 'live-compositor';
+import { ApiClient } from './api.js';
+import Output from './output.js';
+import type { CompositorManager } from './compositorManager.js';
+import type { RegisterOutput } from './api/output.js';
+import { intoRegisterOutput } from './api/output.js';
+import type { RegisterInput } from './api/input.js';
+import { intoRegisterInput } from './api/input.js';
+import { onCompositorEvent } from './event.js';
+import { intoRegisterImage, intoRegisterWebRenderer } from './api/renderer.js';
 
 export class LiveCompositor {
   private manager: CompositorManager;
@@ -24,7 +22,7 @@ export class LiveCompositor {
     this.store = new _liveCompositorInternals.InstanceContextStore();
   }
 
-  private async setupInstance() {
+  public async init(): Promise<void> {
     this.manager.registerEventListener((event: unknown) => onCompositorEvent(this.store, event));
     await this.manager.setupInstance();
   }
@@ -61,7 +59,10 @@ export class LiveCompositor {
     });
   }
 
-  public async registerShader(shaderId: string, request: Api.ShaderSpec): Promise<object> {
+  public async registerShader(
+    shaderId: string,
+    request: Renderers.RegisterShader
+  ): Promise<object> {
     return this.api.registerShader(shaderId, request);
   }
 
@@ -69,8 +70,8 @@ export class LiveCompositor {
     return this.api.unregisterShader(shaderId);
   }
 
-  public async registerImage(imageId: string, request: Api.ImageSpec): Promise<object> {
-    return this.api.registerImage(imageId, request);
+  public async registerImage(imageId: string, request: Renderers.RegisterImage): Promise<object> {
+    return this.api.registerImage(imageId, intoRegisterImage(request));
   }
 
   public async unregisterImage(imageId: string): Promise<object> {
@@ -79,9 +80,9 @@ export class LiveCompositor {
 
   public async registerWebRenderer(
     instanceId: string,
-    request: Api.WebRendererSpec
+    request: Renderers.RegisterWebRenderer
   ): Promise<object> {
-    return this.api.registerWebRenderer(instanceId, request);
+    return this.api.registerWebRenderer(instanceId, intoRegisterWebRenderer(request));
   }
 
   public async unregisterWebRenderer(instanceId: string): Promise<object> {

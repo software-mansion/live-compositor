@@ -128,4 +128,4 @@ fn fs_main(input: A) -> @location(0) vec4<f32>
 
 Where `A` is the output type of the vertex shader.
 
-Shaders have to be registered using the [register shader](./../api/routes.md#register-shader) request before they can be used.
+Shaders have to be registered before they can be used. ([TypeScript](../typescript/instance.md#register-shader), [HTTP](../api/routes.md#register-shader))

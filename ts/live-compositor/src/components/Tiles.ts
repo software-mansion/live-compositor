@@ -1,6 +1,8 @@
-import * as Api from '../api';
-import { intoApiTransition, Transition } from './common';
-import { createCompositorComponent, SceneComponent, sceneComponentIntoApi } from '../component';
+import type * as Api from '../api.js';
+import type { Transition } from './common.js';
+import { intoApiRgbaColor, intoApiTransition } from './common.js';
+import type { SceneComponent } from '../component.js';
+import { createCompositorComponent, sceneComponentIntoApi } from '../component.js';
 
 export type TilesProps = {
   /**
@@ -63,7 +65,7 @@ function sceneBuilder(props: TilesProps, children: SceneComponent[]): Api.Compon
     children: children.map(sceneComponentIntoApi),
     width: props.width,
     height: props.height,
-    background_color_rgba: props.backgroundColor,
+    background_color_rgba: props.backgroundColor && intoApiRgbaColor(props.backgroundColor),
     tile_aspect_ratio: props.tileAspectRatio,
     margin: props.margin,
     padding: props.padding,

@@ -1,8 +1,4 @@
-import * as Api from '../api';
-
-export type RegisterInput =
-  | ({ type: 'rtp_stream' } & RegisterRtpInput)
-  | ({ type: 'mp4' } & RegisterMp4Input);
+import type * as Api from '../api.js';
 
 export type RegisterRtpInput = {
   /**
@@ -43,6 +39,10 @@ export type RegisterMp4Input = {
    * Path to the MP4 file (location on the server where LiveCompositor server is deployed).
    */
   serverPath?: string | null;
+  /**
+   * (**default=`false`**) If input should be played in the loop. <span class="badge badge--primary">Added in v0.4.0</span>
+   */
+  loop?: boolean | null;
   /**
    * (**default=`false`**) If input is required and frames are not processed
    * on time, then LiveCompositor will delay producing output frames.

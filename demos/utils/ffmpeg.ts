@@ -1,34 +1,29 @@
-import { COMPOSITOR_DIR } from './prepare_compositor';
-import { SpawnPromise, spawn } from './utils';
+import type { SpawnPromise } from './utils';
+import { sleepAsync, spawn } from './utils';
 import path from 'path';
-import fs from 'fs-extra';
+import { mkdirp, writeFile } from 'fs-extra';
+
+const COMPOSITOR_DIR = path.join(__dirname, '../.live_compositor');
 
 export async function ffplayStartPlayerAsync(
-  ip: string,
-  displayOutput: boolean,
   video_port: number,
   audio_port: number | undefined = undefined
-): Promise<{ spawn_promise: SpawnPromise }> {
+): Promise<void> {
   let sdpFilePath;
+  await mkdirp(COMPOSITOR_DIR);
   if (audio_port === undefined) {
     sdpFilePath = path.join(COMPOSITOR_DIR, `video_input_${video_port}.sdp`);
-    await writeVideoSdpFile(ip, video_port, sdpFilePath);
+    await writeVideoSdpFile('127.0.0.1', video_port, sdpFilePath);
   } else {
     sdpFilePath = path.join(COMPOSITOR_DIR, `video_audio_input_${video_port}_${audio_port}.sdp`);
-    await writeVideoAudioSdpFile(ip, video_port, audio_port, sdpFilePath);
+    await writeVideoAudioSdpFile('127.0.0.1', video_port, audio_port, sdpFilePath);
   }
 
-  const promise = spawn('ffplay', ['-protocol_whitelist', 'file,rtp,udp', sdpFilePath], {
-    displayOutput,
-  });
-  return { spawn_promise: promise };
+  void spawn('ffplay', ['-protocol_whitelist', 'file,rtp,udp', sdpFilePath], {});
+  await sleepAsync(2000);
 }
 
-export function ffmpegSendVideoFromMp4(
-  port: number,
-  mp4Path: string,
-  displayOutput: boolean
-): SpawnPromise {
+export function ffmpegSendVideoFromMp4(port: number, mp4Path: string): SpawnPromise {
   return spawn(
     'ffmpeg',
     [
@@ -44,11 +39,11 @@ export function ffmpegSendVideoFromMp4(
       'rtp',
       `rtp://127.0.0.1:${port}?rtcpport=${port}`,
     ],
-    { displayOutput }
+    {}
   );
 }
 
-export function ffmpegStreamScreen(ip: string, port: number, displayOutput: boolean): SpawnPromise {
+export function ffmpegStreamScreen(port: number): SpawnPromise {
   const platform = process.platform;
   let inputOptions: string[];
   if (platform === 'darwin') {
@@ -69,9 +64,9 @@ export function ffmpegStreamScreen(ip: string, port: number, displayOutput: bool
       'libx264',
       '-f',
       'rtp',
-      `rtp://${ip}:${port}?rtcpport=${port}`,
+      `rtp://127.0.0.1:${port}?rtcpport=${port}`,
     ],
-    { displayOutput }
+    {}
   );
 }
 
@@ -81,7 +76,7 @@ async function writeVideoAudioSdpFile(
   audio_port: number,
   destination: string
 ): Promise<void> {
-  fs.writeFile(
+  await writeFile(
     destination,
     `
 v=0
@@ -100,7 +95,7 @@ a=rtcp-mux
 }
 
 async function writeVideoSdpFile(ip: string, port: number, destination: string): Promise<void> {
-  fs.writeFile(
+  await writeFile(
     destination,
     `
 v=0

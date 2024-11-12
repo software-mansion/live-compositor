@@ -1,0 +1,37 @@
+{
+  "video": {
+    "root": {
+      "type": "view",
+      "background_color_rgba": "#FFFF00FF",
+      "children": [
+        {
+          "type": "rescaler",
+          "top": 50,
+          "left": 50,
+          "width": 400,
+          "height": 200,
+          "border_radius": 80,
+          "border_width": 20,
+          "border_color_rgba": "#FF0000FF",
+          "child": {
+            "type": "rescaler",
+            "border_radius": 60,
+            "border_width": 20,
+            "border_color_rgba": "#00FF00FF",
+            "child": {
+              "type": "rescaler",
+              "border_radius": 40,
+              "border_width": 20,
+              "border_color_rgba": "#0000FFFF",
+              "mode": "fill",
+              "child": {
+                "type": "input_stream",
+                "input_id": "input_1"
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

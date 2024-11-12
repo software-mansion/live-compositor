@@ -1,5 +1,6 @@
-import React, { useId } from 'react';
-import * as Api from './api';
+import type React from 'react';
+import { createElement, useId } from 'react';
+import type * as Api from './api.js';
 
 type ComponentProps<P> = { children?: React.ReactNode; id?: Api.ComponentId } & P;
 
@@ -13,7 +14,7 @@ export function createCompositorComponent<P>(
     const { children, ...otherProps } = props;
     const autoId = useId();
 
-    return React.createElement(
+    return createElement(
       'compositor',
       {
         sceneBuilder,

@@ -1,4 +1,4 @@
-import { ApiRequest } from './api';
+import type { ApiRequest } from './api.js';
 
 export interface CompositorManager {
   setupInstance(): Promise<void>;

@@ -6,8 +6,8 @@ pub(crate) mod format;
 pub(crate) mod texture;
 pub(crate) mod utils;
 
-pub use ctx::create_wgpu_ctx;
 pub(crate) use ctx::WgpuCtx;
+pub use ctx::{create_wgpu_ctx, required_wgpu_features, set_required_wgpu_limits};
 pub use wgpu::Features as WgpuFeatures;
 
 #[must_use]
@@ -60,8 +60,10 @@ pub enum CreateWgpuCtxError {
 pub enum WgpuError {
     #[error("Wgpu validation error:\n{0}")]
     Validation(String),
-    #[error("Wgpu out of memory error: {0}")]
+    #[error("Wgpu out of memory error:\n{0}")]
     OutOfMemory(String),
+    #[error("Wgpu internal error:\n{0}")]
+    Internal(String),
 }
 
 /// Convert to custom error because wgpu::Error is not Send/Sync
@@ -70,6 +72,7 @@ impl From<wgpu::Error> for WgpuError {
         match value {
             wgpu::Error::OutOfMemory { .. } => Self::OutOfMemory(value.to_string()),
             wgpu::Error::Validation { .. } => Self::Validation(value.to_string()),
+            wgpu::Error::Internal { .. } => Self::Internal(value.to_string()),
         }
     }
 }

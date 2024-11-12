@@ -10,6 +10,18 @@ impl ContinuousValue for RescalerComponentParam {
             mode: end.mode,
             horizontal_align: end.horizontal_align,
             vertical_align: end.vertical_align,
+            border_radius: ContinuousValue::interpolate(
+                &start.border_radius,
+                &end.border_radius,
+                state,
+            ),
+            border_width: ContinuousValue::interpolate(
+                &start.border_width,
+                &end.border_width,
+                state,
+            ),
+            border_color: end.border_color,
+            box_shadow: ContinuousValue::interpolate(&start.box_shadow, &end.box_shadow, state),
         }
     }
 }

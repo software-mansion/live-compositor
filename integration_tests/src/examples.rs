@@ -200,7 +200,7 @@ struct AssetData {
     path: PathBuf,
 }
 
-fn download_all_assets() -> Result<()> {
+pub fn download_all_assets() -> Result<()> {
     let assets = [AssetData {
         url: String::from("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"),
         path: examples_root_dir().join("examples/assets/BigBuckBunny.mp4"),
@@ -256,7 +256,7 @@ fn ensure_asset_available(asset_path: &PathBuf) -> Result<()> {
     Ok(())
 }
 
-fn examples_root_dir() -> PathBuf {
+pub fn examples_root_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
 }
 

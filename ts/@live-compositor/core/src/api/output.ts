@@ -1,22 +1,51 @@
-import { RegisterOutput, Api, Outputs } from 'live-compositor';
+import type {
+  Api,
+  Outputs,
+  RegisterRtpOutput,
+  RegisterMp4Output,
+  RegisterCanvasOutput,
+} from 'live-compositor';
+
+export type RegisterOutputRequest = Api.RegisterOutput | RegisterCanvasOutputRequest;
+
+export type RegisterCanvasOutputRequest = {
+  type: 'canvas';
+  video: OutputCanvasVideoOptions;
+};
+
+export type OutputCanvasVideoOptions = {
+  resolution: Api.Resolution;
+  /**
+   * HTMLCanvasElement
+   */
+  canvas: any;
+  initial: Api.Video;
+};
+
+export type RegisterOutput =
+  | ({ type: 'rtp_stream' } & RegisterRtpOutput)
+  | ({ type: 'mp4' } & RegisterMp4Output)
+  | ({ type: 'canvas' } & RegisterCanvasOutput);
 
 export function intoRegisterOutput(
   output: RegisterOutput,
   initial: { video?: Api.Video; audio?: Api.Audio }
-): Api.RegisterOutput {
+): RegisterOutputRequest {
   if (output.type === 'rtp_stream') {
     return intoRegisterRtpOutput(output, initial);
   } else if (output.type === 'mp4') {
     return intoRegisterMp4Output(output, initial);
+  } else if (output.type === 'canvas') {
+    return intoRegisterCanvasOutput(output, initial);
   } else {
-    throw new Error(`Unknown input type ${(output as any).type}`);
+    throw new Error(`Unknown output type ${(output as any).type}`);
   }
 }
 
 function intoRegisterRtpOutput(
   output: Outputs.RegisterRtpOutput,
   initial: { video?: Api.Video; audio?: Api.Audio }
-): Api.RegisterOutput {
+): RegisterOutputRequest {
   return {
     type: 'rtp_stream',
     port: output.port,
@@ -30,7 +59,7 @@ function intoRegisterRtpOutput(
 function intoRegisterMp4Output(
   output: Outputs.RegisterMp4Output,
   initial: { video?: Api.Video; audio?: Api.Audio }
-): Api.RegisterOutput {
+): RegisterOutputRequest {
   return {
     type: 'mp4',
     path: output.serverPath,
@@ -39,8 +68,22 @@ function intoRegisterMp4Output(
   };
 }
 
+function intoRegisterCanvasOutput(
+  output: Outputs.RegisterCanvasOutput,
+  initial: { video?: Api.Video; _audio?: Api.Audio }
+): RegisterOutputRequest {
+  return {
+    type: 'canvas',
+    video: {
+      resolution: output.video.resolution,
+      canvas: output.video.canvas,
+      initial: initial.video!,
+    },
+  };
+}
+
 function intoOutputVideoOptions(
-  video: Outputs.OutputRtpVideoOptions | Outputs.OutputMp4VideoOptions,
+  video: Outputs.RtpVideoOptions | Outputs.Mp4VideoOptions,
   initial: Api.Video
 ): Api.OutputVideoOptions {
   return {
@@ -62,7 +105,7 @@ function intoVideoEncoderOptions(
 }
 
 function intoOutputRtpAudioOptions(
-  audio: Outputs.OutputRtpAudioOptions,
+  audio: Outputs.RtpAudioOptions,
   initial: Api.Audio
 ): Api.OutputRtpAudioOptions {
   return {
@@ -73,7 +116,7 @@ function intoOutputRtpAudioOptions(
 }
 
 function intoOutputMp4AudioOptions(
-  audio: Outputs.OutputMp4AudioOptions,
+  audio: Outputs.Mp4AudioOptions,
   initial: Api.Audio
 ): Api.OutputMp4AudioOptions {
   return {

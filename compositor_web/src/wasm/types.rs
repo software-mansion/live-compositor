@@ -6,14 +6,7 @@ use wasm_bindgen::prelude::*;
 
 #[derive(Debug, Deserialize)]
 pub struct RendererOptions {
-    framerate: Framerate,
     stream_fallback_timeout_ms: u64,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct Framerate {
-    num: u32,
-    den: u32,
 }
 
 #[wasm_bindgen]
@@ -54,12 +47,14 @@ pub struct Frame {
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum FrameFormat {
     RgbaBytes,
+    YuvBytes,
 }
 
 impl From<FrameFormat> for compositor_render::OutputFrameFormat {
     fn from(value: FrameFormat) -> Self {
         match value {
             FrameFormat::RgbaBytes => compositor_render::OutputFrameFormat::RgbaWgpuTexture,
+            FrameFormat::YuvBytes => compositor_render::OutputFrameFormat::PlanarYuv420Bytes,
         }
     }
 }
@@ -71,20 +66,13 @@ impl From<RendererOptions> for compositor_render::RendererOptions {
                 enable: false,
                 enable_gpu: false,
             },
-            framerate: value.framerate.into(),
+            // Framerate is only required by web renderer which is not used
+            framerate: compositor_render::Framerate { num: 30, den: 1 },
             stream_fallback_timeout: Duration::from_millis(value.stream_fallback_timeout_ms),
             force_gpu: false,
             wgpu_features: wgpu::Features::empty(),
             wgpu_ctx: None,
-        }
-    }
-}
-
-impl From<Framerate> for compositor_render::Framerate {
-    fn from(framerate: Framerate) -> Self {
-        Self {
-            num: framerate.num,
-            den: framerate.den,
+            load_system_fonts: true,
         }
     }
 }

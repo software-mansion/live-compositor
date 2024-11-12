@@ -1,4 +1,5 @@
-import { ChildProcess, SpawnOptions, spawn as nodeSpawn } from 'child_process';
+import type { ChildProcess, SpawnOptions } from 'child_process';
+import { spawn as nodeSpawn } from 'child_process';
 
 export interface SpawnPromise extends Promise<void> {
   child: ChildProcess;
@@ -10,6 +11,9 @@ export function spawn(command: string, args: string[], options: SpawnOptions): S
     ...options,
   });
   const promise = new Promise((res, rej) => {
+    child.on('error', err => {
+      rej(err);
+    });
     child.on('exit', code => {
       if (code === 0) {
         res();

@@ -1,8 +1,8 @@
 import { useContext, useEffect, useSyncExternalStore } from 'react';
 
-import * as Api from './api';
-import { LiveCompositorContext } from './context';
-import { InputStreamInfo } from './context/instanceContextStore';
+import type * as Api from './api.js';
+import { LiveCompositorContext } from './context/index.js';
+import type { InputStreamInfo } from './context/instanceContextStore.js';
 
 export function useInputStreams(): Record<Api.InputId, InputStreamInfo> {
   const ctx = useContext(LiveCompositorContext);

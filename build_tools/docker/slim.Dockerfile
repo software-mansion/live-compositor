@@ -4,7 +4,7 @@ FROM ubuntu:noble-20240423 as builder
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 ARG USERNAME=compositor
-ARG RUST_VERSION=1.74
+ARG RUST_VERSION=1.81
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -24,7 +24,7 @@ WORKDIR /root/project
 RUN source ~/.cargo/env && cargo build --release --no-default-features
 
 # Runtime image
-FROM ubuntu:mantic-20231011
+FROM ubuntu:noble-20240423
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 

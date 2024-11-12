@@ -6,7 +6,10 @@ mod video_queue;
 use std::{
     collections::HashMap,
     fmt::Debug,
-    sync::{Arc, Mutex},
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc, Mutex,
+    },
     time::{Duration, Instant},
 };
 
@@ -15,6 +18,7 @@ use crossbeam_channel::{bounded, Sender};
 
 use crate::{
     audio_mixer::{InputSamples, InputSamplesSet},
+    event::EventEmitter,
     pipeline::decoder::DecodedDataReceiver,
 };
 
@@ -62,6 +66,8 @@ pub struct Queue {
     scheduled_event_sender: Sender<ScheduledEvent>,
 
     clock: Clock,
+
+    should_close: AtomicBool,
 }
 
 #[derive(Debug)]
@@ -165,14 +171,14 @@ impl<T: Clone> Clone for PipelineEvent<T> {
 }
 
 impl Queue {
-    pub fn new(opts: QueueOptions) -> Arc<Self> {
+    pub(crate) fn new(opts: QueueOptions, event_emitter: &Arc<EventEmitter>) -> Arc<Self> {
         let (queue_start_sender, queue_start_receiver) = bounded(0);
         let (scheduled_event_sender, scheduled_event_receiver) = bounded(0);
         let queue = Arc::new(Queue {
-            video_queue: Mutex::new(VideoQueue::new()),
+            video_queue: Mutex::new(VideoQueue::new(event_emitter.clone())),
             output_framerate: opts.output_framerate,
 
-            audio_queue: Mutex::new(AudioQueue::new()),
+            audio_queue: Mutex::new(AudioQueue::new(event_emitter.clone())),
             audio_chunk_duration: DEFAULT_AUDIO_CHUNK_DURATION,
 
             scheduled_event_sender,
@@ -183,6 +189,7 @@ impl Queue {
             default_buffer_duration: opts.default_buffer_duration,
 
             clock: Clock::new(),
+            should_close: AtomicBool::new(false),
         });
 
         QueueThread::new(
@@ -193,6 +200,10 @@ impl Queue {
         .spawn();
 
         queue
+    }
+
+    pub fn shutdown(&self) {
+        self.should_close.store(true, Ordering::Relaxed)
     }
 
     pub fn add_input(

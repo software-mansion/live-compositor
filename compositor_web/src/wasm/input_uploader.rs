@@ -1,9 +1,10 @@
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
-use compositor_render::{Frame, FrameData, FrameSet, InputId};
+use bytes::Bytes;
+use compositor_render::{Frame, FrameData, FrameSet, InputId, YuvPlanes};
 use wasm_bindgen::JsValue;
 
-use super::{types, wgpu::pad_to_256};
+use super::types;
 
 #[derive(Default)]
 pub struct InputUploader {
@@ -27,6 +28,9 @@ impl InputUploader {
                 types::FrameFormat::RgbaBytes => FrameData::Rgba8UnormWgpuTexture(
                     self.textures.get(&frame.id).unwrap().texture.clone(),
                 ),
+                types::FrameFormat::YuvBytes => {
+                    FrameData::PlanarYuv420(Self::create_yuv_planes(&frame))
+                }
             };
 
             frames.insert(
@@ -72,12 +76,13 @@ impl InputUploader {
                     &frame.data,
                     wgpu::ImageDataLayout {
                         offset: 0,
-                        bytes_per_row: Some(pad_to_256(4 * size.width)),
+                        bytes_per_row: Some(4 * size.width),
                         rows_per_image: Some(size.height),
                     },
                     size,
                 );
             }
+            types::FrameFormat::YuvBytes => {}
         }
     }
 
@@ -92,8 +97,8 @@ impl InputUploader {
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
-            format: wgpu::TextureFormat::Rgba8Unorm,
-            view_formats: &[wgpu::TextureFormat::Rgba8Unorm],
+            format: wgpu::TextureFormat::Rgba8UnormSrgb,
+            view_formats: &[wgpu::TextureFormat::Rgba8UnormSrgb],
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT
                 | wgpu::TextureUsages::COPY_DST
                 | wgpu::TextureUsages::COPY_SRC
@@ -104,6 +109,23 @@ impl InputUploader {
         Texture {
             size,
             texture: Arc::new(texture),
+        }
+    }
+
+    fn create_yuv_planes(frame: &types::Frame) -> YuvPlanes {
+        let width = frame.resolution.width;
+        let height = frame.resolution.height;
+
+        let y_plane_len = width * height;
+        let uv_planes_len = (width * height) / 4;
+        let y_plane = &frame.data[..y_plane_len];
+        let u_plane = &frame.data[y_plane_len..(y_plane_len + uv_planes_len)];
+        let v_plane = &frame.data[(y_plane_len + uv_planes_len)..];
+
+        YuvPlanes {
+            y_plane: Bytes::copy_from_slice(y_plane),
+            u_plane: Bytes::copy_from_slice(u_plane),
+            v_plane: Bytes::copy_from_slice(v_plane),
         }
     }
 }

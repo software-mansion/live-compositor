@@ -23,7 +23,7 @@ mod wgpu;
 pub fn start() -> Result<(), JsValue> {
     console_error_panic_hook::set_once();
     tracing_wasm::set_as_global_default();
-    wasm_log::init(wasm_log::Config::new(log::Level::Trace));
+    wasm_log::init(wasm_log::Config::new(log::Level::Info));
 
     Ok(())
 }

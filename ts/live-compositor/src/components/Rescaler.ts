@@ -1,7 +1,9 @@
-import React from 'react';
-import * as Api from '../api';
-import { intoApiTransition, Transition } from './common';
-import { createCompositorComponent, SceneComponent, sceneComponentIntoApi } from '../component';
+import type React from 'react';
+import type * as Api from '../api.js';
+import type { Transition } from './common.js';
+import { intoApiTransition } from './common.js';
+import type { SceneComponent } from '../component.js';
+import { createCompositorComponent, sceneComponentIntoApi } from '../component.js';
 
 export type RescalerProps = {
   children: React.ReactElement | string | number;
@@ -68,7 +70,7 @@ export type RescalerProps = {
   rotation?: number;
   /**
    * Defines how this component will behave during a scene update. This will only have an
-   * effect if the previous scene already contained a View component with the same id.
+   * effect if the previous scene already contained a `Rescaler` component with the same id.
    */
   transition?: Transition;
 };

@@ -116,7 +116,7 @@
               }
             },
             "width": {
-              "description": "Width of a component in pixels. Exact behavior might be different based on the parent\ncomponent:\n- If the parent component is a layout, check sections \"Absolute positioning\" and \"Static\npositioning\" of that component.\n- If the parent component is not a layout, then this field is required.",
+              "description": "Width of a component in pixels (without a border). Exact behavior might be different\nbased on the parent component:\n- If the parent component is a layout, check sections \"Absolute positioning\" and \"Static\npositioning\" of that component.\n- If the parent component is not a layout, then this field is required.",
               "type": [
                 "number",
                 "null"
@@ -124,7 +124,7 @@
               "format": "float"
             },
             "height": {
-              "description": "Height of a component in pixels. Exact behavior might be different based on the parent\ncomponent:\n- If the parent component is a layout, check sections \"Absolute positioning\" and \"Static\npositioning\" of that component.\n- If the parent component is not a layout, then this field is required.",
+              "description": "Height of a component in pixels (without a border). Exact behavior might be different\nbased on the parent component:\n- If the parent component is a layout, check sections \"Absolute positioning\" and \"Static\npositioning\" of that component.\n- If the parent component is not a layout, then this field is required.",
               "type": [
                 "number",
                 "null"
@@ -143,7 +143,7 @@
               ]
             },
             "top": {
-              "description": "Distance in pixels between this component's top edge and its parent's top edge.\nIf this field is defined, then the component will ignore a layout defined by its parent.",
+              "description": "Distance in pixels between this component's top edge and its parent's top edge (including a border).\nIf this field is defined, then the component will ignore a layout defined by its parent.",
               "type": [
                 "number",
                 "null"
@@ -151,7 +151,7 @@
               "format": "float"
             },
             "left": {
-              "description": "Distance in pixels between this component's left edge and its parent's left edge.\nIf this field is defined, this element will be absolutely positioned, instead of being\nlaid out by its parent.",
+              "description": "Distance in pixels between this component's left edge and its parent's left edge (including a border).\nIf this field is defined, this element will be absolutely positioned, instead of being\nlaid out by its parent.",
               "type": [
                 "number",
                 "null"
@@ -159,7 +159,7 @@
               "format": "float"
             },
             "bottom": {
-              "description": "Distance in pixels between the bottom edge of this component and the bottom edge of its parent.\nIf this field is defined, this element will be absolutely positioned, instead of being\nlaid out by its parent.",
+              "description": "Distance in pixels between the bottom edge of this component and the bottom edge of its\nparent (including a border). If this field is defined, this element will be absolutely\npositioned, instead of being laid out by its parent.",
               "type": [
                 "number",
                 "null"
@@ -183,7 +183,7 @@
               "format": "float"
             },
             "transition": {
-              "description": "Defines how this component will behave during a scene update. This will only have an\neffect if the previous scene already contained a View component with the same id.",
+              "description": "Defines how this component will behave during a scene update. This will only have an\neffect if the previous scene already contained a `View` component with the same id.",
               "anyOf": [
                 {
                   "$ref": "#/definitions/Transition"
@@ -214,6 +214,43 @@
                   "type": "null"
                 }
               ]
+            },
+            "border_radius": {
+              "description": "(**default=`0.0`**) Radius of a rounded corner.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "float"
+            },
+            "border_width": {
+              "description": "(**default=`0.0`**) Border width.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "float"
+            },
+            "border_color_rgba": {
+              "description": "(**default=`\"#00000000\"`**) Border color in a `\"#RRGGBBAA\"` format.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/RGBAColor"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "box_shadow": {
+              "description": "List of box shadows.",
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "$ref": "#/definitions/BoxShadow"
+              }
             }
           },
           "additionalProperties": false
@@ -254,7 +291,7 @@
               }
             },
             "instance_id": {
-              "description": "Id of a web renderer instance. It identifies an instance registered using a [`register web renderer`](../routes.md#register-web-renderer-instance) request.\n\n:::warning\nYou can only refer to specific instances in one Component at a time.\n:::",
+              "description": "Id of a web renderer instance. It identifies an instance registered using a\n[`register web renderer`](../routes.md#register-web-renderer-instance) request.\n\n:::warning\nYou can only refer to specific instances in one Component at a time.\n:::",
               "allOf": [
                 {
                   "$ref": "#/definitions/RendererId"
@@ -308,7 +345,7 @@
               ]
             },
             "shader_param": {
-              "description": "Object that will be serialized into a `struct` and passed inside the shader as:\n\n```wgsl\n@group(1) @binding(0) var<uniform>\n```\n:::note\nThis object's structure must match the structure defined in a shader source code. Currently, we do not handle memory layout automatically.\nTo achieve the correct memory alignment, you might need to pad your data with additional fields. See [WGSL documentation](https://www.w3.org/TR/WGSL/#alignment-and-size) for more details.\n:::",
+              "description": "Object that will be serialized into a `struct` and passed inside the shader as:\n\n```wgsl\n@group(1) @binding(0) var<uniform>\n```\n:::note\nThis object's structure must match the structure defined in a shader source code.\nCurrently, we do not handle memory layout automatically. To achieve the correct memory\nalignment, you might need to pad your data with additional fields. See\n[WGSL documentation](https://www.w3.org/TR/WGSL/#alignment-and-size) for more details.\n:::",
               "anyOf": [
                 {
                   "$ref": "#/definitions/ShaderParam"
@@ -633,6 +670,13 @@
                   "type": "null"
                 }
               ]
+            },
+            "border_radius": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "float"
             }
           },
           "additionalProperties": false
@@ -703,7 +747,7 @@
               ]
             },
             "width": {
-              "description": "Width of a component in pixels. Exact behavior might be different based on the parent\ncomponent:\n- If the parent component is a layout, check sections \"Absolute positioning\" and \"Static\npositioning\" of that component.\n- If the parent component is not a layout, then this field is required.",
+              "description": "Width of a component in pixels (without a border). Exact behavior might be different\nbased on the parent component:\n- If the parent component is a layout, check sections \"Absolute positioning\" and \"Static\npositioning\" of that component.\n- If the parent component is not a layout, then this field is required.",
               "type": [
                 "number",
                 "null"
@@ -711,7 +755,7 @@
               "format": "float"
             },
             "height": {
-              "description": "Height of a component in pixels. Exact behavior might be different based on the parent\ncomponent:\n- If the parent component is a layout, check sections \"Absolute positioning\" and \"Static\npositioning\" of that component.\n- If the parent component is not a layout, then this field is required.",
+              "description": "Height of a component in pixels (without a border). Exact behavior might be different\nbased on the parent component:\n- If the parent component is a layout, check sections \"Absolute positioning\" and \"Static\npositioning\" of that component.\n- If the parent component is not a layout, then this field is required.",
               "type": [
                 "number",
                 "null"
@@ -719,7 +763,7 @@
               "format": "float"
             },
             "top": {
-              "description": "Distance in pixels between this component's top edge and its parent's top edge.\nIf this field is defined, then the component will ignore a layout defined by its parent.",
+              "description": "Distance in pixels between this component's top edge and its parent's top edge (including a border).\nIf this field is defined, then the component will ignore a layout defined by its parent.",
               "type": [
                 "number",
                 "null"
@@ -727,7 +771,7 @@
               "format": "float"
             },
             "left": {
-              "description": "Distance in pixels between this component's left edge and its parent's left edge.\nIf this field is defined, this element will be absolutely positioned, instead of being\nlaid out by its parent.",
+              "description": "Distance in pixels between this component's left edge and its parent's left edge (including a border).\nIf this field is defined, this element will be absolutely positioned, instead of being\nlaid out by its parent.",
               "type": [
                 "number",
                 "null"
@@ -735,7 +779,7 @@
               "format": "float"
             },
             "bottom": {
-              "description": "Distance in pixels between this component's bottom edge and its parent's bottom edge.\nIf this field is defined, this element will be absolutely positioned, instead of being\nlaid out by its parent.",
+              "description": "Distance in pixels between the bottom edge of this component and the bottom edge of its\nparent (including a border). If this field is defined, this element will be absolutely\npositioned, instead of being laid out by its parent.",
               "type": [
                 "number",
                 "null"
@@ -759,7 +803,7 @@
               "format": "float"
             },
             "transition": {
-              "description": "Defines how this component will behave during a scene update. This will only have an\neffect if the previous scene already contained a View component with the same id.",
+              "description": "Defines how this component will behave during a scene update. This will only have an\neffect if the previous scene already contained a `Rescaler` component with the same id.",
               "anyOf": [
                 {
                   "$ref": "#/definitions/Transition"
@@ -768,6 +812,43 @@
                   "type": "null"
                 }
               ]
+            },
+            "border_radius": {
+              "description": "(**default=`0.0`**) Radius of a rounded corner.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "float"
+            },
+            "border_width": {
+              "description": "(**default=`0.0`**) Border width.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "float"
+            },
+            "border_color_rgba": {
+              "description": "(**default=`\"#00000000\"`**) Border color in a `\"#RRGGBBAA\"` format.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/RGBAColor"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "box_shadow": {
+              "description": "List of box shadows.",
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "$ref": "#/definitions/BoxShadow"
+              }
             }
           },
           "additionalProperties": false
@@ -906,6 +987,43 @@
     },
     "RGBAColor": {
       "type": "string"
+    },
+    "BoxShadow": {
+      "type": "object",
+      "properties": {
+        "offset_x": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "float"
+        },
+        "offset_y": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "float"
+        },
+        "color_rgba": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/RGBAColor"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "blur_radius": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "float"
+        }
+      },
+      "additionalProperties": false
     },
     "RendererId": {
       "type": "string"

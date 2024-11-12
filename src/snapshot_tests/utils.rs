@@ -1,8 +1,5 @@
 use core::panic;
 use std::{
-    collections::HashSet,
-    fs,
-    path::PathBuf,
     sync::{Arc, OnceLock},
     time::Duration,
 };
@@ -12,19 +9,7 @@ use compositor_render::{
     WgpuFeatures, YuvPlanes,
 };
 
-use super::test_case::OUTPUT_ID;
-
 pub const SNAPSHOTS_DIR_NAME: &str = "snapshot_tests/snapshots/render_snapshots";
-
-fn global_wgpu_ctx(
-    force_gpu: bool,
-    features: wgpu::Features,
-) -> (Arc<wgpu::Device>, Arc<wgpu::Queue>) {
-    static CTX: OnceLock<(Arc<wgpu::Device>, Arc<wgpu::Queue>)> = OnceLock::new();
-
-    CTX.get_or_init(|| create_wgpu_ctx(force_gpu, features).unwrap())
-        .clone()
-}
 
 pub(super) fn frame_to_rgba(frame: &Frame) -> Vec<u8> {
     let FrameData::PlanarYuv420(YuvPlanes {
@@ -61,20 +46,11 @@ pub(super) fn frame_to_rgba(frame: &Frame) -> Vec<u8> {
     rgba_data
 }
 
-pub(super) fn snapshots_diff(old_snapshot: &[u8], new_snapshot: &[u8]) -> f32 {
-    if old_snapshot.len() != new_snapshot.len() {
-        return 10000.0;
-    }
-    let square_error: f32 = old_snapshot
-        .iter()
-        .zip(new_snapshot)
-        .map(|(a, b)| (*a as i32 - *b as i32).pow(2) as f32)
-        .sum();
-
-    square_error / old_snapshot.len() as f32
-}
-
 pub(super) fn create_renderer() -> Renderer {
+    static CTX: OnceLock<(Arc<wgpu::Device>, Arc<wgpu::Queue>)> = OnceLock::new();
+    let wgpu_ctx =
+        CTX.get_or_init(|| create_wgpu_ctx(false, Default::default(), Default::default()).unwrap());
+
     let (renderer, _event_loop) = Renderer::new(RendererOptions {
         web_renderer: web_renderer::WebRendererInitOptions {
             enable: false,
@@ -84,41 +60,9 @@ pub(super) fn create_renderer() -> Renderer {
         framerate: Framerate { num: 30, den: 1 },
         stream_fallback_timeout: Duration::from_secs(3),
         wgpu_features: WgpuFeatures::default(),
-        wgpu_ctx: Some(global_wgpu_ctx(false, Default::default())),
+        wgpu_ctx: Some(wgpu_ctx.clone()),
+        load_system_fonts: false,
     })
     .unwrap();
     renderer
-}
-
-pub fn snapshots_path() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(SNAPSHOTS_DIR_NAME)
-}
-
-pub fn find_unused_snapshots(
-    produced_snapshots: &HashSet<PathBuf>,
-    snapshots_path: PathBuf,
-) -> Vec<PathBuf> {
-    let mut unused_snapshots = Vec::new();
-    for entry in fs::read_dir(snapshots_path).unwrap() {
-        let entry = entry.unwrap();
-        if entry.file_type().unwrap().is_dir() {
-            let mut snapshots = find_unused_snapshots(produced_snapshots, entry.path());
-            unused_snapshots.append(&mut snapshots);
-            continue;
-        }
-        if !entry.file_name().to_string_lossy().ends_with(".png") {
-            continue;
-        }
-
-        if !produced_snapshots.contains(&entry.path()) {
-            unused_snapshots.push(entry.path())
-        }
-    }
-
-    unused_snapshots
-}
-
-pub(super) fn snaphot_save_path(test_name: &str, pts: &Duration) -> PathBuf {
-    let out_file_name = format!("{}_{}_{}.png", test_name, pts.as_millis(), OUTPUT_ID);
-    snapshots_path().join(out_file_name)
 }

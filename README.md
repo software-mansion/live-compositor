@@ -18,17 +18,18 @@ https://github.com/user-attachments/assets/d8716866-67bd-4721-b1c2-1a1d31e1c5b5
 
 Check out our [`Getting started`](https://compositor.live/docs/intro) section.
 
-LiveCompositor supports Linux and macOS and can be used in 2 ways:
-- Standalone media server - [`compositor.live/docs`](https://compositor.live/docs/intro).
-- Element in a Membrane Framework pipeline - [github.com/membraneframework/membrane_live_compositor_plugin](https://github.com/membraneframework/membrane_live_compositor_plugin).
+LiveCompositor supports Linux and macOS and can be used in 3 ways:
+- TypeScript SDK - [TypeScript SDK Reference](https://compositor.live/docs/typescript/api)
+- Standalone media server - [API Reference](https://compositor.live/docs/api/routes).
+- Element in a Membrane Framework pipeline - [https://hexdocs.pm/membrane_live_compositor_plugin](https://hexdocs.pm/membrane_live_compositor_plugin).
 
 ## Demos
 
 This is just a sample of effects that you can achieve with LiveCompositor. It is a compilation of a few demo projects
 written in TypeScript that you can find in [`demos`](./demos) directory.
 
-## Copyright
+## LiveCompositor is created by Software Mansion
 
-Copyright 2023, [Software Mansion](https://swmansion.com/?utm_source=git&utm_medium=readme&utm_campaign=live_compositor)
+[![swm](https://logo.swmansion.com/logo?color=white&variant=desktop&width=150&tag=live-compositor-github 'Software Mansion')](https://swmansion.com)
 
-[![Software Mansion](https://logo.swmansion.com/logo?color=white&variant=desktop&width=200&tag=membrane-github)](https://swmansion.com/?utm_source=git&utm_medium=readme&utm_campaign=live_compositor)
+Since 2012 [Software Mansion](https://swmansion.com) is a software agency with experience in building web and mobile apps as well as complex multimedia solutions. We are Core React Native Contributors and experts in live streaming and broadcasting technologies. We can help you build your next dream product – [Hire us](https://swmansion.com/contact/projects?utm_source=live-compositor&utm_medium=readme).

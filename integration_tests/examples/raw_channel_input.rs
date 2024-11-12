@@ -17,12 +17,12 @@ use compositor_pipeline::{
             OutputOptions, OutputProtocolOptions,
         },
         rtp::RequestedPort,
-        Options, Pipeline, PipelineOutputEndCondition, RegisterOutputOptions, VideoCodec,
+        GraphicsContext, Options, Pipeline, PipelineOutputEndCondition, RegisterOutputOptions,
+        VideoCodec,
     },
     queue::{PipelineEvent, QueueInputOptions},
 };
 use compositor_render::{
-    create_wgpu_ctx,
     error::ErrorStack,
     scene::{Component, InputStreamComponent},
     Frame, FrameData, InputId, OutputId, Resolution,
@@ -44,7 +44,8 @@ fn main() {
         level: "info,wgpu_hal=warn,wgpu_core=warn".to_string(),
     });
     let config = read_config();
-    let (wgpu_device, wgpu_queue) = create_wgpu_ctx(false, Default::default()).unwrap();
+    let ctx = GraphicsContext::new(false, Default::default(), Default::default()).unwrap();
+    let (wgpu_device, wgpu_queue) = (ctx.device.clone(), ctx.queue.clone());
     // no chromium support, so we can ignore _event_loop
     let (pipeline, _event_loop) = Pipeline::new(Options {
         queue_options: config.queue_options,
@@ -54,7 +55,8 @@ fn main() {
         download_root: config.download_root,
         output_sample_rate: config.output_sample_rate,
         wgpu_features: config.required_wgpu_features,
-        wgpu_ctx: Some((wgpu_device.clone(), wgpu_queue.clone())),
+        load_system_fonts: Some(true),
+        wgpu_ctx: Some(ctx),
     })
     .unwrap_or_else(|err| {
         panic!(
@@ -203,12 +205,12 @@ fn create_texture(index: usize, device: &wgpu::Device, queue: &wgpu::Queue) -> A
         mip_level_count: 1,
         sample_count: 1,
         dimension: wgpu::TextureDimension::D2,
-        format: wgpu::TextureFormat::Rgba8Unorm,
+        format: wgpu::TextureFormat::Rgba8UnormSrgb,
         usage: wgpu::TextureUsages::RENDER_ATTACHMENT
             | wgpu::TextureUsages::COPY_DST
             | wgpu::TextureUsages::COPY_SRC
             | wgpu::TextureUsages::TEXTURE_BINDING,
-        view_formats: &[wgpu::TextureFormat::Rgba8Unorm],
+        view_formats: &[wgpu::TextureFormat::Rgba8UnormSrgb],
     });
 
     queue.write_texture(

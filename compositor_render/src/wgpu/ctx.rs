@@ -34,7 +34,7 @@ impl WgpuCtx {
                 Self::new_from_device_queue(device, queue)?
             }
             None => {
-                let (device, queue) = create_wgpu_ctx(force_gpu, features)?;
+                let (device, queue) = create_wgpu_ctx(force_gpu, features, Default::default())?;
                 Self::new_from_device_queue(device, queue)?
             }
         };
@@ -42,12 +42,7 @@ impl WgpuCtx {
     }
 
     fn check_wgpu_ctx(device: &wgpu::Device, features: wgpu::Features) {
-        let expected_features = match cfg!(target_arch = "wasm32") {
-            false => {
-                features | wgpu::Features::TEXTURE_BINDING_ARRAY | wgpu::Features::PUSH_CONSTANTS
-            }
-            true => features | wgpu::Features::PUSH_CONSTANTS,
-        };
+        let expected_features = features | required_wgpu_features();
 
         let missing_features = expected_features.difference(device.features());
         if !missing_features.is_empty() {
@@ -92,15 +87,31 @@ impl WgpuCtx {
     }
 }
 
+pub fn required_wgpu_features() -> wgpu::Features {
+    match cfg!(target_arch = "wasm32") {
+        false => wgpu::Features::TEXTURE_BINDING_ARRAY | wgpu::Features::PUSH_CONSTANTS,
+        true => wgpu::Features::PUSH_CONSTANTS,
+    }
+}
+
+pub fn set_required_wgpu_limits(limits: wgpu::Limits) -> wgpu::Limits {
+    wgpu::Limits {
+        max_push_constant_size: limits.max_push_constant_size.max(128),
+        ..limits
+    }
+}
+
 pub fn create_wgpu_ctx(
     force_gpu: bool,
     features: wgpu::Features,
+    limits: wgpu::Limits,
 ) -> Result<(Arc<wgpu::Device>, Arc<wgpu::Queue>), CreateWgpuCtxError> {
     let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
         backends: wgpu::Backends::all(),
         ..Default::default()
     });
 
+    #[cfg(not(target_arch = "wasm32"))]
     log_available_adapters(&instance);
 
     let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptionsBase {
@@ -119,8 +130,7 @@ pub fn create_wgpu_ctx(
         error!("Selected adapter is CPU based. Aborting.");
         return Err(CreateWgpuCtxError::NoAdapter);
     }
-    let required_features =
-        features | wgpu::Features::TEXTURE_BINDING_ARRAY | wgpu::Features::PUSH_CONSTANTS;
+    let required_features = features | required_wgpu_features();
 
     let missing_features = required_features.difference(adapter.features());
     if !missing_features.is_empty() {
@@ -132,11 +142,9 @@ pub fn create_wgpu_ctx(
     let (device, queue) = pollster::block_on(adapter.request_device(
         &wgpu::DeviceDescriptor {
             label: None,
-            required_limits: wgpu::Limits {
-                max_push_constant_size: 128,
-                ..Default::default()
-            },
+            required_limits: set_required_wgpu_limits(limits),
             required_features,
+            memory_hints: wgpu::MemoryHints::default(),
         },
         None,
     ))?;
@@ -159,6 +167,7 @@ fn uniform_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
     })
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 fn log_available_adapters(instance: &wgpu::Instance) {
     let adapters: Vec<_> = instance
         .enumerate_adapters(wgpu::Backends::all())

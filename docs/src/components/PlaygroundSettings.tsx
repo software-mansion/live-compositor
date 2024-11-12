@@ -8,25 +8,30 @@ import PlaygroundSettingsImages from './PlaygroundSettingsImages';
 import SettingsInputs from './PlaygroundSettingsInputs';
 import OutputResolution from './PlaygroundSettingsOutput';
 import PlaygroundSettingsShaders from './PlaygroundSettingsShaders';
+import PlaygroundSettingsExamples from './PlaygroundSettingsExamples';
 
-type ModalContent = 'inputs' | 'images' | 'shaders';
+type ModalContent = 'inputs' | 'images' | 'shaders' | 'examples';
 
 interface PlaygroundSettingsProps {
   onSubmit: () => Promise<void>;
   onInputResolutionChange: (input_id: string, resolution: InputResolution) => void;
   onOutputResolutionChange: (resolution: Resolution) => void;
+  populateEditorWithExample: (content: object | Error) => void;
   inputsSettings: InputsSettings;
   sceneValidity: boolean;
   outputResolution: Resolution;
+  isLoading: boolean;
 }
 
 export default function PlaygroundSettings({
   onSubmit,
   onInputResolutionChange,
   onOutputResolutionChange,
+  populateEditorWithExample,
   inputsSettings,
   sceneValidity,
   outputResolution,
+  isLoading,
 }: PlaygroundSettingsProps) {
   const [modalContent, setModalContent] = useState<ModalContent | null>(null);
   const [outputResolutionValidity, setOutputResolutionValidity] = useState<boolean>(true);
@@ -39,6 +44,13 @@ export default function PlaygroundSettings({
       />
     ) : modalContent === 'images' ? (
       <PlaygroundSettingsImages />
+    ) : modalContent === 'examples' ? (
+      <PlaygroundSettingsExamples
+        closeModal={() => {
+          setModalContent(null);
+        }}
+        populateEditorWithExample={populateEditorWithExample}
+      />
     ) : (
       <PlaygroundSettingsShaders />
     );
@@ -48,14 +60,25 @@ export default function PlaygroundSettings({
       <div className={styles.settings}>
         <div className={styles.cardsContainer}>
           <Card
-            title="Inputs resolutions"
-            subtitle="settings"
+            title="Inputs"
+            subtitle="Configure resolution for example inputs"
             onClick={() => setModalContent('inputs')}
           />
-
-          <Card title="Images" subtitle="preview" onClick={() => setModalContent('images')} />
-
-          <Card title="Shaders" subtitle="preview" onClick={() => setModalContent('shaders')} />
+          <Card
+            title="Images"
+            subtitle="Check out available images and how to use them"
+            onClick={() => setModalContent('images')}
+          />
+          <Card
+            title="Shaders"
+            subtitle="Check out available shaders and how to use them"
+            onClick={() => setModalContent('shaders')}
+          />
+          <Card
+            title="Examples"
+            subtitle="Select and run one of the examples"
+            onClick={() => setModalContent('examples')}
+          />
         </div>
       </div>
 
@@ -68,6 +91,7 @@ export default function PlaygroundSettings({
 
         <SubmitButton
           onSubmit={onSubmit}
+          isLoading={isLoading}
           validity={{
             scene: sceneValidity,
             outputResolution: outputResolutionValidity,
@@ -104,9 +128,11 @@ function Card(props: CardProps) {
 
 function SubmitButton({
   onSubmit,
+  isLoading,
   validity,
 }: {
   onSubmit: () => Promise<void>;
+  isLoading: boolean;
   validity: {
     scene: boolean;
     outputResolution: boolean;
@@ -117,13 +143,15 @@ function SubmitButton({
     backgroundColor: 'var(--ifm-color-emphasis-700)',
   };
   function isValid() {
-    return validity.scene && validity.outputResolution;
+    return validity.scene && validity.outputResolution && !isLoading;
   }
   function errorMessage() {
     if (!validity.scene) {
       return 'Invalid scene provided';
     } else if (!validity.outputResolution) {
       return 'Invalid output resolution';
+    } else if (isLoading) {
+      return 'Loading...';
     } else {
       return null;
     }

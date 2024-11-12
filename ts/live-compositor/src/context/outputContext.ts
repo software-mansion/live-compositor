@@ -1,4 +1,4 @@
-import { AudioInputsConfiguration } from '../types/registerOutput';
+import type { AudioInputsConfiguration } from '../types/registerOutput.js';
 
 export type ContextAudioOptions = {
   volume: number;

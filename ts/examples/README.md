@@ -1,20 +1,22 @@
 # `live-compositor` examples
 
-- `./src/simple.tsx` - Basic example with `Text`/`View` components and basic state usage.
-- `./src/news-ticker.tsx` - Example of infinite scrolling text line.
-- `./src/dynamic-text.tsx` - Example of text that dynamically grows and shrinks in a loop.
-- `./src/dynamic-inputs.tsx` - Example of using `useInputStreams` hook to handle new inputs.
+## Node.js examples
 
-## Usage
+- `./node-examples/src/simple.tsx` - Basic example with `Text`/`View` components and basic state usage.
+- `./node-examples/src/news-ticker.tsx` - Example of infinite scrolling text line.
+- `./node-examples/src/dynamic-text.tsx` - Example of text that dynamically grows and shrinks in a loop.
+- `./node-examples/src/dynamic-inputs.tsx` - Example of using `useInputStreams` hook to handle new inputs.
 
-To launch any of the above examples run:
+### Usage
+
+To launch any of the above examples go to `node-examples` directory and run:
 
 ```bash
-npm run ts-node <path-to-example>
+pnpm run ts-node <path-to-example>
 ```
 
 e.g.
 
 ```bash
-npm run ts-node ./src/simple.tsx
+pnpm run ts-node ./src/simple.tsx
 ```

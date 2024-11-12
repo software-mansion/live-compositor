@@ -2,12 +2,12 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::Mutex;
+use std::sync::Weak;
 use std::thread;
 use std::time::Duration;
 
 use compositor_render::error::{
-    ErrorStack, InitPipelineError, RegisterRendererError, RequestKeyframeError,
-    UnregisterRendererError,
+    ErrorStack, RegisterRendererError, RequestKeyframeError, UnregisterRendererError,
 };
 use compositor_render::scene::Component;
 use compositor_render::web_renderer::WebRendererInitOptions;
@@ -19,6 +19,7 @@ use compositor_render::WgpuFeatures;
 use compositor_render::{error::UpdateSceneError, Renderer};
 use compositor_render::{EventLoop, InputId, OutputId, RendererId, RendererSpec};
 use crossbeam_channel::{bounded, Receiver};
+use glyphon::fontdb;
 use input::InputInitInfo;
 use input::RawDataInputOptions;
 use output::EncodedDataOutputOptions;
@@ -30,10 +31,13 @@ use types::RawDataSender;
 use crate::audio_mixer::AudioMixer;
 use crate::audio_mixer::MixingStrategy;
 use crate::audio_mixer::{AudioChannels, AudioMixingParams};
+use crate::error::InitPipelineError;
 use crate::error::{
     RegisterInputError, RegisterOutputError, UnregisterInputError, UnregisterOutputError,
 };
 
+use crate::event::Event;
+use crate::event::EventEmitter;
 use crate::pipeline::pipeline_output::OutputSender;
 use crate::queue::PipelineEvent;
 use crate::queue::QueueAudioOutput;
@@ -44,6 +48,7 @@ use self::input::InputOptions;
 
 pub mod decoder;
 pub mod encoder;
+mod graphics_context;
 pub mod input;
 pub mod output;
 mod pipeline_input;
@@ -57,8 +62,11 @@ use self::pipeline_output::PipelineOutput;
 
 pub use self::types::{
     AudioCodec, EncodedChunk, EncodedChunkKind, EncoderOutputEvent, RawDataReceiver, VideoCodec,
+    VideoDecoder,
 };
 pub use pipeline_output::PipelineOutputEndCondition;
+
+pub use graphics_context::GraphicsContext;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Port(pub u16);
@@ -105,7 +113,7 @@ pub struct Pipeline {
     is_started: bool,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Options {
     pub queue_options: QueueOptions,
     pub stream_fallback_timeout: Duration,
@@ -114,25 +122,57 @@ pub struct Options {
     pub download_root: PathBuf,
     pub output_sample_rate: u32,
     pub wgpu_features: WgpuFeatures,
-    pub wgpu_ctx: Option<(Arc<wgpu::Device>, Arc<wgpu::Queue>)>,
+    pub load_system_fonts: Option<bool>,
+    pub wgpu_ctx: Option<GraphicsContext>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct PipelineCtx {
     pub output_sample_rate: u32,
     pub output_framerate: Framerate,
     pub download_dir: Arc<PathBuf>,
+    pub event_emitter: Arc<EventEmitter>,
+    #[cfg(feature = "vk-video")]
+    pub vulkan_ctx: Option<Arc<vk_video::VulkanCtx>>,
+}
+
+impl std::fmt::Debug for PipelineCtx {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("PipelineCtx")
+            .field("output_sample_rate", &self.output_sample_rate)
+            .field("output_framerate", &self.output_framerate)
+            .field("download_dir", &self.download_dir)
+            .field("event_emitter", &self.event_emitter)
+            .finish()
+    }
 }
 
 impl Pipeline {
     pub fn new(opts: Options) -> Result<(Self, Arc<dyn EventLoop>), InitPipelineError> {
+        let preinitialized_ctx = match opts.wgpu_ctx {
+            Some(ctx) => Some(ctx),
+            #[cfg(feature = "vk-video")]
+            None => Some(GraphicsContext::new(
+                opts.force_gpu,
+                opts.wgpu_features,
+                Default::default(),
+            )?),
+            #[cfg(not(feature = "vk-video"))]
+            None => None,
+        };
+
+        let wgpu_ctx = preinitialized_ctx
+            .as_ref()
+            .map(|ctx| (ctx.device.clone(), ctx.queue.clone()));
+
         let (renderer, event_loop) = Renderer::new(RendererOptions {
             web_renderer: opts.web_renderer,
             framerate: opts.queue_options.output_framerate,
             stream_fallback_timeout: opts.stream_fallback_timeout,
             force_gpu: opts.force_gpu,
             wgpu_features: opts.wgpu_features,
-            wgpu_ctx: opts.wgpu_ctx,
+            load_system_fonts: opts.load_system_fonts.unwrap_or(true),
+            wgpu_ctx,
         })?;
 
         let download_dir = opts
@@ -140,10 +180,11 @@ impl Pipeline {
             .join(format!("live-compositor-{}", rand::random::<u64>()));
         std::fs::create_dir_all(&download_dir).map_err(InitPipelineError::CreateDownloadDir)?;
 
+        let event_emitter = Arc::new(EventEmitter::new());
         let pipeline = Pipeline {
             outputs: HashMap::new(),
             inputs: HashMap::new(),
-            queue: Queue::new(opts.queue_options),
+            queue: Queue::new(opts.queue_options, &event_emitter),
             renderer,
             audio_mixer: AudioMixer::new(opts.output_sample_rate),
             is_started: false,
@@ -151,6 +192,9 @@ impl Pipeline {
                 output_sample_rate: opts.output_sample_rate,
                 output_framerate: opts.queue_options.output_framerate,
                 download_dir: download_dir.into(),
+                event_emitter,
+                #[cfg(feature = "vk-video")]
+                vulkan_ctx: preinitialized_ctx.and_then(|ctx| ctx.vulkan_ctx),
             },
         };
 
@@ -159,6 +203,10 @@ impl Pipeline {
 
     pub fn queue(&self) -> &Queue {
         &self.queue
+    }
+
+    pub fn subscribe_pipeline_events(&self) -> Receiver<Event> {
+        self.ctx.event_emitter.subscribe()
     }
 
     pub fn register_input(
@@ -297,6 +345,10 @@ impl Pipeline {
         output.output.request_keyframe(output_id)
     }
 
+    pub fn register_font(&self, font_source: fontdb::Source) {
+        self.renderer.register_font(font_source);
+    }
+
     fn check_output_spec(
         &self,
         output_id: &OutputId,
@@ -326,6 +378,15 @@ impl Pipeline {
             .outputs
             .get(&output_id)
             .ok_or_else(|| UpdateSceneError::OutputNotRegistered(output_id.clone()))?;
+
+        if let Some(cond) = &output.video_end_condition {
+            if cond.did_output_end() {
+                // Ignore updates after EOS
+                warn!("Received output update on a finished output");
+                return Ok(());
+            }
+        }
+
         let (Some(resolution), Some(frame_format)) = (
             output.output.resolution(),
             output.output.output_frame_format(),
@@ -344,6 +405,19 @@ impl Pipeline {
         output_id: &OutputId,
         audio: AudioMixingParams,
     ) -> Result<(), UpdateSceneError> {
+        let output = self
+            .outputs
+            .get(output_id)
+            .ok_or_else(|| UpdateSceneError::OutputNotRegistered(output_id.clone()))?;
+
+        if let Some(cond) = &output.audio_end_condition {
+            if cond.did_output_end() {
+                // Ignore updates after EOS
+                warn!("Received output update on a finished output");
+                return Ok(());
+            }
+        }
+
         info!(?output_id, "Update audio mixer {:#?}", audio);
         self.audio_mixer.update_output(output_id, audio)
     }
@@ -359,11 +433,11 @@ impl Pipeline {
         let (audio_sender, audio_receiver) = bounded(100);
         guard.queue.start(video_sender, audio_sender);
 
-        let pipeline_clone = pipeline.clone();
-        thread::spawn(move || run_renderer_thread(pipeline_clone, video_receiver));
+        let weak_pipeline = Arc::downgrade(pipeline);
+        thread::spawn(move || run_renderer_thread(weak_pipeline, video_receiver));
 
-        let pipeline_clone = pipeline.clone();
-        thread::spawn(move || run_audio_mixer_thread(pipeline_clone, audio_receiver));
+        let weak_pipeline = Arc::downgrade(pipeline);
+        thread::spawn(move || run_audio_mixer_thread(weak_pipeline, audio_receiver));
     }
 
     pub fn inputs(&self) -> impl Iterator<Item = (&InputId, &PipelineInput)> {
@@ -375,12 +449,28 @@ impl Pipeline {
     }
 }
 
+impl Drop for Pipeline {
+    fn drop(&mut self) {
+        self.queue.shutdown()
+    }
+}
+
 fn run_renderer_thread(
-    pipeline: Arc<Mutex<Pipeline>>,
+    pipeline: Weak<Mutex<Pipeline>>,
     frames_receiver: Receiver<QueueVideoOutput>,
 ) {
-    let renderer = pipeline.lock().unwrap().renderer.clone();
+    let renderer = match pipeline.upgrade() {
+        Some(pipeline) => pipeline.lock().unwrap().renderer.clone(),
+        None => {
+            warn!("Pipeline stopped before render thread was started.");
+            return;
+        }
+    };
+
     for mut input_frames in frames_receiver.iter() {
+        let Some(pipeline) = pipeline.upgrade() else {
+            break;
+        };
         for (input_id, event) in input_frames.frames.iter_mut() {
             if let PipelineEvent::EOS = event {
                 let mut guard = pipeline.lock().unwrap();
@@ -429,14 +519,25 @@ fn run_renderer_thread(
             }
         }
     }
+    info!("Stopping renderer thread.")
 }
 
 fn run_audio_mixer_thread(
-    pipeline: Arc<Mutex<Pipeline>>,
+    pipeline: Weak<Mutex<Pipeline>>,
     audio_receiver: Receiver<QueueAudioOutput>,
 ) {
-    let audio_mixer = pipeline.lock().unwrap().audio_mixer.clone();
+    let audio_mixer = match pipeline.upgrade() {
+        Some(pipeline) => pipeline.lock().unwrap().audio_mixer.clone(),
+        None => {
+            warn!("Pipeline stopped before mixer thread was started.");
+            return;
+        }
+    };
+
     for mut samples in audio_receiver.iter() {
+        let Some(pipeline) = pipeline.upgrade() else {
+            break;
+        };
         for (input_id, event) in samples.samples.iter_mut() {
             if let PipelineEvent::EOS = event {
                 let mut guard = pipeline.lock().unwrap();
@@ -476,4 +577,5 @@ fn run_audio_mixer_thread(
             }
         }
     }
+    info!("Stopping audio mixer thread.")
 }

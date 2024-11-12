@@ -8,7 +8,7 @@
                     "type": "text",
                     "text": "Example text",
                     "font_size": 100,
-                    "font_family": "Verdana",
+                    "font_family": "Inter",
                     "background_color_rgba": "#FF0000FF"
                 }
             ]

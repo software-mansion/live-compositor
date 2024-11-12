@@ -1,6 +1,6 @@
 import { createContext } from 'react';
-import { InstanceContextStore } from './instanceContextStore';
-import { OutputContext } from './outputContext';
+import { InstanceContextStore } from './instanceContextStore.js';
+import { OutputContext } from './outputContext.js';
 
 type CompositorOutputContext = {
   // global store for the entire LiveCompositor instance

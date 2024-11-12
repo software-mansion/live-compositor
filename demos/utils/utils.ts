@@ -1,8 +1,9 @@
 import fetch from 'node-fetch';
-import fs from 'fs-extra';
+import fs, { mkdirp } from 'fs-extra';
 import { promisify } from 'util';
 import { Stream } from 'stream';
-import { ChildProcess, spawn as nodeSpawn } from 'child_process';
+import type { ChildProcess } from 'child_process';
+import { spawn as nodeSpawn } from 'child_process';
 import { cwd } from 'process';
 import path from 'path';
 
@@ -14,14 +15,13 @@ process.on('exit', () => {
 });
 
 type SpawnOptions = {
-  displayOutput: boolean;
   cwd?: string;
 };
 
 export function spawn(command: string, args: string[], opts: SpawnOptions): SpawnPromise {
   console.log(`Spawning: ${command} ${args.join(' ')}`);
   const child = nodeSpawn(command, args, {
-    stdio: opts.displayOutput ? 'inherit' : 'ignore',
+    stdio: 'ignore',
     cwd: opts.cwd ?? cwd(),
     env: {
       ...process.env,
@@ -69,7 +69,7 @@ export async function downloadAsync(url: string, destination: string): Promise<v
     return;
   }
 
-  await fs.mkdirp(path.dirname(destination));
+  await mkdirp(path.dirname(destination));
   const response = await fetch(url, { method: 'GET', timeout: 0 });
   if (response.status >= 400) {
     const err: any = new Error(`Request to ${url} failed. \n${response.body}`);

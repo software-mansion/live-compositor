@@ -1,5 +1,8 @@
 name: docker
 on:
+    workflow_dispatch: {}
+    schedule:
+      - cron: '0 0 * * 0' # once a week
     push:
         branches: [master]
         paths:

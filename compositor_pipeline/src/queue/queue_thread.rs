@@ -1,7 +1,7 @@
 use std::{
     collections::BTreeMap,
     ops::Add,
-    sync::{Arc, MutexGuard},
+    sync::{atomic::Ordering, Arc, MutexGuard},
     thread::{self, JoinHandle},
     time::{Duration, Instant},
 };
@@ -51,7 +51,7 @@ impl QueueThread {
     fn run(mut self) {
         let _span = info_span!("Queue").entered();
         let ticker = tick(self.queue.output_framerate.get_interval_duration());
-        loop {
+        while !self.queue.should_close.load(Ordering::Relaxed) {
             select! {
                 recv(ticker) -> _ => {
                     self.cleanup_old_data()
@@ -124,7 +124,7 @@ impl QueueThreadAfterStart {
     fn run(mut self) {
         let ticker = tick(Duration::from_millis(10));
 
-        loop {
+        while !self.queue.should_close.load(Ordering::Relaxed) {
             select! {
                 recv(ticker) -> _ => {
                     self.on_handle_tick()
@@ -236,7 +236,9 @@ impl VideoQueueProcessor {
         let pts = frames_batch.pts;
         debug!(?pts, "Pushing video frames.");
         if is_required {
-            self.sender.send(frames_batch).unwrap()
+            if self.sender.send(frames_batch).is_err() {
+                warn!(?pts, "Dropping video frame on queue output.");
+            }
         } else {
             let send_deadline = self.queue_start_time.add(frames_batch.pts);
             if self
@@ -341,7 +343,9 @@ impl AudioQueueProcessor {
         let pts_range = (samples.start_pts, samples.end_pts);
         debug!(?pts_range, "Pushing audio samples.");
         if is_required {
-            self.sender.send(samples).unwrap()
+            if self.sender.send(samples).is_err() {
+                warn!(?pts_range, "Dropping audio batch on queue output.");
+            }
         } else if self.sender.try_send(samples).is_err() {
             warn!(?pts_range, "Dropping audio batch on queue output.")
         }

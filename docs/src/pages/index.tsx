@@ -1,6 +1,8 @@
 import Link from '@docusaurus/Link';
 import Heading from '@theme/Heading';
 import Layout from '@theme/Layout';
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
 import clsx from 'clsx';
 import { FaServer } from 'react-icons/fa';
 import { FaBook, FaCode, FaDocker, FaGears, FaGithub, FaLink } from 'react-icons/fa6';
@@ -20,8 +22,8 @@ import WebGpuLogoLight from '@site/static/img/webgpu-light.svg';
 import { PropsWithChildren } from 'react';
 import { IconContext, IconType } from 'react-icons';
 import TypewriterComponent from 'typewriter-effect';
-import ExampleScene from '../components/example_scene';
-import RTCOnBanner from '@site/src/components/RtcOnBanner';
+import ExampleSceneJson from '../components/ExampleSceneJson';
+import ExampleSceneJsx from '../components/ExampleSceneJsx';
 import styles from './index.module.css';
 
 function HomepageHeader() {
@@ -99,21 +101,28 @@ function HowItWorks() {
   return (
     <div className="container margin-top--md">
       <Heading as="h2" className="margin-bottom--md text--center text--primary">
-        How it works?
+        How does it work?
       </Heading>
       <p className={clsx('text--center', styles.grayText)}>
-        1. Send inputs as RTP streams or MP4 files
+        1. Either stream inputs in or provide them as MP4 files
         <br />
-        2. Configure mixing with HTTP requests
+        2. Configure mixing with React components or via HTTP API
         <br />
-        3. Get the mixed streams via RTP
+        3. Write the outputs to a file or stream them to a separate service
       </p>
-      <div className="row" style={{ alignItems: 'center' }}>
-        <div className="col col--6">
+      <div className="flex flex-row flex-wrap">
+        <div className="flex-1 mx-8 mt-20 min-w-[400px]">
           <img src={ComposingImg} alt="Composing" />
         </div>
-        <div className={clsx('col col--6', styles.sceneExample)}>
-          <ExampleScene />
+        <div className="flex-1">
+          <Tabs>
+            <TabItem value="react" label="React" default>
+              <ExampleSceneJsx />
+            </TabItem>
+            <TabItem value="json" label="JSON">
+              <ExampleSceneJson />
+            </TabItem>
+          </Tabs>
         </div>
       </div>
     </div>
@@ -534,7 +543,6 @@ export default function Home(): JSX.Element {
       <Licensing />
       <div className={styles.sectionSeparator} />
       <ContactUs />
-      <RTCOnBanner />
     </Layout>
   );
 }

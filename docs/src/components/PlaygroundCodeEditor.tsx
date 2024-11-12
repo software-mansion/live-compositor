@@ -5,10 +5,11 @@ import componentTypesJsonSchema from '../../component_types.schema.json';
 import JSONEditor from '../jsonEditor';
 import { jsonrepair } from 'jsonrepair';
 import Ajv from 'ajv';
+import ExecutionEnvironment from '@docusaurus/ExecutionEnvironment';
 
 interface PlaygroundCodeEditorProps {
   onChange: (content: object | Error) => void;
-  initialCodeEditorContent: object;
+  codeEditorOverrideContent: object;
 }
 
 function ajvInitialization(): Ajv.Ajv {
@@ -28,8 +29,26 @@ function ajvInitialization(): Ajv.Ajv {
   return ajv;
 }
 
-function PlaygroundCodeEditor({ onChange, initialCodeEditorContent }: PlaygroundCodeEditorProps) {
+function saveToLocalAndSessionStorage(jsonContent: object) {
+  if (ExecutionEnvironment.canUseDOM) {
+    const jsonContentStringify = JSON.stringify(jsonContent);
+    sessionStorage.setItem('playgroundCodeEditorContent', jsonContentStringify);
+    localStorage.setItem('playgroundCodeEditorContent', jsonContentStringify);
+  }
+}
+
+function PlaygroundCodeEditor({ onChange, codeEditorOverrideContent }: PlaygroundCodeEditorProps) {
   const [jsonEditor, setJsonEditor] = useState<JSONEditor | null>(null);
+
+  const loadFromSessionStorage = () => {
+    const savedContent = ExecutionEnvironment.canUseDOM
+      ? sessionStorage.getItem('playgroundCodeEditorContent')
+      : null;
+    if (savedContent) {
+      return JSON.parse(savedContent);
+    }
+    return codeEditorOverrideContent;
+  };
 
   const editorContainer = useCallback((node: HTMLElement) => {
     if (node === null) {
@@ -47,11 +66,12 @@ function PlaygroundCodeEditor({ onChange, initialCodeEditorContent }: Playground
       ajv,
       onChange: () => {
         try {
-          const jsonContent = editor.get();
+          const jsonContent = JSON.parse(jsonrepair(editor.getText()));
           onChange(jsonContent);
           if (!validate(jsonContent)) {
             throw new Error('Invalid JSON!');
           }
+          saveToLocalAndSessionStorage(jsonContent);
         } catch (error) {
           onChange(error);
         }
@@ -71,12 +91,17 @@ function PlaygroundCodeEditor({ onChange, initialCodeEditorContent }: Playground
         }
       },
     });
-
     editor.setSchema(componentTypesJsonSchema);
-    editor.set(initialCodeEditorContent);
-
+    editor.set(loadFromSessionStorage());
     setJsonEditor(editor);
   }, []);
+
+  useEffect(() => {
+    saveToLocalAndSessionStorage(codeEditorOverrideContent);
+    if (jsonEditor && codeEditorOverrideContent) {
+      jsonEditor.update(codeEditorOverrideContent);
+    }
+  }, [jsonEditor, codeEditorOverrideContent]);
 
   useEffect(() => {
     return () => {

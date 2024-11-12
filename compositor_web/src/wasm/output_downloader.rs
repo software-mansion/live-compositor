@@ -61,7 +61,6 @@ impl OutputDownloader {
             let buffer = self.buffers.get(&id).unwrap();
             let frame_object = Self::create_frame_object(frame, buffer)?;
             output_data.set(&id.to_string().into(), &frame_object);
-
             buffer.unmap();
         }
 
@@ -85,26 +84,32 @@ impl OutputDownloader {
             FrameData::Rgba8UnormWgpuTexture(_) => types::FrameFormat::RgbaBytes,
             _ => return Err(JsValue::from_str("Unsupported output frame format")),
         };
+        let mut data: Vec<u8> = Vec::with_capacity(4 * resolution.width * resolution.height);
+        for chunk in buffer_view.chunks(pad_to_256(4 * resolution.width as u32) as usize) {
+            data.extend(&chunk[..(4 * frame.resolution.width)]);
+        }
 
         let frame = Object::new();
         frame.set("resolution", serde_wasm_bindgen::to_value(&resolution)?)?;
         frame.set("format", serde_wasm_bindgen::to_value(&format)?)?;
-        frame.set("data", wasm_bindgen::Clamped(buffer_view.to_vec()))?;
+        frame.set("data", wasm_bindgen::Clamped(data))?;
 
         return Ok(frame);
     }
 
     fn create_buffer(device: &wgpu::Device, resolution: Resolution) -> wgpu::Buffer {
+        let size = pad_to_256(4 * resolution.width as u32) * resolution.height as u32;
         device.create_buffer(&wgpu::BufferDescriptor {
             label: None,
-            size: (4 * resolution.width * resolution.height) as u64,
+            size: size as u64,
             usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
             mapped_at_creation: false,
         })
     }
 
     fn ensure_buffer(buffer: &mut wgpu::Buffer, device: &wgpu::Device, resolution: Resolution) {
-        if buffer.size() != (4 * resolution.width * resolution.height) as u64 {
+        let size = pad_to_256(4 * resolution.width as u32) * resolution.height as u32;
+        if buffer.size() != size as u64 {
             *buffer = Self::create_buffer(device, resolution);
         }
     }

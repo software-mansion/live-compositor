@@ -1,6 +1,8 @@
-import * as Api from '../api';
-import { createCompositorComponent, SceneComponent, sceneComponentIntoApi } from '../component';
-import { intoApiRgbaColor, intoApiTransition, Transition } from './common';
+import type * as Api from '../api.js';
+import type { SceneComponent } from '../component.js';
+import { createCompositorComponent, sceneComponentIntoApi } from '../component.js';
+import type { Transition } from './common.js';
+import { intoApiRgbaColor, intoApiTransition } from './common.js';
 
 export type ViewProps = {
   /**
@@ -57,7 +59,7 @@ export type ViewProps = {
   rotation?: number;
   /**
    * Defines how this component will behave during a scene update. This will only have an
-   * effect if the previous scene already contained a View component with the same id.
+   * effect if the previous scene already contained a `View` component with the same id.
    */
   transition?: Transition;
   /**

@@ -5,13 +5,23 @@ import QuickStartBothInputs from "./assets/quick_start_2.webp"
 
 # Quick start
 
-This guide will explain basic LiveCompositor setup.
+This guide explains creating a basic compositor setup. We will take two input videos and produce an output video with both of them side-by-side.
 
 ## Configure inputs and output
 
 ### Start the compositor
 
 <Tabs queryString="lang">
+  <TabItem value="react" label="React">
+    ```tsx
+    import LiveCompositor from "@live-compositor/node"
+
+    async function start() {
+      const compositor = new LiveCompositor();
+      await compositor.init();
+    }
+    ```
+  </TabItem>
   <TabItem value="http" label="HTTP">
     Start the compositor server. Check out [configuration page](../deployment/configuration.md) for available configuration options.
   </TabItem>
@@ -43,6 +53,22 @@ This guide will explain basic LiveCompositor setup.
 ### Register input stream `input_1`.
 
 <Tabs queryString="lang">
+  <TabItem value="react" label="React">
+    ```tsx
+    await compositor.registerInput("input_1", {
+      type: "rtp_stream",
+      transportProtocol: "tcp_server",
+      port: 9001,
+      video: {
+        decoder: "ffmpeg_h264"
+      },
+      audio: {
+        decoder: "opus"
+      }
+    })
+    ```
+    After `registerInput` call is done you can establish the connection and start sending the stream. Check out [how to deliver input streams](./deliver-input.md) to learn more.
+  </TabItem>
   <TabItem value="http" label="HTTP">
     ```http
     POST: /api/input/input_1/register
@@ -55,12 +81,13 @@ This guide will explain basic LiveCompositor setup.
       "video": {
         "decoder": "ffmpeg_h264"
       }
+      "audio": {
+        "decoder": "opus"
+      }
     }
     ```
 
     After receiving the response you can establish the connection and start sending the stream. Check out [how to deliver input streams](./deliver-input.md) to learn more.
-
-    In this example we are using RTP over TCP, but it could be easily replaced by UDP.
   </TabItem>
   <TabItem value="membrane" label="Membrane Framework">
     ```elixir
@@ -88,6 +115,22 @@ This guide will explain basic LiveCompositor setup.
 ### Register input stream `input_2`.
 
 <Tabs queryString="lang">
+  <TabItem value="react" label="React">
+    ```tsx
+    await compositor.registerInput("input_2", {
+      type: "rtp_stream",
+      transportProtocol: "tcp_server",
+      port: 9002,
+      video: {
+        decoder: "ffmpeg_h264"
+      },
+      audio: {
+        decoder: "opus"
+      }
+    })
+    ```
+    After `registerInput` call is done you can establish the connection and start sending the stream. Check out [how to deliver input streams](./deliver-input.md) to learn more.
+  </TabItem>
   <TabItem value="http" label="HTTP">
     ```http
     POST: /api/input/input_2/register
@@ -99,13 +142,14 @@ This guide will explain basic LiveCompositor setup.
       "port": 9002,
       "video": {
         "decoder": "ffmpeg_h264"
+      },
+      "audio": {
+        "decoder": "opus"
       }
     }
     ```
 
     After receiving the response you can establish the connection and start sending the stream. Check out [how to deliver input streams](./deliver-input.md) to learn more.
-
-    In this example we are using RTP over TCP, but it could be easily replaced by UDP.
   </TabItem>
   <TabItem value="membrane" label="Membrane Framework">
     ```elixir
@@ -137,6 +181,42 @@ Configure it to:
 - produce silent audio
 
 <Tabs queryString="lang">
+  <TabItem value="react" label="React">
+    ```tsx
+    function App() {
+      return <View backgroundColor="#4d4d4d"/>
+    }
+
+    async function start() {
+      // init code from previous steps
+
+      await compositor.registerOutput("output_1", {
+        type: "rtp_stream",
+        transportProtocol: "tcp_server",
+        port: 9003,
+        video: {
+          resolution: { width: 1280, height: 720 },
+          encoder": {
+            type: "ffmpeg_h264",
+            preset: "ultrafast"
+          },
+          root: <App />
+        },
+        audio: {
+          encoder: {
+            type: "opus",
+            channels: "stereo"
+          },
+        }
+      })
+    }
+    ```
+    After `registerOutput` is done you can establish the connection and start listening for the stream. Check out [how to receive output streams](./receive-output.md) to learn more.
+
+    `View` component does not have any children, so on the output you should see just a blank screen
+    of a specified color as shown below. There are no `InputStream` components in the scene and
+    `useAudioInput` hook was not used, so output audio will be silent.
+  </TabItem>
   <TabItem value="http" label="HTTP">
     ```http
     POST: /api/output/output_1/register
@@ -170,12 +250,11 @@ Configure it to:
       }
     }
     ```
-    You can configure the output framerate and the sample rate using [`LIVE_COMPOSITOR_OUTPUT_FRAMERATE`](../deployment/configuration.md#live_compositor_output_framerate) and [`LIVE_COMPOSITOR_OUTPUT_SAMPLE_RATE`](../deployment/configuration.md#live_compositor_output_sample_rate) environment variables.
-
     After receiving the response you can establish the connection and start listening for the stream. Check out [how to receive output streams](./receive-output.md) to learn more.
 
-    In this example we are using RTP over TCP, if you prefer to use UDP you need start listening on the specified port before sending register request to make sure you are not losing
-    first frames.
+    `View` component does not have any children, so on the output you should see just a blank screen
+    of a specified color as shown below. The `initial.inputs` list in audio config is empty, so the
+    output audio will be silent.
   </TabItem>
   <TabItem value="membrane" label="Membrane Framework">
     ```elixir
@@ -198,7 +277,7 @@ Configure it to:
           }
         ])
         |> video_output_1_spec,
-        
+
         get_child(:live_compositor)
         |> via_out(Pad.ref(:audio_output, "audio_output_1"), options: [
           encoder: LiveCompositor.Encoder.Opus.t(),
@@ -216,11 +295,12 @@ Configure it to:
     where `video_output_1_spec` and `audio_output_1_spec` are elements that can consume H264 video and Opus audio respectively.
 
     You can configure output framerate and sample rate using [`framerate` and `output_sample_rate` bin options](https://hexdocs.pm/membrane_live_compositor_plugin/Membrane.LiveCompositor.html#module-bin-options).
+
+    `View` component does not have any children, so on the output you should see just a blank screen
+    of a specified color as shown below. The `initial.inputs` list in audio config is empty, so the
+    output audio will be silent.
   </TabItem>
 </Tabs>
-
-`View` component does not have any children, so on the output you should see just a blank screen of a specified color as shown below.
-The `initial.inputs` list in audio config is empty, so the output audio will be silent.
 
 <div style={{textAlign: 'center'}}>
     <img src={QuickStartEmpty} style={{ width: 600 }} />
@@ -231,10 +311,22 @@ The `initial.inputs` list in audio config is empty, so the output audio will be 
 ## Update output
 
 Configure it to:
-- Show input streams `input_1` and `input_2` using [`Tiles`](../api/components/Tiles.md) component.
-- Mix audio from input streams `input_1` and `input_2`, where `input_1` volume is slightly lowered.  
+- Show input streams `input_1` and `input_2` using [`Tiles`](../typescript/components/Tiles.md) component.
+- Mix audio from input streams `input_1` and `input_2`, where `input_1` volume is slightly lowered.
 
 <Tabs queryString="lang">
+  <TabItem value="react" label="React">
+    ```tsx
+    function App() {
+      return (
+        <Tiles backgroundColor="#4d4d4d">
+          <InputStream inputId="input_1" volume={0.9} />
+          <InputStream inputId="input_2" />
+        </Tiles>
+      )
+    }
+    ```
+  </TabItem>
   <TabItem value="http" label="HTTP">
     ```http
     POST: /api/output/output_1/update
@@ -280,7 +372,7 @@ Configure it to:
           %{ input_id: "input_2" }
         ]
       }
-      
+
       events = [
         notify_child: {:live_compositor, video_request},
         notify_child: {:live_compositor, audio_request}

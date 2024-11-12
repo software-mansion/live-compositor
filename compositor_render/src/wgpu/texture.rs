@@ -14,6 +14,7 @@ use super::WgpuCtx;
 mod base;
 mod bgra;
 mod interleaved_yuv422;
+mod nv12;
 mod planar_yuv;
 mod rgba;
 pub mod utils;
@@ -23,6 +24,7 @@ pub type RGBATexture = rgba::RGBATexture;
 pub type PlanarYuvTextures = planar_yuv::PlanarYuvTextures;
 pub type PlanarYuvVariant = planar_yuv::YuvVariant;
 pub type InterleavedYuv422Texture = interleaved_yuv422::InterleavedYuv422Texture;
+pub type NV12TextureView<'a> = nv12::NV12TextureView<'a>;
 
 pub type Texture = base::Texture;
 
@@ -38,6 +40,7 @@ enum InputTextureState {
         bind_group: wgpu::BindGroup,
     },
     Rgba8UnormWgpuTexture(Arc<wgpu::Texture>),
+    Nv12WgpuTexture(Arc<wgpu::Texture>),
 }
 
 impl InputTextureState {
@@ -45,7 +48,8 @@ impl InputTextureState {
         match &self {
             InputTextureState::PlanarYuvTextures { textures, .. } => textures.resolution,
             InputTextureState::InterleavedYuv422Texture { texture, .. } => texture.resolution,
-            InputTextureState::Rgba8UnormWgpuTexture(texture) => {
+            InputTextureState::Rgba8UnormWgpuTexture(texture)
+            | InputTextureState::Nv12WgpuTexture(texture) => {
                 let size = texture.size();
                 Resolution {
                     width: size.width as usize,
@@ -86,6 +90,9 @@ impl InputTexture {
             }
             FrameData::Rgba8UnormWgpuTexture(texture) => {
                 self.0 = Some(InputTextureState::Rgba8UnormWgpuTexture(texture))
+            }
+            FrameData::Nv12WgpuTexture(texture) => {
+                self.0 = Some(InputTextureState::Nv12WgpuTexture(texture))
             }
         }
     }
@@ -181,6 +188,21 @@ impl InputTexture {
                         {
                             error!("Invalid texture passed as an input: {err}")
                         }
+                    }
+                    InputTextureState::Nv12WgpuTexture(texture) => {
+                        let texture = match NV12TextureView::from_wgpu_texture(texture.as_ref()) {
+                            Ok(texture) => texture,
+                            Err(err) => {
+                                error!("Invalid texture passed as input: {err}");
+                                return;
+                            }
+                        };
+                        let bind_group = texture.new_bind_group(ctx, ctx.format.nv12_layout());
+                        ctx.format.convert_nv12_to_rgba(
+                            ctx,
+                            (&texture, &bind_group),
+                            dest_state.rgba_texture(),
+                        )
                     }
                 }
             }
