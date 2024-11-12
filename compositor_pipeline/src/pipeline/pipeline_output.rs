@@ -56,6 +56,10 @@ pub(super) fn register_pipeline_output<NewOutputResult>(
 
     let mut guard = pipeline.lock().unwrap();
 
+    if guard.outputs.contains_key(&output_id) {
+        return Err(RegisterOutputError::AlreadyRegistered(output_id));
+    }
+
     let output = PipelineOutput {
         output,
         audio_end_condition: audio.as_ref().map(|audio| {

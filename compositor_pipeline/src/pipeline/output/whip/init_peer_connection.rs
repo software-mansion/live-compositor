@@ -16,7 +16,7 @@ use webrtc::{
     track::track_local::track_local_static_rtp::TrackLocalStaticRTP,
 };
 
-pub async fn init_pc() -> Result<
+pub async fn init_peer_connection() -> Result<
     (
         Arc<RTCPeerConnection>,
         Arc<TrackLocalStaticRTP>,

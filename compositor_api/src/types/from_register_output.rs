@@ -1,3 +1,4 @@
+use axum::http::HeaderValue;
 use compositor_pipeline::pipeline::{
     self,
     encoder::{
@@ -195,6 +196,12 @@ impl TryFrom<WhipOutput> for pipeline::RegisterOutputOptions<output::OutputOptio
         let audio_codec = audio.as_ref().map(|a| match a.encoder {
             RtpAudioEncoderOptions::Opus { .. } => pipeline::AudioCodec::Opus,
         });
+
+        if let Some(token) = &bearer_token {
+            if HeaderValue::from_str(format!("Bearer {token}").as_str()).is_err() {
+                return Err(TypeError::new("Bearer token string is not valid. It must contain only 32-127 ASCII characters"));
+            };
+        }
 
         let (video_encoder_options, output_video_options) = maybe_video_options(video)?;
         let (audio_encoder_options, output_audio_options) = match audio {

@@ -19,6 +19,7 @@ use whip::{WhipSender, WhipSenderOptions};
 pub mod mp4;
 pub mod rtp;
 pub mod whip;
+
 /// Options to configure public outputs that can be constructed via REST API
 #[derive(Debug, Clone)]
 pub struct OutputOptions {
@@ -233,7 +234,7 @@ impl Output {
             .video
             .as_ref()
             .ok_or(RequestKeyframeError::NoVideoOutput(output_id))?
-            .request_keyframe()
+            .keyframe_request_sender()
             .send(())
         {
             debug!(%err, "Failed to send keyframe request to the encoder.");

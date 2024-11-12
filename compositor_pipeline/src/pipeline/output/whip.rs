@@ -1,26 +1,23 @@
 use compositor_render::OutputId;
 use crossbeam_channel::{Receiver, Sender};
 use establish_peer_connection::connect;
-use init_peer_connection::init_pc;
+use init_peer_connection::init_peer_connection;
 use packet_stream::PacketStream;
 use payloader::{Payload, Payloader, PayloadingError};
-use reqwest::{Method, StatusCode, Url};
+use reqwest::{Method, StatusCode};
 use std::{
     sync::{atomic::AtomicBool, Arc},
     thread,
-    time::{Duration, SystemTime},
+    time::{Duration, Instant},
 };
-use tokio::sync::oneshot;
+use tokio::{runtime::Runtime, sync::oneshot};
 use tracing::{debug, error, span, Instrument, Level};
-use url::ParseError;
-use webrtc::{
-    peer_connection::RTCPeerConnection,
-    track::track_local::{track_local_static_rtp::TrackLocalStaticRTP, TrackLocalWriter},
-};
+use url::{ParseError, Url};
+use webrtc::track::track_local::TrackLocalWriter;
 
 use crate::{
     error::OutputInitError,
-    event::Event,
+    event::{Event, EventEmitter},
     pipeline::{AudioCodec, EncoderOutputEvent, PipelineCtx, VideoCodec},
 };
 
@@ -38,9 +35,17 @@ pub struct WhipSender {
 #[derive(Debug, Clone)]
 pub struct WhipSenderOptions {
     pub endpoint_url: String,
-    pub bearer_token: Option<String>,
+    pub bearer_token: Option<Arc<str>>,
     pub video: Option<VideoCodec>,
     pub audio: Option<AudioCodec>,
+}
+
+pub struct WhipCtx {
+    options: WhipSenderOptions,
+    output_id: OutputId,
+    request_keyframe_sender: Option<Sender<()>>,
+    should_close: Arc<AtomicBool>,
+    tokio_rt: Arc<Runtime>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -75,7 +80,7 @@ pub enum WhipError {
     RemoteDescriptionError(webrtc::Error),
 
     #[error("Failed to parse {0} response body: {1}")]
-    BodyParsingError(String, reqwest::Error),
+    BodyParsingError(&'static str, reqwest::Error),
 
     #[error("Failed to create offer: {0}")]
     OfferCreationError(webrtc::Error),
@@ -105,37 +110,25 @@ impl WhipSender {
     ) -> Result<Self, OutputInitError> {
         let payloader = Payloader::new(options.video, options.audio);
         let packet_stream = PacketStream::new(packets_receiver, payloader, 1400);
-
         let should_close = Arc::new(AtomicBool::new(false));
-        let endpoint_url = options.endpoint_url.clone();
-        let bearer_token = options.bearer_token.clone();
-        let output_id = output_id.clone();
-        let should_close2 = should_close.clone();
-        let event_emitter = pipeline_ctx.event_emitter.clone();
-        let request_keyframe_sender = request_keyframe_sender.clone();
-
-        let tokio_rt = pipeline_ctx.tokio_rt.clone();
-        let tokio_rt_clone = tokio_rt.clone();
-        let output_id_clone = output_id.clone();
-
         let (init_confirmation_sender, mut init_confirmation_receiver) =
             oneshot::channel::<Result<(), WhipError>>();
 
-        tokio_rt.spawn(
-            async move {
-                run_whip_sender_thread(
-                    endpoint_url,
-                    bearer_token,
-                    should_close2,
-                    packet_stream,
-                    request_keyframe_sender,
-                    tokio_rt_clone,
-                    init_confirmation_sender,
-                )
-                .await;
-                event_emitter.emit(Event::OutputDone(output_id_clone));
-                debug!("Closing WHIP sender thread.")
-            }
+        let whip_ctx = WhipCtx {
+            options: options.clone(),
+            output_id: output_id.clone(),
+            request_keyframe_sender,
+            should_close: should_close.clone(),
+            tokio_rt: pipeline_ctx.tokio_rt.clone(),
+        };
+
+        pipeline_ctx.tokio_rt.spawn(
+            run_whip_sender_task(
+                whip_ctx,
+                packet_stream,
+                init_confirmation_sender,
+                pipeline_ctx.event_emitter.clone(),
+            )
             .instrument(span!(
                 Level::INFO,
                 "WHIP sender",
@@ -143,10 +136,10 @@ impl WhipSender {
             )),
         );
 
-        let start_time = SystemTime::now();
+        let start_time = Instant::now();
         loop {
-            thread::sleep(Duration::from_secs(5));
-            let elapsed_time = SystemTime::now().duration_since(start_time).unwrap();
+            thread::sleep(Duration::from_millis(500));
+            let elapsed_time = Instant::now().duration_since(start_time);
             if elapsed_time > WHIP_INIT_TIMEOUT {
                 return Err(OutputInitError::WhipInitTimeout);
             }
@@ -178,41 +171,23 @@ impl Drop for WhipSender {
     }
 }
 
-async fn run_whip_sender_thread(
-    endpoint_url: String,
-    bearer_token: Option<String>,
-    should_close: Arc<AtomicBool>,
+async fn run_whip_sender_task(
+    whip_ctx: WhipCtx,
     packet_stream: PacketStream,
-    request_keyframe_sender: Option<Sender<()>>,
-    tokio_rt: Arc<tokio::runtime::Runtime>,
     init_confirmation_sender: oneshot::Sender<Result<(), WhipError>>,
+    event_emitter: Arc<EventEmitter>,
 ) {
-    let client = reqwest::Client::new();
-    let peer_connection: Arc<RTCPeerConnection>;
-    let video_track: Arc<TrackLocalStaticRTP>;
-    let audio_track: Arc<TrackLocalStaticRTP>;
-    match init_pc().await {
-        Ok((pc, video, audio)) => {
-            peer_connection = pc;
-            video_track = video;
-            audio_track = audio;
-        }
+    let client = Arc::new(reqwest::Client::new());
+    let (peer_connection, video_track, audio_track) = match init_peer_connection().await {
+        Ok(pc) => pc,
         Err(err) => {
             init_confirmation_sender.send(Err(err)).unwrap();
             return;
         }
-    }
-    let whip_session_url = match connect(
-        peer_connection,
-        endpoint_url,
-        bearer_token,
-        should_close.clone(),
-        tokio_rt,
-        client.clone(),
-        request_keyframe_sender,
-    )
-    .await
-    {
+    };
+    let output_id_clone = whip_ctx.output_id.clone();
+    let should_close_clone = whip_ctx.should_close.clone();
+    let whip_session_url = match connect(peer_connection, client.clone(), whip_ctx).await {
         Ok(val) => val,
         Err(err) => {
             init_confirmation_sender.send(Err(err)).unwrap();
@@ -222,7 +197,7 @@ async fn run_whip_sender_thread(
     init_confirmation_sender.send(Ok(())).unwrap();
 
     for chunk in packet_stream {
-        if should_close.load(std::sync::atomic::Ordering::Relaxed) {
+        if should_close_clone.load(std::sync::atomic::Ordering::Relaxed) {
             break;
         }
         let chunk = match chunk {
@@ -257,4 +232,6 @@ async fn run_whip_sender_thread(
         }
     }
     let _ = client.delete(whip_session_url).send().await;
+    event_emitter.emit(Event::OutputDone(output_id_clone));
+    debug!("Closing WHIP sender thread.")
 }

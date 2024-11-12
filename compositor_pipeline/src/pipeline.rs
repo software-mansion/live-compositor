@@ -134,7 +134,7 @@ pub struct PipelineCtx {
     pub output_framerate: Framerate,
     pub download_dir: Arc<PathBuf>,
     pub event_emitter: Arc<EventEmitter>,
-    pub tokio_rt: Arc<tokio::runtime::Runtime>,
+    pub tokio_rt: Arc<Runtime>,
     #[cfg(feature = "vk-video")]
     pub vulkan_ctx: Option<Arc<vk_video::VulkanCtx>>,
 }

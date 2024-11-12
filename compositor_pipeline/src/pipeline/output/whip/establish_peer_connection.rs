@@ -1,8 +1,9 @@
-use crossbeam_channel::Sender;
-
-use super::WhipError;
-use reqwest::{header::HeaderMap, Client, Method, StatusCode, Url};
-use std::sync::{atomic::AtomicBool, Arc};
+use super::{WhipCtx, WhipError};
+use reqwest::{
+    header::{HeaderMap, HeaderValue},
+    Client, Method, StatusCode, Url,
+};
+use std::sync::Arc;
 use tracing::{debug, error, info, warn};
 use webrtc::{
     ice_transport::{ice_candidate::RTCIceCandidate, ice_connection_state::RTCIceConnectionState},
@@ -12,12 +13,8 @@ use webrtc::{
 
 pub async fn connect(
     peer_connection: Arc<RTCPeerConnection>,
-    endpoint_url: String,
-    bearer_token: Option<String>,
-    should_close: Arc<AtomicBool>,
-    tokio_rt: Arc<tokio::runtime::Runtime>,
-    client: reqwest::Client,
-    request_keyframe_sender: Option<Sender<()>>,
+    client: Arc<reqwest::Client>,
+    whip_ctx: WhipCtx,
 ) -> Result<Url, WhipError> {
     peer_connection.on_ice_connection_state_change(Box::new(
         move |connection_state: RTCIceConnectionState| {
@@ -26,17 +23,19 @@ pub async fn connect(
                 debug!("Ice connected.");
             } else if connection_state == RTCIceConnectionState::Failed {
                 debug!("Ice connection failed.");
-                should_close.store(true, std::sync::atomic::Ordering::Relaxed);
+                whip_ctx
+                    .should_close
+                    .store(true, std::sync::atomic::Ordering::Relaxed);
             }
             Box::pin(async {})
         },
     ));
 
-    if let Some(keyframe_sender) = request_keyframe_sender {
+    if let Some(keyframe_sender) = whip_ctx.request_keyframe_sender {
         let senders = peer_connection.get_senders().await;
         for sender in senders {
             let keyframe_sender_clone = keyframe_sender.clone();
-            tokio_rt.spawn(async move {
+            whip_ctx.tokio_rt.spawn(async move {
                 loop {
                     if let Ok((packets, _)) = &sender.read_rtcp().await {
                         for packet in packets {
@@ -63,39 +62,34 @@ pub async fn connect(
         .await
         .map_err(WhipError::OfferCreationError)?;
 
-    let endpoint_url = Url::parse(&endpoint_url)
-        .map_err(|e| WhipError::InvalidEndpointUrl(e, endpoint_url.clone()))?;
+    let endpoint_url = Url::parse(&whip_ctx.options.endpoint_url)
+        .map_err(|e| WhipError::InvalidEndpointUrl(e, whip_ctx.options.endpoint_url.clone()))?;
 
     info!("Endpoint url: {}", endpoint_url);
 
     let mut header_map = HeaderMap::new();
-    header_map.append("Content-Type", "application/sdp".parse().unwrap());
+    header_map.append("Content-Type", HeaderValue::from_static("application/sdp"));
 
-    let bearer_token = bearer_token.map(Arc::new);
-
-    if let Some(token) = bearer_token.clone() {
+    if let Some(token) = &whip_ctx.options.bearer_token {
         header_map.append("Authorization", format!("Bearer {token}").parse().unwrap());
     }
 
-    let response = match client
+    let response = client
         .post(endpoint_url.clone())
         .headers(header_map)
         .body(offer.sdp.clone())
         .send()
         .await
-    {
-        Ok(res) => res,
-        Err(_) => return Err(WhipError::RequestFailed(Method::POST, endpoint_url)),
-    };
+        .map_err(|_| WhipError::RequestFailed(Method::POST, endpoint_url.clone()))?;
 
-    if response.status() >= StatusCode::BAD_REQUEST {
-        let status = response.status();
-        let answer = response
+    if let Err(err) = &response.error_for_status_ref() {
+        let status = err.status().unwrap();
+        let answer = &response
             .text()
             .await
-            .map_err(|e| WhipError::BodyParsingError("sdp offer".to_string(), e))?;
-        return Err(WhipError::BadStatus(status, answer));
-    }
+            .map_err(|e| WhipError::BodyParsingError("sdp offer", e))?;
+        return Err(WhipError::BadStatus(status, answer.to_string()));
+    };
 
     let location_url_path = response
         .headers()
@@ -123,7 +117,7 @@ pub async fn connect(
     let answer = response
         .text()
         .await
-        .map_err(|e| WhipError::BodyParsingError("sdp offer".to_string(), e))?;
+        .map_err(|e| WhipError::BodyParsingError("sdp offer", e))?;
 
     let rtc_answer =
         RTCSessionDescription::answer(answer).map_err(WhipError::RTCSessionDescriptionError)?;
@@ -133,33 +127,28 @@ pub async fn connect(
         .await
         .map_err(WhipError::RemoteDescriptionError)?;
 
-    let client = Arc::new(client);
-
-    let location_clone: Url = location_url.clone();
-
+    let location_url_clone = location_url.clone();
     peer_connection.on_ice_candidate(Box::new(move |candidate| {
-        if let Some(candidate) = candidate {
-            let client_clone = client.clone();
-            let location_clone = location_clone.clone();
-            let bearer_token_clone = bearer_token.clone();
-            tokio_rt.spawn(async move {
+        let bearer_token = whip_ctx.options.bearer_token.clone();
+        let client = client.clone();
+        let location_url = location_url_clone.clone();
+        Box::pin(async move {
+            if let Some(candidate) = candidate {
                 if let Err(err) =
-                    handle_candidate(candidate, bearer_token_clone, client_clone, location_clone)
-                        .await
+                    handle_candidate(candidate, bearer_token, client, location_url.clone()).await
                 {
                     error!("{err}");
                 }
-            });
-        }
-        Box::pin(async {})
+            }
+        })
     }));
 
-    Ok(location_url.clone())
+    Ok(location_url)
 }
 
 async fn handle_candidate(
     candidate: RTCIceCandidate,
-    bearer_token: Option<Arc<String>>,
+    bearer_token: Option<Arc<str>>,
     client: Arc<Client>,
     location: Url,
 ) -> Result<(), WhipError> {
@@ -170,7 +159,7 @@ async fn handle_candidate(
     let mut header_map = HeaderMap::new();
     header_map.append(
         "Content-Type",
-        "application/trickle-ice-sdpfrag".parse().unwrap(),
+        HeaderValue::from_static("application/trickle-ice-sdpfrag"),
     );
 
     if let Some(token) = bearer_token {
@@ -185,7 +174,7 @@ async fn handle_candidate(
         .await
     {
         Ok(res) => res,
-        Err(_) => return Err(WhipError::RequestFailed(Method::PATCH, location)),
+        Err(_) => return Err(WhipError::RequestFailed(Method::PATCH, location.clone())),
     };
 
     if response.status() >= StatusCode::BAD_REQUEST {
@@ -193,7 +182,7 @@ async fn handle_candidate(
         let body_str = response
             .text()
             .await
-            .map_err(|e| WhipError::BodyParsingError("Trickle ICE patch".to_string(), e))?;
+            .map_err(|e| WhipError::BodyParsingError("Trickle ICE patch", e))?;
         if status == StatusCode::UNPROCESSABLE_ENTITY || status == StatusCode::METHOD_NOT_ALLOWED {
             warn!("Error while sending Ice Candidate do WHIP Server (Trickle ICE is probably not supported):\nStaus code: {status}\nBody: {body_str}")
         } else {

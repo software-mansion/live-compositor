@@ -148,7 +148,7 @@ impl VideoEncoder {
         }
     }
 
-    pub fn request_keyframe(&self) -> Sender<()> {
+    pub fn keyframe_request_sender(&self) -> Sender<()> {
         match self {
             Self::H264(encoder) => encoder.keyframe_request_sender(),
         }
