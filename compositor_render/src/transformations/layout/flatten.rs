@@ -346,16 +346,15 @@ impl NestedLayout {
     /// calculate RenderLayout for one of self box shadows
     fn box_shadow_layout(&self, box_shadow: &BoxShadow, parent_masks: &[Mask]) -> RenderLayout {
         RenderLayout {
-            top: self.top + box_shadow.offset_y - 0.5 * box_shadow.blur_radius,
-            left: self.left + box_shadow.offset_x - 0.5 * box_shadow.blur_radius,
-            width: self.width + box_shadow.blur_radius,
-            height: self.height + box_shadow.blur_radius,
+            top: self.top + box_shadow.offset_y,
+            left: self.left + box_shadow.offset_x,
+            width: self.width,
+            height: self.height,
             rotation_degrees: self.rotation_degrees, // TODO: this is incorrect
-            border_radius: self.border_radius + box_shadow.blur_radius,
+            border_radius: self.border_radius + (box_shadow.blur_radius / 2.0),
             content: RenderLayoutContent::BoxShadow {
                 color: box_shadow.color,
-                blur_radius: box_shadow.blur_radius * 2.0, // TODO: 2.0 is empirically selected
-                                                           // value
+                blur_radius: box_shadow.blur_radius,
             },
             masks: parent_masks.to_vec(),
         }
