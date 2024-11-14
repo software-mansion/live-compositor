@@ -361,7 +361,7 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
                 rotation_degrees
             );
             
-            let blur_alpha = smoothstep(0.0, blur_radius, edge_distance) * mask_alpha;
+            let blur_alpha = smoothstep(-blur_radius / 2.0, blur_radius / 2.0, edge_distance) * mask_alpha;
 
             return vec4<f32>(color.rgb, color.a * blur_alpha);
         }
