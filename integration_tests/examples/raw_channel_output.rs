@@ -31,8 +31,8 @@ use crossbeam_channel::bounded;
 use image::{codecs::png::PngEncoder, ColorType, ImageEncoder};
 use integration_tests::{examples::download_file, read_rgba_texture};
 use live_compositor::{
-    config::{read_config, LoggerConfig, LoggerFormat},
-    logger::{self, FfmpegLogLevel},
+    config::read_config,
+    logger::{self},
 };
 
 const BUNNY_FILE_URL: &str =
@@ -50,11 +50,7 @@ fn root_dir() -> PathBuf {
 // - read audio samples and write raw value using debug formatting
 fn main() {
     ffmpeg_next::format::network::init();
-    logger::init_logger(LoggerConfig {
-        ffmpeg_logger_level: FfmpegLogLevel::Info,
-        format: LoggerFormat::Compact,
-        level: "info,wgpu_hal=warn,wgpu_core=warn".to_string(),
-    });
+    logger::init_logger(read_config().logger);
     let mut config = read_config();
     config.queue_options.ahead_of_time_processing = true;
     let ctx = GraphicsContext::new(false, Default::default(), Default::default()).unwrap();
