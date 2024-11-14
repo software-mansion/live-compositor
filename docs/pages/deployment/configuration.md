@@ -128,3 +128,7 @@ Increasing this value always increases the latency of the stream by the same amo
 :::
 
 Defaults to `80ms` (about 5 frames in 60 fps).
+
+### `LIVE_COMPOSITOR_LOG_FILE`
+
+Path to the file were Live Compositor logs should be written. Setting this option does not disable logging to the standard output.
