@@ -1,5 +1,9 @@
 use super::WhipError;
-use std::sync::Arc;
+use std::{
+    env::{self, VarError},
+    sync::Arc,
+};
+use tracing::{info, warn};
 use webrtc::{
     api::{
         interceptor_registry::register_default_interceptors,
@@ -15,6 +19,8 @@ use webrtc::{
     },
     track::track_local::track_local_static_rtp::TrackLocalStaticRTP,
 };
+
+const STUN_SERVER_ENV: &str = "LIVE_COMPOSITOR_STUN_SERVERS";
 
 pub async fn init_peer_connection() -> Result<
     (
@@ -61,9 +67,27 @@ pub async fn init_peer_connection() -> Result<
         .with_interceptor_registry(registry)
         .build();
 
+    let mut stun_servers_urls = vec!["stun:stun.l.google.com:19302".to_owned()];
+
+    match env::var(STUN_SERVER_ENV) {
+        Ok(var) => {
+            if var.len() == 0 {
+                info!("Empty LIVE_COMPOSITOR_STUN_SERVERS environment variable, using default");
+            } else {
+                let env_url_list: Vec<String> = var.split(',').map(String::from).collect();
+                stun_servers_urls.extend(env_url_list);
+                info!("Using custom stun servers defined in LIVE_COMPOSITOR_STUN_SERVERS environment variable");
+            }
+        }
+        Err(err) => match err {
+            VarError::NotPresent => info!("No stun servers provided, using default"),
+            VarError::NotUnicode(_) => warn!("Invalid LIVE_COMPOSITOR_STUN_SERVERS environment variable, it is not a valid Unicode, using default")
+        },
+    }
+
     let config = RTCConfiguration {
         ice_servers: vec![RTCIceServer {
-            urls: vec!["stun:stun.l.google.com:19302".to_owned()],
+            urls: stun_servers_urls,
             ..Default::default()
         }],
         ..Default::default()
