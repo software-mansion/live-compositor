@@ -9,10 +9,12 @@ use wrappers::*;
 
 use crate::parser::{DecodeInformation, DecoderInstruction, ReferenceId};
 
+mod frame_sorter;
 mod session_resources;
 mod vulkan_ctx;
 mod wrappers;
 
+pub(crate) use frame_sorter::FrameSorter;
 pub use vulkan_ctx::*;
 
 pub struct VulkanDecoder<'a> {
@@ -22,7 +24,6 @@ pub struct VulkanDecoder<'a> {
     _command_pools: CommandPools,
     sync_structures: SyncStructures,
     reference_id_to_dpb_slot_index: std::collections::HashMap<ReferenceId, usize>,
-    decode_query_pool: Option<DecodeQueryPool>,
 }
 
 struct SyncStructures {
@@ -39,13 +40,17 @@ struct CommandBuffers {
 
 /// this cannot outlive the image and semaphore it borrows, but it seems impossible to encode that
 /// in the lifetimes
-struct DecodeOutput {
+struct DecodeSubmission {
     image: vk::Image,
     dimensions: vk::Extent2D,
     current_layout: vk::ImageLayout,
     layer: u32,
     wait_semaphore: vk::Semaphore,
     _input_buffer: Buffer,
+    picture_order_cnt: i32,
+    max_num_reorder_frames: u64,
+    is_idr: bool,
+    pts: Option<u64>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -80,6 +85,15 @@ pub enum VulkanDecoderError {
     #[error("A vulkan decode operation failed with code {0:?}")]
     DecodeOperationFailed(vk::QueryResultStatusKHR),
 
+    #[error("Invalid input data for the decoder: {0}.")]
+    InvalidInputData(String),
+
+    #[error("Profile changed during the stream")]
+    ProfileChangeUnsupported,
+
+    #[error("Level changed during the stream")]
+    LevelChangeUnsupported,
+
     #[error(transparent)]
     VulkanCtxError(#[from] VulkanCtxError),
 }
@@ -113,19 +127,6 @@ impl<'a> VulkanDecoder<'a> {
             fence_memory_barrier_completed: Fence::new(vulkan_ctx.device.clone(), false)?,
         };
 
-        let decode_query_pool = if vulkan_ctx
-            .queues
-            .h264_decode
-            .supports_result_status_queries()
-        {
-            Some(DecodeQueryPool::new(
-                vulkan_ctx.device.clone(),
-                H264ProfileInfo::decode_h264_yuv420().profile_info,
-            )?)
-        } else {
-            None
-        };
-
         Ok(Self {
             vulkan_ctx,
             video_session_resources: None,
@@ -136,21 +137,34 @@ impl<'a> VulkanDecoder<'a> {
                 vulkan_to_wgpu_transfer_buffer,
             },
             sync_structures,
-            decode_query_pool,
             reference_id_to_dpb_slot_index: Default::default(),
         })
     }
+}
+
+pub(crate) struct DecodeResult<T> {
+    frame: T,
+    pts: Option<u64>,
+    pic_order_cnt: i32,
+    max_num_reorder_frames: u64,
+    is_idr: bool,
 }
 
 impl VulkanDecoder<'_> {
     pub fn decode_to_bytes(
         &mut self,
         decoder_instructions: &[DecoderInstruction],
-    ) -> Result<Vec<Vec<u8>>, VulkanDecoderError> {
+    ) -> Result<Vec<DecodeResult<Vec<u8>>>, VulkanDecoderError> {
         let mut result = Vec::new();
         for instruction in decoder_instructions {
             if let Some(output) = self.decode(instruction)? {
-                result.push(self.download_output(output)?)
+                result.push(DecodeResult {
+                    pts: output.pts,
+                    is_idr: output.is_idr,
+                    max_num_reorder_frames: output.max_num_reorder_frames,
+                    pic_order_cnt: output.picture_order_cnt,
+                    frame: self.download_output(output)?,
+                })
             }
         }
 
@@ -160,11 +174,17 @@ impl VulkanDecoder<'_> {
     pub fn decode_to_wgpu_textures(
         &mut self,
         decoder_instructions: &[DecoderInstruction],
-    ) -> Result<Vec<wgpu::Texture>, VulkanDecoderError> {
+    ) -> Result<Vec<DecodeResult<wgpu::Texture>>, VulkanDecoderError> {
         let mut result = Vec::new();
         for instruction in decoder_instructions {
             if let Some(output) = self.decode(instruction)? {
-                result.push(self.output_to_wgpu_texture(output)?)
+                result.push(DecodeResult {
+                    pts: output.pts,
+                    is_idr: output.is_idr,
+                    max_num_reorder_frames: output.max_num_reorder_frames,
+                    pic_order_cnt: output.picture_order_cnt,
+                    frame: self.output_to_wgpu_texture(output)?,
+                })
             }
         }
 
@@ -174,20 +194,14 @@ impl VulkanDecoder<'_> {
     fn decode(
         &mut self,
         instruction: &DecoderInstruction,
-    ) -> Result<Option<DecodeOutput>, VulkanDecoderError> {
+    ) -> Result<Option<DecodeSubmission>, VulkanDecoderError> {
         match instruction {
-            DecoderInstruction::Decode { .. } => {
-                return Err(VulkanDecoderError::DecoderInstructionNotSupported(
-                    Box::new(instruction.clone()),
-                ))
-            }
-
-            DecoderInstruction::DecodeAndStoreAs {
+            DecoderInstruction::Decode {
                 decode_info,
                 reference_id,
             } => {
                 return self
-                    .process_reference_p_frame(decode_info, *reference_id)
+                    .process_reference_p_or_b_frame(decode_info, *reference_id)
                     .map(Option::Some)
             }
 
@@ -225,14 +239,14 @@ impl VulkanDecoder<'_> {
             Some(session) => session.process_sps(
                 &self.vulkan_ctx,
                 &self.command_buffers.decode_buffer,
-                sps,
+                sps.clone(),
                 &self.sync_structures.fence_memory_barrier_completed,
             )?,
             None => {
                 self.video_session_resources = Some(VideoSessionResources::new_from_sps(
                     &self.vulkan_ctx,
                     &self.command_buffers.decode_buffer,
-                    sps,
+                    sps.clone(),
                     &self.sync_structures.fence_memory_barrier_completed,
                 )?)
             }
@@ -245,7 +259,7 @@ impl VulkanDecoder<'_> {
         self.video_session_resources
             .as_mut()
             .ok_or(VulkanDecoderError::NoSession)?
-            .process_pps(pps)?;
+            .process_pps(pps.clone())?;
 
         Ok(())
     }
@@ -262,15 +276,15 @@ impl VulkanDecoder<'_> {
         &mut self,
         decode_information: &DecodeInformation,
         reference_id: ReferenceId,
-    ) -> Result<DecodeOutput, VulkanDecoderError> {
+    ) -> Result<DecodeSubmission, VulkanDecoderError> {
         self.do_decode(decode_information, reference_id, true, true)
     }
 
-    fn process_reference_p_frame(
+    fn process_reference_p_or_b_frame(
         &mut self,
         decode_information: &DecodeInformation,
         reference_id: ReferenceId,
-    ) -> Result<DecodeOutput, VulkanDecoderError> {
+    ) -> Result<DecodeSubmission, VulkanDecoderError> {
         self.do_decode(decode_information, reference_id, false, true)
     }
 
@@ -280,7 +294,7 @@ impl VulkanDecoder<'_> {
         reference_id: ReferenceId,
         is_idr: bool,
         is_reference: bool,
-    ) -> Result<DecodeOutput, VulkanDecoderError> {
+    ) -> Result<DecodeSubmission, VulkanDecoderError> {
         // upload data to a buffer
         let size = Self::pad_size_to_alignment(
             decode_information.rbsp_bytes.len() as u64,
@@ -289,17 +303,18 @@ impl VulkanDecoder<'_> {
                 .min_bitstream_buffer_offset_alignment,
         );
 
-        let decode_buffer = Buffer::new_with_decode_data(
-            self.vulkan_ctx.allocator.clone(),
-            &decode_information.rbsp_bytes,
-            size,
-        )?;
-
         // decode
         let video_session_resources = self
             .video_session_resources
             .as_mut()
             .ok_or(VulkanDecoderError::NoSession)?;
+
+        let decode_buffer = Buffer::new_with_decode_data(
+            self.vulkan_ctx.allocator.clone(),
+            &decode_information.rbsp_bytes,
+            size,
+            &video_session_resources.profile_info,
+        )?;
 
         // IDR - remove all reference picures
         if is_idr {
@@ -328,7 +343,7 @@ impl VulkanDecoder<'_> {
             )
         };
 
-        if let Some(pool) = self.decode_query_pool.as_ref() {
+        if let Some(pool) = video_session_resources.decode_query_pool.as_ref() {
             pool.reset(*self.command_buffers.decode_buffer);
         }
 
@@ -418,7 +433,7 @@ impl VulkanDecoder<'_> {
                     0,
                 ),
             },
-            PicOrderCnt: decode_information.picture_info.PicOrderCnt,
+            PicOrderCnt: decode_information.picture_info.PicOrderCnt_for_decoding,
             seq_parameter_set_id: decode_information.sps_id,
             pic_parameter_set_id: decode_information.pps_id,
             frame_num: decode_information.header.frame_num,
@@ -461,7 +476,7 @@ impl VulkanDecoder<'_> {
             .reference_slots(&pic_reference_slots)
             .push_next(&mut decode_h264_picture_info);
 
-        if let Some(pool) = self.decode_query_pool.as_ref() {
+        if let Some(pool) = video_session_resources.decode_query_pool.as_ref() {
             pool.begin_query(*self.command_buffers.decode_buffer);
         }
 
@@ -472,7 +487,7 @@ impl VulkanDecoder<'_> {
                 .cmd_decode_video_khr(*self.command_buffers.decode_buffer, &decode_info)
         };
 
-        if let Some(pool) = self.decode_query_pool.as_ref() {
+        if let Some(pool) = video_session_resources.decode_query_pool.as_ref() {
             pool.end_query(*self.command_buffers.decode_buffer);
         }
 
@@ -502,23 +517,33 @@ impl VulkanDecoder<'_> {
         self.reference_id_to_dpb_slot_index
             .insert(reference_id, new_reference_slot_index);
 
-        // TODO: those are not the real dimensions of the image. the real dimensions should be
-        // calculated from the sps
-        let dimensions = video_session_resources.video_session.max_coded_extent;
+        let sps = video_session_resources
+            .sps
+            .get(&decode_information.sps_id)
+            .ok_or(VulkanDecoderError::NoSession)?;
 
-        Ok(DecodeOutput {
+        let dimensions = vk::Extent2D {
+            width: sps.width()?,
+            height: sps.height()?,
+        };
+
+        Ok(DecodeSubmission {
             image: target_image,
             wait_semaphore: *self.sync_structures.sem_decode_done,
             layer: target_layer as u32,
             current_layout: target_image_layout,
             dimensions,
             _input_buffer: decode_buffer,
+            picture_order_cnt: decode_information.picture_info.PicOrderCnt_for_decoding[0],
+            max_num_reorder_frames: video_session_resources.max_num_reorder_frames,
+            is_idr,
+            pts: decode_information.pts,
         })
     }
 
     fn output_to_wgpu_texture(
         &self,
-        decode_output: DecodeOutput,
+        decode_output: DecodeSubmission,
     ) -> Result<wgpu::Texture, VulkanDecoderError> {
         let copy_extent = vk::Extent3D {
             width: decode_output.dimensions.width,
@@ -690,8 +715,9 @@ impl VulkanDecoder<'_> {
             .wait_and_reset(u64::MAX)?;
 
         let result = self
-            .decode_query_pool
+            .video_session_resources
             .as_ref()
+            .and_then(|s| s.decode_query_pool.as_ref())
             .map(|pool| pool.get_result_blocking());
 
         if let Some(result) = result {
@@ -700,6 +726,11 @@ impl VulkanDecoder<'_> {
                 return Err(VulkanDecoderError::DecodeOperationFailed(result));
             }
         }
+
+        // this has to be done with Option and mut, because the closure we create has to be FnMut.
+        // this means we cannot consume its captures, so we have to take the option to be able to
+        // drop the resource.
+        let mut image_clone = Some(image.clone());
 
         let hal_texture = unsafe {
             wgpu::hal::vulkan::Device::texture_from_raw(
@@ -721,7 +752,9 @@ impl VulkanDecoder<'_> {
                     format: wgpu::TextureFormat::NV12,
                     mip_level_count: 1,
                 },
-                Some(Box::new(image.clone())),
+                Some(Box::new(move || {
+                    image_clone.take();
+                })),
             )
         };
 
@@ -753,7 +786,10 @@ impl VulkanDecoder<'_> {
         Ok(wgpu_texture)
     }
 
-    fn download_output(&self, decode_output: DecodeOutput) -> Result<Vec<u8>, VulkanDecoderError> {
+    fn download_output(
+        &self,
+        decode_output: DecodeSubmission,
+    ) -> Result<Vec<u8>, VulkanDecoderError> {
         let mut dst_buffer = self.copy_image_to_buffer(
             decode_output.image,
             decode_output.dimensions,
@@ -787,7 +823,7 @@ impl VulkanDecoder<'_> {
             .reference_list
             .iter()
             .flatten()
-            .map(|ref_info| ref_info.picture_info.into())
+            .map(|&ref_info| ref_info.into())
             .collect::<Vec<_>>()
     }
 
@@ -806,7 +842,7 @@ impl VulkanDecoder<'_> {
         references_dpb_slot_info: &'a mut [vk::VideoDecodeH264DpbSlotInfoKHR<'a>],
         decode_information: &'a DecodeInformation,
     ) -> Result<Vec<vk::VideoReferenceSlotInfoKHR<'a>>, VulkanDecoderError> {
-        let mut pic_reference_slots = Vec::new();
+        let mut pic_reference_slots: Vec<vk::VideoReferenceSlotInfoKHR<'a>> = Vec::new();
         for (ref_info, dpb_slot_info) in decode_information
             .reference_list
             .iter()
@@ -827,7 +863,12 @@ impl VulkanDecoder<'_> {
 
             let reference = reference.push_next(dpb_slot_info);
 
-            pic_reference_slots.push(reference);
+            if pic_reference_slots
+                .iter()
+                .all(|r| r.slot_index != reference.slot_index)
+            {
+                pic_reference_slots.push(reference);
+            }
         }
 
         Ok(pic_reference_slots)
@@ -871,8 +912,6 @@ impl VulkanDecoder<'_> {
             )
         };
 
-        // TODO: in this section, we shouldn't be using `max_coded_extent` and use the real frame
-        // resolution
         let y_plane_size = dimensions.width as u64 * dimensions.height as u64;
 
         let dst_buffer = Buffer::new_transfer(
@@ -951,43 +990,5 @@ impl VulkanDecoder<'_> {
         )?;
 
         Ok(dst_buffer)
-    }
-}
-
-pub(crate) struct H264ProfileInfo<'a> {
-    profile_info: vk::VideoProfileInfoKHR<'a>,
-    h264_info_ptr: *mut vk::VideoDecodeH264ProfileInfoKHR<'a>,
-}
-
-impl H264ProfileInfo<'_> {
-    fn decode_h264_yuv420() -> Self {
-        let h264_profile_info = Box::leak(Box::new(
-            vk::VideoDecodeH264ProfileInfoKHR::default()
-                .std_profile_idc(
-                    vk::native::StdVideoH264ProfileIdc_STD_VIDEO_H264_PROFILE_IDC_BASELINE,
-                )
-                .picture_layout(vk::VideoDecodeH264PictureLayoutFlagsKHR::PROGRESSIVE),
-        ));
-
-        let h264_info_ptr = h264_profile_info as *mut _;
-        let profile_info = vk::VideoProfileInfoKHR::default()
-            .video_codec_operation(vk::VideoCodecOperationFlagsKHR::DECODE_H264)
-            .chroma_subsampling(vk::VideoChromaSubsamplingFlagsKHR::TYPE_420)
-            .luma_bit_depth(vk::VideoComponentBitDepthFlagsKHR::TYPE_8)
-            .chroma_bit_depth(vk::VideoComponentBitDepthFlagsKHR::TYPE_8)
-            .push_next(h264_profile_info);
-
-        Self {
-            profile_info,
-            h264_info_ptr,
-        }
-    }
-}
-
-impl<'a> Drop for H264ProfileInfo<'a> {
-    fn drop(&mut self) {
-        unsafe {
-            let _ = Box::from_raw(self.h264_info_ptr);
-        }
     }
 }

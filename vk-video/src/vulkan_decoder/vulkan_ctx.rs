@@ -4,11 +4,10 @@ use std::{
 };
 
 use ash::{vk, Entry};
-use tracing::{error, info};
+use tracing::{debug, error, warn};
 
 use super::{
-    Allocator, CommandBuffer, CommandPool, DebugMessenger, Device, H264ProfileInfo, Instance,
-    VulkanDecoderError,
+    Allocator, CommandBuffer, CommandPool, DebugMessenger, Device, Instance, VulkanDecoderError,
 };
 
 const REQUIRED_EXTENSIONS: &[&CStr] = &[
@@ -55,6 +54,7 @@ pub struct VulkanCtx {
     pub(crate) video_capabilities: vk::VideoCapabilitiesKHR<'static>,
     pub(crate) h264_dpb_format_properties: vk::VideoFormatPropertiesKHR<'static>,
     pub(crate) h264_dst_format_properties: Option<vk::VideoFormatPropertiesKHR<'static>>,
+    pub(crate) h264_caps: vk::VideoDecodeH264CapabilitiesKHR<'static>,
     pub wgpu_ctx: WgpuCtx,
 }
 
@@ -142,24 +142,33 @@ impl VulkanCtx {
     ) -> Result<Self, VulkanCtxError> {
         let entry = Arc::new(unsafe { Entry::load()? });
 
-        let instance_extension_properties =
-            unsafe { entry.enumerate_instance_extension_properties(None)? };
-        info!(
-            "instance_extension_properties amount: {}",
-            instance_extension_properties.len()
-        );
-
         let api_version = vk::make_api_version(0, 1, 3, 0);
         let app_info = vk::ApplicationInfo {
             api_version,
             ..Default::default()
         };
 
-        let layers = if cfg!(debug_assertions) {
-            vec![c"VK_LAYER_KHRONOS_validation".as_ptr()]
+        let requested_layers = if cfg!(debug_assertions) {
+            vec![c"VK_LAYER_KHRONOS_validation"]
         } else {
             Vec::new()
         };
+
+        let instance_layer_properties = unsafe { entry.enumerate_instance_layer_properties()? };
+        let instance_layer_names = instance_layer_properties
+            .iter()
+            .map(|layer| layer.layer_name_as_c_str())
+            .collect::<Result<Vec<_>, _>>()?;
+
+        let layers = requested_layers
+            .into_iter()
+            .filter(|requested_layer_name| {
+                instance_layer_names
+                    .iter()
+                    .any(|instance_layer_name| instance_layer_name == requested_layer_name)
+            })
+            .map(|layer| layer.as_ptr())
+            .collect::<Vec<_>>();
 
         let extensions = if cfg!(debug_assertions) {
             vec![vk::EXT_DEBUG_UTILS_NAME]
@@ -202,6 +211,11 @@ impl VulkanCtx {
             None
         };
 
+        // this has to be done with Option and mut, because the closure we create has to be FnMut.
+        // this means we cannot consume its captures, so we have to take the option to be able to
+        // drop the resource.
+        let mut instance_clone = Some(instance.clone());
+
         let wgpu_instance = unsafe {
             wgpu::hal::vulkan::Instance::from_raw(
                 (*entry).clone(),
@@ -212,7 +226,9 @@ impl VulkanCtx {
                 extensions,
                 wgpu::InstanceFlags::empty(),
                 false,
-                None,
+                Some(Box::new(move || {
+                    instance_clone.take();
+                })),
             )?
         };
 
@@ -224,6 +240,7 @@ impl VulkanCtx {
             h264_dpb_format_properties,
             h264_dst_format_properties,
             video_capabilities,
+            h264_caps,
         } = find_device(&physical_devices, &instance, REQUIRED_EXTENSIONS)?;
 
         let wgpu_adapter = wgpu_instance
@@ -232,9 +249,6 @@ impl VulkanCtx {
 
         let wgpu_features = wgpu_features | wgpu::Features::TEXTURE_FORMAT_NV12;
 
-        // TODO: we can only get the required extensions after exposing the adapter; the creation
-        // of the adapter and verification of whether the device supports all extensions should
-        // happen while picking the device.
         let wgpu_extensions = wgpu_adapter
             .adapter
             .required_device_extensions(wgpu_features);
@@ -316,10 +330,17 @@ impl VulkanCtx {
             },
         };
 
+        // this has to be done with Option and mut, because the closure we create has to be FnMut.
+        // this means we cannot consume its captures, so we have to take the option to be able to
+        // drop the resource.
+        let mut device_clone = Some(device.clone());
+
         let wgpu_device = unsafe {
             wgpu_adapter.adapter.device_from_raw(
                 device.device.clone(),
-                false,
+                Some(Box::new(move || {
+                    device_clone.take();
+                })),
                 &required_extensions,
                 wgpu_features,
                 &wgpu::MemoryHints::default(),
@@ -368,6 +389,7 @@ impl VulkanCtx {
             video_capabilities,
             h264_dpb_format_properties,
             h264_dst_format_properties,
+            h264_caps,
             wgpu_ctx,
         })
     }
@@ -385,6 +407,7 @@ struct ChosenDevice<'a> {
     h264_dpb_format_properties: vk::VideoFormatPropertiesKHR<'a>,
     h264_dst_format_properties: Option<vk::VideoFormatPropertiesKHR<'a>>,
     video_capabilities: vk::VideoCapabilitiesKHR<'a>,
+    h264_caps: vk::VideoDecodeH264CapabilitiesKHR<'a>,
 }
 
 fn find_device<'a>(
@@ -402,7 +425,7 @@ fn find_device<'a>(
         let extensions = unsafe { instance.enumerate_device_extension_properties(device)? };
 
         if vk_13_features.synchronization2 == 0 {
-            error!(
+            warn!(
                 "device {:?} does not support the required synchronization2 feature",
                 properties.device_name_as_c_str()?
             );
@@ -421,7 +444,7 @@ fn find_device<'a>(
                 true
             })
         }) {
-            error!(
+            warn!(
                 "device {:?} does not support the required extensions",
                 properties.device_name_as_c_str()?
             );
@@ -447,7 +470,16 @@ fn find_device<'a>(
 
         unsafe { instance.get_physical_device_queue_family_properties2(device, &mut queues) };
 
-        let profile_info = H264ProfileInfo::decode_h264_yuv420();
+        let mut h264_profile_info = vk::VideoDecodeH264ProfileInfoKHR::default()
+            .picture_layout(vk::VideoDecodeH264PictureLayoutFlagsKHR::PROGRESSIVE)
+            .std_profile_idc(vk::native::StdVideoH264ProfileIdc_STD_VIDEO_H264_PROFILE_IDC_HIGH);
+
+        let profile_info = vk::VideoProfileInfoKHR::default()
+            .video_codec_operation(vk::VideoCodecOperationFlagsKHR::DECODE_H264)
+            .chroma_subsampling(vk::VideoChromaSubsamplingFlagsKHR::TYPE_420)
+            .luma_bit_depth(vk::VideoComponentBitDepthFlagsKHR::TYPE_8)
+            .chroma_bit_depth(vk::VideoComponentBitDepthFlagsKHR::TYPE_8)
+            .push_next(&mut h264_profile_info);
 
         let mut h264_caps = vk::VideoDecodeH264CapabilitiesKHR::default();
         let mut decode_caps = vk::VideoDecodeCapabilitiesKHR {
@@ -462,9 +494,7 @@ fn find_device<'a>(
                 .video_queue_instance_ext
                 .fp()
                 .get_physical_device_video_capabilities_khr)(
-                device,
-                &profile_info.profile_info,
-                &mut caps,
+                device, &profile_info, &mut caps
             )
             .result()?
         };
@@ -479,7 +509,11 @@ fn find_device<'a>(
             .max_dpb_slots(caps.max_dpb_slots)
             .max_active_reference_pictures(caps.max_active_reference_pictures)
             .std_header_version(caps.std_header_version);
-        info!("caps: {caps:#?}");
+
+        let h264_caps = vk::VideoDecodeH264CapabilitiesKHR::default()
+            .max_level_idc(h264_caps.max_level_idc)
+            .field_offset_granularity(h264_caps.field_offset_granularity);
+        debug!("video_caps: {caps:#?}");
 
         let flags = decode_caps.flags;
 
@@ -547,7 +581,7 @@ fn find_device<'a>(
                     .contains(vk::QueueFlags::VIDEO_DECODE_KHR)
             })
             .map(|(i, _)| i)
-            .collect::<Vec<_>>(); // TODO: have to split the queues
+            .collect::<Vec<_>>();
 
         let Some(transfer_queue_idx) = queues
             .iter()
@@ -587,10 +621,10 @@ fn find_device<'a>(
             continue;
         };
 
-        info!("deocde_caps: {decode_caps:#?}");
-        info!("h264_caps: {h264_caps:#?}");
-        info!("dpb_format_properties: {h264_dpb_format_properties:#?}");
-        info!("dst_format_properties: {h264_dst_format_properties:#?}");
+        debug!("deocde_caps: {decode_caps:#?}");
+        debug!("h264_caps: {h264_caps:#?}");
+        debug!("dpb_format_properties: {h264_dpb_format_properties:#?}");
+        debug!("dst_format_properties: {h264_dst_format_properties:#?}");
 
         return Ok(ChosenDevice {
             physical_device: device,
@@ -617,6 +651,7 @@ fn find_device<'a>(
             h264_dpb_format_properties,
             h264_dst_format_properties,
             video_capabilities,
+            h264_caps,
         });
     }
 
@@ -626,11 +661,11 @@ fn find_device<'a>(
 fn query_video_format_properties<'a>(
     device: vk::PhysicalDevice,
     video_queue_instance_ext: &ash::khr::video_queue::Instance,
-    profile_info: &H264ProfileInfo,
+    profile_info: &vk::VideoProfileInfoKHR<'_>,
     image_usage: vk::ImageUsageFlags,
 ) -> Result<Vec<vk::VideoFormatPropertiesKHR<'a>>, VulkanCtxError> {
-    let mut profile_list_info = vk::VideoProfileListInfoKHR::default()
-        .profiles(std::slice::from_ref(&profile_info.profile_info));
+    let mut profile_list_info =
+        vk::VideoProfileListInfoKHR::default().profiles(std::slice::from_ref(profile_info));
 
     let format_info = vk::PhysicalDeviceVideoFormatInfoKHR::default()
         .image_usage(image_usage)

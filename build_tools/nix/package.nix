@@ -51,7 +51,6 @@ rustPlatform.buildRustPackage {
     ''
       rm -f $out/bin/live_compositor
       rm -f $out/bin/package_for_release
-      rm -f $out/bin/update_snapshots
 
       mv $out/bin/main_process $out/bin/live_compositor
     '' + (

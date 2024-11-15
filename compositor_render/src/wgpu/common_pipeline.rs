@@ -111,14 +111,14 @@ pub fn create_render_pipeline(
         vertex: wgpu::VertexState {
             buffers: &[Vertex::LAYOUT],
             module: shader_module,
-            entry_point: crate::wgpu::common_pipeline::VERTEX_ENTRYPOINT_NAME,
+            entry_point: Some(crate::wgpu::common_pipeline::VERTEX_ENTRYPOINT_NAME),
             compilation_options: wgpu::PipelineCompilationOptions::default(),
         },
         fragment: Some(wgpu::FragmentState {
             module: shader_module,
-            entry_point: crate::wgpu::common_pipeline::FRAGMENT_ENTRYPOINT_NAME,
+            entry_point: Some(crate::wgpu::common_pipeline::FRAGMENT_ENTRYPOINT_NAME),
             targets: &[Some(wgpu::ColorTargetState {
-                format: wgpu::TextureFormat::Rgba8Unorm,
+                format: wgpu::TextureFormat::Rgba8UnormSrgb,
                 write_mask: wgpu::ColorWrites::all(),
                 blend: Some(wgpu::BlendState::ALPHA_BLENDING),
             })],

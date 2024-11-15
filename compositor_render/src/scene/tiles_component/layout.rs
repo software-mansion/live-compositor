@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use crate::{
-    scene::{layout::StatefulLayoutComponent, RGBAColor, Size, StatefulComponent},
+    scene::{layout::StatefulLayoutComponent, BorderRadius, RGBAColor, Size, StatefulComponent},
     transformations::layout::{LayoutContent, NestedLayout},
 };
 
@@ -29,9 +29,14 @@ pub(super) fn layout_tiles(
         scale_x: 1.0,
         scale_y: 1.0,
         crop: None,
+        mask: None,
         content: LayoutContent::Color(background_color),
         child_nodes_count: children.iter().map(|l| l.child_nodes_count).sum(),
         children,
+        border_width: 0.0,
+        border_color: RGBAColor(0, 0, 0, 0),
+        border_radius: BorderRadius::ZERO,
+        box_shadow: vec![],
     }
 }
 
@@ -64,9 +69,14 @@ fn layout_child(child: &mut StatefulComponent, tile: Option<Tile>, pts: Duration
                 scale_x: 1.0,
                 scale_y: 1.0,
                 crop: None,
+                mask: None,
                 content: LayoutContent::None,
                 child_nodes_count: children_layouts.child_nodes_count,
                 children: vec![children_layouts],
+                border_width: 0.0,
+                border_color: RGBAColor(0, 0, 0, 0),
+                border_radius: BorderRadius::ZERO,
+                box_shadow: vec![],
             }
         }
         _ => {
@@ -81,9 +91,14 @@ fn layout_child(child: &mut StatefulComponent, tile: Option<Tile>, pts: Duration
                 scale_x: 1.0,
                 scale_y: 1.0,
                 crop: None,
+                mask: None,
                 content: StatefulLayoutComponent::layout_content(child, 0),
                 child_nodes_count: 1,
                 children: vec![],
+                border_width: 0.0,
+                border_color: RGBAColor(0, 0, 0, 0),
+                border_radius: BorderRadius::ZERO,
+                box_shadow: vec![],
             }
         }
     }

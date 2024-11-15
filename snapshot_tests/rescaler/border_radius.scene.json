@@ -1,0 +1,22 @@
+{
+  "video": {
+    "root": {
+      "type": "view",
+      "background_color_rgba": "#FFFF00FF",
+      "children": [
+        {
+          "type": "rescaler",
+          "top": 50,
+          "left": 50,
+          "width": 400,
+          "height": 200,
+          "border_radius": 50,
+          "child": {
+            "type": "view",
+            "background_color_rgba": "#FF0000FF"
+          }
+        }
+      ]
+    }
+  }
+}

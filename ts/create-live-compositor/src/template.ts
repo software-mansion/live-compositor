@@ -1,4 +1,4 @@
-import fs from 'fs-extra';
+import * as fs from 'fs-extra';
 import path from 'path';
 
 const TEMPLATES_ROOT = path.join(__dirname, '../templates');

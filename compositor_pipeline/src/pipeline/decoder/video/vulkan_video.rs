@@ -1,9 +1,9 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
 use compositor_render::{Frame, FrameData, InputId, Resolution};
 use crossbeam_channel::{Receiver, Sender};
 use tracing::{debug, error, span, trace, warn, Level};
-use vk_video::{Decoder, VulkanCtx};
+use vk_video::{VulkanCtx, WgpuTexturesDeocder};
 
 use crate::{
     error::InputInitError,
@@ -52,7 +52,7 @@ fn run_decoder_thread(
     chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
     frame_sender: Sender<PipelineEvent<Frame>>,
 ) {
-    let mut decoder = match Decoder::new(vulkan_ctx) {
+    let mut decoder = match WgpuTexturesDeocder::new(vulkan_ctx) {
         Ok(decoder) => {
             init_result_sender.send(Ok(())).unwrap();
             decoder
@@ -79,7 +79,7 @@ fn run_decoder_thread(
             continue;
         }
 
-        let result = match decoder.decode_to_wgpu_textures(&chunk.data) {
+        let result = match decoder.decode(&chunk.data, Some(chunk.pts.as_micros() as u64)) {
             Ok(res) => res,
             Err(err) => {
                 warn!("Failed to decode frame: {err}");
@@ -87,7 +87,7 @@ fn run_decoder_thread(
             }
         };
 
-        for frame in result {
+        for vk_video::Frame { frame, pts } in result {
             let resolution = Resolution {
                 width: frame.width() as usize,
                 height: frame.height() as usize,
@@ -95,7 +95,7 @@ fn run_decoder_thread(
 
             let frame = Frame {
                 data: FrameData::Nv12WgpuTexture(frame.into()),
-                pts: chunk.pts,
+                pts: Duration::from_micros(pts.unwrap()),
                 resolution,
             };
 

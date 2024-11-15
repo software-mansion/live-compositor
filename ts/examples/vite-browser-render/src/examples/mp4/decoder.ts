@@ -1,4 +1,5 @@
-import MP4Box, { DataStream, MP4ArrayBuffer, MP4File, MP4Info, Sample, TrakBox } from "mp4box";
+import type { MP4ArrayBuffer, MP4File, MP4Info, Sample, TrakBox } from 'mp4box';
+import MP4Box, { DataStream } from 'mp4box';
 
 const MAX_FRAMEBUFFER_SIZE = 3;
 
@@ -39,7 +40,10 @@ export class MP4Decoder {
   }
 
   private enqueueNextChunks() {
-    while (this.decoder.decodeQueueSize < MAX_FRAMEBUFFER_SIZE && this.frames.length < MAX_FRAMEBUFFER_SIZE) {
+    while (
+      this.decoder.decodeQueueSize < MAX_FRAMEBUFFER_SIZE &&
+      this.frames.length < MAX_FRAMEBUFFER_SIZE
+    ) {
       const chunk = this.chunks.shift();
       if (!chunk) {
         return null;
@@ -54,6 +58,7 @@ export class MP4Decoder {
     console.log(`Using codec: ${videoTrack.codec}`);
 
     const trak = this.file.getTrackById(videoTrack.id);
+    if (!trak) return;
     const description = getCodecDescription(trak);
     if (!description) {
       console.error('Codec description not found');

@@ -2,6 +2,8 @@
 fn main() {
     use std::io::Write;
 
+    use vk_video::Frame;
+
     let subscriber = tracing_subscriber::FmtSubscriber::builder()
         .with_max_level(tracing::Level::INFO)
         .finish();
@@ -26,14 +28,14 @@ fn main() {
         )
         .unwrap(),
     );
-    let mut decoder = vk_video::Decoder::new(vulkan_ctx).unwrap();
+    let mut decoder = vk_video::BytesDecoder::new(vulkan_ctx).unwrap();
 
     let mut output_file = std::fs::File::create("output.nv12").unwrap();
 
     for chunk in h264_bytestream.chunks(256) {
-        let frames = decoder.decode_to_bytes(chunk).unwrap();
+        let frames = decoder.decode(chunk, None).unwrap();
 
-        for frame in frames {
+        for Frame { frame, .. } in frames {
             output_file.write_all(&frame).unwrap();
         }
     }
