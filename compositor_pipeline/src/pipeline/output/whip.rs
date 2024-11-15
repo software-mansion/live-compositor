@@ -96,6 +96,15 @@ pub enum WhipError {
 
     #[error(transparent)]
     PayloadingError(#[from] PayloadingError),
+
+    #[error("Trickle ICE not supported")]
+    TrickleIceNotSupported,
+
+    #[error("Entity Tag missing")]
+    EntityTagMissing,
+
+    #[error("Entity Tag non-matching")]
+    EntityTagNonMatching,
 }
 
 const WHIP_INIT_TIMEOUT: Duration = Duration::from_secs(60);

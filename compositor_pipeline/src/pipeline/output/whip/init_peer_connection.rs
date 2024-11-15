@@ -71,7 +71,7 @@ pub async fn init_peer_connection() -> Result<
 
     match env::var(STUN_SERVER_ENV) {
         Ok(var) => {
-            if var.len() == 0 {
+            if var.is_empty() {
                 info!("Empty LIVE_COMPOSITOR_STUN_SERVERS environment variable, using default");
             } else {
                 let env_url_list: Vec<String> = var.split(',').map(String::from).collect();

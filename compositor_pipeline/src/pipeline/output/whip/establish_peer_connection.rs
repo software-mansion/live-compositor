@@ -3,8 +3,11 @@ use reqwest::{
     header::{HeaderMap, HeaderValue},
     Client, Method, StatusCode, Url,
 };
-use std::sync::Arc;
-use tracing::{debug, error, info, warn};
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+};
+use tracing::{debug, error, info};
 use webrtc::{
     ice_transport::{ice_candidate::RTCIceCandidate, ice_connection_state::RTCIceConnectionState},
     peer_connection::{sdp::session_description::RTCSessionDescription, RTCPeerConnection},
@@ -127,17 +130,32 @@ pub async fn connect(
         .await
         .map_err(WhipError::RemoteDescriptionError)?;
 
+    let should_stop = Arc::new(AtomicBool::new(false));
     let location_url_clone = location_url.clone();
     peer_connection.on_ice_candidate(Box::new(move |candidate| {
         let bearer_token = whip_ctx.options.bearer_token.clone();
         let client = client.clone();
         let location_url = location_url_clone.clone();
+        let should_stop_clone = should_stop.clone();
         Box::pin(async move {
+            if should_stop_clone.load(Ordering::Relaxed) {
+                return;
+            }
             if let Some(candidate) = candidate {
                 if let Err(err) =
                     handle_candidate(candidate, bearer_token, client, location_url.clone()).await
                 {
-                    error!("{err}");
+                    match err {
+                        WhipError::TrickleIceNotSupported => {
+                            info!("Trickle ICE not supported by WHIP server");
+                            should_stop_clone.store(true, Ordering::Relaxed);
+                        }
+                        WhipError::EntityTagMissing | WhipError::EntityTagNonMatching => {
+                            info!("Entity tags not supported by WHIP output");
+                            should_stop_clone.store(true, Ordering::Relaxed);
+                        }
+                        _ => error!("{err}"),
+                    }
                 }
             }
         })
@@ -166,29 +184,32 @@ async fn handle_candidate(
         header_map.append("Authorization", format!("Bearer {token}").parse().unwrap());
     }
 
-    let response = match client
+    let response = client
         .patch(location.clone())
         .headers(header_map)
         .body(serde_json::to_string(&ice_candidate)?)
         .send()
         .await
-    {
-        Ok(res) => res,
-        Err(_) => return Err(WhipError::RequestFailed(Method::PATCH, location.clone())),
-    };
+        .map_err(|_| WhipError::RequestFailed(Method::PATCH, location.clone()))?;
 
-    if response.status() >= StatusCode::BAD_REQUEST {
-        let status = response.status();
-        let body_str = response
-            .text()
-            .await
-            .map_err(|e| WhipError::BodyParsingError("Trickle ICE patch", e))?;
-        if status == StatusCode::UNPROCESSABLE_ENTITY || status == StatusCode::METHOD_NOT_ALLOWED {
-            warn!("Error while sending Ice Candidate do WHIP Server (Trickle ICE is probably not supported):\nStaus code: {status}\nBody: {body_str}")
-        } else {
-            return Err(WhipError::BadStatus(status, body_str));
-        }
-    }
+    if let Err(err) = &response.error_for_status_ref() {
+        let status_code = err.status().unwrap();
+        let trickle_ice_error = match status_code {
+            StatusCode::UNPROCESSABLE_ENTITY | StatusCode::METHOD_NOT_ALLOWED => {
+                WhipError::TrickleIceNotSupported
+            }
+            StatusCode::PRECONDITION_REQUIRED => WhipError::EntityTagMissing,
+            StatusCode::PRECONDITION_FAILED => WhipError::EntityTagNonMatching,
+            _ => {
+                let answer = &response
+                    .text()
+                    .await
+                    .map_err(|e| WhipError::BodyParsingError("ICE Candidate", e))?;
+                WhipError::BadStatus(status_code, answer.to_string())
+            }
+        };
+        return Err(trickle_ice_error);
+    };
 
     Ok(())
 }
