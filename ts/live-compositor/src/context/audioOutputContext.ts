@@ -11,7 +11,7 @@ export type AudioInputConfig = {
   volumeComponents: ContextAudioOptions[];
 };
 
-export class OutputContext {
+export class AudioContext {
   private audioMixerConfig?: AudioConfig;
   private onChange: () => void;
 

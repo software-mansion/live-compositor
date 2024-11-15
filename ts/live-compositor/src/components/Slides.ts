@@ -1,0 +1,104 @@
+import type React from 'react';
+import type { ReactElement } from 'react';
+import { Children, createElement, useEffect, useRef, useState, useCallback } from 'react';
+
+import { useCurrentTimestamp } from '../hooks.js';
+import View from './View.js';
+import {
+  ChildrenLifetimeContext,
+  ChildrenLifetimeContextType,
+  useTimeLimitedComponent,
+} from '../context/childrenLifetimeContext.js';
+
+export type SlideProps = {
+  /**
+   * Duration in milliseconds how long this component should be shown.
+   * If not specified defaults to value of an Input stream
+   */
+  durationMs?: number;
+  children?: React.ReactNode;
+};
+
+export type SlidesProps = {
+  children: React.ReactNode;
+};
+
+export function Slides(props: SlidesProps) {
+  const prevChildrenRef = useRef<React.ReactNode>();
+  const [childIndex, setChildIndex] = useState<number>(0);
+
+  const childrenArray = Children.toArray(props.children);
+
+  for (const slide of childrenArray) {
+    if ((slide as ReactElement).type !== Slide) {
+      throw new Error('Slides component only accepts Slides as children');
+    }
+  }
+
+  useEffect(() => {
+    // If "current" element was removed we should compare it to the next elements
+    // in the old list.
+    const prevChildrenOrder = Children.toArray(prevChildrenRef.current).slice(childIndex);
+    const newChildren = Children.toArray(props.children);
+
+    for (const prev of prevChildrenOrder) {
+      for (const [index, newChild] of newChildren.entries()) {
+        if ((newChild as ReactElement).key === (prev as ReactElement).key) {
+          if (childIndex !== index) {
+            setChildIndex(index);
+          }
+          prevChildrenRef.current = props.children;
+          return;
+        }
+      }
+    }
+
+    // If nothing from old list is left then just use the same child index
+    prevChildrenRef.current = props.children;
+  }, [props.children]);
+
+  const [slideEnd, setSlideEnd] = useState(false);
+  const onSlideEndChange = useCallback(() => {
+    setSlideEnd(true);
+  }, []);
+  const [slideContext, _setSlideCtx] = useState(
+    () => new ChildrenLifetimeContext(onSlideEndChange)
+  );
+
+  useEffect(() => {
+    if (slideEnd) {
+      setSlideEnd(false);
+      if (slideContext.isDone()) {
+        setChildIndex(childIndex + 1);
+      }
+    }
+  }, [slideEnd]);
+
+  return createElement(
+    ChildrenLifetimeContextType.Provider,
+    { value: slideContext },
+    childrenArray[childIndex] ?? createElement(View, {})
+  );
+}
+
+export function Slide(props: SlideProps) {
+  const [slideContext, _setSlideCtx] = useState(() => new ChildrenLifetimeContext(() => {}));
+  const currentTimestamp = useCurrentTimestamp();
+  const [initTimestamp, _setInitTimestamp] = useState(currentTimestamp);
+
+  // defaults to 1 second
+  const durationMs =
+    props.durationMs !== undefined && props.durationMs !== null ? props.durationMs : 1000;
+
+  useTimeLimitedComponent(initTimestamp + durationMs);
+  if (props.durationMs) {
+    // Add fake context if durationMs is specified to ignore child components
+    return createElement(
+      ChildrenLifetimeContextType.Provider,
+      { value: slideContext },
+      props.children
+    );
+  } else {
+    return props.children;
+  }
+}

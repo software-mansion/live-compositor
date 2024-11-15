@@ -40,7 +40,7 @@ export function onCompositorEvent(store: InstanceContextStore, rawEvent: unknown
   }
 }
 
-function parseEvent(event: any): CompositorEvent | null {
+export function parseEvent(event: any): CompositorEvent | null {
   if (!event.type) {
     console.error(`Malformed event: ${event}`);
     return null;
@@ -56,7 +56,7 @@ function parseEvent(event: any): CompositorEvent | null {
   ) {
     return { type: event.type, inputId: event.input_id };
   } else if (CompositorEventType.OUTPUT_DONE === event.type) {
-    return { type: event.type, outputId: event.outputId };
+    return { type: event.type, outputId: event.output_id };
   } else {
     console.error(`Unknown event type: ${event.type}`);
     return null;

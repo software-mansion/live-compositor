@@ -7,8 +7,16 @@ import WebView, { WebViewProps } from './components/WebView.js';
 import Shader, { ShaderParam, ShaderParamStructField, ShaderProps } from './components/Shader.js';
 import Tiles, { TilesProps } from './components/Tiles.js';
 import { EasingFunction, Transition } from './components/common.js';
-import { useAudioInput, useInputStreams } from './hooks.js';
+import {
+  useAudioInput,
+  useInputStreams,
+  useAfterTimestamp,
+  useBlockingTask,
+  useCurrentTimestamp,
+} from './hooks.js';
 import { CompositorEvent, CompositorEventType } from './types/events.js';
+import Show, { ShowProps } from './components/Show.js';
+import { Slides, Slide, SlideProps, SlidesProps } from './components/Slides.js';
 
 export { RegisterRtpInput, RegisterMp4Input } from './types/registerInput.js';
 export {
@@ -40,10 +48,16 @@ export {
   ShaderProps,
   Tiles,
   TilesProps,
+  Show,
+  ShowProps,
+  Slide,
+  SlideProps,
+  Slides,
+  SlidesProps,
 };
 
 export { CompositorEvent, CompositorEventType };
 
-export { useInputStreams, useAudioInput };
+export { useInputStreams, useAudioInput, useBlockingTask, useAfterTimestamp, useCurrentTimestamp };
 
 export { ShaderParam, ShaderParamStructField, EasingFunction, Transition };

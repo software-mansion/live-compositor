@@ -1,17 +1,20 @@
 import { createContext } from 'react';
 import { InstanceContextStore } from './instanceContextStore.js';
-import { OutputContext } from './outputContext.js';
+import { AudioContext } from './audioOutputContext.js';
+import type { TimeContext } from './timeContext.js';
+import { LiveTimeContext } from './timeContext.js';
 
-type CompositorOutputContext = {
+export type CompositorOutputContext = {
   // global store for the entire LiveCompositor instance
   instanceStore: InstanceContextStore;
-  // state specific to the current output
-  outputCtx: OutputContext;
+  // Audio mixer configuration
+  audioContext: AudioContext;
+  // Time tracking and handling for blocking tasks
+  timeContext: TimeContext;
 };
 
 export const LiveCompositorContext = createContext<CompositorOutputContext>({
   instanceStore: new InstanceContextStore(),
-  outputCtx: new OutputContext(() => {}, false),
+  audioContext: new AudioContext(() => {}, false),
+  timeContext: new LiveTimeContext(),
 });
-
-export { InstanceContextStore, OutputContext };
