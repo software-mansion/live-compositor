@@ -24,6 +24,7 @@ mod tiles_tests;
 mod tiles_transitions_tests;
 mod transition_tests;
 mod view_tests;
+mod yuv_tests;
 
 const DEFAULT_RESOLUTION: Resolution = Resolution {
     width: 640,
