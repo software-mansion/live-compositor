@@ -56,7 +56,7 @@ function Scene() {
 
 function useCompositor(): [LiveCompositor | undefined, (canvas: HTMLCanvasElement) => void] {
   const [compositor, setCompositor] = useState<LiveCompositor | undefined>(undefined);
-  const canvasRef = useCallback((canvas: HTMLCanvasElement) => {
+  const canvasRef = useCallback(async (canvas: HTMLCanvasElement) => {
     if (!canvas) {
       return;
     }
@@ -89,7 +89,7 @@ function useCompositor(): [LiveCompositor | undefined, (canvas: HTMLCanvasElemen
       });
     };
 
-    setupCompositor();
+    await setupCompositor();
   }, []);
 
   return [compositor, canvasRef];
