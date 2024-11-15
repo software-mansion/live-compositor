@@ -34,11 +34,14 @@ export class ApiClient {
     });
   }
 
-  public async unregisterOutput(outptuId: string): Promise<object> {
+  public async unregisterOutput(
+    outptuId: string,
+    body: { schedule_time_ms?: number }
+  ): Promise<object> {
     return this.serverManager.sendRequest({
       method: 'POST',
       route: `/api/output/${encodeURIComponent(outptuId)}/unregister`,
-      body: {},
+      body,
     });
   }
 
