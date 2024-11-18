@@ -91,7 +91,17 @@ function sceneBuilder(
     type: 'view',
     id,
     children: children.map(sceneComponentIntoApi),
-    ...style,
+    width: style.width,
+    height: style.height,
+    direction: style.direction,
+
+    top: style.top,
+    right: style.right,
+    bottom: style.bottom,
+    left: style.left,
+
+    rotation: style.rotation,
+    overflow: style.overflow,
     background_color_rgba: style?.backgroundColor && intoApiRgbaColor(style.backgroundColor),
     transition: transition && intoApiTransition(transition),
   };
