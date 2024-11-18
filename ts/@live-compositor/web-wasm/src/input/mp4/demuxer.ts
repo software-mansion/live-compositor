@@ -1,17 +1,19 @@
 import type { MP4ArrayBuffer, MP4File, MP4Info, Sample } from 'mp4box';
 import MP4Box, { DataStream } from 'mp4box';
+import type { SourcePayload } from '../source';
 
-export type OnConfig = (config: VideoDecoderConfig) => void;
-
-export type OnChunk = (chunk: EncodedVideoChunk) => void;
+export type MP4DemuxerCallbacks = {
+  onConfig: (config: VideoDecoderConfig) => void;
+  onPayload: (payload: SourcePayload) => void;
+};
 
 export class MP4Demuxer {
   private file: MP4File;
   private fileOffset: number;
-  private onConfig: OnConfig;
-  private onChunk: OnChunk;
+  private callbacks: MP4DemuxerCallbacks;
+  private samplesCount?: number;
 
-  public constructor(props: { onConfig: OnConfig; onChunk: OnChunk }) {
+  public constructor(callbacks: MP4DemuxerCallbacks) {
     this.file = MP4Box.createFile();
     this.file.onReady = info => this.onReady(info);
     this.file.onSamples = (_id, _user, samples) => this.onSamples(samples);
@@ -20,8 +22,7 @@ export class MP4Demuxer {
     };
     this.fileOffset = 0;
 
-    this.onConfig = props.onConfig;
-    this.onChunk = props.onChunk;
+    this.callbacks = callbacks;
   }
 
   public demux(data: ArrayBuffer) {
@@ -43,7 +44,9 @@ export class MP4Demuxer {
 
     const videoTrack = info.videoTracks[0];
     const codecDescription = this.getCodecDescription(videoTrack.id);
-    this.onConfig({
+    this.samplesCount = videoTrack.nb_samples;
+
+    this.callbacks.onConfig({
       codec: videoTrack.codec,
       codedWidth: videoTrack.video.width,
       codedHeight: videoTrack.video.height,
@@ -63,7 +66,11 @@ export class MP4Demuxer {
         data: sample.data,
       });
 
-      this.onChunk(chunk);
+      this.callbacks.onPayload({ type: 'chunk', chunk: chunk });
+
+      if (sample.number === this.samplesCount! - 1) {
+        this.callbacks.onPayload({ type: 'eos' });
+      }
     }
   }
 

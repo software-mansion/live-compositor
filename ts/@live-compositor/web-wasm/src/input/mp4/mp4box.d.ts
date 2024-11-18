@@ -33,6 +33,7 @@ declare module 'mp4box' {
     duration: number;
     bitrate: number;
     codec: string;
+    nb_samples: number;
   }
 
   export interface MP4VideoTrack extends MP4MediaTrack {
@@ -61,6 +62,7 @@ declare module 'mp4box' {
   }
 
   export interface Sample {
+    number: number;
     timescale: number;
     data: ArrayBuffer;
     size: number;

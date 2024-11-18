@@ -1,28 +1,23 @@
-import { FrameFormat } from '@live-compositor/browser-render';
 import { MP4Demuxer } from './demuxer';
-import { H264Decoder } from '../decoder/h264Decoder';
-import type { InputFrame } from '../input';
 import type InputSource from '../source';
+import type { InputSourceCallbacks, SourcePayload } from '../source';
+import { Queue } from '@datastructures-js/queue';
 
 export default class MP4Source implements InputSource {
   private fileUrl: string;
   private fileData?: ArrayBuffer;
   private demuxer: MP4Demuxer;
-  private decoder: H264Decoder;
-  private frameFormat: VideoPixelFormat;
+  private callbacks?: InputSourceCallbacks;
+  private chunks: Queue<EncodedVideoChunk>;
+  private eosReceived: boolean = false;
 
   public constructor(fileUrl: string) {
     this.fileUrl = fileUrl;
     this.demuxer = new MP4Demuxer({
-      onConfig: config => this.decoder.configure(config),
-      onChunk: chunk => this.decoder.enqueueChunk(chunk),
+      onConfig: config => this.callbacks?.onDecoderConfig(config),
+      onPayload: payload => this.handlePayload(payload),
     });
-    this.decoder = new H264Decoder();
-
-    // Safari does not support conversion to RGBA
-    // Chrome does not support conversion to YUV
-    const isSafari = !!(window as any).safari;
-    this.frameFormat = isSafari ? 'I420' : 'RGBA';
+    this.chunks = new Queue();
   }
 
   public async init(): Promise<void> {
@@ -39,26 +34,23 @@ export default class MP4Source implements InputSource {
     this.demuxer.flush();
   }
 
-  public async getFrame(): Promise<InputFrame | undefined> {
-    const frame = this.decoder.getFrame();
-    if (!frame) {
-      return undefined;
+  public registerCallbacks(callbacks: InputSourceCallbacks): void {
+    this.callbacks = callbacks;
+  }
+
+  public isFinished(): boolean {
+    return this.eosReceived && this.chunks.isEmpty();
+  }
+
+  public nextChunk(): EncodedVideoChunk | undefined {
+    return this.chunks.pop();
+  }
+
+  private handlePayload(payload: SourcePayload) {
+    if (payload.type === 'chunk') {
+      this.chunks.push(payload.chunk);
+    } else if (payload.type === 'eos') {
+      this.eosReceived = true;
     }
-
-    const options = {
-      format: this.frameFormat,
-    };
-    const buffer = new Uint8ClampedArray(frame.allocationSize(options as VideoFrameCopyToOptions));
-    await frame.copyTo(buffer, options as VideoFrameCopyToOptions);
-
-    return {
-      resolution: {
-        width: frame.displayWidth,
-        height: frame.displayHeight,
-      },
-      format: this.frameFormat == 'I420' ? FrameFormat.YUV_BYTES : FrameFormat.RGBA_BYTES,
-      data: buffer,
-      free: () => frame.close(),
-    };
   }
 }
