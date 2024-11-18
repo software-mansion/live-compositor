@@ -1,14 +1,11 @@
 name: TS SDK check
 
 on:
+    workflow_dispatch: {}
     push:
-        branches: [master]
-        paths:
-            - "ts/**"
+        branches: [master, "@wkozyra95/test"]
     pull_request:
         types: [opened, synchronize]
-        paths:
-            - "ts/**"
 
 concurrency:
     group: ${{ github.workflow }}-${{ github.ref }}
