@@ -32,8 +32,8 @@ function Scene() {
 
   if (inputState !== 'playing') {
     return (
-      <View backgroundColor="#000000">
-        <View width={530} height={40} bottom={340} left={500}>
+      <View style={{ backgroundColor: '#000000' }}>
+        <View style={{ width: 530, height: 40, bottom: 340, left: 500 }}>
           <Text fontSize={30} fontFamily="Noto Sans">
             Loading MP4 file
           </Text>
@@ -43,9 +43,9 @@ function Scene() {
   }
 
   return (
-    <View width={1280} height={720}>
+    <View style={{ width: 1280, height: 720 }}>
       <InputStream inputId="bunny_video" />
-      <View width={230} height={40} backgroundColor="#000000" bottom={20} left={500}>
+      <View style={{ width: 230, height: 40, backgroundColor: '#000000', bottom: 20, left: 500 }}>
         <Text fontSize={30} fontFamily="Noto Sans">
           Playing MP4 file
         </Text>

@@ -4,10 +4,10 @@ import { ffplayStartPlayerAsync } from './liveCompositorFfplayHelper';
 
 function App() {
   return (
-    <View direction="column">
+    <View style={{ direction: 'column' }}>
       <View />
       <Text fontSize={50}>Open index.ts and get started</Text>
-      <View height={20} />
+      <View style={{ height: 20 }} />
       <Text width={1000} fontSize={30} wrap="word">
         This example renders static text and sends the output stream via RTP to local port 8001.
         Generated code includes helpers in liveCompositorFfplayHelper.ts that display the output
