@@ -3,12 +3,8 @@ name: TS SDK check
 on:
     push:
         branches: [master]
-        paths:
-            - "ts/**"
     pull_request:
         types: [opened, synchronize]
-        paths:
-            - "ts/**"
 
 concurrency:
     group: ${{ github.workflow }}-${{ github.ref }}
