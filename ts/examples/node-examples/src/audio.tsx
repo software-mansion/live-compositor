@@ -41,7 +41,7 @@ function InputTile({ inputId, muted }: { inputId: string; muted: boolean }) {
         <InputStream inputId={inputId} volume={volume} muted={muted} />
       </Rescaler>
       <View style={{ bottom: 10, left: 10, height: 40 }}>
-        <Text fontSize={40}>
+        <Text style={{ fontSize: 40 }}>
           Input ID: {inputId}, volume: {volume.toFixed(2)} {muted ? 'muted' : 'live'}
         </Text>
       </View>

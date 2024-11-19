@@ -2,6 +2,8 @@ import type React from 'react';
 import { createElement, useId } from 'react';
 import type * as Api from './api.js';
 
+export const DEFAULT_FONT_SIZE = 50;
+
 type ComponentProps<P> = { children?: React.ReactNode; id?: Api.ComponentId } & P;
 
 export type SceneComponent = Api.Component | string;
@@ -30,7 +32,7 @@ export function sceneComponentIntoApi(component: SceneComponent): Api.Component 
     return {
       type: 'text',
       text: component,
-      font_size: 50,
+      font_size: DEFAULT_FONT_SIZE,
     };
   }
   return component;
