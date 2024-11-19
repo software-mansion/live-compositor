@@ -72,14 +72,14 @@ export type RescalerProps = {
    */
   id?: Api.ComponentId;
   /**
+   * Rescaler styling properties
+   */
+  style?: RescalerStyle;
+  /**
    * Defines how this component will behave during a scene update. This will only have an
    * effect if the previous scene already contained a `Rescaler` component with the same id.
    */
   transition?: Transition;
-  /**
-   * Rescaler styling properties
-   */
-  style?: RescalerStyle;
 };
 
 const Rescaler = createCompositorComponent<RescalerProps>(sceneBuilder);

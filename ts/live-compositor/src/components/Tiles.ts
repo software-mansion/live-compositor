@@ -4,11 +4,7 @@ import { intoApiRgbaColor, intoApiTransition } from './common.js';
 import type { SceneComponent } from '../component.js';
 import { createCompositorComponent, sceneComponentIntoApi } from '../component.js';
 
-export type TilesProps = {
-  /**
-   * Id of a component.
-   */
-  id?: Api.ComponentId;
+export type TilesStyle = {
   /**
    * Width of a component in pixels. Exact behavior might be different based on the parent
    * component:
@@ -49,6 +45,17 @@ export type TilesProps = {
    * (**default=`"center"`**) Vertical alignment of tiles.
    */
   verticalAlign?: Api.VerticalAlign;
+};
+
+export type TilesProps = {
+  /**
+   * Id of a component.
+   */
+  id?: Api.ComponentId;
+  /**
+   * Tiles styling properties
+   */
+  style?: TilesStyle;
   /**
    * Defines how this component will behave during a scene update. This will only have an
    * effect if the previous scene already contained a `Tiles` component with the same id.
@@ -58,20 +65,23 @@ export type TilesProps = {
 
 const Tiles = createCompositorComponent<TilesProps>(sceneBuilder);
 
-function sceneBuilder(props: TilesProps, children: SceneComponent[]): Api.Component {
+function sceneBuilder(
+  { id, style, transition }: TilesProps,
+  children: SceneComponent[]
+): Api.Component {
   return {
     type: 'tiles',
-    id: props.id,
+    id: id,
     children: children.map(sceneComponentIntoApi),
-    width: props.width,
-    height: props.height,
-    background_color_rgba: props.backgroundColor && intoApiRgbaColor(props.backgroundColor),
-    tile_aspect_ratio: props.tileAspectRatio,
-    margin: props.margin,
-    padding: props.padding,
-    horizontal_align: props.horizontalAlign,
-    vertical_align: props.verticalAlign,
-    transition: props.transition && intoApiTransition(props.transition),
+    width: style?.width,
+    height: style?.height,
+    background_color_rgba: style?.backgroundColor && intoApiRgbaColor(style?.backgroundColor),
+    tile_aspect_ratio: style?.tileAspectRatio,
+    margin: style?.margin,
+    padding: style?.padding,
+    horizontal_align: style?.horizontalAlign,
+    vertical_align: style?.verticalAlign,
+    transition: transition && intoApiTransition(transition),
   };
 }
 
