@@ -22,7 +22,8 @@ function InputTile({ inputId }: { inputId: string }) {
         <InputStream inputId={inputId} />
       </Rescaler>
       <View style={{ bottom: 10, left: 10, height: 50 }}>
-        <Text fontSize={40} color="#FF0000" lineHeight={50} backgroundColor="#FFFFFF88">
+        <Text
+          style={{ fontSize: 40, color: '#FF0000', lineHeight: 50, backgroundColor: '#FFFFFF88' }}>
           Input ID: {inputId}
         </Text>
       </View>

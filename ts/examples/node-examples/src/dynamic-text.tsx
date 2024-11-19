@@ -36,7 +36,7 @@ function PartialText(props: PartialTextProps) {
 
   return (
     <View>
-      <Text fontSize={40}>{props.text.substring(0, textPart.characters)}</Text>
+      <Text style={{ fontSize: 40 }}>{props.text.substring(0, textPart.characters)}</Text>
     </View>
   );
 }
