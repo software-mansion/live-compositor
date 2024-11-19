@@ -15,13 +15,13 @@ function ExampleApp() {
 
   return (
     <Tiles transition={{ durationMs: 200 }}>
-      <InputTile inputId="input_1" mute={streamWithAudio === 'input_1'} />
-      <InputTile inputId="input_2" mute={streamWithAudio === 'input_2'} />
+      <InputTile inputId="input_1" muted={streamWithAudio === 'input_1'} />
+      <InputTile inputId="input_2" muted={streamWithAudio === 'input_2'} />
     </Tiles>
   );
 }
 
-function InputTile({ inputId, mute }: { inputId: string; mute: boolean }) {
+function InputTile({ inputId, muted }: { inputId: string; muted: boolean }) {
   const [volume, setVolume] = useState(1.0);
 
   useEffect(() => {
@@ -38,11 +38,11 @@ function InputTile({ inputId, mute }: { inputId: string; mute: boolean }) {
   return (
     <View>
       <Rescaler>
-        <InputStream inputId={inputId} volume={volume} mute={mute} />
+        <InputStream inputId={inputId} volume={volume} muted={muted} />
       </Rescaler>
       <View style={{ bottom: 10, left: 10, height: 40 }}>
         <Text style={{ fontSize: 40 }}>
-          Input ID: {inputId}, volume: {volume.toFixed(2)} {mute ? 'muted' : 'live'}
+          Input ID: {inputId}, volume: {volume.toFixed(2)} {muted ? 'muted' : 'live'}
         </Text>
       </View>
     </View>

@@ -5,17 +5,11 @@ import { intoApiTransition } from './common.js';
 import type { SceneComponent } from '../component.js';
 import { createCompositorComponent, sceneComponentIntoApi } from '../component.js';
 
-export type RescalerProps = {
-  children: React.ReactElement | string | number;
-
-  /**
-   * Id of a component.
-   */
-  id?: Api.ComponentId;
+export type RescalerStyle = {
   /**
    * (**default=`"fit"`**) Resize mode:
    */
-  mode?: Api.RescaleMode;
+  resizeMode?: Api.RescaleMode;
   /**
    * (**default=`"center"`**) Horizontal alignment.
    */
@@ -68,6 +62,19 @@ export type RescalerProps = {
    * absolutely positioned, instead of being laid out by its parent.
    */
   rotation?: number;
+};
+
+export type RescalerProps = {
+  children: React.ReactElement | string | number;
+
+  /**
+   * Id of a component.
+   */
+  id?: Api.ComponentId;
+  /**
+   * Rescaler styling properties
+   */
+  style?: RescalerStyle;
   /**
    * Defines how this component will behave during a scene update. This will only have an
    * effect if the previous scene already contained a `Rescaler` component with the same id.
@@ -77,25 +84,29 @@ export type RescalerProps = {
 
 const Rescaler = createCompositorComponent<RescalerProps>(sceneBuilder);
 
-function sceneBuilder(props: RescalerProps, children: SceneComponent[]): Api.Component {
+function sceneBuilder(
+  { id, style, transition }: RescalerProps,
+  children: SceneComponent[]
+): Api.Component {
   if (children?.length !== 1) {
     throw new Error('Exactly one child is required for Rescaler component');
   }
+
   return {
     type: 'rescaler',
-    id: props.id,
+    id: id,
     child: sceneComponentIntoApi(children[0]),
-    mode: props.mode,
-    horizontal_align: props.horizontalAlign,
-    vertical_align: props.verticalAlign,
-    width: props.width,
-    height: props.height,
-    top: props.top,
-    bottom: props.bottom,
-    left: props.left,
-    right: props.right,
-    rotation: props.rotation,
-    transition: props.transition && intoApiTransition(props.transition),
+    mode: style?.resizeMode,
+    horizontal_align: style?.horizontalAlign,
+    vertical_align: style?.verticalAlign,
+    width: style?.width,
+    height: style?.height,
+    top: style?.top,
+    bottom: style?.bottom,
+    left: style?.left,
+    right: style?.right,
+    rotation: style?.rotation,
+    transition: transition && intoApiTransition(transition),
   };
 }
 

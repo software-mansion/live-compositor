@@ -19,7 +19,7 @@ export type AudioOptions = {
 
 /**
  * Hook used to control audio configuration. If you already placing InputStream component
- * you can use `mute` and `volume` props instead.
+ * you can use `muted` and `volume` props instead.
  */
 export function useAudioInput(inputId: Api.InputId, audioOptions: AudioOptions) {
   const ctx = useContext(LiveCompositorContext);
