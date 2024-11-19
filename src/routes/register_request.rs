@@ -1,5 +1,5 @@
 use axum::extract::{Path, State};
-use compositor_pipeline::pipeline::Port;
+use compositor_pipeline::pipeline::{input::InputInitInfo, Port};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -56,9 +56,10 @@ pub(super) async fn handle_input(
                 Pipeline::register_input(&api.pipeline, input_id.into(), whip.try_into()?)?
             }
         };
-        match response.port {
-            Some(Port(port)) => Ok(Response::RegisteredPort { port }),
-            None => Ok(Response::Ok {}),
+        match response {
+            InputInitInfo::BearerToken(token) => Ok(Response::BearerToken { token }),
+            InputInitInfo::Port(Some(Port(port))) => Ok(Response::RegisteredPort { port }),
+            _ => Ok(Response::Ok {}),
         }
     })
     .await

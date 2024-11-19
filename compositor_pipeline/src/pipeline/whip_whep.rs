@@ -67,10 +67,10 @@ pub async fn start_whip_whep_server(pipeline: Weak<Mutex<Pipeline>>) {
     let app = Router::new()
         .route("/status", get(status))
         // .route("/whep", post(handle_whep))
-        .route("/whip", post(handle_whip))
-        .route("/whip", options(handle_options))
-        .route("/session", patch(whip_ice_candidates_handler))
-        .route("/session", delete(terminate_whip_session))
+        .route("/whip/:id", post(handle_whip))
+        .route("/whip/:id", options(handle_options))
+        .route("/session/:id", patch(whip_ice_candidates_handler))
+        .route("/session/:id", delete(terminate_whip_session))
         // .route("/resource/:id", patch(whep_ice_candidates_handler))
         // .route("/resource/:id", delete(terminate_whep_session))
         .layer(
@@ -108,6 +108,7 @@ pub struct InputConnectionUtils {
 #[derive(Debug)]
 pub struct WhipWhepState {
     // pub whip: Arc<WhipUtils>,
+    pub input_tokens: Arc<Mutex<HashMap<String, InputId>>>,
     pub notifier: Arc<Notify>, // TODO check if necessary
     pub input_connections: Arc<Mutex<HashMap<InputId, InputConnectionUtils>>>,
 }
@@ -115,6 +116,7 @@ pub struct WhipWhepState {
 impl WhipWhepState {
     pub fn new() -> Arc<Self> {
         Arc::new(WhipWhepState {
+            input_tokens: Arc::from(Mutex::new(HashMap::new())),
             notifier: Arc::new(Notify::new()),
             input_connections: Arc::from(Mutex::new(HashMap::new())),
         })

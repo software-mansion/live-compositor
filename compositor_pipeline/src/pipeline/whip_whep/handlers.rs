@@ -6,7 +6,7 @@ use std::{
 use anyhow::Error;
 use axum::{
     body::Body,
-    extract::State,
+    extract::{Path, State},
     http::{HeaderMap, Response, StatusCode},
     response::IntoResponse,
 };
@@ -35,6 +35,7 @@ pub async fn status() -> (StatusCode, axum::Json<Value>) {
 }
 
 pub async fn handle_whip(
+    Path(id): Path<String>,
     State(state): State<Arc<WhipWhepState>>,
     headers: HeaderMap,
     offer: String,
@@ -44,7 +45,7 @@ pub async fn handle_whip(
 
     //get id from bearer token
     // let bearer_token = todo!();
-    let input_id = InputId(Arc::from("input_1"));
+    let input_id = InputId(Arc::from(id.clone()));
 
     // Validate that the Content-Type is `application/sdp`
     if let Some(content_type) = headers.get("Content-Type") {
@@ -258,12 +259,13 @@ pub async fn handle_whip(
         .status(StatusCode::CREATED)
         .header("Content-Type", "application/sdp")
         .header("Access-Control-Expose-Headers", "Location")
-        .header("Location", "/session")
+        .header("Location", "/session/".to_string() + &id)
         .body(Body::from(sdp.sdp.to_string()))
         .unwrap()
 }
 
 pub async fn whip_ice_candidates_handler(
+    Path(id): Path<String>,
     State(state): State<Arc<WhipWhepState>>,
     headers: HeaderMap,
     candidate: String,
@@ -272,7 +274,7 @@ pub async fn whip_ice_candidates_handler(
     info!("[session] received candidate: {headers:?}");
 
     //get id from bearer token
-    let input_id = InputId(Arc::from("input_1"));
+    let input_id = InputId(Arc::from(id));
 
     let candidate: Value = serde_json::from_str(&candidate).unwrap();
 

@@ -48,7 +48,6 @@ pub enum WhipReceiverError {
 
 #[derive(Debug, Clone)]
 pub struct WhipReceiverOptions {
-    pub bearer_token: String,
     pub stream: WhipStream,
 }
 
@@ -89,6 +88,8 @@ impl WhipReceiver {
     ) -> Result<InputInitResult, WhipReceiverError> {
         let should_close = Arc::new(AtomicBool::new(false));
 
+        let bearer_token = "some".to_string(); //TODO random function to generate bearer code
+
         let whip_whep_state = pipeline_ctx.whip_whep_state.clone();
 
         let (video_tx, video_rx) = mpsc::channel(100);
@@ -99,14 +100,11 @@ impl WhipReceiver {
 
         info!("{:?}", video_rx.is_closed());
         info!("{:?}", audio_rx.is_closed());
-        info!("[WHIP input] Bearer token: {:?}", opts.bearer_token);
-
         info!("Added to hashmap: {:?}", whip_whep_state.input_connections);
 
         let depayloader = Arc::from(Mutex::new(Depayloader::new(&opts.stream)?));
 
-        // let (depayloader_receivers, sender_vid, sender_aud) =
-        Self::start_mid_thread(
+        Self::start_forwarding_thread(
             input_id,
             video_rx,
             audio_rx,
@@ -119,7 +117,7 @@ impl WhipReceiver {
             InputConnectionUtils {
                 audio_sender: Some(audio_tx.clone()),
                 video_sender: Some(video_tx.clone()),
-                bearer_token: Some(opts.bearer_token),
+                bearer_token: Some(bearer_token),
                 peer_connection: None,
                 start_time_vid: None,
                 start_time_aud: None,
@@ -146,11 +144,11 @@ impl WhipReceiver {
             input: Input::Whip(Self { should_close }),
             video,
             audio,
-            init_info: InputInitInfo { port: None },
+            init_info: InputInitInfo::BearerToken("some".to_string()),
         })
     }
 
-    fn start_mid_thread(
+    fn start_forwarding_thread(
         input_id: &InputId,
         video_mpsc_receiver: tokio::sync::mpsc::Receiver<PipelineEvent<EncodedChunk>>,
         audio_mpsc_receiver: tokio::sync::mpsc::Receiver<PipelineEvent<EncodedChunk>>,
@@ -166,7 +164,7 @@ impl WhipReceiver {
                 input_id = input_id_clone.to_string()
             )
             .entered();
-            run_mid_loop(audio_mpsc_receiver, audio_sender)
+            run_forwarding_loop(audio_mpsc_receiver, audio_sender)
         });
 
         let input_id_clone = input_id.clone();
@@ -177,7 +175,7 @@ impl WhipReceiver {
                 input_id = input_id_clone.to_string()
             )
             .entered();
-            run_mid_loop(video_mpsc_receiver, video_sender)
+            run_forwarding_loop(video_mpsc_receiver, video_sender)
         });
     }
 }
@@ -189,7 +187,7 @@ impl Drop for WhipReceiver {
     }
 }
 
-fn run_mid_loop(
+fn run_forwarding_loop(
     mut receiver: tokio::sync::mpsc::Receiver<PipelineEvent<EncodedChunk>>,
     sender: Sender<PipelineEvent<EncodedChunk>>,
 ) {

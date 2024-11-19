@@ -1,6 +1,5 @@
 use anyhow::Result;
 use compositor_api::types::Resolution;
-// use compositor_pipeline::pipeline::whip_whep::start_whip_whep_server;
 use serde_json::json;
 use std::{thread::sleep, time::Duration};
 
@@ -11,8 +10,6 @@ const VIDEO_RESOLUTION: Resolution = Resolution {
     height: 720,
 };
 
-// TODO rework, this version just for tests
-
 fn main() {
     run_example(client_code);
 }
@@ -22,7 +19,19 @@ fn client_code() -> Result<()> {
         "input/input_1/register",
         &json!({
             "type": "whip",
-            "bearer_token": "",
+            "video": {
+              "decoder": "ffmpeg_h264"
+            },
+            "audio": {
+              "decoder": "opus"
+            },
+        }),
+    )?;
+
+    examples::post(
+        "input/input_2/register",
+        &json!({
+            "type": "whip",
             "video": {
               "decoder": "ffmpeg_h264"
             },
@@ -49,11 +58,21 @@ fn client_code() -> Result<()> {
                 },
                 "initial": {
                     "root": {
-                        "id": "input_1",
-                        "type": "input_stream",
-                        "input_id": "input_1",
+                        "type": "view",
+                        "background_color_rgba": "#4d4d4dff",
+                        "children": [
+                            {
+                                "type": "rescaler",
+                                "child": { "type": "input_stream", "input_id": "input_1" }
+                            },
+                            {
+                                "type": "rescaler",
+                                "child": { "type": "input_stream", "input_id": "input_2" }
+                            }
+                        ]
                     }
-                }
+                },
+
             },
             "audio": {
                 "encoder": {
@@ -66,6 +85,7 @@ fn client_code() -> Result<()> {
                     ]
                 }
             }
+
         }),
     )?;
 

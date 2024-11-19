@@ -185,7 +185,6 @@ impl TryFrom<WhipInput> for pipeline::RegisterInputOptions {
 
     fn try_from(value: WhipInput) -> Result<Self, Self::Error> {
         let WhipInput {
-            bearer_token,
             video,
             audio,
             required,
@@ -216,7 +215,6 @@ impl TryFrom<WhipInput> for pipeline::RegisterInputOptions {
         };
 
         let input_options = input::InputOptions::Whip(input::whip::WhipReceiverOptions {
-            bearer_token,
             stream: whip_stream,
         });
 

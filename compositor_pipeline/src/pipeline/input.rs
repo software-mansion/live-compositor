@@ -49,8 +49,9 @@ pub struct RawDataInputOptions {
     pub audio: bool,
 }
 
-pub struct InputInitInfo {
-    pub port: Option<Port>,
+pub enum InputInitInfo {
+    Port(Option<Port>),
+    BearerToken(String),
 }
 
 struct InputInitResult {

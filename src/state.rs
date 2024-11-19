@@ -15,6 +15,7 @@ pub type Pipeline = compositor_pipeline::Pipeline;
 pub enum Response {
     Ok {},
     RegisteredPort { port: u16 },
+    BearerToken { token: String },
 }
 
 impl IntoResponse for Response {

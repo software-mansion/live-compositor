@@ -32,8 +32,6 @@ pub struct RtpInput {
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct WhipInput {
-    /// Bearer token
-    pub bearer_token: String,
     /// Parameters of a video source included in the RTP stream.
     pub video: Option<InputWhipVideoOptions>,
     /// Parameters of an audio source included in the RTP stream.
