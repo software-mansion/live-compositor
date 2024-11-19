@@ -28,7 +28,8 @@ pub enum DepayloaderNewError {
     Audio(#[from] AudioDepayloaderNewError),
 }
 
-pub(crate) struct Depayloader {
+#[derive(Debug)]
+pub struct Depayloader {
     /// (Depayloader, payload type)
     pub video: Option<VideoDepayloader>,
     pub audio: Option<AudioDepayloader>,
@@ -72,6 +73,7 @@ impl Depayloader {
     }
 }
 
+#[derive(Debug)]
 pub enum VideoDepayloader {
     H264 {
         depayloader: H264Packet,
@@ -147,6 +149,7 @@ pub enum AudioDepayloaderNewError {
     AacDepayloaderNewError(#[from] AacDepayloaderNewError),
 }
 
+#[derive(Debug)]
 pub enum AudioDepayloader {
     Opus {
         depayloader: OpusPacket,
@@ -203,7 +206,7 @@ impl AudioDepayloader {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct RolloverState {
     previous_timestamp: Option<u32>,
     rollover_count: usize,

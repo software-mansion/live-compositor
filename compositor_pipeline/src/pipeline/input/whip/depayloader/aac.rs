@@ -44,6 +44,7 @@ pub enum AacDepayloadingError {
 //     }
 // }
 
+#[derive(Debug)]
 pub struct AacDepayloader {
     mode: AacDepayloaderMode,
     asc: Asc,
@@ -78,6 +79,7 @@ fn frame_length_flag_to_frame_length(flag: bool) -> u32 {
     }
 }
 
+#[derive(Debug)]
 struct Asc {
     _profile: u8,
     frequency: u32,

@@ -208,8 +208,6 @@ impl Pipeline {
             ctx: ctx.clone(),
         };
 
-        // start_whip_whep_server(&ctx);
-
         Ok((pipeline, event_loop))
     }
 
@@ -463,6 +461,7 @@ fn run_renderer_thread(
         let Some(pipeline) = pipeline.upgrade() else {
             break;
         };
+        // info!("{:?}", input_frames);
         for (input_id, event) in input_frames.frames.iter_mut() {
             if let PipelineEvent::EOS = event {
                 let mut guard = pipeline.lock().unwrap();

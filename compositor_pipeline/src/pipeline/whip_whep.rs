@@ -1,3 +1,4 @@
+use crate::pipeline::input::whip::depayloader::Depayloader;
 use axum::{
     routing::{delete, get, options, patch, post},
     Router,
@@ -7,11 +8,11 @@ use config::read_config;
 use handlers::{
     handle_options, handle_whip, status, terminate_whip_session, whip_ice_candidates_handler,
 };
-use rtp::packet::Packet;
 use std::{
     collections::HashMap,
     net::SocketAddr,
     sync::{Arc, Mutex, Weak},
+    time::Instant,
 };
 use tokio::sync::{mpsc, Notify};
 use tower_http::cors::{Any, CorsLayer};
@@ -37,7 +38,9 @@ mod handlers;
 
 use tokio::task;
 
-use crate::Pipeline;
+use crate::{queue::PipelineEvent, Pipeline};
+
+use super::EncodedChunk;
 
 pub(crate) const VIDEO_PAYLOAD_TYPE: u8 = 96;
 pub(crate) const AUDIO_PAYLOAD_TYPE: u8 = 111;
@@ -93,12 +96,13 @@ pub async fn start_whip_whep_server(pipeline: Weak<Mutex<Pipeline>>) {
 
 #[derive(Debug)]
 pub struct InputConnectionUtils {
-    pub video_receiver: Option<mpsc::Receiver<Packet>>,
-    pub audio_receiver: Option<mpsc::Receiver<Packet>>,
-    pub video_sender: Option<mpsc::Sender<Packet>>,
-    pub audio_sender: Option<mpsc::Sender<Packet>>,
+    pub video_sender: Option<mpsc::Sender<PipelineEvent<EncodedChunk>>>,
+    pub audio_sender: Option<mpsc::Sender<PipelineEvent<EncodedChunk>>>,
     pub bearer_token: Option<String>,
     pub peer_connection: Option<Arc<RTCPeerConnection>>,
+    pub start_time_vid: Option<Instant>,
+    pub start_time_aud: Option<Instant>,
+    pub depayloader: Arc<Mutex<Depayloader>>,
 }
 
 #[derive(Debug)]
@@ -115,13 +119,6 @@ impl WhipWhepState {
             input_connections: Arc::from(Mutex::new(HashMap::new())),
         })
     }
-}
-
-pub async fn init() -> Arc<WhipWhepState> {
-    Arc::new(WhipWhepState {
-        notifier: Arc::new(Notify::new()),
-        input_connections: Arc::from(Mutex::new(HashMap::new())),
-    })
 }
 
 pub async fn init_pc() -> Arc<RTCPeerConnection> {

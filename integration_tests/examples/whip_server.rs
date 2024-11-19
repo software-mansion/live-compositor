@@ -29,8 +29,6 @@ fn client_code() -> Result<()> {
             "audio": {
               "decoder": "opus"
             },
-            "required": true,
-            "offset_ms": 0,
         }),
     )?;
 

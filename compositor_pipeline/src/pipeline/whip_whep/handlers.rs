@@ -1,5 +1,9 @@
-use std::sync::Arc;
+use std::{
+    sync::Arc,
+    time::{Duration, Instant},
+};
 
+use anyhow::Error;
 use axum::{
     body::Body,
     extract::State,
@@ -8,14 +12,20 @@ use axum::{
 };
 
 use compositor_render::InputId;
-use webrtc_util::{Marshal, MarshalSize};
+use tokio::sync::mpsc::Sender;
 
-use crate::pipeline::whip_whep::{init_pc, InputConnectionUtils, WhipWhepState};
+use crate::{
+    pipeline::{
+        whip_whep::{init_pc, WhipWhepState},
+        EncodedChunk,
+    },
+    queue::PipelineEvent,
+};
 use serde_json::{json, Value};
-use tracing::{error, info};
+use tracing::{error, info, warn};
 use webrtc::{
     ice_transport::ice_candidate::RTCIceCandidateInit,
-    peer_connection::{self, sdp::session_description::RTCSessionDescription},
+    peer_connection::sdp::session_description::RTCSessionDescription,
     rtp_transceiver::rtp_codec::RTPCodecType,
 };
 
@@ -55,71 +65,162 @@ pub async fn handle_whip(
             .unwrap();
     }
 
-    let video_sender = state
-        .input_connections
-        .lock()
-        .unwrap()
-        .get(&input_id)
-        .unwrap()
-        .video_sender
-        .clone()
-        .unwrap();
-
-    let audio_sender = state
-        .input_connections
-        .lock()
-        .unwrap()
-        .get(&input_id)
-        .unwrap()
-        .audio_sender
-        .clone()
-        .unwrap();
-
-    info!(
-        "video sender closed >>>>>>>> {:?}",
-        video_sender.is_closed()
-    );
-    info!(
-        "audio sender closed >>>>>>>> {:?}",
-        audio_sender.is_closed()
-    );
-
     let peer_connection = init_pc().await;
-    state
-        .input_connections
-        .lock()
-        .unwrap()
-        .get_mut(&input_id)
-        .unwrap()
-        .peer_connection = Some(peer_connection.clone());
-    state
-        .input_connections
-        .lock()
-        .unwrap()
-        .get_mut(&input_id)
-        .unwrap()
-        .bearer_token = Some(input_id.clone().to_string());
 
-    info!(
-        "=============== {:?}",
-        state.input_connections.lock().unwrap().get(&input_id)
-    );
+    let video_sender: Sender<PipelineEvent<EncodedChunk>>;
+    let audio_sender;
+    let depayloader;
+    let bearer_token;
+
+    if let Ok(mut connections) = state.input_connections.lock() {
+        if let Some(connection) = connections.get_mut(&input_id) {
+            connection.peer_connection = Some(peer_connection.clone());
+        } else {
+            return Response::builder()
+                .status(StatusCode::BAD_REQUEST)
+                .body(Body::from("Peer connection initialization error"))
+                .unwrap();
+        }
+        if let Some(connection) = connections.get(&input_id) {
+            video_sender = connection.video_sender.clone().unwrap();
+            audio_sender = connection.audio_sender.clone().unwrap();
+            depayloader = connection.depayloader.clone();
+            bearer_token = connection.bearer_token.clone();
+            if let Err(_) = authorize_token(bearer_token, headers) {
+                return Response::builder()
+                    .status(StatusCode::BAD_REQUEST)
+                    .body(Body::from("Bad token"))
+                    .unwrap();
+            }
+        } else {
+            error!("No video");
+            return Response::builder()
+                .status(StatusCode::BAD_REQUEST)
+                .body(Body::from("PC init"))
+                .unwrap();
+        }
+    } else {
+        error!("Missing Content-Type header");
+        return Response::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .body(Body::from("Missing Content-Type header"))
+            .unwrap();
+    }
 
     peer_connection.on_track(Box::new(move |track, _, _| {
-        let audio_sender_clone = audio_sender.clone();
         let video_sender_clone = video_sender.clone();
+        let audio_sender_clone = audio_sender.clone();
+        let state_clone = state.clone();
+        let input_id_clone = input_id.clone();
+        let depayloader_clone = depayloader.clone();
+
         tokio::spawn(async move {
             let track_kind = track.kind();
+            let mut first_curr_pts_vid = None;
+            let mut first_curr_pts_aud = None;
+            let mut time_vid = None;
+            let mut time_aud: Option<Duration> = None;
+            info!("on_track {:?}", track_kind);
+
+            //TODO send PipelineEvent::NewPeerConnection to reset queue and decoder(drop remaining frames from prev stream)
+
+            if track_kind == RTPCodecType::Video {
+                if let Some(start_time) = state_clone
+                    .input_connections
+                    .lock()
+                    .unwrap()
+                    .get(&input_id_clone)
+                    .unwrap()
+                    .start_time_vid
+                {
+                    info!("sent newpeer");
+                    time_vid = Some(start_time.elapsed());
+                }
+                if state_clone
+                    .input_connections
+                    .lock()
+                    .unwrap()
+                    .get(&input_id_clone)
+                    .unwrap()
+                    .start_time_vid
+                    .is_none()
+                {
+                    state_clone
+                        .input_connections
+                        .lock()
+                        .unwrap()
+                        .get_mut(&input_id_clone)
+                        .unwrap()
+                        .start_time_vid = Some(Instant::now())
+                }
+            } else if track_kind == RTPCodecType::Audio {
+                if let Some(start_time) = state_clone
+                    .input_connections
+                    .lock()
+                    .unwrap()
+                    .get(&input_id_clone)
+                    .unwrap()
+                    .start_time_aud
+                {
+                    info!("sent newpeer");
+                    time_aud = Some(start_time.elapsed());
+                }
+                if state_clone
+                    .input_connections
+                    .lock()
+                    .unwrap()
+                    .get(&input_id_clone)
+                    .unwrap()
+                    .start_time_aud
+                    .is_none()
+                {
+                    state_clone
+                        .input_connections
+                        .lock()
+                        .unwrap()
+                        .get_mut(&input_id_clone)
+                        .unwrap()
+                        .start_time_aud = Some(Instant::now())
+                }
+            }
+            let mut flag = true;
 
             while let Ok((rtp_packet, _)) = track.read_rtp().await {
                 // Send RTP packets through the channel
-                if track_kind == RTPCodecType::Audio {
-                    if let Err(e) = audio_sender_clone.send(rtp_packet).await {
-                        error!("Failed to send audio RTP packet: {e}");
+                let Ok(chunks) = depayloader_clone.lock().unwrap().depayload(rtp_packet) else {
+                    warn!("RTP depayloading error",);
+                    continue;
+                };
+                if let Some(first_chunk) = chunks.get(0) {
+                    if flag {
+                        flag = false;
+                        if track_kind == RTPCodecType::Video {
+                            first_curr_pts_vid = Some(first_chunk.pts);
+                        } else if track_kind == RTPCodecType::Audio {
+                            first_curr_pts_aud = Some(first_chunk.pts);
+                        }
                     }
-                } else if track_kind == RTPCodecType::Video {
-                    if let Err(e) = video_sender_clone.send(rtp_packet).await {
-                        error!("Failed to send video RTP packet: {e}");
+                }
+
+                for mut chunk in chunks {
+                    if track_kind == RTPCodecType::Audio {
+                        chunk.pts = chunk.pts + time_aud.unwrap_or(Duration::from_secs(0))
+                            - first_curr_pts_aud.unwrap_or(Duration::from_secs(0));
+
+                        if let Err(e) = audio_sender_clone.send(PipelineEvent::Data(chunk)).await {
+                            error!("Failed to send audio RTP packet: {e}");
+                        }
+                    } else if track_kind == RTPCodecType::Video {
+                        info!("{:?} {:?} {:?}", chunk.pts, time_vid, first_curr_pts_vid);
+
+                        chunk.pts = chunk.pts + time_vid.unwrap_or(Duration::from_secs(0))
+                            - first_curr_pts_vid.unwrap_or(Duration::from_secs(0));
+
+                        info!("{:?}", chunk.pts);
+
+                        if let Err(e) = video_sender_clone.send(PipelineEvent::Data(chunk)).await {
+                            error!("Failed to send audio RTP packet: {e}");
+                        }
                     }
                 }
             }
@@ -151,7 +252,7 @@ pub async fn handle_whip(
     let sdp = peer_connection.local_description().await.unwrap();
     info!("Sending SDP answer: {sdp:?}");
 
-    println!("{:?}", state);
+    // println!("{:?}", state);
 
     Response::builder()
         .status(StatusCode::CREATED)
@@ -171,7 +272,7 @@ pub async fn whip_ice_candidates_handler(
     info!("[session] received candidate: {headers:?}");
 
     //get id from bearer token
-    let input_id = InputId(Arc::from("frst"));
+    let input_id = InputId(Arc::from("input_1"));
 
     let candidate: Value = serde_json::from_str(&candidate).unwrap();
 
@@ -230,27 +331,9 @@ pub async fn terminate_whip_session(
     };
 
     drop(
-        state
-            .input_connections
-            .lock()
-            .unwrap()
-            .get(&input_id)
-            .unwrap()
+        state.input_connections.lock().unwrap()[&input_id]
             .video_sender
-            .clone()
-            .unwrap(),
-    );
-
-    drop(
-        state
-            .input_connections
-            .lock()
-            .unwrap()
-            .get(&input_id)
-            .unwrap()
-            .audio_sender
-            .clone()
-            .unwrap(),
+            .clone(),
     );
 
     if let Err(err) = pc.close().await {
@@ -265,4 +348,19 @@ pub async fn terminate_whip_session(
         StatusCode::NO_CONTENT,
         axum::Json(json!({"status": "Session terminated"})),
     )
+}
+
+fn authorize_token(validation_token: Option<String>, headers: HeaderMap) -> Result<(), Error> {
+    if let Some(bearer_token) = validation_token {
+        if let Some(content_type) = headers.get("Authorization") {
+            if content_type.as_bytes()[7..] != *bearer_token.as_bytes() {
+                return Err(Error::msg("bad"));
+            }
+            return Ok(());
+        } else {
+            return Err(Error::msg("bad"));
+        }
+    } else {
+        return Err(Error::msg("bad"));
+    }
 }
