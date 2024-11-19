@@ -22,18 +22,18 @@ export type InputStreamProps = {
   /**
    * Mute audio.
    */
-  mute?: boolean;
+  muted?: boolean;
 };
 
-type AudioPropNames = 'mute' | 'volume' | 'disableAudioControl';
+type AudioPropNames = 'muted' | 'volume' | 'disableAudioControl';
 
 const InnerInputStream =
   createCompositorComponent<Omit<InputStreamProps, AudioPropNames>>(sceneBuilder);
 
 function InputStream(props: InputStreamProps) {
-  const { mute, volume, ...otherProps } = props;
+  const { muted, volume, ...otherProps } = props;
   useAudioInput(props.inputId, {
-    volume: mute ? 0 : (volume ?? 1),
+    volume: muted ? 0 : (volume ?? 1),
   });
   return createElement(InnerInputStream, otherProps);
 }

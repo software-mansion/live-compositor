@@ -15,12 +15,12 @@ npm create live-compositor
 ## Usage
 
 ```tsx
-import { View, Text, InputStream, Rescaler } from "live-compositor";
+import { View, Text, InputStream, Rescaler } from 'live-compositor';
 
 function ExampleApp() {
   return (
-    <View style={{ direction: "column" }}>
-      <Rescaler mode="fill">
+    <View style={{ direction: 'column' }}>
+      <Rescaler style={{ resizeMode: 'fill' }}>
         <InputStream inputId="example_input_1" />
       </Rescaler>
       <Text fontSize={20}>Example label</Text>
