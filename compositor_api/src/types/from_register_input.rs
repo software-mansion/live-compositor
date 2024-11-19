@@ -81,6 +81,10 @@ impl TryFrom<InputRtpAudioOptions> for InputAudioStream {
     }
 }
 
+#[cfg(not(feature = "vk-video"))]
+const NO_VULKAN_VIDEO: &str =
+    "Requested `vulkan_video` decoder, but this binary was compiled without the `vk-video` feature.";
+
 impl TryFrom<RtpInput> for pipeline::RegisterInputOptions {
     type Error = TypeError;
 
@@ -106,10 +110,20 @@ impl TryFrom<RtpInput> for pipeline::RegisterInputOptions {
                 .as_ref()
                 .map(|video| {
                     Ok(input::rtp::InputVideoStream {
-                        options: match video {
-                            InputRtpVideoOptions::FfmepgH264 => decoder::VideoDecoderOptions {
+                        options: match video.decoder {
+                            VideoDecoder::FfmpegH264 => decoder::VideoDecoderOptions {
                                 decoder: pipeline::VideoDecoder::FFmpegH264,
                             },
+
+                            #[cfg(feature = "vk-video")]
+                            VideoDecoder::VulkanVideo => decoder::VideoDecoderOptions {
+                                decoder: pipeline::VideoDecoder::VulkanVideoH264,
+                            },
+
+                            #[cfg(not(feature = "vk-video"))]
+                            VideoDecoder::VulkanVideo => {
+                                return Err(TypeError::new(NO_VULKAN_VIDEO))
+                            }
                         },
                     })
                 })
@@ -146,6 +160,7 @@ impl TryFrom<Mp4Input> for pipeline::RegisterInputOptions {
             required,
             offset_ms,
             should_loop,
+            video_decoder,
         } = value;
 
         const BAD_URL_PATH_SPEC: &str =
@@ -165,10 +180,21 @@ impl TryFrom<Mp4Input> for pipeline::RegisterInputOptions {
             buffer_duration: None,
         };
 
+        let video_decoder = match video_decoder.unwrap_or(VideoDecoder::FfmpegH264) {
+            VideoDecoder::FfmpegH264 => pipeline::VideoDecoder::FFmpegH264,
+
+            #[cfg(feature = "vk-video")]
+            VideoDecoder::VulkanVideo => pipeline::VideoDecoder::VulkanVideoH264,
+
+            #[cfg(not(feature = "vk-video"))]
+            VideoDecoder::VulkanVideo => return Err(TypeError::new(NO_VULKAN_VIDEO)),
+        };
+
         Ok(pipeline::RegisterInputOptions {
             input_options: input::InputOptions::Mp4(input::mp4::Mp4Options {
                 source,
                 should_loop: should_loop.unwrap_or(false),
+                video_decoder,
             }),
             queue_options,
         })

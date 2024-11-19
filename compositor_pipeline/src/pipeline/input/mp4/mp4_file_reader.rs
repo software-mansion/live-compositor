@@ -125,6 +125,7 @@ impl Mp4FileReader<VideoDecoderOptions> {
     pub(crate) fn new_video(
         options: Mp4ReaderOptions,
         input_id: InputId,
+        video_decoder: VideoDecoder,
     ) -> Result<Option<(Mp4FileReader<VideoDecoderOptions>, ChunkReceiver)>, Mp4Error> {
         let stop_thread = Arc::new(AtomicBool::new(false));
         let span = span!(Level::INFO, "MP4 video", input_id = input_id.to_string());
@@ -136,7 +137,7 @@ impl Mp4FileReader<VideoDecoderOptions> {
                 Self::new(
                     input_file,
                     size,
-                    Self::find_h264_info,
+                    |r| Self::find_h264_info(r, video_decoder),
                     None,
                     stop_thread,
                     span,
@@ -153,7 +154,7 @@ impl Mp4FileReader<VideoDecoderOptions> {
                 Self::new(
                     reader,
                     size,
-                    Self::find_h264_info,
+                    |r| Self::find_h264_info(r, video_decoder),
                     Some(fragment_receiver),
                     stop_thread,
                     span,
@@ -165,6 +166,7 @@ impl Mp4FileReader<VideoDecoderOptions> {
 
     fn find_h264_info<Reader: Read + Seek + Send + 'static>(
         reader: &mp4::Mp4Reader<Reader>,
+        video_decoder: VideoDecoder,
     ) -> Option<TrackInfo<VideoDecoderOptions, impl FnMut(mp4::Mp4Sample) -> Bytes>> {
         let (&track_id, track, avc) = reader.tracks().iter().find_map(|(id, track)| {
             let track_type = track.track_type().ok()?;
@@ -234,7 +236,7 @@ impl Mp4FileReader<VideoDecoderOptions> {
         };
 
         let decoder_options = VideoDecoderOptions {
-            decoder: VideoDecoder::FFmpegH264,
+            decoder: video_decoder,
         };
 
         Some(TrackInfo {
