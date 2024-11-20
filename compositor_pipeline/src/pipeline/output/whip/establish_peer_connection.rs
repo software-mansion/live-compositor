@@ -1,4 +1,5 @@
 use super::{WhipCtx, WhipError};
+use compositor_render::error::ErrorStack;
 use reqwest::{
     header::{HeaderMap, HeaderValue},
     Client, Method, StatusCode, Url,
@@ -17,8 +18,9 @@ use webrtc::{
 pub async fn connect(
     peer_connection: Arc<RTCPeerConnection>,
     client: Arc<reqwest::Client>,
-    whip_ctx: WhipCtx,
+    whip_ctx: &WhipCtx,
 ) -> Result<Url, WhipError> {
+    let whip_ctx = whip_ctx.clone();
     peer_connection.on_ice_connection_state_change(Box::new(
         move |connection_state: RTCIceConnectionState| {
             debug!("Connection State has changed {connection_state}.");
@@ -74,7 +76,14 @@ pub async fn connect(
     header_map.append("Content-Type", HeaderValue::from_static("application/sdp"));
 
     if let Some(token) = &whip_ctx.options.bearer_token {
-        header_map.append("Authorization", format!("Bearer {token}").parse().unwrap());
+        let header_value_str: HeaderValue = match format!("Bearer {token}").parse() {
+            Ok(val) => val,
+            Err(err) => {
+                error!("Ivalid header token, couldn't parse: {}", err);
+                HeaderValue::from_static("Bearer")
+            }
+        };
+        header_map.append("Authorization", header_value_str);
     }
 
     let response = client
@@ -99,6 +108,7 @@ pub async fn connect(
         .get("location")
         .and_then(|url| url.to_str().ok())
         .ok_or_else(|| WhipError::MissingLocationHeader)?;
+    error!("location header: {location_url_path}");
 
     let scheme = endpoint_url.scheme();
     let host = endpoint_url
@@ -154,7 +164,7 @@ pub async fn connect(
                             info!("Entity tags not supported by WHIP output");
                             should_stop_clone.store(true, Ordering::Relaxed);
                         }
-                        _ => error!("{err}"),
+                        _ => error!("{}", ErrorStack::new(&err).into_string()),
                     }
                 }
             }
@@ -181,7 +191,14 @@ async fn handle_candidate(
     );
 
     if let Some(token) = bearer_token {
-        header_map.append("Authorization", format!("Bearer {token}").parse().unwrap());
+        let header_value_str: HeaderValue = match format!("Bearer {token}").parse() {
+            Ok(val) => val,
+            Err(err) => {
+                error!("Ivalid header token, couldn't parse: {}", err);
+                HeaderValue::from_static("Bearer")
+            }
+        };
+        header_map.append("Authorization", header_value_str);
     }
 
     let response = client

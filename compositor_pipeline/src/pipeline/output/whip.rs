@@ -40,6 +40,7 @@ pub struct WhipSenderOptions {
     pub audio: Option<AudioCodec>,
 }
 
+#[derive(Debug, Clone)]
 pub struct WhipCtx {
     options: WhipSenderOptions,
     output_id: OutputId,
@@ -196,7 +197,7 @@ async fn run_whip_sender_task(
     };
     let output_id_clone = whip_ctx.output_id.clone();
     let should_close_clone = whip_ctx.should_close.clone();
-    let whip_session_url = match connect(peer_connection, client.clone(), whip_ctx).await {
+    let whip_session_url = match connect(peer_connection, client.clone(), &whip_ctx).await {
         Ok(val) => val,
         Err(err) => {
             init_confirmation_sender.send(Err(err)).unwrap();
@@ -240,7 +241,9 @@ async fn run_whip_sender_task(
             },
         }
     }
-    let _ = client.delete(whip_session_url).send().await;
+    if let Err(err) = client.delete(whip_session_url).send().await {
+        error!("Error while sending delete whip session request: {}", err);
+    }
     event_emitter.emit(Event::OutputDone(output_id_clone));
     debug!("Closing WHIP sender thread.")
 }

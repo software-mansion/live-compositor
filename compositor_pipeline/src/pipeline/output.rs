@@ -230,14 +230,15 @@ impl Output {
             Output::RawData { .. } => return Err(RequestKeyframeError::RawOutput(output_id)),
         };
 
-        if let Err(err) = encoder
+        if encoder
             .video
             .as_ref()
             .ok_or(RequestKeyframeError::NoVideoOutput(output_id))?
             .keyframe_request_sender()
             .send(())
+            .is_err()
         {
-            debug!(%err, "Failed to send keyframe request to the encoder.");
+            debug!("Failed to send keyframe request to the encoder. Channel closed.");
         };
 
         Ok(())

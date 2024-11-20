@@ -94,14 +94,14 @@ pub enum OutputInitError {
     #[error("Failed to register output. FFmpeg error: {0}.")]
     FfmpegMp4Error(ffmpeg_next::Error),
 
-    #[error("Unkown Whip output error, channel unexpectedly closed")]
+    #[error("Unkown Whip output error.")]
     UnknownWhipError,
 
     #[error("Whip init timeout exceeded")]
     WhipInitTimeout,
 
-    #[error("Failed to init whip output: {0}")]
-    WhipInitError(Box<whip::WhipError>),
+    #[error("Failed to init whip output")]
+    WhipInitError(#[source] Box<whip::WhipError>),
 }
 
 #[derive(Debug, thiserror::Error)]

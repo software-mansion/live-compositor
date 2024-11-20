@@ -30,9 +30,9 @@ pub async fn init_peer_connection() -> Result<
     ),
     WhipError,
 > {
-    let mut m = MediaEngine::default();
-    m.register_default_codecs()?;
-    m.register_codec(
+    let mut media_engine = MediaEngine::default();
+    media_engine.register_default_codecs()?;
+    media_engine.register_codec(
         RTCRtpCodecParameters {
             capability: RTCRtpCodecCapability {
                 mime_type: MIME_TYPE_H264.to_owned(),
@@ -46,7 +46,7 @@ pub async fn init_peer_connection() -> Result<
         },
         RTPCodecType::Video,
     )?;
-    m.register_codec(
+    media_engine.register_codec(
         RTCRtpCodecParameters {
             capability: RTCRtpCodecCapability {
                 mime_type: MIME_TYPE_OPUS.to_owned(),
@@ -61,9 +61,9 @@ pub async fn init_peer_connection() -> Result<
         RTPCodecType::Audio,
     )?;
     let mut registry = Registry::new();
-    registry = register_default_interceptors(registry, &mut m)?;
+    registry = register_default_interceptors(registry, &mut media_engine)?;
     let api = APIBuilder::new()
-        .with_media_engine(m)
+        .with_media_engine(media_engine)
         .with_interceptor_registry(registry)
         .build();
 
@@ -109,8 +109,14 @@ pub async fn init_peer_connection() -> Result<
         "audio".to_owned(),
         "webrtc-rs".to_owned(),
     ));
-    let _ = peer_connection.add_track(video_track.clone()).await;
-    let _ = peer_connection.add_track(audio_track.clone()).await;
+    peer_connection
+        .add_track(video_track.clone())
+        .await
+        .map_err(WhipError::PeerConnectionInitError)?;
+    peer_connection
+        .add_track(audio_track.clone())
+        .await
+        .map_err(WhipError::PeerConnectionInitError)?;
     let transceivers = peer_connection.get_transceivers().await;
     for transceiver in transceivers {
         transceiver
