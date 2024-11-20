@@ -2,13 +2,14 @@ use super::{WhipCtx, WhipError};
 use compositor_render::error::ErrorStack;
 use reqwest::{
     header::{HeaderMap, HeaderValue},
-    Client, Method, StatusCode, Url,
+    Client, Method, StatusCode,
 };
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
 };
 use tracing::{debug, error, info};
+use url::{ParseError, Url};
 use webrtc::{
     ice_transport::{ice_candidate::RTCIceCandidate, ice_connection_state::RTCIceConnectionState},
     peer_connection::{sdp::session_description::RTCSessionDescription, RTCPeerConnection},
@@ -103,24 +104,32 @@ pub async fn connect(
         return Err(WhipError::BadStatus(status, answer.to_string()));
     };
 
-    let location_url_path = response
+    let location_url_str = response
         .headers()
         .get("location")
         .and_then(|url| url.to_str().ok())
         .ok_or_else(|| WhipError::MissingLocationHeader)?;
-    error!("location header: {location_url_path}");
-
-    let scheme = endpoint_url.scheme();
-    let host = endpoint_url
-        .host_str()
-        .ok_or_else(|| WhipError::MissingHost)?;
 
     let port = endpoint_url.port().ok_or_else(|| WhipError::MissingPort)?;
-
-    let formatted_url = format!("{}://{}:{}{}", scheme, host, port, location_url_path);
-
-    let location_url = Url::try_from(formatted_url.as_str())
-        .map_err(|e| WhipError::InvalidEndpointUrl(e, formatted_url))?;
+    let location_url = match Url::parse(location_url_str) {
+        Ok(url) => Ok(url),
+        Err(err) => match err {
+            ParseError::RelativeUrlWithoutBase => {
+                let scheme = endpoint_url.scheme();
+                let host = endpoint_url
+                    .host_str()
+                    .ok_or_else(|| WhipError::MissingHost)?;
+                let formatted_url = format!("{}://{}:{}{}", scheme, host, port, location_url_str);
+                let location_url = Url::try_from(formatted_url.as_str())
+                    .map_err(|e| WhipError::InvalidEndpointUrl(e, formatted_url))?;
+                Ok(location_url)
+            }
+            _ => Err(WhipError::InvalidEndpointUrl(
+                err,
+                location_url_str.to_string(),
+            )),
+        },
+    }?;
 
     peer_connection
         .set_local_description(offer)
