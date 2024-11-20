@@ -8,19 +8,13 @@ use rtp::{
 };
 
 use crate::pipeline::{
-    decoder::{self, AacDecoderOptions},
+    decoder,
     types::{AudioCodec, EncodedChunk, EncodedChunkKind, VideoCodec},
     whip_whep::{AUDIO_PAYLOAD_TYPE, VIDEO_PAYLOAD_TYPE},
     VideoDecoder,
 };
 
-use self::aac::AacDepayloaderNewError;
-
 use super::{DepayloadingError, WhipStream};
-
-pub use aac::{AacDepayloader, AacDepayloadingError};
-
-mod aac;
 
 #[derive(Debug, thiserror::Error)]
 pub enum DepayloaderNewError {
@@ -144,9 +138,6 @@ pub enum AudioDepayloaderNewError {
 
     #[error("No required depayloader settings were provided")]
     DepayloaderSettingsRequired,
-
-    #[error(transparent)]
-    AacDepayloaderNewError(#[from] AacDepayloaderNewError),
 }
 
 #[derive(Debug)]
@@ -155,27 +146,17 @@ pub enum AudioDepayloader {
         depayloader: OpusPacket,
         rollover_state: RolloverState,
     },
-    Aac(AacDepayloader),
 }
 
 impl AudioDepayloader {
-    pub fn new(options: &decoder::AudioDecoderOptions) -> Result<Self, AudioDepayloaderNewError> {
+    pub fn new(options: &decoder::OpusDecoderOptions) -> Result<Self, AudioDepayloaderNewError> {
         match options {
-            decoder::AudioDecoderOptions::Opus(_) => Ok(AudioDepayloader::Opus {
+            _ => Ok(AudioDepayloader::Opus {
                 depayloader: OpusPacket,
                 rollover_state: RolloverState::default(),
             }),
-            decoder::AudioDecoderOptions::Aac(AacDecoderOptions {
-                depayloader_mode,
-                asc,
-            }) => Ok(AudioDepayloader::Aac(AacDepayloader::new(
-                depayloader_mode.ok_or(AudioDepayloaderNewError::DepayloaderSettingsRequired)?,
-                asc.as_ref()
-                    .ok_or(AudioDepayloaderNewError::DepayloaderSettingsRequired)?,
-            )?)),
         }
     }
-
     fn depayload(
         &mut self,
         packet: rtp::packet::Packet,
@@ -200,8 +181,6 @@ impl AudioDepayloader {
                     kind,
                 }])
             }
-
-            AudioDepayloader::Aac(aac) => Ok(aac.depayload(packet)?),
         }
     }
 }

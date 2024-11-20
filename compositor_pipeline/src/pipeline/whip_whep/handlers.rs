@@ -11,11 +11,11 @@ use axum::{
     response::IntoResponse,
 };
 
-use compositor_render::InputId;
 use crate::{
     pipeline::whip_whep::{init_pc, WhipWhepState},
     queue::PipelineEvent,
 };
+use compositor_render::InputId;
 use serde_json::{json, Value};
 use tracing::{error, info, warn};
 use webrtc::{
@@ -350,8 +350,11 @@ pub async fn terminate_whip_session(
     )
 }
 
-fn authorize_token(expected_token: Option<String>, auth_header_value: Option<&HeaderValue>) -> Result<(), Error> {
-    if let (Some(bearer_token),  Some(auth_str)) = (expected_token, auth_header_value) {
+fn authorize_token(
+    expected_token: Option<String>,
+    auth_header_value: Option<&HeaderValue>,
+) -> Result<(), Error> {
+    if let (Some(bearer_token), Some(auth_str)) = (expected_token, auth_header_value) {
         if auth_str.as_bytes()[7..] != *bearer_token.as_bytes() {
             return Err(Error::msg("Bad token provided"));
         }

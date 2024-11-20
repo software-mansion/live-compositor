@@ -146,34 +146,9 @@ impl TryFrom<InputWhipAudioOptions> for whip::InputAudioStream {
             } => {
                 let forward_error_correction = forward_error_correction.unwrap_or(false);
                 Ok(input::whip::InputAudioStream {
-                    options: decoder::AudioDecoderOptions::Opus(decoder::OpusDecoderOptions {
+                    options: decoder::OpusDecoderOptions {
                         forward_error_correction,
-                    }),
-                })
-            }
-            InputWhipAudioOptions::Aac {
-                audio_specific_config,
-                rtp_mode,
-            } => {
-                let depayloader_mode = match rtp_mode {
-                    Some(AacRtpMode::LowBitrate) => Some(decoder::AacDepayloaderMode::LowBitrate),
-                    Some(AacRtpMode::HighBitrate) | None => {
-                        Some(decoder::AacDepayloaderMode::HighBitrate)
-                    }
-                };
-
-                let asc = parse_hexadecimal_octet_string(&audio_specific_config)?;
-
-                const EMPTY_ASC: &str = "The AudioSpecificConfig field is empty.";
-                if asc.is_empty() {
-                    return Err(TypeError::new(EMPTY_ASC));
-                }
-
-                Ok(input::whip::InputAudioStream {
-                    options: decoder::AudioDecoderOptions::Aac(decoder::AacDecoderOptions {
-                        depayloader_mode,
-                        asc: Some(asc),
-                    }),
+                    },
                 })
             }
         }

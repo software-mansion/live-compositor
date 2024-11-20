@@ -148,27 +148,6 @@ pub enum InputWhipAudioOptions {
         /// For more information, check out [RFC](https://datatracker.ietf.org/doc/html/rfc6716#section-2.1.7).
         forward_error_correction: Option<bool>,
     },
-
-    Aac {
-        /// AudioSpecificConfig as described in MPEG-4 part 3, section 1.6.2.1
-        /// The config should be encoded as described in [RFC 3640](https://datatracker.ietf.org/doc/html/rfc3640#section-4.1).
-        ///
-        /// The simplest way to obtain this value when using ffmpeg to stream to the compositor is
-        /// to pass the additional `-sdp_file FILENAME` option to ffmpeg. This will cause it to
-        /// write out an sdp file, which will contain this field. Programs which have the ability
-        /// to stream AAC to the compositor should provide this information.
-        ///
-        /// In MP4 files, the ASC is embedded inside the esds box (note that it is not the whole
-        /// box, only a part of it). This also applies to fragmented MP4s downloaded over HLS, if
-        /// the playlist uses MP4s instead of MPEG Transport Streams
-        ///
-        /// In FLV files and the RTMP protocol, the ASC can be found in the `AACAUDIODATA` tag.
-        audio_specific_config: String,
-        /// (**default=`"high_bitrate"`**)
-        /// Specifies the [RFC 3640 mode](https://datatracker.ietf.org/doc/html/rfc3640#section-3.3.1)
-        /// that should be used when depacketizing this stream.
-        rtp_mode: Option<AacRtpMode>,
-    },
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]

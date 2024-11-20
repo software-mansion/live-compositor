@@ -20,21 +20,21 @@ pub enum AacDepayloadingError {
 }
 
 impl AacDepayloaderMode {
-    pub fn size_len_in_bits(&self) -> usize {
+    fn size_len_in_bits(&self) -> usize {
         match self {
             AacDepayloaderMode::LowBitrate => 6,
             AacDepayloaderMode::HighBitrate => 13,
         }
     }
 
-    pub fn index_len_in_bits(&self) -> usize {
+    fn index_len_in_bits(&self) -> usize {
         match self {
             AacDepayloaderMode::LowBitrate => 2,
             AacDepayloaderMode::HighBitrate => 3,
         }
     }
 
-    pub fn header_len_in_bytes(&self) -> usize {
+    fn header_len_in_bytes(&self) -> usize {
         match self {
             AacDepayloaderMode::LowBitrate => 1,
             AacDepayloaderMode::HighBitrate => 2,

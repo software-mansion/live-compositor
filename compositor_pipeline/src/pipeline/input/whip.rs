@@ -59,7 +59,7 @@ pub struct InputVideoStream {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InputAudioStream {
-    pub options: decoder::AudioDecoderOptions,
+    pub options: decoder::OpusDecoderOptions,
 }
 
 pub struct OutputAudioStream {
@@ -148,7 +148,7 @@ impl WhipReceiver {
         let audio = match (audio_rx_crossbeam, opts.stream.audio) {
             (Some(chunk_receiver), Some(stream)) => Some(AudioInputReceiver::Encoded {
                 chunk_receiver,
-                decoder_options: stream.options,
+                decoder_options: decoder::AudioDecoderOptions::Opus(stream.options),
             }),
             _ => None,
         };
@@ -229,8 +229,6 @@ pub enum DepayloadingError {
     BadPayloadType(u8),
     #[error(transparent)]
     Rtp(#[from] rtp::Error),
-    #[error("AAC depayoading error")]
-    Aac(#[from] depayloader::AacDepayloadingError),
 }
 
 impl From<BindToPortError> for WhipReceiverError {
