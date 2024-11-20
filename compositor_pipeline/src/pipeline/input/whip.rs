@@ -1,3 +1,4 @@
+use rand::Rng;
 use std::{
     sync::{Arc, Mutex},
     thread,
@@ -5,7 +6,7 @@ use std::{
 use tokio::sync::mpsc;
 
 use depayloader::{Depayloader, DepayloaderNewError};
-use tracing::{error, info};
+use tracing::error;
 
 use std::sync::atomic::AtomicBool;
 
@@ -72,10 +73,6 @@ pub struct WhipStream {
     pub audio: Option<InputAudioStream>,
 }
 
-// struct DepayloaderThreadReceivers {
-//     video: Option<Receiver<PipelineEvent<EncodedChunk>>>,
-//     audio: Option<Receiver<PipelineEvent<EncodedChunk>>>,
-// }
 pub struct WhipReceiver {
     should_close: Arc<AtomicBool>,
 }
@@ -88,19 +85,35 @@ impl WhipReceiver {
     ) -> Result<InputInitResult, WhipReceiverError> {
         let should_close = Arc::new(AtomicBool::new(false));
 
-        let bearer_token = "some".to_string(); //TODO random function to generate bearer code
+        let bearer_token = generate_token();
 
         let whip_whep_state = pipeline_ctx.whip_whep_state.clone();
 
-        let (video_tx, video_rx) = mpsc::channel(100);
-        let (audio_tx, audio_rx) = mpsc::channel(100);
+        let (mut video_tx, mut video_rx) = (None, None);
+        let (mut video_tx_crossbeam, mut video_rx_crossbeam) = (None, None);
 
-        let (video_tx_crossbeam, video_rx_crossbeam) = crossbeam_channel::bounded(100);
-        let (audio_tx_crossbeam, audio_rx_crossbeam) = crossbeam_channel::bounded(100);
+        if opts.stream.video.is_some() {
+            let (tx, rx) = mpsc::channel(100);
+            video_tx = Some(tx);
+            video_rx = Some(rx);
 
-        info!("{:?}", video_rx.is_closed());
-        info!("{:?}", audio_rx.is_closed());
-        info!("Added to hashmap: {:?}", whip_whep_state.input_connections);
+            let (tx_crossbeam, rx_crossbeam) = crossbeam_channel::bounded(100);
+            video_tx_crossbeam = Some(tx_crossbeam);
+            video_rx_crossbeam = Some(rx_crossbeam);
+        }
+
+        let (mut audio_tx, mut audio_rx) = (None, None);
+        let (mut audio_tx_crossbeam, mut audio_rx_crossbeam) = (None, None);
+
+        if opts.stream.audio.is_some() {
+            let (tx, rx) = mpsc::channel(100);
+            audio_tx = Some(tx);
+            audio_rx = Some(rx);
+
+            let (tx_crossbeam, rx_crossbeam) = crossbeam_channel::bounded(100);
+            audio_tx_crossbeam = Some(tx_crossbeam);
+            audio_rx_crossbeam = Some(rx_crossbeam);
+        }
 
         let depayloader = Arc::from(Mutex::new(Depayloader::new(&opts.stream)?));
 
@@ -115,9 +128,9 @@ impl WhipReceiver {
         whip_whep_state.input_connections.lock().unwrap().insert(
             input_id.clone(),
             InputConnectionUtils {
-                audio_sender: Some(audio_tx.clone()),
-                video_sender: Some(video_tx.clone()),
-                bearer_token: Some(bearer_token),
+                audio_sender: audio_tx.clone(),
+                video_sender: video_tx.clone(),
+                bearer_token: Some(bearer_token.clone()),
                 peer_connection: None,
                 start_time_vid: None,
                 start_time_aud: None,
@@ -125,14 +138,14 @@ impl WhipReceiver {
             },
         );
 
-        let video = match (Some(video_rx_crossbeam), opts.stream.video) {
+        let video = match (video_rx_crossbeam, opts.stream.video) {
             (Some(chunk_receiver), Some(stream)) => Some(VideoInputReceiver::Encoded {
                 chunk_receiver,
                 decoder_options: stream.options,
             }),
             _ => None,
         };
-        let audio = match (Some(audio_rx_crossbeam), opts.stream.audio) {
+        let audio = match (audio_rx_crossbeam, opts.stream.audio) {
             (Some(chunk_receiver), Some(stream)) => Some(AudioInputReceiver::Encoded {
                 chunk_receiver,
                 decoder_options: stream.options,
@@ -144,39 +157,41 @@ impl WhipReceiver {
             input: Input::Whip(Self { should_close }),
             video,
             audio,
-            init_info: InputInitInfo::BearerToken("some".to_string()),
+            init_info: InputInitInfo::BearerToken(bearer_token),
         })
     }
 
     fn start_forwarding_thread(
         input_id: &InputId,
-        video_mpsc_receiver: tokio::sync::mpsc::Receiver<PipelineEvent<EncodedChunk>>,
-        audio_mpsc_receiver: tokio::sync::mpsc::Receiver<PipelineEvent<EncodedChunk>>,
-        video_sender: Sender<PipelineEvent<EncodedChunk>>,
-        audio_sender: Sender<PipelineEvent<EncodedChunk>>,
+        video_mpsc_receiver: Option<tokio::sync::mpsc::Receiver<PipelineEvent<EncodedChunk>>>,
+        audio_mpsc_receiver: Option<tokio::sync::mpsc::Receiver<PipelineEvent<EncodedChunk>>>,
+        video_sender: Option<Sender<PipelineEvent<EncodedChunk>>>,
+        audio_sender: Option<Sender<PipelineEvent<EncodedChunk>>>,
     ) {
-        let input_id_clone = input_id.clone();
-
-        thread::spawn(move || {
-            let _span = span!(
-                Level::INFO,
-                "Mid Audio",
-                input_id = input_id_clone.to_string()
-            )
-            .entered();
-            run_forwarding_loop(audio_mpsc_receiver, audio_sender)
-        });
-
-        let input_id_clone = input_id.clone();
-        thread::spawn(move || {
-            let _span = span!(
-                Level::INFO,
-                "Mid Audio",
-                input_id = input_id_clone.to_string()
-            )
-            .entered();
-            run_forwarding_loop(video_mpsc_receiver, video_sender)
-        });
+        if let (Some(receiver), Some(sender)) = (video_mpsc_receiver, video_sender) {
+            let input_id_clone = input_id.clone();
+            thread::spawn(move || {
+                let _span = span!(
+                    Level::INFO,
+                    "Mid Audio",
+                    input_id = input_id_clone.to_string()
+                )
+                .entered();
+                run_forwarding_loop(receiver, sender)
+            });
+        }
+        if let (Some(receiver), Some(sender)) = (audio_mpsc_receiver, audio_sender) {
+            let input_id_clone = input_id.clone();
+            thread::spawn(move || {
+                let _span = span!(
+                    Level::INFO,
+                    "Mid Audio",
+                    input_id = input_id_clone.to_string()
+                )
+                .entered();
+                run_forwarding_loop(receiver, sender)
+            });
+        }
     }
 }
 
@@ -191,19 +206,6 @@ fn run_forwarding_loop(
     mut receiver: tokio::sync::mpsc::Receiver<PipelineEvent<EncodedChunk>>,
     sender: Sender<PipelineEvent<EncodedChunk>>,
 ) {
-    // let sender_clone = sender.clone();
-    // let mut eos_received = sender.as_ref().map(|_| false);
-    // let mut ssrc = None;
-
-    // let mut maybe_send_eos = || {
-    //     if let (Some(sender), Some(false)) = (&sender, eos_received) {
-    //         eos_received = Some(true);
-    //         if sender.send(PipelineEvent::EOS).is_err() {
-    //             debug!("Failed to send EOS from RTP video depayloader. Channel closed.");
-    //         }
-    //     }
-    // };
-
     loop {
         let Some(chunk) = receiver.blocking_recv() else {
             debug!("Closing RTP depayloader thread.");
@@ -212,9 +214,13 @@ fn run_forwarding_loop(
 
         let _ = sender.send(chunk);
     }
-    // }
-    // warn!("eos to be send");
-    // maybe_send_eos();
+}
+
+fn generate_token() -> String {
+    let mut rng = rand::thread_rng();
+    (0..17)
+        .map(|_| format!("{:02x}", rng.gen::<u8>()))
+        .collect()
 }
 
 #[derive(Debug, thiserror::Error)]

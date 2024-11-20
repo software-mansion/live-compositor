@@ -7,18 +7,13 @@ use anyhow::Error;
 use axum::{
     body::Body,
     extract::{Path, State},
-    http::{HeaderMap, Response, StatusCode},
+    http::{HeaderMap, HeaderValue, Response, StatusCode},
     response::IntoResponse,
 };
 
 use compositor_render::InputId;
-use tokio::sync::mpsc::Sender;
-
 use crate::{
-    pipeline::{
-        whip_whep::{init_pc, WhipWhepState},
-        EncodedChunk,
-    },
+    pipeline::whip_whep::{init_pc, WhipWhepState},
     queue::PipelineEvent,
 };
 use serde_json::{json, Value};
@@ -43,8 +38,6 @@ pub async fn handle_whip(
     info!("[whip] got headers: {headers:?}");
     info!("[whip] got request: {offer}");
 
-    //get id from bearer token
-    // let bearer_token = todo!();
     let input_id = InputId(Arc::from(id.clone()));
 
     // Validate that the Content-Type is `application/sdp`
@@ -66,46 +59,47 @@ pub async fn handle_whip(
             .unwrap();
     }
 
-    let peer_connection = init_pc().await;
-
-    let video_sender: Sender<PipelineEvent<EncodedChunk>>;
+    let video_sender;
     let audio_sender;
     let depayloader;
     let bearer_token;
+
+    if let Ok(connections) = state.input_connections.lock() {
+        if let Some(connection) = connections.get(&input_id) {
+            video_sender = connection.video_sender.clone();
+            audio_sender = connection.audio_sender.clone();
+            depayloader = connection.depayloader.clone();
+            bearer_token = connection.bearer_token.clone();
+            if let Err(msg) = authorize_token(bearer_token, headers.get("Authorization")) {
+                return Response::builder()
+                    .status(StatusCode::NO_CONTENT)
+                    .body(Body::from(msg.to_string()))
+                    .unwrap();
+            }
+        } else {
+            return Response::builder()
+                .status(StatusCode::NO_CONTENT)
+                .body(Body::from(""))
+                .unwrap();
+        }
+    } else {
+        return Response::builder()
+            .status(StatusCode::NO_CONTENT)
+            .body(Body::from(""))
+            .unwrap();
+    }
+
+    let peer_connection = init_pc(video_sender.is_some(), audio_sender.is_some()).await;
 
     if let Ok(mut connections) = state.input_connections.lock() {
         if let Some(connection) = connections.get_mut(&input_id) {
             connection.peer_connection = Some(peer_connection.clone());
         } else {
             return Response::builder()
-                .status(StatusCode::BAD_REQUEST)
+                .status(StatusCode::NO_CONTENT)
                 .body(Body::from("Peer connection initialization error"))
                 .unwrap();
         }
-        if let Some(connection) = connections.get(&input_id) {
-            video_sender = connection.video_sender.clone().unwrap();
-            audio_sender = connection.audio_sender.clone().unwrap();
-            depayloader = connection.depayloader.clone();
-            bearer_token = connection.bearer_token.clone();
-            if let Err(_) = authorize_token(bearer_token, headers) {
-                return Response::builder()
-                    .status(StatusCode::BAD_REQUEST)
-                    .body(Body::from("Bad token"))
-                    .unwrap();
-            }
-        } else {
-            error!("No video");
-            return Response::builder()
-                .status(StatusCode::BAD_REQUEST)
-                .body(Body::from("PC init"))
-                .unwrap();
-        }
-    } else {
-        error!("Missing Content-Type header");
-        return Response::builder()
-            .status(StatusCode::BAD_REQUEST)
-            .body(Body::from("Missing Content-Type header"))
-            .unwrap();
     }
 
     peer_connection.on_track(Box::new(move |track, _, _| {
@@ -120,10 +114,9 @@ pub async fn handle_whip(
             let mut first_curr_pts_vid = None;
             let mut first_curr_pts_aud = None;
             let mut time_vid = None;
-            let mut time_aud: Option<Duration> = None;
-            info!("on_track {:?}", track_kind);
+            let mut time_aud = None;
 
-            //TODO send PipelineEvent::NewPeerConnection to reset queue and decoder(drop remaining frames from prev stream)
+            //TODO send PipelineEvent::NewPeerConnection to reset queue and decoder(drop remaining frames from previous stream)
 
             if track_kind == RTPCodecType::Video {
                 if let Some(start_time) = state_clone
@@ -204,23 +197,31 @@ pub async fn handle_whip(
                 }
 
                 for mut chunk in chunks {
-                    if track_kind == RTPCodecType::Audio {
-                        chunk.pts = chunk.pts + time_aud.unwrap_or(Duration::from_secs(0))
-                            - first_curr_pts_aud.unwrap_or(Duration::from_secs(0));
-
-                        if let Err(e) = audio_sender_clone.send(PipelineEvent::Data(chunk)).await {
-                            error!("Failed to send audio RTP packet: {e}");
-                        }
-                    } else if track_kind == RTPCodecType::Video {
-                        info!("{:?} {:?} {:?}", chunk.pts, time_vid, first_curr_pts_vid);
+                    if track_kind == RTPCodecType::Video {
+                        info!(
+                            "Video: {:?} {:?} {:?}",
+                            chunk.pts, time_vid, first_curr_pts_vid
+                        );
 
                         chunk.pts = chunk.pts + time_vid.unwrap_or(Duration::from_secs(0))
                             - first_curr_pts_vid.unwrap_or(Duration::from_secs(0));
+                        if let Some(ref sender) = video_sender_clone {
+                            if let Err(e) = sender.send(PipelineEvent::Data(chunk)).await {
+                                error!("Failed to send audio RTP packet: {e}");
+                            }
+                        }
+                    } else if track_kind == RTPCodecType::Audio {
+                        info!(
+                            "Audio: {:?} {:?} {:?}",
+                            chunk.pts, time_vid, first_curr_pts_vid
+                        );
+                        chunk.pts = chunk.pts + time_aud.unwrap_or(Duration::from_secs(0))
+                            - first_curr_pts_aud.unwrap_or(Duration::from_secs(0));
 
-                        info!("{:?}", chunk.pts);
-
-                        if let Err(e) = video_sender_clone.send(PipelineEvent::Data(chunk)).await {
-                            error!("Failed to send audio RTP packet: {e}");
+                        if let Some(ref sender) = audio_sender_clone {
+                            if let Err(e) = sender.send(PipelineEvent::Data(chunk)).await {
+                                error!("Failed to send audio RTP packet: {e}");
+                            }
                         }
                     }
                 }
@@ -253,8 +254,6 @@ pub async fn handle_whip(
     let sdp = peer_connection.local_description().await.unwrap();
     info!("Sending SDP answer: {sdp:?}");
 
-    // println!("{:?}", state);
-
     Response::builder()
         .status(StatusCode::CREATED)
         .header("Content-Type", "application/sdp")
@@ -273,7 +272,6 @@ pub async fn whip_ice_candidates_handler(
     info!("[session] received candidate: {candidate:?}");
     info!("[session] received candidate: {headers:?}");
 
-    //get id from bearer token
     let input_id = InputId(Arc::from(id));
 
     let candidate: Value = serde_json::from_str(&candidate).unwrap();
@@ -352,17 +350,13 @@ pub async fn terminate_whip_session(
     )
 }
 
-fn authorize_token(validation_token: Option<String>, headers: HeaderMap) -> Result<(), Error> {
-    if let Some(bearer_token) = validation_token {
-        if let Some(content_type) = headers.get("Authorization") {
-            if content_type.as_bytes()[7..] != *bearer_token.as_bytes() {
-                return Err(Error::msg("bad"));
-            }
-            return Ok(());
-        } else {
-            return Err(Error::msg("bad"));
+fn authorize_token(expected_token: Option<String>, auth_header_value: Option<&HeaderValue>) -> Result<(), Error> {
+    if let (Some(bearer_token),  Some(auth_str)) = (expected_token, auth_header_value) {
+        if auth_str.as_bytes()[7..] != *bearer_token.as_bytes() {
+            return Err(Error::msg("Bad token provided"));
         }
+        return Ok(());
     } else {
-        return Err(Error::msg("bad"));
+        return Err(Error::msg("Bad token provided"));
     }
 }

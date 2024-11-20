@@ -20,10 +20,10 @@ fn client_code() -> Result<()> {
         &json!({
             "type": "whip",
             "video": {
-              "decoder": "ffmpeg_h264"
+                "decoder": "ffmpeg_h264"
             },
             "audio": {
-              "decoder": "opus"
+                "decoder": "opus"
             },
         }),
     )?;
@@ -33,10 +33,23 @@ fn client_code() -> Result<()> {
         &json!({
             "type": "whip",
             "video": {
-              "decoder": "ffmpeg_h264"
+                "decoder": "ffmpeg_h264"
             },
             "audio": {
-              "decoder": "opus"
+                "decoder": "opus"
+            },
+        }),
+    )?;
+
+    examples::post(
+        "input/third/register",
+        &json!({
+            "type": "whip",
+            "video": {
+                "decoder": "ffmpeg_h264"
+            },
+            "audio": {
+                "decoder": "opus"
             },
         }),
     )?;
@@ -68,6 +81,10 @@ fn client_code() -> Result<()> {
                             {
                                 "type": "rescaler",
                                 "child": { "type": "input_stream", "input_id": "input_2" }
+                            },
+                            {
+                                "type": "rescaler",
+                                "child": { "type": "input_stream", "input_id": "third" }
                             }
                         ]
                     }

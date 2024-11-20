@@ -14,8 +14,7 @@ use std::{
     sync::{Arc, Mutex, Weak},
     time::Instant,
 };
-use tokio::sync::{mpsc, Notify};
-use tower_http::cors::{Any, CorsLayer};
+use tokio::sync::mpsc;
 use tracing::{info, warn};
 use webrtc::{
     api::{
@@ -66,20 +65,11 @@ pub async fn start_whip_whep_server(pipeline: Weak<Mutex<Pipeline>>) {
 
     let app = Router::new()
         .route("/status", get(status))
-        // .route("/whep", post(handle_whep))
         .route("/whip/:id", post(handle_whip))
         .route("/whip/:id", options(handle_options))
         .route("/session/:id", patch(whip_ice_candidates_handler))
         .route("/session/:id", delete(terminate_whip_session))
-        // .route("/resource/:id", patch(whep_ice_candidates_handler))
-        // .route("/resource/:id", delete(terminate_whep_session))
-        .layer(
-            CorsLayer::new()
-                .allow_origin(Any)
-                .allow_methods(Any)
-                .allow_headers(Any),
-        )
-        .with_state(state.clone());
+        .with_state(state);
 
     let listener = tokio::net::TcpListener::bind(SocketAddr::from(([0, 0, 0, 0], port)))
         .await
@@ -107,23 +97,18 @@ pub struct InputConnectionUtils {
 
 #[derive(Debug)]
 pub struct WhipWhepState {
-    // pub whip: Arc<WhipUtils>,
-    pub input_tokens: Arc<Mutex<HashMap<String, InputId>>>,
-    pub notifier: Arc<Notify>, // TODO check if necessary
     pub input_connections: Arc<Mutex<HashMap<InputId, InputConnectionUtils>>>,
 }
 
 impl WhipWhepState {
     pub fn new() -> Arc<Self> {
         Arc::new(WhipWhepState {
-            input_tokens: Arc::from(Mutex::new(HashMap::new())),
-            notifier: Arc::new(Notify::new()),
             input_connections: Arc::from(Mutex::new(HashMap::new())),
         })
     }
 }
 
-pub async fn init_pc() -> Arc<RTCPeerConnection> {
+pub async fn init_pc(add_video_track: bool, add_audio_track: bool) -> Arc<RTCPeerConnection> {
     let mut m = MediaEngine::default();
     m.register_default_codecs().unwrap();
 
@@ -185,27 +170,30 @@ pub async fn init_pc() -> Arc<RTCPeerConnection> {
 
     // Create a new RTCPeerConnection
     let peer_connection = Arc::new(api.new_peer_connection(config).await.unwrap());
-
-    peer_connection
-        .add_transceiver_from_kind(
-            RTPCodecType::Audio,
-            Some(RTCRtpTransceiverInit {
-                direction: RTCRtpTransceiverDirection::Recvonly,
-                send_encodings: vec![],
-            }),
-        )
-        .await
-        .unwrap();
-    peer_connection
-        .add_transceiver_from_kind(
-            RTPCodecType::Video,
-            Some(RTCRtpTransceiverInit {
-                direction: RTCRtpTransceiverDirection::Recvonly,
-                send_encodings: vec![],
-            }),
-        )
-        .await
-        .unwrap();
+    if add_video_track {
+        peer_connection
+            .add_transceiver_from_kind(
+                RTPCodecType::Audio,
+                Some(RTCRtpTransceiverInit {
+                    direction: RTCRtpTransceiverDirection::Recvonly,
+                    send_encodings: vec![],
+                }),
+            )
+            .await
+            .unwrap();
+    }
+    if add_audio_track {
+        peer_connection
+            .add_transceiver_from_kind(
+                RTPCodecType::Video,
+                Some(RTCRtpTransceiverInit {
+                    direction: RTCRtpTransceiverDirection::Recvonly,
+                    send_encodings: vec![],
+                }),
+            )
+            .await
+            .unwrap();
+    }
 
     peer_connection
 }
