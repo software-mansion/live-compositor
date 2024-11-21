@@ -73,7 +73,7 @@ cargo run --example player -- output.h264 FRAMERATE
 
 ## Compatibility
 
-On linux, the library should work on NVIDIA GPUs out of the box. For AMD GPUs with recent Mesa drivers, you need to set the `RADV_PERFTEST` environment variable to `video_decode` for now:
+On Linux, the library should work on NVIDIA GPUs out of the box. For AMD GPUs with recent Mesa drivers, you need to set the `RADV_PERFTEST=video_decode` environment variable for now:
 
 ```sh
 RADV_PERFTEST=video_decode cargo run
@@ -86,6 +86,6 @@ It should work on Windows with recent drivers out of the box. Be sure to submit 
 
 ## vk-video is created by Software Mansion
 
-[![swm](https://logo.swmansion.com/logo?color=white&variant=desktop&width=150&tag=live-compositor-github 'Software Mansion')](https://swmansion.com)
+[![swm](https://logo.swmansion.com/logo?color=white&variant=desktop&width=150&tag=live-compositor-vk-video 'Software Mansion')](https://swmansion.com)
 
-Since 2012 [Software Mansion](https://swmansion.com) is a software agency with experience in building web and mobile apps as well as complex multimedia solutions. We are Core React Native Contributors and experts in live streaming and broadcasting technologies. We can help you build your next dream product – [Hire us](https://swmansion.com/contact/projects?utm_source=live-compositor&utm_medium=readme).
+Since 2012 [Software Mansion](https://swmansion.com) is a software agency with experience in building web and mobile apps as well as complex multimedia solutions. We are Core React Native Contributors and experts in live streaming and broadcasting technologies. We can help you build your next dream product – [Hire us](https://swmansion.com/contact/projects?utm_source=live-compositor-vk-video&utm_medium=readme).
