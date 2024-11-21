@@ -40,7 +40,7 @@ fn main() {
     ffmpeg_next::format::network::init();
     let config = read_config();
     logger::init_logger(config.logger);
-    let ctx = GraphicsContext::new(false, Default::default(), Default::default()).unwrap();
+    let ctx = GraphicsContext::new(false, Default::default(), Default::default(), None).unwrap();
     let (wgpu_device, wgpu_queue) = (ctx.device.clone(), ctx.queue.clone());
     // no chromium support, so we can ignore _event_loop
     let (pipeline, _event_loop) = Pipeline::new(Options {

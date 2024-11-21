@@ -34,7 +34,8 @@ impl WgpuCtx {
                 Self::new_from_device_queue(device, queue)?
             }
             None => {
-                let (device, queue) = create_wgpu_ctx(force_gpu, features, Default::default())?;
+                let WgpuComponents { device, queue, .. } =
+                    create_wgpu_ctx(force_gpu, features, Default::default(), None)?;
                 Self::new_from_device_queue(device, queue)?
             }
         };
@@ -101,11 +102,20 @@ pub fn set_required_wgpu_limits(limits: wgpu::Limits) -> wgpu::Limits {
     }
 }
 
+#[derive(Clone)]
+pub struct WgpuComponents {
+    pub device: Arc<wgpu::Device>,
+    pub queue: Arc<wgpu::Queue>,
+    pub adapter: Arc<wgpu::Adapter>,
+    pub instance: Arc<wgpu::Instance>,
+}
+
 pub fn create_wgpu_ctx(
     force_gpu: bool,
     features: wgpu::Features,
     limits: wgpu::Limits,
-) -> Result<(Arc<wgpu::Device>, Arc<wgpu::Queue>), CreateWgpuCtxError> {
+    compatible_surface: Option<&wgpu::Surface<'_>>,
+) -> Result<WgpuComponents, CreateWgpuCtxError> {
     let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
         backends: wgpu::Backends::all(),
         ..Default::default()
@@ -117,7 +127,7 @@ pub fn create_wgpu_ctx(
     let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptionsBase {
         power_preference: wgpu::PowerPreference::HighPerformance,
         force_fallback_adapter: false,
-        compatible_surface: None,
+        compatible_surface,
     }))
     .ok_or(CreateWgpuCtxError::NoAdapter)?;
 
@@ -148,7 +158,12 @@ pub fn create_wgpu_ctx(
         },
         None,
     ))?;
-    Ok((device.into(), queue.into()))
+    Ok(WgpuComponents {
+        instance: instance.into(),
+        adapter: adapter.into(),
+        device: device.into(),
+        queue: queue.into(),
+    })
 }
 
 fn uniform_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {

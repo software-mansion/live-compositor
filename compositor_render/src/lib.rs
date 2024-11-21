@@ -20,7 +20,7 @@ pub use state::RendererOptions;
 pub use state::RendererSpec;
 
 pub use wgpu::WgpuFeatures;
-pub use wgpu::{create_wgpu_ctx, required_wgpu_features, set_required_wgpu_limits};
+pub use wgpu::{create_wgpu_ctx, required_wgpu_features, set_required_wgpu_limits, WgpuComponents};
 
 pub mod image {
     pub use crate::transformations::image_renderer::{ImageSource, ImageSpec, ImageType};

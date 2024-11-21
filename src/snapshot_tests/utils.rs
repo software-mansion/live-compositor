@@ -1,14 +1,10 @@
 use core::panic;
-use std::{
-    io::Write,
-    sync::{Arc, OnceLock},
-    time::Duration,
-};
+use std::{io::Write, sync::OnceLock, time::Duration};
 
 use bytes::BufMut;
 use compositor_render::{
     create_wgpu_ctx, web_renderer, Frame, FrameData, Framerate, Renderer, RendererOptions,
-    WgpuFeatures, YuvPlanes,
+    WgpuComponents, WgpuFeatures, YuvPlanes,
 };
 use crossbeam_channel::bounded;
 use tracing::error;
@@ -57,13 +53,16 @@ pub(super) fn yuv_frame_to_rgba(frame: &Frame, planes: &YuvPlanes) -> Vec<u8> {
     rgba_data
 }
 
-fn get_wgpu_ctx() -> (Arc<wgpu::Device>, Arc<wgpu::Queue>) {
-    static CTX: OnceLock<(Arc<wgpu::Device>, Arc<wgpu::Queue>)> = OnceLock::new();
-    CTX.get_or_init(|| create_wgpu_ctx(false, Default::default(), Default::default()).unwrap())
-        .clone()
+fn get_wgpu_ctx() -> WgpuComponents {
+    static CTX: OnceLock<WgpuComponents> = OnceLock::new();
+    CTX.get_or_init(|| {
+        create_wgpu_ctx(false, Default::default(), Default::default(), None).unwrap()
+    })
+    .clone()
 }
 
 pub(super) fn create_renderer() -> Renderer {
+    let wgpu_ctx = get_wgpu_ctx();
     let (renderer, _event_loop) = Renderer::new(RendererOptions {
         web_renderer: web_renderer::WebRendererInitOptions {
             enable: false,
@@ -73,7 +72,7 @@ pub(super) fn create_renderer() -> Renderer {
         framerate: Framerate { num: 30, den: 1 },
         stream_fallback_timeout: Duration::from_secs(3),
         wgpu_features: WgpuFeatures::default(),
-        wgpu_ctx: Some(get_wgpu_ctx()),
+        wgpu_ctx: Some((wgpu_ctx.device.clone(), wgpu_ctx.queue.clone())),
         load_system_fonts: false,
     })
     .unwrap();
@@ -81,7 +80,7 @@ pub(super) fn create_renderer() -> Renderer {
 }
 
 fn read_rgba_texture(texture: &wgpu::Texture) -> bytes::Bytes {
-    let (device, queue) = get_wgpu_ctx();
+    let WgpuComponents { device, queue, .. } = get_wgpu_ctx();
     let buffer = new_download_buffer(&device, texture);
 
     let mut encoder = device.create_command_encoder(&Default::default());
