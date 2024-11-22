@@ -152,17 +152,14 @@ fn start_whip_sender_thread(
                     continue;
                 }
             };
-            // info!("{:?}", chunk);
 
             match chunk {
                 Payload::Video(bytes) => {
-                    // info!("Video: {:?}", bytes);
                     if video_track.write(&bytes).await.is_err() {
                         error!("Error occurred while writing to video track for session");
                     }
                 }
                 Payload::Audio(bytes) => {
-                    // info!("Audio: {:?}", bytes);
                     if audio_track.write(&bytes).await.is_err() {
                         error!("Error occurred while writing to audio track for session");
                     }

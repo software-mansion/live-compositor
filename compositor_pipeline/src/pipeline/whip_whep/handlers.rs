@@ -1,23 +1,19 @@
-use std::{
-    sync::Arc,
-    time::{Duration, Instant},
-};
+use std::sync::Arc;
 
-use anyhow::Error;
+use crate::pipeline::whip_whep::{
+    init_pc,
+    utils::{authorize_token, handle_track},
+    WhipWhepState,
+};
 use axum::{
     body::Body,
     extract::{Path, State},
-    http::{HeaderMap, HeaderValue, Response, StatusCode},
+    http::{HeaderMap, Response, StatusCode},
     response::IntoResponse,
-};
-
-use crate::{
-    pipeline::whip_whep::{init_pc, WhipWhepState},
-    queue::PipelineEvent,
 };
 use compositor_render::InputId;
 use serde_json::{json, Value};
-use tracing::{error, info, warn};
+use tracing::{error, info};
 use webrtc::{
     ice_transport::ice_candidate::RTCIceCandidateInit,
     peer_connection::sdp::session_description::RTCSessionDescription,
@@ -72,24 +68,29 @@ pub async fn handle_whip(
             bearer_token = connection.bearer_token.clone();
             if let Err(msg) = authorize_token(bearer_token, headers.get("Authorization")) {
                 return Response::builder()
-                    .status(StatusCode::NO_CONTENT)
+                    .status(StatusCode::INTERNAL_SERVER_ERROR)
                     .body(Body::from(msg.to_string()))
                     .unwrap();
             }
         } else {
             return Response::builder()
-                .status(StatusCode::NO_CONTENT)
-                .body(Body::from(""))
+                .status(StatusCode::INTERNAL_SERVER_ERROR)
+                .body(Body::from("InputID not found"))
                 .unwrap();
         }
     } else {
         return Response::builder()
-            .status(StatusCode::NO_CONTENT)
-            .body(Body::from(""))
+            .status(StatusCode::INTERNAL_SERVER_ERROR)
+            .body(Body::from("Cannot lock input connections hashmap"))
             .unwrap();
     }
 
-    let peer_connection = init_pc(video_sender.is_some(), audio_sender.is_some()).await;
+    let Ok(peer_connection) = init_pc(video_sender.is_some(), audio_sender.is_some()).await else {
+        return Response::builder()
+            .status(StatusCode::INTERNAL_SERVER_ERROR)
+            .body(Body::from("Cannot initalize peer connection"))
+            .unwrap();
+    };
 
     if let Ok(mut connections) = state.input_connections.lock() {
         if let Some(connection) = connections.get_mut(&input_id) {
@@ -103,6 +104,7 @@ pub async fn handle_whip(
     }
 
     peer_connection.on_track(Box::new(move |track, _, _| {
+        let track_kind = track.kind();
         let video_sender_clone = video_sender.clone();
         let audio_sender_clone = audio_sender.clone();
         let state_clone = state.clone();
@@ -110,120 +112,27 @@ pub async fn handle_whip(
         let depayloader_clone = depayloader.clone();
 
         tokio::spawn(async move {
-            let track_kind = track.kind();
-            let mut first_curr_pts_vid = None;
-            let mut first_curr_pts_aud = None;
-            let mut time_vid = None;
-            let mut time_aud = None;
-
-            //TODO send PipelineEvent::NewPeerConnection to reset queue and decoder(drop remaining frames from previous stream)
-
             if track_kind == RTPCodecType::Video {
-                if let Some(start_time) = state_clone
-                    .input_connections
-                    .lock()
-                    .unwrap()
-                    .get(&input_id_clone)
-                    .unwrap()
-                    .start_time_vid
-                {
-                    info!("sent newpeer");
-                    time_vid = Some(start_time.elapsed());
-                }
-                if state_clone
-                    .input_connections
-                    .lock()
-                    .unwrap()
-                    .get(&input_id_clone)
-                    .unwrap()
-                    .start_time_vid
-                    .is_none()
-                {
-                    state_clone
-                        .input_connections
-                        .lock()
-                        .unwrap()
-                        .get_mut(&input_id_clone)
-                        .unwrap()
-                        .start_time_vid = Some(Instant::now())
+                if let Some(sender) = video_sender_clone {
+                    handle_track(
+                        track,
+                        state_clone,
+                        input_id_clone,
+                        depayloader_clone,
+                        sender,
+                    )
+                    .await;
                 }
             } else if track_kind == RTPCodecType::Audio {
-                if let Some(start_time) = state_clone
-                    .input_connections
-                    .lock()
-                    .unwrap()
-                    .get(&input_id_clone)
-                    .unwrap()
-                    .start_time_aud
-                {
-                    info!("sent newpeer");
-                    time_aud = Some(start_time.elapsed());
-                }
-                if state_clone
-                    .input_connections
-                    .lock()
-                    .unwrap()
-                    .get(&input_id_clone)
-                    .unwrap()
-                    .start_time_aud
-                    .is_none()
-                {
-                    state_clone
-                        .input_connections
-                        .lock()
-                        .unwrap()
-                        .get_mut(&input_id_clone)
-                        .unwrap()
-                        .start_time_aud = Some(Instant::now())
-                }
-            }
-            let mut flag = true;
-
-            while let Ok((rtp_packet, _)) = track.read_rtp().await {
-                // Send RTP packets through the channel
-                let Ok(chunks) = depayloader_clone.lock().unwrap().depayload(rtp_packet) else {
-                    warn!("RTP depayloading error",);
-                    continue;
-                };
-                if let Some(first_chunk) = chunks.get(0) {
-                    if flag {
-                        flag = false;
-                        if track_kind == RTPCodecType::Video {
-                            first_curr_pts_vid = Some(first_chunk.pts);
-                        } else if track_kind == RTPCodecType::Audio {
-                            first_curr_pts_aud = Some(first_chunk.pts);
-                        }
-                    }
-                }
-
-                for mut chunk in chunks {
-                    if track_kind == RTPCodecType::Video {
-                        info!(
-                            "Video: {:?} {:?} {:?}",
-                            chunk.pts, time_vid, first_curr_pts_vid
-                        );
-
-                        chunk.pts = chunk.pts + time_vid.unwrap_or(Duration::from_secs(0))
-                            - first_curr_pts_vid.unwrap_or(Duration::from_secs(0));
-                        if let Some(ref sender) = video_sender_clone {
-                            if let Err(e) = sender.send(PipelineEvent::Data(chunk)).await {
-                                error!("Failed to send audio RTP packet: {e}");
-                            }
-                        }
-                    } else if track_kind == RTPCodecType::Audio {
-                        info!(
-                            "Audio: {:?} {:?} {:?}",
-                            chunk.pts, time_vid, first_curr_pts_vid
-                        );
-                        chunk.pts = chunk.pts + time_aud.unwrap_or(Duration::from_secs(0))
-                            - first_curr_pts_aud.unwrap_or(Duration::from_secs(0));
-
-                        if let Some(ref sender) = audio_sender_clone {
-                            if let Err(e) = sender.send(PipelineEvent::Data(chunk)).await {
-                                error!("Failed to send audio RTP packet: {e}");
-                            }
-                        }
-                    }
+                if let Some(sender) = audio_sender_clone {
+                    handle_track(
+                        track,
+                        state_clone,
+                        input_id_clone,
+                        depayloader_clone,
+                        sender,
+                    )
+                    .await;
                 }
             }
         });
@@ -258,7 +167,7 @@ pub async fn handle_whip(
         .status(StatusCode::CREATED)
         .header("Content-Type", "application/sdp")
         .header("Access-Control-Expose-Headers", "Location")
-        .header("Location", "/session/".to_string() + &id)
+        .header("Location", format!("/session/{}", id))
         .body(Body::from(sdp.sdp.to_string()))
         .unwrap()
 }
@@ -301,20 +210,20 @@ pub async fn whip_ice_candidates_handler(
 pub async fn handle_options() -> Response<Body> {
     // TODO
     Response::builder()
-        .status(StatusCode::OK)
+        .status(StatusCode::NOT_IMPLEMENTED)
         .header("Accept-Post", "application/sdp")
         .body(Body::empty())
         .unwrap()
 }
 
 pub async fn terminate_whip_session(
+    Path(id): Path<String>,
     State(state): State<Arc<WhipWhepState>>,
     _headers: HeaderMap,
 ) -> (StatusCode, impl IntoResponse) {
     info!("[whip] terminating session");
 
-    //get id from bearer token
-    let input_id = InputId(Arc::from("input_1"));
+    let input_id = InputId(Arc::from(id));
 
     let pc = match state.input_connections.lock().unwrap()[&input_id]
         .peer_connection
@@ -348,18 +257,4 @@ pub async fn terminate_whip_session(
         StatusCode::NO_CONTENT,
         axum::Json(json!({"status": "Session terminated"})),
     )
-}
-
-fn authorize_token(
-    expected_token: Option<String>,
-    auth_header_value: Option<&HeaderValue>,
-) -> Result<(), Error> {
-    if let (Some(bearer_token), Some(auth_str)) = (expected_token, auth_header_value) {
-        if auth_str.as_bytes()[7..] != *bearer_token.as_bytes() {
-            return Err(Error::msg("Bad token provided"));
-        }
-        return Ok(());
-    } else {
-        return Err(Error::msg("Bad token provided"));
-    }
 }

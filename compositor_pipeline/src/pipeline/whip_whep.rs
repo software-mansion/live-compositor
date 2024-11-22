@@ -1,4 +1,5 @@
 use crate::pipeline::input::whip::depayloader::Depayloader;
+use anyhow::Error;
 use axum::{
     routing::{delete, get, options, patch, post},
     Router,
@@ -34,6 +35,7 @@ use webrtc::{
 
 mod config;
 mod handlers;
+mod utils;
 
 use tokio::task;
 
@@ -45,7 +47,7 @@ pub(crate) const VIDEO_PAYLOAD_TYPE: u8 = 96;
 pub(crate) const AUDIO_PAYLOAD_TYPE: u8 = 111;
 
 #[tokio::main]
-pub async fn start_whip_whep_server(pipeline: Weak<Mutex<Pipeline>>) {
+pub async fn run_whip_whep_server(pipeline: Weak<Mutex<Pipeline>>) {
     let config = read_config();
     let port = config.api_port;
 
@@ -76,7 +78,7 @@ pub async fn start_whip_whep_server(pipeline: Weak<Mutex<Pipeline>>) {
         .unwrap();
 
     let server_task = task::spawn(async {
-        axum::serve(listener, app).await.unwrap();
+        let _ = axum::serve(listener, app).await;
     });
     info!("started http server");
     if let Err(e) = server_task.await {
@@ -108,9 +110,12 @@ impl WhipWhepState {
     }
 }
 
-pub async fn init_pc(add_video_track: bool, add_audio_track: bool) -> Arc<RTCPeerConnection> {
+pub async fn init_pc(
+    add_video_track: bool,
+    add_audio_track: bool,
+) -> Result<Arc<RTCPeerConnection>, Error> {
     let mut m = MediaEngine::default();
-    m.register_default_codecs().unwrap();
+    m.register_default_codecs()?;
 
     m.register_codec(
         RTCRtpCodecParameters {
@@ -125,8 +130,7 @@ pub async fn init_pc(add_video_track: bool, add_audio_track: bool) -> Arc<RTCPee
             ..Default::default()
         },
         RTPCodecType::Video,
-    )
-    .unwrap();
+    )?;
 
     m.register_codec(
         RTCRtpCodecParameters {
@@ -141,8 +145,7 @@ pub async fn init_pc(add_video_track: bool, add_audio_track: bool) -> Arc<RTCPee
             ..Default::default()
         },
         RTPCodecType::Audio,
-    )
-    .unwrap();
+    )?;
 
     // Create a InterceptorRegistry. This is the user configurable RTP/RTCP Pipeline.
     // This provides NACKs, RTCP Reports and other features. If you use `webrtc.NewPeerConnection`
@@ -151,7 +154,7 @@ pub async fn init_pc(add_video_track: bool, add_audio_track: bool) -> Arc<RTCPee
     let mut registry = Registry::new();
 
     // Use the default set of Interceptors
-    registry = register_default_interceptors(registry, &mut m).unwrap();
+    registry = register_default_interceptors(registry, &mut m)?;
 
     // Create the API object with the MediaEngine
     let api = APIBuilder::new()
@@ -179,8 +182,7 @@ pub async fn init_pc(add_video_track: bool, add_audio_track: bool) -> Arc<RTCPee
                     send_encodings: vec![],
                 }),
             )
-            .await
-            .unwrap();
+            .await?;
     }
     if add_audio_track {
         peer_connection
@@ -191,9 +193,8 @@ pub async fn init_pc(add_video_track: bool, add_audio_track: bool) -> Arc<RTCPee
                     send_encodings: vec![],
                 }),
             )
-            .await
-            .unwrap();
+            .await?;
     }
 
-    peer_connection
+    Ok(peer_connection)
 }

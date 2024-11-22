@@ -28,7 +28,7 @@ use output::RawDataOutputOptions;
 use tokio::runtime::Runtime;
 use tracing::{error, info, trace, warn};
 use types::RawDataSender;
-use whip_whep::start_whip_whep_server;
+use whip_whep::run_whip_whep_server;
 use whip_whep::WhipWhepState;
 
 use crate::audio_mixer::AudioMixer;
@@ -427,7 +427,7 @@ impl Pipeline {
         let weak_pipeline = Arc::downgrade(pipeline);
         thread::spawn(move || run_audio_mixer_thread(weak_pipeline, audio_receiver));
         let weak_pipeline = Arc::downgrade(pipeline);
-        thread::spawn(move || start_whip_whep_server(weak_pipeline));
+        thread::spawn(move || run_whip_whep_server(weak_pipeline));
     }
 
     pub fn inputs(&self) -> impl Iterator<Item = (&InputId, &PipelineInput)> {
@@ -461,7 +461,6 @@ fn run_renderer_thread(
         let Some(pipeline) = pipeline.upgrade() else {
             break;
         };
-        // info!("{:?}", input_frames);
         for (input_id, event) in input_frames.frames.iter_mut() {
             if let PipelineEvent::EOS = event {
                 let mut guard = pipeline.lock().unwrap();
