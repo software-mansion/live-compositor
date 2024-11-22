@@ -12,6 +12,8 @@ use crate::pipeline::{
     AudioCodec, VideoCodec,
 };
 
+use super::WhipAudioOptions;
+
 const H264_CLOCK_RATE: u32 = 90000;
 const OPUS_CLOCK_RATE: u32 = 48000;
 
@@ -104,10 +106,10 @@ pub enum Payload {
 }
 
 impl Payloader {
-    pub fn new(video: Option<VideoCodec>, audio: Option<AudioCodec>) -> Self {
+    pub fn new(video: Option<VideoCodec>, audio: Option<WhipAudioOptions>) -> Self {
         Self {
             video: video.map(VideoPayloader::new),
-            audio: audio.map(AudioPayloader::new),
+            audio: audio.map(|audio| AudioPayloader::new(audio.codec)),
         }
     }
 

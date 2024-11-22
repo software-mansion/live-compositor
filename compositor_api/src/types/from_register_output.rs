@@ -10,6 +10,7 @@ use compositor_pipeline::pipeline::{
     output::{
         self,
         mp4::{Mp4AudioTrack, Mp4OutputOptions, Mp4VideoTrack},
+        whip::WhipAudioOptions,
     },
 };
 
@@ -193,8 +194,21 @@ impl TryFrom<WhipOutput> for pipeline::RegisterOutputOptions<output::OutputOptio
         let video_codec = video.as_ref().map(|v| match v.encoder {
             VideoEncoderOptions::FfmpegH264 { .. } => pipeline::VideoCodec::H264,
         });
-        let audio_codec = audio.as_ref().map(|a| match a.encoder {
-            RtpAudioEncoderOptions::Opus { .. } => pipeline::AudioCodec::Opus,
+        let audio_options = audio.as_ref().map(|a| match &a.encoder {
+            WhipAudioEncoderOptions::Opus {
+                channels,
+                preset: _,
+            } => WhipAudioOptions {
+                codec: pipeline::AudioCodec::Opus,
+                channels: match channels {
+                    audio::AudioChannels::Mono => {
+                        compositor_pipeline::audio_mixer::AudioChannels::Mono
+                    }
+                    audio::AudioChannels::Stereo => {
+                        compositor_pipeline::audio_mixer::AudioChannels::Stereo
+                    }
+                },
+            },
         });
 
         if let Some(token) = &bearer_token {
@@ -205,7 +219,7 @@ impl TryFrom<WhipOutput> for pipeline::RegisterOutputOptions<output::OutputOptio
 
         let (video_encoder_options, output_video_options) = maybe_video_options(video)?;
         let (audio_encoder_options, output_audio_options) = match audio {
-            Some(OutputRtpAudioOptions {
+            Some(OutputWhipAudioOptions {
                 mixing_strategy,
                 send_eos_when,
                 encoder,
@@ -229,7 +243,7 @@ impl TryFrom<WhipOutput> for pipeline::RegisterOutputOptions<output::OutputOptio
                 endpoint_url,
                 bearer_token,
                 video: video_codec,
-                audio: audio_codec,
+                audio: audio_options,
             }),
             video: video_encoder_options,
             audio: audio_encoder_options,
@@ -291,6 +305,19 @@ impl From<RtpAudioEncoderOptions> for pipeline::encoder::AudioEncoderOptions {
     fn from(value: RtpAudioEncoderOptions) -> Self {
         match value {
             RtpAudioEncoderOptions::Opus { channels, preset } => {
+                AudioEncoderOptions::Opus(encoder::opus::OpusEncoderOptions {
+                    channels: channels.into(),
+                    preset: preset.unwrap_or(OpusEncoderPreset::Voip).into(),
+                })
+            }
+        }
+    }
+}
+
+impl From<WhipAudioEncoderOptions> for pipeline::encoder::AudioEncoderOptions {
+    fn from(value: WhipAudioEncoderOptions) -> Self {
+        match value {
+            WhipAudioEncoderOptions::Opus { channels, preset } => {
                 AudioEncoderOptions::Opus(encoder::opus::OpusEncoderOptions {
                     channels: channels.into(),
                     preset: preset.unwrap_or(OpusEncoderPreset::Voip).into(),

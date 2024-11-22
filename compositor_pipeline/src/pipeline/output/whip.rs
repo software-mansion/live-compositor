@@ -16,6 +16,7 @@ use url::{ParseError, Url};
 use webrtc::track::track_local::TrackLocalWriter;
 
 use crate::{
+    audio_mixer::AudioChannels,
     error::OutputInitError,
     event::{Event, EventEmitter},
     pipeline::{AudioCodec, EncoderOutputEvent, PipelineCtx, VideoCodec},
@@ -37,13 +38,20 @@ pub struct WhipSenderOptions {
     pub endpoint_url: String,
     pub bearer_token: Option<Arc<str>>,
     pub video: Option<VideoCodec>,
-    pub audio: Option<AudioCodec>,
+    pub audio: Option<WhipAudioOptions>,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct WhipAudioOptions {
+    pub codec: AudioCodec,
+    pub channels: AudioChannels,
 }
 
 #[derive(Debug, Clone)]
 pub struct WhipCtx {
-    options: WhipSenderOptions,
     output_id: OutputId,
+    options: WhipSenderOptions,
+    sample_rate: u32,
     request_keyframe_sender: Option<Sender<()>>,
     should_close: Arc<AtomicBool>,
     tokio_rt: Arc<Runtime>,
@@ -106,6 +114,9 @@ pub enum WhipError {
 
     #[error("Entity Tag non-matching")]
     EntityTagNonMatching,
+
+    #[error("Codec not supported: {0}")]
+    UnsupportedCodec(&'static str),
 }
 
 const WHIP_INIT_TIMEOUT: Duration = Duration::from_secs(60);
@@ -125,8 +136,9 @@ impl WhipSender {
             oneshot::channel::<Result<(), WhipError>>();
 
         let whip_ctx = WhipCtx {
-            options: options.clone(),
             output_id: output_id.clone(),
+            options: options.clone(),
+            sample_rate: pipeline_ctx.output_sample_rate,
             request_keyframe_sender,
             should_close: should_close.clone(),
             tokio_rt: pipeline_ctx.tokio_rt.clone(),
@@ -188,7 +200,7 @@ async fn run_whip_sender_task(
     event_emitter: Arc<EventEmitter>,
 ) {
     let client = Arc::new(reqwest::Client::new());
-    let (peer_connection, video_track, audio_track) = match init_peer_connection().await {
+    let (peer_connection, video_track, audio_track) = match init_peer_connection(&whip_ctx).await {
         Ok(pc) => pc,
         Err(err) => {
             init_confirmation_sender.send(Err(err)).unwrap();
@@ -219,26 +231,44 @@ async fn run_whip_sender_task(
         };
 
         match chunk {
-            Payload::Video(video_payload) => match video_payload {
-                Ok(video_bytes) => {
-                    if video_track.write(&video_bytes).await.is_err() {
-                        error!("Error occurred while writing to video track for session");
+            Payload::Video(video_payload) => {
+                match video_track.clone() {
+                    Some(video_track) => match video_payload {
+                        Ok(video_bytes) => {
+                            if video_track.write(&video_bytes).await.is_err() {
+                                error!("Error occurred while writing to video track, closing connection.");
+                                break;
+                            }
+                        }
+                        Err(err) => {
+                            error!("Error while reading video bytes: {err}");
+                        }
+                    },
+                    None => {
+                        error!("Video payload detected on output with no video, shutting down");
+                        break;
                     }
                 }
-                Err(err) => {
-                    error!("Error while reading video bytes: {err}");
-                }
-            },
-            Payload::Audio(audio_payload) => match audio_payload {
-                Ok(audio_bytes) => {
-                    if audio_track.write(&audio_bytes).await.is_err() {
-                        error!("Error occurred while writing to video track for session");
+            }
+            Payload::Audio(audio_payload) => {
+                match audio_track.clone() {
+                    Some(audio_track) => match audio_payload {
+                        Ok(audio_bytes) => {
+                            if audio_track.write(&audio_bytes).await.is_err() {
+                                error!("Error occurred while writing to audio track, closing connection.");
+                                break;
+                            }
+                        }
+                        Err(err) => {
+                            error!("Error while audio video bytes: {err}");
+                        }
+                    },
+                    None => {
+                        error!("Audio payload detected on output with no audio, shutting down");
+                        break;
                     }
                 }
-                Err(err) => {
-                    error!("Error while reading audio bytes: {err}");
-                }
-            },
+            }
         }
     }
     if let Err(err) = client.delete(whip_session_url).send().await {
