@@ -6,12 +6,15 @@ authors = ["Software Mansion <contact@swmansion.com>"]
 readme = "README.md"
 license = "MIT"
 repository = "https://github.com/software-mansion/live-compositor"
+rust-version = "1.81"
+description = "A library for hardware video coding using Vulkan Video, with wgpu integration."
+categories = ["multimedia::video", "multimedia::encoding", "hardware-support", "encoding", "graphics"]
+keywords = ["vulkan", "video", "wgpu", "decoding", "h264"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 ash = "0.38.0"
-bytemuck = { version = "1.19.0", features = ["derive"] }
 bytes = "1"
 derivative = "2.2.0"
 h264-reader = { git = "https://github.com/membraneframework-labs/h264-reader.git", branch = "live-compositor" }
@@ -21,9 +24,10 @@ vk-mem = "0.4.0"
 wgpu =  "22.1.0"
 
 [dev-dependencies]
+bytemuck = { version = "1.19.0", features = ["derive"] }
+clap = { version = "4.5.20", features = ["derive"] }
 tracing-subscriber = "0.3.18"
 winit = "0.29"
-clap = { version = "4.5.20", features = ["derive"] }
 
 [build-dependencies]
 cfg_aliases = "0.2.1"
