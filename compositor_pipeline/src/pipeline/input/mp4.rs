@@ -6,7 +6,10 @@ use crossbeam_channel::Receiver;
 use tracing::error;
 
 use crate::{
-    pipeline::decoder::{AudioDecoderOptions, VideoDecoderOptions},
+    pipeline::{
+        decoder::{AudioDecoderOptions, VideoDecoderOptions},
+        VideoDecoder,
+    },
     queue::PipelineEvent,
 };
 
@@ -20,6 +23,7 @@ pub mod mp4_file_reader;
 pub struct Mp4Options {
     pub source: Source,
     pub should_loop: bool,
+    pub video_decoder: VideoDecoder,
 }
 
 pub(crate) enum Mp4ReaderOptions {
@@ -96,13 +100,16 @@ impl Mp4 {
                 should_loop: options.should_loop,
             },
             input_id.clone(),
+            options.video_decoder,
         )?;
 
         let (video_reader, video_receiver) = match video {
             Some((reader, receiver)) => {
                 let input_receiver = VideoInputReceiver::Encoded {
                     chunk_receiver: receiver,
-                    decoder_options: reader.decoder_options(),
+                    decoder_options: VideoDecoderOptions {
+                        decoder: options.video_decoder,
+                    },
                 };
                 (Some(reader), Some(input_receiver))
             }

@@ -8,7 +8,7 @@ use std::{
     env::{self, VarError},
     sync::Arc,
 };
-use tracing::{error, info, warn};
+use tracing::{info, warn};
 use webrtc::{
     api::{
         interceptor_registry::register_default_interceptors,
