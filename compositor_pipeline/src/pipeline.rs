@@ -128,6 +128,8 @@ pub struct Options {
     pub wgpu_features: WgpuFeatures,
     pub load_system_fonts: Option<bool>,
     pub wgpu_ctx: Option<GraphicsContext>,
+    pub whip_whep_server_port: u16,
+    pub start_whip_whep: bool,
 }
 
 #[derive(Clone)]
@@ -138,6 +140,8 @@ pub struct PipelineCtx {
     pub event_emitter: Arc<EventEmitter>,
     pub tokio_rt: Arc<tokio::runtime::Runtime>,
     pub whip_whep_state: Arc<WhipWhepState>,
+    pub whip_whep_server_port: u16,
+    pub start_whip_whep: bool,
     #[cfg(feature = "vk-video")]
     pub vulkan_ctx: Option<Arc<vk_video::VulkanCtx>>,
 }
@@ -196,6 +200,8 @@ impl Pipeline {
             whip_whep_state: WhipWhepState::new(),
             #[cfg(feature = "vk-video")]
             vulkan_ctx: preinitialized_ctx.and_then(|ctx| ctx.vulkan_ctx),
+            whip_whep_server_port: opts.whip_whep_server_port,
+            start_whip_whep: opts.start_whip_whep,
         };
 
         let pipeline = Pipeline {
@@ -205,7 +211,7 @@ impl Pipeline {
             renderer,
             audio_mixer: AudioMixer::new(opts.output_sample_rate),
             is_started: false,
-            ctx: ctx.clone(),
+            ctx,
         };
 
         Ok((pipeline, event_loop))

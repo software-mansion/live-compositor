@@ -173,7 +173,7 @@ impl TryFrom<WhipInput> for pipeline::RegisterInputOptions {
             return Err(TypeError::new(NO_VIDEO_AUDIO_SPEC));
         }
 
-        let whip_stream = input::whip::WhipStream {
+        let whip_receiver_options = input::whip::WhipReceiverOptions {
             video: video
                 .as_ref()
                 .map(|video| {
@@ -189,9 +189,7 @@ impl TryFrom<WhipInput> for pipeline::RegisterInputOptions {
             audio: audio.map(TryFrom::try_from).transpose()?,
         };
 
-        let input_options = input::InputOptions::Whip(input::whip::WhipReceiverOptions {
-            stream: whip_stream,
-        });
+        let input_options = input::InputOptions::Whip(whip_receiver_options);
 
         let queue_options = queue::QueueInputOptions {
             required: required.unwrap_or(false),

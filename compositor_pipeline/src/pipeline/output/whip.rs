@@ -29,7 +29,7 @@ use crate::{
     event::Event,
     pipeline::{
         types::EncoderOutputEvent,
-        whip_whep::{AUDIO_PAYLOAD_TYPE, VIDEO_PAYLOAD_TYPE},
+        whip_whep::{OPUS_PAYLOAD_TYPE, VIDEO_PAYLOAD_TYPE},
         AudioCodec, PipelineCtx, VideoCodec,
     },
 };
@@ -201,7 +201,7 @@ async fn init_pc() -> (
                 sdp_fmtp_line: "".to_owned(),
                 rtcp_feedback: vec![],
             },
-            payload_type: AUDIO_PAYLOAD_TYPE,
+            payload_type: OPUS_PAYLOAD_TYPE,
             ..Default::default()
         },
         RTPCodecType::Audio,

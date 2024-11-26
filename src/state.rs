@@ -40,6 +40,8 @@ impl ApiState {
             download_root,
             output_sample_rate,
             required_wgpu_features,
+            start_whip_whep,
+            whip_whep_server_port,
             ..
         } = config.clone();
         let (pipeline, event_loop) = Pipeline::new(pipeline::Options {
@@ -52,6 +54,8 @@ impl ApiState {
             wgpu_features: required_wgpu_features,
             wgpu_ctx: None,
             load_system_fonts: Some(true),
+            start_whip_whep,
+            whip_whep_server_port,
         })?;
         Ok((
             ApiState {

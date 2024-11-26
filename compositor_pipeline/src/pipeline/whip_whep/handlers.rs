@@ -1,9 +1,12 @@
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
-use crate::pipeline::whip_whep::{
-    init_pc,
-    utils::{authorize_token, handle_track},
-    WhipWhepState,
+use crate::{
+    pipeline::{
+        input::whip::{depayloader::Depayloader, handle_track},
+        whip_whep::{init_peer_connection, validate_token::validate_token, WhipWhepState},
+        EncodedChunk,
+    },
+    queue::PipelineEvent,
 };
 use axum::{
     body::Body,
@@ -13,94 +16,83 @@ use axum::{
 };
 use compositor_render::InputId;
 use serde_json::{json, Value};
-use tracing::{error, info};
+use tokio::sync::mpsc::Sender;
+use tracing::{debug, error, info};
 use webrtc::{
     ice_transport::ice_candidate::RTCIceCandidateInit,
-    peer_connection::sdp::session_description::RTCSessionDescription,
+    peer_connection::{sdp::session_description::RTCSessionDescription, RTCPeerConnection},
     rtp_transceiver::rtp_codec::RTPCodecType,
 };
 
-pub async fn status() -> (StatusCode, axum::Json<Value>) {
-    info!("[status] got request");
-    (StatusCode::OK, axum::Json(json!({})))
+use super::WhipServerError;
+
+pub async fn status() -> Result<(StatusCode, axum::Json<Value>), WhipServerError> {
+    Ok((StatusCode::OK, axum::Json(json!({}))))
 }
 
+#[axum::debug_handler]
 pub async fn handle_whip(
     Path(id): Path<String>,
     State(state): State<Arc<WhipWhepState>>,
     headers: HeaderMap,
     offer: String,
-) -> Response<Body> {
-    info!("[whip] got headers: {headers:?}");
-    info!("[whip] got request: {offer}");
-
+) -> Result<Response<Body>, WhipServerError> {
     let input_id = InputId(Arc::from(id.clone()));
 
     // Validate that the Content-Type is `application/sdp`
     if let Some(content_type) = headers.get("Content-Type") {
         if content_type.as_bytes() != b"application/sdp" {
             error!("Invalid Content-Type, expecting application/sdp");
-            return Response::builder()
-                .status(StatusCode::BAD_REQUEST)
-                .body(Body::from(
-                    "Invalid Content-Type, expecting application/sdp",
-                ))
-                .unwrap();
+            return Err(WhipServerError::InternalError(
+                "Invalid Content-Type, expecting application/sdp".to_string(),
+            ));
         }
     } else {
         error!("Missing Content-Type header");
-        return Response::builder()
-            .status(StatusCode::BAD_REQUEST)
-            .body(Body::from("Missing Content-Type header"))
-            .unwrap();
+        return Err(WhipServerError::BadRequest(
+            "Missing Content-Type header".to_string(),
+        ));
     }
 
-    let video_sender;
-    let audio_sender;
-    let depayloader;
-    let bearer_token;
+    let video_sender: Option<Sender<PipelineEvent<EncodedChunk>>>;
+    let audio_sender: Option<Sender<PipelineEvent<EncodedChunk>>>;
+    let depayloader: Arc<Mutex<Depayloader>>;
+    let bearer_token: Option<String>;
+    let state_clone = state.clone();
 
-    if let Ok(connections) = state.input_connections.lock() {
+    if let Ok(connections) = state_clone.input_connections.lock() {
         if let Some(connection) = connections.get(&input_id) {
             video_sender = connection.video_sender.clone();
             audio_sender = connection.audio_sender.clone();
             depayloader = connection.depayloader.clone();
             bearer_token = connection.bearer_token.clone();
-            if let Err(msg) = authorize_token(bearer_token, headers.get("Authorization")) {
-                return Response::builder()
-                    .status(StatusCode::INTERNAL_SERVER_ERROR)
-                    .body(Body::from(msg.to_string()))
-                    .unwrap();
-            }
         } else {
-            return Response::builder()
-                .status(StatusCode::INTERNAL_SERVER_ERROR)
-                .body(Body::from("InputID not found"))
-                .unwrap();
+            return Err(WhipServerError::NotFound(format!(
+                "InputID {input_id:?} not found"
+            )));
         }
     } else {
-        return Response::builder()
-            .status(StatusCode::INTERNAL_SERVER_ERROR)
-            .body(Body::from("Cannot lock input connections hashmap"))
-            .unwrap();
+        return Err(WhipServerError::InternalError(
+            "Input connections lock error".to_string(),
+        ));
     }
+    validate_token(bearer_token, headers.get("Authorization")).await?;
 
-    let Ok(peer_connection) = init_pc(video_sender.is_some(), audio_sender.is_some()).await else {
-        return Response::builder()
-            .status(StatusCode::INTERNAL_SERVER_ERROR)
-            .body(Body::from("Cannot initalize peer connection"))
-            .unwrap();
-    };
+    let peer_connection =
+        init_peer_connection(video_sender.is_some(), audio_sender.is_some()).await?;
 
     if let Ok(mut connections) = state.input_connections.lock() {
         if let Some(connection) = connections.get_mut(&input_id) {
             connection.peer_connection = Some(peer_connection.clone());
         } else {
-            return Response::builder()
-                .status(StatusCode::NO_CONTENT)
-                .body(Body::from("Peer connection initialization error"))
-                .unwrap();
+            return Err(WhipServerError::InternalError(
+                "Peer connection initialization error".to_string(),
+            ));
         }
+    } else {
+        return Err(WhipServerError::InternalError(
+            "Cannot lock input connections".to_string(),
+        ));
     }
 
     peer_connection.on_track(Box::new(move |track, _, _| {
@@ -112,27 +104,33 @@ pub async fn handle_whip(
         let depayloader_clone = depayloader.clone();
 
         tokio::spawn(async move {
-            if track_kind == RTPCodecType::Video {
-                if let Some(sender) = video_sender_clone {
-                    handle_track(
-                        track,
-                        state_clone,
-                        input_id_clone,
-                        depayloader_clone,
-                        sender,
-                    )
-                    .await;
+            match track_kind {
+                RTPCodecType::Video => {
+                    if let Some(sender) = video_sender_clone {
+                        handle_track(
+                            track,
+                            state_clone,
+                            input_id_clone,
+                            depayloader_clone,
+                            sender,
+                        )
+                        .await;
+                    }
                 }
-            } else if track_kind == RTPCodecType::Audio {
-                if let Some(sender) = audio_sender_clone {
-                    handle_track(
-                        track,
-                        state_clone,
-                        input_id_clone,
-                        depayloader_clone,
-                        sender,
-                    )
-                    .await;
+                RTPCodecType::Audio => {
+                    if let Some(sender) = audio_sender_clone {
+                        handle_track(
+                            track,
+                            state_clone,
+                            input_id_clone,
+                            depayloader_clone,
+                            sender,
+                        )
+                        .await;
+                    }
+                }
+                _ => {
+                    debug!("RTPCodecType not supported!")
                 }
             }
         });
@@ -146,44 +144,43 @@ pub async fn handle_whip(
     }));
 
     // Set the remote SDP offer
-    peer_connection
-        .set_remote_description(RTCSessionDescription::offer(offer).unwrap())
-        .await
-        .unwrap();
+    let description = RTCSessionDescription::offer(offer)?;
 
-    // Create and set the local SDP answer
-    let answer = peer_connection.create_answer(None).await.unwrap();
+    peer_connection.set_remote_description(description).await?;
+    let answer = peer_connection.create_answer(None).await?;
 
     let mut gather = peer_connection.gathering_complete_promise().await;
 
-    peer_connection.set_local_description(answer).await.unwrap();
+    peer_connection.set_local_description(answer).await?;
 
     let _ = gather.recv().await;
 
-    let sdp = peer_connection.local_description().await.unwrap();
-    info!("Sending SDP answer: {sdp:?}");
+    let Some(sdp) = peer_connection.local_description().await else {
+        return Err(WhipServerError::InternalError(
+            "Set local description error".to_string(),
+        ));
+    };
+    debug!("Sending SDP answer: {sdp:?}");
 
-    Response::builder()
+    let body = Body::from(sdp.sdp.to_string());
+    let response = Response::builder()
         .status(StatusCode::CREATED)
         .header("Content-Type", "application/sdp")
         .header("Access-Control-Expose-Headers", "Location")
         .header("Location", format!("/session/{}", id))
-        .body(Body::from(sdp.sdp.to_string()))
-        .unwrap()
+        .body(body)?;
+    Ok(response)
 }
 
+#[axum::debug_handler]
 pub async fn whip_ice_candidates_handler(
     Path(id): Path<String>,
     State(state): State<Arc<WhipWhepState>>,
-    headers: HeaderMap,
     candidate: String,
-) -> (StatusCode, impl IntoResponse) {
-    info!("[session] received candidate: {candidate:?}");
-    info!("[session] received candidate: {headers:?}");
-
+) -> Result<(StatusCode, impl IntoResponse), WhipServerError> {
     let input_id = InputId(Arc::from(id));
 
-    let candidate: Value = serde_json::from_str(&candidate).unwrap();
+    let candidate: Value = serde_json::from_str(&candidate)?;
 
     let candidate_str = candidate["candidate"].as_str().unwrap_or("");
     let candidate_obj = RTCIceCandidateInit {
@@ -193,68 +190,78 @@ pub async fn whip_ice_candidates_handler(
         ..Default::default()
     };
 
-    let pc = state.input_connections.lock().unwrap()[&input_id]
-        .peer_connection
-        .clone()
-        .unwrap();
-    {
-        let _ = pc.add_ice_candidate(candidate_obj).await;
+    let peer_connection: Option<Arc<RTCPeerConnection>>;
+
+    if let Ok(connections) = state.input_connections.lock() {
+        if let Some(connection_opts) = connections.get(&input_id) {
+            peer_connection = connection_opts.peer_connection.clone()
+        } else {
+            return Err(WhipServerError::NotFound(format!(
+                "InputID {input_id:?} not found"
+            )));
+        }
+    } else {
+        return Err(WhipServerError::InternalError(
+            "Input connections lock error".to_string(),
+        ));
     }
 
-    (
+    if let Some(pc) = peer_connection {
+        pc.add_ice_candidate(candidate_obj).await?;
+    } else {
+        return Err(WhipServerError::InternalError(format!(
+            "None peer connection for {input_id:?}"
+        )));
+    }
+
+    Ok((
         StatusCode::NO_CONTENT,
         axum::Json(json!({"status": "Candidate added"})),
-    )
+    ))
 }
 
-pub async fn handle_options() -> Response<Body> {
+pub async fn handle_options() -> Result<Response<Body>, WhipServerError> {
     // TODO
-    Response::builder()
+    Ok(Response::builder()
         .status(StatusCode::NOT_IMPLEMENTED)
         .header("Accept-Post", "application/sdp")
-        .body(Body::empty())
-        .unwrap()
+        .body(Body::empty())?)
 }
 
 pub async fn terminate_whip_session(
     Path(id): Path<String>,
     State(state): State<Arc<WhipWhepState>>,
-    _headers: HeaderMap,
-) -> (StatusCode, impl IntoResponse) {
-    info!("[whip] terminating session");
-
+) -> Result<(StatusCode, impl IntoResponse), WhipServerError> {
     let input_id = InputId(Arc::from(id));
+    let peer_connection;
 
-    let pc = match state.input_connections.lock().unwrap()[&input_id]
-        .peer_connection
-        .clone()
-    {
-        Some(pc) => pc,
-        None => {
-            error!("Peer connection already terminated");
-            return (
-                StatusCode::NO_CONTENT,
-                axum::Json(json!({"status": "Session terminated"})),
-            );
+    if let Ok(connections) = state.input_connections.lock() {
+        if let Some(connection) = connections.get(&input_id) {
+            peer_connection = connection.peer_connection.clone();
+            drop(connection.audio_sender.clone());
+            drop(connection.video_sender.clone());
+        } else {
+            return Err(WhipServerError::NotFound(format!(
+                "InputID {input_id:?} not found"
+            )));
         }
-    };
-
-    drop(
-        state.input_connections.lock().unwrap()[&input_id]
-            .video_sender
-            .clone(),
-    );
-
-    if let Err(err) = pc.close().await {
-        error!("Failed to close peer connection: {:?}", err);
-        return (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            axum::Json(json!({"status": "Failed to terminate session"})),
-        );
+    } else {
+        return Err(WhipServerError::InternalError(
+            "Input connections lock error".to_string(),
+        ));
     }
-    info!("[whip] session terminated");
-    (
+
+    if let Some(peer_connection) = peer_connection {
+        peer_connection.close().await?;
+    } else {
+        return Err(WhipServerError::InternalError(format!(
+            "None peer connection for {input_id:?}"
+        )));
+    }
+
+    info!("[whip] session terminated for input: {:?}", input_id);
+    Ok((
         StatusCode::NO_CONTENT,
         axum::Json(json!({"status": "Session terminated"})),
-    )
+    ))
 }

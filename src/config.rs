@@ -18,6 +18,8 @@ pub struct Config {
     pub queue_options: QueueOptions,
     pub output_sample_rate: u32,
     pub required_wgpu_features: WgpuFeatures,
+    pub whip_whep_server_port: u16,
+    pub start_whip_whep: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -182,6 +184,20 @@ fn try_read_config() -> Result<Config, String> {
         Err(_) => queue::DEFAULT_BUFFER_DURATION,
     };
 
+    let whip_whep_server_port = match env::var("LIVE_COMPOSITOR_WHIP_WHEP_SERVER_PORT") {
+        Ok(whip_whep_port) => whip_whep_port
+            .parse::<u16>()
+            .map_err(|_| "LIVE_COMPOSITOR_WHIP_WHEP_SERVER_PORT has to be valid port number")?,
+        Err(_) => 9000,
+    };
+
+    let start_whip_whep = match env::var("LIVE_COMPOSITOR_START_WHIP_WHEP_SERVER") {
+        Ok(start_whip_whep) => start_whip_whep
+            .parse::<bool>()
+            .map_err(|_| "LIVE_COMPOSITOR_START_WHIP_WHEP_SERVER has to be boolean value")?,
+        Err(_) => true,
+    };
+
     let config = Config {
         instance_id,
         api_port,
@@ -206,6 +222,8 @@ fn try_read_config() -> Result<Config, String> {
         download_root,
         output_sample_rate,
         required_wgpu_features,
+        whip_whep_server_port,
+        start_whip_whep,
     };
     Ok(config)
 }

@@ -67,7 +67,7 @@ fn client_code() -> Result<()> {
                 },
                 "encoder": {
                     "type": "ffmpeg_h264",
-                    "preset": "medium"
+                    "preset": "ultrafast"
                 },
                 "initial": {
                     "root": {

@@ -1,11 +1,10 @@
 use crate::pipeline::input::whip::depayloader::Depayloader;
-use anyhow::Error;
 use axum::{
     routing::{delete, get, options, patch, post},
     Router,
 };
 use compositor_render::InputId;
-use config::read_config;
+use error::WhipServerError;
 use handlers::{
     handle_options, handle_whip, status, terminate_whip_session, whip_ice_candidates_handler,
 };
@@ -13,10 +12,10 @@ use std::{
     collections::HashMap,
     net::SocketAddr,
     sync::{Arc, Mutex, Weak},
-    time::Instant,
+    time::{Duration, Instant},
 };
 use tokio::sync::mpsc;
-use tracing::{info, warn};
+use tracing::{trace, warn};
 use webrtc::{
     api::{
         interceptor_registry::register_default_interceptors,
@@ -33,9 +32,9 @@ use webrtc::{
     },
 };
 
-mod config;
+mod error;
 mod handlers;
-mod utils;
+mod validate_token;
 
 use tokio::task;
 
@@ -44,17 +43,10 @@ use crate::{queue::PipelineEvent, Pipeline};
 use super::EncodedChunk;
 
 pub(crate) const VIDEO_PAYLOAD_TYPE: u8 = 96;
-pub(crate) const AUDIO_PAYLOAD_TYPE: u8 = 111;
+pub(crate) const OPUS_PAYLOAD_TYPE: u8 = 111;
 
 #[tokio::main]
 pub async fn run_whip_whep_server(pipeline: Weak<Mutex<Pipeline>>) {
-    let config = read_config();
-    let port = config.api_port;
-
-    if !config.start_whip_whep {
-        return;
-    }
-
     let pipeline_ctx = match pipeline.upgrade() {
         Some(pipeline) => pipeline.lock().unwrap().ctx.clone(),
         None => {
@@ -62,6 +54,11 @@ pub async fn run_whip_whep_server(pipeline: Weak<Mutex<Pipeline>>) {
             return;
         }
     };
+    let port = pipeline_ctx.whip_whep_server_port;
+
+    if !pipeline_ctx.start_whip_whep {
+        return;
+    }
 
     let state = pipeline_ctx.whip_whep_state.clone();
 
@@ -73,21 +70,23 @@ pub async fn run_whip_whep_server(pipeline: Weak<Mutex<Pipeline>>) {
         .route("/session/:id", delete(terminate_whip_session))
         .with_state(state);
 
-    let listener = tokio::net::TcpListener::bind(SocketAddr::from(([0, 0, 0, 0], port)))
-        .await
-        .unwrap();
+    let Ok(listener) = tokio::net::TcpListener::bind(SocketAddr::from(([0, 0, 0, 0], port))).await
+    else {
+        warn!("TCP listener error");
+        return;
+    };
 
     let server_task = task::spawn(async {
         let _ = axum::serve(listener, app).await;
     });
-    info!("started http server");
+    trace!("WHIP/WHEP http server started");
     if let Err(e) = server_task.await {
         eprintln!("WHIP/WHEP server task failed: {:?}", e);
     }
 }
 
 #[derive(Debug)]
-pub struct InputConnectionUtils {
+pub struct WhipInputConnectionOptions {
     pub video_sender: Option<mpsc::Sender<PipelineEvent<EncodedChunk>>>,
     pub audio_sender: Option<mpsc::Sender<PipelineEvent<EncodedChunk>>>,
     pub bearer_token: Option<String>,
@@ -97,9 +96,32 @@ pub struct InputConnectionUtils {
     pub depayloader: Arc<Mutex<Depayloader>>,
 }
 
+impl WhipInputConnectionOptions {
+    pub fn initialize_start_time(&mut self, track_kind: RTPCodecType) -> Result<(), String> {
+        match track_kind {
+            RTPCodecType::Video if self.start_time_vid.is_none() => {
+                self.start_time_vid = Some(Instant::now())
+            }
+            RTPCodecType::Audio if self.start_time_aud.is_none() => {
+                self.start_time_aud = Some(Instant::now())
+            }
+            _ => {}
+        }
+        Ok(())
+    }
+
+    pub fn get_start_time(&self, track_kind: RTPCodecType) -> Option<Duration> {
+        match track_kind {
+            RTPCodecType::Video => self.start_time_vid.map(|t| t.elapsed()),
+            RTPCodecType::Audio => self.start_time_aud.map(|t| t.elapsed()),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct WhipWhepState {
-    pub input_connections: Arc<Mutex<HashMap<InputId, InputConnectionUtils>>>,
+    pub input_connections: Arc<Mutex<HashMap<InputId, WhipInputConnectionOptions>>>,
 }
 
 impl WhipWhepState {
@@ -110,14 +132,14 @@ impl WhipWhepState {
     }
 }
 
-pub async fn init_pc(
+pub async fn init_peer_connection(
     add_video_track: bool,
     add_audio_track: bool,
-) -> Result<Arc<RTCPeerConnection>, Error> {
-    let mut m = MediaEngine::default();
-    m.register_default_codecs()?;
+) -> Result<Arc<RTCPeerConnection>, WhipServerError> {
+    let mut media_engine = MediaEngine::default();
+    media_engine.register_default_codecs()?;
 
-    m.register_codec(
+    media_engine.register_codec(
         RTCRtpCodecParameters {
             capability: RTCRtpCodecCapability {
                 mime_type: MIME_TYPE_H264.to_owned(),
@@ -132,7 +154,7 @@ pub async fn init_pc(
         RTPCodecType::Video,
     )?;
 
-    m.register_codec(
+    media_engine.register_codec(
         RTCRtpCodecParameters {
             capability: RTCRtpCodecCapability {
                 mime_type: MIME_TYPE_OPUS.to_owned(),
@@ -154,11 +176,11 @@ pub async fn init_pc(
     let mut registry = Registry::new();
 
     // Use the default set of Interceptors
-    registry = register_default_interceptors(registry, &mut m)?;
+    registry = register_default_interceptors(registry, &mut media_engine)?;
 
     // Create the API object with the MediaEngine
     let api = APIBuilder::new()
-        .with_media_engine(m)
+        .with_media_engine(media_engine)
         .with_interceptor_registry(registry)
         .build();
 
@@ -172,7 +194,7 @@ pub async fn init_pc(
     };
 
     // Create a new RTCPeerConnection
-    let peer_connection = Arc::new(api.new_peer_connection(config).await.unwrap());
+    let peer_connection = Arc::new(api.new_peer_connection(config).await?);
     if add_video_track {
         peer_connection
             .add_transceiver_from_kind(

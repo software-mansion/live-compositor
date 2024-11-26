@@ -10,11 +10,11 @@ use rtp::{
 use crate::pipeline::{
     decoder,
     types::{AudioCodec, EncodedChunk, EncodedChunkKind, VideoCodec},
-    whip_whep::{AUDIO_PAYLOAD_TYPE, VIDEO_PAYLOAD_TYPE},
+    whip_whep::{OPUS_PAYLOAD_TYPE, VIDEO_PAYLOAD_TYPE},
     VideoDecoder,
 };
 
-use super::{DepayloadingError, WhipStream};
+use super::{DepayloadingError, WhipReceiverOptions};
 
 #[derive(Debug, thiserror::Error)]
 pub enum DepayloaderNewError {
@@ -30,7 +30,7 @@ pub struct Depayloader {
 }
 
 impl Depayloader {
-    pub fn new(stream: &WhipStream) -> Result<Self, DepayloaderNewError> {
+    pub fn new(stream: &WhipReceiverOptions) -> Result<Self, DepayloaderNewError> {
         let video = stream
             .video
             .as_ref()
@@ -39,7 +39,7 @@ impl Depayloader {
         let audio = stream
             .audio
             .as_ref()
-            .map(|audio| AudioDepayloader::new(&audio.options))
+            .map(|_| AudioDepayloader::new())
             .transpose()?;
 
         Ok(Self { video, audio })
@@ -56,7 +56,7 @@ impl Depayloader {
                     packet.header.payload_type,
                 )),
             },
-            AUDIO_PAYLOAD_TYPE => match self.audio.as_mut() {
+            OPUS_PAYLOAD_TYPE => match self.audio.as_mut() {
                 Some(audio_depayloader) => audio_depayloader.depayload(packet),
                 None => Err(DepayloadingError::BadPayloadType(
                     packet.header.payload_type,
@@ -149,13 +149,11 @@ pub enum AudioDepayloader {
 }
 
 impl AudioDepayloader {
-    pub fn new(options: &decoder::OpusDecoderOptions) -> Result<Self, AudioDepayloaderNewError> {
-        match options {
-            _ => Ok(AudioDepayloader::Opus {
-                depayloader: OpusPacket,
-                rollover_state: RolloverState::default(),
-            }),
-        }
+    pub fn new() -> Result<Self, AudioDepayloaderNewError> {
+        Ok(AudioDepayloader::Opus {
+            depayloader: OpusPacket,
+            rollover_state: RolloverState::default(),
+        })
     }
     fn depayload(
         &mut self,

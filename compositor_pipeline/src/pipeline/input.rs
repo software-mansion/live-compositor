@@ -154,7 +154,7 @@ fn start_input_threads(
         InputOptions::Mp4(opts) => {
             Mp4::start_new_input(input_id, opts, &pipeline_ctx.download_dir)?
         }
-        InputOptions::Whip(opts) => WhipReceiver::start_new_input(input_id, opts, &pipeline_ctx)?,
+        InputOptions::Whip(opts) => WhipReceiver::start_new_input(input_id, opts, pipeline_ctx)?,
         #[cfg(feature = "decklink")]
         InputOptions::DeckLink(opts) => decklink::DeckLink::start_new_input(input_id, opts)?,
     };
