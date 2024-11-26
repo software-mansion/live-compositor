@@ -23,11 +23,7 @@ use compositor_render::{
     InputId, OutputId, Resolution,
 };
 use integration_tests::examples::download_file;
-use live_compositor::{
-    config::{read_config, LoggerConfig, LoggerFormat},
-    logger::{self, FfmpegLogLevel},
-    state::ApiState,
-};
+use live_compositor::{config::read_config, logger, state::ApiState};
 
 const BUNNY_FILE_URL: &str =
     "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
@@ -38,13 +34,9 @@ const BUNNY_FILE_PATH: &str = "examples/assets/BigBuckBunny.mp4";
 // Data read from channels are dumped into files as it is without any timestamp data.
 fn main() {
     ffmpeg_next::format::network::init();
-    logger::init_logger(LoggerConfig {
-        ffmpeg_logger_level: FfmpegLogLevel::Info,
-        format: LoggerFormat::Compact,
-        level: "info,wgpu_hal=warn,wgpu_core=warn".to_string(),
-    });
-    let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let mut config = read_config();
+    logger::init_logger(config.logger.clone());
+    let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     config.queue_options.ahead_of_time_processing = true;
     // no chromium support, so we can ignore _event_loop
     let (state, _event_loop) = ApiState::new(config).unwrap_or_else(|err| {

@@ -22,6 +22,7 @@ resolver = "2"
 
 [features]
 default = ["web_renderer"]
+update_snapshots = []
 decklink = ["compositor_api/decklink"]
 web_renderer = ["dep:compositor_chromium", "compositor_api/web_renderer"]
 

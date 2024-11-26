@@ -36,14 +36,14 @@ function PartialText(props: PartialTextProps) {
 
   return (
     <View>
-      <Text fontSize={40}>{props.text.substring(0, textPart.characters)}</Text>
+      <Text style={{ fontSize: 40 }}>{props.text.substring(0, textPart.characters)}</Text>
     </View>
   );
 }
 
 function ExampleApp() {
   return (
-    <View direction="column">
+    <View style={{ direction: 'column' }}>
       <PartialText text="Example partial text that transition in 1 second" transitionMs={1_000} />
       <PartialText text="Example partial text that transition in 2 second" transitionMs={2_000} />
       <PartialText text="Example partial text that transition in 5 second" transitionMs={5_000} />

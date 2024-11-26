@@ -4,6 +4,7 @@ use compositor_render::{Frame, FrameData, OutputId, Resolution};
 use crossbeam_channel::{Receiver, Sender};
 use ffmpeg_next::{
     codec::{Context, Id},
+    encoder::Video,
     format::Pixel,
     frame, Dictionary, Packet, Rational,
 };
@@ -239,37 +240,22 @@ fn run_encoder_thread(
             continue;
         }
 
-        loop {
-            match encoder.receive_packet(&mut packet) {
-                Ok(_) => {
-                    match encoded_chunk_from_av_packet(
-                        &packet,
-                        EncodedChunkKind::Video(VideoCodec::H264),
-                        1_000_000,
-                    ) {
-                        Ok(chunk) => {
-                            trace!(pts=?packet.pts(), "H264 encoder produced an encoded packet.");
-                            if packet_sender.send(EncoderOutputEvent::Data(chunk)).is_err() {
-                                warn!("Failed to send encoded video from H264 encoder. Channel closed.");
-                                return Ok(());
-                            }
-                        }
-                        Err(e) => {
-                            warn!("failed to parse an ffmpeg packet received from encoder: {e}",);
-                            break;
-                        }
-                    }
-                }
-
-                Err(ffmpeg_next::Error::Other {
-                    errno: ffmpeg_next::error::EAGAIN,
-                }) => break, // encoder needs more frames to produce a packet
-
-                Err(e) => {
-                    error!("Encoder error: {e}.");
-                    break;
-                }
+        while let Some(chunk) = receive_chunk(&mut encoder, &mut packet) {
+            if packet_sender.send(EncoderOutputEvent::Data(chunk)).is_err() {
+                warn!("Failed to send encoded video from H264 encoder. Channel closed.");
+                return Ok(());
             }
+        }
+    }
+
+    // Flush the encoder
+    if let Err(e) = encoder.send_eof() {
+        error!("Failed to enter draining mode on encoder: {e}.");
+    }
+    while let Some(chunk) = receive_chunk(&mut encoder, &mut packet) {
+        if packet_sender.send(EncoderOutputEvent::Data(chunk)).is_err() {
+            warn!("Failed to send encoded video from H264 encoder. Channel closed.");
+            return Ok(());
         }
     }
 
@@ -277,6 +263,38 @@ fn run_encoder_thread(
         warn!("Failed to send EOS from H264 encoder. Channel closed.")
     }
     Ok(())
+}
+
+fn receive_chunk(encoder: &mut Video, packet: &mut Packet) -> Option<EncodedChunk> {
+    match encoder.receive_packet(packet) {
+        Ok(_) => {
+            match encoded_chunk_from_av_packet(
+                packet,
+                EncodedChunkKind::Video(VideoCodec::H264),
+                1_000_000,
+            ) {
+                Ok(chunk) => {
+                    trace!(pts=?packet.pts(), "H264 encoder produced an encoded packet.");
+                    Some(chunk)
+                }
+                Err(e) => {
+                    warn!("failed to parse an ffmpeg packet received from encoder: {e}",);
+                    None
+                }
+            }
+        }
+
+        Err(ffmpeg_next::Error::Eof) => None,
+
+        Err(ffmpeg_next::Error::Other {
+            errno: ffmpeg_next::error::EAGAIN,
+        }) => None, // encoder needs more frames to produce a packet
+
+        Err(e) => {
+            error!("Encoder error: {e}.");
+            None
+        }
+    }
 }
 
 #[derive(Debug)]

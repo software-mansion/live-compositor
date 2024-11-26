@@ -36,14 +36,14 @@ pub struct View {
     /// List of component's children.
     pub children: Option<Vec<Component>>,
 
-    /// Width of a component in pixels. Exact behavior might be different based on the parent
-    /// component:
+    /// Width of a component in pixels (without a border). Exact behavior might be different
+    /// based on the parent component:
     /// - If the parent component is a layout, check sections "Absolute positioning" and "Static
     ///   positioning" of that component.
     /// - If the parent component is not a layout, then this field is required.
     pub width: Option<f32>,
-    /// Height of a component in pixels. Exact behavior might be different based on the parent
-    /// component:
+    /// Height of a component in pixels (without a border). Exact behavior might be different
+    /// based on the parent component:
     /// - If the parent component is a layout, check sections "Absolute positioning" and "Static
     ///   positioning" of that component.
     /// - If the parent component is not a layout, then this field is required.
@@ -52,16 +52,16 @@ pub struct View {
     /// Direction defines how static children are positioned inside a View component.
     pub direction: Option<ViewDirection>,
 
-    /// Distance in pixels between this component's top edge and its parent's top edge.
+    /// Distance in pixels between this component's top edge and its parent's top edge (including a border).
     /// If this field is defined, then the component will ignore a layout defined by its parent.
     pub top: Option<f32>,
-    /// Distance in pixels between this component's left edge and its parent's left edge.
+    /// Distance in pixels between this component's left edge and its parent's left edge (including a border).
     /// If this field is defined, this element will be absolutely positioned, instead of being
     /// laid out by its parent.
     pub left: Option<f32>,
-    /// Distance in pixels between the bottom edge of this component and the bottom edge of its parent.
-    /// If this field is defined, this element will be absolutely positioned, instead of being
-    /// laid out by its parent.
+    /// Distance in pixels between the bottom edge of this component and the bottom edge of its
+    /// parent (including a border). If this field is defined, this element will be absolutely
+    /// positioned, instead of being laid out by its parent.
     pub bottom: Option<f32>,
     /// Distance in pixels between this component's right edge and its parent's right edge.
     /// If this field is defined, this element will be absolutely positioned, instead of being
@@ -80,6 +80,27 @@ pub struct View {
 
     /// (**default=`"#00000000"`**) Background color in a `"#RRGGBBAA"` format.
     pub background_color_rgba: Option<RGBAColor>,
+
+    /// (**default=`0.0`**) Radius of a rounded corner.
+    pub border_radius: Option<f32>,
+
+    /// (**default=`0.0`**) Border width.
+    pub border_width: Option<f32>,
+
+    /// (**default=`"#00000000"`**) Border color in a `"#RRGGBBAA"` format.
+    pub border_color_rgba: Option<RGBAColor>,
+
+    /// List of box shadows.
+    pub box_shadow: Option<Vec<BoxShadow>>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct BoxShadow {
+    pub offset_x: Option<f32>,
+    pub offset_y: Option<f32>,
+    pub color_rgba: Option<RGBAColor>,
+    pub blur_radius: Option<f32>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
@@ -126,29 +147,29 @@ pub struct Rescaler {
     /// (**default=`"center"`**) Vertical alignment.
     pub vertical_align: Option<VerticalAlign>,
 
-    /// Width of a component in pixels. Exact behavior might be different based on the parent
-    /// component:
+    /// Width of a component in pixels (without a border). Exact behavior might be different
+    /// based on the parent component:
     /// - If the parent component is a layout, check sections "Absolute positioning" and "Static
     ///   positioning" of that component.
     /// - If the parent component is not a layout, then this field is required.
     pub width: Option<f32>,
-    /// Height of a component in pixels. Exact behavior might be different based on the parent
-    /// component:
+    /// Height of a component in pixels (without a border). Exact behavior might be different
+    /// based on the parent component:
     /// - If the parent component is a layout, check sections "Absolute positioning" and "Static
     ///   positioning" of that component.
     /// - If the parent component is not a layout, then this field is required.
     pub height: Option<f32>,
 
-    /// Distance in pixels between this component's top edge and its parent's top edge.
+    /// Distance in pixels between this component's top edge and its parent's top edge (including a border).
     /// If this field is defined, then the component will ignore a layout defined by its parent.
     pub top: Option<f32>,
-    /// Distance in pixels between this component's left edge and its parent's left edge.
+    /// Distance in pixels between this component's left edge and its parent's left edge (including a border).
     /// If this field is defined, this element will be absolutely positioned, instead of being
     /// laid out by its parent.
     pub left: Option<f32>,
-    /// Distance in pixels between this component's bottom edge and its parent's bottom edge.
-    /// If this field is defined, this element will be absolutely positioned, instead of being
-    /// laid out by its parent.
+    /// Distance in pixels between the bottom edge of this component and the bottom edge of its
+    /// parent (including a border). If this field is defined, this element will be absolutely
+    /// positioned, instead of being laid out by its parent.
     pub bottom: Option<f32>,
     /// Distance in pixels between this component's right edge and its parent's right edge.
     /// If this field is defined, this element will be absolutely positioned, instead of being
@@ -161,6 +182,18 @@ pub struct Rescaler {
     /// Defines how this component will behave during a scene update. This will only have an
     /// effect if the previous scene already contained a `Rescaler` component with the same id.
     pub transition: Option<Transition>,
+
+    /// (**default=`0.0`**) Radius of a rounded corner.
+    pub border_radius: Option<f32>,
+
+    /// (**default=`0.0`**) Border width.
+    pub border_width: Option<f32>,
+
+    /// (**default=`"#00000000"`**) Border color in a `"#RRGGBBAA"` format.
+    pub border_color_rgba: Option<RGBAColor>,
+
+    /// List of box shadows.
+    pub box_shadow: Option<Vec<BoxShadow>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
@@ -183,7 +216,8 @@ pub struct WebView {
     /// List of component's children.
     pub children: Option<Vec<Component>>,
 
-    /// Id of a web renderer instance. It identifies an instance registered using a [`register web renderer`](../routes.md#register-web-renderer-instance) request.
+    /// Id of a web renderer instance. It identifies an instance registered using a
+    /// [`register web renderer`](../routes.md#register-web-renderer-instance) request.
     ///
     /// :::warning
     /// You can only refer to specific instances in one Component at a time.
@@ -217,8 +251,10 @@ pub struct Shader {
     /// @group(1) @binding(0) var<uniform>
     /// ```
     /// :::note
-    ///   This object's structure must match the structure defined in a shader source code. Currently, we do not handle memory layout automatically.
-    ///   To achieve the correct memory alignment, you might need to pad your data with additional fields. See [WGSL documentation](https://www.w3.org/TR/WGSL/#alignment-and-size) for more details.
+    ///   This object's structure must match the structure defined in a shader source code.
+    ///   Currently, we do not handle memory layout automatically. To achieve the correct memory
+    ///   alignment, you might need to pad your data with additional fields. See
+    ///   [WGSL documentation](https://www.w3.org/TR/WGSL/#alignment-and-size) for more details.
     /// :::
     pub shader_param: Option<ShaderParam>,
     /// Resolution of a texture where shader will be executed.
@@ -378,4 +414,6 @@ pub struct Tiles {
     /// Defines how this component will behave during a scene update. This will only have an
     /// effect if the previous scene already contained a `Tiles` component with the same id.
     pub transition: Option<Transition>,
+
+    pub border_radius: Option<f32>,
 }

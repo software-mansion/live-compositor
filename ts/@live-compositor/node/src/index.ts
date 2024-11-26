@@ -1,4 +1,5 @@
-import { LiveCompositor as CoreLiveCompositor, CompositorManager } from '@live-compositor/core';
+import type { CompositorManager } from '@live-compositor/core';
+import { LiveCompositor as CoreLiveCompositor } from '@live-compositor/core';
 import LocallySpawnedInstance from './manager/locallySpawnedInstance';
 import ExistingInstance from './manager/existingInstance';
 

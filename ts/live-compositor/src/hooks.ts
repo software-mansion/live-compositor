@@ -1,8 +1,8 @@
 import { useContext, useEffect, useSyncExternalStore } from 'react';
 
-import * as Api from './api.js';
+import type * as Api from './api.js';
 import { LiveCompositorContext } from './context/index.js';
-import { InputStreamInfo } from './context/instanceContextStore.js';
+import type { InputStreamInfo } from './context/instanceContextStore.js';
 
 export function useInputStreams(): Record<Api.InputId, InputStreamInfo> {
   const ctx = useContext(LiveCompositorContext);
@@ -19,7 +19,7 @@ export type AudioOptions = {
 
 /**
  * Hook used to control audio configuration. If you already placing InputStream component
- * you can use `mute` and `volume` props instead.
+ * you can use `muted` and `volume` props instead.
  */
 export function useAudioInput(inputId: Api.InputId, audioOptions: AudioOptions) {
   const ctx = useContext(LiveCompositorContext);

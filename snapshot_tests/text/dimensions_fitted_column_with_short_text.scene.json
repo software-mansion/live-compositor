@@ -8,7 +8,7 @@
                     "type": "text",
                     "text": "Example text",
                     "font_size": 30,
-                    "font_family": "Verdana",
+                    "font_family": "Inter",
                     "width": 300
                 }
             ]

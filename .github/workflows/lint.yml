@@ -1,5 +1,6 @@
 name: lint
 on:
+    workflow_dispatch: {}
     push:
         branches: [master]
     pull_request:
@@ -28,6 +29,11 @@ jobs:
               uses: dtolnay/rust-toolchain@stable
               with:
                   components: rustfmt, clippy
+
+            - name: Install pnpm
+              uses: pnpm/action-setup@v4
+              with: 
+                  version: 9
 
             - name: 🛠 Setup Node.JS
               uses: actions/setup-node@v4

@@ -1,8 +1,8 @@
 use anyhow::{anyhow, Result};
 use crossbeam_channel::Sender;
 use live_compositor::{
-    config::{read_config, Config, LoggerConfig, LoggerFormat},
-    logger::{self, FfmpegLogLevel},
+    config::{read_config, Config},
+    logger::{self},
     server::run_api,
     state::ApiState,
 };
@@ -112,10 +112,7 @@ fn init_compositor_prerequisites() {
     GLOBAL_PREREQUISITES_INITIALIZED.get_or_init(|| {
         env::set_var("LIVE_COMPOSITOR_WEB_RENDERER_ENABLE", "0");
         ffmpeg_next::format::network::init();
-        logger::init_logger(LoggerConfig {
-            ffmpeg_logger_level: FfmpegLogLevel::Info,
-            format: LoggerFormat::Compact,
-            level: "info,wgpu_hal=warn,wgpu_core=warn".to_string(),
-        });
+        let config = read_config();
+        logger::init_logger(config.logger);
     });
 }

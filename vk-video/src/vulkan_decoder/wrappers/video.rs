@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use ash::vk;
 
-use crate::{vulkan_decoder::VulkanDecoderError, VulkanCtx};
+use crate::{vulkan_decoder::VulkanDecoderError, VulkanDevice};
 
 use super::{Device, MemoryAllocation, VideoQueueExt};
 
@@ -96,7 +96,7 @@ pub(crate) struct VideoSession {
 
 impl VideoSession {
     pub(crate) fn new(
-        vulkan_ctx: &VulkanCtx,
+        vulkan_ctx: &VulkanDevice,
         profile_info: &vk::VideoProfileInfoKHR,
         max_coded_extent: vk::Extent2D,
         max_dpb_slots: u32,
@@ -185,6 +185,26 @@ impl Drop for VideoSession {
     }
 }
 
+impl From<crate::parser::ReferencePictureInfo> for vk::native::StdVideoDecodeH264ReferenceInfo {
+    fn from(picture_info: crate::parser::ReferencePictureInfo) -> Self {
+        vk::native::StdVideoDecodeH264ReferenceInfo {
+            flags: vk::native::StdVideoDecodeH264ReferenceInfoFlags {
+                __bindgen_padding_0: [0; 3],
+                _bitfield_align_1: [],
+                _bitfield_1: vk::native::StdVideoDecodeH264ReferenceInfoFlags::new_bitfield_1(
+                    0,
+                    0,
+                    picture_info.LongTermPicNum.is_some().into(),
+                    picture_info.non_existing.into(),
+                ),
+            },
+            FrameNum: picture_info.FrameNum,
+            PicOrderCnt: picture_info.PicOrderCnt,
+            reserved: 0,
+        }
+    }
+}
+
 impl From<crate::parser::PictureInfo> for vk::native::StdVideoDecodeH264ReferenceInfo {
     fn from(picture_info: crate::parser::PictureInfo) -> Self {
         vk::native::StdVideoDecodeH264ReferenceInfo {
@@ -199,7 +219,7 @@ impl From<crate::parser::PictureInfo> for vk::native::StdVideoDecodeH264Referenc
                 ),
             },
             FrameNum: picture_info.FrameNum,
-            PicOrderCnt: picture_info.PicOrderCnt,
+            PicOrderCnt: picture_info.PicOrderCnt_as_reference_pic,
             reserved: 0,
         }
     }

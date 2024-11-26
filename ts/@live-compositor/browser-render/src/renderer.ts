@@ -1,16 +1,11 @@
 import { wasm } from './wasm';
-import * as Api from './api';
+import type * as Api from './api';
 
 export type RendererOptions = {
   /**
    * A timeout that defines when the compositor should switch to fallback on the input stream that stopped sending frames.
    */
   streamFallbackTimeoutMs: number;
-};
-
-export type Framerate = {
-  num: number;
-  den: number;
 };
 
 export type FrameSet = {

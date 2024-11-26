@@ -1,11 +1,6 @@
 use anyhow::{anyhow, Result};
 use crossbeam_channel::Sender;
-use live_compositor::{
-    config::{read_config, LoggerConfig, LoggerFormat},
-    logger::{self, FfmpegLogLevel},
-    server::run_api,
-    state::ApiState,
-};
+use live_compositor::{config::read_config, logger, server::run_api, state::ApiState};
 use reqwest::StatusCode;
 use std::{
     env,
@@ -113,10 +108,6 @@ fn init_compositor_prerequisites() {
     GLOBAL_PREREQUISITES_INITIALIZED.get_or_init(|| {
         env::set_var("LIVE_COMPOSITOR_WEB_RENDERER_ENABLE", "0");
         ffmpeg_next::format::network::init();
-        logger::init_logger(LoggerConfig {
-            ffmpeg_logger_level: FfmpegLogLevel::Info,
-            format: LoggerFormat::Compact,
-            level: "warn,wgpu_hal=warn,wgpu_core=warn".to_string(),
-        });
+        logger::init_logger(read_config().logger);
     });
 }

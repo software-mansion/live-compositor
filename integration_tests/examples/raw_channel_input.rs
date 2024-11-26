@@ -29,8 +29,8 @@ use compositor_render::{
 };
 use integration_tests::{gstreamer::start_gst_receive_tcp, test_input::TestInput};
 use live_compositor::{
-    config::{read_config, LoggerConfig, LoggerFormat},
-    logger::{self, FfmpegLogLevel},
+    config::read_config,
+    logger::{self},
 };
 
 const VIDEO_OUTPUT_PORT: u16 = 8002;
@@ -38,13 +38,9 @@ const VIDEO_OUTPUT_PORT: u16 = 8002;
 // Start simple pipeline with input that sends PCM audio and wgpu::Textures via Rust channel.
 fn main() {
     ffmpeg_next::format::network::init();
-    logger::init_logger(LoggerConfig {
-        ffmpeg_logger_level: FfmpegLogLevel::Info,
-        format: LoggerFormat::Compact,
-        level: "info,wgpu_hal=warn,wgpu_core=warn".to_string(),
-    });
     let config = read_config();
-    let ctx = GraphicsContext::new(false, Default::default(), Default::default()).unwrap();
+    logger::init_logger(config.logger);
+    let ctx = GraphicsContext::new(false, Default::default(), Default::default(), None).unwrap();
     let (wgpu_device, wgpu_queue) = (ctx.device.clone(), ctx.queue.clone());
     // no chromium support, so we can ignore _event_loop
     let (pipeline, _event_loop) = Pipeline::new(Options {
@@ -201,12 +197,12 @@ fn create_texture(index: usize, device: &wgpu::Device, queue: &wgpu::Queue) -> A
         mip_level_count: 1,
         sample_count: 1,
         dimension: wgpu::TextureDimension::D2,
-        format: wgpu::TextureFormat::Rgba8Unorm,
+        format: wgpu::TextureFormat::Rgba8UnormSrgb,
         usage: wgpu::TextureUsages::RENDER_ATTACHMENT
             | wgpu::TextureUsages::COPY_DST
             | wgpu::TextureUsages::COPY_SRC
             | wgpu::TextureUsages::TEXTURE_BINDING,
-        view_formats: &[wgpu::TextureFormat::Rgba8Unorm],
+        view_formats: &[wgpu::TextureFormat::Rgba8UnormSrgb],
     });
 
     queue.write_texture(

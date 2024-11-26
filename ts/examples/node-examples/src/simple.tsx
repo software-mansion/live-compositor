@@ -8,7 +8,7 @@ type PartialTextProps = {
 };
 
 function SimpleComponent(props: PartialTextProps) {
-  return <Text fontSize={40}>{props.text}</Text>;
+  return <Text style={{ fontSize: 40 }}>{props.text}</Text>;
 }
 
 function ExampleApp() {
@@ -27,12 +27,12 @@ function ExampleApp() {
   });
 
   return (
-    <View direction="column">
+    <View style={{ direction: 'column' }}>
       {[...Array(count)].map((_value, index) => (
         <SimpleComponent key={index} text="Example text" />
       ))}
       <View />
-      <Text fontSize={30}>Text component example (fontSize={30})</Text>
+      <Text style={{ fontSize: 30 }}>Text component example (fontSize={30})</Text>
       Raw text example (default fontSize={50})
       <View />
       Counter: {count}
