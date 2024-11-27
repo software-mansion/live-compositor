@@ -3,10 +3,9 @@ import { CompositorEventType } from 'live-compositor';
 import type { EventSender } from '../eventSender';
 import type InputSource from './source';
 import { Queue } from '@datastructures-js/queue';
-import type { FrameWithPts } from './decoder/h264Decoder';
 import { H264Decoder } from './decoder/h264Decoder';
-import type { InputFrame } from './inputFrame';
-import { intoInputFrame } from './inputFrame';
+import { FrameRef } from './frame';
+import { assert, framerateToDurationMs } from '../utils';
 
 export type InputState = 'waiting_for_start' | 'buffering' | 'playing' | 'finished';
 
@@ -18,7 +17,7 @@ export class Input {
   private source: InputSource;
   private decoder: H264Decoder;
   private eventSender: EventSender;
-  private frames: Queue<FrameWithPts>;
+  private frames: Queue<FrameRef>;
   /**
    * Queue PTS of the first frame
    */
@@ -31,7 +30,9 @@ export class Input {
     this.eventSender = eventSender;
     this.frames = new Queue();
     this.decoder = new H264Decoder({
-      onFrame: frame => this.frames.push(frame),
+      onFrame: frame => {
+        this.frames.push(new FrameRef(frame));
+      },
     });
 
     this.source.registerCallbacks({
@@ -53,66 +54,87 @@ export class Input {
     });
   }
 
-  public async getFrame(currentQueuePts: number): Promise<InputFrame | undefined> {
-    this.enqueueChunks();
+  public async getFrameRef(currentQueuePts: number): Promise<FrameRef | undefined> {
     if (this.state === 'buffering') {
       this.handleBuffering();
+      return;
     }
     if (this.state !== 'playing') {
-      return undefined;
+      return;
     }
-
-    await this.dropOldFrames(currentQueuePts);
-
-    const frame = this.frames.pop();
-    if (!frame) {
-      if (!this.source.isFinished()) {
-        return undefined;
-      }
-
-      if (this.decoder.decodeQueueSize() === 0) {
-        // Source and Decoder finished their jobs
-        this.handleEos();
-        return undefined;
-      }
-
-      await this.decoder.flush();
-      const frame = this.frames.pop();
-      return frame && intoInputFrame(frame);
-    }
-
-    return intoInputFrame(frame);
-  }
-
-  /**
-   * Removes frames older than provided `currentQueuePts`
-   */
-  private async dropOldFrames(currentQueuePts: number): Promise<void> {
     if (!this.startPtsMs) {
       this.startPtsMs = currentQueuePts;
     }
 
-    let frame = this.frames.front();
-    while (frame && this.framePtsToQueuePts(frame.ptsMs)! < currentQueuePts) {
-      console.warn(`Input "${this.id}": Frame dropped. PTS ${frame.ptsMs}`);
-      frame.frame.close();
-      this.enqueueChunks();
-      this.frames.pop();
+    this.dropOldFrames(currentQueuePts);
+    this.enqueueChunks(currentQueuePts);
 
-      frame = this.frames.front();
+    // No more chunks will be produced. Flush all the remaining frames from the decoder
+    if (this.source.isFinished() && this.decoder.decodeQueueSize() !== 0) {
+      await this.decoder.flush();
     }
-  }
 
-  private framePtsToQueuePts(framePtsMs: number): number | undefined {
-    if (this.startPtsMs) {
-      return this.startPtsMs + framePtsMs;
+    let frame: FrameRef | undefined;
+    if (this.source.isFinished() && this.frames.size() == 1) {
+      // Last frame is not poped by `dropOldFrames`
+      frame = this.frames.pop();
+    } else {
+      frame = this.getLatestFrame();
+    }
+
+    if (frame) {
+      return frame;
+    }
+
+    // Source received EOS & there is no more frames
+    if (this.source.isFinished()) {
+      this.handleEos();
+      return;
     }
 
     return undefined;
   }
 
+  /**
+   * Retrieves latest frame and increments its reference count
+   */
+  private getLatestFrame(): FrameRef | undefined {
+    const frame = this.frames.front();
+    if (frame) {
+      frame.incrementRefCount();
+      return frame;
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Removes frames older than provided `currentQueuePts`
+   */
+  private dropOldFrames(currentQueuePts: number): void {
+    const targetPts = this.queuePtsToInputPts(currentQueuePts);
+
+    const frames = this.frames.toArray();
+    let minPtsDiff = Number.MAX_VALUE;
+    let frameIndex = -1;
+    for (let i = 0; i < frames.length; i++) {
+      const framePts = frames[i].getPtsMs();
+      const diff = Math.abs(framePts - targetPts);
+      if (diff < minPtsDiff) {
+        minPtsDiff = diff;
+        frameIndex = i;
+      }
+    }
+
+    for (let i = 0; i < frameIndex; i++) {
+      const frame = this.frames.pop();
+      frame.decrementRefCount();
+    }
+  }
+
   private handleBuffering() {
     if (this.frames.size() < MAX_BUFFERING_SIZE) {
+      this.tryEnqueueChunk();
       return;
     }
 
@@ -133,16 +155,28 @@ export class Input {
     this.decoder.close();
   }
 
-  private enqueueChunks() {
-    while (
-      this.frames.size() < MAX_BUFFERING_SIZE &&
-      this.decoder.decodeQueueSize() < MAX_BUFFERING_SIZE
-    ) {
-      const chunk = this.source.nextChunk();
-      if (!chunk) {
-        break;
-      }
-      this.decoder.decode(chunk);
+  private queuePtsToInputPts(queuePts: number): number {
+    const startTime = assert(this.startPtsMs);
+    return queuePts - startTime;
+  }
+
+  private tryEnqueueChunk() {
+    const chunk = this.source.nextChunk();
+    if (chunk) {
+      this.decoder.decode(chunk.data);
+    }
+  }
+
+  private enqueueChunks(currentQueuePts: number) {
+    const framrate = assert(this.source.getFramerate());
+    const frameDuration = framerateToDurationMs(framrate);
+    const targetPts = this.queuePtsToInputPts(currentQueuePts) + frameDuration * MAX_BUFFERING_SIZE;
+
+    let chunk = this.source.peekChunk();
+    while (chunk && chunk.ptsMs < targetPts) {
+      this.decoder.decode(chunk.data);
+      this.source.nextChunk();
+      chunk = this.source.peekChunk();
     }
   }
 }

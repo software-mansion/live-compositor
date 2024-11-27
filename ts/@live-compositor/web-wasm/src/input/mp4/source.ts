@@ -1,7 +1,10 @@
+import type { Mp4ReadyData } from './demuxer';
 import { MP4Demuxer } from './demuxer';
 import type InputSource from '../source';
-import type { InputSourceCallbacks, SourcePayload } from '../source';
+import type { InputSourceCallbacks, SourcePayload, VideoChunk } from '../source';
 import { Queue } from '@datastructures-js/queue';
+import { assert } from '../../utils';
+import type { Framerate } from '../../compositor';
 
 export default class MP4Source implements InputSource {
   private fileUrl: string;
@@ -10,11 +13,13 @@ export default class MP4Source implements InputSource {
   private callbacks?: InputSourceCallbacks;
   private chunks: Queue<EncodedVideoChunk>;
   private eosReceived: boolean = false;
+  private ptsOffset?: number;
+  private framerate?: Framerate;
 
   public constructor(fileUrl: string) {
     this.fileUrl = fileUrl;
     this.demuxer = new MP4Demuxer({
-      onConfig: config => this.callbacks?.onDecoderConfig(config),
+      onReady: config => this.handleOnReady(config),
       onPayload: payload => this.handlePayload(payload),
     });
     this.chunks = new Queue();
@@ -42,15 +47,42 @@ export default class MP4Source implements InputSource {
     return this.eosReceived && this.chunks.isEmpty();
   }
 
-  public nextChunk(): EncodedVideoChunk | undefined {
-    return this.chunks.pop();
+  public getFramerate(): Framerate | undefined {
+    return this.framerate;
+  }
+
+  public nextChunk(): VideoChunk | undefined {
+    const chunk = this.chunks.pop();
+    return chunk && this.intoVideoChunk(chunk);
+  }
+
+  public peekChunk(): VideoChunk | undefined {
+    const chunk = this.chunks.front();
+    return chunk && this.intoVideoChunk(chunk);
+  }
+
+  private handleOnReady(data: Mp4ReadyData) {
+    this.callbacks?.onDecoderConfig(data.decoderConfig);
+    this.framerate = data.framerate;
   }
 
   private handlePayload(payload: SourcePayload) {
     if (payload.type === 'chunk') {
+      if (!this.ptsOffset) {
+        this.ptsOffset = -payload.chunk.timestamp;
+      }
       this.chunks.push(payload.chunk);
     } else if (payload.type === 'eos') {
       this.eosReceived = true;
     }
+  }
+
+  private intoVideoChunk(chunk: EncodedVideoChunk): VideoChunk {
+    const offset = assert(this.ptsOffset);
+
+    return {
+      data: chunk,
+      ptsMs: (offset + chunk.timestamp) / 1000,
+    };
   }
 }

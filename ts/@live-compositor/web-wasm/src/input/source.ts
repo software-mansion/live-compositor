@@ -1,5 +1,11 @@
 import type { RegisterInputRequest } from '@live-compositor/core';
 import MP4Source from './mp4/source';
+import type { Framerate } from '../compositor';
+
+export type VideoChunk = {
+  data: EncodedVideoChunk;
+  ptsMs: number;
+};
 
 export type SourcePayload = { type: 'chunk'; chunk: EncodedVideoChunk } | { type: 'eos' };
 
@@ -14,9 +20,13 @@ export default interface InputSource {
    */
   start(): void;
   registerCallbacks(callbacks: InputSourceCallbacks): void;
-  // if `true` InputSource won't produce more chunks anymore
+  /**
+   * if `true` InputSource won't produce more chunks anymore
+   */
   isFinished(): boolean;
-  nextChunk(): EncodedVideoChunk | undefined;
+  getFramerate(): Framerate | undefined;
+  nextChunk(): VideoChunk | undefined;
+  peekChunk(): VideoChunk | undefined;
 }
 
 export function sourceFromRequest(request: RegisterInputRequest): InputSource {

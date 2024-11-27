@@ -1,9 +1,16 @@
 import type { MP4ArrayBuffer, MP4File, MP4Info, Sample } from 'mp4box';
 import MP4Box, { DataStream } from 'mp4box';
 import type { SourcePayload } from '../source';
+import { assert } from '../../utils';
+import type { Framerate } from '../../compositor';
+
+export type Mp4ReadyData = {
+  decoderConfig: VideoDecoderConfig;
+  framerate: Framerate;
+};
 
 export type MP4DemuxerCallbacks = {
-  onConfig: (config: VideoDecoderConfig) => void;
+  onReady: (data: Mp4ReadyData) => void;
   onPayload: (payload: SourcePayload) => void;
 };
 
@@ -46,11 +53,20 @@ export class MP4Demuxer {
     const codecDescription = this.getCodecDescription(videoTrack.id);
     this.samplesCount = videoTrack.nb_samples;
 
-    this.callbacks.onConfig({
+    const decoderConfig = {
       codec: videoTrack.codec,
       codedWidth: videoTrack.video.width,
       codedHeight: videoTrack.video.height,
       description: codecDescription,
+    };
+    const framerate = {
+      num: videoTrack.timescale,
+      den: 1000,
+    };
+
+    this.callbacks.onReady({
+      decoderConfig,
+      framerate,
     });
 
     this.file.setExtractionOptions(videoTrack.id);
@@ -58,6 +74,8 @@ export class MP4Demuxer {
   }
 
   private onSamples(samples: Sample[]) {
+    const samplesCount = assert(this.samplesCount);
+
     for (const sample of samples) {
       const chunk = new EncodedVideoChunk({
         type: sample.is_sync ? 'key' : 'delta',
@@ -68,7 +86,7 @@ export class MP4Demuxer {
 
       this.callbacks.onPayload({ type: 'chunk', chunk: chunk });
 
-      if (sample.number === this.samplesCount! - 1) {
+      if (sample.number === samplesCount - 1) {
         this.callbacks.onPayload({ type: 'eos' });
       }
     }
