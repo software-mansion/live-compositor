@@ -14,6 +14,11 @@ jobs:
     check:
         runs-on: ubuntu-24.04
         steps:
+            - name: Maximize build space
+              uses: easimon/maximize-build-space@master
+              with:
+                  remove-dotnet: 'true'
+
             - name: 🛠 Install system dependencies
               run: |
                   set -e
