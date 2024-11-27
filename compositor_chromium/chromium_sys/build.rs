@@ -14,9 +14,12 @@ fn main() -> Result<()> {
     println!("cargo:rerun-if-env-changed=CEF_ROOT");
 
     let out_dir = PathBuf::from(env::var("OUT_DIR")?);
+    let cache_dir = PathBuf::from(env::var("HOME")?)
+        .join(".cache")
+        .join("live-compositor");
     let cef_root = env::var("CEF_ROOT")
         .map(PathBuf::from)
-        .unwrap_or(out_dir.join("cef_root"));
+        .unwrap_or(cache_dir.join("cef_root"));
 
     if !cef_root.exists() {
         for i in 0..5 {
@@ -157,9 +160,9 @@ fn download_cef(cef_root_path: &Path) -> Result<()> {
 
     let archive_name = "cef.tar.bz2";
     let content = resp.bytes()?;
-    fs::write(download_path.join(archive_name), content)?;
 
     fs::create_dir_all(cef_root_path)?;
+    fs::write(download_path.join(archive_name), content)?;
 
     let tar_status = Command::new("tar")
         .args([
