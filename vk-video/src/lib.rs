@@ -22,13 +22,13 @@ pub struct Frame<T> {
     pub pts: Option<u64>,
 }
 
-pub struct WgpuTexturesDeocder<'a> {
+pub struct WgpuTexturesDecoder<'a> {
     vulkan_decoder: VulkanDecoder<'a>,
     parser: Parser,
     frame_sorter: FrameSorter<wgpu::Texture>,
 }
 
-impl WgpuTexturesDeocder<'_> {
+impl WgpuTexturesDecoder<'_> {
     // TODO: the below hasn't been verified.
     /// The produced textures have the [`wgpu::TextureFormat::NV12`] format and can be used as a copy source or a texture binding.
     pub fn decode(

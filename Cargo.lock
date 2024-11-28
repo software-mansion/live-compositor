@@ -2396,6 +2396,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "bytes",
+ "clap",
  "compositor_api",
  "compositor_chromium",
  "compositor_pipeline",
