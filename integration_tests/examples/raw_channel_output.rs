@@ -34,6 +34,7 @@ use live_compositor::{
     config::read_config,
     logger::{self},
 };
+use tokio::runtime::Runtime;
 
 const BUNNY_FILE_URL: &str =
     "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
@@ -66,6 +67,7 @@ fn main() {
         wgpu_features: config.required_wgpu_features,
         load_system_fonts: Some(true),
         wgpu_ctx: Some(ctx),
+        tokio_rt: Arc::new(Runtime::new().unwrap()),
     })
     .unwrap_or_else(|err| {
         panic!(

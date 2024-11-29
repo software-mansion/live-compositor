@@ -126,6 +126,7 @@ pub struct Options {
     pub wgpu_features: WgpuFeatures,
     pub load_system_fonts: Option<bool>,
     pub wgpu_ctx: Option<GraphicsContext>,
+    pub tokio_rt: Arc<Runtime>,
 }
 
 #[derive(Clone)]
@@ -197,7 +198,7 @@ impl Pipeline {
                 output_framerate: opts.queue_options.output_framerate,
                 download_dir: download_dir.into(),
                 event_emitter,
-                tokio_rt: Arc::new(Runtime::new().map_err(InitPipelineError::CreateTokioRuntime)?),
+                tokio_rt: opts.tokio_rt,
                 #[cfg(feature = "vk-video")]
                 vulkan_ctx: preinitialized_ctx.and_then(|ctx| ctx.vulkan_ctx),
             },

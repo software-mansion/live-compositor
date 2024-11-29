@@ -32,6 +32,7 @@ use live_compositor::{
     config::read_config,
     logger::{self},
 };
+use tokio::runtime::Runtime;
 
 const VIDEO_OUTPUT_PORT: u16 = 8002;
 
@@ -53,6 +54,7 @@ fn main() {
         wgpu_features: config.required_wgpu_features,
         load_system_fonts: Some(true),
         wgpu_ctx: Some(ctx),
+        tokio_rt: Arc::new(Runtime::new().unwrap()),
     })
     .unwrap_or_else(|err| {
         panic!(
