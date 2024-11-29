@@ -2,7 +2,7 @@ use crate::definition::{Kind, TypeDefinition};
 
 use super::MarkdownGenerator;
 
-impl<'a> MarkdownGenerator<'a> {
+impl MarkdownGenerator<'_> {
     pub(super) fn write_properties(&mut self, definition: &TypeDefinition) {
         let name = definition.name.clone();
 

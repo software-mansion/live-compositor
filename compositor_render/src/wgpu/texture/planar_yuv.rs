@@ -17,7 +17,7 @@ where
     _phantom: PhantomData<&'a F>,
 }
 
-impl<'a, F, E> YuvPendingDownload<'a, F, E>
+impl<F, E> YuvPendingDownload<'_, F, E>
 where
     F: FnOnce() -> Result<Bytes, E>,
 {
