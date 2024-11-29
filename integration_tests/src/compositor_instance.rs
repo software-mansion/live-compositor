@@ -48,7 +48,7 @@ impl CompositorInstance {
         thread::Builder::new()
             .name("HTTP server startup thread".to_string())
             .spawn(move || {
-                run_api(state, runtime, should_close_receiver).unwrap();
+                run_api(state, runtime.clone(), should_close_receiver).unwrap();
             })
             .unwrap();
 
