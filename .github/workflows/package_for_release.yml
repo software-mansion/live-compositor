@@ -156,9 +156,9 @@ jobs:
           - name: 🔨 Build Live Compositor with Web Renderer image
             run: |
               rm docker_image_live_compositor.tar
-              docker build -t ghcr.io/software-mansion/live-compositor-with-web-renderer:${{ inputs.version }} -f build_tools/docker/full.Dockerfile .
-              docker image save ghcr.io/software-mansion/live-compositor-with-web-renderer:${{ inputs.version }} -o docker_image_live_compositor_with_web_renderer.tar
-              docker image rm ghcr.io/software-mansion/live-compositor-with-web-renderer:${{ inputs.version }}
+              docker build -t ghcr.io/software-mansion/live-compositor:${{ inputs.version }}-web-renderer -f build_tools/docker/full.Dockerfile .
+              docker image save ghcr.io/software-mansion/live-compositor:${{ inputs.version }}-web-renderer -o docker_image_live_compositor_with_web_renderer.tar
+              docker image rm ghcr.io/software-mansion/live-compositor:${{ inputs.version }}-web-renderer
 
           - name: 📤 Upload Live Compositor with Web Renderer artifact
             uses: actions/upload-artifact@v4
