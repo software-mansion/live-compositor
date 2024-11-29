@@ -50,6 +50,9 @@ jobs:
                 EOF
                 git submodule update --init
 
+            - name: 🧹 cargo clean
+              run : cargo clean
+
             - name: 📁 Rust cache
               uses: Swatinem/rust-cache@v2
 
