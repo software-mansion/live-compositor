@@ -12,7 +12,7 @@ use super::{AudioDecoderExt, DecodedSamples, DecodingError};
 
 pub(super) struct OpusDecoder {
     decoder: opus::Decoder,
-    decoded_samples_buffer: [i16; 100_000],
+    decoded_samples_buffer: Vec<i16>,
     forward_error_correction: bool,
     decoded_sample_rate: u32,
 }
@@ -29,7 +29,7 @@ impl OpusDecoder {
         // Max sample rate for opus is 48kHz.
         // Usually packets contain 20ms audio chunks, but for safety we use buffer
         // that can hold >1s of 48kHz stereo audio (96k samples)
-        let decoded_samples_buffer = [0i16; 100_000];
+        let decoded_samples_buffer = vec![0; 100_000];
 
         Ok(Self {
             decoder,
