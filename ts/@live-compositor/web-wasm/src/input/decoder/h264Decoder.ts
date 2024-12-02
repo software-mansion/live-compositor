@@ -34,14 +34,14 @@ export class H264Decoder {
   }
 
   private intoFrameWithPts(videoFrame: VideoFrame): FrameWithPts {
-    if (!this.ptsOffset) {
+    if (this.ptsOffset === undefined) {
       this.ptsOffset = -videoFrame.timestamp;
     }
 
     return {
       frame: videoFrame,
       // TODO(noituri): Handle pts roller
-      ptsMs: (this.ptsOffset! + videoFrame.timestamp) / 1000,
+      ptsMs: (this.ptsOffset + videoFrame.timestamp) / 1000,
     };
   }
 

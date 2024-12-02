@@ -68,7 +68,7 @@ export default class MP4Source implements InputSource {
 
   private handlePayload(payload: SourcePayload) {
     if (payload.type === 'chunk') {
-      if (!this.ptsOffset) {
+      if (this.ptsOffset === undefined) {
         this.ptsOffset = -payload.chunk.timestamp;
       }
       this.chunks.push(payload.chunk);
@@ -78,11 +78,11 @@ export default class MP4Source implements InputSource {
   }
 
   private intoVideoChunk(chunk: EncodedVideoChunk): VideoChunk {
-    const offset = assert(this.ptsOffset);
+    assert(this.ptsOffset !== undefined);
 
     return {
       data: chunk,
-      ptsMs: (offset + chunk.timestamp) / 1000,
+      ptsMs: (this.ptsOffset + chunk.timestamp) / 1000,
     };
   }
 }

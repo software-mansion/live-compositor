@@ -1,4 +1,4 @@
-import type { Frame, FrameSet, InputId, OutputId, Renderer } from '@live-compositor/browser-render';
+import type { FrameSet, InputId, OutputId, Renderer } from '@live-compositor/browser-render';
 import type { Framerate } from './compositor';
 import type { Input } from './input/input';
 import type { Output } from './output/output';
@@ -62,10 +62,8 @@ export class Queue {
 
   private async onTick() {
     const inputs = await this.getInputFrames();
-    const frames: Record<InputId, Frame> = {};
-    for (const inputId in inputs) {
-      frames[inputId] = await inputs[inputId].getFrame();
-    }
+    const pendingFrames = Object.entries(inputs).map(async ([inputId, input]) => [inputId, await input.getFrame()]);
+    const frames = Object.fromEntries(await Promise.all(pendingFrames));
 
     const outputs = this.renderer.render({
       ptsMs: this.currentPts,

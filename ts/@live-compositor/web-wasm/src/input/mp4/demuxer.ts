@@ -74,7 +74,7 @@ export class MP4Demuxer {
   }
 
   private onSamples(samples: Sample[]) {
-    const samplesCount = assert(this.samplesCount);
+    assert(this.samplesCount !== undefined);
 
     for (const sample of samples) {
       const chunk = new EncodedVideoChunk({
@@ -86,7 +86,7 @@ export class MP4Demuxer {
 
       this.callbacks.onPayload({ type: 'chunk', chunk: chunk });
 
-      if (sample.number === samplesCount - 1) {
+      if (sample.number === this.samplesCount - 1) {
         this.callbacks.onPayload({ type: 'eos' });
       }
     }

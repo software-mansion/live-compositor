@@ -62,7 +62,7 @@ export class Input {
     if (this.state !== 'playing') {
       return;
     }
-    if (!this.startPtsMs) {
+    if (this.startPtsMs === undefined) {
       this.startPtsMs = currentQueuePts;
     }
 
@@ -109,26 +109,27 @@ export class Input {
   }
 
   /**
-   * Removes frames older than provided `currentQueuePts`
+   * Finds frame with PTS closest to `currentQueuePts` and removes frames older than it
    */
   private dropOldFrames(currentQueuePts: number): void {
-    const targetPts = this.queuePtsToInputPts(currentQueuePts);
-
-    const frames = this.frames.toArray();
-    let minPtsDiff = Number.MAX_VALUE;
-    let frameIndex = -1;
-    for (let i = 0; i < frames.length; i++) {
-      const framePts = frames[i].getPtsMs();
-      const diff = Math.abs(framePts - targetPts);
-      if (diff < minPtsDiff) {
-        minPtsDiff = diff;
-        frameIndex = i;
-      }
+    if (this.frames.isEmpty()) {
+      return;
     }
 
-    for (let i = 0; i < frameIndex; i++) {
-      const frame = this.frames.pop();
-      frame.decrementRefCount();
+    const frames = this.frames.toArray();
+    const targetPts = this.queuePtsToInputPts(currentQueuePts);
+
+    const targetFrame = frames.reduce((prevFrame, frame) => {
+      const prevPtsDiff = Math.abs(prevFrame.getPtsMs() - targetPts);
+      const currPtsDiff = Math.abs(frame.getPtsMs() - targetPts);
+      return prevPtsDiff < currPtsDiff ? prevFrame : frame
+    });
+
+    for (const frame of frames) {
+      if (frame.getPtsMs() < targetFrame.getPtsMs()) {
+        frame.decrementRefCount();
+        this.frames.pop();
+      }
     }
   }
 
@@ -156,8 +157,8 @@ export class Input {
   }
 
   private queuePtsToInputPts(queuePts: number): number {
-    const startTime = assert(this.startPtsMs);
-    return queuePts - startTime;
+    assert(this.startPtsMs !== undefined);
+    return queuePts - this.startPtsMs;
   }
 
   private tryEnqueueChunk() {
@@ -168,7 +169,9 @@ export class Input {
   }
 
   private enqueueChunks(currentQueuePts: number) {
-    const framrate = assert(this.source.getFramerate());
+    const framrate = this.source.getFramerate();
+    assert(framrate);
+
     const frameDuration = framerateToDurationMs(framrate);
     const targetPts = this.queuePtsToInputPts(currentQueuePts) + frameDuration * MAX_BUFFERING_SIZE;
 
