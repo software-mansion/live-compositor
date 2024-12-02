@@ -67,7 +67,6 @@ pub async fn connect(
         .create_offer(None)
         .await
         .map_err(WhipError::OfferCreationError)?;
-    error!("offer: {offer:?}");
 
     let endpoint_url = Url::parse(&whip_ctx.options.endpoint_url)
         .map_err(|e| WhipError::InvalidEndpointUrl(e, whip_ctx.options.endpoint_url.clone()))?;
