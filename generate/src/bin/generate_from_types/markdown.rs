@@ -11,7 +11,7 @@ pub struct MarkdownGenerator<'a> {
     config: &'a DocsConfig,
 }
 
-impl<'a> MarkdownGenerator<'a> {
+impl MarkdownGenerator<'_> {
     const INDENT_SIZE: usize = 2;
 
     pub fn generate(definition: TypeDefinition, config: &DocsConfig) -> String {
