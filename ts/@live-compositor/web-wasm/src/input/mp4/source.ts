@@ -1,9 +1,8 @@
 import type { Mp4ReadyData } from './demuxer';
 import { MP4Demuxer } from './demuxer';
 import type InputSource from '../source';
-import type { InputSourceCallbacks, SourcePayload, VideoChunk } from '../source';
+import type { InputSourceCallbacks, SourcePayload } from '../source';
 import { Queue } from '@datastructures-js/queue';
-import { assert } from '../../utils';
 import type { Framerate } from '../../compositor';
 
 export default class MP4Source implements InputSource {
@@ -13,7 +12,6 @@ export default class MP4Source implements InputSource {
   private callbacks?: InputSourceCallbacks;
   private chunks: Queue<EncodedVideoChunk>;
   private eosReceived: boolean = false;
-  private ptsOffset?: number;
   private framerate?: Framerate;
 
   public constructor(fileUrl: string) {
@@ -51,14 +49,12 @@ export default class MP4Source implements InputSource {
     return this.framerate;
   }
 
-  public nextChunk(): VideoChunk | undefined {
-    const chunk = this.chunks.pop();
-    return chunk && this.intoVideoChunk(chunk);
+  public nextChunk(): EncodedVideoChunk | undefined {
+    return this.chunks.pop();
   }
 
-  public peekChunk(): VideoChunk | undefined {
-    const chunk = this.chunks.front();
-    return chunk && this.intoVideoChunk(chunk);
+  public peekChunk(): EncodedVideoChunk | undefined {
+    return this.chunks.front();
   }
 
   private handleOnReady(data: Mp4ReadyData) {
@@ -68,21 +64,9 @@ export default class MP4Source implements InputSource {
 
   private handlePayload(payload: SourcePayload) {
     if (payload.type === 'chunk') {
-      if (this.ptsOffset === undefined) {
-        this.ptsOffset = -payload.chunk.timestamp;
-      }
       this.chunks.push(payload.chunk);
     } else if (payload.type === 'eos') {
       this.eosReceived = true;
     }
-  }
-
-  private intoVideoChunk(chunk: EncodedVideoChunk): VideoChunk {
-    assert(this.ptsOffset !== undefined);
-
-    return {
-      data: chunk,
-      ptsMs: (this.ptsOffset + chunk.timestamp) / 1000,
-    };
   }
 }
