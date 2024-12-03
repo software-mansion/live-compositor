@@ -42,6 +42,7 @@ impl ApiState {
             force_gpu,
             download_root,
             output_sample_rate,
+            stun_servers,
             required_wgpu_features,
             ..
         } = config.clone();
@@ -52,10 +53,11 @@ impl ApiState {
             force_gpu,
             download_root,
             output_sample_rate,
+            stun_servers,
             wgpu_features: required_wgpu_features,
             wgpu_ctx: None,
             load_system_fonts: Some(true),
-            tokio_rt: runtime,
+            tokio_rt: Some(runtime),
         })?;
         Ok((
             ApiState {

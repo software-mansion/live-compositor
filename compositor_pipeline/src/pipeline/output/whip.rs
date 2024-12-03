@@ -52,9 +52,11 @@ pub struct WhipCtx {
     output_id: OutputId,
     options: WhipSenderOptions,
     sample_rate: u32,
+    stun_servers: Arc<Vec<String>>,
     request_keyframe_sender: Option<Sender<()>>,
     should_close: Arc<AtomicBool>,
     tokio_rt: Arc<Runtime>,
+    event_emitter: Arc<EventEmitter>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -139,23 +141,21 @@ impl WhipSender {
             output_id: output_id.clone(),
             options: options.clone(),
             sample_rate: pipeline_ctx.output_sample_rate,
+            stun_servers: pipeline_ctx.stun_servers.clone(),
             request_keyframe_sender,
             should_close: should_close.clone(),
             tokio_rt: pipeline_ctx.tokio_rt.clone(),
+            event_emitter: pipeline_ctx.event_emitter.clone(),
         };
 
         pipeline_ctx.tokio_rt.spawn(
-            run_whip_sender_task(
-                whip_ctx,
-                packet_stream,
-                init_confirmation_sender,
-                pipeline_ctx.event_emitter.clone(),
-            )
-            .instrument(span!(
-                Level::INFO,
-                "WHIP sender",
-                output_id = output_id.to_string()
-            )),
+            run_whip_sender_task(whip_ctx, packet_stream, init_confirmation_sender).instrument(
+                span!(
+                    Level::INFO,
+                    "WHIP sender",
+                    output_id = output_id.to_string()
+                ),
+            ),
         );
 
         let start_time = Instant::now();
@@ -197,7 +197,6 @@ async fn run_whip_sender_task(
     whip_ctx: WhipCtx,
     packet_stream: PacketStream,
     init_confirmation_sender: oneshot::Sender<Result<(), WhipError>>,
-    event_emitter: Arc<EventEmitter>,
 ) {
     let client = Arc::new(reqwest::Client::new());
     let (peer_connection, video_track, audio_track) = match init_peer_connection(&whip_ctx).await {
@@ -274,6 +273,8 @@ async fn run_whip_sender_task(
     if let Err(err) = client.delete(whip_session_url).send().await {
         error!("Error while sending delete whip session request: {}", err);
     }
-    event_emitter.emit(Event::OutputDone(output_id_clone));
+    whip_ctx
+        .event_emitter
+        .emit(Event::OutputDone(output_id_clone));
     debug!("Closing WHIP sender thread.")
 }
