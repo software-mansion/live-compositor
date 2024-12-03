@@ -1,11 +1,4 @@
-import type { RegisterInputRequest } from '@live-compositor/core';
-import MP4Source from './mp4/source';
 import type { Framerate } from '../compositor';
-
-export type VideoChunk = {
-  data: EncodedVideoChunk;
-  ptsMs: number;
-};
 
 export type SourcePayload = { type: 'chunk'; chunk: EncodedVideoChunk } | { type: 'eos' };
 
@@ -25,14 +18,6 @@ export default interface InputSource {
    */
   isFinished(): boolean;
   getFramerate(): Framerate | undefined;
-  nextChunk(): VideoChunk | undefined;
-  peekChunk(): VideoChunk | undefined;
-}
-
-export function sourceFromRequest(request: RegisterInputRequest): InputSource {
-  if (request.type === 'mp4') {
-    return new MP4Source(request.url!);
-  } else {
-    throw new Error(`Unknown input type ${(request as any).type}`);
-  }
+  nextChunk(): EncodedVideoChunk | undefined;
+  peekChunk(): EncodedVideoChunk | undefined;
 }

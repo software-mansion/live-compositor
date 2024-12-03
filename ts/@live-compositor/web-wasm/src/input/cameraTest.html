@@ -1,0 +1,28 @@
+<html>
+
+<body>
+  <script>
+    async function main() {
+      const stream = await navigator.mediaDevices.getUserMedia({video: true});
+      console.error(stream);
+
+      const videoTrack = stream.getVideoTracks()[0];
+      console.error(videoTrack);
+
+      const trackProcessor = new MediaStreamTrackProcessor({ track: videoTrack });
+      const reader = trackProcessor.readable.getReader();
+      while (true) {
+        const { done, value: videoFrame } = await reader.read();
+        if (done) {
+          break;
+        }
+
+        console.warn(videoFrame);
+      }
+    }
+
+    main();
+  </script>
+</body>
+
+</html>
