@@ -3,83 +3,83 @@ on:
     workflow_dispatch: {}
 
 jobs:
-    linux:
-        runs-on: ubuntu-latest
-        steps:
-            - name: 🛠 Install system dependencies
-              run: |
-                  sudo add-apt-repository ppa:ubuntuhandbook1/ffmpeg6
-                  sudo apt-get update -y -qq
-                  sudo apt-get install -y libegl1-mesa-dev libgl1-mesa-dri libxcb-xfixes0-dev ffmpeg libavcodec-dev libavformat-dev libavfilter-dev libavdevice-dev libopus-dev
-            - name: 🔧 Install the rust toolchain
-              uses: dtolnay/rust-toolchain@stable
-
-            - name: 📥 Checkout repo
-              uses: actions/checkout@v4
-
-            - name: 📦 Package
-              run: cargo run --bin package_for_release
-
-            - uses: actions/upload-artifact@v4
-              with:
-                name: live_compositor_linux_x86_64.tar.gz
-                path: live_compositor_linux_x86_64.tar.gz
-
-            - uses: actions/upload-artifact@v4
-              with:
-                name: live_compositor_with_web_renderer_linux_x86_64.tar.gz
-                path: live_compositor_with_web_renderer_linux_x86_64.tar.gz
-
-    linux-aarch64:
-        runs-on: ubuntu-latest
-        steps:
-            - uses: actions/checkout@v4
-              with:
-                path: "repo"
-            - uses: uraimo/run-on-arch-action@v2
-              name: Build artifact
-              id: build
-              with:
-                arch: aarch64
-                distro: ubuntu22.04
-
-                  # Not required, but speeds up builds
-                githubToken: ${{ github.token }}
-
-                  # Create an artifacts directory
-                setup: |
-                  mkdir -p "${PWD}/artifacts"
-
-                  # Mount the artifacts directory as /artifacts in the container
-                dockerRunArgs: |
-                  --volume "${PWD}/artifacts:/artifacts"
-                  --volume "${PWD}/repo:/repo"
-
-                  # The shell to run commands with in the container
-                shell: /bin/sh
-
-                install: |
-                  apt update -y -qq
-                  apt install software-properties-common -y
-                  add-apt-repository ppa:ubuntuhandbook1/ffmpeg6
-                  apt-get update -y -qq
-                  apt-get install -y libegl1-mesa-dev libgl1-mesa-dri libxcb-xfixes0-dev ffmpeg libavcodec-dev libavformat-dev libavfilter-dev libavdevice-dev libopus-dev curl git build-essential libssl-dev pkg-config libclang-dev
-                  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-                  rm -rf /var/lib/apt/lists/*
-
-                  # Produce a binary artifact and place it in the mounted volume
-                run: |
-                  . "$HOME/.cargo/env"
-                  cd "/repo"
-                  cargo run --bin package_for_release
-                  cp *.tar.gz /artifacts
-            - uses: actions/upload-artifact@v4
-              with:
-                name: live_compositor_linux_aarch64.tar.gz
-                path: artifacts/live_compositor_linux_aarch64.tar.gz
-
+    # linux:
+    #     runs-on: ubuntu-latest
+    #     steps:
+    #         - name: 🛠 Install system dependencies
+    #           run: |
+    #               sudo add-apt-repository ppa:ubuntuhandbook1/ffmpeg6
+    #               sudo apt-get update -y -qq
+    #               sudo apt-get install -y libegl1-mesa-dev libgl1-mesa-dri libxcb-xfixes0-dev ffmpeg libavcodec-dev libavformat-dev libavfilter-dev libavdevice-dev libopus-dev
+    #         - name: 🔧 Install the rust toolchain
+    #           uses: dtolnay/rust-toolchain@stable
+    #
+    #         - name: 📥 Checkout repo
+    #           uses: actions/checkout@v4
+    #
+    #         - name: 📦 Package
+    #           run: cargo run --bin package_for_release
+    #
+    #         - uses: actions/upload-artifact@v4
+    #           with:
+    #             name: live_compositor_linux_x86_64.tar.gz
+    #             path: live_compositor_linux_x86_64.tar.gz
+    #
+    #         - uses: actions/upload-artifact@v4
+    #           with:
+    #             name: live_compositor_with_web_renderer_linux_x86_64.tar.gz
+    #             path: live_compositor_with_web_renderer_linux_x86_64.tar.gz
+    #
+    # linux-aarch64:
+    #     runs-on: ubuntu-latest
+    #     steps:
+    #         - uses: actions/checkout@v4
+    #           with:
+    #             path: "repo"
+    #         - uses: uraimo/run-on-arch-action@v2
+    #           name: Build artifact
+    #           id: build
+    #           with:
+    #             arch: aarch64
+    #             distro: ubuntu22.04
+    #
+    #               # Not required, but speeds up builds
+    #             githubToken: ${{ github.token }}
+    #
+    #               # Create an artifacts directory
+    #             setup: |
+    #               mkdir -p "${PWD}/artifacts"
+    #
+    #               # Mount the artifacts directory as /artifacts in the container
+    #             dockerRunArgs: |
+    #               --volume "${PWD}/artifacts:/artifacts"
+    #               --volume "${PWD}/repo:/repo"
+    #
+    #               # The shell to run commands with in the container
+    #             shell: /bin/sh
+    #
+    #             install: |
+    #               apt update -y -qq
+    #               apt install software-properties-common -y
+    #               add-apt-repository ppa:ubuntuhandbook1/ffmpeg6
+    #               apt-get update -y -qq
+    #               apt-get install -y libegl1-mesa-dev libgl1-mesa-dri libxcb-xfixes0-dev ffmpeg libavcodec-dev libavformat-dev libavfilter-dev libavdevice-dev libopus-dev curl git build-essential libssl-dev pkg-config libclang-dev
+    #               curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+    #               rm -rf /var/lib/apt/lists/*
+    #
+    #               # Produce a binary artifact and place it in the mounted volume
+    #             run: |
+    #               . "$HOME/.cargo/env"
+    #               cd "/repo"
+    #               cargo run --bin package_for_release
+    #               cp *.tar.gz /artifacts
+    #         - uses: actions/upload-artifact@v4
+    #           with:
+    #             name: live_compositor_linux_aarch64.tar.gz
+    #             path: artifacts/live_compositor_linux_aarch64.tar.gz
+    #
     macos_x86_64:
-        runs-on: macos-12
+        runs-on: macos-13
         steps:
             - name: 🛠 Install system dependencies
               run: brew install ffmpeg
@@ -103,27 +103,27 @@ jobs:
                 name: live_compositor_with_web_renderer_darwin_x86_64.tar.gz
                 path: live_compositor_with_web_renderer_darwin_x86_64.tar.gz
 
-    macos-aarch64:
-        runs-on: macos-14
-        steps:
-            - name: 🛠 Install system dependencies
-              run: brew install ffmpeg
-
-            - name: 🔧 Install the rust toolchain
-              uses: dtolnay/rust-toolchain@stable
-
-            - name: 📥 Checkout repo
-              uses: actions/checkout@v4
-
-            - name: 📦 Package
-              run: cargo run --bin package_for_release
-
-            - uses: actions/upload-artifact@v4
-              with:
-                name: live_compositor_darwin_aarch64.tar.gz
-                path: live_compositor_darwin_aarch64.tar.gz
-
-            - uses: actions/upload-artifact@v4
-              with:
-                name: live_compositor_with_web_renderer_darwin_aarch64.tar.gz
-                path: live_compositor_with_web_renderer_darwin_aarch64.tar.gz
+    # macos-aarch64:
+    #     runs-on: macos-14
+    #     steps:
+    #         - name: 🛠 Install system dependencies
+    #           run: brew install ffmpeg
+    #
+    #         - name: 🔧 Install the rust toolchain
+    #           uses: dtolnay/rust-toolchain@stable
+    #
+    #         - name: 📥 Checkout repo
+    #           uses: actions/checkout@v4
+    #
+    #         - name: 📦 Package
+    #           run: cargo run --bin package_for_release
+    #
+    #         - uses: actions/upload-artifact@v4
+    #           with:
+    #             name: live_compositor_darwin_aarch64.tar.gz
+    #             path: live_compositor_darwin_aarch64.tar.gz
+    #
+    #         - uses: actions/upload-artifact@v4
+    #           with:
+    #             name: live_compositor_with_web_renderer_darwin_aarch64.tar.gz
+    #             path: live_compositor_with_web_renderer_darwin_aarch64.tar.gz
