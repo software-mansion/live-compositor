@@ -3,7 +3,7 @@ FROM ubuntu:noble-20240423 as builder
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-ARG USERNAME=compositor
+ARG USERNAME=smelter
 ARG RUST_VERSION=1.81
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -26,11 +26,11 @@ RUN source ~/.cargo/env && cargo build --release --no-default-features
 # Runtime image
 FROM ubuntu:noble-20240423
 
-LABEL org.opencontainers.image.source https://github.com/software-mansion/live-compositor
+LABEL org.opencontainers.image.source https://github.com/software-mansion/smelter
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-ARG USERNAME=compositor
+ARG USERNAME=smelter
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV NVIDIA_DRIVER_CAPABILITIES=compute,graphics,utility
@@ -43,12 +43,12 @@ RUN apt-get update -y -qq && \
 RUN useradd -ms /bin/bash $USERNAME && adduser $USERNAME sudo
 RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 USER $USERNAME
-RUN mkdir -p /home/$USERNAME/live_compositor
-WORKDIR /home/$USERNAME/live_compositor
+RUN mkdir -p /home/$USERNAME/smelter
+WORKDIR /home/$USERNAME/smelter
 
-COPY --from=builder --chown=$USERNAME:$USERNAME /root/project/target/release/main_process /home/$USERNAME/live_compositor/main_process
+COPY --from=builder --chown=$USERNAME:$USERNAME /root/project/target/release/main_process /home/$USERNAME/smelter/main_process
 
 ENV LIVE_COMPOSITOR_WEB_RENDERER_ENABLE=0
 ENV LIVE_COMPOSITOR_WEB_RENDERER_GPU_ENABLE=0
 
-ENTRYPOINT ["/home/compositor/live_compositor/main_process"]
+ENTRYPOINT ["/home/smelter/smelter/main_process"]

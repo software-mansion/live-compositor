@@ -9,14 +9,14 @@ use log::info;
 use crate::utils;
 
 const ARM_MAC_TARGET: &str = "aarch64-apple-darwin";
-const ARM_OUTPUT_FILE: &str = "live_compositor_darwin_aarch64.tar.gz";
+const ARM_OUTPUT_FILE: &str = "smelter_darwin_aarch64.tar.gz";
 const ARM_WITH_WEB_RENDERER_OUTPUT_FILE: &str =
-    "live_compositor_with_web_renderer_darwin_aarch64.tar.gz";
+    "smelter_with_web_renderer_darwin_aarch64.tar.gz";
 
 const INTEL_MAC_TARGET: &str = "x86_64-apple-darwin";
-const INTEL_OUTPUT_FILE: &str = "live_compositor_darwin_x86_64.tar.gz";
+const INTEL_OUTPUT_FILE: &str = "smelter_darwin_x86_64.tar.gz";
 const INTEL_WITH_WEB_RENDERER_OUTPUT_FILE: &str =
-    "live_compositor_with_web_renderer_darwin_x86_64.tar.gz";
+    "smelter_with_web_renderer_darwin_x86_64.tar.gz";
 
 pub fn bundle_macos_app() -> Result<()> {
     tracing_subscriber::fmt().init();
@@ -35,15 +35,15 @@ pub fn bundle_macos_app() -> Result<()> {
 
 fn bundle_app(target: &'static str, output_name: &str, enable_web_rendering: bool) -> Result<()> {
     if enable_web_rendering {
-        info!("Bundling compositor with web rendering");
+        info!("Bundling smelter with web rendering");
     } else {
-        info!("Bundling compositor without web rendering");
+        info!("Bundling smelter without web rendering");
     }
 
     let root_dir_str = env!("CARGO_MANIFEST_DIR");
     let root_dir: PathBuf = root_dir_str.into();
     let build_dir = root_dir.join(format!("target/{target}/release"));
-    let tmp_dir = root_dir.join("live_compositor");
+    let tmp_dir = root_dir.join("smelter");
     utils::setup_bundle_dir(&tmp_dir)?;
 
     info!("Build main_process binary.");
@@ -56,17 +56,17 @@ fn bundle_app(target: &'static str, output_name: &str, enable_web_rendering: boo
 
         info!("Build process_helper binary.");
         utils::cargo_build("process_helper", target, false)?;
-        cef::bundle_app(&build_dir, &tmp_dir.join("live_compositor.app"))?;
+        cef::bundle_app(&build_dir, &tmp_dir.join("smelter.app"))?;
     }
 
     fs::copy(
         build_dir.join("main_process"),
-        tmp_dir.join("live_compositor"),
+        tmp_dir.join("smelter"),
     )?;
 
     info!("Create tar.gz archive.");
     let exit_code = Command::new("tar")
-        .args(["-C", root_dir_str, "-czvf", output_name, "live_compositor"])
+        .args(["-C", root_dir_str, "-czvf", output_name, "smelter"])
         .spawn()?
         .wait()?
         .code();
