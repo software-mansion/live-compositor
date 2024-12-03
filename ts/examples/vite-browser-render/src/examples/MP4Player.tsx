@@ -67,34 +67,30 @@ function useCompositor(): [LiveCompositor | undefined, (canvas: HTMLCanvasElemen
       return;
     }
 
-    const setupCompositor = async () => {
-      const compositor = new LiveCompositor({
-        framerate: {
-          num: 30,
-          den: 1,
-        },
-        streamFallbackTimeoutMs: 500,
-      });
+    const compositor = new LiveCompositor({
+      framerate: {
+        num: 30,
+        den: 1,
+      },
+      streamFallbackTimeoutMs: 500,
+    });
 
-      await compositor.init();
+    await compositor.init();
 
-      setCompositor(compositor);
+    setCompositor(compositor);
 
-      await compositor.registerFont(
-        'https://fonts.gstatic.com/s/notosans/v36/o-0mIpQlx3QUlC5A4PNB6Ryti20_6n1iPHjcz6L1SoM-jCpoiyD9A-9a6Vc.ttf'
-      );
-      void compositor.registerInput('bunny_video', { type: 'mp4', url: BUNNY_URL });
-      await compositor.registerOutput('output', <Scene />, {
-        type: 'canvas',
-        canvas: canvas,
-        resolution: {
-          width: 1280,
-          height: 720,
-        },
-      });
-    };
-
-    await setupCompositor();
+    await compositor.registerFont(
+      'https://fonts.gstatic.com/s/notosans/v36/o-0mIpQlx3QUlC5A4PNB6Ryti20_6n1iPHjcz6L1SoM-jCpoiyD9A-9a6Vc.ttf'
+    );
+    void compositor.registerInput('bunny_video', { type: 'mp4', url: BUNNY_URL });
+    await compositor.registerOutput('output', <Scene />, {
+      type: 'canvas',
+      canvas: canvas,
+      resolution: {
+        width: 1280,
+        height: 720,
+      },
+    });
   }, []);
 
   return [compositor, canvasRef];
