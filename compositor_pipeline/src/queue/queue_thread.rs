@@ -236,7 +236,9 @@ impl VideoQueueProcessor {
         let pts = frames_batch.pts;
         debug!(?pts, "Pushing video frames.");
         if is_required {
-            self.sender.send(frames_batch).unwrap()
+            if self.sender.send(frames_batch).is_err() {
+                warn!(?pts, "Dropping video frame on queue output.");
+            }
         } else {
             let send_deadline = self.queue_start_time.add(frames_batch.pts);
             if self
@@ -341,7 +343,9 @@ impl AudioQueueProcessor {
         let pts_range = (samples.start_pts, samples.end_pts);
         debug!(?pts_range, "Pushing audio samples.");
         if is_required {
-            self.sender.send(samples).unwrap()
+            if self.sender.send(samples).is_err() {
+                warn!(?pts_range, "Dropping audio batch on queue output.");
+            }
         } else if self.sender.try_send(samples).is_err() {
             warn!(?pts_range, "Dropping audio batch on queue output.")
         }

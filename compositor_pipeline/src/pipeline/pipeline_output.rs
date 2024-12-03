@@ -34,73 +34,73 @@ pub(super) enum OutputSender<T> {
     FinishedSender,
 }
 
-impl Pipeline {
-    pub(super) fn register_pipeline_output<NewOutputResult>(
-        &mut self,
-        output_id: OutputId,
-        output_options: &dyn OutputOptionsExt<NewOutputResult>,
-        video: Option<OutputVideoOptions>,
-        audio: Option<OutputAudioOptions>,
-    ) -> Result<NewOutputResult, RegisterOutputError> {
-        let (has_video, has_audio) = (video.is_some(), audio.is_some());
-        if !has_video && !has_audio {
-            return Err(RegisterOutputError::NoVideoAndAudio(output_id));
-        }
-
-        if self.outputs.contains_key(&output_id) {
-            return Err(RegisterOutputError::AlreadyRegistered(output_id));
-        }
-
-        let (output, output_result) = output_options.new_output(&output_id, &self.ctx)?;
-
-        let output = PipelineOutput {
-            output,
-            audio_end_condition: audio.as_ref().map(|audio| {
-                PipelineOutputEndConditionState::new_audio(
-                    audio.end_condition.clone(),
-                    &self.inputs,
-                )
-            }),
-            video_end_condition: video.as_ref().map(|video| {
-                PipelineOutputEndConditionState::new_video(
-                    video.end_condition.clone(),
-                    &self.inputs,
-                )
-            }),
-        };
-
-        if let (Some(video_opts), Some(resolution), Some(format)) = (
-            video.clone(),
-            output.output.resolution(),
-            output.output.output_frame_format(),
-        ) {
-            let result = self.renderer.update_scene(
-                output_id.clone(),
-                resolution,
-                format,
-                video_opts.initial,
-            );
-
-            if let Err(err) = result {
-                self.renderer.unregister_output(&output_id);
-                return Err(RegisterOutputError::SceneError(output_id.clone(), err));
-            }
-        };
-
-        if let Some(audio_opts) = audio.clone() {
-            self.audio_mixer.register_output(
-                output_id.clone(),
-                audio_opts.initial,
-                audio_opts.mixing_strategy,
-                audio_opts.channels,
-            );
-        }
-
-        self.outputs.insert(output_id.clone(), output);
-
-        Ok(output_result)
+pub(super) fn register_pipeline_output<NewOutputResult>(
+    pipeline: &Arc<Mutex<Pipeline>>,
+    output_id: OutputId,
+    output_options: &dyn OutputOptionsExt<NewOutputResult>,
+    video: Option<OutputVideoOptions>,
+    audio: Option<OutputAudioOptions>,
+) -> Result<NewOutputResult, RegisterOutputError> {
+    let (has_video, has_audio) = (video.is_some(), audio.is_some());
+    if !has_video && !has_audio {
+        return Err(RegisterOutputError::NoVideoAndAudio(output_id));
     }
 
+    if pipeline.lock().unwrap().outputs.contains_key(&output_id) {
+        return Err(RegisterOutputError::AlreadyRegistered(output_id));
+    }
+
+    let pipeline_ctx = pipeline.lock().unwrap().ctx.clone();
+
+    let (output, output_result) = output_options.new_output(&output_id, &pipeline_ctx)?;
+
+    let mut guard = pipeline.lock().unwrap();
+
+    if guard.outputs.contains_key(&output_id) {
+        return Err(RegisterOutputError::AlreadyRegistered(output_id));
+    }
+
+    let output = PipelineOutput {
+        output,
+        audio_end_condition: audio.as_ref().map(|audio| {
+            PipelineOutputEndConditionState::new_audio(audio.end_condition.clone(), &guard.inputs)
+        }),
+        video_end_condition: video.as_ref().map(|video| {
+            PipelineOutputEndConditionState::new_video(video.end_condition.clone(), &guard.inputs)
+        }),
+    };
+
+    if let (Some(video_opts), Some(resolution), Some(format)) = (
+        video.clone(),
+        output.output.resolution(),
+        output.output.output_frame_format(),
+    ) {
+        let result =
+            guard
+                .renderer
+                .update_scene(output_id.clone(), resolution, format, video_opts.initial);
+
+        if let Err(err) = result {
+            guard.renderer.unregister_output(&output_id);
+            return Err(RegisterOutputError::SceneError(output_id.clone(), err));
+        }
+    };
+
+    if let Some(audio_opts) = audio.clone() {
+        guard.audio_mixer.register_output(
+            output_id.clone(),
+            audio_opts.initial,
+            audio_opts.mixing_strategy,
+            audio_opts.channels,
+        );
+    }
+
+    guard.outputs.insert(output_id.clone(), output);
+
+    Ok(output_result)
+}
+
+impl Pipeline {
     pub(super) fn all_output_video_senders_iter(
         pipeline: &Arc<Mutex<Pipeline>>,
     ) -> impl Iterator<Item = (OutputId, OutputSender<Sender<PipelineEvent<Frame>>>)> {
@@ -232,6 +232,10 @@ impl PipelineOutputEndConditionState {
             return EosStatus::AlreadySent;
         }
         EosStatus::None
+    }
+
+    pub(super) fn did_output_end(&self) -> bool {
+        self.did_end
     }
 
     pub(super) fn on_input_registered(&mut self, input_id: &InputId) {

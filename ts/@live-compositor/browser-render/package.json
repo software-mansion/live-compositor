@@ -9,7 +9,7 @@
     "build-wasm": "node ./scripts/buildWasm.mjs",
     "build": "rollup -c",
     "clean": "rimraf dist",
-    "prepublishOnly": "npm run clean && npm run build-wasm && npm run build"
+    "prepublishOnly": "pnpm run clean && pnpm run build-wasm && pnpm run build"
   },
   "author": "",
   "license": "BUSL-1.1",
@@ -22,6 +22,6 @@
     "wasm-pack": "^0.13.0"
   },
   "peerDependencies": {
-    "live-compositor": "^0.1.0"
+    "live-compositor": "workspace:0.1.0"
   }
 }

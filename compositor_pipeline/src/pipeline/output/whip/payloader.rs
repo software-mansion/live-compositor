@@ -12,6 +12,8 @@ use crate::pipeline::{
     AudioCodec, VideoCodec,
 };
 
+use super::WhipAudioOptions;
+
 const H264_CLOCK_RATE: u32 = 90000;
 const OPUS_CLOCK_RATE: u32 = 48000;
 
@@ -100,15 +102,15 @@ enum AudioPayloader {
 
 #[derive(Debug)]
 pub enum Payload {
-    Video(Bytes),
-    Audio(Bytes),
+    Video(Result<Bytes, PayloadingError>),
+    Audio(Result<Bytes, PayloadingError>),
 }
 
 impl Payloader {
-    pub fn new(video: Option<VideoCodec>, audio: Option<AudioCodec>) -> Self {
+    pub fn new(video: Option<VideoCodec>, audio: Option<WhipAudioOptions>) -> Self {
         Self {
             video: video.map(VideoPayloader::new),
-            audio: audio.map(AudioPayloader::new),
+            audio: audio.map(|audio| AudioPayloader::new(audio.codec)),
         }
     }
 
@@ -304,12 +306,16 @@ fn payload<T: rtp::packetizer::Payloader>(
             context.next_sequence_number = context.next_sequence_number.wrapping_add(1);
 
             match payload_type {
-                VIDEO_PAYLOAD_TYPE => Ok(Payload::Video(
-                    rtp::packet::Packet { header, payload }.marshal()?,
-                )),
-                AUDIO_PAYLOAD_TYPE => Ok(Payload::Audio(
-                    rtp::packet::Packet { header, payload }.marshal()?,
-                )),
+                VIDEO_PAYLOAD_TYPE => {
+                    Ok(Payload::Video(Ok(
+                        rtp::packet::Packet { header, payload }.marshal()?
+                    )))
+                }
+                AUDIO_PAYLOAD_TYPE => {
+                    Ok(Payload::Audio(Ok(
+                        rtp::packet::Packet { header, payload }.marshal()?
+                    )))
+                }
                 _ => Err(PayloadingError::UnsupportedPayloadType),
             }
         })

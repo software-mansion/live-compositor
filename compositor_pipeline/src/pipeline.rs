@@ -25,6 +25,7 @@ use input::RawDataInputOptions;
 use output::EncodedDataOutputOptions;
 use output::OutputOptions;
 use output::RawDataOutputOptions;
+use pipeline_output::register_pipeline_output;
 use tokio::runtime::Runtime;
 use tracing::{error, info, trace, warn};
 use types::RawDataSender;
@@ -130,6 +131,7 @@ pub struct Options {
     pub wgpu_ctx: Option<GraphicsContext>,
     pub whip_whep_server_port: u16,
     pub start_whip_whep: bool,
+    pub tokio_rt: Arc<Runtime>,
 }
 
 #[derive(Clone)]
@@ -138,12 +140,12 @@ pub struct PipelineCtx {
     pub output_framerate: Framerate,
     pub download_dir: Arc<PathBuf>,
     pub event_emitter: Arc<EventEmitter>,
-    pub tokio_rt: Arc<tokio::runtime::Runtime>,
     pub whip_whep_state: Arc<WhipWhepState>,
     pub whip_whep_server_port: u16,
     pub start_whip_whep: bool,
+    pub tokio_rt: Arc<Runtime>,
     #[cfg(feature = "vk-video")]
-    pub vulkan_ctx: Option<Arc<vk_video::VulkanCtx>>,
+    pub vulkan_ctx: Option<graphics_context::VulkanCtx>,
 }
 
 impl std::fmt::Debug for PipelineCtx {
@@ -166,6 +168,7 @@ impl Pipeline {
                 opts.force_gpu,
                 opts.wgpu_features,
                 Default::default(),
+                None,
             )?),
             #[cfg(not(feature = "vk-video"))]
             None => None,
@@ -191,19 +194,6 @@ impl Pipeline {
         std::fs::create_dir_all(&download_dir).map_err(InitPipelineError::CreateDownloadDir)?;
 
         let event_emitter = Arc::new(EventEmitter::new());
-        let ctx = PipelineCtx {
-            output_sample_rate: opts.output_sample_rate,
-            output_framerate: opts.queue_options.output_framerate,
-            download_dir: download_dir.into(),
-            event_emitter: event_emitter.clone(),
-            tokio_rt: Arc::new(Runtime::new().map_err(InitPipelineError::CreateTokioRuntime)?),
-            whip_whep_state: WhipWhepState::new(),
-            #[cfg(feature = "vk-video")]
-            vulkan_ctx: preinitialized_ctx.and_then(|ctx| ctx.vulkan_ctx),
-            whip_whep_server_port: opts.whip_whep_server_port,
-            start_whip_whep: opts.start_whip_whep,
-        };
-
         let pipeline = Pipeline {
             outputs: HashMap::new(),
             inputs: HashMap::new(),
@@ -211,7 +201,18 @@ impl Pipeline {
             renderer,
             audio_mixer: AudioMixer::new(opts.output_sample_rate),
             is_started: false,
-            ctx,
+            ctx: PipelineCtx {
+                output_sample_rate: opts.output_sample_rate,
+                output_framerate: opts.queue_options.output_framerate,
+                download_dir: download_dir.into(),
+                event_emitter,
+                whip_whep_state: WhipWhepState::new(),
+                whip_whep_server_port: opts.whip_whep_server_port,
+                start_whip_whep: opts.start_whip_whep,
+                tokio_rt: opts.tokio_rt,
+                #[cfg(feature = "vk-video")]
+                vulkan_ctx: preinitialized_ctx.and_then(|ctx| ctx.vulkan_ctx),
+            },
         };
 
         Ok((pipeline, event_loop))
@@ -267,11 +268,12 @@ impl Pipeline {
     }
 
     pub fn register_output(
-        &mut self,
+        pipeline: &Arc<Mutex<Self>>,
         output_id: OutputId,
         register_options: RegisterOutputOptions<OutputOptions>,
     ) -> Result<Option<Port>, RegisterOutputError> {
-        self.register_pipeline_output(
+        register_pipeline_output(
+            pipeline,
             output_id,
             &register_options.output_options,
             register_options.video,
@@ -280,11 +282,12 @@ impl Pipeline {
     }
 
     pub fn register_encoded_data_output(
-        &mut self,
+        pipeline: &Arc<Mutex<Self>>,
         output_id: OutputId,
         register_options: RegisterOutputOptions<EncodedDataOutputOptions>,
     ) -> Result<Receiver<EncoderOutputEvent>, RegisterOutputError> {
-        self.register_pipeline_output(
+        register_pipeline_output(
+            pipeline,
             output_id,
             &register_options.output_options,
             register_options.video,
@@ -293,11 +296,12 @@ impl Pipeline {
     }
 
     pub fn register_raw_data_output(
-        &mut self,
+        pipeline: &Arc<Mutex<Self>>,
         output_id: OutputId,
         register_options: RegisterOutputOptions<RawDataOutputOptions>,
     ) -> Result<RawDataReceiver, RegisterOutputError> {
-        self.register_pipeline_output(
+        register_pipeline_output(
+            pipeline,
             output_id,
             &register_options.output_options,
             register_options.video,
@@ -394,6 +398,15 @@ impl Pipeline {
             .outputs
             .get(&output_id)
             .ok_or_else(|| UpdateSceneError::OutputNotRegistered(output_id.clone()))?;
+
+        if let Some(cond) = &output.video_end_condition {
+            if cond.did_output_end() {
+                // Ignore updates after EOS
+                warn!("Received output update on a finished output");
+                return Ok(());
+            }
+        }
+
         let (Some(resolution), Some(frame_format)) = (
             output.output.resolution(),
             output.output.output_frame_format(),
@@ -412,6 +425,19 @@ impl Pipeline {
         output_id: &OutputId,
         audio: AudioMixingParams,
     ) -> Result<(), UpdateSceneError> {
+        let output = self
+            .outputs
+            .get(output_id)
+            .ok_or_else(|| UpdateSceneError::OutputNotRegistered(output_id.clone()))?;
+
+        if let Some(cond) = &output.audio_end_condition {
+            if cond.did_output_end() {
+                // Ignore updates after EOS
+                warn!("Received output update on a finished output");
+                return Ok(());
+            }
+        }
+
         info!(?output_id, "Update audio mixer {:#?}", audio);
         self.audio_mixer.update_output(output_id, audio)
     }

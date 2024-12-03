@@ -1,8 +1,9 @@
+// eslint-disable-next-line import/no-named-as-default
 import Reconciler from 'react-reconciler';
 import { DefaultEventPriority, LegacyRoot } from 'react-reconciler/constants.js';
-import { Api } from './api.js';
-import { _liveCompositorInternals } from 'live-compositor';
-import React from 'react';
+import type { Api } from './api.js';
+import type { _liveCompositorInternals } from 'live-compositor';
+import type React from 'react';
 
 type SceneBuilder<P> = _liveCompositorInternals.SceneBuilder<P>;
 type SceneComponent = _liveCompositorInternals.SceneComponent;

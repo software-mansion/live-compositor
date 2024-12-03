@@ -1,6 +1,7 @@
 import path from 'path';
-import fs from 'fs-extra';
-import { ChildProcess, spawn as nodeSpawn } from 'child_process';
+import fs, { mkdirp, pathExists, writeFile } from 'fs-extra';
+import type { ChildProcess } from 'child_process';
+import { spawn as nodeSpawn } from 'child_process';
 import { promisify } from 'util';
 import { Stream } from 'stream';
 import fetch from 'node-fetch';
@@ -14,7 +15,7 @@ export async function ffplayStartPlayerAsync(
   video_port: number,
   audio_port: number | undefined = undefined
 ): Promise<{ spawn_promise: SpawnPromise }> {
-  await fs.mkdirp(TMP_SDP_DIR);
+  await mkdirp(TMP_SDP_DIR);
   let sdpFilePath;
   if (audio_port === undefined) {
     sdpFilePath = path.join(TMP_SDP_DIR, `video_input_${video_port}.sdp`);
@@ -89,7 +90,7 @@ async function writeVideoAudioSdpFile(
   audio_port: number,
   destination: string
 ): Promise<void> {
-  await fs.writeFile(
+  await writeFile(
     destination,
     `
 v=0
@@ -108,7 +109,7 @@ a=rtcp-mux
 }
 
 async function writeVideoSdpFile(ip: string, port: number, destination: string): Promise<void> {
-  await fs.writeFile(
+  await writeFile(
     destination,
     `
 v=0
@@ -144,10 +145,10 @@ const exampleAssets = [
 
 export async function downloadAllAssets(): Promise<void> {
   const downloadDir = path.join(__dirname, '../.assets');
-  await fs.mkdirp(downloadDir);
+  await mkdirp(downloadDir);
 
   for (const asset of exampleAssets) {
-    if (!(await fs.pathExists(path.join(downloadDir, asset.path)))) {
+    if (!(await pathExists(path.join(downloadDir, asset.path)))) {
       await download(asset.url, path.join(downloadDir, asset.path));
     }
   }

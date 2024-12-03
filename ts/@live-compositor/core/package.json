@@ -12,14 +12,14 @@
   "scripts": {
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "watch": "concurrently \"npm run watch:esm\" \"npm run watch:cjs\"",
+    "watch": "concurrently \"pnpm run watch:esm\" \"pnpm run watch:cjs\"",
     "watch:esm": "tsc --watch --preserveWatchOutput",
     "watch:cjs": "tsc --watch --preserveWatchOutput -p ./tsconfig.cjs.json",
-    "build": "npm run build:esm && npm run build:cjs",
+    "build": "pnpm run build:esm && pnpm run build:cjs",
     "build:esm": "tsc && echo '{\"type\": \"module\"}' > esm/package.json",
     "build:cjs": "tsc -p ./tsconfig.cjs.json && echo '{\"type\": \"commonjs\"}' > cjs/package.json",
     "clean": "rimraf esm cjs",
-    "prepublishOnly": "npm run clean && npm run build"
+    "prepublishOnly": "pnpm run clean && pnpm run build"
   },
   "author": "",
   "license": "MIT",
@@ -28,12 +28,14 @@
     "/cjs"
   ],
   "devDependencies": {
+    "@types/react": "^18.3.3",
     "@types/react-reconciler": "0.28.8"
   },
   "dependencies": {
     "react-reconciler": "0.29.2"
   },
   "peerDependencies": {
-    "live-compositor": "^0.1.0"
+    "react": "*",
+    "live-compositor": "workspace:^0.1.0"
   }
 }

@@ -1,31 +1,35 @@
 use h264_reader::nal::slice::PicOrderCountLsb;
 
-use super::Slice;
+use super::nalu_parser::Slice;
 
 #[derive(Default)]
 pub(crate) struct AUSplitter {
-    buffered_nals: Vec<Slice>,
+    buffered_nals: Vec<(Slice, Option<u64>)>,
 }
 
 impl AUSplitter {
-    pub(crate) fn put_slice(&mut self, slice: Slice) -> Option<Vec<Slice>> {
+    pub(crate) fn put_slice(
+        &mut self,
+        slice: Slice,
+        pts: Option<u64>,
+    ) -> Option<Vec<(Slice, Option<u64>)>> {
         if self.is_new_au(&slice) {
             let au = std::mem::take(&mut self.buffered_nals);
-            self.buffered_nals.push(slice);
+            self.buffered_nals.push((slice, pts));
             if !au.is_empty() {
                 Some(au)
             } else {
                 None
             }
         } else {
-            self.buffered_nals.push(slice);
+            self.buffered_nals.push((slice, pts));
             None
         }
     }
 
     /// returns `true` if `slice` is a first slice in an Access Unit
     fn is_new_au(&self, slice: &Slice) -> bool {
-        let Some(last) = self.buffered_nals.last() else {
+        let Some((last, _)) = self.buffered_nals.last() else {
             return true;
         };
 
@@ -46,20 +50,17 @@ impl AUSplitter {
 // defguardp first_mb_in_slice_zero(a)
 //           when a.first_mb_in_slice == 0 and
 //                  a.nal_unit_type in [1, 2, 5]
-//
 fn first_mb_in_slice_zero(slice: &Slice) -> bool {
     slice.header.first_mb_in_slice == 0
 }
 
 // defguardp frame_num_differs(a, b) when a.frame_num != b.frame_num
-//
 fn frame_num_differs(last: &Slice, curr: &Slice) -> bool {
     last.header.frame_num != curr.header.frame_num
 }
 
 // defguardp pic_parameter_set_id_differs(a, b)
 //           when a.pic_parameter_set_id != b.pic_parameter_set_id
-//
 fn pps_id_differs(last: &Slice, curr: &Slice) -> bool {
     last.pps_id != curr.pps_id
 }
@@ -67,7 +68,6 @@ fn pps_id_differs(last: &Slice, curr: &Slice) -> bool {
 // defguardp field_pic_flag_differs(a, b) when a.field_pic_flag != b.field_pic_flag
 //
 // defguardp bottom_field_flag_differs(a, b) when a.bottom_field_flag != b.bottom_field_flag
-//
 fn field_pic_flag_differs(last: &Slice, curr: &Slice) -> bool {
     last.header.field_pic != curr.header.field_pic
 }
@@ -75,7 +75,6 @@ fn field_pic_flag_differs(last: &Slice, curr: &Slice) -> bool {
 // defguardp nal_ref_idc_differs_one_zero(a, b)
 //           when (a.nal_ref_idc == 0 or b.nal_ref_idc == 0) and
 //                  a.nal_ref_idc != b.nal_ref_idc
-//
 fn nal_ref_idc_differs_one_zero(last: &Slice, curr: &Slice) -> bool {
     (last.nal_header.nal_ref_idc() == 0 || curr.nal_header.nal_ref_idc() == 0)
         && last.nal_header.nal_ref_idc() != curr.nal_header.nal_ref_idc()
@@ -85,7 +84,6 @@ fn nal_ref_idc_differs_one_zero(last: &Slice, curr: &Slice) -> bool {
 //           when a.pic_order_cnt_type == 0 and b.pic_order_cnt_type == 0 and
 //                  (a.pic_order_cnt_lsb != b.pic_order_cnt_lsb or
 //                     a.delta_pic_order_cnt_bottom != b.delta_pic_order_cnt_bottom)
-//
 fn pic_order_cnt_zero_check(last: &Slice, curr: &Slice) -> bool {
     let (last_pic_order_cnt_lsb, last_delta_pic_order_cnt_bottom) =
         match last.header.pic_order_cnt_lsb {
@@ -111,20 +109,19 @@ fn pic_order_cnt_zero_check(last: &Slice, curr: &Slice) -> bool {
         || last_delta_pic_order_cnt_bottom != curr_delta_pic_order_cnt_bottom
 }
 
+// TODO
 // defguardp pic_order_cnt_one_check_zero(a, b)
 //           when a.pic_order_cnt_type == 1 and b.pic_order_cnt_type == 1 and
 //                  hd(a.delta_pic_order_cnt) != hd(b.delta_pic_order_cnt)
-// TODO
 
+// TODO
 // defguardp pic_order_cnt_one_check_one(a, b)
 //           when a.pic_order_cnt_type == 1 and b.pic_order_cnt_type == 1 and
 //                  hd(hd(a.delta_pic_order_cnt)) != hd(hd(b.delta_pic_order_cnt))
-// TODO
 
 // defguardp idr_and_non_idr(a, b)
 //           when (a.nal_unit_type == 5 or b.nal_unit_type == 5) and
 //                  a.nal_unit_type != b.nal_unit_type
-//
 fn idr_and_non_idr(last: &Slice, curr: &Slice) -> bool {
     (last.nal_header.nal_unit_type().id() == 5) ^ (curr.nal_header.nal_unit_type().id() == 5)
 }

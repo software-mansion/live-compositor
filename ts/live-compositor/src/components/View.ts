@@ -1,12 +1,10 @@
-import * as Api from '../api.js';
-import { createCompositorComponent, SceneComponent, sceneComponentIntoApi } from '../component.js';
-import { intoApiRgbaColor, intoApiTransition, Transition } from './common.js';
+import type * as Api from '../api.js';
+import type { SceneComponent } from '../component.js';
+import { createCompositorComponent, sceneComponentIntoApi } from '../component.js';
+import type { Transition } from './common.js';
+import { intoApiRgbaColor, intoApiTransition } from './common.js';
 
-export type ViewProps = {
-  /**
-   * Id of a component.
-   */
-  id?: Api.ComponentId;
+export type ViewStyle = {
   /**
    * Width of a component in pixels. Exact behavior might be different based on the parent
    * component:
@@ -56,11 +54,6 @@ export type ViewProps = {
    */
   rotation?: number;
   /**
-   * Defines how this component will behave during a scene update. This will only have an
-   * effect if the previous scene already contained a `View` component with the same id.
-   */
-  transition?: Transition;
-  /**
    * (**default=`"hidden"`**) Controls what happens to content that is too big to fit into an area.
    */
   overflow?: Api.Overflow;
@@ -70,28 +63,47 @@ export type ViewProps = {
   backgroundColor?: string;
 };
 
+export type ViewProps = {
+  /**
+   * Id of a component.
+   */
+  id?: Api.ComponentId;
+
+  /**
+   * Component styling properties.
+   */
+  style?: ViewStyle;
+
+  /**
+   * Defines how this component will behave during a scene update. This will only have an
+   * effect if the previous scene already contained a `View` component with the same id.
+   */
+  transition?: Transition;
+};
+
 const View = createCompositorComponent<ViewProps>(sceneBuilder);
 
-function sceneBuilder(props: ViewProps, children: SceneComponent[]): Api.Component {
+function sceneBuilder(
+  { id, style = {}, transition }: ViewProps,
+  children: SceneComponent[]
+): Api.Component {
   return {
     type: 'view',
-
+    id,
     children: children.map(sceneComponentIntoApi),
+    width: style.width,
+    height: style.height,
+    direction: style.direction,
 
-    id: props.id,
-    width: props.width,
-    height: props.height,
-    direction: props.direction,
+    top: style.top,
+    right: style.right,
+    bottom: style.bottom,
+    left: style.left,
 
-    top: props.top,
-    left: props.left,
-    bottom: props.bottom,
-    right: props.right,
-    rotation: props.rotation,
-
-    transition: props.transition && intoApiTransition(props.transition),
-    overflow: props.overflow,
-    background_color_rgba: props.backgroundColor && intoApiRgbaColor(props.backgroundColor),
+    rotation: style.rotation,
+    overflow: style.overflow,
+    background_color_rgba: style?.backgroundColor && intoApiRgbaColor(style.backgroundColor),
+    transition: transition && intoApiTransition(transition),
   };
 }
 

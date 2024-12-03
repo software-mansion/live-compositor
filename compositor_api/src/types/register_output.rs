@@ -44,11 +44,11 @@ pub struct WhipOutput {
     /// WHIP server endpoint
     pub endpoint_url: String,
     // Bearer token
-    pub bearer_token: Option<String>,
+    pub bearer_token: Option<Arc<str>>,
     /// Video track configuration.
     pub video: Option<OutputVideoOptions>,
     /// Audio track configuration.
-    pub audio: Option<OutputRtpAudioOptions>,
+    pub audio: Option<OutputWhipAudioOptions>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
@@ -91,6 +91,19 @@ pub struct OutputMp4AudioOptions {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct OutputWhipAudioOptions {
+    /// (**default="sum_clip"**) Specifies how audio should be mixed.
+    pub mixing_strategy: Option<MixingStrategy>,
+    /// Condition for termination of output stream based on the input streams states.
+    pub send_eos_when: Option<OutputEndCondition>,
+    /// Audio encoder options.
+    pub encoder: WhipAudioEncoderOptions,
+    /// Initial audio mixer configuration for output.
+    pub initial: Audio,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
 pub enum VideoEncoderOptions {
     #[serde(rename = "ffmpeg_h264")]
@@ -119,6 +132,18 @@ pub enum RtpAudioEncoderOptions {
 #[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Mp4AudioEncoderOptions {
     Aac { channels: AudioChannels },
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+#[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
+pub enum WhipAudioEncoderOptions {
+    Opus {
+        /// Specifies channels configuration.
+        channels: AudioChannels,
+
+        /// (**default="voip"**) Specifies preset for audio output encoder.
+        preset: Option<OpusEncoderPreset>,
+    },
 }
 
 /// This type defines when end of an input stream should trigger end of the output stream. Only one of those fields can be set at the time.

@@ -5,6 +5,7 @@ use compositor_pipeline::{error::InitPipelineError, pipeline};
 use compositor_render::EventLoop;
 
 use serde::Serialize;
+use tokio::runtime::Runtime;
 
 use crate::config::Config;
 
@@ -31,7 +32,10 @@ pub struct ApiState {
 }
 
 impl ApiState {
-    pub fn new(config: Config) -> Result<(ApiState, Arc<dyn EventLoop>), InitPipelineError> {
+    pub fn new(
+        config: Config,
+        runtime: Arc<Runtime>,
+    ) -> Result<(ApiState, Arc<dyn EventLoop>), InitPipelineError> {
         let Config {
             queue_options,
             stream_fallback_timeout,
@@ -56,6 +60,7 @@ impl ApiState {
             load_system_fonts: Some(true),
             start_whip_whep,
             whip_whep_server_port,
+            tokio_rt: runtime,
         })?;
         Ok((
             ApiState {

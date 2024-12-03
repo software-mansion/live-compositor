@@ -2,7 +2,7 @@ import LiveCompositor from '@live-compositor/node';
 import { Text, InputStream, Tiles, Rescaler, View, useInputStreams } from 'live-compositor';
 import { downloadAllAssets, gstReceiveTcpStream, sleep } from './utils';
 import path from 'path';
-import fs from 'fs-extra';
+import { mkdirp } from 'fs-extra';
 
 function ExampleApp() {
   const inputs = useInputStreams();
@@ -21,8 +21,9 @@ function InputTile({ inputId }: { inputId: string }) {
       <Rescaler>
         <InputStream inputId={inputId} />
       </Rescaler>
-      <View bottom={10} left={10} height={50}>
-        <Text fontSize={40} color="#FF0000" lineHeight={50} backgroundColor="#FFFFFF88">
+      <View style={{ bottom: 10, left: 10, height: 50 }}>
+        <Text
+          style={{ fontSize: 40, color: '#FF0000', lineHeight: 50, backgroundColor: '#FFFFFF88' }}>
           Input ID: {inputId}
         </Text>
       </View>
@@ -31,7 +32,7 @@ function InputTile({ inputId }: { inputId: string }) {
 }
 
 async function run() {
-  await fs.mkdirp(path.join(__dirname, '../.workingdir'));
+  await mkdirp(path.join(__dirname, '../.workingdir'));
   await downloadAllAssets();
   const compositor = new LiveCompositor();
   await compositor.init();

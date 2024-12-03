@@ -9,13 +9,13 @@ function ExampleApp() {
     <Tiles transition={{ durationMs: 200 }}>
       {Object.values(inputs).map(input =>
         !input.videoState ? (
-          <Text key={input.inputId} fontSize={40}>
+          <Text key={input.inputId} style={{ fontSize: 40 }}>
             Waiting for stream {input.inputId} to connect
           </Text>
         ) : input.videoState === 'playing' ? (
           <InputTile key={input.inputId} inputId={input.inputId} />
         ) : input.videoState === 'finished' ? (
-          <Text key={input.inputId} fontSize={40}>
+          <Text key={input.inputId} style={{ fontSize: 40 }}>
             Stream {input.inputId} finished
           </Text>
         ) : (
@@ -32,8 +32,9 @@ function InputTile({ inputId }: { inputId: string }) {
       <Rescaler>
         <InputStream inputId={inputId} />
       </Rescaler>
-      <View bottom={10} left={10} height={50}>
-        <Text fontSize={40} color="#FF0000" lineHeight={50} backgroundColor="#FFFFFF88">
+      <View style={{ bottom: 10, left: 10, height: 50 }}>
+        <Text
+          style={{ fontSize: 40, color: '#FF0000', lineHeight: 50, backgroundColor: '#FFFFFF88' }}>
           Input ID: {inputId}
         </Text>
       </View>

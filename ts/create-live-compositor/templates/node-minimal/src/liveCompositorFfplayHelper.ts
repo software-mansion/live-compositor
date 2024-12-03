@@ -1,7 +1,8 @@
 import os from 'os';
 import path from 'path';
 import fs from 'fs';
-import { ChildProcess, spawn as nodeSpawn, SpawnOptions } from 'child_process';
+import type { ChildProcess, SpawnOptions } from 'child_process';
+import { spawn as nodeSpawn } from 'child_process';
 
 const TMP_SDP_DIR = path.join(os.tmpdir(), 'live-composiotor-sdp');
 

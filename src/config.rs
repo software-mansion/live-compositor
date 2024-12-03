@@ -1,4 +1,10 @@
-use std::{env, path::PathBuf, str::FromStr, time::Duration};
+use std::{
+    env,
+    path::{Path, PathBuf},
+    str::FromStr,
+    sync::Arc,
+    time::Duration,
+};
 
 use compositor_pipeline::queue::{self, QueueOptions};
 use compositor_render::{web_renderer::WebRendererInitOptions, Framerate, WgpuFeatures};
@@ -27,6 +33,7 @@ pub struct LoggerConfig {
     pub ffmpeg_logger_level: FfmpegLogLevel,
     pub format: LoggerFormat,
     pub level: String,
+    pub log_file: Option<Arc<Path>>,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -198,6 +205,11 @@ fn try_read_config() -> Result<Config, String> {
         Err(_) => true,
     };
 
+    let log_file = match env::var("LIVE_COMPOSITOR_LOG_FILE") {
+        Ok(path) => Some(Arc::from(PathBuf::from(path))),
+        Err(_) => None,
+    };
+
     let config = Config {
         instance_id,
         api_port,
@@ -205,6 +217,7 @@ fn try_read_config() -> Result<Config, String> {
             ffmpeg_logger_level,
             format: logger_format,
             level: logger_level,
+            log_file,
         },
         queue_options: QueueOptions {
             default_buffer_duration,

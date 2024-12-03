@@ -1,3 +1,5 @@
+use std::ops::{Add, Div, Mul, Sub};
+
 mod convert;
 pub(crate) mod interpolation;
 
@@ -73,4 +75,80 @@ pub enum InterpolationKind {
     Linear,
     Bounce,
     CubicBezier { x1: f64, y1: f64, x2: f64, y2: f64 },
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct BorderRadius {
+    pub top_left: f32,
+    pub top_right: f32,
+    pub bottom_right: f32,
+    pub bottom_left: f32,
+}
+
+impl BorderRadius {
+    pub const ZERO: BorderRadius = BorderRadius {
+        top_left: 0.0,
+        top_right: 0.0,
+        bottom_right: 0.0,
+        bottom_left: 0.0,
+    };
+
+    pub fn new_with_radius(radius: f32) -> Self {
+        Self {
+            top_left: radius,
+            top_right: radius,
+            bottom_right: radius,
+            bottom_left: radius,
+        }
+    }
+}
+
+impl Mul<f32> for BorderRadius {
+    type Output = BorderRadius;
+
+    fn mul(self, rhs: f32) -> Self::Output {
+        Self {
+            top_left: self.top_left * rhs,
+            top_right: self.top_right * rhs,
+            bottom_right: self.bottom_right * rhs,
+            bottom_left: self.bottom_left * rhs,
+        }
+    }
+}
+
+impl Div<f32> for BorderRadius {
+    type Output = BorderRadius;
+
+    fn div(self, rhs: f32) -> Self::Output {
+        self * (1.0 / rhs)
+    }
+}
+
+impl Add<f32> for BorderRadius {
+    type Output = BorderRadius;
+
+    fn add(self, rhs: f32) -> Self::Output {
+        Self {
+            top_left: f32::max(self.top_left + rhs, 0.0),
+            top_right: f32::max(self.top_right + rhs, 0.0),
+            bottom_right: f32::max(self.bottom_right + rhs, 0.0),
+            bottom_left: f32::max(self.bottom_left + rhs, 0.0),
+        }
+    }
+}
+
+impl Sub<f32> for BorderRadius {
+    type Output = BorderRadius;
+
+    fn sub(self, rhs: f32) -> Self::Output {
+        self + (-rhs)
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct BoxShadow {
+    pub offset_x: f32,
+    pub offset_y: f32,
+    pub blur_radius: f32,
+    pub color: RGBAColor,
 }

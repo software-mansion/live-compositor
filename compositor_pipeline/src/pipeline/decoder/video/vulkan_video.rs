@@ -1,9 +1,9 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
 use compositor_render::{Frame, FrameData, InputId, Resolution};
 use crossbeam_channel::{Receiver, Sender};
 use tracing::{debug, error, span, trace, warn, Level};
-use vk_video::{Decoder, VulkanCtx};
+use vk_video::VulkanDevice;
 
 use crate::{
     error::InputInitError,
@@ -17,7 +17,7 @@ pub fn start_vulkan_video_decoder_thread(
     frame_sender: Sender<PipelineEvent<Frame>>,
     input_id: InputId,
 ) -> Result<(), InputInitError> {
-    let Some(vulkan_ctx) = pipeline_ctx.vulkan_ctx.as_ref().map(|ctx| ctx.clone()) else {
+    let Some(vulkan_ctx) = pipeline_ctx.vulkan_ctx.clone() else {
         return Err(InputInitError::VulkanContextRequiredForVulkanDecoder);
     };
 
@@ -33,7 +33,7 @@ pub fn start_vulkan_video_decoder_thread(
             )
             .entered();
             run_decoder_thread(
-                vulkan_ctx,
+                vulkan_ctx.device,
                 init_result_sender,
                 chunks_receiver,
                 frame_sender,
@@ -47,12 +47,12 @@ pub fn start_vulkan_video_decoder_thread(
 }
 
 fn run_decoder_thread(
-    vulkan_ctx: Arc<VulkanCtx>,
+    vulkan_device: Arc<VulkanDevice>,
     init_result_sender: Sender<Result<(), InputInitError>>,
     chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
     frame_sender: Sender<PipelineEvent<Frame>>,
 ) {
-    let mut decoder = match Decoder::new(vulkan_ctx) {
+    let mut decoder = match vulkan_device.create_wgpu_textures_decoder() {
         Ok(decoder) => {
             init_result_sender.send(Ok(())).unwrap();
             decoder
@@ -79,7 +79,7 @@ fn run_decoder_thread(
             continue;
         }
 
-        let result = match decoder.decode_to_wgpu_textures(&chunk.data) {
+        let result = match decoder.decode(&chunk.data, Some(chunk.pts.as_micros() as u64)) {
             Ok(res) => res,
             Err(err) => {
                 warn!("Failed to decode frame: {err}");
@@ -87,7 +87,7 @@ fn run_decoder_thread(
             }
         };
 
-        for frame in result {
+        for vk_video::Frame { frame, pts } in result {
             let resolution = Resolution {
                 width: frame.width() as usize,
                 height: frame.height() as usize,
@@ -95,7 +95,7 @@ fn run_decoder_thread(
 
             let frame = Frame {
                 data: FrameData::Nv12WgpuTexture(frame.into()),
-                pts: chunk.pts,
+                pts: Duration::from_micros(pts.unwrap()),
                 resolution,
             };
 

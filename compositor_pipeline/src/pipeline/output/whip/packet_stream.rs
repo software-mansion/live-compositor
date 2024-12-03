@@ -33,12 +33,12 @@ impl PacketStream {
             match self.payloader.audio_eos() {
                 Err(PayloadingError::NoAudioPayloader) => (),
                 Err(PayloadingError::AudioEOSAlreadySent) => (),
-                packet => return Some(Ok(Payload::Audio(packet.unwrap()))),
+                packet => return Some(Ok(Payload::Audio(packet))),
             }
             match self.payloader.video_eos() {
                 Err(PayloadingError::NoVideoPayloader) => (),
                 Err(PayloadingError::VideoEOSAlreadySent) => (),
-                packet => return Some(Ok(Payload::Video(packet.unwrap()))),
+                packet => return Some(Ok(Payload::Video(packet))),
             }
             return None;
         };
@@ -46,10 +46,10 @@ impl PacketStream {
         let encoded_chunk = match packet {
             EncoderOutputEvent::Data(packet) => packet,
             EncoderOutputEvent::AudioEOS => {
-                return Some(Ok(Payload::Audio(self.payloader.audio_eos().unwrap())));
+                return Some(Ok(Payload::Audio(self.payloader.audio_eos())));
             }
             EncoderOutputEvent::VideoEOS => {
-                return Some(Ok(Payload::Video(self.payloader.video_eos().unwrap())));
+                return Some(Ok(Payload::Video(self.payloader.video_eos())));
             }
         };
 

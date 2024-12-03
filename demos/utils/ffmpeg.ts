@@ -1,6 +1,7 @@
-import { SpawnPromise, sleepAsync, spawn } from './utils';
+import type { SpawnPromise } from './utils';
+import { sleepAsync, spawn } from './utils';
 import path from 'path';
-import fs from 'fs-extra';
+import { mkdirp, writeFile } from 'fs-extra';
 
 const COMPOSITOR_DIR = path.join(__dirname, '../.live_compositor');
 
@@ -9,7 +10,7 @@ export async function ffplayStartPlayerAsync(
   audio_port: number | undefined = undefined
 ): Promise<void> {
   let sdpFilePath;
-  await fs.mkdirp(COMPOSITOR_DIR);
+  await mkdirp(COMPOSITOR_DIR);
   if (audio_port === undefined) {
     sdpFilePath = path.join(COMPOSITOR_DIR, `video_input_${video_port}.sdp`);
     await writeVideoSdpFile('127.0.0.1', video_port, sdpFilePath);
@@ -75,7 +76,7 @@ async function writeVideoAudioSdpFile(
   audio_port: number,
   destination: string
 ): Promise<void> {
-  await fs.writeFile(
+  await writeFile(
     destination,
     `
 v=0
@@ -94,7 +95,7 @@ a=rtcp-mux
 }
 
 async function writeVideoSdpFile(ip: string, port: number, destination: string): Promise<void> {
-  await fs.writeFile(
+  await writeFile(
     destination,
     `
 v=0

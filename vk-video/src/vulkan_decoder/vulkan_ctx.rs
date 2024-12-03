@@ -4,11 +4,14 @@ use std::{
 };
 
 use ash::{vk, Entry};
-use tracing::{error, info};
+use tracing::{debug, error, warn};
+use wgpu::hal::Adapter;
+
+use crate::{parser::Parser, BytesDecoder, DecoderError, WgpuTexturesDeocder};
 
 use super::{
-    Allocator, CommandBuffer, CommandPool, DebugMessenger, Device, H264ProfileInfo, Instance,
-    VulkanDecoderError,
+    Allocator, CommandBuffer, CommandPool, DebugMessenger, Device, FrameSorter, Instance,
+    VulkanDecoder, VulkanDecoderError,
 };
 
 const REQUIRED_EXTENSIONS: &[&CStr] = &[
@@ -44,110 +47,16 @@ pub enum VulkanCtxError {
     StringConversionError(#[from] std::ffi::FromBytesUntilNulError),
 }
 
-pub struct VulkanCtx {
+pub struct VulkanInstance {
     _entry: Arc<Entry>,
-    _instance: Arc<Instance>,
-    _physical_device: vk::PhysicalDevice,
-    pub(crate) device: Arc<Device>,
-    pub(crate) allocator: Arc<Allocator>,
-    pub(crate) queues: Queues,
+    instance: Arc<Instance>,
     _debug_messenger: Option<DebugMessenger>,
-    pub(crate) video_capabilities: vk::VideoCapabilitiesKHR<'static>,
-    pub(crate) h264_dpb_format_properties: vk::VideoFormatPropertiesKHR<'static>,
-    pub(crate) h264_dst_format_properties: Option<vk::VideoFormatPropertiesKHR<'static>>,
-    pub wgpu_ctx: WgpuCtx,
+    pub wgpu_instance: Arc<wgpu::Instance>,
 }
 
-pub struct WgpuCtx {
-    pub instance: Arc<wgpu::Instance>,
-    pub adapter: Arc<wgpu::Adapter>,
-    pub device: Arc<wgpu::Device>,
-    pub queue: Arc<wgpu::Queue>,
-}
-
-pub(crate) struct CommandPools {
-    pub(crate) _decode_pool: Arc<CommandPool>,
-    pub(crate) _transfer_pool: Arc<CommandPool>,
-}
-
-pub(crate) struct Queue {
-    pub(crate) queue: std::sync::Mutex<vk::Queue>,
-    pub(crate) idx: usize,
-    _video_properties: vk::QueueFamilyVideoPropertiesKHR<'static>,
-    pub(crate) query_result_status_properties:
-        vk::QueueFamilyQueryResultStatusPropertiesKHR<'static>,
-    device: Arc<Device>,
-}
-
-impl Queue {
-    pub(crate) fn supports_result_status_queries(&self) -> bool {
-        self.query_result_status_properties
-            .query_result_status_support
-            == vk::TRUE
-    }
-
-    pub(crate) fn submit(
-        &self,
-        buffer: &CommandBuffer,
-        wait_semaphores: &[(vk::Semaphore, vk::PipelineStageFlags2)],
-        signal_semaphores: &[(vk::Semaphore, vk::PipelineStageFlags2)],
-        fence: Option<vk::Fence>,
-    ) -> Result<(), VulkanDecoderError> {
-        fn to_sem_submit_info(
-            submits: &[(vk::Semaphore, vk::PipelineStageFlags2)],
-        ) -> Vec<vk::SemaphoreSubmitInfo> {
-            submits
-                .iter()
-                .map(|&(sem, stage)| {
-                    vk::SemaphoreSubmitInfo::default()
-                        .semaphore(sem)
-                        .stage_mask(stage)
-                })
-                .collect::<Vec<_>>()
-        }
-
-        let wait_semaphores = to_sem_submit_info(wait_semaphores);
-        let signal_semaphores = to_sem_submit_info(signal_semaphores);
-
-        let buffer_submit_info =
-            [vk::CommandBufferSubmitInfo::default().command_buffer(buffer.buffer)];
-
-        let submit_info = [vk::SubmitInfo2::default()
-            .wait_semaphore_infos(&wait_semaphores)
-            .signal_semaphore_infos(&signal_semaphores)
-            .command_buffer_infos(&buffer_submit_info)];
-
-        unsafe {
-            self.device.queue_submit2(
-                *self.queue.lock().unwrap(),
-                &submit_info,
-                fence.unwrap_or(vk::Fence::null()),
-            )?
-        };
-
-        Ok(())
-    }
-}
-
-pub(crate) struct Queues {
-    pub(crate) transfer: Queue,
-    pub(crate) h264_decode: Queue,
-    pub(crate) wgpu: Queue,
-}
-
-impl VulkanCtx {
-    pub fn new(
-        wgpu_features: wgpu::Features,
-        wgpu_limits: wgpu::Limits,
-    ) -> Result<Self, VulkanCtxError> {
+impl VulkanInstance {
+    pub fn new() -> Result<Arc<Self>, VulkanCtxError> {
         let entry = Arc::new(unsafe { Entry::load()? });
-
-        let instance_extension_properties =
-            unsafe { entry.enumerate_instance_extension_properties(None)? };
-        info!(
-            "instance_extension_properties amount: {}",
-            instance_extension_properties.len()
-        );
 
         let api_version = vk::make_api_version(0, 1, 3, 0);
         let app_info = vk::ApplicationInfo {
@@ -232,25 +141,47 @@ impl VulkanCtx {
             )?
         };
 
-        let physical_devices = unsafe { instance.enumerate_physical_devices()? };
+        let wgpu_instance =
+            unsafe { wgpu::Instance::from_hal::<wgpu::hal::vulkan::Api>(wgpu_instance) };
+
+        Ok(Self {
+            _entry: entry,
+            instance,
+            _debug_messenger: debug_messenger,
+            wgpu_instance: wgpu_instance.into(),
+        }
+        .into())
+    }
+
+    /// The `compatible surface` being a `&mut Option<&mut wgpu::Surface<'_>>` is a result of
+    /// weirdness in wgpu API, which we fixed upstream. When wgpu releases, this will be converted to
+    /// `Option<&wgpu::Surface<'_>>`
+    pub fn create_device(
+        &self,
+        wgpu_features: wgpu::Features,
+        wgpu_limits: wgpu::Limits,
+        compatible_surface: &mut Option<&mut wgpu::Surface<'_>>,
+    ) -> Result<Arc<VulkanDevice>, VulkanCtxError> {
+        let physical_devices = unsafe { self.instance.enumerate_physical_devices()? };
 
         let ChosenDevice {
             physical_device,
+            wgpu_adapter,
             queue_indices,
             h264_dpb_format_properties,
             h264_dst_format_properties,
             video_capabilities,
-        } = find_device(&physical_devices, &instance, REQUIRED_EXTENSIONS)?;
-
-        let wgpu_adapter = wgpu_instance
-            .expose_adapter(physical_device)
-            .ok_or(VulkanCtxError::WgpuAdapterNotCreated)?;
+            h264_caps,
+        } = find_device(
+            &physical_devices,
+            &self.instance,
+            &self.wgpu_instance,
+            REQUIRED_EXTENSIONS,
+            compatible_surface,
+        )?;
 
         let wgpu_features = wgpu_features | wgpu::Features::TEXTURE_FORMAT_NV12;
 
-        // TODO: we can only get the required extensions after exposing the adapter; the creation
-        // of the adapter and verification of whether the device supports all extensions should
-        // happen while picking the device.
         let wgpu_extensions = wgpu_adapter
             .adapter
             .required_device_extensions(wgpu_features);
@@ -283,15 +214,19 @@ impl VulkanCtx {
             .add_to_device_create(device_create_info)
             .push_next(&mut vk_synch_2_feature);
 
-        let device = unsafe { instance.create_device(physical_device, &device_create_info, None)? };
-        let video_queue_ext = ash::khr::video_queue::Device::new(&instance, &device);
-        let video_decode_queue_ext = ash::khr::video_decode_queue::Device::new(&instance, &device);
+        let device = unsafe {
+            self.instance
+                .create_device(physical_device, &device_create_info, None)?
+        };
+        let video_queue_ext = ash::khr::video_queue::Device::new(&self.instance, &device);
+        let video_decode_queue_ext =
+            ash::khr::video_decode_queue::Device::new(&self.instance, &device);
 
         let device = Arc::new(Device {
             device,
             video_queue_ext,
             video_decode_queue_ext,
-            _instance: instance.clone(),
+            _instance: self.instance.clone(),
         });
 
         let h264_decode_queue =
@@ -345,14 +280,12 @@ impl VulkanCtx {
         };
 
         let allocator = Arc::new(Allocator::new(
-            instance.clone(),
+            self.instance.clone(),
             physical_device,
             device.clone(),
         )?);
 
-        let wgpu_instance =
-            unsafe { wgpu::Instance::from_hal::<wgpu::hal::vulkan::Api>(wgpu_instance) };
-        let wgpu_adapter = unsafe { wgpu_instance.create_adapter_from_hal(wgpu_adapter) };
+        let wgpu_adapter = unsafe { self.wgpu_instance.create_adapter_from_hal(wgpu_adapter) };
         let (wgpu_device, wgpu_queue) = unsafe {
             wgpu_adapter.create_device_from_hal(
                 wgpu_device,
@@ -366,50 +299,114 @@ impl VulkanCtx {
             )?
         };
 
-        let wgpu_ctx = WgpuCtx {
-            instance: Arc::new(wgpu_instance),
-            adapter: Arc::new(wgpu_adapter),
-            device: Arc::new(wgpu_device),
-            queue: Arc::new(wgpu_queue),
-        };
-
-        Ok(Self {
-            _entry: entry,
-            _instance: instance,
+        Ok(VulkanDevice {
             _physical_device: physical_device,
             device,
             allocator,
             queues,
-            _debug_messenger: debug_messenger,
             video_capabilities,
             h264_dpb_format_properties,
             h264_dst_format_properties,
-            wgpu_ctx,
+            h264_caps,
+            wgpu_device: wgpu_device.into(),
+            wgpu_queue: wgpu_queue.into(),
+            wgpu_adapter: wgpu_adapter.into(),
+        }
+        .into())
+    }
+}
+
+impl std::fmt::Debug for VulkanInstance {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("VulkanInstance").finish()
+    }
+}
+
+pub struct VulkanDevice {
+    _physical_device: vk::PhysicalDevice,
+    pub(crate) device: Arc<Device>,
+    pub(crate) allocator: Arc<Allocator>,
+    pub(crate) queues: Queues,
+    pub(crate) video_capabilities: vk::VideoCapabilitiesKHR<'static>,
+    pub(crate) h264_dpb_format_properties: vk::VideoFormatPropertiesKHR<'static>,
+    pub(crate) h264_dst_format_properties: Option<vk::VideoFormatPropertiesKHR<'static>>,
+    pub(crate) h264_caps: vk::VideoDecodeH264CapabilitiesKHR<'static>,
+    pub wgpu_device: Arc<wgpu::Device>,
+    pub wgpu_queue: Arc<wgpu::Queue>,
+    pub wgpu_adapter: Arc<wgpu::Adapter>,
+}
+
+impl VulkanDevice {
+    pub fn create_wgpu_textures_decoder(
+        self: &Arc<Self>,
+    ) -> Result<WgpuTexturesDeocder, DecoderError> {
+        let parser = Parser::default();
+        let vulkan_decoder = VulkanDecoder::new(self.clone())?;
+        let frame_sorter = FrameSorter::<wgpu::Texture>::new();
+
+        Ok(WgpuTexturesDeocder {
+            parser,
+            vulkan_decoder,
+            frame_sorter,
+        })
+    }
+
+    pub fn create_bytes_decoder(self: &Arc<Self>) -> Result<BytesDecoder, DecoderError> {
+        let parser = Parser::default();
+        let vulkan_decoder = VulkanDecoder::new(self.clone())?;
+        let frame_sorter = FrameSorter::<Vec<u8>>::new();
+
+        Ok(BytesDecoder {
+            parser,
+            vulkan_decoder,
+            frame_sorter,
         })
     }
 }
 
-impl std::fmt::Debug for VulkanCtx {
+impl std::fmt::Debug for VulkanDevice {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("VulkanCtx").finish()
+        f.debug_struct("VulkanDevice").finish()
     }
 }
 
 struct ChosenDevice<'a> {
     physical_device: vk::PhysicalDevice,
+    wgpu_adapter: wgpu::hal::ExposedAdapter<wgpu::hal::vulkan::Api>,
     queue_indices: QueueIndices<'a>,
     h264_dpb_format_properties: vk::VideoFormatPropertiesKHR<'a>,
     h264_dst_format_properties: Option<vk::VideoFormatPropertiesKHR<'a>>,
     video_capabilities: vk::VideoCapabilitiesKHR<'a>,
+    h264_caps: vk::VideoDecodeH264CapabilitiesKHR<'a>,
 }
 
 fn find_device<'a>(
     devices: &[vk::PhysicalDevice],
     instance: &Instance,
+    wgpu_instance: &wgpu::Instance,
     required_extension_names: &[&CStr],
+    compatible_surface: &mut Option<&mut wgpu::Surface<'_>>,
 ) -> Result<ChosenDevice<'a>, VulkanCtxError> {
     for &device in devices {
         let properties = unsafe { instance.get_physical_device_properties(device) };
+
+        let wgpu_instance = unsafe { wgpu_instance.as_hal::<wgpu::hal::vulkan::Api>() }.unwrap();
+
+        let wgpu_adapter = wgpu_instance
+            .expose_adapter(device)
+            .ok_or(VulkanCtxError::WgpuAdapterNotCreated)?;
+
+        if let Some(surface) = compatible_surface {
+            let surface_capabilities = unsafe {
+                (*surface).as_hal::<wgpu::hal::vulkan::Api, _, _>(|surface| {
+                    surface.and_then(|surface| wgpu_adapter.adapter.surface_capabilities(surface))
+                })
+            };
+
+            if surface_capabilities.is_none() {
+                continue;
+            }
+        }
 
         let mut vk_13_features = vk::PhysicalDeviceVulkan13Features::default();
         let mut features = vk::PhysicalDeviceFeatures2::default().push_next(&mut vk_13_features);
@@ -418,7 +415,7 @@ fn find_device<'a>(
         let extensions = unsafe { instance.enumerate_device_extension_properties(device)? };
 
         if vk_13_features.synchronization2 == 0 {
-            error!(
+            warn!(
                 "device {:?} does not support the required synchronization2 feature",
                 properties.device_name_as_c_str()?
             );
@@ -437,7 +434,7 @@ fn find_device<'a>(
                 true
             })
         }) {
-            error!(
+            warn!(
                 "device {:?} does not support the required extensions",
                 properties.device_name_as_c_str()?
             );
@@ -463,7 +460,16 @@ fn find_device<'a>(
 
         unsafe { instance.get_physical_device_queue_family_properties2(device, &mut queues) };
 
-        let profile_info = H264ProfileInfo::decode_h264_yuv420();
+        let mut h264_profile_info = vk::VideoDecodeH264ProfileInfoKHR::default()
+            .picture_layout(vk::VideoDecodeH264PictureLayoutFlagsKHR::PROGRESSIVE)
+            .std_profile_idc(vk::native::StdVideoH264ProfileIdc_STD_VIDEO_H264_PROFILE_IDC_HIGH);
+
+        let profile_info = vk::VideoProfileInfoKHR::default()
+            .video_codec_operation(vk::VideoCodecOperationFlagsKHR::DECODE_H264)
+            .chroma_subsampling(vk::VideoChromaSubsamplingFlagsKHR::TYPE_420)
+            .luma_bit_depth(vk::VideoComponentBitDepthFlagsKHR::TYPE_8)
+            .chroma_bit_depth(vk::VideoComponentBitDepthFlagsKHR::TYPE_8)
+            .push_next(&mut h264_profile_info);
 
         let mut h264_caps = vk::VideoDecodeH264CapabilitiesKHR::default();
         let mut decode_caps = vk::VideoDecodeCapabilitiesKHR {
@@ -478,9 +484,7 @@ fn find_device<'a>(
                 .video_queue_instance_ext
                 .fp()
                 .get_physical_device_video_capabilities_khr)(
-                device,
-                &profile_info.profile_info,
-                &mut caps,
+                device, &profile_info, &mut caps
             )
             .result()?
         };
@@ -495,7 +499,11 @@ fn find_device<'a>(
             .max_dpb_slots(caps.max_dpb_slots)
             .max_active_reference_pictures(caps.max_active_reference_pictures)
             .std_header_version(caps.std_header_version);
-        info!("caps: {caps:#?}");
+
+        let h264_caps = vk::VideoDecodeH264CapabilitiesKHR::default()
+            .max_level_idc(h264_caps.max_level_idc)
+            .field_offset_granularity(h264_caps.field_offset_granularity);
+        debug!("video_caps: {caps:#?}");
 
         let flags = decode_caps.flags;
 
@@ -563,7 +571,7 @@ fn find_device<'a>(
                     .contains(vk::QueueFlags::VIDEO_DECODE_KHR)
             })
             .map(|(i, _)| i)
-            .collect::<Vec<_>>(); // TODO: have to split the queues
+            .collect::<Vec<_>>();
 
         let Some(transfer_queue_idx) = queues
             .iter()
@@ -603,13 +611,14 @@ fn find_device<'a>(
             continue;
         };
 
-        info!("deocde_caps: {decode_caps:#?}");
-        info!("h264_caps: {h264_caps:#?}");
-        info!("dpb_format_properties: {h264_dpb_format_properties:#?}");
-        info!("dst_format_properties: {h264_dst_format_properties:#?}");
+        debug!("deocde_caps: {decode_caps:#?}");
+        debug!("h264_caps: {h264_caps:#?}");
+        debug!("dpb_format_properties: {h264_dpb_format_properties:#?}");
+        debug!("dst_format_properties: {h264_dst_format_properties:#?}");
 
         return Ok(ChosenDevice {
             physical_device: device,
+            wgpu_adapter,
             queue_indices: QueueIndices {
                 transfer: QueueIndex {
                     idx: transfer_queue_idx,
@@ -633,6 +642,7 @@ fn find_device<'a>(
             h264_dpb_format_properties,
             h264_dst_format_properties,
             video_capabilities,
+            h264_caps,
         });
     }
 
@@ -642,11 +652,11 @@ fn find_device<'a>(
 fn query_video_format_properties<'a>(
     device: vk::PhysicalDevice,
     video_queue_instance_ext: &ash::khr::video_queue::Instance,
-    profile_info: &H264ProfileInfo,
+    profile_info: &vk::VideoProfileInfoKHR<'_>,
     image_usage: vk::ImageUsageFlags,
 ) -> Result<Vec<vk::VideoFormatPropertiesKHR<'a>>, VulkanCtxError> {
-    let mut profile_list_info = vk::VideoProfileListInfoKHR::default()
-        .profiles(std::slice::from_ref(&profile_info.profile_info));
+    let mut profile_list_info =
+        vk::VideoProfileListInfoKHR::default().profiles(std::slice::from_ref(profile_info));
 
     let format_info = vk::PhysicalDeviceVideoFormatInfoKHR::default()
         .image_usage(image_usage)
@@ -682,6 +692,76 @@ fn query_video_format_properties<'a>(
     }
 
     Ok(format_properties)
+}
+
+pub(crate) struct CommandPools {
+    pub(crate) _decode_pool: Arc<CommandPool>,
+    pub(crate) _transfer_pool: Arc<CommandPool>,
+}
+
+pub(crate) struct Queue {
+    pub(crate) queue: std::sync::Mutex<vk::Queue>,
+    pub(crate) idx: usize,
+    _video_properties: vk::QueueFamilyVideoPropertiesKHR<'static>,
+    pub(crate) query_result_status_properties:
+        vk::QueueFamilyQueryResultStatusPropertiesKHR<'static>,
+    device: Arc<Device>,
+}
+
+impl Queue {
+    pub(crate) fn supports_result_status_queries(&self) -> bool {
+        self.query_result_status_properties
+            .query_result_status_support
+            == vk::TRUE
+    }
+
+    pub(crate) fn submit(
+        &self,
+        buffer: &CommandBuffer,
+        wait_semaphores: &[(vk::Semaphore, vk::PipelineStageFlags2)],
+        signal_semaphores: &[(vk::Semaphore, vk::PipelineStageFlags2)],
+        fence: Option<vk::Fence>,
+    ) -> Result<(), VulkanDecoderError> {
+        fn to_sem_submit_info(
+            submits: &[(vk::Semaphore, vk::PipelineStageFlags2)],
+        ) -> Vec<vk::SemaphoreSubmitInfo> {
+            submits
+                .iter()
+                .map(|&(sem, stage)| {
+                    vk::SemaphoreSubmitInfo::default()
+                        .semaphore(sem)
+                        .stage_mask(stage)
+                })
+                .collect::<Vec<_>>()
+        }
+
+        let wait_semaphores = to_sem_submit_info(wait_semaphores);
+        let signal_semaphores = to_sem_submit_info(signal_semaphores);
+
+        let buffer_submit_info =
+            [vk::CommandBufferSubmitInfo::default().command_buffer(buffer.buffer)];
+
+        let submit_info = [vk::SubmitInfo2::default()
+            .wait_semaphore_infos(&wait_semaphores)
+            .signal_semaphore_infos(&signal_semaphores)
+            .command_buffer_infos(&buffer_submit_info)];
+
+        unsafe {
+            self.device.queue_submit2(
+                *self.queue.lock().unwrap(),
+                &submit_info,
+                fence.unwrap_or(vk::Fence::null()),
+            )?
+        };
+
+        Ok(())
+    }
+}
+
+pub(crate) struct Queues {
+    pub(crate) transfer: Queue,
+    pub(crate) h264_decode: Queue,
+    pub(crate) wgpu: Queue,
 }
 
 struct QueueIndex<'a> {

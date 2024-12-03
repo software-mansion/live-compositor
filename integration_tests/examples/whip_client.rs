@@ -1,7 +1,7 @@
 use anyhow::Result;
 use compositor_api::types::Resolution;
 use serde_json::json;
-use std::{thread::sleep, time::Duration};
+use std::time::Duration;
 
 use integration_tests::examples::{self, run_example};
 
@@ -68,9 +68,6 @@ fn client_code() -> Result<()> {
     std::thread::sleep(Duration::from_millis(500));
 
     examples::post("start", &json!({}))?;
-
-    sleep(Duration::from_secs(300));
-    examples::post("output/output_1/unregister", &json!({}))?;
 
     Ok(())
 }

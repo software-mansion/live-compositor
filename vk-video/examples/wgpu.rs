@@ -2,6 +2,8 @@
 fn main() {
     use std::io::Write;
 
+    use vk_video::{Frame, VulkanInstance};
+
     let subscriber = tracing_subscriber::FmtSubscriber::builder()
         .with_max_level(tracing::Level::INFO)
         .finish();
@@ -15,26 +17,28 @@ fn main() {
     }
     let h264_bytestream = std::fs::read(&args[1]).unwrap_or_else(|_| panic!("read {}", args[1]));
 
-    let vulkan_ctx = std::sync::Arc::new(
-        vk_video::VulkanCtx::new(
+    let vulkan_instance = VulkanInstance::new().unwrap();
+    let vulkan_device = vulkan_instance
+        .create_device(
             wgpu::Features::empty(),
             wgpu::Limits {
                 max_push_constant_size: 128,
                 ..Default::default()
             },
+            &mut None,
         )
-        .unwrap(),
-    );
-    let mut decoder = vk_video::Decoder::new(vulkan_ctx.clone()).unwrap();
+        .unwrap();
+
+    let mut decoder = vulkan_device.create_wgpu_textures_decoder().unwrap();
 
     let mut output_file = std::fs::File::create("output.nv12").unwrap();
 
     for chunk in h264_bytestream.chunks(256) {
-        let frames = decoder.decode_to_wgpu_textures(chunk).unwrap();
+        let frames = decoder.decode(chunk, None).unwrap();
 
-        let device = &vulkan_ctx.wgpu_ctx.device;
-        let queue = &vulkan_ctx.wgpu_ctx.queue;
-        for frame in frames {
+        let device = &vulkan_device.wgpu_device;
+        let queue = &vulkan_device.wgpu_queue;
+        for Frame { frame, .. } in frames {
             let decoded_frame = download_wgpu_texture(device, queue, frame);
             output_file.write_all(&decoded_frame).unwrap();
         }

@@ -1,7 +1,10 @@
-import { _liveCompositorInternals, RegisterOutput, View, Outputs } from 'live-compositor';
-import React, { useSyncExternalStore } from 'react';
-import { ApiClient, Api } from './api.js';
+import type { Outputs } from 'live-compositor';
+import { _liveCompositorInternals, View } from 'live-compositor';
+import type React from 'react';
+import { createElement, useSyncExternalStore } from 'react';
+import type { ApiClient, Api } from './api.js';
 import Renderer from './renderer.js';
+import type { RegisterOutput } from './api/output.js';
 import { intoAudioInputsConfiguration } from './api/output.js';
 import { throttle } from './utils.js';
 
@@ -33,15 +36,16 @@ class Output {
       this.shouldUpdateWhenReady = true;
     };
 
-    if (registerRequest.audio) {
-      this.initialAudioConfig = registerRequest.audio.initial ?? { inputs: [] };
+    const hasAudio = 'audio' in registerRequest && !!registerRequest.audio;
+    if (hasAudio) {
+      this.initialAudioConfig = registerRequest.audio!.initial ?? { inputs: [] };
     }
 
     const onUpdate = () => this.throttledUpdate();
-    this.outputCtx = new _liveCompositorInternals.OutputContext(onUpdate, !!registerRequest.audio);
+    this.outputCtx = new _liveCompositorInternals.OutputContext(onUpdate, hasAudio);
 
     if (registerRequest.video) {
-      const rootElement = React.createElement(OutputRootComponent, {
+      const rootElement = createElement(OutputRootComponent, {
         instanceStore: store,
         outputCtx: this.outputCtx,
         outputRoot: registerRequest.video.root,
@@ -124,14 +128,14 @@ function OutputRootComponent({
 
   if (shouldShutdown) {
     // replace root with view to stop all the dynamic code
-    return React.createElement(View, {});
+    return createElement(View, {});
   }
 
   const reactCtx = {
     instanceStore,
     outputCtx,
   };
-  return React.createElement(
+  return createElement(
     _liveCompositorInternals.LiveCompositorContext.Provider,
     { value: reactCtx },
     outputRoot

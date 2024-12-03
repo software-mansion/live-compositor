@@ -34,6 +34,7 @@ function App() {
     }, 2000);
     return () => clearTimeout(timeout);
   }, [counter]);
+
   return <CallWithMockedInputs inputCount={inputCountPhases[counter % inputCountPhases.length]} />;
 }
 

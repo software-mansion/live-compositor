@@ -4,12 +4,12 @@
   "description": "",
   "main": "dist/index.js",
   "scripts": {
-    "lint": "eslint .",
+    "lint": "eslint src",
     "typecheck": "tsc --noEmit",
     "watch": "tsc --watch --preserveWatchOutput",
     "build": "tsc",
     "clean": "rimraf dist",
-    "prepublishOnly": "npm run clean && npm run build"
+    "prepublishOnly": "pnpm run clean && pnpm run build"
   },
   "author": "",
   "license": "MIT",

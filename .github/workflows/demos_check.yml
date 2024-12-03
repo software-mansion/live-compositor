@@ -1,6 +1,7 @@
 name: demos lint
 
 on:
+    workflow_dispatch: {}
     push:
         branches: [master]
         paths:
@@ -24,28 +25,24 @@ jobs:
               with:
                   submodules: "true"
 
+            - name: Install pnpm
+              uses: pnpm/action-setup@v4
+              with: 
+                  version: 9
+                  
             - name: Setup Node.js
-              uses: actions/setup-node@v2
+              uses: actions/setup-node@v4
               with:
                   node-version: "20"
 
-            - name: Cache dependencies
-              uses: actions/cache@v2
-              with:
-                  path: ~/.npm
-                  key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-                  restore-keys: |
-                      ${{ runner.os }}-node-
-                      ${{ runner.os }}-
-
             - name: Install project dependencies
               working-directory: ./demos
-              run: npm ci
+              run: pnpm install --frozen-lockfile
 
             - name: Lint code
               working-directory: ./demos
-              run: npm run lint
+              run: pnpm run lint
 
             - name: Typecheck code
               working-directory: ./demos
-              run: npm run typecheck
+              run: pnpm run typecheck

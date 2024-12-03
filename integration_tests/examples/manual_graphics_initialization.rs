@@ -2,6 +2,11 @@
 // instance, adapter, queue and device.
 
 #[cfg(target_os = "linux")]
+use std::sync::Arc;
+#[cfg(target_os = "linux")]
+use tokio::runtime::Runtime;
+
+#[cfg(target_os = "linux")]
 fn main() {
     use compositor_pipeline::{
         pipeline::{GraphicsContext, Options},
@@ -9,27 +14,18 @@ fn main() {
     };
     use live_compositor::config::read_config;
 
-    let graphics_context =
-        GraphicsContext::new(false, wgpu::Features::default(), wgpu::Limits::default()).unwrap();
+    let graphics_context = GraphicsContext::new(
+        false,
+        wgpu::Features::default(),
+        wgpu::Limits::default(),
+        None,
+    )
+    .unwrap();
 
     let _device = graphics_context.device.clone();
     let _queue = graphics_context.queue.clone();
-
-    let _adapter = graphics_context
-        .vulkan_ctx
-        .as_ref()
-        .unwrap()
-        .wgpu_ctx
-        .adapter
-        .clone();
-
-    let _instance = graphics_context
-        .vulkan_ctx
-        .as_ref()
-        .unwrap()
-        .wgpu_ctx
-        .instance
-        .clone();
+    let _adapter = graphics_context.adapter.clone();
+    let _instance = graphics_context.instance.clone();
 
     let config = read_config();
 
@@ -43,6 +39,7 @@ fn main() {
         output_sample_rate: config.output_sample_rate,
         wgpu_features: config.required_wgpu_features,
         load_system_fonts: Some(true),
+        tokio_rt: Arc::new(Runtime::new().unwrap()),
     })
     .unwrap();
 }

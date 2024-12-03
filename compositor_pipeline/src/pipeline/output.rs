@@ -19,6 +19,7 @@ use whip::{WhipSender, WhipSenderOptions};
 pub mod mp4;
 pub mod rtp;
 pub mod whip;
+
 /// Options to configure public outputs that can be constructed via REST API
 #[derive(Debug, Clone)]
 pub struct OutputOptions {
@@ -126,7 +127,7 @@ impl OutputOptionsExt<Option<Port>> for OutputOptions {
                     output_id,
                     whip_options.clone(),
                     packets,
-                    encoder.request_keyframe(),
+                    encoder.keyframe_request_sender(),
                     ctx,
                 )
                 .map_err(|e| RegisterOutputError::OutputError(output_id.clone(), e))?;
@@ -229,14 +230,15 @@ impl Output {
             Output::RawData { .. } => return Err(RequestKeyframeError::RawOutput(output_id)),
         };
 
-        if let Err(err) = encoder
+        if encoder
             .video
             .as_ref()
             .ok_or(RequestKeyframeError::NoVideoOutput(output_id))?
-            .request_keyframe()
+            .keyframe_request_sender()
             .send(())
+            .is_err()
         {
-            debug!(%err, "Failed to send keyframe request to the encoder.");
+            debug!("Failed to send keyframe request to the encoder. Channel closed.");
         };
 
         Ok(())
