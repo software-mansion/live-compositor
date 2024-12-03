@@ -1,22 +1,22 @@
-import { Queue } from '@datastructures-js/queue';
+export type FrameWithPts = {
+  frame: Omit<VideoFrame, 'timestamp'>;
+  ptsMs: number;
+};
 
-const MAX_DECODED_FRAMES = 3;
+export type H264DecoderProps = {
+  onFrame: (frame: FrameWithPts) => void;
+};
 
 export class H264Decoder {
-  private chunks: Queue<EncodedVideoChunk>;
-  private frames: Queue<VideoFrame>;
   private decoder: VideoDecoder;
+  private ptsOffset?: number;
 
-  public constructor() {
-    this.chunks = new Queue();
-    this.frames = new Queue();
+  public constructor(props: H264DecoderProps) {
     // TODO(noituri): Use web workers
     this.decoder = new VideoDecoder({
-      output: frame => {
-        this.frames.push(frame);
-      },
+      output: videoFrame => props.onFrame(this.intoFrameWithPts(videoFrame)),
       error: error => {
-        console.error(`MP4Decoder error: ${error}`);
+        console.error(`H264Decoder error: ${error}`);
       },
     });
   }
@@ -25,29 +25,31 @@ export class H264Decoder {
     this.decoder.configure(config);
   }
 
-  public enqueueChunk(chunk: EncodedVideoChunk) {
-    this.chunks.push(chunk);
-    this.decodeChunks();
+  public decode(chunk: EncodedVideoChunk) {
+    this.decoder.decode(chunk);
   }
 
-  /**
-   * Returns decoded video frames. Frames have to be manually freed from memory
-   */
-  public getFrame(): VideoFrame | undefined {
-    this.decodeChunks();
-    return this.frames.pop();
+  public decodeQueueSize(): number {
+    return this.decoder.decodeQueueSize;
   }
 
-  private decodeChunks() {
-    while (
-      this.frames.size() < MAX_DECODED_FRAMES &&
-      this.decoder.decodeQueueSize < MAX_DECODED_FRAMES
-    ) {
-      const chunk = this.chunks.pop();
-      if (!chunk) {
-        break;
-      }
-      this.decoder.decode(chunk);
+  private intoFrameWithPts(videoFrame: VideoFrame): FrameWithPts {
+    if (this.ptsOffset === undefined) {
+      this.ptsOffset = -videoFrame.timestamp;
     }
+
+    return {
+      frame: videoFrame,
+      // TODO(noituri): Handle pts roller
+      ptsMs: (this.ptsOffset + videoFrame.timestamp) / 1000,
+    };
+  }
+
+  public async flush(): Promise<void> {
+    await this.decoder.flush();
+  }
+
+  public close() {
+    this.decoder.close();
   }
 }
