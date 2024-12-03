@@ -10,13 +10,11 @@ use crate::utils;
 
 const ARM_MAC_TARGET: &str = "aarch64-apple-darwin";
 const ARM_OUTPUT_FILE: &str = "smelter_darwin_aarch64.tar.gz";
-const ARM_WITH_WEB_RENDERER_OUTPUT_FILE: &str =
-    "smelter_with_web_renderer_darwin_aarch64.tar.gz";
+const ARM_WITH_WEB_RENDERER_OUTPUT_FILE: &str = "smelter_with_web_renderer_darwin_aarch64.tar.gz";
 
 const INTEL_MAC_TARGET: &str = "x86_64-apple-darwin";
 const INTEL_OUTPUT_FILE: &str = "smelter_darwin_x86_64.tar.gz";
-const INTEL_WITH_WEB_RENDERER_OUTPUT_FILE: &str =
-    "smelter_with_web_renderer_darwin_x86_64.tar.gz";
+const INTEL_WITH_WEB_RENDERER_OUTPUT_FILE: &str = "smelter_with_web_renderer_darwin_x86_64.tar.gz";
 
 pub fn bundle_macos_app() -> Result<()> {
     tracing_subscriber::fmt().init();
@@ -59,10 +57,7 @@ fn bundle_app(target: &'static str, output_name: &str, enable_web_rendering: boo
         cef::bundle_app(&build_dir, &tmp_dir.join("smelter.app"))?;
     }
 
-    fs::copy(
-        build_dir.join("main_process"),
-        tmp_dir.join("smelter"),
-    )?;
+    fs::copy(build_dir.join("main_process"), tmp_dir.join("smelter"))?;
 
     info!("Create tar.gz archive.");
     let exit_code = Command::new("tar")

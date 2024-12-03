@@ -9,8 +9,7 @@ use crate::utils;
 
 const X86_TARGET: &str = "x86_64-unknown-linux-gnu";
 const X86_OUTPUT_FILE: &str = "smelter_linux_x86_64.tar.gz";
-const X86_WITH_WEB_RENDERER_OUTPUT_FILE: &str =
-    "smelter_with_web_renderer_linux_x86_64.tar.gz";
+const X86_WITH_WEB_RENDERER_OUTPUT_FILE: &str = "smelter_with_web_renderer_linux_x86_64.tar.gz";
 
 const ARM_TARGET: &str = "aarch64-unknown-linux-gnu";
 const ARM_OUTPUT_FILE: &str = "smelter_linux_aarch64.tar.gz";
@@ -81,10 +80,7 @@ fn bundle_app(
         dir::copy(release_dir.join("lib"), tmp_dir, &CopyOptions::default())?;
     } else {
         info!("Copy main_process binary.");
-        fs::copy(
-            release_dir.join("main_process"),
-            tmp_dir.join("smelter"),
-        )?;
+        fs::copy(release_dir.join("main_process"), tmp_dir.join("smelter"))?;
     }
 
     info!("Create tar.gz archive.");
