@@ -62,7 +62,10 @@ export class Queue {
 
   private async onTick() {
     const inputs = await this.getInputFrames();
-    const pendingFrames = Object.entries(inputs).map(async ([inputId, input]) => [inputId, await input.getFrame()]);
+    const pendingFrames = Object.entries(inputs).map(async ([inputId, input]) => [
+      inputId,
+      await input.getFrame(),
+    ]);
     const frames = Object.fromEntries(await Promise.all(pendingFrames));
 
     const outputs = this.renderer.render({

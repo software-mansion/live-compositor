@@ -122,7 +122,7 @@ export class Input {
     const targetFrame = frames.reduce((prevFrame, frame) => {
       const prevPtsDiff = Math.abs(prevFrame.getPtsMs() - targetPts);
       const currPtsDiff = Math.abs(frame.getPtsMs() - targetPts);
-      return prevPtsDiff < currPtsDiff ? prevFrame : frame
+      return prevPtsDiff < currPtsDiff ? prevFrame : frame;
     });
 
     for (const frame of frames) {
