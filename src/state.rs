@@ -16,6 +16,7 @@ pub type Pipeline = compositor_pipeline::Pipeline;
 pub enum Response {
     Ok {},
     RegisteredPort { port: u16 },
+    BearerToken { token: String },
 }
 
 impl IntoResponse for Response {
@@ -43,6 +44,8 @@ impl ApiState {
             download_root,
             output_sample_rate,
             required_wgpu_features,
+            start_whip_whep,
+            whip_whep_server_port,
             ..
         } = config.clone();
         let (pipeline, event_loop) = Pipeline::new(pipeline::Options {
@@ -55,6 +58,8 @@ impl ApiState {
             wgpu_features: required_wgpu_features,
             wgpu_ctx: None,
             load_system_fonts: Some(true),
+            start_whip_whep,
+            whip_whep_server_port,
             tokio_rt: runtime,
         })?;
         Ok((

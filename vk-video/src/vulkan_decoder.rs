@@ -98,7 +98,7 @@ pub enum VulkanDecoderError {
     VulkanCtxError(#[from] VulkanCtxError),
 }
 
-impl<'a> VulkanDecoder<'a> {
+impl VulkanDecoder<'_> {
     pub fn new(vulkan_ctx: Arc<VulkanDevice>) -> Result<Self, VulkanDecoderError> {
         let decode_pool = Arc::new(CommandPool::new(
             vulkan_ctx.device.clone(),

@@ -63,7 +63,7 @@ impl V8Context {
 
 pub struct V8ContextEntered<'a>(&'a V8Context);
 
-impl<'a> Drop for V8ContextEntered<'a> {
+impl Drop for V8ContextEntered<'_> {
     fn drop(&mut self) {
         unsafe {
             match self.0.inner.get() {

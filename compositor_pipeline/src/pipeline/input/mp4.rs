@@ -145,7 +145,7 @@ impl Mp4 {
             }),
             video: video_receiver,
             audio: audio_receiver,
-            init_info: InputInitInfo { port: None },
+            init_info: InputInitInfo::Port(None),
         })
     }
 }

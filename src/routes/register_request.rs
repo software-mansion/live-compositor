@@ -1,5 +1,5 @@
 use axum::extract::{Path, State};
-use compositor_pipeline::pipeline::Port;
+use compositor_pipeline::pipeline::{input::InputInitInfo, Port};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -11,7 +11,7 @@ use compositor_api::{
     error::ApiError,
     types::{
         DeckLink, ImageSpec, InputId, Mp4Input, Mp4Output, OutputId, RendererId, RtpInput,
-        RtpOutput, ShaderSpec, WebRendererSpec, WhipOutput,
+        RtpOutput, ShaderSpec, WebRendererSpec, WhipInput, WhipOutput,
     },
 };
 
@@ -22,6 +22,7 @@ use super::ApiState;
 pub enum RegisterInput {
     RtpStream(RtpInput),
     Mp4(Mp4Input),
+    Whip(WhipInput),
     #[serde(rename = "decklink")]
     DeckLink(DeckLink),
 }
@@ -51,10 +52,14 @@ pub(super) async fn handle_input(
             RegisterInput::DeckLink(decklink) => {
                 Pipeline::register_input(&api.pipeline, input_id.into(), decklink.try_into()?)?
             }
+            RegisterInput::Whip(whip) => {
+                Pipeline::register_input(&api.pipeline, input_id.into(), whip.try_into()?)?
+            }
         };
-        match response.port {
-            Some(Port(port)) => Ok(Response::RegisteredPort { port }),
-            None => Ok(Response::Ok {}),
+        match response {
+            InputInitInfo::BearerToken(token) => Ok(Response::BearerToken { token }),
+            InputInitInfo::Port(Some(Port(port))) => Ok(Response::RegisteredPort { port }),
+            _ => Ok(Response::Ok {}),
         }
     })
     .await

@@ -2,7 +2,7 @@ use crate::definition::{Kind, TypeDefinition};
 
 use super::MarkdownGenerator;
 
-impl<'a> MarkdownGenerator<'a> {
+impl MarkdownGenerator<'_> {
     pub(super) fn write_type_definition(&mut self, def: TypeDefinition) {
         if let Some(name) = &def.name {
             if let Some(override_fn) = self.config.overrides.get(name.as_str()) {

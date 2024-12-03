@@ -99,7 +99,7 @@ impl WebRenderer {
     fn prepare_textures<'a>(
         &'a self,
         sources: &'a [&NodeTexture],
-    ) -> Vec<(Option<&Texture>, RenderInfo)> {
+    ) -> Vec<(Option<&'a Texture>, RenderInfo)> {
         let mut source_info = sources
             .iter()
             .zip(self.source_transforms.lock().unwrap().iter())

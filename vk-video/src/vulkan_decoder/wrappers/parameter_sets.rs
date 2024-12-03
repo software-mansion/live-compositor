@@ -395,7 +395,7 @@ impl H264ProfileInfo<'_> {
     }
 }
 
-impl<'a> Drop for H264ProfileInfo<'a> {
+impl Drop for H264ProfileInfo<'_> {
     fn drop(&mut self) {
         unsafe {
             let _ = Box::from_raw(self.h264_info_ptr);

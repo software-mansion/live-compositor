@@ -29,6 +29,8 @@ use pipeline_output::register_pipeline_output;
 use tokio::runtime::Runtime;
 use tracing::{error, info, trace, warn};
 use types::RawDataSender;
+use whip_whep::run_whip_whep_server;
+use whip_whep::WhipWhepState;
 
 use crate::audio_mixer::AudioMixer;
 use crate::audio_mixer::MixingStrategy;
@@ -57,6 +59,7 @@ mod pipeline_input;
 mod pipeline_output;
 pub mod rtp;
 mod types;
+pub mod whip_whep;
 
 use self::pipeline_input::register_pipeline_input;
 use self::pipeline_input::PipelineInput;
@@ -126,6 +129,8 @@ pub struct Options {
     pub wgpu_features: WgpuFeatures,
     pub load_system_fonts: Option<bool>,
     pub wgpu_ctx: Option<GraphicsContext>,
+    pub whip_whep_server_port: u16,
+    pub start_whip_whep: bool,
     pub tokio_rt: Arc<Runtime>,
 }
 
@@ -135,6 +140,9 @@ pub struct PipelineCtx {
     pub output_framerate: Framerate,
     pub download_dir: Arc<PathBuf>,
     pub event_emitter: Arc<EventEmitter>,
+    pub whip_whep_state: Arc<WhipWhepState>,
+    pub whip_whep_server_port: u16,
+    pub start_whip_whep: bool,
     pub tokio_rt: Arc<Runtime>,
     #[cfg(feature = "vk-video")]
     pub vulkan_ctx: Option<graphics_context::VulkanCtx>,
@@ -198,6 +206,9 @@ impl Pipeline {
                 output_framerate: opts.queue_options.output_framerate,
                 download_dir: download_dir.into(),
                 event_emitter,
+                whip_whep_state: WhipWhepState::new(),
+                whip_whep_server_port: opts.whip_whep_server_port,
+                start_whip_whep: opts.start_whip_whep,
                 tokio_rt: opts.tokio_rt,
                 #[cfg(feature = "vk-video")]
                 vulkan_ctx: preinitialized_ctx.and_then(|ctx| ctx.vulkan_ctx),
@@ -447,6 +458,8 @@ impl Pipeline {
 
         let weak_pipeline = Arc::downgrade(pipeline);
         thread::spawn(move || run_audio_mixer_thread(weak_pipeline, audio_receiver));
+        let weak_pipeline = Arc::downgrade(pipeline);
+        thread::spawn(move || run_whip_whep_server(weak_pipeline));
     }
 
     pub fn inputs(&self) -> impl Iterator<Item = (&InputId, &PipelineInput)> {

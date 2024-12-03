@@ -58,7 +58,7 @@ impl TilesComponentParams {
     /// preserving tile aspect_ratio
     fn optimal_row_column_count(&self, inputs_count: u32, layout_size: Size) -> RowsCols {
         fn from_rows_count(inputs_count: u32, rows: u32) -> RowsCols {
-            let columns = (inputs_count + rows - 1) / rows;
+            let columns = inputs_count.div_ceil(rows);
             RowsCols { rows, columns }
         }
         let mut best_rows_cols = from_rows_count(inputs_count, 1);
