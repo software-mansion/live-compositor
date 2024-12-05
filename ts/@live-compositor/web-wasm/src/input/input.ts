@@ -4,6 +4,7 @@ import type { EventSender } from '../eventSender';
 import { FrameRef } from './frame';
 import { assert } from '../utils';
 import InputFrameProducer, { DEFAULT_MAX_BUFFERING_SIZE } from './inputFrameProducer';
+import { Queue } from '@datastructures-js/queue/src/queue';
 
 export type InputState = 'waiting_for_start' | 'buffering' | 'playing' | 'finished';
 
@@ -11,6 +12,7 @@ export class Input {
   private id: InputId;
   private state: InputState;
   private frameProducer: InputFrameProducer;
+  private frames: Queue<FrameRef>;
   private eventSender: EventSender;
   /**
    * Queue PTS of the first frame
@@ -21,9 +23,13 @@ export class Input {
     this.id = id;
     this.state = 'waiting_for_start';
     this.frameProducer = frameProducer;
+    this.frames = new Queue();
     this.eventSender = eventSender;
 
     this.frameProducer.setMaxBufferSize(DEFAULT_MAX_BUFFERING_SIZE);
+    this.frameProducer.registerCallbacks({
+      onFrame: (frame) => this.frames.push(frame),
+    })
   }
 
   public start() {
@@ -40,11 +46,23 @@ export class Input {
     });
   }
 
-  public async getFrameRef(currentQueuePts: number): Promise<FrameRef | undefined> {
+  // TODO(noituri): Comment this
+  public async produceFrames(currentQueuePts: number): Promise<void> {
+    let targetPts: number | undefined;
+    if (this.startPtsMs !== undefined) {
+      targetPts = this.queuePtsToInputPts(currentQueuePts);
+    }
+
+    await this.frameProducer.produce(targetPts);
+
     if (this.state === 'buffering') {
       this.handleBuffering();
       return;
     }
+  }
+
+  // TODO(noituri): Comment this
+  public getFrameRef(currentQueuePts: number): FrameRef | undefined {
     if (this.state !== 'playing') {
       return;
     }
@@ -52,18 +70,20 @@ export class Input {
       this.startPtsMs = currentQueuePts;
     }
 
-    const inputPts = this.queuePtsToInputPts(currentQueuePts);
-    this.dropOldFrames(inputPts);
-    await this.frameProducer.produce(inputPts);
-
+    this.dropOldFrames(currentQueuePts);
 
     let frame: FrameRef | undefined;
+    if (this.frameProducer.isFinished() && this.frames.size() == 1) {
+      frame = this.frames.pop();
+    } else {
+      frame = this.cloneLatestFrame();
+    }
 
     if (frame) {
       return frame;
     }
 
-    // Source received EOS & there is no more frames
+    // EOS received and there will be no more frames
     if (this.frameProducer.isFinished()) {
       this.handleEos();
       return;
@@ -76,7 +96,7 @@ export class Input {
    * Retrieves latest frame and increments its reference count
    */
   private cloneLatestFrame(): FrameRef | undefined {
-    const frame = this.frameProducer.peekFrame();
+    const frame = this.frames.front();
     if (frame) {
       frame.incrementRefCount();
       return frame;
@@ -89,29 +109,32 @@ export class Input {
    * Finds frame with PTS closest to `currentQueuePts` and removes frames older than it
    */
   private dropOldFrames(currentQueuePts: number): void {
-    // if (this.frames.isEmpty()) {
-    //   return;
-    // const frames = this.frames.toArray();
-    // const targetPts = this.queuePtsToInputPts(currentQueuePts);
-    //
-    // const targetFrame = frames.reduce((prevFrame, frame) => {
-    //   const prevPtsDiff = Math.abs(prevFrame.getPtsMs() - targetPts);
-    //   const currPtsDiff = Math.abs(frame.getPtsMs() - targetPts);
-    //   return prevPtsDiff < currPtsDiff ? prevFrame : frame;
-    // });
-    //
-    // for (const frame of frames) {
-    //   if (frame.getPtsMs() < targetFrame.getPtsMs()) {
-    //     frame.decrementRefCount();
-    //     this.frames.pop();
-    //   }
-    // }
+    if (this.frames.isEmpty()) {
+      return;
+    }
+
+    const frames = this.frames.toArray();
+    const targetPts = this.queuePtsToInputPts(currentQueuePts);
+
+    const targetFrame = frames.reduce((prevFrame, frame) => {
+      const prevPtsDiff = Math.abs(prevFrame.getPtsMs() - targetPts);
+      const currPtsDiff = Math.abs(frame.getPtsMs() - targetPts);
+      return prevPtsDiff < currPtsDiff ? prevFrame : frame;
+    });
+
+    for (const frame of frames) {
+      if (frame.getPtsMs() < targetFrame.getPtsMs()) {
+        frame.decrementRefCount();
+        this.frames.pop();
+      }
+    }
   }
 
   private handleBuffering() {
-    // if (this.frames.size() < MAX_BUFFERING_SIZE) {
-    //   return;
-    // }
+    // TODO(noituri): Change this
+    if (this.frames.size() < DEFAULT_MAX_BUFFERING_SIZE) {
+      return;
+    }
 
     this.state = 'playing';
     this.eventSender.sendEvent({
@@ -127,27 +150,11 @@ export class Input {
       inputId: this.id,
     });
 
-    // this.decoder.close();
+    this.frameProducer.close();
   }
 
   private queuePtsToInputPts(queuePts: number): number {
     assert(this.startPtsMs !== undefined);
     return queuePts - this.startPtsMs;
   }
-
-
-  // private enqueueChunks(currentQueuePts: number) {
-  //   const framrate = this.source.getFramerate();
-  //   assert(framrate);
-  //
-  //   const frameDuration = framerateToDurationMs(framrate);
-  //   const targetPts = this.queuePtsToInputPts(currentQueuePts) + frameDuration * MAX_BUFFERING_SIZE;
-  //
-  //   let chunk = this.source.peekChunk();
-  //   while (chunk && chunk.ptsMs < targetPts) {
-  //     this.decoder.decode(chunk.data);
-  //     this.source.nextChunk();
-  //     chunk = this.source.peekChunk();
-  //   }
-  // }
 }

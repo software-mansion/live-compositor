@@ -3,18 +3,21 @@ import { FrameRef } from "./frame";
 import DecodingFrameProducer from "./producer/decodingFrameProducer";
 import MP4Source from "./mp4/source";
 
-export const DEFAULT_MAX_BUFFERING_SIZE = 3;
+export const DEFAULT_MAX_BUFFERING_SIZE = 50;
+
+export type InputFrameProducerCallbacks = {
+  onFrame(frame: FrameRef): void;
+};
 
 // TODO(noituri): Comment it
 export default interface InputFrameProducer {
   init(): Promise<void>;
   start(): void;
-  produce(framePts: number): Promise<void>;
-  nextFrame(): FrameRef | undefined;
-  peekFrame(): FrameRef | undefined;
-  frameCount(): number;
+  registerCallbacks(callbacks: InputFrameProducerCallbacks): void;
+  produce(framePts?: number): Promise<void>;
   setMaxBufferSize(maxBufferSize: number): void;
   isFinished(): boolean;
+  close(): void;
 }
 
 export function producerFromRequest(request: RegisterInputRequest): InputFrameProducer {

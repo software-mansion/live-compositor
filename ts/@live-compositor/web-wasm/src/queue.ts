@@ -61,7 +61,9 @@ export class Queue {
   }
 
   private async onTick() {
-    const inputs = await this.getInputFrames();
+    await this.produceInputFrames();
+
+    const inputs = this.getInputFrames();
     const pendingFrames = Object.entries(inputs).map(async ([inputId, input]) => [
       inputId,
       await input.getFrame(),
@@ -79,12 +81,17 @@ export class Queue {
     }
   }
 
-  private async getInputFrames(): Promise<Record<InputId, FrameRef>> {
-    const pendingFrames = Object.entries(this.inputs).map(async ([inputId, input]) => [
+  private async produceInputFrames(): Promise<void> {
+    const pending = Object.values(this.inputs).map(async (input) => await input.produceFrames(this.currentPts));
+    await Promise.all(pending);
+  }
+
+  private getInputFrames(): Record<InputId, FrameRef> {
+    const frames = Object.entries(this.inputs).map(([inputId, input]) => [
       inputId,
-      await input.getFrameRef(this.currentPts),
+      input.getFrameRef(this.currentPts),
     ]);
-    const frames = await Promise.all(pendingFrames);
+
     return Object.fromEntries(frames.filter(([_inputId, frame]) => !!frame));
   }
 

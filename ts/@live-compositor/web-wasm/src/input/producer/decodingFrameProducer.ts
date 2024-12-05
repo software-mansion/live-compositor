@@ -1,24 +1,20 @@
 import { assert, framerateToDurationMs } from "../../utils";
 import { H264Decoder } from "../decoder/h264Decoder";
 import { FrameRef } from "../frame";
-import InputFrameProducer, { DEFAULT_MAX_BUFFERING_SIZE } from "../inputFrameProducer";
+import InputFrameProducer, { DEFAULT_MAX_BUFFERING_SIZE, InputFrameProducerCallbacks } from "../inputFrameProducer";
 import InputSource from "../source";
-import { Queue } from "@datastructures-js/queue";
 
 export default class DecodingFrameProducer implements InputFrameProducer {
   private source: InputSource;
   private decoder: H264Decoder;
-  private frames: Queue<FrameRef>;
   private maxBufferSize: number;
-  private isFinished: boolean;
+  private callbacks?: InputFrameProducerCallbacks;
 
   public constructor(source: InputSource) {
     this.source = source;
     this.maxBufferSize = DEFAULT_MAX_BUFFERING_SIZE;
-    this.isFinished = false;
-    this.frames = new Queue();
     this.decoder = new H264Decoder({
-      onFrame: frame => this.frames.push(new FrameRef(frame)),
+      onFrame: frame => this.callbacks?.onFrame(new FrameRef(frame)),
     })
 
     this.source.registerCallbacks({
@@ -34,7 +30,15 @@ export default class DecodingFrameProducer implements InputFrameProducer {
     this.source.start();
   }
 
-  public async produce(framePts: number): Promise<void> {
+  public registerCallbacks(callbacks: InputFrameProducerCallbacks): void {
+    this.callbacks = callbacks;
+  }
+
+  public async produce(framePts?: number): Promise<void> {
+    if (!framePts) {
+      this.tryEnqueueChunk();
+      return;
+    }
     this.enqueueChunks(framePts);
 
     // No more chunks will be produced. Flush all the remaining frames from the decoder
@@ -43,44 +47,34 @@ export default class DecodingFrameProducer implements InputFrameProducer {
     }
   }
 
-  public getFrame(): FrameRef | undefined {
-    if (this.source.isFinished() && this.frames.size() == 1) {
-      this.isFinished = true;
-      return this.frames.pop();
-    }
-
-    const frame = this.frames.front();
-    if (frame) {
-      frame.incrementRefCount();
-      return frame;
-    }
-
-    return undefined;
-  }
-
-  public peekFrame(): FrameRef | undefined {
-    return this.frames.front();
-  }
-
-  public frameCount(): number {
-    return this.frames.size();
-  }
-
   public setMaxBufferSize(maxBufferSize: number): void {
     this.maxBufferSize = maxBufferSize;
   }
 
   public isFinished(): boolean {
-    return this.source.isFinished();
+    return this.source.isFinished() && this.decoder.decodeQueueSize() === 0;
+  }
+
+  public close(): void {
+    this.decoder.close();
+  }
+
+  private tryEnqueueChunk() {
+    const chunk = this.source.nextChunk();
+    if (chunk) {
+      this.decoder.decode(chunk);
+    }
   }
 
   private enqueueChunks(framePts: number) {
-    const framrate = assert(this.source.getFramerate());
-    const frameDuration = framerateToDurationMs(framrate);
+    const framerate = this.source.getFramerate();
+    assert(framerate);
+
+    const frameDuration = framerateToDurationMs(framerate);
     const targetPts = framePts + frameDuration * this.maxBufferSize;
 
     let chunk = this.source.peekChunk();
-    while (chunk && chunk.timestamp < targetPts) {
+    while (chunk && chunk.timestamp <= targetPts) {
       this.decoder.decode(chunk);
       this.source.nextChunk();
       chunk = this.source.peekChunk();
