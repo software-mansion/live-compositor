@@ -9,7 +9,6 @@ use webrtc::track::track_remote::TrackRemote;
 
 use depayloader::{Depayloader, DepayloaderNewError};
 use std::fmt::Write;
-use std::sync::atomic::AtomicBool;
 use tracing::{error, warn};
 
 use crate::{
@@ -74,7 +73,8 @@ pub struct OutputAudioStream {
 }
 
 pub struct WhipReceiver {
-    should_close: Arc<AtomicBool>,
+    whip_whep_state: Arc<WhipWhepState>,
+    input_id: InputId,
 }
 
 impl WhipReceiver {
@@ -83,7 +83,6 @@ impl WhipReceiver {
         opts: WhipReceiverOptions,
         pipeline_ctx: &PipelineCtx,
     ) -> Result<InputInitResult, WhipReceiverError> {
-        let should_close = Arc::new(AtomicBool::new(false));
         let bearer_token = generate_token();
         let whip_whep_state = pipeline_ctx.whip_whep_state.clone();
 
@@ -119,7 +118,6 @@ impl WhipReceiver {
             audio_rx,
             video_tx_crossbeam,
             audio_tx_crossbeam,
-            should_close.clone(),
         );
 
         if let Ok(mut input_connections) = whip_whep_state.input_connections.lock() {
@@ -155,7 +153,10 @@ impl WhipReceiver {
         };
 
         Ok(InputInitResult {
-            input: Input::Whip(Self { should_close }),
+            input: Input::Whip(Self {
+                whip_whep_state,
+                input_id: input_id.clone(),
+            }),
             video,
             audio,
             init_info: InputInitInfo::BearerToken(bearer_token),
@@ -168,10 +169,8 @@ impl WhipReceiver {
         audio_mpsc_receiver: Option<mpsc::Receiver<PipelineEvent<EncodedChunk>>>,
         video_sender: Option<Sender<PipelineEvent<EncodedChunk>>>,
         audio_sender: Option<Sender<PipelineEvent<EncodedChunk>>>,
-        should_close: Arc<AtomicBool>,
     ) {
-        let should_close_clone = should_close.clone();
-        if let (Some(receiver), Some(sender)) = (video_mpsc_receiver, video_sender) {
+        if let (Some(mut receiver), Some(sender)) = (video_mpsc_receiver, video_sender) {
             let input_id_clone = input_id.clone();
             thread::spawn(move || {
                 let _span = span!(
@@ -180,10 +179,20 @@ impl WhipReceiver {
                     input_id = input_id_clone.to_string()
                 )
                 .entered();
-                run_forwarding_loop(receiver, sender, should_close_clone)
+                loop {
+                    let Some(chunk) = receiver.blocking_recv() else {
+                        debug!("Closing RTP forwarding thread.");
+                        break;
+                    };
+
+                    if let Err(err) = sender.send(chunk) {
+                        debug!("Failed to send Encoded Chunk. Channel closed: {:?}", err);
+                        break;
+                    }
+                }
             });
         }
-        if let (Some(receiver), Some(sender)) = (audio_mpsc_receiver, audio_sender) {
+        if let (Some(mut receiver), Some(sender)) = (audio_mpsc_receiver, audio_sender) {
             let input_id_clone = input_id.clone();
             thread::spawn(move || {
                 let _span = span!(
@@ -192,7 +201,17 @@ impl WhipReceiver {
                     input_id = input_id_clone.to_string()
                 )
                 .entered();
-                run_forwarding_loop(receiver, sender, should_close)
+                loop {
+                    let Some(chunk) = receiver.blocking_recv() else {
+                        debug!("Closing RTP forwarding thread.");
+                        break;
+                    };
+
+                    if let Err(err) = sender.send(chunk) {
+                        debug!("Failed to send Encoded Chunk. Channel closed: {:?}", err);
+                        break;
+                    }
+                }
             });
         }
     }
@@ -200,28 +219,21 @@ impl WhipReceiver {
 
 impl Drop for WhipReceiver {
     fn drop(&mut self) {
-        self.should_close
-            .store(true, std::sync::atomic::Ordering::Relaxed);
-    }
-}
-
-fn run_forwarding_loop(
-    mut receiver: mpsc::Receiver<PipelineEvent<EncodedChunk>>,
-    sender: Sender<PipelineEvent<EncodedChunk>>,
-    should_close: Arc<AtomicBool>,
-) {
-    loop {
-        if should_close.load(std::sync::atomic::Ordering::Relaxed) {
-            break;
-        }
-        let Some(chunk) = receiver.blocking_recv() else {
-            debug!("Closing RTP forwarding thread.");
-            break;
-        };
-
-        if let Err(err) = sender.send(chunk) {
-            debug!("Failed to send Encoded Chunk. Channel closed: {:?}", err);
-            break;
+        if let Ok(mut connections) = self.whip_whep_state.input_connections.lock() {
+            if let Some(connection) = connections.get_mut(&self.input_id) {
+                if let Some(peer_connection) = connection.peer_connection.clone() {
+                    let input_id_clone = self.input_id.clone();
+                    tokio::spawn(async move {
+                        if let Err(err) = peer_connection.close().await {
+                            error!(
+                                "Cannot close peer_connection for {:?}: {:?}",
+                                input_id_clone, err
+                            );
+                        };
+                    });
+                }
+            }
+            connections.remove(&self.input_id);
         }
     }
 }
@@ -237,11 +249,13 @@ pub async fn handle_track(
     let track_kind = track.kind();
     let state_clone = state.clone();
 
-    let mut time = None;
+    let mut input_start_time = None;
     if let Ok(mut connections) = state_clone.input_connections.lock() {
         if let Some(connection) = connections.get_mut(&input_id) {
-            let _ = connection.initialize_start_time(track_kind);
-            time = connection.get_start_time(track_kind);
+            if connection.set_start_time(track_kind).is_err() {
+                error!("Cannot set start_time of audio/video stream");
+            }
+            input_start_time = connection.get_start_time(track_kind);
         } else {
             error!("InputID {input_id:?} not found");
         }
@@ -266,10 +280,10 @@ pub async fn handle_track(
         }
 
         for mut chunk in chunks {
-            chunk.pts = chunk.pts + time.unwrap_or(Duration::from_secs(0))
-                - first_pts_current_stream.unwrap_or(Duration::from_secs(0));
+            chunk.pts = chunk.pts + input_start_time.unwrap_or(Duration::ZERO)
+                - first_pts_current_stream.unwrap_or(Duration::ZERO);
             if let Err(e) = sender.send(PipelineEvent::Data(chunk)).await {
-                error!("Failed to send audio RTP packet: {e}");
+                debug!("Failed to send audio RTP packet: {e}");
             }
         }
     }
@@ -279,7 +293,9 @@ fn generate_token() -> String {
     let mut bytes = [0u8; 16];
     thread_rng().fill_bytes(&mut bytes);
     bytes.iter().fold(String::new(), |mut acc, byte| {
-        let _ = write!(acc, "{byte:02X}");
+        if let Err(err) = write!(acc, "{byte:02X}") {
+            error!("Cannot generate token: {err:?}")
+        }
         acc
     })
 }

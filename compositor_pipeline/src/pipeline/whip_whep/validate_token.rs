@@ -3,7 +3,7 @@ use std::time::Duration;
 use axum::http::HeaderValue;
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use tokio::time::sleep;
-use tracing::error;
+use tracing::warn;
 
 use crate::pipeline::whip_whep::error::WhipServerError;
 
@@ -24,7 +24,7 @@ pub async fn validate_token(
                     let mut rng = StdRng::from_entropy();
                     let millis = rng.gen_range(50..1000);
                     sleep(Duration::from_millis(millis)).await;
-                    error!("Invalid or mismatched token provided");
+                    warn!("Invalid or mismatched token provided");
                     Err(WhipServerError::Unauthorized(
                         "Invalid or mismatched token provided".to_string(),
                     ))

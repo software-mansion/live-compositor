@@ -15,7 +15,7 @@ use std::{
     time::{Duration, Instant},
 };
 use tokio::sync::mpsc;
-use tracing::{trace, warn};
+use tracing::{error, trace, warn};
 use webrtc::{
     api::{
         interceptor_registry::register_default_interceptors,
@@ -77,11 +77,14 @@ pub async fn run_whip_whep_server(pipeline: Weak<Mutex<Pipeline>>) {
     };
 
     let server_task = task::spawn(async {
-        let _ = axum::serve(listener, app).await;
+        if let Err(err) = axum::serve(listener, app).await {
+            error!("Cannot serve WHIP/WHEP server task: {err:?}");
+            return;
+        }
     });
     trace!("WHIP/WHEP http server started");
     if let Err(e) = server_task.await {
-        eprintln!("WHIP/WHEP server task failed: {:?}", e);
+        error!("WHIP/WHEP server task failed: {:?}", e);
     }
 }
 
@@ -97,7 +100,7 @@ pub struct WhipInputConnectionOptions {
 }
 
 impl WhipInputConnectionOptions {
-    pub fn initialize_start_time(&mut self, track_kind: RTPCodecType) -> Result<(), String> {
+    pub fn set_start_time(&mut self, track_kind: RTPCodecType) -> Result<(), String> {
         match track_kind {
             RTPCodecType::Video if self.start_time_vid.is_none() => {
                 self.start_time_vid = Some(Instant::now())

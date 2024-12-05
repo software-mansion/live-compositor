@@ -17,7 +17,7 @@ use axum::{
 use compositor_render::InputId;
 use serde_json::{json, Value};
 use tokio::sync::mpsc::Sender;
-use tracing::{debug, error, info};
+use tracing::{debug, error, info, warn};
 use webrtc::{
     ice_transport::ice_candidate::RTCIceCandidateInit,
     peer_connection::{sdp::session_description::RTCSessionDescription, RTCPeerConnection},
@@ -63,7 +63,7 @@ pub async fn handle_whip(
     if let Ok(connections) = state_clone.input_connections.lock() {
         if let Some(connection) = connections.get(&input_id) {
             if connection.peer_connection.is_some() {
-                error!("Something else is streaming for given input {input_id:?}");
+                warn!("There is another stream streaming for given input {input_id:?}");
                 return Err(WhipServerError::InternalError(format!(
                     "Something else is streaming for given input {input_id:?}"
                 )));
@@ -155,11 +155,14 @@ pub async fn handle_whip(
     peer_connection.set_remote_description(description).await?;
     let answer = peer_connection.create_answer(None).await?;
 
+    // TODO do not wait  for all candidates
     let mut gather = peer_connection.gathering_complete_promise().await;
 
     peer_connection.set_local_description(answer).await?;
 
-    let _ = gather.recv().await;
+    if gather.recv().await.is_none() {
+        debug!("WHIP server recived no candidates")
+    }
 
     let Some(sdp) = peer_connection.local_description().await else {
         return Err(WhipServerError::InternalError(
@@ -205,9 +208,8 @@ pub async fn whip_ice_candidates_handler(
 
     let candidate: Value = serde_json::from_str(&candidate)?;
 
-    let candidate_str = candidate["candidate"].as_str().unwrap_or("");
     let candidate_obj = RTCIceCandidateInit {
-        candidate: candidate_str.to_string(),
+        candidate: candidate["candidate"].as_str().unwrap_or("").to_string(),
         sdp_mid: candidate["sdpMid"].as_str().map(|s| s.to_string()),
         sdp_mline_index: candidate["sdpMLineIndex"].as_u64().map(|i| i as u16),
         ..Default::default()
@@ -230,7 +232,11 @@ pub async fn whip_ice_candidates_handler(
     }
 
     if let Some(pc) = peer_connection {
-        pc.add_ice_candidate(candidate_obj).await?;
+        if let Err(err) = pc.add_ice_candidate(candidate_obj).await {
+            return Err(WhipServerError::BadRequest(format!(
+                "Cannot add ice_candidate {candidate:?} for input {input_id:?}: {err:?}"
+            )));
+        }
     } else {
         return Err(WhipServerError::InternalError(format!(
             "None peer connection for {input_id:?}"
