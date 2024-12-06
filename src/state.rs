@@ -17,7 +17,13 @@ pub type Pipeline = compositor_pipeline::Pipeline;
 #[serde(untagged)]
 pub enum Response {
     Ok {},
-    RegisteredPort { port: u16 },
+    RegisteredPort {
+        port: Option<u16>,
+    },
+    RegisteredMp4 {
+        video_duration_ms: Option<u64>,
+        audio_duration_ms: Option<u64>,
+    },
 }
 
 impl IntoResponse for Response {
