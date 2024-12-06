@@ -10,7 +10,7 @@ import { throttle } from '../utils.js';
 
 type AudioContext = _liveCompositorInternals.AudioContext;
 type LiveTimeContext = _liveCompositorInternals.LiveTimeContext;
-type InstanceContextStore = _liveCompositorInternals.InstanceContextStore;
+type LiveInstanceContextStore = _liveCompositorInternals.LiveInstanceContextStore;
 
 class Output {
   api: ApiClient;
@@ -28,7 +28,7 @@ class Output {
     outputId: string,
     registerRequest: RegisterOutput,
     api: ApiClient,
-    store: InstanceContextStore,
+    store: LiveInstanceContextStore,
     startTimestamp: number | undefined
   ) {
     this.api = api;
@@ -130,7 +130,7 @@ function OutputRootComponent({
   outputShutdownStateStore,
 }: {
   outputRoot: React.ReactElement;
-  instanceStore: InstanceContextStore;
+  instanceStore: LiveInstanceContextStore;
   audioContext: AudioContext;
   timeContext: LiveTimeContext;
   outputShutdownStateStore: OutputShutdownStateStore;

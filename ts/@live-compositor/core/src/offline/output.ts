@@ -19,7 +19,7 @@ class OfflineOutput {
   timeContext: OfflineTimeContext;
   outputShutdownStateStore: OutputShutdownStateStore;
   durationMs: number;
-  updateTracker: UpdateTracker = new UpdateTracker();
+  updateTracker?: UpdateTracker;
 
   videoRenderer?: Renderer;
   initialAudioConfig?: Outputs.AudioInputsConfiguration;
@@ -41,7 +41,7 @@ class OfflineOutput {
       this.initialAudioConfig = registerRequest.audio!.initial ?? { inputs: [] };
     }
 
-    const onUpdate = () => this.updateTracker.onUpdate();
+    const onUpdate = () => this.updateTracker?.onUpdate();
     this.audioContext = new _liveCompositorInternals.AudioContext(onUpdate, supportsAudio);
     this.timeContext = new _liveCompositorInternals.OfflineTimeContext(onUpdate);
 
@@ -72,7 +72,9 @@ class OfflineOutput {
   }
 
   public async scheduleAllUpdates(): Promise<void> {
+    this.updateTracker = new UpdateTracker();
     while (this.timeContext.timestampMs() <= this.durationMs) {
+      console.log('Event loop', this.timeContext.timestampMs());
       while (true) {
         await waitForBlockingTasks(this.timeContext);
         await this.updateTracker.waitForRenderEnd();
@@ -108,8 +110,8 @@ const MAX_RENDER_TIMEOUT_MS = 2000;
  * specific PTS then assume it's ready to grab a snapshot of a tree
  */
 class UpdateTracker {
-  private promise: Promise<void> = new Promise(() => {});
-  private promiseRes: () => void = () => {};
+  private promise: Promise<void> = new Promise(() => { });
+  private promiseRes: () => void = () => { };
   private updateTimeout: number = -1;
   private renderTimeout: number = -1;
 
@@ -117,6 +119,7 @@ class UpdateTracker {
     this.promise = new Promise((res, _rej) => {
       this.promiseRes = res;
     });
+    this.onUpdate();
   }
 
   public onUpdate() {

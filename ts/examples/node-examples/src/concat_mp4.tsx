@@ -2,17 +2,16 @@ import { OfflineCompositor } from '@live-compositor/node';
 import { View, Text, Rescaler, InputStream, Slides, Slide } from 'live-compositor';
 import { downloadAllAssets } from './utils';
 import path from 'path';
-import { useTimeLimitedComponent } from '../../../live-compositor/cjs/context/childrenLifetimeContext';
 
 function ExampleApp() {
   return (
     <View>
       <Slides>
         <Slide>
-          <Input inputId="input_1" endTimestamp={3_000} />
+          <Input inputId="input_1" />
         </Slide>
         <Slide>
-          <Input inputId="input_2" endTimestamp={6_000} />
+          <Input inputId="input_2" />
         </Slide>
         <Slide durationMs={3_000}>
           <Input inputId="input_1" endTimestamp={10_000} />
@@ -22,10 +21,7 @@ function ExampleApp() {
   );
 }
 
-function Input({ inputId, endTimestamp }: { inputId: string; endTimestamp: number }) {
-  // Temporary, useTimeLimitedComponent is an internal hook, InputStream component will rely
-  // on the mp4 length returned from the compositor
-  useTimeLimitedComponent(endTimestamp);
+function Input({ inputId }: { inputId: string }) {
   return (
     <View>
       <Rescaler>

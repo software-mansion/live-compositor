@@ -11,6 +11,11 @@ export type ApiRequest = {
   body?: object;
 };
 
+export type RegisterInputResponse = {
+  video_duration_ms?: number;
+  audio_duration_ms?: number;
+};
+
 export class ApiClient {
   private serverManager: CompositorManager;
 
@@ -45,7 +50,10 @@ export class ApiClient {
     });
   }
 
-  public async registerInput(inputId: string, request: RegisterInputRequest): Promise<object> {
+  public async registerInput(
+    inputId: string,
+    request: RegisterInputRequest
+  ): Promise<RegisterInputResponse> {
     return this.serverManager.sendRequest({
       method: 'POST',
       route: `/api/input/${encodeURIComponent(inputId)}/register`,
