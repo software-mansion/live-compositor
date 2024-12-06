@@ -31,6 +31,10 @@ export default class CameraFrameProducer implements InputFrameProducer {
   }
 
   public async produce(_framePts?: number): Promise<void> {
+    void this.readFrames();
+  }
+
+  private async readFrames(): Promise<void> {
     assert(this.reader);
     const { done, value: videoFrame } = await this.reader.read();
     if (done) {
@@ -42,10 +46,11 @@ export default class CameraFrameProducer implements InputFrameProducer {
       this.ptsOffset = -videoFrame.timestamp
     }
 
+    // console.warn(`videoPts: ${(videoFrame.timestamp + this.ptsOffset) / 1000} < ${_framePts}`);
     this.callbacks?.onFrame(new FrameRef({
       frame: videoFrame,
       // TODO(noituri): Handle pts roller
-      ptsMs: (this.ptsOffset + videoFrame.timestamp) / 1000,
+      ptsMs: (videoFrame.timestamp + this.ptsOffset) / 1000,
     }));
   }
 
@@ -57,6 +62,8 @@ export default class CameraFrameProducer implements InputFrameProducer {
   }
 
   public close(): void {
+    // TODO(noituri): Check what `releaseLock()` does
+    this.reader?.releaseLock();
     // TODO(noituri): Check what `cancel()` does
     this.reader?.cancel();
     // TODO(noituri): Check what `stop()` does

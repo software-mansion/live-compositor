@@ -29,7 +29,7 @@
     "globals": "^15.9.0",
     "json-schema-to-typescript": "^15.0.1",
     "prettier": "^3.3.3",
-    "typescript": "5.5.3"
+    "typescript": "5.7.2"
   },
   "overrides": {
     "rollup-plugin-copy": {

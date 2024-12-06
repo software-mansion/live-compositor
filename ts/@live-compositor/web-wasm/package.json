@@ -25,6 +25,7 @@
     "path-parser": "^6.1.0"
   },
   "devDependencies": {
+    "@types/dom-webcodecs": "^0.1.13",
     "@types/dom-mediacapture-transform": "^0.1.10",
     "@types/react": "^18.3.3"
   }

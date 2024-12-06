@@ -54,6 +54,7 @@ export class Input {
     }
 
     await this.frameProducer.produce(targetPts);
+    // console.error(`Frames ${this.frames.size()}`);
 
     if (this.state === 'buffering') {
       this.handleBuffering();

@@ -1,11 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { LiveCompositor } from '@live-compositor/web-wasm';
-import { InputStream, Text, useInputStreams, View } from 'live-compositor';
+import { InputStream, Text, View } from 'live-compositor';
 
-const BUNNY_URL =
-  'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
-
-function MP4Player() {
+function Camera() {
   const [compositor, canvasRef] = useCompositor();
 
   useEffect(() => {
@@ -27,34 +24,11 @@ function MP4Player() {
 }
 
 function Scene() {
-  const inputs = useInputStreams();
-  const inputState = inputs['bunny_video']?.videoState;
-
-  if (inputState === 'playing') {
-    return (
-      <View style={{ width: 1280, height: 720 }}>
-        <InputStream inputId="bunny_video" />
-        <View style={{ width: 230, height: 40, backgroundColor: '#000000', bottom: 20, left: 500 }}>
-          <Text style={{ fontSize: 30, fontFamily: 'Noto Sans' }}>Playing MP4 file</Text>
-        </View>
-      </View>
-    );
-  }
-
-  if (inputState === 'finished') {
-    return (
-      <View style={{ backgroundColor: '#000000' }}>
-        <View style={{ width: 530, height: 40, bottom: 340, left: 500 }}>
-          <Text style={{ fontSize: 30, fontFamily: 'Noto Sans' }}>Finished playing MP4 file</Text>
-        </View>
-      </View>
-    );
-  }
-
   return (
-    <View style={{ backgroundColor: '#000000' }}>
-      <View style={{ width: 530, height: 40, bottom: 340, left: 500 }}>
-        <Text style={{ fontSize: 30, fontFamily: 'Noto Sans' }}>Loading MP4 file</Text>
+    <View style={{ width: 1280, height: 720 }}>
+      <InputStream inputId="camera" />
+      <View style={{ width: 230, height: 40, backgroundColor: '#000000', bottom: 20, left: 500 }}>
+        <Text style={{ fontSize: 30, fontFamily: 'Noto Sans' }}>Camera input</Text>
       </View>
     </View>
   );
@@ -70,7 +44,7 @@ function useCompositor(): [LiveCompositor | undefined, (canvas: HTMLCanvasElemen
     const setupCompositor = async () => {
       const compositor = new LiveCompositor({
         framerate: {
-          num: 100,
+          num: 30,
           den: 1,
         },
         streamFallbackTimeoutMs: 500,
@@ -83,7 +57,7 @@ function useCompositor(): [LiveCompositor | undefined, (canvas: HTMLCanvasElemen
       await compositor.registerFont(
         'https://fonts.gstatic.com/s/notosans/v36/o-0mIpQlx3QUlC5A4PNB6Ryti20_6n1iPHjcz6L1SoM-jCpoiyD9A-9a6Vc.ttf'
       );
-      void compositor.registerInput('bunny_video', { type: 'mp4', url: BUNNY_URL });
+      void compositor.registerInput('camera', { type: 'camera' });
       await compositor.registerOutput('output', {
         type: 'canvas',
         canvas: canvas,
@@ -101,4 +75,4 @@ function useCompositor(): [LiveCompositor | undefined, (canvas: HTMLCanvasElemen
   return [compositor, canvasRef];
 }
 
-export default MP4Player;
+export default Camera;

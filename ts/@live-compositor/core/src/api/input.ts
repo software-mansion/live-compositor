@@ -1,17 +1,21 @@
 import type { Api } from '../api.js';
 import type { RegisterMp4Input, RegisterRtpInput, Inputs } from 'live-compositor';
 
-export type RegisterInputRequest = Api.RegisterInput;
+export type RegisterInputRequest = { type: 'camera' } | Api.RegisterInput;
 
 export type RegisterInput =
   | ({ type: 'rtp_stream' } & RegisterRtpInput)
-  | ({ type: 'mp4' } & RegisterMp4Input);
+  | ({ type: 'mp4' } & RegisterMp4Input)
+  // TODO(noituri): Restrict on node (like canvas output)
+  | ({ type: 'camera' });
 
 export function intoRegisterInput(input: RegisterInput): RegisterInputRequest {
   if (input.type === 'mp4') {
     return intoMp4RegisterInput(input);
   } else if (input.type === 'rtp_stream') {
     return intoRtpRegisterInput(input);
+  } else if (input.type === 'camera') {
+    return { type: 'camera' };
   } else {
     throw new Error(`Unknown input type ${(input as any).type}`);
   }
