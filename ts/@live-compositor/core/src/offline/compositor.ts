@@ -19,13 +19,17 @@ const OFFLINE_OUTPUT_ID = 'offline_output';
 export class OfflineCompositor {
   private manager: CompositorManager;
   private api: ApiClient;
-  private store: _liveCompositorInternals.InstanceContextStore;
+  private store: _liveCompositorInternals.OfflineInstanceContextStore;
   private renderStarted: boolean = false;
+  /**
+   * Start and end timestamp of an inputs (if known).
+   */
+  private inputTimestamps: number[] = [];
 
   public constructor(manager: CompositorManager) {
     this.manager = manager;
     this.api = new ApiClient(this.manager);
-    this.store = new _liveCompositorInternals.InstanceContextStore();
+    this.store = new _liveCompositorInternals.OfflineInstanceContextStore();
   }
 
   public async init(): Promise<void> {
@@ -38,11 +42,14 @@ export class OfflineCompositor {
     this.renderStarted = true;
 
     const output = new OfflineOutput(OFFLINE_OUTPUT_ID, request, this.api, this.store, durationMs);
+    for (const inputTimestamp of this.inputTimestamps) {
+      output.timeContext.addTimestamp({ timestamp: inputTimestamp });
+    }
     const apiRequest = intoRegisterOutput(request, output.scene());
     await this.api.registerOutput(OFFLINE_OUTPUT_ID, apiRequest);
     await output.scheduleAllUpdates();
-
     // at this point all scene update requests should already be delivered
+    output.outputShutdownStateStore.close();
 
     await this.api.unregisterOutput(OFFLINE_OUTPUT_ID, { schedule_time_ms: durationMs });
 
@@ -62,16 +69,37 @@ export class OfflineCompositor {
     await this.api.start();
 
     await renderPromise;
-    output.outputShutdownStateStore.close();
   }
 
   public async registerInput(inputId: string, request: RegisterInput): Promise<object> {
     this.checkNotStarted();
-    return this.store.runBlocking(async updateStore => {
-      const result = await this.api.registerInput(inputId, intoRegisterInput(request));
-      updateStore({ type: 'add_input', input: { inputId } });
-      return result;
-    });
+    const result = await this.api.registerInput(inputId, intoRegisterInput(request));
+
+    if (request.type === 'mp4' && request.loop) {
+      this.store.addInput({
+        inputId,
+        offsetMs: request.offsetMs ?? 0,
+        videoDurationMs: Infinity,
+        audioDurationMs: Infinity,
+      });
+    } else {
+      this.store.addInput({
+        inputId,
+        offsetMs: request.offsetMs ?? 0,
+        videoDurationMs: result.video_duration_ms,
+        audioDurationMs: result.audio_duration_ms,
+      });
+      if (request.offsetMs) {
+        this.inputTimestamps.push(request.offsetMs);
+      }
+      if (result.video_duration_ms) {
+        this.inputTimestamps.push((request.offsetMs ?? 0) + result.video_duration_ms);
+      }
+      if (result.audio_duration_ms) {
+        this.inputTimestamps.push((request.offsetMs ?? 0) + result.audio_duration_ms);
+      }
+    }
+    return result;
   }
 
   public async registerShader(

@@ -1,5 +1,6 @@
 import { createContext } from 'react';
-import { InstanceContextStore } from './instanceContextStore.js';
+import type { InstanceContextStore } from './instanceContextStore.js';
+import { LiveInstanceContextStore } from './instanceContextStore.js';
 import { AudioContext } from './audioOutputContext.js';
 import type { TimeContext } from './timeContext.js';
 import { LiveTimeContext } from './timeContext.js';
@@ -14,7 +15,7 @@ export type CompositorOutputContext = {
 };
 
 export const LiveCompositorContext = createContext<CompositorOutputContext>({
-  instanceStore: new InstanceContextStore(),
+  instanceStore: new LiveInstanceContextStore(),
   audioContext: new AudioContext(() => {}, false),
   timeContext: new LiveTimeContext(),
 });

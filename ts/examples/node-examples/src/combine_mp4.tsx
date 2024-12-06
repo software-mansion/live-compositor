@@ -29,6 +29,7 @@ function ExampleApp() {
 
 function InputTile({ inputId }: { inputId: string }) {
   const currentTimestamp = useCurrentTimestamp();
+  console.log(currentTimestamp);
   const [mountTime, _setMountTime] = useState(() => currentTimestamp);
   const afterDelay = useAfterTimestamp(mountTime + 1000);
 

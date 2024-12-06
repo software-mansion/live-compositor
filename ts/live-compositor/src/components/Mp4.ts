@@ -2,12 +2,12 @@ import { createElement, useContext } from 'react';
 import type * as Api from '../api.js';
 import type { SceneComponent } from '../component.js';
 import { createCompositorComponent } from '../component.js';
-import { useAudioInput, useInputStreams } from '../hooks.js';
+import { useAudioInput } from '../hooks.js';
 import { useTimeLimitedComponent } from '../context/childrenLifetimeContext.js';
 import { LiveCompositorContext } from '../context/index.js';
 import { OfflineTimeContext } from '../internal.js';
 
-export type InputStreamProps = {
+export type Mp4Props = {
   children?: undefined;
 
   /**
@@ -30,19 +30,18 @@ export type InputStreamProps = {
 
 type AudioPropNames = 'muted' | 'volume';
 
-const InnerInputStream =
-  createCompositorComponent<Omit<InputStreamProps, AudioPropNames>>(sceneBuilder);
+const InnerMp4 = createCompositorComponent<Omit<Mp4Props, AudioPropNames>>(sceneBuilder);
 
-function InputStream(props: InputStreamProps) {
+function Mp4(props: Mp4Props) {
   const { muted, volume, ...otherProps } = props;
   useAudioInput(props.inputId, {
     volume: muted ? 0 : (volume ?? 1),
   });
-  useInputStreamInOfflineContext(props.inputId);
-  return createElement(InnerInputStream, otherProps);
+  useMp4InOfflineContext(props.inputId);
+  return createElement(InnerMp4, otherProps);
 }
 
-function useInputStreamInOfflineContext(inputId: string) {
+function useMp4InOfflineContext(inputId: string) {
   const ctx = useContext(LiveCompositorContext);
   if (!(ctx.timeContext instanceof OfflineTimeContext)) {
     // condition is constant so it's fine to use hook after that
@@ -54,7 +53,7 @@ function useInputStreamInOfflineContext(inputId: string) {
   useTimeLimitedComponent((input?.offsetMs ?? 0) + (input?.audioDurationMs ?? 0));
 }
 
-function sceneBuilder(props: InputStreamProps, _children: SceneComponent[]): Api.Component {
+function sceneBuilder(props: Mp4Props, _children: SceneComponent[]): Api.Component {
   return {
     type: 'input_stream',
     id: props.id,
@@ -62,4 +61,4 @@ function sceneBuilder(props: InputStreamProps, _children: SceneComponent[]): Api
   };
 }
 
-export default InputStream;
+export default Mp4;

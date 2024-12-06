@@ -23,6 +23,11 @@ export class ChildrenLifetimeContext {
   }
 }
 
+/**
+ * Context that exposes API to children to register themself as playing/in-progress. Some components
+ * will change their behavior based on the state of its in-direct children, e.g. Slides component will
+ * not switch Slide until children are finished.
+ */
 export const ChildrenLifetimeContextType = createContext(new ChildrenLifetimeContext(() => {}));
 
 /**
@@ -46,5 +51,5 @@ export function useTimeLimitedComponent(timestamp: number) {
     if (timestampObject && afterTimestamp) {
       childrenLifetimeContext.removeEndTimestamp(timestampObject);
     }
-  }, [afterTimestamp]);
+  }, [afterTimestamp, timestampObject]);
 }

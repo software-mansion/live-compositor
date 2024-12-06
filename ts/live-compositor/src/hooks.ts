@@ -70,11 +70,7 @@ export function useAfterTimestamp(timestamp: number): boolean {
     };
   }, [timestamp]);
 
-  if (ctx.timeContext) {
-    return currentTimestamp >= timestamp;
-  } else {
-    return false;
-  }
+  return currentTimestamp >= timestamp;
 }
 
 /**

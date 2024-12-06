@@ -2,34 +2,53 @@ import { OfflineCompositor } from '@live-compositor/node';
 import { View, Text, Rescaler, InputStream, SlideShow, Slide } from 'live-compositor';
 import { downloadAllAssets } from './utils';
 import path from 'path';
-import { useTimeLimitedComponent } from '../../../live-compositor/cjs/context/childrenLifetimeContext';
 
 function ExampleApp() {
   return (
     <View>
       <SlideShow>
         <Slide>
-          <Input inputId="input_1" endTimestamp={3_000} />
-        </Slide>
-        <Slide>
-          <Input inputId="input_2" endTimestamp={6_000} />
+          <Input inputId="input_1" />
         </Slide>
         <Slide durationMs={3_000}>
-          <Input inputId="input_1" endTimestamp={10_000} />
+          <View>
+            <Text
+              style={{
+                fontSize: 40,
+                color: '#FF0000',
+                lineHeight: 50,
+                backgroundColor: '#FFFFFF88',
+              }}>
+              Input
+            </Text>
+          </View>
+        </Slide>
+        <Slide>
+          <Input inputId="input_2" />
+        </Slide>
+        <Slide durationMs={3_000}>
+          <View>
+            <Text
+              style={{
+                fontSize: 40,
+                color: '#FF0000',
+                lineHeight: 50,
+                backgroundColor: '#FFFFFF88',
+              }}>
+              Input
+            </Text>
+          </View>
         </Slide>
       </SlideShow>
     </View>
   );
 }
 
-function Input({ inputId, endTimestamp }: { inputId: string; endTimestamp: number }) {
-  // Temporary, useTimeLimitedComponent is an internal hook, InputStream component will rely
-  // on the mp4 length returned from the compositor
-  useTimeLimitedComponent(endTimestamp);
+function Input({ inputId }: { inputId: string }) {
   return (
     <View>
       <Rescaler>
-        <InputStream inputId={inputId} />
+        <InputStream inputId={inputId} volume={1.0} />
       </Rescaler>
       <View style={{ bottom: 10, left: 10, height: 50 }}>
         <Text
@@ -48,15 +67,16 @@ async function run() {
 
   await compositor.registerInput('input_1', {
     type: 'mp4',
-    serverPath: path.join(__dirname, '../.assets/BigBuckBunny.mp4'),
+    //serverPath: path.join(__dirname, '../.assets/BigBuckBunny.mp4'),
+    serverPath: '/home/wojtek/Downloads/sd.mp4',
     offsetMs: 0,
     required: true,
   });
 
   await compositor.registerInput('input_2', {
     type: 'mp4',
-    serverPath: path.join(__dirname, '../.assets/ElephantsDream.mp4'),
-    offsetMs: 5000,
+    serverPath: '/home/wojtek/Downloads/sd_no_audio.mp4',
+    offsetMs: 10_000,
     required: true,
   });
 
@@ -75,8 +95,14 @@ async function run() {
         },
         root: <ExampleApp />,
       },
+      audio: {
+        encoder: {
+          type: 'aac',
+          channels: 'stereo',
+        },
+      },
     },
-    10000
+    80000
   );
   process.exit(0);
 }

@@ -13,14 +13,14 @@ import { intoRegisterImage, intoRegisterWebRenderer } from '../api/renderer.js';
 export class LiveCompositor {
   private manager: CompositorManager;
   private api: ApiClient;
-  private store: _liveCompositorInternals.InstanceContextStore;
+  private store: _liveCompositorInternals.LiveInstanceContextStore;
   private outputs: Record<string, Output> = {};
   private startTime?: number;
 
   public constructor(manager: CompositorManager) {
     this.manager = manager;
     this.api = new ApiClient(this.manager);
-    this.store = new _liveCompositorInternals.InstanceContextStore();
+    this.store = new _liveCompositorInternals.LiveInstanceContextStore();
   }
 
   public async init(): Promise<void> {
