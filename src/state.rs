@@ -1,13 +1,11 @@
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use axum::response::IntoResponse;
-use compositor_pipeline::{
-    error::InitPipelineError,
-    pipeline::{self},
-};
+use compositor_pipeline::{error::InitPipelineError, pipeline};
 use compositor_render::EventLoop;
 
 use serde::Serialize;
+use tokio::runtime::Runtime;
 
 use crate::config::Config;
 
@@ -33,7 +31,10 @@ pub struct ApiState {
 }
 
 impl ApiState {
-    pub fn new(config: Config) -> Result<(ApiState, Arc<dyn EventLoop>), InitPipelineError> {
+    pub fn new(
+        config: Config,
+        runtime: Arc<Runtime>,
+    ) -> Result<(ApiState, Arc<dyn EventLoop>), InitPipelineError> {
         let Config {
             queue_options,
             stream_fallback_timeout,
@@ -41,6 +42,7 @@ impl ApiState {
             force_gpu,
             download_root,
             output_sample_rate,
+            stun_servers,
             required_wgpu_features,
             ..
         } = config.clone();
@@ -51,9 +53,11 @@ impl ApiState {
             force_gpu,
             download_root,
             output_sample_rate,
+            stun_servers,
             wgpu_features: required_wgpu_features,
             wgpu_ctx: None,
             load_system_fonts: Some(true),
+            tokio_rt: Some(runtime),
         })?;
         Ok((
             ApiState {

@@ -34,6 +34,7 @@ use live_compositor::{
     config::read_config,
     logger::{self},
 };
+use tokio::runtime::Runtime;
 
 const BUNNY_FILE_URL: &str =
     "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
@@ -63,9 +64,11 @@ fn main() {
         force_gpu: config.force_gpu,
         download_root: config.download_root,
         output_sample_rate: config.output_sample_rate,
+        stun_servers: config.stun_servers,
         wgpu_features: config.required_wgpu_features,
         load_system_fonts: Some(true),
         wgpu_ctx: Some(ctx),
+        tokio_rt: Some(Arc::new(Runtime::new().unwrap())),
     })
     .unwrap_or_else(|err| {
         panic!(
@@ -124,11 +127,8 @@ fn main() {
 
     Pipeline::register_input(&pipeline, input_id.clone(), input_options).unwrap();
 
-    let RawDataReceiver { video, audio } = pipeline
-        .lock()
-        .unwrap()
-        .register_raw_data_output(output_id.clone(), output_options)
-        .unwrap();
+    let RawDataReceiver { video, audio } =
+        Pipeline::register_raw_data_output(&pipeline, output_id.clone(), output_options).unwrap();
 
     Pipeline::start(&pipeline);
 

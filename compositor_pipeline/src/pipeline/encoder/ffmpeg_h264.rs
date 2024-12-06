@@ -149,10 +149,8 @@ impl LibavH264Encoder {
         self.resolution
     }
 
-    pub fn request_keyframe(&self) {
-        if let Err(err) = self.keyframe_req_sender.send(()) {
-            debug!(%err, "Failed to send keyframe request to the encoder.");
-        }
+    pub fn keyframe_request_sender(&self) -> Sender<()> {
+        self.keyframe_req_sender.clone()
     }
 }
 
