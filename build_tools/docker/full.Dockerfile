@@ -3,7 +3,7 @@ FROM ubuntu:noble-20240423 as builder
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-ARG USERNAME=compositor
+ARG USERNAME=smelter
 ARG RUST_VERSION=1.81
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -27,17 +27,19 @@ RUN source ~/.cargo/env && cargo build --release
 # Runtime image
 FROM ubuntu:noble-20240423
 
+LABEL org.opencontainers.image.source https://github.com/software-mansion/smelter
+
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-ARG USERNAME=compositor
+ARG USERNAME=smelter
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV NVIDIA_DRIVER_CAPABILITIES=compute,graphics,utility
 
-ENV LIVE_COMPOSITOR_MAIN_EXECUTABLE_PATH=/home/$USERNAME/live_compositor/main_process
-ENV LIVE_COMPOSITOR_PROCESS_HELPER_PATH=/home/$USERNAME/live_compositor/process_helper
-ENV LD_LIBRARY_PATH=/home/$USERNAME/live_compositor/lib
-ENV XDG_RUNTIME_DIR=/home/$USERNAME/live_compositor/xdg_runtime
+ENV LIVE_COMPOSITOR_MAIN_EXECUTABLE_PATH=/home/$USERNAME/smelter/main_process
+ENV LIVE_COMPOSITOR_PROCESS_HELPER_PATH=/home/$USERNAME/smelter/process_helper
+ENV LD_LIBRARY_PATH=/home/$USERNAME/smelter/lib
+ENV XDG_RUNTIME_DIR=/home/$USERNAME/smelter/xdg_runtime
 
 RUN apt-get update -y -qq && \
   apt-get install -y \
@@ -48,12 +50,12 @@ RUN apt-get update -y -qq && \
 RUN useradd -ms /bin/bash $USERNAME && adduser $USERNAME sudo
 RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 USER $USERNAME
-RUN mkdir -p /home/$USERNAME/live_compositor/xdg_runtime
-WORKDIR /home/$USERNAME/live_compositor
+RUN mkdir -p /home/$USERNAME/smelter/xdg_runtime
+WORKDIR /home/$USERNAME/smelter
 
-COPY --from=builder --chown=$USERNAME:$USERNAME /root/project/target/release/main_process /home/$USERNAME/live_compositor/main_process
-COPY --from=builder --chown=$USERNAME:$USERNAME /root/project/target/release/process_helper /home/$USERNAME/live_compositor/process_helper
-COPY --from=builder --chown=$USERNAME:$USERNAME /root/project/target/release/lib /home/$USERNAME/live_compositor/lib
-COPY --from=builder --chown=$USERNAME:$USERNAME /root/project/docker/entrypoint.sh /home/$USERNAME/live_compositor/entrypoint.sh
+COPY --from=builder --chown=$USERNAME:$USERNAME /root/project/target/release/main_process /home/$USERNAME/smelter/main_process
+COPY --from=builder --chown=$USERNAME:$USERNAME /root/project/target/release/process_helper /home/$USERNAME/smelter/process_helper
+COPY --from=builder --chown=$USERNAME:$USERNAME /root/project/target/release/lib /home/$USERNAME/smelter/lib
+COPY --from=builder --chown=$USERNAME:$USERNAME /root/project/docker/entrypoint.sh /home/$USERNAME/smelter/entrypoint.sh
 
 ENTRYPOINT ["./entrypoint.sh"]
