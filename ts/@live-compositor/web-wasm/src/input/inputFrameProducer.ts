@@ -4,7 +4,7 @@ import DecodingFrameProducer from "./producer/decodingFrameProducer";
 import MP4Source from "./mp4/source";
 import CameraFrameProducer from "./producer/cameraFrameProducer";
 
-export const DEFAULT_MAX_BUFFERING_SIZE = 3;
+export const DEFAULT_MAX_BUFFERING_SIZE = 1;
 
 export type InputFrameProducerCallbacks = {
   onFrame(frame: FrameRef): void;

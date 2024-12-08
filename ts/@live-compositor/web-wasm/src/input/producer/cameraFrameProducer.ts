@@ -31,6 +31,7 @@ export default class CameraFrameProducer implements InputFrameProducer {
   }
 
   public async produce(_framePts?: number): Promise<void> {
+    // TODO(noituri): Comment this
     void this.readFrames();
   }
 
@@ -46,7 +47,6 @@ export default class CameraFrameProducer implements InputFrameProducer {
       this.ptsOffset = -videoFrame.timestamp
     }
 
-    // console.warn(`videoPts: ${(videoFrame.timestamp + this.ptsOffset) / 1000} < ${_framePts}`);
     this.callbacks?.onFrame(new FrameRef({
       frame: videoFrame,
       // TODO(noituri): Handle pts roller

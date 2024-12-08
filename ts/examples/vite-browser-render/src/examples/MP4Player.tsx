@@ -70,7 +70,7 @@ function useCompositor(): [LiveCompositor | undefined, (canvas: HTMLCanvasElemen
     const setupCompositor = async () => {
       const compositor = new LiveCompositor({
         framerate: {
-          num: 100,
+          num: 30,
           den: 1,
         },
         streamFallbackTimeoutMs: 500,
