@@ -3,7 +3,7 @@ import { CompositorEventType } from 'live-compositor';
 import type { EventSender } from '../eventSender';
 import { FrameRef } from './frame';
 import { assert } from '../utils';
-import InputFrameProducer, { DEFAULT_MAX_BUFFERING_SIZE } from './inputFrameProducer';
+import InputFrameProducer from './inputFrameProducer';
 import { Queue } from '@datastructures-js/queue/src/queue';
 
 export type InputState = 'waiting_for_start' | 'buffering' | 'playing' | 'finished';
@@ -11,8 +11,8 @@ export type InputState = 'waiting_for_start' | 'buffering' | 'playing' | 'finish
 export class Input {
   private id: InputId;
   private state: InputState;
-  private frameProducer: InputFrameProducer;
   private frames: Queue<FrameRef>;
+  private frameProducer: InputFrameProducer;
   private eventSender: EventSender;
   /**
    * Queue PTS of the first frame
@@ -22,11 +22,10 @@ export class Input {
   public constructor(id: InputId, frameProducer: InputFrameProducer, eventSender: EventSender) {
     this.id = id;
     this.state = 'waiting_for_start';
-    this.frameProducer = frameProducer;
     this.frames = new Queue();
+    this.frameProducer = frameProducer;
     this.eventSender = eventSender;
 
-    this.frameProducer.setMaxBufferSize(DEFAULT_MAX_BUFFERING_SIZE);
     this.frameProducer.registerCallbacks({
       onFrame: (frame) => this.frames.push(frame),
     })
@@ -46,8 +45,10 @@ export class Input {
     });
   }
 
-  // TODO(noituri): Comment this
-  public async produceFrames(currentQueuePts: number): Promise<void> {
+  /**
+   * On every queue tick, produces frames and handles input state changes.
+   */
+  public async onQueueTick(currentQueuePts: number): Promise<void> {
     let targetPts: number | undefined;
     if (this.startPtsMs !== undefined) {
       targetPts = this.queuePtsToInputPts(currentQueuePts);
@@ -56,12 +57,16 @@ export class Input {
     await this.frameProducer.produce(targetPts);
 
     if (this.state === 'buffering') {
-      this.handleBuffering();
-      return;
+      this.handleBufferingState();
+    } else if (this.state === 'playing') {
+      this.handlePlayingState();
     }
   }
 
-  // TODO(noituri): Comment this
+  /**
+   * Retrieves frame with PTS closest to `currentQueuePts`.
+   * Frames older than the closest frame are dropped.
+   */
   public getFrameRef(currentQueuePts: number): FrameRef | undefined {
     if (this.state !== 'playing') {
       return;
@@ -81,12 +86,6 @@ export class Input {
 
     if (frame) {
       return frame;
-    }
-
-    // EOS received and there will be no more frames
-    if (this.frameProducer.isFinished()) {
-      this.handleEos();
-      return;
     }
 
     return undefined;
@@ -130,9 +129,8 @@ export class Input {
     }
   }
 
-  private handleBuffering() {
-    // TODO(noituri): Change this
-    if (this.frames.size() < DEFAULT_MAX_BUFFERING_SIZE) {
+  private handleBufferingState() {
+    if (this.frames.size() < this.frameProducer.maxBufferSize()) {
       return;
     }
 
@@ -143,7 +141,15 @@ export class Input {
     });
   }
 
-  private handleEos() {
+  private handlePlayingState() {
+    if (!this.frameProducer.isFinished()) {
+      return;
+    }
+    if (this.frames.size() > 1) {
+      return;
+    }
+
+    // EOS received and no frames left in the buffer
     this.state = 'finished';
     this.eventSender.sendEvent({
       type: CompositorEventType.VIDEO_INPUT_EOS,

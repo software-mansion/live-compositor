@@ -1,18 +1,18 @@
 import { assert, framerateToDurationMs } from "../../utils";
 import { H264Decoder } from "../decoder/h264Decoder";
 import { FrameRef } from "../frame";
-import InputFrameProducer, { DEFAULT_MAX_BUFFERING_SIZE, InputFrameProducerCallbacks } from "../inputFrameProducer";
+import InputFrameProducer, { InputFrameProducerCallbacks } from "../inputFrameProducer";
 import InputSource from "../source";
+
+const MAX_BUFFERING_SIZE = 3;
 
 export default class DecodingFrameProducer implements InputFrameProducer {
   private source: InputSource;
   private decoder: H264Decoder;
-  private maxBufferSize: number;
   private callbacks?: InputFrameProducerCallbacks;
 
   public constructor(source: InputSource) {
     this.source = source;
-    this.maxBufferSize = DEFAULT_MAX_BUFFERING_SIZE;
     this.decoder = new H264Decoder({
       onFrame: frame => this.callbacks?.onFrame(new FrameRef(frame)),
     })
@@ -30,6 +30,10 @@ export default class DecodingFrameProducer implements InputFrameProducer {
     this.source.start();
   }
 
+  public maxBufferSize(): number {
+    return MAX_BUFFERING_SIZE;
+  }
+
   public registerCallbacks(callbacks: InputFrameProducerCallbacks): void {
     this.callbacks = callbacks;
   }
@@ -45,10 +49,6 @@ export default class DecodingFrameProducer implements InputFrameProducer {
     if (this.source.isFinished() && this.decoder.decodeQueueSize() !== 0) {
       await this.decoder.flush();
     }
-  }
-
-  public setMaxBufferSize(maxBufferSize: number): void {
-    this.maxBufferSize = maxBufferSize;
   }
 
   public isFinished(): boolean {
@@ -71,7 +71,7 @@ export default class DecodingFrameProducer implements InputFrameProducer {
     assert(framerate);
 
     const frameDuration = framerateToDurationMs(framerate);
-    const targetPts = framePts + frameDuration * this.maxBufferSize;
+    const targetPts = framePts + frameDuration * MAX_BUFFERING_SIZE;
 
     let chunk = this.source.peekChunk();
     while (chunk && chunk.timestamp <= targetPts) {

@@ -56,6 +56,10 @@ export class FrameRef {
   public getPtsMs(): number {
     return this.frame.ptsMs;
   }
+
+  public isAlive(): boolean {
+    return this.refCount === 0;
+  }
 }
 
 async function downloadFrame(frameWithPts: FrameWithPts): Promise<Frame> {

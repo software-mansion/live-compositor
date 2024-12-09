@@ -6,15 +6,18 @@ export type InputSourceCallbacks = {
   onDecoderConfig: (config: VideoDecoderConfig) => void;
 };
 
+/**
+ * `InputSource` produces encoded video chunks required for decoding.
+ */
 export default interface InputSource {
   init(): Promise<void>;
   /**
-   * Starts input processing. `init()` has to be called beforehand.
+   * Starts producing chunks. `init()` has to be called beforehand.
    */
   start(): void;
   registerCallbacks(callbacks: InputSourceCallbacks): void;
   /**
-   * if `true` InputSource won't produce more chunks anymore
+   * if `true` InputSource won't produce more chunks anymore.
    */
   isFinished(): boolean;
   getFramerate(): Framerate | undefined;
