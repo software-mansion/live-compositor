@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use compositor_render::{
     error::RequestKeyframeError, Frame, OutputFrameFormat, OutputId, Resolution,
 };
@@ -90,7 +92,7 @@ pub(super) trait OutputOptionsExt<NewOutputResult> {
     fn new_output(
         &self,
         output_id: &OutputId,
-        ctx: &PipelineCtx,
+        ctx: Arc<PipelineCtx>,
     ) -> Result<(Output, NewOutputResult), RegisterOutputError>;
 }
 
@@ -98,7 +100,7 @@ impl OutputOptionsExt<Option<Port>> for OutputOptions {
     fn new_output(
         &self,
         output_id: &OutputId,
-        ctx: &PipelineCtx,
+        ctx: Arc<PipelineCtx>,
     ) -> Result<(Output, Option<Port>), RegisterOutputError> {
         let encoder_opts = EncoderOptions {
             video: self.video.clone(),
@@ -142,7 +144,7 @@ impl OutputOptionsExt<Receiver<EncoderOutputEvent>> for EncodedDataOutputOptions
     fn new_output(
         &self,
         output_id: &OutputId,
-        ctx: &PipelineCtx,
+        ctx: Arc<PipelineCtx>,
     ) -> Result<(Output, Receiver<EncoderOutputEvent>), RegisterOutputError> {
         let encoder_opts = EncoderOptions {
             video: self.video.clone(),
@@ -160,7 +162,7 @@ impl OutputOptionsExt<RawDataReceiver> for RawDataOutputOptions {
     fn new_output(
         &self,
         _output_id: &OutputId,
-        _ctx: &PipelineCtx,
+        _ctx: Arc<PipelineCtx>,
     ) -> Result<(Output, RawDataReceiver), RegisterOutputError> {
         let (video_sender, video_receiver, resolution) = match &self.video {
             Some(opts) => {

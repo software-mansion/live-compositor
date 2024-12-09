@@ -10,7 +10,7 @@ use std::{
     thread,
     time::{Duration, Instant},
 };
-use tokio::{runtime::Runtime, sync::oneshot};
+use tokio::sync::oneshot;
 use tracing::{debug, error, span, Instrument, Level};
 use url::{ParseError, Url};
 use webrtc::track::track_local::TrackLocalWriter;
@@ -18,7 +18,7 @@ use webrtc::track::track_local::TrackLocalWriter;
 use crate::{
     audio_mixer::AudioChannels,
     error::OutputInitError,
-    event::{Event, EventEmitter},
+    event::Event,
     pipeline::{AudioCodec, EncoderOutputEvent, PipelineCtx, VideoCodec},
 };
 
@@ -51,12 +51,9 @@ pub struct WhipAudioOptions {
 pub struct WhipCtx {
     output_id: OutputId,
     options: WhipSenderOptions,
-    sample_rate: u32,
-    stun_servers: Arc<Vec<String>>,
     request_keyframe_sender: Option<Sender<()>>,
     should_close: Arc<AtomicBool>,
-    tokio_rt: Arc<Runtime>,
-    event_emitter: Arc<EventEmitter>,
+    pipeline_ctx: Arc<PipelineCtx>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -129,7 +126,7 @@ impl WhipSender {
         options: WhipSenderOptions,
         packets_receiver: Receiver<EncoderOutputEvent>,
         request_keyframe_sender: Option<Sender<()>>,
-        pipeline_ctx: &PipelineCtx,
+        pipeline_ctx: Arc<PipelineCtx>,
     ) -> Result<Self, OutputInitError> {
         let payloader = Payloader::new(options.video, options.audio);
         let packet_stream = PacketStream::new(packets_receiver, payloader, 1400);
@@ -140,12 +137,9 @@ impl WhipSender {
         let whip_ctx = WhipCtx {
             output_id: output_id.clone(),
             options: options.clone(),
-            sample_rate: pipeline_ctx.output_sample_rate,
-            stun_servers: pipeline_ctx.stun_servers.clone(),
             request_keyframe_sender,
             should_close: should_close.clone(),
-            tokio_rt: pipeline_ctx.tokio_rt.clone(),
-            event_emitter: pipeline_ctx.event_emitter.clone(),
+            pipeline_ctx: pipeline_ctx.clone(),
         };
 
         pipeline_ctx.tokio_rt.spawn(
@@ -163,6 +157,7 @@ impl WhipSender {
             thread::sleep(Duration::from_millis(500));
             let elapsed_time = Instant::now().duration_since(start_time);
             if elapsed_time > WHIP_INIT_TIMEOUT {
+                init_confirmation_receiver.close();
                 return Err(OutputInitError::WhipInitTimeout);
             }
             match init_confirmation_receiver.try_recv() {
@@ -202,23 +197,35 @@ async fn run_whip_sender_task(
     let (peer_connection, video_track, audio_track) = match init_peer_connection(&whip_ctx).await {
         Ok(pc) => pc,
         Err(err) => {
-            init_confirmation_sender.send(Err(err)).unwrap();
+            if let Err(Err(err)) = init_confirmation_sender.send(Err(err)) {
+                error!(
+                    "Error while initializing whip sender thread, couldn't send message, error: {err:?}"
+                );
+            }
             return;
         }
     };
-    let output_id_clone = whip_ctx.output_id.clone();
-    let should_close_clone = whip_ctx.should_close.clone();
     let whip_session_url = match connect(peer_connection, client.clone(), &whip_ctx).await {
         Ok(val) => val,
         Err(err) => {
-            init_confirmation_sender.send(Err(err)).unwrap();
+            if let Err(Err(err)) = init_confirmation_sender.send(Err(err)) {
+                error!(
+                    "Error while initializing whip sender thread, couldn't send message, error: {err:?}"
+                );
+            }
             return;
         }
     };
-    init_confirmation_sender.send(Ok(())).unwrap();
+    if let Err(Ok(_)) = init_confirmation_sender.send(Ok(())) {
+        error!("Whip sender thread initialized successfully, coulnd't send confirmation message.");
+        return;
+    }
 
     for chunk in packet_stream {
-        if should_close_clone.load(std::sync::atomic::Ordering::Relaxed) {
+        if whip_ctx
+            .should_close
+            .load(std::sync::atomic::Ordering::Relaxed)
+        {
             break;
         }
         let chunk = match chunk {
@@ -274,7 +281,8 @@ async fn run_whip_sender_task(
         error!("Error while sending delete whip session request: {}", err);
     }
     whip_ctx
+        .pipeline_ctx
         .event_emitter
-        .emit(Event::OutputDone(output_id_clone));
+        .emit(Event::OutputDone(whip_ctx.output_id));
     debug!("Closing WHIP sender thread.")
 }

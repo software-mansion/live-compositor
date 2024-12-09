@@ -1,7 +1,7 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use compositor_api::types::Resolution;
 use serde_json::json;
-use std::time::Duration;
+use std::{env, time::Duration};
 
 use integration_tests::examples::{self, run_example};
 
@@ -28,12 +28,14 @@ fn client_code() -> Result<()> {
         }),
     )?;
 
+    let token = env::var("LIVE_COMPOSITOR_WHIP_CLIENT_EXAMPLE_TOKEN").map_err(|err| anyhow!("Couldn't read LIVE_COMPOSITOR_WHIP_CLIENT_EXAMPLE_TOKEN environmental variable. You must provide it in order to run `whip_client` example. Read env error: {}", err))?;
+
     examples::post(
         "output/output_1/register",
         &json!({
             "type": "whip",
-            "endpoint_url": "https://g.webrtc.live-video.net:4443/v2/offer",
-            "bearer_token": "live_415462268_xSFWGJSSxsl5YUOueD0NXaO5aailcs", // your Bearer token
+            "endpoint_url": "https://g.webrtc.live-video.net:4443/v2/offer", // Twitch WHIP endpoint URL
+            "bearer_token": token,
             "video": {
                 "resolution": {
                     "width": VIDEO_RESOLUTION.width,

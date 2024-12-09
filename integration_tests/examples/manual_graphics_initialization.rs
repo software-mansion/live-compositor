@@ -2,17 +2,14 @@
 // instance, adapter, queue and device.
 
 #[cfg(target_os = "linux")]
-use std::sync::Arc;
-#[cfg(target_os = "linux")]
-use tokio::runtime::Runtime;
-
-#[cfg(target_os = "linux")]
 fn main() {
     use compositor_pipeline::{
         pipeline::{GraphicsContext, Options},
         Pipeline,
     };
     use live_compositor::config::read_config;
+    use std::sync::Arc;
+    use tokio::runtime::Runtime;
 
     let graphics_context = GraphicsContext::new(
         false,

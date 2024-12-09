@@ -40,7 +40,7 @@ pub async fn init_peer_connection(
 
     if let Some(audio) = whip_ctx.options.audio {
         media_engine.register_codec(
-            audio_codec_parameters(audio, whip_ctx.sample_rate)?,
+            audio_codec_parameters(audio, whip_ctx.pipeline_ctx.output_sample_rate)?,
             RTPCodecType::Audio,
         )?;
     }
@@ -53,7 +53,7 @@ pub async fn init_peer_connection(
 
     let config = RTCConfiguration {
         ice_servers: vec![RTCIceServer {
-            urls: whip_ctx.stun_servers.to_vec(),
+            urls: whip_ctx.pipeline_ctx.stun_servers.to_vec(),
             ..Default::default()
         }],
         ..Default::default()
@@ -78,7 +78,7 @@ pub async fn init_peer_connection(
     let audio_track = match whip_ctx.options.audio {
         Some(audio_options) => {
             let audio_track = Arc::new(TrackLocalStaticRTP::new(
-                audio_codec_capability(audio_options, whip_ctx.sample_rate)?,
+                audio_codec_capability(audio_options, whip_ctx.pipeline_ctx.output_sample_rate)?,
                 "audio".to_owned(),
                 format!("live-compositor-{}-audio", whip_ctx.output_id).to_owned(),
             ));
