@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use crate::{
     error::{InputInitError, RegisterInputError},
     queue::PipelineEvent,
@@ -45,8 +47,15 @@ pub struct RawDataInputOptions {
     pub audio: bool,
 }
 
-pub struct InputInitInfo {
-    pub port: Option<Port>,
+pub enum InputInitInfo {
+    Rtp {
+        port: Option<Port>,
+    },
+    Mp4 {
+        video_duration: Option<Duration>,
+        audio_duration: Option<Duration>,
+    },
+    Other,
 }
 
 struct InputInitResult {
