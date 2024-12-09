@@ -9,6 +9,7 @@ use std::{
 use compositor_pipeline::queue::{self, QueueOptions};
 use compositor_render::{web_renderer::WebRendererInitOptions, Framerate, WgpuFeatures};
 use rand::Rng;
+use tracing::error;
 
 use crate::logger::FfmpegLogLevel;
 
@@ -23,6 +24,7 @@ pub struct Config {
     pub download_root: PathBuf,
     pub queue_options: QueueOptions,
     pub output_sample_rate: u32,
+    pub stun_servers: Arc<Vec<String>>,
     pub required_wgpu_features: WgpuFeatures,
 }
 
@@ -194,6 +196,20 @@ fn try_read_config() -> Result<Config, String> {
         Err(_) => None,
     };
 
+    let default_stun_servers = Arc::new(vec!["stun:stun.l.google.com:19302".to_string()]);
+
+    let stun_servers = match env::var("LIVE_COMPOSITOR_STUN_SERVERS") {
+        Ok(var) => {
+            if var.is_empty() {
+                error!("empty stun servers env");
+                Arc::new(Vec::new())
+            } else {
+                Arc::new(var.split(',').map(String::from).collect())
+            }
+        }
+        Err(_) => default_stun_servers,
+    };
+
     let config = Config {
         instance_id,
         api_port,
@@ -218,6 +234,7 @@ fn try_read_config() -> Result<Config, String> {
         },
         download_root,
         output_sample_rate,
+        stun_servers,
         required_wgpu_features,
     };
     Ok(config)

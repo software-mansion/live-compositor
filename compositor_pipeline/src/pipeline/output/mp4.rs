@@ -1,4 +1,4 @@
-use std::{fs, path::PathBuf, ptr, time::Duration};
+use std::{fs, path::PathBuf, ptr, sync::Arc, time::Duration};
 
 use compositor_render::OutputId;
 use crossbeam_channel::Receiver;
@@ -48,7 +48,7 @@ impl Mp4FileWriter {
         output_id: OutputId,
         options: Mp4OutputOptions,
         packets_receiver: Receiver<EncoderOutputEvent>,
-        pipeline_ctx: &PipelineCtx,
+        pipeline_ctx: Arc<PipelineCtx>,
     ) -> Result<Self, OutputInitError> {
         if options.output_path.exists() {
             let mut old_index = 0;

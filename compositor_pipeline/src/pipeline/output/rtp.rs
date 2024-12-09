@@ -50,7 +50,7 @@ impl RtpSender {
         output_id: &OutputId,
         options: RtpSenderOptions,
         packets_receiver: Receiver<EncoderOutputEvent>,
-        pipeline_ctx: &PipelineCtx,
+        pipeline_ctx: Arc<PipelineCtx>,
     ) -> Result<(Self, Port), OutputInitError> {
         let payloader = Payloader::new(options.video, options.audio);
         let mtu = match options.connection_options {

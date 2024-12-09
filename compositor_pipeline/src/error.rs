@@ -6,7 +6,7 @@ use compositor_render::{
     InputId, OutputId,
 };
 
-use crate::pipeline::{decoder::AacDecoderError, VideoCodec};
+use crate::pipeline::{decoder::AacDecoderError, output::whip, VideoCodec};
 use fdk_aac_sys as fdk;
 
 #[derive(Debug, thiserror::Error)]
@@ -20,6 +20,9 @@ pub enum InitPipelineError {
     #[cfg(feature = "vk-video")]
     #[error(transparent)]
     VulkanCtxError(#[from] vk_video::VulkanCtxError),
+
+    #[error("Failed to create tokio::Runtime.")]
+    CreateTokioRuntime(#[source] std::io::Error),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -90,6 +93,15 @@ pub enum OutputInitError {
 
     #[error("Failed to register output. FFmpeg error: {0}.")]
     FfmpegMp4Error(ffmpeg_next::Error),
+
+    #[error("Unkown Whip output error.")]
+    UnknownWhipError,
+
+    #[error("Whip init timeout exceeded")]
+    WhipInitTimeout,
+
+    #[error("Failed to init whip output")]
+    WhipInitError(#[source] Box<whip::WhipError>),
 }
 
 #[derive(Debug, thiserror::Error)]
