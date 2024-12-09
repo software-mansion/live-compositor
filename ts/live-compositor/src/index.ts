@@ -14,7 +14,6 @@ import {
   useBlockingTask,
   useCurrentTimestamp,
 } from './hooks.js';
-import { CompositorEvent, CompositorEventType } from './types/events.js';
 import Show, { ShowProps } from './components/Show.js';
 import { Slides, Slide, SlideProps, SlidesProps } from './components/Slides.js';
 
@@ -55,8 +54,6 @@ export {
   Slides,
   SlidesProps,
 };
-
-export { CompositorEvent, CompositorEventType };
 
 export { useInputStreams, useAudioInput, useBlockingTask, useAfterTimestamp, useCurrentTimestamp };
 

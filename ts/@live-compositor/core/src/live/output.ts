@@ -10,13 +10,15 @@ import { throttle } from '../utils.js';
 
 type AudioContext = _liveCompositorInternals.AudioContext;
 type LiveTimeContext = _liveCompositorInternals.LiveTimeContext;
-type LiveInstanceContextStore = _liveCompositorInternals.LiveInstanceContextStore;
+type LiveInputStreamStore<Id> = _liveCompositorInternals.LiveInputStreamStore<Id>;
+type CompositorOutputContext = _liveCompositorInternals.CompositorOutputContext;
 
 class Output {
   api: ApiClient;
   outputId: string;
   audioContext: AudioContext;
   timeContext: LiveTimeContext;
+  internalInputStreamStore: LiveInputStreamStore<number>;
   outputShutdownStateStore: OutputShutdownStateStore;
 
   shouldUpdateWhenReady: boolean = false;
@@ -28,7 +30,7 @@ class Output {
     outputId: string,
     registerRequest: RegisterOutput,
     api: ApiClient,
-    store: LiveInstanceContextStore,
+    store: LiveInputStreamStore<string>,
     startTimestamp: number | undefined
   ) {
     this.api = api;
@@ -47,15 +49,50 @@ class Output {
     const onUpdate = () => this.throttledUpdate();
     this.audioContext = new _liveCompositorInternals.AudioContext(onUpdate, supportsAudio);
     this.timeContext = new _liveCompositorInternals.LiveTimeContext();
+    this.internalInputStreamStore = new _liveCompositorInternals.LiveInputStreamStore();
     if (startTimestamp !== undefined) {
       this.timeContext.initClock(startTimestamp);
     }
 
     if (registerRequest.video) {
       const rootElement = createElement(OutputRootComponent, {
-        instanceStore: store,
-        audioContext: this.audioContext,
-        timeContext: this.timeContext,
+        outputContext: {
+          globalInputStreamStore: store,
+          internalInputStreamStore: this.internalInputStreamStore,
+          audioContext: this.audioContext,
+          timeContext: this.timeContext,
+          outputId,
+          registerMp4Input: async (inputId, registerRequest) => {
+            // TODO: refactor outside of a constructor
+            return await this.internalInputStreamStore.runBlocking(async updateStore => {
+              const inputRef = {
+                type: 'output-local',
+                outputId,
+                id: inputId,
+              } as const;
+              const { video_duration_ms, audio_duration_ms } = await this.api.registerInput(
+                inputRef,
+                {
+                  type: 'mp4',
+                  ...registerRequest,
+                }
+              );
+              updateStore({
+                type: 'add_input',
+                input: {
+                  inputId: inputId,
+                  offsetMs: registerRequest.offsetMs,
+                  audioDurationMs: audio_duration_ms,
+                  videoDurationMs: video_duration_ms,
+                },
+              });
+              return {
+                audioDurationMs: audio_duration_ms,
+                videoDurationMs: video_duration_ms,
+              };
+            });
+          },
+        },
         outputRoot: registerRequest.video.root,
         outputShutdownStateStore: this.outputShutdownStateStore,
       });
@@ -95,6 +132,10 @@ class Output {
   public initClock(timestamp: number) {
     this.timeContext.initClock(timestamp);
   }
+
+  public inputStreamStore(): LiveInputStreamStore<number> {
+    return this.internalInputStreamStore;
+  }
 }
 
 // External store to share shutdown information between React tree
@@ -123,16 +164,12 @@ class OutputShutdownStateStore {
 }
 
 function OutputRootComponent({
+  outputContext,
   outputRoot,
-  instanceStore,
-  timeContext,
-  audioContext,
   outputShutdownStateStore,
 }: {
+  outputContext: CompositorOutputContext;
   outputRoot: React.ReactElement;
-  instanceStore: LiveInstanceContextStore;
-  audioContext: AudioContext;
-  timeContext: LiveTimeContext;
   outputShutdownStateStore: OutputShutdownStateStore;
 }) {
   const shouldShutdown = useSyncExternalStore(
@@ -145,14 +182,9 @@ function OutputRootComponent({
     return createElement(View, {});
   }
 
-  const reactCtx = {
-    instanceStore,
-    timeContext,
-    audioContext,
-  };
   return createElement(
     _liveCompositorInternals.LiveCompositorContext.Provider,
-    { value: reactCtx },
+    { value: outputContext },
     outputRoot
   );
 }

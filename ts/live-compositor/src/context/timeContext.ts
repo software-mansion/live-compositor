@@ -1,5 +1,3 @@
-import type { OfflineInstanceContextStore } from './instanceContextStore.js';
-
 export interface BlockingTask {
   done(): void;
 }
@@ -24,12 +22,12 @@ export class OfflineTimeContext {
   private currentTimestamp: number = 0;
   private onChangeCallbacks: Set<() => void> = new Set();
 
-  constructor(onChange: () => void, instanceStore: OfflineInstanceContextStore) {
+  constructor(onChange: () => void, onTimeChange: (timestam: number) => void) {
     this.onChange = onChange;
     this.tasks = [];
     this.timestamps = [];
     this.onChangeCallbacks.add(() => {
-      instanceStore.setCurrentTimestamp(this.currentTimestamp);
+      onTimeChange(this.currentTimestamp);
     });
   }
 

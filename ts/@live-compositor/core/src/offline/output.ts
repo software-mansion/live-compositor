@@ -10,13 +10,15 @@ import { sleep } from '../utils.js';
 
 type AudioContext = _liveCompositorInternals.AudioContext;
 type OfflineTimeContext = _liveCompositorInternals.OfflineTimeContext;
-type OfflineInstanceContextStore = _liveCompositorInternals.OfflineInstanceContextStore;
+type OfflineInputStreamStore<Id> = _liveCompositorInternals.OfflineInputStreamStore<Id>;
+type CompositorOutputContext = _liveCompositorInternals.CompositorOutputContext;
 
 class OfflineOutput {
   api: ApiClient;
   outputId: string;
   audioContext: AudioContext;
   timeContext: OfflineTimeContext;
+  internalInputStreamStore: OfflineInputStreamStore<number>;
   outputShutdownStateStore: OutputShutdownStateStore;
   durationMs: number;
   updateTracker?: UpdateTracker;
@@ -28,7 +30,7 @@ class OfflineOutput {
     outputId: string,
     registerRequest: RegisterOutput,
     api: ApiClient,
-    store: OfflineInstanceContextStore,
+    store: OfflineInputStreamStore<string>,
     durationMs: number
   ) {
     this.api = api;
@@ -43,13 +45,70 @@ class OfflineOutput {
 
     const onUpdate = () => this.updateTracker?.onUpdate();
     this.audioContext = new _liveCompositorInternals.AudioContext(onUpdate, supportsAudio);
-    this.timeContext = new _liveCompositorInternals.OfflineTimeContext(onUpdate, store);
+    this.internalInputStreamStore = new _liveCompositorInternals.OfflineInputStreamStore();
+    this.timeContext = new _liveCompositorInternals.OfflineTimeContext(
+      onUpdate,
+      (timestamp: number) => {
+        store.setCurrentTimestamp(timestamp);
+        this.internalInputStreamStore.setCurrentTimestamp(timestamp);
+      }
+    );
 
     if (registerRequest.video) {
       const rootElement = createElement(OutputRootComponent, {
-        instanceStore: store,
-        audioContext: this.audioContext,
-        timeContext: this.timeContext,
+        outputContext: {
+          globalInputStreamStore: store,
+          internalInputStreamStore: this.internalInputStreamStore,
+          audioContext: this.audioContext,
+          timeContext: this.timeContext,
+          outputId,
+          registerMp4Input: async (inputId, registerRequest) => {
+            // TODO: refactor it out of a constructor
+            const inputRef = {
+              type: 'output-local',
+              outputId,
+              id: inputId,
+            } as const;
+            const { video_duration_ms: videoDurationMs, audio_duration_ms: audioDurationMs } =
+              await this.api.registerInput(inputRef, {
+                type: 'mp4',
+                ...registerRequest,
+              });
+            this.internalInputStreamStore.addInput({
+              inputId,
+              offsetMs: registerRequest.offsetMs ?? 0,
+              videoDurationMs,
+              audioDurationMs,
+            });
+            if (registerRequest.offsetMs) {
+              this.timeContext.addTimestamp({ timestamp: registerRequest.offsetMs });
+            }
+            if (videoDurationMs) {
+              this.timeContext.addTimestamp({
+                timestamp: (registerRequest.offsetMs ?? 0) + videoDurationMs,
+              });
+            }
+            if (audioDurationMs) {
+              this.timeContext.addTimestamp({
+                timestamp: (registerRequest.offsetMs ?? 0) + audioDurationMs,
+              });
+            }
+            return {
+              videoDurationMs,
+              audioDurationMs,
+            };
+          },
+          unregisterMp4Input: async inputId => {
+            await this.api.unregisterInput(
+              {
+                type: 'output-local',
+                outputId,
+                id: inputId,
+              },
+              { schedule_time_ms: this.timeContext.timestampMs() }
+            );
+          },
+        },
         outputRoot: registerRequest.video.root,
         outputShutdownStateStore: this.outputShutdownStateStore,
       });
@@ -110,8 +169,8 @@ const MAX_RENDER_TIMEOUT_MS = 2000;
  * specific PTS then assume it's ready to grab a snapshot of a tree
  */
 class UpdateTracker {
-  private promise: Promise<void> = new Promise(() => { });
-  private promiseRes: () => void = () => { };
+  private promise: Promise<void> = new Promise(() => {});
+  private promiseRes: () => void = () => {};
   private updateTimeout: number = -1;
   private renderTimeout: number = -1;
 
@@ -172,16 +231,12 @@ class OutputShutdownStateStore {
 }
 
 function OutputRootComponent({
+  outputContext,
   outputRoot,
-  instanceStore,
-  timeContext,
-  audioContext,
   outputShutdownStateStore,
 }: {
+  outputContext: CompositorOutputContext;
   outputRoot: React.ReactElement;
-  instanceStore: InstanceContextStore;
-  timeContext: OfflineTimeContext;
-  audioContext: AudioContext;
   outputShutdownStateStore: OutputShutdownStateStore;
 }) {
   const shouldShutdown = useSyncExternalStore(
@@ -194,14 +249,9 @@ function OutputRootComponent({
     return createElement(View, {});
   }
 
-  const reactCtx = {
-    instanceStore,
-    timeContext,
-    audioContext,
-  };
   return createElement(
     _liveCompositorInternals.LiveCompositorContext.Provider,
-    { value: reactCtx },
+    { value: outputContext },
     outputRoot
   );
 }

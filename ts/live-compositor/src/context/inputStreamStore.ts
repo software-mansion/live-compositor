@@ -1,42 +1,54 @@
-import type * as Api from '../api.js';
+import { useContext, useState } from 'react';
+import { LiveCompositorContext } from './index.js';
+
+let nextStreamNumber = 1;
+
+/*
+ * Generates unique input stream id that can be used in e.g. Mp4 component
+ */
+export function useInternalStreamId(): string {
+  const ctx = useContext(LiveCompositorContext);
+  const [streamNumber, _setStreamNumber] = useState(() => {
+    const result = nextStreamNumber;
+    nextStreamNumber += 1;
+    return result;
+  });
+  return `output-local:${streamNumber}:${ctx.outputId}`;
+}
 
 export type StreamState = 'ready' | 'playing' | 'finished';
 
-export type InputStreamInfo = {
-  inputId: string;
+export type InputStreamInfo<Id> = {
+  inputId: Id;
   videoState?: StreamState;
   audioState?: StreamState;
-  offsetMs?: number;
+  offsetMs?: number | null;
   videoDurationMs?: number;
   audioDurationMs?: number;
 };
 
-type UpdateAction =
-  | { type: 'update_input'; input: InputStreamInfo }
-  | { type: 'add_input'; input: InputStreamInfo }
-  | { type: 'remove_input'; inputId: string };
+type InstanceContext<Id = string> = Record<string, InputStreamInfo<Id>>;
 
-type InstanceContext = {
-  inputs: Record<Api.InputId, InputStreamInfo>;
-};
-
-export interface InstanceContextStore {
-  getSnapshot: () => InstanceContext;
+export interface InputStreamStore<Id> {
+  getSnapshot: () => InstanceContext<Id>;
   subscribe: (onStoreChange: () => void) => () => void;
 }
 
-export class LiveInstanceContextStore {
-  private context: InstanceContext = {
-    inputs: {},
-  };
+type UpdateAction<Id> =
+  | { type: 'update_input'; input: InputStreamInfo<Id> }
+  | { type: 'add_input'; input: InputStreamInfo<Id> }
+  | { type: 'remove_input'; inputId: Id };
+
+export class LiveInputStreamStore<Id> {
+  private context: Record<string, InputStreamInfo<Id>> = {};
   private onChangeCallbacks: Set<() => void> = new Set();
-  private eventQueue?: UpdateAction[];
+  private eventQueue?: UpdateAction<Id>[];
 
   /**
    * Apply update immediately if there are no `runBlocking` calls in progress.
    * Otherwise wait for `runBlocking call to finish`.
    */
-  public dispatchUpdate(update: UpdateAction) {
+  public dispatchUpdate(update: UpdateAction<Id>) {
     if (this.eventQueue) {
       this.eventQueue.push(update);
     } else {
@@ -50,7 +62,7 @@ export class LiveInstanceContextStore {
    * to update the store from inside `fn`
    */
   public async runBlocking<T = void>(
-    fn: (update: (action: UpdateAction) => void) => Promise<T>
+    fn: (update: (action: UpdateAction<Id>) => void) => Promise<T>
   ): Promise<T> {
     this.eventQueue = [];
     try {
@@ -63,7 +75,7 @@ export class LiveInstanceContextStore {
     }
   }
 
-  private applyUpdate(update: UpdateAction) {
+  private applyUpdate(update: UpdateAction<Id>) {
     if (update.type === 'add_input') {
       this.addInput(update.input);
     } else if (update.type === 'update_input') {
@@ -73,37 +85,31 @@ export class LiveInstanceContextStore {
     }
   }
 
-  private addInput(input: InputStreamInfo) {
-    if (this.context.inputs[input.inputId]) {
+  private addInput(input: InputStreamInfo<Id>) {
+    if (this.context[String(input.inputId)]) {
       console.warn(`Adding input ${input.inputId}. Input already exists.`);
     }
-    this.context = {
-      ...this.context,
-      inputs: { ...this.context.inputs, [input.inputId]: input },
-    };
+    this.context = { ...this.context, [String(input.inputId)]: input };
     this.signalUpdate();
   }
 
-  private updateInput(update: InputStreamInfo) {
-    const oldInput = this.context.inputs[update.inputId];
+  private updateInput(update: InputStreamInfo<Id>) {
+    const oldInput = this.context[String(update.inputId)];
     if (!oldInput) {
       console.warn(`Updating input ${update.inputId}. Input does not exist.`);
       return;
     }
     this.context = {
       ...this.context,
-      inputs: {
-        ...this.context.inputs,
-        [update.inputId]: { ...oldInput, ...update },
-      },
+      [String(update.inputId)]: { ...oldInput, ...update },
     };
     this.signalUpdate();
   }
 
-  private removeInput(inputId: string) {
-    const inputs = { ...this.context.inputs };
-    delete inputs[inputId];
-    this.context = { ...this.context, inputs };
+  private removeInput(inputId: Id) {
+    const context = { ...this.context };
+    delete context[String(inputId)];
+    this.context = context;
     this.signalUpdate();
   }
 
@@ -114,7 +120,7 @@ export class LiveInstanceContextStore {
   }
 
   // callback for useSyncExternalStore
-  public getSnapshot = (): InstanceContext => {
+  public getSnapshot = (): InstanceContext<Id> => {
     return this.context;
   };
 
@@ -127,28 +133,26 @@ export class LiveInstanceContextStore {
   };
 }
 
-type OfflineAddInput = {
-  inputId: string;
+type OfflineAddInput<Id> = {
+  inputId: Id;
   offsetMs: number;
   videoDurationMs?: number;
   audioDurationMs?: number;
 };
 
-export class OfflineInstanceContextStore {
-  private context: InstanceContext = {
-    inputs: {},
-  };
-  private inputs: OfflineAddInput[] = [];
+export class OfflineInputStreamStore<Id> {
+  private context: InstanceContext<Id> = {};
+  private inputs: OfflineAddInput<Id>[] = [];
   private onChangeCallbacks: Set<() => void> = new Set();
 
-  public addInput(update: OfflineAddInput) {
+  public addInput(update: OfflineAddInput<Id>) {
     this.inputs.push(update);
   }
 
   // TimeContext should call that function. It will always trigger re-render, but there
   // is no point to optimize it right now.
   public setCurrentTimestamp(timestampMs: number) {
-    const inputs = Object.fromEntries(
+    this.context = Object.fromEntries(
       this.inputs
         .filter(input => timestampMs >= input.offsetMs)
         .map(input => {
@@ -166,7 +170,6 @@ export class OfflineInstanceContextStore {
           return [input.inputId, inputState];
         })
     );
-    this.context = { ...this.context, inputs };
     this.signalUpdate();
   }
 
@@ -177,7 +180,7 @@ export class OfflineInstanceContextStore {
   }
 
   // callback for useSyncExternalStore
-  public getSnapshot = (): InstanceContext => {
+  public getSnapshot = (): InstanceContext<Id> => {
     return this.context;
   };
 

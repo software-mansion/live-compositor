@@ -3,17 +3,17 @@ import { useContext, useEffect, useState, useSyncExternalStore } from 'react';
 import type * as Api from './api.js';
 import type { CompositorOutputContext } from './context/index.js';
 import { LiveCompositorContext } from './context/index.js';
-import type { InputStreamInfo } from './context/instanceContextStore.js';
 import type { BlockingTask } from './context/timeContext.js';
 import { OfflineTimeContext } from './context/timeContext.js';
+import type { InputStreamInfo } from './context/inputStreamStore.js';
 
-export function useInputStreams(): Record<Api.InputId, InputStreamInfo> {
+export function useInputStreams(): Record<Api.InputId, InputStreamInfo<string>> {
   const ctx = useContext(LiveCompositorContext);
   const instanceCtx = useSyncExternalStore(
-    ctx.instanceStore.subscribe,
-    ctx.instanceStore.getSnapshot
+    ctx.globalInputStreamStore.subscribe,
+    ctx.globalInputStreamStore.getSnapshot
   );
-  return instanceCtx.inputs;
+  return instanceCtx;
 }
 
 export type AudioOptions = {
