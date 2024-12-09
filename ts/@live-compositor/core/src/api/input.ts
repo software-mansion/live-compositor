@@ -1,7 +1,42 @@
 import type { Api } from '../api.js';
-import type { RegisterMp4Input, RegisterRtpInput, Inputs } from 'live-compositor';
+import type {
+  RegisterMp4Input,
+  RegisterRtpInput,
+  Inputs,
+  _liveCompositorInternals,
+} from 'live-compositor';
 
 export type RegisterInputRequest = Api.RegisterInput;
+
+export type InputRef = _liveCompositorInternals.InputRef;
+
+export function inputRefIntoRawId(inputRef: InputRef): string {
+  if (inputRef.type == 'global') {
+    return `global:${inputRef.id}`;
+  } else {
+    return `output-local:${inputRef.id}:${inputRef.outputId}`;
+  }
+}
+
+export function parseInputRef(rawId: string): InputRef {
+  const split = rawId.split(':');
+  if (split.length <= 2) {
+    throw new Error('Invalid input ID.');
+  } else if (split[0] === 'global') {
+    return {
+      type: 'global',
+      id: split.slice(1).join(),
+    };
+  } else if (split[0] === 'output-local') {
+    return {
+      type: 'output-local',
+      id: Number(split[1]),
+      outputId: split.slice(2).join(),
+    };
+  } else {
+    throw new Error(`Unknown input type (${split[0]}).`);
+  }
+}
 
 export type RegisterInput =
   | ({ type: 'rtp_stream' } & RegisterRtpInput)

@@ -73,7 +73,8 @@ export class OfflineCompositor {
 
   public async registerInput(inputId: string, request: RegisterInput): Promise<object> {
     this.checkNotStarted();
-    const result = await this.api.registerInput(inputId, intoRegisterInput(request));
+    const inputRef = { type: 'global', id: inputId } as const;
+    const result = await this.api.registerInput(inputRef, intoRegisterInput(request));
 
     if (request.type === 'mp4' && request.loop) {
       this.store.addInput({

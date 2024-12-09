@@ -58,6 +58,7 @@ class Output {
         timeContext: this.timeContext,
         outputRoot: registerRequest.video.root,
         outputShutdownStateStore: this.outputShutdownStateStore,
+        outputId,
       });
 
       this.videoRenderer = new Renderer({
@@ -128,12 +129,14 @@ function OutputRootComponent({
   timeContext,
   audioContext,
   outputShutdownStateStore,
+  outputId,
 }: {
   outputRoot: React.ReactElement;
   instanceStore: LiveInstanceContextStore;
   audioContext: AudioContext;
   timeContext: LiveTimeContext;
   outputShutdownStateStore: OutputShutdownStateStore;
+  outputId: string;
 }) {
   const shouldShutdown = useSyncExternalStore(
     outputShutdownStateStore.subscribe,
@@ -149,6 +152,7 @@ function OutputRootComponent({
     instanceStore,
     timeContext,
     audioContext,
+    outputId,
   };
   return createElement(
     _liveCompositorInternals.LiveCompositorContext.Provider,

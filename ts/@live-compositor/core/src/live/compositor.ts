@@ -47,7 +47,8 @@ export class LiveCompositor {
 
   public async registerInput(inputId: string, request: RegisterInput): Promise<object> {
     return this.store.runBlocking(async updateStore => {
-      const result = await this.api.registerInput(inputId, intoRegisterInput(request));
+      const inputRef = { type: 'global', id: inputId } as const;
+      const result = await this.api.registerInput(inputRef, intoRegisterInput(request));
       updateStore({ type: 'add_input', input: { inputId } });
       return result;
     });
@@ -55,7 +56,8 @@ export class LiveCompositor {
 
   public async unregisterInput(inputId: string): Promise<object> {
     return this.store.runBlocking(async updateStore => {
-      const result = this.api.unregisterInput(inputId);
+      const inputRef = { type: 'global', id: inputId } as const;
+      const result = this.api.unregisterInput(inputRef);
       updateStore({ type: 'remove_input', inputId });
       return result;
     });

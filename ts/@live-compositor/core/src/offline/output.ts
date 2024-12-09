@@ -52,6 +52,7 @@ class OfflineOutput {
         timeContext: this.timeContext,
         outputRoot: registerRequest.video.root,
         outputShutdownStateStore: this.outputShutdownStateStore,
+        outputId,
       });
 
       this.videoRenderer = new Renderer({
@@ -110,8 +111,8 @@ const MAX_RENDER_TIMEOUT_MS = 2000;
  * specific PTS then assume it's ready to grab a snapshot of a tree
  */
 class UpdateTracker {
-  private promise: Promise<void> = new Promise(() => { });
-  private promiseRes: () => void = () => { };
+  private promise: Promise<void> = new Promise(() => {});
+  private promiseRes: () => void = () => {};
   private updateTimeout: number = -1;
   private renderTimeout: number = -1;
 
@@ -177,12 +178,14 @@ function OutputRootComponent({
   timeContext,
   audioContext,
   outputShutdownStateStore,
+  outputId,
 }: {
   outputRoot: React.ReactElement;
-  instanceStore: InstanceContextStore;
+  instanceStore: OfflineInstanceContextStore;
   timeContext: OfflineTimeContext;
   audioContext: AudioContext;
   outputShutdownStateStore: OutputShutdownStateStore;
+  outputId: string;
 }) {
   const shouldShutdown = useSyncExternalStore(
     outputShutdownStateStore.subscribe,
@@ -198,6 +201,7 @@ function OutputRootComponent({
     instanceStore,
     timeContext,
     audioContext,
+    outputId,
   };
   return createElement(
     _liveCompositorInternals.LiveCompositorContext.Provider,

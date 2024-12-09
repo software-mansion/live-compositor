@@ -30,16 +30,16 @@ export type InputStreamProps = {
 
 type AudioPropNames = 'muted' | 'volume';
 
-const InnerInputStream =
+export const InnerInputStream =
   createCompositorComponent<Omit<InputStreamProps, AudioPropNames>>(sceneBuilder);
 
 function InputStream(props: InputStreamProps) {
-  const { muted, volume, ...otherProps } = props;
-  useAudioInput(props.inputId, {
+  const { muted, volume, inputId, ...otherProps } = props;
+  useAudioInput(inputId, {
     volume: muted ? 0 : (volume ?? 1),
   });
-  useInputStreamInOfflineContext(props.inputId);
-  return createElement(InnerInputStream, otherProps);
+  useInputStreamInOfflineContext(inputId);
+  return createElement(InnerInputStream, { ...otherProps, inputId: `global:${inputId}` });
 }
 
 function useInputStreamInOfflineContext(inputId: string) {
