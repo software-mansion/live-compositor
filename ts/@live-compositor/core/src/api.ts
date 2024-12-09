@@ -1,7 +1,7 @@
 import { Api } from 'live-compositor';
 import type { CompositorManager } from './compositorManager.js';
 import type { RegisterOutputRequest } from './api/output.js';
-import type { RegisterInputRequest } from './api/input.js';
+import { inputRefIntoRawId, type InputRef, type RegisterInputRequest } from './api/input.js';
 
 export { Api };
 
@@ -51,21 +51,24 @@ export class ApiClient {
   }
 
   public async registerInput(
-    inputId: string,
+    inputId: InputRef,
     request: RegisterInputRequest
   ): Promise<RegisterInputResponse> {
     return this.serverManager.sendRequest({
       method: 'POST',
-      route: `/api/input/${encodeURIComponent(inputId)}/register`,
+      route: `/api/input/${encodeURIComponent(inputRefIntoRawId(inputId))}/register`,
       body: request,
     });
   }
 
-  public async unregisterInput(inputId: string): Promise<object> {
+  public async unregisterInput(
+    inputId: InputRef,
+    body: { schedule_time_ms?: number }
+  ): Promise<object> {
     return this.serverManager.sendRequest({
       method: 'POST',
-      route: `/api/input/${encodeURIComponent(inputId)}/unregister`,
-      body: {},
+      route: `/api/input/${encodeURIComponent(inputRefIntoRawId(inputId))}/unregister`,
+      body,
     });
   }
 

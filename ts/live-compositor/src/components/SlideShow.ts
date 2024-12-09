@@ -7,6 +7,7 @@ import View from './View.js';
 import {
   ChildrenLifetimeContext,
   ChildrenLifetimeContextType,
+  useCompletableComponent,
   useTimeLimitedComponent,
 } from '../context/childrenLifetimeContext.js';
 
@@ -57,22 +58,25 @@ export function SlideShow(props: SlideShowProps) {
     prevChildrenRef.current = props.children;
   }, [props.children]);
 
-  const [slideEnd, setSlideEnd] = useState(false);
-  const onSlideEndChange = useCallback(() => {
-    setSlideEnd(true);
+  const [shouldCheckChildren, setShouldCheckChildren] = useState(false);
+  const onChildrenChange = useCallback(() => {
+    setShouldCheckChildren(true);
   }, []);
   const [slideContext, _setSlideCtx] = useState(
-    () => new ChildrenLifetimeContext(onSlideEndChange)
+    () => new ChildrenLifetimeContext(onChildrenChange)
   );
 
   useEffect(() => {
-    if (slideEnd) {
-      setSlideEnd(false);
+    if (shouldCheckChildren) {
+      setShouldCheckChildren(false);
       if (slideContext.isDone()) {
         setChildIndex(childIndex + 1);
       }
     }
-  }, [slideEnd]);
+  }, [shouldCheckChildren]);
+
+  // report this SlideShow lifetime to its parents (to support nested SlideShows)
+  useCompletableComponent(childIndex >= childrenArray.length);
 
   return createElement(
     ChildrenLifetimeContextType.Provider,

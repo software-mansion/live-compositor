@@ -2,24 +2,25 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { useAfterTimestamp } from '../hooks.js';
 
 export class ChildrenLifetimeContext {
-  private timestamps: Array<{ end: number }> = [];
-  private onTimestampRemoved: () => void;
+  private childrenRefs: Set<Symbol> = new Set();
+  private onChange: () => void;
 
-  constructor(onSlideEnd: () => void) {
-    this.onTimestampRemoved = onSlideEnd;
+  constructor(onChange: () => void) {
+    this.onChange = onChange;
   }
 
-  public addEndTimestamp(ts: { end: number }) {
-    this.timestamps.push(ts);
+  public addRef(ref: Symbol) {
+    this.childrenRefs.add(ref);
+    this.onChange();
   }
 
-  public removeEndTimestamp(ts: { end: number }) {
-    this.timestamps = this.timestamps.filter(timestamp => ts !== timestamp);
-    this.onTimestampRemoved();
+  public removeRef(ref: Symbol) {
+    this.childrenRefs.delete(ref);
+    this.onChange();
   }
 
   public isDone(): boolean {
-    return this.timestamps.length === 0;
+    return this.childrenRefs.size === 0;
   }
 }
 
@@ -37,19 +38,38 @@ export const ChildrenLifetimeContextType = createContext(new ChildrenLifetimeCon
 export function useTimeLimitedComponent(timestamp: number) {
   const childrenLifetimeContext = useContext(ChildrenLifetimeContextType);
   const afterTimestamp = useAfterTimestamp(timestamp);
-  const [timestampObject, setTimestampObject] = useState<{ end: number }>();
+  const [ref, setComponentRef] = useState<Symbol>();
   useEffect(() => {
-    let tsObject = { end: timestamp };
-    setTimestampObject(tsObject);
-    childrenLifetimeContext.addEndTimestamp(tsObject);
+    let ref = Symbol();
+    setComponentRef(ref);
+    childrenLifetimeContext.addRef(ref);
     return () => {
-      childrenLifetimeContext.removeEndTimestamp(tsObject);
+      childrenLifetimeContext.removeRef(ref);
     };
   }, [timestamp]);
 
   useEffect(() => {
-    if (timestampObject && afterTimestamp) {
-      childrenLifetimeContext.removeEndTimestamp(timestampObject);
+    if (ref && afterTimestamp) {
+      childrenLifetimeContext.removeRef(ref);
     }
-  }, [afterTimestamp, timestampObject]);
+  }, [afterTimestamp, ref]);
+}
+
+export function useCompletableComponent(completed: boolean) {
+  const childrenLifetimeContext = useContext(ChildrenLifetimeContextType);
+  const [ref, setComponentRef] = useState<Symbol>();
+  useEffect(() => {
+    let ref = Symbol();
+    setComponentRef(ref);
+    childrenLifetimeContext.addRef(ref);
+    return () => {
+      childrenLifetimeContext.removeRef(ref);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (ref && completed) {
+      childrenLifetimeContext.removeRef(ref);
+    }
+  }, [completed, ref]);
 }

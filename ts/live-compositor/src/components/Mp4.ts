@@ -1,11 +1,11 @@
-import { createElement, useContext } from 'react';
+import { createElement, useContext, useEffect, useState, useSyncExternalStore } from 'react';
 import type * as Api from '../api.js';
-import type { SceneComponent } from '../component.js';
-import { createCompositorComponent } from '../component.js';
-import { useAudioInput } from '../hooks.js';
+import { newBlockingTask } from '../hooks.js';
 import { useTimeLimitedComponent } from '../context/childrenLifetimeContext.js';
 import { LiveCompositorContext } from '../context/index.js';
-import { OfflineTimeContext } from '../internal.js';
+import { inputRefIntoRawId, OfflineTimeContext } from '../internal.js';
+import { InnerInputStream } from './InputStream.js';
+import { newInternalStreamId } from '../context/internalStreamStore.js';
 
 export type Mp4Props = {
   children?: undefined;
@@ -15,10 +15,6 @@ export type Mp4Props = {
    */
   id?: Api.ComponentId;
   /**
-   * Id of an input. It identifies a stream registered using a `LiveCompositor.registerInput`.
-   */
-  inputId: Api.InputId;
-  /**
    * Audio volume represented by a number between 0 and 1.
    */
   volume?: number;
@@ -26,39 +22,91 @@ export type Mp4Props = {
    * Mute audio.
    */
   muted?: boolean;
+
+  /**
+   *  Url or path to the mp4 file. File path refers to the filesystem where LiveCompositor server is deployed.
+   */
+  source: string;
 };
-
-type AudioPropNames = 'muted' | 'volume';
-
-const InnerMp4 = createCompositorComponent<Omit<Mp4Props, AudioPropNames>>(sceneBuilder);
 
 function Mp4(props: Mp4Props) {
   const { muted, volume, ...otherProps } = props;
-  useAudioInput(props.inputId, {
-    volume: muted ? 0 : (volume ?? 1),
-  });
-  useMp4InOfflineContext(props.inputId);
-  return createElement(InnerMp4, otherProps);
-}
-
-function useMp4InOfflineContext(inputId: string) {
   const ctx = useContext(LiveCompositorContext);
-  if (!(ctx.timeContext instanceof OfflineTimeContext)) {
-    // condition is constant so it's fine to use hook after that
-    return;
-  }
-  const inputs = useInputStreams();
-  const input = inputs[inputId];
-  useTimeLimitedComponent((input?.offsetMs ?? 0) + (input?.videoDurationMs ?? 0));
-  useTimeLimitedComponent((input?.offsetMs ?? 0) + (input?.audioDurationMs ?? 0));
+  const [inputId, setInputId] = useState(0);
+
+  useEffect(() => {
+    const newInputId = newInternalStreamId();
+    setInputId(newInputId);
+    const task = newBlockingTask(ctx);
+    const pathOrUrl =
+      props.source.startsWith('http://') || props.source.startsWith('https://')
+        ? { url: props.source }
+        : { path: props.source };
+    let registerPromise: Promise<any>;
+    void (async () => {
+      try {
+        registerPromise = ctx.registerMp4Input(newInputId, {
+          ...pathOrUrl,
+          required: ctx.timeContext instanceof OfflineTimeContext,
+          // offsetMs will be overridden by registerMp4Input implementation
+        });
+        await registerPromise;
+      } finally {
+        task.done();
+      }
+    })();
+    return () => {
+      task.done();
+      void (async () => {
+        await registerPromise.catch(() => {});
+        await ctx.unregisterMp4Input(newInputId);
+      })();
+    };
+  }, [props.source]);
+
+  useInternalAudioInput(inputId, muted ? 0 : (volume ?? 1));
+  useTimeLimitedMp4(inputId);
+
+  return createElement(InnerInputStream, {
+    ...otherProps,
+    inputId: inputRefIntoRawId({ type: 'output-local', id: inputId, outputId: ctx.outputId }),
+  });
 }
 
-function sceneBuilder(props: Mp4Props, _children: SceneComponent[]): Api.Component {
-  return {
-    type: 'input_stream',
-    id: props.id,
-    input_id: props.inputId,
-  };
+function useInternalAudioInput(inputId: number, volume: number) {
+  const ctx = useContext(LiveCompositorContext);
+  useEffect(() => {
+    if (inputId === 0) {
+      return;
+    }
+    const options = { volume };
+    ctx.audioContext.addInputAudioComponent(
+      { type: 'output-local', id: inputId, outputId: ctx.outputId },
+      options
+    );
+    return () => {
+      ctx.audioContext.removeInputAudioComponent(
+        { type: 'output-local', id: inputId, outputId: ctx.outputId },
+        options
+      );
+    };
+  }, [inputId, volume]);
+}
+
+function useTimeLimitedMp4(inputId: number) {
+  const ctx = useContext(LiveCompositorContext);
+  const [startTime, setStartTime] = useState(0);
+  useEffect(() => {
+    setStartTime(ctx.timeContext.timestampMs());
+  }, [inputId]);
+
+  const internalStreams = useSyncExternalStore(
+    ctx.internalInputStreamStore.subscribe,
+    ctx.internalInputStreamStore.getSnapshot
+  );
+  const input = internalStreams[String(inputId)];
+  useTimeLimitedComponent((input?.offsetMs ?? startTime) + (input?.videoDurationMs ?? 0));
+  useTimeLimitedComponent((input?.offsetMs ?? startTime) + (input?.audioDurationMs ?? 0));
 }
 
 export default Mp4;

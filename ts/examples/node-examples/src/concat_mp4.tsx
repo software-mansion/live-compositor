@@ -1,59 +1,94 @@
 import { OfflineCompositor } from '@live-compositor/node';
-import { View, Text, Rescaler, InputStream, SlideShow, Slide } from 'live-compositor';
+import { View, Text, Rescaler, SlideShow, Slide, Mp4, InputStream } from 'live-compositor';
 import { downloadAllAssets } from './utils';
 import path from 'path';
+import type { ReactElement } from 'react';
 
 function ExampleApp() {
+  return (
+    <SlideShow>
+      <Slide durationMs={3000}>
+        <TitleSlide text="First slide show" />
+      </Slide>
+      <Slide>
+        <ExampleScene />
+      </Slide>
+      <Slide durationMs={3000}>
+        <TitleSlide text="Second slide show" />
+      </Slide>
+      <Slide>
+        <ExampleScene />
+      </Slide>
+    </SlideShow>
+  );
+}
+
+function ExampleScene() {
   return (
     <View>
       <SlideShow>
         <Slide>
-          <Input inputId="input_1" />
+          <TitleSlide text="Part 1" />
         </Slide>
-        <Slide durationMs={3_000}>
-          <View>
-            <Text
-              style={{
-                fontSize: 40,
-                color: '#FF0000',
-                lineHeight: 50,
-                backgroundColor: '#FFFFFF88',
-              }}>
-              Input
-            </Text>
-          </View>
+        <Slide durationMs={3000}>
+          <SlideWithLabel label="BigBuckBunny sample video as <InputStream />">
+            <InputStream inputId="input_1" />
+          </SlideWithLabel>
         </Slide>
         <Slide>
-          <Input inputId="input_2" />
+          <TitleSlide text="Part 2" />
         </Slide>
-        <Slide durationMs={3_000}>
-          <View>
-            <Text
-              style={{
-                fontSize: 40,
-                color: '#FF0000',
-                lineHeight: 50,
-                backgroundColor: '#FFFFFF88',
-              }}>
-              Input
-            </Text>
-          </View>
+        <Slide>
+          <SlideWithLabel label="ForBiggerEscapes sample video as <Mp4 />">
+            <Mp4
+              source="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4"
+              volume={0.8}
+            />
+          </SlideWithLabel>
+        </Slide>
+        <Slide>
+          <TitleSlide text="Part 3" />
+        </Slide>
+        <Slide>
+          <SlideWithLabel label="ForBiggerBlazes sample video as <Mp4 />">
+            <Mp4
+              source="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"
+              volume={0.8}
+            />
+          </SlideWithLabel>
+        </Slide>
+        <Slide durationMs={3000}>
+          <TitleSlide text="The end" />
         </Slide>
       </SlideShow>
     </View>
   );
 }
 
-function Input({ inputId }: { inputId: string }) {
+function TitleSlide(props: { text: string }) {
+  return (
+    <Rescaler>
+      <Text
+        style={{
+          fontSize: 800,
+          color: '#FF0000',
+          lineHeight: 800,
+          backgroundColor: '#FFFFFF88',
+        }}>
+        {props.text}
+      </Text>
+    </Rescaler>
+  );
+}
+
+function SlideWithLabel({ label, children }: { label: string; children: ReactElement }) {
   return (
     <View>
-      <Rescaler>
-        <InputStream inputId={inputId} volume={1.0} />
-      </Rescaler>
+      <Rescaler>{children}</Rescaler>
       <View style={{ bottom: 10, left: 10, height: 50 }}>
         <Text
           style={{ fontSize: 40, color: '#FF0000', lineHeight: 50, backgroundColor: '#FFFFFF88' }}>
-          Input ID: {inputId}
+          {label}
         </Text>
       </View>
     </View>
@@ -67,43 +102,31 @@ async function run() {
 
   await compositor.registerInput('input_1', {
     type: 'mp4',
-    //serverPath: path.join(__dirname, '../.assets/BigBuckBunny.mp4'),
-    serverPath: '/home/wojtek/Downloads/sd.mp4',
+    serverPath: path.join(__dirname, '../.assets/BigBuckBunny.mp4'),
     offsetMs: 0,
     required: true,
   });
 
-  await compositor.registerInput('input_2', {
+  await compositor.render(<ExampleApp />, {
     type: 'mp4',
-    serverPath: '/home/wojtek/Downloads/sd_no_audio.mp4',
-    offsetMs: 10_000,
-    required: true,
-  });
-
-  await compositor.render(
-    {
-      type: 'mp4',
-      serverPath: path.join(__dirname, '../.assets/concat_mp4_output.mp4'),
-      video: {
-        encoder: {
-          type: 'ffmpeg_h264',
-          preset: 'ultrafast',
-        },
-        resolution: {
-          width: 1920,
-          height: 1080,
-        },
-        root: <ExampleApp />,
+    serverPath: path.join(__dirname, '../.assets/concat_mp4_output.mp4'),
+    video: {
+      encoder: {
+        type: 'ffmpeg_h264',
+        preset: 'ultrafast',
       },
-      audio: {
-        encoder: {
-          type: 'aac',
-          channels: 'stereo',
-        },
+      resolution: {
+        width: 1920,
+        height: 1080,
       },
     },
-    80000
-  );
+    audio: {
+      encoder: {
+        type: 'aac',
+        channels: 'stereo',
+      },
+    },
+  });
   process.exit(0);
 }
 void run();

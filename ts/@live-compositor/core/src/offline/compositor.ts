@@ -1,5 +1,5 @@
 import type { Renderers } from 'live-compositor';
-import { _liveCompositorInternals, CompositorEventType } from 'live-compositor';
+import { _liveCompositorInternals } from 'live-compositor';
 import { ApiClient } from '../api.js';
 import type { CompositorManager } from '../compositorManager.js';
 import type { RegisterOutput } from '../api/output.js';
@@ -8,18 +8,19 @@ import type { RegisterInput } from '../api/input.js';
 import { intoRegisterInput } from '../api/input.js';
 import { intoRegisterImage, intoRegisterWebRenderer } from '../api/renderer.js';
 import OfflineOutput from './output.js';
-import { parseEvent } from '../event.js';
+import { CompositorEventType, parseEvent } from '../event.js';
+import type { ReactElement } from 'react';
 
 /**
  * Offline rendering only supports one output, so we can just pick any value to use
  * as an output ID.
  */
-const OFFLINE_OUTPUT_ID = 'offline_output';
+export const OFFLINE_OUTPUT_ID = 'offline_output';
 
 export class OfflineCompositor {
   private manager: CompositorManager;
   private api: ApiClient;
-  private store: _liveCompositorInternals.OfflineInstanceContextStore;
+  private store: _liveCompositorInternals.OfflineInputStreamStore<string>;
   private renderStarted: boolean = false;
   /**
    * Start and end timestamp of an inputs (if known).
@@ -29,7 +30,7 @@ export class OfflineCompositor {
   public constructor(manager: CompositorManager) {
     this.manager = manager;
     this.api = new ApiClient(this.manager);
-    this.store = new _liveCompositorInternals.OfflineInstanceContextStore();
+    this.store = new _liveCompositorInternals.OfflineInputStreamStore();
   }
 
   public async init(): Promise<void> {
@@ -37,11 +38,11 @@ export class OfflineCompositor {
     await this.manager.setupInstance({ aheadOfTimeProcessing: true });
   }
 
-  public async render(request: RegisterOutput, durationMs: number) {
+  public async render(root: ReactElement, request: RegisterOutput, durationMs?: number) {
     this.checkNotStarted();
     this.renderStarted = true;
 
-    const output = new OfflineOutput(OFFLINE_OUTPUT_ID, request, this.api, this.store, durationMs);
+    const output = new OfflineOutput(root, request, this.api, this.store, durationMs);
     for (const inputTimestamp of this.inputTimestamps) {
       output.timeContext.addTimestamp({ timestamp: inputTimestamp });
     }
@@ -51,7 +52,9 @@ export class OfflineCompositor {
     // at this point all scene update requests should already be delivered
     output.outputShutdownStateStore.close();
 
-    await this.api.unregisterOutput(OFFLINE_OUTPUT_ID, { schedule_time_ms: durationMs });
+    if (durationMs) {
+      await this.api.unregisterOutput(OFFLINE_OUTPUT_ID, { schedule_time_ms: durationMs });
+    }
 
     const renderPromise = new Promise<void>((res, _rej) => {
       this.manager.registerEventListener(rawEvent => {
@@ -73,7 +76,8 @@ export class OfflineCompositor {
 
   public async registerInput(inputId: string, request: RegisterInput): Promise<object> {
     this.checkNotStarted();
-    const result = await this.api.registerInput(inputId, intoRegisterInput(request));
+    const inputRef = { type: 'global', id: inputId } as const;
+    const result = await this.api.registerInput(inputRef, intoRegisterInput(request));
 
     if (request.type === 'mp4' && request.loop) {
       this.store.addInput({

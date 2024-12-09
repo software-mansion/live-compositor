@@ -1,34 +1,41 @@
-import type { Outputs } from 'live-compositor';
-import { _liveCompositorInternals, View } from 'live-compositor';
-import type React from 'react';
-import { createElement, useSyncExternalStore } from 'react';
+import type { RegisterMp4Input } from 'live-compositor';
+import { _liveCompositorInternals } from 'live-compositor';
+import type { ReactElement } from 'react';
+import { createElement } from 'react';
 import type { ApiClient, Api } from '../api.js';
 import Renderer from '../renderer.js';
 import type { RegisterOutput } from '../api/output.js';
 import { intoAudioInputsConfiguration } from '../api/output.js';
 import { throttle } from '../utils.js';
+import { OutputRootComponent, OutputShutdownStateStore } from '../rootComponent.js';
 
 type AudioContext = _liveCompositorInternals.AudioContext;
 type LiveTimeContext = _liveCompositorInternals.LiveTimeContext;
-type LiveInstanceContextStore = _liveCompositorInternals.LiveInstanceContextStore;
+type LiveInputStreamStore<Id> = _liveCompositorInternals.LiveInputStreamStore<Id>;
+type CompositorOutputContext = _liveCompositorInternals.CompositorOutputContext;
 
 class Output {
   api: ApiClient;
   outputId: string;
   audioContext: AudioContext;
   timeContext: LiveTimeContext;
+  internalInputStreamStore: LiveInputStreamStore<number>;
   outputShutdownStateStore: OutputShutdownStateStore;
 
   shouldUpdateWhenReady: boolean = false;
   throttledUpdate: () => void;
-  videoRenderer?: Renderer;
-  initialAudioConfig?: Outputs.AudioInputsConfiguration;
+
+  supportsAudio: boolean;
+  supportsVideo: boolean;
+
+  renderer: Renderer;
 
   constructor(
     outputId: string,
+    root: ReactElement,
     registerRequest: RegisterOutput,
     api: ApiClient,
-    store: LiveInstanceContextStore,
+    store: LiveInputStreamStore<string>,
     startTimestamp: number | undefined
   ) {
     this.api = api;
@@ -39,40 +46,39 @@ class Output {
       this.shouldUpdateWhenReady = true;
     };
 
-    const supportsAudio = 'audio' in registerRequest && !!registerRequest.audio;
-    if (supportsAudio) {
-      this.initialAudioConfig = registerRequest.audio!.initial ?? { inputs: [] };
-    }
+    this.supportsAudio = 'audio' in registerRequest && !!registerRequest.audio;
+    this.supportsVideo = 'video' in registerRequest && !!registerRequest.video;
 
     const onUpdate = () => this.throttledUpdate();
-    this.audioContext = new _liveCompositorInternals.AudioContext(onUpdate, supportsAudio);
+    this.audioContext = new _liveCompositorInternals.AudioContext(onUpdate);
     this.timeContext = new _liveCompositorInternals.LiveTimeContext();
+    this.internalInputStreamStore = new _liveCompositorInternals.LiveInputStreamStore();
     if (startTimestamp !== undefined) {
       this.timeContext.initClock(startTimestamp);
     }
 
-    if (registerRequest.video) {
-      const rootElement = createElement(OutputRootComponent, {
-        instanceStore: store,
-        audioContext: this.audioContext,
-        timeContext: this.timeContext,
-        outputRoot: registerRequest.video.root,
-        outputShutdownStateStore: this.outputShutdownStateStore,
-      });
+    const rootElement = createElement(OutputRootComponent, {
+      outputContext: new OutputContext(this, this.outputId, store),
+      outputRoot: root,
+      outputShutdownStateStore: this.outputShutdownStateStore,
+      childrenLifetimeContext: new _liveCompositorInternals.ChildrenLifetimeContext(() => {}),
+    });
 
-      this.videoRenderer = new Renderer({
-        rootElement,
-        onUpdate,
-        idPrefix: `${outputId}-`,
-      });
-    }
+    this.renderer = new Renderer({
+      rootElement,
+      onUpdate,
+      idPrefix: `${outputId}-`,
+    });
   }
 
   public scene(): { video?: Api.Video; audio?: Api.Audio } {
-    const audio = this.audioContext.getAudioConfig() ?? this.initialAudioConfig;
+    const audio = this.supportsAudio
+      ? intoAudioInputsConfiguration(this.audioContext.getAudioConfig())
+      : undefined;
+    const video = this.supportsVideo ? { root: this.renderer.scene() } : undefined;
     return {
-      video: this.videoRenderer && { root: this.videoRenderer.scene() },
-      audio: audio && intoAudioInputsConfiguration(audio),
+      audio,
+      video,
     };
   }
 
@@ -95,66 +101,73 @@ class Output {
   public initClock(timestamp: number) {
     this.timeContext.initClock(timestamp);
   }
+
+  public inputStreamStore(): LiveInputStreamStore<number> {
+    return this.internalInputStreamStore;
+  }
 }
 
-// External store to share shutdown information between React tree
-// and external code that is managing it.
-class OutputShutdownStateStore {
-  private shutdown: boolean = false;
-  private onChangeCallbacks: Set<() => void> = new Set();
+class OutputContext implements CompositorOutputContext {
+  public readonly globalInputStreamStore: _liveCompositorInternals.InputStreamStore<string>;
+  public readonly internalInputStreamStore: _liveCompositorInternals.InputStreamStore<number>;
+  public readonly audioContext: _liveCompositorInternals.AudioContext;
+  public readonly timeContext: _liveCompositorInternals.TimeContext;
+  public readonly outputId: string;
+  private output: Output;
 
-  public close() {
-    this.shutdown = true;
-    this.onChangeCallbacks.forEach(cb => cb());
+  constructor(
+    output: Output,
+    outputId: string,
+    store: _liveCompositorInternals.InputStreamStore<string>
+  ) {
+    this.output = output;
+    this.globalInputStreamStore = store;
+    this.internalInputStreamStore = output.internalInputStreamStore;
+    this.audioContext = output.audioContext;
+    this.timeContext = output.timeContext;
+    this.outputId = outputId;
   }
 
-  // callback for useSyncExternalStore
-  public getSnapshot = (): boolean => {
-    return this.shutdown;
-  };
-
-  // callback for useSyncExternalStore
-  public subscribe = (onStoreChange: () => void): (() => void) => {
-    this.onChangeCallbacks.add(onStoreChange);
-    return () => {
-      this.onChangeCallbacks.delete(onStoreChange);
-    };
-  };
-}
-
-function OutputRootComponent({
-  outputRoot,
-  instanceStore,
-  timeContext,
-  audioContext,
-  outputShutdownStateStore,
-}: {
-  outputRoot: React.ReactElement;
-  instanceStore: LiveInstanceContextStore;
-  audioContext: AudioContext;
-  timeContext: LiveTimeContext;
-  outputShutdownStateStore: OutputShutdownStateStore;
-}) {
-  const shouldShutdown = useSyncExternalStore(
-    outputShutdownStateStore.subscribe,
-    outputShutdownStateStore.getSnapshot
-  );
-
-  if (shouldShutdown) {
-    // replace root with view to stop all the dynamic code
-    return createElement(View, {});
+  public async registerMp4Input(
+    inputId: number,
+    registerRequest: RegisterMp4Input
+  ): Promise<{ videoDurationMs?: number; audioDurationMs?: number }> {
+    return await this.output.internalInputStreamStore.runBlocking(async updateStore => {
+      const inputRef = {
+        type: 'output-local',
+        outputId: this.outputId,
+        id: inputId,
+      } as const;
+      const { video_duration_ms: videoDurationMs, audio_duration_ms: audioDurationMs } =
+        await this.output.api.registerInput(inputRef, {
+          type: 'mp4',
+          ...registerRequest,
+        });
+      updateStore({
+        type: 'add_input',
+        input: {
+          inputId: inputId,
+          offsetMs: registerRequest.offsetMs,
+          audioDurationMs,
+          videoDurationMs,
+        },
+      });
+      return {
+        audioDurationMs,
+        videoDurationMs,
+      };
+    });
   }
-
-  const reactCtx = {
-    instanceStore,
-    timeContext,
-    audioContext,
-  };
-  return createElement(
-    _liveCompositorInternals.LiveCompositorContext.Provider,
-    { value: reactCtx },
-    outputRoot
-  );
+  public async unregisterMp4Input(inputId: number): Promise<void> {
+    await this.output.api.unregisterInput(
+      {
+        type: 'output-local',
+        outputId: this.outputId,
+        id: inputId,
+      },
+      {}
+    );
+  }
 }
 
 export default Output;

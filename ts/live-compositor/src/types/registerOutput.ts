@@ -1,4 +1,3 @@
-import type React from 'react';
 import type * as Api from '../api.js';
 
 export type RegisterRtpOutput = {
@@ -52,8 +51,6 @@ export type RtpVideoOptions = {
    * Video encoder options.
    */
   encoder: RtpVideoEncoderOptions;
-
-  root: React.ReactElement;
 };
 
 export type Mp4VideoOptions = {
@@ -69,8 +66,6 @@ export type Mp4VideoOptions = {
    * Video encoder options.
    */
   encoder: Mp4VideoEncoderOptions;
-
-  root: React.ReactElement;
 };
 
 export type OutputCanvasVideoOptions = {
@@ -82,7 +77,6 @@ export type OutputCanvasVideoOptions = {
    * HTMLCanvasElement
    */
   canvas: any;
-  root: React.ReactElement;
 };
 
 export type RtpVideoEncoderOptions = {
@@ -122,10 +116,6 @@ export type RtpAudioOptions = {
    * Audio encoder options.
    */
   encoder: RtpAudioEncoderOptions;
-  /**
-   * Initial audio mixer configuration for output.
-   */
-  initial?: AudioInputsConfiguration;
 };
 
 export interface Mp4AudioOptions {
@@ -141,10 +131,6 @@ export interface Mp4AudioOptions {
    * Audio encoder options.
    */
   encoder: Mp4AudioEncoderOptions;
-  /**
-   * Initial audio mixer configuration for output.
-   */
-  initial?: AudioInputsConfiguration;
 }
 
 export type RtpAudioEncoderOptions = {
@@ -186,15 +172,3 @@ export type OutputEndCondition =
        */
       allInputs: boolean;
     };
-
-export interface AudioInputsConfiguration {
-  inputs: InputAudio[];
-}
-
-export interface InputAudio {
-  inputId: Api.InputId;
-  /**
-   * (**default=`1.0`**) float in `[0, 1]` range representing input volume
-   */
-  volume?: number | null;
-}

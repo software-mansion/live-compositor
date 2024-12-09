@@ -1,11 +1,11 @@
-import { createElement, useContext } from 'react';
+import { createElement, useContext, useEffect, useState } from 'react';
 import type * as Api from '../api.js';
 import type { SceneComponent } from '../component.js';
 import { createCompositorComponent } from '../component.js';
 import { useAudioInput, useInputStreams } from '../hooks.js';
 import { useTimeLimitedComponent } from '../context/childrenLifetimeContext.js';
 import { LiveCompositorContext } from '../context/index.js';
-import { OfflineTimeContext } from '../internal.js';
+import { inputRefIntoRawId } from '../internal.js';
 
 export type InputStreamProps = {
   children?: undefined;
@@ -30,28 +30,35 @@ export type InputStreamProps = {
 
 type AudioPropNames = 'muted' | 'volume';
 
-const InnerInputStream =
+export const InnerInputStream =
   createCompositorComponent<Omit<InputStreamProps, AudioPropNames>>(sceneBuilder);
 
 function InputStream(props: InputStreamProps) {
-  const { muted, volume, ...otherProps } = props;
-  useAudioInput(props.inputId, {
+  const { muted, volume, inputId, ...otherProps } = props;
+  useAudioInput(inputId, {
     volume: muted ? 0 : (volume ?? 1),
   });
-  useInputStreamInOfflineContext(props.inputId);
-  return createElement(InnerInputStream, otherProps);
+  useTimeLimitedInputStream(inputId);
+  return createElement(InnerInputStream, {
+    ...otherProps,
+    inputId: inputRefIntoRawId({ type: 'global', id: inputId }),
+  });
 }
 
-function useInputStreamInOfflineContext(inputId: string) {
+function useTimeLimitedInputStream(inputId: string) {
   const ctx = useContext(LiveCompositorContext);
-  if (!(ctx.timeContext instanceof OfflineTimeContext)) {
-    // condition is constant so it's fine to use hook after that
-    return;
-  }
+
+  // startTime is only needed for live case. In offline
+  // mode offset is always set.
+  const [startTime, setStartTime] = useState(0);
+  useEffect(() => {
+    setStartTime(ctx.timeContext.timestampMs());
+  }, [inputId]);
+
   const inputs = useInputStreams();
   const input = inputs[inputId];
-  useTimeLimitedComponent((input?.offsetMs ?? 0) + (input?.videoDurationMs ?? 0));
-  useTimeLimitedComponent((input?.offsetMs ?? 0) + (input?.audioDurationMs ?? 0));
+  useTimeLimitedComponent((input?.offsetMs ?? startTime) + (input?.videoDurationMs ?? 0));
+  useTimeLimitedComponent((input?.offsetMs ?? startTime) + (input?.audioDurationMs ?? 0));
 }
 
 function sceneBuilder(props: InputStreamProps, _children: SceneComponent[]): Api.Component {
