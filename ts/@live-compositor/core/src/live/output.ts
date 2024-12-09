@@ -2,19 +2,21 @@ import type { Outputs } from 'live-compositor';
 import { _liveCompositorInternals, View } from 'live-compositor';
 import type React from 'react';
 import { createElement, useSyncExternalStore } from 'react';
-import type { ApiClient, Api } from './api.js';
-import Renderer from './renderer.js';
-import type { RegisterOutput } from './api/output.js';
-import { intoAudioInputsConfiguration } from './api/output.js';
-import { throttle } from './utils.js';
+import type { ApiClient, Api } from '../api.js';
+import Renderer from '../renderer.js';
+import type { RegisterOutput } from '../api/output.js';
+import { intoAudioInputsConfiguration } from '../api/output.js';
+import { throttle } from '../utils.js';
 
-type OutputContext = _liveCompositorInternals.OutputContext;
+type AudioContext = _liveCompositorInternals.AudioContext;
+type LiveTimeContext = _liveCompositorInternals.LiveTimeContext;
 type InstanceContextStore = _liveCompositorInternals.InstanceContextStore;
 
 class Output {
   api: ApiClient;
   outputId: string;
-  outputCtx: OutputContext;
+  audioContext: AudioContext;
+  timeContext: LiveTimeContext;
   outputShutdownStateStore: OutputShutdownStateStore;
 
   shouldUpdateWhenReady: boolean = false;
@@ -26,7 +28,8 @@ class Output {
     outputId: string,
     registerRequest: RegisterOutput,
     api: ApiClient,
-    store: InstanceContextStore
+    store: InstanceContextStore,
+    startTimestamp: number | undefined
   ) {
     this.api = api;
     this.outputId = outputId;
@@ -36,18 +39,23 @@ class Output {
       this.shouldUpdateWhenReady = true;
     };
 
-    const hasAudio = 'audio' in registerRequest && !!registerRequest.audio;
-    if (hasAudio) {
+    const supportsAudio = 'audio' in registerRequest && !!registerRequest.audio;
+    if (supportsAudio) {
       this.initialAudioConfig = registerRequest.audio!.initial ?? { inputs: [] };
     }
 
     const onUpdate = () => this.throttledUpdate();
-    this.outputCtx = new _liveCompositorInternals.OutputContext(onUpdate, hasAudio);
+    this.audioContext = new _liveCompositorInternals.AudioContext(onUpdate, supportsAudio);
+    this.timeContext = new _liveCompositorInternals.LiveTimeContext();
+    if (startTimestamp !== undefined) {
+      this.timeContext.initClock(startTimestamp);
+    }
 
     if (registerRequest.video) {
       const rootElement = createElement(OutputRootComponent, {
         instanceStore: store,
-        outputCtx: this.outputCtx,
+        audioContext: this.audioContext,
+        timeContext: this.timeContext,
         outputRoot: registerRequest.video.root,
         outputShutdownStateStore: this.outputShutdownStateStore,
       });
@@ -61,7 +69,7 @@ class Output {
   }
 
   public scene(): { video?: Api.Video; audio?: Api.Audio } {
-    const audio = this.outputCtx.getAudioConfig() ?? this.initialAudioConfig;
+    const audio = this.audioContext.getAudioConfig() ?? this.initialAudioConfig;
     return {
       video: this.videoRenderer && { root: this.videoRenderer.scene() },
       audio: audio && intoAudioInputsConfiguration(audio),
@@ -82,6 +90,10 @@ class Output {
     if (this.shouldUpdateWhenReady) {
       this.throttledUpdate();
     }
+  }
+
+  public initClock(timestamp: number) {
+    this.timeContext.initClock(timestamp);
   }
 }
 
@@ -113,12 +125,14 @@ class OutputShutdownStateStore {
 function OutputRootComponent({
   outputRoot,
   instanceStore,
-  outputCtx,
+  timeContext,
+  audioContext,
   outputShutdownStateStore,
 }: {
   outputRoot: React.ReactElement;
   instanceStore: InstanceContextStore;
-  outputCtx: OutputContext;
+  audioContext: AudioContext;
+  timeContext: LiveTimeContext;
   outputShutdownStateStore: OutputShutdownStateStore;
 }) {
   const shouldShutdown = useSyncExternalStore(
@@ -133,7 +147,8 @@ function OutputRootComponent({
 
   const reactCtx = {
     instanceStore,
-    outputCtx,
+    timeContext,
+    audioContext,
   };
   return createElement(
     _liveCompositorInternals.LiveCompositorContext.Provider,

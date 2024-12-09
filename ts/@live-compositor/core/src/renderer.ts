@@ -221,8 +221,16 @@ type RendererOptions = {
   idPrefix: string;
 };
 
+// docs
+interface FiberRootNode {
+  tag: number; // 0
+  containerInfo: Renderer;
+  pendingChildren: LiveCompositorHostComponent[];
+  current: any;
+}
+
 class Renderer {
-  private root: any;
+  public readonly root: FiberRootNode;
   public readonly onUpdate: () => void;
 
   constructor({ rootElement, onUpdate, idPrefix }: RendererOptions) {
@@ -246,13 +254,14 @@ class Renderer {
     // When resetAfterCommit is called `this.root.current` is not updated yet, so we need to rely
     // on `pendingChildren`. I'm not sure it is always populated, so there is a fallback to
     // `root.current`.
+
     const rootComponent = this.root.pendingChildren[0] ?? rootHostComponent(this.root.current);
     return rootComponent.scene();
   }
 }
 
 function rootHostComponent(root: any): LiveCompositorHostComponent {
-  console.error('No pendingChildren found, this might be an error');
+  console.error('No pendingChildren found, this might be an error.');
   let current = root;
   while (current) {
     if (current?.stateNode instanceof LiveCompositorHostComponent) {
