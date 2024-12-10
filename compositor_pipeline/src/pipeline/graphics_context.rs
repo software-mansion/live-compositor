@@ -9,7 +9,7 @@ pub struct VulkanCtx {
     pub instance: Arc<vk_video::VulkanInstance>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct GraphicsContext {
     pub device: Arc<wgpu::Device>,
     pub queue: Arc<wgpu::Queue>,
