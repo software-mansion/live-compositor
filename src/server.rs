@@ -4,7 +4,7 @@ use log::info;
 use signal_hook::{consts, iterator::Signals};
 use tracing::error;
 
-use std::{net::SocketAddr, process, thread};
+use std::{net::SocketAddr, process, sync::Arc, thread};
 use tokio::runtime::Runtime;
 
 use crate::{config::read_config, logger::init_logger, routes::routes, state::ApiState};
@@ -15,7 +15,8 @@ pub fn run() {
     init_logger(config.logger.clone());
 
     info!("Starting LiveCompositor with config:\n{:#?}", config);
-    let (state, event_loop) = ApiState::new(config).unwrap_or_else(|err| {
+    let runtime = Arc::new(Runtime::new().unwrap());
+    let (state, event_loop) = ApiState::new(config, runtime.clone()).unwrap_or_else(|err| {
         panic!(
             "Failed to start event loop.\n{}",
             ErrorStack::new(&err).into_string()
@@ -26,7 +27,7 @@ pub fn run() {
         .name("HTTP server startup thread".to_string())
         .spawn(move || {
             let (_should_close_sender, should_close_receiver) = crossbeam_channel::bounded(1);
-            if let Err(err) = run_api(state, should_close_receiver) {
+            if let Err(err) = run_api(state, runtime, should_close_receiver) {
                 error!(%err);
                 process::exit(1);
             }
@@ -44,9 +45,12 @@ pub fn run() {
     }
 }
 
-pub fn run_api(state: ApiState, should_close: Receiver<()>) -> tokio::io::Result<()> {
-    let rt = Runtime::new().unwrap();
-    rt.block_on(async {
+pub fn run_api(
+    state: ApiState,
+    runtime: Arc<Runtime>,
+    should_close: Receiver<()>,
+) -> tokio::io::Result<()> {
+    runtime.block_on(async {
         let port = state.config.api_port;
         let app = routes(state);
         let listener =

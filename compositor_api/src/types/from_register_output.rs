@@ -1,3 +1,4 @@
+use axum::http::HeaderValue;
 use compositor_pipeline::pipeline::{
     self,
     encoder::{
@@ -9,6 +10,7 @@ use compositor_pipeline::pipeline::{
     output::{
         self,
         mp4::{Mp4AudioTrack, Mp4OutputOptions, Mp4VideoTrack},
+        whip::WhipAudioOptions,
     },
 };
 
@@ -173,6 +175,88 @@ impl TryFrom<Mp4Output> for pipeline::RegisterOutputOptions<output::OutputOption
     }
 }
 
+impl TryFrom<WhipOutput> for pipeline::RegisterOutputOptions<output::OutputOptions> {
+    type Error = TypeError;
+
+    fn try_from(request: WhipOutput) -> Result<Self, Self::Error> {
+        let WhipOutput {
+            endpoint_url,
+            bearer_token,
+            video,
+            audio,
+        } = request;
+
+        if video.is_none() && audio.is_none() {
+            return Err(TypeError::new(
+                "At least one of \"video\" and \"audio\" fields have to be specified.",
+            ));
+        }
+        let video_codec = video.as_ref().map(|v| match v.encoder {
+            VideoEncoderOptions::FfmpegH264 { .. } => pipeline::VideoCodec::H264,
+        });
+        let audio_options = audio.as_ref().map(|a| match &a.encoder {
+            WhipAudioEncoderOptions::Opus {
+                channels,
+                preset: _,
+            } => WhipAudioOptions {
+                codec: pipeline::AudioCodec::Opus,
+                channels: match channels {
+                    audio::AudioChannels::Mono => {
+                        compositor_pipeline::audio_mixer::AudioChannels::Mono
+                    }
+                    audio::AudioChannels::Stereo => {
+                        compositor_pipeline::audio_mixer::AudioChannels::Stereo
+                    }
+                },
+            },
+        });
+
+        if let Some(token) = &bearer_token {
+            if HeaderValue::from_str(format!("Bearer {token}").as_str()).is_err() {
+                return Err(TypeError::new("Bearer token string is not valid. It must contain only 32-127 ASCII characters"));
+            };
+        }
+
+        let (video_encoder_options, output_video_options) = maybe_video_options(video)?;
+        let (audio_encoder_options, output_audio_options) = match audio {
+            Some(OutputWhipAudioOptions {
+                mixing_strategy,
+                send_eos_when,
+                encoder,
+                initial,
+            }) => {
+                let audio_encoder_options: AudioEncoderOptions = encoder.into();
+                let output_audio_options = pipeline::OutputAudioOptions {
+                    initial: initial.try_into()?,
+                    end_condition: send_eos_when.unwrap_or_default().try_into()?,
+                    mixing_strategy: mixing_strategy.unwrap_or(MixingStrategy::SumClip).into(),
+                    channels: audio_encoder_options.channels(),
+                };
+
+                (Some(audio_encoder_options), Some(output_audio_options))
+            }
+            None => (None, None),
+        };
+
+        let output_options = output::OutputOptions {
+            output_protocol: output::OutputProtocolOptions::Whip(output::whip::WhipSenderOptions {
+                endpoint_url,
+                bearer_token,
+                video: video_codec,
+                audio: audio_options,
+            }),
+            video: video_encoder_options,
+            audio: audio_encoder_options,
+        };
+
+        Ok(Self {
+            output_options,
+            video: output_video_options,
+            audio: output_audio_options,
+        })
+    }
+}
+
 fn maybe_video_options(
     options: Option<OutputVideoOptions>,
 ) -> Result<
@@ -221,6 +305,19 @@ impl From<RtpAudioEncoderOptions> for pipeline::encoder::AudioEncoderOptions {
     fn from(value: RtpAudioEncoderOptions) -> Self {
         match value {
             RtpAudioEncoderOptions::Opus { channels, preset } => {
+                AudioEncoderOptions::Opus(encoder::opus::OpusEncoderOptions {
+                    channels: channels.into(),
+                    preset: preset.unwrap_or(OpusEncoderPreset::Voip).into(),
+                })
+            }
+        }
+    }
+}
+
+impl From<WhipAudioEncoderOptions> for pipeline::encoder::AudioEncoderOptions {
+    fn from(value: WhipAudioEncoderOptions) -> Self {
+        match value {
+            WhipAudioEncoderOptions::Opus { channels, preset } => {
                 AudioEncoderOptions::Opus(encoder::opus::OpusEncoderOptions {
                     channels: channels.into(),
                     preset: preset.unwrap_or(OpusEncoderPreset::Voip).into(),

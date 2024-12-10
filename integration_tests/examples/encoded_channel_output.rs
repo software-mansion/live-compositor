@@ -1,5 +1,5 @@
 use core::panic;
-use std::{fs::File, io::Write, path::PathBuf, time::Duration};
+use std::{fs::File, io::Write, path::PathBuf, sync::Arc, time::Duration};
 
 use compositor_pipeline::{
     audio_mixer::{AudioChannels, AudioMixingParams, InputParams, MixingStrategy},
@@ -24,6 +24,7 @@ use compositor_render::{
 };
 use integration_tests::examples::download_file;
 use live_compositor::{config::read_config, logger, state::ApiState};
+use tokio::runtime::Runtime;
 
 const BUNNY_FILE_URL: &str =
     "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
@@ -39,7 +40,8 @@ fn main() {
     let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     config.queue_options.ahead_of_time_processing = true;
     // no chromium support, so we can ignore _event_loop
-    let (state, _event_loop) = ApiState::new(config).unwrap_or_else(|err| {
+    let runtime = Arc::new(Runtime::new().unwrap());
+    let (state, _event_loop) = ApiState::new(config, runtime).unwrap_or_else(|err| {
         panic!(
             "Failed to start compositor.\n{}",
             ErrorStack::new(&err).into_string()
@@ -102,12 +104,9 @@ fn main() {
 
     Pipeline::register_input(&state.pipeline, input_id.clone(), input_options).unwrap();
 
-    let output_receiver = state
-        .pipeline
-        .lock()
-        .unwrap()
-        .register_encoded_data_output(output_id.clone(), output_options)
-        .unwrap();
+    let output_receiver =
+        Pipeline::register_encoded_data_output(&state.pipeline, output_id.clone(), output_options)
+            .unwrap();
 
     Pipeline::start(&state.pipeline);
 

@@ -11,11 +11,12 @@ use std::{
     env,
     sync::{
         atomic::{AtomicU16, Ordering},
-        OnceLock,
+        Arc, OnceLock,
     },
     thread,
     time::{Duration, Instant},
 };
+use tokio::runtime::Runtime;
 use tracing::info;
 
 pub struct CompositorInstance {
@@ -41,12 +42,13 @@ impl CompositorInstance {
         info!("Starting LiveCompositor Integration Test with config:\n{config:#?}",);
 
         let (should_close_sender, should_close_receiver) = crossbeam_channel::bounded(1);
-        let (state, _event_loop) = ApiState::new(config).unwrap();
+        let runtime = Arc::new(Runtime::new().unwrap());
+        let (state, _event_loop) = ApiState::new(config, runtime.clone()).unwrap();
 
         thread::Builder::new()
             .name("HTTP server startup thread".to_string())
             .spawn(move || {
-                run_api(state, should_close_receiver).unwrap();
+                run_api(state, runtime.clone(), should_close_receiver).unwrap();
             })
             .unwrap();
 

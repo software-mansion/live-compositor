@@ -32,3 +32,4 @@ pitch-detection = "0.3.0"
 rand = { workspace = true }
 schemars = { workspace = true}
 tracing-subscriber = { version = "0.3.18", features = ["json", "env-filter"] }
+tokio = { workspace = true }

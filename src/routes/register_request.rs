@@ -11,7 +11,7 @@ use compositor_api::{
     error::ApiError,
     types::{
         DeckLink, ImageSpec, InputId, Mp4Input, Mp4Output, OutputId, RendererId, RtpInput,
-        RtpOutput, ShaderSpec, WebRendererSpec,
+        RtpOutput, ShaderSpec, WebRendererSpec, WhipOutput,
     },
 };
 
@@ -31,6 +31,7 @@ pub enum RegisterInput {
 pub enum RegisterOutput {
     RtpStream(RtpOutput),
     Mp4(Mp4Output),
+    Whip(WhipOutput),
 }
 
 pub(super) async fn handle_input(
@@ -79,10 +80,13 @@ pub(super) async fn handle_output(
     tokio::task::spawn_blocking(move || {
         let response = match request {
             RegisterOutput::RtpStream(rtp) => {
-                Pipeline::register_output(&mut api.pipeline(), output_id.into(), rtp.try_into()?)?
+                Pipeline::register_output(&api.pipeline, output_id.into(), rtp.try_into()?)?
             }
             RegisterOutput::Mp4(mp4) => {
-                Pipeline::register_output(&mut api.pipeline(), output_id.into(), mp4.try_into()?)?
+                Pipeline::register_output(&api.pipeline, output_id.into(), mp4.try_into()?)?
+            }
+            RegisterOutput::Whip(whip) => {
+                Pipeline::register_output(&api.pipeline, output_id.into(), whip.try_into()?)?
             }
         };
         match response {
