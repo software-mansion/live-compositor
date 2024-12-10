@@ -1,7 +1,7 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "target": "ES2016",
+    "target": "es2017",
     "outDir": "cjs",
     "module": "commonjs",
     "moduleResolution": "node",
