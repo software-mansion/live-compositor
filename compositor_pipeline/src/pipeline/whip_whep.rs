@@ -34,7 +34,7 @@ use webrtc::{
 
 mod error;
 mod handlers;
-mod validate_token;
+mod helpers;
 
 use tokio::task;
 

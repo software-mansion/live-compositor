@@ -1,9 +1,10 @@
-use std::sync::{Arc, Mutex};
-
 use crate::{
     pipeline::{
         input::whip::{depayloader::Depayloader, handle_track},
-        whip_whep::{init_peer_connection, validate_token::validate_token, WhipWhepState},
+        whip_whep::{
+            helpers::{gather_ice_candidates_for_one_second, validate_token},
+            init_peer_connection, WhipWhepState,
+        },
         EncodedChunk,
     },
     queue::PipelineEvent,
@@ -12,19 +13,18 @@ use axum::{
     body::Body,
     extract::{Path, State},
     http::{HeaderMap, Response, StatusCode},
-    response::IntoResponse,
 };
 use compositor_render::InputId;
 use serde_json::{json, Value};
+use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc::Sender;
 use tracing::{debug, error, info, warn};
 use webrtc::{
-    ice_transport::ice_candidate::RTCIceCandidateInit,
     peer_connection::{sdp::session_description::RTCSessionDescription, RTCPeerConnection},
     rtp_transceiver::rtp_codec::RTPCodecType,
 };
 
-use super::WhipServerError;
+use super::{helpers::ice_fragment_unmarshal, WhipServerError};
 
 pub async fn status() -> Result<(StatusCode, axum::Json<Value>), WhipServerError> {
     Ok((StatusCode::OK, axum::Json(json!({}))))
@@ -143,30 +143,23 @@ pub async fn handle_whip(
         Box::pin(async {})
     }));
 
-    // Handle ICE connection state changes (logging for debugging)
     peer_connection.on_ice_connection_state_change(Box::new(move |state| {
         info!("ICE connection state changed: {state:?}");
         Box::pin(async {})
     }));
 
-    // Set the remote SDP offer
     let description = RTCSessionDescription::offer(offer)?;
 
     peer_connection.set_remote_description(description).await?;
     let answer = peer_connection.create_answer(None).await?;
 
-    // TODO do not wait  for all candidates
-    let mut gather = peer_connection.gathering_complete_promise().await;
-
     peer_connection.set_local_description(answer).await?;
 
-    if gather.recv().await.is_none() {
-        debug!("WHIP server recived no candidates")
-    }
+    gather_ice_candidates_for_one_second(peer_connection.clone()).await;
 
     let Some(sdp) = peer_connection.local_description().await else {
         return Err(WhipServerError::InternalError(
-            "Set local description error".to_string(),
+            "Read local description error".to_string(),
         ));
     };
     debug!("Sending SDP answer: {sdp:?}");
@@ -186,8 +179,18 @@ pub async fn whip_ice_candidates_handler(
     Path(id): Path<String>,
     State(state): State<Arc<WhipWhepState>>,
     headers: HeaderMap,
-    candidate: String,
-) -> Result<(StatusCode, impl IntoResponse), WhipServerError> {
+    sdp_fragment_content: String,
+) -> Result<StatusCode, WhipServerError> {
+    let content_type = headers
+        .get("Content-Type")
+        .and_then(|value| value.to_str().ok())
+        .unwrap_or("");
+
+    if content_type != "application/trickle-ice-sdpfrag" {
+        return Err(WhipServerError::BadRequest(
+            "Invalid content type".to_owned(),
+        ));
+    }
     let bearer_token: Option<String>;
     let input_id = InputId(Arc::from(id));
 
@@ -206,15 +209,6 @@ pub async fn whip_ice_candidates_handler(
     }
     validate_token(bearer_token, headers.get("Authorization")).await?;
 
-    let candidate: Value = serde_json::from_str(&candidate)?;
-
-    let candidate_obj = RTCIceCandidateInit {
-        candidate: candidate["candidate"].as_str().unwrap_or("").to_string(),
-        sdp_mid: candidate["sdpMid"].as_str().map(|s| s.to_string()),
-        sdp_mline_index: candidate["sdpMLineIndex"].as_u64().map(|i| i as u16),
-        ..Default::default()
-    };
-
     let peer_connection: Option<Arc<RTCPeerConnection>>;
 
     if let Ok(connections) = state.input_connections.lock() {
@@ -232,10 +226,12 @@ pub async fn whip_ice_candidates_handler(
     }
 
     if let Some(pc) = peer_connection {
-        if let Err(err) = pc.add_ice_candidate(candidate_obj).await {
-            return Err(WhipServerError::BadRequest(format!(
-                "Cannot add ice_candidate {candidate:?} for input {input_id:?}: {err:?}"
-            )));
+        for candidate in ice_fragment_unmarshal(&sdp_fragment_content) {
+            if let Err(err) = pc.add_ice_candidate(candidate.clone()).await {
+                return Err(WhipServerError::BadRequest(format!(
+                    "Cannot add ice_candidate {candidate:?} for input {input_id:?}: {err:?}"
+                )));
+            }
         }
     } else {
         return Err(WhipServerError::InternalError(format!(
@@ -243,10 +239,7 @@ pub async fn whip_ice_candidates_handler(
         )));
     }
 
-    Ok((
-        StatusCode::NO_CONTENT,
-        axum::Json(json!({"status": "Candidate added"})),
-    ))
+    Ok(StatusCode::NO_CONTENT)
 }
 
 pub async fn handle_options() -> Result<Response<Body>, WhipServerError> {
@@ -257,11 +250,12 @@ pub async fn handle_options() -> Result<Response<Body>, WhipServerError> {
         .body(Body::empty())?)
 }
 
+//TODO determine what exactly should be done in this handler
 pub async fn terminate_whip_session(
     Path(id): Path<String>,
     State(state): State<Arc<WhipWhepState>>,
     headers: HeaderMap,
-) -> Result<(StatusCode, impl IntoResponse), WhipServerError> {
+) -> Result<StatusCode, WhipServerError> {
     let bearer_token: Option<String>;
     let input_id = InputId(Arc::from(id));
 
@@ -307,8 +301,5 @@ pub async fn terminate_whip_session(
     }
 
     info!("[whip] session terminated for input: {:?}", input_id);
-    Ok((
-        StatusCode::NO_CONTENT,
-        axum::Json(json!({"status": "Session terminated"})),
-    ))
+    Ok(StatusCode::OK)
 }
