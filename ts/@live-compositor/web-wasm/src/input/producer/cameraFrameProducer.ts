@@ -14,6 +14,7 @@ export default class CameraFrameProducer implements InputFrameProducer {
   private eosReceived: boolean;
   private isReadingFrame: boolean;
   private lastPts: number = 0;
+  private produceNow: number = 0;
 
   public constructor() {
     this.eosReceived = false;
@@ -21,7 +22,7 @@ export default class CameraFrameProducer implements InputFrameProducer {
   }
 
   public async init(): Promise<void> {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { frameRate: { min: 10 } } });
     const tracks = stream.getVideoTracks();
     if (tracks.length === 0) {
       throw new Error('No camera available');
@@ -35,6 +36,11 @@ export default class CameraFrameProducer implements InputFrameProducer {
     // TODO(noituri): Implement backward compabilty with firefox
     const trackProcessor = new MediaStreamTrackProcessor({ track: this.track });
     this.reader = trackProcessor.readable.getReader();
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        // this.track?.applyConstraints({'width'})
+      }
+    })
   }
 
   public maxBufferSize(): number {
@@ -46,16 +52,20 @@ export default class CameraFrameProducer implements InputFrameProducer {
   }
 
   public async produce(_framePts?: number): Promise<void> {
+    console.warn(`Produce elapsed: ${performance.now() - this.produceNow}`);
+    this.produceNow = performance.now();
     // `readFrame` may block indefinitely if previously read frames are not freed from memory
     if (this.isReadingFrame || this.eosReceived) {
-      console.error('Reading');
+      // console.error('Reading');
       return;
     }
 
     void (async () => {
+      const now = performance.now();
       this.isReadingFrame = true;
       await this.readFrame();
       this.isReadingFrame = false;
+      console.error(`Time read in: ${performance.now() - now}`);
     })();
   }
 
