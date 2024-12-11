@@ -128,7 +128,7 @@ jobs:
                 name: smelter_with_web_renderer_darwin_aarch64.tar.gz
                 path: smelter_with_web_renderer_darwin_aarch64.tar.gz
 
-    docker:
+    docker-amd64:
       runs-on: ubuntu-latest
       steps:
           - name: 📥 Checkout repo
@@ -140,12 +140,12 @@ jobs:
 
           - name: 🔨 Build Smelter image
             run: |
-              docker buildx build --platform linux/amd64 -t ghcr.io/software-mansion/smelter:${{ github.sha }} -f build_tools/docker/slim.Dockerfile .
+              docker buildx build --platform linux/amd64 -t ghcr.io/software-mansion/smelter:${{ github.sha }}-amd64 -f build_tools/docker/slim.Dockerfile .
 
           - name: 📤  Upload image
-            run: docker push ghcr.io/software-mansion/smelter:${{ github.sha }}
+            run: docker push ghcr.io/software-mansion/smelter:${{ github.sha }}-amd64
 
-    docker-with-web-renderer:
+    docker-with-web-renderer-amd64:
       runs-on: ubuntu-latest
       steps:
           - name: 📥 Checkout repo
@@ -157,7 +157,43 @@ jobs:
 
           - name: 🔨 Build Smelter with Web Renderer image
             run: |
-              docker buildx build --platform linux/amd64 -t ghcr.io/software-mansion/smelter:${{ github.sha }}-web-renderer -f build_tools/docker/full.Dockerfile .
+              docker buildx build --platform linux/amd64 -t ghcr.io/software-mansion/smelter:${{ github.sha }}-web-renderer-amd64 -f build_tools/docker/full.Dockerfile .
 
           - name: 📤  Upload image
-            run: docker push ghcr.io/software-mansion/smelter:${{ github.sha }}-web-renderer
+            run: docker push ghcr.io/software-mansion/smelter:${{ github.sha }}-web-renderer-amd64
+
+    docker-arm64:
+      runs-on: ubuntu-latest
+      steps:
+          - name: 📥 Checkout repo
+            uses: actions/checkout@v4
+
+          - name: 🛠️ Setup Docker
+            run: |
+              docker run --privileged --rm tonistiigi/binfmt --install all
+              echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+          - name: 🔨 Build Smelter image
+            run: |
+              docker buildx build --platform linux/arm64 -t ghcr.io/software-mansion/smelter:${{ github.sha }}-arm64 -f build_tools/docker/slim.Dockerfile .
+
+          - name: 📤  Upload image
+            run: docker push ghcr.io/software-mansion/smelter:${{ github.sha }}-arm64
+
+    docker-with-web-renderer-arm64:
+      runs-on: ubuntu-latest
+      steps:
+          - name: 📥 Checkout repo
+            uses: actions/checkout@v4
+
+          - name: 🛠️ Setup Docker
+            run: |
+              docker run --privileged --rm tonistiigi/binfmt --install all
+              echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+          - name: 🔨 Build Smelter with Web Renderer image
+            run: |
+              docker buildx build --platform linux/arm64 -t ghcr.io/software-mansion/smelter:${{ github.sha }}-web-renderer-arm64 -f build_tools/docker/full.Dockerfile .
+
+          - name: 📤  Upload image
+            run: docker push ghcr.io/software-mansion/smelter:${{ github.sha }}-web-renderer-arm64
