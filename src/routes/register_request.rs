@@ -57,9 +57,18 @@ pub(super) async fn handle_input(
             }
         };
         match response {
-            InputInitInfo::BearerToken(token) => Ok(Response::BearerToken { token }),
-            InputInitInfo::Port(Some(Port(port))) => Ok(Response::RegisteredPort { port }),
-            _ => Ok(Response::Ok {}),
+            InputInitInfo::Rtp { port } => Ok(Response::RegisteredPort {
+                port: port.map(|p| p.0),
+            }),
+            InputInitInfo::Mp4 {
+                video_duration,
+                audio_duration,
+            } => Ok(Response::RegisteredMp4 {
+                video_duration_ms: video_duration.map(|v| v.as_millis() as u64),
+                audio_duration_ms: audio_duration.map(|a| a.as_millis() as u64),
+            }),
+            InputInitInfo::Whip { bearer_token } => Ok(Response::BearerToken { bearer_token }),
+            InputInitInfo::Other => Ok(Response::Ok {}),
         }
     })
     .await
@@ -86,7 +95,7 @@ pub(super) async fn handle_output(
             }
         };
         match response {
-            Some(Port(port)) => Ok(Response::RegisteredPort { port }),
+            Some(Port(port)) => Ok(Response::RegisteredPort { port: Some(port) }),
             None => Ok(Response::Ok {}),
         }
     })

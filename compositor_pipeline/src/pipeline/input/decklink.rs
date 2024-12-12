@@ -97,7 +97,7 @@ impl DeckLink {
                 sample_receiver: rec,
                 sample_rate: AUDIO_SAMPLE_RATE,
             }),
-            init_info: InputInitInfo::Port(None),
+            init_info: InputInitInfo::Other,
         })
     }
 }

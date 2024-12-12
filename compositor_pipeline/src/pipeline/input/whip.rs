@@ -159,7 +159,7 @@ impl WhipReceiver {
             }),
             video,
             audio,
-            init_info: InputInitInfo::BearerToken(bearer_token),
+            init_info: InputInitInfo::Whip { bearer_token },
         })
     }
 

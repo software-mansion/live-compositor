@@ -1,28 +1,28 @@
-import { FrameFormat } from '@live-compositor/browser-render';
+import type { Mp4ReadyData } from './demuxer';
 import { MP4Demuxer } from './demuxer';
-import { H264Decoder } from '../decoder/h264Decoder';
-import type { InputFrame } from '../input';
 import type InputSource from '../source';
+import type { InputSourceCallbacks, SourcePayload, VideoChunk } from '../source';
+import { Queue } from '@datastructures-js/queue';
+import { assert } from '../../utils';
+import type { Framerate } from '../../compositor';
 
 export default class MP4Source implements InputSource {
   private fileUrl: string;
   private fileData?: ArrayBuffer;
   private demuxer: MP4Demuxer;
-  private decoder: H264Decoder;
-  private frameFormat: VideoPixelFormat;
+  private callbacks?: InputSourceCallbacks;
+  private chunks: Queue<EncodedVideoChunk>;
+  private eosReceived: boolean = false;
+  private ptsOffset?: number;
+  private framerate?: Framerate;
 
   public constructor(fileUrl: string) {
     this.fileUrl = fileUrl;
     this.demuxer = new MP4Demuxer({
-      onConfig: config => this.decoder.configure(config),
-      onChunk: chunk => this.decoder.enqueueChunk(chunk),
+      onReady: config => this.handleOnReady(config),
+      onPayload: payload => this.handlePayload(payload),
     });
-    this.decoder = new H264Decoder();
-
-    // Safari does not support conversion to RGBA
-    // Chrome does not support conversion to YUV
-    const isSafari = !!(window as any).safari;
-    this.frameFormat = isSafari ? 'I420' : 'RGBA';
+    this.chunks = new Queue();
   }
 
   public async init(): Promise<void> {
@@ -39,26 +39,50 @@ export default class MP4Source implements InputSource {
     this.demuxer.flush();
   }
 
-  public async getFrame(): Promise<InputFrame | undefined> {
-    const frame = this.decoder.getFrame();
-    if (!frame) {
-      return undefined;
-    }
+  public registerCallbacks(callbacks: InputSourceCallbacks): void {
+    this.callbacks = callbacks;
+  }
 
-    const options = {
-      format: this.frameFormat,
-    };
-    const buffer = new Uint8ClampedArray(frame.allocationSize(options as VideoFrameCopyToOptions));
-    await frame.copyTo(buffer, options as VideoFrameCopyToOptions);
+  public isFinished(): boolean {
+    return this.eosReceived && this.chunks.isEmpty();
+  }
+
+  public getFramerate(): Framerate | undefined {
+    return this.framerate;
+  }
+
+  public nextChunk(): VideoChunk | undefined {
+    const chunk = this.chunks.pop();
+    return chunk && this.intoVideoChunk(chunk);
+  }
+
+  public peekChunk(): VideoChunk | undefined {
+    const chunk = this.chunks.front();
+    return chunk && this.intoVideoChunk(chunk);
+  }
+
+  private handleOnReady(data: Mp4ReadyData) {
+    this.callbacks?.onDecoderConfig(data.decoderConfig);
+    this.framerate = data.framerate;
+  }
+
+  private handlePayload(payload: SourcePayload) {
+    if (payload.type === 'chunk') {
+      if (this.ptsOffset === undefined) {
+        this.ptsOffset = -payload.chunk.timestamp;
+      }
+      this.chunks.push(payload.chunk);
+    } else if (payload.type === 'eos') {
+      this.eosReceived = true;
+    }
+  }
+
+  private intoVideoChunk(chunk: EncodedVideoChunk): VideoChunk {
+    assert(this.ptsOffset !== undefined);
 
     return {
-      resolution: {
-        width: frame.displayWidth,
-        height: frame.displayHeight,
-      },
-      format: this.frameFormat == 'I420' ? FrameFormat.YUV_BYTES : FrameFormat.RGBA_BYTES,
-      data: buffer,
-      free: () => frame.close(),
+      data: chunk,
+      ptsMs: (this.ptsOffset + chunk.timestamp) / 1000,
     };
   }
 }

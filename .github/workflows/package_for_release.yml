@@ -22,13 +22,13 @@ jobs:
 
             - uses: actions/upload-artifact@v4
               with:
-                name: live_compositor_linux_x86_64.tar.gz
-                path: live_compositor_linux_x86_64.tar.gz
+                name: smelter_linux_x86_64.tar.gz
+                path: smelter_linux_x86_64.tar.gz
 
             - uses: actions/upload-artifact@v4
               with:
-                name: live_compositor_with_web_renderer_linux_x86_64.tar.gz
-                path: live_compositor_with_web_renderer_linux_x86_64.tar.gz
+                name: smelter_with_web_renderer_linux_x86_64.tar.gz
+                path: smelter_with_web_renderer_linux_x86_64.tar.gz
 
     linux-aarch64:
         runs-on: ubuntu-latest
@@ -75,8 +75,8 @@ jobs:
                   cp *.tar.gz /artifacts
             - uses: actions/upload-artifact@v4
               with:
-                name: live_compositor_linux_aarch64.tar.gz
-                path: artifacts/live_compositor_linux_aarch64.tar.gz
+                name: smelter_linux_aarch64.tar.gz
+                path: artifacts/smelter_linux_aarch64.tar.gz
 
     macos_x86_64:
         runs-on: macos-12
@@ -95,13 +95,13 @@ jobs:
 
             - uses: actions/upload-artifact@v4
               with:
-                name: live_compositor_darwin_x86_64.tar.gz
-                path: live_compositor_darwin_x86_64.tar.gz
+                name: smelter_darwin_x86_64.tar.gz
+                path: smelter_darwin_x86_64.tar.gz
 
             - uses: actions/upload-artifact@v4
               with:
-                name: live_compositor_with_web_renderer_darwin_x86_64.tar.gz
-                path: live_compositor_with_web_renderer_darwin_x86_64.tar.gz
+                name: smelter_with_web_renderer_darwin_x86_64.tar.gz
+                path: smelter_with_web_renderer_darwin_x86_64.tar.gz
 
     macos-aarch64:
         runs-on: macos-14
@@ -120,10 +120,44 @@ jobs:
 
             - uses: actions/upload-artifact@v4
               with:
-                name: live_compositor_darwin_aarch64.tar.gz
-                path: live_compositor_darwin_aarch64.tar.gz
+                name: smelter_darwin_aarch64.tar.gz
+                path: smelter_darwin_aarch64.tar.gz
 
             - uses: actions/upload-artifact@v4
               with:
-                name: live_compositor_with_web_renderer_darwin_aarch64.tar.gz
-                path: live_compositor_with_web_renderer_darwin_aarch64.tar.gz
+                name: smelter_with_web_renderer_darwin_aarch64.tar.gz
+                path: smelter_with_web_renderer_darwin_aarch64.tar.gz
+
+    docker:
+      runs-on: ubuntu-latest
+      steps:
+          - name: 📥 Checkout repo
+            uses: actions/checkout@v4
+
+          - name: 🛠️ Setup Docker
+            run: |
+              echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+          - name: 🔨 Build Smelter image
+            run: |
+              docker buildx build --platform linux/amd64 -t ghcr.io/software-mansion/smelter:${{ github.sha }} -f build_tools/docker/slim.Dockerfile .
+
+          - name: 📤  Upload image
+            run: docker push ghcr.io/software-mansion/smelter:${{ github.sha }}
+
+    docker-with-web-renderer:
+      runs-on: ubuntu-latest
+      steps:
+          - name: 📥 Checkout repo
+            uses: actions/checkout@v4
+
+          - name: 🛠️ Setup Docker
+            run: |
+              echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+          - name: 🔨 Build Smelter with Web Renderer image
+            run: |
+              docker buildx build --platform linux/amd64 -t ghcr.io/software-mansion/smelter:${{ github.sha }}-web-renderer -f build_tools/docker/full.Dockerfile .
+
+          - name: 📤  Upload image
+            run: docker push ghcr.io/software-mansion/smelter:${{ github.sha }}-web-renderer

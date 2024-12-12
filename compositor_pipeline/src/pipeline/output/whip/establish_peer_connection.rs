@@ -41,7 +41,7 @@ pub async fn connect(
         let senders = peer_connection.get_senders().await;
         for sender in senders {
             let keyframe_sender_clone = keyframe_sender.clone();
-            whip_ctx.tokio_rt.spawn(async move {
+            whip_ctx.pipeline_ctx.tokio_rt.spawn(async move {
                 loop {
                     if let Ok((packets, _)) = &sender.read_rtcp().await {
                         for packet in packets {
@@ -95,8 +95,8 @@ pub async fn connect(
         .await
         .map_err(|_| WhipError::RequestFailed(Method::POST, endpoint_url.clone()))?;
 
-    if let Err(err) = &response.error_for_status_ref() {
-        let status = err.status().unwrap();
+    let status = response.status();
+    if status.is_client_error() || status.is_server_error() {
         let answer = &response
             .text()
             .await
@@ -218,9 +218,9 @@ async fn handle_candidate(
         .await
         .map_err(|_| WhipError::RequestFailed(Method::PATCH, location.clone()))?;
 
-    if let Err(err) = &response.error_for_status_ref() {
-        let status_code = err.status().unwrap();
-        let trickle_ice_error = match status_code {
+    let status = response.status();
+    if status.is_server_error() || status.is_client_error() {
+        let trickle_ice_error = match status {
             StatusCode::UNPROCESSABLE_ENTITY | StatusCode::METHOD_NOT_ALLOWED => {
                 WhipError::TrickleIceNotSupported
             }
@@ -231,7 +231,7 @@ async fn handle_candidate(
                     .text()
                     .await
                     .map_err(|e| WhipError::BodyParsingError("ICE Candidate", e))?;
-                WhipError::BadStatus(status_code, answer.to_string())
+                WhipError::BadStatus(status, answer.to_string())
             }
         };
         return Err(trickle_ice_error);

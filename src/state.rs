@@ -15,8 +15,16 @@ pub type Pipeline = compositor_pipeline::Pipeline;
 #[serde(untagged)]
 pub enum Response {
     Ok {},
-    RegisteredPort { port: u16 },
-    BearerToken { token: String },
+    RegisteredPort {
+        port: Option<u16>,
+    },
+    RegisteredMp4 {
+        video_duration_ms: Option<u64>,
+        audio_duration_ms: Option<u64>,
+    },
+    BearerToken {
+        bearer_token: String,
+    },
 }
 
 impl IntoResponse for Response {
@@ -43,6 +51,7 @@ impl ApiState {
             force_gpu,
             download_root,
             output_sample_rate,
+            stun_servers,
             required_wgpu_features,
             start_whip_whep,
             whip_whep_server_port,
@@ -55,12 +64,13 @@ impl ApiState {
             force_gpu,
             download_root,
             output_sample_rate,
+            stun_servers,
             wgpu_features: required_wgpu_features,
             wgpu_ctx: None,
             load_system_fonts: Some(true),
             start_whip_whep,
             whip_whep_server_port,
-            tokio_rt: runtime,
+            tokio_rt: Some(runtime),
         })?;
         Ok((
             ApiState {

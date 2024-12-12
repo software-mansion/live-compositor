@@ -64,12 +64,13 @@ fn main() {
         force_gpu: config.force_gpu,
         download_root: config.download_root,
         output_sample_rate: config.output_sample_rate,
+        stun_servers: config.stun_servers,
         wgpu_features: config.required_wgpu_features,
         load_system_fonts: Some(true),
         wgpu_ctx: Some(ctx),
         whip_whep_server_port: config.whip_whep_server_port,
         start_whip_whep: config.start_whip_whep,
-        tokio_rt: Arc::new(Runtime::new().unwrap()),
+        tokio_rt: Some(Arc::new(Runtime::new().unwrap())),
     })
     .unwrap_or_else(|err| {
         panic!(

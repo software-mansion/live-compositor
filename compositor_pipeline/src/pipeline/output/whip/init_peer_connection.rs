@@ -4,11 +4,7 @@ use crate::{
 };
 
 use super::{WhipAudioOptions, WhipCtx, WhipError};
-use std::{
-    env::{self, VarError},
-    sync::Arc,
-};
-use tracing::{info, warn};
+use std::sync::Arc;
 use webrtc::{
     api::{
         interceptor_registry::register_default_interceptors,
@@ -24,8 +20,6 @@ use webrtc::{
     },
     track::track_local::track_local_static_rtp::TrackLocalStaticRTP,
 };
-
-const STUN_SERVER_ENV: &str = "LIVE_COMPOSITOR_STUN_SERVERS";
 
 pub async fn init_peer_connection(
     whip_ctx: &WhipCtx,
@@ -46,7 +40,7 @@ pub async fn init_peer_connection(
 
     if let Some(audio) = whip_ctx.options.audio {
         media_engine.register_codec(
-            audio_codec_parameters(audio, whip_ctx.sample_rate)?,
+            audio_codec_parameters(audio, whip_ctx.pipeline_ctx.output_sample_rate)?,
             RTPCodecType::Audio,
         )?;
     }
@@ -57,27 +51,9 @@ pub async fn init_peer_connection(
         .with_interceptor_registry(registry)
         .build();
 
-    let mut stun_servers_urls = vec!["stun:stun.l.google.com:19302".to_owned()];
-
-    match env::var(STUN_SERVER_ENV) {
-        Ok(var) => {
-            if var.is_empty() {
-                info!("Empty LIVE_COMPOSITOR_STUN_SERVERS environment variable, using default");
-            } else {
-                let env_url_list: Vec<String> = var.split(',').map(String::from).collect();
-                stun_servers_urls.extend(env_url_list);
-                info!("Using custom stun servers defined in LIVE_COMPOSITOR_STUN_SERVERS environment variable");
-            }
-        }
-        Err(err) => match err {
-            VarError::NotPresent => info!("No stun servers provided, using default"),
-            VarError::NotUnicode(_) => warn!("Invalid LIVE_COMPOSITOR_STUN_SERVERS environment variable, it is not a valid Unicode, using default")
-        },
-    }
-
     let config = RTCConfiguration {
         ice_servers: vec![RTCIceServer {
-            urls: stun_servers_urls,
+            urls: whip_ctx.pipeline_ctx.stun_servers.to_vec(),
             ..Default::default()
         }],
         ..Default::default()
@@ -102,7 +78,7 @@ pub async fn init_peer_connection(
     let audio_track = match whip_ctx.options.audio {
         Some(audio_options) => {
             let audio_track = Arc::new(TrackLocalStaticRTP::new(
-                audio_codec_capability(audio_options, whip_ctx.sample_rate)?,
+                audio_codec_capability(audio_options, whip_ctx.pipeline_ctx.output_sample_rate)?,
                 "audio".to_owned(),
                 format!("live-compositor-{}-audio", whip_ctx.output_id).to_owned(),
             ));

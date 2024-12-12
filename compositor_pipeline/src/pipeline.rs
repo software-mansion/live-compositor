@@ -126,18 +126,20 @@ pub struct Options {
     pub force_gpu: bool,
     pub download_root: PathBuf,
     pub output_sample_rate: u32,
+    pub stun_servers: Arc<Vec<String>>,
     pub wgpu_features: WgpuFeatures,
     pub load_system_fonts: Option<bool>,
     pub wgpu_ctx: Option<GraphicsContext>,
     pub whip_whep_server_port: u16,
     pub start_whip_whep: bool,
-    pub tokio_rt: Arc<Runtime>,
+    pub tokio_rt: Option<Arc<Runtime>>,
 }
 
 #[derive(Clone)]
 pub struct PipelineCtx {
     pub output_sample_rate: u32,
     pub output_framerate: Framerate,
+    pub stun_servers: Arc<Vec<String>>,
     pub download_dir: Arc<PathBuf>,
     pub event_emitter: Arc<EventEmitter>,
     pub whip_whep_state: Arc<WhipWhepState>,
@@ -193,6 +195,10 @@ impl Pipeline {
             .join(format!("live-compositor-{}", rand::random::<u64>()));
         std::fs::create_dir_all(&download_dir).map_err(InitPipelineError::CreateDownloadDir)?;
 
+        let tokio_rt = match opts.tokio_rt {
+            Some(tokio_rt) => tokio_rt,
+            None => Arc::new(Runtime::new().map_err(InitPipelineError::CreateTokioRuntime)?),
+        };
         let event_emitter = Arc::new(EventEmitter::new());
         let pipeline = Pipeline {
             outputs: HashMap::new(),
@@ -204,12 +210,13 @@ impl Pipeline {
             ctx: PipelineCtx {
                 output_sample_rate: opts.output_sample_rate,
                 output_framerate: opts.queue_options.output_framerate,
+                stun_servers: opts.stun_servers,
                 download_dir: download_dir.into(),
                 event_emitter,
+                tokio_rt,
                 whip_whep_state: WhipWhepState::new(),
                 whip_whep_server_port: opts.whip_whep_server_port,
                 start_whip_whep: opts.start_whip_whep,
-                tokio_rt: opts.tokio_rt,
                 #[cfg(feature = "vk-video")]
                 vulkan_ctx: preinitialized_ctx.and_then(|ctx| ctx.vulkan_ctx),
             },

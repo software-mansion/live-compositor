@@ -79,7 +79,6 @@ pub async fn run_whip_whep_server(pipeline: Weak<Mutex<Pipeline>>) {
     let server_task = task::spawn(async {
         if let Err(err) = axum::serve(listener, app).await {
             error!("Cannot serve WHIP/WHEP server task: {err:?}");
-            return;
         }
     });
     trace!("WHIP/WHEP http server started");

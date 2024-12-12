@@ -100,7 +100,6 @@ enum AudioPayloader {
     },
 }
 
-#[derive(Debug)]
 pub enum Payload {
     Video(Result<Bytes, PayloadingError>),
     Audio(Result<Bytes, PayloadingError>),

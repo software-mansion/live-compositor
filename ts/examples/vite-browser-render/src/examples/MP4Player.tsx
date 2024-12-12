@@ -30,21 +30,31 @@ function Scene() {
   const inputs = useInputStreams();
   const inputState = inputs['bunny_video']?.videoState;
 
-  if (inputState !== 'playing') {
+  if (inputState === 'playing') {
+    return (
+      <View style={{ width: 1280, height: 720 }}>
+        <InputStream inputId="bunny_video" />
+        <View style={{ width: 230, height: 40, backgroundColor: '#000000', bottom: 20, left: 500 }}>
+          <Text style={{ fontSize: 30, fontFamily: 'Noto Sans' }}>Playing MP4 file</Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (inputState === 'finished') {
     return (
       <View style={{ backgroundColor: '#000000' }}>
         <View style={{ width: 530, height: 40, bottom: 340, left: 500 }}>
-          <Text style={{ fontSize: 30, fontFamily: 'Noto Sans' }}>Loading MP4 file</Text>
+          <Text style={{ fontSize: 30, fontFamily: 'Noto Sans' }}>Finished playing MP4 file</Text>
         </View>
       </View>
     );
   }
 
   return (
-    <View style={{ width: 1280, height: 720 }}>
-      <InputStream inputId="bunny_video" />
-      <View style={{ width: 230, height: 40, backgroundColor: '#000000', bottom: 20, left: 500 }}>
-        <Text style={{ fontSize: 30, fontFamily: 'Noto Sans' }}>Playing MP4 file</Text>
+    <View style={{ backgroundColor: '#000000' }}>
+      <View style={{ width: 530, height: 40, bottom: 340, left: 500 }}>
+        <Text style={{ fontSize: 30, fontFamily: 'Noto Sans' }}>Loading MP4 file</Text>
       </View>
     </View>
   );
