@@ -1,20 +1,21 @@
 import type { Renderers } from 'live-compositor';
 import { _liveCompositorInternals } from 'live-compositor';
-import { ApiClient } from './api.js';
+import { ApiClient } from '../api.js';
 import Output from './output.js';
-import type { CompositorManager } from './compositorManager.js';
-import type { RegisterOutput } from './api/output.js';
-import { intoRegisterOutput } from './api/output.js';
-import type { RegisterInput } from './api/input.js';
-import { intoRegisterInput } from './api/input.js';
-import { onCompositorEvent } from './event.js';
-import { intoRegisterImage, intoRegisterWebRenderer } from './api/renderer.js';
+import type { CompositorManager } from '../compositorManager.js';
+import type { RegisterOutput } from '../api/output.js';
+import { intoRegisterOutput } from '../api/output.js';
+import type { RegisterInput } from '../api/input.js';
+import { intoRegisterInput } from '../api/input.js';
+import { onCompositorEvent } from '../event.js';
+import { intoRegisterImage, intoRegisterWebRenderer } from '../api/renderer.js';
 
 export class LiveCompositor {
   private manager: CompositorManager;
   private api: ApiClient;
   private store: _liveCompositorInternals.InstanceContextStore;
   private outputs: Record<string, Output> = {};
+  private startTime?: number;
 
   public constructor(manager: CompositorManager) {
     this.manager = manager;
@@ -24,11 +25,11 @@ export class LiveCompositor {
 
   public async init(): Promise<void> {
     this.manager.registerEventListener((event: unknown) => onCompositorEvent(this.store, event));
-    await this.manager.setupInstance();
+    await this.manager.setupInstance({ aheadOfTimeProcessing: false });
   }
 
   public async registerOutput(outputId: string, request: RegisterOutput): Promise<object> {
-    const output = new Output(outputId, request, this.api, this.store);
+    const output = new Output(outputId, request, this.api, this.store, this.startTime);
 
     const apiRequest = intoRegisterOutput(request, output.scene());
     const result = await this.api.registerOutput(outputId, apiRequest);
@@ -40,7 +41,8 @@ export class LiveCompositor {
   public async unregisterOutput(outputId: string): Promise<object> {
     this.outputs[outputId].close();
     delete this.outputs[outputId];
-    return this.api.unregisterOutput(outputId);
+    // TODO: wait for event
+    return this.api.unregisterOutput(outputId, {});
   }
 
   public async registerInput(inputId: string, request: RegisterInput): Promise<object> {
@@ -90,6 +92,11 @@ export class LiveCompositor {
   }
 
   public async start(): Promise<void> {
-    return this.api.start();
+    const startTime = Date.now();
+    await this.api.start();
+    Object.values(this.outputs).forEach(output => {
+      output.initClock(startTime);
+    });
+    this.startTime = startTime;
   }
 }

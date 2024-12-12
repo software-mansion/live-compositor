@@ -2,7 +2,7 @@
 , ffmpeg_7-headless
 , openssl
 , pkg-config
-, llvmPackages_16
+, llvmPackages
 , libGL
 , cmake
 , libopus
@@ -20,6 +20,7 @@ let
     libopus
     libGL
     vulkan-loader
+    stdenv.cc.cc
   ] ++ lib.optionals stdenv.isDarwin [
     darwin.apple_sdk.frameworks.Metal
     darwin.apple_sdk.frameworks.Foundation
@@ -43,9 +44,9 @@ rustPlatform.buildRustPackage {
   doCheck = false;
 
   inherit buildInputs;
-  nativeBuildInputs = [ pkg-config llvmPackages_16.clang cmake makeWrapper ];
+  nativeBuildInputs = [ pkg-config llvmPackages.clang cmake makeWrapper ];
 
-  env.LIBCLANG_PATH = "${llvmPackages_16.libclang.lib}/lib";
+  env.LIBCLANG_PATH = "${llvmPackages.libclang.lib}/lib";
 
   postFixup =
     ''

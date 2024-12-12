@@ -4,7 +4,7 @@ import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import * as fs from 'fs-extra';
 import * as tar from 'tar';
-import type { ApiRequest, CompositorManager } from '@live-compositor/core';
+import type { ApiRequest, CompositorManager, SetupInstanceOptions } from '@live-compositor/core';
 
 import { download, sendRequest } from '../fetch';
 import { retry, sleep } from '../utils';
@@ -48,18 +48,22 @@ class LocallySpawnedInstance implements CompositorManager {
     });
   }
 
-  public async setupInstance(): Promise<void> {
+  public async setupInstance(opts: SetupInstanceOptions): Promise<void> {
     const executablePath = this.executablePath ?? (await prepareExecutable(this.enableWebRenderer));
 
     spawn(executablePath, [], {
       env: {
-        ...process.env,
         LIVE_COMPOSITOR_DOWNLOAD_DIR: path.join(this.workingdir, 'download'),
         LIVE_COMPOSITOR_API_PORT: this.port.toString(),
         LIVE_COMPOSITOR_WEB_RENDERER_ENABLE: this.enableWebRenderer ? 'true' : 'false',
         // silence scene updates logging
+        LIVE_COMPOSITOR_LOGGER_FORMAT: 'compact',
         LIVE_COMPOSITOR_LOGGER_LEVEL:
-          'info,wgpu_hal=warn,wgpu_core=warn,compositor_pipeline::pipeline=warn',
+          'info,wgpu_hal=warn,wgpu_core=warn,compositor_pipeline::pipeline=warn,live_compositor::log_request_body=debug',
+        LIVE_COMPOSITOR_AHEAD_OF_TIME_PROCESSING_ENABLE: opts.aheadOfTimeProcessing
+          ? 'true'
+          : 'false',
+        ...process.env,
       },
     }).catch(err => {
       console.error('LiveCompositor instance failed', err);

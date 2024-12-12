@@ -1,4 +1,4 @@
-import type { ApiRequest, CompositorManager } from '@live-compositor/core';
+import type { ApiRequest, CompositorManager, SetupInstanceOptions } from '@live-compositor/core';
 
 import { sendRequest } from '../fetch';
 import { retry, sleep } from '../utils';
@@ -28,7 +28,9 @@ class ExistingInstance implements CompositorManager {
     this.wsConnection = new WebSocketConnection(`${wsProtocol}://${this.ip}:${this.port}/ws`);
   }
 
-  public async setupInstance(): Promise<void> {
+  public async setupInstance(_opts: SetupInstanceOptions): Promise<void> {
+    // TODO: verify if options match
+    // https://github.com/software-mansion/live-compositor/issues/877
     await retry(async () => {
       await sleep(500);
       return await this.sendRequest({
