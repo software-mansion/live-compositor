@@ -1,5 +1,5 @@
 import { OfflineCompositor } from '@live-compositor/node';
-import { View, Text, Rescaler, InputStream, Slides, Slide } from 'live-compositor';
+import { View, Text, Rescaler, InputStream, SlideShow, Slide } from 'live-compositor';
 import { downloadAllAssets } from './utils';
 import path from 'path';
 import { useTimeLimitedComponent } from '../../../live-compositor/cjs/context/childrenLifetimeContext';
@@ -7,7 +7,7 @@ import { useTimeLimitedComponent } from '../../../live-compositor/cjs/context/ch
 function ExampleApp() {
   return (
     <View>
-      <Slides>
+      <SlideShow>
         <Slide>
           <Input inputId="input_1" endTimestamp={3_000} />
         </Slide>
@@ -17,7 +17,7 @@ function ExampleApp() {
         <Slide durationMs={3_000}>
           <Input inputId="input_1" endTimestamp={10_000} />
         </Slide>
-      </Slides>
+      </SlideShow>
     </View>
   );
 }

@@ -20,7 +20,7 @@ function ExampleApp() {
       <Show delayMs={2000}>
         <InputTile inputId="input_2" />
       </Show>
-      <Show timestampMs={{ start: 5000, end: 8000 }}>
+      <Show timeRangeMs={{ start: 5000, end: 8000 }}>
         <InputTile inputId="input_2" />
       </Show>
     </Tiles>

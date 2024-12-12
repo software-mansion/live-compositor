@@ -19,11 +19,11 @@ export type SlideProps = {
   children?: React.ReactNode;
 };
 
-export type SlidesProps = {
+export type SlideShowProps = {
   children: React.ReactNode;
 };
 
-export function Slides(props: SlidesProps) {
+export function SlideShow(props: SlideShowProps) {
   const prevChildrenRef = useRef<React.ReactNode>();
   const [childIndex, setChildIndex] = useState<number>(0);
 
@@ -31,7 +31,7 @@ export function Slides(props: SlidesProps) {
 
   for (const slide of childrenArray) {
     if ((slide as ReactElement).type !== Slide) {
-      throw new Error('Slides component only accepts Slides as children');
+      throw new Error('SlideShow component only accepts <Slide /> as children');
     }
   }
 

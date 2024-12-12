@@ -16,7 +16,7 @@ import {
 } from './hooks.js';
 import { CompositorEvent, CompositorEventType } from './types/events.js';
 import Show, { ShowProps } from './components/Show.js';
-import { Slides, Slide, SlideProps, SlidesProps } from './components/Slides.js';
+import { SlideShow, Slide, SlideProps, SlideShowProps } from './components/SlideShow.js';
 
 export { RegisterRtpInput, RegisterMp4Input } from './types/registerInput.js';
 export {
@@ -52,8 +52,8 @@ export {
   ShowProps,
   Slide,
   SlideProps,
-  Slides,
-  SlidesProps,
+  SlideShow,
+  SlideShowProps,
 };
 
 export { CompositorEvent, CompositorEventType };
