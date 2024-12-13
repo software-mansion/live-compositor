@@ -53,7 +53,7 @@ fn client_code() -> Result<()> {
 
     let scene1 = json!({
         "type": "view",
-        "background_color_rgba": "#444444FF",
+        "background_color": "rgba(255,0,0,0.5)",
         "children": [
             {
                 "type": "view",
@@ -80,7 +80,7 @@ fn client_code() -> Result<()> {
 
     let scene2 = json!({
         "type": "view",
-        "background_color_rgba": "#444444FF",
+        "background_color": "#444444",
         "children": [
             {
                 "type": "view",
@@ -114,7 +114,7 @@ fn client_code() -> Result<()> {
 
     let scene3 = json!({
         "type": "view",
-        "background_color_rgba": "#444444FF",
+        "background_color": "#444444FF",
         "children": [
             {
                 "type": "view",

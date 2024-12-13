@@ -98,7 +98,7 @@ impl TryFrom<View> for scene::ViewComponent {
             position,
             overflow,
             background_color: view
-                .background_color_rgba
+                .background_color
                 .map(TryInto::try_into)
                 .unwrap_or(Ok(scene::RGBAColor(0, 0, 0, 0)))?,
             transition: view.transition.map(TryInto::try_into).transpose()?,
@@ -304,7 +304,7 @@ impl TryFrom<Text> for scene::TextComponent {
             wrap,
             weight,
             background_color: text
-                .background_color_rgba
+                .background_color
                 .map(TryInto::try_into)
                 .unwrap_or(Ok(scene::RGBAColor(0, 0, 0, 0)))?,
         };
@@ -345,7 +345,7 @@ impl TryFrom<Tiles> for scene::TilesComponent {
             height: tiles.height,
 
             background_color: tiles
-                .background_color_rgba
+                .background_color
                 .map(TryInto::try_into)
                 .unwrap_or(Ok(scene::RGBAColor(0, 0, 0, 0)))?,
             tile_aspect_ratio: tiles

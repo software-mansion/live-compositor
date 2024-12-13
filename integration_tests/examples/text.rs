@@ -45,7 +45,7 @@ fn client_code() -> Result<()> {
                         "font_family": "Comic Sans MS",
                         "align": "center",
                         "wrap": "word",
-                        "background_color_rgba": "#00800000",
+                        "background_color": "#00800000",
                         "weight": "bold",
                         "width": VIDEO_RESOLUTION.width,
                         "height": VIDEO_RESOLUTION.height,

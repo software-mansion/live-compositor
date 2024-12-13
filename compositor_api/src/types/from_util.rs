@@ -127,40 +127,6 @@ impl TryFrom<AspectRatio> for (u32, u32) {
     }
 }
 
-impl TryFrom<RGBAColor> for scene::RGBAColor {
-    type Error = TypeError;
-
-    fn try_from(value: RGBAColor) -> std::result::Result<Self, Self::Error> {
-        let s = &value.0;
-        if s.len() != 9 {
-            return Err(TypeError::new(
-                "Invalid format. Color has to be in #RRGGBBAA format.",
-            ));
-        }
-        if !s.starts_with('#') {
-            return Err(TypeError::new(
-                "Invalid format. Color definition has to start with #.",
-            ));
-        }
-        let (r, g, b, a) = (&s[1..3], &s[3..5], &s[5..7], &s[7..9]);
-
-        fn parse_color_channel(value: &str) -> Result<u8, TypeError> {
-            u8::from_str_radix(value, 16).map_err(|_err| {
-                TypeError::new(
-                    "Invalid format. Color representation is not a valid hexadecimal number.",
-                )
-            })
-        }
-
-        Ok(Self(
-            parse_color_channel(r)?,
-            parse_color_channel(g)?,
-            parse_color_channel(b)?,
-            parse_color_channel(a)?,
-        ))
-    }
-}
-
 #[cfg(not(target_arch = "wasm32"))]
 impl TryFrom<PortOrPortRange> for compositor_pipeline::pipeline::rtp::RequestedPort {
     type Error = TypeError;

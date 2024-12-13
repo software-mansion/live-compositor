@@ -159,7 +159,7 @@ fn scene(text: &str, rgba_color: &str, resolution: Resolution) -> serde_json::Va
     json!({
         "root": {
             "type": "view",
-            "background_color_rgba": rgba_color,
+            "background_color": rgba_color,
             "direction": "column",
             "children": [
                 { "type": "view" },

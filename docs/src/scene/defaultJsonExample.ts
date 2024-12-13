@@ -3,7 +3,7 @@ import { Api } from 'live-compositor';
 export function defaultJsonExample(): Api.Component {
   return {
     type: 'view',
-    background_color_rgba: '#4d4d4dff',
+    background_color: '#4d4d4dff',
     children: [
       {
         type: 'view',

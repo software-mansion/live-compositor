@@ -27,7 +27,7 @@ export default function ExampleSceneJson() {
       "type": "view",
       "height": 120,
       "left": 0, "bottom": 0, 
-      "background_color_rgba": "#B3B3B3FF",
+      "background_color": "#B3B3B3FF",
       "children": [
         { "type": "view" },
         {

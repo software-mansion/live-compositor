@@ -48,7 +48,7 @@ fn client_code() -> Result<()> {
 
     let scene1 = json!({
         "type": "view",
-        "background_color_rgba": "#42daf5ff",
+        "background_color": "#42daf5ff",
         "children": [
             {
                 "type": "view",
@@ -57,7 +57,7 @@ fn client_code() -> Result<()> {
                 "height": VIDEO_RESOLUTION.height,
                 "top": 0.0,
                 "right": 0.0,
-                "background_color_rgba": "#0000FFFF",
+                "background_color": "#0000FFFF",
                 "border_color_rgba": "#FFFFFFFF",
                 "box_shadow": [
                     {
@@ -83,7 +83,7 @@ fn client_code() -> Result<()> {
 
     let scene2 = json!({
         "type": "view",
-        "background_color_rgba": "#42daf5ff",
+        "background_color": "#42daf5ff",
         "children": [
             {
                 "type": "view",
@@ -94,7 +94,7 @@ fn client_code() -> Result<()> {
                 "right": (VIDEO_RESOLUTION.width as f32 - 330.0) / 2.0,
                 "border_radius": 50,
                 "border_width": 15,
-                "background_color_rgba": "#0000FFFF",
+                "background_color": "#0000FFFF",
                 "border_color_rgba": "#FFFFFFFF",
                 "box_shadow": [
                     {

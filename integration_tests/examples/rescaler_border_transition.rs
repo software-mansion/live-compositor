@@ -48,7 +48,7 @@ fn client_code() -> Result<()> {
 
     let scene1 = json!({
         "type": "view",
-        "background_color_rgba": "#42daf5ff",
+        "background_color": "#42daf5ff",
         "children": [
             {
                 "type": "rescaler",
@@ -77,7 +77,7 @@ fn client_code() -> Result<()> {
 
     let scene2 = json!({
         "type": "view",
-        "background_color_rgba": "#42daf5ff",
+        "background_color": "#42daf5ff",
         "children": [
             {
                 "type": "rescaler",

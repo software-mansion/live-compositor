@@ -1,3 +1,7 @@
+use compositor_render::scene;
+
+use super::util::*;
+
 impl TryFrom<RGBAColor> for scene::RGBAColor {
     type Error = TypeError;
     fn try_from(value: RGBAColor) -> std::result::Result<Self, Self::Error> {

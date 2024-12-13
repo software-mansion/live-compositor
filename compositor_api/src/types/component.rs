@@ -79,7 +79,7 @@ pub struct View {
     pub overflow: Option<Overflow>,
 
     /// (**default=`"#00000000"`**) Background color in a `"#RRGGBBAA"` format.
-    pub background_color_rgba: Option<RGBAColor>,
+    pub background_color: Option<RGBAColor>,
 
     /// (**default=`0.0`**) Radius of a rounded corner.
     pub border_radius: Option<f32>,
@@ -313,7 +313,7 @@ pub struct Text {
     /// (**default=`"#FFFFFFFF"`**) Font color in `#RRGGBBAA` format.
     pub color_rgba: Option<RGBAColor>,
     /// (**default=`"#00000000"`**) Background color in `#RRGGBBAA` format.
-    pub background_color_rgba: Option<RGBAColor>,
+    pub background_color: Option<RGBAColor>,
     /// (**default=`"Verdana"`**) Font family. Provide [family-name](https://www.w3.org/TR/2018/REC-css-fonts-3-20180920/#family-name-value)
     /// for a specific font. "generic-family" values like e.g. "sans-serif" will not work.
     pub font_family: Option<Arc<str>>,
@@ -399,7 +399,7 @@ pub struct Tiles {
     pub height: Option<f32>,
 
     /// (**default=`"#00000000"`**) Background color in a `"#RRGGBBAA"` format.
-    pub background_color_rgba: Option<RGBAColor>,
+    pub background_color: Option<RGBAColor>,
     /// (**default=`"16:9"`**) Aspect ratio of a tile in `"W:H"` format, where W and H are integers.
     pub tile_aspect_ratio: Option<AspectRatio>,
     /// (**default=`0`**) Margin of each tile in pixels.
