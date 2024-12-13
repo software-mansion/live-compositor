@@ -1,13 +1,11 @@
 use crate::pipeline::input::whip::depayloader::Depayloader;
 use axum::{
-    routing::{delete, get, options, patch, post},
+    routing::{delete, get, patch, post},
     Router,
 };
 use compositor_render::InputId;
 use error::WhipServerError;
-use handlers::{
-    handle_options, handle_whip, status, terminate_whip_session, whip_ice_candidates_handler,
-};
+use handlers::{handle_whip, status, terminate_whip_session, whip_ice_candidates_handler};
 use std::{
     collections::HashMap,
     net::SocketAddr,
@@ -15,7 +13,8 @@ use std::{
     time::{Duration, Instant},
 };
 use tokio::sync::mpsc;
-use tracing::{error, trace, warn};
+use tower_http::cors::CorsLayer;
+use tracing::{error, warn};
 use webrtc::{
     api::{
         interceptor_registry::register_default_interceptors,
@@ -36,8 +35,6 @@ mod error;
 mod handlers;
 mod helpers;
 
-use tokio::task;
-
 use crate::{queue::PipelineEvent, Pipeline};
 
 use super::EncodedChunk;
@@ -45,7 +42,6 @@ use super::EncodedChunk;
 pub(crate) const VIDEO_PAYLOAD_TYPE: u8 = 96;
 pub(crate) const OPUS_PAYLOAD_TYPE: u8 = 111;
 
-#[tokio::main]
 pub async fn run_whip_whep_server(pipeline: Weak<Mutex<Pipeline>>) {
     let pipeline_ctx = match pipeline.upgrade() {
         Some(pipeline) => pipeline.lock().unwrap().ctx.clone(),
@@ -54,20 +50,20 @@ pub async fn run_whip_whep_server(pipeline: Weak<Mutex<Pipeline>>) {
             return;
         }
     };
-    let port = pipeline_ctx.whip_whep_server_port;
 
     if !pipeline_ctx.start_whip_whep {
         return;
     }
 
-    let state = pipeline_ctx.whip_whep_state.clone();
+    let state = pipeline_ctx.whip_whep_state;
+    let port = pipeline_ctx.whip_whep_server_port;
 
     let app = Router::new()
         .route("/status", get(status))
         .route("/whip/:id", post(handle_whip))
-        .route("/whip/:id", options(handle_options))
         .route("/session/:id", patch(whip_ice_candidates_handler))
         .route("/session/:id", delete(terminate_whip_session))
+        .layer(CorsLayer::permissive())
         .with_state(state);
 
     let Ok(listener) = tokio::net::TcpListener::bind(SocketAddr::from(([0, 0, 0, 0], port))).await
@@ -76,15 +72,9 @@ pub async fn run_whip_whep_server(pipeline: Weak<Mutex<Pipeline>>) {
         return;
     };
 
-    let server_task = task::spawn(async {
-        if let Err(err) = axum::serve(listener, app).await {
-            error!("Cannot serve WHIP/WHEP server task: {err:?}");
-        }
-    });
-    trace!("WHIP/WHEP http server started");
-    if let Err(e) = server_task.await {
-        error!("WHIP/WHEP server task failed: {:?}", e);
-    }
+    if let Err(err) = axum::serve(listener, app).await {
+        error!("Cannot serve WHIP/WHEP server task: {err:?}");
+    };
 }
 
 #[derive(Debug)]

@@ -20,7 +20,10 @@ use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc::Sender;
 use tracing::{debug, error, info, warn};
 use webrtc::{
-    peer_connection::{sdp::session_description::RTCSessionDescription, RTCPeerConnection},
+    peer_connection::{
+        peer_connection_state::RTCPeerConnectionState,
+        sdp::session_description::RTCSessionDescription, RTCPeerConnection,
+    },
     rtp_transceiver::rtp_codec::RTPCodecType,
 };
 
@@ -59,14 +62,19 @@ pub async fn handle_whip(
     let depayloader: Arc<Mutex<Depayloader>>;
     let bearer_token: Option<String>;
     let state_clone = state.clone();
+    let mut another_peer_connection_on_this_input = None;
 
     if let Ok(connections) = state_clone.input_connections.lock() {
         if let Some(connection) = connections.get(&input_id) {
-            if connection.peer_connection.is_some() {
+            if let Some(peer_connection) = connection.peer_connection.clone() {
                 warn!("There is another stream streaming for given input {input_id:?}");
-                return Err(WhipServerError::InternalError(format!(
-                    "Something else is streaming for given input {input_id:?}"
-                )));
+                if peer_connection.connection_state() == RTCPeerConnectionState::Connected {
+                    return Err(WhipServerError::InternalError(format!(
+                        "There is another stream streaming for given input {input_id:?}"
+                    )));
+                } else {
+                    another_peer_connection_on_this_input = Some(peer_connection);
+                }
             }
             video_sender = connection.video_sender.clone();
             audio_sender = connection.audio_sender.clone();
@@ -83,6 +91,14 @@ pub async fn handle_whip(
         ));
     }
     validate_token(bearer_token, headers.get("Authorization")).await?;
+
+    if let Some(connection) = another_peer_connection_on_this_input {
+        if let Err(err) = connection.close().await {
+            return Err(WhipServerError::InternalError(format!(
+                "Cannot close previously existing peer connection {input_id:?}: {err:?}"
+            )));
+        }
+    }
 
     let peer_connection =
         init_peer_connection(video_sender.is_some(), audio_sender.is_some()).await?;
@@ -242,15 +258,6 @@ pub async fn whip_ice_candidates_handler(
     Ok(StatusCode::NO_CONTENT)
 }
 
-pub async fn handle_options() -> Result<Response<Body>, WhipServerError> {
-    // TODO
-    Ok(Response::builder()
-        .status(StatusCode::NOT_IMPLEMENTED)
-        .header("Accept-Post", "application/sdp")
-        .body(Body::empty())?)
-}
-
-//TODO determine what exactly should be done in this handler
 pub async fn terminate_whip_session(
     Path(id): Path<String>,
     State(state): State<Arc<WhipWhepState>>,

@@ -466,7 +466,8 @@ impl Pipeline {
         let weak_pipeline = Arc::downgrade(pipeline);
         thread::spawn(move || run_audio_mixer_thread(weak_pipeline, audio_receiver));
         let weak_pipeline = Arc::downgrade(pipeline);
-        thread::spawn(move || run_whip_whep_server(weak_pipeline));
+        let runtime = guard.ctx.tokio_rt.clone();
+        runtime.spawn(async { run_whip_whep_server(weak_pipeline).await });
     }
 
     pub fn inputs(&self) -> impl Iterator<Item = (&InputId, &PipelineInput)> {
