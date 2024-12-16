@@ -5,6 +5,7 @@
 ### 💥 Breaking changes
 
 - Drop support for `SHADER_UNUSED_VERTEX_OUTPUT` `wgpu` feature.  ([#733](https://github.com/software-mansion/live-compositor/pull/733)) by [@jerzywilczek](https://github.com/jerzywilczek)
+- Modify supported color formats. ([#896](https://github.com/software-mansion/live-compositor/issues/896)) by [@BrtqKr](https://github.com/BrtqKr)
 
 ### ✨ New features
 
