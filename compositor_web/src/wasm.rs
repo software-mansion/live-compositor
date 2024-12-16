@@ -23,19 +23,23 @@ mod wgpu;
 pub fn start() -> Result<(), JsValue> {
     console_error_panic_hook::set_once();
     tracing_wasm::set_as_global_default();
-    wasm_log::init(wasm_log::Config::new(log::Level::Info));
 
     Ok(())
 }
 
 #[wasm_bindgen]
 pub async fn create_renderer(options: JsValue) -> Result<LiveCompositorRenderer, JsValue> {
-    let (device, queue) = create_wgpu_context().await?;
-    let mut options: compositor_render::RendererOptions =
-        types::from_js_value::<types::RendererOptions>(options)?.into();
-    options.wgpu_ctx = Some((device, queue));
+    let options = types::from_js_value::<types::RendererOptions>(options)?;
+    // This option will only be respected for the first renderer
+    let _ = wasm_log::try_init(wasm_log::Config::new(options.logger_level.into()));
 
-    let (renderer, _) = Renderer::new(options).map_err(to_js_error)?;
+    let (device, queue) = create_wgpu_context().await?;
+
+    let (renderer, _) = Renderer::new(compositor_render::RendererOptions {
+        wgpu_ctx: Some((device, queue)),
+        ..options.into()
+    })
+    .map_err(to_js_error)?;
     let input_uploader = InputUploader::default();
     let output_downloader = OutputDownloader::default();
 

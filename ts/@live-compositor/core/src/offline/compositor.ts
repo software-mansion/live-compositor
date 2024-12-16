@@ -6,10 +6,11 @@ import type { RegisterOutput } from '../api/output.js';
 import { intoRegisterOutput } from '../api/output.js';
 import type { RegisterInput } from '../api/input.js';
 import { intoRegisterInput } from '../api/input.js';
-import { intoRegisterImage, intoRegisterWebRenderer } from '../api/renderer.js';
+import { intoRegisterImage } from '../api/renderer.js';
 import OfflineOutput from './output.js';
 import { CompositorEventType, parseEvent } from '../event.js';
 import type { ReactElement } from 'react';
+import type { Logger } from 'pino';
 
 /**
  * Offline rendering only supports one output, so we can just pick any value to use
@@ -26,23 +27,28 @@ export class OfflineCompositor {
    * Start and end timestamp of an inputs (if known).
    */
   private inputTimestamps: number[] = [];
+  private logger: Logger;
 
-  public constructor(manager: CompositorManager) {
+  public constructor(manager: CompositorManager, logger: Logger) {
     this.manager = manager;
     this.api = new ApiClient(this.manager);
     this.store = new _liveCompositorInternals.OfflineInputStreamStore();
+    this.logger = logger;
   }
 
   public async init(): Promise<void> {
     this.checkNotStarted();
-    await this.manager.setupInstance({ aheadOfTimeProcessing: true });
+    await this.manager.setupInstance({
+      aheadOfTimeProcessing: true,
+      logger: this.logger.child({ element: 'connection-manager' }),
+    });
   }
 
   public async render(root: ReactElement, request: RegisterOutput, durationMs?: number) {
     this.checkNotStarted();
     this.renderStarted = true;
 
-    const output = new OfflineOutput(root, request, this.api, this.store, durationMs);
+    const output = new OfflineOutput(root, request, this.api, this.store, this.logger, durationMs);
     for (const inputTimestamp of this.inputTimestamps) {
       output.timeContext.addTimestamp({ timestamp: inputTimestamp });
     }
@@ -58,7 +64,7 @@ export class OfflineCompositor {
 
     const renderPromise = new Promise<void>((res, _rej) => {
       this.manager.registerEventListener(rawEvent => {
-        const event = parseEvent(rawEvent);
+        const event = parseEvent(rawEvent, this.logger);
         if (
           event &&
           event.type === CompositorEventType.OUTPUT_DONE &&
@@ -76,6 +82,8 @@ export class OfflineCompositor {
 
   public async registerInput(inputId: string, request: RegisterInput): Promise<object> {
     this.checkNotStarted();
+    this.logger.info({ inputId, type: request.type }, 'Register new input');
+
     const inputRef = { type: 'global', id: inputId } as const;
     const result = await this.api.registerInput(inputRef, intoRegisterInput(request));
 
@@ -111,20 +119,14 @@ export class OfflineCompositor {
     request: Renderers.RegisterShader
   ): Promise<object> {
     this.checkNotStarted();
+    this.logger.info({ shaderId }, 'Register shader');
     return this.api.registerShader(shaderId, request);
   }
 
   public async registerImage(imageId: string, request: Renderers.RegisterImage): Promise<object> {
     this.checkNotStarted();
+    this.logger.info({ imageId }, 'Register image');
     return this.api.registerImage(imageId, intoRegisterImage(request));
-  }
-
-  public async registerWebRenderer(
-    instanceId: string,
-    request: Renderers.RegisterWebRenderer
-  ): Promise<object> {
-    this.checkNotStarted();
-    return this.api.registerWebRenderer(instanceId, intoRegisterWebRenderer(request));
   }
 
   private checkNotStarted() {

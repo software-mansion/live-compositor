@@ -6,7 +6,30 @@ use wasm_bindgen::prelude::*;
 
 #[derive(Debug, Deserialize)]
 pub struct RendererOptions {
-    stream_fallback_timeout_ms: u64,
+    pub stream_fallback_timeout_ms: u64,
+    pub logger_level: LoggerLevel,
+}
+
+#[derive(Debug, Deserialize, Clone, Copy)]
+#[serde(rename_all = "snake_case")]
+pub enum LoggerLevel {
+    Error,
+    Warn,
+    Info,
+    Debug,
+    Trace,
+}
+
+impl From<LoggerLevel> for log::Level {
+    fn from(value: LoggerLevel) -> Self {
+        match value {
+            LoggerLevel::Error => log::Level::Error,
+            LoggerLevel::Warn => log::Level::Warn,
+            LoggerLevel::Info => log::Level::Info,
+            LoggerLevel::Debug => log::Level::Debug,
+            LoggerLevel::Trace => log::Level::Trace,
+        }
+    }
 }
 
 #[wasm_bindgen]
