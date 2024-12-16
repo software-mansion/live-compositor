@@ -475,7 +475,7 @@
               ],
               "format": "float"
             },
-            "color_rgba": {
+            "color": {
               "description": "(**default=`\"#FFFFFFFF\"`**) Font color in `#RRGGBBAA` format.",
               "anyOf": [
                 {
@@ -1005,7 +1005,7 @@
           ],
           "format": "float"
         },
-        "color_rgba": {
+        "color": {
           "anyOf": [
             {
               "$ref": "#/definitions/RGBAColor"
