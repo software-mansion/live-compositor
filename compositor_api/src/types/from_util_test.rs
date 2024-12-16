@@ -52,7 +52,7 @@ fn test_rgba_deserialization() {
     test_case(
         "#000",
         Err(TypeError::new(
-            "Invalid format. Color has to be in #RRGGBBAA format.",
+            "Invalid format. Color has to be in #RRGGBB or #RRGGBBAA format.",
         )),
     );
 }
