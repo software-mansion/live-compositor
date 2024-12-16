@@ -105,7 +105,7 @@ impl TryFrom<View> for scene::ViewComponent {
             border_radius: BorderRadius::new_with_radius(view.border_radius.unwrap_or(0.0)),
             border_width: view.border_width.unwrap_or(0.0),
             border_color: view
-                .border_color_rgba
+                .border_color
                 .map(TryInto::try_into)
                 .unwrap_or(Ok(scene::RGBAColor(0, 0, 0, 0)))?,
             box_shadow: view
@@ -181,7 +181,7 @@ impl TryFrom<Rescaler> for scene::RescalerComponent {
             border_radius: BorderRadius::new_with_radius(rescaler.border_radius.unwrap_or(0.0)),
             border_width: rescaler.border_width.unwrap_or(0.0),
             border_color: rescaler
-                .border_color_rgba
+                .border_color
                 .map(TryInto::try_into)
                 .unwrap_or(Ok(scene::RGBAColor(0, 0, 0, 0)))?,
             box_shadow: rescaler
@@ -295,7 +295,7 @@ impl TryFrom<Text> for scene::TextComponent {
             dimensions,
             line_height: text.line_height.unwrap_or(text.font_size),
             color: text
-                .color_rgba
+                .color
                 .map(TryInto::try_into)
                 .unwrap_or(Ok(scene::RGBAColor(255, 255, 255, 255)))?,
             font_family: text.font_family.unwrap_or_else(|| Arc::from("Verdana")),
@@ -374,7 +374,7 @@ impl TryFrom<BoxShadow> for scene::BoxShadow {
             offset_y: value.offset_y.unwrap_or(0.0),
             blur_radius: value.blur_radius.unwrap_or(0.0),
             color: value
-                .color_rgba
+                .color
                 .map(TryInto::try_into)
                 .unwrap_or(Ok(scene::RGBAColor(255, 255, 255, 255)))?,
         })

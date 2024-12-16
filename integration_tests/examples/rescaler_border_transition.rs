@@ -58,7 +58,7 @@ fn client_code() -> Result<()> {
                 "top": 0.0,
                 "right": 0.0,
                 "mode": "fill",
-                "border_color_rgba": "#FFFFFFFF",
+                "border_color": "#FFFFFFFF",
                 "box_shadow": [
                     {
                         "offset_y": 40,
@@ -89,7 +89,7 @@ fn client_code() -> Result<()> {
                 "mode": "fill",
                 "border_radius": 50,
                 "border_width": 15,
-                "border_color_rgba": "#FFFFFFFF",
+                "border_color": "#FFFFFFFF",
                 "box_shadow": [
                     {
                         "offset_y": 40,

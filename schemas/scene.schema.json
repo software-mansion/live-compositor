@@ -204,7 +204,7 @@
                 }
               ]
             },
-            "background_color_rgba": {
+            "background_color": {
               "description": "(**default=`\"#00000000\"`**) Background color in a `\"#RRGGBBAA\"` format.",
               "anyOf": [
                 {
@@ -231,7 +231,7 @@
               ],
               "format": "float"
             },
-            "border_color_rgba": {
+            "border_color": {
               "description": "(**default=`\"#00000000\"`**) Border color in a `\"#RRGGBBAA\"` format.",
               "anyOf": [
                 {
@@ -486,7 +486,7 @@
                 }
               ]
             },
-            "background_color_rgba": {
+            "background_color": {
               "description": "(**default=`\"#00000000\"`**) Background color in `#RRGGBBAA` format.",
               "anyOf": [
                 {
@@ -600,7 +600,7 @@
               ],
               "format": "float"
             },
-            "background_color_rgba": {
+            "background_color": {
               "description": "(**default=`\"#00000000\"`**) Background color in a `\"#RRGGBBAA\"` format.",
               "anyOf": [
                 {
@@ -829,7 +829,7 @@
               ],
               "format": "float"
             },
-            "border_color_rgba": {
+            "border_color": {
               "description": "(**default=`\"#00000000\"`**) Border color in a `\"#RRGGBBAA\"` format.",
               "anyOf": [
                 {
