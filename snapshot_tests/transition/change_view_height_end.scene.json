@@ -6,7 +6,7 @@
                 {
                     "type": "view",
                     "width": 50,
-                    "background_color_rgba": "#FF0000FF"
+                    "background_color": "#FF0000FF"
                 },
                 {
                     "id": "resize_1",
@@ -16,11 +16,11 @@
                     "transition": {
                         "duration_ms": 10000
                     },
-                    "background_color_rgba": "#00FF00FF"
+                    "background_color": "#00FF00FF"
                 },
                 {
                     "type": "view",
-                    "background_color_rgba": "#0000FFFF"
+                    "background_color": "#0000FFFF"
                 }
             ]
         }
