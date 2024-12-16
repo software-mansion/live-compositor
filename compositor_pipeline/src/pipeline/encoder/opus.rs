@@ -6,7 +6,7 @@ use crate::{
     audio_mixer::{AudioChannels, AudioSamples, OutputSamples},
     error::EncoderInitError,
     pipeline::{
-        types::{EncodedChunk, EncodedChunkKind, EncoderOutputEvent},
+        types::{EncodedChunk, EncodedChunkKind, EncoderOutputEvent, IsKeyframe},
         AudioCodec,
     },
     queue::PipelineEvent,
@@ -94,6 +94,7 @@ fn run_encoder_thread(
             data,
             pts: batch.start_pts,
             dts: None,
+            is_keyframe: IsKeyframe::NoKeyframes,
             kind: EncodedChunkKind::Audio(AudioCodec::Opus),
         };
 

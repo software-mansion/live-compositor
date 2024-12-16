@@ -10,7 +10,10 @@ use crate::{
     audio_mixer::AudioChannels,
     error::OutputInitError,
     event::Event,
-    pipeline::{EncodedChunk, EncodedChunkKind, EncoderOutputEvent, PipelineCtx, VideoCodec},
+    pipeline::{
+        types::IsKeyframe, EncodedChunk, EncodedChunkKind, EncoderOutputEvent, PipelineCtx,
+        VideoCodec,
+    },
 };
 
 #[derive(Debug, Clone)]
@@ -183,8 +186,10 @@ fn init_ffmpeg_output(
         })
         .transpose()?;
 
+    let ffmpeg_options = ffmpeg::Dictionary::from_iter(&[("movflags", "faststart")]);
+
     output_ctx
-        .write_header()
+        .write_header_with(ffmpeg_options)
         .map_err(OutputInitError::FfmpegMp4Error)?;
 
     Ok((output_ctx, video_stream, audio_stream))
@@ -286,6 +291,12 @@ fn create_packet(
     packet.set_dts(Some((dts.as_secs_f64() * stream_state.time_base) as i64));
     packet.set_time_base(ffmpeg::Rational::new(1, stream_state.time_base as i32));
     packet.set_stream(stream_state.id);
+
+    match chunk.is_keyframe {
+        IsKeyframe::Yes => packet.set_flags(ffmpeg::packet::Flags::KEY),
+        IsKeyframe::Unknown => warn!("The MP4 output received an encoded chunk with is_keyframe set to Unknown. This output needs this information to produce correct mp4s."),
+        IsKeyframe::NoKeyframes | IsKeyframe::No => {},
+    }
 
     Some(packet)
 }
