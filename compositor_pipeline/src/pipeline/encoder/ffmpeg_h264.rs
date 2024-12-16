@@ -13,7 +13,8 @@ use tracing::{debug, error, span, trace, warn, Level};
 use crate::{
     error::EncoderInitError,
     pipeline::types::{
-        ChunkFromFfmpegError, EncodedChunk, EncodedChunkKind, EncoderOutputEvent, VideoCodec,
+        ChunkFromFfmpegError, EncodedChunk, EncodedChunkKind, EncoderOutputEvent, IsKeyframe,
+        VideoCodec,
     },
     queue::PipelineEvent,
 };
@@ -389,6 +390,11 @@ fn encoded_chunk_from_av_packet(
             .map(rescale)
             .ok_or(ChunkFromFfmpegError::NoPts)?,
         dts: value.dts().map(rescale),
+        is_keyframe: if value.flags().contains(ffmpeg_next::packet::Flags::KEY) {
+            IsKeyframe::Yes
+        } else {
+            IsKeyframe::No
+        },
         kind,
     })
 }

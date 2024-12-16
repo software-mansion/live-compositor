@@ -14,7 +14,7 @@ use tracing::{debug, error, span, Level};
 use crate::{
     audio_mixer::{AudioChannels, AudioSamples, OutputSamples},
     error::EncoderInitError,
-    pipeline::{AudioCodec, EncodedChunk, EncodedChunkKind, EncoderOutputEvent},
+    pipeline::{types::IsKeyframe, AudioCodec, EncodedChunk, EncodedChunkKind, EncoderOutputEvent},
     queue::PipelineEvent,
 };
 
@@ -266,6 +266,7 @@ impl AacEncoderInner {
                 data: output.freeze(),
                 pts,
                 dts: None,
+                is_keyframe: IsKeyframe::NoKeyframes,
                 kind: EncodedChunkKind::Audio(AudioCodec::Aac),
             })),
         }

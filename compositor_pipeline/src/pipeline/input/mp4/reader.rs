@@ -11,7 +11,7 @@ use mp4::Mp4Sample;
 use tracing::warn;
 
 use crate::pipeline::{
-    types::{EncodedChunk, EncodedChunkKind},
+    types::{EncodedChunk, EncodedChunkKind, IsKeyframe},
     AudioCodec, VideoCodec,
 };
 
@@ -235,6 +235,10 @@ impl<Reader: Read + Seek + Send + 'static> TrackChunks<'_, Reader> {
             data,
             pts,
             dts: Some(dts),
+            is_keyframe: match self.track.decoder_options {
+                DecoderOptions::H264 => IsKeyframe::Unknown,
+                DecoderOptions::Aac(_) => IsKeyframe::NoKeyframes,
+            },
             kind: match self.track.decoder_options {
                 DecoderOptions::H264 => EncodedChunkKind::Video(VideoCodec::H264),
                 DecoderOptions::Aac(_) => EncodedChunkKind::Audio(AudioCodec::Aac),
