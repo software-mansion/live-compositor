@@ -64,7 +64,7 @@ fn client_code() -> Result<()> {
                         "offset_y": 40,
                         "offset_x": 0,
                         "blur_radius": 40,
-                        "color_rgba": "#00000088",
+                        "color": "#00000088",
                     }
                 ],
                 "child": {
@@ -95,7 +95,7 @@ fn client_code() -> Result<()> {
                         "offset_y": 40,
                         "offset_x": 0,
                         "blur_radius": 40,
-                        "color_rgba": "#00000088",
+                        "color": "#00000088",
                     }
                 ],
                 "transition": {
