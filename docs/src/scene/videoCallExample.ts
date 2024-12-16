@@ -3,7 +3,7 @@ import { Api } from 'live-compositor';
 export function videoCallExample(): Api.Component {
   return {
     type: 'view',
-    background_color: '#ffffffd9',
+    background_color_rgba: '#ffffffd9',
     children: [
       {
         type: 'tiles',

@@ -3,7 +3,7 @@ import { Api } from 'live-compositor';
 export function removeGreenScreenExample(): Api.Component {
   return {
     type: 'view',
-    background_color: '#ffc89ad9',
+    background_color_rgba: '#ffc89ad9',
     children: [
       {
         type: 'rescaler',
