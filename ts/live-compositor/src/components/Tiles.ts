@@ -75,7 +75,7 @@ function sceneBuilder(
     children: children.map(sceneComponentIntoApi),
     width: style?.width,
     height: style?.height,
-    background_color_rgba: style?.backgroundColor && intoApiRgbaColor(style?.backgroundColor),
+    background_color: style?.backgroundColor && intoApiRgbaColor(style?.backgroundColor),
     tile_aspect_ratio: style?.tileAspectRatio,
     margin: style?.margin,
     padding: style?.padding,

@@ -102,7 +102,7 @@ function sceneBuilder(
 
     rotation: style.rotation,
     overflow: style.overflow,
-    background_color_rgba: style?.backgroundColor && intoApiRgbaColor(style.backgroundColor),
+    background_color: style?.backgroundColor && intoApiRgbaColor(style.backgroundColor),
     transition: transition && intoApiTransition(transition),
   };
 }
