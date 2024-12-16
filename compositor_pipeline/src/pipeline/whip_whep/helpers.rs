@@ -51,10 +51,10 @@ pub async fn validate_token(
     }
 }
 
-pub async fn gather_ice_candidates_for_one_second(pc: Arc<RTCPeerConnection>) {
-    let (tx, mut rx) = watch::channel(pc.ice_gathering_state());
+pub async fn gather_ice_candidates_for_one_second(peer_connection: Arc<RTCPeerConnection>) {
+    let (tx, mut rx) = watch::channel(peer_connection.ice_gathering_state());
 
-    pc.on_ice_gathering_state_change(Box::new(move |gatherer_state| {
+    peer_connection.on_ice_gathering_state_change(Box::new(move |gatherer_state| {
         let gathering_state = match gatherer_state {
             RTCIceGathererState::Complete => RTCIceGatheringState::Complete,
             RTCIceGathererState::Unspecified => RTCIceGatheringState::Unspecified,

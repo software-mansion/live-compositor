@@ -6,63 +6,63 @@ use rtp::{
     codecs::{h264::H264Packet, opus::OpusPacket},
     packetizer::Depacketizer,
 };
+use webrtc::rtp_transceiver::rtp_codec::RTPCodecType;
 
 use crate::pipeline::{
     decoder,
     types::{AudioCodec, EncodedChunk, EncodedChunkKind, VideoCodec},
-    whip_whep::{OPUS_PAYLOAD_TYPE, VIDEO_PAYLOAD_TYPE},
     VideoDecoder,
 };
 
-use super::{DepayloadingError, WhipReceiverOptions};
+use super::WhipReceiverOptions;
 
 #[derive(Debug, thiserror::Error)]
-pub enum DepayloaderNewError {
+pub enum DepayloadingError {
+    #[error("Bad payload type {0}")]
+    BadPayloadType(u8),
     #[error(transparent)]
-    Audio(#[from] AudioDepayloaderNewError),
+    Rtp(#[from] rtp::Error),
 }
 
 #[derive(Debug)]
 pub struct Depayloader {
-    /// (Depayloader, payload type)
     pub video: Option<VideoDepayloader>,
     pub audio: Option<AudioDepayloader>,
 }
 
 impl Depayloader {
-    pub fn new(stream: &WhipReceiverOptions) -> Result<Self, DepayloaderNewError> {
+    pub fn new(stream: &WhipReceiverOptions) -> Self {
         let video = stream
             .video
             .as_ref()
             .map(|video| VideoDepayloader::new(&video.options));
 
-        let audio = stream
-            .audio
-            .as_ref()
-            .map(|_| AudioDepayloader::new())
-            .transpose()?;
+        let audio = stream.audio.as_ref().map(|_| AudioDepayloader::new());
 
-        Ok(Self { video, audio })
+        Self { video, audio }
     }
 
     pub fn depayload(
         &mut self,
         packet: rtp::packet::Packet,
+        track_kind: RTPCodecType,
     ) -> Result<Vec<EncodedChunk>, DepayloadingError> {
-        match packet.header.payload_type {
-            VIDEO_PAYLOAD_TYPE => match self.video.as_mut() {
+        match track_kind {
+            RTPCodecType::Video => match self.video.as_mut() {
                 Some(video_depayloader) => video_depayloader.depayload(packet),
                 None => Err(DepayloadingError::BadPayloadType(
                     packet.header.payload_type,
                 )),
             },
-            OPUS_PAYLOAD_TYPE => match self.audio.as_mut() {
+            RTPCodecType::Audio => match self.audio.as_mut() {
                 Some(audio_depayloader) => audio_depayloader.depayload(packet),
                 None => Err(DepayloadingError::BadPayloadType(
                     packet.header.payload_type,
                 )),
             },
-            other => Err(DepayloadingError::BadPayloadType(other)),
+            _ => Err(DepayloadingError::BadPayloadType(
+                packet.header.payload_type,
+            )),
         }
     }
 }
@@ -131,15 +131,6 @@ impl VideoDepayloader {
     }
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum AudioDepayloaderNewError {
-    #[error("Unsupported depayloader for provided decoder settings: {0:?}")]
-    UnsupportedDepayloader(decoder::AudioDecoderOptions),
-
-    #[error("No required depayloader settings were provided")]
-    DepayloaderSettingsRequired,
-}
-
 #[derive(Debug)]
 pub enum AudioDepayloader {
     Opus {
@@ -149,11 +140,11 @@ pub enum AudioDepayloader {
 }
 
 impl AudioDepayloader {
-    pub fn new() -> Result<Self, AudioDepayloaderNewError> {
-        Ok(AudioDepayloader::Opus {
+    pub fn new() -> Self {
+        AudioDepayloader::Opus {
             depayloader: OpusPacket,
             rollover_state: RolloverState::default(),
-        })
+        }
     }
     fn depayload(
         &mut self,

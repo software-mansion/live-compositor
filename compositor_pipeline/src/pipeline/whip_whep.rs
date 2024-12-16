@@ -39,9 +39,6 @@ use crate::{queue::PipelineEvent, Pipeline};
 
 use super::EncodedChunk;
 
-pub(crate) const VIDEO_PAYLOAD_TYPE: u8 = 96;
-pub(crate) const OPUS_PAYLOAD_TYPE: u8 = 111;
-
 pub async fn run_whip_whep_server(pipeline: Weak<Mutex<Pipeline>>) {
     let pipeline_ctx = match pipeline.upgrade() {
         Some(pipeline) => pipeline.lock().unwrap().ctx.clone(),
@@ -129,7 +126,6 @@ pub async fn init_peer_connection(
     add_audio_track: bool,
 ) -> Result<Arc<RTCPeerConnection>, WhipServerError> {
     let mut media_engine = MediaEngine::default();
-    media_engine.register_default_codecs()?;
 
     media_engine.register_codec(
         RTCRtpCodecParameters {
@@ -161,22 +157,15 @@ pub async fn init_peer_connection(
         RTPCodecType::Audio,
     )?;
 
-    // Create a InterceptorRegistry. This is the user configurable RTP/RTCP Pipeline.
-    // This provides NACKs, RTCP Reports and other features. If you use `webrtc.NewPeerConnection`
-    // this is enabled by default. If you are manually managing You MUST create a InterceptorRegistry
-    // for each PeerConnection.
     let mut registry = Registry::new();
 
-    // Use the default set of Interceptors
     registry = register_default_interceptors(registry, &mut media_engine)?;
 
-    // Create the API object with the MediaEngine
     let api = APIBuilder::new()
         .with_media_engine(media_engine)
         .with_interceptor_registry(registry)
         .build();
 
-    // Prepare the configuration
     let config = RTCConfiguration {
         ice_servers: vec![RTCIceServer {
             urls: vec!["stun:stun.l.google.com:19302".to_owned()],
@@ -185,7 +174,6 @@ pub async fn init_peer_connection(
         ..Default::default()
     };
 
-    // Create a new RTCPeerConnection
     let peer_connection = Arc::new(api.new_peer_connection(config).await?);
     if add_video_track {
         peer_connection

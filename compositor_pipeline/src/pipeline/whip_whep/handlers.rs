@@ -42,7 +42,6 @@ pub async fn handle_whip(
 ) -> Result<Response<Body>, WhipServerError> {
     let input_id = InputId(Arc::from(id.clone()));
 
-    // Validate that the Content-Type is `application/sdp`
     if let Some(content_type) = headers.get("Content-Type") {
         if content_type.as_bytes() != b"application/sdp" {
             error!("Invalid Content-Type, expecting application/sdp");
@@ -241,9 +240,9 @@ pub async fn whip_ice_candidates_handler(
         ));
     }
 
-    if let Some(pc) = peer_connection {
+    if let Some(peer_connection) = peer_connection {
         for candidate in ice_fragment_unmarshal(&sdp_fragment_content) {
-            if let Err(err) = pc.add_ice_candidate(candidate.clone()).await {
+            if let Err(err) = peer_connection.add_ice_candidate(candidate.clone()).await {
                 return Err(WhipServerError::BadRequest(format!(
                     "Cannot add ice_candidate {candidate:?} for input {input_id:?}: {err:?}"
                 )));

@@ -127,7 +127,7 @@ fn run_decoder_thread(
         match decoder.send_packet(&av_packet) {
             Ok(()) => {}
             Err(e) => {
-                warn!("Failed to send a packet to decoder: {}", e);
+                warn!("Failed to send a packet to decoder: {:?}", e);
                 continue;
             }
         }

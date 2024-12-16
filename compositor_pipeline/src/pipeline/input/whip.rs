@@ -7,15 +7,13 @@ use std::{
 use tokio::sync::mpsc;
 use webrtc::track::track_remote::TrackRemote;
 
-use depayloader::{Depayloader, DepayloaderNewError};
+use depayloader::Depayloader;
 use std::fmt::Write;
 use tracing::{error, warn};
 
 use crate::{
     pipeline::{
-        decoder::{self},
-        encoder,
-        rtp::BindToPortError,
+        decoder,
         types::EncodedChunk,
         whip_whep::{WhipInputConnectionOptions, WhipWhepState},
         PipelineCtx,
@@ -32,21 +30,6 @@ pub mod depayloader;
 
 #[derive(Debug, thiserror::Error)]
 pub enum WhipReceiverError {
-    #[error("Error while setting socket options.")]
-    SocketOptions(#[source] std::io::Error),
-
-    #[error("Error while binding the socket.")]
-    SocketBind(#[source] std::io::Error),
-
-    #[error("Failed to register input. Port: {0} is already used or not available.")]
-    PortAlreadyInUse(u16),
-
-    #[error("Failed to register input. All ports in range {lower_bound} to {upper_bound} are already used or not available.")]
-    AllPortsAlreadyInUse { lower_bound: u16, upper_bound: u16 },
-
-    #[error(transparent)]
-    DepayloaderError(#[from] DepayloaderNewError),
-
     #[error("Failed to add input {0} to input_connections hashmap")]
     WhipWhepStateAddInput(InputId),
 }
@@ -65,11 +48,6 @@ pub struct InputVideoStream {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InputAudioStream {
     pub options: decoder::OpusDecoderOptions,
-}
-
-pub struct OutputAudioStream {
-    pub options: encoder::EncoderOptions,
-    pub payload_type: u8,
 }
 
 pub struct WhipReceiver {
@@ -110,7 +88,7 @@ impl WhipReceiver {
             audio_rx_crossbeam = Some(rx_crossbeam);
         }
 
-        let depayloader = Arc::from(Mutex::new(Depayloader::new(&opts)?));
+        let depayloader = Arc::from(Mutex::new(Depayloader::new(&opts)));
 
         Self::start_forwarding_thread(
             input_id,
@@ -181,7 +159,7 @@ impl WhipReceiver {
                 .entered();
                 loop {
                     let Some(chunk) = receiver.blocking_recv() else {
-                        debug!("Closing RTP forwarding thread.");
+                        debug!("Closing WHIP video forwarding thread.");
                         break;
                     };
 
@@ -203,7 +181,7 @@ impl WhipReceiver {
                 .entered();
                 loop {
                     let Some(chunk) = receiver.blocking_recv() else {
-                        debug!("Closing RTP forwarding thread.");
+                        debug!("Closing WHIP audio forwarding thread.");
                         break;
                     };
 
@@ -268,9 +246,16 @@ pub async fn handle_track(
     let mut first_chunk_flag = true;
 
     while let Ok((rtp_packet, _)) = track.read_rtp().await {
-        let Ok(chunks) = depayloader.lock().unwrap().depayload(rtp_packet) else {
-            warn!("RTP depayloading error",);
-            continue;
+        let chunks = match depayloader
+            .lock()
+            .unwrap()
+            .depayload(rtp_packet, track_kind)
+        {
+            Ok(chunks) => chunks,
+            Err(err) => {
+                warn!("RTP depayloading error: {err:?}");
+                continue;
+            }
         };
         if let Some(first_chunk) = chunks.first() {
             if first_chunk_flag {
@@ -298,28 +283,4 @@ fn generate_token() -> String {
         }
         acc
     })
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum DepayloadingError {
-    #[error("Bad payload type {0}")]
-    BadPayloadType(u8),
-    #[error(transparent)]
-    Rtp(#[from] rtp::Error),
-}
-
-impl From<BindToPortError> for WhipReceiverError {
-    fn from(value: BindToPortError) -> Self {
-        match value {
-            BindToPortError::SocketBind(err) => WhipReceiverError::SocketBind(err),
-            BindToPortError::PortAlreadyInUse(port) => WhipReceiverError::PortAlreadyInUse(port),
-            BindToPortError::AllPortsAlreadyInUse {
-                lower_bound,
-                upper_bound,
-            } => WhipReceiverError::AllPortsAlreadyInUse {
-                lower_bound,
-                upper_bound,
-            },
-        }
-    }
 }
