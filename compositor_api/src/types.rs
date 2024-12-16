@@ -8,6 +8,7 @@ mod audio;
 mod component;
 #[cfg(not(target_arch = "wasm32"))]
 mod from_audio;
+mod from_color;
 mod from_component;
 #[cfg(not(target_arch = "wasm32"))]
 mod from_register_input;
@@ -16,7 +17,6 @@ mod from_register_output;
 mod from_renderer;
 mod from_types;
 mod from_util;
-mod from_color;
 #[cfg(not(target_arch = "wasm32"))]
 mod from_video;
 mod register_input;
