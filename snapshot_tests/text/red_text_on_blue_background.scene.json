@@ -11,8 +11,8 @@
                     "font_family": "Inter",
                     "align": "left",
                     "wrap": "word",
-                    "color_rgba": "#FF0000FF",
-                    "background_color_rgba": "#0000FFFF",
+                    "color": "#FF0000FF",
+                    "background_color": "#0000FFFF",
                     "width": 1000,
                     "height": 500
                 }

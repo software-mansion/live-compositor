@@ -98,7 +98,7 @@ fn register_output_with_initial_scene(instance: &CompositorInstance, port: u16) 
                     "root": {
                         "type": "tiles",
                         "padding": 3,
-                        "background_color_rgba": "#DDDDDDFF",
+                        "background_color": "#DDDDDDFF",
                         "children": [
                             {
                                 "type": "input_stream",

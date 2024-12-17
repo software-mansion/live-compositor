@@ -48,7 +48,7 @@ fn client_code() -> Result<()> {
 
     let scene1 = json!({
         "type": "view",
-        "background_color_rgba": "#42daf5ff",
+        "background_color": "#42daf5ff",
         "children": [
             {
                 "type": "view",
@@ -57,14 +57,14 @@ fn client_code() -> Result<()> {
                 "height": VIDEO_RESOLUTION.height,
                 "top": 0.0,
                 "right": 0.0,
-                "background_color_rgba": "#0000FFFF",
-                "border_color_rgba": "#FFFFFFFF",
+                "background_color": "#0000FFFF",
+                "border_color": "#FFFFFFFF",
                 "box_shadow": [
                     {
                         "offset_y": 40,
                         "offset_x": 0,
                         "blur_radius": 40,
-                        "color_rgba": "#00000088",
+                        "color": "#00000088",
                     }
                 ],
                 "children": [
@@ -83,7 +83,7 @@ fn client_code() -> Result<()> {
 
     let scene2 = json!({
         "type": "view",
-        "background_color_rgba": "#42daf5ff",
+        "background_color": "#42daf5ff",
         "children": [
             {
                 "type": "view",
@@ -94,14 +94,14 @@ fn client_code() -> Result<()> {
                 "right": (VIDEO_RESOLUTION.width as f32 - 330.0) / 2.0,
                 "border_radius": 50,
                 "border_width": 15,
-                "background_color_rgba": "#0000FFFF",
-                "border_color_rgba": "#FFFFFFFF",
+                "background_color": "#0000FFFF",
+                "border_color": "#FFFFFFFF",
                 "box_shadow": [
                     {
                         "offset_y": 40,
                         "offset_x": 0,
                         "blur_radius": 40,
-                        "color_rgba": "#00000088",
+                        "color": "#00000088",
                     }
                 ],
                 "transition": {

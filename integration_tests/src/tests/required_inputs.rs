@@ -39,7 +39,7 @@ pub fn required_video_inputs_no_offset() -> Result<()> {
                     "root": {
                         "type": "tiles",
                         "padding": 3,
-                        "background_color_rgba": "#DDDDDDFF",
+                        "background_color": "#DDDDDDFF",
                         "children": [
                             {
                                 "type": "input_stream",
@@ -156,7 +156,7 @@ pub fn required_video_inputs_with_offset() -> Result<()> {
                     "root": {
                         "type": "tiles",
                         "padding": 3,
-                        "background_color_rgba": "#DDDDDDFF",
+                        "background_color": "#DDDDDDFF",
                         "children": [
                             {
                                 "type": "input_stream",
@@ -546,7 +546,7 @@ pub fn optional_inputs_no_offset_flaky() -> Result<()> {
                     "root": {
                         "type": "tiles",
                         "padding": 3,
-                        "background_color_rgba": "#DDDDDDFF",
+                        "background_color": "#DDDDDDFF",
                         "children": [
                             {
                                 "type": "input_stream",
