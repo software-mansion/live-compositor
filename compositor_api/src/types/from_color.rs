@@ -59,53 +59,39 @@ fn parse_hex_rgba(s: &str) -> Result<scene::RGBAColor, TypeError> {
 fn parse_rgb(s: &str) -> Result<scene::RGBAColor, TypeError> {
     let inner_s = s.trim_start_matches("rgb(").trim_end_matches(')');
     let parts: Vec<&str> = inner_s.split(',').collect();
-    if parts.len() != 3 {
-        return Err(TypeError::new("Invalid RGB format."));
+    match parts.as_slice() {
+        [r, g, b] => Ok(scene::RGBAColor(
+            parse_color_channel(r, 10)?,
+            parse_color_channel(g, 10)?,
+            parse_color_channel(b, 10)?,
+            255,
+        )),
+        _ => Err(TypeError::new("Invalid RGB format.")),
     }
-
-    let rgb_results: Result<Vec<u8>, TypeError> = parts[..3]
-        .iter()
-        .map(|&part| parse_color_channel(part, 10))
-        .collect();
-
-    let (r, g, b) = match rgb_results {
-        Ok(vec) => (vec[0], vec[1], vec[2]),
-        Err(e) => return Err(e),
-    };
-
-    Ok(scene::RGBAColor(r, g, b, 255))
 }
 
 fn parse_rgba(s: &str) -> Result<scene::RGBAColor, TypeError> {
     let inner_s = s.trim_start_matches("rgba(").trim_end_matches(')');
     let parts: Vec<&str> = inner_s.split(',').collect();
-    if parts.len() != 4 {
-        return Err(TypeError::new("Invalid RGBA format."));
-    }
-    let rgb_results: Result<Vec<u8>, TypeError> = parts[..3]
-        .iter()
-        .map(|&part| parse_color_channel(part, 10))
-        .collect();
-
-    let (r, g, b) = match rgb_results {
-        Ok(vec) if vec.len() == 3 => (vec[0], vec[1], vec[2]),
-        Ok(_) => return Err(TypeError::new("Expected three color components.")),
-        Err(e) => return Err(e),
+    let [r, g, b, a] = parts.as_slice() else {
+        return Err(TypeError::new(
+            "Expected three color components and alpha channel.",
+        ));
     };
-
-    let alpha_str = parts[3].trim();
-    let a = alpha_str
+    let a = a
         .parse::<f32>()
         .map_err(|_| TypeError::new("Alpha channel parsing failed."))?;
-
     if !(0.0..=1.0).contains(&a) {
         return Err(TypeError::new(
             "Alpha value out of range. It must be between 0.0 and 1.0",
         ));
     }
-    let alpha = (a * 255.0).round() as u8;
-
-    Ok(scene::RGBAColor(r, g, b, alpha))
+    Ok(scene::RGBAColor(
+        parse_color_channel(r, 10)?,
+        parse_color_channel(g, 10)?,
+        parse_color_channel(b, 10)?,
+        (a * 255.0).round() as u8,
+    ))
 }
 
 fn parse_named_color(color_name: &str) -> Option<scene::RGBAColor> {
