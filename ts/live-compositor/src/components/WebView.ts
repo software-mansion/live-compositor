@@ -1,12 +1,8 @@
 import type * as Api from '../api.js';
-import type { SceneComponent } from '../component.js';
+import type { ComponentBaseProps, SceneComponent } from '../component.js';
 import { createCompositorComponent, sceneComponentIntoApi } from '../component.js';
 
-export type WebViewProps = {
-  /**
-   * Id of a component.
-   */
-  id?: Api.ComponentId | null;
+export type WebViewProps = ComponentBaseProps & {
   /**
    * Id of a web renderer instance. It identifies an instance registered using `LiveCompositor.registerWebRenderer`.
    *

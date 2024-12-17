@@ -1,16 +1,10 @@
 import { createElement } from 'react';
 import type * as Api from '../api.js';
-import type { SceneComponent } from '../component.js';
+import type { ComponentBaseProps, SceneComponent } from '../component.js';
 import { createCompositorComponent } from '../component.js';
 import { useAudioInput } from '../hooks.js';
 
-export type InputStreamProps = {
-  children?: undefined;
-
-  /**
-   * Id of a component.
-   */
-  id?: Api.ComponentId;
+export type InputStreamProps = Omit<ComponentBaseProps, 'children'> & {
   /**
    * Id of an input. It identifies a stream registered using a `LiveCompositor.registerInput`.
    */
