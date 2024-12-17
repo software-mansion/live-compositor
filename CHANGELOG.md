@@ -5,14 +5,14 @@
 ### 💥 Breaking changes
 
 - Drop support for `SHADER_UNUSED_VERTEX_OUTPUT` `wgpu` feature.  ([#733](https://github.com/software-mansion/live-compositor/pull/733)) by [@jerzywilczek](https://github.com/jerzywilczek)
-- Modify supported color formats. ([#896](https://github.com/software-mansion/live-compositor/issues/896)) by [@BrtqKr](https://github.com/BrtqKr)
+- Rename component properties describing color. Remove `_rgba` suffix. ([#896](https://github.com/software-mansion/live-compositor/issues/896)) by [@BrtqKr](https://github.com/BrtqKr)
 
 ### ✨ New features
 
 - Add `loop` option for MP4 input. ([#699](https://github.com/software-mansion/live-compositor/pull/699) by [@WojciechBarczynski](https://github.com/WojciechBarczynski))
 - Add `LIVE_COMPOSITOR_LOG_FILE` environment variable to enable logging to file ([#853](https://github.com/software-mansion/live-compositor/pull/853) by [@wkozyra95](https://github.com/wkozyra95))
 - Add border, border radius and box shadow options to `Rescaler` and `View` components. ([#815](https://github.com/software-mansion/live-compositor/pull/815) by [@WojciechBarczynski](https://github.com/WojciechBarczynski), ([#839](https://github.com/software-mansion/live-compositor/pull/839), [#842](https://github.com/software-mansion/live-compositor/pull/842), [#858](https://github.com/software-mansion/live-compositor/pull/858) by [@wkozyra95](https://github.com/wkozyra95))
-
+- Extend supported color formats. ([#896](https://github.com/software-mansion/live-compositor/issues/896)) by [@BrtqKr](https://github.com/BrtqKr)
 
 ### 🐛 Bug fixes
 

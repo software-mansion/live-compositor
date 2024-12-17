@@ -63,8 +63,6 @@ fn client_code() -> Result<()> {
                 "height": 270,
                 "top": 100,
                 "right": 100,
-                "border_color": "#00ff00",
-                "border_width": 40,
                 "children": [
                     {
                         "type": "shader",
