@@ -17,7 +17,7 @@ fn test_rgba_deserialization() {
     test_case(
         "#0000000G",
         Err(TypeError::new(
-            "Invalid format. Color representation is not a valid hexadecimal number.",
+            "Invalid format. Color representation is not a valid number.",
         )),
     );
     test_case(
