@@ -5,7 +5,7 @@ import MP4Source from "./mp4/source";
 import CameraFrameProducer from "./producer/cameraFrameProducer";
 
 export type InputFrameProducerCallbacks = {
-  onFrame(frame: FrameRef): void;
+  onReady(): void;
 };
 
 export default interface InputFrameProducer {
@@ -20,11 +20,11 @@ export default interface InputFrameProducer {
    * @param framePts - Desired PTS of the frame in milliseconds.
    */
   produce(framePts?: number): Promise<void>;
+  getFrameRef(framePts: number): FrameRef | undefined;
   /**
    * if `true` no more frames will be produced.
    */
   isFinished(): boolean;
-  maxBufferSize(): number;
   close(): void;
 }
 

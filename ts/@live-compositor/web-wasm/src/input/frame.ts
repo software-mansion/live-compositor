@@ -56,9 +56,15 @@ export class FrameRef {
   public getPtsMs(): number {
     return this.frame.ptsMs;
   }
+}
 
-  public isAlive(): boolean {
-    return this.refCount === 0;
+export class NonCopyableFrameRef extends FrameRef {
+  public constructor(frame: FrameWithPts) {
+    super(frame);
+  }
+
+  public incrementRefCount(): void {
+    throw new Error('Reference count of NonCopyableFrameRef cannot be incremented');
   }
 }
 

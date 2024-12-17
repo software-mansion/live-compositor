@@ -1,28 +1,23 @@
 import { assert } from "../../utils";
-import { FrameRef } from "../frame";
+import { FrameRef, NonCopyableFrameRef } from "../frame";
 import InputFrameProducer, { InputFrameProducerCallbacks } from "../inputFrameProducer";
 
-// Frames from camera can't be buffered because `reader` won't produce more frames until the old ones are freed from memory
-const MAX_BUFFERING_SIZE = 1;
-
-// TODO(noituri): Check what happens if we there's multiple CameraFrameProducer constructed
 export default class CameraFrameProducer implements InputFrameProducer {
-  private callbacks?: InputFrameProducerCallbacks;
   private track?: MediaStreamVideoTrack;
   private reader?: ReadableStreamDefaultReader<VideoFrame>;
   private ptsOffset?: number;
+  private onReadySent: boolean;
   private eosReceived: boolean;
-  private isReadingFrame: boolean;
-  private lastPts: number = 0;
-  private produceNow: number = 0;
+  private lastFrame: NonCopyableFrameRef | undefined;
+  private callbacks?: InputFrameProducerCallbacks;
 
   public constructor() {
+    this.onReadySent = false;
     this.eosReceived = false;
-    this.isReadingFrame = false;
   }
 
   public async init(): Promise<void> {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: { frameRate: { min: 10 } } });
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
     const tracks = stream.getVideoTracks();
     if (tracks.length === 0) {
       throw new Error('No camera available');
@@ -36,15 +31,6 @@ export default class CameraFrameProducer implements InputFrameProducer {
     // TODO(noituri): Implement backward compabilty with firefox
     const trackProcessor = new MediaStreamTrackProcessor({ track: this.track });
     this.reader = trackProcessor.readable.getReader();
-    document.addEventListener('visibilitychange', () => {
-      if (!document.hidden) {
-        // this.track?.applyConstraints({'width'})
-      }
-    })
-  }
-
-  public maxBufferSize(): number {
-    return MAX_BUFFERING_SIZE;
   }
 
   public registerCallbacks(callbacks: InputFrameProducerCallbacks): void {
@@ -52,24 +38,25 @@ export default class CameraFrameProducer implements InputFrameProducer {
   }
 
   public async produce(_framePts?: number): Promise<void> {
-    console.warn(`Produce elapsed: ${performance.now() - this.produceNow}`);
-    this.produceNow = performance.now();
-    // `readFrame` may block indefinitely if previously read frames are not freed from memory
-    if (this.isReadingFrame || this.eosReceived) {
-      // console.error('Reading');
+    if (this.eosReceived) {
       return;
     }
 
-    void (async () => {
-      const now = performance.now();
-      this.isReadingFrame = true;
-      await this.readFrame();
-      this.isReadingFrame = false;
-      console.error(`Time read in: ${performance.now() - now}`);
-    })();
+    await this.readFrame();
+    if (!this.onReadySent) {
+      this.callbacks?.onReady();
+      this.onReadySent = true;
+    }
   }
 
-  private async readFrame(_framePts?: number): Promise<void> {
+
+  public getFrameRef(_framePts?: number): FrameRef | undefined {
+    let frame = this.lastFrame;
+    this.lastFrame = undefined;
+    return frame;
+  }
+
+  private async readFrame(): Promise<void> {
     assert(this.reader);
 
     const { done, value: videoFrame } = await this.reader.read();
@@ -81,13 +68,15 @@ export default class CameraFrameProducer implements InputFrameProducer {
     if (this.ptsOffset === undefined) {
       this.ptsOffset = -videoFrame.timestamp
     }
-    console.error(`elapsed ${(videoFrame.timestamp / 1000) - (this.lastPts / 1000)}`);
-    this.lastPts = videoFrame.timestamp;
-    this.callbacks?.onFrame(new FrameRef({
+
+    // We can't buffer video frames from camera
+    if (this.lastFrame) {
+      this.lastFrame.decrementRefCount();
+    }
+    this.lastFrame = new NonCopyableFrameRef({
       frame: videoFrame,
-      // TODO(noituri): Handle pts roller
       ptsMs: (videoFrame.timestamp + this.ptsOffset) / 1000,
-    }));
+    });
   }
 
   public isFinished(): boolean {

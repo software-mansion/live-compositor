@@ -4,14 +4,12 @@ import type { EventSender } from '../eventSender';
 import { FrameRef } from './frame';
 import { assert } from '../utils';
 import InputFrameProducer from './inputFrameProducer';
-import { Queue } from '@datastructures-js/queue/src/queue';
 
 export type InputState = 'waiting_for_start' | 'buffering' | 'playing' | 'finished';
 
 export class Input {
   private id: InputId;
   private state: InputState;
-  private frames: Queue<FrameRef>;
   private frameProducer: InputFrameProducer;
   private eventSender: EventSender;
   /**
@@ -22,12 +20,17 @@ export class Input {
   public constructor(id: InputId, frameProducer: InputFrameProducer, eventSender: EventSender) {
     this.id = id;
     this.state = 'waiting_for_start';
-    this.frames = new Queue();
     this.frameProducer = frameProducer;
     this.eventSender = eventSender;
 
     this.frameProducer.registerCallbacks({
-      onFrame: (frame) => this.frames.push(frame),
+      onReady: () => {
+        this.state = 'playing';
+        this.eventSender.sendEvent({
+          type: CompositorEventType.VIDEO_INPUT_PLAYING,
+          inputId: this.id,
+        });
+      }
     })
   }
 
@@ -56,96 +59,13 @@ export class Input {
 
     await this.frameProducer.produce(targetPts);
 
-    if (this.state === 'buffering') {
-      this.handleBufferingState();
-    } else if (this.state === 'playing') {
+    if (this.state === 'playing') {
       this.handlePlayingState();
     }
   }
 
-  /**
-   * Retrieves frame with PTS closest to `currentQueuePts`.
-   * Frames older than the closest frame are dropped.
-   */
-  public getFrameRef(currentQueuePts: number): FrameRef | undefined {
-    if (this.state !== 'playing') {
-      return;
-    }
-    if (this.startPtsMs === undefined) {
-      this.startPtsMs = currentQueuePts;
-    }
-
-    this.dropOldFrames(currentQueuePts);
-
-    let frame: FrameRef | undefined;
-    if (this.frameProducer.isFinished() && this.frames.size() == 1) {
-      frame = this.frames.pop();
-    } else {
-      frame = this.cloneLatestFrame();
-    }
-
-    if (frame) {
-      return frame;
-    }
-
-    return undefined;
-  }
-
-  /**
-   * Retrieves latest frame and increments its reference count
-   */
-  private cloneLatestFrame(): FrameRef | undefined {
-    const frame = this.frames.front();
-    if (frame) {
-      frame.incrementRefCount();
-      return frame;
-    }
-
-    return undefined;
-  }
-
-  /**
-   * Finds frame with PTS closest to `currentQueuePts` and removes frames older than it
-   */
-  private dropOldFrames(currentQueuePts: number): void {
-    if (this.frames.isEmpty()) {
-      return;
-    }
-
-    const frames = this.frames.toArray();
-    const targetPts = this.queuePtsToInputPts(currentQueuePts);
-
-    const targetFrame = frames.reduce((prevFrame, frame) => {
-      const prevPtsDiff = Math.abs(prevFrame.getPtsMs() - targetPts);
-      const currPtsDiff = Math.abs(frame.getPtsMs() - targetPts);
-      return prevPtsDiff < currPtsDiff ? prevFrame : frame;
-    });
-
-    for (const frame of frames) {
-      if (frame.getPtsMs() < targetFrame.getPtsMs()) {
-        frame.decrementRefCount();
-        this.frames.pop();
-      }
-    }
-  }
-
-  private handleBufferingState() {
-    if (this.frames.size() < this.frameProducer.maxBufferSize()) {
-      return;
-    }
-
-    this.state = 'playing';
-    this.eventSender.sendEvent({
-      type: CompositorEventType.VIDEO_INPUT_PLAYING,
-      inputId: this.id,
-    });
-  }
-
   private handlePlayingState() {
     if (!this.frameProducer.isFinished()) {
-      return;
-    }
-    if (this.frames.size() > 1) {
       return;
     }
 
@@ -157,6 +77,19 @@ export class Input {
     });
 
     this.frameProducer.close();
+  }
+
+  public getFrameRef(currentQueuePts: number): FrameRef | undefined {
+    if (this.state !== 'playing') {
+      return;
+    }
+    if (this.startPtsMs === undefined) {
+      this.startPtsMs = currentQueuePts;
+    }
+
+
+    const framePts = this.queuePtsToInputPts(currentQueuePts);
+    return this.frameProducer.getFrameRef(framePts);
   }
 
   private queuePtsToInputPts(queuePts: number): number {
